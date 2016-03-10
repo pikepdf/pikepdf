@@ -34,10 +34,11 @@ setup(
     version='0.0.1',
     author='Sylvain Corlay',
     author_email='sylvain.corlay@gmail.com',
-    url='https://github.com/SylvainCorlay/pbtest',
+    url='https://github.com/pybind/pbtest',
     description='A test project using pybind11',
     long_description='',
     ext_modules=ext_modules,
     install_requires=['pybind11'],
     cmdclass={'build_ext': BuildExt},
+    zip_safe=False,
 )
