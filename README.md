@@ -1,7 +1,7 @@
 pbtest
-=====
+======
 
-An example project built with [pybind11](https://github.com/wjakob/pybind11).
+An example project built with [pybind11](https://github.com/pybind/pybind11).
 
 Installation
 ------------
@@ -24,7 +24,7 @@ Installation
    with it. We must force the use of Visual Studio 2015.
 
      - clone this repository
-     - `"C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat" x64`
+     - `"%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" x64`
      - `set DISTUTILS_USE_SDK=1`
      - `set MSSdk=1`
      - `pip install ./pbtest`
