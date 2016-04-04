@@ -17,11 +17,8 @@ def has_flag(compiler, flagname):
     """
     import tempfile
     fd, fname = tempfile.mkstemp('.cpp', 'main', text=True)
-    f = os.fdopen(fd, 'w')
-    try:
+    with os.fdopen(fd, 'w') as f:
         f.write('int main (int argc, char **argv) { return 0; }')
-    finally:
-        f.close()
     try:
         compiler.compile([fname], extra_postargs=[flagname])
     except setuptools.distutils.errors.CompileError:
