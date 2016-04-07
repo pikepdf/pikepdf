@@ -1,12 +1,18 @@
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
-import os, sys
+from pip import locations
+import os
+import sys
+import setuptools
 
 ext_modules = [
     Extension(
         'pbtest',
         ['py/main.cpp'],
-        include_dirs=['include'],
+        include_dirs=[
+            # Path to pybind11 headers
+            os.path.dirname(locations.distutils_scheme('pybind11')['headers'])
+        ],
         language='c++',
     ),
 ]
