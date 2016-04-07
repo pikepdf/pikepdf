@@ -17,18 +17,19 @@ ext_modules = [
     ),
 ]
 
+# As of Python 3.6, CCompiler has a `has_flag` method.
+# cf http://bugs.python.org/issue26689
 def has_flag(compiler, flagname):
     """Return a boolean indicating whether a flag name is supported on
     the specified compiler.
     """
     import tempfile
-    fd, fname = tempfile.mkstemp('.cpp', 'main', text=True)
-    with os.fdopen(fd, 'w') as f:
+    with tempfile.NamedTemporaryFile('w', suffix='.cpp') as f:
         f.write('int main (int argc, char **argv) { return 0; }')
-    try:
-        compiler.compile([fname], extra_postargs=[flagname])
-    except setuptools.distutils.errors.CompileError:
-        return False
+        try:
+            compiler.compile([f.name], extra_postargs=[flagname])
+        except setuptools.distutils.errors.CompileError:
+            return False
     return True
 
 def cpp_flag(compiler):
