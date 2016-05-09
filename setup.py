@@ -1,9 +1,23 @@
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
-from pip import locations
-import os
 import sys
 import setuptools
+
+
+class get_pybind_include(object):
+    """Helper class to determine the pybind11 include path
+
+    The purpose of this class is to postpone importing pybind11
+    until it is actually installed, so that the ``get_include()``
+    method can be invoked. """
+
+    def __init__(self, user=False):
+        self.user = user
+
+    def __str__(self):
+        import pybind11
+        return pybind11.get_include(self.user)
+
 
 ext_modules = [
     Extension(
@@ -11,11 +25,13 @@ ext_modules = [
         ['py/main.cpp'],
         include_dirs=[
             # Path to pybind11 headers
-            os.path.dirname(locations.distutils_scheme('pybind11')['headers'])
+            get_pybind_include(),
+            get_pybind_include(user=True)
         ],
-        language='c++',
+        language='c++'
     ),
 ]
+
 
 # As of Python 3.6, CCompiler has a `has_flag` method.
 # cf http://bugs.python.org/issue26689
@@ -32,6 +48,7 @@ def has_flag(compiler, flagname):
             return False
     return True
 
+
 def cpp_flag(compiler):
     """Return the -std=c++[11/14] compiler flag.
 
@@ -42,7 +59,8 @@ def cpp_flag(compiler):
     elif has_flag(compiler, '-std=c++11'):
         return '-std=c++11'
     else:
-        raise RuntimeError('Unsupported compiler -- at least C++11 support is needed!')
+        raise RuntimeError('Unsupported compiler -- at least C++11 support '
+                           'is needed!')
 
 
 class BuildExt(build_ext):
@@ -75,7 +93,7 @@ setup(
     description='A test project using pybind11',
     long_description='',
     ext_modules=ext_modules,
-    install_requires=['pybind11'],
+    install_requires=['pybind11>=1.7'],
     cmdclass={'build_ext': BuildExt},
     zip_safe=False,
 )
