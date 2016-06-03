@@ -21,7 +21,7 @@ class get_pybind_include(object):
 
 ext_modules = [
     Extension(
-        'pbtest',
+        'python_example',
         ['py/main.cpp'],
         include_dirs=[
             # Path to pybind11 headers
@@ -85,11 +85,11 @@ class BuildExt(build_ext):
         build_ext.build_extensions(self)
 
 setup(
-    name='pbtest',
+    name='python_example',
     version='0.0.1',
     author='Sylvain Corlay',
     author_email='sylvain.corlay@gmail.com',
-    url='https://github.com/pybind/pbtest',
+    url='https://github.com/pybind/python_example',
     description='A test project using pybind11',
     long_description='',
     ext_modules=ext_modules,

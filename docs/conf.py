@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# pbtest documentation build configuration file, created by
+# python_exameple documentation build configuration file, created by
 # sphinx-quickstart on Fri Feb 26 00:29:33 2016.
 #
 # This file is execfile()d with the current directory set to its
@@ -52,7 +52,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'pbtest'
+project = u'python_example'
 copyright = u'2016, Sylvain Corlay'
 author = u'Sylvain Corlay'
 
@@ -206,7 +206,7 @@ html_static_path = ['_static']
 #html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'pbtestdoc'
+htmlhelp_basename = 'python_exampledoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -228,7 +228,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'pbtest.tex', u'pbtest Documentation',
+    (master_doc, 'python_example.tex', u'python_example Documentation',
      u'Sylvain Corlay', 'manual'),
 ]
 
@@ -258,7 +258,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'pbtest', u'pbtest Documentation',
+    (master_doc, 'python_example', u'python_example Documentation',
      [author], 1)
 ]
 
@@ -272,8 +272,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'pbtest', u'pbtest Documentation',
-     author, 'pbtest', 'One line description of project.',
+    (master_doc, 'python_example', u'python_example Documentation',
+     author, 'python_example', 'One line description of project.',
      'Miscellaneous'),
 ]
 
