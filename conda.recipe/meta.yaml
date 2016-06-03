@@ -1,5 +1,5 @@
 package:
-  name: pbtest
+  name: python_example
   version: {{ environ.get('GIT_DESCRIBE_TAG', '') }}
 
 build:
@@ -22,7 +22,7 @@ requirements:
 
 test:
   imports:
-    - pbtest
+    - python_example
 
 about:
   summary: An example project built with pybind11.

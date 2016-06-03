@@ -1,5 +1,5 @@
-pbtest
-======
+python_example
+==============
 
 An example project built with [pybind11](https://github.com/pybind/pybind11).
 
@@ -9,13 +9,13 @@ Installation
 **On Unix (Linux, OS X)**
 
  - clone this repository
- - `pip install ./pbtest`
+ - `pip install ./python_example`
 
 **On Windows (Requires Visual Studio 2015)**
 
  - For Python 3.5:
      - clone this repository
-     - `pip install ./pbtest`
+     - `pip install ./pyton_example`
  - For earlier versions of Python, including Python 2.7:
 
    Pybind11 requires a C++11 compliant compiler (i.e. Visual Studio 2015 on
@@ -27,9 +27,9 @@ Installation
      - `"%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" x64`
      - `set DISTUTILS_USE_SDK=1`
      - `set MSSdk=1`
-     - `pip install ./pbtest`
+     - `pip install ./python_example`
 
-   Note that this requires the user building pbtest to have registry edition
+   Note that this requires the user building `python_example` to have registry edition
    rights on the machine, to be able to run the `vcvarsall.bat` script.
 
 
@@ -64,7 +64,7 @@ the extension module to generate beautiful documentation in a variety formats.
 The following command generates HTML-based reference documentation; for other
 formats please refer to the Sphinx manual:
 
- - `cd pbtest/docs`
+ - `cd python_example/docs`
  - `make html`
 
 License
@@ -78,6 +78,6 @@ Test call
 ---------
 
 ```python
-import pbtest
-pbtest.add(1, 2)
+import python_example
+python_example.add(1, 2)
 ```

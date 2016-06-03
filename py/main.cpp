@@ -10,12 +10,12 @@ int subtract(int i, int j) {
 
 namespace py = pybind11;
 
-PYBIND11_PLUGIN(pbtest) {
-    py::module m("pbtest", R"pbdoc(
+PYBIND11_PLUGIN(python_example) {
+    py::module m("python_example", R"pbdoc(
         Pybind11 example plugin
         -----------------------
 
-        .. currentmodule:: pbtest
+        .. currentmodule:: python_example
 
         .. autosummary::
            :toctree: _generate
