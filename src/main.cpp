@@ -36,5 +36,11 @@ PYBIND11_PLUGIN(python_example) {
         Some other explanation about the subtract function.
     )pbdoc");
 
+#ifdef VERSION_INFO
+    m.attr("__version__") = py::str(VERSION_INFO);
+#else
+    m.attr("__version__") = py::str("dev");
+#endif
+
     return m.ptr();
 }

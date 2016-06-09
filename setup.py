@@ -3,6 +3,8 @@ from setuptools.command.build_ext import build_ext
 import sys
 import setuptools
 
+__version__ = '0.0.1'
+
 
 class get_pybind_include(object):
     """Helper class to determine the pybind11 include path
@@ -22,7 +24,7 @@ class get_pybind_include(object):
 ext_modules = [
     Extension(
         'python_example',
-        ['py/main.cpp'],
+        ['src/main.cpp'],
         include_dirs=[
             # Path to pybind11 headers
             get_pybind_include(),
@@ -76,6 +78,7 @@ class BuildExt(build_ext):
     def build_extensions(self):
         ct = self.compiler.compiler_type
         opts = self.c_opts.get(ct, [])
+        opts.append('-DVERSION_INFO="%s"' % self.distribution.get_version())
         if ct == 'unix':
             opts.append(cpp_flag(self.compiler))
             if has_flag(self.compiler, '-fvisibility=hidden'):
@@ -86,7 +89,7 @@ class BuildExt(build_ext):
 
 setup(
     name='python_example',
-    version='0.0.1',
+    version=__version__,
     author='Sylvain Corlay',
     author_email='sylvain.corlay@gmail.com',
     url='https://github.com/pybind/python_example',
