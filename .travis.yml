@@ -1,0 +1,51 @@
+language: cpp
+os:
+- linux
+- osx
+env:
+- PYTHON=2.7
+- PYTHON=3.5
+- CONDA=2.7
+- CONDA=3.5
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    - deadsnakes
+    packages:
+    - g++-4.8
+    - python3.5
+    - python3.5-dev
+before_install:
+- |
+  if [ "$TRAVIS_OS_NAME" = "linux" ]; then export CXX=g++-4.8 CC=gcc-4.8; fi
+  if [ -n "$PYTHON" ]; then
+    if [ "$TRAVIS_OS_NAME" = "osx" ] && [ "$PYTHON" = "3.5" ]; then
+      brew update; brew install python3;
+    fi
+    pip install --user --upgrade pip virtualenv
+    virtualenv -p python$PYTHON venv
+    source venv/bin/activate
+  elif [ -n "$CONDA" ]; then
+    if [ "$TRAVIS_OS_NAME" = "linux" ]; then OS=Linux-x86_64; else OS=MacOSX-x86_64; fi
+    wget -O miniconda.sh https://repo.continuum.io/miniconda/Miniconda${CONDA:0:1}-latest-$OS.sh
+    bash miniconda.sh -b -p $HOME/miniconda
+    export PATH="$HOME/miniconda/bin:$PATH"
+    conda config --set always_yes yes --set changeps1 no
+    conda config --add channels conda-forge
+    conda update -q conda
+    conda install -q conda-build
+    conda create -q -n test-environment python=$CONDA
+    source activate test-environment
+  fi
+install:
+- |
+  if [ -n "$PYTHON" ]; then
+    python setup.py sdist
+    pip install --verbose dist/*.tar.gz
+  elif [ -n "$CONDA" ]; then
+    conda build conda.recipe
+    conda install --use-local python_example
+  fi
+script:
+- python tests/test.py
