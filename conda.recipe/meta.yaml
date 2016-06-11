@@ -1,6 +1,6 @@
 package:
   name: python_example
-  version: {{ environ.get('GIT_DESCRIBE_TAG', '') }}
+  version: {{ environ.get('GIT_DESCRIBE_TAG', 'dev') }}
 
 build:
   number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
