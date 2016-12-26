@@ -15,7 +15,7 @@ Installation
 
  - For Python 3.5:
      - clone this repository
-     - `pip install ./pyton_example`
+     - `pip install ./python_example`
  - For earlier versions of Python, including Python 2.7:
 
    Pybind11 requires a C++11 compliant compiler (i.e. Visual Studio 2015 on
