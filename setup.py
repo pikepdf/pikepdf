@@ -24,12 +24,13 @@ class get_pybind_include(object):
 ext_modules = [
     Extension(
         'pikepdf',
-        ['src/main.cpp'],
+        ['src/qpdf.cpp'],
         include_dirs=[
             # Path to pybind11 headers
             get_pybind_include(),
             get_pybind_include(user=True)
         ],
+        libraries=['qpdf'],
         language='c++'
     ),
 ]
