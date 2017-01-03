@@ -10,12 +10,12 @@ int subtract(int i, int j) {
 
 namespace py = pybind11;
 
-PYBIND11_PLUGIN(python_example) {
-    py::module m("python_example", R"pbdoc(
+PYBIND11_PLUGIN(pikepdf) {
+    py::module m("pikepdf", R"pbdoc(
         Pybind11 example plugin
         -----------------------
 
-        .. currentmodule:: python_example
+        .. currentmodule:: pikepdf
 
         .. autosummary::
            :toctree: _generate

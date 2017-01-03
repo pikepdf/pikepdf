@@ -23,7 +23,7 @@ class get_pybind_include(object):
 
 ext_modules = [
     Extension(
-        'python_example',
+        'pikepdf',
         ['src/main.cpp'],
         include_dirs=[
             # Path to pybind11 headers
@@ -90,15 +90,15 @@ class BuildExt(build_ext):
         build_ext.build_extensions(self)
 
 setup(
-    name='python_example',
+    name='pikepdf',
     version=__version__,
-    author='Sylvain Corlay',
-    author_email='sylvain.corlay@gmail.com',
-    url='https://github.com/pybind/python_example',
+    author='James R. Barlow',
+    author_email='jim@purplerock.ca',
+    url='',
     description='A test project using pybind11',
     long_description='',
     ext_modules=ext_modules,
-    install_requires=['pybind11>=1.7'],
+    install_requires=['pybind11>=2.0'],
     cmdclass={'build_ext': BuildExt},
     zip_safe=False,
 )
