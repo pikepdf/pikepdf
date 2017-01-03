@@ -676,6 +676,7 @@ the wide and instead create private Python copies
         )
         .def("as_list", &QPDFObjectHandle::getArrayAsVector)
         .def("as_dict", &QPDFObjectHandle::getDictAsMap)
+        .def("as_int", &QPDFObjectHandle::getIntValue)
         // .def("__iter__",
         //     [](QPDFObjectHandle &h) {
         //         if (h.isDictionary()) {
