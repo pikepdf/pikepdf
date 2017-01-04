@@ -26,7 +26,7 @@ using namespace std::literals::string_literals;
 namespace py = pybind11;
 
 
-//PYBIND11_DECLARE_HOLDER_TYPE(T, PointerHolder<T>);
+PYBIND11_DECLARE_HOLDER_TYPE(T, PointerHolder<T>);
 
 
 
@@ -354,6 +354,7 @@ PYBIND11_PLUGIN(pikepdf) {
         .def_static("open",
             [](const char *filename) {
                 QPDF* q = new QPDF();
+                py::gil_scoped_release release;
                 q->processFile(filename);
                 return q;
             },
@@ -377,6 +378,7 @@ PYBIND11_PLUGIN(pikepdf) {
         .def("save",
              [](QPDF &q, const char *filename) {
                 QPDFWriter w(q, filename);
+                py::gil_scoped_release release;
                 w.write();
              },
              "save the PDF"
@@ -384,6 +386,7 @@ PYBIND11_PLUGIN(pikepdf) {
         .def("save",
              [](QPDF &q, const char *filename, bool static_id=false) {
                 QPDFWriter w(q, filename);
+                py::gil_scoped_release release;
                 if (static_id) {
                     w.setStaticID(true);
                     w.setStreamDataMode(qpdf_s_uncompress);
@@ -471,7 +474,7 @@ the wide and instead create private Python copies
 
     // py::class_<Buffer, PointerHolder<Buffer>>(m, "Buffer")
     //     .def_property_readonly("size", &Buffer::getSize)
-    //     .def("bytes",
+    //     .def("readall",
     //         [](Buffer &buf) {
     //             return reinterpret_cast<char *>(buf.getBuffer());
     //         }
