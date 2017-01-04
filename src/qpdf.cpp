@@ -317,19 +317,21 @@ public:
     using QPDFObjectHandle::ParserCallbacks::ParserCallbacks;
 
     void handleObject(QPDFObjectHandle h) override {
-        PYBIND11_OVERLOAD_PURE(
+        PYBIND11_OVERLOAD_PURE_NAME(
             void,
             QPDFObjectHandle::ParserCallbacks,
-            handleObject,
+            "handle_object", /* Python name */
+            handleObject, /* C++ name */
             h
         );
     }
 
     void handleEOF() override {
-        PYBIND11_OVERLOAD_PURE(
+        PYBIND11_OVERLOAD_PURE_NAME(
             void,
             QPDFObjectHandle::ParserCallbacks,
-            handleEOF
+            "handle_eof", /* Python name */
+            handleEOF, /* C++ name; trailing comma needed for macro */
         );
     }
 };
@@ -613,7 +615,7 @@ the wide and instead create private Python copies
                 if (!h.isDictionary())
                     throw py::value_error("object is not a dictionary");
                 if (!h.hasKey(key))
-                    throw py::value_error(key);
+                    throw py::key_error(key);
                 return h.getKey(key);
             }
         )
@@ -647,7 +649,7 @@ the wide and instead create private Python copies
                     throw py::value_error("object is not a dictionary");
 
                 if (!h.hasKey(key))
-                    throw py::value_error(key);
+                    throw py::key_error(key);
 
                 h.removeKey(key);
             },
@@ -720,6 +722,13 @@ the wide and instead create private Python copies
         .def_static("parse_stream", &QPDFObjectHandle::parseContentStream)
         .def("unparse", &QPDFObjectHandle::unparse)
         .def("unparse_resolved", &QPDFObjectHandle::unparseResolved);
+
+    py::class_<QPDFObjectHandle::ParserCallbacks, PyParserCallbacks> parsercallbacks(m, "StreamParser");
+    parsercallbacks
+        .def(py::init_alias<>()) /* force initializing trampoline class */
+        .def("handle_object", &QPDFObjectHandle::ParserCallbacks::handleObject)
+        .def("handle_eof", &QPDFObjectHandle::ParserCallbacks::handleEOF);
+        
 
     // py::class_<PyParserCallbacks> parsercallbacks(objecthandle, "StreamParser");
     // parsercallbacks
