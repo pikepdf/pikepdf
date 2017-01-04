@@ -27,9 +27,26 @@ class PrintParser(pike.StreamParser):
         print("--EOF--")
 
 
+class ExceptionParser(pike.StreamParser):
+    def __init__(self):
+        super().__init__()
+
+    def handle_object(self, obj):
+        raise ValueError("I take exception to this")
+
+    def handle_eof(self):
+        print("--EOF--")
+
+
 def test_open_pdf():
     pdf = pike.QPDF.open(_infile('graph.pdf'))
-
     stream = pdf.pages[0]['/Contents']
-
     pike.Object.parse_stream(stream, PrintParser())
+
+
+def test_parser_exception():
+    pdf = pike.QPDF.open(_infile('graph.pdf'))
+    stream = pdf.pages[0]['/Contents']
+    with pytest.raises(ValueError):
+        pike.Object.parse_stream(stream, ExceptionParser())
+

@@ -727,8 +727,7 @@ the wide and instead create private Python copies
     parsercallbacks
         .def(py::init<>())
         .def("handle_object", &QPDFObjectHandle::ParserCallbacks::handleObject)
-        .def("handle_eof", &QPDFObjectHandle::ParserCallbacks::handleEOF);
-        
+        .def("handle_eof", &QPDFObjectHandle::ParserCallbacks::handleEOF);        
 
     // py::class_<PyParserCallbacks> parsercallbacks(objecthandle, "StreamParser");
     // parsercallbacks
