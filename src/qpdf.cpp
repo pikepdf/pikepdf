@@ -705,9 +705,7 @@ the wide and instead create private Python copies
             [](QPDFObjectHandle &h) {
                 PointerHolder<Buffer> phbuf = h.getStreamData();
                 const Buffer* buf = phbuf.getPointer();
-                //return py::bytes((const char *)buf->getBuffer(), buf->getSize());
-                auto not_a_string = std::string((const char *)buf->getBuffer(), buf->getSize());
-                return py::bytes(not_a_string);
+                return py::bytes((const char *)buf->getBuffer(), buf->getSize());
             }
         )
         .def_property_readonly("_objgen",
@@ -727,16 +725,8 @@ the wide and instead create private Python copies
     parsercallbacks
         .def(py::init<>())
         .def("handle_object", &QPDFObjectHandle::ParserCallbacks::handleObject)
-        .def("handle_eof", &QPDFObjectHandle::ParserCallbacks::handleEOF);        
+        .def("handle_eof", &QPDFObjectHandle::ParserCallbacks::handleEOF);
 
-    // py::class_<PyParserCallbacks> parsercallbacks(objecthandle, "StreamParser");
-    // parsercallbacks
-    //     .alias<QPDFObjectHandle::ParserCallbacks>()
-    //     .def(py::init<>())
-    //     .def("handle_object", &QPDFObjectHandle::ParserCallbacks::handleObject)
-    //     .def("handle_eof", &QPDFObjectHandle::ParserCallbacks::handleEOF)
-    //     //.def("terminate_parsing", &QPDFObjectHandle::ParserCallbacks::terminateParsing, "called by subclasses to abort parsing")
-    //     ;
 
 #ifdef VERSION_INFO
     m.attr("__version__") = py::str(VERSION_INFO);
