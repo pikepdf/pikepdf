@@ -352,10 +352,49 @@ PYBIND11_PLUGIN(pikepdf) {
             "create a new empty PDF from stratch"
         )
         .def_static("open",
-            [](const char *filename) {
+            [](py::args args, py::kwargs kwargs) {
                 QPDF* q = new QPDF();
+
+                if (args.size() < 1) 
+                    throw py::value_error("not enough arguments");
+                if (args.size() > 2)
+                    throw py::value_error("too many arguments");
+
+                auto py_filename = args[0];
+                std::string filename;
+                std::string password;
+
+                try {
+                    filename = py_filename.cast<std::string>();
+                } catch (py::cast_error) {
+                    throw py::type_error("expected str");
+                }
+
+                if (kwargs) {
+                    try {
+                        if (kwargs.contains("password")) {
+                            auto v = kwargs["password"].cast<std::string>();
+                            password = v;
+                        }
+                        if (kwargs.contains("ignore_xref_streams")) {
+                            auto v = kwargs["ignore_xref_streams"].cast<bool>();
+                            q->setIgnoreXRefStreams(v);
+                        }
+                        if (kwargs.contains("suppress_warnings")) {
+                            auto v = kwargs["suppress_warnings"].cast<bool>();
+                            q->setSuppressWarnings(v);
+                        }
+                        if (kwargs.contains("attempt_recovery")) {
+                            auto v = kwargs["attempt_recovery"].cast<bool>();
+                            q->setAttemptRecovery(v);
+                        }
+                    } catch (py::cast_error) {
+                        throw py::type_error("unsupported argument type");
+                    }
+                }
+
                 py::gil_scoped_release release;
-                q->processFile(filename);
+                q->processFile(filename.c_str(), password.c_str());
                 return q;
             },
             "open existing PDF"
@@ -682,18 +721,6 @@ the wide and instead create private Python copies
         .def("as_list", &QPDFObjectHandle::getArrayAsVector)
         .def("as_dict", &QPDFObjectHandle::getDictAsMap)
         .def("as_int", &QPDFObjectHandle::getIntValue)
-        // .def("__iter__",
-        //     [](QPDFObjectHandle &h) {
-        //         if (h.isDictionary()) {
-        //             auto map = h.getDictAsMap();
-        //             return py::make_key_iterator(map.begin(), map.end());
-        //         } else if (h.isArray()) {
-        //             auto vec = h.getArrayAsVector();
-        //             return py::make_iterator(vec.begin(), vec.end());
-        //         }
-        //         throw py::value_error("not iterable type");
-        //     }, py::keep_alive<0, 1>()
-        // )
         .def("__getitem__",
             [](QPDFObjectHandle &h, int index) {
                 if (!h.isArray())
