@@ -725,7 +725,7 @@ the wide and instead create private Python copies
 
     py::class_<QPDFObjectHandle::ParserCallbacks, PyParserCallbacks> parsercallbacks(m, "StreamParser");
     parsercallbacks
-        .def(py::init_alias<>()) /* force initializing trampoline class */
+        .def(py::init<>())
         .def("handle_object", &QPDFObjectHandle::ParserCallbacks::handleObject)
         .def("handle_eof", &QPDFObjectHandle::ParserCallbacks::handleEOF);
         
