@@ -15,4 +15,4 @@ def test_split_pdf(resources, outdir):
         outpdf.add_page(page, False)
         outpdf.save(outdir / "page{}.pdf".format(n + 1))
 
-    assert len([f for f in outdir.iterdir() if f.startswith('page')]) == 4
+    assert len([f for f in outdir.iterdir() if f.name.startswith('page')]) == 4

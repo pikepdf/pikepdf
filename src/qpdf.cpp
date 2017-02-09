@@ -325,6 +325,28 @@ void kwargs_to_method(py::kwargs kwargs, const char* key, QPDF* q, void (QPDF::*
     }
 }
 
+
+/* Convert a Python object to a filesystem encoded path
+ * Use Python's os.fsencode() which accepts os.PathLike (str, bytes, pathlib.Path)
+ * and returns bytes encoded in the filesystem encoding.
+ * Cast to a string without transcoding.
+ */
+std::string fsencode_filename(py::object py_filename)
+{
+    auto fsencode = py::module::import("os").attr("fsencode");
+    std::string filename;
+
+    try {
+        auto py_encoded_filename = fsencode(py_filename);
+        filename = py_encoded_filename.cast<std::string>();
+    } catch (py::cast_error) {
+        throw py::type_error("expected pathlike object");
+    }
+
+    return filename;
+}
+
+
 QPDF* open_pdf(py::args args, py::kwargs kwargs)
 {
     QPDF* q = new QPDF();
@@ -334,18 +356,8 @@ QPDF* open_pdf(py::args args, py::kwargs kwargs)
     if (args.size() > 2)
         throw py::value_error("too many arguments");
 
-    auto py_filename = args[0];
-    std::string filename;
+    std::string filename = fsencode_filename(args[0]);
     std::string password;
-
-    auto fsencode = py::module::import("os").attr("fsencode");
-
-    try {
-        auto py_encoded_filename = fsencode(py_filename);
-        filename = py_encoded_filename.cast<std::string>();
-    } catch (py::cast_error) {
-        throw py::type_error("expected pathlike");
-    }
 
     if (kwargs) {
         if (kwargs.contains("password")) {
@@ -449,16 +461,16 @@ PYBIND11_PLUGIN(qpdf) {
         .def("add_page", &QPDF::addPage)
         .def("remove_page", &QPDF::removePage)
         .def("save",
-             [](QPDF &q, const char *filename) {
-                QPDFWriter w(q, filename);
+             [](QPDF &q, py::object filename) {
+                QPDFWriter w(q, fsencode_filename(filename).c_str());
                 py::gil_scoped_release release;
                 w.write();
              },
              "save the PDF"
         )
         .def("save",
-             [](QPDF &q, const char *filename, bool static_id=false) {
-                QPDFWriter w(q, filename);
+             [](QPDF &q, py::object filename, bool static_id=false) {
+                QPDFWriter w(q, fsencode_filename(filename).c_str());
                 py::gil_scoped_release release;
                 if (static_id) {
                     w.setStaticID(true);
