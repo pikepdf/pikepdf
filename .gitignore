@@ -8,3 +8,6 @@ _generate
 build
 venv
 *.sublime*
+.eggs/
+.cache/
+dist/
