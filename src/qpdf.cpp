@@ -312,6 +312,54 @@ array_builder(py::iterable iter)
 }
 
 
+template <typename T>
+void kwargs_to_method(py::kwargs kwargs, const char* key, QPDF* q, void (QPDF::*callback)(T))
+{
+    try {
+        if (kwargs.contains(key)) {
+            auto v = kwargs[key].cast<T>();
+            (q->*callback)(v);
+        }
+    } catch (py::cast_error) {
+        throw py::type_error(std::string(key) + ": unsupported argument type");
+    }
+}
+
+QPDF* open_pdf(py::args args, py::kwargs kwargs)
+{
+    QPDF* q = new QPDF();
+
+    if (args.size() < 1) 
+        throw py::value_error("not enough arguments");
+    if (args.size() > 2)
+        throw py::value_error("too many arguments");
+
+    auto py_filename = args[0];
+    std::string filename;
+    std::string password;
+
+    try {
+        filename = py_filename.cast<std::string>();
+    } catch (py::cast_error) {
+        throw py::type_error("expected str");
+    }
+
+    if (kwargs) {
+        if (kwargs.contains("password")) {
+            auto v = kwargs["password"].cast<std::string>();
+            password = v;
+        }
+        kwargs_to_method(kwargs, "ignore_xref_streams", q, &QPDF::setIgnoreXRefStreams);
+        kwargs_to_method(kwargs, "suppress_warnings", q, &QPDF::setSuppressWarnings);
+        kwargs_to_method(kwargs, "attempt_recovery", q, &QPDF::setAttemptRecovery);
+    }
+
+    py::gil_scoped_release release;
+    q->processFile(filename.c_str(), password.c_str());
+    return q;
+}
+
+
 class PyParserCallbacks : public QPDFObjectHandle::ParserCallbacks {
 public:
     using QPDFObjectHandle::ParserCallbacks::ParserCallbacks;
@@ -351,52 +399,7 @@ PYBIND11_PLUGIN(qpdf) {
             },
             "create a new empty PDF from stratch"
         )
-        .def_static("open",
-            [](py::args args, py::kwargs kwargs) {
-                QPDF* q = new QPDF();
-
-                if (args.size() < 1) 
-                    throw py::value_error("not enough arguments");
-                if (args.size() > 2)
-                    throw py::value_error("too many arguments");
-
-                auto py_filename = args[0];
-                std::string filename;
-                std::string password;
-
-                try {
-                    filename = py_filename.cast<std::string>();
-                } catch (py::cast_error) {
-                    throw py::type_error("expected str");
-                }
-
-                if (kwargs) {
-                    try {
-                        if (kwargs.contains("password")) {
-                            auto v = kwargs["password"].cast<std::string>();
-                            password = v;
-                        }
-                        if (kwargs.contains("ignore_xref_streams")) {
-                            auto v = kwargs["ignore_xref_streams"].cast<bool>();
-                            q->setIgnoreXRefStreams(v);
-                        }
-                        if (kwargs.contains("suppress_warnings")) {
-                            auto v = kwargs["suppress_warnings"].cast<bool>();
-                            q->setSuppressWarnings(v);
-                        }
-                        if (kwargs.contains("attempt_recovery")) {
-                            auto v = kwargs["attempt_recovery"].cast<bool>();
-                            q->setAttemptRecovery(v);
-                        }
-                    } catch (py::cast_error) {
-                        throw py::type_error("unsupported argument type");
-                    }
-                }
-
-                py::gil_scoped_release release;
-                q->processFile(filename.c_str(), password.c_str());
-                return q;
-            },
+        .def_static("open", open_pdf,
             "open existing PDF"
         )
         .def("__repr__",
@@ -442,8 +445,8 @@ PYBIND11_PLUGIN(qpdf) {
             }
         );
 
-    py::class_<QPDFObject> qpdfobject(m, "_QPDFObject");
-    py::enum_<QPDFObject::object_type_e>(qpdfobject, "ObjectType")
+    //py::class_<QPDFObject> qpdfobject(m, "_QPDFObject");
+    py::enum_<QPDFObject::object_type_e>(m, "ObjectType")
         .value("ot_uninitialized", QPDFObject::object_type_e::ot_uninitialized)
         .value("ot_reserved", QPDFObject::object_type_e::ot_reserved)
         .value("ot_null", QPDFObject::object_type_e::ot_null)
@@ -721,6 +724,7 @@ the wide and instead create private Python copies
         .def("as_list", &QPDFObjectHandle::getArrayAsVector)
         .def("as_dict", &QPDFObjectHandle::getDictAsMap)
         .def("as_int", &QPDFObjectHandle::getIntValue)
+        .def("as_bool", &QPDFObjectHandle::getBoolValue)
         .def("__getitem__",
             [](QPDFObjectHandle &h, int index) {
                 if (!h.isArray())
