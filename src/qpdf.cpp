@@ -338,10 +338,13 @@ QPDF* open_pdf(py::args args, py::kwargs kwargs)
     std::string filename;
     std::string password;
 
+    auto fsencode = py::module::import("os").attr("fsencode");
+
     try {
-        filename = py_filename.cast<std::string>();
+        auto py_encoded_filename = fsencode(py_filename);
+        filename = py_encoded_filename.cast<std::string>();
     } catch (py::cast_error) {
-        throw py::type_error("expected str");
+        throw py::type_error("expected pathlike");
     }
 
     if (kwargs) {
@@ -389,6 +392,34 @@ PYBIND11_PLUGIN(qpdf) {
     py::module m("qpdf", "qpdf bindings");
 
     m.def("qpdf_version", &qpdf_get_qpdf_version, "Get libqpdf version");
+
+    m.def("bad_unicode",
+        []() -> std::string {
+            return std::string("hello");
+        }
+    );
+
+    m.def("return_char",
+        []() {
+            return 'a';
+        }
+    );
+    m.def("return_wchar_t",
+        []() {
+            return L'a';
+        }
+    );
+    m.def("pass_char",
+        [](char c) {
+            char x = 0x61;
+            return c + x;
+        }
+    );
+    m.def("pass_wchar",
+        [](wchar_t c) {
+            return c;
+        }
+    );
 
     py::class_<QPDF>(m, "QPDF")
         .def_static("new",
