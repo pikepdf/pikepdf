@@ -23,6 +23,31 @@ namespace py = pybind11;
 
 //PYBIND11_DECLARE_HOLDER_TYPE(T, PointerHolder<T>);
 
+/*
+New type table
+
+Encode Python type to C++ type
+Decode C++ type to Python
+
+Definite native:
+Null - None
+Boolean - bool
+Integer - int
+Real - Decimal
+
+Uncertain:
+String - str or bytes ?
+
+Convertible:
+Name - Name('/thing') 
+Operator - Operator('Do')
+Array - list / iterable
+Dictionary - dict
+Stream - Stream()
+
+
+*/
+
 
 std::string objecthandle_scalar_value(QPDFObjectHandle h)
 {
@@ -304,6 +329,53 @@ array_builder(py::iterable iter)
     }
     return result;
 }
+
+
+py::object objecthandle_decode(QPDFObjectHandle& h)
+{
+    py::object obj = py::none();
+
+    switch (h.getTypeCode()) {
+    case QPDFObject::object_type_e::ot_null:
+        return py::none();
+    case QPDFObject::object_type_e::ot_boolean:
+        obj = py::cast(h.getBoolValue());
+        break;
+    case QPDFObject::object_type_e::ot_integer:
+        obj = py::cast(h.getIntValue());
+        break;
+    case QPDFObject::object_type_e::ot_real:
+        {
+            auto decimal_constructor = py::module::import("decimal").attr("Decimal");
+            std::string value = h.getRealValue();
+            obj = decimal_constructor(py::cast(value)); 
+        }
+        break;
+    case QPDFObject::object_type_e::ot_name:
+        break;
+    case QPDFObject::object_type_e::ot_string:
+        obj = py::bytes(h.getStringValue());
+        break;
+    case QPDFObject::object_type_e::ot_operator:
+        break;
+    case QPDFObject::object_type_e::ot_inlineimage:
+        break;
+    case QPDFObject::object_type_e::ot_array:
+        break;
+    case QPDFObject::object_type_e::ot_dictionary:
+        break;
+    case QPDFObject::object_type_e::ot_stream:
+        break;
+    default:
+        break;
+    }
+
+    if (obj == py::none())
+        throw py::type_error("not decodable"); 
+
+    return obj;
+}
+
 
 
 class PyParserCallbacks : public QPDFObjectHandle::ParserCallbacks {
@@ -613,6 +685,7 @@ the wide and instead create private Python copies
         .def("as_dict", &QPDFObjectHandle::getDictAsMap)
         .def("as_int", &QPDFObjectHandle::getIntValue)
         .def("as_bool", &QPDFObjectHandle::getBoolValue)
+        .def("decode", objecthandle_decode, "convert to nearest Python object")
         .def("__getitem__",
             [](QPDFObjectHandle &h, int index) {
                 if (!h.isArray())
