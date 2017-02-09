@@ -337,8 +337,8 @@ public:
 };
 
 
-PYBIND11_PLUGIN(pikepdf) {
-    py::module m("pikepdf", "qpdf bindings");
+PYBIND11_PLUGIN(qpdf) {
+    py::module m("qpdf", "qpdf bindings");
 
     m.def("qpdf_version", &qpdf_get_qpdf_version, "Get libqpdf version");
 
