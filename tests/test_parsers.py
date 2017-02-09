@@ -9,7 +9,7 @@ TEST_RESOURCES = os.path.join(PROJECT_ROOT, 'tests', 'resources')
 TEST_OUTPUT_ROOT = os.environ.get(
     'PIKEPDF_TEST_OUTPUT',
     default=os.path.join(PROJECT_ROOT, 'tests', 'output'))
-TEST_OUTPUT = os.path.join(TEST_OUTPUT_ROOT, 'sanity')
+TEST_OUTPUT = os.path.join(TEST_OUTPUT_ROOT, 'parsers')
 
 
 def _infile(input_basename):
