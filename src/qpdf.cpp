@@ -172,7 +172,7 @@ PYBIND11_PLUGIN(qpdf) {
              "save the PDF"
         )
         .def("_get_object_id", &QPDF::getObjectByID)
-        .def("_make_indirect", &QPDF::makeIndirectObject)
+        .def("make_indirect", &QPDF::makeIndirectObject)
         .def("_replace_object",
             [](QPDF &q, int objid, int gen, QPDFObjectHandle &h) {
                 q.replaceObject(objid, gen, h);
