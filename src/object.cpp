@@ -403,6 +403,18 @@ public:
 };
 
 
+int list_range_check(QPDFObjectHandle& h, int index)
+{
+    if (!h.isArray())
+        throw py::value_error("object is not an array");
+    if (index < 0)
+        index += h.getArrayNItems(); // Support negative indexing
+    if (!(0 <= index && index < h.getArrayNItems()))
+        throw py::index_error("index out of range");
+    return index;   
+}
+
+
 void init_object(py::module& m)
 {
     //py::class_<QPDFObject> qpdfobject(m, "_QPDFObject");
@@ -691,18 +703,38 @@ the wide and instead create private Python copies
         .def("as_list", &QPDFObjectHandle::getArrayAsVector)
         .def("as_dict", &QPDFObjectHandle::getDictAsMap)
         .def("as_int", &QPDFObjectHandle::getIntValue)
+        .def("__int__", &QPDFObjectHandle::getIntValue)
         .def("as_bool", &QPDFObjectHandle::getBoolValue)
         .def("decode", objecthandle_decode, "convert to nearest Python object")
         .def("__getitem__",
             [](QPDFObjectHandle &h, int index) {
-                if (!h.isArray())
-                    throw py::value_error("object is not an array");
-                if (!(0 <= index && index < h.getArrayNItems()))
-                    throw py::index_error("index out of bounds");
+                index = list_range_check(h, index);
                 return h.getArrayItem(index);
             }
         )
-        .def_property_readonly("stream_dict", &QPDFObjectHandle::getDict)  // Not actually readonly
+        .def("__setitem__",
+            [](QPDFObjectHandle &h, int index, QPDFObjectHandle &value) {
+                index = list_range_check(h, index);
+                h.setArrayItem(index, value);
+            }
+        )
+        .def("__setitem__",
+            [](QPDFObjectHandle &h, int index, py::object &pyvalue) {
+                index = list_range_check(h, index);
+                auto value = objecthandle_from_scalar(pyvalue);
+                h.setArrayItem(index, value);
+            }
+        )
+        .def("__delitem__",
+            [](QPDFObjectHandle &h, int index) {
+                index = list_range_check(h, index);
+                h.eraseItem(index);                
+            }
+        )
+        .def_property("stream_dict", 
+            py::cpp_function(&QPDFObjectHandle::getDict, py::return_value_policy::copy),
+            py::cpp_function(&QPDFObjectHandle::replaceDict)
+        )
         .def("read_stream_data",
             [](QPDFObjectHandle &h) {
                 PointerHolder<Buffer> phbuf = h.getStreamData();
