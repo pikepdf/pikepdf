@@ -645,24 +645,28 @@ the wide and instead create private Python copies
         )
         .def("__setitem__",
             [](QPDFObjectHandle &h, std::string const& key, QPDFObjectHandle &value) {
-                if (!h.isDictionary())
-                    throw py::value_error("object is not a dictionary");
+                if (!h.isDictionary() && !h.isStream())
+                    throw py::value_error("object is not a dictionary or a stream");
 
+                // For streams, the actual dictionary is attached to stream object
+                QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
+
+                // A stream dictionary has no owner, so use the stream object in this comparison
                 if (value.getOwningQPDF() && value.getOwningQPDF() != h.getOwningQPDF())
                     throw py::value_error("cannot assign indirect object from a foreign PDF - use copyForeignObject");
 
-                if (value.isScalar()) {
-                    h.replaceKey(key, value);
-                    return;
-                }
+                // if (value.isScalar() || value.isStream()) {
+                //     dict.replaceKey(key, value);
+                //     return;
+                // }
 
-                try {
-                    auto copy = value.shallowCopy();
-                    copy.makeDirect();
-                } catch (std::exception &e) {
-                    throw py::value_error("this object is too complex for me to copy right now");
-                }
-                h.replaceKey(key, value);
+                // try {
+                //     auto copy = value.shallowCopy();
+                //     copy.makeDirect();
+                // } catch (std::exception &e) {
+                //     throw py::value_error(e.what());
+                // }
+                dict.replaceKey(key, value);
             },
             "assign dictionary key to new object",
             py::keep_alive<1, 3>()
