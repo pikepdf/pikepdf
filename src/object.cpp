@@ -752,8 +752,12 @@ the wide and instead create private Python copies
                 return std::pair<int, int>(objgen.getObj(), objgen.getGen());
             }
         )
-        .def_static("parse",
-            (QPDFObjectHandle (*)(const std::string&, const std::string&)) (&QPDFObjectHandle::parse)
+        .def_static("parse", 
+            [](std::string const& stream, std::string const& description) {
+                return QPDFObjectHandle::parse(stream, description);                
+            },
+            py::arg("stream"),
+            py::arg("description") = ""
         )
         .def_static("parse_stream", &QPDFObjectHandle::parseContentStream)
         .def("unparse", &QPDFObjectHandle::unparse)
