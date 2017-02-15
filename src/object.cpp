@@ -549,6 +549,13 @@ the wide and instead create private Python copies
                 return QPDFObjectHandle::newDictionary(dict_builder(dict));
             }
         )
+        .def_static("Stream",
+            [](QPDF* owner, py::bytes data) {
+                std::string s = data;
+                return QPDFObjectHandle::newStream(owner, data); // This makes a copy of the data
+            },
+            py::keep_alive<1, 2>() // this-> (arg1) keeps a copy of QPDF* (arg2)
+        ) 
         .def_static("Null", &QPDFObjectHandle::newNull)
         .def_static("new",
             [](bool b) {
