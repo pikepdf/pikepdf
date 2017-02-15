@@ -11,4 +11,6 @@ venv
 .eggs/
 .cache/
 dist/
+tmp/
 var/
+

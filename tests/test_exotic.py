@@ -7,18 +7,7 @@ import shutil
 from contextlib import suppress
 
 
-def test_minimum_qpdf_version():
-    assert qpdf.qpdf_version() >= '6.0.0'
-
-
-def test_open_pdf(resources):
-    pdf = qpdf.QPDF.open(resources / 'graph.pdf')
-    assert '1.3' <= pdf.pdf_version <= '1.7'
-
-    assert pdf.root['/Pages']['/Count'].as_int() == 1
-
-
-def test_create_pdf(outdir):
+def test_create_form_xobjects(outdir):
     pdf = qpdf.QPDF.new()
 
     font = pdf.make_indirect(
@@ -44,21 +33,36 @@ def test_create_pdf(outdir):
                 /Width 100
                 /Height 100
             >>""")
+    xobj_image = qpdf.Object.Dictionary({'/Im1': image})
+
+    form_xobj_res = qpdf.Object.Dictionary({
+        '/XObject': xobj_image
+        })
+    form_xobj = qpdf.Object.Stream(pdf, b"""
+        /Im1 Do
+        """)
+    form_xobj['/Type'] = qpdf.Object.Name('/XObject')
+    form_xobj['/Subtype'] = qpdf.Object.Name('/Form')
+    form_xobj['/FormType'] = qpdf.Object.Integer(1)
+    form_xobj['/Matrix'] = qpdf.Object.Array([1, 0, 0, 1, 0, 0])
+    form_xobj['/BBox'] = qpdf.Object.Array([0, 0, 1, 1])
+    print(form_xobj_res.owner)
+    form_xobj['/Resources'] = form_xobj_res
+
 
     rfont = qpdf.Object.Dictionary({'/F1': font})
 
-    xobj = qpdf.Object.Dictionary({'/Im1': image})
-
     resources = qpdf.Object.Dictionary({
         '/Font': rfont,
-        '/XObject': xobj
+        '/XObject': {'/Form1': form_xobj},
         })
 
     mediabox = qpdf.Object.Array([0, 0, 612, 792])
 
     stream = b"""
         BT /F1 24 Tf 72 720 Td (Hi there) Tj ET
-        q 144 0 0 144 234 324 cm /Im1 Do Q
+        q 144 0 0 144 234 324 cm /Form1 Do Q
+        q 72 0 0 72 378 180 cm /Form1 Do Q
         """
 
     contents = qpdf.Object.Stream(pdf, stream)
@@ -71,17 +75,4 @@ def test_create_pdf(outdir):
         }))
 
     pdf.add_page(page, True)
-    pdf.save(outdir / 'hi.pdf')
-
-
-def test_copy_semantics(resources):
-    pdf = qpdf.QPDF.open(resources / 'graph.pdf')
-
-    # Ensure that we can name a reference to a child object and view the
-    # changes from the parent
-    page = pdf.pages[0]
-    mediabox = page['/MediaBox']
-    assert mediabox[2].decode() != 0
-    mediabox[2] = 0
-    assert page['/MediaBox'][2] == mediabox[2]
-
+    pdf.save(outdir / 'formxobj.pdf')
