@@ -45,16 +45,16 @@ def test_create_pdf(outdir):
                 /Height 100
             >>""")
 
-    rfont = qpdf.Object.Dictionary({'/F1': font})
+    rfont = {'/F1': font}
 
-    xobj = qpdf.Object.Dictionary({'/Im1': image})
+    xobj = {'/Im1': image}
 
-    resources = qpdf.Object.Dictionary({
+    resources = {
         '/Font': rfont,
         '/XObject': xobj
-        })
+        }
 
-    mediabox = qpdf.Object.Array([0, 0, 612, 792])
+    mediabox = [0, 0, 612, 792]
 
     stream = b"""
         BT /F1 24 Tf 72 720 Td (Hi there) Tj ET
@@ -63,12 +63,14 @@ def test_create_pdf(outdir):
 
     contents = qpdf.Object.Stream(pdf, stream)
 
-    page = pdf.make_indirect(qpdf.Object.Dictionary({
+    page_dict = {
         '/Type': qpdf.Object.Name('/Page'),
         '/MediaBox': mediabox,
         '/Contents': contents,
         '/Resources': resources
-        }))
+        }
+    qpdf_page_dict = qpdf.Object.Dictionary(page_dict)
+    page = pdf.make_indirect(qpdf_page_dict)
 
     pdf.add_page(page, True)
     pdf.save(outdir / 'hi.pdf')

@@ -11,6 +11,7 @@
 #include <qpdf/QPDFWriter.hh>
 
 #include <sstream>
+#include <iostream>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -234,43 +235,10 @@ std::string objecthandle_repr(QPDFObjectHandle h)
 }
 
 
-QPDFObjectHandle objecthandle_from_scalar(py::handle obj)
-{
-    try {
-        auto as_obj = obj.cast<QPDFObjectHandle>();
-        return as_obj;
-    } catch (py::cast_error) {}
-
-    try {
-        auto as_bool = obj.cast<bool>();
-        return QPDFObjectHandle::newBool(as_bool);
-    } catch (py::cast_error) {}
-
-    try {
-        auto as_int = obj.cast<int>();
-        return QPDFObjectHandle::newInteger(as_int);
-    } catch (py::cast_error) {}
-
-    try {
-        auto as_double = obj.cast<double>();
-        return QPDFObjectHandle::newReal(as_double);
-    } catch (py::cast_error) {}
-
-    try {
-        auto as_str = obj.cast<std::string>();
-        return QPDFObjectHandle::newString(as_str);
-    } catch (py::cast_error) {}
-
-    if (obj == py::handle()) {
-        return QPDFObjectHandle::newNull();
-    }
-
-    throw py::cast_error("not scalar");
-}
-
-
 std::vector<QPDFObjectHandle>
 array_builder(py::iterable iter);
+
+QPDFObjectHandle objecthandle_encode(py::handle obj);
 
 std::map<std::string, QPDFObjectHandle>
 dict_builder(py::dict dict)
@@ -280,23 +248,8 @@ dict_builder(py::dict dict)
     for (auto item: dict) {
         std::string key = item.first.cast<std::string>();
 
-        try {
-            auto value = objecthandle_from_scalar(item.second);
-            result[key] = value;
-        } catch (py::cast_error) {
-            if (PyMapping_Check(item.second.ptr())) {
-                auto as_dict = item.second.cast<py::dict>();
-                auto subdict = dict_builder(as_dict);
-                result[key] = QPDFObjectHandle::newDictionary(subdict);
-            } else if (PySequence_Check(item.second.ptr())) {
-                auto as_list = item.second.cast<py::iterable>();
-                auto sublist = array_builder(as_list);
-                result[key] = QPDFObjectHandle::newArray(sublist);
-            } else {
-                throw py::value_error(
-                    "dict_builder: don't know how to parse value associated with "s + key);
-            }
-        }
+        auto value = objecthandle_encode(item.second);
+        result[key] = value;
     }
     return result;
 }
@@ -309,27 +262,63 @@ array_builder(py::iterable iter)
 
     for (auto item: iter) {
         narg++;
-        try {
-            auto value = objecthandle_from_scalar(item);
-            result.push_back(value);
-        } catch (py::cast_error) {
-            if (PyMapping_Check(item.ptr())) {
-                auto as_dict = item.cast<py::dict>();
-                auto subdict = dict_builder(as_dict);
-                result.push_back(QPDFObjectHandle::newDictionary(subdict));
-            } else if (PySequence_Check(item.ptr())) {
-                auto as_list = item.cast<py::iterable>();
-                auto sublist = array_builder(as_list);
-                result.push_back(QPDFObjectHandle::newArray(sublist));
-            } else {
-                throw py::value_error(
-                    "array_builder: don't know how to parse argument "s + std::to_string(narg));
-            }
-        }
+
+        auto value = objecthandle_encode(item);
+        result.push_back(value);
     }
     return result;
 }
 
+QPDFObjectHandle objecthandle_encode(py::handle handle)
+{
+    try {
+        auto as_qobj = handle.cast<QPDFObjectHandle>();
+        return as_qobj;
+    } catch (py::cast_error) {}
+
+    try {
+        auto as_bool = handle.cast<bool>();
+        return QPDFObjectHandle::newBool(as_bool);
+    } catch (py::cast_error) {}
+
+    try {
+        auto as_int = handle.cast<int>();
+        return QPDFObjectHandle::newInteger(as_int);
+    } catch (py::cast_error) {}
+
+    try {
+        auto as_double = handle.cast<double>();
+        return QPDFObjectHandle::newReal(as_double);
+    } catch (py::cast_error) {}
+
+    try {
+        auto as_str = handle.cast<std::string>();
+        return QPDFObjectHandle::newString(as_str);
+    } catch (py::cast_error) {}
+
+    py::object obj = py::reinterpret_borrow<py::object>(handle);
+
+    if (py::hasattr(obj, "__iter__")) {
+        py::print(py::repr(obj));
+
+        bool is_mapping = false; // PyMapping_Check is unrealible in Py3
+        if (py::hasattr(obj, "keys"))
+            is_mapping = true;
+
+        bool is_sequence = PySequence_Check(obj.ptr());
+        if (is_mapping) {
+            return QPDFObjectHandle::newDictionary(dict_builder(obj));
+        } else if (is_sequence) {
+            return QPDFObjectHandle::newArray(array_builder(obj));
+        }
+    }
+
+    if (obj == py::object()) {
+        return QPDFObjectHandle::newNull();
+    }
+
+    throw py::cast_error("don't know how to encode value"s + std::string(py::repr(obj)));
+}
 
 py::object objecthandle_decode(QPDFObjectHandle& h)
 {
@@ -671,6 +660,19 @@ the wide and instead create private Python copies
             "assign dictionary key to new object",
             py::keep_alive<1, 3>()
         )
+        .def("__setitem__",
+            [](QPDFObjectHandle &h, std::string const& key, py::object &pyvalue) {
+                if (!h.isDictionary() && !h.isStream())
+                    throw py::value_error("object is not a dictionary or a stream");
+
+                // For streams, the actual dictionary is attached to stream object
+                QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
+
+                auto value = objecthandle_encode(pyvalue);
+                // A stream dictionary has no owner, so use the stream object in this comparison
+                dict.replaceKey(key, value);
+            }
+        )
         .def("__delitem__",
             [](QPDFObjectHandle &h, std::string const& key) {
                 if (!h.isDictionary())
@@ -725,7 +727,7 @@ the wide and instead create private Python copies
         .def("__setitem__",
             [](QPDFObjectHandle &h, int index, py::object &pyvalue) {
                 index = list_range_check(h, index);
-                auto value = objecthandle_from_scalar(pyvalue);
+                auto value = objecthandle_encode(pyvalue);
                 h.setArrayItem(index, value);
             }
         )
@@ -768,5 +770,8 @@ the wide and instead create private Python copies
         .def(py::init<>())
         .def("handle_object", &QPDFObjectHandle::ParserCallbacks::handleObject)
         .def("handle_eof", &QPDFObjectHandle::ParserCallbacks::handleEOF);
+
+    m.def("_encode", &objecthandle_encode);
+    m.def("_decode", &objecthandle_decode);
 
 } // init_object
