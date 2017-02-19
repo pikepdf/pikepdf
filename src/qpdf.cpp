@@ -25,6 +25,8 @@ using namespace std::literals::string_literals;
 
 namespace py = pybind11;
 
+QPDFObjectHandle objecthandle_encode(py::handle obj);
+
 
 template <typename T>
 void kwargs_to_method(py::kwargs kwargs, const char* key, QPDF* q, void (QPDF::*callback)(T))
@@ -173,6 +175,11 @@ PYBIND11_PLUGIN(qpdf) {
         )
         .def("_get_object_id", &QPDF::getObjectByID)
         .def("make_indirect", &QPDF::makeIndirectObject)
+        .def("make_indirect",
+            [](QPDF &q, py::object obj) -> QPDFObjectHandle {
+                return q.makeIndirectObject(objecthandle_encode(obj));
+            }
+        )
         .def("_replace_object",
             [](QPDF &q, int objid, int gen, QPDFObjectHandle &h) {
                 q.replaceObject(objid, gen, h);

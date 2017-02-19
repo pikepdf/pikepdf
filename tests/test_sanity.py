@@ -69,7 +69,7 @@ def test_create_pdf(outdir):
         '/Contents': contents,
         '/Resources': resources
         }
-    qpdf_page_dict = qpdf.Object.Dictionary(page_dict)
+    qpdf_page_dict = page_dict
     page = pdf.make_indirect(qpdf_page_dict)
 
     pdf.add_page(page, True)
