@@ -359,7 +359,7 @@ py::object objecthandle_decode(QPDFObjectHandle& h)
         break;
     }
 
-    if (obj == py::none())
+    if (obj.is_none())
         throw py::type_error("not decodable"); 
 
     return obj;
@@ -555,8 +555,37 @@ the wide and instead create private Python copies
                 std::string s = data;
                 return QPDFObjectHandle::newStream(owner, data); // This makes a copy of the data
             },
-            py::keep_alive<1, 2>() // this-> (arg1) keeps a copy of QPDF* (arg2)
-        ) 
+            py::keep_alive<0, 1>() // returned object references the owner
+        )
+        .def_static("Stream",
+            [](QPDF* owner, py::iterable content_stream) {
+                std::stringstream data;
+
+                for (auto handle_command : content_stream) {
+                    py::tuple command = py::reinterpret_borrow<py::tuple>(handle_command);
+
+                    if (command.size() != 2)
+                        throw py::value_error("Each item in stream data must be a tuple(operands, operator)");
+
+                    py::object operands = command[0];
+                    py::object operator_ = command[1];
+                    for (auto operand : operands) {
+                        QPDFObjectHandle h = objecthandle_encode(operand);
+                        data << h.unparse();
+                        data << " ";
+                    }
+                    data << objecthandle_encode(operator_).unparse();
+                    data << "\n";
+                }
+                return QPDFObjectHandle::newStream(owner, data.str());
+            },
+            py::keep_alive<0, 1>() // returned object references the owner   
+        )
+        .def_static("Operator",
+            [](const std::string& op) {
+                return QPDFObjectHandle::newOperator(op);
+            }
+        )
         .def_static("Null", &QPDFObjectHandle::newNull)
         .def_static("new",
             [](bool b) {
@@ -607,6 +636,8 @@ the wide and instead create private Python copies
                         throw py::value_error("real comparison not implemented");
                     case QPDFObject::object_type_e::ot_name:
                         return self.getName() == other.getName();
+                    case QPDFObject::object_type_e::ot_operator:
+                        return self.getOperatorValue() == other.getOperatorValue();
                     case QPDFObject::object_type_e::ot_string:
                         return self.getStringValue() == other.getStringValue();
                     default:
