@@ -77,8 +77,3 @@ def test_create_form_xobjects(outdir):
     pdf.add_page(page, True)
     pdf.save(outdir / 'formxobj.pdf')
 
-
-def test_pdfa_sanity(resources, outdir):
-    pdf = qpdf.QPDF.open(
-        resources / 'veraPDF test suite 6-2-10-t02-pass-a.pdf')
-    pdf.save(outdir / 'pdfa.pdf')

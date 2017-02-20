@@ -109,10 +109,35 @@ def _write_startxref(new_xref_offset, output):
 
 
 def repair_pdfa(filename):
+    """Repair "missing EOL before endstream" errors in PDF/A
+
+    QPDF generates PDFs without putting an EOL before the endstream keyword.
+
+    1.
+    stream
+    dostuffdostuffdostuff_endstream <-- PDF/A error, missing LF
+    endobj
+
+    2.
+    << /Length 5 ... >>
+    stream
+    1234      <-- 4 characters + LF
+    endstream <-- PDF/A error, missing LF because it is read as part of stream
+    endobj
+
+    This is legal, PDF/A requires the EOL. Specifically it requires that
+    at least one EOL appears after reading /Length bytes from the stream,
+    so a stream that happens to terminate on an EOL character will not pass.
+
+    This assumes a simple PDF with no updates in the xref table, as would
+    normally be the case after one is passed through QPDF.
+
+    It also cannot find improperly laid out content streams inside object
+    streams so object streams need to be disabled.
+
+    """
     import mmap
     from shutil import copy2
-
-    copy2(filename, filename.with_suffix('.bak.pdf'))
 
     with NamedTemporaryFile(suffix='.pdf', mode='r+b') as temp:
         copy2(filename, temp.name)
@@ -139,4 +164,6 @@ def repair_pdfa(filename):
 
             # Succeeded
             copy2(output.name, filename)
+
+        mm.close()
 
