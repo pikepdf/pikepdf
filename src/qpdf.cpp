@@ -125,7 +125,12 @@ PYBIND11_PLUGIN(qpdf) {
             return c;
         }
     );
-
+    m.def("scope_test",
+        [m]() {
+            py::module helpers = py::module::import("pikepdf._cpphelpers");
+            py::print(helpers.attr("hi"));
+        }
+    );
     py::class_<QPDF>(m, "QPDF")
         .def_static("new",
             []() {
@@ -154,24 +159,22 @@ PYBIND11_PLUGIN(qpdf) {
         .def("add_page", &QPDF::addPage)
         .def("remove_page", &QPDF::removePage)
         .def("save",
-             [](QPDF &q, py::object filename) {
-                QPDFWriter w(q, fsencode_filename(filename).c_str());
-                py::gil_scoped_release release;
-                w.write();
-             },
-             "save the PDF"
-        )
-        .def("save",
              [](QPDF &q, py::object filename, bool static_id=false) {
                 QPDFWriter w(q, fsencode_filename(filename).c_str());
-                py::gil_scoped_release release;
-                if (static_id) {
-                    w.setStaticID(true);
-                    w.setStreamDataMode(qpdf_s_uncompress);
+                {
+                    py::gil_scoped_release release;
+                    if (static_id) {
+                        w.setStaticID(true);
+                        w.setStreamDataMode(qpdf_s_uncompress);
+                    }
+                    w.write();
                 }
-                w.write();
+                auto helpers = py::module::import("pikepdf._cpphelpers");
+                helpers.attr("repair_pdfa")(filename);
              },
-             "save the PDF"
+             "save the PDF",
+             py::arg("filename"),
+             py::arg("static_id") = false
         )
         .def("_get_object_id", &QPDF::getObjectByID)
         .def("make_indirect", &QPDF::makeIndirectObject)
