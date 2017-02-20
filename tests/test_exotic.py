@@ -43,21 +43,21 @@ def test_create_form_xobjects(outdir):
         """)
     form_xobj['/Type'] = qpdf.Object.Name('/XObject')
     form_xobj['/Subtype'] = qpdf.Object.Name('/Form')
-    form_xobj['/FormType'] = qpdf.Object.Integer(1)
-    form_xobj['/Matrix'] = qpdf.Object.Array([1, 0, 0, 1, 0, 0])
-    form_xobj['/BBox'] = qpdf.Object.Array([0, 0, 1, 1])
+    form_xobj['/FormType'] = 1
+    form_xobj['/Matrix'] = [1, 0, 0, 1, 0, 0]
+    form_xobj['/BBox'] = [0, 0, 1, 1]
     print(form_xobj_res.owner)
     form_xobj['/Resources'] = form_xobj_res
 
 
-    rfont = qpdf.Object.Dictionary({'/F1': font})
+    rfont = {'/F1': font}
 
-    resources = qpdf.Object.Dictionary({
+    resources = {
         '/Font': rfont,
         '/XObject': {'/Form1': form_xobj},
-        })
+        }
 
-    mediabox = qpdf.Object.Array([0, 0, 612, 792])
+    mediabox = [0, 0, 612, 792]
 
     stream = b"""
         BT /F1 24 Tf 72 720 Td (Hi there) Tj ET
@@ -67,12 +67,12 @@ def test_create_form_xobjects(outdir):
 
     contents = qpdf.Object.Stream(pdf, stream)
 
-    page = pdf.make_indirect(qpdf.Object.Dictionary({
+    page = pdf.make_indirect({
         '/Type': qpdf.Object.Name('/Page'),
         '/MediaBox': mediabox,
         '/Contents': contents,
         '/Resources': resources
-        }))
+        })
 
     pdf.add_page(page, True)
     pdf.save(outdir / 'formxobj.pdf')
