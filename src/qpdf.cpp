@@ -98,39 +98,6 @@ PYBIND11_PLUGIN(qpdf) {
 
     m.def("qpdf_version", &qpdf_get_qpdf_version, "Get libqpdf version");
 
-    m.def("bad_unicode",
-        []() -> std::string {
-            return std::string("hello");
-        }
-    );
-
-    m.def("return_char",
-        []() {
-            return 'a';
-        }
-    );
-    m.def("return_wchar_t",
-        []() {
-            return L'a';
-        }
-    );
-    m.def("pass_char",
-        [](char c) {
-            char x = 0x61;
-            return c + x;
-        }
-    );
-    m.def("pass_wchar",
-        [](wchar_t c) {
-            return c;
-        }
-    );
-    m.def("scope_test",
-        [m]() {
-            py::module helpers = py::module::import("pikepdf._cpphelpers");
-            py::print(helpers.attr("hi"));
-        }
-    );
     py::class_<QPDF>(m, "QPDF")
         .def_static("new",
             []() {
