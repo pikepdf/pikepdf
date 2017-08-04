@@ -1,27 +1,31 @@
-python\_example
-===============
+pikepdf
+=======
 
-An example project built with
-`pybind11 <https://github.com/pybind/pybind11>`__.
+`QPDF <https://github.com/qpdf/qpdf>`_ bindings for Python allowing the
+creation, manipulation and repair of PDF files.
+
+Python + QPDF = "py" + "qpdf" = pikepdf
+
+This is in early development and the API may change a lot.
 
 Installation
 ------------
 
-**On Unix (Linux, OS X)**
+**On Unix (Linux, macOS)**
 
 -  clone this repository
--  ``pip install ./python_example``
+-  ``pip install ./pikepdf``
 
 **On Windows (Requires Visual Studio 2015)**
 
 -  For Python 3.5:
 
    -  clone this repository
-   -  ``pip install ./python_example``
+   -  ``pip install ./pikepdf``
 
 -  For earlier versions of Python, including Python 2.7:
 
-Pybind11 requires a C++11 compliant compiler (i.e. Visual Studio 2015 on
+pikepdf requires a C++11 compliant compiler (i.e. Visual Studio 2015 on
 Windows). Running a regular ``pip install`` command will detect the
 version of the compiler used to build Python and attempt to build the
 extension with it. We must force the use of Visual Studio 2015.
@@ -45,22 +49,6 @@ On Windows, the Visual C++ 2015 redistributable packages are a runtime
 requirement for this project. It can be found
 `here <https://www.microsoft.com/en-us/download/details.aspx?id=48145>`__.
 
-If you use the Anaconda python distribution, you may require the Visual
-Studio runtime as a platform-dependent runtime requirement for you
-package:
-
-.. code:: yaml
-
-    requirements:
-      build:
-        - python
-        - setuptools
-        - pybind11
-
-      run:
-       - python
-       - vs2015_runtime  # [win]
-
 Building the documentation
 --------------------------
 
@@ -71,20 +59,12 @@ documentation in a variety formats. The following command generates
 HTML-based reference documentation; for other formats please refer to
 the Sphinx manual:
 
--  ``cd python_example/docs``
+-  ``cd pikepdf/docs``
 -  ``make html``
 
 License
 -------
 
-pybind11 is provided under a BSD-style license that can be found in the
+pikepdf is provided under a Apache 2.0 license that can be found in the
 LICENSE file. By using, distributing, or contributing to this project,
 you agree to the terms and conditions of this license.
-
-Test call
----------
-
-.. code:: python
-
-    import python_example
-    python_example.add(1, 2)

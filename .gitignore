@@ -1,9 +1,12 @@
-*.so
-MANIFEST
-*.py[cod]
-*.egg-info
-.DS_Store
+# Development
 _build
+*.py[cod]
+*.so
+*.egg-info
+MANIFEST
+.hypothesis/
+.ipynb_checkpoints/
+.idea/
 _generate
 build
 venv
@@ -13,4 +16,7 @@ venv
 dist/
 tmp/
 var/
+
+# macOS
+.DS_Store
 
