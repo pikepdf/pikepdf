@@ -19,6 +19,10 @@
 
 using namespace std::literals::string_literals;
 
+namespace pybind11 {
+    PYBIND11_RUNTIME_EXCEPTION(attr_error, PyExc_AttributeError);
+};
+
 namespace py = pybind11;
 
 
@@ -721,6 +725,29 @@ the wide and instead create private Python copies
                 h.removeKey(key);
             },
             "delete a dictionary key"
+        )
+        .def("__getattr__",
+            [](QPDFObjectHandle &h, std::string const& name) {
+                if (!h.isDictionary() && !h.isStream())
+                    throw py::attr_error("object is not a dictionary or a stream");
+                QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
+                std::string key = "/"s + name;
+                if (!dict.hasKey(key))
+                    throw py::attr_error(key);
+                return dict.getKey(key);
+            },
+            "attribute lookup name"
+        )
+        .def("__setattr__",
+            [](QPDFObjectHandle &h, std::string const& name, py::object &pyvalue) {
+                if (!h.isDictionary() && !h.isStream())
+                    throw py::attr_error("object is not a dictionary or a stream");
+                QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
+                std::string key = "/"s + name;
+                auto value = objecthandle_encode(pyvalue);
+                dict.replaceKey(key, value);
+            },
+            "attribute access"
         )
         .def("get",
             [](QPDFObjectHandle &h, std::string const& key, py::object default_) {

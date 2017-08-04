@@ -18,6 +18,11 @@ def test_open_pdf(resources):
     assert pdf.root['/Pages']['/Count'].as_int() == 1
 
 
+def test_attr_access(resources):
+    pdf = qpdf.QPDF.open(resources / 'graph.pdf')
+    assert pdf.root.Pages.Count.as_int() == 1
+
+
 def test_create_pdf(outdir):
     pdf = qpdf.QPDF.new()
 
@@ -86,4 +91,5 @@ def test_copy_semantics(resources):
     assert mediabox[2].decode() != 0
     mediabox[2] = 0
     assert page['/MediaBox'][2] == mediabox[2]
+
 
