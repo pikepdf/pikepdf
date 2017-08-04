@@ -49,7 +49,7 @@ void kwargs_to_method(py::kwargs kwargs, const char* key, QPDF* q, void (QPDF::*
  */
 std::string fsencode_filename(py::object py_filename)
 {
-    auto fspath = py::module::import("os").attr("fspath");
+    auto fspath = py::module::import("pikepdf._cpphelpers").attr("fspath");
     std::string filename;
 
     try {
