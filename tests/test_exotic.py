@@ -24,7 +24,7 @@ def test_create_form_xobjects(outdir):
     image_data = b"\xff\x7f\x00" * (width * height)
 
     image = qpdf.Object.Stream(pdf, image_data)
-    image.stream_dict = qpdf.Object.parse(b"""
+    image.stream_dict = qpdf.Object.parse("""
             <<
                 /Type /XObject
                 /Subtype /Image

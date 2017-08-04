@@ -62,7 +62,7 @@ std::string objecthandle_scalar_value(QPDFObjectHandle h)
     case QPDFObject::object_type_e::ot_real:
         return "Decimal('"s + h.getRealValue() + "')"s;
     case QPDFObject::object_type_e::ot_name:
-        return "qpdf.Object.Name('"s + h.getName() + "')"s;
+        return h.getName();
     case QPDFObject::object_type_e::ot_string:
         return h.getUTF8Value();
     case QPDFObject::object_type_e::ot_operator:
@@ -127,7 +127,7 @@ std::string objecthandle_repr_typename_and_value(QPDFObjectHandle h)
 }
 
 
-std::string objecthandle_repr_inner(QPDFObjectHandle h, int depth, std::set<QPDFObjGen>* visited, bool* pure_expr)
+std::string objecthandle_repr_inner(QPDFObjectHandle h, uint depth, std::set<QPDFObjGen>* visited, bool* pure_expr)
 {
     if (!h.isScalar()) {
         if (visited->count(h.getObjGen()) > 0) {
@@ -297,6 +297,12 @@ QPDFObjectHandle objecthandle_encode(py::handle handle)
     } catch (py::cast_error) {}
 
     py::object obj = py::reinterpret_borrow<py::object>(handle);
+
+    if (py::isinstance<py::bytes>(obj)) {
+        auto py_bytes = py::bytes(obj);
+        auto as_str = (std::string)py_bytes;
+        return QPDFObjectHandle::newString(as_str);
+    }
 
     if (py::hasattr(obj, "__iter__")) {
         py::print(py::repr(obj));
@@ -787,7 +793,15 @@ the wide and instead create private Python copies
         )
         .def_static("parse", 
             [](std::string const& stream, std::string const& description) {
-                return QPDFObjectHandle::parse(stream, description);                
+                return QPDFObjectHandle::parse(stream, description);
+            },
+            py::arg("stream"),
+            py::arg("description") = ""
+        )
+        .def_static("parse",
+            [](py::bytes &stream, std::string const& description) {
+                std::string s = stream;
+                return QPDFObjectHandle::parse(stream, description);
             },
             py::arg("stream"),
             py::arg("description") = ""

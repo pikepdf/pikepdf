@@ -43,17 +43,17 @@ void kwargs_to_method(py::kwargs kwargs, const char* key, QPDF* q, void (QPDF::*
 
 
 /* Convert a Python object to a filesystem encoded path
- * Use Python's os.fsencode() which accepts os.PathLike (str, bytes, pathlib.Path)
+ * Use Python's os.fspath() which accepts os.PathLike (str, bytes, pathlib.Path)
  * and returns bytes encoded in the filesystem encoding.
  * Cast to a string without transcoding.
  */
 std::string fsencode_filename(py::object py_filename)
 {
-    auto fsencode = py::module::import("os").attr("fsencode");
+    auto fspath = py::module::import("os").attr("fspath");
     std::string filename;
 
     try {
-        auto py_encoded_filename = fsencode(py_filename);
+        auto py_encoded_filename = fspath(py_filename);
         filename = py_encoded_filename.cast<std::string>();
     } catch (py::cast_error) {
         throw py::type_error("expected pathlike object");
