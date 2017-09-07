@@ -40,7 +40,8 @@ def _find_main_offsets(mm):
 def _parse_xref_table(mm, xref_offset):
     mm.seek(xref_offset)
     xref_line = mm.readline()
-    assert xref_line.strip() == b"xref", xref_line
+    if xref_line.strip() != b"xref":
+        raise NotImplementedError("PDF has an encrypted xref table")
 
     obj_table = mm.readline()
     hopefully_zero, obj_count = obj_table.strip().split(b' ')
