@@ -1,12 +1,19 @@
 pikepdf
 =======
 
-`QPDF <https://github.com/qpdf/qpdf>`_ bindings for Python allowing the
-creation, manipulation and repair of PDF files.
+**pikepdf** is a Python library allowing creation, manipulation and repair of
+PDF files. It is provides a wrapper around `QPDF <https://github.com/qpdf/qpdf>`_.
 
 Python + QPDF = "py" + "qpdf" = pikepdf
 
-This is in early development and the API may change a lot.
+**This is in early development. Assume it's broken and everything will change.**
+
+Python 2 is not supported. It's time to move on.
+
+This library is similar to PyPDF2 in that it provides low level access to PDF
+features, and editing capabilities.
+
+See reportlab for a powerful write-only PDF library.
 
 Installation
 ------------
@@ -20,8 +27,8 @@ Installation
 
 -  For Python 3.5:
 
-   -  clone this repository
-   -  ``pip install ./pikepdf``
+    -  clone this repository
+    -  ``pip install ./pikepdf``
 
 -  For earlier versions of Python, including Python 2.7:
 
@@ -31,12 +38,11 @@ version of the compiler used to build Python and attempt to build the
 extension with it. We must force the use of Visual Studio 2015.
 
 ::
-
-     - clone this repository
-     - `"%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" x64`
-     - `set DISTUTILS_USE_SDK=1`
-     - `set MSSdk=1`
-     - `pip install ./python_example`
+    - clone this repository
+    - `"%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" x64`
+    - `set DISTUTILS_USE_SDK=1`
+    - `set MSSdk=1`
+    - `pip install ./python_example`
 
 Note that this requires the user building ``python_example`` to have
 registry edition rights on the machine, to be able to run the
