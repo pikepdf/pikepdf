@@ -100,25 +100,6 @@ PYBIND11_PLUGIN(qpdf) {
     m.def("qpdf_version", &qpdf_get_qpdf_version, "Get libqpdf version");
 
     py::register_exception<QPDFExc>(m, "QPDFError");
-//    static py::exception<QPDFExc> exc(m, "QPDFExc");
-//    py::register_exception_translator([](std::exception_ptr p) {
-//        try {
-//            if (p) std::rethrow_exception(p);
-//        } catch (const QPDFExc &e) {
-//            exc(e.what());
-//        }
-//    }
-//    pyclass
-//        .def("__repr__",
-//            [](const QPDFExc &q) {
-//                return "<qpdf.QPDFExc message='"s + q.what() + "'>"s;
-//            }
-//        )
-//        .def_property_readonly("filename", &QPDFExc::getFilename)
-//        .def_property_readonly("object", &QPDFExc::getObject)
-//        .def_property_readonly("offset", &QPDFExc::getFilePosition)
-//        .def_property_readonly("message", &QPDFExc::getMessageDetail)
-//        ;
 
     py::class_<QPDF>(m, "QPDF")
         .def_static("new",
