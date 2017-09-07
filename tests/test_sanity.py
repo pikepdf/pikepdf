@@ -20,7 +20,7 @@ def test_open_pdf(resources):
 
 def test_attr_access(resources):
     pdf = qpdf.QPDF.open(resources / 'graph.pdf')
-    assert pdf.root.Pages.Count.as_int() == 1
+    assert int(pdf.root.Pages.Count) == 1
 
 
 def test_create_pdf(outdir):
