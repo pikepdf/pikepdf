@@ -85,6 +85,7 @@ QPDF* open_pdf(py::args args, py::kwargs kwargs)
         kwargs_to_method(kwargs, "attempt_recovery", q, &QPDF::setAttemptRecovery);
     }
 
+    q->setSuppressWarnings(true);
     py::gil_scoped_release release;
     q->processFile(filename.c_str(), password.c_str());
     return q;
@@ -98,11 +99,33 @@ PYBIND11_PLUGIN(qpdf) {
 
     m.def("qpdf_version", &qpdf_get_qpdf_version, "Get libqpdf version");
 
+    py::register_exception<QPDFExc>(m, "QPDFError");
+//    static py::exception<QPDFExc> exc(m, "QPDFExc");
+//    py::register_exception_translator([](std::exception_ptr p) {
+//        try {
+//            if (p) std::rethrow_exception(p);
+//        } catch (const QPDFExc &e) {
+//            exc(e.what());
+//        }
+//    }
+//    pyclass
+//        .def("__repr__",
+//            [](const QPDFExc &q) {
+//                return "<qpdf.QPDFExc message='"s + q.what() + "'>"s;
+//            }
+//        )
+//        .def_property_readonly("filename", &QPDFExc::getFilename)
+//        .def_property_readonly("object", &QPDFExc::getObject)
+//        .def_property_readonly("offset", &QPDFExc::getFilePosition)
+//        .def_property_readonly("message", &QPDFExc::getMessageDetail)
+//        ;
+
     py::class_<QPDF>(m, "QPDF")
         .def_static("new",
             []() {
                 QPDF* q = new QPDF();
                 q->emptyPDF();
+                q->setSuppressWarnings(true);
                 return q;
             },
             "create a new empty PDF from stratch"
@@ -122,6 +145,7 @@ PYBIND11_PLUGIN(qpdf) {
         .def_property_readonly("trailer", &QPDF::getTrailer)
         .def_property_readonly("pages", &QPDF::getAllPages)
         .def_property_readonly("is_encrypted", &QPDF::isEncrypted)
+        .def("get_warnings", &QPDF::getWarnings)  // this is a def because it modifies state by clearing warnings
         .def("show_xref_table", &QPDF::showXRefTable)
         .def("add_page", &QPDF::addPage)
         .def("remove_page", &QPDF::removePage)
