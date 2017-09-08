@@ -1,6 +1,5 @@
 import pytest
-from pikepdf import qpdf
-
+from pikepdf import _qpdf as qpdf
 import os
 import platform
 import shutil

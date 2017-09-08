@@ -1,5 +1,5 @@
 import pytest
-from pikepdf import qpdf
+from pikepdf import _qpdf as qpdf
 
 from hypothesis import given, strategies as st, example
 

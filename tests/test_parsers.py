@@ -1,7 +1,6 @@
 import pytest
-from pikepdf import qpdf
+from pikepdf import _qpdf as qpdf, OperandGrouper
 import os
-from pikepdf import OperandGrouper
 from subprocess import run, PIPE
 
 

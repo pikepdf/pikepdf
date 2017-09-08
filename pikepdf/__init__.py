@@ -1,16 +1,16 @@
-from . import qpdf
+from . import _qpdf
 
-from .qpdf import Object, ObjectType, QPDFError, QPDF
+from ._qpdf import Object, ObjectType, QPDFError, QPDF
 
 
-class OperandGrouper(qpdf.StreamParser):
+class OperandGrouper(_qpdf.StreamParser):
     def __init__(self):
         super().__init__()
         self.groups = []
         self.operands = []
 
     def handle_object(self, obj):
-        if obj.type_code == qpdf.ObjectType.ot_operator:
+        if obj.type_code == ObjectType.ot_operator:
             self.groups.append((self.operands, obj))
             self.operands = []
         else:

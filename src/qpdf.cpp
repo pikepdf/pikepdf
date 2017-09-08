@@ -94,7 +94,7 @@ QPDF* open_pdf(py::args args, py::kwargs kwargs)
 
 void init_object(py::module& m);
 
-PYBIND11_MODULE(qpdf, m) {
+PYBIND11_MODULE(_qpdf, m) {
     m.doc() = "qpdf bindings";
 
     m.def("qpdf_version", &qpdf_get_qpdf_version, "Get libqpdf version");
