@@ -15,6 +15,7 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/eval.h>
 
 
 using namespace std::literals::string_literals;
@@ -275,18 +276,15 @@ array_builder(py::iterable iter)
 
 QPDFObjectHandle objecthandle_encode(py::handle handle)
 {
+    // Ensure that when we return QPDFObjectHandle/pikepdf.Object to the Py
+    // environment, that we can recover it
     try {
         auto as_qobj = handle.cast<QPDFObjectHandle>();
         return as_qobj;
     } catch (py::cast_error) {}
 
     try {
-        auto as_bool = handle.cast<bool>();
-        return QPDFObjectHandle::newBool(as_bool);
-    } catch (py::cast_error) {}
-
-    try {
-        auto as_int = handle.cast<int>();
+        auto as_int = handle.cast<long long>();
         return QPDFObjectHandle::newInteger(as_int);
     } catch (py::cast_error) {}
 
@@ -294,6 +292,12 @@ QPDFObjectHandle objecthandle_encode(py::handle handle)
         auto as_double = handle.cast<double>();
         return QPDFObjectHandle::newReal(as_double);
     } catch (py::cast_error) {}
+
+    // Special-case booleans since pybind11 coerces nonzero integers to boolean
+    if (py::isinstance<py::bool_>(handle)) {
+        bool as_bool = handle.cast<bool>();
+        return QPDFObjectHandle::newBool(as_bool);
+    }
 
     try {
         auto as_str = handle.cast<std::string>();
@@ -311,7 +315,7 @@ QPDFObjectHandle objecthandle_encode(py::handle handle)
     if (py::hasattr(obj, "__iter__")) {
         py::print(py::repr(obj));
 
-        bool is_mapping = false; // PyMapping_Check is unrealible in Py3
+        bool is_mapping = false; // PyMapping_Check is unreliable in Py3
         if (py::hasattr(obj, "keys"))
             is_mapping = true;
 
@@ -323,12 +327,28 @@ QPDFObjectHandle objecthandle_encode(py::handle handle)
         }
     }
 
-    if (obj == py::object()) {
+    if (obj.is(py::object())) {
         return QPDFObjectHandle::newNull();
     }
 
     throw py::cast_error("don't know how to encode value"s + std::string(py::repr(obj)));
 }
+
+
+py::object decimal_from_pdfobject(QPDFObjectHandle& h)
+{
+    auto decimal_constructor = py::module::import("decimal").attr("Decimal");
+
+    if (h.getTypeCode() == QPDFObject::object_type_e::ot_integer) {
+        auto value = h.getIntValue();
+        return decimal_constructor(py::cast(value));
+    } else if (h.getTypeCode() == QPDFObject::object_type_e::ot_real) {
+        auto value = h.getRealValue();
+        return decimal_constructor(py::cast(value));
+    }
+    throw py::type_error("object has no Decimal() representation");
+}
+
 
 py::object objecthandle_decode(QPDFObjectHandle& h)
 {
@@ -337,18 +357,14 @@ py::object objecthandle_decode(QPDFObjectHandle& h)
     switch (h.getTypeCode()) {
     case QPDFObject::object_type_e::ot_null:
         return py::none();
-    case QPDFObject::object_type_e::ot_boolean:
-        obj = py::cast(h.getBoolValue());
-        break;
     case QPDFObject::object_type_e::ot_integer:
         obj = py::cast(h.getIntValue());
         break;
+    case QPDFObject::object_type_e::ot_boolean:
+        obj = py::cast(h.getBoolValue());
+        break;
     case QPDFObject::object_type_e::ot_real:
-        {
-            auto decimal_constructor = py::module::import("decimal").attr("Decimal");
-            std::string value = h.getRealValue();
-            obj = decimal_constructor(py::cast(value)); 
-        }
+        obj = decimal_from_pdfobject(h);
         break;
     case QPDFObject::object_type_e::ot_name:
         break;
@@ -412,7 +428,6 @@ int list_range_check(QPDFObjectHandle& h, int index)
         throw py::index_error("index out of range");
     return index;   
 }
-
 
 void init_object(py::module& m)
 {
@@ -630,8 +645,29 @@ the wide and instead create private Python copies
         .def("__repr__", &objecthandle_repr)
         .def("__eq__",
             [](QPDFObjectHandle &self, QPDFObjectHandle &other) {
+                /* Uninitialized objects are never equal */
                 if (!self.isInitialized() || !other.isInitialized())
-                    throw py::value_error("equality undefined for uninitialized object handles");
+                    return false;
+
+                /* If 'self' is a numeric type, coerce both to Decimal objects
+                   and compare them as such */
+                if (self.getTypeCode() == QPDFObject::object_type_e::ot_integer ||
+                    self.getTypeCode() == QPDFObject::object_type_e::ot_real) {
+                    try {
+                        auto numeric_self = decimal_from_pdfobject(self);
+                        auto numeric_other = decimal_from_pdfobject(other);
+                        auto scope = py::dict(
+                            py::arg("a")=numeric_self,
+                            py::arg("b")=numeric_other);
+                        py::object pyresult = py::eval("a == b", py::globals(), scope);
+                        bool result = pyresult.cast<bool>();
+                        return result;
+                    } catch (py::type_error) {
+                        return false;
+                    }
+                }
+
+                /* Apart from numeric types, disimilar types are never equal */
                 if (self.getTypeCode() != other.getTypeCode())
                     return false;
 
@@ -640,10 +676,6 @@ the wide and instead create private Python copies
                         return true; // Both must be null
                     case QPDFObject::object_type_e::ot_boolean:
                         return self.getBoolValue() == other.getBoolValue();
-                    case QPDFObject::object_type_e::ot_integer:
-                        return self.getIntValue() == other.getIntValue();
-                    case QPDFObject::object_type_e::ot_real:
-                        throw py::value_error("real comparison not implemented");
                     case QPDFObject::object_type_e::ot_name:
                         return self.getName() == other.getName();
                     case QPDFObject::object_type_e::ot_operator:
@@ -651,8 +683,62 @@ the wide and instead create private Python copies
                     case QPDFObject::object_type_e::ot_string:
                         return self.getStringValue() == other.getStringValue();
                     default:
-                        throw py::value_error("comparison undefined");
+                        break;
                 }
+                return false;
+            }
+        )
+        .def("__eq__",
+            [](QPDFObjectHandle &self, long long other) {
+                /* Objects of different numeric types are expected to compare equal */
+                if (!self.isInitialized())
+                    return false;
+                if (self.getTypeCode() == QPDFObject::object_type_e::ot_integer)
+                    return self.getIntValue() == other;
+                return false;
+            }
+        )
+        .def("__lt__",
+            [](QPDFObjectHandle &self, QPDFObjectHandle &other) {
+                if (!self.isInitialized() || !other.isInitialized())
+                    throw py::type_error("comparison involving an uninitialized object");
+                if (self.getTypeCode() == QPDFObject::object_type_e::ot_integer ||
+                    self.getTypeCode() == QPDFObject::object_type_e::ot_real) {
+                    try {
+                        auto numeric_self = decimal_from_pdfobject(self);
+                        auto numeric_other = decimal_from_pdfobject(other);
+                        auto scope = py::dict(
+                            py::arg("a")=numeric_self,
+                            py::arg("b")=numeric_other);
+                        py::object pyresult = py::eval("a < b", py::globals(), scope);
+                        bool result = pyresult.cast<bool>();
+                        return result;
+                    } catch (py::type_error) {
+                        throw py::type_error("comparison undefined");
+                    }
+                }
+                throw py::type_error("comparison undefined");
+            }
+        )
+        .def("__lt__",
+            [](QPDFObjectHandle &self, long long other) {
+                if (!self.isInitialized())
+                    throw py::type_error("comparison involving an uninitialized object");
+                if (self.getTypeCode() == QPDFObject::object_type_e::ot_integer ||
+                    self.getTypeCode() == QPDFObject::object_type_e::ot_real) {
+                    try {
+                        auto numeric_self = decimal_from_pdfobject(self);
+                        auto scope = py::dict(
+                            py::arg("a")=numeric_self,
+                            py::arg("b")=other);
+                        py::object pyresult = py::eval("a < b", py::globals(), scope);
+                        bool result = pyresult.cast<bool>();
+                        return result;
+                    } catch (py::type_error) {
+                        throw py::type_error("comparison undefined");
+                    }
+                }
+                throw py::type_error("comparison undefined");
             }
         )
         .def("__len__",
