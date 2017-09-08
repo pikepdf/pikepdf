@@ -101,7 +101,7 @@ PYBIND11_MODULE(_qpdf, m) {
 
     py::register_exception<QPDFExc>(m, "QPDFError");
 
-    py::class_<QPDF>(m, "QPDF")
+    py::class_<QPDF>(m, "Pdf")
         .def_static("new",
             []() {
                 QPDF* q = new QPDF();
@@ -116,7 +116,7 @@ PYBIND11_MODULE(_qpdf, m) {
         )
         .def("__repr__",
             [](const QPDF &q) {
-                return "<qpdf.QPDF description='"s + q.getFilename() + "'>"s;
+                return "<pikepdf.Pdf description='"s + q.getFilename() + "'>"s;
             }
         )
         .def_property_readonly("filename", &QPDF::getFilename)

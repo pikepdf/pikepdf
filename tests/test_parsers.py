@@ -27,13 +27,13 @@ class ExceptionParser(qpdf.StreamParser):
 
 
 def test_open_pdf(resources):
-    pdf = qpdf.QPDF.open(resources / 'graph.pdf')
+    pdf = qpdf.Pdf.open(resources / 'graph.pdf')
     stream = pdf.pages[0]['/Contents']
     qpdf.Object.parse_stream(stream, PrintParser())
 
 
 def test_parser_exception(resources):
-    pdf = qpdf.QPDF.open(resources / 'graph.pdf')
+    pdf = qpdf.Pdf.open(resources / 'graph.pdf')
     stream = pdf.pages[0]['/Contents']
     with pytest.raises(ValueError):
         qpdf.Object.parse_stream(stream, ExceptionParser())
@@ -49,7 +49,7 @@ def test_text_filter(resources, outdir):
     assert proc.stdout.strip() != '', "Need input test file that contains text"
 
 
-    pdf = qpdf.QPDF.open(input_pdf)
+    pdf = qpdf.Pdf.open(input_pdf)
     stream = pdf.pages[0]['/Contents']
     grouper = OperandGrouper()
     qpdf.Object.parse_stream(stream, grouper)

@@ -77,7 +77,7 @@ std::string objecthandle_scalar_value(QPDFObjectHandle h)
     }
 }
 
-std::string objecthandle_pythonic_typename(QPDFObjectHandle h, std::string prefix = "qpdf.Object.")
+std::string objecthandle_pythonic_typename(QPDFObjectHandle h, std::string prefix = "pikepdf.Object.")
 {
     std::string s;
 

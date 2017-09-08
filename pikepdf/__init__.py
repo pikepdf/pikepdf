@@ -1,6 +1,6 @@
 from . import _qpdf
 
-from ._qpdf import Object, ObjectType, QPDFError, QPDF
+from ._qpdf import Object, ObjectType, PdfError, Pdf
 
 
 class OperandGrouper(_qpdf.StreamParser):
