@@ -7,24 +7,11 @@ from collections import namedtuple
 PdfInstruction = namedtuple('PdfInstruction', ('operands', 'operator'))
 
 
-class OperandGrouper(_qpdf.StreamParser):
+class _OperandGrouper(_qpdf.StreamParser):
     """Parse a PDF content stream into a sequence of instructions.
 
-    A PDF content stream is list of instructions that describe where to render
-    the text and graphics in a PDF. This is the starting point for analyzing
-    PDFs.
-
-    Each instruction contains at least one operator and zero or more operands.
-
-    TO DO: move to a private class that hides the details since the usage is
-    necessarily weird
-
-    >>> pdf = pikepdf.Pdf.open(input_pdf)
-    >>> stream = pdf.pages[0].Contents
-    >>> grouper = pikepdf.OperandGrouper()
-    >>> qpdf.Object.parse_stream(stream, grouper)
-    >>> for operands, command in grouper.instructions:
-    >>>     print(command)
+    Helper class for parsing PDF content streams into instructions. Semantics
+    are a little weird since it is subclassed from C++.
 
     """
 
@@ -44,3 +31,33 @@ class OperandGrouper(_qpdf.StreamParser):
     def handle_eof(self):
         if self._tokens:
             raise EOFError("Unexpected end of stream")
+
+
+def parse_content_stream(stream):
+    """Parse a PDF content stream into a sequence of instructions.
+
+    A PDF content stream is list of instructions that describe where to render
+    the text and graphics in a PDF. This is the starting point for analyzing
+    PDFs.
+
+    Each instruction contains at least one operator and zero or more operands.
+
+    >>> pdf = pikepdf.Pdf.open(input_pdf)
+    >>> stream = pdf.pages[0].Contents
+    >>> for operands, command in parse_content_stream(stream):
+    >>>     print(command)
+
+    """
+
+    if not isinstance(stream, Object):
+        raise TypeError("stream must a PDF object")
+
+    grouper = _OperandGrouper()
+    try:
+        Object.parse_stream(stream, grouper)
+    except RuntimeError as e:
+        if 'parseContentStream called on non-stream' in str(e):
+            raise TypeError("parse_content_stream called on non-stream Object")
+        raise e from e
+
+    return grouper.instructions

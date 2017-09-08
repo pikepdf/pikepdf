@@ -1,5 +1,5 @@
 import pytest
-from pikepdf import _qpdf as qpdf, OperandGrouper
+from pikepdf import _qpdf as qpdf, parse_content_stream
 import os
 from subprocess import run, PIPE
 
@@ -50,12 +50,10 @@ def test_text_filter(resources, outdir):
 
 
     pdf = qpdf.Pdf.open(input_pdf)
-    stream = pdf.pages[0]['/Contents']
-    grouper = OperandGrouper()
-    qpdf.Object.parse_stream(stream, grouper)
+    stream = pdf.pages[0].Contents
 
     keep = []
-    for operands, command in grouper.instructions:
+    for operands, command in parse_content_stream(stream):
         if command == qpdf.Object.Operator('Tj'):
             print("skipping Tj")
             continue
@@ -72,3 +70,8 @@ def test_text_filter(resources, outdir):
         check=True, stdout=PIPE, encoding='utf-8')
 
     assert proc.stdout.strip() == '', "Expected text to be removed"
+
+
+def test_invalid_stream_object():
+    with pytest.raises(TypeError):
+        parse_content_stream(qpdf.Object.Dictionary({"/Hi": 3}))
