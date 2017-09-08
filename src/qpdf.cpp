@@ -94,8 +94,8 @@ QPDF* open_pdf(py::args args, py::kwargs kwargs)
 
 void init_object(py::module& m);
 
-PYBIND11_PLUGIN(qpdf) {
-    py::module m("qpdf", "qpdf bindings");
+PYBIND11_MODULE(qpdf, m) {
+    m.doc() = "qpdf bindings";
 
     m.def("qpdf_version", &qpdf_get_qpdf_version, "Get libqpdf version");
 
@@ -172,6 +172,4 @@ PYBIND11_PLUGIN(qpdf) {
 #else
     m.attr("__version__") = py::str("dev");
 #endif
-
-    return m.ptr();
 }

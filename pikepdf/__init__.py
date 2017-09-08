@@ -1,6 +1,8 @@
 from . import qpdf
 import collections.abc
 
+from .qpdf import Object, ObjectType, QPDFError, QPDF
+
 
 class OperandGrouper(qpdf.StreamParser):
     def __init__(self):

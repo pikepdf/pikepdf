@@ -99,7 +99,7 @@ setup(
     description='Read and write PDFs with Python, powered by qpdf',
     long_description='',
     ext_modules=ext_modules,
-    install_requires=['pybind11 >= 2.1.1, < 3'],
+    install_requires=['pybind11 >= 2.2, < 3'],
     cmdclass={'build_ext': BuildExt},
     zip_safe=False,
     setup_requires=['pytest-runner'],
