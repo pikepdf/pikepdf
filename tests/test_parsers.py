@@ -55,7 +55,7 @@ def test_text_filter(resources, outdir):
     qpdf.Object.parse_stream(stream, grouper)
 
     keep = []
-    for operands, command in grouper.groups:
+    for operands, command in grouper.instructions:
         if command == qpdf.Object.Operator('Tj'):
             print("skipping Tj")
             continue

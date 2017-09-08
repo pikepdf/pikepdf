@@ -18,7 +18,9 @@ import os
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#sys.path.insert(0, os.path.abspath('.'))
+sys.path.insert(0, os.path.join(os.path.abspath('.'), '..'))
+
+import pikepdf
 
 # -- General configuration ------------------------------------------------
 
@@ -206,7 +208,7 @@ html_static_path = ['_static']
 #html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'python_exampledoc'
+htmlhelp_basename = 'pikepdfdoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 

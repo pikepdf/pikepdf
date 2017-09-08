@@ -95,13 +95,13 @@ QPDF* open_pdf(py::args args, py::kwargs kwargs)
 void init_object(py::module& m);
 
 PYBIND11_MODULE(_qpdf, m) {
-    m.doc() = "qpdf bindings";
+    m.doc() = "pikepdf provides a Pythonic interface for QPDF";
 
     m.def("qpdf_version", &qpdf_get_qpdf_version, "Get libqpdf version");
 
     py::register_exception<QPDFExc>(m, "PdfError");
 
-    py::class_<QPDF>(m, "Pdf")
+    py::class_<QPDF>(m, "Pdf", "In-memory representation of a PDF")
         .def_static("new",
             []() {
                 QPDF* q = new QPDF();
@@ -119,16 +119,31 @@ PYBIND11_MODULE(_qpdf, m) {
                 return "<pikepdf.Pdf description='"s + q.getFilename() + "'>"s;
             }
         )
-        .def_property_readonly("filename", &QPDF::getFilename)
-        .def_property_readonly("pdf_version", &QPDF::getPDFVersion)
+        .def_property_readonly("filename", &QPDF::getFilename,
+            "the source filename of an existing PDF, when available")
+        .def_property_readonly("pdf_version", &QPDF::getPDFVersion,
+            "the PDF standard version, such as '1.7'")
         .def_property_readonly("extension_level", &QPDF::getExtensionLevel)
-        .def_property_readonly("root", &QPDF::getRoot)
-        .def_property_readonly("trailer", &QPDF::getTrailer)
+        .def_property_readonly("root", &QPDF::getRoot,
+            "the /Root object of the PDF")
+        .def_property_readonly("trailer", &QPDF::getTrailer,
+            "the PDF trailer")
         .def_property_readonly("pages", &QPDF::getAllPages)
         .def_property_readonly("is_encrypted", &QPDF::isEncrypted)
         .def("get_warnings", &QPDF::getWarnings)  // this is a def because it modifies state by clearing warnings
         .def("show_xref_table", &QPDF::showXRefTable)
-        .def("add_page", &QPDF::addPage)
+        .def("add_page", &QPDF::addPage,
+            R"~~~(
+            Attach a page to this PDF. The page can be either be a
+            newly constructed PDF object or it can be obtained from another
+            PDF.
+
+            :param pikepdf.Object page: The page object to attach
+            :param bool first: If True, prepend this before the first page; if False append after last page
+            )~~~",
+            py::arg("page"),
+            py::arg("first")
+        )
         .def("remove_page", &QPDF::removePage)
         .def("save",
              [](QPDF &q, py::object filename, bool static_id=false,
@@ -147,7 +162,7 @@ PYBIND11_MODULE(_qpdf, m) {
                     helpers.attr("repair_pdfa")(filename);
                 }
              },
-             "save the PDF",
+             "save as a PDF",
              py::arg("filename"),
              py::arg("static_id") = false,
              py::arg("preserve_pdfa") = false
