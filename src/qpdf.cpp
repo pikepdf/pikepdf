@@ -99,7 +99,7 @@ PYBIND11_MODULE(_qpdf, m) {
 
     m.def("qpdf_version", &qpdf_get_qpdf_version, "Get libqpdf version");
 
-    py::register_exception<QPDFExc>(m, "QPDFError");
+    py::register_exception<QPDFExc>(m, "PdfError");
 
     py::class_<QPDF>(m, "Pdf")
         .def_static("new",

@@ -12,19 +12,19 @@ def test_minimum_qpdf_version():
 
 
 def test_open_pdf(resources):
-    pdf = qpdf.QPDF.open(resources / 'graph.pdf')
+    pdf = qpdf.Pdf.open(resources / 'graph.pdf')
     assert '1.3' <= pdf.pdf_version <= '1.7'
 
     assert pdf.root['/Pages']['/Count'].as_int() == 1
 
 
 def test_attr_access(resources):
-    pdf = qpdf.QPDF.open(resources / 'graph.pdf')
+    pdf = qpdf.Pdf.open(resources / 'graph.pdf')
     assert int(pdf.root.Pages.Count) == 1
 
 
 def test_create_pdf(outdir):
-    pdf = qpdf.QPDF.new()
+    pdf = qpdf.Pdf.new()
 
     font = pdf.make_indirect(
         qpdf.Object.parse(b"""
@@ -82,7 +82,7 @@ def test_create_pdf(outdir):
 
 
 def test_copy_semantics(resources):
-    pdf = qpdf.QPDF.open(resources / 'graph.pdf')
+    pdf = qpdf.Pdf.open(resources / 'graph.pdf')
 
     # Ensure that we can name a reference to a child object and view the
     # changes from the parent
