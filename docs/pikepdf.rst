@@ -4,10 +4,10 @@ pikepdf API Reference
 .. automodule:: pikepdf
     :members:
 
-.. autoclass:: pikepdf.Pdf
+.. autoclass:: pikepdf.PDF
     :members:
 
 .. autoclass:: pikepdf.Object
     :members:
 
-.. py:exception:: pikepdf.PdfError
+.. py:exception:: pikepdf.PDFError
