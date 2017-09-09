@@ -1,6 +1,6 @@
 from . import _qpdf
 
-from ._qpdf import Object, ObjectType, PDFError, PDF
+from ._qpdf import Object, ObjectType, PDFError, PDF, PasswordError
 
 from collections import namedtuple
 

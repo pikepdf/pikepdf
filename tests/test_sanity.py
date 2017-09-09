@@ -20,8 +20,17 @@ def test_open_pdf(resources):
 
 def test_open_pdf_password(resources):
     pdf = qpdf.PDF.open(resources / 'graph-encrypted.pdf', password='owner')
-
     assert pdf.root['/Pages']['/Count'].as_int() == 1
+
+
+def test_open_pdf_wrong_password(resources):
+    with pytest.raises(qpdf.PasswordError):
+        qpdf.PDF.open(resources / 'graph-encrypted.pdf', password='wrong')
+
+
+def test_open_pdf_password_encoding(resources):
+    with pytest.raises(qpdf.PasswordError):
+        qpdf.PDF.open(resources / 'graph-encrypted.pdf', password=b'\x01\xfe')
 
 
 def test_attr_access(resources):

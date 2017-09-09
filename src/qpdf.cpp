@@ -36,7 +36,7 @@ void kwargs_to_method(py::kwargs kwargs, const char* key, std::unique_ptr<QPDF> 
             auto v = kwargs[key].cast<T>();
             ((*q).*callback)(v); // <-- Cute
         }
-    } catch (py::cast_error) {
+    } catch (py::cast_error &e) {
         throw py::type_error(std::string(key) + ": unsupported argument type");
     }
 }
@@ -55,13 +55,12 @@ std::string fsencode_filename(py::object py_filename)
     try {
         auto py_encoded_filename = fspath(py_filename);
         filename = py_encoded_filename.cast<std::string>();
-    } catch (py::cast_error) {
+    } catch (py::cast_error &e) {
         throw py::type_error("expected pathlike object");
     }
 
     return filename;
 }
-
 
 auto open_pdf(py::args args, py::kwargs kwargs)
 {
@@ -102,7 +101,19 @@ PYBIND11_MODULE(_qpdf, m) {
 
     m.def("qpdf_version", &qpdf_get_qpdf_version, "Get libqpdf version");
 
-    py::register_exception<QPDFExc>(m, "PDFError");
+    static py::exception<QPDFExc> exc_main(m, "PDFError");
+    static py::exception<QPDFExc> exc_password(m, "PasswordError");
+    py::register_exception_translator([](std::exception_ptr p) {
+        try {
+            if (p) std::rethrow_exception(p);
+        } catch (const QPDFExc &e) {
+            if (e.getErrorCode() == qpdf_e_password) {
+                exc_password(e.what());
+            } else {
+                exc_main(e.what());
+            }
+        }
+    });
 
     py::class_<QPDF>(m, "PDF", "In-memory representation of a PDF")
         .def_static("new",
@@ -125,6 +136,8 @@ PYBIND11_MODULE(_qpdf, m) {
             :param ignore_xref_streams: If True, ignore cross-reference streams. See qpdf documentation.
             :param suppress_warnings: If True (default), warnings are not printed to stderr. Use `get_warnings()` to retrieve warnings.
             :param attempt_recovery: If True (default), attempt to recover from PDF parsing errors.
+            :throws pikepdf.PasswordError: If the password failed to open the file.
+            :throws pikepdf.PDFError: If for other reasons we could not open the file.
             )~~~"
         )
         .def("__repr__",
