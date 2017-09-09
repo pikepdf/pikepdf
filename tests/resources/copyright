@@ -1,0 +1,20 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: pikepdf-test-resources
+Upstream-Contact: jbarlow83@github
+Source: https://github.com/jbarlow83/pikepdf
+
+Files: tests/resources/*
+Copyright: 2017 James R. Barlow
+License: Apache-2.0
+
+Files: tests/resources/graph*.pdf
+License: public-domain
+Source: https://en.wikipedia.org/wiki/File:Pandas_text_analysis.png
+Comment:
+    For -encrypted.pdf, user password is "user" and owner password is "owner".
+
+Files: tests/resources/veraPDF*.pdf
+Copyright: 2015 veraPDF Consortium
+Source: https://github.com/veraPDF/veraPDF-corpus
+License: CC-BY 4.0
+

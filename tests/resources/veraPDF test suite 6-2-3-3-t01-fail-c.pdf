@@ -1,0 +1,151 @@
+%PDF-1.4
+%вгПу
+1 0 obj
+<<
+/Type /Catalog
+/Outlines 2 0 R
+/OutputIntents []
+/Pages 3 0 R
+/Metadata 4 0 R
+/PageMode /UseOutlines
+>>
+endobj
+2 0 obj
+<<
+/Type /Outlines
+/First 5 0 R
+/Count 1
+/Last 5 0 R
+>>
+endobj
+3 0 obj
+<<
+/Type /Pages
+/Count 1
+/Kids [6 0 R]
+>>
+endobj
+4 0 obj
+<<
+/Type /Metadata
+/Subtype /XML
+/Length 870>>
+stream
+<?xpacket begin='' id='W5M0MpCehiHzreSzNTczkc9d'?><x:xmpmeta xmlns:x="adobe:ns:meta/">  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">    <rdf:Description xmlns:dc="http://purl.org/dc/elements/1.1/" rdf:about="">      <dc:creator>        <rdf:Seq>          <rdf:li>veraPDF Consortium</rdf:li>        </rdf:Seq>      </dc:creator>    </rdf:Description>    <rdf:Description xmlns:xmp="http://ns.adobe.com/xap/1.0/" rdf:about="" xmp:CreatorTool="veraPDF Test Builder" xmp:CreateDate="2015-03-10T17:19:21+01:00" xmp:ModifyDate="2015-03-10T17:19:21+01:00"/>    <rdf:Description xmlns:pdf="http://ns.adobe.com/pdf/1.3/" rdf:about="" pdf:Producer="veraPDF Test Builder 1.0 "/>    <rdf:Description xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/" rdf:about="" pdfaid:part="1" pdfaid:conformance="B"/>  </rdf:RDF></x:xmpmeta><?xpacket end='w'?>
+
+endstream
+endobj
+5 0 obj
+<<
+/Title (veraPDF test suite: 6-2-3-3-t01-fail-c)
+/First 7 0 R
+/Count 5
+/Last 8 0 R
+/Parent 2 0 R
+>>
+endobj
+6 0 obj
+<<
+/CropBox [0 0 500 500]
+/ProcSet [/PDF /Text]
+/Parent 3 0 R
+/Contents 9 0 R
+/Type /Page
+/Resources <<
+/XObject <<
+/X0 10 0 R
+>>
+>>
+/MediaBox [0 0 500 500]
+>>
+endobj
+7 0 obj
+<<
+/Title (clause 6-2-3-3)
+/Parent 5 0 R
+/Next 11 0 R
+>>
+endobj
+8 0 obj
+<<
+/Title (expected message: DeviceRGB colour space is used in a Form XObject, but the file does not define the OutputIntent)
+/Parent 5 0 R
+/Prev 12 0 R
+>>
+endobj
+9 0 obj
+<<
+/Length 30>>
+stream
+q
+1 0 0 1 50 350 cm
+/X0 Do
+Q
+endstream
+endobj
+10 0 obj
+<<
+/Type /XObject
+/Subtype /Form
+/BBox [0 0 1000 1000]
+/Length 46>>
+stream
+q
+0 0.7 0.7 RG
+0 0.7 0.7 rg
+50 50 50 50 re
+B
+Q
+endstream
+endobj
+11 0 obj
+<<
+/Title (topic 01)
+/Parent 5 0 R
+/Prev 7 0 R
+/Next 13 0 R
+>>
+endobj
+12 0 obj
+<<
+/Title (expected result: fail)
+/Parent 5 0 R
+/Prev 13 0 R
+/Next 8 0 R
+>>
+endobj
+13 0 obj
+<<
+/Title (instance c)
+/Parent 5 0 R
+/Prev 11 0 R
+/Next 12 0 R
+>>
+endobj
+
+xref
+0 14
+0000000000 65535 f
+0000000019 00000 n
+0000000141 00000 n
+0000000212 00000 n
+0000000269 00000 n
+0000001221 00000 n
+0000001338 00000 n
+0000001513 00000 n
+0000001585 00000 n
+0000001756 00000 n
+0000001837 00000 n
+0000001987 00000 n
+0000002066 00000 n
+0000002158 00000 n
+
+trailer
+<<
+/Size 14
+/Root 1 0 R
+/ID [<D6CF927DCF82444068EB69AF5914F807> <9BB96B2659C401CF3D8C09D7F8039C2B>]
+>>
+startxref
+2243
+%%EOF
