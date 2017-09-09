@@ -18,6 +18,12 @@ def test_open_pdf(resources):
     assert pdf.root['/Pages']['/Count'].as_int() == 1
 
 
+def test_open_pdf_password(resources):
+    pdf = qpdf.PDF.open(resources / 'graph-encrypted.pdf', password='owner')
+
+    assert pdf.root['/Pages']['/Count'].as_int() == 1
+
+
 def test_attr_access(resources):
     pdf = qpdf.PDF.open(resources / 'graph.pdf')
     assert int(pdf.root.Pages.Count) == 1
