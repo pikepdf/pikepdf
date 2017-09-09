@@ -1,6 +1,6 @@
 from . import _qpdf
 
-from ._qpdf import Object, ObjectType, PdfError, Pdf
+from ._qpdf import Object, ObjectType, PDFError, PDF
 
 from collections import namedtuple
 
@@ -43,7 +43,7 @@ def parse_content_stream(stream):
 
     Each instruction contains at least one operator and zero or more operands.
 
-    >>> pdf = pikepdf.Pdf.open(input_pdf)
+    >>> pdf = pikepdf.PDF.open(input_pdf)
     >>> stream = pdf.pages[0].Contents
     >>> for operands, command in parse_content_stream(stream):
     >>>     print(command)

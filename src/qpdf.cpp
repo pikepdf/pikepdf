@@ -102,9 +102,9 @@ PYBIND11_MODULE(_qpdf, m) {
 
     m.def("qpdf_version", &qpdf_get_qpdf_version, "Get libqpdf version");
 
-    py::register_exception<QPDFExc>(m, "PdfError");
+    py::register_exception<QPDFExc>(m, "PDFError");
 
-    py::class_<QPDF>(m, "Pdf", "In-memory representation of a PDF")
+    py::class_<QPDF>(m, "PDF", "In-memory representation of a PDF")
         .def_static("new",
             []() {
                 QPDF* q = new QPDF();
@@ -119,7 +119,7 @@ PYBIND11_MODULE(_qpdf, m) {
         )
         .def("__repr__",
             [](const QPDF &q) {
-                return "<pikepdf.Pdf description='"s + q.getFilename() + "'>"s;
+                return "<pikepdf.PDF description='"s + q.getFilename() + "'>"s;
             }
         )
         .def_property_readonly("filename", &QPDF::getFilename,

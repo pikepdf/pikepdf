@@ -8,10 +8,10 @@ from contextlib import suppress
 
 
 def test_split_pdf(resources, outdir):
-    q = qpdf.Pdf.open(resources / "fourpages.pdf")
+    q = qpdf.PDF.open(resources / "fourpages.pdf")
 
     for n, page in enumerate(q.pages):
-        outpdf = qpdf.Pdf.new()
+        outpdf = qpdf.PDF.new()
         outpdf.add_page(page, False)
         outpdf.save(outdir / "page{}.pdf".format(n + 1))
 

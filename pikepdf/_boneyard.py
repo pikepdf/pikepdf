@@ -1,6 +1,12 @@
 from . import qpdf
 import collections.abc
 
+# This is a repository of half-baked ideas, mainly an effort to automatically
+# unbox QPDFObjectHandle to equivalent Python types
+# I'm unconvinced that's a good idea in the first place, convenient as it is,
+# as it involves roundtripping a lot of data and boxed types can usually have
+# a nice repr() or str() or whatever. Also here is a half-baked syntax
+# checker.
 
 class PdfObject:
     @classmethod
