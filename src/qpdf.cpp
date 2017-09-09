@@ -29,12 +29,12 @@ QPDFObjectHandle objecthandle_encode(py::handle obj);
 
 
 template <typename T>
-void kwargs_to_method(py::kwargs kwargs, const char* key, QPDF* q, void (QPDF::*callback)(T))
+void kwargs_to_method(py::kwargs kwargs, const char* key, std::unique_ptr<QPDF> &q, void (QPDF::*callback)(T))
 {
     try {
         if (kwargs.contains(key)) {
             auto v = kwargs[key].cast<T>();
-            (q->*callback)(v);
+            ((*q).*callback)(v); // <-- Cute
         }
     } catch (py::cast_error) {
         throw py::type_error(std::string(key) + ": unsupported argument type");
@@ -63,9 +63,9 @@ std::string fsencode_filename(py::object py_filename)
 }
 
 
-QPDF* open_pdf(py::args args, py::kwargs kwargs)
+auto open_pdf(py::args args, py::kwargs kwargs)
 {
-    QPDF* q = new QPDF();
+    auto q = std::make_unique<QPDF>();
 
     if (args.size() < 1) 
         throw py::value_error("not enough arguments");
@@ -75,6 +75,7 @@ QPDF* open_pdf(py::args args, py::kwargs kwargs)
     std::string filename = fsencode_filename(args[0]);
     std::string password;
 
+    q->setSuppressWarnings(true);
     if (kwargs) {
         if (kwargs.contains("password")) {
             auto v = kwargs["password"].cast<std::string>();
@@ -85,7 +86,6 @@ QPDF* open_pdf(py::args args, py::kwargs kwargs)
         kwargs_to_method(kwargs, "attempt_recovery", q, &QPDF::setAttemptRecovery);
     }
 
-    q->setSuppressWarnings(true);
     py::gil_scoped_release release;
     q->processFile(filename.c_str(), password.c_str());
     return q;
@@ -107,7 +107,7 @@ PYBIND11_MODULE(_qpdf, m) {
     py::class_<QPDF>(m, "PDF", "In-memory representation of a PDF")
         .def_static("new",
             []() {
-                QPDF* q = new QPDF();
+                auto q = std::make_unique<QPDF>();
                 q->emptyPDF();
                 q->setSuppressWarnings(true);
                 return q;
@@ -115,7 +115,17 @@ PYBIND11_MODULE(_qpdf, m) {
             "create a new empty PDF from stratch"
         )
         .def_static("open", open_pdf,
-            "open existing PDF"
+            R"~~~(
+            Open an existing file at `filename` according to `options`, all
+            of which are optional.
+
+            :param os.PathLike filename: Filename of PDF to open
+            :param password: User or owner password to open the PDF, if encrypted
+            :type password: str or None
+            :param ignore_xref_streams: If True, ignore cross-reference streams. See qpdf documentation.
+            :param suppress_warnings: If True (default), warnings are not printed to stderr. Use `get_warnings()` to retrieve warnings.
+            :param attempt_recovery: If True (default), attempt to recover from PDF parsing errors.
+            )~~~"
         )
         .def("__repr__",
             [](const QPDF &q) {
