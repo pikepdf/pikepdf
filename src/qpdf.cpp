@@ -95,6 +95,9 @@ QPDF* open_pdf(py::args args, py::kwargs kwargs)
 void init_object(py::module& m);
 
 PYBIND11_MODULE(_qpdf, m) {
+    //py::options options;
+    //options.disable_function_signatures();
+
     m.doc() = "pikepdf provides a Pythonic interface for QPDF";
 
     m.def("qpdf_version", &qpdf_get_qpdf_version, "Get libqpdf version");

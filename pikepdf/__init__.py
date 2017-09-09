@@ -4,7 +4,6 @@ from ._qpdf import Object, ObjectType, PdfError, Pdf
 
 from collections import namedtuple
 
-PdfInstruction = namedtuple('PdfInstruction', ('operands', 'operator'))
 
 
 class _OperandGrouper(_qpdf.StreamParser):
@@ -14,6 +13,8 @@ class _OperandGrouper(_qpdf.StreamParser):
     are a little weird since it is subclassed from C++.
 
     """
+
+    PdfInstruction = namedtuple('PdfInstruction', ('operands', 'operator'))
 
     def __init__(self):
         super().__init__()
