@@ -866,8 +866,8 @@ qpdf.Object.Dictionary({
             }
         )
         .def_property("stream_dict", 
-            py::cpp_function(&QPDFObjectHandle::getDict, py::return_value_policy::copy),
-            py::cpp_function(&QPDFObjectHandle::replaceDict)
+            &QPDFObjectHandle::getDict, &QPDFObjectHandle::replaceDict,
+            py::return_value_policy::copy // ObjectHandle is wrapper around a shared pointer, so should be copied
         )
         .def("read_stream_data",
             [](QPDFObjectHandle &h) {
