@@ -61,8 +61,7 @@ std::string fsencode_filename(py::object py_filename)
 auto open_pdf(py::args args, py::kwargs kwargs)
 {
     auto q = std::make_unique<QPDF>();
-
-    if (args.size() < 1) 
+    if (args.size() < 1)
         throw py::value_error("not enough arguments");
     if (args.size() > 2)
         throw py::value_error("too many arguments");
@@ -90,7 +89,7 @@ auto open_pdf(py::args args, py::kwargs kwargs)
         }
 
         py::object read = stream.attr("read");
-        py::object pydata = read();  // i.e. self=stream
+        py::object pydata = read();
         py::bytes data = pydata.cast<py::bytes>();
         char *buffer;
         ssize_t length;
@@ -99,6 +98,9 @@ auto open_pdf(py::args args, py::kwargs kwargs)
 
         // libqpdf will create a copy of this memory and attach it
         // to 'q'
+        // This could be improved by subclassing InputSource into C++
+        // and creating a version that obtains its data from its Python object,
+        // but that is much more complex.
         q->processMemoryFile("memory", buffer, length, password.c_str());
     } else {
         std::string filename = fsencode_filename(args[0]);
@@ -146,17 +148,25 @@ PYBIND11_MODULE(_qpdf, m) {
         )
         .def_static("open", open_pdf,
             R"~~~(
-            Open an existing file at `filename` according to `options`, all
+            Open an existing file at `filename_or_stream` according to `options`, all
             of which are optional.
 
-            :param os.PathLike filename: Filename of PDF to open
+            If `filename_or_stream` is path-like, the file will be opened.
+
+            If `filename_or_stream` has `.read()` and `.seek()` methods, the file
+            will be accessed as a readable binary stream. pikepdf will read the
+            entire stream into a private buffer.
+
+            :param filename_or_stream: Filename of PDF to open
             :param password: User or owner password to open the PDF, if encrypted
+            :type filename: os.PathLike or file stream
             :type password: str or None
             :param ignore_xref_streams: If True, ignore cross-reference streams. See qpdf documentation.
             :param suppress_warnings: If True (default), warnings are not printed to stderr. Use `get_warnings()` to retrieve warnings.
             :param attempt_recovery: If True (default), attempt to recover from PDF parsing errors.
             :throws pikepdf.PasswordError: If the password failed to open the file.
             :throws pikepdf.PDFError: If for other reasons we could not open the file.
+            :throws TypeError: If the type of `filename_or_stream` is not usable.
             )~~~"
         )
         .def("__repr__",
