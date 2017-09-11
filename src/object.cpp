@@ -1,3 +1,6 @@
+#include <sstream>
+#include <iostream>
+
 #include <qpdf/Constants.h>
 #include <qpdf/Types.h>
 #include <qpdf/DLL.h>
@@ -10,24 +13,13 @@
 #include <qpdf/QPDF.hh>
 #include <qpdf/QPDFWriter.hh>
 
-#include <sstream>
-#include <iostream>
-
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/eval.h>
 
+#include "pikepdf.h"
 
 using namespace std::literals::string_literals;
-
-namespace pybind11 {
-    PYBIND11_RUNTIME_EXCEPTION(attr_error, PyExc_AttributeError);
-};
-
-namespace py = pybind11;
-
-
-//PYBIND11_DECLARE_HOLDER_TYPE(T, PointerHolder<T>);
 
 /*
 New type table
@@ -242,8 +234,6 @@ std::string objecthandle_repr(QPDFObjectHandle h)
 
 std::vector<QPDFObjectHandle>
 array_builder(py::iterable iter);
-
-QPDFObjectHandle objecthandle_encode(py::handle obj);
 
 std::map<std::string, QPDFObjectHandle>
 dict_builder(py::dict dict)
@@ -493,20 +483,8 @@ qpdf.Object.Dictionary({
     "/Contents": <qpdf.Object.Stream>,
 })
 
-PointerHolder<T> is a homebrewed shared_ptr within qpdf that is not compatible
-with the API of pybind11.  Options include a PointerHolderHolder to translate
-or the approach taken so far which is to not let PointerHolders escape into
-the wide and instead create private Python copies
 
 */
-
-    // py::class_<Buffer, PointerHolder<Buffer>>(m, "Buffer")
-    //     .def_property_readonly("size", &Buffer::getSize)
-    //     .def("readall",
-    //         [](Buffer &buf) {
-    //             return reinterpret_cast<char *>(buf.getBuffer());
-    //         }
-    //     );
 
     py::class_<QPDFObjectHandle> objecthandle(m, "Object");
 
@@ -893,6 +871,13 @@ the wide and instead create private Python copies
         )
         .def("read_stream_data",
             [](QPDFObjectHandle &h) {
+                // TO DO
+                // This should use buffer protocol
+                // First Declare PointerHolder as a shared pointer type
+                // https://pybind11.readthedocs.io/en/stable/advanced/smart_ptrs.html#custom-smart-pointers
+                // Then set up the buffer protocol for qpdf's class Buffer
+                // https://pybind11.readthedocs.io/en/stable/advanced/pycpp/numpy.html#buffer-protocol
+                // Allows zero copy access
                 PointerHolder<Buffer> phbuf = h.getStreamData();
                 const Buffer* buf = phbuf.getPointer();
                 return py::bytes((const char *)buf->getBuffer(), buf->getSize());

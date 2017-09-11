@@ -15,14 +15,11 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-extern "C" const char* qpdf_get_qpdf_version();
+#include "pikepdf.h"
 
 using namespace std::literals::string_literals;
 
-namespace py = pybind11;
-
-QPDFObjectHandle objecthandle_encode(py::handle obj);
-
+extern "C" const char* qpdf_get_qpdf_version();
 
 template <typename T>
 void kwargs_to_method(py::kwargs kwargs, const char* key, std::unique_ptr<QPDF> &q, void (QPDF::*callback)(T))
