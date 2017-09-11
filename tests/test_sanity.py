@@ -38,6 +38,18 @@ def test_open_pdf_no_password_but_needed(resources):
         qpdf.PDF.open(resources / 'graph-encrypted.pdf')
 
 
+def test_stream(resources):
+    with (resources / 'graph.pdf').open('rb') as stream:
+        pdf = qpdf.PDF.open(stream)
+    assert pdf.root.Pages.Count == 1
+
+
+def test_no_text_stream(resources):
+    with pytest.raises(TypeError):
+        with (resources / 'graph.pdf').open('r') as stream:
+            qpdf.PDF.open(stream)
+
+
 def test_attr_access(resources):
     pdf = qpdf.PDF.open(resources / 'graph.pdf')
     assert int(pdf.root.Pages.Count) == 1

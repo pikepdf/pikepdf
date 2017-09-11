@@ -1,3 +1,5 @@
+#include <sstream>
+
 #include <qpdf/Constants.h>
 #include <qpdf/Types.h>
 #include <qpdf/DLL.h>
@@ -10,14 +12,9 @@
 #include <qpdf/QPDF.hh>
 #include <qpdf/QPDFWriter.hh>
 
-#include <sstream>
-
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-
-#if 0
 #include <pybind11/eval.h>
-#endif
 
 extern "C" const char* qpdf_get_qpdf_version();
 
@@ -71,7 +68,6 @@ auto open_pdf(py::args args, py::kwargs kwargs)
     if (args.size() > 2)
         throw py::value_error("too many arguments");
 
-    std::string filename = fsencode_filename(args[0]);
     std::string password;
 
     q->setSuppressWarnings(true);
@@ -85,8 +81,34 @@ auto open_pdf(py::args args, py::kwargs kwargs)
         kwargs_to_method(kwargs, "attempt_recovery", q, &QPDF::setAttemptRecovery);
     }
 
-    py::gil_scoped_release release;
-    q->processFile(filename.c_str(), password.c_str());
+    if (py::hasattr(args[0], "read") && py::hasattr(args[0], "seek")) {
+        // Python code gave us an object with a stream interface
+        py::object stream = args[0];
+        auto scope = py::dict(py::arg("stream")=stream);
+
+        py::exec(R"(
+            from io import TextIOBase
+            if isinstance(stream, TextIOBase):
+                raise TypeError("stream must be binary, readable and seekable")
+            data = stream.read()
+            )", py::globals(), scope
+        );
+
+        py::bytes data = scope["data"].cast<py::bytes>();
+        char *buffer;
+        ssize_t length;
+
+        PYBIND11_BYTES_AS_STRING_AND_SIZE(data.ptr(), &buffer, &length);
+
+        // libqpdf will create a copy of this memory and attach it
+        // to 'q'
+        q->processMemoryFile("memory", buffer, length, password.c_str());
+    } else {
+        std::string filename = fsencode_filename(args[0]);
+        py::gil_scoped_release release;
+        q->processFile(filename.c_str(), password.c_str());
+    }
+
     return q;
 }
 
