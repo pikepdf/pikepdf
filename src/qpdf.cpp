@@ -14,7 +14,6 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <pybind11/eval.h>
 
 extern "C" const char* qpdf_get_qpdf_version();
 
@@ -84,17 +83,15 @@ auto open_pdf(py::args args, py::kwargs kwargs)
     if (py::hasattr(args[0], "read") && py::hasattr(args[0], "seek")) {
         // Python code gave us an object with a stream interface
         py::object stream = args[0];
-        auto scope = py::dict(py::arg("stream")=stream);
+        auto TextIOBase = py::module::import("io").attr("TextIOBase");
 
-        py::exec(R"(
-            from io import TextIOBase
-            if isinstance(stream, TextIOBase):
-                raise TypeError("stream must be binary, readable and seekable")
-            data = stream.read()
-            )", py::globals(), scope
-        );
+        if (py::isinstance(stream, TextIOBase)) {
+            throw py::type_error("stream must be binary, readable and seekable");
+        }
 
-        py::bytes data = scope["data"].cast<py::bytes>();
+        py::object read = stream.attr("read");
+        py::object pydata = read();  // i.e. self=stream
+        py::bytes data = pydata.cast<py::bytes>();
         char *buffer;
         ssize_t length;
 
