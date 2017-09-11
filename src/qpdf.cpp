@@ -187,7 +187,10 @@ PYBIND11_MODULE(_qpdf, m) {
         .def_property_readonly("is_encrypted", &QPDF::isEncrypted)
         .def("get_warnings", &QPDF::getWarnings)  // this is a def because it modifies state by clearing warnings
         .def("show_xref_table", &QPDF::showXRefTable)
-        .def("add_page", &QPDF::addPage,
+        .def("add_page",
+            [](QPDF& q, QPDFObjectHandle& oh, bool first=false) {
+                q.addPage(oh, first);
+            },
             R"~~~(
             Attach a page to this PDF. The page can be either be a
             newly constructed PDF object or it can be obtained from another
@@ -197,18 +200,21 @@ PYBIND11_MODULE(_qpdf, m) {
             :param bool first: If True, prepend this before the first page; if False append after last page
             )~~~",
             py::arg("page"),
-            py::arg("first")
+            py::arg("first")=false
         )
         .def("remove_page", &QPDF::removePage)
         .def("save",
              [](QPDF &q, py::object filename, bool static_id=false,
-                bool preserve_pdfa=false) {
+                bool preserve_pdfa=false, std::string min_version=""s) {
                 QPDFWriter w(q, fsencode_filename(filename).c_str());
                 {
                     py::gil_scoped_release release;
                     if (static_id) {
                         w.setStaticID(true);
                         w.setStreamDataMode(qpdf_s_uncompress);
+                    }
+                    if (!min_version.empty()) {
+                        w.setMinimumPDFVersion(min_version.c_str(), 0);
                     }
                     w.write();
                 }
@@ -220,7 +226,8 @@ PYBIND11_MODULE(_qpdf, m) {
              "save as a PDF",
              py::arg("filename"),
              py::arg("static_id") = false,
-             py::arg("preserve_pdfa") = false
+             py::arg("preserve_pdfa") = false,
+             py::arg("min_version") = ""
         )
         .def("_get_object_id", &QPDF::getObjectByID)
         .def("make_indirect", &QPDF::makeIndirectObject)
