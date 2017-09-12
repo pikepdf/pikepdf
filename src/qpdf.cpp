@@ -109,6 +109,8 @@ auto open_pdf(py::args args, py::kwargs kwargs)
         q->processMemoryFile("memory", buffer, length, password.c_str());
     } else {
         std::string filename = fsencode_filename(args[0]);
+        // We can release GIL because Python knows nothing about q at this
+        // point; this could also take a moment for large files
         py::gil_scoped_release release;
         q->processFile(filename.c_str(), password.c_str());
     }
@@ -124,7 +126,8 @@ void save_pdf(
     bool preserve_pdfa=false,
     std::string min_version=""s,
     std::string force_version=""s,
-    qpdf_object_stream_e object_stream_mode=qpdf_o_preserve)
+    qpdf_object_stream_e object_stream_mode=qpdf_o_preserve,
+    qpdf_stream_data_e stream_data_mode=qpdf_s_preserve)
 {
     QPDFWriter w(q);
 
@@ -140,6 +143,7 @@ void save_pdf(
         w.forcePDFVersion(force_version, 0);
     }
     w.setObjectStreamMode(object_stream_mode);
+    w.setStreamDataMode(stream_data_mode);
 
     if (py::hasattr(filename_or_stream, "read") && py::hasattr(filename_or_stream, "seek")) {
         // Python code gave us an object with a stream interface
@@ -207,6 +211,11 @@ PYBIND11_MODULE(_qpdf, m) {
         .value("disable", qpdf_object_stream_e::qpdf_o_disable)
         .value("preserve", qpdf_object_stream_e::qpdf_o_preserve)
         .value("generate", qpdf_object_stream_e::qpdf_o_generate);
+
+    py::enum_<qpdf_stream_data_e>(m, "StreamDataMode")
+        .value("uncompress", qpdf_stream_data_e::qpdf_s_uncompress)
+        .value("preserve", qpdf_stream_data_e::qpdf_s_preserve)
+        .value("compress", qpdf_stream_data_e::qpdf_s_compress);
 
     py::class_<QPDF>(m, "PDF", "In-memory representation of a PDF")
         .def_static("new",
@@ -279,11 +288,12 @@ PYBIND11_MODULE(_qpdf, m) {
              save_pdf,
              "save as a PDF",
              py::arg("filename"),
-             py::arg("static_id") = false,
-             py::arg("preserve_pdfa") = false,
-             py::arg("min_version") = ""s,
-             py::arg("force_version") = ""s,
-             py::arg("object_stream_mode") = qpdf_o_preserve
+             py::arg("static_id")=false,
+             py::arg("preserve_pdfa")=false,
+             py::arg("min_version")=""s,
+             py::arg("force_version")=""s,
+             py::arg("object_stream_mode")=qpdf_o_preserve,
+             py::arg("stream_data_mode")=qpdf_s_preserve
         )
         .def("_get_object_id", &QPDF::getObjectByID)
         .def("make_indirect", &QPDF::makeIndirectObject)

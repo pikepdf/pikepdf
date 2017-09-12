@@ -1,6 +1,7 @@
 from . import _qpdf
 
-from ._qpdf import Object, ObjectType, PDFError, PDF, PasswordError
+from ._qpdf import Object, ObjectType, PDFError, PDF, PasswordError, \
+    ObjectStreamMode, StreamDataMode
 
 from collections import namedtuple
 
