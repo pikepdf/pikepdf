@@ -63,3 +63,36 @@ def parse_content_stream(stream):
         raise e from e
 
     return grouper.instructions
+
+
+class Page:
+    def __init__(self, obj):
+        self.obj = obj
+
+    def __getattr__(self, item):
+        return getattr(self.obj, item)
+
+    def __setattr__(self, item, value):
+        if item == 'obj':
+            object.__setattr__(self, item, value)
+        elif hasattr(self.obj, item):
+            setattr(self.obj, item, value)
+        else:
+            raise AttributeError(item)
+
+    def __repr__(self):
+        return repr(self.obj).replace(
+            'pikepdf.Object.Dictionary', 'pikepdf.Page', 1)
+
+    @property
+    def mediabox(self):
+        return self.obj.MediaBox
+
+    def extract_text(self):
+        fragments = []
+        for operands, operator in parse_content_stream(self.obj.Contents):
+            if operator == Object.Operator('Tj'):
+                fragments.append(str(operands[0]))
+                fragments.append(" ")
+        print(fragments)
+        return "".join(fragments)
