@@ -153,10 +153,7 @@ void save_pdf(
         // TODO could improve this by streaming rather than buffering
         // using subclass of Pipeline that routes calls to Python
         w.setOutputMemory();
-        {
-            py::gil_scoped_release release;
-            w.write();
-        }
+        w.write();
 
         // getBuffer returns Buffer* and qpdf says we are responsible for
         // deleting it, so capture it
@@ -173,10 +170,7 @@ void save_pdf(
     } else {
         py::object filename = filename_or_stream;
         w.setOutputFilename(fsencode_filename(filename).c_str());
-        {
-            py::gil_scoped_release release;
-            w.write();
-        }
+        w.write();
 
         if (preserve_pdfa) {
             auto helpers = py::module::import("pikepdf._cpphelpers");
