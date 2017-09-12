@@ -156,7 +156,7 @@ PYBIND11_MODULE(_qpdf, m) {
 
             :param filename_or_stream: Filename of PDF to open
             :param password: User or owner password to open the PDF, if encrypted
-            :type filename: os.PathLike or file stream
+            :type filename_or_stream: os.PathLike or file stream
             :type password: str or None
             :param ignore_xref_streams: If True, ignore cross-reference streams. See qpdf documentation.
             :param suppress_warnings: If True (default), warnings are not printed to stderr. Use `get_warnings()` to retrieve warnings.

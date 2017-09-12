@@ -840,6 +840,8 @@ qpdf.Object.Dictionary({
         .def("__int__", &QPDFObjectHandle::getIntValue)
         .def("as_bool", &QPDFObjectHandle::getBoolValue)
         .def("decode", objecthandle_decode, "convert to nearest Python object")
+        .def("__str__", &QPDFObjectHandle::getUTF8Value)
+        .def("__bytes__", &QPDFObjectHandle::getStringValue)
         .def("__getitem__",
             [](QPDFObjectHandle &h, int index) {
                 index = list_range_check(h, index);
