@@ -55,6 +55,15 @@ std::string fsencode_filename(py::object py_filename)
     return filename;
 }
 
+void check_stream_is_usable(py::object stream)
+{
+    auto TextIOBase = py::module::import("io").attr("TextIOBase");
+
+    if (py::isinstance(stream, TextIOBase)) {
+        throw py::type_error("stream must be binary (no transcoding) and seekable");
+    }
+}
+
 auto open_pdf(py::args args, py::kwargs kwargs)
 {
     auto q = std::make_unique<QPDF>();
@@ -79,11 +88,8 @@ auto open_pdf(py::args args, py::kwargs kwargs)
     if (py::hasattr(args[0], "read") && py::hasattr(args[0], "seek")) {
         // Python code gave us an object with a stream interface
         py::object stream = args[0];
-        auto TextIOBase = py::module::import("io").attr("TextIOBase");
 
-        if (py::isinstance(stream, TextIOBase)) {
-            throw py::type_error("stream must be binary, readable and seekable");
-        }
+        check_stream_is_usable(stream);
 
         py::object read = stream.attr("read");
         py::object pydata = read();
@@ -91,6 +97,8 @@ auto open_pdf(py::args args, py::kwargs kwargs)
         char *buffer;
         ssize_t length;
 
+        // Is it safe to grab .ptr() like this? Not sure; probably safe under
+        // GIL only
         PYBIND11_BYTES_AS_STRING_AND_SIZE(data.ptr(), &buffer, &length);
 
         // libqpdf will create a copy of this memory and attach it
@@ -108,6 +116,74 @@ auto open_pdf(py::args args, py::kwargs kwargs)
     return q;
 }
 
+
+void save_pdf(
+    QPDF &q,
+    py::object filename_or_stream,
+    bool static_id=false,
+    bool preserve_pdfa=false,
+    std::string min_version=""s,
+    std::string force_version=""s,
+    qpdf_object_stream_e object_stream_mode=qpdf_o_preserve)
+{
+    QPDFWriter w(q);
+
+    // Parameters
+    if (static_id) {
+        w.setStaticID(true);
+        w.setStreamDataMode(qpdf_s_uncompress);
+    }
+    if (!min_version.empty()) {
+        w.setMinimumPDFVersion(min_version, 0);
+    }
+    if (!force_version.empty()) {
+        w.forcePDFVersion(force_version, 0);
+    }
+    w.setObjectStreamMode(object_stream_mode);
+
+    if (py::hasattr(filename_or_stream, "read") && py::hasattr(filename_or_stream, "seek")) {
+        // Python code gave us an object with a stream interface
+        py::object stream = filename_or_stream;
+        check_stream_is_usable(stream);
+
+        if (preserve_pdfa) {
+            throw py::notimpl_error("Cannot perserve PDF/A compatible when writing to a stream");
+        }
+
+        // TODO could improve this by streaming rather than buffering
+        // using subclass of Pipeline that routes calls to Python
+        w.setOutputMemory();
+        {
+            py::gil_scoped_release release;
+            w.write();
+        }
+
+        // getBuffer returns Buffer* and qpdf says we are responsible for
+        // deleting it, so capture it
+        std::unique_ptr<Buffer> output_buffer(w.getBuffer());
+
+        // Awkward API alert:
+        //     QPDFWriter::getBuffer -> Buffer*  (caller frees memory)
+        // and  Buffer::getBuffer -> unsigned char*  (caller does not own memory)
+        auto output = py::bytes(
+            (const char*)output_buffer->getBuffer(),
+            output_buffer->getSize());
+
+        stream.attr("write")(output);
+    } else {
+        py::object filename = filename_or_stream;
+        w.setOutputFilename(fsencode_filename(filename).c_str());
+        {
+            py::gil_scoped_release release;
+            w.write();
+        }
+
+        if (preserve_pdfa) {
+            auto helpers = py::module::import("pikepdf._cpphelpers");
+            helpers.attr("repair_pdfa")(filename);
+        }
+    }
+}
 
 void init_object(py::module& m);
 
@@ -132,6 +208,11 @@ PYBIND11_MODULE(_qpdf, m) {
             }
         }
     });
+
+    py::enum_<qpdf_object_stream_e>(m, "ObjectStreamMode")
+        .value("disable", qpdf_object_stream_e::qpdf_o_disable)
+        .value("preserve", qpdf_object_stream_e::qpdf_o_preserve)
+        .value("generate", qpdf_object_stream_e::qpdf_o_generate);
 
     py::class_<QPDF>(m, "PDF", "In-memory representation of a PDF")
         .def_static("new",
@@ -201,30 +282,14 @@ PYBIND11_MODULE(_qpdf, m) {
         )
         .def("remove_page", &QPDF::removePage)
         .def("save",
-             [](QPDF &q, py::object filename, bool static_id=false,
-                bool preserve_pdfa=false, std::string min_version=""s) {
-                QPDFWriter w(q, fsencode_filename(filename).c_str());
-                {
-                    py::gil_scoped_release release;
-                    if (static_id) {
-                        w.setStaticID(true);
-                        w.setStreamDataMode(qpdf_s_uncompress);
-                    }
-                    if (!min_version.empty()) {
-                        w.setMinimumPDFVersion(min_version.c_str(), 0);
-                    }
-                    w.write();
-                }
-                if (preserve_pdfa) {
-                    auto helpers = py::module::import("pikepdf._cpphelpers");
-                    helpers.attr("repair_pdfa")(filename);
-                }
-             },
+             save_pdf,
              "save as a PDF",
              py::arg("filename"),
              py::arg("static_id") = false,
              py::arg("preserve_pdfa") = false,
-             py::arg("min_version") = ""
+             py::arg("min_version") = ""s,
+             py::arg("force_version") = ""s,
+             py::arg("object_stream_mode") = qpdf_o_preserve
         )
         .def("_get_object_id", &QPDF::getObjectByID)
         .def("make_indirect", &QPDF::makeIndirectObject)

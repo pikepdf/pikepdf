@@ -125,3 +125,15 @@ def test_copy_semantics(resources):
     assert page['/MediaBox'][2] == mediabox[2]
 
 
+def test_save_stream(resources, outdir):
+    from io import BytesIO
+    pdf = qpdf.PDF.open(resources / 'graph.pdf')
+    pdf.save(outdir / 'nostream.pdf', static_id=True)
+
+    bio = BytesIO()
+    pdf.save(bio, static_id=True)
+    bio.seek(0)
+
+    with (outdir / 'nostream.pdf').open('rb') as saved_file:
+        saved_file_contents = saved_file.read()
+    assert saved_file_contents == bio.read()

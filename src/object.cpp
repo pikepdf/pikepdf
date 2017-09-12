@@ -421,7 +421,6 @@ int list_range_check(QPDFObjectHandle& h, int index)
 
 void init_object(py::module& m)
 {
-    //py::class_<QPDFObject> qpdfobject(m, "_QPDFObject");
     py::enum_<QPDFObject::object_type_e>(m, "ObjectType")
         .value("ot_uninitialized", QPDFObject::object_type_e::ot_uninitialized)
         .value("ot_reserved", QPDFObject::object_type_e::ot_reserved)
