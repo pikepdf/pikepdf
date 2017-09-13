@@ -137,3 +137,17 @@ def test_save_stream(resources, outdir):
     with (outdir / 'nostream.pdf').open('rb') as saved_file:
         saved_file_contents = saved_file.read()
     assert saved_file_contents == bio.read()
+
+
+def test_copy_page_keepalive(resources, outdir):
+    from shutil import copy
+    copy(resources / 'sandwich.pdf', outdir / 'sandwich.pdf')
+    src = qpdf.PDF.open(outdir / 'sandwich.pdf')
+    pdf = qpdf.PDF.open(resources / 'graph.pdf')
+
+    pdf.add_page(src.pages[0])
+    del src
+    src = None
+    (outdir / 'sandwich.pdf').unlink()
+    pdf.save(outdir / 'out.pdf')
+
