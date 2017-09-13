@@ -269,8 +269,8 @@ PYBIND11_MODULE(_qpdf, m) {
         .def("get_warnings", &QPDF::getWarnings)  // this is a def because it modifies state by clearing warnings
         .def("show_xref_table", &QPDF::showXRefTable)
         .def("add_page",
-            [](QPDF& q, QPDFObjectHandle& oh, bool first=false) {
-                q.addPage(oh, first);
+            [](QPDF& q, QPDFObjectHandle& page, bool first=false) {
+                q.addPage(page, first);
             },
             R"~~~(
             Attach a page to this PDF. The page can be either be a
@@ -281,7 +281,8 @@ PYBIND11_MODULE(_qpdf, m) {
             :param bool first: If True, prepend this before the first page; if False append after last page
             )~~~",
             py::arg("page"),
-            py::arg("first")=false
+            py::arg("first")=false,
+            py::keep_alive<1, 2>()
         )
         .def("remove_page", &QPDF::removePage)
         .def("save",
