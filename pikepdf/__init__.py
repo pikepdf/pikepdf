@@ -45,6 +45,9 @@ def parse_content_stream(stream):
 
     Each instruction contains at least one operator and zero or more operands.
 
+    The `stream` object may be either a `Object.Stream` type or an array of
+    streams.
+
     >>> pdf = pikepdf.PDF.open(input_pdf)
     >>> stream = pdf.pages[0].Contents
     >>> for operands, command in parse_content_stream(stream):
@@ -89,11 +92,21 @@ class Page:
     def mediabox(self):
         return self.obj.MediaBox
 
-    def extract_text(self):
-        fragments = []
-        for operands, operator in parse_content_stream(self.obj.Contents):
-            if operator == Object.Operator('Tj'):
-                fragments.append(str(operands[0]))
-                fragments.append(" ")
-        print(fragments)
-        return "".join(fragments)
+    def has_text(self):
+        """Check if this page print text
+
+        Search the content stream for any of the four text showing operators.
+        We ignore text positioning operators because some editors might
+        generate maintain these even if text is deleted etc.
+
+        This cannot detect raster text (text in a bitmap), text rendered as
+        curves. It also cannot determine if the text is visible to the user.
+
+        :return: True if there is text
+        """
+        text_showing_operators = {Object.Operator(op) for op in
+                                  ('Tj', 'TJ', '"', "'")}
+        for _, operator in parse_content_stream(self.obj.Contents):
+            if operator in text_showing_operators:
+                return True
+        return False
