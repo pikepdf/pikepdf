@@ -18,3 +18,10 @@ Copyright: 2015 veraPDF Consortium
 Source: https://github.com/veraPDF/veraPDF-corpus
 License: CC-BY 4.0
 
+Files: tests/resources/sandwich.pdf
+Copyright: 1985 Forat Electronics
+Source: https://commons.wikimedia.org/wiki/File:LinnSequencer_hardware_MIDI_sequencer_brochure_page_2_300dpi.jpg
+License: GFDL-1.2+ or CC-BY-SA-3.0
+Comment:
+    Created using ocrmypdf --pdf-renderer sandwich, to test Tesseract PDF
+    text encoding.
