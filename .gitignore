@@ -17,6 +17,10 @@ dist/
 tmp/
 var/
 
+# Main directory testing
+/*.pdf
+/*.ipynb
+
 # macOS
 .DS_Store
 

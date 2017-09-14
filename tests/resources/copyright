@@ -5,7 +5,7 @@ Source: https://github.com/jbarlow83/pikepdf
 
 Files: tests/resources/*
 Copyright: 2017 James R. Barlow
-License: Apache-2.0
+License: CC-BY 4.0
 
 Files: tests/resources/graph*.pdf
 License: public-domain
