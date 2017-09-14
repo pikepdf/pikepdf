@@ -620,6 +620,51 @@ qpdf.Object.Dictionary({
             "Return the QPDF object that owns an indirect object.  Returns None for a direct object."
         )
         .def("__repr__", &objecthandle_repr)
+        .def("__hash__",
+            [](QPDFObjectHandle &self) {
+                Py_ssize_t val = 42; // Seed
+                std::string hashstr = "";
+
+                // Mix in our type code
+                val = val * 101 + (Py_ssize_t)self.getTypeCode();
+
+                switch (self.getTypeCode()) {
+                    case QPDFObject::object_type_e::ot_null:
+                        break;
+                    case QPDFObject::object_type_e::ot_boolean:
+                        val = val * 101 + (int)self.getBoolValue();
+                        break;
+                    case QPDFObject::object_type_e::ot_integer:
+                        val = val * 101 + self.getIntValue();
+                        break;
+                    case QPDFObject::object_type_e::ot_real:
+                        hashstr = self.getRealValue();  // Is a string
+                        break;
+                    case QPDFObject::object_type_e::ot_string:
+                        hashstr = self.getStringValue();
+                        break;
+                    case QPDFObject::object_type_e::ot_name:
+                        hashstr = self.getName();
+                         break;
+                    case QPDFObject::object_type_e::ot_operator:
+                        hashstr = self.getOperatorValue();
+                        break;
+                    case QPDFObject::object_type_e::ot_array:
+                    case QPDFObject::object_type_e::ot_dictionary:
+                    case QPDFObject::object_type_e::ot_stream:
+                    case QPDFObject::object_type_e::ot_inlineimage:
+                        throw py::value_error("Can't hash mutable object");
+                        break;
+                    default:
+                        break;
+                }
+
+                for (unsigned long n = 0; n < hashstr.length(); n++)
+                    val = val * 101 + hashstr[n];
+
+                return val;
+            }
+        )
         .def("__eq__",
             [](QPDFObjectHandle &self, QPDFObjectHandle &other) {
                 /* Uninitialized objects are never equal */
