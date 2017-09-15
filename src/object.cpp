@@ -507,6 +507,18 @@ qpdf.Object.Dictionary({
 
 */
 
+    py::class_<Buffer, PointerHolder<Buffer>>(m, "Buffer", py::buffer_protocol())
+        .def_buffer([](Buffer &b) -> py::buffer_info {
+            return py::buffer_info(
+                b.getBuffer(),
+                sizeof(unsigned char),
+                py::format_descriptor<unsigned char>::format(),
+                1,
+                { b.getSize() },
+                { sizeof(unsigned char) }
+            );
+        });
+
     py::class_<QPDFObjectHandle> objecthandle(m, "Object");
 
     objecthandle
@@ -947,9 +959,10 @@ qpdf.Object.Dictionary({
                 // https://pybind11.readthedocs.io/en/stable/advanced/pycpp/numpy.html#buffer-protocol
                 // Allows zero copy access
                 PointerHolder<Buffer> phbuf = h.getStreamData();
-                const Buffer* buf = phbuf.getPointer();
-                return py::bytes((const char *)buf->getBuffer(), buf->getSize());
-            }
+                //const Buffer* buf = phbuf.getPointer();
+                //return py::bytes((const char *)buf->getBuffer(), buf->getSize());
+                return phbuf;
+            }, py::return_value_policy::copy
         )
         .def_property_readonly("_objgen",
             [](QPDFObjectHandle &h) {
