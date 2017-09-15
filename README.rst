@@ -72,6 +72,13 @@ the Sphinx manual:
 License
 -------
 
-pikepdf is provided under a Apache 2.0 license that can be found in the
-LICENSE file. By using, distributing, or contributing to this project,
-you agree to the terms and conditions of this license.
+pikepdf is provided under the `Mozilla Public License 2.0 <https://www.mozilla.org/en-US/MPL/2.0/>`_
+license (MPL) that can be found in the LICENSE file. By using, distributing, or
+contributing to this project, you agree to the terms and conditions of this license.
+
+`Informally <https://www.mozilla.org/en-US/MPL/2.0/FAQ/>`_, MPL 2.0 is a not a "viral" license.
+It may be combined with other work, including commercial software. However, you must disclose your modifications
+to pikepdf in source code form.
+
+The ``tests/resources/copyright`` file describes licensing terms for the test
+suite and the provenance of test resources.
