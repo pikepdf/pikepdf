@@ -201,7 +201,7 @@ std::string objecthandle_repr_inner(QPDFObjectHandle h, uint depth, std::set<QPD
                 if (!first) oss << ",\n";
                 first = false;
                 oss << std::string((depth + 1) * 2, ' '); // Indent each line
-                oss << "'" << item.first << "': " << objecthandle_repr_inner(item.second, depth + 1, visited, pure_expr);
+                oss << std::quoted(item.first) << ": " << objecthandle_repr_inner(item.second, depth + 1, visited, pure_expr);
             }
             oss << "\n";
         }
