@@ -8,6 +8,7 @@
 
 #include <sstream>
 #include <iostream>
+#include <iomanip>
 
 #include <qpdf/Constants.h>
 #include <qpdf/Types.h>
@@ -55,26 +56,35 @@ Stream - Stream()
 */
 
 
-std::string objecthandle_scalar_value(QPDFObjectHandle h)
+std::string objecthandle_scalar_value(QPDFObjectHandle h, bool escaped=true)
 {
+    std::stringstream ss;
     switch (h.getTypeCode()) {
     case QPDFObject::object_type_e::ot_null:
-        return "None";
+        ss << "None";
+        break;
     case QPDFObject::object_type_e::ot_boolean:
-        return (h.getBoolValue() ? "True" : "False");
+        ss << (h.getBoolValue() ? "True" : "False");
+        break;
     case QPDFObject::object_type_e::ot_integer:
-        return std::to_string(h.getIntValue());
+        ss << std::to_string(h.getIntValue());
+        break;
     case QPDFObject::object_type_e::ot_real:
-        return "Decimal('"s + h.getRealValue() + "')"s;
+        ss << "Decimal('"s + h.getRealValue() + "')"s;
+        break;
     case QPDFObject::object_type_e::ot_name:
-        return h.getName();
+        ss << std::quoted(h.getName());
+        break;
     case QPDFObject::object_type_e::ot_string:
-        return h.getUTF8Value();
+        ss << std::quoted(h.getUTF8Value());
+        break;
     case QPDFObject::object_type_e::ot_operator:
-        return h.getOperatorValue();
+        ss << std::quoted(h.getOperatorValue());
+        break;
     default:
         return "<not a scalar>";
     }
+    return ss.str();
 }
 
 std::string objecthandle_pythonic_typename(QPDFObjectHandle h, std::string prefix = "pikepdf.Object.")
@@ -134,6 +144,10 @@ std::string objecthandle_repr_typename_and_value(QPDFObjectHandle h)
 
 std::string objecthandle_repr_inner(QPDFObjectHandle h, uint depth, std::set<QPDFObjGen>* visited, bool* pure_expr)
 {
+    if (depth > 1000) {
+        throw std::runtime_error("Reached object recursion depth of 1000");
+    }
+
     if (!h.isScalar()) {
         if (visited->count(h.getObjGen()) > 0) {
             *pure_expr = false;
