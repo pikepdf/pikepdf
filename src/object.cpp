@@ -951,18 +951,16 @@ qpdf.Object.Dictionary({
         )
         .def("read_stream_data",
             [](QPDFObjectHandle &h) {
-                // TO DO
-                // This should use buffer protocol
-                // First Declare PointerHolder as a shared pointer type
-                // https://pybind11.readthedocs.io/en/stable/advanced/smart_ptrs.html#custom-smart-pointers
-                // Then set up the buffer protocol for qpdf's class Buffer
-                // https://pybind11.readthedocs.io/en/stable/advanced/pycpp/numpy.html#buffer-protocol
-                // Allows zero copy access
+                // This relies on 
+                // 1. PointerHolder being declared as a shared pointer
+                // 2. Buffer being declared as being managed by PointerHolder<Buffer>
+                // 3. Buffer being set up as using the buffer interface
                 PointerHolder<Buffer> phbuf = h.getStreamData();
-                //const Buffer* buf = phbuf.getPointer();
-                //return py::bytes((const char *)buf->getBuffer(), buf->getSize());
+                // Could also return bytes
+                // const Buffer* buf = phbuf.getPointer();
+                // return py::bytes((const char *)buf->getBuffer(), buf->getSize());
                 return phbuf;
-            }, py::return_value_policy::copy
+            }
         )
         .def_property_readonly("_objgen",
             [](QPDFObjectHandle &h) {
