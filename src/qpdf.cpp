@@ -268,8 +268,10 @@ PYBIND11_MODULE(_qpdf, m) {
         .def_property_readonly("pdf_version", &QPDF::getPDFVersion,
             "the PDF standard version, such as '1.7'")
         .def_property_readonly("extension_level", &QPDF::getExtensionLevel)
-        .def_property_readonly("root", &QPDF::getRoot,
+        .def_property_readonly("Root", &QPDF::getRoot,
             "the /Root object of the PDF")
+        .def_property_readonly("root", &QPDF::getRoot,
+            "alias for .Root, the /Root object of the PDF")    
         .def_property_readonly("trailer", &QPDF::getTrailer,
             "the PDF trailer")
         .def_property_readonly("pages", &QPDF::getAllPages)

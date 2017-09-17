@@ -20,15 +20,15 @@ The PDF class API follows the example of the widely-used
 there is no default constructor since the arguments used for creation and
 opening are different.
 
-Inspecting the root object
+Inspecting the PDF Root object
 --------------------------
 
-Open a PDF and see what is inside the root object.
+Open a PDF and see what is inside the /Root object.
 
 .. code-block:: python
 
    >>> example = PDF.open('tests/resources/sandwich.pdf')
-   >>> example.root
+   >>> example.Root
    <pikepdf.Object.Dictionary({
     '/Metadata': pikepdf.Object.Stream(stream_dict={
         '/Length': 3308,
@@ -64,7 +64,7 @@ Open a PDF and see what is inside the root object.
     '/Type': /Catalog
   })>
 
-Like every PDF, the root object is a PDF dictionary that describes where
+Like every PDF, the /Root object is a PDF dictionary that describes where
 the rest of the PDF content is. The angle brackets indicate that this
 complex object cannot be built as a Python expression.
 
@@ -73,14 +73,14 @@ notation...
 
 .. code-block:: python
 
-   >>> example.root.Pages.Count
+   >>> example.Root.Pages.Count
    1
 
 or dictionary lookup notation...
 
 .. code-block:: python
 
-   >>> example.root['/Pages']['/Count']
+   >>> example.Root['/Pages']['/Count']
    1
 
 Attribute notation is convenient, but not robust if elements are missing.
@@ -96,9 +96,9 @@ must use standard dictionary notation.
 Retrieving pages
 ----------------
 
-The Root object provides data on the overall document, and it exposes pages.
+The /Root object provides data on the overall document, and it exposes pages.
 However, sometimes PDFs organize their pages in a complex hierarchy. Because
-this isn't always present, code that manipulates pages through the Root
+this isn't always present, code that manipulates pages through the /Root
 object will be fragile.
 
 Instead, use the :attr:`pikepdf.PDF.pages` accessor.
@@ -117,7 +117,7 @@ that works like a dictionary with a binary string attached.
 
 .. code-block:: python
 
-   >>> raw = example.root.Metadata.read_stream_data()
+   >>> raw = example.Root.Metadata.read_stream_data()
    >>> type(raw)
    bytes
    >>> print(raw.decode())
