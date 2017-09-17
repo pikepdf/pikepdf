@@ -235,10 +235,10 @@ class PageList(MutableSequence):
         if index != len(self):
             # Insert before=False, so after, refpage
             refpage = self[index]
-            self._pdf._add_page_at(page, False, refpage)
+            self._pdf._add_page_at(page, True, refpage)
         else:
             # Insert first=False, so last page
             self._pdf._add_page(page, False)
 
     def __repr__(self):
-        return "<PageList({}, {})>".format(self._pdf, self._pdf.pages)
+        return "<PageList({}, {})>".format(self._pdf, self._pdf._pages)
