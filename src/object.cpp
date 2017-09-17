@@ -200,7 +200,7 @@ std::string objecthandle_repr_inner(QPDFObjectHandle h, uint depth, std::set<QPD
                 if (!first) oss << ",\n";
                 first = false;
                 oss << std::string((depth + 1) * 2, ' '); // Indent each line
-                if (item.first == "/Parent") {
+                if (item.first == "/Parent" && item.second.isPageObject()) {
                     // Don't visit /Parent keys since that just puts every page on the repr() of a single page
                     oss << std::quoted(item.first) << ": <reference to /Pages>";
                 } else {
@@ -740,6 +740,10 @@ qpdf.Object.Dictionary({
                     case QPDFObject::object_type_e::ot_string:
                         return self.getStringValue() == other.getStringValue();
                     default:
+                        // Objects with the same obj-gen are equal if they have nonzero
+                        // objid and belong to the same PDF
+                        if (self.getObjectID() != 0 && self.getOwningQPDF() == other.getOwningQPDF())
+                            return self.getObjGen() == other.getObjGen();
                         break;
                 }
                 return false;
