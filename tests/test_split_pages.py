@@ -12,7 +12,7 @@ def test_split_pdf(resources, outdir):
 
     for n, page in enumerate(q.pages):
         outpdf = qpdf.PDF.new()
-        outpdf.add_page(page, False)
+        outpdf.pages.append(page)
         outpdf.save(outdir / "page{}.pdf".format(n + 1))
 
     assert len([f for f in outdir.iterdir() if f.name.startswith('page')]) == 4

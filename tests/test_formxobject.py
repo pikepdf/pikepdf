@@ -74,6 +74,6 @@ def test_create_form_xobjects(outdir):
         '/Resources': resources
         })
 
-    pdf.add_page(page, True)
+    pdf.pages.append(page)
     pdf.save(outdir / 'formxobj.pdf')
 

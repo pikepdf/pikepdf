@@ -109,7 +109,7 @@ def test_create_pdf(outdir):
     qpdf_page_dict = page_dict
     page = pdf.make_indirect(qpdf_page_dict)
 
-    pdf.add_page(page, True)
+    pdf.pages.append(page)
     pdf.save(outdir / 'hi.pdf')
 
 
@@ -145,7 +145,8 @@ def test_copy_page_keepalive(resources, outdir):
     src = qpdf.PDF.open(outdir / 'sandwich.pdf')
     pdf = qpdf.PDF.open(resources / 'graph.pdf')
 
-    pdf.add_page(src.pages[0])
+    pdf.pages.append(src.pages[0])
+
     del src
     src = None
     (outdir / 'sandwich.pdf').unlink()

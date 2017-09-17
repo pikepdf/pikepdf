@@ -274,11 +274,17 @@ PYBIND11_MODULE(_qpdf, m) {
             "alias for .Root, the /Root object of the PDF")    
         .def_property_readonly("trailer", &QPDF::getTrailer,
             "the PDF trailer")
-        .def_property_readonly("pages", &QPDF::getAllPages)
+        .def_property_readonly("pages",
+            [](QPDF &q) {
+                py::object PageList = py::module::import("pikepdf._cpphelpers").attr("PageList");
+                return PageList(q);
+            }
+        )
+        .def_property_readonly("_pages", &QPDF::getAllPages)
         .def_property_readonly("is_encrypted", &QPDF::isEncrypted)
         .def("get_warnings", &QPDF::getWarnings)  // this is a def because it modifies state by clearing warnings
         .def("show_xref_table", &QPDF::showXRefTable)
-        .def("add_page",
+        .def("_add_page",
             [](QPDF& q, QPDFObjectHandle& page, bool first=false) {
                 q.addPage(page, first);
             },
@@ -294,7 +300,8 @@ PYBIND11_MODULE(_qpdf, m) {
             py::arg("first")=false,
             py::keep_alive<1, 2>()
         )
-        .def("remove_page", &QPDF::removePage)
+        .def("_add_page_at", &QPDF::addPageAt, py::keep_alive<1, 2>())
+        .def("_remove_page", &QPDF::removePage)
         .def("save",
              save_pdf,
              "save as a PDF",
