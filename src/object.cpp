@@ -24,7 +24,6 @@
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <pybind11/eval.h>
 
 #include "pikepdf.h"
 
@@ -715,12 +714,9 @@ qpdf.Object.Dictionary({
                 if (self.getTypeCode() == QPDFObject::object_type_e::ot_integer ||
                     self.getTypeCode() == QPDFObject::object_type_e::ot_real) {
                     try {
-                        auto numeric_self = decimal_from_pdfobject(self);
-                        auto numeric_other = decimal_from_pdfobject(other);
-                        auto scope = py::dict(
-                            py::arg("a")=numeric_self,
-                            py::arg("b")=numeric_other);
-                        py::object pyresult = py::eval("a == b", py::globals(), scope);
+                        auto a = decimal_from_pdfobject(self);
+                        auto b = decimal_from_pdfobject(other);
+                        py::object pyresult = a.attr("__eq__")(b);
                         bool result = pyresult.cast<bool>();
                         return result;
                     } catch (py::type_error) {
@@ -766,12 +762,9 @@ qpdf.Object.Dictionary({
                 if (self.getTypeCode() == QPDFObject::object_type_e::ot_integer ||
                     self.getTypeCode() == QPDFObject::object_type_e::ot_real) {
                     try {
-                        auto numeric_self = decimal_from_pdfobject(self);
-                        auto numeric_other = decimal_from_pdfobject(other);
-                        auto scope = py::dict(
-                            py::arg("a")=numeric_self,
-                            py::arg("b")=numeric_other);
-                        py::object pyresult = py::eval("a < b", py::globals(), scope);
+                        auto a = decimal_from_pdfobject(self);
+                        auto b = decimal_from_pdfobject(other);
+                        py::object pyresult = a.attr("__lt__")(b);
                         bool result = pyresult.cast<bool>();
                         return result;
                     } catch (py::type_error) {
@@ -788,11 +781,9 @@ qpdf.Object.Dictionary({
                 if (self.getTypeCode() == QPDFObject::object_type_e::ot_integer ||
                     self.getTypeCode() == QPDFObject::object_type_e::ot_real) {
                     try {
-                        auto numeric_self = decimal_from_pdfobject(self);
-                        auto scope = py::dict(
-                            py::arg("a")=numeric_self,
-                            py::arg("b")=other);
-                        py::object pyresult = py::eval("a < b", py::globals(), scope);
+                        auto a = decimal_from_pdfobject(self);
+                        auto b = py::int_(other);
+                        py::object pyresult = a.attr("__lt__")(b);
                         bool result = pyresult.cast<bool>();
                         return result;
                     } catch (py::type_error) {
