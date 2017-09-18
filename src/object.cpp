@@ -200,7 +200,7 @@ std::string objecthandle_repr_inner(QPDFObjectHandle h, uint depth, std::set<QPD
                 if (!first) oss << ",\n";
                 first = false;
                 oss << std::string((depth + 1) * 2, ' '); // Indent each line
-                if (item.first == "/Parent" && item.second.isPageObject()) {
+                if (item.first == "/Parent" && item.second.isPagesObject()) {
                     // Don't visit /Parent keys since that just puts every page on the repr() of a single page
                     oss << std::quoted(item.first) << ": <reference to /Pages>";
                 } else {
@@ -434,7 +434,7 @@ public:
 };
 
 
-int list_range_check(QPDFObjectHandle& h, int index)
+size_t list_range_check(QPDFObjectHandle& h, int index)
 {
     if (!h.isArray())
         throw py::value_error("object is not an array");
@@ -442,8 +442,9 @@ int list_range_check(QPDFObjectHandle& h, int index)
         index += h.getArrayNItems(); // Support negative indexing
     if (!(0 <= index && index < h.getArrayNItems()))
         throw py::index_error("index out of range");
-    return index;   
+    return (size_t)index;   
 }
+
 
 void init_object(py::module& m)
 {
