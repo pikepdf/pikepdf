@@ -29,4 +29,22 @@ namespace pybind11 { namespace detail {
 
 namespace py = pybind11;
 
+QPDFObjectHandle objecthandle_encode(py::handle obj);otImplementedError);
+};
+
+// Declare PointerHolder<T> as a smart pointer
+// https://pybind11.readthedocs.io/en/stable/advanced/smart_ptrs.html#custom-smart-pointers
+PYBIND11_DECLARE_HOLDER_TYPE(T, PointerHolder<T>);
+namespace pybind11 { namespace detail {
+    template <typename T>
+    struct holder_helper<PointerHolder<T>> {
+        static const T *get(const PointerHolder<T> &p) { return p.getPointer(); }
+    };
+}}
+
+namespace py = pybind11;
+
+// From object.cpp
 QPDFObjectHandle objecthandle_encode(py::handle obj);
+size_t list_range_check(QPDFObjectHandle& h, int index);
+void init_object(py::module& m);

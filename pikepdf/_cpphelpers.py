@@ -207,38 +207,3 @@ if sys.version_info[0:2] <= (3, 5):
 
 else:
     fspath = os.fspath
-
-class PageList(MutableSequence):
-    def __init__(self, pdf):
-        self._pdf = pdf
-
-    def __getitem__(self, index):
-        return self._pdf._pages[index]
-
-    def __setitem__(self, index, page):
-        # libqpdf provides no "replace" so we must emulate it
-        # 0 1 2 3
-        # insert(2)
-        # 0 1 newpage 2 3
-        self.insert(index, page)
-        if index != len(self): 
-            del self[index + 1]
-
-    def __len__(self):
-        return len(self._pdf._pages)
-
-    def __delitem__(self, index):
-        page = self[index]
-        self._pdf._remove_page(page)
-
-    def insert(self, index, page):
-        if index != len(self):
-            # Insert before=False, so after, refpage
-            refpage = self[index]
-            self._pdf._add_page_at(page, True, refpage)
-        else:
-            # Insert first=False, so last page
-            self._pdf._add_page(page, False)
-
-    def __repr__(self):
-        return "<PageList({}, {})>".format(self._pdf, self._pdf._pages)
