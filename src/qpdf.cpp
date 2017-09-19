@@ -339,7 +339,25 @@ PYBIND11_MODULE(_qpdf, m) {
         .def("__setitem__", &PageList::setItemsFromIterable)
         .def("__delitem__", &PageList::deleteItem)
         .def("__len__", &PageList::count)
-        .def("insert", &PageList::insertItem, py::keep_alive<1, 3>())
+        //.def("insert", &PageList::insertItem, py::keep_alive<1, 3>())
+        .def("insert", 
+            [](PageList &pl, size_t index, py::object item) {
+                QPDFObjectHandle page;
+                try {
+                    page = item.cast<QPDFObjectHandle>();
+                } catch (py::cast_error) {
+                    throw py::type_error("only pages can be inserted");
+                }
+
+                // Get our owner
+                QPDF *page_owner = page.getOwningQPDF();
+                py::object pyqpdf = py::cast(page_owner);
+
+                // Gulp
+                pyqpdf.inc_ref();
+                pl.insertItem(index, page);
+            }, py::keep_alive<1, 3>()
+        )
         .def("reverse", 
             [](PageList &pl) {
                 py::slice ordinary_indices(0, pl.count(), 1);                
@@ -354,7 +372,7 @@ PYBIND11_MODULE(_qpdf, m) {
             [](PageList &pl, QPDFObjectHandle &page) {
                 pl.insertItem(pl.count(), page);
                 //return &pl.getQPDF();
-            },
+            }
             //py::keep_alive<0, 2>()
         )
         ;
