@@ -27,3 +27,11 @@ def test_replace_page(resources):
     assert len(q.pages) == 4
     assert q.pages[1].Resources.XObject.keys() == \
         q2.pages[0].Resources.XObject.keys()
+
+
+def test_reverse_pages(resources):
+    q = qpdf.PDF.open(resources / "fourpages.pdf")
+    #qr = qpdf.PDF.open(resources / "fourpages.pdf")
+
+    q.pages.reverse()
+    

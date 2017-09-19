@@ -197,7 +197,24 @@ public:
 
     QPDFObjectHandle getItem(size_t index) const
     {
-        return this->qpdf.getAllPages()[index];
+        auto pages = this->qpdf.getAllPages();
+        if (index < pages.size())
+            return pages.at(index);        
+        throw py::index_error("Accessing nonexistent PDF page number");
+    }
+
+    py::list getItemList(py::slice slice) 
+    {
+        size_t start, stop, step, slicelength;
+        if (!slice.compute(this->count(), &start, &stop, &step, &slicelength))
+            throw py::error_already_set();
+        py::list result;
+        for (size_t i = 0; i < slicelength; ++i) {
+            QPDFObjectHandle oh = this->getItem(start);
+            result.append(oh);
+            start += step;
+        }
+        return result;
     }
 
     void setItem(size_t index, QPDFObjectHandle page) 
@@ -205,6 +222,48 @@ public:
         this->insertItem(index, page);
         if (index != this->count()) {
             this->deleteItem(index + 1);
+        }
+    }
+
+    void setItemList(py::slice slice, const PageList &other)
+    {
+        size_t start, stop, step, slicelength;
+        if (!slice.compute(this->count(), &start, &stop, &step, &slicelength))
+            throw py::error_already_set();
+        if (slicelength != other.count())
+            throw std::runtime_error("Left and right hand size of slice assignment have different sizes!");
+        for (size_t i = 0; i < slicelength; ++i) {
+            this->setItem(start, other.getItem(i)); start += step;
+        }
+    }
+
+    void setItemsFromIterable(py::slice slice, py::iterable other)
+    {
+        size_t start, stop, step, slicelength;
+        if (!slice.compute(this->count(), &start, &stop, &step, &slicelength))
+            throw py::error_already_set();
+        std::vector<QPDFObjectHandle> results;
+        py::iterator it = other.attr("__iter__")();
+        for (size_t i = 0; i < slicelength; i++) {
+            if (it == py::iterator::sentinel())
+                throw std::runtime_error("Left and right hand size of slice assignment have different sizes!");
+            QPDFObjectHandle oh;
+            try {
+                oh = (*it).cast<QPDFObjectHandle>();
+            } catch (py::cast_error) {
+                throw py::type_error("only pages can be assigned to a page list");
+            }
+            if (!oh.isPageObject()) {
+                throw py::type_error("only pages can be assigned to a page list");
+            }
+            results.push_back(oh);
+            ++it;
+        }
+        if (it != py::iterator::sentinel())
+            throw std::runtime_error("Left and right hand size of slice assignment have different sizes!");
+        
+        for (size_t i = 0; i < slicelength; ++i) {
+            this->setItem(start, results[i]); start += step;
         }
     }
 
@@ -233,6 +292,7 @@ public:
         }
     }
 
+    QPDF &getQPDF() { return qpdf; }
 
 private:
     QPDF &qpdf;
@@ -273,66 +333,30 @@ PYBIND11_MODULE(_qpdf, m) {
         
     py::class_<PageList>(m, "PageList")
         .def("__getitem__", &PageList::getItem)
-        .def("__getitem__", 
-            [](PageList &pl, py::slice slice) {
-                size_t start, stop, step, slicelength;
-                if (!slice.compute(pl.count(), &start, &stop, &step, &slicelength))
-                    throw py::error_already_set();
-                py::list result;
-                for (size_t i = 0; i < slicelength; ++i) {
-                    QPDFObjectHandle oh = pl.getItem(start);
-                    result.append(oh);
-                    start += step;
-                }
-                return result;
-            }
-        )
+        .def("__getitem__", &PageList::getItemList)
         .def("__setitem__", &PageList::setItem)
-        .def("__setitem__",
-            [](PageList &pl, py::slice slice, const PageList &other) {
-                size_t start, stop, step, slicelength;
-                if (!slice.compute(pl.count(), &start, &stop, &step, &slicelength))
-                    throw py::error_already_set();
-                if (slicelength != other.count())
-                    throw std::runtime_error("Left and right hand size of slice assignment have different sizes!");
-                for (size_t i = 0; i < slicelength; ++i) {
-                    pl.setItem(start, other.getItem(i)); start += step;
-                }
-            }
-        )
-        .def("__setitem__",
-            [](PageList &pl, py::slice slice, py::iterable other) {
-                size_t start, stop, step, slicelength;
-                if (!slice.compute(pl.count(), &start, &stop, &step, &slicelength))
-                    throw py::error_already_set();
-                std::vector<QPDFObjectHandle> results;
-                py::iterator it = other.attr("__iter__")();
-                for (size_t i = 0; i < slicelength; i++) {
-                    if (it == py::iterator::sentinel())
-                        throw std::runtime_error("Left and right hand size of slice assignment have different sizes!");
-                    QPDFObjectHandle oh;
-                    try {
-                        oh = (*it).cast<QPDFObjectHandle>();
-                    } catch (py::cast_error) {
-                        throw py::type_error("only pages can be assigned to a page list");
-                    }
-                    if (!oh.isPageObject()) {
-                        throw py::type_error("only pages can be assigned to a page list");
-                    }
-                    results.push_back(oh);
-                    ++it;
-                }
-                if (it != py::iterator::sentinel())
-                    throw std::runtime_error("Left and right hand size of slice assignment have different sizes!");
-                
-                for (size_t i = 0; i < slicelength; ++i) {
-                    pl.setItem(start, results[i]); start += step;
-                }
-            }
-        )
+        .def("__setitem__", &PageList::setItemList)
+        .def("__setitem__", &PageList::setItemsFromIterable)
         .def("__delitem__", &PageList::deleteItem)
         .def("__len__", &PageList::count)
-        .def("insert", &PageList::insertItem)
+        .def("insert", &PageList::insertItem, py::keep_alive<1, 3>())
+        .def("reverse", 
+            [](PageList &pl) {
+                py::slice ordinary_indices(0, pl.count(), 1);                
+                py::int_ step(-1);
+                PyObject *raw_slice = PySlice_New(Py_None, Py_None, step.ptr());
+                py::slice reversed = py::reinterpret_steal<py::slice>(raw_slice);
+                py::list reversed_pages = pl.getItemList(reversed);
+                pl.setItemsFromIterable(ordinary_indices, reversed_pages);
+            }
+        )
+        .def("append",
+            [](PageList &pl, QPDFObjectHandle &page) {
+                pl.insertItem(pl.count(), page);
+                //return &pl.getQPDF();
+            },
+            //py::keep_alive<0, 2>()
+        )
         ;
 
     py::class_<QPDF>(m, "PDF", "In-memory representation of a PDF")
