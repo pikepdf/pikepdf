@@ -29,9 +29,12 @@ def test_replace_page(resources):
         q2.pages[0].Resources.XObject.keys()
 
 
-def test_reverse_pages(resources):
+def test_reverse_pages(resources, outdir):
     q = qpdf.PDF.open(resources / "fourpages.pdf")
-    #qr = qpdf.PDF.open(resources / "fourpages.pdf")
+    qr = qpdf.PDF.open(resources / "fourpages.pdf")
 
-    q.pages.reverse()
+    qr.pages.reverse()
+    qr.save(outdir / "reversed.pdf")
+    assert q.pages[0].Contents.stream_dict.Length == \
+        qr.pages[3].Contents.stream_dict.Length
     

@@ -217,23 +217,11 @@ public:
         return result;
     }
 
-    void setItem(size_t index, QPDFObjectHandle page) 
+    void setItem(size_t index, py::object page) 
     {
         this->insertItem(index, page);
         if (index != this->count()) {
             this->deleteItem(index + 1);
-        }
-    }
-
-    void setItemList(py::slice slice, const PageList &other)
-    {
-        size_t start, stop, step, slicelength;
-        if (!slice.compute(this->count(), &start, &stop, &step, &slicelength))
-            throw py::error_already_set();
-        if (slicelength != other.count())
-            throw std::runtime_error("Left and right hand size of slice assignment have different sizes!");
-        for (size_t i = 0; i < slicelength; ++i) {
-            this->setItem(start, other.getItem(i)); start += step;
         }
     }
 
@@ -242,8 +230,11 @@ public:
         size_t start, stop, step, slicelength;
         if (!slice.compute(this->count(), &start, &stop, &step, &slicelength))
             throw py::error_already_set();
-        std::vector<QPDFObjectHandle> results;
+        py::list results;
         py::iterator it = other.attr("__iter__")();
+
+        // Unpack list into iterable, check that each object is a page but
+        // don't save the handles yet
         for (size_t i = 0; i < slicelength; i++) {
             if (it == py::iterator::sentinel())
                 throw std::runtime_error("Left and right hand size of slice assignment have different sizes!");
@@ -256,7 +247,7 @@ public:
             if (!oh.isPageObject()) {
                 throw py::type_error("only pages can be assigned to a page list");
             }
-            results.push_back(oh);
+            results.append(*it);
             ++it;
         }
         if (it != py::iterator::sentinel())
@@ -270,6 +261,13 @@ public:
     void deleteItem(size_t index)
     {
         auto page = this->getItem(index);
+        QPDF *page_owner = page.getOwningQPDF();
+        if (page_owner != &this->getQPDF()) {
+            // If we are removing a page not originally owned by our QPDF,
+            // remove the reference count we put it in insertItem()
+            py::object pyqpdf = py::cast(page_owner);
+            pyqpdf.dec_ref();
+        }
         this->qpdf.removePage(page);
     }
 
@@ -278,10 +276,31 @@ public:
         return this->qpdf.getAllPages().size();
     }
 
-    void insertItem(size_t index, QPDFObjectHandle page)
+    void insertItem(size_t index, py::object obj)
     {
-        if (page.getOwningQPDF() == &this->qpdf) {
+        QPDFObjectHandle page;
+        try {
+            page = obj.cast<QPDFObjectHandle>();
+        } catch (py::cast_error) {
+            throw py::type_error("only pages can be inserted");
+        }
+        if (!page.isPageObject())
+            throw py::type_error("only pages can be inserted");
+
+        // Find out who owns us
+        QPDF *page_owner = page.getOwningQPDF();
+
+        if (page_owner == &this->getQPDF()) {
+            // qpdf does not accept duplicating pages within the same file, 
+            // so manually create a copy
             page = this->qpdf.makeIndirectObject(page);
+        } else {
+            // libqpdf does not transfer a page's contents to the new QPDF.
+            // Instead WHEN ASKED TO WRITE it will go back and get the data
+            // from objecthandle->getOwningQPDF(). Therefore we must ensure
+            // our owner stays alive.
+            py::object pyqpdf = py::cast(page_owner);
+            pyqpdf.inc_ref();
         }
 
         if (index != this->count()) {
@@ -335,29 +354,10 @@ PYBIND11_MODULE(_qpdf, m) {
         .def("__getitem__", &PageList::getItem)
         .def("__getitem__", &PageList::getItemList)
         .def("__setitem__", &PageList::setItem)
-        .def("__setitem__", &PageList::setItemList)
         .def("__setitem__", &PageList::setItemsFromIterable)
         .def("__delitem__", &PageList::deleteItem)
         .def("__len__", &PageList::count)
-        //.def("insert", &PageList::insertItem, py::keep_alive<1, 3>())
-        .def("insert", 
-            [](PageList &pl, size_t index, py::object item) {
-                QPDFObjectHandle page;
-                try {
-                    page = item.cast<QPDFObjectHandle>();
-                } catch (py::cast_error) {
-                    throw py::type_error("only pages can be inserted");
-                }
-
-                // Get our owner
-                QPDF *page_owner = page.getOwningQPDF();
-                py::object pyqpdf = py::cast(page_owner);
-
-                // Gulp
-                pyqpdf.inc_ref();
-                pl.insertItem(index, page);
-            }, py::keep_alive<1, 3>()
-        )
+        .def("insert", &PageList::insertItem, py::keep_alive<1, 3>())        
         .def("reverse", 
             [](PageList &pl) {
                 py::slice ordinary_indices(0, pl.count(), 1);                
@@ -369,11 +369,10 @@ PYBIND11_MODULE(_qpdf, m) {
             }
         )
         .def("append",
-            [](PageList &pl, QPDFObjectHandle &page) {
+            [](PageList &pl, py::object page) {
                 pl.insertItem(pl.count(), page);
-                //return &pl.getQPDF();
-            }
-            //py::keep_alive<0, 2>()
+            },
+            py::keep_alive<1, 2>()
         )
         ;
 
