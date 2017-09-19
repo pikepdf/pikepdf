@@ -195,11 +195,16 @@ class PageList {
 public:
     PageList(QPDF &q) : qpdf(q) {};
 
-    QPDFObjectHandle getItem(size_t index) const
+    QPDFObjectHandle getItem(ssize_t index) const
     {
         auto pages = this->qpdf.getAllPages();
-        if (index < pages.size())
-            return pages.at(index);        
+        if (index < 0)
+            index += pages.size();
+        if (index < 0) // Still
+            throw py::index_error("Accessing nonexistent PDF page number");
+        size_t uindex = index;
+        if (uindex < pages.size())
+            return pages.at(uindex);
         throw py::index_error("Accessing nonexistent PDF page number");
     }
 

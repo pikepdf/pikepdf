@@ -36,5 +36,5 @@ def test_reverse_pages(resources, outdir):
     qr.pages.reverse()
     qr.save(outdir / "reversed.pdf")
     assert q.pages[0].Contents.stream_dict.Length == \
-        qr.pages[3].Contents.stream_dict.Length
+        qr.pages[-1].Contents.stream_dict.Length
     
