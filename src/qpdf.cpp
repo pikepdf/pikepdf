@@ -419,6 +419,7 @@ PYBIND11_MODULE(_qpdf, m) {
                 while (it != py::iterator::sentinel()) {
                     assert_pyobject_is_page(*it);
                     pl.insertItem(pl.count(), *it);
+                    ++it;
                 }
             },
             py::keep_alive<1, 2>()
