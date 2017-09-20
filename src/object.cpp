@@ -539,28 +539,7 @@ qpdf.Object.Dictionary({
         )
         .def_static("Real",
             [](double val, int decimal_places = 0) {
-#if 0
-                auto scope = py::dict(py::module::import("decimal").attr("__dict__"));
-                auto local = py::dict();
-
-                local['obj'] = o;
-                auto result = py::eval<py::eval_statements>(R"python(
-                    if instanceof(obj, Decimal):
-                        out = str(obj)
-                    try:
-                        out = str(Decimal(obj))
-                    except:
-                        out = None
-                    )python", scope, local);
-
-                if (result != py::none())
-                    throw py::value_error("don't know how to make Real from object");
-
-                auto out = local["out"].cast<std::string>();
-                return QPDFObjectHandle::newReal(out); //broken
-#else
                 return QPDFObjectHandle::newReal(val, decimal_places);
-#endif
             },
             "create a Real from a float",
             py::arg("val"),
