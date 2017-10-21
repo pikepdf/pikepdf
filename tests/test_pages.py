@@ -8,10 +8,10 @@ from contextlib import suppress
 
 
 def test_split_pdf(resources, outdir):
-    q = qpdf.PDF.open(resources / "fourpages.pdf")
+    q = qpdf.Pdf.open(resources / "fourpages.pdf")
 
     for n, page in enumerate(q.pages):
-        outpdf = qpdf.PDF.new()
+        outpdf = qpdf.Pdf.new()
         outpdf.pages.append(page)
         outpdf.save(outdir / "page{}.pdf".format(n + 1))
 
@@ -19,15 +19,15 @@ def test_split_pdf(resources, outdir):
 
 
 def test_empty_pdf(outdir):
-    q = qpdf.PDF.new()
+    q = qpdf.Pdf.new()
     with pytest.raises(IndexError):
         q.pages[0]
     q.save(outdir / 'empty.pdf')
 
 
 def test_replace_page(resources):
-    q = qpdf.PDF.open(resources / "fourpages.pdf")
-    q2 = qpdf.PDF.open(resources / "graph.pdf")
+    q = qpdf.Pdf.open(resources / "fourpages.pdf")
+    q2 = qpdf.Pdf.open(resources / "graph.pdf")
 
     assert len(q.pages) == 4
     q.pages[1] = q2.pages[0]
@@ -37,8 +37,8 @@ def test_replace_page(resources):
 
 
 def test_reverse_pages(resources, outdir):
-    q = qpdf.PDF.open(resources / "fourpages.pdf")
-    qr = qpdf.PDF.open(resources / "fourpages.pdf")
+    q = qpdf.Pdf.open(resources / "fourpages.pdf")
+    qr = qpdf.Pdf.open(resources / "fourpages.pdf")
 
     lengths = [int(page.Contents.stream_dict.Length) for page in q.pages]
 
@@ -55,8 +55,8 @@ def test_reverse_pages(resources, outdir):
 def test_evil_page_deletion(resources, outdir):
     from shutil import copy
     copy(resources / 'sandwich.pdf', outdir / 'sandwich.pdf')
-    src = qpdf.PDF.open(outdir / 'sandwich.pdf')
-    pdf = qpdf.PDF.open(resources / 'graph.pdf')
+    src = qpdf.Pdf.open(outdir / 'sandwich.pdf')
+    pdf = qpdf.Pdf.open(resources / 'graph.pdf')
 
     pdf.pages.append(src.pages[0])
 
@@ -72,8 +72,8 @@ def test_evil_page_deletion(resources, outdir):
 
 
 def test_append_all(resources, outdir):
-    pdf = qpdf.PDF.open(resources / 'sandwich.pdf')
-    pdf2 = qpdf.PDF.open(resources / 'fourpages.pdf')
+    pdf = qpdf.Pdf.open(resources / 'sandwich.pdf')
+    pdf2 = qpdf.Pdf.open(resources / 'fourpages.pdf')
 
     for page in pdf2.pages:
         pdf.pages.append(page)
@@ -83,8 +83,8 @@ def test_append_all(resources, outdir):
 
 
 def test_extend(resources, outdir):
-    pdf = qpdf.PDF.open(resources / 'sandwich.pdf')
-    pdf2 = qpdf.PDF.open(resources / 'fourpages.pdf')
+    pdf = qpdf.Pdf.open(resources / 'sandwich.pdf')
+    pdf2 = qpdf.Pdf.open(resources / 'fourpages.pdf')
     pdf.pages.extend(pdf2.pages)
 
     assert len(pdf.pages) == 5

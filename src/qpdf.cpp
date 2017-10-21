@@ -345,7 +345,7 @@ PYBIND11_MODULE(_qpdf, m) {
 
     m.def("qpdf_version", &qpdf_get_qpdf_version, "Get libqpdf version");
 
-    static py::exception<QPDFExc> exc_main(m, "PDFError");
+    static py::exception<QPDFExc> exc_main(m, "PdfError");
     static py::exception<QPDFExc> exc_password(m, "PasswordError");
     py::register_exception_translator([](std::exception_ptr p) {
         try {
@@ -418,7 +418,7 @@ PYBIND11_MODULE(_qpdf, m) {
         )
         ;
 
-    py::class_<QPDF>(m, "PDF", "In-memory representation of a PDF")
+    py::class_<QPDF>(m, "Pdf", "In-memory representation of a PDF")
         .def_static("new",
             []() {
                 auto q = std::make_unique<QPDF>();
@@ -447,13 +447,13 @@ PYBIND11_MODULE(_qpdf, m) {
             :param suppress_warnings: If True (default), warnings are not printed to stderr. Use `get_warnings()` to retrieve warnings.
             :param attempt_recovery: If True (default), attempt to recover from PDF parsing errors.
             :throws pikepdf.PasswordError: If the password failed to open the file.
-            :throws pikepdf.PDFError: If for other reasons we could not open the file.
+            :throws pikepdf.PdfError: If for other reasons we could not open the file.
             :throws TypeError: If the type of `filename_or_stream` is not usable.
             )~~~"
         )
         .def("__repr__",
             [](const QPDF &q) {
-                return "<pikepdf.PDF description='"s + q.getFilename() + "'>"s;
+                return "<pikepdf.Pdf description='"s + q.getFilename() + "'>"s;
             }
         )
         .def_property_readonly("filename", &QPDF::getFilename,

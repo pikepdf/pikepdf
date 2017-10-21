@@ -8,7 +8,7 @@ from contextlib import suppress
 
 
 def test_create_form_xobjects(outdir):
-    pdf = qpdf.PDF.new()
+    pdf = qpdf.Pdf.new()
 
     font = pdf.make_indirect(
         qpdf.Object.parse(b"""

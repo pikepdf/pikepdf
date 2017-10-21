@@ -6,7 +6,7 @@
 
 from . import _qpdf
 
-from ._qpdf import Object, ObjectType, PDFError, PDF, PasswordError, \
+from ._qpdf import Object, ObjectType, PdfError, Pdf, PasswordError, \
     ObjectStreamMode, StreamDataMode
 
 from collections import namedtuple
@@ -54,7 +54,7 @@ def parse_content_stream(stream):
     The `stream` object may be either a `Object.Stream` type or an array of
     streams.
 
-    >>> pdf = pikepdf.PDF.open(input_pdf)
+    >>> pdf = pikepdf.Pdf.open(input_pdf)
     >>> stream = pdf.pages[0].Contents
     >>> for operands, command in parse_content_stream(stream):
     >>>     print(command)
@@ -67,7 +67,7 @@ def parse_content_stream(stream):
     grouper = _OperandGrouper()
     try:
         Object.parse_stream(stream, grouper)
-    except PDFError as e:
+    except PdfError as e:
         if 'parseContentStream called on non-stream' in str(e):  # qpdf 6.x
             raise TypeError("parse_content_stream called on non-stream Object")
         elif 'ignoring non-stream while parsing' in str(e):  # qpdf 7.0

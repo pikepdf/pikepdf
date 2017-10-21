@@ -35,7 +35,7 @@ def test_pdfa_sanity(resources, outdir):
 
     assert verapdf_validate(filename)
 
-    pdf = qpdf.PDF.open(filename)
+    pdf = qpdf.Pdf.open(filename)
     pdf.save(outdir / 'pdfa.pdf')
 
     assert verapdf_validate(outdir / 'pdfa.pdf')

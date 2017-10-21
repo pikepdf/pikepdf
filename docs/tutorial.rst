@@ -7,13 +7,13 @@ this :class:`pikepdf.PDF`.
 
 .. code-block:: python
 
-   from pikepdf import PDF
-   new_pdf = PDF.new()
-   sample_pdf = PDF.open('sample.pdf')
+   from pikepdf import Pdf
+   new_pdf = Pdf.new()
+   sample_pdf = Pdf.open('sample.pdf')
    sample_pdf.save('sample2.pdf')
 
-You may of course use ``from pikepdf import PDF as ...`` if the short class 
-name conflicts.
+You may of course use ``from pikepdf import Pdf as ...`` if the short class 
+name conflicts or ``from pikepdf import Pdf as PDF`` if you prefer uppercase.
 
 The PDF class API follows the example of the widely-used 
 `Pillow image library <https://pillow.readthedocs.io/en/4.2.x/>`_. For clarity
@@ -23,25 +23,25 @@ opening are different.
 Manipulating pages
 ------------------
 
-pikepdf presents the pages in a PDF through the ``PDF.pages`` property, which
+pikepdf presents the pages in a PDF through the ``Pdf.pages`` property, which
 follows (most of) the ``list`` protocol.
 
 .. code-block:: python
 
    # Add the appendix to the end of report 
-   report = PDF.open('report.pdf')
-   appendix = PDF.open('appendix.pdf')
+   report = Pdf.open('report.pdf')
+   appendix = Pdf.open('appendix.pdf')
    report.pages.extend(appendix.pages)
    
    # Replace page 50 (49th array index) with a rescan
-   rescan_page50 = PDF.open('page50.pdf')
+   rescan_page50 = Pdf.open('page50.pdf')
    report.pages[49] = rescan_page50[0]
    report.save('report_complete.pdf')
 
 .. code-block:: python
 
    # This document was scanned in reverse order; fix it
-   backwards = PDF.open('backwards.pdf')
+   backwards = Pdf.open('backwards.pdf')
    backwards.pages.reverse()
    backwards.save('correct-page-order.pdf')
 
@@ -49,7 +49,7 @@ follows (most of) the ``list`` protocol.
 
    # Slice the odd pages
    odd_pages = report.pages[::2]
-   odd = PDF.new()
+   odd = Pdf.new()
    odd.extend(odd_pages)
    odd.save('just-odd-pages.pdf')
 
@@ -77,7 +77,7 @@ Open a PDF and see what is inside the /Root object.
 
 .. code-block:: python
 
-   >>> example = PDF.open('tests/resources/sandwich.pdf')
+   >>> example = Pdf.open('tests/resources/sandwich.pdf')
    >>> example.Root
    <pikepdf.Object.Dictionary({
     '/Metadata': pikepdf.Object.Stream(stream_dict={

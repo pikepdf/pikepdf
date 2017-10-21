@@ -12,51 +12,51 @@ def test_minimum_qpdf_version():
 
 
 def test_open_pdf(resources):
-    pdf = qpdf.PDF.open(resources / 'graph.pdf')
+    pdf = qpdf.Pdf.open(resources / 'graph.pdf')
     assert '1.3' <= pdf.pdf_version <= '1.7'
 
     assert pdf.root['/Pages']['/Count'].as_int() == 1
 
 
 def test_open_pdf_password(resources):
-    pdf = qpdf.PDF.open(resources / 'graph-encrypted.pdf', password='owner')
+    pdf = qpdf.Pdf.open(resources / 'graph-encrypted.pdf', password='owner')
     assert pdf.root['/Pages']['/Count'].as_int() == 1
 
 
 def test_open_pdf_wrong_password(resources):
     with pytest.raises(qpdf.PasswordError):
-        qpdf.PDF.open(resources / 'graph-encrypted.pdf', password='wrong')
+        qpdf.Pdf.open(resources / 'graph-encrypted.pdf', password='wrong')
 
 
 def test_open_pdf_password_encoding(resources):
     with pytest.raises(qpdf.PasswordError):
-        qpdf.PDF.open(resources / 'graph-encrypted.pdf', password=b'\x01\xfe')
+        qpdf.Pdf.open(resources / 'graph-encrypted.pdf', password=b'\x01\xfe')
 
 
 def test_open_pdf_no_password_but_needed(resources):
     with pytest.raises(qpdf.PasswordError):
-        qpdf.PDF.open(resources / 'graph-encrypted.pdf')
+        qpdf.Pdf.open(resources / 'graph-encrypted.pdf')
 
 
 def test_stream(resources):
     with (resources / 'graph.pdf').open('rb') as stream:
-        pdf = qpdf.PDF.open(stream)
+        pdf = qpdf.Pdf.open(stream)
     assert pdf.root.Pages.Count == 1
 
 
 def test_no_text_stream(resources):
     with pytest.raises(TypeError):
         with (resources / 'graph.pdf').open('r') as stream:
-            qpdf.PDF.open(stream)
+            qpdf.Pdf.open(stream)
 
 
 def test_attr_access(resources):
-    pdf = qpdf.PDF.open(resources / 'graph.pdf')
+    pdf = qpdf.Pdf.open(resources / 'graph.pdf')
     assert int(pdf.root.Pages.Count) == 1
 
 
 def test_create_pdf(outdir):
-    pdf = qpdf.PDF.new()
+    pdf = qpdf.Pdf.new()
 
     font = pdf.make_indirect(
         qpdf.Object.parse(b"""
@@ -114,7 +114,7 @@ def test_create_pdf(outdir):
 
 
 def test_copy_semantics(resources):
-    pdf = qpdf.PDF.open(resources / 'graph.pdf')
+    pdf = qpdf.Pdf.open(resources / 'graph.pdf')
 
     # Ensure that we can name a reference to a child object and view the
     # changes from the parent
@@ -127,7 +127,7 @@ def test_copy_semantics(resources):
 
 def test_save_stream(resources, outdir):
     from io import BytesIO
-    pdf = qpdf.PDF.open(resources / 'graph.pdf')
+    pdf = qpdf.Pdf.open(resources / 'graph.pdf')
     pdf.save(outdir / 'nostream.pdf', static_id=True)
 
     bio = BytesIO()
@@ -142,8 +142,8 @@ def test_save_stream(resources, outdir):
 def test_copy_page_keepalive(resources, outdir):
     from shutil import copy
     copy(resources / 'sandwich.pdf', outdir / 'sandwich.pdf')
-    src = qpdf.PDF.open(outdir / 'sandwich.pdf')
-    pdf = qpdf.PDF.open(resources / 'graph.pdf')
+    src = qpdf.Pdf.open(outdir / 'sandwich.pdf')
+    pdf = qpdf.Pdf.open(resources / 'graph.pdf')
 
     pdf.pages.append(src.pages[0])
 

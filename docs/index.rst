@@ -27,7 +27,7 @@ to encrypted PDFs.
 
    # Rotate all pages in a file by 180 degrees
    import pikepdf
-   my_pdf = pikepdf.PDF.open('test.pdf')
+   my_pdf = pikepdf.Pdf.open('test.pdf')
    for page in my_pdf.pages:
       page.Rotate = 180
    my_pdf.save('test-rotated.pdf')
