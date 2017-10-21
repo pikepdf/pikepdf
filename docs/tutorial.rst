@@ -20,8 +20,58 @@ The PDF class API follows the example of the widely-used
 there is no default constructor since the arguments used for creation and
 opening are different.
 
+Manipulating pages
+------------------
+
+pikepdf presents the pages in a PDF through the ``PDF.pages`` property, which
+follows (most of) the ``list`` protocol.
+
+.. code-block:: python
+
+   # Add the appendix to the end of report 
+   report = PDF.open('report.pdf')
+   appendix = PDF.open('appendix.pdf')
+   report.pages.extend(appendix.pages)
+   
+   # Replace page 50 (49th array index) with a rescan
+   rescan_page50 = PDF.open('page50.pdf')
+   report.pages[49] = rescan_page50[0]
+   report.save('report_complete.pdf')
+
+.. code-block:: python
+
+   # This document was scanned in reverse order; fix it
+   backwards = PDF.open('backwards.pdf')
+   backwards.pages.reverse()
+   backwards.save('correct-page-order.pdf')
+
+.. code-block:: python
+
+   # Slice the odd pages
+   odd_pages = report.pages[::2]
+   odd = PDF.new()
+   odd.extend(odd_pages)
+   odd.save('just-odd-pages.pdf')
+
+.. note::
+
+   Because of technical limitations in underlying libraries, pikepdf keeps the
+   original PDF from which a page from open, even if the reference to the PDF
+   is garbage collected. In the first example above, because ``report`` is
+   borrowing pages from ``appendix``, ``appendix`` will be kept alive until
+   ``report`` goes out of scope.
+
+.. warning::
+
+   It is technically possible, but not recommended, to manipulate pages via 
+   the PDF /Root object. The reason it is not recommended is that PDFs 
+   optionally can have a hierarchical tree of page information that may become
+   inconsistent if not manipulated properly. It is far easier to use ``.pages``
+   and let pikepdf (actually, libqpdf) maintain the internal structures.
+
+
 Inspecting the PDF Root object
---------------------------
+------------------------------
 
 Open a PDF and see what is inside the /Root object.
 
@@ -92,20 +142,6 @@ followed by a capital letter. When you access an attribute with a name
 beginning with a capital letter, pikepdf will check the dictionary for
 that key. For the rare PDF keys that don't follow this convention, you
 must use standard dictionary notation.
-
-Retrieving pages
-----------------
-
-The /Root object provides data on the overall document, and it exposes pages.
-However, sometimes PDFs organize their pages in a complex hierarchy. Because
-this isn't always present, code that manipulates pages through the /Root
-object will be fragile.
-
-Instead, use the :attr:`pikepdf.PDF.pages` accessor.
-
-.. code-block:: python
-
-   >>> example.pages[0]
 
 
 PDF Stream objects
