@@ -9,12 +9,15 @@ out loud, and it sounds like "pikepdf".
 
 **This is in early development. Expect breakage.**
 
-Python 2 is not supported. It's time to move on.
+Python 3.5 and 3.6 are fully supported.
 
-This library is similar to PyPDF2 in that it provides low level access to PDF
-features, and editing capabilities.
+Python 2.7 and earlier versions of Python 3 are not currently supported but 
+is probably not difficult to achieve. Pull requests are welcome.
 
-See reportlab for a powerful write-only PDF library.
+This library is similar to PyPDF2 and pdfrw – it provides low level access to PDF
+features and allows editing and content transformation of existing PDFs. If you
+don't need to read existing PDFs and just want to produce PDF output, reportlab
+or wkhtmltopdf might be more suitable.
 
 Installation
 ------------
@@ -68,6 +71,7 @@ the Sphinx manual:
 
 -  ``cd pikepdf/docs``
 -  ``make html``
+
 
 License
 -------
