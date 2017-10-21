@@ -376,14 +376,6 @@ PYBIND11_MODULE(_qpdf, m) {
         .def("__setitem__", &PageList::setPagesFromIterable)
         .def("__delitem__", &PageList::deletePage)
         .def("__len__", &PageList::count)
-        // .def("__iter__",
-        //     [](PageList &pl) {
-        //         py::slice indices(0, pl.count(), 1);
-        //         py::list pages = pl.getPages(indices);
-        //         return pages.attr("__iter__");
-        //     },
-        //     py::return_value_policy::reference_internal
-        // )
         .def("__iter__",
             [](PageList &pl) {
                 return PageList(pl.getQPDF(), 0);

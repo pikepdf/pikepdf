@@ -9,6 +9,7 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
+#include <math.h>
 
 #include <qpdf/Constants.h>
 #include <qpdf/Types.h>
@@ -538,12 +539,23 @@ qpdf.Object.Dictionary({
             }
         )
         .def_static("Real",
-            [](double val, int decimal_places = 0) {
-                return QPDFObjectHandle::newReal(val, decimal_places);
-            },
-            "create a Real from a float",
-            py::arg("val"),
-            py::arg("decimal_places") = py::int_(0)
+            [](py::object obj) {
+                py::object Decimal = py::module::import("decimal").attr("Decimal");
+                if (py::isinstance<py::float_>(obj) || py::isinstance<py::int_>(obj)) {
+                    auto val = obj.cast<double>();
+                    if (isinf(val) || isnan(val))
+                        throw py::value_error("NaN and infinity cannot be represented as PDF objects");
+                    return QPDFObjectHandle::newReal(val, 0);
+                }
+                py::print(obj);
+                py::print(py::repr(obj));                
+                if (!py::isinstance(obj, Decimal))
+                    throw py::type_error("Can't convert arbitrary Python object to PDF Real");
+                py::bool_ is_finite = obj.attr("is_finite")();
+                if (!is_finite)
+                    throw py::value_error("NaN and infinity cannot be represented as PDF objects");
+                return QPDFObjectHandle::newReal(py::str(obj));
+            }
         )
         .def_static("Name",
             [](const std::string& s) {
@@ -618,7 +630,7 @@ qpdf.Object.Dictionary({
             }
         )
         .def_static("new",
-            [](float f) {
+            [](double f) {
                 return QPDFObjectHandle::newReal(f, 0); // default to six decimals
             }
         )
