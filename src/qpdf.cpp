@@ -7,6 +7,7 @@
  */
 
 #include <sstream>
+#include <type_traits>
 
 #include <qpdf/Constants.h>
 #include <qpdf/Types.h>
@@ -41,7 +42,6 @@ void kwargs_to_method(py::kwargs kwargs, const char* key, std::unique_ptr<QPDF> 
         throw py::type_error(std::string(key) + ": unsupported argument type");
     }
 }
-
 
 /* Convert a Python object to a filesystem encoded path
  * Use Python's os.fspath() which accepts os.PathLike (str, bytes, pathlib.Path)
@@ -131,7 +131,7 @@ void save_pdf(
     QPDF &q,
     py::object filename_or_stream,
     bool static_id=false,
-    bool preserve_pdfa=false,
+    bool preserve_pdfa=true,
     std::string min_version=""s,
     std::string force_version=""s,
     qpdf_object_stream_e object_stream_mode=qpdf_o_preserve,
@@ -153,14 +153,14 @@ void save_pdf(
     w.setObjectStreamMode(object_stream_mode);
     w.setStreamDataMode(stream_data_mode);
 
+    if (preserve_pdfa) {
+        w.setNewlineBeforeEndstream(true);
+    }
+
     if (py::hasattr(filename_or_stream, "read") && py::hasattr(filename_or_stream, "seek")) {
         // Python code gave us an object with a stream interface
         py::object stream = filename_or_stream;
         check_stream_is_usable(stream);
-
-        if (preserve_pdfa) {
-            throw py::notimpl_error("Cannot perserve PDF/A compatible when writing to a stream");
-        }
 
         // TODO could improve this by streaming rather than buffering
         // using subclass of Pipeline that routes calls to Python
@@ -168,7 +168,7 @@ void save_pdf(
         w.write();
 
         // getBuffer returns Buffer* and qpdf says we are responsible for
-        // deleting it, so capture it
+        // deleting it, so capture it in a unique_ptr
         std::unique_ptr<Buffer> output_buffer(w.getBuffer());
 
         // Awkward API alert:
@@ -183,11 +183,6 @@ void save_pdf(
         py::object filename = filename_or_stream;
         w.setOutputFilename(fsencode_filename(filename).c_str());
         w.write();
-
-        if (preserve_pdfa) {
-            auto helpers = py::module::import("pikepdf._cpphelpers");
-            helpers.attr("repair_pdfa")(filename);
-        }
     }
 }
 

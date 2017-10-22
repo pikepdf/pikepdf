@@ -22,7 +22,12 @@ or wkhtmltopdf might be more suitable.
 Installation
 ------------
 
+pikepdf requires qpdf version 7.0 or higher.
+
 **On Unix (Linux, macOS)**
+
+A C++11 compliant compiler is required, which includes most recent versions of
+GCC and clang.
 
 -  clone this repository
 -  ``pip install ./pikepdf``
@@ -82,7 +87,8 @@ contributing to this project, you agree to the terms and conditions of this lice
 
 `Informally <https://www.mozilla.org/en-US/MPL/2.0/FAQ/>`_, MPL 2.0 is a not a "viral" license.
 It may be combined with other work, including commercial software. However, you must disclose your modifications
-to pikepdf in source code form.
+to pikepdf in source code form. In other works, fork this repository on Github or elsewhere and commit your 
+contributions there, and you've satisfied the license.
 
 The ``tests/resources/copyright`` file describes licensing terms for the test
 suite and the provenance of test resources.
