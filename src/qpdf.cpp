@@ -236,7 +236,7 @@ public:
 
     void setPage(size_t index, py::object page) 
     {
-        this->insertItem(index, page);
+        this->insertPage(index, page);
         if (index != this->count()) {
             this->deletePage(index + 1);
         }
@@ -252,18 +252,39 @@ public:
 
         // Unpack list into iterable, check that each object is a page but
         // don't save the handles yet
-        for (size_t i = 0; i < slicelength; i++) {
-            if (it == py::iterator::sentinel())
-                throw std::runtime_error("Left and right hand size of slice assignment have different sizes!");
+        for(; it != py::iterator::sentinel(); ++it) {
             assert_pyobject_is_page(*it);
             results.append(*it);
-            ++it;
         }
-        if (it != py::iterator::sentinel())
-            throw std::runtime_error("Left and right hand size of slice assignment have different sizes!");
-        
-        for (size_t i = 0; i < slicelength; ++i) {
-            this->setPage(start, results[i]); start += step;
+
+        if (step != 1) {
+            // For an extended slice we must be replace an equal number of pages
+            if (results.size() != slicelength) {
+                throw py::value_error(
+                    "attempt to assign sequence of length "s +
+                    std::to_string(results.size()) +
+                    " to extended slice of size "s +
+                    std::to_string(slicelength)
+                );
+            }
+            for (size_t i = 0; i < slicelength; ++i) {
+                this->setPage(start + (i * step), results[i]);
+            }
+        } else {
+            // For simple slices, we can replace differing sizes
+            // meaning results.size() could be slicelength, or not
+            // so insert all pages first (to ensure nothing is freed yet)
+            // and then delete all pages we no longer need
+
+            // Insert first to ensure we don't delete any pages we will need
+            for (size_t i = 0; i < results.size(); ++i) {
+                this->insertPage(start + i, results[i]);
+            }
+
+            size_t del_start = start + results.size();
+            for (size_t i = 0; i < slicelength; ++i) {
+                this->deletePage(del_start);
+            }
         }
     }
 
@@ -271,13 +292,13 @@ public:
     {
         auto page = this->getPage(index);
         /*
-        // Need a dec_ref to match the inc_ref in insertItem, but it's unclear
+        // Need a dec_ref to match the inc_ref in insertPage, but it's unclear
         // how to do that. The item will be set the current QPDF always.
         // Accessing data from another PDF seems to involve some pipeline
         // magic in QPDF around libqpdf/QPDFWriter.cc:1614
         if (original page owner != &this->getQPDF()) {
             // If we are removing a page not originally owned by our QPDF,
-            // remove the reference count we put it in insertItem()
+            // remove the reference count we put it in insertPage()
             py::object pyqpdf = py::cast(page_owner);
             pyqpdf.dec_ref();
         }
@@ -290,7 +311,7 @@ public:
         return this->qpdf.getAllPages().size();
     }
 
-    void insertItem(size_t index, py::handle obj)
+    void insertPage(size_t index, py::handle obj)
     {
         QPDFObjectHandle page;
         try {
@@ -383,7 +404,7 @@ PYBIND11_MODULE(_qpdf, m) {
                 throw py::stop_iteration();
             }
         )
-        .def("insert", &PageList::insertItem, py::keep_alive<1, 3>())        
+        .def("insert", &PageList::insertPage, py::keep_alive<1, 3>())        
         .def("reverse", 
             [](PageList &pl) {
                 py::slice ordinary_indices(0, pl.count(), 1);                
@@ -396,7 +417,7 @@ PYBIND11_MODULE(_qpdf, m) {
         )
         .def("append",
             [](PageList &pl, py::object page) {
-                pl.insertItem(pl.count(), page);
+                pl.insertPage(pl.count(), page);
             },
             py::keep_alive<1, 2>()
         )
@@ -405,7 +426,7 @@ PYBIND11_MODULE(_qpdf, m) {
                 py::iterator it = iterable.attr("__iter__")();
                 while (it != py::iterator::sentinel()) {
                     assert_pyobject_is_page(*it);
-                    pl.insertItem(pl.count(), *it);
+                    pl.insertPage(pl.count(), *it);
                     ++it;
                 }
             },

@@ -91,3 +91,33 @@ def test_extend(resources, outdir):
     pdf.save(outdir / 'out.pdf')
 
 
+def test_slice_unequal_replacement(resources, outdir):
+    pdf = qpdf.Pdf.open(resources / 'fourpages.pdf')
+    pdf2 = qpdf.Pdf.open(resources / 'sandwich.pdf')
+
+    assert len(pdf.pages[1:]) != len(pdf2.pages)
+    page0_content_len = int(pdf.pages[0].Contents.stream_dict.Length)
+    page1_content_len = int(pdf.pages[1].Contents.stream_dict.Length)
+    pdf.pages[1:] = pdf2.pages
+
+    assert len(pdf.pages) == 2, "number of pages must be changed"
+    pdf.save(outdir / 'out.pdf')
+    assert pdf.pages[0].Contents.stream_dict.Length == page0_content_len, \
+        "page 0 should be unchanged"
+    assert pdf.pages[1].Contents.stream_dict.Length != page1_content_len, \
+        "page 1's contents should have changed"
+
+
+def test_slice_with_step(resources, outdir):
+    pdf = qpdf.Pdf.open(resources / 'fourpages.pdf')
+    pdf2 = qpdf.Pdf.open(resources / 'sandwich.pdf')
+
+    pdf2.pages.extend(pdf2.pages[:])
+    assert len(pdf2.pages) == 2
+    pdf2_content_len = int(pdf2.pages[0].Contents.stream_dict.Length)
+
+    pdf.pages[0::2] = pdf2.pages
+    pdf.save(outdir / 'out.pdf')
+
+    assert all(page.Contents.stream_dict.Length == pdf2_content_len 
+               for page in pdf.pages[0::2])
