@@ -121,3 +121,11 @@ def test_slice_with_step(resources, outdir):
 
     assert all(page.Contents.stream_dict.Length == pdf2_content_len 
                for page in pdf.pages[0::2])
+
+
+@pytest.mark.timeout(1)
+def test_self_extend(resources):
+    pdf = qpdf.Pdf.open(resources / 'fourpages.pdf')
+    with pytest.raises(ValueError, 
+            message="source page list modified during iteration"):
+        pdf.pages.extend(pdf.pages)

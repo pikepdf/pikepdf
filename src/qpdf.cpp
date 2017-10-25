@@ -322,6 +322,11 @@ public:
         if (!page.isPageObject())
             throw py::type_error("only pages can be inserted");
 
+        this->insertPage(index, page);
+    }
+
+    void insertPage(size_t index, QPDFObjectHandle page)
+    {
         // Find out who owns us
         QPDF *page_owner = page.getOwningQPDF();
 
@@ -404,7 +409,11 @@ PYBIND11_MODULE(_qpdf, m) {
                 throw py::stop_iteration();
             }
         )
-        .def("insert", &PageList::insertPage, py::keep_alive<1, 3>())        
+        .def("insert", 
+            [](PageList &pl, size_t index, py::object obj) {
+                pl.insertPage(index, obj);
+            }, py::keep_alive<1, 3>()
+        )
         .def("reverse", 
             [](PageList &pl) {
                 py::slice ordinary_indices(0, pl.count(), 1);                
@@ -418,6 +427,17 @@ PYBIND11_MODULE(_qpdf, m) {
         .def("append",
             [](PageList &pl, py::object page) {
                 pl.insertPage(pl.count(), page);
+            },
+            py::keep_alive<1, 2>()
+        )
+        .def("extend",
+            [](PageList &pl, PageList &other) {
+                size_t other_count = other.count();
+                for (size_t i = 0; i < other_count; i++) {
+                    if (other_count != other.count())
+                        throw py::value_error("source page list modified during iteration");
+                    pl.insertPage(pl.count(), other.getPage(i));
+                }
             },
             py::keep_alive<1, 2>()
         )

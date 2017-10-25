@@ -103,6 +103,6 @@ setup(
     cmdclass={'build_ext': BuildExt},
     zip_safe=False,
     setup_requires=['pytest-runner'],
-    tests_require=['pytest', 'pytest-xdist'],
+    tests_require=['pytest', 'pytest-xdist', 'pytest-timeout'],
     packages=setuptools.find_packages()
 )
