@@ -38,4 +38,4 @@ build_script:
       conda install --use-local python_example
     }
 test_script:
-- ps: python tests\test.py
+- ps: python -m pytest
