@@ -531,12 +531,14 @@ qpdf.Object.Dictionary({
         .def_static("Boolean",
             [](bool b) {
                 return QPDFObjectHandle::newBool(b);
-            }
+            },
+            "Construct a PDF Boolean object"
         )
         .def_static("Integer",
             [](int n) {
                 return QPDFObjectHandle::newInteger(n);
-            }
+            },
+            "Construct a PDF Integer object"
         )
         .def_static("Real",
             [](py::object obj) {
@@ -555,7 +557,8 @@ qpdf.Object.Dictionary({
                 if (!is_finite)
                     throw py::value_error("NaN and infinity cannot be represented as PDF objects");
                 return QPDFObjectHandle::newReal(py::str(obj));
-            }
+            },
+            "Construct a PDF Real value, that is, a decimal number"
         )
         .def_static("Name",
             [](const std::string& s) {
@@ -570,23 +573,27 @@ qpdf.Object.Dictionary({
         .def_static("String",
             [](const std::string& s) {
                 return QPDFObjectHandle::newString(s);
-            }
+            },
+            "Construct a PDF String object."
         )
         .def_static("Array",
             [](py::iterable iterable) {
                 return QPDFObjectHandle::newArray(array_builder(iterable));
-            }
+            },
+            "Construct a PDF Array object from an iterable of PDF objects or types that can be coerced to PDF objects."
         )
         .def_static("Dictionary",
             [](py::dict dict) {
                 return QPDFObjectHandle::newDictionary(dict_builder(dict));
-            }
+            },
+            "Construct a PDF Dictionary from a mapping of PDF objects or Python types that can be coerced to PDF objects."
         )
         .def_static("Stream",
             [](QPDF* owner, py::bytes data) {
                 std::string s = data;
                 return QPDFObjectHandle::newStream(owner, data); // This makes a copy of the data
             },
+            "Construct a PDF Stream object from binary data",
             py::keep_alive<0, 1>() // returned object references the owner
         )
         .def_static("Stream",
@@ -611,14 +618,18 @@ qpdf.Object.Dictionary({
                 }
                 return QPDFObjectHandle::newStream(owner, data.str());
             },
+            "Construct a PDF Stream object from a list of operand-operator tuples [((operands,), operator)]",
             py::keep_alive<0, 1>() // returned object references the owner   
         )
         .def_static("Operator",
             [](const std::string& op) {
                 return QPDFObjectHandle::newOperator(op);
-            }
+            },
+            "Construct a PDF Operator object for use in content streams"
         )
-        .def_static("Null", &QPDFObjectHandle::newNull)
+        .def_static("Null", &QPDFObjectHandle::newNull,
+            "Construct a PDF Null object"
+        )
         .def_static("new",
             [](bool b) {
                 return QPDFObjectHandle::newBool(b);
@@ -946,14 +957,14 @@ qpdf.Object.Dictionary({
                 PointerHolder<Buffer> phbuf = h.getStreamData();
                 return phbuf;
             },
-            "return a buffer protocol buffer describing the decoded stream"
+            "Return a buffer protocol buffer describing the decoded stream"
         )
         .def("get_raw_stream_buffer",
             [](QPDFObjectHandle &h) {
                 PointerHolder<Buffer> phbuf = h.getRawStreamData();
                 return phbuf;
             },
-            "return a buffer protocol buffer describing the raw, encoded stream"
+            "Return a buffer protocol buffer describing the raw, encoded stream"
         )
         .def("read_stream",
             [](QPDFObjectHandle &h) {
@@ -962,7 +973,7 @@ qpdf.Object.Dictionary({
                 return py::bytes((const char*)buf->getBuffer(), buf->getSize());
             },
             py::return_value_policy::take_ownership,
-            "decode and read the content stream associated with this object"
+            "Decode and read the content stream associated with this object"
         )
         .def("read_raw_stream",
             [](QPDFObjectHandle &h) {
@@ -971,7 +982,7 @@ qpdf.Object.Dictionary({
                 return py::bytes((const char*)buf->getBuffer(), buf->getSize());
             },
             py::return_value_policy::take_ownership,
-            "read the content stream associated with this object without decoding"
+            "Read the content stream associated with this object without decoding"
         )
         .def_property_readonly("_objgen",
             [](QPDFObjectHandle &h) {
@@ -983,6 +994,7 @@ qpdf.Object.Dictionary({
             [](std::string const& stream, std::string const& description) {
                 return QPDFObjectHandle::parse(stream, description);
             },
+            "Parse text PostScript into PDF objects.",
             py::arg("stream"),
             py::arg("description") = ""
         )
@@ -991,12 +1003,17 @@ qpdf.Object.Dictionary({
                 std::string s = stream;
                 return QPDFObjectHandle::parse(stream, description);
             },
+            "Parse binary PostScript into PDF objects.",
             py::arg("stream"),
             py::arg("description") = ""
         )
-        .def_static("parse_stream", &QPDFObjectHandle::parseContentStream)
-        .def("unparse", &QPDFObjectHandle::unparse)
-        .def("unparse_resolved", &QPDFObjectHandle::unparseResolved);
+        .def_static("parse_stream", 
+            &QPDFObjectHandle::parseContentStream,
+            "Helper for parsing PDF content stream. Use ``pikepdf.parse_content_stream`` instead.")
+        .def("unparse", &QPDFObjectHandle::unparse,
+            "Convert PDF objects into PostScript, without resolving indirect objects.")
+        .def("unparse_resolved", &QPDFObjectHandle::unparseResolved,
+            "Convert PDF objects into PostScript, and resolve referenced objects when possible.");
 
     py::class_<QPDFObjectHandle::ParserCallbacks, PyParserCallbacks> parsercallbacks(m, "StreamParser");
     parsercallbacks
