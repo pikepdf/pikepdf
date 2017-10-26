@@ -3,8 +3,6 @@ from setuptools.command.build_ext import build_ext
 import sys
 import setuptools
 
-__version__ = '0.0.1'
-
 
 class get_pybind_include(object):
     """Helper class to determine the pybind11 include path
@@ -92,7 +90,6 @@ class BuildExt(build_ext):
 
 setup(
     name='pikepdf',
-    version=__version__,
     author='James R. Barlow',
     author_email='jim@purplerock.ca',
     url='https://github.com/jbarlow83/pikepdf',
@@ -102,7 +99,8 @@ setup(
     install_requires=['pybind11 >= 2.2, < 3'],
     cmdclass={'build_ext': BuildExt},
     zip_safe=False,
-    setup_requires=['pytest-runner'],
+    setup_requires=['pytest-runner', 'setuptools-scm'],
+    use_scm_version=True,
     tests_require=['pytest', 'pytest-xdist', 'pytest-timeout'],
     packages=setuptools.find_packages()
 )

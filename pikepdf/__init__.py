@@ -4,13 +4,26 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
-from . import _qpdf
+
+from collections import namedtuple
+from pkg_resources import get_distribution, DistributionNotFound
+
+import os
+
+try:
+    __version__ = get_distribution(__name__).version
+except DistributionNotFound:
+    __version__ = "Not installed"
+    pass
+try:
+    from . import _qpdf
+except ImportError:
+    raise ImportError("pikepdf's extension library failed to import")
 
 from ._qpdf import Object, ObjectType, PdfError, Pdf, PasswordError, \
     ObjectStreamMode, StreamDataMode
 
-from collections import namedtuple
-
+__libqpdf_version__ = _qpdf.qpdf_version()
 
 
 class _OperandGrouper(_qpdf.StreamParser):
