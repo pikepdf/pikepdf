@@ -397,6 +397,14 @@ PYBIND11_MODULE(_qpdf, m) {
         .def("__setitem__", &PageList::setPagesFromIterable)
         .def("__delitem__", &PageList::deletePage)
         .def("__len__", &PageList::count)
+        .def("p",
+            [](PageList &pl, size_t index) {
+                if (index == 0)
+                    throw py::index_error("can't access page 0 in 1-based indexing");
+                return pl.getPage(index - 1);
+            },
+            "convenience - look up page number in ordinal numbering, .p(1) is first page"
+        )
         .def("__iter__",
             [](PageList &pl) {
                 return PageList(pl.getQPDF(), 0);
