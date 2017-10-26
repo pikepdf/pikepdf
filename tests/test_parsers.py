@@ -60,7 +60,7 @@ def test_text_filter(resources, outdir):
         keep.append((operands, command))
 
     new_stream = qpdf.Object.Stream(pdf, keep)
-    print(new_stream.read_stream_data())
+    print(new_stream.read_stream())
     pdf.pages[0]['/Contents'] = new_stream
     pdf.pages[0]['/Rotate'] = 90
 

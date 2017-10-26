@@ -941,18 +941,37 @@ qpdf.Object.Dictionary({
             &QPDFObjectHandle::getDict, &QPDFObjectHandle::replaceDict,
             py::return_value_policy::copy // ObjectHandle is wrapper around a shared pointer, so should be copied
         )
-        .def("read_stream_data",
+        .def("get_stream_buffer",
             [](QPDFObjectHandle &h) {
-                // This relies on 
-                // 1. PointerHolder being declared as a shared pointer
-                // 2. Buffer being declared as being managed by PointerHolder<Buffer>
-                // 3. Buffer being set up as using the buffer interface
                 PointerHolder<Buffer> phbuf = h.getStreamData();
-                // Could also return bytes
-                // const Buffer* buf = phbuf.getPointer();
-                // return py::bytes((const char *)buf->getBuffer(), buf->getSize());
                 return phbuf;
-            }
+            },
+            "return a buffer protocol buffer describing the decoded stream"
+        )
+        .def("get_raw_stream_buffer",
+            [](QPDFObjectHandle &h) {
+                PointerHolder<Buffer> phbuf = h.getRawStreamData();
+                return phbuf;
+            },
+            "return a buffer protocol buffer describing the raw, encoded stream"
+        )
+        .def("read_stream",
+            [](QPDFObjectHandle &h) {
+                PointerHolder<Buffer> buf = h.getStreamData();
+                // py::bytes will make a copy of the buffer, so releasing is fine
+                return py::bytes((const char*)buf->getBuffer(), buf->getSize());
+            },
+            py::return_value_policy::take_ownership,
+            "decode and read the content stream associated with this object"
+        )
+        .def("read_raw_stream",
+            [](QPDFObjectHandle &h) {
+                PointerHolder<Buffer> buf = h.getRawStreamData();
+                // py::bytes will make a copy of the buffer, so releasing is fine
+                return py::bytes((const char*)buf->getBuffer(), buf->getSize());
+            },
+            py::return_value_policy::take_ownership,
+            "read the content stream associated with this object without decoding"
         )
         .def_property_readonly("_objgen",
             [](QPDFObjectHandle &h) {

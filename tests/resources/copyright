@@ -10,6 +10,12 @@ Files: tests/resources/*
 Copyright: 2017 James R. Barlow
 License: CC-BY-4.0
 
+Files: test/resources/congress.pdf
+License: public-domain
+Source: US Congressional Records
+Comment:
+    Converted from JPEG to PDF.
+
 Files: tests/resources/graph*.pdf
 License: public-domain
 Source: https://en.wikipedia.org/wiki/File:Pandas_text_analysis.png
@@ -28,3 +34,4 @@ License: GFDL-1.2+ or CC-BY-SA-3.0
 Comment:
     Created using ocrmypdf --pdf-renderer sandwich, to test Tesseract PDF
     text encoding.
+
