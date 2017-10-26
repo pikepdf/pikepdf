@@ -22,7 +22,7 @@ class get_pybind_include(object):
 ext_modules = [
     Extension(
         'pikepdf._qpdf',
-        ['src/qpdf.cpp', 'src/object.cpp'],
+        ['src/qpdf/qpdf.cpp', 'src/qpdf/object.cpp'],
         include_dirs=[
             # Path to pybind11 headers
             get_pybind_include(),
@@ -92,9 +92,9 @@ setup(
     name='pikepdf',
     author='James R. Barlow',
     author_email='jim@purplerock.ca',
-    url='https://github.com/jbarlow83/pikepdf',
+    url='https://github.com/pikepdf/pikepdf',
     description='Read and write PDFs with Python, powered by qpdf',
-    long_description='',
+    long_description=open('README.rst').read(),
     ext_modules=ext_modules,
     install_requires=['pybind11 >= 2.2, < 3'],
     cmdclass={'build_ext': BuildExt},
@@ -102,5 +102,19 @@ setup(
     setup_requires=['pytest-runner', 'setuptools-scm'],
     use_scm_version=True,
     tests_require=['pytest', 'pytest-xdist', 'pytest-timeout'],
-    packages=setuptools.find_packages()
+    package_dir={'': 'src'},
+    packages=setuptools.find_packages('src'),
+    classifiers=[
+        "Development Status :: 2 - Pre-Alpha",
+        "Intended Audience :: Developers",
+        "Intended Audience :: Information Technology",
+        "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: C++",
+        "Topic :: Multimedia :: Graphics",
+        "Topic :: Software Development :: Libraries",
+    ]
 )
