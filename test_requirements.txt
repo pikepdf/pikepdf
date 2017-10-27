@@ -1,0 +1,5 @@
+pytest == 3.2.3
+pytest-xdist == 1.18.2
+pytest-timeout == 1.2.0
+hypothesis == 3.7.0
+Pillow == 4.3.0

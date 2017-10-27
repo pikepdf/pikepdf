@@ -25,3 +25,5 @@ var/
 # macOS
 .DS_Store
 
+__qpdf/
+qpdf-7.0.0/

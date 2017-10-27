@@ -1,18 +1,18 @@
-language: cpp
+language: python
 dist: trusty
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-6
+
 matrix:
   include:
   - os: linux
-    env: PYTHON=3.6
-    addons:
-      apt:
-        sources:
-          - ubuntu-toolchain-r-test
-        packages:
-          - g++-6
-          - python3.6
-          - python3.6-dev
-          - qpdf          
+    python: 3.5
+  - os: linux
+    python: 3.6
   - os: osx
     env: PYTHON=3.6
 before_install:
@@ -28,7 +28,7 @@ before_install:
     make install DESTDIR=$(realpath ../qpdf)
     cd ..
     export LIBRARY_PATH=$(realpath ./qpdf/usr/local/lib)
-    export INCLUDE_PATH=$(realpath ./qpdf/usr/local/include)
+    export CPLUS_INCLUDE_PATH=$(realpath ./qpdf/usr/local/include)
   fi
   if [ -n "$PYTHON" ]; then
     if [ "$TRAVIS_OS_NAME" = "osx" ] && [ "${PYTHON:0:1}" = "3" ]; then
@@ -42,7 +42,8 @@ install:
 - |
   if [ -n "$PYTHON" ]; then
     python3 setup.py sdist
-    pip install --verbose dist/*.tar.gz
+    pip3 install --verbose dist/*.tar.gz
+    pip3 install -r test_requirements.txt 
   fi
 script:
 - pytest

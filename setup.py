@@ -88,6 +88,10 @@ class BuildExt(build_ext):
             ext.extra_compile_args = opts
         build_ext.build_extensions(self)
 
+tests_require = [line.strip() for line in
+                 open('test_requirements.txt')
+                 if line.strip() and not line.strip().startswith('#')]
+
 setup(
     name='pikepdf',
     author='James R. Barlow',
@@ -101,9 +105,7 @@ setup(
     zip_safe=False,
     setup_requires=['pytest-runner', 'setuptools-scm'],
     use_scm_version=True,
-    tests_require=[
-        'pytest', 'pytest-xdist', 'pytest-timeout', 'hypothesis', 
-        'Pillow'],
+    tests_require=tests_require,
     package_dir={'': 'src'},
     packages=setuptools.find_packages('src'),
     classifiers=[
