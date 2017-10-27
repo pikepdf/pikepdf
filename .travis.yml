@@ -13,7 +13,7 @@ matrix:
     addons:
       apt:
         sources: [ubuntu-toolchain-r-test, deadsnakes]
-        packages: [g++-7, python3.6-dev]
+        packages: [g++-7, python3.6-dev, python3.6-pip]
 
 
 stages:
@@ -47,12 +47,12 @@ install:
     make -j 2
     sudo make install
     cd ..
+    $PYTHON_CMD -m pip install --upgrade --user pip
   fi
   if [ "$TRAVIS_OS_NAME" = "osx" ]; then
     brew update; brew install python3 qpdf;
   fi
-  pip3 install --user --upgrade pip
-  python3 -m venv venv
+  $PYTHON_CMD -m venv venv
   source venv/bin/activate
   python3 setup.py sdist
   pip3 install --verbose dist/*.tar.gz
