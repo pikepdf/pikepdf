@@ -1,5 +1,6 @@
 language: cpp
 dist: trusty
+sudo: required
 cache:
   ccache: true
   directories:
@@ -43,7 +44,8 @@ install:
     tar zxf qpdf-7.0.0.tar.gz
     cd qpdf-7.0.0/
     ./configure
-    make install -j 2
+    make -j 2
+    sudo make install
     cd ..
   fi
   if [ "$TRAVIS_OS_NAME" = "osx" ]; then
