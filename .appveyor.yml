@@ -8,9 +8,7 @@ environment:
     DISTUTILS_USE_SDK: 1
     MSSdk: 1
   matrix:
-  - PYTHON: 27
   - PYTHON: 36
-  - CONDA: 27
   - CONDA: 36
 install:
 - cmd: '"%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" %PLATFORM%'
