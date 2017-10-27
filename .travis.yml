@@ -25,8 +25,8 @@ before_install:
 - |
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     if [ -n "$GCC" ]; then
-      CC=gcc-$GCC
-      CXX=g++-$GCC
+      CC="ccache gcc-$GCC"
+      CXX="ccache g++-$GCC"
     elif [ -n "$CLANG" ]; then
       CC="ccache clang-$CLANG"
       CXX="ccache clang++-$CLANG"
@@ -47,7 +47,7 @@ install:
     make -j 2
     sudo make install
     cd ..
-    $PYTHON_CMD -m pip install --upgrade --user pip
+    $PYTHON_CMD -m ensurepip install --upgrade --user
   fi
   if [ "$TRAVIS_OS_NAME" = "osx" ]; then
     brew update; brew install python3 qpdf;
