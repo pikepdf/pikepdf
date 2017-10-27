@@ -1,14 +1,15 @@
 language: cpp
+dist: trusty
 matrix:
   include:
   - os: linux
     env: PYTHON=2.7
   - os: linux
-    env: PYTHON=3.5
+    env: PYTHON=3.6
   - os: linux
     env: CONDA=2.7
   - os: linux
-    env: CONDA=3.5
+    env: CONDA=3.6
   - os: osx
     env: PYTHON=2.7
   - os: osx
@@ -16,16 +17,7 @@ matrix:
   - os: osx
     env: CONDA=2.7
   - os: osx
-    env: CONDA=3.5
-addons:
-  apt:
-    sources:
-    - ubuntu-toolchain-r-test
-    - deadsnakes
-    packages:
-    - g++-4.8
-    - python3.5
-    - python3.5-dev
+    env: CONDA=3.6
 before_install:
 - |
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then export CXX=g++-4.8 CC=gcc-4.8; fi

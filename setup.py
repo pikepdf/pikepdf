@@ -101,7 +101,9 @@ setup(
     zip_safe=False,
     setup_requires=['pytest-runner', 'setuptools-scm'],
     use_scm_version=True,
-    tests_require=['pytest', 'pytest-xdist', 'pytest-timeout'],
+    tests_require=[
+        'pytest', 'pytest-xdist', 'pytest-timeout', 'hypothesis', 
+        'Pillow'],
     package_dir={'': 'src'},
     packages=setuptools.find_packages('src'),
     classifiers=[

@@ -565,8 +565,8 @@ PYBIND11_MODULE(_qpdf, m) {
     init_object(m);
 
 #ifdef VERSION_INFO
-    m.attr("__version__") = py::str(VERSION_INFO);
+    m.attr("__version__") = VERSION_INFO;
 #else
-    m.attr("__version__") = py::str("dev");
+    m.attr("__version__") = "dev";
 #endif
 }

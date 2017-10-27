@@ -11,7 +11,7 @@ environment:
   - PYTHON: 27
   - PYTHON: 36
   - CONDA: 27
-  - CONDA: 35
+  - CONDA: 36
 install:
 - cmd: '"%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" %PLATFORM%'
 - ps: |
