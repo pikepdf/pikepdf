@@ -17,9 +17,25 @@ matrix:
         sources: [ubuntu-toolchain-r-test, deadsnakes]
         packages: [g++-7, python3.6-dev]
 
+  - env: PYTHON=3.6
+    os: osx
+    osx_image: xcode8.3
+    compiler: clang
+
   - stage: wheels
+    os: osx
+    osx_image: xcode8.3
+    install:
+    - brew install qpdf
+    - python3 -m venv venv
     script:
-    - python3 setup.py sdist -d wheelhouse
+    - |
+      source venv/bin/activate
+      pip3 install pybind11 cibuildwheel
+      python3 setup.py sdist -d wheelhouse
+      export CCACHE_BASEDIR=`python -c "import tempfile; import os; print(os.path.realpath(tempfile.gettempdir()))"`
+      export CIBW_SKIP="cp27-* cp33-* cp34-*"
+      cibuildwheel
 
   - stage: wheels
     os: linux
@@ -37,7 +53,7 @@ matrix:
       - export CIBW_ENVIRONMENT='ARCH=x86_64 PATH="`pwd`/gcc-$ARCH/bin:$PATH" CXXFLAGS="-static-libstdc++" LD_LIBRARY_PATH="`pwd`/gcc-$ARCH/lib"'
       - export CIBW_BEFORE_BUILD='cd qpdf && ./configure && make install && cd .. && {pip} install pybind11'
       - export CIBW_SKIP="cp27-* cp33-* cp34-* *i686"
-      - cibuildwheel    
+      - cibuildwheel
 
 stages:
   - name: test
@@ -53,12 +69,20 @@ before_install:
       export CXX="g++-$GCC"
       export LD_LIBRARY_PATH="/lib:/usr/lib:/usr/local/lib"
     elif [ -n "$CLANG" ]; then
-      export CC="ccache clang-$CLANG"
-      export CXX="ccache clang++-$CLANG"
+      CC="ccache clang-$CLANG"
+      CXX="ccache clang++-$CLANG"
       export CFLAGS="-Qunused-arguments"
       export CXXFLAGS="-Qunused-arguments -stdlib=libc++"
     fi
     PYTHON_CMD=python$PYTHON
+  elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
+    brew update >/dev/null
+    brew install ccache
+    export PATH=/usr/local/opt/ccache/libexec:$PATH
+    brew install python3
+    PYTHON_CMD=python$PYTHON
+    CC=clang
+    CXX=clang++
   fi
 
 
@@ -78,9 +102,8 @@ install:
     curl https://bootstrap.pypa.io/get-pip.py | python
     deactivate
     source venv/bin/activate
-  fi
-  if [ "$TRAVIS_OS_NAME" = "osx" ]; then
-    brew update; brew install python3 qpdf;
+  elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
+    brew install qpdf
     $PYTHON_CMD -m venv venv
     source venv/bin/activate
   fi
