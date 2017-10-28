@@ -25,6 +25,7 @@ matrix:
   - stage: wheels
     os: osx
     osx_image: xcode8.3
+    env: PYTHON=3.6
     install:
     - brew install qpdf
     - python3 -m venv venv
@@ -40,6 +41,7 @@ matrix:
 
   - stage: wheels
     os: linux
+    env: PYTHON=3.6
     sudo: required
     services:
       - docker
