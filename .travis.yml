@@ -61,6 +61,7 @@ install:
   fi
   # Must be in venv by this point
   python setup.py sdist
+  pip install pybind11
   pip install --verbose dist/*.tar.gz
   pip install -r test_requirements.txt 
 
