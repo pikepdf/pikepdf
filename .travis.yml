@@ -25,8 +25,8 @@ before_install:
 - |
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     if [ -n "$GCC" ]; then
-      export CC="ccache gcc-$GCC"
-      export CXX="ccache g++-$GCC"
+      export CC="gcc-$GCC"
+      export CXX="g++-$GCC"
     elif [ -n "$CLANG" ]; then
       export CC="ccache clang-$CLANG"
       export CXX="ccache clang++-$CLANG"
@@ -43,7 +43,7 @@ install:
     wget -q https://sourceforge.net/projects/qpdf/files/qpdf/7.0.0/qpdf-7.0.0.tar.gz
     tar zxf qpdf-7.0.0.tar.gz
     cd qpdf-7.0.0/
-    ./configure
+    ./configure CC="ccache $CC" CXX="ccache $CXX"
     make -j 2
     sudo make install
     cd ..
