@@ -105,9 +105,9 @@ install:
   python3 -m venv venv
   source venv/bin/activate
   python3 setup.py sdist
-  pip install pybind11
-  pip install --verbose dist/*.tar.gz
-  pip install -r test_requirements.txt 
+  pip3 install pybind11
+  pip3 install --verbose dist/*.tar.gz
+  pip3 install -r test_requirements.txt 
 
 script:
 - python3 -m pytest
