@@ -47,7 +47,7 @@ install:
     make -j 2
     sudo make install
     cd ..
-    $PYTHON_CMD -m ensurepip install --upgrade --user
+    curl https://bootstrap.pypa.io/get-pip.py | sudo $PYTHON_CMD
   fi
   if [ "$TRAVIS_OS_NAME" = "osx" ]; then
     brew update; brew install python3 qpdf;
