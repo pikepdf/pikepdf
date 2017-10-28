@@ -27,6 +27,7 @@ before_install:
     if [ -n "$GCC" ]; then
       export CC="gcc-$GCC"
       export CXX="g++-$GCC"
+      export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/lib"
     elif [ -n "$CLANG" ]; then
       export CC="ccache clang-$CLANG"
       export CXX="ccache clang++-$CLANG"
