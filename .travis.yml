@@ -34,6 +34,7 @@ matrix:
       pip3 install pybind11 cibuildwheel
       python3 setup.py sdist -d wheelhouse
       export CCACHE_BASEDIR=`python -c "import tempfile; import os; print(os.path.realpath(tempfile.gettempdir()))"`
+      export CIBW_BEFORE_BUILD='{pip} install pybind11'
       export CIBW_SKIP="cp27-* cp33-* cp34-*"
       cibuildwheel
 
@@ -43,7 +44,13 @@ matrix:
     services:
       - docker
     install:
-      - pip install cibuildwheel==0.6.0
+      - |
+        $PYTHON_CMD -m venv --clear --without-pip venv
+        source venv/bin/activate    
+        curl https://bootstrap.pypa.io/get-pip.py | python
+        deactivate
+        source venv/bin/activate
+        pip install cibuildwheel pybind11
       - mkdir gcc-x86_64 && wget -q https://github.com/Noctem/pogeo-toolchain/releases/download/v1.4/gcc-7.2-binutils-2.29-centos5-x86-64.tar.bz2 -O - | tar xj -C gcc-x86_64 --strip-components=1
       #- mkdir ccache && wget -q https://www.samba.org/ftp/ccache/ccache-3.3.4.tar.bz2 -O - | tar xj -C ccache --strip-components=1
       - mkdir qpdf && wget -q https://sourceforge.net/projects/qpdf/files/qpdf/7.0.0/qpdf-7.0.0.tar.gz -O - | tar xz -C qpdf --strip-components=1
@@ -53,7 +60,7 @@ matrix:
       - export CIBW_ENVIRONMENT='ARCH=x86_64 PATH="`pwd`/gcc-$ARCH/bin:$PATH" CXXFLAGS="-static-libstdc++" LD_LIBRARY_PATH="`pwd`/gcc-$ARCH/lib"'
       - export CIBW_BEFORE_BUILD='cd qpdf && ./configure && make install && cd .. && {pip} install pybind11'
       - export CIBW_SKIP="cp27-* cp33-* cp34-* *i686"
-      - cibuildwheel
+      - source venv/bin/activate && cibuildwheel
 
 stages:
   - name: test
@@ -75,6 +82,11 @@ before_install:
       export CXXFLAGS="-Qunused-arguments -stdlib=libc++"
     fi
     PYTHON_CMD=python$PYTHON
+    # Ubuntu 14.04 has a broken Python, missing pip and ensurepip etc. 
+    $PYTHON_CMD -m venv --clear --without-pip venv
+    source venv/bin/activate    
+    curl https://bootstrap.pypa.io/get-pip.py | python
+    deactivate
   elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
     brew update >/dev/null
     brew install ccache
@@ -83,6 +95,7 @@ before_install:
     PYTHON_CMD=python$PYTHON
     CC=clang
     CXX=clang++
+    $PYTHON_CMD -m venv venv
   fi
 
 
@@ -96,18 +109,10 @@ install:
     make -j 2
     sudo make install
     cd ..
-    # Ubuntu 14.04 has a broken Python, missing pip and ensurepip etc. 
-    $PYTHON_CMD -m venv --clear --without-pip venv
-    source venv/bin/activate    
-    curl https://bootstrap.pypa.io/get-pip.py | python
-    deactivate
-    source venv/bin/activate
   elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
     brew install qpdf
-    $PYTHON_CMD -m venv venv
-    source venv/bin/activate
   fi
-  # Must be in venv by this point
+  source venv/bin/activate
   python setup.py sdist
   pip install pybind11
   pip install --verbose dist/*.tar.gz
@@ -115,3 +120,4 @@ install:
 
 script:
 - python -m pytest
+
