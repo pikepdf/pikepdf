@@ -21,12 +21,12 @@ matrix:
 
   - os: osx
     osx_image: xcode8.3
-    python: "3.6"  # test other versions here
+    language: generic
 
   - stage: wheels
     os: osx
     osx_image: xcode8.3
-    python: "3.6"  # only need one environment to build all osx wheels
+    language: generic
     install:
     - brew install qpdf
     script:
@@ -82,7 +82,7 @@ before_install:
     fi
   elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
     brew update >/dev/null
-    brew install ccache
+    brew install ccache python3
     export PATH=/usr/local/opt/ccache/libexec:$PATH
     CC=clang
     CXX=clang++
@@ -105,9 +105,9 @@ install:
   python3 -m venv venv
   source venv/bin/activate
   python3 setup.py sdist
-  pip3 install pybind11
-  pip3 install --verbose dist/*.tar.gz
-  pip3 install -r test_requirements.txt 
+  pip install pybind11
+  pip install --verbose dist/*.tar.gz
+  pip install -r test_requirements.txt 
 
 script:
 - python3 -m pytest
