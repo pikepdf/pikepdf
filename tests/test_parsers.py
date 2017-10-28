@@ -2,6 +2,7 @@ import pytest
 from pikepdf import _qpdf as qpdf, parse_content_stream, Page
 import os
 from subprocess import run, PIPE
+import shutil
 
 
 class PrintParser(qpdf.StreamParser):
@@ -39,15 +40,16 @@ def test_parser_exception(resources):
         qpdf.Object.parse_stream(stream, ExceptionParser())
 
 
+@pytest.mark.skipif(
+    shutil.which('pdftotext') is None, 
+    reason="poppler not installed")
 def test_text_filter(resources, outdir):
     input_pdf = resources / 'veraPDF test suite 6-2-10-t02-pass-a.pdf'
-
 
     # Ensure the test PDF has detect we can find
     proc = run(['pdftotext', str(input_pdf), '-'],
         check=True, stdout=PIPE, encoding='utf-8')
     assert proc.stdout.strip() != '', "Need input test file that contains text"
-
 
     pdf = qpdf.Pdf.open(input_pdf)
     stream = pdf.pages[0].Contents

@@ -108,6 +108,9 @@ setup(
     tests_require=tests_require,
     package_dir={'': 'src'},
     packages=setuptools.find_packages('src'),
+    package_data={
+        '': ['*.txt'],
+    },
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
         "Intended Audience :: Developers",
@@ -115,7 +118,6 @@ setup(
         "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3 :: Only",
         "Programming Language :: C++",
         "Topic :: Multimedia :: Graphics",
