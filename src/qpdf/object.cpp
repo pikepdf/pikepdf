@@ -28,8 +28,6 @@
 
 #include "pikepdf.h"
 
-using namespace std::literals::string_literals;
-
 /*
 New type table
 
@@ -70,7 +68,7 @@ std::string objecthandle_scalar_value(QPDFObjectHandle h, bool escaped=true)
         ss << std::to_string(h.getIntValue());
         break;
     case QPDFObject::object_type_e::ot_real:
-        ss << "Decimal('"s + h.getRealValue() + "')"s;
+        ss << "Decimal('" + h.getRealValue() + "')";
         break;
     case QPDFObject::object_type_e::ot_name:
         ss << std::quoted(h.getName());
@@ -138,7 +136,7 @@ std::string objecthandle_pythonic_typename(QPDFObjectHandle h, std::string prefi
 std::string objecthandle_repr_typename_and_value(QPDFObjectHandle h)
 {
     return objecthandle_pythonic_typename(h) + \
-                "("s + objecthandle_scalar_value(h) + ")"s;
+                "(" + objecthandle_scalar_value(h) + ")";
 }
 
 
@@ -243,7 +241,7 @@ std::string objecthandle_repr(QPDFObjectHandle h)
     std::string output;
 
     if (h.isScalar() || h.isDictionary() || h.isArray()) {
-        output = objecthandle_pythonic_typename(h) + "("s + inner + ")"s;
+        output = objecthandle_pythonic_typename(h) + "(" + inner + ")";
     } else {
         output = inner;
         pure_expr = false;
@@ -255,7 +253,7 @@ std::string objecthandle_repr(QPDFObjectHandle h)
         return output;
     }
     // Output cannot be fully described in a Python expression
-    return "<"s + output + ">"s;
+    return std::string("<") + output + ">";
 }
 
 
@@ -348,7 +346,7 @@ QPDFObjectHandle objecthandle_encode(py::handle handle)
         return QPDFObjectHandle::newNull();
     }
 
-    throw py::cast_error("don't know how to encode value"s + std::string(py::repr(obj)));
+    throw py::cast_error(std::string("don't know how to encode value") + std::string(py::repr(obj)));
 }
 
 
@@ -876,7 +874,7 @@ qpdf.Object.Dictionary({
                 if (!h.isDictionary() && !h.isStream())
                     throw py::attr_error("object is not a dictionary or a stream");
                 QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
-                std::string key = "/"s + name;
+                std::string key = "/" + name;
                 if (!dict.hasKey(key))
                     throw py::attr_error(key);
                 return dict.getKey(key);
@@ -888,7 +886,7 @@ qpdf.Object.Dictionary({
                 if (!h.isDictionary() && !h.isStream())
                     throw py::attr_error("object is not a dictionary or a stream");
                 QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
-                std::string key = "/"s + name;
+                std::string key = "/" + name;
                 auto value = objecthandle_encode(pyvalue);
                 dict.replaceKey(key, value);
             },

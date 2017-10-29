@@ -22,7 +22,7 @@ class get_pybind_include(object):
 ext_modules = [
     Extension(
         'pikepdf._qpdf',
-        ['src/qpdf/qpdf.cpp', 'src/qpdf/object.cpp'],
+        ['src/qpdf/qpdf.cpp', 'src/qpdf/object.cpp', 'src/qpdf/cpp11.cpp'],
         include_dirs=[
             # Path to pybind11 headers
             get_pybind_include(),

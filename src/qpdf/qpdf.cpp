@@ -26,7 +26,6 @@
 
 #include "pikepdf.h"
 
-using namespace std::literals::string_literals;
 
 extern "C" const char* qpdf_get_qpdf_version();
 
@@ -72,7 +71,8 @@ void check_stream_is_usable(py::object stream)
     }
 }
 
-auto open_pdf(py::args args, py::kwargs kwargs)
+std::unique_ptr<QPDF>
+open_pdf(py::args args, py::kwargs kwargs)
 {
     auto q = std::make_unique<QPDF>();
     if (args.size() < 1)
@@ -132,8 +132,8 @@ void save_pdf(
     py::object filename_or_stream,
     bool static_id=false,
     bool preserve_pdfa=true,
-    std::string min_version=""s,
-    std::string force_version=""s,
+    std::string min_version="",
+    std::string force_version="",
     qpdf_object_stream_e object_stream_mode=qpdf_o_preserve,
     qpdf_stream_data_e stream_data_mode=qpdf_s_preserve)
 {
@@ -261,9 +261,9 @@ public:
             // For an extended slice we must be replace an equal number of pages
             if (results.size() != slicelength) {
                 throw py::value_error(
-                    "attempt to assign sequence of length "s +
+                    std::string("attempt to assign sequence of length ") +
                     std::to_string(results.size()) +
-                    " to extended slice of size "s +
+                    std::string(" to extended slice of size ") +
                     std::to_string(slicelength)
                 );
             }
@@ -497,7 +497,7 @@ PYBIND11_MODULE(_qpdf, m) {
         )
         .def("__repr__",
             [](const QPDF &q) {
-                return "<pikepdf.Pdf description='"s + q.getFilename() + "'>"s;
+                return std::string("<pikepdf.Pdf description='") + q.getFilename() + std::string("'>");
             }
         )
         .def_property_readonly("filename", &QPDF::getFilename,
@@ -544,8 +544,8 @@ PYBIND11_MODULE(_qpdf, m) {
              py::arg("filename"),
              py::arg("static_id")=false,
              py::arg("preserve_pdfa")=false,
-             py::arg("min_version")=""s,
-             py::arg("force_version")=""s,
+             py::arg("min_version")="",
+             py::arg("force_version")="",
              py::arg("object_stream_mode")=qpdf_o_preserve,
              py::arg("stream_data_mode")=qpdf_s_preserve
         )
