@@ -100,15 +100,19 @@ install:
     sudo make install
     cd ..
     pip install --upgrade pip setuptools
+    PIP=pip
   elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
     brew install qpdf
+    PIP=pip3
   fi
-  python3 -m venv venv
-  source venv/bin/activate
-  python3 setup.py sdist
-  pip3 install pybind11
-  pip3 install --verbose dist/*.tar.gz
-  pip3 install -r test_requirements.txt 
+- python3 -m venv venv
+- pip --version
+- source venv/bin/activate
+- pip --version
+- python3 setup.py sdist
+- $PIP install pybind11
+- $PIP install --verbose dist/*.tar.gz
+- $PIP install -r test_requirements.txt 
 
 script:
 - python3 -m pytest
