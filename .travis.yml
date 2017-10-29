@@ -26,10 +26,12 @@ matrix:
   - stage: wheels
     os: osx
     osx_image: xcode8.3
-    language: generic
+    language: cpp
     install:
     - brew install qpdf
     script:
+    - clang --version
+    - echo "CC=$CC CXX=$CXX"
     - |
       pip3 install pybind11 cibuildwheel
       python3 setup.py sdist -d wheelhouse
@@ -49,7 +51,7 @@ matrix:
         pip install cibuildwheel pybind11
       - mkdir gcc-x86_64 && wget -q https://github.com/Noctem/pogeo-toolchain/releases/download/v1.4/gcc-7.2-binutils-2.29-centos5-x86-64.tar.bz2 -O - | tar xj -C gcc-x86_64 --strip-components=1
       #- mkdir ccache && wget -q https://www.samba.org/ftp/ccache/ccache-3.3.4.tar.bz2 -O - | tar xj -C ccache --strip-components=1
-      - mkdir qpdf && wget -q https://sourceforge.net/projects/qpdf/files/qpdf/7.0.0/qpdf-7.0.0.tar.gz -O - | tar xz -C qpdf-7.0.0 --strip-components=1
+      - mkdir qpdf && wget -q https://sourceforge.net/projects/qpdf/files/qpdf/7.0.0/qpdf-7.0.0.tar.gz -O - | tar xz -C qpdf --strip-components=1
     script:
       #- export CIBW_ENVIRONMENT='ARCH=x86_64 PATH="`pwd`/gcc-$ARCH/bin:$PATH" CC="ccache cc" CXX="ccache c++" CXXFLAGS="-static-libstdc++" LD_LIBRARY_PATH="`pwd`/gcc-$ARCH/lib" CCACHE_BASEDIR=`python -c "import tempfile; import os; print(os.path.realpath(tempfile.gettempdir()))"` CCACHE_DIR=/host'$HOME'/.ccache'
       #- export CIBW_BEFORE_BUILD='{pip} install pybind11 && [ -d ccache/$ARCH ] || (unset CC CXX CXXFLAGS && mkdir ccache/$ARCH && cd ccache/$ARCH && ../configure && make install)'
