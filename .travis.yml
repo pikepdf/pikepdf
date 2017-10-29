@@ -15,9 +15,9 @@ matrix:
     addons:
       apt:
         sources: [ubuntu-toolchain-r-test]
-        packages: [g++-7]
+        packages: [g++-4.9]  # g++-4.9 supports c++11 but not c++14
     env: 
-      - MATRIX_EVAL="GCC=7"  # defer setting CC to gcc-7 etc until before_install
+      - MATRIX_EVAL="GCC=4.9"  # defer setting CC to gcc- etc until before_install
 
   - os: osx
     osx_image: xcode8.3
