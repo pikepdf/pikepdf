@@ -99,6 +99,7 @@ install:
     make -j 2
     sudo make install
     cd ..
+    pip install --upgrade pip setuptools
   elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
     brew install qpdf
   fi
