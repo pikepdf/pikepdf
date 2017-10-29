@@ -46,9 +46,7 @@ matrix:
       - docker
     install:
       - |
-        python3 -m venv venv
-        source venv/bin/activate
-        pip3 install cibuildwheel pybind11
+        pip install cibuildwheel pybind11
       - mkdir gcc-x86_64 && wget -q https://github.com/Noctem/pogeo-toolchain/releases/download/v1.4/gcc-7.2-binutils-2.29-centos5-x86-64.tar.bz2 -O - | tar xj -C gcc-x86_64 --strip-components=1
       #- mkdir ccache && wget -q https://www.samba.org/ftp/ccache/ccache-3.3.4.tar.bz2 -O - | tar xj -C ccache --strip-components=1
       - mkdir qpdf && wget -q https://sourceforge.net/projects/qpdf/files/qpdf/7.0.0/qpdf-7.0.0.tar.gz -O - | tar xz -C qpdf-7.0.0 --strip-components=1
@@ -58,7 +56,7 @@ matrix:
       - export CIBW_ENVIRONMENT='ARCH=x86_64 PATH="`pwd`/gcc-$ARCH/bin:$PATH" CXXFLAGS="-static-libstdc++" LD_LIBRARY_PATH="`pwd`/gcc-$ARCH/lib"'
       - export CIBW_BEFORE_BUILD='cd qpdf && ./configure && make install && cd .. && {pip} install pybind11'
       - export CIBW_SKIP="cp27-* cp33-* cp34-* *i686"
-      - source venv/bin/activate && cibuildwheel
+      - cibuildwheel
 
 stages:
   - name: test
@@ -104,11 +102,11 @@ install:
   elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
     brew install qpdf
     PIP=pip3
+    python3 -m venv venv
+    $PIP --version
+    source venv/bin/activate
+    $PIP --version
   fi
-- python3 -m venv venv
-- pip --version
-- source venv/bin/activate
-- pip --version
 - python3 setup.py sdist
 - $PIP install pybind11
 - $PIP install --verbose dist/*.tar.gz
