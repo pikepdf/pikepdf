@@ -16,7 +16,9 @@ matrix:
   include:
   - os: linux
     sudo: required
-    python: "3.6"  # test other versions here
+    python: 
+      - "3.5"
+      - "3.6"
     addons:
       apt:
         sources: [ubuntu-toolchain-r-test]
