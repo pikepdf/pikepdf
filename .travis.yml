@@ -7,6 +7,11 @@ cache:
   - $HOME/Library/Caches/Homebrew
 
 
+env:
+  global:
+    - TWINE_USERNAME=ocrmypdf-travis
+    secure: "d1PfCVoqvFFwAqm0QEozLLoUdEHaY0kAvawfc4lKdLSjI+yOJYoNdknU0r3TdwttNEF2VV+aY9q/4wVnYrEiF4L13E3s+UtDqIXwGk/b14JrdExIx/0yj642kbCJPycZqqRZgvGwYuhb6EF7e/QrsNYMwZ95E9oTyWa0ZaEkiPrrVJh9XSNDpw9I8REL3GecpfvF/GpHWX0VBHoaJfCgDzDDvHQPdfIXAZg+OLJOLNrR2ivvUD3gR371376fYPMPNsqMNqBghLdX8lnX2zkEc67An9ZBLi1dx46PhHjn8c06QOBQ25wcwtCxSnaXygkq5HXUXnpWmCbPcy3n98bJBE1P86M1eWo5c3KV4zwY3pvC6/ldFFAX0nC5Qr8xVpiBZIZKhqBEsX7HlCIRdN5OzmWXTkRhO05GtloH+IPuS8PH09vlaGfdCmBdJkvQjnkXL9Jdw5JJcIt9c//CgRjJ4CtHySA3I0XEnqbLHRhsYAyfJfM4ya3ou+eETpWVpnkZ4kbn8fuUkIpZL6YS9XtJCVCfh5uNpJ7BV0DzlZqdV//K3s9CTNyFac0L521YcFRwl0Nb72AlzbtGwWgWh1C8qmlJ/ENf0XI3dafvcqzPL61rwBlo0sah9DWxwUDWMUicUtp8qP5GK8VxHse+QlolJQVSb07jD6bf7+mILX0B3Mg="
+
 matrix:
   include:
   - os: linux
@@ -38,17 +43,22 @@ matrix:
     osx_image: xcode8.3
     language: cpp  # osx + language: python is broken
     install:
-    - brew install qpdf
+      - brew install qpdf
     script:
-    - clang --version
-    - echo "CC=$CC CXX=$CXX"
-    - |
-      pip3 install pybind11 cibuildwheel
-      python3 setup.py sdist -d wheelhouse
-      export CCACHE_BASEDIR=`python -c "import tempfile; import os; print(os.path.realpath(tempfile.gettempdir()))"`
-      export CIBW_BEFORE_BUILD='{pip} install pybind11'
-      export CIBW_SKIP="cp27-* cp33-* cp34-*"
-      cibuildwheel
+      - clang --version
+      - echo "CC=$CC CXX=$CXX"
+      - |
+        pip3 install pybind11 cibuildwheel
+        python3 setup.py sdist -d wheelhouse
+        export CCACHE_BASEDIR=`python3 -c "import tempfile; import os; print(os.path.realpath(tempfile.gettempdir()))"`
+        export CIBW_BEFORE_BUILD='{pip} install pybind11'
+        export CIBW_SKIP="cp27-* cp33-* cp34-*"
+      - cibuildwheel --output-dir wheelhouse
+      - |
+        if [[ $TRAVIS_TAG ]]; then
+          pip3 install twine
+          python3 -m twine upload wheelhouse/*.whl dist/*.tar.gz
+        fi
 
   - stage: wheels
     os: linux
@@ -68,7 +78,12 @@ matrix:
       #- export CIBW_ENVIRONMENT='ARCH=x86_64 PATH="`pwd`/gcc-$ARCH/bin:$PATH" CC="cc" CXX="c++" CXXFLAGS="-static-libstdc++" LD_LIBRARY_PATH="`pwd`/gcc-$ARCH/lib:$LD_LIBRARY_PATH"'
       - export CIBW_BEFORE_BUILD='yum install -y libjpeg-devel zlib-devel && cd qpdf && ./autogen.sh && ./configure && make install && cd .. && {pip} install pybind11'
       - export CIBW_SKIP="cp27-* cp33-* cp34-* *i686"
-      - cibuildwheel
+      - cibuildwheel --output-dir wheelhouse
+      - |
+        if [[ $TRAVIS_TAG ]]; then
+          pip3 install twine
+          python3 -m twine upload wheelhouse/*.whl
+        fi
 
 stages:
   - name: test
