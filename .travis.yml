@@ -57,7 +57,7 @@ matrix:
       - |
         if [[ $TRAVIS_TAG ]]; then
           pip3 install twine
-          python3 -m twine upload wheelhouse/*.whl dist/*.tar.gz
+          python3 -m twine upload wheelhouse/*.whl wheelhouse/*.tar.gz
         fi
 
   - stage: wheels
