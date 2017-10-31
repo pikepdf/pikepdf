@@ -18,11 +18,18 @@ matrix:
     sudo: required
     python: 
       - "3.5"
-      - "3.6"
-    addons:
+    addons: &gcc48
       apt:
         sources: [ubuntu-toolchain-r-test]
         packages: [g++-4.8]  # g++-4.8 supports c++11 but not c++14 at all; g++-4.9 won't work
+    env: 
+      - MATRIX_EVAL="GCC=4.8"  # defer setting CC to gcc- etc until before_install
+
+  - os: linux
+    sudo: required
+    python: 
+      - "3.6"
+    addons: *gcc48
     env: 
       - MATRIX_EVAL="GCC=4.8"  # defer setting CC to gcc- etc until before_install
 
