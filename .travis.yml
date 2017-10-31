@@ -16,8 +16,7 @@ matrix:
   include:
   - os: linux
     sudo: required
-    python: 
-      - "3.5"
+    python: "3.5"
     addons: &gcc48
       apt:
         sources: [ubuntu-toolchain-r-test]
@@ -27,8 +26,7 @@ matrix:
 
   - os: linux
     sudo: required
-    python: 
-      - "3.6"
+    python: "3.6"
     addons: *gcc48
     env: 
       - MATRIX_EVAL="GCC=4.8"  # defer setting CC to gcc- etc until before_install
@@ -36,7 +34,7 @@ matrix:
   - os: linux
     sudo: required
     python: "3.6"  # test other versions here
-    addons:
+    addons: &gcc7
       apt:
         sources: [ubuntu-toolchain-r-test]
         packages: [g++-7]  # g++-7 supports c++14
