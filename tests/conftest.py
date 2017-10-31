@@ -2,7 +2,7 @@ import sys
 import os
 import platform
 
-#pytest_plugins = ['helpers_namespace']
+pytest_plugins = ['helpers_namespace']
 
 import pytest
 from pathlib import Path

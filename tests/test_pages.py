@@ -5,6 +5,7 @@ import os
 import platform
 import shutil
 from contextlib import suppress
+from shutil import copy
 
 
 def test_split_pdf(resources, outdir):
@@ -53,8 +54,9 @@ def test_reverse_pages(resources, outdir):
 
 
 def test_evil_page_deletion(resources, outdir):
-    from shutil import copy
-    copy(resources / 'sandwich.pdf', outdir / 'sandwich.pdf')
+    # str needed for py<3.6
+    copy(str(resources / 'sandwich.pdf'), str(outdir / 'sandwich.pdf')) 
+    
     src = qpdf.Pdf.open(outdir / 'sandwich.pdf')
     pdf = qpdf.Pdf.open(resources / 'graph.pdf')
 
