@@ -15,31 +15,46 @@ Python 2.7 and earlier versions of Python 3 are not currently supported but
 is probably not difficult to achieve. Pull requests are welcome.
 
 This library is similar to PyPDF2 and pdfrw – it provides low level access to PDF
-features and allows editing and content transformation of existing PDFs. If you
-don't need to read existing PDFs and just want to produce PDF output, reportlab
-or wkhtmltopdf might be more suitable.
+features and allows editing and content transformation of existing PDFs. The
+advantage it offers is it's based on the mature QPDF C++ PDF library, so it 
+already implements more of the PDF specification than the existing Python PDF 
+tools. It supports reading and writing all types of PDF encryption (except
+public key), all PDF compression filters, object streams, "fast web view" 
+(linearized) PDFs. It automatically attempts to recover damaged PDFs where 
+possible.
+
 
 Installation
 ------------
 
-pikepdf requires qpdf version 7.0 or higher.
-
 **On Unix (Linux, macOS)**
 
+Binary wheels are available for x86-64 Linux platforms and Intel macOS. 32-bit
+wheels will be added if anyone needs them.
+
+- ``pip install pikepdf``
+
+**From source**
+
 A C++11 compliant compiler is required, which includes most recent versions of
-GCC and clang.
+GCC (4.8 and up) and clang (3.3 and up). A C++14 compiler is recommended.
+
+libqpdf 7.0.0 is required at compile time and runtime. Many platforms have not 
+updated to this version, so you may need to install this program without a
+package manager.
 
 -  clone this repository
+-  install libjpeg, zlib and qpdf on your platform, including headers
 -  ``pip install ./pikepdf``
 
 **On Windows (Requires Visual Studio 2015)**
+
+Windows is not currently part of continuous integration, so this might not work.
 
 -  For Python 3.5:
 
     -  clone this repository
     -  ``pip install ./pikepdf``
-
--  For earlier versions of Python, including Python 2.7:
 
 pikepdf requires a C++11 compliant compiler (i.e. Visual Studio 2015 on
 Windows). Running a regular ``pip install`` command will detect the
