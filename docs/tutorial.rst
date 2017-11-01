@@ -3,7 +3,7 @@ Tutorial
 
 In contrast to better known PDF libraries, pikepdf uses a single object to 
 represent a PDF, whether, reading, writing or merging. We have cleverly named
-this :class:`pikepdf.PDF`.
+this :class:`pikepdf.Pdf`.
 
 .. code-block:: python
 
@@ -18,13 +18,14 @@ name conflicts or ``from pikepdf import Pdf as PDF`` if you prefer uppercase.
 The PDF class API follows the example of the widely-used 
 `Pillow image library <https://pillow.readthedocs.io/en/4.2.x/>`_. For clarity
 there is no default constructor since the arguments used for creation and
-opening are different.
+opening are different. ``Pdf.open()`` also accepts seekable streams as input,
+and ``Pdf.save()`` accepts seekable streams as output.
 
 Manipulating pages
 ------------------
 
 pikepdf presents the pages in a PDF through the ``Pdf.pages`` property, which
-follows (most of) the ``list`` protocol.
+follows the ``list`` protocol.
 
 .. code-block:: python
 
@@ -53,6 +54,16 @@ follows (most of) the ``list`` protocol.
    odd.extend(odd_pages)
    odd.save('just-odd-pages.pdf')
 
+Because PDFs are usually numbered in counting numbers (1, 2, 3...), pikepdf
+provides a convenience accessor that also uses counting numbers:
+
+.. code-block:: python
+
+   report.pages.p(1)       # The first page in the document
+   report.pages[0]         # Also the first page in the document
+   del report.pages.p(50)  # Drop page 50
+
+
 .. note::
 
    Because of technical limitations in underlying libraries, pikepdf keeps the
@@ -63,12 +74,86 @@ follows (most of) the ``list`` protocol.
 
 .. warning::
 
-   It is technically possible, but not recommended, to manipulate pages via 
-   the PDF /Root object. The reason it is not recommended is that PDFs 
-   optionally can have a hierarchical tree of page information that may become
-   inconsistent if not manipulated properly. It is far easier to use ``.pages``
-   and let pikepdf (actually, libqpdf) maintain the internal structures.
+   Accessing page information through the /Root object is also possible, but
+   not recommended. The /Pages data structure in a PDF can be fairly complex,
+   and the ``.pages`` interface manages this complexity.
 
+
+Examining a page
+----------------
+
+.. code-block:: python
+
+  >>> example = Pdf.open('tests/resources/congress.pdf')
+  >>> page1 = example.pages[0]
+  >>> page1
+  <pikepdf.Object.Dictionary({
+    "/Contents": pikepdf.Object.Stream(stream_dict={
+        "/Length": 50
+      }, data=<...>),
+    "/MediaBox": [ 0, 0, 200, 304 ],
+    "/Parent": <reference to /Pages>,
+    "/Resources": {
+      "/XObject": {
+        "/Im0": pikepdf.Object.Stream(stream_dict={
+            "/BitsPerComponent": 8,
+            "/ColorSpace": "/DeviceRGB",
+            "/Filter": [ "/DCTDecode" ],
+            "/Height": 1520,
+            "/Length": 192956,
+            "/Subtype": "/Image",
+            "/Type": "/XObject",
+            "/Width": 1000
+          }, data=<...>)
+      }
+    },
+    "/Type": "/Page"
+  })>
+ 
+
+The angle brackets indicate that this complex object cannot be expressed in a 
+Python expression because it refers indirect objects (possibly including
+itself). When angle brackets are omitted from the ``repr()`` of a pikepdf
+object, then the object can be replicated with a Python expression.
+
+For example, this page's MediaBox is a simple object.
+
+.. code-block:: python
+
+  >>> import pikepdf
+  >>> page1.MediaBox
+  pikepdf.Object.Array([ 0, 0, 200, 304 ])
+
+  >>> pikepdf.Object.Array([ 0, 0, 200, 304 ])
+  pikepdf.Object.Array([ 0, 0, 200, 304 ])
+
+The page's /Contents key contains instructions for drawing the page content.
+Also attached to this page is a /Resources dictionary, which contains a single
+XObject image. The image is compressed with the /DCTDecode, meaning it is
+encoded as a JPEG.
+
+Let's see that JPEG. We'll read its data as a raw bytes, which tells pikepdf
+not to decompress it. Then we wrap it in a Python BytesIO stream and hand it
+over to Pillow to display on the system.
+
+.. code-block:: python
+
+  >>> im0 = page1.Resources.XObject.get('/Im0')
+  >>> raw_bytes = im0.read_raw_stream()
+  >>> from PIL import Image
+  >>> from io import BytesIO
+  >>> im0_stream = BytesIO(raw_bytes)
+  >>> image = Image.open(im0_stream)
+  >>> image.show()
+
+.. note::
+
+  This simple example PDF displays a single full page image. Some PDF creators
+  will paint a page using multiple images, and features such as layers,
+  transparency and image masks. Accessing the first image on a page is like an
+  HTML parser that scans for the first ``<img src="">`` tag it finds. A lot
+  more could be happening.
+  
 
 Inspecting the PDF Root object
 ------------------------------
@@ -114,24 +199,8 @@ Open a PDF and see what is inside the /Root object.
     '/Type': /Catalog
   })>
 
-Like every PDF, the /Root object is a PDF dictionary that describes where
-the rest of the PDF content is. The angle brackets indicate that this
-complex object cannot be built as a Python expression.
-
-How many pages are in this PDF? You can access items using attribute 
-notation...
-
-.. code-block:: python
-
-   >>> example.Root.Pages.Count
-   1
-
-or dictionary lookup notation...
-
-.. code-block:: python
-
-   >>> example.Root['/Pages']['/Count']
-   1
+The /Root object is a PDF dictionary that describes where
+the rest of the PDF content is. 
 
 Attribute notation is convenient, but not robust if elements are missing.
 For elements that are not always present, you can even use ``.get()`` on
@@ -175,7 +244,11 @@ That lets us see a few facts about this file. It was created by OCRmyPDF
 and Tesseract OCR's PDF generator. Ghostscript was used to convert it to
 PDF-A (the ``xmlns:pdfaid`` tag).
 
-You could explore that XML packet further using the standard library's 
-``xml.etree.ElementTree`` or your XML parser of choice.
+You could explore that XML packet further using the ``defusedxml``.
+
+.. warning::
+
+  PDFs may contain viruses, and one place they can 'live' is inside XML objects.
+  Always use a  
 
 

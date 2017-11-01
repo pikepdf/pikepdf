@@ -21,9 +21,13 @@ var/
 # Main directory testing
 /*.pdf
 /*.ipynb
+/debug_tests.py
+/TODO
 
 # macOS
 .DS_Store
 
-__qpdf/
-qpdf-7.0.0/
+/__qpdf/
+/qpdf-7.0.0/
+/tests/resources/private/
+/tmp_rpms/
