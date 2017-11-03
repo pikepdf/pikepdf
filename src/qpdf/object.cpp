@@ -809,7 +809,7 @@ qpdf.Object.Dictionary({
         )
         .def("__getitem__",
             [](QPDFObjectHandle &h, std::string const& key) {
-                if (!h.isDictionary() || !h.isStream())
+                if (!h.isDictionary() && !h.isStream())
                     throw py::value_error("object is not a dictionary or a stream");
                 if (!h.hasKey(key))
                     throw py::key_error(key);
