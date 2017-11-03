@@ -13,6 +13,8 @@
 #include <string>
 #include <sstream>
 
+#include "pikepdf.h"
+
 namespace std {
 
 string quoted(const string &s)
