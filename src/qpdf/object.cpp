@@ -809,8 +809,8 @@ qpdf.Object.Dictionary({
         )
         .def("__getitem__",
             [](QPDFObjectHandle &h, std::string const& key) {
-                if (!h.isDictionary())
-                    throw py::value_error("object is not a dictionary");
+                if (!h.isDictionary() || !h.isStream())
+                    throw py::value_error("object is not a dictionary or a stream");
                 if (!h.hasKey(key))
                     throw py::key_error(key);
                 return h.getKey(key);
@@ -948,7 +948,7 @@ qpdf.Object.Dictionary({
         )
         .def_property("stream_dict", 
             &QPDFObjectHandle::getDict, &QPDFObjectHandle::replaceDict,
-            py::return_value_policy::copy // ObjectHandle is wrapper around a shared pointer, so should be copied
+            py::return_value_policy::reference_internal
         )
         .def("get_stream_buffer",
             [](QPDFObjectHandle &h) {
@@ -964,7 +964,7 @@ qpdf.Object.Dictionary({
             },
             "Return a buffer protocol buffer describing the raw, encoded stream"
         )
-        .def("read_stream",
+        .def("read_bytes",
             [](QPDFObjectHandle &h) {
                 PointerHolder<Buffer> buf = h.getStreamData();
                 // py::bytes will make a copy of the buffer, so releasing is fine
@@ -973,7 +973,7 @@ qpdf.Object.Dictionary({
             py::return_value_policy::take_ownership,
             "Decode and read the content stream associated with this object"
         )
-        .def("read_raw_stream",
+        .def("read_raw_bytes",
             [](QPDFObjectHandle &h) {
                 PointerHolder<Buffer> buf = h.getRawStreamData();
                 // py::bytes will make a copy of the buffer, so releasing is fine
@@ -981,6 +981,15 @@ qpdf.Object.Dictionary({
             },
             py::return_value_policy::take_ownership,
             "Read the content stream associated with this object without decoding"
+        )
+        .def("write",
+            [](QPDFObjectHandle &h, py::bytes data, QPDFObjectHandle &filter, QPDFObjectHandle &decode_parms) {
+                std::string sdata = data;
+                h.replaceStreamData(sdata, filter, decode_parms);
+            },
+            py::keep_alive<1, 3>(),
+            py::keep_alive<1, 4>(),
+            "Replace the content stream with data, which is compressed according to filter and decode params"
         )
         .def_property_readonly("_objgen",
             [](QPDFObjectHandle &h) {
