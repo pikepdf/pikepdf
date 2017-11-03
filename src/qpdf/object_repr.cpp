@@ -6,6 +6,16 @@
  * Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
  */
 
+/* 
+ * Implement repr() for QPDFObjectHandle
+ * 
+ * Since qpdf largely ignores const, it is not possible to use const here,
+ * even though repr() is const throughout.
+ * 
+ * References are used for functions that are just passing handles around.
+ * objecthandle_repr_inner cannot cannot use references because it calls itself.
+ */
+
 #include <sstream>
 #include <iostream>
 #include <iomanip>

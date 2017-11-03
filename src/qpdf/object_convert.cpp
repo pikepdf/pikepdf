@@ -6,6 +6,10 @@
  * Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
  */
 
+/*
+ * Convert Python types <-> QPDFObjectHandle types
+ */
+
 #include <vector>
 #include <map>
 

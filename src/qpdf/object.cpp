@@ -50,11 +50,52 @@ Array - list / iterable
 Dictionary - dict
 Stream - Stream()
 
+Object API
+
+qpdf.Object.Typename()  <-- class-ish name, static method in reality
+tries to coerce input to Pdf object of typename, or fails
+
+qpdf.Object.new() <--- tries to create a Pdf object from its input with when
+possible without ambiguity
+
+Boolean <- bool
+Integer <- int
+Real <- decimal.Decimal, float
+String <- str, bytes
+    this will need help from Pdf doc encoding
+
+Array <- list, tuple
+Dictionary <- dict, Mapping
+
+Stream <- present as qpdf.Object.Stream({dictionary}, stream=<...>)
+
+when does Dictionary.__setitem__ coerce its value to a Pdf object? on input
+or serialization
+    probably on input, fail first
+
+that means __setitem__ needs to recursively coerce
+
+should be able to assign python objects and have them mapped to appropriate
+objects - or
+
+
+// qpdf.Object.Boolean(True) <-- class-ish name, static method in reality
+// instead of
+// qpdf.Object.new(True)  <--- when possible without ambiguity
+// strings:
+// qpdf.Object.Name("")
+// qpdf.Object.new("/Name"?)
+
+// Then repr becomes...
+// or should each object be type-decorated?
+qpdf.Object.Dictionary({
+    "/Type": "/Page",
+    "/MediaBox": [],
+    "/Contents": <qpdf.Object.Stream>,
+})
+
 
 */
-
-
-
 
 
 class PyParserCallbacks : public QPDFObjectHandle::ParserCallbacks {
@@ -111,54 +152,6 @@ void init_object(py::module& m)
         .value("ot_operator", QPDFObject::object_type_e::ot_operator)
         .value("ot_inlineimage", QPDFObject::object_type_e::ot_inlineimage);
 
-/* Object API
-
-qpdf.Object.Typename()  <-- class-ish name, static method in reality
-tries to coerce input to Pdf object of typename, or fails
-
-qpdf.Object.new() <--- tries to create a Pdf object from its input with when
-possible without ambiguity
-
-Boolean <- bool
-Integer <- int
-Real <- decimal.Decimal, float
-String <- str, bytes
-    this will need help from Pdf doc encoding
-
-Array <- list, tuple
-Dictionary <- dict, Mapping
-
-Stream <- present as qpdf.Object.Stream({dictionary}, stream=<...>)
-
-when does Dictionary.__setitem__ coerce its value to a Pdf object? on input
-or serialization
-    probably on input, fail first
-
-that means __setitem__ needs to recursively coerce
-
-should be able to assign python objects and have them mapped to appropriate
-objects - or
-
-
-
-
-// qpdf.Object.Boolean(True) <-- class-ish name, static method in reality
-// instead of
-// qpdf.Object.new(True)  <--- when possible without ambiguity
-// strings:
-// qpdf.Object.Name("")
-// qpdf.Object.new("/Name"?)
-
-// Then repr becomes...
-// or should each object be type-decorated?
-qpdf.Object.Dictionary({
-    "/Type": "/Page",
-    "/MediaBox": [],
-    "/Contents": <qpdf.Object.Stream>,
-})
-
-
-*/
 
     py::class_<Buffer, PointerHolder<Buffer>>(m, "Buffer", py::buffer_protocol())
         .def_buffer([](Buffer &b) -> py::buffer_info {
