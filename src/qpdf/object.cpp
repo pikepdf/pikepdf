@@ -892,6 +892,23 @@ qpdf.Object.Dictionary({
             },
             "attribute access"
         )
+        .def("__dir__",
+            [](QPDFObjectHandle &h) {
+                py::list result;
+                py::object obj = py::cast(h);
+                py::object class_keys = obj.attr("__class__").attr("__dict__").attr("keys")();
+                for (auto attr: class_keys) {
+                    result.append(attr);
+                }
+                if (h.isDictionary() || h.isStream()) {
+                    for (auto key_attr: h.getKeys()) {
+                        std::string s = key_attr.substr(1);
+                        result.append(py::str(s));
+                    }
+                }
+                return result;
+            }
+        )
         .def("get",
             [](QPDFObjectHandle &h, std::string const& key, py::object default_) {
                 if (!h.isDictionary())
