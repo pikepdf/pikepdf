@@ -60,3 +60,10 @@ std::string objecthandle_scalar_value(QPDFObjectHandle h, bool escaped=true);
 std::string objecthandle_pythonic_typename(QPDFObjectHandle h, std::string prefix = "pikepdf.Object.");
 std::string objecthandle_repr_typename_and_value(QPDFObjectHandle h);
 std::string objecthandle_repr(QPDFObjectHandle h);
+
+// From object_convert.cpp
+py::object decimal_from_pdfobject(QPDFObjectHandle& h);
+py::object objecthandle_decode(QPDFObjectHandle& h);
+QPDFObjectHandle objecthandle_encode(py::handle handle);
+std::vector<QPDFObjectHandle> array_builder(py::iterable iter);
+std::map<std::string, QPDFObjectHandle> dict_builder(py::dict dict);
