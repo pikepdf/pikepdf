@@ -2,6 +2,7 @@ from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 import sys
 import setuptools
+from glob import glob
 
 
 class get_pybind_include(object):
@@ -22,7 +23,7 @@ class get_pybind_include(object):
 ext_modules = [
     Extension(
         'pikepdf._qpdf',
-        ['src/qpdf/qpdf.cpp', 'src/qpdf/object.cpp', 'src/qpdf/shims.cpp'],
+        glob('src/qpdf/*.cpp'),
         include_dirs=[
             # Path to pybind11 headers
             get_pybind_include(),
