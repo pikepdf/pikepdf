@@ -56,12 +56,12 @@ def test_text_filter(resources, outdir):
 
     keep = []
     for operands, command in parse_content_stream(stream):
-        if command == qpdf.Object.Operator('Tj'):
+        if command == qpdf.Operator('Tj'):
             print("skipping Tj")
             continue
         keep.append((operands, command))
 
-    new_stream = qpdf.Object.Stream(pdf, keep)
+    new_stream = qpdf.Stream(pdf, keep)
     print(new_stream.read_bytes())
     pdf.pages[0]['/Contents'] = new_stream
     pdf.pages[0]['/Rotate'] = 90
@@ -76,7 +76,7 @@ def test_text_filter(resources, outdir):
 
 def test_invalid_stream_object():
     with pytest.raises(TypeError):
-        parse_content_stream(qpdf.Object.Dictionary({"/Hi": 3}))
+        parse_content_stream(qpdf.Dictionary({"/Hi": 3}))
 
 
 @pytest.mark.parametrize("test_file,expected", [

@@ -163,113 +163,9 @@ void init_object(py::module& m)
                 { b.getSize() },
                 { sizeof(unsigned char) }
             );
-        });
+        });    
 
-    py::class_<QPDFObjectHandle> objecthandle(m, "Object");
-
-    objecthandle
-        .def_static("Boolean",
-            [](bool b) {
-                return QPDFObjectHandle::newBool(b);
-            },
-            "Construct a PDF Boolean object"
-        )
-        .def_static("Integer",
-            [](int n) {
-                return QPDFObjectHandle::newInteger(n);
-            },
-            "Construct a PDF Integer object"
-        )
-        .def_static("Real",
-            [](py::object obj) {
-                py::object Decimal = py::module::import("decimal").attr("Decimal");
-                if (py::isinstance<py::float_>(obj) || py::isinstance<py::int_>(obj)) {
-                    auto val = obj.cast<double>();
-                    if (isinf(val) || isnan(val))
-                        throw py::value_error("NaN and infinity cannot be represented as PDF objects");
-                    return QPDFObjectHandle::newReal(val, 0);
-                }
-                py::print(obj);
-                py::print(py::repr(obj));                
-                if (!py::isinstance(obj, Decimal))
-                    throw py::type_error("Can't convert arbitrary Python object to PDF Real");
-                py::bool_ is_finite = obj.attr("is_finite")();
-                if (!is_finite)
-                    throw py::value_error("NaN and infinity cannot be represented as PDF objects");
-                return QPDFObjectHandle::newReal(py::str(obj));
-            },
-            "Construct a PDF Real value, that is, a decimal number"
-        )
-        .def_static("Name",
-            [](const std::string& s) {
-                if (s.at(0) != '/')
-                    throw py::value_error("Name objects must begin with '/'");
-                if (s.length() < 2)
-                    throw py::value_error("Name must be at least one character long");
-                return QPDFObjectHandle::newName(s);
-            },
-            "Create a Name from a string. Must begin with '/'. All other characters except null are valid."
-        )
-        .def_static("String",
-            [](const std::string& s) {
-                return QPDFObjectHandle::newString(s);
-            },
-            "Construct a PDF String object."
-        )
-        .def_static("Array",
-            [](py::iterable iterable) {
-                return QPDFObjectHandle::newArray(array_builder(iterable));
-            },
-            "Construct a PDF Array object from an iterable of PDF objects or types that can be coerced to PDF objects."
-        )
-        .def_static("Dictionary",
-            [](py::dict dict) {
-                return QPDFObjectHandle::newDictionary(dict_builder(dict));
-            },
-            "Construct a PDF Dictionary from a mapping of PDF objects or Python types that can be coerced to PDF objects."
-        )
-        .def_static("Stream",
-            [](QPDF* owner, py::bytes data) {
-                std::string s = data;
-                return QPDFObjectHandle::newStream(owner, data); // This makes a copy of the data
-            },
-            "Construct a PDF Stream object from binary data",
-            py::keep_alive<0, 1>() // returned object references the owner
-        )
-        .def_static("Stream",
-            [](QPDF* owner, py::iterable content_stream) {
-                std::stringstream data;
-
-                for (auto handle_command : content_stream) {
-                    py::tuple command = py::reinterpret_borrow<py::tuple>(handle_command);
-
-                    if (command.size() != 2)
-                        throw py::value_error("Each item in stream data must be a tuple(operands, operator)");
-
-                    py::object operands = command[0];
-                    py::object operator_ = command[1];
-                    for (auto operand : operands) {
-                        QPDFObjectHandle h = objecthandle_encode(operand);
-                        data << h.unparse();
-                        data << " ";
-                    }
-                    data << objecthandle_encode(operator_).unparse();
-                    data << "\n";
-                }
-                return QPDFObjectHandle::newStream(owner, data.str());
-            },
-            "Construct a PDF Stream object from a list of operand-operator tuples [((operands,), operator)]",
-            py::keep_alive<0, 1>() // returned object references the owner   
-        )
-        .def_static("Operator",
-            [](const std::string& op) {
-                return QPDFObjectHandle::newOperator(op);
-            },
-            "Construct a PDF Operator object for use in content streams"
-        )
-        .def_static("Null", &QPDFObjectHandle::newNull,
-            "Construct a PDF Null object"
-        )
+    py::class_<QPDFObjectHandle>(m, "Object")
         .def_static("new",
             [](bool b) {
                 return QPDFObjectHandle::newBool(b);
@@ -680,6 +576,100 @@ void init_object(py::module& m)
             "Convert PDF objects into PostScript, without resolving indirect objects.")
         .def("unparse_resolved", &QPDFObjectHandle::unparseResolved,
             "Convert PDF objects into PostScript, and resolve referenced objects when possible.");
+        // end of QPDFObjectHandle bindings
+
+    m.def("Boolean", &QPDFObjectHandle::newBool, "Construct a PDF Boolean object");
+    m.def("Integer", &QPDFObjectHandle::newInteger, "Construct a PDF Integer object");
+    m.def("Real", 
+        [](py::object obj) {
+            py::object Decimal = py::module::import("decimal").attr("Decimal");
+            if (py::isinstance<py::float_>(obj) || py::isinstance<py::int_>(obj)) {
+                auto val = obj.cast<double>();
+                if (isinf(val) || isnan(val))
+                    throw py::value_error("NaN and infinity cannot be represented as PDF objects");
+                return QPDFObjectHandle::newReal(val, 0);
+            }
+            py::print(obj);
+            py::print(py::repr(obj));                
+            if (!py::isinstance(obj, Decimal))
+                throw py::type_error("Can't convert arbitrary Python object to PDF Real");
+            py::bool_ is_finite = obj.attr("is_finite")();
+            if (!is_finite)
+                throw py::value_error("NaN and infinity cannot be represented as PDF objects");
+            return QPDFObjectHandle::newReal(py::str(obj));
+        },
+        "Construct a PDF Real value, that is, a decimal number"
+    );
+    m.def("Name",
+        [](const std::string& s) {
+            if (s.at(0) != '/')
+                throw py::value_error("Name objects must begin with '/'");
+            if (s.length() < 2)
+                throw py::value_error("Name must be at least one character long");
+            return QPDFObjectHandle::newName(s);
+        },
+        "Create a Name from a string. Must begin with '/'. All other characters except null are valid."
+    );
+    m.def("String",
+        [](const std::string& s) {
+            return QPDFObjectHandle::newString(s);
+        },
+        "Construct a PDF String object."
+    );
+    m.def("Array",
+        [](py::iterable iterable) {
+            return QPDFObjectHandle::newArray(array_builder(iterable));
+        },
+        "Construct a PDF Array object from an iterable of PDF objects or types that can be coerced to PDF objects."
+    );
+    m.def("Dictionary",
+        [](py::dict dict) {
+            return QPDFObjectHandle::newDictionary(dict_builder(dict));
+        },
+        "Construct a PDF Dictionary from a mapping of PDF objects or Python types that can be coerced to PDF objects."
+    );
+    m.def("Stream",
+        [](QPDF* owner, py::bytes data) {
+            std::string s = data;
+            return QPDFObjectHandle::newStream(owner, data); // This makes a copy of the data
+        },
+        "Construct a PDF Stream object from binary data",
+        py::keep_alive<0, 1>() // returned object references the owner
+    );
+    m.def("Stream",
+        [](QPDF* owner, py::iterable content_stream) {
+            std::stringstream data;
+
+            for (auto handle_command : content_stream) {
+                py::tuple command = py::reinterpret_borrow<py::tuple>(handle_command);
+
+                if (command.size() != 2)
+                    throw py::value_error("Each item in stream data must be a tuple(operands, operator)");
+
+                py::object operands = command[0];
+                py::object operator_ = command[1];
+                for (auto operand : operands) {
+                    QPDFObjectHandle h = objecthandle_encode(operand);
+                    data << h.unparse();
+                    data << " ";
+                }
+                data << objecthandle_encode(operator_).unparse();
+                data << "\n";
+            }
+            return QPDFObjectHandle::newStream(owner, data.str());
+        },
+        "Construct a PDF Stream object from a list of operand-operator tuples [((operands,), operator)]",
+        py::keep_alive<0, 1>() // returned object references the owner   
+    );
+    m.def("Operator",
+        [](const std::string& op) {
+            return QPDFObjectHandle::newOperator(op);
+        },
+        "Construct a PDF Operator object for use in content streams"
+    );
+    m.def("Null", &QPDFObjectHandle::newNull,
+        "Construct a PDF Null object"
+    );
 
     py::class_<QPDFObjectHandle::ParserCallbacks, PyParserCallbacks> parsercallbacks(m, "StreamParser");
     parsercallbacks

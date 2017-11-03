@@ -72,7 +72,7 @@ def test_create_pdf(outdir):
     width, height = 100, 100
     image_data = b"\xff\x7f\x00" * (width * height)
 
-    image = qpdf.Object.Stream(pdf, image_data)
+    image = qpdf.Stream(pdf, image_data)
     image.stream_dict = qpdf.Object.parse(b"""
             <<
                 /Type /XObject
@@ -99,10 +99,10 @@ def test_create_pdf(outdir):
         q 144 0 0 144 234 324 cm /Im1 Do Q
         """
 
-    contents = qpdf.Object.Stream(pdf, stream)
+    contents = qpdf.Stream(pdf, stream)
 
     page_dict = {
-        '/Type': qpdf.Object.Name('/Page'),
+        '/Type': qpdf.Name('/Page'),
         '/MediaBox': mediabox,
         '/Contents': contents,
         '/Resources': resources

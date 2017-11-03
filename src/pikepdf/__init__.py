@@ -21,7 +21,8 @@ except ImportError:
     raise ImportError("pikepdf's extension library failed to import")
 
 from ._qpdf import Object, ObjectType, PdfError, Pdf, PasswordError, \
-    ObjectStreamMode, StreamDataMode
+    ObjectStreamMode, StreamDataMode, Boolean, Integer, Real, Name, String, \
+    Array, Dictionary, Stream, Operator, Null
 
 __libqpdf_version__ = _qpdf.qpdf_version()
 
@@ -107,7 +108,7 @@ class Page:
 
     def __repr__(self):
         return repr(self.obj).replace(
-            'pikepdf.Object.Dictionary', 'pikepdf.Page', 1)
+            'pikepdf.Dictionary', 'pikepdf.Page', 1)
 
     @property
     def mediabox(self):
@@ -125,7 +126,7 @@ class Page:
 
         :return: True if there is text
         """
-        text_showing_operators = {Object.Operator(op) for op in
+        text_showing_operators = {Operator(op) for op in
                                   ('Tj', 'TJ', '"', "'")}
         for _, operator in parse_content_stream(self.obj.Contents):
             if operator in text_showing_operators:

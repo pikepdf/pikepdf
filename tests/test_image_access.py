@@ -5,6 +5,7 @@ from PIL import Image
 import zlib
 
 from pikepdf import Pdf, Object
+from pikepdf._qpdf import Name, Null
 
 def test_jpeg(resources, outdir):
     pdf = Pdf.open(resources / 'congress.pdf')
@@ -34,7 +35,7 @@ def test_replace_jpeg(resources, outdir):
 
     #newimage = Object.Stream(pdf, grayscale.tobytes())
 
-    pdfimage.write(zlib.compress(grayscale.tobytes()), Object.Name("/FlateDecode"), Object.Null())
-    pdfimage.ColorSpace = Object.Name('/DeviceGray')
+    pdfimage.write(zlib.compress(grayscale.tobytes()), Name("/FlateDecode"), Null())
+    pdfimage.ColorSpace = Name('/DeviceGray')
 
     pdf.save(outdir / 'congress_gray.pdf')

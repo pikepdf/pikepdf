@@ -61,19 +61,19 @@ def test_decimal_involution(num, radix):
 
     d = Decimal(strnum)
 
-    assert qpdf.Object.Real(d).decode() == d
+    assert qpdf.Real(d).decode() == d
 
 
 @given(st.floats())
 def test_decimal_from_float(f):
     d = Decimal(f)
     if isfinite(f) and d.is_finite():
-        py_d = qpdf.Object.Real(d)
+        py_d = qpdf.Real(d)
         assert isclose(py_d.decode(), d), (d, f.hex())
     else:
         with pytest.raises(ValueError, message=repr(f)):
-            qpdf.Object.Real(f)
+            qpdf.Real(f)
         with pytest.raises(ValueError, message=repr(d)):
-            qpdf.Object.Real(d)
+            qpdf.Real(d)
             
         

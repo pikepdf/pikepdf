@@ -23,7 +23,7 @@ def test_create_form_xobjects(outdir):
     width, height = 100, 100
     image_data = b"\xff\x7f\x00" * (width * height)
 
-    image = qpdf.Object.Stream(pdf, image_data)
+    image = qpdf.Stream(pdf, image_data)
     image.stream_dict = qpdf.Object.parse("""
             <<
                 /Type /XObject
@@ -33,16 +33,16 @@ def test_create_form_xobjects(outdir):
                 /Width 100
                 /Height 100
             >>""")
-    xobj_image = qpdf.Object.Dictionary({'/Im1': image})
+    xobj_image = qpdf.Dictionary({'/Im1': image})
 
-    form_xobj_res = qpdf.Object.Dictionary({
+    form_xobj_res = qpdf.Dictionary({
         '/XObject': xobj_image
         })
-    form_xobj = qpdf.Object.Stream(pdf, b"""
+    form_xobj = qpdf.Stream(pdf, b"""
         /Im1 Do
         """)
-    form_xobj['/Type'] = qpdf.Object.Name('/XObject')
-    form_xobj['/Subtype'] = qpdf.Object.Name('/Form')
+    form_xobj['/Type'] = qpdf.Name('/XObject')
+    form_xobj['/Subtype'] = qpdf.Name('/Form')
     form_xobj['/FormType'] = 1
     form_xobj['/Matrix'] = [1, 0, 0, 1, 0, 0]
     form_xobj['/BBox'] = [0, 0, 1, 1]
@@ -65,10 +65,10 @@ def test_create_form_xobjects(outdir):
         q 72 0 0 72 378 180 cm /Form1 Do Q
         """
 
-    contents = qpdf.Object.Stream(pdf, stream)
+    contents = qpdf.Stream(pdf, stream)
 
     page = pdf.make_indirect({
-        '/Type': qpdf.Object.Name('/Page'),
+        '/Type': qpdf.Name('/Page'),
         '/MediaBox': mediabox,
         '/Contents': contents,
         '/Resources': resources
