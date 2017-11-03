@@ -24,7 +24,7 @@
 #include "pikepdf.h"
 
 
-std::string objecthandle_scalar_value(QPDFObjectHandle h, bool escaped)
+std::string objecthandle_scalar_value(QPDFObjectHandle& h, bool escaped)
 {
     std::stringstream ss;
     switch (h.getTypeCode()) {
@@ -55,7 +55,7 @@ std::string objecthandle_scalar_value(QPDFObjectHandle h, bool escaped)
     return ss.str();
 }
 
-std::string objecthandle_pythonic_typename(QPDFObjectHandle h, std::string prefix)
+std::string objecthandle_pythonic_typename(QPDFObjectHandle& h, std::string prefix)
 {
     std::string s;
 
@@ -103,7 +103,7 @@ std::string objecthandle_pythonic_typename(QPDFObjectHandle h, std::string prefi
 }
 
 
-std::string objecthandle_repr_typename_and_value(QPDFObjectHandle h)
+std::string objecthandle_repr_typename_and_value(QPDFObjectHandle& h)
 {
     return objecthandle_pythonic_typename(h) + \
                 "(" + objecthandle_scalar_value(h) + ")";
@@ -200,7 +200,7 @@ std::string objecthandle_repr_inner(QPDFObjectHandle h, uint depth, std::set<QPD
     return oss.str();
 }
 
-std::string objecthandle_repr(QPDFObjectHandle h)
+std::string objecthandle_repr(QPDFObjectHandle& h)
 {
     if (h.isScalar()) {
         return objecthandle_repr_typename_and_value(h);
