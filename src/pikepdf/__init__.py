@@ -43,7 +43,7 @@ class _OperandGrouper(_qpdf.StreamParser):
         self._tokens = []
 
     def handle_object(self, obj):
-        if obj.type_code == ObjectType.ot_operator:
+        if obj.type_code == ObjectType.operator:
             instruction = self.PdfInstruction(
                 operands=self._tokens, operator=obj)
             self.instructions.append(instruction)
