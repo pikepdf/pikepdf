@@ -298,6 +298,32 @@ void init_object(py::module& m)
                 return false;
             }
         )
+        .def("__eq__",
+            [](QPDFObjectHandle &self, py::str other) {
+                std::string utf8_other = other.cast<std::string>();
+                switch (self.getTypeCode()) {
+                    case QPDFObject::object_type_e::ot_string:
+                        return self.getUTF8Value() == utf8_other;
+                    case QPDFObject::object_type_e::ot_name:
+                        return self.getName() == utf8_other;
+                    default:
+                        return false;
+                }
+            }
+        )
+        .def("__eq__",
+            [](QPDFObjectHandle &self, py::bytes other) {
+                std::string bytes_other = other.cast<std::string>();
+                switch (self.getTypeCode()) {
+                    case QPDFObject::object_type_e::ot_string:
+                        return self.getStringValue() == bytes_other;
+                    case QPDFObject::object_type_e::ot_name:
+                        return self.getName() == bytes_other;
+                    default:
+                        return false;
+                }
+            }
+        )        
         .def("__lt__",
             [](QPDFObjectHandle &self, QPDFObjectHandle &other) {
                 if (!self.isInitialized() || !other.isInitialized())
