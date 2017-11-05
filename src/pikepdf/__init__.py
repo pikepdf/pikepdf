@@ -24,6 +24,8 @@ from ._qpdf import Object, ObjectType, PdfError, Pdf, PasswordError, \
     ObjectStreamMode, StreamDataMode, Boolean, Integer, Real, Name, String, \
     Array, Dictionary, Stream, Operator, Null
 
+from ._pdfimage import PdfImage
+
 __libqpdf_version__ = _qpdf.qpdf_version()
 
 
@@ -132,3 +134,5 @@ class Page:
             if operator in text_showing_operators:
                 return True
         return False
+
+
