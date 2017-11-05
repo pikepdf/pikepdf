@@ -9,7 +9,7 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
-#include <math.h>
+#include <cctype>
 
 #include <qpdf/Constants.h>
 #include <qpdf/Types.h>
@@ -203,6 +203,12 @@ bool objecthandle_equal(QPDFObjectHandle& self, QPDFObjectHandle& other)
             // recurses into this function
             return (self.getArrayAsVector() == other.getArrayAsVector());
         }
+        case QPDFObject::object_type_e::ot_dictionary:
+        {
+            // Call operator==() on each element of the arrays, meaning this
+            // recurses into this function
+            return (self.getDictAsMap() == other.getDictAsMap());
+        }
         default:
             break;
     }
@@ -213,7 +219,7 @@ bool objecthandle_equal(QPDFObjectHandle& self, QPDFObjectHandle& other)
 bool operator==(const QPDFObjectHandle& self, const QPDFObjectHandle& other)
 {
     // A lot of functions in QPDFObjectHandle are not tagged const where they
-    // should be, but are safe
+    // should be, but are const-safe
     return objecthandle_equal(
         const_cast<QPDFObjectHandle &>(self),
         const_cast<QPDFObjectHandle &>(other));
@@ -483,8 +489,12 @@ void init_object(py::module& m)
                     throw py::attr_error("object is not a dictionary or a stream");
                 QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
                 std::string key = "/" + name;
-                if (!dict.hasKey(key))
-                    throw py::attr_error(key);
+                if (!dict.hasKey(key)) {
+                    if (std::isupper(name[0]))
+                        throw py::attr_error(key);
+                    else
+                        throw py::attr_error(name);
+                }
                 return dict.getKey(key);
             },
             "attribute lookup name"
