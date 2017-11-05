@@ -59,14 +59,24 @@ array_builder(py::iterable iter)
     return result;
 }
 
+
 QPDFObjectHandle objecthandle_encode(py::handle handle)
 {
+    if (handle.is_none())
+        return QPDFObjectHandle::newNull();
+
     // Ensure that when we return QPDFObjectHandle/pikepdf.Object to the Py
     // environment, that we can recover it
     try {
         auto as_qobj = handle.cast<QPDFObjectHandle>();
         return as_qobj;
     } catch (py::cast_error) {}
+
+    // Special-case booleans since pybind11 coerces nonzero integers to boolean
+    if (py::isinstance<py::bool_>(handle)) {
+        bool as_bool = handle.cast<bool>();
+        return QPDFObjectHandle::newBool(as_bool);
+    }
 
     try {
         auto as_int = handle.cast<long long>();
@@ -77,12 +87,6 @@ QPDFObjectHandle objecthandle_encode(py::handle handle)
         auto as_double = handle.cast<double>();
         return QPDFObjectHandle::newReal(as_double);
     } catch (py::cast_error) {}
-
-    // Special-case booleans since pybind11 coerces nonzero integers to boolean
-    if (py::isinstance<py::bool_>(handle)) {
-        bool as_bool = handle.cast<bool>();
-        return QPDFObjectHandle::newBool(as_bool);
-    }
 
     try {
         auto as_str = handle.cast<std::string>();
@@ -161,6 +165,13 @@ py::object objecthandle_decode(QPDFObjectHandle& h)
     case QPDFObject::object_type_e::ot_inlineimage:
         break;
     case QPDFObject::object_type_e::ot_array:
+        {
+            py::list lst;
+            for (auto item: h.getArrayAsVector()) {
+                lst.append(objecthandle_decode(item));
+            }
+            obj = lst;
+        }
         break;
     case QPDFObject::object_type_e::ot_dictionary:
         break;

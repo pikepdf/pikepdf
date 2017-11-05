@@ -51,7 +51,6 @@ namespace pybind11 { namespace detail {
 namespace py = pybind11;
 
 // From object.cpp
-QPDFObjectHandle objecthandle_encode(py::handle obj);
 size_t list_range_check(QPDFObjectHandle& h, int index);
 void init_object(py::module& m);
 
