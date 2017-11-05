@@ -655,8 +655,30 @@ void init_object(py::module& m)
         .def("unparse", &QPDFObjectHandle::unparse,
             "Convert PDF objects into PostScript, without resolving indirect objects.")
         .def("unparse_resolved", &QPDFObjectHandle::unparseResolved,
-            "Convert PDF objects into PostScript, and resolve referenced objects when possible.");
-        // end of QPDFObjectHandle bindings
+            "Convert PDF objects into PostScript, and resolve referenced objects when possible.")
+        .def("_repr_pdf_",
+            [](QPDFObjectHandle &page) -> py::object {
+                if (!page.isPageObject())
+                    return py::none();
+                QPDF q;
+                q.emptyPDF();
+                q.setSuppressWarnings(true);
+
+                QPDFObjectHandle page_copy = q.copyForeignObject(page);
+                q.addPage(page_copy, true);
+
+                QPDFWriter w(q);
+                w.setOutputMemory();
+                w.write();
+                std::unique_ptr<Buffer> output_buffer(w.getBuffer());
+                auto output = py::bytes(
+                    (const char*)output_buffer->getBuffer(),
+                    output_buffer->getSize());
+                return output;
+            },
+            "Render as PDF - for Jupyter/IPython"
+        )
+        ; // end of QPDFObjectHandle bindings
 
     m.def("Boolean", &QPDFObjectHandle::newBool, "Construct a PDF Boolean object");
     m.def("Integer", &QPDFObjectHandle::newInteger, "Construct a PDF Integer object");
