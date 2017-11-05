@@ -20,7 +20,7 @@ def test_bool_involution():
     assert decode_encode(False) == False
 
 
-@given(integers(min_value=-2**30, max_value=2**30))
+@given(integers(min_value=-2**31, max_value=(2**31-1)))
 def test_integer_involution(n):
     assert decode_encode(n) == n
 
@@ -103,4 +103,5 @@ def test_stack_depth():
     for n in range(150):
         a = [a]
     assert decode_encode(a) == a
-    assert encode(a) == encode(a)
+    with pytest.raises(RuntimeError, message="recursion"):
+        encode(a) == encode(a)

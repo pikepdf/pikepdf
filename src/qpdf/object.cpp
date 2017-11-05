@@ -141,7 +141,7 @@ public:
         this->depth = depth;
         ++(*this->depth);
         if (*this->depth > limit)
-            throw std::runtime_error("recusion went too deep");
+            throw std::runtime_error("recursion went too deep");
     }
     ~StackGuard() { (*this->depth)--; this->depth = nullptr; }
 };
