@@ -102,8 +102,7 @@ QPDFObjectHandle objecthandle_encode(py::handle handle)
     }
 
     if (py::hasattr(obj, "__iter__")) {
-        py::print(py::repr(obj));
-
+        //py::print(py::repr(obj));
         bool is_mapping = false; // PyMapping_Check is unreliable in Py3
         if (py::hasattr(obj, "keys"))
             is_mapping = true;
