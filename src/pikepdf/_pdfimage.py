@@ -75,9 +75,13 @@ class PdfImage:
     def show(self):
         self.topil().show()
 
+    def __repr__(self):
+        return '<pikepdf.PdfImage image mode={} size={}x{} at {}>'.format(
+            self.mode, self.width, self.height, hex(id(self)))
+
     def _repr_png_(self):
         "Display hook for IPython/Jupyter"
         b = BytesIO()
         im = self.topil()
         im.save(b, 'PNG')
-        return b.getvalue
+        return b.getvalue()
