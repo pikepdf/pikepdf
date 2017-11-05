@@ -134,6 +134,82 @@ size_t list_range_check(QPDFObjectHandle& h, int index)
     return (size_t)index;   
 }
 
+class StackGuard {
+    unsigned int *depth;
+public:
+    StackGuard(unsigned int *depth, unsigned int limit = 100) {
+        this->depth = depth;
+        ++(*this->depth);
+        if (*this->depth > limit)
+            throw std::runtime_error("recusion went too deep");
+    }
+    ~StackGuard() { (*this->depth)--; this->depth = nullptr; }
+};
+
+
+bool objecthandle_equal(QPDFObjectHandle& self, QPDFObjectHandle& other)
+{
+    static unsigned int depth = 0;
+    StackGuard sg(&depth);
+
+    // Uninitialized objects are never equal
+    if (!self.isInitialized() || !other.isInitialized())
+        return false;
+
+    // If 'self' is a numeric type, coerce both to Decimal objects
+    // and compare them as such
+    if (self.getTypeCode() == QPDFObject::object_type_e::ot_integer ||
+        self.getTypeCode() == QPDFObject::object_type_e::ot_real) {
+        try {
+            auto a = decimal_from_pdfobject(self);
+            auto b = decimal_from_pdfobject(other);
+            py::object pyresult = a.attr("__eq__")(b);
+            bool result = pyresult.cast<bool>();
+            return result;
+        } catch (py::type_error) {
+            return false;
+        }
+    }
+
+    // Apart from numeric types, disimilar types are never equal
+    if (self.getTypeCode() != other.getTypeCode())
+        return false;
+
+    switch (self.getTypeCode()) {
+        case QPDFObject::object_type_e::ot_null:
+            return true; // Both must be null
+        case QPDFObject::object_type_e::ot_boolean:
+            return self.getBoolValue() == other.getBoolValue();
+        case QPDFObject::object_type_e::ot_name:
+            return self.getName() == other.getName();
+        case QPDFObject::object_type_e::ot_operator:
+            return self.getOperatorValue() == other.getOperatorValue();
+        case QPDFObject::object_type_e::ot_string:
+            return self.getStringValue() == other.getStringValue();
+        case QPDFObject::object_type_e::ot_array:
+        {
+            return (self.getArrayAsVector() == other.getArrayAsVector());
+        }
+        default:
+            // Objects with the same obj-gen are equal if they have nonzero
+            // objid and belong to the same PDF
+            if (self.getObjectID() != 0 && self.getOwningQPDF() == other.getOwningQPDF())
+                return self.getObjGen() == other.getObjGen();
+            break;
+    }
+    return false;
+}
+
+
+bool operator==(const QPDFObjectHandle& self, const QPDFObjectHandle& other)
+{
+    // A lot of functions in QPDFObjectHandle are not tagged const where they
+    // should be, but are safe
+    return objecthandle_equal(
+        const_cast<QPDFObjectHandle &>(self),
+        const_cast<QPDFObjectHandle &>(other));
+}
+
 
 void init_object(py::module& m)
 {
@@ -244,48 +320,7 @@ void init_object(py::module& m)
         )
         .def("__eq__",
             [](QPDFObjectHandle &self, QPDFObjectHandle &other) {
-                /* Uninitialized objects are never equal */
-                if (!self.isInitialized() || !other.isInitialized())
-                    return false;
-
-                /* If 'self' is a numeric type, coerce both to Decimal objects
-                   and compare them as such */
-                if (self.getTypeCode() == QPDFObject::object_type_e::ot_integer ||
-                    self.getTypeCode() == QPDFObject::object_type_e::ot_real) {
-                    try {
-                        auto a = decimal_from_pdfobject(self);
-                        auto b = decimal_from_pdfobject(other);
-                        py::object pyresult = a.attr("__eq__")(b);
-                        bool result = pyresult.cast<bool>();
-                        return result;
-                    } catch (py::type_error) {
-                        return false;
-                    }
-                }
-
-                /* Apart from numeric types, disimilar types are never equal */
-                if (self.getTypeCode() != other.getTypeCode())
-                    return false;
-
-                switch (self.getTypeCode()) {
-                    case QPDFObject::object_type_e::ot_null:
-                        return true; // Both must be null
-                    case QPDFObject::object_type_e::ot_boolean:
-                        return self.getBoolValue() == other.getBoolValue();
-                    case QPDFObject::object_type_e::ot_name:
-                        return self.getName() == other.getName();
-                    case QPDFObject::object_type_e::ot_operator:
-                        return self.getOperatorValue() == other.getOperatorValue();
-                    case QPDFObject::object_type_e::ot_string:
-                        return self.getStringValue() == other.getStringValue();
-                    default:
-                        // Objects with the same obj-gen are equal if they have nonzero
-                        // objid and belong to the same PDF
-                        if (self.getObjectID() != 0 && self.getOwningQPDF() == other.getOwningQPDF())
-                            return self.getObjGen() == other.getObjGen();
-                        break;
-                }
-                return false;
+                return (self == other); // overloaded
             }
         )
         .def("__eq__",
@@ -477,7 +512,7 @@ void init_object(py::module& m)
             [](QPDFObjectHandle &h, std::string const& key, py::object default_) {
                 if (!h.isDictionary())
                     throw py::value_error("object is not a dictionary");
-                if (!h.hasKey(key))
+                if (!h.hasKey(key)) // Not usable on streams
                     return default_;
                 return py::cast(h.getKey(key));
             },
