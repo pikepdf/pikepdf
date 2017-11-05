@@ -7,8 +7,12 @@ from hypothesis.strategies import (none, integers, binary, lists, floats,
 import pytest
 
 
+encode = qpdf._encode
+decode = qpdf._decode
+
+
 def decode_encode(obj):
-    return qpdf._decode(qpdf._encode(obj))
+    return decode(encode(obj))
 
 
 def test_bool_involution():
@@ -89,6 +93,14 @@ def test_nested_list(array):
     assert decode_encode(array) == array
 
 
-@given(recursive(none() | booleans(), lambda children: lists(children)))
+@given(recursive(none() | booleans(), lambda children: lists(children), max_leaves=20))
 def test_nested_list(array):
     assert decode_encode(array) == array
+
+
+def test_stack_depth():
+    a = [150]
+    for n in range(150):
+        a = [a]
+    assert decode_encode(a) == a
+    assert encode(a) == encode(a)
