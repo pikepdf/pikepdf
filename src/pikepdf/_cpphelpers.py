@@ -10,6 +10,27 @@ from itertools import tee
 import os
 import sys
 from collections.abc import MutableSequence
+from pikepdf import Pdf, Object
+from io import BytesIO
+from subprocess import run, PIPE
+
+
+def page_to_svg(page):
+    pdf = Pdf.new()
+    pdf.pages.append(page)
+    with NamedTemporaryFile(suffix='.pdf') as tmp_in, \
+            NamedTemporaryFile(mode='w+b', suffix='.svg') as tmp_out:
+        pdf.save(tmp_in)
+        tmp_in.seek(0)
+
+        proc = run(['mudraw', '-F', 'svg', '-o', tmp_out.name, tmp_in.name], stderr=PIPE)
+        if proc.stderr:
+            print(proc.stderr.decode())            
+        tmp_out.flush()
+        tmp_out2 = open(tmp_out.name, 'rb')
+        svg = tmp_out2.read()
+        return svg.decode()
+
 
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."

@@ -656,7 +656,7 @@ void init_object(py::module& m)
             "Convert PDF objects into PostScript, without resolving indirect objects.")
         .def("unparse_resolved", &QPDFObjectHandle::unparseResolved,
             "Convert PDF objects into PostScript, and resolve referenced objects when possible.")
-        .def("_repr_pdf_",
+        .def("_repr_pdf_singlepage",
             [](QPDFObjectHandle &page) -> py::object {
                 if (!page.isPageObject())
                     return py::none();
@@ -677,6 +677,14 @@ void init_object(py::module& m)
                 return output;
             },
             "Render as PDF - for Jupyter/IPython"
+        )
+        .def("_repr_svg_",
+            [](QPDFObjectHandle &page) -> py::object {
+                if (!page.isPageObject())
+                    return py::none();
+                auto page_to_svg = py::module::import("pikepdf._cpphelpers").attr("page_to_svg");
+                return page_to_svg(page);
+            }
         )
         ; // end of QPDFObjectHandle bindings
 
