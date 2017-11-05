@@ -156,8 +156,19 @@ bool objecthandle_equal(QPDFObjectHandle& self, QPDFObjectHandle& other)
     if (!self.isInitialized() || !other.isInitialized())
         return false;
 
-    // If 'self' is a numeric type, coerce both to Decimal objects
-    // and compare them as such
+    // Indirect objects (objid != 0) with the same obj-gen are equal and same owner
+    // are equal (in fact, they are identical; they reference the same underlying
+    // QPDFObject, even if the handles are different).
+    // This lets us compare deeply nested and cyclic structures without recursing
+    // into them.
+    if (self.getObjectID() != 0 
+        && other.getObjectID() != 0
+        && self.getOwningQPDF() == other.getOwningQPDF()) {
+        return self.getObjGen() == other.getObjGen();
+    }
+
+    // If 'self' is a numeric type, convert both to Decimal objects
+    // and compare them as such.
     if (self.getTypeCode() == QPDFObject::object_type_e::ot_integer ||
         self.getTypeCode() == QPDFObject::object_type_e::ot_real) {
         try {
@@ -188,13 +199,11 @@ bool objecthandle_equal(QPDFObjectHandle& self, QPDFObjectHandle& other)
             return self.getStringValue() == other.getStringValue();
         case QPDFObject::object_type_e::ot_array:
         {
+            // Call operator==() on each element of the arrays, meaning this
+            // recurses into this function
             return (self.getArrayAsVector() == other.getArrayAsVector());
         }
         default:
-            // Objects with the same obj-gen are equal if they have nonzero
-            // objid and belong to the same PDF
-            if (self.getObjectID() != 0 && self.getOwningQPDF() == other.getOwningQPDF())
-                return self.getObjGen() == other.getObjGen();
             break;
     }
     return false;
