@@ -5,7 +5,13 @@
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
 from io import BytesIO
-from ._qpdf import Object, ObjectType, Array, Name
+from subprocess import run, PIPE
+from ._qpdf import Pdf, Object, ObjectType, Array, Name
+from tempfile import NamedTemporaryFile
+
+
+class DependencyError(Exception):
+    pass
 
 
 class PdfImage:
@@ -85,3 +91,24 @@ class PdfImage:
         im = self.topil()
         im.save(b, 'PNG')
         return b.getvalue()
+
+
+def page_to_svg(page):
+    pdf = Pdf.new()
+    pdf.pages.append(page)
+    with NamedTemporaryFile(suffix='.pdf') as tmp_in, \
+            NamedTemporaryFile(mode='w+b', suffix='.svg') as tmp_out:
+        pdf.save(tmp_in)
+        tmp_in.seek(0)
+
+        try:
+            proc = run(['mudraw', '-F', 'svg', '-o', tmp_out.name, tmp_in.name], stderr=PIPE)
+        except FileNotFoundError as e:
+            raise DependencyError("Could not find the required executable 'mutool'")
+
+        if proc.stderr:
+            print(proc.stderr.decode())            
+        tmp_out.flush()
+        tmp_out2 = open(tmp_out.name, 'rb')  # Not sure why re-opening is need, but it is
+        svg = tmp_out2.read()
+        return svg.decode()

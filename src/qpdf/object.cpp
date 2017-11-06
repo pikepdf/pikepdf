@@ -682,7 +682,7 @@ void init_object(py::module& m)
             [](QPDFObjectHandle &page) -> py::object {
                 if (!page.isPageObject())
                     return py::none();
-                auto page_to_svg = py::module::import("pikepdf._cpphelpers").attr("page_to_svg");
+                auto page_to_svg = py::module::import("pikepdf._pdfimage").attr("page_to_svg");
                 return page_to_svg(page);
             }
         )
