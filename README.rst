@@ -7,21 +7,30 @@ PDF files. It is provides a wrapper around `QPDF <https://github.com/qpdf/qpdf>`
 Python + QPDF = "py" + "qpdf" = "pyqpdf", which looks like a dyslexia test. Say it
 out loud, and it sounds like "pikepdf".
 
-**This is in early development. Expect breakage.**
+**This package is in pre-alpha.**
 
 Python 3.5 and 3.6 are fully supported.
 
-Python 2.7 and earlier versions of Python 3 are not currently supported but 
-is probably not difficult to achieve. Pull requests are welcome.
+Features:
+
+-   Editing, manipulation and transformation of existing PDFs
+-   Based on the mature, proven QPDF C++ library
+-   Can read and write PDFs with any type of PDF encryption (except public key)
+-   Supports all PDF compression filters
+-   Supports PDF object streams
+-   Supports PDF 1.3 through 1.7
+-   Can manipulate PDF/A and other types of PDF without losing their metadata marker
+-   Can create "fast web view" (linearized) PDFs
+-   Automatically recovers and repairs damaged PDFs
+-   Implements more of the PDF specification than existing Python PDF tools
+-   For convenience, renders PDF pages or embedded PDF images in Jupyter notebooks and IPython
 
 This library is similar to PyPDF2 and pdfrw – it provides low level access to PDF
-features and allows editing and content transformation of existing PDFs. The
-advantage it offers is it's based on the mature QPDF C++ PDF library, so it 
-already implements more of the PDF specification than the existing Python PDF 
-tools. It supports reading and writing all types of PDF encryption (except
-public key), all PDF compression filters, object streams, "fast web view" 
-(linearized) PDFs. It automatically attempts to recover damaged PDFs where 
-possible.
+features and allows editing and content transformation of existing PDFs, and 
+requires some knowledge of the PDF specification.
+
+Python 2.7 and earlier versions of Python 3 are not currently supported but 
+support is probably not difficult to achieve. Pull requests are welcome.
 
 
 Installation
@@ -92,6 +101,18 @@ the Sphinx manual:
 -  ``cd pikepdf/docs``
 -  ``make html``
 
+About Python 2.7
+----------------
+
+The author's priority is building a great PDF library for Python for future
+applications, which means there isn't time to target Python 2.7. Currently the
+C++ source compiles and links correctly, so all that is necessary is backporting
+Python 3 source files. 
+
+It was recently confirmed that the C++ code base compiles and links with Python 2.7.
+One would need to backport the Python source files and fix any test suite regressions.
+Pull requests are welcome.
+
 
 License
 -------
@@ -102,7 +123,7 @@ contributing to this project, you agree to the terms and conditions of this lice
 
 `Informally <https://www.mozilla.org/en-US/MPL/2.0/FAQ/>`_, MPL 2.0 is a not a "viral" license.
 It may be combined with other work, including commercial software. However, you must disclose your modifications
-to pikepdf in source code form. In other works, fork this repository on Github or elsewhere and commit your 
+*to pikepdf* in source code form. In other works, fork this repository on Github or elsewhere and commit your 
 contributions there, and you've satisfied the license.
 
 The ``tests/resources/copyright`` file describes licensing terms for the test
