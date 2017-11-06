@@ -99,7 +99,11 @@ std::string objecthandle_pythonic_typename(QPDFObjectHandle& h, std::string pref
         s += "Array";
         break;
     case QPDFObject::object_type_e::ot_dictionary:
-        s += "Dictionary";
+        if (h.hasKey("/Type")) {
+            s += std::string("Dictionary(type_=\"") + h.getKey("/Type").getName() + "\")"; 
+        } else {
+            s += "Dictionary";
+        }
         break;
     case QPDFObject::object_type_e::ot_stream:
         s += "Stream";
