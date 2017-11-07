@@ -30,7 +30,7 @@
 extern "C" const char* qpdf_get_qpdf_version();
 
 template <typename T>
-void kwargs_to_method(py::kwargs kwargs, const char* key, std::unique_ptr<QPDF> &q, void (QPDF::*callback)(T))
+void kwargs_to_method(py::kwargs kwargs, const char* key, std::shared_ptr<QPDF> &q, void (QPDF::*callback)(T))
 {
     try {
         if (kwargs.contains(key)) {
@@ -71,10 +71,10 @@ void check_stream_is_usable(py::object stream)
     }
 }
 
-std::unique_ptr<QPDF>
+std::shared_ptr<QPDF>
 open_pdf(py::args args, py::kwargs kwargs)
 {
-    auto q = std::make_unique<QPDF>();
+    auto q = std::make_shared<QPDF>();
     if (args.size() < 1)
         throw py::value_error("not enough arguments");
     if (args.size() > 2)
@@ -221,10 +221,10 @@ PYBIND11_MODULE(_qpdf, m) {
 
     init_pagelist(m);
 
-    py::class_<QPDF>(m, "Pdf", "In-memory representation of a PDF")
+    py::class_<QPDF, std::shared_ptr<QPDF>>(m, "Pdf", "In-memory representation of a PDF")
         .def_static("new",
             []() {
-                auto q = std::make_unique<QPDF>();
+                auto q = std::make_shared<QPDF>();
                 q->emptyPDF();
                 q->setSuppressWarnings(true);
                 return q;

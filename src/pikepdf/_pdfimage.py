@@ -24,7 +24,6 @@ class PdfImage:
             raise TypeError("can't construct PdfImage from non-image")
         
         self.obj = obj
-        self._qpdf = obj.owner  # Save a reference to our source file
 
     @property
     def mode(self):

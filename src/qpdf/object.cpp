@@ -284,8 +284,13 @@ void init_object(py::module& m)
         )
         .def_property_readonly("type_code", &QPDFObjectHandle::getTypeCode)
         .def_property_readonly("type_name", &QPDFObjectHandle::getTypeName)
-        .def_property_readonly("owner", &QPDFObjectHandle::getOwningQPDF,
-            "Return the QPDF object that owns an indirect object.  Returns None for a direct object."
+        // .def_property_readonly("owner", &QPDFObjectHandle::getOwningQPDF,
+        //     "Return the QPDF object that owns an indirect object.  Returns None for a direct object."
+        // )
+        .def("check_owner",
+            [](QPDFObjectHandle &h, std::shared_ptr<QPDF> possible_owner) {
+                return (h.getOwningQPDF() == possible_owner.get());
+            }
         )
         .def("__repr__", &objecthandle_repr)
         .def("__hash__",

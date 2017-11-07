@@ -3,6 +3,7 @@ import imghdr
 from io import BytesIO
 from PIL import Image
 import zlib
+import sys
 
 from pikepdf import Pdf, Object, PdfImage
 from pikepdf._qpdf import Name, Null
@@ -23,7 +24,9 @@ def test_image_from_nonimage(resources):
 
 
 def test_image(congress_im0):
+    sys.stdout.flush()
     pdfimage = PdfImage(congress_im0)
+    #pdfimage = congress_im0
     pillowimage = pdfimage.topil()
 
     assert pillowimage.mode == pdfimage.mode
@@ -54,4 +57,4 @@ def test_lowlevel_replace_jpeg(congress_im0, outdir):
     congress_im0.write(zlib.compress(grayscale.tobytes()), Name("/FlateDecode"), Null())
     congress_im0.ColorSpace = Name('/DeviceGray')
 
-    pdf.save(outdir / 'congress_gray.pdf')
+    #pdf.save(outdir / 'congress_gray.pdf')

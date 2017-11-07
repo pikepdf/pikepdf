@@ -46,9 +46,7 @@ def test_create_form_xobjects(outdir):
     form_xobj['/FormType'] = 1
     form_xobj['/Matrix'] = [1, 0, 0, 1, 0, 0]
     form_xobj['/BBox'] = [0, 0, 1, 1]
-    print(form_xobj_res.owner)
     form_xobj['/Resources'] = form_xobj_res
-
 
     rfont = {'/F1': font}
 
