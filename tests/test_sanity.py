@@ -4,6 +4,7 @@ from pikepdf import _qpdf as qpdf
 import os
 import platform
 import shutil
+import gc
 from contextlib import suppress
 from shutil import copy
 
@@ -150,6 +151,7 @@ def test_copy_page_keepalive(resources, outdir):
 
     del src
     src = None
+    gc.collect()
     (outdir / 'sandwich.pdf').unlink()
     pdf.save(outdir / 'out.pdf')
 
