@@ -48,6 +48,42 @@ namespace pybind11 { namespace detail {
     };
 }}
 
+#define DEBUG_TYPE_CONVERSION 0
+#if DEBUG_TYPE_CONVERSION
+namespace pybind11 { namespace detail {
+    template <> struct type_caster<QPDFObjectHandle> {
+    public:
+        PYBIND11_TYPE_CASTER(QPDFObjectHandle, _("Object"));
+
+        /**
+         * Conversion part 1 (Python->C++): convert a PyObject into a Object
+         */
+        bool load(handle src, bool convert) {
+            static auto base_caster = type_caster_generic(typeid(QPDFObjectHandle));
+            if (base_caster.load(src, convert)) {
+                value = *reinterpret_cast<QPDFObjectHandle *>(base_caster.value);
+                //value = std::move(*reinterpret_cast<QPDFObjectHandle *>(base_caster.value));
+                return true;
+            }
+            return false;
+        }
+
+        /**
+         * Conversion part 2 (C++ -> Python): convert an instance into
+         * a Python object.
+         */
+        static handle cast(QPDFObjectHandle src, return_value_policy policy, handle parent) {
+            QPDF *owner = src.getOwningQPDF();
+            if (owner) {
+                auto pyqpdf = pybind11::cast(owner);
+                pyqpdf.inc_ref();
+            }
+            return type_caster_base<QPDFObjectHandle>::cast(src, policy, parent);
+        }
+    };
+}} // namespace pybind11::detail
+#endif
+
 namespace py = pybind11;
 
 // From object.cpp
