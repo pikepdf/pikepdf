@@ -203,8 +203,8 @@ private:
 void init_pagelist(py::module &m)
 {
     py::class_<PageList>(m, "PageList")
-        .def("__getitem__", &PageList::get_page)
-        .def("__getitem__", &PageList::get_pages)
+        .def("__getitem__", &PageList::get_page,py::return_value_policy::reference_internal)
+        .def("__getitem__", &PageList::get_pages, py::return_value_policy::reference_internal)
         .def("__setitem__", &PageList::set_page)
         .def("__setitem__", &PageList::set_pages_from_iterable)
         .def("__delitem__", &PageList::delete_page)

@@ -273,7 +273,8 @@ PYBIND11_MODULE(_qpdf, m) {
         .def_property_readonly("pages",
             [](QPDF &q) {
                 return PageList(q);
-            }
+            },
+            py::return_value_policy::reference_internal
         )
         .def_property_readonly("_pages", &QPDF::getAllPages)
         .def_property_readonly("is_encrypted", &QPDF::isEncrypted)
@@ -318,6 +319,11 @@ PYBIND11_MODULE(_qpdf, m) {
         .def("_replace_object",
             [](QPDF &q, int objid, int gen, QPDFObjectHandle &h) {
                 q.replaceObject(objid, gen, h);
+            }
+        )
+        .def("__del__",
+            [](QPDF &q) {
+                py::print("I am being garbage collected!");
             }
         );
 
