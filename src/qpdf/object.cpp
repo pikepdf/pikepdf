@@ -434,7 +434,7 @@ void init_object(py::module& m)
                     throw py::key_error(key);
                 return h.getKey(key);
             },
-            py::return_value_policy::reference_internal
+            py::keep_alive<0, 1>()
         )
         .def("__setitem__",
             [](QPDFObjectHandle &h, std::string const& key, QPDFObjectHandle &value) {
@@ -504,7 +504,7 @@ void init_object(py::module& m)
                 return dict.getKey(key);
             },
             "attribute lookup name",
-            py::return_value_policy::reference_internal
+            py::keep_alive<0, 1>()
         )
         .def("__setattr__",
             [](QPDFObjectHandle &h, std::string const& name, py::object &pyvalue) {
@@ -543,7 +543,7 @@ void init_object(py::module& m)
                 return py::cast(h.getKey(key));
             },
             "for dictionary objects, behave as dict.get(key, default=None)",
-            py::return_value_policy::reference_internal,
+            py::keep_alive<0, 1>(),
             py::arg("key"),
             py::arg("default_") = py::none()
         )
@@ -569,7 +569,7 @@ void init_object(py::module& m)
                 size_t u_index = list_range_check(h, index);
                 return h.getArrayItem(u_index);
             },
-            py::return_value_policy::reference_internal
+            py::keep_alive<0, 1>()
         )
         .def("__setitem__",
             [](QPDFObjectHandle &h, int index, QPDFObjectHandle &value) {

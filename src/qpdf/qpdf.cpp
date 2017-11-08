@@ -274,7 +274,7 @@ PYBIND11_MODULE(_qpdf, m) {
             [](std::shared_ptr<QPDF> q) {
                 return PageList(q);
             },
-            py::return_value_policy::reference_internal
+            py::keep_alive<0, 1>()
         )
         .def_property_readonly("_pages", &QPDF::getAllPages)
         .def_property_readonly("is_encrypted", &QPDF::isEncrypted)
