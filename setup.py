@@ -24,6 +24,7 @@ ext_modules = [
     Extension(
         'pikepdf._qpdf',
         glob('src/qpdf/*.cpp'),
+        depends=glob('src/qpdf/*.h'),
         include_dirs=[
             # Path to pybind11 headers
             get_pybind_include(),
