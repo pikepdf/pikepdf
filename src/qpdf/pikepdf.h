@@ -59,11 +59,10 @@ namespace pybind11 { namespace detail {
          * Conversion part 1 (Python->C++): convert a PyObject into a Object
          */
         bool load(handle src, bool convert) {
-            //static auto base_caster = type_caster_generic(typeid(QPDFObjectHandle));
-            static auto base_caster = type_caster_base<QPDFObjectHandle>();
+            static auto base_caster = type_caster_generic(typeid(QPDFObjectHandle));
+            
             if (base_caster.load(src, convert)) {
                 value = *reinterpret_cast<QPDFObjectHandle *>(base_caster.value);
-                //value = std::move(*reinterpret_cast<QPDFObjectHandle *>(base_caster.value));
                 return true;
             }
             return false;

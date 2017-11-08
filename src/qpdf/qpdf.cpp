@@ -330,11 +330,6 @@ PYBIND11_MODULE(_qpdf, m) {
             [](std::shared_ptr<QPDF> q, int objid, int gen, QPDFObjectHandle &h) {
                 q->replaceObject(objid, gen, h);
             }
-        )
-        .def("__del__",
-            [](std::shared_ptr<QPDF> q) {
-                py::print("I am being garbage collected!");
-            }
         );
 
     init_object(m);
