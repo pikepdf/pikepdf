@@ -48,7 +48,7 @@ namespace pybind11 { namespace detail {
     };
 }}
 
-#define DEBUG_TYPE_CONVERSION 0
+#define DEBUG_TYPE_CONVERSION 1
 #if DEBUG_TYPE_CONVERSION
 namespace pybind11 { namespace detail {
     template <> struct type_caster<QPDFObjectHandle> {

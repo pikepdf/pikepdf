@@ -181,8 +181,8 @@ public:
             // Instead WHEN ASKED TO WRITE it will go back and get the data
             // from objecthandle->getOwningQPDF(). Therefore we must ensure
             // our owner stays alive.
-            py::object pyqpdf = py::cast(page_owner);
-            pyqpdf.inc_ref();
+            //py::object pyqpdf = py::cast(page_owner);
+            //pyqpdf.inc_ref();
         }
 
         if (index != this->count()) {
