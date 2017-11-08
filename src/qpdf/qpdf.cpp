@@ -128,7 +128,7 @@ open_pdf(py::args args, py::kwargs kwargs)
 
 
 void save_pdf(
-    QPDF &q,
+    std::shared_ptr<QPDF> q,
     py::object filename_or_stream,
     bool static_id=false,
     bool preserve_pdfa=true,
@@ -137,7 +137,7 @@ void save_pdf(
     qpdf_object_stream_e object_stream_mode=qpdf_o_preserve,
     qpdf_stream_data_e stream_data_mode=qpdf_s_preserve)
 {
-    QPDFWriter w(q);
+    QPDFWriter w(*q);
 
     // Parameters
     if (static_id) {
@@ -255,8 +255,8 @@ PYBIND11_MODULE(_qpdf, m) {
             )~~~"
         )
         .def("__repr__",
-            [](const QPDF &q) {
-                return std::string("<pikepdf.Pdf description='") + q.getFilename() + std::string("'>");
+            [](std::shared_ptr<QPDF> q) {
+                return std::string("<pikepdf.Pdf description='") + q->getFilename() + std::string("'>");
             }
         )
         .def_property_readonly("filename", &QPDF::getFilename,
@@ -271,7 +271,7 @@ PYBIND11_MODULE(_qpdf, m) {
         .def_property_readonly("trailer", &QPDF::getTrailer,
             "the PDF trailer")
         .def_property_readonly("pages",
-            [](QPDF &q) {
+            [](std::shared_ptr<QPDF> q) {
                 return PageList(q);
             },
             py::return_value_policy::reference_internal
@@ -312,17 +312,17 @@ PYBIND11_MODULE(_qpdf, m) {
         .def("_get_object_id", &QPDF::getObjectByID)
         .def("make_indirect", &QPDF::makeIndirectObject)
         .def("make_indirect",
-            [](QPDF &q, py::object obj) -> QPDFObjectHandle {
-                return q.makeIndirectObject(objecthandle_encode(obj));
+            [](std::shared_ptr<QPDF> q, py::object obj) -> QPDFObjectHandle {
+                return q->makeIndirectObject(objecthandle_encode(obj));
             }
         )
         .def("_replace_object",
-            [](QPDF &q, int objid, int gen, QPDFObjectHandle &h) {
-                q.replaceObject(objid, gen, h);
+            [](std::shared_ptr<QPDF> q, int objid, int gen, QPDFObjectHandle &h) {
+                q->replaceObject(objid, gen, h);
             }
         )
         .def("__del__",
-            [](QPDF &q) {
+            [](std::shared_ptr<QPDF> q) {
                 py::print("I am being garbage collected!");
             }
         );

@@ -47,11 +47,11 @@ class PageList {
 public:
     size_t iterpos;
 
-    PageList(QPDF &q, size_t iterpos = 0) : iterpos(iterpos), qpdf(q) {};
+    PageList(std::shared_ptr<QPDF> q, size_t iterpos = 0) : iterpos(iterpos), qpdf(q) {};
 
     QPDFObjectHandle get_page(ssize_t index) const
     {
-        auto pages = this->qpdf.getAllPages();
+        auto pages = this->qpdf->getAllPages();
         if (index < 0)
             index += pages.size();
         if (index < 0) // Still
@@ -145,12 +145,12 @@ public:
             pyqpdf.dec_ref();
         }
         */
-        this->qpdf.removePage(page);
+        this->qpdf->removePage(page);
     }
 
     size_t count() const
     {
-        return this->qpdf.getAllPages().size();
+        return this->qpdf->getAllPages().size();
     }
 
     void insert_page(size_t index, py::handle obj)
@@ -172,10 +172,10 @@ public:
         // Find out who owns us
         QPDF *page_owner = page.getOwningQPDF();
 
-        if (page_owner == &this->getQPDF()) {
+        if (page_owner == this->qpdf.get()) {
             // qpdf does not accept duplicating pages within the same file, 
             // so manually create a copy
-            page = this->qpdf.makeIndirectObject(page);
+            page = this->qpdf->makeIndirectObject(page);
         } else {
             // libqpdf does not transfer a page's contents to the new QPDF.
             // Instead WHEN ASKED TO WRITE it will go back and get the data
@@ -187,16 +187,16 @@ public:
 
         if (index != this->count()) {
             QPDFObjectHandle refpage = this->get_page(index);
-            this->qpdf.addPageAt(page, true, refpage);
+            this->qpdf->addPageAt(page, true, refpage);
         } else {
-            this->qpdf.addPage(page, false);
+            this->qpdf->addPage(page, false);
         }
     }
 
-    QPDF &getQPDF() { return qpdf; }
+    std::shared_ptr<QPDF> getQPDF() { return qpdf; }
 
 private:
-    QPDF &qpdf;    
+    std::shared_ptr<QPDF> qpdf;    
 };
 
 
