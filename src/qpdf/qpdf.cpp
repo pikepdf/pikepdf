@@ -264,19 +264,11 @@ PYBIND11_MODULE(_qpdf, m) {
         .def_property_readonly("pdf_version", &QPDF::getPDFVersion,
             "the PDF standard version, such as '1.7'")
         .def_property_readonly("extension_level", &QPDF::getExtensionLevel)
-        .def_property_readonly("Root", 
-            [](std::shared_ptr<QPDF> q) {
-                return q->getRoot();
-            },
-            "the /Root object of the PDF",
-            py::return_value_policy::reference_internal
+        .def_property_readonly("Root", &QPDF::getRoot,
+            "the /Root object of the PDF"
         )
-        .def_property_readonly("root",
-            [](std::shared_ptr<QPDF> q) {
-                return q->getRoot();
-            },
-            "alias for .Root, the /Root object of the PDF",
-            py::keep_alive<0, 1>()
+        .def_property_readonly("root", &QPDF::getRoot,
+            "alias for .Root, the /Root object of the PDF"
         )
         .def_property_readonly("trailer", &QPDF::getTrailer,
             "the PDF trailer")
