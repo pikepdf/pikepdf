@@ -61,6 +61,8 @@ namespace pybind11 { namespace detail {
         bool load(handle src, bool convert) {
             static auto base_caster = type_caster_generic(typeid(QPDFObjectHandle));
             
+            // We just want default behavior, and this is the best known way to
+            // get it. Drawback is the required copy.
             if (base_caster.load(src, convert)) {
                 value = *reinterpret_cast<QPDFObjectHandle *>(base_caster.value);
                 return true;
@@ -71,14 +73,26 @@ namespace pybind11 { namespace detail {
         /**
          * Conversion part 2 (C++ -> Python): convert an instance into
          * a Python object.
+         * Purpose of this is to establish the indirect keep_alive relationship
+         * between QPDF and objects that refer back to in ways that pybind11
+         * can't trace on its own.
+         * Could consider unboxing Integer, Boolean, etc. here
          */
         static handle cast(QPDFObjectHandle src, return_value_policy policy, handle parent) {
             QPDF *owner = src.getOwningQPDF();
+            handle h = type_caster_base<QPDFObjectHandle>::cast(src, policy, parent);
             if (owner) {
-                auto pyqpdf = pybind11::cast(owner);
-                pyqpdf.inc_ref();
+                // Find the Python object that refers to our owner
+                // Can do that by casting or more direct lookup
+                //auto pyqpdf = pybind11::cast(owner);
+                auto tinfo = get_type_info(typeid(QPDF));
+                handle pyqpdf = get_object_handle(owner, tinfo);
+                
+                // Tell pybind11 that it must keep pyqpdf alive as long as h is
+                // alive
+                keep_alive_impl(h, pyqpdf);
             }
-            return type_caster_base<QPDFObjectHandle>::cast(src, policy, parent);
+            return h;
         }
     };
 }} // namespace pybind11::detail

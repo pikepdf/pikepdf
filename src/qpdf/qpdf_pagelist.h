@@ -180,9 +180,11 @@ public:
             // libqpdf does not transfer a page's contents to the new QPDF.
             // Instead WHEN ASKED TO WRITE it will go back and get the data
             // from objecthandle->getOwningQPDF(). Therefore we must ensure
-            // our owner stays alive.
-            //py::object pyqpdf = py::cast(page_owner);
-            //pyqpdf.inc_ref();
+            // our previous owner is kept alive.
+            py::handle pyqpdf = py::cast(page_owner);
+            py::handle pypage = py::cast(page);
+
+            py::detail::keep_alive_impl(pypage, pyqpdf);
         }
 
         if (index != this->count()) {
