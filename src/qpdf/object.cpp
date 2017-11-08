@@ -748,15 +748,15 @@ void init_object(py::module& m)
         "Construct a PDF Dictionary from a mapping of PDF objects or Python types that can be coerced to PDF objects."
     );
     m.def("Stream",
-        [](QPDF* owner, py::bytes data) {
+        [](std::shared_ptr<QPDF> owner, py::bytes data) {
             std::string s = data;
-            return QPDFObjectHandle::newStream(owner, data); // This makes a copy of the data
+            return QPDFObjectHandle::newStream(owner.get(), data); // This makes a copy of the data
         },
         "Construct a PDF Stream object from binary data",
         py::keep_alive<0, 1>() // returned object references the owner
     );
     m.def("Stream",
-        [](QPDF* owner, py::iterable content_stream) {
+        [](std::shared_ptr<QPDF> owner, py::iterable content_stream) {
             std::stringstream data;
 
             for (auto handle_command : content_stream) {
@@ -775,7 +775,7 @@ void init_object(py::module& m)
                 data << objecthandle_encode(operator_).unparse();
                 data << "\n";
             }
-            return QPDFObjectHandle::newStream(owner, data.str());
+            return QPDFObjectHandle::newStream(owner.get(), data.str());
         },
         "Construct a PDF Stream object from a list of operand-operator tuples [((operands,), operator)]",
         py::keep_alive<0, 1>() // returned object references the owner   
