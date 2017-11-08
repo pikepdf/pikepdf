@@ -9,6 +9,7 @@
 #pragma once
 
 #include <qpdf/PointerHolder.hh>
+#include <qpdf/QPDF.hh>
 #include <qpdf/QPDFObjectHandle.hh>
 #include <pybind11/pybind11.h>
 
@@ -59,8 +60,10 @@ namespace pybind11 { namespace detail {
          * Conversion part 1 (Python->C++): convert a PyObject into a Object
          */
         bool load(handle src, bool convert) {
-            static auto base_caster = type_caster_generic(typeid(QPDFObjectHandle));
-            
+            //C++14 required for:
+            //static auto base_caster = type_caster_generic(typeid(QPDFObjectHandle));
+            static auto base_caster = type_caster_base<QPDFObjectHandle>();
+
             // We just want default behavior, and this is the best known way to
             // get it. Drawback is the required copy.
             if (base_caster.load(src, convert)) {

@@ -25,7 +25,7 @@ string quoted(const string &s)
         if (c == '"') {
             ss << "\\\"";
         } else if (c == '\\') {
-            ss << '\\\\';
+            ss << "\\\\";
         } else {
             ss << c;
         }
