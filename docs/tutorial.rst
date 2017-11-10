@@ -1,8 +1,8 @@
 Tutorial
-========
+********
 
 In contrast to better known PDF libraries, pikepdf uses a single object to 
-represent a PDF, whether, reading, writing or merging. We have cleverly named
+represent a PDF, whether reading, writing or merging. We have cleverly named
 this :class:`pikepdf.Pdf`.
 
 .. code-block:: python
@@ -22,10 +22,10 @@ opening are different. ``Pdf.open()`` also accepts seekable streams as input,
 and ``Pdf.save()`` accepts seekable streams as output.
 
 Manipulating pages
-------------------
+==================
 
 pikepdf presents the pages in a PDF through the ``Pdf.pages`` property, which
-follows the ``list`` protocol.
+follows the ``list`` protocol. As such page numbers begin at 0.
 
 .. code-block:: python
 
@@ -63,6 +63,7 @@ provides a convenience accessor that also uses counting numbers:
    report.pages[0]         # Also the first page in the document
    del report.pages.p(50)  # Drop page 50
 
+To avoid confusion, the ``.p()`` accessor does not accept Python slices.
 
 .. note::
 
@@ -74,13 +75,14 @@ provides a convenience accessor that also uses counting numbers:
 
 .. warning::
 
-   Accessing page information through the /Root object is also possible, but
-   not recommended. The /Pages data structure in a PDF can be fairly complex,
-   and the ``.pages`` interface manages this complexity.
+   It's possible to obtain page information through the PDF ``/Root`` object as well,
+   but not recommend. The internal consistency of the various ``/Page`` and ``/Pages``
+   is not guaranteed when accessed in this manner, and in some PDFs the data
+   structure for these is fairly cmoplex. Use the ``.pages`` interface.
 
 
 Examining a page
-----------------
+================
 
 .. code-block:: python
 
@@ -109,14 +111,33 @@ Examining a page
     },
     "/Type": "/Page"
   })>
- 
 
-The angle brackets indicate that this complex object cannot be expressed in a 
-Python expression because it refers indirect objects (possibly including
-itself). When angle brackets are omitted from the ``repr()`` of a pikepdf
-object, then the object can be replicated with a Python expression.
+This is a PDF Dictionary of type ``/Page``. The dictionary follows most of the
+mapping (Python ``dict``) protocol. Dictionary keys may be looked up using 
+keys (``page1['/MediaBox']``) or attributes (``page1.MediaBox``). Consult
+the PDF reference manual to determine which attributes are optional or required.
 
-For example, this page's MediaBox is a simple object.
+Attribute notation is convenient, but not robust if elements are missing.
+For elements that are not always present, you can use ``.get()``, behaves like
+``dict.get()`` in core Python.
+
+In general a PDF dictionary's keys must be strings beginning with "/"
+followed by a capital letter. When you access an attribute with a name
+beginning with a capital letter, pikepdf will check the dictionary for
+that key. For the rare PDF keys that don't follow this convention, you
+must use standard dictionary notation.
+
+The angle brackets in the output indicate that this object cannot be 
+constructed with a Python expression because it contains indirect objects 
+(possibly including a self-reference). When angle brackets are omitted from the 
+``repr()`` of a pikepdf object, then the object can be replicated with a Python 
+expression, that is ``eval(repr(x)) == x``.
+
+In Jupyter and IPython, pikepdf will instead attempt to rasterize a preview of
+the PDF page, if the "mupdf-tools" package is installed. Use ``repr(page)`` to 
+see the contents.
+
+For example, this page's MediaBox is a direct object.
 
 .. code-block:: python
 
@@ -127,24 +148,32 @@ For example, this page's MediaBox is a simple object.
   >>> pikepdf.Object.Array([ 0, 0, 200, 304 ])
   pikepdf.Object.Array([ 0, 0, 200, 304 ])
 
-The page's /Contents key contains instructions for drawing the page content.
-Also attached to this page is a /Resources dictionary, which contains a single
-XObject image. The image is compressed with the /DCTDecode, meaning it is
+The page's ``/Contents`` key contains instructions for drawing the page content.
+Also attached to this page is a ``/Resources`` dictionary, which contains a single
+XObject image. The image is compressed with the ``/DCTDecode`` filter, meaning it is
 encoded as a JPEG.
 
-Let's see that JPEG. We'll read its data as a raw bytes, which tells pikepdf
-not to decompress it. Then we wrap it in a Python BytesIO stream and hand it
-over to Pillow to display on the system.
+Viewing images
+--------------
+
+Let's see that JPEG. 
 
 .. code-block:: python
 
-  >>> im0 = page1.Resources.XObject.get('/Im0')
-  >>> raw_bytes = im0.read_raw_stream()
-  >>> from PIL import Image
-  >>> from io import BytesIO
-  >>> im0_stream = BytesIO(raw_bytes)
-  >>> image = Image.open(im0_stream)
-  >>> image.show()
+  >>> from pikepdf import PdfImage
+  >>> pdfimage = PdfImage(page1.Resources.XObject['/Im0'])
+  >>> pdfimage.show()
+
+One can also use the PdfImage wrapper to convert the image to a Python Pillow
+image.
+
+Jupyter and IPython will automatically show the graphically representation of
+the image, as below:
+
+.. code-block:: python
+ 
+   In [1] : pdfimage
+  Out [1] : [the image appears here]
 
 .. note::
 
@@ -152,11 +181,18 @@ over to Pillow to display on the system.
   will paint a page using multiple images, and features such as layers,
   transparency and image masks. Accessing the first image on a page is like an
   HTML parser that scans for the first ``<img src="">`` tag it finds. A lot
-  more could be happening.
-  
+  more could be happening. There can be multiple images drawn multiple times 
+  on a page, vector art, overdrawing, masking, and transparency. A set of resources
+  can be grouped together in a "Form XObject" (not to be confused with a PDF Form),
+  and drawn at all once. Images can be referenced by multiple pages.
+
+Replacing an image
+------------------
+
+See ``test_image_access.py::test_image_replace``.
 
 Inspecting the PDF Root object
-------------------------------
+==============================
 
 Open a PDF and see what is inside the /Root object.
 
@@ -202,19 +238,9 @@ Open a PDF and see what is inside the /Root object.
 The /Root object is a PDF dictionary that describes where
 the rest of the PDF content is. 
 
-Attribute notation is convenient, but not robust if elements are missing.
-For elements that are not always present, you can even use ``.get()`` on
-the PDF dictionary to specify a fallback.
-
-In general a PDF dictionary's keys must be strings beginning with "/"
-followed by a capital letter. When you access an attribute with a name
-beginning with a capital letter, pikepdf will check the dictionary for
-that key. For the rare PDF keys that don't follow this convention, you
-must use standard dictionary notation.
-
 
 PDF Stream objects
-------------------
+==================
 
 Let's read the metadata, which the PDF helpful tells us is coded in XML,
 and is a :class:`pikepdf.Object.Stream`. A ``Stream`` is a PDF construct
@@ -249,6 +275,5 @@ You could explore that XML packet further using the ``defusedxml``.
 .. warning::
 
   PDFs may contain viruses, and one place they can 'live' is inside XML objects.
-  Always use a  
 
 
