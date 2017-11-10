@@ -52,22 +52,17 @@ namespace pybind11 { namespace detail {
 #define DEBUG_TYPE_CONVERSION 1
 #if DEBUG_TYPE_CONVERSION
 namespace pybind11 { namespace detail {
-    template <> struct type_caster<QPDFObjectHandle> {
+    template <> struct type_caster<QPDFObjectHandle> : public type_caster_base<QPDFObjectHandle> {
+        using base = type_caster_base<QPDFObjectHandle>;
     public:
-        PYBIND11_TYPE_CASTER(QPDFObjectHandle, _("Object"));
 
         /**
          * Conversion part 1 (Python->C++): convert a PyObject into a Object
          */
         bool load(handle src, bool convert) {
-            //C++14 required for:
-            //static auto base_caster = type_caster_generic(typeid(QPDFObjectHandle));
-            static auto base_caster = type_caster_base<QPDFObjectHandle>();
-
             // We just want default behavior, and this is the best known way to
             // get it. Drawback is the required copy.
-            if (base_caster.load(src, convert)) {
-                value = *reinterpret_cast<QPDFObjectHandle *>(base_caster.value);
+            if (base::load(src, convert)) {
                 return true;
             }
             return false;
@@ -83,7 +78,7 @@ namespace pybind11 { namespace detail {
          */
         static handle cast(QPDFObjectHandle src, return_value_policy policy, handle parent) {
             QPDF *owner = src.getOwningQPDF();
-            handle h = type_caster_base<QPDFObjectHandle>::cast(src, policy, parent);
+            handle h = base::cast(src, policy, parent);
             if (owner) {
                 // Find the Python object that refers to our owner
                 // Can do that by casting or more direct lookup
