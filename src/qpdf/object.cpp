@@ -257,6 +257,7 @@ void init_object(py::module& m)
         });    
 
     py::class_<QPDFObjectHandle>(m, "Object")
+        .def(py::init<>())
         .def_static("new",
             [](bool b) {
                 return QPDFObjectHandle::newBool(b);
