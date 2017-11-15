@@ -60,12 +60,7 @@ namespace pybind11 { namespace detail {
          * Conversion part 1 (Python->C++): convert a PyObject into a Object
          */
         bool load(handle src, bool convert) {
-            // We just want default behavior, and this is the best known way to
-            // get it. Drawback is the required copy.
-            if (base::load(src, convert)) {
-                return true;
-            }
-            return false;
+            return base::load(src, convert);
         }
 
         /**
@@ -76,9 +71,54 @@ namespace pybind11 { namespace detail {
          * can't trace on its own.
          * Could consider unboxing Integer, Boolean, etc. here
          */
-        static handle cast(QPDFObjectHandle src, return_value_policy policy, handle parent) {
-            QPDF *owner = src.getOwningQPDF();
-            handle h = base::cast(src, policy, parent);
+        // static handle cast(QPDFObjectHandle src, return_value_policy policy, handle parent) {
+        //     QPDF *owner = src.getOwningQPDF();
+        //     handle h = base::cast(src, policy, parent);
+        //     if (owner) {
+        //         // Find the Python object that refers to our owner
+        //         // Can do that by casting or more direct lookup
+        //         //auto pyqpdf = pybind11::cast(owner);
+        //         auto tinfo = get_type_info(typeid(QPDF));
+        //         handle pyqpdf = get_object_handle(owner, tinfo);
+                
+        //         // Tell pybind11 that it must keep pyqpdf alive as long as h is
+        //         // alive
+        //         keep_alive_impl(h, pyqpdf);
+        //     }
+        //     return h;
+        // }
+
+        // static handle cast(QPDFObjectHandle *src, return_value_policy policy, handle parent) {
+        //     if (!src)
+        //         return none().release();
+        //     // If it's a pointer, dereference it and cast it
+        //     handle h;
+        //     if (policy == return_value_policy::take_ownership) {
+        //         h = cast(std::move(*src), policy, parent);
+        //         delete src;
+        //     } else {
+        //         h = cast(*src, policy, parent);
+        //     }
+        //     return h;            
+        // }
+private:
+        static handle cast(const QPDFObjectHandle *src, return_value_policy policy, handle parent) {
+            if (!src)
+                return none().release();
+            // If it's a pointer, dereference it and cast it
+            QPDF *owner = const_cast<QPDFObjectHandle *>(src)->getOwningQPDF();
+            if (owner)
+                std::cout << "Object has QPDF\n";
+            handle h;
+            if (policy == return_value_policy::take_ownership) {
+                std::cout << "Python is taking ownership\n";
+                h = base::cast(std::move(*src), policy, parent);
+                // std::cout << "Deleting C++ version\n";
+                // delete src;
+            } else {
+                std::cout << "Python is getting a copy\n";
+                h = base::cast(*src, policy, parent);
+            }
             if (owner) {
                 // Find the Python object that refers to our owner
                 // Can do that by casting or more direct lookup
@@ -90,8 +130,28 @@ namespace pybind11 { namespace detail {
                 // alive
                 keep_alive_impl(h, pyqpdf);
             }
-            return h;
+            return h;            
         }
+
+public:
+        static handle cast(QPDFObjectHandle &&src, return_value_policy policy, handle parent) {
+            std::cout << "Entered rvalue caster\n";
+            return cast(&src, return_value_policy::move, parent);
+        }
+
+        static handle cast(const QPDFObjectHandle &src, return_value_policy policy, handle parent) {
+            std::cout << "Entered lvalue caster\n";
+            if (policy == return_value_policy::automatic || policy == return_value_policy::automatic_reference)
+                policy = return_value_policy::copy;
+            return cast(&src, policy, parent);
+        }
+
+        // static handle cast(QPDFObjectHandle &&src, return_value_policy policy, handle parent) {
+        //     return cast(&src, return_value_policy::move, parent);
+        // }
+
+        //operator QPDFObjectHandle*() { return (QPDFObjectHandle*) value; }
+        //operator QPDFObjectHandle&() { if (!value) throw reference_cast_error(); return *((QPDFObjectHandle *) value); }    
     };
 }} // namespace pybind11::detail
 #endif

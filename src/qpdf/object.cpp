@@ -256,8 +256,21 @@ void init_object(py::module& m)
             );
         });    
 
+    static QPDFObjectHandle static_handle;
     py::class_<QPDFObjectHandle>(m, "Object")
         .def(py::init<>())
+        // .def_static("new_ptr",
+        //     []() {
+        //         return new QPDFObjectHandle();
+        //     },
+        //     py::return_value_policy::take_ownership
+        // )
+        // .def_static("get_static",
+        //     []() {
+        //         return &static_handle;
+        //     },
+        //     py::return_value_policy::reference
+        // )
         .def_static("new",
             [](bool b) {
                 return QPDFObjectHandle::newBool(b);
