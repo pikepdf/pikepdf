@@ -6,6 +6,9 @@ import platform
 import shutil
 from contextlib import suppress
 from shutil import copy
+import gc
+
+check_refcount = pytest.helpers.check_refcount
 
 
 def test_split_pdf(resources, outdir):
@@ -60,9 +63,13 @@ def test_evil_page_deletion(resources, outdir):
     src = qpdf.Pdf.open(outdir / 'sandwich.pdf')
     pdf = qpdf.Pdf.open(resources / 'graph.pdf')
 
+    assert check_refcount(src, 2)
     pdf.pages.append(src.pages[0])
+    assert check_refcount(src, 3)
 
-    del src.pages[0]    
+    del src.pages[0]
+    gc.collect()
+    assert check_refcount(src, 3)
     (outdir / 'sandwich.pdf').unlink()
     pdf.save(outdir / 'out.pdf')
 
@@ -71,6 +78,11 @@ def test_evil_page_deletion(resources, outdir):
 
     del pdf.pages[0]
     pdf.save(outdir / 'out_nopages.pdf')
+    del pdf
+    gc.collect()
+    # Ideally we'd see the check_refcount(src, 2) at this point, but we don't
+    # have a way to find out when a PDF can be closed if a page was copied out
+    # of it to another PDF
 
 
 def test_append_all(resources, outdir):
