@@ -80,6 +80,9 @@ def parse_content_stream(stream):
     if not isinstance(stream, Object):
         raise TypeError("stream must a PDF object")
 
+    if stream.type_code != ObjectType.stream:
+        raise TypeError("parse_content_stream called on non-stream Object")
+
     grouper = _OperandGrouper()
     try:
         Object.parse_stream(stream, grouper)
