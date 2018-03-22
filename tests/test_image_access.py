@@ -5,7 +5,7 @@ from PIL import Image
 import zlib
 import sys
 
-from pikepdf import Pdf, Object, PdfImage
+from pikepdf import Pdf, Object, PdfImage, PdfError
 from pikepdf._qpdf import Name, Null
 
 
@@ -45,7 +45,7 @@ def test_image_replace(congress, outdir):
 
 def test_lowlevel_jpeg(congress, outdir):
     raw_bytes = congress[0].read_raw_bytes()
-    with pytest.raises(RuntimeError):
+    with pytest.raises(PdfError):
         congress[0].read_bytes()
 
     assert imghdr.what('', h=raw_bytes) == 'jpeg'
