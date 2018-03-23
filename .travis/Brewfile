@@ -1,0 +1,3 @@
+brew 'python'
+brew 'ccache'
+brew 'qpdf'

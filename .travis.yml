@@ -114,8 +114,8 @@ before_install:
       export CXXFLAGS="-Qunused-arguments -stdlib=libc++"
     fi
   elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
-    brew update >/dev/null
-    brew install ccache python3
+    brew update -q
+    brew bundle --file=.travis/Brewfile
     export PATH=/usr/local/opt/ccache/libexec:$PATH
     CC=clang
     CXX=clang++
@@ -135,7 +135,6 @@ install:
     pip install --upgrade pip setuptools
     PIP=pip
   elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
-    brew install qpdf
     PIP=pip3
     python3 -m venv venv
     $PIP --version
