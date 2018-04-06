@@ -105,7 +105,7 @@ setup(
     install_requires=['pybind11 >= 2.2, < 3'],
     cmdclass={'build_ext': BuildExt},
     zip_safe=False,
-    setup_requires=['pytest-runner', 'setuptools-scm'],
+    setup_requires=['pytest-runner', 'setuptools_scm'],
     use_scm_version=True,
     tests_require=tests_require,
     package_dir={'': 'src'},
