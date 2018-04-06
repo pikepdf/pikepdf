@@ -97,7 +97,6 @@ stages:
 
 
 before_install:
-- set -e
 - eval "${MATRIX_EVAL}"
 - |
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then
@@ -118,7 +117,6 @@ before_install:
     fi
     PYTHON_CMD=python$PYTHON
   elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
-    unset -f cd; # Workaround for weird 'shell_session_update' issue: https://github.com/travis-ci/travis-ci/issues/8703
     brew update -q
     brew bundle --file=.travis/Brewfile
     export PATH=/usr/local/opt/ccache/libexec:$PATH
