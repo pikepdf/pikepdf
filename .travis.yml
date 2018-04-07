@@ -52,6 +52,7 @@ matrix:
     language: cpp  # osx + language: python is broken
     install:
       - clang --version
+      - $PYTHON_CMD --version
       - echo "CC=$CC CXX=$CXX"
       - $PYTHON_CMD -m pip install pybind11 cibuildwheel==0.7.1 setuptools_scm
     script:
@@ -118,7 +119,7 @@ before_install:
   elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
     brew update -q
     brew bundle --file=.travis/Brewfile
-    export PATH=/usr/local/opt/ccache/libexec:$PATH
+    export PATH=/usr/local/opt/ccache/libexec:/usr/local/bin:$PATH
     CC=clang
     CXX=clang++
     PYTHON_CMD=python3
