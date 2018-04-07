@@ -58,7 +58,7 @@ matrix:
     script:
       - $PYTHON_CMD setup.py sdist -d wheelhouse
       - export CCACHE_BASEDIR=`python3 -c "import tempfile; import os; print(os.path.realpath(tempfile.gettempdir()))"`
-      - export CIBW_BEFORE_BUILD='{pip} install pybind11'
+      - export CIBW_BEFORE_BUILD='{pip} install pybind11 certifi setuptools_scm'
       - export CIBW_SKIP="cp27-* cp33-* cp34-*"
       - cibuildwheel --output-dir wheelhouse
       - |
