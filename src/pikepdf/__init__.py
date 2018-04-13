@@ -139,3 +139,6 @@ class Page:
         return False
 
 
+def open(*args, **kwargs):
+    "Alias for :function:`pikepdf.Pdf.open`."
+    return Pdf.open(*args, **kwargs)
