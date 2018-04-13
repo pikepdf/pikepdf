@@ -226,6 +226,17 @@ bool operator==(const QPDFObjectHandle& self, const QPDFObjectHandle& other)
 }
 
 
+QPDFObjectHandle object_get_key(QPDFObjectHandle& h, std::string const& key)
+{
+    if (!h.isDictionary() && !h.isStream())
+        throw py::value_error("object is not a dictionary or a stream");
+    QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
+    if (!dict.hasKey(key))
+        throw py::key_error(key);
+    return dict.getKey(key);
+}
+
+
 void init_object(py::module& m)
 {
     py::enum_<QPDFObject::object_type_e>(m, "ObjectType")
@@ -430,11 +441,7 @@ void init_object(py::module& m)
         )
         .def("__getitem__",
             [](QPDFObjectHandle &h, std::string const& key) {
-                if (!h.isDictionary() && !h.isStream())
-                    throw py::value_error("object is not a dictionary or a stream");
-                if (!h.hasKey(key))
-                    throw py::key_error(key);
-                return h.getKey(key);
+                return object_get_key(h, key);
             }
         )
         .def("__setitem__",
@@ -492,17 +499,17 @@ void init_object(py::module& m)
         )
         .def("__getattr__",
             [](QPDFObjectHandle &h, std::string const& name) {
-                if (!h.isDictionary() && !h.isStream())
-                    throw py::attr_error("object is not a dictionary or a stream");
-                QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
+                QPDFObjectHandle value;
                 std::string key = "/" + name;
-                if (!dict.hasKey(key)) {
+                try {
+                    value = object_get_key(h, key);                
+                } catch (py::key_error &e) {
                     if (std::isupper(name[0]))
-                        throw py::attr_error(key);
+                        throw py::attr_error(e.what());
                     else
                         throw py::attr_error(name);
                 }
-                return dict.getKey(key);
+                return value;
             },
             "attribute lookup name"
         )
@@ -536,11 +543,13 @@ void init_object(py::module& m)
         )
         .def("get",
             [](QPDFObjectHandle &h, std::string const& key, py::object default_) {
-                if (!h.isDictionary())
-                    throw py::value_error("object is not a dictionary");
-                if (!h.hasKey(key)) // Not usable on streams
+                QPDFObjectHandle value;
+                try {
+                    value = object_get_key(h, key);
+                } catch (py::key_error &e) {
                     return default_;
-                return py::cast(h.getKey(key));
+                }
+                return py::cast(value);
             },
             "for dictionary objects, behave as dict.get(key, default=None)",
             py::arg("key"),

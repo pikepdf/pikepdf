@@ -17,6 +17,7 @@ venv
 dist/
 tmp/
 var/
+.pytest_cache/
 
 # Main directory testing
 /*.pdf
