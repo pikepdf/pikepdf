@@ -105,3 +105,14 @@ def test_stack_depth():
     assert decode_encode(a) == a
     with pytest.raises(RuntimeError, message="recursion"):
         encode(a) == encode(a)
+
+
+def test_bytes():
+    b = b'\xff\xfe\xf0\xd0'
+    qs = qpdf.String(b)
+    assert bytes(qs) == b
+
+    s = 'é'
+    qs = qpdf.String(s)
+    assert bytes(qs) == s.encode('utf-8')
+    assert str(qs) == s
