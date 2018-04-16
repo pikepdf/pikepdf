@@ -124,7 +124,7 @@ before_install:
     CXX=clang++
     PYTHON_CMD=python3
   fi
-  $PYTHON_CMD -m pip install --upgrade pip wheel
+  $PYTHON_CMD -m pip install --upgrade 'pip < 10' wheel
 
 install:
 - |
