@@ -650,6 +650,15 @@ void init_object(py::module& m)
             py::keep_alive<1, 4>(),
             "Replace the content stream with data, which is compressed according to filter and decode params"
         )
+        .def_property_readonly("images",
+            [](QPDFObjectHandle &h) {
+                if (!h.isPageObject())
+                    throw py::type_error("Not a Page");
+                //Maybe?
+                //h.getOwningQPDF().pushInheritedAttributesToPage();
+                return h.getPageImages();
+            }
+        )
         .def_property_readonly("_objgen",
             [](QPDFObjectHandle &h) {
                 auto objgen = h.getObjGen();
