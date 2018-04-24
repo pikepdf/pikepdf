@@ -116,3 +116,8 @@ def test_bytes():
     qs = qpdf.String(s)
     assert bytes(qs) == s.encode('utf-8')
     assert str(qs) == s
+
+
+def test_len_array():
+    assert len(qpdf.Array([])) == 0
+    assert len(qpdf.Array([qpdf.Integer(3)])) == 1
