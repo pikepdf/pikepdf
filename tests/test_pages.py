@@ -143,3 +143,14 @@ def test_self_extend(resources):
     with pytest.raises(ValueError, 
             message="source page list modified during iteration"):
         pdf.pages.extend(pdf.pages)
+
+
+def test_page_contents_add(resources, outdir):
+    pdf = qpdf.Pdf.open(resources / 'graph.pdf')
+
+    stream1 = qpdf.Stream(pdf, b"q 0.707 -0.707 0.707 0.707 0 0 cm")
+    stream2 = qpdf.Stream(pdf, b"Q")
+
+    pdf.pages[0].page_contents_add(stream1, True)
+    pdf.pages[0].page_contents_add(stream2, False)
+    pdf.save(outdir / 'out.pdf')

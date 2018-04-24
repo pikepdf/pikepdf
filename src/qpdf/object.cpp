@@ -659,6 +659,17 @@ void init_object(py::module& m)
                 return h.getPageImages();
             }
         )
+        .def("page_contents_add",
+            [](QPDFObjectHandle &h, QPDFObjectHandle &contents, bool prepend) {
+                if (!h.isPageObject())
+                    throw py::type_error("Not a Page");
+                h.addPageContents(contents, prepend);
+            },
+            "Append or prepend to an existing page's content stream.",
+            py::arg("contents"),
+            py::arg("prepend") = false,
+            py::keep_alive<1, 2>()
+        )
         .def_property_readonly("_objgen",
             [](QPDFObjectHandle &h) {
                 auto objgen = h.getObjGen();
