@@ -305,6 +305,7 @@ void init_object(py::module& m)
                 return (h.getOwningQPDF() == possible_owner.get());
             }
         )
+        .def_property_readonly("is_indirect", &QPDFObjectHandle::isIndirect)
         .def("__repr__", &objecthandle_repr)
         .def("__hash__",
             [](QPDFObjectHandle &self) {
