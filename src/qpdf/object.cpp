@@ -453,10 +453,6 @@ void init_object(py::module& m)
                 // For streams, the actual dictionary is attached to stream object
                 QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
 
-                // A stream dictionary has no owner, so use the stream object in this comparison
-                if (value.getOwningQPDF() && value.getOwningQPDF() != h.getOwningQPDF())
-                    throw py::value_error("cannot assign indirect object from a foreign PDF - use copyForeignObject");
-
                 // if (value.isScalar() || value.isStream()) {
                 //     dict.replaceKey(key, value);
                 //     return;
