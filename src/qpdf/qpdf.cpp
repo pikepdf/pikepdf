@@ -318,6 +318,14 @@ PYBIND11_MODULE(_qpdf, m) {
                 return q->makeIndirectObject(objecthandle_encode(obj));
             }
         )
+        .def("_copy_foreign",
+            [](std::shared_ptr<QPDF> q, QPDFObjectHandle &h) -> QPDFObjectHandle {
+                return q->copyForeignObject(h);
+            },
+            "Copy object from foreign PDF to this one.",
+            py::return_value_policy::reference_internal,
+            py::keep_alive<1, 2>()
+        )
         .def("_replace_object",
             [](std::shared_ptr<QPDF> q, int objid, int gen, QPDFObjectHandle &h) {
                 q->replaceObject(objid, gen, h);
