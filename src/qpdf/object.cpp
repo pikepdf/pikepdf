@@ -667,6 +667,7 @@ void init_object(py::module& m)
             py::arg("prepend") = false,
             py::keep_alive<1, 2>()
         )
+        .def("page_contents_coalesce", &QPDFObjectHandle::coalesceContentStreams)
         .def_property_readonly("_objgen",
             [](QPDFObjectHandle &h) {
                 auto objgen = h.getObjGen();
