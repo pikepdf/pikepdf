@@ -142,3 +142,102 @@ class Page:
 def open(*args, **kwargs):
     "Alias for :function:`pikepdf.Pdf.open`."
     return Pdf.open(*args, **kwargs)
+
+
+class PdfMatrix:
+    """Support class for PDF content stream matrices
+
+    PDF content stream matrices are 3x3 matrices summarized by a shorthand
+    (a, b, c, d, e, f) which correspond to the first two column vectors. The
+    final column vector is always (0, 0, 1).
+
+    Addition is undefined. These matrices are only multiplied to concatenate
+    graphics state transforms.
+
+    """
+    
+    def __init__(self, other):
+        if isinstance(other, PdfMatrix):
+            self.values = other.values 
+        elif len(other) == 6:
+            a, b, c, d, e, f = map(float, other)
+            self.values = ((a, b, 0),
+                           (c, d, 0),
+                           (e, f, 1))
+        elif len(other) == 3 and len(other[0]) == 3:
+            self.values = (tuple(other[0]),
+                           tuple(other[1]),
+                           tuple(other[2]))
+        else:
+            raise ValueError('arguments')
+
+    @staticmethod
+    def identity():
+        return PdfMatrix((1, 0, 0, 1, 0, 0))
+
+    def __matmul__(self, other):
+        a = self.values
+        b = other.values
+        return PdfMatrix(
+                [[sum([float(i) * float(j) 
+                       for i, j in zip(row, col)]
+                     ) for col in zip(*b)]
+                  for row in a]
+        )
+
+    @property
+    def a(self):
+        return self.values[0][0]
+
+    @a.setter
+    def a(self, value):
+        self.values[0][0] = value
+
+    @property
+    def b(self):
+        return self.values[0][1]
+
+    @b.setter
+    def b(self, value):
+        self.values[0][1] = value
+
+    @property
+    def c(self):
+        return self.values[1][0]
+
+    @c.setter
+    def c(self, value):
+        self.values[1][0] = value
+
+    @property
+    def d(self):
+        return self.values[1][1]
+
+    @d.setter
+    def d(self, value):
+        self.values[1][1] = value
+
+    @property
+    def e(self):
+        return self.values[2][0]
+
+    @e.setter
+    def e(self, value):
+        self.values[2][0] = value
+
+    @property
+    def f(self):
+        return self.values[2][1]
+
+    @f.setter
+    def f(self, value):
+        self.values[2][1] = value
+
+    def encode(self):
+        return '{:.6f} {:.6f} {:.6f} {:.6f} {:.6f} {:.6f}'.format(
+            self.a, self.b, self.c, self.d, self.e, self.f
+        ).encode()
+
+    
+    
+    
