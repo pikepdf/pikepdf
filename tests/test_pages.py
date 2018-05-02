@@ -40,6 +40,24 @@ def test_replace_page(resources):
         q2.pages[0].Resources.XObject.keys()
 
 
+def test_hard_replace_page(resources, outdir):
+    q = qpdf.Pdf.open(resources / "fourpages.pdf")
+    q2 = qpdf.Pdf.open(resources / "graph.pdf")
+
+    q2_page = q2.pages[0]
+    del q2
+    q.pages[1] = q2_page
+
+    q2 = qpdf.Pdf.open(resources / 'sandwich.pdf')
+    q2_page = q2.pages[0]
+    q.pages[2] = q2_page
+    del q2
+    del q2_page
+    gc.collect()
+
+    q.save(outdir / 'out.pdf')    
+
+
 def test_reverse_pages(resources, outdir):
     q = qpdf.Pdf.open(resources / "fourpages.pdf")
     qr = qpdf.Pdf.open(resources / "fourpages.pdf")
