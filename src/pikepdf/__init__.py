@@ -149,10 +149,15 @@ class PdfMatrix:
 
     PDF content stream matrices are 3x3 matrices summarized by a shorthand
     (a, b, c, d, e, f) which correspond to the first two column vectors. The
-    final column vector is always (0, 0, 1).
+    final column vector is always (0, 0, 1) since this is using homogenous
+    coordinates.
 
-    Addition is undefined. These matrices are only multiplied to concatenate
-    graphics state transforms.
+    PDF uses row vectors.  That is vr @ A' gives the effect of transforming
+    a row vector vr=(x, y, 1) by the matrix A'.  It's more common to use 
+    A @ vc where vc is a column vector = (x, y, 1)'.
+
+    Addition is not implemented. If needed it would be necessary to normalize
+    with division by self.values[2][2].
 
     """
     
