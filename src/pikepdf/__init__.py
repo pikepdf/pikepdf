@@ -69,8 +69,8 @@ def parse_content_stream(stream):
 
     Each instruction contains at least one operator and zero or more operands.
 
-    The `stream` object may be either a `Object.Stream` type or an array of
-    streams.
+    The *stream* object may be either a :class:`pikepdf.Stream` or an array 
+    of streams.
 
     >>> pdf = pikepdf.Pdf.open(input_pdf)
     >>> stream = pdf.pages[0].Contents

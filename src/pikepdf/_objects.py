@@ -22,21 +22,37 @@ from decimal import Decimal, InvalidOperation
 from math import isfinite
 
 from . import _qpdf
+from ._qpdf import Object, ObjectType
 
 
-class Boolean:
+class _ObjectMeta(type):
+    "Supports instance checking"
+
+    def __instancecheck__(cls, instance):
+        if type(instance) != Object:
+            return False
+        return cls.object_type == instance.type_code
+
+
+class Boolean(metaclass=_ObjectMeta):
+    object_type = ObjectType.boolean
+
     def __new__(cls, value):
         return _qpdf._new_boolean(value)
 
 
-class Integer:
+class Integer(metaclass=_ObjectMeta):
+    object_type = ObjectType.integer
+
     def __new__(cls, n):
-        if n.bit_length() > 64:
+        if n.bit_length() >= 64:
             raise ValueError('Value is too large for 64-bit integer')
         return _qpdf._new_integer(n)
 
 
-class Real:
+class Real(metaclass=_ObjectMeta):
+    object_type = ObjectType.real
+
     def __new__(cls, value, dec_places=0):
         if dec_places < 0 or not isinstance(dec_places, int):
             raise ValueError('dec_places must be nonnegative integer')
@@ -58,11 +74,15 @@ class Real:
         return _qpdf._new_real(str(dec))
         
 
-class Name:
+class Name(metaclass=_ObjectMeta):
+    object_type = ObjectType.name
+
     def __new__(cls, name):
         return _qpdf._new_name(name)
 
 
-class String:
+class String(metaclass=_ObjectMeta):
+    object_type = ObjectType.string
+
     def __new__(cls, s):
         return _qpdf._new_string(s)

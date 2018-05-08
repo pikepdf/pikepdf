@@ -303,7 +303,8 @@ void init_object(py::module& m)
         .def("check_owner",
             [](QPDFObjectHandle &h, std::shared_ptr<QPDF> possible_owner) {
                 return (h.getOwningQPDF() == possible_owner.get());
-            }
+            },
+            "Test if this object is owned by the indicated *possible_owner*."
         )
         .def_property_readonly("is_indirect", &QPDFObjectHandle::isIndirect)
         .def("__repr__", &objecthandle_repr)
@@ -691,9 +692,9 @@ void init_object(py::module& m)
             py::arg("stream"),
             py::arg("description") = ""
         )
-        .def_static("parse_stream", 
+        .def_static("_parse_stream", 
             &QPDFObjectHandle::parseContentStream,
-            "Helper for parsing PDF content stream. Use ``pikepdf.parse_content_stream`` instead.")
+            "Helper for parsing PDF content stream; use ``pikepdf.parse_content_stream``.")
         .def("unparse", &QPDFObjectHandle::unparse,
             "Convert PDF objects into PostScript, without resolving indirect objects.")
         .def("unparse_resolved", &QPDFObjectHandle::unparseResolved,
