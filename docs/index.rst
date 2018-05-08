@@ -52,15 +52,13 @@ pikepdf would help you build apps that do things like:
 * Alter a PDF to meet a target specification such as PDF/A or PDF/X
 * Create deliberately malformed PDFs for testing purposes
 
-**This is experimental. Some features are missing.**
-
 What it cannot and never will do:
 
 * Rasterize PDF pages for display (that is, produce an image that shows what
   a PDF page looks like at a particular resolution/zoom level) – use
   Ghostscript instead
 * Convert from PDF to other similar print formats like epub, XPS, DjVu,
-  Postscript – use MuPDF
+  Postscript – use MuPDF or PyMuPDF
 * Print
 
 Architecture
@@ -97,6 +95,7 @@ Contents:
    :maxdepth: 2
 
    tutorial
+   objects
    pikepdf
 
 .. rubric:: References

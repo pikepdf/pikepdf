@@ -3,7 +3,7 @@ pikepdf Object Model
 
 This section covers the object model pikepdf uses in more detail.
 
-A ``pikepdf.Object`` is a Python wrapper around a C++ ``QPDFObjectHandle`` which,
+A :class:`pikepdf.Object` is a Python wrapper around a C++ ``QPDFObjectHandle`` which,
 as the name suggests, is a handle (or pointer) to a data structure in memory,
 or possibly a reference to data that exists in a file. Importantly, an object
 can be a scalar quantity (like an integer) or a compound quatity (like a list
@@ -37,17 +37,17 @@ Making PDF objects
 
 You may construct a new object with one of the factory functions:
 
-*   ``pikepdf.Integer``
-*   ``pikepdf.Boolean``
-*   ``pikepdf.Array``
-*   ``pikepdf.Dictionary``
-*   ``pikepdf.Real`` - decimal numbers, similar to ``decimal.Decimal``
-*   ``pikepdf.Name`` - the type used for keys in PDF Dictionary objects
-*   ``pikepdf.String`` - a text string 
+*   :class:`pikepdf.Integer`
+*   :class:`pikepdf.Boolean`
+*   :class:`pikepdf.Array`
+*   :class:`pikepdf.Dictionary`
+*   :class:`pikepdf.Real` - decimal numbers, similar to :class:`decimal.Decimal`
+*   :class:`pikepdf.Name` - the type used for keys in PDF Dictionary objects
+*   :class:`pikepdf.String` - a text string 
     (treated as ``bytes`` and ``str`` depending on context)
-*   ``pikepdf.Null`` - equivalent to ``None``
+*   :class:`pikepdf.Null` - equivalent to ``None``
 
-For example, a PDF ``Boolean`` may be constructed as 
+For example, a PDF :class:`Boolean` may be constructed as 
 
 .. code-block:: python
 
