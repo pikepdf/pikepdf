@@ -309,48 +309,34 @@ void init_object(py::module& m)
         .def_property_readonly("is_indirect", &QPDFObjectHandle::isIndirect)
         .def("__repr__", &objecthandle_repr)
         .def("__hash__",
-            [](QPDFObjectHandle &self) {
-                Py_ssize_t val = 42; // Seed
-                std::string hashstr = "";
+            [](QPDFObjectHandle &self) -> py::int_ {                
+                py::object hash = py::module::import("builtins").attr("hash");
 
-                // Mix in our type code
-                val = val * 101 + (Py_ssize_t)self.getTypeCode();
-
+                //Objects which compare equal must have the same hash value
                 switch (self.getTypeCode()) {
                     case QPDFObject::object_type_e::ot_null:
-                        break;
+                        return py::int_(0);
                     case QPDFObject::object_type_e::ot_boolean:
-                        val = val * 101 + (int)self.getBoolValue();
-                        break;
+                        return py::int_(self.getBoolValue());
                     case QPDFObject::object_type_e::ot_integer:
-                        val = val * 101 + self.getIntValue();
-                        break;
+                        return py::int_(self.getIntValue());
                     case QPDFObject::object_type_e::ot_real:
-                        hashstr = self.getRealValue();  // Is a string
-                        break;
+                        return hash(decimal_from_pdfobject(self));
                     case QPDFObject::object_type_e::ot_string:
-                        hashstr = self.getStringValue();
-                        break;
+                        return hash(py::bytes(self.getStringValue()));
                     case QPDFObject::object_type_e::ot_name:
-                        hashstr = self.getName();
-                         break;
+                        return hash(py::bytes(self.getName()));
                     case QPDFObject::object_type_e::ot_operator:
-                        hashstr = self.getOperatorValue();
-                        break;
+                        return hash(py::bytes(self.getOperatorValue()));
                     case QPDFObject::object_type_e::ot_array:
                     case QPDFObject::object_type_e::ot_dictionary:
                     case QPDFObject::object_type_e::ot_stream:
                     case QPDFObject::object_type_e::ot_inlineimage:
                         throw py::value_error("Can't hash mutable object");
-                        break;
                     default:
                         break;
                 }
-
-                for (unsigned long n = 0; n < hashstr.length(); n++)
-                    val = val * 101 + hashstr[n];
-
-                return val;
+                throw std::logic_error("don't know how to hash this");
             }
         )
         .def("__eq__",

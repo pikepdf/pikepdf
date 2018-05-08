@@ -1,9 +1,10 @@
 from decimal import Decimal
 from math import isclose, isfinite
-from pikepdf import _qpdf as qpdf, Pdf, Real, String, Array, Integer
+from pikepdf import _qpdf as qpdf
+from pikepdf import (Pdf, Real, String, Array, Integer, Name, Boolean, Null)
 from hypothesis import given, strategies as st, example
 from hypothesis.strategies import (none, integers, binary, lists, floats, 
-    characters, recursive, booleans)
+    characters, recursive, booleans, builds, one_of)
 import pytest
 
 
@@ -94,7 +95,7 @@ def test_nested_list(array):
 
 
 @given(recursive(none() | booleans(), lambda children: lists(children), max_leaves=20))
-def test_nested_list(array):
+def test_nested_list2(array):
     assert decode_encode(array) == array
 
 
@@ -121,3 +122,17 @@ def test_bytes():
 def test_len_array():
     assert len(Array([])) == 0
     assert len(Array([Integer(3)])) == 1
+
+
+def test_hash_violation():
+    def hash_ok(a, b):
+        if a == b and hash(a) != hash(b):
+            return False
+        return True
+
+    assert hash_ok(Name('/Foo'), String('/Foo'))
+    assert hash_ok(Real('1.0'), Integer(1))
+    assert hash_ok(Boolean(1), Integer(1))
+    assert hash_ok(Real('0.0'), Boolean(0))
+    assert hash_ok(Null(), Null())
+    
