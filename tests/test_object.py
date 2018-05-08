@@ -1,6 +1,6 @@
 from decimal import Decimal
 from math import isclose, isfinite
-from pikepdf import _qpdf as qpdf, Pdf
+from pikepdf import _qpdf as qpdf, Pdf, Real, String, Array, Integer
 from hypothesis import given, strategies as st, example
 from hypothesis.strategies import (none, integers, binary, lists, floats, 
     characters, recursive, booleans)
@@ -67,20 +67,20 @@ def test_decimal_involution(num, radix):
 
     d = Decimal(strnum)
 
-    assert qpdf.Real(d).decode() == d
+    assert Real(d).decode() == d
 
 
 @given(floats())
 def test_decimal_from_float(f):
     d = Decimal(f)
     if isfinite(f) and d.is_finite():
-        py_d = qpdf.Real(d)
+        py_d = Real(d)
         assert isclose(py_d.decode(), d), (d, f.hex())
     else:
         with pytest.raises(ValueError, message=repr(f)):
-            qpdf.Real(f)
+            Real(f)
         with pytest.raises(ValueError, message=repr(d)):
-            qpdf.Real(d)
+            Real(d)
 
 
 @given(lists(integers(-10, 10), min_size=0, average_size=5, max_size=10))
@@ -109,15 +109,15 @@ def test_stack_depth():
 
 def test_bytes():
     b = b'\xff\xfe\xf0\xd0'
-    qs = qpdf.String(b)
+    qs = String(b)
     assert bytes(qs) == b
 
     s = 'é'
-    qs = qpdf.String(s)
+    qs = String(s)
     assert bytes(qs) == s.encode('utf-8')
     assert str(qs) == s
 
 
 def test_len_array():
-    assert len(qpdf.Array([])) == 0
-    assert len(qpdf.Array([qpdf.Integer(3)])) == 1
+    assert len(Array([])) == 0
+    assert len(Array([Integer(3)])) == 1

@@ -730,29 +730,23 @@ void init_object(py::module& m)
         )
         ; // end of QPDFObjectHandle bindings
 
-    m.def("Boolean", &QPDFObjectHandle::newBool, "Construct a PDF Boolean object");
-    m.def("Integer", &QPDFObjectHandle::newInteger, "Construct a PDF Integer object");
-    m.def("Real", 
-        [](py::object obj) {
-            py::object Decimal = py::module::import("decimal").attr("Decimal");
-            if (py::isinstance<py::float_>(obj) || py::isinstance<py::int_>(obj)) {
-                auto val = obj.cast<double>();
-                if (isinf(val) || isnan(val))
-                    throw py::value_error("NaN and infinity cannot be represented as PDF objects");
-                return QPDFObjectHandle::newReal(val, 0);
-            }
-            py::print(obj);
-            py::print(py::repr(obj));                
-            if (!py::isinstance(obj, Decimal))
-                throw py::type_error("Can't convert arbitrary Python object to PDF Real");
-            py::bool_ is_finite = obj.attr("is_finite")();
-            if (!is_finite)
-                throw py::value_error("NaN and infinity cannot be represented as PDF objects");
-            return QPDFObjectHandle::newReal(py::str(obj));
+    m.def("_new_boolean", &QPDFObjectHandle::newBool, "Construct a PDF Boolean object");
+    m.def("_new_integer", &QPDFObjectHandle::newInteger, "Construct a PDF Integer object");
+    m.def("_new_real", 
+        [](const std::string& value) {
+            return QPDFObjectHandle::newReal(value);
         },
         "Construct a PDF Real value, that is, a decimal number"
     );
-    m.def("Name",
+    m.def("_new_real",
+        [](double value, uint places) {
+            return QPDFObjectHandle::newReal(value, places);
+        },
+        "Construct PDF real",
+        py::arg("value"),
+        py::arg("places") = 0
+    );
+    m.def("_new_name",
         [](const std::string& s) {
             if (s.at(0) != '/')
                 throw py::value_error("Name objects must begin with '/'");
@@ -762,7 +756,7 @@ void init_object(py::module& m)
         },
         "Create a Name from a string. Must begin with '/'. All other characters except null are valid."
     );
-    m.def("String",
+    m.def("_new_string",
         [](const std::string& s) {
             return QPDFObjectHandle::newString(s);
         },

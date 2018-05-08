@@ -6,7 +6,8 @@
 
 from io import BytesIO
 from subprocess import run, PIPE
-from ._qpdf import Pdf, Object, ObjectType, Array, Name
+from ._qpdf import Pdf, Object, ObjectType, Array
+from ._objects import Name
 from tempfile import NamedTemporaryFile
 
 

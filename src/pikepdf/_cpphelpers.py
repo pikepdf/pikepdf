@@ -4,6 +4,10 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
+"""Support functions called by the C++ library binding layer
+
+"""
+
 import re
 from itertools import tee
 import os

@@ -1,5 +1,6 @@
 import pytest
 from pikepdf import _qpdf as qpdf
+from pikepdf import Name
 
 import os
 import platform
@@ -103,7 +104,7 @@ def test_create_pdf(outdir):
     contents = qpdf.Stream(pdf, stream)
 
     page_dict = {
-        '/Type': qpdf.Name('/Page'),
+        '/Type': Name('/Page'),
         '/MediaBox': mediabox,
         '/Contents': contents,
         '/Resources': resources

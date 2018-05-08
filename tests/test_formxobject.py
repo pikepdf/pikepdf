@@ -1,5 +1,6 @@
 import pytest
 from pikepdf import _qpdf as qpdf
+from pikepdf import Name
 
 import os
 import platform
@@ -41,8 +42,8 @@ def test_create_form_xobjects(outdir):
     form_xobj = qpdf.Stream(pdf, b"""
         /Im1 Do
         """)
-    form_xobj['/Type'] = qpdf.Name('/XObject')
-    form_xobj['/Subtype'] = qpdf.Name('/Form')
+    form_xobj['/Type'] = Name('/XObject')
+    form_xobj['/Subtype'] = Name('/Form')
     form_xobj['/FormType'] = 1
     form_xobj['/Matrix'] = [1, 0, 0, 1, 0, 0]
     form_xobj['/BBox'] = [0, 0, 1, 1]
@@ -66,7 +67,7 @@ def test_create_form_xobjects(outdir):
     contents = qpdf.Stream(pdf, stream)
 
     page = pdf.make_indirect({
-        '/Type': qpdf.Name('/Page'),
+        '/Type': Name('/Page'),
         '/MediaBox': mediabox,
         '/Contents': contents,
         '/Resources': resources
