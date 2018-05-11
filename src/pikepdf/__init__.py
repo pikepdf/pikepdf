@@ -87,7 +87,7 @@ def parse_content_stream(stream):
 
     grouper = _OperandGrouper()
     try:
-        Object.parse_stream(stream, grouper)
+        Object._parse_stream(stream, grouper)
     except PdfError as e:
         if 'parseContentStream called on non-stream' in str(e):  # qpdf 6.x
             raise TypeError("parse_content_stream called on non-stream Object")

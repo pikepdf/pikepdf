@@ -30,14 +30,14 @@ class ExceptionParser(qpdf.StreamParser):
 def test_open_pdf(resources):
     pdf = qpdf.Pdf.open(resources / 'graph.pdf')
     stream = pdf.pages[0]['/Contents']
-    qpdf.Object.parse_stream(stream, PrintParser())
+    qpdf.Object._parse_stream(stream, PrintParser())
 
 
 def test_parser_exception(resources):
     pdf = qpdf.Pdf.open(resources / 'graph.pdf')
     stream = pdf.pages[0]['/Contents']
     with pytest.raises(ValueError):
-        qpdf.Object.parse_stream(stream, ExceptionParser())
+        qpdf.Object._parse_stream(stream, ExceptionParser())
 
 
 @pytest.mark.skipif(
