@@ -85,4 +85,11 @@ class String(metaclass=_ObjectMeta):
     object_type = ObjectType.string
 
     def __new__(cls, s):
-        return _qpdf._new_string(s)
+        if isinstance(s, bytes):
+            return _qpdf._new_string(s)
+        try:
+            ascii = s.encode('ascii')
+            return _qpdf._new_string(ascii)
+        except UnicodeEncodeError:
+            utf16 = b'\xfe\xff' + s.encode('utf-16be')
+            return _qpdf._new_string(utf16)

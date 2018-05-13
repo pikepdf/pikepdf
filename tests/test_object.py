@@ -33,6 +33,12 @@ def test_ascii_involution(ascii):
     assert decode_encode(b) == b
 
 
+@given(characters(min_codepoint=0x20, max_codepoint=0xfef0))
+@example('')
+def test_unicode_involution(s):
+    assert str(encode(s)) == s
+
+
 @given(binary(min_size=0, max_size=10000, average_size=10))
 def test_binary_involution(binary):
     assert decode_encode(binary) == binary
@@ -109,13 +115,12 @@ def test_stack_depth():
 
 
 def test_bytes():
-    b = b'\xff\xfe\xf0\xd0'
+    b = b'\x79\x78\x77\x76'
     qs = String(b)
     assert bytes(qs) == b
 
     s = 'é'
     qs = String(s)
-    assert bytes(qs) == s.encode('utf-8')
     assert str(qs) == s
 
 

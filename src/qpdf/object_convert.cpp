@@ -88,17 +88,25 @@ QPDFObjectHandle objecthandle_encode(py::handle handle)
         return QPDFObjectHandle::newReal(as_double);
     } catch (py::cast_error) {}
 
-    try {
-        auto as_str = handle.cast<std::string>();
-        return QPDFObjectHandle::newString(as_str);
-    } catch (py::cast_error) {}
-
     py::object obj = py::reinterpret_borrow<py::object>(handle);
 
     if (py::isinstance<py::bytes>(obj)) {
         auto py_bytes = py::bytes(obj);
-        auto as_str = (std::string)py_bytes;
-        return QPDFObjectHandle::newString(as_str);
+        return QPDFObjectHandle::newString(static_cast<std::string>(py_bytes));
+    } else if (py::isinstance<py::str>(obj)) {
+        // Convert all Py strings to UTF-16, big endian, byte order marks, which
+        // is what PDF uses internally.  Big endian is used independent of
+        // platform endian.
+        auto py_str = py::str(obj);
+        std::string utf16 = py::reinterpret_steal<py::bytes>(
+            PyUnicode_AsEncodedString(py_str.ptr(), "utf-16be", "strict"));
+        if (utf16.size() == 0)
+            return QPDFObjectHandle::newString("");
+
+        // Put the utf-16be string in a regular std::string... that is what
+        // QPDF wants
+        std::string utf16_encoded = std::string("\xfe\xff") + utf16;
+        return QPDFObjectHandle::newString(utf16_encoded);
     }
 
     if (py::hasattr(obj, "__iter__")) {
