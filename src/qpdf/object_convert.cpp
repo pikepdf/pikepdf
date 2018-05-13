@@ -98,8 +98,15 @@ QPDFObjectHandle objecthandle_encode(py::handle handle)
         // is what PDF uses internally.  Big endian is used independent of
         // platform endian.
         auto py_str = py::str(obj);
+
+        py::object ascii = py::reinterpret_steal<py::object>(
+            PyUnicode_AsEncodedString(py_str.ptr(), "ascii", nullptr));
+        if (ascii)
+            return QPDFObjectHandle::newString(py::bytes(ascii));
+        PyErr_Clear(); // Or else we crash
+
         std::string utf16 = py::reinterpret_steal<py::bytes>(
-            PyUnicode_AsEncodedString(py_str.ptr(), "utf-16be", "strict"));
+            PyUnicode_AsEncodedString(py_str.ptr(), "utf-16be", nullptr));
         if (utf16.size() == 0)
             return QPDFObjectHandle::newString("");
 
