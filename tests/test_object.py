@@ -33,7 +33,7 @@ def test_ascii_involution(ascii):
     assert decode_encode(b) == b
 
 
-@given(characters(min_codepoint=0x20, max_codepoint=0xfef0))
+@given(characters(min_codepoint=0x0, max_codepoint=0xfef0))
 @example('')
 def test_unicode_involution(s):
     assert str(encode(s)) == s

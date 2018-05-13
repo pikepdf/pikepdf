@@ -99,10 +99,12 @@ QPDFObjectHandle objecthandle_encode(py::handle handle)
         // platform endian.
         auto py_str = py::str(obj);
 
-        py::object ascii = py::reinterpret_steal<py::object>(
+        py::object test_ascii = py::reinterpret_steal<py::object>(
             PyUnicode_AsEncodedString(py_str.ptr(), "ascii", nullptr));
-        if (ascii)
-            return QPDFObjectHandle::newString(py::bytes(ascii));
+        if (test_ascii) {
+            py::bytes ascii = py::reinterpret_borrow<py::bytes>(test_ascii);
+            return QPDFObjectHandle::newString(ascii);
+        }
         PyErr_Clear(); // Or else we crash
 
         std::string utf16 = py::reinterpret_steal<py::bytes>(
