@@ -135,7 +135,8 @@ void save_pdf(
     std::string min_version="",
     std::string force_version="",
     qpdf_object_stream_e object_stream_mode=qpdf_o_preserve,
-    qpdf_stream_data_e stream_data_mode=qpdf_s_preserve)
+    qpdf_stream_data_e stream_data_mode=qpdf_s_preserve,
+    bool normalize_content=false)
 {
     QPDFWriter w(*q);
 
@@ -152,6 +153,7 @@ void save_pdf(
     }
     w.setObjectStreamMode(object_stream_mode);
     w.setStreamDataMode(stream_data_mode);
+    w.setContentNormalization(normalize_content);
 
     if (preserve_pdfa) {
         w.setNewlineBeforeEndstream(true);
@@ -309,7 +311,8 @@ PYBIND11_MODULE(_qpdf, m) {
              py::arg("min_version")="",
              py::arg("force_version")="",
              py::arg("object_stream_mode")=qpdf_o_preserve,
-             py::arg("stream_data_mode")=qpdf_s_preserve
+             py::arg("stream_data_mode")=qpdf_s_preserve,
+             py::arg("normalize_content")=false
         )
         .def("_get_object_id", &QPDF::getObjectByID)
         .def("make_indirect", &QPDF::makeIndirectObject)
