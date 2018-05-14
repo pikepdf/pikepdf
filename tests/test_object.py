@@ -33,13 +33,14 @@ def test_ascii_involution(ascii):
     assert decode_encode(b) == b
 
 
-@given(characters(min_codepoint=0x0, max_codepoint=0xfef0))
+@given(characters(min_codepoint=0x0, max_codepoint=0xfef0, 
+                  blacklist_categories=('Cs',)))
 @example('')
 def test_unicode_involution(s):
     assert str(encode(s)) == s
 
 
-@given(binary(min_size=0, max_size=10000, average_size=10))
+@given(binary(min_size=0, max_size=300))
 def test_binary_involution(binary):
     assert decode_encode(binary) == binary
 
@@ -90,7 +91,7 @@ def test_decimal_from_float(f):
             Real(d)
 
 
-@given(lists(integers(-10, 10), min_size=0, average_size=5, max_size=10))
+@given(lists(integers(-10, 10), min_size=0, max_size=10))
 def test_list(array):
     assert decode_encode(array) == array
 
