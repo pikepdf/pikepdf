@@ -151,6 +151,9 @@ py::object decimal_from_pdfobject(QPDFObjectHandle& h)
     } else if (h.getTypeCode() == QPDFObject::object_type_e::ot_real) {
         auto value = h.getRealValue();
         return decimal_constructor(py::cast(value));
+    } else if (h.getTypeCode() == QPDFObject::object_type_e::ot_boolean) {
+        auto value = h.getBoolValue();
+        return decimal_constructor(py::cast(value));
     }
     throw py::type_error("object has no Decimal() representation");
 }

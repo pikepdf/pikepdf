@@ -130,15 +130,24 @@ def test_len_array():
     assert len(Array([Integer(3)])) == 1
 
 
-def test_hash_violation():
-    def hash_ok(a, b):
-        if a == b and hash(a) != hash(b):
-            return False
-        return True
+class TestHashViolation:
 
-    assert hash_ok(Name('/Foo'), String('/Foo'))
-    assert hash_ok(Real('1.0'), Integer(1))
-    assert hash_ok(Boolean(1), Integer(1))
-    assert hash_ok(Real('0.0'), Boolean(0))
-    assert hash_ok(Null(), Null())
+    def check(self, a, b):
+        assert a == b, "invalid test case"
+        assert hash(a) == hash(b), "hash violation"
+    
+    def test_unequal_but_similar(self):
+        assert Name('/Foo') != String('/Foo')
+
+    def test_numbers(self):
+        self.check(Real('1.0'), Integer(1))
+        self.check(Real('42'), Integer(42))
+
+    def test_bool_comparison(self):
+        self.check(Real('0.0'), Boolean(0))
+        self.check(Boolean(1), Integer(1))
+
+    def test_string(self):
+        utf16 = b'\xfe\xff' + 'hello'.encode('utf-16be')
+        self.check(String(utf16), String('hello'))
     

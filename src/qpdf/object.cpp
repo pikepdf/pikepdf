@@ -170,7 +170,8 @@ bool objecthandle_equal(QPDFObjectHandle& self, QPDFObjectHandle& other)
     // If 'self' is a numeric type, convert both to Decimal objects
     // and compare them as such.
     if (self.getTypeCode() == QPDFObject::object_type_e::ot_integer ||
-        self.getTypeCode() == QPDFObject::object_type_e::ot_real) {
+        self.getTypeCode() == QPDFObject::object_type_e::ot_real || 
+        self.getTypeCode() == QPDFObject::object_type_e::ot_boolean) {
         try {
             auto a = decimal_from_pdfobject(self);
             auto b = decimal_from_pdfobject(other);
@@ -196,7 +197,13 @@ bool objecthandle_equal(QPDFObjectHandle& self, QPDFObjectHandle& other)
         case QPDFObject::object_type_e::ot_operator:
             return self.getOperatorValue() == other.getOperatorValue();
         case QPDFObject::object_type_e::ot_string:
-            return self.getStringValue() == other.getStringValue();
+        {            
+            // We don't know what encoding the string is in
+            // This ensures UTF-16 coded ASCII strings will compare equal to
+            // UTF-8/ASCII coded.
+            return self.getStringValue() == other.getStringValue() || 
+                self.getUTF8Value() == other.getUTF8Value();
+        }
         case QPDFObject::object_type_e::ot_array:
         {
             // Call operator==() on each element of the arrays, meaning this
@@ -323,7 +330,9 @@ void init_object(py::module& m)
                     case QPDFObject::object_type_e::ot_real:
                         return hash(decimal_from_pdfobject(self));
                     case QPDFObject::object_type_e::ot_string:
-                        return hash(py::bytes(self.getStringValue()));
+                    {
+                        return hash(py::bytes(self.getUTF8Value()));
+                    }
                     case QPDFObject::object_type_e::ot_name:
                         return hash(py::bytes(self.getName()));
                     case QPDFObject::object_type_e::ot_operator:
