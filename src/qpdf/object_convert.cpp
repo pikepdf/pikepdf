@@ -91,7 +91,7 @@ QPDFObjectHandle objecthandle_encode(py::handle handle)
     py::object obj = py::reinterpret_borrow<py::object>(handle);
 
     if (py::isinstance<py::bytes>(obj)) {
-        auto py_bytes = py::reinterpret_borrow<py::bytes>(obj);
+        py::bytes py_bytes = obj;
         return QPDFObjectHandle::newString(static_cast<std::string>(py_bytes));
     } else if (py::isinstance<py::str>(obj)) {
         // First check if we can encode the string as ASCII
