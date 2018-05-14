@@ -94,9 +94,7 @@ QPDFObjectHandle objecthandle_encode(py::handle handle)
         auto py_bytes = py::reinterpret_borrow<py::bytes>(obj);
         return QPDFObjectHandle::newString(static_cast<std::string>(py_bytes));
     } else if (py::isinstance<py::str>(obj)) {
-        // Convert all Py strings to UTF-16, big endian, byte order marks, which
-        // is what PDF uses internally.  Big endian is used independent of
-        // platform endian.
+        // First check if we can encode the string as ASCII
         auto as_ascii = py::reinterpret_steal<py::bytes>(
             PyUnicode_AsEncodedString(obj.ptr(), "ascii", nullptr));
         if (as_ascii) {
@@ -105,18 +103,19 @@ QPDFObjectHandle objecthandle_encode(py::handle handle)
         }
         PyErr_Clear();
 
+        // ...and if ASCII fails, we have to encode as UTF-16BE with
+        // byte order marks packed in a std::string. Including any NULs that
+        // may appear.
         auto as_utf16 = py::reinterpret_steal<py::bytes>(
             PyUnicode_AsEncodedString(obj.ptr(), "utf-16be", nullptr));
         if (!as_utf16) {
+            // Still can't encode it, so toss the error back
             throw py::error_already_set();
         }
         auto utf16 = static_cast<std::string>(as_utf16);
-        if (utf16.size() == 0)
-            return QPDFObjectHandle::newString("");
-
         // Put the utf-16be string in a regular std::string... that is what
         // QPDF wants
-        std::string utf16_encoded = std::string("\xfe\xff") + utf16;
+        auto utf16_encoded = std::string("\xfe\xff") + utf16;
         return QPDFObjectHandle::newString(utf16_encoded);
     }
 
