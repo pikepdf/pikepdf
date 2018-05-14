@@ -75,10 +75,11 @@ To avoid confusion, the ``.p()`` accessor does not accept Python slices.
 
 .. warning::
 
-   It's possible to obtain page information through the PDF ``/Root`` object as well,
-   but not recommend. The internal consistency of the various ``/Page`` and ``/Pages``
-   is not guaranteed when accessed in this manner, and in some PDFs the data
-   structure for these is fairly cmoplex. Use the ``.pages`` interface.
+   It's possible to obtain page information through the PDF ``/Root`` object as
+   well, but not recommend. The internal consistency of the various ``/Page``
+   and ``/Pages`` is not guaranteed when accessed in this manner, and in some
+   PDFs the data structure for these is fairly cmoplex. Use the ``.pages``
+   interface.
 
 
 Examining a page
@@ -149,9 +150,9 @@ For example, this page's MediaBox is a direct object.
   pikepdf.Object.Array([ 0, 0, 200, 304 ])
 
 The page's ``/Contents`` key contains instructions for drawing the page content.
-Also attached to this page is a ``/Resources`` dictionary, which contains a single
-XObject image. The image is compressed with the ``/DCTDecode`` filter, meaning it is
-encoded as a JPEG.
+Also attached to this page is a ``/Resources`` dictionary, which contains a
+single XObject image. The image is compressed with the ``/DCTDecode`` filter,
+meaning it is encoded as a JPEG.
 
 Viewing images
 --------------
@@ -180,11 +181,11 @@ the image, as below:
   This simple example PDF displays a single full page image. Some PDF creators
   will paint a page using multiple images, and features such as layers,
   transparency and image masks. Accessing the first image on a page is like an
-  HTML parser that scans for the first ``<img src="">`` tag it finds. A lot
-  more could be happening. There can be multiple images drawn multiple times 
-  on a page, vector art, overdrawing, masking, and transparency. A set of resources
-  can be grouped together in a "Form XObject" (not to be confused with a PDF Form),
-  and drawn at all once. Images can be referenced by multiple pages.
+  HTML parser that scans for the first ``<img src="">`` tag it finds. A lot more
+  could be happening. There can be multiple images drawn multiple times on a
+  page, vector art, overdrawing, masking, and transparency. A set of resources
+  can be grouped together in a "Form XObject" (not to be confused with a PDF
+  Form), and drawn at all once. Images can be referenced by multiple pages.
 
 Replacing an image
 ------------------

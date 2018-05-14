@@ -64,27 +64,27 @@ What it cannot and never will do:
 Architecture
 ------------
 
-pikepdf currently requires **Python 3.5+**. As this is a new library there are no
-plans to support Python 2.7 or older versions in the 3.x family, but pull
+pikepdf currently requires **Python 3.5+**. As this is a new library there are
+no plans to support Python 2.7 or older versions in the 3.x family, but pull
 requests to backport would be considered.
 
 The library uses `pybind11 <https://github.com/pybind/pybind11>`_ to bind the
 C++ interface of QPDF. pybind11 was selected after evaluating Cython, CFFI and
 SWIG as possible solutions. 
 
-In addition to bindings pikepdf includes its support code, mainly to present
-a clean Pythonic interface to a C++.
+In addition to bindings pikepdf includes its support code, mainly to present a
+clean Pythonic interface to a C++.
 
 Unlike similar Python libraries such as PyPDF2 and pdfrw, pikepdf is not pure
 Python. Both were designed prior to Python wheels which has made Python
 extension libraries much easier to work with. By leveraging the existing mature
-code base of QPDF, despite being new, pikepdf is already more capable than
-both in some respects – for example, it can read compress object streams, 
-repair damaged PDFs in many cases, and linearize PDFs. Unlike those libraries, 
-it's not pure Python: it is impure and proud of it.
+code base of QPDF, despite being new, pikepdf is already more capable than both
+in some respects – for example, it can read compress object streams, repair
+damaged PDFs in many cases, and linearize PDFs. Unlike those libraries, it's not
+pure Python: it is impure and proud of it.
 
-It's almost certainly faster than the pure Python libraries at loading and saving
-PDFs.
+It's almost certainly faster than the pure Python libraries at loading and
+saving PDFs.
 
 A C++14 capable compiler is recommended to build from source, but C++11 works.
 

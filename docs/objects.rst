@@ -3,12 +3,12 @@ pikepdf Object Model
 
 This section covers the object model pikepdf uses in more detail.
 
-A :class:`pikepdf.Object` is a Python wrapper around a C++ ``QPDFObjectHandle`` which,
-as the name suggests, is a handle (or pointer) to a data structure in memory,
-or possibly a reference to data that exists in a file. Importantly, an object
-can be a scalar quantity (like an integer) or a compound quatity (like a list
-or dict, that contains other objects). The fact that the C++ class involved here
-is an object handle is an implementation detail; it shouldn't matter for a 
+A :class:`pikepdf.Object` is a Python wrapper around a C++ ``QPDFObjectHandle``
+which, as the name suggests, is a handle (or pointer) to a data structure in
+memory, or possibly a reference to data that exists in a file. Importantly, an
+object can be a scalar quantity (like an integer) or a compound quatity (like a
+list or dict, that contains other objects). The fact that the C++ class involved
+here is an object handle is an implementation detail; it shouldn't matter for a
 pikepdf user.
 
 There is something of an impedance mismatch between Python's strict dynamic
@@ -57,15 +57,18 @@ For example, a PDF :class:`Boolean` may be constructed as
 There are a few other factory functions for special PDF objects that don't
 map to Python as neatly. We'll look at these later.
 
-*   ``pikepdf.Operator`` - a special object involved in processing content streams
-*   ``pikepdf.Stream`` - a special object similar to a ``Dictionary`` with compressed binary data attached
+*   ``pikepdf.Operator`` - a special object involved in processing content
+    streams
+*   ``pikepdf.Stream`` - a special object similar to a ``Dictionary`` with
+    compressed binary data attached
 *   ``pikepdf.Inlineimage`` - an image that is embedded in content streams
 
-The great news is that it's often unnecessary to construct ``pikepdf.Object`` objects
-when working with pikepdf. Python types are transparently *converted* to the appropriate
-pikepdf object when passed to pikepdf APIs – when possible. However, pikepdf sends 
-``pikepdf.Object`` types back to Python on return calls, in most cases, because
-pikepdf needs to keep track of objects that came from PDFs originally.
+The great news is that it's often unnecessary to construct ``pikepdf.Object``
+objects when working with pikepdf. Python types are transparently *converted* to
+the appropriate pikepdf object when passed to pikepdf APIs – when possible.
+However, pikepdf sends ``pikepdf.Object`` types back to Python on return calls,
+in most cases, because pikepdf needs to keep track of objects that came from
+PDFs originally.
 
 Because Python types are converted to pikepdf types, references will be lost.
 
