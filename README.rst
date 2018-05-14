@@ -7,8 +7,6 @@ PDF files. It is provides a wrapper around `QPDF <https://github.com/qpdf/qpdf>`
 Python + QPDF = "py" + "qpdf" = "pyqpdf", which looks like a dyslexia test. Say it
 out loud, and it sounds like "pikepdf".
 
-**This package is in pre-alpha.**
-
 Python 3.5 and 3.6 are fully supported.
 
 Features:
@@ -100,18 +98,6 @@ the Sphinx manual:
 
 -  ``cd pikepdf/docs``
 -  ``make html``
-
-About Python 2.7
-----------------
-
-The author's priority is building a great PDF library for Python for future
-applications, which means there isn't time to target Python 2.7. Currently the
-C++ source compiles and links correctly, so all that is necessary is backporting
-Python 3 source files. 
-
-It was recently confirmed that the C++ code base compiles and links with Python 2.7.
-One would need to backport the Python source files and fix any test suite regressions.
-Pull requests are welcome.
 
 
 License

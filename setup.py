@@ -105,6 +105,7 @@ setup(
     install_requires=['pybind11 >= 2.2.3, < 3'],
     cmdclass={'build_ext': BuildExt},
     zip_safe=False,
+    python_requires='>=3.5',
     setup_requires=['pytest-runner', 'setuptools_scm'],
     use_scm_version=True,
     tests_require=tests_require,
@@ -114,7 +115,7 @@ setup(
         '': ['*.txt'],
     },
     classifiers=[
-        "Development Status :: 2 - Pre-Alpha",
+        "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
         "Intended Audience :: Information Technology",
         "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
