@@ -133,7 +133,7 @@ class PdfImage:
         """        
         return list(zip_longest(self.filters, self.decode_parms, fillvalue={}))
 
-    def extract(self, stream):
+    def extract_to(self, *, stream):
         """
         Attempt to extract the image directly to a usable image file
 
@@ -165,6 +165,14 @@ class PdfImage:
 
         """
         from PIL import Image
+
+        try:
+            bio = BytesIO()
+            self.extract_to(stream=bio)
+            bio.seek(0)
+            return Image.open(bio)
+        except UnsupportedImageTypeError:
+            pass
 
         if self.mode == 'RGB':
             # No point in accessing the buffer here, size qpdf decodes to 3-byte

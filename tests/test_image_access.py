@@ -25,7 +25,7 @@ def test_image_from_nonimage(resources):
 
 def test_image(congress):
     pdfimage = PdfImage(congress[0])
-    pillowimage = pdfimage.topil()
+    pillowimage = pdfimage.as_pil_image()
 
     assert pillowimage.mode == pdfimage.mode
     assert pillowimage.size == pdfimage.size
@@ -37,7 +37,7 @@ def test_imagemask(congress):
 
 def test_image_replace(congress, outdir):
     pdfimage = PdfImage(congress[0])
-    pillowimage = pdfimage.topil()
+    pillowimage = pdfimage.as_pil_image()
 
     grayscale = pillowimage.convert('L')
 
@@ -54,9 +54,13 @@ def test_lowlevel_jpeg(congress, outdir):
 
     assert imghdr.what('', h=raw_bytes) == 'jpeg'
 
-    im = Image.open(BytesIO(raw_bytes))
+    pim = PdfImage(congress[0])
+    b = BytesIO()
+    pim.extract_to(stream=b)
+    b.seek(0)
+    im = Image.open(b)
     assert im.size == (congress[0].Width, congress[0].Height)
-    assert im.mode == 'RGB'
+    assert im.mode == 'RGB'    
 
 
 def test_lowlevel_replace_jpeg(congress, outdir):
