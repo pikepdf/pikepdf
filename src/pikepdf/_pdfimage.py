@@ -133,20 +133,37 @@ class PdfImage:
         """        
         return list(zip_longest(self.filters, self.decode_parms, fillvalue={}))
 
-    def write_stream(self, stream):
-        out = 0
+    def extract(self, stream):
+        """
+        Attempt to extract the image directly to a usable image file
+
+        If there is no way to extract the image without decompressing or
+        transcoding then raise an exception. The type and format of image
+        generated will vary.
+
+        :param stream: Writable stream to write data to
+        """
+
         if self.filters == ['/CCITTFaxDecode']:
             data = self.obj.read_raw_bytes()
-            out += stream.write(self._generate_ccitt_header(data))
-            out += stream.write(data)
+            stream.write(self._generate_ccitt_header(data))
+            stream.write(data)
+            return '.tif'
         elif self.filters == ['/DCTDecode'] and \
                 self.mode == 'RGB' and \
                 self.filter_decodeparms[0][1].get('/ColorTransform', 1):
             buffer = self.obj.get_raw_stream_buffer()
-            out += stream.write(buffer)
-        return out
+            stream.write(buffer)
+            return '.jpg'
 
-    def extract_pil_image(self):
+        raise UnsupportedImageTypeError()
+        
+
+    def as_pil_image(self):
+        """
+        Extract the image as a Pillow Image, using decompression as necessary
+
+        """
         from PIL import Image
 
         if self.mode == 'RGB':
