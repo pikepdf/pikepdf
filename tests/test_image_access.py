@@ -31,6 +31,10 @@ def test_image(congress):
     assert pillowimage.size == pdfimage.size
 
 
+def test_imagemask(congress):
+    assert PdfImage(congress[0]).image_mask == False
+
+
 def test_image_replace(congress, outdir):
     pdfimage = PdfImage(congress[0])
     pillowimage = pdfimage.topil()

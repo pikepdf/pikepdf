@@ -25,7 +25,7 @@ from ._qpdf import Object, ObjectType, PdfError, Pdf, PasswordError, \
 
 from ._objects import Boolean, Integer, Real, Name, String
 
-from ._pdfimage import PdfImage
+from ._pdfimage import PdfImage, UnsupportedImageTypeError
 
 __libqpdf_version__ = _qpdf.qpdf_version()
 
