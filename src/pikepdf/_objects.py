@@ -78,6 +78,10 @@ class Name(metaclass=_ObjectMeta):
     object_type = ObjectType.name
 
     def __new__(cls, name):
+        # QPDF_Name::unparse ensures that names are always saved in a UTF-8
+        # compatible way, so we only need to guard the input.
+        if isinstance(name, bytes):
+            raise TypeError("Name should be str")
         return _qpdf._new_name(name)
 
 
