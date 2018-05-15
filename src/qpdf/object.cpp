@@ -565,11 +565,15 @@ void init_object(py::module& m)
         .def("decode", objecthandle_decode, "convert to nearest Python object")
         .def("__str__", 
             [](QPDFObjectHandle &h) {
+                if (h.isName())
+                    return py::str(h.getName());
                 return py::str(h.getUTF8Value());
             }
         )
         .def("__bytes__",
             [](QPDFObjectHandle &h) {
+                if (h.isName())
+                    return py::bytes(h.getName());
                 return py::bytes(h.getStringValue());
             }
         )
