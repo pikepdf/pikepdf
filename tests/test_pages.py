@@ -29,6 +29,12 @@ def test_empty_pdf(outdir):
     q.save(outdir / 'empty.pdf')
 
 
+def test_delete_last_page(resources, outdir):
+    q = qpdf.Pdf.open(resources / 'graph.pdf')
+    del q.pages[0]
+    q.save(outdir / 'empty.pdf')
+
+
 def test_replace_page(resources):
     q = qpdf.Pdf.open(resources / "fourpages.pdf")
     q2 = qpdf.Pdf.open(resources / "graph.pdf")
