@@ -272,6 +272,19 @@ PYBIND11_MODULE(_qpdf, m) {
         .def_property_readonly("root", &QPDF::getRoot,
             "alias for .Root, the /Root object of the PDF"
         )
+        .def_property("metadata",
+            [](std::shared_ptr<QPDF> q) {
+                if (!q->getTrailer().hasKey("/Info")) {
+                    auto info = QPDFObjectHandle::newDictionary();
+                    q->getTrailer().replaceKey("/Info", info);
+                }
+                return q->getTrailer().getKey("/Info");
+            },
+            [](std::shared_ptr<QPDF> q, QPDFObjectHandle& replace) {
+                q->getTrailer().replaceKey("/Info", replace);
+            },
+            "access the document information dictionary"
+        )
         .def_property_readonly("trailer", &QPDF::getTrailer,
             "the PDF trailer")
         .def_property_readonly("pages",
@@ -321,7 +334,7 @@ PYBIND11_MODULE(_qpdf, m) {
                 return q->makeIndirectObject(objecthandle_encode(obj));
             }
         )
-        .def("_copy_foreign",
+        .def("copy_foreign",
             [](std::shared_ptr<QPDF> q, QPDFObjectHandle &h) -> QPDFObjectHandle {
                 return q->copyForeignObject(h);
             },
