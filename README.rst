@@ -1,31 +1,45 @@
 pikepdf
 =======
 
-**pikepdf** is a Python library allowing creation, manipulation and repair of
-PDF files. It is provides a wrapper around `QPDF <https://github.com/qpdf/qpdf>`_.
+**pikepdf** is a Python library for reading and writing PDF files. 
+
+pikepdf is based on `QPDF <https://github.com/qpdf/qpdf>`_, a powerful PDF 
+manipulation and repair library. 
 
 Python + QPDF = "py" + "qpdf" = "pyqpdf", which looks like a dyslexia test. Say it
 out loud, and it sounds like "pikepdf".
 
-Python 3.5 and 3.6 are fully supported.
+Python 3.5 and 3.6 are fully supported. 
 
 Features:
 
 -   Editing, manipulation and transformation of existing PDFs
 -   Based on the mature, proven QPDF C++ library
--   Can read and write PDFs with any type of PDF encryption (except public key)
+-   Reading and writing encrypted PDFs, with all encryption types except public key
 -   Supports all PDF compression filters
--   Supports PDF object streams
 -   Supports PDF 1.3 through 1.7
--   Can manipulate PDF/A and other types of PDF without losing their metadata marker
 -   Can create "fast web view" (linearized) PDFs
--   Automatically recovers and repairs damaged PDFs
+-   Creates standards compliant PDFs that pass validation in other tools
+-   Automatically repairs damaged PDFs, just like QPDF
+-   Can manipulate PDF/A, PDF/X and other types without losing their metadata marker
 -   Implements more of the PDF specification than existing Python PDF tools
 -   For convenience, renders PDF pages or embedded PDF images in Jupyter notebooks and IPython
 
+.. code-block:: python
+
+    # Elegant, Pythonic API
+    pdf = pikepdf.open('input.pdf')
+    num_pages = len(pdf.pages)
+    del pdf.pages[-1]
+    pdf.save('output.pdf')
+
+
+pikepdf is documented and actively maintained. Commercial support is available.
+
 This library is similar to PyPDF2 and pdfrw – it provides low level access to PDF
-features and allows editing and content transformation of existing PDFs, and 
-requires some knowledge of the PDF specification.
+features and allows editing and content transformation of existing PDFs.  Some
+knowledge of the PDF specification may be helpful.  It does not have the
+capability to render a PDF to image.
 
 Python 2.7 and earlier versions of Python 3 are not currently supported but 
 support is probably not difficult to achieve. Pull requests are welcome.
@@ -73,9 +87,9 @@ extension with it. We must force the use of Visual Studio 2015.
     - `"%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" x64`
     - `set DISTUTILS_USE_SDK=1`
     - `set MSSdk=1`
-    - `pip install ./python_example`
+    - `pip install ./pikepdf`
 
-Note that this requires the user building ``python_example`` to have
+Note that this requires the user building ``pikepdf`` to have
 registry edition rights on the machine, to be able to run the
 ``vcvarsall.bat`` script.
 
