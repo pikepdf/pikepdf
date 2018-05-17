@@ -215,7 +215,7 @@ PYBIND11_MODULE(_qpdf, m) {
         .value("disable", qpdf_object_stream_e::qpdf_o_disable)
         .value("preserve", qpdf_object_stream_e::qpdf_o_preserve)
         .value("generate", qpdf_object_stream_e::qpdf_o_generate);
-    
+
     py::enum_<qpdf_stream_data_e>(m, "StreamDataMode")
         .value("uncompress", qpdf_stream_data_e::qpdf_s_uncompress)
         .value("preserve", qpdf_stream_data_e::qpdf_s_preserve)
@@ -273,15 +273,17 @@ PYBIND11_MODULE(_qpdf, m) {
             "alias for .Root, the /Root object of the PDF"
         )
         .def_property("metadata",
-            [](std::shared_ptr<QPDF> q) {
-                if (!q->getTrailer().hasKey("/Info")) {
-                    auto info = QPDFObjectHandle::newDictionary();
-                    q->getTrailer().replaceKey("/Info", info);
+            [](QPDF& q) {
+                if (!q.getTrailer().hasKey("/Info")) {
+                    auto info = q.makeIndirectObject(QPDFObjectHandle::newDictionary());
+                    q.getTrailer().replaceKey("/Info", info);
                 }
-                return q->getTrailer().getKey("/Info");
+                return q.getTrailer().getKey("/Info");
             },
-            [](std::shared_ptr<QPDF> q, QPDFObjectHandle& replace) {
-                q->getTrailer().replaceKey("/Info", replace);
+            [](QPDF& q, QPDFObjectHandle& replace) {
+                if (!replace.isIndirect())
+                    throw py::value_error("metadata must be an indirect object - use Pdf.make_indirect");
+                q.getTrailer().replaceKey("/Info", replace);
             },
             "access the document information dictionary"
         )

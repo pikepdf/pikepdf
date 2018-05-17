@@ -1,5 +1,5 @@
 import pytest
-from pikepdf import Pdf
+from pikepdf import Pdf, Dictionary
 
 
 @pytest.fixture
@@ -19,6 +19,7 @@ def test_no_info(vera, outdir):
     assert len(vera.metadata) == 0
     creator = 'pikepdf test suite'
     vera.metadata['/Creator'] = creator
+    assert vera.metadata.is_indirect, "/Info must be an indirect object"
     vera.save(outdir / 'out.pdf')
 
     new = Pdf.open(outdir / 'out.pdf')
@@ -34,7 +35,14 @@ def test_update_info(graph, outdir):
     assert new.metadata['/Title'] == new_title
     assert graph.metadata['/Author'] == new.metadata['/Author']
 
+    with pytest.raises(ValueError):
+        new.metadata = Dictionary({'/Keywords': 'bob'})
+
+    new.metadata = graph.make_indirect(Dictionary({'/Keywords': 'bob'}))
+    assert new.metadata.is_indirect, "/Info must be an indirect object"
+
 
 def test_copy_info(vera, graph, outdir):
     vera.metadata = vera.copy_foreign(graph.metadata)
+    assert vera.metadata.is_indirect, "/Info must be an indirect object"
     vera.save(outdir / 'out.pdf')
