@@ -1,11 +1,13 @@
 import pytest
-from pikepdf import _qpdf as qpdf, parse_content_stream, Page
+from pikepdf import (parse_content_stream, Page, Pdf, Stream, Operator, Object,
+        Dictionary)
+from pikepdf._qpdf import StreamParser
 import os
 from subprocess import run, PIPE
 import shutil
 
 
-class PrintParser(qpdf.StreamParser):
+class PrintParser(StreamParser):
     def __init__(self):
         super().__init__()
 
@@ -16,7 +18,7 @@ class PrintParser(qpdf.StreamParser):
         print("--EOF--")
 
 
-class ExceptionParser(qpdf.StreamParser):
+class ExceptionParser(StreamParser):
     def __init__(self):
         super().__init__()
 
@@ -28,20 +30,20 @@ class ExceptionParser(qpdf.StreamParser):
 
 
 def test_open_pdf(resources):
-    pdf = qpdf.Pdf.open(resources / 'graph.pdf')
+    pdf = Pdf.open(resources / 'graph.pdf')
     stream = pdf.pages[0]['/Contents']
-    qpdf.Object._parse_stream(stream, PrintParser())
+    Object._parse_stream(stream, PrintParser())
 
 
 def test_parser_exception(resources):
-    pdf = qpdf.Pdf.open(resources / 'graph.pdf')
+    pdf = Pdf.open(resources / 'graph.pdf')
     stream = pdf.pages[0]['/Contents']
     with pytest.raises(ValueError):
-        qpdf.Object._parse_stream(stream, ExceptionParser())
+        Object._parse_stream(stream, ExceptionParser())
 
 
 @pytest.mark.skipif(
-    shutil.which('pdftotext') is None, 
+    shutil.which('pdftotext') is None,
     reason="poppler not installed")
 def test_text_filter(resources, outdir):
     input_pdf = resources / 'veraPDF test suite 6-2-10-t02-pass-a.pdf'
@@ -51,17 +53,17 @@ def test_text_filter(resources, outdir):
         check=True, stdout=PIPE, encoding='utf-8')
     assert proc.stdout.strip() != '', "Need input test file that contains text"
 
-    pdf = qpdf.Pdf.open(input_pdf)
+    pdf = Pdf.open(input_pdf)
     stream = pdf.pages[0].Contents
 
     keep = []
     for operands, command in parse_content_stream(stream):
-        if command == qpdf.Operator('Tj'):
+        if command == Operator('Tj'):
             print("skipping Tj")
             continue
         keep.append((operands, command))
 
-    new_stream = qpdf.Stream(pdf, keep)
+    new_stream = Stream(pdf, keep)
     print(new_stream.read_bytes())
     pdf.pages[0]['/Contents'] = new_stream
     pdf.pages[0]['/Rotate'] = 90
@@ -76,7 +78,7 @@ def test_text_filter(resources, outdir):
 
 def test_invalid_stream_object():
     with pytest.raises(TypeError):
-        parse_content_stream(qpdf.Dictionary({"/Hi": 3}))
+        parse_content_stream(Dictionary({"/Hi": 3}))
 
 
 @pytest.mark.parametrize("test_file,expected", [
@@ -87,7 +89,7 @@ def test_invalid_stream_object():
     ('sandwich.pdf', True)
 ])
 def test_has_text(resources, test_file, expected):
-    pdf = qpdf.Pdf.open(resources / test_file)
+    pdf = Pdf.open(resources / test_file)
     for p in pdf.pages:
         page = Page(p)
         assert page.has_text() == expected

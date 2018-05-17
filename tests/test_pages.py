@@ -1,5 +1,5 @@
 import pytest
-from pikepdf import _qpdf as qpdf
+from pikepdf import Pdf, Stream
 
 import os
 import platform
@@ -12,10 +12,10 @@ check_refcount = pytest.helpers.check_refcount
 
 
 def test_split_pdf(resources, outdir):
-    q = qpdf.Pdf.open(resources / "fourpages.pdf")
+    q = Pdf.open(resources / "fourpages.pdf")
 
     for n, page in enumerate(q.pages):
-        outpdf = qpdf.Pdf.new()
+        outpdf = Pdf.new()
         outpdf.pages.append(page)
         outpdf.save(outdir / "page{}.pdf".format(n + 1))
 
@@ -23,21 +23,21 @@ def test_split_pdf(resources, outdir):
 
 
 def test_empty_pdf(outdir):
-    q = qpdf.Pdf.new()
+    q = Pdf.new()
     with pytest.raises(IndexError):
         q.pages[0]
     q.save(outdir / 'empty.pdf')
 
 
 def test_delete_last_page(resources, outdir):
-    q = qpdf.Pdf.open(resources / 'graph.pdf')
+    q = Pdf.open(resources / 'graph.pdf')
     del q.pages[0]
     q.save(outdir / 'empty.pdf')
 
 
 def test_replace_page(resources):
-    q = qpdf.Pdf.open(resources / "fourpages.pdf")
-    q2 = qpdf.Pdf.open(resources / "graph.pdf")
+    q = Pdf.open(resources / "fourpages.pdf")
+    q2 = Pdf.open(resources / "graph.pdf")
 
     assert len(q.pages) == 4
     q.pages[1] = q2.pages[0]
@@ -47,26 +47,26 @@ def test_replace_page(resources):
 
 
 def test_hard_replace_page(resources, outdir):
-    q = qpdf.Pdf.open(resources / "fourpages.pdf")
-    q2 = qpdf.Pdf.open(resources / "graph.pdf")
+    q = Pdf.open(resources / "fourpages.pdf")
+    q2 = Pdf.open(resources / "graph.pdf")
 
     q2_page = q2.pages[0]
     del q2
     q.pages[1] = q2_page
 
-    q2 = qpdf.Pdf.open(resources / 'sandwich.pdf')
+    q2 = Pdf.open(resources / 'sandwich.pdf')
     q2_page = q2.pages[0]
     q.pages[2] = q2_page
     del q2
     del q2_page
     gc.collect()
 
-    q.save(outdir / 'out.pdf')    
+    q.save(outdir / 'out.pdf')
 
 
 def test_reverse_pages(resources, outdir):
-    q = qpdf.Pdf.open(resources / "fourpages.pdf")
-    qr = qpdf.Pdf.open(resources / "fourpages.pdf")
+    q = Pdf.open(resources / "fourpages.pdf")
+    qr = Pdf.open(resources / "fourpages.pdf")
 
     lengths = [int(page.Contents.stream_dict.Length) for page in q.pages]
 
@@ -82,10 +82,10 @@ def test_reverse_pages(resources, outdir):
 
 def test_evil_page_deletion(resources, outdir):
     # str needed for py<3.6
-    copy(str(resources / 'sandwich.pdf'), str(outdir / 'sandwich.pdf')) 
-    
-    src = qpdf.Pdf.open(outdir / 'sandwich.pdf')
-    pdf = qpdf.Pdf.open(resources / 'graph.pdf')
+    copy(str(resources / 'sandwich.pdf'), str(outdir / 'sandwich.pdf'))
+
+    src = Pdf.open(outdir / 'sandwich.pdf')
+    pdf = Pdf.open(resources / 'graph.pdf')
 
     assert check_refcount(src, 2)
     pdf.pages.append(src.pages[0])
@@ -110,8 +110,8 @@ def test_evil_page_deletion(resources, outdir):
 
 
 def test_append_all(resources, outdir):
-    pdf = qpdf.Pdf.open(resources / 'sandwich.pdf')
-    pdf2 = qpdf.Pdf.open(resources / 'fourpages.pdf')
+    pdf = Pdf.open(resources / 'sandwich.pdf')
+    pdf2 = Pdf.open(resources / 'fourpages.pdf')
 
     for page in pdf2.pages:
         pdf.pages.append(page)
@@ -121,8 +121,8 @@ def test_append_all(resources, outdir):
 
 
 def test_extend(resources, outdir):
-    pdf = qpdf.Pdf.open(resources / 'sandwich.pdf')
-    pdf2 = qpdf.Pdf.open(resources / 'fourpages.pdf')
+    pdf = Pdf.open(resources / 'sandwich.pdf')
+    pdf2 = Pdf.open(resources / 'fourpages.pdf')
     pdf.pages.extend(pdf2.pages)
 
     assert len(pdf.pages) == 5
@@ -130,8 +130,8 @@ def test_extend(resources, outdir):
 
 
 def test_slice_unequal_replacement(resources, outdir):
-    pdf = qpdf.Pdf.open(resources / 'fourpages.pdf')
-    pdf2 = qpdf.Pdf.open(resources / 'sandwich.pdf')
+    pdf = Pdf.open(resources / 'fourpages.pdf')
+    pdf2 = Pdf.open(resources / 'sandwich.pdf')
 
     assert len(pdf.pages[1:]) != len(pdf2.pages)
     page0_content_len = int(pdf.pages[0].Contents.Length)
@@ -147,8 +147,8 @@ def test_slice_unequal_replacement(resources, outdir):
 
 
 def test_slice_with_step(resources, outdir):
-    pdf = qpdf.Pdf.open(resources / 'fourpages.pdf')
-    pdf2 = qpdf.Pdf.open(resources / 'sandwich.pdf')
+    pdf = Pdf.open(resources / 'fourpages.pdf')
+    pdf2 = Pdf.open(resources / 'sandwich.pdf')
 
     pdf2.pages.extend(pdf2.pages[:])
     assert len(pdf2.pages) == 2
@@ -157,23 +157,23 @@ def test_slice_with_step(resources, outdir):
     pdf.pages[0::2] = pdf2.pages
     pdf.save(outdir / 'out.pdf')
 
-    assert all(page.Contents.Length == pdf2_content_len 
+    assert all(page.Contents.Length == pdf2_content_len
                for page in pdf.pages[0::2])
 
 
 @pytest.mark.timeout(1)
 def test_self_extend(resources):
-    pdf = qpdf.Pdf.open(resources / 'fourpages.pdf')
-    with pytest.raises(ValueError, 
+    pdf = Pdf.open(resources / 'fourpages.pdf')
+    with pytest.raises(ValueError,
             message="source page list modified during iteration"):
         pdf.pages.extend(pdf.pages)
 
 
 def test_page_contents_add(resources, outdir):
-    pdf = qpdf.Pdf.open(resources / 'graph.pdf')
+    pdf = Pdf.open(resources / 'graph.pdf')
 
-    stream1 = qpdf.Stream(pdf, b"q 0.707 -0.707 0.707 0.707 0 0 cm")
-    stream2 = qpdf.Stream(pdf, b"Q")
+    stream1 = Stream(pdf, b"q 0.707 -0.707 0.707 0.707 0 0 cm")
+    stream2 = Stream(pdf, b"Q")
 
     pdf.pages[0].page_contents_add(stream1, True)
     pdf.pages[0].page_contents_add(stream2, False)

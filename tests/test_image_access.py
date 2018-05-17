@@ -59,7 +59,7 @@ def test_lowlevel_jpeg(congress, outdir):
     b.seek(0)
     im = Image.open(b)
     assert im.size == (congress[0].Width, congress[0].Height)
-    assert im.mode == 'RGB'    
+    assert im.mode == 'RGB'
 
 
 def test_lowlevel_replace_jpeg(congress, outdir):

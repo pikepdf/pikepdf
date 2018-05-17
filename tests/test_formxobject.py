@@ -1,6 +1,5 @@
 import pytest
-from pikepdf import _qpdf as qpdf
-from pikepdf import Name
+from pikepdf import Pdf, Object, Stream, Name, Dictionary
 
 import os
 import platform
@@ -9,10 +8,10 @@ from contextlib import suppress
 
 
 def test_create_form_xobjects(outdir):
-    pdf = qpdf.Pdf.new()
+    pdf = Pdf.new()
 
     font = pdf.make_indirect(
-        qpdf.Object.parse(b"""
+        Object.parse(b"""
             <<
                 /Type /Font
                 /Subtype /Type1
@@ -24,8 +23,8 @@ def test_create_form_xobjects(outdir):
     width, height = 100, 100
     image_data = b"\xff\x7f\x00" * (width * height)
 
-    image = qpdf.Stream(pdf, image_data)
-    image.stream_dict = qpdf.Object.parse("""
+    image = Stream(pdf, image_data)
+    image.stream_dict = Object.parse("""
             <<
                 /Type /XObject
                 /Subtype /Image
@@ -34,12 +33,12 @@ def test_create_form_xobjects(outdir):
                 /Width 100
                 /Height 100
             >>""")
-    xobj_image = qpdf.Dictionary({'/Im1': image})
+    xobj_image = Dictionary({'/Im1': image})
 
-    form_xobj_res = qpdf.Dictionary({
+    form_xobj_res = Dictionary({
         '/XObject': xobj_image
         })
-    form_xobj = qpdf.Stream(pdf, b"""
+    form_xobj = Stream(pdf, b"""
         /Im1 Do
         """)
     form_xobj['/Type'] = Name('/XObject')
@@ -64,7 +63,7 @@ def test_create_form_xobjects(outdir):
         q 72 0 0 72 378 180 cm /Form1 Do Q
         """
 
-    contents = qpdf.Stream(pdf, stream)
+    contents = Stream(pdf, stream)
 
     page = pdf.make_indirect({
         '/Type': Name('/Page'),
@@ -75,4 +74,3 @@ def test_create_form_xobjects(outdir):
 
     pdf.pages.append(page)
     pdf.save(outdir / 'formxobj.pdf')
-

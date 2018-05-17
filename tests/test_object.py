@@ -3,7 +3,7 @@ from math import isclose, isfinite
 from pikepdf import _qpdf as qpdf
 from pikepdf import (Pdf, Real, String, Array, Integer, Name, Boolean, Null)
 from hypothesis import given, strategies as st, example
-from hypothesis.strategies import (none, integers, binary, lists, floats, 
+from hypothesis.strategies import (none, integers, binary, lists, floats,
     characters, recursive, booleans, builds, one_of)
 import pytest
 
@@ -33,7 +33,7 @@ def test_ascii_involution(ascii):
     assert decode_encode(b) == b
 
 
-@given(characters(min_codepoint=0x0, max_codepoint=0xfef0, 
+@given(characters(min_codepoint=0x0, max_codepoint=0xfef0,
                   blacklist_categories=('Cs',)))
 @example('')
 def test_unicode_involution(s):
@@ -135,7 +135,7 @@ class TestHashViolation:
     def check(self, a, b):
         assert a == b, "invalid test case"
         assert hash(a) == hash(b), "hash violation"
-    
+
     def test_unequal_but_similar(self):
         assert Name('/Foo') != String('/Foo')
 
@@ -150,4 +150,3 @@ class TestHashViolation:
     def test_string(self):
         utf16 = b'\xfe\xff' + 'hello'.encode('utf-16be')
         self.check(String(utf16), String('hello'))
-    

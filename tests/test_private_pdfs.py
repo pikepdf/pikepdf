@@ -28,4 +28,3 @@ def test_pypdf2_issue_361(private):
     with gzip.open(str(private / 'pypdf2_issue_361.pdf.gz'), 'rb') as gz:
         with pytest.raises(PdfError, match=r'trailer'):
             Pdf.open(gz)
-

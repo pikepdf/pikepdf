@@ -1,4 +1,4 @@
-from pikepdf import _qpdf as qpdf, Pdf
+from pikepdf import Pdf
 import pytest
 
 
@@ -18,7 +18,7 @@ def test_get_equality_stream(congress):
         image.NoSuchKey
     with pytest.raises(KeyError):
         image['/NoSuchKey']
-    
+
     image.get('/NoSuchKey', 42) == 42
 
 
