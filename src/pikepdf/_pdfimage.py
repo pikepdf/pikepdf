@@ -11,7 +11,7 @@ from itertools import zip_longest
 import struct
 
 from ._objects import Name
-from ._qpdf import Pdf, Object, ObjectType, Array
+from . import Pdf, Object, ObjectType, Array
 
 class DependencyError(Exception):
     pass
@@ -40,7 +40,7 @@ def array_str(value):
     if value.type_code == ObjectType.array:
         return [str(item) for item in value]
     elif value.type_code == ObjectType.name:
-        return [str(value)] 
+        return [str(value)]
     raise NotImplementedError(value)
 
 
@@ -62,12 +62,12 @@ class PdfImage:
         if obj.type_code == ObjectType.stream and \
                 obj.stream_dict.get("/Subtype") != "/Image":
             raise TypeError("can't construct PdfImage from non-image")
-        
-        self.obj = obj        
+
+        self.obj = obj
 
     width = _PdfImageDescriptor('Width', int, None)
     height = _PdfImageDescriptor('Height', int, None)
-    image_mask = _PdfImageDescriptor('ImageMask', bool, False)    
+    image_mask = _PdfImageDescriptor('ImageMask', bool, False)
     _bpc = _PdfImageDescriptor('BitsPerComponent', int, None)
     _colorspaces = _PdfImageDescriptor('ColorSpace', array_str, [])
     filters = _PdfImageDescriptor('Filter', array_str, [])
@@ -120,17 +120,17 @@ class PdfImage:
     @property
     def filter_decodeparms(self):
         """
-        PDF has a lot of optional data structures concerning /Filter and 
+        PDF has a lot of optional data structures concerning /Filter and
         /DecodeParms. /Filter can be absent or a name or an array, /DecodeParms
         can be absent or a dictionary (if /Filter is a name) or an array (if
         /Filter is an array). When both are arrays the lengths match.
-        
+
         Normalize this into:
         [(/FilterName, {/DecodeParmName: Value, ...}), ...]
 
         The order of /Filter matters as indicates the encoding/decoding sequence.
 
-        """        
+        """
         return list(zip_longest(self.filters, self.decode_parms, fillvalue={}))
 
     def extract_to(self, *, stream):
@@ -157,7 +157,7 @@ class PdfImage:
             return '.jpg'
 
         raise UnsupportedImageTypeError()
-        
+
 
     def as_pil_image(self):
         """
@@ -184,12 +184,12 @@ class PdfImage:
             stride = 0  # tell Pillow to calculate stride from line width
             ystep = 1  # image is top to bottom in memory
             im = Image.frombuffer('L', self.size, buffer, "raw", stride, ystep)
-        
+
         if not im:
             raise UnsupportedImageTypeError(repr(self))
 
         return im
-    
+
     def _generate_ccitt_header(self, data):
         # https://stackoverflow.com/questions/2641770/
         # https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf
@@ -253,7 +253,7 @@ def page_to_svg(page):
             raise DependencyError("Could not find the required executable 'mutool'")
 
         if proc.stderr:
-            print(proc.stderr.decode())            
+            print(proc.stderr.decode())
         tmp_out.flush()
         tmp_out2 = open(tmp_out.name, 'rb')  # Not sure why re-opening is need, but it is
         svg = tmp_out2.read()

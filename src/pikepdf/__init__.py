@@ -20,10 +20,11 @@ try:
 except ImportError:
     raise ImportError("pikepdf's extension library failed to import")
 
-from ._qpdf import Object, ObjectType, PdfError, Pdf, PasswordError, \
-    ObjectStreamMode, StreamDataMode, Stream, Operator, Null, Array, Dictionary
+from ._qpdf import (Object, ObjectType, PdfError, Pdf, PasswordError
+        ObjectStreamMode, StreamDataMode)
 
-from ._objects import Boolean, Integer, Real, Name, String
+from ._objects import (Boolean, Integer, Real, Name, String, Array, Dictionary,
+        Stream, Operator, Null)
 
 from ._pdfimage import PdfImage, UnsupportedImageTypeError
 
@@ -69,7 +70,7 @@ def parse_content_stream(stream):
 
     Each instruction contains at least one operator and zero or more operands.
 
-    The *stream* object may be either a :class:`pikepdf.Stream` or an array 
+    The *stream* object may be either a :class:`pikepdf.Stream` or an array
     of streams.
 
     >>> pdf = pikepdf.Pdf.open(input_pdf)
@@ -155,17 +156,17 @@ class PdfMatrix:
     coordinates.
 
     PDF uses row vectors.  That is vr @ A' gives the effect of transforming
-    a row vector vr=(x, y, 1) by the matrix A'.  It's more common to use 
+    a row vector vr=(x, y, 1) by the matrix A'.  It's more common to use
     A @ vc where vc is a column vector = (x, y, 1)'.
 
     Addition is not implemented. If needed it would be necessary to normalize
     with division by self.values[2][2].
 
     """
-    
+
     def __init__(self, other):
         if isinstance(other, PdfMatrix):
-            self.values = other.values 
+            self.values = other.values
         elif len(other) == 6:
             a, b, c, d, e, f = map(float, other)
             self.values = ((a, b, 0),
@@ -186,7 +187,7 @@ class PdfMatrix:
         a = self.values
         b = other.values
         return PdfMatrix(
-                [[sum([float(i) * float(j) 
+                [[sum([float(i) * float(j)
                        for i, j in zip(row, col)]
                      ) for col in zip(*b)]
                   for row in a]
@@ -244,7 +245,3 @@ class PdfMatrix:
         return '{:.6f} {:.6f} {:.6f} {:.6f} {:.6f} {:.6f}'.format(
             self.a, self.b, self.c, self.d, self.e, self.f
         ).encode()
-
-    
-    
-    

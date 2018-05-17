@@ -762,13 +762,13 @@ void init_object(py::module& m)
         },
         "Construct a PDF String object."
     );
-    m.def("Array",
+    m.def("_new_array",
         [](py::iterable iterable) {
             return QPDFObjectHandle::newArray(array_builder(iterable));
         },
         "Construct a PDF Array object from an iterable of PDF objects or types that can be coerced to PDF objects."
     );
-    m.def("Dictionary",
+    m.def("_new_dictionary",
         [](py::dict dict) {
             return QPDFObjectHandle::newDictionary(dict_builder(dict));
         },

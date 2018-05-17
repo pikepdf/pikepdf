@@ -10,10 +10,10 @@ The purpose of these is to provide nice-looking classes to allow explicit
 construction of PDF objects and more pythonic idioms and facilitate discovery
 by documentation generators.
 
-It's also a place to narrow the scope of input types to those more easily 
+It's also a place to narrow the scope of input types to those more easily
 converted to C++.
 
-In reality all of these return objects of class pikepdf.Object or rather 
+In reality all of these return objects of class pikepdf.Object or rather
 QPDFObjectHandle which is a generic type.
 
 """
@@ -22,7 +22,7 @@ from decimal import Decimal, InvalidOperation
 from math import isfinite
 
 from . import _qpdf
-from ._qpdf import Object, ObjectType
+from ._qpdf import Object, ObjectType, Stream, Operator, Null
 
 
 class _ObjectMeta(type):
@@ -59,7 +59,7 @@ class Real(metaclass=_ObjectMeta):
 
         if isinstance(value, int):
             return _qpdf._new_real(value, 0)
-        
+
         if isinstance(value, float) and isfinite(value):
             return _qpdf._new_real(value, dec_places)
 
@@ -72,7 +72,7 @@ class Real(metaclass=_ObjectMeta):
             raise ValueError('NaN and infinity are not valid PDF objects')
 
         return _qpdf._new_real(str(dec))
-        
+
 
 class Name(metaclass=_ObjectMeta):
     object_type = ObjectType.name
@@ -97,3 +97,19 @@ class String(metaclass=_ObjectMeta):
         except UnicodeEncodeError:
             utf16 = b'\xfe\xff' + s.encode('utf-16be')
             return _qpdf._new_string(utf16)
+
+
+class Array(metaclass=_ObjectMeta):
+    object_type = ObjectType.array
+
+    def __new__(cls, a):
+        if isinstance(a, (str, bytes)):
+            raise TypeError('Strings cannot be converted to arrays of chars')
+        return _qpdf._new_array(a)
+
+
+class Dictionary(metaclass=_ObjectMeta):
+    object_type = ObjectType.dictionary
+
+    def __new__(cls, d):
+        return _qpdf._new_dictionary(d)

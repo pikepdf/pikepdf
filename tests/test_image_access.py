@@ -5,8 +5,7 @@ from PIL import Image
 import zlib
 import sys
 
-from pikepdf import Pdf, Object, PdfImage, PdfError, Name
-from pikepdf._qpdf import Null
+from pikepdf import Pdf, Object, PdfImage, PdfError, Name, Null
 
 
 @pytest.fixture
