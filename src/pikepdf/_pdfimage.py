@@ -223,7 +223,7 @@ class PdfImage:
         return tiff_header
 
     def show(self):
-        self.topil().show()
+        self.as_pil_image().show()
 
     def __repr__(self):
         return '<pikepdf.PdfImage image mode={} size={}x{} at {}>'.format(
@@ -232,7 +232,7 @@ class PdfImage:
     def _repr_png_(self):
         "Display hook for IPython/Jupyter"
         b = BytesIO()
-        im = self.topil()
+        im = self.as_pil_image()
         im.save(b, 'PNG')
         return b.getvalue()
 
