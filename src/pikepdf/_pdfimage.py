@@ -201,6 +201,8 @@ class PdfImage:
             ccitt_group = 4  # Pure two-dimensional encoding (Group 4)
         else:
             ccitt_group = 3
+        black_is_one = self.decode_parms[0].get("/BlackIs1", False)
+        white_is_zero = 1 if black_is_one else 0
 
         img_size = len(data)
         tiff_header_struct = '<' + '2s' + 'H' + 'L' + 'H' + 'HHLL' * 8 + 'L'
@@ -214,7 +216,7 @@ class PdfImage:
             257, 4, 1, self.height,  # ImageLength, LONG, 1, length
             258, 3, 1, 1,  # BitsPerSample, SHORT, 1, 1
             259, 3, 1, ccitt_group,  # Compression, SHORT, 1, 4 = CCITT Group 4 fax encoding
-            262, 3, 1, 0,  # Thresholding, SHORT, 1, 0 = WhiteIsZero
+            262, 3, 1, int(white_is_zero),  # Thresholding, SHORT, 1, 0 = WhiteIsZero
             273, 4, 1, struct.calcsize(tiff_header_struct),  # StripOffsets, LONG, 1, length of header
             278, 4, 1, self.height,
             279, 4, 1, img_size,  # StripByteCounts, LONG, 1, size of image
