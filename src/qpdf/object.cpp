@@ -44,7 +44,7 @@ Uncertain:
 String - str or bytes ?
 
 Convertible:
-Name - Name('/thing') 
+Name - Name('/thing')
 Operator - Operator('Do')
 Array - list / iterable
 Dictionary - dict
@@ -131,7 +131,7 @@ size_t list_range_check(QPDFObjectHandle& h, int index)
         index += h.getArrayNItems(); // Support negative indexing
     if (!(0 <= index && index < h.getArrayNItems()))
         throw py::index_error("index out of range");
-    return (size_t)index;   
+    return (size_t)index;
 }
 
 class StackGuard {
@@ -161,7 +161,7 @@ bool objecthandle_equal(QPDFObjectHandle& self, QPDFObjectHandle& other)
     // QPDFObject, even if the handles are different).
     // This lets us compare deeply nested and cyclic structures without recursing
     // into them.
-    if (self.getObjectID() != 0 
+    if (self.getObjectID() != 0
         && other.getObjectID() != 0
         && self.getOwningQPDF() == other.getOwningQPDF()) {
         return self.getObjGen() == other.getObjGen();
@@ -170,7 +170,7 @@ bool objecthandle_equal(QPDFObjectHandle& self, QPDFObjectHandle& other)
     // If 'self' is a numeric type, convert both to Decimal objects
     // and compare them as such.
     if (self.getTypeCode() == QPDFObject::object_type_e::ot_integer ||
-        self.getTypeCode() == QPDFObject::object_type_e::ot_real || 
+        self.getTypeCode() == QPDFObject::object_type_e::ot_real ||
         self.getTypeCode() == QPDFObject::object_type_e::ot_boolean) {
         try {
             auto a = decimal_from_pdfobject(self);
@@ -197,11 +197,11 @@ bool objecthandle_equal(QPDFObjectHandle& self, QPDFObjectHandle& other)
         case QPDFObject::object_type_e::ot_operator:
             return self.getOperatorValue() == other.getOperatorValue();
         case QPDFObject::object_type_e::ot_string:
-        {            
+        {
             // We don't know what encoding the string is in
             // This ensures UTF-16 coded ASCII strings will compare equal to
             // UTF-8/ASCII coded.
-            return self.getStringValue() == other.getStringValue() || 
+            return self.getStringValue() == other.getStringValue() ||
                 self.getUTF8Value() == other.getUTF8Value();
         }
         case QPDFObject::object_type_e::ot_array:
@@ -272,7 +272,7 @@ void init_object(py::module& m)
                 { b.getSize() },
                 { sizeof(unsigned char) }
             );
-        });    
+        });
 
     static QPDFObjectHandle static_handle;
     py::class_<QPDFObjectHandle>(m, "Object")
@@ -316,7 +316,7 @@ void init_object(py::module& m)
         .def_property_readonly("is_indirect", &QPDFObjectHandle::isIndirect)
         .def("__repr__", &objecthandle_repr)
         .def("__hash__",
-            [](QPDFObjectHandle &self) -> py::int_ {                
+            [](QPDFObjectHandle &self) -> py::int_ {
                 py::object hash = py::module::import("builtins").attr("hash");
 
                 //Objects which compare equal must have the same hash value
@@ -388,7 +388,7 @@ void init_object(py::module& m)
                         return false;
                 }
             }
-        )        
+        )
         .def("__lt__",
             [](QPDFObjectHandle &self, QPDFObjectHandle &other) {
                 if (!self.isInitialized() || !other.isInitialized())
@@ -495,7 +495,7 @@ void init_object(py::module& m)
                 QPDFObjectHandle value;
                 std::string key = "/" + name;
                 try {
-                    value = object_get_key(h, key);                
+                    value = object_get_key(h, key);
                 } catch (py::key_error &e) {
                     if (std::isupper(name[0]))
                         throw py::attr_error(e.what());
@@ -563,7 +563,7 @@ void init_object(py::module& m)
         .def("__int__", &QPDFObjectHandle::getIntValue)
         .def("as_bool", &QPDFObjectHandle::getBoolValue)
         .def("decode", objecthandle_decode, "convert to nearest Python object")
-        .def("__str__", 
+        .def("__str__",
             [](QPDFObjectHandle &h) {
                 if (h.isName())
                     return py::str(h.getName());
@@ -574,6 +574,11 @@ void init_object(py::module& m)
             [](QPDFObjectHandle &h) {
                 if (h.isName())
                     return py::bytes(h.getName());
+                if (h.isStream()) {
+                    PointerHolder<Buffer> buf = h.getStreamData();
+                    // py::bytes will make a copy of the buffer, so releasing is fine
+                    return py::bytes((const char*)buf->getBuffer(), buf->getSize());
+                }
                 return py::bytes(h.getStringValue());
             }
         )
@@ -599,10 +604,10 @@ void init_object(py::module& m)
         .def("__delitem__",
             [](QPDFObjectHandle &h, int index) {
                 size_t u_index = list_range_check(h, index);
-                h.eraseItem(u_index);                
+                h.eraseItem(u_index);
             }
         )
-        .def_property("stream_dict", 
+        .def_property("stream_dict",
             &QPDFObjectHandle::getDict, &QPDFObjectHandle::replaceDict,
             py::return_value_policy::reference_internal
         )
@@ -674,7 +679,7 @@ void init_object(py::module& m)
                 return std::pair<int, int>(objgen.getObj(), objgen.getGen());
             }
         )
-        .def_static("parse", 
+        .def_static("parse",
             [](std::string const& stream, std::string const& description) {
                 return QPDFObjectHandle::parse(stream, description);
             },
@@ -691,7 +696,7 @@ void init_object(py::module& m)
             py::arg("stream"),
             py::arg("description") = ""
         )
-        .def_static("_parse_stream", 
+        .def_static("_parse_stream",
             &QPDFObjectHandle::parseContentStream,
             "Helper for parsing PDF content stream; use ``pikepdf.parse_content_stream``.")
         .def("unparse", &QPDFObjectHandle::unparse,
@@ -732,7 +737,7 @@ void init_object(py::module& m)
 
     m.def("_new_boolean", &QPDFObjectHandle::newBool, "Construct a PDF Boolean object");
     m.def("_new_integer", &QPDFObjectHandle::newInteger, "Construct a PDF Integer object");
-    m.def("_new_real", 
+    m.def("_new_real",
         [](const std::string& value) {
             return QPDFObjectHandle::newReal(value);
         },
@@ -805,7 +810,7 @@ void init_object(py::module& m)
             return QPDFObjectHandle::newStream(owner.get(), data.str());
         },
         "Construct a PDF Stream object from a list of operand-operator tuples [((operands,), operator)]",
-        py::keep_alive<0, 1>() // returned object references the owner   
+        py::keep_alive<0, 1>() // returned object references the owner
     );
     m.def("Operator",
         [](const std::string& op) {

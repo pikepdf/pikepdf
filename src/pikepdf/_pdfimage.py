@@ -100,13 +100,35 @@ class PdfImage:
         return self._colorspaces[0] == '/Indexed'
 
     @property
+    def palette(self):
+        if not self.indexed:
+            return None
+        idx, base, hival, lookup = None, None, None, None
+        try:
+            idx, base, hival, lookup = self.obj.ColorSpace.as_list()
+        except ValueError as e:
+            raise ValueError('Not sure how to interpret this palette') from e
+        base = str(base)
+        hival = int(hival)
+        lookup = bytes(lookup)
+        if not base in self.SIMPLE_COLORSPACES:
+            raise NotImplementedError("not sure how to interpret this palette")
+        if base == '/DeviceRGB':
+            base = 'RGB'
+        elif base == '/DeviceGray':
+            base = 'L'
+        return base, lookup
+
+    @property
     def size(self):
         return self.width, self.height
 
     @property
     def mode(self):
         m = ''
-        if self.bits_per_component == 1:
+        if self.indexed:
+            m = 'P'
+        elif self.bits_per_component == 1:
             m = '1'
         elif self.bits_per_component == 8:
             if self.colorspace == '/DeviceRGB':
@@ -179,11 +201,18 @@ class PdfImage:
             # RGB and Pillow needs RGBX for raw access
             data = self.obj.read_bytes()
             im = Image.frombytes('RGB', self.size, data)
-        elif self.mode == 'L':
+        elif self.mode in ('L', 'P'):
             buffer = self.obj.get_stream_buffer()
             stride = 0  # tell Pillow to calculate stride from line width
             ystep = 1  # image is top to bottom in memory
-            im = Image.frombuffer('L', self.size, buffer, "raw", stride, ystep)
+            im = Image.frombuffer('L', self.size, buffer, "raw", 'L', stride,
+                                  ystep)
+            if self.mode == 'P':
+                base_mode, palette_data = self.palette
+                if base_mode in ('RGB', 'L'):
+                    im.putpalette(palette_data, rawmode=base_mode)
+                else:
+                    raise NotImplementedError('palette with ' + base_colorspace)
 
         if not im:
             raise UnsupportedImageTypeError(repr(self))

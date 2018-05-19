@@ -24,6 +24,7 @@ var/
 /*.ipynb
 /debug_tests.py
 /TODO
+/scratch.py
 
 # macOS
 .DS_Store
