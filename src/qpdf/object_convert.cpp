@@ -33,6 +33,7 @@
 std::map<std::string, QPDFObjectHandle>
 dict_builder(py::dict dict)
 {
+    StackGuard sg(" dict_builder");
     std::map<std::string, QPDFObjectHandle> result;
 
     for (auto item: dict) {
@@ -47,6 +48,7 @@ dict_builder(py::dict dict)
 std::vector<QPDFObjectHandle>
 array_builder(py::iterable iter)
 {
+    StackGuard sg(" array_builder");
     std::vector<QPDFObjectHandle> result;
     int narg = 0;
 
@@ -161,6 +163,7 @@ py::object decimal_from_pdfobject(QPDFObjectHandle& h)
 
 py::object objecthandle_decode(QPDFObjectHandle& h)
 {
+    StackGuard sg(" decode");
     py::object obj = py::none();
 
     switch (h.getTypeCode()) {
@@ -202,7 +205,7 @@ py::object objecthandle_decode(QPDFObjectHandle& h)
     }
 
     if (obj.is_none())
-        throw py::type_error("not decodable"); 
+        throw py::type_error("not decodable");
 
     return obj;
 }

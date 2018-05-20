@@ -107,11 +107,12 @@ def test_nested_list2(array):
 
 
 def test_stack_depth():
-    a = [150]
-    for n in range(150):
+    a = [42]
+    for n in range(15000):
         a = [a]
-    assert decode_encode(a) == a
-    with pytest.raises(RuntimeError, message="recursion"):
+    with pytest.raises(RecursionError, message="recursion"):
+        assert decode_encode(a) == a
+    with pytest.raises(RecursionError, message="recursion"):
         encode(a) == encode(a)
 
 

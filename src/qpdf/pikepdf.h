@@ -91,12 +91,12 @@ namespace pybind11 { namespace detail {
                 //auto pyqpdf = pybind11::cast(owner);
                 auto tinfo = get_type_info(typeid(QPDF));
                 handle pyqpdf = get_object_handle(owner, tinfo);
-                
+
                 // Tell pybind11 that it must keep pyqpdf alive as long as h is
                 // alive
                 keep_alive_impl(h, pyqpdf);
             }
-            return h;            
+            return h;
         }
 
     public:
@@ -131,3 +131,14 @@ py::object objecthandle_decode(QPDFObjectHandle& h);
 QPDFObjectHandle objecthandle_encode(py::handle handle);
 std::vector<QPDFObjectHandle> array_builder(py::iterable iter);
 std::map<std::string, QPDFObjectHandle> dict_builder(py::dict dict);
+
+// Support for recursion checks
+class StackGuard {
+public:
+    StackGuard(const char *where) {
+        Py_EnterRecursiveCall(where);
+    }
+    ~StackGuard() {
+        Py_LeaveRecursiveCall();
+    }
+};

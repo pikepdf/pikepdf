@@ -134,23 +134,10 @@ size_t list_range_check(QPDFObjectHandle& h, int index)
     return (size_t)index;
 }
 
-class StackGuard {
-    unsigned int *depth;
-public:
-    StackGuard(unsigned int *depth, unsigned int limit = 100) {
-        this->depth = depth;
-        ++(*this->depth);
-        if (*this->depth > limit)
-            throw std::runtime_error("recursion went too deep");
-    }
-    ~StackGuard() { (*this->depth)--; this->depth = nullptr; }
-};
-
 
 bool objecthandle_equal(QPDFObjectHandle& self, QPDFObjectHandle& other)
 {
-    static unsigned int depth = 0;
-    StackGuard sg(&depth);
+    StackGuard sg(" objecthandle_equal");
 
     // Uninitialized objects are never equal
     if (!self.isInitialized() || !other.isInitialized())
