@@ -1,5 +1,7 @@
 from decimal import Decimal
 from math import isclose, isfinite
+import sys
+
 from pikepdf import _qpdf as qpdf
 from pikepdf import (Pdf, Real, String, Array, Integer, Name, Boolean, Null)
 from hypothesis import given, strategies as st, example
@@ -108,12 +110,17 @@ def test_nested_list2(array):
 
 def test_stack_depth():
     a = [42]
-    for n in range(15000):
+    for n in range(100):
         a = [a]
-    with pytest.raises(RecursionError, message="recursion"):
-        assert decode_encode(a) == a
-    with pytest.raises(RecursionError, message="recursion"):
-        encode(a) == encode(a)
+    rlimit = sys.getrecursionlimit()
+    try:
+        sys.setrecursionlimit(100)
+        with pytest.raises(RecursionError, message="recursion"):
+            assert decode_encode(a) == a
+        with pytest.raises(RecursionError, message="recursion"):
+            encode(a) == encode(a)
+    finally:
+        sys.setrecursionlimit(rlimit)  # So other tests are not affected
 
 
 def test_bytes():
