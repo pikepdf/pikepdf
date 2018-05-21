@@ -119,6 +119,8 @@ def test_stack_depth():
             assert decode_encode(a) == a
         with pytest.raises(RecursionError, message="recursion"):
             encode(a) == encode(a)
+        with pytest.raises(RecursionError, message="recursion"):
+            repr(a)
     finally:
         sys.setrecursionlimit(rlimit)  # So other tests are not affected
 

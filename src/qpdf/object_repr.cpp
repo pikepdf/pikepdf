@@ -6,12 +6,12 @@
  * Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
  */
 
-/* 
+/*
  * Implement repr() for QPDFObjectHandle
- * 
+ *
  * Since qpdf largely ignores const, it is not possible to use const here,
  * even though repr() is const throughout.
- * 
+ *
  * References are used for functions that are just passing handles around.
  * objecthandle_repr_inner cannot cannot use references because it calls itself.
  */
@@ -100,7 +100,7 @@ std::string objecthandle_pythonic_typename(QPDFObjectHandle& h, std::string pref
         break;
     case QPDFObject::object_type_e::ot_dictionary:
         if (h.hasKey("/Type")) {
-            s += std::string("Dictionary(type_=\"") + h.getKey("/Type").getName() + "\")"; 
+            s += std::string("Dictionary(type_=\"") + h.getKey("/Type").getName() + "\")";
         } else {
             s += "Dictionary";
         }
@@ -127,9 +127,7 @@ std::string objecthandle_repr_typename_and_value(QPDFObjectHandle& h)
 static
 std::string objecthandle_repr_inner(QPDFObjectHandle h, uint depth, std::set<QPDFObjGen>* visited, bool* pure_expr)
 {
-    if (depth > 1000) {
-        throw std::runtime_error("Reached object recursion depth of 1000");
-    }
+    StackGuard sg(" objecthandle_repr_inner");
 
     if (!h.isScalar()) {
         if (visited->count(h.getObjGen()) > 0) {
