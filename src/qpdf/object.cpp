@@ -683,13 +683,20 @@ void init_object(py::module& m)
             py::arg("stream"),
             py::arg("description") = ""
         )
+        .def("_parse_page_contents",
+            &QPDFObjectHandle::parsePageContents,
+            "Helper for parsing page contents; use ``pikepdf.parse_content_stream``."
+        )
         .def_static("_parse_stream",
             &QPDFObjectHandle::parseContentStream,
-            "Helper for parsing PDF content stream; use ``pikepdf.parse_content_stream``.")
+            "Helper for parsing PDF content stream; use ``pikepdf.parse_content_stream``."
+        )
         .def("unparse", &QPDFObjectHandle::unparse,
-            "Convert PDF objects into PostScript, without resolving indirect objects.")
+            "Convert PDF objects into PostScript, without resolving indirect objects."
+        )
         .def("unparse_resolved", &QPDFObjectHandle::unparseResolved,
-            "Convert PDF objects into PostScript, and resolve referenced objects when possible.")
+            "Convert PDF objects into PostScript, and resolve referenced objects when possible."
+        )
         .def("_repr_pdf_singlepage",
             [](QPDFObjectHandle &page) -> py::object {
                 if (!page.isPageObject())

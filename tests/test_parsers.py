@@ -31,8 +31,8 @@ class ExceptionParser(StreamParser):
 
 def test_open_pdf(resources):
     pdf = Pdf.open(resources / 'graph.pdf')
-    stream = pdf.pages[0]['/Contents']
-    Object._parse_stream(stream, PrintParser())
+    page = pdf.pages[0]
+    Object._parse_stream(page, PrintParser())
 
 
 def test_parser_exception(resources):
@@ -54,10 +54,10 @@ def test_text_filter(resources, outdir):
     assert proc.stdout.strip() != '', "Need input test file that contains text"
 
     pdf = Pdf.open(input_pdf)
-    stream = pdf.pages[0].Contents
+    page = pdf.pages[0]
 
     keep = []
-    for operands, command in parse_content_stream(stream):
+    for operands, command in parse_content_stream(page):
         if command == Operator('Tj'):
             print("skipping Tj")
             continue
@@ -65,8 +65,8 @@ def test_text_filter(resources, outdir):
 
     new_stream = Stream(pdf, keep)
     print(new_stream.read_bytes())
-    pdf.pages[0]['/Contents'] = new_stream
-    pdf.pages[0]['/Rotate'] = 90
+    page['/Contents'] = new_stream
+    page['/Rotate'] = 90
 
     pdf.save(outdir / 'notext.pdf', True)
 

@@ -61,34 +61,43 @@ class _OperandGrouper(_qpdf.StreamParser):
             raise EOFError("Unexpected end of stream")
 
 
-def parse_content_stream(stream):
+def parse_content_stream(page_or_stream):
     """Parse a PDF content stream into a sequence of instructions.
 
     A PDF content stream is list of instructions that describe where to render
     the text and graphics in a PDF. This is the starting point for analyzing
     PDFs.
 
+    If the input is a page and page.Contents is an array, then the content
+    stream is automatically treated as one coalesced stream.
+
     Each instruction contains at least one operator and zero or more operands.
 
-    The *stream* object may be either a :class:`pikepdf.Stream` or an array
-    of streams.
+    :param page_or_stream: A page, or a content :class:`pikepdf.Stream` attached
+    to another object such as a Form XObject
 
     >>> pdf = pikepdf.Pdf.open(input_pdf)
-    >>> stream = pdf.pages[0].Contents
-    >>> for operands, command in parse_content_stream(stream):
+    >>> page = pdf.pages[0]
+    >>> for operands, command in parse_content_stream(page):
     >>>     print(command)
 
     """
 
-    if not isinstance(stream, Object):
+    if not isinstance(page_or_stream, Object):
         raise TypeError("stream must a PDF object")
 
-    if stream.type_code != ObjectType.stream:
-        raise TypeError("parse_content_stream called on non-stream Object")
+    if page_or_stream.type_code != ObjectType.stream \
+            and page_or_stream.get('/Type') != '/Page':
+        raise TypeError("parse_content_stream called on page or stream object")
 
     grouper = _OperandGrouper()
     try:
-        Object._parse_stream(stream, grouper)
+        if page_or_stream.get('/Type') == '/Page':
+            page = page_or_stream
+            page._parse_page_contents(grouper)
+        else:
+            stream = page_or_stream
+            Object._parse_stream(stream, grouper)
     except PdfError as e:
         if 'parseContentStream called on non-stream' in str(e):  # qpdf 6.x
             raise TypeError("parse_content_stream called on non-stream Object")
@@ -192,6 +201,10 @@ class PdfMatrix:
                      ) for col in zip(*b)]
                   for row in a]
         )
+
+    @property
+    def shorthand(self):
+        return (self.a, self.b, self.c, self.d, self.e, self.f)
 
     @property
     def a(self):
