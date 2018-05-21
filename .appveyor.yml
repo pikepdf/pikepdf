@@ -1,7 +1,6 @@
 version: '{build}'
 image: Visual Studio 2015
 platform:
-- x86
 - x64
 environment:
   global:
@@ -15,7 +14,7 @@ install:
     if ($env:PYTHON) {
       if ($env:PLATFORM -eq "x64") { $env:PYTHON = "$env:PYTHON-x64" }
       $env:PATH = "C:\Python$env:PYTHON\;C:\Python$env:PYTHON\Scripts\;$env:PATH"
-      pip install --disable-pip-version-check --user --upgrade pip setuptools
+      python -m pip install --disable-pip-version-check --user --upgrade pip setuptools
     }
 build_script:
 - ps: |
