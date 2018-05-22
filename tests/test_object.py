@@ -3,7 +3,8 @@ from math import isclose, isfinite
 import sys
 
 from pikepdf import _qpdf as qpdf
-from pikepdf import (Pdf, Real, String, Array, Integer, Name, Boolean, Null)
+from pikepdf import (Pdf, Object, Real, String, Array, Integer, Name, Boolean,
+    Null)
 from hypothesis import given, strategies as st, example
 from hypothesis.strategies import (none, integers, binary, lists, floats,
     characters, recursive, booleans, builds, one_of)
@@ -160,3 +161,8 @@ class TestHashViolation:
     def test_string(self):
         utf16 = b'\xfe\xff' + 'hello'.encode('utf-16be')
         self.check(String(utf16), String('hello'))
+
+
+def test_not_constructible():
+    with pytest.raises(TypeError, message="constructor"):
+        Object()
