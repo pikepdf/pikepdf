@@ -100,13 +100,10 @@ open_pdf(py::args args, py::kwargs kwargs)
         check_stream_is_usable(stream);
 
         py::object read = stream.attr("read");
-        py::object pydata = read();
-        py::bytes data = pydata.cast<py::bytes>();
+        py::bytes data = read();
         char *buffer;
         ssize_t length;
 
-        // Is it safe to grab .ptr() like this? Not sure; probably safe under
-        // GIL only
         PYBIND11_BYTES_AS_STRING_AND_SIZE(data.ptr(), &buffer, &length);
 
         // libqpdf will create a copy of this memory and attach it
