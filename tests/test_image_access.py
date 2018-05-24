@@ -5,7 +5,8 @@ from PIL import Image
 import zlib
 import sys
 
-from pikepdf import Pdf, Object, PdfImage, PdfError, Name, Null
+from pikepdf import (Pdf, Object, PdfImage, PdfError, Name, Null,
+        parse_content_stream, ObjectType, PdfInlineImage)
 
 
 @pytest.fixture
@@ -74,3 +75,18 @@ def test_lowlevel_replace_jpeg(congress, outdir):
 
     pdf = congress[1]
     pdf.save(outdir / 'congress_gray.pdf')
+
+
+@pytest.fixture
+def inline(resources):
+    pdf = Pdf.open(resources / 'image-mono-inline.pdf')
+    for operands, command in parse_content_stream(pdf.pages[0]):
+        if operands and isinstance(operands[0], PdfInlineImage):
+            return operands[0], pdf
+
+
+def test_inline(inline):
+    iimage, pdf = inline
+    assert iimage.width == 8
+    assert iimage.image_mask == False
+    assert iimage.mode == 'RGB'

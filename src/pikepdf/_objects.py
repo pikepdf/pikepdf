@@ -47,6 +47,8 @@ class Integer(metaclass=_ObjectMeta):
     def __new__(cls, n):
         if n.bit_length() >= 64:
             raise ValueError('Value is too large for 64-bit integer')
+        if not isinstance(n, int) and n == int(n):
+            n = int(n)
         return _qpdf._new_integer(n)
 
 

@@ -6,6 +6,7 @@
 
 
 from collections import namedtuple
+from enum import Enum
 from pkg_resources import get_distribution, DistributionNotFound
 
 import os
@@ -26,7 +27,7 @@ from ._qpdf import (Object, ObjectType, PdfError, Pdf, PasswordError,
 from ._objects import (Boolean, Integer, Real, Name, String, Array, Dictionary,
         Stream, Operator, Null)
 
-from ._pdfimage import PdfImage, UnsupportedImageTypeError
+from ._pdfimage import PdfImage, PdfInlineImage, UnsupportedImageTypeError
 
 __libqpdf_version__ = _qpdf.qpdf_version()
 
@@ -46,13 +47,36 @@ class _OperandGrouper(_qpdf.StreamParser):
         super().__init__()
         self.instructions = []
         self._tokens = []
+        self._inline_image = False
+        self._inline_image_metadata = []
 
     def handle_object(self, obj):
         if obj.type_code == ObjectType.operator:
             instruction = self.PdfInstruction(
                 operands=self._tokens, operator=obj)
-            self.instructions.append(instruction)
             self._tokens = []
+
+            if obj == Operator('BI'):
+                self._inline_image= True
+            elif self._inline_image:
+                if obj == Operator('ID'):
+                    self._inline_image_metadata = instruction.operands
+                elif obj == Operator('EI'):
+                    inline_image_data = instruction.operands[0]
+                    iimage = PdfInlineImage(
+                        image_data=inline_image_data,
+                        image_object=self._inline_image_metadata
+                    )
+                    instruction = self.PdfInstruction(
+                        operands=[iimage],
+                        operator=Operator('INLINE IMAGE')
+                    )
+                    self.instructions.append(instruction)
+                    self._inline_image = False
+                    self._inline_image_metadata = []
+            else:
+                self.instructions.append(instruction)
+
         else:
             self._tokens.append(obj)
 

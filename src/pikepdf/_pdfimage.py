@@ -21,18 +21,27 @@ class UnsupportedImageTypeError(Exception):
 
 
 class _PdfImageDescriptor:
-    def __init__(self, name, type_, default):
+    def __init__(self, name, type_, default, inline_name=None, inline_map=None):
         self.name = name
         self.type = type_
         self.default = default
+        self.inline_name = inline_name
+        self.inline_map = inline_map
 
     def __get__(self, wrapper, wrapperclass):
-        val = getattr(wrapper.obj, self.name, self.default)
+        sentinel = object()
+        val = sentinel
+        if self.inline_name:
+            val = getattr(wrapper.obj, self.inline_name, sentinel)
+        if val is sentinel:
+            val = getattr(wrapper.obj, self.name, self.default)
         if self.type == bool:
             return val.as_bool() if isinstance(val, Object) else bool(val)
         return self.type(val)
 
     def __set__(self, wrapper, val):
+        if self.inline_name:
+            raise NotImplementedError("editing inline images")
         setattr(wrapper.obj, self.name, val)
 
 
@@ -57,12 +66,9 @@ class PdfImage:
     SIMPLE_COLORSPACES = ('/DeviceRGB', '/DeviceGray', '/CalRGB', '/CalGray')
 
     def __init__(self, obj):
-        if obj.type_code not in (ObjectType.stream, ObjectType.inlineimage):
-            raise TypeError("can't construct PdfImage from non-image")
         if obj.type_code == ObjectType.stream and \
                 obj.stream_dict.get("/Subtype") != "/Image":
             raise TypeError("can't construct PdfImage from non-image")
-
         self.obj = obj
 
     width = _PdfImageDescriptor('Width', int, None)
@@ -94,6 +100,10 @@ class PdfImage:
             icc = self.obj.ColorSpace[1]
             return icc.stream_dict.get('/Alternate', '')
         raise NotImplementedError("not sure how to get colorspace")
+
+    @property
+    def is_inline(self):
+        return False
 
     @property
     def indexed(self):
@@ -180,6 +190,11 @@ class PdfImage:
 
         raise UnsupportedImageTypeError()
 
+    def read_bytes(self):
+        return self.obj.read_bytes()
+
+    def get_stream_buffer(self):
+        return self.obj.get_stream_buffer()
 
     def as_pil_image(self):
         """
@@ -199,10 +214,10 @@ class PdfImage:
         if self.mode == 'RGB':
             # No point in accessing the buffer here, size qpdf decodes to 3-byte
             # RGB and Pillow needs RGBX for raw access
-            data = self.obj.read_bytes()
+            data = self.read_bytes()
             im = Image.frombytes('RGB', self.size, data)
         elif self.mode in ('L', 'P'):
-            buffer = self.obj.get_stream_buffer()
+            buffer = self.get_stream_buffer()
             stride = 0  # tell Pillow to calculate stride from line width
             ystep = 1  # image is top to bottom in memory
             im = Image.frombuffer('L', self.size, buffer, "raw", 'L', stride,
@@ -266,6 +281,59 @@ class PdfImage:
         im = self.as_pil_image()
         im.save(b, 'PNG')
         return b.getvalue()
+
+
+def inline_remove_abbrevs(value):
+    abbrevs = {
+        '/G': '/DeviceGray',
+        '/RGB': '/DeviceRGB',
+        '/CMYK': '/DeviceCMYK',
+        '/I': '/Indexed',
+        '/AHx': '/ASCIIHexDecode',
+        '/A85': '/ASCII85Decode',
+        '/LZW': '/LZWDecode',
+        '/RL': '/RunLengthDecode',
+        '/CCF': '/CCITTFaxDecode',
+        '/DCT': '/DCTDecode'
+    }
+    return [abbrevs.get(value, value) for value in array_str(value)]
+
+
+class PdfInlineImage(PdfImage):
+
+    def __init__(self, *, image_data, image_object: tuple):
+        self._data = image_data
+        self._image_object = image_object
+
+        reparse = ' '.join([obj.unparse_resolved() for obj in image_object])
+        self.obj = Object.parse(('<< ' + reparse + ' >>').encode('ascii'))
+
+    width = _PdfImageDescriptor('Width', int, None, 'W')
+    height = _PdfImageDescriptor('Height', int, None, 'H')
+    image_mask = _PdfImageDescriptor('ImageMask', bool, False, 'IM')
+    _bpc = _PdfImageDescriptor('BitsPerComponent', int, None, 'BPC')
+    _colorspaces = _PdfImageDescriptor('ColorSpace', inline_remove_abbrevs, [], 'CS')
+    filters = _PdfImageDescriptor('Filter', inline_remove_abbrevs, [], 'F')
+    decode_parms = _PdfImageDescriptor('DecodeParms', dict_or_array_dict, [], 'DP')
+
+    @property
+    def is_inline(self):
+        return True
+
+    def __repr__(self):
+        return '<pikepdf.PdfInlineImage image mode={} size={}x{} at {}>'.format(
+            self.mode, self.width, self.height, hex(id(self)))
+
+    def extract_to(self, *, stream):
+        raise UnsupportedImageTypeError("inline images don't support extract")
+
+    def read_bytes(self):
+        raise NotImplementedError("qpdf returns compressed")
+        #return self._data._inline_image_bytes()
+
+    def get_stream_buffer(self):
+        raise NotImplementedError("qpdf returns compressed")
+        #return memoryview(self._data.inline_image_bytes())
 
 
 def page_to_svg(page):
