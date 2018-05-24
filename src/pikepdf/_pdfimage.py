@@ -93,6 +93,8 @@ class PdfImage:
     def colorspace(self):
         if self._colorspaces[0] in self.SIMPLE_COLORSPACES:
             return self._colorspaces[0]
+        if self._colorspaces[0] == '/DeviceCMYK':
+            return self._colorspaces[0]
         if self._colorspaces[0] == '/Indexed' \
                 and self._colorspaces[1] in self.SIMPLE_COLORSPACES:
             return self._colorspaces[1]
