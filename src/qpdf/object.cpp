@@ -657,6 +657,11 @@ void init_object(py::module& m)
                 return h.getPageImages();
             }
         )
+        .def("_inline_image_raw_bytes",
+            [](QPDFObjectHandle &h) {
+                return py::bytes(h.getInlineImageValue());
+            }
+        )
         .def("page_contents_add",
             [](QPDFObjectHandle &h, QPDFObjectHandle &contents, bool prepend) {
                 if (!h.isPageObject())
