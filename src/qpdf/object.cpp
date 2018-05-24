@@ -540,6 +540,9 @@ void init_object(py::module& m)
                 if (h.isDictionary()) {
                     return h.hasKey(key);
                 }
+                if (h.isStream()) {
+                    return h.getDict().hasKey(key);
+                }
                 throw py::value_error("__contains__ not defined for object type");
             }
         )
