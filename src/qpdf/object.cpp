@@ -550,6 +550,13 @@ void init_object(py::module& m)
         .def("as_dict", &QPDFObjectHandle::getDictAsMap)
         .def("as_int", &QPDFObjectHandle::getIntValue)
         .def("__int__", &QPDFObjectHandle::getIntValue)
+        .def("__float__",
+            [](QPDFObjectHandle &h) {
+                if (h.isNumber())
+                    return h.getNumericValue();
+                throw py::type_error("Not a numeric object");
+            }
+        )
         .def("as_bool", &QPDFObjectHandle::getBoolValue)
         .def("decode", objecthandle_decode, "convert to nearest Python object")
         .def("__str__",
