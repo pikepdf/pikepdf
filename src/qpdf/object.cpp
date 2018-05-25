@@ -123,6 +123,71 @@ public:
 };
 
 
+class OperandGrouper : public QPDFObjectHandle::ParserCallbacks {
+public:
+    OperandGrouper() {}
+    virtual ~OperandGrouper() {}
+
+    void handleObject(QPDFObjectHandle obj) override
+    {
+        if (obj.getTypeCode() == QPDFObject::object_type_e::ot_operator) {
+            std::string op = obj.getOperatorValue();
+            if (op == "BI") {
+                this->parsing_inline_image = true;
+            } else if (this->parsing_inline_image) {
+                if (op == "ID") {
+                    this->inline_metadata = this->tokens;
+                } else if (op == "EI") {
+                    auto PdfInlineImage = py::module::import("pikepdf").attr("PdfInlineImage");
+                    auto kwargs = py::dict();
+                    kwargs["image_data"] = this->tokens.at(0);
+                    kwargs["image_object"] = this->inline_metadata;
+                    auto iimage = PdfInlineImage(**kwargs);
+
+                    // Package as list with single element for consistency
+                    auto iimage_list = py::list();
+                    iimage_list.append(iimage);
+
+                    auto instruction = py::make_tuple(
+                        iimage_list,
+                        QPDFObjectHandle::newOperator("INLINE IMAGE")
+                    );
+                    this->instructions.append(instruction);
+
+                    this->parsing_inline_image = false;
+                    this->inline_metadata.clear();
+                }
+            } else {
+                py::list operand_list = py::cast(this->tokens);
+                auto instruction = py::make_tuple(operand_list, obj);
+                this->instructions.append(instruction);
+            }
+            this->tokens.clear();
+        } else {
+            this->tokens.push_back(obj);
+        }
+    }
+
+    void handleEOF() override
+    {
+        if (!this->tokens.empty())
+            throw py::value_error("Unexpected end of stream");
+    }
+
+    py::list getInstructions()
+    {
+        return this->instructions;
+    }
+
+
+private:
+    std::vector<QPDFObjectHandle> tokens;
+    bool parsing_inline_image;
+    std::vector<QPDFObjectHandle> inline_metadata;
+    py::list instructions;
+};
+
+
 size_t list_range_check(QPDFObjectHandle& h, int index)
 {
     if (!h.isArray())
@@ -835,6 +900,15 @@ void init_object(py::module& m)
         .def(py::init<>())
         .def("handle_object", &QPDFObjectHandle::ParserCallbacks::handleObject)
         .def("handle_eof", &QPDFObjectHandle::ParserCallbacks::handleEOF);
+
+    py::class_<OperandGrouper, QPDFObjectHandle::ParserCallbacks> operandgrouper(m, "_OperandGrouper");
+    operandgrouper
+        .def(py::init<>())
+        .def_property_readonly("instructions",
+            [](OperandGrouper &g) {
+                return g.getInstructions();
+            }
+        );
 
     m.def("_encode",
         [](py::none none) {

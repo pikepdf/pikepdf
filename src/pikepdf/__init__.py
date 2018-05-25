@@ -22,7 +22,7 @@ except ImportError:
     raise ImportError("pikepdf's extension library failed to import")
 
 from ._qpdf import (Object, ObjectType, PdfError, Pdf, PasswordError,
-        ObjectStreamMode, StreamDataMode)
+        ObjectStreamMode, StreamDataMode, _OperandGrouper)
 
 from ._objects import (Boolean, Integer, Real, Name, String, Array, Dictionary,
         Stream, Operator, Null)
@@ -30,59 +30,6 @@ from ._objects import (Boolean, Integer, Real, Name, String, Array, Dictionary,
 from ._pdfimage import PdfImage, PdfInlineImage, UnsupportedImageTypeError
 
 __libqpdf_version__ = _qpdf.qpdf_version()
-
-
-
-class _OperandGrouper(_qpdf.StreamParser):
-    """Parse a PDF content stream into a sequence of instructions.
-
-    Helper class for parsing PDF content streams into instructions. Semantics
-    are a little weird since it is subclassed from C++.
-
-    """
-
-    PdfInstruction = namedtuple('PdfInstruction', ('operands', 'operator'))
-
-    def __init__(self):
-        super().__init__()
-        self.instructions = []
-        self._tokens = []
-        self._inline_image = False
-        self._inline_image_metadata = []
-
-    def handle_object(self, obj):
-        if obj.type_code == ObjectType.operator:
-            instruction = self.PdfInstruction(
-                operands=self._tokens, operator=obj)
-            self._tokens = []
-
-            if obj == Operator('BI'):
-                self._inline_image= True
-            elif self._inline_image:
-                if obj == Operator('ID'):
-                    self._inline_image_metadata = instruction.operands
-                elif obj == Operator('EI'):
-                    inline_image_data = instruction.operands[0]
-                    iimage = PdfInlineImage(
-                        image_data=inline_image_data,
-                        image_object=self._inline_image_metadata
-                    )
-                    instruction = self.PdfInstruction(
-                        operands=[iimage],
-                        operator=Operator('INLINE IMAGE')
-                    )
-                    self.instructions.append(instruction)
-                    self._inline_image = False
-                    self._inline_image_metadata = []
-            else:
-                self.instructions.append(instruction)
-
-        else:
-            self._tokens.append(obj)
-
-    def handle_eof(self):
-        if self._tokens:
-            raise EOFError("Unexpected end of stream")
 
 
 def parse_content_stream(page_or_stream):
