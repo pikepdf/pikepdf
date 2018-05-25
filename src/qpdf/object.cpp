@@ -126,6 +126,7 @@ public:
 class OperandGrouper : public QPDFObjectHandle::ParserCallbacks {
 public:
     OperandGrouper(const std::string& operators)
+        : parsing_inline_image(false), count(0)
     {
         std::istringstream f(operators);
         std::string s;
@@ -155,7 +156,6 @@ public:
                     return;
                 }
             }
-
             if (op == "BI") {
                 this->parsing_inline_image = true;
             } else if (this->parsing_inline_image) {
