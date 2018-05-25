@@ -125,13 +125,30 @@ public:
 
 class OperandGrouper : public QPDFObjectHandle::ParserCallbacks {
 public:
-    OperandGrouper() {}
+    OperandGrouper(const std::string& operators)
+    {
+        std::istringstream f(operators);
+        std::string s;
+        while (std::getline(f, s, ' ')) {
+            this->whitelist.insert(s);
+        }
+    }
     virtual ~OperandGrouper() {}
 
     void handleObject(QPDFObjectHandle obj) override
     {
         if (obj.getTypeCode() == QPDFObject::object_type_e::ot_operator) {
             std::string op = obj.getOperatorValue();
+
+            // If we have a whitelist and this operator is not on the whitelist,
+            // discard it and all the tokens we collected
+            if (!this->whitelist.empty()) {
+                if (this->whitelist.count(op) == 0) {
+                    this->tokens.clear();
+                    return;
+                }
+            }
+
             if (op == "BI") {
                 this->parsing_inline_image = true;
             } else if (this->parsing_inline_image) {
@@ -181,6 +198,7 @@ public:
 
 
 private:
+    std::set<std::string> whitelist;
     std::vector<QPDFObjectHandle> tokens;
     bool parsing_inline_image;
     std::vector<QPDFObjectHandle> inline_metadata;
@@ -903,7 +921,7 @@ void init_object(py::module& m)
 
     py::class_<OperandGrouper, QPDFObjectHandle::ParserCallbacks> operandgrouper(m, "_OperandGrouper");
     operandgrouper
-        .def(py::init<>())
+        .def(py::init<const std::string &>(), py::arg("whitelist") = "")
         .def_property_readonly("instructions",
             [](OperandGrouper &g) {
                 return g.getInstructions();

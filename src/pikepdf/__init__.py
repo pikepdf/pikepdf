@@ -32,7 +32,7 @@ from ._pdfimage import PdfImage, PdfInlineImage, UnsupportedImageTypeError
 __libqpdf_version__ = _qpdf.qpdf_version()
 
 
-def parse_content_stream(page_or_stream):
+def parse_content_stream(page_or_stream, operators=''):
     """Parse a PDF content stream into a sequence of instructions.
 
     A PDF content stream is list of instructions that describe where to render
@@ -46,6 +46,9 @@ def parse_content_stream(page_or_stream):
 
     :param page_or_stream: A page, or a content :class:`pikepdf.Stream` attached
     to another object such as a Form XObject
+    :param operators: A space-separated string of operators that the caller is
+    inserted in, for example 'q Q cm Do' will return only operators that pertain
+    to drawing images. Use 'BI ID EI' for inline images.
 
     >>> pdf = pikepdf.Pdf.open(input_pdf)
     >>> page = pdf.pages[0]
@@ -61,7 +64,7 @@ def parse_content_stream(page_or_stream):
             and page_or_stream.get('/Type') != '/Page':
         raise TypeError("parse_content_stream called on page or stream object")
 
-    grouper = _OperandGrouper()
+    grouper = _OperandGrouper(operators)
     try:
         if page_or_stream.get('/Type') == '/Page':
             page = page_or_stream
