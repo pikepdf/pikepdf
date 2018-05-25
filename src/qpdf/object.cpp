@@ -144,7 +144,13 @@ public:
             // If we have a whitelist and this operator is not on the whitelist,
             // discard it and all the tokens we collected
             if (!this->whitelist.empty()) {
-                if (this->whitelist.count(op) == 0) {
+                if (op[0] == 'q' || op[0] == 'Q') {
+                    // We have token with multiple stack push/pops
+                    if (this->whitelist.count("q") == 0 && this->whitelist.count("Q") == 0) {
+                        this->tokens.clear();
+                        return;
+                    }
+                } else if (this->whitelist.count(op) == 0) {
                     this->tokens.clear();
                     return;
                 }
@@ -647,6 +653,8 @@ void init_object(py::module& m)
             [](QPDFObjectHandle &h) {
                 if (h.isName())
                     return py::str(h.getName());
+                else if (h.isOperator())
+                    return py::str(h.getOperatorValue());
                 return py::str(h.getUTF8Value());
             }
         )
