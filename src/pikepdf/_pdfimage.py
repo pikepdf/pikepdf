@@ -46,6 +46,8 @@ class _PdfImageDescriptor:
 
 
 def array_str(value):
+    if isinstance(value, list):
+        return [str(item) for item in value]
     if value.type_code == ObjectType.array:
         return [str(item) for item in value]
     elif value.type_code == ObjectType.name:
@@ -91,6 +93,8 @@ class PdfImage:
 
     @property
     def colorspace(self):
+        if self.image_mask:
+            return None  # Undefined for image masks
         if self._colorspaces[0] in self.SIMPLE_COLORSPACES:
             return self._colorspaces[0]
         if self._colorspaces[0] == '/DeviceCMYK':
