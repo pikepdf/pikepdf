@@ -116,11 +116,11 @@ class Page:
 
         :return: True if there is text
         """
-        text_showing_operators = {Operator(op) for op in
-                                  ('Tj', 'TJ', '"', "'")}
-        for _, operator in parse_content_stream(self.obj.Contents):
-            if operator in text_showing_operators:
-                return True
+        text_showing_operators = """TJ " ' Tj"""
+        text_showing_insts = parse_content_stream(
+            self.obj, text_showing_operators)
+        if len(text_showing_insts) > 0:
+            return True
         return False
 
 
