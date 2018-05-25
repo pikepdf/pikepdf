@@ -137,6 +137,7 @@ public:
 
     void handleObject(QPDFObjectHandle obj) override
     {
+        this->count++;
         if (obj.getTypeCode() == QPDFObject::object_type_e::ot_operator) {
             std::string op = obj.getOperatorValue();
 
@@ -196,13 +197,13 @@ public:
         return this->instructions;
     }
 
-
 private:
     std::set<std::string> whitelist;
     std::vector<QPDFObjectHandle> tokens;
     bool parsing_inline_image;
     std::vector<QPDFObjectHandle> inline_metadata;
     py::list instructions;
+    uint count;
 };
 
 
@@ -784,9 +785,23 @@ void init_object(py::module& m)
             &QPDFObjectHandle::parsePageContents,
             "Helper for parsing page contents; use ``pikepdf.parse_content_stream``."
         )
+        .def("_parse_page_contents_grouped",
+            [](QPDFObjectHandle &h, std::string const& whitelist) {
+                OperandGrouper og(whitelist);
+                h.parsePageContents(&og);
+                return og.getInstructions();
+            }
+        )
         .def_static("_parse_stream",
             &QPDFObjectHandle::parseContentStream,
             "Helper for parsing PDF content stream; use ``pikepdf.parse_content_stream``."
+        )
+        .def_static("_parse_stream_grouped",
+            [](QPDFObjectHandle &h, std::string const& whitelist) {
+                OperandGrouper og(whitelist);
+                QPDFObjectHandle::parseContentStream(h, &og);
+                return og.getInstructions();
+            }
         )
         .def("unparse", &QPDFObjectHandle::unparse,
             "Convert PDF objects into PostScript, without resolving indirect objects."
@@ -918,15 +933,6 @@ void init_object(py::module& m)
         .def(py::init<>())
         .def("handle_object", &QPDFObjectHandle::ParserCallbacks::handleObject)
         .def("handle_eof", &QPDFObjectHandle::ParserCallbacks::handleEOF);
-
-    py::class_<OperandGrouper, QPDFObjectHandle::ParserCallbacks> operandgrouper(m, "_OperandGrouper");
-    operandgrouper
-        .def(py::init<const std::string &>(), py::arg("whitelist") = "")
-        .def_property_readonly("instructions",
-            [](OperandGrouper &g) {
-                return g.getInstructions();
-            }
-        );
 
     m.def("_encode",
         [](py::none none) {

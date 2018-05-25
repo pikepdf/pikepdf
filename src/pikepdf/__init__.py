@@ -22,7 +22,7 @@ except ImportError:
     raise ImportError("pikepdf's extension library failed to import")
 
 from ._qpdf import (Object, ObjectType, PdfError, Pdf, PasswordError,
-        ObjectStreamMode, StreamDataMode, _OperandGrouper)
+        ObjectStreamMode, StreamDataMode)
 
 from ._objects import (Boolean, Integer, Real, Name, String, Array, Dictionary,
         Stream, Operator, Null)
@@ -64,14 +64,13 @@ def parse_content_stream(page_or_stream, operators=''):
             and page_or_stream.get('/Type') != '/Page':
         raise TypeError("parse_content_stream called on page or stream object")
 
-    grouper = _OperandGrouper(operators)
     try:
         if page_or_stream.get('/Type') == '/Page':
             page = page_or_stream
-            page._parse_page_contents(grouper)
+            instructions = page._parse_page_contents_grouped(operators)
         else:
             stream = page_or_stream
-            Object._parse_stream(stream, grouper)
+            instructions = Object._parse_stream_grouped(stream, operators)
     except PdfError as e:
         if 'parseContentStream called on non-stream' in str(e):  # qpdf 6.x
             raise TypeError("parse_content_stream called on non-stream Object")
@@ -79,7 +78,7 @@ def parse_content_stream(page_or_stream, operators=''):
             raise TypeError("parse_content_stream called on non-stream Object")
         raise e from e
 
-    return grouper.instructions
+    return instructions
 
 
 class Page:
