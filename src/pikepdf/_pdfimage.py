@@ -105,7 +105,8 @@ class PdfImage:
         if self._colorspaces[0] == '/ICCBased':
             icc = self.obj.ColorSpace[1]
             return icc.stream_dict.get('/Alternate', '')
-        raise NotImplementedError("not sure how to get colorspace")
+        raise NotImplementedError(
+            "not sure how to get colorspace: " + repr(self._colorspaces))
 
     @property
     def is_inline(self):
