@@ -120,6 +120,13 @@ open_pdf(py::args args, py::kwargs kwargs)
         q->processFile(filename.c_str(), password.c_str());
     }
 
+    bool push_page_attrs = true;
+    if (kwargs && kwargs.contains("inherit_page_attributes")) {
+        push_page_attrs = kwargs["inherit_page_attributes"].cast<bool>();
+    }
+    if (push_page_attrs)
+        q->pushInheritedAttributesToPage();
+
     return q;
 }
 
@@ -248,6 +255,7 @@ PYBIND11_MODULE(_qpdf, m) {
             :param ignore_xref_streams: If True, ignore cross-reference streams. See qpdf documentation.
             :param suppress_warnings: If True (default), warnings are not printed to stderr. Use `get_warnings()` to retrieve warnings.
             :param attempt_recovery: If True (default), attempt to recover from PDF parsing errors.
+            :param inherit_page_attributes: If True (default), push attributes set on a group of pages to individual pages
             :throws pikepdf.PasswordError: If the password failed to open the file.
             :throws pikepdf.PdfError: If for other reasons we could not open the file.
             :throws TypeError: If the type of `filename_or_stream` is not usable.
