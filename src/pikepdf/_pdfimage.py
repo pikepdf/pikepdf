@@ -312,8 +312,8 @@ class PdfInlineImage(PdfImage):
         self._data = image_data
         self._image_object = image_object
 
-        reparse = ' '.join([obj.unparse_resolved() for obj in image_object])
-        self.obj = Object.parse(('<< ' + reparse + ' >>').encode('ascii'))
+        reparse = b' '.join([obj.unparse_resolved() for obj in image_object])
+        self.obj = Object.parse(b'<< ' + reparse + b' >>')
 
     width = _PdfImageDescriptor('Width', int, None, 'W')
     height = _PdfImageDescriptor('Height', int, None, 'H')

@@ -811,10 +811,16 @@ void init_object(py::module& m)
                 return og.getInstructions();
             }
         )
-        .def("unparse", &QPDFObjectHandle::unparse,
+        .def("unparse",
+            [](QPDFObjectHandle &h) -> py::bytes {
+                return h.unparse();
+            },
             "Convert PDF objects into PostScript, without resolving indirect objects."
         )
-        .def("unparse_resolved", &QPDFObjectHandle::unparseResolved,
+        .def("unparse_resolved",
+            [](QPDFObjectHandle &h) -> py::bytes {
+                return h.unparseResolved();
+            },
             "Convert PDF objects into PostScript, and resolve referenced objects when possible."
         )
         .def("_repr_pdf_singlepage",
