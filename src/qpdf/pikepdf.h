@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <exception>
 #include <qpdf/PointerHolder.hh>
 #include <qpdf/QPDF.hh>
 #include <qpdf/QPDFObjectHandle.hh>
@@ -133,7 +134,8 @@ std::vector<QPDFObjectHandle> array_builder(py::iterable iter);
 std::map<std::string, QPDFObjectHandle> dict_builder(py::dict dict);
 
 // Support for recursion checks
-class StackGuard {
+class StackGuard
+{
 public:
     StackGuard(const char *where) {
         Py_EnterRecursiveCall(where);

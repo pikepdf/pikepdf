@@ -195,12 +195,17 @@ public:
     void handleEOF() override
     {
         if (!this->tokens.empty())
-            throw py::value_error("Unexpected end of stream");
+            this->warning = "Unexpected end of stream";
     }
 
     py::list getInstructions()
     {
         return this->instructions;
+    }
+
+    py::str getWarning()
+    {
+        return this->warning;
     }
 
 private:
@@ -210,6 +215,7 @@ private:
     std::vector<QPDFObjectHandle> inline_metadata;
     py::list instructions;
     uint count;
+    std::string warning;
 };
 
 
@@ -812,6 +818,10 @@ void init_object(py::module& m)
             [](QPDFObjectHandle &h, std::string const& whitelist) {
                 OperandGrouper og(whitelist);
                 QPDFObjectHandle::parseContentStream(h, &og);
+                if (og.getWarning()) {
+                    auto warn = py::module::import("warnings").attr("warn");
+                    warn(og.getWarning());
+                }
                 return og.getInstructions();
             }
         )
