@@ -650,12 +650,16 @@ void init_object(py::module& m)
         .def("as_bool", &QPDFObjectHandle::getBoolValue)
         .def("decode", objecthandle_decode, "convert to nearest Python object")
         .def("__str__",
-            [](QPDFObjectHandle &h) {
+            [](QPDFObjectHandle &h) -> py::str {
                 if (h.isName())
-                    return py::str(h.getName());
+                    return h.getName();
                 else if (h.isOperator())
-                    return py::str(h.getOperatorValue());
-                return py::str(h.getUTF8Value());
+                    return h.getOperatorValue();
+                else if (h.isReal())
+                    return h.getRealValue();
+                else if (h.isInteger())
+                    return py::str(py::int_(h.getIntValue()));
+                return h.getUTF8Value();
             }
         )
         .def("__bytes__",

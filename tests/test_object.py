@@ -166,3 +166,7 @@ class TestHashViolation:
 def test_not_constructible():
     with pytest.raises(TypeError, message="constructor"):
         Object()
+
+
+def test_str_int():
+    assert str(Integer(42)) == '42'
