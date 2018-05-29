@@ -16,19 +16,10 @@ install:
       $env:PATH = "C:\Python$env:PYTHON\;C:\Python$env:PYTHON\Scripts\;$env:PATH"
       python -m pip install --disable-pip-version-check --user --upgrade pip setuptools
 
-      [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-      $url = "https://github.com/qpdf/qpdf/releases/download/release-qpdf-8.0.2/qpdf-8.0.2-bin-msvc64.zip"
-      Invoke-WebRequest -Uri $url -Outfile qpdf.zip
-
-      Add-Type -AssemblyName System.IO.Compression.FileSystem
-      function Unzip
-      {
-          param([string]$zipfile, [string]$outpath)
-          [System.IO.Compression.ZipFile]::ExtractToDirectory($zipfile, $outpath)
-      }
-      Unzip qpdf.zip .
-      $qpdfdir = Get-ChildItem qpdf-*
-      Move-Item -Path $qpdfdir -Destination qpdf
+      curl -fsSL -o qpdf-release.zip https://github.com/qpdf/qpdf/releases/download/release-qpdf-8.0.2/qpdf-8.0.2-bin-msvc64.zip
+      7z x qpdf-release.zip -oc:\
+      $qpdfdir = Get-ChildItem c:\qpdf-*
+      Move-Item -Path $qpdfdir -Destination c:\qpdf
     }
 build_script:
 - ps: |
