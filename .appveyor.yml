@@ -20,7 +20,8 @@ build_script:
 - ps: |
     if ($env:PYTHON) {
       python setup.py sdist
-      pip install --verbose dist\pikepdf*.tar.gz
+      $targz = Get-ChildItem -Path dist\pikepdf*.tar.gz
+      pip install --verbose $targz
     }
 test_script:
 - ps: python -m pytest
