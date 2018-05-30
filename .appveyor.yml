@@ -26,9 +26,9 @@ build_script:
     if ($env:PYTHON) {
       python setup.py sdist
       $targz = Get-ChildItem -Path dist\pikepdf*.tar.gz
-      $env:INCLUDE="c:\qpdf\include"
-      $env:LIB="c:\qpdf\lib"
-      $env:LIBPATH="c:\pdf\lib"
+      $env:INCLUDE += ";c:\qpdf\include"
+      $env:LIB += ";c:\qpdf\lib"
+      $env:LIBPATH +=";c:\qpdf\lib"
       pip install --verbose $targz
     }
 test_script:
