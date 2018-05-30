@@ -203,7 +203,7 @@ public:
         return this->instructions;
     }
 
-    py::str getWarning()
+    std::string getWarning()
     {
         return this->warning;
     }
@@ -818,7 +818,7 @@ void init_object(py::module& m)
             [](QPDFObjectHandle &h, std::string const& whitelist) {
                 OperandGrouper og(whitelist);
                 QPDFObjectHandle::parseContentStream(h, &og);
-                if (og.getWarning()) {
+                if (!og.getWarning().empty()) {
                     auto warn = py::module::import("warnings").attr("warn");
                     warn(og.getWarning());
                 }
