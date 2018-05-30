@@ -14,6 +14,8 @@
 #include <qpdf/QPDFObjectHandle.hh>
 #include <pybind11/pybind11.h>
 
+using uint = unsigned int;
+
 #if __cplusplus < 201402L  // If C++11
 
 #include <memory>

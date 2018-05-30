@@ -69,7 +69,7 @@ def cpp_flag(compiler):
 class BuildExt(build_ext):
     """A custom build extension for adding compiler-specific options."""
     c_opts = {
-        'msvc': ['/EHsc', '/Ic:/qpdf/include', '/Lc:/qpdf/lib'],
+        'msvc': ['/EHsc'],
         'unix': [],
     }
 
