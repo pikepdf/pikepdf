@@ -36,7 +36,7 @@ Features:
 
 pikepdf is documented and actively maintained. Commercial support is available.
 
-This library is similar to PyPDF2 and pdfrw – it provides low level access to PDF
+This library is similar to PyPDF2 and pdfrw - it provides low level access to PDF
 features and allows editing and content transformation of existing PDFs.  Some
 knowledge of the PDF specification may be helpful.  It does not have the
 capability to render a PDF to image.
