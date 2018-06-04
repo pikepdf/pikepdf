@@ -94,7 +94,9 @@ def test_evil_page_deletion(resources, outdir):
     del src.pages[0]
     gc.collect()
     assert check_refcount(src, 3)
-    (outdir / 'sandwich.pdf').unlink()
+
+    with suppress(PermissionError):  # Fails on Windows
+        (outdir / 'sandwich.pdf').unlink()
     pdf.save(outdir / 'out.pdf')
 
     del pdf.pages[0]
