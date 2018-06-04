@@ -9,10 +9,11 @@ from subprocess import run, PIPE, STDOUT, DEVNULL
 import xml.etree.ElementTree as ET
 
 
-VERAPDF = Path(os.environ['HOME']) / 'verapdf' / 'verapdf'
-
-
-NO_PDFA_VALIDATOR = not VERAPDF.is_file()
+try:
+    VERAPDF = Path(os.environ['HOME']) / 'verapdf' / 'verapdf'
+    NO_PDFA_VALIDATOR = not VERAPDF.is_file()
+except Exception:
+    NO_PDFA_VALIDATOR = True
 
 
 def verapdf_validate(filename):
