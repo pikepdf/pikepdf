@@ -103,7 +103,7 @@ setup(
     long_description=open('README.rst').read(),
     ext_modules=ext_modules,
     install_requires=['pybind11 >= 2.2.3, < 3'],
-    extra_requires={
+    extras_require={
         'docs': [
             'sphinx >= 1.4',
             'sphinx-rtd-theme',
