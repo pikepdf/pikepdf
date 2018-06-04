@@ -11,25 +11,35 @@ environment:
 install:
 - cmd: '"%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" %PLATFORM%'
 - ps: |
-    if ($env:PYTHON) {
-      if ($env:PLATFORM -eq "x64") { $env:PYTHON = "$env:PYTHON-x64" }
-      $env:PATH = "C:\Python$env:PYTHON\;C:\Python$env:PYTHON\Scripts\;$env:PATH"
-      python -m pip install --disable-pip-version-check --user --upgrade pip setuptools
+    if ($env:PLATFORM -eq "x64") { $env:PYTHON = "$env:PYTHON-x64" }
+    $env:PATH = "C:\Python$env:PYTHON\;C:\Python$env:PYTHON\Scripts\;$env:PATH"
+    python -m pip install --disable-pip-version-check --user --upgrade pip setuptools
 
-      Invoke-WebRequest "https://github.com/qpdf/qpdf/releases/download/release-qpdf-8.0.2/qpdf-8.0.2-bin-msvc64.zip" -OutFile "qpdf-release.zip"
-      7z x "qpdf-release.zip" -oc:\
-      $qpdfdir = Get-ChildItem c:\qpdf-*
-      Move-Item -Path $qpdfdir -Destination c:\qpdf
-    }
+    Invoke-WebRequest "https://github.com/qpdf/qpdf/releases/download/release-qpdf-8.0.2/qpdf-8.0.2-bin-msvc64.zip" -OutFile "qpdf-release.zip"
+    7z x "qpdf-release.zip" -oc:\
+    $qpdfdir = Get-ChildItem c:\qpdf-*
+    Move-Item -Path $qpdfdir -Destination c:\qpdf
+
 build_script:
 - ps: |
-    if ($env:PYTHON) {
-      python setup.py sdist
-      $targz = Get-ChildItem -Path dist\pikepdf*.tar.gz
-      $env:INCLUDE += ";c:\qpdf\include"
-      $env:LIB += ";c:\qpdf\lib"
-      $env:LIBPATH +=";c:\qpdf\lib"
-      pip install --verbose $targz
-    }
+    python setup.py sdist
+    $targz = Get-ChildItem -Path dist\pikepdf*.tar.gz
+    $env:INCLUDE += ";c:\qpdf\include"
+    $env:LIB += ";c:\qpdf\lib"
+    $env:LIBPATH +=";c:\qpdf\lib"
+    pip install --verbose $targz
+
 test_script:
-- ps: python -m pytest
+- ps: |
+    pip install --user -r test_requirements.txt
+    pytest -n auto
+
+artifacts:
+- path: pikepdf\dist\*.whl
+  name: wheel
+
+before_deploy:
+- ps: |
+    pip install --user wheel
+    cp c:\qpdf\bin\qpdf21.dll src\pikepdf
+    python setup.py bdist_wheel
