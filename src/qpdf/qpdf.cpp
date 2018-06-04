@@ -9,22 +9,16 @@
 #include <sstream>
 #include <type_traits>
 
-#include <qpdf/Constants.h>
-#include <qpdf/Types.h>
-#include <qpdf/DLL.h>
+#include "pikepdf.h"
+
 #include <qpdf/QPDFExc.hh>
 #include <qpdf/QPDFObjGen.hh>
 #include <qpdf/QPDFXRefEntry.hh>
-#include <qpdf/PointerHolder.hh>
 #include <qpdf/Buffer.hh>
-#include <qpdf/QPDFObjectHandle.hh>
-#include <qpdf/QPDF.hh>
 #include <qpdf/QPDFWriter.hh>
 
-#include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include "pikepdf.h"
 #include "qpdf_pagelist.h"
 
 extern "C" const char* qpdf_get_qpdf_version();
@@ -37,7 +31,7 @@ void kwargs_to_method(py::kwargs kwargs, const char* key, std::shared_ptr<QPDF> 
             auto v = kwargs[key].cast<T>();
             ((*q).*callback)(v); // <-- Cute
         }
-    } catch (py::cast_error &e) {
+    } catch (py::cast_error) {
         throw py::type_error(std::string(key) + ": unsupported argument type");
     }
 }
