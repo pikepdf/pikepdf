@@ -7,6 +7,7 @@ environment:
     DISTUTILS_USE_SDK: 1
     MSSdk: 1
   matrix:
+  - PYTHON: 35
   - PYTHON: 36
   TWINE_PASSWORD:
     secure: RZZXYbbTOzKMSE/GdzIG/x+eqehSEeu98j0Ggs+/fG8=
