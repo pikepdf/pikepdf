@@ -27,16 +27,19 @@ install:
 build_script:
 - ps: |
     cp c:\qpdf\bin\qpdf21.dll src\pikepdf
-    python setup.py bdist_wheel
-    $wheel = Get-ChildItem -Path dist\pikepdf*.whl
+    python setup.py sdist
+    $targz = Get-ChildItem -Path dist\pikepdf*.tar.gz
     $env:INCLUDE += ";c:\qpdf\include"
     $env:LIB += ";c:\qpdf\lib"
     $env:LIBPATH +=";c:\qpdf\lib"
-    pip install --user --verbose $wheel
+    pip install --user --verbose $targz
 
 test_script:
 - pip install --user -r test_requirements.txt
 - pytest -n auto
+
+on_success:
+- python setup.py bdist_wheel
 
 artifacts:
 - path: pikepdf\dist\*.whl
