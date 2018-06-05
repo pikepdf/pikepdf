@@ -28,11 +28,11 @@ install:
 build_script:
 - ps: |
     cp c:\qpdf\bin\qpdf21.dll src\pikepdf
-    $targz = Get-ChildItem -Path dist\pikepdf*.tar.gz
     $env:INCLUDE += ";c:\qpdf\include"
     $env:LIB += ";c:\qpdf\lib"
     $env:LIBPATH +=";c:\qpdf\lib"
     python setup.py sdist
+    $targz = Get-ChildItem -Path dist\pikepdf*.tar.gz
     pip install --verbose $targz
 
 test_script:
