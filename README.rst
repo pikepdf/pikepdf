@@ -3,6 +3,21 @@ pikepdf
 
 **pikepdf** is a Python library for reading and writing PDF files.
 
+.. |travis| image:: https://img.shields.io/travis/pikepdf/pikepdf/master.svg?label=Linux%2fmacOS%20build
+   :target: https://travis-ci.org/pikepdf/pikepdf
+   :alt: Travis CI build status (Linux and macOS)
+
+.. |windows| image:: https://img.shields.io/appveyor/ci/jbarlow83/pikepdf/master.svg?label=Windows%20build
+   :target: https://ci.appveyor.com/project/jbarlow83/pikepdf
+   :alt: AppVeyor CI build status (Windows)
+
+.. |pypi| image:: https://img.shields.io/pypi/v/pikepdf.svg
+   :target: https://pypi.org/project/pikepdf/
+   :alt: PyPI
+
+
+|travis| |windows| |pypi|
+
 pikepdf is based on `QPDF <https://github.com/qpdf/qpdf>`_, a powerful PDF
 manipulation and repair library.
 
@@ -79,12 +94,12 @@ Running a regular ``pip install`` command will detect the
 version of the compiler used to build Python and attempt to build the
 extension with it. We must force the use of Visual Studio 2015.
 
-::
-    - clone this repository
-    - `"%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" x64`
-    - `set DISTUTILS_USE_SDK=1`
-    - `set MSSdk=1`
-    - `pip install ./pikepdf`
+- clone this repository
+- ``"%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" x64``
+- ``set DISTUTILS_USE_SDK=1``
+- ``set MSSdk=1``
+- download `qpdf binaries for MSVC <https://github.com/qpdf/qpdf/releases/download/release-qpdf-8.0.2/qpdf-8.0.2-bin-msvc64.zip>`_
+- ``pip install .``
 
 Note that this requires the user building ``pikepdf`` to have
 registry edition rights on the machine, to be able to run the
