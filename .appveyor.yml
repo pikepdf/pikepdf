@@ -8,6 +8,8 @@ environment:
     MSSdk: 1
   matrix:
   - PYTHON: 36
+  TWINE_PASSWORD:
+    secure: RZZXYbbTOzKMSE/GdzIG/x+eqehSEeu98j0Ggs+/fG8=
 install:
 - cmd: '"%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" %PLATFORM%'
 - ps: |
@@ -25,23 +27,26 @@ install:
 build_script:
 - ps: |
     cp c:\qpdf\bin\qpdf21.dll src\pikepdf
-    python setup.py sdist
-    $targz = Get-ChildItem -Path dist\pikepdf*.tar.gz
+    python setup.py bdist_wheel
+    $wheel = Get-ChildItem -Path dist\pikepdf*.whl
     $env:INCLUDE += ";c:\qpdf\include"
     $env:LIB += ";c:\qpdf\lib"
     $env:LIBPATH +=";c:\qpdf\lib"
-    pip install --user --verbose $targz
+    pip install --user --verbose $wheel
 
 test_script:
-- ps: |
-    pip install --user -r test_requirements.txt
-    pytest -n auto
+- pip install --user -r test_requirements.txt
+- pytest -n auto
 
 artifacts:
 - path: pikepdf\dist\*.whl
-  name: wheel
+  name: pypi
 
-before_deploy:
+deploy_script:
 - ps: |
-    pip install --user wheel
-    python setup.py bdist_wheel
+    if ($env:APPVEYOR_REPO_TAG -eq "true")
+    {
+      pip install --user twine
+      $env:TWINE_USERNAME = "ocrmypdf-travis"
+      twine upload dist\*.whl
+    }
