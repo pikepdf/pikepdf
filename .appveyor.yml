@@ -17,7 +17,7 @@ install:
     if ($env:PLATFORM -eq "x64") { $env:PYTHON = "$env:PYTHON-x64" }
     $env:PATH = "C:\Python$env:PYTHON\;C:\Python$env:PYTHON\Scripts\;$userpath;$env:PATH"
     echo $env:PATH
-    python -m pip install --disable-pip-version-check --user --upgrade pip setuptools wheel
+    python -m pip install --disable-pip-version-check --upgrade pip setuptools wheel
 
     Invoke-WebRequest "https://github.com/qpdf/qpdf/releases/download/release-qpdf-8.0.2/qpdf-8.0.2-bin-msvc64.zip" -OutFile "qpdf-release.zip"
     7z x "qpdf-release.zip" -oc:\
@@ -32,10 +32,10 @@ build_script:
     $env:INCLUDE += ";c:\qpdf\include"
     $env:LIB += ";c:\qpdf\lib"
     $env:LIBPATH +=";c:\qpdf\lib"
-    pip install --user --verbose $targz
+    pip install --verbose $targz
 
 test_script:
-- pip install --user -r test_requirements.txt
+- pip install -r test_requirements.txt
 - pytest -n auto
 
 on_success:
@@ -49,7 +49,7 @@ deploy_script:
 - ps: |
     if ($env:APPVEYOR_REPO_TAG -eq "true")
     {
-      pip install --user twine
+      pip install twine
       $env:TWINE_USERNAME = "ocrmypdf-travis"
       twine upload dist\*.whl
     }
