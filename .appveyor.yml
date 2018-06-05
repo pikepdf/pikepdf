@@ -31,7 +31,7 @@ build_script:
     $env:INCLUDE += ";c:\qpdf\include"
     $env:LIB += ";c:\qpdf\lib"
     $env:LIBPATH +=";c:\qpdf\lib"
-    python setup.py sdist
+    python setup.py sdist bdist_wheel
     $targz = Get-ChildItem -Path dist\pikepdf*.tar.gz
     pip install --verbose $targz
 
@@ -39,11 +39,8 @@ test_script:
 - pip install -r test_requirements.txt
 - pytest -n auto
 
-on_success:
-- python setup.py bdist_wheel
-
 artifacts:
-- path: pikepdf\dist\*.whl
+- path: dist\*.whl
   name: pypi
 
 deploy_script:
