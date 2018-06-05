@@ -11,8 +11,9 @@ environment:
 install:
 - cmd: '"%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" %PLATFORM%'
 - ps: |
+    $userpath = "$env:APPDATA\Python\Python$env:PYTHON\Scripts"
     if ($env:PLATFORM -eq "x64") { $env:PYTHON = "$env:PYTHON-x64" }
-    $env:PATH = "C:\Python$env:PYTHON\;C:\Python$env:PYTHON\Scripts\;C:\Users\appveyor\AppData\Roaming\Python\Python$env:PYTHON\Scripts;$env:PATH"
+    $env:PATH = "C:\Python$env:PYTHON\;C:\Python$env:PYTHON\Scripts\;$userpath;$env:PATH"
     echo $env:PATH
     python -m pip install --disable-pip-version-check --user --upgrade pip setuptools
 
