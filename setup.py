@@ -119,6 +119,7 @@ setup(
     packages=setuptools.find_packages('src'),
     package_data={
         '': ['*.txt'],
+        'pikepdf': ['qpdf21.dll']
     },
     classifiers=[
         "Development Status :: 3 - Alpha",

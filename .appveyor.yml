@@ -24,6 +24,7 @@ install:
 
 build_script:
 - ps: |
+    cp c:\qpdf\bin\qpdf21.dll src\pikepdf
     python setup.py sdist
     $targz = Get-ChildItem -Path dist\pikepdf*.tar.gz
     $env:INCLUDE += ";c:\qpdf\include"
@@ -43,5 +44,4 @@ artifacts:
 before_deploy:
 - ps: |
     pip install --user wheel
-    cp c:\qpdf\bin\qpdf21.dll src\pikepdf
     python setup.py bdist_wheel
