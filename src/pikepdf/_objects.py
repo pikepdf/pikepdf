@@ -22,7 +22,7 @@ from decimal import Decimal, InvalidOperation
 from math import isfinite
 
 from . import _qpdf
-from ._qpdf import Object, ObjectType, Stream, Operator, Null
+from ._qpdf import Object, ObjectType, Operator, Null
 
 
 class _ObjectMeta(type):
@@ -115,3 +115,10 @@ class Dictionary(metaclass=_ObjectMeta):
 
     def __new__(cls, d):
         return _qpdf._new_dictionary(d)
+
+
+class Stream(metaclass=_ObjectMeta):
+    object_type = ObjectType.stream
+
+    def __new__(cls, owner, obj):
+        return _qpdf._new_stream(owner, obj)

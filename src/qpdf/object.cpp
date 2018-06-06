@@ -588,6 +588,10 @@ void init_object(py::module& m)
             },
             "attribute lookup name"
         )
+        .def_property("stream_dict",
+            &QPDFObjectHandle::getDict, &QPDFObjectHandle::replaceDict,
+            py::return_value_policy::reference_internal
+        )
         .def("__setattr__",
             [](QPDFObjectHandle &h, std::string const& name, py::object &pyvalue) {
                 if (!h.isDictionary() && !h.isStream())
@@ -704,10 +708,6 @@ void init_object(py::module& m)
                 size_t u_index = list_range_check(h, index);
                 h.eraseItem(u_index);
             }
-        )
-        .def_property("stream_dict",
-            &QPDFObjectHandle::getDict, &QPDFObjectHandle::replaceDict,
-            py::return_value_policy::reference_internal
         )
         .def("get_stream_buffer",
             [](QPDFObjectHandle &h) {
@@ -913,7 +913,7 @@ void init_object(py::module& m)
         },
         "Construct a PDF Dictionary from a mapping of PDF objects or Python types that can be coerced to PDF objects."
     );
-    m.def("Stream",
+    m.def("_new_stream",
         [](std::shared_ptr<QPDF> owner, py::bytes data) {
             std::string s = data;
             return QPDFObjectHandle::newStream(owner.get(), data); // This makes a copy of the data
@@ -921,7 +921,7 @@ void init_object(py::module& m)
         "Construct a PDF Stream object from binary data",
         py::keep_alive<0, 1>() // returned object references the owner
     );
-    m.def("Stream",
+    m.def("_new_stream",
         [](std::shared_ptr<QPDF> owner, py::iterable content_stream) {
             std::stringstream data;
 
