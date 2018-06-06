@@ -6,7 +6,7 @@ import zlib
 import sys
 
 from pikepdf import (Pdf, Object, PdfImage, PdfError, Name, Null,
-        parse_content_stream, ObjectType, PdfInlineImage)
+        parse_content_stream, ObjectType, PdfInlineImage, Stream)
 
 
 @pytest.fixture
@@ -90,3 +90,54 @@ def test_inline(inline):
     assert iimage.width == 8
     assert iimage.image_mask == False
     assert iimage.mode == 'RGB'
+
+
+def test_bits_per_component_missing(congress):
+    cong_im = congress[0]
+    del cong_im.stream_dict['/BitsPerComponent']
+    assert PdfImage(congress[0]).bits_per_component == 8
+
+
+@pytest.mark.parametrize('w,h,pixeldata,cs,bpc', [
+    (1, 1, b'\xff', '/DeviceGray', 1),
+])
+def test_image_roundtrip(outdir, w, h, pixeldata, cs, bpc):
+    pdf = Pdf.new()
+
+    image_data = pixeldata * (w * h)
+
+    image = Stream(pdf, image_data)
+    image.Type = Name('/XObject')
+    image.Subtype = Name('/Image')
+    image.ColorSpace = Name(cs)
+    image.BitsPerComponent = bpc
+    image.Width = w
+    image.Height = h
+
+    xobj = {'/Im1': image}
+    resources = {'/XObject': xobj}
+    mediabox = [0, 0, 100, 100]
+    stream = b'q 100 0 0 100 0 0 cm /Im1 Do Q'
+    contents = Stream(pdf, stream)
+
+    page_dict = {
+        '/Type': Name('/Page'),
+        '/MediaBox': mediabox,
+        '/Contents': contents,
+        '/Resources': resources
+    }
+    page = pdf.make_indirect(page_dict)
+
+    pdf.pages.append(page)
+    outfile = outdir / 'test{w}{h}{cs}{bpc}.pdf'.format(
+        w=w, h=h, cs=cs[1:], bpc=bpc
+    )
+    pdf.save(outfile)
+
+    p2 = pdf.open(outfile)
+    pim = PdfImage(p2.pages[0].Resources.XObject['/Im1'])
+
+    assert pim.bits_per_component == bpc
+    assert pim.colorspace == cs
+    assert pim.width == w
+    assert pim.height == h

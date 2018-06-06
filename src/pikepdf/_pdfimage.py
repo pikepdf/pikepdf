@@ -37,7 +37,14 @@ class _PdfImageDescriptor:
             val = getattr(wrapper.obj, self.name, self.default)
         if self.type == bool:
             return val.as_bool() if isinstance(val, Object) else bool(val)
-        return self.type(val)
+
+        try:
+            return self.type(val)
+        except TypeError:
+            if val is None:
+                return None
+        raise NotImplementedError("__get__")
+
 
     def __set__(self, wrapper, val):
         if self.inline_name:
