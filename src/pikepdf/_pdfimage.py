@@ -11,7 +11,7 @@ from itertools import zip_longest
 import struct
 
 from ._objects import Name
-from . import Pdf, Object, ObjectType, Array
+from . import Pdf, Object, ObjectType, Array, PdfError
 
 class DependencyError(Exception):
     pass
@@ -172,7 +172,7 @@ class PdfImage:
         """
         return list(zip_longest(self.filters, self.decode_parms, fillvalue={}))
 
-    def extract_to(self, *, stream):
+    def _extract_direct(self, *, stream):
         """
         Attempt to extract the image directly to a usable image file
 
@@ -197,6 +197,55 @@ class PdfImage:
 
         raise UnsupportedImageTypeError()
 
+    def _extract_transcoded(self):
+        from PIL import Image
+        im = None
+        if self.mode == 'RGB' and self.bits_per_component == 8:
+            # No point in accessing the buffer here, size qpdf decodes to 3-byte
+            # RGB and Pillow needs RGBX for raw access
+            data = self.read_bytes()
+            im = Image.frombytes('RGB', self.size, data)
+        elif self.mode in ('L', 'P') and self.bits_per_component == 8:
+            buffer = self.get_stream_buffer()
+            stride = 0  # tell Pillow to calculate stride from line width
+            ystep = 1  # image is top to bottom in memory
+            im = Image.frombuffer('L', self.size, buffer, "raw", 'L', stride,
+                                  ystep)
+            if self.mode == 'P':
+                base_mode, palette_data = self.palette
+                if base_mode in ('RGB', 'L'):
+                    im.putpalette(palette_data, rawmode=base_mode)
+                else:
+                    raise NotImplementedError('palette with ' + base_colorspace)
+
+        return im
+
+    def extract_to(self, *, stream):
+        """
+        Attempt to extract the image directly to a usable image file
+
+        If possible, the compressed data is extracted and inserted into
+        a compressed image file format without transcoding the compressed
+        content. If this is not possible, the data will be decompressed
+        and extracted to an appropriate format.
+
+        :param stream: Writable stream to write data to
+        :returns: str -- The file format extension
+        """
+
+        try:
+            return self._extract_direct(stream=stream)
+        except UnsupportedImageTypeError:
+            pass
+
+        im = self._extract_transcoded()
+        if im:
+            im.save(stream, format='png')
+            return '.png'
+
+        raise UnsupportedImageTypeError(repr(self))
+
+
     def read_bytes(self):
         return self.obj.read_bytes()
 
@@ -212,30 +261,13 @@ class PdfImage:
 
         try:
             bio = BytesIO()
-            self.extract_to(stream=bio)
+            self._extract_direct(stream=bio)
             bio.seek(0)
             return Image.open(bio)
         except UnsupportedImageTypeError:
             pass
 
-        if self.mode == 'RGB':
-            # No point in accessing the buffer here, size qpdf decodes to 3-byte
-            # RGB and Pillow needs RGBX for raw access
-            data = self.read_bytes()
-            im = Image.frombytes('RGB', self.size, data)
-        elif self.mode in ('L', 'P'):
-            buffer = self.get_stream_buffer()
-            stride = 0  # tell Pillow to calculate stride from line width
-            ystep = 1  # image is top to bottom in memory
-            im = Image.frombuffer('L', self.size, buffer, "raw", 'L', stride,
-                                  ystep)
-            if self.mode == 'P':
-                base_mode, palette_data = self.palette
-                if base_mode in ('RGB', 'L'):
-                    im.putpalette(palette_data, rawmode=base_mode)
-                else:
-                    raise NotImplementedError('palette with ' + base_colorspace)
-
+        im = self._extract_transcoded()
         if not im:
             raise UnsupportedImageTypeError(repr(self))
 
