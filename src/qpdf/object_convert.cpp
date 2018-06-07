@@ -80,15 +80,17 @@ QPDFObjectHandle objecthandle_encode(py::handle handle)
         return QPDFObjectHandle::newBool(as_bool);
     }
 
-    try {
+    auto Decimal = py::module::import("decimal").attr("Decimal");
+
+    if (handle.get_type().is(Decimal)) {
+        return QPDFObjectHandle::newReal(py::str(handle));
+    } else if (PYBIND11_LONG_CHECK(handle.ptr())) {
         auto as_int = handle.cast<long long>();
         return QPDFObjectHandle::newInteger(as_int);
-    } catch (py::cast_error) {}
-
-    try {
+    } else if (PyFloat_Check(handle.ptr())) {
         auto as_double = handle.cast<double>();
         return QPDFObjectHandle::newReal(as_double);
-    } catch (py::cast_error) {}
+    }
 
     py::object obj = py::reinterpret_borrow<py::object>(handle);
 
