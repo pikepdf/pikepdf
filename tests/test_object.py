@@ -2,9 +2,10 @@ from decimal import Decimal
 from math import isclose, isfinite
 import sys
 
+import pikepdf
 from pikepdf import _qpdf as qpdf
 from pikepdf import (Pdf, Object, Real, String, Array, Integer, Name, Boolean,
-    Null)
+    Null, Dictionary, Operator)
 from hypothesis import given, strategies as st, example
 from hypothesis.strategies import (none, integers, binary, lists, floats,
     characters, recursive, booleans, builds, one_of)
@@ -170,3 +171,45 @@ def test_not_constructible():
 
 def test_str_int():
     assert str(Integer(42)) == '42'
+
+
+class TestRepr:
+
+    def test_repr_dict(self):
+        d = Dictionary({
+            '/Boolean': Boolean(True),
+            '/Integer': Integer(42),
+            '/Real': Real(42.42),
+            '/String': String('hi'),
+            '/Array': Array([1, 2, 3]),
+            '/Dictionary': Dictionary({'/Color': 'Red'})
+        })
+        expected = """\
+            pikepdf.Dictionary({
+                "/Array": [ 1, 2, 3 ],
+                "/Boolean": True,
+                "/Dictionary": {
+                    "/Color": "Red"
+                },
+                "/Integer": 42,
+                "/Real": Decimal('42.420000'),
+                "/String": "hi"
+            })
+        """
+
+        def strip_all_whitespace(s):
+            return ''.join(s.split())
+
+        assert strip_all_whitespace(repr(d)) == strip_all_whitespace(expected)
+        assert eval(repr(d)) == d
+
+    def test_repr_scalar(self):
+        scalars = [
+            Boolean(False),
+            Integer(666),
+            Real(3.14),
+            String('scalar'),
+            Name('/Bob')
+        ]
+        for s in scalars:
+            assert eval(repr(s)) == s
