@@ -1,4 +1,6 @@
-.PHONY: pycov cppcov test clean clean-coverage test
+# This is really just for testing
+
+.PHONY: build coverage test
 
 build:
 	python setup.py build_ext --inplace
@@ -17,7 +19,7 @@ clean-coverage-cppcov:
 
 clean-coverage: clean-coverage-cppcov clean-coverage-pycov
 
-test:
+test: build
 	pytest -n auto
 
 cppcov: clean-coverage-cppcov
