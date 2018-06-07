@@ -182,6 +182,7 @@ class TestRepr:
             '/Real': Real(42.42),
             '/String': String('hi'),
             '/Array': Array([1, 2, 3]),
+            '/Operator': Operator('q'),
             '/Dictionary': Dictionary({'/Color': 'Red'})
         })
         expected = """\
@@ -192,6 +193,7 @@ class TestRepr:
                     "/Color": "Red"
                 },
                 "/Integer": 42,
+                "/Operator": pikepdf.Operator("q"),
                 "/Real": Decimal('42.420000'),
                 "/String": "hi"
             })
@@ -209,7 +211,8 @@ class TestRepr:
             Integer(666),
             Real(3.14),
             String('scalar'),
-            Name('/Bob')
+            Name('/Bob'),
+            Operator('Q')
         ]
         for s in scalars:
             assert eval(repr(s)) == s

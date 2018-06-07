@@ -214,7 +214,9 @@ std::string objecthandle_repr_inner(QPDFObjectHandle h, uint depth, std::set<QPD
 
 std::string objecthandle_repr(QPDFObjectHandle& h)
 {
-    if (h.isScalar()) {
+    if (h.isScalar() || h.isOperator()) {
+        // qpdf does not consider Operator a scalar but it is as far we
+        // are concerned here
         return objecthandle_repr_typename_and_value(h);
     }
 
