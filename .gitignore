@@ -19,7 +19,7 @@ tmp/
 var/
 .pytest_cache/
 .coverage
-htmlcov/
+coverage/
 
 # Main directory testing
 /*.pdf
