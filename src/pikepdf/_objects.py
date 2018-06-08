@@ -22,7 +22,7 @@ from decimal import Decimal, InvalidOperation
 from math import isfinite
 
 from . import _qpdf
-from ._qpdf import Object, ObjectType, Operator, Null
+from ._qpdf import Object, ObjectType, Operator, _Null as Null
 
 
 class _ObjectMeta(type):

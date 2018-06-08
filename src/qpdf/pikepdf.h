@@ -57,12 +57,19 @@ namespace pybind11 { namespace detail {
 namespace pybind11 { namespace detail {
     template <> struct type_caster<QPDFObjectHandle> : public type_caster_base<QPDFObjectHandle> {
         using base = type_caster_base<QPDFObjectHandle>;
+    protected:
+        QPDFObjectHandle value;
     public:
 
         /**
          * Conversion part 1 (Python->C++): convert a PyObject into a Object
          */
         bool load(handle src, bool convert) {
+            if (src.is_none()) {
+                if (!convert) return false;
+                value = QPDFObjectHandle::newNull();
+                return true;
+            }
             return base::load(src, convert);
         }
 
@@ -76,17 +83,18 @@ namespace pybind11 { namespace detail {
          */
     private:
         // 'private': disallow returning pointers to QPDFObjectHandle from bindings
-        static handle cast(const QPDFObjectHandle *src, return_value_policy policy, handle parent) {
-            if (!src)
+        static handle cast(const QPDFObjectHandle *csrc, return_value_policy policy, handle parent) {
+            QPDFObjectHandle *src = const_cast<QPDFObjectHandle *>(csrc);
+            if (!csrc)
                 return none().release();
             // If it's a pointer, dereference it and cast it
-            QPDF *owner = const_cast<QPDFObjectHandle *>(src)->getOwningQPDF();
+            QPDF *owner = src->getOwningQPDF();
             handle h;
             if (policy == return_value_policy::take_ownership) {
-                h = base::cast(std::move(*src), policy, parent);
+                h = base::cast(std::move(*csrc), policy, parent);
                 delete src;
             } else {
-                h = base::cast(*src, policy, parent);
+                h = base::cast(*csrc, policy, parent);
             }
             if (owner) {
                 // Find the Python object that refers to our owner

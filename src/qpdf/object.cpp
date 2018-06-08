@@ -952,7 +952,7 @@ void init_object(py::module& m)
         },
         "Construct a PDF Operator object for use in content streams"
     );
-    m.def("Null", &QPDFObjectHandle::newNull,
+    m.def("_Null", &QPDFObjectHandle::newNull,
         "Construct a PDF Null object"
     );
 
