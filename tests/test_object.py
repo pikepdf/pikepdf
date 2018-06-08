@@ -1,11 +1,11 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from math import isclose, isfinite
 import sys
 
 import pikepdf
 from pikepdf import _qpdf as qpdf
-from pikepdf import (Pdf, Object, Real, String, Array, Name,
-    Null, Dictionary, Operator)
+from pikepdf import (Pdf, Object, String, Array, Name,
+    Null, Dictionary, Operator, PdfError)
 from hypothesis import given, strategies as st, example, assume
 from hypothesis.strategies import (none, integers, binary, lists, floats,
     characters, recursive, booleans, builds, one_of)
@@ -76,13 +76,21 @@ def test_decimal_involution(num, radix):
 def test_decimal_from_float(f):
     d = Decimal(f)
     if isfinite(f) and d.is_finite():
-        py_d = roundtrip(d)
-        assert isclose(py_d, d), (d, f.hex())
+        try:
+            # PDF is limited to ~5 sig figs
+            decstr = str(d.quantize(Decimal('1.000000')))
+        except InvalidOperation:
+            return  # PDF doesn't support exponential notation
+        try:
+            py_d = Object.parse(decstr)
+        except RuntimeError as e:
+            if 'overflow' in str(e) or 'underflow' in str(e):
+                py_d = Object.parse(str(f))
+
+        assert isclose(py_d, d, abs_tol=1e-5), (d, f.hex())
     else:
-        with pytest.raises(ValueError, message=repr(f)):
-            Real(f)
-        with pytest.raises(ValueError, message=repr(d)):
-            Real(d)
+        with pytest.raises(PdfError, message=repr(f)):
+            Object.parse(str(d))
 
 
 @given(lists(integers(-10, 10), min_size=0, max_size=10))
@@ -146,11 +154,11 @@ class TestHashViolation:
         assert Name('/Foo') != String('/Foo')
 
     def test_numbers(self):
-        self.check(Real('1.0'), 1)
-        self.check(Real('42'), 42)
+        self.check(Object.parse('1.0'), 1)
+        self.check(Object.parse('42'), 42)
 
     def test_bool_comparison(self):
-        self.check(Real('0.0'), False)
+        self.check(Object.parse('0.0'), False)
         self.check(True, 1)
 
     def test_string(self):
@@ -169,7 +177,7 @@ class TestRepr:
         d = Dictionary({
             '/Boolean': True,
             '/Integer': 42,
-            '/Real': Real(42.42),
+            '/Real': Decimal('42.42'),
             '/String': String('hi'),
             '/Array': Array([1, 2, 3]),
             '/Operator': Operator('q'),
@@ -184,7 +192,7 @@ class TestRepr:
                 },
                 "/Integer": 42,
                 "/Operator": pikepdf.Operator("q"),
-                "/Real": Decimal('42.420000'),
+                "/Real": Decimal('42.42'),
                 "/String": "hi"
             })
         """
@@ -199,7 +207,7 @@ class TestRepr:
         scalars = [
             False,
             666,
-            Real(3.14),
+            Decimal('3.14'),
             String('scalar'),
             Name('/Bob'),
             Operator('Q')

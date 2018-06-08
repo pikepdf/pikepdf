@@ -8,6 +8,7 @@
 from collections import namedtuple
 from enum import Enum
 from pkg_resources import get_distribution, DistributionNotFound
+from decimal import Decimal
 
 import os
 
@@ -24,8 +25,7 @@ except ImportError:
 from ._qpdf import (Object, ObjectType, PdfError, Pdf, PasswordError,
         ObjectStreamMode, StreamDataMode)
 
-from ._objects import (Real, Name, String, Array, Dictionary,
-        Stream, Operator, Null)
+from ._objects import (Name, String, Array, Dictionary, Stream, Operator, Null)
 
 from ._pdfimage import PdfImage, PdfInlineImage, UnsupportedImageTypeError
 

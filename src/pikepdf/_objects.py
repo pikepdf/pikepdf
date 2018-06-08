@@ -53,7 +53,7 @@ class _Integer(metaclass=_ObjectMeta):
         return _qpdf._new_integer(n)
 
 
-class Real(metaclass=_ObjectMeta):
+class _Real(metaclass=_ObjectMeta):
     object_type = ObjectType.real
 
     def __new__(cls, value, dec_places=0):
