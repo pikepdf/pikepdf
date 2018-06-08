@@ -4,9 +4,9 @@ import sys
 
 import pikepdf
 from pikepdf import _qpdf as qpdf
-from pikepdf import (Pdf, Object, Real, String, Array, Integer, Name, Boolean,
+from pikepdf import (Pdf, Object, Real, String, Array, Name,
     Null, Dictionary, Operator)
-from hypothesis import given, strategies as st, example
+from hypothesis import given, strategies as st, example, assume
 from hypothesis.strategies import (none, integers, binary, lists, floats,
     characters, recursive, booleans, builds, one_of)
 import pytest
@@ -19,16 +19,6 @@ roundtrip = qpdf._roundtrip
 
 def decode_encode(obj):
     return decode(encode(obj))
-
-
-def test_bool_involution():
-    assert decode_encode(True) == True
-    assert decode_encode(False) == False
-
-
-@given(integers(min_value=-2**31, max_value=(2**31-1)))
-def test_integer_involution(n):
-    assert decode_encode(n) == n
 
 
 @given(characters(min_codepoint=0x20, max_codepoint=0x7f))
@@ -47,7 +37,7 @@ def test_unicode_involution(s):
 
 @given(binary(min_size=0, max_size=300))
 def test_binary_involution(binary):
-    assert decode_encode(binary) == binary
+    assert bytes(decode_encode(binary)) == binary
 
 
 @given(integers(-10**12, 10**12), integers(-10**12, 10**12))
@@ -79,16 +69,15 @@ def test_decimal_involution(num, radix):
         strnum = strnum[:radix] + '.' + strnum[radix:]
 
     d = Decimal(strnum)
-
-    assert Real(d).decode() == d
+    assert roundtrip(d) == d
 
 
 @given(floats())
 def test_decimal_from_float(f):
     d = Decimal(f)
     if isfinite(f) and d.is_finite():
-        py_d = Real(d)
-        assert isclose(py_d.decode(), d), (d, f.hex())
+        py_d = roundtrip(d)
+        assert isclose(py_d, d), (d, f.hex())
     else:
         with pytest.raises(ValueError, message=repr(f)):
             Real(f)
@@ -98,17 +87,21 @@ def test_decimal_from_float(f):
 
 @given(lists(integers(-10, 10), min_size=0, max_size=10))
 def test_list(array):
-    assert decode_encode(array) == array
+    a = pikepdf.Array(array)
+    assert decode_encode(a) == a
 
 
 @given(lists(lists(integers(1,10), min_size=1, max_size=5),min_size=1,max_size=5))
 def test_nested_list(array):
-    assert decode_encode(array) == array
+    a = pikepdf.Array(array)
+    assert decode_encode(a) == a
 
 
-@given(recursive(none() | booleans(), lambda children: lists(children), max_leaves=20))
+@given(recursive(integers(1,10) | booleans(), lambda children: lists(children), max_leaves=20))
 def test_nested_list2(array):
-    assert decode_encode(array) == array
+    assume(isinstance(array, list))
+    a = pikepdf.Array(array)
+    assert decode_encode(a) == a
 
 
 def test_stack_depth():
@@ -140,7 +133,7 @@ def test_bytes():
 
 def test_len_array():
     assert len(Array([])) == 0
-    assert len(Array([Integer(3)])) == 1
+    assert len(Array([3])) == 1
 
 
 class TestHashViolation:
@@ -153,12 +146,12 @@ class TestHashViolation:
         assert Name('/Foo') != String('/Foo')
 
     def test_numbers(self):
-        self.check(Real('1.0'), Integer(1))
-        self.check(Real('42'), Integer(42))
+        self.check(Real('1.0'), 1)
+        self.check(Real('42'), 42)
 
     def test_bool_comparison(self):
-        self.check(Real('0.0'), Boolean(0))
-        self.check(Boolean(1), Integer(1))
+        self.check(Real('0.0'), False)
+        self.check(True, 1)
 
     def test_string(self):
         utf16 = b'\xfe\xff' + 'hello'.encode('utf-16be')
@@ -170,16 +163,12 @@ def test_not_constructible():
         Object()
 
 
-def test_str_int():
-    assert str(Integer(42)) == '42'
-
-
 class TestRepr:
 
     def test_repr_dict(self):
         d = Dictionary({
-            '/Boolean': Boolean(True),
-            '/Integer': Integer(42),
+            '/Boolean': True,
+            '/Integer': 42,
             '/Real': Real(42.42),
             '/String': String('hi'),
             '/Array': Array([1, 2, 3]),
@@ -208,8 +197,8 @@ class TestRepr:
 
     def test_repr_scalar(self):
         scalars = [
-            Boolean(False),
-            Integer(666),
+            False,
+            666,
             Real(3.14),
             String('scalar'),
             Name('/Bob'),

@@ -471,6 +471,11 @@ void init_object(py::module& m)
                 }
             }
         )
+        .def("__eq__",
+            [](QPDFObjectHandle &self, py::bool_ other) {
+                return (self == objecthandle_encode(other));
+            }
+        )
         .def("__lt__",
             [](QPDFObjectHandle &self, QPDFObjectHandle &other) {
                 if (!self.isInitialized() || !other.isInitialized())
@@ -742,7 +747,7 @@ void init_object(py::module& m)
             "Read the content stream associated with this object without decoding"
         )
         .def("write",
-            [](QPDFObjectHandle &h, py::bytes data, QPDFObjectHandle &filter, QPDFObjectHandle &decode_parms) {
+            [](QPDFObjectHandle &h, py::bytes data, const QPDFObjectHandle &filter, const QPDFObjectHandle &decode_parms) {
                 std::string sdata = data;
                 h.replaceStreamData(sdata, filter, decode_parms);
             },
@@ -754,8 +759,6 @@ void init_object(py::module& m)
             [](QPDFObjectHandle &h) {
                 if (!h.isPageObject())
                     throw py::type_error("Not a Page");
-                //Maybe?
-                //h.getOwningQPDF().pushInheritedAttributesToPage();
                 return h.getPageImages();
             }
         )
@@ -975,16 +978,15 @@ void init_object(py::module& m)
         }
     );
     m.def("_decode",
-        [](py::none none) {
-            // Without this shim, no template is selected for _decode(None)
-            // causing it to return a type error
-            return none;
+        [](py::object obj) {
+            // For objects we automatically unbox
+            return obj;
         }
     );
     m.def("_decode", &objecthandle_decode);
     m.def("_roundtrip",
-        [](py::none none) {
-            return none;
+        [](py::object obj) {
+            return obj;
         }
     );
     m.def("_roundtrip",

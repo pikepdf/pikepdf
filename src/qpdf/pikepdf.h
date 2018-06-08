@@ -69,24 +69,24 @@ namespace pybind11 { namespace detail {
          * Conversion part 1 (Python->C++): convert a PyObject into a Object
          */
         bool load(handle src, bool convert) {
-            if (src.is_none()) {
-                if (!convert) return false;
-                value = QPDFObjectHandle::newNull();
-                return true;
-            }
+            // if (src.is_none()) {
+            //     if (!convert) return false;
+            //     value = QPDFObjectHandle::newNull();
+            //     return true;
+            // }
             // Attempting to construct these does not work...
-            //if (convert) {
-                // if (PYBIND11_LONG_CHECK(src.ptr())) {
-                //     auto as_int = src.cast<long long>();
-                //     value = QPDFObjectHandle::newInteger(as_int);
-                // } else if (PyFloat_Check(src.ptr())) {
-                //     auto as_double = src.cast<double>();
-                //     value = QPDFObjectHandle::newReal(as_double);
-                // } else {
-                //     return base::load(src, convert);
-                // }
-                // return true;
-            //}
+            // if (convert) {
+            //     if (PYBIND11_LONG_CHECK(src.ptr())) {
+            //         auto as_int = src.cast<long long>();
+            //         value = QPDFObjectHandle::newInteger(as_int);
+            //     } /*else if (PyFloat_Check(src.ptr())) {
+            //         auto as_double = src.cast<double>();
+            //         value = QPDFObjectHandle::newReal(as_double);
+            //     } */ else {
+            //         return base::load(src, convert);
+            //     }
+            //     return true;
+            // }
             return base::load(src, convert);
         }
 
@@ -109,9 +109,9 @@ namespace pybind11 { namespace detail {
             handle h;
 
             switch (src->getTypeCode()) {
-                case QPDFObject::object_type_e::ot_null:
-                    h = none().release();
-                    break;
+                // case QPDFObject::object_type_e::ot_null:
+                //     h = none().release();
+                //     break;
                 case QPDFObject::object_type_e::ot_integer:
                     h = int_(src->getIntValue()).release();
                     break;

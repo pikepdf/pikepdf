@@ -24,7 +24,7 @@ except ImportError:
 from ._qpdf import (Object, ObjectType, PdfError, Pdf, PasswordError,
         ObjectStreamMode, StreamDataMode)
 
-from ._objects import (Boolean, Integer, Real, Name, String, Array, Dictionary,
+from ._objects import (Real, Name, String, Array, Dictionary,
         Stream, Operator, Null)
 
 from ._pdfimage import PdfImage, PdfInlineImage, UnsupportedImageTypeError
