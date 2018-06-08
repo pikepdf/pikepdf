@@ -52,8 +52,12 @@ namespace pybind11 { namespace detail {
     };
 }}
 
-#define DEBUG_TYPE_CONVERSION 1
-#if DEBUG_TYPE_CONVERSION
+#define CUSTOM_TYPE_CONVERSION 1
+#if CUSTOM_TYPE_CONVERSION
+
+// From object_convert.cpp
+pybind11::object decimal_from_pdfobject(QPDFObjectHandle& h);
+
 namespace pybind11 { namespace detail {
     template <> struct type_caster<QPDFObjectHandle> : public type_caster_base<QPDFObjectHandle> {
         using base = type_caster_base<QPDFObjectHandle>;
@@ -70,6 +74,19 @@ namespace pybind11 { namespace detail {
                 value = QPDFObjectHandle::newNull();
                 return true;
             }
+            // Attempting to construct these does not work...
+            //if (convert) {
+                // if (PYBIND11_LONG_CHECK(src.ptr())) {
+                //     auto as_int = src.cast<long long>();
+                //     value = QPDFObjectHandle::newInteger(as_int);
+                // } else if (PyFloat_Check(src.ptr())) {
+                //     auto as_double = src.cast<double>();
+                //     value = QPDFObjectHandle::newReal(as_double);
+                // } else {
+                //     return base::load(src, convert);
+                // }
+                // return true;
+            //}
             return base::load(src, convert);
         }
 
@@ -87,14 +104,34 @@ namespace pybind11 { namespace detail {
             QPDFObjectHandle *src = const_cast<QPDFObjectHandle *>(csrc);
             if (!csrc)
                 return none().release();
-            if (src->getTypeCode() == QPDFObject::object_type_e::ot_null) {
+
+            bool primitive = true;
+            handle h;
+
+            switch (src->getTypeCode()) {
+                case QPDFObject::object_type_e::ot_null:
+                    h = none().release();
+                    break;
+                case QPDFObject::object_type_e::ot_integer:
+                    h = int_(src->getIntValue()).release();
+                    break;
+                case QPDFObject::object_type_e::ot_boolean:
+                    h = bool_(src->getBoolValue()).release();
+                    break;
+                case QPDFObject::object_type_e::ot_real:
+                    h = decimal_from_pdfobject(*src).release();
+                    break;
+                default:
+                    primitive = false;
+                    break;
+            }
+            if (primitive && h) {
                 if (policy == return_value_policy::take_ownership)
                     delete csrc;
-                return none().release();
+                return h;
             }
 
             QPDF *owner = src->getOwningQPDF();
-            handle h;
             if (policy == return_value_policy::take_ownership) {
                 h = base::cast(std::move(*csrc), policy, parent);
                 delete csrc;
