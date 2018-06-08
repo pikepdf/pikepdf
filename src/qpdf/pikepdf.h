@@ -87,12 +87,17 @@ namespace pybind11 { namespace detail {
             QPDFObjectHandle *src = const_cast<QPDFObjectHandle *>(csrc);
             if (!csrc)
                 return none().release();
-            // If it's a pointer, dereference it and cast it
+            if (src->getTypeCode() == QPDFObject::object_type_e::ot_null) {
+                if (policy == return_value_policy::take_ownership)
+                    delete csrc;
+                return none().release();
+            }
+
             QPDF *owner = src->getOwningQPDF();
             handle h;
             if (policy == return_value_policy::take_ownership) {
                 h = base::cast(std::move(*csrc), policy, parent);
-                delete src;
+                delete csrc;
             } else {
                 h = base::cast(*csrc, policy, parent);
             }

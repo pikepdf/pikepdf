@@ -974,6 +974,24 @@ void init_object(py::module& m)
             return objecthandle_encode(handle);
         }
     );
+    m.def("_decode",
+        [](py::none none) {
+            // Without this shim, no template is selected for _decode(None)
+            // causing it to return a type error
+            return none;
+        }
+    );
     m.def("_decode", &objecthandle_decode);
+    m.def("_roundtrip",
+        [](py::none none) {
+            return none;
+        }
+    );
+    m.def("_roundtrip",
+        [](QPDFObjectHandle &h) {
+            return h;
+        }
+    );
+
 
 } // init_object

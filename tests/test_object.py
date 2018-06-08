@@ -14,6 +14,7 @@ import pytest
 
 encode = qpdf._encode
 decode = qpdf._decode
+roundtrip = qpdf._roundtrip
 
 
 def decode_encode(obj):
