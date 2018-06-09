@@ -15,6 +15,7 @@
 import sys
 import os
 from pkg_resources import get_distribution
+import subprocess
 
 
 on_rtd = os.environ.get('READTHEDOCS') == 'True'
