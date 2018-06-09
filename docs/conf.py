@@ -16,6 +16,27 @@ import sys
 import os
 from pkg_resources import get_distribution
 
+
+on_rtd = os.environ.get('READTHEDOCS') == 'True'
+if on_rtd:
+    # Borrowed from https://github.com/YannickJadoul/Parselmouth/blob/master/docs/conf.py
+    rtd_version = os.environ.get('READTHEDOCS_VERSION')
+    setup_py_version = subprocess.check_output([sys.executable, os.path.abspath(os.path.join('..', 'setup.py')), '--version']).decode('ascii').strip()
+
+    if rtd_version == 'stable':
+        branch = None
+        try:
+            subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'pikepdf=={}'.format(setup_py_version)])
+        except subprocess.CalledProcessError:
+            branch = 'master'
+    else:
+        branch = 'master' if rtd_version == 'latest' else rtd_version
+
+    if branch is not None:
+        raise NotImplementedError("failed")
+else:
+    sys.path.insert(0, os.path.abspath(os.path.join('..', 'installed')))
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.

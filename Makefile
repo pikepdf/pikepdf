@@ -1,9 +1,11 @@
 # This is really just for testing
 
-.PHONY: build coverage test
+.PHONY: build coverage test all
 
 build:
 	python setup.py build_ext --inplace
+
+all: build
 
 clean: clean-coverage
 	python setup.py clean --all
