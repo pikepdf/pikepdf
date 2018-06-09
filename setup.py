@@ -2,6 +2,7 @@ from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 import sys
 import setuptools
+from os.path import join, dirname
 from glob import glob
 
 
@@ -90,9 +91,11 @@ class BuildExt(build_ext):
             ext.extra_compile_args = opts
         build_ext.build_extensions(self)
 
-tests_require = [line.strip() for line in
-                 open('test_requirements.txt')
-                 if line.strip() and not line.strip().startswith('#')]
+with open(join(dirname(__file__), 'test_requirements.txt')) as f:
+    tests_require = [
+        line.strip() for line in f
+        if line.strip() and not line.strip().startswith('#')
+    ]
 
 setup(
     name='pikepdf',
