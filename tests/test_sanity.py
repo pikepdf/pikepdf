@@ -19,12 +19,12 @@ def test_open_pdf(resources):
     pdf = Pdf.open(resources / 'graph.pdf')
     assert '1.3' <= pdf.pdf_version <= '1.7'
 
-    assert pdf.root['/Pages']['/Count'].as_int() == 1
+    assert pdf.root['/Pages']['/Count'] == 1
 
 
 def test_open_pdf_password(resources):
     pdf = Pdf.open(resources / 'graph-encrypted.pdf', password='owner')
-    assert pdf.root['/Pages']['/Count'].as_int() == 1
+    assert pdf.root['/Pages']['/Count'] == 1
 
 
 def test_open_pdf_wrong_password(resources):
@@ -124,7 +124,7 @@ def test_copy_semantics(resources):
     # changes from the parent
     page = pdf.pages[0]
     mediabox = page['/MediaBox']
-    assert mediabox[2].decode() != 0
+    assert mediabox[2] != 0
     mediabox[2] = 0
     assert page['/MediaBox'][2] == mediabox[2]
 

@@ -1,7 +1,7 @@
 Tutorial
 ********
 
-In contrast to better known PDF libraries, pikepdf uses a single object to 
+In contrast to better known PDF libraries, pikepdf uses a single object to
 represent a PDF, whether reading, writing or merging. We have cleverly named
 this :class:`pikepdf.Pdf`.
 
@@ -12,11 +12,11 @@ this :class:`pikepdf.Pdf`.
    sample_pdf = Pdf.open('sample.pdf')
    sample_pdf.save('sample2.pdf')
 
-You may of course use ``from pikepdf import Pdf as ...`` if the short class 
+You may of course use ``from pikepdf import Pdf as ...`` if the short class
 name conflicts or ``from pikepdf import Pdf as PDF`` if you prefer uppercase.
 
-The PDF class API follows the example of the widely-used 
-`Pillow image library <https://pillow.readthedocs.io/en/4.2.x/>`_. For clarity
+The PDF class API follows the example of the widely-used
+`Pillow image library <https://pillow.readthedocs.io/en/latest/>`_. For clarity
 there is no default constructor since the arguments used for creation and
 opening are different. ``Pdf.open()`` also accepts seekable streams as input,
 and ``Pdf.save()`` accepts seekable streams as output.
@@ -29,11 +29,11 @@ follows the ``list`` protocol. As such page numbers begin at 0.
 
 .. code-block:: python
 
-   # Add the appendix to the end of report 
+   # Add the appendix to the end of report
    report = Pdf.open('report.pdf')
    appendix = Pdf.open('appendix.pdf')
    report.pages.extend(appendix.pages)
-   
+
    # Replace page 50 (49th array index) with a rescan
    rescan_page50 = Pdf.open('page50.pdf')
    report.pages[49] = rescan_page50[0]
@@ -114,7 +114,7 @@ Examining a page
   })>
 
 This is a PDF Dictionary of type ``/Page``. The dictionary follows most of the
-mapping (Python ``dict``) protocol. Dictionary keys may be looked up using 
+mapping (Python ``dict``) protocol. Dictionary keys may be looked up using
 keys (``page1['/MediaBox']``) or attributes (``page1.MediaBox``). Consult
 the PDF reference manual to determine which attributes are optional or required.
 
@@ -128,14 +128,14 @@ beginning with a capital letter, pikepdf will check the dictionary for
 that key. For the rare PDF keys that don't follow this convention, you
 must use standard dictionary notation.
 
-The angle brackets in the output indicate that this object cannot be 
-constructed with a Python expression because it contains indirect objects 
-(possibly including a self-reference). When angle brackets are omitted from the 
-``repr()`` of a pikepdf object, then the object can be replicated with a Python 
+The angle brackets in the output indicate that this object cannot be
+constructed with a Python expression because it contains indirect objects
+(possibly including a self-reference). When angle brackets are omitted from the
+``repr()`` of a pikepdf object, then the object can be replicated with a Python
 expression, that is ``eval(repr(x)) == x``.
 
 In Jupyter and IPython, pikepdf will instead attempt to rasterize a preview of
-the PDF page, if the "mupdf-tools" package is installed. Use ``repr(page)`` to 
+the PDF page, if the "mupdf-tools" package is installed. Use ``repr(page)`` to
 see the contents.
 
 For example, this page's MediaBox is a direct object.
@@ -157,7 +157,7 @@ meaning it is encoded as a JPEG.
 Viewing images
 --------------
 
-Let's see that JPEG. 
+Let's see that JPEG.
 
 .. code-block:: python
 
@@ -172,7 +172,7 @@ Jupyter and IPython will automatically show the graphically representation of
 the image, as below:
 
 .. code-block:: python
- 
+
    In [1] : pdfimage
   Out [1] : [the image appears here]
 
@@ -237,7 +237,7 @@ Open a PDF and see what is inside the /Root object.
   })>
 
 The /Root object is a PDF dictionary that describes where
-the rest of the PDF content is. 
+the rest of the PDF content is.
 
 
 PDF Stream objects
@@ -276,5 +276,3 @@ You could explore that XML packet further using the ``defusedxml``.
 .. warning::
 
   PDFs may contain viruses, and one place they can 'live' is inside XML objects.
-
-

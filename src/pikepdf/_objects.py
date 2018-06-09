@@ -20,9 +20,10 @@ QPDFObjectHandle which is a generic type.
 
 from decimal import Decimal, InvalidOperation
 from math import isfinite
+from collections.abc import Iterable
 
 from . import _qpdf
-from ._qpdf import Object, ObjectType, Operator, Null
+from ._qpdf import Object, ObjectType, Operator, _Null as Null
 
 
 class _ObjectMeta(type):
@@ -34,14 +35,14 @@ class _ObjectMeta(type):
         return cls.object_type == instance.type_code
 
 
-class Boolean(metaclass=_ObjectMeta):
+class _Boolean(metaclass=_ObjectMeta):
     object_type = ObjectType.boolean
 
     def __new__(cls, value):
         return _qpdf._new_boolean(value)
 
 
-class Integer(metaclass=_ObjectMeta):
+class _Integer(metaclass=_ObjectMeta):
     object_type = ObjectType.integer
 
     def __new__(cls, n):
@@ -52,7 +53,7 @@ class Integer(metaclass=_ObjectMeta):
         return _qpdf._new_integer(n)
 
 
-class Real(metaclass=_ObjectMeta):
+class _Real(metaclass=_ObjectMeta):
     object_type = ObjectType.real
 
     def __new__(cls, value, dec_places=0):

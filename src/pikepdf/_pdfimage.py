@@ -10,6 +10,8 @@ from tempfile import NamedTemporaryFile
 from itertools import zip_longest
 import struct
 
+from decimal import Decimal
+
 from ._objects import Name
 from . import Pdf, Object, ObjectType, Array, PdfError
 
@@ -367,7 +369,14 @@ class PdfInlineImage(PdfImage):
         self._data = image_data
         self._image_object = image_object
 
-        reparse = b' '.join([obj.unparse_resolved() for obj in image_object])
+        def unparse(obj):
+            if isinstance(obj, Object):
+                return obj.unparse_resolved()
+            elif isinstance(obj, (int, bool, Decimal, float)):
+                return str(obj).encode('ascii')
+            else:
+                raise NotImplementedError(repr(obj))
+        reparse = b' '.join(unparse(obj) for obj in image_object)
         self.obj = Object.parse(b'<< ' + reparse + b' >>')
 
     width = _PdfImageDescriptor('Width', int, None, 'W')

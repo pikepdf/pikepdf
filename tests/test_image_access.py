@@ -70,7 +70,7 @@ def test_lowlevel_replace_jpeg(congress, outdir):
     im = Image.open(BytesIO(raw_bytes))
     grayscale = im.convert('L')
 
-    congress[0].write(zlib.compress(grayscale.tobytes()), Name("/FlateDecode"), Null())
+    congress[0].write(zlib.compress(grayscale.tobytes()[:10]), Name("/FlateDecode"), Null())
     congress[0].ColorSpace = Name('/DeviceGray')
 
     pdf = congress[1]

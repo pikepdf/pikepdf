@@ -72,7 +72,7 @@ std::string objecthandle_pythonic_typename(QPDFObjectHandle& h, std::string pref
     s += prefix;
     switch (h.getTypeCode()) {
     case QPDFObject::object_type_e::ot_null:
-        s += "Null";
+        s += "NoneType";
         break;
     case QPDFObject::object_type_e::ot_boolean:
         s += "Boolean";
@@ -119,6 +119,8 @@ std::string objecthandle_pythonic_typename(QPDFObjectHandle& h, std::string pref
 
 std::string objecthandle_repr_typename_and_value(QPDFObjectHandle& h)
 {
+    if (h.isNull())
+        return "None";
     return objecthandle_pythonic_typename(h) + \
                 "(" + objecthandle_scalar_value(h) + ")";
 }

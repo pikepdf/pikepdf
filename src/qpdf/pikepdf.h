@@ -52,17 +52,41 @@ namespace pybind11 { namespace detail {
     };
 }}
 
-#define DEBUG_TYPE_CONVERSION 1
-#if DEBUG_TYPE_CONVERSION
+#define CUSTOM_TYPE_CONVERSION 1
+#if CUSTOM_TYPE_CONVERSION
+
+// From object_convert.cpp
+pybind11::object decimal_from_pdfobject(QPDFObjectHandle& h);
+
 namespace pybind11 { namespace detail {
     template <> struct type_caster<QPDFObjectHandle> : public type_caster_base<QPDFObjectHandle> {
         using base = type_caster_base<QPDFObjectHandle>;
+    protected:
+        QPDFObjectHandle value;
     public:
 
         /**
          * Conversion part 1 (Python->C++): convert a PyObject into a Object
          */
         bool load(handle src, bool convert) {
+            // if (src.is_none()) {
+            //     if (!convert) return false;
+            //     value = QPDFObjectHandle::newNull();
+            //     return true;
+            // }
+            // Attempting to construct these does not work...
+            // if (convert) {
+            //     if (PYBIND11_LONG_CHECK(src.ptr())) {
+            //         auto as_int = src.cast<long long>();
+            //         value = QPDFObjectHandle::newInteger(as_int);
+            //     } /*else if (PyFloat_Check(src.ptr())) {
+            //         auto as_double = src.cast<double>();
+            //         value = QPDFObjectHandle::newReal(as_double);
+            //     } */ else {
+            //         return base::load(src, convert);
+            //     }
+            //     return true;
+            // }
             return base::load(src, convert);
         }
 
@@ -76,17 +100,43 @@ namespace pybind11 { namespace detail {
          */
     private:
         // 'private': disallow returning pointers to QPDFObjectHandle from bindings
-        static handle cast(const QPDFObjectHandle *src, return_value_policy policy, handle parent) {
-            if (!src)
+        static handle cast(const QPDFObjectHandle *csrc, return_value_policy policy, handle parent) {
+            QPDFObjectHandle *src = const_cast<QPDFObjectHandle *>(csrc);
+            if (!csrc)
                 return none().release();
-            // If it's a pointer, dereference it and cast it
-            QPDF *owner = const_cast<QPDFObjectHandle *>(src)->getOwningQPDF();
+
+            bool primitive = true;
             handle h;
+
+            switch (src->getTypeCode()) {
+                // case QPDFObject::object_type_e::ot_null:
+                //     h = none().release();
+                //     break;
+                case QPDFObject::object_type_e::ot_integer:
+                    h = int_(src->getIntValue()).release();
+                    break;
+                case QPDFObject::object_type_e::ot_boolean:
+                    h = bool_(src->getBoolValue()).release();
+                    break;
+                case QPDFObject::object_type_e::ot_real:
+                    h = decimal_from_pdfobject(*src).release();
+                    break;
+                default:
+                    primitive = false;
+                    break;
+            }
+            if (primitive && h) {
+                if (policy == return_value_policy::take_ownership)
+                    delete csrc;
+                return h;
+            }
+
+            QPDF *owner = src->getOwningQPDF();
             if (policy == return_value_policy::take_ownership) {
-                h = base::cast(std::move(*src), policy, parent);
-                delete src;
+                h = base::cast(std::move(*csrc), policy, parent);
+                delete csrc;
             } else {
-                h = base::cast(*src, policy, parent);
+                h = base::cast(*csrc, policy, parent);
             }
             if (owner) {
                 // Find the Python object that refers to our owner
