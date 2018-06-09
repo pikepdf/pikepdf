@@ -35,7 +35,7 @@ if on_rtd:
         branch = 'master' if rtd_version == 'latest' else rtd_version
 
     if branch is not None:
-        raise NotImplementedError("failed")
+        subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--only-binary', 'pikepdf', 'pikepdf'])
 else:
     sys.path.insert(0, os.path.abspath(os.path.join('..', 'installed')))
 
