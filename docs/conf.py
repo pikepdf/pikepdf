@@ -22,6 +22,7 @@ on_rtd = os.environ.get('READTHEDOCS') == 'True'
 if on_rtd:
     # Borrowed from https://github.com/YannickJadoul/Parselmouth/blob/master/docs/conf.py
     rtd_version = os.environ.get('READTHEDOCS_VERSION')
+    subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'setuptools_scm'])
     setup_py_version = subprocess.check_output([sys.executable, os.path.abspath(os.path.join('..', 'setup.py')), '--version']).decode('ascii').strip()
 
     if rtd_version == 'stable':
