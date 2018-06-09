@@ -91,11 +91,16 @@ class BuildExt(build_ext):
             ext.extra_compile_args = opts
         build_ext.build_extensions(self)
 
-with open(join(dirname(__file__), 'test_requirements.txt')) as f:
+setup_py_cwd = dirname(__file__)
+
+with open(join(setup_py_cwd, 'test_requirements.txt')) as f:
     tests_require = [
         line.strip() for line in f
         if line.strip() and not line.strip().startswith('#')
     ]
+
+with open(join(setup_py_cwd, 'README.rst')) as f:
+    readme = f.read()
 
 setup(
     name='pikepdf',
@@ -103,7 +108,7 @@ setup(
     author_email='jim@purplerock.ca',
     url='https://github.com/pikepdf/pikepdf',
     description='Read and write PDFs with Python, powered by qpdf',
-    long_description=open('README.rst').read(),
+    long_description=readme,
     ext_modules=ext_modules,
     install_requires=['pybind11 >= 2.2.3, < 3'],
     extras_require={
