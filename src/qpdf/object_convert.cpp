@@ -82,12 +82,12 @@ QPDFObjectHandle objecthandle_encode(py::handle handle)
 
     auto Decimal = py::module::import("decimal").attr("Decimal");
 
-    if (handle.get_type().is(Decimal)) {
+    if (py::isinstance(handle, Decimal)) {
         return QPDFObjectHandle::newReal(py::str(handle));
-    } else if (PYBIND11_LONG_CHECK(handle.ptr())) {
+    } else if (py::isinstance<py::int_>(handle)) {
         auto as_int = handle.cast<long long>();
         return QPDFObjectHandle::newInteger(as_int);
-    } else if (PyFloat_Check(handle.ptr())) {
+    } else if (py::isinstance<py::float_>(handle)) {
         auto as_double = handle.cast<double>();
         return QPDFObjectHandle::newReal(as_double);
     }
@@ -141,7 +141,7 @@ QPDFObjectHandle objecthandle_encode(py::handle handle)
         return QPDFObjectHandle::newNull();
     }
 
-    throw py::cast_error(std::string("don't know how to encode value") + std::string(py::repr(obj)));
+    throw py::cast_error(std::string("don't know how to encode value ") + std::string(py::repr(obj)));
 }
 
 
