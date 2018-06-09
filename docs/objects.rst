@@ -6,7 +6,7 @@ This section covers the object model pikepdf uses in more detail.
 A :class:`pikepdf.Object` is a Python wrapper around a C++ ``QPDFObjectHandle``
 which, as the name suggests, is a handle (or pointer) to a data structure in
 memory, or possibly a reference to data that exists in a file. Importantly, an
-object can be a scalar quantity (like an integer) or a compound quatity (like a
+object can be a scalar quantity (like a string) or a compound quantity (like a
 list or dict, that contains other objects). The fact that the C++ class involved
 here is an object handle is an implementation detail; it shouldn't matter for a
 pikepdf user.
@@ -16,43 +16,38 @@ typing and a C++ library that effectively has a dynamic variant type. Currently
 this is managed by **not** subclassing ``pikepdf.Object``. Instead pikepdf
 ``pikepdf.Object`` implements all of the methods it could ever use.
 
+Integers, booleans and decimal numbers within PDFs are mapped to Python ``int``,
+``bool`` and :class:`decimal.Decimal`. ``float`` is also converted to
+``Decimal``.
+
 For convenience, the ``repr()`` of a ``pikepdf.Object`` will display a
 Python expression that replicates the existing object (when possible), so it
 will say:
 
 .. code-block:: python
 
-    >>> three = pikepdf.Integer(3)
-    pikepdf.Integer(3)
+    >>> catalog_name = pdf.root.Type
+    pikepdf.Name("/Catalog")
+    >>> isinstance(catalog_name, pikepdf.Name)
+    True
+    >>> isinstance(catalog_name, pikepdf.Object)
+    True
 
-But in reality it's just a PDF object, with no subclassing:
-
-.. code-block:: python
-
-    >>> three.__class__.__name__
-    pikepdf.Object
 
 Making PDF objects
 ==================
 
 You may construct a new object with one of the factory functions:
 
-*   :class:`pikepdf.Integer`
-*   :class:`pikepdf.Boolean`
 *   :class:`pikepdf.Array`
 *   :class:`pikepdf.Dictionary`
-*   :class:`pikepdf.Real` - decimal numbers, similar to :class:`decimal.Decimal`
 *   :class:`pikepdf.Name` - the type used for keys in PDF Dictionary objects
-*   :class:`pikepdf.String` - a text string 
+*   :class:`pikepdf.String` - a text string
     (treated as ``bytes`` and ``str`` depending on context)
-*   :class:`pikepdf.Null` - equivalent to ``None``
+*   :class:`pikepdf.Null` - a sentinel used to represent a Null value
 
-For example, a PDF :class:`Boolean` may be constructed as 
-
-.. code-block:: python
-
-    >>> pikepdf.Boolean(True)
-    pikepdf.Boolean(True)
+These may be thought of as subclasses of ``pikepdf.Object``. (Internally they
+**are** ``pikepdf.Object``.)
 
 There are a few other factory functions for special PDF objects that don't
 map to Python as neatly. We'll look at these later.
@@ -71,4 +66,3 @@ in most cases, because pikepdf needs to keep track of objects that came from
 PDFs originally.
 
 Because Python types are converted to pikepdf types, references will be lost.
-
