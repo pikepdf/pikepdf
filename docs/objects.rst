@@ -17,7 +17,7 @@ this is managed by **not** subclassing ``pikepdf.Object``. Instead pikepdf
 ``pikepdf.Object`` implements all of the methods it could ever use.
 
 Integers, booleans and decimal numbers within PDFs are mapped to Python ``int``,
-``bool`` and :class:`decimal.Decimal`. ``float`` is also converted to
+``bool`` and :class:`~decimal.Decimal`. ``float`` is also converted to
 ``Decimal``.
 
 For convenience, the ``repr()`` of a ``pikepdf.Object`` will display a

@@ -1,13 +1,27 @@
 pikepdf API Reference
 *********************
 
-.. automodule:: pikepdf
-    :members:
+Primary objects
+===============
 
 .. autoclass:: pikepdf.Pdf
     :members:
 
+.. autofunction:: pikepdf.open
+
 .. autoclass:: pikepdf.Object
     :members:
 
-.. py:exception:: pikepdf.PdfError
+.. autoexception:: pikepdf.PdfError
+
+
+Support
+=======
+
+.. autoclass:: pikepdf.PdfMatrix
+
+.. autoclass:: pikepdf.PdfImage
+    :members:
+
+.. autoclass:: pikepdf.PdfInlineImage
+    :members:

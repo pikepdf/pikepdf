@@ -50,7 +50,7 @@ pikepdf would help you build apps that do things like:
 * Calculate how much to charge for a scanning project based on the materials
   scanned
 * Alter a PDF to meet a target specification such as PDF/A or PDF/X
-* Create deliberately malformed PDFs for testing purposes
+* Create well-formed but invalid PDFs for testing purposes
 
 What it cannot and never will do:
 
@@ -59,7 +59,7 @@ What it cannot and never will do:
   Ghostscript instead
 * Convert from PDF to other similar print formats like epub, XPS, DjVu,
   Postscript – use MuPDF or PyMuPDF
-* Print
+* Print to paper
 
 Architecture
 ------------
@@ -70,7 +70,7 @@ requests to backport would be considered.
 
 The library uses `pybind11 <https://github.com/pybind/pybind11>`_ to bind the
 C++ interface of QPDF. pybind11 was selected after evaluating Cython, CFFI and
-SWIG as possible solutions. 
+SWIG as possible solutions.
 
 In addition to bindings pikepdf includes its support code, mainly to present a
 clean Pythonic interface to a C++.

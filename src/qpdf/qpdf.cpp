@@ -317,16 +317,63 @@ PYBIND11_MODULE(_qpdf, m) {
         .def("_add_page_at", &QPDF::addPageAt, py::keep_alive<1, 2>())
         .def("_remove_page", &QPDF::removePage)
         .def("save",
-             save_pdf,
-             "save as a PDF",
-             py::arg("filename"),
-             py::arg("static_id")=false,
-             py::arg("preserve_pdfa")=false,
-             py::arg("min_version")="",
-             py::arg("force_version")="",
-             py::arg("object_stream_mode")=qpdf_o_preserve,
-             py::arg("stream_data_mode")=qpdf_s_preserve,
-             py::arg("normalize_content")=false
+            save_pdf,
+            R"~~~(
+            Save all modifications to this PDF
+
+            *filename* is the filename or writable file stream to write to.
+
+            *static_id* indicates that the ``/ID`` metadata, normally
+            calculated as a hash of certain PDF contents and metadata including
+            the current time, should instead be generated deterministically.
+            Normally for debugging.
+
+            *preserve_pdfa* ensures that the file is generated in a manner
+            compliant with PDF/A and other PDF variants. This should be True,
+            the default, in most cases.
+
+            *min_version* sets the minimum version of PDF specification that
+            should be required. If left alone QPDF will decide. *force_version*
+            allows creating a lower version deliberately.
+
+            *object_stream_mode* is drawn from this table:
+
+            +-------------------+------------------------------------------+
+            | Constant          | Description                              |
+            +-------------------+------------------------------------------+
+            | :const:`disable`  | prevents the use of object streams       |
+            +-------------------+------------------------------------------+
+            | :const:`preserve` | keeps object streams from the input file |
+            +-------------------+------------------------------------------+
+            | :const:`generate` | uses object streams everywhere possible  |
+            +-------------------+------------------------------------------+
+
+            ``generate`` will tend to create the smallest files, but requires
+            PDF version 1.5 or higher.
+
+            *stream_data_mode* is drawn from this table:
+
+            +---------------------+----------------------------------------------+
+            | Constant            | Description                                  |
+            +---------------------+----------------------------------------------+
+            | :const:`uncompress` | decompresses all data                        |
+            +---------------------+----------------------------------------------+
+            | :const:`preserve`   | keeps existing compressed objects compressed |
+            +---------------------+----------------------------------------------+
+            | :const:`compress`   | attempts to compress all objects             |
+            +---------------------+----------------------------------------------+
+
+            *normalize_content* enables parsing and reformatting the content
+            stream within PDFs. This may debugging PDFs easier.
+            )~~~",
+            py::arg("filename"),
+            py::arg("static_id")=false,
+            py::arg("preserve_pdfa")=true,
+            py::arg("min_version")="",
+            py::arg("force_version")="",
+            py::arg("object_stream_mode")=qpdf_o_preserve,
+            py::arg("stream_data_mode")=qpdf_s_preserve,
+            py::arg("normalize_content")=false
         )
         .def("_get_object_id", &QPDF::getObjectByID)
         .def("make_indirect", &QPDF::makeIndirectObject)

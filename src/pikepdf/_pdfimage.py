@@ -74,24 +74,53 @@ def dict_or_array_dict(value):
 
 
 class PdfImage:
+    """
+    Support class to provide a consistent API for manipulating PDF images
+
+    The data structure for images inside PDFs is irregular and flexible,
+    making it difficult to work with without introducing errors for less
+    typical cases. This class addresses these difficulties by providing a
+    regular, Pythonic API similar in spirit (and convertible to) the Python
+    Pillow imaging library.
+    """
     SIMPLE_COLORSPACES = ('/DeviceRGB', '/DeviceGray', '/CalRGB', '/CalGray')
 
     def __init__(self, obj):
+        """
+        Construct a PDF image from a Image XObject inside a PDF
+
+        ``pim = PdfImage(page.Resources.XObject['/ImageNN'])``
+
+        :param obj: an Image XObject
+        :type obj: pikepdf.Object
+
+        """
         if obj.type_code == ObjectType.stream and \
                 obj.stream_dict.get("/Subtype") != "/Image":
             raise TypeError("can't construct PdfImage from non-image")
         self.obj = obj
 
     width = _PdfImageDescriptor('Width', int, None)
+    """Width of the image data in pixels"""
+
     height = _PdfImageDescriptor('Height', int, None)
+    """Height of the image data in pixels"""
+
     image_mask = _PdfImageDescriptor('ImageMask', bool, False)
+    """``True`` if this is an image mask"""
+
     _bpc = _PdfImageDescriptor('BitsPerComponent', int, None)
     _colorspaces = _PdfImageDescriptor('ColorSpace', array_str, [])
+
     filters = _PdfImageDescriptor('Filter', array_str, [])
+    """List of names of the filters that we applied to encode this image"""
+
     decode_parms = _PdfImageDescriptor('DecodeParms', dict_or_array_dict, [])
+    """List of the /DecodeParms, arguments to filters"""
 
     @property
     def bits_per_component(self):
+        """Bits per component of this image"""
         if self._bpc is None:
             return 1 if self.image_mask else 8
         return self._bpc
@@ -102,6 +131,7 @@ class PdfImage:
 
     @property
     def colorspace(self):
+        """PDF name of the colorspace that best describes this image"""
         if self.image_mask:
             return None  # Undefined for image masks
         if self._colorspaces[0] in self.SIMPLE_COLORSPACES:
@@ -119,14 +149,23 @@ class PdfImage:
 
     @property
     def is_inline(self):
+        """``False`` for image XObject"""
         return False
 
     @property
     def indexed(self):
+        """``True`` if the image has a defined color palette"""
         return self._colorspaces[0] == '/Indexed'
 
     @property
     def palette(self):
+        """
+        Retrieves the color palette for this image
+
+        :returns: (base_colorspace: str, palette: bytes)
+        :rtype: tuple
+        """
+
         if not self.indexed:
             return None
         idx, base, hival, lookup = None, None, None, None
@@ -147,10 +186,12 @@ class PdfImage:
 
     @property
     def size(self):
+        """Size of image as (width, height)"""
         return self.width, self.height
 
     @property
     def mode(self):
+        """``PIL.Image.mode`` equivalent for this image"""
         m = ''
         if self.indexed:
             m = 'P'
@@ -272,15 +313,18 @@ class PdfImage:
 
 
     def read_bytes(self):
+        """Decompress this image and return it as unencoded bytes"""
         return self.obj.read_bytes()
 
     def get_stream_buffer(self):
+        """Access this image with the buffer protocol"""
         return self.obj.get_stream_buffer()
 
     def as_pil_image(self):
         """
         Extract the image as a Pillow Image, using decompression as necessary
 
+        :rtype: :class:`PIL.Image.Image`
         """
         from PIL import Image
 
@@ -299,6 +343,9 @@ class PdfImage:
         return im
 
     def _generate_ccitt_header(self, data):
+        """
+        Construct a CCITT G3 or G4 header from the PDF metadata
+        """
         # https://stackoverflow.com/questions/2641770/
         # https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf
 
@@ -333,6 +380,7 @@ class PdfImage:
         return tiff_header
 
     def show(self):
+        """Show the image however PIL wants to"""
         self.as_pil_image().show()
 
     def __repr__(self):
@@ -340,7 +388,7 @@ class PdfImage:
             self.mode, self.width, self.height, hex(id(self)))
 
     def _repr_png_(self):
-        "Display hook for IPython/Jupyter"
+        """Display hook for IPython/Jupyter"""
         b = BytesIO()
         im = self.as_pil_image()
         im.save(b, 'PNG')
@@ -364,8 +412,14 @@ def inline_remove_abbrevs(value):
 
 
 class PdfInlineImage(PdfImage):
+    """Support class for PDF inline images"""
 
     def __init__(self, *, image_data, image_object: tuple):
+        """
+        :param image_data: data stream for image, extracted from content stream
+        :param image_object: the metadata for image, also from content stream
+        """
+
         self._data = image_data
         self._image_object = image_object
 

@@ -49,7 +49,8 @@ Features:
     pdf.save('output.pdf')
 
 
-pikepdf is documented and actively maintained. Commercial support is available.
+pikepdf is `documented <https://pikepdf.readthedocs.io/en/latest/index.html>`_
+and actively maintained. Commercial support is available.
 
 This library is similar to PyPDF2 and pdfrw - it provides low level access to PDF
 features and allows editing and content transformation of existing PDFs.  Some

@@ -130,19 +130,22 @@ def open(*args, **kwargs):
 
 
 class PdfMatrix:
-    """Support class for PDF content stream matrices
+    """
+    Support class for PDF content stream matrices
 
     PDF content stream matrices are 3x3 matrices summarized by a shorthand
-    (a, b, c, d, e, f) which correspond to the first two column vectors. The
-    final column vector is always (0, 0, 1) since this is using homogenous
-    coordinates.
+    ``(a, b, c, d, e, f)`` which correspond to the first two column vectors.
+    The final column vector is always ``(0, 0, 1)`` since this is using
+    `homogenous coordinates <https://en.wikipedia.org/wiki/Homogeneous_coordinates>`_.
 
-    PDF uses row vectors.  That is vr @ A' gives the effect of transforming
-    a row vector vr=(x, y, 1) by the matrix A'.  It's more common to use
-    A @ vc where vc is a column vector = (x, y, 1)'.
+    PDF uses row vectors.  That is, ``vr @ A'`` gives the effect of transforming
+    a row vector ``vr=(x, y, 1)`` by the matrix ``A'``.  Most textbook
+    treatments use ``A @ vc`` where the column vector ``vc=(x, y, 1)'``.
 
-    Addition is not implemented. If needed it would be necessary to normalize
-    with division by self.values[2][2].
+    (``@`` is the Python matrix multiplication operator added in Python 3.5.)
+
+    Addition and other operations are not implemented because they're not that
+    meaningful in a PDF context.
 
     """
 
