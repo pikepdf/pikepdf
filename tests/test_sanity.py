@@ -157,3 +157,10 @@ def test_copy_page_keepalive(resources, outdir):
     with suppress(PermissionError):
         (outdir / 'sandwich.pdf').unlink()
     pdf.save(outdir / 'out.pdf')
+
+
+def test_objgen(resources):
+    src = Pdf.open(resources / 'graph.pdf')
+    im0 = src.pages[0].Resources.XObject['/Im0']
+    assert im0.objgen == (5, 0)
+    assert src.get_object((5, 0)) == im0
