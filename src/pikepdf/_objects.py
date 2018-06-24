@@ -34,7 +34,7 @@ class _ObjectMeta(type):
     def __instancecheck__(cls, instance):
         if type(instance) != Object:
             return False
-        return cls.object_type == instance.type_code
+        return cls.object_type == instance._type_code
 
 
 class _Boolean(metaclass=_ObjectMeta):

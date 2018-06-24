@@ -17,16 +17,16 @@ import collections.abc
 class PdfObject:
     @classmethod
     def specialize(cls, obj):
-        if obj.type_code == qpdf.ObjectType.ot_integer:
+        if obj._type_code == qpdf.ObjectType.ot_integer:
             return obj.as_int()  # Integer is transparent
 
-        elif obj.type_code == qpdf.ObjectType.ot_boolean:
+        elif obj._type_code == qpdf.ObjectType.ot_boolean:
             return obj.as_bool()
 
-        elif obj.type_code == qpdf.ObjectType.ot_null:
+        elif obj._type_code == qpdf.ObjectType.ot_null:
             return None
 
-        elif obj.type_code == qpdf.ObjectType.ot_dictionary:
+        elif obj._type_code == qpdf.ObjectType.ot_dictionary:
             if obj.get("/Type") == qpdf.Object.Name("/Page"):
                 return PdfPage(obj)
             return PdfDict(obj)

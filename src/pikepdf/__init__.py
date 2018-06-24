@@ -58,7 +58,7 @@ def parse_content_stream(page_or_stream, operators=''):
     if not isinstance(page_or_stream, Object):
         raise TypeError("stream must a PDF object")
 
-    if page_or_stream.type_code != ObjectType.stream \
+    if page_or_stream._type_code != ObjectType.stream \
             and page_or_stream.get('/Type') != '/Page':
         raise TypeError("parse_content_stream called on page or stream object")
 

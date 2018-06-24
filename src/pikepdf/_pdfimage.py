@@ -12,7 +12,7 @@ import struct
 
 from decimal import Decimal
 
-from . import Pdf, Object, ObjectType, Array, PdfError, Name, Dictionary
+from . import Pdf, Object, ObjectType, Array, PdfError, Name, Dictionary, Stream
 
 class DependencyError(Exception):
     pass
@@ -95,7 +95,7 @@ class PdfImage:
         :type obj: pikepdf.Object
 
         """
-        if obj.type_code == ObjectType.stream and \
+        if isinstance(obj, Stream) and \
                 obj.stream_dict.get("/Subtype") != "/Image":
             raise TypeError("can't construct PdfImage from non-image")
         self.obj = obj
