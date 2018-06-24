@@ -2,10 +2,11 @@ import pytest
 from pikepdf import (parse_content_stream, Page, Pdf, Stream, Operator, Object,
         Dictionary)
 from pikepdf._qpdf import StreamParser
-import os
 from subprocess import run, PIPE
 import shutil
 
+
+# pylint: disable=useless-super-delegation
 
 class PrintParser(StreamParser):
     def __init__(self):
@@ -22,7 +23,7 @@ class ExceptionParser(StreamParser):
     def __init__(self):
         super().__init__()
 
-    def handle_object(self, obj):
+    def handle_object(self, obj):  # pylint: disable=unused-argument
         raise ValueError("I take exception to this")
 
     def handle_eof(self):
@@ -64,7 +65,7 @@ def test_text_filter(resources, outdir):
         keep.append((operands, command))
 
     new_stream = Stream(pdf, keep)
-    print(new_stream.read_bytes())
+    print(new_stream.read_bytes())  # pylint: disable=no-member
     page['/Contents'] = new_stream
     page['/Rotate'] = 90
 

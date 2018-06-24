@@ -20,10 +20,12 @@ QPDFObjectHandle which is a generic type.
 
 from decimal import Decimal, InvalidOperation
 from math import isfinite
-from collections.abc import Iterable
 
 from . import _qpdf
-from ._qpdf import Object, ObjectType, Operator, _Null as Null
+from ._qpdf import Object, ObjectType
+
+# pylint: disable=unused-import
+from ._qpdf import Operator, _Null as Null
 
 
 class _ObjectMeta(type):
@@ -95,8 +97,8 @@ class String(metaclass=_ObjectMeta):
         if isinstance(s, bytes):
             return _qpdf._new_string(s)
         try:
-            ascii = s.encode('ascii')
-            return _qpdf._new_string(ascii)
+            ascii_ = s.encode('ascii')
+            return _qpdf._new_string(ascii_)
         except UnicodeEncodeError:
             utf16 = b'\xfe\xff' + s.encode('utf-16be')
             return _qpdf._new_string(utf16)

@@ -4,30 +4,28 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
+import os
 
+from decimal import Decimal
 from collections import namedtuple
 from enum import Enum
 from pkg_resources import get_distribution, DistributionNotFound
-from decimal import Decimal
 
-import os
-
-try:
-    __version__ = get_distribution(__name__).version
-except DistributionNotFound:
-    __version__ = "Not installed"
-    pass
 try:
     from . import _qpdf
 except ImportError:
     raise ImportError("pikepdf's extension library failed to import")
 
 from ._qpdf import (Object, ObjectType, PdfError, Pdf, PasswordError,
-        ObjectStreamMode, StreamDataMode)
-
+                    ObjectStreamMode, StreamDataMode)
 from ._objects import (Name, String, Array, Dictionary, Stream, Operator, Null)
-
 from ._pdfimage import PdfImage, PdfInlineImage, UnsupportedImageTypeError
+
+
+try:
+    __version__ = get_distribution(__name__).version
+except DistributionNotFound:
+    __version__ = "Not installed"
 
 __libqpdf_version__ = _qpdf.qpdf_version()
 
@@ -124,7 +122,7 @@ class Page:
         return False
 
 
-def open(*args, **kwargs):
+def open(*args, **kwargs):  # pylint: disable=redefined-builtin
     "Alias for :func:`pikepdf.Pdf.open`."
     return Pdf.open(*args, **kwargs)
 

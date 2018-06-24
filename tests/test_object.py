@@ -4,13 +4,15 @@ import sys
 
 import pikepdf
 from pikepdf import _qpdf as qpdf
-from pikepdf import (Pdf, Object, String, Array, Name,
-    Null, Dictionary, Operator, PdfError)
-from hypothesis import given, strategies as st, example, assume
-from hypothesis.strategies import (none, integers, binary, lists, floats,
-    characters, recursive, booleans, builds, one_of)
+from pikepdf import (Object, String, Array, Name,
+    Dictionary, Operator, PdfError)
+from hypothesis import given, example, assume
+from hypothesis.strategies import (integers, binary, lists, floats,
+    characters, recursive, booleans)
 import pytest
 
+
+# pylint: disable=eval-used,unnecessary-lambda
 
 encode = qpdf._encode
 decode = qpdf._decode
@@ -23,8 +25,8 @@ def decode_encode(obj):
 
 @given(characters(min_codepoint=0x20, max_codepoint=0x7f))
 @example('')
-def test_ascii_involution(ascii):
-    b = ascii.encode('ascii')
+def test_ascii_involution(ascii_):
+    b = ascii_.encode('ascii')
     assert decode_encode(b) == b
 
 
@@ -36,8 +38,8 @@ def test_unicode_involution(s):
 
 
 @given(binary(min_size=0, max_size=300))
-def test_binary_involution(binary):
-    assert bytes(decode_encode(binary)) == binary
+def test_binary_involution(binary_):
+    assert bytes(decode_encode(binary_)) == binary_
 
 
 @given(integers(-10**12, 10**12), integers(-10**12, 10**12))
@@ -114,7 +116,7 @@ def test_nested_list2(array):
 
 def test_stack_depth():
     a = [42]
-    for n in range(100):
+    for _ in range(100):
         a = [a]
     rlimit = sys.getrecursionlimit()
     try:
@@ -122,7 +124,7 @@ def test_stack_depth():
         with pytest.raises(RecursionError, message="recursion"):
             assert decode_encode(a) == a
         with pytest.raises(RecursionError, message="recursion"):
-            encode(a) == encode(a)
+            encode(a) == encode(a)  # pylint: disable=expression-not-assigned
         with pytest.raises(RecursionError, message="recursion"):
             repr(a)
     finally:

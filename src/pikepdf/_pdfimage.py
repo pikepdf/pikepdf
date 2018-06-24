@@ -12,8 +12,7 @@ import struct
 
 from decimal import Decimal
 
-from ._objects import Name
-from . import Pdf, Object, ObjectType, Array, PdfError
+from . import Pdf, Object, ObjectType, Array, PdfError, Name, Dictionary
 
 class DependencyError(Exception):
     pass
@@ -57,9 +56,9 @@ class _PdfImageDescriptor:
 def array_str(value):
     if isinstance(value, list):
         return [str(item) for item in value]
-    if value.type_code == ObjectType.array:
+    elif isinstance(value, Array):
         return [str(item) for item in value]
-    elif value.type_code == ObjectType.name:
+    elif isinstance(value, Name):
         return [str(value)]
     raise NotImplementedError(value)
 
@@ -67,10 +66,11 @@ def array_str(value):
 def dict_or_array_dict(value):
     if isinstance(value, list):
         return value
-    if value.type_code == ObjectType.dictionary:
+    elif isinstance(value, Dictionary):
         return [value.as_dict()]
-    elif value.type_code == ObjectType.array:
+    elif isinstance(value, Array):
         return [v.as_dict() for v in value]
+    raise NotImplementedError(value)
 
 
 class PdfImage:
@@ -168,9 +168,9 @@ class PdfImage:
 
         if not self.indexed:
             return None
-        idx, base, hival, lookup = None, None, None, None
+        _idx, base, hival, lookup = None, None, None, None
         try:
-            idx, base, hival, lookup = self.obj.ColorSpace.as_list()
+            _idx, base, hival, lookup = self.obj.ColorSpace.as_list()
         except ValueError as e:
             raise ValueError('Not sure how to interpret this palette') from e
         base = str(base)
@@ -266,7 +266,7 @@ class PdfImage:
                 if base_mode in ('RGB', 'L'):
                     im.putpalette(palette_data, rawmode=base_mode)
                 else:
-                    raise NotImplementedError('palette with ' + base_colorspace)
+                    raise NotImplementedError('palette with ' + base_mode)
         elif self.mode in ('1', 'P') and self.bits_per_component == 1:
             try:
                 data = self.read_bytes()
@@ -282,7 +282,7 @@ class PdfImage:
                 elif base_mode in ('RGB', 'L'):
                     im.putpalette(palette_data, rawmode=base_mode)
                 else:
-                    raise NotImplementedError('palette with ' + base_colorspace)
+                    raise NotImplementedError('palette with ' + base_mode)
 
         return im
 
@@ -431,7 +431,7 @@ class PdfInlineImage(PdfImage):
             else:
                 raise NotImplementedError(repr(obj))
         reparse = b' '.join(unparse(obj) for obj in image_object)
-        self.obj = Object.parse(b'<< ' + reparse + b' >>')
+        super().__init__(Object.parse(b'<< ' + reparse + b' >>'))
 
     width = _PdfImageDescriptor('Width', int, None, 'W')
     height = _PdfImageDescriptor('Height', int, None, 'H')
@@ -449,7 +449,7 @@ class PdfInlineImage(PdfImage):
         return '<pikepdf.PdfInlineImage image mode={} size={}x{} at {}>'.format(
             self.mode, self.width, self.height, hex(id(self)))
 
-    def extract_to(self, *, stream):
+    def extract_to(self, *, stream):  # pylint: disable=unused-argument
         raise UnsupportedImageTypeError("inline images don't support extract")
 
     def read_bytes(self):
@@ -471,7 +471,7 @@ def page_to_svg(page):
 
         try:
             proc = run(['mudraw', '-F', 'svg', '-o', tmp_out.name, tmp_in.name], stderr=PIPE)
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             raise DependencyError("Could not find the required executable 'mutool'")
 
         if proc.stderr:
