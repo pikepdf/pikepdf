@@ -181,13 +181,13 @@ class TestRepr:
             '/Integer': 42,
             '/Real': Decimal('42.42'),
             '/String': String('hi'),
-            '/Array': Array([1, 2, 3]),
+            '/Array': Array([1, 2, 3.14]),
             '/Operator': Operator('q'),
             '/Dictionary': Dictionary({'/Color': 'Red'})
         })
         expected = """\
             pikepdf.Dictionary({
-                "/Array": [ 1, 2, 3 ],
+                "/Array": [ 1, 2, Decimal('3.140000') ],
                 "/Boolean": True,
                 "/Dictionary": {
                     "/Color": "Red"
@@ -216,3 +216,8 @@ class TestRepr:
         ]
         for s in scalars:
             assert eval(repr(s)) == s
+
+
+def test_utf16_error():
+    with pytest.raises(UnicodeEncodeError):
+        str(encode('\ud801'))

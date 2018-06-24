@@ -29,71 +29,25 @@
 #include "pikepdf.h"
 
 /*
-New type table
+Type table
 
-Encode Python type to C++ type
-Decode C++ type to Python
+These QPDF types are directly mapped to a native Python equivalent. The C++
+object is never returned to Python; a Python object is returned instead.
+Adding one of these to a QPDF container type causes the appropriate conversion.
+    Boolean - bool
+    Integer - int
+    Real - Decimal
 
-Definite native:
+In addition, Python float is converted to Real.
+
+None and Null are complicated due to (probably) pybind11 bugs in handling
+None as an argument, and the special semantics QPDF and PDF has around Null
+which don't match None. For example, setting a dictionary key to Null is
+equivalent to deleting the key.
 Null - None
-Boolean - bool
-Integer - int
-Real - Decimal
 
-Uncertain:
-String - str or bytes ?
-
-Convertible:
-Name - Name('/thing')
-Operator - Operator('Do')
-Array - list / iterable
-Dictionary - dict
-Stream - Stream()
-
-Object API
-
-qpdf.Object.Typename()  <-- class-ish name, static method in reality
-tries to coerce input to Pdf object of typename, or fails
-
-qpdf.Object.new() <--- tries to create a Pdf object from its input with when
-possible without ambiguity
-
-Boolean <- bool
-Integer <- int
-Real <- decimal.Decimal, float
-String <- str, bytes
-    this will need help from Pdf doc encoding
-
-Array <- list, tuple
-Dictionary <- dict, Mapping
-
-Stream <- present as qpdf.Object.Stream({dictionary}, stream=<...>)
-
-when does Dictionary.__setitem__ coerce its value to a Pdf object? on input
-or serialization
-    probably on input, fail first
-
-that means __setitem__ needs to recursively coerce
-
-should be able to assign python objects and have them mapped to appropriate
-objects - or
-
-
-// qpdf.Object.Boolean(True) <-- class-ish name, static method in reality
-// instead of
-// qpdf.Object.new(True)  <--- when possible without ambiguity
-// strings:
-// qpdf.Object.Name("")
-// qpdf.Object.new("/Name"?)
-
-// Then repr becomes...
-// or should each object be type-decorated?
-qpdf.Object.Dictionary({
-    "/Type": "/Page",
-    "/MediaBox": [],
-    "/Contents": <qpdf.Object.Stream>,
-})
-
+pikepdf.String is a "type" that can be converted with str() or bytes() as
+needed.
 
 */
 
@@ -366,34 +320,6 @@ void init_object(py::module& m)
 
     static QPDFObjectHandle static_handle;
     py::class_<QPDFObjectHandle>(m, "Object")
-        .def_static("new",
-            [](bool b) {
-                return QPDFObjectHandle::newBool(b);
-            }
-        )
-        .def_static("new",
-            [](int n) {
-                return QPDFObjectHandle::newInteger(n);
-            }
-        )
-        .def_static("new",
-            [](double f) {
-                return QPDFObjectHandle::newReal(f, 0); // default to six decimals
-            }
-        )
-        .def_static("new",
-            [](std::string s) {
-                return QPDFObjectHandle::newString(s); // TO DO: warn about /Name
-            }
-        )
-        .def_static("new",
-            [](py::none none) {
-                return QPDFObjectHandle::newNull();
-            }
-        )
-        // .def_property_readonly("owner", &QPDFObjectHandle::getOwningQPDF,
-        //     "Return the QPDF object that owns an indirect object.  Returns None for a direct object."
-        // )
         .def_property_readonly("_type_code", &QPDFObjectHandle::getTypeCode)
         .def_property_readonly("_type_name", &QPDFObjectHandle::getTypeName)
         .def("check_owner",
@@ -412,12 +338,6 @@ void init_object(py::module& m)
                 switch (self.getTypeCode()) {
                     case QPDFObject::object_type_e::ot_null:
                         return py::int_(0);
-                    case QPDFObject::object_type_e::ot_boolean:
-                        return py::int_(self.getBoolValue());
-                    case QPDFObject::object_type_e::ot_integer:
-                        return py::int_(self.getIntValue());
-                    case QPDFObject::object_type_e::ot_real:
-                        return hash(decimal_from_pdfobject(self));
                     case QPDFObject::object_type_e::ot_string:
                     {
                         return hash(py::bytes(self.getUTF8Value()));
@@ -440,16 +360,6 @@ void init_object(py::module& m)
         .def("__eq__",
             [](QPDFObjectHandle &self, QPDFObjectHandle &other) {
                 return (self == other); // overloaded
-            }
-        )
-        .def("__eq__",
-            [](QPDFObjectHandle &self, long long other) {
-                /* Objects of different numeric types are expected to compare equal */
-                if (!self.isInitialized())
-                    return false;
-                if (self.getTypeCode() == QPDFObject::object_type_e::ot_integer)
-                    return self.getIntValue() == other;
-                return false;
             }
         )
         .def("__eq__",
@@ -481,44 +391,6 @@ void init_object(py::module& m)
         .def("__eq__",
             [](QPDFObjectHandle &self, py::bool_ other) {
                 return (self == objecthandle_encode(other));
-            }
-        )
-        .def("__lt__",
-            [](QPDFObjectHandle &self, QPDFObjectHandle &other) {
-                if (!self.isInitialized() || !other.isInitialized())
-                    throw py::type_error("comparison involving an uninitialized object");
-                if (self.getTypeCode() == QPDFObject::object_type_e::ot_integer ||
-                    self.getTypeCode() == QPDFObject::object_type_e::ot_real) {
-                    try {
-                        auto a = decimal_from_pdfobject(self);
-                        auto b = decimal_from_pdfobject(other);
-                        py::object pyresult = a.attr("__lt__")(b);
-                        bool result = pyresult.cast<bool>();
-                        return result;
-                    } catch (py::type_error) {
-                        throw py::type_error("comparison undefined");
-                    }
-                }
-                throw py::type_error("comparison undefined");
-            }
-        )
-        .def("__lt__",
-            [](QPDFObjectHandle &self, long long other) {
-                if (!self.isInitialized())
-                    throw py::type_error("comparison involving an uninitialized object");
-                if (self.getTypeCode() == QPDFObject::object_type_e::ot_integer ||
-                    self.getTypeCode() == QPDFObject::object_type_e::ot_real) {
-                    try {
-                        auto a = decimal_from_pdfobject(self);
-                        auto b = py::int_(other);
-                        py::object pyresult = a.attr("__lt__")(b);
-                        bool result = pyresult.cast<bool>();
-                        return result;
-                    } catch (py::type_error) {
-                        throw py::type_error("comparison undefined");
-                    }
-                }
-                throw py::type_error("comparison undefined");
             }
         )
         .def("__len__",
