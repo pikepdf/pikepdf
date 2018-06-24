@@ -256,8 +256,8 @@ PYBIND11_MODULE(_qpdf, m) {
             )~~~"
         )
         .def("__repr__",
-            [](std::shared_ptr<QPDF> q) {
-                return std::string("<pikepdf.Pdf description='") + q->getFilename() + std::string("'>");
+            [](QPDF& q) {
+                return std::string("<pikepdf.Pdf description='") + q.getFilename() + std::string("'>");
             }
         )
         .def_property_readonly("filename", &QPDF::getFilename,
@@ -376,23 +376,35 @@ PYBIND11_MODULE(_qpdf, m) {
             py::arg("normalize_content")=false
         )
         .def("_get_object_id", &QPDF::getObjectByID)
+        .def("get_object",
+            [](QPDF &q, std::pair<int, int> objgen) {
+                return q.getObjectByID(objgen.first, objgen.second);
+            },
+            py::return_value_policy::reference_internal
+        )
+        .def("get_object",
+            [](QPDF &q, int objid, int gen) {
+                return q.getObjectByID(objid, gen);
+            },
+            py::return_value_policy::reference_internal
+        )
         .def("make_indirect", &QPDF::makeIndirectObject)
         .def("make_indirect",
-            [](std::shared_ptr<QPDF> q, py::object obj) -> QPDFObjectHandle {
-                return q->makeIndirectObject(objecthandle_encode(obj));
+            [](QPDF &q, py::object obj) -> QPDFObjectHandle {
+                return q.makeIndirectObject(objecthandle_encode(obj));
             }
         )
         .def("copy_foreign",
-            [](std::shared_ptr<QPDF> q, QPDFObjectHandle &h) -> QPDFObjectHandle {
-                return q->copyForeignObject(h);
+            [](QPDF &q, QPDFObjectHandle &h) -> QPDFObjectHandle {
+                return q.copyForeignObject(h);
             },
             "Copy object from foreign PDF to this one.",
             py::return_value_policy::reference_internal,
             py::keep_alive<1, 2>()
         )
         .def("_replace_object",
-            [](std::shared_ptr<QPDF> q, int objid, int gen, QPDFObjectHandle &h) {
-                q->replaceObject(objid, gen, h);
+            [](QPDF &q, int objid, int gen, QPDFObjectHandle &h) {
+                q.replaceObject(objid, gen, h);
             }
         );
 

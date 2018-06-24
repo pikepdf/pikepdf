@@ -327,6 +327,13 @@ QPDFObjectHandle object_get_key(QPDFObjectHandle& h, std::string const& key)
 }
 
 
+std::pair<int, int> object_get_objgen(QPDFObjectHandle &h)
+{
+    auto objgen = h.getObjGen();
+    return std::pair<int, int>(objgen.getObj(), objgen.getGen());
+}
+
+
 void init_object(py::module& m)
 {
     py::enum_<QPDFObject::object_type_e>(m, "ObjectType")
@@ -780,10 +787,22 @@ void init_object(py::module& m)
         )
         .def("page_contents_coalesce", &QPDFObjectHandle::coalesceContentStreams)
         .def_property_readonly("_objgen",
-            [](QPDFObjectHandle &h) {
-                auto objgen = h.getObjGen();
-                return std::pair<int, int>(objgen.getObj(), objgen.getGen());
-            }
+            &object_get_objgen
+        )
+        .def_property_readonly("objgen",
+            &object_get_objgen,
+            R"~~~(
+            Return the object-generation number pair for this object
+
+            If this is a direct object, then the returned value is ``(0, 0)``.
+            By definition, if this is an indirect object, it has a "objgen",
+            and can be looked up using this in the cross-reference (xref) table.
+            Direct objects cannot necessarily be looked up.
+
+            The generation number is usually 0, except for PDFs that have been
+            incrementally updated.
+
+            )~~~"
         )
         .def_static("parse",
             [](std::string const& stream, std::string const& description) {
