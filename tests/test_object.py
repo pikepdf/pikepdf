@@ -146,6 +146,15 @@ def test_len_array():
     assert len(Array([3])) == 1
 
 
+def test_name_equality():
+    # Who needs transitivity?
+    # While this is less than ideal ('/Foo' != b'/Foo') it allows for slightly
+    # sloppy tests like if colorspace == '/Indexed' without requiring
+    # Name('/Indexed') everywhere
+    assert Name('/Foo') == '/Foo'
+    assert Name('/Foo') == b'/Foo'
+
+
 class TestHashViolation:
 
     def check(self, a, b):
