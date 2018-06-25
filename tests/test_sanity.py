@@ -4,6 +4,7 @@ import gc
 from contextlib import suppress
 from shutil import copy
 
+import pikepdf
 from pikepdf import Pdf, Object, Name, Stream, PasswordError
 
 
@@ -13,7 +14,7 @@ def test_minimum_qpdf_version():
 
 
 def test_open_pdf(resources):
-    pdf = Pdf.open(resources / 'graph.pdf')
+    pdf = pikepdf.open(resources / 'graph.pdf')
     assert '1.3' <= pdf.pdf_version <= '1.7'
 
     assert pdf.root['/Pages']['/Count'] == 1
@@ -161,5 +162,5 @@ def test_objgen(resources):
     im0 = src.pages[0].Resources.XObject['/Im0']
     assert im0.objgen == (5, 0)
     object5 = src.get_object((5, 0))
-    assert object5.same_owner_as(im0)
+    assert object5.is_owned_by(src)
     assert object5 == im0

@@ -322,7 +322,7 @@ void init_object(py::module& m)
     py::class_<QPDFObjectHandle>(m, "Object")
         .def_property_readonly("_type_code", &QPDFObjectHandle::getTypeCode)
         .def_property_readonly("_type_name", &QPDFObjectHandle::getTypeName)
-        .def("same_owner_as",
+        .def("is_owned_by",
             [](QPDFObjectHandle &h, std::shared_ptr<QPDF> possible_owner) {
                 return (h.getOwningQPDF() == possible_owner.get());
             },
@@ -670,7 +670,7 @@ void init_object(py::module& m)
             [](std::string const& stream, std::string const& description) {
                 return QPDFObjectHandle::parse(stream, description);
             },
-            "Parse text PostScript into PDF objects.",
+            "Parse PostScript into PDF objects.",
             py::arg("stream"),
             py::arg("description") = ""
         )
