@@ -226,6 +226,11 @@ class TestRepr:
         for s in scalars:
             assert eval(repr(s)) == s
 
+    def test_repr_indirect(self, resources):
+        graph = pikepdf.open(resources / 'graph.pdf')
+        repr_page0 = repr(graph.pages[0])
+        assert repr_page0[0] == '<', 'should not be constructible'
+
 
 def test_utf16_error():
     with pytest.raises(UnicodeEncodeError):

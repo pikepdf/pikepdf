@@ -130,18 +130,18 @@ static
 std::string objecthandle_repr_inner(QPDFObjectHandle h, uint depth, std::set<QPDFObjGen>* visited, bool* pure_expr)
 {
     StackGuard sg(" objecthandle_repr_inner");
+    std::ostringstream oss;
 
     if (!h.isScalar()) {
         if (visited->count(h.getObjGen()) > 0) {
             *pure_expr = false;
-            return "<circular reference>";
+            oss << "<.get_object(" << h.getObjGen().getObj() << ", " << h.getObjGen().getGen() << ")>";
+            return oss.str();
         }
 
         if (!(h.getObjGen() == QPDFObjGen(0, 0)))
             visited->insert(h.getObjGen());
     }
-
-    std::ostringstream oss;
 
     switch (h.getTypeCode()) {
     case QPDFObject::object_type_e::ot_null:
