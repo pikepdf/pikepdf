@@ -15,14 +15,8 @@ import sys
 from collections.abc import MutableSequence
 
 
-def pairwise(iterable):
-    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
-    a, b = tee(iterable)
-    next(b, None)
-    return zip(a, b)
-
 # Provide os.fspath equivalent for Python <3.6
-if sys.version_info[0:2] <= (3, 5):
+if sys.version_info[0:2] <= (3, 5):  # pragma: no cover
     def fspath(path):
         import pathlib
         '''https://www.python.org/dev/peps/pep-0519/#os'''
