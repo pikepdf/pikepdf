@@ -160,6 +160,15 @@ def test_slice_with_step(resources, outdir):
                for page in pdf.pages[0::2])
 
 
+def test_slice_differing_lengths(resources):
+    pdf = Pdf.open(resources / 'fourpages.pdf')
+    pdf2 = Pdf.open(resources / 'sandwich.pdf')
+
+    with pytest.raises(ValueError,
+            message="attempt to assign"):
+        pdf.pages[0::2] = pdf2.pages[0:1]
+
+
 @pytest.mark.timeout(1)
 def test_self_extend(resources):
     pdf = Pdf.open(resources / 'fourpages.pdf')
