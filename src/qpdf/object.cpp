@@ -674,15 +674,6 @@ void init_object(py::module& m)
             py::arg("stream"),
             py::arg("description") = ""
         )
-        .def_static("parse",
-            [](py::bytes &stream, std::string const& description) {
-                std::string s = stream;
-                return QPDFObjectHandle::parse(stream, description);
-            },
-            "Parse binary PostScript into PDF objects.",
-            py::arg("stream"),
-            py::arg("description") = ""
-        )
         .def("_parse_page_contents",
             &QPDFObjectHandle::parsePageContents,
             "Helper for parsing page contents; use ``pikepdf.parse_content_stream``."
