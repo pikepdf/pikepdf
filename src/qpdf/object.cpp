@@ -322,7 +322,7 @@ void init_object(py::module& m)
     py::class_<QPDFObjectHandle>(m, "Object")
         .def_property_readonly("_type_code", &QPDFObjectHandle::getTypeCode)
         .def_property_readonly("_type_name", &QPDFObjectHandle::getTypeName)
-        .def("check_owner",
+        .def("same_owner_as",
             [](QPDFObjectHandle &h, std::shared_ptr<QPDF> possible_owner) {
                 return (h.getOwningQPDF() == possible_owner.get());
             },

@@ -160,4 +160,6 @@ def test_objgen(resources):
     src = Pdf.open(resources / 'graph.pdf')
     im0 = src.pages[0].Resources.XObject['/Im0']
     assert im0.objgen == (5, 0)
-    assert src.get_object((5, 0)) == im0
+    object5 = src.get_object((5, 0))
+    assert object5.same_owner_as(im0)
+    assert object5 == im0
