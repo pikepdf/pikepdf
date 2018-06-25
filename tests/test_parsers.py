@@ -1,6 +1,9 @@
 import pytest
-from pikepdf import (parse_content_stream, Page, Pdf, Stream, Operator, Object,
-        Dictionary)
+from pikepdf import (
+    parse_content_stream, Pdf, Stream, Operator, Object,
+    Dictionary
+)
+from pikepdf.models import Page
 from pikepdf._qpdf import StreamParser
 from subprocess import run, PIPE
 import shutil

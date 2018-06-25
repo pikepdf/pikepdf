@@ -12,7 +12,9 @@ import struct
 
 from decimal import Decimal
 
-from . import Pdf, Object, ObjectType, Array, PdfError, Name, Dictionary, Stream
+from .. import (
+    Pdf, Object, Array, PdfError, Name, Dictionary, Stream
+)
 
 class DependencyError(Exception):
     pass
