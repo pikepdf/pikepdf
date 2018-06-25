@@ -145,26 +145,35 @@ class PdfMatrix:
     Addition and other operations are not implemented because they're not that
     meaningful in a PDF context.
 
+    These matrices are immutable. All transformations on them produce a new matrix.
+
     """
 
-    def __init__(self, other):
-        if isinstance(other, PdfMatrix):
-            self.values = other.values
-        elif len(other) == 6:
-            a, b, c, d, e, f = map(float, other)
+    def __init__(self, *args):
+        if not args:
+            self.values = ((1, 0, 0), (0, 1, 0), (0, 0, 1))
+        elif len(args) == 6:
+            a, b, c, d, e, f = map(float, args)
             self.values = ((a, b, 0),
                            (c, d, 0),
                            (e, f, 1))
-        elif len(other) == 3 and len(other[0]) == 3:
-            self.values = (tuple(other[0]),
-                           tuple(other[1]),
-                           tuple(other[2]))
+        elif isinstance(args[0], PdfMatrix):
+            self.values = args[0].values
+        elif len(args[0]) == 6:
+            a, b, c, d, e, f = map(float, args[0])
+            self.values = ((a, b, 0),
+                           (c, d, 0),
+                           (e, f, 1))
+        elif len(args[0]) == 3 and len(args[0]) == 3:
+            self.values = (tuple(args[0][0]),
+                           tuple(args[0][1]),
+                           tuple(args[0][2]))
         else:
             raise ValueError('arguments')
 
     @staticmethod
     def identity():
-        return PdfMatrix((1, 0, 0, 1, 0, 0))
+        return PdfMatrix()
 
     def __matmul__(self, other):
         a = self.values
@@ -176,6 +185,18 @@ class PdfMatrix:
                   for row in a]
         )
 
+    def scaled(self, x, y):
+        return self @ PdfMatrix((x, 0, 0, y, 0, 0))
+
+    def rotated(self, angle_degrees_ccw):
+        from math import cos, sin, pi
+        angle = angle_degrees_ccw / 180.0 * pi
+        c, s = cos(angle), sin(angle)
+        return self @ PdfMatrix((c, s, -s, c, 0, 0))
+
+    def translated(self, x, y):
+        return self @ PdfMatrix((1, 0, 0, 1, x, y))
+
     @property
     def shorthand(self):
         return (self.a, self.b, self.c, self.d, self.e, self.f)
@@ -184,51 +205,30 @@ class PdfMatrix:
     def a(self):
         return self.values[0][0]
 
-    @a.setter
-    def a(self, value):
-        self.values[0][0] = value
-
     @property
     def b(self):
         return self.values[0][1]
-
-    @b.setter
-    def b(self, value):
-        self.values[0][1] = value
 
     @property
     def c(self):
         return self.values[1][0]
 
-    @c.setter
-    def c(self, value):
-        self.values[1][0] = value
-
     @property
     def d(self):
         return self.values[1][1]
-
-    @d.setter
-    def d(self, value):
-        self.values[1][1] = value
 
     @property
     def e(self):
         return self.values[2][0]
 
-    @e.setter
-    def e(self, value):
-        self.values[2][0] = value
-
     @property
     def f(self):
         return self.values[2][1]
-
-    @f.setter
-    def f(self, value):
-        self.values[2][1] = value
 
     def encode(self):
         return '{:.6f} {:.6f} {:.6f} {:.6f} {:.6f} {:.6f}'.format(
             self.a, self.b, self.c, self.d, self.e, self.f
         ).encode()
+
+    def __repr__(self):
+        return 'pikepdf.Matrix(' + repr(self.values) + ')'

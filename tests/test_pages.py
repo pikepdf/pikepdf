@@ -1,5 +1,5 @@
 import pytest
-from pikepdf import Pdf, Stream
+from pikepdf import Pdf, Stream, PdfMatrix
 
 import os
 import platform
@@ -174,8 +174,10 @@ def test_self_extend(resources):
 def test_page_contents_add(resources, outdir):
     pdf = Pdf.open(resources / 'graph.pdf')
 
-    stream1 = Stream(pdf, b"q 0.707 -0.707 0.707 0.707 0 0 cm")
-    stream2 = Stream(pdf, b"Q")
+    mat = PdfMatrix().rotated(45)
+
+    stream1 = Stream(pdf, b'q ' + mat.encode() + b' cm')
+    stream2 = Stream(pdf, b'Q')
 
     pdf.pages[0].page_contents_add(stream1, True)
     pdf.pages[0].page_contents_add(stream2, False)
