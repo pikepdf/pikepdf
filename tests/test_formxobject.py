@@ -1,10 +1,7 @@
 import pytest
 from pikepdf import Pdf, Object, Stream, Name, Dictionary
 
-import os
-import platform
-import shutil
-from contextlib import suppress
+# pylint: disable=e1137
 
 
 def test_create_form_xobjects(outdir):
@@ -18,7 +15,9 @@ def test_create_form_xobjects(outdir):
                 /Name /F1
                 /BaseFont /Helvetica
                 /Encoding /WinAnsiEncoding
-            >>"""))
+            >>
+        """)
+    )
 
     width, height = 100, 100
     image_data = b"\xff\x7f\x00" * (width * height)
@@ -32,15 +31,16 @@ def test_create_form_xobjects(outdir):
                 /BitsPerComponent 8
                 /Width 100
                 /Height 100
-            >>""")
+            >>
+    """)
     xobj_image = Dictionary({'/Im1': image})
 
     form_xobj_res = Dictionary({
         '/XObject': xobj_image
-        })
+    })
     form_xobj = Stream(pdf, b"""
         /Im1 Do
-        """)
+    """)
     form_xobj['/Type'] = Name('/XObject')
     form_xobj['/Subtype'] = Name('/Form')
     form_xobj['/FormType'] = 1
@@ -53,7 +53,7 @@ def test_create_form_xobjects(outdir):
     resources = {
         '/Font': rfont,
         '/XObject': {'/Form1': form_xobj},
-        }
+    }
 
     mediabox = [0, 0, 612, 792]
 
@@ -70,7 +70,7 @@ def test_create_form_xobjects(outdir):
         '/MediaBox': mediabox,
         '/Contents': contents,
         '/Resources': resources
-        })
+    })
 
     pdf.pages.append(page)
     pdf.save(outdir / 'formxobj.pdf')

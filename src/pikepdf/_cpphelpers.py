@@ -4,22 +4,19 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
-"""Support functions called by the C++ library binding layer
-
+"""
+Support functions called by the C++ library binding layer
 """
 
-import re
-from itertools import tee
 import os
 import sys
-from collections.abc import MutableSequence
 
 
 # Provide os.fspath equivalent for Python <3.6
 if sys.version_info[0:2] <= (3, 5):  # pragma: no cover
     def fspath(path):
-        import pathlib
         '''https://www.python.org/dev/peps/pep-0519/#os'''
+        import pathlib
         if isinstance(path, (str, bytes)):
             return path
 

@@ -3,10 +3,14 @@ import imghdr
 from io import BytesIO
 from PIL import Image
 import zlib
-import sys
 
-from pikepdf import (Pdf, Object, PdfImage, PdfError, Name, Null,
-        parse_content_stream, ObjectType, PdfInlineImage, Stream)
+# pylint: disable=w0621
+
+
+from pikepdf import (
+    Pdf, PdfImage, PdfError, Name, Null,
+    parse_content_stream, PdfInlineImage, Stream
+)
 
 
 @pytest.fixture
@@ -47,7 +51,7 @@ def test_image_replace(congress, outdir):
     pdf.save(outdir / 'congress_gray.pdf')
 
 
-def test_lowlevel_jpeg(congress, outdir):
+def test_lowlevel_jpeg(congress):
     raw_bytes = congress[0].read_raw_bytes()
     with pytest.raises(PdfError):
         congress[0].read_bytes()
@@ -80,13 +84,13 @@ def test_lowlevel_replace_jpeg(congress, outdir):
 @pytest.fixture
 def inline(resources):
     pdf = Pdf.open(resources / 'image-mono-inline.pdf')
-    for operands, command in parse_content_stream(pdf.pages[0]):
+    for operands, _command in parse_content_stream(pdf.pages[0]):
         if operands and isinstance(operands[0], PdfInlineImage):
             return operands[0], pdf
 
 
 def test_inline(inline):
-    iimage, pdf = inline
+    iimage, _pdf = inline
     assert iimage.width == 8
     assert iimage.image_mask == False
     assert iimage.mode == 'RGB'

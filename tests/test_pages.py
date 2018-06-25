@@ -1,9 +1,6 @@
 import pytest
 from pikepdf import Pdf, Stream, PdfMatrix
 
-import os
-import platform
-import shutil
 from contextlib import suppress
 from shutil import copy
 import gc

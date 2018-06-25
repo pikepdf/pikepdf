@@ -1,8 +1,5 @@
 import pytest
 
-import os
-import platform
-import shutil
 import gc
 from contextlib import suppress
 from shutil import copy

@@ -4,7 +4,7 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
-from . import qpdf
+from . import _qpdf as qpdf
 import collections.abc
 
 # This is a repository of half-baked ideas, mainly an effort to automatically
@@ -57,7 +57,7 @@ class PdfName(PdfObject):
             self.obj = name.obj
             return
 
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def __str__(self):
         return ""
@@ -86,7 +86,7 @@ class PdfDict(PdfObject, collections.abc.MutableMapping):
             self.obj = qpdf.Object.Dictionary(args[0])
             return
 
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def __contains__(self, key):
         return self.obj.__contains__(key)
