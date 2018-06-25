@@ -18,9 +18,6 @@ QPDFObjectHandle which is a generic type.
 
 """
 
-from decimal import Decimal, InvalidOperation
-from math import isfinite
-
 from . import _qpdf
 from ._qpdf import Object, ObjectType
 
@@ -35,48 +32,6 @@ class _ObjectMeta(type):
         if type(instance) != Object:
             return False
         return cls.object_type == instance._type_code
-
-
-class _Boolean(metaclass=_ObjectMeta):
-    object_type = ObjectType.boolean
-
-    def __new__(cls, value):
-        return _qpdf._new_boolean(value)
-
-
-class _Integer(metaclass=_ObjectMeta):
-    object_type = ObjectType.integer
-
-    def __new__(cls, n):
-        if n.bit_length() >= 64:
-            raise ValueError('Value is too large for 64-bit integer')
-        if not isinstance(n, int) and n == int(n):
-            n = int(n)
-        return _qpdf._new_integer(n)
-
-
-class _Real(metaclass=_ObjectMeta):
-    object_type = ObjectType.real
-
-    def __new__(cls, value, dec_places=0):
-        if dec_places < 0 or not isinstance(dec_places, int):
-            raise ValueError('dec_places must be nonnegative integer')
-
-        if isinstance(value, int):
-            return _qpdf._new_real(value, 0)
-
-        if isinstance(value, float) and isfinite(value):
-            return _qpdf._new_real(value, dec_places)
-
-        try:
-            dec = Decimal(value)
-        except InvalidOperation:
-            raise TypeError('Could not convert object to int, float or Decimal')
-
-        if dec.is_infinite() or dec.is_nan():
-            raise ValueError('NaN and infinity are not valid PDF objects')
-
-        return _qpdf._new_real(str(dec))
 
 
 class Name(metaclass=_ObjectMeta):
