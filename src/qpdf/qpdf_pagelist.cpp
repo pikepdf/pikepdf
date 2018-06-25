@@ -188,8 +188,8 @@ void init_pagelist(py::module &m)
         .def("__len__", &PageList::count)
         .def("p",
             [](PageList &pl, size_t index) {
-                if (index == 0)
-                    throw py::index_error("can't access page 0 in 1-based indexing");
+                if (index == 0) // Indexing past end is checked in .get_page
+                    throw py::index_error("page access out of range in 1-based indexing");
                 return pl.get_page(index - 1);
             },
             "convenience - look up page number in ordinal numbering, .p(1) is first page"

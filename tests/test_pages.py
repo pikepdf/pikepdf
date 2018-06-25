@@ -177,6 +177,16 @@ def test_self_extend(resources):
         pdf.pages.extend(pdf.pages)
 
 
+def test_one_based_pages(resources):
+    pdf = Pdf.open(resources / 'fourpages.pdf')
+    assert pdf.pages.p(1) == pdf.pages[0]
+    assert pdf.pages.p(4) == pdf.pages[-1]
+    with pytest.raises(IndexError):
+        pdf.pages.p(5)
+    with pytest.raises(IndexError):
+        pdf.pages.p(0)
+
+
 def test_page_contents_add(resources, outdir):
     pdf = Pdf.open(resources / 'graph.pdf')
 
