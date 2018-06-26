@@ -264,27 +264,24 @@ class PdfImage:
             im = Image.frombuffer('L', self.size, buffer, "raw", 'L', stride,
                                   ystep)
             if self.mode == 'P':
-                base_mode, palette_data = self.palette
+                base_mode, palette = self.palette
                 if base_mode in ('RGB', 'L'):
-                    im.putpalette(palette_data, rawmode=base_mode)
+                    im.putpalette(palette, rawmode=base_mode)
                 else:
                     raise NotImplementedError('palette with ' + base_mode)
-        elif self.mode in ('1', 'P') and self.bits_per_component == 1:
-            try:
-                data = self.read_bytes()
-            except PdfError:
-                return None
-            # 1bpp gets extracted as 8bpp by read_bytes()
+        elif self.mode == '1' and self.bits_per_component == 1:
+            data = self.read_bytes()
             im = Image.frombytes('1', self.size, data)
-            if self.mode == 'P':
-                base_mode, palette_data = self.palette
-                if (palette_data == b'\x00\x00\x00\xff\xff\xff'
-                        or palette_data == b'\x00\xff'):
-                    pass  # Some PDFs embed a trivial palette
-                elif base_mode in ('RGB', 'L'):
-                    im.putpalette(palette_data, rawmode=base_mode)
-                else:
-                    raise NotImplementedError('palette with ' + base_mode)
+
+        elif self.mode == 'P' and self.bits_per_component == 1:
+            data = self.read_bytes()
+            im = Image.frombytes('1', self.size, data)
+
+            base_mode, palette = self.palette
+            if not (palette == b'\x00\x00\x00\xff\xff\xff'
+                    or palette == b'\x00\xff'):
+                raise NotImplementedError(
+                    'monochrome image with nontrivial palette')
 
         return im
 

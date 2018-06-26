@@ -183,14 +183,20 @@ def test_image_ccitt(sandwich):
     assert pim.extract_to(stream=outstream) == '.tif'
 
 
-def test_image_palette(resources):
-    pdf = Pdf.open(resources / 'pal.pdf')
+@pytest.mark.parametrize('filename,bpc', [
+    ('pal.pdf', 8),
+    ('pal-1bit-trivial.pdf', 1),
+    pytest.param('pal-1bit-rgb.pdf', 1, marks=pytest.mark.xfail(raises=NotImplementedError)),
+])
+def test_image_palette(resources, filename, bpc):
+    pdf = Pdf.open(resources / filename)
     pim = PdfImage(next(iter(pdf.pages[0].images.values())))
 
     assert pim.palette[0] == 'RGB'
     assert pim.colorspace == '/DeviceRGB'
     assert not pim.is_inline
     assert pim.mode == 'P'
+    assert pim.bits_per_component == bpc
 
     outstream = BytesIO()
     pim.extract_to(stream=outstream)
