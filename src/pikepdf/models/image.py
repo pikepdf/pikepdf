@@ -96,6 +96,37 @@ class PdfImage:
             raise TypeError("can't construct PdfImage from non-image")
         self.obj = obj
 
+    @classmethod
+    def _from_pil_image(cls, *, pdf, page, name, image):  # pragma: no cover
+        """
+        Insert a PIL image into a PDF (rudimentary)
+
+        :param pdf: the PDF to attach the image to
+        :type pdf: pikepdf.Pdf
+        :param page: the page to attach the image to
+        :param name: the name to set the image
+        :param image: image
+        :type image: PIL.Image.Image
+        """
+
+        data = image.tobytes()
+
+        imstream = Stream(pdf, data)
+        imstream.Type = Name('/XObject')
+        imstream.Subtype = Name('/Image')
+        if image.mode == 'RGB':
+            imstream.ColorSpace = Name('/DeviceRGB')
+        elif image.mode in ('1', 'L'):
+            imstream.ColorSpace = Name('/DeviceGray')
+        imstream.BitsPerComponent = 1 if image.mode == '1' else 8
+        imstream.Width = image.width
+        imstream.Height = image.height
+
+        page.Resources.XObject[name] = imstream
+
+        return cls(imstream)
+
+
     width = _PdfImageDescriptor('Width', int, None)
     """Width of the image data in pixels"""
 
