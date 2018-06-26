@@ -49,12 +49,6 @@ class _PdfImageDescriptor:
         raise NotImplementedError("__get__")
 
 
-    def __set__(self, wrapper, val):
-        if self.inline_name:
-            raise NotImplementedError("editing inline images")
-        setattr(wrapper.obj, self.name, val)
-
-
 def array_str(value):
     if isinstance(value, list):
         return [str(item) for item in value]
@@ -126,10 +120,6 @@ class PdfImage:
         if self._bpc is None:
             return 1 if self.image_mask else 8
         return self._bpc
-
-    @bits_per_component.setter
-    def bits_per_component(self, val):
-        self._bpc = val
 
     @property
     def colorspace(self):
