@@ -9,15 +9,22 @@ import zlib
 
 from pikepdf import (
     Pdf, PdfImage, PdfError, Name, Null,
-    parse_content_stream, PdfInlineImage, Stream
+    parse_content_stream, PdfInlineImage, Stream, StreamDataMode
 )
 
 
 @pytest.fixture
 def congress(resources):
     pdf = Pdf.open(resources / 'congress.pdf')
-    pdfimage = pdf.pages[0].Resources.XObject['/Im0']
-    return pdfimage, pdf
+    pdfimagexobj = pdf.pages[0].Resources.XObject['/Im0']
+    return pdfimagexobj, pdf
+
+
+@pytest.fixture
+def sandwich(resources):
+    pdf = Pdf.open(resources / 'sandwich.pdf')
+    pdfimagexobj = next(iter(pdf.pages[0].images.values()))
+    return pdfimagexobj, pdf
 
 
 def test_image_from_nonimage(resources):
@@ -94,6 +101,7 @@ def test_inline(inline):
     assert iimage.width == 8
     assert iimage.image_mask == False
     assert iimage.mode == 'RGB'
+    assert iimage.is_inline
 
 
 def test_bits_per_component_missing(congress):
@@ -104,6 +112,8 @@ def test_bits_per_component_missing(congress):
 
 @pytest.mark.parametrize('w,h,pixeldata,cs,bpc', [
     (1, 1, b'\xff', '/DeviceGray', 1),
+    (1, 1, b'\xf0', '/DeviceGray', 8),
+    (1, 1, b'\xff\x00\xff', '/DeviceRGB', 8)
 ])
 def test_image_roundtrip(outdir, w, h, pixeldata, cs, bpc):
     pdf = Pdf.new()
@@ -136,7 +146,7 @@ def test_image_roundtrip(outdir, w, h, pixeldata, cs, bpc):
     outfile = outdir / 'test{w}{h}{cs}{bpc}.pdf'.format(
         w=w, h=h, cs=cs[1:], bpc=bpc
     )
-    pdf.save(outfile)
+    pdf.save(outfile, stream_data_mode=StreamDataMode.preserve)
 
     p2 = pdf.open(outfile)
     pim = PdfImage(p2.pages[0].Resources.XObject['/Im1'])
@@ -145,3 +155,42 @@ def test_image_roundtrip(outdir, w, h, pixeldata, cs, bpc):
     assert pim.colorspace == cs
     assert pim.width == w
     assert pim.height == h
+    if cs == '/DeviceRGB':
+        assert pim.mode == 'RGB'
+    elif cs == '/DeviceGray' and bpc == 8:
+        assert pim.mode == 'L'
+    elif bpc == 1:
+        assert pim.mode == '1'
+    assert not pim.palette
+
+    assert pim.filters == []
+    assert pim.read_bytes() == pixeldata
+
+    outstream = BytesIO()
+    pim.extract_to(stream=outstream)
+    outstream.seek(0)
+    im = Image.open(outstream)
+    assert pim.mode == im.mode
+
+
+def test_image_ccitt(sandwich):
+    pim = PdfImage(sandwich[0])
+
+    assert pim.bits_per_component == 1
+    assert pim.filters == ['/CCITTFaxDecode']
+
+    outstream = BytesIO()
+    assert pim.extract_to(stream=outstream) == '.tif'
+
+
+def test_image_palette(resources):
+    pdf = Pdf.open(resources / 'pal.pdf')
+    pim = PdfImage(next(iter(pdf.pages[0].images.values())))
+
+    assert pim.palette[0] == 'RGB'
+    assert pim.colorspace == '/DeviceRGB'
+    assert not pim.is_inline
+    assert pim.mode == 'P'
+
+    outstream = BytesIO()
+    pim.extract_to(stream=outstream)
