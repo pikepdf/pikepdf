@@ -24,7 +24,7 @@ manipulation and repair library.
 Python + QPDF = "py" + "qpdf" = "pyqpdf", which looks like a dyslexia test. Say it
 out loud, and it sounds like "pikepdf".
 
-Python 3.5 and 3.6 are fully supported.
+Python 3.5, 3.6 and 3.7 are fully supported.
 
 Features:
 
