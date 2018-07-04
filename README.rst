@@ -79,21 +79,21 @@ support is probably not difficult to achieve. Pull requests are welcome.
 +--------------------------------------------------+-------------+-------------------------+--------------------------+
 | Python versions supported                        | 3.5-3.7     | 2.6-3.6                 | 2.6-3.6                  |
 +--------------------------------------------------+-------------+-------------------------+--------------------------+
-| Supports password protected (encrypted) PDFs     | ✅           | Only obsolete RC4       | ❌                        |
+| Supports password protected (encrypted) PDFs     | ✔           | Only obsolete RC4       | ✘                        |
 +--------------------------------------------------+-------------+-------------------------+--------------------------+
-| Save and load PDF compressed object streams      | ✅           | ❌                       | ❌                        |
+| Save and load PDF compressed object streams      | ✔           | ✘                       | ✘                        |
 +--------------------------------------------------+-------------+-------------------------+--------------------------+
-| Creates linearized ("fast web view") PDFs        | ✅           | ❌                       | ❌                        |
+| Creates linearized ("fast web view") PDFs        | ✔           | ✘                       | ✘                        |
 +--------------------------------------------------+-------------+-------------------------+--------------------------+
-| Actively maintained                              | ✅           | Latest release May 2016 | Latest release Sept 2017 |
+| Actively maintained                              | ✔           | Latest release May 2016 | Latest release Sept 2017 |
 +--------------------------------------------------+-------------+-------------------------+--------------------------+
 | Test suite coverage                              | ~80%        | very low                | unknown                  |
 +--------------------------------------------------+-------------+-------------------------+--------------------------+
-| Modifies PDF/A without breaking PDF/A compliance | ✅           | ❌                       | ?                        |
+| Modifies PDF/A without breaking PDF/A compliance | ✔           | ✘                       | ?                        |
 +--------------------------------------------------+-------------+-------------------------+--------------------------+
-| Automatically repairs PDFs with internal errors  | ✅           | ❌                       | ❌                        |
+| Automatically repairs PDFs with internal errors  | ✔           | ✘                       | ✘                        |
 +--------------------------------------------------+-------------+-------------------------+--------------------------+
-| Documentation                                    | ✅           | ❌                       | ✅                        |
+| Documentation                                    | ✔           | ✘                       | ✔                        |
 +--------------------------------------------------+-------------+-------------------------+--------------------------+
 
 License
