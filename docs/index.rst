@@ -94,6 +94,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   installation
    tutorial
    objects
    pikepdf
