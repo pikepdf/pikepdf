@@ -85,7 +85,7 @@ support is probably not difficult to achieve. Pull requests are welcome.
 +--------------------------------------------------+-------------+-------------------------+--------------------------+
 | Creates linearized ("fast web view") PDFs        | ✔           | ✘                       | ✘                        |
 +--------------------------------------------------+-------------+-------------------------+--------------------------+
-| Actively maintained                              | ✔           | Latest release May 2016 | Latest release Sept 2017 |
+| Actively maintained                              | |commits|   | |pypdf2-commits|        | |pdfrw-commits |         |
 +--------------------------------------------------+-------------+-------------------------+--------------------------+
 | Test suite coverage                              | ~80%        | very low                | unknown                  |
 +--------------------------------------------------+-------------+-------------------------+--------------------------+
@@ -112,3 +112,13 @@ contributions there, and you've satisfied the license.
 
 The ``tests/resources/copyright`` file describes licensing terms for the test
 suite and the provenance of test resources.
+
+
+.. |commits| image:: https://img.shields.io/github/commit-activity/y/pikepdf/pikepdf.svg
+   :target: https://github.com/pikepdf/pikepdf/graphs/commit-activity
+
+.. |pypdf2-commits| image:: https://img.shields.io/github/commit-activity/y/mstamy2/PyPDF2.svg
+   :target: https://github.com/mstamy2/PyPDF2/graphs/commit-activity
+
+.. |pdfrw-commits| image:: https://img.shields.io/github/commit-activity/y/pmaupin/pdfrw.svg
+   :target: https://github.com/pmaupin/pdfrw/graphs/commit-activity
