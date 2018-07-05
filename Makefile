@@ -42,7 +42,8 @@ build-cppcov:
 	env CFLAGS="-coverage" python setup.py build_ext --inplace
 
 coverage/cpp.info: clean-coverage-cppcov build-cppcov pycov
-	lcov --no-external --capture --directory . --output-file coverage/cpp.info
+	lcov --no-external --capture --directory . --output-file coverage/cppall.info
+	lcov --remove coverage/cppall.info '*/pybind11/*' -o coverage/cpp.info
 
 coverage/cppcov: coverage/cpp.info
 	-mkdir -p coverage/cppcov
