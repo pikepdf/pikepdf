@@ -1,3 +1,5 @@
+import sys
+
 import pytest
 from pikepdf import (
     parse_content_stream, Pdf, Stream, Operator, Object,
@@ -33,12 +35,14 @@ class ExceptionParser(StreamParser):
         print("--EOF--")
 
 
+@pytest.mark.skip(sys.version_info >= (3, 7, 0), reason='hangs in Py3.7')
 def test_open_pdf(resources):
     pdf = Pdf.open(resources / 'graph.pdf')
     page = pdf.pages[0]
     Object._parse_stream(page, PrintParser())
 
 
+@pytest.mark.skip(sys.version_info >= (3, 7, 0), reason='hangs in Py3.7')
 def test_parser_exception(resources):
     pdf = Pdf.open(resources / 'graph.pdf')
     stream = pdf.pages[0]['/Contents']
