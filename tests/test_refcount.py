@@ -1,16 +1,19 @@
 import gc
+import sys
 import pytest
 from pikepdf import Pdf
 
-check_refcount = pytest.helpers.check_refcount
+# This will break on pypy, but we're not quite targetting pypy...
+from sys import getrefcount as refcount
+
 
 # Try to do some things without blowing up
 
 def test_access_image(resources):
     pdf = Pdf.open(resources / 'congress.pdf')
-    assert check_refcount(pdf, 2)  # refcount is always +1
+    assert refcount(pdf) == 2  # refcount is always +1
     im0 = pdf.pages[0].Resources.XObject['/Im0']
-    assert check_refcount(pdf, 3), "didn't acquire a reference to owner"
+    assert refcount(pdf) == 3, "didn't acquire a reference to owner"
 
     del pdf
     gc.collect()
@@ -21,7 +24,7 @@ def test_access_page(resources):
     pdf = Pdf.open(resources / 'graph.pdf')
     page0 = pdf.pages[0]
     also_page0 = pdf.pages.p(1)
-    assert check_refcount(pdf, 4), "didn't acquire a reference to owner"
+    assert refcount(pdf) == 4, "didn't acquire a reference to owner"
     del pdf
     gc.collect()
     page0.Contents.read_raw_bytes()
@@ -34,7 +37,7 @@ def test_remove_pdf_and_all_pages(resources):
     pdf = Pdf.open(resources / 'graph.pdf')
     page0 = pdf.pages[0]
     contents = page0.Contents
-    assert check_refcount(pdf, 4), "stream didn't acquire reference to owner"
+    assert refcount(pdf) == 4, "stream didn't acquire reference to owner"
     del pdf
     del page0
     gc.collect()

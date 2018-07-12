@@ -9,6 +9,7 @@ from pathlib import Path
 from subprocess import Popen, PIPE
 
 
+
 if sys.version_info < (3, 4):
     print("Requires Python 3.4+")
     sys.exit(1)
@@ -21,14 +22,9 @@ PROJECT_ROOT = os.path.dirname(TESTS_ROOT)
 @pytest.helpers.register
 def check_refcount(thing, count):
     "Test that the reference count of thing is exactly 'count' in caller"
-    try:
-        from sys import refcount  # pypy doesn't haven't refcount
-    except ImportError:
-        return True  # ...so for pypy say it's okay
-
-    # count + 1 because this function holds a reference, and its caller holds 
+    # count + 1 because this function holds a reference, and its caller holds
     # a reference, and we're writing this from the caller's perspective
-    return refcount(thing) == count + 1
+    return sys.getrefcount(thing) == count + 1
 
 
 @pytest.fixture
