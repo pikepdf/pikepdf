@@ -22,9 +22,11 @@ class PdfMatrix:
     (``@`` is the Python matrix multiplication operator added in Python 3.5.)
 
     Addition and other operations are not implemented because they're not that
-    meaningful in a PDF context.
+    meaningful in a PDF context (they can be defined and are mathematically
+    meaningful in general).
 
-    These matrices are immutable. All transformations on them produce a new matrix.
+    PdfMatrix objects are immutable. All transformations on them produce a new
+    matrix.
 
     """
 

@@ -31,7 +31,7 @@ package manager.
 
 pikepdf requires a C++11 compliant compiler (i.e. Visual Studio 2015 on
 Windows). See our continuous integration build script in ``.appveyor.yml``
-for detailed instructions.
+for detailed instructions. Or use the wheels which save this pain.
 
 Running a regular ``pip install`` command will detect the
 version of the compiler used to build Python and attempt to build the

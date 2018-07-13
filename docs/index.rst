@@ -79,7 +79,7 @@ Unlike similar Python libraries such as PyPDF2 and pdfrw, pikepdf is not pure
 Python. Both were designed prior to Python wheels which has made Python
 extension libraries much easier to work with. By leveraging the existing mature
 code base of QPDF, despite being new, pikepdf is already more capable than both
-in some respects – for example, it can read compress object streams, repair
+in many respects – for example, it can read compress object streams, repair
 damaged PDFs in many cases, and linearize PDFs. Unlike those libraries, it's not
 pure Python: it is impure and proud of it.
 
