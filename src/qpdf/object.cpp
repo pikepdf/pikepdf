@@ -389,8 +389,15 @@ void init_object(py::module& m)
             }
         )
         .def("__eq__",
-            [](QPDFObjectHandle &self, py::bool_ other) {
-                return (self == objecthandle_encode(other));
+            [](QPDFObjectHandle &self, py::object other) -> py::object {
+                QPDFObjectHandle q_other;
+                try {
+                    q_other = objecthandle_encode(other);
+                } catch (py::cast_error &e) {
+                    return py::globals()["__builtins__"].attr("NotImplemented");
+                }
+                bool result = (self == objecthandle_encode(other));
+                return py::bool_(result);
             }
         )
         .def("__len__",
@@ -532,7 +539,6 @@ void init_object(py::module& m)
         )
         .def("as_list", &QPDFObjectHandle::getArrayAsVector)
         .def("as_dict", &QPDFObjectHandle::getDictAsMap)
-        .def("decode", objecthandle_decode, "convert to nearest Python object")
         .def("__str__",
             [](QPDFObjectHandle &h) -> py::str {
                 if (h.isName())
@@ -849,13 +855,6 @@ void init_object(py::module& m)
             return objecthandle_encode(handle);
         }
     );
-    m.def("_decode",
-        [](py::object obj) {
-            // For objects we automatically unbox
-            return obj;
-        }
-    );
-    m.def("_decode", &objecthandle_decode);
     m.def("_roundtrip",
         [](py::object obj) {
             return obj;
@@ -866,6 +865,5 @@ void init_object(py::module& m)
             return h;
         }
     );
-
 
 } // init_object

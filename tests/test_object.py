@@ -15,19 +15,14 @@ import pytest
 # pylint: disable=eval-used,unnecessary-lambda
 
 encode = qpdf._encode
-decode = qpdf._decode
 roundtrip = qpdf._roundtrip
-
-
-def decode_encode(obj):
-    return decode(encode(obj))
 
 
 @given(characters(min_codepoint=0x20, max_codepoint=0x7f))
 @example('')
 def test_ascii_involution(ascii_):
     b = ascii_.encode('ascii')
-    assert decode_encode(b) == b
+    assert encode(b) == b
 
 
 @given(characters(min_codepoint=0x0, max_codepoint=0xfef0,
@@ -39,28 +34,17 @@ def test_unicode_involution(s):
 
 @given(binary(min_size=0, max_size=300))
 def test_binary_involution(binary_):
-    assert bytes(decode_encode(binary_)) == binary_
-
-
-@given(integers(-10**12, 10**12), integers(-10**12, 10**12))
-def test_integer_comparison(a, b):
-    equals = (a == b)
-    encoded_equals = (qpdf._encode(a) == qpdf._encode(b))
-    assert encoded_equals == equals
-
-    lessthan = (a < b)
-    encoded_lessthan = (qpdf._encode(a) < qpdf._encode(b))
-    assert lessthan == encoded_lessthan
+    assert bytes(encode(binary_)) == binary_
 
 
 @given(integers(max_value=9223372036854775807), integers(max_value=9223372036854775807))
-def test_crosstype_comparison(a, b):
+def test_integer_comparison(a, b):
     equals = (a == b)
-    encoded_equals = (a == qpdf._encode(b))
+    encoded_equals = (encode(a) == encode(b))
     assert encoded_equals == equals
 
     lessthan = (a < b)
-    encoded_lessthan = (qpdf._encode(a) < b)
+    encoded_lessthan = (encode(a) < encode(b))
     assert lessthan == encoded_lessthan
 
 
@@ -71,7 +55,7 @@ def test_decimal_involution(num, radix):
         strnum = strnum[:radix] + '.' + strnum[radix:]
 
     d = Decimal(strnum)
-    assert roundtrip(d) == d
+    assert encode(d) == d
 
 
 @given(floats())
@@ -98,20 +82,20 @@ def test_decimal_from_float(f):
 @given(lists(integers(-10, 10), min_size=0, max_size=10))
 def test_list(array):
     a = pikepdf.Array(array)
-    assert decode_encode(a) == a
+    assert a == array
 
 
 @given(lists(lists(integers(1,10), min_size=1, max_size=5),min_size=1,max_size=5))
 def test_nested_list(array):
     a = pikepdf.Array(array)
-    assert decode_encode(a) == a
+    assert a == array
 
 
 @given(recursive(integers(1,10) | booleans(), lambda children: lists(children), max_leaves=20))
 def test_nested_list2(array):
     assume(isinstance(array, list))
     a = pikepdf.Array(array)
-    assert decode_encode(a) == a
+    assert a == array
 
 
 def test_stack_depth():
@@ -122,7 +106,7 @@ def test_stack_depth():
     try:
         sys.setrecursionlimit(100)
         with pytest.raises(RecursionError, message="recursion"):
-            assert decode_encode(a) == a
+            assert encode(a) == a
         with pytest.raises(RecursionError, message="recursion"):
             encode(a) == encode(a)  # pylint: disable=expression-not-assigned
         with pytest.raises(RecursionError, message="recursion"):
