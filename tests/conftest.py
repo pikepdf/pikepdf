@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 import platform
 
 pytest_plugins = ['helpers_namespace']
@@ -9,7 +9,6 @@ from pathlib import Path
 from subprocess import Popen, PIPE
 
 
-
 if sys.version_info < (3, 4):
     print("Requires Python 3.4+")
     sys.exit(1)
@@ -17,14 +16,6 @@ if sys.version_info < (3, 4):
 
 TESTS_ROOT = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.dirname(TESTS_ROOT)
-
-
-@pytest.helpers.register
-def check_refcount(thing, count):
-    "Test that the reference count of thing is exactly 'count' in caller"
-    # count + 1 because this function holds a reference, and its caller holds
-    # a reference, and we're writing this from the caller's perspective
-    return sys.getrefcount(thing) == count + 1
 
 
 @pytest.fixture

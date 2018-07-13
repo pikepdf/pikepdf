@@ -5,7 +5,7 @@ from contextlib import suppress
 from shutil import copy
 import gc
 
-check_refcount = pytest.helpers.check_refcount
+from sys import getrefcount as refcount
 
 
 def test_split_pdf(resources, outdir):
@@ -84,13 +84,13 @@ def test_evil_page_deletion(resources, outdir):
     src = Pdf.open(outdir / 'sandwich.pdf')
     pdf = Pdf.open(resources / 'graph.pdf')
 
-    assert check_refcount(src, 2)
+    assert refcount(src) == 2
     pdf.pages.append(src.pages[0])
-    assert check_refcount(src, 3)
+    assert refcount(src) == 3
 
     del src.pages[0]
     gc.collect()
-    assert check_refcount(src, 3)
+    assert refcount(src) == 3
 
     with suppress(PermissionError):  # Fails on Windows
         (outdir / 'sandwich.pdf').unlink()

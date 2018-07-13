@@ -52,3 +52,26 @@ def test_access_pdf_metadata(resources):
     del pdf
     gc.collect()
     meta.read_raw_bytes()
+
+
+def test_transfer_page(resources):
+    pdf = Pdf.open(resources / 'graph.pdf')
+    page0 = pdf.pages[0]
+    before = page0.Contents.read_bytes()
+
+    assert refcount(pdf) == 3  # this, pdf, page0->pdf
+    assert refcount(page0) == 2
+
+    pdf2 = Pdf.open(resources / 'fourpages.pdf')
+    pdf2.pages.insert(2, page0)
+    p2p2 = pdf2.pages[2]
+
+    assert refcount(pdf) == 4  # this, pdf, page0->pdf, pdf2's page0
+
+    assert refcount(p2p2) == 2
+    del pdf
+    del page0
+    assert refcount(p2p2) == 2
+
+    del pdf2.pages[2]
+    assert before == p2p2.Contents.read_bytes()
