@@ -280,6 +280,20 @@ QPDFObjectHandle object_get_key(QPDFObjectHandle& h, std::string const& key)
     return dict.getKey(key);
 }
 
+void object_set_key(QPDFObjectHandle& h, std::string const& key, QPDFObjectHandle& value)
+{
+        if (!h.isDictionary() && !h.isStream())
+            throw py::value_error("object is not a dictionary or a stream");
+        if (value.isNull())
+            throw py::value_error("PDF Dictionary keys may not be set to None - use 'del' to remove");
+
+        // For streams, the actual dictionary is attached to stream object
+        QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
+
+        // A stream dictionary has no owner, so use the stream object in this comparison
+        dict.replaceKey(key, value);
+}
+
 
 std::pair<int, int> object_get_objgen(QPDFObjectHandle &h)
 {
@@ -416,39 +430,15 @@ void init_object(py::module& m)
         )
         .def("__setitem__",
             [](QPDFObjectHandle &h, std::string const& key, QPDFObjectHandle &value) {
-                if (!h.isDictionary() && !h.isStream())
-                    throw py::value_error("object is not a dictionary or a stream");
-
-                // For streams, the actual dictionary is attached to stream object
-                QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
-
-                // if (value.isScalar() || value.isStream()) {
-                //     dict.replaceKey(key, value);
-                //     return;
-                // }
-
-                // try {
-                //     auto copy = value.shallowCopy();
-                //     copy.makeDirect();
-                // } catch (std::exception &e) {
-                //     throw py::value_error(e.what());
-                // }
-                dict.replaceKey(key, value);
+                object_set_key(h, key, value);
             },
             "assign dictionary key to new object",
             py::keep_alive<1, 3>()
         )
         .def("__setitem__",
-            [](QPDFObjectHandle &h, std::string const& key, py::object &pyvalue) {
-                if (!h.isDictionary() && !h.isStream())
-                    throw py::value_error("object is not a dictionary or a stream");
-
-                // For streams, the actual dictionary is attached to stream object
-                QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
-
+            [](QPDFObjectHandle &h, std::string const& key, py::object pyvalue) {
                 auto value = objecthandle_encode(pyvalue);
-                // A stream dictionary has no owner, so use the stream object in this comparison
-                dict.replaceKey(key, value);
+                object_set_key(h, key, value);
             }
         )
         .def("__delitem__",
@@ -484,13 +474,10 @@ void init_object(py::module& m)
             py::return_value_policy::reference_internal
         )
         .def("__setattr__",
-            [](QPDFObjectHandle &h, std::string const& name, py::object &pyvalue) {
-                if (!h.isDictionary() && !h.isStream())
-                    throw py::attr_error("object is not a dictionary or a stream");
-                QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
+            [](QPDFObjectHandle &h, std::string const& name, py::object pyvalue) {
                 std::string key = "/" + name;
                 auto value = objecthandle_encode(pyvalue);
-                dict.replaceKey(key, value);
+                object_set_key(h, key, value);
             },
             "attribute access"
         )
@@ -577,7 +564,7 @@ void init_object(py::module& m)
             }
         )
         .def("__setitem__",
-            [](QPDFObjectHandle &h, int index, py::object &pyvalue) {
+            [](QPDFObjectHandle &h, int index, py::object pyvalue) {
                 size_t u_index = list_range_check(h, index);
                 auto value = objecthandle_encode(pyvalue);
                 h.setArrayItem(u_index, value);

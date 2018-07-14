@@ -8,7 +8,7 @@ import zlib
 
 
 from pikepdf import (
-    Pdf, PdfImage, PdfError, Name, Null,
+    Pdf, PdfImage, PdfError, Name,
     parse_content_stream, PdfInlineImage, Stream, StreamDataMode
 )
 

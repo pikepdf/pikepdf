@@ -18,6 +18,10 @@ encode = qpdf._encode
 roundtrip = qpdf._roundtrip
 
 
+def test_none():
+    assert encode(None) is None
+
+
 @given(characters(min_codepoint=0x20, max_codepoint=0x7f))
 @example('')
 def test_ascii_involution(ascii_):
@@ -96,6 +100,12 @@ def test_nested_list2(array):
     assume(isinstance(array, list))
     a = pikepdf.Array(array)
     assert a == array
+
+
+def test_list_nones():
+    a = pikepdf.Array([1, 2, 3])
+    a[1] = None
+    assert a[1] is None
 
 
 def test_stack_depth():
@@ -219,3 +229,9 @@ class TestRepr:
 def test_utf16_error():
     with pytest.raises(UnicodeEncodeError):
         str(encode('\ud801'))
+
+
+def test_dictionary_none():
+    d = pikepdf.Dictionary({'/One': 1, '/Two': 2})
+    with pytest.raises(ValueError):
+        d['/Two'] = None
