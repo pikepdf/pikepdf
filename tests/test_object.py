@@ -237,8 +237,22 @@ def test_dictionary_none():
         d['/Two'] = None
 
 
+def test_dictionary_init():
+    d1 = pikepdf.Dictionary({'/Animal': 'Dog'})
+    d2 = pikepdf.Dictionary(Animal='Dog')
+    assert d1 == d2
+
+
 def test_not_convertible():
-    class C:
-        pass
+    class PurePythonObj:
+        def __repr__(self):
+            return 'PurePythonObj()'
+    c = PurePythonObj()
     with pytest.raises(RuntimeError):
-        encode(C())
+        encode(c)
+    with pytest.raises(RuntimeError):
+        pikepdf.Array([1, 2, c])
+
+    d = pikepdf.Dictionary()
+    with pytest.raises(RuntimeError):
+        d.SomeKey = c

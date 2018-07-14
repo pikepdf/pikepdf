@@ -71,7 +71,14 @@ class Array(metaclass=_ObjectMeta):
 class Dictionary(metaclass=_ObjectMeta):
     object_type = ObjectType.dictionary
 
-    def __new__(cls, d):
+    def __new__(cls, d=None, **kwargs):
+        if kwargs:
+            # Add leading slash
+            # Allows Dictionary(MediaBox=(0,0,1,1), Type=Name('/Page')...
+            return _qpdf._new_dictionary(
+                {('/' + k) : v for k, v in kwargs.items()})
+        if not d:
+            d = {}
         return _qpdf._new_dictionary(d)
 
 
