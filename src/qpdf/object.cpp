@@ -857,13 +857,6 @@ void init_object(py::module& m)
         .def("handle_eof", &QPDFObjectHandle::ParserCallbacks::handleEOF);
 
     m.def("_encode",
-        [](py::none none) {
-            // Without this shim, no template is selected for _encode(None)
-            // causing it to return a type error
-            return QPDFObjectHandle::newNull();
-        }
-    );
-    m.def("_encode",
         [](py::handle handle) {
             return objecthandle_encode(handle);
         }

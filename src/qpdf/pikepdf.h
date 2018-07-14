@@ -109,9 +109,9 @@ namespace pybind11 { namespace detail {
             handle h;
 
             switch (src->getTypeCode()) {
-                // case QPDFObject::object_type_e::ot_null:
-                //     h = none().release();
-                //     break;
+                case QPDFObject::object_type_e::ot_null:
+                    h = none().release();
+                    break;
                 case QPDFObject::object_type_e::ot_integer:
                     h = int_(src->getIntValue()).release();
                     break;

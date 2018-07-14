@@ -137,10 +137,6 @@ QPDFObjectHandle objecthandle_encode(py::handle handle)
         }
     }
 
-    if (obj.is(py::object())) {
-        return QPDFObjectHandle::newNull();
-    }
-
     throw py::cast_error(std::string("don't know how to encode value ") + std::string(py::repr(obj)));
 }
 
