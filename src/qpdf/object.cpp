@@ -690,7 +690,7 @@ void init_object(py::module& m)
             [](std::string const& stream, std::string const& description) {
                 return QPDFObjectHandle::parse(stream, description);
             },
-            "Parse PostScript into PDF objects.",
+            "Parse PDF binary representation into PDF objects.",
             py::arg("stream"),
             py::arg("description") = ""
         )
@@ -721,16 +721,13 @@ void init_object(py::module& m)
             }
         )
         .def("unparse",
-            [](QPDFObjectHandle &h) -> py::bytes {
+            [](QPDFObjectHandle &h, bool resolved) -> py::bytes {
+                if (resolved)
+                    return h.unparseResolved();
                 return h.unparse();
             },
-            "Convert PDF objects into PostScript, without resolving indirect objects."
-        )
-        .def("unparse_resolved",
-            [](QPDFObjectHandle &h) -> py::bytes {
-                return h.unparseResolved();
-            },
-            "Convert PDF objects into PostScript, and resolve referenced objects when possible."
+            py::arg("resolved") = false,
+            "Convert PDF objects into their binary representation, optionally resolving indirect objects."
         )
         .def("_repr_mimebundle_",
             [](QPDFObjectHandle &h, py::kwargs kwargs) {

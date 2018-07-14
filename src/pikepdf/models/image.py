@@ -445,7 +445,7 @@ class PdfInlineImage(PdfImage):
 
         def unparse(obj):
             if isinstance(obj, Object):
-                return obj.unparse_resolved()
+                return obj.unparse(resolved=True)
             elif isinstance(obj, (int, bool, Decimal, float)):
                 return str(obj).encode('ascii')
             else:
