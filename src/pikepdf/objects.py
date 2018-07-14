@@ -22,7 +22,7 @@ from . import _qpdf
 from ._qpdf import Object, ObjectType
 
 # pylint: disable=unused-import
-from ._qpdf import Operator, _Null as Null
+from ._qpdf import Operator
 
 
 class _ObjectMeta(type):

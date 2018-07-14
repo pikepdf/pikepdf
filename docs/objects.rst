@@ -14,11 +14,15 @@ pikepdf user.
 There is something of an impedance mismatch between Python's strict dynamic
 typing and a C++ library that effectively has a dynamic variant type. Currently
 this is managed by **not** subclassing ``pikepdf.Object``. Instead pikepdf
-``pikepdf.Object`` implements all of the methods it could ever use.
+``pikepdf.Object`` implements all of the methods that the object. You can use
+duck typing or ``isinstance`` to check more precisely what the object is.
+This reflects a reality that PDF's internal typing is somewhat loose, with
+many fields that can be populated with say, either a container or a scalar;
+on top of that, many PDFs in the wild don't follow all of the rules.
 
 Integers, booleans and decimal numbers within PDFs are mapped to Python ``int``,
 ``bool`` and :class:`~decimal.Decimal`. ``float`` is also converted to
-``Decimal``.
+``Decimal``. Null values in PDFs are represented as ``None``.
 
 For convenience, the ``repr()`` of a ``pikepdf.Object`` will display a
 Python expression that replicates the existing object (when possible), so it
@@ -44,7 +48,6 @@ You may construct a new object with one of the factory functions:
 *   :class:`pikepdf.Name` - the type used for keys in PDF Dictionary objects
 *   :class:`pikepdf.String` - a text string
     (treated as ``bytes`` and ``str`` depending on context)
-*   :class:`pikepdf.Null` - a sentinel used to represent a Null value
 
 These may be thought of as subclasses of ``pikepdf.Object``. (Internally they
 **are** ``pikepdf.Object``.)

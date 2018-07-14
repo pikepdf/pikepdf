@@ -17,7 +17,7 @@ from ._qpdf import (
     PdfError, Pdf, PasswordError, ObjectStreamMode, StreamDataMode
 )
 from .objects import (
-    Object, ObjectType, Name, String, Array, Dictionary, Stream, Operator, Null
+    Object, ObjectType, Name, String, Array, Dictionary, Stream, Operator
 )
 from .models import (
     PdfImage, PdfInlineImage, UnsupportedImageTypeError, PdfMatrix,
