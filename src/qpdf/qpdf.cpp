@@ -19,6 +19,7 @@
 
 #include <pybind11/stl.h>
 #include <pybind11/iostream.h>
+#include <pybind11/buffer_info.h>
 
 #include "qpdf_pagelist.h"
 
@@ -160,7 +161,7 @@ void save_pdf(
     w.setContentNormalization(normalize_content);
     w.setLinearization(linearize);
 
-    if (py::hasattr(filename_or_stream, "read") && py::hasattr(filename_or_stream, "seek")) {
+    if (py::hasattr(filename_or_stream, "write") && py::hasattr(filename_or_stream, "seek")) {
         // Python code gave us an object with a stream interface
         py::object stream = filename_or_stream;
         check_stream_is_usable(stream);
@@ -174,14 +175,17 @@ void save_pdf(
         // deleting it, so capture it in a unique_ptr
         std::unique_ptr<Buffer> output_buffer(w.getBuffer());
 
+        // Create a memoryview of the buffer that libqpdf created
         // Awkward API alert:
         //     QPDFWriter::getBuffer -> Buffer*  (caller frees memory)
         // and  Buffer::getBuffer -> unsigned char*  (caller does not own memory)
-        auto output = py::bytes(
-            (const char*)output_buffer->getBuffer(),
+        py::buffer_info output_buffer_info(
+            output_buffer->getBuffer(),
             output_buffer->getSize());
+        py::memoryview view_output_buffer(output_buffer_info);
 
-        stream.attr("write")(output);
+        // Send it to the stream object (probably copying)
+        stream.attr("write")(view_output_buffer);
     } else {
         py::object filename = filename_or_stream;
         w.setOutputFilename(fsencode_filename(filename).c_str());
