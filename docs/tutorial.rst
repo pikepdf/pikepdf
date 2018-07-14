@@ -56,16 +56,23 @@ follows the ``list`` protocol. As such page numbers begin at 0.
    odd.extend(odd_pages)
    odd.save('just-odd-pages.pdf')
 
-Because PDFs are usually numbered in counting numbers (1, 2, 3...), pikepdf
-provides a convenience accessor that also uses counting numbers:
+Using counting numbers for pages
+--------------------------------
+
+Because PDF pages are usually numbered in counting numbers (1, 2, 3...), pikepdf
+provides a convenience accessor ``.p()`` that uses counting numbers:
 
 .. code-block:: python
 
    report.pages.p(1)       # The first page in the document
    report.pages[0]         # Also the first page in the document
    del report.pages.p(50)  # Drop page 50
+   report.pages.p(0)       # Exception
 
 To avoid confusion, the ``.p()`` accessor does not accept Python slices.
+
+PDFs may define their own numbering scheme or different numberings for
+different sections. ``.pages`` does not look up this information.
 
 .. note::
 

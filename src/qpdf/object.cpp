@@ -31,20 +31,23 @@
 /*
 Type table
 
+See objects.rst. In short and with technical details:
+
 These QPDF types are directly mapped to a native Python equivalent. The C++
 object is never returned to Python; a Python object is returned instead.
 Adding one of these to a QPDF container type causes the appropriate conversion.
-    Boolean - bool
-    Integer - int
-    Real - Decimal
+    Boolean <-> bool
+    Integer <-> int
+    Real <-> Decimal
+    Real <- float
+    Null <-> None
 
-In addition, Python float is converted to Real.
+PDF semantics dictate that setting a dictionary key to Null deletes the key.
 
-None and Null are complicated due to (probably) pybind11 bugs in handling
-None as an argument, and the special semantics QPDF and PDF has around Null
-which don't match None. For example, setting a dictionary key to Null is
-equivalent to deleting the key.
-Null - None
+    d['/Key'] = None  # would delete /Key
+
+For Python users appears to have an unxpected side effect, so this action is
+prohibited. You cannot set keys to None.
 
 pikepdf.String is a "type" that can be converted with str() or bytes() as
 needed.

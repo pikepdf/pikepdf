@@ -8,21 +8,21 @@ which, as the name suggests, is a handle (or pointer) to a data structure in
 memory, or possibly a reference to data that exists in a file. Importantly, an
 object can be a scalar quantity (like a string) or a compound quantity (like a
 list or dict, that contains other objects). The fact that the C++ class involved
-here is an object handle is an implementation detail; it shouldn't matter for a
-pikepdf user.
+here is an object *handle* is an implementation detail; it shouldn't matter for
+a pikepdf user.
 
-There is something of an impedance mismatch between Python's strict dynamic
-typing and a C++ library that effectively has a dynamic variant type. Currently
-this is managed by **not** subclassing ``pikepdf.Object``. Instead pikepdf
-``pikepdf.Object`` implements all of the methods that the object. You can use
-duck typing or ``isinstance`` to check more precisely what the object is.
-This reflects a reality that PDF's internal typing is somewhat loose, with
-many fields that can be populated with say, either a container or a scalar;
-on top of that, many PDFs in the wild don't follow all of the rules.
+The simplest types in PDFs are directly represented as Python types: ``int``,
+``bool``, and ``None`` stand for PDF integers, booleans and the "null".
+:class:`~decimal.Decimal` is used for floating point numbers in PDFs. If a
+value in a PDF is assigned to a Python ``float``, pikepdf will convert it to
+``Decimal``.
 
-Integers, booleans and decimal numbers within PDFs are mapped to Python ``int``,
-``bool`` and :class:`~decimal.Decimal`. ``float`` is also converted to
-``Decimal``. Null values in PDFs are represented as ``None``.
+Types that are not directly convertible to Python are represented as
+:class:`pikepdf.Object`, a compound object that offers a superset of methods,
+some work only if the underlying type is suitable. You can use the EAFP
+idiom or ``isinstance`` to determine the type more precisely. This partly
+reflects the fact that the PDF specification allows many data fields to be
+one of several types.
 
 For convenience, the ``repr()`` of a ``pikepdf.Object`` will display a
 Python expression that replicates the existing object (when possible), so it
@@ -58,7 +58,7 @@ map to Python as neatly. We'll look at these later.
 *   ``pikepdf.Operator`` - a special object involved in processing content
     streams
 *   ``pikepdf.Stream`` - a special object similar to a ``Dictionary`` with
-    compressed binary data attached
+    binary data attached
 *   ``pikepdf.Inlineimage`` - an image that is embedded in content streams
 
 The great news is that it's often unnecessary to construct ``pikepdf.Object``
