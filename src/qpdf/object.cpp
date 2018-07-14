@@ -532,11 +532,9 @@ void init_object(py::module& m)
                     return h.getName();
                 else if (h.isOperator())
                     return h.getOperatorValue();
-                else if (h.isReal())
-                    return h.getRealValue();
-                else if (h.isInteger())
-                    return py::str(py::int_(h.getIntValue()));
-                return h.getUTF8Value();
+                else if (h.isString())
+                    return h.getUTF8Value();
+                throw py::notimpl_error("don't know how to __str__ this object");
             }
         )
         .def("__bytes__",
