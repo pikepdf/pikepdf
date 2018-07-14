@@ -729,34 +729,10 @@ void init_object(py::module& m)
             },
             "Convert PDF objects into PostScript, and resolve referenced objects when possible."
         )
-        .def("_repr_pdf_singlepage",
-            [](QPDFObjectHandle &page) -> py::object {
-                if (!page.isPageObject())
-                    return py::none();
-                QPDF q;
-                q.emptyPDF();
-                q.setSuppressWarnings(true);
-
-                QPDFObjectHandle page_copy = q.copyForeignObject(page);
-                q.addPage(page_copy, true);
-
-                QPDFWriter w(q);
-                w.setOutputMemory();
-                w.write();
-                std::unique_ptr<Buffer> output_buffer(w.getBuffer());
-                auto output = py::bytes(
-                    (const char*)output_buffer->getBuffer(),
-                    output_buffer->getSize());
-                return output;
-            },
-            "Render as PDF - for Jupyter/IPython"
-        )
-        .def("_repr_svg_",
-            [](QPDFObjectHandle &page) -> py::object {
-                if (!page.isPageObject())
-                    return py::none();
-                auto page_to_svg = py::module::import("pikepdf._pdfimage").attr("page_to_svg");
-                return page_to_svg(page);
+        .def("_repr_mimebundle_",
+            [](QPDFObjectHandle &h, py::kwargs kwargs) {
+                auto repr_mimebundle = py::module::import("pikepdf._cpphelpers").attr("object_repr_mimebundle");
+                return repr_mimebundle(h, **kwargs);
             }
         )
         ; // end of QPDFObjectHandle bindings

@@ -479,24 +479,3 @@ class PdfInlineImage(PdfImage):
     def get_stream_buffer(self):
         raise NotImplementedError("qpdf returns compressed")
         #return memoryview(self._data.inline_image_bytes())
-
-
-def page_to_svg(page):
-    pdf = Pdf.new()
-    pdf.pages.append(page)
-    with NamedTemporaryFile(suffix='.pdf') as tmp_in, \
-            NamedTemporaryFile(mode='w+b', suffix='.svg') as tmp_out:
-        pdf.save(tmp_in)
-        tmp_in.seek(0)
-
-        try:
-            proc = run(['mudraw', '-F', 'svg', '-o', tmp_out.name, tmp_in.name], stderr=PIPE)
-        except FileNotFoundError:
-            raise DependencyError("Could not find the required executable 'mutool'")
-
-        if proc.stderr:
-            print(proc.stderr.decode())
-        tmp_out.flush()
-        tmp_out2 = open(tmp_out.name, 'rb')  # Not sure why re-opening is need, but it is
-        svg = tmp_out2.read()
-        return svg.decode()
