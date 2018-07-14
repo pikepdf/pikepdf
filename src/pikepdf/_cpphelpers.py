@@ -113,3 +113,18 @@ def object_repr_mimebundle(obj, **kwargs):
                 pass
 
     return data
+
+
+def pdf_repr_mimebundle(pdf, **kwargs):
+    """
+    Present options to IPython for rich display of this object
+
+    See https://ipython.readthedocs.io/en/stable/config/integrating.html#rich-display
+    """
+
+    bio = BytesIO()
+    pdf.save(bio)
+    bio.seek(0)
+
+    data = {'application/pdf': bio.read()}
+    return data
