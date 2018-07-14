@@ -1,5 +1,8 @@
 # This is really just for testing
 
+.PHONY:
+all: build
+
 .PHONY: invalidate-cppcov
 invalidate-cppcov:
 	find . -name "*.gcno" -print0 | xargs -0 rm
@@ -7,9 +10,6 @@ invalidate-cppcov:
 .PHONY: build
 build: invalidate-cppcov
 	python setup.py build_ext --inplace
-
-.PHONY: all
-all: build
 
 .PHONY: clean-coverage-pycov
 clean-coverage-pycov:
