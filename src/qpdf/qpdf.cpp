@@ -67,11 +67,9 @@ void check_stream_is_usable(py::object stream)
 }
 
 std::shared_ptr<QPDF>
-open_pdf(py::args args, py::kwargs kwargs)
+open_pdf(py::object file, py::kwargs kwargs)
 {
     auto q = std::make_shared<QPDF>();
-    if (args.size() != 1)
-        throw py::type_error("pikepdf.Pdf.open(): requires 1 positional argument");
 
     std::string password;
 
@@ -87,9 +85,9 @@ open_pdf(py::args args, py::kwargs kwargs)
         kwargs_to_method(kwargs, "attempt_recovery", q, &QPDF::setAttemptRecovery);
     }
 
-    if (py::hasattr(args[0], "read") && py::hasattr(args[0], "seek")) {
+    if (py::hasattr(file, "read") && py::hasattr(file, "seek")) {
         // Python code gave us an object with a stream interface
-        py::object stream = args[0];
+        py::object stream = file;
 
         check_stream_is_usable(stream);
 
@@ -107,7 +105,7 @@ open_pdf(py::args args, py::kwargs kwargs)
         // but that is much more complex.
         q->processMemoryFile("memory", buffer, length, password.c_str());
     } else {
-        std::string filename = fsencode_filename(args[0]);
+        std::string filename = fsencode_filename(file);
         // We can release GIL because Python knows nothing about q at this
         // point; this could also take a moment for large files
         py::gil_scoped_release release;
