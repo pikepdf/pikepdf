@@ -102,10 +102,14 @@ def test_nested_list2(array):
     assert a == array
 
 
-def test_list_nones():
+def test_list_apis():
     a = pikepdf.Array([1, 2, 3])
     a[1] = None
     assert a[1] is None
+    assert len(a) == 3
+    del a[1]
+    assert len(a) == 2
+    a[-1] = Name('/Foo')
 
 
 def test_stack_depth():
@@ -241,6 +245,12 @@ def test_dictionary_init():
     d1 = pikepdf.Dictionary({'/Animal': 'Dog'})
     d2 = pikepdf.Dictionary(Animal='Dog')
     assert d1 == d2
+
+
+def test_dictionary():
+    d = pikepdf.Dictionary(A='a', B='b', C='c')
+    assert '/B' in d
+    assert 'B' in dir(d)
 
 
 def test_not_convertible():
