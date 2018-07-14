@@ -235,3 +235,10 @@ def test_dictionary_none():
     d = pikepdf.Dictionary({'/One': 1, '/Two': 2})
     with pytest.raises(ValueError):
         d['/Two'] = None
+
+
+def test_not_convertible():
+    class C:
+        pass
+    with pytest.raises(RuntimeError):
+        encode(C())
