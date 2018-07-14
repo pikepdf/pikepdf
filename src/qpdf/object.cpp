@@ -622,13 +622,39 @@ void init_object(py::module& m)
             "Read the content stream associated with this object without decoding"
         )
         .def("write",
-            [](QPDFObjectHandle &h, py::bytes data, const QPDFObjectHandle &filter, const QPDFObjectHandle &decode_parms) {
+            [](QPDFObjectHandle &h, py::bytes data, py::args args, py::kwargs kwargs) {
                 std::string sdata = data;
+                QPDFObjectHandle filter = QPDFObjectHandle::newNull();
+                QPDFObjectHandle decode_parms = QPDFObjectHandle::newNull();
+                if (args.size() == 2) { // Backward compatibility to pikepdf 0.2.2
+                    filter = objecthandle_encode(args[0]);
+                    decode_parms = objecthandle_encode(args[1]);
+                } else {
+                    if (kwargs.contains("filter"))
+                        filter = objecthandle_encode(kwargs["filter"]);
+                    if (kwargs.contains("decode_parms"))
+                        decode_parms = objecthandle_encode(kwargs["decode_parms"]);
+                }
                 h.replaceStreamData(sdata, filter, decode_parms);
             },
-            py::keep_alive<1, 3>(),
-            py::keep_alive<1, 4>(),
-            "Replace the content stream with data, which is compressed according to filter and decode params"
+            R"~~~(
+            Replace the content stream with `data`, compressed according to `filter` and `decode_parms`
+
+            :param data: the new data to use for replacement
+            :type data: bytes
+            :param filter: The filter(s) with which the data is (already) encoded
+            :param decode_parms: Parameters for the filters with which the object is encode
+
+            If only one `filter` is specified, it may be a name such as
+            `Name('/FlateDecode')`. If there are multiple filters, then array
+            of names should be given.
+
+            If there is only one filter, `decode_parms` is a Dictionary of
+            parameters for that filter. If there are multiple filters, then
+            `decode_parms` is an Array of Dictionary, where each array index
+            is corresponds to the filter.
+
+            )~~~"
         )
         .def_property_readonly("images",
             [](QPDFObjectHandle &h) {

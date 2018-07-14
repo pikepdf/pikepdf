@@ -51,8 +51,12 @@ def test_image_replace(congress, outdir):
     pillowimage = pdfimage.as_pil_image()
 
     grayscale = pillowimage.convert('L')
+    grayscale = grayscale.resize((4, 4))  # So it is not obnoxious on error
 
-    congress[0].write(zlib.compress(grayscale.tobytes()), Name("/FlateDecode"), Null())
+    congress[0].write(
+        zlib.compress(grayscale.tobytes()),
+        filter=Name("/FlateDecode")
+    )
     congress[0].ColorSpace = Name("/DeviceGray")
     pdf = congress[1]
     pdf.save(outdir / 'congress_gray.pdf')
@@ -80,8 +84,12 @@ def test_lowlevel_replace_jpeg(congress, outdir):
 
     im = Image.open(BytesIO(raw_bytes))
     grayscale = im.convert('L')
+    grayscale = grayscale.resize((4, 4))  # So it is not obnoxious on error
 
-    congress[0].write(zlib.compress(grayscale.tobytes()[:10]), Name("/FlateDecode"), Null())
+    congress[0].write(
+        zlib.compress(grayscale.tobytes()[:10]),
+        filter=Name("/FlateDecode")
+    )
     congress[0].ColorSpace = Name('/DeviceGray')
 
     pdf = congress[1]
