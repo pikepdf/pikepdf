@@ -18,6 +18,7 @@
 #include <qpdf/QPDFWriter.hh>
 
 #include <pybind11/stl.h>
+#include <pybind11/iostream.h>
 
 #include "qpdf_pagelist.h"
 
@@ -69,10 +70,8 @@ std::shared_ptr<QPDF>
 open_pdf(py::args args, py::kwargs kwargs)
 {
     auto q = std::make_shared<QPDF>();
-    if (args.size() < 1)
-        throw py::value_error("not enough arguments");
-    if (args.size() > 2)
-        throw py::value_error("too many arguments");
+    if (args.size() != 1)
+        throw py::type_error("pikepdf.Pdf.open(): requires 1 positional argument");
 
     std::string password;
 
@@ -82,6 +81,7 @@ open_pdf(py::args args, py::kwargs kwargs)
             auto v = kwargs["password"].cast<std::string>();
             password = v;
         }
+        kwargs_to_method(kwargs, "hex_password", q, &QPDF::setPasswordIsHexKey);
         kwargs_to_method(kwargs, "ignore_xref_streams", q, &QPDF::setIgnoreXRefStreams);
         kwargs_to_method(kwargs, "suppress_warnings", q, &QPDF::setSuppressWarnings);
         kwargs_to_method(kwargs, "attempt_recovery", q, &QPDF::setAttemptRecovery);
@@ -132,9 +132,11 @@ void save_pdf(
     bool preserve_pdfa=true,
     std::string min_version="",
     std::string force_version="",
+    bool compress_streams=true,
     qpdf_object_stream_e object_stream_mode=qpdf_o_preserve,
     qpdf_stream_data_e stream_data_mode=qpdf_s_preserve,
-    bool normalize_content=false)
+    bool normalize_content=false,
+    bool linearize=false)
 {
     QPDFWriter w(*q);
 
@@ -143,19 +145,22 @@ void save_pdf(
         w.setStaticID(true);
         w.setStreamDataMode(qpdf_s_uncompress);
     }
+    w.setNewlineBeforeEndstream(preserve_pdfa);
     if (!min_version.empty()) {
         w.setMinimumPDFVersion(min_version, 0);
     }
     if (!force_version.empty()) {
         w.forcePDFVersion(force_version, 0);
     }
+    w.setCompressStreams(compress_streams);
     w.setObjectStreamMode(object_stream_mode);
     w.setStreamDataMode(stream_data_mode);
-    w.setContentNormalization(normalize_content);
 
-    if (preserve_pdfa) {
-        w.setNewlineBeforeEndstream(true);
+    if (normalize_content && linearize) {
+        throw py::value_error("cannot save with both normalize_content and linearize");
     }
+    w.setContentNormalization(normalize_content);
+    w.setLinearization(linearize);
 
     if (py::hasattr(filename_or_stream, "read") && py::hasattr(filename_or_stream, "seek")) {
         // Python code gave us an object with a stream interface
@@ -243,16 +248,26 @@ PYBIND11_MODULE(_qpdf, m) {
             entire stream into a private buffer.
 
             :param filename_or_stream: Filename of PDF to open
-            :param password: User or owner password to open the PDF, if encrypted
             :type filename_or_stream: os.PathLike or file stream
-            :type password: str or None
-            :param ignore_xref_streams: If True, ignore cross-reference streams. See qpdf documentation.
-            :param suppress_warnings: If True (default), warnings are not printed to stderr. Use `get_warnings()` to retrieve warnings.
-            :param attempt_recovery: If True (default), attempt to recover from PDF parsing errors.
-            :param inherit_page_attributes: If True (default), push attributes set on a group of pages to individual pages
-            :throws pikepdf.PasswordError: If the password failed to open the file.
-            :throws pikepdf.PdfError: If for other reasons we could not open the file.
-            :throws TypeError: If the type of `filename_or_stream` is not usable.
+            :param password: User or owner password to open an encrypted PDF
+            :type password: str or bytes
+            :param hex_password: If True, interpret the password as a
+                hex-encoded version of the exact encryption key to use, without
+                performing the normal key computation. Useful in forensics.
+            :param ignore_xref_streams: If True, ignore cross-reference
+                streams. See qpdf documentation.
+            :param suppress_warnings: If True (default), warnings are not
+                printed to stderr. Use `get_warnings()` to retrieve warnings.
+            :param attempt_recovery: If True (default), attempt to recover
+                from PDF parsing errors.
+            :param inherit_page_attributes: If True (default), push attributes
+                set on a group of pages to individual pages
+            :throws pikepdf.PasswordError: If the password failed to open the
+                file.
+            :throws pikepdf.PdfError: If for other reasons we could not open
+                the file.
+            :throws TypeError: If the type of `filename_or_stream` is not
+                usable.
             )~~~"
         )
         .def("__repr__",
@@ -296,6 +311,33 @@ PYBIND11_MODULE(_qpdf, m) {
         )
         .def_property_readonly("_pages", &QPDF::getAllPages)
         .def_property_readonly("is_encrypted", &QPDF::isEncrypted)
+        .def_property_readonly("is_linearized", &QPDF::isLinearized,
+            R"~~~(
+            Returns True if the PDF is linearized.
+
+            Specifically returns True iff the file starts with a linearization
+            parameter dictionary.  Does no additional validation.
+
+            )~~~"
+        )
+        .def("check_linearization",
+            [](QPDF& q, py::object stream) {
+                py::scoped_estream_redirect redirector(
+                    std::cerr,
+                    stream
+                );
+                q.checkLinearization();
+            },
+            R"~~~(
+            Reports information on the PDF's linearization
+
+            :param stream: a stream to write this information too; must
+                implement .write() and .flush() method. Defaults to
+                ``sys.stderr``.
+
+            )~~~",
+            py::arg("stream")=py::module::import("sys").attr("stderr")
+        )
         .def("get_warnings", &QPDF::getWarnings)  // this is a def because it modifies state by clearing warnings
         .def("show_xref_table", &QPDF::showXRefTable)
         .def("_add_page",
@@ -303,9 +345,10 @@ PYBIND11_MODULE(_qpdf, m) {
                 q.addPage(page, first);
             },
             R"~~~(
-            Attach a page to this PDF. The page can be either be a
-            newly constructed PDF object or it can be obtained from another
-            PDF.
+            Attach a page to this PDF.
+
+            The page can be either be a newly constructed PDF object or it can
+            be obtained from another PDF.
 
             :param pikepdf.Object page: The page object to attach
             :param bool first: If True, prepend this before the first page; if False append after last page
@@ -365,27 +408,45 @@ PYBIND11_MODULE(_qpdf, m) {
 
             *normalize_content* enables parsing and reformatting the content
             stream within PDFs. This may debugging PDFs easier.
+
+            *linearize* enables creating linear or "fast web view", where the
+            file's contents are organized sequentially so that a viewer can
+            begin rendering before it has the whole file. As a drawback, it
+            tends to make files larger.
+
             )~~~",
             py::arg("filename"),
             py::arg("static_id")=false,
             py::arg("preserve_pdfa")=true,
             py::arg("min_version")="",
             py::arg("force_version")="",
+            py::arg("compress_streams")=true,
             py::arg("object_stream_mode")=qpdf_o_preserve,
             py::arg("stream_data_mode")=qpdf_s_preserve,
-            py::arg("normalize_content")=false
+            py::arg("normalize_content")=false,
+            py::arg("linearize")=false
         )
         .def("_get_object_id", &QPDF::getObjectByID)
         .def("get_object",
             [](QPDF &q, std::pair<int, int> objgen) {
                 return q.getObjectByID(objgen.first, objgen.second);
             },
+            R"~~~(
+            Look up an object by ID and generation number
+
+            :returns pikepdf.Object:
+            )~~~",
             py::return_value_policy::reference_internal
         )
         .def("get_object",
             [](QPDF &q, int objid, int gen) {
                 return q.getObjectByID(objid, gen);
             },
+            R"~~~(
+            Look up an object by ID and generation number
+
+            :returns pikepdf.Object:
+            )~~~",
             py::return_value_policy::reference_internal
         )
         .def("make_indirect", &QPDF::makeIndirectObject)

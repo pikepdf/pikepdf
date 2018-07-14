@@ -1,3 +1,7 @@
+"""
+A bunch of quick tests that confirm nothing is horribly wrong
+"""
+
 import pytest
 
 import gc
@@ -5,7 +9,7 @@ from contextlib import suppress
 from shutil import copy
 
 import pikepdf
-from pikepdf import Pdf, Object, Name, Stream, PasswordError
+from pikepdf import Pdf, Object, Name, Stream
 
 
 def test_minimum_qpdf_version():
@@ -23,33 +27,6 @@ def test_open_pdf(resources):
 def test_open_pdf_password(resources):
     pdf = Pdf.open(resources / 'graph-encrypted.pdf', password='owner')
     assert pdf.root['/Pages']['/Count'] == 1
-
-
-def test_open_pdf_wrong_password(resources):
-    with pytest.raises(PasswordError):
-        Pdf.open(resources / 'graph-encrypted.pdf', password='wrong')
-
-
-def test_open_pdf_password_encoding(resources):
-    with pytest.raises(PasswordError):
-        Pdf.open(resources / 'graph-encrypted.pdf', password=b'\x01\xfe')
-
-
-def test_open_pdf_no_password_but_needed(resources):
-    with pytest.raises(PasswordError):
-        Pdf.open(resources / 'graph-encrypted.pdf')
-
-
-def test_stream(resources):
-    with (resources / 'graph.pdf').open('rb') as stream:
-        pdf = Pdf.open(stream)
-    assert pdf.root.Pages.Count == 1
-
-
-def test_no_text_stream(resources):
-    with pytest.raises(TypeError):
-        with (resources / 'graph.pdf').open('r') as stream:
-            Pdf.open(stream)
 
 
 def test_attr_access(resources):
@@ -127,20 +104,6 @@ def test_copy_semantics(resources):
     assert page['/MediaBox'][2] == mediabox[2]
 
 
-def test_save_stream(resources, outdir):
-    from io import BytesIO
-    pdf = Pdf.open(resources / 'graph.pdf')
-    pdf.save(outdir / 'nostream.pdf', static_id=True)
-
-    bio = BytesIO()
-    pdf.save(bio, static_id=True)
-    bio.seek(0)
-
-    with (outdir / 'nostream.pdf').open('rb') as saved_file:
-        saved_file_contents = saved_file.read()
-    assert saved_file_contents == bio.read()
-
-
 def test_copy_page_keepalive(resources, outdir):
     # str for py<3.6
     copy(str(resources / 'sandwich.pdf'), str(outdir / 'sandwich.pdf'))
@@ -155,12 +118,3 @@ def test_copy_page_keepalive(resources, outdir):
     with suppress(PermissionError):
         (outdir / 'sandwich.pdf').unlink()
     pdf.save(outdir / 'out.pdf')
-
-
-def test_objgen(resources):
-    src = Pdf.open(resources / 'graph.pdf')
-    im0 = src.pages[0].Resources.XObject['/Im0']
-    assert im0.objgen == (5, 0)
-    object5 = src.get_object((5, 0))
-    assert object5.is_owned_by(src)
-    assert object5 == im0
