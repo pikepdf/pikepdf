@@ -16,6 +16,7 @@ Breaking
 * Modified ``Object.write`` method signature to require ``filter`` and ``decode_parms`` as keyword arguments
 * Implement automatic type conversion from the PDF Null type to ``None``
 * Removed ``Object.unparse_resolved`` in favor of ``Object.unparse(resolved=True)``
+* libqpdf 8.0.2 is now required at minimum
 
 Updates
 -------

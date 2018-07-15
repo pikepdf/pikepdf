@@ -50,9 +50,9 @@ def parse_content_stream(page_or_stream, operators=''):
             stream = page_or_stream
             instructions = Object._parse_stream_grouped(stream, operators)
     except PdfError as e:
-        if 'parseContentStream called on non-stream' in str(e):  # qpdf 6.x
-            raise TypeError("parse_content_stream called on non-stream Object")
-        elif 'ignoring non-stream while parsing' in str(e):  # qpdf 7.0
+        # This is the error message for qpdf >= 7.0. It was different in 6.x
+        # but we no longer support 6.x
+        if 'ignoring non-stream while parsing' in str(e):
             raise TypeError("parse_content_stream called on non-stream Object")
         raise e from e
 
