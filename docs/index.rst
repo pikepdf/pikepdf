@@ -95,6 +95,7 @@ Contents:
    :maxdepth: 2
 
    installation
+   changelog
    tutorial
    objects
    pikepdf
