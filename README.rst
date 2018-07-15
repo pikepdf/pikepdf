@@ -26,25 +26,23 @@ out loud, and it sounds like "pikepdf".
 
 Python 3.5, 3.6 and 3.7 are fully supported.
 
-To install:
+**To install:**
 
 .. code-block:: bash
 
     pip install pikepdf
 
-Features:
+Key features:
 
 -   Editing, manipulation and transformation of existing PDFs
 -   Based on the mature, proven QPDF C++ library
--   Reading and writing encrypted PDFs, with all encryption types except public key
+-   Works with encrypted PDFs
 -   Supports all PDF compression filters
--   Supports PDF 1.3 through 1.7
 -   Can create "fast web view" (linearized) PDFs
 -   Creates standards compliant PDFs that pass validation in other tools
 -   Automatically repairs damaged PDFs, just like QPDF
--   Can manipulate PDF/A, PDF/X and other types without losing their metadata marker
 -   Implements more of the PDF specification than existing Python PDF tools
--   For convenience, renders PDF pages or embedded PDF images in Jupyter notebooks and IPython
+-   IPython notebook and Jupyter integration
 
 .. code-block:: python
 
@@ -69,32 +67,39 @@ capability to render a PDF to image.
 Python 2.7 and earlier versions of Python 3 are not currently supported but
 support is probably not difficult to achieve. Pull requests are welcome.
 
-
-+--------------------------------------------------+-------------+-------------------------+--------------------------+
-| **Feature**                                      | **pikepdf** | **PyPDF2**              | **pdfrw**                |
-+--------------------------------------------------+-------------+-------------------------+--------------------------+
-| PDF versions supported                           | 1.1 to 1.7  | 1.3?                    | 1.7                      |
-+--------------------------------------------------+-------------+-------------------------+--------------------------+
-| Implementation speed                             | Native C++  | Python                  | Python                   |
-+--------------------------------------------------+-------------+-------------------------+--------------------------+
-| Python versions supported                        | 3.5-3.7     | 2.6-3.6                 | 2.6-3.6                  |
-+--------------------------------------------------+-------------+-------------------------+--------------------------+
-| Supports password protected (encrypted) PDFs     | ✔           | Only obsolete RC4       | ✘                        |
-+--------------------------------------------------+-------------+-------------------------+--------------------------+
-| Save and load PDF compressed object streams      | ✔           | ✘                       | ✘                        |
-+--------------------------------------------------+-------------+-------------------------+--------------------------+
-| Creates linearized ("fast web view") PDFs        | ✔           | ✘                       | ✘                        |
-+--------------------------------------------------+-------------+-------------------------+--------------------------+
-| Actively maintained                              | |commits|   | |pypdf2-commits|        | |pdfrw-commits|          |
-+--------------------------------------------------+-------------+-------------------------+--------------------------+
-| Test suite coverage                              | ~80%        | very low                | unknown                  |
-+--------------------------------------------------+-------------+-------------------------+--------------------------+
-| Modifies PDF/A without breaking PDF/A compliance | ✔           | ✘                       | ?                        |
-+--------------------------------------------------+-------------+-------------------------+--------------------------+
-| Automatically repairs PDFs with internal errors  | ✔           | ✘                       | ✘                        |
-+--------------------------------------------------+-------------+-------------------------+--------------------------+
-| Documentation                                    | ✔           | ✘                       | ✔                        |
-+--------------------------------------------------+-------------+-------------------------+--------------------------+
++---------------------------------------------------------------------+-----------------------+-------------------+-----------------+
+| **Feature**                                                         | **pikepdf**           | **PyPDF2**        | **pdfrw**       |
++---------------------------------------------------------------------+-----------------------+-------------------+-----------------+
+| Editing, manipulation and transformation of existing PDFs           | ✔                     | ✔                 | ✔               |
++---------------------------------------------------------------------+-----------------------+-------------------+-----------------+
+| Based on an existing, mature PDF library                            | QPDF                  | ✘                 | ✘               |
++---------------------------------------------------------------------+-----------------------+-------------------+-----------------+
+| Implementation speed                                                | C++                   | Python            | Python          |
++---------------------------------------------------------------------+-----------------------+-------------------+-----------------+
+| PDF versions supported                                              | 1.1 to 1.7            | 1.3?              | 1.7             |
++---------------------------------------------------------------------+-----------------------+-------------------+-----------------+
+| Python versions supported                                           | 3.5-3.7               | 2.6-3.6           | 2.6-3.6         |
++---------------------------------------------------------------------+-----------------------+-------------------+-----------------+
+| Supports password protected (encrypted) PDFs                        | ✔ (except public key) | Only obsolete RC4 | ✘               |
++---------------------------------------------------------------------+-----------------------+-------------------+-----------------+
+| Save and load PDF compressed object streams (PDF 1.5)               | ✔                     | ✘                 | ✘               |
++---------------------------------------------------------------------+-----------------------+-------------------+-----------------+
+| Creates linearized ("fast web view") PDFs                           | ✔                     | ✘                 | ✘               |
++---------------------------------------------------------------------+-----------------------+-------------------+-----------------+
+| Actively maintained                                                 | |commits|             | |pypdf2-commits|  | |pdfrw-commits| |
++---------------------------------------------------------------------+-----------------------+-------------------+-----------------+
+| Test suite coverage                                                 | ~86%                  | very low          | unknown         |
++---------------------------------------------------------------------+-----------------------+-------------------+-----------------+
+| Creates PDFs that pass PDF validation tests                         | ✔                     | ✘                 | ?               |
++---------------------------------------------------------------------+-----------------------+-------------------+-----------------+
+| Modifies PDF/A without breaking PDF/A compliance                    | ✔                     | ✘                 | ?               |
++---------------------------------------------------------------------+-----------------------+-------------------+-----------------+
+| Automatically repairs PDFs with internal errors                     | ✔                     | ✘                 | ✘               |
++---------------------------------------------------------------------+-----------------------+-------------------+-----------------+
+| Documentation                                                       | ✔                     | ✘                 | ✔               |
++---------------------------------------------------------------------+-----------------------+-------------------+-----------------+
+| Integrates with Jupyter and IPython notebooks for rapid development | ✔                     | ✘                 | ✘               |
++---------------------------------------------------------------------+-----------------------+-------------------+-----------------+
 
 License
 -------
