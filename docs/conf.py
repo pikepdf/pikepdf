@@ -80,7 +80,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'pikepdf'
-copyright = u'2017, James R. Barlow'
+copyright = u'2018, James R. Barlow'
 author = u'James R. Barlow'
 
 # The version info for the project you're documenting, acts as replacement for
