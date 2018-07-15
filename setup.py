@@ -115,6 +115,8 @@ setup(
         'docs': [
             'sphinx >= 1.4',
             'sphinx-rtd-theme',
+            'ipykernel',
+            'nbsphinx'
         ]
     },
     cmdclass={'build_ext': BuildExt},

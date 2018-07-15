@@ -23,72 +23,10 @@ there is no default constructor since the arguments used for creation and
 opening are different. ``Pdf.open()`` also accepts seekable streams as input,
 and ``Pdf.save()`` accepts streams as output.
 
-Manipulating pages
-==================
+.. toctree::
+  :maxdepth: 1
 
-pikepdf presents the pages in a PDF through the ``Pdf.pages`` property, which
-follows the ``list`` protocol. As such page numbers begin at 0.
-
-.. code-block:: python
-
-   # Add the appendix to the end of report
-   report = Pdf.open('report.pdf')
-   appendix = Pdf.open('appendix.pdf')
-   report.pages.extend(appendix.pages)
-
-   # Replace page 50 (49th array index) with a rescan
-   rescan_of_page50 = Pdf.open('page50.pdf')
-   report.pages[49] = rescan_of_page50[0]
-   report.save('report_complete.pdf')
-
-.. code-block:: python
-
-   # This document was scanned in reverse order; fix it
-   backwards = Pdf.open('backwards.pdf')
-   backwards.pages.reverse()
-   backwards.save('correct-page-order.pdf')
-
-.. code-block:: python
-
-   # Slice the odd pages
-   odd_pages = report.pages[::2]
-   odd = Pdf.new()
-   odd.extend(odd_pages)
-   odd.save('just-odd-pages.pdf')
-
-Using counting numbers for pages
---------------------------------
-
-Because PDF pages are usually numbered in counting numbers (1, 2, 3...), pikepdf
-provides a convenience accessor ``.p()`` that uses counting numbers:
-
-.. code-block:: python
-
-   report.pages.p(1)       # The first page in the document
-   report.pages[0]         # Also the first page in the document
-   del report.pages.p(50)  # Drop page 50
-   report.pages.p(0)       # Exception
-
-To avoid confusion, the ``.p()`` accessor does not accept Python slices.
-
-PDFs may define their own numbering scheme or different numberings for
-different sections. ``.pages`` does not look up this information.
-
-.. note::
-
-   Because of technical limitations in underlying libraries, pikepdf keeps the
-   original PDF from which a page from open, even if the reference to the PDF
-   is garbage collected. In the first example above, because ``report`` is
-   borrowing pages from ``appendix``, ``appendix`` will be kept alive until
-   ``report`` goes out of scope.
-
-.. warning::
-
-   It's possible to obtain page information through the PDF ``/Root`` object as
-   well, but not recommend. The internal consistency of the various ``/Page``
-   and ``/Pages`` is not guaranteed when accessed in this manner, and in some
-   PDFs the data structure for these is fairly complex. Use the ``.pages``
-   interface.
+  tutorial/pages
 
 
 Examining a page
