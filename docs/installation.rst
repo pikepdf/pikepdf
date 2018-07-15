@@ -17,11 +17,11 @@ Building from source
 **From source (GCC or Clang)**
 
 A C++11 compliant compiler is required, which includes most recent versions of
-GCC (4.8 and up) and clang (3.3 and up). A C++14 compiler is recommended.
+GCC (4.8 and up) and clang (3.3 and up). A C++14 compiler is recommended and
+will produce smaller binaries.
 
 libqpdf 7.0.0 is required at compile time and runtime. Many platforms have not
-updated to this version, so you may need to install this program without a
-package manager.
+updated to this version, so you may need to build this package from source.
 
 -  clone this repository
 -  install libjpeg, zlib and qpdf on your platform, including headers
@@ -61,5 +61,6 @@ Building the documentation
 Documentation is generated using Sphinx and you are currently reading it. To
 regenerate it:
 
+-  ``pip install -r requirements/docs.txt``
 -  ``cd pikepdf/docs``
 -  ``make html``

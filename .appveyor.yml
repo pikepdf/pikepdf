@@ -38,7 +38,7 @@ build_script:
     pip install --verbose $wheel
 
 test_script:
-- pip install -r test_requirements.txt
+- pip install -r requirements/test.txt
 - pytest -n auto
 
 artifacts:

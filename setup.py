@@ -93,7 +93,14 @@ class BuildExt(build_ext):
 
 setup_py_cwd = dirname(__file__)
 
-with open(join(setup_py_cwd, 'test_requirements.txt')) as f:
+with open(join(setup_py_cwd, 'requirements/docs.txt')) as f:
+    docs_require = [
+        line.strip() for line in f
+        if line.strip() and not line.strip().startswith('#')
+    ]
+
+
+with open(join(setup_py_cwd, 'requirements/test.txt')) as f:
     tests_require = [
         line.strip() for line in f
         if line.strip() and not line.strip().startswith('#')
@@ -112,12 +119,7 @@ setup(
     ext_modules=ext_modules,
     install_requires=['pybind11 >= 2.2.3, < 3'],
     extras_require={
-        'docs': [
-            'sphinx >= 1.4',
-            'sphinx-rtd-theme',
-            'ipykernel',
-            'nbsphinx'
-        ]
+        'docs': docs_require
     },
     cmdclass={'build_ext': BuildExt},
     zip_safe=False,

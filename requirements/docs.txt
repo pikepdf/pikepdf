@@ -1,0 +1,5 @@
+sphinx >= 1.4
+sphinx-rtd-theme
+ipykernel
+nbsphinx
+setuptools_scm
