@@ -119,12 +119,15 @@ def test_append_all(resources, outdir):
     pdf.save(outdir / 'out.pdf')
 
 
-def test_extend(resources, outdir):
+def test_extend_delete(resources, outdir):
     pdf = Pdf.open(resources / 'sandwich.pdf')
     pdf2 = Pdf.open(resources / 'fourpages.pdf')
     pdf.pages.extend(pdf2.pages)
 
     assert len(pdf.pages) == 5
+
+    del pdf.pages[2:4]
+
     pdf.save(outdir / 'out.pdf')
 
 

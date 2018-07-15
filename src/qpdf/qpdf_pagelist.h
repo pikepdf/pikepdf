@@ -9,7 +9,8 @@
 #pragma once
 
 #include "pikepdf.h"
-#include "qpdf_pagelist.h"
+
+#include <pybind11/stl.h>
 
 
 void init_pagelist(py::module &m);
@@ -26,7 +27,10 @@ public:
     void set_page(size_t index, py::object page);
     void set_pages_from_iterable(py::slice slice, py::iterable other);
     void delete_page(size_t index);
+    void delete_pages_from_iterable(py::slice slice);
     size_t count() const;
     void insert_page(size_t index, py::handle obj);
     void insert_page(size_t index, QPDFObjectHandle page);
+protected:
+    std::vector<QPDFObjectHandle> get_pages_impl(py::slice slice);
 };

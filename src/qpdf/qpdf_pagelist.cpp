@@ -35,18 +35,23 @@ QPDFObjectHandle PageList::get_page(ssize_t index) const
     throw py::index_error("Accessing nonexistent PDF page number");
 }
 
-py::list PageList::get_pages(py::slice slice)
+std::vector<QPDFObjectHandle> PageList::get_pages_impl(py::slice slice)
 {
     size_t start, stop, step, slicelength;
     if (!slice.compute(this->count(), &start, &stop, &step, &slicelength))
         throw py::error_already_set();
-    py::list result;
+    std::vector<QPDFObjectHandle> result;
     for (size_t i = 0; i < slicelength; ++i) {
         QPDFObjectHandle oh = this->get_page(start);
-        result.append(oh);
+        result.push_back(oh);
         start += step;
     }
     return result;
+}
+
+py::list PageList::get_pages(py::slice slice)
+{
+    return py::cast(this->get_pages_impl(slice));
 }
 
 void PageList::set_page(size_t index, py::object page)
@@ -121,6 +126,17 @@ void PageList::delete_page(size_t index)
     this->qpdf->removePage(page);
 }
 
+void PageList::delete_pages_from_iterable(py::slice slice)
+{
+    // See above: need a way to dec_ref pages with another owner
+    // Get handles for all pages, then remove them, since page numbers shift
+    // after delete
+    auto kill_list = this->get_pages_impl(slice);
+    for (auto page : kill_list) {
+        this->qpdf->removePage(page);
+    }
+}
+
 size_t PageList::count() const
 {
     return this->qpdf->getAllPages().size();
@@ -185,6 +201,7 @@ void init_pagelist(py::module &m)
         .def("__setitem__", &PageList::set_page)
         .def("__setitem__", &PageList::set_pages_from_iterable)
         .def("__delitem__", &PageList::delete_page)
+        .def("__delitem__", &PageList::delete_pages_from_iterable)
         .def("__len__", &PageList::count)
         .def("p",
             [](PageList &pl, size_t index) {
@@ -215,8 +232,8 @@ void init_pagelist(py::module &m)
             [](PageList &pl) {
                 py::slice ordinary_indices(0, pl.count(), 1);
                 py::int_ step(-1);
-                PyObject *raw_slice = PySlice_New(Py_None, Py_None, step.ptr());
-                py::slice reversed = py::reinterpret_steal<py::slice>(raw_slice);
+                py::slice reversed = py::reinterpret_steal<py::slice>(
+                    PySlice_New(Py_None, Py_None, step.ptr()));
                 py::list reversed_pages = pl.get_pages(reversed);
                 pl.set_pages_from_iterable(ordinary_indices, reversed_pages);
             }
