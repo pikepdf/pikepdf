@@ -1,5 +1,5 @@
 sphinx >= 1.4
 sphinx-rtd-theme
-ipykernel
-nbsphinx
+ipython
+matplotlib
 setuptools_scm

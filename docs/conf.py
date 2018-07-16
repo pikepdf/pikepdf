@@ -20,9 +20,6 @@ import subprocess
 
 on_rtd = os.environ.get('READTHEDOCS') == 'True'
 if on_rtd:
-    # Install an ipykernel named pikepdf
-    subprocess.check_call([sys.executable, '-m', 'ipykernel', 'install', '--name', 'pikepdf'])
-
     # Borrowed from https://github.com/YannickJadoul/Parselmouth/blob/master/docs/conf.py
     rtd_version = os.environ.get('READTHEDOCS_VERSION')
     setup_py_version = subprocess.check_output([sys.executable, 'setup.py', '--version'], cwd='..').decode('ascii').strip()
@@ -61,7 +58,8 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
-    'nbsphinx'
+    'IPython.sphinxext.ipython_console_highlighting',
+    'IPython.sphinxext.ipython_directive'
 ]
 
 autosummary_generate = True
@@ -107,7 +105,7 @@ language = None
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['_build', '**.ipynb_checkpoints']
+exclude_patterns = ['_build', '**.ipynb_checkpoints', '_notebooks']
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
