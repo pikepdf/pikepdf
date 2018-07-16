@@ -20,6 +20,9 @@ import subprocess
 
 on_rtd = os.environ.get('READTHEDOCS') == 'True'
 if on_rtd:
+    # Install an ipykernel named pikepdf
+    subprocess.check_call([sys.executable, '-m', 'ipykernel', 'install', '--name', 'pikepdf'])
+
     # Borrowed from https://github.com/YannickJadoul/Parselmouth/blob/master/docs/conf.py
     rtd_version = os.environ.get('READTHEDOCS_VERSION')
     setup_py_version = subprocess.check_output([sys.executable, 'setup.py', '--version'], cwd='..').decode('ascii').strip()
