@@ -62,6 +62,11 @@ extensions = [
     'IPython.sphinxext.ipython_directive'
 ]
 
+ipython_execlines = [
+    'import pikepdf',
+    'from pikepdf import Pdf'
+]
+
 autosummary_generate = True
 
 # Add any paths that contain templates here, relative to this directory.

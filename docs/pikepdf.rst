@@ -12,13 +12,26 @@ Primary objects
 .. autoclass:: pikepdf.Object
     :members:
 
+.. autoclass:: pikepdf.String
+
+.. autoclass:: pikepdf.Array
+
+.. autoclass:: pikepdf.Dictionary
+
+.. autoclass:: pikepdf.Stream
+
+.. autoclass:: pikepdf.Operator
+
 .. autoexception:: pikepdf.PdfError
 
+.. autoexception:: pikepdf.PasswordError
 
-Support
-=======
+
+Support models
+==============
 
 .. autoclass:: pikepdf.PdfMatrix
+    :members:
 
 .. autoclass:: pikepdf.PdfImage
     :members:

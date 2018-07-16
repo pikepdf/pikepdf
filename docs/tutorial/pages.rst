@@ -4,6 +4,9 @@ Manipulating pages
 pikepdf presents the pages in a PDF through the :attr:`pikepdf.Pdf.pages`
 property, which follows the ``list`` protocol. As such page numbers begin at 0.
 
+Since one of the most things people want to do is split and merge PDF pages,
+we'll by exploring that.
+
 Let’s look at a simple PDF that contains four pages.
 
 .. ipython::
@@ -122,7 +125,6 @@ is commented out to avoid upsetting the documentation generator.)
 
 You may save a file multiple times, and you may continue modifying it after
 saving.
-
 
 Split a PDF one page PDFs
 ~~~~~~~~~~~~~~~~~~~~~~~~~
