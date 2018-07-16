@@ -104,6 +104,9 @@ open_pdf(py::object file, py::kwargs kwargs)
         // This could be improved by subclassing InputSource into C++
         // and creating a version that obtains its data from its Python object,
         // but that is much more complex.
+        // It is believed to be safe to release the GIL here -- we are working
+        // on a read-only view of an object that only we know about.
+        py::gil_scoped_release release;
         q->processMemoryFile("memory", buffer, length, password.c_str());
     } else {
         std::string filename = fsencode_filename(file);
@@ -117,8 +120,12 @@ open_pdf(py::object file, py::kwargs kwargs)
     if (kwargs && kwargs.contains("inherit_page_attributes")) {
         push_page_attrs = kwargs["inherit_page_attributes"].cast<bool>();
     }
-    if (push_page_attrs)
+    if (push_page_attrs) {
+        // This could be expensive for a large file, plausibly (not tested),
+        // so release the GIL again.
+        py::gil_scoped_release release;
         q->pushInheritedAttributesToPage();
+    }
 
     return q;
 }
@@ -166,10 +173,21 @@ void save_pdf(
         py::object stream = filename_or_stream;
         check_stream_is_usable(stream);
 
-        // TODO could improve this by streaming rather than buffering
-        // using subclass of Pipeline that routes calls to Python
+        // TODO might be able to improve this by streaming rather than buffering
+        // using subclass of Pipeline that routes calls to Python.
         w.setOutputMemory();
+
+        // It would be kind to release the GIL here, but this is not possible
+        // if another thread has an object and tries to mess with it.
+        // Correctness is more important than performance.
         w.write();
+
+        // But now that we've held the GIL forever, we can release it and take
+        // it back again; at least in theory giving other threads a chance to
+        // to do something.
+        {
+            py::gil_scoped_release release;
+        }
 
         // getBuffer returns Buffer* and qpdf says we are responsible for
         // deleting it, so capture it in a unique_ptr
