@@ -88,6 +88,30 @@ saving PDFs.
 
 A C++14 capable compiler is recommended to build from source, but C++11 works.
 
+Thread safety
+-------------
+
+Because of the global interpreter lock (GIL), it is safe to share pikepdf
+objects across Python threads. Also because of the GIL, there may not be much
+performance gain from doing so.
+
+If one or more threads will be modifying pikepdf objects, you will have to
+coordinate all read and write access with a :class:`threading.Lock`.
+
+It is not currently possible to pickle pikepdf objects or marshall them across
+process boundaries (as would be required to use pikepdf in
+:mod:`multiprocessing`). If this were implemented, it would not be much more
+efficient than saving the file and sending it to another process.
+
+In use
+------
+
+pikepdf is used by the same author's `OCRmyPDF
+<https://github.com/jbarlow83/OCRmyPDF>`_ to inspect input PDFs, graft the
+generated OCR layers on to page content, and output PDFs. Its code contains main
+practical examples, particular in pdfinfo.py, _weave.py, and optimize.py.
+pikepdf is also used in the test suite.
+
 
 Contents:
 

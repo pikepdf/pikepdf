@@ -1,8 +1,8 @@
 Manipulating pages
 ------------------
 
-pikepdf presents the pages in a PDF through the ``Pdf.pages`` property,
-which follows the ``list`` protocol. As such page numbers begin at 0.
+pikepdf presents the pages in a PDF through the :attr:`pikepdf.Pdf.pages`
+property, which follows the ``list`` protocol. As such page numbers begin at 0.
 
 Let’s look at a simple PDF that contains four pages.
 
@@ -38,6 +38,9 @@ slicing them.
 
     In [1]: pdf.pages[-1].MediaBox
 
+Reversing the order of pages
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 Suppose the file was scanned backwards. We can easily reverse it in
 place - maybe it was scanned backwards, a common problem with automatic
 document scanners.
@@ -57,6 +60,9 @@ order, so let’s put them back.
 
     In [1]: pdf.pages.reverse()
 
+Deleting pages
+~~~~~~~~~~~~~~
+
 Removing and adding pages is easy too.
 
 .. ipython::
@@ -67,14 +73,26 @@ Removing and adding pages is easy too.
 
     In [1]: pdf
 
-We’ve trimmed down the file to its essential first and last page. Now,
-let’s add some content from another file.
+We’ve trimmed down the file to its essential first and last page.
+
+Copying pages from other PDFs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Now, let’s add some content from another file. Because ``pdf.pages`` behaves
+like a list, we can use ``pages.extend()`` on another file's pages.
 
 .. ipython::
+
+    In [1]: pdf = Pdf.open('../tests/resources/fourpages.pdf')
 
     In [1]: appendix = Pdf.open('../tests/resources/sandwich.pdf')
 
     In [2]: pdf.pages.extend(appendix.pages)
+
+We can use ``pages.insert()`` to insert into one of more pages into a specific
+position, bumping everything else ahead.
+
+.. ipython::
 
     In [3]: graph = Pdf.open('../tests/resources/graph.pdf')
 
@@ -82,7 +100,18 @@ let’s add some content from another file.
 
     In [5]: len(pdf.pages)
 
-Naturally, you can save your changes with ``.save(filename_or_stream)``.
+We can also replace specific pages with assignment (or slicing).
+
+.. ipython::
+
+    In [1]: congress = Pdf.open('../tests/resources/congress.pdf')
+
+    In [1]: pdf.pages[2] = congress.pages[0]
+
+Saving changes
+~~~~~~~~~~~~~~
+
+Naturally, you can save your changes with :meth:`pikepdf.Pdf.save`.
 ``filename`` can be a :class:`pathlib.Path`, which we accept everywhere. (Saving
 is commented out to avoid upsetting the documentation generator.)
 
@@ -90,6 +119,54 @@ is commented out to avoid upsetting the documentation generator.)
     :verbatim:
 
     In [1]: pdf.save('output.pdf')
+
+You may save a file multiple times, and you may continue modifying it after
+saving.
+
+
+Split a PDF one page PDFs
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+All we need is a new PDF to hold the destination page.
+
+.. ipython::
+    :verbatim:
+
+    In [1]: pdf = Pdf.open('../tests/resources/fourpages.pdf')
+
+    In [5]: for n, page in enumerate(pdf.pages):
+       ...:     dst = Pdf.new()
+       ...:     dst.pages.append(page)
+       ...:     dst.save('{:02d}.pdf'.format(n))
+
+.. note::
+
+    This example will transfer data associated with each page, so
+    that every page stands on its own. It will *not* transfer some metadata
+    associated with the PDF as a whole, such the list of bookmarks.
+
+Merging a PDF from several files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You might be able to guess.
+
+.. ipython::
+    :verbatim:
+
+    In [1]: from glob import glob
+
+    In [1]: pdf = Pdf.new()
+
+    In [1]: for file in glob('*.pdf'):
+       ...:     src = Pdf.open(file)
+       ...:     pdf.pages.extend(src.pages)
+
+    In [1]: pdf.save('merged.pdf')
+
+.. note::
+
+    This code sample does not deduplicate objects. The resulting file may be
+    large if the source files have content in common.
 
 Using counting numbers
 ~~~~~~~~~~~~~~~~~~~~~~

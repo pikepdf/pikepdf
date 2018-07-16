@@ -416,6 +416,10 @@ PYBIND11_MODULE(_qpdf, m) {
             begin rendering before it has the whole file. As a drawback, it
             tends to make files larger.
 
+            You may call ``.save()`` multiple times with different parameters
+            to generate different versions of a file, and you *may* continue
+            to modify the file after saving it.
+
             )~~~",
             py::arg("filename"),
             py::arg("static_id")=false,
