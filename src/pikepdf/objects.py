@@ -26,7 +26,7 @@ from ._qpdf import Operator
 
 
 class _ObjectMeta(type):
-    "Supports instance checking"
+    """Supports instance checking"""
 
     def __instancecheck__(cls, instance):
         if type(instance) != Object:
@@ -34,7 +34,14 @@ class _ObjectMeta(type):
         return cls.object_type == instance._type_code
 
 
-class Name(metaclass=_ObjectMeta):
+class _NameObjectMeta(_ObjectMeta):
+    """Supports usage pikepdf.Name.Whatever -> Name('/Whatever')"""
+
+    def __getattr__(self, attr):
+        return Name('/' + attr)
+
+
+class Name(metaclass=_NameObjectMeta):
     object_type = ObjectType.name
 
     def __new__(cls, name):

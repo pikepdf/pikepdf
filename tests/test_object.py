@@ -151,6 +151,7 @@ def test_name_equality():
     # Name('/Indexed') everywhere
     assert Name('/Foo') == '/Foo'
     assert Name('/Foo') == b'/Foo'
+    assert Name.Foo == Name('/Foo')
 
 
 class TestHashViolation:
