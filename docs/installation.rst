@@ -28,7 +28,7 @@ GCC (4.8 and up) and clang (3.3 and up). A C++14 compiler is recommended and
 will produce smaller binaries, but no difference is performance has been
 observed.
 
-libqpdf 8.0.2 is required at compile time and runtime. Many platforms have not
+libqpdf 8.1.0 is required at compile time and runtime. Many platforms have not
 updated to this version, so you may need to build this package from source.
 
 -  clone this repository
