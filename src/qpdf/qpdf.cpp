@@ -25,18 +25,6 @@
 
 extern "C" const char* qpdf_get_qpdf_version();
 
-template <typename T>
-void kwargs_to_method(py::kwargs kwargs, const char* key, std::shared_ptr<QPDF> &q, void (QPDF::*callback)(T))
-{
-    try {
-        if (kwargs.contains(key)) {
-            auto v = kwargs[key].cast<T>();
-            ((*q).*callback)(v); // <-- Cute
-        }
-    } catch (py::cast_error) {
-        throw py::type_error(std::string(key) + ": unsupported argument type");
-    }
-}
 
 /* Convert a Python object to a filesystem encoded path
  * Use Python's os.fspath() which accepts os.PathLike (str, bytes, pathlib.Path)
@@ -68,23 +56,22 @@ void check_stream_is_usable(py::object stream)
 }
 
 std::shared_ptr<QPDF>
-open_pdf(py::object file, py::kwargs kwargs)
+open_pdf(
+    py::object filename_or_stream,
+    std::string password,
+    bool hex_password=false,
+    bool ignore_xref_streams=false,
+    bool suppress_warnings=true,
+    bool attempt_recovery=true,
+    bool inherit_page_attributes=true)
 {
+    auto file = filename_or_stream;
     auto q = std::make_shared<QPDF>();
 
-    std::string password;
-
-    q->setSuppressWarnings(true);
-    if (kwargs) {
-        if (kwargs.contains("password")) {
-            auto v = kwargs["password"].cast<std::string>();
-            password = v;
-        }
-        kwargs_to_method(kwargs, "hex_password", q, &QPDF::setPasswordIsHexKey);
-        kwargs_to_method(kwargs, "ignore_xref_streams", q, &QPDF::setIgnoreXRefStreams);
-        kwargs_to_method(kwargs, "suppress_warnings", q, &QPDF::setSuppressWarnings);
-        kwargs_to_method(kwargs, "attempt_recovery", q, &QPDF::setAttemptRecovery);
-    }
+    q->setSuppressWarnings(suppress_warnings);
+    q->setPasswordIsHexKey(hex_password);
+    q->setIgnoreXRefStreams(ignore_xref_streams);
+    q->setAttemptRecovery(attempt_recovery);
 
     if (py::hasattr(file, "read") && py::hasattr(file, "seek")) {
         // Python code gave us an object with a stream interface
@@ -116,11 +103,7 @@ open_pdf(py::object file, py::kwargs kwargs)
         q->processFile(filename.c_str(), password.c_str());
     }
 
-    bool push_page_attrs = true;
-    if (kwargs && kwargs.contains("inherit_page_attributes")) {
-        push_page_attrs = kwargs["inherit_page_attributes"].cast<bool>();
-    }
-    if (push_page_attrs) {
+    if (inherit_page_attributes) {
         // This could be expensive for a large file, plausibly (not tested),
         // so release the GIL again.
         py::gil_scoped_release release;
@@ -258,8 +241,7 @@ PYBIND11_MODULE(_qpdf, m) {
         )
         .def_static("open", open_pdf,
             R"~~~(
-            Open an existing file at `filename_or_stream` according to `options`, all
-            of which are optional.
+            Open an existing file at `filename_or_stream`.
 
             If `filename_or_stream` is path-like, the file will be opened.
 
@@ -267,28 +249,38 @@ PYBIND11_MODULE(_qpdf, m) {
             will be accessed as a readable binary stream. pikepdf will read the
             entire stream into a private buffer.
 
-            :param filename_or_stream: Filename of PDF to open
-            :type filename_or_stream: os.PathLike or file stream
-            :param password: User or owner password to open an encrypted PDF
-            :type password: str or bytes
-            :param hex_password: If True, interpret the password as a
-                hex-encoded version of the exact encryption key to use, without
-                performing the normal key computation. Useful in forensics.
-            :param ignore_xref_streams: If True, ignore cross-reference
-                streams. See qpdf documentation.
-            :param suppress_warnings: If True (default), warnings are not
-                printed to stderr. Use `get_warnings()` to retrieve warnings.
-            :param attempt_recovery: If True (default), attempt to recover
-                from PDF parsing errors.
-            :param inherit_page_attributes: If True (default), push attributes
-                set on a group of pages to individual pages
-            :throws pikepdf.PasswordError: If the password failed to open the
-                file.
-            :throws pikepdf.PdfError: If for other reasons we could not open
-                the file.
-            :throws TypeError: If the type of `filename_or_stream` is not
-                usable.
-            )~~~"
+            Args:
+                filename_or_stream (os.PathLike): Filename of PDF to open
+                password (str or bytes): User or owner password to open an
+                    encrypted PDF. If a str is given it will be converted to
+                    UTF-8.
+                hex_password (bool): If True, interpret the password as a
+                    hex-encoded version of the exact encryption key to use, without
+                    performing the normal key computation. Useful in forensics.
+                ignore_xref_streams (bool): If True, ignore cross-reference
+                    streams. See qpdf documentation.
+                suppress_warnings (bool): If True (default), warnings are not
+                    printed to stderr. Use `get_warnings()` to retrieve warnings.
+                attempt_recovery (bool): If True (default), attempt to recover
+                    from PDF parsing errors.
+                inherit_page_attributes (bool): If True (default), push attributes
+                    set on a group of pages to individual pages
+
+            Raises:
+                pikepdf.PasswordError: If the password failed to open the
+                    file.
+                pikepdf.PdfError: If for other reasons we could not open
+                    the file.
+                TypeError: If the type of `filename_or_stream` is not
+                    usable.
+            )~~~",
+            py::arg("filename_or_stream"),
+            py::arg("password") = "",
+            py::arg("hex_password") = false,
+            py::arg("ignore_xref_streams") = false,
+            py::arg("suppress_warnings") = true,
+            py::arg("attempt_recovery") = true,
+            py::arg("inherit_page_attributes") = true
         )
         .def("__repr__",
             [](QPDF& q) {
