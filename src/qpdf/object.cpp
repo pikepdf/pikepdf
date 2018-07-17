@@ -769,6 +769,12 @@ void init_object(py::module& m)
         },
         "Construct a PDF String object."
     );
+    m.def("_new_string_utf8",
+        [](const std::string& utf8) {
+            return QPDFObjectHandle::newUnicodeString(utf8);
+        },
+        "Construct a PDF String object from UTF-8 bytes."
+    );
     m.def("_new_array",
         [](py::iterable iterable) {
             return QPDFObjectHandle::newArray(array_builder(iterable));

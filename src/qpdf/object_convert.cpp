@@ -98,29 +98,8 @@ QPDFObjectHandle objecthandle_encode(py::handle handle)
         py::bytes py_bytes = obj;
         return QPDFObjectHandle::newString(static_cast<std::string>(py_bytes));
     } else if (py::isinstance<py::str>(obj)) {
-        // First check if we can encode the string as ASCII
-        auto as_ascii = py::reinterpret_steal<py::bytes>(
-            PyUnicode_AsEncodedString(obj.ptr(), "ascii", nullptr));
-        if (as_ascii) {
-            std::string ascii = static_cast<std::string>(as_ascii);
-            return QPDFObjectHandle::newString(ascii);
-        }
-        PyErr_Clear();
-
-        // ...and if ASCII fails, we have to encode as UTF-16BE with
-        // byte order marks packed in a std::string. Including any NULs that
-        // may appear.
-        auto as_utf16 = py::reinterpret_steal<py::bytes>(
-            PyUnicode_AsEncodedString(obj.ptr(), "utf-16be", nullptr));
-        if (!as_utf16) {
-            // Still can't encode it, so toss the error back
-            throw py::error_already_set();
-        }
-        auto utf16 = static_cast<std::string>(as_utf16);
-        // Put the utf-16be string in a regular std::string... that is what
-        // QPDF wants
-        auto utf16_encoded = std::string("\xfe\xff") + utf16;
-        return QPDFObjectHandle::newString(utf16_encoded);
+        py::str py_str = obj;
+        return QPDFObjectHandle::newUnicodeString(static_cast<std::string>(py_str));
     }
 
     if (py::hasattr(obj, "__iter__")) {

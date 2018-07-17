@@ -58,12 +58,7 @@ class String(metaclass=_ObjectMeta):
     def __new__(cls, s):
         if isinstance(s, bytes):
             return _qpdf._new_string(s)
-        try:
-            ascii_ = s.encode('ascii')
-            return _qpdf._new_string(ascii_)
-        except UnicodeEncodeError:
-            utf16 = b'\xfe\xff' + s.encode('utf-16be')
-            return _qpdf._new_string(utf16)
+        return _qpdf._new_string_utf8(s)
 
 
 class Array(metaclass=_ObjectMeta):

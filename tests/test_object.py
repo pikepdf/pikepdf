@@ -232,7 +232,7 @@ class TestRepr:
 
 
 def test_utf16_error():
-    with pytest.raises(UnicodeEncodeError):
+    with pytest.raises((UnicodeEncodeError, RuntimeError)):
         str(encode('\ud801'))
 
 
