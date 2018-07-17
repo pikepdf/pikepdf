@@ -1,5 +1,5 @@
-pikepdf API Reference
-*********************
+pikepdf API
+***********
 
 Primary objects
 ===============

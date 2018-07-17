@@ -61,19 +61,15 @@ What it cannot and never will do:
   Postscript – use MuPDF or PyMuPDF
 * Print to paper
 
-Architecture
-------------
+Requirements
+~~~~~~~~~~~~
 
 pikepdf currently requires **Python 3.5+**. As this is a new library there are
 no plans to support Python 2.7 or older versions in the 3.x family, but pull
 requests to backport would be considered.
 
-The library uses `pybind11 <https://github.com/pybind/pybind11>`_ to bind the
-C++ interface of QPDF. pybind11 was selected after evaluating Cython, CFFI and
-SWIG as possible solutions.
-
-In addition to bindings pikepdf includes its support code, mainly to present a
-clean Pythonic interface to a C++.
+Similar libraries
+~~~~~~~~~~~~~~~~~
 
 Unlike similar Python libraries such as PyPDF2 and pdfrw, pikepdf is not pure
 Python. Both were designed prior to Python wheels which has made Python
@@ -86,25 +82,8 @@ pure Python: it is impure and proud of it.
 It's almost certainly faster than the pure Python libraries at loading and
 saving PDFs.
 
-A C++14 capable compiler is recommended to build from source, but C++11 works.
-
-Thread safety
--------------
-
-Because of the global interpreter lock (GIL), it is safe to share pikepdf
-objects across Python threads. Also because of the GIL, there may not be much
-performance gain from doing so.
-
-If one or more threads will be modifying pikepdf objects, you will have to
-coordinate all read and write access with a :class:`threading.Lock`.
-
-It is not currently possible to pickle pikepdf objects or marshall them across
-process boundaries (as would be required to use pikepdf in
-:mod:`multiprocessing`). If this were implemented, it would not be much more
-efficient than saving the file and sending it to another process.
-
 In use
-------
+~~~~~~
 
 pikepdf is used by the same author's `OCRmyPDF
 <https://github.com/jbarlow83/OCRmyPDF>`_ to inspect input PDFs, graft the
@@ -116,13 +95,23 @@ pikepdf is also used in the test suite.
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+    :maxdepth: 2
+    :caption: Introduction
+    :name: intro_toc
 
-   installation
-   changelog
-   tutorial
-   objects
-   pikepdf
+    installation
+    changelog
+    tutorial
+    objects
+
+.. toctree::
+    :maxdepth: 2
+    :caption: Reference
+    :name: reference_toc
+
+    pikepdf
+    arch
+    resources
 
 .. rubric:: References
 
