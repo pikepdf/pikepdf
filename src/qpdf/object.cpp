@@ -597,7 +597,6 @@ void init_object(py::module& m)
                 // py::bytes will make a copy of the buffer, so releasing is fine
                 return py::bytes((const char*)buf->getBuffer(), buf->getSize());
             },
-            py::return_value_policy::take_ownership,
             "Decode and read the content stream associated with this object"
         )
         .def("read_raw_bytes",
@@ -606,7 +605,6 @@ void init_object(py::module& m)
                 // py::bytes will make a copy of the buffer, so releasing is fine
                 return py::bytes((const char*)buf->getBuffer(), buf->getSize());
             },
-            py::return_value_policy::take_ownership,
             "Read the content stream associated with this object without decoding"
         )
         .def("write",

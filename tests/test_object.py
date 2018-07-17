@@ -22,6 +22,11 @@ def test_none():
     assert encode(None) is None
 
 
+def test_booleans():
+    assert encode(True) == True
+    assert encode(False) == False
+
+
 @given(characters(min_codepoint=0x20, max_codepoint=0x7f))
 @example('')
 def test_ascii_involution(ascii_):

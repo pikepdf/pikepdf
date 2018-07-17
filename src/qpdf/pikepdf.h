@@ -96,7 +96,12 @@ namespace pybind11 { namespace detail {
          * Purpose of this is to establish the indirect keep_alive relationship
          * between QPDF and objects that refer back to in ways that pybind11
          * can't trace on its own.
-         * Could consider unboxing Integer, Boolean, etc. here
+         * We also convert several QPDFObjectHandle types to native Python
+         * objects here.
+         * The ==take_ownership code paths are currently unused but present
+         * for completeness. They are unused because pybind11 only sets
+         * take_ownership when a binding returns raw pointers to Python, and
+         * by making this caster private we prohibit that.
          */
     private:
         // 'private': disallow returning pointers to QPDFObjectHandle from bindings
