@@ -11,6 +11,12 @@ def test_non_filename():
     with pytest.raises(TypeError):
         Pdf.open(42)
 
+
+def test_not_existing_file():
+    with pytest.raises(FileNotFoundError):
+        Pdf.open('does_not_exist.pdf')
+
+
 class TestLinearization:
     def test_linearization(self, resources, outdir):
         pdf = Pdf.open(resources / 'graph.pdf')
@@ -50,18 +56,18 @@ class TestPasswords:
 
 class TestStreams:
     def test_stream(self, resources):
-        with (resources / 'graph.pdf').open('rb') as stream:
+        with (resources / 'pal-1bit-trivial.pdf').open('rb') as stream:
             pdf = Pdf.open(stream)
         assert pdf.root.Pages.Count == 1
 
     def test_no_text_stream(self, resources):
         with pytest.raises(TypeError):
-            with (resources / 'graph.pdf').open('r') as stream:
+            with (resources / 'pal-1bit-trivial.pdf').open('r') as stream:
                 Pdf.open(stream)
 
     def test_save_stream(self, resources, outdir):
         from io import BytesIO
-        pdf = Pdf.open(resources / 'graph.pdf')
+        pdf = Pdf.open(resources / 'pal-1bit-trivial.pdf')
         pdf.save(outdir / 'nostream.pdf', static_id=True)
 
         bio = BytesIO()
@@ -71,3 +77,10 @@ class TestStreams:
         with (outdir / 'nostream.pdf').open('rb') as saved_file:
             saved_file_contents = saved_file.read()
         assert saved_file_contents == bio.read()
+
+
+class TestMemory:
+    def test_memory(self, resources):
+        pdf = (resources / 'pal-1bit-trivial.pdf').read_bytes()
+        with pytest.raises(Exception):
+            pdf = Pdf.open(pdf)

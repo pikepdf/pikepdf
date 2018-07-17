@@ -40,6 +40,7 @@ namespace std {
 namespace pybind11 {
     PYBIND11_RUNTIME_EXCEPTION(attr_error, PyExc_AttributeError);
     PYBIND11_RUNTIME_EXCEPTION(notimpl_error, PyExc_NotImplementedError);
+    PYBIND11_RUNTIME_EXCEPTION(filenotfound_error, PyExc_FileNotFoundError);
 };
 
 // Declare PointerHolder<T> as a smart pointer

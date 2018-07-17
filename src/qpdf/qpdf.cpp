@@ -99,8 +99,16 @@ open_pdf(
         std::string filename = fsencode_filename(file);
         // We can release GIL because Python knows nothing about q at this
         // point; this could also take a moment for large files
-        py::gil_scoped_release release;
-        q->processFile(filename.c_str(), password.c_str());
+
+        try {
+            py::gil_scoped_release release;
+            q->processFile(filename.c_str(), password.c_str());
+        } catch (const std::runtime_error &rt_e) {
+            // If the error message does not contain "No such file", throw it onward
+            if (std::string(rt_e.what()).find("No such file") == std::string::npos)
+                throw;
+            throw py::filenotfound_error(filename);
+        }
     }
 
     if (inherit_page_attributes) {
