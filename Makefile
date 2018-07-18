@@ -54,3 +54,7 @@ cppcov: clean-coverage-cppcov build-cppcov pycov coverage/cppcov
 
 .PHONY: coverage
 coverage: cppcov pycov
+
+.PHONY: docs
+docs:
+	$(MAKE) -C docs html
