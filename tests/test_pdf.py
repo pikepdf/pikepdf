@@ -98,3 +98,8 @@ def test_remove_unreferenced(resources, outdir):
     pdf.save(out2)
 
     assert out2.stat().st_size < out1.stat().st_size
+
+
+def test_show_xref(resources):
+    pdf = Pdf.open(resources / 'pal-1bit-trivial.pdf')
+    pdf.show_xref_table()

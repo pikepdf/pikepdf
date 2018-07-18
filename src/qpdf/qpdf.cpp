@@ -282,6 +282,7 @@ PYBIND11_MODULE(_qpdf, m) {
                     the file.
                 TypeError: If the type of `filename_or_stream` is not
                     usable.
+                FileNotFoundError: If the file was not found.
             )~~~",
             py::arg("filename_or_stream"),
             py::arg("password") = "",
@@ -361,7 +362,12 @@ PYBIND11_MODULE(_qpdf, m) {
             py::arg_v("stream", py::module::import("sys").attr("stderr"), "sys.stderr")
         )
         .def("get_warnings", &QPDF::getWarnings)  // this is a def because it modifies state by clearing warnings
-        .def("show_xref_table", &QPDF::showXRefTable)
+        .def("show_xref_table", &QPDF::showXRefTable,
+            R"~~~(
+            Pretty-print the Pdf's xref (cross-reference table)
+            )~~~",
+            py::call_guard<py::scoped_ostream_redirect>()
+        )
         .def("_add_page",
             [](QPDF& q, QPDFObjectHandle& page, bool first=false) {
                 q.addPage(page, first);
