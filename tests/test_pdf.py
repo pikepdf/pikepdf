@@ -3,7 +3,7 @@ Testing focused on pikepdf.Pdf
 """
 
 import pytest
-from pikepdf import Pdf, PasswordError
+from pikepdf import Pdf, PasswordError, Stream
 
 from io import StringIO
 
@@ -84,3 +84,17 @@ class TestMemory:
         pdf = (resources / 'pal-1bit-trivial.pdf').read_bytes()
         with pytest.raises(Exception):
             pdf = Pdf.open(pdf)
+
+
+def test_remove_unreferenced(resources, outdir):
+    in_ = resources / 'sandwich.pdf'
+    out1 = outdir / 'out1.pdf'
+    out2 = outdir / 'out2.pdf'
+    pdf = Pdf.open(in_)
+    pdf.pages[0].Contents = Stream(pdf, b' ')
+    pdf.save(out1)
+
+    pdf.remove_unreferenced_resources()
+    pdf.save(out2)
+
+    assert out2.stat().st_size < out1.stat().st_size

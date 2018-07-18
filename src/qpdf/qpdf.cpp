@@ -16,6 +16,7 @@
 #include <qpdf/QPDFXRefEntry.hh>
 #include <qpdf/Buffer.hh>
 #include <qpdf/QPDFWriter.hh>
+#include <qpdf/QPDFPageDocumentHelper.hh>
 
 #include <pybind11/stl.h>
 #include <pybind11/iostream.h>
@@ -379,21 +380,23 @@ PYBIND11_MODULE(_qpdf, m) {
         )
         .def("_add_page_at", &QPDF::addPageAt, py::keep_alive<1, 2>())
         .def("_remove_page", &QPDF::removePage)
-        .def("save",
-            save_pdf,
+        .def("remove_unreferenced_resources",
+            [](QPDF& q) {
+                QPDFPageDocumentHelper helper(q);
+                helper.removeUnreferencedResources();
+            },
             R"~~~(
-            Save all modifications to this PDF
+            Remove from /Resources of each page any object not referenced in page's contents
 
-            *filename* is the filename or writable file stream to write to.
+            PDF pages may share resource dictionaries with other pages. If
+            pikepdf is used for page splitting, pages may reference resources
+            in their /Resources dictionary that are not actually required.
+            This purges all unnecessary resource entries.
 
-            *static_id* indicates that the ``/ID`` metadata, normally
-            calculated as a hash of certain PDF contents and metadata including
-            the current time, should instead be generated deterministically.
-            Normally for debugging.
+            Suggested before saving.
 
-            *preserve_pdfa* ensures that the file is generated in a manner
-            compliant with PDF/A and other PDF variants. This should be True,
-            the default, in most cases.
+            )~~~"
+        )
 
             *min_version* sets the minimum version of PDF specification that
             should be required. If left alone QPDF will decide. *force_version*
