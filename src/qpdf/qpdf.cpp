@@ -352,12 +352,13 @@ PYBIND11_MODULE(_qpdf, m) {
             R"~~~(
             Reports information on the PDF's linearization
 
-            :param stream: a stream to write this information too; must
-                implement .write() and .flush() method. Defaults to
-                ``sys.stderr``.
+            Args:
+                stream: A stream to write this information too; must
+                    implement ``.write()`` and ``.flush()`` method. Defaults to
+                    :data:`sys.stderr`.
 
             )~~~",
-            py::arg("stream")=py::module::import("sys").attr("stderr")
+            py::arg_v("stream", py::module::import("sys").attr("stderr"), "sys.stderr")
         )
         .def("get_warnings", &QPDF::getWarnings)  // this is a def because it modifies state by clearing warnings
         .def("show_xref_table", &QPDF::showXRefTable)
@@ -397,49 +398,59 @@ PYBIND11_MODULE(_qpdf, m) {
 
             )~~~"
         )
+        .def("save",
+            save_pdf,
+            R"~~~(
+            Save all modifications to this :class:`pikepdf.Pdf`
 
-            *min_version* sets the minimum version of PDF specification that
-            should be required. If left alone QPDF will decide. *force_version*
-            allows creating a lower version deliberately.
+            Args:
+                filename (str or stream): Where to write the output
 
-            *object_stream_mode* is drawn from this table:
+                static_id (bool): Indicates that the ``/ID`` metadata, normally
+                    calculated as a hash of certain PDF contents and metadata
+                    including the current time, should instead be generated
+                    deterministically. Normally for debugging.
+                preserve_pdfa (bool): Ensures that the file is generated in a
+                    manner compliant with PDF/A and other stricter variants.
+                    This should be True, the default, in most cases.
 
-            +-------------------+------------------------------------------+
-            | Constant          | Description                              |
-            +-------------------+------------------------------------------+
-            | :const:`disable`  | prevents the use of object streams       |
-            +-------------------+------------------------------------------+
-            | :const:`preserve` | keeps object streams from the input file |
-            +-------------------+------------------------------------------+
-            | :const:`generate` | uses object streams everywhere possible  |
-            +-------------------+------------------------------------------+
+                min_version (str): Sets the minimum version of PDF
+                    specification that should be required. If left alone QPDF
+                    will decide.
+                force_version (str): Override the version recommend by QPDF,
+                    potentially creating an invalid file that does not display
+                    in old versions. See QPDF manual for details.
 
-            ``generate`` will tend to create the smallest files, but requires
-            PDF version 1.5 or higher.
+                object_stream_mode (pikepdf.ObjectStreamMode):
+                    ``disable`` prevents the use of object streams.
+                    ``preserve`` keeps object streams from the input file.
+                    ``generate`` uses object streams wherever possible,
+                    creating the smallest files but requiring PDF 1.5+.
+                stream_data_mode (pikepdf.StreamDataMode):
+                    ``uncompress`` decompresses all data.
+                    ``preserve`` keeps existing compressed objects compressed.
+                    ``compress`` attempts to compress all objects.
 
-            *stream_data_mode* is drawn from this table:
+                normalize_content (bool): Enables parsing and reformatting the
+                    content stream within PDFs. This may debugging PDFs easier.
 
-            +---------------------+----------------------------------------------+
-            | Constant            | Description                                  |
-            +---------------------+----------------------------------------------+
-            | :const:`uncompress` | decompresses all data                        |
-            +---------------------+----------------------------------------------+
-            | :const:`preserve`   | keeps existing compressed objects compressed |
-            +---------------------+----------------------------------------------+
-            | :const:`compress`   | attempts to compress all objects             |
-            +---------------------+----------------------------------------------+
-
-            *normalize_content* enables parsing and reformatting the content
-            stream within PDFs. This may debugging PDFs easier.
-
-            *linearize* enables creating linear or "fast web view", where the
-            file's contents are organized sequentially so that a viewer can
-            begin rendering before it has the whole file. As a drawback, it
-            tends to make files larger.
+                linearize (bool): Enables creating linear or "fast web view",
+                    where the file's contents are organized sequentially so that
+                    a viewer can begin rendering before it has the whole file.
+                    As a drawback, it tends to make files larger.
 
             You may call ``.save()`` multiple times with different parameters
             to generate different versions of a file, and you *may* continue
-            to modify the file after saving it.
+            to modify the file after saving it. ``.save()`` does not modify
+            the ``Pdf`` object in memory.
+
+            .. note::
+
+                :meth:`pikepdf.Pdf.remove_unreferenced_resources` before saving
+                may eliminate unnecessary resources from the output file, so
+                calling this method before saving is recommended. This is not
+                done automatically because ``.save()`` is intended to be
+                idempotent.
 
             )~~~",
             py::arg("filename"),
@@ -461,7 +472,8 @@ PYBIND11_MODULE(_qpdf, m) {
             R"~~~(
             Look up an object by ID and generation number
 
-            :returns pikepdf.Object:
+            Returns:
+                pikepdf.Object
             )~~~",
             py::return_value_policy::reference_internal
         )
@@ -472,15 +484,42 @@ PYBIND11_MODULE(_qpdf, m) {
             R"~~~(
             Look up an object by ID and generation number
 
-            :returns pikepdf.Object:
+            Returns:
+                pikepdf.Object
             )~~~",
             py::return_value_policy::reference_internal
         )
-        .def("make_indirect", &QPDF::makeIndirectObject)
+        .def("make_indirect", &QPDF::makeIndirectObject,
+            R"~~~(
+            Attach an object to the Pdf as an indirect object
+
+            Direct objects appear inline in the binary encoding of the PDF.
+            Indirect objects appear inline as references (in English, "look
+            up object 4 generation 0") and then read from another location in
+            the file. The PDF specification requires that certain objects
+            are indirect - consult the PDF specification to confirm.
+
+            Generally a resource that is shared should be attached as an
+            indirect object. :class:`pikepdf.Stream` objects are always
+            indirect, and creating them will automatically attach it to the
+            Pdf.
+
+            See also :meth:`pikepdf.Object.is_indirect`.
+
+            Returns:
+                pikepdf.Object
+            )~~~"
+        )
         .def("make_indirect",
             [](QPDF &q, py::object obj) -> QPDFObjectHandle {
                 return q.makeIndirectObject(objecthandle_encode(obj));
-            }
+            },
+            R"~~~(
+            Encode a Python object and attach to this Pdf as an indirect object
+
+            Returns:
+                pikepdf.Object
+            )~~~"
         )
         .def("copy_foreign",
             [](QPDF &q, QPDFObjectHandle &h) -> QPDFObjectHandle {
