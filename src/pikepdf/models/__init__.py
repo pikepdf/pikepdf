@@ -11,7 +11,8 @@ from .image import PdfImage, PdfInlineImage, UnsupportedImageTypeError
 
 
 def parse_content_stream(page_or_stream, operators=''):
-    """Parse a PDF content stream into a sequence of instructions.
+    """
+    Parse a PDF content stream into a sequence of instructions.
 
     A PDF content stream is list of instructions that describe where to render
     the text and graphics in a PDF. This is the starting point for analyzing
@@ -22,16 +23,26 @@ def parse_content_stream(page_or_stream, operators=''):
 
     Each instruction contains at least one operator and zero or more operands.
 
-    :param page_or_stream: A page, or a content :class:`pikepdf.Stream` attached
-    to another object such as a Form XObject
-    :param operators: A space-separated string of operators that the caller is
-    inserted in, for example 'q Q cm Do' will return only operators that pertain
-    to drawing images. Use 'BI ID EI' for inline images.
+    Args:
+        page_or_stream (pikepdf.Object): A page object, or the content
+            stream attached to another object such as a Form XObject.
+        operators (str): A space-separated string of operators to whitelist.
+            For example 'q Q cm Do' will return only operators
+            that pertain to drawing images. Use 'BI ID EI' for inline images.
+            All other operators and associated tokens are ignored. If blank,
+            all tokens are accepted.
 
-    >>> pdf = pikepdf.Pdf.open(input_pdf)
-    >>> page = pdf.pages[0]
-    >>> for operands, command in parse_content_stream(page):
-    >>>     print(command)
+    Returns:
+        list: List of ``(operands, command)`` tuples where ``command`` is an
+            operator (str) and ``operands`` is a tuple of str; the PDF drawing
+            command and the command's operands, respectively.
+
+    Example:
+
+        >>> pdf = pikepdf.Pdf.open(input_pdf)
+        >>> page = pdf.pages[0]
+        >>> for operands, command in parse_content_stream(page):
+        >>>     print(command)
 
     """
 

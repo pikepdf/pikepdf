@@ -9,26 +9,53 @@ Primary objects
 
 .. autofunction:: pikepdf.open
 
-.. autoclass:: pikepdf.Object
-    :members:
+.. autoclass:: pikepdf.ObjectStreamMode
 
-.. autoclass:: pikepdf.String
+    .. attribute:: disable
 
-.. autoclass:: pikepdf.Array
+    .. attribute:: preserve
 
-.. autoclass:: pikepdf.Dictionary
+    .. attribute:: generate
 
-.. autoclass:: pikepdf.Stream
+.. autoclass:: pikepdf.StreamDataMode
 
-.. autoclass:: pikepdf.Operator
+    .. attribute:: uncompress
+
+    .. attribute:: preserve
+
+    .. attribute:: compress
 
 .. autoexception:: pikepdf.PdfError
 
 .. autoexception:: pikepdf.PasswordError
 
+Object construction
+===================
+
+.. autoclass:: pikepdf.Object
+    :members:
+
+.. autoclass:: pikepdf.Name
+
+.. autoclass:: pikepdf.String
+    :members: __new__
+
+.. autoclass:: pikepdf.Array
+    :members: __new__
+
+.. autoclass:: pikepdf.Dictionary
+    :members: __new__
+
+.. autoclass:: pikepdf.Stream
+    :members: __new__
+
+.. autoclass:: pikepdf.Operator
+
 
 Support models
 ==============
+
+.. autofunction:: pikepdf.parse_content_stream
 
 .. autoclass:: pikepdf.PdfMatrix
     :members:
