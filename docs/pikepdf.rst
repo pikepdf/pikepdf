@@ -36,6 +36,7 @@ Object construction
     :members:
 
 .. autoclass:: pikepdf.Name
+    :members: __new__
 
 .. autoclass:: pikepdf.String
     :members: __new__
@@ -50,7 +51,7 @@ Object construction
     :members: __new__
 
 .. autoclass:: pikepdf.Operator
-
+    :members: __new__
 
 Support models
 ==============
