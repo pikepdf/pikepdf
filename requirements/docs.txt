@@ -1,6 +1,6 @@
 ipython
 matplotlib
-pybind11
+pybind11  # not strictly necessary if pybind11 is vendored
 setuptools_scm
 sphinx >= 1.4
 sphinx-rtd-theme

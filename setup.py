@@ -2,7 +2,7 @@ from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 import sys
 import setuptools
-from os.path import join, dirname
+from os.path import join, dirname, exists
 from glob import glob
 
 
@@ -17,6 +17,9 @@ class get_pybind_include(object):
         self.user = user
 
     def __str__(self):
+        # If we are vendoring use the vendored version
+        if exists('src/vendor/pybind11'):
+            return 'src/vendor/pybind11/include'
         import pybind11
         return pybind11.get_include(self.user)
 
@@ -117,7 +120,9 @@ setup(
     description='Read and write PDFs with Python, powered by qpdf',
     long_description=readme,
     ext_modules=ext_modules,
-    install_requires=['pybind11 >= 2.2.3, < 3'],
+    install_requires=[
+        # vendored: 'pybind11'
+    ],
     extras_require={
         'docs': docs_require
     },
