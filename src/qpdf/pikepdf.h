@@ -23,15 +23,16 @@ using uint = unsigned int;
 #include <utility>
 #include <string>
 
-// Provide make_unique for C++11 (not array-capable)
-// See https://stackoverflow.com/questions/17902405/how-to-implement-make-unique-function-in-c11/17902439#17902439 for full version if needed
 namespace std {
+    // Provide make_unique for C++11 (not array-capable)
+    // See https://stackoverflow.com/questions/17902405/how-to-implement-make-unique-function-in-c11/17902439#17902439 for full version if needed
     template<typename T, typename ...Args>
     unique_ptr<T> make_unique( Args&& ...args )
     {
         return unique_ptr<T>( new T( std::forward<Args>(args)... ) );
     }
 
+    // Provide basic std::quoted for C++11
     string quoted(const char* s);
     string quoted(const string &s);
 };
