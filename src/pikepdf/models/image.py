@@ -65,7 +65,7 @@ def dict_or_array_dict(value):
     elif isinstance(value, Dictionary):
         return [value.as_dict()]
     elif isinstance(value, Array):
-        return [v.as_dict() for v in value]
+        return [v.as_list() for v in value]
     raise NotImplementedError(value)
 
 
