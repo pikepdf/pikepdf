@@ -208,3 +208,8 @@ def test_image_palette(resources, filename, bpc):
 
     outstream = BytesIO()
     pim.extract_to(stream=outstream)
+
+
+def test_bool_in_inline_image():
+    piim = PdfInlineImage(image_data=b'', image_object=(Name.IM, True))
+    assert piim.image_mask

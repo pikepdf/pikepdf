@@ -446,12 +446,19 @@ class PdfInlineImage(PdfImage):
         def unparse(obj):
             if isinstance(obj, Object):
                 return obj.unparse(resolved=True)
-            elif isinstance(obj, (int, bool, Decimal, float)):
+            elif isinstance(obj, bool):
+                return b'true' if obj else b'false'  # Lower case for PDF spec
+            elif isinstance(obj, (int, Decimal, float)):
                 return str(obj).encode('ascii')
             else:
                 raise NotImplementedError(repr(obj))
         reparse = b' '.join(unparse(obj) for obj in image_object)
-        super().__init__(Object.parse(b'<< ' + reparse + b' >>'))
+        try:
+            reparsed_obj = Object.parse(b'<< ' + reparse + b' >>')
+        except PdfError as e:
+            raise PdfError(
+                "parsing inline " + reparse.decode('unicode_escape')) from e
+        super().__init__(reparsed_obj)
 
     width = _PdfImageDescriptor('Width', int, None, 'W')
     height = _PdfImageDescriptor('Height', int, None, 'H')
