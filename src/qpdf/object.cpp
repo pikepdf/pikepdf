@@ -55,6 +55,39 @@ needed.
 */
 
 
+/// Makes an python iterator over the keys (`.first`) of a iterator over pairs from a
+/// first and past-the-end InputIterator.
+namespace pybind11 {
+
+template <return_value_policy Policy = return_value_policy::reference_internal,
+          typename Iterator,
+          typename Sentinel,
+          typename ValueType = decltype((*std::declval<Iterator>()).second),
+          typename... Extra>
+iterator make_value_iterator(Iterator first, Sentinel last, Extra &&... extra) {
+    typedef detail::iterator_state<Iterator, Sentinel, true, Policy> state;
+
+    if (!detail::get_type_info(typeid(state), false)) {
+        class_<state>(handle(), "iterator", pybind11::module_local())
+            .def("__iter__", [](state &s) -> state& { return s; })
+            .def("__next__", [](state &s) -> ValueType {
+                if (!s.first_or_done)
+                    ++s.it;
+                else
+                    s.first_or_done = false;
+                if (s.it == s.end) {
+                    s.first_or_done = true;
+                    throw stop_iteration();
+                }
+                return (*s.it).second;
+            }, std::forward<Extra>(extra)..., Policy);
+    }
+
+    return cast(state{first, last, true});
+}
+
+}
+
 class PyParserCallbacks : public QPDFObjectHandle::ParserCallbacks {
 public:
     using QPDFObjectHandle::ParserCallbacks::ParserCallbacks;
@@ -356,7 +389,16 @@ void init_object(py::module& m)
             );
         });
 
-    static QPDFObjectHandle static_handle;
+    py::bind_vector<std::vector<QPDFObjectHandle>>(m, "ObjectList");
+    auto objmap = py::bind_map<std::map<std::string, QPDFObjectHandle>>(m, "ObjectMap");
+
+    objmap.def("values",
+        [](std::map<std::string, QPDFObjectHandle> &m) {
+            return py::make_value_iterator(m.begin(), m.end());
+        },
+        py::keep_alive<0, 1>()
+    );
+
     py::class_<QPDFObjectHandle>(m, "Object")
         .def_property_readonly("_type_code", &QPDFObjectHandle::getTypeCode)
         .def_property_readonly("_type_name", &QPDFObjectHandle::getTypeName)
@@ -552,6 +594,22 @@ void init_object(py::module& m)
         )
         .def("as_list", &QPDFObjectHandle::getArrayAsVector)
         .def("as_dict", &QPDFObjectHandle::getDictAsMap)
+        .def("__iter__",
+            [](QPDFObjectHandle &h) {
+                if (h.isArray()) {
+                    auto vec = h.getArrayAsVector();
+                    auto pyvec = py::cast(vec);
+                    return pyvec.attr("__iter__")();
+                } else if (h.isDictionary()) {
+                    auto vec = h.getDictAsMap();
+                    auto pyvec = py::cast(vec);
+                    return pyvec.attr("__iter__")();
+                } else {
+                    throw py::type_error("__iter__ not available on this type");
+                }
+            },
+            py::return_value_policy::reference_internal
+        )
         .def("__str__",
             [](QPDFObjectHandle &h) -> py::str {
                 if (h.isName())
@@ -866,5 +924,6 @@ void init_object(py::module& m)
             return h;
         }
     );
+
 
 } // init_object

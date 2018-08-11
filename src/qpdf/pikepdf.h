@@ -9,6 +9,9 @@
 #pragma once
 
 #include <exception>
+#include <vector>
+#include <map>
+
 #include <qpdf/PointerHolder.hh>
 #include <qpdf/QPDF.hh>
 #include <qpdf/QPDFObjectHandle.hh>
@@ -174,6 +177,12 @@ namespace pybind11 { namespace detail {
 #endif
 
 namespace py = pybind11;
+
+#include <pybind11/stl.h>
+#include <pybind11/stl_bind.h>
+PYBIND11_MAKE_OPAQUE(std::vector<QPDFObjectHandle>);
+PYBIND11_MAKE_OPAQUE(std::map<std::string, QPDFObjectHandle>);
+
 
 // From object.cpp
 size_t list_range_check(QPDFObjectHandle& h, int index);
