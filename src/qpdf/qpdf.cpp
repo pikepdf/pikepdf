@@ -40,7 +40,7 @@ std::string fsencode_filename(py::object py_filename)
     try {
         auto py_encoded_filename = fspath(py_filename);
         filename = py_encoded_filename.cast<std::string>();
-    } catch (py::cast_error &e) {
+    } catch (const py::cast_error &) {
         throw py::type_error("expected pathlike object");
     }
 

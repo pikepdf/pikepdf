@@ -72,7 +72,7 @@ QPDFObjectHandle objecthandle_encode(py::handle handle)
     try {
         auto as_qobj = handle.cast<QPDFObjectHandle>();
         return as_qobj;
-    } catch (py::cast_error) {}
+    } catch (const py::cast_error&) {}
 
     // Special-case booleans since pybind11 coerces nonzero integers to boolean
     if (py::isinstance<py::bool_>(handle)) {

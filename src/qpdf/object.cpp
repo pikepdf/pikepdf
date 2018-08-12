@@ -218,7 +218,7 @@ bool objecthandle_equal(QPDFObjectHandle& self, QPDFObjectHandle& other)
             py::object pyresult = a.attr("__eq__")(b);
             bool result = pyresult.cast<bool>();
             return result;
-        } catch (py::type_error) {
+        } catch (const py::type_error&) {
             return false;
         }
     }
@@ -410,7 +410,7 @@ void init_object(py::module& m)
                 QPDFObjectHandle q_other;
                 try {
                     q_other = objecthandle_encode(other);
-                } catch (py::cast_error &e) {
+                } catch (const py::cast_error&) {
                     return py::globals()["__builtins__"].attr("NotImplemented");
                 }
                 bool result = (self == objecthandle_encode(other));
@@ -462,7 +462,7 @@ void init_object(py::module& m)
                 std::string key = "/" + name;
                 try {
                     value = object_get_key(h, key);
-                } catch (py::key_error &e) {
+                } catch (const py::key_error &e) {
                     if (std::isupper(name[0]))
                         throw py::attr_error(e.what());
                     else
@@ -506,7 +506,7 @@ void init_object(py::module& m)
                 QPDFObjectHandle value;
                 try {
                     value = object_get_key(h, key);
-                } catch (py::key_error &e) {
+                } catch (const py::key_error &e) {
                     return default_;
                 }
                 return py::cast(value);

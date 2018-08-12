@@ -14,7 +14,7 @@ static void assert_pyobject_is_page(py::handle obj)
     QPDFObjectHandle h;
     try {
         h = obj.cast<QPDFObjectHandle>();
-    } catch (py::cast_error) {
+    } catch (const py::cast_error&) {
         throw py::type_error("only pikepdf pages can be assigned to a page list");
     }
     if (!h.isPageObject()) {
@@ -147,7 +147,7 @@ void PageList::insert_page(size_t index, py::handle obj)
     QPDFObjectHandle page;
     try {
         page = obj.cast<QPDFObjectHandle>();
-    } catch (py::cast_error) {
+    } catch (const py::cast_error&) {
         throw py::type_error("only pages can be inserted");
     }
     if (!page.isPageObject())
