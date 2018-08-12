@@ -6,7 +6,6 @@ cache:
   directories:
   - $HOME/Library/Caches/Homebrew
 
-
 env:
   global:
     - QPDF_RELEASE=https://github.com/qpdf/qpdf/releases/download/untagged-56d59bde45a6af871f08/qpdf-8.1.0.tar.gz
@@ -16,35 +15,48 @@ env:
     # RTD_TOKEN
     - secure: "jD4S2pEvuf9oWv7RTWkdgrRw62WoUISiLFnPN9gPJ5ZeqdLeL8r3/+2x7tKa9xo6u6HWKVzo88+gg+HZCHIIZafWqxbhYsdl2g4dp3v807UVdp7rdqd7KkFl8/0XDR9p1J1g0RnRHp2qYtORqPZ0hustXnBQyiA0cA+a7qH9AWfhiU6iUV193YJAwYumSBeDAWgJN6OXAYKaZdLqynC/bmXYMfYM7Xg3sEnKv8eig+gQeSxyN2A/foTG/OgwUc8KVNTvO7w3xqXvfVUc7zm9P8Pdalay0V/8/0DAgZVSLjjnxqfOhmlDfE8OQeDLITBrD2GW0mPlSHP9ic0ymsltayR5Bg8opf3//+HBGoAyVDl0zwDVje4KX1QW2FzRri2ZQ+Lr25nvLkFIwQva2H+PuNUqB3Xw2JzZc4wsEqA83Y8Ijj8Cfc7Xd6hHIttWNe1D+n1tLSf123IW1QNMj7n2xr0AJi3ty1sTnr5WAgBEIR5WSy/roFdbHtLy/8wLE2AtKmhqKWndkSx17K45c35geuxmfthPrh6v1XPAgZZU0sza6dnrdD53WXwV8Z5+y4U+KD9YLf2gydfMSCrImdFWfjy3wMZci8Mn14uAZawwWyo2mfXvRXIVuUQdAx+uPnbkV4KzoAp7Xj7dJlpCxzphnX//1DLczOUJ6EdknbeIH6o="
 
-
 matrix:
   include:
-  - os: linux
+  - env: PYTHON=3.5 GCC=4.8
+    os: linux
     sudo: required
     python: "3.5"
     addons: &gcc48
       apt:
         sources: [ubuntu-toolchain-r-test]
         packages: [g++-4.8]  # g++-4.8 supports c++11 but not c++14 at all; g++-4.9 won't work
-    env:
-      - MATRIX_EVAL="GCC=4.8"  # defer setting CC to gcc- etc until before_install
+        config:
+          retries: true
 
-  - os: linux
+  - env: PYTHON=3.6 GCC=4.8
+    os: linux
     sudo: required
     python: "3.6"
     addons: *gcc48
-    env:
-      - MATRIX_EVAL="GCC=4.8"  # defer setting CC to gcc- etc until before_install
 
-  - os: linux
+  - env: PYTHON=3.6 GCC=8
+    os: linux
     sudo: required
-    python: "3.6"  # test other versions here
-    addons: &gcc7
+    python: "3.6"
+    addons:
       apt:
         sources: [ubuntu-toolchain-r-test]
-        packages: [g++-7]  # g++-7 supports c++14
-    env:
-      - MATRIX_EVAL="GCC=7"  # defer setting CC to gcc- etc until before_install
+        packages: [g++-8]  # g++-7 supports c++14
+        config:
+          retries: true
+
+  - env: PYTHON=3.7 GCC=5
+    os: linux
+    sudo: required
+    dist: xenial
+    python: "3.7"
+    addons: &gcc5_xenial
+      apt:
+        sources:
+          - sourceline: 'deb http://ppa.launchpad.net/deadsnakes/ppa/ubuntu xenial main'
+        packages: [python3.7-dev, python3.7-venv, g++-5]
+        config:
+          retries: true
 
   - os: osx
     osx_image: xcode8.3
@@ -78,13 +90,13 @@ matrix:
     services:
       - docker
     install:
-      - $PYTHON_CMD -m pip install cibuildwheel==0.9.1
+      - $PYTHON_CMD -m pip install cibuildwheel==0.9.4
       #- mkdir gcc-x86_64 && wget -q https://github.com/Noctem/pogeo-toolchain/releases/download/v1.4/gcc-7.2-binutils-2.29-centos5-x86-64.tar.bz2 -O - | tar xj -C gcc-x86_64 --strip-components=1
       #- mkdir ccache && wget -q https://www.samba.org/ftp/ccache/ccache-3.3.4.tar.bz2 -O - | tar xj -C ccache --strip-components=1
       - mkdir qpdf && wget -q $QPDF_RELEASE -O - | tar xz -C qpdf --strip-components=1
     script:
       #- export CIBW_ENVIRONMENT='ARCH=x86_64 PATH="`pwd`/gcc-$ARCH/bin:$PATH" CC="ccache cc" CXX="ccache c++" CXXFLAGS="-static-libstdc++" LD_LIBRARY_PATH="`pwd`/gcc-$ARCH/lib" CCACHE_BASEDIR=`python -c "import tempfile; import os; print(os.path.realpath(tempfile.gettempdir()))"` CCACHE_DIR=/host'$HOME'/.ccache'
-      #- export CIBW_BEFORE_BUILD='{pip} install pybind11 && [ -d ccache/$ARCH ] || (unset CC CXX CXXFLAGS && mkdir ccache/$ARCH && cd ccache/$ARCH && ../configure && make install)'
+      #- export CIBW_BEFORE_BUILD='pip install pybind11 && [ -d ccache/$ARCH ] || (unset CC CXX CXXFLAGS && mkdir ccache/$ARCH && cd ccache/$ARCH && ../configure && make install)'
       #- export CIBW_ENVIRONMENT='ARCH=x86_64 PATH="`pwd`/gcc-$ARCH/bin:$PATH" CC="cc" CXX="c++" CXXFLAGS="-static-libstdc++" LD_LIBRARY_PATH="`pwd`/gcc-$ARCH/lib:$LD_LIBRARY_PATH"'
       - export CIBW_BEFORE_BUILD='yum install -y libjpeg-devel zlib-devel && cd qpdf && ./autogen.sh && ./configure && make install && cd .. && pip install pybind11'
       - export CIBW_SKIP="cp27-* cp34-* *i686"
@@ -103,7 +115,6 @@ stages:
 
 
 before_install:
-- eval "${MATRIX_EVAL}"
 - |
   if [ "$TRAVIS_OS_NAME" = "linux" ]; then
     if [ -n "$GCC" ]; then
@@ -116,7 +127,7 @@ before_install:
       export CFLAGS="-Qunused-arguments"
       export CXXFLAGS="-Qunused-arguments -stdlib=libc++"
     fi
-    if [ "$PYTHON" == "3.5" ]; then
+    if [ "$PYTHON" == "3.5" ] || [ "$PYTHON" == "3.7" ]; then
       python$PYTHON -m ensurepip
     elif [ "$PYTHON" = "3.6" ]; then
       pyenv global system $PYTHON # https://github.com/travis-ci/travis-ci/issues/8363
