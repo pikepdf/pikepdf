@@ -7,10 +7,28 @@ pikepdf releases use the `semantic versioning <http://semver.org>`_ policy.
 
 Since 1.0 has not been released, this means **breaking changes can occur at any time** and the **public API is not yet stable**. For the moment a minor version change is known to be breaking, and a patch level change shouldn't be breaking.
 
-next
-====
+v0.3.1
+======
 
-* libqpdf 8.1.0 is now required
+Breaking
+--------
+
+* ``pikepdf.open`` now validates its keyword arguments properly, potentially breaking code that passed invalid arguments
+* libqpdf 8.1.0 is now required - libqpdf 8.1.0 API is now used for creating Unicode strings
+* If a non-existent file is opened with ``pikepdf.open``, a ``FileNotFoundError`` is raised instead of a generic error
+* We are now *temporarily* vendoring a copy of pybind11 since its master branch contains unreleased and important fixes for Python 3.7.
+
+Updates
+-------
+
+* The syntax ``Name.Thing`` (e.g. ``Name.DecodeParms``) is now supported as equivalent to ``Name('/Thing')`` and is the recommended way to refer names within a PDF
+* New API ``Pdf.remove_unneeded_resources()`` which removes objects from each page's resource dictionary that are not used in the page. This can be used to create smaller files.
+
+Fixes
+-----
+
+* Fixed an error parsing inline images that have masks
+* Fixed several instances of catching C++ exceptions by value instead of by reference
 
 v0.3.0
 ======
