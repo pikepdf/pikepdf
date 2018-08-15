@@ -33,17 +33,24 @@ to encrypted PDFs.
    my_pdf.save('test-rotated.pdf')
 
 It is a low level library that requires knowledge of PDF internals and some
-familiarity with the PDF specification [#pdfrm]_. If you just want to write
+familiarity with the PDF specification [#pdfrm]_. If you just want to generate
 content as PDF something like reportlab may be more suitable.
 
 pikepdf would help you build apps that do things like:
 
-* Copy pages from one PDF into another
-* Split and merge PDFs
-* Extract content from a PDF such as text or images
-* Replace content, such as replacing an image without altering the rest of the
-  file
-* Repair, reformat or linearize PDFs
+.. figure:: /images/pike-cartoon.png
+   :align: right
+   :alt: A cartoon sketch of a pike
+   :figwidth: 30%
+
+   Pike fish are tough, hard-fighting, aggressive predators. [#img3]_
+
+* :ref:`Copy pages <copyother>` from one PDF into another
+* :ref:`Split <splitpdf>` and :ref:`merge <mergepdf>` PDFs
+* Extract content from a PDF such as text or :ref:`images <extract_image>`
+* Replace content, such as :ref:`replacing an image <replace_image>` without
+  altering the rest of the file
+* Repair, reformat or :meth:`linearize <pikepdf.Pdf.save>` PDFs
 * Change the size of pages and reposition content
 * Optimize PDFs similar to Acrobat's features by downsampling images,
   deduplicating
@@ -54,10 +61,17 @@ pikepdf would help you build apps that do things like:
 
 What it cannot and never will do:
 
+.. figure:: /images/pikemen.jpg
+   :align: right
+   :alt: A square of pikemen, carrying pikes
+   :figwidth: 30%
+
+   pikepdf will not help you defend yourself against a calvary charge. [#img2]_
+
 * Rasterize PDF pages for display (that is, produce an image that shows what
   a PDF page looks like at a particular resolution/zoom level) – use
   Ghostscript instead
-* Convert from PDF to other similar print formats like epub, XPS, DjVu,
+* Convert from PDF to other similar paper capture formats like epub, XPS, DjVu,
   Postscript – use MuPDF or PyMuPDF
 * Print to paper
 
@@ -88,11 +102,9 @@ In use
 pikepdf is used by the same author's `OCRmyPDF
 <https://github.com/jbarlow83/OCRmyPDF>`_ to inspect input PDFs, graft the
 generated OCR layers on to page content, and output PDFs. Its code contains main
-practical examples, particular in pdfinfo.py, _weave.py, and optimize.py.
-pikepdf is also used in the test suite.
+practical examples, particular in ``pdfinfo.py``, ``_weave.py``, and
+``optimize.py``. pikepdf is also used in the test suite.
 
-
-Contents:
 
 .. toctree::
     :maxdepth: 2
@@ -116,5 +128,9 @@ Contents:
 .. rubric:: References
 
 .. [#img1] `Public domain image <https://en.wikipedia.org/wiki/File:Esox_lucius1.jpg>`_.
+
+.. [#img3] `CC0 iamge <https://pixabay.com/en/pike-fish-predator-shchuchin-2612354/>`_.
+
+.. [#img2] `CC-BY-SA 2.0 image <https://commons.wikimedia.org/wiki/File:Pike_square_img_3653.jpg>`_.
 
 .. [#pdfrm] `PDF 32000-1:2008 <https://www.adobe.com/content/dam/Adobe/en/devnet/pdf/pdfs/PDF32000_2008.pdf>`_.

@@ -133,6 +133,8 @@ to Pillow's.
     ``.width`` and ``.height`` are the resolution of the image in pixels, not
     the size of the image in page coordinates.
 
+.. _extract_image:
+
 Extracting images
 -----------------
 
@@ -164,6 +166,8 @@ You can also retrieve the image as a Pillow image:
     resources can be grouped together in a "Form XObject" (not to be confused
     with a PDF Form), and drawn at all once. Images can be referenced by
     multiple pages.
+
+.. _replace_image:
 
 Replacing an image
 ------------------

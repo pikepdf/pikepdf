@@ -78,6 +78,8 @@ Removing and adding pages is easy too.
 
 We’ve trimmed down the file to its essential first and last page.
 
+.. _copyother:
+
 Copying pages from other PDFs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -126,6 +128,8 @@ is commented out to avoid upsetting the documentation generator.)
 You may save a file multiple times, and you may continue modifying it after
 saving.
 
+.. _splitpdf:
+
 Split a PDF one page PDFs
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -146,6 +150,8 @@ All we need is a new PDF to hold the destination page.
     This example will transfer data associated with each page, so
     that every page stands on its own. It will *not* transfer some metadata
     associated with the PDF as a whole, such the list of bookmarks.
+
+.. _mergepdf:
 
 Merging a PDF from several files
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -190,7 +196,8 @@ To avoid confusion, the ``.p()`` accessor does not accept Python slices,
 and ``.p(0)`` raises an exception.
 
 PDFs may define their own numbering scheme or different numberings for
-different sections. ``.pages`` does not look up this information.
+different sections, such as using Roman numerals for an introductory section.
+``.pages`` does not look up this information.
 
 .. note::
 
