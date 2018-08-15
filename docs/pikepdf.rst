@@ -51,7 +51,7 @@ Object construction
     :members: __new__
 
 .. autoclass:: pikepdf.Operator
-    :members: __new__
+    :members:
 
 Support models
 ==============
