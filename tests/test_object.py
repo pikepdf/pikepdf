@@ -146,6 +146,7 @@ def test_bytes():
 
 def test_len_array():
     assert len(Array([])) == 0
+    assert len(Array()) == 0
     assert len(Array([3])) == 1
 
 
