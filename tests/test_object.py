@@ -174,6 +174,14 @@ def test_unslashed_name():
     with pytest.raises(ValueError, match='must begin with'):
         Name('Monty') not in d
 
+
+def test_forbidden_name_usage():
+    with pytest.raises(TypeError):
+        Name.Monty = Name.Python
+    with pytest.raises(TypeError):
+        Name['/Monty']
+
+
 class TestHashViolation:
 
     def check(self, a, b):

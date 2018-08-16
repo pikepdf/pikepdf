@@ -40,6 +40,21 @@ class _NameObjectMeta(_ObjectMeta):
     def __getattr__(self, attr):
         return Name('/' + attr)
 
+    def __setattr__(self, name, value):
+        raise TypeError("Attributes may not be set on pikepdf.Name")
+
+    def __getitem__(self, item):
+        if item.startswith('/'):
+            item = item[1:]
+        raise TypeError(
+            (
+                "pikepdf.Name is not subscriptable. You probably meant:\n"
+                "    pikepdf.Name.{}\n"
+                "or\n"
+                "    pikepdf.Name('/{}')\n"
+            ).format(item, item)
+        )
+
 
 class Name(metaclass=_NameObjectMeta):
     """Constructs a PDF Name object
