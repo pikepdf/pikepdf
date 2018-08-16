@@ -160,6 +160,20 @@ def test_name_equality():
     assert Name.Foo == Name('/Foo')
 
 
+def test_dictionary_contains():
+    d = Dictionary({
+        '/Monty': 'Python',
+        '/Flying': 'Circus'
+    })
+    assert Name.Flying in d
+    assert Name('/Monty') in d
+    assert Name.Brian not in d
+
+
+def test_unslashed_name():
+    with pytest.raises(ValueError, match='must begin with'):
+        Name('Monty') not in d
+
 class TestHashViolation:
 
     def check(self, a, b):

@@ -273,6 +273,15 @@ bool operator==(const QPDFObjectHandle& self, const QPDFObjectHandle& other)
 }
 
 
+bool object_has_key(QPDFObjectHandle& h, std::string const& key)
+{
+    if (!h.isDictionary() && !h.isStream())
+        throw py::value_error("object is not a dictionary or a stream");
+    QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
+    return dict.hasKey(key);
+}
+
+
 QPDFObjectHandle object_get_key(QPDFObjectHandle& h, std::string const& key)
 {
     if (!h.isDictionary() && !h.isStream())
@@ -517,14 +526,15 @@ void init_object(py::module& m)
         )
         .def("keys", &QPDFObjectHandle::getKeys)
         .def("__contains__",
+            [](QPDFObjectHandle &h, QPDFObjectHandle &key) {
+                if (!key.isName())
+                    throw py::type_error("Dictionaries can only contain Names");
+                return object_has_key(h, key.getName());
+            }
+        )
+        .def("__contains__",
             [](QPDFObjectHandle &h, std::string const& key) {
-                if (h.isDictionary()) {
-                    return h.hasKey(key);
-                }
-                if (h.isStream()) {
-                    return h.getDict().hasKey(key);
-                }
-                throw py::value_error("__contains__ not defined for object type");
+                return object_has_key(h, key);
             }
         )
         .def("as_list", &QPDFObjectHandle::getArrayAsVector)
