@@ -15,7 +15,7 @@ from tempfile import NamedTemporaryFile
 from subprocess import run, PIPE
 from io import BytesIO
 
-from . import Pdf
+from . import Pdf, Dictionary, Array, Name, Stream
 
 
 # Provide os.fspath equivalent for Python <3.6
@@ -128,3 +128,39 @@ def pdf_repr_mimebundle(pdf, **kwargs):
 
     data = {'application/pdf': bio.read()}
     return data
+
+
+def pdf_attach_stream(pdf, filename, filebytes, mime, desc):
+    if '/Names' not in pdf.Root:
+        pdf.Root.Names = pdf.make_indirect(Dictionary())
+    if '/EmbeddedFiles' not in pdf.Root:
+        pdf.Root.Names.EmbeddedFiles = pdf.make_indirect(Dictionary())
+    if '/Names' not in pdf.Root.Names.EmbeddedFiles:
+        pdf.Root.Names.EmbeddedFiles.Names = Array()
+
+    if '/' in filename or '\\' in filename:
+        raise ValueError("filename should be a basename (no / or \\)")
+
+    filestream = Stream(pdf, filebytes)
+    filestream.Subtype = Name('/' + mime)
+
+    filespec = Dictionary({
+        '/Type': Name.Filespec,
+        '/F': filename,
+        '/UF': filename,
+        '/Desc': desc,
+        '/EF': Dictionary({
+            '/F': filestream
+        })
+    })
+
+    # names = pdf.Root.Names.EmbeddedFiles.Names.as_list()
+    # names.append(filename)  # Key
+    # names.append(pdf.make_indirect(filespec))
+    pdf.Root.Names.EmbeddedFiles.Names = Array([
+        filename, # key
+        pdf.make_indirect(filespec)
+    ])
+
+    if '/PageMode' not in pdf.Root:
+        pdf.Root.PageMode = Name.UseAttachments
