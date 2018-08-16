@@ -540,12 +540,6 @@ PYBIND11_MODULE(_qpdf, m) {
                 q.replaceObject(objid, gen, h);
             }
         )
-        .def("_repr_mimebundle_",
-            [](std::shared_ptr<QPDF> q, py::kwargs kwargs) { // For MSVC++
-                auto repr_mimebundle = py::module::import("pikepdf._cpphelpers").attr("pdf_repr_mimebundle");
-                return repr_mimebundle(q, **kwargs);
-            }
-        )
         ; // class Pdf
 
     init_object(m);

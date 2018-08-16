@@ -24,6 +24,12 @@ from .models import (
     parse_content_stream
 )
 
+from ._methods import pdf_attach, pdf_repr_mimebundle, object_repr_mimebundle
+
+# Extend C++ class bindings with some pure Python methods
+Pdf.attach = pdf_attach
+Pdf._repr_mimebundle_ = pdf_repr_mimebundle
+Object._repr_mimebundle_ = object_repr_mimebundle
 
 try:
     __version__ = get_distribution(__name__).version

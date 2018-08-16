@@ -737,12 +737,6 @@ void init_object(py::module& m)
             py::arg("resolved") = false,
             "Convert PDF objects into their binary representation, optionally resolving indirect objects."
         )
-        .def("_repr_mimebundle_",
-            [](QPDFObjectHandle &h, py::kwargs kwargs) {
-                auto repr_mimebundle = py::module::import("pikepdf._cpphelpers").attr("object_repr_mimebundle");
-                return repr_mimebundle(h, **kwargs);
-            }
-        )
         ; // end of QPDFObjectHandle bindings
 
     m.def("_new_boolean", &QPDFObjectHandle::newBool, "Construct a PDF Boolean object");
