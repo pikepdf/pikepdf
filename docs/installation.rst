@@ -35,6 +35,15 @@ updated to this version, so you may need to build this package from source.
 -  install libjpeg, zlib and libqpdf on your platform, including headers
 -  ``pip install .``
 
+.. note::
+
+    pikepdf should be built with the same compiler and linker as pikepdf; to be
+    precise both must use the same C++ ABI. On some platforms, setup.py may not
+    pick the correct compiler so one may need to set environment variables
+    ``CC`` and ``CXX`` to redirect it. If the wrong compiler is selected,
+    ``import pikepdf._qpdf`` will throw an ``ImportError`` about a missing
+    symbol.
+
 **On Windows (requires Visual Studio 2015)**
 
 pikepdf requires a C++11 compliant compiler (i.e. Visual Studio 2015 on
