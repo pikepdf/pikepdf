@@ -129,7 +129,11 @@ setup(
     cmdclass={'build_ext': BuildExt},
     zip_safe=False,
     python_requires='>=3.5',
-    setup_requires=['pytest-runner', 'setuptools_scm'],
+    setup_requires=[
+        'pytest-runner',
+        'setuptools_scm',
+        'setuptools_scm_git_archive'
+    ],
     use_scm_version=True,
     tests_require=tests_require,
     package_dir={'': 'src'},

@@ -1,3 +1,4 @@
 *.pdf	binary
 *.png	binary
 *.jpg	binary
+.git_archival.txt   export-subst
