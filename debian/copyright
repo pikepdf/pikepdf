@@ -37,7 +37,7 @@ Copyright: 2009 Wikimedia user "Rama"
 License: CC-BY-SA 2.0
 Source: https://commons.wikimedia.org/wiki/File:Pike_square_img_3653.jpg
 
-Files: test/resources/congress.pdf
+Files: test/resources/congress*.pdf
 License: public-domain
 Source: US Congressional Records
 Comment:

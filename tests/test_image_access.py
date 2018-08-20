@@ -13,18 +13,20 @@ from pikepdf import (
 )
 
 
+def first_image_in(filename):
+    pdf = Pdf.open(filename)
+    pdfimagexobj = next(iter(pdf.pages[0].images.values()))
+    return pdfimagexobj, pdf
+
+
 @pytest.fixture
 def congress(resources):
-    pdf = Pdf.open(resources / 'congress.pdf')
-    pdfimagexobj = pdf.pages[0].Resources.XObject['/Im0']
-    return pdfimagexobj, pdf
+    return first_image_in(resources / 'congress.pdf')
 
 
 @pytest.fixture
 def sandwich(resources):
-    pdf = Pdf.open(resources / 'sandwich.pdf')
-    pdfimagexobj = next(iter(pdf.pages[0].images.values()))
-    return pdfimagexobj, pdf
+    return first_image_in(resources / 'sandwich.pdf')
 
 
 def test_image_from_nonimage(resources):
@@ -181,14 +183,29 @@ def test_image_roundtrip(outdir, w, h, pixeldata, cs, bpc):
     assert pim.mode == im.mode
 
 
-def test_image_ccitt(sandwich):
-    pim = PdfImage(sandwich[0])
+@pytest.mark.parametrize('filename,bpc,filters,ext,mode,format',
+    [
+        ('sandwich.pdf', 1, ['/CCITTFaxDecode'], '.tif', '1', 'TIFF'),
+        ('congress-gray.pdf', 8, ['/DCTDecode'], '.jpg', 'L', 'JPEG'),
+        ('congress.pdf', 8, ['/DCTDecode'], '.jpg', 'RGB', 'JPEG'),
+        ('cmyk-jpeg.pdf', 8, ['/DCTDecode'], '.jpg', 'CMYK', 'JPEG')
+    ]
+)
+def test_direct_extract(resources, filename, bpc, filters, ext, mode, format):
+    xobj, pdf = first_image_in(resources / filename)
+    pim = PdfImage(xobj)
 
-    assert pim.bits_per_component == 1
-    assert pim.filters == ['/CCITTFaxDecode']
+    assert pim.bits_per_component == bpc
+    assert pim.filters == filters
 
     outstream = BytesIO()
-    assert pim.extract_to(stream=outstream) == '.tif'
+    outext = pim.extract_to(stream=outstream)
+    assert outext == ext, 'unexpected output file'
+    outstream.seek(0)
+
+    im = Image.open(outstream)
+    assert im.mode == mode
+    assert im.format == format
 
 
 @pytest.mark.parametrize('filename,bpc', [

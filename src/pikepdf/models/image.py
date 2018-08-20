@@ -225,6 +225,8 @@ class PdfImage:
                 m = 'RGB'
             elif self.colorspace == '/DeviceGray':
                 m = 'L'
+            elif self.colorspace == '/DeviceCMYK':
+                m = 'CMYK'
         if m == '':
             raise NotImplementedError("Not sure how to handle PDF image of this type")
         return m
@@ -256,14 +258,28 @@ class PdfImage:
         :param stream: Writable stream to write data to
         """
 
+        def normal_dct_rgb():
+            # Normal DCTDecode RGB images have the default value of
+            # /ColorTransform 1 and are actually in YUV. Such a file can be
+            # saved as a standard JPEG. RGB JPEGs without YUV conversion can't
+            # be saved as JPEGs, and are probably bugs. Some software in the
+            # wild actually produces RGB JPEGs in PDFs (probably a bug).
+            return (self.mode == 'RGB' and
+                    self.filter_decodeparms[0][1].get('/ColorTransform', 1))
+
+        def normal_dct_cmyk():
+            # Normal DCTDecode CMYKs have /ColorTransform 0 and can be saved.
+            # There is a YUVK colorspace but CMYK JPEGs don't generally use it
+            return (self.mode == 'CMYK' and
+                    self.filter_decodeparms[0][1].get('/ColorTransform', 0))
+
         if self.filters == ['/CCITTFaxDecode']:
             data = self.obj.read_raw_bytes()
             stream.write(self._generate_ccitt_header(data))
             stream.write(data)
             return '.tif'
-        elif self.filters == ['/DCTDecode'] and \
-                self.mode == 'RGB' and \
-                self.filter_decodeparms[0][1].get('/ColorTransform', 1):
+        elif self.filters == ['/DCTDecode'] and (
+                self.mode == 'L' or normal_dct_rgb() or normal_dct_cmyk):
             buffer = self.obj.get_raw_stream_buffer()
             stream.write(buffer)
             return '.jpg'
@@ -330,7 +346,6 @@ class PdfImage:
             return '.png'
 
         raise UnsupportedImageTypeError(repr(self))
-
 
     def read_bytes(self):
         """Decompress this image and return it as unencoded bytes"""
