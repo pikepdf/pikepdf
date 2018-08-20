@@ -24,26 +24,6 @@ manipulation and repair library.
 Python + QPDF = "py" + "qpdf" = "pyqpdf", which looks like a dyslexia test. Say it
 out loud, and it sounds like "pikepdf".
 
-Python 3.5, 3.6 and 3.7 are fully supported.
-
-**To install:**
-
-.. code-block:: bash
-
-    pip install pikepdf
-
-Key features:
-
--   Editing, manipulation and transformation of existing PDFs
--   Based on the mature, proven QPDF C++ library
--   Works with encrypted PDFs
--   Supports all PDF compression filters
--   Can create "fast web view" (linearized) PDFs
--   Creates standards compliant PDFs that pass validation in other tools
--   Automatically repairs damaged PDFs, just like QPDF
--   Implements more of the PDF specification than existing Python PDF tools
--   IPython notebook and Jupyter integration
-
 .. code-block:: python
 
     # Elegant, Pythonic API
@@ -52,12 +32,21 @@ Key features:
     del pdf.pages[-1]
     pdf.save('output.pdf')
 
+**To install:**
+
+Python 3.5, 3.6 and 3.7 are fully supported.
+
+.. code-block:: bash
+
+    pip install pikepdf
+
+For users who want to build from source, see `installation <https://pikepdf.readthedocs.io/en/latest/index.html>`_.
 
 pikepdf is `documented <https://pikepdf.readthedocs.io/en/latest/index.html>`_
 and actively maintained. Commercial support is available.
 
-Feature comparison
-------------------
+Features
+--------
 
 This library is similar to PyPDF2 and pdfrw - it provides low level access to PDF
 features and allows editing and content transformation of existing PDFs.  Some
