@@ -14,22 +14,39 @@ demand for them.
 The binary wheels should work on most systems work on Linux distributions 2012
 and newer, macOS 10.11 and newer (for Homebrew), Windows 7 and newer.
 
+Managed distributions
+---------------------
+
+pikepdf is currently packaged for
+`ArchLinux <https://aur.archlinux.org/packages/python-pikepdf/>`_.
+
 Building from source
 --------------------
 
-pikepdf requires `pybind11 <https://github.com/pybind/pybind11>`_ and libqpdf
-from the QPDF project. On Linux the library and headers for libqpdf must be
-installed. pybind11 is header-only, and the headers must be installed.
+**Requirements**
 
-**From source (GCC or Clang)**
+.. |qpdf-version| replace:: 8.1.0
 
-A C++11 compliant compiler is required, which includes most recent versions of
-GCC (4.8 and up) and clang (3.3 and up). A C++14 compiler is recommended and
-will produce smaller binaries, but no difference is performance has been
-observed.
+pikepdf requires:
 
-libqpdf 8.1.0 is required at compile time and runtime. Many platforms have not
-updated to this version, so you may need to build this package from source.
+-   a C++11 compliant compiler - GCC (4.8 and up) and clang (3.3 and up); C++14
+    is recommended and will produced smaller binaries
+-   `pybind11 <https://github.com/pybind/pybind11>`_ (currently a vendored
+    version is included in the pikepdf source, but this may change)
+-   libqpdf |qpdf-version| or higher from the
+    `QPDF <https://github.com/qpdf/qpdf>`_ project.
+
+On Linux the library and headers for libqpdf must be installed because pikepdf
+compiles code against it and links to it.
+
+Check `Repology for QPDF <https://repology.org/metapackage/qpdf/badges>`_ to
+see if a recent version of QPDF is available for your platform. Otherwise you
+must
+`build QPDF from source <https://github.com/qpdf/qpdf/blob/master/INSTALL>`_.
+(Consider using the binary wheels, which bundle the required version of
+libqpdf.)
+
+**GCC and Clang**
 
 -  clone this repository
 -  install libjpeg, zlib and libqpdf on your platform, including headers
