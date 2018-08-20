@@ -7,6 +7,16 @@ pikepdf releases use the `semantic versioning <http://semver.org>`_ policy.
 
 Since 1.0 has not been released, this means **breaking changes can occur at any time** and the **public API is not yet stable**. For the moment a minor version change is known to be breaking, and a patch level change shouldn't be breaking.
 
+v0.3.2
+======
+
+Updates
+-------
+
+* Added support for direct image extraction of CMYK and grayscale JPEGs, where previously only RGB (internally YUV) was supported
+* ``Array()`` now creates an empty array properly
+* The syntax ``Name.Foo in Dictionary()``, e.g. ``Name.XObject in page.Resources``, now works
+
 v0.3.1
 ======
 
