@@ -390,13 +390,23 @@ void init_object(py::module& m)
         });
 
     py::bind_vector<std::vector<QPDFObjectHandle>>(m, "ObjectList");
-    auto objmap = py::bind_map<std::map<std::string, QPDFObjectHandle>>(m, "ObjectMap");
+    using ObjectMap = std::map<std::string, QPDFObjectHandle>;
+    auto objmap = py::bind_map<ObjectMap>(m, "ObjectMap");
 
     objmap.def("values",
-        [](std::map<std::string, QPDFObjectHandle> &m) {
+        [](ObjectMap &m) {
             return py::make_value_iterator(m.begin(), m.end());
         },
         py::keep_alive<0, 1>()
+    );
+    objmap.def("get",
+        [](ObjectMap &m, const std::string &k, py::object default_) -> py::object {
+            auto it = m.find(k);
+            if (it == m.end())
+                return default_;
+            return py::cast(it->second);
+        },
+        py::return_value_policy::reference_internal // ref + keepalive
     );
 
     py::class_<QPDFObjectHandle>(m, "Object")
