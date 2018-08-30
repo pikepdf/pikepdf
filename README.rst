@@ -93,16 +93,19 @@ support is probably not difficult to achieve. Pull requests are welcome.
 License
 -------
 
-pikepdf is provided under the `Mozilla Public License 2.0 <https://www.mozilla.org/en-US/MPL/2.0/>`_
-license (MPL) that can be found in the LICENSE file. By using, distributing, or
-contributing to this project, you agree to the terms and conditions of this license.
-We exclude Exhibit B, so pikepdf is compatible with secondary licenses.
-At your option may additionally distribute pikepdf under a secondary license.
+pikepdf is provided under the `Mozilla Public License 2.0
+<https://www.mozilla.org/en-US/MPL/2.0/>`_ license (MPL) that can be found in
+the LICENSE file. By using, distributing, or contributing to this project, you
+agree to the terms and conditions of this license.
 
-`Informally <https://www.mozilla.org/en-US/MPL/2.0/FAQ/>`_, MPL 2.0 is a not a "viral" license.
-It may be combined with other work, including commercial software. However, you must disclose your modifications
-*to pikepdf* in source code form. In other works, fork this repository on Github or elsewhere and commit your
-contributions there, and you've satisfied the license.
+`Informally <https://www.mozilla.org/en-US/MPL/2.0/FAQ/>`_, MPL 2.0 is a not a
+"viral" license. It may be combined with other work, including commercial
+software. However, you must disclose your modifications *to pikepdf* in source
+code form. In other works, fork this repository on GitHub or elsewhere and
+commit your contributions there, and you've satisfied your obligations.
+MPL 2.0 is compatible with the GPL and LGPL - see the
+`guidelines <https://www.mozilla.org/en-US/MPL/2.0/combining-mpl-and-gpl/>`_
+for notes on use in GPL.
 
 The ``tests/resources/copyright`` file describes licensing terms for the test
 suite and the provenance of test resources.
