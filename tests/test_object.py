@@ -160,16 +160,6 @@ def test_name_equality():
     assert Name.Foo == Name('/Foo')
 
 
-def test_dictionary_contains():
-    d = Dictionary({
-        '/Monty': 'Python',
-        '/Flying': 'Circus'
-    })
-    assert Name.Flying in d
-    assert Name('/Monty') in d
-    assert Name.Brian not in d
-
-
 def test_unslashed_name():
     with pytest.raises(ValueError, match='must begin with'):
         Name('Monty') not in d
@@ -264,23 +254,42 @@ def test_utf16_error():
         str(encode('\ud801'))
 
 
-def test_dictionary_none():
-    d = pikepdf.Dictionary({'/One': 1, '/Two': 2})
-    with pytest.raises(ValueError):
-        d['/Two'] = None
+class TestDictionary:
 
+    def test_dictionary_contains(self):
+        d = Dictionary({
+            '/Monty': 'Python',
+            '/Flying': 'Circus'
+        })
+        assert Name.Flying in d
+        assert Name('/Monty') in d
+        assert Name.Brian not in d
 
-def test_dictionary_init():
-    d1 = pikepdf.Dictionary({'/Animal': 'Dog'})
-    d2 = pikepdf.Dictionary(Animal='Dog')
-    assert d1 == d2
+    def test_dictionary_none(self):
+        d = pikepdf.Dictionary({'/One': 1, '/Two': 2})
+        with pytest.raises(ValueError):
+            d['/Two'] = None
 
+    def test_dictionary_init(self):
+        d1 = pikepdf.Dictionary({'/Animal': 'Dog'})
+        d2 = pikepdf.Dictionary(Animal='Dog')
+        assert d1 == d2
 
-def test_dictionary():
-    d = pikepdf.Dictionary(A='a', B='b', C='c')
-    assert '/B' in d
-    assert 'B' in dir(d)
+    def test_dictionary_kwargs(self):
+        d = pikepdf.Dictionary(A='a', B='b', C='c')
+        assert '/B' in d
+        assert 'B' in dir(d)
 
+    def test_dictionary_iter(self):
+        d = pikepdf.Dictionary(A='a')
+        for k in d:
+            assert k == '/A'
+            assert d[k] == 'a'
+
+    def test_dictionary_items(self):
+        d = pikepdf.Dictionary(A='a')
+        for k in d.items():
+            pass
 
 def test_not_convertible():
     class PurePythonObj:
