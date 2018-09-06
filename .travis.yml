@@ -52,6 +52,8 @@ matrix:
     python: "3.7"
     addons: &gcc5_xenial
       apt:
+        sources:
+        - sourceline: 'ppa:deadsnakes/ppa'
         packages: [python3.7-dev, python3.7-venv, g++-5]
         config:
           retries: true
