@@ -1,6 +1,11 @@
 Installation
 ============
 
+.. |latest| image:: https://img.shields.io/pypi/v/pikepdf.svg
+    :alt: pikepdf latest released version on PyPI
+
+|latest|
+
 Most users on Linux, macOS or Windows with x64 systems should take advantage of
 the binary wheels.
 
@@ -8,7 +13,7 @@ the binary wheels.
 
     pip install pikepdf
 
-64-bit wheels are always. 32-bit wheels will be added if there is any sign of
+64-bit wheels are available. 32-bit wheels will be added if there is any sign of
 demand for them.
 
 The binary wheels should work on most systems work on Linux distributions 2012
@@ -17,8 +22,27 @@ and newer, macOS 10.11 and newer (for Homebrew), Windows 7 and newer.
 Managed distributions
 ---------------------
 
-pikepdf is currently packaged for
-`ArchLinux <https://aur.archlinux.org/packages/python-pikepdf/>`_.
+pikepdf is not yet widely distributed, but a few Linux distributions do make it
+available.
+
+**Debian**
+
+.. |deb-experimental| image:: https://repology.org/badge/version-for-repo/debian_experimental/pikepdf.svg
+    :alt: Debian experimental
+
+|deb-experimental|
+
+.. code-block:: bash
+
+    apt-get -t experimental install pikepdf
+
+**ArchLinux**
+
+Available in `ArchLinux User Repository <https://aur.archlinux.org/packages/python-pikepdf/>`_.
+
+.. code-block:: bash
+
+    pacman -S pikepdf
 
 Building from source
 --------------------
@@ -78,9 +102,15 @@ extension with it. We must force the use of Visual Studio 2015.
 - download ``qpdf-[latest version]-bin-msvc64.zip`` from the `QPDF releases page <https://github.com/qpdf/qpdf/releases>`_
 - ``pip install .``
 
-Note that this requires the user building ``pikepdf`` to have
-registry edition rights on the machine, to be able to run the
-``vcvarsall.bat`` script.
+.. note::
+
+    The user compiling ``pikepdf`` to must have registry editing rights on the
+    machine to be able to run the ``vcvarsall.bat`` script.
+
+.. note::
+
+    If you are attempting to build pikepdf because you want to use OCRmyPDF,
+    **OCRmyPDF is not supported on Windows** at this time.
 
 Windows runtime requirements
 ----------------------------
