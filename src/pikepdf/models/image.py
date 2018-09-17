@@ -70,8 +70,7 @@ def dict_or_array_dict(value):
 
 
 class PdfImage:
-    """
-    Support class to provide a consistent API for manipulating PDF images
+    """Support class to provide a consistent API for manipulating PDF images
 
     The data structure for images inside PDFs is irregular and flexible,
     making it difficult to work with without introducing errors for less
@@ -82,8 +81,7 @@ class PdfImage:
     SIMPLE_COLORSPACES = ('/DeviceRGB', '/DeviceGray', '/CalRGB', '/CalGray')
 
     def __init__(self, obj):
-        """
-        Construct a PDF image from a Image XObject inside a PDF
+        """Construct a PDF image from a Image XObject inside a PDF
 
         ``pim = PdfImage(page.Resources.XObject['/ImageNN'])``
 
@@ -98,8 +96,7 @@ class PdfImage:
 
     @classmethod
     def _from_pil_image(cls, *, pdf, page, name, image):  # pragma: no cover
-        """
-        Insert a PIL image into a PDF (rudimentary)
+        """Insert a PIL image into a PDF (rudimentary)
 
         :param pdf: the PDF to attach the image to
         :type pdf: pikepdf.Pdf
@@ -126,24 +123,47 @@ class PdfImage:
 
         return cls(imstream)
 
+    def _xobject(self, name, type_, default):
+        val = getattr(self.obj, name, default)
+        try:
+            return type_(val)
+        except TypeError:
+            if val is None:
+                return None
+        raise NotImplementedError('xobject access for ' + name)
 
-    width = _PdfImageDescriptor('Width', int, None)
-    """Width of the image data in pixels"""
+    @property
+    def width(self):
+        """Width of the image data in pixels"""
+        return self._xobject('Width', int, None)
 
-    height = _PdfImageDescriptor('Height', int, None)
-    """Height of the image data in pixels"""
+    @property
+    def height(self):
+        """Height of the image data in pixels"""
+        return self._xobject('Height', int, None)
 
-    image_mask = _PdfImageDescriptor('ImageMask', bool, False)
-    """``True`` if this is an image mask"""
+    @property
+    def image_mask(self):
+        """``True`` if this is an image mask"""
+        return self._xobject('ImageMask', bool, False)
 
-    _bpc = _PdfImageDescriptor('BitsPerComponent', int, None)
-    _colorspaces = _PdfImageDescriptor('ColorSpace', array_str, [])
+    @property
+    def _bpc(self):
+        return self._xobject('BitsPerComponent', int, None)
 
-    filters = _PdfImageDescriptor('Filter', array_str, [])
-    """List of names of the filters that we applied to encode this image"""
+    @property
+    def _colorspaces(self):
+        return self._xobject('ColorSpace', array_str, [])
 
-    decode_parms = _PdfImageDescriptor('DecodeParms', dict_or_array_dict, [])
-    """List of the /DecodeParms, arguments to filters"""
+    @property
+    def filters(self):
+        """List of names of the filters that we applied to encode this image"""
+        return self._xobject('Filter', array_str, [])
+
+    @property
+    def decode_parms(self):
+        """List of the /DecodeParms, arguments to filters"""
+        return self._xobject('DecodeParms', dict_or_array_dict, [])
 
     @property
     def bits_per_component(self):
@@ -157,16 +177,17 @@ class PdfImage:
         """PDF name of the colorspace that best describes this image"""
         if self.image_mask:
             return None  # Undefined for image masks
-        if self._colorspaces[0] in self.SIMPLE_COLORSPACES:
-            return self._colorspaces[0]
-        if self._colorspaces[0] == '/DeviceCMYK':
-            return self._colorspaces[0]
-        if self._colorspaces[0] == '/Indexed' \
-                and self._colorspaces[1] in self.SIMPLE_COLORSPACES:
-            return self._colorspaces[1]
-        if self._colorspaces[0] == '/ICCBased':
-            icc = self.obj.ColorSpace[1]
-            return icc.stream_dict.get('/Alternate', '')
+        if self._colorspaces:
+            if self._colorspaces[0] in self.SIMPLE_COLORSPACES:
+                return self._colorspaces[0]
+            if self._colorspaces[0] == '/DeviceCMYK':
+                return self._colorspaces[0]
+            if self._colorspaces[0] == '/Indexed' \
+                    and self._colorspaces[1] in self.SIMPLE_COLORSPACES:
+                return self._colorspaces[1]
+            if self._colorspaces[0] == '/ICCBased':
+                icc = self.obj.ColorSpace[1]
+                return icc.stream_dict.get('/Alternate', '')
         raise NotImplementedError(
             "not sure how to get colorspace: " + repr(self._colorspaces))
 
@@ -182,8 +203,7 @@ class PdfImage:
 
     @property
     def palette(self):
-        """
-        Retrieves the color palette for this image
+        """Retrieves the color palette for this image
 
         :returns: (base_colorspace: str, palette: bytes)
         :rtype: tuple
@@ -233,8 +253,7 @@ class PdfImage:
 
     @property
     def filter_decodeparms(self):
-        """
-        PDF has a lot of optional data structures concerning /Filter and
+        """PDF has a lot of optional data structures concerning /Filter and
         /DecodeParms. /Filter can be absent or a name or an array, /DecodeParms
         can be absent or a dictionary (if /Filter is a name) or an array (if
         /Filter is an array). When both are arrays the lengths match.
@@ -248,8 +267,7 @@ class PdfImage:
         return list(zip_longest(self.filters, self.decode_parms, fillvalue={}))
 
     def _extract_direct(self, *, stream):
-        """
-        Attempt to extract the image directly to a usable image file
+        """Attempt to extract the image directly to a usable image file
 
         If there is no way to extract the image without decompressing or
         transcoding then raise an exception. The type and format of image
@@ -323,8 +341,7 @@ class PdfImage:
         return im
 
     def extract_to(self, *, stream):
-        """
-        Attempt to extract the image directly to a usable image file
+        """Attempt to extract the image directly to a usable image file
 
         If possible, the compressed data is extracted and inserted into
         a compressed image file format without transcoding the compressed
@@ -356,8 +373,7 @@ class PdfImage:
         return self.obj.get_stream_buffer()
 
     def as_pil_image(self):
-        """
-        Extract the image as a Pillow Image, using decompression as necessary
+        """Extract the image as a Pillow Image, using decompression as necessary
 
         :rtype: :class:`PIL.Image.Image`
         """
@@ -378,9 +394,7 @@ class PdfImage:
         return im
 
     def _generate_ccitt_header(self, data):
-        """
-        Construct a CCITT G3 or G4 header from the PDF metadata
-        """
+        """Construct a CCITT G3 or G4 header from the PDF metadata"""
         # https://stackoverflow.com/questions/2641770/
         # https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf
 
