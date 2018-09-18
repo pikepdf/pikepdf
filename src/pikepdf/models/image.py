@@ -23,32 +23,6 @@ class UnsupportedImageTypeError(Exception):
     pass
 
 
-class _PdfImageDescriptor:
-    def __init__(self, name, type_, default, inline_name=None, inline_map=None):
-        self.name = name
-        self.type = type_
-        self.default = default
-        self.inline_name = inline_name
-        self.inline_map = inline_map
-
-    def __get__(self, wrapper, wrapperclass):
-        sentinel = object()
-        val = sentinel
-        if self.inline_name:
-            val = getattr(wrapper.obj, self.inline_name, sentinel)
-        if val is sentinel:
-            val = getattr(wrapper.obj, self.name, self.default)
-        if self.type == bool:
-            return val.as_bool() if isinstance(val, Object) else bool(val)
-
-        try:
-            return self.type(val)
-        except TypeError:
-            if val is None:
-                return None
-        raise NotImplementedError("__get__")
-
-
 def array_str(value):
     if isinstance(value, list):
         return [str(item) for item in value]
@@ -123,7 +97,7 @@ class PdfImage:
 
         return cls(imstream)
 
-    def _xobject(self, name, type_, default):
+    def _metadata(self, name, type_, default):
         val = getattr(self.obj, name, default)
         try:
             return type_(val)
@@ -135,35 +109,35 @@ class PdfImage:
     @property
     def width(self):
         """Width of the image data in pixels"""
-        return self._xobject('Width', int, None)
+        return self._metadata('Width', int, None)
 
     @property
     def height(self):
         """Height of the image data in pixels"""
-        return self._xobject('Height', int, None)
+        return self._metadata('Height', int, None)
 
     @property
     def image_mask(self):
         """``True`` if this is an image mask"""
-        return self._xobject('ImageMask', bool, False)
+        return self._metadata('ImageMask', bool, False)
 
     @property
     def _bpc(self):
-        return self._xobject('BitsPerComponent', int, None)
+        return self._metadata('BitsPerComponent', int, None)
 
     @property
     def _colorspaces(self):
-        return self._xobject('ColorSpace', array_str, [])
+        return self._metadata('ColorSpace', array_str, [])
 
     @property
     def filters(self):
         """List of names of the filters that we applied to encode this image"""
-        return self._xobject('Filter', array_str, [])
+        return self._metadata('Filter', array_str, [])
 
     @property
     def decode_parms(self):
         """List of the /DecodeParms, arguments to filters"""
-        return self._xobject('DecodeParms', dict_or_array_dict, [])
+        return self._metadata('DecodeParms', dict_or_array_dict, [])
 
     @property
     def bits_per_component(self):
@@ -489,13 +463,51 @@ class PdfInlineImage(PdfImage):
                 "parsing inline " + reparse.decode('unicode_escape')) from e
         super().__init__(reparsed_obj)
 
-    width = _PdfImageDescriptor('Width', int, None, 'W')
-    height = _PdfImageDescriptor('Height', int, None, 'H')
-    image_mask = _PdfImageDescriptor('ImageMask', bool, False, 'IM')
-    _bpc = _PdfImageDescriptor('BitsPerComponent', int, None, 'BPC')
-    _colorspaces = _PdfImageDescriptor('ColorSpace', inline_remove_abbrevs, [], 'CS')
-    filters = _PdfImageDescriptor('Filter', inline_remove_abbrevs, [], 'F')
-    decode_parms = _PdfImageDescriptor('DecodeParms', dict_or_array_dict, [], 'DP')
+    def _metadata(self, name, alt_name, type_, default):
+        sentinel = object()
+        val = sentinel
+        val = getattr(self.obj, name, sentinel)
+        if val is sentinel:
+            val = getattr(self.obj, alt_name, default)
+        try:
+            return type_(val)
+        except TypeError:
+            if val is None:
+                return None
+        raise NotImplementedError('inline image metadata access for ' + name)
+
+    @property
+    def width(self):
+        """Width of the image data in pixels"""
+        return self._metadata('W', 'Width', int, None)
+
+    @property
+    def height(self):
+        """Height of the image data in pixels"""
+        return self._metadata('H', 'Height', int, None)
+
+    @property
+    def image_mask(self):
+        """``True`` if this is an image mask"""
+        return self._metadata('IM', 'ImageMask', bool, False)
+
+    @property
+    def _bpc(self):
+        return self._metadata('BPC', 'BitsPerComponent', int, None)
+
+    @property
+    def _colorspaces(self):
+        return self._metadata('CS', 'ColorSpace', inline_remove_abbrevs, [])
+
+    @property
+    def filters(self):
+        """List of names of the filters that we applied to encode this image"""
+        return self._metadata('F', 'Filter', inline_remove_abbrevs, [])
+
+    @property
+    def decode_parms(self):
+        """List of the /DecodeParms, arguments to filters"""
+        return self._metadata('DP', 'DecodeParms', dict_or_array_dict, [])
 
     @property
     def is_inline(self):
