@@ -35,7 +35,7 @@ def array_str(value):
 def array_str_colorspace(value):
     if isinstance(value, (list, Array)):
         items = [item for item in value]
-        if items[0] == '/Indexed' and len(items) == 4:
+        if len(items) == 4 and items[0] == '/Indexed':
             result = [str(items[n]) for n in range(3)]
             result.append(bytes(items[3]))
             return result
@@ -89,10 +89,12 @@ class PdfImageBase(ABC):
 
     @property
     def _bpc(self):
+        """Bits per component for this image (low-level)"""
         return self._metadata('BitsPerComponent', int, None)
 
     @property
     def _colorspaces(self):
+        """Colorspace (low-level)"""
         return self._metadata('ColorSpace', array_str_colorspace, [])
 
     @property
@@ -206,6 +208,10 @@ class PdfImageBase(ABC):
             base = 'L'
         return base, lookup
 
+    @abstractmethod
+    def as_pil_image(self):
+        pass
+
 
 class PdfImage(PdfImageBase):
     """Support class to provide a consistent API for manipulating PDF images
@@ -217,13 +223,21 @@ class PdfImage(PdfImageBase):
     Pillow imaging library.
     """
 
+    def __new__(cls, obj):
+        instance = super().__new__(cls)
+        instance.__init__(obj)
+        if '/JPXDecode' in instance.filters:
+            instance = super().__new__(PdfJpxImage)
+            instance.__init__(obj)
+        return instance
+
     def __init__(self, obj):
         """Construct a PDF image from a Image XObject inside a PDF
 
         ``pim = PdfImage(page.Resources.XObject['/ImageNN'])``
 
-        :param obj: an Image XObject
-        :type obj: pikepdf.Object
+        Args:
+            obj (pikepdf.Object): an Image XObject
 
         """
         if isinstance(obj, Stream) and \
@@ -275,7 +289,8 @@ class PdfImage(PdfImageBase):
         transcoding then raise an exception. The type and format of image
         generated will vary.
 
-        :param stream: Writable stream to write data to
+        Args:
+            stream: Writable stream to write data to
         """
 
         def normal_dct_rgb():
@@ -350,8 +365,16 @@ class PdfImage(PdfImageBase):
         content. If this is not possible, the data will be decompressed
         and extracted to an appropriate format.
 
-        :param stream: Writable stream to write data to
-        :returns: str -- The file format extension
+        Because it is not known until attempted what image format will be
+        extracted, users should not assume what format they are getting back.
+        When saving the image to a file, use a temporary filename, and then
+        rename the file to its final name based on the returned file extension.
+
+        Args:
+            stream: Writable stream to write data to
+
+        Returns:
+            str: The file format extension
         """
 
         try:
@@ -377,7 +400,8 @@ class PdfImage(PdfImageBase):
     def as_pil_image(self):
         """Extract the image as a Pillow Image, using decompression as necessary
 
-        :rtype: :class:`PIL.Image.Image`
+        Returns:
+            PIL.Image.Image
         """
         from PIL import Image
 
@@ -446,6 +470,50 @@ class PdfImage(PdfImageBase):
         return b.getvalue()
 
 
+class PdfJpxImage(PdfImage):
+
+    def __init__(self, obj):
+        super().__init__(obj)
+        self.pil = self.as_pil_image()
+
+    def _extract_direct(self, *, stream):
+        buffer = self.obj.get_raw_stream_buffer()
+        stream.write(buffer)
+        return '.jp2'
+
+    @property
+    def _colorspaces(self):
+        # (PDF 1.7 Table 89) If ColorSpace is present, any colour space
+        # specifications in the JPEG2000 data shall be ignored.
+        super_colorspaces = super()._colorspaces
+        if super_colorspaces:
+            return super_colorspaces
+        if self.pil.mode == 'L':
+            return ['/DeviceGray']
+        elif self.pil.mode == 'RGB':
+            return ['/DeviceRGB']
+        raise NotImplementedError('Complex JP2 colorspace')
+
+    @property
+    def _bpc(self):
+        # (PDF 1.7 Table 89) If the image stream uses the JPXDecode filter, this
+        # entry is optional and shall be ignored if present. The bit depth is
+        # determined by the conforming reader in the process of decoding the
+        # JPEG2000 image.
+        return 8
+
+    @property
+    def indexed(self):
+        # Nothing in the spec precludes an Indexed JPXDecode image, except for
+        # the fact that doing so is madness. Let's assume it no one is that
+        # insane.
+        return False
+
+    def __repr__(self):
+        return '<pikepdf.PdfJpxImage JPEG2000 image mode={} size={}x{} at {}>'.format(
+            self.mode, self.width, self.height, hex(id(self)))
+
+
 class PdfInlineImage(PdfImageBase):
     """Support class for PDF inline images"""
 
@@ -472,8 +540,9 @@ class PdfInlineImage(PdfImageBase):
 
     def __init__(self, *, image_data, image_object: tuple):
         """
-        :param image_data: data stream for image, extracted from content stream
-        :param image_object: the metadata for image, also from content stream
+        Args:
+            image_data: data stream for image, extracted from content stream
+            image_object: the metadata for image, also from content stream
         """
 
         # Convert the sequence of pikepdf.Object from the content stream into
@@ -505,6 +574,7 @@ class PdfInlineImage(PdfImageBase):
             raise PdfError(
                 "parsing inline " + reparse.decode('unicode_escape')) from e
         self.obj = reparsed_obj
+        self.pil = None
 
     def _metadata(self, name, type_, default):
         return metadata_from_obj(self.obj, name, type_, default)
@@ -521,6 +591,14 @@ class PdfInlineImage(PdfImageBase):
             pass
         return '<pikepdf.PdfInlineImage image mode={} size={}x{} at {}>'.format(
             mode, self.width, self.height, hex(id(self)))
+
+    def as_pil_image(self):
+        from PIL import Image
+
+        if self.pil:
+            return self.pil
+
+        raise NotImplementedError('not yet')
 
     def extract_to(self, *, stream):  # pylint: disable=unused-argument
         raise UnsupportedImageTypeError("inline images don't support extract")
