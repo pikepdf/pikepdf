@@ -522,7 +522,8 @@ void init_object(py::module& m)
             },
             "for dictionary objects, behave as dict.get(key, default=None)",
             py::arg("key"),
-            py::arg("default_") = py::none()
+            py::arg("default_") = py::none(),
+            py::return_value_policy::reference_internal
         )
         .def("keys", &QPDFObjectHandle::getKeys)
         .def("__contains__",
