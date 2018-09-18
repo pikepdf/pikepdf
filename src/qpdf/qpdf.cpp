@@ -82,8 +82,8 @@ open_pdf(
 
         py::object read = stream.attr("read");
         py::bytes data = read();
-        char *buffer;
-        ssize_t length;
+        char *buffer = nullptr;
+        ssize_t length = 0;
 
         PYBIND11_BYTES_AS_STRING_AND_SIZE(data.ptr(), &buffer, &length);
 
@@ -123,6 +123,24 @@ open_pdf(
 }
 
 
+class PikeProgressReporter : public QPDFWriter::ProgressReporter {
+public:
+    PikeProgressReporter(py::function callback)
+    {
+        this->callback = callback;
+    }
+
+    virtual ~PikeProgressReporter() {}
+
+    virtual void reportProgress(int percent) override
+    {
+        this->callback(percent);
+    }
+private:
+    py::function callback;
+};
+
+
 void save_pdf(
     std::shared_ptr<QPDF> q,
     py::object filename_or_stream,
@@ -134,7 +152,8 @@ void save_pdf(
     qpdf_object_stream_e object_stream_mode=qpdf_o_preserve,
     qpdf_stream_data_e stream_data_mode=qpdf_s_preserve,
     bool normalize_content=false,
-    bool linearize=false)
+    bool linearize=false,
+    py::object progress=py::none())
 {
     QPDFWriter w(*q);
 
@@ -159,6 +178,11 @@ void save_pdf(
     }
     w.setContentNormalization(normalize_content);
     w.setLinearization(linearize);
+
+    if (!progress.is_none()) {
+        auto reporter = PointerHolder<QPDFWriter::ProgressReporter>(new PikeProgressReporter(progress));
+        w.registerProgressReporter(reporter);
+    }
 
     if (py::hasattr(filename_or_stream, "write") && py::hasattr(filename_or_stream, "seek")) {
         // Python code gave us an object with a stream interface
@@ -475,7 +499,8 @@ PYBIND11_MODULE(_qpdf, m) {
             py::arg("object_stream_mode")=qpdf_o_preserve,
             py::arg("stream_data_mode")=qpdf_s_preserve,
             py::arg("normalize_content")=false,
-            py::arg("linearize")=false
+            py::arg("linearize")=false,
+            py::arg("progress")=py::none()
         )
         .def("_get_object_id", &QPDF::getObjectByID)
         .def("get_object",

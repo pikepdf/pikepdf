@@ -6,6 +6,8 @@ import pytest
 from pikepdf import Pdf, PasswordError, Stream
 
 from io import StringIO
+from unittest.mock import Mock
+
 
 def test_non_filename():
     with pytest.raises(TypeError):
@@ -103,3 +105,10 @@ def test_remove_unreferenced(resources, outdir):
 def test_show_xref(resources):
     pdf = Pdf.open(resources / 'pal-1bit-trivial.pdf')
     pdf.show_xref_table()
+
+
+def test_progress(resources, outdir):
+    pdf = Pdf.open(resources / 'pal-1bit-trivial.pdf')
+    mock = Mock()
+    pdf.save(outdir / 'out.pdf', progress=mock)
+    mock.assert_called()
