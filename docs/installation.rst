@@ -49,7 +49,7 @@ Building from source
 
 **Requirements**
 
-.. |qpdf-version| replace:: 8.1.0
+.. |qpdf-version| replace:: 8.2.1
 
 pikepdf requires:
 
@@ -87,6 +87,8 @@ libqpdf.)
 
 **On Windows (requires Visual Studio 2015)**
 
+.. |msvc-zip| replace:: qpdf-|qpdf-version|-bin-msvc64.zip
+
 pikepdf requires a C++11 compliant compiler (i.e. Visual Studio 2015 on
 Windows). See our continuous integration build script in ``.appveyor.yml``
 for detailed instructions. Or use the wheels which save this pain.
@@ -99,8 +101,10 @@ extension with it. We must force the use of Visual Studio 2015.
 - ``"%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" x64``
 - ``set DISTUTILS_USE_SDK=1``
 - ``set MSSdk=1``
-- download ``qpdf-[latest version]-bin-msvc64.zip`` from the `QPDF releases page <https://github.com/qpdf/qpdf/releases>`_
-- ``pip install .``
+- download |msvc-zip| from the `QPDF releases page <https://github.com/qpdf/qpdf/releases>`_
+- extract ``bin\qpdfXX.dll`` from the zip file above, where XX is the version
+  of the ABI, and copy it to the ``src/pikepdf`` folder in the repository
+- run ``pip install .`` in the root directory of the repository
 
 .. note::
 
