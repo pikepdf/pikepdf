@@ -112,6 +112,7 @@ def test_inline(inline):
     assert iimage.image_mask == False
     assert iimage.mode == 'RGB'
     assert iimage.is_inline
+    assert iimage.colorspace == '/DeviceRGB'
 
 
 def test_bits_per_component_missing(congress):

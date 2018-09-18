@@ -54,6 +54,16 @@ def dict_or_array_dict(value):
     raise NotImplementedError(value)
 
 
+def metadata_from_obj(obj, name, type_, default):
+    val = getattr(obj, name, default)
+    try:
+        return type_(val)
+    except TypeError:
+        if val is None:
+            return None
+    raise NotImplementedError('Metadata access for ' + name)
+
+
 class PdfImageBase(ABC):
 
     SIMPLE_COLORSPACES = ('/DeviceRGB', '/DeviceGray', '/CalRGB', '/CalGray')
@@ -251,13 +261,7 @@ class PdfImage(PdfImageBase):
         return cls(imstream)
 
     def _metadata(self, name, type_, default):
-        val = getattr(self.obj, name, default)
-        try:
-            return type_(val)
-        except TypeError:
-            if val is None:
-                return None
-        raise NotImplementedError('xobject access for ' + name)
+        return metadata_from_obj(self.obj, name, type_, default)
 
     @property
     def is_inline(self):
@@ -442,33 +446,28 @@ class PdfImage(PdfImageBase):
         return b.getvalue()
 
 
-def inline_remove_abbrevs(value):
-    abbrevs = {
-        '/G': '/DeviceGray',
-        '/RGB': '/DeviceRGB',
-        '/CMYK': '/DeviceCMYK',
-        '/I': '/Indexed',
-        '/AHx': '/ASCIIHexDecode',
-        '/A85': '/ASCII85Decode',
-        '/LZW': '/LZWDecode',
-        '/RL': '/RunLengthDecode',
-        '/CCF': '/CCITTFaxDecode',
-        '/DCT': '/DCTDecode'
-    }
-    return [abbrevs.get(value, value) for value in array_str(value)]
-
-
 class PdfInlineImage(PdfImageBase):
     """Support class for PDF inline images"""
 
+    # Inline images can contain abbreviations that we write automatically
     ABBREVS = {
-        'Width': 'W',
-        'Height': 'H',
-        'BitsPerComponent': 'BPC',
-        'ImageMask': 'IM',
-        'ColorSpace': 'CS',
-        'Filter': 'F',
-        'DecodeParms': 'DP',
+        b'/W': b'/Width',
+        b'/H': b'/Height',
+        b'/BPC': b'/BitsPerComponent',
+        b'/IM': b'/ImageMask',
+        b'/CS': b'/ColorSpace',
+        b'/F': b'/Filter',
+        b'/DP': b'/DecodeParms',
+        b'/G': b'/DeviceGray',
+        b'/RGB': b'/DeviceRGB',
+        b'/CMYK': b'/DeviceCMYK',
+        b'/I': b'/Indexed',
+        b'/AHx': b'/ASCIIHexDecode',
+        b'/A85': b'/ASCII85Decode',
+        b'/LZW': b'/LZWDecode',
+        b'/RL': b'/RunLengthDecode',
+        b'/CCF': b'/CCITTFaxDecode',
+        b'/DCT': b'/DCTDecode'
     }
 
     def __init__(self, *, image_data, image_object: tuple):
@@ -477,12 +476,22 @@ class PdfInlineImage(PdfImageBase):
         :param image_object: the metadata for image, also from content stream
         """
 
+        # Convert the sequence of pikepdf.Object from the content stream into
+        # a dictionary object by unparsing it (to bytes), eliminating inline
+        # image abbreviations, and constructing a bytes string equivalent to
+        # what an image XObject would look like. Then retrieve data from there
+
         self._data = image_data
         self._image_object = image_object
 
         def unparse(obj):
             if isinstance(obj, Object):
-                return obj.unparse(resolved=True)
+                if isinstance(obj, Name):
+                    name = obj.unparse(resolved=True)
+                    assert isinstance(name, bytes)
+                    return self.ABBREVS.get(name, name)
+                else:
+                    return obj.unparse(resolved=True)
             elif isinstance(obj, bool):
                 return b'true' if obj else b'false'  # Lower case for PDF spec
             elif isinstance(obj, (int, Decimal, float)):
@@ -498,27 +507,7 @@ class PdfInlineImage(PdfImageBase):
         self.obj = reparsed_obj
 
     def _metadata(self, name, type_, default):
-        sentinel = object()
-        val = sentinel
-        abbrev_name = self.ABBREVS.get(name, name)
-        val = getattr(self.obj, abbrev_name, sentinel)
-        if val is sentinel:
-            val = getattr(self.obj, name, default)
-        try:
-            return type_(val)
-        except TypeError:
-            if val is None:
-                return None
-        raise NotImplementedError('inline image metadata access for ' + name)
-
-    @property
-    def _colorspaces(self):
-        return self._metadata('ColorSpace', inline_remove_abbrevs, [])
-
-    @property
-    def filters(self):
-        """List of names of the filters that we applied to encode this image"""
-        return self._metadata('Filter', inline_remove_abbrevs, [])
+        return metadata_from_obj(self.obj, name, type_, default)
 
     @property
     def is_inline(self):
