@@ -22,7 +22,7 @@ install:
     python -m pip install --disable-pip-version-check --upgrade pip setuptools wheel
     pip install pybind11
 
-    Invoke-WebRequest "https://github.com/qpdf/qpdf/releases/download/untagged-56d59bde45a6af871f08/qpdf-8.1.0-bin-msvc64.zip" -OutFile "qpdf-release.zip"
+    Invoke-WebRequest "https://github.com/qpdf/qpdf/releases/download/release-qpdf-8.2.1/qpdf-8.2.1-bin-msvc64.zip" -OutFile "qpdf-release.zip"
     7z x "qpdf-release.zip" -oc:\
     $qpdfdir = Get-ChildItem c:\qpdf-*
     Move-Item -Path $qpdfdir -Destination c:\qpdf
