@@ -8,10 +8,12 @@
 
 #include <sstream>
 #include <type_traits>
+#include <cerrno>
 
 #include "pikepdf.h"
 
 #include <qpdf/QPDFExc.hh>
+#include <qpdf/QPDFSystemError.hh>
 #include <qpdf/QPDFObjGen.hh>
 #include <qpdf/QPDFXRefEntry.hh>
 #include <qpdf/Buffer.hh>
@@ -104,11 +106,13 @@ open_pdf(
         try {
             py::gil_scoped_release release;
             q->processFile(filename.c_str(), password.c_str());
-        } catch (const std::runtime_error &rt_e) {
-            // If the error message does not contain "No such file", throw it onward
-            if (std::string(rt_e.what()).find("No such file") == std::string::npos)
+        } catch (const QPDFSystemError &e) {
+            // Intercept "no such file" error message and convert to Python
+            // FileNotFoundError
+            if (e.getErrno() == ENOENT)
+                throw py::filenotfound_error(filename);
+            else
                 throw;
-            throw py::filenotfound_error(filename);
         }
     }
 
