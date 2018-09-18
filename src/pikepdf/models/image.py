@@ -8,6 +8,7 @@ from io import BytesIO
 from subprocess import run, PIPE
 from tempfile import NamedTemporaryFile
 from itertools import zip_longest
+from abc import ABC, abstractmethod
 import struct
 
 from decimal import Decimal
@@ -24,13 +25,23 @@ class UnsupportedImageTypeError(Exception):
 
 
 def array_str(value):
-    if isinstance(value, list):
-        return [str(item) for item in value]
-    elif isinstance(value, Array):
+    if isinstance(value, (list, Array)):
         return [str(item) for item in value]
     elif isinstance(value, Name):
         return [str(value)]
     raise NotImplementedError(value)
+
+
+def array_str_colorspace(value):
+    if isinstance(value, (list, Array)):
+        items = [item for item in value]
+        if items[0] == '/Indexed' and len(items) == 4:
+            result = [str(items[n]) for n in range(3)]
+            result.append(bytes(items[3]))
+            return result
+        else:
+            return array_str(items)
+    return array_str(value)
 
 
 def dict_or_array_dict(value):
@@ -43,7 +54,150 @@ def dict_or_array_dict(value):
     raise NotImplementedError(value)
 
 
-class PdfImage:
+class PdfImageBase(ABC):
+
+    SIMPLE_COLORSPACES = ('/DeviceRGB', '/DeviceGray', '/CalRGB', '/CalGray')
+
+    @abstractmethod
+    def _metadata(self, name, type_, default):
+        pass
+
+    @property
+    def width(self):
+        """Width of the image data in pixels"""
+        return self._metadata('Width', int, None)
+
+    @property
+    def height(self):
+        """Height of the image data in pixels"""
+        return self._metadata('Height', int, None)
+
+    @property
+    def image_mask(self):
+        """``True`` if this is an image mask"""
+        return self._metadata('ImageMask', bool, False)
+
+    @property
+    def _bpc(self):
+        return self._metadata('BitsPerComponent', int, None)
+
+    @property
+    def _colorspaces(self):
+        return self._metadata('ColorSpace', array_str_colorspace, [])
+
+    @property
+    def filters(self):
+        """List of names of the filters that we applied to encode this image"""
+        return self._metadata('Filter', array_str, [])
+
+    @property
+    def decode_parms(self):
+        """List of the /DecodeParms, arguments to filters"""
+        return self._metadata('DecodeParms', dict_or_array_dict, [])
+
+    @property
+    def colorspace(self):
+        """PDF name of the colorspace that best describes this image"""
+        if self.image_mask:
+            return None  # Undefined for image masks
+        if self._colorspaces:
+            if self._colorspaces[0] in self.SIMPLE_COLORSPACES:
+                return self._colorspaces[0]
+            if self._colorspaces[0] == '/DeviceCMYK':
+                return self._colorspaces[0]
+            if self._colorspaces[0] == '/Indexed' \
+                    and self._colorspaces[1] in self.SIMPLE_COLORSPACES:
+                return self._colorspaces[1]
+            if self._colorspaces[0] == '/ICCBased':
+                icc = self._colorspaces[1]
+                return icc.stream_dict.get('/Alternate', '')
+        raise NotImplementedError(
+            "not sure how to get colorspace: " + repr(self._colorspaces))
+
+    @property
+    def bits_per_component(self):
+        """Bits per component of this image"""
+        if self._bpc is None:
+            return 1 if self.image_mask else 8
+        return self._bpc
+
+    @property
+    @abstractmethod
+    def is_inline(self):
+        pass
+
+    @property
+    def indexed(self):
+        """``True`` if the image has a defined color palette"""
+        return '/Indexed' in self._colorspaces
+
+    @property
+    def size(self):
+        """Size of image as (width, height)"""
+        return self.width, self.height
+
+    @property
+    def mode(self):
+        """``PIL.Image.mode`` equivalent for this image"""
+        m = ''
+        if self.indexed:
+            m = 'P'
+        elif self.bits_per_component == 1:
+            m = '1'
+        elif self.bits_per_component == 8:
+            if self.colorspace == '/DeviceRGB':
+                m = 'RGB'
+            elif self.colorspace == '/DeviceGray':
+                m = 'L'
+            elif self.colorspace == '/DeviceCMYK':
+                m = 'CMYK'
+        if m == '':
+            raise NotImplementedError("Not sure how to handle PDF image of this type")
+        return m
+
+    @property
+    def filter_decodeparms(self):
+        """PDF has a lot of optional data structures concerning /Filter and
+        /DecodeParms. /Filter can be absent or a name or an array, /DecodeParms
+        can be absent or a dictionary (if /Filter is a name) or an array (if
+        /Filter is an array). When both are arrays the lengths match.
+
+        Normalize this into:
+        [(/FilterName, {/DecodeParmName: Value, ...}), ...]
+
+        The order of /Filter matters as indicates the encoding/decoding sequence.
+
+        """
+        return list(zip_longest(self.filters, self.decode_parms, fillvalue={}))
+
+    @property
+    def palette(self):
+        """Retrieves the color palette for this image
+
+        :returns: (base_colorspace: str, palette: bytes)
+        :rtype: tuple
+        """
+
+        if not self.indexed:
+            return None
+        _idx, base, hival, lookup = None, None, None, None
+        try:
+            _idx, base, hival, lookup = self._colorspaces
+        except ValueError as e:
+            raise ValueError('Not sure how to interpret this palette') from e
+        base = str(base)
+        hival = int(hival)
+        lookup = bytes(lookup)
+        if not base in self.SIMPLE_COLORSPACES:
+            raise NotImplementedError("not sure how to interpret this palette")
+        if base == '/DeviceRGB':
+            base = 'RGB'
+        elif base == '/DeviceGray':
+            base = 'L'
+        return base, lookup
+
+
+class PdfImage(PdfImageBase):
     """Support class to provide a consistent API for manipulating PDF images
 
     The data structure for images inside PDFs is irregular and flexible,
@@ -52,7 +206,6 @@ class PdfImage:
     regular, Pythonic API similar in spirit (and convertible to) the Python
     Pillow imaging library.
     """
-    SIMPLE_COLORSPACES = ('/DeviceRGB', '/DeviceGray', '/CalRGB', '/CalGray')
 
     def __init__(self, obj):
         """Construct a PDF image from a Image XObject inside a PDF
@@ -107,138 +260,9 @@ class PdfImage:
         raise NotImplementedError('xobject access for ' + name)
 
     @property
-    def width(self):
-        """Width of the image data in pixels"""
-        return self._metadata('Width', int, None)
-
-    @property
-    def height(self):
-        """Height of the image data in pixels"""
-        return self._metadata('Height', int, None)
-
-    @property
-    def image_mask(self):
-        """``True`` if this is an image mask"""
-        return self._metadata('ImageMask', bool, False)
-
-    @property
-    def _bpc(self):
-        return self._metadata('BitsPerComponent', int, None)
-
-    @property
-    def _colorspaces(self):
-        return self._metadata('ColorSpace', array_str, [])
-
-    @property
-    def filters(self):
-        """List of names of the filters that we applied to encode this image"""
-        return self._metadata('Filter', array_str, [])
-
-    @property
-    def decode_parms(self):
-        """List of the /DecodeParms, arguments to filters"""
-        return self._metadata('DecodeParms', dict_or_array_dict, [])
-
-    @property
-    def bits_per_component(self):
-        """Bits per component of this image"""
-        if self._bpc is None:
-            return 1 if self.image_mask else 8
-        return self._bpc
-
-    @property
-    def colorspace(self):
-        """PDF name of the colorspace that best describes this image"""
-        if self.image_mask:
-            return None  # Undefined for image masks
-        if self._colorspaces:
-            if self._colorspaces[0] in self.SIMPLE_COLORSPACES:
-                return self._colorspaces[0]
-            if self._colorspaces[0] == '/DeviceCMYK':
-                return self._colorspaces[0]
-            if self._colorspaces[0] == '/Indexed' \
-                    and self._colorspaces[1] in self.SIMPLE_COLORSPACES:
-                return self._colorspaces[1]
-            if self._colorspaces[0] == '/ICCBased':
-                icc = self.obj.ColorSpace[1]
-                return icc.stream_dict.get('/Alternate', '')
-        raise NotImplementedError(
-            "not sure how to get colorspace: " + repr(self._colorspaces))
-
-    @property
     def is_inline(self):
         """``False`` for image XObject"""
         return False
-
-    @property
-    def indexed(self):
-        """``True`` if the image has a defined color palette"""
-        return self._colorspaces[0] == '/Indexed'
-
-    @property
-    def palette(self):
-        """Retrieves the color palette for this image
-
-        :returns: (base_colorspace: str, palette: bytes)
-        :rtype: tuple
-        """
-
-        if not self.indexed:
-            return None
-        _idx, base, hival, lookup = None, None, None, None
-        try:
-            _idx, base, hival, lookup = self.obj.ColorSpace.as_list()
-        except ValueError as e:
-            raise ValueError('Not sure how to interpret this palette') from e
-        base = str(base)
-        hival = int(hival)
-        lookup = bytes(lookup)
-        if not base in self.SIMPLE_COLORSPACES:
-            raise NotImplementedError("not sure how to interpret this palette")
-        if base == '/DeviceRGB':
-            base = 'RGB'
-        elif base == '/DeviceGray':
-            base = 'L'
-        return base, lookup
-
-    @property
-    def size(self):
-        """Size of image as (width, height)"""
-        return self.width, self.height
-
-    @property
-    def mode(self):
-        """``PIL.Image.mode`` equivalent for this image"""
-        m = ''
-        if self.indexed:
-            m = 'P'
-        elif self.bits_per_component == 1:
-            m = '1'
-        elif self.bits_per_component == 8:
-            if self.colorspace == '/DeviceRGB':
-                m = 'RGB'
-            elif self.colorspace == '/DeviceGray':
-                m = 'L'
-            elif self.colorspace == '/DeviceCMYK':
-                m = 'CMYK'
-        if m == '':
-            raise NotImplementedError("Not sure how to handle PDF image of this type")
-        return m
-
-    @property
-    def filter_decodeparms(self):
-        """PDF has a lot of optional data structures concerning /Filter and
-        /DecodeParms. /Filter can be absent or a name or an array, /DecodeParms
-        can be absent or a dictionary (if /Filter is a name) or an array (if
-        /Filter is an array). When both are arrays the lengths match.
-
-        Normalize this into:
-        [(/FilterName, {/DecodeParmName: Value, ...}), ...]
-
-        The order of /Filter matters as indicates the encoding/decoding sequence.
-
-        """
-        return list(zip_longest(self.filters, self.decode_parms, fillvalue={}))
 
     def _extract_direct(self, *, stream):
         """Attempt to extract the image directly to a usable image file
@@ -434,8 +458,18 @@ def inline_remove_abbrevs(value):
     return [abbrevs.get(value, value) for value in array_str(value)]
 
 
-class PdfInlineImage(PdfImage):
+class PdfInlineImage(PdfImageBase):
     """Support class for PDF inline images"""
+
+    ABBREVS = {
+        'Width': 'W',
+        'Height': 'H',
+        'BitsPerComponent': 'BPC',
+        'ImageMask': 'IM',
+        'ColorSpace': 'CS',
+        'Filter': 'F',
+        'DecodeParms': 'DP',
+    }
 
     def __init__(self, *, image_data, image_object: tuple):
         """
@@ -461,14 +495,15 @@ class PdfInlineImage(PdfImage):
         except PdfError as e:
             raise PdfError(
                 "parsing inline " + reparse.decode('unicode_escape')) from e
-        super().__init__(reparsed_obj)
+        self.obj = reparsed_obj
 
-    def _metadata(self, name, alt_name, type_, default):
+    def _metadata(self, name, type_, default):
         sentinel = object()
         val = sentinel
-        val = getattr(self.obj, name, sentinel)
+        abbrev_name = self.ABBREVS.get(name, name)
+        val = getattr(self.obj, abbrev_name, sentinel)
         if val is sentinel:
-            val = getattr(self.obj, alt_name, default)
+            val = getattr(self.obj, name, default)
         try:
             return type_(val)
         except TypeError:
@@ -477,45 +512,26 @@ class PdfInlineImage(PdfImage):
         raise NotImplementedError('inline image metadata access for ' + name)
 
     @property
-    def width(self):
-        """Width of the image data in pixels"""
-        return self._metadata('W', 'Width', int, None)
-
-    @property
-    def height(self):
-        """Height of the image data in pixels"""
-        return self._metadata('H', 'Height', int, None)
-
-    @property
-    def image_mask(self):
-        """``True`` if this is an image mask"""
-        return self._metadata('IM', 'ImageMask', bool, False)
-
-    @property
-    def _bpc(self):
-        return self._metadata('BPC', 'BitsPerComponent', int, None)
-
-    @property
     def _colorspaces(self):
-        return self._metadata('CS', 'ColorSpace', inline_remove_abbrevs, [])
+        return self._metadata('ColorSpace', inline_remove_abbrevs, [])
 
     @property
     def filters(self):
         """List of names of the filters that we applied to encode this image"""
-        return self._metadata('F', 'Filter', inline_remove_abbrevs, [])
-
-    @property
-    def decode_parms(self):
-        """List of the /DecodeParms, arguments to filters"""
-        return self._metadata('DP', 'DecodeParms', dict_or_array_dict, [])
+        return self._metadata('Filter', inline_remove_abbrevs, [])
 
     @property
     def is_inline(self):
         return True
 
     def __repr__(self):
+        mode = '?'
+        try:
+            mode = self.mode
+        except Exception:
+            pass
         return '<pikepdf.PdfInlineImage image mode={} size={}x{} at {}>'.format(
-            self.mode, self.width, self.height, hex(id(self)))
+            mode, self.width, self.height, hex(id(self)))
 
     def extract_to(self, *, stream):  # pylint: disable=unused-argument
         raise UnsupportedImageTypeError("inline images don't support extract")
