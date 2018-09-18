@@ -324,7 +324,15 @@ PYBIND11_MODULE(_qpdf, m) {
             "access the document information dictionary"
         )
         .def_property_readonly("trailer", &QPDF::getTrailer,
-            "the PDF trailer")
+            R"~~~(
+            Provides access to the PDF trailer object.
+
+            See section 7.5.5 of the PDF reference manual. Generally speaking,
+            the trailer should not be modified with pikepdf, and modifying it
+            may not work. Some of the values in the trailer are automatically
+            changed when a file is saved.
+            )~~~"
+        )
         .def_property_readonly("pages",
             [](std::shared_ptr<QPDF> q) {
                 return PageList(q);
@@ -339,7 +347,6 @@ PYBIND11_MODULE(_qpdf, m) {
 
             Specifically returns True iff the file starts with a linearization
             parameter dictionary.  Does no additional validation.
-
             )~~~"
         )
         .def("check_linearization",
