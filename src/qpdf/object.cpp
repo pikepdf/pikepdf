@@ -294,18 +294,30 @@ QPDFObjectHandle object_get_key(QPDFObjectHandle& h, std::string const& key)
 
 void object_set_key(QPDFObjectHandle& h, std::string const& key, QPDFObjectHandle& value)
 {
-        if (!h.isDictionary() && !h.isStream())
-            throw py::value_error("object is not a dictionary or a stream");
-        if (value.isNull())
-            throw py::value_error("PDF Dictionary keys may not be set to None - use 'del' to remove");
+    if (!h.isDictionary() && !h.isStream())
+        throw py::value_error("object is not a dictionary or a stream");
+    if (value.isNull())
+        throw py::value_error("PDF Dictionary keys may not be set to None - use 'del' to remove");
 
-        // For streams, the actual dictionary is attached to stream object
-        QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
+    // For streams, the actual dictionary is attached to stream object
+    QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
 
-        // A stream dictionary has no owner, so use the stream object in this comparison
-        dict.replaceKey(key, value);
+    // A stream dictionary has no owner, so use the stream object in this comparison
+    dict.replaceKey(key, value);
 }
 
+void object_del_key(QPDFObjectHandle& h, std::string const& key)
+{
+    if (!h.isDictionary() && !h.isStream())
+        throw py::value_error("object is not a dictionary or a stream");
+    // For streams, the actual dictionary is attached to stream object
+    QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
+
+    if (!dict.hasKey(key))
+        throw py::key_error(key);
+
+    dict.removeKey(key);
+}
 
 std::pair<int, int> object_get_objgen(QPDFObjectHandle &h)
 {
@@ -455,13 +467,7 @@ void init_object(py::module& m)
         )
         .def("__delitem__",
             [](QPDFObjectHandle &h, std::string const& key) {
-                if (!h.isDictionary())
-                    throw py::value_error("object is not a dictionary");
-
-                if (!h.hasKey(key))
-                    throw py::key_error(key);
-
-                h.removeKey(key);
+                object_del_key(h, key);
             },
             "delete a dictionary key"
         )
@@ -492,6 +498,12 @@ void init_object(py::module& m)
                 object_set_key(h, key, value);
             },
             "attribute access"
+        )
+        .def("__delattr__",
+            [](QPDFObjectHandle &h, std::string const& name) {
+                std::string key = "/" + name;
+                object_del_key(h, key);
+            }
         )
         .def("__dir__",
             [](QPDFObjectHandle &h) {
