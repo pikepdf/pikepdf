@@ -5,6 +5,7 @@ Testing focused on pikepdf.Pdf
 import pytest
 from pikepdf import Pdf, PasswordError, Stream
 
+import sys
 from io import StringIO
 from unittest.mock import Mock
 
@@ -107,6 +108,8 @@ def test_show_xref(resources):
     pdf.show_xref_table()
 
 
+@pytest.mark.skipif(sys.version_info < (3, 6),
+                    reason='missing mock.assert_called')
 def test_progress(resources, outdir):
     pdf = Pdf.open(resources / 'pal-1bit-trivial.pdf')
     mock = Mock()
