@@ -46,7 +46,7 @@ Python 2.7 and earlier versions of Python 3 are not currently supported but supp
 | Supports password protected (encrypted) PDFs                        | ✔ (except public key)               | Only obsolete RC4                         | ✘                                       |
 | Save and load PDF compressed object streams (PDF 1.5)               | ✔                                   | ✘                                         | ✘                                       |
 | Creates linearized ("fast web view") PDFs                           | ✔                                   | ✘                                         | ✘                                       |
-| Actively maintained                                                 | ![pikepdf commit activity][commits] | ![PyPDF2 commit activity][pypdf2-commits] | ![pdfrw commit activity][pdfrw-commits] |
+| Actively maintained                                                 | ![pikepdf commit activity][pikepdf-commits] | ![PyPDF2 commit activity][pypdf2-commits] | ![pdfrw commit activity][pdfrw-commits] |
 | Test suite coverage                                                 | ~86%                                | very low                                  | unknown                                 |
 | Creates PDFs that pass PDF validation tests                         | ✔                                   | ✘                                         | ?                                       |
 | Modifies PDF/A without breaking PDF/A compliance                    | ✔                                   | ✘                                         | ?                                       |
@@ -54,7 +54,8 @@ Python 2.7 and earlier versions of Python 3 are not currently supported but supp
 | Documentation                                                       | ✔                                   | ✘                                         | ✔                                       |
 | Integrates with Jupyter and IPython notebooks for rapid development | ✔                                   | ✘                                         | ✘                                       |
 
-[commits]: https://img.shields.io/github/commit-activity/y/pikepdf/pikepdf.svg
+
+[pikepdf-commits]: https://img.shields.io/github/commit-activity/y/pikepdf/pikepdf.svg
 
 [pypdf2-commits]: https://img.shields.io/github/commit-activity/y/mstamy2/PyPDF2.svg
 
