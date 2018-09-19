@@ -231,3 +231,18 @@ def test_image_palette(resources, filename, bpc):
 def test_bool_in_inline_image():
     piim = PdfInlineImage(image_data=b'', image_object=(Name.IM, True))
     assert piim.image_mask
+
+
+def test_jp2(resources):
+    pdf = Pdf.open(resources / 'pike-jp2.pdf')
+    pim = PdfImage(next(iter(pdf.pages[0].images.values())))
+
+    assert '/JPXDecode' in pim.filters
+    assert pim.colorspace == '/DeviceRGB'
+    assert not pim.is_inline
+    assert not pim.indexed
+    assert pim.mode == 'RGB'
+    assert pim.bits_per_component == 8
+
+    outstream = BytesIO()
+    pim.extract_to(stream=outstream)
