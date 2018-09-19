@@ -1,7 +1,7 @@
 import pytest
 import imghdr
 from io import BytesIO
-from PIL import Image
+from PIL import Image, features as PIL_features
 import zlib
 
 # pylint: disable=w0621
@@ -233,9 +233,12 @@ def test_bool_in_inline_image():
     assert piim.image_mask
 
 
+@pytest.mark.skipif(not PIL_features.check_codec('jpg_2000'),
+                    reason='no JPEG2000 codec')
 def test_jp2(resources):
     pdf = Pdf.open(resources / 'pike-jp2.pdf')
-    pim = PdfImage(next(iter(pdf.pages[0].images.values())))
+    xobj = next(iter(pdf.pages[0].images.values()))
+    pim = PdfImage(xobj)
 
     assert '/JPXDecode' in pim.filters
     assert pim.colorspace == '/DeviceRGB'
@@ -246,3 +249,11 @@ def test_jp2(resources):
 
     outstream = BytesIO()
     pim.extract_to(stream=outstream)
+    del pim
+    del xobj.ColorSpace
+
+    # If there is no explicit ColorSpace metadata we should get it from the
+    # compressed data stream
+    pim = PdfImage(xobj)
+    assert pim.colorspace == '/DeviceRGB'
+    assert pim.bits_per_component == 8
