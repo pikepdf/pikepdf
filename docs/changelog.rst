@@ -7,6 +7,28 @@ pikepdf releases use the `semantic versioning <http://semver.org>`_ policy.
 
 Since 1.0 has not been released, this means **breaking changes can occur at any time** and the **public API is not yet stable**. For the moment a minor version change is known to be breaking, and a patch level change shouldn't be breaking.
 
+v0.3.3
+======
+
+Breaking
+--------
+
+* libqpdf 8.2.1 is now required
+
+Updates
+-------
+
+* Improved support for working with JPEG2000 images in PDFs
+* Added progress callback for saving files, ``Pdf.save(..., progress=)``
+* Updated pybind11 subtree
+
+Fixes
+-----
+
+* ``del obj.AttributeName`` was not implemented. The attribute interface is now consistent
+* Deleting named attributes now defers to the attribute dictionary for Stream objects, as get/set do
+* Fixed handling of JPEG2000 images where metadata must be retrieved from the file
+
 v0.3.2
 ======
 
