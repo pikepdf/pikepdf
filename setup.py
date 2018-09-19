@@ -109,7 +109,7 @@ with open(join(setup_py_cwd, 'requirements/test.txt')) as f:
         if line.strip() and not line.strip().startswith('#')
     ]
 
-with open(join(setup_py_cwd, 'README.rst')) as f:
+with open(join(setup_py_cwd, 'README.md')) as f:
     readme = f.read()
 
 setup(
@@ -119,6 +119,7 @@ setup(
     url='https://github.com/pikepdf/pikepdf',
     description='Read and write PDFs with Python, powered by qpdf',
     long_description=readme,
+    long_description_content_type='text/markdown',
     ext_modules=ext_modules,
     install_requires=[
         # vendored: 'pybind11'
@@ -153,5 +154,10 @@ setup(
         "Programming Language :: C++",
         "Topic :: Multimedia :: Graphics",
         "Topic :: Software Development :: Libraries",
-    ]
+    ],
+    project_urls={
+        'Documentation': 'https://pikepdf.readthedocs.io/',
+        'Source': 'https://github.com/pikepdf/pikepdf',
+        'Tracker': 'https://github.com/pikepdf/pikepdf/issues'
+    }
 )
