@@ -9,7 +9,7 @@ pikepdf is based on [QPDF](https://github.com/qpdf/qpdf), a powerful PDF manipul
 
 Python + QPDF = "py" + "qpdf" = "pyqpdf", which looks like a dyslexia test. Say it out loud, and it sounds like "pikepdf".
 
-``` {.sourceCode .python}
+```python
 # Elegant, Pythonic API
 pdf = pikepdf.open('input.pdf')
 num_pages = len(pdf.pages)
@@ -21,7 +21,7 @@ pdf.save('output.pdf')
 
 Python 3.5, 3.6 and 3.7 are fully supported.
 
-``` {.sourceCode .bash}
+```bash
 pip install pikepdf
 ```
 
