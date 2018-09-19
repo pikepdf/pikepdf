@@ -53,12 +53,12 @@ Python 2.7 and earlier versions of Python 3 are not currently supported but supp
 | Automatically repairs PDFs with internal errors                     | ✔                                   | ✘                                         | ✘                                       |
 | Documentation                                                       | ✔                                   | ✘                                         | ✔                                       |
 | Integrates with Jupyter and IPython notebooks for rapid development | ✔                                   | ✘                                         | ✘                                       |
+
 [commits]: https://img.shields.io/github/commit-activity/y/pikepdf/pikepdf.svg
 
 [pypdf2-commits]: https://img.shields.io/github/commit-activity/y/mstamy2/PyPDF2.svg
 
 [pdfrw-commits]: https://img.shields.io/github/commit-activity/y/pmaupin/pdfrw.svg
-
 
 License
 -------
