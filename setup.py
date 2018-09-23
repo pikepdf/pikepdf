@@ -122,7 +122,7 @@ setup(
     long_description_content_type='text/markdown',
     ext_modules=ext_modules,
     install_requires=[
-        # vendored: 'pybind11'
+        'pybind11 >= 2.2.4, < 3'
     ],
     extras_require={
         'docs': docs_require
@@ -133,7 +133,8 @@ setup(
     setup_requires=[
         'pytest-runner',
         'setuptools_scm',
-        'setuptools_scm_git_archive'
+        'setuptools_scm_git_archive',
+        'pybind11 >= 2.2.4, < 3'
     ],
     use_scm_version=True,
     tests_require=tests_require,
