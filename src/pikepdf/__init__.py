@@ -4,9 +4,11 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
-import os
 
-from pkg_resources import get_distribution, DistributionNotFound
+from pkg_resources import (
+    get_distribution as _get_distribution,
+    DistributionNotFound
+)
 
 try:
     from . import _qpdf
@@ -24,15 +26,10 @@ from .models import (
     parse_content_stream
 )
 
-from ._methods import pdf_attach, pdf_repr_mimebundle, object_repr_mimebundle
-
-# Extend C++ class bindings with some pure Python methods
-Pdf.attach = pdf_attach
-Pdf._repr_mimebundle_ = pdf_repr_mimebundle
-Object._repr_mimebundle_ = object_repr_mimebundle
+from . import _methods
 
 try:
-    __version__ = get_distribution(__name__).version
+    __version__ = _get_distribution(__name__).version
 except DistributionNotFound:
     __version__ = "Not installed"
 

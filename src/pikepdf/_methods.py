@@ -15,14 +15,25 @@ We can also move the implementation to C++ if desired.
 from tempfile import NamedTemporaryFile
 from subprocess import run, PIPE
 from io import BytesIO
+from functools import wraps
 
-from . import Pdf, Dictionary, Array, Name, Stream
+from . import Pdf, Dictionary, Array, Name, Stream, Object
+
+
+def bind(cls, name):
+    """Install a Python method on a C++ class"""
+
+    def real_bind(fn, cls=cls, name=name):
+        @wraps(fn)
+        def wrapper(*args, **kwargs):
+            return fn(*args, **kwargs)
+        setattr(cls, name, fn)
+        return wrapper
+    return real_bind
 
 
 def _single_page_pdf(page):
-    """
-    Construct a single page PDF from the provided page in memory
-    """
+    """Construct a single page PDF from the provided page in memory"""
     pdf = Pdf.new()
     pdf.pages.append(page)
     bio = BytesIO()
@@ -32,9 +43,7 @@ def _single_page_pdf(page):
 
 
 def _mudraw(buffer, fmt):
-    """
-    Use mupdf draw to rasterize the PDF in the memory buffer
-    """
+    """Use mupdf draw to rasterize the PDF in the memory buffer"""
     with NamedTemporaryFile(suffix='.pdf') as tmp_in:
         tmp_in.write(buffer)
         tmp_in.seek(0)
@@ -49,9 +58,9 @@ def _mudraw(buffer, fmt):
         return proc.stdout
 
 
+@bind(Object, '_repr_mimebundle_')
 def object_repr_mimebundle(obj, **kwargs):
-    """
-    Present options to IPython for rich display of this object
+    """Present options to IPython for rich display of this object
 
     See https://ipython.readthedocs.io/en/stable/config/integrating.html#rich-display
     """
@@ -82,6 +91,7 @@ def object_repr_mimebundle(obj, **kwargs):
     return data
 
 
+@bind(Pdf, '_repr_mimebundle_')
 def pdf_repr_mimebundle(pdf, **kwargs):
     """
     Present options to IPython for rich display of this object
@@ -97,6 +107,7 @@ def pdf_repr_mimebundle(pdf, **kwargs):
     return data
 
 
+@bind(Pdf, 'attach')
 def pdf_attach(pdf, *, basename, filebytes, mime=None, desc=''):
     """
     Attach a file to this PDF
