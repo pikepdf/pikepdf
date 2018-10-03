@@ -122,7 +122,6 @@ setup(
     long_description_content_type='text/markdown',
     ext_modules=ext_modules,
     install_requires=[
-        'pybind11 >= 2.2.4, < 3'
     ],
     extras_require={
         'docs': docs_require
