@@ -16,7 +16,7 @@ except ImportError:
     raise ImportError("pikepdf's extension library failed to import")
 
 from ._qpdf import (
-    PdfError, Pdf, PasswordError, ObjectStreamMode, StreamDataMode
+    PdfError, Pdf, PasswordError, ObjectStreamMode, StreamDecodeLevel
 )
 from .objects import (
     Object, ObjectType, Name, String, Array, Dictionary, Stream, Operator

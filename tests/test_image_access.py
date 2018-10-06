@@ -9,7 +9,7 @@ import zlib
 
 from pikepdf import (
     Pdf, PdfImage, PdfError, Name,
-    parse_content_stream, PdfInlineImage, Stream, StreamDataMode
+    parse_content_stream, PdfInlineImage, Stream, StreamDecodeLevel
 )
 
 
@@ -157,7 +157,8 @@ def test_image_roundtrip(outdir, w, h, pixeldata, cs, bpc):
     outfile = outdir / 'test{w}{h}{cs}{bpc}.pdf'.format(
         w=w, h=h, cs=cs[1:], bpc=bpc
     )
-    pdf.save(outfile, stream_data_mode=StreamDataMode.preserve)
+    pdf.save(outfile, compress_streams=False,
+             stream_decode_level=StreamDecodeLevel.none)
 
     p2 = pdf.open(outfile)
     pim = PdfImage(p2.pages[0].Resources.XObject['/Im1'])

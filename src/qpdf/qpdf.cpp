@@ -153,8 +153,8 @@ void save_pdf(
     std::string min_version="",
     std::string force_version="",
     bool compress_streams=true,
+    qpdf_stream_decode_level_e stream_decode_level=qpdf_dl_generalized,
     qpdf_object_stream_e object_stream_mode=qpdf_o_preserve,
-    qpdf_stream_data_e stream_data_mode=qpdf_s_preserve,
     bool normalize_content=false,
     bool linearize=false,
     py::object progress=py::none())
@@ -164,7 +164,6 @@ void save_pdf(
     // Parameters
     if (static_id) {
         w.setStaticID(true);
-        w.setStreamDataMode(qpdf_s_uncompress);
     }
     w.setNewlineBeforeEndstream(preserve_pdfa);
     if (!min_version.empty()) {
@@ -174,8 +173,8 @@ void save_pdf(
         w.forcePDFVersion(force_version, 0);
     }
     w.setCompressStreams(compress_streams);
+    w.setDecodeLevel(stream_decode_level);
     w.setObjectStreamMode(object_stream_mode);
-    w.setStreamDataMode(stream_data_mode);
 
     if (normalize_content && linearize) {
         throw py::value_error("cannot save with both normalize_content and linearize");
@@ -259,10 +258,11 @@ PYBIND11_MODULE(_qpdf, m) {
         .value("preserve", qpdf_object_stream_e::qpdf_o_preserve)
         .value("generate", qpdf_object_stream_e::qpdf_o_generate);
 
-    py::enum_<qpdf_stream_data_e>(m, "StreamDataMode")
-        .value("uncompress", qpdf_stream_data_e::qpdf_s_uncompress)
-        .value("preserve", qpdf_stream_data_e::qpdf_s_preserve)
-        .value("compress", qpdf_stream_data_e::qpdf_s_compress);
+    py::enum_<qpdf_stream_decode_level_e>(m, "StreamDecodeLevel")
+        .value("none", qpdf_stream_decode_level_e::qpdf_dl_none)
+        .value("generalized", qpdf_stream_decode_level_e::qpdf_dl_generalized)
+        .value("specialized", qpdf_stream_decode_level_e::qpdf_dl_specialized)
+        .value("all", qpdf_stream_decode_level_e::qpdf_dl_all);
 
     init_pagelist(m);
 
@@ -467,10 +467,15 @@ PYBIND11_MODULE(_qpdf, m) {
                     ``preserve`` keeps object streams from the input file.
                     ``generate`` uses object streams wherever possible,
                     creating the smallest files but requiring PDF 1.5+.
-                stream_data_mode (pikepdf.StreamDataMode):
-                    ``uncompress`` decompresses all data.
-                    ``preserve`` keeps existing compressed objects compressed.
-                    ``compress`` attempts to compress all objects.
+
+                compress_streams (bool): Enables or disables the compression of
+                    stream objects in the PDF. Metadata is never compressed.
+                    By default this is set to ``True``, and should be except
+                    for debugging.
+
+                stream_decode_level (pikepdf.StreamDecodeLevel): Specifies how
+                    to encode stream objects. See documentation for
+                    ``StreamDecodeLevel``.
 
                 normalize_content (bool): Enables parsing and reformatting the
                     content stream within PDFs. This may debugging PDFs easier.
@@ -500,8 +505,8 @@ PYBIND11_MODULE(_qpdf, m) {
             py::arg("min_version")="",
             py::arg("force_version")="",
             py::arg("compress_streams")=true,
-            py::arg("object_stream_mode")=qpdf_o_preserve,
-            py::arg("stream_data_mode")=qpdf_s_preserve,
+            py::arg("stream_decode_level")=qpdf_stream_decode_level_e::qpdf_dl_generalized,
+            py::arg("object_stream_mode")=qpdf_object_stream_e::qpdf_o_preserve,
             py::arg("normalize_content")=false,
             py::arg("linearize")=false,
             py::arg("progress")=py::none()
