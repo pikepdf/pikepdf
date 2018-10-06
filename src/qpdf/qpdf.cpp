@@ -9,6 +9,7 @@
 #include <sstream>
 #include <type_traits>
 #include <cerrno>
+#include <cstring>
 
 #include "pikepdf.h"
 
@@ -17,6 +18,7 @@
 #include <qpdf/QPDFObjGen.hh>
 #include <qpdf/QPDFXRefEntry.hh>
 #include <qpdf/Buffer.hh>
+#include <qpdf/BufferInputSource.hh>
 #include <qpdf/QPDFWriter.hh>
 #include <qpdf/QPDFPageDocumentHelper.hh>
 
@@ -89,15 +91,29 @@ open_pdf(
 
         PYBIND11_BYTES_AS_STRING_AND_SIZE(data.ptr(), &buffer, &length);
 
-        // libqpdf will create a copy of this memory and attach it
-        // to 'q'
-        // This could be improved by subclassing InputSource into C++
-        // and creating a version that obtains its data from its Python object,
-        // but that is much more complex.
-        // It is believed to be safe to release the GIL here -- we are working
-        // on a read-only view of an object that only we know about.
+        // Copy the data into a buffer that is wholly owned by QPDF and attached
+        // to the object we will return.
+        // QPDF::processMemoryFile expects us to keep the buffer alive, so we
+        // cannot use it.
+
+        // This could be improved. First we could consider using a smaller
+        // intermediate buffer and smaller reads rather than duplicating
+        // entirely. The smaller approach may be to create a subclass of
+        // InputSource that knows how to retrieve data from a Python object,
+        // but that is more complex.
+        Buffer *qpdf_buffer = new Buffer(length);
+        std::memcpy(qpdf_buffer->getBuffer(), buffer, length);
+
+        InputSource *input_source = new BufferInputSource(
+            "memory",
+            qpdf_buffer,
+            true // Tell InputSource to release the buffer
+        );
+
+        // Now that we have made a private copy, we can release the GIL
         py::gil_scoped_release release;
-        q->processMemoryFile("memory", buffer, length, password.c_str());
+
+        q->processInputSource(input_source, password.c_str());
     } else {
         std::string filename = fsencode_filename(file);
         // We can release GIL because Python knows nothing about q at this
