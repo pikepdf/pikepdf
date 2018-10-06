@@ -15,12 +15,6 @@ Files: debian/*
 Copyright: (C) 2018 Sean Whitton <spwhitton@spwhitton.name>
 License: MPL-2.0
 
-Files: src/vendor/pybind11
-Copyright: 2016-2017 Wenzel Jakob <wenzel.jakob@epfl.ch> and others
-License: BSD-3-Clause+CLA
-Comment:
- This is a copy of pybind11. For full details see https://metadata.ftp-master.debian.org/changelogs/main/p/pybind11/pybind11_2.2.3-1_copyright
-
 Files: docs/images/pike.jpg tests/resources/pike-jp2.pdf
 Copyright: Public domain
 License: public-domain
