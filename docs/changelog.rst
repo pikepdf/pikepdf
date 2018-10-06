@@ -8,6 +8,19 @@ pikepdf releases use the `semantic versioning <http://semver.org>`_ policy.
 Since 1.0 has not been released, this means **breaking changes can occur at any time** and the **public API is not yet stable**. For the moment a minor version change is known to be breaking, and a patch level change shouldn't be breaking.
 
 
+v0.3.5
+======
+
+Breaking
+--------
+
+* ``Pdf.save(...stream_data_mode=...)`` has been dropped in favor of the newer ``compress_streams=`` and ``stream_decode_level`` parameters.
+
+Fixes
+-----
+
+* A use-after-free memory error that caused occasional segfaults and "QPDFFakeName" errors when opening from stream objects has been resolved.
+
 v0.3.4
 ======
 
