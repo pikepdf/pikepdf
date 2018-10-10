@@ -109,7 +109,7 @@ with open(join(setup_py_cwd, 'requirements/test.txt')) as f:
         if line.strip() and not line.strip().startswith('#')
     ]
 
-with open(join(setup_py_cwd, 'README.md')) as f:
+with open(join(setup_py_cwd, 'README.md'), encoding='utf-8') as f:
     readme = f.read()
 
 setup(
@@ -150,6 +150,7 @@ setup(
         "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3 :: Only",
         "Programming Language :: C++",
         "Topic :: Multimedia :: Graphics",
