@@ -23,6 +23,16 @@ License: public-domain
  See: https://en.wikipedia.org/wiki/File:Esox_lucius1.jpg
 Comment: Maximum resolution version is in debian/missing-sources/.
 
+Files: docs/images/pike-cartoon.png
+Copyright: (C) 2017 creozavr
+License: CC0-1.0
+ See: https://pixabay.com/en/pike-fish-predator-shchuchin-2612354/
+
+Files: docs/images/pikemen.jpg
+Copyright: (C) 2009 Rama
+License: CC-BY-SA 2.0
+ See: https://commons.wikimedia.org/wiki/File:Pike_square_img_3653.jpg
+
 Files: tests/*.py
 Copyright: (C) 2017 James R. Barlow
 License: CC0-1.0
