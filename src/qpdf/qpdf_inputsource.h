@@ -17,7 +17,6 @@
 #include <qpdf/Buffer.hh>
 #include <qpdf/QPDF.hh>
 #include <qpdf/InputSource.hh>
-#include <qpdf/FileInputSource.hh>
 
 
 #include <pybind11/pybind11.h>
@@ -26,43 +25,52 @@
 #include "pikepdf.h"
 
 
-class PythonIoInputSource : public FileInputSource
+class PythonInputSource : public InputSource
 {
 public:
-    PythonIoInputSource(py::object stream) : stream(stream)
+    PythonInputSource(py::object stream) : stream(stream)
     {
         if (!stream.attr("seekable")())
             throw py::value_error("not seekable");
+        this->name = py::cast<std::string>(py::repr(stream));
     }
-    virtual ~PythonIoInputSource() {}
-
-    virtual qpdf_offset_t findAndSkipNextEOL() = 0;
+    virtual ~PythonInputSource() {}
 
     std::string const& getName() const override
     {
-        return py::repr(stream);
+        return this->name;
     }
 
     qpdf_offset_t tell() override
     {
-        return static_cast<qpdf_offset_t>(stream.attr("tell")());
+        py::gil_scoped_acquire gil;
+        return py::cast<qpdf_offset_t>(this->stream.attr("tell")());
     }
 
     void seek(qpdf_offset_t offset, int whence) override
     {
-        stream.attr("seek")(offset, whence);
+        py::gil_scoped_acquire gil;
+        this->stream.attr("seek")(offset, whence);
     }
 
     void rewind() override
     {
-        stream.attr("seek")(0, 0);
+        py::gil_scoped_acquire gil;
+        this->stream.attr("seek")(0, 0);
     }
 
     size_t read(char* buffer, size_t length) override
     {
+        py::gil_scoped_acquire gil;
+
+        py::buffer_info buf_info(buffer, length);
+        py::memoryview memview(buf_info);
+
         this->last_offset = this->tell();
-        py::bytes chunk = stream.attr("read")(length);
-        size_t bytes_read = chunk.attr("__len__")();
+        py::object result = this->stream.attr("readinto")(memview);
+        if (result.is_none())
+            return 0;
+        size_t bytes_read = py::cast<size_t>(result);
 
         if (bytes_read == 0) {
             if (length > 0) {
@@ -71,12 +79,6 @@ public:
                 this->last_offset = this->tell();
             }
         }
-
-        char *chunk_buffer;
-        Py_ssize_t *chunk_size;
-        if (PYBIND11_BYTES_AS_STRING_AND_SIZE(chunk.ptr(), &chunk_buffer, &chunk_size))
-            throw py::value_error("failed to read");
-        memcpy(buffer, chunk_buffer, bytes_read);
         return bytes_read;
     }
 
@@ -85,6 +87,14 @@ public:
         this->seek(-1, SEEK_CUR);
     }
 
+    qpdf_offset_t findAndSkipNextEOL() override
+    {
+        py::gil_scoped_acquire gil;
+        this->stream.attr("readline")();
+        return this->tell();
+    }
+
 private:
     py::object stream;
+    std::string name;
 };

@@ -27,6 +27,7 @@
 #include <pybind11/buffer_info.h>
 
 #include "qpdf_pagelist.h"
+#include "qpdf_inputsource.h"
 
 extern "C" const char* qpdf_get_qpdf_version();
 
@@ -83,7 +84,7 @@ open_pdf(
         py::object stream = file;
 
         check_stream_is_usable(stream);
-
+#if 0
         py::object read = stream.attr("read");
         py::bytes data = read();
         char *buffer = nullptr;
@@ -112,7 +113,11 @@ open_pdf(
 
         // Now that we have made a private copy, we can release the GIL
         py::gil_scoped_release release;
-
+#else
+        InputSource *input_source = new PythonInputSource(
+            stream
+        );
+#endif
         q->processInputSource(input_source, password.c_str());
     } else {
         std::string filename = fsencode_filename(file);
