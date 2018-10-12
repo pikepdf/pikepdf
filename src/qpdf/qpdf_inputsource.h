@@ -90,8 +90,40 @@ public:
     qpdf_offset_t findAndSkipNextEOL() override
     {
         py::gil_scoped_acquire gil;
-        this->stream.attr("readline")();
-        return this->tell();
+
+        qpdf_offset_t result = 0;
+        bool done = false;
+        std::string buf(4096, '\0');
+        std::string line_endings = "\r\n";
+
+        while (!done) {
+            qpdf_offset_t cur_offset = this->tell();
+            size_t len = this->read(const_cast<char *>(buf.data()), buf.size());
+            if (len == 0) {
+                done = true;
+                result = this->tell();
+            } else {
+                size_t found = buf.find_first_of(line_endings);
+                if (found == std::string::npos)
+                    continue;
+
+                // Found a line ending
+                result = cur_offset + found;
+
+                // Keep reading until we get past \r and \n characters.
+                this->seek(result + 1, SEEK_SET);
+                char ch;
+                while (! done) {
+                    if (this->read(&ch, 1) == 0) {
+                        done = true;
+                    } else if (! ((ch == '\r') || (ch == '\n'))) {
+                        this->unreadCh(ch);
+                        done = true;
+                    }
+                }
+            }
+        }
+        return result;
     }
 
 private:
