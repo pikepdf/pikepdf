@@ -18,6 +18,7 @@ from io import BytesIO
 from functools import wraps
 
 from . import Pdf, Dictionary, Array, Name, Stream, Object
+from ._qpdf import _ObjectMapping
 
 
 def bind(cls, name):
@@ -176,3 +177,8 @@ def pdf_attach(pdf, *, basename, filebytes, mime=None, desc=''):
 
     if '/PageMode' not in pdf.Root:
         pdf.Root.PageMode = Name.UseAttachments
+
+
+@bind(_ObjectMapping, 'values')
+def objectmapping_values(om):
+    return (v for _k, v in om.items())
