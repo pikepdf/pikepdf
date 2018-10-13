@@ -390,7 +390,6 @@ void init_object(py::module& m)
         });
 
     py::bind_vector<std::vector<QPDFObjectHandle>>(m, "ObjectList");
-    using ObjectMap = std::map<std::string, QPDFObjectHandle>;
     auto objmap = py::bind_map<ObjectMap>(m, "ObjectMap");
 
     objmap.def("values",

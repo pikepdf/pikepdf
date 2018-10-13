@@ -181,7 +181,10 @@ namespace py = pybind11;
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
 PYBIND11_MAKE_OPAQUE(std::vector<QPDFObjectHandle>);
-PYBIND11_MAKE_OPAQUE(std::map<std::string, QPDFObjectHandle>);
+
+typedef std::map<std::string, QPDFObjectHandle> ObjectMap;
+
+PYBIND11_MAKE_OPAQUE(ObjectMap);
 
 
 // From object.cpp
@@ -199,7 +202,7 @@ py::object decimal_from_pdfobject(QPDFObjectHandle& h);
 py::object objecthandle_decode(QPDFObjectHandle& h);
 QPDFObjectHandle objecthandle_encode(py::handle handle);
 std::vector<QPDFObjectHandle> array_builder(py::iterable iter);
-std::map<std::string, QPDFObjectHandle> dict_builder(py::dict dict);
+ObjectMap dict_builder(py::dict dict);
 
 // Support for recursion checks
 class StackGuard
