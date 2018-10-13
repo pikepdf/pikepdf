@@ -356,24 +356,7 @@ void init_object(py::module& m)
         });
 
     py::bind_vector<std::vector<QPDFObjectHandle>>(m, "_ObjectList");
-    auto objmap = py::bind_map< std::map<std::string, QPDFObjectHandle> >(m, "_ObjectMapping");
-
-    objmap
-        .def("keys",
-            [](ObjectMap &m) {
-                return py::make_key_iterator(m.begin(), m.end());
-            },
-            py::keep_alive<0, 1>()
-        )
-        .def("get",
-            [](ObjectMap &m, const std::string &k, py::object default_) -> py::object {
-                auto it = m.find(k);
-                if (it == m.end())
-                    return default_;
-                return py::cast(it->second);
-            },
-            py::return_value_policy::reference_internal // ref + keepalive
-        );
+    py::bind_map<std::map<std::string, QPDFObjectHandle>>(m, "_ObjectMapping");
 
     py::class_<QPDFObjectHandle>(m, "Object")
         .def_property_readonly("_type_code", &QPDFObjectHandle::getTypeCode)
