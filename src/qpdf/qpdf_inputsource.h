@@ -30,6 +30,8 @@ class PythonInputSource : public InputSource
 public:
     PythonInputSource(py::object stream) : stream(stream)
     {
+        if (!stream.attr("readable")())
+            throw py::value_error("not readable");
         if (!stream.attr("seekable")())
             throw py::value_error("not seekable");
         this->name = py::cast<std::string>(py::repr(stream));
@@ -63,11 +65,11 @@ public:
     {
         py::gil_scoped_acquire gil;
 
-        py::buffer_info buf_info(buffer, length);
-        py::memoryview memview(buf_info);
+        py::buffer_info buffer_info(buffer, length);
+        py::memoryview view_buffer_info(buffer_info);
 
         this->last_offset = this->tell();
-        py::object result = this->stream.attr("readinto")(memview);
+        py::object result = this->stream.attr("readinto")(view_buffer_info);
         if (result.is_none())
             return 0;
         size_t bytes_read = py::cast<size_t>(result);
