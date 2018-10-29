@@ -7,6 +7,14 @@ pikepdf releases use the `semantic versioning <http://semver.org>`_ policy.
 
 Since 1.0 has not been released, this means **breaking changes can occur at any time** and the **public API is not yet stable**. For the moment a minor version change is known to be breaking, and a patch level change shouldn't be breaking.
 
+v0.3.6
+======
+
+* Performance of reading files from memory improved to avoid unnecessary copies.
+
+* It is finally possible to use ``for key in pdfobj`` to iterate contents of PDF Dictionary, Stream and Array objects. Generally these objects behave more like Python containers should now.
+
+* Package API declared beta.
 
 v0.3.5
 ======
