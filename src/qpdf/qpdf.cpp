@@ -27,6 +27,7 @@
 #include <pybind11/buffer_info.h>
 
 #include "qpdf_pagelist.h"
+#include "qpdf_inputsource.h"
 
 extern "C" const char* qpdf_get_qpdf_version();
 
@@ -84,35 +85,9 @@ open_pdf(
 
         check_stream_is_usable(stream);
 
-        py::object read = stream.attr("read");
-        py::bytes data = read();
-        char *buffer = nullptr;
-        ssize_t length = 0;
-
-        PYBIND11_BYTES_AS_STRING_AND_SIZE(data.ptr(), &buffer, &length);
-
-        // Copy the data into a buffer that is wholly owned by QPDF and attached
-        // to the object we will return.
-        // QPDF::processMemoryFile expects us to keep the buffer alive, so we
-        // cannot use it.
-
-        // This could be improved. First we could consider using a smaller
-        // intermediate buffer and smaller reads rather than duplicating
-        // entirely. The smaller approach may be to create a subclass of
-        // InputSource that knows how to retrieve data from a Python object,
-        // but that is more complex.
-        Buffer *qpdf_buffer = new Buffer(length);
-        std::memcpy(qpdf_buffer->getBuffer(), buffer, length);
-
-        InputSource *input_source = new BufferInputSource(
-            "memory",
-            qpdf_buffer,
-            true // Tell InputSource to release the buffer
-        );
-
-        // Now that we have made a private copy, we can release the GIL
+        // The PythonInputSource object will be owned by q
+        InputSource* input_source = new PythonInputSource(stream);
         py::gil_scoped_release release;
-
         q->processInputSource(input_source, password.c_str());
     } else {
         std::string filename = fsencode_filename(file);

@@ -54,7 +54,6 @@ needed.
 
 */
 
-
 class PyParserCallbacks : public QPDFObjectHandle::ParserCallbacks {
 public:
     using QPDFObjectHandle::ParserCallbacks::ParserCallbacks;
@@ -357,7 +356,9 @@ void init_object(py::module& m)
             );
         });
 
-    static QPDFObjectHandle static_handle;
+    py::bind_vector<std::vector<QPDFObjectHandle>>(m, "_ObjectList");
+    py::bind_map<std::map<std::string, QPDFObjectHandle>>(m, "_ObjectMapping");
+
     py::class_<QPDFObjectHandle>(m, "Object")
         .def_property_readonly("_type_code", &QPDFObjectHandle::getTypeCode)
         .def_property_readonly("_type_name", &QPDFObjectHandle::getTypeName)
@@ -553,6 +554,32 @@ void init_object(py::module& m)
         )
         .def("as_list", &QPDFObjectHandle::getArrayAsVector)
         .def("as_dict", &QPDFObjectHandle::getDictAsMap)
+        .def("__iter__",
+            [](QPDFObjectHandle &h) -> py::iterable {
+                if (h.isArray()) {
+                    auto vec = h.getArrayAsVector();
+                    auto pyvec = py::cast(vec);
+                    return pyvec.attr("__iter__")();
+                } else if (h.isDictionary()) {
+                    auto vec = h.getKeys();
+                    auto pyvec = py::cast(vec);
+                    return pyvec.attr("__iter__")();
+                } else {
+                    throw py::type_error("__iter__ not available on this type");
+                }
+            },
+            py::return_value_policy::reference_internal
+        )
+        .def("items",
+            [](QPDFObjectHandle &h) -> py::iterable {
+                if (!h.isDictionary())
+                    throw py::type_error("items() not available on this type");
+                auto dict = h.getDictAsMap();
+                auto pydict = py::cast(dict);
+                return pydict.attr("items")();
+            },
+            py::return_value_policy::reference_internal
+        )
         .def("__str__",
             [](QPDFObjectHandle &h) -> py::str {
                 if (h.isName())
@@ -867,5 +894,6 @@ void init_object(py::module& m)
             return h;
         }
     );
+
 
 } // init_object
