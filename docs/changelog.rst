@@ -7,6 +7,12 @@ pikepdf releases use the `semantic versioning <http://semver.org>`_ policy.
 
 Since 1.0 has not been released, this means **breaking changes can occur at any time** and the **public API is not yet stable**. For the moment a minor version change is known to be breaking, and a patch level change shouldn't be breaking.
 
+
+v0.3.7
+======
+
+* Add API for inline images to unparse themselves
+
 v0.3.6
 ======
 
