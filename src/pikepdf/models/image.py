@@ -553,21 +553,7 @@ class PdfInlineImage(PdfImageBase):
         self._data = image_data
         self._image_object = image_object
 
-        def unparse(obj):
-            if isinstance(obj, Object):
-                if isinstance(obj, Name):
-                    name = obj.unparse(resolved=True)
-                    assert isinstance(name, bytes)
-                    return self.ABBREVS.get(name, name)
-                else:
-                    return obj.unparse(resolved=True)
-            elif isinstance(obj, bool):
-                return b'true' if obj else b'false'  # Lower case for PDF spec
-            elif isinstance(obj, (int, Decimal, float)):
-                return str(obj).encode('ascii')
-            else:
-                raise NotImplementedError(repr(obj))
-        reparse = b' '.join(unparse(obj) for obj in image_object)
+        reparse = b' '.join(self._unparse_obj(obj) for obj in image_object)
         try:
             reparsed_obj = Object.parse(b'<< ' + reparse + b' >>')
         except PdfError as e:
@@ -576,8 +562,39 @@ class PdfInlineImage(PdfImageBase):
         self.obj = reparsed_obj
         self.pil = None
 
+    @classmethod
+    def _unparse_obj(cls, obj):
+        if isinstance(obj, Object):
+            if isinstance(obj, Name):
+                name = obj.unparse(resolved=True)
+                assert isinstance(name, bytes)
+                return cls.ABBREVS.get(name, name)
+            else:
+                return obj.unparse(resolved=True)
+        elif isinstance(obj, bool):
+            return b'true' if obj else b'false'  # Lower case for PDF spec
+        elif isinstance(obj, (int, Decimal, float)):
+            return str(obj).encode('ascii')
+        else:
+            raise NotImplementedError(repr(obj))
+
+
     def _metadata(self, name, type_, default):
         return metadata_from_obj(self.obj, name, type_, default)
+
+    def unparse(self):
+        tokens = []
+        tokens.append(b'BI')
+        metadata = []
+        for metadata_obj in self._image_object:
+            unparsed = self._unparse_obj(metadata_obj)
+            assert isinstance(unparsed, bytes)
+            metadata.append(unparsed)
+        tokens.append(b' '.join(metadata))
+        tokens.append(b'ID')
+        tokens.append(self._data._inline_image_raw_bytes())
+        tokens.append(b'EI')
+        return b'\n'.join(tokens)
 
     @property
     def is_inline(self):
