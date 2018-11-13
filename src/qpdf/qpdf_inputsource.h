@@ -98,6 +98,8 @@ public:
         std::string buf(4096, '\0');
         std::string line_endings = "\r\n";
 
+        // TODO: When we move to manylinux2010, consider using std::regex here.
+        // Can't do it because gcc 4.8 (on CentOS 5) doesn't have std::regex.
         while (!done) {
             qpdf_offset_t cur_offset = this->tell();
             size_t len = this->read(const_cast<char *>(buf.data()), buf.size());

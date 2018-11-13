@@ -894,6 +894,17 @@ void init_object(py::module& m)
             return h;
         }
     );
+    m.def("unparse",
+        [](py::object obj) -> py::bytes {
+            return objecthandle_encode(obj).unparseBinary();
+        }
+    );
+    m.def("unparse",
+        [](QPDFObjectHandle &h) -> py::bytes {
+            return h.unparseBinary();
+        }
+    );
+
 
 
 } // init_object
