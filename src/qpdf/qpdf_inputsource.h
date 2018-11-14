@@ -95,11 +95,10 @@ public:
 
         qpdf_offset_t result = 0;
         bool done = false;
+        bool eol_straddles_buf = false;
         std::string buf(4096, '\0');
         std::string line_endings = "\r\n";
 
-        // TODO: When we move to manylinux2010, consider using std::regex here.
-        // Can't do it because gcc 4.8 (on CentOS 5) doesn't have std::regex.
         while (!done) {
             qpdf_offset_t cur_offset = this->tell();
             size_t len = this->read(const_cast<char *>(buf.data()), buf.size());
@@ -107,24 +106,23 @@ public:
                 done = true;
                 result = this->tell();
             } else {
-                size_t found = buf.find_first_of(line_endings);
-                if (found == std::string::npos)
-                    continue;
-
-                // Found a line ending
-                result = cur_offset + found;
-
-                // Keep reading until we get past \r and \n characters.
-                this->seek(result + 1, SEEK_SET);
-                char ch;
-                while (! done) {
-                    if (this->read(&ch, 1) == 0) {
-                        done = true;
-                    } else if (! ((ch == '\r') || (ch == '\n'))) {
-                        this->unreadCh(ch);
-                        done = true;
-                    }
+                size_t found;
+                if (!eol_straddles_buf) {
+                    found = buf.find_first_of(line_endings);
+                    if (found == std::string::npos)
+                        continue;
+                } else {
+                    found = 0;
                 }
+
+                size_t found_end = buf.find_first_not_of(line_endings, found);
+                if (found_end == std::string::npos) {
+                    eol_straddles_buf = true;
+                    continue;
+                }
+                result = cur_offset + found_end;
+                this->seek(result, SEEK_SET);
+                done = true;
             }
         }
         return result;
