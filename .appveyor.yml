@@ -17,13 +17,18 @@ install:
 - cmd: '"%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" %PLATFORM%'
 - ps: |
     $userpath = "$env:APPDATA\Python\Python$env:PYTHON\Scripts"
-    if ($env:PLATFORM -eq "x64") { $env:PYTHON = "$env:PYTHON-x64" }
+    if ($env:PLATFORM -eq "x64") {
+      $env:PYTHON = "$env:PYTHON-x64"
+      $qpdfdll = "https://github.com/qpdf/qpdf/releases/download/release-qpdf-8.2.1/qpdf-8.2.1-bin-msvc64.zip"
+    } else {
+      $qpdfdll = "https://github.com/qpdf/qpdf/releases/download/release-qpdf-8.2.1/qpdf-8.2.1-bin-msvc32.zip"
+    }
     $env:PATH = "C:\Python$env:PYTHON;C:\Python$env:PYTHON\Scripts;$userpath;$env:PATH"
     echo $env:PATH
     python -m pip install --disable-pip-version-check --upgrade pip setuptools wheel
     pip install pybind11
 
-    Invoke-WebRequest "https://github.com/qpdf/qpdf/releases/download/release-qpdf-8.2.1/qpdf-8.2.1-bin-msvc64.zip" -OutFile "qpdf-release.zip"
+    Invoke-WebRequest $qpdfqll -OutFile "qpdf-release.zip"
     7z x "qpdf-release.zip" -oc:\
     $qpdfdir = Get-ChildItem c:\qpdf-*
     Move-Item -Path $qpdfdir -Destination c:\qpdf
