@@ -13,10 +13,13 @@ the binary wheels.
 
     pip install pikepdf
 
-64-bit wheels are available. 32-bit wheels will be added if there is any sign of
-demand for them.
+64-bit wheels are available for Windows, Linux and macOS.
 
-The binary wheels should work on most systems work on Linux distributions 2012
+32-bit wheels are available for Windows, for use with the 32-bit version of
+Python (regardless of the bitness  of Windows). 32-bit wheels for Linux will be
+added if anyone uses them.
+
+Binary wheels should work on most systems work on Linux distributions 2007
 and newer, macOS 10.11 and newer (for Homebrew), Windows 7 and newer.
 
 Managed distributions
