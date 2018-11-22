@@ -35,7 +35,7 @@ QPDFObjectHandle PageList::get_page(ssize_t index) const
     throw py::index_error("Accessing nonexistent PDF page number");
 }
 
-std::vector<QPDFObjectHandle> PageList::get_pages_impl(py::slice slice)
+std::vector<QPDFObjectHandle> PageList::get_pages_impl(py::slice slice) const
 {
     size_t start, stop, step, slicelength;
     if (!slice.compute(this->count(), &start, &stop, &step, &slicelength))
@@ -49,7 +49,7 @@ std::vector<QPDFObjectHandle> PageList::get_pages_impl(py::slice slice)
     return result;
 }
 
-py::list PageList::get_pages(py::slice slice)
+py::list PageList::get_pages(py::slice slice) const
 {
     return py::cast(this->get_pages_impl(slice));
 }

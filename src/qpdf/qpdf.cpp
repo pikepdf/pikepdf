@@ -137,7 +137,7 @@ private:
 
 
 void save_pdf(
-    std::shared_ptr<QPDF> q,
+    QPDF& q,
     py::object filename_or_stream,
     bool static_id=false,
     bool preserve_pdfa=true,
@@ -150,7 +150,7 @@ void save_pdf(
     bool linearize=false,
     py::object progress=py::none())
 {
-    QPDFWriter w(*q);
+    QPDFWriter w(q);
 
     // Parameters
     if (static_id) {
