@@ -39,6 +39,17 @@ available.
 
     apt-get -t experimental install pikepdf
 
+**Fedora 29**
+
+.. |fedora| image:: https://repology.org/badge/version-only-for-repo/fedora_29/python:pikepdf.svg
+    :alt: Fedora 29
+
+|fedora|
+
+.. code-block:: bash
+
+    dnf install python-pikepdf
+
 **ArchLinux**
 
 Available in `ArchLinux User Repository <https://aur.archlinux.org/packages/python-pikepdf/>`_.
