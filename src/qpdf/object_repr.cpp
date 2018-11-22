@@ -34,7 +34,7 @@
 #include "pikepdf.h"
 
 
-std::string objecthandle_scalar_value(QPDFObjectHandle& h, bool escaped)
+std::string objecthandle_scalar_value(QPDFObjectHandle h, bool escaped)
 {
     std::stringstream ss;
     switch (h.getTypeCode()) {
@@ -65,7 +65,7 @@ std::string objecthandle_scalar_value(QPDFObjectHandle& h, bool escaped)
     return ss.str();
 }
 
-std::string objecthandle_pythonic_typename(QPDFObjectHandle& h, std::string prefix)
+std::string objecthandle_pythonic_typename(QPDFObjectHandle h, std::string prefix)
 {
     std::string s;
 
@@ -117,7 +117,7 @@ std::string objecthandle_pythonic_typename(QPDFObjectHandle& h, std::string pref
 }
 
 
-std::string objecthandle_repr_typename_and_value(QPDFObjectHandle& h)
+std::string objecthandle_repr_typename_and_value(QPDFObjectHandle h)
 {
     if (h.isNull())
         return "None";
@@ -214,7 +214,7 @@ std::string objecthandle_repr_inner(QPDFObjectHandle h, uint depth, std::set<QPD
     return oss.str();
 }
 
-std::string objecthandle_repr(QPDFObjectHandle& h)
+std::string objecthandle_repr(QPDFObjectHandle h)
 {
     if (h.isScalar() || h.isOperator()) {
         // qpdf does not consider Operator a scalar but it is as far we

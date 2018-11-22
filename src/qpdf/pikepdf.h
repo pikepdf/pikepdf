@@ -61,7 +61,7 @@ namespace pybind11 { namespace detail {
 #if CUSTOM_TYPE_CONVERSION
 
 // From object_convert.cpp
-pybind11::object decimal_from_pdfobject(QPDFObjectHandle& h);
+pybind11::object decimal_from_pdfobject(QPDFObjectHandle h);
 
 namespace pybind11 { namespace detail {
     template <> struct type_caster<QPDFObjectHandle> : public type_caster_base<QPDFObjectHandle> {
@@ -187,21 +187,20 @@ PYBIND11_MAKE_OPAQUE(ObjectMap);
 
 
 // From object.cpp
-size_t list_range_check(QPDFObjectHandle& h, int index);
+size_t list_range_check(QPDFObjectHandle h, int index);
 void init_object(py::module& m);
 
 // From object_repr.cpp
-std::string objecthandle_scalar_value(QPDFObjectHandle& h, bool escaped=true);
-std::string objecthandle_pythonic_typename(QPDFObjectHandle& h, std::string prefix = "pikepdf.");
-std::string objecthandle_repr_typename_and_value(QPDFObjectHandle& h);
-std::string objecthandle_repr(QPDFObjectHandle& h);
+std::string objecthandle_scalar_value(QPDFObjectHandle h, bool escaped=true);
+std::string objecthandle_pythonic_typename(QPDFObjectHandle h, std::string prefix = "pikepdf.");
+std::string objecthandle_repr_typename_and_value(QPDFObjectHandle h);
+std::string objecthandle_repr(QPDFObjectHandle h);
 
 // From object_convert.cpp
-py::object decimal_from_pdfobject(QPDFObjectHandle& h);
-py::object objecthandle_decode(QPDFObjectHandle& h);
-QPDFObjectHandle objecthandle_encode(py::handle handle);
-std::vector<QPDFObjectHandle> array_builder(py::iterable iter);
-std::map<std::string, QPDFObjectHandle> dict_builder(py::dict dict);
+py::object decimal_from_pdfobject(QPDFObjectHandle h);
+QPDFObjectHandle objecthandle_encode(const py::handle handle);
+std::vector<QPDFObjectHandle> array_builder(const py::iterable iter);
+std::map<std::string, QPDFObjectHandle> dict_builder(const py::dict dict);
 
 // Support for recursion checks
 class StackGuard

@@ -31,12 +31,12 @@
 
 
 std::map<std::string, QPDFObjectHandle>
-dict_builder(py::dict dict)
+dict_builder(const py::dict dict)
 {
     StackGuard sg(" dict_builder");
     std::map<std::string, QPDFObjectHandle> result;
 
-    for (auto item: dict) {
+    for (const auto& item: dict) {
         std::string key = item.first.cast<std::string>();
 
         auto value = objecthandle_encode(item.second);
@@ -46,13 +46,13 @@ dict_builder(py::dict dict)
 }
 
 std::vector<QPDFObjectHandle>
-array_builder(py::iterable iter)
+array_builder(const py::iterable iter)
 {
     StackGuard sg(" array_builder");
     std::vector<QPDFObjectHandle> result;
     int narg = 0;
 
-    for (auto item: iter) {
+    for (const auto& item: iter) {
         narg++;
 
         auto value = objecthandle_encode(item);
@@ -62,7 +62,7 @@ array_builder(py::iterable iter)
 }
 
 
-QPDFObjectHandle objecthandle_encode(py::handle handle)
+QPDFObjectHandle objecthandle_encode(const py::handle handle)
 {
     if (handle.is_none())
         return QPDFObjectHandle::newNull();
@@ -120,7 +120,7 @@ QPDFObjectHandle objecthandle_encode(py::handle handle)
 }
 
 
-py::object decimal_from_pdfobject(QPDFObjectHandle& h)
+py::object decimal_from_pdfobject(QPDFObjectHandle h)
 {
     auto decimal_constructor = py::module::import("decimal").attr("Decimal");
 

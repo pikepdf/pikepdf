@@ -176,7 +176,7 @@ private:
 };
 
 
-size_t list_range_check(QPDFObjectHandle& h, int index)
+size_t list_range_check(QPDFObjectHandle h, int index)
 {
     if (!h.isArray())
         throw py::value_error("object is not an array");
@@ -188,7 +188,7 @@ size_t list_range_check(QPDFObjectHandle& h, int index)
 }
 
 
-bool objecthandle_equal(QPDFObjectHandle& self, QPDFObjectHandle& other)
+bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
 {
     StackGuard sg(" objecthandle_equal");
 
@@ -263,17 +263,15 @@ bool objecthandle_equal(QPDFObjectHandle& self, QPDFObjectHandle& other)
 }
 
 
-bool operator==(const QPDFObjectHandle& self, const QPDFObjectHandle& other)
+bool operator==(QPDFObjectHandle self, QPDFObjectHandle other)
 {
     // A lot of functions in QPDFObjectHandle are not tagged const where they
     // should be, but are const-safe
-    return objecthandle_equal(
-        const_cast<QPDFObjectHandle &>(self),
-        const_cast<QPDFObjectHandle &>(other));
+    return objecthandle_equal(self, other);
 }
 
 
-bool object_has_key(QPDFObjectHandle& h, std::string const& key)
+bool object_has_key(QPDFObjectHandle h, std::string const& key)
 {
     if (!h.isDictionary() && !h.isStream())
         throw py::value_error("object is not a dictionary or a stream");
@@ -282,7 +280,7 @@ bool object_has_key(QPDFObjectHandle& h, std::string const& key)
 }
 
 
-QPDFObjectHandle object_get_key(QPDFObjectHandle& h, std::string const& key)
+QPDFObjectHandle object_get_key(QPDFObjectHandle h, std::string const& key)
 {
     if (!h.isDictionary() && !h.isStream())
         throw py::value_error("object is not a dictionary or a stream");
@@ -292,7 +290,7 @@ QPDFObjectHandle object_get_key(QPDFObjectHandle& h, std::string const& key)
     return dict.getKey(key);
 }
 
-void object_set_key(QPDFObjectHandle& h, std::string const& key, QPDFObjectHandle& value)
+void object_set_key(QPDFObjectHandle h, std::string const& key, QPDFObjectHandle& value)
 {
     if (!h.isDictionary() && !h.isStream())
         throw py::value_error("object is not a dictionary or a stream");
@@ -306,7 +304,7 @@ void object_set_key(QPDFObjectHandle& h, std::string const& key, QPDFObjectHandl
     dict.replaceKey(key, value);
 }
 
-void object_del_key(QPDFObjectHandle& h, std::string const& key)
+void object_del_key(QPDFObjectHandle h, std::string const& key)
 {
     if (!h.isDictionary() && !h.isStream())
         throw py::value_error("object is not a dictionary or a stream");
@@ -319,7 +317,7 @@ void object_del_key(QPDFObjectHandle& h, std::string const& key)
     dict.removeKey(key);
 }
 
-std::pair<int, int> object_get_objgen(QPDFObjectHandle &h)
+std::pair<int, int> object_get_objgen(QPDFObjectHandle h)
 {
     auto objgen = h.getObjGen();
     return std::pair<int, int>(objgen.getObj(), objgen.getGen());
