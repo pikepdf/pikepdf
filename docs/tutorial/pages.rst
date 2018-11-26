@@ -202,8 +202,10 @@ different sections, such as using Roman numerals for an introductory section.
 .. note::
 
     Because of technical limitations in underlying libraries, pikepdf keeps the
-    original PDF from which a page from open, even if the reference to the PDF
-    is garbage collected.
+    source PDF open when a content is copied from it to another PDF, even when
+    all Python variables pointing to the source are removed. If a PDF is being assembled from many sources, then
+    all of those sources are held open in memory. This memory can be released
+    by saving and re-opening the PDF.
 
 .. warning::
 

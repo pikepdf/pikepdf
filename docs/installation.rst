@@ -69,8 +69,7 @@ pikepdf requires:
 
 -   a C++11 compliant compiler - GCC (4.8 and up) and clang (3.3 and up); C++14
     is recommended and will produced smaller binaries
--   `pybind11 <https://github.com/pybind/pybind11>`_ (currently a vendored
-    version is included in the pikepdf source, but this may change)
+-   `pybind11 <https://github.com/pybind/pybind11>`_
 -   libqpdf |qpdf-version| or higher from the
     `QPDF <https://github.com/qpdf/qpdf>`_ project.
 
@@ -92,9 +91,9 @@ libqpdf.)
 
 .. note::
 
-    pikepdf should be built with the same compiler and linker as pikepdf; to be
-    precise both must use the same C++ ABI. On some platforms, setup.py may not
-    pick the correct compiler so one may need to set environment variables
+    pikepdf should be built with the same compiler and linker as libqpdf; to be
+    precise both **must** use the same C++ ABI. On some platforms, setup.py may
+    not pick the correct compiler so one may need to set environment variables
     ``CC`` and ``CXX`` to redirect it. If the wrong compiler is selected,
     ``import pikepdf._qpdf`` will throw an ``ImportError`` about a missing
     symbol.
@@ -105,7 +104,12 @@ libqpdf.)
 
 pikepdf requires a C++11 compliant compiler (i.e. Visual Studio 2015 on
 Windows). See our continuous integration build script in ``.appveyor.yml``
-for detailed instructions. Or use the wheels which save this pain.
+for detailed and current instructions. Or use the wheels which save this pain.
+
+These instructions require the precompiled binary ``qpdf.dll``. See the QPDF
+documentation if you also need to build this DLL from source. Both should be
+built with the same compiler. You may not mix and match MinGW and Visual C++
+for example.
 
 Running a regular ``pip install`` command will detect the
 version of the compiler used to build Python and attempt to build the

@@ -41,7 +41,7 @@ will say:
 Making PDF objects
 ==================
 
-You may construct a new object with one of the factory functions:
+You may construct a new object with one of the classes:
 
 *   :class:`pikepdf.Array`
 *   :class:`pikepdf.Dictionary`
@@ -52,14 +52,14 @@ You may construct a new object with one of the factory functions:
 These may be thought of as subclasses of ``pikepdf.Object``. (Internally they
 **are** ``pikepdf.Object``.)
 
-There are a few other factory functions for special PDF objects that don't
-map to Python as neatly. We'll look at these later.
+There are a few other classes for special PDF objects that don't
+map to Python as neatly.
 
 *   ``pikepdf.Operator`` - a special object involved in processing content
     streams
 *   ``pikepdf.Stream`` - a special object similar to a ``Dictionary`` with
     binary data attached
-*   ``pikepdf.Inlineimage`` - an image that is embedded in content streams
+*   ``pikepdf.InlineImage`` - an image that is embedded in content streams
 
 The great news is that it's often unnecessary to construct ``pikepdf.Object``
 objects when working with pikepdf. Python types are transparently *converted* to
@@ -67,5 +67,3 @@ the appropriate pikepdf object when passed to pikepdf APIs – when possible.
 However, pikepdf sends ``pikepdf.Object`` types back to Python on return calls,
 in most cases, because pikepdf needs to keep track of objects that came from
 PDFs originally.
-
-Because Python types are converted to pikepdf types, references will be lost.

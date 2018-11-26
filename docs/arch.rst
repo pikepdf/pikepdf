@@ -20,12 +20,12 @@ internal interface.
 Thread safety
 -------------
 
-Because of the global interpreter lock (GIL), it is safe to share pikepdf
+Because of the global interpreter lock (GIL), it is safe to read pikepdf
 objects across Python threads. Also because of the GIL, there may not be much
 performance gain from doing so.
 
 If one or more threads will be modifying pikepdf objects, you will have to
-coordinate all read and write access with a :class:`threading.Lock`.
+coordinate read and write access with a :class:`threading.Lock`.
 
 It is not currently possible to pickle pikepdf objects or marshall them across
 process boundaries (as would be required to use pikepdf in

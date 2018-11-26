@@ -33,8 +33,7 @@ to encrypted PDFs.
    my_pdf.save('test-rotated.pdf')
 
 It is a low level library that requires knowledge of PDF internals and some
-familiarity with the PDF specification [#pdfrm]_. If you just want to generate
-content as PDF something like reportlab may be more suitable.
+familiarity with the PDF specification [#pdfrm]_.
 
 pikepdf would help you build apps that do things like:
 
@@ -59,14 +58,14 @@ pikepdf would help you build apps that do things like:
 * Alter a PDF to meet a target specification such as PDF/A or PDF/X
 * Create well-formed but invalid PDFs for testing purposes
 
-What it cannot and never will do:
+What it cannot do:
 
 .. figure:: /images/pikemen.jpg
    :align: right
    :alt: A square of pikemen, carrying pikes
    :figwidth: 30%
 
-   pikepdf will not help you defend yourself against a calvary charge. [#img2]_
+   Pikemen bracing for a calvary charge, carrying pikes. [#img2]_
 
 * Rasterize PDF pages for display (that is, produce an image that shows what
   a PDF page looks like at a particular resolution/zoom level) – use
@@ -74,6 +73,9 @@ What it cannot and never will do:
 * Convert from PDF to other similar paper capture formats like epub, XPS, DjVu,
   Postscript – use MuPDF or PyMuPDF
 * Print to paper
+
+If you only want to generate PDFs and not read or modify them, consider
+reportlab (a "write-only" PDF generator).
 
 Requirements
 ~~~~~~~~~~~~
