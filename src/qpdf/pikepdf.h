@@ -103,13 +103,13 @@ namespace pybind11 { namespace detail {
 
             switch (src->getTypeCode()) {
                 case QPDFObject::object_type_e::ot_null:
-                    h = none().release();
+                    h = pybind11::none().release();
                     break;
                 case QPDFObject::object_type_e::ot_integer:
-                    h = int_(src->getIntValue()).release();
+                    h = pybind11::int_(src->getIntValue()).release();
                     break;
                 case QPDFObject::object_type_e::ot_boolean:
-                    h = bool_(src->getBoolValue()).release();
+                    h = pybind11::bool_(src->getBoolValue()).release();
                     break;
                 case QPDFObject::object_type_e::ot_real:
                     h = decimal_from_pdfobject(*src).release();
