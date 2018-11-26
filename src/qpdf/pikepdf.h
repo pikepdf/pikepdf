@@ -12,34 +12,17 @@
 #include <vector>
 #include <map>
 
+#include "shims.h"
+
 #include <qpdf/PointerHolder.hh>
 #include <qpdf/QPDF.hh>
 #include <qpdf/QPDFObjectHandle.hh>
+
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <pybind11/stl_bind.h>
 
 using uint = unsigned int;
-
-#if __cplusplus < 201402L  // If C++11
-
-#include <memory>
-#include <type_traits>
-#include <utility>
-#include <string>
-
-namespace std {
-    // Provide make_unique for C++11 (not array-capable)
-    // See https://stackoverflow.com/questions/17902405/how-to-implement-make-unique-function-in-c11/17902439#17902439 for full version if needed
-    template<typename T, typename ...Args>
-    unique_ptr<T> make_unique( Args&& ...args )
-    {
-        return unique_ptr<T>( new T( std::forward<Args>(args)... ) );
-    }
-
-    // Provide basic std::quoted for C++11
-    string quoted(const char* s);
-    string quoted(const string &s);
-};
-#endif // }}
 
 namespace pybind11 {
     PYBIND11_RUNTIME_EXCEPTION(attr_error, PyExc_AttributeError);
@@ -178,8 +161,6 @@ namespace pybind11 { namespace detail {
 
 namespace py = pybind11;
 
-#include <pybind11/stl.h>
-#include <pybind11/stl_bind.h>
 PYBIND11_MAKE_OPAQUE(std::vector<QPDFObjectHandle>);
 
 typedef std::map<std::string, QPDFObjectHandle> ObjectMap;
