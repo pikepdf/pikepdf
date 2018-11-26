@@ -148,6 +148,7 @@ void save_pdf(
     qpdf_object_stream_e object_stream_mode=qpdf_o_preserve,
     bool normalize_content=false,
     bool linearize=false,
+    bool qdf=false,
     py::object progress=py::none())
 {
     QPDFWriter w(q);
@@ -172,6 +173,7 @@ void save_pdf(
     }
     w.setContentNormalization(normalize_content);
     w.setLinearization(linearize);
+    w.setQDFMode(qdf);
 
     if (!progress.is_none()) {
         auto reporter = PointerHolder<QPDFWriter::ProgressReporter>(new PikeProgressReporter(progress));
@@ -476,6 +478,11 @@ PYBIND11_MODULE(_qpdf, m) {
                     a viewer can begin rendering before it has the whole file.
                     As a drawback, it tends to make files larger.
 
+                qdf (bool): Save output QDF mode.  QDF mode is a special output
+                    mode in QPDF to allow editing of PDFs in a text editor. Use
+                    the program ``fix-qdf`` to fix convert back to a standard
+                    PDF.
+
             You may call ``.save()`` multiple times with different parameters
             to generate different versions of a file, and you *may* continue
             to modify the file after saving it. ``.save()`` does not modify
@@ -500,6 +507,7 @@ PYBIND11_MODULE(_qpdf, m) {
             py::arg("object_stream_mode")=qpdf_object_stream_e::qpdf_o_preserve,
             py::arg("normalize_content")=false,
             py::arg("linearize")=false,
+            py::arg("qdf")=false,
             py::arg("progress")=py::none()
         )
         .def("_get_object_id", &QPDF::getObjectByID)
