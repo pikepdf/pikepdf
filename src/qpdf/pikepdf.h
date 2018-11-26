@@ -211,6 +211,8 @@ public:
     }
     StackGuard(const StackGuard&) = delete;
     StackGuard& operator= (const StackGuard&) = delete;
+    StackGuard(StackGuard&&) = delete;
+    StackGuard& operator= (StackGuard&&) = delete;
     ~StackGuard() {
         Py_LeaveRecursiveCall();
     }

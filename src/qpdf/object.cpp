@@ -91,7 +91,6 @@ public:
             this->whitelist.insert(s);
         }
     }
-    virtual ~OperandGrouper() {}
 
     void handleObject(QPDFObjectHandle obj) override
     {
@@ -155,12 +154,12 @@ public:
             this->warning = "Unexpected end of stream";
     }
 
-    py::list getInstructions()
+    py::list getInstructions() const
     {
         return this->instructions;
     }
 
-    std::string getWarning()
+    std::string getWarning() const
     {
         return this->warning;
     }
