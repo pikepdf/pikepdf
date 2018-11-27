@@ -9,7 +9,7 @@ import sys
 from io import StringIO
 from unittest.mock import Mock
 import shutil
-import os
+from pikepdf._cpphelpers import fspath  # For py35
 
 
 def test_non_filename():
@@ -130,8 +130,8 @@ def test_unicode_filename(resources, outdir):
     target1 = outdir / '测试.pdf'
     target2 = outdir / '通过考试.pdf'
     shutil.copy(
-        os.fspath(resources / 'pal-1bit-trivial.pdf'),
-        os.fspath(target1)
+        fspath(resources / 'pal-1bit-trivial.pdf'),
+        fspath(target1)
     )
     pdf = Pdf.open(target1)
     pdf.save(target2)
