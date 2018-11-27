@@ -28,29 +28,10 @@
 
 #include "qpdf_pagelist.h"
 #include "qpdf_inputsource.h"
+#include "utils.h"
 
 extern "C" const char* qpdf_get_qpdf_version();
 
-
-/* Convert a Python object to a filesystem encoded path
- * Use Python's os.fspath() which accepts os.PathLike (str, bytes, pathlib.Path)
- * and returns bytes encoded in the filesystem encoding.
- * Cast to a string without transcoding.
- */
-std::string fsencode_filename(py::object py_filename)
-{
-    auto fspath = py::module::import("pikepdf._cpphelpers").attr("fspath");
-    std::string filename;
-
-    try {
-        auto py_encoded_filename = fspath(py_filename);
-        filename = py_encoded_filename.cast<std::string>();
-    } catch (const py::cast_error &) {
-        throw py::type_error("expected pathlike object");
-    }
-
-    return filename;
-}
 
 void check_stream_is_usable(py::object stream)
 {
@@ -71,7 +52,6 @@ open_pdf(
     bool attempt_recovery=true,
     bool inherit_page_attributes=true)
 {
-    auto file = filename_or_stream;
     auto q = std::make_shared<QPDF>();
 
     q->setSuppressWarnings(suppress_warnings);
@@ -79,9 +59,9 @@ open_pdf(
     q->setIgnoreXRefStreams(ignore_xref_streams);
     q->setAttemptRecovery(attempt_recovery);
 
-    if (py::hasattr(file, "read") && py::hasattr(file, "seek")) {
+    if (py::hasattr(filename_or_stream, "read") && py::hasattr(filename_or_stream, "seek")) {
         // Python code gave us an object with a stream interface
-        py::object stream = file;
+        py::object stream = filename_or_stream;
 
         check_stream_is_usable(stream);
 
@@ -90,21 +70,20 @@ open_pdf(
         py::gil_scoped_release release;
         q->processInputSource(input_source, password.c_str());
     } else {
-        std::string filename = fsencode_filename(file);
+        auto filename = filename_or_stream;
+        std::string description = py::str(filename);
+        FILE* file = portable_fopen(filename_or_stream, "rb");
+
         // We can release GIL because Python knows nothing about q at this
         // point; this could also take a moment for large files
-
-        try {
-            py::gil_scoped_release release;
-            q->processFile(filename.c_str(), password.c_str());
-        } catch (const QPDFSystemError &e) {
-            // Intercept "no such file" error message and convert to Python
-            // FileNotFoundError
-            if (e.getErrno() == ENOENT)
-                throw py::filenotfound_error(filename);
-            else
-                throw;
-        }
+        py::gil_scoped_release release;
+        q->processFile(
+            description.c_str(),
+            file, // transferring ownership
+            true, // QPDF will close the file
+            password.c_str()
+        );
+        file = nullptr; // QPDF owns the file and will close it
     }
 
     if (inherit_page_attributes) {
@@ -189,9 +168,9 @@ void save_pdf(
         // using subclass of Pipeline that routes calls to Python.
         w.setOutputMemory();
 
-        // It would be kind to release the GIL here, but this is not possible
-        // if another thread has an object and tries to mess with it.
-        // Correctness is more important than performance.
+        // It would be kind to release the GIL here, but this is not possible if
+        // another thread has an object and tries to mess with it. Correctness
+        // is more important than performance.
         w.write();
 
         // But now that we've held the GIL forever, we can release it and take
@@ -218,8 +197,11 @@ void save_pdf(
         stream.attr("write")(view_output_buffer);
     } else {
         py::object filename = filename_or_stream;
-        w.setOutputFilename(fsencode_filename(filename).c_str());
+        std::string description = py::str(filename);
+        FILE* file = portable_fopen(filename, "wb");
+        w.setOutputFile(description.c_str(), file, true);
         w.write();
+        file = nullptr; // QPDF will close it
     }
 }
 

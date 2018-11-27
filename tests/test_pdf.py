@@ -3,11 +3,13 @@ Testing focused on pikepdf.Pdf
 """
 
 import pytest
-from pikepdf import Pdf, PasswordError, Stream
+from pikepdf import Pdf, PasswordError, Stream, PdfError
 
 import sys
 from io import StringIO
 from unittest.mock import Mock
+import shutil
+import os
 
 
 def test_non_filename():
@@ -18,6 +20,13 @@ def test_non_filename():
 def test_not_existing_file():
     with pytest.raises(FileNotFoundError):
         Pdf.open('does_not_exist.pdf')
+
+
+def test_empty(outdir):
+    target = outdir / 'empty.pdf'
+    target.touch()
+    with pytest.raises(PdfError):
+        Pdf.open(target)
 
 
 class TestLinearization:
@@ -115,3 +124,15 @@ def test_progress(resources, outdir):
     mock = Mock()
     pdf.save(outdir / 'out.pdf', progress=mock)
     mock.assert_called()
+
+
+def test_unicode_filename(resources, outdir):
+    target1 = outdir / '测试.pdf'
+    target2 = outdir / '通过考试.pdf'
+    shutil.copy(
+        os.fspath(resources / 'pal-1bit-trivial.pdf'),
+        os.fspath(target1)
+    )
+    pdf = Pdf.open(target1)
+    pdf.save(target2)
+    assert target2.exists()
