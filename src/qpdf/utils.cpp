@@ -52,24 +52,34 @@ FILE *portable_fopen(py::object filename, const char* mode)
     auto path = fspath(filename);
     auto io_open = py::module::import("io").attr("open");
     py::object pyfile;
-    py::int_ filedes;
-    py::int_ filedes_dup;
+    py::int_ filedes = {-1};
+    py::int_ filedes_dup = {-1};
 
     // Use Python's builtin open to open the file, since it takes care of
     // all of filename encoding issues and interprets mode
     pyfile = io_open(path, mode);
+    try {
+        // Get file descriptor, and dup() it
+        filedes = pyfile.attr("fileno")();
+        filedes_dup = py::module::import("os").attr("dup")(filedes);
+    } catch (const std::exception &e) {
+        pyfile.attr("close")();
+        throw;
+    }
 
-    // Get file descriptor, and dup() it
-    filedes = pyfile.attr("fileno")();
-    filedes_dup = py::module::import("os").attr("dup")(filedes);
+    try {
+        // Close original, releasing Python's buffers. We still have the duplicate
+        // descriptor.
+        pyfile.attr("close")();
 
-    // Close original, releasing Python's buffers. We still have the duplicate
-    // descriptor.
-    pyfile.attr("close")();
-
-    // Now use stdlib to wrap descriptor as a FILE
-    FILE *file = fdopen(filedes_dup, mode);
-    if (!file)
-        throw py::error_already_set();
-    return file;
+        // Now use stdlib to wrap descriptor as a FILE
+        FILE *file = fdopen(filedes_dup, mode);
+        if (!file)
+            throw std::system_error(errno, std::generic_category());
+        return file;
+    } catch (const std::exception &e) {
+        if (filedes_dup.cast<int>() >= 0)
+            close(filedes_dup);
+        throw;
+    }
 }
