@@ -95,9 +95,6 @@ in many respects – for example, it can read compress object streams, repair
 damaged PDFs in many cases, and linearize PDFs. Unlike those libraries, it's not
 pure Python: it is impure and proud of it.
 
-It's almost certainly faster than the pure Python libraries at loading and
-saving PDFs.
-
 In use
 ~~~~~~
 
