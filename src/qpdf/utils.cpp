@@ -6,6 +6,9 @@
  * Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
  */
 
+#include <cstdlib>
+#include <system_error>
+
 #include "utils.h"
 
 /* Convert a Python object to a filesystem encoded path
