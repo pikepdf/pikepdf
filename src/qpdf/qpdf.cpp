@@ -311,7 +311,7 @@ PYBIND11_MODULE(_qpdf, m) {
         .def_property_readonly("root", &QPDF::getRoot,
             "alias for .Root, the /Root object of the PDF"
         )
-        .def_property("metadata",
+        .def_property("docinfo",
             [](QPDF& q) {
                 if (!q.getTrailer().hasKey("/Info")) {
                     auto info = q.makeIndirectObject(QPDFObjectHandle::newDictionary());
@@ -321,7 +321,7 @@ PYBIND11_MODULE(_qpdf, m) {
             },
             [](QPDF& q, QPDFObjectHandle& replace) {
                 if (!replace.isIndirect())
-                    throw py::value_error("metadata must be an indirect object - use Pdf.make_indirect");
+                    throw py::value_error("docinfo must be an indirect object - use Pdf.make_indirect");
                 q.getTrailer().replaceKey("/Info", replace);
             },
             "access the document information dictionary"

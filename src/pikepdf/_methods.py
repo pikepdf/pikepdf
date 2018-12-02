@@ -44,6 +44,8 @@ def extends(cls_cpp):
 
     Subclassing is not used, because the intention is to extend a C++ class
     specification with Python methods, rather than creating a new class.
+    Otherwise we would have to insert a custom type converter to intercept
+    the C++ and wrap it with the subclass.
 
     Any existing methods may be used, regardless of whether they defined
     elsewhere in the support class or in the target class.
@@ -56,6 +58,8 @@ def extends(cls_cpp):
         for name, fn in inspect.getmembers(cls, inspect.isfunction):
             fn.__qualname__ = fn.__qualname__.replace(
                     cls.__name__, cls_cpp.__name__)
+            setattr(cls_cpp, name, fn)
+        for name, fn in inspect.getmembers(cls, inspect.isdatadescriptor):
             setattr(cls_cpp, name, fn)
         return cls
     return real_class_extend
@@ -138,6 +142,14 @@ class Extend_Pdf:
 
         data = {'application/pdf': bio.read()}
         return data
+
+    @property
+    def metadata(self):
+        return self.docinfo
+
+    @metadata.setter
+    def metadata(self, value):
+        setattr(self, 'docinfo', value)
 
     def attach(self, *, basename, filebytes, mime=None, desc=''):
         """
