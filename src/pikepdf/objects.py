@@ -101,7 +101,7 @@ class Array(metaclass=_ObjectMeta):
     """Constructs a PDF Array object"""
     object_type = ObjectType.array
 
-    def __new__(cls, a=[]):
+    def __new__(cls, a=None):
         """
         Args:
             a (iterable): A list of objects. All objects must be either
@@ -113,6 +113,8 @@ class Array(metaclass=_ObjectMeta):
 
         if isinstance(a, (str, bytes)):
             raise TypeError('Strings cannot be converted to arrays of chars')
+        if a is None:
+            a = []
         return _qpdf._new_array(a)
 
 
