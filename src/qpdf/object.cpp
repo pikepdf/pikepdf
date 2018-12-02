@@ -451,6 +451,11 @@ void init_object(py::module& m)
                 return object_get_key(h, key);
             }
         )
+        .def("__getitem__",
+            [](QPDFObjectHandle &h, QPDFObjectHandle &name) {
+                return object_get_key(h, name.getName());
+            }
+        )
         .def("__setitem__",
             [](QPDFObjectHandle &h, std::string const& key, QPDFObjectHandle &value) {
                 object_set_key(h, key, value);
@@ -459,9 +464,22 @@ void init_object(py::module& m)
             py::keep_alive<1, 3>()
         )
         .def("__setitem__",
+            [](QPDFObjectHandle &h, QPDFObjectHandle &name, QPDFObjectHandle &value) {
+                object_set_key(h, name.getName(), value);
+            },
+            "assign dictionary key to new object",
+            py::keep_alive<1, 3>()
+        )
+        .def("__setitem__",
             [](QPDFObjectHandle &h, std::string const& key, py::object pyvalue) {
                 auto value = objecthandle_encode(pyvalue);
                 object_set_key(h, key, value);
+            }
+        )
+        .def("__setitem__",
+            [](QPDFObjectHandle &h, QPDFObjectHandle &name, py::object pyvalue) {
+                auto value = objecthandle_encode(pyvalue);
+                object_set_key(h, name.getName(), value);
             }
         )
         .def("__delitem__",
