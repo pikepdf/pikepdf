@@ -5,8 +5,6 @@
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
 from io import BytesIO
-from subprocess import run, PIPE
-from tempfile import NamedTemporaryFile
 from itertools import zip_longest
 from abc import ABC, abstractmethod
 import struct
@@ -14,7 +12,7 @@ import struct
 from decimal import Decimal
 
 from .. import (
-    Pdf, Object, Array, PdfError, Name, Dictionary, Stream
+    Object, Array, PdfError, Name, Dictionary, Stream
 )
 
 class DependencyError(Exception):
@@ -27,7 +25,7 @@ class UnsupportedImageTypeError(Exception):
 def array_str(value):
     if isinstance(value, (list, Array)):
         return [str(item) for item in value]
-    elif isinstance(value, Name):
+    if isinstance(value, Name):
         return [str(value)]
     raise NotImplementedError(value)
 
@@ -39,17 +37,16 @@ def array_str_colorspace(value):
             result = [str(items[n]) for n in range(3)]
             result.append(bytes(items[3]))
             return result
-        else:
-            return array_str(items)
+        return array_str(items)
     return array_str(value)
 
 
 def dict_or_array_dict(value):
     if isinstance(value, list):
         return value
-    elif isinstance(value, Dictionary):
+    if isinstance(value, Dictionary):
         return [value.as_dict()]
-    elif isinstance(value, Array):
+    if isinstance(value, Array):
         return [v.as_list() for v in value]
     raise NotImplementedError(value)
 
