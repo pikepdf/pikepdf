@@ -202,3 +202,45 @@ class PdfMetadata:
     @refresh
     def __iter__(self):
         return iter(self._records)
+
+    @property
+    @refresh
+    def pdfa_status(self):
+        """Returns the PDF/A conformance level claimed by this PDF, or False
+
+        A PDF may claim to PDF/A compliant without this being true. Use an
+        independent verifier such as veraPDF to test if a PDF is truly
+        conformant.
+
+        Returns:
+            str: The conformance level of the PDF/A, or an empty string if the
+            PDF does not claim PDF/A conformance. Possible valid values
+            are: 1A, 1B, 2A, 2B, 2U, 3A, 3B, 3U.
+        """
+        pdfaid = self._xmp.get_prefix_for_namespace(XMP_NS_PDFA_ID)
+        key_part = pdfaid + 'part'
+        key_conformance = pdfaid + 'conformance'
+        try:
+            return self._records[key_part] + self._records[key_conformance]
+        except KeyError:
+            return ''
+
+    @property
+    @refresh
+    def pdfx_status(self):
+        """Returns the PDF/X conformance level claimed by this PDF, or False
+
+        A PDF may claim to PDF/X compliant without this being true. Use an
+        independent verifier such as veraPDF to test if a PDF is truly
+        conformant.
+
+        Returns:
+            str: The conformance level of the PDF/X, or an empty string if the
+            PDF does not claim PDF/X conformance.
+        """
+        pdfxid = self._xmp.get_prefix_for_namespace(XMP_NS_PDFX_ID)
+        pdfx_version = pdfxid + 'GTS_PDFXVersion'
+        try:
+            return self._records[pdfx_version]
+        except KeyError:
+            return ''
