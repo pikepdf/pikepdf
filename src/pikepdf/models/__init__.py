@@ -8,6 +8,7 @@ from .. import Object, ObjectType, PdfError
 
 from .matrix import PdfMatrix
 from .image import PdfImage, PdfInlineImage, UnsupportedImageTypeError
+from .metadata import PdfMetadata
 
 
 def parse_content_stream(page_or_stream, operators=''):

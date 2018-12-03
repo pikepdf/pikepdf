@@ -123,3 +123,6 @@ Support models
 
 .. autoclass:: pikepdf.PdfInlineImage
     :members:
+
+.. autoclass:: pikepdf.models.PdfMetadata
+    :members:

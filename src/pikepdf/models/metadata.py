@@ -74,11 +74,11 @@ class PdfMetadata:
 
     def _refresh(self):
         try:
-        data = self._pdf.Root.Metadata.read_bytes()
+            data = self._pdf.Root.Metadata.read_bytes()
         except AttributeError:
             self._create_xmp()
         else:
-        self._xmp = XMPMeta(xmp_str=data.decode('utf-8'))
+            self._xmp = XMPMeta(xmp_str=data.decode('utf-8'))
         xmpdict = object_to_dict(self._xmp)
 
         # Sort to ensure all members of a compound object immediately follow

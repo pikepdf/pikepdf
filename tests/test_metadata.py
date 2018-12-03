@@ -4,13 +4,17 @@ from pikepdf import Pdf, Dictionary
 
 @pytest.fixture
 def vera(resources):
-    pdf = Pdf.open(resources / 'veraPDF test suite 6-2-10-t02-pass-a.pdf')
-    return pdf
+    return Pdf.open(resources / 'veraPDF test suite 6-2-10-t02-pass-a.pdf')
 
 
 @pytest.fixture
 def graph(resources):
     return Pdf.open(resources / 'graph.pdf')
+
+
+@pytest.fixture
+def trivial(resources):
+    return Pdf.open(resources / 'pal-1bit-trivial.pdf')
 
 
 def test_no_info(vera, outdir):
@@ -46,3 +50,16 @@ def test_copy_info(vera, graph, outdir):
     vera.docinfo = vera.copy_foreign(graph.docinfo)
     assert vera.docinfo.is_indirect, "/Info must be an indirect object"
     vera.save(outdir / 'out.pdf')
+
+
+def test_add_new_xmp_and_mark(trivial):
+    with trivial.open_metadata(set_pikepdf_as_editor=False, sync_docinfo=False) as xmp_view:
+        assert not xmp_view
+
+    with trivial.open_metadata(sync_docinfo=False) as xmp:
+        assert not xmp  # No changes at this point
+    del xmp
+
+    with trivial.open_metadata(sync_docinfo=False) as xmp:
+        assert 'pikepdf' in xmp['pdf:Producer']
+        assert 'xmp:MetadataDate' in xmp

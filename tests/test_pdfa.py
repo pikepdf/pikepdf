@@ -5,7 +5,7 @@ import platform
 import shutil
 from pathlib import Path
 from contextlib import suppress
-from subprocess import run, PIPE, STDOUT, DEVNULL
+from subprocess import run, PIPE, STDOUT
 import xml.etree.ElementTree as ET
 
 
@@ -40,3 +40,4 @@ def test_pdfa_sanity(resources, outdir):
     pdf.save(outdir / 'pdfa.pdf')
 
     assert verapdf_validate(outdir / 'pdfa.pdf')
+    assert pdf.open_metadata().pdfa_status == '1B'

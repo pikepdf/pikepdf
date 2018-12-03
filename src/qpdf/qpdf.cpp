@@ -532,7 +532,8 @@ PYBIND11_MODULE(_qpdf, m) {
             indirect, and creating them will automatically attach it to the
             Pdf.
 
-            See also :meth:`pikepdf.Object.is_indirect`.
+            See Also:
+                :meth:`pikepdf.Object.is_indirect`
 
             Returns:
                 pikepdf.Object

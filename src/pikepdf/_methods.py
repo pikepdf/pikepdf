@@ -23,6 +23,7 @@ import inspect
 
 from . import Pdf, Dictionary, Array, Name, Stream, Object
 from ._qpdf import _ObjectMapping
+from .models import PdfMetadata
 
 
 # pylint: disable=no-member,unsupported-membership-test,unsubscriptable-object
@@ -122,7 +123,6 @@ class Extend_Object:
                     data['image/png'] = _mudraw(pagedata, 'png')
                 except (FileNotFoundError, RuntimeError):
                     pass
-
         return data
 
 
@@ -150,6 +150,36 @@ class Extend_Pdf:
     @metadata.setter
     def metadata(self, value):
         setattr(self, 'docinfo', value)
+
+    def open_metadata(self, set_pikepdf_as_editor=True, sync_docinfo=True):
+        """
+        Open the PDF's XMP metadata for editing
+
+        Recommend for use in a ``with`` block. Changes are committed to the
+        PDF when the block exits.
+
+        Example:
+            >>> with pdf.open_metadata() as meta:
+                    meta['dc:title'] = 'Set the Dublic Core Title'
+                    meta['dc:description'] = 'Put the Abstract here'
+
+        Args:
+            set_pikepdf_as_editor (bool): Update the metadata to show that this
+                version of pikepdf is the most software to modify the metadata.
+                Recommended, except for testing.
+
+            sync_docinfo (bool): Update the deprecated PDF DocumentInfo block
+                to be consistent with XMP.
+
+        Returns:
+            pikepdf.models.PdfMetadata
+        """
+        return PdfMetadata(
+            self,
+            pikepdf_mark=set_pikepdf_as_editor,
+            sync_docinfo=sync_docinfo
+        )
+
 
     def attach(self, *, basename, filebytes, mime=None, desc=''):
         """
