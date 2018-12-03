@@ -61,8 +61,23 @@ class PdfMetadata:
         self.mark = pikepdf_mark
         self.sync_docinfo = sync_docinfo
 
+    def _create_xmp(self):
+        self._xmp = XMPMeta()
+        DEFAULT_NAMESPACES = [
+            (XMP_NS_DC, 'dc'),
+            (XMP_NS_PDF, 'pdf'),
+            (XMP_NS_RDF, 'rdf'),
+            (XMP_NS_XMP, 'xmp'),
+        ]
+        for uri, prefix in DEFAULT_NAMESPACES:
+            self._xmp.register_namespace(uri, prefix)
+
     def _refresh(self):
+        try:
         data = self._pdf.Root.Metadata.read_bytes()
+        except AttributeError:
+            self._create_xmp()
+        else:
         self._xmp = XMPMeta(xmp_str=data.decode('utf-8'))
         xmpdict = object_to_dict(self._xmp)
 
