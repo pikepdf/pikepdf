@@ -1,5 +1,5 @@
 import pytest
-from pikepdf import Pdf, Dictionary
+from pikepdf import Pdf, Dictionary, Name
 
 
 @pytest.fixture
@@ -63,3 +63,16 @@ def test_add_new_xmp_and_mark(trivial):
     with trivial.open_metadata(sync_docinfo=False) as xmp:
         assert 'pikepdf' in xmp['pdf:Producer']
         assert 'xmp:MetadataDate' in xmp
+
+
+def test_sync_docinfo(vera):
+    with vera.open_metadata(set_pikepdf_as_editor=False, sync_docinfo=True) as xmp:
+        pass
+    assert xmp['pdf:Producer'] == vera.docinfo[Name.Producer]
+    assert xmp['xmp:CreatorTool'] == vera.docinfo[Name.Creator]
+    assert xmp['dc:creator'][0] == vera.docinfo[Name.Authors]
+
+    # Test delete propagation
+    with vera.open_metadata(set_pikepdf_as_editor=False, sync_docinfo=True) as xmp:
+        del xmp['dc:creator']
+    assert Name.Authors not in vera.docinfo

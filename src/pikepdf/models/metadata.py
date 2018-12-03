@@ -7,6 +7,7 @@
 from functools import wraps
 from operator import itemgetter
 from datetime import datetime
+from collections.abc import MutableMapping
 
 # Repeat this to avoid circular from top package's pikepdf.__version__
 from pkg_resources import (
@@ -28,6 +29,41 @@ from libxmp.utils import object_to_dict
 from .. import Stream, Name
 
 
+def encode_pdf_date(d: datetime) -> str:
+    """
+    Encode Python datetime object as PDF date string
+
+    From Adobe pdfmark manual:
+    (D:YYYYMMDDHHmmSSOHH'mm')
+    D: is an optional prefix. YYYY is the year. All fields after the year are
+    optional. MM is the month (01-12), DD is the day (01-31), HH is the
+    hour (00-23), mm are the minutes (00-59), and SS are the seconds
+    (00-59). The remainder of the string defines the relation of local
+    time to GMT. O is either + for a positive difference (local time is
+    later than GMT) or - (minus) for a negative difference. HH' is the
+    absolute value of the offset from GMT in hours, and mm' is the
+    absolute value of the offset in minutes. If no GMT information is
+    specified, the relation between the specified time and GMT is
+    considered unknown. Regardless of whether or not GMT
+    information is specified, the remainder of the string should specify
+    the local time.
+    """
+
+    pdfmark_date_fmt = r'%Y%m%d%H%M%S'
+    s = d.strftime(pdfmark_date_fmt)
+
+    tz = d.strftime('%z')
+    if tz == 'Z' or tz == '':
+        # Ghostscript <= 9.23 handles missing timezones incorrectly, so if
+        # timezone is missing, move it into GMT.
+        # https://bugs.ghostscript.com/show_bug.cgi?id=699182
+        s += "+00'00'"
+    else:
+        sign, tz_hours, tz_mins = tz[0], tz[1:3], tz[3:5]
+        s += "{}{}'{}'".format(sign, tz_hours, tz_mins)
+    return s
+
+
 def refresh(fn):
     @wraps(fn)
     def wrapper(self, *args, **kwargs):
@@ -36,7 +72,8 @@ def refresh(fn):
         return fn(self, *args, **kwargs)
     return wrapper
 
-class PdfMetadata:
+
+class PdfMetadata(MutableMapping):
     """Read and edit the XMP metadata associated with a PDF
 
     Requires/relies on python-xmp-toolkit and libexempi.
@@ -57,9 +94,11 @@ class PdfMetadata:
         self._pdf = pdf
         self._xmp = None
         self._records = {}
+        self._deleted = []
         self._flags = {}
         self.mark = pikepdf_mark
         self.sync_docinfo = sync_docinfo
+        self._updating = False
 
     def _create_xmp(self):
         self._xmp = XMPMeta()
@@ -81,6 +120,7 @@ class PdfMetadata:
             self._xmp = XMPMeta(xmp_str=data.decode('utf-8'))
         xmpdict = object_to_dict(self._xmp)
 
+        self._deleted = []
         # Sort to ensure all members of a compound object immediately follow
         # the compound. Not sure if libxmp guarantees order.
         for uri, records in sorted(xmpdict.items(), key=itemgetter(0)):
@@ -107,7 +147,8 @@ class PdfMetadata:
 
     @refresh
     def __enter__(self):
-        return self._records
+        self._updating = True
+        return self
 
     def _expected_type(self, key, val=None):
         if key not in self._flags:
@@ -137,33 +178,47 @@ class PdfMetadata:
         The standard mapping is described here:
             https://www.pdfa.org/pdfa-metadata-xmp-rdf-dublin-core/
         """
-        MAPPING = {
-            (XMP_NS_DC, 'description'): Name.Subject,
-            (XMP_NS_DC, 'title'): Name.Title,
-            (XMP_NS_PDF, 'Keywords'): Name.Keywords,
-            (XMP_NS_PDF, 'Producer'): Name.Producer,
-            (XMP_NS_XMP, 'CreateDate'): Name.CreationDate,
-            (XMP_NS_XMP, 'CreatorTool'): Name.Creator,
-            (XMP_NS_XMP, 'ModifyDate'): Name.ModDate,
-        }
-        for xmpparts, docinfo_name in MAPPING.items():
-            schema, element = xmpparts
-            value = self._xmp.get_property(schema, element)
-            self._pdf.docinfo[docinfo_name] = value
-        dc_prefix = self._xmp.get_prefix_for_namespace(XMP_NS_DC)
-        dc_creator = self._records.get(dc_prefix + 'creator', None)
-        if dc_creator:
-            if isinstance(dc_creator, str):
-                creators = dc_creator
+        def author_converter(authors):
+            if isinstance(authors, str):
+                return authors
             else:
-                creators = '; '.join(dc_creator)
-            self._pdf.docinfo[Name.Authors] = creators
+                return '; '.join(authors)
+
+        def date_converter(date_str):
+            dateobj = datetime.fromisoformat(date_str)
+            return encode_pdf_date(dateobj)
+
+        MAPPING = [
+            (XMP_NS_DC, 'creator', Name.Authors, author_converter),
+            (XMP_NS_DC, 'description', Name.Subject, None),
+            (XMP_NS_DC, 'title', Name.Title, None),
+            (XMP_NS_PDF, 'Keywords', Name.Keywords, None),
+            (XMP_NS_PDF, 'Producer', Name.Producer, None),
+            (XMP_NS_XMP, 'CreateDate', Name.CreationDate, date_converter),
+            (XMP_NS_XMP, 'CreatorTool', Name.Creator, None),
+            (XMP_NS_XMP, 'ModifyDate', Name.ModDate, date_converter),
+        ]
+        for schema, element, docinfo_name, converter in MAPPING:
+            prefix = self._xmp.get_prefix_for_namespace(schema)
+            try:
+                value = self._records[prefix + element]
+            except KeyError:
+                if docinfo_name in self._pdf.docinfo:
+                    del self._pdf.docinfo[docinfo_name]
+                continue
+            if converter:
+                value = converter(value)
+            self._pdf.docinfo[docinfo_name] = value
 
     def _get_uri(self, key):
         prefix = key.split(':', maxsplit=1)[0]
         return self._xmp.get_namespace_for_prefix(prefix)
 
     def _apply_changes(self):
+        for key in self._deleted:
+            uri = self._get_uri(key)
+            self._xmp.delete_property(uri, key)
+
         for key, val in self._records.items():
             val_type = self._expected_type(key, val)
             if not isinstance(val, val_type):
@@ -185,15 +240,22 @@ class PdfMetadata:
                 XMP_NS_PDF, 'Producer', 'pikepdf ' + pikepdf_version
             )
 
+        print(self._xmp)
         data = self._xmp.serialize_to_unicode()
         self._pdf.Root.Metadata = Stream(self._pdf, data.encode('utf-8'))
         if self.sync_docinfo:
             self._update_docinfo()
         self._records = {}
+        self._deleted = []
+        self._updating = False
 
     @refresh
     def __contains__(self, key):
         return key in self._records
+
+    @refresh
+    def __len__(self):
+        return len(self._records)
 
     @refresh
     def __getitem__(self, key):
@@ -202,6 +264,17 @@ class PdfMetadata:
     @refresh
     def __iter__(self):
         return iter(self._records)
+
+    def __setitem__(self, key, val):
+        if not self._updating:
+            raise RuntimeError("Metadata not opened for editing, use with block")
+        self._records[key] = val
+
+    def __delitem__(self, key):
+        if not self._updating:
+            raise RuntimeError("Metadata not opened for editing, use with block")
+        del self._records[key]
+        self._deleted.append(key)
 
     @property
     @refresh

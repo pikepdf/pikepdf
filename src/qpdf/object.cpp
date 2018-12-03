@@ -488,6 +488,12 @@ void init_object(py::module& m)
             },
             "delete a dictionary key"
         )
+        .def("__delitem__",
+            [](QPDFObjectHandle &h, QPDFObjectHandle &name) {
+                object_del_key(h, name.getName());
+            },
+            "delete a dictionary key"
+        )
         .def("__getattr__",
             [](QPDFObjectHandle &h, std::string const& name) {
                 QPDFObjectHandle value;
