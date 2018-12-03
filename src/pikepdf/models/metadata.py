@@ -8,19 +8,25 @@ from functools import wraps
 from operator import itemgetter
 from datetime import datetime
 
+# Repeat this to avoid circular from top package's pikepdf.__version__
+from pkg_resources import (
+    get_distribution as _get_distribution,
+    DistributionNotFound
+)
+try:
+    pikepdf_version = _get_distribution(__name__).version
+except DistributionNotFound:
+    pikepdf_version = "unknown version"
+
 import libxmp
-
+from libxmp import XMPMeta, XMPError
+from libxmp.consts import (
+    XMP_NS_DC, XMP_NS_PDF, XMP_NS_PDFA_ID, XMP_NS_PDFX_ID, XMP_NS_RDF, XMP_NS_XMP
+)
 from libxmp.utils import object_to_dict
-from libxmp import XMPMeta
 
-from .. import __version__
 from .. import Stream, Name
 
-NAMESPACES = {
-    'dc': "http://purl.org/dc/elements/1.1/",
-    'pdf': "http://ns.adobe.com/pdf/1.3/",
-    'xmp': "http://ns.adobe.com/xap/1.0/",
-}
 
 def refresh(fn):
     @wraps(fn)
@@ -31,8 +37,23 @@ def refresh(fn):
     return wrapper
 
 class PdfMetadata:
+    """Read and edit the XMP metadata associated with a PDF
+
+    Requires/relies on python-xmp-toolkit and libexempi.
+
+    To update metadata, use a with block.
+
+    .. code-block:: python
+
+        with pdf.open_metadata() as records:
+            records['dc:title'] = 'New Title'
+
+    See Also:
+        :meth:`pikepdf.Pdf.open_metadata`
+
+    """
+
     def __init__(self, pdf, pikepdf_mark=True, sync_docinfo=True):
-        self.uris = {}
         self._pdf = pdf
         self._xmp = None
         self._records = {}
@@ -49,7 +70,6 @@ class PdfMetadata:
         # the compound. Not sure if libxmp guarantees order.
         for uri, records in sorted(xmpdict.items(), key=itemgetter(0)):
             for key, val, flags in records:
-                self.uris[key] = uri
                 self._flags[key] = flags
                 if val == '':
                     # Compound object
@@ -97,33 +117,42 @@ class PdfMetadata:
         self._apply_changes()
 
     def _update_docinfo(self):
+        """Update the PDF's DocumentInfo dictionary to match XMP metadata
+
+        The standard mapping is described here:
+            https://www.pdfa.org/pdfa-metadata-xmp-rdf-dublin-core/
+        """
         MAPPING = {
-            (NAMESPACES['dc'], 'title'): Name.Title,
-            (NAMESPACES['dc'], 'subject'): Name.Subject,
-            (NAMESPACES['dc'], 'date'): Name.CreationDate,
-            (NAMESPACES['pdf'], 'Keywords'): Name.Keywords,
-            (NAMESPACES['pdf'], 'Producer'): Name.Producer,
+            (XMP_NS_DC, 'description'): Name.Subject,
+            (XMP_NS_DC, 'title'): Name.Title,
+            (XMP_NS_PDF, 'Keywords'): Name.Keywords,
+            (XMP_NS_PDF, 'Producer'): Name.Producer,
+            (XMP_NS_XMP, 'CreateDate'): Name.CreationDate,
+            (XMP_NS_XMP, 'CreatorTool'): Name.Creator,
+            (XMP_NS_XMP, 'ModifyDate'): Name.ModDate,
         }
         for xmpparts, docinfo_name in MAPPING.items():
             schema, element = xmpparts
             value = self._xmp.get_property(schema, element)
             self._pdf.docinfo[docinfo_name] = value
-
-        if 'dc:creator' in self._records:
-            creators = '; '.join(self._records['dc:creator'])
+        dc_prefix = self._xmp.get_prefix_for_namespace(XMP_NS_DC)
+        dc_creator = self._records.get(dc_prefix + 'creator', None)
+        if dc_creator:
+            if isinstance(dc_creator, str):
+                creators = dc_creator
+            else:
+                creators = '; '.join(dc_creator)
             self._pdf.docinfo[Name.Authors] = creators
 
     def _get_uri(self, key):
-        if key in self.uris:
-            return self.uris[key]
         prefix = key.split(':', maxsplit=1)[0]
         return self._xmp.get_namespace_for_prefix(prefix)
 
     def _apply_changes(self):
         for key, val in self._records.items():
-            if not isinstance(val, self._expected_type(key, val)):
-                raise TypeError(key)  # Kinda
-
+            val_type = self._expected_type(key, val)
+            if not isinstance(val, val_type):
+                raise TypeError("{}: expected type {}".format(key, repr(val_type)))
             uri = self._get_uri(key)
             if isinstance(val, (list, set, dict)):
                 self._xmp.delete_property(uri, key)
@@ -135,10 +164,10 @@ class PdfMetadata:
 
         if self.mark:
             self._xmp.set_property_datetime(
-                NAMESPACES['xmp'], 'MetadataDate', datetime.now()
+                XMP_NS_XMP, 'MetadataDate', datetime.now()
             )
             self._xmp.set_property(
-                NAMESPACES['pdf'], 'Producer', 'pikepdf ' + __version__
+                XMP_NS_PDF, 'Producer', 'pikepdf ' + pikepdf_version
             )
 
         data = self._xmp.serialize_to_unicode()
