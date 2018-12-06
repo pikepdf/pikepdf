@@ -54,6 +54,7 @@ def test_objgen(resources):
 
 class TestPasswords:
     def test_open_pdf_wrong_password(self, resources):
+        # The correct passwords are "owner" and "user"
         with pytest.raises(PasswordError):
             Pdf.open(resources / 'graph-encrypted.pdf', password='wrong')
 

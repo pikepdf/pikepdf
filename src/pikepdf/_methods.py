@@ -151,7 +151,11 @@ class Extend_Pdf:
     def metadata(self, value):
         setattr(self, 'docinfo', value)
 
-    def open_metadata(self, set_pikepdf_as_editor=True, sync_docinfo=True):
+    def open_metadata(
+        self,
+        set_pikepdf_as_editor=True,
+        update_docinfo=True
+    ):
         """
         Open the PDF's XMP metadata for editing
 
@@ -168,7 +172,7 @@ class Extend_Pdf:
                 version of pikepdf is the most software to modify the metadata.
                 Recommended, except for testing.
 
-            sync_docinfo (bool): Update the deprecated PDF DocumentInfo block
+            update_docinfo (bool): Update the deprecated PDF DocumentInfo block
                 to be consistent with XMP.
 
         Returns:
@@ -177,9 +181,8 @@ class Extend_Pdf:
         return PdfMetadata(
             self,
             pikepdf_mark=set_pikepdf_as_editor,
-            sync_docinfo=sync_docinfo
+            sync_docinfo=update_docinfo
         )
-
 
     def attach(self, *, basename, filebytes, mime=None, desc=''):
         """

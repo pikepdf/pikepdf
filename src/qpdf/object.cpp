@@ -560,6 +560,21 @@ void init_object(py::module& m)
             py::arg("default_") = py::none(),
             py::return_value_policy::reference_internal
         )
+        .def("get",
+            [](QPDFObjectHandle &h, QPDFObjectHandle &name, py::object default_) {
+                QPDFObjectHandle value;
+                try {
+                    value = object_get_key(h, name.getName());
+                } catch (const py::key_error &e) {
+                    return default_;
+                }
+                return py::cast(value);
+            },
+            "for dictionary objects, behave as dict.get(key, default=None)",
+            py::arg("key"),
+            py::arg("default_") = py::none(),
+            py::return_value_policy::reference_internal
+        )
         .def("keys", &QPDFObjectHandle::getKeys)
         .def("__contains__",
             [](QPDFObjectHandle &h, QPDFObjectHandle &key) {

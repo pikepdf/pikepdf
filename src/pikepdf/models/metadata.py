@@ -19,7 +19,7 @@ from libxmp.consts import (
     XMP_NS_DC, XMP_NS_PDF, XMP_NS_PDFA_ID, XMP_NS_PDFX_ID, XMP_NS_RDF, XMP_NS_XMP
 )
 
-from .. import Stream, Name
+from .. import Stream, Name, String
 
 # Repeat this to avoid circular from top package's pikepdf.__version__
 try:
@@ -29,8 +29,7 @@ except DistributionNotFound:
 
 
 def encode_pdf_date(d: datetime) -> str:
-    """
-    Encode Python datetime object as PDF date string
+    """Encode Python datetime object as PDF date string
 
     From Adobe pdfmark manual:
     (D:YYYYMMDDHHmmSSOHH'mm')
@@ -50,7 +49,6 @@ def encode_pdf_date(d: datetime) -> str:
 
     pdfmark_date_fmt = r'%Y%m%d%H%M%S'
     s = d.strftime(pdfmark_date_fmt)
-
     tz = d.strftime('%z')
     if tz == '':
         # Ghostscript <= 9.23 handles missing timezones incorrectly, so if
@@ -61,6 +59,51 @@ def encode_pdf_date(d: datetime) -> str:
         sign, tz_hours, tz_mins = tz[0], tz[1:3], tz[3:5]
         s += "{}{}'{}'".format(sign, tz_hours, tz_mins)
     return s
+
+
+def decode_pdf_date(s: str) -> datetime:
+    """Decode a pdfmark date to a Python datetime object
+
+    A pdfmark date is a string in a paritcular format. See the pdfmark
+    Reference for the specification.
+    """
+    if isinstance(s, String):
+        s = str(s)
+    if s.startswith('D:'):
+        s = s[2:]
+
+    # Literal Z00'00', is incorrect but found in the wild,
+    # probably made by OS X Quartz -- standardize
+    if s.endswith("Z00'00'"):
+        s = s.replace("Z00'00'", '+0000')
+    elif s.endswith('Z'):
+        s = s.replace('Z', '+0000')
+    s = s.replace("'", "")  # Remove apos from PDF time strings
+    return datetime.strptime(s, r'%Y%m%d%H%M%S%z')
+
+
+class AuthorConverter:
+    @staticmethod
+    def xmp_from_docinfo(docinfo_val):
+        return str(docinfo_val)
+
+    @staticmethod
+    def docinfo_from_xmp(xmp_val):
+        if isinstance(xmp_val, str):
+            return xmp_val
+        else:
+            return '; '.join(xmp_val)
+
+
+class DateConverter:
+    @staticmethod
+    def xmp_from_docinfo(docinfo_val):
+        return decode_pdf_date(docinfo_val).isoformat()
+
+    @staticmethod
+    def docinfo_from_xmp(xmp_val):
+        dateobj = datetime.fromisoformat(xmp_val)
+        return encode_pdf_date(dateobj)
 
 
 def ensure_loaded(fn):
@@ -88,6 +131,24 @@ class PdfMetadata(MutableMapping):
         :meth:`pikepdf.Pdf.open_metadata`
     """
 
+    DEFAULT_NAMESPACES = [
+        (XMP_NS_DC, 'dc'),
+        (XMP_NS_PDF, 'pdf'),
+        (XMP_NS_RDF, 'rdf'),
+        (XMP_NS_XMP, 'xmp'),
+    ]
+
+    MAPPING = [
+        (XMP_NS_DC, 'creator', Name.Authors, AuthorConverter),
+        (XMP_NS_DC, 'description', Name.Subject, None),
+        (XMP_NS_DC, 'title', Name.Title, None),
+        (XMP_NS_PDF, 'Keywords', Name.Keywords, None),
+        (XMP_NS_PDF, 'Producer', Name.Producer, None),
+        (XMP_NS_XMP, 'CreateDate', Name.CreationDate, DateConverter),
+        (XMP_NS_XMP, 'CreatorTool', Name.Creator, None),
+        (XMP_NS_XMP, 'ModifyDate', Name.ModDate, DateConverter),
+    ]
+
     def __init__(self, pdf, pikepdf_mark=True, sync_docinfo=True):
         self._pdf = pdf
         self._xmp = None
@@ -101,14 +162,26 @@ class PdfMetadata(MutableMapping):
 
     def _create_xmp(self):
         self._xmp = XMPMeta()
-        DEFAULT_NAMESPACES = [
-            (XMP_NS_DC, 'dc'),
-            (XMP_NS_PDF, 'pdf'),
-            (XMP_NS_RDF, 'rdf'),
-            (XMP_NS_XMP, 'xmp'),
-        ]
-        for uri, prefix in DEFAULT_NAMESPACES:
+        for uri, prefix in self.DEFAULT_NAMESPACES:
             self._xmp.register_namespace(uri, prefix)
+
+    def load_from_docinfo(self, docinfo):
+        """Populate the XMP metadata object with DocumentInfo
+
+        A few entries in the deprecated DocumentInfo dictionary are considered
+        approximately equivalent to certain XMP records. This method copies
+        those entries into the XMP metadata.
+        """
+        for uri, shortkey, docinfo_name, converter in self.MAPPING:
+            prefix = self._xmp.get_prefix_for_namespace(uri)
+            key = prefix + shortkey
+            val = docinfo.get(docinfo_name)
+            if val is None:
+                continue
+            val = str(val)
+            if converter:
+                val = converter.xmp_from_docinfo(val)
+            self[key] = val
 
     def _load(self):
         try:
@@ -177,9 +250,15 @@ class PdfMetadata(MutableMapping):
         return {('prop_' + k.lower()): v for k, v in flags.items()}
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if exc_type is not None:
-            return
-        self._apply_changes()
+        try:
+            if exc_type is not None:
+                return
+            self._apply_changes()
+        finally:
+            self._records = {}
+            self._deleted = set()
+            self._changed = set()
+            self._updating = False
 
     def _update_docinfo(self):
         """Update the PDF's DocumentInfo dictionary to match XMP metadata
@@ -187,27 +266,8 @@ class PdfMetadata(MutableMapping):
         The standard mapping is described here:
             https://www.pdfa.org/pdfa-metadata-xmp-rdf-dublin-core/
         """
-        def author_converter(authors):
-            if isinstance(authors, str):
-                return authors
-            else:
-                return '; '.join(authors)
 
-        def date_converter(date_str):
-            dateobj = datetime.fromisoformat(date_str)
-            return encode_pdf_date(dateobj)
-
-        MAPPING = [
-            (XMP_NS_DC, 'creator', Name.Authors, author_converter),
-            (XMP_NS_DC, 'description', Name.Subject, None),
-            (XMP_NS_DC, 'title', Name.Title, None),
-            (XMP_NS_PDF, 'Keywords', Name.Keywords, None),
-            (XMP_NS_PDF, 'Producer', Name.Producer, None),
-            (XMP_NS_XMP, 'CreateDate', Name.CreationDate, date_converter),
-            (XMP_NS_XMP, 'CreatorTool', Name.Creator, None),
-            (XMP_NS_XMP, 'ModifyDate', Name.ModDate, date_converter),
-        ]
-        for schema, element, docinfo_name, converter in MAPPING:
+        for schema, element, docinfo_name, converter in self.MAPPING:
             prefix = self._xmp.get_prefix_for_namespace(schema)
             try:
                 value = self._records[prefix + element]
@@ -216,7 +276,7 @@ class PdfMetadata(MutableMapping):
                     del self._pdf.docinfo[docinfo_name]
                 continue
             if converter:
-                value = converter(value)
+                value = converter.docinfo_from_xmp(value)
             self._pdf.docinfo[docinfo_name] = value
 
     def _get_uri(self, key):
@@ -236,7 +296,7 @@ class PdfMetadata(MutableMapping):
                 array_options = self._property_options(self._flags[key])
                 for item in val:
                     self._xmp.append_array_item(uri, key, item, array_options=array_options)
-            elif self._flags[key]['ARRAY_IS_ALTTEXT']:
+            elif key in self._flags and self._flags[key]['ARRAY_IS_ALTTEXT']:
                 self._xmp.delete_property(uri, key)
                 self._xmp.set_property(uri, key, val)
             else:
@@ -250,14 +310,12 @@ class PdfMetadata(MutableMapping):
                 XMP_NS_PDF, 'Producer', 'pikepdf ' + pikepdf_version
             )
 
-        print(self._xmp)
         data = self._xmp.serialize_to_unicode()
         self._pdf.Root.Metadata = Stream(self._pdf, data.encode('utf-8'))
+        self._pdf.Root.Metadata[Name.Type] = Name.Metadata
+        self._pdf.Root.Metadata[Name.Subtype] = Name.XML
         if self.sync_docinfo:
             self._update_docinfo()
-        self._records = {}
-        self._deleted = []
-        self._updating = False
 
     @ensure_loaded
     def __contains__(self, key):
@@ -290,6 +348,7 @@ class PdfMetadata(MutableMapping):
             return dict
         return str
 
+    @ensure_loaded
     def __setitem__(self, key, val):
         if not self._updating:
             raise RuntimeError("Metadata not opened for editing, use with block")
@@ -298,6 +357,7 @@ class PdfMetadata(MutableMapping):
         self._changed.add(key)
         self._records[key] = val
 
+    @ensure_loaded
     def __delitem__(self, key):
         if not self._updating:
             raise RuntimeError("Metadata not opened for editing, use with block")
