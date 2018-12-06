@@ -4,29 +4,28 @@
 #
 # Copyright (C) 2018, James R. Barlow (https://github.com/jbarlow83/)
 
-from functools import wraps
-from operator import itemgetter
-from datetime import datetime
 from collections.abc import MutableMapping
-
-# Repeat this to avoid circular from top package's pikepdf.__version__
+from datetime import datetime
+from functools import wraps
+from itertools import groupby
 from pkg_resources import (
     get_distribution as _get_distribution,
     DistributionNotFound
 )
+from warnings import warn
+
+from libxmp import XMPMeta, XMPIterator
+from libxmp.consts import (
+    XMP_NS_DC, XMP_NS_PDF, XMP_NS_PDFA_ID, XMP_NS_PDFX_ID, XMP_NS_RDF, XMP_NS_XMP
+)
+
+from .. import Stream, Name
+
+# Repeat this to avoid circular from top package's pikepdf.__version__
 try:
     pikepdf_version = _get_distribution(__name__).version
 except DistributionNotFound:
     pikepdf_version = "unknown version"
-
-import libxmp
-from libxmp import XMPMeta, XMPError
-from libxmp.consts import (
-    XMP_NS_DC, XMP_NS_PDF, XMP_NS_PDFA_ID, XMP_NS_PDFX_ID, XMP_NS_RDF, XMP_NS_XMP
-)
-from libxmp.utils import object_to_dict
-
-from .. import Stream, Name
 
 
 def encode_pdf_date(d: datetime) -> str:
@@ -53,7 +52,7 @@ def encode_pdf_date(d: datetime) -> str:
     s = d.strftime(pdfmark_date_fmt)
 
     tz = d.strftime('%z')
-    if tz == 'Z' or tz == '':
+    if tz == '':
         # Ghostscript <= 9.23 handles missing timezones incorrectly, so if
         # timezone is missing, move it into GMT.
         # https://bugs.ghostscript.com/show_bug.cgi?id=699182
@@ -64,11 +63,11 @@ def encode_pdf_date(d: datetime) -> str:
     return s
 
 
-def refresh(fn):
+def ensure_loaded(fn):
     @wraps(fn)
     def wrapper(self, *args, **kwargs):
         if not self._records:
-            self._refresh()
+            self._load()
         return fn(self, *args, **kwargs)
     return wrapper
 
@@ -87,18 +86,18 @@ class PdfMetadata(MutableMapping):
 
     See Also:
         :meth:`pikepdf.Pdf.open_metadata`
-
     """
 
     def __init__(self, pdf, pikepdf_mark=True, sync_docinfo=True):
         self._pdf = pdf
         self._xmp = None
         self._records = {}
-        self._deleted = []
         self._flags = {}
         self.mark = pikepdf_mark
         self.sync_docinfo = sync_docinfo
         self._updating = False
+        self._deleted = set()
+        self._changed = set()
 
     def _create_xmp(self):
         self._xmp = XMPMeta()
@@ -111,57 +110,67 @@ class PdfMetadata(MutableMapping):
         for uri, prefix in DEFAULT_NAMESPACES:
             self._xmp.register_namespace(uri, prefix)
 
-    def _refresh(self):
+    def _load(self):
         try:
             data = self._pdf.Root.Metadata.read_bytes()
         except AttributeError:
             self._create_xmp()
         else:
             self._xmp = XMPMeta(xmp_str=data.decode('utf-8'))
-        xmpdict = object_to_dict(self._xmp)
 
-        self._deleted = []
-        # Sort to ensure all members of a compound object immediately follow
-        # the compound. Not sure if libxmp guarantees order.
-        for uri, records in sorted(xmpdict.items(), key=itemgetter(0)):
-            for key, val, flags in records:
-                self._flags[key] = flags
-                if val == '':
-                    # Compound object
-                    self._records[key] = self._expected_type(key)()
-                elif '[' in key:
-                    # Member of compound object
-                    compound_key, rest = key.split('[', maxsplit=1)
-                    member_key = rest.split(']', maxsplit=1)[0]
-                    compound = self._records[compound_key]
-                    if isinstance(compound, list):
-                        compound.append(val)
-                    elif isinstance(compound, set):
-                        compound.add(val)
-                    elif isinstance(compound, dict):
-                        compound[member_key] = val
+        def xmp_group_key(k):
+            _schema, prop_name, _value, _flags = k
+            return prop_name.split('[', maxsplit=1)[0]
+
+        def xmp_item_index(k):
+            _schema, prop_name, _value, _flags = k
+            _compound_key, rest = prop_name.split('[', maxsplit=1)
+            index = rest.split(']', maxsplit=1)[0]
+            return index
+
+        self._deleted = set()
+        self._changed = set()
+        xmpiter = XMPIterator(self._xmp)
+        for prop_name_group, elements in groupby(xmpiter, key=xmp_group_key):
+            elements = list(elements)
+            parent = next(el for el in elements if el[1] == prop_name_group)
+            elements.remove(parent)
+            parent_value = parent[2]
+            parent_flags = parent[3]
+
+            if parent_flags['VALUE_IS_ARRAY']:
+                if parent_flags['ARRAY_IS_ALTTEXT']:
+                    record = []
+                    for _index, subitems in groupby(elements, key=xmp_item_index):
+                        subitems = list(subitems)
+                        qualifier = next(el for el in subitems if el[3]['IS_QUALIFIER'])
+                        text = next(el for el in subitems if el[3]['HAS_QUALIFIERS'])
+                        if qualifier != 'x-default':
+                            warn(
+                                ("XMP metadata key {} has alternate language text. "
+                                "This is not fully supported. If modified they "
+                                "will not be preserved.").format(prop_name_group)
+                            )
+                        record = text[2]
+                elif parent_flags['ARRAY_IS_ORDERED']:
+                    record = [el[2] for el in elements]
                 else:
-                    # Scalar object
-                    self._records[key] = val
+                    record = set(el[2] for el in elements)
+            elif parent_flags['VALUE_IS_STRUCT']:
+                raise NotImplementedError()
+            elif parent_value == '':
+                continue
+            else:
+                record = parent[2]
+
+            self._flags[prop_name_group] = parent_flags
+            self._records[prop_name_group] = record
         return
 
-    @refresh
+    @ensure_loaded
     def __enter__(self):
         self._updating = True
         return self
-
-    def _expected_type(self, key, val=None):
-        if key not in self._flags:
-            if isinstance(val, (list, set, dict, str)):
-                return type(val)
-            raise TypeError(val)
-        if self._flags[key]['VALUE_IS_ARRAY']:
-            if self._flags[key]['ARRAY_IS_ORDERED']:
-                return list
-            return set
-        if self._flags[key]['VALUE_IS_STRUCT']:
-            return dict
-        return str
 
     @staticmethod
     def _property_options(flags):
@@ -219,16 +228,17 @@ class PdfMetadata(MutableMapping):
             uri = self._get_uri(key)
             self._xmp.delete_property(uri, key)
 
-        for key, val in self._records.items():
-            val_type = self._expected_type(key, val)
-            if not isinstance(val, val_type):
-                raise TypeError("{}: expected type {}".format(key, repr(val_type)))
+        for key in self._changed:
+            val = self._records[key]
             uri = self._get_uri(key)
             if isinstance(val, (list, set, dict)):
                 self._xmp.delete_property(uri, key)
                 array_options = self._property_options(self._flags[key])
                 for item in val:
                     self._xmp.append_array_item(uri, key, item, array_options=array_options)
+            elif self._flags[key]['ARRAY_IS_ALTTEXT']:
+                self._xmp.delete_property(uri, key)
+                self._xmp.set_property(uri, key, val)
             else:
                 self._xmp.set_property(uri, key, val)
 
@@ -249,35 +259,53 @@ class PdfMetadata(MutableMapping):
         self._deleted = []
         self._updating = False
 
-    @refresh
+    @ensure_loaded
     def __contains__(self, key):
         return key in self._records
 
-    @refresh
+    @ensure_loaded
     def __len__(self):
         return len(self._records)
 
-    @refresh
+    @ensure_loaded
     def __getitem__(self, key):
         return self._records[key]
 
-    @refresh
+    @ensure_loaded
     def __iter__(self):
         return iter(self._records)
+
+    def _expected_type(self, key, val=None):
+        if key not in self._flags:
+            if isinstance(val, (list, set, dict, str)):
+                return type(val)
+            raise TypeError(val)
+        if self._flags[key]['ARRAY_IS_ALTTEXT']:
+            return str
+        if self._flags[key]['VALUE_IS_ARRAY']:
+            if self._flags[key]['ARRAY_IS_ORDERED']:
+                return list
+            return set
+        if self._flags[key]['VALUE_IS_STRUCT']:
+            return dict
+        return str
 
     def __setitem__(self, key, val):
         if not self._updating:
             raise RuntimeError("Metadata not opened for editing, use with block")
+        if not isinstance(val, self._expected_type(key, val)):
+            raise TypeError("Invalid type set for metadata {}".format(key))
+        self._changed.add(key)
         self._records[key] = val
 
     def __delitem__(self, key):
         if not self._updating:
             raise RuntimeError("Metadata not opened for editing, use with block")
         del self._records[key]
-        self._deleted.append(key)
+        self._deleted.add(key)
 
     @property
-    @refresh
+    @ensure_loaded
     def pdfa_status(self):
         """Returns the PDF/A conformance level claimed by this PDF, or False
 
@@ -299,7 +327,7 @@ class PdfMetadata(MutableMapping):
             return ''
 
     @property
-    @refresh
+    @ensure_loaded
     def pdfx_status(self):
         """Returns the PDF/X conformance level claimed by this PDF, or False
 
