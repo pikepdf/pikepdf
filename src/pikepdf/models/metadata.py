@@ -13,13 +13,26 @@ from pkg_resources import (
     DistributionNotFound
 )
 from warnings import warn
+import xml.etree.ElementTree as ET
 
 from libxmp import XMPMeta, XMPIterator
-from libxmp.consts import (
-    XMP_NS_DC, XMP_NS_PDF, XMP_NS_PDFA_ID, XMP_NS_PDFX_ID, XMP_NS_RDF, XMP_NS_XMP
-)
-
 from .. import Stream, Name, String
+
+
+XMP_NS_DC = "http://purl.org/dc/elements/1.1/"
+XMP_NS_PDF = "http://ns.adobe.com/pdf/1.3/"
+XMP_NS_PDFA_ID = "http://www.aiim.org/pdfa/ns/id/"
+XMP_NS_PDFX_ID = "http://www.npes.org/pdfx/ns/id/"
+XMP_NS_RDF = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+XMP_NS_XMP = "http://ns.adobe.com/xap/1.0/"
+
+DEFAULT_NAMESPACES = [
+    (XMP_NS_DC, 'dc'),
+    (XMP_NS_PDF, 'pdf'),
+    (XMP_NS_RDF, 'rdf'),
+    (XMP_NS_XMP, 'xmp'),
+]
+
 
 # Repeat this to avoid circular from top package's pikepdf.__version__
 try:
@@ -109,7 +122,7 @@ class DateConverter:
 def ensure_loaded(fn):
     @wraps(fn)
     def wrapper(self, *args, **kwargs):
-        if not self._records:
+        if not self._xmp:
             self._load()
         return fn(self, *args, **kwargs)
     return wrapper
@@ -131,13 +144,6 @@ class PdfMetadata(MutableMapping):
         :meth:`pikepdf.Pdf.open_metadata`
     """
 
-    DEFAULT_NAMESPACES = [
-        (XMP_NS_DC, 'dc'),
-        (XMP_NS_PDF, 'pdf'),
-        (XMP_NS_RDF, 'rdf'),
-        (XMP_NS_XMP, 'xmp'),
-    ]
-
     MAPPING = [
         (XMP_NS_DC, 'creator', Name.Authors, AuthorConverter),
         (XMP_NS_DC, 'description', Name.Subject, None),
@@ -152,6 +158,7 @@ class PdfMetadata(MutableMapping):
     def __init__(self, pdf, pikepdf_mark=True, sync_docinfo=True):
         self._pdf = pdf
         self._xmp = None
+        self._ns = {prefix: uri for uri, prefix in DEFAULT_NAMESPACES}
         self._records = {}
         self._flags = {}
         self.mark = pikepdf_mark
@@ -162,8 +169,6 @@ class PdfMetadata(MutableMapping):
 
     def _create_xmp(self):
         self._xmp = XMPMeta()
-        for uri, prefix in self.DEFAULT_NAMESPACES:
-            self._xmp.register_namespace(uri, prefix)
 
     def load_from_docinfo(self, docinfo):
         """Populate the XMP metadata object with DocumentInfo
@@ -189,65 +194,12 @@ class PdfMetadata(MutableMapping):
         except AttributeError:
             self._create_xmp()
         else:
-            self._xmp = XMPMeta(xmp_str=data.decode('utf-8'))
-
-        def xmp_group_key(k):
-            _schema, prop_name, _value, _flags = k
-            return prop_name.split('[', maxsplit=1)[0]
-
-        def xmp_item_index(k):
-            _schema, prop_name, _value, _flags = k
-            _compound_key, rest = prop_name.split('[', maxsplit=1)
-            index = rest.split(']', maxsplit=1)[0]
-            return index
-
-        self._deleted = set()
-        self._changed = set()
-        xmpiter = XMPIterator(self._xmp)
-        for prop_name_group, elements in groupby(xmpiter, key=xmp_group_key):
-            elements = list(elements)
-            parent = next(el for el in elements if el[1] == prop_name_group)
-            elements.remove(parent)
-            parent_value = parent[2]
-            parent_flags = parent[3]
-
-            if parent_flags['VALUE_IS_ARRAY']:
-                if parent_flags['ARRAY_IS_ALTTEXT']:
-                    record = []
-                    for _index, subitems in groupby(elements, key=xmp_item_index):
-                        subitems = list(subitems)
-                        qualifier = next(el for el in subitems if el[3]['IS_QUALIFIER'])
-                        text = next(el for el in subitems if el[3]['HAS_QUALIFIERS'])
-                        if qualifier != 'x-default':
-                            warn(
-                                ("XMP metadata key {} has alternate language text. "
-                                "This is not fully supported. If modified they "
-                                "will not be preserved.").format(prop_name_group)
-                            )
-                        record = text[2]
-                elif parent_flags['ARRAY_IS_ORDERED']:
-                    record = [el[2] for el in elements]
-                else:
-                    record = set(el[2] for el in elements)
-            elif parent_flags['VALUE_IS_STRUCT']:
-                raise NotImplementedError()
-            elif parent_value == '':
-                continue
-            else:
-                record = parent[2]
-
-            self._flags[prop_name_group] = parent_flags
-            self._records[prop_name_group] = record
-        return
+            self._xmp = ET.fromstring(data)
 
     @ensure_loaded
     def __enter__(self):
         self._updating = True
         return self
-
-    @staticmethod
-    def _property_options(flags):
-        return {('prop_' + k.lower()): v for k, v in flags.items()}
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         try:
@@ -284,24 +236,6 @@ class PdfMetadata(MutableMapping):
         return self._xmp.get_namespace_for_prefix(prefix)
 
     def _apply_changes(self):
-        for key in self._deleted:
-            uri = self._get_uri(key)
-            self._xmp.delete_property(uri, key)
-
-        for key in self._changed:
-            val = self._records[key]
-            uri = self._get_uri(key)
-            if isinstance(val, (list, set, dict)):
-                self._xmp.delete_property(uri, key)
-                array_options = self._property_options(self._flags[key])
-                for item in val:
-                    self._xmp.append_array_item(uri, key, item, array_options=array_options)
-            elif key in self._flags and self._flags[key]['ARRAY_IS_ALTTEXT']:
-                self._xmp.delete_property(uri, key)
-                self._xmp.set_property(uri, key, val)
-            else:
-                self._xmp.set_property(uri, key, val)
-
         if self.mark:
             self._xmp.set_property_datetime(
                 XMP_NS_XMP, 'MetadataDate', datetime.now()
@@ -319,15 +253,19 @@ class PdfMetadata(MutableMapping):
 
     @ensure_loaded
     def __contains__(self, key):
-        return key in self._records
+        return bool(self._xmp.find('.//{}'.format(key), self._ns))
 
     @ensure_loaded
     def __len__(self):
-        return len(self._records)
+        return len(self._xmp.find('.//{}'.format(key), self._ns))
 
     @ensure_loaded
     def __getitem__(self, key):
-        return self._records[key]
+        element = self._xmp.find('.//{}'.format(key), self._ns)
+        has_children = bool(element.find('.//', self._ns))
+        if has_children:
+            raise NotImplementedError()
+        return element.tag
 
     @ensure_loaded
     def __iter__(self):
