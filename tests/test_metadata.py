@@ -16,8 +16,25 @@ def graph(resources):
 
 
 @pytest.fixture
+def sandwich(resources):
+    return Pdf.open(resources / 'sandwich.pdf')
+
+
+@pytest.fixture
 def trivial(resources):
     return Pdf.open(resources / 'pal-1bit-trivial.pdf')
+
+
+def test_simple(sandwich):
+    meta = sandwich.open_metadata()
+    assert meta._fullname('pdf:Producer') == '{http://ns.adobe.com/pdf/1.3/}Producer'
+    assert meta._prefix_from_uri('{http://ns.adobe.com/pdf/1.3/}Producer') == 'pdf:Producer'
+    assert 'pdf:Producer' in meta
+    assert '{http://ns.adobe.com/pdf/1.3/}Producer' in meta
+    assert 'xmp:CreateDate' in meta
+    assert meta['xmp:ModifyDate'].startswith('2017')
+    assert len(meta) > 0
+    assert meta['dc:title'] == 'Untitled'
 
 
 def test_no_info(vera, outdir):
@@ -66,6 +83,8 @@ def test_add_new_xmp_and_mark(trivial):
         assert not xmp  # No changes at this point
     del xmp
 
+    print(trivial.Root.Metadata.read_bytes())
+
     with trivial.open_metadata(update_docinfo=False
     ) as xmp:
         assert 'pikepdf' in xmp['pdf:Producer']
@@ -82,18 +101,19 @@ def test_update_docinfo(vera):
     # Test delete propagation
     with vera.open_metadata(set_pikepdf_as_editor=False, update_docinfo=True) as xmp:
         del xmp['dc:creator']
+    assert 'dc:creator' not in xmp
     assert Name.Authors not in vera.docinfo
 
 
-@pytest.mark.filterwarnings('ignore:XMP metadata key')
-@pytest.mark.parametrize('filename', list((Path(__file__).parent / 'resources').glob('*.pdf')))
-def test_roundtrip(filename):
-    try:
-        pdf = Pdf.open(filename)
-    except PasswordError:
-        return
-    with pdf.open_metadata() as xmp:
-        xmp._changed = set(k for k in xmp._records.keys() if '[' not in k)
+# @pytest.mark.filterwarnings('ignore:XMP metadata key')
+# @pytest.mark.parametrize('filename', list((Path(__file__).parent / 'resources').glob('*.pdf')))
+# def test_roundtrip(filename):
+#     try:
+#         pdf = Pdf.open(filename)
+#     except PasswordError:
+#         return
+#     with pdf.open_metadata() as xmp:
+#         xmp._changed = set(k for k in xmp._records.keys() if '[' not in k)
 
 
 def test_build_metadata(trivial, outdir):

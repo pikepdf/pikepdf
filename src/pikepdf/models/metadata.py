@@ -8,12 +8,14 @@ from collections.abc import MutableMapping
 from datetime import datetime
 from functools import wraps
 from itertools import groupby
+from io import BytesIO
 from pkg_resources import (
     get_distribution as _get_distribution,
     DistributionNotFound
 )
 from warnings import warn
 import xml.etree.ElementTree as ET
+from xml.etree.ElementTree import QName
 
 from libxmp import XMPMeta, XMPIterator
 from .. import Stream, Name, String
@@ -25,13 +27,33 @@ XMP_NS_PDFA_ID = "http://www.aiim.org/pdfa/ns/id/"
 XMP_NS_PDFX_ID = "http://www.npes.org/pdfx/ns/id/"
 XMP_NS_RDF = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
 XMP_NS_XMP = "http://ns.adobe.com/xap/1.0/"
+XMP_NS_XMP_MM = "http://ns.adobe.com/xap/1.0/mm/"
 
 DEFAULT_NAMESPACES = [
+    ('adobe:ns:meta/', 'x'),
     (XMP_NS_DC, 'dc'),
     (XMP_NS_PDF, 'pdf'),
+    (XMP_NS_PDFA_ID, 'pdfaid'),
     (XMP_NS_RDF, 'rdf'),
     (XMP_NS_XMP, 'xmp'),
+    (XMP_NS_XMP_MM, 'xapMM'),
 ]
+
+for _uri, _prefix in DEFAULT_NAMESPACES:
+    ET.register_namespace(_prefix, _uri)
+
+XPACKET_BEGIN = b"""<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>\n"""
+
+XMP_EMPTY = b"""<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="pikepdf">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about=""/>
+ </rdf:RDF>
+</x:xmpmeta>
+"""
+
+XPACKET_END = b"""<?xpacket end="w"?>\n"""
+
+TRIVIAL_XMP = (XPACKET_BEGIN + XMP_EMPTY + XPACKET_END)
 
 
 # Repeat this to avoid circular from top package's pikepdf.__version__
@@ -128,7 +150,7 @@ def ensure_loaded(fn):
     return wrapper
 
 
-class PdfMetadata(MutableMapping):
+class PdfMetadata:
     """Read and edit the XMP metadata associated with a PDF
 
     Requires/relies on python-xmp-toolkit and libexempi.
@@ -159,16 +181,12 @@ class PdfMetadata(MutableMapping):
         self._pdf = pdf
         self._xmp = None
         self._ns = {prefix: uri for uri, prefix in DEFAULT_NAMESPACES}
-        self._records = {}
-        self._flags = {}
         self.mark = pikepdf_mark
         self.sync_docinfo = sync_docinfo
         self._updating = False
-        self._deleted = set()
-        self._changed = set()
 
     def _create_xmp(self):
-        self._xmp = XMPMeta()
+        self._xmp = ET.parse(BytesIO(TRIVIAL_XMP))
 
     def load_from_docinfo(self, docinfo):
         """Populate the XMP metadata object with DocumentInfo
@@ -178,23 +196,22 @@ class PdfMetadata(MutableMapping):
         those entries into the XMP metadata.
         """
         for uri, shortkey, docinfo_name, converter in self.MAPPING:
-            prefix = self._xmp.get_prefix_for_namespace(uri)
-            key = prefix + shortkey
             val = docinfo.get(docinfo_name)
             if val is None:
                 continue
             val = str(val)
             if converter:
                 val = converter.xmp_from_docinfo(val)
-            self[key] = val
+            qname = QName(uri, shortkey)
+            self[qname] = val
 
     def _load(self):
         try:
-            data = self._pdf.Root.Metadata.read_bytes()
+            data = BytesIO(self._pdf.Root.Metadata.get_stream_buffer())
         except AttributeError:
             self._create_xmp()
         else:
-            self._xmp = ET.fromstring(data)
+            self._xmp = ET.parse(data)
 
     @ensure_loaded
     def __enter__(self):
@@ -207,9 +224,6 @@ class PdfMetadata(MutableMapping):
                 return
             self._apply_changes()
         finally:
-            self._records = {}
-            self._deleted = set()
-            self._changed = set()
             self._updating = False
 
     def _update_docinfo(self):
@@ -218,58 +232,122 @@ class PdfMetadata(MutableMapping):
         The standard mapping is described here:
             https://www.pdfa.org/pdfa-metadata-xmp-rdf-dublin-core/
         """
-
-        for schema, element, docinfo_name, converter in self.MAPPING:
-            prefix = self._xmp.get_prefix_for_namespace(schema)
+        for uri, element, docinfo_name, converter in self.MAPPING:
+            qname = QName(uri, element)
             try:
-                value = self._records[prefix + element]
+                value = self[qname]
             except KeyError:
                 if docinfo_name in self._pdf.docinfo:
                     del self._pdf.docinfo[docinfo_name]
                 continue
             if converter:
                 value = converter.docinfo_from_xmp(value)
+            print(f"{docinfo_name} = {value}")
             self._pdf.docinfo[docinfo_name] = value
-
-    def _get_uri(self, key):
-        prefix = key.split(':', maxsplit=1)[0]
-        return self._xmp.get_namespace_for_prefix(prefix)
 
     def _apply_changes(self):
         if self.mark:
-            self._xmp.set_property_datetime(
-                XMP_NS_XMP, 'MetadataDate', datetime.now()
-            )
-            self._xmp.set_property(
-                XMP_NS_PDF, 'Producer', 'pikepdf ' + pikepdf_version
-            )
+            self[QName(XMP_NS_XMP, 'MetadataDate')] = datetime.now().isoformat()
+            self[QName(XMP_NS_PDF, 'Producer')] = 'pikepdf ' + pikepdf_version
 
-        data = self._xmp.serialize_to_unicode()
-        self._pdf.Root.Metadata = Stream(self._pdf, data.encode('utf-8'))
+        data = BytesIO()
+        data.write(XPACKET_BEGIN)
+        self._xmp.write(data, encoding='utf-8')
+        data.write(XPACKET_END)
+        data.seek(0, 0)
+        self._pdf.Root.Metadata = Stream(self._pdf, data.read())
         self._pdf.Root.Metadata[Name.Type] = Name.Metadata
         self._pdf.Root.Metadata[Name.Subtype] = Name.XML
         if self.sync_docinfo:
             self._update_docinfo()
 
-    @ensure_loaded
-    def __contains__(self, key):
-        return bool(self._xmp.find('.//{}'.format(key), self._ns))
+    @staticmethod
+    def _prefix(name):
+        return name.split(':', maxsplit=1)[0]
+
+    def _fullname(self, name):
+        if isinstance(name, QName):
+            return name
+        if name.startswith('{'):
+            return name
+        prefix = self._prefix(name)
+        uri = self._ns[prefix]
+        return name.replace('%s:' % prefix, '{%s}' % uri)
+
+    def _prefix_from_uri(self, uriname):
+        reverse_ns = {v: k for k, v in self._ns.items()}
+        uripart, name = uriname.split('}', maxsplit=1)
+        uri = uripart.replace('{', '')
+        return reverse_ns[uri] + ':' + name
+
+    def _get_subelements(self, node):
+        items = node.find('.//rdf:Alt', self._ns)
+        if items:
+            return items[0].text
+
+        CONTAINERS = [
+            ('Bag', set, set.add),
+            ('Seq', list, list.append),
+        ]
+        for xmlcontainer, container, insertfn in CONTAINERS:
+            items = node.find('.//rdf:{}'.format(xmlcontainer), self._ns)
+            if not items:
+                continue
+            result = container()
+            for item in items:
+                insertfn(result, item.text)
+            return result
+        return ''
+
+    def _get_elements(self, name=''):
+        if name:
+            fullname = self._fullname(name)
+        else:
+            fullname = ''
+        rdf = self._xmp.find('.//rdf:RDF', self._ns)
+        for rdfdesc in rdf.findall('.//rdf:Description[@rdf:about=""]', self._ns):
+            if fullname and fullname in rdfdesc.keys():
+                yield (rdfdesc, fullname, rdfdesc.get(fullname), rdf)
+            elif not fullname:
+                for k, v in rdfdesc.items():
+                    if v:
+                        yield (rdfdesc, k, v, rdf)
+            for node in rdfdesc.findall('.//{}'.format(fullname), self._ns):
+                if node.text and node.text.strip():
+                    yield (node, None, node.text, rdfdesc)
+                    continue
+                values = self._get_subelements(node)
+                yield (node, None, values, rdfdesc)
+
+    def _get_element_values(self, name=''):
+        yield from (v[2] for v in self._get_elements(name))
 
     @ensure_loaded
-    def __len__(self):
-        return len(self._xmp.find('.//{}'.format(key), self._ns))
+    def __contains__(self, key):
+        try:
+            return any(self._get_element_values(key))
+        except KeyError:
+            raise KeyError(key)  # occurs if there's namespace issues
 
     @ensure_loaded
     def __getitem__(self, key):
-        element = self._xmp.find('.//{}'.format(key), self._ns)
-        has_children = bool(element.find('.//', self._ns))
-        if has_children:
-            raise NotImplementedError()
-        return element.tag
+        try:
+            return next(self._get_element_values(key))
+        except (TypeError, StopIteration):
+            raise KeyError(key)
 
     @ensure_loaded
     def __iter__(self):
-        return iter(self._records)
+        for node, attrib, _val, _parents in self._get_elements():
+            if attrib:
+                yield attrib
+                continue
+            else:
+                yield node.tag
+
+    @ensure_loaded
+    def __len__(self):
+        return len(list(iter(self)))
 
     def _expected_type(self, key, val=None):
         if key not in self._flags:
@@ -290,17 +368,42 @@ class PdfMetadata(MutableMapping):
     def __setitem__(self, key, val):
         if not self._updating:
             raise RuntimeError("Metadata not opened for editing, use with block")
-        if not isinstance(val, self._expected_type(key, val)):
-            raise TypeError("Invalid type set for metadata {}".format(key))
-        self._changed.add(key)
-        self._records[key] = val
+        try:
+            node, attrib, _oldval, _parent = next(self._get_elements(key))
+            # Replace
+            if attrib:
+                if not isinstance(val, str):
+                    raise TypeError(val)
+                node.set(attrib, val)
+            else:
+                if isinstance(val, str):
+                    node.text = val
+                else:
+                    node.text = ''
+                    raise NotImplementedError('test')
+        except StopIteration:
+            # New
+            rdf = self._xmp.find('.//rdf:RDF/', self._ns)
+            rdfdesc = ET.SubElement(
+                rdf, QName(XMP_NS_RDF, 'Description'),
+                attrib={
+                    QName(XMP_NS_RDF, 'about'): '',
+                    self._fullname(key): val
+                },
+            )
 
     @ensure_loaded
     def __delitem__(self, key):
         if not self._updating:
             raise RuntimeError("Metadata not opened for editing, use with block")
-        del self._records[key]
-        self._deleted.add(key)
+        try:
+            node, attrib, _oldval, parent = next(self._get_elements(key))
+            if attrib:  # Inline
+                # TODO multiple attribs?
+                pass
+            parent.remove(node)
+        except StopIteration:
+            raise KeyError(key)
 
     @property
     @ensure_loaded
@@ -316,11 +419,10 @@ class PdfMetadata(MutableMapping):
             PDF does not claim PDF/A conformance. Possible valid values
             are: 1A, 1B, 2A, 2B, 2U, 3A, 3B, 3U.
         """
-        pdfaid = self._xmp.get_prefix_for_namespace(XMP_NS_PDFA_ID)
-        key_part = pdfaid + 'part'
-        key_conformance = pdfaid + 'conformance'
+        key_part = QName(XMP_NS_PDFA_ID, 'part')
+        key_conformance = QName(XMP_NS_PDFA_ID, 'conformance')
         try:
-            return self._records[key_part] + self._records[key_conformance]
+            return self[key_part] + self[key_conformance]
         except KeyError:
             return ''
 
@@ -337,9 +439,8 @@ class PdfMetadata(MutableMapping):
             str: The conformance level of the PDF/X, or an empty string if the
             PDF does not claim PDF/X conformance.
         """
-        pdfxid = self._xmp.get_prefix_for_namespace(XMP_NS_PDFX_ID)
-        pdfx_version = pdfxid + 'GTS_PDFXVersion'
+        pdfx_version = QName(XMP_NS_PDFX_ID, 'GTS_PDFXVersion')
         try:
-            return self._records[pdfx_version]
+            return self[pdfx_version]
         except KeyError:
             return ''
