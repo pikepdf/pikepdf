@@ -165,7 +165,7 @@ class PdfMetadata(MutableMapping):
         :meth:`pikepdf.Pdf.open_metadata`
     """
 
-    MAPPING = [
+    DOCINFO_MAPPING = [
         (XMP_NS_DC, 'creator', Name.Authors, AuthorConverter),
         (XMP_NS_DC, 'description', Name.Subject, None),
         (XMP_NS_DC, 'title', Name.Title, None),
@@ -176,10 +176,12 @@ class PdfMetadata(MutableMapping):
         (XMP_NS_XMP, 'ModifyDate', Name.ModDate, DateConverter),
     ]
 
+    NS = {prefix: uri for uri, prefix in DEFAULT_NAMESPACES}
+    REVERSE_NS = {uri: prefix for uri, prefix in DEFAULT_NAMESPACES}
+
     def __init__(self, pdf, pikepdf_mark=True, sync_docinfo=True):
         self._pdf = pdf
         self._xmp = None
-        self._ns = {prefix: uri for uri, prefix in DEFAULT_NAMESPACES}
         self.mark = pikepdf_mark
         self.sync_docinfo = sync_docinfo
         self._updating = False
@@ -194,7 +196,7 @@ class PdfMetadata(MutableMapping):
         approximately equivalent to certain XMP records. This method copies
         those entries into the XMP metadata.
         """
-        for uri, shortkey, docinfo_name, converter in self.MAPPING:
+        for uri, shortkey, docinfo_name, converter in self.DOCINFO_MAPPING:
             val = docinfo.get(docinfo_name)
             if val is None:
                 continue
@@ -231,7 +233,7 @@ class PdfMetadata(MutableMapping):
         The standard mapping is described here:
             https://www.pdfa.org/pdfa-metadata-xmp-rdf-dublin-core/
         """
-        for uri, element, docinfo_name, converter in self.MAPPING:
+        for uri, element, docinfo_name, converter in self.DOCINFO_MAPPING:
             qname = QName(uri, element)
             try:
                 value = self[qname]
@@ -245,15 +247,18 @@ class PdfMetadata(MutableMapping):
             self._pdf.docinfo[docinfo_name] = value
 
     def _apply_changes(self):
+        """Serialize our changes back to the PDF in memory
+
+        Depending how we are initialized, leave our metadata mark and producer.
+        """
         if self.mark:
             self[QName(XMP_NS_XMP, 'MetadataDate')] = datetime.now().isoformat()
             self[QName(XMP_NS_PDF, 'Producer')] = 'pikepdf ' + pikepdf_version
-
         data = BytesIO()
         data.write(XPACKET_BEGIN)
         self._xmp.write(data, encoding='utf-8')
         data.write(XPACKET_END)
-        data.seek(0, 0)
+        data.seek(0)
         self._pdf.Root.Metadata = Stream(self._pdf, data.read())
         self._pdf.Root.Metadata[Name.Type] = Name.Metadata
         self._pdf.Root.Metadata[Name.Subtype] = Name.XML
@@ -261,6 +266,10 @@ class PdfMetadata(MutableMapping):
             self._update_docinfo()
 
     def _qname(self, name):
+        """Convert name to an XML QName
+
+        e.g. pdf:Producer -> {http://ns.adobe.com/pdf/1.3/}Producer
+        """
         if isinstance(name, QName):
             return name
         if not isinstance(name, str):
@@ -270,17 +279,26 @@ class PdfMetadata(MutableMapping):
         if name.startswith('{'):
             return name
         prefix, tag = name.split(':', maxsplit=1)
-        uri = self._ns[prefix]
+        uri = self.NS[prefix]
         return QName(uri, tag)
 
     def _prefix_from_uri(self, uriname):
-        reverse_ns = {v: k for k, v in self._ns.items()}
+        """Given a fully qualified XML name, find a prefix
+
+        e.g. {http://ns.adobe.com/pdf/1.3/}Producer -> pdf:Producer
+        """
         uripart, tag = uriname.split('}', maxsplit=1)
         uri = uripart.replace('{', '')
-        return reverse_ns[uri] + ':' + tag
+        return self.REVERSE_NS[uri] + ':' + tag
 
     def _get_subelements(self, node):
-        items = node.find('.//rdf:Alt', self._ns)
+        """Gather the sub-elements attached to a node
+
+        Gather rdf:Bag and and rdf:Seq into set and list respectively. For
+        alternate languages values, take the first language only for
+        simplicity.
+        """
+        items = node.find('.//rdf:Alt', self.NS)
         if items:
             return items[0].text
 
@@ -289,7 +307,7 @@ class PdfMetadata(MutableMapping):
             ('Seq', list, list.append),
         ]
         for xmlcontainer, container, insertfn in CONTAINERS:
-            items = node.find('.//rdf:{}'.format(xmlcontainer), self._ns)
+            items = node.find('.//rdf:{}'.format(xmlcontainer), self.NS)
             if not items:
                 continue
             result = container()
@@ -299,16 +317,38 @@ class PdfMetadata(MutableMapping):
         return ''
 
     def _get_elements(self, name=''):
+        """Get elements from XMP
+
+        Core routine to find elements matching name within the XMP and yield
+        them.
+
+        For XMP spec 7.9.2.2, rdf:Description with property attributes,
+        we yield the node which will have the desired as one of its attributes.
+        qname is returned so that the node.attrib can be used to locate the
+        source.
+
+        For XMP spec 7.5, simple valued XMP properties, we yield the node,
+        None, and the value. For structure or array valued properties we gather
+        the elements. We ignore qualifiers.
+
+        Args:
+            name (str): a prefixed name or QName to look for within the
+                data section of the XMP; looks for all data keys if omitted
+
+        Yields:
+            tuple: (node, qname_attrib, value, parent_node)
+
+        """
         qname = self._qname(name)
-        rdf = self._xmp.find('.//rdf:RDF', self._ns)
-        for rdfdesc in rdf.findall('.//rdf:Description[@rdf:about=""]', self._ns):
+        rdf = self._xmp.find('.//rdf:RDF', self.NS)
+        for rdfdesc in rdf.findall('.//rdf:Description[@rdf:about=""]', self.NS):
             if qname and qname in rdfdesc.keys():
                 yield (rdfdesc, qname, rdfdesc.get(qname), rdf)
             elif not qname:
                 for k, v in rdfdesc.items():
                     if v:
                         yield (rdfdesc, k, v, rdf)
-            for node in rdfdesc.findall('.//{}'.format(qname), self._ns):
+            for node in rdfdesc.findall('.//{}'.format(qname), self.NS):
                 if node.text and node.text.strip():
                     yield (node, None, node.text, rdfdesc)
                     continue
@@ -348,6 +388,8 @@ class PdfMetadata(MutableMapping):
     def __setitem__(self, key, val):
         if not self._updating:
             raise RuntimeError("Metadata not opened for editing, use with block")
+        if not isinstance(val, str):
+            raise NotImplementedError("Cannot currently set arrays")
         try:
             # Locate existing node to replace
             node, attrib, _oldval, _parent = next(self._get_elements(key))
@@ -356,13 +398,10 @@ class PdfMetadata(MutableMapping):
                     raise TypeError(val)
                 node.set(attrib, val)
             else:
-                if isinstance(val, str):
-                    node.text = val
-                else:
-                    raise NotImplementedError("Cannot currently set arrays")
+                node.text = val
         except StopIteration:
-            # Insert a new node
-            rdf = self._xmp.find('.//rdf:RDF/', self._ns)
+            # Insert a new node (with property attribute)
+            rdf = self._xmp.find('.//rdf:RDF/', self.NS)
             rdfdesc = ET.SubElement(
                 rdf, QName(XMP_NS_RDF, 'Description'),
                 attrib={
