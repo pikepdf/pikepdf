@@ -71,7 +71,7 @@ def parse_content_stream(page_or_stream, operators=''):
     return instructions
 
 
-class Page:
+class _Page:
     def __init__(self, obj):
         self.obj = obj
 
