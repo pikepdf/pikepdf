@@ -7,19 +7,18 @@
 from collections.abc import MutableMapping
 from datetime import datetime
 from functools import wraps
-from itertools import groupby
 from io import BytesIO
 from pkg_resources import (
     get_distribution as _get_distribution,
     DistributionNotFound
 )
-from warnings import warn
+from warnings import warn, filterwarnings
 import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import QName
 
-from libxmp import XMPMeta, XMPIterator
-from .. import Stream, Name, String
+from defusedxml.ElementTree import parse
 
+from .. import Stream, Name, String
 
 XMP_NS_DC = "http://purl.org/dc/elements/1.1/"
 XMP_NS_PDF = "http://ns.adobe.com/pdf/1.3/"
@@ -150,7 +149,7 @@ def ensure_loaded(fn):
     return wrapper
 
 
-class PdfMetadata:
+class PdfMetadata(MutableMapping):
     """Read and edit the XMP metadata associated with a PDF
 
     Requires/relies on python-xmp-toolkit and libexempi.
@@ -186,7 +185,7 @@ class PdfMetadata:
         self._updating = False
 
     def _create_xmp(self):
-        self._xmp = ET.parse(BytesIO(TRIVIAL_XMP))
+        self._xmp = parse(BytesIO(TRIVIAL_XMP))
 
     def load_from_docinfo(self, docinfo):
         """Populate the XMP metadata object with DocumentInfo
@@ -211,7 +210,7 @@ class PdfMetadata:
         except AttributeError:
             self._create_xmp()
         else:
-            self._xmp = ET.parse(data)
+            self._xmp = parse(data)
 
     @ensure_loaded
     def __enter__(self):
@@ -261,24 +260,24 @@ class PdfMetadata:
         if self.sync_docinfo:
             self._update_docinfo()
 
-    @staticmethod
-    def _prefix(name):
-        return name.split(':', maxsplit=1)[0]
-
-    def _fullname(self, name):
+    def _qname(self, name):
         if isinstance(name, QName):
+            return name
+        if not isinstance(name, str):
+            raise TypeError("{} must be str".format(name))
+        if name == '':
             return name
         if name.startswith('{'):
             return name
-        prefix = self._prefix(name)
+        prefix, tag = name.split(':', maxsplit=1)
         uri = self._ns[prefix]
-        return name.replace('%s:' % prefix, '{%s}' % uri)
+        return QName(uri, tag)
 
     def _prefix_from_uri(self, uriname):
         reverse_ns = {v: k for k, v in self._ns.items()}
-        uripart, name = uriname.split('}', maxsplit=1)
+        uripart, tag = uriname.split('}', maxsplit=1)
         uri = uripart.replace('{', '')
-        return reverse_ns[uri] + ':' + name
+        return reverse_ns[uri] + ':' + tag
 
     def _get_subelements(self, node):
         items = node.find('.//rdf:Alt', self._ns)
@@ -300,19 +299,16 @@ class PdfMetadata:
         return ''
 
     def _get_elements(self, name=''):
-        if name:
-            fullname = self._fullname(name)
-        else:
-            fullname = ''
+        qname = self._qname(name)
         rdf = self._xmp.find('.//rdf:RDF', self._ns)
         for rdfdesc in rdf.findall('.//rdf:Description[@rdf:about=""]', self._ns):
-            if fullname and fullname in rdfdesc.keys():
-                yield (rdfdesc, fullname, rdfdesc.get(fullname), rdf)
-            elif not fullname:
+            if qname and qname in rdfdesc.keys():
+                yield (rdfdesc, qname, rdfdesc.get(qname), rdf)
+            elif not qname:
                 for k, v in rdfdesc.items():
                     if v:
                         yield (rdfdesc, k, v, rdf)
-            for node in rdfdesc.findall('.//{}'.format(fullname), self._ns):
+            for node in rdfdesc.findall('.//{}'.format(qname), self._ns):
                 if node.text and node.text.strip():
                     yield (node, None, node.text, rdfdesc)
                     continue
@@ -327,13 +323,13 @@ class PdfMetadata:
         try:
             return any(self._get_element_values(key))
         except KeyError:
-            raise KeyError(key)  # occurs if there's namespace issues
+            return False
 
     @ensure_loaded
     def __getitem__(self, key):
         try:
             return next(self._get_element_values(key))
-        except (TypeError, StopIteration):
+        except StopIteration:
             raise KeyError(key)
 
     @ensure_loaded
@@ -341,7 +337,6 @@ class PdfMetadata:
         for node, attrib, _val, _parents in self._get_elements():
             if attrib:
                 yield attrib
-                continue
             else:
                 yield node.tag
 
@@ -349,28 +344,13 @@ class PdfMetadata:
     def __len__(self):
         return len(list(iter(self)))
 
-    def _expected_type(self, key, val=None):
-        if key not in self._flags:
-            if isinstance(val, (list, set, dict, str)):
-                return type(val)
-            raise TypeError(val)
-        if self._flags[key]['ARRAY_IS_ALTTEXT']:
-            return str
-        if self._flags[key]['VALUE_IS_ARRAY']:
-            if self._flags[key]['ARRAY_IS_ORDERED']:
-                return list
-            return set
-        if self._flags[key]['VALUE_IS_STRUCT']:
-            return dict
-        return str
-
     @ensure_loaded
     def __setitem__(self, key, val):
         if not self._updating:
             raise RuntimeError("Metadata not opened for editing, use with block")
         try:
+            # Locate existing node to replace
             node, attrib, _oldval, _parent = next(self._get_elements(key))
-            # Replace
             if attrib:
                 if not isinstance(val, str):
                     raise TypeError(val)
@@ -379,16 +359,15 @@ class PdfMetadata:
                 if isinstance(val, str):
                     node.text = val
                 else:
-                    node.text = ''
-                    raise NotImplementedError('test')
+                    raise NotImplementedError("Cannot currently set arrays")
         except StopIteration:
-            # New
+            # Insert a new node
             rdf = self._xmp.find('.//rdf:RDF/', self._ns)
             rdfdesc = ET.SubElement(
                 rdf, QName(XMP_NS_RDF, 'Description'),
                 attrib={
                     QName(XMP_NS_RDF, 'about'): '',
-                    self._fullname(key): val
+                    self._qname(key): val
                 },
             )
 

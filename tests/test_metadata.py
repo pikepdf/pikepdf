@@ -25,9 +25,9 @@ def trivial(resources):
     return Pdf.open(resources / 'pal-1bit-trivial.pdf')
 
 
-def test_simple(sandwich):
+def test_lowlevel(sandwich):
     meta = sandwich.open_metadata()
-    assert meta._fullname('pdf:Producer') == '{http://ns.adobe.com/pdf/1.3/}Producer'
+    assert meta._qname('pdf:Producer') == '{http://ns.adobe.com/pdf/1.3/}Producer'
     assert meta._prefix_from_uri('{http://ns.adobe.com/pdf/1.3/}Producer') == 'pdf:Producer'
     assert 'pdf:Producer' in meta
     assert '{http://ns.adobe.com/pdf/1.3/}Producer' in meta
@@ -35,6 +35,16 @@ def test_simple(sandwich):
     assert meta['xmp:ModifyDate'].startswith('2017')
     assert len(meta) > 0
     assert meta['dc:title'] == 'Untitled'
+
+    assert 'pdf:invalid' not in meta
+    assert '{http://ns.adobe.com/pdf/1.3/}invalid' not in meta
+    with pytest.raises(TypeError):
+        assert ['hi'] in meta
+
+    with pytest.raises(KeyError):
+        meta['dc:invalid']
+    with pytest.raises(KeyError):
+        meta['{http://ns.adobe.com/pdf/1.3/}invalid']
 
 
 def test_no_info(vera, outdir):
@@ -105,15 +115,17 @@ def test_update_docinfo(vera):
     assert Name.Authors not in vera.docinfo
 
 
-# @pytest.mark.filterwarnings('ignore:XMP metadata key')
-# @pytest.mark.parametrize('filename', list((Path(__file__).parent / 'resources').glob('*.pdf')))
-# def test_roundtrip(filename):
-#     try:
-#         pdf = Pdf.open(filename)
-#     except PasswordError:
-#         return
-#     with pdf.open_metadata() as xmp:
-#         xmp._changed = set(k for k in xmp._records.keys() if '[' not in k)
+@pytest.mark.filterwarnings('ignore:XMP metadata key')
+@pytest.mark.parametrize('filename', list((Path(__file__).parent / 'resources').glob('*.pdf')))
+def test_roundtrip(filename):
+    try:
+        pdf = Pdf.open(filename)
+    except PasswordError:
+        return
+    with pdf.open_metadata() as xmp:
+        for k in xmp.keys():
+            if not 'Date' in k:
+                xmp[k] = 'A'
 
 
 def test_build_metadata(trivial, outdir):
