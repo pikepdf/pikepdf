@@ -243,8 +243,12 @@ class PdfMetadata(MutableMapping):
                 continue
             if converter:
                 value = converter.docinfo_from_xmp(value)
-            print(f"{docinfo_name} = {value}")
-            self._pdf.docinfo[docinfo_name] = value
+            try:
+                # Try to save pure ASCII
+                self._pdf.docinfo[docinfo_name] = value.encode('ascii')
+            except UnicodeEncodeError:
+                # qpdf will serialize this as a UTF-16 with BOM string
+                self._pdf.docinfo[docinfo_name] = value
 
     def _apply_changes(self):
         """Serialize our changes back to the PDF in memory
