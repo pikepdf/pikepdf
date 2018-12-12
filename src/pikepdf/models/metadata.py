@@ -12,6 +12,7 @@ from pkg_resources import (
     get_distribution as _get_distribution,
     DistributionNotFound
 )
+import sys
 from warnings import warn, filterwarnings
 import xml.etree.ElementTree as ET
 from xml.etree.ElementTree import QName
@@ -129,6 +130,16 @@ class AuthorConverter:
             return '; '.join(xmp_val)
 
 
+if sys.version_info < (3, 7):
+    def fromisoformat(datestr):
+        import re
+        try:
+            return datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%S%z")
+        except ValueError:
+            return datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%S")
+else:
+    fromisoformat = datetime.fromisoformat
+
 class DateConverter:
     @staticmethod
     def xmp_from_docinfo(docinfo_val):
@@ -136,7 +147,7 @@ class DateConverter:
 
     @staticmethod
     def docinfo_from_xmp(xmp_val):
-        dateobj = datetime.fromisoformat(xmp_val)
+        dateobj = fromisoformat(xmp_val)
         return encode_pdf_date(dateobj)
 
 
