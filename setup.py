@@ -122,6 +122,7 @@ setup(
     long_description_content_type='text/markdown',
     ext_modules=ext_modules,
     install_requires=[
+        'defusedxml >= 0.5.0'
     ],
     extras_require={
         'docs': docs_require
