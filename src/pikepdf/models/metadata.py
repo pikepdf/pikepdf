@@ -263,6 +263,16 @@ class PdfMetadata(MutableMapping):
                 # qpdf will serialize this as a UTF-16 with BOM string
                 self._pdf.docinfo[docinfo_name] = value
 
+    def _get_xml_bytes(self, xpacket=True):
+        data = BytesIO()
+        if xpacket:
+            data.write(XPACKET_BEGIN)
+        self._xmp.write(data, encoding='utf-8')
+        if xpacket:
+            data.write(XPACKET_END)
+        data.seek(0)
+        return data.read()
+
     def _apply_changes(self):
         """Serialize our changes back to the PDF in memory
 
@@ -271,12 +281,8 @@ class PdfMetadata(MutableMapping):
         if self.mark:
             self[QName(XMP_NS_XMP, 'MetadataDate')] = datetime.now().isoformat()
             self[QName(XMP_NS_PDF, 'Producer')] = 'pikepdf ' + pikepdf_version
-        data = BytesIO()
-        data.write(XPACKET_BEGIN)
-        self._xmp.write(data, encoding='utf-8')
-        data.write(XPACKET_END)
-        data.seek(0)
-        self._pdf.Root.Metadata = Stream(self._pdf, data.read())
+        xml = self._get_xml_bytes()
+        self._pdf.Root.Metadata = Stream(self._pdf, xml)
         self._pdf.Root.Metadata[Name.Type] = Name.Metadata
         self._pdf.Root.Metadata[Name.Subtype] = Name.XML
         if self.sync_docinfo:
@@ -499,3 +505,6 @@ class PdfMetadata(MutableMapping):
             return self[pdfx_version]
         except KeyError:
             return ''
+
+    def __str__(self):
+        return self._get_xml_bytes(xpacket=False).decode('utf-8')
