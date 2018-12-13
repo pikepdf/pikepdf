@@ -5,6 +5,9 @@ from pikepdf import Pdf, Dictionary, Name, PasswordError
 from pikepdf.models.metadata import decode_pdf_date, encode_pdf_date
 
 
+pytestmark = pytest.mark.filterwarnings('ignore:.*XMLParser.*:DeprecationWarning')
+
+
 @pytest.fixture
 def vera(resources):
     return Pdf.open(resources / 'veraPDF test suite 6-2-10-t02-pass-a.pdf')
@@ -115,7 +118,6 @@ def test_update_docinfo(vera):
     assert Name.Authors not in vera.docinfo
 
 
-@pytest.mark.filterwarnings('ignore:XMP metadata key')
 @pytest.mark.parametrize('filename', list((Path(__file__).parent / 'resources').glob('*.pdf')))
 def test_roundtrip(filename):
     try:
