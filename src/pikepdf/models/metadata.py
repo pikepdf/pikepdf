@@ -316,7 +316,7 @@ class PdfMetadata(MutableMapping):
         alternate languages values, take the first language only for
         simplicity.
         """
-        items = node.find('.//rdf:Alt', self.NS)
+        items = node.find('rdf:Alt', self.NS)
         if items:
             return items[0].text
 
@@ -325,7 +325,7 @@ class PdfMetadata(MutableMapping):
             ('Seq', list, list.append),
         ]
         for xmlcontainer, container, insertfn in CONTAINERS:
-            items = node.find('.//rdf:{}'.format(xmlcontainer), self.NS)
+            items = node.find('rdf:{}'.format(xmlcontainer), self.NS)
             if not items:
                 continue
             result = container()
@@ -359,7 +359,7 @@ class PdfMetadata(MutableMapping):
         """
         qname = self._qname(name)
         rdf = self._xmp.find('.//rdf:RDF', self.NS)
-        for rdfdesc in rdf.findall('.//rdf:Description[@rdf:about=""]', self.NS):
+        for rdfdesc in rdf.findall('rdf:Description[@rdf:about=""]', self.NS):
             if qname and qname in rdfdesc.keys():
                 yield (rdfdesc, qname, rdfdesc.get(qname), rdf)
             elif not qname:
@@ -419,7 +419,7 @@ class PdfMetadata(MutableMapping):
                 node.text = val
         except StopIteration:
             # Insert a new node (with property attribute)
-            rdf = self._xmp.find('.//rdf:RDF/', self.NS)
+            rdf = self._xmp.find('.//rdf:RDF', self.NS)
             rdfdesc = ET.SubElement(
                 rdf, QName(XMP_NS_RDF, 'Description'),
                 attrib={
