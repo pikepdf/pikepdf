@@ -46,7 +46,6 @@ XPACKET_BEGIN = b"""<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>\n"""
 
 XMP_EMPTY = b"""<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="pikepdf">
  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-  <rdf:Description rdf:about=""/>
  </rdf:RDF>
 </x:xmpmeta>
 """
