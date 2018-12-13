@@ -405,20 +405,40 @@ class PdfMetadata(MutableMapping):
     def __setitem__(self, key, val):
         if not self._updating:
             raise RuntimeError("Metadata not opened for editing, use with block")
-        if not isinstance(val, str):
-            raise NotImplementedError("Cannot currently set arrays")
         try:
             # Locate existing node to replace
-            node, attrib, _oldval, _parent = next(self._get_elements(key))
+            node, attrib, _oldval, parent = next(self._get_elements(key))
             if attrib:
                 if not isinstance(val, str):
                     raise TypeError(val)
                 node.set(attrib, val)
-            else:
+            elif isinstance(val, list):
+                for child in node.findall('*'):
+                    node.remove(child)
+                seq = ET.SubElement(node, QName(XMP_NS_RDF, 'Seq'))
+                for subval in val:
+                    el = ET.SubElement(seq, QName(XMP_NS_RDF, 'li'))
+                    el.text = subval
+            elif isinstance(val, str):
                 node.text = val
+            else:
+                raise TypeError(val)
         except StopIteration:
             # Insert a new node (with property attribute)
             rdf = self._xmp.find('.//rdf:RDF', self.NS)
+            if isinstance(val, list):
+                rdfdesc = ET.SubElement(
+                    rdf, QName(XMP_NS_RDF, 'Description'),
+                    attrib={
+                        QName(XMP_NS_RDF, 'about'): '',
+                    },
+                )
+                node = ET.SubElement(rdfdesc, self._qname(key))
+                seq = ET.SubElement(node, QName(XMP_NS_RDF, 'Seq'))
+                for subval in val:
+                    el = ET.SubElement(seq, QName(XMP_NS_RDF, 'li'))
+                    el.text = subval
+            elif isinstance(val, str):
             rdfdesc = ET.SubElement(
                 rdf, QName(XMP_NS_RDF, 'Description'),
                 attrib={
