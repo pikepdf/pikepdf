@@ -71,9 +71,9 @@ PDF-A (the ``xmlns:pdfaid`` tag).
 
 .. note::
 
-  The best way to manage XMP metadata is use a dedicated tool like the
+  For complex metadata changes it may be necessary to use the
   `python-xmp-toolkit <https://pypi.org/project/python-xmp-toolkit/>`_ library.
-  pikepdf does not validate changes to XMP metadata.
+  pikepdf only implements a subset of XMP features.
 
 Parsing content streams
 -----------------------

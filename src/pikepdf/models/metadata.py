@@ -175,9 +175,26 @@ def ensure_loaded(fn):
 
 
 class PdfMetadata(MutableMapping):
-    """Read and edit the XMP metadata associated with a PDF
+    """Read and edit the metadata associated with a PDF
 
-    Requires/relies on python-xmp-toolkit and libexempi.
+    The PDF specification contain two types of metadata, the newer XMP
+    (Extensible Metadata Platform, XML-based) and older DocumentInformation
+    dictionary. The PDF 2.0 specification removes the DocumentInformation
+    dictionary.
+
+    This primarily works with XMP metadata, but includes methods to generate
+    XMP from DocumentInformation and will also coordinate updates to
+    DocumentInformation so that the two are kept consistent.
+
+    XMP metadata fields may be accessed using the full XML namespace URI or
+    the short name. For example
+        ``metadata['dc:description']``
+    and
+        ``metadata['{http://purl.org/dc/elements/1.1/}description']``
+    both refer to the same field. Several common XML namespaces are registered
+    automatically.
+
+    See the XMP specification for details of allowable fields.
 
     To update metadata, use a with block.
 

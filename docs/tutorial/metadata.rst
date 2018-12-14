@@ -48,6 +48,8 @@ the PDF content is. We can see that this PDF has a /Metadata object, instead
 a stream object, which is not automatically extracted for us. pikepdf provides
 an interface to manage this object, so it is not necessary to extract it.
 
+.. _accessmetadata:
+
 Accessing metadata
 ------------------
 

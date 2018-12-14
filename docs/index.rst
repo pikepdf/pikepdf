@@ -56,6 +56,7 @@ pikepdf would help you build apps that do things like:
 * Calculate how much to charge for a scanning project based on the materials
   scanned
 * Alter a PDF to meet a target specification such as PDF/A or PDF/X
+* Add or modify PDF :ref:`metadata <accessmetadata>`
 * Create well-formed but invalid PDFs for testing purposes
 
 What it cannot do:
