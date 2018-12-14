@@ -268,6 +268,9 @@ class PdfMetadata(MutableMapping):
                 continue
             if converter:
                 value = converter.docinfo_from_xmp(value)
+            if value is None:
+                del self._pdf.docinfo[docinfo_name]
+                continue
             try:
                 # Try to save pure ASCII
                 self._pdf.docinfo[docinfo_name] = value.encode('ascii')
