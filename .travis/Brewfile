@@ -1,3 +1,4 @@
 brew 'python'
 brew 'ccache'
+brew 'exempi'
 brew 'qpdf'

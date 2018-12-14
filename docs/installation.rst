@@ -72,6 +72,7 @@ pikepdf requires:
 -   `pybind11 <https://github.com/pybind/pybind11>`_
 -   libqpdf |qpdf-version| or higher from the
     `QPDF <https://github.com/qpdf/qpdf>`_ project.
+-   defusedxml - Python package
 
 On Linux the library and headers for libqpdf must be installed because pikepdf
 compiles code against it and links to it.

@@ -5,8 +5,33 @@ Changelog
 
 pikepdf releases use the `semantic versioning <http://semver.org>`_ policy.
 
-Since 1.0 has not been released, this means **breaking changes can occur at any time** and the **public API is not yet stable**. For the moment a minor version change is known to be breaking, and a patch level change shouldn't be breaking.
+The public Python API (as presented by ``import pikepdf``) is now stable. The interface of the C++ extension module (``_qpdf``) is private to pikepdf and should not be used directly.
 
+v1.0rc1
+=======
+
+Updates
+-------
+
+* New API to access and edit PDF metadata and make consistent edits to the new and old style of PDF metadata.
+
+* 32-bit binary wheels are now available for Windows
+
+* PDFs can now be saved in QPDF's "qdf" mode
+
+* The Python package defusedxml is now required
+
+* The Python package python-xmp-toolkit and its dependency libexempi are suggested for testing, but not required
+
+Fixes
+-----
+
+* Fixed handling of filenames that contain multibyte characters on non-UTF-8 systems
+
+Breaking
+--------
+
+* The ``Pdf.metadata`` property was removed, and replaced with the new metadata API
 
 v0.3.7
 ======

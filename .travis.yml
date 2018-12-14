@@ -24,7 +24,7 @@ matrix:
     addons: &gcc48
       apt:
         sources: [ubuntu-toolchain-r-test]
-        packages: [g++-4.8]  # g++-4.8 supports c++11 but not c++14 at all; g++-4.9 won't work
+        packages: [g++-4.8, libexempi-dev]  # g++-4.8 supports c++11 but not c++14 at all; g++-4.9 won't work
         config:
           retries: true
 
@@ -41,7 +41,7 @@ matrix:
     addons:
       apt:
         sources: [ubuntu-toolchain-r-test]
-        packages: [g++-8]  # g++-7 supports c++14
+        packages: [g++-8, libexempi-dev]  # g++-7 supports c++14
         config:
           retries: true
 
@@ -54,7 +54,7 @@ matrix:
       apt:
         sources:
         - sourceline: 'ppa:deadsnakes/ppa'
-        packages: [python3.7-dev, python3.7-venv, g++-5]
+        packages: [python3.7-dev, python3.7-venv, g++-5, libexempi-dev]
         config:
           retries: true
 

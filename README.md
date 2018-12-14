@@ -40,7 +40,7 @@ Python 2.7 and earlier versions of Python 3 are not currently supported but supp
 |---------------------------------------------------------------------|-------------------------------------|-------------------------------------------|-----------------------------------------|
 | Editing, manipulation and transformation of existing PDFs           | ✔                                   | ✔                                         | ✔                                       |
 | Based on an existing, mature PDF library                            | QPDF                                | ✘                                         | ✘                                       |
-| Implementation speed                                                | C++                                 | Python                                    | Python                                  |
+| Implementation                                                      | C++ and Python                      | Python                                    | Python                                  |
 | PDF versions supported                                              | 1.1 to 1.7                          | 1.3?                                      | 1.7                                     |
 | Python versions supported                                           | 3.5-3.7                             | 2.6-3.6                                   | 2.6-3.6                                 |
 | Supports password protected (encrypted) PDFs                        | ✔ (except public key)               | Only obsolete RC4                         | ✘                                       |
@@ -51,6 +51,7 @@ Python 2.7 and earlier versions of Python 3 are not currently supported but supp
 | Creates PDFs that pass PDF validation tests                         | ✔                                   | ✘                                         | ?                                       |
 | Modifies PDF/A without breaking PDF/A compliance                    | ✔                                   | ✘                                         | ?                                       |
 | Automatically repairs PDFs with internal errors                     | ✔                                   | ✘                                         | ✘                                       |
+| PDF XMP metadata editing                                            | ✔                                   | read-only                                 | ✘
 | Documentation                                                       | ✔                                   | ✘                                         | ✔                                       |
 | Integrates with Jupyter and IPython notebooks for rapid development | ✔                                   | ✘                                         | ✘                                       |
 
