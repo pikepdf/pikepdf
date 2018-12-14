@@ -445,13 +445,13 @@ class PdfMetadata(MutableMapping):
                     el = ET.SubElement(seq, QName(XMP_NS_RDF, 'li'))
                     el.text = subval
             elif isinstance(val, str):
-            rdfdesc = ET.SubElement(
-                rdf, QName(XMP_NS_RDF, 'Description'),
-                attrib={
-                    QName(XMP_NS_RDF, 'about'): '',
-                    self._qname(key): val
-                },
-            )
+                rdfdesc = ET.SubElement(
+                    rdf, QName(XMP_NS_RDF, 'Description'),
+                    attrib={
+                        QName(XMP_NS_RDF, 'about'): '',
+                        self._qname(key): val
+                    },
+                )
 
     @ensure_loaded
     def __delitem__(self, key):
