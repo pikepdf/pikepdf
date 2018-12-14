@@ -421,6 +421,8 @@ class PdfMetadata(MutableMapping):
 
     @ensure_loaded
     def __setitem__(self, key, val):
+        if isinstance(val, str):
+            val = val.replace('\x00', '')
         if not self._updating:
             raise RuntimeError("Metadata not opened for editing, use with block")
         try:

@@ -6,6 +6,8 @@ import pikepdf
 from pikepdf import Pdf, Dictionary, Name, PasswordError
 from pikepdf.models.metadata import decode_pdf_date, encode_pdf_date
 
+import defusedxml.ElementTree as ET
+
 try:
     from libxmp import XMPMeta
 except ImportError:
@@ -176,3 +178,9 @@ def test_decode_pdf_date():
     ]
     for s, d in VALS:
         assert decode_pdf_date(s) == d
+
+
+def test_null_rejection(trivial):
+    with trivial.open_metadata() as xmp:
+        xmp['dc:description'] = 'This is a null \x00 character'
+    ET.fromstring(str(xmp))
