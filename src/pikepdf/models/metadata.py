@@ -145,6 +145,8 @@ else:
 class DateConverter:
     @staticmethod
     def xmp_from_docinfo(docinfo_val):
+        if docinfo_val == '':
+            return ''
         return decode_pdf_date(docinfo_val).isoformat()
 
     @staticmethod
@@ -202,7 +204,7 @@ class PdfMetadata(MutableMapping):
     def _create_xmp(self):
         self._xmp = parse(BytesIO(TRIVIAL_XMP))
 
-    def load_from_docinfo(self, docinfo):
+    def load_from_docinfo(self, docinfo, delete_missing=False):
         """Populate the XMP metadata object with DocumentInfo
 
         A few entries in the deprecated DocumentInfo dictionary are considered
@@ -210,14 +212,22 @@ class PdfMetadata(MutableMapping):
         those entries into the XMP metadata.
         """
         for uri, shortkey, docinfo_name, converter in self.DOCINFO_MAPPING:
-            val = docinfo.get(docinfo_name)
+            qname = QName(uri, shortkey)
+            # docinfo might be a dict or pikepdf.Dictionary, so lookup keys
+            # by str(Name)
+            val = docinfo.get(str(docinfo_name))
             if val is None:
+                if delete_missing and qname in self:
+                    del self[qname]
                 continue
             val = str(val)
             if converter:
                 val = converter.xmp_from_docinfo(val)
-            qname = QName(uri, shortkey)
+            if not val:
+                continue
+            print(str(self))
             self[qname] = val
+            print(str(self))
 
     def _load(self):
         try:
@@ -246,6 +256,7 @@ class PdfMetadata(MutableMapping):
         The standard mapping is described here:
             https://www.pdfa.org/pdfa-metadata-xmp-rdf-dublin-core/
         """
+        self._pdf.docinfo  # Touch object to ensure it exists
         for uri, element, docinfo_name, converter in self.DOCINFO_MAPPING:
             qname = QName(uri, element)
             try:

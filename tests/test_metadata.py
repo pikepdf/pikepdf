@@ -4,6 +4,10 @@ import pikepdf
 from pikepdf import Pdf, Dictionary, Name, PasswordError
 from pikepdf.models.metadata import decode_pdf_date, encode_pdf_date
 
+try:
+    from libxmp import XMPMeta
+except ImportError:
+    XMPMeta = None
 
 pytestmark = pytest.mark.filterwarnings('ignore:.*XMLParser.*:DeprecationWarning')
 
@@ -48,6 +52,8 @@ def test_lowlevel(sandwich):
         meta['dc:invalid']
     with pytest.raises(KeyError):
         meta['{http://ns.adobe.com/pdf/1.3/}invalid']
+    with pytest.raises(KeyError):
+        meta['{http://invalid.com/ns/}doublyinvalid']
 
 
 def test_no_info(vera, outdir):
@@ -130,16 +136,26 @@ def test_roundtrip(filename):
                 xmp[k] = 'A'
 
 
-def test_build_metadata(trivial, outdir):
+def test_build_metadata(trivial, graph, outdir):
     with trivial.open_metadata(set_pikepdf_as_editor=False) as xmp:
-        xmp.load_from_docinfo(trivial.docinfo)
+        xmp.load_from_docinfo(graph.docinfo)
     trivial.save(outdir / 'tmp.pdf')
 
     pdf = pikepdf.open(outdir / 'tmp.pdf')
     assert pdf.Root.Metadata.Type == Name.Metadata
     assert pdf.Root.Metadata.Subtype == Name.XML
     with pdf.open_metadata(set_pikepdf_as_editor=False) as xmp:
-        assert xmp['pdf:Producer'] == trivial.docinfo[Name.Producer]
+        assert 'pdf:Producer' not in xmp
         xmp_date = xmp['xmp:CreateDate']
         docinfo_date = decode_pdf_date(trivial.docinfo[Name.CreationDate])
         assert xmp_date == docinfo_date.isoformat()
+
+
+def test_set_array(trivial):
+    with trivial.open_metadata() as xmp:
+        xmp['dc:creator'] = ['Bob', 'Doug']
+
+    if XMPMeta:
+        xmpmeta = XMPMeta(xmp_str=str(xmp))
+        assert xmpmeta.does_array_item_exist("http://purl.org/dc/elements/1.1/", 'creator', 'Bob')
+        assert xmpmeta.does_array_item_exist("http://purl.org/dc/elements/1.1/", 'creator', 'Doug')
