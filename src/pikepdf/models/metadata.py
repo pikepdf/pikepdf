@@ -119,7 +119,7 @@ def decode_pdf_date(s: str) -> datetime:
 class AuthorConverter:
     @staticmethod
     def xmp_from_docinfo(docinfo_val):
-        return str(docinfo_val)
+        return [docinfo_val]
 
     @staticmethod
     def docinfo_from_xmp(xmp_val):
@@ -225,9 +225,7 @@ class PdfMetadata(MutableMapping):
                 val = converter.xmp_from_docinfo(val)
             if not val:
                 continue
-            print(str(self))
             self[qname] = val
-            print(str(self))
 
     def _load(self):
         try:
@@ -437,6 +435,8 @@ class PdfMetadata(MutableMapping):
                     el = ET.SubElement(seq, QName(XMP_NS_RDF, 'li'))
                     el.text = subval
             elif isinstance(val, str):
+                for child in node.findall('*'):
+                    node.remove(child)
                 node.text = val
             else:
                 raise TypeError(val)
