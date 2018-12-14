@@ -4,7 +4,10 @@ from datetime import datetime, tzinfo, timezone
 import pytest
 import pikepdf
 from pikepdf import Pdf, Dictionary, Name, PasswordError
-from pikepdf.models.metadata import decode_pdf_date, encode_pdf_date
+from pikepdf.models.metadata import (
+    decode_pdf_date, encode_pdf_date,
+    XMP_NS_DC, XMP_NS_PDF, XMP_NS_XMP
+)
 
 import defusedxml.ElementTree as ET
 
@@ -155,19 +158,56 @@ def test_build_metadata(trivial, graph, outdir):
         assert xmp_date == docinfo_date.isoformat()
 
 
-def test_python_xmp_validate(trivial):
+def test_python_xmp_validate_add(trivial):
     with trivial.open_metadata() as xmp:
         xmp['dc:creator'] = ['Bob', 'Doug']
         xmp['dc:title'] = 'Title'
+        xmp['dc:publisher'] = {'Mackenzie'}
+
+    xmp_str = str(xmp).replace('\n', '')
+    assert '<dc:creator><rdf:Seq><rdf:li>Bob</rdf:li><rdf:li>Doug</rdf:li>' in xmp_str
+    assert '<dc:publisher><rdf:Bag><rdf:li>Mackenzie</rdf:li>' in xmp_str
 
     if not XMPMeta:
         pytest.skip(msg='needs libxmp')
 
     xmpmeta = XMPMeta(xmp_str=str(xmp))
-    DC = "http://purl.org/dc/elements/1.1/"
+    DC = XMP_NS_DC
     assert xmpmeta.does_array_item_exist(DC, 'creator', 'Bob')
     assert xmpmeta.does_array_item_exist(DC, 'creator', 'Doug')
     assert xmpmeta.get_localized_text(DC, 'title', None, 'x-default') == 'Title'
+    assert xmpmeta.does_array_item_exist(DC, 'publisher', 'Mackenzie')
+
+
+def test_python_xmp_validate_change_list(graph):
+    with graph.open_metadata() as xmp:
+        assert 'dc:creator' in xmp
+        xmp['dc:creator'] = ['Dobby', 'Kreacher']
+
+    xmp_str = str(xmp).replace('\n', '')
+
+    if not XMPMeta:
+        pytest.skip(msg='needs libxmp')
+    xmpmeta = XMPMeta(xmp_str=str(xmp))
+    DC = XMP_NS_DC
+    assert xmpmeta.does_array_item_exist(DC, 'creator', 'Dobby')
+    assert xmpmeta.does_array_item_exist(DC, 'creator', 'Kreacher')
+
+
+def test_python_xmp_validate_change(sandwich):
+    with sandwich.open_metadata() as xmp:
+        assert 'xmp:CreatorTool' in xmp
+        xmp['xmp:CreatorTool'] = 'Creator'  # Exists as a xml tag text
+        xmp['pdf:Producer'] = 'Producer'  # Exists as a tag node
+
+    xmp_str = str(xmp).replace('\n', '')
+
+    if not XMPMeta:
+        pytest.skip(msg='needs libxmp')
+    xmpmeta = XMPMeta(xmp_str=str(xmp))
+    assert xmpmeta.does_property_exist(XMP_NS_XMP, 'CreatorTool')
+    assert xmpmeta.does_property_exist(XMP_NS_PDF, 'Producer')
+
 
 def test_decode_pdf_date():
     VALS = [

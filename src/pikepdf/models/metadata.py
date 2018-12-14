@@ -4,6 +4,7 @@
 #
 # Copyright (C) 2018, James R. Barlow (https://github.com/jbarlow83/)
 
+from collections import namedtuple
 from collections.abc import MutableMapping
 from datetime import datetime
 from functools import wraps
@@ -54,6 +55,12 @@ XPACKET_END = b"""<?xpacket end="w"?>\n"""
 
 TRIVIAL_XMP = (XPACKET_BEGIN + XMP_EMPTY + XPACKET_END)
 
+XmpContainer = namedtuple('XmpContainer', ['rdf_type', 'py_type', 'insert_fn'])
+
+XMP_CONTAINERS = [
+    XmpContainer('Bag', set, set.add),
+    XmpContainer('Seq', list, list.append),
+]
 
 # Repeat this to avoid circular from top package's pikepdf.__version__
 try:
@@ -340,11 +347,7 @@ class PdfMetadata(MutableMapping):
         if items:
             return items[0].text
 
-        CONTAINERS = [
-            ('Bag', set, set.add),
-            ('Seq', list, list.append),
-        ]
-        for xmlcontainer, container, insertfn in CONTAINERS:
+        for xmlcontainer, container, insertfn in XMP_CONTAINERS:
             items = node.find('rdf:{}'.format(xmlcontainer), self.NS)
             if not items:
                 continue
@@ -428,6 +431,16 @@ class PdfMetadata(MutableMapping):
             val = val.replace('\x00', '')
         if not self._updating:
             raise RuntimeError("Metadata not opened for editing, use with block")
+
+        def add_array(node, items):
+            rdf_type = next(
+                c.rdf_type for c in XMP_CONTAINERS if isinstance(items, c.py_type)
+            )
+            seq = ET.SubElement(node, QName(XMP_NS_RDF, rdf_type))
+            for item in items:
+                el = ET.SubElement(seq, QName(XMP_NS_RDF, 'li'))
+                el.text = item.replace('\x00', '')
+
         try:
             # Locate existing node to replace
             node, attrib, _oldval, parent = next(self._get_elements(key))
@@ -435,13 +448,10 @@ class PdfMetadata(MutableMapping):
                 if not isinstance(val, str):
                     raise TypeError(val)
                 node.set(attrib, val)
-            elif isinstance(val, list):
+            elif isinstance(val, (list, set)):
                 for child in node.findall('*'):
                     node.remove(child)
-                seq = ET.SubElement(node, QName(XMP_NS_RDF, 'Seq'))
-                for subval in val:
-                    el = ET.SubElement(seq, QName(XMP_NS_RDF, 'li'))
-                    el.text = subval
+                add_array(node, val)
             elif isinstance(val, str):
                 for child in node.findall('*'):
                     node.remove(child)
@@ -449,9 +459,9 @@ class PdfMetadata(MutableMapping):
             else:
                 raise TypeError(val)
         except StopIteration:
-            # Insert a new node (with property attribute)
+            # Insert a new node
             rdf = self._xmp.find('.//rdf:RDF', self.NS)
-            if isinstance(val, list):
+            if isinstance(val, (list, set)):
                 rdfdesc = ET.SubElement(
                     rdf, QName(XMP_NS_RDF, 'Description'),
                     attrib={
@@ -459,10 +469,7 @@ class PdfMetadata(MutableMapping):
                     },
                 )
                 node = ET.SubElement(rdfdesc, self._qname(key))
-                seq = ET.SubElement(node, QName(XMP_NS_RDF, 'Seq'))
-                for subval in val:
-                    el = ET.SubElement(seq, QName(XMP_NS_RDF, 'li'))
-                    el.text = subval
+                add_array(node, val)
             elif isinstance(val, str):
                 rdfdesc = ET.SubElement(
                     rdf, QName(XMP_NS_RDF, 'Description'),
@@ -471,6 +478,8 @@ class PdfMetadata(MutableMapping):
                         self._qname(key): val
                     },
                 )
+            else:
+                raise TypeError(val)
 
     @ensure_loaded
     def __delitem__(self, key):
@@ -525,5 +534,6 @@ class PdfMetadata(MutableMapping):
         except KeyError:
             return ''
 
+    @ensure_loaded
     def __str__(self):
         return self._get_xml_bytes(xpacket=False).decode('utf-8')
