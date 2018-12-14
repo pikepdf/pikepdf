@@ -113,7 +113,10 @@ def decode_pdf_date(s: str) -> datetime:
     elif s.endswith('Z'):
         s = s.replace('Z', '+0000')
     s = s.replace("'", "")  # Remove apos from PDF time strings
-    return datetime.strptime(s, r'%Y%m%d%H%M%S%z')
+    try:
+        return datetime.strptime(s, r'%Y%m%d%H%M%S%z')
+    except ValueError:
+        return datetime.strptime(s, r'%Y%m%d%H%M%S')
 
 
 class AuthorConverter:

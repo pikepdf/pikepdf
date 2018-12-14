@@ -1,5 +1,7 @@
-import pytest
 from pathlib import Path
+from datetime import datetime, tzinfo, timezone
+
+import pytest
 import pikepdf
 from pikepdf import Pdf, Dictionary, Name, PasswordError
 from pikepdf.models.metadata import decode_pdf_date, encode_pdf_date
@@ -151,11 +153,26 @@ def test_build_metadata(trivial, graph, outdir):
         assert xmp_date == docinfo_date.isoformat()
 
 
-def test_set_array(trivial):
+def test_python_xmp_validate(trivial):
     with trivial.open_metadata() as xmp:
         xmp['dc:creator'] = ['Bob', 'Doug']
+        xmp['dc:title'] = 'Title'
 
-    if XMPMeta:
-        xmpmeta = XMPMeta(xmp_str=str(xmp))
-        assert xmpmeta.does_array_item_exist("http://purl.org/dc/elements/1.1/", 'creator', 'Bob')
-        assert xmpmeta.does_array_item_exist("http://purl.org/dc/elements/1.1/", 'creator', 'Doug')
+    if not XMPMeta:
+        pytest.skip(msg='needs libxmp')
+
+    xmpmeta = XMPMeta(xmp_str=str(xmp))
+    DC = "http://purl.org/dc/elements/1.1/"
+    assert xmpmeta.does_array_item_exist(DC, 'creator', 'Bob')
+    assert xmpmeta.does_array_item_exist(DC, 'creator', 'Doug')
+    assert xmpmeta.get_localized_text(DC, 'title', None, 'x-default') == 'Title'
+
+def test_decode_pdf_date():
+    VALS = [
+        ('20160220040559', datetime(2016, 2, 20, 4, 5, 59)),
+        ("20180101010101Z00'00'", datetime(2018, 1, 1, 1, 1, 1, tzinfo=timezone.utc)),
+        ("20180101010101Z", datetime(2018, 1, 1, 1, 1, 1, tzinfo=timezone.utc)),
+        ("20180101010101+0000", datetime(2018, 1, 1, 1, 1, 1, tzinfo=timezone.utc)),
+    ]
+    for s, d in VALS:
+        assert decode_pdf_date(s) == d
