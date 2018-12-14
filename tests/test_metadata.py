@@ -109,13 +109,13 @@ def test_update_docinfo(vera):
         pass
     assert xmp['pdf:Producer'] == vera.docinfo[Name.Producer]
     assert xmp['xmp:CreatorTool'] == vera.docinfo[Name.Creator]
-    assert xmp['dc:creator'][0] == vera.docinfo[Name.Authors]
+    assert xmp['dc:creator'][0] == vera.docinfo[Name.Author]
 
     # Test delete propagation
     with vera.open_metadata(set_pikepdf_as_editor=False, update_docinfo=True) as xmp:
         del xmp['dc:creator']
     assert 'dc:creator' not in xmp
-    assert Name.Authors not in vera.docinfo
+    assert Name.Author not in vera.docinfo
 
 
 @pytest.mark.parametrize('filename', list((Path(__file__).parent / 'resources').glob('*.pdf')))

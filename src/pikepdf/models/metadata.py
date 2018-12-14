@@ -179,7 +179,7 @@ class PdfMetadata(MutableMapping):
     """
 
     DOCINFO_MAPPING = [
-        (XMP_NS_DC, 'creator', Name.Authors, AuthorConverter),
+        (XMP_NS_DC, 'creator', Name.Author, AuthorConverter),
         (XMP_NS_DC, 'description', Name.Subject, None),
         (XMP_NS_DC, 'title', Name.Title, None),
         (XMP_NS_PDF, 'Keywords', Name.Keywords, None),
