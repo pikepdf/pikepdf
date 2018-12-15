@@ -58,9 +58,9 @@ matrix:
         config:
           retries: true
 
-  - os: osx
-    osx_image: xcode8.3
-    language: generic
+  # - os: osx
+  #   osx_image: xcode8.3
+  #   language: generic
 
   - stage: wheels
     os: osx
