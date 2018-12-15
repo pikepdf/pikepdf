@@ -1,12 +1,13 @@
 from pathlib import Path
-from datetime import datetime, tzinfo, timezone
+from datetime import datetime, tzinfo, timezone, timedelta
 
 import pytest
 import pikepdf
 from pikepdf import Pdf, Dictionary, Name, PasswordError
 from pikepdf.models.metadata import (
     decode_pdf_date, encode_pdf_date,
-    XMP_NS_DC, XMP_NS_PDF, XMP_NS_XMP
+    XMP_NS_DC, XMP_NS_PDF, XMP_NS_XMP,
+    DateConverter
 )
 
 import defusedxml.ElementTree as ET
@@ -215,12 +216,24 @@ def test_decode_pdf_date():
         ("20180101010101Z00'00'", datetime(2018, 1, 1, 1, 1, 1, tzinfo=timezone.utc)),
         ("20180101010101Z", datetime(2018, 1, 1, 1, 1, 1, tzinfo=timezone.utc)),
         ("20180101010101+0000", datetime(2018, 1, 1, 1, 1, 1, tzinfo=timezone.utc)),
+        ("20180101010101+0100", datetime(2018, 1, 1, 1, 1, 1, tzinfo=timezone(timedelta(hours=1)))),
     ]
     for s, d in VALS:
         assert decode_pdf_date(s) == d
 
 
-def test_null_rejection(trivial):
+def test_date_docinfo_from_xmp():
+    VALS = [
+        ('2018-12-04T03:02:01', "20181204030201"),
+        ('2018-12-15T07:36:43Z', "20181215073643+00'00'"),
+        ('2018-12-04T03:02:01-01:00', "20181204030201-01'00'"),
+    ]
+    for xmp_val, docinfo_val in VALS:
+        assert DateConverter.docinfo_from_xmp(xmp_val) == docinfo_val
+
+
+def test_bad_char_rejection(trivial):
     with trivial.open_metadata() as xmp:
-        xmp['dc:description'] = 'This is a null \x00 character'
+        xmp['dc:description'] = 'Bad characters \x00 \x01 \x02'
+        xmp['dc:creator'] = ['\ue001bad', '\ufff0bad']
     ET.fromstring(str(xmp))

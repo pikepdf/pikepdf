@@ -13,6 +13,7 @@ from pkg_resources import (
     get_distribution as _get_distribution,
     DistributionNotFound
 )
+import re
 import sys
 from warnings import warn, filterwarnings
 import xml.etree.ElementTree as ET
@@ -62,6 +63,12 @@ XMP_CONTAINERS = [
     XmpContainer('Seq', list, list.append),
 ]
 
+# These are the illegal characters in XML 1.0. (XML 1.1 is a bit more permissive,
+# but we'll be strict to ensure wider compatibility.)
+re_xml_illegal_chars = re.compile(
+    r"(?u)[^\x09\x0A\x0D\x20-\uD7FF\uE000-\uFFFD\u10000-\u10FFFF]"
+)
+
 # Repeat this to avoid circular from top package's pikepdf.__version__
 try:
     pikepdf_version = _get_distribution(__name__).version
@@ -91,12 +98,7 @@ def encode_pdf_date(d: datetime) -> str:
     pdfmark_date_fmt = r'%Y%m%d%H%M%S'
     s = d.strftime(pdfmark_date_fmt)
     tz = d.strftime('%z')
-    if tz == '':
-        # Ghostscript <= 9.23 handles missing timezones incorrectly, so if
-        # timezone is missing, move it into GMT.
-        # https://bugs.ghostscript.com/show_bug.cgi?id=699182
-        s += "+00'00'"
-    else:
+    if tz:
         sign, tz_hours, tz_mins = tz[0], tz[1:3], tz[3:5]
         s += "{}{}'{}'".format(sign, tz_hours, tz_mins)
     return s
@@ -161,6 +163,8 @@ class DateConverter:
 
     @staticmethod
     def docinfo_from_xmp(xmp_val):
+        if xmp_val.endswith('Z'):
+            xmp_val = xmp_val[:-1] + '+00:00'
         dateobj = fromisoformat(xmp_val)
         return encode_pdf_date(dateobj)
 
@@ -310,7 +314,14 @@ class PdfMetadata(MutableMapping):
         if xpacket:
             data.write(XPACKET_END)
         data.seek(0)
-        return data.read()
+        unclean_xml_bytes = data.read()
+        unclean_xml = unclean_xml_bytes.decode('utf-8')
+        # Python's XML libraries do not strip illegal characters - best place
+        # to control this is here, at the serialization level, even though
+        # it involves a lot of roundtripping
+        clean_xml = re_xml_illegal_chars.sub('', unclean_xml)
+        clean_xml_bytes = clean_xml.encode('utf-8')
+        return clean_xml_bytes
 
     def _apply_changes(self):
         """Serialize our changes back to the PDF in memory
@@ -444,8 +455,6 @@ class PdfMetadata(MutableMapping):
 
     @ensure_loaded
     def __setitem__(self, key, val):
-        if isinstance(val, str):
-            val = val.replace('\x00', '')
         if not self._updating:
             raise RuntimeError("Metadata not opened for editing, use with block")
 
