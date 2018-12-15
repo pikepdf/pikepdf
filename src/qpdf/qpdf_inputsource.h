@@ -61,8 +61,7 @@ public:
 
     void rewind() override
     {
-        py::gil_scoped_acquire gil;
-        this->stream.attr("seek")(0, 0);
+        this->seek(0, SEEK_SET);
     }
 
     size_t read(char* buffer, size_t length) override
