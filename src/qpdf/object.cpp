@@ -695,10 +695,12 @@ void init_object(py::module& m)
             "Read the content stream associated with this object without decoding"
         )
         .def("write",
-            [](QPDFObjectHandle &h, py::bytes data, py::kwargs kwargs) {
+            [](QPDFObjectHandle &h, py::bytes data, py::args args, py::kwargs kwargs) {
                 std::string sdata = data;
                 QPDFObjectHandle filter = QPDFObjectHandle::newNull();
                 QPDFObjectHandle decode_parms = QPDFObjectHandle::newNull();
+                if (args.size() != 0)
+                    throw py::value_error("Too many positional arguments");
                 if (kwargs.contains("filter"))
                     filter = objecthandle_encode(kwargs["filter"]);
                 if (kwargs.contains("decode_parms"))
