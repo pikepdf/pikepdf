@@ -41,18 +41,18 @@ def extends(cls_cpp):
             def foo(self):
                 pass
 
-    ClassDefinedInCpp.foo will now be defined.
+    The method 'foo' will be monkeypatched on ClassDefinedInCpp. SupportClass
+    has no meaning on its own and should not be used, but gets returned from
+    this function so IDE code inspection doesn't get too confused.
 
-    Subclassing is not used, because the intention is to extend a C++ class
-    specification with Python methods, rather than creating a new class.
-    Otherwise we would have to insert a custom type converter to intercept
-    the C++ and wrap it with the subclass.
+    We don't subclass because it's much more convenient to monkeypatch Python
+    methods onto the existing Python binding of the C++ class. For one thing,
+    this allows the implementation to be moved from Python to C++ or vice
+    versa. It saves having to implement an intermediate subclass and then
+    ensures that the superclass never 'leaks' to pikepdf users.
 
     Any existing methods may be used, regardless of whether they defined
     elsewhere in the support class or in the target class.
-
-    The support class is not intended to be usable on its own. The support
-    class may not define new attributes.
     """
 
     def real_class_extend(cls, cls_cpp=cls_cpp):
@@ -62,6 +62,9 @@ def extends(cls_cpp):
             setattr(cls_cpp, name, fn)
         for name, fn in inspect.getmembers(cls, inspect.isdatadescriptor):
             setattr(cls_cpp, name, fn)
+        def block_init(self):
+            raise NotImplementedError(self.__class__.__name__ + '.__init__')
+        cls.__init__ = block_init
         return cls
     return real_class_extend
 
@@ -143,14 +146,6 @@ class Extend_Pdf:
         data = {'application/pdf': bio.read()}
         return data
 
-    @property
-    def metadata(self):
-        return self.docinfo
-
-    @metadata.setter
-    def metadata(self, value):
-        setattr(self, 'docinfo', value)
-
     def open_metadata(
         self,
         set_pikepdf_as_editor=True,
@@ -184,7 +179,7 @@ class Extend_Pdf:
             sync_docinfo=update_docinfo
         )
 
-    def attach(self, *, basename, filebytes, mime=None, desc=''):
+    def _attach(self, *, basename, filebytes, mime=None, desc=''):
         """
         Attach a file to this PDF
 

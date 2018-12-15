@@ -5,10 +5,12 @@ Changelog
 
 pikepdf releases use the `semantic versioning <http://semver.org>`_ policy.
 
-The public Python API (as presented by ``import pikepdf``) is now stable. The interface of the C++ extension module (``_qpdf``) is private to pikepdf and should not be used directly.
+The pikepdf API (as provided by ``import pikepdf``) is quite stable and is in production use.
 
-v1.0rc1
-=======
+Note that the C++ extension module ``pikepdf._qpdf`` is a private interface within pikepdf that applications should not use directly.
+
+v0.9.0
+======
 
 Updates
 -------
@@ -32,6 +34,8 @@ Breaking
 --------
 
 * The ``Pdf.metadata`` property was removed, and replaced with the new metadata API
+
+* ``Pdf.attach()`` has been removed, because the interface as implemented had no way to deal with existing attachments.
 
 v0.3.7
 ======
