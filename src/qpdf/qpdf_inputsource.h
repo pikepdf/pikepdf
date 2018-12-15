@@ -36,7 +36,11 @@ public:
             throw py::value_error("not seekable");
         this->name = py::cast<std::string>(py::repr(stream));
     }
-    virtual ~PythonInputSource() {}
+    virtual ~PythonInputSource() = default;
+    PythonInputSource(const PythonInputSource&) = delete;
+    PythonInputSource& operator= (const PythonInputSource&) = delete;
+    PythonInputSource(PythonInputSource&&) = delete;
+    PythonInputSource& operator= (PythonInputSource&&) = delete;
 
     std::string const& getName() const override
     {

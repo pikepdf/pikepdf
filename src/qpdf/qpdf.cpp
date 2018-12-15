@@ -104,7 +104,7 @@ public:
         this->callback = callback;
     }
 
-    virtual ~PikeProgressReporter() {}
+    virtual ~PikeProgressReporter() = default;
 
     virtual void reportProgress(int percent) override
     {

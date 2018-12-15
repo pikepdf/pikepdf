@@ -57,7 +57,7 @@ needed.
 class PyParserCallbacks : public QPDFObjectHandle::ParserCallbacks {
 public:
     using QPDFObjectHandle::ParserCallbacks::ParserCallbacks;
-    virtual ~PyParserCallbacks() {}
+    virtual ~PyParserCallbacks() = default;
 
     void handleObject(QPDFObjectHandle h) override {
         PYBIND11_OVERLOAD_PURE_NAME(
