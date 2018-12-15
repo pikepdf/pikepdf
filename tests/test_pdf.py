@@ -7,9 +7,14 @@ from pikepdf import Pdf, PasswordError, Stream, PdfError
 
 import sys
 from io import StringIO
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 import shutil
 from pikepdf._cpphelpers import fspath  # For py35
+
+
+@pytest.fixture
+def trivial(resources):
+    return Pdf.open(resources / 'pal-1bit-trivial.pdf')
 
 
 def test_non_filename():
@@ -78,9 +83,9 @@ class TestStreams:
             with (resources / 'pal-1bit-trivial.pdf').open('r') as stream:
                 Pdf.open(stream)
 
-    def test_save_stream(self, resources, outdir):
+    def test_save_stream(self, trivial, outdir):
         from io import BytesIO
-        pdf = Pdf.open(resources / 'pal-1bit-trivial.pdf')
+        pdf = trivial
         pdf.save(outdir / 'nostream.pdf', static_id=True)
 
         bio = BytesIO()
@@ -113,15 +118,14 @@ def test_remove_unreferenced(resources, outdir):
     assert out2.stat().st_size < out1.stat().st_size
 
 
-def test_show_xref(resources):
-    pdf = Pdf.open(resources / 'pal-1bit-trivial.pdf')
-    pdf.show_xref_table()
+def test_show_xref(trivial):
+    trivial.show_xref_table()
 
 
 @pytest.mark.skipif(sys.version_info < (3, 6),
                     reason='missing mock.assert_called')
-def test_progress(resources, outdir):
-    pdf = Pdf.open(resources / 'pal-1bit-trivial.pdf')
+def test_progress(trivial, outdir):
+    pdf = trivial
     mock = Mock()
     pdf.save(outdir / 'out.pdf', progress=mock)
     mock.assert_called()
@@ -137,3 +141,35 @@ def test_unicode_filename(resources, outdir):
     pdf = Pdf.open(target1)
     pdf.save(target2)
     assert target2.exists()
+
+
+def test_fileno_fails(resources):
+    with patch('os.dup') as dup:
+        dup.side_effect = OSError('assume dup fails')
+        with pytest.raises(OSError):
+            pdf = Pdf.open(resources / 'pal-1bit-trivial.pdf')
+
+    with patch('os.dup') as dup:
+        dup.return_value = -1
+        with pytest.raises(RuntimeError):
+            pdf = Pdf.open(resources / 'pal-1bit-trivial.pdf')
+
+
+def test_min_and_force_version(trivial, outdir):
+    pdf = trivial
+    pdf.save(outdir / '1.7.pdf', min_version='1.7')
+
+    pdf17 = Pdf.open(outdir / '1.7.pdf')
+    assert pdf17.pdf_version == '1.7'
+
+    with pytest.raises(RuntimeError):
+        pdf.save('notaversion.pdf', min_version='foo')
+
+    pdf.save(outdir / '1.2.pdf', force_version='1.2')
+    pdf12 = Pdf.open(outdir / '1.2.pdf')
+    assert pdf12.pdf_version == '1.2'
+
+
+def test_normalize_linearize(trivial, outdir):
+    with pytest.raises(ValueError):
+        trivial.save(outdir / 'no.pdf', linearize=True, normalize_content=True)

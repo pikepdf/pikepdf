@@ -151,7 +151,7 @@ def test_len_array():
 
 
 def test_name_equality():
-    # Who needs transitivity?
+    # Who needs transitivity? :P
     # While this is less than ideal ('/Foo' != b'/Foo') it allows for slightly
     # sloppy tests like if colorspace == '/Indexed' without requiring
     # Name('/Indexed') everywhere
@@ -192,6 +192,12 @@ class TestHashViolation:
     def test_string(self):
         utf16 = b'\xfe\xff' + 'hello'.encode('utf-16be')
         self.check(String(utf16), String('hello'))
+
+    def test_name(self):
+        self.check(Name.This, Name('/This'))
+
+    def test_operator(self):
+        self.check(Operator('q'), Operator('q'))
 
 
 def test_not_constructible():

@@ -201,3 +201,17 @@ def test_page_contents_add(resources, outdir):
     pdf.pages[0].page_contents_add(stream1, True)
     pdf.pages[0].page_contents_add(stream2, False)
     pdf.save(outdir / 'out.pdf')
+
+
+def test_bad_access(resources):
+    pdf = Pdf.open(resources / 'fourpages.pdf')
+    with pytest.raises(IndexError):
+        pdf.pages[-100]
+    with pytest.raises(IndexError):
+        pdf.pages[500]
+
+
+def test_bad_insert(resources):
+    pdf = Pdf.open(resources / 'fourpages.pdf')
+    with pytest.raises(TypeError):
+        pdf.pages.insert(0, 'this is a string not a page')
