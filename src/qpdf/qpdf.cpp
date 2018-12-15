@@ -108,6 +108,7 @@ public:
 
     virtual void reportProgress(int percent) override
     {
+        py::gil_scoped_acquire acquire;
         this->callback(percent);
     }
 private:
