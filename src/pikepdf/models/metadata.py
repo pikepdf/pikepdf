@@ -191,10 +191,8 @@ class PdfMetadata(MutableMapping):
     DocumentInformation so that the two are kept consistent.
 
     XMP metadata fields may be accessed using the full XML namespace URI or
-    the short name. For example
-        ``metadata['dc:description']``
-    and
-        ``metadata['{http://purl.org/dc/elements/1.1/}description']``
+    the short name. For example ``metadata['dc:description']``
+    and ``metadata['{http://purl.org/dc/elements/1.1/}description']``
     both refer to the same field. Several common XML namespaces are registered
     automatically.
 
