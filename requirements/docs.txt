@@ -1,3 +1,4 @@
+defusedxml
 ipython
 matplotlib
 pybind11  # not strictly necessary if pybind11 is vendored

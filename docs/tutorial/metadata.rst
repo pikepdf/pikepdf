@@ -135,4 +135,4 @@ other PDF dictionaries. However, it is better to use ``.open_metadata()``
 because that make changes to both XMP and Document Info in a consistent manner.
 
 You may copy from data from a Document Info object in the current PDF or another
-PDF into XMP metadata using :meth:`~pikepdf.models.metadata.PdfMetadata.load_from_docinfo`.
+PDF into XMP metadata using :meth:`~pikepdf.models.PdfMetadata.load_from_docinfo`.
