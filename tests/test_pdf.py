@@ -6,6 +6,7 @@ import pytest
 from pikepdf import Pdf, PasswordError, Stream, PdfError
 
 import sys
+import os
 from io import StringIO
 from unittest.mock import Mock, patch
 import shutil
@@ -143,6 +144,7 @@ def test_unicode_filename(resources, outdir):
     assert target2.exists()
 
 
+@pytest.mark.skipif(os.name == 'nt', reason='os.dup hackery not supported')
 def test_fileno_fails(resources):
     with patch('os.dup') as dup:
         dup.side_effect = OSError('assume dup fails')
