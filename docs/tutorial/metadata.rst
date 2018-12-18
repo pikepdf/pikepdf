@@ -1,3 +1,5 @@
+.. _metadata:
+
 PDF Metadata
 ============
 
@@ -8,8 +10,7 @@ For full information on XMP, see Adobe's `XMP Developer Center
 dictionaries, which are removed in the PDF 2.0 specification. The XMP data entry
 is optional and does not appear in all PDFs.
 
-The `XMP Specification Part 1 <https://wwwimages2.adobe.com/content/dam/acom/en/devnet/xmp/pdfs/XMP%20SDK%20Release%20cc-2016-08/XMPSpecificationPart1.pdf>`_
-also provides useful information.
+The `XMP Specification`_ also provides useful information.
 
 pikepdf provides an interface to simplify viewing and making minor edits to XMP.
 In particular, compound quantities may be read, but only scalar quantities can
@@ -19,48 +20,24 @@ For more complex changes consider using the ``python-xmp-toolkit`` library and
 its libexempi dependency; but note that it is not capable of synchronizing
 changes to the older DocumentInfo metadata.
 
-Inspecting the PDF Root object
-------------------------------
-
-Open a PDF and see what is inside the /Root object.
-
-.. ipython::
-  :verbatim:
-
-   In [1]: example = Pdf.open('tests/resources/sandwich.pdf')
-
-   In [2]: example.Root
-   Out[2]:
-   <pikepdf.Object.Dictionary({
-    '/Metadata': pikepdf.Object.Stream(stream_dict={
-        '/Length': 3308,
-        '/Subtype': /XML,
-        '/Type': /Metadata
-    }, data=<...>),
-    '/Pages': {
-      ...details omitted...
-    },
-    '/Type': /Catalog
-  })>
-
-The /Root object is a PDF dictionary that describes where most of the rest of
-the PDF content is. We can see that this PDF has a /Metadata object, instead
-a stream object, which is not automatically extracted for us. pikepdf provides
-an interface to manage this object, so it is not necessary to extract it.
+.. _XMP Specification: https://wwwimages2.adobe.com/content/dam/acom/en/devnet/xmp/pdfs/XMP%20SDK%20Release%20cc-2016-08/XMPSpecificationPart1.pdf
 
 .. _accessmetadata:
 
 Accessing metadata
 ------------------
 
-You may use :meth:`pikepdf.Pdf.open_metadata` to open the metadata for reading,
-and enter a ``with``-block to modify and commit changes. The ``with`` block
-is to synchronize changes with Document Info.
+The XMP metadata stream is attached the PDF's root object, but to simplify
+management of this, use :meth:`pikepdf.Pdf.open_metadata`. The returned
+:class:`pikepdf.models.PdfMetadata` object may be used for reading, or entered
+with a ``with`` block to modify and commit changes. If you use this interface,
+pikepdf will synchronize changes to new and old metadata.
+
+A PDF must still be saved after metadata is changed.
 
 .. ipython::
-  :verbatim:
 
-  In [1]: pdf = pikepdf.open('tests/resources/sandwich.pdf')
+  In [1]: pdf = pikepdf.open('../tests/resources/sandwich.pdf')
 
   In [2]: meta = pdf.open_metadata()
 
@@ -75,11 +52,12 @@ and attached to the PDF object. The PDF must still be saved. If an exception
 occurs in the block, changes are discarded.
 
 .. ipython::
-  :verbatim:
 
   In [4]: with pdf.open_metadata() as meta:
-      ..:     meta['dc:title'] = "Let's change the title"
-      ..:
+     ...:     meta['dc:title'] = "Let's change the title"
+     ...:
+
+The list of available metadata fields may be found in the `XMP Specification`_.
 
 Checking PDF/A conformance
 --------------------------
@@ -88,9 +66,8 @@ The metadata interface can also test if a file **claims** to be conformant
 to the PDF/A specification.
 
 .. ipython::
-  :verbatim:
 
-  In [9]: pdf = pikepdf.open('tests/resources/veraPDF test suite 6-2-10-t02-pass-a.pdf')
+  In [9]: pdf = pikepdf.open('../tests/resources/veraPDF test suite 6-2-10-t02-pass-a.pdf')
 
   In [10]: meta = pdf.open_metadata()
 
@@ -106,23 +83,18 @@ The Document Info dictionary
 ----------------------------
 
 The Document Info block is an older, now deprecated object in which metadata
-may be stored. If you use pikepdf's interface to modify metadata, it will
-automatically modify the Document Info metadata to match changes to XMP,
-where equivalent fields exist.
-
-The Document Info is (confusingly) not attached to the /Root object.
+may be stored. The Document Info is not attached to the /Root object.
 It may be accessed using the ``.docinfo`` property. If no Document Info exists,
 touching the ``.docinfo`` will properly initialize an empty one.
 
 Here is an example of a Document Info block.
 
 .. ipython::
-  :verbatim:
 
-  In [1]: pdf = Pdf.open('tests/resources/sandwich.pdf')
+  In [12]: pdf = pikepdf.open('../tests/resources/sandwich.pdf')
 
-  In [2]: pdf.docinfo
-  Out[2]:
+  In [12]: pdf.docinfo
+  Out[12]:
   pikepdf.Dictionary({
     "/CreationDate": "D:20170911132748-07'00'",
     "/Creator": "ocrmypdf 5.3.3 / Tesseract OCR-PDF 3.05.01",
@@ -132,7 +104,8 @@ Here is an example of a Document Info block.
 
 It is permitted in pikepdf to directly interact with Document Info as with
 other PDF dictionaries. However, it is better to use ``.open_metadata()``
-because that make changes to both XMP and Document Info in a consistent manner.
+because that interface will apply changes to both XMP and Document Info in a
+consistent manner.
 
 You may copy from data from a Document Info object in the current PDF or another
 PDF into XMP metadata using :meth:`~pikepdf.models.PdfMetadata.load_from_docinfo`.

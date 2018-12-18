@@ -69,11 +69,9 @@ That lets us see a few facts about this file. It was created by OCRmyPDF
 and Tesseract OCR's PDF generator. Ghostscript was used to convert it to
 PDF-A (the ``xmlns:pdfaid`` tag).
 
-.. note::
-
-  For complex metadata changes it may be necessary to use the
-  `python-xmp-toolkit <https://pypi.org/project/python-xmp-toolkit/>`_ library.
-  pikepdf only implements a subset of XMP features.
+Of course, it would be far more convenient to use the pikepdf
+:ref:`metadata` interface than manual parse this XML object. It just
+so happens this is a human readable object found in most PDFs.
 
 Parsing content streams
 -----------------------
