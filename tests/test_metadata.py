@@ -166,8 +166,8 @@ def test_python_xmp_validate_add(trivial):
         xmp['dc:publisher'] = {'Mackenzie'}
 
     xmp_str = str(xmp).replace('\n', '')
-    assert '<dc:creator><rdf:Seq><rdf:li>Bob</rdf:li><rdf:li>Doug</rdf:li>' in xmp_str
-    assert '<dc:publisher><rdf:Bag><rdf:li>Mackenzie</rdf:li>' in xmp_str
+    assert '<rdf:Seq><rdf:li>Bob</rdf:li><rdf:li>Doug</rdf:li>' in xmp_str
+    assert '<rdf:Bag><rdf:li>Mackenzie</rdf:li>' in xmp_str
 
     if not XMPMeta:
         pytest.skip(msg='needs libxmp')

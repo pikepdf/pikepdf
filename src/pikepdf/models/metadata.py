@@ -16,10 +16,10 @@ from pkg_resources import (
 import re
 import sys
 from warnings import warn, filterwarnings
-import xml.etree.ElementTree as ET
-from xml.etree.ElementTree import QName
 
-from defusedxml.ElementTree import parse
+from lxml import etree as ET
+from lxml.etree import QName
+from lxml.etree import parse
 
 from .. import Stream, Name, String
 
@@ -306,6 +306,7 @@ class PdfMetadata(MutableMapping):
             if value is None:
                 del self._pdf.docinfo[docinfo_name]
                 continue
+            value = re_xml_illegal_chars.sub('', value)
             try:
                 # Try to save pure ASCII
                 self._pdf.docinfo[docinfo_name] = value.encode('ascii')
@@ -379,12 +380,12 @@ class PdfMetadata(MutableMapping):
         simplicity.
         """
         items = node.find('rdf:Alt', self.NS)
-        if items:
+        if items is not None:
             return items[0].text
 
         for xmlcontainer, container, insertfn in XMP_CONTAINERS:
             items = node.find('rdf:{}'.format(xmlcontainer), self.NS)
-            if not items:
+            if items is None:
                 continue
             result = container()
             for item in items:
@@ -465,14 +466,16 @@ class PdfMetadata(MutableMapping):
         if not self._updating:
             raise RuntimeError("Metadata not opened for editing, use with block")
 
+        def clean(s):
+            return re_xml_illegal_chars.sub('', s)
+
         def add_array(node, items):
             rdf_type = next(
                 c.rdf_type for c in XMP_CONTAINERS if isinstance(items, c.py_type)
             )
             seq = ET.SubElement(node, QName(XMP_NS_RDF, rdf_type))
             for item in items:
-                el = ET.SubElement(seq, QName(XMP_NS_RDF, 'li'))
-                el.text = item.replace('\x00', '')
+                el.text = clean(item)
 
         try:
             # Locate existing node to replace
@@ -480,7 +483,7 @@ class PdfMetadata(MutableMapping):
             if attrib:
                 if not isinstance(val, str):
                     raise TypeError(val)
-                node.set(attrib, val)
+                node.set(attrib, clean(val))
             elif isinstance(val, (list, set)):
                 for child in node.findall('*'):
                     node.remove(child)
@@ -508,7 +511,7 @@ class PdfMetadata(MutableMapping):
                     rdf, QName(XMP_NS_RDF, 'Description'),
                     attrib={
                         QName(XMP_NS_RDF, 'about'): '',
-                        self._qname(key): val
+                        self._qname(key): clean(val)
                     },
                 )
             else:
