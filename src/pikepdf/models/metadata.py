@@ -53,6 +53,9 @@ DEFAULT_NAMESPACES = [
 for _uri, _prefix in DEFAULT_NAMESPACES:
     ET.register_namespace(_prefix, _uri)
 
+# This one should not be registered
+XMP_NS_XML = "http://www.w3.org/XML/1998/namespace"
+
 XPACKET_BEGIN = b"""<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>\n"""
 
 XMP_EMPTY = b"""<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="pikepdf">
@@ -61,16 +64,29 @@ XMP_EMPTY = b"""<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="pikepdf">
 </x:xmpmeta>
 """
 
-XPACKET_END = b"""<?xpacket end="w"?>\n"""
+XPACKET_END = b"""\n<?xpacket end="w"?>\n"""
 
 TRIVIAL_XMP = (XPACKET_BEGIN + XMP_EMPTY + XPACKET_END)
 
 XmpContainer = namedtuple('XmpContainer', ['rdf_type', 'py_type', 'insert_fn'])
 
+
+class AltList(list):
+    pass
+
+
 XMP_CONTAINERS = [
+    XmpContainer('Alt', AltList, AltList.append),
     XmpContainer('Bag', set, set.add),
     XmpContainer('Seq', list, list.append),
 ]
+
+LANG_ALTS = frozenset([
+    str(QName(XMP_NS_DC, 'title')),
+    str(QName(XMP_NS_DC, 'description')),
+    str(QName(XMP_NS_DC, 'rights')),
+    str(QName(XMP_NS_XMP_RIGHTS, 'UsageTerms')),
+])
 
 # These are the illegal characters in XML 1.0. (XML 1.1 is a bit more permissive,
 # but we'll be strict to ensure wider compatibility.)
@@ -474,7 +490,12 @@ class PdfMetadata(MutableMapping):
                 c.rdf_type for c in XMP_CONTAINERS if isinstance(items, c.py_type)
             )
             seq = ET.SubElement(node, QName(XMP_NS_RDF, rdf_type))
+            if rdf_type == 'Alt':
+                attrib = {QName(XMP_NS_XML, 'lang'): 'x-default'}
+            else:
+                attrib = None
             for item in items:
+                el = ET.SubElement(seq, QName(XMP_NS_RDF, 'li'), attrib=attrib)
                 el.text = clean(item)
 
         try:
@@ -491,12 +512,17 @@ class PdfMetadata(MutableMapping):
             elif isinstance(val, str):
                 for child in node.findall('*'):
                     node.remove(child)
-                node.text = val
+                if str(self._qname(key)) in LANG_ALTS:
+                    add_array(node, AltList([clean(val)]))
+                else:
+                    node.text = clean(val)
             else:
                 raise TypeError(val)
         except StopIteration:
             # Insert a new node
             rdf = self._xmp.find('.//rdf:RDF', self.NS)
+            if str(self._qname(key)) in LANG_ALTS:
+                val = AltList([clean(val)])
             if isinstance(val, (list, set)):
                 rdfdesc = ET.SubElement(
                     rdf, QName(XMP_NS_RDF, 'Description'),
