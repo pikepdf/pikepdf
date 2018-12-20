@@ -15,11 +15,6 @@ env:
     # RTD_TOKEN
     - secure: "jD4S2pEvuf9oWv7RTWkdgrRw62WoUISiLFnPN9gPJ5ZeqdLeL8r3/+2x7tKa9xo6u6HWKVzo88+gg+HZCHIIZafWqxbhYsdl2g4dp3v807UVdp7rdqd7KkFl8/0XDR9p1J1g0RnRHp2qYtORqPZ0hustXnBQyiA0cA+a7qH9AWfhiU6iUV193YJAwYumSBeDAWgJN6OXAYKaZdLqynC/bmXYMfYM7Xg3sEnKv8eig+gQeSxyN2A/foTG/OgwUc8KVNTvO7w3xqXvfVUc7zm9P8Pdalay0V/8/0DAgZVSLjjnxqfOhmlDfE8OQeDLITBrD2GW0mPlSHP9ic0ymsltayR5Bg8opf3//+HBGoAyVDl0zwDVje4KX1QW2FzRri2ZQ+Lr25nvLkFIwQva2H+PuNUqB3Xw2JzZc4wsEqA83Y8Ijj8Cfc7Xd6hHIttWNe1D+n1tLSf123IW1QNMj7n2xr0AJi3ty1sTnr5WAgBEIR5WSy/roFdbHtLy/8wLE2AtKmhqKWndkSx17K45c35geuxmfthPrh6v1XPAgZZU0sza6dnrdD53WXwV8Z5+y4U+KD9YLf2gydfMSCrImdFWfjy3wMZci8Mn14uAZawwWyo2mfXvRXIVuUQdAx+uPnbkV4KzoAp7Xj7dJlpCxzphnX//1DLczOUJ6EdknbeIH6o="
 
-addons:
-  homebrew:
-    update: true
-    brewfile: .travis/Brewfile
-
 matrix:
   include:
   - env: PYTHON=3.5 GCC=4.8
@@ -63,9 +58,17 @@ matrix:
         config:
           retries: true
 
-  # - os: osx
-  #   osx_image: xcode8.3
-  #   language: generic
+  - os: osx
+    osx_image: xcode8.3
+    language: generic
+    addons:
+      homebrew:
+        update: true
+        packages:
+          - ccache
+          - exempi
+          - python
+          - qpdf
 
   - stage: wheels
     os: osx
@@ -75,7 +78,7 @@ matrix:
       - clang --version
       - $PYTHON_CMD --version
       - echo "CC=$CC CXX=$CXX"
-      - $PYTHON_CMD -m pip install pybind11 cibuildwheel==0.9.1 setuptools_scm
+      - $PYTHON_CMD -m pip install pybind11 cibuildwheel==0.10.0 setuptools_scm
     script:
       - $PYTHON_CMD setup.py sdist -d wheelhouse
       - export CCACHE_BASEDIR=`python3 -c "import tempfile; import os; print(os.path.realpath(tempfile.gettempdir()))"`
@@ -95,7 +98,7 @@ matrix:
     services:
       - docker
     install:
-      - $PYTHON_CMD -m pip install cibuildwheel==0.9.4
+      - $PYTHON_CMD -m pip install cibuildwheel==0.10.0
       #- mkdir gcc-x86_64 && wget -q https://github.com/Noctem/pogeo-toolchain/releases/download/v1.4/gcc-7.2-binutils-2.29-centos5-x86-64.tar.bz2 -O - | tar xj -C gcc-x86_64 --strip-components=1
       #- mkdir ccache && wget -q https://www.samba.org/ftp/ccache/ccache-3.3.4.tar.bz2 -O - | tar xj -C ccache --strip-components=1
       - mkdir qpdf && wget -q $QPDF_RELEASE -O - | tar xz -C qpdf --strip-components=1
