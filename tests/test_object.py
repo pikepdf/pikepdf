@@ -46,7 +46,8 @@ def test_binary_involution(binary_):
     assert bytes(encode(binary_)) == binary_
 
 
-@given(integers(max_value=9223372036854775807), integers(max_value=9223372036854775807))
+int64s = integers(min_value=-9223372036854775807, max_value=9223372036854775807)
+@given(int64s, int64s)
 def test_integer_comparison(a, b):
     equals = (a == b)
     encoded_equals = (encode(a) == encode(b))
