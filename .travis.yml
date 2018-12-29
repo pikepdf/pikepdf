@@ -79,6 +79,7 @@ matrix:
         update: true
         packages:
           - python
+          - qpdf
     install:
       - clang --version
       - $PYTHON_CMD --version
