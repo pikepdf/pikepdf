@@ -17,7 +17,7 @@ import re
 import sys
 from warnings import warn, filterwarnings
 
-from lxml import etree as ET
+from lxml import etree
 from lxml.etree import QName
 from lxml.etree import parse
 
@@ -51,7 +51,7 @@ DEFAULT_NAMESPACES = [
 ]
 
 for _uri, _prefix in DEFAULT_NAMESPACES:
-    ET.register_namespace(_prefix, _uri)
+    etree.register_namespace(_prefix, _uri)
 
 # This one should not be registered
 XMP_NS_XML = "http://www.w3.org/XML/1998/namespace"
@@ -288,7 +288,7 @@ class PdfMetadata(MutableMapping):
             self._xmp = parse(data)
             pis = self._xmp.xpath('/processing-instruction()')
             for pi in pis:
-                ET.strip_tags(self._xmp, pi.tag)
+                etree.strip_tags(self._xmp, pi.tag)
 
     @ensure_loaded
     def __enter__(self):
@@ -493,13 +493,13 @@ class PdfMetadata(MutableMapping):
             rdf_type = next(
                 c.rdf_type for c in XMP_CONTAINERS if isinstance(items, c.py_type)
             )
-            seq = ET.SubElement(node, QName(XMP_NS_RDF, rdf_type))
+            seq = etree.SubElement(node, QName(XMP_NS_RDF, rdf_type))
             if rdf_type == 'Alt':
                 attrib = {QName(XMP_NS_XML, 'lang'): 'x-default'}
             else:
                 attrib = None
             for item in items:
-                el = ET.SubElement(seq, QName(XMP_NS_RDF, 'li'), attrib=attrib)
+                el = etree.SubElement(seq, QName(XMP_NS_RDF, 'li'), attrib=attrib)
                 el.text = clean(item)
 
         try:
@@ -528,16 +528,16 @@ class PdfMetadata(MutableMapping):
             if str(self._qname(key)) in LANG_ALTS:
                 val = AltList([clean(val)])
             if isinstance(val, (list, set)):
-                rdfdesc = ET.SubElement(
+                rdfdesc = etree.SubElement(
                     rdf, QName(XMP_NS_RDF, 'Description'),
                     attrib={
                         QName(XMP_NS_RDF, 'about'): '',
                     },
                 )
-                node = ET.SubElement(rdfdesc, self._qname(key))
+                node = etree.SubElement(rdfdesc, self._qname(key))
                 add_array(node, val)
             elif isinstance(val, str):
-                rdfdesc = ET.SubElement(
+                rdfdesc = etree.SubElement(
                     rdf, QName(XMP_NS_RDF, 'Description'),
                     attrib={
                         QName(XMP_NS_RDF, 'about'): '',
