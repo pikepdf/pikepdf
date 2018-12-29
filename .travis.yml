@@ -74,6 +74,11 @@ matrix:
     os: osx
     osx_image: xcode8.3
     language: cpp  # osx + language: python is broken
+    addons:
+      homebrew:
+        update: true
+        packages:
+          - python
     install:
       - clang --version
       - $PYTHON_CMD --version
