@@ -288,6 +288,9 @@ class PdfMetadata(MutableMapping):
             self._create_xmp()
         else:
             self._xmp = parse(data)
+            pis = self._xmp.xpath('/processing-instruction()')
+            for pi in pis:
+                ET.strip_tags(self._xmp, pi.tag)
 
     @ensure_loaded
     def __enter__(self):
