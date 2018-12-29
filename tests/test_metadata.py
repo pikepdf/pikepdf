@@ -22,21 +22,25 @@ pytestmark = pytest.mark.filterwarnings('ignore:.*XMLParser.*:DeprecationWarning
 
 @pytest.fixture
 def vera(resources):
+    # Has XMP but no docinfo
     return Pdf.open(resources / 'veraPDF test suite 6-2-10-t02-pass-a.pdf')
 
 
 @pytest.fixture
 def graph(resources):
+    # Has XMP and docinfo, all standard format XMP
     return Pdf.open(resources / 'graph.pdf')
 
 
 @pytest.fixture
 def sandwich(resources):
+    # Has XMP, docinfo, <?adobe-xap-filters esc="CRLF"?>, shorthand attribute XMP
     return Pdf.open(resources / 'sandwich.pdf')
 
 
 @pytest.fixture
 def trivial(resources):
+    # Has no XMP or docinfo
     return Pdf.open(resources / 'pal-1bit-trivial.pdf')
 
 
@@ -238,3 +242,20 @@ def test_bad_char_rejection(trivial):
         xmp['dc:description'] = 'Bad characters \x00 \x01 \x02'
         xmp['dc:creator'] = ['\ue001bad', '\ufff0bad']
     ET.fromstring(str(xmp))
+
+
+def test_xpacket(sandwich):
+    xmpstr1 = sandwich.Root.Metadata.read_bytes()
+    xpacket_begin = b'<?xpacket begin='
+    xpacket_end = b'<?xpacket end='
+    assert xmpstr1.startswith(xpacket_begin)
+
+    with sandwich.open_metadata() as xmp:
+        xmp['dc:creator'] = 'Foo'
+
+    xmpstr2 = sandwich.Root.Metadata.read_bytes()
+    assert xmpstr2.startswith(xpacket_begin)
+    def only_one_substring(s, subs):
+        return s.find(subs) == s.rfind(subs)
+    assert only_one_substring(xmpstr2, xpacket_begin)
+    assert only_one_substring(xmpstr2, xpacket_end)

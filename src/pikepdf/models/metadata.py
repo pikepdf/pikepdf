@@ -335,18 +335,12 @@ class PdfMetadata(MutableMapping):
         data = BytesIO()
         if xpacket:
             data.write(XPACKET_BEGIN)
-        self._xmp.write(data, encoding='utf-8')
+        self._xmp.write_c14n(data)
         if xpacket:
             data.write(XPACKET_END)
         data.seek(0)
-        unclean_xml_bytes = data.read()
-        unclean_xml = unclean_xml_bytes.decode('utf-8')
-        # Python's XML libraries do not strip illegal characters - best place
-        # to control this is here, at the serialization level, even though
-        # it involves a lot of roundtripping
-        clean_xml = re_xml_illegal_chars.sub('', unclean_xml)
-        clean_xml_bytes = clean_xml.encode('utf-8')
-        return clean_xml_bytes
+        xml_bytes = data.read()
+        return xml_bytes
 
     def _apply_changes(self):
         """Serialize our changes back to the PDF in memory
