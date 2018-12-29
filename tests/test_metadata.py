@@ -142,6 +142,7 @@ def test_roundtrip(filename):
         for k in xmp.keys():
             if not 'Date' in k:
                 xmp[k] = 'A'
+    assert '<?xpacket' not in str(xmp)
 
 
 def test_build_metadata(trivial, graph, outdir):

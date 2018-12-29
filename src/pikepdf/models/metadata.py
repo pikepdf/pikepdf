@@ -56,7 +56,7 @@ for _uri, _prefix in DEFAULT_NAMESPACES:
 # This one should not be registered
 XMP_NS_XML = "http://www.w3.org/XML/1998/namespace"
 
-XPACKET_BEGIN = b"""<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>\n"""
+XPACKET_BEGIN = b"""<?xpacket begin="\xef\xbb\xbf" id="W5M0MpCehiHzreSzNTczkc9d"?>\n"""
 
 XMP_EMPTY = b"""<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="pikepdf">
  <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
@@ -65,8 +65,6 @@ XMP_EMPTY = b"""<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="pikepdf">
 """
 
 XPACKET_END = b"""\n<?xpacket end="w"?>\n"""
-
-TRIVIAL_XMP = (XPACKET_BEGIN + XMP_EMPTY + XPACKET_END)
 
 XmpContainer = namedtuple('XmpContainer', ['rdf_type', 'py_type', 'insert_fn'])
 
@@ -256,7 +254,7 @@ class PdfMetadata(MutableMapping):
         self._updating = False
 
     def _create_xmp(self):
-        self._xmp = parse(BytesIO(TRIVIAL_XMP))
+        self._xmp = parse(BytesIO(XMP_EMPTY))
 
     def load_from_docinfo(self, docinfo, delete_missing=False):
         """Populate the XMP metadata object with DocumentInfo
@@ -400,7 +398,10 @@ class PdfMetadata(MutableMapping):
         """
         items = node.find('rdf:Alt', self.NS)
         if items is not None:
-            return items[0].text
+            try:
+                return items[0].text
+            except IndexError:
+                return ''
 
         for xmlcontainer, container, insertfn in XMP_CONTAINERS:
             items = node.find('rdf:{}'.format(xmlcontainer), self.NS)
