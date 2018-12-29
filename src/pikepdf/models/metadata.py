@@ -19,7 +19,7 @@ from warnings import warn, filterwarnings
 
 from lxml import etree
 from lxml.etree import QName
-from lxml.etree import parse
+from defusedxml.lxml import parse
 
 from .. import Stream, Name, String
 
@@ -96,7 +96,7 @@ re_xml_illegal_chars = re.compile(
 try:
     pikepdf_version = _get_distribution(__name__).version
 except DistributionNotFound:
-    pikepdf_version = "unknown version"
+    pikepdf_version = ""
 
 
 def encode_pdf_date(d: datetime) -> str:
