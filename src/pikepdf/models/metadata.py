@@ -439,7 +439,8 @@ class PdfMetadata(MutableMapping):
                 for k, v in rdfdesc.items():
                     if v:
                         yield (rdfdesc, k, v, rdf)
-            for node in rdfdesc.findall('.//{}'.format(qname), self.NS):
+            xpath = qname if name else '*'
+            for node in rdfdesc.findall(xpath, self.NS):
                 if node.text and node.text.strip():
                     yield (node, None, node.text, rdfdesc)
                     continue

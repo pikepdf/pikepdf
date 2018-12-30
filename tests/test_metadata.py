@@ -259,3 +259,10 @@ def test_xpacket(sandwich):
         return s.find(subs) == s.rfind(subs)
     assert only_one_substring(xmpstr2, xpacket_begin)
     assert only_one_substring(xmpstr2, xpacket_end)
+
+
+def test_no_rdf_subtags(graph):
+    xmp = graph.open_metadata()
+    assert '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}Alt' not in xmp.keys()
+    assert '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}Bag' not in xmp.keys()
+    assert '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}li' not in xmp.keys()
