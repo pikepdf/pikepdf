@@ -9,6 +9,18 @@ The pikepdf API (as provided by ``import pikepdf``) is quite stable and is in pr
 
 Note that the C++ extension module ``pikepdf._qpdf`` is a private interface within pikepdf that applications should not use directly.
 
+v0.10.0
+=======
+
+Fixes
+-----
+
+* Fixed several issues related to generating XMP metadata that passed veraPDF validation.
+
+* Fixed a random test suite failure for very large negative integers.
+
+* The lxml library is now required.
+
 v0.9.2
 ======
 
@@ -20,7 +32,6 @@ Fixes
 * Skip a test that fails on Windows.
 
 * Fixed build errors in documentation.
-
 
 v0.9.1
 ======
