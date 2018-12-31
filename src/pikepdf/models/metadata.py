@@ -335,7 +335,7 @@ class PdfMetadata(MutableMapping):
         data = BytesIO()
         if xpacket:
             data.write(XPACKET_BEGIN)
-        self._xmp.write_c14n(data)
+        self._xmp.write(data, encoding='utf-8', pretty_print=True)
         if xpacket:
             data.write(XPACKET_END)
         data.seek(0)
