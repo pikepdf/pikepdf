@@ -547,9 +547,12 @@ class PdfMetadata(MutableMapping):
         try:
             node, attrib, _oldval, parent = next(self._get_elements(key))
             if attrib:  # Inline
-                # TODO multiple attribs?
-                pass
-            parent.remove(node)
+                del node.attrib[attrib]
+                if len(node.attrib) == 1 and len(node) == 0 and QName(XMP_NS_RDF, 'about') in node.attrib:
+                    # The only thing left on this node is rdf:about="", so remove it
+                    parent.remove(node)
+            else:
+                parent.remove(node)
         except StopIteration:
             raise KeyError(key)
 

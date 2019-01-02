@@ -1,5 +1,6 @@
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
+import re
 
 import pytest
 import pikepdf
@@ -264,3 +265,16 @@ def test_no_rdf_subtags(graph):
     assert '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}Alt' not in xmp.keys()
     assert '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}Bag' not in xmp.keys()
     assert '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}li' not in xmp.keys()
+
+
+def test_remove_attribute_metadata(sandwich):
+    with sandwich.open_metadata() as xmp:
+        del xmp['pdfaid:part']
+    assert 'pdfaid:part' not in xmp
+    assert 'pdfaid:conformance' in xmp
+
+    with sandwich.open_metadata() as xmp:
+        del xmp['pdfaid:conformance']
+
+    # Ensure the whole node was deleted
+    assert not re.search(r'rdf:Description xmlns:[^\s]+ rdf:about=""/', str(xmp))
