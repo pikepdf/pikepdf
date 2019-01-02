@@ -1,5 +1,5 @@
 from pathlib import Path
-from datetime import datetime, tzinfo, timezone, timedelta
+from datetime import datetime, timezone, timedelta
 
 import pytest
 import pikepdf
@@ -18,6 +18,8 @@ except ImportError:
     XMPMeta = None
 
 pytestmark = pytest.mark.filterwarnings('ignore:.*XMLParser.*:DeprecationWarning')
+
+# pylint: disable=w0621
 
 
 @pytest.fixture
@@ -189,9 +191,7 @@ def test_python_xmp_validate_change_list(graph):
     with graph.open_metadata() as xmp:
         assert 'dc:creator' in xmp
         xmp['dc:creator'] = ['Dobby', 'Kreacher']
-
-    xmp_str = str(xmp).replace('\n', '')
-
+    assert str(xmp)
     if not XMPMeta:
         pytest.skip(msg='needs libxmp')
     xmpmeta = XMPMeta(xmp_str=str(xmp))
@@ -205,9 +205,7 @@ def test_python_xmp_validate_change(sandwich):
         assert 'xmp:CreatorTool' in xmp
         xmp['xmp:CreatorTool'] = 'Creator'  # Exists as a xml tag text
         xmp['pdf:Producer'] = 'Producer'  # Exists as a tag node
-
-    xmp_str = str(xmp).replace('\n', '')
-
+    assert str(xmp)
     if not XMPMeta:
         pytest.skip(msg='needs libxmp')
     xmpmeta = XMPMeta(xmp_str=str(xmp))

@@ -15,7 +15,6 @@ from pkg_resources import (
 )
 import re
 import sys
-from warnings import warn, filterwarnings
 
 from lxml import etree
 from lxml.etree import QName
@@ -166,7 +165,6 @@ class AuthorConverter:
 
 if sys.version_info < (3, 7):
     def fromisoformat(datestr):
-        import re
         # strptime %z can't parse a timezone with punctuation
         if re.search(r'[+-]\d{2}[-:]\d{2}$', datestr):
             datestr = datestr[:-3] + datestr[-2:]
@@ -499,7 +497,7 @@ class PdfMetadata(MutableMapping):
 
         try:
             # Locate existing node to replace
-            node, attrib, _oldval, parent = next(self._get_elements(key))
+            node, attrib, _oldval, _parent = next(self._get_elements(key))
             if attrib:
                 if not isinstance(val, str):
                     raise TypeError(val)

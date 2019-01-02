@@ -15,7 +15,6 @@ We can also move the implementation to C++ if desired.
 from tempfile import NamedTemporaryFile
 from subprocess import run, PIPE
 from io import BytesIO
-from functools import wraps
 
 from collections.abc import KeysView
 
