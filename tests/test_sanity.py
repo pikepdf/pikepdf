@@ -125,8 +125,4 @@ def test_open_save(resources, outdir):
     out = str(outdir / 'graph.pdf')
     copy(str(resources / 'graph.pdf'), out)
     src = Pdf.open(out)
-    if sys.platform == 'win32':
-        with pytest.raises(PermissionError):
-            src.save(out)
-    else:
-        src.save(out)
+    src.save(out)
