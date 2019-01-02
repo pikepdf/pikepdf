@@ -199,6 +199,9 @@ void save_pdf(
     } else {
         py::object filename = filename_or_stream;
         std::string description = py::str(filename);
+        // Delete the intended filename, in case it is the same as the input file.
+        // This ensures that the input file will continue to exist in memory on Linux.
+        portable_unlink(filename);
         FILE* file = portable_fopen(filename, "wb");
         w.setOutputFile(description.c_str(), file, true);
         w.write();
@@ -256,7 +259,9 @@ PYBIND11_MODULE(_qpdf, m) {
             R"~~~(
             Open an existing file at `filename_or_stream`.
 
-            If `filename_or_stream` is path-like, the file will be opened.
+            If `filename_or_stream` is path-like, the file will be opened. The
+            file should not be modified by another process while it is open in
+            pikepdf.
 
             If `filename_or_stream` has `.read()` and `.seek()` methods, the file
             will be accessed as a readable binary stream. pikepdf will read the
@@ -421,7 +426,8 @@ PYBIND11_MODULE(_qpdf, m) {
             Save all modifications to this :class:`pikepdf.Pdf`
 
             Args:
-                filename (str or stream): Where to write the output
+                filename (str or stream): Where to write the output. If a file
+                    exists in this location it will be overwritten.
 
                 static_id (bool): Indicates that the ``/ID`` metadata, normally
                     calculated as a hash of certain PDF contents and metadata

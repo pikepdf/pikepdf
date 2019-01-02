@@ -86,3 +86,20 @@ FILE *portable_fopen(py::object filename, const char* mode)
         throw;
     }
 }
+
+/* Delete a filename
+ *
+ * equivalent to
+ * with suppress(FileNotFoundError):
+ *     os.unlink(f)
+ */
+void portable_unlink(py::object filename)
+{
+    auto path = fspath(filename);
+    auto os_unlink = py::module::import("os").attr("unlink");
+    try {
+        os_unlink(path);
+    } catch (const std::exception &e) {  // py::filenotfound_error doesn't work; pybind11 issue?
+        // Discard exception
+    }
+}

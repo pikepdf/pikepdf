@@ -7,6 +7,7 @@ import pytest
 import gc
 from contextlib import suppress
 from shutil import copy
+import sys
 
 import pikepdf
 from pikepdf import Pdf, Object, Name, Stream
@@ -118,3 +119,14 @@ def test_copy_page_keepalive(resources, outdir):
     with suppress(PermissionError):
         (outdir / 'sandwich.pdf').unlink()
     pdf.save(outdir / 'out.pdf')
+
+
+def test_open_save(resources, outdir):
+    out = str(outdir / 'graph.pdf')
+    copy(str(resources / 'graph.pdf'), out)
+    src = Pdf.open(out)
+    if sys.platform == 'win32':
+        with pytest.raises(PermissionError):
+            src.save(out)
+    else:
+        src.save(out)
