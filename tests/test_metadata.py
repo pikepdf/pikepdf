@@ -47,6 +47,12 @@ def trivial(resources):
     return Pdf.open(resources / 'pal-1bit-trivial.pdf')
 
 
+@pytest.fixture
+def enron(resources):
+    # Has nuls in docinfo, old PDF
+    return Pdf.open(resources / 'enron.pdf')
+
+
 def test_lowlevel(sandwich):
     meta = sandwich.open_metadata()
     assert meta._qname('pdf:Producer') == '{http://ns.adobe.com/pdf/1.3/}Producer'
@@ -278,3 +284,8 @@ def test_remove_attribute_metadata(sandwich):
 
     # Ensure the whole node was deleted
     assert not re.search(r'rdf:Description xmlns:[^\s]+ rdf:about=""/', str(xmp))
+
+
+def test_nuls(enron):
+    meta = enron.open_metadata()
+    meta._load()  # File has invalid XML sequence &#0;

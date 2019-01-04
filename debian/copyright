@@ -47,6 +47,12 @@ License: public-domain
  From US Congressional Records.
 Comment: Converted from JPEG to PDF.
 
+Files: test/resources/enron.pdf
+Copyright: EnronData.org
+License: CC-BY-3.0
+ See: https://enrondata.readthedocs.io/en/latest/data/edo-enron-email-pst-dataset/
+Comment: Processed by Ghostscript 9.26.
+
 Files: tests/resources/graph*.pdf
 Copyright: Public domain
 License: public-domain

@@ -17,10 +17,10 @@ import re
 import sys
 
 from lxml import etree
-from lxml.etree import QName
+from lxml.etree import QName, XMLSyntaxError
 from defusedxml.lxml import parse
 
-from .. import Stream, Name, String
+from .. import Stream, Name, String, PdfError
 
 XMP_NS_DC = "http://purl.org/dc/elements/1.1/"
 XMP_NS_PDF = "http://ns.adobe.com/pdf/1.3/"
@@ -89,6 +89,9 @@ LANG_ALTS = frozenset([
 # but we'll be strict to ensure wider compatibility.)
 re_xml_illegal_chars = re.compile(
     r"(?u)[^\x09\x0A\x0D\x20-\uD7FF\uE000-\uFFFD\u10000-\u10FFFF]"
+)
+re_xml_illegal_bytes = re.compile(
+    br"[^\x09\x0A\x0D\x20-\xFF]|&#0;"
 )
 
 # Repeat this to avoid circular from top package's pikepdf.__version__
@@ -251,9 +254,6 @@ class PdfMetadata(MutableMapping):
         self.sync_docinfo = sync_docinfo
         self._updating = False
 
-    def _create_xmp(self):
-        self._xmp = parse(BytesIO(XMP_EMPTY))
-
     def load_from_docinfo(self, docinfo, delete_missing=False):
         """Populate the XMP metadata object with DocumentInfo
 
@@ -279,14 +279,23 @@ class PdfMetadata(MutableMapping):
 
     def _load(self):
         try:
-            data = BytesIO(self._pdf.Root.Metadata.get_stream_buffer())
+            data = self._pdf.Root.Metadata.read_bytes()
         except AttributeError:
-            self._create_xmp()
-        else:
-            self._xmp = parse(data)
-            pis = self._xmp.xpath('/processing-instruction()')
-            for pi in pis:
-                etree.strip_tags(self._xmp, pi.tag)
+            data = XMP_EMPTY
+        self._load_from(data)
+
+    def _load_from(self, data):
+        try:
+            self._xmp = parse(BytesIO(data))
+        except XMLSyntaxError:
+            data = re_xml_illegal_bytes.sub(b'', data)
+            try:
+                self._xmp = parse(BytesIO(data))
+            except XMLSyntaxError as e:
+                raise PdfError() from e
+        pis = self._xmp.xpath('/processing-instruction()')
+        for pi in pis:
+            etree.strip_tags(self._xmp, pi.tag)
 
     @ensure_loaded
     def __enter__(self):
