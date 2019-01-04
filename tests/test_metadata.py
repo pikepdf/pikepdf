@@ -48,9 +48,15 @@ def trivial(resources):
 
 
 @pytest.fixture
-def enron(resources):
+def enron1(resources):
     # Has nuls in docinfo, old PDF
-    return Pdf.open(resources / 'enron.pdf')
+    return Pdf.open(resources / 'enron1_gs.pdf')
+
+
+@pytest.fixture
+def enron2(resources):
+    # Has nuls in docinfo, old PDF
+    return Pdf.open(resources / 'enron2.pdf')
 
 
 def test_lowlevel(sandwich):
@@ -286,6 +292,10 @@ def test_remove_attribute_metadata(sandwich):
     assert not re.search(r'rdf:Description xmlns:[^\s]+ rdf:about=""/', str(xmp))
 
 
-def test_nuls(enron):
-    meta = enron.open_metadata()
+def test_docinfo_problems(enron1, enron2):
+    meta = enron1.open_metadata()
     meta._load()  # File has invalid XML sequence &#0;
+    with meta:
+        with pytest.warns(UserWarning) as warned:
+            meta.load_from_docinfo(enron2.docinfo)
+        assert 'could not be copied' in warned[0].message.args[0]

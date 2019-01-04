@@ -13,6 +13,7 @@ from pkg_resources import (
     get_distribution as _get_distribution,
     DistributionNotFound
 )
+from warnings import warn
 import re
 import sys
 
@@ -270,12 +271,15 @@ class PdfMetadata(MutableMapping):
                 if delete_missing and qname in self:
                     del self[qname]
                 continue
-            val = str(val)
-            if converter:
-                val = converter.xmp_from_docinfo(val)
-            if not val:
-                continue
-            self[qname] = val
+            try:
+                val = str(val)
+                if converter:
+                    val = converter.xmp_from_docinfo(val)
+                if not val:
+                    continue
+                self[qname] = val
+            except (ValueError, AttributeError) as e:
+                warn("The metadata field {} could not be copied to XMP".format(docinfo_name))
 
     def _load(self):
         try:
