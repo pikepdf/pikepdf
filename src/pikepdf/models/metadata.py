@@ -255,8 +255,15 @@ class PdfMetadata(MutableMapping):
         self.sync_docinfo = sync_docinfo
         self._updating = False
 
-    def load_from_docinfo(self, docinfo, delete_missing=False):
+    def load_from_docinfo(self, docinfo, delete_missing=False, raise_failure=False):
         """Populate the XMP metadata object with DocumentInfo
+
+        Arguments:
+            docinfo: a DocumentInfo, e.g pdf.docinfo
+            delete_missing: if the entry is not DocumentInfo, delete the equivalent
+                from XMP
+            raise_failure: if True, raise any failure to convert docinfo;
+                otherwise warn and continue
 
         A few entries in the deprecated DocumentInfo dictionary are considered
         approximately equivalent to certain XMP records. This method copies
@@ -279,7 +286,11 @@ class PdfMetadata(MutableMapping):
                     continue
                 self[qname] = val
             except (ValueError, AttributeError) as e:
-                warn("The metadata field {} could not be copied to XMP".format(docinfo_name))
+                msg = "The metadata field {} could not be copied to XMP".format(docinfo_name)
+                if raise_failure:
+                    raise ValueError(msg) from e
+                else:
+                    warn(msg)
 
     def _load(self):
         try:

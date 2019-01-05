@@ -299,3 +299,5 @@ def test_docinfo_problems(enron1, enron2):
         with pytest.warns(UserWarning) as warned:
             meta.load_from_docinfo(enron2.docinfo)
         assert 'could not be copied' in warned[0].message.args[0]
+        with pytest.raises(ValueError):
+            meta.load_from_docinfo(enron2.docinfo, raise_failure=True)

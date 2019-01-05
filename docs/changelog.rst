@@ -9,10 +9,15 @@ The pikepdf API (as provided by ``import pikepdf``) is quite stable and is in pr
 
 Note that the C++ extension module ``pikepdf._qpdf`` is a private interface within pikepdf that applications should not use directly.
 
+v1.0.2
+======
+
+* Fixed an issue where invalid values such as out of range years (e.g. 0) in DocumentInfo would raise exceptions when using DocumentInfo to populate XMP metadata with ``.load_from_docinfo``.
+
 v1.0.1
 ======
 
-* Fixed an exception with handling metadata that contains the invalid XML entity &#0; (an escaped NUL)
+* Fixed an exception with handling metadata that contains the invalid XML entity ``&#0;`` (an escaped NUL)
 
 v1.0.0
 ======
