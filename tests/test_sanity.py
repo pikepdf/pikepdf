@@ -131,8 +131,7 @@ def test_open_save(resources, outdir):
 def test_readme_example(resources, outdir):
     # Elegant, Pythonic API
     pdf = pikepdf.open(resources / 'fourpages.pdf')
-    num_pages = len(pdf.pages)
-    assert num_pages == 4
+    assert len(pdf.pages) == 4
     del pdf.pages[-1]
-    assert num_pages == 3
+    assert len(pdf.pages) == 3
     pdf.save(outdir / 'output.pdf')
