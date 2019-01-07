@@ -126,3 +126,13 @@ def test_open_save(resources, outdir):
     copy(str(resources / 'graph.pdf'), out)
     src = Pdf.open(out)
     src.save(out)
+
+
+def test_readme_example(resources, outdir):
+    # Elegant, Pythonic API
+    pdf = pikepdf.open(resources / 'fourpages.pdf')
+    num_pages = len(pdf.pages)
+    assert num_pages == 4
+    del pdf.pages[-1]
+    assert num_pages == 3
+    pdf.save(outdir / 'output.pdf')

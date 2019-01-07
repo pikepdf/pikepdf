@@ -19,7 +19,7 @@ class PageList {
 public:
     PageList(std::shared_ptr<QPDF> q, size_t iterpos = 0) : iterpos(iterpos), qpdf(q) {};
 
-    QPDFObjectHandle get_page(ssize_t index) const;
+    QPDFObjectHandle get_page(size_t index) const;
     py::list get_pages(py::slice slice) const;
     void set_page(size_t index, py::object page);
     void set_pages_from_iterable(py::slice slice, py::iterable other);

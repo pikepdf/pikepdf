@@ -7,11 +7,23 @@ import gc
 
 from sys import getrefcount as refcount
 
+@pytest.fixture
+def graph(resources):
+    return Pdf.open(resources / 'graph.pdf')
 
-def test_split_pdf(resources, outdir):
-    q = Pdf.open(resources / "fourpages.pdf")
 
-    for n, page in enumerate(q.pages):
+@pytest.fixture
+def fourpages(resources):
+    return Pdf.open(resources / 'fourpages.pdf')
+
+
+@pytest.fixture
+def sandwich(resources):
+    return Pdf.open(resources / 'sandwich.pdf')
+
+
+def test_split_pdf(fourpages, outdir):
+    for n, page in enumerate(fourpages.pages):
         outpdf = Pdf.new()
         outpdf.pages.append(page)
         outpdf.save(outdir / "page{}.pdf".format(n + 1))
@@ -26,15 +38,15 @@ def test_empty_pdf(outdir):
     q.save(outdir / 'empty.pdf')
 
 
-def test_delete_last_page(resources, outdir):
-    q = Pdf.open(resources / 'graph.pdf')
+def test_delete_last_page(graph, outdir):
+    q = graph
     del q.pages[0]
     q.save(outdir / 'empty.pdf')
 
 
-def test_replace_page(resources):
-    q = Pdf.open(resources / "fourpages.pdf")
-    q2 = Pdf.open(resources / "graph.pdf")
+def test_replace_page(graph, fourpages):
+    q = fourpages
+    q2 = graph
 
     assert len(q.pages) == 4
     q.pages[1] = q2.pages[0]
@@ -43,15 +55,15 @@ def test_replace_page(resources):
         q2.pages[0].Resources.XObject.keys()
 
 
-def test_hard_replace_page(resources, outdir):
-    q = Pdf.open(resources / "fourpages.pdf")
-    q2 = Pdf.open(resources / "graph.pdf")
+def test_hard_replace_page(fourpages, graph, sandwich, outdir):
+    q = fourpages
+    q2 = graph
 
     q2_page = q2.pages[0]
     del q2
     q.pages[1] = q2_page
 
-    q2 = Pdf.open(resources / 'sandwich.pdf')
+    q2 = sandwich
     q2_page = q2.pages[0]
     q.pages[2] = q2_page
     del q2
@@ -108,9 +120,9 @@ def test_evil_page_deletion(resources, outdir):
     # of it to another PDF
 
 
-def test_append_all(resources, outdir):
-    pdf = Pdf.open(resources / 'sandwich.pdf')
-    pdf2 = Pdf.open(resources / 'fourpages.pdf')
+def test_append_all(sandwich, fourpages, outdir):
+    pdf = sandwich
+    pdf2 = fourpages
 
     for page in pdf2.pages:
         pdf.pages.append(page)
@@ -119,9 +131,9 @@ def test_append_all(resources, outdir):
     pdf.save(outdir / 'out.pdf')
 
 
-def test_extend_delete(resources, outdir):
-    pdf = Pdf.open(resources / 'sandwich.pdf')
-    pdf2 = Pdf.open(resources / 'fourpages.pdf')
+def test_extend_delete(sandwich, fourpages, outdir):
+    pdf = sandwich
+    pdf2 = fourpages
     pdf.pages.extend(pdf2.pages)
 
     assert len(pdf.pages) == 5
@@ -131,9 +143,9 @@ def test_extend_delete(resources, outdir):
     pdf.save(outdir / 'out.pdf')
 
 
-def test_slice_unequal_replacement(resources, outdir):
-    pdf = Pdf.open(resources / 'fourpages.pdf')
-    pdf2 = Pdf.open(resources / 'sandwich.pdf')
+def test_slice_unequal_replacement(fourpages, sandwich, outdir):
+    pdf = fourpages
+    pdf2 = sandwich
 
     assert len(pdf.pages[1:]) != len(pdf2.pages)
     page0_content_len = int(pdf.pages[0].Contents.Length)
@@ -148,9 +160,9 @@ def test_slice_unequal_replacement(resources, outdir):
         "page 1's contents should have changed"
 
 
-def test_slice_with_step(resources, outdir):
-    pdf = Pdf.open(resources / 'fourpages.pdf')
-    pdf2 = Pdf.open(resources / 'sandwich.pdf')
+def test_slice_with_step(fourpages, sandwich, outdir):
+    pdf = fourpages
+    pdf2 = sandwich
 
     pdf2.pages.extend(pdf2.pages[:])
     assert len(pdf2.pages) == 2
@@ -163,9 +175,9 @@ def test_slice_with_step(resources, outdir):
                for page in pdf.pages[0::2])
 
 
-def test_slice_differing_lengths(resources):
-    pdf = Pdf.open(resources / 'fourpages.pdf')
-    pdf2 = Pdf.open(resources / 'sandwich.pdf')
+def test_slice_differing_lengths(fourpages, sandwich):
+    pdf = fourpages
+    pdf2 = sandwich
 
     with pytest.raises(ValueError,
             message="attempt to assign"):
@@ -173,15 +185,15 @@ def test_slice_differing_lengths(resources):
 
 
 @pytest.mark.timeout(1)
-def test_self_extend(resources):
-    pdf = Pdf.open(resources / 'fourpages.pdf')
+def test_self_extend(fourpages):
+    pdf = fourpages
     with pytest.raises(ValueError,
             message="source page list modified during iteration"):
         pdf.pages.extend(pdf.pages)
 
 
-def test_one_based_pages(resources):
-    pdf = Pdf.open(resources / 'fourpages.pdf')
+def test_one_based_pages(fourpages):
+    pdf = fourpages
     assert pdf.pages.p(1) == pdf.pages[0]
     assert pdf.pages.p(4) == pdf.pages[-1]
     with pytest.raises(IndexError):
@@ -190,8 +202,8 @@ def test_one_based_pages(resources):
         pdf.pages.p(0)
 
 
-def test_page_contents_add(resources, outdir):
-    pdf = Pdf.open(resources / 'graph.pdf')
+def test_page_contents_add(graph, outdir):
+    pdf = graph
 
     mat = PdfMatrix().rotated(45)
 
@@ -203,15 +215,28 @@ def test_page_contents_add(resources, outdir):
     pdf.save(outdir / 'out.pdf')
 
 
-def test_bad_access(resources):
-    pdf = Pdf.open(resources / 'fourpages.pdf')
+def test_bad_access(fourpages):
+    pdf = fourpages
     with pytest.raises(IndexError):
         pdf.pages[-100]
     with pytest.raises(IndexError):
         pdf.pages[500]
 
 
-def test_bad_insert(resources):
-    pdf = Pdf.open(resources / 'fourpages.pdf')
+def test_bad_insert(fourpages):
+    pdf = fourpages
     with pytest.raises(TypeError):
         pdf.pages.insert(0, 'this is a string not a page')
+
+
+def test_negative_indexing(fourpages, graph):
+    fourpages.pages[-1]
+    fourpages.pages[-1] = graph.pages[-1]
+    del fourpages.pages[-1]
+    fourpages.pages.insert(-2, graph.pages[-1])
+    with pytest.raises(IndexError):
+        fourpages.pages[-42]
+    with pytest.raises(IndexError):
+        fourpages.pages[-42] = graph.pages[0]
+    with pytest.raises(IndexError):
+        del fourpages.pages[-42]

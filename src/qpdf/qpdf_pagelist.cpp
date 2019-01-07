@@ -22,7 +22,17 @@ static void assert_pyobject_is_page(py::handle obj)
     }
 }
 
-QPDFObjectHandle PageList::get_page(ssize_t index) const
+size_t uindex_from_index(PageList &pl, ssize_t index)
+{
+    if (index < 0)
+        index += pl.count();
+    if (index < 0) // Still
+        throw py::index_error("Accessing nonexistent PDF page number");
+    size_t uindex = index;
+    return uindex;
+}
+
+QPDFObjectHandle PageList::get_page(size_t index) const
 {
     auto pages = this->qpdf->getAllPages();
     if (index < 0)
@@ -196,11 +206,26 @@ void PageList::insert_page(size_t index, QPDFObjectHandle page)
 void init_pagelist(py::module &m)
 {
     py::class_<PageList>(m, "PageList")
-        .def("__getitem__", &PageList::get_page, py::keep_alive<0, 1>())
+        .def("__getitem__",
+            [](PageList &pl, ssize_t index) {
+                size_t uindex = uindex_from_index(pl, index);
+                return pl.get_page(uindex);
+            }
+        )
         .def("__getitem__", &PageList::get_pages)
-        .def("__setitem__", &PageList::set_page)
+        .def("__setitem__",
+            [](PageList &pl, ssize_t index, py::object page) {
+                size_t uindex = uindex_from_index(pl, index);
+                pl.set_page(uindex, page);
+            }
+        )
         .def("__setitem__", &PageList::set_pages_from_iterable)
-        .def("__delitem__", &PageList::delete_page)
+        .def("__delitem__",
+            [](PageList &pl, ssize_t index) {
+                size_t uindex = uindex_from_index(pl, index);
+                pl.delete_page(uindex);
+            }
+        )
         .def("__delitem__", &PageList::delete_pages_from_iterable)
         .def("__len__", &PageList::count)
         .def("p",
@@ -224,8 +249,9 @@ void init_pagelist(py::module &m)
             }
         )
         .def("insert",
-            [](PageList &pl, size_t index, py::object obj) {
-                pl.insert_page(index, obj);
+            [](PageList &pl, ssize_t index, py::object obj) {
+                size_t uindex = uindex_from_index(pl, index);
+                pl.insert_page(uindex, obj);
             }, py::keep_alive<1, 3>()
         )
         .def("reverse",
