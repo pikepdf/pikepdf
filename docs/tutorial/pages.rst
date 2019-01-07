@@ -190,10 +190,8 @@ numbers:
 
     In [1]: pdf.pages[0]          # Also the first page in the document
 
-    In [1]: del pdf.pages.p(1)    # This would delete the first page
-
 To avoid confusion, the ``.p()`` accessor does not accept Python slices,
-and ``.p(0)`` raises an exception.
+and ``.p(0)`` raises an exception. It is also not possible to delete using it.
 
 PDFs may define their own numbering scheme or different numberings for
 different sections, such as using Roman numerals for an introductory section.
