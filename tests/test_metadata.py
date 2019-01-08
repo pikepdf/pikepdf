@@ -54,9 +54,9 @@ def enron1(resources):
 
 
 @pytest.fixture
-def enron2(resources):
+def invalid_creationdate(resources):
     # Has nuls in docinfo, old PDF
-    return Pdf.open(resources / 'enron2.pdf')
+    return Pdf.open(resources / 'invalid_creationdate.pdf')
 
 
 def test_lowlevel(sandwich):
@@ -292,12 +292,12 @@ def test_remove_attribute_metadata(sandwich):
     assert not re.search(r'rdf:Description xmlns:[^\s]+ rdf:about=""/', str(xmp))
 
 
-def test_docinfo_problems(enron1, enron2):
+def test_docinfo_problems(enron1, invalid_creationdate):
     meta = enron1.open_metadata()
     meta._load()  # File has invalid XML sequence &#0;
     with meta:
         with pytest.warns(UserWarning) as warned:
-            meta.load_from_docinfo(enron2.docinfo)
+            meta.load_from_docinfo(invalid_creationdate.docinfo)
         assert 'could not be copied' in warned[0].message.args[0]
         with pytest.raises(ValueError):
-            meta.load_from_docinfo(enron2.docinfo, raise_failure=True)
+            meta.load_from_docinfo(invalid_creationdate.docinfo, raise_failure=True)

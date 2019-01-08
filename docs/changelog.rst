@@ -9,6 +9,11 @@ The pikepdf API (as provided by ``import pikepdf``) is quite stable and is in pr
 
 Note that the C++ extension module ``pikepdf._qpdf`` is a private interface within pikepdf that applications should not use directly.
 
+v1.0.4
+======
+
+* Updates to tests/resources (provenance of one test file, replaced another test file with a synthetic one)
+
 v1.0.3
 ======
 
