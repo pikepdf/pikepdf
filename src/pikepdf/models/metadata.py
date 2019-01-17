@@ -341,9 +341,14 @@ class PdfMetadata(MutableMapping):
                     del self._pdf.docinfo[docinfo_name]
                 continue
             if converter:
-                value = converter.docinfo_from_xmp(value)
+                try:
+                    value = converter.docinfo_from_xmp(value)
+                except ValueError:
+                    warn("The DocumentInfo field {} could not be updated from XMP".format(docinfo_name))
+                    value = None
             if value is None:
-                del self._pdf.docinfo[docinfo_name]
+                if docinfo_name in self._pdf.docinfo:
+                    del self._pdf.docinfo[docinfo_name]
                 continue
             value = re_xml_illegal_chars.sub('', value)
             try:

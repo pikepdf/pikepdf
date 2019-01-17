@@ -3,6 +3,8 @@ from datetime import datetime, timezone, timedelta
 import re
 
 import pytest
+from hypothesis import given
+from hypothesis.strategies import integers
 import pikepdf
 from pikepdf import Pdf, Dictionary, Name, PasswordError
 from pikepdf.models.metadata import (
@@ -248,6 +250,34 @@ def test_date_docinfo_from_xmp():
         assert DateConverter.docinfo_from_xmp(xmp_val) == docinfo_val
 
 
+@given(
+    integers(-9999, 9999),
+    integers(0, 99),
+    integers(0, 99),
+    integers(0, 99),
+    integers(0, 99),
+    integers(0, 99),
+)
+def test_random_dates(year, month, day, hour, mins, sec):
+    date_args = year, month, day, hour, mins, sec
+    xmp = '{:04d}-{:02d}-{:02d}T{:02d}:{:02d}:{:02d}'.format(*date_args)
+    docinfo = '{:04d}{:02d}{:02d}{:02d}{:02d}{:02d}'.format(*date_args)
+
+    try:
+        converted = DateConverter.docinfo_from_xmp(xmp)
+    except ValueError:
+        pass
+    else:
+        assert converted == docinfo
+
+    try:
+        converted = DateConverter.xmp_from_docinfo(docinfo)
+    except ValueError:
+        pass
+    else:
+        assert converted == xmp
+
+
 def test_bad_char_rejection(trivial):
     with trivial.open_metadata() as xmp:
         xmp['dc:description'] = 'Bad characters \x00 \x01 \x02'
@@ -301,3 +331,8 @@ def test_docinfo_problems(enron1, invalid_creationdate):
         assert 'could not be copied' in warned[0].message.args[0]
         with pytest.raises(ValueError):
             meta.load_from_docinfo(invalid_creationdate.docinfo, raise_failure=True)
+
+    with pytest.warns(UserWarning) as warned:
+        with meta as xmp:
+            xmp['xmp:CreateDate'] = 'invalid date'
+        assert 'could not be updated' in warned[0].message.args[0]
