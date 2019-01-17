@@ -9,6 +9,13 @@ The pikepdf API (as provided by ``import pikepdf``) is quite stable and is in pr
 
 Note that the C++ extension module ``pikepdf._qpdf`` is a private interface within pikepdf that applications should not use directly.
 
+v1.0.5
+======
+
+* Fixed an issue where an invalid date in XMP metadata would cause an exception when updating DocumentInfo. For now, we warn that some DocumentInfo is not convertible. (In the future, we should also check if the XMP date is valid, because it probably is not.)
+
+* Rebuilt the binary wheels with libqpdf 8.3.0. libqpdf 8.2.1 is still supported.
+
 v1.0.4
 ======
 
