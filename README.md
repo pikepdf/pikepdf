@@ -62,6 +62,11 @@ Python 2.7 and earlier versions of Python 3 are not currently supported but supp
 
 [pdfrw-commits]: https://img.shields.io/github/commit-activity/y/pmaupin/pdfrw.svg
 
+In Production
+-------------
+
+* [OCRmyPDF](https://github.com/jbarlow83/OCRmyPDF) uses pikepdf to graft OCR text layers onto existing PDFs, to examine the contents of input PDFs, and to optimize PDFs.
+
 License
 -------
 
