@@ -22,6 +22,7 @@ from lxml.etree import QName, XMLSyntaxError
 from defusedxml.lxml import parse
 
 from .. import Stream, Name, String, PdfError
+from .. import __version__ as pikepdf_version
 
 XMP_NS_DC = "http://purl.org/dc/elements/1.1/"
 XMP_NS_PDF = "http://ns.adobe.com/pdf/1.3/"
@@ -94,13 +95,6 @@ re_xml_illegal_chars = re.compile(
 re_xml_illegal_bytes = re.compile(
     br"[^\x09\x0A\x0D\x20-\xFF]|&#0;"
 )
-
-# Repeat this to avoid circular from top package's pikepdf.__version__
-try:
-    pikepdf_version = _get_distribution(__name__).version
-except DistributionNotFound:
-    pikepdf_version = ""
-
 
 def encode_pdf_date(d: datetime) -> str:
     """Encode Python datetime object as PDF date string

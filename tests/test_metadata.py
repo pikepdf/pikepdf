@@ -135,7 +135,7 @@ def test_add_new_xmp_and_mark(trivial):
 
     with trivial.open_metadata(update_docinfo=False
     ) as xmp:
-        assert 'pikepdf' in xmp['pdf:Producer']
+        assert xmp['pdf:Producer'] == 'pikepdf ' + pikepdf.__version__
         assert 'xmp:MetadataDate' in xmp
 
 
