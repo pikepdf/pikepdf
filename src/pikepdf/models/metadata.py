@@ -428,6 +428,14 @@ class PdfMetadata(MutableMapping):
             return result
         return ''
 
+    def _get_rdf_root(self):
+        rdf = self._xmp.find('.//rdf:RDF', self.NS)
+        if rdf is None:
+            rdf = self._xmp.getroot()
+            if not rdf.tag == '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}RDF':
+                raise ValueError("Metadata seems to be XML but not XMP")
+        return rdf
+
     def _get_elements(self, name=''):
         """Get elements from XMP
 
@@ -452,7 +460,7 @@ class PdfMetadata(MutableMapping):
 
         """
         qname = self._qname(name)
-        rdf = self._xmp.find('.//rdf:RDF', self.NS)
+        rdf = self._get_rdf_root()
         for rdfdesc in rdf.findall('rdf:Description[@rdf:about=""]', self.NS):
             if qname and qname in rdfdesc.keys():
                 yield (rdfdesc, qname, rdfdesc.get(qname), rdf)
@@ -540,7 +548,7 @@ class PdfMetadata(MutableMapping):
                 raise TypeError(val)
         except StopIteration:
             # Insert a new node
-            rdf = self._xmp.find('.//rdf:RDF', self.NS)
+            rdf = self._get_rdf_root()
             if str(self._qname(key)) in LANG_ALTS:
                 val = AltList([clean(val)])
             if isinstance(val, (list, set)):

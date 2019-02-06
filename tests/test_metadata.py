@@ -6,7 +6,7 @@ import pytest
 from hypothesis import given
 from hypothesis.strategies import integers
 import pikepdf
-from pikepdf import Pdf, Dictionary, Name, PasswordError
+from pikepdf import Pdf, Dictionary, Name, PasswordError, Stream
 from pikepdf.models.metadata import (
     decode_pdf_date, encode_pdf_date,
     XMP_NS_DC, XMP_NS_PDF, XMP_NS_XMP,
@@ -285,7 +285,7 @@ def test_bad_char_rejection(trivial):
     ET.fromstring(str(xmp))
 
 
-def test_xpacket(sandwich):
+def test_xpacket_generation(sandwich):
     xmpstr1 = sandwich.Root.Metadata.read_bytes()
     xpacket_begin = b'<?xpacket begin='
     xpacket_end = b'<?xpacket end='
@@ -336,3 +336,40 @@ def test_docinfo_problems(enron1, invalid_creationdate):
         with meta as xmp:
             xmp['xmp:CreateDate'] = 'invalid date'
         assert 'could not be updated' in warned[0].message.args[0]
+
+
+def test_wrong_xml(enron1):
+    enron1.Root.Metadata = Stream(enron1, b"""
+        <test><xml>This is valid xml but not valid XMP</xml></test>
+    """.strip())
+    meta = enron1.open_metadata()
+    with pytest.raises(ValueError, message='not XMP'):
+        with meta:
+            pass
+    with pytest.raises(ValueError, message='not XMP'):
+        meta['pdfaid:part']
+
+
+def test_no_x_xmpmeta(trivial):
+    trivial.Root.Metadata = Stream(trivial, b"""
+        <?xpacket begin="\xef\xbb\xbf" id="W5M0MpCehiHzreSzNTczkc9d"?>
+        <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+                xmlns:xmp="http://ns.adobe.com/xap/1.0/">
+        <rdf:Description rdf:about=""
+                        xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/"
+                        xmlns:xmp="http://ns.adobe.com/xap/1.0/">
+            <pdfaid:part>1</pdfaid:part>
+            <pdfaid:conformance>A</pdfaid:conformance>
+            <xmp:CreatorTool>Simple Scan 3.30.2</xmp:CreatorTool>
+            <xmp:CreateDate>2019-02-05T07:08:46+01:00</xmp:CreateDate>
+            <xmp:ModifyDate>2019-02-05T07:08:46+01:00</xmp:ModifyDate>
+            <xmp:MetadataDate>2019-02-05T07:08:46+01:00</xmp:MetadataDate>
+        </rdf:Description>
+        </rdf:RDF>
+        <?xpacket end="w"?>
+    """.strip())
+
+    with trivial.open_metadata() as xmp:
+        assert xmp._get_rdf_root() is not None
+        xmp['pdfaid:part'] = '2'
+    assert xmp['pdfaid:part'] == '2'
