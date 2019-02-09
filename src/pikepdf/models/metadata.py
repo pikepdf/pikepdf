@@ -459,6 +459,8 @@ class PdfMetadata(MutableMapping):
         """
         qname = self._qname(name)
         rdf = self._xmp.find('.//rdf:RDF', self.NS)
+        if rdf is None:
+            return None
         for rdfdesc in rdf.findall('rdf:Description[@rdf:about=""]', self.NS):
             if qname and qname in rdfdesc.keys():
                 yield (rdfdesc, qname, rdfdesc.get(qname), rdf)
