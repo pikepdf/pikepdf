@@ -3,6 +3,9 @@ import pytest
 from pikepdf import Pdf
 
 
+# pylint: disable=redefined-outer-name,pointless-statement,expression-not-assigned
+
+
 @pytest.fixture
 def congress(resources):
     pdf = Pdf.open(resources / 'congress.pdf')

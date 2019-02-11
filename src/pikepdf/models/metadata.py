@@ -16,8 +16,6 @@ from warnings import warn
 from defusedxml.lxml import parse
 from lxml import etree
 from lxml.etree import QName, XMLSyntaxError
-from pkg_resources import DistributionNotFound
-from pkg_resources import get_distribution as _get_distribution
 
 from .. import Name, PdfError, Stream, String
 from .. import __version__ as pikepdf_version

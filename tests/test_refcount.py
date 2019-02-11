@@ -1,5 +1,4 @@
 import gc
-import sys
 from sys import getrefcount as refcount
 
 import pytest

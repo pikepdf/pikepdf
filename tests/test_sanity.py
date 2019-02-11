@@ -3,7 +3,6 @@ A bunch of quick tests that confirm nothing is horribly wrong
 """
 
 import gc
-import sys
 from contextlib import suppress
 from shutil import copy
 

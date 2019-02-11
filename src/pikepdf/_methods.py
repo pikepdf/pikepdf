@@ -128,7 +128,7 @@ class Extend_Object:
 
 @extends(Pdf)
 class Extend_Pdf:
-    def _repr_mimebundle_(self, **kwargs):
+    def _repr_mimebundle_(self, **_kwargs):
         """
         Present options to IPython for rich display of this object
 

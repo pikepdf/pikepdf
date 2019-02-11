@@ -17,6 +17,9 @@ from pikepdf import (
 )
 
 
+# pylint: disable=redefined-outer-name
+
+
 def first_image_in(filename):
     pdf = Pdf.open(filename)
     pdfimagexobj = next(iter(pdf.pages[0].images.values()))
@@ -197,8 +200,8 @@ def test_image_roundtrip(outdir, w, h, pixeldata, cs, bpc):
         ('cmyk-jpeg.pdf', 8, ['/DCTDecode'], '.jpg', 'CMYK', 'JPEG'),
     ],
 )
-def test_direct_extract(resources, filename, bpc, filters, ext, mode, format):
-    xobj, pdf = first_image_in(resources / filename)
+def test_direct_extract(resources, filename, bpc, filters, ext, mode, format_):
+    xobj, _pdf = first_image_in(resources / filename)
     pim = PdfImage(xobj)
 
     assert pim.bits_per_component == bpc
@@ -211,7 +214,7 @@ def test_direct_extract(resources, filename, bpc, filters, ext, mode, format):
 
     im = Image.open(outstream)
     assert im.mode == mode
-    assert im.format == format
+    assert im.format == format_
 
 
 @pytest.mark.parametrize(

@@ -1,8 +1,6 @@
 import os
-import platform
 import sys
 from pathlib import Path
-from subprocess import PIPE, Popen
 
 import pytest
 

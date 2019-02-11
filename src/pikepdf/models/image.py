@@ -611,8 +611,6 @@ class PdfInlineImage(PdfImageBase):
         )
 
     def as_pil_image(self):
-        from PIL import Image
-
         if self.pil:
             return self.pil
 

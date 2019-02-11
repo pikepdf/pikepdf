@@ -15,6 +15,9 @@ from pikepdf import PasswordError, Pdf, PdfError, Stream
 from pikepdf._cpphelpers import fspath  # For py35
 
 
+# pylint: disable=redefined-outer-name
+
+
 @pytest.fixture
 def trivial(resources):
     return Pdf.open(resources / 'pal-1bit-trivial.pdf')
@@ -153,12 +156,12 @@ def test_fileno_fails(resources):
     with patch('os.dup') as dup:
         dup.side_effect = OSError('assume dup fails')
         with pytest.raises(OSError):
-            pdf = Pdf.open(resources / 'pal-1bit-trivial.pdf')
+            Pdf.open(resources / 'pal-1bit-trivial.pdf')
 
     with patch('os.dup') as dup:
         dup.return_value = -1
         with pytest.raises(RuntimeError):
-            pdf = Pdf.open(resources / 'pal-1bit-trivial.pdf')
+            Pdf.open(resources / 'pal-1bit-trivial.pdf')
 
 
 def test_min_and_force_version(trivial, outdir):

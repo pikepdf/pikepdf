@@ -8,6 +8,9 @@ import pytest
 from pikepdf import Pdf, PdfMatrix, Stream
 
 
+# pylint: disable=redefined-outer-name,pointless-statement
+
+
 @pytest.fixture
 def graph(resources):
     return Pdf.open(resources / 'graph.pdf')

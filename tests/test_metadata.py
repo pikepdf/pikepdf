@@ -25,7 +25,7 @@ except ImportError:
 
 pytestmark = pytest.mark.filterwarnings('ignore:.*XMLParser.*:DeprecationWarning')
 
-# pylint: disable=w0621
+# pylint: disable=redefined-outer-name,pointless-statement
 
 
 @pytest.fixture
