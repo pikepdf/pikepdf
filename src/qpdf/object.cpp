@@ -811,6 +811,44 @@ void init_object(py::module& m)
             py::arg("resolved") = false,
             "Convert PDF objects into their binary representation, optionally resolving indirect objects."
         )
+        .def("to_json",
+            [](QPDFObjectHandle &h, bool dereference = false) -> py::bytes {
+                return h.getJSON(dereference).unparse();
+            },
+            py::arg("dereference") = false,
+            R"~~~(
+            Convert to a QPDF JSON representation of the object.
+
+            See the QPDF manual for a description of its JSON representation.
+            http://qpdf.sourceforge.net/files/qpdf-manual.html#ref.json
+
+            Not necessarily compatible with other PDF-JSON representations that
+            exist in the wild.
+
+            Excerpt from QPDF documentation:
+
+            * Names are encoded as strings representing the normalized value of
+              getName()
+            * Indirect references are encoded as strings containing "obj gen R"
+            * Strings are encoded as UTF-8 strings with unrepresentable binary
+              characters encoded as \uHHHH
+            * Encoding streams just encodes the stream's dictionary; the stream
+              data is not represented
+            * Object types that are only valid in content streams (inline
+              image, operator) as well as "reserved" objects are not
+              representable and will be serialized as "null".
+
+            Args:
+                dereference (bool): If True, deference the object is this is an
+                    indirect object.
+
+            Returns:
+                bytes: JSON bytestring of object. The object is UTF-8 encoded
+                and may be decoded to a Python str that represents the binary
+                values \x00-\xFF as U+0000 to U+00FF; that is, it may contain
+                mojibake.
+            )~~~"
+        )
         ; // end of QPDFObjectHandle bindings
 
     m.def("_new_boolean", &QPDFObjectHandle::newBool, "Construct a PDF Boolean object");

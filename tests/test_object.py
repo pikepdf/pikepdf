@@ -1,14 +1,21 @@
 from decimal import Decimal, InvalidOperation
 from math import isclose, isfinite
+import json
 import sys
 
 import pikepdf
 from pikepdf import _qpdf as qpdf
-from pikepdf import (Object, String, Array, Name,
-    Dictionary, Operator, PdfError)
+from pikepdf import Object, String, Array, Name, Dictionary, Operator, PdfError
 from hypothesis import given, example, assume
-from hypothesis.strategies import (integers, binary, lists, floats,
-    characters, recursive, booleans)
+from hypothesis.strategies import (
+    integers,
+    binary,
+    lists,
+    floats,
+    characters,
+    recursive,
+    booleans,
+)
 import pytest
 
 
@@ -27,15 +34,16 @@ def test_booleans():
     assert encode(False) == False
 
 
-@given(characters(min_codepoint=0x20, max_codepoint=0x7f))
+@given(characters(min_codepoint=0x20, max_codepoint=0x7F))
 @example('')
 def test_ascii_involution(ascii_):
     b = ascii_.encode('ascii')
     assert encode(b) == b
 
 
-@given(characters(min_codepoint=0x0, max_codepoint=0xfef0,
-                  blacklist_categories=('Cs',)))
+@given(
+    characters(min_codepoint=0x0, max_codepoint=0xFEF0, blacklist_categories=('Cs',))
+)
 @example('')
 def test_unicode_involution(s):
     assert str(encode(s)) == s
@@ -47,18 +55,20 @@ def test_binary_involution(binary_):
 
 
 int64s = integers(min_value=-9223372036854775807, max_value=9223372036854775807)
+
+
 @given(int64s, int64s)
 def test_integer_comparison(a, b):
-    equals = (a == b)
-    encoded_equals = (encode(a) == encode(b))
+    equals = a == b
+    encoded_equals = encode(a) == encode(b)
     assert encoded_equals == equals
 
-    lessthan = (a < b)
-    encoded_lessthan = (encode(a) < encode(b))
+    lessthan = a < b
+    encoded_lessthan = encode(a) < encode(b)
     assert lessthan == encoded_lessthan
 
 
-@given(integers(-10**12, 10**12), integers(0, 12))
+@given(integers(-10 ** 12, 10 ** 12), integers(0, 12))
 def test_decimal_involution(num, radix):
     strnum = str(num)
     if radix > len(strnum):
@@ -95,13 +105,17 @@ def test_list(array):
     assert a == array
 
 
-@given(lists(lists(integers(1,10), min_size=1, max_size=5),min_size=1,max_size=5))
+@given(lists(lists(integers(1, 10), min_size=1, max_size=5), min_size=1, max_size=5))
 def test_nested_list(array):
     a = pikepdf.Array(array)
     assert a == array
 
 
-@given(recursive(integers(1,10) | booleans(), lambda children: lists(children), max_leaves=20))
+@given(
+    recursive(
+        integers(1, 10) | booleans(), lambda children: lists(children), max_leaves=20
+    )
+)
 def test_nested_list2(array):
     assume(isinstance(array, list))
     a = pikepdf.Array(array)
@@ -174,7 +188,6 @@ def test_forbidden_name_usage():
 
 
 class TestHashViolation:
-
     def check(self, a, b):
         assert a == b, "invalid test case"
         assert hash(a) == hash(b), "hash violation"
@@ -207,17 +220,18 @@ def test_not_constructible():
 
 
 class TestRepr:
-
     def test_repr_dict(self):
-        d = Dictionary({
-            '/Boolean': True,
-            '/Integer': 42,
-            '/Real': Decimal('42.42'),
-            '/String': String('hi'),
-            '/Array': Array([1, 2, 3.14]),
-            '/Operator': Operator('q'),
-            '/Dictionary': Dictionary({'/Color': 'Red'})
-        })
+        d = Dictionary(
+            {
+                '/Boolean': True,
+                '/Integer': 42,
+                '/Real': Decimal('42.42'),
+                '/String': String('hi'),
+                '/Array': Array([1, 2, 3.14]),
+                '/Operator': Operator('q'),
+                '/Dictionary': Dictionary({'/Color': 'Red'}),
+            }
+        )
         expected = """\
             pikepdf.Dictionary({
                 "/Array": [ 1, 2, Decimal('3.140000') ],
@@ -245,7 +259,7 @@ class TestRepr:
             Decimal('3.14'),
             String('scalar'),
             Name('/Bob'),
-            Operator('Q')
+            Operator('Q'),
         ]
         for s in scalars:
             assert eval(repr(s)) == s
@@ -262,12 +276,8 @@ def test_utf16_error():
 
 
 class TestDictionary:
-
     def test_dictionary_contains(self):
-        d = Dictionary({
-            '/Monty': 'Python',
-            '/Flying': 'Circus'
-        })
+        d = Dictionary({'/Monty': 'Python', '/Flying': 'Circus'})
         assert Name.Flying in d
         assert Name('/Monty') in d
         assert Name.Brian not in d
@@ -298,10 +308,12 @@ class TestDictionary:
         for k in d.items():
             pass
 
+
 def test_not_convertible():
     class PurePythonObj:
         def __repr__(self):
             return 'PurePythonObj()'
+
     c = PurePythonObj()
     with pytest.raises(RuntimeError):
         encode(c)
@@ -311,3 +323,26 @@ def test_not_convertible():
     d = pikepdf.Dictionary()
     with pytest.raises(RuntimeError):
         d.SomeKey = c
+
+
+def test_json():
+    d = Dictionary(
+        {
+            '/Boolean': True,
+            '/Integer': 42,
+            '/Real': Decimal('42.42'),
+            '/String': String('hi'),
+            '/Array': Array([1, 2, 3.14]),
+            '/Dictionary': Dictionary({'/Color': 'Red'}),
+        }
+    )
+    json_bytes = d.to_json(False)
+    as_dict = json.loads(json_bytes)
+    assert as_dict == {
+        "/Array": [1, 2, 3.140000],
+        "/Boolean": True,
+        "/Dictionary": {"/Color": "Red"},
+        "/Integer": 42,
+        "/Real": 42.42,
+        "/String": "hi",
+    }
