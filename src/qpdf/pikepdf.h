@@ -167,6 +167,9 @@ typedef std::map<std::string, QPDFObjectHandle> ObjectMap;
 PYBIND11_MAKE_OPAQUE(ObjectMap);
 
 
+// From qpdf.cpp
+void init_qpdf(py::module& m);
+
 // From object.cpp
 size_t list_range_check(QPDFObjectHandle h, int index);
 void init_object(py::module& m);

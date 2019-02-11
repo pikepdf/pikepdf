@@ -30,8 +30,6 @@
 #include "qpdf_inputsource.h"
 #include "utils.h"
 
-extern "C" const char* qpdf_get_qpdf_version();
-
 
 void check_stream_is_usable(py::object stream)
 {
@@ -210,28 +208,8 @@ void save_pdf(
 }
 
 
-PYBIND11_MODULE(_qpdf, m) {
-    //py::options options;
-    //options.disable_function_signatures();
-
-    m.doc() = "pikepdf provides a Pythonic interface for QPDF";
-
-    m.def("qpdf_version", &qpdf_get_qpdf_version, "Get libqpdf version");
-
-    static py::exception<QPDFExc> exc_main(m, "PdfError");
-    static py::exception<QPDFExc> exc_password(m, "PasswordError");
-    py::register_exception_translator([](std::exception_ptr p) {
-        try {
-            if (p) std::rethrow_exception(p);
-        } catch (const QPDFExc &e) {
-            if (e.getErrorCode() == qpdf_e_password) {
-                exc_password(e.what());
-            } else {
-                exc_main(e.what());
-            }
-        }
-    });
-
+void init_qpdf(py::module &m)
+{
     py::enum_<qpdf_object_stream_e>(m, "ObjectStreamMode")
         .value("disable", qpdf_object_stream_e::qpdf_o_disable)
         .value("preserve", qpdf_object_stream_e::qpdf_o_preserve)
@@ -242,8 +220,6 @@ PYBIND11_MODULE(_qpdf, m) {
         .value("generalized", qpdf_stream_decode_level_e::qpdf_dl_generalized)
         .value("specialized", qpdf_stream_decode_level_e::qpdf_dl_specialized)
         .value("all", qpdf_stream_decode_level_e::qpdf_dl_all);
-
-    init_pagelist(m);
 
     py::class_<QPDF, std::shared_ptr<QPDF>>(m, "Pdf", "In-memory representation of a PDF")
         .def_static("new",
@@ -571,13 +547,4 @@ PYBIND11_MODULE(_qpdf, m) {
             }
         )
         ; // class Pdf
-
-    init_object(m);
-    init_annotation(m);
-
-#ifdef VERSION_INFO
-    m.attr("__version__") = VERSION_INFO;
-#else
-    m.attr("__version__") = "dev";
-#endif
 }
