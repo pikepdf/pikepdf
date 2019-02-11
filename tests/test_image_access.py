@@ -1,4 +1,3 @@
-import imghdr
 import zlib
 from io import BytesIO
 
@@ -71,7 +70,8 @@ def test_lowlevel_jpeg(congress):
     with pytest.raises(PdfError):
         congress[0].read_bytes()
 
-    assert imghdr.what('', h=raw_bytes) == 'jpeg'
+    im = Image.open(BytesIO(raw_bytes))
+    assert im.format == 'JPEG'
 
     pim = PdfImage(congress[0])
     b = BytesIO()
