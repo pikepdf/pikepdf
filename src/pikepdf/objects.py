@@ -25,6 +25,14 @@ from . import _qpdf
 from ._qpdf import Object, ObjectType, Operator
 
 
+# By default pikepdf.Object will identify itself as pikepdf._qpdf.Object
+# Here we change the module to discourage people from using that internal name
+# Instead it will become pikepdf.objects.Object
+Object.__module__ = __name__
+ObjectType.__module__ = __name__
+Operator.__module__ = __name__
+
+
 # type(Object) is the metaclass that pybind11 defines; we wish to extend that
 class _ObjectMeta(type(Object)):
     """Supports instance checking"""
