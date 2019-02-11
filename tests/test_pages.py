@@ -244,3 +244,17 @@ def test_negative_indexing(fourpages, graph):
         fourpages.pages[-42] = graph.pages[0]
     with pytest.raises(IndexError):
         del fourpages.pages[-42]
+
+
+def test_concatenate(resources, outdir):
+    # Issue #22
+    def concatenate(n):
+        print('concatenating same page', n, 'times')
+        output_pdf = Pdf.new()
+        for i in range(n):
+            print(i)
+            pdf_page = Pdf.open(resources / 'pal.pdf')
+            output_pdf.pages.extend(pdf_page.pages)
+        output_pdf.save(outdir / '{}.pdf'.format(n))
+
+    concatenate(5)
