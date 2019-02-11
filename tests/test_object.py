@@ -124,7 +124,7 @@ def test_nested_list2(array):
 
 def test_list_apis():
     a = pikepdf.Array([1, 2, 3])
-    a[1] = None  # pylint: disable=unsupported-assignment-operation
+    a[1] = None
     assert a[1] is None
     assert len(a) == 3
     del a[1]

@@ -192,7 +192,7 @@ def test_image_roundtrip(outdir, w, h, pixeldata, cs, bpc):
 
 
 @pytest.mark.parametrize(
-    'filename,bpc,filters,ext,mode,format',
+    'filename,bpc,filters,ext,mode,format_',
     [
         ('sandwich.pdf', 1, ['/CCITTFaxDecode'], '.tif', '1', 'TIFF'),
         ('congress-gray.pdf', 8, ['/DCTDecode'], '.jpg', 'L', 'JPEG'),

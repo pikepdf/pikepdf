@@ -8,23 +8,25 @@
 
 The purpose of these is to provide nice-looking classes to allow explicit
 construction of PDF objects and more pythonic idioms and facilitate discovery
-by documentation generators.
+by documentation generators and linters.
 
 It's also a place to narrow the scope of input types to those more easily
 converted to C++.
 
-In reality all of these return objects of class pikepdf.Object or rather
-QPDFObjectHandle which is a generic type.
-
+There is some deliberate "smoke and mirrors" here: all of the objects are truly
+instances of ``pikepdf.Object``, which is a variant container object. The
+``__new__`` constructs a ``pikepdf.Object`` in each case, and the rest of the
+class definition is present as an aide for code introspection.
 """
 
 from . import _qpdf
 
-# pylint: disable=unused-import
+# pylint: disable=unused-import, abstract-method
 from ._qpdf import Object, ObjectType, Operator
 
 
-class _ObjectMeta(type):
+# type(Object) is the metaclass that pybind11 defines; we wish to extend that
+class _ObjectMeta(type(Object)):
     """Supports instance checking"""
 
     def __instancecheck__(cls, instance):
@@ -37,9 +39,13 @@ class _NameObjectMeta(_ObjectMeta):
     """Supports usage pikepdf.Name.Whatever -> Name('/Whatever')"""
 
     def __getattr__(self, attr):
+        if attr.startswith('_'):
+            return _ObjectMeta.__getattr__(attr)
         return Name('/' + attr)
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, attr, value):
+        if attr.startswith('_'):
+            return _ObjectMeta.__setattr__(attr, value)
         raise TypeError("Attributes may not be set on pikepdf.Name")
 
     def __getitem__(self, item):
@@ -55,7 +61,7 @@ class _NameObjectMeta(_ObjectMeta):
         )
 
 
-class Name(metaclass=_NameObjectMeta):
+class Name(Object, metaclass=_NameObjectMeta):
     """Constructs a PDF Name object
 
     Names can be constructed with two notations:
@@ -79,7 +85,7 @@ class Name(metaclass=_NameObjectMeta):
         return _qpdf._new_name(name)
 
 
-class String(metaclass=_ObjectMeta):
+class String(Object, metaclass=_ObjectMeta):
     """Constructs a PDF String object"""
 
     object_type = ObjectType.string
@@ -98,7 +104,7 @@ class String(metaclass=_ObjectMeta):
         return _qpdf._new_string_utf8(s)
 
 
-class Array(metaclass=_ObjectMeta):
+class Array(Object, metaclass=_ObjectMeta):
     """Constructs a PDF Array object"""
 
     object_type = ObjectType.array
@@ -120,7 +126,7 @@ class Array(metaclass=_ObjectMeta):
         return _qpdf._new_array(a)
 
 
-class Dictionary(metaclass=_ObjectMeta):
+class Dictionary(Object, metaclass=_ObjectMeta):
     """Constructs a PDF Dictionary object"""
 
     object_type = ObjectType.dictionary
@@ -156,7 +162,7 @@ class Dictionary(metaclass=_ObjectMeta):
         return _qpdf._new_dictionary(d)
 
 
-class Stream(metaclass=_ObjectMeta):
+class Stream(Object, metaclass=_ObjectMeta):
     """Constructs a PDF Stream object"""
 
     object_type = ObjectType.stream
