@@ -183,6 +183,9 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle);
 std::vector<QPDFObjectHandle> array_builder(const py::iterable iter);
 std::map<std::string, QPDFObjectHandle> dict_builder(const py::dict dict);
 
+// From annotation.cpp
+void init_annotation(py::module &m);
+
 // Support for recursion checks
 class StackGuard
 {

@@ -573,6 +573,7 @@ PYBIND11_MODULE(_qpdf, m) {
         ; // class Pdf
 
     init_object(m);
+    init_annotation(m);
 
 #ifdef VERSION_INFO
     m.attr("__version__") = VERSION_INFO;
