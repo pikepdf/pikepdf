@@ -1,5 +1,6 @@
 import pytest
-from pikepdf import Pdf, Object, Stream, Name, Dictionary
+
+from pikepdf import Dictionary, Name, Object, Pdf, Stream
 
 # pylint: disable=e1137
 

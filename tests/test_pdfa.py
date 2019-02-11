@@ -1,9 +1,11 @@
-import pytest
-from pikepdf import Pdf
 import os
-from pathlib import Path
-from subprocess import run, PIPE, STDOUT
 import xml.etree.ElementTree as ET
+from pathlib import Path
+from subprocess import PIPE, STDOUT, run
+
+import pytest
+
+from pikepdf import Pdf
 
 try:
     VERAPDF = Path(os.environ['HOME']) / 'verapdf' / 'verapdf'

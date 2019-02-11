@@ -1,21 +1,20 @@
-import pytest
 import imghdr
-from io import BytesIO
-from PIL import Image, features as PIL_features
 import zlib
+from io import BytesIO
 
-# pylint: disable=w0621
-
+import pytest
+from PIL import Image
+from PIL import features as PIL_features
 
 from pikepdf import (
-    Pdf,
-    PdfImage,
-    PdfError,
     Name,
-    parse_content_stream,
+    Pdf,
+    PdfError,
+    PdfImage,
     PdfInlineImage,
     Stream,
     StreamDecodeLevel,
+    parse_content_stream,
 )
 
 

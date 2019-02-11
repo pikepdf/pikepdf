@@ -1,11 +1,10 @@
 import gc
 import sys
-import pytest
-from pikepdf import Pdf
-
-# This will break on pypy, but we're not quite targetting pypy...
 from sys import getrefcount as refcount
 
+import pytest
+
+from pikepdf import Pdf
 
 # Try to do some things without blowing up
 

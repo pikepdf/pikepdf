@@ -4,14 +4,13 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
+import struct
+from abc import ABC, abstractmethod
+from decimal import Decimal
 from io import BytesIO
 from itertools import zip_longest
-from abc import ABC, abstractmethod
-import struct
 
-from decimal import Decimal
-
-from .. import Object, Array, PdfError, Name, Dictionary, Stream
+from .. import Array, Dictionary, Name, Object, PdfError, Stream
 
 
 class DependencyError(Exception):

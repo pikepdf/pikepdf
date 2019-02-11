@@ -4,7 +4,8 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
-from pkg_resources import get_distribution as _get_distribution, DistributionNotFound
+from pkg_resources import DistributionNotFound
+from pkg_resources import get_distribution as _get_distribution
 
 try:
     __version__ = _get_distribution(__package__).version

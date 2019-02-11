@@ -4,7 +4,7 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
-from math import cos, sin, pi
+from math import cos, pi, sin
 
 
 class PdfMatrix:

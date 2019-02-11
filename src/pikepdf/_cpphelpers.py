@@ -12,7 +12,6 @@ called from Python, and subject to change at any time.
 import os
 import sys
 
-
 # Provide os.fspath equivalent for Python <3.6
 if sys.version_info[0:2] <= (3, 5):  # pragma: no cover
 

@@ -1,12 +1,12 @@
+import shutil
 import sys
+from subprocess import PIPE, run
 
 import pytest
-from pikepdf import parse_content_stream, Pdf, Stream, Operator, Object, Dictionary
-from pikepdf.models import _Page as Page
-from pikepdf._qpdf import StreamParser
-from subprocess import run, PIPE
-import shutil
 
+from pikepdf import Dictionary, Object, Operator, Pdf, Stream, parse_content_stream
+from pikepdf._qpdf import StreamParser
+from pikepdf.models import _Page as Page
 
 # pylint: disable=useless-super-delegation
 

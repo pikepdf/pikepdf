@@ -1,14 +1,14 @@
-import pytest
-from pikepdf import Pdf, PdfError
-
+import gzip
 import os
 import platform
 import shutil
 from contextlib import suppress
-from shutil import copy
-import gzip
 from pathlib import Path
+from shutil import copy
 
+import pytest
+
+from pikepdf import Pdf, PdfError
 
 # Files with unknown copyright status can't be shared publicly
 PRIVATE_RESOURCES = Path(__file__).parent / 'resources' / 'private'

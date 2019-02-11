@@ -2,15 +2,15 @@
 A bunch of quick tests that confirm nothing is horribly wrong
 """
 
-import pytest
-
 import gc
+import sys
 from contextlib import suppress
 from shutil import copy
-import sys
+
+import pytest
 
 import pikepdf
-from pikepdf import Pdf, Object, Name, Stream
+from pikepdf import Name, Object, Pdf, Stream
 
 
 def test_minimum_qpdf_version():

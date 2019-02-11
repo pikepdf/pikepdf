@@ -4,21 +4,22 @@
 #
 # Copyright (C) 2018, James R. Barlow (https://github.com/jbarlow83/)
 
+import re
+import sys
 from collections import namedtuple
 from collections.abc import MutableMapping
 from datetime import datetime
 from functools import wraps
 from io import BytesIO
-from pkg_resources import get_distribution as _get_distribution, DistributionNotFound
 from warnings import warn
-import re
-import sys
 
+from defusedxml.lxml import parse
 from lxml import etree
 from lxml.etree import QName, XMLSyntaxError
-from defusedxml.lxml import parse
+from pkg_resources import DistributionNotFound
+from pkg_resources import get_distribution as _get_distribution
 
-from .. import Stream, Name, String, PdfError
+from .. import Name, PdfError, Stream, String
 from .. import __version__ as pikepdf_version
 
 XMP_NS_DC = "http://purl.org/dc/elements/1.1/"

@@ -19,10 +19,9 @@ QPDFObjectHandle which is a generic type.
 """
 
 from . import _qpdf
-from ._qpdf import Object, ObjectType
 
 # pylint: disable=unused-import
-from ._qpdf import Operator
+from ._qpdf import Object, ObjectType, Operator
 
 
 class _ObjectMeta(type):

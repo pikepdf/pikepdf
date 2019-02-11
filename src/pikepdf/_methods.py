@@ -12,18 +12,15 @@ bindings after the fact.
 We can also move the implementation to C++ if desired.
 """
 
-from tempfile import NamedTemporaryFile
-from subprocess import run, PIPE
-from io import BytesIO
-
-from collections.abc import KeysView
-
 import inspect
+from collections.abc import KeysView
+from io import BytesIO
+from subprocess import PIPE, run
+from tempfile import NamedTemporaryFile
 
-from . import Pdf, Dictionary, Array, Name, Stream, Object
+from . import Array, Dictionary, Name, Object, Pdf, Stream
 from ._qpdf import _ObjectMapping
 from .models import PdfMetadata
-
 
 # pylint: disable=no-member,unsupported-membership-test,unsubscriptable-object
 

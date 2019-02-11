@@ -1,23 +1,23 @@
-from decimal import Decimal, InvalidOperation
-from math import isclose, isfinite
 import json
 import sys
+from decimal import Decimal, InvalidOperation
+from math import isclose, isfinite
+
+import pytest
+from hypothesis import assume, example, given
+from hypothesis.strategies import (
+    binary,
+    booleans,
+    characters,
+    floats,
+    integers,
+    lists,
+    recursive,
+)
 
 import pikepdf
+from pikepdf import Array, Dictionary, Name, Object, Operator, PdfError, String
 from pikepdf import _qpdf as qpdf
-from pikepdf import Object, String, Array, Name, Dictionary, Operator, PdfError
-from hypothesis import given, example, assume
-from hypothesis.strategies import (
-    integers,
-    binary,
-    lists,
-    floats,
-    characters,
-    recursive,
-    booleans,
-)
-import pytest
-
 
 # pylint: disable=eval-used,unnecessary-lambda
 

@@ -1,11 +1,11 @@
-import pytest
-from pikepdf import Pdf, Stream, PdfMatrix
-
+import gc
 from contextlib import suppress
 from shutil import copy
-import gc
-
 from sys import getrefcount as refcount
+
+import pytest
+
+from pikepdf import Pdf, PdfMatrix, Stream
 
 
 @pytest.fixture

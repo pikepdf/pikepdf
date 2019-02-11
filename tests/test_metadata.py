@@ -1,22 +1,22 @@
-from pathlib import Path
-from datetime import datetime, timezone, timedelta
 import re
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
+import defusedxml.ElementTree as ET
 import pytest
 from hypothesis import given
 from hypothesis.strategies import integers
+
 import pikepdf
-from pikepdf import Pdf, Dictionary, Name, PasswordError, Stream
+from pikepdf import Dictionary, Name, PasswordError, Pdf, Stream
 from pikepdf.models.metadata import (
-    decode_pdf_date,
-    encode_pdf_date,
     XMP_NS_DC,
     XMP_NS_PDF,
     XMP_NS_XMP,
     DateConverter,
+    decode_pdf_date,
+    encode_pdf_date,
 )
-
-import defusedxml.ElementTree as ET
 
 try:
     from libxmp import XMPMeta

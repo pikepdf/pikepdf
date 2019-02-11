@@ -1,12 +1,12 @@
 import os
-import sys
 import platform
-
-pytest_plugins = ['helpers_namespace']
+import sys
+from pathlib import Path
+from subprocess import PIPE, Popen
 
 import pytest
-from pathlib import Path
-from subprocess import Popen, PIPE
+
+pytest_plugins = ['helpers_namespace']
 
 
 if sys.version_info < (3, 4):

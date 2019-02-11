@@ -1,5 +1,6 @@
-from pikepdf import Pdf
 import pytest
+
+from pikepdf import Pdf
 
 
 @pytest.fixture

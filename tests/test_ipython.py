@@ -2,8 +2,9 @@
 Test IPython/Jupyter display hooks
 """
 
-import pikepdf
 import pytest
+
+import pikepdf
 
 
 @pytest.fixture
