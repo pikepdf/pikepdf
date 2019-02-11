@@ -20,8 +20,8 @@ def private():
 
 
 pytestmark = pytest.mark.skipif(
-    not PRIVATE_RESOURCES.is_dir(),
-    reason='private resources not available')
+    not PRIVATE_RESOURCES.is_dir(), reason='private resources not available'
+)
 
 
 def test_pypdf2_issue_361(private):

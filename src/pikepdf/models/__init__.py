@@ -50,8 +50,10 @@ def parse_content_stream(page_or_stream, operators=''):
     if not isinstance(page_or_stream, Object):
         raise TypeError("stream must a PDF object")
 
-    if page_or_stream._type_code != ObjectType.stream \
-            and page_or_stream.get('/Type') != '/Page':
+    if (
+        page_or_stream._type_code != ObjectType.stream
+        and page_or_stream.get('/Type') != '/Page'
+    ):
         raise TypeError("parse_content_stream called on page or stream object")
 
     try:
@@ -87,8 +89,7 @@ class _Page:
             raise AttributeError(item)
 
     def __repr__(self):
-        return repr(self.obj).replace(
-            'pikepdf.Dictionary', 'pikepdf.Page', 1)
+        return repr(self.obj).replace('pikepdf.Dictionary', 'pikepdf.Page', 1)
 
     @property
     def mediabox(self):
@@ -107,8 +108,7 @@ class _Page:
         :return: True if there is text
         """
         text_showing_operators = """TJ " ' Tj"""
-        text_showing_insts = parse_content_stream(
-            self.obj, text_showing_operators)
+        text_showing_insts = parse_content_stream(self.obj, text_showing_operators)
         if len(text_showing_insts) > 0:
             return True
         return False

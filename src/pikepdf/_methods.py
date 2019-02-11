@@ -27,6 +27,7 @@ from .models import PdfMetadata
 
 # pylint: disable=no-member,unsupported-membership-test,unsubscriptable-object
 
+
 def extends(cls_cpp):
     """Attach methods of a Python support class to an existing class
 
@@ -56,15 +57,17 @@ def extends(cls_cpp):
 
     def real_class_extend(cls, cls_cpp=cls_cpp):
         for name, fn in inspect.getmembers(cls, inspect.isfunction):
-            fn.__qualname__ = fn.__qualname__.replace(
-                    cls.__name__, cls_cpp.__name__)
+            fn.__qualname__ = fn.__qualname__.replace(cls.__name__, cls_cpp.__name__)
             setattr(cls_cpp, name, fn)
         for name, fn in inspect.getmembers(cls, inspect.isdatadescriptor):
             setattr(cls_cpp, name, fn)
+
         def block_init(self):
             raise NotImplementedError(self.__class__.__name__ + '.__init__')
+
         cls.__init__ = block_init
         return cls
+
     return real_class_extend
 
 
@@ -86,8 +89,7 @@ def _mudraw(buffer, fmt):
         tmp_in.flush()
 
         proc = run(
-            ['mudraw', '-F', fmt, '-o', '-', tmp_in.name],
-            stdout=PIPE, stderr=PIPE
+            ['mudraw', '-F', fmt, '-o', '-', tmp_in.name], stdout=PIPE, stderr=PIPE
         )
         if proc.stderr:
             raise RuntimeError(proc.stderr.decode())
@@ -96,7 +98,6 @@ def _mudraw(buffer, fmt):
 
 @extends(Object)
 class Extend_Object:
-
     def _repr_mimebundle_(self, **kwargs):
         """Present options to IPython for rich display of this object
 
@@ -130,7 +131,6 @@ class Extend_Object:
 
 @extends(Pdf)
 class Extend_Pdf:
-
     def _repr_mimebundle_(self, **kwargs):
         """
         Present options to IPython for rich display of this object
@@ -145,11 +145,7 @@ class Extend_Pdf:
         data = {'application/pdf': bio.read()}
         return data
 
-    def open_metadata(
-        self,
-        set_pikepdf_as_editor=True,
-        update_docinfo=True
-    ):
+    def open_metadata(self, set_pikepdf_as_editor=True, update_docinfo=True):
         """
         Open the PDF's XMP metadata for editing
 
@@ -173,9 +169,7 @@ class Extend_Pdf:
             pikepdf.models.PdfMetadata
         """
         return PdfMetadata(
-            self,
-            pikepdf_mark=set_pikepdf_as_editor,
-            sync_docinfo=update_docinfo
+            self, pikepdf_mark=set_pikepdf_as_editor, sync_docinfo=update_docinfo
         )
 
     def _attach(self, *, basename, filebytes, mime=None, desc=''):
@@ -219,6 +213,7 @@ class Extend_Pdf:
 
         if not mime:
             from mimetypes import guess_type
+
             mime, _encoding = guess_type(basename)
             if not mime:
                 mime = 'application/octet-stream'
@@ -226,26 +221,26 @@ class Extend_Pdf:
         filestream = Stream(self, filebytes)
         filestream.Subtype = Name('/' + mime)
 
-        filespec = Dictionary({
-            '/Type': Name.Filespec,
-            '/F': basename,
-            '/UF': basename,
-            '/Desc': desc,
-            '/EF': Dictionary({
-                '/F': filestream
-            })
-        })
+        filespec = Dictionary(
+            {
+                '/Type': Name.Filespec,
+                '/F': basename,
+                '/UF': basename,
+                '/Desc': desc,
+                '/EF': Dictionary({'/F': filestream}),
+            }
+        )
 
         # names = self.Root.Names.EmbeddedFiles.Names.as_list()
         # names.append(filename)  # Key
         # names.append(self.make_indirect(filespec))
-        self.Root.Names.EmbeddedFiles.Names = Array([
-            basename, # key
-            self.make_indirect(filespec)
-        ])
+        self.Root.Names.EmbeddedFiles.Names = Array(
+            [basename, self.make_indirect(filespec)]  # key
+        )
 
         if '/PageMode' not in self.Root:
             self.Root.PageMode = Name.UseAttachments
+
 
 @extends(_ObjectMapping)
 class Extend_ObjectMapping:

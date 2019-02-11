@@ -8,7 +8,8 @@ def test_create_form_xobjects(outdir):
     pdf = Pdf.new()
 
     font = pdf.make_indirect(
-        Object.parse(b"""
+        Object.parse(
+            b"""
             <<
                 /Type /Font
                 /Subtype /Type1
@@ -16,14 +17,16 @@ def test_create_form_xobjects(outdir):
                 /BaseFont /Helvetica
                 /Encoding /WinAnsiEncoding
             >>
-        """)
+        """
+        )
     )
 
     width, height = 100, 100
     image_data = b"\xff\x7f\x00" * (width * height)
 
     image = Stream(pdf, image_data)
-    image.stream_dict = Object.parse("""
+    image.stream_dict = Object.parse(
+        """
             <<
                 /Type /XObject
                 /Subtype /Image
@@ -32,15 +35,17 @@ def test_create_form_xobjects(outdir):
                 /Width 100
                 /Height 100
             >>
-    """)
+    """
+    )
     xobj_image = Dictionary({'/Im1': image})
 
-    form_xobj_res = Dictionary({
-        '/XObject': xobj_image
-    })
-    form_xobj = Stream(pdf, b"""
+    form_xobj_res = Dictionary({'/XObject': xobj_image})
+    form_xobj = Stream(
+        pdf,
+        b"""
         /Im1 Do
-    """)
+    """,
+    )
     form_xobj['/Type'] = Name('/XObject')
     form_xobj['/Subtype'] = Name('/Form')
     form_xobj['/FormType'] = 1
@@ -50,10 +55,7 @@ def test_create_form_xobjects(outdir):
 
     rfont = {'/F1': font}
 
-    resources = {
-        '/Font': rfont,
-        '/XObject': {'/Form1': form_xobj},
-    }
+    resources = {'/Font': rfont, '/XObject': {'/Form1': form_xobj}}
 
     mediabox = [0, 0, 612, 792]
 
@@ -65,12 +67,14 @@ def test_create_form_xobjects(outdir):
 
     contents = Stream(pdf, stream)
 
-    page = pdf.make_indirect({
-        '/Type': Name('/Page'),
-        '/MediaBox': mediabox,
-        '/Contents': contents,
-        '/Resources': resources
-    })
+    page = pdf.make_indirect(
+        {
+            '/Type': Name('/Page'),
+            '/MediaBox': mediabox,
+            '/Contents': contents,
+            '/Resources': resources,
+        }
+    )
 
     pdf.pages.append(page)
     pdf.save(outdir / 'formxobj.pdf')

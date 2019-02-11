@@ -8,9 +8,12 @@ from hypothesis.strategies import integers
 import pikepdf
 from pikepdf import Pdf, Dictionary, Name, PasswordError, Stream
 from pikepdf.models.metadata import (
-    decode_pdf_date, encode_pdf_date,
-    XMP_NS_DC, XMP_NS_PDF, XMP_NS_XMP,
-    DateConverter
+    decode_pdf_date,
+    encode_pdf_date,
+    XMP_NS_DC,
+    XMP_NS_PDF,
+    XMP_NS_XMP,
+    DateConverter,
 )
 
 import defusedxml.ElementTree as ET
@@ -64,7 +67,10 @@ def invalid_creationdate(resources):
 def test_lowlevel(sandwich):
     meta = sandwich.open_metadata()
     assert meta._qname('pdf:Producer') == '{http://ns.adobe.com/pdf/1.3/}Producer'
-    assert meta._prefix_from_uri('{http://ns.adobe.com/pdf/1.3/}Producer') == 'pdf:Producer'
+    assert (
+        meta._prefix_from_uri('{http://ns.adobe.com/pdf/1.3/}Producer')
+        == 'pdf:Producer'
+    )
     assert 'pdf:Producer' in meta
     assert '{http://ns.adobe.com/pdf/1.3/}Producer' in meta
     assert 'xmp:CreateDate' in meta
@@ -126,15 +132,13 @@ def test_add_new_xmp_and_mark(trivial):
     ) as xmp_view:
         assert not xmp_view
 
-    with trivial.open_metadata(update_docinfo=False
-    ) as xmp:
+    with trivial.open_metadata(update_docinfo=False) as xmp:
         assert not xmp  # No changes at this point
     del xmp
 
     print(trivial.Root.Metadata.read_bytes())
 
-    with trivial.open_metadata(update_docinfo=False
-    ) as xmp:
+    with trivial.open_metadata(update_docinfo=False) as xmp:
         assert xmp['pdf:Producer'] == 'pikepdf ' + pikepdf.__version__
         assert 'xmp:MetadataDate' in xmp
 
@@ -153,7 +157,9 @@ def test_update_docinfo(vera):
     assert Name.Author not in vera.docinfo
 
 
-@pytest.mark.parametrize('filename', list((Path(__file__).parent / 'resources').glob('*.pdf')))
+@pytest.mark.parametrize(
+    'filename', list((Path(__file__).parent / 'resources').glob('*.pdf'))
+)
 def test_roundtrip(filename):
     try:
         pdf = Pdf.open(filename)
@@ -234,7 +240,10 @@ def test_decode_pdf_date():
         ("20180101010101Z00'00'", datetime(2018, 1, 1, 1, 1, 1, tzinfo=timezone.utc)),
         ("20180101010101Z", datetime(2018, 1, 1, 1, 1, 1, tzinfo=timezone.utc)),
         ("20180101010101+0000", datetime(2018, 1, 1, 1, 1, 1, tzinfo=timezone.utc)),
-        ("20180101010101+0100", datetime(2018, 1, 1, 1, 1, 1, tzinfo=timezone(timedelta(hours=1)))),
+        (
+            "20180101010101+0100",
+            datetime(2018, 1, 1, 1, 1, 1, tzinfo=timezone(timedelta(hours=1))),
+        ),
     ]
     for s, d in VALS:
         assert decode_pdf_date(s) == d
@@ -296,8 +305,10 @@ def test_xpacket_generation(sandwich):
 
     xmpstr2 = sandwich.Root.Metadata.read_bytes()
     assert xmpstr2.startswith(xpacket_begin)
+
     def only_one_substring(s, subs):
         return s.find(subs) == s.rfind(subs)
+
     assert only_one_substring(xmpstr2, xpacket_begin)
     assert only_one_substring(xmpstr2, xpacket_end)
 
@@ -339,9 +350,12 @@ def test_docinfo_problems(enron1, invalid_creationdate):
 
 
 def test_wrong_xml(enron1):
-    enron1.Root.Metadata = Stream(enron1, b"""
+    enron1.Root.Metadata = Stream(
+        enron1,
+        b"""
         <test><xml>This is valid xml but not valid XMP</xml></test>
-    """.strip())
+    """.strip(),
+    )
     meta = enron1.open_metadata()
     with pytest.raises(ValueError, message='not XMP'):
         with meta:
@@ -351,7 +365,9 @@ def test_wrong_xml(enron1):
 
 
 def test_no_x_xmpmeta(trivial):
-    trivial.Root.Metadata = Stream(trivial, b"""
+    trivial.Root.Metadata = Stream(
+        trivial,
+        b"""
         <?xpacket begin="\xef\xbb\xbf" id="W5M0MpCehiHzreSzNTczkc9d"?>
         <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
                 xmlns:xmp="http://ns.adobe.com/xap/1.0/">
@@ -367,7 +383,8 @@ def test_no_x_xmpmeta(trivial):
         </rdf:Description>
         </rdf:RDF>
         <?xpacket end="w"?>
-    """.strip())
+    """.strip(),
+    )
 
     with trivial.open_metadata() as xmp:
         assert xmp._get_rdf_root() is not None

@@ -8,8 +8,14 @@ import zlib
 
 
 from pikepdf import (
-    Pdf, PdfImage, PdfError, Name,
-    parse_content_stream, PdfInlineImage, Stream, StreamDecodeLevel
+    Pdf,
+    PdfImage,
+    PdfError,
+    Name,
+    parse_content_stream,
+    PdfInlineImage,
+    Stream,
+    StreamDecodeLevel,
 )
 
 
@@ -55,10 +61,7 @@ def test_image_replace(congress, outdir):
     grayscale = pillowimage.convert('L')
     grayscale = grayscale.resize((4, 4))  # So it is not obnoxious on error
 
-    congress[0].write(
-        zlib.compress(grayscale.tobytes()),
-        filter=Name("/FlateDecode")
-    )
+    congress[0].write(zlib.compress(grayscale.tobytes()), filter=Name("/FlateDecode"))
     congress[0].ColorSpace = Name("/DeviceGray")
     pdf = congress[1]
     pdf.save(outdir / 'congress_gray.pdf')
@@ -89,8 +92,7 @@ def test_lowlevel_replace_jpeg(congress, outdir):
     grayscale = grayscale.resize((4, 4))  # So it is not obnoxious on error
 
     congress[0].write(
-        zlib.compress(grayscale.tobytes()[:10]),
-        filter=Name("/FlateDecode")
+        zlib.compress(grayscale.tobytes()[:10]), filter=Name("/FlateDecode")
     )
     congress[0].ColorSpace = Name('/DeviceGray')
 
@@ -121,11 +123,14 @@ def test_bits_per_component_missing(congress):
     assert PdfImage(congress[0]).bits_per_component == 8
 
 
-@pytest.mark.parametrize('w,h,pixeldata,cs,bpc', [
-    (1, 1, b'\xff', '/DeviceGray', 1),
-    (1, 1, b'\xf0', '/DeviceGray', 8),
-    (1, 1, b'\xff\x00\xff', '/DeviceRGB', 8)
-])
+@pytest.mark.parametrize(
+    'w,h,pixeldata,cs,bpc',
+    [
+        (1, 1, b'\xff', '/DeviceGray', 1),
+        (1, 1, b'\xf0', '/DeviceGray', 8),
+        (1, 1, b'\xff\x00\xff', '/DeviceRGB', 8),
+    ],
+)
 def test_image_roundtrip(outdir, w, h, pixeldata, cs, bpc):
     pdf = Pdf.new()
 
@@ -149,16 +154,15 @@ def test_image_roundtrip(outdir, w, h, pixeldata, cs, bpc):
         '/Type': Name('/Page'),
         '/MediaBox': mediabox,
         '/Contents': contents,
-        '/Resources': resources
+        '/Resources': resources,
     }
     page = pdf.make_indirect(page_dict)
 
     pdf.pages.append(page)
-    outfile = outdir / 'test{w}{h}{cs}{bpc}.pdf'.format(
-        w=w, h=h, cs=cs[1:], bpc=bpc
+    outfile = outdir / 'test{w}{h}{cs}{bpc}.pdf'.format(w=w, h=h, cs=cs[1:], bpc=bpc)
+    pdf.save(
+        outfile, compress_streams=False, stream_decode_level=StreamDecodeLevel.none
     )
-    pdf.save(outfile, compress_streams=False,
-             stream_decode_level=StreamDecodeLevel.none)
 
     p2 = pdf.open(outfile)
     pim = PdfImage(p2.pages[0].Resources.XObject['/Im1'])
@@ -185,13 +189,14 @@ def test_image_roundtrip(outdir, w, h, pixeldata, cs, bpc):
     assert pim.mode == im.mode
 
 
-@pytest.mark.parametrize('filename,bpc,filters,ext,mode,format',
+@pytest.mark.parametrize(
+    'filename,bpc,filters,ext,mode,format',
     [
         ('sandwich.pdf', 1, ['/CCITTFaxDecode'], '.tif', '1', 'TIFF'),
         ('congress-gray.pdf', 8, ['/DCTDecode'], '.jpg', 'L', 'JPEG'),
         ('congress.pdf', 8, ['/DCTDecode'], '.jpg', 'RGB', 'JPEG'),
-        ('cmyk-jpeg.pdf', 8, ['/DCTDecode'], '.jpg', 'CMYK', 'JPEG')
-    ]
+        ('cmyk-jpeg.pdf', 8, ['/DCTDecode'], '.jpg', 'CMYK', 'JPEG'),
+    ],
 )
 def test_direct_extract(resources, filename, bpc, filters, ext, mode, format):
     xobj, pdf = first_image_in(resources / filename)
@@ -210,11 +215,16 @@ def test_direct_extract(resources, filename, bpc, filters, ext, mode, format):
     assert im.format == format
 
 
-@pytest.mark.parametrize('filename,bpc', [
-    ('pal.pdf', 8),
-    ('pal-1bit-trivial.pdf', 1),
-    pytest.param('pal-1bit-rgb.pdf', 1, marks=pytest.mark.xfail(raises=NotImplementedError)),
-])
+@pytest.mark.parametrize(
+    'filename,bpc',
+    [
+        ('pal.pdf', 8),
+        ('pal-1bit-trivial.pdf', 1),
+        pytest.param(
+            'pal-1bit-rgb.pdf', 1, marks=pytest.mark.xfail(raises=NotImplementedError)
+        ),
+    ],
+)
 def test_image_palette(resources, filename, bpc):
     pdf = Pdf.open(resources / filename)
     pim = PdfImage(next(iter(pdf.pages[0].images.values())))
@@ -234,8 +244,9 @@ def test_bool_in_inline_image():
     assert piim.image_mask
 
 
-@pytest.mark.skipif(not PIL_features.check_codec('jpg_2000'),
-                    reason='no JPEG2000 codec')
+@pytest.mark.skipif(
+    not PIL_features.check_codec('jpg_2000'), reason='no JPEG2000 codec'
+)
 def test_jp2(resources):
     pdf = Pdf.open(resources / 'pike-jp2.pdf')
     xobj = next(iter(pdf.pages[0].images.values()))

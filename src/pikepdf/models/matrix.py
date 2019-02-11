@@ -6,6 +6,7 @@
 
 from math import cos, sin, pi
 
+
 class PdfMatrix:
     """
     Support class for PDF content stream matrices
@@ -31,6 +32,7 @@ class PdfMatrix:
     """
 
     def __init__(self, *args):
+        # fmt: off
         if not args:
             self.values = ((1, 0, 0), (0, 1, 0), (0, 0, 1))
         elif len(args) == 6:
@@ -51,6 +53,7 @@ class PdfMatrix:
                            tuple(args[0][2]))
         else:
             raise ValueError('arguments')
+        # fmt: on
 
     @staticmethod
     def identity():
@@ -66,10 +69,13 @@ class PdfMatrix:
         a = self.values
         b = other.values
         return PdfMatrix(
-                [[sum([float(i) * float(j)
-                       for i, j in zip(row, col)]
-                     ) for col in zip(*b)]
-                  for row in a]
+            [
+                [
+                    sum([float(i) * float(j) for i, j in zip(row, col)])
+                    for col in zip(*b)
+                ]
+                for row in a
+            ]
         )
 
     def scaled(self, x, y):

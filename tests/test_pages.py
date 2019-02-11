@@ -7,6 +7,7 @@ import gc
 
 from sys import getrefcount as refcount
 
+
 @pytest.fixture
 def graph(resources):
     return Pdf.open(resources / 'graph.pdf')
@@ -51,8 +52,7 @@ def test_replace_page(graph, fourpages):
     assert len(q.pages) == 4
     q.pages[1] = q2.pages[0]
     assert len(q.pages) == 4
-    assert q.pages[1].Resources.XObject.keys() == \
-        q2.pages[0].Resources.XObject.keys()
+    assert q.pages[1].Resources.XObject.keys() == q2.pages[0].Resources.XObject.keys()
 
 
 def test_hard_replace_page(fourpages, graph, sandwich, outdir):
@@ -154,10 +154,12 @@ def test_slice_unequal_replacement(fourpages, sandwich, outdir):
 
     assert len(pdf.pages) == 2, "number of pages must be changed"
     pdf.save(outdir / 'out.pdf')
-    assert pdf.pages[0].Contents.Length == page0_content_len, \
-        "page 0 should be unchanged"
-    assert pdf.pages[1].Contents.Length != page1_content_len, \
-        "page 1's contents should have changed"
+    assert (
+        pdf.pages[0].Contents.Length == page0_content_len
+    ), "page 0 should be unchanged"
+    assert (
+        pdf.pages[1].Contents.Length != page1_content_len
+    ), "page 1's contents should have changed"
 
 
 def test_slice_with_step(fourpages, sandwich, outdir):
@@ -171,24 +173,23 @@ def test_slice_with_step(fourpages, sandwich, outdir):
     pdf.pages[0::2] = pdf2.pages
     pdf.save(outdir / 'out.pdf')
 
-    assert all(page.Contents.Length == pdf2_content_len
-               for page in pdf.pages[0::2])
+    assert all(page.Contents.Length == pdf2_content_len for page in pdf.pages[0::2])
 
 
 def test_slice_differing_lengths(fourpages, sandwich):
     pdf = fourpages
     pdf2 = sandwich
 
-    with pytest.raises(ValueError,
-            message="attempt to assign"):
+    with pytest.raises(ValueError, message="attempt to assign"):
         pdf.pages[0::2] = pdf2.pages[0:1]
 
 
 @pytest.mark.timeout(1)
 def test_self_extend(fourpages):
     pdf = fourpages
-    with pytest.raises(ValueError,
-            message="source page list modified during iteration"):
+    with pytest.raises(
+        ValueError, message="source page list modified during iteration"
+    ):
         pdf.pages.extend(pdf.pages)
 
 

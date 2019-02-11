@@ -69,6 +69,7 @@ class Name(metaclass=_NameObjectMeta):
     that are normally expected to be in a PDF. The latter is preferred for
     dynamic names and attributes.
     """
+
     object_type = ObjectType.name
 
     def __new__(cls, name):
@@ -81,6 +82,7 @@ class Name(metaclass=_NameObjectMeta):
 
 class String(metaclass=_ObjectMeta):
     """Constructs a PDF String object"""
+
     object_type = ObjectType.string
 
     def __new__(cls, s):
@@ -99,6 +101,7 @@ class String(metaclass=_ObjectMeta):
 
 class Array(metaclass=_ObjectMeta):
     """Constructs a PDF Array object"""
+
     object_type = ObjectType.array
 
     def __new__(cls, a=None):
@@ -120,6 +123,7 @@ class Array(metaclass=_ObjectMeta):
 
 class Dictionary(metaclass=_ObjectMeta):
     """Constructs a PDF Dictionary object"""
+
     object_type = ObjectType.dictionary
 
     def __new__(cls, d=None, **kwargs):
@@ -147,8 +151,7 @@ class Dictionary(metaclass=_ObjectMeta):
         if kwargs:
             # Add leading slash
             # Allows Dictionary(MediaBox=(0,0,1,1), Type=Name('/Page')...
-            return _qpdf._new_dictionary(
-                {('/' + k) : v for k, v in kwargs.items()})
+            return _qpdf._new_dictionary({('/' + k): v for k, v in kwargs.items()})
         if not d:
             d = {}
         return _qpdf._new_dictionary(d)
@@ -156,6 +159,7 @@ class Dictionary(metaclass=_ObjectMeta):
 
 class Stream(metaclass=_ObjectMeta):
     """Constructs a PDF Stream object"""
+
     object_type = ObjectType.stream
 
     def __new__(cls, owner, obj):

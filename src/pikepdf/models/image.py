@@ -11,12 +11,12 @@ import struct
 
 from decimal import Decimal
 
-from .. import (
-    Object, Array, PdfError, Name, Dictionary, Stream
-)
+from .. import Object, Array, PdfError, Name, Dictionary, Stream
+
 
 class DependencyError(Exception):
     pass
+
 
 class UnsupportedImageTypeError(Exception):
     pass
@@ -114,14 +114,17 @@ class PdfImageBase(ABC):
                 return self._colorspaces[0]
             if self._colorspaces[0] == '/DeviceCMYK':
                 return self._colorspaces[0]
-            if self._colorspaces[0] == '/Indexed' \
-                    and self._colorspaces[1] in self.SIMPLE_COLORSPACES:
+            if (
+                self._colorspaces[0] == '/Indexed'
+                and self._colorspaces[1] in self.SIMPLE_COLORSPACES
+            ):
                 return self._colorspaces[1]
             if self._colorspaces[0] == '/ICCBased':
                 icc = self._colorspaces[1]
                 return icc.stream_dict.get('/Alternate', '')
         raise NotImplementedError(
-            "not sure how to get colorspace: " + repr(self._colorspaces))
+            "not sure how to get colorspace: " + repr(self._colorspaces)
+        )
 
     @property
     def bits_per_component(self):
@@ -237,8 +240,7 @@ class PdfImage(PdfImageBase):
             obj (pikepdf.Object): an Image XObject
 
         """
-        if isinstance(obj, Stream) and \
-                obj.stream_dict.get("/Subtype") != "/Image":
+        if isinstance(obj, Stream) and obj.stream_dict.get("/Subtype") != "/Image":
             raise TypeError("can't construct PdfImage from non-image")
         self.obj = obj
 
@@ -296,14 +298,16 @@ class PdfImage(PdfImageBase):
             # saved as a standard JPEG. RGB JPEGs without YUV conversion can't
             # be saved as JPEGs, and are probably bugs. Some software in the
             # wild actually produces RGB JPEGs in PDFs (probably a bug).
-            return (self.mode == 'RGB' and
-                    self.filter_decodeparms[0][1].get('/ColorTransform', 1))
+            return self.mode == 'RGB' and self.filter_decodeparms[0][1].get(
+                '/ColorTransform', 1
+            )
 
         def normal_dct_cmyk():
             # Normal DCTDecode CMYKs have /ColorTransform 0 and can be saved.
             # There is a YUVK colorspace but CMYK JPEGs don't generally use it
-            return (self.mode == 'CMYK' and
-                    self.filter_decodeparms[0][1].get('/ColorTransform', 0))
+            return self.mode == 'CMYK' and self.filter_decodeparms[0][1].get(
+                '/ColorTransform', 0
+            )
 
         if self.filters == ['/CCITTFaxDecode']:
             data = self.obj.read_raw_bytes()
@@ -311,7 +315,8 @@ class PdfImage(PdfImageBase):
             stream.write(data)
             return '.tif'
         elif self.filters == ['/DCTDecode'] and (
-                self.mode == 'L' or normal_dct_rgb() or normal_dct_cmyk):
+            self.mode == 'L' or normal_dct_rgb() or normal_dct_cmyk
+        ):
             buffer = self.obj.get_raw_stream_buffer()
             stream.write(buffer)
             return '.jpg'
@@ -320,6 +325,7 @@ class PdfImage(PdfImageBase):
 
     def _extract_transcoded(self):
         from PIL import Image
+
         im = None
         if self.mode == 'RGB' and self.bits_per_component == 8:
             # No point in accessing the buffer here, size qpdf decodes to 3-byte
@@ -330,8 +336,7 @@ class PdfImage(PdfImageBase):
             buffer = self.get_stream_buffer()
             stride = 0  # tell Pillow to calculate stride from line width
             ystep = 1  # image is top to bottom in memory
-            im = Image.frombuffer('L', self.size, buffer, "raw", 'L', stride,
-                                  ystep)
+            im = Image.frombuffer('L', self.size, buffer, "raw", 'L', stride, ystep)
             if self.mode == 'P':
                 base_mode, palette = self.palette
                 if base_mode in ('RGB', 'L'):
@@ -347,10 +352,8 @@ class PdfImage(PdfImageBase):
             im = Image.frombytes('1', self.size, data)
 
             base_mode, palette = self.palette
-            if not (palette == b'\x00\x00\x00\xff\xff\xff'
-                    or palette == b'\x00\xff'):
-                raise NotImplementedError(
-                    'monochrome image with nontrivial palette')
+            if not (palette == b'\x00\x00\x00\xff\xff\xff' or palette == b'\x00\xff'):
+                raise NotImplementedError('monochrome image with nontrivial palette')
 
         return im
 
@@ -433,6 +436,7 @@ class PdfImage(PdfImageBase):
 
         img_size = len(data)
         tiff_header_struct = '<' + '2s' + 'H' + 'L' + 'H' + 'HHLL' * 8 + 'L'
+        # fmt: off
         tiff_header = struct.pack(
             tiff_header_struct,
             b'II',  # Byte order indication: Little endian
@@ -449,6 +453,7 @@ class PdfImage(PdfImageBase):
             279, 4, 1, img_size,  # StripByteCounts, LONG, 1, size of image
             0  # last IFD
         )
+        # fmt: on
         return tiff_header
 
     def show(self):
@@ -457,7 +462,8 @@ class PdfImage(PdfImageBase):
 
     def __repr__(self):
         return '<pikepdf.PdfImage image mode={} size={}x{} at {}>'.format(
-            self.mode, self.width, self.height, hex(id(self)))
+            self.mode, self.width, self.height, hex(id(self))
+        )
 
     def _repr_png_(self):
         """Display hook for IPython/Jupyter"""
@@ -468,7 +474,6 @@ class PdfImage(PdfImageBase):
 
 
 class PdfJpxImage(PdfImage):
-
     def __init__(self, obj):
         super().__init__(obj)
         self.pil = self.as_pil_image()
@@ -508,7 +513,8 @@ class PdfJpxImage(PdfImage):
 
     def __repr__(self):
         return '<pikepdf.PdfJpxImage JPEG2000 image mode={} size={}x{} at {}>'.format(
-            self.mode, self.width, self.height, hex(id(self)))
+            self.mode, self.width, self.height, hex(id(self))
+        )
 
 
 class PdfInlineImage(PdfImageBase):
@@ -532,7 +538,7 @@ class PdfInlineImage(PdfImageBase):
         b'/LZW': b'/LZWDecode',
         b'/RL': b'/RunLengthDecode',
         b'/CCF': b'/CCITTFaxDecode',
-        b'/DCT': b'/DCTDecode'
+        b'/DCT': b'/DCTDecode',
     }
 
     def __init__(self, *, image_data, image_object: tuple):
@@ -554,8 +560,7 @@ class PdfInlineImage(PdfImageBase):
         try:
             reparsed_obj = Object.parse(b'<< ' + reparse + b' >>')
         except PdfError as e:
-            raise PdfError(
-                "parsing inline " + reparse.decode('unicode_escape')) from e
+            raise PdfError("parsing inline " + reparse.decode('unicode_escape')) from e
         self.obj = reparsed_obj
         self.pil = None
 
@@ -574,7 +579,6 @@ class PdfInlineImage(PdfImageBase):
             return str(obj).encode('ascii')
         else:
             raise NotImplementedError(repr(obj))
-
 
     def _metadata(self, name, type_, default):
         return metadata_from_obj(self.obj, name, type_, default)
@@ -604,7 +608,8 @@ class PdfInlineImage(PdfImageBase):
         except Exception:
             pass
         return '<pikepdf.PdfInlineImage image mode={} size={}x{} at {}>'.format(
-            mode, self.width, self.height, hex(id(self)))
+            mode, self.width, self.height, hex(id(self))
+        )
 
     def as_pil_image(self):
         from PIL import Image
@@ -619,8 +624,8 @@ class PdfInlineImage(PdfImageBase):
 
     def read_bytes(self):
         raise NotImplementedError("qpdf returns compressed")
-        #return self._data._inline_image_bytes()
+        # return self._data._inline_image_bytes()
 
     def get_stream_buffer(self):
         raise NotImplementedError("qpdf returns compressed")
-        #return memoryview(self._data.inline_image_bytes())
+        # return memoryview(self._data.inline_image_bytes())

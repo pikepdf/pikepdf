@@ -15,6 +15,7 @@ from pikepdf import Pdf, Object, Name, Stream
 
 def test_minimum_qpdf_version():
     from pikepdf import _qpdf
+
     assert _qpdf.qpdf_version() >= '7.0.0'
 
 
@@ -39,20 +40,24 @@ def test_create_pdf(outdir):
     pdf = Pdf.new()
 
     font = pdf.make_indirect(
-        Object.parse(b"""
+        Object.parse(
+            b"""
             <<
                 /Type /Font
                 /Subtype /Type1
                 /Name /F1
                 /BaseFont /Helvetica
                 /Encoding /WinAnsiEncoding
-            >>"""))
+            >>"""
+        )
+    )
 
     width, height = 100, 100
     image_data = b"\xff\x7f\x00" * (width * height)
 
     image = Stream(pdf, image_data)
-    image.stream_dict = Object.parse(b"""
+    image.stream_dict = Object.parse(
+        b"""
             <<
                 /Type /XObject
                 /Subtype /Image
@@ -60,16 +65,14 @@ def test_create_pdf(outdir):
                 /BitsPerComponent 8
                 /Width 100
                 /Height 100
-            >>""")
+            >>"""
+    )
 
     rfont = {'/F1': font}
 
     xobj = {'/Im1': image}
 
-    resources = {
-        '/Font': rfont,
-        '/XObject': xobj
-        }
+    resources = {'/Font': rfont, '/XObject': xobj}
 
     mediabox = [0, 0, 612, 792]
 
@@ -84,8 +87,8 @@ def test_create_pdf(outdir):
         '/Type': Name('/Page'),
         '/MediaBox': mediabox,
         '/Contents': contents,
-        '/Resources': resources
-        }
+        '/Resources': resources,
+    }
     qpdf_page_dict = page_dict
     page = pdf.make_indirect(qpdf_page_dict)
 

@@ -15,9 +15,11 @@ import sys
 
 # Provide os.fspath equivalent for Python <3.6
 if sys.version_info[0:2] <= (3, 5):  # pragma: no cover
+
     def fspath(path):
         '''https://www.python.org/dev/peps/pep-0519/#os'''
         import pathlib
+
         if isinstance(path, (str, bytes)):
             return path
 
@@ -36,12 +38,16 @@ if sys.version_info[0:2] <= (3, 5):  # pragma: no cover
             if isinstance(path, (str, bytes)):
                 return path
             else:
-                raise TypeError("expected __fspath__() to return str or bytes, "
-                                "not " + type(path).__name__)
+                raise TypeError(
+                    "expected __fspath__() to return str or bytes, "
+                    "not " + type(path).__name__
+                )
 
         raise TypeError(
             "expected str, bytes, pathlib.Path or os.PathLike object, not "
-            + path_type.__name__)
+            + path_type.__name__
+        )
+
 
 else:
     fspath = os.fspath

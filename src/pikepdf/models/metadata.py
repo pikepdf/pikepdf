@@ -9,10 +9,7 @@ from collections.abc import MutableMapping
 from datetime import datetime
 from functools import wraps
 from io import BytesIO
-from pkg_resources import (
-    get_distribution as _get_distribution,
-    DistributionNotFound
-)
+from pkg_resources import get_distribution as _get_distribution, DistributionNotFound
 from warnings import warn
 import re
 import sys
@@ -80,21 +77,22 @@ XMP_CONTAINERS = [
     XmpContainer('Seq', list, list.append),
 ]
 
-LANG_ALTS = frozenset([
-    str(QName(XMP_NS_DC, 'title')),
-    str(QName(XMP_NS_DC, 'description')),
-    str(QName(XMP_NS_DC, 'rights')),
-    str(QName(XMP_NS_XMP_RIGHTS, 'UsageTerms')),
-])
+LANG_ALTS = frozenset(
+    [
+        str(QName(XMP_NS_DC, 'title')),
+        str(QName(XMP_NS_DC, 'description')),
+        str(QName(XMP_NS_DC, 'rights')),
+        str(QName(XMP_NS_XMP_RIGHTS, 'UsageTerms')),
+    ]
+)
 
 # These are the illegal characters in XML 1.0. (XML 1.1 is a bit more permissive,
 # but we'll be strict to ensure wider compatibility.)
 re_xml_illegal_chars = re.compile(
     r"(?u)[^\x09\x0A\x0D\x20-\uD7FF\uE000-\uFFFD\u10000-\u10FFFF]"
 )
-re_xml_illegal_bytes = re.compile(
-    br"[^\x09\x0A\x0D\x20-\xFF]|&#0;"
-)
+re_xml_illegal_bytes = re.compile(br"[^\x09\x0A\x0D\x20-\xFF]|&#0;")
+
 
 def encode_pdf_date(d: datetime) -> str:
     """Encode Python datetime object as PDF date string
@@ -162,6 +160,7 @@ class AuthorConverter:
 
 
 if sys.version_info < (3, 7):
+
     def fromisoformat(datestr):
         # strptime %z can't parse a timezone with punctuation
         if re.search(r'[+-]\d{2}[-:]\d{2}$', datestr):
@@ -170,8 +169,11 @@ if sys.version_info < (3, 7):
             return datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%S%z")
         except ValueError:
             return datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%S")
+
+
 else:
     fromisoformat = datetime.fromisoformat
+
 
 class DateConverter:
     @staticmethod
@@ -194,6 +196,7 @@ def ensure_loaded(fn):
         if not self._xmp:
             self._load()
         return fn(self, *args, **kwargs)
+
     return wrapper
 
 
@@ -280,7 +283,9 @@ class PdfMetadata(MutableMapping):
                     continue
                 self[qname] = val
             except (ValueError, AttributeError) as e:
-                msg = "The metadata field {} could not be copied to XMP".format(docinfo_name)
+                msg = "The metadata field {} could not be copied to XMP".format(
+                    docinfo_name
+                )
                 if raise_failure:
                     raise ValueError(msg) from e
                 else:
@@ -338,7 +343,11 @@ class PdfMetadata(MutableMapping):
                 try:
                     value = converter.docinfo_from_xmp(value)
                 except ValueError:
-                    warn("The DocumentInfo field {} could not be updated from XMP".format(docinfo_name))
+                    warn(
+                        "The DocumentInfo field {} could not be updated from XMP".format(
+                            docinfo_name
+                        )
+                    )
                     value = None
             if value is None:
                 if docinfo_name in self._pdf.docinfo:
@@ -553,19 +562,19 @@ class PdfMetadata(MutableMapping):
                 val = AltList([clean(val)])
             if isinstance(val, (list, set)):
                 rdfdesc = etree.SubElement(
-                    rdf, QName(XMP_NS_RDF, 'Description'),
-                    attrib={
-                        QName(XMP_NS_RDF, 'about'): '',
-                    },
+                    rdf,
+                    QName(XMP_NS_RDF, 'Description'),
+                    attrib={QName(XMP_NS_RDF, 'about'): ''},
                 )
                 node = etree.SubElement(rdfdesc, self._qname(key))
                 add_array(node, val)
             elif isinstance(val, str):
                 rdfdesc = etree.SubElement(
-                    rdf, QName(XMP_NS_RDF, 'Description'),
+                    rdf,
+                    QName(XMP_NS_RDF, 'Description'),
                     attrib={
                         QName(XMP_NS_RDF, 'about'): '',
-                        self._qname(key): clean(val)
+                        self._qname(key): clean(val),
                     },
                 )
             else:
@@ -579,7 +588,11 @@ class PdfMetadata(MutableMapping):
             node, attrib, _oldval, parent = next(self._get_elements(key))
             if attrib:  # Inline
                 del node.attrib[attrib]
-                if len(node.attrib) == 1 and len(node) == 0 and QName(XMP_NS_RDF, 'about') in node.attrib:
+                if (
+                    len(node.attrib) == 1
+                    and len(node) == 0
+                    and QName(XMP_NS_RDF, 'about') in node.attrib
+                ):
                     # The only thing left on this node is rdf:about="", so remove it
                     parent.remove(node)
             else:

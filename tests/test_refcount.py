@@ -9,6 +9,7 @@ from sys import getrefcount as refcount
 
 # Try to do some things without blowing up
 
+
 def test_access_image(resources):
     pdf = Pdf.open(resources / 'congress.pdf')
     assert refcount(pdf) == 2  # refcount is always +1
