@@ -10,15 +10,23 @@ except ImportError:
     raise ImportError("pikepdf's extension library failed to import")
 
 from ._version import __version__
-from ._qpdf import (
-    PdfError, Pdf, PasswordError, ObjectStreamMode, StreamDecodeLevel
-)
+from ._qpdf import PdfError, Pdf, PasswordError, ObjectStreamMode, StreamDecodeLevel
 from .objects import (
-    Object, ObjectType, Name, String, Array, Dictionary, Stream, Operator
+    Object,
+    ObjectType,
+    Name,
+    String,
+    Array,
+    Dictionary,
+    Stream,
+    Operator,
 )
 from .models import (
-    PdfImage, PdfInlineImage, UnsupportedImageTypeError, PdfMatrix,
-    parse_content_stream
+    PdfImage,
+    PdfInlineImage,
+    UnsupportedImageTypeError,
+    PdfMatrix,
+    parse_content_stream,
 )
 
 from . import _methods
@@ -27,5 +35,10 @@ __libqpdf_version__ = _qpdf.qpdf_version()
 
 
 def open(*args, **kwargs):  # pylint: disable=redefined-builtin
-    "Alias for :func:`pikepdf.Pdf.open`."
+    """Alias for :func:`pikepdf.Pdf.open`. Open a PDF."""
     return Pdf.open(*args, **kwargs)
+
+
+def new(*args, **kwargs):
+    """Alias for :func:`pikepdf.Pdf.new`. Create a new empty PDF."""
+    return Pdf.new(*args, **kwargs)

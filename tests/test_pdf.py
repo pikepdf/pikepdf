@@ -2,20 +2,27 @@
 Testing focused on pikepdf.Pdf
 """
 
-import pytest
-from pikepdf import Pdf, PasswordError, Stream, PdfError
-
-import sys
 import os
+import shutil
+import sys
 from io import StringIO
 from unittest.mock import Mock, patch
-import shutil
+
+import pytest
+
+import pikepdf
+from pikepdf import PasswordError, Pdf, PdfError, Stream
 from pikepdf._cpphelpers import fspath  # For py35
 
 
 @pytest.fixture
 def trivial(resources):
     return Pdf.open(resources / 'pal-1bit-trivial.pdf')
+
+
+def test_new(outdir):
+    pdf = pikepdf.new()
+    pdf.save(outdir / 'new-empty.pdf')
 
 
 def test_non_filename():
@@ -86,6 +93,7 @@ class TestStreams:
 
     def test_save_stream(self, trivial, outdir):
         from io import BytesIO
+
         pdf = trivial
         pdf.save(outdir / 'nostream.pdf', static_id=True)
 
@@ -123,8 +131,7 @@ def test_show_xref(trivial):
     trivial.show_xref_table()
 
 
-@pytest.mark.skipif(sys.version_info < (3, 6),
-                    reason='missing mock.assert_called')
+@pytest.mark.skipif(sys.version_info < (3, 6), reason='missing mock.assert_called')
 def test_progress(trivial, outdir):
     pdf = trivial
     mock = Mock()
@@ -135,10 +142,7 @@ def test_progress(trivial, outdir):
 def test_unicode_filename(resources, outdir):
     target1 = outdir / '测试.pdf'
     target2 = outdir / '通过考试.pdf'
-    shutil.copy(
-        fspath(resources / 'pal-1bit-trivial.pdf'),
-        fspath(target1)
-    )
+    shutil.copy(fspath(resources / 'pal-1bit-trivial.pdf'), fspath(target1))
     pdf = Pdf.open(target1)
     pdf.save(target2)
     assert target2.exists()

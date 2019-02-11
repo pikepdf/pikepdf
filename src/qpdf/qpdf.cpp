@@ -253,7 +253,7 @@ PYBIND11_MODULE(_qpdf, m) {
                 q->setSuppressWarnings(true);
                 return q;
             },
-            "create a new empty PDF from stratch"
+            "Create a new empty PDF from stratch."
         )
         .def_static("open", open_pdf,
             R"~~~(
