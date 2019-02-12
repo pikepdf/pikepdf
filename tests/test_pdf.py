@@ -182,3 +182,21 @@ def test_min_and_force_version(trivial, outdir):
 def test_normalize_linearize(trivial, outdir):
     with pytest.raises(ValueError):
         trivial.save(outdir / 'no.pdf', linearize=True, normalize_content=True)
+
+
+def test_make_stream(trivial, outdir):
+    pdf = trivial
+    stream = pdf.make_stream(b'q Q')
+    pdf.pages[0].Contents = stream
+    pdf.save(outdir / 's.pdf')
+
+
+def test_add_blank_page(trivial):
+    assert len(trivial.pages) == 1
+
+    invalid = [-1, 0, 2, 15000]
+    for n in invalid:
+        with pytest.raises(ValueError):
+            trivial.add_blank_page(page_size=(n, n))
+    trivial.add_blank_page()
+    assert len(trivial.pages) == 2

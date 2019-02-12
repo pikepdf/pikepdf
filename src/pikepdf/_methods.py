@@ -25,7 +25,7 @@ from .models import PdfMetadata
 # pylint: disable=no-member,unsupported-membership-test,unsubscriptable-object
 
 
-def extends(cls_cpp):
+def augments(cls_cpp):
     """Attach methods of a Python support class to an existing class
 
     This monkeypatches all methods defined in the support class onto an
@@ -33,26 +33,28 @@ def extends(cls_cpp):
 
     .. code-block:: python
 
-        @extends(ClassDefinedInCpp)
+        @augments(ClassDefinedInCpp)
         class SupportClass:
             def foo(self):
                 pass
 
-    The method 'foo' will be monkeypatched on ClassDefinedInCpp. SupportClass
+    The Python method 'foo' will be monkeypatched on ClassDefinedInCpp. SupportClass
     has no meaning on its own and should not be used, but gets returned from
     this function so IDE code inspection doesn't get too confused.
 
     We don't subclass because it's much more convenient to monkeypatch Python
     methods onto the existing Python binding of the C++ class. For one thing,
     this allows the implementation to be moved from Python to C++ or vice
-    versa. It saves having to implement an intermediate subclass and then
-    ensures that the superclass never 'leaks' to pikepdf users.
+    versa. It saves having to implement an intermediate Python subclass and then
+    ensures that the C++ superclass never 'leaks' to pikepdf users.
 
     Any existing methods may be used, regardless of whether they defined
     elsewhere in the support class or in the target class.
+
+    The target class does not have to be C++ or derived from pybind11.
     """
 
-    def real_class_extend(cls, cls_cpp=cls_cpp):
+    def class_augment(cls, cls_cpp=cls_cpp):
         for name, fn in inspect.getmembers(cls, inspect.isfunction):
             fn.__qualname__ = fn.__qualname__.replace(cls.__name__, cls_cpp.__name__)
             setattr(cls_cpp, name, fn)
@@ -60,12 +62,13 @@ def extends(cls_cpp):
             setattr(cls_cpp, name, fn)
 
         def block_init(self):
+            # Prevent initialization of the support class
             raise NotImplementedError(self.__class__.__name__ + '.__init__')
 
         cls.__init__ = block_init
         return cls
 
-    return real_class_extend
+    return class_augment
 
 
 def _single_page_pdf(page):
@@ -93,7 +96,7 @@ def _mudraw(buffer, fmt):
         return proc.stdout
 
 
-@extends(Object)
+@augments(Object)
 class Extend_Object:
     def _repr_mimebundle_(self, **kwargs):
         """Present options to IPython for rich display of this object
@@ -126,7 +129,7 @@ class Extend_Object:
         return data
 
 
-@extends(Pdf)
+@augments(Pdf)
 class Extend_Pdf:
     def _repr_mimebundle_(self, **_kwargs):
         """
@@ -168,6 +171,40 @@ class Extend_Pdf:
         return PdfMetadata(
             self, pikepdf_mark=set_pikepdf_as_editor, sync_docinfo=update_docinfo
         )
+
+    def make_stream(self, data):
+        """
+        Create a new pikepdf.Stream object that is attached to this PDF.
+
+        Args:
+            data (bytes): Binary data for the stream object
+        """
+        return Stream(self, data)
+
+    def add_blank_page(self, *, page_size=(612, 792)):
+        """
+        Add a blank page to this PD. If pages already exist, the page will be added to
+        the end. Pages may be reordered using ``Pdf.pages``.
+
+        The caller may add content to the page by modifying its objects after creating
+        it.
+
+        Args:
+            page_size (tuple): The size of the page in PDF units (1/72 inch or 0.35mm)
+        """
+        for dim in page_size:
+            if not (3 <= dim <= 14400):
+                raise ValueError('Page size must be between 3 and 14400 PDF units')
+
+        page_dict = Dictionary(
+            Type=Name.Page,
+            MediaBox=Array([0, 0, page_size[0], page_size[1]]),
+            Contents=self.make_stream(b''),
+            Resources=Dictionary(),
+        )
+        page = self.make_indirect(page_dict)
+        self._add_page(page, first=False)
+        return page
 
     def _attach(self, *, basename, filebytes, mime=None, desc=''):
         """
@@ -239,7 +276,7 @@ class Extend_Pdf:
             self.Root.PageMode = Name.UseAttachments
 
 
-@extends(_ObjectMapping)
+@augments(_ObjectMapping)
 class Extend_ObjectMapping:
     def __contains__(self, key):
         try:
