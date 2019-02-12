@@ -50,3 +50,10 @@ if sys.version_info[0:2] <= (3, 5):  # pragma: no cover
 
 else:
     fspath = os.fspath
+
+
+def update_xmp_pdfversion(pdf, version):
+
+    with pdf.open_metadata(set_pikepdf_as_editor=False, update_docinfo=False) as meta:
+        if 'pdf:PDFVersion' in meta:
+            meta['pdf:PDFVersion'] = version

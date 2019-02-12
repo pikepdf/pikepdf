@@ -114,6 +114,14 @@ private:
 };
 
 
+void update_xmp_pdfversion(QPDF &q, std::string version)
+{
+    auto impl = py::module::import("pikepdf._cpphelpers").attr("update_xmp_pdfversion");
+    auto pypdf = py::cast(q);
+    impl(pypdf, version);
+}
+
+
 void save_pdf(
     QPDF& q,
     py::object filename_or_stream,
@@ -121,6 +129,7 @@ void save_pdf(
     bool preserve_pdfa=true,
     std::string min_version="",
     std::string force_version="",
+    bool fix_metadata_version=true,
     bool compress_streams=true,
     qpdf_stream_decode_level_e stream_decode_level=qpdf_dl_generalized,
     qpdf_object_stream_e object_stream_mode=qpdf_o_preserve,
@@ -142,6 +151,10 @@ void save_pdf(
     if (!force_version.empty()) {
         w.forcePDFVersion(force_version, 0);
     }
+    if (fix_metadata_version) {
+        update_xmp_pdfversion(q, w.getFinalVersion());
+    }
+
     w.setCompressStreams(compress_streams);
     w.setDecodeLevel(stream_decode_level);
     w.setObjectStreamMode(object_stream_mode);
@@ -399,7 +412,7 @@ void init_qpdf(py::module &m)
         .def("save",
             save_pdf,
             R"~~~(
-            Save all modifications to this :class:`pikepdf.Pdf`
+            Save all modifications to this :class:`pikepdf.Pdf`.
 
             Args:
                 filename (str or stream): Where to write the output. If a file
@@ -419,6 +432,12 @@ void init_qpdf(py::module &m)
                 force_version (str): Override the version recommend by QPDF,
                     potentially creating an invalid file that does not display
                     in old versions. See QPDF manual for details.
+                fix_metadata_version (bool): If True (default) and the XMP metadata
+                    contains the optional PDF version field, ensure the version in
+                    metadata is correct. If the XMP metadata does not contain a PDF
+                    version field, none will be added. To ensure that the field is
+                    added, edit the metadata and insert a placeholder value in
+                    ``pdf:PDFVersion``.
 
                 object_stream_mode (pikepdf.ObjectStreamMode):
                     ``disable`` prevents the use of object streams.
@@ -448,10 +467,18 @@ void init_qpdf(py::module &m)
                     the program ``fix-qdf`` to fix convert back to a standard
                     PDF.
 
+                progress (callable): Specify a callback function that is called
+                    as the PDF is written. The function will be called with an
+                    integer between 0-100 as the sole parameter, the progress
+                    percentage. This function may not access or modify the PDF
+                    while it is being written, or data corruption will almost
+                    certainly occur.
+
             You may call ``.save()`` multiple times with different parameters
             to generate different versions of a file, and you *may* continue
             to modify the file after saving it. ``.save()`` does not modify
-            the ``Pdf`` object in memory.
+            the ``Pdf`` object in memory, except possibly by updating the XMP
+            metadata version with ``fix_metadata_version``.
 
             .. note::
 
@@ -467,6 +494,7 @@ void init_qpdf(py::module &m)
             py::arg("preserve_pdfa")=true,
             py::arg("min_version")="",
             py::arg("force_version")="",
+            py::arg("fix_metadata_version")=true,
             py::arg("compress_streams")=true,
             py::arg("stream_decode_level")=qpdf_stream_decode_level_e::qpdf_dl_generalized,
             py::arg("object_stream_mode")=qpdf_object_stream_e::qpdf_o_preserve,

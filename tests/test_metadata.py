@@ -390,3 +390,34 @@ def test_no_x_xmpmeta(trivial):
         assert xmp._get_rdf_root() is not None
         xmp['pdfaid:part'] = '2'
     assert xmp['pdfaid:part'] == '2'
+
+
+def test_pdf_version_update(graph, outdir):
+    def get_xmp_version(filename):
+        meta = pikepdf.open(filename).open_metadata()
+        xmp = XMPMeta(xmp_str=str(meta))
+        return xmp.get_property('http://ns.adobe.com/pdf/1.3/', 'PDFVersion')
+
+    # We don't update PDFVersion unless it is present, even if we change the PDF version
+    graph.save(
+        outdir / 'empty_xmp_pdfversion.pdf',
+        force_version='1.7',
+        fix_metadata_version=True,
+    )
+    assert get_xmp_version(outdir / 'empty_xmp_pdfversion.pdf') == ''
+
+    # Add PDFVersion field for remaining tests
+    with graph.open_metadata() as m:
+        m['pdf:PDFVersion'] = graph.pdf_version
+
+    # Confirm we don't update the field when the flag is false
+    graph.save(
+        outdir / 'inconsistent_version.pdf',
+        force_version='1.6',
+        fix_metadata_version=False,
+    )
+    assert get_xmp_version(outdir / 'inconsistent_version.pdf') == '1.3'
+
+    # Confirm we update if present
+    graph.save(outdir / 'consistent_version.pdf', force_version='1.5')
+    assert get_xmp_version(outdir / 'consistent_version.pdf') == '1.5'
