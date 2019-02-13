@@ -4,7 +4,7 @@ from pathlib import Path
 
 import defusedxml.ElementTree as ET
 import pytest
-from hypothesis import given
+from hypothesis import given, example
 from hypothesis.strategies import integers
 
 import pikepdf
@@ -267,6 +267,7 @@ def test_date_docinfo_from_xmp():
     integers(0, 99),
     integers(0, 99),
 )
+@example(1, 1, 1, 0, 0, 0)
 def test_random_dates(year, month, day, hour, mins, sec):
     date_args = year, month, day, hour, mins, sec
     xmp = '{:04d}-{:02d}-{:02d}T{:02d}:{:02d}:{:02d}'.format(*date_args)

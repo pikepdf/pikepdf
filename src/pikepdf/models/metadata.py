@@ -112,8 +112,11 @@ def encode_pdf_date(d: datetime) -> str:
     the local time.
     """
 
-    pdfmark_date_fmt = r'%Y%m%d%H%M%S'
-    s = d.strftime(pdfmark_date_fmt)
+    # The formatting of %Y is not consistent as described in
+    # https://bugs.python.org/issue13305 and underspecification in libc.
+    # So explicitly format the year with leading zeros
+    s = "{:04d}".format(d.year)
+    s += d.strftime(r'%m%d%H%M%S')
     tz = d.strftime('%z')
     if tz:
         sign, tz_hours, tz_mins = tz[0], tz[1:3], tz[3:5]
