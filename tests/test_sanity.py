@@ -5,6 +5,8 @@ A bunch of quick tests that confirm nothing is horribly wrong
 import gc
 from contextlib import suppress
 from shutil import copy
+from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
+from io import BytesIO
 
 import pytest
 
@@ -137,3 +139,17 @@ def test_readme_example(resources, outdir):
     del pdf.pages[-1]
     assert len(pdf.pages) == 3
     pdf.save(outdir / 'output.pdf')
+
+
+@pytest.mark.xfail(raises=TimeoutError, reason="pybind11 2.2.4 deadlock")
+def test_threading(resources):
+    pdf_bytes = (resources / 'graph.pdf').read_bytes()
+
+    def worker():
+        pdf = pikepdf.open(BytesIO(pdf_bytes))
+        return pdf.docinfo.Title
+
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        task = executor.submit(worker, pdf_bytes)
+        future = as_completed([task], timeout=1)
+        assert next(future)
