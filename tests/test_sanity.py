@@ -7,6 +7,10 @@ from contextlib import suppress
 from shutil import copy
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
 from io import BytesIO
+import threading
+import os
+import time
+import signal
 
 import pytest
 
@@ -141,15 +145,22 @@ def test_readme_example(resources, outdir):
     pdf.save(outdir / 'output.pdf')
 
 
-@pytest.mark.xfail(raises=TimeoutError, reason="pybind11 2.2.4 deadlock")
-def test_threading(resources):
-    pdf_bytes = (resources / 'graph.pdf').read_bytes()
+@pytest.mark.xfail(reason="needs pybind11 > 2.2.4")
+@pytest.mark.timeout(2, method='signal')
+def test_threading_deadlock(resources):
 
-    def worker():
-        pdf = pikepdf.open(BytesIO(pdf_bytes))
-        return pdf.docinfo.Title
+    pid = os.fork()
+    if pid == 0:
+        pdf_bytes = (resources / 'graph.pdf').read_bytes()
 
-    with ThreadPoolExecutor(max_workers=1) as executor:
-        task = executor.submit(worker, pdf_bytes)
-        future = as_completed([task], timeout=1)
-        assert next(future)
+        def worker(pdf_bytes):
+            pdf = pikepdf.open(BytesIO(pdf_bytes))
+            docinfo = pdf.docinfo
+            return docinfo
+
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            task = executor.map(worker, [pdf_bytes])
+            future = as_completed([task], timeout=1)
+            assert future is not None
+    else:
+        os.waitpid(pid, 0)
