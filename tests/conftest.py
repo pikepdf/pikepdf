@@ -4,8 +4,6 @@ from pathlib import Path
 
 import pytest
 
-pytest_plugins = ['helpers_namespace']
-
 
 if sys.version_info < (3, 4):
     print("Requires Python 3.4+")
