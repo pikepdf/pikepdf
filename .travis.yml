@@ -112,7 +112,7 @@ matrix:
       #- export CIBW_ENVIRONMENT='ARCH=x86_64 PATH="`pwd`/gcc-$ARCH/bin:$PATH" CC="ccache cc" CXX="ccache c++" CXXFLAGS="-static-libstdc++" LD_LIBRARY_PATH="`pwd`/gcc-$ARCH/lib" CCACHE_BASEDIR=`python -c "import tempfile; import os; print(os.path.realpath(tempfile.gettempdir()))"` CCACHE_DIR=/host'$HOME'/.ccache'
       #- export CIBW_BEFORE_BUILD='pip install pybind11 && [ -d ccache/$ARCH ] || (unset CC CXX CXXFLAGS && mkdir ccache/$ARCH && cd ccache/$ARCH && ../configure && make install)'
       #- export CIBW_ENVIRONMENT='ARCH=x86_64 PATH="`pwd`/gcc-$ARCH/bin:$PATH" CC="cc" CXX="c++" CXXFLAGS="-static-libstdc++" LD_LIBRARY_PATH="`pwd`/gcc-$ARCH/lib:$LD_LIBRARY_PATH"'
-      - export CIBW_BEFORE_BUILD='yum install -y libjpeg-devel zlib-devel && cd qpdf && ./autogen.sh && ./configure && make install && cd ..'
+      - export CIBW_BEFORE_BUILD='yum install -y libjpeg-devel zlib-devel && cd qpdf && ./autogen.sh && ./configure && make install && cd .. && pip install pybind11'
       - export CIBW_SKIP="cp27-* cp34-* *i686"
       - cibuildwheel --output-dir wheelhouse
       - |
