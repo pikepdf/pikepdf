@@ -84,7 +84,7 @@ matrix:
       - clang --version
       - $PYTHON_CMD --version
       - echo "CC=$CC CXX=$CXX"
-      - $PYTHON_CMD -m pip install pybind11 cibuildwheel==0.10.0 setuptools_scm
+      - $PYTHON_CMD -m pip install pybind11 cibuildwheel==0.10.1 setuptools_scm
     script:
       - $PYTHON_CMD setup.py sdist -d wheelhouse
       - export CCACHE_BASEDIR=`python3 -c "import tempfile; import os; print(os.path.realpath(tempfile.gettempdir()))"`
@@ -104,7 +104,7 @@ matrix:
     services:
       - docker
     install:
-      - $PYTHON_CMD -m pip install cibuildwheel==0.10.0
+      - $PYTHON_CMD -m pip install cibuildwheel==0.10.1
       #- mkdir gcc-x86_64 && wget -q https://github.com/Noctem/pogeo-toolchain/releases/download/v1.4/gcc-7.2-binutils-2.29-centos5-x86-64.tar.bz2 -O - | tar xj -C gcc-x86_64 --strip-components=1
       #- mkdir ccache && wget -q https://www.samba.org/ftp/ccache/ccache-3.3.4.tar.bz2 -O - | tar xj -C ccache --strip-components=1
       - mkdir qpdf && wget -q $QPDF_RELEASE -O - | tar xz -C qpdf --strip-components=1
