@@ -1,3 +1,11 @@
+[build-system]
+requires = [
+  "setuptools >= 30.3.0",
+  "setuptools_scm",
+  "setuptools_scm_git_archive",
+  "pybind11 >= 2.2.4, < 3",
+]
+
 [tool.black]
 line-length = 88
 target-version = 'cpy35'

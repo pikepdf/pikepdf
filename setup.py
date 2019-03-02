@@ -130,7 +130,6 @@ setup(
     zip_safe=False,
     python_requires='>=3.5',
     setup_requires=[
-        'pytest-runner',
         'setuptools_scm',
         'setuptools_scm_git_archive',
         'pybind11 >= 2.2.4, < 3',
