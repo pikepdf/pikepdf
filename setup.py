@@ -21,6 +21,7 @@ class get_pybind_include(object):
         if exists('src/vendor/pybind11'):
             return 'src/vendor/pybind11/include'
         import pybind11
+
         return pybind11.get_include(self.user)
 
 
@@ -32,11 +33,11 @@ ext_modules = [
         include_dirs=[
             # Path to pybind11 headers
             get_pybind_include(),
-            get_pybind_include(user=True)
+            get_pybind_include(user=True),
         ],
         libraries=['qpdf'],
-        language='c++'
-    ),
+        language='c++',
+    )
 ]
 
 
@@ -47,6 +48,7 @@ def has_flag(compiler, flagname):
     the specified compiler.
     """
     import tempfile
+
     with tempfile.NamedTemporaryFile('w', suffix='.cpp') as tmpf:
         tmpf.write('int main (int argc, char **argv) { return 0; }')
         try:
@@ -66,16 +68,15 @@ def cpp_flag(compiler):
     elif has_flag(compiler, '-std=c++11'):
         return '-std=c++11'
     else:
-        raise RuntimeError('Unsupported compiler -- at least C++11 support '
-                           'is needed!')
+        raise RuntimeError(
+            'Unsupported compiler -- at least C++11 support ' 'is needed!'
+        )
 
 
 class BuildExt(build_ext):
     """A custom build extension for adding compiler-specific options."""
-    c_opts = {
-        'msvc': ['/EHsc'],
-        'unix': [],
-    }
+
+    c_opts = {'msvc': ['/EHsc'], 'unix': []}
 
     if sys.platform == 'darwin':
         c_opts['unix'] += ['-stdlib=libc++', '-mmacosx-version-min=10.7']
@@ -86,7 +87,10 @@ class BuildExt(build_ext):
         if ct == 'unix':
             opts.append('-DVERSION_INFO="%s"' % self.distribution.get_version())
             opts.append(cpp_flag(self.compiler))
-            if has_flag(self.compiler, '-fvisibility=hidden'):
+            if (
+                has_flag(self.compiler, '-fvisibility=hidden')
+                and sys.platform != 'darwin'
+            ):
                 opts.append('-fvisibility=hidden')
         elif ct == 'msvc':
             opts.append('/DVERSION_INFO=\\"%s\\"' % self.distribution.get_version())
@@ -94,19 +98,18 @@ class BuildExt(build_ext):
             ext.extra_compile_args = opts
         build_ext.build_extensions(self)
 
+
 setup_py_cwd = dirname(__file__)
 
 with open(join(setup_py_cwd, 'requirements/docs.txt')) as f:
     docs_require = [
-        line.strip() for line in f
-        if line.strip() and not line.strip().startswith('#')
+        line.strip() for line in f if line.strip() and not line.strip().startswith('#')
     ]
 
 
 with open(join(setup_py_cwd, 'requirements/test.txt')) as f:
     tests_require = [
-        line.strip() for line in f
-        if line.strip() and not line.strip().startswith('#')
+        line.strip() for line in f if line.strip() and not line.strip().startswith('#')
     ]
 
 with open(join(setup_py_cwd, 'README.md'), encoding='utf-8') as f:
@@ -121,13 +124,8 @@ setup(
     long_description=readme,
     long_description_content_type='text/markdown',
     ext_modules=ext_modules,
-    install_requires=[
-        'defusedxml >= 0.5.0',
-        'lxml >= 4.0',
-    ],
-    extras_require={
-        'docs': docs_require
-    },
+    install_requires=['defusedxml >= 0.5.0', 'lxml >= 4.0'],
+    extras_require={'docs': docs_require},
     cmdclass={'build_ext': BuildExt},
     zip_safe=False,
     python_requires='>=3.5',
@@ -135,16 +133,13 @@ setup(
         'pytest-runner',
         'setuptools_scm',
         'setuptools_scm_git_archive',
-        'pybind11 >= 2.2.4, < 3'
+        'pybind11 >= 2.2.4, < 3',
     ],
     use_scm_version=True,
     tests_require=tests_require,
     package_dir={'': 'src'},
     packages=setuptools.find_packages('src'),
-    package_data={
-        '': ['*.txt'],
-        'pikepdf': ['qpdf21.dll']
-    },
+    package_data={'': ['*.txt'], 'pikepdf': ['qpdf21.dll']},
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",
@@ -161,6 +156,6 @@ setup(
     project_urls={
         'Documentation': 'https://pikepdf.readthedocs.io/',
         'Source': 'https://github.com/pikepdf/pikepdf',
-        'Tracker': 'https://github.com/pikepdf/pikepdf/issues'
-    }
+        'Tracker': 'https://github.com/pikepdf/pikepdf/issues',
+    },
 )
