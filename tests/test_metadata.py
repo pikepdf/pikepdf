@@ -6,6 +6,7 @@ import defusedxml.ElementTree as ET
 import pytest
 from hypothesis import given, example
 from hypothesis.strategies import integers
+from libxmp import XMPMeta, XMPError
 
 import pikepdf
 from pikepdf import Dictionary, Name, PasswordError, Pdf, Stream
@@ -18,10 +19,6 @@ from pikepdf.models.metadata import (
     encode_pdf_date,
 )
 
-try:
-    from libxmp import XMPMeta
-except ImportError:
-    XMPMeta = None
 
 pytestmark = pytest.mark.filterwarnings('ignore:.*XMLParser.*:DeprecationWarning')
 
@@ -397,7 +394,10 @@ def test_pdf_version_update(graph, outdir):
     def get_xmp_version(filename):
         meta = pikepdf.open(filename).open_metadata()
         xmp = XMPMeta(xmp_str=str(meta))
-        return xmp.get_property('http://ns.adobe.com/pdf/1.3/', 'PDFVersion')
+        try:
+            return xmp.get_property('http://ns.adobe.com/pdf/1.3/', 'PDFVersion')
+        except XMPError:
+            return ''
 
     # We don't update PDFVersion unless it is present, even if we change the PDF version
     graph.save(
