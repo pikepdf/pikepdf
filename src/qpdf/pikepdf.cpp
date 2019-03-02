@@ -52,6 +52,17 @@ PYBIND11_MODULE(_qpdf, m) {
             } else {
                 exc_main(e.what());
             }
+        } catch (const QPDFSystemError &e) {
+            if (e.getErrno() != 0) {
+                errno_t stored_errno = 0;
+                stored_errno = errno;
+                errno = e.getErrno();
+                PyErr_SetFromErrnoWithFilename(PyExc_OSError, e.getDescription().c_str());
+                if (errno != stored_errno)
+                    errno = stored_errno;
+            } else {
+                exc_main(e.what());
+            }
         }
     });
 
