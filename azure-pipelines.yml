@@ -46,8 +46,11 @@ jobs:
   - script: |
       export LD_LIBRARY_PATH="/lib:/usr/lib:/usr/local/lib"
       python setup.py sdist
-      python -m pip install dist/*.tar.gz      
     displayName: "Build sdist"
+
+  - script: |
+      python -m pip install dist/*.tar.gz      
+    displayName: "Install sdist"
 
   - script: |
       pip install pytest
