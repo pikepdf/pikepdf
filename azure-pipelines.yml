@@ -45,12 +45,12 @@ jobs:
 
   - script: |
       export LD_LIBRARY_PATH="/lib:/usr/lib:/usr/local/lib"
-      python setup.py sdist
-    displayName: "Build sdist"
+      python setup.py bdist_wheel
+    displayName: "Build bdist_wheel"
 
   - script: |
-      python -m pip install dist/*.tar.gz      
-    displayName: "Install sdist"
+      python -m pip install --verbose dist/*.whl
+    displayName: "Install bdist_wheel"
 
   - script: |
       pip install pytest
