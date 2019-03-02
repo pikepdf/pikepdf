@@ -112,7 +112,7 @@ practical examples, particular in ``pdfinfo.py``, ``_weave.py``, and
     :name: intro_toc
 
     installation
-    changelog
+    release_notes
     tutorial
     objects
 

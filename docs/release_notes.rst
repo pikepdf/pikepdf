@@ -1,13 +1,36 @@
 .. _changelog:
 
-Changelog
-#########
+Release notes
+#############
 
 pikepdf releases use the `semantic versioning <http://semver.org>`_ policy.
 
 The pikepdf API (as provided by ``import pikepdf``) is quite stable and is in production use.
 
 Note that the C++ extension module ``pikepdf._qpdf`` is a private interface within pikepdf that applications should not use directly.
+
+v1.1.0
+======
+
+* Added workaround for macOS/clang build problem of the wrong exception type being thrown in some cases.
+
+* Improved translation of certain system errors to their Python equivalents.
+
+* Fixed issues resulting from platform differences in ``datetime.strftime``. (#25)
+
+* Added ``Pdf.new``, ``Pdf.add_blank_page`` and ``Pdf.make_stream`` convenience methods for creating new PDFs from scratch.
+
+* Added binding for new QPDF JSON feature: ``Object.to_json``.
+
+* We now automatically update the XMP PDFVersion metadata field to be consistent with the PDF's declared version, if the field is present.
+
+* Made our Python-augmented C++ classes easier for Python code inspectors to understand.
+
+* Eliminated use of the ``imghdr`` library.
+
+* Autoformatted Python code with black.
+
+* Fixed handling of XMP metadata that omits the standard ``<x:xmpmeta>`` wrapper.
 
 v1.0.5
 ======
