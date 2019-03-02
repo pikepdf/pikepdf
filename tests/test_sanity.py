@@ -143,25 +143,3 @@ def test_readme_example(resources, outdir):
     del pdf.pages[-1]
     assert len(pdf.pages) == 3
     pdf.save(outdir / 'output.pdf')
-
-
-@pytest.mark.skipif(True, reason="test may hang")
-@pytest.mark.xfail(reason="needs pybind11 > 2.2.4")
-@pytest.mark.timeout(2, method='signal')
-def test_threading_deadlock(resources):
-
-    pid = os.fork()
-    if pid == 0:
-        pdf_bytes = (resources / 'graph.pdf').read_bytes()
-
-        def worker(pdf_bytes):
-            pdf = pikepdf.open(BytesIO(pdf_bytes))
-            docinfo = pdf.docinfo
-            return docinfo
-
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            task = executor.map(worker, [pdf_bytes])
-            future = as_completed([task], timeout=1)
-            assert future is not None
-    else:
-        os.waitpid(pid, 0)
