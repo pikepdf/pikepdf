@@ -29,7 +29,7 @@ extern "C" const char* qpdf_get_qpdf_version();
 
 class TemporaryErrnoChange {
 public:
-    TemporaryErrnoChange(errno_t val) {
+    TemporaryErrnoChange(int val) {
         stored = errno;
         errno = val;
     }
@@ -37,7 +37,7 @@ public:
         errno = stored;
     }
 private:
-    errno_t stored;
+    int stored;
 };
 
 
