@@ -145,6 +145,7 @@ def test_readme_example(resources, outdir):
     pdf.save(outdir / 'output.pdf')
 
 
+@pytest.mark.skipif(True, reason="test may hang")
 @pytest.mark.xfail(reason="needs pybind11 > 2.2.4")
 @pytest.mark.timeout(2, method='signal')
 def test_threading_deadlock(resources):
