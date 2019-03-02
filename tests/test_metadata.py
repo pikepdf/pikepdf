@@ -1,12 +1,12 @@
 import re
 from datetime import datetime, timedelta, timezone
+import os
 from pathlib import Path
 
 import defusedxml.ElementTree as ET
 import pytest
 from hypothesis import given, example
 from hypothesis.strategies import integers
-from libxmp import XMPMeta, XMPError
 
 import pikepdf
 from pikepdf import Dictionary, Name, PasswordError, Pdf, Stream
@@ -19,6 +19,14 @@ from pikepdf.models.metadata import (
     encode_pdf_date,
 )
 
+try:
+    from libxmp import XMPMeta, XMPError
+except ImportError:
+    XMPMeta, XMPError = None, None
+
+needs_libxmp = pytest.mark.skipif(
+    os.name == 'nt' or not XMPMeta, reason="test requires libxmp"
+)
 
 pytestmark = pytest.mark.filterwarnings('ignore:.*XMLParser.*:DeprecationWarning')
 
@@ -184,6 +192,7 @@ def test_build_metadata(trivial, graph, outdir):
         assert xmp_date == docinfo_date.isoformat()
 
 
+@needs_libxmp
 def test_python_xmp_validate_add(trivial):
     with trivial.open_metadata() as xmp:
         xmp['dc:creator'] = ['Bob', 'Doug']
@@ -194,9 +203,6 @@ def test_python_xmp_validate_add(trivial):
     assert '<rdf:Seq><rdf:li>Bob</rdf:li><rdf:li>Doug</rdf:li>' in xmp_str
     assert '<rdf:Bag><rdf:li>Mackenzie</rdf:li>' in xmp_str
 
-    if not XMPMeta:
-        pytest.skip(msg='needs libxmp')
-
     xmpmeta = XMPMeta(xmp_str=str(xmp))
     DC = XMP_NS_DC
     assert xmpmeta.does_array_item_exist(DC, 'creator', 'Bob')
@@ -205,6 +211,7 @@ def test_python_xmp_validate_add(trivial):
     assert xmpmeta.does_array_item_exist(DC, 'publisher', 'Mackenzie')
 
 
+@needs_libxmp
 def test_python_xmp_validate_change_list(graph):
     with graph.open_metadata() as xmp:
         assert 'dc:creator' in xmp
@@ -218,14 +225,13 @@ def test_python_xmp_validate_change_list(graph):
     assert xmpmeta.does_array_item_exist(DC, 'creator', 'Kreacher')
 
 
+@needs_libxmp
 def test_python_xmp_validate_change(sandwich):
     with sandwich.open_metadata() as xmp:
         assert 'xmp:CreatorTool' in xmp
         xmp['xmp:CreatorTool'] = 'Creator'  # Exists as a xml tag text
         xmp['pdf:Producer'] = 'Producer'  # Exists as a tag node
     assert str(xmp)
-    if not XMPMeta:
-        pytest.skip(msg='needs libxmp')
     xmpmeta = XMPMeta(xmp_str=str(xmp))
     assert xmpmeta.does_property_exist(XMP_NS_XMP, 'CreatorTool')
     assert xmpmeta.does_property_exist(XMP_NS_PDF, 'Producer')
@@ -390,6 +396,7 @@ def test_no_x_xmpmeta(trivial):
     assert xmp['pdfaid:part'] == '2'
 
 
+@needs_libxmp
 def test_pdf_version_update(graph, outdir):
     def get_xmp_version(filename):
         meta = pikepdf.open(filename).open_metadata()
