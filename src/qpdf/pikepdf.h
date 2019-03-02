@@ -166,7 +166,6 @@ PYBIND11_MAKE_OPAQUE(std::vector<QPDFObjectHandle>);
 typedef std::map<std::string, QPDFObjectHandle> ObjectMap;
 PYBIND11_MAKE_OPAQUE(ObjectMap);
 
-
 // From qpdf.cpp
 void init_qpdf(py::module& m);
 

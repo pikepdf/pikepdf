@@ -15,23 +15,31 @@
 
 #include <qpdf/QPDFExc.hh>
 #include <qpdf/QPDFSystemError.hh>
-#include <qpdf/QPDFObjGen.hh>
-#include <qpdf/QPDFXRefEntry.hh>
-#include <qpdf/Buffer.hh>
-#include <qpdf/BufferInputSource.hh>
-#include <qpdf/QPDFWriter.hh>
-#include <qpdf/QPDFPageDocumentHelper.hh>
 
 #include <pybind11/stl.h>
 #include <pybind11/iostream.h>
 #include <pybind11/buffer_info.h>
 
 #include "qpdf_pagelist.h"
-#include "qpdf_inputsource.h"
 #include "utils.h"
 
 
 extern "C" const char* qpdf_get_qpdf_version();
+
+
+class TemporaryErrnoChange {
+public:
+    TemporaryErrnoChange(errno_t val) {
+        stored = errno;
+        errno = val;
+    }
+    ~TemporaryErrnoChange() {
+        errno = stored;
+    }
+private:
+    errno_t stored;
+};
+
 
 PYBIND11_MODULE(_qpdf, m) {
     //py::options options;
@@ -40,6 +48,11 @@ PYBIND11_MODULE(_qpdf, m) {
     m.doc() = "pikepdf provides a Pythonic interface for QPDF";
 
     m.def("qpdf_version", &qpdf_get_qpdf_version, "Get libqpdf version");
+
+    init_qpdf(m);
+    init_pagelist(m);
+    init_object(m);
+    init_annotation(m);
 
     static py::exception<QPDFExc> exc_main(m, "PdfError");
     static py::exception<QPDFExc> exc_password(m, "PasswordError");
@@ -54,22 +67,14 @@ PYBIND11_MODULE(_qpdf, m) {
             }
         } catch (const QPDFSystemError &e) {
             if (e.getErrno() != 0) {
-                errno_t stored_errno = 0;
-                stored_errno = errno;
-                errno = e.getErrno();
+                TemporaryErrnoChange errno_holder(e.getErrno());
                 PyErr_SetFromErrnoWithFilename(PyExc_OSError, e.getDescription().c_str());
-                if (errno != stored_errno)
-                    errno = stored_errno;
             } else {
                 exc_main(e.what());
             }
         }
     });
 
-    init_qpdf(m);
-    init_pagelist(m);
-    init_object(m);
-    init_annotation(m);
 
 #ifdef VERSION_INFO
     m.attr("__version__") = VERSION_INFO;
