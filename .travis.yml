@@ -87,6 +87,7 @@ matrix:
       - $PYTHON_CMD -m pip install --user cibuildwheel==0.10.1
     script:
       - $PYTHON_CMD setup.py sdist -d wheelhouse
+      - export PATH="$HOME/.local/bin:$PATH"
       - export CCACHE_BASEDIR=`python3 -c "import tempfile; import os; print(os.path.realpath(tempfile.gettempdir()))"`
       - export CIBW_SKIP="cp27-* cp34-*"
       - cibuildwheel --output-dir wheelhouse
