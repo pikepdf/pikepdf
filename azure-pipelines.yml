@@ -1,79 +1,46 @@
-# https://docs.microsoft.com/azure/devops/pipelines/languages/python
-
 variables:
   qpdf_release: "https://github.com/qpdf/qpdf/releases/download/release-qpdf-8.4.0/qpdf-8.4.0.tar.gz"
-
-trigger:
-- master
-- azure-pipelines
+  cibw_skip: "cp27-* cp34-*"
+  cibw_test_command: "pytest {project}/tests"
+  cibw_test_requires: "pytest"
 
 jobs:
-
-- job: 'Test'
-  pool:
-    vmImage: 'Ubuntu-16.04'
-  strategy:
-    matrix:
-      Python35:
-        python.version: '3.5'
-    maxParallel: 4
-
-  steps:
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '$(python.version)'
-      architecture: 'x64'
-
-  - script: |
-      sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-      sudo apt-get update -y
-      sudo apt-get install -y g++-4.8 libexempi-dev
-      python -m pip install --upgrade pip wheel pybind11      
-    displayName: 'Install dependencies'
-
-  - script: |
-      mkdir qpdf
-      wget -q $(qpdf_release) -O - | tar xz -C qpdf --strip-components=1
-      cd qpdf/
-      export CC="gcc-4.8"
-      export CXX="g++-4.8"
-      ./configure || exit 1
-      make -j || exit 1
-      sudo make install || exit 1
-      cd ..
-    displayName: 'Build qpdf'
-
-  - script: |
-      export LD_LIBRARY_PATH="/lib:/usr/lib:/usr/local/lib"
-      python setup.py bdist_wheel
-    displayName: "Build bdist_wheel"
-
-  - script: |
-      python -m pip install --verbose dist/*.whl
-    displayName: "Install bdist_wheel"
-
-  - script: |
-      pip install pytest
-      pip install -r requirements/test.txt
-      pytest tests --doctest-modules --junitxml=junit/test-results.xml
-    displayName: 'pytest'
-
-  - task: PublishTestResults@2
-    inputs:
-      testResultsFiles: '**/test-results.xml'
-      testRunTitle: 'Python $(python.version)'
-    condition: succeededOrFailed()
-
-- job: 'Publish'
-  dependsOn: 'Test'
-  pool:
-    vmImage: 'Ubuntu-16.04'
-
-  steps:
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '3.x'
-      architecture: 'x64'
-
-  - script: python setup.py sdist
-    displayName: 'Build sdist'
+- job: linux
+  pool: {vmImage: 'Ubuntu-16.04'}
+  steps: 
+    - task: UsePythonVersion@0
+    - bash: |
+        mkdir qpdf && wget -q $QPDF_RELEASE -O - | tar xz -C qpdf --strip-components=1
+    - bash: |
+        python -m pip install --upgrade pip
+        pip install cibuildwheel==0.10.1        
+        export CIBW_BEFORE_BUILD='yum install -y libjpeg-devel zlib-devel && cd qpdf && ./autogen.sh && ./configure && make install && cd .. && pip install pybind11'
+        cibuildwheel --platform linux --output-dir wheelhouse .
+    - task: PublishBuildArtifacts@1
+      inputs: {pathtoPublish: 'wheelhouse'}
+- job: macos
+  pool: {vmImage: 'macOS-10.13'}
+  steps: 
+    - task: UsePythonVersion@0
+    - bash: |
+        python -m pip install --upgrade pip
+        pip install cibuildwheel==0.10.1
+        export CIBW_BEFORE_BUILD='brew install qpdf'
+        cibuildwheel --platform macos --output-dir wheelhouse .
+    - task: PublishBuildArtifacts@1
+      inputs: {pathtoPublish: 'wheelhouse'}
+- job: windows
+  pool: {vmImage: 'vs2017-win2016'}
+  steps: 
+    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x86}}
+    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x64}}
+    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x86}}
+    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x64}}
+    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x86}}
+    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x64}}
+    - bash: |
+        python -m pip install --upgrade pip
+        pip install cibuildwheel==0.10.1
+        cibuildwheel --platform windows --output-dir wheelhouse .
+    - task: PublishBuildArtifacts@1
+      inputs: {pathtoPublish: 'wheelhouse'}
