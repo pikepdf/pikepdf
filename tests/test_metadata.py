@@ -21,7 +21,7 @@ from pikepdf.models.metadata import (
 
 try:
     from libxmp import XMPMeta, XMPError
-except ImportError:
+except Exception:
     XMPMeta, XMPError = None, None
 
 needs_libxmp = pytest.mark.skipif(
