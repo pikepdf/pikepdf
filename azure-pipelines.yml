@@ -1,5 +1,8 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/python
 
+variables:
+  qpdf_release: "https://github.com/qpdf/qpdf/releases/download/release-qpdf-8.4.0/qpdf-8.4.0.tar.gz"
+
 trigger:
 - master
 - azure-pipelines
@@ -24,26 +27,26 @@ jobs:
   - script: |
       sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
       sudo apt-get update -y
-      sudo apt-get install -y g++4.8 libexempi-dev
+      sudo apt-get install -y g++-4.8 libexempi-dev
       python -m pip install --upgrade pip wheel pybind11      
     displayName: 'Install dependencies'
 
   - script: |
       mkdir qpdf
-      wget -q https://github.com/qpdf/qpdf/releases/download/release-qpdf-8.4.0/qpdf-8.4.0.tar.gz -O - | tar xz -C qpdf --strip-components=1
+      wget -q $(qpdf_release) -O - | tar xz -C qpdf --strip-components=1
       cd qpdf/
       export CC="gcc-4.8"
       export CXX="g++-4.8"
-      ./configure
-      make -j
-      sudo make install
+      ./configure || exit 1
+      make -j || exit 1
+      sudo make install || exit 1
       cd ..
     displayName: 'Build qpdf'
 
   - script: |
       export LD_LIBRARY_PATH="/lib:/usr/lib:/usr/local/lib"
       python setup.py sdist
-      python -m pip install --verbose dist/*.tar.gz      
+      python -m pip install dist/*.tar.gz      
     displayName: "Build sdist"
 
   - script: |
