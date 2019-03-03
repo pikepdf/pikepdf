@@ -5,6 +5,7 @@ all: build
 
 .PHONY: invalidate-cppcov
 invalidate-cppcov:
+	touch test.gcno
 	find . -name "*.gcno" -print0 | xargs -0 rm
 
 .PHONY: build
@@ -31,7 +32,7 @@ clean: clean-coverage
 
 .PHONY: test
 test: build
-	pytest -n auto
+	pytest # '-n auto' does not work anymore
 
 .PHONY: pycov
 pycov: clean-coverage-pycov
