@@ -5,7 +5,7 @@ all: build
 
 .PHONY: invalidate-cppcov
 invalidate-cppcov:
-	find . -name "*.gcno" -print0 | xargs -0 rm
+	find . -name "*.gcno" -delete
 
 .PHONY: build
 build: invalidate-cppcov
@@ -19,7 +19,7 @@ clean-coverage-pycov:
 .PHONY: clean-coverage-cppcov
 clean-coverage-cppcov:
 	rm -rf coverage/cppcov
-	find . -name "*.gcda" -print0 | xargs -0 rm
+	find . -name "*.gcda" -delete
 	rm -f coverage/cpp.info
 
 .PHONY: clean-coverage
