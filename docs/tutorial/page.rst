@@ -66,14 +66,14 @@ Returning to the page's output:
 
     In [1]: page1
 
-The angle brackets in the output indicate that this object cannot be
-constructed with a Python expression because it contains a reference. When
-angle brackets are omitted from the ``repr()`` of a pikepdf object, then the
-object can be replicated with a Python expression, such as
-``eval(repr(x)) == x``.
+The angle brackets in the output indicate that this object cannot be constructed with a
+Python expression because it contains a reference. When angle brackets are omitted from
+the ``repr()`` of a pikepdf object, then the object can be replicated with a Python
+expression, such as ``eval(repr(x)) == x``. Pages typically concern indirect references
+to themselves and other pages, so they cannot be represented as an expression.
 
-In Jupyter and IPython, pikepdf will instead attempt to display a preview of
-the PDF page. An explicit ``repr(page)`` will show the text representation.
+In Jupyter and IPython, pikepdf will instead attempt to display a preview of the PDF
+page, assuming a PDF rendering backend is available.
 
 This page's MediaBox is a direct object. The MediaBox describes
 the size of the page in PDF coordinates (1/72 inch multiplied by the value of
