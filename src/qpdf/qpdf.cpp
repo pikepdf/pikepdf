@@ -151,9 +151,6 @@ void save_pdf(
     if (!force_version.empty()) {
         w.forcePDFVersion(force_version, 0);
     }
-    if (fix_metadata_version) {
-        update_xmp_pdfversion(q, w.getFinalVersion());
-    }
 
     w.setCompressStreams(compress_streams);
     w.setDecodeLevel(stream_decode_level);
@@ -165,6 +162,10 @@ void save_pdf(
     w.setContentNormalization(normalize_content);
     w.setLinearization(linearize);
     w.setQDFMode(qdf);
+
+    if (fix_metadata_version) {
+        update_xmp_pdfversion(q, w.getFinalVersion());
+    }
 
     if (!progress.is_none()) {
         auto reporter = PointerHolder<QPDFWriter::ProgressReporter>(new PikeProgressReporter(progress));
@@ -248,9 +249,10 @@ void init_qpdf(py::module &m)
             R"~~~(
             Open an existing file at `filename_or_stream`.
 
-            If `filename_or_stream` is path-like, the file will be opened. The
-            file should not be modified by another process while it is open in
-            pikepdf.
+            If `filename_or_stream` is path-like, the file will be opened for reading.
+            The file should not be modified by another process while it is open in
+            pikepdf. The file will not be altered when opened in this way. Any changes
+            to the file must be persisted by using `.save()`.
 
             If `filename_or_stream` has `.read()` and `.seek()` methods, the file
             will be accessed as a readable binary stream. pikepdf will read the
