@@ -206,6 +206,49 @@ class Extend_Pdf:
         self._add_page(page, first=False)
         return page
 
+    def close(self):
+        """
+        Close a PDF object (probably)
+
+        Strictly speaking this decrements the reference count of the open
+        file object associated with this PDF. It is possible that other
+        pikepdf objects also reference the same file object; if these exist,
+        the file object **will remain open** until they are released.
+
+        The PDF is closed by resetting to an empty in-memory PDF.
+        """
+
+        EMPTY_PDF = (
+            b"%PDF-1.3\n"
+            b"1 0 obj\n"
+            b"<< /Type /Catalog /Pages 2 0 R >>\n"
+            b"endobj\n"
+            b"2 0 obj\n"
+            b"<< /Type /Pages /Kids [] /Count 0 >>\n"
+            b"endobj\n"
+            b"xref\n"
+            b"0 3\n"
+            b"0000000000 65535 f \n"
+            b"0000000009 00000 n \n"
+            b"0000000058 00000 n \n"
+            b"trailer << /Size 3 /Root 1 0 R >>\n"
+            b"startxref\n"
+            b"110\n"
+            b"%%EOF\n"
+        )
+
+        if self.filename:
+            description = "closed file: " + self.filename
+        else:
+            description = "closed object"
+        self._process(description, EMPTY_PDF)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
     def _attach(self, *, basename, filebytes, mime=None, desc=''):
         """
         Attach a file to this PDF

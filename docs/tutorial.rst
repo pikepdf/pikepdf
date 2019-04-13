@@ -11,8 +11,8 @@ this :class:`pikepdf.Pdf`.
 
    from pikepdf import Pdf
    new_pdf = Pdf.new()
-   sample_pdf = Pdf.open('sample.pdf')
-   sample_pdf.save('sample2.pdf')
+   with Pdf.open('sample.pdf') as pdf:
+       pdf.save('output.pdf)
 
 You may of course use ``from pikepdf import Pdf as ...`` if the short class
 name conflicts or ``from pikepdf import Pdf as PDF`` if you prefer uppercase.
@@ -30,8 +30,8 @@ and ``Pdf.save()`` accepts streams as output.
 This tutorial begins on the assumption that working with pages - splitting
 and merging, saving and loading, is the most basic thing users want to do.
 (The ``qpdf`` commandline tool, on which pikepdf is based, also does an
-excellent job of file level PDF handling.) What pikepdf does is make qpdf's
-powerful API more accessible.
+excellent job of file level PDF handling.) pikepdf makes qpdf's powerful API
+more accessible.
 
 .. toctree::
   :maxdepth: 1

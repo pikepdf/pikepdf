@@ -217,3 +217,10 @@ def test_object_stream_mode_generated(trivial, outdir):
         object_stream_mode=pikepdf.ObjectStreamMode.generate,
     )
     assert b'/ObjStm' in Path(outdir / '2.pdf').read_bytes()
+
+
+def test_with_block(resources):
+    desc = ''
+    with pikepdf.open(resources / 'pal-1bit-trivial.pdf') as pdf:
+        desc = pdf.filename
+    assert pdf.filename != desc

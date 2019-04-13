@@ -21,17 +21,15 @@ How many pages?
 
     In [2]: len(pdf.pages)
 
-Thanks to IPython’s rich Python object representations you can view the PDF
-while you work on it if you execute this example in a Jupyter notebook. Click
-the *View PDF* link below to view the file. **You can view the PDF after each
-change you make.** If you’re reading this documentation online or as part of
-distribution, you won’t see the rich representation.
+pikepdf integrates with IPython and Jupyter's rich object APIs so that you can
+view PDFs, PDF pages, or images within PDF in a IPython window or Jupyter
+notebook. This makes it to test visual changes.
 
 .. ipython::
     :verbatim:
 
     In [1]: pdf
-    Out[1]: View PDF
+    Out[1]: « In Jupyter you would see the PDF here »
 
 You can also examine individual pages, which we’ll explore in the next
 section. Suffice to say that you can access pages by indexing them and
@@ -56,7 +54,7 @@ document scanners.
 
     In [1]: pdf
 
-Pretty nice, isn’t it? Of course, the pages in this file are in correct
+Pretty nice, isn’t it? But the pages in this file already were in correct
 order, so let’s put them back.
 
 .. ipython::

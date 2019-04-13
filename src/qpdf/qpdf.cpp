@@ -258,6 +258,9 @@ void init_qpdf(py::module &m)
             will be accessed as a readable binary stream. pikepdf will read the
             entire stream into a private buffer.
 
+            If `.open()` is used in a `with` block, pikepdf will attempt to close
+            the underlying file object.
+
             Args:
                 filename_or_stream (os.PathLike): Filename of PDF to open
                 password (str or bytes): User or owner password to open an
@@ -575,6 +578,21 @@ void init_qpdf(py::module &m)
             [](QPDF &q, int objid, int gen, QPDFObjectHandle &h) {
                 q.replaceObject(objid, gen, h);
             }
+        )
+        .def("_process",
+            [](QPDF &q, std::string description, py::bytes data) {
+                std::string s = data;
+                q.processMemoryFile(
+                    description.c_str(),
+                    s.data(),
+                    s.size()
+                );
+            },
+            R"~~~(
+            Process a new in-memory PDF, replacing the existing PDF
+
+            Used to implement Pdf.close().
+            )~~~"
         )
         ; // class Pdf
 }
