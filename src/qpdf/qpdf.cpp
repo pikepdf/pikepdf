@@ -56,6 +56,7 @@ open_pdf(
     q->setPasswordIsHexKey(hex_password);
     q->setIgnoreXRefStreams(ignore_xref_streams);
     q->setAttemptRecovery(attempt_recovery);
+    q->setImmediateCopyFrom(true);
 
     if (py::hasattr(filename_or_stream, "read") && py::hasattr(filename_or_stream, "seek")) {
         // Python code gave us an object with a stream interface

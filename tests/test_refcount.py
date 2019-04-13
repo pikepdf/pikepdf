@@ -65,7 +65,7 @@ def test_transfer_page(resources):
     pdf2.pages.insert(2, page0)
     p2p2 = pdf2.pages[2]
 
-    assert refcount(pdf) == 4  # this, pdf, page0->pdf, pdf2's page0
+    assert refcount(pdf) == 3  # this, pdf, page0->pdf
 
     assert refcount(p2p2) == 2
     del pdf

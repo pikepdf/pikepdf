@@ -121,18 +121,6 @@ void PageList::set_pages_from_iterable(py::slice slice, py::iterable other)
 void PageList::delete_page(size_t index)
 {
     auto page = this->get_page(index);
-    /*
-    // Need a dec_ref to match the inc_ref in insert_page, but it's unclear
-    // how to do that. The item will be set the current QPDF always.
-    // Accessing data from another PDF seems to involve some pipeline
-    // magic in QPDF around libqpdf/QPDFWriter.cc:1614
-    if (original page owner != &this->getQPDF()) {
-        // If we are removing a page not originally owned by our QPDF,
-        // remove the reference count we put it in insert_page()
-        py::object pyqpdf = py::cast(page_owner);
-        pyqpdf.dec_ref();
-    }
-    */
     this->qpdf->removePage(page);
 }
 
@@ -180,12 +168,12 @@ void PageList::insert_page(size_t index, QPDFObjectHandle page)
         // Instead WHEN ASKED TO WRITE it will go back and get the data
         // from objecthandle->getOwningQPDF(). Therefore we must ensure
         // our previous owner is kept alive.
-#if 1
+#if 0
         auto tinfo = py::detail::get_type_info(typeid(QPDF));
         py::handle pyqpdf = py::detail::get_object_handle(page_owner, tinfo);
         py::handle pypage = py::cast(page);
         py::detail::keep_alive_impl(pypage, pyqpdf);
-#else
+#elif 0
         // MSVC++ complains about the symbol
         // QPDF::Members::~Members() not being exported when this version
         // is used, but it works for GCC and Clang.
