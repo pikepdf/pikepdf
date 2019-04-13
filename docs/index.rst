@@ -121,7 +121,7 @@ practical examples, particular in ``pdfinfo.py``, ``_weave.py``, and
     :caption: Reference
     :name: reference_toc
 
-    pikepdf
+    api
     arch
     resources
 
