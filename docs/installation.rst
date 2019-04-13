@@ -63,7 +63,7 @@ Building from source
 
 **Requirements**
 
-.. |qpdf-version| replace:: 8.3.0
+.. |qpdf-version| replace:: 8.4.0
 
 pikepdf requires:
 
