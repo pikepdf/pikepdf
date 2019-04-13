@@ -46,7 +46,9 @@ def augments(cls_cpp):
     methods onto the existing Python binding of the C++ class. For one thing,
     this allows the implementation to be moved from Python to C++ or vice
     versa. It saves having to implement an intermediate Python subclass and then
-    ensures that the C++ superclass never 'leaks' to pikepdf users.
+    ensures that the C++ superclass never 'leaks' to pikepdf users. Finally,
+    wrapper classes and subclasses can become problematic if the call stack
+    crosses the C++/Python boundary multiple times.
 
     Any existing methods may be used, regardless of whether they defined
     elsewhere in the support class or in the target class.
@@ -133,7 +135,7 @@ class Extend_Object:
 class Extend_Pdf:
     def _repr_mimebundle_(self, **_kwargs):
         """
-        Present options to IPython for rich display of this object
+        Present options to IPython or Jupyter for rich display of this object
 
         See https://ipython.readthedocs.io/en/stable/config/integrating.html#rich-display
         """
@@ -150,7 +152,7 @@ class Extend_Pdf:
         Open the PDF's XMP metadata for editing
 
         Recommend for use in a ``with`` block. Changes are committed to the
-        PDF when the block exits.
+        PDF when the block exits. (The ``Pdf`` must still be opened.)
 
         Example:
             >>> with pdf.open_metadata() as meta:
@@ -190,7 +192,8 @@ class Extend_Pdf:
         it.
 
         Args:
-            page_size (tuple): The size of the page in PDF units (1/72 inch or 0.35mm)
+            page_size (tuple): The size of the page in PDF units (1/72 inch or 0.35mm).
+                Default size is set to a US Letter 8.5" x 11" page.
         """
         for dim in page_size:
             if not (3 <= dim <= 14400):
@@ -218,12 +221,12 @@ class Extend_Pdf:
         case for :class:`pikepdf.Stream` but can be true for any object. Do not close
         the `Pdf` object if you might still be accessing content from it.
 
-        When an `Object` is copied from one `Pdf` to another, the Object is copied into
-        the destination `Pdf` immediately, so after accessing all desired information
-        from the source Pdf it may be closed.
+        When an ``Object`` is copied from one ``Pdf`` to another, the ``Object`` is copied into
+        the destination ``Pdf`` immediately, so after accessing all desired information
+        from the source ``Pdf`` it may be closed.
 
         Caution:
-            Closing the `Pdf` is currently implemented by resetting it to an empty
+            Closing the ``Pdf`` is currently implemented by resetting it to an empty
             sentinel. It is currently possible to edit the sentinel as if it were a live
             object. This behavior should not be relied on and is subject to change.
 

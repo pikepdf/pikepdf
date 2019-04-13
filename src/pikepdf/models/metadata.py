@@ -224,10 +224,10 @@ class PdfMetadata(MutableMapping):
 
     To update metadata, use a with block.
 
-    .. code-block:: python
+    Example:
 
-        with pdf.open_metadata() as records:
-            records['dc:title'] = 'New Title'
+        >>> with pdf.open_metadata() as records:
+                records['dc:title'] = 'New Title'
 
     See Also:
         :meth:`pikepdf.Pdf.open_metadata`

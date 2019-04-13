@@ -248,19 +248,26 @@ void init_qpdf(py::module &m)
         )
         .def_static("open", open_pdf,
             R"~~~(
-            Open an existing file at `filename_or_stream`.
+            Open an existing file at *filename_or_stream*.
 
-            If `filename_or_stream` is path-like, the file will be opened for reading.
+            If *filename_or_stream* is path-like, the file will be opened for reading.
             The file should not be modified by another process while it is open in
             pikepdf. The file will not be altered when opened in this way. Any changes
-            to the file must be persisted by using `.save()`.
+            to the file must be persisted by using ``.save()``.
 
-            If `filename_or_stream` has `.read()` and `.seek()` methods, the file
+            If *filename_or_stream* has ``.read()`` and ``.seek()`` methods, the file
             will be accessed as a readable binary stream. pikepdf will read the
             entire stream into a private buffer.
 
-            `.open()` may be used in a `with`-block, `.close()` will be called when
+            ``.open()`` may be used in a ``with``-block, `.`close()`` will be called when
             the block exists.
+
+            Examples:
+
+                >>> with Pdf.open("test.pdf") as pdf:
+                        ...
+
+                >>> pdf = Pdf.open("test.pdf", password="rosebud")
 
             Args:
                 filename_or_stream (os.PathLike): Filename of PDF to open
@@ -273,7 +280,8 @@ void init_qpdf(py::module &m)
                 ignore_xref_streams (bool): If True, ignore cross-reference
                     streams. See qpdf documentation.
                 suppress_warnings (bool): If True (default), warnings are not
-                    printed to stderr. Use `get_warnings()` to retrieve warnings.
+                    printed to stderr. Use :meth:`pikepdf.Pdf.get_warnings()` to
+                    retrieve warnings.
                 attempt_recovery (bool): If True (default), attempt to recover
                     from PDF parsing errors.
                 inherit_page_attributes (bool): If True (default), push attributes
@@ -284,7 +292,7 @@ void init_qpdf(py::module &m)
                     file.
                 pikepdf.PdfError: If for other reasons we could not open
                     the file.
-                TypeError: If the type of `filename_or_stream` is not
+                TypeError: If the type of ``filename_or_stream`` is not
                     usable.
                 FileNotFoundError: If the file was not found.
             )~~~",
