@@ -224,3 +224,10 @@ def test_with_block(resources):
     with pikepdf.open(resources / 'pal-1bit-trivial.pdf') as pdf:
         desc = pdf.filename
     assert pdf.filename != desc
+
+
+def test_with_block_abuse(resources):
+    with pikepdf.open(resources / 'pal-1bit-trivial.pdf') as pdf:
+        im0 = pdf.pages[0].Resources.XObject['/Im0']
+    with pytest.raises(PdfError):
+        im0.read_bytes()

@@ -259,8 +259,8 @@ void init_qpdf(py::module &m)
             will be accessed as a readable binary stream. pikepdf will read the
             entire stream into a private buffer.
 
-            If `.open()` is used in a `with` block, pikepdf will attempt to close
-            the underlying file object.
+            `.open()` may be used in a `with`-block, `.close()` will be called when
+            the block exists.
 
             Args:
                 filename_or_stream (os.PathLike): Filename of PDF to open

@@ -208,14 +208,25 @@ class Extend_Pdf:
 
     def close(self):
         """
-        Close a PDF object (probably)
+        Close a Pdf object and release resources acquired by pikepdf
 
-        Strictly speaking this decrements the reference count of the open
-        file object associated with this PDF. It is possible that other
-        pikepdf objects also reference the same file object; if these exist,
-        the file object **will remain open** until they are released.
+        If pikepdf opened the file handle it will close it (e.g. when opened with a file
+        path). If the caller opened the file for pikepdf, the caller close the file.
 
-        The PDF is closed by resetting to an empty in-memory PDF.
+        pikepdf lazily loads data from PDFs, so some :class:`pikepdf.Object` may
+        implicitly depend on the :class:`pikepdf.Pdf` being open. This is always the
+        case for :class:`pikepdf.Stream` but can be true for any object. Do not close
+        the `Pdf` object if you might still be accessing content from it.
+
+        When an `Object` is copied from one `Pdf` to another, the Object is copied into
+        the destination `Pdf` immediately, so after accessing all desired information
+        from the source Pdf it may be closed.
+
+        Caution:
+            Closing the `Pdf` is currently implemented by resetting it to an empty
+            sentinel. It is currently possible to edit the sentinel as if it were a live
+            object. This behavior should not be relied on and is subject to change.
+
         """
 
         EMPTY_PDF = (
