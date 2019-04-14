@@ -25,6 +25,11 @@ class get_pybind_include(object):
         return pybind11.get_include(self.user)
 
 
+extra_includes = []
+if 'bsd' in sys.platform:
+    extra_includes = ['/usr/local/include']
+
+
 ext_modules = [
     Extension(
         'pikepdf._qpdf',
@@ -34,6 +39,7 @@ ext_modules = [
             # Path to pybind11 headers
             get_pybind_include(),
             get_pybind_include(user=True),
+            *extra_includes,
         ],
         libraries=['qpdf'],
         language='c++',
