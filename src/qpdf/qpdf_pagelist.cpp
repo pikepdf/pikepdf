@@ -163,24 +163,6 @@ void PageList::insert_page(size_t index, QPDFObjectHandle page)
         // qpdf does not accept duplicating pages within the same file,
         // so manually create a copy
         page = this->qpdf->makeIndirectObject(page);
-    } else {
-        // libqpdf does not transfer a page's contents to the new QPDF.
-        // Instead WHEN ASKED TO WRITE it will go back and get the data
-        // from objecthandle->getOwningQPDF(). Therefore we must ensure
-        // our previous owner is kept alive.
-#if 0
-        auto tinfo = py::detail::get_type_info(typeid(QPDF));
-        py::handle pyqpdf = py::detail::get_object_handle(page_owner, tinfo);
-        py::handle pypage = py::cast(page);
-        py::detail::keep_alive_impl(pypage, pyqpdf);
-#elif 0
-        // MSVC++ complains about the symbol
-        // QPDF::Members::~Members() not being exported when this version
-        // is used, but it works for GCC and Clang.
-        py::handle pyqpdf = py::cast(page_owner);
-        py::handle pypage = py::cast(page);
-        py::detail::keep_alive_impl(pypage, pyqpdf);
-#endif
     }
     if (index != this->count()) {
         QPDFObjectHandle refpage = this->get_page(index);
