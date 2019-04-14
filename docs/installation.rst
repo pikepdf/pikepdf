@@ -25,26 +25,26 @@ and newer, macOS 10.11 and newer (for Homebrew), Windows 7 and newer.
 Managed distributions
 ---------------------
 
-pikepdf is not yet widely distributed, but a few Linux distributions do make it
-available.
+**Debian, Ubuntu and other APT distributions**
 
-**Debian**
+.. |apt| image:: https://repology.org/badge/vertical-allrepos/pikepdf.svg
+    :alt: Package status in apt world
 
-.. |deb-experimental| image:: https://repology.org/badge/version-for-repo/debian_experimental/pikepdf.svg
-    :alt: Debian experimental
-
-|deb-experimental|
+|apt|
 
 .. code-block:: bash
 
-    apt-get -t experimental install pikepdf
+    apt install pikepdf
 
 **Fedora 29**
 
 .. |fedora| image:: https://repology.org/badge/version-only-for-repo/fedora_29/python:pikepdf.svg
     :alt: Fedora 29
 
-|fedora|
+.. |rawhide| image:: https://repology.org/badge/version-for-repo/fedora_rawhide/python:pikepdf.svg
+    :alt: Fedora Rawhide
+
+|fedora| |rawhide|
 
 .. code-block:: bash
 
@@ -52,11 +52,27 @@ available.
 
 **ArchLinux**
 
+.. |aur| image:: https://repology.org/badge/version-for-repo/aur/python:pikepdf.svg
+
+|aur|
+
 Available in `ArchLinux User Repository <https://aur.archlinux.org/packages/python-pikepdf/>`_.
 
 .. code-block:: bash
 
     pacman -S pikepdf
+
+Installing on FreeBSD 11.2
+--------------------------
+
+No FreeBSD ports exist, but all of the dependencies are currently available. You can try
+something like:
+
+.. code-block:: bash
+
+    pkg install python3 lang/python3
+    pkg install py36-lxml qpdf
+    pip install --user pikepdf
 
 Building from source
 --------------------
