@@ -9,6 +9,23 @@ The pikepdf API (as provided by ``import pikepdf``) is quite stable and is in pr
 
 Note that the C++ extension module ``pikepdf._qpdf`` is a private interface within pikepdf that applications should not use directly.
 
+v1.2.0
+======
+
+* Implemented ``Pdf.close()`` and ``with``-block context manager, to allow Pdf objects to be closed without relying on ``del``.
+
+* ``PdfImage.extract_to()`` has a new keyword argument ``fileprefix=``, which to specify a filepath where an image should be extracted with pikepdf setting the appropriate file suffix. This simplifies the API for the most common case of extracting images to files.
+
+* Fixed an internal test that should have suppressed the extraction of JPEGs with a nonstandard ColorTransform parameter set. Without the proper color transform applied, the extracted JPEGs will typically look very pink. Now, these images should fail to extract as was intended.
+
+* Fixed that ``Pdf.save(object_stream_mode=...)`` was ignored if the default ``fix_metadata_version=True`` was also set.
+
+* Data from one ``Pdf`` is now copied to other ``Pdf`` objects immediately, instead of creating a reference that required source PDFs to remain available. ``Pdf`` objects no longer reference each other.
+
+* libqpdf 8.4.0 is now required
+
+* Various documentation improvements
+
 v1.1.0
 ======
 
