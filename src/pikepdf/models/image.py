@@ -9,6 +9,9 @@ from abc import ABC, abstractmethod
 from decimal import Decimal
 from io import BytesIO
 from itertools import zip_longest
+from pathlib import Path
+from shutil import copyfileobj
+from tempfile import NamedTemporaryFile
 
 from .. import Array, Dictionary, Name, Object, PdfError, Stream
 
@@ -297,16 +300,16 @@ class PdfImage(PdfImageBase):
             # saved as a standard JPEG. RGB JPEGs without YUV conversion can't
             # be saved as JPEGs, and are probably bugs. Some software in the
             # wild actually produces RGB JPEGs in PDFs (probably a bug).
-            return self.mode == 'RGB' and self.filter_decodeparms[0][1].get(
-                '/ColorTransform', 1
-            )
+            DEFAULT_CT_RGB = 1
+            ct = self.decode_parms[0].get('/ColorTransform', DEFAULT_CT_RGB)
+            return self.mode == 'RGB' and ct == DEFAULT_CT_RGB
 
         def normal_dct_cmyk():
             # Normal DCTDecode CMYKs have /ColorTransform 0 and can be saved.
             # There is a YUVK colorspace but CMYK JPEGs don't generally use it
-            return self.mode == 'CMYK' and self.filter_decodeparms[0][1].get(
-                '/ColorTransform', 0
-            )
+            DEFAULT_CT_CMYK = 0
+            ct = self.decode_parms[0].get('/ColorTransform', DEFAULT_CT_CMYK)
+            return self.mode == 'CMYK' and ct == DEFAULT_CT_CMYK
 
         if self.filters == ['/CCITTFaxDecode']:
             data = self.obj.read_raw_bytes()
@@ -314,7 +317,7 @@ class PdfImage(PdfImageBase):
             stream.write(data)
             return '.tif'
         elif self.filters == ['/DCTDecode'] and (
-            self.mode == 'L' or normal_dct_rgb() or normal_dct_cmyk
+            self.mode == 'L' or normal_dct_rgb() or normal_dct_cmyk()
         ):
             buffer = self.obj.get_raw_stream_buffer()
             stream.write(buffer)
@@ -356,7 +359,7 @@ class PdfImage(PdfImageBase):
 
         return im
 
-    def extract_to(self, *, stream):
+    def _extract_to_stream(self, *, stream):
         """Attempt to extract the image directly to a usable image file
 
         If possible, the compressed data is extracted and inserted into
@@ -387,6 +390,51 @@ class PdfImage(PdfImageBase):
             return '.png'
 
         raise UnsupportedImageTypeError(repr(self))
+
+    def extract_to(self, *, stream=None, fileprefix=''):
+        """Attempt to extract the image directly to a usable image file
+
+        If possible, the compressed data is extracted and inserted into
+        a compressed image file format without transcoding the compressed
+        content. If this is not possible, the data will be decompressed
+        and extracted to an appropriate format.
+
+        Because it is not known until attempted what image format will be
+        extracted, users should not assume what format they are getting back.
+        When saving the image to a file, use a temporary filename, and then
+        rename the file to its final name based on the returned file extension.
+
+        Examples:
+
+            >>> im.extract_to(stream=bytes_io)
+            '.png'
+
+            >>> im.extract_to(fileprefix='/tmp/image00')
+            '/tmp/image00.jpg'
+
+        Args:
+            stream: Writable stream to write data to.
+            fileprefix (str or Path): The path to write the extracted image to,
+                without the file extension.
+
+        Returns:
+            str: If *fileprefix* was provided, then the fileprefix with the
+                appropriate extension. If no *fileprefix*, then an extension
+                indicating the file type.
+        """
+
+        if bool(stream) == bool(fileprefix):
+            raise ValueError("Cannot set both stream and fileprefix")
+        if stream:
+            return self._extract_to_stream(stream=stream)
+
+        bio = BytesIO()
+        extension = self._extract_to_stream(stream=bio)
+        bio.seek(0)
+        filepath = Path(fileprefix + extension)
+        with filepath.open('wb') as target:
+            copyfileobj(bio, target)
+        return str(filepath)
 
     def read_bytes(self):
         """Decompress this image and return it as unencoded bytes"""
@@ -616,7 +664,9 @@ class PdfInlineImage(PdfImageBase):
 
         raise NotImplementedError('not yet')
 
-    def extract_to(self, *, stream):  # pylint: disable=unused-argument
+    def extract_to(
+        self, *, stream=None, fileprefix=''
+    ):  # pylint: disable=unused-argument
         raise UnsupportedImageTypeError("inline images don't support extract")
 
     def read_bytes(self):

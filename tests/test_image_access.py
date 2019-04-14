@@ -1,11 +1,14 @@
 import zlib
 from io import BytesIO
+from pathlib import Path
 
 import pytest
 from PIL import Image
 from PIL import features as PIL_features
 
 from pikepdf import (
+    Array,
+    Dictionary,
     Name,
     Pdf,
     PdfError,
@@ -15,6 +18,8 @@ from pikepdf import (
     StreamDecodeLevel,
     parse_content_stream,
 )
+
+from pikepdf.models.image import UnsupportedImageTypeError
 
 
 # pylint: disable=redefined-outer-name
@@ -271,3 +276,29 @@ def test_jp2(resources):
     pim = PdfImage(xobj)
     assert pim.colorspace == '/DeviceRGB'
     assert pim.bits_per_component == 8
+
+
+def test_extract_filepath(congress, outdir):
+    xobj, _pdf = congress
+    pim = PdfImage(xobj)
+
+    result = pim.extract_to(fileprefix=(outdir / 'image'))
+    assert Path(result).exists()
+
+
+def test_extract_direct_fails_nondefault_colortransform(congress):
+    xobj, _pdf = congress
+
+    xobj.DecodeParms = Dictionary(
+        ColorTransform=42  # Non standard (or allowed in the spec)
+    )
+    pim = PdfImage(xobj)
+
+    bio = BytesIO()
+    with pytest.raises(UnsupportedImageTypeError):
+        pim._extract_direct(stream=bio)
+
+    xobj.ColorSpace = Name.DeviceCMYK
+    pim = PdfImage(xobj)
+    with pytest.raises(UnsupportedImageTypeError):
+        pim._extract_direct(stream=bio)
