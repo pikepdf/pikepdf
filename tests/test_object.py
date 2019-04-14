@@ -95,7 +95,7 @@ def test_decimal_from_float(f):
 
         assert isclose(py_d, d, abs_tol=1e-5), (d, f.hex())
     else:
-        with pytest.raises(PdfError, message=repr(f)):
+        with pytest.raises(PdfError):
             Object.parse(str(d))
 
 
@@ -139,11 +139,11 @@ def test_stack_depth():
     rlimit = sys.getrecursionlimit()
     try:
         sys.setrecursionlimit(100)
-        with pytest.raises(RecursionError, message="recursion"):
+        with pytest.raises(RecursionError):
             assert encode(a) == a
-        with pytest.raises(RecursionError, message="recursion"):
+        with pytest.raises(RecursionError):
             encode(a) == encode(a)  # pylint: disable=expression-not-assigned
-        with pytest.raises(RecursionError, message="recursion"):
+        with pytest.raises(RecursionError):
             repr(a)
     finally:
         sys.setrecursionlimit(rlimit)  # So other tests are not affected
@@ -215,7 +215,7 @@ class TestHashViolation:
 
 
 def test_not_constructible():
-    with pytest.raises(TypeError, message="constructor"):
+    with pytest.raises(TypeError, match="constructor"):
         Object()
 
 

@@ -361,10 +361,10 @@ def test_wrong_xml(enron1):
     """.strip(),
     )
     meta = enron1.open_metadata()
-    with pytest.raises(ValueError, message='not XMP'):
+    with pytest.raises(ValueError, match='not XMP'):
         with meta:
             pass
-    with pytest.raises(ValueError, message='not XMP'):
+    with pytest.raises(ValueError, match='not XMP'):
         meta['pdfaid:part']
 
 

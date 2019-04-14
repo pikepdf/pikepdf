@@ -1,8 +1,8 @@
 attrs >= 17.4.0
-hypothesis >= 3.56.9
+hypothesis >= 4.16, < 5
 Pillow >= 5.0.0
-pytest >= 3.6.0, < 4.1.0
-pytest-xdist >= 1.22.2
-pytest-helpers-namespace >= 2017.11.11
-pytest-timeout >= 1.3.0
+pytest >= 4.4.0, < 5
+pytest-xdist >= 1.28, <  2
+pytest-helpers-namespace >= 2019.1.8
+pytest-timeout >= 1.3.3
 python-xmp-toolkit >= 2.0.1 ; sys_platform != "nt"

@@ -180,16 +180,14 @@ def test_slice_differing_lengths(fourpages, sandwich):
     pdf = fourpages
     pdf2 = sandwich
 
-    with pytest.raises(ValueError, message="attempt to assign"):
+    with pytest.raises(ValueError, match="attempt to assign"):
         pdf.pages[0::2] = pdf2.pages[0:1]
 
 
 @pytest.mark.timeout(1)
 def test_self_extend(fourpages):
     pdf = fourpages
-    with pytest.raises(
-        ValueError, message="source page list modified during iteration"
-    ):
+    with pytest.raises(ValueError, match="source page list modified during iteration"):
         pdf.pages.extend(pdf.pages)
 
 
