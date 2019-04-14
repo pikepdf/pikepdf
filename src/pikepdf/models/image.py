@@ -431,7 +431,7 @@ class PdfImage(PdfImageBase):
         bio = BytesIO()
         extension = self._extract_to_stream(stream=bio)
         bio.seek(0)
-        filepath = Path(fileprefix + extension)
+        filepath = Path(Path(fileprefix).name + extension)
         with filepath.open('wb') as target:
             copyfileobj(bio, target)
         return str(filepath)
