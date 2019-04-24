@@ -20,6 +20,7 @@ var/
 .pytest_cache/
 .coverage
 coverage/
+pip-wheel-metadata/
 
 # Main directory testing
 /*.pdf
