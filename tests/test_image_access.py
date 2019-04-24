@@ -284,6 +284,7 @@ def test_extract_filepath(congress, outdir):
 
     result = pim.extract_to(fileprefix=(outdir / 'image'))
     assert Path(result).exists()
+    assert (outdir / 'image.jpg').exists()
 
 
 def test_extract_direct_fails_nondefault_colortransform(congress):
