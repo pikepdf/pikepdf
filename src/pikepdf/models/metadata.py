@@ -13,9 +13,8 @@ from functools import wraps
 from io import BytesIO
 from warnings import warn
 
-from defusedxml.lxml import parse
 from lxml import etree
-from lxml.etree import QName, XMLSyntaxError
+from lxml.etree import parse, QName, XMLSyntaxError
 
 from .. import Name, PdfError, Stream, String
 from .. import __version__ as pikepdf_version

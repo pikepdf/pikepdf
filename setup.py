@@ -130,7 +130,7 @@ setup(
     long_description=readme,
     long_description_content_type='text/markdown',
     ext_modules=ext_modules,
-    install_requires=['defusedxml >= 0.5.0', 'lxml >= 4.0'],
+    install_requires=['lxml >= 4.0'],
     extras_require={'docs': docs_require},
     cmdclass={'build_ext': BuildExt},
     zip_safe=False,

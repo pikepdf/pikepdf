@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 import os
 from pathlib import Path
 
-import defusedxml.ElementTree as ET
+import xml.etree.ElementTree as ET
 import pytest
 from hypothesis import given, example
 from hypothesis.strategies import integers
