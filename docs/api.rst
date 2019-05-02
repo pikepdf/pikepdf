@@ -1,8 +1,8 @@
 pikepdf API
 ***********
 
-Primary objects
-===============
+Main objects
+============
 
 .. autoclass:: pikepdf.Pdf
     :members:

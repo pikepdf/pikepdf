@@ -363,7 +363,8 @@ void init_object(py::module& m)
             [](QPDFObjectHandle &h, std::shared_ptr<QPDF> possible_owner) {
                 return (h.getOwningQPDF() == possible_owner.get());
             },
-            "Test if this object is owned by the indicated *possible_owner*."
+            "Test if this object is owned by the indicated *possible_owner*.",
+            py::arg("possible_owner")
         )
         .def_property_readonly("is_indirect", &QPDFObjectHandle::isIndirect)
         .def("__repr__", &objecthandle_repr)
@@ -555,9 +556,9 @@ void init_object(py::module& m)
                 }
                 return py::cast(value);
             },
-            "for dictionary objects, behave as dict.get(key, default=None)",
+            "For ``pikepdf.Dictionary`` objects, behave as ``dict.get(key, default=None)``",
             py::arg("key"),
-            py::arg("default_") = py::none(),
+            py::arg("default") = py::none(),
             py::return_value_policy::reference_internal
         )
         .def("get",
@@ -570,9 +571,9 @@ void init_object(py::module& m)
                 }
                 return py::cast(value);
             },
-            "for dictionary objects, behave as dict.get(key, default=None)",
+            "For ``pikepdf.Dictionary`` objects, behave as ``dict.get(key, default=None)``",
             py::arg("key"),
-            py::arg("default_") = py::none(),
+            py::arg("default") = py::none(),
             py::return_value_policy::reference_internal
         )
         .def("keys", &QPDFObjectHandle::getKeys)
@@ -724,7 +725,8 @@ void init_object(py::module& m)
             `decode_parms` is an Array of Dictionary, where each array index
             is corresponds to the filter.
 
-            )~~~"
+            )~~~",
+            py::arg("data")
         )
         .def_property_readonly("images",
             [](QPDFObjectHandle &h) {
@@ -749,7 +751,16 @@ void init_object(py::module& m)
             py::arg("prepend") = false,
             py::keep_alive<1, 2>()
         )
-        .def("page_contents_coalesce", &QPDFObjectHandle::coalesceContentStreams)
+        .def("page_contents_coalesce", &QPDFObjectHandle::coalesceContentStreams,
+            R"~~~(
+            Coalesce an array of page content streams into a single content stream.
+
+            The PDF specification allows the ``/Contents`` object to contain either
+            an array of content streams or a single content stream. However, it
+            simplifies parsing and editing if there is only a single content stream.
+            This function merges all content streams.
+            )~~~"
+        )
         .def_property_readonly("_objgen",
             &object_get_objgen
         )
@@ -938,7 +949,8 @@ void init_object(py::module& m)
         [](const std::string& op) {
             return QPDFObjectHandle::newOperator(op);
         },
-        "Construct a PDF Operator object for use in content streams"
+        "Construct a PDF Operator object for use in content streams.",
+        py::arg("op")
     );
     m.def("_Null", &QPDFObjectHandle::newNull,
         "Construct a PDF Null object"

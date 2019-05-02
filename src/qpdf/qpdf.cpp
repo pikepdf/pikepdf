@@ -233,7 +233,7 @@ void init_qpdf(py::module &m)
             will be accessed as a readable binary stream. pikepdf will read the
             entire stream into a private buffer.
 
-            ``.open()`` may be used in a ``with``-block, `.`close()`` will be called when
+            ``.open()`` may be used in a ``with``-block, ``.close()`` will be called when
             the block exists.
 
             Examples:
@@ -284,15 +284,15 @@ void init_qpdf(py::module &m)
             }
         )
         .def_property_readonly("filename", &QPDF::getFilename,
-            "the source filename of an existing PDF, when available")
+            "The source filename of an existing PDF, when available.")
         .def_property_readonly("pdf_version", &QPDF::getPDFVersion,
-            "the PDF standard version, such as '1.7'")
+            "The PDF standard version, such as '1.7'.")
         .def_property_readonly("extension_level", &QPDF::getExtensionLevel)
         .def_property_readonly("Root", &QPDF::getRoot,
-            "the /Root object of the PDF"
+            "The /Root object of the PDF."
         )
         .def_property_readonly("root", &QPDF::getRoot,
-            "alias for .Root, the /Root object of the PDF"
+            "Alias for .Root, the /Root object of the PDF."
         )
         .def_property("docinfo",
             [](QPDF& q) {
@@ -307,7 +307,16 @@ void init_qpdf(py::module &m)
                     throw py::value_error("docinfo must be an indirect object - use Pdf.make_indirect");
                 q.getTrailer().replaceKey("/Info", replace);
             },
-            "access the document information dictionary"
+            R"~~~(
+            Access the (deprecated) document information dictionary.
+
+            The document information dictionary is a brief metadata record
+            that can store some information about the origin of a PDF. It is
+            deprecated and removed in the PDF 2.0 specification. Use the
+            ``.open_metadata()`` API instead, which will edit the modern (and
+            unfortunately, more complicated) XMP metadata object and synchronize
+            changes to the document information dictionary.
+            )~~~"
         )
         .def_property_readonly("trailer", &QPDF::getTrailer,
             R"~~~(
@@ -502,7 +511,8 @@ void init_qpdf(py::module &m)
             Returns:
                 pikepdf.Object
             )~~~",
-            py::return_value_policy::reference_internal
+            py::return_value_policy::reference_internal,
+            py::arg("objgen")
         )
         .def("get_object",
             [](QPDF &q, int objid, int gen) {
@@ -514,7 +524,9 @@ void init_qpdf(py::module &m)
             Returns:
                 pikepdf.Object
             )~~~",
-            py::return_value_policy::reference_internal
+            py::return_value_policy::reference_internal,
+            py::arg("objid"),
+            py::arg("gen")
         )
         .def("make_indirect", &QPDF::makeIndirectObject,
             R"~~~(
@@ -536,7 +548,8 @@ void init_qpdf(py::module &m)
 
             Returns:
                 pikepdf.Object
-            )~~~"
+            )~~~",
+            py::arg("h")
         )
         .def("make_indirect",
             [](QPDF &q, py::object obj) -> QPDFObjectHandle {
@@ -547,7 +560,8 @@ void init_qpdf(py::module &m)
 
             Returns:
                 pikepdf.Object
-            )~~~"
+            )~~~",
+            py::arg("obj")
         )
         .def("copy_foreign",
             [](QPDF &q, QPDFObjectHandle &h) -> QPDFObjectHandle {
@@ -555,7 +569,8 @@ void init_qpdf(py::module &m)
             },
             "Copy object from foreign PDF to this one.",
             py::return_value_policy::reference_internal,
-            py::keep_alive<1, 2>()
+            py::keep_alive<1, 2>(),
+            py::arg("h")
         )
         .def("_replace_object",
             [](QPDF &q, int objid, int gen, QPDFObjectHandle &h) {

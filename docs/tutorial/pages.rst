@@ -111,6 +111,11 @@ We can also replace specific pages with assignment (or slicing).
 
     In [1]: pdf.pages[2] = congress.pages[0]
 
+.. note::
+
+    Some interactive PDF features such as hyperlinks internal to the document may stop
+    working when a page is copied from one file to another.
+
 Saving changes
 ~~~~~~~~~~~~~~
 
