@@ -562,6 +562,13 @@ void init_qpdf(py::module &m)
                 q.replaceObject(objid, gen, h);
             }
         )
+        .def("_swap_objects",
+            [](QPDF &q, std::pair<int, int> objgen1, std::pair<int, int> objgen2) {
+                QPDFObjGen o1(objgen1.first, objgen1.second);
+                QPDFObjGen o2(objgen2.first, objgen2.second);
+                q.swapObjects(o1, o2);
+            }
+        )
         .def("_process",
             [](QPDF &q, std::string description, py::bytes data) {
                 std::string s = data;
