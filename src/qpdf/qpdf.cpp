@@ -178,37 +178,11 @@ void save_pdf(
         py::object stream = filename_or_stream;
         check_stream_is_usable(stream);
 
-        // TODO might be able to improve this by streaming rather than buffering
-        // using subclass of Pipeline that routes calls to Python.
-        w.setOutputMemory();
+        std::string pipe_id = py::repr(stream);
+        Pl_PythonOutput output_pipe(pipe_id.c_str(), stream);
 
-        // It would be kind to release the GIL here, but this is not possible if
-        // another thread has an object and tries to mess with it. Correctness
-        // is more important than performance.
+        w.setOutputPipeline(&output_pipe);
         w.write();
-
-        // But now that we've held the GIL forever, we can release it and take
-        // it back again; at least in theory giving other threads a chance to
-        // to do something.
-        {
-            py::gil_scoped_release release;
-        }
-
-        // getBuffer returns Buffer* and qpdf says we are responsible for
-        // deleting it, so capture it in a unique_ptr
-        std::unique_ptr<Buffer> output_buffer(w.getBuffer());
-
-        // Create a memoryview of the buffer that libqpdf created
-        // Awkward API alert:
-        //     QPDFWriter::getBuffer -> Buffer*  (caller frees memory)
-        // and  Buffer::getBuffer -> unsigned char*  (caller does not own memory)
-        py::buffer_info output_buffer_info(
-            output_buffer->getBuffer(),
-            output_buffer->getSize());
-        py::memoryview view_output_buffer(output_buffer_info);
-
-        // Send it to the stream object (probably copying)
-        stream.attr("write")(view_output_buffer);
     } else {
         py::object filename = filename_or_stream;
         std::string description = py::str(filename);
