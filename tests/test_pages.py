@@ -51,10 +51,16 @@ def test_delete_last_page(graph, outdir):
 def test_replace_page(graph, fourpages):
     q = fourpages
     q2 = graph
+    q2.pages[0].CropBox = [0, 0, 500, 500]
+
+    # Ensure the page keys are different, not subsets
+    assert q.pages[1].keys() - q2.pages[0].keys()
+    assert q2.pages[0].keys() - q.pages[1].keys()
 
     assert len(q.pages) == 4
     q.pages[1] = q2.pages[0]
     assert len(q.pages) == 4
+    assert q.pages[1].keys() == q2.pages[0].keys()
     assert q.pages[1].Resources.XObject.keys() == q2.pages[0].Resources.XObject.keys()
 
 
