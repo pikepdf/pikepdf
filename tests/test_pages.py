@@ -259,3 +259,12 @@ def test_concatenate(resources, outdir):
         output_pdf.save(outdir / '{}.pdf'.format(n))
 
     concatenate(5)
+
+
+def test_emplace(fourpages):
+    p0_objgen = fourpages.pages[0].objgen
+    fourpages.pages[0].emplace(fourpages.pages[1])
+    assert p0_objgen == fourpages.pages[0].objgen
+    assert fourpages.pages[0].keys() == fourpages.pages[1].keys()
+    for k in fourpages.pages[0].keys():
+        assert fourpages.pages[0][k] == fourpages.pages[1][k]

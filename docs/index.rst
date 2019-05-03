@@ -115,6 +115,7 @@ practical examples, particular in ``pdfinfo.py``, ``_weave.py``, and
     release_notes
     tutorial
     objects
+    page_copying
 
 .. toctree::
     :maxdepth: 2

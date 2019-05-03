@@ -130,6 +130,37 @@ class Extend_Object:
                     pass
         return data
 
+    def emplace(self, other):
+        """Copy all items from other without making a new object.
+
+        Particularly when working with pages, it may be desirable to remove all
+        of the existing page's contents and emplace (insert) a new page on top
+        of it, in a way that preserves all links and references to the original
+        page. (Or similarly, for other Dictionary objects in a PDF.)
+
+        When a page is assigned (``pdf.pages[0] = new_page``), only the
+        application knows if references to the original the original page are
+        still valid. For example, a PDF optimizer might restructure a page
+        object into another visually similar one, and references would be valid;
+        but for a program that reorganizes page contents such as a N-up
+        compositor, references may not be valid anymore.
+
+        This method takes precautions to ensure that child objects in common
+        with ``self`` and ``other`` are not inadvertently deleted.
+
+        Example:
+            >>> pdf.pages[0].objgen
+            (16, 0)
+            >>> pdf.pages[0].emplace(pdf.pages[1])
+            >>> pdf.pages[0].objgen
+            (16, 0)  # Same object
+        """
+        del_keys = set(self.keys()) - set(other.keys())
+        for k in other.keys():
+            self[k] = other[k]  # pylint: disable=unsupported-assignment-operation
+        for k in del_keys:
+            del self[k]  # pylint: disable=unsupported-delete-operation
+
 
 @augments(Pdf)
 class Extend_Pdf:

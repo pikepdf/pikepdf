@@ -113,8 +113,18 @@ We can also replace specific pages with assignment (or slicing).
 
 .. note::
 
-    Some interactive PDF features such as hyperlinks internal to the document may stop
-    working when a page is copied from one file to another.
+    Some interactive PDF features such as hyperlinks internal to the document
+    may stop working when a page is copied from one file to another.
+
+
+Copying pages within a PDF
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When a page is copied (assigned) to a different position within the same PDF,
+the copy is constructed as a new page rather than a reference to the existing
+one. This is different from standard Python behavior.
+
+For a detailed explanation and workarounds, see :ref:`page-copying`.
 
 Saving changes
 ~~~~~~~~~~~~~~
