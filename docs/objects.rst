@@ -1,5 +1,5 @@
-pikepdf Object Model
-********************
+Object model
+************
 
 This section covers the object model pikepdf uses in more detail.
 

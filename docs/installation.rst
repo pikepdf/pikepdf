@@ -1,13 +1,16 @@
 Installation
 ============
 
+As a Python package
+-------------------
+
 .. |latest| image:: https://img.shields.io/pypi/v/pikepdf.svg
     :alt: pikepdf latest released version on PyPI
 
 |latest|
 
 Most users on Linux, macOS or Windows with x64 systems should take advantage of
-the binary wheels.
+the binary wheels to install the Python package.
 
 .. code-block:: bash
 
@@ -22,8 +25,11 @@ added if anyone uses them.
 Binary wheels should work on most systems work on Linux distributions 2007
 and newer, macOS 10.11 and newer (for Homebrew), Windows 7 and newer.
 
-Managed distributions
----------------------
+Use ``pip install --user pikepdf`` to install the package for the current user
+only. Use ``pip install pikepdf`` to install to a virtual environment.
+
+Managed Linux distributions
+---------------------------
 
 **Debian, Ubuntu and other APT distributions**
 
@@ -38,7 +44,7 @@ Managed distributions
 
 **Fedora 29**
 
-.. |fedora| image:: https://repology.org/badge/version-only-for-repo/fedora_29/python:pikepdf.svg
+.. |fedora| image:: https://repology.org/badge/version-for-repo/fedora_29/python:pikepdf.svg
     :alt: Fedora 29
 
 .. |rawhide| image:: https://repology.org/badge/version-for-repo/fedora_rawhide/python:pikepdf.svg
@@ -100,7 +106,7 @@ must
 (Consider using the binary wheels, which bundle the required version of
 libqpdf.)
 
-**GCC and Clang**
+**Compiling with GCC or Clang**
 
 -  clone this repository
 -  install libjpeg, zlib and libqpdf on your platform, including headers
@@ -132,14 +138,19 @@ Running a regular ``pip install`` command will detect the
 version of the compiler used to build Python and attempt to build the
 extension with it. We must force the use of Visual Studio 2015.
 
-- clone this repository
-- ``"%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" x64``
-- ``set DISTUTILS_USE_SDK=1``
-- ``set MSSdk=1``
-- download |msvc-zip| from the `QPDF releases page <https://github.com/qpdf/qpdf/releases>`_
-- extract ``bin\qpdfXX.dll`` from the zip file above, where XX is the version
-  of the ABI, and copy it to the ``src/pikepdf`` folder in the repository
-- run ``pip install .`` in the root directory of the repository
+#. Clone this repository.
+#. In a command prompt, run:
+
+    .. code-block:: bat
+
+        %VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" x64
+        set DISTUTILS_USE_SDK=1
+        set MSSdk=1
+
+#. Download |msvc-zip| from the `QPDF releases page <https://github.com/qpdf/qpdf/releases>`_.
+#. Extract ``bin\qpdfXX.dll`` from the zip file above, where XX is the version
+   of the ABI, and copy it to the ``src/pikepdf`` folder in the repository.
+#. Run ``pip install .`` in the root directory of the repository.
 
 .. note::
 
@@ -164,6 +175,8 @@ Building the documentation
 Documentation is generated using Sphinx and you are currently reading it. To
 regenerate it:
 
--  ``pip install -r requirements/docs.txt``
--  ``cd pikepdf/docs``
--  ``make html``
+.. code-block:: bash
+
+    pip install -r requirements/docs.txt
+    cd pikepdf/docs
+    make html
