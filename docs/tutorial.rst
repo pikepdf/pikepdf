@@ -1,6 +1,10 @@
 Tutorial
 ********
 
+.. figure:: images/pike-cartoon.png
+       :figwidth: 30%
+       :align: right
+
 **Opening and saving**
 
 In contrast to better known PDF libraries, pikepdf uses a single object to

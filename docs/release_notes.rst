@@ -3,11 +3,33 @@
 Release notes
 #############
 
+.. figure:: images/pike-release.jpg
+    :figwidth: 30%
+    :alt: pike fish being release to water
+    :align: right
+
+    Releasing a pike.
+
 pikepdf releases use the `semantic versioning <http://semver.org>`_ policy.
 
 The pikepdf API (as provided by ``import pikepdf``) is quite stable and is in production use.
 
 Note that the C++ extension module ``pikepdf._qpdf`` is a private interface within pikepdf that applications should not use directly.
+
+v1.3.0
+======
+
+* Remove dependency on ``defusedxml.lxml``. Unfortunately this module of ``defusedxml`` is deprecated because the issue it worked around have been resolved in the underlying ``lxml`` library. In the absence of other options for XML hardening we have reverted to standard ``lxml``.
+
+* Fixed an issue where ``PdfImage.extract_to()`` would write a file in the wrong directory.
+
+* Eliminated an intermediate buffer that was used when saving to an IO stream (as opposed to a filename). We would previously write the entire output to a memory buffer and then write to the output buffer; we now write directly to the stream.
+
+* Added ``Object.emplace()`` as a workaround for when one wants to update a page without generating a new page object so that links/table of contents entries to the original page are preserved.
+
+* Improved documentation. Eliminated all ``arg0`` placeholder variable names.
+
+* Added ``PageList.remove(p=1)``, so that it is possible to remove pages using counting numbers.
 
 v1.2.0
 ======
