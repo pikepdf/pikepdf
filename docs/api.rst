@@ -126,3 +126,14 @@ Support models
 
 .. autoclass:: pikepdf.models.PdfMetadata
     :members:
+
+Internal objects
+================
+
+These objects are returned by other pikepdf objects. They are part of the API,
+but not intended to be created explicitly.
+
+.. autoclass:: pikepdf._qpdf.PageList
+    :members:
+
+    A ``list``-like object enumerating all pages in a :class:`pikepdf.Pdf`.

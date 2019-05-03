@@ -172,7 +172,6 @@ void PageList::insert_page(size_t index, QPDFObjectHandle page)
     }
 }
 
-
 void init_pagelist(py::module &m)
 {
     py::class_<PageList>(m, "PageList")
@@ -199,12 +198,13 @@ void init_pagelist(py::module &m)
         .def("__delitem__", &PageList::delete_pages_from_iterable)
         .def("__len__", &PageList::count)
         .def("p",
-            [](PageList &pl, size_t index) {
-                if (index == 0) // Indexing past end is checked in .get_page
+            [](PageList &pl, size_t pnum) {
+                if (pnum == 0) // Indexing past end is checked in .get_page
                     throw py::index_error("page access out of range in 1-based indexing");
-                return pl.get_page(index - 1);
+                return pl.get_page(pnum - 1);
             },
-            "convenience - look up page number in ordinal numbering, .p(1) is first page"
+            "Convenience - look up page number in ordinal numbering, ``.p(1)`` is first page",
+            py::arg("pnum")
         )
         .def("__iter__",
             [](PageList &pl) {
@@ -222,7 +222,16 @@ void init_pagelist(py::module &m)
             [](PageList &pl, ssize_t index, py::object obj) {
                 size_t uindex = uindex_from_index(pl, index);
                 pl.insert_page(uindex, obj);
-            }, py::keep_alive<1, 3>()
+            }, py::keep_alive<1, 3>(),
+            R"~~~(
+            Insert a page at the specified location.
+
+            Args:
+                index (int): location at which to insert page, 0-based indexing
+                obj (pikepdf.Object): page object to insert
+            )~~~",
+            py::arg("index"),
+            py::arg("obj")
         )
         .def("reverse",
             [](PageList &pl) {
@@ -232,13 +241,16 @@ void init_pagelist(py::module &m)
                     PySlice_New(Py_None, Py_None, step.ptr()));
                 py::list reversed_pages = pl.get_pages(reversed);
                 pl.set_pages_from_iterable(ordinary_indices, reversed_pages);
-            }
+            },
+            "Reverse the order of pages."
         )
         .def("append",
             [](PageList &pl, py::object page) {
                 pl.insert_page(pl.count(), page);
             },
-            py::keep_alive<1, 2>()
+            py::keep_alive<1, 2>(),
+            "Add another page to the end.",
+            py::arg("page")
         )
         .def("extend",
             [](PageList &pl, PageList &other) {
@@ -249,7 +261,9 @@ void init_pagelist(py::module &m)
                     pl.insert_page(pl.count(), other.get_page(i));
                 }
             },
-            py::keep_alive<1, 2>()
+            py::keep_alive<1, 2>(),
+            "Extend the ``Pdf`` by adding pages from another ``Pdf.pages``.",
+            py::arg("other")
         )
         .def("extend",
             [](PageList &pl, py::iterable iterable) {
@@ -260,6 +274,29 @@ void init_pagelist(py::module &m)
                     ++it;
                 }
             },
-            py::keep_alive<1, 2>()
+            py::keep_alive<1, 2>(),
+            "Extend the ``Pdf`` by adding pages from an iterable of pages.",
+            py::arg("iterable")
+        )
+        .def("remove",
+            [](PageList &pl, py::kwargs kwargs) {
+                auto pnum = kwargs["p"].cast<size_t>();
+                if (pnum == 0) // Indexing past end is checked in .get_page
+                    throw py::index_error("page access out of range in 1-based indexing");
+                pl.delete_page(pnum - 1);
+            },
+            R"~~~(
+            Remove a page (using 1-based numbering)
+
+            Args:
+                p (int): 1-based page number
+            )~~~"
+        )
+        .def("__repr__",
+            [](PageList &pl) {
+                return std::string("<pikepdf._qpdf.PageList len=")
+                    + std::to_string(pl.count())
+                    + std::string(">");
+            }
         );
 }
