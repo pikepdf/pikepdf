@@ -203,6 +203,8 @@ numbers:
 
     In [1]: pdf.pages[0]          # Also the first page in the document
 
+    In [1]: pdf.pages.remove(p=1)   # Remove first page in the document
+
 To avoid confusion, the ``.p()`` accessor does not accept Python slices,
 and ``.p(0)`` raises an exception. It is also not possible to delete using it.
 
