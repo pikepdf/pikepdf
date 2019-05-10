@@ -11,10 +11,10 @@ Python + QPDF = "py" + "qpdf" = "pyqpdf", which looks like a dyslexia test. Say 
 
 ```python
 # Elegant, Pythonic API
-pdf = pikepdf.open('input.pdf')
-num_pages = len(pdf.pages)
-del pdf.pages[-1]
-pdf.save('output.pdf')
+with pikepdf.open('input.pdf') as pdf:
+    num_pages = len(pdf.pages)
+    del pdf.pages[-1]
+    pdf.save('output.pdf')
 ```
 
 **To install:**
