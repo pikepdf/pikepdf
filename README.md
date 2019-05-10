@@ -34,8 +34,6 @@ Features
 
 This library is similar to PyPDF2 and pdfrw - it provides low level access to PDF features and allows editing and content transformation of existing PDFs. Some knowledge of the PDF specification may be helpful. It does not have the capability to render a PDF to image.
 
-Python 2.7 and earlier versions of Python 3 are not currently supported but support is probably not difficult to achieve. Pull requests are welcome.
-
 | **Feature**                                                         | **pikepdf**                         | **PyPDF2**                                | **pdfrw**                               |
 |---------------------------------------------------------------------|-------------------------------------|-------------------------------------------|-----------------------------------------|
 | Editing, manipulation and transformation of existing PDFs           | ✔                                   | ✔                                         | ✔                                       |
