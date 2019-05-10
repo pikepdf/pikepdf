@@ -68,7 +68,7 @@ Removing and adding pages is easy too.
 
 .. ipython::
 
-    In [1]: del pdf.pages[1:3]  # Remove pages 2-3 labeled "second page" and "third page"
+    In [1]: del pdf.pages[2:4]  # Remove pages 2-3 labeled "second page" and "third page"
 
 .. ipython::
 
