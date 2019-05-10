@@ -16,7 +16,7 @@ this :class:`pikepdf.Pdf`.
    from pikepdf import Pdf
    new_pdf = Pdf.new()
    with Pdf.open('sample.pdf') as pdf:
-       pdf.save('output.pdf)
+       pdf.save('output.pdf')
 
 You may of course use ``from pikepdf import Pdf as ...`` if the short class
 name conflicts or ``from pikepdf import Pdf as PDF`` if you prefer uppercase.
