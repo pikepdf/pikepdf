@@ -16,6 +16,13 @@ The pikepdf API (as provided by ``import pikepdf``) is quite stable and is in pr
 
 Note that the C++ extension module ``pikepdf._qpdf`` is a private interface within pikepdf that applications should not use directly.
 
+v1.3.1
+======
+
+* Updated pybind11 to v2.3.0, fixing a possible GIL deadlock when pikepdf objects were shared across threads. (#27)
+
+* Fixed an issue where PDFs with valid XMP metadata but missing an element that is usually present would be rejected as malformed XMP.
+
 v1.3.0
 ======
 
