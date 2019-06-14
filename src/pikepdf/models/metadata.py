@@ -311,6 +311,15 @@ class PdfMetadata(MutableMapping):
         pis = self._xmp.xpath('/processing-instruction()')
         for pi in pis:
             etree.strip_tags(self._xmp, pi.tag)
+        try:
+            self._get_rdf_root()
+        except ValueError:
+            if self._xmp.find('.', self.NS).tag == '{adobe:ns:meta/}xmpmeta':
+                # Looks like: <x:xmpmeta></x:xmpmeta>, so reload with template
+                # that includes <rdf:RDF>
+                return self._load_from(XMP_EMPTY)
+            else:
+                raise  # Probably not XMP
 
     @ensure_loaded
     def __enter__(self):

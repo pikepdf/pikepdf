@@ -396,6 +396,19 @@ def test_no_x_xmpmeta(trivial):
     assert xmp['pdfaid:part'] == '2'
 
 
+def test_empty_xmpmeta(trivial):
+    trivial.Root.Metadata = Stream(
+        trivial,
+        b"""<?xpacket begin="" id=""?>
+        <x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="">
+        </x:xmpmeta>
+        <?xpacket end=""?>
+        """,
+    )
+    with trivial.open_metadata() as xmp:
+        pass
+
+
 @needs_libxmp
 def test_pdf_version_update(graph, outdir):
     def get_xmp_version(filename):
