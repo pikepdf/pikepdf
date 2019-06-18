@@ -4,6 +4,8 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
+"""A library for manipulating PDFs"""
+
 try:
     from . import _qpdf
 except ImportError:
@@ -30,6 +32,7 @@ from .models import (
 )
 
 from . import _methods
+from . import codec
 
 __libqpdf_version__ = _qpdf.qpdf_version()
 

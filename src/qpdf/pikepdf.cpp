@@ -15,6 +15,7 @@
 
 #include <qpdf/QPDFExc.hh>
 #include <qpdf/QPDFSystemError.hh>
+#include <qpdf/QUtil.hh>
 
 #include <pybind11/stl.h>
 #include <pybind11/iostream.h>
@@ -53,6 +54,19 @@ PYBIND11_MODULE(_qpdf, m) {
     init_pagelist(m);
     init_object(m);
     init_annotation(m);
+
+    m.def("utf8_to_pdf_doc",
+        [](py::str utf8, char unknown) {
+            std::string pdfdoc;
+            bool success = QUtil::utf8_to_pdf_doc(std::string(utf8), pdfdoc, unknown);
+            return py::make_tuple(success, py::bytes(pdfdoc));
+        }
+    );
+    m.def("pdf_doc_to_utf8",
+        [](py::bytes pdfdoc) -> py::str {
+            return py::str(QUtil::pdf_doc_to_utf8(pdfdoc));
+        }
+    );
 
     static py::exception<QPDFExc> exc_main(m, "PdfError");
     static py::exception<QPDFExc> exc_password(m, "PasswordError");

@@ -123,6 +123,7 @@ practical examples, particular in ``pdfinfo.py``, ``_weave.py``, and
     :name: reference_toc
 
     api
+    encoding
     arch
     resources
 
