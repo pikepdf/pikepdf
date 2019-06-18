@@ -16,7 +16,7 @@ PdfPermissions = namedtuple(
     'PdfPermissions',
     [
         "accessibility",
-        "extract_all",
+        "extract",
         "print_lowres",
         "print_highres",
         "modify_assembly",
@@ -25,6 +25,7 @@ PdfPermissions = namedtuple(
         "modify_other",
         "modify_all",
     ],
+    defaults=[True] * 9,
 )
 
 

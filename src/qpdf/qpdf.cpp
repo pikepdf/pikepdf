@@ -605,7 +605,7 @@ void init_qpdf(py::module &m)
                 return q.allowAccessibility();
             }
         )
-        .def_property_readonly("_allow_extract_all",
+        .def_property_readonly("_allow_extract",
             [](QPDF &q) {
                 return q.allowExtractAll();
             }
