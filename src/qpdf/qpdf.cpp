@@ -28,6 +28,7 @@
 
 #include "qpdf_pagelist.h"
 #include "qpdf_inputsource.h"
+#include "qpdf_pipeline.h"
 #include "utils.h"
 
 
