@@ -4,11 +4,28 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
+from collections import namedtuple
+
 from .. import Object, ObjectType, PdfError
 
 from .matrix import PdfMatrix
 from .image import PdfImage, PdfInlineImage, UnsupportedImageTypeError
 from .metadata import PdfMetadata
+
+PdfPermissions = namedtuple(
+    'PdfPermissions',
+    [
+        "accessibility",
+        "extract_all",
+        "print_lowres",
+        "print_highres",
+        "modify_assembly",
+        "modify_form",
+        "modify_annotation",
+        "modify_other",
+        "modify_all",
+    ],
+)
 
 
 def parse_content_stream(page_or_stream, operators=''):

@@ -13,6 +13,7 @@ We can also move the implementation to C++ if desired.
 """
 
 import inspect
+from collections import namedtuple
 from collections.abc import KeysView
 from io import BytesIO
 from subprocess import PIPE, run
@@ -20,7 +21,7 @@ from tempfile import NamedTemporaryFile
 
 from . import Array, Dictionary, Name, Object, Pdf, Stream
 from ._qpdf import _ObjectMapping
-from .models import PdfMetadata
+from .models import PdfMetadata, PdfPermissions
 
 # pylint: disable=no-member,unsupported-membership-test,unsubscriptable-object
 
@@ -293,6 +294,26 @@ class Extend_Pdf:
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
+
+    @property
+    def allow(self):
+        """
+        Report permissions associated with this PDF.
+
+        By default these permissions will be replicated when the PDF is
+        saved. Permissions may also only be changed when a PDF is being saved,
+        and are only available for encrypted PDFs. If a PDF is not encrypted,
+        all operations are reported as allowed.
+
+        pikepdf has no way of enforcing permissions.
+
+        Returns: pikepdf.models.PdfPermissions
+
+        """
+        results = {}
+        for field in PdfPermissions._fields:
+            results[field] = getattr(self, '_allow_' + field)
+        return PdfPermissions(**results)
 
     def _attach(self, *, basename, filebytes, mime=None, desc=''):
         """

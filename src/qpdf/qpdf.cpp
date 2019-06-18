@@ -600,5 +600,50 @@ void init_qpdf(py::module &m)
             Used to implement Pdf.close().
             )~~~"
         )
+        .def_property_readonly("_allow_accessibility",
+            [](QPDF &q) {
+                return q.allowAccessibility();
+            }
+        )
+        .def_property_readonly("_allow_extract_all",
+            [](QPDF &q) {
+                return q.allowExtractAll();
+            }
+        )
+        .def_property_readonly("_allow_print_lowres",
+            [](QPDF &q) {
+                return q.allowPrintLowRes();
+            }
+        )
+        .def_property_readonly("_allow_print_highres",
+            [](QPDF &q) {
+                return q.allowPrintHighRes();
+            }
+        )
+        .def_property_readonly("_allow_modify_assembly",
+            [](QPDF &q) {
+                return q.allowModifyAssembly();
+            }
+        )
+        .def_property_readonly("_allow_modify_form",
+            [](QPDF &q) {
+                return q.allowModifyForm();
+            }
+        )
+        .def_property_readonly("_allow_modify_annotation",
+            [](QPDF &q) {
+                return q.allowModifyAnnotation();
+            }
+        )
+        .def_property_readonly("_allow_modify_other",
+            [](QPDF &q) {
+                return q.allowModifyOther();
+            }
+        )
+        .def_property_readonly("_allow_modify_all",
+            [](QPDF &q) {
+                return q.allowModifyAll();
+            }
+        )
         ; // class Pdf
 }
