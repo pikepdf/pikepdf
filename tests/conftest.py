@@ -20,5 +20,10 @@ def resources():
 
 
 @pytest.fixture(scope="function")
-def outdir(tmpdir):
-    return Path(str(tmpdir))
+def outdir(tmp_path):
+    return tmp_path
+
+
+@pytest.fixture(scope="function")
+def outpdf(tmp_path):
+    return tmp_path / 'out.pdf'

@@ -124,6 +124,154 @@ void update_xmp_pdfversion(QPDF &q, std::string version)
 }
 
 
+void setup_encryption(
+    QPDFWriter &w,
+    py::object encryption,
+    std::string &owner,
+    std::string &user
+)
+{
+    bool aes = true;
+    bool metadata = true;
+    std::map<std::string, bool> allow;
+    int encryption_level = 6;
+
+    if (encryption.contains("R")) {
+        if (!py::isinstance<py::int_>(encryption["R"]))
+            throw py::type_error("Encryption level 'R' must be an integer");
+        encryption_level = py::int_(encryption["R"]);
+    }
+    if (encryption_level < 2 || encryption_level > 6)
+        throw py::value_error("Invalid encryption level: must be 2, 3, 4 or 6");
+
+    if (encryption_level == 5) {
+        auto warn = py::module::import("warnings").attr("warn");
+        warn("Encryption R=5 is deprecated");
+    }
+
+    if (encryption.contains("owner")) {
+        if (encryption_level <= 4) {
+            auto success = QUtil::utf8_to_pdf_doc(encryption["owner"].cast<std::string>(), owner);
+            if (!success)
+                throw py::value_error("Encryption level is R3/R4 and password is not encodable as PDFDocEncoding");
+        } else {
+            owner = encryption["owner"].cast<std::string>();
+        }
+    }
+    if (encryption.contains("user")) {
+        if (encryption_level <= 4) {
+            auto success = QUtil::utf8_to_pdf_doc(encryption["user"].cast<std::string>(), user);
+            if (!success)
+                throw py::value_error("Encryption level is R3/R4 and password is not encodable as PDFDocEncoding");
+        } else {
+            user = encryption["user"].cast<std::string>();
+        }
+    }
+    if (encryption.contains("allow")) {
+        auto pyallow = encryption["allow"];
+        allow["accessibility"] = bool(pyallow["accessibility"]);
+        allow["extract"] = bool(pyallow["extract"]);
+        allow["modify_assembly"] = bool(pyallow["modify_assembly"]);
+        allow["modify_annotate"] = bool(pyallow["modify_annotate"]);
+        allow["modify_form"] = bool(pyallow["modify_form"]);
+        allow["modify_other"] = bool(pyallow["modify_other"]);
+    }
+    if (encryption.contains("aes")) {
+        if (py::isinstance<bool>(encryption["aes"]))
+            aes = py::bool_(encryption["aes"]);
+        else
+            throw py::type_error("aes must be bool");
+    } else {
+        aes = (encryption_level >= 4);
+    }
+    if (encryption.contains("metadata")) {
+        if (py::isinstance<bool>(encryption["metadata"]))
+            metadata = py::bool_(encryption["metadata"]);
+        else
+            throw py::type_error("metadata must be bool");
+    } else {
+        metadata = (encryption_level >= 4);
+    }
+
+    if (metadata && encryption_level < 4) {
+        throw py::value_error("Cannot encrypt metadata when R < 4");
+    }
+    if (aes && encryption_level < 4) {
+        throw py::value_error("Cannot encrypt with AES when R < 4");
+    }
+    if (encryption_level == 6 && (metadata != aes)) {
+        throw py::value_error("When R = 6, metadata and AES encryption must be equal");
+    }
+
+    qpdf_r3_print_e print;
+    if (allow["print_highres"])
+        print = qpdf_r3p_full;
+    else if (allow["print_lowres"])
+        print = qpdf_r3p_low;
+    else
+        print = qpdf_r3p_none;
+
+    if (encryption_level == 6) {
+        w.setR6EncryptionParameters(
+            user.c_str(), owner.c_str(),
+            allow["accessibility"],
+            allow["extract"],
+            allow["modify_assembly"],
+            allow["modify_annotate"],
+            allow["modify_form"],
+            allow["modify_other"],
+            print,
+            metadata
+        );
+    } else if (encryption_level == 5) {
+        // TODO WARNING
+        w.setR5EncryptionParameters(
+            user.c_str(), owner.c_str(),
+            allow["accessibility"],
+            allow["extract"],
+            allow["modify_assembly"],
+            allow["modify_annotate"],
+            allow["modify_form"],
+            allow["modify_other"],
+            print,
+            metadata
+        );
+    } else if (encryption_level == 4) {
+        w.setR4EncryptionParameters(
+            user.c_str(), owner.c_str(),
+            allow["accessibility"],
+            allow["extract"],
+            allow["modify_assembly"],
+            allow["modify_annotate"],
+            allow["modify_form"],
+            allow["modify_other"],
+            print,
+            metadata,
+            aes
+        );
+    } else if (encryption_level == 3) {
+        w.setR3EncryptionParameters(
+            user.c_str(), owner.c_str(),
+            allow["accessibility"],
+            allow["extract"],
+            allow["modify_assembly"],
+            allow["modify_annotate"],
+            allow["modify_form"],
+            allow["modify_other"],
+            print
+        );
+    } else if (encryption_level == 2) {
+        w.setR2EncryptionParameters(
+            user.c_str(), owner.c_str(),
+            (print != qpdf_r3p_none),
+            allow["modify_assembly"],
+            allow["extract"],
+            allow["modify_annoate"]
+        );
+    }
+}
+
+
 void save_pdf(
     QPDF& q,
     py::object filename_or_stream,
@@ -138,11 +286,14 @@ void save_pdf(
     bool normalize_content=false,
     bool linearize=false,
     bool qdf=false,
-    py::object progress=py::none())
+    py::object progress=py::none(),
+    py::object encryption=py::none())
 {
+    std::string owner;
+    std::string user;
+    std::string description;
     QPDFWriter w(q);
 
-    // Parameters
     if (static_id) {
         w.setStaticID(true);
     }
@@ -150,13 +301,39 @@ void save_pdf(
     if (!min_version.empty()) {
         w.setMinimumPDFVersion(min_version, 0);
     }
-    if (!force_version.empty()) {
-        w.forcePDFVersion(force_version, 0);
-    }
 
     w.setCompressStreams(compress_streams);
     w.setDecodeLevel(stream_decode_level);
     w.setObjectStreamMode(object_stream_mode);
+
+    py::object stream;
+
+    if (py::hasattr(filename_or_stream, "write") && py::hasattr(filename_or_stream, "seek")) {
+        // Python code gave us an object with a stream interface
+        stream = filename_or_stream;
+        check_stream_is_usable(stream);
+        description = py::repr(stream);
+    } else {
+        py::object filename = filename_or_stream;
+        stream = py::module::import("io").attr("open")(filename_or_stream, "wb");
+        description = py::str(filename);
+    }
+
+    // We must set up the output pipeline before we configure encryption
+    Pl_PythonOutput output_pipe(description.c_str(), stream);
+    w.setOutputPipeline(&output_pipe);
+
+    if (encryption && normalize_content) {
+        throw py::value_error("cannot save with encryption and normalize_content");
+    }
+
+    if (encryption.is_none() || encryption.is(py::bool_(true))) {
+        w.setPreserveEncryption(true);
+    } else if (!encryption) {
+        w.setPreserveEncryption(false);
+    } else {
+        setup_encryption(w, encryption, owner, user);
+    }
 
     if (normalize_content && linearize) {
         throw py::value_error("cannot save with both normalize_content and linearize");
@@ -165,6 +342,9 @@ void save_pdf(
     w.setLinearization(linearize);
     w.setQDFMode(qdf);
 
+    if (!force_version.empty()) {
+        w.forcePDFVersion(force_version, 0);
+    }
     if (fix_metadata_version) {
         update_xmp_pdfversion(q, w.getFinalVersion());
     }
@@ -174,27 +354,7 @@ void save_pdf(
         w.registerProgressReporter(reporter);
     }
 
-    if (py::hasattr(filename_or_stream, "write") && py::hasattr(filename_or_stream, "seek")) {
-        // Python code gave us an object with a stream interface
-        py::object stream = filename_or_stream;
-        check_stream_is_usable(stream);
-
-        std::string pipe_id = py::repr(stream);
-        Pl_PythonOutput output_pipe(pipe_id.c_str(), stream);
-
-        w.setOutputPipeline(&output_pipe);
-        w.write();
-    } else {
-        py::object filename = filename_or_stream;
-        std::string description = py::str(filename);
-        // Delete the intended filename, in case it is the same as the input file.
-        // This ensures that the input file will continue to exist in memory on Linux.
-        portable_unlink(filename);
-        FILE* file = portable_fopen(filename, "wb");
-        w.setOutputFile(description.c_str(), file, true);
-        w.write();
-        file = nullptr; // QPDF will close it
-    }
+    w.write();
 }
 
 
@@ -499,7 +659,8 @@ void init_qpdf(py::module &m)
             py::arg("normalize_content")=false,
             py::arg("linearize")=false,
             py::arg("qdf")=false,
-            py::arg("progress")=py::none()
+            py::arg("progress")=py::none(),
+            py::arg("encryption")=py::none()
         )
         .def("_get_object_id", &QPDF::getObjectByID)
         .def("get_object",
