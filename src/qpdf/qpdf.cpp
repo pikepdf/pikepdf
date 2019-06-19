@@ -689,6 +689,11 @@ void init_qpdf(py::module &m)
                     while it is being written, or data corruption will almost
                     certainly occur.
 
+                encryption (pikepdf.models.Encryption or None): If ``None``,
+                    existing encryption will be preserved. If ``False``,
+                    existing encryption will be removed. Otherwise, an
+                    `Encryption` object with the desired settings.
+
             You may call ``.save()`` multiple times with different parameters
             to generate different versions of a file, and you *may* continue
             to modify the file after saving it. ``.save()`` does not modify

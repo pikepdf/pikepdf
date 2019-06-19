@@ -52,7 +52,9 @@ def test_encrypt_no_passwords(trivial, outpdf):
 
 def test_encrypt_permissions_deny(trivial, outpdf):
     perms = pikepdf.models.PdfPermissions(extract=False)
-    trivial.save(outpdf, encryption=dict(owner='sun', user='moon', allow=perms))
+    trivial.save(
+        outpdf, encryption=pikepdf.Encryption(owner='sun', user='moon', allow=perms)
+    )
     pdf = pikepdf.open(outpdf, password='sun')
     assert not pdf.allow.extract
     assert pdf.allow.modify_form

@@ -4,6 +4,7 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
+import collections
 import types
 
 from pikepdf import Object, ObjectType, PdfError
@@ -57,9 +58,11 @@ class PdfPermissions(types.SimpleNamespace):
 
 class EncryptionInfo:
     """
-    Stores encryption information for an encrypted PDF.
+    Reports encryption information for an encrypted PDF.
 
     This information may not be changed, except when a PDF is saved.
+    This object is not used to specify the encryption settings to save
+    a PDF, due to non-overlapping information requirements.
     """
 
     def __init__(self, encdict):
@@ -120,6 +123,28 @@ class EncryptionInfo:
     def bits(self):
         """The number of encryption bits."""
         return len(self._encdict['encryption_key']) * 8
+
+
+class Encryption(dict):
+    """
+    Specify the encryption settings to apply when a PDF is saved.
+
+    Args:
+        R (int): The encryption algorithm to use. Choose 2, 3, 4 or 6.
+            By default, the highest version of the algorithm is selected.
+        owner (str): The owner password to use. This allows full control
+            of the file. If blank, the PDF will be encrypted and
+            present as "(SECURED)" in PDF viewers.
+        user (str): The user password to use. With this password, some
+            restrictions will be imposed by a typical PDF reader.
+            If blank, the PDF can be opened but will present to the user
+            as "(SECURED)" in PDF viewers.
+        allow (pikepdf.models.PdfPermissions): The permissions to set.
+            By default, everything is allowed.
+    """
+
+    def __init__(self, *, owner, user, R=6, allow=PdfPermissions()):
+        self.update(dict(R=R, owner=owner, user=user, allow=allow))
 
 
 def parse_content_stream(page_or_stream, operators=''):

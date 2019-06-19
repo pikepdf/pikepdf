@@ -28,6 +28,8 @@ from .models import (
     PdfInlineImage,
     UnsupportedImageTypeError,
     PdfMatrix,
+    Encryption,
+    PdfPermissions,
     parse_content_stream,
 )
 

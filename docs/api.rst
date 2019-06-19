@@ -127,6 +127,9 @@ Support models
 .. autoclass:: pikepdf.models.PdfMetadata
     :members:
 
+.. autoclass:: pikepdf.models.Encryption
+    :members:
+
 .. autoclass:: pikepdf.models.PdfPermissions
     :members:
 
