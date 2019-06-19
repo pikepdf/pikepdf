@@ -10,7 +10,7 @@ MANIFEST
 .vscode/
 _generate
 build
-.venv/
+.venv*/
 *.sublime*
 .eggs/
 .cache/
