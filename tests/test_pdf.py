@@ -95,7 +95,7 @@ class TestPermissions:
         )
 
     def test_permissions_all_true_not_encrypted(self, trivial):
-        assert all(trivial.allow)
+        assert all(trivial.allow.values())
 
 
 class TestStreams:

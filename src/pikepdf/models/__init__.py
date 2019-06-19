@@ -4,29 +4,54 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
-from collections import namedtuple
-
 from .. import Object, ObjectType, PdfError
+
+import types
 
 from .matrix import PdfMatrix
 from .image import PdfImage, PdfInlineImage, UnsupportedImageTypeError
 from .metadata import PdfMetadata
 
-PdfPermissions = namedtuple(
-    'PdfPermissions',
-    [
-        "accessibility",
-        "extract",
-        "print_lowres",
-        "print_highres",
-        "modify_assembly",
-        "modify_form",
-        "modify_annotation",
-        "modify_other",
-        "modify_all",
-    ],
-    defaults=[True] * 9,
-)
+
+class PdfPermissions(types.SimpleNamespace):
+    """
+    Stores the permissions for an encrypted PDF.
+
+    Unencrypted PDFs implicitly have all permissions allowed.
+    pikepdf does not enforce the restrictions in any way.
+    """
+
+    def __init__(
+        self,
+        accessibility=True,
+        extract=True,
+        modify_all=True,
+        modify_annotation=True,
+        modify_assembly=False,
+        modify_form=True,
+        modify_other=True,
+        print_lowres=True,
+        print_highres=True,
+    ):
+        kvs = locals()
+        del kvs['self']
+        super().__init__(**kvs)
+
+    def __setattr__(self, k, v):
+        raise TypeError("object is read-only")
+
+    def __delattr__(self, k):
+        raise TypeError("object is read-only")
+
+    def keys(self):
+        yield from (k for k in self.__dict__ if not k.startswith('_'))
+
+    def values(self):
+        yield from (v for k, v in self.__dict__.items() if not k.startswith('_'))
+
+    @classmethod
+    def fields(cls):
+        yield from (k for k in cls().__dict__ if not k.startswith('_'))
 
 
 def parse_content_stream(page_or_stream, operators=''):

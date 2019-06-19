@@ -311,7 +311,7 @@ class Extend_Pdf:
 
         """
         results = {}
-        for field in PdfPermissions._fields:
+        for field in PdfPermissions.fields():
             results[field] = getattr(self, '_allow_' + field)
         return PdfPermissions(**results)
 
