@@ -16,6 +16,15 @@ The pikepdf API (as provided by ``import pikepdf``) is quite stable and is in pr
 
 Note that the C++ extension module ``pikepdf._qpdf`` is a private interface within pikepdf that applications should not use directly.
 
+v1.4.0
+======
+
+* Added support for saving encrypted PDFs.
+
+* Added support for setting the PDF extension level as well as version.
+
+* Added support converting strings to and from PDFDocEncoding, by registering a ``"pdfdoc"`` codec.
+
 v1.3.1
 ======
 
