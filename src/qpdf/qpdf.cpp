@@ -169,12 +169,12 @@ void setup_encryption(
     }
     if (encryption.contains("allow")) {
         auto pyallow = encryption["allow"];
-        allow["accessibility"] = bool(pyallow["accessibility"]);
-        allow["extract"] = bool(pyallow["extract"]);
-        allow["modify_assembly"] = bool(pyallow["modify_assembly"]);
-        allow["modify_annotate"] = bool(pyallow["modify_annotate"]);
-        allow["modify_form"] = bool(pyallow["modify_form"]);
-        allow["modify_other"] = bool(pyallow["modify_other"]);
+        allow["accessibility"] = pyallow.attr("accessibility").cast<bool>();
+        allow["extract"] = pyallow.attr("extract").cast<bool>();
+        allow["modify_assembly"] = pyallow.attr("modify_assembly").cast<bool>();
+        allow["modify_annotation"] = pyallow.attr("modify_annotation").cast<bool>();
+        allow["modify_form"] = pyallow.attr("modify_form").cast<bool>();
+        allow["modify_other"] = pyallow.attr("modify_other").cast<bool>();
     }
     if (encryption.contains("aes")) {
         if (py::isinstance<bool>(encryption["aes"]))
@@ -217,7 +217,7 @@ void setup_encryption(
             allow["accessibility"],
             allow["extract"],
             allow["modify_assembly"],
-            allow["modify_annotate"],
+            allow["modify_annotation"],
             allow["modify_form"],
             allow["modify_other"],
             print,
@@ -230,7 +230,7 @@ void setup_encryption(
             allow["accessibility"],
             allow["extract"],
             allow["modify_assembly"],
-            allow["modify_annotate"],
+            allow["modify_annotation"],
             allow["modify_form"],
             allow["modify_other"],
             print,
@@ -242,7 +242,7 @@ void setup_encryption(
             allow["accessibility"],
             allow["extract"],
             allow["modify_assembly"],
-            allow["modify_annotate"],
+            allow["modify_annotation"],
             allow["modify_form"],
             allow["modify_other"],
             print,
@@ -255,7 +255,7 @@ void setup_encryption(
             allow["accessibility"],
             allow["extract"],
             allow["modify_assembly"],
-            allow["modify_annotate"],
+            allow["modify_annotation"],
             allow["modify_form"],
             allow["modify_other"],
             print
@@ -266,7 +266,7 @@ void setup_encryption(
             (print != qpdf_r3p_none),
             allow["modify_assembly"],
             allow["extract"],
-            allow["modify_annoate"]
+            allow["modify_annotation"]
         );
     }
 }
