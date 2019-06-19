@@ -271,6 +271,27 @@ void setup_encryption(
     }
 }
 
+/* Helper class to ensure streams we open get closed by destructor */
+class Closer
+{
+public:
+    Closer() : monitored(py::none()) {}
+    ~Closer() {
+        if (!this->monitored.is_none()) {
+            this->monitored.attr("close")();
+        }
+    }
+    void set(py::object monitored) {
+        this->monitored = monitored;
+    }
+    Closer(const Closer& other) = delete;
+    Closer(Closer&& other) = delete;
+    Closer& operator= (const Closer& other) = delete;
+    Closer& operator= (Closer&& other) = delete;
+
+private:
+    py::object monitored;
+};
 
 void save_pdf(
     QPDF& q,
@@ -307,6 +328,7 @@ void save_pdf(
     w.setObjectStreamMode(object_stream_mode);
 
     py::object stream;
+    Closer stream_closer;
 
     if (py::hasattr(filename_or_stream, "write") && py::hasattr(filename_or_stream, "seek")) {
         // Python code gave us an object with a stream interface
@@ -316,6 +338,7 @@ void save_pdf(
     } else {
         py::object filename = filename_or_stream;
         stream = py::module::import("io").attr("open")(filename_or_stream, "wb");
+        stream_closer.set(stream);
         description = py::str(filename);
     }
 
