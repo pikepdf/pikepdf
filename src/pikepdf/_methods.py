@@ -315,6 +315,10 @@ class Extend_Pdf:
             results[field] = getattr(self, '_allow_' + field)
         return PdfPermissions(**results)
 
+    @property
+    def encryption(self):
+        return self._encryption_data
+
     def _attach(self, *, basename, filebytes, mime=None, desc=''):
         """
         Attach a file to this PDF

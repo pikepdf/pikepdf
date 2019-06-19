@@ -419,6 +419,13 @@ void init_qpdf(py::module &m)
         .value("specialized", qpdf_stream_decode_level_e::qpdf_dl_specialized)
         .value("all", qpdf_stream_decode_level_e::qpdf_dl_all);
 
+    py::enum_<QPDF::encryption_method_e>(m, "EncryptionMethod")
+        .value("none", QPDF::encryption_method_e::e_none)
+        .value("unknown", QPDF::encryption_method_e::e_unknown)
+        .value("rc4", QPDF::encryption_method_e::e_rc4)
+        .value("aes", QPDF::encryption_method_e::e_aes)
+        .value("aesv3", QPDF::encryption_method_e::e_aesv3);
+
     py::class_<QPDF, std::shared_ptr<QPDF>>(m, "Pdf", "In-memory representation of a PDF")
         .def_static("new",
             []() {
@@ -854,6 +861,32 @@ void init_qpdf(py::module &m)
         .def_property_readonly("_allow_modify_all",
             [](QPDF &q) {
                 return q.allowModifyAll();
+            }
+        )
+        .def_property_readonly("_encryption_data",
+            [](QPDF &q) {
+                int R = 0;
+                int P = 0;
+                int V = 0;
+                QPDF::encryption_method_e stream_method = QPDF::e_unknown;
+                QPDF::encryption_method_e string_method = QPDF::e_unknown;
+                QPDF::encryption_method_e file_method = QPDF::e_unknown;
+                if (!q.isEncrypted(R, P, V, stream_method, string_method, file_method))
+                    return py::dict();
+
+                auto user_passwd = q.getTrimmedUserPassword();
+                auto encryption_key = q.getEncryptionKey();
+
+                return py::dict(
+                    py::arg("R") = R,
+                    py::arg("P") = P,
+                    py::arg("V") = V,
+                    py::arg("stream") = stream_method,
+                    py::arg("string") = string_method,
+                    py::arg("file") = file_method,
+                    py::arg("user_passwd") = py::bytes(user_passwd),
+                    py::arg("encryption_key") = py::bytes(encryption_key)
+                );
             }
         )
         ; // class Pdf
