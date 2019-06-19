@@ -40,9 +40,6 @@ namespace pybind11 { namespace detail {
     };
 }}
 
-#define CUSTOM_TYPE_CONVERSION 1
-#if CUSTOM_TYPE_CONVERSION
-
 // From object_convert.cpp
 pybind11::object decimal_from_pdfobject(QPDFObjectHandle h);
 
@@ -57,24 +54,9 @@ namespace pybind11 { namespace detail {
          * Conversion part 1 (Python->C++): convert a PyObject into a Object
          */
         bool load(handle src, bool convert) {
-            // if (src.is_none()) {
-            //     if (!convert) return false;
-            //     value = QPDFObjectHandle::newNull();
-            //     return true;
-            // }
-            // Attempting to construct these does not work...
-            // if (convert) {
-            //     if (PYBIND11_LONG_CHECK(src.ptr())) {
-            //         auto as_int = src.cast<long long>();
-            //         value = QPDFObjectHandle::newInteger(as_int);
-            //     } /*else if (PyFloat_Check(src.ptr())) {
-            //         auto as_double = src.cast<double>();
-            //         value = QPDFObjectHandle::newReal(as_double);
-            //     } */ else {
-            //         return base::load(src, convert);
-            //     }
-            //     return true;
-            // }
+            // Do whatever our base does
+            // Potentially we could convert some scalrs to QPDFObjectHandle here,
+            // but most of the interfaces just expect straight C++ types.
             return base::load(src, convert);
         }
 
@@ -157,7 +139,6 @@ namespace pybind11 { namespace detail {
         }
     };
 }} // namespace pybind11::detail
-#endif
 
 namespace py = pybind11;
 
