@@ -453,4 +453,5 @@ def test_extension_level(trivial, outpdf):
     pdf = pikepdf.open(outpdf)
     assert pdf.pdf_version == '1.7' and pdf.extension_level == 42
 
-    trivial.save(outpdf, force_version=('1.7', 'invalid extension level'))
+    with pytest.raises(TypeError):
+        trivial.save(outpdf, force_version=('1.7', 'invalid extension level'))

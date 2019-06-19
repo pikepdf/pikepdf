@@ -56,3 +56,10 @@ def test_encrypt_permissions_deny(trivial, outpdf):
     pdf = pikepdf.open(outpdf, password='sun')
     assert not pdf.allow.extract
     assert pdf.allow.modify_form
+
+
+def test_encrypt_info(trivial, outpdf):
+    trivial.save(outpdf, encryption=dict(R=4, owner='foo', user='bar'))
+    pdf = pikepdf.open(outpdf, password='foo')
+    assert pdf.encryption.user_password == b'bar'
+    assert pdf.encryption.bits == 128

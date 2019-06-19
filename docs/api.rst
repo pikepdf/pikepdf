@@ -127,6 +127,39 @@ Support models
 .. autoclass:: pikepdf.models.PdfMetadata
     :members:
 
+.. autoclass:: pikepdf.models.PdfPermissions
+    :members:
+
+    .. attribute:: accessibility
+
+        The owner of the PDF permission for screen readers and accessibility
+        tools to access the PDF.
+
+    .. attribute:: extract
+
+        The owner of the PDF permission for software to extract content from a PDF.
+
+    .. attribute:: modify_all
+
+    .. attribute:: modify_annotation
+
+    .. attribute:: modify_assembly
+
+    .. attribute:: modify_form
+
+    .. attribute:: modify_other
+
+        The owner of the PDF permission to modify various parts of a PDF.
+
+    .. attribute:: print_lowres
+
+    .. attribute:: print_highres
+
+        The owner of the PDF permission to print at low or high resolution.
+
+.. autoclass:: pikepdf.models.EncryptionInfo
+    :members:
+
 Internal objects
 ================
 

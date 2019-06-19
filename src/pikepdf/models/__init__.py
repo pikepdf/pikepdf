@@ -4,10 +4,9 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
-from .. import Object, ObjectType, PdfError
-
 import types
 
+from pikepdf import Object, ObjectType, PdfError
 from .matrix import PdfMatrix
 from .image import PdfImage, PdfInlineImage, UnsupportedImageTypeError
 from .metadata import PdfMetadata
@@ -18,7 +17,8 @@ class PdfPermissions(types.SimpleNamespace):
     Stores the permissions for an encrypted PDF.
 
     Unencrypted PDFs implicitly have all permissions allowed.
-    pikepdf does not enforce the restrictions in any way.
+    pikepdf does not enforce the restrictions in any way. Permissions
+    can only be changed when a PDF is saved.
     """
 
     def __init__(
@@ -37,11 +37,12 @@ class PdfPermissions(types.SimpleNamespace):
         del kvs['self']
         super().__init__(**kvs)
 
-    def __setattr__(self, k, v):
+    def _readonly(self, *args):
         raise TypeError("object is read-only")
 
-    def __delattr__(self, k):
-        raise TypeError("object is read-only")
+    __setattr__ = _readonly
+
+    __delattr__ = _readonly
 
     def keys(self):
         yield from (k for k in self.__dict__ if not k.startswith('_'))
@@ -52,6 +53,73 @@ class PdfPermissions(types.SimpleNamespace):
     @classmethod
     def fields(cls):
         yield from (k for k in cls().__dict__ if not k.startswith('_'))
+
+
+class EncryptionInfo:
+    """
+    Stores encryption information for an encrypted PDF.
+
+    This information may not be changed, except when a PDF is saved.
+    """
+
+    def __init__(self, encdict):
+        self._encdict = encdict
+
+    @property
+    def R(self):
+        """Revision number of the security handler."""
+        return self._encdict['R']
+
+    @property
+    def V(self):
+        """Version of PDF password algorithm."""
+        return self._encdict['V']
+
+    @property
+    def P(self):
+        """Encoded permission bits.
+
+        See :meth:`Pdf.allow` instead.
+        """
+        return self._encdict['P']
+
+    @property
+    def stream_method(self):
+        """Encryption method used to encode streams."""
+        return self._encdict['stream']
+
+    @property
+    def string_method(self):
+        """Encryption method used to encode strings."""
+        return self._encdict['string']
+
+    @property
+    def file_method(self):
+        """Encryption method used to encode the whole file."""
+        return self._encdict['file']
+
+    @property
+    def user_password(self):
+        """If possible, return the user password.
+
+        The user password can only be retrieved when a PDF is opened
+        with the owner password and when older versions of the
+        encryption algorithm are used.
+
+        The password is always returned as ``bytes`` even if it has
+        a clear Unicode representation.
+        """
+        return self._encdict['user_passwd']
+
+    @property
+    def encryption_key(self):
+        """The RC4 or AES encryption key used for this file."""
+        return self._encdict['encryption_key']
+
+    @property
+    def bits(self):
+        """The number of encryption bits."""
+        return len(self._encdict['encryption_key']) * 8
 
 
 def parse_content_stream(page_or_stream, operators=''):
