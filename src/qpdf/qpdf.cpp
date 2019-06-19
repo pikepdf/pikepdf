@@ -271,6 +271,29 @@ void setup_encryption(
     }
 }
 
+
+typedef std::pair<std::string, int> pdf_version_extension;
+
+pdf_version_extension get_version_extension(py::object ver_ext)
+{
+    std::string version = "";
+    int extension = 0;
+    try {
+        version = ver_ext.cast<std::string>();
+        extension = 0;
+    } catch (py::cast_error) {
+        try {
+            auto version_ext = ver_ext.cast<pdf_version_extension>();
+            version = version_ext.first;
+            extension = version_ext.second;
+        } catch (py::cast_error) {
+            throw py::type_error("PDF version must be a tuple: (str, int)");
+        }
+    }
+    return pdf_version_extension(version, extension);
+}
+
+
 /* Helper class to ensure streams we open get closed by destructor */
 class Closer
 {
@@ -298,8 +321,8 @@ void save_pdf(
     py::object filename_or_stream,
     bool static_id=false,
     bool preserve_pdfa=true,
-    std::string min_version="",
-    std::string force_version="",
+    py::object min_version=py::none(),
+    py::object force_version=py::none(),
     bool fix_metadata_version=true,
     bool compress_streams=true,
     qpdf_stream_decode_level_e stream_decode_level=qpdf_dl_generalized,
@@ -319,10 +342,11 @@ void save_pdf(
         w.setStaticID(true);
     }
     w.setNewlineBeforeEndstream(preserve_pdfa);
-    if (!min_version.empty()) {
-        w.setMinimumPDFVersion(min_version, 0);
-    }
 
+    if (!min_version.is_none()) {
+        auto version_ext = get_version_extension(min_version);
+        w.setMinimumPDFVersion(version_ext.first, version_ext.second);
+    }
     w.setCompressStreams(compress_streams);
     w.setDecodeLevel(stream_decode_level);
     w.setObjectStreamMode(object_stream_mode);
@@ -365,8 +389,9 @@ void save_pdf(
     w.setLinearization(linearize);
     w.setQDFMode(qdf);
 
-    if (!force_version.empty()) {
-        w.forcePDFVersion(force_version, 0);
+    if (!force_version.is_none()) {
+        auto version_ext = get_version_extension(force_version);
+        w.forcePDFVersion(version_ext.first, version_ext.second);
     }
     if (fix_metadata_version) {
         update_xmp_pdfversion(q, w.getFinalVersion());
@@ -607,12 +632,14 @@ void init_qpdf(py::module &m)
                     manner compliant with PDF/A and other stricter variants.
                     This should be True, the default, in most cases.
 
-                min_version (str): Sets the minimum version of PDF
+                min_version (str or tuple): Sets the minimum version of PDF
                     specification that should be required. If left alone QPDF
-                    will decide.
-                force_version (str): Override the version recommend by QPDF,
+                    will decide. If a tuple, the second element is an integer, the
+                    extension level.
+                force_version (str or tuple): Override the version recommend by QPDF,
                     potentially creating an invalid file that does not display
-                    in old versions. See QPDF manual for details.
+                    in old versions. See QPDF manual for details. If a tuple, the
+                    second element is an integer, the extension level.
                 fix_metadata_version (bool): If True (default) and the XMP metadata
                     contains the optional PDF version field, ensure the version in
                     metadata is correct. If the XMP metadata does not contain a PDF

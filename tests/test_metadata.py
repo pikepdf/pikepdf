@@ -442,3 +442,15 @@ def test_pdf_version_update(graph, outdir):
     # Confirm we update if present
     graph.save(outdir / 'consistent_version.pdf', force_version='1.5')
     assert get_xmp_version(outdir / 'consistent_version.pdf') == '1.5'
+
+
+def test_extension_level(trivial, outpdf):
+    trivial.save(outpdf, min_version=('1.6', 314159))
+    pdf = pikepdf.open(outpdf)
+    assert pdf.pdf_version >= '1.6' and pdf.extension_level == 314159
+
+    trivial.save(outpdf, force_version=('1.7', 42))
+    pdf = pikepdf.open(outpdf)
+    assert pdf.pdf_version == '1.7' and pdf.extension_level == 42
+
+    trivial.save(outpdf, force_version=('1.7', 'invalid extension level'))
