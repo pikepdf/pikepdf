@@ -361,7 +361,15 @@ void save_pdf(
         description = py::repr(stream);
     } else {
         py::object filename = filename_or_stream;
-        stream = py::module::import("io").attr("open")(filename_or_stream, "wb");
+        try {
+            stream = py::module::import("io").attr("open")(filename_or_stream, "wb");
+        } catch (const py::type_error &e) {
+            #if PY_VERSION_HEX <= 0x03050000
+                stream = filename_or_stream.attr("open")("wb");
+            #else
+                throw;
+            #endif
+        }
         stream_closer.set(stream);
         description = py::str(filename);
     }
