@@ -363,11 +363,8 @@ void save_pdf(
         py::object filename = filename_or_stream;
         #if PY_VERSION_HEX < 0x03060000
             // Python 3.5 kludge (note try/catch py::type_error fails here)
-            auto Path = py::module::import("pathlib").attr("Path");
-            if (py::isinstance(filename_or_stream, Path))
-                stream = filename_or_stream.attr("open")("wb");
-            else
-                stream = py::module::import("io").attr("open")(filename_or_stream, "wb");
+            auto fspath = py::module::import("pikepdf._cpphelpers").attr("fspath");
+            stream = py::module::import("io").attr("open")(fspath(filename_or_stream), "wb");
         #else
             stream = py::module::import("io").attr("open")(filename_or_stream, "wb");
         #endif

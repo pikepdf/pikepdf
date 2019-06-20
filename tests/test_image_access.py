@@ -18,7 +18,7 @@ from pikepdf import (
     StreamDecodeLevel,
     parse_content_stream,
 )
-
+from pikepdf._cpphelpers import fspath
 from pikepdf.models.image import UnsupportedImageTypeError
 
 
@@ -282,7 +282,8 @@ def test_extract_filepath(congress, outdir):
     xobj, _pdf = congress
     pim = PdfImage(xobj)
 
-    result = pim.extract_to(fileprefix=(outdir / 'image'))
+    # fspath is for Python 3.5
+    result = pim.extract_to(fileprefix=fspath(outdir / 'image'))
     assert Path(result).exists()
     assert (outdir / 'image.jpg').exists()
 

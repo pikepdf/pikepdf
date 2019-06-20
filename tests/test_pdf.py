@@ -223,14 +223,14 @@ def test_object_stream_mode_generated(trivial, outdir):
         fix_metadata_version=True,
         object_stream_mode=pikepdf.ObjectStreamMode.generate,
     )
-    assert b'/ObjStm' in Path(outdir / '1.pdf').read_bytes()
+    assert b'/ObjStm' in (outdir / '1.pdf').read_bytes()
 
     trivial.save(
         outdir / '2.pdf',
         fix_metadata_version=False,
         object_stream_mode=pikepdf.ObjectStreamMode.generate,
     )
-    assert b'/ObjStm' in Path(outdir / '2.pdf').read_bytes()
+    assert b'/ObjStm' in (outdir / '2.pdf').read_bytes()
 
 
 def test_with_block(resources):
