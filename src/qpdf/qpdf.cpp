@@ -175,6 +175,8 @@ void setup_encryption(
         allow["modify_annotation"] = pyallow.attr("modify_annotation").cast<bool>();
         allow["modify_form"] = pyallow.attr("modify_form").cast<bool>();
         allow["modify_other"] = pyallow.attr("modify_other").cast<bool>();
+        allow["print_lowres"] = pyallow.attr("print_lowres").cast<bool>();
+        allow["print_highres"] = pyallow.attr("print_highres").cast<bool>();
     }
     if (encryption.contains("aes")) {
         if (py::isinstance<py::bool_>(encryption["aes"]))

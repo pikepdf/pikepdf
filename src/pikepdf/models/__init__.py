@@ -26,7 +26,6 @@ class Permissions(types.SimpleNamespace):
         self,
         accessibility=True,
         extract=True,
-        modify_all=True,
         modify_annotation=True,
         modify_assembly=False,
         modify_form=True,
@@ -143,7 +142,7 @@ class Encryption(dict):
             is selected (``6``). ``5`` is a deprecated algorithm that should
             not be used.
         allow (pikepdf.Permissions): The permissions to set.
-            By default, everything is allowed.
+            If omitted, all permissions are granted to the user.
         aes (bool): If True, request the AES algorithm. If False, use RC4.
             If omitted, AES is selected whenever possible (R >= 4).
         metadata (bool): If True, also encrypt the PDF metadata. If False,

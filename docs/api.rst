@@ -144,8 +144,6 @@ Support models
 
         The owner of the PDF permission for software to extract content from a PDF.
 
-    .. attribute:: modify_all
-
     .. attribute:: modify_annotation
 
     .. attribute:: modify_assembly
