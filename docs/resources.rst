@@ -5,10 +5,14 @@ Resources
 
 * `PDF 1.7`_ ISO Specification PDF 32000-1:2008
 
-* `Adobe extensions`_ to the PDF specification
+* `Adobe Supplement to ISO 32000 BaseVersion 1.7 ExtensionLevel 3`_, Adobe Acrobat 9.0, June 2008, for AESv3
+
+* Other `Adobe extensions`_ to the PDF specification
 
 .. _QPDF Manual: http://qpdf.sourceforge.net/files/qpdf-manual.html
 
 .. _PDF 1.7: https://www.adobe.com/content/dam/acom/en/devnet/pdf/pdfs/PDF32000_2008.pdf
 
 .. _Adobe extensions: https://www.adobe.com/devnet/pdf/pdf_reference.html
+
+.. _Adobe Supplement to ISO 32000 BaseVersion 1.7 ExtensionLevel 3: https://www.adobe.com/content/dam/acom/en/devnet/pdf/adobe_supplement_iso32000.pdf

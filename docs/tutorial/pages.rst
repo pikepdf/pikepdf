@@ -141,6 +141,23 @@ is commented out to avoid upsetting the documentation generator.)
 You may save a file multiple times, and you may continue modifying it after
 saving.
 
+Saving with encryption
+~~~~~~~~~~~~~~~~~~~~~~
+
+To save an encrypted (password protected) PDF, use a :class:`pikepdf.Encryption`
+object to specify the encryption settings. By default, pikepdf selects the strongest
+security handler and algorithm, but allows full access to modify file contents.
+A :class:`pikepdf.PdfPermissions` object can be used to specify restrictions.
+
+.. ipython::
+    :verbatim:
+
+    In [1]: no_extracting = PdfPermissions(extract=False)
+
+    In [1]: pdf.save('output.pdf', encryption=Encryption(
+       ...:      user="user password", owner="owner password", allow=no_extracting
+       ...: ))
+
 .. _splitpdf:
 
 Split a PDF one page PDFs

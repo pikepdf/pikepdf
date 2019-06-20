@@ -9,7 +9,7 @@ Main objects
 
 .. autofunction:: pikepdf.open
 
-.. autoclass:: pikepdf.ObjectStreamMode
+.. class:: pikepdf.ObjectStreamMode
 
     Options for saving object streams within PDFs, which are more a compact
     way of saving certains types of data that was added in PDF 1.5. All
@@ -30,7 +30,7 @@ Main objects
 
         Generate object streams.
 
-.. autoclass:: pikepdf.StreamDecodeLevel
+.. class:: pikepdf.StreamDecodeLevel
 
     .. attribute:: none
 
@@ -67,6 +67,8 @@ Main objects
         DCTDecode again will accumulate loss, so avoid multiple
         compression and decompression cycles. This is mostly useful for
         retrieving image data.
+
+.. autoclass:: pikepdf.Encryption
 
 .. autoexception:: pikepdf.PdfError
 
@@ -130,7 +132,7 @@ Support models
 .. autoclass:: pikepdf.models.Encryption
     :members:
 
-.. autoclass:: pikepdf.models.PdfPermissions
+.. autoclass:: pikepdf.PdfPermissions
     :members:
 
     .. attribute:: accessibility
@@ -159,6 +161,35 @@ Support models
     .. attribute:: print_highres
 
         The owner of the PDF permission to print at low or high resolution.
+
+.. class:: pikepdf.models.EncryptionMethod
+
+    Describes which encryption method was used on a particular part of a
+    PDF. These values are returned by :class:`pikepdf.EncryptionInfo` but
+    are not currently used to specify how encryption is requested.
+
+    .. attribute:: none
+
+        Data was not encrypted.
+
+    .. attribute:: unknown
+
+        An unknown algorithm was used.
+
+    .. attribute:: rc4
+
+        The RC4 encryption algorithm was used (obsolete).
+
+    .. attribute:: aes
+
+        The AES-based algorithm was used as described in the PDF 1.7 reference manual.
+
+    .. attribute:: aesv3
+
+        An improved version of the AES-based algorithm was used as described in the
+        Adobe Supplement to the ISO 32000, requiring PDF 1.7 extension level 3. This
+        algorithm still uses AES, but allows both AES-128 and AES-256, and improves how
+        the key is derived from the password.
 
 .. autoclass:: pikepdf.models.EncryptionInfo
     :members:
