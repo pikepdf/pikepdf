@@ -132,7 +132,7 @@ Support models
 .. autoclass:: pikepdf.models.Encryption
     :members:
 
-.. autoclass:: pikepdf.PdfPermissions
+.. autoclass:: pikepdf.Permissions
     :members:
 
     .. attribute:: accessibility

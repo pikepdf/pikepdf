@@ -29,7 +29,7 @@ from .models import (
     UnsupportedImageTypeError,
     PdfMatrix,
     Encryption,
-    PdfPermissions,
+    Permissions,
     parse_content_stream,
 )
 

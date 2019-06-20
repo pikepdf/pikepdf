@@ -21,7 +21,7 @@ from tempfile import NamedTemporaryFile
 
 from . import Array, Dictionary, Name, Object, Pdf, Stream
 from ._qpdf import _ObjectMapping
-from .models import PdfMetadata, PdfPermissions, EncryptionInfo
+from .models import PdfMetadata, Permissions, EncryptionInfo
 
 # pylint: disable=no-member,unsupported-membership-test,unsubscriptable-object
 
@@ -307,12 +307,12 @@ class Extend_Pdf:
 
         pikepdf has no way of enforcing permissions.
 
-        Returns: pikepdf.models.PdfPermissions
+        Returns: pikepdf.models.Permissions
         """
         results = {}
-        for field in PdfPermissions.fields():
+        for field in Permissions.fields():
             results[field] = getattr(self, '_allow_' + field)
-        return PdfPermissions(**results)
+        return Permissions(**results)
 
     @property
     def encryption(self):

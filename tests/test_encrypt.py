@@ -51,7 +51,7 @@ def test_encrypt_no_passwords(trivial, outpdf):
 
 
 def test_encrypt_permissions_deny(trivial, outpdf):
-    perms = pikepdf.models.PdfPermissions(extract=False)
+    perms = pikepdf.models.Permissions(extract=False)
     trivial.save(
         outpdf, encryption=pikepdf.Encryption(owner='sun', user='moon', allow=perms)
     )

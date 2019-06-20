@@ -13,7 +13,7 @@ from .image import PdfImage, PdfInlineImage, UnsupportedImageTypeError
 from .metadata import PdfMetadata
 
 
-class PdfPermissions(types.SimpleNamespace):
+class Permissions(types.SimpleNamespace):
     """
     Stores the permissions for an encrypted PDF.
 
@@ -142,7 +142,7 @@ class Encryption(dict):
             ``2``, ``3``, ``4`` or ``6``. By default, the highest version of
             is selected (``6``). ``5`` is a deprecated algorithm that should
             not be used.
-        allow (pikepdf.PdfPermissions): The permissions to set.
+        allow (pikepdf.Permissions): The permissions to set.
             By default, everything is allowed.
         aes (bool): If True, request the AES algorithm. If False, use RC4.
             If omitted, AES is selected whenever possible (R >= 4).
@@ -153,7 +153,7 @@ class Encryption(dict):
     """
 
     def __init__(
-        self, *, owner, user, R=6, allow=PdfPermissions(), aes=True, metadata=True
+        self, *, owner, user, R=6, allow=Permissions(), aes=True, metadata=True
     ):
         self.update(
             dict(R=R, owner=owner, user=user, allow=allow, aes=aes, metadata=metadata)

@@ -147,14 +147,14 @@ Saving with encryption
 To save an encrypted (password protected) PDF, use a :class:`pikepdf.Encryption`
 object to specify the encryption settings. By default, pikepdf selects the strongest
 security handler and algorithm, but allows full access to modify file contents.
-A :class:`pikepdf.PdfPermissions` object can be used to specify restrictions.
+A :class:`pikepdf.Permissions` object can be used to specify restrictions.
 
 .. ipython::
     :verbatim:
 
-    In [1]: no_extracting = PdfPermissions(extract=False)
+    In [1]: no_extracting = pikepdf.Permissions(extract=False)
 
-    In [1]: pdf.save('output.pdf', encryption=Encryption(
+    In [1]: pdf.save('output.pdf', encryption=pikepdf.Encryption(
        ...:      user="user password", owner="owner password", allow=no_extracting
        ...: ))
 
