@@ -130,21 +130,34 @@ class Encryption(dict):
     Specify the encryption settings to apply when a PDF is saved.
 
     Args:
-        R (int): The encryption algorithm to use. Choose 2, 3, 4 or 6.
-            By default, the highest version of the algorithm is selected.
         owner (str): The owner password to use. This allows full control
             of the file. If blank, the PDF will be encrypted and
-            present as "(SECURED)" in PDF viewers.
+            present as "(SECURED)" in PDF viewers. If the owner password
+            is blank, the user password should be as well.
         user (str): The user password to use. With this password, some
             restrictions will be imposed by a typical PDF reader.
-            If blank, the PDF can be opened but will present to the user
-            as "(SECURED)" in PDF viewers.
-        allow (pikepdf.models.PdfPermissions): The permissions to set.
+            If blank, the PDF can be opened by anyone, but only modified
+            as allowed by the permissions in ``allow``.
+        R (int): Select the security handler algorithm to use. Choose from:
+            ``2``, ``3``, ``4`` or ``6``. By default, the highest version of
+            is selected (``6``). ``5`` is a deprecated algorithm that should
+            not be used.
+        allow (pikepdf.PdfPermissions): The permissions to set.
             By default, everything is allowed.
+        aes (bool): If True, request the AES algorithm. If False, use RC4.
+            If omitted, AES is selected whenever possible (R >= 4).
+        metadata (bool): If True, also encrypt the PDF metadata. If False,
+            metadata is not encrypted. Reading document metadata without
+            decryption may be desirable in some cases. Requires ``aes=True``.
+            If omitted, metadata is encrypted whenever possible.
     """
 
-    def __init__(self, *, owner, user, R=6, allow=PdfPermissions()):
-        self.update(dict(R=R, owner=owner, user=user, allow=allow))
+    def __init__(
+        self, *, owner, user, R=6, allow=PdfPermissions(), aes=True, metadata=True
+    ):
+        self.update(
+            dict(R=R, owner=owner, user=user, allow=allow, aes=aes, metadata=metadata)
+        )
 
 
 def parse_content_stream(page_or_stream, operators=''):

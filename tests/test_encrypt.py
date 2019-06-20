@@ -65,3 +65,24 @@ def test_encrypt_info(trivial, outpdf):
     pdf = pikepdf.open(outpdf, password='foo')
     assert pdf.encryption.user_password == b'bar'
     assert pdf.encryption.bits == 128
+
+
+@pytest.mark.parametrize(
+    "R,owner,user,aes,metadata,err",
+    [
+        (6, "foo", "bar", 42, False, r"aes.*bool"),
+        (6, "password", "password", True, 42, r"metadata.*bool"),
+        (3, "12345678", "secret", False, True, r"metadata.*R < 4"),
+        (2, "qwerty", "123456", True, False, r"AES.*R < 4"),
+        (6, "rc4", "rc4", False, True, r"R = 6.*AES"),
+        (4, "met", "met", False, True, r"unless AES"),
+    ],
+)
+def test_bad_settings(trivial, outpdf, R, owner, user, aes, metadata, err):
+    with pytest.raises(Exception, match=err):
+        trivial.save(
+            outpdf,
+            encryption=pikepdf.Encryption(
+                R=R, owner=owner, user=user, aes=aes, metadata=metadata
+            ),
+        )

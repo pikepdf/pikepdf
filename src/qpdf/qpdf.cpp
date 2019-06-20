@@ -177,7 +177,7 @@ void setup_encryption(
         allow["modify_other"] = pyallow.attr("modify_other").cast<bool>();
     }
     if (encryption.contains("aes")) {
-        if (py::isinstance<bool>(encryption["aes"]))
+        if (py::isinstance<py::bool_>(encryption["aes"]))
             aes = py::bool_(encryption["aes"]);
         else
             throw py::type_error("aes must be bool");
@@ -185,7 +185,7 @@ void setup_encryption(
         aes = (encryption_level >= 4);
     }
     if (encryption.contains("metadata")) {
-        if (py::isinstance<bool>(encryption["metadata"]))
+        if (py::isinstance<py::bool_>(encryption["metadata"]))
             metadata = py::bool_(encryption["metadata"]);
         else
             throw py::type_error("metadata must be bool");
@@ -199,8 +199,11 @@ void setup_encryption(
     if (aes && encryption_level < 4) {
         throw py::value_error("Cannot encrypt with AES when R < 4");
     }
-    if (encryption_level == 6 && (metadata != aes)) {
-        throw py::value_error("When R = 6, metadata and AES encryption must be equal");
+    if (encryption_level == 6 && !aes) {
+        throw py::value_error("When R = 6, AES encryption must be enabled");
+    }
+    if (metadata && !aes) {
+        throw py::value_error("Cannot encrypt metadata unless AES encryption is enabled");
     }
 
     qpdf_r3_print_e print;
