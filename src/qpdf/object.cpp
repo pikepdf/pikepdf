@@ -836,18 +836,15 @@ void init_object(py::module& m)
             Not necessarily compatible with other PDF-JSON representations that
             exist in the wild.
 
-            Excerpt from QPDF documentation:
-
-            * Names are encoded as strings representing the normalized value of
-              getName()
-            * Indirect references are encoded as strings containing "obj gen R"
+            * Names are encoded as UTF-8 strings
+            * Indirect references are encoded as strings containing ``obj gen R``
             * Strings are encoded as UTF-8 strings with unrepresentable binary
-              characters encoded as \uHHHH
+              characters encoded as ``\uHHHH``
             * Encoding streams just encodes the stream's dictionary; the stream
               data is not represented
             * Object types that are only valid in content streams (inline
               image, operator) as well as "reserved" objects are not
-              representable and will be serialized as "null".
+              representable and will be serialized as ``null``.
 
             Args:
                 dereference (bool): If True, deference the object is this is an
@@ -856,8 +853,8 @@ void init_object(py::module& m)
             Returns:
                 bytes: JSON bytestring of object. The object is UTF-8 encoded
                 and may be decoded to a Python str that represents the binary
-                values \x00-\xFF as U+0000 to U+00FF; that is, it may contain
-                mojibake.
+                values ``\x00-\xFF`` as ``U+0000`` to ``U+00FF``; that is,
+                it may contain mojibake.
             )~~~"
         )
         ; // end of QPDFObjectHandle bindings
