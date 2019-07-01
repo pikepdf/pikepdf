@@ -354,6 +354,8 @@ class PdfImage(PdfImageBase):
             return self.mode == 'CMYK' and ct == DEFAULT_CT_CMYK
 
         if self.filters == ['/CCITTFaxDecode']:
+            if self.colorspace == '/ICCBased':
+                raise UnsupportedImageTypeError("Cannot direct-extract CCITT + ICC")
             data = self.obj.read_raw_bytes()
             stream.write(self._generate_ccitt_header(data))
             stream.write(data)
@@ -398,6 +400,9 @@ class PdfImage(PdfImageBase):
             base_mode, palette = self.palette
             if not (palette == b'\x00\x00\x00\xff\xff\xff' or palette == b'\x00\xff'):
                 raise NotImplementedError('monochrome image with nontrivial palette')
+
+        if self.colorspace == '/ICCBased':
+            im.info['icc_profile'] = self.icc.tobytes()
 
         return im
 

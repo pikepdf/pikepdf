@@ -90,6 +90,12 @@ Comment:
  .
  A copy of that JPEG is included in debian/missing-sources/.
 
+Files: tests/resources/tree*
+Copyright: Public domain
+License: CC0 1.0
+Comment:
+ Obtained from: https://ccsearch.creativecommons.org/photos/b0c885cf-9f25-4303-9fbd-1bc24f90cf1d
+
 License: MPL-2.0
  This Source Code Form is subject to the terms of the Mozilla Public
  License, v. 2.0.

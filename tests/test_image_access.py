@@ -41,11 +41,6 @@ def sandwich(resources):
     return first_image_in(resources / 'sandwich.pdf')
 
 
-@pytest.fixture
-def onebiticc(resources):
-    return first_image_in(resources / '1biticc.pdf')
-
-
 def test_image_from_nonimage(resources):
     pdf = Pdf.open(resources / 'congress.pdf')
     resources = pdf.pages[0].Contents
@@ -311,8 +306,8 @@ def test_extract_direct_fails_nondefault_colortransform(congress):
         pim._extract_direct(stream=bio)
 
 
-def test_icc(onebiticc):
-    xobj, _pdf = onebiticc
+def test_icc_use(resources):
+    xobj, _pdf = first_image_in(resources / '1biticc.pdf')
 
     pim = PdfImage(xobj)
     assert pim.mode == '1'
@@ -320,3 +315,10 @@ def test_icc(onebiticc):
     assert pim.bits_per_component == 1
 
     assert pim.icc.profile.xcolor_space == 'GRAY'
+
+
+def test_icc_extract(resources):
+    xobj, _pdf = first_image_in(resources / 'tree-icc.pdf')
+
+    pim = PdfImage(xobj)
+    assert pim.as_pil_image().info['icc_profile'] == pim.icc.tobytes()
