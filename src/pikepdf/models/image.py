@@ -39,7 +39,11 @@ def array_str_colorspace(value):
             result = [str(items[n]) for n in range(3)]
             result.append(bytes(items[3]))
             return result
+        if len(items) == 2 and items[0] == '/ICCBased':
+            result = [str(items[0]), items[1]]
+            return result
         return array_str(items)
+
     return array_str(value)
 
 
@@ -114,16 +118,13 @@ class PdfImageBase(ABC):
         if self._colorspaces:
             if self._colorspaces[0] in self.SIMPLE_COLORSPACES:
                 return self._colorspaces[0]
-            if self._colorspaces[0] == '/DeviceCMYK':
+            if self._colorspaces[0] in ('/DeviceCMYK', '/ICCBased'):
                 return self._colorspaces[0]
             if (
                 self._colorspaces[0] == '/Indexed'
                 and self._colorspaces[1] in self.SIMPLE_COLORSPACES
             ):
                 return self._colorspaces[1]
-            if self._colorspaces[0] == '/ICCBased':
-                icc = self._colorspaces[1]
-                return icc.stream_dict.get('/Alternate', '')
         raise NotImplementedError(
             "not sure how to get colorspace: " + repr(self._colorspaces)
         )
