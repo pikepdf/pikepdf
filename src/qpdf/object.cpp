@@ -711,10 +711,12 @@ void init_object(py::module& m)
             R"~~~(
             Replace the content stream with `data`, compressed according to `filter` and `decode_parms`
 
-            :param data: the new data to use for replacement
-            :type data: bytes
-            :param filter: The filter(s) with which the data is (already) encoded
-            :param decode_parms: Parameters for the filters with which the object is encode
+            Args:
+                data (bytes): the new data to use for replacement
+                filter (pikepdf.String or pikepdf.Array): The filter(s) with which the
+                    data is (already) encoded
+                decode_parms (pikepdf.Dictionary or pikepdf.Array): Parameters for the
+                    filters with which the object is encode
 
             If only one `filter` is specified, it may be a name such as
             `Name('/FlateDecode')`. If there are multiple filters, then array

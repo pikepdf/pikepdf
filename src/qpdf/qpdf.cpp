@@ -607,8 +607,9 @@ void init_qpdf(py::module &m)
             The page can be either be a newly constructed PDF object or it can
             be obtained from another PDF.
 
-            :param pikepdf.Object page: The page object to attach
-            :param bool first: If True, prepend this before the first page; if False append after last page
+            Args:
+                page (pikepdf.Object): The page object to attach
+                first (bool): If True, prepend this before the first page; if False append after last page
             )~~~",
             py::arg("page"),
             py::arg("first")=false,

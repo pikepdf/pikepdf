@@ -250,12 +250,11 @@ class PdfImage(PdfImageBase):
     def _from_pil_image(cls, *, pdf, page, name, image):  # pragma: no cover
         """Insert a PIL image into a PDF (rudimentary)
 
-        :param pdf: the PDF to attach the image to
-        :type pdf: pikepdf.Pdf
-        :param page: the page to attach the image to
-        :param name: the name to set the image
-        :param image: image
-        :type image: PIL.Image.Image
+        Args:
+            pdf (pikepdf.Pdf): the PDF to attach the image to
+            page (pikepdf.Object): the page to attach the image to
+            name (str or pikepdf.Name): the name to set the image
+            image (PIL.Image.Image): the image to insert
         """
 
         data = image.tobytes()
