@@ -142,6 +142,11 @@ class PdfImageBase(ABC):
         pass
 
     @property
+    @abstractmethod
+    def icc(self):
+        pass
+
+    @property
     def indexed(self):
         """``True`` if the image has a defined color palette"""
         return '/Indexed' in self._colorspaces
@@ -153,7 +158,12 @@ class PdfImageBase(ABC):
 
     @property
     def mode(self):
-        """``PIL.Image.mode`` equivalent for this image"""
+        """``PIL.Image.mode`` equivalent for this image, where possible
+
+        If an ICC profile is attached to the image, we still attempt to resolve a Pillow
+        mode.
+        """
+
         m = ''
         if self.indexed:
             m = 'P'
@@ -166,6 +176,18 @@ class PdfImageBase(ABC):
                 m = 'L'
             elif self.colorspace == '/DeviceCMYK':
                 m = 'CMYK'
+            elif self.colorspace == '/ICCBased':
+                try:
+                    icc_profile = self._colorspaces[1]
+                    icc_profile_nchannels = int(icc_profile['/N'])
+                    if icc_profile_nchannels == 1:
+                        m = 'L'
+                    elif icc_profile_nchannels == 3:
+                        m = 'RGB'
+                    elif icc_profile_nchannels == 4:
+                        m = 'CMYK'
+                except (ValueError, TypeError):
+                    pass
         if m == '':
             raise NotImplementedError("Not sure how to handle PDF image of this type")
         return m
@@ -181,7 +203,6 @@ class PdfImageBase(ABC):
         [(/FilterName, {/DecodeParmName: Value, ...}), ...]
 
         The order of /Filter matters as indicates the encoding/decoding sequence.
-
         """
         return list(zip_longest(self.filters, self.decode_parms, fillvalue={}))
 
@@ -189,8 +210,8 @@ class PdfImageBase(ABC):
     def palette(self):
         """Retrieves the color palette for this image
 
-        :returns: (base_colorspace: str, palette: bytes)
-        :rtype: tuple
+        Returns:
+            tuple (base_colorspace: str, palette: bytes)
         """
 
         if not self.indexed:
@@ -246,6 +267,7 @@ class PdfImage(PdfImageBase):
         if isinstance(obj, Stream) and obj.stream_dict.get("/Subtype") != "/Image":
             raise TypeError("can't construct PdfImage from non-image")
         self.obj = obj
+        self._icc = None
 
     @classmethod
     def _from_pil_image(cls, *, pdf, page, name, image):  # pragma: no cover
@@ -282,6 +304,26 @@ class PdfImage(PdfImageBase):
     def is_inline(self):
         """``False`` for image XObject"""
         return False
+
+    @property
+    def icc(self):
+        """If an ICC profile is attached, return a Pillow object that describe it.
+
+        Most of the information may be found in ``icc.profile``.
+
+        Returns:
+            PIL.ImageCms.ImageCmsProfile
+        """
+        from PIL import ImageCms
+
+        if self.colorspace != '/ICCBased':
+            return None
+        if not self._icc:
+            iccstream = self._colorspaces[1]
+            iccbuffer = iccstream.get_stream_buffer()
+            iccbytesio = BytesIO(iccbuffer)
+            self._icc = ImageCms.ImageCmsProfile(iccbytesio)
+        return self._icc
 
     def _extract_direct(self, *, stream):
         """Attempt to extract the image directly to a usable image file
@@ -647,6 +689,10 @@ class PdfInlineImage(PdfImageBase):
     @property
     def is_inline(self):
         return True
+
+    @property
+    def icc(self):
+        raise ValueError("Inline images may not have ICC profiles")
 
     def __repr__(self):
         mode = '?'

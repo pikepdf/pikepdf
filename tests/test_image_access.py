@@ -41,6 +41,11 @@ def sandwich(resources):
     return first_image_in(resources / 'sandwich.pdf')
 
 
+@pytest.fixture
+def onebiticc(resources):
+    return first_image_in(resources / '1biticc.pdf')
+
+
 def test_image_from_nonimage(resources):
     pdf = Pdf.open(resources / 'congress.pdf')
     resources = pdf.pages[0].Contents
@@ -304,3 +309,14 @@ def test_extract_direct_fails_nondefault_colortransform(congress):
     pim = PdfImage(xobj)
     with pytest.raises(UnsupportedImageTypeError):
         pim._extract_direct(stream=bio)
+
+
+def test_icc(onebiticc):
+    xobj, _pdf = onebiticc
+
+    pim = PdfImage(xobj)
+    assert pim.mode == '1'
+    assert pim.colorspace == '/ICCBased'
+    assert pim.bits_per_component == 1
+
+    assert pim.icc.profile.xcolor_space == 'GRAY'
