@@ -133,7 +133,9 @@ def test_open_save(resources, outdir):
     out = str(outdir / 'graph.pdf')
     copy(str(resources / 'graph.pdf'), out)
     src = Pdf.open(out)
-    src.save(out)
+    with pytest.raises(ValueError):
+        src.save(out)
+    src.save(outdir / 'graph2.pdf')
 
 
 def test_readme_example(resources, outdir):

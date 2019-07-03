@@ -369,14 +369,14 @@ void save_pdf(
         check_stream_is_usable(stream);
         description = py::repr(stream);
     } else {
-        py::object filename = filename_or_stream;
-        #if PY_VERSION_HEX < 0x03060000
-            // Python 3.5 kludge (note try/catch py::type_error fails here)
-            auto fspath = py::module::import("pikepdf._cpphelpers").attr("fspath");
-            stream = py::module::import("io").attr("open")(fspath(filename_or_stream), "wb");
-        #else
-            stream = py::module::import("io").attr("open")(filename_or_stream, "wb");
-        #endif
+        py::object filename = fspath(filename_or_stream);
+        py::object ospath = py::module::import("os").attr("path");
+        py::object samefile = ospath.attr("samefile");
+        py::object exists = ospath.attr("exists");
+        if (exists(filename).cast<bool>() && samefile(filename, q.getFilename()).cast<bool>()) {
+            throw py::value_error("Cannot overwrite input file");
+        }
+        stream = py::module::import("io").attr("open")(filename, "wb");
         stream_closer.set(stream);
         description = py::str(filename);
     }
@@ -652,7 +652,10 @@ void init_qpdf(py::module &m)
 
             Args:
                 filename (str or stream): Where to write the output. If a file
-                    exists in this location it will be overwritten.
+                    exists in this location it will be overwritten. The file
+                    should not be the same as the input file, because data from
+                    the input file may be lazily loaded; as such overwriting
+                    in place will null-out objects.
 
                 static_id (bool): Indicates that the ``/ID`` metadata, normally
                     calculated as a hash of certain PDF contents and metadata

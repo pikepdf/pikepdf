@@ -19,11 +19,23 @@ is in production use.
 Note that the C++ extension module ``pikepdf._qpdf`` is a private
 interface within pikepdf that applications should not use directly.
 
+v1.5.0
+======
+
+-  Improved interpretation of images within PDFs that use an ICC colorspace.
+   Where possible we embed the ICC profile when extracting the image, and
+   profile access to the ICC profile.
+-  Fixed saving PDFs with their existing encryption.
+-  Fixed documentation to reflect the fact that saving a PDF without
+   specifying encryption settings will remove encyrption.
+-  Added a test to prevent overwriting the input PDF since overwriting
+   corrupts lazy loading.
 
 v1.4.0
 ======
 
--  Added support for saving encrypted PDFs.
+-  Added support for saving encrypted PDFs. (Reading them has been supported
+   for a long time.)
 -  Added support for setting the PDF extension level as well as version.
 -  Added support converting strings to and from PDFDocEncoding, by
    registering a ``"pdfdoc"`` codec.
