@@ -330,7 +330,7 @@ void save_pdf(
     py::object force_version=py::none(),
     bool fix_metadata_version=true,
     bool compress_streams=true,
-    qpdf_stream_decode_level_e stream_decode_level=qpdf_dl_generalized,
+    py::object stream_decode_level=py::none(),
     qpdf_object_stream_e object_stream_mode=qpdf_o_preserve,
     bool normalize_content=false,
     bool linearize=false,
@@ -353,7 +353,11 @@ void save_pdf(
         w.setMinimumPDFVersion(version_ext.first, version_ext.second);
     }
     w.setCompressStreams(compress_streams);
-    w.setDecodeLevel(stream_decode_level);
+    if (!stream_decode_level.is_none()) {
+        // Unconditionally calling setDecodeLevel has side effects, disabling
+        // preserve encryption in particular
+        w.setDecodeLevel(stream_decode_level.cast<qpdf_stream_decode_level_e>());
+    }
     w.setObjectStreamMode(object_stream_mode);
 
     py::object stream;
@@ -381,14 +385,21 @@ void save_pdf(
     Pl_PythonOutput output_pipe(description.c_str(), stream);
     w.setOutputPipeline(&output_pipe);
 
-    if (encryption && normalize_content) {
-        throw py::value_error("cannot save with encryption and normalize_content");
+    if (encryption.is(py::bool_(true)) && !q.isEncrypted()) {
+        throw py::value_error("can't perserve encryption parameters on a file with no encryption");
     }
 
-    if (encryption.is_none() || encryption.is(py::bool_(true))) {
-        w.setPreserveEncryption(true);
-    } else if (!encryption) {
-        w.setPreserveEncryption(false);
+    if (
+        (encryption.is(py::bool_(true)) || py::isinstance<py::dict>(encryption))
+            && (normalize_content || !stream_decode_level.is_none())
+    ) {
+        throw py::value_error("cannot save with encryption and normalize_content or stream_decode_level");
+    }
+
+    if (encryption.is(py::bool_(true))) {
+        w.setPreserveEncryption(true); // Keep existing encryption
+    } else if (encryption.is_none() || encryption.is(py::bool_(false))) {
+        w.setPreserveEncryption(false); // Remove encryption
     } else {
         setup_encryption(w, encryption, owner, user);
     }
@@ -701,10 +712,11 @@ void init_qpdf(py::module &m)
                     while it is being written, or data corruption will almost
                     certainly occur.
 
-                encryption (pikepdf.models.Encryption or None): If ``None``,
-                    existing encryption will be preserved. If ``False``,
-                    existing encryption will be removed. Otherwise, an
-                    `Encryption` object with the desired settings.
+                encryption (pikepdf.models.Encryption or bool): If ``False``
+                    or omitted, existing encryption will be removed. If ``True``
+                    encryption settings are copied from the originating PDF.
+                    Alternately, an ``Encryption`` object may be provided that
+                    sets the parameters for new encryption.
 
             You may call ``.save()`` multiple times with different parameters
             to generate different versions of a file, and you *may* continue
@@ -728,7 +740,7 @@ void init_qpdf(py::module &m)
             py::arg("force_version")="",
             py::arg("fix_metadata_version")=true,
             py::arg("compress_streams")=true,
-            py::arg("stream_decode_level")=qpdf_stream_decode_level_e::qpdf_dl_generalized,
+            py::arg("stream_decode_level")=py::none(),
             py::arg("object_stream_mode")=qpdf_object_stream_e::qpdf_o_preserve,
             py::arg("normalize_content")=false,
             py::arg("linearize")=false,

@@ -8,6 +8,11 @@ def trivial(resources):
     return pikepdf.open(resources / 'pal-1bit-trivial.pdf')
 
 
+@pytest.fixture
+def graph_encrypted(resources):
+    return pikepdf.open(resources / 'graph-encrypted.pdf', password='owner')
+
+
 @pytest.mark.parametrize(
     "R,owner,user",
     [
@@ -86,3 +91,38 @@ def test_bad_settings(trivial, outpdf, R, owner, user, aes, metadata, err):
                 R=R, owner=owner, user=user, aes=aes, metadata=metadata
             ),
         )
+
+
+def test_block_encryption_and_normalize(trivial, outpdf):
+    with pytest.raises(ValueError, match=r'encryption and normalize_content'):
+        trivial.save(
+            outpdf,
+            encryption=pikepdf.Encryption(owner='foo', user='bar'),
+            normalize_content=True,
+        )
+
+
+def test_consistency_saving_removes_encryption(graph_encrypted, outpdf):
+    # This was not intended behavior. It's a side effect of unconditionally calling
+    # w.setDecodeLevel(), which disables preserving encryption in
+    # QPDFWriter::doWriteSetup()
+    graph_encrypted.save(outpdf)
+    with pikepdf.open(outpdf) as pdf:
+        assert not pdf.is_encrypted
+
+
+def test_save_without_encryption(graph_encrypted, outpdf):
+    graph_encrypted.save(outpdf, encryption=False)
+    with pikepdf.open(outpdf) as pdf:
+        assert not pdf.is_encrypted
+
+
+def test_save_preserve_encryption(graph_encrypted, outpdf):
+    graph_encrypted.save(outpdf, encryption=True)
+    with pikepdf.open(outpdf, 'owner') as pdf:
+        assert pdf.is_encrypted
+
+
+def test_preserve_encryption_not_encrypted(trivial, outpdf):
+    with pytest.raises(ValueError):
+        trivial.save(outpdf, encryption=True)
