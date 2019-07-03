@@ -66,7 +66,7 @@ open_pdf(
         check_stream_is_usable(stream);
 
         // The PythonInputSource object will be owned by q
-        InputSource* input_source = new PythonInputSource(stream);
+        auto input_source = PointerHolder<InputSource>(new PythonInputSource(stream));
         py::gil_scoped_release release;
         q->processInputSource(input_source, password.c_str());
     } else {
@@ -80,7 +80,7 @@ open_pdf(
         q->processFile(
             description.c_str(),
             file, // transferring ownership
-            true, // QPDF will close the file
+            true, // QPDF will close the file (including if there are exceptions)
             password.c_str()
         );
         file = nullptr; // QPDF owns the file and will close it
