@@ -41,7 +41,7 @@ This library is similar to PyPDF2 and pdfrw - it provides low level access to PD
 | Implementation                                                      | C++ and Python                      | Python                                    | Python                                  |
 | PDF versions supported                                              | 1.1 to 1.7                          | 1.3?                                      | 1.7                                     |
 | Python versions supported                                           | 3.5-3.7                             | 2.6-3.6                                   | 2.6-3.6                                 |
-| Supports password protected (encrypted) PDFs                        | ✔ (except public key)               | Only obsolete RC4                         | ✘                                       |
+| Save and load password protected (encrypted) PDFs                   | ✔ (except public key)               | ✘ (Only obsolete RC4)                     | ✘ (not at all)                          |
 | Save and load PDF compressed object streams (PDF 1.5)               | ✔                                   | ✘                                         | ✘                                       |
 | Creates linearized ("fast web view") PDFs                           | ✔                                   | ✘                                         | ✘                                       |
 | Actively maintained                                                 | ![pikepdf commit activity][pikepdf-commits] | ![PyPDF2 commit activity][pypdf2-commits] | ![pdfrw commit activity][pdfrw-commits] |
