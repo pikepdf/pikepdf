@@ -4,6 +4,7 @@ variables:
   cibw_skip: "cp27-* cp34-*"
   cibw_test_command: "pytest -nauto {project}/tests"
   cibw_test_requires: "pytest attrs==19.1.0 hypothesis==4.24.3 Pillow==6.0.0 pytest-xdist==1.28.0 pytest-helpers-namespace==2019.1.8 pytest_timeout==1.3.3"
+  cibuildwheel_version: "0.11.1"
 
 jobs:
 - job: linux_sdist
@@ -36,7 +37,7 @@ jobs:
         mkdir qpdf && wget -q $QPDF_RELEASE -O - | tar xz -C qpdf --strip-components=1
     - bash: |
         python -m pip install --upgrade pip
-        pip install cibuildwheel==0.11.1
+        pip install cibuildwheel==$CIBUILDWHEEL_VERSION
         export CIBW_BEFORE_BUILD='yum install -y libjpeg-devel zlib-devel && cd qpdf && ./autogen.sh && ./configure && make install && cd .. && pip install pybind11'
         cibuildwheel --output-dir wheelhouse .
     - task: PublishBuildArtifacts@1
@@ -47,7 +48,7 @@ jobs:
     - task: UsePythonVersion@0
     - bash: |
         python -m pip install --upgrade pip
-        pip install cibuildwheel==0.11.1
+        pip install cibuildwheel==$CIBUILDWHEEL_VERSION
         export CIBW_BEFORE_BUILD='brew install qpdf && pip install pybind11'
         cibuildwheel --output-dir wheelhouse .
     - task: PublishBuildArtifacts@1
@@ -56,45 +57,29 @@ jobs:
   pool: {vmImage: 'vs2017-win2016'}
   variables:
     qpdf_windows: ${{ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}-bin-msvc64.zip', variables.qpdf_version) }}
+    qpdf_dll: "qpdf21.dll"
     cibw_skip: "cp27-* cp34-* cp35-win32* cp36-win32* cp37-win32*"
   steps:
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x64}}
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x64}}
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x64}}
-    - powershell: |
-        Invoke-WebRequest -Uri $env:QPDF_WINDOWS -OutFile "qpdf-release.zip"
-        7z x "qpdf-release.zip" -oc:\
-        $qpdfdir = Get-ChildItem c:\qpdf-*
-        Move-Item -Path $qpdfdir -Destination c:\qpdf
-        cp c:\qpdf\bin\qpdf21.dll src\pikepdf
-    - bash: |
-        python -m pip install --upgrade pip
-        export CIBW_BEFORE_BUILD='pip install pybind11'
-        export CIBW_ENVIRONMENT='INCLUDE="$INCLUDE;c:\\qpdf\\include" LIB="$LIB;c:\\qpdf\\lib" LIBPATH="$LIBPATH;c:\\qpdf\\lib"'
-        pip install cibuildwheel==0.11.1
-        cibuildwheel --output-dir wheelhouse .
+    - powershell: azure-pipelines/win-download-qpdf.ps1
+      displayName: "Download QPDF"
+    - script: azure-pipelines/win-vcvars-build.bat 64
     - task: PublishBuildArtifacts@1
       inputs: {pathtoPublish: 'wheelhouse'}
 - job: windows32
   pool: {vmImage: 'vs2017-win2016'}
   variables:
     qpdf_windows: ${{ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}-bin-msvc32.zip', variables.qpdf_version) }}
+    qpdf_dll: "qpdf21.dll"
     cibw_skip: "cp27-* cp34-* cp35-win64* cp36-win64* cp37-win64*"
   steps:
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x86}}
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x86}}
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x86}}
-    - powershell: |
-        Invoke-WebRequest -Uri $env:QPDF_WINDOWS -OutFile "qpdf-release.zip"
-        7z x "qpdf-release.zip" -oc:\
-        $qpdfdir = Get-ChildItem c:\qpdf-*
-        Move-Item -Path $qpdfdir -Destination c:\qpdf
-        cp c:\qpdf\bin\qpdf21.dll src\pikepdf
-    - bash: |
-        python -m pip install --upgrade pip
-        export CIBW_BEFORE_BUILD='pip install pybind11'
-        export CIBW_ENVIRONMENT='INCLUDE="$INCLUDE;c:\\qpdf\\include" LIB="$LIB;c:\\qpdf\\lib" LIBPATH="$LIBPATH;c:\\qpdf\\lib"'
-        pip install cibuildwheel==0.11.1
-        cibuildwheel --output-dir wheelhouse .
+    - powershell: azure-pipelines/win-download-qpdf.ps1
+      displayName: "Download QPDF"
+    - script: azure-pipelines/win-vcvars-build.bat 32
     - task: PublishBuildArtifacts@1
       inputs: {pathtoPublish: 'wheelhouse'}
