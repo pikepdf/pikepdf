@@ -7,31 +7,31 @@ variables:
 jobs:
 - job: linux
   pool: {vmImage: 'Ubuntu-16.04'}
-  steps: 
+  steps:
     - task: UsePythonVersion@0
     - bash: |
         mkdir qpdf && wget -q $QPDF_RELEASE -O - | tar xz -C qpdf --strip-components=1
     - bash: |
         python -m pip install --upgrade pip
-        pip install cibuildwheel==0.10.1        
+        pip install cibuildwheel==0.11.1
         export CIBW_BEFORE_BUILD='yum install -y libjpeg-devel zlib-devel && cd qpdf && ./autogen.sh && ./configure && make install && cd .. && pip install pybind11'
-        cibuildwheel --platform linux --output-dir wheelhouse .
+        cibuildwheel --output-dir wheelhouse .
     - task: PublishBuildArtifacts@1
       inputs: {pathtoPublish: 'wheelhouse'}
 - job: macos
   pool: {vmImage: 'macOS-10.13'}
-  steps: 
+  steps:
     - task: UsePythonVersion@0
     - bash: |
         python -m pip install --upgrade pip
-        pip install cibuildwheel==0.10.1
+        pip install cibuildwheel==0.11.1
         export CIBW_BEFORE_BUILD='brew install qpdf'
-        cibuildwheel --platform macos --output-dir wheelhouse .
+        cibuildwheel --output-dir wheelhouse .
     - task: PublishBuildArtifacts@1
       inputs: {pathtoPublish: 'wheelhouse'}
 - job: windows
   pool: {vmImage: 'vs2017-win2016'}
-  steps: 
+  steps:
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x86}}
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x64}}
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x86}}
@@ -40,7 +40,7 @@ jobs:
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x64}}
     - bash: |
         python -m pip install --upgrade pip
-        pip install cibuildwheel==0.10.1
-        cibuildwheel --platform windows --output-dir wheelhouse .
+        pip install cibuildwheel==0.11.1
+        cibuildwheel --output-dir wheelhouse .
     - task: PublishBuildArtifacts@1
       inputs: {pathtoPublish: 'wheelhouse'}
