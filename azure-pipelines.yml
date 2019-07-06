@@ -66,11 +66,11 @@ jobs:
         python -m pip install --upgrade pip
         export QPDF_WINDOWS=${QPDF_WINDOWS_PREFIX}${ARCHITECTURE:1}.zip
         echo $QPDF_WINDOWS
-        wget $QPDF_WINDOWS -o qpdf.zip
+        curl -L $QPDF_WINDOWS > qpdf.zip
         7z x qpdf.zip
         mv qpdf-*/ /c/qpdf/
-        pip install cibuildwheel==0.11.1
         export CIBW_BEFORE_BUILD='pip install pybind11 && set INCLUDE=%INCLUDE%;c:\\qpdf\\include && set LIB=%LIB%;c:\\qpdf\lib && set LIBPATH=%LIBPATH%;c:\\qpdf\lib'
+        pip install cibuildwheel==0.11.1
         cibuildwheel --output-dir wheelhouse .
     - task: PublishBuildArtifacts@1
       inputs: {pathtoPublish: 'wheelhouse'}
