@@ -1,5 +1,5 @@
-attrs >= 17.4.0
-hypothesis >= 4.16, < 5
+attrs >= 19.1.0
+hypothesis >= 4.24, < 5
 Pillow >= 5.0.0
 pytest >= 4.4.0, < 5
 pytest-xdist >= 1.28, <  2

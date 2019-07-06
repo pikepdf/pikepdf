@@ -2,7 +2,7 @@ variables:
   qpdf_release: "https://github.com/qpdf/qpdf/releases/download/release-qpdf-8.4.0/qpdf-8.4.0.tar.gz"
   cibw_skip: "cp27-* cp34-*"
   cibw_test_command: "pytest {project}/tests"
-  cibw_test_requires: "pytest"
+  cibw_test_requires: "pytest attrs==19.1.0 hypothesis==4.24.3 Pillow==6.0.0 pytest-xdist==1.28.0 pytest-helpers-namespace==2019.1.8 pytest_timeout >= 1.3.3"
 
 jobs:
 - job: linux
@@ -25,7 +25,7 @@ jobs:
     - bash: |
         python -m pip install --upgrade pip
         pip install cibuildwheel==0.11.1
-        export CIBW_BEFORE_BUILD='brew install qpdf'
+        export CIBW_BEFORE_BUILD='brew install qpdf && pip install pybind11'
         cibuildwheel --output-dir wheelhouse .
     - task: PublishBuildArtifacts@1
       inputs: {pathtoPublish: 'wheelhouse'}
@@ -41,6 +41,7 @@ jobs:
     - bash: |
         python -m pip install --upgrade pip
         pip install cibuildwheel==0.11.1
+        export CIBW_BEFORE_BUILD='choco install qpdf && pip install pybind11'
         cibuildwheel --output-dir wheelhouse .
     - task: PublishBuildArtifacts@1
       inputs: {pathtoPublish: 'wheelhouse'}
