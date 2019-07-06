@@ -2,10 +2,31 @@ variables:
   qpdf_version: "8.4.2"
   qpdf_release: ${{ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}.tar.gz', variables.qpdf_version) }}
   cibw_skip: "cp27-* cp34-*"
-  cibw_test_command: "pytest {project}/tests"
+  cibw_test_command: "pytest -n {project}/tests"
   cibw_test_requires: "pytest attrs==19.1.0 hypothesis==4.24.3 Pillow==6.0.0 pytest-xdist==1.28.0 pytest-helpers-namespace==2019.1.8 pytest_timeout==1.3.3"
 
 jobs:
+- job: linux_sdist
+  pool: {vmImage: 'Ubuntu-16.04'}
+  steps:
+    - task: UsePythonVersion@0
+    - bash: |
+        mkdir qpdf && wget -q $QPDF_RELEASE -O - | tar xz -C qpdf --strip-components=1
+        cd qpdf/
+        ./configure
+        make -j 2
+        sudo make install
+        cd ..
+    - bash: |
+        python -m pip install --upgrade pip
+        python setup.py sdist
+        python -m pip install pybind11
+        python -m pip install --verbose dist/*.tar.gz
+        python -m pip install -r requirements/test.txt
+    - bash: |
+        python -m pytest -n
+    - task: PublishBuildArtifacts@1
+      inputs: {pathtoPublish: 'dist'}
 - job: linux
   pool: {vmImage: 'Ubuntu-16.04'}
   steps:
@@ -33,7 +54,7 @@ jobs:
 - job: windows
   pool: {vmImage: 'vs2017-win2016'}
   variables:
-    qpdf_windows: $[ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}-bin-msvc{1}.zip', variables.qpdf_version, variables.architecture) ]
+    qpdf_windows_prefix: ${{ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}-bin-msvc', variables.qpdf_version) }}
   steps:
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x86}}
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x64}}
@@ -43,8 +64,13 @@ jobs:
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x64}}
     - bash: |
         python -m pip install --upgrade pip
+        export QPDF_WINDOWS=${QPDF_WINDOWS_PREFIX}${ARCHITECTURE:1}.zip
+        echo $QPDF_WINDOWS
+        wget $QPDF_WINDOWS -o qpdf.zip
+        7z x qpdf.zip
+        mv qpdf-*/ /c/qpdf/
         pip install cibuildwheel==0.11.1
-        export CIBW_BEFORE_BUILD='wget $QPDF_WINDOWS -o qpdf.zip && 7z x qpdf.zip && pip install pybind11'
+        export CIBW_BEFORE_BUILD='pip install pybind11 && set INCLUDE=%INCLUDE%;c:\\qpdf\\include && set LIB=%LIB%;c:\\qpdf\lib && set LIBPATH=%LIBPATH%;c:\\qpdf\lib'
         cibuildwheel --output-dir wheelhouse .
     - task: PublishBuildArtifacts@1
       inputs: {pathtoPublish: 'wheelhouse'}
