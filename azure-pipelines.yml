@@ -24,7 +24,7 @@ jobs:
         python -m pip install --verbose dist/*.tar.gz
         python -m pip install -r requirements/test.txt
     - bash: |
-        python -m pytest -n
+        python -m pytest -nauto
     - task: PublishBuildArtifacts@1
       inputs: {pathtoPublish: 'dist'}
 - job: linux
@@ -73,12 +73,10 @@ jobs:
         $qpdfdir = Get-ChildItem c:\qpdf-*
         Move-Item -Path $qpdfdir -Destination c:\qpdf
         cp c:\qpdf\bin\qpdf21.dll src\pikepdf
-        $env:INCLUDE += ";c:\qpdf\include"
-        $env:LIB += ";c:\qpdf\lib"
-        $env:LIBPATH +=";c:\qpdf\lib"
     - bash: |
         python -m pip install --upgrade pip
         export CIBW_BEFORE_BUILD='pip install pybind11'
+        export CIBW_ENVIRONMENT='INCLUDE=$INCLUDE;c:\\qpdf\\include LIB=$LIB;c:\\qpdf\\lib LIBPATH=$LIBPATH;c:\\qpdf\\lib'
         pip install cibuildwheel==0.11.1
         cibuildwheel --output-dir wheelhouse .
     - task: PublishBuildArtifacts@1
