@@ -5,4 +5,4 @@ if %1 == 64 (
     call "%VS140COMNTOOLS%\..\..\VC\bin\vcvars32.bat"
 )
 
-bash win-build.bash
+bash azure-pipelines/win-build.bash
