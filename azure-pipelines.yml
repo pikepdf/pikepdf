@@ -3,7 +3,7 @@ variables:
   qpdf_release: ${{ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}.tar.gz', variables.qpdf_version) }}
   cibw_skip: "cp27-* cp34-*"
   cibw_test_command: "pytest -nauto {project}/tests"
-  cibw_test_requires: "pytest attrs==19.1.0 hypothesis==4.24.3 Pillow==6.0.0 pytest-xdist==1.28.0 pytest-helpers-namespace==2019.1.8 pytest_timeout==1.3.3"
+  cibw_test_requires: "-r requirements/test.txt"
   cibuildwheel_version: "0.11.1"
 
 jobs:
