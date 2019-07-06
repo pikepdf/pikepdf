@@ -56,6 +56,7 @@ jobs:
   pool: {vmImage: 'vs2017-win2016'}
   variables:
     qpdf_windows: ${{ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}-bin-msvc64.zip', variables.qpdf_version) }}
+    cibw_skip: "cp27-win32* cp34-* cp35-win32* cp36-win32* cp37-win32*"
   steps:
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x64}}
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x64}}
@@ -78,6 +79,7 @@ jobs:
   pool: {vmImage: 'vs2017-win2016'}
   variables:
     qpdf_windows: ${{ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}-bin-msvc32.zip', variables.qpdf_version) }}
+    cibw_skip: "cp27-win64* cp34-* cp35-win64* cp36-win64* cp37-win64*"
   steps:
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x86}}
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x86}}
