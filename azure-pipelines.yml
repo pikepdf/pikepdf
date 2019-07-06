@@ -62,14 +62,23 @@ jobs:
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x64}}
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x86}}
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x64}}
+    - powershell: |
+        if ($env:ARCHITECTURE -eq "x64") {
+            $qpdfdll = $env:QPDF_WINDOWS_PREFIX + "64.zip"
+        } else {
+            $qpdfdll = $env:QPDF_WINDOWS_PREFIX + "32.zip"
+        }
+        Invoke-WebRequest -Uri $qpdfdll -OutFile "qpdf-release.zip"
+        7z x "qpdf-release.zip" -oc:\
+        $qpdfdir = Get-ChildItem c:\qpdf-*
+        Move-Item -Path $qpdfdir -Destination c:\qpdf
+        cp c:\qpdf\bin\qpdf21.dll src\pikepdf
+        $env:INCLUDE += ";c:\qpdf\include"
+        $env:LIB += ";c:\qpdf\lib"
+        $env:LIBPATH +=";c:\qpdf\lib"
     - bash: |
         python -m pip install --upgrade pip
-        export QPDF_WINDOWS=${QPDF_WINDOWS_PREFIX}${ARCHITECTURE:1}.zip
-        echo $QPDF_WINDOWS
-        curl -L $QPDF_WINDOWS > qpdf.zip
-        7z x qpdf.zip
-        mv qpdf-*/ /c/qpdf/
-        export CIBW_BEFORE_BUILD='pip install pybind11 && set INCLUDE=%INCLUDE%;c:\\qpdf\\include && set LIB=%LIB%;c:\\qpdf\lib && set LIBPATH=%LIBPATH%;c:\\qpdf\lib'
+        export CIBW_BEFORE_BUILD='pip install pybind11'
         pip install cibuildwheel==0.11.1
         cibuildwheel --output-dir wheelhouse .
     - task: PublishBuildArtifacts@1
