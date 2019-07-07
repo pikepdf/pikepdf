@@ -73,11 +73,10 @@ jobs:
   variables:
     qpdf_windows: ${{ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}-bin-msvc32.zip', variables.qpdf_version) }}
     qpdf_dll: "qpdf21.dll"
-    cibw_skip: "cp27-* cp34-* cp35-win_amd64* cp36-win_amd64* cp37-win_amd64*"
+    cibw_skip: "cp27-* cp34-* cp36-win_amd64* cp37-win_amd64*"
   steps:
-    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x86}}
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x86}}
-    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x86}}
+    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x86}}
     - powershell: azure-pipelines/win-download-qpdf.ps1
       displayName: "Download QPDF"
     - script: azure-pipelines/win-vcvars-build.bat 32
