@@ -322,3 +322,13 @@ def test_icc_extract(resources):
 
     pim = PdfImage(xobj)
     assert pim.as_pil_image().info['icc_profile'] == pim.icc.tobytes()
+
+
+def test_stacked_compression(resources):
+    xobj, _pdf = first_image_in(resources / 'pike-flate-jp2.pdf')
+
+    pim = PdfImage(xobj)
+    assert pim.mode == 'RGB'
+    assert pim.colorspace == '/DeviceRGB'
+    assert pim.bits_per_component == 8
+    assert pim.filters == ['/FlateDecode', '/JPXDecode']

@@ -12,6 +12,7 @@ from itertools import zip_longest
 from pathlib import Path
 from shutil import copyfileobj
 from tempfile import NamedTemporaryFile
+from zlib import decompress, error as ZlibError
 
 from .. import Array, Dictionary, Name, Object, PdfError, Stream
 
@@ -236,6 +237,29 @@ class PdfImageBase(ABC):
     def as_pil_image(self):
         pass
 
+    @staticmethod
+    def _unstack_compression(buffer, filters):
+        """Remove stacked compression where it appears.
+
+        Stacked compression means when an image is set to:
+            ``[/FlateDecode /DCTDecode]``
+        for example.
+
+        Only Flate can be stripped off the front currently.
+
+        Args:
+            buffer (pikepdf._qpdf.Buffer): the compressed image data
+            filters (list of str): all files on the data
+        """
+        data = memoryview(buffer)
+        while len(filters) > 1 and filters[0] == '/FlateDecode':
+            try:
+                data = decompress(data)
+            except ZlibError as e:
+                raise UnsupportedImageTypeError() from e
+            filters = filters[1:]
+        return data, filters
+
 
 class PdfImage(PdfImageBase):
     """Support class to provide a consistent API for manipulating PDF images
@@ -353,18 +377,20 @@ class PdfImage(PdfImageBase):
             ct = self.filter_decodeparms[0][1].get('/ColorTransform', DEFAULT_CT_CMYK)
             return self.mode == 'CMYK' and ct == DEFAULT_CT_CMYK
 
-        if self.filters == ['/CCITTFaxDecode']:
+        data, filters = self._unstack_compression(
+            self.obj.get_raw_stream_buffer(), self.filters
+        )
+
+        if filters == ['/CCITTFaxDecode']:
             if self.colorspace == '/ICCBased':
                 raise UnsupportedImageTypeError("Cannot direct-extract CCITT + ICC")
-            data = self.obj.read_raw_bytes()
             stream.write(self._generate_ccitt_header(data))
             stream.write(data)
             return '.tif'
-        elif self.filters == ['/DCTDecode'] and (
+        elif filters == ['/DCTDecode'] and (
             self.mode == 'L' or normal_dct_rgb() or normal_dct_cmyk()
         ):
-            buffer = self.obj.get_raw_stream_buffer()
-            stream.write(buffer)
+            stream.write(data)
             return '.jpg'
 
         raise UnsupportedImageTypeError()
@@ -573,8 +599,12 @@ class PdfJpxImage(PdfImage):
         self.pil = self.as_pil_image()
 
     def _extract_direct(self, *, stream):
-        buffer = self.obj.get_raw_stream_buffer()
-        stream.write(buffer)
+        data, filters = self._unstack_compression(
+            self.obj.get_raw_stream_buffer(), self.filters
+        )
+        if filters != ['/JPXDecode']:
+            raise UnsupportedImageTypeError(self.filters)
+        stream.write(data)
         return '.jp2'
 
     @property
