@@ -195,11 +195,18 @@ class Extend_Object:
         `decode_parms` is an Array of Dictionary, where each array index
         is corresponds to the filter.
         """
+
         if type_check and filter is not None:
-            if not isinstance(filter, (Array, list)):
-                filter = Array([filter])
-            if not isinstance(decode_parms, (Array, list)):
-                decode_parms = Array([decode_parms]) if decode_parms is not None else []
+            if isinstance(filter, list):
+                filter = Array(filter)
+            filter = filter.wrap_in_array()
+
+            if isinstance(decode_parms, list):
+                decode_parms = Array(decode_parms)
+            elif decode_parms is None:
+                decode_parms = Array([])
+            else:
+                decode_parms = decode_parms.wrap_in_array()
 
             if not all(isinstance(item, Name) for item in filter):
                 raise TypeError(
@@ -211,7 +218,7 @@ class Extend_Object:
                 raise TypeError(
                     "decode_parms must be: pikepdf.Dictionary or pikepdf.Array([pikepdf.Dictionary])"
                 )
-            if decode_parms != []:
+            if len(decode_parms) != 0:
                 if len(filter) != len(decode_parms):
                     raise ValueError(
                         f"filter ({filter!r}) and decode_parms ({decode_parms!r}) must be arrays of same length"

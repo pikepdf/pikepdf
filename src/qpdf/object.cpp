@@ -665,6 +665,12 @@ void init_object(py::module& m)
                 h.eraseItem(u_index);
             }
         )
+        .def("wrap_in_array",
+            [](QPDFObjectHandle &h) {
+                return h.wrapInArray();
+            },
+            "Return the object wrapped in an array if not already an array."
+        )
         .def("get_stream_buffer",
             [](QPDFObjectHandle &h) {
                 PointerHolder<Buffer> phbuf = h.getStreamData();

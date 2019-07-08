@@ -176,6 +176,11 @@ def test_len_array():
     assert len(Array([3])) == 1
 
 
+def test_wrap_array():
+    assert Name('/Foo').wrap_in_array() == Array([Name('/Foo')])
+    assert Array([42]).wrap_in_array() == Array([42])
+
+
 def test_name_equality():
     # Who needs transitivity? :P
     # While this is less than ideal ('/Foo' != b'/Foo') it allows for slightly

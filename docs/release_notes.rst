@@ -27,9 +27,14 @@ v1.5.0
    profile access to the ICC profile.
 -  Fixed saving PDFs with their existing encryption.
 -  Fixed documentation to reflect the fact that saving a PDF without
-   specifying encryption settings will remove encyrption.
+   specifying encryption settings will remove encryption.
 -  Added a test to prevent overwriting the input PDF since overwriting
    corrupts lazy loading.
+-  ``Object.write(filters=, decode_parms=)`` now detects invalid parameters
+   instead of writing invalid values to ``Filters`` and ``DecodeParms``.
+-  We can now extract some images that had stacked compression, provided it
+   is ``/FlateDecode``.
+-  Add convenience function ``Object.wrap_in_array()``.
 
 v1.4.0
 ======
