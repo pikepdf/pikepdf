@@ -2,6 +2,7 @@ import json
 import sys
 from decimal import Decimal, InvalidOperation
 from math import isclose, isfinite
+from zlib import compress
 
 import pytest
 from hypothesis import assume, example, given
@@ -16,7 +17,17 @@ from hypothesis.strategies import (
 )
 
 import pikepdf
-from pikepdf import Array, Dictionary, Name, Object, Operator, PdfError, String
+from pikepdf import (
+    Array,
+    Dictionary,
+    Name,
+    Object,
+    Operator,
+    PdfError,
+    String,
+    Stream,
+    Pdf,
+)
 from pikepdf import _qpdf as qpdf
 
 # pylint: disable=eval-used,unnecessary-lambda
@@ -349,3 +360,54 @@ def test_json():
         "/Real": 42.42,
         "/String": "hi",
     }
+
+
+@pytest.fixture
+def stream_object():
+    pdf = pikepdf.new()
+    return Stream(pdf, b'')
+
+
+@pytest.fixture
+def sandwich(resources):
+    return Pdf.open(resources / 'sandwich.pdf')
+
+
+class TestObjectWrite:
+    def test_basic(self, stream_object):
+        stream_object.write(b'abc')
+        assert stream_object.read_bytes() == b'abc'
+
+    def test_compressed_readback(self, stream_object):
+        stream_object.write(compress(b'def'), filter=Name.FlateDecode)
+        assert stream_object.read_bytes() == b'def'
+
+    def test_stacked_compression(self, stream_object):
+        double_compressed = compress(compress(b'pointless'))
+        stream_object.write(
+            double_compressed, filter=[Name.FlateDecode, Name.FlateDecode]
+        )
+        assert stream_object.read_bytes() == b'pointless'
+        assert stream_object.read_raw_bytes() == double_compressed
+
+    def test_explicit_decodeparms(self, stream_object):
+        double_compressed = compress(compress(b'pointless'))
+        stream_object.write(
+            double_compressed,
+            filter=[Name.FlateDecode, Name.FlateDecode],
+            decode_parms=[None, None],
+        )
+        assert stream_object.read_bytes() == b'pointless'
+        assert stream_object.read_raw_bytes() == double_compressed
+
+    def test_no_kwargs(self, stream_object):
+        with pytest.raises(TypeError):
+            stream_object.write(compress(b'x'), [Name.FlateDecode])
+
+    def test_ccitt(self, sandwich, stream_object):
+        ccitt = b'\x00'  # Not valid data, just for testing decode_parms
+        stream_object.write(
+            ccitt,
+            filter=Name.CCITTFaxDecode,
+            decode_parms=Dictionary(K=-1, Columns=8, Length=1),
+        )

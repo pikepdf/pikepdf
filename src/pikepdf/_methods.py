@@ -162,6 +162,68 @@ class Extend_Object:
         for k in del_keys:
             del self[k]  # pylint: disable=unsupported-delete-operation
 
+    def write(self, data, *, filter=None, decode_parms=None, type_check=True):
+        """
+        Replace stream object's data with new (possibly compressed) `data`.
+
+        `filter` and `decode_parms` specify that compression that is present on
+        the input `data`.
+
+        When writing the PDF in :meth:`pikepdf.Pdf.save`,
+        pikepdf may change the compression or apply compression to data that was
+        not compressed, depending on the parameters given to that function. It
+        will never change lossless to lossy encoding.
+
+        PNG and TIFF images, even if compressed, cannot be directly inserted
+        into a PDF and displayed as images.
+
+        Args:
+            data (bytes): the new data to use for replacement
+            filter (pikepdf.Name or pikepdf.Array): The filter(s) with which the
+                data is (already) encoded
+            decode_parms (pikepdf.Dictionary or pikepdf.Array): Parameters for the
+                filters with which the object is encode
+            type_check (bool): Check arguments; use False only if you want to
+                intentionally create malformed PDFs.
+
+        If only one `filter` is specified, it may be a name such as
+        `Name('/FlateDecode')`. If there are multiple filters, then array
+        of names should be given.
+
+        If there is only one filter, `decode_parms` is a Dictionary of
+        parameters for that filter. If there are multiple filters, then
+        `decode_parms` is an Array of Dictionary, where each array index
+        is corresponds to the filter.
+        """
+        if type_check and filter is not None:
+            if not isinstance(filter, (Array, list)):
+                filter = Array([filter])
+            if not isinstance(decode_parms, (Array, list)):
+                decode_parms = Array([decode_parms]) if decode_parms is not None else []
+
+            if not all(isinstance(item, Name) for item in filter):
+                raise TypeError(
+                    "filter must be: pikepdf.Name or pikepdf.Array([pikepdf.Name])"
+                )
+            if not all(
+                (isinstance(item, Dictionary) or item is None) for item in decode_parms
+            ):
+                raise TypeError(
+                    "decode_parms must be: pikepdf.Dictionary or pikepdf.Array([pikepdf.Dictionary])"
+                )
+            if decode_parms != []:
+                if len(filter) != len(decode_parms):
+                    raise ValueError(
+                        f"filter ({filter!r}) and decode_parms ({decode_parms!r}) must be arrays of same length"
+                    )
+            if len(filter) == 1:
+                filter = filter[0]
+            if len(decode_parms) == 0:
+                decode_parms = None
+            elif len(decode_parms) == 1:
+                decode_parms = decode_parms[0]
+        self._write(data, filter=filter, decode_parms=decode_parms)
+
 
 @augments(Pdf)
 class Extend_Pdf:
