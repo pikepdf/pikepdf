@@ -216,12 +216,16 @@ class Extend_Object:
                 (isinstance(item, Dictionary) or item is None) for item in decode_parms
             ):
                 raise TypeError(
-                    "decode_parms must be: pikepdf.Dictionary or pikepdf.Array([pikepdf.Dictionary])"
+                    "decode_parms must be: pikepdf.Dictionary or "
+                    "pikepdf.Array([pikepdf.Dictionary])"
                 )
             if len(decode_parms) != 0:
                 if len(filter) != len(decode_parms):
                     raise ValueError(
-                        f"filter ({filter!r}) and decode_parms ({decode_parms!r}) must be arrays of same length"
+                        (
+                            "filter ({}) and decode_parms ({}) must be arrays of "
+                            " same length"
+                        ).format(repr(filter), repr(decode_parms))
                     )
             if len(filter) == 1:
                 filter = filter[0]
