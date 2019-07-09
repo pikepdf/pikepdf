@@ -55,7 +55,7 @@ jobs:
   pool: {vmImage: 'macOS-10.13'}
   variables:
     cibw_before_build: >-
-      pip install pybind11
+      pip install pybind11 &&
       brew install qpdf
   steps:
     - task: UsePythonVersion@0
@@ -92,7 +92,7 @@ jobs:
       LIB="$LIB;c:\\qpdf\\lib"
       LIBPATH="$LIBPATH;c:\\qpdf\\lib"
   steps:
-    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x64}}
+    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x86}}
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x86}}
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x86}}
     - powershell: azure-pipelines/win-download-qpdf.ps1
