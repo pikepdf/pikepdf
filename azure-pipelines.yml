@@ -48,7 +48,7 @@ jobs:
     - task: UsePythonVersion@0
     - bash: |
         mkdir qpdf && wget -q $QPDF_RELEASE -O - | tar xz -C qpdf --strip-components=1
-    - bash: azure-pipelines/build.bash
+    - bash: source azure-pipelines/build.bash
     - task: PublishBuildArtifacts@1
       inputs: {pathtoPublish: 'wheelhouse'}
 - job: macos
@@ -59,7 +59,7 @@ jobs:
       brew install qpdf
   steps:
     - task: UsePythonVersion@0
-    - bash: azure-pipelines/build.bash
+    - bash: source azure-pipelines/build.bash
     - task: PublishBuildArtifacts@1
       inputs: {pathtoPublish: 'wheelhouse'}
 - job: windows64
@@ -78,7 +78,7 @@ jobs:
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x64}}
     - powershell: azure-pipelines/win-download-qpdf.ps1
       displayName: "Download QPDF"
-    - bash: azure-pipelines/build.bash
+    - bash: source azure-pipelines/build.bash
     - task: PublishBuildArtifacts@1
       inputs: {pathtoPublish: 'wheelhouse'}
 - job: windows32
@@ -97,6 +97,6 @@ jobs:
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x86}}
     - powershell: azure-pipelines/win-download-qpdf.ps1
       displayName: "Download QPDF"
-    - bash: azure-pipelines/build.bash
+    - bash: source azure-pipelines/build.bash
     - task: PublishBuildArtifacts@1
       inputs: {pathtoPublish: 'wheelhouse'}
