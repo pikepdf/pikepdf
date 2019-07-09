@@ -5,6 +5,7 @@ variables:
   cibw_test_command: "pytest -nauto {project}/tests"
   cibw_test_requires: "-r requirements/test.txt"
   cibuildwheel_version: "0.11.1"
+  cibw_before_build: "pip install pybind11"
 
 jobs:
 - job: linux_sdist
@@ -18,39 +19,47 @@ jobs:
         make -j 2
         sudo make install
         cd ..
+      displayName: "Build QPDF"
     - bash: |
         python -m pip install --upgrade pip
         python setup.py sdist
         python -m pip install pybind11
         python -m pip install --verbose dist/*.tar.gz
         python -m pip install -r requirements/test.txt
+      displayName: "Build sdist"
     - bash: |
         export LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
         python -m pytest -nauto
+      displayName: "Test"
     - task: PublishBuildArtifacts@1
       inputs: {pathtoPublish: 'dist'}
 - job: linux
   pool: {vmImage: 'Ubuntu-16.04'}
+  variables:
+    cibw_before_build: >-  # yaml: folded newlines to spaces, no newline at end
+      yum install -y libjpeg-devel zlib-devel &&
+      cd qpdf &&
+      ./autogen.sh &&
+      ./configure &&
+      make install &&
+      cd .. &&
+      pip install pybind11
   steps:
     - task: UsePythonVersion@0
     - bash: |
         mkdir qpdf && wget -q $QPDF_RELEASE -O - | tar xz -C qpdf --strip-components=1
-    - bash: |
-        python -m pip install --upgrade pip
-        pip install cibuildwheel==$CIBUILDWHEEL_VERSION
-        export CIBW_BEFORE_BUILD='yum install -y libjpeg-devel zlib-devel && cd qpdf && ./autogen.sh && ./configure && make install && cd .. && pip install pybind11'
-        cibuildwheel --output-dir wheelhouse .
+    - bash: azure-pipelines/build.bash
     - task: PublishBuildArtifacts@1
       inputs: {pathtoPublish: 'wheelhouse'}
 - job: macos
   pool: {vmImage: 'macOS-10.13'}
+  variables:
+    cibw_before_build: >-
+      pip install pybind11
+      brew install qpdf
   steps:
     - task: UsePythonVersion@0
-    - bash: |
-        python -m pip install --upgrade pip
-        pip install cibuildwheel==$CIBUILDWHEEL_VERSION
-        export CIBW_BEFORE_BUILD='brew install qpdf && pip install pybind11'
-        cibuildwheel --output-dir wheelhouse .
+    - bash: azure-pipelines/build.bash
     - task: PublishBuildArtifacts@1
       inputs: {pathtoPublish: 'wheelhouse'}
 - job: windows64
@@ -59,13 +68,17 @@ jobs:
     qpdf_windows: ${{ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}-bin-msvc64.zip', variables.qpdf_version) }}
     qpdf_dll: "qpdf21.dll"
     cibw_skip: "cp27-* cp34-* cp35-win32* cp36-win32* cp37-win32*"
+    cibw_environment: >-
+      INCLUDE="$INCLUDE;c:\\qpdf\\include"
+      LIB="$LIB;c:\\qpdf\\lib"
+      LIBPATH="$LIBPATH;c:\\qpdf\\lib"
   steps:
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x64}}
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x64}}
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x64}}
     - powershell: azure-pipelines/win-download-qpdf.ps1
       displayName: "Download QPDF"
-    - script: azure-pipelines/win-vcvars-build.bat 64
+    - bash: azure-pipelines/build.bash
     - task: PublishBuildArtifacts@1
       inputs: {pathtoPublish: 'wheelhouse'}
 - job: windows32
@@ -73,12 +86,17 @@ jobs:
   variables:
     qpdf_windows: ${{ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}-bin-msvc32.zip', variables.qpdf_version) }}
     qpdf_dll: "qpdf21.dll"
-    cibw_skip: "cp27-* cp34-* cp35-* cp36-win_amd64* cp37-win_amd64*"
+    cibw_skip: "cp27-* cp34-* cp35-win_amd64-* cp36-win_amd64* cp37-win_amd64*"
+    cibw_environment: >-
+      INCLUDE="$INCLUDE;c:\\qpdf\\include"
+      LIB="$LIB;c:\\qpdf\\lib"
+      LIBPATH="$LIBPATH;c:\\qpdf\\lib"
   steps:
+    - {task: UsePythonVersion@0, inputs: {versionSpec: '3.5', architecture: x64}}
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.6', architecture: x86}}
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x86}}
     - powershell: azure-pipelines/win-download-qpdf.ps1
       displayName: "Download QPDF"
-    - script: azure-pipelines/win-vcvars-build.bat 32
+    - bash: azure-pipelines/build.bash
     - task: PublishBuildArtifacts@1
       inputs: {pathtoPublish: 'wheelhouse'}
