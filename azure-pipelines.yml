@@ -97,6 +97,9 @@ jobs:
     - {task: UsePythonVersion@0, inputs: {versionSpec: '3.7', architecture: x86}}
     - powershell: azure-pipelines/win-download-qpdf.ps1
       displayName: "Download QPDF"
-    - bash: source azure-pipelines/build.bash
+    - bash: |
+        python -m pip install --upgrade pip
+        pip install cibuildwheel==$CIBUILDWHEEL_VERSION
+        cibuildwheel --output-dir wheelhouse .
     - task: PublishBuildArtifacts@1
       inputs: {pathtoPublish: 'wheelhouse'}
