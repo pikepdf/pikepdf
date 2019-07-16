@@ -175,3 +175,8 @@ install:
 
 script:
 - python3 -m pytest
+
+branches:
+  except:
+    - docs
+    - azure-pipelines
