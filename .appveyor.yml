@@ -19,9 +19,9 @@ install:
     $userpath = "$env:APPDATA\Python\Python$env:PYTHON\Scripts"
     if ($env:PLATFORM -eq "x64") {
       $env:PYTHON = "$env:PYTHON-x64"
-      $qpdfdll = "https://github.com/qpdf/qpdf/releases/download/release-qpdf-8.4.0/qpdf-8.4.0-bin-msvc64.zip"
+      $qpdfdll = "https://github.com/qpdf/qpdf/releases/download/release-qpdf-8.4.2/qpdf-8.4.2-bin-msvc64.zip"
     } else {
-      $qpdfdll = "https://github.com/qpdf/qpdf/releases/download/release-qpdf-8.4.0/qpdf-8.4.0-bin-msvc32.zip"
+      $qpdfdll = "https://github.com/qpdf/qpdf/releases/download/release-qpdf-8.4.2/qpdf-8.4.2-bin-msvc32.zip"
     }
     $env:PATH = "C:\Python$env:PYTHON;C:\Python$env:PYTHON\Scripts;$userpath;$env:PATH"
     echo $env:PATH

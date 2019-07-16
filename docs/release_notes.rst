@@ -19,6 +19,11 @@ is in production use.
 Note that the C++ extension module ``pikepdf._qpdf`` is a private
 interface within pikepdf that applications should not use directly.
 
+next
+====
+
+-  libqpdf 8.4.2 is required.
+
 v1.5.0
 ======
 
