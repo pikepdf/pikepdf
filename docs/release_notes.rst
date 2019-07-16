@@ -22,7 +22,7 @@ interface within pikepdf that applications should not use directly.
 next
 ====
 
--  libqpdf 8.4.2 is required.
+-  libqpdf 8.4.2 is required for macOS; 8.4.0 for all others.
 
 v1.5.0
 ======
