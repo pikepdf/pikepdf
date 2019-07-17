@@ -54,6 +54,7 @@ PYBIND11_MODULE(_qpdf, m) {
     init_pagelist(m);
     init_object(m);
     init_annotation(m);
+    init_page(m);
 
     m.def("utf8_to_pdf_doc",
         [](py::str utf8, char unknown) {

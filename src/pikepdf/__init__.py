@@ -12,7 +12,14 @@ except ImportError:
     raise ImportError("pikepdf's extension library failed to import")
 
 from ._version import __version__
-from ._qpdf import PdfError, Pdf, PasswordError, ObjectStreamMode, StreamDecodeLevel
+from ._qpdf import (
+    PdfError,
+    Pdf,
+    PasswordError,
+    ObjectStreamMode,
+    StreamDecodeLevel,
+    Page,
+)
 from .objects import (
     Object,
     ObjectType,

@@ -19,11 +19,13 @@ from io import BytesIO
 from subprocess import PIPE, run
 from tempfile import NamedTemporaryFile
 
-from . import Array, Dictionary, Name, Object, Pdf, Stream
+from . import Array, Dictionary, Name, Object, Pdf, Stream, Page
 from ._qpdf import _ObjectMapping
 from .models import PdfMetadata, Permissions, EncryptionInfo
 
 # pylint: disable=no-member,unsupported-membership-test,unsubscriptable-object
+
+__all__ = []
 
 
 def augments(cls_cpp):
@@ -489,3 +491,9 @@ class Extend_ObjectMapping:
 
     def values(self):
         return (v for _k, v in self.items())
+
+
+@augments(Page)
+class Extend_Page:
+    def __repr__(self):
+        return repr(self.obj).replace('Dictionary', 'Page')
