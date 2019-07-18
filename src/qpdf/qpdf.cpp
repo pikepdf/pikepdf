@@ -372,9 +372,14 @@ void save_pdf(
         py::object filename = fspath(filename_or_stream);
         py::object ospath = py::module::import("os").attr("path");
         py::object samefile = ospath.attr("samefile");
-        py::object exists = ospath.attr("exists");
-        if (exists(filename).cast<bool>() && samefile(filename, q.getFilename()).cast<bool>()) {
-            throw py::value_error("Cannot overwrite input file");
+        try {
+            if (samefile(filename, q.getFilename()).cast<bool>()) {
+                throw py::value_error("Cannot overwrite input file");
+            }
+        } catch (const py::error_already_set &e) {
+            // (Occurs if target file does not exist or if we are writing a memory file)
+            if (!e.matches(PyExc_FileNotFoundError))
+                throw;
         }
         stream = py::module::import("io").attr("open")(filename, "wb");
         stream_closer.set(stream);
@@ -524,7 +529,7 @@ void init_qpdf(py::module &m)
         .def_property_readonly("filename", &QPDF::getFilename,
             "The source filename of an existing PDF, when available.")
         .def_property_readonly("pdf_version", &QPDF::getPDFVersion,
-            "The PDF standard version, such as '1.7'.")
+            "The version of the PDF specification used for this file, such as '1.7'.")
         .def_property_readonly("extension_level", &QPDF::getExtensionLevel)
         .def_property_readonly("Root", &QPDF::getRoot,
             "The /Root object of the PDF."

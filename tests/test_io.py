@@ -24,3 +24,9 @@ def test_weird_output_stream(sandwich):
     sandwich.save(bio, static_id=True)
     sandwich.save(lbio, static_id=True)
     assert bio.getvalue() == lbio.getvalue()
+
+
+def test_overwrite_with_memory_file(outdir):
+    (outdir / 'example.pdf').touch()
+    pdf = Pdf.new()
+    pdf.save(outdir / 'example.pdf')
