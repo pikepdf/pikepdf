@@ -99,7 +99,9 @@ void portable_unlink(py::object filename)
     auto os_unlink = py::module::import("os").attr("unlink");
     try {
         os_unlink(path);
-    } catch (const std::exception &e) {  // py::filenotfound_error doesn't work; pybind11 issue?
-        // Discard exception
+    } catch (const py::error_already_set &e) {
+        // Suppress FileNotFoundError
+        if (!e.matches(PyExc_FileNotFoundError))
+            throw;
     }
 }
