@@ -709,7 +709,7 @@ void init_object(py::module& m)
               representable and will be serialized as ``null``.
 
             Args:
-                dereference (bool): If True, deference the object is this is an
+                dereference (bool): If True, dereference the object is this is an
                     indirect object.
 
             Returns:

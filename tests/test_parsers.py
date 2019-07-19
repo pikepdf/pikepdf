@@ -4,9 +4,9 @@ import sys
 
 import pytest
 
+import pikepdf
 from pikepdf import Dictionary, Object, Operator, Pdf, Stream, parse_content_stream
 from pikepdf._qpdf import StreamParser
-from pikepdf.models import _Page as Page
 
 # pylint: disable=useless-super-delegation
 
