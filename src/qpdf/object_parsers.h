@@ -134,35 +134,3 @@ private:
     uint count;
     std::string warning;
 };
-
-
-class PyTokenFilter : public QPDFObjectHandle::TokenFilter {
-public:
-    using QPDFObjectHandle::TokenFilter::TokenFilter;
-    virtual ~PyTokenFilter() = default;
-
-    void handleToken(QPDFTokenizer::Token const& token) override {
-        PYBIND11_OVERLOAD_PURE_NAME(
-            void,
-            QPDFObjectHandle::TokenFilter,
-            "handle_token", /* Python name */
-            handleToken, /* C++ name */
-            token
-        );
-    }
-
-    void handleEOF() override {
-        PYBIND11_OVERLOAD_NAME(
-            void,
-            QPDFObjectHandle::TokenFilter,
-            "handle_eof", /* Python name */
-            handleEOF, /* C++ name; trailing comma needed for macro */
-        );
-    }
-};
-
-
-class TokenFilterPublicist : public QPDFObjectHandle::TokenFilter {
-public:
-    using QPDFObjectHandle::TokenFilter::writeToken;
-};
