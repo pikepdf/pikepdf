@@ -821,6 +821,12 @@ void init_object(py::module& m)
         .def("handle_object", &QPDFObjectHandle::ParserCallbacks::handleObject)
         .def("handle_eof", &QPDFObjectHandle::ParserCallbacks::handleEOF);
 
+    py::class_<QPDFObjectHandle::TokenFilter, PyTokenFilter> tokenfilter(m, "TokenFilter");
+    tokenfilter
+        .def(py::init<>())
+        .def("handle_token", &QPDFObjectHandle::TokenFilter::handleToken)
+        .def("handle_eof", &QPDFObjectHandle::TokenFilter::handleEOF);
+
     m.def("_encode",
         [](py::handle handle) {
             return objecthandle_encode(handle);
