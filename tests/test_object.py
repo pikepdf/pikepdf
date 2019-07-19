@@ -324,6 +324,11 @@ class TestDictionary:
         for k in d.items():
             pass
 
+    def test_str(self):
+        d = pikepdf.Dictionary(A='a')
+        with pytest.raises(NotImplementedError):
+            str(d)
+
 
 def test_not_convertible():
     class PurePythonObj:

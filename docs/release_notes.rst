@@ -23,6 +23,8 @@ next
 ====
 
 -  libqpdf 8.4.2 is required for macOS; 8.4.0 for all others.
+-  Fixed a logic error on attempting to save a PDF created in memory in a
+   way that overwrites an existing file
 
 v1.5.0
 ======
