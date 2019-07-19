@@ -11,14 +11,10 @@
 #include <iomanip>
 #include <cctype>
 
-#include <qpdf/DLL.h>
-#include <qpdf/QPDFPageObjectHelper.hh>
-
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
 #include "pikepdf.h"
 
+#include <qpdf/QPDFPageObjectHelper.hh>
+#include <qpdf/Pipeline.hh>
 
 void init_page(py::module& m)
 {
@@ -36,5 +32,6 @@ void init_page(py::module& m)
         .def("_parse_page_contents", &QPDFPageObjectHelper::parsePageContents)
         .def("remove_unreferenced_resources", &QPDFPageObjectHelper::removeUnreferencedResources)
         .def("as_form_xobject", &QPDFPageObjectHelper::getFormXObjectForPage)
+        .def("_filter_page_contents", &QPDFPageObjectHelper::filterPageContents)
         ;
 }
