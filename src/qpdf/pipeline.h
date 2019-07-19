@@ -40,37 +40,8 @@ public:
     Pl_PythonOutput(Pl_PythonOutput&&) = delete;
     Pl_PythonOutput& operator= (Pl_PythonOutput&&) = delete;
 
-    void write(unsigned char *buf, size_t len)
-    {
-        py::gil_scoped_acquire gil;
-        size_t so_far = 0;
-        while (len > 0) {
-            py::buffer_info buffer(buf, len);
-            py::memoryview view_buffer(buffer);
-            py::object result = this->stream.attr("write")(view_buffer);
-            try {
-                so_far = result.cast<size_t>();
-            } catch (const py::cast_error &e) {
-                throw py::type_error("Unexpected return type of write()");
-            }
-            if (so_far == 0) {
-                QUtil::throw_system_error(this->identifier);
-            } else {
-                buf += so_far;
-                len -= so_far;
-            }
-        }
-    }
-
-    void finish()
-    {
-        py::gil_scoped_acquire gil;
-        try {
-            this->stream.attr("flush")();
-        } catch (const py::attr_error &e) {
-            // Suppress
-        }
-    }
+    void write(unsigned char *buf, size_t len) override;
+    void finish() override;
 
 private:
     py::object stream;
