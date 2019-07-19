@@ -41,3 +41,17 @@ def test_overwrite_input(resources, outdir):
     p = Pdf.open(outdir / 'sandwich.pdf')
     with pytest.raises(ValueError, match=r'overwrite input file'):
         p.save(outdir / 'sandwich.pdf')
+
+
+class BadBytesIO(BytesIO):
+    """Version of BytesIO that reports more bytes written than actual"""
+
+    def write(self, b):
+        super().write(b)
+        return len(b) + 1
+
+
+def test_invalid_output_stream(sandwich):
+    bbio = BadBytesIO()
+    with pytest.raises(ValueError):
+        sandwich.save(bbio, static_id=True)

@@ -27,19 +27,22 @@
 void Pl_PythonOutput::write(unsigned char *buf, size_t len)
 {
     py::gil_scoped_acquire gil;
-    size_t so_far = 0;
+    ssize_t so_far = 0;
     while (len > 0) {
         py::buffer_info buffer(buf, len);
         py::memoryview view_buffer(buffer);
         py::object result = this->stream.attr("write")(view_buffer);
         try {
-            so_far = result.cast<size_t>();
+            so_far = result.cast<ssize_t>();
         } catch (const py::cast_error &e) {
             throw py::type_error("Unexpected return type of write()");
         }
-        if (so_far == 0) {
+        if (so_far <= 0) {
             QUtil::throw_system_error(this->identifier);
         } else {
+            auto diff = len - so_far;
+            if (diff > len)
+                throw py::value_error("Wrote more bytes than requested");
             buf += so_far;
             len -= so_far;
         }
