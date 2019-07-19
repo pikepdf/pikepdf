@@ -825,7 +825,21 @@ void init_object(py::module& m)
     tokenfilter
         .def(py::init<>())
         .def("handle_token", &QPDFObjectHandle::TokenFilter::handleToken)
-        .def("handle_eof", &QPDFObjectHandle::TokenFilter::handleEOF);
+        .def("handle_eof", &QPDFObjectHandle::TokenFilter::handleEOF)
+        .def("write_token", &TokenFilterPublicist::writeToken)
+        ;
+
+    py::class_<QPDFTokenizer::Token> token(m, "Token");
+    token
+        .def_property_readonly("type_", &QPDFTokenizer::Token::getType)
+        .def_property_readonly("value", &QPDFTokenizer::Token::getValue)
+        .def_property_readonly("raw_value",
+            [](const QPDFTokenizer::Token& t) -> py::bytes {
+                return t.getRawValue();
+            }
+        )
+        .def_property_readonly("error_msg", &QPDFTokenizer::Token::getErrorMessage)
+        .def("__eq__", &QPDFTokenizer::Token::operator==);
 
     m.def("_encode",
         [](py::handle handle) {

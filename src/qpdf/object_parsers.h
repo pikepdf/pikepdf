@@ -12,6 +12,7 @@
 #include <pybind11/stl.h>
 
 #include "pikepdf.h"
+#include <qpdf/QPDFTokenizer.hh>
 
 
 class PyParserCallbacks : public QPDFObjectHandle::ParserCallbacks {
@@ -151,11 +152,17 @@ public:
     }
 
     void handleEOF() override {
-        PYBIND11_OVERLOAD_PURE_NAME(
+        PYBIND11_OVERLOAD_NAME(
             void,
             QPDFObjectHandle::TokenFilter,
             "handle_eof", /* Python name */
             handleEOF, /* C++ name; trailing comma needed for macro */
         );
     }
+};
+
+
+class TokenFilterPublicist : public QPDFObjectHandle::TokenFilter {
+public:
+    using QPDFObjectHandle::TokenFilter::writeToken;
 };

@@ -12,9 +12,11 @@
 #include <cctype>
 
 #include "pikepdf.h"
+#include "object_parsers.h"
 
 #include <qpdf/QPDFPageObjectHelper.hh>
 #include <qpdf/Pipeline.hh>
+#include <qpdf/Pl_Buffer.hh>
 
 void init_page(py::module& m)
 {
@@ -32,6 +34,15 @@ void init_page(py::module& m)
         .def("_parse_page_contents", &QPDFPageObjectHelper::parsePageContents)
         .def("remove_unreferenced_resources", &QPDFPageObjectHelper::removeUnreferencedResources)
         .def("as_form_xobject", &QPDFPageObjectHelper::getFormXObjectForPage)
-        .def("_filter_page_contents", &QPDFPageObjectHelper::filterPageContents)
+        .def("_filter_page_contents",
+            [](QPDFPageObjectHelper &poh, QPDFObjectHandle::TokenFilter &tf) {
+                Pl_Buffer pl_buffer("filter_page");
+                poh.filterPageContents(&tf, &pl_buffer);
+                PointerHolder<Buffer> phbuf(pl_buffer.getBuffer());
+                poh.getObjectHandle().getKey("/Contents").replaceStreamData(
+                    phbuf, QPDFObjectHandle::newNull(), QPDFObjectHandle::newNull()
+                );
+            }
+        )
         ;
 }
