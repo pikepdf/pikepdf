@@ -31,7 +31,7 @@ class FilterNumbers(pikepdf._qpdf.TokenFilter):
             pikepdf._qpdf.TokenType.real,
             pikepdf._qpdf.TokenType.integer,
         ):
-            return [token, pikepdf._qpdf.Token(pikepdf._qpdf.TokenType.space, " ")]
+            return [token, pikepdf._qpdf.Token(pikepdf._qpdf.TokenType.space, b" ")]
 
 
 @pytest.mark.parametrize(
@@ -44,6 +44,7 @@ class FilterNumbers(pikepdf._qpdf.TokenFilter):
 )
 def test_filter_thru(pal, filter, expected):
     page = pikepdf.Page(pal.pages[0])
-    page._filter_page_contents(filter())
+    # page._filter_page_contents(filter())
+    page.add_content_token_filter(filter())
     after = page.obj.Contents.read_bytes()
     assert after == expected

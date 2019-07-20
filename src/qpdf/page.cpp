@@ -70,10 +70,13 @@ public:
         PYBIND11_OVERLOAD(
             void,
             TokenFilter,
-            handle_eof
+            handle_eof,
         );
     }
 };
+
+
+
 
 
 void init_page(py::module& m)
@@ -102,9 +105,16 @@ void init_page(py::module& m)
                 );
             }
         )
+        .def("add_content_token_filter",
+            [](QPDFPageObjectHelper &poh, PointerHolder<QPDFObjectHandle::TokenFilter> tf) {
+                poh.addContentTokenFilter(tf);
+            }
+        )
         ;
 
-    py::class_<TokenFilter, TokenFilterTrampoline>(m, "TokenFilter")
+    py::class_<QPDFObjectHandle::TokenFilter, PointerHolder<QPDFObjectHandle::TokenFilter>>qpdftokenfilter (m, "_QPDFTokenFilter");
+
+    py::class_<TokenFilter, TokenFilterTrampoline, PointerHolder<TokenFilter>>(m, "TokenFilter", qpdftokenfilter)
         .def(py::init<>())
         .def("handle_token", &TokenFilter::handle_token)
         .def("handle_eof", &TokenFilter::handle_eof)
@@ -132,7 +142,7 @@ void init_page(py::module& m)
         ;
 
     py::class_<QPDFTokenizer::Token>(m, "Token")
-        .def(py::init<QPDFTokenizer::token_type_e, const std::string&>())
+        .def(py::init<QPDFTokenizer::token_type_e, py::bytes>())
         .def_property_readonly("type_", &QPDFTokenizer::Token::getType)
         .def_property_readonly("value", &QPDFTokenizer::Token::getValue)
         .def_property_readonly("raw_value",
