@@ -22,9 +22,16 @@ class FilterDrop(pikepdf._qpdf.TokenFilter):
         return None
 
 
-class FilterDouble(pikepdf._qpdf.TokenFilter):
+class FilterNumbers(pikepdf._qpdf.TokenFilter):
+    def __init__(self):
+        super().__init__()
+
     def handle_token(self, token):
-        return [token, token]
+        if token.type_ in (
+            pikepdf._qpdf.TokenType.real,
+            pikepdf._qpdf.TokenType.integer,
+        ):
+            return [token, pikepdf._qpdf.Token(pikepdf._qpdf.TokenType.space, " ")]
 
 
 @pytest.mark.parametrize(
@@ -32,13 +39,7 @@ class FilterDouble(pikepdf._qpdf.TokenFilter):
     [
         (FilterThru, b'q\n144.0000 0 0 144.0000 0.0000 0.0000 cm\n/Im0 Do\nQ'),
         (FilterDrop, b''),
-        (
-            FilterDouble,
-            (
-                b'qq\n\n144.0000144.0000  00  00  144.0000144.0000  0.00000.0000  0.00000.00'
-                b'00  cmcm\n\n/Im0/Im0  DoDo\n\nQQ'
-            ),
-        ),
+        (FilterNumbers, b'144.0000 0 0 144.0000 0.0000 0.0000 '),
     ],
 )
 def test_filter_thru(pal, filter, expected):
