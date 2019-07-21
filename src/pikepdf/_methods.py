@@ -13,6 +13,7 @@ We can also move the implementation to C++ if desired.
 """
 
 import inspect
+from abc import abstractmethod
 from collections import namedtuple
 from collections.abc import KeysView
 from io import BytesIO
@@ -20,7 +21,7 @@ from subprocess import PIPE, run
 from tempfile import NamedTemporaryFile
 
 from . import Array, Dictionary, Name, Object, Pdf, Stream, Page
-from ._qpdf import _ObjectMapping
+from ._qpdf import _ObjectMapping, _TokenFilter
 from .models import PdfMetadata, Permissions, EncryptionInfo
 
 # pylint: disable=no-member,unsupported-membership-test,unsubscriptable-object
@@ -497,3 +498,32 @@ class Extend_ObjectMapping:
 class Extend_Page:
     def __repr__(self):
         return repr(self.obj).replace('Dictionary', 'Page')
+
+
+class TokenFilter(_TokenFilter):
+    def __init__(self):  # pylint: disable=useless-super-delegation
+        # We must run this to initialize C++ data
+        super().__init__()
+
+    def _handle_token(self, token):
+        result = self.handle_token(token)
+        if result is None:
+            return
+        try:
+            iterator = iter(result)
+        except TypeError:
+            self._write_token(result)
+        else:
+            for item in iterator:
+                self._write_token(item)
+
+    def _handle_eof(self):
+        self.handle_eof()
+
+    @abstractmethod
+    def handle_token(self, token):
+        return
+
+    @abstractmethod
+    def handle_eof(self):
+        return

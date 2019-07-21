@@ -13,27 +13,6 @@ def pal(resources):
     return pikepdf.open(resources / 'pal-1bit-rgb.pdf')
 
 
-class TokenFilter(pikepdf._qpdf._TokenFilter):
-    def __init__(self):
-        super().__init__()
-
-    def _handle_token(self, token):
-        result = self.handle_token(token)
-        if result is None:
-            return
-        try:
-            iterator = iter(result)
-        except TypeError:
-            self._write_token(result)
-        else:
-            for item in iterator:
-                self._write_token(item)
-
-    @abc.abstractmethod
-    def handle_token(self, token):
-        return
-
-
 class FilterThru(TokenFilter):
     def handle_token(self, token):
         return token
