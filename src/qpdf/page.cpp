@@ -76,9 +76,6 @@ public:
 };
 
 
-
-
-
 void init_page(py::module& m)
 {
     py::class_<QPDFPageObjectHelper>(m, "Page")
@@ -108,7 +105,8 @@ void init_page(py::module& m)
         .def("add_content_token_filter",
             [](QPDFPageObjectHelper &poh, PointerHolder<QPDFObjectHandle::TokenFilter> tf) {
                 poh.addContentTokenFilter(tf);
-            }
+            },
+            py::keep_alive<1, 2>()
         )
         ;
 
