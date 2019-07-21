@@ -17,39 +17,7 @@
 #include <qpdf/Pipeline.hh>
 #include <qpdf/Pl_Buffer.hh>
 
-
-class TokenFilter : public QPDFObjectHandle::TokenFilter {
-public:
-    using QPDFObjectHandle::TokenFilter::TokenFilter;
-    virtual ~TokenFilter() = default;
-    using Token = QPDFTokenizer::Token;
-
-    void handleToken(Token const& token) override {
-        py::object result = this->handle_token(token);
-        if (result.is_none())
-            return;
-        try {
-            if (py::hasattr(result, "__iter__")) {
-                for (auto item : result) {
-                    const auto returned_token = item.cast<Token>();
-                    this->writeToken(returned_token);
-                }
-            } else {
-                const auto returned_token = result.cast<Token>();
-                this->writeToken(returned_token);
-            }
-        } catch (const py::cast_error &e) {
-            throw py::type_error("returned object that is not a token");
-        }
-    }
-
-    void handleEOF() override {
-        this->handle_eof();
-    }
-
-    virtual py::object handle_token(Token const& token) = 0;
-    virtual void handle_eof() {}
-};
+using TokenFilter = QPDFObjectHandle::TokenFilter;
 
 
 class TokenFilterTrampoline : public TokenFilter {
@@ -57,26 +25,30 @@ public:
     using TokenFilter::TokenFilter;
     using Token = QPDFTokenizer::Token;
 
-    py::object handle_token(Token const& token) override {
-        PYBIND11_OVERLOAD_PURE(
-            py::object,
-            TokenFilter,
-            handle_token,
+    void handleToken(Token const& token) override {
+        PYBIND11_OVERLOAD_PURE_NAME(
+            void,
+            QPDFObjectHandle::TokenFilter,
+            "_handle_token",
+            handleToken,
             token
         );
     }
 
-    void handle_eof() override {
-        PYBIND11_OVERLOAD(
+    void handleEOF() override {
+        PYBIND11_OVERLOAD_NAME(
             void,
-            TokenFilter,
-            handle_eof,
+            QPDFObjectHandle::TokenFilter,
+            "_handle_eof",
+            handleEOF,
         );
     }
 };
 
-
-
+class TokenFilterPublicist : public TokenFilter {
+public:
+    using TokenFilter::writeToken;
+};
 
 
 void init_page(py::module& m)
@@ -106,18 +78,18 @@ void init_page(py::module& m)
             }
         )
         .def("add_content_token_filter",
-            [](QPDFPageObjectHelper &poh, PointerHolder<QPDFObjectHandle::TokenFilter> tf) {
+            [](QPDFPageObjectHelper &poh, PointerHolder<TokenFilter> tf) {
                 poh.addContentTokenFilter(tf);
-            }
+            },
+            py::keep_alive<1, 2>()
         )
         ;
 
-    py::class_<QPDFObjectHandle::TokenFilter, PointerHolder<QPDFObjectHandle::TokenFilter>>qpdftokenfilter (m, "_QPDFTokenFilter");
-
-    py::class_<TokenFilter, TokenFilterTrampoline, PointerHolder<TokenFilter>>(m, "TokenFilter", qpdftokenfilter)
+    py::class_<TokenFilter, TokenFilterTrampoline, PointerHolder<TokenFilter>>(m, "_TokenFilter")
         .def(py::init<>())
-        .def("handle_token", &TokenFilter::handle_token)
-        .def("handle_eof", &TokenFilter::handle_eof)
+        .def("_handle_token", &TokenFilter::handleToken)
+        .def("_handle_eof", &TokenFilter::handleEOF)
+        .def("_write_token", &TokenFilterPublicist::writeToken)
         ;
 
     py::enum_<QPDFTokenizer::token_type_e>(m, "TokenType")
