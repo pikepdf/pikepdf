@@ -3,7 +3,7 @@ Upstream-Name: pikepdf
 Source: https://github.com/pikepdf/pikepdf
 
 Files: *
-Copyright: (C) 2017 James R. Barlow
+Copyright: (C) 2017-2019 James R. Barlow
 License: MPL-2.0
 Comment:
  The file licenses/license.wheel.txt is relevant only when a binary
