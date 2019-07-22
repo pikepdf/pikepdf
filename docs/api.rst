@@ -274,7 +274,7 @@ transform the stream of tokens.
 
     .. attribute:: eof
 
-        The end of the tokens.
+        Denotes the end of the tokens in this content stream.
 
     .. attribute:: space
 

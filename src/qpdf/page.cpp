@@ -43,12 +43,7 @@ public:
         }
     }
 
-    void handleEOF() override {
-        this->handle_eof();
-    }
-
     virtual py::object handle_token(Token const& token) = 0;
-    virtual void handle_eof() {}
 };
 
 
@@ -63,14 +58,6 @@ public:
             TokenFilter,
             handle_token,
             token
-        );
-    }
-
-    void handle_eof() override {
-        PYBIND11_OVERLOAD(
-            void,
-            TokenFilter,
-            handle_eof,
         );
     }
 };
@@ -182,17 +169,18 @@ void init_page(py::module& m)
                 of ``TokenFilter``. The method will be called for each token.
                 The implementation may return either ``None`` to discard the
                 token, the original token to include it, a new token, or an
-                iterable containing zero or more tokens.
+                iterable containing zero or more tokens. An implementation may
+                also buffer tokens and release them in groups (for example, it
+                could collect an entire PDF command with all of its operands,
+                and then return all of it).
 
-                Due to Python/C++ interfacing limitations, exceptions inside
-                the implementation may not propagate as expected.
-            )~~~"
-        )
-        .def("handle_eof", &TokenFilter::handle_eof,
-            R"~~~(
-                Called when the end of the content stream is reached.
+                The final token will always be a token of type ``TokenType.eof``,
+                (unless an exception is raised).
 
-                The default behavior is no action.
+                Any Python exception raised in this function will be trapped by
+                C++ code and converted to a PdfError. If you need to learn what
+                Python exception caused a problem, you must store this information
+                elsewhere.
             )~~~"
         )
         ;
