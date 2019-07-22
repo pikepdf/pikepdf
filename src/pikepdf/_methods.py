@@ -318,7 +318,7 @@ class Extend_Pdf:
 
     def close(self):
         """
-        Close a Pdf object and release resources acquired by pikepdf
+        Close a Pdf object and release resources acquired by pikepdf.
 
         If pikepdf opened the file handle it will close it (e.g. when opened with a file
         path). If the caller opened the file for pikepdf, the caller close the file.
@@ -382,7 +382,8 @@ class Extend_Pdf:
 
         pikepdf has no way of enforcing permissions.
 
-        Returns: pikepdf.models.Permissions
+        Returns:
+            pikepdf.models.Permissions
         """
         results = {}
         for field in Permissions.fields():

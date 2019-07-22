@@ -190,6 +190,60 @@ void init_page(py::module& m)
         )
         ;
 
+    py::enum_<QPDFTokenizer::token_type_e>(m, "TokenType")
+        .value("bad", QPDFTokenizer::token_type_e::tt_bad)
+        .value("array_close", QPDFTokenizer::token_type_e::tt_array_close)
+        .value("array_open", QPDFTokenizer::token_type_e::tt_array_open)
+        .value("brace_close", QPDFTokenizer::token_type_e::tt_brace_close)
+        .value("brace_open", QPDFTokenizer::token_type_e::tt_brace_open)
+        .value("dict_close", QPDFTokenizer::token_type_e::tt_dict_close)
+        .value("dict_open", QPDFTokenizer::token_type_e::tt_dict_open)
+        .value("integer", QPDFTokenizer::token_type_e::tt_integer)
+        .value("name", QPDFTokenizer::token_type_e::tt_name)
+        .value("real", QPDFTokenizer::token_type_e::tt_real)
+        .value("string", QPDFTokenizer::token_type_e::tt_string)
+        .value("null", QPDFTokenizer::token_type_e::tt_null)
+        .value("bool", QPDFTokenizer::token_type_e::tt_bool)
+        .value("word", QPDFTokenizer::token_type_e::tt_word)
+        .value("eof", QPDFTokenizer::token_type_e::tt_eof)
+        .value("space", QPDFTokenizer::token_type_e::tt_space)
+        .value("comment", QPDFTokenizer::token_type_e::tt_comment)
+        .value("inline_image", QPDFTokenizer::token_type_e::tt_inline_image)
+        ;
+
+    py::class_<QPDFTokenizer::Token>(m, "Token")
+        .def(py::init<QPDFTokenizer::token_type_e, py::bytes>())
+        .def_property_readonly("type_", &QPDFTokenizer::Token::getType,
+            R"~~~(
+                Returns the type of token.
+
+                Return type:
+                    pikepdf.TokenType
+            )~~~"
+        )
+        .def_property_readonly("value", &QPDFTokenizer::Token::getValue,
+            R"~~~(
+                Interprets the token as a string.
+
+                Return type:
+                    str or bytes
+            )~~~"
+        )
+        .def_property_readonly("raw_value",
+            [](const QPDFTokenizer::Token& t) -> py::bytes {
+                return t.getRawValue();
+            },
+            R"~~~(
+                The binary representation of a token.
+
+                Return type:
+                    bytes
+            )~~~"
+        )
+        .def_property_readonly("error_msg", &QPDFTokenizer::Token::getErrorMessage)
+        .def("__eq__", &QPDFTokenizer::Token::operator==)
+        ;
+
     py::class_<QPDFObjectHandle::TokenFilter,
         PointerHolder<QPDFObjectHandle::TokenFilter>>qpdftokenfilter (m, "_QPDFTokenFilter");
 
@@ -215,41 +269,11 @@ void init_page(py::module& m)
                 C++ code and converted to a PdfError. If you need to learn what
                 Python exception caused a problem, you must store this information
                 elsewhere.
-            )~~~"
-        )
-        ;
 
-    py::enum_<QPDFTokenizer::token_type_e>(m, "TokenType")
-        .value("bad", QPDFTokenizer::token_type_e::tt_bad)
-        .value("array_close", QPDFTokenizer::token_type_e::tt_array_close)
-        .value("array_open", QPDFTokenizer::token_type_e::tt_array_open)
-        .value("brace_close", QPDFTokenizer::token_type_e::tt_brace_close)
-        .value("brace_open", QPDFTokenizer::token_type_e::tt_brace_open)
-        .value("dict_close", QPDFTokenizer::token_type_e::tt_dict_close)
-        .value("dict_open", QPDFTokenizer::token_type_e::tt_dict_open)
-        .value("integer", QPDFTokenizer::token_type_e::tt_integer)
-        .value("name", QPDFTokenizer::token_type_e::tt_name)
-        .value("real", QPDFTokenizer::token_type_e::tt_real)
-        .value("string", QPDFTokenizer::token_type_e::tt_string)
-        .value("null", QPDFTokenizer::token_type_e::tt_null)
-        .value("bool", QPDFTokenizer::token_type_e::tt_bool)
-        .value("word", QPDFTokenizer::token_type_e::tt_word)
-        .value("eof", QPDFTokenizer::token_type_e::tt_eof)
-        .value("space", QPDFTokenizer::token_type_e::tt_space)
-        .value("comment", QPDFTokenizer::token_type_e::tt_comment)
-        .value("inline_image", QPDFTokenizer::token_type_e::tt_inline_image)
-        ;
-
-    py::class_<QPDFTokenizer::Token>(m, "Token")
-        .def(py::init<QPDFTokenizer::token_type_e, py::bytes>())
-        .def_property_readonly("type_", &QPDFTokenizer::Token::getType)
-        .def_property_readonly("value", &QPDFTokenizer::Token::getValue)
-        .def_property_readonly("raw_value",
-            [](const QPDFTokenizer::Token& t) -> py::bytes {
-                return t.getRawValue();
-            }
+                Return type:
+                    None or list or pikepdf.Token
+            )~~~",
+            py::arg_v("token", QPDFTokenizer::Token(), "pikepdf.Token()")
         )
-        .def_property_readonly("error_msg", &QPDFTokenizer::Token::getErrorMessage)
-        .def("__eq__", &QPDFTokenizer::Token::operator==)
         ;
 }

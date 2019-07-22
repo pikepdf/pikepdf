@@ -118,10 +118,18 @@ practical examples, particular in ``pdfinfo.py``, ``_weave.py``, and
 
 .. toctree::
     :maxdepth: 2
+    :caption: API
+    :name: api_toc
+
+    api/main
+    api/models
+    api/filters
+
+.. toctree::
+    :maxdepth: 2
     :caption: Reference
     :name: reference_toc
 
-    api
     encoding
     arch
     resources

@@ -4,6 +4,11 @@
 replacements = {
     'pikepdf._qpdf.Object': 'pikepdf.Object',
     'pikepdf._qpdf.Pdf': 'pikepdf.Pdf',
+    'pikepdf._qpdf.Page': 'pikepdf.Page',
+    'QPDFTokenizer::Token': 'pikepdf.Token',
+    'pikepdf._qpdf.Token': 'pikepdf.Token',
+    'pikepdf._qpdf.TokenFilter': 'pikepdf.TokenFilter',
+    'pikepdf._qpdf.TokenType': 'pikepdf.TokenType',
     'QPDFObjectHandle': 'pikepdf.Object',
     'QPDFExc': 'pikepdf.PdfError',
 }
