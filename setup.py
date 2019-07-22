@@ -5,6 +5,11 @@ import setuptools
 from os.path import join, dirname, exists
 from glob import glob
 
+try:
+    import mp_compile  # pylint: disable=unused-import
+except ModuleNotFoundError:
+    pass
+
 
 class get_pybind_include(object):
     """Helper class to determine the pybind11 include path
@@ -120,46 +125,47 @@ with open(join(setup_py_cwd, 'requirements/test.txt')) as f:
 with open(join(setup_py_cwd, 'README.md'), encoding='utf-8') as f:
     readme = f.read()
 
-setup(
-    name='pikepdf',
-    author='James R. Barlow',
-    author_email='jim@purplerock.ca',
-    url='https://github.com/pikepdf/pikepdf',
-    description='Read and write PDFs with Python, powered by qpdf',
-    long_description=readme,
-    long_description_content_type='text/markdown',
-    ext_modules=ext_modules,
-    install_requires=['lxml >= 4.0'],
-    extras_require={'docs': docs_require},
-    cmdclass={'build_ext': BuildExt},
-    zip_safe=False,
-    python_requires='>=3.5',
-    setup_requires=[
-        'setuptools_scm',
-        'setuptools_scm_git_archive',
-        'pybind11 >= 2.3.0, < 3',
-    ],
-    use_scm_version=True,
-    tests_require=tests_require,
-    package_dir={'': 'src'},
-    packages=setuptools.find_packages('src'),
-    package_data={'': ['*.txt'], 'pikepdf': ['qpdf21.dll']},
-    classifiers=[
-        "Development Status :: 5 - Production/Stable",
-        "Intended Audience :: Developers",
-        "Intended Audience :: Information Technology",
-        "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
-        "Programming Language :: Python :: 3.5",
-        "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: C++",
-        "Topic :: Multimedia :: Graphics",
-        "Topic :: Software Development :: Libraries",
-    ],
-    project_urls={
-        'Documentation': 'https://pikepdf.readthedocs.io/',
-        'Source': 'https://github.com/pikepdf/pikepdf',
-        'Tracker': 'https://github.com/pikepdf/pikepdf/issues',
-    },
-)
+if __name__ == '__main__':  # for mp_compile
+    setup(
+        name='pikepdf',
+        author='James R. Barlow',
+        author_email='jim@purplerock.ca',
+        url='https://github.com/pikepdf/pikepdf',
+        description='Read and write PDFs with Python, powered by qpdf',
+        long_description=readme,
+        long_description_content_type='text/markdown',
+        ext_modules=ext_modules,
+        install_requires=['lxml >= 4.0'],
+        extras_require={'docs': docs_require},
+        cmdclass={'build_ext': BuildExt},
+        zip_safe=False,
+        python_requires='>=3.5',
+        setup_requires=[
+            'setuptools_scm',
+            'setuptools_scm_git_archive',
+            'pybind11 >= 2.3.0, < 3',
+        ],
+        use_scm_version=True,
+        tests_require=tests_require,
+        package_dir={'': 'src'},
+        packages=setuptools.find_packages('src'),
+        package_data={'': ['*.txt'], 'pikepdf': ['qpdf21.dll']},
+        classifiers=[
+            "Development Status :: 5 - Production/Stable",
+            "Intended Audience :: Developers",
+            "Intended Audience :: Information Technology",
+            "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+            "Programming Language :: Python :: 3.5",
+            "Programming Language :: Python :: 3.6",
+            "Programming Language :: Python :: 3.7",
+            "Programming Language :: Python :: 3 :: Only",
+            "Programming Language :: C++",
+            "Topic :: Multimedia :: Graphics",
+            "Topic :: Software Development :: Libraries",
+        ],
+        project_urls={
+            'Documentation': 'https://pikepdf.readthedocs.io/',
+            'Source': 'https://github.com/pikepdf/pikepdf',
+            'Tracker': 'https://github.com/pikepdf/pikepdf/issues',
+        },
+    )
