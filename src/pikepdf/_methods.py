@@ -20,7 +20,7 @@ from subprocess import PIPE, run
 from tempfile import NamedTemporaryFile
 
 from . import Array, Dictionary, Name, Object, Pdf, Stream, Page
-from ._qpdf import _ObjectMapping
+from ._qpdf import _ObjectMapping, Token
 from .models import PdfMetadata, Permissions, EncryptionInfo
 
 # pylint: disable=no-member,unsupported-membership-test,unsubscriptable-object
@@ -497,3 +497,9 @@ class Extend_ObjectMapping:
 class Extend_Page:
     def __repr__(self):
         return repr(self.obj).replace('Dictionary', 'Page')
+
+
+@augments(Token)
+class Extend_Token:
+    def __repr__(self):
+        return 'pikepdf.Token({}, {})'.format(self.type_, self.raw_value)

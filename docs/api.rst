@@ -197,6 +197,97 @@ Support models
 .. autoclass:: pikepdf.models.EncryptionInfo
     :members:
 
+Filtering
+=========
+
+Drawing operations (including text, images and vector graphics) are all performed
+in content streams that describe the positioning and drawing order of graphics.
+Graphical object may also reference external resources.
+
+When interested in obtaining data from the content stream, considering using
+a content stream parser instead. When interested in modifying the content stream,
+use a TokenFilter.
+
+A TokenFilter must be subclassed; the specialized version describes how it should
+transform the stream of tokens.
+
+.. autoclass:: pikepdf.Token
+    :members:
+
+.. class:: pikepdf.TokenType
+
+    When filtering content streams, each token is labeled according to the role
+    in plays.
+
+    **Standard tokens**
+
+    .. attribute:: array_open
+
+    .. attribute:: array_close
+
+    .. attribute:: brace_open
+
+    .. attribute:: brace_close
+
+    .. attribute:: dict_open
+
+    .. attribute:: dict_close
+
+        These tokens mark the start and end of an array, text string, and
+        dictionary, respectively.
+
+    .. attribute:: integer
+
+    .. attribute:: real
+
+    .. attribute:: null
+
+    .. attribute:: bool
+
+        The token data represents an integer, real number, null or boolean,
+        respectively.
+
+    .. attribute:: Name
+
+        The token is the name of an object. In practice, these are among the
+        most interesting tokens.
+
+    .. attribute:: inline_image
+
+        An inline image in the content stream. The whole inline image is
+        represented by the single token.
+
+    **Lexical tokens**
+
+    .. attribute:: comment
+
+        Signifies a comment that appears in the content stream.
+
+    .. attribute:: word
+
+        Otherwise uncategorized bytes are returned as ``word`` tokens. PDF
+        operators are words.
+
+    .. attribute:: bad
+
+        An invalid token.
+
+    .. attribute:: eof
+
+        The end of the tokens.
+
+    .. attribute:: space
+
+        Whitespace within the content stream.
+
+.. autoclass:: pikepdf.TokenFilter
+    :members:
+
+
+
+
+
+
 Internal objects
 ================
 

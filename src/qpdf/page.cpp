@@ -83,39 +83,118 @@ void init_page(py::module& m)
         .def_property_readonly("obj",
             [](QPDFPageObjectHelper &poh) {
                 return poh.getObjectHandle();
-            }
+            },
+            R"~~~(
+                Get the underlying :class:`pikepdf.Object`.
+            )~~~"
         )
-        .def_property_readonly("images", &QPDFPageObjectHelper::getPageImages)
-        .def("externalize_inline_images", &QPDFPageObjectHelper::externalizeInlineImages)
-        .def("rotate", &QPDFPageObjectHelper::rotatePage)
-        .def("page_contents_coalesce", &QPDFPageObjectHelper::coalesceContentStreams)
-        .def("_parse_page_contents", &QPDFPageObjectHelper::parsePageContents)
-        .def("remove_unreferenced_resources", &QPDFPageObjectHelper::removeUnreferencedResources)
-        .def("as_form_xobject", &QPDFPageObjectHelper::getFormXObjectForPage)
-        .def("_filter_page_contents",
-            [](QPDFPageObjectHelper &poh, TokenFilter &tf) {
-                Pl_Buffer pl_buffer("filter_page");
-                poh.filterPageContents(&tf, &pl_buffer);
-                PointerHolder<Buffer> phbuf(pl_buffer.getBuffer());
-                poh.getObjectHandle().getKey("/Contents").replaceStreamData(
-                    phbuf, QPDFObjectHandle::newNull(), QPDFObjectHandle::newNull()
-                );
-            }
+        .def_property_readonly("_images", &QPDFPageObjectHelper::getPageImages)
+        .def("externalize_inline_images", &QPDFPageObjectHelper::externalizeInlineImages,
+            py::arg("min_size") = 0,
+            R"~~~(
+                Convert inlines image to normal (external) images.
+
+                Args:
+                    min_size (int): minimum size in bytes
+            )~~~"
+        )
+        .def("rotate", &QPDFPageObjectHelper::rotatePage,
+            py::arg("angle"), py::arg("relative"),
+            R"~~~(
+                Rotate a page.
+
+                If ``relative`` is ``False``, set the rotation of the
+                page to angle. Otherwise, add angle to the rotation of the
+                page. ``angle`` must be a multiple of ``90``. Adding ``90`` to the rotation
+                rotates clockwise by ``90`` degrees.
+            )~~~"
+        )
+        .def("contents_coalesce", &QPDFPageObjectHelper::coalesceContentStreams,
+            R"~~~(
+                Coalesce a page's content streams.
+
+                A page's content may be a
+                stream or an array of streams. If this page's content is an
+                array, concatenate the streams into a single stream. This can
+                be useful when working with files that split content streams in
+                arbitrary spots, such as in the middle of a token, as that can
+                confuse some software.
+            )~~~"
+        )
+        .def("remove_unreferenced_resources", &QPDFPageObjectHelper::removeUnreferencedResources,
+            R"~~~(
+                Removes from the resources dictionary any object not referenced in the content stream.
+
+                A page's resources dictionary maps names to objects elsewhere
+                in the file. This method walks through a page's contents and
+                keeps tracks of which resources are referenced somewhere in the
+                contents. Then it removes from the resources dictionary any
+                object that is not referenced in the contents. This
+                method is used by page splitting code to avoid copying unused
+                objects in files that used shared resource dictionaries across
+                multiple pages.
+            )~~~"
+        )
+        .def("as_form_xobject", &QPDFPageObjectHelper::getFormXObjectForPage,
+            py::arg("handle_transformations") = true,
+            R"~~~(
+                Return a form XObject that draws this page.
+
+                This is useful for
+                n-up operations, underlay, overlay, thumbnail generation, or
+                any other case in which it is useful to replicate the contents
+                of a page in some other context. The dictionaries are shallow
+                copies of the original page dictionary, and the contents are
+                coalesced from the page's contents. The resulting object handle
+                is not referenced anywhere. If ``handle_transformations`` is ``True``,
+                the resulting form XObject's ``/Matrix`` will be set to replicate
+                rotation (``/Rotate``) and scaling (``/UserUnit``) in the page's
+                dictionary. In this way, the page's transformations will be
+                preserved when placing this object on another page.
+            )~~~"
         )
         .def("add_content_token_filter",
             [](QPDFPageObjectHelper &poh, PointerHolder<QPDFObjectHandle::TokenFilter> tf) {
                 poh.addContentTokenFilter(tf);
             },
-            py::keep_alive<1, 2>()
+            py::keep_alive<1, 2>(), py::arg("tf"),
+            R"~~~(
+                Attach a :class:`pikepdf.TokenFilter` to a page's contents.
+
+                If the page's
+                contents is an array of streams, it is automatically coalesced.
+                The token filter is applied to the page's contents as a single
+                stream.
+            )~~~"
         )
         ;
 
-    py::class_<QPDFObjectHandle::TokenFilter, PointerHolder<QPDFObjectHandle::TokenFilter>>qpdftokenfilter (m, "_QPDFTokenFilter");
+    py::class_<QPDFObjectHandle::TokenFilter,
+        PointerHolder<QPDFObjectHandle::TokenFilter>>qpdftokenfilter (m, "_QPDFTokenFilter");
 
     py::class_<TokenFilter, TokenFilterTrampoline, PointerHolder<TokenFilter>>(m, "TokenFilter", qpdftokenfilter)
         .def(py::init<>())
-        .def("handle_token", &TokenFilter::handle_token)
-        .def("handle_eof", &TokenFilter::handle_eof)
+        .def("handle_token", &TokenFilter::handle_token,
+            R"~~~(
+                Handle a :class:`pikepdf.Token`.
+
+                This is an abstract method that must be defined in a subclass
+                of ``TokenFilter``. The method will be called for each token.
+                The implementation may return either ``None`` to discard the
+                token, the original token to include it, a new token, or an
+                iterable containing zero or more tokens.
+
+                Due to Python/C++ interfacing limitations, exceptions inside
+                the implementation may not propagate as expected.
+            )~~~"
+        )
+        .def("handle_eof", &TokenFilter::handle_eof,
+            R"~~~(
+                Called when the end of the content stream is reached.
+
+                The default behavior is no action.
+            )~~~"
+        )
         ;
 
     py::enum_<QPDFTokenizer::token_type_e>(m, "TokenType")

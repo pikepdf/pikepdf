@@ -19,6 +19,9 @@ from ._qpdf import (
     ObjectStreamMode,
     StreamDecodeLevel,
     Page,
+    Token,
+    TokenFilter,
+    TokenType,
 )
 from .objects import (
     Object,
