@@ -272,21 +272,16 @@ transform the stream of tokens.
 
         An invalid token.
 
-    .. attribute:: eof
-
-        Denotes the end of the tokens in this content stream.
-
     .. attribute:: space
 
         Whitespace within the content stream.
 
+    .. attribute:: eof
+
+        Denotes the end of the tokens in this content stream.
+
 .. autoclass:: pikepdf.TokenFilter
     :members:
-
-
-
-
-
 
 Internal objects
 ================

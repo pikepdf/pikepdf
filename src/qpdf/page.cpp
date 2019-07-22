@@ -92,8 +92,8 @@ void init_page(py::module& m)
 
                 If ``relative`` is ``False``, set the rotation of the
                 page to angle. Otherwise, add angle to the rotation of the
-                page. ``angle`` must be a multiple of ``90``. Adding ``90`` to the rotation
-                rotates clockwise by ``90`` degrees.
+                page. ``angle`` must be a multiple of ``90``. Adding ``90`` to
+                the rotation rotates clockwise by ``90`` degrees.
             )~~~"
         )
         .def("contents_coalesce", &QPDFPageObjectHelper::coalesceContentStreams,
@@ -133,11 +133,42 @@ void init_page(py::module& m)
                 of a page in some other context. The dictionaries are shallow
                 copies of the original page dictionary, and the contents are
                 coalesced from the page's contents. The resulting object handle
-                is not referenced anywhere. If ``handle_transformations`` is ``True``,
-                the resulting form XObject's ``/Matrix`` will be set to replicate
-                rotation (``/Rotate``) and scaling (``/UserUnit``) in the page's
-                dictionary. In this way, the page's transformations will be
-                preserved when placing this object on another page.
+                is not referenced anywhere.
+
+                Args:
+                    handle_transformations (bool): If True, the resulting form
+                        XObject's ``/Matrix`` will be set to replicate rotation
+                        (``/Rotate``) and scaling (``/UserUnit``) in the page's
+                        dictionary. In this way, the page's transformations will
+                        be preserved when placing this object on another page.
+            )~~~"
+        )
+        .def("get_filtered_contents",
+            [](QPDFPageObjectHelper &poh, TokenFilter &tf) {
+                Pl_Buffer pl_buffer("filter_page");
+                poh.filterPageContents(&tf, &pl_buffer);
+
+                PointerHolder<Buffer> buf(pl_buffer.getBuffer());
+                auto data = reinterpret_cast<const char*>(buf->getBuffer());
+                auto size = buf->getSize();
+                return py::bytes(data, size);
+            },
+            py::arg("tf"),
+            R"~~~(
+                Apply a :class:`pikepdf.TokenFilter` to a content stream, without modifying it.
+
+                This may be used when the results of a token filter do not need
+                to be applied, such as when filtering is being used to retrieve
+                information rather than edit the content stream.
+
+                Note that it is possible to create a subclassed ``TokenFilter``
+                that saves information of interest to its object attributes; it
+                is not necessary to return data in the content stream.
+
+                To modify the content stream, use :meth:`pikepdf.Page.add_content_token_filter`.
+
+                Returns:
+                    bytes: the modified content stream
             )~~~"
         )
         .def("add_content_token_filter",
@@ -146,12 +177,15 @@ void init_page(py::module& m)
             },
             py::keep_alive<1, 2>(), py::arg("tf"),
             R"~~~(
-                Attach a :class:`pikepdf.TokenFilter` to a page's contents.
+                Attach a :class:`pikepdf.TokenFilter` to a page's content stream.
 
-                If the page's
-                contents is an array of streams, it is automatically coalesced.
-                The token filter is applied to the page's contents as a single
-                stream.
+                This function applies token filters lazily, if/when the page's
+                content stream is read for any reason, such as when the PDF is
+                saved. If never access, the token filter is not applied.
+
+                Multiple token filters may be added to a page/content stream.
+
+                If the page's contents is an array of streams, it is coalesced.
             )~~~"
         )
         ;
