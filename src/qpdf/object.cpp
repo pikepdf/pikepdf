@@ -6,6 +6,8 @@
  * Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
  */
 
+#include <cctype>
+
 #include <qpdf/Constants.h>
 #include <qpdf/Types.h>
 #include <qpdf/DLL.h>
