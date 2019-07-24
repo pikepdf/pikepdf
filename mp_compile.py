@@ -1,11 +1,6 @@
 # Copyright: (C) 2010-2019 Alex Clark and Pillow contributors
 # License: PIL Software License
 
-# A monkey patch of the base distutils.ccompiler to use parallel builds
-# Tested on 2.7, looks to be identical to 3.3.
-# Only applied on Python 2.7 because otherwise, it conflicts with Python's
-# own newly-added support for parallel builds.
-
 import os
 import sys
 from distutils.ccompiler import CCompiler

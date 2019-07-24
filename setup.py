@@ -5,12 +5,14 @@ import setuptools
 from os.path import join, dirname, exists
 from glob import glob
 
-try:
-    import mp_compile
 
-    mp_compile.install()
-except ModuleNotFoundError:
-    pass
+if sys.version_info >= (3, 6):
+    try:
+        import mp_compile
+
+        mp_compile.install()
+    except ModuleNotFoundError:
+        pass
 
 
 class get_pybind_include(object):
