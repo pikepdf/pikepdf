@@ -41,7 +41,7 @@ jobs:
     cibw_environment: >-
       LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
       CXXFLAGS="-I/usr/local/include"
-      LDFLAGS="-L/usr/local/lib"'
+      LDFLAGS="-L/usr/local/lib"
     cibw_before_build: >-  # yaml: folded newlines to spaces, no newline at end
       [ ! -f /usr/local/lib/libz.a ] &&
       cd zlib &&
