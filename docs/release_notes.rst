@@ -22,9 +22,9 @@ interface within pikepdf that applications should not use directly.
 next
 ====
 
--  libqpdf 8.4.2 is required for macOS; 8.4.0 for all others.
+-  libqpdf 8.4.2 is required.
 -  Fixed a logic error on attempting to save a PDF created in memory in a
-   way that overwrites an existing file
+   way that overwrites an existing file.
 
 v1.5.0
 ======
