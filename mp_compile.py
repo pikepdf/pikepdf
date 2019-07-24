@@ -6,9 +6,6 @@
 # Only applied on Python 2.7 because otherwise, it conflicts with Python's
 # own newly-added support for parallel builds.
 
-
-from __future__ import print_function
-
 import os
 import sys
 from distutils.ccompiler import CCompiler
@@ -90,8 +87,3 @@ def install():
         print(
             "Single threaded build, not installing mp_compile: %s processes" % MAX_PROCS
         )
-
-
-# We monkeypatch Python 2.7
-if sys.version_info.major < 3:
-    install()

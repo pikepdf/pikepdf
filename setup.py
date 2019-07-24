@@ -6,7 +6,9 @@ from os.path import join, dirname, exists
 from glob import glob
 
 try:
-    import mp_compile  # pylint: disable=unused-import
+    import mp_compile
+
+    mp_compile.install()
 except ModuleNotFoundError:
     pass
 
