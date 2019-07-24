@@ -9,6 +9,8 @@ cache:
 env:
   global:
     - QPDF_RELEASE=https://github.com/qpdf/qpdf/releases/download/release-qpdf-8.4.2/qpdf-8.4.2.tar.gz
+    - JPEG_RELEASE=https://www.ijg.org/files/jpegsrc.v9c.tar.gz
+    - ZLIB_RELEASE=https://www.zlib.net/zlib-1.2.11.tar.gz
     - TWINE_USERNAME=ocrmypdf-travis
     # TWINE_PASSWORD
     - secure: "d1PfCVoqvFFwAqm0QEozLLoUdEHaY0kAvawfc4lKdLSjI+yOJYoNdknU0r3TdwttNEF2VV+aY9q/4wVnYrEiF4L13E3s+UtDqIXwGk/b14JrdExIx/0yj642kbCJPycZqqRZgvGwYuhb6EF7e/QrsNYMwZ95E9oTyWa0ZaEkiPrrVJh9XSNDpw9I8REL3GecpfvF/GpHWX0VBHoaJfCgDzDDvHQPdfIXAZg+OLJOLNrR2ivvUD3gR371376fYPMPNsqMNqBghLdX8lnX2zkEc67An9ZBLi1dx46PhHjn8c06QOBQ25wcwtCxSnaXygkq5HXUXnpWmCbPcy3n98bJBE1P86M1eWo5c3KV4zwY3pvC6/ldFFAX0nC5Qr8xVpiBZIZKhqBEsX7HlCIRdN5OzmWXTkRhO05GtloH+IPuS8PH09vlaGfdCmBdJkvQjnkXL9Jdw5JJcIt9c//CgRjJ4CtHySA3I0XEnqbLHRhsYAyfJfM4ya3ou+eETpWVpnkZ4kbn8fuUkIpZL6YS9XtJCVCfh5uNpJ7BV0DzlZqdV//K3s9CTNyFac0L521YcFRwl0Nb72AlzbtGwWgWh1C8qmlJ/ENf0XI3dafvcqzPL61rwBlo0sah9DWxwUDWMUicUtp8qP5GK8VxHse+QlolJQVSb07jD6bf7+mILX0B3Mg="
@@ -17,85 +19,85 @@ env:
 
 matrix:
   include:
-  - env: PYTHON=3.5 GCC=4.8
-    os: linux
-    sudo: required
-    python: "3.5"
-    addons: &gcc48
-      apt:
-        sources: [ubuntu-toolchain-r-test]
-        packages: [g++-4.8, libexempi-dev]  # g++-4.8 supports c++11 but not c++14 at all; g++-4.9 won't work
-        config:
-          retries: true
+  # - env: PYTHON=3.5 GCC=4.8
+  #   os: linux
+  #   sudo: required
+  #   python: "3.5"
+  #   addons: &gcc48
+  #     apt:
+  #       sources: [ubuntu-toolchain-r-test]
+  #       packages: [g++-4.8, libexempi-dev]  # g++-4.8 supports c++11 but not c++14 at all; g++-4.9 won't work
+  #       config:
+  #         retries: true
 
-  - env: PYTHON=3.6 GCC=4.8
-    os: linux
-    sudo: required
-    python: "3.6"
-    addons: *gcc48
+  # - env: PYTHON=3.6 GCC=4.8
+  #   os: linux
+  #   sudo: required
+  #   python: "3.6"
+  #   addons: *gcc48
 
-  - env: PYTHON=3.6 GCC=8
-    os: linux
-    sudo: required
-    python: "3.6"
-    addons:
-      apt:
-        sources: [ubuntu-toolchain-r-test]
-        packages: [g++-8, libexempi-dev]  # g++-7 supports c++14
-        config:
-          retries: true
+  # - env: PYTHON=3.6 GCC=8
+  #   os: linux
+  #   sudo: required
+  #   python: "3.6"
+  #   addons:
+  #     apt:
+  #       sources: [ubuntu-toolchain-r-test]
+  #       packages: [g++-8, libexempi-dev]  # g++-7 supports c++14
+  #       config:
+  #         retries: true
 
-  - env: PYTHON=3.7 GCC=5
-    os: linux
-    sudo: required
-    dist: xenial
-    python: "3.7"
-    addons: &gcc5_xenial
-      apt:
-        sources:
-        - sourceline: 'ppa:deadsnakes/ppa'
-        packages: [python3.7-dev, python3.7-venv, g++-5, libexempi-dev]
-        config:
-          retries: true
+  # - env: PYTHON=3.7 GCC=5
+  #   os: linux
+  #   sudo: required
+  #   dist: xenial
+  #   python: "3.7"
+  #   addons: &gcc5_xenial
+  #     apt:
+  #       sources:
+  #       - sourceline: 'ppa:deadsnakes/ppa'
+  #       packages: [python3.7-dev, python3.7-venv, g++-5, libexempi-dev]
+  #       config:
+  #         retries: true
 
-  - os: osx
-    osx_image: xcode8.3
-    language: generic
-    addons:
-      homebrew:
-        update: true
-        packages:
-          - ccache
-          - exempi
-          - python
-          - qpdf
+  # - os: osx
+  #   osx_image: xcode8.3
+  #   language: generic
+  #   addons:
+  #     homebrew:
+  #       update: true
+  #       packages:
+  #         - ccache
+  #         - exempi
+  #         - python
+  #         - qpdf
 
-  - stage: wheels
-    os: osx
-    osx_image: xcode8.3
-    language: cpp  # osx + language: python is broken
-    addons:
-      homebrew:
-        update: true
-        packages:
-          - python
-          - qpdf
-    install:
-      - clang --version
-      - $PYTHON_CMD --version
-      - echo "CC=$CC CXX=$CXX"
-      - $PYTHON_CMD -m pip install --user cibuildwheel==0.11.1
-    script:
-      - $PYTHON_CMD setup.py sdist -d wheelhouse
-      - export CCACHE_BASEDIR=`python3 -c "import tempfile; import os; print(os.path.realpath(tempfile.gettempdir()))"`
-      - export CIBW_BEFORE_BUILD='pip install pybind11'
-      - export CIBW_SKIP="cp27-* cp34-*"
-      - $PYTHON_CMD -m cibuildwheel --output-dir wheelhouse
-      - |
-        if [[ $TRAVIS_TAG ]]; then
-          $PYTHON_CMD -m pip install --user twine
-          $PYTHON_CMD -m twine upload wheelhouse/*.whl wheelhouse/*.tar.gz
-        fi
+  # - stage: wheels
+  #   os: osx
+  #   osx_image: xcode8.3
+  #   language: cpp  # osx + language: python is broken
+  #   addons:
+  #     homebrew:
+  #       update: true
+  #       packages:
+  #         - python
+  #         - qpdf
+  #   install:
+  #     - clang --version
+  #     - $PYTHON_CMD --version
+  #     - echo "CC=$CC CXX=$CXX"
+  #     - $PYTHON_CMD -m pip install --user cibuildwheel==0.11.1
+  #   script:
+  #     - $PYTHON_CMD setup.py sdist -d wheelhouse
+  #     - export CCACHE_BASEDIR=`python3 -c "import tempfile; import os; print(os.path.realpath(tempfile.gettempdir()))"`
+  #     - export CIBW_BEFORE_BUILD='pip install pybind11'
+  #     - export CIBW_SKIP="cp27-* cp34-*"
+  #     - $PYTHON_CMD -m cibuildwheel --output-dir wheelhouse
+  #     - |
+  #       if [[ $TRAVIS_TAG ]]; then
+  #         $PYTHON_CMD -m pip install --user twine
+  #         $PYTHON_CMD -m twine upload wheelhouse/*.whl wheelhouse/*.tar.gz
+  #       fi
 
   - stage: wheels
     os: linux
@@ -108,11 +110,29 @@ matrix:
       #- mkdir gcc-x86_64 && wget -q https://github.com/Noctem/pogeo-toolchain/releases/download/v1.4/gcc-7.2-binutils-2.29-centos5-x86-64.tar.bz2 -O - | tar xj -C gcc-x86_64 --strip-components=1
       #- mkdir ccache && wget -q https://www.samba.org/ftp/ccache/ccache-3.3.4.tar.bz2 -O - | tar xj -C ccache --strip-components=1
       - mkdir qpdf && wget -q $QPDF_RELEASE -O - | tar xz -C qpdf --strip-components=1
+      - mkdir zlib && wget -q $ZLIB_RELEASE -O - | tar xz -C zlib --strip-components=1
+      - mkdir jpeg && wget -q $JPEG_RELEASE -O - | tar xz -C jpeg --strip-components=1
     script:
       #- export CIBW_ENVIRONMENT='ARCH=x86_64 PATH="`pwd`/gcc-$ARCH/bin:$PATH" CC="ccache cc" CXX="ccache c++" CXXFLAGS="-static-libstdc++" LD_LIBRARY_PATH="`pwd`/gcc-$ARCH/lib" CCACHE_BASEDIR=`python -c "import tempfile; import os; print(os.path.realpath(tempfile.gettempdir()))"` CCACHE_DIR=/host'$HOME'/.ccache'
       #- export CIBW_BEFORE_BUILD='pip install pybind11 && [ -d ccache/$ARCH ] || (unset CC CXX CXXFLAGS && mkdir ccache/$ARCH && cd ccache/$ARCH && ../configure && make install)'
       #- export CIBW_ENVIRONMENT='ARCH=x86_64 PATH="`pwd`/gcc-$ARCH/bin:$PATH" CC="cc" CXX="c++" CXXFLAGS="-static-libstdc++" LD_LIBRARY_PATH="`pwd`/gcc-$ARCH/lib:$LD_LIBRARY_PATH"'
-      - export CIBW_BEFORE_BUILD='yum install -y libjpeg-devel zlib-devel && cd qpdf && ./autogen.sh && ./configure && make install && cd .. && pip install pybind11'
+      - export CIBW_ENVIRONMENT='LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH CXXFLAGS="-I/usr/local/include" LDFLAGS="-L/usr/local/lib"'
+      - >-  # fold newlines to spaces
+        export CIBW_BEFORE_BUILD='
+        cd jpeg &&
+        ./configure &&
+        make install &&
+        cd .. &&
+        cd zlib &&
+        ./configure &&
+        make install &&
+        cd .. &&
+        cd qpdf &&
+        ./autogen.sh &&
+        ./configure &&
+        make install &&
+        cd .. &&
+        pip install pybind11'
       - export CIBW_SKIP="cp27-* cp34-* *i686"
       - cibuildwheel --output-dir wheelhouse
       - |
