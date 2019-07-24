@@ -19,85 +19,85 @@ env:
 
 matrix:
   include:
-  # - env: PYTHON=3.5 GCC=4.8
-  #   os: linux
-  #   sudo: required
-  #   python: "3.5"
-  #   addons: &gcc48
-  #     apt:
-  #       sources: [ubuntu-toolchain-r-test]
-  #       packages: [g++-4.8, libexempi-dev]  # g++-4.8 supports c++11 but not c++14 at all; g++-4.9 won't work
-  #       config:
-  #         retries: true
+  - env: PYTHON=3.5 GCC=4.8
+    os: linux
+    sudo: required
+    python: "3.5"
+    addons: &gcc48
+      apt:
+        sources: [ubuntu-toolchain-r-test]
+        packages: [g++-4.8, libexempi-dev]  # g++-4.8 supports c++11 but not c++14 at all; g++-4.9 won't work
+        config:
+          retries: true
 
-  # - env: PYTHON=3.6 GCC=4.8
-  #   os: linux
-  #   sudo: required
-  #   python: "3.6"
-  #   addons: *gcc48
+  - env: PYTHON=3.6 GCC=4.8
+    os: linux
+    sudo: required
+    python: "3.6"
+    addons: *gcc48
 
-  # - env: PYTHON=3.6 GCC=8
-  #   os: linux
-  #   sudo: required
-  #   python: "3.6"
-  #   addons:
-  #     apt:
-  #       sources: [ubuntu-toolchain-r-test]
-  #       packages: [g++-8, libexempi-dev]  # g++-7 supports c++14
-  #       config:
-  #         retries: true
+  - env: PYTHON=3.6 GCC=8
+    os: linux
+    sudo: required
+    python: "3.6"
+    addons:
+      apt:
+        sources: [ubuntu-toolchain-r-test]
+        packages: [g++-8, libexempi-dev]  # g++-7 supports c++14
+        config:
+          retries: true
 
-  # - env: PYTHON=3.7 GCC=5
-  #   os: linux
-  #   sudo: required
-  #   dist: xenial
-  #   python: "3.7"
-  #   addons: &gcc5_xenial
-  #     apt:
-  #       sources:
-  #       - sourceline: 'ppa:deadsnakes/ppa'
-  #       packages: [python3.7-dev, python3.7-venv, g++-5, libexempi-dev]
-  #       config:
-  #         retries: true
+  - env: PYTHON=3.7 GCC=5
+    os: linux
+    sudo: required
+    dist: xenial
+    python: "3.7"
+    addons: &gcc5_xenial
+      apt:
+        sources:
+        - sourceline: 'ppa:deadsnakes/ppa'
+        packages: [python3.7-dev, python3.7-venv, g++-5, libexempi-dev]
+        config:
+          retries: true
 
-  # - os: osx
-  #   osx_image: xcode8.3
-  #   language: generic
-  #   addons:
-  #     homebrew:
-  #       update: true
-  #       packages:
-  #         - ccache
-  #         - exempi
-  #         - python
-  #         - qpdf
+  - os: osx
+    osx_image: xcode8.3
+    language: generic
+    addons:
+      homebrew:
+        update: true
+        packages:
+          - ccache
+          - exempi
+          - python
+          - qpdf
 
-  # - stage: wheels
-  #   os: osx
-  #   osx_image: xcode8.3
-  #   language: cpp  # osx + language: python is broken
-  #   addons:
-  #     homebrew:
-  #       update: true
-  #       packages:
-  #         - python
-  #         - qpdf
-  #   install:
-  #     - clang --version
-  #     - $PYTHON_CMD --version
-  #     - echo "CC=$CC CXX=$CXX"
-  #     - $PYTHON_CMD -m pip install --user cibuildwheel==0.11.1
-  #   script:
-  #     - $PYTHON_CMD setup.py sdist -d wheelhouse
-  #     - export CCACHE_BASEDIR=`python3 -c "import tempfile; import os; print(os.path.realpath(tempfile.gettempdir()))"`
-  #     - export CIBW_BEFORE_BUILD='pip install pybind11'
-  #     - export CIBW_SKIP="cp27-* cp34-*"
-  #     - $PYTHON_CMD -m cibuildwheel --output-dir wheelhouse
-  #     - |
-  #       if [[ $TRAVIS_TAG ]]; then
-  #         $PYTHON_CMD -m pip install --user twine
-  #         $PYTHON_CMD -m twine upload wheelhouse/*.whl wheelhouse/*.tar.gz
-  #       fi
+  - stage: wheels
+    os: osx
+    osx_image: xcode8.3
+    language: cpp  # osx + language: python is broken
+    addons:
+      homebrew:
+        update: true
+        packages:
+          - python
+          - qpdf
+    install:
+      - clang --version
+      - $PYTHON_CMD --version
+      - echo "CC=$CC CXX=$CXX"
+      - $PYTHON_CMD -m pip install --user cibuildwheel==0.11.1
+    script:
+      - $PYTHON_CMD setup.py sdist -d wheelhouse
+      - export CCACHE_BASEDIR=`python3 -c "import tempfile; import os; print(os.path.realpath(tempfile.gettempdir()))"`
+      - export CIBW_BEFORE_BUILD='pip install pybind11'
+      - export CIBW_SKIP="cp27-* cp34-*"
+      - $PYTHON_CMD -m cibuildwheel --output-dir wheelhouse
+      - |
+        if [[ $TRAVIS_TAG ]]; then
+          $PYTHON_CMD -m pip install --user twine
+          $PYTHON_CMD -m twine upload wheelhouse/*.whl wheelhouse/*.tar.gz
+        fi
 
   - stage: wheels
     os: linux
