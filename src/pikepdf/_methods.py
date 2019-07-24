@@ -494,8 +494,52 @@ class Extend_ObjectMapping:
         return (v for _k, v in self.items())
 
 
+def check_is_box(obj):
+    try:
+        if obj.is_rectangle:
+            return True
+    except AttributeError:
+        pass
+
+    try:
+        pdfobj = Array(obj)
+        if pdfobj.is_rectangle:
+            return True
+    except Exception:
+        pass
+
+    raise ValueError("object is not a rectangle")
+
+
 @augments(Page)
 class Extend_Page:
+    @property
+    def mediabox(self):
+        return self._get_mediabox(True)
+
+    @mediabox.setter
+    def mediabox(self, value):
+        check_is_box(value)
+        self.obj['/MediaBox'] = value
+
+    @property
+    def cropbox(self):
+        return self._get_cropbox(True)
+
+    @cropbox.setter
+    def cropbox(self, value):
+        check_is_box(value)
+        self.obj['/CropBox'] = value
+
+    @property
+    def trimbox(self):
+        return self._get_trimbox(True)
+
+    @trimbox.setter
+    def trimbox(self, value):
+        check_is_box(value)
+        self.obj['/TrimBox'] = value
+
     def __repr__(self):
         return repr(self.obj).replace('Dictionary', 'Page')
 

@@ -62,7 +62,6 @@ public:
     }
 };
 
-
 void init_page(py::module& m)
 {
     py::class_<QPDFPageObjectHelper>(m, "Page")
@@ -76,6 +75,9 @@ void init_page(py::module& m)
             )~~~"
         )
         .def_property_readonly("_images", &QPDFPageObjectHelper::getPageImages)
+        .def("_get_mediabox", &QPDFPageObjectHelper::getMediaBox)
+        .def("_get_cropbox", &QPDFPageObjectHelper::getCropBox)
+        .def("_get_trimbox", &QPDFPageObjectHelper::getTrimBox)
         .def("externalize_inline_images", &QPDFPageObjectHelper::externalizeInlineImages,
             py::arg("min_size") = 0,
             R"~~~(

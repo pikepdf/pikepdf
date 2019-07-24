@@ -548,6 +548,9 @@ void init_object(py::module& m)
             },
             "Return the object wrapped in an array if not already an array."
         )
+        .def_property_readonly("is_rectangle", &QPDFObjectHandle::isRectangle,
+            "Returns True if the object is a rectangle (an array of 4 numbers)"
+        )
         .def("get_stream_buffer",
             [](QPDFObjectHandle &h) {
                 PointerHolder<Buffer> phbuf = h.getStreamData();
