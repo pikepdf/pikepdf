@@ -550,6 +550,9 @@ void init_object(py::module& m)
             },
             "Return the object wrapped in an array if not already an array."
         )
+        .def_property_readonly("is_rectangle", &QPDFObjectHandle::isRectangle,
+            "Returns True if the object is a rectangle (an array of 4 numbers)"
+        )
         .def("get_stream_buffer",
             [](QPDFObjectHandle &h) {
                 PointerHolder<Buffer> phbuf = h.getStreamData();
@@ -711,7 +714,7 @@ void init_object(py::module& m)
               representable and will be serialized as ``null``.
 
             Args:
-                dereference (bool): If True, deference the object is this is an
+                dereference (bool): If True, dereference the object is this is an
                     indirect object.
 
             Returns:
@@ -817,11 +820,11 @@ void init_object(py::module& m)
         "Construct a PDF Null object"
     );
 
-    py::class_<QPDFObjectHandle::ParserCallbacks, PyParserCallbacks> parsercallbacks(m, "StreamParser");
-    parsercallbacks
+    py::class_<QPDFObjectHandle::ParserCallbacks, PyParserCallbacks>(m, "StreamParser")
         .def(py::init<>())
         .def("handle_object", &QPDFObjectHandle::ParserCallbacks::handleObject)
-        .def("handle_eof", &QPDFObjectHandle::ParserCallbacks::handleEOF);
+        .def("handle_eof", &QPDFObjectHandle::ParserCallbacks::handleEOF)
+        ;
 
     m.def("_encode",
         [](py::handle handle) {

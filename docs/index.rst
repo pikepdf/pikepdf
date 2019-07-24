@@ -81,9 +81,8 @@ reportlab (a "write-only" PDF generator).
 Requirements
 ~~~~~~~~~~~~
 
-pikepdf currently requires **Python 3.5+**. As this is a new library there are
-no plans to support Python 2.7 or older versions in the 3.x family, but pull
-requests to backport would be considered.
+pikepdf currently requires **Python 3.5+**. There are no plans to backport to
+2.7 or older versions in the 3.x series.
 
 Similar libraries
 ~~~~~~~~~~~~~~~~~
@@ -119,10 +118,18 @@ practical examples, particular in ``pdfinfo.py``, ``_weave.py``, and
 
 .. toctree::
     :maxdepth: 2
+    :caption: API
+    :name: api_toc
+
+    api/main
+    api/models
+    api/filters
+
+.. toctree::
+    :maxdepth: 2
     :caption: Reference
     :name: reference_toc
 
-    api
     encoding
     arch
     resources

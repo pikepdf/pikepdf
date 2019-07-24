@@ -11,3 +11,5 @@ try:
     __version__ = _get_distribution(__package__).version
 except DistributionNotFound:
     __version__ = "Not installed"
+
+__all__ = ['__version__']

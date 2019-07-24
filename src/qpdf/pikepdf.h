@@ -168,6 +168,9 @@ std::map<std::string, QPDFObjectHandle> dict_builder(const py::dict dict);
 // From annotation.cpp
 void init_annotation(py::module &m);
 
+// From page.cpp
+void init_page(py::module &m);
+
 // Support for recursion checks
 class StackGuard
 {

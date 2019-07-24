@@ -12,6 +12,7 @@
 #include <pybind11/stl.h>
 
 #include "pikepdf.h"
+#include <qpdf/QPDFTokenizer.hh>
 
 
 class PyParserCallbacks : public QPDFObjectHandle::ParserCallbacks {

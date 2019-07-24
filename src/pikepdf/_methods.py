@@ -19,11 +19,13 @@ from io import BytesIO
 from subprocess import PIPE, run
 from tempfile import NamedTemporaryFile
 
-from . import Array, Dictionary, Name, Object, Pdf, Stream
-from ._qpdf import _ObjectMapping
+from . import Array, Dictionary, Name, Object, Pdf, Stream, Page
+from ._qpdf import _ObjectMapping, Token
 from .models import PdfMetadata, Permissions, EncryptionInfo
 
 # pylint: disable=no-member,unsupported-membership-test,unsubscriptable-object
+
+__all__ = []
 
 
 def augments(cls_cpp):
@@ -316,7 +318,7 @@ class Extend_Pdf:
 
     def close(self):
         """
-        Close a Pdf object and release resources acquired by pikepdf
+        Close a Pdf object and release resources acquired by pikepdf.
 
         If pikepdf opened the file handle it will close it (e.g. when opened with a file
         path). If the caller opened the file for pikepdf, the caller close the file.
@@ -380,7 +382,8 @@ class Extend_Pdf:
 
         pikepdf has no way of enforcing permissions.
 
-        Returns: pikepdf.models.Permissions
+        Returns:
+            pikepdf.models.Permissions
         """
         results = {}
         for field in Permissions.fields():
@@ -489,3 +492,59 @@ class Extend_ObjectMapping:
 
     def values(self):
         return (v for _k, v in self.items())
+
+
+def check_is_box(obj):
+    try:
+        if obj.is_rectangle:
+            return True
+    except AttributeError:
+        pass
+
+    try:
+        pdfobj = Array(obj)
+        if pdfobj.is_rectangle:
+            return True
+    except Exception:
+        pass
+
+    raise ValueError("object is not a rectangle")
+
+
+@augments(Page)
+class Extend_Page:
+    @property
+    def mediabox(self):
+        return self._get_mediabox(True)
+
+    @mediabox.setter
+    def mediabox(self, value):
+        check_is_box(value)
+        self.obj['/MediaBox'] = value
+
+    @property
+    def cropbox(self):
+        return self._get_cropbox(True)
+
+    @cropbox.setter
+    def cropbox(self, value):
+        check_is_box(value)
+        self.obj['/CropBox'] = value
+
+    @property
+    def trimbox(self):
+        return self._get_trimbox(True)
+
+    @trimbox.setter
+    def trimbox(self, value):
+        check_is_box(value)
+        self.obj['/TrimBox'] = value
+
+    def __repr__(self):
+        return repr(self.obj).replace('Dictionary', 'Page')
+
+
+@augments(Token)
+class Extend_Token:
+    def __repr__(self):
+        return 'pikepdf.Token({}, {})'.format(self.type_, self.raw_value)

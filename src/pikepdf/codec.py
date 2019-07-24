@@ -46,3 +46,5 @@ def find_pdfdoc(encoding):
 
 
 codecs.register(find_pdfdoc)
+
+__all__ = []

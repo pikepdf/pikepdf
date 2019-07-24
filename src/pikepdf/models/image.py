@@ -491,9 +491,12 @@ class PdfImage(PdfImageBase):
                 without the file extension.
 
         Returns:
-            str: If *fileprefix* was provided, then the fileprefix with the
-                appropriate extension. If no *fileprefix*, then an extension
-                indicating the file type.
+            If *fileprefix* was provided, then the fileprefix with the
+            appropriate extension. If no *fileprefix*, then an extension
+            indicating the file type.
+
+        Return type:
+            str
         """
 
         if bool(stream) == bool(fileprefix):

@@ -9,7 +9,7 @@ invalidate-cppcov:
 
 .PHONY: build
 build: invalidate-cppcov
-	python setup.py build_ext --inplace
+	python setup.py build_ext --inplace --parallel 8
 
 .PHONY: clean-coverage-pycov
 clean-coverage-pycov:
