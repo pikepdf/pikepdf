@@ -141,6 +141,8 @@ def test_list_apis():
     del a[1]
     assert len(a) == 2
     a[-1] = Name('/Foo')
+    with pytest.raises(IndexError):
+        a[-5555] = Name.Foo
 
 
 def test_stack_depth():
