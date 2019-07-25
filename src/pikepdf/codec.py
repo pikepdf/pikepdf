@@ -47,4 +47,4 @@ def find_pdfdoc(encoding):
 
 codecs.register(find_pdfdoc)
 
-__all__ = []
+__all__ = ['utf8_to_pdf_doc', 'pdf_doc_to_utf8']
