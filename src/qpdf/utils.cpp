@@ -86,22 +86,3 @@ FILE *portable_fopen(py::object filename, const char* mode)
         throw;
     }
 }
-
-/* Delete a filename
- *
- * equivalent to
- * with suppress(FileNotFoundError):
- *     os.unlink(f)
- */
-void portable_unlink(py::object filename)
-{
-    auto path = fspath(filename);
-    auto os_unlink = py::module::import("os").attr("unlink");
-    try {
-        os_unlink(path);
-    } catch (const py::error_already_set &e) {
-        // Suppress FileNotFoundError
-        if (!e.matches(PyExc_FileNotFoundError))
-            throw;
-    }
-}
