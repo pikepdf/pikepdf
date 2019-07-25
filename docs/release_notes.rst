@@ -22,8 +22,12 @@ interface within pikepdf that applications should not use directly.
 v1.6.0
 ======
 
+-  Added bindings for QPDF's page object helpers and token filters. These
+   enable: filter content streams, capturing pages as Form XObjects.
 -  Fixed a logic error on attempting to save a PDF created in memory in a
    way that overwrites an existing file.
+-  Fixed ``Pdf.get_warnings()`` failed with an exception when attempting to
+   return a warning or exception.
 -  Improved manylinux1 binary wheels to compile all dependencies from source
    rather than using older versions.
 -  libqpdf 8.4.2 is required.

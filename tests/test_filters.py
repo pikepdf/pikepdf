@@ -12,29 +12,26 @@ def pal(resources):
     return pikepdf.open(resources / 'pal-1bit-rgb.pdf')
 
 
-class FilterThru(pikepdf._qpdf.TokenFilter):
+class FilterThru(pikepdf.TokenFilter):
     def handle_token(self, token):
         return token
 
 
-class FilterDrop(pikepdf._qpdf.TokenFilter):
+class FilterDrop(pikepdf.TokenFilter):
     def handle_token(self, token):
         return None
 
 
-class FilterNumbers(pikepdf._qpdf.TokenFilter):
+class FilterNumbers(pikepdf.TokenFilter):
     def __init__(self):
         super().__init__()
 
     def handle_token(self, token):
-        if token.type_ in (
-            pikepdf._qpdf.TokenType.real,
-            pikepdf._qpdf.TokenType.integer,
-        ):
-            return [token, pikepdf._qpdf.Token(pikepdf._qpdf.TokenType.space, b" ")]
+        if token.type_ in (pikepdf.TokenType.real, pikepdf.TokenType.integer):
+            return [token, pikepdf.Token(pikepdf.TokenType.space, b" ")]
 
 
-class FilterCollectNames(pikepdf._qpdf.TokenFilter):
+class FilterCollectNames(pikepdf.TokenFilter):
     def __init__(self):
         super().__init__()
         self.names = []
@@ -70,7 +67,7 @@ def test_filter_names(pal):
     assert after != b''
 
 
-class FilterInvalid(pikepdf._qpdf.TokenFilter):
+class FilterInvalid(pikepdf.TokenFilter):
     def handle_token(self, token):
         return 42
 
@@ -87,5 +84,9 @@ def test_invalid_tokenfilter(pal):
         result = page.get_filtered_contents(list())
 
 
-def test_tokenfilter_is_abstract():
-    pikepdf._qpdf.TokenFilter()
+def test_tokenfilter_is_abstract(pal):
+    page = pikepdf.Page(pal.pages[0])
+    try:
+        result = page.get_filtered_contents(pikepdf.TokenFilter())
+    except pikepdf.PdfError:
+        assert 'Tried to call pure virtual' in pal.get_warnings()[0]

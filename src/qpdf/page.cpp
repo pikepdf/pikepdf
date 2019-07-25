@@ -267,10 +267,10 @@ void init_page(py::module& m)
                 The final token will always be a token of type ``TokenType.eof``,
                 (unless an exception is raised).
 
-                Any Python exception raised in this function will be trapped by
-                C++ code and converted to a PdfError. If you need to learn what
-                Python exception caused a problem, you must store this information
-                elsewhere.
+                If this method raises an exception, the exception will be
+                caught by C++, consumed, and repalced with a less informative
+                exception. Use :meth:`pikepdf.Pdf.get_warnings` to view the
+                original.
 
                 Return type:
                     None or list or pikepdf.Token

@@ -606,7 +606,15 @@ void init_qpdf(py::module &m)
             )~~~",
             py::arg_v("stream", py::module::import("sys").attr("stderr"), "sys.stderr")
         )
-        .def("get_warnings", &QPDF::getWarnings)  // this is a def because it modifies state by clearing warnings
+        .def("get_warnings", // this is a def because it modifies state by clearing warnings
+            [](QPDF& q) {
+                py::list warnings;
+                for (auto w: q.getWarnings()) {
+                    warnings.append(w.what());
+                }
+                return warnings;
+            }
+        )
         .def("show_xref_table", &QPDF::showXRefTable,
             R"~~~(
             Pretty-print the Pdf's xref (cross-reference table)
