@@ -291,19 +291,6 @@ void init_object(py::module& m)
             }
         )
         .def("__eq__",
-            [](QPDFObjectHandle &self, py::bytes other) {
-                std::string bytes_other = other.cast<std::string>();
-                switch (self.getTypeCode()) {
-                    case QPDFObject::object_type_e::ot_string:
-                        return self.getStringValue() == bytes_other;
-                    case QPDFObject::object_type_e::ot_name:
-                        return self.getName() == bytes_other;
-                    default:
-                        return false;
-                }
-            }
-        )
-        .def("__eq__",
             [](QPDFObjectHandle &self, py::object other) -> py::object {
                 QPDFObjectHandle q_other;
                 try {
