@@ -55,7 +55,6 @@ class FilterCollectNames(pikepdf._qpdf.TokenFilter):
 )
 def test_filter_thru(pal, filter, expected):
     page = pikepdf.Page(pal.pages[0])
-    # page._filter_page_contents(filter())
     page.add_content_token_filter(filter())
     after = page.obj.Contents.read_bytes()
     assert after == expected
@@ -69,6 +68,23 @@ def test_filter_names(pal):
     assert filter.names == ['/Im0']
     after = page.obj.Contents.read_bytes()
     assert after != b''
+
+
+class FilterInvalid(pikepdf._qpdf.TokenFilter):
+    def handle_token(self, token):
+        return 42
+
+
+def test_invalid_handle_token(pal):
+    page = pikepdf.Page(pal.pages[0])
+    with pytest.raises(pikepdf.PdfError):
+        result = page.get_filtered_contents(FilterInvalid())
+
+
+def test_invalid_tokenfilter(pal):
+    page = pikepdf.Page(pal.pages[0])
+    with pytest.raises(TypeError):
+        result = page.get_filtered_contents(list())
 
 
 def test_tokenfilter_is_abstract():
