@@ -1,6 +1,6 @@
 import pytest
 
-from pikepdf import Pdf
+from pikepdf import Pdf, PdfError
 from pikepdf._cpphelpers import fspath
 from io import BytesIO
 from shutil import copy
@@ -51,7 +51,27 @@ class BadBytesIO(BytesIO):
         return len(b) + 1
 
 
-def test_invalid_output_stream(sandwich):
-    bbio = BadBytesIO()
-    with pytest.raises(ValueError):
-        sandwich.save(bbio, static_id=True)
+class WrongTypeBytesIO(BytesIO):
+    """Returns wrong type"""
+
+    def write(self, b):
+        return None  # most likely wrong return type
+
+
+class NegativeOneBytesIO(BytesIO):
+    def write(self, b):
+        return -1
+
+
+@pytest.mark.parametrize(
+    'bio_class,exc_type',
+    [
+        (BadBytesIO, ValueError),
+        (WrongTypeBytesIO, TypeError),
+        (NegativeOneBytesIO, PdfError),
+    ],
+)
+def test_invalid_output_stream(sandwich, bio_class, exc_type):
+    bio = bio_class()
+    with pytest.raises(exc_type):
+        sandwich.save(bio, static_id=True)
