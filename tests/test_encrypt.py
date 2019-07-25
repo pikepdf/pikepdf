@@ -81,6 +81,8 @@ def test_encrypt_info(trivial, outpdf):
         (2, "qwerty", "123456", True, False, r"AES.*R < 4"),
         (6, "rc4", "rc4", False, True, r"R = 6.*AES"),
         (4, "met", "met", False, True, r"unless AES"),
+        (3, "密码", "password", False, False, r"password.*not encodable"),
+        (4, "owner", "密码", False, False, r"password.*not encodable"),
     ],
 )
 def test_bad_settings(trivial, outpdf, R, owner, user, aes, metadata, err):
@@ -126,3 +128,7 @@ def test_save_preserve_encryption(graph_encrypted, outpdf):
 def test_preserve_encryption_not_encrypted(trivial, outpdf):
     with pytest.raises(ValueError):
         trivial.save(outpdf, encryption=True)
+
+
+def test_access_encryption_not_encrypted(trivial):
+    assert not trivial._encryption_data
