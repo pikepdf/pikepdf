@@ -67,6 +67,7 @@ def test_objgen(resources):
     object5 = src.get_object((5, 0))
     assert object5.is_owned_by(src)
     assert object5 == im0
+    assert object5 == src.get_object(5, 0)
 
 
 class TestPasswords:
