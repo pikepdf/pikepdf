@@ -253,8 +253,6 @@ void init_object(py::module& m)
 
                 //Objects which compare equal must have the same hash value
                 switch (self.getTypeCode()) {
-                    case QPDFObject::object_type_e::ot_null:
-                        return py::int_(0);
                     case QPDFObject::object_type_e::ot_string:
                     {
                         return hash(py::bytes(self.getUTF8Value()));
@@ -267,7 +265,7 @@ void init_object(py::module& m)
                     case QPDFObject::object_type_e::ot_dictionary:
                     case QPDFObject::object_type_e::ot_stream:
                     case QPDFObject::object_type_e::ot_inlineimage:
-                        throw py::value_error("Can't hash mutable object");
+                        throw py::type_error("Can't hash mutable object");
                     default:
                         break;
                 }
@@ -311,7 +309,7 @@ void init_object(py::module& m)
                 try {
                     q_other = objecthandle_encode(other);
                 } catch (const py::cast_error&) {
-                    return py::globals()["__builtins__"].attr("NotImplemented");
+                    return py::globals()["__builtins__"]["NotImplemented"];
                 }
                 bool result = (self == objecthandle_encode(other));
                 return py::bool_(result);
@@ -323,7 +321,7 @@ void init_object(py::module& m)
                     return (Py_ssize_t)h.getDictAsMap().size(); // getKeys constructs a new object, so this is better
                 else if (h.isArray())
                     return (Py_ssize_t)h.getArrayNItems();
-                throw py::value_error("length not defined for object");
+                throw py::type_error("length not defined for object");
             }
         )
         .def("__getitem__",
@@ -744,10 +742,10 @@ void init_object(py::module& m)
     );
     m.def("_new_name",
         [](const std::string& s) {
-            if (s.at(0) != '/')
-                throw py::value_error("Name objects must begin with '/'");
             if (s.length() < 2)
                 throw py::value_error("Name must be at least one character long");
+            if (s.at(0) != '/')
+                throw py::value_error("Name objects must begin with '/'");
             return QPDFObjectHandle::newName(s);
         },
         "Create a Name from a string. Must begin with '/'. All other characters except null are valid."

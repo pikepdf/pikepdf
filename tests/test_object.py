@@ -171,6 +171,8 @@ def test_bytes():
     qs = String(s)
     assert str(qs) == s
 
+    assert Name('/xyz') == b'/xyz'
+
 
 def test_len_array():
     assert len(Array([])) == 0
@@ -193,9 +195,22 @@ def test_name_equality():
     assert Name.Foo == Name('/Foo')
 
 
+def test_no_len():
+    with pytest.raises(TypeError):
+        len(Name.Foo)
+        len(String('abc'))
+
+
 def test_unslashed_name():
     with pytest.raises(ValueError, match='must begin with'):
         Name('Monty') not in d
+
+
+def test_empty_name():
+    with pytest.raises(ValueError):
+        Name('')
+    with pytest.raises(ValueError):
+        Name('/')
 
 
 def test_forbidden_name_usage():
@@ -230,6 +245,10 @@ class TestHashViolation:
 
     def test_operator(self):
         self.check(Operator('q'), Operator('q'))
+
+    def test_array_not_hashable(self):
+        with pytest.raises(TypeError):
+            objs = {Array([3]): None}
 
 
 def test_not_constructible():
@@ -294,34 +313,34 @@ def test_utf16_error():
 
 
 class TestDictionary:
-    def test_dictionary_contains(self):
+    def test_contains(self):
         d = Dictionary({'/Monty': 'Python', '/Flying': 'Circus'})
         assert Name.Flying in d
         assert Name('/Monty') in d
         assert Name.Brian not in d
 
-    def test_dictionary_none(self):
+    def test_none(self):
         d = pikepdf.Dictionary({'/One': 1, '/Two': 2})
         with pytest.raises(ValueError):
             d['/Two'] = None
 
-    def test_dictionary_init(self):
+    def test_init(self):
         d1 = pikepdf.Dictionary({'/Animal': 'Dog'})
         d2 = pikepdf.Dictionary(Animal='Dog')
         assert d1 == d2
 
-    def test_dictionary_kwargs(self):
+    def test_kwargs(self):
         d = pikepdf.Dictionary(A='a', B='b', C='c')
         assert '/B' in d
         assert 'B' in dir(d)
 
-    def test_dictionary_iter(self):
+    def test_iter(self):
         d = pikepdf.Dictionary(A='a')
         for k in d:
             assert k == '/A'
             assert d[k] == 'a'
 
-    def test_dictionary_items(self):
+    def test_items(self):
         d = pikepdf.Dictionary(A='a')
         for k in d.items():
             pass
@@ -330,6 +349,23 @@ class TestDictionary:
         d = pikepdf.Dictionary(A='a')
         with pytest.raises(NotImplementedError):
             str(d)
+
+    def test_attr(self):
+        d = pikepdf.Dictionary(A='a')
+        with pytest.raises(AttributeError):
+            d.invalidname
+
+    def test_get(self):
+        d = pikepdf.Dictionary(A='a')
+        assert d.get(Name.A) == 'a'
+        assert d.get(Name.Resources, 42) == 42
+
+    def test_nonpage(self):
+        d = pikepdf.Dictionary(A='a')
+        with pytest.raises(TypeError):
+            d.images
+        with pytest.raises(TypeError):
+            d.page_contents_add(b'', True)
 
 
 def test_not_convertible():
@@ -346,6 +382,8 @@ def test_not_convertible():
     d = pikepdf.Dictionary()
     with pytest.raises(RuntimeError):
         d.SomeKey = c
+
+    assert d != c
 
 
 def test_json():
@@ -385,7 +423,7 @@ def sandwich(resources):
     return Pdf.open(resources / 'sandwich.pdf')
 
 
-class TestObjectWrite:
+class TestStreamReadWrite:
     def test_basic(self, stream_object):
         stream_object.write(b'abc')
         assert stream_object.read_bytes() == b'abc'
@@ -423,3 +461,7 @@ class TestObjectWrite:
             filter=Name.CCITTFaxDecode,
             decode_parms=Dictionary(K=-1, Columns=8, Length=1),
         )
+
+    def test_stream_bytes(self, stream_object):
+        stream_object.write(b'pi')
+        assert bytes(stream_object) == b'pi'
