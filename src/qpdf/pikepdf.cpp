@@ -69,6 +69,10 @@ PYBIND11_MODULE(_qpdf, m) {
         }
     );
 
+    m.def("_safe_fopen", &QUtil::safe_fopen,
+        "Tell qpdf to open a file"
+    );
+
     static py::exception<QPDFExc> exc_main(m, "PdfError");
     static py::exception<QPDFExc> exc_password(m, "PasswordError");
     py::register_exception_translator([](std::exception_ptr p) {

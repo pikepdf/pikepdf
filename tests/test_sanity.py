@@ -2,15 +2,18 @@
 A bunch of quick tests that confirm nothing is horribly wrong
 """
 
+import ctypes
+import errno
 import gc
-from contextlib import suppress
-from shutil import copy
-from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
-from io import BytesIO
-import threading
 import os
-import time
 import signal
+import sys
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor, TimeoutError, as_completed
+from contextlib import suppress
+from io import BytesIO
+from shutil import copy
 
 import pytest
 
@@ -145,3 +148,8 @@ def test_readme_example(resources, outdir):
     del pdf.pages[-1]
     assert len(pdf.pages) == 3
     pdf.save(outdir / 'output.pdf')
+
+
+def test_system_error(resources):
+    with pytest.raises(FileNotFoundError):
+        pikepdf._qpdf._safe_fopen(str(resources / 'does not exist'), "rb")
