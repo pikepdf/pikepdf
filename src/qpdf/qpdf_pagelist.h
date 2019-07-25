@@ -30,7 +30,7 @@ public:
     void insert_page(size_t index, QPDFObjectHandle page);
 public:
     size_t iterpos;
-	std::shared_ptr<QPDF> qpdf;
+    std::shared_ptr<QPDF> qpdf;
 
 private:
     std::vector<QPDFObjectHandle> get_pages_impl(py::slice slice) const;
