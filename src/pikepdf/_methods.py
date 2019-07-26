@@ -103,16 +103,11 @@ def _mudraw(buffer, fmt):
 
 @augments(Object)
 class Extend_Object:
-    def _repr_mimebundle_(self, **kwargs):
+    def _repr_mimebundle_(self, include, exclude, **kwargs):
         """Present options to IPython for rich display of this object
 
         See https://ipython.readthedocs.io/en/stable/config/integrating.html#rich-display
         """
-
-        include = kwargs['include']
-        exclude = kwargs['exclude']
-        include = set() if include else include
-        exclude = set() if exclude is None else exclude
 
         data = {}
         if '/Type' not in self:
@@ -121,8 +116,9 @@ class Extend_Object:
         if self.Type == '/Page':
             bundle = {'application/pdf', 'image/png'}
             if include:
-                bundle = bundle & include
-            bundle = bundle - exclude
+                bundle = {k for k in bundle if k in include}
+            if exclude:
+                bundle = {k for k in bundle if k not in exclude}
             pagedata = _single_page_pdf(self)
             if 'application/pdf' in bundle:
                 data['application/pdf'] = pagedata
@@ -132,6 +128,13 @@ class Extend_Object:
                 except (FileNotFoundError, RuntimeError):
                     pass
         return data
+
+    def _ipython_key_completions_(self):
+        if isinstance(self, Dictionary):
+            return self.keys()
+        elif isinstance(self, Stream):
+            return self.stream_dict.keys()
+        return None
 
     def emplace(self, other):
         """Copy all items from other without making a new object.
@@ -401,7 +404,7 @@ class Extend_Pdf:
         """
         return EncryptionInfo(self._encryption_data)
 
-    def _attach(self, *, basename, filebytes, mime=None, desc=''):
+    def _attach(self, *, basename, filebytes, mime=None, desc=''):  # pragma: no cover
         """
         Attach a file to this PDF
 
@@ -542,6 +545,9 @@ class Extend_Page:
 
     def __repr__(self):
         return repr(self.obj).replace('Dictionary', 'Page')
+
+    def _repr_mimebundle_(self, include, exclude, **kwargs):
+        return self.obj._repr_mimebundle_(include, exclude, **kwargs)
 
 
 @augments(Token)
