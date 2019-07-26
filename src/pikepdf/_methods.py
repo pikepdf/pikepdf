@@ -109,25 +109,13 @@ class Extend_Object:
         See https://ipython.readthedocs.io/en/stable/config/integrating.html#rich-display
         """
 
-        data = {}
-        if '/Type' not in self:
-            return data
-
-        if self.Type == '/Page':
-            bundle = {'application/pdf', 'image/png'}
-            if include:
-                bundle = {k for k in bundle if k in include}
-            if exclude:
-                bundle = {k for k in bundle if k not in exclude}
-            pagedata = _single_page_pdf(self)
-            if 'application/pdf' in bundle:
-                data['application/pdf'] = pagedata
-            if 'image/png' in bundle:
-                try:
-                    data['image/png'] = _mudraw(pagedata, 'png')
-                except (FileNotFoundError, RuntimeError):
-                    pass
-        return data
+        if (
+            isinstance(self, Dictionary)
+            and Name.Type in self
+            and self.Type == Name.Page
+        ):
+            return Page(self)._repr_mimebundle_(include, exclude, **kwargs)
+        return None
 
     def _ipython_key_completions_(self):
         if isinstance(self, Dictionary):
@@ -547,7 +535,21 @@ class Extend_Page:
         return repr(self.obj).replace('Dictionary', 'Page')
 
     def _repr_mimebundle_(self, include, exclude, **kwargs):
-        return self.obj._repr_mimebundle_(include, exclude, **kwargs)
+        data = {}
+        bundle = {'application/pdf', 'image/png'}
+        if include:
+            bundle = {k for k in bundle if k in include}
+        if exclude:
+            bundle = {k for k in bundle if k not in exclude}
+        pagedata = _single_page_pdf(self.obj)
+        if 'application/pdf' in bundle:
+            data['application/pdf'] = pagedata
+        if 'image/png' in bundle:
+            try:
+                data['image/png'] = _mudraw(pagedata, 'png')
+            except (FileNotFoundError, RuntimeError):
+                pass
+        return data
 
 
 @augments(Token)

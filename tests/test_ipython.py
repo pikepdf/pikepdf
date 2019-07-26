@@ -26,7 +26,9 @@ def test_display_image(pal):
 
 
 def test_display_pdf(pal):
-    mimebundle = pal._repr_mimebundle_(include=['application/pdf'])
+    mimebundle = pal._repr_mimebundle_(
+        include=['application/pdf'], exclude=['text/css']
+    )
     assert 'application/pdf' in mimebundle and mimebundle['application/pdf'].startswith(
         b'%PDF'
     )
