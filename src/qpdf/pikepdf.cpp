@@ -10,6 +10,7 @@
 #include <type_traits>
 #include <cerrno>
 #include <cstring>
+#include <cstdio>
 
 #include "pikepdf.h"
 
