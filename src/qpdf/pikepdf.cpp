@@ -26,9 +26,6 @@
 #include "utils.h"
 
 
-extern "C" const char* qpdf_get_qpdf_version();
-
-
 class TemporaryErrnoChange {
 public:
     TemporaryErrnoChange(int val) {
@@ -49,7 +46,7 @@ PYBIND11_MODULE(_qpdf, m) {
 
     m.doc() = "pikepdf provides a Pythonic interface for QPDF";
 
-    m.def("qpdf_version", &qpdf_get_qpdf_version, "Get libqpdf version");
+    m.def("qpdf_version", &QPDF::QPDFVersion, "Get libqpdf version");
 
     init_qpdf(m);
     init_pagelist(m);
