@@ -1,32 +1,34 @@
 # pybind11 generates some docstrings and function signatures that are functionally
 # correct but encourage users to rely on implementation details. Fix these here.
 
-replacements = {
-    'pikepdf._qpdf.Object': 'pikepdf.Object',
-    'pikepdf._qpdf.Pdf': 'pikepdf.Pdf',
-    'pikepdf._qpdf.Page': 'pikepdf.Page',
-    'QPDFTokenizer::Token': 'pikepdf.Token',
-    'pikepdf._qpdf.Token': 'pikepdf.Token',
-    'pikepdf._qpdf.TokenFilter': 'pikepdf.TokenFilter',
-    'pikepdf._qpdf.TokenType': 'pikepdf.TokenType',
-    'QPDFObjectHandle': 'pikepdf.Object',
-    'QPDFExc': 'pikepdf.PdfError',
-}
+import re
+
+replacements = [
+    (re.compile(r'pikepdf._qpdf.Object\b'), 'pikepdf.Object'),
+    (re.compile(r'pikepdf._qpdf.Pdf\b'), 'pikepdf.Pdf'),
+    (re.compile(r'pikepdf._qpdf.Page\b'), 'pikepdf.Page'),
+    (re.compile(r'QPDFTokenizer::Token\b'), 'pikepdf.Token'),
+    (re.compile(r'pikepdf._qpdf.Token\b'), 'pikepdf.Token'),
+    (re.compile(r'pikepdf._qpdf.TokenFilter\b'), 'pikepdf.TokenFilter'),
+    (re.compile(r'pikepdf._qpdf.TokenType\b'), 'pikepdf.TokenType'),
+    (re.compile(r'QPDFObjectHandle'), 'pikepdf.Object'),
+    (re.compile(r'QPDFExc'), 'pikepdf.PdfError'),
+]
 
 
 def fix_sigs(app, what, name, obj, options, signature, return_annotation):
-    for from_, to in replacements.items():
+    for from_, to in replacements:
         if signature:
-            signature = signature.replace(from_, to)
+            signature = from_.sub(to, signature)
         if return_annotation:
-            return_annotation = return_annotation.replace(from_, to)
+            return_annotation = from_.sub(to, return_annotation)
     return signature, return_annotation
 
 
 def fix_doc(app, what, name, obj, options, lines):
     for n, line in enumerate(lines[:]):
-        for from_, to in replacements.items():
-            lines[n] = lines[n].replace(from_, to)
+        for from_, to in replacements:
+            lines[n] = from_.sub(to, lines[n])
 
 
 def setup(app):

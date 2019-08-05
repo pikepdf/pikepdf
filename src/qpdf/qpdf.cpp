@@ -377,7 +377,9 @@ void save_pdf(
                 throw py::value_error("Cannot overwrite input file");
             }
         } catch (const py::error_already_set &e) {
-            // (Occurs if target file does not exist or if we are writing a memory file)
+            // We expect FileNotFoundError is filename refers to a file that does
+            // not exist, or if q.getFilename indicates a memory file. Suppress
+            // that, and rethrow all others.
             if (!e.matches(PyExc_FileNotFoundError))
                 throw;
         }
@@ -578,8 +580,8 @@ void init_qpdf(py::module &m)
             R"~~~(
             Returns the list of pages.
 
-            Returns:
-                pikepdf.qpdf._PageList
+            Return type:
+                pikepdf._qpdf.PageList
             )~~~",
             py::keep_alive<0, 1>()
         )
@@ -778,7 +780,7 @@ void init_qpdf(py::module &m)
             R"~~~(
             Look up an object by ID and generation number
 
-            Returns:
+            Return type:
                 pikepdf.Object
             )~~~",
             py::return_value_policy::reference_internal,
@@ -791,7 +793,7 @@ void init_qpdf(py::module &m)
             R"~~~(
             Look up an object by ID and generation number
 
-            Returns:
+            Return type:
                 pikepdf.Object
             )~~~",
             py::return_value_policy::reference_internal,
@@ -816,7 +818,7 @@ void init_qpdf(py::module &m)
             See Also:
                 :meth:`pikepdf.Object.is_indirect`
 
-            Returns:
+            Return type:
                 pikepdf.Object
             )~~~",
             py::arg("h")
@@ -828,7 +830,7 @@ void init_qpdf(py::module &m)
             R"~~~(
             Encode a Python object and attach to this Pdf as an indirect object
 
-            Returns:
+            Return type:
                 pikepdf.Object
             )~~~",
             py::arg("obj")
