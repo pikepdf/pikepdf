@@ -117,7 +117,7 @@ practical examples, particular in ``pdfinfo.py``, ``_weave.py``, and
 .. toctree::
     :maxdepth: 2
     :caption: Topics
-    :name: topics_rst
+    :name: topics_toc
 
     topics/pages
     topics/page

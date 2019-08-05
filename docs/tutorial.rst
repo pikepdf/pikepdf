@@ -1,3 +1,5 @@
+.. _tutorial:
+
 Tutorial
 ********
 
@@ -82,6 +84,11 @@ slicing them.
 
     In [1]: pdf.pages[-1].MediaBox
 
+.. note::
+
+    :meth:`pikepdf.Pdf.open` can open almost all types of encrypted PDF! Just
+    provide the ``password=`` keyword argument.
+
 Deleting pages
 --------------
 
@@ -109,3 +116,9 @@ is commented out to avoid upsetting the documentation generator.)
 
 You may save a file multiple times, and you may continue modifying it after
 saving.
+
+Next steps
+----------
+
+Have a look at pikepdf topics that interest you, or jump to our detailed API
+reference...
