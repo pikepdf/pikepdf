@@ -160,8 +160,8 @@ A :class:`pikepdf.Permissions` object can be used to specify restrictions.
 
 .. _splitpdf:
 
-Split a PDF one page PDFs
-~~~~~~~~~~~~~~~~~~~~~~~~~
+Split a PDF into one page PDFs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 All we need is a new PDF to hold the destination page.
 
@@ -183,10 +183,10 @@ All we need is a new PDF to hold the destination page.
 
 .. _mergepdf:
 
-Merging a PDF from several files
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Merge (concatenate) PDF from several PDFs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You might be able to guess.
+We create an empty ``Pdf`` which will be the container for all the others.
 
 .. ipython::
     :verbatim:
@@ -201,10 +201,32 @@ You might be able to guess.
 
     In [1]: pdf.save('merged.pdf')
 
-.. note::
+This code sample is enough to merge most PDFs, but there are some things it
+does not do that a more sophisicated function might do. One could call
+:meth:`pikepdf.Pdf.remove_unreferenced_resources` to remove unreferenced
+resources. It may also be necessary to chose the most recent version of all
+source PDFs. Here is a more sophisticated example:
 
-    This code sample does not deduplicate objects. The resulting file may be
-    large if the source files have content in common.
+.. ipython::
+    :verbatim:
+
+    In [1]: from glob import glob
+
+    In [1]: pdf = Pdf.new()
+
+    In [1]: version = pdf.pdf_version
+
+    In [1]: for file in glob('*.pdf'):
+       ...:     src = Pdf.open(file)
+       ...:     version = max(version, src.pdf_version)
+       ...:     pdf.pages.extend(src.pages)
+
+    In [1]: pdf.remove_unreferenced_resources()
+
+    In [1]: pdf.save('merged.pdf', min_version=version)
+
+This improved example would still leave metadata blank. It's up to you
+to decide how to combine metadata from multiple PDFs.
 
 Using counting numbers
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -233,7 +255,8 @@ different sections, such as using Roman numerals for an introductory section.
 
     Because of technical limitations in underlying libraries, pikepdf keeps the
     source PDF open when a content is copied from it to another PDF, even when
-    all Python variables pointing to the source are removed. If a PDF is being assembled from many sources, then
+    all Python variables pointing to the source are removed. If a PDF is being
+    assembled from many sources, then
     all of those sources are held open in memory. This memory can be released
     by saving and re-opening the PDF.
 

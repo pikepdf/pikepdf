@@ -93,7 +93,7 @@ single XObject image. The image is compressed with the ``/DCTDecode`` filter,
 meaning it is encoded with the :abbr:`DCT (discrete cosine transform)`, so it is
 a JPEG. [#]_
 
-.. [#] Without the JFIF header.
+.. [#] Not all JPEGs can be inserted verbatim.
 
 
 Viewing images

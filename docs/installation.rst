@@ -75,8 +75,8 @@ Available in `ArchLinux User Repository <https://aur.archlinux.org/packages/pyth
 
     pacman -S pikepdf
 
-Installing on FreeBSD 11.2
---------------------------
+Installing on FreeBSD
+---------------------
 
 No FreeBSD ports exist, but all of the dependencies are currently available. You can try
 something like:
@@ -86,6 +86,9 @@ something like:
     pkg install python3 lang/python3
     pkg install py36-lxml qpdf
     pip install --user pikepdf
+
+This procedure is known to work on FreeBSD 11.2. It has not been tested on other
+versions.
 
 Building from source
 --------------------
