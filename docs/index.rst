@@ -18,7 +18,7 @@ is no fun to type. But say "pyqpdf" out loud, and it sounds like "pikepdf".
 At a glance
 -----------
 
-pikepdf is a library intended developers who want to create, manipulate, parse,
+pikepdf is a library intended for developers who want to create, manipulate, parse,
 repair, and abuse the PDF format. It supports reading and write PDFs, including
 creating from scratch. Thanks to QPDF, it supports linearizing PDFs and access
 to encrypted PDFs.
@@ -33,7 +33,8 @@ to encrypted PDFs.
    my_pdf.save('test-rotated.pdf')
 
 It is a low level library that requires knowledge of PDF internals and some
-familiarity with the PDF specification [#pdfrm]_.
+familiarity with the PDF specification [#pdfrm]_. It does not provide a user
+interface of its own.
 
 pikepdf would help you build apps that do things like:
 
@@ -104,7 +105,6 @@ generated OCR layers on to page content, and output PDFs. Its code contains main
 practical examples, particular in ``pdfinfo.py``, ``_weave.py``, and
 ``optimize.py``. pikepdf is also used in the test suite.
 
-
 .. toctree::
     :maxdepth: 2
     :caption: Introduction
@@ -113,8 +113,19 @@ practical examples, particular in ``pdfinfo.py``, ``_weave.py``, and
     installation
     release_notes
     tutorial
-    objects
-    page_copying
+
+.. toctree::
+    :maxdepth: 2
+    :caption: Topics
+    :name: topics_rst
+
+    topics/pages
+    topics/page
+    topics/page_copying
+    topics/objects
+    topics/streams
+    topics/encoding
+    topics/metadata
 
 .. toctree::
     :maxdepth: 2
@@ -130,9 +141,9 @@ practical examples, particular in ``pdfinfo.py``, ``_weave.py``, and
     :caption: Reference
     :name: reference_toc
 
-    encoding
     arch
     resources
+
 
 .. rubric:: References
 

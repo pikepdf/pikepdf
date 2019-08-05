@@ -8,22 +8,24 @@ Installation
 
     A pike installation failure.
 
-As a Python package
--------------------
+Basic installation
+------------------
 
 .. |latest| image:: https://img.shields.io/pypi/v/pikepdf.svg
     :alt: pikepdf latest released version on PyPI
 
 |latest|
 
-Most users on Linux, macOS or Windows with x64 systems should take advantage of
-the binary wheels to install the Python package.
+Most users on Linux, macOS or Windows with x64 systems should use ``pip`` to
+install pikepdf in their current Python environment (such as your project's
+virtual environment).
 
 .. code-block:: bash
 
     pip install pikepdf
 
-64-bit wheels are available for Windows, Linux and macOS.
+This command installs binary wheels. 64-bit wheels are available for Windows,
+Linux and macOS. (Except Alpine Linux.)
 
 32-bit wheels are available for Windows, for use with the 32-bit version of
 Python (regardless of the bitness  of Windows). 32-bit wheels for Linux will be
@@ -35,10 +37,16 @@ and newer, macOS 10.11 and newer (for Homebrew), Windows 7 and newer.
 Use ``pip install --user pikepdf`` to install the package for the current user
 only. Use ``pip install pikepdf`` to install to a virtual environment.
 
-Managed Linux distributions
----------------------------
+Platform support
+----------------
 
-**Debian, Ubuntu and other APT distributions**
+Some platforms include versions of pikepdf that are distributed by the system
+package manager (such as ``apt``). These versions may lag behind the version
+distributed with PyPI, but may be convenient for users that cannot use binary
+wheels.
+
+Debian, Ubuntu and other APT-based distributions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. |apt| image:: https://repology.org/badge/vertical-allrepos/pikepdf.svg
     :alt: Package status in apt world
@@ -49,7 +57,8 @@ Managed Linux distributions
 
     apt install pikepdf
 
-**Fedora 29**
+Fedora 29
+^^^^^^^^^
 
 .. |fedora| image:: https://repology.org/badge/version-for-repo/fedora_29/python:pikepdf.svg
     :alt: Fedora 29
@@ -63,7 +72,8 @@ Managed Linux distributions
 
     dnf install python-pikepdf
 
-**ArchLinux**
+ArchLinux
+^^^^^^^^^
 
 .. |aur| image:: https://repology.org/badge/version-for-repo/aur/python:pikepdf.svg
 
