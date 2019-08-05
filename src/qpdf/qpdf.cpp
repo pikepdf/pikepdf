@@ -575,6 +575,12 @@ void init_qpdf(py::module &m)
             [](std::shared_ptr<QPDF> q) {
                 return PageList(q);
             },
+            R"~~~(
+            Returns the list of pages.
+
+            Returns:
+                pikepdf.qpdf._PageList
+            )~~~",
             py::keep_alive<0, 1>()
         )
         .def_property_readonly("_pages", &QPDF::getAllPages)

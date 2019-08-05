@@ -121,7 +121,6 @@ practical examples, particular in ``pdfinfo.py``, ``_weave.py``, and
 
     topics/pages
     topics/page
-    topics/page_copying
     topics/objects
     topics/streams
     topics/encoding

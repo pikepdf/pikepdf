@@ -31,3 +31,11 @@ It is not currently possible to pickle pikepdf objects or marshall them across
 process boundaries (as would be required to use pikepdf in
 :mod:`multiprocessing`). If this were implemented, it would not be much more
 efficient than saving a full PDF and sending it to another process.
+
+File handles
+------------
+
+Because of technical limitations in underlying libraries, pikepdf keeps the
+source PDF file open when a content is copied from it to another PDF, even when
+all Python variables pointing to the source are removed. If a PDF is being
+assembled from many sources, then all of those sources are held open in memory.

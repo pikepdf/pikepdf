@@ -117,6 +117,20 @@ is commented out to avoid upsetting the documentation generator.)
 You may save a file multiple times, and you may continue modifying it after
 saving.
 
+To save an encrypted (password protected) PDF, use a :class:`pikepdf.Encryption`
+object to specify the encryption settings. By default, pikepdf selects the strongest
+security handler and algorithm (AES-256), but allows full access to modify file contents.
+A :class:`pikepdf.Permissions` object can be used to specify restrictions.
+
+.. ipython::
+    :verbatim:
+
+    In [1]: no_extracting = pikepdf.Permissions(extract=False)
+
+    In [1]: pdf.save('encrypted.pdf', encryption=pikepdf.Encryption(
+       ...:      user="user password", owner="owner password", allow=no_extracting
+       ...: ))
+
 Next steps
 ----------
 
