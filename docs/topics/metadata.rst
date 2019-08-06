@@ -3,22 +3,20 @@
 PDF Metadata
 ============
 
-The primary metadata in a PDF is stored in an XMP (Extensible Metadata
-Platform) Metadata stream, where XMP is a metadata specification in XML format.
-For full information on XMP, see Adobe's `XMP Developer Center
-<https://www.adobe.com/devnet/xmp.html>`_. It supercedes the older Document Info
-dictionaries, which are removed in the PDF 2.0 specification. The XMP data entry
-is optional and does not appear in all PDFs.
+PDF has two different types of metadata: XMP metadata, and DocumentInfo, which
+is deprecated but still relevant. For backward compatibility, both should
+contain the same content. pikepdf provides a convenient interface that
+coordinates edits to both, but is limited to the most common metadata features.
 
+XMP (Extensible Metadata Platform) Metadata is a metadata specification in XML
+format that is used many formats other than PDF. For full information on XMP,
+see Adobe's `XMP Developer Center <https://www.adobe.com/devnet/xmp.html>`_.
 The `XMP Specification`_ also provides useful information.
 
-pikepdf provides an interface to simplify viewing and making minor edits to XMP.
-In particular, compound quantities may be read, but only scalar quantities can
-be modified.
-
-For more complex changes consider using the ``python-xmp-toolkit`` library and
-its libexempi dependency; but note that it is not capable of synchronizing
-changes to the older DocumentInfo metadata.
+pikepdf can read compound metadata quantities may be read, but only scalar
+quantities can be modified. For more complex changes consider using the
+``python-xmp-toolkit`` library and its libexempi dependency; but note that it is
+not capable of synchronizing changes to the older DocumentInfo metadata.
 
 .. _XMP Specification: https://wwwimages2.adobe.com/content/dam/acom/en/devnet/xmp/pdfs/XMP%20SDK%20Release%20cc-2016-08/XMPSpecificationPart1.pdf
 

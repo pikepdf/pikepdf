@@ -756,6 +756,11 @@ void init_qpdf(py::module &m)
                 done automatically because ``.save()`` is intended to be
                 idempotent.
 
+            .. note::
+
+                pikepdf can read PDFs will incremental updates, but always
+                any coalesces incremental updates into a single non-incremental
+                PDF file when saving.
             )~~~",
             py::arg("filename"),
             py::arg("static_id")=false,

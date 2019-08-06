@@ -39,7 +39,7 @@ and ``Pdf.save()`` accepts streams as output.
 Inspecting pages
 ----------------
 
-Working with pages is fundamental to PDFs. pikepdf presents the pages in a PDF
+Manipulating pages is fundamental to PDFs. pikepdf presents the pages in a PDF
 through the :attr:`pikepdf.Pdf.pages` property, which follows the ``list``
 protocol. As such page numbers begin at 0.
 
@@ -80,14 +80,87 @@ slicing them.
     In [1]: pdf.pages[0]
     Out[1]: « In Jupyter you would see an image of the PDF page here »
 
-.. ipython::
-
-    In [1]: pdf.pages[-1].MediaBox
-
 .. note::
 
     :meth:`pikepdf.Pdf.open` can open almost all types of encrypted PDF! Just
     provide the ``password=`` keyword argument.
+
+For more details on document assembly, see
+:ref:`PDF split, merge and document assembly <docassembly>`.
+
+Pages are dictionaries
+----------------------
+
+In PDFs, the main data structure is the **dictionary**, a key-value data
+structure much like a Python ``dict`` or ``attrdict``. The major difference is
+that the keys can only be **names**, and can only be PDF types, including
+other dictionaries.
+
+PDF dictionaries are represented as :class:`pikepdf.Dictionary`, and names
+are of type :class:`pikepdf.Name`. A page is just a dictionary with a few
+required files and a reference from the document's "page tree". (pikepdf manages
+the page tree for you.)
+
+.. ipython::
+
+    In [1]: from pikepdf import Pdf
+
+    In [1]: example = Pdf.open('../tests/resources/congress.pdf')
+
+    In [1]: page1 = example.pages[0]
+
+repr() output
+-------------
+
+Let's example the page's ``repr()`` output:
+
+.. ipython::
+
+    In [1]: page1
+
+The angle brackets in the output indicate that this object cannot be constructed
+with a Python expression because it contains a reference. When angle brackets
+are omitted from the ``repr()`` of a pikepdf object, then the object can be
+replicated with a Python expression, such as ``eval(repr(x)) == x``. Pages
+typically concern indirect references to themselves and other pages, so they
+cannot be represented as an expression.
+
+In Jupyter and IPython, pikepdf will instead attempt to display a preview of the PDF
+page, assuming a PDF rendering backend is available.
+
+Item and attribute notation
+---------------------------
+
+Dictionary keys may be looked up using attributes (``page1.MediaBox``) or
+keys (``page1['/MediaBox']``).
+
+.. ipython::
+
+    In [1]: page1.MediaBox      # preferred notation for required names
+
+    In [1]: page1['/MediaBox']  # also works
+
+By convention, pikepdf uses attribute notation for standard names, and item
+notation for names that are set by PDF developers. For example, the images
+belong to a page always appear at ``page.Resources.XObject`` but the name
+of images is set by the PDF creator:
+
+.. ipython::
+    :verbatim:
+
+    In [1]: page1.Resources.XObject['/Im0']
+
+Item notation here would be quite cumbersome:
+``['/Resources']['/XObject]['/Im0']`` (not recommended).
+
+Attribute notation is convenient, but not robust if elements are missing. For
+elements that are not always present, you can use ``.get()``, which behaves like
+``dict.get()`` in core Python.  A library such as `glom
+<https://github.com/mahmoud/glom>`_ might help when working with complex
+structured data that is not always present.
+
+(For now, we'll set aside what a page's ``MediaBox`` and ``Resources.XObject``
+are for. See :ref:`Working with pages <work_with_pages>` for details.)
 
 Deleting pages
 --------------

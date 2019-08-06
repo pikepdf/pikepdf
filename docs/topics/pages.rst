@@ -1,9 +1,11 @@
-Manipulating PDF pages
-**********************
+.. _docassembly:
+
+PDF split, merge, and document assembly
+***************************************
 
 This section discusses working with PDF pages: splitting, merging, copying,
-deleting. For the moment, we're not looking much at how to examine the contents
-of pages.
+deleting. We're treating pages as a unit, rather than working with the content of
+individual pages.
 
 Let’s continue with ``fourpages.pdf`` from the :ref:`tutorial`.
 
@@ -12,28 +14,6 @@ Let’s continue with ``fourpages.pdf`` from the :ref:`tutorial`.
     In [1]: from pikepdf import Pdf
 
     In [2]: pdf = Pdf.open('../tests/resources/fourpages.pdf')
-
-Reversing the order of pages
-----------------------------
-
-Suppose the file was scanned backwards. We can easily reverse it in
-place - maybe it was scanned backwards, a common problem with automatic
-document scanners.
-
-.. ipython::
-
-    In [1]: pdf.pages.reverse()
-
-.. ipython::
-
-    In [1]: pdf
-
-Pretty nice, isn’t it? But the pages in this file already were in correct
-order, so let’s put them back.
-
-.. ipython::
-
-    In [1]: pdf.pages.reverse()
 
 .. _splitpdf:
 
@@ -105,6 +85,28 @@ source PDFs. Here is a more sophisticated example:
 This improved example would still leave metadata blank. It's up to you
 to decide how to combine metadata from multiple PDFs.
 
+Reversing the order of pages
+----------------------------
+
+Suppose the file was scanned backwards. We can easily reverse it in
+place - maybe it was scanned backwards, a common problem with automatic
+document scanners.
+
+.. ipython::
+
+    In [1]: pdf.pages.reverse()
+
+.. ipython::
+
+    In [1]: pdf
+
+Pretty nice, isn’t it? But the pages in this file already were in correct
+order, so let’s put them back.
+
+.. ipython::
+
+    In [1]: pdf.pages.reverse()
+
 .. _copyother:
 
 Copying pages from other PDFs
@@ -160,7 +162,7 @@ Emplacing pages
 
 To preserve indirect references, use :meth:`pikepdf.Object.emplace`,
 which will (conceptually) delete all of the content of target and replace it
-with the content of source, thus preserving indirect references.
+with the content of source, thus preserving indirect references to the page.
 
 .. ipython::
 

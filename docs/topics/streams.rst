@@ -1,5 +1,5 @@
-Working with PDF Streams
-========================
+Working with content streams
+============================
 
 A :class:`pikepdf.Stream` object works like a PDF dictionary with some encoded
 bytes attached. The dictionary is metadata that describes how the stream is
