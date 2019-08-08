@@ -19,6 +19,12 @@ is in production use.
 Note that the C++ extension module ``pikepdf._qpdf`` is a private
 interface within pikepdf that applications should not use directly.
 
+v1.6.1
+======
+
+-  Fix an incomplete type error that prevents building on Alpine Linux.
+-  Documentation improvements.
+
 v1.6.0
 ======
 
