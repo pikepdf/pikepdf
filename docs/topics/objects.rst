@@ -19,10 +19,11 @@ value in a PDF is assigned to a Python ``float``, pikepdf will convert it to
 
 Types that are not directly convertible to Python are represented as
 :class:`pikepdf.Object`, a compound object that offers a superset of possible
-methods, some of which only if the underlying type is suitable. Use the EAFP
-idiom, or ``isinstance`` to determine the type more precisely. This partly
-reflects the fact that the PDF specification allows many data fields to be
-one of several types.
+methods, some of which only if the underlying type is suitable. Use the
+:abbr:`EAFP (easier to ask forgiveness than permission)` idiom, or
+``isinstance`` to determine the type more precisely. This partly reflects the
+fact that the PDF specification allows many data fields to be one of several
+types.
 
 For convenience, the ``repr()`` of a ``pikepdf.Object`` will display a
 Python expression that replicates the existing object (when possible), so it

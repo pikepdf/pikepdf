@@ -17,6 +17,9 @@ can be imported. The C++ extension module is currently named ``pikepdf._qpdf``.
 Users of ``pikepdf`` should not directly access ``_qpdf`` since it is an
 internal interface.
 
+In general, modules or objects behind an underscore are private (although they
+may be returned in some situations).
+
 Thread safety
 -------------
 

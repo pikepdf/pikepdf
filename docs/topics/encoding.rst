@@ -1,6 +1,15 @@
 Character encoding
 ******************
 
+.. epigraph::
+
+    There are three hard problems in computer science:
+    1) Converting from PDF,
+    2) Converting to PDF, and
+    3) O̳̳̳̳̳̳̳̳̳̳̳̳̳̳̳̳̳Ҙ҉҉҉ʹʹ҉ʹ̨̨̨̨̨̨̨̨̃༃༃O̳̳̳̳̳̳̳̳̳̳̳̳̳̳̳̳̳Ҙ҉҉҉ʹʹ҉ʹ̨̨̨̨̨̨̨̨̃༃༃ʹʹ҉ʹ̨̨̨̨̨̨̨̨̃༃༃
+
+    -- `Marseille Folog <https://twitter.com/fogus/status/1024657831084085248>`_
+
 In most circumstances, pikepdf performs appropriate encodings and
 decodings on its own, or returns :class:`pikepdf.String` if it is not clear
 whether to present data as a string or binary data.
