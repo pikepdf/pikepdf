@@ -88,8 +88,15 @@ Available in `ArchLinux User Repository <https://aur.archlinux.org/packages/pyth
 Installing on FreeBSD
 ---------------------
 
-No FreeBSD ports exist, but all of the dependencies are currently available. You can try
-something like:
+.. |freebsd| image:: https://repology.org/badge/version-for-repo/freebsd/python:pikepdf.svg
+    :alt: FreeBSD
+    :target: https://repology.org/project/python:pikepdf/versions
+
+.. code-block:: bash
+
+    pkg install py36-pikepdf
+
+To attempt a manual install, try something like:
 
 .. code-block:: bash
 
