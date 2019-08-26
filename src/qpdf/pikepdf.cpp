@@ -67,8 +67,13 @@ PYBIND11_MODULE(_qpdf, m) {
         }
     );
 
-    m.def("_safe_fopen", &QUtil::safe_fopen,
-        "Tell qpdf to open a file"
+    m.def("_test_file_not_found",
+        []() -> void {
+            auto file = QUtil::safe_fopen("does_not_exist__42", "rb");
+            if (file)
+                fclose(file);
+        },
+        "Used to test that C++ system error -> Python exception propagation works"
     );
 
     static py::exception<QPDFExc> exc_main(m, "PdfError");

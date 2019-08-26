@@ -150,6 +150,6 @@ def test_readme_example(resources, outdir):
     pdf.save(outdir / 'output.pdf')
 
 
-def test_system_error(resources):
+def test_system_error():
     with pytest.raises(FileNotFoundError):
-        pikepdf._qpdf._safe_fopen(str(resources / 'does not exist'), "rb")
+        pikepdf._qpdf._test_file_not_found()
