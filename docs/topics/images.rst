@@ -1,11 +1,26 @@
 Working with images
 ===================
 
-Viewing images
---------------
+PDFs embed images as binary stream objects within the PDF's data stream. The
+stream object's dictionary describes properties of the image such as its
+dimensions and color space. The same image may be drawn multiple times on
+multiple pages, at different scales and positions.
+
+In some cases such as JPEG2000, the standard file format of the image
+is used verbatim, even when the file format contains headers and information
+that is repeated in the stream dictionary. In other cases such as for
+PNG-style encoding, the image file format is not used directly.
+
+pikepdf currently has no facility to embed new images into PDFs. We recommend
+img2pdf instead, because it does the job so well. pikepdf instead allows
+for image inspection and lossless/transcode free (where possible) "pdf2img".
+
+Playing with images
+-------------------
 
 pikepdf provides a helper class :class:`~pikepdf.PdfImage` for manipulating
-PDF images.
+images in a PDF. The helper class helps manage the complexity of the image
+dictionaries.
 
 .. ipython::
 
@@ -15,12 +30,14 @@ PDF images.
 
     In [1]: page1 = example.pages[0]
 
+    In [1]: page1.Resources.images
+
     In [1]: pdfimage = PdfImage(page1.Resources.XObject['/Im0'])
 
     In [1]: pdfimage
     Out[1]:
 
-In Jupyter (or IPython with a suitable configuration) the image will be
+In Jupyter (or IPython with a suitable backend) the image will be
 displayed.
 
 |im0|
@@ -40,7 +57,8 @@ to Pillow's.
 .. note::
 
     ``.width`` and ``.height`` are the resolution of the image in pixels, not
-    the size of the image in page coordinates.
+    the size of the image in page coordinates. The size of the image in page
+    coordinates is determined by the content stream.
 
 .. _extract_image:
 
@@ -48,14 +66,18 @@ Extracting images
 -----------------
 
 Extracting images is straightforward. :meth:`~pikepdf.PdfImage.extract_to` will
-extract images to streams, such as an open file. Where possible, ``extract_to``
-writes compressed data directly to the stream without transcoding. The return
-value is the file extension that was extracted.
+extract images to a specified file prefix. The extension is determined while
+extracting and appended to the filename. Where possible, ``extract_to``
+writes compressed data directly to the stream without transcoding.
 
 .. ipython::
     :verbatim:
 
-    In [1]: pdfimage.extract_to(stream=open('file.jpg', 'w'))
+    In [1]: pdfimage.extract_to(fileprefix='image'))
+    Out[1]: 'image.jpg'
+
+It also possible to extract to a writable Python stream using
+``.extract_to(stream=...`)``.
 
 You can also retrieve the image as a Pillow image:
 
@@ -63,6 +85,14 @@ You can also retrieve the image as a Pillow image:
     :verbatim:
 
     In [1]: pdfimage.as_pil_image()
+    Out[1]: PIL.Image.Image
+
+Another way to view the image is using Pillow's ``Image.show()`` method.
+
+Not all images can be extracted. Also, some PDFs describe an image with a
+mask, with transparency effects. pikepdf can only extract the images
+themselves, not rasterize them exactly as they appear in a PDF viewer. In
+the vast majority of cases, however, the image can be extracted as it appears.
 
 .. note::
 
@@ -81,4 +111,37 @@ You can also retrieve the image as a Pillow image:
 Replacing an image
 ------------------
 
-See ``test_image_access.py::test_image_replace``.
+In this example we extract an image and replace it with a grayscale
+equivalent.
+
+.. ipython::
+
+    In [1]: pdfimage = PdfImage(congress[0])
+
+    In [1]: pillowimage = pdfimage.as_pil_image()
+
+    In [1]: grayscale = pillowimage.convert('L')
+
+    In [1]: grayscale = grayscale.resize((32, 32))
+
+    In [1]: congress[0].write(zlib.compress(grayscale.tobytes()), filter=Name("/FlateDecode"))
+
+    In [1]: congress[0].ColorSpace = Name("/DeviceGray")
+
+    In [1]: congress[0].Width, congress[0].Height = 32, 32
+
+    In [1]: pdf = congress[1]
+
+    In [1]: pdf.save(outdir / 'congress_gray.pdf')
+
+Notes on this example:
+
+* It is generally possible to use ``zlib.compress()`` to
+  generate compressed image data, although this is not as efficient as using
+  a program that knows it is preparing a PDF.
+
+* In general we can resize an image to any scale. The PDF content stream
+  specifies where to draw an image and at what scale.
+
+* This example would replace all occurrences of the image if it were used
+  multiple times in a PDF.
