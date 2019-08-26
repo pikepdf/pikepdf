@@ -14,9 +14,17 @@ pikepdf releases use the `semantic versioning <http://semver.org>`__
 policy.
 
 The pikepdf API (as provided by ``import pikepdf``) is stable and
-is in production use. Note that the C++ extension module 
-``pikepdf._qpdf`` is a private interface within pikepdf that applications 
+is in production use. Note that the C++ extension module
+``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
+
+v1.6.2
+======
+
+-  Fixed another build problem on Alpine Linux - musl-libc defines ``struct FILE``
+   as an incomplete type, which breaks pybind11 metaprogramming that attempts
+   to reason about the type.
+-  Documentation improved to mention FreeBSD port.
 
 v1.6.1
 ======
