@@ -12,4 +12,3 @@
 
 py::object fspath(py::object filename);
 FILE *portable_fopen(py::object filename, const char* mode);
-void portable_unlink(py::object filename);
