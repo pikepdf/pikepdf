@@ -24,18 +24,19 @@ dictionaries.
 
 .. ipython::
 
-    In [1]: from pikepdf import Pdf, PdfImage
+    In [1]: from pikepdf import Pdf, PdfImage, Name
 
     In [1]: example = Pdf.open('../tests/resources/congress.pdf')
 
     In [1]: page1 = example.pages[0]
 
-    In [1]: page1.Resources.images
+    In [1]: list(page1.images.keys())
 
-    In [1]: pdfimage = PdfImage(page1.Resources.XObject['/Im0'])
+    In [1]: rawimage = page1.images['/Im0']  # The raw object/dictionary
+
+    In [1]: pdfimage = PdfImage(rawimage)
 
     In [1]: pdfimage
-    Out[1]:
 
 In Jupyter (or IPython with a suitable backend) the image will be
 displayed.
@@ -82,10 +83,8 @@ It also possible to extract to a writable Python stream using
 You can also retrieve the image as a Pillow image:
 
 .. ipython::
-    :verbatim:
 
     In [1]: pdfimage.as_pil_image()
-    Out[1]: PIL.Image.Image
 
 Another way to view the image is using Pillow's ``Image.show()`` method.
 
@@ -116,7 +115,9 @@ equivalent.
 
 .. ipython::
 
-    In [1]: pdfimage = PdfImage(congress[0])
+    In [1]: import zlib
+
+    In [1]: rawimage = pdfimage.obj
 
     In [1]: pillowimage = pdfimage.as_pil_image()
 
@@ -124,15 +125,11 @@ equivalent.
 
     In [1]: grayscale = grayscale.resize((32, 32))
 
-    In [1]: congress[0].write(zlib.compress(grayscale.tobytes()), filter=Name("/FlateDecode"))
+    In [1]: rawimage.write(zlib.compress(grayscale.tobytes()), filter=Name("/FlateDecode"))
 
-    In [1]: congress[0].ColorSpace = Name("/DeviceGray")
+    In [1]: rawimage.ColorSpace = Name("/DeviceGray")
 
-    In [1]: congress[0].Width, congress[0].Height = 32, 32
-
-    In [1]: pdf = congress[1]
-
-    In [1]: pdf.save(outdir / 'congress_gray.pdf')
+    In [1]: rawimage.Width, rawimage.Height = 32, 32
 
 Notes on this example:
 
