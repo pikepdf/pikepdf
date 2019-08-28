@@ -77,6 +77,29 @@ to the PDF/A specification.
   Note that this property merely *tests* if the file claims to be conformant to
   the PDF/A standard. Use a tool such as veraPDF to verify conformance.
 
+Low-level XMP metadata access
+-----------------------------
+
+You can read the raw XMP metadata if desired. For example, one could extract it and
+edit it using the full featured ``python-xmp-toolkit`` library.
+
+.. ipython::
+
+   In [1]: xmp = pdf.root.Metadata.read_bytes()
+
+   In [1]: type(xmp)
+   Out[1]: bytes
+
+   In [1]: print(xmp.decode())
+
+Editing XMP with a generic XML library is probably not worth the trouble; the
+semantics are fairly complex.
+
+.. warning::
+
+  Manually changes to XMP stream object will not be synchronized with live
+  PdfMetadata object or the DocumentInfo block.
+
 The Document Info dictionary
 ----------------------------
 

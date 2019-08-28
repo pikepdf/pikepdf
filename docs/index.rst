@@ -123,6 +123,7 @@ practical examples, particular in ``pdfinfo.py``, ``_weave.py``, and
     topics/page
     topics/objects
     topics/streams
+    topics/content_streams
     topics/images
     topics/encoding
     topics/metadata
