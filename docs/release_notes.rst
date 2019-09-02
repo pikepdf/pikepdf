@@ -18,6 +18,22 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v1.6.3
+======
+
+-  Fixed compatibility with libqpdf 9.0.0.
+   -  A new method introduced in libqpdf 9.0.0 overloaded an older method, making
+      a reference to this method in pikepdf ambiguous.
+   -  A test relied on libqpdf raising an exception when a pikepdf user called
+      ``Pdf.save(..., min_version='invalid')``. libqpdf no longer raises an
+      exception in this situation, but ignores the invalid version. In the interest
+      of supporting both versions, we defer to libqpdf. The failing test is
+      removed, and documentation updated.
+-  The Windows CI scripts now pick any files named ``qpdfXX.dll`` as the qpdf
+   library to bundle.
+-  Wheels are now built against libqpdf 9.0.0.
+-  libqpdf 8.4.2 and 9.0.0 are both supported.
+
 v1.6.2
 ======
 
@@ -29,7 +45,7 @@ v1.6.2
 v1.6.1
 ======
 
--  Fixed an incomplete type error that prevents building on Alpine Linux.
+-  Dropped our one usage of QPDF's C API so that we use only C++.
 -  Documentation improvements.
 
 v1.6.0
