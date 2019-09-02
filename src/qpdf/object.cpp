@@ -415,7 +415,7 @@ void init_object(py::module& m)
                 QPDFObjectHandle value;
                 try {
                     value = object_get_key(h, key);
-                } catch (const py::key_error &e) {
+                } catch (const py::key_error&) {
                     return default_;
                 }
                 return py::cast(value);
@@ -430,7 +430,7 @@ void init_object(py::module& m)
                 QPDFObjectHandle value;
                 try {
                     value = object_get_key(h, name.getName());
-                } catch (const py::key_error &e) {
+                } catch (const py::key_error&) {
                     return default_;
                 }
                 return py::cast(value);
