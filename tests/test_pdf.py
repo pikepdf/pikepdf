@@ -182,9 +182,6 @@ def test_min_and_force_version(trivial, outdir):
     pdf17 = Pdf.open(outdir / '1.7.pdf')
     assert pdf17.pdf_version == '1.7'
 
-    with pytest.raises(RuntimeError):
-        pdf.save('notaversion.pdf', min_version='foo')
-
     pdf.save(outdir / '1.2.pdf', force_version='1.2')
     pdf12 = Pdf.open(outdir / '1.2.pdf')
     assert pdf12.pdf_version == '1.2'

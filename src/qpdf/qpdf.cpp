@@ -689,7 +689,8 @@ void init_qpdf(py::module &m)
                 min_version (str or tuple): Sets the minimum version of PDF
                     specification that should be required. If left alone QPDF
                     will decide. If a tuple, the second element is an integer, the
-                    extension level.
+                    extension level. If the version number is not a valid format,
+                    QPDF will decide what to do.
                 force_version (str or tuple): Override the version recommend by QPDF,
                     potentially creating an invalid file that does not display
                     in old versions. See QPDF manual for details. If a tuple, the
