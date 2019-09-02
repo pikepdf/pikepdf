@@ -11,6 +11,16 @@
 
 #include "utils.h"
 
+/* POSIX functions on Windows have a leading underscore
+ */
+#if defined(_WIN32)
+#   define posix_fdopen _fdopen
+#   define posix_close  _close
+#else
+#   define posix_fdopen fdopen
+#   define posix_close  close
+#endif
+
 /* Convert a Python object to a filesystem encoded path
  * Use Python's os.fspath() which accepts os.PathLike (str, bytes, pathlib.Path)
  * and returns bytes encoded in the filesystem encoding.
@@ -76,13 +86,13 @@ FILE *portable_fopen(py::object filename, const char* mode)
         pyfile.attr("close")();
 
         // Now use stdlib to wrap descriptor as a FILE
-        FILE *file = fdopen(filedes_dup, mode);
+        FILE *file = posix_fdopen(filedes_dup, mode);
         if (!file)
             throw std::system_error(errno, std::generic_category());
         return file;
     } catch (const std::exception&) {
         if (filedes_dup.cast<int>() >= 0)
-            close(filedes_dup);
+            posix_close(filedes_dup);
         throw;
     }
 }
