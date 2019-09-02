@@ -35,7 +35,7 @@ install:
 
 build_script:
 - ps: |
-    cp c:\qpdf\bin\qpdf21.dll src\pikepdf
+    cp c:\qpdf\bin\qpdf*.dll src\pikepdf
     $env:INCLUDE += ";c:\qpdf\include"
     $env:LIB += ";c:\qpdf\lib"
     $env:LIBPATH +=";c:\qpdf\lib"
