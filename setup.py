@@ -153,7 +153,7 @@ if __name__ == '__main__':  # for mp_compile
         tests_require=tests_require,
         package_dir={'': 'src'},
         packages=setuptools.find_packages('src'),
-        package_data={'': ['*.txt'], 'pikepdf': ['qpdf21.dll']},
+        package_data={'': ['*.txt'], 'pikepdf': ['*.dll']},
         classifiers=[
             "Development Status :: 5 - Production/Stable",
             "Intended Audience :: Developers",
