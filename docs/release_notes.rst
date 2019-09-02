@@ -29,8 +29,8 @@ v1.6.3
       exception in this situation, but ignores the invalid version. In the interest
       of supporting both versions, we defer to libqpdf. The failing test is
       removed, and documentation updated.
--  The Windows CI scripts now pick any files named ``qpdfXX.dll`` as the qpdf
-   library to bundle.
+-  Several warnings, most specific to the Visual C++ compiler, were fixed.
+-  The Windows CI scripts were adjusted for the change in libqpdf ABI version.
 -  Wheels are now built against libqpdf 9.0.0.
 -  libqpdf 8.4.2 and 9.0.0 are both supported.
 
