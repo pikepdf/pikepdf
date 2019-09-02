@@ -8,7 +8,7 @@ cache:
 
 env:
   global:
-    - QPDF_RELEASE=https://github.com/qpdf/qpdf/releases/download/release-qpdf-8.4.2/qpdf-8.4.2.tar.gz
+    - QPDF_RELEASE=https://github.com/qpdf/qpdf/releases/download/release-qpdf-9.0.0/qpdf-9.0.0.tar.gz
     - JPEG_RELEASE=https://www.ijg.org/files/jpegsrc.v9c.tar.gz
     - ZLIB_RELEASE=https://www.zlib.net/zlib-1.2.11.tar.gz
     - TWINE_USERNAME=ocrmypdf-travis
