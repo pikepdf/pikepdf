@@ -807,7 +807,11 @@ void init_object(py::module& m)
 
     py::class_<QPDFObjectHandle::ParserCallbacks, PyParserCallbacks>(m, "StreamParser")
         .def(py::init<>())
-        .def("handle_object", &QPDFObjectHandle::ParserCallbacks::handleObject)
+        .def("handle_object",
+            [](QPDFObjectHandle::ParserCallbacks &parsercallbacks, QPDFObjectHandle &h) {
+                parsercallbacks.handleObject(h);
+            }
+        )
         .def("handle_eof", &QPDFObjectHandle::ParserCallbacks::handleEOF)
         ;
 
