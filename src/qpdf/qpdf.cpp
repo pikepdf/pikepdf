@@ -286,12 +286,12 @@ pdf_version_extension get_version_extension(py::object ver_ext)
     try {
         version = ver_ext.cast<std::string>();
         extension = 0;
-    } catch (py::cast_error) {
+    } catch (const py::cast_error&) {
         try {
             auto version_ext = ver_ext.cast<pdf_version_extension>();
             version = version_ext.first;
             extension = version_ext.second;
-        } catch (py::cast_error) {
+        } catch (const py::cast_error&) {
             throw py::type_error("PDF version must be a tuple: (str, int)");
         }
     }

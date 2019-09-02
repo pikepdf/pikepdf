@@ -65,7 +65,7 @@ FILE *portable_fopen(py::object filename, const char* mode)
         // Get file descriptor, and dup() it
         filedes = pyfile.attr("fileno")();
         filedes_dup = py::module::import("os").attr("dup")(filedes);
-    } catch (const std::exception &e) {
+    } catch (const std::exception&) {
         pyfile.attr("close")();
         throw;
     }
@@ -80,7 +80,7 @@ FILE *portable_fopen(py::object filename, const char* mode)
         if (!file)
             throw std::system_error(errno, std::generic_category());
         return file;
-    } catch (const std::exception &e) {
+    } catch (const std::exception&) {
         if (filedes_dup.cast<int>() >= 0)
             close(filedes_dup);
         throw;
