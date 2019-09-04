@@ -550,12 +550,19 @@ class PdfImage(PdfImageBase):
         if not self.decode_parms:
             raise ValueError("/CCITTFaxDecode without /DecodeParms")
 
-        if self.decode_parms[0].get("/K", 1) < 0:
+        k = self.decode_parms[0].get("/K", 0)
+        if k < 0:
             ccitt_group = 4  # Pure two-dimensional encoding (Group 4)
+        elif k > 0:
+            ccitt_group = 3  # Group 3 2-D
         else:
-            ccitt_group = 3
+            ccitt_group = 2  # CCITT 1-D
         black_is_one = self.decode_parms[0].get("/BlackIs1", False)
-        white_is_zero = 1 if black_is_one else 0
+        # TIFF spec says:
+        # use 0 for white_is_zero (=> black is 1)
+        # use 1 for black_is_zero (=> white is 1)
+        # In practice, do the opposite of what the TIFF spec says.
+        photometry = 1 if black_is_one else 0
 
         img_size = len(data)
         tiff_header_struct = '<' + '2s' + 'H' + 'L' + 'H' + 'HHLL' * 8 + 'L'
@@ -570,7 +577,7 @@ class PdfImage(PdfImageBase):
             257, 4, 1, self.height,  # ImageLength, LONG, 1, length
             258, 3, 1, 1,  # BitsPerSample, SHORT, 1, 1
             259, 3, 1, ccitt_group,  # Compression, SHORT, 1, 4 = CCITT Group 4 fax encoding
-            262, 3, 1, int(white_is_zero),  # Thresholding, SHORT, 1, 0 = WhiteIsZero
+            262, 3, 1, int(photometry),  # Thresholding, SHORT, 1, 0 = WhiteIsZero
             273, 4, 1, struct.calcsize(tiff_header_struct),  # StripOffsets, LONG, 1, length of header
             278, 4, 1, self.height,
             279, 4, 1, img_size,  # StripByteCounts, LONG, 1, size of image

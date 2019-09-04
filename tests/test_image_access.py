@@ -332,3 +332,12 @@ def test_stacked_compression(resources):
     assert pim.colorspace == '/DeviceRGB'
     assert pim.bits_per_component == 8
     assert pim.filters == ['/FlateDecode', '/JPXDecode']
+
+
+def test_ccitt_photometry(sandwich):
+    xobj, _pdf = sandwich
+
+    pim = PdfImage(xobj)
+    im = pim.as_pil_image()
+    im = im.convert('L')
+    assert im.getpixel((0, 0)) == 255, "Expected white background"
