@@ -19,7 +19,7 @@ from pikepdf import (
     parse_content_stream,
 )
 from pikepdf._cpphelpers import fspath
-from pikepdf.models.image import UnsupportedImageTypeError
+from pikepdf.models.image import UnsupportedImageTypeError, NotExtractableError
 
 
 # pylint: disable=redefined-outer-name
@@ -297,13 +297,17 @@ def test_extract_direct_fails_nondefault_colortransform(congress):
     pim = PdfImage(xobj)
 
     bio = BytesIO()
-    with pytest.raises(UnsupportedImageTypeError):
+    with pytest.raises(NotExtractableError):
         pim._extract_direct(stream=bio)
+    with pytest.raises(UnsupportedImageTypeError):
+        pim.extract_to(stream=bio)
 
     xobj.ColorSpace = Name.DeviceCMYK
     pim = PdfImage(xobj)
-    with pytest.raises(UnsupportedImageTypeError):
+    with pytest.raises(NotExtractableError):
         pim._extract_direct(stream=bio)
+    with pytest.raises(UnsupportedImageTypeError):
+        pim.extract_to(stream=bio)
 
 
 def test_icc_use(resources):
@@ -341,3 +345,14 @@ def test_ccitt_photometry(sandwich):
     im = pim.as_pil_image()
     im = im.convert('L')
     assert im.getpixel((0, 0)) == 255, "Expected white background"
+
+
+def test_ccitt_encodedbytealign(sandwich):
+    xobj, _pdf = sandwich
+
+    # Pretend this is image is "EncodedByteAlign". We don't have a FOSS
+    # example of such an image.
+    xobj.DecodeParms.EncodedByteAlign = True
+    pim = PdfImage(xobj)
+    with pytest.raises(UnsupportedImageTypeError):
+        pim.as_pil_image()

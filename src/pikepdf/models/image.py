@@ -25,6 +25,10 @@ class UnsupportedImageTypeError(Exception):
     pass
 
 
+class NotExtractableError(Exception):
+    pass
+
+
 def array_str(value):
     if isinstance(value, (list, Array)):
         return [str(item) for item in value]
@@ -393,7 +397,7 @@ class PdfImage(PdfImageBase):
             stream.write(data)
             return '.jpg'
 
-        raise UnsupportedImageTypeError()
+        raise NotExtractableError()
 
     def _extract_transcoded(self):
         from PIL import Image
@@ -454,13 +458,18 @@ class PdfImage(PdfImageBase):
 
         try:
             return self._extract_direct(stream=stream)
-        except UnsupportedImageTypeError:
+        except NotExtractableError:
             pass
 
-        im = self._extract_transcoded()
-        if im:
-            im.save(stream, format='png')
-            return '.png'
+        try:
+            im = self._extract_transcoded()
+            if im:
+                im.save(stream, format='png')
+                return '.png'
+        except PdfError as e:
+            if 'getStreamData called on unfilterable stream' in str(e):
+                raise UnsupportedImageTypeError(repr(self)) from e
+            raise
 
         raise UnsupportedImageTypeError(repr(self))
 
@@ -533,7 +542,7 @@ class PdfImage(PdfImageBase):
             self._extract_direct(stream=bio)
             bio.seek(0)
             return Image.open(bio)
-        except UnsupportedImageTypeError:
+        except NotExtractableError:
             pass
 
         im = self._extract_transcoded()
@@ -549,6 +558,11 @@ class PdfImage(PdfImageBase):
 
         if not self.decode_parms:
             raise ValueError("/CCITTFaxDecode without /DecodeParms")
+
+        if self.decode_parms[0].get("/EncodedByteAlign", False):
+            raise UnsupportedImageTypeError(
+                "/CCITTFaxDecode with /EncodedByteAlign true"
+            )
 
         k = self.decode_parms[0].get("/K", 0)
         if k < 0:

@@ -18,6 +18,17 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v1.6.4
+======
+
+-  When images were encoded with CCITTFaxDecode, type G4, with the /EncodedByteAlign
+   set to true (not default), the image extracted by pikepdf would be a corrupted
+   form of the original, usually appearing as a small speckling of black pixels at the
+   top of the page. Saving an image with pikepdf was not affected; this problem
+   only occurred when attempting to extract images. We now refuse to extract images
+   with these parameters, as there is not sufficient documentation to determine
+   how to extract them. This image format is relatively rare.
+
 v1.6.3
 ======
 
