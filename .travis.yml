@@ -4,7 +4,7 @@ sudo: false
 cache:
   ccache: true
   directories:
-  - $HOME/Library/Caches/Homebrew
+    - $HOME/Library/Caches/Homebrew
 
 env:
   global:
@@ -19,191 +19,203 @@ env:
 
 matrix:
   include:
-  - env: PYTHON=3.5 GCC=4.8
-    os: linux
-    sudo: required
-    python: "3.5"
-    addons: &gcc48
-      apt:
-        sources: [ubuntu-toolchain-r-test]
-        packages: [g++-4.8, libexempi-dev]  # g++-4.8 supports c++11 but not c++14 at all; g++-4.9 won't work
-        config:
-          retries: true
+    - env: PYTHON=3.5 GCC=4.8
+      os: linux
+      sudo: required
+      python: "3.5"
+      addons: &gcc48
+        apt:
+          sources: [ubuntu-toolchain-r-test]
+          packages: [g++-4.8, libexempi-dev] # g++-4.8 supports c++11 but not c++14 at all; g++-4.9 won't work
+          config:
+            retries: true
 
-  - env: PYTHON=3.6 GCC=4.8
-    os: linux
-    sudo: required
-    python: "3.6"
-    addons: *gcc48
+    - env: PYTHON=3.6 GCC=4.8
+      os: linux
+      sudo: required
+      python: "3.6"
+      addons: *gcc48
 
-  - env: PYTHON=3.6 GCC=8
-    os: linux
-    sudo: required
-    python: "3.6"
-    addons:
-      apt:
-        sources: [ubuntu-toolchain-r-test]
-        packages: [g++-8, libexempi-dev]  # g++-7 supports c++14
-        config:
-          retries: true
+    - env: PYTHON=3.6 GCC=8
+      os: linux
+      sudo: required
+      python: "3.6"
+      addons:
+        apt:
+          sources: [ubuntu-toolchain-r-test]
+          packages: [g++-8, libexempi-dev] # g++-7 supports c++14
+          config:
+            retries: true
 
-  - env: PYTHON=3.7 GCC=5
-    os: linux
-    sudo: required
-    dist: xenial
-    python: "3.7"
-    addons: &gcc5_xenial
-      apt:
-        sources:
-        - sourceline: 'ppa:deadsnakes/ppa'
-        packages: [python3.7-dev, python3.7-venv, g++-5, libexempi-dev]
-        config:
-          retries: true
+    - env: PYTHON=3.7 GCC=5
+      os: linux
+      sudo: required
+      dist: xenial
+      python: "3.7"
+      addons: &gcc5_xenial
+        apt:
+          sources:
+            - sourceline: "ppa:deadsnakes/ppa"
+          packages: [python3.7-dev, python3.7-venv, g++-5, libexempi-dev]
+          config:
+            retries: true
 
-  - os: osx
-    osx_image: xcode8.3
-    language: generic
-    addons:
-      homebrew:
-        update: true
-        packages:
-          - ccache
-          - exempi
-          - python
-          - qpdf
+    - env: PYTHON=3.8 GCC=5
+      os: linux
+      sudo: required
+      dist: xenial
+      python: "3.8"
+      addons: &gcc5_xenial
+        apt:
+          sources:
+            - sourceline: "ppa:deadsnakes/ppa"
+          packages: [python3.8-dev, python3.8-venv, g++-5, libexempi-dev]
+          config:
+            retries: true
 
-  - stage: wheels
-    os: osx
-    osx_image: xcode8.3
-    language: cpp  # osx + language: python is broken
-    addons:
-      homebrew:
-        update: true
-        packages:
-          - python
-          - qpdf
-    install:
-      - clang --version
-      - $PYTHON_CMD --version
-      - echo "CC=$CC CXX=$CXX"
-      - $PYTHON_CMD -m pip install --user cibuildwheel==0.11.1
-    script:
-      - $PYTHON_CMD setup.py sdist -d wheelhouse
-      - export CCACHE_BASEDIR=`python3 -c "import tempfile; import os; print(os.path.realpath(tempfile.gettempdir()))"`
-      - export CIBW_BEFORE_BUILD='pip install pybind11'
-      - export CIBW_SKIP="cp27-* cp34-*"
-      - $PYTHON_CMD -m cibuildwheel --output-dir wheelhouse
-      - |
-        if [[ $TRAVIS_TAG ]]; then
-          $PYTHON_CMD -m pip install --user twine
-          $PYTHON_CMD -m twine upload wheelhouse/*.whl wheelhouse/*.tar.gz
-        fi
+    - os: osx
+      osx_image: xcode8.3
+      language: generic
+      addons:
+        homebrew:
+          update: true
+          packages:
+            - ccache
+            - exempi
+            - python
+            - qpdf
 
-  - stage: wheels
-    os: linux
-    python: "3.6"  # only need one environment to build all linux wheels
-    sudo: required
-    services:
-      - docker
-    install:
-      - $PYTHON_CMD -m pip install cibuildwheel==0.11.1
-      #- mkdir gcc-x86_64 && wget -q https://github.com/Noctem/pogeo-toolchain/releases/download/v1.4/gcc-7.2-binutils-2.29-centos5-x86-64.tar.bz2 -O - | tar xj -C gcc-x86_64 --strip-components=1
-      #- mkdir ccache && wget -q https://www.samba.org/ftp/ccache/ccache-3.3.4.tar.bz2 -O - | tar xj -C ccache --strip-components=1
-      - mkdir zlib && wget -q $ZLIB_RELEASE -O - | tar xz -C zlib --strip-components=1
-      - mkdir jpeg && wget -q $JPEG_RELEASE -O - | tar xz -C jpeg --strip-components=1
-      - mkdir qpdf && wget -q $QPDF_RELEASE -O - | tar xz -C qpdf --strip-components=1
-    script:
-      #- export CIBW_ENVIRONMENT='ARCH=x86_64 PATH="`pwd`/gcc-$ARCH/bin:$PATH" CC="ccache cc" CXX="ccache c++" CXXFLAGS="-static-libstdc++" LD_LIBRARY_PATH="`pwd`/gcc-$ARCH/lib" CCACHE_BASEDIR=`python -c "import tempfile; import os; print(os.path.realpath(tempfile.gettempdir()))"` CCACHE_DIR=/host'$HOME'/.ccache'
-      #- export CIBW_BEFORE_BUILD='pip install pybind11 && [ -d ccache/$ARCH ] || (unset CC CXX CXXFLAGS && mkdir ccache/$ARCH && cd ccache/$ARCH && ../configure && make install)'
-      #- export CIBW_ENVIRONMENT='ARCH=x86_64 PATH="`pwd`/gcc-$ARCH/bin:$PATH" CC="cc" CXX="c++" CXXFLAGS="-static-libstdc++" LD_LIBRARY_PATH="`pwd`/gcc-$ARCH/lib:$LD_LIBRARY_PATH"'
-      - >-
-        export CIBW_ENVIRONMENT='
-        LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-        CXXFLAGS="-I/usr/local/include"
-        LDFLAGS="-L/usr/local/lib"'
-      - >-
-        export CIBW_BEFORE_BUILD='
-        [ ! -f /usr/local/lib/libz.a ] &&
-        cd zlib &&
-        ./configure &&
-        make -j install &&
-        cd .. ;
-        [ ! -f /usr/local/lib/libjpeg.a ] &&
-        cd jpeg &&
-        ./configure &&
-        make -j install &&
-        cd .. ;
-        [ ! -f /usr/local/lib/libqpdf.a ] &&
-        cd qpdf &&
-        ./autogen.sh &&
-        ./configure &&
-        make -j install &&
-        cd .. ;
-        pip install pybind11'
-      - export CIBW_SKIP="cp27-* cp34-* *i686"
-      - export CIBW_TEST_REQUIRES="-r requirements/test.txt"
-      - export CIBW_TEST_COMMAND="pytest -nauto {project}/tests"
-      - cibuildwheel --output-dir wheelhouse
-      - |
-        if [[ $TRAVIS_TAG ]]; then
-          $PYTHON_CMD -m pip install twine
-          $PYTHON_CMD -m twine upload wheelhouse/*.whl
-        fi
-    after_script:
-      - curl -X POST -d "token=$RTD_TOKEN" https://readthedocs.org/api/v2/webhook/pikepdf/39557/
+    - stage: wheels
+      os: osx
+      osx_image: xcode8.3
+      language: cpp # osx + language: python is broken
+      addons:
+        homebrew:
+          update: true
+          packages:
+            - python
+            - qpdf
+      install:
+        - clang --version
+        - $PYTHON_CMD --version
+        - echo "CC=$CC CXX=$CXX"
+        - $PYTHON_CMD -m pip install --user cibuildwheel==0.12.0
+      script:
+        - $PYTHON_CMD setup.py sdist -d wheelhouse
+        - export CCACHE_BASEDIR=`python3 -c "import tempfile; import os; print(os.path.realpath(tempfile.gettempdir()))"`
+        - export CIBW_BEFORE_BUILD='pip install pybind11'
+        - export CIBW_SKIP="cp27-* cp34-*"
+        - $PYTHON_CMD -m cibuildwheel --output-dir wheelhouse
+        - |
+          if [[ $TRAVIS_TAG ]]; then
+            $PYTHON_CMD -m pip install --user twine
+            $PYTHON_CMD -m twine upload wheelhouse/*.whl wheelhouse/*.tar.gz
+          fi
+
+    - stage: wheels
+      os: linux
+      python: "3.6" # only need one environment to build all linux wheels
+      sudo: required
+      services:
+        - docker
+      install:
+        - $PYTHON_CMD -m pip install cibuildwheel==0.12.0
+        #- mkdir gcc-x86_64 && wget -q https://github.com/Noctem/pogeo-toolchain/releases/download/v1.4/gcc-7.2-binutils-2.29-centos5-x86-64.tar.bz2 -O - | tar xj -C gcc-x86_64 --strip-components=1
+        #- mkdir ccache && wget -q https://www.samba.org/ftp/ccache/ccache-3.3.4.tar.bz2 -O - | tar xj -C ccache --strip-components=1
+        - mkdir zlib && wget -q $ZLIB_RELEASE -O - | tar xz -C zlib --strip-components=1
+        - mkdir jpeg && wget -q $JPEG_RELEASE -O - | tar xz -C jpeg --strip-components=1
+        - mkdir qpdf && wget -q $QPDF_RELEASE -O - | tar xz -C qpdf --strip-components=1
+      script:
+        #- export CIBW_ENVIRONMENT='ARCH=x86_64 PATH="`pwd`/gcc-$ARCH/bin:$PATH" CC="ccache cc" CXX="ccache c++" CXXFLAGS="-static-libstdc++" LD_LIBRARY_PATH="`pwd`/gcc-$ARCH/lib" CCACHE_BASEDIR=`python -c "import tempfile; import os; print(os.path.realpath(tempfile.gettempdir()))"` CCACHE_DIR=/host'$HOME'/.ccache'
+        #- export CIBW_BEFORE_BUILD='pip install pybind11 && [ -d ccache/$ARCH ] || (unset CC CXX CXXFLAGS && mkdir ccache/$ARCH && cd ccache/$ARCH && ../configure && make install)'
+        #- export CIBW_ENVIRONMENT='ARCH=x86_64 PATH="`pwd`/gcc-$ARCH/bin:$PATH" CC="cc" CXX="c++" CXXFLAGS="-static-libstdc++" LD_LIBRARY_PATH="`pwd`/gcc-$ARCH/lib:$LD_LIBRARY_PATH"'
+        - >-
+          export CIBW_ENVIRONMENT='
+          LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+          CXXFLAGS="-I/usr/local/include"
+          LDFLAGS="-L/usr/local/lib"'
+        - >-
+          export CIBW_BEFORE_BUILD='
+          [ ! -f /usr/local/lib/libz.a ] &&
+          cd zlib &&
+          ./configure &&
+          make -j install &&
+          cd .. ;
+          [ ! -f /usr/local/lib/libjpeg.a ] &&
+          cd jpeg &&
+          ./configure &&
+          make -j install &&
+          cd .. ;
+          [ ! -f /usr/local/lib/libqpdf.a ] &&
+          cd qpdf &&
+          ./autogen.sh &&
+          ./configure &&
+          make -j install &&
+          cd .. ;
+          pip install pybind11'
+        - export CIBW_SKIP="cp27-* cp34-* *i686"
+        - export CIBW_TEST_REQUIRES="-r requirements/test.txt"
+        - export CIBW_TEST_COMMAND="pytest -nauto {project}/tests"
+        - cibuildwheel --output-dir wheelhouse
+        - |
+          if [[ $TRAVIS_TAG ]]; then
+            $PYTHON_CMD -m pip install twine
+            $PYTHON_CMD -m twine upload wheelhouse/*.whl
+          fi
+      after_script:
+        - curl -X POST -d "token=$RTD_TOKEN" https://readthedocs.org/api/v2/webhook/pikepdf/39557/
 
 stages:
   - name: test
   - name: wheels
 
-
 before_install:
-- |
-  if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-    if [ -n "$GCC" ]; then
-      export CC="gcc-$GCC"
-      export CXX="g++-$GCC"
-      export LD_LIBRARY_PATH="/lib:/usr/lib:/usr/local/lib"
-    elif [ -n "$CLANG" ]; then
-      CC="ccache clang-$CLANG"
-      CXX="ccache clang++-$CLANG"
-      export CFLAGS="-Qunused-arguments"
-      export CXXFLAGS="-Qunused-arguments -stdlib=libc++"
+  - |
+    if [ "$TRAVIS_OS_NAME" = "linux" ]; then
+      if [ -n "$GCC" ]; then
+        export CC="gcc-$GCC"
+        export CXX="g++-$GCC"
+        export LD_LIBRARY_PATH="/lib:/usr/lib:/usr/local/lib"
+      elif [ -n "$CLANG" ]; then
+        CC="ccache clang-$CLANG"
+        CXX="ccache clang++-$CLANG"
+        export CFLAGS="-Qunused-arguments"
+        export CXXFLAGS="-Qunused-arguments -stdlib=libc++"
+      fi
+      if [ "$PYTHON" = "3.6" ]; then
+        pyenv global system $PYTHON # https://github.com/travis-ci/travis-ci/issues/8363
+      else
+        python$PYTHON -m ensurepip
+      fi
+      PYTHON_CMD=python$PYTHON
+    elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
+      export PATH=/usr/local/opt/ccache/libexec:/usr/local/bin:$PATH
+      CC=clang
+      CXX=clang++
+      PYTHON_CMD=python3
     fi
-    if [ "$PYTHON" == "3.5" ] || [ "$PYTHON" == "3.7" ]; then
-      python$PYTHON -m ensurepip
-    elif [ "$PYTHON" = "3.6" ]; then
-      pyenv global system $PYTHON # https://github.com/travis-ci/travis-ci/issues/8363
-    fi
-    PYTHON_CMD=python$PYTHON
-  elif [ "$TRAVIS_OS_NAME" == "osx" ]; then
-    export PATH=/usr/local/opt/ccache/libexec:/usr/local/bin:$PATH
-    CC=clang
-    CXX=clang++
-    PYTHON_CMD=python3
-  fi
-  $PYTHON_CMD -m pip install --upgrade pip wheel
+    $PYTHON_CMD -m pip install --upgrade pip wheel
 
 install:
-- |
-  if [ "$TRAVIS_OS_NAME" = "linux" ]; then
-    mkdir qpdf
-    wget -q $QPDF_RELEASE -O - | tar xz -C qpdf --strip-components=1
-    cd qpdf/
-    ./configure CC="ccache $CC" CXX="ccache $CXX"
-    make -j 2
-    sudo make install
-    cd ..
-  elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
-    : # no op for now
-  fi
-- $PYTHON_CMD setup.py sdist
-- $PYTHON_CMD -m pip install pybind11
-- $PYTHON_CMD -m pip install --verbose dist/*.tar.gz
-- $PYTHON_CMD -m pip install -r requirements/test.txt
+  - |
+    if [ "$TRAVIS_OS_NAME" = "linux" ]; then
+      mkdir qpdf
+      wget -q $QPDF_RELEASE -O - | tar xz -C qpdf --strip-components=1
+      cd qpdf/
+      ./configure CC="ccache $CC" CXX="ccache $CXX"
+      make -j 2
+      sudo make install
+      cd ..
+    elif [ "$TRAVIS_OS_NAME" = "osx" ]; then
+      : # no op for now
+    fi
+  - $PYTHON_CMD setup.py sdist
+  - $PYTHON_CMD -m pip install pybind11
+  - $PYTHON_CMD -m pip install --verbose dist/*.tar.gz
+  - $PYTHON_CMD -m pip install -r requirements/test.txt
 
 script:
-- python3 -m pytest
+  - python3 -m pytest
 
 branches:
   except:

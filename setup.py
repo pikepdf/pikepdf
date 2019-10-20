@@ -147,7 +147,7 @@ if __name__ == '__main__':  # for mp_compile
         setup_requires=[
             'setuptools_scm',
             'setuptools_scm_git_archive',
-            'pybind11 >= 2.3.0, < 3',
+            'pybind11 >= 2.4.3, < 3',
         ],
         use_scm_version=True,
         tests_require=tests_require,
@@ -162,6 +162,7 @@ if __name__ == '__main__':  # for mp_compile
             "Programming Language :: Python :: 3.5",
             "Programming Language :: Python :: 3.6",
             "Programming Language :: Python :: 3.7",
+            "Programming Language :: Python :: 3.8",
             "Programming Language :: Python :: 3 :: Only",
             "Programming Language :: C++",
             "Topic :: Multimedia :: Graphics",

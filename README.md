@@ -3,7 +3,7 @@ pikepdf
 
 **pikepdf** is a Python library for reading and writing PDF files.
 
-[![Travis CI build status (Linux and macOS)](https://img.shields.io/travis/pikepdf/pikepdf/master.svg?label=Linux%2fmacOS%20build)](https://travis-ci.org/pikepdf/pikepdf) [![AppVeyor CI build status (Windows)](https://img.shields.io/appveyor/ci/jbarlow83/pikepdf/master.svg?label=Windows%20build)](https://ci.appveyor.com/project/jbarlow83/pikepdf) [![PyPI](https://img.shields.io/pypi/v/pikepdf.svg)](https://pypi.org/project/pikepdf/)
+[![Travis CI build status (Linux and macOS)](https://img.shields.io/travis/pikepdf/pikepdf/master.svg?label=Linux%2fmacOS%20build)](https://travis-ci.org/pikepdf/pikepdf) [![AppVeyor CI build status (Windows)](https://img.shields.io/appveyor/ci/jbarlow83/pikepdf/master.svg?label=Windows%20build)](https://ci.appveyor.com/project/jbarlow83/pikepdf) [![PyPI](https://img.shields.io/pypi/v/pikepdf.svg)](https://pypi.org/project/pikepdf/) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pikepdf)
 
 pikepdf is based on [QPDF](https://github.com/qpdf/qpdf), a powerful PDF manipulation and repair library.
 
@@ -19,8 +19,6 @@ with pikepdf.open('input.pdf') as pdf:
 
 **To install:**
 
-Python 3.5, 3.6 and 3.7 are fully supported.
-
 ```bash
 pip install pikepdf
 ```
@@ -34,24 +32,24 @@ Features
 
 This library is similar to PyPDF2 and pdfrw - it provides low level access to PDF features and allows editing and content transformation of existing PDFs. Some knowledge of the PDF specification may be helpful. It does not have the capability to render a PDF to image.
 
-| **Feature**                                                         | **pikepdf**                         | **PyPDF2**                                | **pdfrw**                               |
-|---------------------------------------------------------------------|-------------------------------------|-------------------------------------------|-----------------------------------------|
-| Editing, manipulation and transformation of existing PDFs           | ✔                                   | ✔                                         | ✔                                       |
-| Based on an existing, mature PDF library                            | QPDF                                | ✘                                         | ✘                                       |
-| Implementation                                                      | C++ and Python                      | Python                                    | Python                                  |
-| PDF versions supported                                              | 1.1 to 1.7                          | 1.3?                                      | 1.7                                     |
-| Python versions supported                                           | 3.5-3.7                             | 2.6-3.6                                   | 2.6-3.6                                 |
-| Save and load password protected (encrypted) PDFs                   | ✔ (except public key)               | ✘ (Only obsolete RC4)                     | ✘ (not at all)                          |
-| Save and load PDF compressed object streams (PDF 1.5)               | ✔                                   | ✘                                         | ✘                                       |
-| Creates linearized ("fast web view") PDFs                           | ✔                                   | ✘                                         | ✘                                       |
+| **Feature**                                                         | **pikepdf**                                 | **PyPDF2**                                | **pdfrw**                               |
+| ------------------------------------------------------------------- | ------------------------------------------- | ----------------------------------------- | --------------------------------------- |
+| Editing, manipulation and transformation of existing PDFs           | ✔                                           | ✔                                         | ✔                                       |
+| Based on an existing, mature PDF library                            | QPDF                                        | ✘                                         | ✘                                       |
+| Implementation                                                      | C++ and Python                              | Python                                    | Python                                  |
+| PDF versions supported                                              | 1.1 to 1.7                                  | 1.3?                                      | 1.7                                     |
+| Python versions supported                                           | 3.5-3.8                                     | 2.6-3.6                                   | 2.6-3.6                                 |
+| Save and load password protected (encrypted) PDFs                   | ✔ (except public key)                       | ✘ (Only obsolete RC4)                     | ✘ (not at all)                          |
+| Save and load PDF compressed object streams (PDF 1.5)               | ✔                                           | ✘                                         | ✘                                       |
+| Creates linearized ("fast web view") PDFs                           | ✔                                           | ✘                                         | ✘                                       |
 | Actively maintained                                                 | ![pikepdf commit activity][pikepdf-commits] | ![PyPDF2 commit activity][pypdf2-commits] | ![pdfrw commit activity][pdfrw-commits] |
-| Test suite coverage                                                 | ~86%                                | very low                                  | unknown                                 |
-| Creates PDFs that pass PDF validation tests                         | ✔                                   | ✘                                         | ?                                       |
-| Modifies PDF/A without breaking PDF/A compliance                    | ✔                                   | ✘                                         | ?                                       |
-| Automatically repairs PDFs with internal errors                     | ✔                                   | ✘                                         | ✘                                       |
-| PDF XMP metadata editing                                            | ✔                                   | read-only                                 | ✘
-| Documentation                                                       | ✔                                   | ✘                                         | ✔                                       |
-| Integrates with Jupyter and IPython notebooks for rapid development | ✔                                   | ✘                                         | ✘                                       |
+| Test suite coverage                                                 | ~86%                                        | very low                                  | unknown                                 |
+| Creates PDFs that pass PDF validation tests                         | ✔                                           | ✘                                         | ?                                       |
+| Modifies PDF/A without breaking PDF/A compliance                    | ✔                                           | ✘                                         | ?                                       |
+| Automatically repairs PDFs with internal errors                     | ✔                                           | ✘                                         | ✘                                       |
+| PDF XMP metadata editing                                            | ✔                                           | read-only                                 | ✘                                       |
+| Documentation                                                       | ✔                                           | ✘                                         | ✔                                       |
+| Integrates with Jupyter and IPython notebooks for rapid development | ✔                                           | ✘                                         | ✘                                       |
 
 
 [pikepdf-commits]: https://img.shields.io/github/commit-activity/y/pikepdf/pikepdf.svg

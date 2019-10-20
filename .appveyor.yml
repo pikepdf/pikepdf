@@ -1,61 +1,62 @@
-version: '{build}'
+version: "{build}"
 image: Visual Studio 2015
 platform:
-- x64
-- x86
+  - x64
+  - x86
 environment:
   global:
     DISTUTILS_USE_SDK: 1
     MSSdk: 1
   matrix:
-  - PYTHON: 35
-  - PYTHON: 36
-  - PYTHON: 37
+    - PYTHON: 35
+    - PYTHON: 36
+    - PYTHON: 37
+    - PYTHON: 38
   TWINE_PASSWORD:
     secure: RZZXYbbTOzKMSE/GdzIG/x+eqehSEeu98j0Ggs+/fG8=
 install:
-- cmd: '"%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" %PLATFORM%'
-- ps: |
-    $userpath = "$env:APPDATA\Python\Python$env:PYTHON\Scripts"
-    if ($env:PLATFORM -eq "x64") {
-      $env:PYTHON = "$env:PYTHON-x64"
-      $qpdfdll = "https://github.com/qpdf/qpdf/releases/download/release-qpdf-9.0.0/qpdf-9.0.0-bin-msvc64.zip"
-    } else {
-      $qpdfdll = "https://github.com/qpdf/qpdf/releases/download/release-qpdf-9.0.0/qpdf-9.0.0-bin-msvc32.zip"
-    }
-    $env:PATH = "C:\Python$env:PYTHON;C:\Python$env:PYTHON\Scripts;$userpath;$env:PATH"
-    echo $env:PATH
-    python -m pip install --disable-pip-version-check --upgrade pip setuptools wheel
-    pip install pybind11
+  - cmd: '"%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" %PLATFORM%'
+  - ps: |
+      $userpath = "$env:APPDATA\Python\Python$env:PYTHON\Scripts"
+      if ($env:PLATFORM -eq "x64") {
+        $env:PYTHON = "$env:PYTHON-x64"
+        $qpdfzip = "https://github.com/qpdf/qpdf/releases/download/release-qpdf-9.0.0/qpdf-9.0.0-bin-msvc64.zip"
+      } else {
+        $qpdfzip = "https://github.com/qpdf/qpdf/releases/download/release-qpdf-9.0.0/qpdf-9.0.0-bin-msvc32.zip"
+      }
+      $env:PATH = "C:\Python$env:PYTHON;C:\Python$env:PYTHON\Scripts;$userpath;$env:PATH"
+      echo $env:PATH
+      python -m pip install --disable-pip-version-check --upgrade pip setuptools wheel
+      pip install pybind11
 
-    Invoke-WebRequest -Uri $qpdfdll -OutFile "qpdf-release.zip"
-    7z x "qpdf-release.zip" -oc:\
-    $qpdfdir = Get-ChildItem c:\qpdf-*
-    Move-Item -Path $qpdfdir -Destination c:\qpdf
+      Invoke-WebRequest -Uri $qpdfzip -OutFile "qpdf-release.zip"
+      7z x "qpdf-release.zip" -oc:\
+      $qpdfdir = Get-ChildItem c:\qpdf-*
+      Move-Item -Path $qpdfdir -Destination c:\qpdf
 
 build_script:
-- ps: |
-    cp c:\qpdf\bin\qpdf*.dll src\pikepdf
-    $env:INCLUDE += ";c:\qpdf\include"
-    $env:LIB += ";c:\qpdf\lib"
-    $env:LIBPATH +=";c:\qpdf\lib"
-    python setup.py bdist_wheel
-    $wheel = Get-ChildItem -Path dist\pikepdf*.whl
-    pip install --verbose $wheel
+  - ps: |
+      cp c:\qpdf\bin\qpdf*.dll src\pikepdf
+      $env:INCLUDE += ";c:\qpdf\include"
+      $env:LIB += ";c:\qpdf\lib"
+      $env:LIBPATH +=";c:\qpdf\lib"
+      python setup.py bdist_wheel
+      $wheel = Get-ChildItem -Path dist\pikepdf*.whl
+      pip install --verbose $wheel
 
 test_script:
-- pip install -r requirements/test.txt
-- pytest -n auto
+  - pip install -r requirements/test.txt
+  - pytest -n auto
 
 artifacts:
-- path: dist\*.whl
-  name: pypi
+  - path: dist\*.whl
+    name: pypi
 
 deploy_script:
-- ps: |
-    if ($env:APPVEYOR_REPO_TAG -eq "true")
-    {
-      pip install twine
-      $env:TWINE_USERNAME = "ocrmypdf-travis"
-      twine upload dist\*.whl
-    }
+  - ps: |
+      if ($env:APPVEYOR_REPO_TAG -eq "true")
+      {
+        pip install twine
+        $env:TWINE_USERNAME = "ocrmypdf-travis"
+        twine upload dist\*.whl
+      }
