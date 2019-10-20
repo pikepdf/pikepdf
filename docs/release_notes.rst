@@ -22,7 +22,7 @@ v1.6.5
 ======
 
 -  Fixed build settings to support Python 3.8 on macOS and Linux. Windows support
-   for Python 3.8 is not currently available since continuous integration providers
+   for Python 3.8 is not currently tested since continuous integration providers
    have not updated to Python 3.8 yet.
 -  pybind11 2.4.3 is now required, to support Python 3.8.
 
