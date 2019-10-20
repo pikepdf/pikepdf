@@ -102,10 +102,10 @@ jobs:
           task: UsePythonVersion@0,
           inputs: { versionSpec: "3.7", architecture: x64 },
         }
-      - {
-          task: UsePythonVersion@0,
-          inputs: { versionSpec: "3.8", architecture: x64 },
-        }
+      # - {
+      #     task: UsePythonVersion@0,
+      #     inputs: { versionSpec: "3.8", architecture: x64 },
+      #   }
       - powershell: azure-pipelines/win-download-qpdf.ps1
         displayName: "Download QPDF"
       - bash: source azure-pipelines/build.bash
@@ -133,10 +133,10 @@ jobs:
           task: UsePythonVersion@0,
           inputs: { versionSpec: "3.7", architecture: x86 },
         }
-      - {
-          task: UsePythonVersion@0,
-          inputs: { versionSpec: "3.8", architecture: x64 },
-        }
+      # - {
+      #     task: UsePythonVersion@0,
+      #     inputs: { versionSpec: "3.8", architecture: x64 },
+      #   }
       - powershell: azure-pipelines/win-download-qpdf.ps1
         displayName: "Download QPDF"
       - bash: source azure-pipelines/build.bash
