@@ -74,7 +74,7 @@ matrix:
             retries: true
 
     - os: osx
-      osx_image: xcode8.3
+      osx_image: xcode9.4
       language: generic
       addons:
         homebrew:
@@ -87,7 +87,7 @@ matrix:
 
     - stage: wheels
       os: osx
-      osx_image: xcode8.3
+      osx_image: xcode9.4
       language: cpp # osx + language: python is broken
       addons:
         homebrew:
