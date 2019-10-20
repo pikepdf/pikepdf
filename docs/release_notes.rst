@@ -18,6 +18,12 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v1.6.5
+======
+
+-  Fixed build settings to support Python 3.8.
+-  pybind11 2.4.3 is now required, to support Python 3.8.
+
 v1.6.4
 ======
 
