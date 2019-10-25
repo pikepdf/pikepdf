@@ -268,3 +268,42 @@ def test_emplace(fourpages):
     assert fourpages.pages[0].keys() == fourpages.pages[1].keys()
     for k in fourpages.pages[0].keys():
         assert fourpages.pages[0][k] == fourpages.pages[1][k]
+
+
+def test_duplicate_page(sandwich, outpdf):
+    sandwich.pages.append(sandwich.pages[0])
+    assert len(sandwich.pages) == 2
+    sandwich.save(outpdf)
+
+
+def test_repeat_using_intermediate(graph, outpdf):
+    def _repeat_page(pdf_in, page, count, pdf_out):
+        print(f'Duplicating page {page} - {count} times')
+
+        for dup in range(count):
+            pdf_new = Pdf.new()
+            pdf_new.pages.append(pdf_in.pages[page])
+            pdf_out.pages.extend(pdf_new.pages)
+
+        print(f'Added page {page} to output document')
+        return pdf_out
+
+    with Pdf.new() as out:
+        _repeat_page(graph, 0, 3, out)
+        assert len(out.pages) == 3
+        out.save(outpdf)
+
+
+def test_repeat(graph, outpdf):
+    def _repeat_page(pdf, page, count):
+        print(f'Duplicating page {page} - {count} times')
+
+        for dup in range(count):
+            pdf.pages.append(pdf.pages[page])
+
+        print(f'Added page {page} to output document')
+        return pdf
+
+    _repeat_page(graph, 0, 3)
+    assert len(graph.pages) == 4
+    graph.save(outpdf)
