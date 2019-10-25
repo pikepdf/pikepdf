@@ -1,5 +1,6 @@
 import json
 import sys
+from copy import copy
 from decimal import Decimal, InvalidOperation
 from math import isclose, isfinite
 from zlib import compress
@@ -465,3 +466,19 @@ class TestStreamReadWrite:
     def test_stream_bytes(self, stream_object):
         stream_object.write(b'pi')
         assert bytes(stream_object) == b'pi'
+
+
+def test_copy():
+    d = Dictionary(
+        {
+            '/Boolean': True,
+            '/Integer': 42,
+            '/Real': Decimal('42.42'),
+            '/String': String('hi'),
+            '/Array': Array([1, 2, 3.14]),
+            '/Dictionary': Dictionary({'/Color': 'Red'}),
+        }
+    )
+    d2 = copy(d)
+    assert d2 == d
+    assert d2 is not d

@@ -302,6 +302,11 @@ void init_object(py::module& m)
                 return py::bool_(result);
             }
         )
+        .def("__copy__",
+            [](QPDFObjectHandle &h) {
+                return h.shallowCopy();
+            }
+        )
         .def("__len__",
             [](QPDFObjectHandle &h) {
                 if (h.isDictionary())
