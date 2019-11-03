@@ -116,8 +116,7 @@ Building from source
 
 pikepdf requires:
 
--   a C++11 compliant compiler - GCC (4.8 and up) and clang (3.3 and up); C++14
-    is recommended and will produced smaller binaries
+-   a C++14 compliant compiler - GCC (5 and up) and clang (3.3 and up)
 -   `pybind11 <https://github.com/pybind/pybind11>`_
 -   libqpdf |qpdf-version| or higher from the
     `QPDF <https://github.com/qpdf/qpdf>`_ project.
@@ -152,7 +151,7 @@ libqpdf.)
 
 .. |msvc-zip| replace:: qpdf-|qpdf-version|-bin-msvc64.zip
 
-pikepdf requires a C++11 compliant compiler (i.e. Visual Studio 2015 on
+pikepdf requires a C++14 compliant compiler (i.e. Visual Studio 2015 on
 Windows). See our continuous integration build script in ``.appveyor.yml``
 for detailed and current instructions. Or use the wheels which save this pain.
 

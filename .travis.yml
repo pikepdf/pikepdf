@@ -26,7 +26,7 @@ matrix:
       addons: &gcc48
         apt:
           sources: [ubuntu-toolchain-r-test]
-          packages: [g++-4.8, libexempi-dev] # g++-4.8 supports c++11 but not c++14 at all; g++-4.9 won't work
+          packages: [g++-5, libexempi-dev]
           config:
             retries: true
 

@@ -74,17 +74,17 @@ def has_flag(compiler, flagname):
 
 
 def cpp_flag(compiler):
-    """Return the -std=c++[11/14] compiler flag.
+    """Return the -std=c++[XX] compiler flag.
 
     Notes on c++17 and macOS:
     https://github.com/pybind/python_example/issues/44
     """
-    flags = ['-std=c++14', '-std=c++11']
+    flags = ['-std=c++14']
 
     for flag in flags:
         if has_flag(compiler, flag):
             return flag
-    raise RuntimeError('Unsupported compiler -- at least C++11 support ' 'is needed!')
+    raise RuntimeError('Unsupported compiler -- at least C++14 support ' 'is needed!')
 
 
 class BuildExt(build_ext):
@@ -94,7 +94,7 @@ class BuildExt(build_ext):
     l_opts = {'msvc': [], 'unix': []}
 
     if sys.platform == 'darwin':
-        darwin_opts = ['-stdlib=libc++', '-mmacosx-version-min=10.7']
+        darwin_opts = ['-stdlib=libc++', '-mmacosx-version-min=10.9']
         c_opts['unix'] += darwin_opts
         l_opts['unix'] += darwin_opts
 

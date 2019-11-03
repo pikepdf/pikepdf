@@ -12,8 +12,6 @@
 #include <vector>
 #include <map>
 
-#include "shims.h"
-
 #include <qpdf/PointerHolder.hh>
 #include <qpdf/QPDF.hh>
 #include <qpdf/QPDFObjectHandle.hh>
