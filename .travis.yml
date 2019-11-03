@@ -99,7 +99,7 @@ matrix:
         - clang --version
         - $PYTHON_CMD --version
         - echo "CC=$CC CXX=$CXX"
-        - $PYTHON_CMD -m pip install --user cibuildwheel==0.12.0
+        - $PYTHON_CMD -m pip install --user git+git://github.com/joerick/cibuildwheel.git@a6164f765c4024b2306965da472a9140ae63c02f
       script:
         - $PYTHON_CMD setup.py sdist -d wheelhouse
         - export CCACHE_BASEDIR=`python3 -c "import tempfile; import os; print(os.path.realpath(tempfile.gettempdir()))"`
@@ -119,7 +119,7 @@ matrix:
       services:
         - docker
       install:
-        - $PYTHON_CMD -m pip install cibuildwheel==0.12.0
+        - $PYTHON_CMD -m pip install git+git://github.com/joerick/cibuildwheel.git@a6164f765c4024b2306965da472a9140ae63c02f
         #- mkdir gcc-x86_64 && wget -q https://github.com/Noctem/pogeo-toolchain/releases/download/v1.4/gcc-7.2-binutils-2.29-centos5-x86-64.tar.bz2 -O - | tar xj -C gcc-x86_64 --strip-components=1
         #- mkdir ccache && wget -q https://www.samba.org/ftp/ccache/ccache-3.3.4.tar.bz2 -O - | tar xj -C ccache --strip-components=1
         - mkdir zlib && wget -q $ZLIB_RELEASE -O - | tar xz -C zlib --strip-components=1
