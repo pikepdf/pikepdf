@@ -250,7 +250,6 @@ def test_negative_indexing(fourpages, graph):
 def test_concatenate(resources, outdir):
     # Issue #22
     def concatenate(n):
-        print('concatenating same page', n, 'times')
         output_pdf = Pdf.new()
         for i in range(n):
             print(i)
@@ -278,14 +277,10 @@ def test_duplicate_page(sandwich, outpdf):
 
 def test_repeat_using_intermediate(graph, outpdf):
     def _repeat_page(pdf_in, page, count, pdf_out):
-        print(f'Duplicating page {page} - {count} times')
-
         for dup in range(count):
             pdf_new = Pdf.new()
             pdf_new.pages.append(pdf_in.pages[page])
             pdf_out.pages.extend(pdf_new.pages)
-
-        print(f'Added page {page} to output document')
         return pdf_out
 
     with Pdf.new() as out:
@@ -296,12 +291,8 @@ def test_repeat_using_intermediate(graph, outpdf):
 
 def test_repeat(graph, outpdf):
     def _repeat_page(pdf, page, count):
-        print(f'Duplicating page {page} - {count} times')
-
         for dup in range(count):
             pdf.pages.append(pdf.pages[page])
-
-        print(f'Added page {page} to output document')
         return pdf
 
     _repeat_page(graph, 0, 3)
