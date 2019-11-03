@@ -482,3 +482,4 @@ def test_copy():
     d2 = copy(d)
     assert d2 == d
     assert d2 is not d
+    assert d2['/Dictionary'] == d['/Dictionary']

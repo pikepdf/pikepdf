@@ -307,3 +307,12 @@ def test_repeat(graph, outpdf):
     _repeat_page(graph, 0, 3)
     assert len(graph.pages) == 4
     graph.save(outpdf)
+
+
+def test_add_foreign_twice(graph, outpdf):
+    out = Pdf.new()
+    out.pages.append(out.copy_foreign(graph.pages[0]))
+    assert len(out.pages) == 1
+    out.pages.append(out.copy_foreign(graph.pages[0]))
+    assert len(out.pages) == 2
+    out.save(outpdf)
