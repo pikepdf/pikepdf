@@ -19,7 +19,7 @@ env:
 
 matrix:
   include:
-    - env: PYTHON=3.5 GCC=4.8
+    - env: PYTHON=3.5 GCC=5
       os: linux
       sudo: required
       python: "3.5"
@@ -30,7 +30,7 @@ matrix:
           config:
             retries: true
 
-    - env: PYTHON=3.6 GCC=4.8
+    - env: PYTHON=3.6 GCC=5
       os: linux
       sudo: required
       python: "3.6"
@@ -60,18 +60,18 @@ matrix:
           config:
             retries: true
 
-    - env: PYTHON=3.8 GCC=5
-      os: linux
-      sudo: required
-      dist: xenial
-      python: "3.8"
-      addons: &gcc5_xenial
-        apt:
-          sources:
-            - sourceline: "ppa:deadsnakes/ppa"
-          packages: [python3.8-dev, python3.8-venv, g++-5, libexempi-dev]
-          config:
-            retries: true
+    # - env: PYTHON=3.8 GCC=5
+    #   os: linux
+    #   sudo: required
+    #   dist: xenial
+    #   python: "3.8"
+    #   addons: &gcc5_xenial
+    #     apt:
+    #       sources:
+    #         - sourceline: "ppa:deadsnakes/ppa"
+    #       packages: [python3.8-dev, python3.8-venv, g++-5, libexempi-dev]
+    #       config:
+    #         retries: true
 
     - os: osx
       osx_image: xcode9.4
