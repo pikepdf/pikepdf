@@ -6,7 +6,7 @@ variables:
   cibw_skip: "cp27-* cp34-*"
   cibw_test_command: "pytest -nauto {project}/tests"
   cibw_test_requires: "-r requirements/test.txt"
-  cibuildwheel_version: "0.12.0"
+  cibuildwheel_version: "0375e92110113689025a5f05376f77d220d8b5c9"
   cibw_before_build: "pip install pybind11"
 
 jobs:
@@ -102,10 +102,10 @@ jobs:
           task: UsePythonVersion@0,
           inputs: { versionSpec: "3.7", architecture: x64 },
         }
-      # - {
-      #     task: UsePythonVersion@0,
-      #     inputs: { versionSpec: "3.8", architecture: x64 },
-      #   }
+      - {
+          task: UsePythonVersion@0,
+          inputs: { versionSpec: "3.8", architecture: x64 },
+        }
       - powershell: azure-pipelines/win-download-qpdf.ps1
         displayName: "Download QPDF"
       - bash: source azure-pipelines/build.bash
@@ -133,10 +133,10 @@ jobs:
           task: UsePythonVersion@0,
           inputs: { versionSpec: "3.7", architecture: x86 },
         }
-      # - {
-      #     task: UsePythonVersion@0,
-      #     inputs: { versionSpec: "3.8", architecture: x64 },
-      #   }
+      - {
+          task: UsePythonVersion@0,
+          inputs: { versionSpec: "3.8", architecture: x64 },
+        }
       - powershell: azure-pipelines/win-download-qpdf.ps1
         displayName: "Download QPDF"
       - bash: source azure-pipelines/build.bash
