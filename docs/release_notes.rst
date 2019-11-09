@@ -18,6 +18,14 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v1.7.0
+======
+
+-  Shallow object copy with ``copy.copy(pikepdf.Object)`` is now supported.
+-  Support for building on C++11 has been removed. A C++14 compiler is now required.
+-  pikepdf now generates manylinux2010 wheels on Linux.
+-  Build and deploy infrastructure migrated to Azure Pipelines.
+
 v1.6.5
 ======
 
