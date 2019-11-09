@@ -60,18 +60,18 @@ matrix:
           config:
             retries: true
 
-    # - env: PYTHON=3.8 GCC=5
-    #   os: linux
-    #   sudo: required
-    #   dist: xenial
-    #   python: "3.8"
-    #   addons: &gcc5_xenial
-    #     apt:
-    #       sources:
-    #         - sourceline: "ppa:deadsnakes/ppa"
-    #       packages: [python3.8-dev, python3.8-venv, g++-5, libexempi-dev]
-    #       config:
-    #         retries: true
+    - env: PYTHON=3.8 GCC=5
+      os: linux
+      sudo: required
+      dist: xenial
+      python: "3.8"
+      addons: &gcc5_xenial
+        apt:
+          sources:
+            - sourceline: "ppa:deadsnakes/ppa"
+          packages: [python3.8-dev, python3.8-venv, g++-5, libexempi-dev]
+          config:
+            retries: true
 
     - os: osx
       osx_image: xcode9.4
@@ -162,8 +162,8 @@ matrix:
             $PYTHON_CMD -m pip install twine
             $PYTHON_CMD -m twine upload wheelhouse/*.whl
           fi
-      after_script:
-        - curl -X POST -d "token=$RTD_TOKEN" https://readthedocs.org/api/v2/webhook/pikepdf/39557/
+      # after_script:
+      #   - curl -X POST -d "token=$RTD_TOKEN" https://readthedocs.org/api/v2/webhook/pikepdf/39557/
 
 stages:
   - name: test
@@ -215,9 +215,10 @@ install:
   - $PYTHON_CMD -m pip install -r requirements/test.txt
 
 script:
-  - python3 -m pytest
+  - python3 -m pytest -n auto
 
 branches:
   except:
     - docs
     - azure-pipelines
+    - feature/azure

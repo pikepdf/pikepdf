@@ -11,7 +11,7 @@ environment:
     - PYTHON: 35
     - PYTHON: 36
     - PYTHON: 37
-    #- PYTHON: 38
+    - PYTHON: 38
   TWINE_PASSWORD:
     secure: RZZXYbbTOzKMSE/GdzIG/x+eqehSEeu98j0Ggs+/fG8=
 install:
