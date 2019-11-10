@@ -165,6 +165,10 @@ stages:
                 - script: |
                     mkdir -p dist
                     mv $(Pipeline.Workspace)/sdist/* dist
+                    mv $(Pipeline.Workspace)/linux/* dist
+                    mv $(Pipeline.Workspace)/macos/* dist
+                    mv $(Pipeline.Workspace)/win64/* dist
+                    mv $(Pipeline.Workspace)/win32/* dist
                   displayName: "Organize artifacts"
                 - script: |
                     python -m pip install -U pip
