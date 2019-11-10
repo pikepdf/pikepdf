@@ -3,7 +3,7 @@ pikepdf
 
 **pikepdf** is a Python library for reading and writing PDF files.
 
-[![Travis CI build status (Linux and macOS)](https://img.shields.io/travis/pikepdf/pikepdf/master.svg?label=Linux%2fmacOS%20build)](https://travis-ci.org/pikepdf/pikepdf) [![AppVeyor CI build status (Windows)](https://img.shields.io/appveyor/ci/jbarlow83/pikepdf/master.svg?label=Windows%20build)](https://ci.appveyor.com/project/jbarlow83/pikepdf) [![PyPI](https://img.shields.io/pypi/v/pikepdf.svg)](https://pypi.org/project/pikepdf/) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pikepdf)
+[![Build Status](https://dev.azure.com/jim0585/pikepdf/_apis/build/status/pikepdf.pikepdf?branchName=master)](https://dev.azure.com/jim0585/pikepdf/_build/latest?definitionId=1&branchName=master) [![PyPI](https://img.shields.io/pypi/v/pikepdf.svg)](https://pypi.org/project/pikepdf/) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pikepdf)
 
 pikepdf is based on [QPDF](https://github.com/qpdf/qpdf), a powerful PDF manipulation and repair library.
 
