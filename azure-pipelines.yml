@@ -9,6 +9,14 @@ variables:
   cibuildwheel_version: "0375e92110113689025a5f05376f77d220d8b5c9"
   cibw_before_build: "pip install pybind11"
 
+trigger:
+  tags:
+    include:
+      - v*
+  branches:
+    include:
+      - "*"
+
 stages:
   - stage: "Build_and_test"
     jobs:
