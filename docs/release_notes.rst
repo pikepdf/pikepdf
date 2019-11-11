@@ -25,6 +25,7 @@ v1.7.0
 -  Support for building on C++11 has been removed. A C++14 compiler is now required.
 -  pikepdf now generates manylinux2010 wheels on Linux.
 -  Build and deploy infrastructure migrated to Azure Pipelines.
+-  All wheels are now available for Python 3.5 through 3.8.
 
 v1.6.5
 ======
