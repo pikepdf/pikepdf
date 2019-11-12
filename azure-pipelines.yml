@@ -1,12 +1,12 @@
 variables:
-  qpdf_version: "9.0.0"
+  qpdf_version: "9.0.2"
   qpdf_release: ${{ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}.tar.gz', variables.qpdf_version) }}
   jpeg_release: "https://www.ijg.org/files/jpegsrc.v9c.tar.gz"
   zlib_release: "https://www.zlib.net/zlib-1.2.11.tar.gz"
   cibw_skip: "cp27-* cp34-*"
-  cibw_test_command: "pytest -nauto --junitxml=test.xml {project}/tests"
+  cibw_test_command: "pytest -nauto --junitxml={project}/test.xml {project}/tests"
   cibw_test_requires: "-r requirements/test.txt"
-  cibuildwheel_version: "0375e92110113689025a5f05376f77d220d8b5c9"
+  cibuildwheel_version: "1.0.0"
   cibw_before_build: "pip install pybind11"
 
 trigger:
@@ -18,7 +18,7 @@ trigger:
       - "*"
 
 stages:
-  - stage: "Build_and_test"
+  - stage: "sdist"
     jobs:
       - job: linux_sdist
         pool: { vmImage: "Ubuntu-16.04" }
@@ -38,25 +38,34 @@ stages:
               python -m pip install pybind11
               python -m pip install --verbose dist/*.tar.gz
               python -m pip install -r requirements/test.txt
+              python -m pip install pytest-cov
             displayName: "Build sdist"
           - bash: |
               export LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
-              python -m pytest -nauto --junitxml=test-sdist.xml
+              python -m pytest -nauto --junitxml=test-sdist.xml --cov=pikepdf --cov-report=xml
             displayName: "Test"
           - task: PublishTestResults@2
             inputs:
               testResultsFiles: "test-sdist.xml"
               testRunTitle: "$(Agent.OS) - $(Build.DefinitionName) - Python $(python.version)"
             condition: succeededOrFailed()
+          - task: PublishCodeCoverageResults@1
+            inputs:
+              codeCoverageTool: Cobertura
+              summaryFileLocation: "$(System.DefaultWorkingDirectory)/**/coverage.xml"
+              reportDirectory: "$(System.DefaultWorkingDirectory)/**/htmlcov"
           - publish: dist
             artifact: sdist
-      - job: linux
+  - stage: "Wheels"
+    jobs:
+      - job: linux64
         pool: { vmImage: "Ubuntu-16.04" }
         variables:
           cibw_environment: >-
             LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
             CXXFLAGS="-I/usr/local/include"
             LDFLAGS="-L/usr/local/lib"
+          cibw_build: "*-manylinux_x86_64"
           cibw_before_build:
             >- # yaml: folded newlines to spaces, no newline at end
             [ ! -f /usr/local/lib/libz.a ] &&
@@ -90,8 +99,51 @@ stages:
               testResultsFiles: "test.xml"
               testRunTitle: "$(Agent.OS) - $(Build.DefinitionName) - Python $(python.version)"
             condition: succeededOrFailed()
-          - publish: dist
-            artifact: linux
+          - publish: wheelhouse
+            artifact: linux64
+      - job: linux32
+        pool: { vmImage: "Ubuntu-16.04" }
+        variables:
+          cibw_environment: >-
+            LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+            CXXFLAGS="-I/usr/local/include"
+            LDFLAGS="-L/usr/local/lib"
+          cibw_build: "*-manylinux_i686"
+          cibw_before_build:
+            >- # yaml: folded newlines to spaces, no newline at end
+            [ ! -f /usr/local/lib/libz.a ] &&
+            cd zlib &&
+            ./configure &&
+            make -j install &&
+            cd .. ;
+            [ ! -f /usr/local/lib/libjpeg.a ] &&
+            cd jpeg &&
+            ./configure &&
+            make -j install &&
+            cd .. ;
+            [ ! -f /usr/local/lib/libqpdf.a ] &&
+            cd qpdf &&
+            ./autogen.sh &&
+            ./configure &&
+            make -j install &&
+            cd .. ;
+            pip install pybind11
+        steps:
+          - task: UsePythonVersion@0
+          - bash: |
+              mkdir zlib && wget -q $ZLIB_RELEASE -O - | tar xz -C zlib --strip-components=1
+              mkdir jpeg && wget -q $JPEG_RELEASE -O - | tar xz -C jpeg --strip-components=1
+              mkdir qpdf && wget -q $QPDF_RELEASE -O - | tar xz -C qpdf --strip-components=1
+            displayName: "Download QPDF and components"
+          - bash: source azure-pipelines/build.bash
+            displayName: "cibuildwheel"
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFiles: "test.xml"
+              testRunTitle: "$(Agent.OS) - $(Build.DefinitionName) - Python $(python.version)"
+            condition: succeededOrFailed()
+          - publish: wheelhouse
+            artifact: linux32
       - job: macos
         pool: { vmImage: "macOS-10.13" }
         variables:
@@ -102,13 +154,13 @@ stages:
           - task: UsePythonVersion@0
           - bash: source azure-pipelines/build.bash
             displayName: cibuildwheel
-          - publish: dist
+          - publish: wheelhouse
             artifact: macos
       - job: windows64
         pool: { vmImage: "vs2017-win2016" }
         variables:
           qpdf_windows: ${{ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}-bin-msvc64.zip', variables.qpdf_version) }}
-          cibw_skip: "cp27-* cp34-* cp35-win32* cp36-win32* cp37-win32* cp38-win32*"
+          cibw_build: "*-win_amd64"
           cibw_environment: >-
             INCLUDE="$INCLUDE;c:\\qpdf\\include"
             LIB="$LIB;c:\\qpdf\\lib"
@@ -119,13 +171,13 @@ stages:
             displayName: "Download QPDF"
           - bash: source azure-pipelines/build.bash
             displayName: "cibuildwheel"
-          - publish: dist
+          - publish: wheelhouse
             artifact: win64
       - job: windows32
         pool: { vmImage: "vs2017-win2016" }
         variables:
           qpdf_windows: ${{ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}-bin-msvc32.zip', variables.qpdf_version) }}
-          cibw_skip: "cp27-* cp34-* cp35-win_amd64* cp36-win_amd64* cp37-win_amd64* cp38-win_amd64*"
+          cibw_build: "*-win32"
           cibw_environment: >-
             INCLUDE="$INCLUDE;c:\\qpdf\\include"
             LIB="$LIB;c:\\qpdf\\lib"
@@ -136,7 +188,7 @@ stages:
             displayName: "Download QPDF"
           - bash: source azure-pipelines/build.bash
             displayName: "cibuildwheel"
-          - publish: dist
+          - publish: wheelhouse
             artifact: win32
 
   - stage: "Deploy"
@@ -155,7 +207,9 @@ stages:
                 - download: current
                   artifact: sdist
                 - download: current
-                  artifact: linux
+                  artifact: linux64
+                - download: current
+                  artifact: linux32
                 - download: current
                   artifact: macos
                 - download: current
@@ -165,7 +219,8 @@ stages:
                 - script: |
                     mkdir -p dist
                     mv $(Pipeline.Workspace)/sdist/* dist
-                    mv $(Pipeline.Workspace)/linux/* dist
+                    mv $(Pipeline.Workspace)/linux64/* dist
+                    mv $(Pipeline.Workspace)/linux32/* dist
                     mv $(Pipeline.Workspace)/macos/* dist
                     mv $(Pipeline.Workspace)/win64/* dist
                     mv $(Pipeline.Workspace)/win32/* dist
@@ -192,11 +247,12 @@ stages:
                 - script: |
                     python -m twine upload -r "testpypi" --config-file .pypirc dist/*
                   displayName: "Upload to TestPyPI"
-                  condition: not(startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
+                  condition: not(always())
                 - script: |
                     python -m twine upload --config-file .pypirc dist/*
                   displayName: "Upload to PyPI"
-                  condition: startsWith(variables['Build.SourceBranch'], 'refs/tags/')
+                  condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
                 - script: |
-                    curl -X POST -d "token=$(RTD_TOKEN)" https://readthedocs.org/api/v2/webhook/pikepdf/39557/
+                    curl -X POST -d "token=$(TOKEN_RTD)" https://readthedocs.org/api/v2/webhook/pikepdf/39557/
                   displayName: "Trigger ReadTheDocs"
+                  condition: and(succeeded(), or(startsWith(variables['Build.SourceBranch'], 'refs/tags/'), startsWith(variables['Build.SourceBranch'], 'refs/heads/master')))
