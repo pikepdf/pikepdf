@@ -330,6 +330,8 @@ class Extend_Pdf:
 
         """
 
+        # Can use QPDF::closeInputSource() but that requires libqpdf 9.0.0
+
         EMPTY_PDF = (
             b"%PDF-1.3\n"
             b"1 0 obj\n"
