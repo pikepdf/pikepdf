@@ -4,7 +4,7 @@ variables:
   jpeg_release: "https://www.ijg.org/files/jpegsrc.v9c.tar.gz"
   zlib_release: "https://www.zlib.net/zlib-1.2.11.tar.gz"
   cibw_skip: "cp27-* cp34-*"
-  cibw_test_command: "pytest -nauto --junitxml={project}/test.xml {project}/tests"
+  cibw_test_command: "pytest -nauto {project}/tests"
   cibw_test_requires: "-r requirements/test.txt"
   cibuildwheel_version: "1.0.0"
   cibw_before_build: "pip install pybind11"
@@ -66,6 +66,7 @@ stages:
             CXXFLAGS="-I/usr/local/include"
             LDFLAGS="-L/usr/local/lib"
           cibw_build: "*-manylinux_x86_64"
+          cibw_test_command: "pytest -nauto --junitxml=/host/$(System.DefaultWorkingDirectory)/test.xml {project}/tests"
           cibw_before_build:
             >- # yaml: folded newlines to spaces, no newline at end
             [ ! -f /usr/local/lib/libz.a ] &&
@@ -109,6 +110,7 @@ stages:
             CXXFLAGS="-I/usr/local/include"
             LDFLAGS="-L/usr/local/lib"
           cibw_build: "*-manylinux_i686"
+          cibw_test_command: "pytest -nauto --junitxml=/host/$(System.DefaultWorkingDirectory)/test.xml {project}/tests"
           cibw_before_build:
             >- # yaml: folded newlines to spaces, no newline at end
             [ ! -f /usr/local/lib/libz.a ] &&
