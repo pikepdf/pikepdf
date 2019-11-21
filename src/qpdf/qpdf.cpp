@@ -41,6 +41,12 @@ void check_stream_is_usable(py::object stream)
     }
 }
 
+void qpdf_basic_settings(QPDF& q)
+{
+    q.setSuppressWarnings(true);
+    q.setImmediateCopyFrom(true);
+}
+
 std::shared_ptr<QPDF>
 open_pdf(
     py::object filename_or_stream,
@@ -53,11 +59,11 @@ open_pdf(
 {
     auto q = std::make_shared<QPDF>();
 
+    qpdf_basic_settings(*q);
     q->setSuppressWarnings(suppress_warnings);
     q->setPasswordIsHexKey(hex_password);
     q->setIgnoreXRefStreams(ignore_xref_streams);
     q->setAttemptRecovery(attempt_recovery);
-    q->setImmediateCopyFrom(true);
 
     if (py::hasattr(filename_or_stream, "read") && py::hasattr(filename_or_stream, "seek")) {
         // Python code gave us an object with a stream interface
@@ -460,7 +466,7 @@ void init_qpdf(py::module &m)
             []() {
                 auto q = std::make_shared<QPDF>();
                 q->emptyPDF();
-                q->setSuppressWarnings(true);
+                qpdf_basic_settings(*q);
                 return q;
             },
             "Create a new empty PDF from stratch."
