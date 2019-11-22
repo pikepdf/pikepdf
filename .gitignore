@@ -18,6 +18,7 @@ dist/
 tmp/
 var/
 .pytest_cache/
+.mypy_cache/
 .coverage
 coverage/
 pip-wheel-metadata/
