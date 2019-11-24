@@ -24,18 +24,19 @@ virtual environment).
 
     pip install pikepdf
 
-This command installs binary wheels. 64-bit wheels are available for Windows,
-Linux and macOS. (Except Alpine Linux.)
-
-32-bit wheels are available for Windows, for use with the 32-bit version of
-Python (regardless of the bitness  of Windows). 32-bit wheels for Linux will be
-added if anyone uses them.
-
-Binary wheels should work on most systems work on Linux distributions 2007
-and newer, macOS 10.11 and newer (for Homebrew), Windows 7 and newer.
 
 Use ``pip install --user pikepdf`` to install the package for the current user
 only. Use ``pip install pikepdf`` to install to a virtual environment.
+
+This command installs binary wheels. 32- and 64-bit wheels are available for
+Windows, Linux and macOS. Binary wheels should work on most systems work on
+Linux distributions 2010 and newer, macOS 10.11 and newer (for Homebrew),
+Windows 7 and newer. A notable exception is Alpine Linux, which does not support
+manylinux2010 wheels – fortunately, a native package is available for Alpine.
+
+The Linux wheels currently include copies of libqpdf, libjpeg, and zlib
+The Windows wheels include libqpdf. This is to ensure that up-to-date, compatible
+copies of dependent libraries are included.
 
 Platform support
 ----------------
