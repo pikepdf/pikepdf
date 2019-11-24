@@ -589,7 +589,7 @@ void init_qpdf(py::module &m)
             Return type:
                 pikepdf._qpdf.PageList
             )~~~",
-            py::keep_alive<0, 1>()
+            py::return_value_policy::reference_internal
         )
         .def_property_readonly("_pages", &QPDF::getAllPages)
         .def_property_readonly("is_encrypted", &QPDF::isEncrypted)
