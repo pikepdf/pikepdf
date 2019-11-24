@@ -35,13 +35,8 @@ size_t uindex_from_index(PageList &pl, ssize_t index)
 QPDFObjectHandle PageList::get_page(size_t index) const
 {
     auto pages = this->qpdf->getAllPages();
-    if (index < 0)
-        index += pages.size();
-    if (index < 0) // Still
-        throw py::index_error("Accessing nonexistent PDF page number");
-    size_t uindex = index;
-    if (uindex < pages.size())
-        return pages.at(uindex);
+    if (index < pages.size())
+        return pages.at(index);
     throw py::index_error("Accessing nonexistent PDF page number");
 }
 
