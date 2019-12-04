@@ -18,6 +18,12 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v1.7.1
+======
+
+-  Added API/property to iterate all objects in a PDF: ``pikepdf.Pdf.objects``.
+-  Added missing license to the license attached to Python wheels.
+
 v1.7.0
 ======
 
