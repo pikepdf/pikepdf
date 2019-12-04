@@ -483,3 +483,11 @@ def test_copy():
     assert d2 == d
     assert d2 is not d
     assert d2['/Dictionary'] == d['/Dictionary']
+
+
+def test_object_iteration(sandwich):
+    expected = len(sandwich.objects)
+    for n, obj in enumerate(sandwich.objects):
+        if isinstance(obj, Dictionary):
+            assert len(obj.keys()) >= 1
+    assert n + 1 == expected

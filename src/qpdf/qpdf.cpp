@@ -812,6 +812,21 @@ void init_qpdf(py::module &m)
             py::arg("objid"),
             py::arg("gen")
         )
+        .def_property_readonly("objects",
+            [](QPDF &q) {
+                return q.getAllObjects();
+            },
+            R"~~~(
+            Return an iterable list of all objects in the PDF.
+
+            After deleting content from a PDF such as pages, objects related
+            to that page, such as images on the page, may still be present.
+
+            Retun type:
+                pikepdf._ObjectList
+            )~~~",
+            py::return_value_policy::reference_internal
+        )
         .def("make_indirect", &QPDF::makeIndirectObject,
             R"~~~(
             Attach an object to the Pdf as an indirect object
