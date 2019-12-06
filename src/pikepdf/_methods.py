@@ -40,7 +40,7 @@ from .models import PdfMetadata, Permissions, EncryptionInfo
 
 Numeric = TypeVar('Numeric', float, Decimal, int)
 
-__all__: List[str] = []
+__all__ = []
 
 
 def augments(cls_cpp):
