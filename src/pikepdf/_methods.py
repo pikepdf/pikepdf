@@ -72,14 +72,20 @@ def augments(cls_cpp):
     elsewhere in the support class or in the target class.
 
     The target class does not have to be C++ or derived from pybind11.
+
+    THIS DOES NOT work for static methods or class methods. pybind11 does not seem
+    to support this sort of runtime modification.
     """
 
     def class_augment(cls, cls_cpp=cls_cpp):
-        for name, fn in inspect.getmembers(cls, inspect.isfunction):
-            fn.__qualname__ = fn.__qualname__.replace(cls.__name__, cls_cpp.__name__)
-            setattr(cls_cpp, name, fn)
-        for name, fn in inspect.getmembers(cls, inspect.isdatadescriptor):
-            setattr(cls_cpp, name, fn)
+        for name, member in inspect.getmembers(cls):
+            if inspect.isfunction(member):
+                member.__qualname__ = member.__qualname__.replace(
+                    cls.__name__, cls_cpp.__name__
+                )
+                setattr(cls_cpp, name, member)
+            elif inspect.isdatadescriptor(member):
+                setattr(cls_cpp, name, member)
 
         def block_init(self):
             # Prevent initialization of the support class
