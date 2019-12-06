@@ -21,6 +21,7 @@
 #include <qpdf/BufferInputSource.hh>
 #include <qpdf/QPDFWriter.hh>
 #include <qpdf/QPDFPageDocumentHelper.hh>
+#include <qpdf/Pl_Discard.hh>
 
 #include <pybind11/stl.h>
 #include <pybind11/iostream.h>
@@ -897,6 +898,15 @@ void init_qpdf(py::module &m)
 
             Used to implement Pdf.close().
             )~~~"
+        )
+        .def("_decode_all_streams_and_discard",
+            [](QPDF &q) {
+                QPDFWriter w(q);
+                Pl_Discard discard;
+                w.setOutputPipeline(&discard);
+                w.setDecodeLevel(qpdf_dl_all);
+                w.write();
+            }
         )
         .def_property_readonly("_allow_accessibility",
             [](QPDF &q) {

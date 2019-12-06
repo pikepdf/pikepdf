@@ -20,7 +20,7 @@ from subprocess import PIPE, run
 from tempfile import NamedTemporaryFile
 
 from . import Array, Dictionary, Name, Object, Pdf, Stream, Page
-from ._qpdf import _ObjectMapping, Token
+from ._qpdf import _ObjectMapping, Token, PdfError, StreamParser
 from .models import PdfMetadata, Permissions, EncryptionInfo
 
 # pylint: disable=no-member,unsupported-membership-test,unsubscriptable-object
@@ -393,6 +393,43 @@ class Extend_Pdf:
         Returns: pikepdf.models.EncryptionInfo
         """
         return EncryptionInfo(self._encryption_data)
+
+    def check(self):
+        """
+        Check if PDF is well-formed.
+
+        """
+
+        class DiscardingParser(StreamParser):
+            def __init__(self):  # pylint: disable=useless-super-delegation
+                super().__init__()  # required for C++
+
+            def handle_object(self, obj):
+                pass
+
+            def handle_eof(self):
+                pass
+
+        problems = []
+
+        try:
+            self._decode_all_streams_and_discard()
+        except PdfError as e:
+            problems.append(e)
+
+        discarding_parser = DiscardingParser()
+
+        for basic_page in self.pages:
+            page = Page(basic_page)
+            try:
+                page.parse_contents(discarding_parser)
+            except PdfError as e:
+                problems.append(e)
+
+        for warning in self.get_warnings():
+            problems.append("WARNING: " + warning)
+
+        return problems
 
     def _attach(self, *, basename, filebytes, mime=None, desc=''):  # pragma: no cover
         """

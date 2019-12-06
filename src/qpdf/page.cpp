@@ -12,6 +12,7 @@
 #include <cctype>
 
 #include "pikepdf.h"
+#include "object_parsers.h"
 
 #include <qpdf/QPDFPageObjectHelper.hh>
 #include <qpdf/Pipeline.hh>
@@ -186,6 +187,19 @@ void init_page(py::module& m)
                 saved. If never access, the token filter is not applied.
 
                 Multiple token filters may be added to a page/content stream.
+
+                If the page's contents is an array of streams, it is coalesced.
+            )~~~"
+        )
+        .def("parse_contents",
+            [](QPDFPageObjectHelper &poh, PyParserCallbacks &parsercallbacks) {
+                poh.parsePageContents(&parsercallbacks);
+            },
+            R"~~~(
+                Parse a page's content streams using a :class:`pikepdf.StreamParser`.
+
+                The content stream may be interpreted by the StreamParser but is
+                not altered.
 
                 If the page's contents is an array of streams, it is coalesced.
             )~~~"
