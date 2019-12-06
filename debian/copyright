@@ -57,6 +57,10 @@ License: public-domain
  From US Congressional Records.
 Comment: Converted from JPEG to PDF.
 
+Files: test/resources/content-stream-errors.pdf
+Copyright: (C) 2019 Jay Berkenbilt
+License: Apache 2.0
+
 Files: test/resources/enron1.pdf
 Copyright: EnronData.org
 License: CC-BY-3.0

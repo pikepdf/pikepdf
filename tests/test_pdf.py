@@ -238,3 +238,9 @@ def test_with_block_abuse(resources):
         im0 = pdf.pages[0].Resources.XObject['/Im0']
     with pytest.raises(PdfError):
         im0.read_bytes()
+
+
+def test_check(resources):
+    with pikepdf.open(resources / 'content-stream-errors.pdf') as pdf:
+        problems = pdf.check()
+        assert 'parse error while reading' in problems[0]

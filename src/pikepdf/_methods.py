@@ -428,8 +428,10 @@ class Extend_Pdf:
 
     def check(self) -> List[str]:
         """
-        Check if PDF is well-formed.
+        Check if PDF is well-formed.  Similar to ``qpdf --check``.
 
+        Returns:
+            list of strings describing errors of warnings in the PDF
         """
 
         class DiscardingParser(StreamParser):
