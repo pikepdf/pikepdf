@@ -11,4 +11,3 @@
 #include "pikepdf.h"
 
 py::object fspath(py::object filename);
-FILE *portable_fopen(py::object filename, const char* mode);

@@ -66,31 +66,32 @@ open_pdf(
     q->setIgnoreXRefStreams(ignore_xref_streams);
     q->setAttemptRecovery(attempt_recovery);
 
+    py::object stream;
+    bool closing_stream;
+    std::string description;
+
     if (py::hasattr(filename_or_stream, "read") && py::hasattr(filename_or_stream, "seek")) {
         // Python code gave us an object with a stream interface
-        py::object stream = filename_or_stream;
-
+        stream = filename_or_stream;
         check_stream_is_usable(stream);
+        closing_stream = false;
+        description = py::repr(stream);
+    } else {
+        // Python gave something to try opening
+        auto filename = filename_or_stream;
+        auto io_open = py::module::import("io").attr("open");
+        stream = io_open(filename, "rb");
+        closing_stream = true;
+        description = py::str(filename);
+    }
 
-        // The PythonInputSource object will be owned by q
-        auto input_source = PointerHolder<InputSource>(new PythonInputSource(stream));
+    auto input_source = PointerHolder<InputSource>(new PythonInputSource(
+        stream, description, closing_stream
+    ));
+
+    {
         py::gil_scoped_release release;
         q->processInputSource(input_source, password.c_str());
-    } else {
-        auto filename = filename_or_stream;
-        std::string description = py::str(filename);
-        FILE* file = portable_fopen(filename_or_stream, "rb");
-
-        // We can release GIL because Python knows nothing about q at this
-        // point; this could also take a moment for large files
-        py::gil_scoped_release release;
-        q->processFile(
-            description.c_str(),
-            file, // transferring ownership
-            true, // QPDF will close the file (including if there are exceptions)
-            password.c_str()
-        );
-        file = nullptr; // QPDF owns the file and will close it
     }
 
     if (inherit_page_attributes) {

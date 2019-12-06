@@ -31,7 +31,7 @@ def test_new(outdir):
 
 def test_non_filename():
     with pytest.raises(TypeError):
-        Pdf.open(42)
+        Pdf.open(42.0)
 
 
 def test_not_existing_file():
@@ -160,19 +160,6 @@ def test_unicode_filename(resources, outdir):
     pdf = Pdf.open(target1)
     pdf.save(target2)
     assert target2.exists()
-
-
-@pytest.mark.skipif(os.name == 'nt', reason='os.dup hackery not supported')
-def test_fileno_fails(resources):
-    with patch('os.dup') as dup:
-        dup.side_effect = OSError('assume dup fails')
-        with pytest.raises(OSError):
-            Pdf.open(resources / 'pal-1bit-trivial.pdf')
-
-    with patch('os.dup') as dup:
-        dup.return_value = -1
-        with pytest.raises(RuntimeError):
-            Pdf.open(resources / 'pal-1bit-trivial.pdf')
 
 
 def test_min_and_force_version(trivial, outdir):
