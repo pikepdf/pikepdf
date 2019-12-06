@@ -22,6 +22,7 @@ v1.8.0
 ======
 
 -  Added API/property to iterate all objects in a PDF: ``pikepdf.Pdf.objects``.
+-  Added ``pikepdf.Pdf.check()``.
 -  Added missing license to the license attached to Python wheels.
 -  Minor internal fixes and improvements to the continuous integration scripts.
 
@@ -29,7 +30,8 @@ v1.7.1
 ======
 
 -  This release was incorrectly marked as a patch-level release when it actually
-   introduced one minor new feature. It is identical to v1.8.0.
+   introduced one minor new feature. It includes the API change to support
+   ``pikepdf.Pdf.objects``.
 
 v1.7.0
 ======
