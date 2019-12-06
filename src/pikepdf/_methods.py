@@ -179,8 +179,8 @@ class Extend_Object:
         self,
         data: bytes,
         *,
-        filter: Optional[Union[Name, Array]] = None,
-        decode_parms: Optional[Union[Dictionary, Array]] = None,
+        filter: Optional[Union[Name, Array, List]] = None,
+        decode_parms: Optional[Union[Dictionary, Array, List]] = None,
         type_check: bool = True,
     ) -> None:
         """
@@ -218,42 +218,48 @@ class Extend_Object:
 
         if type_check and filter is not None:
             if isinstance(filter, list):
-                filter = Array(filter)
-            filter = filter.wrap_in_array()
+                filter_ = Array(filter)
+            else:
+                filter_ = filter.wrap_in_array()
+            del filter
 
             if isinstance(decode_parms, list):
-                decode_parms = Array(decode_parms)
+                decode_parms_ = Array(decode_parms)
             elif decode_parms is None:
-                decode_parms = Array([])
+                decode_parms_ = Array([])
             else:
-                decode_parms = decode_parms.wrap_in_array()
+                decode_parms_ = decode_parms.wrap_in_array()
+            del decode_parms
 
-            if not all(isinstance(item, Name) for item in filter):
+            if not all(isinstance(item, Name) for item in filter_):
                 raise TypeError(
                     "filter must be: pikepdf.Name or pikepdf.Array([pikepdf.Name])"
                 )
             if not all(
-                (isinstance(item, Dictionary) or item is None) for item in decode_parms
+                (isinstance(item, Dictionary) or item is None) for item in decode_parms_
             ):
                 raise TypeError(
                     "decode_parms must be: pikepdf.Dictionary or "
                     "pikepdf.Array([pikepdf.Dictionary])"
                 )
-            if len(decode_parms) != 0:
-                if len(filter) != len(decode_parms):
+            if len(decode_parms_) != 0:
+                if len(filter_) != len(decode_parms_):
                     raise ValueError(
                         (
                             "filter ({}) and decode_parms ({}) must be arrays of "
                             " same length"
-                        ).format(repr(filter), repr(decode_parms))
+                        ).format(repr(filter_), repr(decode_parms_))
                     )
-            if len(filter) == 1:
-                filter = filter[0]
-            if len(decode_parms) == 0:
-                decode_parms = None
-            elif len(decode_parms) == 1:
-                decode_parms = decode_parms[0]
-        self._write(data, filter=filter, decode_parms=decode_parms)
+            if len(filter_) == 1:
+                filter_ = filter_[0]
+            if len(decode_parms_) == 0:
+                decode_parms_ = None
+            elif len(decode_parms_) == 1:
+                decode_parms_ = decode_parms_[0]
+        else:
+            filter_ = filter
+            decode_parms_ = decode_parms
+        self._write(data, filter=filter_, decode_parms=decode_parms_)
 
 
 @augments(Pdf)

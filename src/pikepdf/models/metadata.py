@@ -12,6 +12,7 @@ from datetime import datetime
 from functools import wraps
 from io import BytesIO
 from warnings import warn
+from typing import List
 
 from lxml import etree
 from lxml.etree import parse, QName, XMLSyntaxError
@@ -149,7 +150,7 @@ def decode_pdf_date(s: str) -> datetime:
 
 class AuthorConverter:
     @staticmethod
-    def xmp_from_docinfo(docinfo_val: str) -> list:
+    def xmp_from_docinfo(docinfo_val: str) -> List[str]:
         return [docinfo_val]
 
     @staticmethod
@@ -161,7 +162,7 @@ class AuthorConverter:
 
 if sys.version_info < (3, 7):
 
-    def fromisoformat(datestr):
+    def fromisoformat(datestr: str) -> datetime:
         # strptime %z can't parse a timezone with punctuation
         if re.search(r'[+-]\d{2}[-:]\d{2}$', datestr):
             datestr = datestr[:-3] + datestr[-2:]

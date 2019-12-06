@@ -13,7 +13,7 @@ from itertools import zip_longest
 from pathlib import Path
 from shutil import copyfileobj
 from tempfile import NamedTemporaryFile
-from typing import Tuple, BinaryIO, Optional, TypeVar
+from typing import Tuple, BinaryIO, Optional, TypeVar, Sequence
 from zlib import decompress, error as ZlibError
 
 from .. import Array, Dictionary, Name, Object, PdfError, Stream
@@ -113,12 +113,12 @@ class PdfImageBase(ABC):
         return self._metadata('ColorSpace', array_str_colorspace, [])
 
     @property
-    def filters(self) -> list:
+    def filters(self) -> Sequence:
         """List of names of the filters that we applied to encode this image"""
         return self._metadata('Filter', array_str, [])
 
     @property
-    def decode_parms(self) -> list:
+    def decode_parms(self) -> Sequence:
         """List of the /DecodeParms, arguments to filters"""
         return self._metadata('DecodeParms', dict_or_array_dict, [])
 
@@ -205,7 +205,7 @@ class PdfImageBase(ABC):
         return m
 
     @property
-    def filter_decodeparms(self) -> list:
+    def filter_decodeparms(self) -> Sequence:
         """PDF has a lot of optional data structures concerning /Filter and
         /DecodeParms. /Filter can be absent or a name or an array, /DecodeParms
         can be absent or a dictionary (if /Filter is a name) or an array (if
