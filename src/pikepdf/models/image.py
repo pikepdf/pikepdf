@@ -5,7 +5,6 @@
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
 import struct
-import typing
 from abc import ABC, abstractmethod
 from decimal import Decimal
 from io import BytesIO
@@ -13,15 +12,9 @@ from itertools import zip_longest
 from pathlib import Path
 from shutil import copyfileobj
 from tempfile import NamedTemporaryFile
-from typing import Tuple, BinaryIO, Optional, TypeVar
 from zlib import decompress, error as ZlibError
 
 from .. import Array, Dictionary, Name, Object, PdfError, Stream
-
-if typing.TYPE_CHECKING:
-    import PIL
-else:
-    Image = TypeVar('Image')
 
 
 class DependencyError(Exception):
@@ -88,22 +81,22 @@ class PdfImageBase(ABC):
         pass
 
     @property
-    def width(self) -> int:
+    def width(self):
         """Width of the image data in pixels"""
         return self._metadata('Width', int, None)
 
     @property
-    def height(self) -> int:
+    def height(self):
         """Height of the image data in pixels"""
         return self._metadata('Height', int, None)
 
     @property
-    def image_mask(self) -> bool:
+    def image_mask(self):
         """``True`` if this is an image mask"""
         return self._metadata('ImageMask', bool, False)
 
     @property
-    def _bpc(self) -> int:
+    def _bpc(self):
         """Bits per component for this image (low-level)"""
         return self._metadata('BitsPerComponent', int, None)
 
@@ -113,12 +106,12 @@ class PdfImageBase(ABC):
         return self._metadata('ColorSpace', array_str_colorspace, [])
 
     @property
-    def filters(self) -> list:
+    def filters(self):
         """List of names of the filters that we applied to encode this image"""
         return self._metadata('Filter', array_str, [])
 
     @property
-    def decode_parms(self) -> list:
+    def decode_parms(self):
         """List of the /DecodeParms, arguments to filters"""
         return self._metadata('DecodeParms', dict_or_array_dict, [])
 
@@ -142,7 +135,7 @@ class PdfImageBase(ABC):
         )
 
     @property
-    def bits_per_component(self) -> int:
+    def bits_per_component(self):
         """Bits per component of this image"""
         if self._bpc is None:
             return 1 if self.image_mask else 8
@@ -150,7 +143,7 @@ class PdfImageBase(ABC):
 
     @property
     @abstractmethod
-    def is_inline(self) -> bool:
+    def is_inline(self):
         pass
 
     @property
@@ -159,17 +152,17 @@ class PdfImageBase(ABC):
         pass
 
     @property
-    def indexed(self) -> bool:
+    def indexed(self):
         """``True`` if the image has a defined color palette"""
         return '/Indexed' in self._colorspaces
 
     @property
-    def size(self) -> Tuple[int, int]:
+    def size(self):
         """Size of image as (width, height)"""
         return self.width, self.height
 
     @property
-    def mode(self) -> str:
+    def mode(self):
         """``PIL.Image.mode`` equivalent for this image, where possible
 
         If an ICC profile is attached to the image, we still attempt to resolve a Pillow
@@ -205,7 +198,7 @@ class PdfImageBase(ABC):
         return m
 
     @property
-    def filter_decodeparms(self) -> list:
+    def filter_decodeparms(self):
         """PDF has a lot of optional data structures concerning /Filter and
         /DecodeParms. /Filter can be absent or a name or an array, /DecodeParms
         can be absent or a dictionary (if /Filter is a name) or an array (if
@@ -219,7 +212,7 @@ class PdfImageBase(ABC):
         return list(zip_longest(self.filters, self.decode_parms, fillvalue={}))
 
     @property
-    def palette(self) -> Optional[Tuple[str, bytes]]:
+    def palette(self):
         """Retrieves the color palette for this image
 
         Returns:
@@ -290,7 +283,7 @@ class PdfImage(PdfImageBase):
             instance.__init__(obj)
         return instance
 
-    def __init__(self, obj: Object):
+    def __init__(self, obj):
         """Construct a PDF image from a Image XObject inside a PDF
 
         ``pim = PdfImage(page.Resources.XObject['/ImageNN'])``
@@ -336,7 +329,7 @@ class PdfImage(PdfImageBase):
         return metadata_from_obj(self.obj, name, type_, default)
 
     @property
-    def is_inline(self) -> bool:
+    def is_inline(self):
         """``False`` for image XObject"""
         return False
 
@@ -360,7 +353,7 @@ class PdfImage(PdfImageBase):
             self._icc = ImageCms.ImageCmsProfile(iccbytesio)
         return self._icc
 
-    def _extract_direct(self, *, stream: BinaryIO) -> str:
+    def _extract_direct(self, *, stream):
         """Attempt to extract the image directly to a usable image file
 
         If there is no way to extract the image without decompressing or
@@ -443,7 +436,7 @@ class PdfImage(PdfImageBase):
 
         return im
 
-    def _extract_to_stream(self, *, stream: BinaryIO) -> str:
+    def _extract_to_stream(self, *, stream):
         """Attempt to extract the image directly to a usable image file
 
         If possible, the compressed data is extracted and inserted into
@@ -480,7 +473,7 @@ class PdfImage(PdfImageBase):
 
         raise UnsupportedImageTypeError(repr(self))
 
-    def extract_to(self, *, stream: BinaryIO = None, fileprefix: str = '') -> str:
+    def extract_to(self, *, stream=None, fileprefix=''):
         """Attempt to extract the image directly to a usable image file
 
         If possible, the compressed data is extracted and inserted into
@@ -528,7 +521,7 @@ class PdfImage(PdfImageBase):
             copyfileobj(bio, target)
         return str(filepath)
 
-    def read_bytes(self) -> bytes:
+    def read_bytes(self):
         """Decompress this image and return it as unencoded bytes"""
         return self.obj.read_bytes()
 
@@ -558,7 +551,7 @@ class PdfImage(PdfImageBase):
 
         return im
 
-    def _generate_ccitt_header(self, data: bytes):
+    def _generate_ccitt_header(self, data):
         """Construct a CCITT G3 or G4 header from the PDF metadata"""
         # https://stackoverflow.com/questions/2641770/
         # https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf
@@ -696,7 +689,7 @@ class PdfInlineImage(PdfImageBase):
         b'/DCT': b'/DCTDecode',
     }
 
-    def __init__(self, *, image_data: bytes, image_object: tuple):
+    def __init__(self, *, image_data, image_object: tuple):
         """
         Args:
             image_data: data stream for image, extracted from content stream
@@ -738,7 +731,7 @@ class PdfInlineImage(PdfImageBase):
     def _metadata(self, name, type_, default):
         return metadata_from_obj(self.obj, name, type_, default)
 
-    def unparse(self) -> bytes:
+    def unparse(self):
         tokens = []
         tokens.append(b'BI')
         metadata = []
@@ -753,7 +746,7 @@ class PdfInlineImage(PdfImageBase):
         return b'\n'.join(tokens)
 
     @property
-    def is_inline(self) -> bool:
+    def is_inline(self):
         return True
 
     @property

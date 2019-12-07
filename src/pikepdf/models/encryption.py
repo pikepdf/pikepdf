@@ -7,8 +7,6 @@
 import collections
 import types
 
-from .._qpdf import EncryptionMethod
-
 
 class Permissions(types.SimpleNamespace):
     """
@@ -65,17 +63,17 @@ class EncryptionInfo:
         self._encdict = encdict
 
     @property
-    def R(self) -> int:
+    def R(self):
         """Revision number of the security handler."""
         return self._encdict['R']
 
     @property
-    def V(self) -> int:
+    def V(self):
         """Version of PDF password algorithm."""
         return self._encdict['V']
 
     @property
-    def P(self) -> int:
+    def P(self):
         """Encoded permission bits.
 
         See :meth:`Pdf.allow` instead.
@@ -83,22 +81,22 @@ class EncryptionInfo:
         return self._encdict['P']
 
     @property
-    def stream_method(self) -> EncryptionMethod:
+    def stream_method(self):
         """Encryption method used to encode streams."""
         return self._encdict['stream']
 
     @property
-    def string_method(self) -> EncryptionMethod:
+    def string_method(self):
         """Encryption method used to encode strings."""
         return self._encdict['string']
 
     @property
-    def file_method(self) -> EncryptionMethod:
+    def file_method(self):
         """Encryption method used to encode the whole file."""
         return self._encdict['file']
 
     @property
-    def user_password(self) -> bytes:
+    def user_password(self):
         """If possible, return the user password.
 
         The user password can only be retrieved when a PDF is opened
@@ -111,12 +109,12 @@ class EncryptionInfo:
         return self._encdict['user_passwd']
 
     @property
-    def encryption_key(self) -> bytes:
+    def encryption_key(self):
         """The RC4 or AES encryption key used for this file."""
         return self._encdict['encryption_key']
 
     @property
-    def bits(self) -> int:
+    def bits(self):
         """The number of encryption bits."""
         return len(self._encdict['encryption_key']) * 8
 

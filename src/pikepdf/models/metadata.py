@@ -149,14 +149,15 @@ def decode_pdf_date(s: str) -> datetime:
 
 class AuthorConverter:
     @staticmethod
-    def xmp_from_docinfo(docinfo_val: str) -> list:
+    def xmp_from_docinfo(docinfo_val):
         return [docinfo_val]
 
     @staticmethod
-    def docinfo_from_xmp(xmp_val) -> str:
+    def docinfo_from_xmp(xmp_val):
         if isinstance(xmp_val, str):
             return xmp_val
-        return '; '.join(xmp_val)
+        else:
+            return '; '.join(xmp_val)
 
 
 if sys.version_info < (3, 7):
@@ -177,13 +178,13 @@ else:
 
 class DateConverter:
     @staticmethod
-    def xmp_from_docinfo(docinfo_val: str) -> str:
+    def xmp_from_docinfo(docinfo_val):
         if docinfo_val == '':
             return ''
         return decode_pdf_date(docinfo_val).isoformat()
 
     @staticmethod
-    def docinfo_from_xmp(xmp_val: str) -> str:
+    def docinfo_from_xmp(xmp_val):
         if xmp_val.endswith('Z'):
             xmp_val = xmp_val[:-1] + '+00:00'
         dateobj = fromisoformat(xmp_val)
@@ -245,7 +246,7 @@ class PdfMetadata(MutableMapping):
     NS = {prefix: uri for uri, prefix in DEFAULT_NAMESPACES}
     REVERSE_NS = {uri: prefix for uri, prefix in DEFAULT_NAMESPACES}
 
-    def __init__(self, pdf, pikepdf_mark: bool = True, sync_docinfo: bool = True):
+    def __init__(self, pdf, pikepdf_mark=True, sync_docinfo=True):
         self._pdf = pdf
         self._xmp = None
         self.mark = pikepdf_mark
@@ -396,7 +397,7 @@ class PdfMetadata(MutableMapping):
         if self.sync_docinfo:
             self._update_docinfo()
 
-    def _qname(self, name: str):
+    def _qname(self, name):
         """Convert name to an XML QName
 
         e.g. pdf:Producer -> {http://ns.adobe.com/pdf/1.3/}Producer
@@ -413,7 +414,7 @@ class PdfMetadata(MutableMapping):
         uri = self.NS[prefix]
         return QName(uri, tag)
 
-    def _prefix_from_uri(self, uriname: str):
+    def _prefix_from_uri(self, uriname):
         """Given a fully qualified XML name, find a prefix
 
         e.g. {http://ns.adobe.com/pdf/1.3/}Producer -> pdf:Producer
@@ -454,7 +455,7 @@ class PdfMetadata(MutableMapping):
                 raise ValueError("Metadata seems to be XML but not XMP")
         return rdf
 
-    def _get_elements(self, name: str = ''):
+    def _get_elements(self, name=''):
         """Get elements from XMP
 
         Core routine to find elements matching name within the XMP and yield
@@ -498,14 +499,14 @@ class PdfMetadata(MutableMapping):
         yield from (v[2] for v in self._get_elements(name))
 
     @ensure_loaded
-    def __contains__(self, key: str):
+    def __contains__(self, key):
         try:
             return any(self._get_element_values(key))
         except KeyError:
             return False
 
     @ensure_loaded
-    def __getitem__(self, key: str):
+    def __getitem__(self, key):
         try:
             return next(self._get_element_values(key))
         except StopIteration:
@@ -590,7 +591,7 @@ class PdfMetadata(MutableMapping):
                 raise TypeError(val)
 
     @ensure_loaded
-    def __delitem__(self, key: str):
+    def __delitem__(self, key):
         if not self._updating:
             raise RuntimeError("Metadata not opened for editing, use with block")
         try:

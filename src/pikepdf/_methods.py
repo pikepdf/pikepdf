@@ -13,23 +13,17 @@ We can also move the implementation to C++ if desired.
 """
 
 import inspect
-import sys
-
 from collections import namedtuple
 from collections.abc import KeysView
-from decimal import Decimal
 from io import BytesIO
 from subprocess import PIPE, run
 from tempfile import NamedTemporaryFile
-from typing import Set, Optional, Union, Tuple, TypeVar, Sized, List, Mapping
 
 from . import Array, Dictionary, Name, Object, Pdf, Stream, Page
 from ._qpdf import _ObjectMapping, Token, PdfError, StreamParser
 from .models import PdfMetadata, Permissions, EncryptionInfo
 
 # pylint: disable=no-member,unsupported-membership-test,unsubscriptable-object
-
-Numeric = TypeVar('Numeric', float, Decimal, int)
 
 __all__ = []
 
@@ -88,7 +82,7 @@ def augments(cls_cpp):
     return class_augment
 
 
-def _single_page_pdf(page: Object):
+def _single_page_pdf(page):
     """Construct a single page PDF from the provided page in memory"""
     pdf = Pdf.new()
     pdf.pages.append(page)
@@ -115,7 +109,7 @@ def _mudraw(buffer, fmt):
 
 @augments(Object)
 class Extend_Object:
-    def _repr_mimebundle_(self, include, exclude, **kwargs) -> Mapping[str, bytes]:
+    def _repr_mimebundle_(self, include, exclude, **kwargs):
         """Present options to IPython for rich display of this object
 
         See https://ipython.readthedocs.io/en/stable/config/integrating.html#rich-display
@@ -127,7 +121,7 @@ class Extend_Object:
             and self.Type == Name.Page
         ):
             return Page(self)._repr_mimebundle_(include, exclude, **kwargs)
-        return {}
+        return None
 
     def _ipython_key_completions_(self):
         if isinstance(self, Dictionary):
@@ -136,7 +130,7 @@ class Extend_Object:
             return self.stream_dict.keys()
         return None
 
-    def emplace(self, other: Object) -> None:
+    def emplace(self, other):
         """Copy all items from other without making a new object.
 
         Particularly when working with pages, it may be desirable to remove all
@@ -167,14 +161,7 @@ class Extend_Object:
         for k in del_keys:
             del self[k]  # pylint: disable=unsupported-delete-operation
 
-    def write(
-        self,
-        data: bytes,
-        *,
-        filter: Optional[Union[Name, Array]] = None,
-        decode_parms: Optional[Union[Dictionary, Array]] = None,
-        type_check: bool = True,
-    ) -> None:
+    def write(self, data, *, filter=None, decode_parms=None, type_check=True):
         """
         Replace stream object's data with new (possibly compressed) `data`.
 
@@ -190,12 +177,12 @@ class Extend_Object:
         into a PDF and displayed as images.
 
         Args:
-            data: the new data to use for replacement
-            filter: The filter(s) with which the
+            data (bytes): the new data to use for replacement
+            filter (pikepdf.Name or pikepdf.Array): The filter(s) with which the
                 data is (already) encoded
-            decode_parms: Parameters for the
+            decode_parms (pikepdf.Dictionary or pikepdf.Array): Parameters for the
                 filters with which the object is encode
-            type_check: Check arguments; use False only if you want to
+            type_check (bool): Check arguments; use False only if you want to
                 intentionally create malformed PDFs.
 
         If only one `filter` is specified, it may be a name such as
@@ -250,7 +237,7 @@ class Extend_Object:
 
 @augments(Pdf)
 class Extend_Pdf:
-    def _repr_mimebundle_(self, **_kwargs) -> Mapping[str, bytes]:
+    def _repr_mimebundle_(self, **_kwargs):
         """
         Present options to IPython or Jupyter for rich display of this object
 
@@ -264,9 +251,7 @@ class Extend_Pdf:
         data = {'application/pdf': bio.read()}
         return data
 
-    def open_metadata(
-        self, set_pikepdf_as_editor: bool = True, update_docinfo: bool = True
-    ):
+    def open_metadata(self, set_pikepdf_as_editor=True, update_docinfo=True):
         """
         Open the PDF's XMP metadata for editing
 
@@ -293,7 +278,7 @@ class Extend_Pdf:
             self, pikepdf_mark=set_pikepdf_as_editor, sync_docinfo=update_docinfo
         )
 
-    def make_stream(self, data: bytes):
+    def make_stream(self, data):
         """
         Create a new pikepdf.Stream object that is attached to this PDF.
 
@@ -302,7 +287,7 @@ class Extend_Pdf:
         """
         return Stream(self, data)
 
-    def add_blank_page(self, *, page_size: Tuple[Numeric, Numeric] = (612, 792)):
+    def add_blank_page(self, *, page_size=(612, 792)):
         """
         Add a blank page to this PD. If pages already exist, the page will be added to
         the end. Pages may be reordered using ``Pdf.pages``.
@@ -385,7 +370,7 @@ class Extend_Pdf:
         self.close()
 
     @property
-    def allow(self) -> Permissions:
+    def allow(self):
         """
         Report permissions associated with this PDF.
 
@@ -405,20 +390,17 @@ class Extend_Pdf:
         return Permissions(**results)
 
     @property
-    def encryption(self) -> Optional[EncryptionInfo]:
+    def encryption(self):
         """
         Report encryption information for this PDF.
 
         Encryption settings may only be changed when a PDF is saved.
 
-        Returns: pikepdf.models.EncryptionInfo or None
+        Returns: pikepdf.models.EncryptionInfo
         """
-        encdata = self._encryption_data
-        if not encdata:
-            return None
-        return EncryptionInfo(encdata)
+        return EncryptionInfo(self._encryption_data)
 
-    def check(self) -> List[str]:
+    def check(self):
         """
         Check if PDF is well-formed.  Similar to ``qpdf --check``.
 
@@ -457,9 +439,7 @@ class Extend_Pdf:
 
         return problems
 
-    def _attach(
-        self, *, basename: str, filebytes, mime: Optional[str] = None, desc: str = ''
-    ):  # pragma: no cover
+    def _attach(self, *, basename, filebytes, mime=None, desc=''):  # pragma: no cover
         """
         Attach a file to this PDF
 
@@ -552,7 +532,7 @@ class Extend_ObjectMapping:
         return (v for _k, v in self.items())
 
 
-def check_is_box(obj: Object):
+def check_is_box(obj):
     try:
         if obj.is_rectangle:
             return True
@@ -601,7 +581,7 @@ class Extend_Page:
     def __repr__(self):
         return repr(self.obj).replace('Dictionary', 'Page')
 
-    def _repr_mimebundle_(self, include, exclude, **kwargs) -> Mapping[str, bytes]:
+    def _repr_mimebundle_(self, include, exclude, **kwargs):
         data = {}
         bundle = {'application/pdf', 'image/png'}
         if include:
