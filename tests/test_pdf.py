@@ -130,6 +130,7 @@ class TestStreams:
             saved_file_contents = saved_file.read()
         assert saved_file_contents == bio.read()
 
+    @pytest.mark.skipif(sys.version_info < (3, 6), reason="pathlib on 3.5")
     def test_read_not_readable_file(self, outdir):
         writable = (Path(outdir) / 'writeme.pdf').open('wb')
         with pytest.raises(ValueError, match=r'not readable'):
