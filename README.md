@@ -43,7 +43,7 @@ This library is similar to PyPDF2 and pdfrw - it provides low level access to PD
 | Save and load PDF compressed object streams (PDF 1.5)               | ✔                                           | ✘                                         | ✘                                       |
 | Creates linearized ("fast web view") PDFs                           | ✔                                           | ✘                                         | ✘                                       |
 | Actively maintained                                                 | ![pikepdf commit activity][pikepdf-commits] | ![PyPDF2 commit activity][pypdf2-commits] | ![pdfrw commit activity][pdfrw-commits] |
-| Test suite coverage                                                 | ~86%                                        | very low                                  | unknown                                 |
+| Test suite coverage                                                 | ~89%                                        | very low                                  | unknown                                 |
 | Creates PDFs that pass PDF validation tests                         | ✔                                           | ✘                                         | ?                                       |
 | Modifies PDF/A without breaking PDF/A compliance                    | ✔                                           | ✘                                         | ?                                       |
 | Automatically repairs PDFs with internal errors                     | ✔                                           | ✘                                         | ✘                                       |
