@@ -5,7 +5,7 @@ from sys import getrefcount as refcount
 
 import pytest
 
-from pikepdf import Pdf, PdfMatrix, Stream
+from pikepdf import Pdf, PdfMatrix, Stream, Dictionary, Name
 
 
 # pylint: disable=redefined-outer-name,pointless-statement
@@ -232,6 +232,8 @@ def test_bad_insert(fourpages):
     pdf = fourpages
     with pytest.raises(TypeError):
         pdf.pages.insert(0, 'this is a string not a page')
+    with pytest.raises(TypeError):
+        pdf.pages.insert(0, Dictionary(Type=Name.NotAPage, Value="Not a page"))
 
 
 def test_negative_indexing(fourpages, graph):
@@ -307,3 +309,7 @@ def test_add_foreign_twice(graph, outpdf):
     out.pages.append(out.copy_foreign(graph.pages[0]))
     assert len(out.pages) == 2
     out.save(outpdf)
+
+
+def test_repr_pagelist(fourpages):
+    assert '4' in repr(fourpages.pages)
