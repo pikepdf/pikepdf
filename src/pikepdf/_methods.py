@@ -13,6 +13,7 @@ We can also move the implementation to C++ if desired.
 """
 
 import inspect
+import sys
 
 from collections import namedtuple
 from collections.abc import KeysView
@@ -26,15 +27,21 @@ from typing import (
     Union,
     Tuple,
     TypeVar,
-    Collection,
     Sized,
     List,
     Mapping,
+    Iterable,
+    Container,
 )
 
 from . import Array, Dictionary, Name, Object, Pdf, Stream, Page
 from ._qpdf import _ObjectMapping, Token, PdfError, StreamParser
 from .models import PdfMetadata, Permissions, EncryptionInfo
+
+if sys.version_info >= (3, 6):
+    from typing import Collection
+else:
+    Collection = TypeVar('Collection', Sized, Iterable, Container)
 
 # pylint: disable=no-member,unsupported-membership-test,unsubscriptable-object
 
