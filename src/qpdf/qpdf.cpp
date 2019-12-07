@@ -78,7 +78,7 @@ open_pdf(
         description = py::repr(stream);
     } else {
         // Python gave something to try opening, either a string or file descriptor (int)
-        auto filename = filename_or_stream;
+        auto filename = fspath(filename_or_stream);
         auto io_open = py::module::import("io").attr("open");
         stream = io_open(filename, "rb");
         if (! py::isinstance<py::int_>(filename)) // Don't close a file descriptor
