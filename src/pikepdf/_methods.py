@@ -21,27 +21,11 @@ from decimal import Decimal
 from io import BytesIO
 from subprocess import PIPE, run
 from tempfile import NamedTemporaryFile
-from typing import (
-    Set,
-    Optional,
-    Union,
-    Tuple,
-    TypeVar,
-    Sized,
-    List,
-    Mapping,
-    Iterable,
-    Container,
-)
+from typing import Set, Optional, Union, Tuple, TypeVar, Sized, List, Mapping
 
 from . import Array, Dictionary, Name, Object, Pdf, Stream, Page
 from ._qpdf import _ObjectMapping, Token, PdfError, StreamParser
 from .models import PdfMetadata, Permissions, EncryptionInfo
-
-if sys.version_info >= (3, 6):
-    from typing import Collection
-else:
-    Collection = TypeVar('Collection', Sized, Iterable, Container)
 
 # pylint: disable=no-member,unsupported-membership-test,unsubscriptable-object
 
@@ -131,12 +115,7 @@ def _mudraw(buffer, fmt):
 
 @augments(Object)
 class Extend_Object:
-    def _repr_mimebundle_(
-        self,
-        include: Optional[Collection[str]],
-        exclude: Optional[Collection[str]],
-        **kwargs,
-    ) -> Mapping[str, bytes]:
+    def _repr_mimebundle_(self, include, exclude, **kwargs) -> Mapping[str, bytes]:
         """Present options to IPython for rich display of this object
 
         See https://ipython.readthedocs.io/en/stable/config/integrating.html#rich-display
@@ -628,9 +607,7 @@ class Extend_Page:
     def __repr__(self):
         return repr(self.obj).replace('Dictionary', 'Page')
 
-    def _repr_mimebundle_(
-        self, include: Collection[str], exclude: Collection[str], **kwargs
-    ) -> Mapping[str, bytes]:
+    def _repr_mimebundle_(self, include, exclude, **kwargs) -> Mapping[str, bytes]:
         data = {}
         bundle = {'application/pdf', 'image/png'}
         if include:
