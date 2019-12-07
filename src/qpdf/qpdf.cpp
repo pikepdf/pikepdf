@@ -67,7 +67,7 @@ open_pdf(
     q->setAttemptRecovery(attempt_recovery);
 
     py::object stream;
-    bool closing_stream = false;
+    bool closing_stream;
     std::string description;
 
     if (py::hasattr(filename_or_stream, "read") && py::hasattr(filename_or_stream, "seek")) {
@@ -82,6 +82,7 @@ open_pdf(
         auto filename = fspath(filename_or_stream);
         auto io_open = py::module::import("io").attr("open");
         stream = io_open(filename, "rb");
+        closing_stream = true;
         description = py::str(filename);
     }
 
