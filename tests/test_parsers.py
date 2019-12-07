@@ -61,7 +61,9 @@ def test_text_filter(resources, outdir):
     page = pdf.pages[0]
 
     keep = []
-    for operands, command in parse_content_stream(page):
+    for operands, command in parse_content_stream(
+        page, """TJ Tj ' " BT ET Td TD Tm T* Tc Tw Tz TL Tf Tr Ts"""
+    ):
         if command == Operator('Tj'):
             print("skipping Tj")
             continue
