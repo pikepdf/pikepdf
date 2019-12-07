@@ -77,12 +77,11 @@ open_pdf(
         closing_stream = false;
         description = py::repr(stream);
     } else {
-        // Python gave something to try opening, either a string or file descriptor (int)
+        if (py::isinstance<py::int_>(filename_or_stream))
+            throw py::type_error("expected str, bytes or os.PathLike object");
         auto filename = fspath(filename_or_stream);
         auto io_open = py::module::import("io").attr("open");
         stream = io_open(filename, "rb");
-        if (! py::isinstance<py::int_>(filename)) // Don't close a file descriptor
-            closing_stream = true;
         description = py::str(filename);
     }
 
@@ -378,6 +377,8 @@ void save_pdf(
         check_stream_is_usable(stream);
         description = py::repr(stream);
     } else {
+        if (py::isinstance<py::int_>(filename_or_stream))
+            throw py::type_error("expected str, bytes or os.PathLike object");
         py::object filename = fspath(filename_or_stream);
         py::object ospath = py::module::import("os").attr("path");
         py::object samefile = ospath.attr("samefile");

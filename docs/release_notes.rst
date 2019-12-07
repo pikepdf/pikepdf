@@ -26,7 +26,6 @@ v1.8.0
    text description of these problems, similar to ``qpdf --check``.
 -  Improved internal method for opening files so that the code is smaller and
    more portable.
--  File descriptors may now be opened directly.
 -  Added missing licenses to the license attached to Python wheels.
 -  Minor internal fixes and improvements to the continuous integration scripts.
 

@@ -36,8 +36,8 @@ def test_non_filename():
 
 def test_file_descriptor(resources):
     with open(resources / 'pal-1bit-trivial.pdf', 'rb') as f:
-        pdf = Pdf.open(f.fileno())
-        assert pdf.check() == []
+        with pytest.raises(TypeError):
+            pdf = Pdf.open(f.fileno())
 
 
 def test_not_existing_file():
