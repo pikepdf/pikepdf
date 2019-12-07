@@ -5,7 +5,7 @@ Testing focused on pikepdf.Pdf
 import os
 import shutil
 import sys
-from io import StringIO
+from io import StringIO, BytesIO
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -38,6 +38,11 @@ def test_file_descriptor(resources):
     with (resources / 'pal-1bit-trivial.pdf').open('rb') as f:
         with pytest.raises(TypeError):
             pdf = Pdf.open(f.fileno())
+
+
+def test_save_to_file_descriptor_fails(trivial):
+    with pytest.raises(TypeError):
+        trivial.save(2)
 
 
 def test_not_existing_file():
@@ -124,6 +129,21 @@ class TestStreams:
         with (outdir / 'nostream.pdf').open('rb') as saved_file:
             saved_file_contents = saved_file.read()
         assert saved_file_contents == bio.read()
+
+    def test_read_not_readable_file(self, outdir):
+        writable = (Path(outdir) / 'writeme.pdf').open('wb')
+        with pytest.raises(ValueError, match=r'not readable'):
+            Pdf.open(writable)
+
+    def test_open_not_seekable_stream(self, resources):
+        class UnseekableBytesIO(BytesIO):
+            def seekable(self):
+                return False
+
+        testio = UnseekableBytesIO((resources / 'pal-1bit-trivial.pdf').read_bytes())
+
+        with pytest.raises(ValueError, match=r'not seekable'):
+            Pdf.open(testio)
 
 
 class TestMemory:
@@ -237,3 +257,7 @@ def test_check(resources):
     with pikepdf.open(resources / 'content-stream-errors.pdf') as pdf:
         problems = pdf.check()
         assert 'parse error while reading' in problems[0]
+
+
+def test_repr(trivial):
+    assert repr(trivial).startswith('<')

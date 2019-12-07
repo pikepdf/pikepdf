@@ -31,9 +31,9 @@ public:
     PythonInputSource(py::object stream, std::string name, bool close) :
             stream(stream), name(name), close(close)
     {
-        if (!stream.attr("readable")())
+        if (!stream.attr("readable")().cast<bool>())
             throw py::value_error("not readable");
-        if (!stream.attr("seekable")())
+        if (!stream.attr("seekable")().cast<bool>())
             throw py::value_error("not seekable");
     }
     virtual ~PythonInputSource()
