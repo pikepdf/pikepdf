@@ -37,8 +37,7 @@ Operator.__module__ = __name__
 class _ObjectMeta(type(Object)):
     """Supports instance checking"""
 
-    # Don't decorate as @classmethod
-    def __instancecheck__(cls, instance):  # pylint: disable=no-self-argument
+    def __instancecheck__(cls, instance):
         if type(instance) != Object:
             return False
         return cls.object_type == instance._type_code
