@@ -22,7 +22,7 @@ v1.8.1
 ======
 
 -  Fixed an issue where files opened by name may not be closed correctly. Regression
-   in v1.8.0.
+   from v1.8.0.
 -  Fixed test for readable/seekable streams evaluated to always true.
 
 v1.8.0
@@ -33,7 +33,8 @@ v1.8.0
    text description of these problems, similar to ``qpdf --check``.
 -  Improved internal method for opening files so that the code is smaller and
    more portable.
--  Added missing licenses to the license attached to Python wheels.
+-  Added missing licenses to account for other binaries that may be included in
+   Python wheels.
 -  Minor internal fixes and improvements to the continuous integration scripts.
 
 v1.7.1
@@ -46,7 +47,8 @@ v1.7.1
 v1.7.0
 ======
 
--  Shallow object copy with ``copy.copy(pikepdf.Object)`` is now supported.
+-  Shallow object copy with ``copy.copy(pikepdf.Object)`` is now supported. (Deep
+   copy is not yet supported.)
 -  Support for building on C++11 has been removed. A C++14 compiler is now required.
 -  pikepdf now generates manylinux2010 wheels on Linux.
 -  Build and deploy infrastructure migrated to Azure Pipelines.
@@ -75,13 +77,16 @@ v1.6.3
 ======
 
 -  Fixed compatibility with libqpdf 9.0.0.
+
    -  A new method introduced in libqpdf 9.0.0 overloaded an older method, making
       a reference to this method in pikepdf ambiguous.
+
    -  A test relied on libqpdf raising an exception when a pikepdf user called
       ``Pdf.save(..., min_version='invalid')``. libqpdf no longer raises an
       exception in this situation, but ignores the invalid version. In the interest
       of supporting both versions, we defer to libqpdf. The failing test is
       removed, and documentation updated.
+
 -  Several warnings, most specific to the Visual C++ compiler, were fixed.
 -  The Windows CI scripts were adjusted for the change in libqpdf ABI version.
 -  Wheels are now built against libqpdf 9.0.0.
@@ -153,11 +158,9 @@ v1.3.1
 v1.3.0
 ======
 
--  Remove dependency on ``defusedxml.lxml``. Unfortunately this module
-   of ``defusedxml`` is deprecated because the issue it worked around
-   have been resolved in the underlying ``lxml`` library. In the absence
-   of other options for XML hardening we have reverted to standard
-   ``lxml``.
+-  Remove dependency on ``defusedxml.lxml``, because this library is deprecated.
+   In the absence of other options for XML hardening we have reverted to
+   standard ``lxml``.
 -  Fixed an issue where ``PdfImage.extract_to()`` would write a file in
    the wrong directory.
 -  Eliminated an intermediate buffer that was used when saving to an IO
@@ -168,7 +171,8 @@ v1.3.0
    update a page without generating a new page object so that
    links/table of contents entries to the original page are preserved.
 -  Improved documentation. Eliminated all ``arg0`` placeholder variable
-   names.
+   names, which appeared when the documentation generator could not read a
+   C++ variable name.
 -  Added ``PageList.remove(p=1)``, so that it is possible to remove
    pages using counting numbers.
 
