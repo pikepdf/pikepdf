@@ -423,7 +423,7 @@ class Extend_Pdf:
         try:
             self._decode_all_streams_and_discard()
         except PdfError as e:
-            problems.append(e)
+            problems.append(str(e))
 
         discarding_parser = DiscardingParser()
 
@@ -432,7 +432,7 @@ class Extend_Pdf:
             try:
                 page.parse_contents(discarding_parser)
             except PdfError as e:
-                problems.append(e)
+                problems.append(str(e))
 
         for warning in self.get_warnings():
             problems.append("WARNING: " + warning)

@@ -257,6 +257,7 @@ def test_with_block_abuse(resources):
 def test_check(resources):
     with pikepdf.open(resources / 'content-stream-errors.pdf') as pdf:
         problems = pdf.check()
+        assert all(isinstance(prob, str) for prob in problems)
         assert 'parse error while reading' in problems[0]
 
 
