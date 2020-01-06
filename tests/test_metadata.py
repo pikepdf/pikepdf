@@ -396,17 +396,26 @@ def test_no_x_xmpmeta(trivial):
     assert xmp['pdfaid:part'] == '2'
 
 
-def test_empty_xmpmeta(trivial):
-    trivial.Root.Metadata = Stream(
-        trivial,
+@pytest.mark.parametrize(
+    'xml',
+    [
+        b"",
+        b"      \n   ",
+        b"""<?xpacket begin="\xef\xbb\xbf" id="W5M0MpCehiHzreSzNTczkc9d"?>
+        <?xpacket end=""?>
+        """.strip(),
         b"""<?xpacket begin="" id=""?>
         <x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="">
         </x:xmpmeta>
         <?xpacket end=""?>
-        """,
-    )
+        """.strip(),
+    ],
+)
+def test_degenerate_xml(trivial, xml):
+    trivial.Root.Metadata = trivial.make_stream(xml)
     with trivial.open_metadata() as xmp:
-        pass
+        xmp['pdfaid:part'] = '2'
+    assert xmp['pdfaid:part'] == '2'
 
 
 @needs_libxmp

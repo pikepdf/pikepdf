@@ -307,7 +307,17 @@ class PdfMetadata(MutableMapping):
             try:
                 self._xmp = parse(BytesIO(data))
             except XMLSyntaxError as e:
-                raise PdfError() from e
+                if e.msg.startswith(
+                    "Start tag expected, '<' not found"
+                ) or e.msg.startswith("Document is empty"):
+                    # This is usually triggered by processing instructions
+                    # in another otherwise empty document, or empty documents,
+                    # which we consider safe to coerce to a well-formed
+                    # XMP. For harder cases like truncated XMP, we want to
+                    # raise the exception so that someone is alerted.
+                    self._xmp = parse(BytesIO(XMP_EMPTY))
+                else:
+                    raise PdfError() from e
         pis = self._xmp.xpath('/processing-instruction()')
         for pi in pis:
             etree.strip_tags(self._xmp, pi.tag)
