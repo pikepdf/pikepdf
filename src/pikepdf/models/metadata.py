@@ -307,9 +307,9 @@ class PdfMetadata(MutableMapping):
             try:
                 self._xmp = parse(BytesIO(data))
             except XMLSyntaxError as e:
-                if e.msg.startswith(
-                    "Start tag expected, '<' not found"
-                ) or e.msg.startswith("Document is empty"):
+                if str(e).startswith("Start tag expected, '<' not found") or str(
+                    e
+                ).startswith("Document is empty"):
                     # This is usually triggered by processing instructions
                     # in another otherwise empty document, or empty documents,
                     # which we consider safe to coerce to a well-formed
