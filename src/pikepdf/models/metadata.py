@@ -14,7 +14,7 @@ from io import BytesIO
 from warnings import warn
 
 from lxml import etree
-from lxml.etree import parse, QName, XMLSyntaxError
+from lxml.etree import QName, XMLSyntaxError, parse
 
 from .. import Name, PdfError, Stream, String
 from .. import __version__ as pikepdf_version
@@ -291,6 +291,19 @@ class PdfMetadata(MutableMapping):
                     raise ValueError(msg) from e
                 else:
                     warn(msg)
+        valid_docinfo_names = set(
+            docinfo_name for _, _, docinfo_name, _ in self.DOCINFO_MAPPING
+        )
+        extra_docinfo_names = set(docinfo.keys()) - valid_docinfo_names
+        for extra in extra_docinfo_names:
+            msg = (
+                "The metadata field {} with value '{}' has no XMP equivalent, "
+                "so it was discarded"
+            ).format(extra, docinfo.get(extra))
+            if raise_failure:
+                raise ValueError(msg)
+            else:
+                warn(msg)
 
     def _load(self):
         try:

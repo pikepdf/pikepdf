@@ -1,13 +1,14 @@
-import re
-from datetime import datetime, timedelta, timezone
 import os
-from pathlib import Path
 import platform
+import re
 import sys
-
 import xml.etree.ElementTree as ET
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
 import pytest
-from hypothesis import given, example
+from hypothesis import example, given
+from hypothesis import strategies as st
 from hypothesis.strategies import integers
 
 import pikepdf
@@ -17,6 +18,7 @@ from pikepdf.models.metadata import (
     XMP_NS_PDF,
     XMP_NS_XMP,
     DateConverter,
+    PdfMetadata,
     decode_pdf_date,
     encode_pdf_date,
 )
@@ -468,3 +470,34 @@ def test_extension_level(trivial, outpdf):
 
     with pytest.raises(TypeError):
         trivial.save(outpdf, force_version=('1.7', 'invalid extension level'))
+
+
+@given(
+    st.dictionaries(
+        keys=st.sampled_from(
+            [
+                "/Author",
+                "/Subject",
+                "/Title",
+                "/Keywords",
+                "/Producer",
+                "/CreationDate",
+                "/Creator",
+                "/ModDate",
+                "/Dummy",
+            ]
+        ),
+        values=st.binary(),
+    )
+)
+def test_random_docinfo(docinfo):
+    p = pikepdf.new()
+    with p.open_metadata() as m:
+        pdf_docinfo = pikepdf.Dictionary(docinfo)
+
+        try:
+            m.load_from_docinfo(pdf_docinfo, raise_failure=True)
+        except ValueError as e:
+            assert 'could not be copied to XMP' in str(e) or '/Dummy' in str(e)
+        else:
+            ET.fromstring(str(m))  # ensure we can parse it
