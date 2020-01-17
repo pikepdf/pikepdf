@@ -14,7 +14,7 @@ from io import BytesIO
 from warnings import warn
 
 from lxml import etree
-from lxml.etree import QName, XMLSyntaxError, parse
+from lxml.etree import QName, XMLParser, XMLSyntaxError, parse
 
 from .. import Name, PdfError, Stream, String
 from .. import __version__ as pikepdf_version
@@ -89,7 +89,10 @@ LANG_ALTS = frozenset(
 re_xml_illegal_chars = re.compile(
     r"(?u)[^\x09\x0A\x0D\x20-\uD7FF\uE000-\uFFFD\u10000-\u10FFFF]"
 )
-re_xml_illegal_bytes = re.compile(br"[^\x09\x0A\x0D\x20-\xFF]|&#0;")
+re_xml_illegal_bytes = re.compile(
+    br"[^\x09\x0A\x0D\x20-\xFF]|&#0;"
+    # br"&#(?:[0-9]|0[0-9]|1[0-9]|2[0-9]|3[0-1]|x[0-9A-Fa-f]|x0[0-9A-Fa-f]|x1[0-9A-Fa-f]);"
+)
 
 
 def encode_pdf_date(d: datetime) -> str:
@@ -292,9 +295,9 @@ class PdfMetadata(MutableMapping):
                 else:
                     warn(msg)
         valid_docinfo_names = set(
-            docinfo_name for _, _, docinfo_name, _ in self.DOCINFO_MAPPING
+            str(docinfo_name) for _, _, docinfo_name, _ in self.DOCINFO_MAPPING
         )
-        extra_docinfo_names = set(docinfo.keys()) - valid_docinfo_names
+        extra_docinfo_names = set(str(k) for k in docinfo.keys()) - valid_docinfo_names
         for extra in extra_docinfo_names:
             msg = (
                 "The metadata field {} with value '{}' has no XMP equivalent, "
@@ -328,9 +331,12 @@ class PdfMetadata(MutableMapping):
                     # which we consider safe to coerce to a well-formed
                     # XMP. For harder cases like truncated XMP, we want to
                     # raise the exception so that someone is alerted.
-                    self._xmp = parse(BytesIO(XMP_EMPTY))
+                    parser = XMLParser(recover=True)
+                    self._xmp = parse(BytesIO(XMP_EMPTY), parser)
                 else:
-                    raise PdfError() from e
+                    raise PdfError(
+                        str(e) + data.decode('utf-8', errors='escape')
+                    ) from e
         pis = self._xmp.xpath('/processing-instruction()')
         for pi in pis:
             etree.strip_tags(self._xmp, pi.tag)
