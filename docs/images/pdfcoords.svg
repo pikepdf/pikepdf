@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 250 280" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
+    <g id="Artboard1" transform="matrix(1,0,0,1,-30,-10)">
+        <rect x="30" y="10" width="250" height="280" style="fill:none;"/>
+        <g transform="matrix(1.04132,0,0,1,-12.4792,19.9994)">
+            <rect x="60" y="5.521" width="197.091" height="244.479" style="fill:white;stroke:rgb(231,159,120);stroke-width:0.83px;"/>
+        </g>
+        <g transform="matrix(0.725554,0,0,0.818067,36.4668,45.4833)">
+            <rect x="60" y="5.521" width="197.091" height="244.479" style="fill:white;stroke:rgb(70,206,55);stroke-width:1.1px;"/>
+        </g>
+        <g transform="matrix(0.639897,0,0,0.464026,-9.55798,220.222)">
+            <path d="M77.447,109.486L77.447,105.059L378.06,105.059L378.06,96.217L389.997,107.272L378.06,118.328L378.06,109.486L77.447,109.486Z"/>
+        </g>
+        <g transform="matrix(0.000410549,-0.639897,0.464026,0.000297713,0.0659808,329.525)">
+            <path d="M77.447,109.486L77.447,105.059L378.06,105.059L378.06,96.217L389.997,107.272L378.06,118.328L378.06,109.486L77.447,109.486Z"/>
+        </g>
+        <g transform="matrix(1,0,0,1,-15.9573,23.8072)">
+            <text x="69.555px" y="240.594px" style="font-family:'OpenSans', 'Open Sans', sans-serif;font-size:16px;">(0, 0)</text>
+        </g>
+        <g transform="matrix(1,0,0,1,-17.1461,18.2553)">
+            <text x="255.238px" y="250.316px" style="font-family:'OpenSans', 'Open Sans', sans-serif;font-size:12px;">+x</text>
+        </g>
+        <g transform="matrix(1,0,0,1,-4.08503,32.8073)">
+            <text x="60.073px" y="50.31px" style="font-family:'OpenSans', 'Open Sans', sans-serif;font-size:12px;">+y</text>
+        </g>
+        <g transform="matrix(1,0,0,1,-27.6942,21.2695)">
+            <text x="79.936px" y="19.731px" style="font-family:'OpenSans', 'Open Sans', sans-serif;font-size:16px;fill:rgb(231,159,120);">MediaBo<tspan x="145.819px " y="19.731px ">x</tspan></text>
+        </g>
+        <g transform="matrix(1,0,0,1,-8.74105,12.7539)">
+            <text x="91.479px" y="53.402px" style="font-family:'OpenSans', 'Open Sans', sans-serif;font-size:16px;fill:rgb(70,206,55);">Cr<tspan x="107.784px 117.448px " y="53.402px 53.402px ">op</tspan>Bo<tspan x="146.964px " y="53.402px ">x</tspan></text>
+        </g>
+        <g transform="matrix(1,0,0,1,-1.87972,5.22848)">
+            <text x="117.884px" y="123.733px" style="font-family:'OpenSans', 'Open Sans', sans-serif;font-size:12px;">Page te<tspan x="158.934px 165.222px " y="123.733px 123.733px ">xt</tspan></text>
+        </g>
+    </g>
+</svg>

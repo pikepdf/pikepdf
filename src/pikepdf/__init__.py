@@ -4,47 +4,56 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
-"""A library for manipulating PDFs"""
+"""A library for manipulating PDFs
+
+isort:skip_file
+"""
 
 try:
     from . import _qpdf
-except ImportError:
-    raise ImportError("pikepdf's extension library failed to import")
+except ImportError as _e:
+    raise ImportError("pikepdf's extension library failed to import") from _e
 
-from ._version import __version__
+try:
+    from ._version import __version__
+except ImportError as _e:
+    raise ImportError("Failed to determine version") from _e
+
 from ._qpdf import (
-    PdfError,
-    Pdf,
-    PasswordError,
     ObjectStreamMode,
-    StreamDecodeLevel,
     Page,
+    PasswordError,
+    Pdf,
+    PdfError,
+    StreamDecodeLevel,
     Token,
     TokenFilter,
     TokenType,
 )
+
 from .objects import (
-    Object,
-    ObjectType,
-    Name,
-    String,
     Array,
     Dictionary,
-    Stream,
+    Name,
+    Object,
+    ObjectType,
     Operator,
-)
-from .models import (
-    PdfImage,
-    PdfInlineImage,
-    UnsupportedImageTypeError,
-    PdfMatrix,
-    Encryption,
-    Permissions,
-    parse_content_stream,
+    Stream,
+    String,
 )
 
-from . import _methods
-from . import codec
+from .models import (
+    Encryption,
+    PdfImage,
+    PdfInlineImage,
+    PdfMatrix,
+    Permissions,
+    UnsupportedImageTypeError,
+    parse_content_stream,
+    unparse_content_stream,
+)
+
+from . import _methods, codec
 
 __libqpdf_version__ = _qpdf.qpdf_version()
 

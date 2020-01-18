@@ -1,11 +1,20 @@
 import shutil
-from subprocess import PIPE, run
 import sys
+from subprocess import PIPE, run
 
 import pytest
 
 import pikepdf
-from pikepdf import Dictionary, Object, Operator, Pdf, Stream, parse_content_stream
+from pikepdf import (
+    Dictionary,
+    Object,
+    Operator,
+    Pdf,
+    PdfMatrix,
+    Stream,
+    parse_content_stream,
+    unparse_content_stream,
+)
 from pikepdf._qpdf import StreamParser
 
 # pylint: disable=useless-super-delegation
@@ -106,3 +115,12 @@ def test_invalid_stream_object():
 #     for p in pdf.pages:
 #         page = Page(p)
 #         assert page.has_text() == expected
+
+
+def test_unparse_cs():
+    instructions = [
+        ([], Operator('q')),
+        ([*PdfMatrix.identity().shorthand], Operator('cm')),
+        ([], Operator('Q')),
+    ]
+    assert unparse_content_stream(instructions).strip() == b'q\n1 0 0 1 0 0 cm\n Q'

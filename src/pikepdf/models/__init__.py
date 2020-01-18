@@ -5,11 +5,18 @@
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
 
-from pikepdf import Object, ObjectType, PdfError
-from .encryption import Permissions, Encryption, EncryptionInfo
+from pikepdf import Object, ObjectType, PdfError, _qpdf
+
+from .encryption import Encryption, EncryptionInfo, Permissions
 from .image import PdfImage, PdfInlineImage, UnsupportedImageTypeError
 from .matrix import PdfMatrix
 from .metadata import PdfMetadata
+
+
+class PdfParsingError(Exception):
+    def __init__(self, message, line=None):
+        super().__init__(message)
+        self.line = line
 
 
 def parse_content_stream(page_or_stream, operators=''):
@@ -72,3 +79,32 @@ def parse_content_stream(page_or_stream, operators=''):
         raise e from e
 
     return instructions
+
+
+def unparse_content_stream(instructions):
+    """
+    Given a parsed list of instructions/operand-operators, convert to bytes suitable
+    for embedding in a PDF.
+
+    Args:
+        instructions: list of (operands, operator) types such as is returned
+            by :func:`parse_content_stream()`
+
+    Returns:
+        bytes: a binary content stream, suitable for attaching to a Pdf.
+            To attach to a Pdf, use :meth:`Pdf.make_stream()``.
+    """
+
+    def encode(obj):
+        return _qpdf.unparse(obj)
+
+    def for_each_instruction():
+        for n, (operands, operator) in enumerate(instructions):
+            try:
+                line = b' '.join(encode(operand) for operand in operands)
+                line += b' ' + encode(operator)
+            except (PdfError, ValueError) as e:
+                raise PdfParsingError("Error encoding", line=n + 1) from e
+            yield line
+
+    return b'\n'.join(for_each_instruction())
