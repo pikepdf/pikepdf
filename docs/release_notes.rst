@@ -18,10 +18,12 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
-v1.8.4
+v1.9.0
 ======
 
 -  Further attempts to recover malformed XMP packets.
+-  Added an ``unparse_content_stream`` API to assist with converting the previously
+   parsed content streams back to binary.
 
 v1.8.3
 ======
