@@ -7,9 +7,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
-from hypothesis import example, given
+from hypothesis import assume, example, given
 from hypothesis import strategies as st
 from hypothesis.strategies import integers
+from lxml.etree import XMLSyntaxError
 
 import pikepdf
 from pikepdf import Dictionary, Name, PasswordError, Pdf, Stream
@@ -364,7 +365,7 @@ def test_wrong_xml(enron1):
         <test><xml>This is valid xml but not valid XMP</xml></test>
     """.strip(),
     )
-    meta = enron1.open_metadata()
+    meta = enron1.open_metadata(strict=True)
     with pytest.raises(ValueError, match='not XMP'):
         with meta:
             pass
@@ -403,23 +404,42 @@ def test_no_x_xmpmeta(trivial):
 @pytest.mark.parametrize(
     'xml',
     [
-        b"",
-        b"      \n   ",
-        b"""<?xpacket begin="\xef\xbb\xbf" id="W5M0MpCehiHzreSzNTczkc9d"?>
-        <?xpacket end=""?>
-        """.strip(),
-        b"""<?xpacket begin="" id=""?>
-        <x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="">
-        </x:xmpmeta>
-        <?xpacket end=""?>
-        """.strip(),
+        (b"      \n   "),
+        (b" <"),
+        (
+            b'<?xpacket begin="\xef\xbb\xbf" id="W5M0MpCehiHzreSzNTczkc9d"?>\n'
+            b'<?xpacket end=""?>\n'
+        ),
+        (
+            b'<?xpacket begin="" id=""?>\n'
+            b'<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="">\n'
+            b'</x:xmpmeta>\n'
+            b'<?xpacket end=""?>\n'
+        ),
     ],
 )
-def test_degenerate_xml(trivial, xml):
+def test_degenerate_xml_recoverable(trivial, xml):
     trivial.Root.Metadata = trivial.make_stream(xml)
-    with trivial.open_metadata() as xmp:
+    with trivial.open_metadata(strict=False) as xmp:
         xmp['pdfaid:part'] = '2'
     assert xmp['pdfaid:part'] == '2'
+
+    with trivial.open_metadata(strict=True) as xmp:
+        xmp['pdfaid:part'] = '5'
+
+
+@given(st.integers(min_value=1, max_value=1350))
+def test_truncated_xml(sandwich, idx):
+    data = sandwich.Root.Metadata.read_bytes()
+    assume(idx < len(data))
+
+    sandwich.Root.Metadata = sandwich.make_stream(data[0:idx])
+    with pytest.raises(XMLSyntaxError):
+        with sandwich.open_metadata(strict=True) as xmp:
+            xmp['pdfaid:part'] = '5'
+
+    with sandwich.open_metadata(strict=False) as xmp:
+        xmp['pdfaid:part'] = '7'
 
 
 @needs_libxmp

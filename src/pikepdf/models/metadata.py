@@ -4,6 +4,7 @@
 #
 # Copyright (C) 2018, James R. Barlow (https://github.com/jbarlow83/)
 
+import logging
 import re
 import sys
 from collections import namedtuple
@@ -63,6 +64,14 @@ XMP_EMPTY = b"""<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="pikepdf">
 XPACKET_END = b"""\n<?xpacket end="w"?>\n"""
 
 XmpContainer = namedtuple('XmpContainer', ['rdf_type', 'py_type', 'insert_fn'])
+
+log = logging.getLogger(__name__)
+
+
+class NeverRaise(Exception):
+    """An exception that is never raised"""
+
+    pass  # pylint: disable=unnecessary-pass
 
 
 class AltList(list):
@@ -249,12 +258,15 @@ class PdfMetadata(MutableMapping):
     NS = {prefix: uri for uri, prefix in DEFAULT_NAMESPACES}
     REVERSE_NS = {uri: prefix for uri, prefix in DEFAULT_NAMESPACES}
 
-    def __init__(self, pdf, pikepdf_mark=True, sync_docinfo=True):
+    def __init__(
+        self, pdf, pikepdf_mark=True, sync_docinfo=True, overwrite_invalid_xml=True
+    ):
         self._pdf = pdf
         self._xmp = None
         self.mark = pikepdf_mark
         self.sync_docinfo = sync_docinfo
         self._updating = False
+        self.overwrite_invalid_xml = overwrite_invalid_xml
 
     def load_from_docinfo(self, docinfo, delete_missing=False, raise_failure=False):
         """Populate the XMP metadata object with DocumentInfo
@@ -318,39 +330,52 @@ class PdfMetadata(MutableMapping):
     def _load_from(self, data):
         if data.strip() == b'':
             data = XMP_EMPTY  # on some platforms lxml chokes on empty documents
-        try:
-            self._xmp = parse(BytesIO(data))
-        except XMLSyntaxError:
-            data = re_xml_illegal_bytes.sub(b'', data)
+
+        def basic_parser(xml):
+            return parse(BytesIO(xml))
+
+        def strip_illegal_bytes_parser(xml):
+            return parse(BytesIO(re_xml_illegal_bytes.sub(b'', xml)))
+
+        def recovery_parser(xml):
+            parser = XMLParser(recover=True)
+            return parse(BytesIO(xml), parser)
+
+        def replace_with_empty_xmp(xml=None):
+            log.warning("Error occurred parsing XMP, replacing with empty XMP.")
+            return basic_parser(XMP_EMPTY)
+
+        if self.overwrite_invalid_xml:
+            parsers = [
+                basic_parser,
+                strip_illegal_bytes_parser,
+                recovery_parser,
+                replace_with_empty_xmp,
+            ]
+        else:
+            parsers = [basic_parser]
+
+        for parser in parsers:
             try:
-                self._xmp = parse(BytesIO(data))
-            except XMLSyntaxError as e:
+                self._xmp = parser(data)
+            except (XMLSyntaxError if self.overwrite_invalid_xml else NeverRaise) as e:
                 if str(e).startswith("Start tag expected, '<' not found") or str(
                     e
                 ).startswith("Document is empty"):
-                    # This is usually triggered by processing instructions
-                    # in another otherwise empty document, or empty documents,
-                    # which we consider safe to coerce to a well-formed
-                    # XMP. For harder cases like truncated XMP, we want to
-                    # raise the exception so that someone is alerted.
-                    parser = XMLParser(recover=True)
-                    self._xmp = parse(BytesIO(XMP_EMPTY), parser)
-                else:
-                    raise PdfError(
-                        str(e) + data.decode('utf-8', errors='escape')
-                    ) from e
-        pis = self._xmp.xpath('/processing-instruction()')
-        for pi in pis:
-            etree.strip_tags(self._xmp, pi.tag)
-        try:
-            self._get_rdf_root()
-        except ValueError:
-            if self._xmp.find('.', self.NS).tag == '{adobe:ns:meta/}xmpmeta':
-                # Looks like: <x:xmpmeta></x:xmpmeta>, so reload with template
-                # that includes <rdf:RDF>
-                return self._load_from(XMP_EMPTY)
+                    self._xmp = replace_with_empty_xmp()
+                    break
             else:
-                raise  # Probably not XMP
+                break
+
+        try:
+            pis = self._xmp.xpath('/processing-instruction()')
+            for pi in pis:
+                etree.strip_tags(self._xmp, pi.tag)
+            self._get_rdf_root()
+        except (Exception if self.overwrite_invalid_xml else NeverRaise) as e:
+            log.warning("Error occurred parsing XMP", exc_info=e)
+            self._xmp = replace_with_empty_xmp()
+        return
 
     @ensure_loaded
     def __enter__(self):

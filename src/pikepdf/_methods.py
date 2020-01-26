@@ -19,9 +19,9 @@ from io import BytesIO
 from subprocess import PIPE, run
 from tempfile import NamedTemporaryFile
 
-from . import Array, Dictionary, Name, Object, Pdf, Stream, Page
-from ._qpdf import _ObjectMapping, Token, PdfError, StreamParser
-from .models import PdfMetadata, Permissions, EncryptionInfo
+from . import Array, Dictionary, Name, Object, Page, Pdf, Stream
+from ._qpdf import PdfError, StreamParser, Token, _ObjectMapping
+from .models import EncryptionInfo, PdfMetadata, Permissions
 
 # pylint: disable=no-member,unsupported-membership-test,unsubscriptable-object
 
@@ -251,7 +251,9 @@ class Extend_Pdf:
         data = {'application/pdf': bio.read()}
         return data
 
-    def open_metadata(self, set_pikepdf_as_editor=True, update_docinfo=True):
+    def open_metadata(
+        self, set_pikepdf_as_editor=True, update_docinfo=True, strict=False
+    ):
         """
         Open the PDF's XMP metadata for editing
 
@@ -265,17 +267,29 @@ class Extend_Pdf:
 
         Args:
             set_pikepdf_as_editor (bool): Update the metadata to show that this
-                version of pikepdf is the most software to modify the metadata.
+                version of pikepdf is the most recent software to modify the metadata.
                 Recommended, except for testing.
 
             update_docinfo (bool): Update the deprecated PDF DocumentInfo block
                 to be consistent with XMP.
 
+            strict (bool): If ``False`` (the default), we aggressively attempt
+                to recover from any parse errors in XMP, and if that fails we
+                overwrite the XMP with an empty XMP record.  If ``True``, raise
+                errors when either metadata bytes are not valid and well-formed
+                XMP (and thus, XML). Some trivial cases that are equivalent to
+                empty or incomplete "XMP skeletons" are never treated as errors,
+                and always replaced with a proper empty XMP block. Certain
+                errors may be logged.
+
         Returns:
             pikepdf.models.PdfMetadata
         """
         return PdfMetadata(
-            self, pikepdf_mark=set_pikepdf_as_editor, sync_docinfo=update_docinfo
+            self,
+            pikepdf_mark=set_pikepdf_as_editor,
+            sync_docinfo=update_docinfo,
+            overwrite_invalid_xml=not strict,
         )
 
     def make_stream(self, data):
