@@ -183,11 +183,6 @@ extension with it. We must force the use of Visual Studio 2015.
     The user compiling ``pikepdf`` to must have registry editing rights on the
     machine to be able to run the ``vcvarsall.bat`` script.
 
-.. note::
-
-    If you are attempting to build pikepdf because you want to use OCRmyPDF,
-    **OCRmyPDF is not supported on Windows** at this time.
-
 Windows runtime requirements
 ----------------------------
 
