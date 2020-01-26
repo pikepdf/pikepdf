@@ -192,8 +192,14 @@ Windows runtime requirements
 ----------------------------
 
 On Windows, the Visual C++ 2015 redistributable packages are a runtime
-requirement for this project. It can be found
+requirement for this project. Specifically you must install microsoft
+Visual C++ 2015-2019 Redistributable (x64) 14.24.28127 (for 64-bit).
+
+The package may be found here:
 `here <https://www.microsoft.com/en-us/download/details.aspx?id=48145>`__.
+
+If not installed, you may see an error saying that "pikepdf's extension library
+failed to import".
 
 Building the documentation
 --------------------------

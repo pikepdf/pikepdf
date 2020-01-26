@@ -9,10 +9,18 @@
 isort:skip_file
 """
 
+import os
+
 try:
     from . import _qpdf
 except ImportError as _e:
-    raise ImportError("pikepdf's extension library failed to import") from _e
+    msg = "pikepdf's extension library failed to import"
+    if os.name == 'nt':
+        msg += (
+            "\nYou may install Microsoft Visual C++ 2015-2019 "
+            "Redistributable (x64) 14.24.28127 or newer."
+        )
+    raise ImportError(msg) from _e
 
 try:
     from ._version import __version__
