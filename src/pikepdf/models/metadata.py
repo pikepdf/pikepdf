@@ -316,6 +316,8 @@ class PdfMetadata(MutableMapping):
         self._load_from(data)
 
     def _load_from(self, data):
+        if data.strip() == b'':
+            data = XMP_EMPTY  # on some platforms lxml chokes on empty documents
         try:
             self._xmp = parse(BytesIO(data))
         except XMLSyntaxError:

@@ -416,8 +416,6 @@ def test_no_x_xmpmeta(trivial):
     ],
 )
 def test_degenerate_xml(trivial, xml):
-    if xml == b'' and platform.system() == 'Darwin':
-        pytest.skip(msg="fails on macOS/Python 3.5 and 3.8; unknown cause")
     trivial.Root.Metadata = trivial.make_stream(xml)
     with trivial.open_metadata() as xmp:
         xmp['pdfaid:part'] = '2'
