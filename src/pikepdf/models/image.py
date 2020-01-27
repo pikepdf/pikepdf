@@ -12,7 +12,8 @@ from itertools import zip_longest
 from pathlib import Path
 from shutil import copyfileobj
 from tempfile import NamedTemporaryFile
-from zlib import decompress, error as ZlibError
+from zlib import decompress
+from zlib import error as ZlibError
 
 from .. import Array, Dictionary, Name, Object, PdfError, Stream
 
@@ -428,8 +429,18 @@ class PdfImage(PdfImageBase):
             im = Image.frombytes('1', self.size, data)
 
             base_mode, palette = self.palette
-            if not (palette == b'\x00\x00\x00\xff\xff\xff' or palette == b'\x00\xff'):
-                raise NotImplementedError('monochrome image with nontrivial palette')
+            if base_mode == 'RGB' and palette != b'\x00\x00\x00\xff\xff\xff':
+                im = im.convert('P')
+                im.putpalette(palette, rawmode=base_mode)
+                gp = im.getpalette()
+                gp[765:768] = gp[3:6]  # work around Pillow bug
+                im.putpalette(gp)
+            elif base_mode == 'L' and palette != b'\x00\xff':
+                im = im.convert('P')
+                im.putpalette(palette, rawmode=base_mode)
+                gp = im.getpalette()
+                gp[255] = gp[1]  # work around Pillow bug
+                im.putpalette(gp)
 
         if self.colorspace == '/ICCBased':
             im.info['icc_profile'] = self.icc.tobytes()

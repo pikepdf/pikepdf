@@ -19,8 +19,7 @@ from pikepdf import (
     parse_content_stream,
 )
 from pikepdf._cpphelpers import fspath
-from pikepdf.models.image import UnsupportedImageTypeError, NotExtractableError
-
+from pikepdf.models.image import NotExtractableError, UnsupportedImageTypeError
 
 # pylint: disable=redefined-outer-name
 
@@ -223,16 +222,14 @@ def test_direct_extract(resources, filename, bpc, filters, ext, mode, format_):
 
 
 @pytest.mark.parametrize(
-    'filename,bpc',
+    'filename,bpc,rgb',
     [
-        ('pal.pdf', 8),
-        ('pal-1bit-trivial.pdf', 1),
-        pytest.param(
-            'pal-1bit-rgb.pdf', 1, marks=pytest.mark.xfail(raises=NotImplementedError)
-        ),
+        ('pal.pdf', 8, (0, 0, 255)),
+        ('pal-1bit-trivial.pdf', 1, (255, 255, 255)),
+        ('pal-1bit-rgb.pdf', 1, (255, 128, 0)),
     ],
 )
-def test_image_palette(resources, filename, bpc):
+def test_image_palette(resources, filename, bpc, rgb):
     pdf = Pdf.open(resources / filename)
     pim = PdfImage(next(iter(pdf.pages[0].images.values())))
 
@@ -244,6 +241,9 @@ def test_image_palette(resources, filename, bpc):
 
     outstream = BytesIO()
     pim.extract_to(stream=outstream)
+
+    im = pim.as_pil_image().convert('RGB')
+    assert im.getpixel((1, 1)) == rgb
 
 
 def test_bool_in_inline_image():
