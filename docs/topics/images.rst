@@ -36,7 +36,7 @@ dictionaries.
 
     In [1]: pdfimage = PdfImage(rawimage)
 
-    In [1]: pdfimage
+    In [1]: type(pdfimage)
 
 In Jupyter (or IPython with a suitable backend) the image will be
 displayed.
@@ -84,7 +84,7 @@ You can also retrieve the image as a Pillow image:
 
 .. ipython::
 
-    In [1]: pdfimage.as_pil_image()
+    In [1]: type(pdfimage.as_pil_image())
 
 Another way to view the image is using Pillow's ``Image.show()`` method.
 
