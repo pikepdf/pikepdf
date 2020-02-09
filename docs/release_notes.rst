@@ -18,6 +18,12 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v1.10.1
+=======
+
+-  Fixed build reproducibility (thanks to @lamby)
+-  Fixed a broken link in documentation (thanks to @maxwell-k)
+
 v1.10.0
 =======
 
