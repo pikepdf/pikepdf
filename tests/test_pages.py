@@ -5,8 +5,7 @@ from sys import getrefcount as refcount
 
 import pytest
 
-from pikepdf import Pdf, PdfMatrix, Stream, Dictionary, Name
-
+from pikepdf import Dictionary, Name, Pdf, PdfMatrix, Stream
 
 # pylint: disable=redefined-outer-name,pointless-statement
 
@@ -313,3 +312,17 @@ def test_add_foreign_twice(graph, outpdf):
 
 def test_repr_pagelist(fourpages):
     assert '4' in repr(fourpages.pages)
+
+
+def test_foreign_copied_pages_are_true_copies(graph, outpdf):
+    out = Pdf.new()
+    for n in range(4):
+        out.pages.append(out.copy_foreign(graph.pages[0]))
+
+    for n in [0, 2]:
+        out.pages[n].Rotate = 180
+
+    out.save(outpdf)
+    reopened = Pdf.open(outpdf)
+    assert reopened.pages[0].Rotate == 180
+    assert reopened.pages[1].get(Name.Rotate, 0) == 0

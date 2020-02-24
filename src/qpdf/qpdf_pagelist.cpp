@@ -157,7 +157,7 @@ void PageList::insert_page(size_t index, QPDFObjectHandle page)
     if (page_owner == this->qpdf.get()) {
         // qpdf does not accept duplicating pages within the same file,
         // so manually create a copy
-        page = this->qpdf->makeIndirectObject(page);
+        page = this->qpdf->makeIndirectObject(page.shallowCopy());
     }
     if (index != this->count()) {
         QPDFObjectHandle refpage = this->get_page(index);
