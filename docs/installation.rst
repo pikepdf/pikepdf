@@ -46,28 +46,29 @@ package manager (such as ``apt``). These versions may lag behind the version
 distributed with PyPI, but may be convenient for users that cannot use binary
 wheels.
 
-Debian, Ubuntu and other APT-based distributions
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. |apt| image:: https://repology.org/badge/vertical-allrepos/pikepdf.svg
+.. |pikepdf| image:: https://repology.org/badge/vertical-allrepos/pikepdf.svg
     :alt: Package status in apt world
 
-|apt|
+.. |python-pikepdf| image:: https://repology.org/badge/vertical-allrepos/python:pikepdf.svg
+    :alt: Package status for python:pikepdf
+
+|pikepdf| |python-pikepdf|
+
+Debian, Ubuntu and other APT-based distributions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: bash
 
     apt install pikepdf
 
-Fedora 29
-^^^^^^^^^
+Fedora
+^^^^^^
 
-.. |fedora| image:: https://repology.org/badge/version-for-repo/fedora_29/python:pikepdf.svg
-    :alt: Fedora 29
-
-.. |rawhide| image:: https://repology.org/badge/version-for-repo/fedora_rawhide/python:pikepdf.svg
+.. |fedora| image:: https://repology.org/badge/version-for-repo/fedora_rawhide/python:pikepdf.svg
     :alt: Fedora Rawhide
 
-|fedora| |rawhide|
+|fedora|
 
 .. code-block:: bash
 
