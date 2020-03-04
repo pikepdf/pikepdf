@@ -76,7 +76,7 @@ class OutlinesItem:
            during writing if ``destination`` is also set.
         obj: ``Dictionary`` object representing this outlines item in a ``Pdf``.
             May be ``None`` for creating a new object. If present, an existing
-            object is modified in-place during writing an original attributes
+            object is modified in-place during writing and original attributes
             are retained.
         kwargs: Additional keyword arguments. Any of ``left``, ``top``,
             ``bottom``, ``right``, or ``zoom``, they will be processed for
