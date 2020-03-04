@@ -127,6 +127,7 @@ practical examples, particular in ``pdfinfo.py``, ``_weave.py``, and
     topics/images
     topics/encoding
     topics/metadata
+    topics/outlines
 
 .. toctree::
     :maxdepth: 2
