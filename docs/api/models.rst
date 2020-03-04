@@ -51,6 +51,12 @@ For example, to initialize a ``Page`` support model:
 .. autoclass:: pikepdf.models.Encryption
     :members:
 
+.. autoclass:: pikepdf.models.Outlines
+    :members:
+
+.. autoclass:: pikepdf.models.OutlinesItem
+    :members:
+
 .. autoclass:: pikepdf.Permissions
     :members:
 
