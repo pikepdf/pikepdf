@@ -52,11 +52,15 @@ from .objects import (
 
 from .models import (
     Encryption,
+    Outlines,
+    OutlinesItem,
+    PageLocation,
     PdfImage,
     PdfInlineImage,
     PdfMatrix,
     Permissions,
     UnsupportedImageTypeError,
+    get_page_destination,
     parse_content_stream,
     unparse_content_stream,
 )
