@@ -17,7 +17,7 @@ except ImportError as _e:
     msg = "pikepdf's extension library failed to import"
     if os.name == 'nt':
         msg += (
-            "\nYou may install Microsoft Visual C++ 2015-2019 "
+            "\nYou may need to install Microsoft Visual C++ 2015-2019 "
             "Redistributable (x64) 14.24.28127 or newer."
         )
     raise ImportError(msg) from _e
