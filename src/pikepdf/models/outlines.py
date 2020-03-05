@@ -174,7 +174,7 @@ class Outline:
             self.load()
 
     def __str__(self):
-        return self.root
+        return str(self.root)
 
     def __repr__(self):
         return '<{0.__class__.__name__}: {1} items>'.format(self, len(self.root))
