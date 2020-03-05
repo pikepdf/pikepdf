@@ -58,7 +58,7 @@ def get_page_destination(pdf, page_num: int, page_location: (PageLocation, str) 
     return Array(res)
 
 
-class OutlinesItem:
+class OutlineItem:
     """Manages a single item in a PDF document outlines structure, including
     nested items.
 
@@ -121,7 +121,7 @@ class OutlinesItem:
 
     @classmethod
     def from_dictionary_object(cls, obj: Dictionary):
-        """Creates a ``OutlinesItem`` from a PDF document's ``Dictionary``
+        """Creates a ``OutlineItem`` from a PDF document's ``Dictionary``
         object. Does not process nested items.
 
         Arguments:
@@ -160,7 +160,7 @@ class OutlinesItem:
         return obj
 
 
-class Outlines:
+class Outline:
     """Maintains a intuitive interface for creating and editing PDF document outlines,
     according to the PDF reference manual (ISO32000:2008) section 12.3.
 
@@ -215,7 +215,7 @@ class Outlines:
     def _load_level_outline(self, first_obj: Dictionary, outline_items: list):
         current_obj = first_obj
         while current_obj:
-            item = OutlinesItem.from_dictionary_object(current_obj)
+            item = OutlineItem.from_dictionary_object(current_obj)
             first_child = current_obj.get('/First')
             if first_child is not None:
                 self._load_level_outline(first_child, item.children)

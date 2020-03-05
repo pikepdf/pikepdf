@@ -15,17 +15,17 @@ into a single document.
 
     In [1]: from glob import glob
 
-    In [1]: from pikepdf import Pdf, Outlines, OutlinesItem
+    In [1]: from pikepdf import Pdf, Outline, OutlineItem
 
     In [1]: pdf = Pdf.new()
 
-    In [1]: outlines = Outlines(pdf)
+    In [1]: outlines = Outline(pdf)
 
     In [1]: page_count = 0
 
     In [1]: for file in glob('*.pdf'):
        ...:     src = Pdf.open(file)
-       ...:     oi = OutlinesItem(file, page_count)
+       ...:     oi = OutlineItem(file, page_count)
        ...:     outlines.root.append(oi)
        ...:     page_count += len(src.pages)
        ...:     pdf.pages.extend(src.pages)
@@ -46,7 +46,7 @@ The simplest case is a reference to a page, together with the page location, e.g
 ``Fit`` (default). However, named destinations can also be assigned.
 
 The PDF specification allows for either use of a destination (``Dest`` attribute) or
-an action (``A`` attribute), but not both on the same element. ``OutlinesItem`` elements
+an action (``A`` attribute), but not both on the same element. ``OutlineItem`` elements
 handle this as follows:
 
 * When creating new outline entries passing in a page number or reference name,
@@ -57,19 +57,19 @@ handle this as follows:
 .. ipython::
     :verbatim:
 
-    In [1]: oi = OutlinesItem('First', get_page_destination(pdf, 0, 'FitB', top=1000))
+    In [1]: oi = OutlineItem('First', get_page_destination(pdf, 0, 'FitB', top=1000))
 
 
-Outlines structure
+Outline structure
 ------------------
 For nesting outlines, add items to ``root`` of the main element or the ``children`` list
-of another ``OutlinesItem``.
+of another ``OutlineItem``.
 
 .. ipython::
     :verbatim:
 
-    In [1]: main_item = OutlinesItem('Main', 0)
+    In [1]: main_item = OutlineItem('Main', 0)
 
     In [1]: outlines.root.append(main_item)
 
-    In [1]: main_item.children.append(OutlinesItem('A', 1))
+    In [1]: main_item.children.append(OutlineItem('A', 1))

@@ -4,7 +4,7 @@ import pytest
 from hypothesis import given, example
 from hypothesis import strategies as st
 
-from pikepdf import Pdf, Dictionary, Name, Outlines, OutlinesItem, PageLocation, get_page_destination
+from pikepdf import Pdf, Dictionary, Name, Outline, OutlineItem, PageLocation, get_page_destination
 from pikepdf.models.outlines import ALL_PAGE_LOCATION_KWARGS
 
 
@@ -20,7 +20,7 @@ def test_load_outlines(outlines_doc):
     second_obj = first_obj.Next
     third_obj = second_obj.Next
 
-    outlines = Outlines(outlines_doc)
+    outlines = Outline(outlines_doc)
     assert len(outlines.root) == 3
     sec_one = outlines.root[0]
     assert sec_one.title == 'One'
@@ -47,7 +47,7 @@ def test_reproduce_outlines_structure(outlines_doc):
     third_obj = second_obj.Next
     third_obj_a = third_obj.First
     third_obj_b = third_obj_a.Next
-    outlines = Outlines(outlines_doc)
+    outlines = Outline(outlines_doc)
 
     # Remove all references
     for obj in [root_obj,
@@ -88,7 +88,7 @@ def test_fix_references_swap_root(outlines_doc):
     first_obj = root_obj.First
     second_obj = first_obj.Next
     third_obj = second_obj.Next
-    outlines = Outlines(outlines_doc)
+    outlines = Outline(outlines_doc)
 
     # Swap first and last item
     first_item = outlines.root.pop(0)
@@ -112,7 +112,7 @@ def test_fix_references_move_level(outlines_doc):
     first_obj = root_obj.First
     first_b_obj = first_obj.Last
     third_obj = root_obj.Last
-    outlines = Outlines(outlines_doc)
+    outlines = Outline(outlines_doc)
 
     second_level = outlines.root[0].children[1].children  # One B (I and II)
     sec_one_b_i, sec_one_b_ii = second_level
@@ -141,7 +141,7 @@ def test_modify_closed(outlines_doc):
     assert root_obj.Count == 3
     assert first_obj.Count == -2
     assert third_obj.Count == -2
-    outlines = Outlines(outlines_doc)
+    outlines = Outline(outlines_doc)
     # Opens first level
     for i in outlines.root:
         i.is_closed = False
@@ -158,7 +158,7 @@ def test_modify_closed(outlines_doc):
 
 
 def test_dest_or_action(outlines_doc):
-    outlines = Outlines(outlines_doc)
+    outlines = Outline(outlines_doc)
     first = outlines.root[0]
     first_obj = outlines_doc.Root.Outlines.First
     first_page = outlines_doc.pages[0]
@@ -234,10 +234,10 @@ def test_page_destination(outlines_doc, page_num, page_loc, kwargs):
 )
 def test_new_item(outlines_doc, title, page_num, page_loc):
     kwargs = dict.fromkeys(ALL_PAGE_LOCATION_KWARGS, 100)
-    outlines = Outlines(outlines_doc)
+    outlines = Outline(outlines_doc)
     page_ref = outlines_doc.pages[page_num]
 
-    new_item = OutlinesItem(title, page_num, page_loc, **kwargs)
+    new_item = OutlineItem(title, page_num, page_loc, **kwargs)
     outlines.root.append(new_item)
     outlines.save()
     if isinstance(page_loc, PageLocation):

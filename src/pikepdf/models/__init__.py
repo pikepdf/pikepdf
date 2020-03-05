@@ -11,7 +11,7 @@ from .encryption import Encryption, EncryptionInfo, Permissions
 from .image import PdfImage, PdfInlineImage, UnsupportedImageTypeError
 from .matrix import PdfMatrix
 from .metadata import PdfMetadata
-from .outlines import Outlines, OutlinesItem, PageLocation, get_page_destination
+from .outlines import Outline, OutlineItem, PageLocation, get_page_destination
 
 
 class PdfParsingError(Exception):

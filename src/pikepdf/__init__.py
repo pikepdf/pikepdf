@@ -52,8 +52,8 @@ from .objects import (
 
 from .models import (
     Encryption,
-    Outlines,
-    OutlinesItem,
+    Outline,
+    OutlineItem,
     PageLocation,
     PdfImage,
     PdfInlineImage,
