@@ -57,7 +57,7 @@ handle this as follows:
 .. ipython::
     :verbatim:
 
-    In [1]: oi = OutlineItem('First', get_page_destination(pdf, 0, 'FitB', top=1000))
+    In [1]: oi = OutlineItem('First', make_page_destination(pdf, 0, 'FitB', top=1000))
 
 
 Outline structure

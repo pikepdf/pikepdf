@@ -60,7 +60,7 @@ from .models import (
     PdfMatrix,
     Permissions,
     UnsupportedImageTypeError,
-    get_page_destination,
+    make_page_destination,
     parse_content_stream,
     unparse_content_stream,
 )

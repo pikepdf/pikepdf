@@ -26,8 +26,8 @@ PAGE_LOCATION_ARGS = {
 ALL_PAGE_LOCATION_KWARGS = set(chain.from_iterable(PAGE_LOCATION_ARGS.values()))
 
 
-def get_page_destination(pdf, page_num: int, page_location: (PageLocation, str) = None,
-                         **kwargs) -> Array:
+def make_page_destination(pdf, page_num: int, page_location: (PageLocation, str) = None,
+                          **kwargs) -> Array:
     """
     Creates a destination ``Array`` with reference to a Pdf document's page number.
 
@@ -148,8 +148,8 @@ class OutlineItem:
         obj.Title = self.title
         if self.destination is not None:
             if isinstance(self.destination, int):
-                self.destination = get_page_destination(pdf, self.destination, self.page_location,
-                                                        **self.page_location_kwargs)
+                self.destination = make_page_destination(pdf, self.destination, self.page_location,
+                                                         **self.page_location_kwargs)
             obj.Dest = self.destination
             if '/A' in obj:
                 del obj.A

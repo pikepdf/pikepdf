@@ -4,7 +4,7 @@ import pytest
 from hypothesis import given, example
 from hypothesis import strategies as st
 
-from pikepdf import Pdf, Dictionary, Name, Outline, OutlineItem, PageLocation, get_page_destination
+from pikepdf import Pdf, Dictionary, Name, Outline, OutlineItem, PageLocation, make_page_destination
 from pikepdf.models.outlines import ALL_PAGE_LOCATION_KWARGS
 
 
@@ -192,7 +192,7 @@ def test_dest_or_action(outlines_doc):
 )
 def test_page_destination(outlines_doc, page_num, page_loc, kwargs):
     page_ref = outlines_doc.pages[page_num]
-    dest = get_page_destination(outlines_doc, page_num, page_loc, **kwargs)
+    dest = make_page_destination(outlines_doc, page_num, page_loc, **kwargs)
     if isinstance(page_loc, PageLocation):
         loc_str = page_loc.name
     else:
