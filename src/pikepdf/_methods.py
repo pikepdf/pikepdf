@@ -21,7 +21,7 @@ from tempfile import NamedTemporaryFile
 
 from . import Array, Dictionary, Name, Object, Page, Pdf, Stream
 from ._qpdf import PdfError, StreamParser, Token, _ObjectMapping
-from .models import EncryptionInfo, PdfMetadata, Permissions
+from .models import EncryptionInfo, Outline, PdfMetadata, Permissions
 
 # pylint: disable=no-member,unsupported-membership-test,unsubscriptable-object
 
@@ -291,6 +291,22 @@ class Extend_Pdf:
             sync_docinfo=update_docinfo,
             overwrite_invalid_xml=not strict,
         )
+
+    def open_outline(self):
+        """
+        Open the PDF outline ("bookmarks") for editing.
+
+        Recommend for use in a ``with`` block. Changes are committed to the
+        PDF when the block exits. (The ``Pdf`` must still be opened.)
+
+        Example:
+            >>> with pdf.open_outline() as outline:
+                    outline.root.insert(0, OutlineItem('Intro', 0))
+
+        Returns:
+             pikepdf.models.Outline
+        """
+        return Outline(self)
 
     def make_stream(self, data):
         """

@@ -4,7 +4,7 @@ import pytest
 from hypothesis import given, example
 from hypothesis import strategies as st
 
-from pikepdf import Pdf, Dictionary, Name, Outline, OutlineItem, PageLocation, make_page_destination
+from pikepdf import Pdf, Dictionary, Name, OutlineItem, PageLocation, make_page_destination
 from pikepdf.models.outlines import ALL_PAGE_LOCATION_KWARGS
 
 
@@ -20,17 +20,17 @@ def test_load_outlines(outlines_doc):
     second_obj = first_obj.Next
     third_obj = second_obj.Next
 
-    outlines = Outline(outlines_doc)
-    assert len(outlines.root) == 3
-    sec_one = outlines.root[0]
+    with outlines_doc.open_outline() as outline:
+        sec_one = outline.root[0]
+        sec_two = outline.root[1]
+        sec_three = outline.root[2]
+        assert len(outline.root) == 3
     assert sec_one.title == 'One'
     assert sec_one.is_closed is True
     assert sec_one.obj == first_obj
-    sec_two = outlines.root[1]
     assert sec_two.title == 'Two'
     assert sec_two.is_closed is False
     assert sec_two.obj == second_obj
-    sec_three = outlines.root[2]
     assert sec_three.title == 'Three'
     assert sec_three.is_closed is True
     assert sec_three.obj == third_obj
@@ -48,7 +48,7 @@ def test_reproduce_outlines_structure(outlines_doc):
     third_obj_a = third_obj.First
     third_obj_b = third_obj_a.Next
 
-    with Outline(outlines_doc) as outline:
+    with outlines_doc.open_outline() as outline:
         # Ensure outline is loaded
         list(outline.root)
         # Remove all references
@@ -91,7 +91,7 @@ def test_fix_references_swap_root(outlines_doc):
     third_obj = second_obj.Next
 
     # Swap first and last item
-    with Outline(outlines_doc) as outline:
+    with outlines_doc.open_outline() as outline:
         first_item = outline.root.pop(0)
         last_item = outline.root.pop()
         outline.root.insert(0, last_item)
@@ -113,7 +113,7 @@ def test_fix_references_move_level(outlines_doc):
     first_b_obj = first_obj.Last
     third_obj = root_obj.Last
 
-    with Outline(outlines_doc) as outline:
+    with outlines_doc.open_outline() as outline:
         second_level = outline.root[0].children[1].children  # One B (I and II)
         sec_one_b_i, sec_one_b_ii = second_level
         # Move second level items to root
@@ -140,7 +140,7 @@ def test_modify_closed(outlines_doc):
     assert root_obj.Count == 3
     assert first_obj.Count == -2
     assert third_obj.Count == -2
-    with Outline(outlines_doc) as outline:
+    with outlines_doc.open_outline() as outline:
         # Opens first level
         for i in outline.root:
             i.is_closed = False
@@ -148,7 +148,7 @@ def test_modify_closed(outlines_doc):
     assert first_obj.Count == 2
     assert third_obj.Count == 2
     # Opens second level (only present in first section)
-    with Outline(outlines_doc) as outline:
+    with outlines_doc.open_outline() as outline:
         for i in outline.root[0].children:
             i.is_closed = False
     assert root_obj.Count == 9
@@ -160,7 +160,7 @@ def test_dest_or_action(outlines_doc):
     first_page = outlines_doc.pages[0]
     assert '/A' in first_obj
     assert '/Dest' not in first_obj
-    with Outline(outlines_doc) as outline:
+    with outlines_doc.open_outline() as outline:
         first = outline.root[0]
         # Set to first page.
         first.destination = 0
@@ -170,7 +170,7 @@ def test_dest_or_action(outlines_doc):
     # Original action should be gone
     assert '/A' not in first_obj
     # Now save with a new action instead
-    with Outline(outlines_doc) as outline:
+    with outlines_doc.open_outline() as outline:
         first = outline.root[0]
         first.action = Dictionary(D=first.destination, S=Name.GoTo)
         first.destination = None
@@ -235,7 +235,7 @@ def test_new_item(outlines_doc, title, page_num, page_loc):
     page_ref = outlines_doc.pages[page_num]
 
     new_item = OutlineItem(title, page_num, page_loc, **kwargs)
-    with Outline(outlines_doc) as outline:
+    with outlines_doc.open_outline() as outline:
         outline.root.append(new_item)
     if isinstance(page_loc, PageLocation):
         loc_str = page_loc.name

@@ -16,11 +16,11 @@ of an existing PDF.
 .. ipython::
     :verbatim:
 
-    In [1]: from pikepdf import Pdf, Outline, OutlineItem
+    In [1]: from pikepdf import Pdf, OutlineItem
 
     In [1]: pdf = Pdf.open('document.pdf')
 
-    In [1]: with Outline(pdf) as outline:
+    In [1]: with pdf.open_outline() as outline:
        ...:     outline.root.extend([
        ...:         # Page counts are zero-based
        ...:         OutlineItem('Section One', 0),
@@ -41,7 +41,7 @@ Another example, for automatically adding an entry for each file in a merged doc
 
     In [1]: page_count = 0
 
-    In [1]: with Outline(pdf) as outline:
+    In [1]: with pdf.open_outline() as outline:
        ...:     for file in glob('*.pdf'):
        ...:         src = Pdf.open(file)
        ...:         oi = OutlineItem(file, page_count)
@@ -93,7 +93,7 @@ For nesting outlines, add items to the ``children`` list of another ``OutlineIte
 .. ipython::
     :verbatim:
 
-    In [1]: with Outline(pdf) as outline:
+    In [1]: with pdf.open_outline() as outline:
        ...:     main_item = OutlineItem('Main', 0)
        ...:     outline.root.append(main_item)
        ...:     main_item.children.append(OutlineItem('A', 1))
