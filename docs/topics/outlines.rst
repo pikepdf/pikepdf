@@ -10,27 +10,44 @@ Creating outlines
 Outlines can be created from scratch, e.g. when assembling a set of PDF files
 into a single document.
 
+The following example adds outline entries referring to the 1st, 3rd and 9th page
+of an existing PDF.
+
+.. ipython::
+    :verbatim:
+
+    In [1]: from pikepdf import Pdf, Outline, OutlineItem
+
+    In [1]: pdf = Pdf.open('document.pdf')
+
+    In [1]: with Outline(pdf) as outline:
+       ...:     outline.root.extend([
+       ...:         # Page counts are zero-based
+       ...:         OutlineItem('Section One', 0),
+       ...:         OutlineItem('Section Two', 2),
+       ...:         OutlineItem('Section Three', 8)
+       ...:     ])
+
+    In [1]: pdf.save('document_with_outline.pdf')
+
+Another example, for automatically adding an entry for each file in a merged document:
+
 .. ipython::
     :verbatim:
 
     In [1]: from glob import glob
 
-    In [1]: from pikepdf import Pdf, Outline, OutlineItem
-
     In [1]: pdf = Pdf.new()
-
-    In [1]: outlines = Outline(pdf)
 
     In [1]: page_count = 0
 
-    In [1]: for file in glob('*.pdf'):
-       ...:     src = Pdf.open(file)
-       ...:     oi = OutlineItem(file, page_count)
-       ...:     outlines.root.append(oi)
-       ...:     page_count += len(src.pages)
-       ...:     pdf.pages.extend(src.pages)
-
-    In [1]: outlines.save()
+    In [1]: with Outline(pdf) as outline:
+       ...:     for file in glob('*.pdf'):
+       ...:         src = Pdf.open(file)
+       ...:         oi = OutlineItem(file, page_count)
+       ...:         outline.root.append(oi)
+       ...:         page_count += len(src.pages)
+       ...:         pdf.pages.extend(src.pages)
 
     In [1]: pdf.save('merged.pdf')
 
@@ -71,14 +88,12 @@ roughly equivalent to the following:
 
 Outline structure
 ------------------
-For nesting outlines, add items to ``root`` of the main element or the ``children`` list
-of another ``OutlineItem``.
+For nesting outlines, add items to the ``children`` list of another ``OutlineItem``.
 
 .. ipython::
     :verbatim:
 
-    In [1]: main_item = OutlineItem('Main', 0)
-
-    In [1]: outlines.root.append(main_item)
-
-    In [1]: main_item.children.append(OutlineItem('A', 1))
+    In [1]: with Outline(pdf) as outline:
+       ...:     main_item = OutlineItem('Main', 0)
+       ...:     outline.root.append(main_item)
+       ...:     main_item.children.append(OutlineItem('A', 1))
