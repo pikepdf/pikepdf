@@ -54,11 +54,20 @@ handle this as follows:
 * When editing an existing entry with an assigned action, it is left as-is, unless a
   ``destination`` is set. The latter is preferred if both are present.
 
+Creating a more detailed destination with page location:
+
 .. ipython::
     :verbatim:
 
-    In [1]: oi = OutlineItem('First', make_page_destination(pdf, 0, 'FitB', top=1000))
+    In [1]: oi = OutlineItem('First', 0, 'FitB', top=1000)
 
+The above will call ``make_page_destination`` when saving to a ``Pdf`` document,
+roughly equivalent to the following:
+
+.. ipython::
+    :verbatim:
+
+    In [1]: oi.destination = make_page_destination(pdf, 0, 'FitB', top=1000)
 
 Outline structure
 ------------------
