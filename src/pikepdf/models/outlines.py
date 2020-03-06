@@ -168,16 +168,27 @@ class Outline:
         pdf: PDF document object.
     """
     def __init__(self, pdf):
-        self._root = []
+        self._root = None
         self._pdf = pdf
-        if pdf:
-            self.load()
+        self._updating = False
 
     def __str__(self):
         return str(self.root)
 
     def __repr__(self):
         return '<{0.__class__.__name__}: {1} items>'.format(self, len(self.root))
+
+    def __enter__(self):
+        self._updating = True
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        try:
+            if exc_type is not None:
+                return
+            self._save()
+        finally:
+            self._updating = False
 
     def _save_level_outline(self, parent: Dictionary, outline_items: list):
         count = 0
@@ -225,23 +236,24 @@ class Outline:
             outline_items.append(item)
             current_obj = current_obj.get('/Next')
 
-    def save(self):
+    def _save(self):
         if '/Outlines' in self._pdf.Root:
             outlines = self._pdf.Root.Outlines
         else:
             self._pdf.Root.Outlines = outlines = self._pdf.make_indirect(Dictionary(Type=Name.Outlines))
         self._save_level_outline(outlines, self._root)
 
-    def load(self):
+    def _load(self):
+        self._root = root = []
         if '/Outlines' not in self._pdf.Root:
             return
-        root = []
         outlines = self._pdf.Root.Outlines or {}
         first_obj = outlines.get('/First')
         if first_obj:
             self._load_level_outline(first_obj, root)
-        self._root = root
 
     @property
     def root(self):
+        if self._root is None:
+            self._load()
         return self._root

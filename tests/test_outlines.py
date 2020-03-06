@@ -47,17 +47,18 @@ def test_reproduce_outlines_structure(outlines_doc):
     third_obj = second_obj.Next
     third_obj_a = third_obj.First
     third_obj_b = third_obj_a.Next
-    outlines = Outline(outlines_doc)
 
-    # Remove all references
-    for obj in [root_obj,
-                first_obj, first_obj_a, first_obj_b, first_obj_b_i, first_obj_b_ii,
-                second_obj, third_obj, third_obj_a, third_obj_b]:
-        for n in ['/First', '/Last', '/Prev', '/Next', '/Parent']:
-            if n in obj:
-                del obj[n]
+    with Outline(outlines_doc) as outline:
+        # Ensure outline is loaded
+        list(outline.root)
+        # Remove all references
+        for obj in [root_obj,
+                    first_obj, first_obj_a, first_obj_b, first_obj_b_i, first_obj_b_ii,
+                    second_obj, third_obj, third_obj_a, third_obj_b]:
+            for n in ['/First', '/Last', '/Prev', '/Next', '/Parent']:
+                if n in obj:
+                    del obj[n]
 
-    outlines.save()
     # References should just be reproduced. Exhaustive check:
     for ref in [first_obj.Parent, second_obj.Parent, third_obj.Parent]:
         assert ref == root_obj
@@ -88,14 +89,13 @@ def test_fix_references_swap_root(outlines_doc):
     first_obj = root_obj.First
     second_obj = first_obj.Next
     third_obj = second_obj.Next
-    outline = Outline(outlines_doc)
 
     # Swap first and last item
-    first_item = outline.root.pop(0)
-    last_item = outline.root.pop()
-    outline.root.insert(0, last_item)
-    outline.root.append(first_item)
-    outline.save()
+    with Outline(outlines_doc) as outline:
+        first_item = outline.root.pop(0)
+        last_item = outline.root.pop()
+        outline.root.insert(0, last_item)
+        outline.root.append(first_item)
 
     assert root_obj.First == third_obj
     assert root_obj.Last == first_obj
@@ -112,14 +112,13 @@ def test_fix_references_move_level(outlines_doc):
     first_obj = root_obj.First
     first_b_obj = first_obj.Last
     third_obj = root_obj.Last
-    outline = Outline(outlines_doc)
 
-    second_level = outline.root[0].children[1].children  # One B (I and II)
-    sec_one_b_i, sec_one_b_ii = second_level
-    # Move second level items to root
-    outline.root.extend(second_level)
-    second_level.clear()
-    outline.save()
+    with Outline(outlines_doc) as outline:
+        second_level = outline.root[0].children[1].children  # One B (I and II)
+        sec_one_b_i, sec_one_b_ii = second_level
+        # Move second level items to root
+        outline.root.extend(second_level)
+        second_level.clear()
 
     assert third_obj.Next == sec_one_b_i.obj
     assert sec_one_b_i.obj.Next == sec_one_b_ii.obj
@@ -141,41 +140,40 @@ def test_modify_closed(outlines_doc):
     assert root_obj.Count == 3
     assert first_obj.Count == -2
     assert third_obj.Count == -2
-    outlines = Outline(outlines_doc)
-    # Opens first level
-    for i in outlines.root:
-        i.is_closed = False
-    outlines.save()
+    with Outline(outlines_doc) as outline:
+        # Opens first level
+        for i in outline.root:
+            i.is_closed = False
     assert root_obj.Count == 7
     assert first_obj.Count == 2
     assert third_obj.Count == 2
     # Opens second level (only present in first section)
-    for i in outlines.root[0].children:
-        i.is_closed = False
-    outlines.save()
+    with Outline(outlines_doc) as outline:
+        for i in outline.root[0].children:
+            i.is_closed = False
     assert root_obj.Count == 9
     assert first_obj.Count == 4
 
 
 def test_dest_or_action(outlines_doc):
-    outline = Outline(outlines_doc)
-    first = outline.root[0]
     first_obj = outlines_doc.Root.Outlines.First
     first_page = outlines_doc.pages[0]
     assert '/A' in first_obj
     assert '/Dest' not in first_obj
-    # Set to first page.
-    first.destination = 0
-    outline.save()
+    with Outline(outlines_doc) as outline:
+        first = outline.root[0]
+        # Set to first page.
+        first.destination = 0
     # Reference should be replaced at this point.
     assert first.destination == [first_page, Name.Fit]
     assert first_obj.Dest == first.destination
     # Original action should be gone
     assert '/A' not in first_obj
     # Now save with a new action instead
-    first.action = Dictionary(D=first.destination, S=Name.GoTo)
-    first.destination = None
-    outline.save()
+    with Outline(outlines_doc) as outline:
+        first = outline.root[0]
+        first.action = Dictionary(D=first.destination, S=Name.GoTo)
+        first.destination = None
     assert first_obj.A.D == [first_page, Name.Fit]
     assert '/Dest' not in first_obj
 
@@ -234,12 +232,11 @@ def test_page_destination(outlines_doc, page_num, page_loc, kwargs):
 )
 def test_new_item(outlines_doc, title, page_num, page_loc):
     kwargs = dict.fromkeys(ALL_PAGE_LOCATION_KWARGS, 100)
-    outline = Outline(outlines_doc)
     page_ref = outlines_doc.pages[page_num]
 
     new_item = OutlineItem(title, page_num, page_loc, **kwargs)
-    outline.root.append(new_item)
-    outline.save()
+    with Outline(outlines_doc) as outline:
+        outline.root.append(new_item)
     if isinstance(page_loc, PageLocation):
         loc_str = page_loc.name
     else:
