@@ -12,11 +12,14 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
 import os
-from pkg_resources import get_distribution
 import subprocess
+import sys
 from unittest.mock import MagicMock
+
+from pkg_resources import get_distribution
+
+import pikepdf
 
 on_rtd = os.environ.get('READTHEDOCS') == 'True'
 if on_rtd:
@@ -76,7 +79,6 @@ else:
 sys.path.insert(0, os.path.join(os.path.abspath('.'), './_ext'))
 sys.path.insert(0, os.path.join(os.path.abspath('.'), '..'))
 
-import pikepdf
 
 # -- General configuration ------------------------------------------------
 
@@ -116,7 +118,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'pikepdf'
-copyright = u'2018, James R. Barlow'
+copyright = u'2020, James R. Barlow'
 author = u'James R. Barlow'
 
 # The version info for the project you're documenting, acts as replacement for

@@ -502,8 +502,11 @@ void init_qpdf(py::module &m)
             Args:
                 filename_or_stream (os.PathLike): Filename of PDF to open
                 password (str or bytes): User or owner password to open an
-                    encrypted PDF. If a str is given it will be converted to
-                    UTF-8.
+                    encrypted PDF. If the type of this parameter is ``str``
+                    it will be encoded as UTF-8. If the type is ``bytes`` it will
+                    be saved verbatim. Passwords are always padded or
+                    truncated to 32 bytes internally. Use ASCII passwords for
+                    maximum compatibility.
                 hex_password (bool): If True, interpret the password as a
                     hex-encoded version of the exact encryption key to use, without
                     performing the normal key computation. Useful in forensics.

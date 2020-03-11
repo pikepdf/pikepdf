@@ -69,7 +69,8 @@ Extracting images
 Extracting images is straightforward. :meth:`~pikepdf.PdfImage.extract_to` will
 extract images to a specified file prefix. The extension is determined while
 extracting and appended to the filename. Where possible, ``extract_to``
-writes compressed data directly to the stream without transcoding.
+writes compressed data directly to the stream without transcoding. (Transcoding
+lossy formats like JPEG can reduce their quality.)
 
 .. ipython::
     :verbatim:
@@ -80,7 +81,7 @@ writes compressed data directly to the stream without transcoding.
 It also possible to extract to a writable Python stream using
 ``.extract_to(stream=...`)``.
 
-You can also retrieve the image as a Pillow image:
+You can also retrieve the image as a Pillow image (this will transcode):
 
 .. ipython::
 
@@ -88,9 +89,9 @@ You can also retrieve the image as a Pillow image:
 
 Another way to view the image is using Pillow's ``Image.show()`` method.
 
-Not all images can be extracted. Also, some PDFs describe an image with a
+Not all image types can be extracted. Also, some PDFs describe an image with a
 mask, with transparency effects. pikepdf can only extract the images
-themselves, not rasterize them exactly as they appear in a PDF viewer. In
+themselves, not rasterize them exactly as they would appear in a PDF viewer. In
 the vast majority of cases, however, the image can be extracted as it appears.
 
 .. note::

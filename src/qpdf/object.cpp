@@ -624,7 +624,7 @@ void init_object(py::module& m)
         .def_property_readonly("objgen",
             &object_get_objgen,
             R"~~~(
-            Return the object-generation number pair for this object
+            Return the object-generation number pair for this object.
 
             If this is a direct object, then the returned value is ``(0, 0)``.
             By definition, if this is an indirect object, it has a "objgen",
@@ -632,7 +632,10 @@ void init_object(py::module& m)
             Direct objects cannot necessarily be looked up.
 
             The generation number is usually 0, except for PDFs that have been
-            incrementally updated.
+            incrementally updated. Incrementally updated PDFs are now uncommon,
+            since it does not take too long for modern CPUs to reconstruct an
+            entire PDF. pikepdf will consolidate all incremental updates
+            when saving.
 
             )~~~"
         )

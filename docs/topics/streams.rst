@@ -8,15 +8,22 @@ stream can be encoded with one or more filters. Images are a type of stream
 object.
 
 Most of the interesting content in a PDF (images and content streams) are
-inside page objects.
+inside stream objects.
 
 Because the PDF specification unfortunately defines several terms involve the
 word stream, let's attempt to clarify:
 
+.. figure:: /images/28fish.jpg
+  :figwidth: 30%
+  :align: right
+  :alt: Image of many species of fish
+
+  When it comes to taxonomy, software developers have it easy.
+
 stream object
   A PDF object that contains binary data and a metadata dictionary to describes
   it, represented as :class:`pikepdf.Stream`. In HTML this is equivalent to
-  a ``<img>`` with inline image data.
+  a ``<object>`` tag with attributes and data.
 
 object stream
   A stream object (not a typo, an object stream really is a type of stream
@@ -34,6 +41,8 @@ Form XObject
   A group of images, text and drawing commands that can be rendered elsewhere
   in a PDF as a group. This is often used when a group of objects are needed
   at different scales or multiple pages. In HTML this is like an ``<svg>``.
+  It is not a fillable PDF form (although a fillable PDF form could involve
+  Form XObjects).
 
 Reading stream objects
 ----------------------

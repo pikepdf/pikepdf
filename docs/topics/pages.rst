@@ -163,6 +163,8 @@ Emplacing pages
 To preserve indirect references, use :meth:`pikepdf.Object.emplace`,
 which will (conceptually) delete all of the content of target and replace it
 with the content of source, thus preserving indirect references to the page.
+(Think of this as demolishing the interior of a house, but keeping it at the
+same address.)
 
 .. ipython::
 

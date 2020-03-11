@@ -43,6 +43,11 @@ Copyright: (C) 2009 Rama
 License: CC-BY-SA 2.0
  See: https://commons.wikimedia.org/wiki/File:Pike_square_img_3653.jpg
 
+Files: docs/images/28fish.jpg
+Copyright: (C) 2009 Fae
+License: CC-BY-4.0
+ See: https://upload.wikimedia.org/wikipedia/commons/0/0c/Twenty_eight_types_of_fish._Engraving_by_R._Scott_after_T._B_Wellcome_V0022737EL.jpg
+
 Files: tests/*.py
 Copyright: (C) 2017 James R. Barlow
 License: CC0-1.0

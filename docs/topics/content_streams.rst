@@ -6,8 +6,10 @@ XObject that describes where and how to draw images, vectors, and text.
 
 Content streams are binary data that can be thought of as a list of operators
 and zero or more operands. Operands are given first, followed by the operator.
-It is a stack-based language based loosely on PostScript (not actually PostScript!)
-but without any programmable features. There are no variables, loops or conditionals.
+It is a stack-based language, loosely based on PostScript. (It's not actually
+PostScript, but sometimes well-meaning people mistakenly say that it is!)
+Like HTML, it has a precise grammar, and also like (pure) HTML, it has no loops,
+conditionals or variables.
 
 A typical example is as follows (with additional whitespace and PostScript-style
 ``%``-comments):
@@ -106,18 +108,25 @@ stream.
 
 .. note::
 
-  You need to translate the image so that it is centered at the bottom left
-  corner of the page, rotate, and then reverse the translation.
+  To rotate an image, first translate it so that the image is centered at ``(0, 0)``,
+  rotate then apply the rotate, then translate it to its new center position.
+  This is because rotations occur around ``(0, 0)``.
+
+.. note::
+
+  While the coordinate system is pinned to ``(0, 0)`` and **up is positive**,
+  the page's MediaBox does not have to be.
 
 Editing content streams robustly
 --------------------------------
 
 The stateful nature of PDF content streams makes editing them complicated. Edits
-like this will work when the input file is known to have a fixed structure
-(that is, the state at the time of editing is known). You can always prepend
-content to the top of the content stream, since the initial state is known.
-And you can often append content to the end the stream, since the final state is
-predictable if every ``q`` (push state) has a matching ``Q`` (pop state).
+like the example above will work when the input file is known to have a fixed
+structure (that is, the state at the time of editing is known). You can always
+prepend content to the top of the content stream, since the initial state is
+known. And you can often append content to the end the stream, since the final
+state is predictable if every ``q`` (push state) has a matching ``Q`` (pop
+state).
 
 Otherwise, you must track the graphics state and maintain a stack of states.
 
@@ -126,21 +135,17 @@ representation that is easier edit and then serializing it back, totally
 rewriting the content stream. Content streams should be thought of as an
 output format.
 
-Some manipulations are more manageable. You can often prepend content to the
-top of the content stream or append to the end, or both, if the internal
-content stream is well-formed on each end.
-
 Extracting text from PDFs
 -------------------------
 
-If you guessed that the content streams were the place to look for text inside a PDF
-– you'd be correct. Unfortunately, extracting the text is fairly difficult because
-content stream actually specifies as a font and glyph numbers to use. Sometimes, there
-is a 1:1 transparent mapping between Unicode numbers and glyph numbers, and dump of the
-content stream will show the text. In general, you cannot rely on there being a
-transparent mapping; in fact, it is perfectly legal for a font to specify no Unicode
-mapping at all, or to use an unconventional mapping (when a PDF contains a subsetted
-font for example).
+If you guessed that the content streams were the place to look for text inside a
+PDF – you'd be correct. Unfortunately, extracting the text is fairly difficult
+because content stream actually specifies as a font and glyph numbers to use.
+Sometimes, there is a 1:1 transparent mapping between Unicode numbers and glyph
+numbers, and dump of the content stream will show the text. In general, you
+cannot rely on there being a transparent mapping; in fact, it is perfectly legal
+for a font to specify no Unicode mapping at all, or to use an unconventional
+mapping (when a PDF contains a subsetted font for example).
 
 **We strongly recommend against trying to scrape text from the content stream.**
 

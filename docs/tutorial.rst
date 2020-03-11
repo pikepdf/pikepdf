@@ -33,8 +33,11 @@ name conflicts or ``from pikepdf import Pdf as PDF`` if you prefer uppercase.
 The PDF class API follows the example of the widely-used
 `Pillow image library <https://pillow.readthedocs.io/en/latest/>`_. For clarity
 there is no default constructor since the arguments used for creation and
-opening are different. ``Pdf.open()`` also accepts seekable streams as input,
-and ``Pdf.save()`` accepts streams as output.
+opening are different. To make a new empty PDF, use ``Pdf.new()`` not ``Pdf()``.
+
+``Pdf.open()`` also accepts seekable streams as input, and ``Pdf.save()`` accepts
+streams as output. :class:`pathlib.Path` objects are fully supported anywhere
+pikepdf accepts a filename.
 
 Inspecting pages
 ----------------
@@ -59,7 +62,7 @@ How many pages?
 
 pikepdf integrates with IPython and Jupyter's rich object APIs so that you can
 view PDFs, PDF pages, or images within PDF in a IPython window or Jupyter
-notebook. This makes it to test visual changes.
+notebook. This makes easier it to test visual changes.
 
 .. ipython::
     :verbatim:
@@ -93,12 +96,12 @@ Pages are dictionaries
 
 In PDFs, the main data structure is the **dictionary**, a key-value data
 structure much like a Python ``dict`` or ``attrdict``. The major difference is
-that the keys can only be **names**, and can only be PDF types, including
+that the keys can only be **names**, and the values can only be PDF types, including
 other dictionaries.
 
 PDF dictionaries are represented as :class:`pikepdf.Dictionary`, and names
-are of type :class:`pikepdf.Name`. A page is just a dictionary with a few
-required files and a reference from the document's "page tree". (pikepdf manages
+are of type :class:`pikepdf.Name`. A page is just a dictionary with a certain
+required keys and a reference from the document's "page tree". (pikepdf manages
 the page tree for you.)
 
 .. ipython::
@@ -116,17 +119,14 @@ Let's example the page's ``repr()`` output:
 
 .. ipython::
 
-    In [1]: page1
+    In [1]: repr(page1)
 
 The angle brackets in the output indicate that this object cannot be constructed
 with a Python expression because it contains a reference. When angle brackets
 are omitted from the ``repr()`` of a pikepdf object, then the object can be
 replicated with a Python expression, such as ``eval(repr(x)) == x``. Pages
-typically concern indirect references to themselves and other pages, so they
+typically have indirect references to themselves and other pages, so they
 cannot be represented as an expression.
-
-In Jupyter and IPython, pikepdf will instead attempt to display a preview of the PDF
-page, assuming a PDF rendering backend is available.
 
 Item and attribute notation
 ---------------------------
@@ -136,14 +136,16 @@ keys (``page1['/MediaBox']``).
 
 .. ipython::
 
-    In [1]: page1.MediaBox      # preferred notation for required names
+    In [1]: page1.MediaBox      # preferred notation for standard PDF names
 
     In [1]: page1['/MediaBox']  # also works
 
-By convention, pikepdf uses attribute notation for standard names, and item
-notation for names that are set by PDF developers. For example, the images
+By convention, pikepdf uses attribute notation for standard names (the names
+that are normally part of a dictionary, according to the PDF Reference Manual),
+and item notation for names that may not always appear. For example, the images
 belong to a page always appear at ``page.Resources.XObject`` but the name
-of images is set by the PDF creator:
+of images is arbitrarily chosen by whatever software generates the PDF (``/Im0``,
+in this case). (Whenever expressed as strings, names begin with ``/``.)
 
 .. ipython::
     :verbatim:
@@ -179,8 +181,7 @@ Saving changes
 --------------
 
 Naturally, you can save your changes with :meth:`pikepdf.Pdf.save`.
-``filename`` can be a :class:`pathlib.Path`, which we accept everywhere. (Saving
-is commented out to avoid upsetting the documentation generator.)
+``filename`` can be a :class:`pathlib.Path`, which we accept everywhere.
 
 .. ipython::
     :verbatim:
@@ -188,12 +189,24 @@ is commented out to avoid upsetting the documentation generator.)
     In [1]: pdf.save('output.pdf')
 
 You may save a file multiple times, and you may continue modifying it after
-saving.
+saving. For example, you could create an unencrypted version of document, then
+apply a watermark, and create an encrypted version.
+
+.. note::
+
+    You may not overwrite the input file (or whatever Python object provides the
+    data) when saving or at any other time. pikepdf assumes it will have
+    exclusive access to the input file or input data you give it to, until
+    ``pdf.close()`` is called.
+
+Saving secure PDFs
+^^^^^^^^^^^^^^^^^^
 
 To save an encrypted (password protected) PDF, use a :class:`pikepdf.Encryption`
-object to specify the encryption settings. By default, pikepdf selects the strongest
-security handler and algorithm (AES-256), but allows full access to modify file contents.
-A :class:`pikepdf.Permissions` object can be used to specify restrictions.
+object to specify the encryption settings. By default, pikepdf selects the
+strongest security handler and algorithm (AES-256), but allows full access to
+modify file contents. A :class:`pikepdf.Permissions` object can be used to
+specify restrictions.
 
 .. ipython::
     :verbatim:
@@ -203,6 +216,23 @@ A :class:`pikepdf.Permissions` object can be used to specify restrictions.
     In [1]: pdf.save('encrypted.pdf', encryption=pikepdf.Encryption(
        ...:      user="user password", owner="owner password", allow=no_extracting
        ...: ))
+
+As in all PDFs, if a user password is set, it will not be possible to
+open the PDF without the password. If the owner password is set, changes will
+not be permitted with the owner password. If the user password is an empty
+string and an owner password is set, the PDF can be viewed by anyone with the
+user (or owner) password. PDF viewers only enforce ``pikepdf.Permissions``
+restrictions when a PDF is opened with the user password, since the owner may
+change anything.
+
+pikepdf does not and cannot enforce the restrictions in ``pikepdf.Permissions``
+if you open a file with the user password. Someone with either the user or
+owner password can access all the contents of PDF. If you are developing an
+application, however, you should consider enforcing the restrictions.
+
+For widest compatibility, passwords should be ASCII, since the PDF reference
+manual is unclear about how non-ASCII passwords are supposed to be encoded.
+See the documentation on ``Pdf.save()`` for more details.
 
 Next steps
 ----------

@@ -101,9 +101,9 @@ In use
 
 pikepdf is used by the same author's `OCRmyPDF
 <https://github.com/jbarlow83/OCRmyPDF>`_ to inspect input PDFs, graft the
-generated OCR layers on to page content, and output PDFs. Its code contains main
-practical examples, particular in ``pdfinfo.py``, ``_weave.py``, and
-``optimize.py``. pikepdf is also used in the test suite.
+generated OCR layers on to page content, and output PDFs. Its code contains several
+practical examples, particular in ``pdfinfo.py``, ``graft.py``, and
+``optimize.py``. pikepdf is also used in its test suite.
 
 .. toctree::
     :maxdepth: 2

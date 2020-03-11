@@ -24,7 +24,6 @@ virtual environment).
 
     pip install pikepdf
 
-
 Use ``pip install --user pikepdf`` to install the package for the current user
 only. Use ``pip install pikepdf`` to install to a virtual environment.
 
@@ -45,7 +44,6 @@ Some platforms include versions of pikepdf that are distributed by the system
 package manager (such as ``apt``). These versions may lag behind the version
 distributed with PyPI, but may be convenient for users that cannot use binary
 wheels.
-
 
 .. |pikepdf| image:: https://repology.org/badge/vertical-allrepos/pikepdf.svg
     :alt: Package status
