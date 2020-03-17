@@ -19,18 +19,16 @@ instances of ``pikepdf.Object``, which is a variant container object. The
 class definition is present as an aide for code introspection.
 """
 
-from . import _qpdf
-
 # pylint: disable=unused-import, abstract-method
-from ._qpdf import Object, ObjectType, Operator
 
+from . import _qpdf
+from ._qpdf import Object, ObjectType
 
 # By default pikepdf.Object will identify itself as pikepdf._qpdf.Object
 # Here we change the module to discourage people from using that internal name
 # Instead it will become pikepdf.objects.Object
 Object.__module__ = __name__
 ObjectType.__module__ = __name__
-Operator.__module__ = __name__
 
 
 # type(Object) is the metaclass that pybind11 defines; we wish to extend that
@@ -91,6 +89,14 @@ class Name(Object, metaclass=_NameObjectMeta):
         if isinstance(name, bytes):
             raise TypeError("Name should be str")
         return _qpdf._new_name(name)
+
+
+class Operator(Object, metaclass=_ObjectMeta):
+
+    object_type = ObjectType.operator
+
+    def __new__(cls, name):
+        return _qpdf.Operator(name)
 
 
 class String(Object, metaclass=_ObjectMeta):

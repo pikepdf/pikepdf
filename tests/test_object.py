@@ -24,10 +24,10 @@ from pikepdf import (
     Name,
     Object,
     Operator,
-    PdfError,
-    String,
-    Stream,
     Pdf,
+    PdfError,
+    Stream,
+    String,
 )
 from pikepdf import _qpdf as qpdf
 
@@ -80,7 +80,7 @@ def test_integer_comparison(a, b):
     assert lessthan == encoded_lessthan
 
 
-@given(integers(-10 ** 12, 10 ** 12), integers(0, 12))
+@given(integers(-(10 ** 12), 10 ** 12), integers(0, 12))
 def test_decimal_involution(num, radix):
     strnum = str(num)
     if radix > len(strnum):
@@ -491,3 +491,31 @@ def test_object_iteration(sandwich):
         if isinstance(obj, Dictionary):
             assert len(obj.keys()) >= 1
     assert n + 1 == expected
+
+
+@pytest.mark.parametrize(
+    'obj', [Array([1]), Dictionary({'/A': 'b'}), Operator('q'), String('s')]
+)
+def test_object_isinstance(obj):
+    assert isinstance(obj, (Array, Dictionary, Operator, String, Stream))
+    assert isinstance(obj, type(obj))
+    assert isinstance(obj, Object)
+
+
+def test_stream_isinstance():
+    pdf = pikepdf.new()
+    stream = Stream(pdf, b'xyz')
+    assert isinstance(stream, Stream)
+    assert isinstance(stream, Object)
+
+
+def test_object_classes():
+    classes = [Array, Dictionary, Operator, String, Stream]
+    for cls in classes:
+        assert issubclass(cls, Object)
+
+
+def test_operator_create():
+    Operator('q')
+    assert Operator('q') == Operator('q')
+    assert Operator('q') != Operator('Q')
