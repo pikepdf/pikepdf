@@ -180,6 +180,13 @@ Removing pages is easy too.
 Saving changes
 --------------
 
+.. figure:: /images/save-pike.jpg
+   :align: right
+   :alt: Sign that reads "Help the pike survive"
+   :figwidth: 40%
+
+   Saving pike.
+
 Naturally, you can save your changes with :meth:`pikepdf.Pdf.save`.
 ``filename`` can be a :class:`pathlib.Path`, which we accept everywhere.
 
