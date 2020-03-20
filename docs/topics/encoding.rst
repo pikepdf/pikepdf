@@ -3,10 +3,10 @@ Character encoding
 
 .. epigraph::
 
-    There are three hard problems in computer science:
-    1) Converting from PDF,
-    2) Converting to PDF, and
-    3) O̳̳̳̳̳̳̳̳̳̳̳̳̳̳̳̳̳Ҙ҉҉҉ʹʹ҉ʹ̨̨̨̨̨̨̨̨̃༃༃O̳̳̳̳̳̳̳̳̳̳̳̳̳̳̳̳̳Ҙ҉҉҉ʹʹ҉ʹ̨̨̨̨̨̨̨̨̃༃༃ʹʹ҉ʹ̨̨̨̨̨̨̨̨̃༃༃
+    | There are three hard problems in computer science:
+    | 1) Converting from PDF,
+    | 2) Converting to PDF, and
+    | 3) O̳̳̳̳̳̳̳̳̳̳̳̳̳̳̳̳̳Ҙ҉҉҉ʹʹ҉ʹ̨̨̨̨̨̨̨̨̃༃༃O̳̳̳̳̳̳̳̳̳̳̳̳̳̳̳̳̳Ҙ҉҉҉ʹʹ҉ʹ̨̨̨̨̨̨̨̨̃༃༃ʹʹ҉ʹ̨̨̨̨̨̨̨̨̃༃༃
 
     -- `Marseille Folog <https://twitter.com/fogus/status/1024657831084085248>`_
 
