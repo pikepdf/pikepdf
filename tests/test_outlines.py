@@ -4,7 +4,8 @@ import pytest
 from hypothesis import given, example
 from hypothesis import strategies as st
 
-from pikepdf import Pdf, Dictionary, Name, OutlineItem, PageLocation, make_page_destination
+from pikepdf import (Pdf, Dictionary, Name, OutlineItem, OutlineStructureError,
+                     PageLocation, make_page_destination)
 from pikepdf.models.outlines import ALL_PAGE_LOCATION_KWARGS
 
 
@@ -82,6 +83,113 @@ def test_reproduce_outlines_structure(outlines_doc):
     assert third_obj_b.Prev == third_obj_a
     assert third_obj.Last == third_obj_b
     assert third_obj_a.Next == third_obj_b
+
+
+def test_recursion_depth_zero(outlines_doc):
+    # Only keeps root level
+    with outlines_doc.open_outline(max_depth=0) as outline:
+        for root_element in outline.root:
+            assert len(root_element.children) == 0
+    root_obj = outlines_doc.Root.Outlines
+    first_obj = root_obj.First
+    second_obj = first_obj.Next
+    third_obj = second_obj.Next
+    for obj in [first_obj, second_obj, third_obj]:
+        assert '/First' not in obj
+        assert '/Last' not in obj
+
+
+def test_recursion_depth_one(outlines_doc):
+    # Only keeps first level from root
+    with outlines_doc.open_outline(max_depth=1) as outline:
+        assert len(outline.root[0].children) == 2
+        for sub_element in outline.root[0].children:
+            assert len(sub_element.children) == 0
+        assert len(outline.root[1].children) == 0
+        assert len(outline.root[2].children) == 2
+    root_obj = outlines_doc.Root.Outlines
+    first_obj = root_obj.First
+    first_obj_a = first_obj.First
+    first_obj_b = first_obj_a.Next
+    second_obj = first_obj.Next
+    third_obj = second_obj.Next
+    third_obj_a = third_obj.First
+    third_obj_b = third_obj_a.Next
+    for obj in [first_obj_a, first_obj_b, third_obj_a, third_obj_b]:
+        assert '/First' not in obj
+        assert '/Last' not in obj
+
+
+def test_reference_loop_on_level(outlines_doc):
+    root_obj = outlines_doc.Root.Outlines
+    first_obj = root_obj.First
+    last_obj = root_obj.Last
+
+    # Intentionally create a reference back to the first element:
+    last_obj.Next = first_obj
+
+    # Fails on reoccurring element
+    with pytest.raises(OutlineStructureError):
+        with outlines_doc.open_outline(strict=True) as outline:
+            # Ensure outline is loaded
+            list(outline.root)
+
+    # Silently ignores invalid parts and fixes structure
+    with outlines_doc.open_outline() as outline:
+        list(outline.root)
+    # Back-reference should now be removed
+    assert '/Next' not in last_obj
+
+
+def test_reference_loop_on_recursion_only_element(outlines_doc):
+    root_obj = outlines_doc.Root.Outlines
+    first_obj = root_obj.First
+    first_obj_a = first_obj.First
+
+    # Re-cycle a reference from the root level
+    # and place it as the only sub-element
+    first_obj_a.First = first_obj
+    first_obj_a.Last = first_obj
+
+    # Fails on reoccurring element
+    with pytest.raises(OutlineStructureError):
+        with outlines_doc.open_outline(strict=True) as outline:
+            # Ensure outline is loaded
+            list(outline.root)
+
+    # Silently ignores invalid parts and fixes structure
+    with outlines_doc.open_outline() as outline:
+        list(outline.root)
+    # Invalid structure should now be absent
+    assert '/First' not in first_obj_a
+    assert '/Last' not in first_obj_a
+
+
+def test_reference_loop_on_recursion_last_element(outlines_doc):
+    root_obj = outlines_doc.Root.Outlines
+    first_obj = root_obj.First
+    first_obj_a = first_obj.First
+    first_obj_b = first_obj_a.Next
+    first_obj_b_i = first_obj_b.First
+    first_obj_b_ii = first_obj_b_i.Next
+
+    # Re-cycle a reference from the root level
+    # and attach it to a list of other elements
+    first_obj_b_ii.Next = first_obj
+    first_obj_b.Last = first_obj
+
+    # Fails on reoccurring element
+    with pytest.raises(OutlineStructureError):
+        with outlines_doc.open_outline(strict=True) as outline:
+            # Ensure outline is loaded
+            list(outline.root)
+
+    # Silently ignores invalid parts and fixes structure
+    with outlines_doc.open_outline() as outline:
+        list(outline.root)
+    # Invalid references should now be removed
+    assert '/Next' not in first_obj_b_ii
+    assert first_obj_b.Last == first_obj_b_ii
 
 
 def test_fix_references_swap_root(outlines_doc):

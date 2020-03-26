@@ -292,7 +292,7 @@ class Extend_Pdf:
             overwrite_invalid_xml=not strict,
         )
 
-    def open_outline(self):
+    def open_outline(self, max_depth=15, strict=False):
         """
         Open the PDF outline ("bookmarks") for editing.
 
@@ -303,10 +303,23 @@ class Extend_Pdf:
             >>> with pdf.open_outline() as outline:
                     outline.root.insert(0, OutlineItem('Intro', 0))
 
+        Args:
+            max_depth (int): Maximum recursion depth of the outline to be
+                imported and re-written to the document. ``0`` means only
+                considering the root level, ``1`` the first-level
+                sub-outline of each root element, and so on. Items beyond
+                this depth will be silently ignored. Default is ``15``.
+            strict (bool): With the default behavior (set to ``False``),
+                structural errors (e.g. reference loops) will only cancel
+                processing further nodes on that particular level, recovering
+                the valid parts of the document outline without raising an
+                exception. When set to ``True``, any such error will raise an
+                ``OutlineStructureError``, leaving the invalid parts in place.
+
         Returns:
-             pikepdf.models.Outline
+            pikepdf.models.Outline
         """
-        return Outline(self)
+        return Outline(self, max_depth=max_depth, strict=strict)
 
     def make_stream(self, data):
         """

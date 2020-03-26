@@ -58,6 +58,10 @@ def make_page_destination(pdf, page_num: int, page_location: (PageLocation, str)
     return Array(res)
 
 
+class OutlineStructureError(Exception):
+    pass
+
+
 class OutlineItem:
     """Manages a single item in a PDF document outlines structure, including
     nested items.
@@ -166,10 +170,19 @@ class Outline:
 
     Arguments:
         pdf: PDF document object.
+        max_depth: Maximum recursion depth to consider when reading the outline.
+        strict: If set to ``False`` (default) silently ignores structural errors.
+            Setting it to ``True`` raises a ``OutlineStructureError`` if any items
+            re-occur while the outline is being read.
+
+    See Also:
+        :meth:`pikepdf.Pdf.open_outline`
     """
-    def __init__(self, pdf):
+    def __init__(self, pdf, max_depth=15, strict=False):
         self._root = None
         self._pdf = pdf
+        self._max_depth = max_depth
+        self._strict = strict
         self._updating = False
 
     def __str__(self):
@@ -223,13 +236,21 @@ class Outline:
                 del parent.Last
         parent.Count = count
 
-    def _load_level_outline(self, first_obj: Dictionary, outline_items: list):
+    def _load_level_outline(self, first_obj: Dictionary, outline_items: list,
+                            level: int, visited_objs: set):
         current_obj = first_obj
         while current_obj:
+            objgen = current_obj.objgen
+            if objgen in visited_objs:
+                if self._strict:
+                    raise OutlineStructureError("Outline object {0} reoccurred in structure".format(objgen))
+                return
+            visited_objs.add(objgen)
+
             item = OutlineItem.from_dictionary_object(current_obj)
             first_child = current_obj.get('/First')
-            if first_child is not None:
-                self._load_level_outline(first_child, item.children)
+            if first_child is not None and level < self._max_depth:
+                self._load_level_outline(first_child, item.children, level + 1, visited_objs)
                 count = current_obj.get('/Count')
                 if count and count < 0:
                     item.is_closed = True
@@ -250,7 +271,7 @@ class Outline:
         outlines = self._pdf.Root.Outlines or {}
         first_obj = outlines.get('/First')
         if first_obj:
-            self._load_level_outline(first_obj, root)
+            self._load_level_outline(first_obj, root, 0, set())
 
     @property
     def root(self):

@@ -54,6 +54,7 @@ from .models import (
     Encryption,
     Outline,
     OutlineItem,
+    OutlineStructureError,
     PageLocation,
     PdfImage,
     PdfInlineImage,
