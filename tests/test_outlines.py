@@ -88,8 +88,14 @@ def test_reproduce_outlines_structure(outlines_doc):
 def test_recursion_depth_zero(outlines_doc):
     # Only keeps root level
     with outlines_doc.open_outline(max_depth=0) as outline:
+        # No more than the root level should be read
         for root_element in outline.root:
             assert len(root_element.children) == 0
+
+        # Attach an item to the first root level element
+        # that should be ignored when writing
+        outline.root[0].children.append(OutlineItem('New', 0))
+
     root_obj = outlines_doc.Root.Outlines
     first_obj = root_obj.First
     second_obj = first_obj.Next
@@ -102,11 +108,16 @@ def test_recursion_depth_zero(outlines_doc):
 def test_recursion_depth_one(outlines_doc):
     # Only keeps first level from root
     with outlines_doc.open_outline(max_depth=1) as outline:
-        assert len(outline.root[0].children) == 2
-        for sub_element in outline.root[0].children:
-            assert len(sub_element.children) == 0
-        assert len(outline.root[1].children) == 0
-        assert len(outline.root[2].children) == 2
+        # Only children of first level should be present
+        for root_element, first_level_count in zip(outline.root, (2, 0, 2)):
+            assert len(root_element.children) == first_level_count
+            for sub_element in root_element.children:
+                assert len(sub_element.children) == 0
+
+        # Attach an item to the first sub level element
+        # that should be ignored when writing
+        outline.root[0].children[1].children.append(OutlineItem('New', 0))
+
     root_obj = outlines_doc.Root.Outlines
     first_obj = root_obj.First
     first_obj_a = first_obj.First
@@ -190,6 +201,26 @@ def test_reference_loop_on_recursion_last_element(outlines_doc):
     # Invalid references should now be removed
     assert '/Next' not in first_obj_b_ii
     assert first_obj_b.Last == first_obj_b_ii
+
+
+def test_duplicated_object(outlines_doc):
+    # Fails on reoccurring element
+    with pytest.raises(OutlineStructureError):
+        with outlines_doc.open_outline(strict=True) as outline:
+            # Copy and object reference from one node to another
+            obj_b_ii = outline.root[0].children[1].children[0].obj
+            outline.root[2].children[0].obj = obj_b_ii
+
+    # Silently creates a copy of the outline node
+    with outlines_doc.open_outline() as outline:
+        # Append duplicate object reference to existing outline
+        obj_b_ii = outline.root[0].children[1].children[0].obj
+        outline.root[2].children.append(OutlineItem.from_dictionary_object(obj_b_ii))
+
+    # Should not fail at this point anymore
+    with outlines_doc.open_outline(strict=True) as outline:
+        assert len(outline.root[2].children) == 3
+        assert outline.root[2].children[2].title == outline.root[0].children[1].children[0].title
 
 
 def test_fix_references_swap_root(outlines_doc):

@@ -136,7 +136,7 @@ class OutlineItem:
         action = obj.get('/A')
         return cls(title, destination=destination, action=action, obj=obj)
 
-    def to_dictionary_object(self, pdf) -> Dictionary:
+    def to_dictionary_object(self, pdf, create_new=False) -> Dictionary:
         """Creates a ``Dictionary`` object from this outline node's data,
         or updates the existing object.
         Page numbers are resolved to a page reference on the input
@@ -144,8 +144,10 @@ class OutlineItem:
 
         Arguments:
             pdf: PDF document object.
+            create_new: If set to ``True``, creates a new object instead of
+                modifying an existing one in-place.
         """
-        if self.obj is None:
+        if create_new or self.obj is None:
             self.obj = obj = pdf.make_indirect(Dictionary())
         else:
             obj = self.obj
@@ -172,8 +174,8 @@ class Outline:
         pdf: PDF document object.
         max_depth: Maximum recursion depth to consider when reading the outline.
         strict: If set to ``False`` (default) silently ignores structural errors.
-            Setting it to ``True`` raises a ``OutlineStructureError`` if any items
-            re-occur while the outline is being read.
+            Setting it to ``True`` raises a ``OutlineStructureError`` if any object
+            references re-occur while the outline is being read or written.
 
     See Also:
         :meth:`pikepdf.Pdf.open_outline`
@@ -203,12 +205,21 @@ class Outline:
         finally:
             self._updating = False
 
-    def _save_level_outline(self, parent: Dictionary, outline_items: list):
+    def _save_level_outline(self, parent: Dictionary, outline_items: list,
+                            level: int, visited_objs: set):
         count = 0
         prev = None
         first = None
         for item in outline_items:
             out_obj = item.to_dictionary_object(self._pdf)
+            objgen = out_obj.objgen
+            if objgen in visited_objs:
+                if self._strict:
+                    raise OutlineStructureError("Outline object {0} reoccurred in structure".format(objgen))
+                out_obj = item.to_dictionary_object(self._pdf, create_new=True)
+            else:
+                visited_objs.add(objgen)
+
             out_obj.Parent = parent
             count += 1
             if prev is not None:
@@ -219,7 +230,11 @@ class Outline:
                 if '/Prev' in out_obj:
                     del out_obj.Prev
             prev = out_obj
-            self._save_level_outline(out_obj, item.children)
+            if level < self._max_depth:
+                sub_items = item.children
+            else:
+                sub_items = ()
+            self._save_level_outline(out_obj, sub_items, level + 1, visited_objs)
             if item.is_closed:
                 out_obj.Count = -out_obj.Count
             else:
@@ -258,11 +273,13 @@ class Outline:
             current_obj = current_obj.get('/Next')
 
     def _save(self):
+        if self._root is None:
+            return
         if '/Outlines' in self._pdf.Root:
             outlines = self._pdf.Root.Outlines
         else:
             self._pdf.Root.Outlines = outlines = self._pdf.make_indirect(Dictionary(Type=Name.Outlines))
-        self._save_level_outline(outlines, self._root)
+        self._save_level_outline(outlines, self._root, 0, set())
 
     def _load(self):
         self._root = root = []

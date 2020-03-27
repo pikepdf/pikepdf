@@ -310,11 +310,16 @@ class Extend_Pdf:
                 sub-outline of each root element, and so on. Items beyond
                 this depth will be silently ignored. Default is ``15``.
             strict (bool): With the default behavior (set to ``False``),
-                structural errors (e.g. reference loops) will only cancel
-                processing further nodes on that particular level, recovering
-                the valid parts of the document outline without raising an
-                exception. When set to ``True``, any such error will raise an
-                ``OutlineStructureError``, leaving the invalid parts in place.
+                structural errors (e.g. reference loops) in the PDF document
+                will only cancel processing further nodes on that particular
+                level, recovering the valid parts of the document outline
+                without raising an exception. When set to ``True``, any such
+                error will raise an ``OutlineStructureError``, leaving the
+                invalid parts in place.
+                Similarly, outline objects that have been accidentally
+                duplicated in the ``Outline`` container will be silently
+                fixed (i.e. reproduced as new objects) or raise an
+                ``OutlineStructureError``.
 
         Returns:
             pikepdf.models.Outline
