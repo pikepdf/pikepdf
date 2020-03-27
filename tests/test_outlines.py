@@ -239,6 +239,52 @@ def test_fix_references_move_level(outlines_doc):
     assert '/Last' not in first_b_obj
 
 
+def test_noop(outlines_doc):
+    with outlines_doc.open_outline(strict=True):
+        # Forget to attach it - should simply not modify.
+        OutlineItem('New')
+
+
+def test_append_items(outlines_doc):
+    # Simple check that we can write new objects
+    # without failing the object duplicate checks
+    with outlines_doc.open_outline(strict=True) as outline:
+        new_item = OutlineItem('Four')
+        new_item.children.extend([
+            OutlineItem('Four-A'),
+            OutlineItem('Four-B')
+        ])
+        outline.root.append(new_item)
+
+    with outlines_doc.open_outline(strict=True):
+        list(outline.root)
+
+
+def test_create_from_scratch(outlines_doc):
+    # Simple check that we can discard the existing outline
+    # and create a new one.
+    del outlines_doc.Root.Outlines
+    with outlines_doc.open_outline(strict=True) as outline:
+        new_item = OutlineItem('One')
+        new_item.children.extend([
+            OutlineItem('One-A'),
+            OutlineItem('One-B')
+        ])
+        outline.root.append(new_item)
+
+    with outlines_doc.open_outline(strict=True):
+        list(outline.root)
+
+    # Should also work while the outline is open
+    with outlines_doc.open_outline(strict=True) as outline:
+        del outlines_doc.Root.Outlines
+        new_item = OutlineItem('One')
+        outline.root.append(new_item)
+
+    with outlines_doc.open_outline(strict=True):
+        list(outline.root)
+
+
 def test_modify_closed(outlines_doc):
     root_obj = outlines_doc.Root.Outlines
     first_obj = root_obj.First
