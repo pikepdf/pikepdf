@@ -27,15 +27,25 @@ virtual environment).
 Use ``pip install --user pikepdf`` to install the package for the current user
 only. Use ``pip install pikepdf`` to install to a virtual environment.
 
-This command installs binary wheels. 32- and 64-bit wheels are available for
-Windows, Linux and macOS. Binary wheels should work on most systems work on
-Linux distributions 2010 and newer, macOS 10.11 and newer (for Homebrew),
-Windows 7 and newer. A notable exception is Alpine Linux, which does not support
-manylinux2010 wheels – fortunately, a native package is available for Alpine.
+This command installs manylinux2010 binary wheels. If you have an older version
+of ``pip``, such as the one that ships with Ubuntu 18.04, this command will
+attempt to compile the project. If you want to get the binary wheel, upgrade
+``pip`` with:
 
-The Linux wheels currently include copies of libqpdf, libjpeg, and zlib
-The Windows wheels include libqpdf. This is to ensure that up-to-date, compatible
-copies of dependent libraries are included.
+.. code-block:: bash
+
+    wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
+    pip --version  # should be 20.0 or newer
+    pip install pikepdf
+
+32- and 64-bit wheels are available for Windows, Linux and macOS. Binary wheels
+should work on most systems work on Linux distributions 2010 and newer, macOS
+10.11 and newer (for Homebrew), Windows 7 and newer, **provided a recent version
+of pip is used to install them**. The Linux wheels currently include copies of
+libqpdf, libjpeg, and zlib The Windows wheels include libqpdf. This is to ensure
+that up-to-date, compatible copies of dependent libraries are included.
+
+`Alpine Linux`_ does not support Python wheels.
 
 Platform support
 ----------------
@@ -72,18 +82,17 @@ Fedora
 
     dnf install python-pikepdf
 
-ArchLinux
-^^^^^^^^^
+Alpine Linux
+^^^^^^^^^^^^
 
-.. |aur| image:: https://repology.org/badge/version-for-repo/aur/python:pikepdf.svg
+.. |alpine| image:: https://repology.org/badge/version-for-repo/alpine_edge/python:pikepdf.svg
+    :alt: Alpine Linux Edge
 
-|aur|
-
-Available in `ArchLinux User Repository <https://aur.archlinux.org/packages/python-pikepdf/>`_.
+|alpine|
 
 .. code-block:: bash
 
-    pacman -S pikepdf
+    apk add py3-pikepdf
 
 Installing on FreeBSD
 ---------------------
