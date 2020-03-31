@@ -18,6 +18,12 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v1.10.4
+=======
+
+-  Rebuild Python wheels with newer version of libqpdf. Fixes problems with
+   opening certain password-protected files (#87).
+
 v1.10.3
 =======
 
