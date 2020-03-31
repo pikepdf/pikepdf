@@ -45,13 +45,10 @@ package manager (such as ``apt``). These versions may lag behind the version
 distributed with PyPI, but may be convenient for users that cannot use binary
 wheels.
 
-.. |pikepdf| image:: https://repology.org/badge/vertical-allrepos/pikepdf.svg
-    :alt: Package status
-
 .. |python-pikepdf| image:: https://repology.org/badge/vertical-allrepos/python:pikepdf.svg
     :alt: Package status for python:pikepdf
 
-|pikepdf| |python-pikepdf|
+|python-pikepdf|
 
 Debian, Ubuntu and other APT-based distributions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
