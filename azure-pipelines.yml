@@ -145,8 +145,8 @@ stages:
             condition: succeededOrFailed()
           - publish: wheelhouse
             artifact: linux32
-      - job: macos
-        pool: { vmImage: "macOS-10.13" }
+      - job: "macOS_Mojave"
+        pool: { vmImage: "macOS-10.14" }
         variables:
           cibw_before_build: >-
             pip install pybind11 &&
