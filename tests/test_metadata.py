@@ -528,3 +528,12 @@ def test_random_docinfo(docinfo):
             assert 'could not be copied to XMP' in str(e) or '/Dummy' in str(e)
         else:
             ET.fromstring(str(m))  # ensure we can parse it
+
+
+def test_set_empty_string(graph):
+    with graph.open_metadata() as m:
+        m['dc:title'] = 'a'
+
+    generated_xmp = graph.Root.Metadata.read_bytes()
+    print(generated_xmp)
+    assert generated_xmp.count(b'<dc:title>') == 1

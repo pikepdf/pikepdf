@@ -13,12 +13,24 @@ format that is used many formats other than PDF. For full information on XMP,
 see Adobe's `XMP Developer Center <https://www.adobe.com/devnet/xmp.html>`_.
 The `XMP Specification`_ also provides useful information.
 
-pikepdf can read compound metadata quantities may be read, but only scalar
-quantities can be modified. For more complex changes consider using the
-``python-xmp-toolkit`` library and its libexempi dependency; but note that it is
-not capable of synchronizing changes to the older DocumentInfo metadata.
+pikepdf can read compound metadata quantities, but can only modify scalars. For
+more complex changes consider using the ``python-xmp-toolkit`` library and its
+libexempi dependency; but note that it is not capable of synchronizing changes
+to the older DocumentInfo metadata.
 
 .. _XMP Specification: https://wwwimages2.adobe.com/content/dam/acom/en/devnet/xmp/pdfs/XMP%20SDK%20Release%20cc-2016-08/XMPSpecificationPart1.pdf
+
+Automatic metadata updates
+--------------------------
+
+By default pikepdf will create a XMP metadata block and set ``pdf:PDFVersion``
+to a value that matches the PDF version declared elsewhere in the PDF, whenever
+a PDF is saved. To suppress this behavior, save with
+``pdf.save(..., fix_metadata_version=False)``.
+
+Also by default, :meth:`Pdf.open_metadata()` will synchronize the XMP metadata
+with the older document information dictionary. This behavior can also be
+adjusted using keyword arguments.
 
 .. _accessmetadata:
 
@@ -57,6 +69,12 @@ occurs in the block, changes are discarded.
 
 The list of available metadata fields may be found in the `XMP Specification`_.
 
+Removing metadata items
+-----------------------
+
+Use ``del meta['dc:title']`` to delete a metadata entry. To remove all of the XMP
+metadata, use ``del pdf.Root.Metadata``.
+
 Checking PDF/A conformance
 --------------------------
 
@@ -76,6 +94,18 @@ to the PDF/A specification.
 
   Note that this property merely *tests* if the file claims to be conformant to
   the PDF/A standard. Use a tool such as veraPDF to verify conformance.
+
+Notice for application developers
+---------------------------------
+
+If you are using pikepdf to create some kind of PDF application, you should
+update the fields ``xmp:CreatorTool`` and ``pdf:Producer``. You could, for
+example, set ``xmp:CreatorTool`` to your application's name and version, and
+``pdf:Producer`` to pikepdf. Refer to Adobe's documentation to decide what
+describes the circumstances.
+
+This will help PDF developers identify the application that generated a
+particular PDF and is valuable debugging information.
 
 Low-level XMP metadata access
 -----------------------------
