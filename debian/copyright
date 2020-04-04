@@ -71,14 +71,6 @@ Files: test/resources/content-stream-errors.pdf
 Copyright: (C) 2019 Jay Berkenbilt
 License: Apache 2.0
 
-Files: test/resources/enron1.pdf
-Copyright: EnronData.org
-License: CC-BY-3.0
- See: https://enrondata.readthedocs.io/en/latest/data/edo-enron-email-pst-dataset/
-Comment:
- enron*_gs.pdf: processed by Ghostscript 9.26.
- Original obtained from http://datasets.opentestset.com/datasets/Enron_files/full/williams-b/Alstom%20Power.pdf
-
 Files: tests/resources/graph*.pdf
 Copyright: Public domain
 License: public-domain

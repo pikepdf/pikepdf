@@ -63,12 +63,6 @@ def trivial(resources):
 
 
 @pytest.fixture
-def enron1(resources):
-    # Has nuls in docinfo, old PDF
-    return Pdf.open(resources / 'enron1_gs.pdf')
-
-
-@pytest.fixture
 def invalid_creationdate(resources):
     # Has nuls in docinfo, old PDF
     return Pdf.open(resources / 'invalid_creationdate.pdf')
@@ -342,8 +336,25 @@ def test_remove_attribute_metadata(sandwich):
     assert not re.search(r'rdf:Description xmlns:[^\s]+ rdf:about=""/', str(xmp))
 
 
-def test_docinfo_problems(enron1, invalid_creationdate):
-    meta = enron1.open_metadata()
+def test_docinfo_problems(sandwich, invalid_creationdate):
+    sandwich.Root.Metadata = Stream(
+        sandwich,
+        b"""
+        <?xpacket begin='\xc3\xaf\xc2\xbb\xc2\xbf' id='W5M0MpCehiHzreSzNTczkc9d'?>
+        <?adobe-xap-filters esc="CRLF"?>
+        <x:xmpmeta xmlns:x='adobe:ns:meta/' x:xmptk='XMP toolkit 2.9.1-13, framework 1.6'>
+        <rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#' xmlns:iX='http://ns.adobe.com/iX/1.0/'>
+        <rdf:Description rdf:about='uuid:873a76ba-4819-11f4-0000-5c5716666531' xmlns:pdf='http://ns.adobe.com/pdf/1.3/' pdf:Producer='GPL Ghostscript 9.26'/>
+        <rdf:Description rdf:about='uuid:873a76ba-4819-11f4-0000-5c5716666531' xmlns:xmp='http://ns.adobe.com/xap/1.0/'><xmp:ModifyDate>2019-01-04T00:44:42-08:00</xmp:ModifyDate>
+        <xmp:CreateDate>2019-01-04T00:44:42-08:00</xmp:CreateDate>
+        <xmp:CreatorTool>Acrobat 4.0 Scan Plug-in for Windows&#0;</xmp:CreatorTool></rdf:Description>
+        <rdf:Description rdf:about='uuid:873a76ba-4819-11f4-0000-5c5716666531' xmlns:xapMM='http://ns.adobe.com/xap/1.0/mm/' xapMM:DocumentID='uuid:873a76ba-4819-11f4-0000-5c5716666531'/>
+        <rdf:Description rdf:about='uuid:873a76ba-4819-11f4-0000-5c5716666531' xmlns:dc='http://purl.org/dc/elements/1.1/' dc:format='application/pdf'><dc:title><rdf:Alt><rdf:li xml:lang='x-default'>Untitled</rdf:li></rdf:Alt></dc:title></rdf:Description>
+        </rdf:RDF>
+        </x:xmpmeta>
+        """,
+    )
+    meta = sandwich.open_metadata()
     meta._load()  # File has invalid XML sequence &#0;
     with meta:
         with pytest.warns(UserWarning) as warned:
@@ -358,14 +369,14 @@ def test_docinfo_problems(enron1, invalid_creationdate):
         assert 'could not be updated' in warned[0].message.args[0]
 
 
-def test_wrong_xml(enron1):
-    enron1.Root.Metadata = Stream(
-        enron1,
+def test_wrong_xml(sandwich):
+    sandwich.Root.Metadata = Stream(
+        sandwich,
         b"""
         <test><xml>This is valid xml but not valid XMP</xml></test>
     """.strip(),
     )
-    meta = enron1.open_metadata(strict=True)
+    meta = sandwich.open_metadata(strict=True)
     with pytest.raises(ValueError, match='not XMP'):
         with meta:
             pass
