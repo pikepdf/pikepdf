@@ -19,8 +19,6 @@ from unittest.mock import MagicMock
 
 from pkg_resources import get_distribution
 
-import pikepdf
-
 on_rtd = os.environ.get('READTHEDOCS') == 'True'
 if on_rtd:
     # Borrowed from https://github.com/YannickJadoul/Parselmouth/blob/master/docs/conf.py
@@ -79,6 +77,7 @@ else:
 sys.path.insert(0, os.path.join(os.path.abspath('.'), './_ext'))
 sys.path.insert(0, os.path.join(os.path.abspath('.'), '..'))
 
+import pikepdf  # isort:skip pylint: disable=unused-import
 
 # -- General configuration ------------------------------------------------
 
@@ -118,7 +117,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'pikepdf'
-copyright = u'2020, James R. Barlow'
+copyright = u'2020, James R. Barlow'  # pylint: disable=redefined-builtin
 author = u'James R. Barlow'
 
 # The version info for the project you're documenting, acts as replacement for
