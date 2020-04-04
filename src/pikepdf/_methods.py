@@ -270,8 +270,12 @@ class Extend_Pdf:
                 version of pikepdf is the most recent software to modify the metadata.
                 Recommended, except for testing.
 
-            update_docinfo (bool): Update the deprecated PDF DocumentInfo block
-                to be consistent with XMP.
+            update_docinfo (bool): Update the standard fields of DocumentInfo
+                (the old PDF metadata dictionary) to match the corresponding
+                XMP fields. The mapping is described in
+                :attr:`PdfMetadata.DOCINFO_MAPPING`. Nonstandard DocumentInfo
+                fields and XMP metadata fields with no DocumentInfo equivalent
+                are ignored.
 
             strict (bool): If ``False`` (the default), we aggressively attempt
                 to recover from any parse errors in XMP, and if that fails we
