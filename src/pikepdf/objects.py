@@ -173,6 +173,8 @@ class Dictionary(Object, metaclass=_ObjectMeta):
             return _qpdf._new_dictionary({('/' + k): v for k, v in kwargs.items()})
         if not d:
             d = {}
+        if d and any(not key.startswith('/') for key in d.keys()):
+            raise ValueError("Dictionary created from strings must begin with '/'")
         return _qpdf._new_dictionary(d)
 
 

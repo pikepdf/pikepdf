@@ -368,6 +368,10 @@ class TestDictionary:
         with pytest.raises(TypeError):
             d.page_contents_add(b'', True)
 
+    def test_bad_name(self):
+        with pytest.raises(ValueError, match=r"must begin with '/'"):
+            d = pikepdf.Dictionary({'/Slash': 'dot', 'unslash': 'error'})
+
 
 def test_not_convertible():
     class PurePythonObj:
