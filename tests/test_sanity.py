@@ -2,17 +2,9 @@
 A bunch of quick tests that confirm nothing is horribly wrong
 """
 
-import ctypes
-import errno
 import gc
-import os
-import signal
-import sys
-import threading
-import time
-from concurrent.futures import ThreadPoolExecutor, TimeoutError, as_completed
 from contextlib import suppress
-from io import BytesIO
+from distutils.version import LooseVersion
 from shutil import copy
 
 import pytest
@@ -24,7 +16,7 @@ from pikepdf import Name, Object, Pdf, Stream
 def test_minimum_qpdf_version():
     from pikepdf import _qpdf
 
-    assert _qpdf.qpdf_version() >= '7.0.0'
+    assert LooseVersion(_qpdf.qpdf_version()) >= LooseVersion('7.0.0')
 
 
 def test_open_pdf(resources):
