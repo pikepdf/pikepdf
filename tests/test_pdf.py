@@ -2,10 +2,11 @@
 Testing focused on pikepdf.Pdf
 """
 
+import locale
 import os
 import shutil
 import sys
-from io import StringIO, BytesIO
+from io import BytesIO, StringIO
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -14,7 +15,6 @@ import pytest
 import pikepdf
 from pikepdf import PasswordError, Pdf, PdfError, Stream
 from pikepdf._cpphelpers import fspath  # For py35
-
 
 # pylint: disable=redefined-outer-name
 
@@ -180,6 +180,7 @@ def test_progress(trivial, outdir):
     mock.assert_called()
 
 
+@pytest.mark.skipif(locale.getpreferredencoding() != 'UTF-8', reason="Unicode check")
 def test_unicode_filename(resources, outdir):
     target1 = outdir / '测试.pdf'
     target2 = outdir / '通过考试.pdf'
