@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
-from hypothesis import assume, example, given
+from hypothesis import assume, example, given, settings
 from hypothesis import strategies as st
 from hypothesis.strategies import integers
 from lxml.etree import XMLSyntaxError
@@ -439,6 +439,7 @@ def test_degenerate_xml_recoverable(trivial, xml):
         xmp['pdfaid:part'] = '5'
 
 
+@settings(deadline=None)
 @given(st.integers(min_value=1, max_value=1350))
 @example(548)
 @example(1154)
