@@ -1,11 +1,11 @@
-from setuptools import setup, Extension
-from setuptools.command.build_ext import build_ext
 import sys
-import setuptools
-from os.path import join, dirname, exists
 from glob import glob
 from os import environ
+from os.path import dirname, exists, join
 
+import setuptools
+from setuptools import Extension, setup
+from setuptools.command.build_ext import build_ext
 
 if sys.version_info >= (3, 6):
     try:
@@ -43,7 +43,7 @@ if qpdf_source_tree:
     extra_includes.append(join(qpdf_source_tree, 'include'))
     extra_library_dirs.append(join(qpdf_source_tree, 'libqpdf/build/.libs'))
 if 'bsd' in sys.platform:
-    extra_includes = ['/usr/local/include']
+    extra_includes.append('/usr/local/include')
 
 
 ext_modules = [
