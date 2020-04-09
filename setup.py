@@ -4,6 +4,7 @@ import sys
 import setuptools
 from os.path import join, dirname, exists
 from glob import glob
+from os import environ
 
 
 if sys.version_info >= (3, 6):
@@ -35,6 +36,12 @@ class get_pybind_include(object):
 
 
 extra_includes = []
+extra_library_dirs = []
+qpdf_source_tree = environ.get('QPDF_SOURCE_TREE', None)
+if qpdf_source_tree:
+    # Point this to qpdf source tree built with shared libaries
+    extra_includes.append(join(qpdf_source_tree, 'include'))
+    extra_library_dirs.append(join(qpdf_source_tree, 'libqpdf/build/.libs'))
 if 'bsd' in sys.platform:
     extra_includes = ['/usr/local/include']
 
@@ -50,6 +57,7 @@ ext_modules = [
             get_pybind_include(user=True),
             *extra_includes,
         ],
+        library_dirs=[*extra_library_dirs],
         libraries=['qpdf'],
         language='c++',
     )
