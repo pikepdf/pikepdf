@@ -193,8 +193,8 @@ void init_pagelist(py::module &m)
         .def("__delitem__", &PageList::delete_pages_from_iterable)
         .def("__len__", &PageList::count)
         .def("p",
-            [](PageList &pl, size_t pnum) {
-                if (pnum == 0) // Indexing past end is checked in .get_page
+            [](PageList &pl, ssize_t pnum) {
+                if (pnum <= 0) // Indexing past end is checked in .get_page
                     throw py::index_error("page access out of range in 1-based indexing");
                 return pl.get_page(pnum - 1);
             },
@@ -275,8 +275,8 @@ void init_pagelist(py::module &m)
         )
         .def("remove",
             [](PageList &pl, py::kwargs kwargs) {
-                auto pnum = kwargs["p"].cast<size_t>();
-                if (pnum == 0) // Indexing past end is checked in .get_page
+                auto pnum = kwargs["p"].cast<ssize_t>();
+                if (pnum <= 0) // Indexing past end is checked in .get_page
                     throw py::index_error("page access out of range in 1-based indexing");
                 pl.delete_page(pnum - 1);
             },

@@ -5,7 +5,7 @@ from sys import getrefcount as refcount
 
 import pytest
 
-from pikepdf import Dictionary, Name, Pdf, PdfMatrix, Stream
+from pikepdf import Array, Dictionary, Name, Pdf, PdfMatrix, Stream
 
 # pylint: disable=redefined-outer-name,pointless-statement
 
@@ -204,6 +204,8 @@ def test_one_based_pages(fourpages):
         pdf.pages.p(5)
     with pytest.raises(IndexError):
         pdf.pages.p(0)
+    with pytest.raises(IndexError):
+        pdf.pages.p(-1)
 
 
 def test_page_contents_add(graph, outdir):
@@ -326,3 +328,24 @@ def test_foreign_copied_pages_are_true_copies(graph, outpdf):
     reopened = Pdf.open(outpdf)
     assert reopened.pages[0].Rotate == 180
     assert reopened.pages[1].get(Name.Rotate, 0) == 0
+
+
+def test_remove_onebased(fourpages):
+    second_page = fourpages.pages.p(2)
+    assert second_page == fourpages.pages[1]
+    fourpages.pages.remove(p=2)
+    assert second_page not in fourpages.pages
+    assert len(fourpages.pages) == 3
+    with pytest.raises(IndexError):
+        fourpages.pages.remove(p=0)
+    with pytest.raises(IndexError):
+        fourpages.pages.remove(p=4)
+    with pytest.raises(IndexError):
+        fourpages.pages.remove(p=-1)
+
+
+def test_pages_wrong_type(fourpages):
+    with pytest.raises(TypeError):
+        fourpages.pages.insert(3, {})
+    with pytest.raises(TypeError):
+        fourpages.pages.insert(3, Array([42]))
