@@ -18,6 +18,22 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v1.11.0
+=======
+
+-  Prevent creation of dictionaries with invalid names (not beginning with ``/``).
+-  Allow pikepdf's build to specify a qpdf source tree, allowing one to compile
+   pikepdf against an unreleased/modified version of qpdf.
+-  Improved behavior of ``pages.p()`` and ``pages.remove()`` when invalid parameters
+   were given.
+-  Fixed compatibility with libqpdf version 10.0.1, and build official wheels
+   against this version.
+-  Fixed compatibility with pytest 5.x.
+-  Fixed the documentation build.
+-  Fixed an issue with running tests in a non-Unicode locale.
+-  Fixed a test that randomly failed due to a "deadline error".
+-  Removed a possibly nonfree test file.
+
 v1.10.4
 =======
 
