@@ -6,7 +6,7 @@ pikepdf Documentation
    :alt: A northern pike
    :figwidth: 30%
 
-   A northern pike, or *esox lucius*. [#img1]_
+   A northern pike, or *esox lucius*.
 
 **pikepdf** is a Python library allowing creation, manipulation and repair of
 PDFs. It provides a Pythonic wrapper around the C++ PDF content transformation
@@ -33,8 +33,9 @@ to encrypted PDFs.
    my_pdf.save('test-rotated.pdf')
 
 It is a low level library that requires knowledge of PDF internals and some
-familiarity with the PDF specification [#pdfrm]_. It does not provide a user
-interface of its own.
+familiarity with the `PDF specification
+<https://www.adobe.com/content/dam/Adobe/en/devnet/pdf/pdfs/PDF32000_2008.pdf>`_.
+It does not provide a user interface of its own.
 
 pikepdf would help you build apps that do things like:
 
@@ -144,14 +145,3 @@ practical examples, particular in ``pdfinfo.py``, ``graft.py``, and
 
     arch
     resources
-
-
-.. rubric:: References
-
-.. [#img1] `Public domain image <https://en.wikipedia.org/wiki/File:Esox_lucius1.jpg>`_.
-
-.. [#img3] `CC0 iamge <https://pixabay.com/en/pike-fish-predator-shchuchin-2612354/>`_.
-
-.. [#img2] `CC-BY-SA 2.0 image <https://commons.wikimedia.org/wiki/File:Pike_square_img_3653.jpg>`_.
-
-.. [#pdfrm] `PDF 32000-1:2008 <https://www.adobe.com/content/dam/Adobe/en/devnet/pdf/pdfs/PDF32000_2008.pdf>`_.
