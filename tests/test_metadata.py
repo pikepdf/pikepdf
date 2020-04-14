@@ -549,3 +549,20 @@ def test_set_empty_string(graph):
     generated_xmp = graph.Root.Metadata.read_bytes()
     print(generated_xmp)
     assert generated_xmp.count(b'<dc:title>') == 1
+
+
+@pytest.mark.parametrize('fix_metadata', [True, False])
+def test_dont_create_empty_xmp(trivial, outpdf, fix_metadata):
+    trivial.save(outpdf, fix_metadata_version=fix_metadata)
+
+    with pikepdf.open(outpdf) as p:
+        assert Name.Metadata not in p.Root
+
+
+@pytest.mark.parametrize('fix_metadata', [True, False])
+def test_dont_create_empty_docinfo(trivial, outpdf, fix_metadata):
+    del trivial.trailer.Info
+    trivial.save(outpdf, fix_metadata_version=fix_metadata)
+
+    with pikepdf.open(outpdf) as p:
+        assert Name.Info not in p.trailer

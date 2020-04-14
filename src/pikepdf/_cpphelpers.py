@@ -12,6 +12,8 @@ called from Python, and subject to change at any time.
 import os
 import sys
 
+from pikepdf import Name
+
 # Provide os.fspath equivalent for Python <3.6
 if sys.version_info[0:2] <= (3, 5):  # pragma: no cover
 
@@ -53,6 +55,9 @@ else:
 
 
 def update_xmp_pdfversion(pdf, version):
+
+    if Name.Metadata not in pdf.Root:
+        return  # Don't create an empty XMP object just to store the version
 
     with pdf.open_metadata(set_pikepdf_as_editor=False, update_docinfo=False) as meta:
         if 'pdf:PDFVersion' in meta:

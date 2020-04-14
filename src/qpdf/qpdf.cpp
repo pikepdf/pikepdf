@@ -709,12 +709,13 @@ void init_qpdf(py::module &m)
                     potentially creating an invalid file that does not display
                     in old versions. See QPDF manual for details. If a tuple, the
                     second element is an integer, the extension level.
-                fix_metadata_version (bool): If True (default) and the XMP metadata
+                fix_metadata_version (bool): If ``True`` (default) and the XMP metadata
                     contains the optional PDF version field, ensure the version in
                     metadata is correct. If the XMP metadata does not contain a PDF
                     version field, none will be added. To ensure that the field is
                     added, edit the metadata and insert a placeholder value in
-                    ``pdf:PDFVersion``.
+                    ``pdf:PDFVersion``. If XMP metadata does not exist, it will
+                    not be created regardless of the value of this argument.
 
                 object_stream_mode (pikepdf.ObjectStreamMode):
                     ``disable`` prevents the use of object streams.
