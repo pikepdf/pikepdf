@@ -575,6 +575,12 @@ void init_qpdf(py::module &m)
             ``.open_metadata()`` API instead, which will edit the modern (and
             unfortunately, more complicated) XMP metadata object and synchronize
             changes to the document information dictionary.
+
+            This property simplifies access to the actual document information
+            dictionary and ensures that it is created correctly if it needs
+            to be created. A new dictionary will be created if this property
+            is accessed and dictionary does not exist. To delete the dictionary
+            use ``del pdf.trailer.Info``.
             )~~~"
         )
         .def_property_readonly("trailer", &QPDF::getTrailer,
