@@ -18,6 +18,13 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v1.11.1
+=======
+
+-  We now avoid creating an empty XMP metadata entry when files are saved.
+-  Updated documentation to describe how to delete the document information
+   dictionary.
+
 v1.11.0
 =======
 
