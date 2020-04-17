@@ -31,7 +31,7 @@ from pikepdf import (
 )
 from pikepdf import _qpdf as qpdf
 
-# pylint: disable=eval-used,unnecessary-lambda
+# pylint: disable=eval-used, redefined-outer-name
 
 encode = qpdf._encode
 roundtrip = qpdf._roundtrip
@@ -125,7 +125,9 @@ def test_nested_list(array):
 
 @given(
     recursive(
-        integers(1, 10) | booleans(), lambda children: lists(children), max_leaves=20
+        integers(1, 10) | booleans(),
+        lambda children: lists(children),  # pylint: disable=unnecessary-lambda
+        max_leaves=20,
     )
 )
 def test_nested_list2(array):
@@ -204,7 +206,7 @@ def test_no_len():
 
 def test_unslashed_name():
     with pytest.raises(ValueError, match='must begin with'):
-        Name('Monty') not in []
+        Name('Monty') not in []  # pylint: disable=expression-not-assigned
 
 
 def test_empty_name():
@@ -218,7 +220,7 @@ def test_forbidden_name_usage():
     with pytest.raises(TypeError):
         Name.Monty = Name.Python
     with pytest.raises(TypeError):
-        Name['/Monty']
+        Name['/Monty']  # pylint: disable=pointless-statement
 
 
 class TestHashViolation:
@@ -249,7 +251,7 @@ class TestHashViolation:
 
     def test_array_not_hashable(self):
         with pytest.raises(TypeError):
-            objs = {Array([3]): None}
+            {Array([3]): None}  # pylint: disable=expression-not-assigned
 
 
 def test_not_constructible():
@@ -343,7 +345,7 @@ class TestDictionary:
 
     def test_items(self):
         d = pikepdf.Dictionary(A='a')
-        for k in d.items():
+        for _k in d.items():
             pass
 
     def test_str(self):
@@ -354,7 +356,7 @@ class TestDictionary:
     def test_attr(self):
         d = pikepdf.Dictionary(A='a')
         with pytest.raises(AttributeError):
-            d.invalidname
+            d.invalidname  # pylint: disable=pointless-statement
 
     def test_get(self):
         d = pikepdf.Dictionary(A='a')
@@ -364,13 +366,13 @@ class TestDictionary:
     def test_nonpage(self):
         d = pikepdf.Dictionary(A='a')
         with pytest.raises(TypeError):
-            d.images
+            d.images  # pylint: disable=pointless-statement
         with pytest.raises(TypeError):
             d.page_contents_add(b'', True)
 
     def test_bad_name(self):
         with pytest.raises(ValueError, match=r"must begin with '/'"):
-            d = pikepdf.Dictionary({'/Slash': 'dot', 'unslash': 'error'})
+            pikepdf.Dictionary({'/Slash': 'dot', 'unslash': 'error'})
 
 
 def test_not_convertible():
@@ -459,7 +461,7 @@ class TestStreamReadWrite:
         with pytest.raises(TypeError):
             stream_object.write(compress(b'x'), [Name.FlateDecode])
 
-    def test_ccitt(self, sandwich, stream_object):
+    def test_ccitt(self, stream_object):
         ccitt = b'\x00'  # Not valid data, just for testing decode_parms
         stream_object.write(
             ccitt,
@@ -494,7 +496,6 @@ def test_object_iteration(sandwich):
     for n, obj in enumerate(sandwich.objects):
         if isinstance(obj, Dictionary):
             assert len(obj.keys()) >= 1
-    assert n + 1 == expected
 
 
 @pytest.mark.parametrize(

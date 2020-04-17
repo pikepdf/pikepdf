@@ -17,14 +17,12 @@ from pikepdf.models.metadata import (
     XMP_NS_PDF,
     XMP_NS_XMP,
     DateConverter,
-    PdfMetadata,
     decode_pdf_date,
-    encode_pdf_date,
 )
 
 try:
     from libxmp import XMPMeta, XMPError
-except Exception:
+except (ImportError, ModuleNotFoundError):
     XMPMeta, XMPError = None, None
 
 needs_libxmp = pytest.mark.skipif(

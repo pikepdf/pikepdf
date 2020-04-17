@@ -7,7 +7,6 @@ from PIL import Image
 from PIL import features as PIL_features
 
 from pikepdf import (
-    Array,
     Dictionary,
     Name,
     Pdf,
