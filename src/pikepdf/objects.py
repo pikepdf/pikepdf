@@ -60,10 +60,10 @@ class _NameObjectMeta(_ObjectMeta):
         raise TypeError(
             (
                 "pikepdf.Name is not subscriptable. You probably meant:\n"
-                "    pikepdf.Name.{}\n"
+                "    pikepdf.Name.{item}\n"
                 "or\n"
-                "    pikepdf.Name('/{}')\n"
-            ).format(item, item)
+                "    pikepdf.Name('/{item}')\n"
+            ).format(item=item)
         )
 
 
