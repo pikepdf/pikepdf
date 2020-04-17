@@ -160,7 +160,9 @@ class Extend_Object:
         for k in del_keys:
             del self[k]  # pylint: disable=unsupported-delete-operation
 
-    def write(self, data, *, filter=None, decode_parms=None, type_check=True):
+    def write(
+        self, data, *, filter=None, decode_parms=None, type_check=True
+    ):  # pylint: disable=redefined-builtin
         """
         Replace stream object's data with new (possibly compressed) `data`.
 
