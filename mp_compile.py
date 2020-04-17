@@ -49,7 +49,7 @@ def _mp_compile(
     pool = Pool(MAX_PROCS)
     try:
         print("Building using %d processes" % pool._processes)
-    except Exception:
+    except Exception:  # pylint: disable=broad-except
         pass
     arr = [(self, obj, build, cc_args, extra_postargs, pp_opts) for obj in objects]
     pool.map_async(_mp_compile_one, arr)
@@ -76,7 +76,7 @@ def install():
             # https://stackoverflow.com/questions/6033599/oserror-38-errno-38-with-multiprocessing
             Pool(2)
             CCompiler.compile = _mp_compile
-        except Exception as msg:
+        except Exception as msg:  # pylint: disable=broad-except
             print("Exception installing mp_compile, proceeding without: %s" % msg)
     else:
         print(
