@@ -221,7 +221,6 @@ class PdfImageBase(ABC):
 
         if not self.indexed:
             return None
-        _idx, base, hival, lookup = None, None, None, None
         try:
             _idx, base, hival, lookup = self._colorspaces
         except ValueError as e:

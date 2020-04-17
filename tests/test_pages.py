@@ -280,7 +280,7 @@ def test_duplicate_page(sandwich, outpdf):
 
 def test_repeat_using_intermediate(graph, outpdf):
     def _repeat_page(pdf_in, page, count, pdf_out):
-        for dup in range(count):
+        for _duplicate in range(count):
             pdf_new = Pdf.new()
             pdf_new.pages.append(pdf_in.pages[page])
             pdf_out.pages.extend(pdf_new.pages)
@@ -294,7 +294,7 @@ def test_repeat_using_intermediate(graph, outpdf):
 
 def test_repeat(graph, outpdf):
     def _repeat_page(pdf, page, count):
-        for dup in range(count):
+        for _duplicate in range(count):
             pdf.pages.append(pdf.pages[page])
         return pdf
 

@@ -204,7 +204,7 @@ def test_no_len():
 
 def test_unslashed_name():
     with pytest.raises(ValueError, match='must begin with'):
-        Name('Monty') not in d
+        Name('Monty') not in []
 
 
 def test_empty_name():

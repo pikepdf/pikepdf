@@ -18,18 +18,19 @@ class Permissions(types.SimpleNamespace):
 
     def __init__(
         self,
-        accessibility=True,
-        extract=True,
-        modify_annotation=True,
-        modify_assembly=False,
-        modify_form=True,
-        modify_other=True,
-        print_lowres=True,
-        print_highres=True,
+        accessibility=True,  # pylint: disable=unused-argument
+        extract=True,  # pylint: disable=unused-argument
+        modify_annotation=True,  # pylint: disable=unused-argument
+        modify_assembly=False,  # pylint: disable=unused-argument
+        modify_form=True,  # pylint: disable=unused-argument
+        modify_other=True,  # pylint: disable=unused-argument
+        print_lowres=True,  # pylint: disable=unused-argument
+        print_highres=True,  # pylint: disable=unused-argument
     ):
-        kvs = locals()
-        del kvs['self']
-        super().__init__(**kvs)
+        kwargs = {
+            k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')
+        }
+        super().__init__(**kwargs)
 
     def _readonly(self, *args):
         raise TypeError("object is read-only")
@@ -148,6 +149,7 @@ class Encryption(dict):
     def __init__(
         self, *, owner, user, R=6, allow=Permissions(), aes=True, metadata=True
     ):
+        super().__init__()
         self.update(
             dict(R=R, owner=owner, user=user, allow=allow, aes=aes, metadata=metadata)
         )

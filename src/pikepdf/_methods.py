@@ -598,7 +598,7 @@ class Extend_Page:
     def __repr__(self):
         return repr(self.obj).replace('Dictionary', 'Page')
 
-    def _repr_mimebundle_(self, include, exclude, **kwargs):
+    def _repr_mimebundle_(self, include, exclude, **_kwargs):
         data = {}
         bundle = {'application/pdf', 'image/png'}
         if include:

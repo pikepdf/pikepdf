@@ -341,7 +341,7 @@ class PdfMetadata(MutableMapping):
             parser = XMLParser(recover=True)
             return parse(BytesIO(xml), parser)
 
-        def replace_with_empty_xmp(xml=None):
+        def replace_with_empty_xmp(_xml=None):
             log.warning("Error occurred parsing XMP, replacing with empty XMP.")
             return basic_parser(XMP_EMPTY)
 
@@ -396,7 +396,8 @@ class PdfMetadata(MutableMapping):
         The standard mapping is described here:
             https://www.pdfa.org/pdfa-metadata-xmp-rdf-dublin-core/
         """
-        self._pdf.docinfo  # Touch object to ensure it exists
+        # Touch object to ensure it exists
+        self._pdf.docinfo  # pylint: disable=pointless-statement
         for uri, element, docinfo_name, converter in self.DOCINFO_MAPPING:
             qname = QName(uri, element)
             try:

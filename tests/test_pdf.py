@@ -36,7 +36,7 @@ def test_non_filename():
 def test_file_descriptor(resources):
     with (resources / 'pal-1bit-trivial.pdf').open('rb') as f:
         with pytest.raises(TypeError):
-            pdf = Pdf.open(f.fileno())
+            Pdf.open(f.fileno())
 
 
 def test_save_to_file_descriptor_fails(trivial):
