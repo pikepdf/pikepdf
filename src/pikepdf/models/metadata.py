@@ -96,7 +96,7 @@ LANG_ALTS = frozenset(
 # These are the illegal characters in XML 1.0. (XML 1.1 is a bit more permissive,
 # but we'll be strict to ensure wider compatibility.)
 re_xml_illegal_chars = re.compile(
-    r"(?u)[^\x09\x0A\x0D\x20-\uD7FF\uE000-\uFFFD\u10000-\u10FFFF]"
+    r"(?u)[^\x09\x0A\x0D\x20-\U0000D7FF\U0000E000-\U0000FFFD\U00010000-\U0010FFFF]"
 )
 re_xml_illegal_bytes = re.compile(
     br"[^\x09\x0A\x0D\x20-\xFF]|&#0;"
