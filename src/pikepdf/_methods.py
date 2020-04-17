@@ -99,7 +99,10 @@ def _mudraw(buffer, fmt):
         tmp_in.flush()
 
         proc = run(
-            ['mudraw', '-F', fmt, '-o', '-', tmp_in.name], stdout=PIPE, stderr=PIPE
+            ['mudraw', '-F', fmt, '-o', '-', tmp_in.name],
+            stdout=PIPE,
+            stderr=PIPE,
+            check=True,
         )
         if proc.stderr:
             raise RuntimeError(proc.stderr.decode())
