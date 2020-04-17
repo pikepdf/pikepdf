@@ -17,7 +17,7 @@ from warnings import warn
 from lxml import etree
 from lxml.etree import QName, XMLParser, XMLSyntaxError, parse
 
-from .. import Name, PdfError, Stream, String
+from .. import Name, Stream, String
 from .. import __version__ as pikepdf_version
 
 XMP_NS_DC = "http://purl.org/dc/elements/1.1/"

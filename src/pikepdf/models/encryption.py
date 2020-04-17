@@ -4,7 +4,6 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
-import collections
 import types
 
 

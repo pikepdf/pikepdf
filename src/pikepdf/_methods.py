@@ -13,7 +13,6 @@ We can also move the implementation to C++ if desired.
 """
 
 import inspect
-from collections import namedtuple
 from collections.abc import KeysView
 from io import BytesIO
 from subprocess import PIPE, run

@@ -11,7 +11,6 @@ from io import BytesIO
 from itertools import zip_longest
 from pathlib import Path
 from shutil import copyfileobj
-from tempfile import NamedTemporaryFile
 from zlib import decompress
 from zlib import error as ZlibError
 
