@@ -636,7 +636,7 @@ class PdfMetadata(MutableMapping):
                 node = etree.SubElement(rdfdesc, self._qname(key))
                 add_array(node, val)
             elif isinstance(val, str):
-                rdfdesc = etree.SubElement(
+                _rdfdesc = etree.SubElement(
                     rdf,
                     QName(XMP_NS_RDF, 'Description'),
                     attrib={

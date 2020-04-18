@@ -222,11 +222,11 @@ class PdfImageBase(ABC):
         if not self.indexed:
             return None
         try:
-            _idx, base, hival, lookup = self._colorspaces
+            _idx, base, _hival, lookup = self._colorspaces
         except ValueError as e:
             raise ValueError('Not sure how to interpret this palette') from e
         base = str(base)
-        hival = int(hival)
+        _hival = int(_hival)
         lookup = bytes(lookup)
         if not base in self.SIMPLE_COLORSPACES:
             raise NotImplementedError("not sure how to interpret this palette")
