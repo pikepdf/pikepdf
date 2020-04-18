@@ -6,6 +6,8 @@
  * Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
  */
 
+#pragma once
+
 #include <cstdio>
 #include <cstring>
 

@@ -6,6 +6,8 @@
  * Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
  */
 
+#pragma once
+
 #include <sstream>
 
 #include <pybind11/pybind11.h>
