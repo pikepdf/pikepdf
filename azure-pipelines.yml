@@ -21,7 +21,7 @@ stages:
   - stage: "sdist"
     jobs:
       - job: linux_sdist
-        pool: { vmImage: "Ubuntu-16.04" }
+        pool: { vmImage: "Ubuntu-18.04" }
         steps:
           - task: UsePythonVersion@0
           - bash: |
