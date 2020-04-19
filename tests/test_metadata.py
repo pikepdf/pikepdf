@@ -22,7 +22,7 @@ from pikepdf.models.metadata import (
 
 try:
     from libxmp import XMPMeta, XMPError
-except (ImportError, ModuleNotFoundError):
+except Exception:  # throws libxmp.ExempiLoadError pylint: disable=broad-except
     XMPMeta, XMPError = None, None
 
 needs_libxmp = pytest.mark.skipif(
