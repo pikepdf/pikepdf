@@ -121,7 +121,8 @@ Building from source
 
 pikepdf requires:
 
--   a C++14 compliant compiler - GCC (5 and up) and clang (3.3 and up)
+-   a C++14 compliant compiler - GCC (5 and up), clang (3.3 and up), MSVC
+    (2015 or newer)
 -   `pybind11 <https://github.com/pybind/pybind11>`_
 -   libqpdf |qpdf-version| or higher from the
     `QPDF <https://github.com/qpdf/qpdf>`_ project.
