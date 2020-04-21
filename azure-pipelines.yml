@@ -191,6 +191,10 @@ stages:
           - task: UsePythonVersion@0
           - powershell: azure-pipelines/win-download-qpdf.ps1
             displayName: "Download QPDF"
+          - powershell: |
+              # https://github.com/qpdf/qpdf/issues/286#issuecomment-467101492
+              Set-Itemproperty -path 'HKLM:\SOFTWARE\Microsoft\Cryptography\Protect\Providers\df9d8cd0-1501-11d1-8c7a-00c04fc297eb' -name 'ProtectionPolicy' -value 1
+            displayName: "Fix 'unable to acquire crypt context' error"
           - bash: source azure-pipelines/build.bash
             displayName: "cibuildwheel"
           - publish: wheelhouse
