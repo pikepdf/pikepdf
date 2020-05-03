@@ -562,3 +562,8 @@ def test_dont_create_empty_docinfo(trivial, outpdf, fix_metadata):
 
     with pikepdf.open(outpdf) as p:
         assert Name.Info not in p.trailer
+
+
+def test_issue_100(trivial):
+    with trivial.open_metadata() as m:
+        m.load_from_docinfo({'/AAPL:Example': pikepdf.Array([42])})
