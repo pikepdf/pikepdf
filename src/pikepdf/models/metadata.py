@@ -314,7 +314,7 @@ class PdfMetadata(MutableMapping):
             msg = (
                 "The metadata field {} with value '{}' has no XMP equivalent, "
                 "so it was discarded"
-            ).format(extra, docinfo.get(extra))
+            ).format(extra, repr(docinfo.get(extra)))
             if raise_failure:
                 raise ValueError(msg)
             else:
