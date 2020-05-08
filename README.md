@@ -3,7 +3,7 @@ pikepdf
 
 **pikepdf** is a Python library for reading and writing PDF files.
 
-[![Build Status](https://dev.azure.com/jim0585/pikepdf/_apis/build/status/pikepdf.pikepdf?branchName=master)](https://dev.azure.com/jim0585/pikepdf/_build/latest?definitionId=1&branchName=master) [![PyPI](https://img.shields.io/pypi/v/pikepdf.svg)](https://pypi.org/project/pikepdf/) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pikepdf)
+[![Build Status](https://dev.azure.com/jim0585/pikepdf/_apis/build/status/pikepdf.pikepdf?branchName=master)](https://dev.azure.com/jim0585/pikepdf/_build/latest?definitionId=1&branchName=master) [![PyPI](https://img.shields.io/pypi/v/pikepdf.svg)](https://pypi.org/project/pikepdf/) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pikepdf) [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/pikepdf/pikepdf.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/pikepdf/pikepdf/context:python) [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/pikepdf/pikepdf.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/pikepdf/pikepdf/context:cpp)
 
 pikepdf is based on [QPDF](https://github.com/qpdf/qpdf), a powerful PDF manipulation and repair library.
 
