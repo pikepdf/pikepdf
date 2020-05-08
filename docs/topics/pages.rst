@@ -170,9 +170,15 @@ same address.)
 
     In [1]: pdf = Pdf.open('../tests/resources/fourpages.pdf')
 
+    In [1]: congress = Pdf.open('../tests/resources/congress.pdf')
+
     In [1]: pdf.pages[2].objgen
 
-    In [1]: pdf.pages[2].emplace(congress.pages[0])
+    In [1]: pdf.pages.append(congress.pages[0])  # Transfer page to new pdf
+
+    In [1]: pdf.pages[2].emplace(pdf.pages[-1])
+
+    In [1]: del pdf.pages[-1]  # Remove donor page
 
     In [1]: pdf.pages[2].objgen
 
