@@ -245,6 +245,12 @@ void init_object(py::module& m)
             "Test if this object is owned by the indicated *possible_owner*.",
             py::arg("possible_owner")
         )
+        .def("same_owner_as",
+            [](QPDFObjectHandle &self, QPDFObjectHandle &other) {
+                return self.getOwningQPDF() == other.getOwningQPDF();
+            },
+            "Test if two objects are owned by the same :class:`pikepdf.Pdf`."
+        )
         .def_property_readonly("is_indirect", &QPDFObjectHandle::isIndirect)
         .def("__repr__", &objecthandle_repr)
         .def("__hash__",

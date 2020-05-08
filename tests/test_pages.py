@@ -272,6 +272,11 @@ def test_emplace(fourpages):
         assert fourpages.pages[0][k] == fourpages.pages[1][k]
 
 
+def test_emplace_foreign(fourpages, sandwich, outpdf):
+    with pytest.raises(TypeError):
+        fourpages.pages[0].emplace(sandwich.pages[0])
+
+
 def test_duplicate_page(sandwich, outpdf):
     sandwich.pages.append(sandwich.pages[0])
     assert len(sandwich.pages) == 2

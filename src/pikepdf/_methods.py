@@ -157,6 +157,8 @@ class Extend_Object:
             >>> pdf.pages[0].objgen
             (16, 0)  # Same object
         """
+        if not self.same_owner_as(other):
+            raise TypeError("Objects must have the same owner for emplace()")
         del_keys = set(self.keys()) - set(other.keys())
         for k in other.keys():
             self[k] = other[k]  # pylint: disable=unsupported-assignment-operation
