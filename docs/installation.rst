@@ -27,10 +27,9 @@ virtual environment).
 Use ``pip install --user pikepdf`` to install the package for the current user
 only. Use ``pip install pikepdf`` to install to a virtual environment.
 
-This command installs manylinux2010 binary wheels. If you have an older version
-of ``pip``, such as the one that ships with Ubuntu 18.04, this command will
-attempt to compile the project. If you want to get the binary wheel, upgrade
-``pip`` with:
+**Linux users:** If you have an older version of ``pip``, such as the one that ships
+with Ubuntu 18.04, this command will attempt to compile the project instead of
+installing the week. If you want to get the binary wheel, upgrade ``pip`` with:
 
 .. code-block:: bash
 
@@ -44,6 +43,8 @@ should work on most systems work on Linux distributions 2010 and newer, macOS
 of pip is used to install them**. The Linux wheels currently include copies of
 libqpdf, libjpeg, and zlib The Windows wheels include libqpdf. This is to ensure
 that up-to-date, compatible copies of dependent libraries are included.
+
+Currently we do not build wheels for architectures other than x86 and x64.
 
 `Alpine Linux`_ does not support Python wheels.
 
@@ -179,8 +180,8 @@ extension with it. We must force the use of Visual Studio 2015.
         set MSSdk=1
 
 #. Download |msvc-zip| from the `QPDF releases page <https://github.com/qpdf/qpdf/releases>`_.
-#. Extract ``bin\qpdfXX.dll`` from the zip file above, where XX is the version
-   of the ABI, and copy it to the ``src/pikepdf`` folder in the repository.
+#. Extract ``bin\*.dll`` (all the DLLs) from the zip file above,
+   and copy it to the ``src/pikepdf`` folder in the repository.
 #. Run ``pip install .`` in the root directory of the repository.
 
 .. note::
@@ -191,10 +192,17 @@ extension with it. We must force the use of Visual Studio 2015.
 Windows runtime requirements
 ----------------------------
 
-On Windows, the Visual C++ 2015 redistributable packages are a runtime
-requirement for this project. Specifically you must install
-`Microsoft Visual C++ 2015-2019 Redistributable (x64) 14.24.28127
-<https://www.microsoft.com/en-us/download/details.aspx?id=48145>`_ (for 64-bit).
+On Windows, the Visual C++ runtime redistributable packages are required.
+Specifically you must install one of the following depending on the architecture
+you are trying to use. This must match the installed version of Python.
+
+* x86: https://aka.ms/vs/16/release/vc_redist.x86.exe
+* x64: https://aka.ms/vs/16/release/vc_redist.x64.exe
+
+The binary wheels for Windows bundle the necessary files.
+
+For more information see the
+`relevant page at Microsoft Support <https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads>`_.
 
 If not installed, you may see an error saying that "pikepdf's extension library
 failed to import".

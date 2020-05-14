@@ -18,6 +18,9 @@ Apache Software License Version 2.0
 Depending on your platform, it may also included:
 - libjpeg, licensed under the Independent JPEG Group License
 - zlib (https://www.zlib.net/), licensed under the Zlib License
+- Microsoft Visual C++ Runtime Files, licensed under the Microsoft Software
+  License Terms (https://visualstudio.microsoft.com/license-terms/mlt031619/),
+  specifically section "4. DISTRIBUTABLE CODE". (Windows users only)
 
 These licenses apply to the installation, use and distribution of this
 wheel.  Refer to their web pages for full details of license and
