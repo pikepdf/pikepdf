@@ -18,6 +18,15 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v1.12.0
+=======
+
+-  Microsoft Visual C++ Runtime libraries are now included in the pikepdf Windows
+   wheel, to improve ease of use on Windows.
+-  Defensive code added to prevent using ``.emplace()`` on objects from a
+   foreign PDF without first copying the object. Previously, this would raise
+   an exception when the file was saved.
+
 v1.11.2
 =======
 
