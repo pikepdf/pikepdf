@@ -6,7 +6,7 @@ variables:
   cibw_skip: "cp27-* cp34-* pp27-* pp36-*"
   cibw_test_command: "pytest -nauto {project}/tests"
   cibw_test_requires: "-r requirements/test.txt"
-  cibuildwheel_version: "1.3.0"
+  cibuildwheel_version: "1.4.1"
   cibw_before_build: "pip install pybind11"
 
 trigger:
