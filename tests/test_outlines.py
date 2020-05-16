@@ -1,11 +1,18 @@
 from itertools import repeat
 
 import pytest
-from hypothesis import given, example
+from hypothesis import example, given
 from hypothesis import strategies as st
 
-from pikepdf import (Pdf, Dictionary, Name, OutlineItem, OutlineStructureError,
-                     PageLocation, make_page_destination)
+from pikepdf import (
+    Dictionary,
+    Name,
+    OutlineItem,
+    OutlineStructureError,
+    PageLocation,
+    Pdf,
+    make_page_destination,
+)
 from pikepdf.models.outlines import ALL_PAGE_LOCATION_KWARGS
 
 
@@ -53,9 +60,18 @@ def test_reproduce_outlines_structure(outlines_doc):
         # Ensure outline is loaded
         list(outline.root)
         # Remove all references
-        for obj in [root_obj,
-                    first_obj, first_obj_a, first_obj_b, first_obj_b_i, first_obj_b_ii,
-                    second_obj, third_obj, third_obj_a, third_obj_b]:
+        for obj in [
+            root_obj,
+            first_obj,
+            first_obj_a,
+            first_obj_b,
+            first_obj_b_i,
+            first_obj_b_ii,
+            second_obj,
+            third_obj,
+            third_obj_a,
+            third_obj_b,
+        ]:
             for n in ['/First', '/Last', '/Prev', '/Next', '/Parent']:
                 if n in obj:
                     del obj[n]
@@ -63,21 +79,28 @@ def test_reproduce_outlines_structure(outlines_doc):
     # References should just be reproduced. Exhaustive check:
     for ref in [first_obj.Parent, second_obj.Parent, third_obj.Parent]:
         assert ref == root_obj
-    for ref in [root_obj.First, second_obj.Prev,
-                first_obj_a.Parent, first_obj_b.Parent]:
+    for ref in [
+        root_obj.First,
+        second_obj.Prev,
+        first_obj_a.Parent,
+        first_obj_b.Parent,
+    ]:
         assert ref == first_obj
     assert first_obj.First == first_obj_a
     assert first_obj_b.Prev == first_obj_a
-    for ref in [first_obj.Last, first_obj_a.Next,
-                first_obj_b_i.Parent, first_obj_b_ii.Parent]:
+    for ref in [
+        first_obj.Last,
+        first_obj_a.Next,
+        first_obj_b_i.Parent,
+        first_obj_b_ii.Parent,
+    ]:
         assert ref == first_obj_b
     assert first_obj_b.First == first_obj_b_i
     assert first_obj_b_ii.Prev == first_obj_b_i
     assert first_obj_b.Last == first_obj_b_ii
     assert first_obj_b_i.Next == first_obj_b_ii
     assert first_obj.Next == second_obj
-    for ref in [root_obj.Last, second_obj.Next,
-                third_obj_a.Parent, third_obj_b.Parent]:
+    for ref in [root_obj.Last, second_obj.Next, third_obj_a.Parent, third_obj_b.Parent]:
         assert ref == third_obj
     assert third_obj.First == third_obj_a
     assert third_obj_b.Prev == third_obj_a
@@ -220,7 +243,10 @@ def test_duplicated_object(outlines_doc):
     # Should not fail at this point anymore
     with outlines_doc.open_outline(strict=True) as outline:
         assert len(outline.root[2].children) == 3
-        assert outline.root[2].children[2].title == outline.root[0].children[1].children[0].title
+        assert (
+            outline.root[2].children[2].title
+            == outline.root[0].children[1].children[0].title
+        )
 
 
 def test_fix_references_swap_root(outlines_doc):
@@ -281,10 +307,7 @@ def test_append_items(outlines_doc):
     # without failing the object duplicate checks
     with outlines_doc.open_outline(strict=True) as outline:
         new_item = OutlineItem('Four')
-        new_item.children.extend([
-            OutlineItem('Four-A'),
-            OutlineItem('Four-B')
-        ])
+        new_item.children.extend([OutlineItem('Four-A'), OutlineItem('Four-B')])
         outline.root.append(new_item)
 
     with outlines_doc.open_outline(strict=True):
@@ -297,10 +320,7 @@ def test_create_from_scratch(outlines_doc):
     del outlines_doc.Root.Outlines
     with outlines_doc.open_outline(strict=True) as outline:
         new_item = OutlineItem('One')
-        new_item.children.extend([
-            OutlineItem('One-A'),
-            OutlineItem('One-B')
-        ])
+        new_item.children.extend([OutlineItem('One-A'), OutlineItem('One-B')])
         outline.root.append(new_item)
 
     with outlines_doc.open_outline(strict=True):
@@ -366,16 +386,19 @@ def test_dest_or_action(outlines_doc):
 @given(
     page_num=st.integers(0, 1),
     page_loc=st.sampled_from(PageLocation),
-    kwargs=st.dictionaries(st.sampled_from(list(sorted(ALL_PAGE_LOCATION_KWARGS))), st.integers(0, 10000))
+    kwargs=st.dictionaries(
+        st.sampled_from(list(sorted(ALL_PAGE_LOCATION_KWARGS))), st.integers(0, 10000)
+    ),
 )
 @example(
     page_num=0,
     page_loc='FitR',
-    kwargs={'left': 0, 'top': 0, 'bottom': 0, 'right': 0, 'zoom': 0}
+    kwargs={'left': 0, 'top': 0, 'bottom': 0, 'right': 0, 'zoom': 0},
 )
-def test_page_destination(outlines_doc, page_num, page_loc, kwargs):
-    page_ref = outlines_doc.pages[page_num]
-    dest = make_page_destination(outlines_doc, page_num, page_loc, **kwargs)
+def test_page_destination(resources, page_num, page_loc, kwargs):
+    doc = Pdf.open(resources / 'outlines.pdf')
+    page_ref = doc.pages[page_num]
+    dest = make_page_destination(doc, page_num, page_loc, **kwargs)
     if isinstance(page_loc, PageLocation):
         loc_str = page_loc.name
     else:
@@ -383,44 +406,35 @@ def test_page_destination(outlines_doc, page_num, page_loc, kwargs):
     if loc_str == 'XYZ':
         args = 'left', 'top', 'zoom'
     elif loc_str == 'FitH':
-        args = 'top',
+        args = ('top',)
     elif loc_str == 'FitV':
-        args = 'left',
+        args = ('left',)
     elif loc_str == 'FitR':
         args = 'left', 'bottom', 'right', 'top'
     elif loc_str == 'FitBH':
-        args = 'top',
+        args = ('top',)
     elif loc_str == 'FitBV':
-        args = 'left',
+        args = ('left',)
     else:
         args = ()
-    expected_dest = [
-        page_ref,
-        '/{0}'.format(loc_str)
-    ]
-    expected_dest.extend(
-        kwargs.get(k, 0)
-        for k in args
-    )
+    expected_dest = [page_ref, '/{0}'.format(loc_str)]
+    expected_dest.extend(kwargs.get(k, 0) for k in args)
     assert dest == expected_dest
 
 
 @given(
-    title=st.text(),
-    page_num=st.integers(0, 1),
-    page_loc=st.sampled_from(PageLocation),
+    title=st.text(), page_num=st.integers(0, 1), page_loc=st.sampled_from(PageLocation),
 )
 @example(
-    title='',
-    page_num=0,
-    page_loc='FitR',
+    title='', page_num=0, page_loc='FitR',
 )
-def test_new_item(outlines_doc, title, page_num, page_loc):
+def test_new_item(resources, title, page_num, page_loc):
+    doc = Pdf.open(resources / 'outlines.pdf')
     kwargs = dict.fromkeys(ALL_PAGE_LOCATION_KWARGS, 100)
-    page_ref = outlines_doc.pages[page_num]
+    page_ref = doc.pages[page_num]
 
     new_item = OutlineItem(title, page_num, page_loc, **kwargs)
-    with outlines_doc.open_outline() as outline:
+    with doc.open_outline() as outline:
         outline.root.append(new_item)
     if isinstance(page_loc, PageLocation):
         loc_str = page_loc.name
@@ -434,10 +448,7 @@ def test_new_item(outlines_doc, title, page_num, page_loc):
         kwarg_len = 1
     else:
         kwarg_len = 0
-    expected_dest = [
-        page_ref,
-        '/{0}'.format(loc_str)
-    ]
+    expected_dest = [page_ref, '/{0}'.format(loc_str)]
     expected_dest.extend(repeat(100, kwarg_len))
     assert new_item.destination == expected_dest
     new_obj = new_item.obj
