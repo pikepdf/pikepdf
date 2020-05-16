@@ -53,11 +53,16 @@ from .objects import (
 
 from .models import (
     Encryption,
+    Outline,
+    OutlineItem,
+    OutlineStructureError,
+    PageLocation,
     PdfImage,
     PdfInlineImage,
     PdfMatrix,
     Permissions,
     UnsupportedImageTypeError,
+    make_page_destination,
     parse_content_stream,
     unparse_content_stream,
 )

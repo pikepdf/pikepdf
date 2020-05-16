@@ -20,7 +20,7 @@ from tempfile import NamedTemporaryFile
 
 from . import Array, Dictionary, Name, Object, Page, Pdf, Stream
 from ._qpdf import PdfError, StreamParser, Token, _ObjectMapping
-from .models import EncryptionInfo, PdfMetadata, Permissions
+from .models import EncryptionInfo, Outline, PdfMetadata, Permissions
 
 # pylint: disable=no-member,unsupported-membership-test,unsubscriptable-object
 
@@ -301,6 +301,40 @@ class Extend_Pdf:
             sync_docinfo=update_docinfo,
             overwrite_invalid_xml=not strict,
         )
+
+    def open_outline(self, max_depth=15, strict=False):
+        """
+        Open the PDF outline ("bookmarks") for editing.
+
+        Recommend for use in a ``with`` block. Changes are committed to the
+        PDF when the block exits. (The ``Pdf`` must still be opened.)
+
+        Example:
+            >>> with pdf.open_outline() as outline:
+                    outline.root.insert(0, OutlineItem('Intro', 0))
+
+        Args:
+            max_depth (int): Maximum recursion depth of the outline to be
+                imported and re-written to the document. ``0`` means only
+                considering the root level, ``1`` the first-level
+                sub-outline of each root element, and so on. Items beyond
+                this depth will be silently ignored. Default is ``15``.
+            strict (bool): With the default behavior (set to ``False``),
+                structural errors (e.g. reference loops) in the PDF document
+                will only cancel processing further nodes on that particular
+                level, recovering the valid parts of the document outline
+                without raising an exception. When set to ``True``, any such
+                error will raise an ``OutlineStructureError``, leaving the
+                invalid parts in place.
+                Similarly, outline objects that have been accidentally
+                duplicated in the ``Outline`` container will be silently
+                fixed (i.e. reproduced as new objects) or raise an
+                ``OutlineStructureError``.
+
+        Returns:
+            pikepdf.models.Outline
+        """
+        return Outline(self, max_depth=max_depth, strict=strict)
 
     def make_stream(self, data):
         """

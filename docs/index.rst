@@ -128,6 +128,7 @@ practical examples, particular in ``pdfinfo.py``, ``graft.py``, and
     topics/images
     topics/encoding
     topics/metadata
+    topics/outlines
 
 .. toctree::
     :maxdepth: 2
