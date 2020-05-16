@@ -15,6 +15,8 @@ from pikepdf import (
 )
 from pikepdf.models.outlines import ALL_PAGE_LOCATION_KWARGS
 
+# pylint: disable=redefined-outer-name
+
 
 @pytest.fixture
 def outlines_doc(resources):

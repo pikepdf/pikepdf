@@ -358,7 +358,7 @@ def test_ccitt_encodedbytealign(sandwich):
 
 
 def test_imagemagick_uses_rle_compression(resources):
-    xobj, rle = first_image_in(resources / 'rle.pdf')
+    xobj, _rle = first_image_in(resources / 'rle.pdf')
 
     pim = PdfImage(xobj)
     im = pim.as_pil_image()

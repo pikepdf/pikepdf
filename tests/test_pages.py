@@ -272,7 +272,7 @@ def test_emplace(fourpages):
         assert fourpages.pages[0][k] == fourpages.pages[1][k]
 
 
-def test_emplace_foreign(fourpages, sandwich, outpdf):
+def test_emplace_foreign(fourpages, sandwich):
     with pytest.raises(TypeError):
         fourpages.pages[0].emplace(sandwich.pages[0])
 
