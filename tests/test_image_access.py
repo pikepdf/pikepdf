@@ -355,3 +355,11 @@ def test_ccitt_encodedbytealign(sandwich):
     pim = PdfImage(xobj)
     with pytest.raises(UnsupportedImageTypeError):
         pim.as_pil_image()
+
+
+def test_imagemagick_uses_rle_compression(resources):
+    xobj, rle = first_image_in(resources / 'rle.pdf')
+
+    pim = PdfImage(xobj)
+    im = pim.as_pil_image()
+    assert im.getpixel((5, 5)) == (255, 128, 0)

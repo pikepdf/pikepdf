@@ -14,7 +14,7 @@ from shutil import copyfileobj
 from zlib import decompress
 from zlib import error as ZlibError
 
-from .. import Array, Dictionary, Name, Object, PdfError, Stream
+from .. import Array, Dictionary, Name, Object, PdfError, Stream, StreamDecodeLevel
 
 
 class DependencyError(Exception):
@@ -532,11 +532,11 @@ class PdfImage(PdfImageBase):
 
     def read_bytes(self):
         """Decompress this image and return it as unencoded bytes"""
-        return self.obj.read_bytes()
+        return self.obj.read_bytes(decode_level=StreamDecodeLevel.specialized)
 
     def get_stream_buffer(self):
         """Access this image with the buffer protocol"""
-        return self.obj.get_stream_buffer()
+        return self.obj.get_stream_buffer(decode_level=StreamDecodeLevel.specialized)
 
     def as_pil_image(self):
         """Extract the image as a Pillow Image, using decompression as necessary
