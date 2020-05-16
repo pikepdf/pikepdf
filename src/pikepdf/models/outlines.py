@@ -26,8 +26,9 @@ PAGE_LOCATION_ARGS = {
 ALL_PAGE_LOCATION_KWARGS = set(chain.from_iterable(PAGE_LOCATION_ARGS.values()))
 
 
-def make_page_destination(pdf, page_num: int, page_location: (PageLocation, str) = None,
-                          **kwargs) -> Array:
+def make_page_destination(
+    pdf, page_num: int, page_location: (PageLocation, str) = None, **kwargs
+) -> Array:
     """
     Creates a destination ``Array`` with reference to a Pdf document's page number.
 
@@ -47,12 +48,13 @@ def make_page_destination(pdf, page_num: int, page_location: (PageLocation, str)
             try:
                 loc_key = PageLocation[loc_str]
             except KeyError:
-                raise ValueError("Invalid or unsupported page location type {0}".format(loc_str))
-        res.append('/{}'.format(loc_str))
+                raise ValueError(
+                    "Invalid or unsupported page location type {0}".format(loc_str)
+                )
+        res.append(Name('/{0}'.format(loc_str)))
         dest_arg_names = PAGE_LOCATION_ARGS.get(loc_key)
         if dest_arg_names:
-            res.extend(kwargs.get(k, 0)
-                       for k in dest_arg_names)
+            res.extend(kwargs.get(k, 0) for k in dest_arg_names)
     else:
         res.append(Name.Fit)
     return Array(res)
@@ -89,9 +91,16 @@ class OutlineItem:
     This object does not contain any information about higher-level or
     neighboring elements.
     """
-    def __init__(self, title: str, destination: (int, str, Object) = None,
-                 page_location: (PageLocation, str) = None, action: Dictionary = None,
-                 obj: Dictionary = None, **kwargs):
+
+    def __init__(
+        self,
+        title: str,
+        destination: (int, str, Object) = None,
+        page_location: (PageLocation, str) = None,
+        action: Dictionary = None,
+        obj: Dictionary = None,
+        **kwargs
+    ):
         self.title = title
         self.destination = destination
         self.page_location = page_location
@@ -132,8 +141,8 @@ class OutlineItem:
             obj: ``Dictionary`` object representing a single outline node.
         """
         title = str(obj.Title)
-        destination = obj.get('/Dest')
-        action = obj.get('/A')
+        destination = obj.get(Name.Dest)
+        action = obj.get(Name.A)
         return cls(title, destination=destination, action=action, obj=obj)
 
     def to_dictionary_object(self, pdf, create_new=False) -> Dictionary:
@@ -154,14 +163,18 @@ class OutlineItem:
         obj.Title = self.title
         if self.destination is not None:
             if isinstance(self.destination, int):
-                self.destination = make_page_destination(pdf, self.destination, self.page_location,
-                                                         **self.page_location_kwargs)
+                self.destination = make_page_destination(
+                    pdf,
+                    self.destination,
+                    self.page_location,
+                    **self.page_location_kwargs,
+                )
             obj.Dest = self.destination
-            if '/A' in obj:
+            if Name.A in obj:
                 del obj.A
         elif self.action is not None:
             obj.A = self.action
-            if '/Dest' in obj:
+            if Name.Dest in obj:
                 del obj.Dest
         return obj
 
@@ -180,6 +193,7 @@ class Outline:
     See Also:
         :meth:`pikepdf.Pdf.open_outline`
     """
+
     def __init__(self, pdf, max_depth=15, strict=False):
         self._root = None
         self._pdf = pdf
@@ -205,8 +219,9 @@ class Outline:
         finally:
             self._updating = False
 
-    def _save_level_outline(self, parent: Dictionary, outline_items: list,
-                            level: int, visited_objs: set):
+    def _save_level_outline(
+        self, parent: Dictionary, outline_items: list, level: int, visited_objs: set
+    ):
         count = 0
         prev = None
         first = None
@@ -215,7 +230,9 @@ class Outline:
             objgen = out_obj.objgen
             if objgen in visited_objs:
                 if self._strict:
-                    raise OutlineStructureError("Outline object {0} reoccurred in structure".format(objgen))
+                    raise OutlineStructureError(
+                        "Outline object {0} reoccurred in structure".format(objgen)
+                    )
                 out_obj = item.to_dictionary_object(self._pdf, create_new=True)
             else:
                 visited_objs.add(objgen)
@@ -227,7 +244,7 @@ class Outline:
                 out_obj.Prev = prev
             else:
                 first = out_obj
-                if '/Prev' in out_obj:
+                if Name.Prev in out_obj:
                     del out_obj.Prev
             prev = out_obj
             if level < self._max_depth:
@@ -240,53 +257,60 @@ class Outline:
             else:
                 count += out_obj.Count
         if count:
-            if '/Next' in prev:
+            if Name.Next in prev:
                 del prev.Next
             parent.First = first
             parent.Last = prev
         else:
-            if '/First' in parent:
+            if Name.First in parent:
                 del parent.First
-            if '/Last' in parent:
+            if Name.Last in parent:
                 del parent.Last
         parent.Count = count
 
-    def _load_level_outline(self, first_obj: Dictionary, outline_items: list,
-                            level: int, visited_objs: set):
+    def _load_level_outline(
+        self, first_obj: Dictionary, outline_items: list, level: int, visited_objs: set
+    ):
         current_obj = first_obj
         while current_obj:
             objgen = current_obj.objgen
             if objgen in visited_objs:
                 if self._strict:
-                    raise OutlineStructureError("Outline object {0} reoccurred in structure".format(objgen))
+                    raise OutlineStructureError(
+                        "Outline object {0} reoccurred in structure".format(objgen)
+                    )
                 return
             visited_objs.add(objgen)
 
             item = OutlineItem.from_dictionary_object(current_obj)
-            first_child = current_obj.get('/First')
+            first_child = current_obj.get(Name.First)
             if first_child is not None and level < self._max_depth:
-                self._load_level_outline(first_child, item.children, level + 1, visited_objs)
-                count = current_obj.get('/Count')
+                self._load_level_outline(
+                    first_child, item.children, level + 1, visited_objs
+                )
+                count = current_obj.get(Name.Count)
                 if count and count < 0:
                     item.is_closed = True
             outline_items.append(item)
-            current_obj = current_obj.get('/Next')
+            current_obj = current_obj.get(Name.Next)
 
     def _save(self):
         if self._root is None:
             return
-        if '/Outlines' in self._pdf.Root:
+        if Name.Outlines in self._pdf.Root:
             outlines = self._pdf.Root.Outlines
         else:
-            self._pdf.Root.Outlines = outlines = self._pdf.make_indirect(Dictionary(Type=Name.Outlines))
+            self._pdf.Root.Outlines = outlines = self._pdf.make_indirect(
+                Dictionary(Type=Name.Outlines)
+            )
         self._save_level_outline(outlines, self._root, 0, set())
 
     def _load(self):
         self._root = root = []
-        if '/Outlines' not in self._pdf.Root:
+        if Name.Outlines not in self._pdf.Root:
             return
         outlines = self._pdf.Root.Outlines or {}
-        first_obj = outlines.get('/First')
+        first_obj = outlines.get(Name.First)
         if first_obj:
             self._load_level_outline(first_obj, root, 0, set())
 

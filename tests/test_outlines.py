@@ -419,7 +419,7 @@ def test_page_destination(resources, page_num, page_loc, kwargs):
         args = ('left',)
     else:
         args = ()
-    expected_dest = [page_ref, '/{0}'.format(loc_str)]
+    expected_dest = [page_ref, Name('/{0}'.format(loc_str))]
     expected_dest.extend(kwargs.get(k, 0) for k in args)
     assert dest == expected_dest
 
@@ -450,7 +450,7 @@ def test_new_item(resources, title, page_num, page_loc):
         kwarg_len = 1
     else:
         kwarg_len = 0
-    expected_dest = [page_ref, '/{0}'.format(loc_str)]
+    expected_dest = [page_ref, Name('/{0}'.format(loc_str))]
     expected_dest.extend(repeat(100, kwarg_len))
     assert new_item.destination == expected_dest
     new_obj = new_item.obj
