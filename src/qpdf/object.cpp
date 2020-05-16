@@ -554,11 +554,12 @@ void init_object(py::module& m)
             "Returns True if the object is a rectangle (an array of 4 numbers)"
         )
         .def("get_stream_buffer",
-            [](QPDFObjectHandle &h) {
-                PointerHolder<Buffer> phbuf = h.getStreamData();
+            [](QPDFObjectHandle &h, qpdf_stream_decode_level_e decode_level) {
+                PointerHolder<Buffer> phbuf = h.getStreamData(decode_level);
                 return phbuf;
             },
-            "Return a buffer protocol buffer describing the decoded stream"
+            "Return a buffer protocol buffer describing the decoded stream.",
+            py::arg("decode_level") = qpdf_dl_generalized
         )
         .def("get_raw_stream_buffer",
             [](QPDFObjectHandle &h) {
@@ -568,12 +569,13 @@ void init_object(py::module& m)
             "Return a buffer protocol buffer describing the raw, encoded stream"
         )
         .def("read_bytes",
-            [](QPDFObjectHandle &h) {
-                PointerHolder<Buffer> buf = h.getStreamData();
+            [](QPDFObjectHandle &h, qpdf_stream_decode_level_e decode_level) {
+                PointerHolder<Buffer> buf = h.getStreamData(decode_level);
                 // py::bytes will make a copy of the buffer, so releasing is fine
                 return py::bytes((const char*)buf->getBuffer(), buf->getSize());
             },
-            "Decode and read the content stream associated with this object"
+            "Decode and read the content stream associated with this object.",
+            py::arg("decode_level") = qpdf_dl_generalized
         )
         .def("read_raw_bytes",
             [](QPDFObjectHandle &h) {
