@@ -87,7 +87,7 @@ def cpp_flag(compiler):
     Notes on c++17 and macOS:
     https://github.com/pybind/python_example/issues/44
     """
-    flags = ['-std=c++14']
+    flags = ['-std=gnu++14']
 
     for flag in flags:
         if has_flag(compiler, flag):
