@@ -44,7 +44,7 @@ pikepdf would help you build apps that do things like:
    :alt: A cartoon sketch of a pike
    :figwidth: 30%
 
-   Pike fish are tough, hard-fighting, aggressive predators. [#img3]_
+   Pike fish are tough, hard-fighting, aggressive predators.
 
 * :ref:`Copy pages <copyother>` from one PDF into another
 * :ref:`Split <splitpdf>` and :ref:`merge <mergepdf>` PDFs
@@ -68,7 +68,7 @@ What it cannot do:
    :alt: A square of pikemen, carrying pikes
    :figwidth: 30%
 
-   Pikemen bracing for a calvary charge, carrying pikes. [#img2]_
+   Pikemen bracing for a calvary charge, carrying pikes.
 
 * Rasterize PDF pages for display (that is, produce an image that shows what
   a PDF page looks like at a particular resolution/zoom level) – use
