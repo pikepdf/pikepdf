@@ -144,7 +144,7 @@ if __name__ == '__main__':  # for mp_compile
     setup(
         name='pikepdf',
         author='James R. Barlow',
-        author_email='jim@purplerock.ca',
+        author_email='james@purplerock.ca',
         url='https://github.com/pikepdf/pikepdf',
         description='Read and write PDFs with Python, powered by qpdf',
         long_description=readme,
