@@ -18,6 +18,15 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v1.14.0
+=======
+
+-  Allowed use of ``.keys()``, ``.items()`` on ``pikepdf.Stream`` objects.
+-  We now warn on attempts to modify ``pikepdf.Stream.Length``, which pikepdf will
+   manage on its own when the stream is serialized. In the future attempting to
+   change it will become an error.
+-  Clarified documentation in some areas about behavior of ``pikepdf.Stream``.
+
 v1.13.0
 =======
 
