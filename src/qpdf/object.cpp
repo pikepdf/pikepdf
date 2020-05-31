@@ -174,6 +174,12 @@ void object_set_key(QPDFObjectHandle h, std::string const& key, QPDFObjectHandle
         throw py::value_error("object is not a dictionary or a stream");
     if (value.isNull())
         throw py::value_error("PDF Dictionary keys may not be set to None - use 'del' to remove");
+    if (h.isStream() && key == "/Length") {
+        PyErr_WarnEx(PyExc_DeprecationWarning,
+            "Modifications to /Length have no effect and will be forbidden in a future release.",
+            0
+        );
+    }
 
     // For streams, the actual dictionary is attached to stream object
     QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
@@ -186,6 +192,13 @@ void object_del_key(QPDFObjectHandle h, std::string const& key)
 {
     if (!h.isDictionary() && !h.isStream())
         throw py::value_error("object is not a dictionary or a stream");
+    if (h.isStream() && key == "/Length") {
+        PyErr_WarnEx(PyExc_DeprecationWarning,
+            "Deleting /Length has no effect and will be forbidden in a future release.",
+            0
+        );
+    }
+
     // For streams, the actual dictionary is attached to stream object
     QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
 
@@ -319,6 +332,12 @@ void init_object(py::module& m)
                     return (Py_ssize_t)h.getDictAsMap().size(); // getKeys constructs a new object, so this is better
                 else if (h.isArray())
                     return (Py_ssize_t)h.getArrayNItems();
+                if (h.isStream())
+                    throw py::type_error(
+                        "length not defined for object - "
+                        "use len(obj.keys()) for number of dictionary keys, "
+                        "or len(bytes(obj)) for length of stream data"
+                    );
                 throw py::type_error("length not defined for object");
             }
         )
@@ -392,6 +411,7 @@ void init_object(py::module& m)
         )
         .def_property("stream_dict",
             &QPDFObjectHandle::getDict, &QPDFObjectHandle::replaceDict,
+            "Access the dictionary key-values for a :class:`pikepdf.Stream`.",
             py::return_value_policy::reference_internal
         )
         .def("__setattr__",
@@ -435,7 +455,7 @@ void init_object(py::module& m)
                 }
                 return py::cast(value);
             },
-            "For ``pikepdf.Dictionary`` objects, behave as ``dict.get(key, default=None)``",
+            "For ``pikepdf.Dictionary`` or ``pikepdf.Stream`` objects, behave as ``dict.get(key, default=None)``",
             py::arg("key"),
             py::arg("default") = py::none(),
             py::return_value_policy::reference_internal
@@ -450,12 +470,19 @@ void init_object(py::module& m)
                 }
                 return py::cast(value);
             },
-            "For ``pikepdf.Dictionary`` objects, behave as ``dict.get(key, default=None)``",
+            "For ``pikepdf.Dictionary`` or ``pikepdf.Stream`` objects, behave as ``dict.get(key, default=None)``",
             py::arg("key"),
             py::arg("default") = py::none(),
             py::return_value_policy::reference_internal
         )
-        .def("keys", &QPDFObjectHandle::getKeys)
+        .def("keys",
+            [](QPDFObjectHandle h) {
+                if (h.isStream())
+                    h = h.getDict();
+                return h.getKeys();
+            },
+            "For ``pikepdf.Dictionary`` or ``pikepdf.Stream`` objects, obtain the keys."
+        )
         .def("__contains__",
             [](QPDFObjectHandle &h, QPDFObjectHandle &key) {
                 if (!key.isName())
@@ -471,15 +498,17 @@ void init_object(py::module& m)
         .def("as_list", &QPDFObjectHandle::getArrayAsVector)
         .def("as_dict", &QPDFObjectHandle::getDictAsMap)
         .def("__iter__",
-            [](QPDFObjectHandle &h) -> py::iterable {
+            [](QPDFObjectHandle h) -> py::iterable {
                 if (h.isArray()) {
                     auto vec = h.getArrayAsVector();
                     auto pyvec = py::cast(vec);
                     return pyvec.attr("__iter__")();
-                } else if (h.isDictionary()) {
-                    auto vec = h.getKeys();
-                    auto pyvec = py::cast(vec);
-                    return pyvec.attr("__iter__")();
+                } else if (h.isDictionary() || h.isStream()) {
+                    if (h.isStream())
+                        h = h.getDict();
+                    auto keys = h.getKeys();
+                    auto pykeys = py::cast(keys);
+                    return pykeys.attr("__iter__")();
                 } else {
                     throw py::type_error("__iter__ not available on this type");
                 }
@@ -487,7 +516,9 @@ void init_object(py::module& m)
             py::return_value_policy::reference_internal
         )
         .def("items",
-            [](QPDFObjectHandle &h) -> py::iterable {
+            [](QPDFObjectHandle h) -> py::iterable {
+                if (h.isStream())
+                    h = h.getDict();
                 if (!h.isDictionary())
                     throw py::type_error("items() not available on this type");
                 auto dict = h.getDictAsMap();

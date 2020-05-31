@@ -493,9 +493,12 @@ def test_copy():
 
 def test_object_iteration(sandwich):
     expected = len(sandwich.objects)
-    for n, obj in enumerate(sandwich.objects):
+    loops = 0
+    for obj in sandwich.objects:
+        loops += 1
         if isinstance(obj, Dictionary):
             assert len(obj.keys()) >= 1
+    assert expected == loops
 
 
 @pytest.mark.parametrize(
@@ -524,3 +527,48 @@ def test_operator_create():
     Operator('q')
     assert Operator('q') == Operator('q')
     assert Operator('q') != Operator('Q')
+
+
+@pytest.fixture(scope="function")
+def abcxyz_stream():
+    pdf = pikepdf.new()
+    data = b'abcxyz'
+    stream = Stream(pdf, data)
+    return stream
+
+
+def test_stream_as_dict(abcxyz_stream):
+    stream = abcxyz_stream
+    assert Name.Length in stream
+    stream.TestAttrAccess = True
+    stream['/TestKeyAccess'] = True
+    stream[Name.TestKeyNameAccess] = True
+    assert len(stream.keys()) == 4  # Streams always have a /Length
+
+    assert all((v == len(stream.read_bytes()) or v == True) for k, v in stream.items())
+
+    assert stream.stream_dict.TestAttrAccess
+
+    assert stream.get(Name.MissingName, 3.14) == 3.14
+
+    assert {k for k in stream} == {
+        '/TestKeyAccess',
+        '/TestAttrAccess',
+        '/Length',
+        '/TestKeyNameAccess',
+    }
+
+
+def test_stream_length_modify(abcxyz_stream):
+    stream = abcxyz_stream
+
+    with pytest.warns(DeprecationWarning):
+        stream.Length = 42
+    with pytest.warns(DeprecationWarning):
+        del stream.Length
+
+
+def test_len_stream(abcxyz_stream):
+    with pytest.raises(TypeError):
+        len(abcxyz_stream)  # pylint: disable=pointless-statement
+    assert len(abcxyz_stream.stream_dict) == 1
