@@ -146,6 +146,11 @@ def test_list_apis():
     a[-1] = Name('/Foo')
     with pytest.raises(IndexError):
         a[-5555] = Name.Foo
+    assert a == pikepdf.Array([1, Name.Foo])
+    a.append(4)
+    assert a == pikepdf.Array([1, Name.Foo, 4])
+    a.extend([42, 666])
+    assert a == pikepdf.Array([1, Name.Foo, 4, 42, 666])
 
 
 def test_stack_depth():

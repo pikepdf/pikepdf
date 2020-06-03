@@ -581,6 +581,21 @@ void init_object(py::module& m)
             },
             "Return the object wrapped in an array if not already an array."
         )
+        .def("append",
+            [](QPDFObjectHandle &h, py::object pyitem) {
+                auto item = objecthandle_encode(pyitem);
+                return h.appendItem(item);
+            },
+            "Append another object to an array; fails if the object is not an array."
+        )
+        .def("extend",
+            [](QPDFObjectHandle &h, py::iterable iter) {
+                for (auto item: iter) {
+                    h.appendItem(objecthandle_encode(item));
+                }
+            },
+            "Extend a pikepdf.Array with an iterable of other objects."
+        )
         .def_property_readonly("is_rectangle", &QPDFObjectHandle::isRectangle,
             "Returns True if the object is a rectangle (an array of 4 numbers)"
         )

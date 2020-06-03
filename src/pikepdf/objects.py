@@ -131,7 +131,7 @@ class Array(Object, metaclass=_ObjectMeta):
     def __new__(cls, a=None):
         """
         Args:
-            a (iterable): A list of objects. All objects must be either
+            a (iterable): An iterable of objects. All objects must be either
                 `pikepdf.Object` or convertible to `pikepdf.Object`.
 
         Returns:
