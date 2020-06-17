@@ -2,6 +2,8 @@ import pytest
 
 import pikepdf
 
+# pylint: disable=redefined-outer-name
+
 
 @pytest.fixture
 def trivial(resources):

@@ -577,8 +577,3 @@ def test_len_stream(abcxyz_stream):
     with pytest.raises(TypeError):
         len(abcxyz_stream)  # pylint: disable=pointless-statement
     assert len(abcxyz_stream.stream_dict) == 1
-
-
-def test_decimal_precision():
-    d = Decimal('0.1234567890123456789')
-    assert str(encode(d)) == '0.123456789012346'
