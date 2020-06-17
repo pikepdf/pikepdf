@@ -31,6 +31,7 @@
 #include "qpdf_inputsource.h"
 #include "pipeline.h"
 #include "utils.h"
+#include "gsl.h"
 
 
 void check_stream_is_usable(py::object stream)
@@ -104,7 +105,6 @@ open_pdf(
 
     return q;
 }
-
 
 class PikeProgressReporter : public QPDFWriter::ProgressReporter {
 public:
@@ -307,29 +307,6 @@ pdf_version_extension get_version_extension(py::object ver_ext)
     return pdf_version_extension(version, extension);
 }
 
-
-/* Helper class to ensure streams we open get closed by destructor */
-class Closer
-{
-public:
-    Closer() : monitored(py::none()) {}
-    ~Closer() {
-        if (!this->monitored.is_none()) {
-            this->monitored.attr("close")();
-        }
-    }
-    void set(py::object monitored) {
-        this->monitored = monitored;
-    }
-    Closer(const Closer& other) = delete;
-    Closer(Closer&& other) = delete;
-    Closer& operator= (const Closer& other) = delete;
-    Closer& operator= (Closer&& other) = delete;
-
-private:
-    py::object monitored;
-};
-
 void save_pdf(
     QPDF& q,
     py::object filename_or_stream,
@@ -370,7 +347,11 @@ void save_pdf(
     w.setObjectStreamMode(object_stream_mode);
 
     py::object stream;
-    Closer stream_closer;
+    bool should_close_stream = false;
+    auto close_stream = gsl::finally([stream, should_close_stream] {
+        if (should_close_stream && !stream.is_none())
+            stream.attr("close")();
+    });
 
     if (py::hasattr(filename_or_stream, "write") && py::hasattr(filename_or_stream, "seek")) {
         // Python code gave us an object with a stream interface
@@ -395,7 +376,7 @@ void save_pdf(
                 throw;
         }
         stream = py::module::import("io").attr("open")(filename, "wb");
-        stream_closer.set(stream);
+        should_close_stream = true;
         description = py::str(filename);
     }
 
