@@ -25,6 +25,8 @@
 #include "qpdf_pagelist.h"
 #include "utils.h"
 
+uint DECIMAL_PRECISION = 15;
+
 
 class TemporaryErrnoChange {
 public:
@@ -73,7 +75,21 @@ PYBIND11_MODULE(_qpdf, m) {
             if (file)
                 fclose(file);
         },
-        "Used to test that C++ system error -> Python exception propagation works"
+        "Used to test that C++ system error -> Python exception propagation works."
+    );
+
+    m.def("set_decimal_precision",
+        [](uint prec) {
+            DECIMAL_PRECISION = prec;
+            return DECIMAL_PRECISION;
+        },
+        "Set the number of decimal digits to use when converting floats."
+    );
+    m.def("get_decimal_precision",
+        []() {
+            return DECIMAL_PRECISION;
+        },
+        "Get the number of decimal digits to use when converting floats."
     );
 
     static py::exception<QPDFExc> exc_main(m, "PdfError");

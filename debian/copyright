@@ -53,6 +53,10 @@ Copyright: (C) 2009 Fae
 License: CC-BY-4.0
  See: https://upload.wikimedia.org/wikipedia/commons/0/0c/Twenty_eight_types_of_fish._Engraving_by_R._Scott_after_T._B_Wellcome_V0022737EL.jpg
 
+Files: src/gsl.h
+Copyright: (C) 2015 Microsoft Corporation
+License: MIT
+
 Files: tests/*.py
 Copyright: (C) 2017 James R. Barlow
 License: CC0-1.0

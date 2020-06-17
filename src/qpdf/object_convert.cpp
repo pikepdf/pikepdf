@@ -29,6 +29,8 @@
 
 #include "pikepdf.h"
 
+extern uint DECIMAL_PRECISION;
+
 
 std::map<std::string, QPDFObjectHandle>
 dict_builder(const py::dict dict)
@@ -62,6 +64,26 @@ array_builder(const py::iterable iter)
 }
 
 
+class DecimalPrecision {
+public:
+    DecimalPrecision(uint calc_precision) :
+        decimal_context(py::module::import("decimal").attr("getcontext")()),
+        saved_precision(decimal_context.attr("prec").cast<uint>())
+    {
+        decimal_context.attr("prec") = calc_precision;
+    }
+    ~DecimalPrecision() {
+        decimal_context.attr("prec") = saved_precision;
+    }
+    DecimalPrecision(const DecimalPrecision& other) = delete;
+    DecimalPrecision(DecimalPrecision&& other) = delete;
+    DecimalPrecision& operator= (const DecimalPrecision& other) = delete;
+    DecimalPrecision& operator= (DecimalPrecision&& other) = delete;
+private:
+    py::object decimal_context;
+    uint saved_precision;
+};
+
 QPDFObjectHandle objecthandle_encode(const py::handle handle)
 {
     if (handle.is_none())
@@ -81,9 +103,10 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle)
     }
 
     auto Decimal = py::module::import("decimal").attr("Decimal");
-
     if (py::isinstance(handle, Decimal)) {
-        return QPDFObjectHandle::newReal(py::str(handle));
+        DecimalPrecision dp(DECIMAL_PRECISION);
+        auto rounded = py::reinterpret_steal<py::object>(PyNumber_Positive(handle.ptr()));
+        return QPDFObjectHandle::newReal(py::str(rounded));
     } else if (py::isinstance<py::int_>(handle)) {
         auto as_int = handle.cast<long long>();
         return QPDFObjectHandle::newInteger(as_int);
