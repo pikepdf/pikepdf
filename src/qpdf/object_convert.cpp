@@ -12,6 +12,7 @@
 
 #include <vector>
 #include <map>
+#include <cmath>
 
 #include <qpdf/Constants.h>
 #include <qpdf/Types.h>
@@ -102,16 +103,21 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle)
         return QPDFObjectHandle::newBool(as_bool);
     }
 
-    auto Decimal = py::module::import("decimal").attr("Decimal");
+    auto decimal_module = py::module::import("decimal");
+    auto Decimal = decimal_module.attr("Decimal");
     if (py::isinstance(handle, Decimal)) {
         DecimalPrecision dp(DECIMAL_PRECISION);
         auto rounded = py::reinterpret_steal<py::object>(PyNumber_Positive(handle.ptr()));
+        if (! rounded.attr("is_finite")().cast<bool>())
+            throw py::value_error("Can't convert NaN or Infinity to PDF real number");
         return QPDFObjectHandle::newReal(py::str(rounded));
     } else if (py::isinstance<py::int_>(handle)) {
         auto as_int = handle.cast<long long>();
         return QPDFObjectHandle::newInteger(as_int);
     } else if (py::isinstance<py::float_>(handle)) {
         auto as_double = handle.cast<double>();
+        if (! isfinite(as_double))
+            throw py::value_error("Can't convert NaN or Infinity to PDF real number");
         return QPDFObjectHandle::newReal(as_double);
     }
 
