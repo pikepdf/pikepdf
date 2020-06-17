@@ -18,6 +18,19 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v1.15.0
+=======
+
+-  Fixed an issue where ``Decimal`` objects of precision exceeding the
+   PDF specification could be written to output files, causing some PDF viewers,
+   notably Acrobat, to parse the file incorrectly. We now limit precision to
+   15 digits, which ought to be enough to prevent rounding error and parsing
+   errors.
+-  We now refuse to create pikepdf objects from ``float`` or ``Decimal`` that are
+   ``NaN`` or ``±Infinity``. These concepts have no equivalent in PDF.
+-  ``pikepdf.Array`` objects now implement ``.append()`` and ``.extend()`` with
+   familiar Python ``list`` semantics, making them easier to edit.
+
 v1.14.0
 =======
 
