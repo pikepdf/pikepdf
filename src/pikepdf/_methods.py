@@ -126,10 +126,8 @@ class Extend_Object:
         return None
 
     def _ipython_key_completions_(self):
-        if isinstance(self, Dictionary):
+        if isinstance(self, (Dictionary, Stream)):
             return self.keys()
-        elif isinstance(self, Stream):
-            return self.stream_dict.keys()
         return None
 
     def emplace(self, other):
