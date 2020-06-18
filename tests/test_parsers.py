@@ -10,12 +10,14 @@ from pikepdf import (
     Object,
     Operator,
     Pdf,
+    PdfError,
     PdfMatrix,
     Stream,
     parse_content_stream,
     unparse_content_stream,
 )
 from pikepdf._qpdf import StreamParser
+from pikepdf.models import PdfParsingError
 
 # pylint: disable=useless-super-delegation
 
@@ -124,3 +126,16 @@ def test_unparse_cs():
         ([], Operator('Q')),
     ]
     assert unparse_content_stream(instructions).strip() == b'q\n1 0 0 1 0 0 cm\n Q'
+
+
+def test_unparse_failure():
+    instructions = [([float('nan')], Operator('cm'))]
+    with pytest.raises(PdfParsingError):
+        unparse_content_stream(instructions)
+
+
+def test_parse_xobject(resources):
+    pdf = Pdf.open(resources / 'formxobject.pdf')
+    form1 = pdf.pages[0].Resources.XObject.Form1
+    instructions = parse_content_stream(form1)
+    assert instructions[0][1] == Operator('cm')
