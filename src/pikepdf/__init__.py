@@ -15,12 +15,6 @@ try:
     from . import _qpdf
 except ImportError as _e:
     msg = "pikepdf's extension library failed to import"
-    if os.name == 'nt':
-        msg += """
-You may need to install the Microsoft Visual C++ runtime.
-* x86: https://aka.ms/vs/16/release/vc_redist.x86.exe
-* x64: https://aka.ms/vs/16/release/vc_redist.x64.exe
-"""
     raise ImportError(msg) from _e
 
 try:
