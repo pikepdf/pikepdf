@@ -1,10 +1,13 @@
+import sys
+from io import BytesIO
+from shutil import copy
+
+import psutil
 import pytest
 
 from pikepdf import Pdf, PdfError
-from pikepdf._cpphelpers import fspath
-from io import BytesIO
-from shutil import copy
-import sys
+
+# pylint: disable=redefined-outer-name
 
 
 @pytest.fixture
@@ -54,12 +57,12 @@ class BadBytesIO(BytesIO):
 class WrongTypeBytesIO(BytesIO):
     """Returns wrong type"""
 
-    def write(self, b):
+    def write(self, b):  # pylint: disable=unused-argument
         return None  # most likely wrong return type
 
 
 class NegativeOneBytesIO(BytesIO):
-    def write(self, b):
+    def write(self, b):  # pylint: disable=unused-argument
         return -1
 
 
@@ -75,3 +78,74 @@ def test_invalid_output_stream(sandwich, bio_class, exc_type):
     bio = bio_class()
     with pytest.raises(exc_type):
         sandwich.save(bio, static_id=True)
+
+
+uses_psutil_open_files = pytest.mark.skipif(
+    sys.platform == 'win32' or sys.platform.startswith('freebsd'),
+    reason="psutil documentation warns that .open_files() has problems on these",
+)
+
+
+def file_descriptor_is_open_for(path):
+    process = psutil.Process()
+    return any((f.path == str(path.resolve())) for f in process.open_files())
+
+
+@uses_psutil_open_files
+def test_open_named_file_closed(resources):
+    path = resources / 'pal.pdf'
+    pdf = Pdf.open(path)
+    assert file_descriptor_is_open_for(path)
+
+    pdf.close()
+    assert not file_descriptor_is_open_for(
+        path
+    ), "pikepdf did not close a stream it opened"
+
+
+@uses_psutil_open_files
+def test_streamed_file_not_closed(resources):
+    path = resources / 'pal.pdf'
+    stream = path.open('rb')
+    pdf = Pdf.open(stream)
+    assert file_descriptor_is_open_for(path)
+
+    pdf.close()
+    assert file_descriptor_is_open_for(path), "pikepdf closed a stream it did not open"
+
+
+@uses_psutil_open_files
+@pytest.mark.parametrize('branch', ['success', 'failure'])
+def test_save_named_file_closed(resources, outdir, branch):
+    with Pdf.open(resources / 'pal.pdf') as pdf:
+        path = outdir / "pal.pdf"
+
+        def confirm_opened(progress_percent):
+            if progress_percent == 0:
+                assert file_descriptor_is_open_for(path)
+            if progress_percent > 0 and branch == 'failure':
+                raise ValueError('failure branch')
+
+        try:
+            pdf.save(path, progress=confirm_opened)
+        except ValueError:
+            pass
+        assert not file_descriptor_is_open_for(
+            path
+        ), "pikepdf did not close a stream it opened"
+
+
+@uses_psutil_open_files
+def test_save_streamed_file_not_closed(resources, outdir):
+    with Pdf.open(resources / 'pal.pdf') as pdf:
+        path = outdir / "pal.pdf"
+        stream = path.open('wb')
+
+        def confirm_opened(progress_percent):
+            if progress_percent == 0:
+                assert file_descriptor_is_open_for(path)
+
+        pdf.save(stream, progress=confirm_opened)
+        assert file_descriptor_is_open_for(
+            path
+        ), "pikepdf closed a stream it did not open"
