@@ -145,4 +145,5 @@ practical examples, particular in ``pdfinfo.py``, ``graft.py``, and
     :name: reference_toc
 
     references/arch
+    references/debugging
     references/resources
