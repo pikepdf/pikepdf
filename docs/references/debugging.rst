@@ -51,4 +51,4 @@ Valgrind
 Valgrind may also be helpful - see the Python `documentation`_ for information
 on setting up Python and Valgrind.
 
-.. _documentation: <https://github.com/python/cpython/blob/d5d33681c1cd1df7731eb0fb7c0f297bc2f114e6/Misc/README.valgrind>
+.. _documentation: https://github.com/python/cpython/blob/d5d33681c1cd1df7731eb0fb7c0f297bc2f114e6/Misc/README.valgrind

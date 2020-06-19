@@ -131,7 +131,7 @@ pikepdf requires:
 On Linux the library and headers for libqpdf must be installed because pikepdf
 compiles code against it and links to it.
 
-Check `Repology for QPDF <https://repology.org/metapackage/qpdf/badges>`_ to
+Check `Repology for QPDF <https://repology.org/project/qpdf/badges>`_ to
 see if a recent version of QPDF is available for your platform. Otherwise you
 must
 `build QPDF from source <https://github.com/qpdf/qpdf/blob/master/INSTALL>`_.

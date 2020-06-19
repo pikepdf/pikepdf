@@ -34,7 +34,7 @@ to encrypted PDFs.
 
 It is a low level library that requires knowledge of PDF internals and some
 familiarity with the `PDF specification
-<https://www.adobe.com/content/dam/Adobe/en/devnet/pdf/pdfs/PDF32000_2008.pdf>`_.
+<https://www.adobe.com/content/dam/acom/en/devnet/pdf/pdfs/PDF32000_2008.pdf>`_.
 It does not provide a user interface of its own.
 
 pikepdf would help you build apps that do things like:

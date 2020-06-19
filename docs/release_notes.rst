@@ -10,7 +10,7 @@ Release notes
 
     Releasing a pike.
 
-pikepdf releases use the `semantic versioning <http://semver.org>`__
+pikepdf releases use the `semantic versioning <https://semver.org>`__
 policy.
 
 The pikepdf API (as provided by ``import pikepdf``) is stable and
