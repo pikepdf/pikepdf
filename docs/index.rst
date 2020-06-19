@@ -144,5 +144,5 @@ practical examples, particular in ``pdfinfo.py``, ``graft.py``, and
     :caption: Reference
     :name: reference_toc
 
-    arch
-    resources
+    references/arch
+    references/resources
