@@ -180,32 +180,15 @@ extension with it. We must force the use of Visual Studio 2015.
         set MSSdk=1
 
 #. Download |msvc-zip| from the `QPDF releases page <https://github.com/qpdf/qpdf/releases>`_.
-#. Extract ``bin\*.dll`` (all the DLLs) from the zip file above,
-   and copy it to the ``src/pikepdf`` folder in the repository.
+#. Extract ``bin\*.dll`` (all the DLLs, both QPDF's and the Microsoft Visual C++
+   Runtime library) from the zip file above, and copy it to the ``src/pikepdf``
+   folder in the repository.
 #. Run ``pip install .`` in the root directory of the repository.
 
 .. note::
 
     The user compiling ``pikepdf`` to must have registry editing rights on the
     machine to be able to run the ``vcvarsall.bat`` script.
-
-Windows runtime requirements
-----------------------------
-
-On Windows, the Visual C++ runtime redistributable packages are required.
-Specifically you must install one of the following depending on the architecture
-you are trying to use. This must match the installed version of Python.
-
-* x86: https://aka.ms/vs/16/release/vc_redist.x86.exe
-* x64: https://aka.ms/vs/16/release/vc_redist.x64.exe
-
-The binary wheels for Windows bundle the necessary files.
-
-For more information see the
-`relevant page at Microsoft Support <https://support.microsoft.com/en-us/help/2977003/the-latest-supported-visual-c-downloads>`_.
-
-If not installed, you may see an error saying that "pikepdf's extension library
-failed to import".
 
 Building the documentation
 --------------------------
