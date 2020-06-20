@@ -18,6 +18,13 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v1.15.1
+=======
+
+-  Fixed a regression - ``Pdf.save(filename)`` may hold file handles open after
+   the file is fully written.
+-  Documentation updates.
+
 v1.15.0
 =======
 
