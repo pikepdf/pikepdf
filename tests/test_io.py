@@ -47,6 +47,7 @@ def test_overwrite_input(resources, outdir):
         p.save(outdir / 'sandwich.pdf')
 
 
+@pytest.mark.skipif(sys.version_info < (3, 6), reason='pathlib')
 def test_fail_only_overwrite_input_check(monkeypatch, resources, outdir):
     copy(resources / 'sandwich.pdf', outdir / 'sandwich.pdf')
     p = Pdf.open(outdir / 'sandwich.pdf')
