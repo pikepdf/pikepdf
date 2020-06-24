@@ -86,6 +86,9 @@ Requirements
 pikepdf currently requires **Python 3.5+**. There are no plans to backport to
 2.7 or older versions in the 3.x series.
 
+Support for Python 3.5 will end in September 2020, when Python 3.5 itself reaches
+"end of life".
+
 Similar libraries
 ~~~~~~~~~~~~~~~~~
 
