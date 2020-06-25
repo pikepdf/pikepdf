@@ -463,15 +463,20 @@ void init_qpdf(py::module &m)
 
             If *filename_or_stream* is path-like, the file will be opened for reading.
             The file should not be modified by another process while it is open in
-            pikepdf. The file will not be altered when opened in this way. Any changes
-            to the file must be persisted by using ``.save()``.
+            pikepdf, or undefined behavior may occur. This is because the file may be
+            lazily loaded. Despite this restriction, pikepdf does not try to use any OS
+            services to obtain an exclusive lock on the file. Some applications may
+            want to attempt this or copy the file to a temporary location before
+            editing.
+
+            Any changes to the file must be persisted by using ``.save()``.
 
             If *filename_or_stream* has ``.read()`` and ``.seek()`` methods, the file
             will be accessed as a readable binary stream. pikepdf will read the
             entire stream into a private buffer.
 
-            ``.open()`` may be used in a ``with``-block, ``.close()`` will be called when
-            the block exists.
+            ``.open()`` may be used in a ``with``-block; ``.close()`` will be called when
+            the block exits.
 
             Examples:
 
