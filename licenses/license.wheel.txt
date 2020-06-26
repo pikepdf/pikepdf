@@ -9,24 +9,30 @@ pikepdf wheel license
 This Python wheel is a Executable Form and/or Object form distribution
 of pikepdf, qpdf, and other libraries prepared for ease of use.
 
+By using or distributing this software you agree to the terms of the license
+agreements herein.
+
 It includes primarily code from two open source projects:
 - pikepdf (https://github.com/pikepdf/pikepdf), licensed under
 Mozilla Public License Version 2.0
 - qpdf (https://github.com/qpdf/qpdf), licensed under
 Apache Software License Version 2.0
 
-Depending on your platform, it may also included:
+On some platforms, it may also included:
 - libjpeg, licensed under the Independent JPEG Group License
 - zlib (https://www.zlib.net/), licensed under the Zlib License
-- Microsoft Visual C++ Runtime Files, licensed under the Microsoft Software
-  License Terms (https://visualstudio.microsoft.com/license-terms/mlt031619/),
-  specifically section "4. DISTRIBUTABLE CODE". (Windows users only)
+
+On Microsoft Windows, it will include:
+- Microsoft Visual C++ Runtime Files, distributed under section "4. Distributable
+  Code" of the Microsoft Software License Terms
+  (https://visualstudio.microsoft.com/license-terms/mlt031619/).
 
 These licenses apply to the installation, use and distribution of this
 wheel.  Refer to their web pages for full details of license and
 copyright information.
 
-The full text of each license agreement follows.
+The text of each license agreement follows. For the Microsoft Visual C++ Runtime
+Files, we include a brief summary of relevant terms from the full agreement.
 
 ==================================
 Mozilla Public License Version 2.0
@@ -403,6 +409,9 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
   This Source Code Form is "Incompatible With Secondary Licenses", as
   defined by the Mozilla Public License, v. 2.0.
 
+==================
+Apache License 2.0
+==================
 
                                  Apache License
                            Version 2.0, January 2004
@@ -780,3 +789,24 @@ Zlib License
 
   Jean-loup Gailly        Mark Adler
   jloup@gzip.org          madler@alumni.caltech.edu
+
+============================================
+Microsoft Distributable Code License Summary
+============================================
+
+Distributors and external end users MAY:
+
+* Copy and distribute the Distributable Code.
+
+Distributors and external end users MUST:
+
+* Agree to protect the Distributable Code at least as much as the Microsoft Software
+  License Terms agreement does.
+* Indemnify, defend, and hold harmless Microsoft from any claims, including
+  attorneys’ fees, related to the distribution or use of your applications, except
+  to the extent that any claim is based solely on the Distributable Code.
+
+Distributors and external end users MUST NOT:
+
+* Use Microsoft’s trademarks in your applications’ names or in a way that
+  suggests your applications come from or are endorsed by Microsoft.
