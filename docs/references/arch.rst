@@ -34,6 +34,8 @@ It is not currently possible to pickle pikepdf objects or marshall them across
 process boundaries (as would be required to use pikepdf in
 :mod:`multiprocessing`). If this were implemented, it would not be much more
 efficient than saving a full PDF and sending it to another process.
+Parallelizing work (for example, by dividing work by PDF pages) can still be
+achieved by having each worker process open the same file.
 
 File handles
 ------------
@@ -42,3 +44,10 @@ Because of technical limitations in underlying libraries, pikepdf keeps the
 source PDF file open when a content is copied from it to another PDF, even when
 all Python variables pointing to the source are removed. If a PDF is being
 assembled from many sources, then all of those sources are held open in memory.
+
+PyPy3 support
+------------
+
+pybind11 does not yet support PyPy3, so it's not possible to use pikepdf in
+PyPy3 at this time. When pybind11 finalizes PyPy3 support, pikepdf will be
+able to work with PyPy3 as well.
