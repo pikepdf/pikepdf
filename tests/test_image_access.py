@@ -6,6 +6,7 @@ import pytest
 from PIL import Image
 from PIL import features as PIL_features
 
+import pikepdf
 from pikepdf import (
     Dictionary,
     Name,
@@ -18,7 +19,11 @@ from pikepdf import (
     parse_content_stream,
 )
 from pikepdf._cpphelpers import fspath
-from pikepdf.models.image import NotExtractableError, UnsupportedImageTypeError
+from pikepdf.models.image import (
+    DependencyError,
+    NotExtractableError,
+    UnsupportedImageTypeError,
+)
 
 # pylint: disable=redefined-outer-name
 
@@ -37,6 +42,11 @@ def congress(resources):
 @pytest.fixture
 def sandwich(resources):
     return first_image_in(resources / 'sandwich.pdf')
+
+
+@pytest.fixture
+def jbig2(resources):
+    return first_image_in(resources / 'jbig2.pdf')
 
 
 def test_image_from_nonimage(resources):
@@ -363,3 +373,44 @@ def test_imagemagick_uses_rle_compression(resources):
     pim = PdfImage(xobj)
     im = pim.as_pil_image()
     assert im.getpixel((5, 5)) == (255, 128, 0)
+
+
+def test_jbig2_not_available(jbig2, monkeypatch):
+    xobj, _pdf = jbig2
+    pim = PdfImage(xobj)
+
+    monkeypatch.setattr(pikepdf.jbig2, 'jbig2dec_available', lambda: False)
+    with pytest.raises(DependencyError):
+        pim.as_pil_image()
+
+
+needs_jbig2dec = pytest.mark.skipif(
+    not pikepdf.jbig2.jbig2dec_available(), reason="jbig2dec not installed"
+)
+
+
+@needs_jbig2dec
+def test_jbig2(jbig2):
+    xobj, _pdf = jbig2
+    pim = PdfImage(xobj)
+    im = pim.as_pil_image()
+    assert im.size == (1000, 1520)
+
+
+@needs_jbig2dec
+def test_jbig2_global(resources):
+    xobj, _pdf = first_image_in(resources / 'jbig2global.pdf')
+    pim = PdfImage(xobj)
+    im = pim.as_pil_image()
+    assert im.size == (4000, 2864)
+
+
+@needs_jbig2dec
+def test_jbig2_global_palette(resources):
+    xobj, _pdf = first_image_in(resources / 'jbig2global.pdf')
+    xobj.ColorSpace = pikepdf.Array(
+        [Name.Indexed, Name.DeviceRGB, 1, b'\x00\x00\x00\xff\xff\xff']
+    )
+    pim = PdfImage(xobj)
+    im = pim.as_pil_image()
+    assert im.size == (4000, 2864)

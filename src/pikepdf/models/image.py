@@ -14,7 +14,16 @@ from shutil import copyfileobj
 from zlib import decompress
 from zlib import error as ZlibError
 
-from .. import Array, Dictionary, Name, Object, PdfError, Stream, StreamDecodeLevel
+from pikepdf import (
+    Array,
+    Dictionary,
+    Name,
+    Object,
+    PdfError,
+    Stream,
+    StreamDecodeLevel,
+    jbig2,
+)
 
 
 class DependencyError(Exception):
@@ -418,14 +427,20 @@ class PdfImage(PdfImageBase):
                     im.putpalette(palette, rawmode=base_mode)
                 else:
                     raise NotImplementedError('palette with ' + base_mode)
-        elif self.mode == '1' and self.bits_per_component == 1:
-            data = self.read_bytes()
-            im = Image.frombytes('1', self.size, data)
+        elif self.bits_per_component == 1:
+            if self.filters and self.filters[0] == '/JBIG2Decode':
+                if not jbig2.jbig2dec_available():
+                    raise DependencyError("jbig2dec - not installed")
+                jbig2_globals_obj = self.filter_decodeparms[0][1].get('/JBIG2Globals')
+                im = jbig2.extract_jbig2(self.obj, jbig2_globals_obj)
+            else:
+                data = self.read_bytes()
+                im = Image.frombytes('1', self.size, data)
+        else:
+            raise UnsupportedImageTypeError(repr(self))
 
-        elif self.mode == 'P' and self.bits_per_component == 1:
-            data = self.read_bytes()
-            im = Image.frombytes('1', self.size, data)
-
+        if self.mode == 'P' and self.bits_per_component == 1:
+            # Fix paletted 1-bit images
             base_mode, palette = self.palette
             if base_mode == 'RGB' and palette != b'\x00\x00\x00\xff\xff\xff':
                 im = im.convert('P')
@@ -530,13 +545,13 @@ class PdfImage(PdfImageBase):
             copyfileobj(bio, target)
         return str(filepath)
 
-    def read_bytes(self):
+    def read_bytes(self, decode_level=StreamDecodeLevel.specialized):
         """Decompress this image and return it as unencoded bytes"""
-        return self.obj.read_bytes(decode_level=StreamDecodeLevel.specialized)
+        return self.obj.read_bytes(decode_level=decode_level)
 
-    def get_stream_buffer(self):
+    def get_stream_buffer(self, decode_level=StreamDecodeLevel.specialized):
         """Access this image with the buffer protocol"""
-        return self.obj.get_stream_buffer(decode_level=StreamDecodeLevel.specialized)
+        return self.obj.get_stream_buffer(decode_level=decode_level)
 
     def as_pil_image(self):
         """Extract the image as a Pillow Image, using decompression as necessary

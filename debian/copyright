@@ -83,6 +83,14 @@ License: public-domain
 Comment:
  For -encrypted.pdf, user password is "user" and owner password is "owner".
 
+Files: tests/resources/jbig2.pdf
+Copyright: Public domain
+License: public-domain
+
+Files: tests/resources/jbig2global.pdf
+Copyright: (C) 2005 Ellywa
+License: GFDL-1.2+ or CC-BY-SA-1.0 or CC-BY-SA-2.0 or CC-BY-SA-2.5 or CC-BY-SA-3.0
+
 Files: tests/resources/veraPDF*.pdf
 Copyright: (C) 2015 veraPDF Consortium
 License: CC-BY-4.0
