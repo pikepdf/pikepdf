@@ -18,6 +18,15 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v1.16.0
+=======
+
+-  Add support for extracting JBIG2 images with the image API. JBIG2 images are
+   converted to ``PIL.Image``. Requires a JBIG2 decoder such as jbig2dec.
+-  Python 3.5 support is deprecated and will end when Python 3.5 itself reaches
+   end of life, in September 2020.
+-  Python 3.9beta is supported and is known to work on Fedora 33.
+
 v1.15.1
 =======
 
