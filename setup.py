@@ -1,19 +1,11 @@
 import sys
 from glob import glob
-from os import environ
+from os import cpu_count, environ
 from os.path import dirname, exists, join
 
 import setuptools
 from setuptools import Extension, setup
 from setuptools.command.build_ext import build_ext
-
-if sys.version_info >= (3, 6):
-    try:
-        import mp_compile
-
-        mp_compile.install()
-    except ModuleNotFoundError:
-        pass
 
 
 class get_pybind_include(object):
@@ -23,16 +15,13 @@ class get_pybind_include(object):
     until it is actually installed, so that the ``get_include()``
     method can be invoked. """
 
-    def __init__(self, user=False):
-        self.user = user
-
     def __str__(self):
         # If we are vendoring use the vendored version
         if exists('src/vendor/pybind11'):
             return 'src/vendor/pybind11/include'
         import pybind11
 
-        return pybind11.get_include(self.user)
+        return pybind11.get_include()
 
 
 extra_includes = []
@@ -54,7 +43,6 @@ ext_modules = [
         include_dirs=[
             # Path to pybind11 headers
             get_pybind_include(),
-            get_pybind_include(user=True),
             *extra_includes,
         ],
         library_dirs=[*extra_library_dirs],
@@ -71,13 +59,22 @@ def has_flag(compiler, flagname):
     the specified compiler.
     """
     import tempfile
+    import os
 
-    with tempfile.NamedTemporaryFile('w', suffix='.cpp') as tmpf:
-        tmpf.write('int main (int argc, char **argv) { return 0; }')
+    with tempfile.NamedTemporaryFile(
+        'w', prefix='has_flag__', suffix='.cpp', delete=False
+    ) as f:
+        f.write('int main (int argc, char **argv) { return 0; }')
+        fname = f.name
+    try:
+        compiler.compile([fname], extra_postargs=[flagname])
+    except setuptools.distutils.errors.CompileError:
+        return False
+    finally:
         try:
-            compiler.compile([tmpf.name], extra_postargs=[flagname])
-        except setuptools.distutils.errors.CompileError:
-            return False
+            os.remove(fname)
+        except OSError:
+            pass
     return True
 
 
@@ -109,18 +106,29 @@ class BuildExt(build_ext):
         c_opts['unix'] += darwin_opts
         l_opts['unix'] += darwin_opts
 
+    def finalize_options(self):
+        super().finalize_options()
+        if not self.parallel:
+            try:
+                self.parallel = int(environ.get("MAX_CONCURRENCY", min(4, cpu_count())))
+            except TypeError:
+                self.parallel = None
+
     def build_extensions(self):
         ct = self.compiler.compiler_type
         opts = self.c_opts.get(ct, [])
+        link_opts = self.l_opts.get(ct, [])
         if ct == 'unix':
-            opts.append('-DVERSION_INFO="%s"' % self.distribution.get_version())
             opts.append(cpp_flag(self.compiler))
             if has_flag(self.compiler, '-fvisibility=hidden'):
                 opts.append('-fvisibility=hidden')
-        elif ct == 'msvc':
-            opts.append('/DVERSION_INFO=\\"%s\\"' % self.distribution.get_version())
+
         for ext in self.extensions:
+            ext.define_macros = [
+                ('VERSION_INFO', '"{}"'.format(self.distribution.get_version()))
+            ]
             ext.extra_compile_args = opts
+            ext.extra_link_args = link_opts
         build_ext.build_extensions(self)
 
 
@@ -141,6 +149,13 @@ with open(join(setup_py_cwd, 'README.md'), encoding='utf-8') as f:
     readme = f.read()
 
 if __name__ == '__main__':  # for mp_compile
+    if sys.version_info >= (3, 6):
+        try:
+            import mp_compile
+
+            mp_compile.install()
+        except ModuleNotFoundError:
+            pass
     setup(
         name='pikepdf',
         author='James R. Barlow',

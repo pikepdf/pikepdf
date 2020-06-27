@@ -1,10 +1,18 @@
 # Copyright: (C) 2010-2019 Alex Clark and Pillow contributors
 # License: PIL Software License
 
+"""
+distutils only parallelizes the build over Extension modules. This dirty hack
+lets us parallelize over C++ source files.
+
+If it causes problems, just delete it, and setup.py will proceed with out.
+"""
+
 import os
 import sys
 from distutils.ccompiler import CCompiler
 from multiprocessing import Pool, cpu_count
+from multiprocessing.dummy import Pool as DummyPool
 
 try:
     MAX_PROCS = int(os.environ.get("MAX_CONCURRENCY", min(4, cpu_count())))
@@ -46,11 +54,17 @@ def _mp_compile(
     )
     cc_args = self._get_cc_args(pp_opts, debug, extra_preargs)
 
-    pool = Pool(MAX_PROCS)
-    try:
-        print("Building using %d processes" % pool._processes)
-    except Exception:  # pylint: disable=broad-except
-        pass
+    if len(sources) == 1 and 'has_flag__' in sources[0]:  # Don't fork for flag checks
+        PoolClass = DummyPool
+    else:
+        PoolClass = Pool
+
+    pool = PoolClass(MAX_PROCS)
+    if PoolClass is Pool:
+        try:
+            print("building using %d processes" % pool._processes)
+        except Exception:  # pylint: disable=broad-except
+            pass
     arr = [(self, obj, build, cc_args, extra_postargs, pp_opts) for obj in objects]
     pool.map_async(_mp_compile_one, arr)
     pool.close()
