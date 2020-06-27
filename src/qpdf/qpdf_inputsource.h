@@ -25,28 +25,29 @@
 #include "pikepdf.h"
 
 
-class PythonInputSource : public InputSource
+class PythonStreamInputSource : public InputSource
 {
 public:
-    PythonInputSource(py::object stream, std::string name, bool close) :
+    PythonStreamInputSource(py::object stream, std::string name, bool close) :
             stream(stream), name(name), close(close)
     {
+        py::gil_scoped_acquire gil;
         if (!stream.attr("readable")().cast<bool>())
             throw py::value_error("not readable");
         if (!stream.attr("seekable")().cast<bool>())
             throw py::value_error("not seekable");
     }
-    virtual ~PythonInputSource()
+    virtual ~PythonStreamInputSource()
     {
         if (this->close) {
             py::gil_scoped_acquire gil;
             this->stream.attr("close")();
         }
     }
-    PythonInputSource(const PythonInputSource&) = delete;
-    PythonInputSource& operator= (const PythonInputSource&) = delete;
-    PythonInputSource(PythonInputSource&&) = delete;
-    PythonInputSource& operator= (PythonInputSource&&) = delete;
+    PythonStreamInputSource(const PythonStreamInputSource&) = delete;
+    PythonStreamInputSource& operator= (const PythonStreamInputSource&) = delete;
+    PythonStreamInputSource(PythonStreamInputSource&&) = default;
+    PythonStreamInputSource& operator= (PythonStreamInputSource&&) = delete;
 
     std::string const& getName() const override
     {

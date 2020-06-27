@@ -29,6 +29,7 @@
 
 #include "qpdf_pagelist.h"
 #include "qpdf_inputsource.h"
+#include "mmap_inputsource.h"
 #include "pipeline.h"
 #include "utils.h"
 #include "gsl.h"
@@ -57,7 +58,8 @@ open_pdf(
     bool ignore_xref_streams=false,
     bool suppress_warnings=true,
     bool attempt_recovery=true,
-    bool inherit_page_attributes=true)
+    bool inherit_page_attributes=true,
+    bool use_mmap=true)
 {
     auto q = std::make_shared<QPDF>();
 
@@ -87,12 +89,26 @@ open_pdf(
         description = py::str(filename);
     }
 
-    auto input_source = PointerHolder<InputSource>(new PythonInputSource(
-        stream, description, closing_stream
-    ));
+    if (use_mmap) {
+        try {
+            py::gil_scoped_release release;
+            auto mmap_input_source = std::make_unique<MmapInputSource>(
+                stream, description, closing_stream
+            );
+            auto input_source = PointerHolder<InputSource>(mmap_input_source.release());
+            q->processInputSource(input_source, password.c_str());
+        } catch (const py::error_already_set &e) {
+            stream.attr("seek")(0, 0);
+            use_mmap = false;
+        }
+    }
 
-    {
+    if (!use_mmap) {
         py::gil_scoped_release release;
+        auto stream_input_source = std::make_unique<PythonStreamInputSource>(
+            stream, description, closing_stream
+        );
+        auto input_source = PointerHolder<InputSource>(stream_input_source.release());
         q->processInputSource(input_source, password.c_str());
     }
 
@@ -505,7 +521,10 @@ void init_qpdf(py::module &m)
                     from PDF parsing errors.
                 inherit_page_attributes (bool): If True (default), push attributes
                     set on a group of pages to individual pages
-
+                use_mmap (bool): If True (default), attempt to use memory-mapped
+                    I/O to access ``filename_or_stream``. If we fail to set this
+                    up for any reason, we gracefully degraded to standard I/O.
+                    Memory-mapped I/O is typically twice as fast.
             Raises:
                 pikepdf.PasswordError: If the password failed to open the
                     file.
@@ -521,7 +540,8 @@ void init_qpdf(py::module &m)
             py::arg("ignore_xref_streams") = false,
             py::arg("suppress_warnings") = true,
             py::arg("attempt_recovery") = true,
-            py::arg("inherit_page_attributes") = true
+            py::arg("inherit_page_attributes") = true,
+            py::arg("use_mmap") = true
         )
         .def("__repr__",
             [](QPDF& q) {
