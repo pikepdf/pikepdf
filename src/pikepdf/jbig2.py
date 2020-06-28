@@ -5,7 +5,7 @@
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
 from functools import lru_cache
-from subprocess import CalledProcessError, run
+from subprocess import DEVNULL, CalledProcessError, run
 from tempfile import NamedTemporaryFile as NamedTemp
 
 from PIL import Image
@@ -25,14 +25,14 @@ def extract_jbig2(im_obj: pikepdf.Object, globals_obj: pikepdf.Object = None) ->
             args.append(globalfile.name)
         args.append(imgfile.name)
 
-        run(args, check=True)
+        run(args, stdout=DEVNULL, check=True)
         return Image.open(outfile)
 
 
 @lru_cache(maxsize=1)
 def jbig2dec_available() -> bool:
     try:
-        run(['jbig2dec', '--version'], check=True)
+        run(['jbig2dec', '--version'], stdout=DEVNULL, check=True)
     except (CalledProcessError, FileNotFoundError):
         return False
     else:
