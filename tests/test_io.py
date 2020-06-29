@@ -1,11 +1,12 @@
 import os.path
 import sys
-from io import BytesIO
+from io import BytesIO, FileIO
 from shutil import copy
 
 import psutil
 import pytest
 
+import pikepdf
 from pikepdf import Pdf, PdfError
 
 # pylint: disable=redefined-outer-name
@@ -162,3 +163,43 @@ def test_save_streamed_file_not_closed(resources, outdir, file_descriptor_is_ope
         assert file_descriptor_is_open_for(
             path
         ), "pikepdf closed a stream it did not open"
+
+
+class ExpectedError(Exception):
+    pass
+
+
+def test_file_without_fileno(resources):
+    class FileWithoutFileNo(FileIO):
+        def fileno(self):
+            raise ExpectedError("nope!")
+
+    f = FileWithoutFileNo(resources / 'pal.pdf', 'rb')
+    with pytest.raises(ExpectedError):
+        Pdf.open(f, access_mode=pikepdf._qpdf.AccessMode.mmap)
+
+
+def test_file_deny_mmap(resources, monkeypatch):
+    import mmap
+
+    def raises_ioerror(*args, **kwargs):
+        raise IOError("This file is temporarily not mmap-able")
+
+    monkeypatch.setattr(mmap, 'mmap', raises_ioerror)
+    with pytest.raises(IOError):
+        Pdf.open(resources / 'pal.pdf', access_mode=pikepdf._qpdf.AccessMode.mmap)
+
+    with Pdf.open(
+        resources / 'pal.pdf', access_mode=pikepdf._qpdf.AccessMode.default
+    ) as pdf:
+        assert len(pdf.pages) == 1
+
+
+def test_mmap_only_file(resources):
+    class UnreadableFile(FileIO):
+        def readinto(self, *args):
+            raise ExpectedError("can't read, you have to mmap me")
+
+    f = UnreadableFile(resources / 'pal.pdf', 'rb')
+    with pytest.raises(ExpectedError):
+        Pdf.open(f, access_mode=pikepdf._qpdf.AccessMode.stream)

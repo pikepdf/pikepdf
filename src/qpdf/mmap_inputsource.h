@@ -53,8 +53,7 @@ public:
         auto mmap_module = py::module::import("mmap");
         auto mmap_fn = mmap_module.attr("mmap");
 
-        // Use Python's mmap API since it is more portable than platform versions,
-        // so use it.
+        // Use Python's mmap API since it is more portable than platform versions.
         auto access_read = mmap_module.attr("ACCESS_READ");
         this->mmap = mmap_fn(fd, 0, py::arg("access")=access_read);
         py::buffer view(this->mmap);

@@ -23,6 +23,7 @@ except ImportError as _e:
     raise ImportError("Failed to determine version") from _e
 
 from ._qpdf import (
+    AccessMode,
     ObjectStreamMode,
     Page,
     PasswordError,
