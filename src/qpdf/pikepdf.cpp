@@ -114,7 +114,13 @@ PYBIND11_MODULE(_qpdf, m) {
     });
 
 
-#ifdef VERSION_INFO
+#if defined(VERSION_INFO) && defined(_MSC_VER)
+#define msvc_inner_stringify(s) #s
+#define msvc_stringify(s) msvc_inner_stringify(s)
+    m.attr("__version__") = msvc_stringify(VERSION_INFO);
+#undef msvc_stringify
+#undef msvc_inner_stringify
+#elif defined(VERSION_INFO)
     m.attr("__version__") = VERSION_INFO;
 #else
     m.attr("__version__") = "dev";
