@@ -1,7 +1,7 @@
 from itertools import repeat
 
 import pytest
-from hypothesis import example, given
+from hypothesis import example, given, settings
 from hypothesis import strategies as st
 
 from pikepdf import (
@@ -385,6 +385,7 @@ def test_dest_or_action(outlines_doc):
     assert '/Dest' not in first_obj
 
 
+@settings(deadline=None)
 @given(
     page_num=st.integers(0, 1),
     page_loc=st.sampled_from(PageLocation),
