@@ -259,10 +259,17 @@ class Extend_Pdf:
         self, set_pikepdf_as_editor=True, update_docinfo=True, strict=False
     ):
         """
-        Open the PDF's XMP metadata for editing
+        Open the PDF's XMP metadata for editing.
 
-        Recommend for use in a ``with`` block. Changes are committed to the
-        PDF when the block exits. (The ``Pdf`` must still be opened.)
+        There is no ``.close()`` function on the metadata object, since this is
+        intended to be used inside a ``with`` block only.
+
+        For historical reasons, certain parts of PDF metadata are stored in
+        two different locations and formats. This feature coordinates edits so
+        that both types of metadata are updated consistently and "atomically"
+        (assuming single threaded access). It operates on the ``Pdf`` in memory,
+        not any file on disk. To persist metadata changes, you must still use
+        ``Pdf.save()``.
 
         Example:
             >>> with pdf.open_metadata() as meta:
