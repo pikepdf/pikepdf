@@ -168,6 +168,8 @@ class AuthorConverter:
     def docinfo_from_xmp(xmp_val):
         if isinstance(xmp_val, str):
             return xmp_val
+        elif xmp_val is None or xmp_val == [None]:
+            return None
         else:
             return '; '.join(xmp_val)
 
@@ -416,6 +418,12 @@ class PdfMetadata(MutableMapping):
                         )
                     )
                     value = None
+                except Exception as e:
+                    raise ValueError(
+                        "An error occurred while updating DocumentInfo field {} from XMP {} with value {}".format(
+                            docinfo_name, qname, value
+                        )
+                    ) from e
             if value is None:
                 if docinfo_name in self._pdf.docinfo:
                     del self._pdf.docinfo[docinfo_name]

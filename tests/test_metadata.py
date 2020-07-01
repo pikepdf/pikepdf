@@ -365,6 +365,24 @@ def test_docinfo_problems(sandwich, invalid_creationdate):
         assert 'could not be updated' in warned[0].message.args[0]
 
 
+def test_present_bug_empty_tags(trivial):
+    trivial.Root.Metadata = Stream(
+        trivial,
+        b"""
+        <?xpacket begin='\xc3\xaf\xc2\xbb\xc2\xbf' id='W5M0MpCehiHzreSzNTczkc9d'?>
+        <?adobe-xap-filters esc="CRLF"?>
+        <x:xmpmeta xmlns:x='adobe:ns:meta/' x:xmptk='XMP toolkit 2.9.1-13, framework 1.6'>
+        <rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#' xmlns:iX='http://ns.adobe.com/iX/1.0/'>
+        <rdf:Description rdf:about=""><dc:creator xmlns:dc="http://purl.org/dc/elements/1.1/"><rdf:Seq><rdf:li/></rdf:Seq></dc:creator></rdf:Description>
+        </rdf:RDF>
+        </x:xmpmeta>
+        """,
+    )
+    with trivial.open_metadata(update_docinfo=True) as meta:
+        pass
+    assert Name.Author not in trivial.docinfo
+
+
 def test_wrong_xml(sandwich):
     sandwich.Root.Metadata = Stream(
         sandwich,
