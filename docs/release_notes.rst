@@ -18,10 +18,21 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v1.16.1
+=======
+
+-  Fixed an issue with JBIG2 extraction, where the version number of the jbig2dec
+   software may be written to standard output as a side effect. This could
+   interfere with test cases or software that expects pikepdf to be stdout-clean.
+-  Fixed an error that occurred when updating DocumentInfo to match XMP metadata,
+   when XMP metadata had unexpected empty tags.
+-  Fixed setup.py to better support Python 3.8 and 3.9.
+-  Documentation updates.
+
 v1.16.0
 =======
 
--  Add support for extracting JBIG2 images with the image API. JBIG2 images are
+-  Added support for extracting JBIG2 images with the image API. JBIG2 images are
    converted to ``PIL.Image``. Requires a JBIG2 decoder such as jbig2dec.
 -  Python 3.5 support is deprecated and will end when Python 3.5 itself reaches
    end of life, in September 2020.
