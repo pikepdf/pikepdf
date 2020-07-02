@@ -56,10 +56,19 @@ package manager (such as ``apt``). These versions may lag behind the version
 distributed with PyPI, but may be convenient for users that cannot use binary
 wheels.
 
+.. figure:: /images/sushi.jpg
+   :align: right
+   :alt: Bento box containing sushi
+   :figwidth: 40%
+
+   Packaged fish.
+
 .. |python-pikepdf| image:: https://repology.org/badge/vertical-allrepos/python:pikepdf.svg
     :alt: Package status for python:pikepdf
 
 |python-pikepdf|
+
+
 
 Debian, Ubuntu and other APT-based distributions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

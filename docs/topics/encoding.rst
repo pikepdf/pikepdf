@@ -28,7 +28,11 @@ PDFDocEncoding
 ==============
 
 The PDF specification defines PDFDocEncoding, a character encoding used only
-in PDFs. It is quite similar to ASCII but not equivalent.
+in PDFs. This encoding matches ASCII for code points 32 through 126 (0x20 to
+0x7e). At all other code points, it is not ASCII and cannot be treated as
+equivalent. If you look at a PDF in a binary file viewer (hex editor), a string
+surrounded by parentheses such as ``(Hello World)`` is usually using
+PDFDocEncoding.
 
 When pikepdf is imported, it automatically registers ``"pdfdoc"`` as a codec
 with the standard library, so that it may be used in string and byte
@@ -45,6 +49,6 @@ Two other codecs are commonly used in PDFs, but they are already part of the
 standard library.
 
 **WinAnsiEncoding** is identical Windows Code Page 1252, and may be converted
-using the ``"cp1251"`` codec.
+using the ``"cp1252"`` codec.
 
 **MacRomanEncoding** may be converted using the ``"macroman"`` codec.
