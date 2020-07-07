@@ -22,6 +22,7 @@ from pikepdf import (
     PdfError,
     Stream,
     StreamDecodeLevel,
+    String,
     jbig2,
 )
 
@@ -39,26 +40,24 @@ class NotExtractableError(Exception):
 
 
 def array_str(value):
-    if isinstance(value, (list, Array)):
-        return [str(item) for item in value]
-    if isinstance(value, Name):
-        return [str(value)]
-    raise NotImplementedError(value)
+    """Simplify pikepdf objects to array of str. Keep Streams intact."""
 
+    def _array_str(item):
+        if isinstance(item, (list, Array)):
+            return [_array_str(subitem) for subitem in item]
+        elif isinstance(item, (Stream, bytes, int)):
+            return item
+        elif isinstance(item, (Name, str)):
+            return str(item)
+        elif isinstance(item, (String)):
+            return bytes(item)
+        else:
+            raise NotImplementedError(value)
 
-def array_str_colorspace(value):
-    if isinstance(value, (list, Array)):
-        items = [item for item in value]
-        if len(items) == 4 and items[0] == '/Indexed':
-            result = [str(items[n]) for n in range(3)]
-            result.append(bytes(items[3]))
-            return result
-        if len(items) == 2 and items[0] == '/ICCBased':
-            result = [str(items[0]), items[1]]
-            return result
-        return array_str(items)
-
-    return array_str(value)
+    result = _array_str(value)
+    if not isinstance(result, list):
+        result = [result]
+    return result
 
 
 def dict_or_array_dict(value):
@@ -83,7 +82,8 @@ def metadata_from_obj(obj, name, type_, default):
 
 class PdfImageBase(ABC):
 
-    SIMPLE_COLORSPACES = ('/DeviceRGB', '/DeviceGray', '/CalRGB', '/CalGray')
+    SIMPLE_COLORSPACES = {'/DeviceRGB', '/DeviceGray', '/CalRGB', '/CalGray'}
+    MAIN_COLORSPACES = SIMPLE_COLORSPACES | {'/DeviceCMYK', '/CalCMYK', '/ICCBased'}
 
     @abstractmethod
     def _metadata(self, name, type_, default):
@@ -112,7 +112,7 @@ class PdfImageBase(ABC):
     @property
     def _colorspaces(self):
         """Colorspace (low-level)"""
-        return self._metadata('ColorSpace', array_str_colorspace, [])
+        return self._metadata('ColorSpace', array_str, [])
 
     @property
     def filters(self):
@@ -130,13 +130,11 @@ class PdfImageBase(ABC):
         if self.image_mask:
             return None  # Undefined for image masks
         if self._colorspaces:
-            if self._colorspaces[0] in self.SIMPLE_COLORSPACES:
-                return self._colorspaces[0]
-            if self._colorspaces[0] in ('/DeviceCMYK', '/ICCBased'):
+            if self._colorspaces[0] in self.MAIN_COLORSPACES:
                 return self._colorspaces[0]
             if (
                 self._colorspaces[0] == '/Indexed'
-                and self._colorspaces[1] in self.SIMPLE_COLORSPACES
+                and self._colorspaces[1] in self.MAIN_COLORSPACES
             ):
                 return self._colorspaces[1]
         raise NotImplementedError(
