@@ -18,6 +18,17 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v1.17.0
+=======
+
+-  Fixed a failure to extract PDF images, where the image had both a palette
+   and colorspace set to an ICC profile. The iamge is now extracted with the
+   profile embedded. (#108)
+-  Added opt-in support for memory-mapped file access, using
+   ``pikepdf.open(...access_mode=pikepdf.AccessMode.mmap)``. Memory mapping
+   file access performance considerably, but may make application exception
+   handling more difficult.
+
 v1.16.1
 =======
 
