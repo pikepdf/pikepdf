@@ -331,7 +331,7 @@ def test_icc_use(resources):
 
 
 def test_icc_extract(resources):
-    xobj, _pdf = first_image_in(resources / 'tree-icc.pdf')
+    xobj, _pdf = first_image_in(resources / 'aquamarine-cie.pdf')
 
     pim = PdfImage(xobj)
     assert pim.as_pil_image().info['icc_profile'] == pim.icc.tobytes()
