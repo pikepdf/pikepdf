@@ -169,6 +169,7 @@ class ExpectedError(Exception):
     pass
 
 
+@pytest.mark.skipif(sys.version_info < (3, 6), reason='pathlib')
 def test_file_without_fileno(resources):
     class FileWithoutFileNo(FileIO):
         def fileno(self):
@@ -199,6 +200,7 @@ def test_file_deny_mmap(resources, monkeypatch):
         assert len(pdf.pages) == 1
 
 
+@pytest.mark.skipif(sys.version_info < (3, 6), reason='pathlib')
 def test_mmap_only_file(resources):
     class UnreadableFile(FileIO):
         def readinto(self, *args):
