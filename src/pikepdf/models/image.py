@@ -132,11 +132,12 @@ class PdfImageBase(ABC):
         if self._colorspaces:
             if self._colorspaces[0] in self.MAIN_COLORSPACES:
                 return self._colorspaces[0]
-            if (
-                self._colorspaces[0] == '/Indexed'
-                and self._colorspaces[1] in self.MAIN_COLORSPACES
-            ):
-                return self._colorspaces[1]
+            if self._colorspaces[0] == '/Indexed':
+                subspace = self._colorspaces[1]
+                if isinstance(subspace, str) and subspace in self.MAIN_COLORSPACES:
+                    return subspace
+                if isinstance(subspace, list) and subspace[0] == '/ICCBased':
+                    return subspace[0]
         raise NotImplementedError(
             "not sure how to get colorspace: " + repr(self._colorspaces)
         )
@@ -232,15 +233,29 @@ class PdfImageBase(ABC):
             _idx, base, _hival, lookup = self._colorspaces
         except ValueError as e:
             raise ValueError('Not sure how to interpret this palette') from e
-        base = str(base)
+        iccobj = None
+        if self.icc:
+            iccobj = base[1]
+            base = str(base[0])
+        else:
+            base = str(base)
         _hival = int(_hival)
         lookup = bytes(lookup)
-        if not base in self.SIMPLE_COLORSPACES:
+        if not base in self.MAIN_COLORSPACES:
             raise NotImplementedError("not sure how to interpret this palette")
         if base == '/DeviceRGB':
             base = 'RGB'
         elif base == '/DeviceGray':
             base = 'L'
+        elif base == '/DeviceCMYK':
+            base = 'CMYK'
+        elif base == '/ICCBased':
+            if iccobj['/N'] == 3:
+                base = 'RGB'
+            elif iccobj['/N'] == 4:
+                base = 'CMYK'
+            elif iccobj['/N'] == 1:
+                base = 'L'
         return base, lookup
 
     @abstractmethod
@@ -340,6 +355,15 @@ class PdfImage(PdfImageBase):
         return False
 
     @property
+    def _iccstream(self):
+        if self.colorspace == '/ICCBased':
+            if not self.indexed:
+                return self._colorspaces[1]
+            assert isinstance(self._colorspaces[1], list)
+            return self._colorspaces[1][1]
+        raise NotImplementedError("Don't know how to find ICC stream for image")
+
+    @property
     def icc(self):
         """If an ICC profile is attached, return a Pillow object that describe it.
 
@@ -350,10 +374,10 @@ class PdfImage(PdfImageBase):
         """
         from PIL import ImageCms
 
-        if self.colorspace != '/ICCBased':
+        if self.colorspace not in ('/ICCBased', '/Indexed'):
             return None
         if not self._icc:
-            iccstream = self._colorspaces[1]
+            iccstream = self._iccstream
             iccbuffer = iccstream.get_stream_buffer()
             iccbytesio = BytesIO(iccbuffer)
             self._icc = ImageCms.ImageCmsProfile(iccbytesio)
@@ -773,7 +797,7 @@ class PdfInlineImage(PdfImageBase):
 
     @property
     def icc(self):
-        raise ValueError("Inline images may not have ICC profiles")
+        raise NotImplementedError("Inline images with ICC profiles are not supported")
 
     def __repr__(self):
         mode = '?'

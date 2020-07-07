@@ -3,7 +3,7 @@ from io import BytesIO
 from pathlib import Path
 
 import pytest
-from PIL import Image
+from PIL import Image, ImageCms
 from PIL import features as PIL_features
 
 import pikepdf
@@ -335,6 +335,24 @@ def test_icc_extract(resources):
 
     pim = PdfImage(xobj)
     assert pim.as_pil_image().info['icc_profile'] == pim.icc.tobytes()
+
+
+def test_icc_palette(resources):
+    xobj, _pdf = first_image_in(resources / 'pink-palette-icc.pdf')
+    pim = PdfImage(xobj)
+    assert pim.icc.profile.xcolor_space == 'RGB '  # with trailing space
+    b = BytesIO()
+    pim.extract_to(stream=b)
+    b.seek(0)
+
+    im = Image.open(b)
+    assert im.size == (xobj.Width, xobj.Height)
+    assert im.mode == 'P'
+    pil_icc = im.info.get('icc_profile')
+    pil_icc_stream = BytesIO(pil_icc)
+    pil_prf = ImageCms.ImageCmsProfile(pil_icc_stream)
+
+    assert pil_prf.tobytes() == pim.icc.tobytes()
 
 
 def test_stacked_compression(resources):
