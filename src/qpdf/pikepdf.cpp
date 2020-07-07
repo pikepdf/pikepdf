@@ -26,7 +26,7 @@
 #include "utils.h"
 
 uint DECIMAL_PRECISION = 15;
-
+bool MMAP_DEFAULT = false;
 
 class TemporaryErrnoChange {
 public:
@@ -90,6 +90,13 @@ PYBIND11_MODULE(_qpdf, m) {
             return DECIMAL_PRECISION;
         },
         "Get the number of decimal digits to use when converting floats."
+    );
+    m.def("set_access_default_mmap",
+        [](bool mmap) {
+            MMAP_DEFAULT = mmap;
+            return mmap;
+        },
+        "If set to true, ``pikepdf.open(...access_mode=access_default)`` will use mmap."
     );
 
     static py::exception<QPDFExc> exc_main(m, "PdfError");

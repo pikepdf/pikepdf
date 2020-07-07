@@ -29,9 +29,15 @@
 
 #include "qpdf_pagelist.h"
 #include "qpdf_inputsource.h"
+#include "mmap_inputsource.h"
 #include "pipeline.h"
 #include "utils.h"
 #include "gsl.h"
+
+
+extern bool MMAP_DEFAULT;
+
+enum access_mode_e { access_default, access_stream, access_mmap, access_mmap_only };
 
 
 void check_stream_is_usable(py::object stream)
@@ -57,7 +63,8 @@ open_pdf(
     bool ignore_xref_streams=false,
     bool suppress_warnings=true,
     bool attempt_recovery=true,
-    bool inherit_page_attributes=true)
+    bool inherit_page_attributes=true,
+    access_mode_e access_mode=access_mode_e::access_default)
 {
     auto q = std::make_shared<QPDF>();
 
@@ -87,14 +94,42 @@ open_pdf(
         description = py::str(filename);
     }
 
-    auto input_source = PointerHolder<InputSource>(new PythonInputSource(
-        stream, description, closing_stream
-    ));
+    bool success = false;
+    if (access_mode == access_default)
+        access_mode = MMAP_DEFAULT ? access_mmap : access_stream;
 
-    {
-        py::gil_scoped_release release;
-        q->processInputSource(input_source, password.c_str());
+    if (access_mode == access_mmap || access_mode == access_mmap_only) {
+        try {
+            py::gil_scoped_release release;
+            auto mmap_input_source = std::make_unique<MmapInputSource>(
+                stream, description, closing_stream
+            );
+            auto input_source = PointerHolder<InputSource>(mmap_input_source.release());
+            q->processInputSource(input_source, password.c_str());
+            success = true;
+        } catch (const py::error_already_set &e) {
+            if (access_mode == access_mmap) {
+                // Prepare to fallback to stream access
+                stream.attr("seek")(0);
+                access_mode = access_stream;
+            } else {
+                throw;
+            }
+        }
     }
+
+    if (!success && access_mode == access_stream) {
+        py::gil_scoped_release release;
+        auto stream_input_source = std::make_unique<PythonStreamInputSource>(
+            stream, description, closing_stream
+        );
+        auto input_source = PointerHolder<InputSource>(stream_input_source.release());
+        q->processInputSource(input_source, password.c_str());
+        success = true;
+    }
+
+    if (!success)
+        throw py::value_error("Failed to open the file");
 
     if (inherit_page_attributes) {
         // This could be expensive for a large file, plausibly (not tested),
@@ -447,6 +482,12 @@ void init_qpdf(py::module &m)
         .value("aes", QPDF::encryption_method_e::e_aes)
         .value("aesv3", QPDF::encryption_method_e::e_aesv3);
 
+    py::enum_<access_mode_e>(m, "AccessMode")
+        .value("default", access_mode_e::access_default)
+        .value("stream", access_mode_e::access_stream)
+        .value("mmap", access_mode_e::access_mmap)
+        .value("mmap_only", access_mode_e::access_mmap_only);
+
     py::class_<QPDF, std::shared_ptr<QPDF>>(m, "Pdf", "In-memory representation of a PDF")
         .def_static("new",
             []() {
@@ -469,6 +510,10 @@ void init_qpdf(py::module &m)
             want to attempt this or copy the file to a temporary location before
             editing.
 
+            When this is function is called with a stream-like object, you must ensure
+            that the data it returns cannot be modified, or undefined behavior will
+            occur.
+
             Any changes to the file must be persisted by using ``.save()``.
 
             If *filename_or_stream* has ``.read()`` and ``.seek()`` methods, the file
@@ -476,7 +521,11 @@ void init_qpdf(py::module &m)
             entire stream into a private buffer.
 
             ``.open()`` may be used in a ``with``-block; ``.close()`` will be called when
-            the block exits.
+            the block exits, if applicable.
+
+            Whenever pikepdf opens a file, it will close it. If you open the file
+            for pikepdf or give it a stream-like object to read from, you must
+            release that object when appropriate.
 
             Examples:
 
@@ -505,7 +554,15 @@ void init_qpdf(py::module &m)
                     from PDF parsing errors.
                 inherit_page_attributes (bool): If True (default), push attributes
                     set on a group of pages to individual pages
-
+                access_mode (pikepdf.AccessMode): If ``.default``, pikepdf will
+                    decide how to access the file. Currently, it will always
+                    selected stream access. To attempt memory mapping and fallback
+                    to stream if memory mapping failed, use ``.mmap``.  Use
+                    ``.mmap_only`` to require memory mapping or fail
+                    (this is expected to only be useful for testing). Applications
+                    should be prepared to handle the SIGBUS signal on POSIX in
+                    the event that the file is successfully mapped but later goes
+                    away.
             Raises:
                 pikepdf.PasswordError: If the password failed to open the
                     file.
@@ -521,7 +578,8 @@ void init_qpdf(py::module &m)
             py::arg("ignore_xref_streams") = false,
             py::arg("suppress_warnings") = true,
             py::arg("attempt_recovery") = true,
-            py::arg("inherit_page_attributes") = true
+            py::arg("inherit_page_attributes") = true,
+            py::arg("access_mode") = access_mode_e::access_default
         )
         .def("__repr__",
             [](QPDF& q) {
