@@ -35,7 +35,9 @@
 #include "gsl.h"
 
 
-enum access_mode_e { access_default, access_stream, access_mmap };
+extern bool MMAP_DEFAULT;
+
+enum access_mode_e { access_default, access_stream, access_mmap, access_mmap_only };
 
 
 void check_stream_is_usable(py::object stream)
@@ -93,7 +95,10 @@ open_pdf(
     }
 
     bool success = false;
-    if (access_mode == access_mmap || access_mode == access_default) {
+    if (access_mode == access_default)
+        access_mode = MMAP_DEFAULT ? access_mmap : access_stream;
+
+    if (access_mode == access_mmap || access_mode == access_mmap_only) {
         try {
             py::gil_scoped_release release;
             auto mmap_input_source = std::make_unique<MmapInputSource>(
@@ -103,8 +108,9 @@ open_pdf(
             q->processInputSource(input_source, password.c_str());
             success = true;
         } catch (const py::error_already_set &e) {
-            if (access_mode == access_default) {
-                stream.attr("seek")(0, 0);
+            if (access_mode == access_mmap) {
+                // Prepare to fallback to stream access
+                stream.attr("seek")(0);
                 access_mode = access_stream;
             } else {
                 throw;
@@ -479,7 +485,8 @@ void init_qpdf(py::module &m)
     py::enum_<access_mode_e>(m, "AccessMode")
         .value("default", access_mode_e::access_default)
         .value("stream", access_mode_e::access_stream)
-        .value("mmap", access_mode_e::access_mmap);
+        .value("mmap", access_mode_e::access_mmap)
+        .value("mmap_only", access_mode_e::access_mmap_only);
 
     py::class_<QPDF, std::shared_ptr<QPDF>>(m, "Pdf", "In-memory representation of a PDF")
         .def_static("new",
@@ -548,11 +555,14 @@ void init_qpdf(py::module &m)
                 inherit_page_attributes (bool): If True (default), push attributes
                     set on a group of pages to individual pages
                 access_mode (pikepdf.AccessMode): If ``.default``, pikepdf will
-                    decide how to access the file. Currently, it will attempt
-                    to memory map the file, and if that fails for any reason,
-                    fall back to stream access. To disable memory mapping, use
-                    ``.stream``. Use ``.mmap`` to require memory mapping or
-                    fail (this is expected to only be useful for testing).
+                    decide how to access the file. Currently, it will always
+                    selected stream access. To attempt memory mapping and fallback
+                    to stream if memory mapping failed, use ``.mmap``.  Use
+                    ``.mmap_only`` to require memory mapping or fail
+                    (this is expected to only be useful for testing). Applications
+                    should be prepared to handle the SIGBUS signal on POSIX in
+                    the event that the file is successfully mapped but later goes
+                    away.
             Raises:
                 pikepdf.PasswordError: If the password failed to open the
                     file.

@@ -20,7 +20,9 @@ from pikepdf._cpphelpers import fspath  # For py35
 
 @pytest.fixture
 def trivial(resources):
-    return Pdf.open(resources / 'pal-1bit-trivial.pdf')
+    return Pdf.open(
+        resources / 'pal-1bit-trivial.pdf', access_mode=pikepdf.AccessMode.mmap
+    )
 
 
 def test_new(outdir):

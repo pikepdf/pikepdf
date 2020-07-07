@@ -176,7 +176,11 @@ def test_file_without_fileno(resources):
 
     f = FileWithoutFileNo(resources / 'pal.pdf', 'rb')
     with pytest.raises(ExpectedError):
-        Pdf.open(f, access_mode=pikepdf._qpdf.AccessMode.mmap)
+        Pdf.open(f, access_mode=pikepdf._qpdf.AccessMode.mmap_only)
+
+    # Confirm we automatically fallback to stream
+    with Pdf.open(f, access_mode=pikepdf._qpdf.AccessMode.mmap) as pdf:
+        pass
 
 
 def test_file_deny_mmap(resources, monkeypatch):
@@ -187,7 +191,7 @@ def test_file_deny_mmap(resources, monkeypatch):
 
     monkeypatch.setattr(mmap, 'mmap', raises_ioerror)
     with pytest.raises(IOError):
-        Pdf.open(resources / 'pal.pdf', access_mode=pikepdf._qpdf.AccessMode.mmap)
+        Pdf.open(resources / 'pal.pdf', access_mode=pikepdf._qpdf.AccessMode.mmap_only)
 
     with Pdf.open(
         resources / 'pal.pdf', access_mode=pikepdf._qpdf.AccessMode.default
