@@ -6,8 +6,7 @@ variables:
   cibw_skip: "cp27-* cp34-* pp27-* pp36-*"
   cibw_test_command: "pytest -nauto {project}/tests"
   cibw_test_requires: "-r requirements/test.txt"
-  cibuildwheel_version: "1.4.2"
-  cibw_before_build: "pip install pybind11"
+  cibuildwheel_version: "1.5.2"
 
 trigger:
   tags:
@@ -66,31 +65,10 @@ stages:
             LDFLAGS="-L/usr/local/lib"
           cibw_build: "*-manylinux_x86_64"
           cibw_test_command: "pytest -nauto --junitxml=/host/$(System.DefaultWorkingDirectory)/test.xml {project}/tests"
-          cibw_before_build:
-            >- # yaml: folded newlines to spaces, no newline at end
-            [ ! -f /usr/local/lib/libz.a ] &&
-            cd zlib &&
-            ./configure &&
-            make -j install &&
-            cd .. ;
-            [ ! -f /usr/local/lib/libjpeg.a ] &&
-            cd jpeg &&
-            ./configure &&
-            make -j install &&
-            cd .. ;
-            [ ! -f /usr/local/lib/libqpdf.a ] &&
-            cd qpdf &&
-            ./autogen.sh &&
-            ./configure &&
-            make -j install &&
-            cd .. ;
-            pip install pybind11
+          cibw_before_all: "bash {project}/azure-pipelines/linux-build-deps.bash {project}"
         steps:
           - task: UsePythonVersion@0
-          - bash: |
-              mkdir zlib && wget -q $ZLIB_RELEASE -O - | tar xz -C zlib --strip-components=1
-              mkdir jpeg && wget -q $JPEG_RELEASE -O - | tar xz -C jpeg --strip-components=1
-              mkdir qpdf && wget -q $QPDF_RELEASE -O - | tar xz -C qpdf --strip-components=1
+          - bash: source azure-pipelines/linux-download-deps.bash
             displayName: "Download QPDF and components"
           - bash: source azure-pipelines/build.bash
             displayName: "cibuildwheel"
@@ -110,31 +88,10 @@ stages:
             LDFLAGS="-L/usr/local/lib"
           cibw_build: "*-manylinux_i686"
           cibw_test_command: "pytest -nauto --junitxml=/host/$(System.DefaultWorkingDirectory)/test.xml {project}/tests"
-          cibw_before_build:
-            >- # yaml: folded newlines to spaces, no newline at end
-            [ ! -f /usr/local/lib/libz.a ] &&
-            cd zlib &&
-            ./configure &&
-            make -j install &&
-            cd .. ;
-            [ ! -f /usr/local/lib/libjpeg.a ] &&
-            cd jpeg &&
-            ./configure &&
-            make -j install &&
-            cd .. ;
-            [ ! -f /usr/local/lib/libqpdf.a ] &&
-            cd qpdf &&
-            ./autogen.sh &&
-            ./configure &&
-            make -j install &&
-            cd .. ;
-            pip install pybind11
+          cibw_before_all: "bash {project}/azure-pipelines/linux-build-deps.bash {project}"
         steps:
           - task: UsePythonVersion@0
-          - bash: |
-              mkdir zlib && wget -q $ZLIB_RELEASE -O - | tar xz -C zlib --strip-components=1
-              mkdir jpeg && wget -q $JPEG_RELEASE -O - | tar xz -C jpeg --strip-components=1
-              mkdir qpdf && wget -q $QPDF_RELEASE -O - | tar xz -C qpdf --strip-components=1
+          - bash: source azure-pipelines/linux-download-deps.bash
             displayName: "Download QPDF and components"
           - bash: source azure-pipelines/build.bash
             displayName: "cibuildwheel"
@@ -148,9 +105,8 @@ stages:
       - job: "macOS_Mojave"
         pool: { vmImage: "macOS-10.14" }
         variables:
-          cibw_before_build: >-
-            pip install pybind11 &&
-            brew install qpdf
+          cibw_before_all: brew install qpdf
+          cibw_before_build: pip install pybind11
         steps:
           - task: UsePythonVersion@0
           - bash: source azure-pipelines/build.bash
@@ -235,6 +191,9 @@ stages:
                     mv $(Pipeline.Workspace)/win32/* dist
                   displayName: "Organize artifacts"
                 - script: |
+                    # Azure is supposed to support PyPI uploads on its own,
+                    # but the documentation is very vague, so it's easier just
+                    # to roll our own.
                     python -m pip install -U pip
                     python -m pip install -U twine
                     cat <<FILE >.pypirc
