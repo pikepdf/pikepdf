@@ -25,6 +25,13 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#ifndef QINTC_HH
+// QPDF >= 9.0 added this. We need it, and we still compile against 8.4.2,
+// so slip it in if it's not already there. When we drop 8.4.2 compat, we can
+// drop this inclusion and the file itself.
+#include "QIntC.hh"
+#endif
+
 #include "pikepdf.h"
 
 // We could almost subclass BufferInputSource, and we even blind copy much of its
