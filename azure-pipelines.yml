@@ -1,6 +1,8 @@
 variables:
   qpdf_version: "10.0.1"
   qpdf_release: ${{ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}.tar.gz', variables.qpdf_version) }}
+  qpdf_min_version: "8.4.2"
+  qpdf_min_release: ${{ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}.tar.gz', variables.qpdf_min_version) }}
   jpeg_release: "https://www.ijg.org/files/jpegsrc.v9c.tar.gz"
   zlib_release: "https://www.zlib.net/zlib-1.2.11.tar.gz"
   cibw_skip: "cp27-* cp34-* pp27-* pp36-*"
@@ -24,7 +26,7 @@ stages:
         steps:
           - task: UsePythonVersion@0
           - bash: |
-              mkdir qpdf && wget -q $QPDF_RELEASE -O - | tar xz -C qpdf --strip-components=1
+              mkdir qpdf && wget -q $QPDF_MIN_RELEASE -O - | tar xz -C qpdf --strip-components=1
               cd qpdf/
               ./configure
               make -j 2
