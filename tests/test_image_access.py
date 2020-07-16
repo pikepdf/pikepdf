@@ -413,6 +413,7 @@ def test_jbig2(jbig2):
     pim = PdfImage(xobj)
     im = pim.as_pil_image()
     assert im.size == (1000, 1520)
+    assert im.getpixel((0, 0)) == 0  # Ensure loaded
 
 
 @needs_jbig2dec
@@ -421,6 +422,7 @@ def test_jbig2_global(resources):
     pim = PdfImage(xobj)
     im = pim.as_pil_image()
     assert im.size == (4000, 2864)
+    assert im.getpixel((0, 0)) == 255  # Ensure loaded
 
 
 @needs_jbig2dec
@@ -432,3 +434,4 @@ def test_jbig2_global_palette(resources):
     pim = PdfImage(xobj)
     im = pim.as_pil_image()
     assert im.size == (4000, 2864)
+    assert im.getpixel((0, 0)) == 255  # Ensure loaded

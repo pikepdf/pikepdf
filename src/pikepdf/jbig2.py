@@ -26,7 +26,9 @@ def extract_jbig2(im_obj: pikepdf.Object, globals_obj: pikepdf.Object = None) ->
         args.append(imgfile.name)
 
         run(args, stdout=DEVNULL, check=True)
-        return Image.open(outfile)
+        im = Image.open(outfile)
+        im.load()  # Load pixel data into memory so file can be closed
+        return im
 
 
 @lru_cache(maxsize=1)
