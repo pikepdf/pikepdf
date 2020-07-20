@@ -483,17 +483,12 @@ class PdfImage(PdfImageBase):
         return im
 
     def _extract_to_stream(self, *, stream):
-        """Attempt to extract the image directly to a usable image file
+        """Attempt to extract the image to a stream
 
         If possible, the compressed data is extracted and inserted into
         a compressed image file format without transcoding the compressed
         content. If this is not possible, the data will be decompressed
         and extracted to an appropriate format.
-
-        Because it is not known until attempted what image format will be
-        extracted, users should not assume what format they are getting back.
-        When saving the image to a file, use a temporary filename, and then
-        rename the file to its final name based on the returned file extension.
 
         Args:
             stream: Writable stream to write data to
