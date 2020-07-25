@@ -25,6 +25,12 @@ Upcoming deprecations in v2.0.0
 -  Support for Python 3.5 will be dropped.
 -  Support for macOS High Sierra (10.13 or older) will be dropped.
 
+v1.17.3
+=======
+
+-  Fixed crash when ``pikepdf.Pdf`` objects are used inside generators (#114) and
+   not freed or closed before the generator exits.
+
 v1.17.2
 =======
 
