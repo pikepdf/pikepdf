@@ -363,14 +363,14 @@ def test_page_splitting_generator(resources, tmp_path):
         part = 1
         for _idx, page in enumerate(pdf.pages):
             if len(output.pages) == 2:
-                part_file = tmp_path / f"part-{part}.pdf"
+                part_file = tmp_path / "part-{0}.pdf".format(part)
                 output.save(part_file)
                 yield part_file
                 output = Pdf.new()
                 part += 1
             output.pages.append(page)
         if len(output.pages) > 0:
-            part_file = tmp_path / f"part-{part}.pdf"
+            part_file = tmp_path / "part-{0}.pdf".format(part)
             output.save(part_file)
             yield part_file
         output.close()
