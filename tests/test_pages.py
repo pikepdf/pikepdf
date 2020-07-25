@@ -354,3 +354,26 @@ def test_pages_wrong_type(fourpages):
         fourpages.pages.insert(3, {})
     with pytest.raises(TypeError):
         fourpages.pages.insert(3, Array([42]))
+
+
+def test_page_splitting_generator(resources, tmp_path):
+    def pdfs():
+        pdf = Pdf.open(resources / "content-stream-errors.pdf")
+        output = Pdf.new()
+        part = 1
+        for _idx, page in enumerate(pdf.pages):
+            if len(output.pages) == 2:
+                part_file = tmp_path / f"part-{part}.pdf"
+                output.save(part_file)
+                yield part_file
+                output = Pdf.new()
+                part += 1
+            output.pages.append(page)
+        if len(output.pages) > 0:
+            part_file = tmp_path / f"part-{part}.pdf"
+            output.save(part_file)
+            yield part_file
+        output.close()
+
+    for pdf in pdfs():
+        print(pdf)

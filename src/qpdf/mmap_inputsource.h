@@ -33,6 +33,7 @@
 #endif
 
 #include "pikepdf.h"
+#include "utils.h"
 
 // We could almost subclass BufferInputSource, and we even blind copy much of its
 // code. The current reason to not do this is the performance improvement in
@@ -72,18 +73,23 @@ public:
     }
     virtual ~MmapInputSource()
     {
-        py::gil_scoped_acquire acquire;
+        try {
+            py::gil_scoped_acquire acquire;
 
-        // buffer_info.reset() will trigger PyBuffer_Release(), which we must
-        // do before we can close the memory mapping, since we exported a pointer
-        // from it.
-        this->buffer_info.reset();
-        if (!this->mmap.is_none()) {
-            this->mmap.attr("close")();
-        }
+            // buffer_info.reset() will trigger PyBuffer_Release(), which we must
+            // do before we can close the memory mapping, since we exported a pointer
+            // from it.
+            this->buffer_info.reset();
+            if (!this->mmap.is_none()) {
+                this->mmap.attr("close")();
+            }
 
-        if (this->close_stream) {
-            this->stream.attr("close")();
+            if (this->close_stream && py::hasattr(this->stream, "close")) {
+                this->stream.attr("close")();
+            }
+        } catch (const std::runtime_error &e) {
+            if (!str_startswith(e.what(), "StopIteration"))
+                std::cerr << "Exception in " << __func__ << ": " << e.what();
         }
     }
     MmapInputSource(const MmapInputSource&) = delete;

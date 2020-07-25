@@ -23,6 +23,7 @@
 #include <pybind11/stl.h>
 
 #include "pikepdf.h"
+#include "utils.h"
 
 
 class PythonStreamInputSource : public InputSource
@@ -39,9 +40,15 @@ public:
     }
     virtual ~PythonStreamInputSource()
     {
-        if (this->close) {
-            py::gil_scoped_acquire gil;
-            this->stream.attr("close")();
+        try {
+            if (this->close) {
+                py::gil_scoped_acquire gil;
+                if (py::hasattr(this->stream, "close"))
+                    this->stream.attr("close")();
+            }
+        } catch (const std::runtime_error &e) {
+            if (!str_startswith(e.what(), "StopIteration"))
+                std::cerr << "Exception in " << __func__ << ": " << e.what();
         }
     }
     PythonStreamInputSource(const PythonStreamInputSource&) = delete;
