@@ -384,7 +384,7 @@ void save_pdf(
     py::object stream;
     bool should_close_stream = false;
     auto close_stream = gsl::finally([&stream, &should_close_stream] {
-        if (should_close_stream && !stream.is_none())
+        if (should_close_stream && !stream.is_none() && py::hasattr(stream, "close"))
             stream.attr("close")();
     });
 
