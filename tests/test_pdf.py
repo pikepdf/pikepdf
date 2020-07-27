@@ -254,12 +254,12 @@ def test_with_block_abuse(resources):
         im0.read_bytes()
 
 
-def test_allow_overwriting_input_and_save_on_close(resources):
+def test_allow_overwriting_input(resources):
     with pikepdf.open(resources / 'pal-1bit-trivial.pdf',
-                      allow_overwriting_input=True,
-                      save_on_close=True) as pdf:
+                      allow_overwriting_input=True) as pdf:
         with pdf.open_metadata() as meta:
             meta['dc:title'] = 'New Title'
+        pdf.save()
     with pikepdf.open(resources / 'pal-1bit-trivial.pdf'):
         with pdf.open_metadata() as meta:
             assert meta['dc:title'] == 'New Title'

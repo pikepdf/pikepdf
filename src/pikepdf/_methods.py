@@ -15,6 +15,7 @@ We can also move the implementation to C++ if desired.
 import inspect, shutil
 from collections.abc import KeysView
 from io import BytesIO
+from pathlib import Path
 from subprocess import PIPE, run
 from tempfile import NamedTemporaryFile
 
@@ -63,10 +64,6 @@ def augments(cls_cpp):
     def class_augment(cls, cls_cpp=cls_cpp):
         for name, member in inspect.getmembers(cls):
             if inspect.isfunction(member):
-                if hasattr(cls_cpp, name):
-                    # Preserving the overridden function in a private attribute,
-                    # so that it can be called by the augmented version:
-                    setattr(cls, '_original_' + name, getattr(cls_cpp, name))
                 member.__qualname__ = member.__qualname__.replace(
                     cls.__name__, cls_cpp.__name__
                 )
@@ -423,10 +420,6 @@ class Extend_Pdf:
             b"%%EOF\n"
         )
 
-        filepath = getattr(self, 'filepath_to_save_on_close', False)
-        if filepath:
-            self.save(filepath)
-
         if self.filename:
             description = "closed file: " + self.filename
         else:
@@ -581,29 +574,96 @@ class Extend_Pdf:
             self.Root.PageMode = Name.UseAttachments
 
     @staticmethod
-    def open(
-        filename_or_stream,
-        *args,
-        allow_overwriting_input=False,
-        save_on_close=False,
-        **kwargs
-    ):
-        if allow_overwriting_input and hasattr(filename_or_stream, 'read'):
+    def open(filename_or_stream, *args, allow_overwriting_input=False, **kwargs):
+        """
+        Open an existing file at *filename_or_stream*.
+
+        If *filename_or_stream* is path-like, the file will be opened for reading.
+        The file should not be modified by another process while it is open in
+        pikepdf, or undefined behavior may occur. This is because the file may be
+        lazily loaded. Despite this restriction, pikepdf does not try to use any OS
+        services to obtain an exclusive lock on the file. Some applications may
+        want to attempt this or copy the file to a temporary location before
+        editing.
+
+        When this is function is called with a stream-like object, you must ensure
+        that the data it returns cannot be modified, or undefined behavior will
+        occur.
+
+        Any changes to the file must be persisted by using ``.save()``.
+
+        If *filename_or_stream* has ``.read()`` and ``.seek()`` methods, the file
+        will be accessed as a readable binary stream. pikepdf will read the
+        entire stream into a private buffer.
+
+        ``.open()`` may be used in a ``with``-block; ``.close()`` will be called when
+        the block exits, if applicable.
+
+        Whenever pikepdf opens a file, it will close it. If you open the file
+        for pikepdf or give it a stream-like object to read from, you must
+        release that object when appropriate.
+
+        Examples:
+
+            >>> with Pdf.open("test.pdf") as pdf:
+                    ...
+
+            >>> pdf = Pdf.open("test.pdf", password="rosebud")
+
+        Args:
+            filename_or_stream (os.PathLike): Filename of PDF to open
+            password (str or bytes): User or owner password to open an
+                encrypted PDF. If the type of this parameter is ``str``
+                it will be encoded as UTF-8. If the type is ``bytes`` it will
+                be saved verbatim. Passwords are always padded or
+                truncated to 32 bytes internally. Use ASCII passwords for
+                maximum compatibility.
+            hex_password (bool): If True, interpret the password as a
+                hex-encoded version of the exact encryption key to use, without
+                performing the normal key computation. Useful in forensics.
+            ignore_xref_streams (bool): If True, ignore cross-reference
+                streams. See qpdf documentation.
+            suppress_warnings (bool): If True (default), warnings are not
+                printed to stderr. Use :meth:`pikepdf.Pdf.get_warnings()` to
+                retrieve warnings.
+            attempt_recovery (bool): If True (default), attempt to recover
+                from PDF parsing errors.
+            inherit_page_attributes (bool): If True (default), push attributes
+                set on a group of pages to individual pages
+            access_mode (pikepdf.AccessMode): If ``.default``, pikepdf will
+                decide how to access the file. Currently, it will always
+                selected stream access. To attempt memory mapping and fallback
+                to stream if memory mapping failed, use ``.mmap``.  Use
+                ``.mmap_only`` to require memory mapping or fail
+                (this is expected to only be useful for testing). Applications
+                should be prepared to handle the SIGBUS signal on POSIX in
+                the event that the file is successfully mapped but later goes
+                away.
+            allow_overwriting_input (bool): If True, allows to edit the input
+                file by substituting it with a temporary BytesIO object under
+                the hood.
+            save_on_close (bool): Automatically calls ``.save()`` when
+                ``.close()`` is invoked. Requires ``allow_overwriting_input=True``.
+        Raises:
+            pikepdf.PasswordError: If the password failed to open the
+                file.
+            pikepdf.PdfError: If for other reasons we could not open
+                the file.
+            TypeError: If the type of ``filename_or_stream`` is not
+                usable.
+            FileNotFoundError: If the file was not found.
+        """
+        if allow_overwriting_input and not Path(filename_or_stream).is_file():
             raise ValueError(
                 '"allow_overwriting_input" requires "open" first argument to be a filename'
             )
-        if save_on_close and not allow_overwriting_input:
-            raise ValueError('"save_on_close" requires "allow_overwriting_input"')
         tmp_stream = False
         if allow_overwriting_input:
             with open(str(filename_or_stream), 'rb') as pdf_file:
                 tmp_stream = BytesIO()
                 shutil.copyfileobj(pdf_file, tmp_stream)
-        pdf = Extend_Pdf._original_open(
-            tmp_stream or filename_or_stream, *args, **kwargs
-        )
+        pdf = Pdf._open(tmp_stream or filename_or_stream, *args, **kwargs)
         setattr(pdf, 'tmp_stream', tmp_stream)
-        setattr(pdf, 'filepath_to_save_on_close', save_on_close and filename_or_stream)
         return pdf
 
 
