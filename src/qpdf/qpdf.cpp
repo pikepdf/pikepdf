@@ -488,7 +488,7 @@ void init_qpdf(py::module &m)
         .value("mmap", access_mode_e::access_mmap)
         .value("mmap_only", access_mode_e::access_mmap_only);
 
-    py::class_<QPDF, std::shared_ptr<QPDF>>(m, "Pdf", "In-memory representation of a PDF")
+    py::class_<QPDF, std::shared_ptr<QPDF>>(m, "Pdf", "In-memory representation of a PDF", py::dynamic_attr())
         .def_static("new",
             []() {
                 auto q = std::make_shared<QPDF>();
@@ -563,6 +563,11 @@ void init_qpdf(py::module &m)
                     should be prepared to handle the SIGBUS signal on POSIX in
                     the event that the file is successfully mapped but later goes
                     away.
+                allow_overwriting_input (bool): If True, allows to edit the input
+                    file by substituting it with a temporary BytesIO object under
+                    the hood.
+                save_on_close (bool): Automatically calls ``.save()`` when
+                    ``.close()`` is invoked. Requires ``allow_overwriting_input=True``.
             Raises:
                 pikepdf.PasswordError: If the password failed to open the
                     file.

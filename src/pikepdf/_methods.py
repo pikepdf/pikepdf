@@ -12,7 +12,7 @@ bindings after the fact.
 We can also move the implementation to C++ if desired.
 """
 
-import inspect
+import inspect, shutil
 from collections.abc import KeysView
 from io import BytesIO
 from subprocess import PIPE, run
@@ -57,13 +57,16 @@ def augments(cls_cpp):
 
     The target class does not have to be C++ or derived from pybind11.
 
-    THIS DOES NOT work for static methods or class methods. pybind11 does not seem
-    to support this sort of runtime modification.
+    THIS DOES NOT work for class methods.
     """
 
     def class_augment(cls, cls_cpp=cls_cpp):
         for name, member in inspect.getmembers(cls):
             if inspect.isfunction(member):
+                if hasattr(cls_cpp, name):
+                    # Preserving the overridden function in a private attribute,
+                    # so that it can be called by the augmented version:
+                    setattr(cls, '_original_' + name, getattr(cls_cpp, name))
                 member.__qualname__ = member.__qualname__.replace(
                     cls.__name__, cls_cpp.__name__
                 )
@@ -420,11 +423,17 @@ class Extend_Pdf:
             b"%%EOF\n"
         )
 
+        filepath = getattr(self, 'filepath_to_save_on_close', False)
+        if filepath:
+            self.save(filepath)
+
         if self.filename:
             description = "closed file: " + self.filename
         else:
             description = "closed object"
         self._process(description, EMPTY_PDF)
+        if getattr(self, 'tmp_stream', False):
+            self.tmp_stream.close()
 
     def __enter__(self):
         return self
@@ -570,6 +579,32 @@ class Extend_Pdf:
 
         if '/PageMode' not in self.Root:
             self.Root.PageMode = Name.UseAttachments
+
+    @staticmethod
+    def open(
+        filename_or_stream,
+        *args,
+        allow_overwriting_input=False,
+        save_on_close=False,
+        **kwargs
+    ):
+        if allow_overwriting_input and hasattr(filename_or_stream, 'read'):
+            raise ValueError(
+                '"allow_overwriting_input" requires "open" first argument to be a filename'
+            )
+        if save_on_close and not allow_overwriting_input:
+            raise ValueError('"save_on_close" requires "allow_overwriting_input"')
+        tmp_stream = False
+        if allow_overwriting_input:
+            with open(str(filename_or_stream), 'rb') as pdf_file:
+                tmp_stream = BytesIO()
+                shutil.copyfileobj(pdf_file, tmp_stream)
+        pdf = Extend_Pdf._original_open(
+            tmp_stream or filename_or_stream, *args, **kwargs
+        )
+        setattr(pdf, 'tmp_stream', tmp_stream)
+        setattr(pdf, 'filepath_to_save_on_close', save_on_close and filename_or_stream)
+        return pdf
 
 
 @augments(_ObjectMapping)

@@ -179,7 +179,7 @@ def test_image_roundtrip(outdir, w, h, pixeldata, cs, bpc):
         outfile, compress_streams=False, stream_decode_level=StreamDecodeLevel.none
     )
 
-    p2 = pdf.open(outfile)
+    p2 = Pdf.open(outfile)
     pim = PdfImage(p2.pages[0].Resources.XObject['/Im1'])
 
     assert pim.bits_per_component == bpc
