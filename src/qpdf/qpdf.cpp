@@ -170,11 +170,12 @@ void update_xmp_pdfversion(QPDF &q, std::string version)
 
 void setup_encryption(
     QPDFWriter &w,
-    py::object encryption,
-    std::string &owner,
-    std::string &user
+    py::object encryption
 )
 {
+    std::string owner;
+    std::string user;
+
     bool aes = true;
     bool metadata = true;
     std::map<std::string, bool> allow;
@@ -359,8 +360,6 @@ void save_pdf(
     py::object progress=py::none(),
     py::object encryption=py::none())
 {
-    std::string owner;
-    std::string user;
     std::string description;
     QPDFWriter w(q);
 
@@ -435,7 +434,7 @@ void save_pdf(
     } else if (encryption.is_none() || encryption.is(py::bool_(false))) {
         w.setPreserveEncryption(false); // Remove encryption
     } else {
-        setup_encryption(w, encryption, owner, user);
+        setup_encryption(w, encryption);
     }
 
     if (normalize_content && linearize) {
