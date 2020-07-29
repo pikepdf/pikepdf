@@ -1,7 +1,8 @@
 import sys
 from glob import glob
 from os import cpu_count, environ
-from os.path import dirname, exists, join
+from os.path import dirname, exists, join, sep
+from tempfile import TemporaryDirectory
 
 import setuptools
 from setuptools import Extension, setup
@@ -58,23 +59,20 @@ def has_flag(compiler, flagname):
     """Return a boolean indicating whether a flag name is supported on
     the specified compiler.
     """
-    import tempfile
-    import os
-
-    with tempfile.NamedTemporaryFile(
-        'w', prefix='has_flag__', suffix='.cpp', delete=False
-    ) as f:
-        f.write('int main (int argc, char **argv) { return 0; }')
-        fname = f.name
-    try:
-        compiler.compile([fname], extra_postargs=[flagname])
-    except setuptools.distutils.errors.CompileError:
-        return False
-    finally:
+    with TemporaryDirectory(prefix='has_flag__') as tmpdir:
+        fname = join(tmpdir, 'flagcheck.cpp')
+        with open(fname, "w") as f:
+            f.write('int main (int argc, char **argv) { return 0; }')
         try:
-            os.remove(fname)
-        except OSError:
-            pass
+            # distutils/ccompiler.py, unixcompiler.py, etc.
+            # compiler.compile generates output file at
+            # os.path.join(output_dir, fname[1:]) - drops leading /,
+            # so we use output_dir == '/' to put it back on
+            # not sure what Windows does so leave it alone
+            outdir = sep if sys.platform != 'win32' else None
+            compiler.compile([fname], extra_postargs=[flagname], output_dir=outdir)
+        except setuptools.distutils.errors.CompileError:
+            return False
     return True
 
 
