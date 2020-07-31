@@ -12,7 +12,7 @@ bindings after the fact.
 We can also move the implementation to C++ if desired.
 """
 
-import inspect, shutil
+import inspect, os, shutil
 from collections.abc import KeysView
 from io import BytesIO
 from pathlib import Path
@@ -573,6 +573,111 @@ class Extend_Pdf:
         if '/PageMode' not in self.Root:
             self.Root.PageMode = Name.UseAttachments
 
+    def save(self, filename_or_stream=None, *args, **kwargs):
+        """
+        Save all modifications to this :class:`pikepdf.Pdf`.
+
+        Args:
+            filename (str or stream): Where to write the output. If a file
+                exists in this location it will be overwritten.
+                The file should not be the same as the input file,
+                because data from the input file may be lazily loaded;
+                as such overwriting in place will null-out objects.
+                On the contrary, if the file has been opened with
+                ``allow_overwriting_input=True``, it can be overwriten
+                and this parameter is optional, the original file name
+                being implicitly used.
+
+            static_id (bool): Indicates that the ``/ID`` metadata, normally
+                calculated as a hash of certain PDF contents and metadata
+                including the current time, should instead be generated
+                deterministically. Normally for debugging.
+            preserve_pdfa (bool): Ensures that the file is generated in a
+                manner compliant with PDF/A and other stricter variants.
+                This should be True, the default, in most cases.
+
+            min_version (str or tuple): Sets the minimum version of PDF
+                specification that should be required. If left alone QPDF
+                will decide. If a tuple, the second element is an integer, the
+                extension level. If the version number is not a valid format,
+                QPDF will decide what to do.
+            force_version (str or tuple): Override the version recommend by QPDF,
+                potentially creating an invalid file that does not display
+                in old versions. See QPDF manual for details. If a tuple, the
+                second element is an integer, the extension level.
+            fix_metadata_version (bool): If ``True`` (default) and the XMP metadata
+                contains the optional PDF version field, ensure the version in
+                metadata is correct. If the XMP metadata does not contain a PDF
+                version field, none will be added. To ensure that the field is
+                added, edit the metadata and insert a placeholder value in
+                ``pdf:PDFVersion``. If XMP metadata does not exist, it will
+                not be created regardless of the value of this argument.
+
+            object_stream_mode (pikepdf.ObjectStreamMode):
+                ``disable`` prevents the use of object streams.
+                ``preserve`` keeps object streams from the input file.
+                ``generate`` uses object streams wherever possible,
+                creating the smallest files but requiring PDF 1.5+.
+
+            compress_streams (bool): Enables or disables the compression of
+                stream objects in the PDF. Metadata is never compressed.
+                By default this is set to ``True``, and should be except
+                for debugging.
+
+            stream_decode_level (pikepdf.StreamDecodeLevel): Specifies how
+                to encode stream objects. See documentation for
+                ``StreamDecodeLevel``.
+
+            normalize_content (bool): Enables parsing and reformatting the
+                content stream within PDFs. This may debugging PDFs easier.
+
+            linearize (bool): Enables creating linear or "fast web view",
+                where the file's contents are organized sequentially so that
+                a viewer can begin rendering before it has the whole file.
+                As a drawback, it tends to make files larger.
+
+            qdf (bool): Save output QDF mode.  QDF mode is a special output
+                mode in QPDF to allow editing of PDFs in a text editor. Use
+                the program ``fix-qdf`` to fix convert back to a standard
+                PDF.
+
+            progress (callable): Specify a callback function that is called
+                as the PDF is written. The function will be called with an
+                integer between 0-100 as the sole parameter, the progress
+                percentage. This function may not access or modify the PDF
+                while it is being written, or data corruption will almost
+                certainly occur.
+
+            encryption (pikepdf.models.Encryption or bool): If ``False``
+                or omitted, existing encryption will be removed. If ``True``
+                encryption settings are copied from the originating PDF.
+                Alternately, an ``Encryption`` object may be provided that
+                sets the parameters for new encryption.
+
+        You may call ``.save()`` multiple times with different parameters
+        to generate different versions of a file, and you *may* continue
+        to modify the file after saving it. ``.save()`` does not modify
+        the ``Pdf`` object in memory, except possibly by updating the XMP
+        metadata version with ``fix_metadata_version``.
+
+        .. note::
+
+            :meth:`pikepdf.Pdf.remove_unreferenced_resources` before saving
+            may eliminate unnecessary resources from the output file, so
+            calling this method before saving is recommended. This is not
+            done automatically because ``.save()`` is intended to be
+            idempotent.
+
+        .. note::
+
+            pikepdf can read PDFs will incremental updates, but always
+            any coalesces incremental updates into a single non-incremental
+            PDF file when saving.
+        """
+        if not filename_or_stream and self.original_filepath:
+            filename_or_stream = self.original_filepath
+        self._save(filename_or_stream, *args, **kwargs)
+
     @staticmethod
     def open(filename_or_stream, *args, allow_overwriting_input=False, **kwargs):
         """
@@ -584,7 +689,9 @@ class Extend_Pdf:
         lazily loaded. Despite this restriction, pikepdf does not try to use any OS
         services to obtain an exclusive lock on the file. Some applications may
         want to attempt this or copy the file to a temporary location before
-        editing.
+        editing. This behaviour change if *allow_overwriting_input* is set: the whole
+        file is then read and copied to memory, so that pikepdf can overwrite it
+        when calling ``.save()``.
 
         When this is function is called with a stream-like object, you must ensure
         that the data it returns cannot be modified, or undefined behavior will
@@ -611,7 +718,7 @@ class Extend_Pdf:
             >>> pdf = Pdf.open("test.pdf", password="rosebud")
 
         Args:
-            filename_or_stream (os.PathLike): Filename of PDF to open
+            filename_or_stream (os.PathLike): Filename of PDF to open.
             password (str or bytes): User or owner password to open an
                 encrypted PDF. If the type of this parameter is ``str``
                 it will be encoded as UTF-8. If the type is ``bytes`` it will
@@ -642,8 +749,6 @@ class Extend_Pdf:
             allow_overwriting_input (bool): If True, allows to edit the input
                 file by substituting it with a temporary BytesIO object under
                 the hood.
-            save_on_close (bool): Automatically calls ``.save()`` when
-                ``.close()`` is invoked. Requires ``allow_overwriting_input=True``.
         Raises:
             pikepdf.PasswordError: If the password failed to open the
                 file.
@@ -653,17 +758,23 @@ class Extend_Pdf:
                 usable.
             FileNotFoundError: If the file was not found.
         """
-        if allow_overwriting_input and not Path(filename_or_stream).is_file():
-            raise ValueError(
-                '"allow_overwriting_input" requires "open" first argument to be a filename'
-            )
-        tmp_stream = False
+
         if allow_overwriting_input:
-            with open(str(filename_or_stream), 'rb') as pdf_file:
+            try:
+                os.fspath(filename_or_stream)
+            except TypeError as error:
+                raise ValueError(
+                    '"allow_overwriting_input" requires "open" first argument to be a file path'
+                ) from error
+        tmp_stream, original_filepath = False, False
+        if allow_overwriting_input:
+            original_filepath = str(filename_or_stream)
+            with open(original_filepath, 'rb') as pdf_file:
                 tmp_stream = BytesIO()
                 shutil.copyfileobj(pdf_file, tmp_stream)
         pdf = Pdf._open(tmp_stream or filename_or_stream, *args, **kwargs)
         setattr(pdf, 'tmp_stream', tmp_stream)
+        setattr(pdf, 'original_filepath', original_filepath)
         return pdf
 
 

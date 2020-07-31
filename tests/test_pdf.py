@@ -259,7 +259,9 @@ def test_allow_overwriting_input(resources):
                       allow_overwriting_input=True) as pdf:
         with pdf.open_metadata() as meta:
             meta['dc:title'] = 'New Title'
+        pdf.save('other.pdf', encryption=dict(owner="owner"))
         pdf.save()
+        pdf.save(linearize=True)
     with pikepdf.open(resources / 'pal-1bit-trivial.pdf'):
         with pdf.open_metadata() as meta:
             assert meta['dc:title'] == 'New Title'
