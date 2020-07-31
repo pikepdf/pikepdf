@@ -254,17 +254,28 @@ def test_with_block_abuse(resources):
         im0.read_bytes()
 
 
-def test_allow_overwriting_input(resources):
-    with pikepdf.open(resources / 'pal-1bit-trivial.pdf',
-                      allow_overwriting_input=True) as pdf:
+def test_allow_overwriting_input(resources, tmp_path):
+    orig_pdf_path = fspath(resources / 'pal-1bit-trivial.pdf')
+    tmp_pdf_path = fspath(tmp_path / 'pal-1bit-trivial.pdf')
+    shutil.copy(orig_pdf_path, tmp_pdf_path)
+    with pikepdf.open(tmp_pdf_path, allow_overwriting_input=True) as pdf:
         with pdf.open_metadata() as meta:
             meta['dc:title'] = 'New Title'
         pdf.save('other.pdf', encryption=dict(owner="owner"))
         pdf.save()
         pdf.save(linearize=True)
-    with pikepdf.open(resources / 'pal-1bit-trivial.pdf'):
+    with pikepdf.open(tmp_pdf_path) as pdf:
         with pdf.open_metadata() as meta:
             assert meta['dc:title'] == 'New Title'
+    with pikepdf.open(orig_pdf_path) as pdf:
+        with pdf.open_metadata() as meta:
+            assert 'dc:title' not in meta
+
+
+def test_allow_overwriting_input_ko(resources):
+    with pytest.raises(ValueError):
+        with pikepdf.open(BytesIO(), allow_overwriting_input=True):
+            pass
 
 
 def test_check(resources):

@@ -12,7 +12,7 @@ bindings after the fact.
 We can also move the implementation to C++ if desired.
 """
 
-import inspect, os, shutil
+import inspect, shutil
 from collections.abc import KeysView
 from io import BytesIO
 from pathlib import Path
@@ -758,16 +758,14 @@ class Extend_Pdf:
                 usable.
             FileNotFoundError: If the file was not found.
         """
-
+        tmp_stream, original_filepath = False, False
         if allow_overwriting_input:
             try:
-                os.fspath(filename_or_stream)
+                Path(filename_or_stream)
             except TypeError as error:
                 raise ValueError(
                     '"allow_overwriting_input" requires "open" first argument to be a file path'
                 ) from error
-        tmp_stream, original_filepath = False, False
-        if allow_overwriting_input:
             original_filepath = str(filename_or_stream)
             with open(original_filepath, 'rb') as pdf_file:
                 tmp_stream = BytesIO()

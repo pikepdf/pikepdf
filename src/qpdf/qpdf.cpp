@@ -400,11 +400,15 @@ void save_pdf(
         py::object ospath = py::module::import("os").attr("path");
         py::object samefile = ospath.attr("samefile");
         try {
-            if (samefile(filename, q.getFilename()).cast<bool>()) {
+            auto input_filename = q.getFilename();
+            // On Windows, if q was created over a stream, not a file path,
+            // q.getFilename() returns a string like "<_io.BytesIO object at 0x00ABCXYZ>".
+            auto input_is_stream = input_filename.front() == '<' && input_filename.back() == '>';
+            if (!input_is_stream && samefile(filename, input_filename).cast<bool>()) {
                 throw py::value_error("Cannot overwrite input file");
             }
         } catch (const py::error_already_set &e) {
-            // We expect FileNotFoundError is filename refers to a file that does
+            // We expect FileNotFoundError if filename refers to a file that does
             // not exist, or if q.getFilename indicates a memory file. Suppress
             // that, and rethrow all others.
             if (!e.matches(PyExc_FileNotFoundError))
