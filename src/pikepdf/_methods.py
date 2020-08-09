@@ -21,7 +21,14 @@ from subprocess import PIPE, run
 from tempfile import NamedTemporaryFile
 
 from . import Array, Dictionary, Name, Object, Page, Pdf, Stream
-from ._qpdf import PdfError, StreamParser, Token, _ObjectMapping
+from ._qpdf import (
+    AccessMode,
+    ObjectStreamMode,
+    PdfError,
+    StreamParser,
+    Token,
+    _ObjectMapping,
+)
 from .models import EncryptionInfo, Outline, PdfMetadata, Permissions
 
 # pylint: disable=no-member,unsupported-membership-test,unsubscriptable-object
@@ -578,7 +585,23 @@ class Extend_Pdf:
         if '/PageMode' not in self.Root:
             self.Root.PageMode = Name.UseAttachments
 
-    def save(self, filename_or_stream=None, *args, **kwargs):
+    def save(
+        self,
+        filename_or_stream=None,
+        static_id=False,
+        preserve_pdfa=True,
+        min_version="",
+        force_version="",
+        fix_metadata_version=True,
+        compress_streams=True,
+        stream_decode_level=None,
+        object_stream_mode=ObjectStreamMode.preserve,
+        normalize_content=False,
+        linearize=False,
+        qdf=False,
+        progress=None,
+        encryption=None,
+    ):
         """
         Save all modifications to this :class:`pikepdf.Pdf`.
 
@@ -680,10 +703,35 @@ class Extend_Pdf:
         """
         if not filename_or_stream and self._original_filename:
             filename_or_stream = self._original_filename
-        self._save(filename_or_stream, *args, **kwargs)
+        self._save(
+            filename_or_stream,
+            static_id=static_id,
+            preserve_pdfa=preserve_pdfa,
+            min_version=min_version,
+            force_version=force_version,
+            fix_metadata_version=fix_metadata_version,
+            compress_streams=compress_streams,
+            stream_decode_level=stream_decode_level,
+            object_stream_mode=object_stream_mode,
+            normalize_content=normalize_content,
+            linearize=linearize,
+            qdf=qdf,
+            progress=progress,
+            encryption=encryption,
+        )
 
     @staticmethod
-    def open(filename_or_stream, *args, allow_overwriting_input=False, **kwargs):
+    def open(
+        filename_or_stream,
+        password="",
+        hex_password=False,
+        ignore_xref_streams=False,
+        suppress_warnings=True,
+        attempt_recovery=True,
+        inherit_page_attributes=True,
+        access_mode=AccessMode.default,
+        allow_overwriting_input=False,
+    ):
         """
         Open an existing file at *filename_or_stream*.
 
@@ -777,7 +825,16 @@ class Extend_Pdf:
             with open(original_filename, 'rb') as pdf_file:
                 tmp_stream = BytesIO()
                 shutil.copyfileobj(pdf_file, tmp_stream)
-        pdf = Pdf._open(tmp_stream or filename_or_stream, *args, **kwargs)
+        pdf = Pdf._open(
+            tmp_stream or filename_or_stream,
+            password=password,
+            hex_password=hex_password,
+            ignore_xref_streams=ignore_xref_streams,
+            suppress_warnings=suppress_warnings,
+            attempt_recovery=attempt_recovery,
+            inherit_page_attributes=inherit_page_attributes,
+            access_mode=access_mode,
+        )
         setattr(pdf, '_tmp_stream', tmp_stream)
         setattr(pdf, '_original_filename', original_filename)
         return pdf
