@@ -29,7 +29,7 @@ only. Use ``pip install pikepdf`` to install to a virtual environment.
 
 **Linux users:** If you have an older version of ``pip``, such as the one that ships
 with Ubuntu 18.04, this command will attempt to compile the project instead of
-installing the week. If you want to get the binary wheel, upgrade ``pip`` with:
+installing the wheel. If you want to get the binary wheel, upgrade ``pip`` with:
 
 .. code-block:: bash
 
