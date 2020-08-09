@@ -12,7 +12,8 @@ bindings after the fact.
 We can also move the implementation to C++ if desired.
 """
 
-import inspect, shutil
+import inspect
+import shutil
 from collections.abc import KeysView
 from io import BytesIO
 from pathlib import Path
@@ -56,7 +57,11 @@ def augments(cls_cpp):
     Any existing methods may be used, regardless of whether they defined
     elsewhere in the support class or in the target class.
 
-    The target class does not have to be C++ or derived from pybind11.
+    For data fields to work, including @property accessors, the target class must be
+    tagged ``py::dynamic_attr`` in pybind11.
+
+    Strictly, the target class does not have to be C++ or derived from pybind11.
+    This works on pure Python classes too.
 
     THIS DOES NOT work for class methods.
     """
@@ -425,8 +430,8 @@ class Extend_Pdf:
         else:
             description = "closed object"
         self._process(description, EMPTY_PDF)
-        if getattr(self, 'tmp_stream', False):
-            self.tmp_stream.close()
+        if getattr(self, '_tmp_stream', None):
+            self._tmp_stream.close()
 
     def __enter__(self):
         return self
@@ -673,8 +678,8 @@ class Extend_Pdf:
             any coalesces incremental updates into a single non-incremental
             PDF file when saving.
         """
-        if not filename_or_stream and self.original_filepath:
-            filename_or_stream = self.original_filepath
+        if not filename_or_stream and self._original_filename:
+            filename_or_stream = self._original_filename
         self._save(filename_or_stream, *args, **kwargs)
 
     @staticmethod
@@ -759,7 +764,7 @@ class Extend_Pdf:
                 usable.
             FileNotFoundError: If the file was not found.
         """
-        tmp_stream, original_filepath = False, False
+        tmp_stream, original_filename = None, False
         if allow_overwriting_input:
             try:
                 Path(filename_or_stream)
@@ -768,13 +773,13 @@ class Extend_Pdf:
                     '"allow_overwriting_input=True" requires "open" first argument '
                     'to be a file path'
                 ) from error
-            original_filepath = str(filename_or_stream)
-            with open(original_filepath, 'rb') as pdf_file:
+            original_filename = str(filename_or_stream)
+            with open(original_filename, 'rb') as pdf_file:
                 tmp_stream = BytesIO()
                 shutil.copyfileobj(pdf_file, tmp_stream)
         pdf = Pdf._open(tmp_stream or filename_or_stream, *args, **kwargs)
-        setattr(pdf, 'tmp_stream', tmp_stream)
-        setattr(pdf, 'original_filepath', original_filepath)
+        setattr(pdf, '_tmp_stream', tmp_stream)
+        setattr(pdf, '_original_filename', original_filename)
         return pdf
 
 
