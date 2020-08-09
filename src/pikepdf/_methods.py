@@ -578,15 +578,14 @@ class Extend_Pdf:
         Save all modifications to this :class:`pikepdf.Pdf`.
 
         Args:
-            filename (str or stream): Where to write the output. If a file
+            filename (Path or str or stream): Where to write the output. If a file
                 exists in this location it will be overwritten.
-                The file should not be the same as the input file,
-                because data from the input file may be lazily loaded;
-                as such overwriting in place will null-out objects.
-                On the contrary, if the file has been opened with
-                ``allow_overwriting_input=True``, it can be overwriten
-                and this parameter is optional, the original file name
-                being implicitly used.
+                If the file was opened with ``allow_overwriting_input=True``,
+                then it is permitted to overwrite the original file, and
+                this parameter may be omitted to implicitly use the original
+                filename. Otherwise, the filename may not be the same as the
+                input file, as overwriting the input file would corrupt data
+                since pikepdf using lazy loading.
 
             static_id (bool): Indicates that the ``/ID`` metadata, normally
                 calculated as a hash of certain PDF contents and metadata
@@ -746,9 +745,11 @@ class Extend_Pdf:
                 should be prepared to handle the SIGBUS signal on POSIX in
                 the event that the file is successfully mapped but later goes
                 away.
-            allow_overwriting_input (bool): If True, allows to edit the input
-                file by substituting it with a temporary BytesIO object under
-                the hood.
+            allow_overwriting_input (bool): If True, allows calling ``.save()``
+                to overwrite the input file. This is performed by loading the
+                entire input file into memory at open time; this will use more
+                memory and may recent performance especially when the opened
+                file will not be modified.
         Raises:
             pikepdf.PasswordError: If the password failed to open the
                 file.
@@ -764,7 +765,8 @@ class Extend_Pdf:
                 Path(filename_or_stream)
             except TypeError as error:
                 raise ValueError(
-                    '"allow_overwriting_input" requires "open" first argument to be a file path'
+                    '"allow_overwriting_input=True" requires "open" first argument '
+                    'to be a file path'
                 ) from error
             original_filepath = str(filename_or_stream)
             with open(original_filepath, 'rb') as pdf_file:
