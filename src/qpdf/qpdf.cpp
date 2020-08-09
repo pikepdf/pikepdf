@@ -358,7 +358,8 @@ void save_pdf(
     bool linearize=false,
     bool qdf=false,
     py::object progress=py::none(),
-    py::object encryption=py::none())
+    py::object encryption=py::none(),
+    bool samefile_check=true)
 {
     std::string description;
     QPDFWriter w(q);
@@ -395,27 +396,31 @@ void save_pdf(
     } else {
         if (py::isinstance<py::int_>(filename_or_stream))
             throw py::type_error("expected str, bytes or os.PathLike object");
-        py::object filename = fspath(filename_or_stream);
-        py::object ospath = py::module::import("os").attr("path");
-        py::object samefile = ospath.attr("samefile");
-        try {
+        py::object output_filename = fspath(filename_or_stream);
+        if (samefile_check) {
             auto input_filename = q.getFilename();
-            // On Windows, if q was created over a stream, not a file path,
-            // q.getFilename() returns a string like "<_io.BytesIO object at 0x00ABCXYZ>".
-            auto input_is_stream = input_filename.front() == '<' && input_filename.back() == '>';
-            if (!input_is_stream && samefile(filename, input_filename).cast<bool>()) {
-                throw py::value_error("Cannot overwrite input file");
+
+            py::object ospath = py::module::import("os").attr("path");
+            py::object samefile = ospath.attr("samefile");
+            try {
+                if (samefile(output_filename, input_filename).cast<bool>()) {
+                    throw py::value_error(
+                        "Cannot overwrite input file. Open the file with "
+                        "pikepdf.open(..., allow_overwriting_input=True) to "
+                        "allow overwriting the input file."
+                    );
+                }
+            } catch (const py::error_already_set &e) {
+                // We expect FileNotFoundError if filename refers to a file that does
+                // not exist, or if q.getFilename indicates a memory file. Suppress
+                // that, and rethrow all others.
+                if (!e.matches(PyExc_FileNotFoundError))
+                    throw;
             }
-        } catch (const py::error_already_set &e) {
-            // We expect FileNotFoundError if filename refers to a file that does
-            // not exist, or if q.getFilename indicates a memory file. Suppress
-            // that, and rethrow all others.
-            if (!e.matches(PyExc_FileNotFoundError))
-                throw;
         }
-        stream = py::module::import("io").attr("open")(filename, "wb");
+        stream = py::module::import("io").attr("open")(output_filename, "wb");
         should_close_stream = true;
-        description = py::str(filename);
+        description = py::str(output_filename);
     }
 
     // We must set up the output pipeline before we configure encryption
@@ -674,7 +679,8 @@ void init_qpdf(py::module &m)
             py::arg("linearize")=false,
             py::arg("qdf")=false,
             py::arg("progress")=py::none(),
-            py::arg("encryption")=py::none()
+            py::arg("encryption")=py::none(),
+            py::arg("samefile_check")=true
         )
         .def("_get_object_id", &QPDF::getObjectByID)
         .def("get_object",

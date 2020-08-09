@@ -718,6 +718,7 @@ class Extend_Pdf:
             qdf=qdf,
             progress=progress,
             encryption=encryption,
+            samefile_check=getattr(self, '_tmp_stream', None) is None,
         )
 
     @staticmethod
