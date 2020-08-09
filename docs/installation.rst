@@ -208,5 +208,5 @@ regenerate it:
 .. code-block:: bash
 
     pip install -r requirements/docs.txt
-    cd pikepdf/docs
+    cd docs
     make html

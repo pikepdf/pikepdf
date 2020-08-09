@@ -127,7 +127,7 @@ class BuildExt(build_ext):
             ]
             ext.extra_compile_args = opts
             ext.extra_link_args = link_opts
-        build_ext.build_extensions(self)
+        super().build_extensions()
 
 
 setup_py_cwd = dirname(__file__)

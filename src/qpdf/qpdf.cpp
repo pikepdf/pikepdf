@@ -399,11 +399,15 @@ void save_pdf(
         py::object ospath = py::module::import("os").attr("path");
         py::object samefile = ospath.attr("samefile");
         try {
-            if (samefile(filename, q.getFilename()).cast<bool>()) {
+            auto input_filename = q.getFilename();
+            // On Windows, if q was created over a stream, not a file path,
+            // q.getFilename() returns a string like "<_io.BytesIO object at 0x00ABCXYZ>".
+            auto input_is_stream = input_filename.front() == '<' && input_filename.back() == '>';
+            if (!input_is_stream && samefile(filename, input_filename).cast<bool>()) {
                 throw py::value_error("Cannot overwrite input file");
             }
         } catch (const py::error_already_set &e) {
-            // We expect FileNotFoundError is filename refers to a file that does
+            // We expect FileNotFoundError if filename refers to a file that does
             // not exist, or if q.getFilename indicates a memory file. Suppress
             // that, and rethrow all others.
             if (!e.matches(PyExc_FileNotFoundError))
@@ -487,7 +491,7 @@ void init_qpdf(py::module &m)
         .value("mmap", access_mode_e::access_mmap)
         .value("mmap_only", access_mode_e::access_mmap_only);
 
-    py::class_<QPDF, std::shared_ptr<QPDF>>(m, "Pdf", "In-memory representation of a PDF")
+    py::class_<QPDF, std::shared_ptr<QPDF>>(m, "Pdf", "In-memory representation of a PDF", py::dynamic_attr())
         .def_static("new",
             []() {
                 auto q = std::make_shared<QPDF>();
@@ -497,80 +501,7 @@ void init_qpdf(py::module &m)
             },
             "Create a new empty PDF from stratch."
         )
-        .def_static("open", open_pdf,
-            R"~~~(
-            Open an existing file at *filename_or_stream*.
-
-            If *filename_or_stream* is path-like, the file will be opened for reading.
-            The file should not be modified by another process while it is open in
-            pikepdf, or undefined behavior may occur. This is because the file may be
-            lazily loaded. Despite this restriction, pikepdf does not try to use any OS
-            services to obtain an exclusive lock on the file. Some applications may
-            want to attempt this or copy the file to a temporary location before
-            editing.
-
-            When this is function is called with a stream-like object, you must ensure
-            that the data it returns cannot be modified, or undefined behavior will
-            occur.
-
-            Any changes to the file must be persisted by using ``.save()``.
-
-            If *filename_or_stream* has ``.read()`` and ``.seek()`` methods, the file
-            will be accessed as a readable binary stream. pikepdf will read the
-            entire stream into a private buffer.
-
-            ``.open()`` may be used in a ``with``-block; ``.close()`` will be called when
-            the block exits, if applicable.
-
-            Whenever pikepdf opens a file, it will close it. If you open the file
-            for pikepdf or give it a stream-like object to read from, you must
-            release that object when appropriate.
-
-            Examples:
-
-                >>> with Pdf.open("test.pdf") as pdf:
-                        ...
-
-                >>> pdf = Pdf.open("test.pdf", password="rosebud")
-
-            Args:
-                filename_or_stream (os.PathLike): Filename of PDF to open
-                password (str or bytes): User or owner password to open an
-                    encrypted PDF. If the type of this parameter is ``str``
-                    it will be encoded as UTF-8. If the type is ``bytes`` it will
-                    be saved verbatim. Passwords are always padded or
-                    truncated to 32 bytes internally. Use ASCII passwords for
-                    maximum compatibility.
-                hex_password (bool): If True, interpret the password as a
-                    hex-encoded version of the exact encryption key to use, without
-                    performing the normal key computation. Useful in forensics.
-                ignore_xref_streams (bool): If True, ignore cross-reference
-                    streams. See qpdf documentation.
-                suppress_warnings (bool): If True (default), warnings are not
-                    printed to stderr. Use :meth:`pikepdf.Pdf.get_warnings()` to
-                    retrieve warnings.
-                attempt_recovery (bool): If True (default), attempt to recover
-                    from PDF parsing errors.
-                inherit_page_attributes (bool): If True (default), push attributes
-                    set on a group of pages to individual pages
-                access_mode (pikepdf.AccessMode): If ``.default``, pikepdf will
-                    decide how to access the file. Currently, it will always
-                    selected stream access. To attempt memory mapping and fallback
-                    to stream if memory mapping failed, use ``.mmap``.  Use
-                    ``.mmap_only`` to require memory mapping or fail
-                    (this is expected to only be useful for testing). Applications
-                    should be prepared to handle the SIGBUS signal on POSIX in
-                    the event that the file is successfully mapped but later goes
-                    away.
-            Raises:
-                pikepdf.PasswordError: If the password failed to open the
-                    file.
-                pikepdf.PdfError: If for other reasons we could not open
-                    the file.
-                TypeError: If the type of ``filename_or_stream`` is not
-                    usable.
-                FileNotFoundError: If the file was not found.
-            )~~~",
+        .def_static("_open", open_pdf, "",
             py::arg("filename_or_stream"),
             py::arg("password") = "",
             py::arg("hex_password") = false,
@@ -729,104 +660,7 @@ void init_qpdf(py::module &m)
 
             )~~~"
         )
-        .def("save",
-            save_pdf,
-            R"~~~(
-            Save all modifications to this :class:`pikepdf.Pdf`.
-
-            Args:
-                filename (str or stream): Where to write the output. If a file
-                    exists in this location it will be overwritten. The file
-                    should not be the same as the input file, because data from
-                    the input file may be lazily loaded; as such overwriting
-                    in place will null-out objects.
-
-                static_id (bool): Indicates that the ``/ID`` metadata, normally
-                    calculated as a hash of certain PDF contents and metadata
-                    including the current time, should instead be generated
-                    deterministically. Normally for debugging.
-                preserve_pdfa (bool): Ensures that the file is generated in a
-                    manner compliant with PDF/A and other stricter variants.
-                    This should be True, the default, in most cases.
-
-                min_version (str or tuple): Sets the minimum version of PDF
-                    specification that should be required. If left alone QPDF
-                    will decide. If a tuple, the second element is an integer, the
-                    extension level. If the version number is not a valid format,
-                    QPDF will decide what to do.
-                force_version (str or tuple): Override the version recommend by QPDF,
-                    potentially creating an invalid file that does not display
-                    in old versions. See QPDF manual for details. If a tuple, the
-                    second element is an integer, the extension level.
-                fix_metadata_version (bool): If ``True`` (default) and the XMP metadata
-                    contains the optional PDF version field, ensure the version in
-                    metadata is correct. If the XMP metadata does not contain a PDF
-                    version field, none will be added. To ensure that the field is
-                    added, edit the metadata and insert a placeholder value in
-                    ``pdf:PDFVersion``. If XMP metadata does not exist, it will
-                    not be created regardless of the value of this argument.
-
-                object_stream_mode (pikepdf.ObjectStreamMode):
-                    ``disable`` prevents the use of object streams.
-                    ``preserve`` keeps object streams from the input file.
-                    ``generate`` uses object streams wherever possible,
-                    creating the smallest files but requiring PDF 1.5+.
-
-                compress_streams (bool): Enables or disables the compression of
-                    stream objects in the PDF. Metadata is never compressed.
-                    By default this is set to ``True``, and should be except
-                    for debugging.
-
-                stream_decode_level (pikepdf.StreamDecodeLevel): Specifies how
-                    to encode stream objects. See documentation for
-                    ``StreamDecodeLevel``.
-
-                normalize_content (bool): Enables parsing and reformatting the
-                    content stream within PDFs. This may debugging PDFs easier.
-
-                linearize (bool): Enables creating linear or "fast web view",
-                    where the file's contents are organized sequentially so that
-                    a viewer can begin rendering before it has the whole file.
-                    As a drawback, it tends to make files larger.
-
-                qdf (bool): Save output QDF mode.  QDF mode is a special output
-                    mode in QPDF to allow editing of PDFs in a text editor. Use
-                    the program ``fix-qdf`` to fix convert back to a standard
-                    PDF.
-
-                progress (callable): Specify a callback function that is called
-                    as the PDF is written. The function will be called with an
-                    integer between 0-100 as the sole parameter, the progress
-                    percentage. This function may not access or modify the PDF
-                    while it is being written, or data corruption will almost
-                    certainly occur.
-
-                encryption (pikepdf.models.Encryption or bool): If ``False``
-                    or omitted, existing encryption will be removed. If ``True``
-                    encryption settings are copied from the originating PDF.
-                    Alternately, an ``Encryption`` object may be provided that
-                    sets the parameters for new encryption.
-
-            You may call ``.save()`` multiple times with different parameters
-            to generate different versions of a file, and you *may* continue
-            to modify the file after saving it. ``.save()`` does not modify
-            the ``Pdf`` object in memory, except possibly by updating the XMP
-            metadata version with ``fix_metadata_version``.
-
-            .. note::
-
-                :meth:`pikepdf.Pdf.remove_unreferenced_resources` before saving
-                may eliminate unnecessary resources from the output file, so
-                calling this method before saving is recommended. This is not
-                done automatically because ``.save()`` is intended to be
-                idempotent.
-
-            .. note::
-
-                pikepdf can read PDFs will incremental updates, but always
-                any coalesces incremental updates into a single non-incremental
-                PDF file when saving.
-            )~~~",
+        .def("_save", save_pdf, "",
             py::arg("filename"),
             py::arg("static_id")=false,
             py::arg("preserve_pdfa")=true,
