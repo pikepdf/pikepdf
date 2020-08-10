@@ -79,8 +79,8 @@ scale by 0.5: ``.scaled(0.5, 0.5)``.
 
 On an important note, the PDF coordinate system is nailed to the **bottom left**
 corner of the page, and on y-axis, **up is positive**. That is, the coordinate
-system is more like the first quadrant of a Cartesian graph than the **positive
-is down** convention normally used in computer graphics:
+system is more like the first quadrant of a Cartesian graph than the
+**down is positive** convention normally used in pixel graphics:
 
 .. figure:: /images/pdfcoords.svg
    :align: center
@@ -88,7 +88,7 @@ is down** convention normally used in computer graphics:
    :figwidth: 50%
 
 Thus the command ``.translated(200/2, 304/2)`` is translated from the origin
-at the bottom left, ``(0, 0)``, to the right by 100 units, and up 152 units.
+at the bottom left, (0, 0), to the right by 100 units, and up 152 units.
 (Some PDF programs insert a command to "flip" the coordinate system, by
 translating to the top left corner and scaling by (1, -1).)
 
@@ -108,14 +108,15 @@ stream.
 
 .. note::
 
-  To rotate an image, first translate it so that the image is centered at ``(0, 0)``,
+  To rotate an image, first translate it so that the image is centered at (0, 0),
   rotate then apply the rotate, then translate it to its new center position.
-  This is because rotations occur around ``(0, 0)``.
+  This is because rotations occur around (0, 0).
 
 .. note::
 
-  While the coordinate system is pinned to ``(0, 0)`` and **up is positive**,
-  the page's MediaBox does not have to be.
+  In this illustration, the page's MediaBox is located at (0, 0) for simplicity.
+  The MediaBox can be offset from the origin, and code that edits content streams
+  may need to account for this relatively condition.
 
 Editing content streams robustly
 --------------------------------
