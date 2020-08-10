@@ -22,8 +22,19 @@ Upcoming deprecations in v2.0.0
 -------------------------------
 
 -  Support for QPDF <= 10.0.1 will be dropped.
--  Support for Python 3.5 will be dropped.
+-  Support for Python 3.5 will be dropped when Python 3.5 reaches end of life,
+   on 2020-09-13.
 -  Support for macOS High Sierra (10.13 or older) will be dropped.
+
+v1.18.0
+=======
+
+-  You can now use ``pikepdf.open(...allow_overwriting_input=True)`` to allow
+   overwriting the input file, which was previously forbidden because it can corrupt
+   data. This is accomplished safely by loading the entire PDF into memory at the
+   time it is opened rather than loading content as needed. The option is disabled by
+   default, to avoid a performance hit.
+-  Prevent setup.py from creating junk temporary files (finally!)
 
 v1.17.3
 =======
