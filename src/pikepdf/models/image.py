@@ -14,6 +14,9 @@ from shutil import copyfileobj
 from zlib import decompress
 from zlib import error as ZlibError
 
+from PIL import Image, ImageCms
+from PIL.TiffTags import TAGS_V2 as TIFF_TAGS
+
 from pikepdf import (
     Array,
     Dictionary,
@@ -372,8 +375,6 @@ class PdfImage(PdfImageBase):
         Returns:
             PIL.ImageCms.ImageCmsProfile
         """
-        from PIL import ImageCms
-
         if self.colorspace not in ('/ICCBased', '/Indexed'):
             return None
         if not self._icc:
@@ -432,8 +433,6 @@ class PdfImage(PdfImageBase):
         raise NotExtractableError()
 
     def _extract_transcoded(self):
-        from PIL import Image
-
         im = None
         if self.mode == 'RGB' and self.bits_per_component == 8:
             # No point in accessing the buffer here, size qpdf decodes to 3-byte
@@ -578,8 +577,6 @@ class PdfImage(PdfImageBase):
         Returns:
             PIL.Image.Image
         """
-        from PIL import Image
-
         try:
             bio = BytesIO()
             self._extract_direct(stream=bio)
@@ -623,6 +620,8 @@ class PdfImage(PdfImageBase):
 
         img_size = len(data)
         tiff_header_struct = '<' + '2s' + 'H' + 'L' + 'H'
+
+        tag_keys = {tag.name: key for key, tag in TIFF_TAGS.items()}
         ifd_struct = '<HHLL'
 
         if icc is None:
@@ -637,22 +636,24 @@ class PdfImage(PdfImageBase):
                 + 4
             )
 
-        def add_ifd(code, typecode, count, data):
-            ifds.append((code, typecode, count, data))
+        def add_ifd(tag_name, data, count=1):
+            key = tag_keys[tag_name]
+            typecode = TIFF_TAGS[key].type
+            ifds.append((key, typecode, count, data))
 
         image_offset = None
-        add_ifd(256, 4, 1, self.width)  # ImageWidth, LONG, 1, width
-        add_ifd(257, 4, 1, self.height)  # ImageLength, LONG, 1, length
-        add_ifd(258, 3, 1, 1)  # BitsPerSample, SHORT, 1, 1
-        add_ifd(259, 3, 1, ccitt_group)  # Compression, SHORT, 1, 4 = CCITT Group 4
-        add_ifd(262, 3, 1, int(photometry))  # Thresholding, SHORT, 1, 0 = WhiteIsZero
-        add_ifd(273, 4, 1, lambda: image_offset)  # StripOffsets, LONG, 1, image offset
-        add_ifd(278, 4, 1, self.height)
-        add_ifd(279, 4, 1, img_size)  # StripByteCounts, LONG, 1, size of image
+        add_ifd('ImageWidth', self.width)
+        add_ifd('ImageLength', self.height)
+        add_ifd('BitsPerSample', 1)
+        add_ifd('Compression', ccitt_group)
+        add_ifd('PhotometricInterpretation', int(photometry))
+        add_ifd('StripOffsets', lambda: image_offset)
+        add_ifd('RowsPerStrip', self.height)
+        add_ifd('StripByteCounts', img_size)
 
         icc_offset = 0
         if icc:
-            add_ifd(34675, 7, len(icc), lambda: icc_offset)
+            add_ifd('ICCProfile', lambda: icc_offset, count=len(icc))
 
         icc_offset = header_length(len(ifds))
         image_offset = icc_offset + len(icc)
