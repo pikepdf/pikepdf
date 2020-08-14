@@ -74,6 +74,14 @@ Files: tests/resources/*
 Copyright: (C) 2017 James R. Barlow
 License: CC-BY-4.0
 
+Files: tests/resources/Gray.icc
+Copyright:  Kai-Uwe Behrmann <www.behrmann.name>
+            Marti Maria <www.littlecms.com>
+            Photogamut <www.photogamut.org>
+            Graeme Gill <www.argyllcms.com>
+            ColorSolutions <www.basICColor.com>
+License: Zlib
+
 Files: tests/resources/congress.pdf docs/images/congress_im0.jpg tests/resources/congress-gray.pdf
 Copyright: Public domain
 License: public-domain

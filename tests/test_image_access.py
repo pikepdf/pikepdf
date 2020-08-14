@@ -435,3 +435,32 @@ def test_jbig2_global_palette(resources):
     im = pim.as_pil_image()
     assert im.size == (4000, 2864)
     assert im.getpixel((0, 0)) == 255  # Ensure loaded
+
+
+def test_ccitt_icc(resources):
+    xobj, pdf = first_image_in(resources / 'sandwich.pdf')
+
+    pim = PdfImage(xobj)
+    assert pim.icc is None
+    bio = BytesIO()
+    output_type = pim.extract_to(stream=bio)
+    assert output_type == '.tif'
+    bio.seek(0)
+    assert b'GRAYXYZ' not in bio.read(1000)
+    bio.seek(0)
+    assert Image.open(bio)
+
+    icc_data = (resources / 'Gray.icc').read_bytes()
+    icc_stream = pdf.make_stream(icc_data)
+    icc_stream.N = 1
+    xobj.ColorSpace = pikepdf.Array([Name.ICCBased, icc_stream])
+
+    pim = PdfImage(xobj)
+    assert pim.icc.profile.xcolor_space == 'GRAY'
+    bio = BytesIO()
+    output_type = pim.extract_to(stream=bio)
+    assert output_type == '.tif'
+    bio.seek(0)
+    assert b'GRAYXYZ' in bio.read(1000)
+    bio.seek(0)
+    assert Image.open(bio)
