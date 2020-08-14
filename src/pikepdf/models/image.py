@@ -417,8 +417,10 @@ class PdfImage(PdfImageBase):
 
         if filters == ['/CCITTFaxDecode']:
             if self.colorspace == '/ICCBased':
-                raise UnsupportedImageTypeError("Cannot direct-extract CCITT + ICC")
-            stream.write(self._generate_ccitt_header(data))
+                icc = self._iccstream.read_bytes()
+            else:
+                icc = None
+            stream.write(self._generate_ccitt_header(data, icc=icc))
             stream.write(data)
             return '.tif'
         elif filters == ['/DCTDecode'] and (
@@ -592,7 +594,7 @@ class PdfImage(PdfImageBase):
 
         return im
 
-    def _generate_ccitt_header(self, data):
+    def _generate_ccitt_header(self, data, icc=None):
         """Construct a CCITT G3 or G4 header from the PDF metadata"""
         # https://stackoverflow.com/questions/2641770/
         # https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf
@@ -620,25 +622,55 @@ class PdfImage(PdfImageBase):
         photometry = 1 if black_is_one else 0
 
         img_size = len(data)
-        tiff_header_struct = '<' + '2s' + 'H' + 'L' + 'H' + 'HHLL' * 8 + 'L'
-        # fmt: off
+        tiff_header_struct = '<' + '2s' + 'H' + 'L' + 'H'
+        ifd_struct = '<HHLL'
+
+        if icc is None:
+            icc = b''
+
+        ifds = []
+
+        def header_length(ifd_count):
+            return (
+                struct.calcsize(tiff_header_struct)
+                + struct.calcsize(ifd_struct) * ifd_count
+                + 4
+            )
+
+        def add_ifd(code, typecode, count, data):
+            ifds.append((code, typecode, count, data))
+
+        image_offset = None
+        add_ifd(256, 4, 1, self.width)  # ImageWidth, LONG, 1, width
+        add_ifd(257, 4, 1, self.height)  # ImageLength, LONG, 1, length
+        add_ifd(258, 3, 1, 1)  # BitsPerSample, SHORT, 1, 1
+        add_ifd(259, 3, 1, ccitt_group)  # Compression, SHORT, 1, 4 = CCITT Group 4
+        add_ifd(262, 3, 1, int(photometry))  # Thresholding, SHORT, 1, 0 = WhiteIsZero
+        add_ifd(273, 4, 1, lambda: image_offset)  # StripOffsets, LONG, 1, image offset
+        add_ifd(278, 4, 1, self.height)
+        add_ifd(279, 4, 1, img_size)  # StripByteCounts, LONG, 1, size of image
+
+        icc_offset = 0
+        if icc:
+            add_ifd(34675, 7, len(icc), lambda: icc_offset)
+
+        icc_offset = header_length(len(ifds))
+        image_offset = icc_offset + len(icc)
+
+        ifd_args = [(arg() if callable(arg) else arg) for ifd in ifds for arg in ifd]
         tiff_header = struct.pack(
-            tiff_header_struct,
+            (tiff_header_struct + ifd_struct[1:] * len(ifds) + 'L'),
             b'II',  # Byte order indication: Little endian
             42,  # Version number (always 42)
             8,  # Offset to first IFD
-            8,  # Number of tags in IFD
-            256, 4, 1, self.width,  # ImageWidth, LONG, 1, width
-            257, 4, 1, self.height,  # ImageLength, LONG, 1, length
-            258, 3, 1, 1,  # BitsPerSample, SHORT, 1, 1
-            259, 3, 1, ccitt_group,  # Compression, SHORT, 1, 4 = CCITT Group 4 fax encoding
-            262, 3, 1, int(photometry),  # Thresholding, SHORT, 1, 0 = WhiteIsZero
-            273, 4, 1, struct.calcsize(tiff_header_struct),  # StripOffsets, LONG, 1, length of header
-            278, 4, 1, self.height,
-            279, 4, 1, img_size,  # StripByteCounts, LONG, 1, size of image
-            0  # last IFD
+            len(ifds),  # Number of tags in IFD
+            *ifd_args,
+            0,  # Last IFD
         )
-        # fmt: on
+
+        if icc:
+            tiff_header += icc
+
         return tiff_header
 
     def show(self):
