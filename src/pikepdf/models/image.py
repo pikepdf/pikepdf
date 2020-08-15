@@ -321,6 +321,9 @@ class PdfImage(PdfImageBase):
         self.obj = obj
         self._icc = None
 
+    def __eq__(self, other):
+        return self.obj == other.obj
+
     @classmethod
     def _from_pil_image(cls, *, pdf, page, name, image):  # pragma: no cover
         """Insert a PIL image into a PDF (rudimentary)
@@ -786,6 +789,14 @@ class PdfInlineImage(PdfImageBase):
         self.obj = reparsed_obj
         self.pil = None
 
+    def __eq__(self, other):
+        if self.obj == other.obj and (
+            self._data._inline_image_raw_bytes()
+            == other._data._inline_image_raw_bytes()
+        ):
+            return True
+        return False
+
     @classmethod
     def _unparse_obj(cls, obj):
         if isinstance(obj, Object):
@@ -807,17 +818,17 @@ class PdfInlineImage(PdfImageBase):
 
     def unparse(self):
         tokens = []
-        tokens.append(b'BI')
+        tokens.append(b'BI\n')
         metadata = []
         for metadata_obj in self._image_object:
             unparsed = self._unparse_obj(metadata_obj)
             assert isinstance(unparsed, bytes)
             metadata.append(unparsed)
         tokens.append(b' '.join(metadata))
-        tokens.append(b'ID')
+        tokens.append(b'\nID\n')
         tokens.append(self._data._inline_image_raw_bytes())
         tokens.append(b'EI')
-        return b'\n'.join(tokens)
+        return b''.join(tokens)
 
     @property
     def is_inline(self):

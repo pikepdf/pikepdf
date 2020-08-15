@@ -124,12 +124,20 @@ def inline(resources):
 
 
 def test_inline(inline):
-    iimage, _pdf = inline
+    iimage, pdf = inline
     assert iimage.width == 8
     assert iimage.image_mask == False
     assert iimage.mode == 'RGB'
     assert iimage.is_inline
     assert iimage.colorspace == '/DeviceRGB'
+
+    unparsed = iimage.unparse()
+
+    cs = pdf.make_stream(unparsed)
+    for operands, _command in parse_content_stream(cs):
+        if operands and isinstance(operands[0], PdfInlineImage):
+            reparsed_iim = operands[0]
+            assert reparsed_iim == iimage
 
 
 def test_bits_per_component_missing(congress):
