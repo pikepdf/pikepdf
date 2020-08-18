@@ -82,8 +82,7 @@ public:
     {
         py::gil_scoped_acquire gil;
 
-        py::buffer_info buffer_info(buffer, length);
-        py::memoryview view_buffer_info(buffer_info);
+        py::memoryview view_buffer_info = memoryview_from_memory(buffer, length);
 
         this->last_offset = this->tell();
         py::object result = this->stream.attr("readinto")(view_buffer_info);
