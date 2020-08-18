@@ -26,6 +26,14 @@ Upcoming deprecations in v2.0.0
    on 2020-09-13.
 -  Support for macOS High Sierra (10.13 or older) will be dropped.
 
+v1.19.0
+=======
+
+-  Learned how to export CCITT images from PDFs that have ICC profiles attached.
+-  Cherry-picked a workaround to a possible use-after-free caused by pybind11
+   (pybind11 PR 2223).
+-  Improved test coverage of code that handles inline images.
+
 v1.18.0
 =======
 
