@@ -139,3 +139,15 @@ def test_parse_xobject(resources):
     form1 = pdf.pages[0].Resources.XObject.Form1
     instructions = parse_content_stream(form1)
     assert instructions[0][1] == Operator('cm')
+
+
+def test_unparse_interpret_operator():
+    commands = []
+    matrix = [2, 0, 0, 2, 0, 0]
+    commands.insert(0, (matrix, 'cm'))
+    commands.insert(0, (matrix, b'cm'))
+    commands.insert(0, (matrix, Operator('cm')))
+    assert (
+        unparse_content_stream(commands)
+        == b'2 0 0 2 0 0 cm\n2 0 0 2 0 0 cm\n2 0 0 2 0 0 cm'
+    )

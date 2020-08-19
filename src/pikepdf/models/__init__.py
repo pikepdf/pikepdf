@@ -5,7 +5,7 @@
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
 
-from pikepdf import Object, ObjectType, PdfError, _qpdf
+from pikepdf import Object, ObjectType, Operator, PdfError, _qpdf
 
 from .encryption import Encryption, EncryptionInfo, Permissions
 from .image import PdfImage, PdfInlineImage, UnsupportedImageTypeError
@@ -91,7 +91,7 @@ def parse_content_stream(page_or_stream, operators=''):
 def unparse_content_stream(instructions):
     """
     Given a parsed list of instructions/operand-operators, convert to bytes suitable
-    for embedding in a PDF.
+    for embedding in a PDF. In PDF the operator always follows the operands.
 
     Args:
         instructions: list of (operands, operator) types such as is returned
@@ -105,11 +105,16 @@ def unparse_content_stream(instructions):
     def encode(obj):
         return _qpdf.unparse(obj)
 
+    def encode_operator(obj):
+        if isinstance(obj, Operator):
+            return obj.unparse()
+        return encode(Operator(obj))
+
     def for_each_instruction():
         for n, (operands, operator) in enumerate(instructions):
             try:
                 line = b' '.join(encode(operand) for operand in operands)
-                line += b' ' + encode(operator)
+                line += b' ' + encode_operator(operator)
             except (PdfError, ValueError) as e:
                 raise PdfParsingError("Error encoding", line=n + 1) from e
             yield line
