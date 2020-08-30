@@ -4,6 +4,7 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
+from typing import List, Tuple
 
 from pikepdf import Object, ObjectType, Operator, PdfError, _qpdf
 
@@ -26,7 +27,9 @@ class PdfParsingError(Exception):
         self.line = line
 
 
-def parse_content_stream(page_or_stream, operators=''):
+def parse_content_stream(
+    page_or_stream: Object, operators: str = ''
+) -> List[Tuple[Tuple, str]]:
     """
     Parse a PDF content stream into a sequence of instructions.
 
@@ -40,9 +43,9 @@ def parse_content_stream(page_or_stream, operators=''):
     Each instruction contains at least one operator and zero or more operands.
 
     Args:
-        page_or_stream (pikepdf.Object): A page object, or the content
+        page_or_stream: A page object, or the content
             stream attached to another object such as a Form XObject.
-        operators (str): A space-separated string of operators to whitelist.
+        operators: A space-separated string of operators to whitelist.
             For example 'q Q cm Do' will return only operators
             that pertain to drawing images. Use 'BI ID EI' for inline images.
             All other operators and associated tokens are ignored. If blank,
@@ -88,7 +91,7 @@ def parse_content_stream(page_or_stream, operators=''):
     return instructions
 
 
-def unparse_content_stream(instructions):
+def unparse_content_stream(instructions: List[Tuple[Tuple, str]]) -> bytes:
     """
     Given a parsed list of instructions/operand-operators, convert to bytes suitable
     for embedding in a PDF. In PDF the operator always follows the operands.

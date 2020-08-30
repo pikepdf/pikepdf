@@ -21,6 +21,8 @@ class definition is present as an aide for code introspection.
 
 # pylint: disable=unused-import, abstract-method
 
+from typing import TYPE_CHECKING, Iterable, Optional, Union
+
 from . import _qpdf
 from ._qpdf import Object, ObjectType
 
@@ -88,7 +90,7 @@ class Name(Object, metaclass=_NameObjectMeta):
 
     object_type = ObjectType.name
 
-    def __new__(cls, name):
+    def __new__(cls, name: str):
         # QPDF_Name::unparse ensures that names are always saved in a UTF-8
         # compatible way, so we only need to guard the input.
         if isinstance(name, bytes):
@@ -100,7 +102,7 @@ class Operator(Object, metaclass=_ObjectMeta):
 
     object_type = ObjectType.operator
 
-    def __new__(cls, name):
+    def __new__(cls, name: str):
         return _qpdf.Operator(name)
 
 
@@ -109,7 +111,7 @@ class String(Object, metaclass=_ObjectMeta):
 
     object_type = ObjectType.string
 
-    def __new__(cls, s):
+    def __new__(cls, s: Union[str, bytes]):
         """
         Args:
             s (str or bytes): The string to use. String will be encoded for
@@ -128,7 +130,7 @@ class Array(Object, metaclass=_ObjectMeta):
 
     object_type = ObjectType.array
 
-    def __new__(cls, a=None):
+    def __new__(cls, a: Optional[Iterable] = None):
         """
         Args:
             a (iterable): An iterable of objects. All objects must be either
@@ -188,7 +190,7 @@ class Stream(Object, metaclass=_ObjectMeta):
 
     object_type = ObjectType.stream
 
-    def __new__(cls, owner, obj):
+    def __new__(cls, owner: 'Pdf', obj: bytes):
         """
         Args:
             owner (pikepdf.Pdf): The Pdf to which this stream shall be attached.

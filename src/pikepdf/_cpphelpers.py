@@ -12,10 +12,10 @@ called from Python, and subject to change at any time.
 import os
 import sys
 
-from pikepdf import Name
+from pikepdf import Name, Pdf
 
 
-def update_xmp_pdfversion(pdf, version):
+def update_xmp_pdfversion(pdf: Pdf, version: str):
 
     if Name.Metadata not in pdf.Root:
         return  # Don't create an empty XMP object just to store the version

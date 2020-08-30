@@ -5,6 +5,7 @@
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
 import types
+from typing import Any, Dict, Union
 
 
 class Permissions(types.SimpleNamespace):
@@ -18,14 +19,14 @@ class Permissions(types.SimpleNamespace):
 
     def __init__(
         self,
-        accessibility=True,  # pylint: disable=unused-argument
-        extract=True,  # pylint: disable=unused-argument
-        modify_annotation=True,  # pylint: disable=unused-argument
-        modify_assembly=False,  # pylint: disable=unused-argument
-        modify_form=True,  # pylint: disable=unused-argument
-        modify_other=True,  # pylint: disable=unused-argument
-        print_lowres=True,  # pylint: disable=unused-argument
-        print_highres=True,  # pylint: disable=unused-argument
+        accessibility: bool = True,  # pylint: disable=unused-argument
+        extract: bool = True,  # pylint: disable=unused-argument
+        modify_annotation: bool = True,  # pylint: disable=unused-argument
+        modify_assembly: bool = False,  # pylint: disable=unused-argument
+        modify_form: bool = True,  # pylint: disable=unused-argument
+        modify_other: bool = True,  # pylint: disable=unused-argument
+        print_lowres: bool = True,  # pylint: disable=unused-argument
+        print_highres: bool = True,  # pylint: disable=unused-argument
     ):
         kwargs = {
             k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')
@@ -59,21 +60,21 @@ class EncryptionInfo:
     a PDF, due to non-overlapping information requirements.
     """
 
-    def __init__(self, encdict):
+    def __init__(self, encdict: Dict[str, Any]):
         self._encdict = encdict
 
     @property
-    def R(self):
+    def R(self) -> int:
         """Revision number of the security handler."""
         return self._encdict['R']
 
     @property
-    def V(self):
+    def V(self) -> int:
         """Version of PDF password algorithm."""
         return self._encdict['V']
 
     @property
-    def P(self):
+    def P(self) -> int:
         """Encoded permission bits.
 
         See :meth:`Pdf.allow` instead.
@@ -81,22 +82,22 @@ class EncryptionInfo:
         return self._encdict['P']
 
     @property
-    def stream_method(self):
+    def stream_method(self) -> str:
         """Encryption method used to encode streams."""
         return self._encdict['stream']
 
     @property
-    def string_method(self):
+    def string_method(self) -> str:
         """Encryption method used to encode strings."""
         return self._encdict['string']
 
     @property
-    def file_method(self):
+    def file_method(self) -> str:
         """Encryption method used to encode the whole file."""
         return self._encdict['file']
 
     @property
-    def user_password(self):
+    def user_password(self) -> bytes:
         """If possible, return the user password.
 
         The user password can only be retrieved when a PDF is opened
@@ -109,12 +110,12 @@ class EncryptionInfo:
         return self._encdict['user_passwd']
 
     @property
-    def encryption_key(self):
+    def encryption_key(self) -> bytes:
         """The RC4 or AES encryption key used for this file."""
         return self._encdict['encryption_key']
 
     @property
-    def bits(self):
+    def bits(self) -> int:
         """The number of encryption bits."""
         return len(self._encdict['encryption_key']) * 8
 
@@ -124,30 +125,37 @@ class Encryption(dict):
     Specify the encryption settings to apply when a PDF is saved.
 
     Args:
-        owner (str): The owner password to use. This allows full control
+        owner: The owner password to use. This allows full control
             of the file. If blank, the PDF will be encrypted and
             present as "(SECURED)" in PDF viewers. If the owner password
             is blank, the user password should be as well.
-        user (str): The user password to use. With this password, some
+        user: The user password to use. With this password, some
             restrictions will be imposed by a typical PDF reader.
             If blank, the PDF can be opened by anyone, but only modified
             as allowed by the permissions in ``allow``.
-        R (int): Select the security handler algorithm to use. Choose from:
+        R: Select the security handler algorithm to use. Choose from:
             ``2``, ``3``, ``4`` or ``6``. By default, the highest version of
             is selected (``6``). ``5`` is a deprecated algorithm that should
             not be used.
-        allow (pikepdf.Permissions): The permissions to set.
+        allow: The permissions to set.
             If omitted, all permissions are granted to the user.
-        aes (bool): If True, request the AES algorithm. If False, use RC4.
+        aes: If True, request the AES algorithm. If False, use RC4.
             If omitted, AES is selected whenever possible (R >= 4).
-        metadata (bool): If True, also encrypt the PDF metadata. If False,
+        metadata: If True, also encrypt the PDF metadata. If False,
             metadata is not encrypted. Reading document metadata without
             decryption may be desirable in some cases. Requires ``aes=True``.
             If omitted, metadata is encrypted whenever possible.
     """
 
     def __init__(
-        self, *, owner, user, R=6, allow=Permissions(), aes=True, metadata=True
+        self,
+        *,
+        owner: str,
+        user: str,
+        R: int = 6,
+        allow: Permissions = Permissions(),
+        aes: bool = True,
+        metadata: bool = True,
     ):
         super().__init__()
         self.update(

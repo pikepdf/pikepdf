@@ -15,28 +15,33 @@ We can also move the implementation to C++ if desired.
 import inspect
 import shutil
 from collections.abc import KeysView
+from decimal import Decimal
 from io import BytesIO
 from pathlib import Path
 from subprocess import PIPE, run
 from tempfile import NamedTemporaryFile
+from typing import Any, BinaryIO, Callable, List, Optional, Tuple, Type, TypeVar, Union
 
 from . import Array, Dictionary, Name, Object, Page, Pdf, Stream
 from ._qpdf import (
     AccessMode,
     ObjectStreamMode,
     PdfError,
+    StreamDecodeLevel,
     StreamParser,
     Token,
     _ObjectMapping,
 )
-from .models import EncryptionInfo, Outline, PdfMetadata, Permissions
+from .models import Encryption, EncryptionInfo, Outline, PdfMetadata, Permissions
 
 # pylint: disable=no-member,unsupported-membership-test,unsubscriptable-object
 
 __all__ = []
 
+Numeric = TypeVar('Numeric', int, float, Decimal)
 
-def augments(cls_cpp):
+
+def augments(cls_cpp: Type[Any]):
     """Attach methods of a Python support class to an existing class
 
     This monkeypatches all methods defined in the support class onto an
@@ -93,7 +98,7 @@ def augments(cls_cpp):
     return class_augment
 
 
-def _single_page_pdf(page):
+def _single_page_pdf(page) -> bytes:
     """Construct a single page PDF from the provided page in memory"""
     pdf = Pdf.new()
     pdf.pages.append(page)
@@ -103,7 +108,7 @@ def _single_page_pdf(page):
     return bio.read()
 
 
-def _mudraw(buffer, fmt):
+def _mudraw(buffer, fmt) -> bytes:
     """Use mupdf draw to rasterize the PDF in the memory buffer"""
     with NamedTemporaryFile(suffix='.pdf') as tmp_in:
         tmp_in.write(buffer)
@@ -142,7 +147,7 @@ class Extend_Object:
             return self.keys()
         return None
 
-    def emplace(self, other):
+    def emplace(self, other: Object):
         """Copy all items from other without making a new object.
 
         Particularly when working with pages, it may be desirable to remove all
@@ -176,7 +181,12 @@ class Extend_Object:
             del self[k]  # pylint: disable=unsupported-delete-operation
 
     def write(
-        self, data, *, filter=None, decode_parms=None, type_check=True
+        self,
+        data: bytes,
+        *,
+        filter: Union[Name, Array, None] = None,
+        decode_parms: Union[Dictionary, Array, None] = None,
+        type_check: bool = True,
     ):  # pylint: disable=redefined-builtin
         """
         Replace stream object's data with new (possibly compressed) `data`.
@@ -193,12 +203,12 @@ class Extend_Object:
         into a PDF and displayed as images.
 
         Args:
-            data (bytes): the new data to use for replacement
-            filter (pikepdf.Name or pikepdf.Array): The filter(s) with which the
+            data: the new data to use for replacement
+            filter: The filter(s) with which the
                 data is (already) encoded
-            decode_parms (pikepdf.Dictionary or pikepdf.Array): Parameters for the
+            decode_parms: Parameters for the
                 filters with which the object is encode
-            type_check (bool): Check arguments; use False only if you want to
+            type_check: Check arguments; use False only if you want to
                 intentionally create malformed PDFs.
 
         If only one `filter` is specified, it may be a name such as
@@ -268,8 +278,11 @@ class Extend_Pdf:
         return data
 
     def open_metadata(
-        self, set_pikepdf_as_editor=True, update_docinfo=True, strict=False
-    ):
+        self,
+        set_pikepdf_as_editor: bool = True,
+        update_docinfo: bool = True,
+        strict: bool = False,
+    ) -> PdfMetadata:
         """
         Open the PDF's XMP metadata for editing.
 
@@ -289,18 +302,18 @@ class Extend_Pdf:
                     meta['dc:description'] = 'Put the Abstract here'
 
         Args:
-            set_pikepdf_as_editor (bool): Update the metadata to show that this
+            set_pikepdf_as_editor: Update the metadata to show that this
                 version of pikepdf is the most recent software to modify the metadata.
                 Recommended, except for testing.
 
-            update_docinfo (bool): Update the standard fields of DocumentInfo
+            update_docinfo: Update the standard fields of DocumentInfo
                 (the old PDF metadata dictionary) to match the corresponding
                 XMP fields. The mapping is described in
                 :attr:`PdfMetadata.DOCINFO_MAPPING`. Nonstandard DocumentInfo
                 fields and XMP metadata fields with no DocumentInfo equivalent
                 are ignored.
 
-            strict (bool): If ``False`` (the default), we aggressively attempt
+            strict: If ``False`` (the default), we aggressively attempt
                 to recover from any parse errors in XMP, and if that fails we
                 overwrite the XMP with an empty XMP record.  If ``True``, raise
                 errors when either metadata bytes are not valid and well-formed
@@ -308,9 +321,6 @@ class Extend_Pdf:
                 empty or incomplete "XMP skeletons" are never treated as errors,
                 and always replaced with a proper empty XMP block. Certain
                 errors may be logged.
-
-        Returns:
-            pikepdf.models.PdfMetadata
         """
         return PdfMetadata(
             self,
@@ -319,7 +329,7 @@ class Extend_Pdf:
             overwrite_invalid_xml=not strict,
         )
 
-    def open_outline(self, max_depth=15, strict=False):
+    def open_outline(self, max_depth: int = 15, strict: bool = False) -> Outline:
         """
         Open the PDF outline ("bookmarks") for editing.
 
@@ -331,12 +341,12 @@ class Extend_Pdf:
                     outline.root.insert(0, OutlineItem('Intro', 0))
 
         Args:
-            max_depth (int): Maximum recursion depth of the outline to be
+            max_depth: Maximum recursion depth of the outline to be
                 imported and re-written to the document. ``0`` means only
                 considering the root level, ``1`` the first-level
                 sub-outline of each root element, and so on. Items beyond
                 this depth will be silently ignored. Default is ``15``.
-            strict (bool): With the default behavior (set to ``False``),
+            strict: With the default behavior (set to ``False``),
                 structural errors (e.g. reference loops) in the PDF document
                 will only cancel processing further nodes on that particular
                 level, recovering the valid parts of the document outline
@@ -347,13 +357,10 @@ class Extend_Pdf:
                 duplicated in the ``Outline`` container will be silently
                 fixed (i.e. reproduced as new objects) or raise an
                 ``OutlineStructureError``.
-
-        Returns:
-            pikepdf.models.Outline
         """
         return Outline(self, max_depth=max_depth, strict=strict)
 
-    def make_stream(self, data):
+    def make_stream(self, data: bytes) -> Stream:
         """
         Create a new pikepdf.Stream object that is attached to this PDF.
 
@@ -362,7 +369,9 @@ class Extend_Pdf:
         """
         return Stream(self, data)
 
-    def add_blank_page(self, *, page_size=(612, 792)):
+    def add_blank_page(
+        self, *, page_size: Tuple[Numeric, Numeric] = (612.0, 792.0)
+    ) -> Object:
         """
         Add a blank page to this PD. If pages already exist, the page will be added to
         the end. Pages may be reordered using ``Pdf.pages``.
@@ -388,7 +397,7 @@ class Extend_Pdf:
         self._add_page(page, first=False)
         return page
 
-    def close(self):
+    def close(self) -> None:
         """
         Close a Pdf object and release resources acquired by pikepdf.
 
@@ -447,7 +456,7 @@ class Extend_Pdf:
         self.close()
 
     @property
-    def allow(self):
+    def allow(self) -> Permissions:
         """
         Report permissions associated with this PDF.
 
@@ -457,9 +466,6 @@ class Extend_Pdf:
         all operations are reported as allowed.
 
         pikepdf has no way of enforcing permissions.
-
-        Returns:
-            pikepdf.models.Permissions
         """
         results = {}
         for field in Permissions.fields():
@@ -467,22 +473,17 @@ class Extend_Pdf:
         return Permissions(**results)
 
     @property
-    def encryption(self):
+    def encryption(self) -> EncryptionInfo:
         """
         Report encryption information for this PDF.
 
         Encryption settings may only be changed when a PDF is saved.
-
-        Returns: pikepdf.models.EncryptionInfo
         """
         return EncryptionInfo(self._encryption_data)
 
-    def check(self):
+    def check(self) -> List[str]:
         """
         Check if PDF is well-formed.  Similar to ``qpdf --check``.
-
-        Returns:
-            list of strings describing errors of warnings in the PDF
         """
 
         class DiscardingParser(StreamParser):
@@ -495,7 +496,7 @@ class Extend_Pdf:
             def handle_eof(self):
                 pass
 
-        problems = []
+        problems: List[str] = []
 
         try:
             self._decode_all_streams_and_discard()
@@ -516,7 +517,14 @@ class Extend_Pdf:
 
         return problems
 
-    def _attach(self, *, basename, filebytes, mime=None, desc=''):  # pragma: no cover
+    def _attach(
+        self,
+        *,
+        basename: str,
+        filebytes: bytes,
+        mime: Optional[str] = None,
+        desc: str = '',
+    ):  # pragma: no cover
         """
         Attach a file to this PDF
 
@@ -587,26 +595,26 @@ class Extend_Pdf:
 
     def save(
         self,
-        filename_or_stream=None,
-        static_id=False,
-        preserve_pdfa=True,
-        min_version="",
-        force_version="",
-        fix_metadata_version=True,
-        compress_streams=True,
-        stream_decode_level=None,
-        object_stream_mode=ObjectStreamMode.preserve,
-        normalize_content=False,
-        linearize=False,
-        qdf=False,
-        progress=None,
-        encryption=None,
-    ):
+        filename_or_stream: Union[Path, str, BinaryIO, None] = None,
+        static_id: bool = False,
+        preserve_pdfa: bool = True,
+        min_version: Union[str, Tuple[str, int]] = "",
+        force_version: Union[str, Tuple[str, int]] = "",
+        fix_metadata_version: bool = True,
+        compress_streams: bool = True,
+        stream_decode_level: Optional[StreamDecodeLevel] = None,
+        object_stream_mode: ObjectStreamMode = ObjectStreamMode.preserve,
+        normalize_content: bool = False,
+        linearize: bool = False,
+        qdf: bool = False,
+        progress: Callable[[int], None] = None,
+        encryption: Optional[Union[Encryption, bool]] = None,
+    ) -> None:
         """
         Save all modifications to this :class:`pikepdf.Pdf`.
 
         Args:
-            filename (Path or str or stream): Where to write the output. If a file
+            filename: Where to write the output. If a file
                 exists in this location it will be overwritten.
                 If the file was opened with ``allow_overwriting_input=True``,
                 then it is permitted to overwrite the original file, and
@@ -615,24 +623,24 @@ class Extend_Pdf:
                 input file, as overwriting the input file would corrupt data
                 since pikepdf using lazy loading.
 
-            static_id (bool): Indicates that the ``/ID`` metadata, normally
+            static_id: Indicates that the ``/ID`` metadata, normally
                 calculated as a hash of certain PDF contents and metadata
                 including the current time, should instead be generated
                 deterministically. Normally for debugging.
-            preserve_pdfa (bool): Ensures that the file is generated in a
+            preserve_pdfa: Ensures that the file is generated in a
                 manner compliant with PDF/A and other stricter variants.
                 This should be True, the default, in most cases.
 
-            min_version (str or tuple): Sets the minimum version of PDF
+            min_version: Sets the minimum version of PDF
                 specification that should be required. If left alone QPDF
                 will decide. If a tuple, the second element is an integer, the
                 extension level. If the version number is not a valid format,
                 QPDF will decide what to do.
-            force_version (str or tuple): Override the version recommend by QPDF,
+            force_version: Override the version recommend by QPDF,
                 potentially creating an invalid file that does not display
                 in old versions. See QPDF manual for details. If a tuple, the
                 second element is an integer, the extension level.
-            fix_metadata_version (bool): If ``True`` (default) and the XMP metadata
+            fix_metadata_version: If ``True`` (default) and the XMP metadata
                 contains the optional PDF version field, ensure the version in
                 metadata is correct. If the XMP metadata does not contain a PDF
                 version field, none will be added. To ensure that the field is
@@ -640,14 +648,14 @@ class Extend_Pdf:
                 ``pdf:PDFVersion``. If XMP metadata does not exist, it will
                 not be created regardless of the value of this argument.
 
-            object_stream_mode (pikepdf.ObjectStreamMode):
+            object_stream_mode:
                 ``disable`` prevents the use of object streams.
                 ``preserve`` keeps object streams from the input file.
                 ``generate`` uses object streams wherever possible,
                 creating the smallest files but requiring PDF 1.5+.
 
-            compress_streams (bool): Enables or disables the compression of
-                new stream objects in the PDF that are created without specifying
+            compress_streams: Enables or disables the compression of
+                stream objects in the PDF that are created without specifying
                 any compression setting. Metadata is never compressed.
                 By default this is set to ``True``, and should be except
                 for debugging. Existing streams in the PDF or streams will not
@@ -656,31 +664,31 @@ class Extend_Pdf:
                 to the desired decode level (e.g. ``.generalized`` will
                 decompress most non-image content).
 
-            stream_decode_level (pikepdf.StreamDecodeLevel): Specifies how
+            stream_decode_level: Specifies how
                 to encode stream objects. See documentation for
                 ``StreamDecodeLevel``.
 
-            normalize_content (bool): Enables parsing and reformatting the
+            normalize_content: Enables parsing and reformatting the
                 content stream within PDFs. This may debugging PDFs easier.
 
-            linearize (bool): Enables creating linear or "fast web view",
+            linearize: Enables creating linear or "fast web view",
                 where the file's contents are organized sequentially so that
                 a viewer can begin rendering before it has the whole file.
                 As a drawback, it tends to make files larger.
 
-            qdf (bool): Save output QDF mode.  QDF mode is a special output
+            qdf: Save output QDF mode.  QDF mode is a special output
                 mode in QPDF to allow editing of PDFs in a text editor. Use
                 the program ``fix-qdf`` to fix convert back to a standard
                 PDF.
 
-            progress (callable): Specify a callback function that is called
+            progress: Specify a callback function that is called
                 as the PDF is written. The function will be called with an
                 integer between 0-100 as the sole parameter, the progress
                 percentage. This function may not access or modify the PDF
                 while it is being written, or data corruption will almost
                 certainly occur.
 
-            encryption (pikepdf.models.Encryption or bool): If ``False``
+            encryption: If ``False``
                 or omitted, existing encryption will be removed. If ``True``
                 encryption settings are copied from the originating PDF.
                 Alternately, an ``Encryption`` object may be provided that
@@ -727,16 +735,16 @@ class Extend_Pdf:
 
     @staticmethod
     def open(
-        filename_or_stream,
-        password="",
-        hex_password=False,
-        ignore_xref_streams=False,
-        suppress_warnings=True,
-        attempt_recovery=True,
-        inherit_page_attributes=True,
-        access_mode=AccessMode.default,
-        allow_overwriting_input=False,
-    ):
+        filename_or_stream: Union[Path, str, BinaryIO],
+        password: Union[str, bytes] = "",
+        hex_password: bool = False,
+        ignore_xref_streams: bool = False,
+        suppress_warnings: bool = True,
+        attempt_recovery: bool = True,
+        inherit_page_attributes: bool = True,
+        access_mode: AccessMode = AccessMode.default,
+        allow_overwriting_input: bool = False,
+    ) -> Pdf:
         """
         Open an existing file at *filename_or_stream*.
 
@@ -775,26 +783,26 @@ class Extend_Pdf:
             >>> pdf = Pdf.open("test.pdf", password="rosebud")
 
         Args:
-            filename_or_stream (os.PathLike): Filename of PDF to open.
-            password (str or bytes): User or owner password to open an
+            filename_or_stream: Filename of PDF to open.
+            password: User or owner password to open an
                 encrypted PDF. If the type of this parameter is ``str``
                 it will be encoded as UTF-8. If the type is ``bytes`` it will
                 be saved verbatim. Passwords are always padded or
                 truncated to 32 bytes internally. Use ASCII passwords for
                 maximum compatibility.
-            hex_password (bool): If True, interpret the password as a
+            hex_password: If True, interpret the password as a
                 hex-encoded version of the exact encryption key to use, without
                 performing the normal key computation. Useful in forensics.
-            ignore_xref_streams (bool): If True, ignore cross-reference
+            ignore_xref_streams: If True, ignore cross-reference
                 streams. See qpdf documentation.
-            suppress_warnings (bool): If True (default), warnings are not
+            suppress_warnings: If True (default), warnings are not
                 printed to stderr. Use :meth:`pikepdf.Pdf.get_warnings()` to
                 retrieve warnings.
-            attempt_recovery (bool): If True (default), attempt to recover
+            attempt_recovery: If True (default), attempt to recover
                 from PDF parsing errors.
-            inherit_page_attributes (bool): If True (default), push attributes
+            inherit_page_attributes: If True (default), push attributes
                 set on a group of pages to individual pages
-            access_mode (pikepdf.AccessMode): If ``.default``, pikepdf will
+            access_mode: If ``.default``, pikepdf will
                 decide how to access the file. Currently, it will always
                 selected stream access. To attempt memory mapping and fallback
                 to stream if memory mapping failed, use ``.mmap``.  Use
@@ -803,7 +811,7 @@ class Extend_Pdf:
                 should be prepared to handle the SIGBUS signal on POSIX in
                 the event that the file is successfully mapped but later goes
                 away.
-            allow_overwriting_input (bool): If True, allows calling ``.save()``
+            allow_overwriting_input: If True, allows calling ``.save()``
                 to overwrite the input file. This is performed by loading the
                 entire input file into memory at open time; this will use more
                 memory and may recent performance especially when the opened
@@ -847,7 +855,7 @@ class Extend_Pdf:
 
 @augments(_ObjectMapping)
 class Extend_ObjectMapping:
-    def __contains__(self, key):
+    def __contains__(self, key) -> bool:
         try:
             self[key]
         except KeyError:
@@ -855,7 +863,7 @@ class Extend_ObjectMapping:
         else:
             return True
 
-    def get(self, key, default=None):
+    def get(self, key, default=None) -> Object:
         try:
             return self[key]
         except KeyError:
@@ -868,7 +876,7 @@ class Extend_ObjectMapping:
         return (v for _k, v in self.items())
 
 
-def check_is_box(obj):
+def check_is_box(obj) -> bool:
     try:
         if obj.is_rectangle:
             return True

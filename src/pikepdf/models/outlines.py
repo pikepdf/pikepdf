@@ -1,7 +1,8 @@
 from enum import Enum
 from itertools import chain
+from typing import Iterable, List, Optional, Set, Tuple, Union
 
-from .. import Array, Dictionary, Name, Object
+from pikepdf import Array, Dictionary, Name, Object, Pdf
 
 
 class PageLocation(Enum):
@@ -27,7 +28,10 @@ ALL_PAGE_LOCATION_KWARGS = set(chain.from_iterable(PAGE_LOCATION_ARGS.values()))
 
 
 def make_page_destination(
-    pdf, page_num: int, page_location: (PageLocation, str) = None, **kwargs
+    pdf,
+    page_num: int,
+    page_location: Optional[Union[PageLocation, str]] = None,
+    **kwargs,
 ) -> Array:
     """
     Creates a destination ``Array`` with reference to a Pdf document's page number.
@@ -95,11 +99,11 @@ class OutlineItem:
     def __init__(
         self,
         title: str,
-        destination: (int, str, Object) = None,
-        page_location: (PageLocation, str) = None,
-        action: Dictionary = None,
-        obj: Dictionary = None,
-        **kwargs
+        destination: Optional[Tuple[int, str, Object]] = None,
+        page_location: Optional[Union[PageLocation, str]] = None,
+        action: Optional[Dictionary] = None,
+        obj: Optional[Dictionary] = None,
+        **kwargs,
     ):
         self.title = title
         self.destination = destination
@@ -113,7 +117,7 @@ class OutlineItem:
             else:
                 raise ValueError("Invalid keyword argument {0}".format(k))
         self.is_closed = False
-        self.children = []
+        self.children: Iterable[Object] = []
 
     def __str__(self):
         if self.children:
@@ -145,7 +149,7 @@ class OutlineItem:
         action = obj.get(Name.A)
         return cls(title, destination=destination, action=action, obj=obj)
 
-    def to_dictionary_object(self, pdf, create_new=False) -> Dictionary:
+    def to_dictionary_object(self, pdf: Pdf, create_new: bool = False) -> Dictionary:
         """Creates a ``Dictionary`` object from this outline node's data,
         or updates the existing object.
         Page numbers are resolved to a page reference on the input
@@ -194,7 +198,7 @@ class Outline:
         :meth:`pikepdf.Pdf.open_outline`
     """
 
-    def __init__(self, pdf, max_depth=15, strict=False):
+    def __init__(self, pdf: Pdf, max_depth: int = 15, strict: bool = False):
         self._root = None
         self._pdf = pdf
         self._max_depth = max_depth
@@ -220,11 +224,15 @@ class Outline:
             self._updating = False
 
     def _save_level_outline(
-        self, parent: Dictionary, outline_items: list, level: int, visited_objs: set
+        self,
+        parent: Dictionary,
+        outline_items: Iterable[Object],
+        level: int,
+        visited_objs: Set[Object],
     ):
         count = 0
-        prev = None
-        first = None
+        prev: Optional[Dictionary] = None
+        first: Optional[Dictionary] = None
         for item in outline_items:
             out_obj = item.to_dictionary_object(self._pdf)
             objgen = out_obj.objgen
@@ -269,7 +277,11 @@ class Outline:
         parent.Count = count
 
     def _load_level_outline(
-        self, first_obj: Dictionary, outline_items: list, level: int, visited_objs: set
+        self,
+        first_obj: Dictionary,
+        outline_items: List[Object],
+        level: int,
+        visited_objs: Set[Object],
     ):
         current_obj = first_obj
         while current_obj:
