@@ -71,7 +71,39 @@ __libqpdf_version__ = _qpdf.qpdf_version()
 open = Pdf.open  # pylint: disable=redefined-builtin
 new = Pdf.new
 
-
-def new(*args, **kwargs):
-    """Alias for :func:`pikepdf.Pdf.new`. Create a new empty PDF."""
-    return Pdf.new(*args, **kwargs)
+# Exclude .open, .new here from to make sure from pikepdf import * does not clobber
+# builtins.open()
+__all__ = [
+    'AccessMode',
+    'Array',
+    'Dictionary',
+    'Encryption',
+    'Name',
+    'Object',
+    'ObjectStreamMode',
+    'ObjectType',
+    'Operator',
+    'Outline',
+    'OutlineItem',
+    'OutlineStructureError',
+    'Page',
+    'PageLocation',
+    'PasswordError',
+    'Pdf',
+    'PdfError',
+    'PdfImage',
+    'PdfInlineImage',
+    'PdfMatrix',
+    'Permissions',
+    'Stream',
+    'StreamDecodeLevel',
+    'String',
+    'Token',
+    'TokenFilter',
+    'TokenType',
+    'UnsupportedImageTypeError',
+    'make_page_destination',
+    'models',
+    'parse_content_stream',
+    'unparse_content_stream',
+]
