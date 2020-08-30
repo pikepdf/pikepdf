@@ -83,9 +83,9 @@ def cpp_flag(compiler):
     https://github.com/pybind/python_example/issues/44
     """
     if sys.platform == 'cygwin':
-        flags = ['-std=gnu++14']  # For strdup()
+        flags = ['-std=gnu++17', '-std=gnu++14']  # For strdup()
     else:
-        flags = ['-std=c++14']
+        flags = ['-std=c++17', '-std=c++14']
 
     for flag in flags:
         if has_flag(compiler, flag):
@@ -100,7 +100,7 @@ class BuildExt(build_ext):
     l_opts = {'msvc': [], 'unix': []}
 
     if sys.platform == 'darwin':
-        darwin_opts = ['-stdlib=libc++', '-mmacosx-version-min=10.9']
+        darwin_opts = ['-stdlib=libc++', '-mmacosx-version-min=10.14']
         c_opts['unix'] += darwin_opts
         l_opts['unix'] += darwin_opts
 
