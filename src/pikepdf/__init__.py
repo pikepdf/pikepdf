@@ -67,9 +67,9 @@ from . import _methods, codec
 __libqpdf_version__ = _qpdf.qpdf_version()
 
 
-def open(*args, **kwargs):  # pylint: disable=redefined-builtin
-    """Alias for :func:`pikepdf.Pdf.open`. Open a PDF."""
-    return Pdf.open(*args, **kwargs)
+# Provide pikepdf.{open, new} -> pikepdf.Pdf.open
+open = Pdf.open  # pylint: disable=redefined-builtin
+new = Pdf.new
 
 
 def new(*args, **kwargs):

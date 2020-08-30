@@ -4,9 +4,13 @@ Main objects
 .. autoclass:: pikepdf.Pdf
     :members:
 
-.. autofunction:: pikepdf.open
+.. function:: pikepdf.open
 
-.. autofunction:: pikepdf.new
+    Alias for :meth:`pikepdf.Pdf.open`.
+
+.. function:: pikepdf.new
+
+    Alias for :meth:`pikepdf.Pdf.new`.
 
 .. class:: pikepdf.ObjectStreamMode
 
