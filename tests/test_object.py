@@ -564,9 +564,9 @@ def test_stream_as_dict(abcxyz_stream):
 def test_stream_length_modify(abcxyz_stream):
     stream = abcxyz_stream
 
-    with pytest.warns(DeprecationWarning):
+    with pytest.raises(KeyError):
         stream.Length = 42
-    with pytest.warns(DeprecationWarning):
+    with pytest.raises(KeyError):
         del stream.Length
 
 

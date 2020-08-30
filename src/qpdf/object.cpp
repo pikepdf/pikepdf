@@ -180,10 +180,7 @@ void object_set_key(QPDFObjectHandle h, std::string const& key, QPDFObjectHandle
     if (! str_startswith(key, "/"))
         throw py::key_error("PDF Dictionary keys must begin with '/'");
     if (h.isStream() && key == "/Length") {
-        PyErr_WarnEx(PyExc_DeprecationWarning,
-            "Modifications to /Length have no effect and will be forbidden in a future release.",
-            0
-        );
+        throw py::key_error("/Length may not be modified");
     }
 
     // For streams, the actual dictionary is attached to stream object
@@ -198,10 +195,7 @@ void object_del_key(QPDFObjectHandle h, std::string const& key)
     if (!h.isDictionary() && !h.isStream())
         throw py::value_error("object is not a dictionary or a stream");
     if (h.isStream() && key == "/Length") {
-        PyErr_WarnEx(PyExc_DeprecationWarning,
-            "Deleting /Length has no effect and will be forbidden in a future release.",
-            0
-        );
+        throw py::key_error("/Length may not be deleted");
     }
 
     // For streams, the actual dictionary is attached to stream object
