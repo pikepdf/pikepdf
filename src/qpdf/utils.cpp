@@ -27,25 +27,13 @@
  * Cast to a string without transcoding.
  */
 
-#if PY_VERSION_HEX < 0x03060000
-
-    py::object fspath(py::object filename)
-    {
-        auto py_fspath = py::module::import("pikepdf._cpphelpers").attr("fspath");
-        return py_fspath(filename);
-    }
-
-#else
-
-    py::object fspath(py::object filename)
-    {
-        py::handle handle = PyOS_FSPath(filename.ptr());
-        if (!handle)
-            throw py::error_already_set();
-        return py::reinterpret_steal<py::object>(handle);
-    }
-
-#endif
+py::object fspath(py::object filename)
+{
+    py::handle handle = PyOS_FSPath(filename.ptr());
+    if (!handle)
+        throw py::error_already_set();
+    return py::reinterpret_steal<py::object>(handle);
+}
 
 // Copied from pybind11 master branch (pre-2.6), can remove when we require
 // pybind11 v2.6 and replace with py::memoryview::from_memory

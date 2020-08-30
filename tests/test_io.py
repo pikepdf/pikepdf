@@ -40,7 +40,6 @@ def test_overwrite_with_memory_file(outdir):
     pdf.save(outdir / 'example.pdf')
 
 
-@pytest.mark.skipif(sys.version_info < (3, 6), reason='pathlib and shutil')
 def test_overwrite_input(resources, outdir):
     copy(resources / 'sandwich.pdf', outdir / 'sandwich.pdf')
     p = Pdf.open(outdir / 'sandwich.pdf')
@@ -48,7 +47,6 @@ def test_overwrite_input(resources, outdir):
         p.save(outdir / 'sandwich.pdf')
 
 
-@pytest.mark.skipif(sys.version_info < (3, 6), reason='pathlib')
 def test_fail_only_overwrite_input_check(monkeypatch, resources, outdir):
     copy(resources / 'sandwich.pdf', outdir / 'sandwich.pdf')
     p = Pdf.open(outdir / 'sandwich.pdf')
@@ -169,7 +167,6 @@ class ExpectedError(Exception):
     pass
 
 
-@pytest.mark.skipif(sys.version_info < (3, 6), reason='pathlib')
 def test_file_without_fileno(resources):
     class FileWithoutFileNo(FileIO):
         def fileno(self):
@@ -200,7 +197,6 @@ def test_file_deny_mmap(resources, monkeypatch):
         assert len(pdf.pages) == 1
 
 
-@pytest.mark.skipif(sys.version_info < (3, 6), reason='pathlib')
 def test_mmap_only_file(resources):
     class UnreadableFile(FileIO):
         def readinto(self, *args):

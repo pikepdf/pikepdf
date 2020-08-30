@@ -5,7 +5,7 @@ variables:
   qpdf_min_release: ${{ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}.tar.gz', variables.qpdf_min_version) }}
   jpeg_release: "https://www.ijg.org/files/jpegsrc.v9c.tar.gz"
   zlib_release: "https://www.zlib.net/zlib-1.2.11.tar.gz"
-  cibw_skip: "cp27-* cp34-* pp27-* pp36-*"
+  cibw_skip: "cp27-* cp34-* cp35-* pp27-* pp35-* pp36-*"
   cibw_test_command: "pytest -nauto {project}/tests"
   cibw_test_requires: "-r requirements/test.txt"
   cibuildwheel_version: "1.5.2"

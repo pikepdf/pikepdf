@@ -24,6 +24,8 @@ should not access directly, along with any modules with a prefixed underscore.
 -  Support for Python 3.5 will be dropped when Python 3.5 reaches end of life,
    on 2020-09-13.
 -  Support for macOS High Sierra (10.13 or older) will be dropped.
+-  Attempting to modifying ``Stream.Length`` will raise an exception instead of a
+   warning.
 
 v1.19.3
 =======

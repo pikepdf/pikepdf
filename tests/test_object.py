@@ -410,10 +410,7 @@ def test_json():
         }
     )
     json_bytes = d.to_json(False)
-    try:
-        as_dict = json.loads(json_bytes)
-    except TypeError:
-        as_dict = json.loads(json_bytes.decode('utf-8'))  # Py3.5 shim
+    as_dict = json.loads(json_bytes)
     assert as_dict == {
         "/Array": [1, 2, 3.140000],
         "/Boolean": True,

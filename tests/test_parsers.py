@@ -58,7 +58,6 @@ def test_parser_exception(resources):
 
 
 @pytest.mark.skipif(shutil.which('pdftotext') is None, reason="poppler not installed")
-@pytest.mark.skipif(sys.version_info < (3, 6), reason="subprocess.run on 3.5")
 def test_text_filter(resources, outdir):
     input_pdf = resources / 'veraPDF test suite 6-2-10-t02-pass-a.pdf'
 

@@ -20,7 +20,7 @@ class PdfMatrix:
     a row vector ``vr=(x, y, 1)`` by the matrix ``A'``.  Most textbook
     treatments use ``A @ vc`` where the column vector ``vc=(x, y, 1)'``.
 
-    (``@`` is the Python matrix multiplication operator added in Python 3.5.)
+    (``@`` is the Python matrix multiplication operator.)
 
     Addition and other operations are not implemented because they're not that
     meaningful in a PDF context (they can be defined and are mathematically

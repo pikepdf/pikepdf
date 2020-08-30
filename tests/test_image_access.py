@@ -1,5 +1,6 @@
 import zlib
 from io import BytesIO
+from os import fspath
 from pathlib import Path
 
 import pytest
@@ -18,7 +19,6 @@ from pikepdf import (
     StreamDecodeLevel,
     parse_content_stream,
 )
-from pikepdf._cpphelpers import fspath
 from pikepdf.models.image import (
     DependencyError,
     NotExtractableError,

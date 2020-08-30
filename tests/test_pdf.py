@@ -6,6 +6,7 @@ import locale
 import shutil
 import sys
 from io import BytesIO, StringIO
+from os import fspath
 from pathlib import Path
 from unittest.mock import Mock
 
@@ -13,7 +14,6 @@ import pytest
 
 import pikepdf
 from pikepdf import PasswordError, Pdf, PdfError, Stream
-from pikepdf._cpphelpers import fspath  # For py35
 
 # pylint: disable=redefined-outer-name
 
@@ -129,7 +129,6 @@ class TestStreams:
             saved_file_contents = saved_file.read()
         assert saved_file_contents == bio.read()
 
-    @pytest.mark.skipif(sys.version_info < (3, 6), reason="pathlib on 3.5")
     def test_read_not_readable_file(self, outdir):
         writable = (Path(outdir) / 'writeme.pdf').open('wb')
         with pytest.raises(ValueError, match=r'not readable'):
@@ -171,7 +170,6 @@ def test_show_xref(trivial):
     trivial.show_xref_table()
 
 
-@pytest.mark.skipif(sys.version_info < (3, 6), reason='missing mock.assert_called')
 def test_progress(trivial, outdir):
     pdf = trivial
     mock = Mock()

@@ -170,7 +170,7 @@ if __name__ == '__main__':  # for mp_compile
         extras_require={'docs': docs_require},
         cmdclass={'build_ext': BuildExt},
         zip_safe=False,
-        python_requires='>=3.5',
+        python_requires='>=3.6',
         setup_requires=[
             'setuptools_scm',
             'setuptools_scm_git_archive',
@@ -186,7 +186,6 @@ if __name__ == '__main__':  # for mp_compile
             "Intended Audience :: Developers",
             "Intended Audience :: Information Technology",
             "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
-            "Programming Language :: Python :: 3.5",
             "Programming Language :: Python :: 3.6",
             "Programming Language :: Python :: 3.7",
             "Programming Language :: Python :: 3.8",
