@@ -15,7 +15,6 @@
 import os
 import subprocess
 import sys
-from unittest.mock import MagicMock
 
 from pkg_resources import get_distribution
 
@@ -58,18 +57,10 @@ if on_rtd:
                 'pikepdf',
             ]
         )
-
-    class Mock(MagicMock):
-        @classmethod
-        def __getattr__(cls, name):
-            return MagicMock()
-
-    MOCK_MODULES = ['libxmp']
-    sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
-
 else:
     sys.path.insert(0, os.path.abspath(os.path.join('..', 'installed')))
 
+autodoc_mock_imports = ['libxmp']
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
