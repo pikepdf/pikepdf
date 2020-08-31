@@ -399,10 +399,11 @@ class Extend_Pdf:
 
     def close(self) -> None:
         """
-        Close a Pdf object and release resources acquired by pikepdf.
+        Close a ``Pdf`` object and release resources acquired by pikepdf.
 
         If pikepdf opened the file handle it will close it (e.g. when opened with a file
         path). If the caller opened the file for pikepdf, the caller close the file.
+        ``with`` blocks will call close when exit.
 
         pikepdf lazily loads data from PDFs, so some :class:`pikepdf.Object` may
         implicitly depend on the :class:`pikepdf.Pdf` being open. This is always the
@@ -417,11 +418,11 @@ class Extend_Pdf:
             Closing the ``Pdf`` is currently implemented by resetting it to an empty
             sentinel. It is currently possible to edit the sentinel as if it were a live
             object. This behavior should not be relied on and is subject to change.
-
         """
 
-        # Can use QPDF::closeInputSource() but that requires libqpdf 9.0.0
-
+        # We could use QPDF::closeInputSource(), but many functions like
+        # QPDF::getFilename() will segfault if called without an open file, so it's
+        # best to use a sentinel empty file.
         EMPTY_PDF = (
             b"%PDF-1.3\n"
             b"1 0 obj\n"
