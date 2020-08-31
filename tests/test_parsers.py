@@ -79,7 +79,7 @@ def test_text_filter(resources, outdir):
             continue
         keep.append((operands, command))
 
-    new_stream = Stream(pdf, keep)
+    new_stream = Stream(pdf, pikepdf.unparse_content_stream(keep))
     print(new_stream.read_bytes())  # pylint: disable=no-member
     page['/Contents'] = new_stream
     page['/Rotate'] = 90

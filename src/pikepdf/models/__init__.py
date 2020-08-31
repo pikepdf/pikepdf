@@ -4,7 +4,7 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
-from typing import List, Tuple
+from typing import Collection, List, Tuple
 
 from pikepdf import Object, ObjectType, Operator, PdfError, _qpdf
 
@@ -29,7 +29,7 @@ class PdfParsingError(Exception):
 
 def parse_content_stream(
     page_or_stream: Object, operators: str = ''
-) -> List[Tuple[Tuple, str]]:
+) -> List[Tuple[Tuple, Operator]]:
     """
     Parse a PDF content stream into a sequence of instructions.
 
@@ -91,7 +91,7 @@ def parse_content_stream(
     return instructions
 
 
-def unparse_content_stream(instructions: List[Tuple[Tuple, str]]) -> bytes:
+def unparse_content_stream(instructions: Collection[Tuple[Tuple, Operator]]) -> bytes:
     """
     Given a parsed list of instructions/operand-operators, convert to bytes suitable
     for embedding in a PDF. In PDF the operator always follows the operands.

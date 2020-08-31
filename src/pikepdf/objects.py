@@ -194,9 +194,7 @@ class Stream(Object, metaclass=_ObjectMeta):
         """
         Args:
             owner (pikepdf.Pdf): The Pdf to which this stream shall be attached.
-            obj (bytes or list): If ``bytes``, the data bytes for the stream.
-                If ``list``, a list of ``(operands, operator)`` tuples such
-                as returned by :func:`pikepdf.parse_content_stream`.
+            obj (bytes): The data bytes for the stream.
 
         Returns:
             pikepdf.Object

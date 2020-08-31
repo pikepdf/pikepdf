@@ -834,31 +834,6 @@ void init_object(py::module& m)
         "Construct a PDF Stream object from binary data",
         py::keep_alive<0, 1>() // returned object references the owner
     );
-    m.def("_new_stream",
-        [](std::shared_ptr<QPDF> owner, py::iterable content_stream) {
-            std::stringstream data;
-
-            for (auto handle_command : content_stream) {
-                py::tuple command = py::reinterpret_borrow<py::tuple>(handle_command);
-
-                if (command.size() != 2)
-                    throw py::value_error("Each item in stream data must be a tuple(operands, operator)");
-
-                py::object operands = command[0];
-                py::object operator_ = command[1];
-                for (auto operand : operands) {
-                    QPDFObjectHandle h = objecthandle_encode(operand);
-                    data << h.unparse();
-                    data << " ";
-                }
-                data << objecthandle_encode(operator_).unparse();
-                data << "\n";
-            }
-            return QPDFObjectHandle::newStream(owner.get(), data.str());
-        },
-        "Construct a PDF Stream object from a list of operand-operator tuples [((operands,), operator)]",
-        py::keep_alive<0, 1>() // returned object references the owner
-    );
     m.def("Operator",
         [](const std::string& op) {
             return QPDFObjectHandle::newOperator(op);
