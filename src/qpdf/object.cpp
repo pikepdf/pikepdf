@@ -314,7 +314,7 @@ void init_object(py::module& m)
                 try {
                     q_other = objecthandle_encode(other);
                 } catch (const py::cast_error&) {
-                    return py::globals()["__builtins__"]["NotImplemented"];
+                    return py::reinterpret_borrow<py::object>(py::handle(Py_NotImplemented));
                 }
                 bool result = (self == objecthandle_encode(other));
                 return py::bool_(result);
