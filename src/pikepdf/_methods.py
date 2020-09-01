@@ -35,6 +35,7 @@ from ._qpdf import (
 from .models import Encryption, EncryptionInfo, Outline, PdfMetadata, Permissions
 
 # pylint: disable=no-member,unsupported-membership-test,unsubscriptable-object
+# mypy: ignore-errors
 
 __all__ = []
 

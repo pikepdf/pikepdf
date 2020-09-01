@@ -26,6 +26,9 @@ from typing import TYPE_CHECKING, Iterable, Optional, Union
 from . import _qpdf
 from ._qpdf import Object, ObjectType
 
+if TYPE_CHECKING:
+    from pikepdf import Pdf
+
 # By default pikepdf.Object will identify itself as pikepdf._qpdf.Object
 # Here we change the module to discourage people from using that internal name
 # Instead it will become pikepdf.objects.Object
@@ -38,7 +41,7 @@ ObjectType.__module__ = __name__
 # pylint: disable=invalid-metaclass
 
 
-class _ObjectMeta(type(Object)):
+class _ObjectMeta(type(Object)):  # type: ignore
     """Supports instance checking"""
 
     # The instance being checked in a metaclass is a class
