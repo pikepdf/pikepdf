@@ -117,7 +117,7 @@ class OutlineItem:
             else:
                 raise ValueError("Invalid keyword argument {0}".format(k))
         self.is_closed = False
-        self.children: Iterable[Object] = []
+        self.children: Iterable[OutlineItem] = []
 
     def __str__(self):
         if self.children:
@@ -226,9 +226,9 @@ class Outline:
     def _save_level_outline(
         self,
         parent: Dictionary,
-        outline_items: Iterable[Object],
+        outline_items: Iterable[OutlineItem],
         level: int,
-        visited_objs: Set[Object],
+        visited_objs: Set[Tuple[int, int]],
     ):
         count = 0
         prev: Optional[Dictionary] = None
@@ -281,7 +281,7 @@ class Outline:
         first_obj: Dictionary,
         outline_items: List[Object],
         level: int,
-        visited_objs: Set[Object],
+        visited_objs: Set[Tuple[int, int]],
     ):
         current_obj = first_obj
         while current_obj:
