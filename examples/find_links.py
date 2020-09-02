@@ -21,6 +21,7 @@
 """Use pikepdf to find links in a PDF"""
 
 import argparse
+
 import pikepdf
 from pikepdf import Name
 

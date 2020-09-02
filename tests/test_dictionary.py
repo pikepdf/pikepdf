@@ -2,7 +2,6 @@ import pytest
 
 from pikepdf import Pdf
 
-
 # pylint: disable=redefined-outer-name,pointless-statement,expression-not-assigned
 
 

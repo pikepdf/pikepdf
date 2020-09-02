@@ -1,6 +1,6 @@
 import shutil
-from subprocess import PIPE, run
 import sys
+from subprocess import PIPE, run
 
 import pytest
 

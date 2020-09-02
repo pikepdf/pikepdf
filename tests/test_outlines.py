@@ -426,10 +426,14 @@ def test_page_destination(resources, page_num, page_loc, kwargs):
 
 
 @given(
-    title=st.text(), page_num=st.integers(0, 1), page_loc=st.sampled_from(PageLocation),
+    title=st.text(),
+    page_num=st.integers(0, 1),
+    page_loc=st.sampled_from(PageLocation),
 )
 @example(
-    title='', page_num=0, page_loc='FitR',
+    title='',
+    page_num=0,
+    page_loc='FitR',
 )
 def test_new_item(resources, title, page_num, page_loc):
     doc = Pdf.open(resources / 'outlines.pdf')

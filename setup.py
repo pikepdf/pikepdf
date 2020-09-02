@@ -14,7 +14,7 @@ class get_pybind_include(object):
 
     The purpose of this class is to postpone importing pybind11
     until it is actually installed, so that the ``get_include()``
-    method can be invoked. """
+    method can be invoked."""
 
     def __str__(self):
         # If we are vendoring use the vendored version
