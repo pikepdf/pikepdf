@@ -102,6 +102,17 @@ class Name(Object, metaclass=_NameObjectMeta):
 
 
 class Operator(Object, metaclass=_ObjectMeta):
+    """Constructs an operator for use in a content stream.
+
+    An Operator is one of a limited set of commands that can appear in PDF content
+    streams (roughly the mini-language that draws objects, lines and text on a
+    virtual PDF canvas). The commands :func:`parse_content_stream` and
+    :func:`unparse_content_stream` create and expect Operators respectively, along
+    with their operands.
+
+    pikepdf uses the special Operator "INLINE IMAGE" to denote an inline image
+    in a content stream.
+    """
 
     object_type = ObjectType.operator
 
