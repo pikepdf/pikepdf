@@ -103,7 +103,7 @@ class TestPermissions:
         assert pdf.allow.print_highres == pdf.allow.modify_annotation == False
 
     def test_permissions_all_true_not_encrypted(self, trivial):
-        assert all(trivial.allow.values())
+        assert all(trivial.allow)
 
 
 class TestStreams:

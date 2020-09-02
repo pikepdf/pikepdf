@@ -470,7 +470,7 @@ class Extend_Pdf:
         pikepdf has no way of enforcing permissions.
         """
         results = {}
-        for field in Permissions.fields():
+        for field in Permissions._fields:
             results[field] = getattr(self, '_allow_' + field)
         return Permissions(**results)
 

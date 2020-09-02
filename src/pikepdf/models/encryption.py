@@ -5,10 +5,10 @@
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
 import types
-from typing import Any, Dict, Union
+from typing import Any, Dict, NamedTuple, Union
 
 
-class Permissions(types.SimpleNamespace):
+class Permissions(NamedTuple):
     """
     Stores the permissions for an encrypted PDF.
 
@@ -17,38 +17,14 @@ class Permissions(types.SimpleNamespace):
     can only be changed when a PDF is saved.
     """
 
-    def __init__(
-        self,
-        accessibility: bool = True,  # pylint: disable=unused-argument
-        extract: bool = True,  # pylint: disable=unused-argument
-        modify_annotation: bool = True,  # pylint: disable=unused-argument
-        modify_assembly: bool = False,  # pylint: disable=unused-argument
-        modify_form: bool = True,  # pylint: disable=unused-argument
-        modify_other: bool = True,  # pylint: disable=unused-argument
-        print_lowres: bool = True,  # pylint: disable=unused-argument
-        print_highres: bool = True,  # pylint: disable=unused-argument
-    ):
-        kwargs = {
-            k: v for k, v in locals().items() if k != 'self' and not k.startswith('_')
-        }
-        super().__init__(**kwargs)
-
-    def _readonly(self, *args):
-        raise TypeError("object is read-only")
-
-    __setattr__ = _readonly
-
-    __delattr__ = _readonly
-
-    def keys(self):
-        yield from (k for k in self.__dict__ if not k.startswith('_'))
-
-    def values(self):
-        yield from (v for k, v in self.__dict__.items() if not k.startswith('_'))
-
-    @classmethod
-    def fields(cls):
-        yield from (k for k in cls().__dict__ if not k.startswith('_'))
+    accessibility: bool = True
+    extract: bool = True
+    modify_annotation: bool = True
+    modify_assembly: bool = False
+    modify_form: bool = True
+    modify_other: bool = True
+    print_lowres: bool = True
+    print_highres: bool = True
 
 
 class EncryptionInfo:
