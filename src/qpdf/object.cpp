@@ -24,6 +24,7 @@
 #include <pybind11/stl.h>
 
 #include "pikepdf.h"
+#include "utils.h"
 
 #include "object_parsers.h"
 
@@ -174,6 +175,10 @@ void object_set_key(QPDFObjectHandle h, std::string const& key, QPDFObjectHandle
         throw py::value_error("object is not a dictionary or a stream");
     if (value.isNull())
         throw py::value_error("PDF Dictionary keys may not be set to None - use 'del' to remove");
+    if (key == "/")
+        throw py::key_error("PDF Dictionary keys may not be '/'");
+    if (! str_startswith(key, "/"))
+        throw py::key_error("PDF Dictionary keys must begin with '/'");
     if (h.isStream() && key == "/Length") {
         PyErr_WarnEx(PyExc_DeprecationWarning,
             "Modifications to /Length have no effect and will be forbidden in a future release.",
