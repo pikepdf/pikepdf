@@ -209,3 +209,16 @@ def test_mmap_only_file(resources):
     f = UnreadableFile(resources / 'pal.pdf', 'rb')
     with pytest.raises(ExpectedError):
         Pdf.open(f, access_mode=pikepdf._qpdf.AccessMode.stream)
+
+
+def test_save_bytesio(resources, outpdf):
+    with Pdf.open(resources / 'fourpages.pdf') as input_:
+        pdf = Pdf.new()
+        for page in input_.pages:
+            pdf.pages.append(page)
+        bio = BytesIO()
+        pdf.save(bio)
+        bio_value = bio.getvalue()
+        assert bio_value != b''
+        pdf.save(outpdf)
+        assert outpdf.read_bytes() == bio_value
