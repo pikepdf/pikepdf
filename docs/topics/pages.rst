@@ -59,10 +59,10 @@ We create an empty ``Pdf`` which will be the container for all the others.
     In [1]: pdf.save('merged.pdf')
 
 This code sample is enough to merge most PDFs, but there are some things it
-does not do that a more sophisicated function might do. One could call
-:meth:`pikepdf.Pdf.remove_unreferenced_resources` to remove unreferenced
-resources. It may also be necessary to chose the most recent version of all
-source PDFs. Here is a more sophisticated example:
+does not do that a more sophisticated function might do. One could call
+:meth:`pikepdf.Pdf.remove_unreferenced_resources` to remove unreferenced objects
+from the page's ``/Resources`` dictionary. It may also be necessary to chose the
+most recent version of all source PDFs. Here is a more sophisticated example:
 
 .. ipython::
     :verbatim:

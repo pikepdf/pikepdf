@@ -661,8 +661,15 @@ void init_qpdf(py::module &m)
             in their /Resources dictionary that are not actually required.
             This purges all unnecessary resource entries.
 
-            Suggested before saving.
+            For clarity, if all references to any type of object are removed, that
+            object will be excluded from the output PDF on save. (Conversely, only
+            objects that are discoverable from the PDF's root object are included.)
+            This function removes objects that are referenced from the page /Resources
+            dictionary, but never called for in the content stream, making them
+            unnecessary.
 
+            Suggested before saving, if content streams or /Resources dictionaries
+            are edited.
             )~~~"
         )
         .def("_save", save_pdf, "",
