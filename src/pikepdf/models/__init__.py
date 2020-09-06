@@ -105,6 +105,9 @@ def unparse_content_stream(instructions):
     def encode(obj):
         return _qpdf.unparse(obj)
 
+    def encode_iimage(iimage):
+        return iimage.unparse()
+
     def encode_operator(obj):
         if isinstance(obj, Operator):
             return obj.unparse()
@@ -113,8 +116,17 @@ def unparse_content_stream(instructions):
     def for_each_instruction():
         for n, (operands, operator) in enumerate(instructions):
             try:
-                line = b' '.join(encode(operand) for operand in operands)
-                line += b' ' + encode_operator(operator)
+                if operator == Operator(b'INLINE IMAGE'):
+                    iimage = operands[0]
+                    if not isinstance(iimage, PdfInlineImage):
+                        raise ValueError(
+                            "Operator was INLINE IMAGE but operands were not "
+                            "a PdfInlineImage"
+                        )
+                    line = encode_iimage(iimage)
+                else:
+                    line = b' '.join(encode(operand) for operand in operands)
+                    line += b' ' + encode_operator(operator)
             except (PdfError, ValueError) as e:
                 raise PdfParsingError("Error encoding", line=n + 1) from e
             yield line

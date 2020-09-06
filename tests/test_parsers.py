@@ -151,3 +151,11 @@ def test_unparse_interpret_operator():
         unparse_content_stream(commands)
         == b'2 0 0 2 0 0 cm\n2 0 0 2 0 0 cm\n2 0 0 2 0 0 cm'
     )
+
+
+def test_unparse_inline(resources):
+    with Pdf.open(resources / 'image-mono-inline.pdf') as pdf:
+        p0 = pdf.pages[0]
+        cmds = parse_content_stream(p0)
+        unparsed = unparse_content_stream(cmds)
+        assert b'BI' in unparsed
