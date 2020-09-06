@@ -26,6 +26,13 @@ Upcoming deprecations in v2.0.0
    on 2020-09-13.
 -  Support for macOS High Sierra (10.13 or older) will be dropped.
 
+v1.19.1
+=======
+
+-  Fixed an issue with ``unparse_content_stream``: we now assume the second item
+   of each step in the content stream is an ``Operator``.
+-  Fixed an issue with unparsing inline images.
+
 v1.19.0
 =======
 
