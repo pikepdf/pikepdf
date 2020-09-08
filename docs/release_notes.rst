@@ -26,6 +26,14 @@ Upcoming deprecations in v2.0.0
    on 2020-09-13.
 -  Support for macOS High Sierra (10.13 or older) will be dropped.
 
+v1.19.2
+=======
+
+-  Fixed an exception with setting metadata objects to unsupported RDF types.
+   Instead we make a best effort to convert to an appropriate type.
+-  Prevent creating certain illegal dictionary key names.
+-  Document procedure to remove an image.
+
 v1.19.1
 =======
 
