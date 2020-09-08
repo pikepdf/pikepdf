@@ -1,8 +1,8 @@
 import os
 import re
-import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from xml.etree import ElementTree as ET
 
 import pytest
 from hypothesis import assume, example, given, settings
@@ -21,7 +21,7 @@ from pikepdf.models.metadata import (
 )
 
 try:
-    from libxmp import XMPMeta, XMPError
+    from libxmp import XMPError, XMPMeta
 except Exception:  # throws libxmp.ExempiLoadError pylint: disable=broad-except
     XMPMeta, XMPError = None, None
 
@@ -587,3 +587,12 @@ def test_issue_100(trivial):
         UserWarning, match="no XMP equivalent"
     ):
         m.load_from_docinfo({'/AAPL:Example': pikepdf.Array([42])})
+
+
+def test_issue_135_title_rdf_bag(trivial):
+    with trivial.open_metadata(update_docinfo=True) as xmp, pytest.warns(
+        UserWarning, match="Merging elements"
+    ):
+        xmp['dc:title'] = {'Title 1', 'Title 2'}
+    with trivial.open_metadata(update_docinfo=False) as xmp:
+        assert b'Title 1; Title 2</rdf:li></rdf:Alt></dc:title>' in xmp._get_xml_bytes()

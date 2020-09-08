@@ -8,7 +8,7 @@ import logging
 import re
 import sys
 from collections import namedtuple
-from collections.abc import MutableMapping
+from collections.abc import Iterable, MutableMapping, Set
 from datetime import datetime
 from functools import wraps
 from io import BytesIO
@@ -102,6 +102,22 @@ re_xml_illegal_bytes = re.compile(
     br"[^\x09\x0A\x0D\x20-\xFF]|&#0;"
     # br"&#(?:[0-9]|0[0-9]|1[0-9]|2[0-9]|3[0-1]|x[0-9A-Fa-f]|x0[0-9A-Fa-f]|x1[0-9A-Fa-f]);"
 )
+
+
+def _clean(s, joiner='; '):
+    """Ensure an object can safely be inserted in a XML tag body.
+
+    If we still have a non-str object at this point, the best option is to
+    join it, because it's apparently calling for a new node in a place that
+    isn't allowed in the spec or not supported.
+    """
+    if not isinstance(s, str) and isinstance(s, Iterable):
+        warn("Merging elements of {}".format(s))
+        if isinstance(s, Set):
+            s = joiner.join(sorted(s))
+        else:
+            s = joiner.join(s)
+    return re_xml_illegal_chars.sub('', s)
 
 
 def encode_pdf_date(d: datetime) -> str:
@@ -428,7 +444,7 @@ class PdfMetadata(MutableMapping):
                 if docinfo_name in self._pdf.docinfo:
                     del self._pdf.docinfo[docinfo_name]
                 continue
-            value = re_xml_illegal_chars.sub('', value)
+            value = _clean(value)
             try:
                 # Try to save pure ASCII
                 self._pdf.docinfo[docinfo_name] = value.encode('ascii')
@@ -594,9 +610,6 @@ class PdfMetadata(MutableMapping):
         if not self._updating:
             raise RuntimeError("Metadata not opened for editing, use with block")
 
-        def clean(s):
-            return re_xml_illegal_chars.sub('', s)
-
         def add_array(node, items):
             rdf_type = next(
                 c.rdf_type for c in XMP_CONTAINERS if isinstance(items, c.py_type)
@@ -608,7 +621,7 @@ class PdfMetadata(MutableMapping):
                 attrib = None
             for item in items:
                 el = etree.SubElement(seq, QName(XMP_NS_RDF, 'li'), attrib=attrib)
-                el.text = clean(item)
+                el.text = _clean(item)
 
         try:
             # Locate existing node to replace
@@ -616,7 +629,7 @@ class PdfMetadata(MutableMapping):
             if attrib:
                 if not isinstance(val, str):
                     raise TypeError(val)
-                node.set(attrib, clean(val))
+                node.set(attrib, _clean(val))
             elif isinstance(val, (list, set)):
                 for child in node.findall('*'):
                     node.remove(child)
@@ -625,16 +638,16 @@ class PdfMetadata(MutableMapping):
                 for child in node.findall('*'):
                     node.remove(child)
                 if str(self._qname(key)) in LANG_ALTS:
-                    add_array(node, AltList([clean(val)]))
+                    add_array(node, AltList([_clean(val)]))
                 else:
-                    node.text = clean(val)
+                    node.text = _clean(val)
             else:
                 raise TypeError(val)
         except StopIteration:
             # Insert a new node
             rdf = self._get_rdf_root()
             if str(self._qname(key)) in LANG_ALTS:
-                val = AltList([clean(val)])
+                val = AltList([_clean(val)])
             if isinstance(val, (list, set)):
                 rdfdesc = etree.SubElement(
                     rdf,
@@ -649,7 +662,7 @@ class PdfMetadata(MutableMapping):
                     QName(XMP_NS_RDF, 'Description'),
                     attrib={
                         QName(XMP_NS_RDF, 'about'): '',
-                        self._qname(key): clean(val),
+                        self._qname(key): _clean(val),
                     },
                 )
             else:
