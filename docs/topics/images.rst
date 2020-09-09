@@ -156,20 +156,20 @@ not be included in the output file.
 
 .. ipython::
 
-In [1]: pdf = pikepdf.open('tests/resources/sandwich.pdf')
+  In [1]: pdf = pikepdf.open('../tests/resources/sandwich.pdf')
 
-In [1]: page = pdf.pages[0]
+  In [1]: page = pdf.pages[0]
 
-In [1]: image_name, image = next(page.images.items())
+  In [1]: image_name, image = next(page.images.items())
 
-In [1]: new_image = pdf.make_stream(b'\xff')
+  In [1]: new_image = pdf.make_stream(b'\xff')
 
-In [1]: new_image.Width, new_image.Height = 1, 1
+  In [1]: new_image.Width, new_image.Height = 1, 1
 
-In [1]: new_image.BitsPerComponent = 1
+  In [1]: new_image.BitsPerComponent = 1
 
-In [1]: new_image.ImageMask = True
+  In [1]: new_image.ImageMask = True
 
-In [1]: new_image.Decode = [0, 1]
+  In [1]: new_image.Decode = [0, 1]
 
-In [1]: page.Resources.XObject[image_name] = new_image
+  In [1]: page.Resources.XObject[image_name] = new_image
