@@ -26,6 +26,12 @@ Upcoming deprecations in v2.0.0
    on 2020-09-13.
 -  Support for macOS High Sierra (10.13 or older) will be dropped.
 
+v1.19.3
+=======
+
+-  Fixed an exception that occurred when building the documentation, introduced in
+   the previous release.
+
 v1.19.2
 =======
 
