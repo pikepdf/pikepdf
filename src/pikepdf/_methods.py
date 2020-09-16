@@ -647,9 +647,14 @@ class Extend_Pdf:
                 creating the smallest files but requiring PDF 1.5+.
 
             compress_streams (bool): Enables or disables the compression of
-                stream objects in the PDF. Metadata is never compressed.
+                new stream objects in the PDF that are created without specifying
+                any compression setting. Metadata is never compressed.
                 By default this is set to ``True``, and should be except
-                for debugging.
+                for debugging. Existing streams in the PDF or streams will not
+                be modified. To decompress existing streams, you must set
+                both ``compress_streams=False`` and ``stream_decode_level``
+                to the desired decode level (e.g. ``.generalized`` will
+                decompress most non-image content).
 
             stream_decode_level (pikepdf.StreamDecodeLevel): Specifies how
                 to encode stream objects. See documentation for
@@ -690,10 +695,9 @@ class Extend_Pdf:
         .. note::
 
             :meth:`pikepdf.Pdf.remove_unreferenced_resources` before saving
-            may eliminate unnecessary resources from the output file, so
-            calling this method before saving is recommended. This is not
-            done automatically because ``.save()`` is intended to be
-            idempotent.
+            may eliminate unnecessary resources from the output file if there
+            any objects (such as images) that are referenced in a page's
+            Resources dictionary but never called in the page's content stream.
 
         .. note::
 
