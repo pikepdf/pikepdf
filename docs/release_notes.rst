@@ -18,8 +18,7 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
-Upcoming deprecations in v2.0.0
--------------------------------
+**Upcoming deprecations in v2.0.0**
 
 -  Support for QPDF <= 10.0.1 will be dropped.
 -  Support for Python 3.5 will be dropped when Python 3.5 reaches end of life,
