@@ -13,7 +13,7 @@
 #include <pybind11/stl.h>
 
 
-void init_pagelist(py::module &m);
+void init_pagelist(py::module_ &m);
 
 class PageList {
 public:

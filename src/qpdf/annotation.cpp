@@ -21,7 +21,7 @@
 #include "pikepdf.h"
 
 
-void init_annotation(py::module &m)
+void init_annotation(py::module_ &m)
 {
     py::class_<QPDFAnnotationObjectHelper>(m, "Annotation")
         .def(py::init<QPDFObjectHandle &>(), py::keep_alive<0, 1>())

@@ -58,7 +58,7 @@ public:
         py::gil_scoped_acquire acquire;
         py::int_ fileno = stream.attr("fileno")();
         int fd = fileno;
-        auto mmap_module = py::module::import("mmap");
+        auto mmap_module = py::module_::import("mmap");
         auto mmap_fn = mmap_module.attr("mmap");
 
         // Use Python's mmap API since it is more portable than platform versions.

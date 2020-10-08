@@ -42,7 +42,7 @@ enum access_mode_e { access_default, access_stream, access_mmap, access_mmap_onl
 
 void check_stream_is_usable(py::object stream)
 {
-    auto TextIOBase = py::module::import("io").attr("TextIOBase");
+    auto TextIOBase = py::module_::import("io").attr("TextIOBase");
 
     if (py::isinstance(stream, TextIOBase)) {
         throw py::type_error("stream must be binary (no transcoding) and seekable");
@@ -88,7 +88,7 @@ open_pdf(
         if (py::isinstance<py::int_>(filename_or_stream))
             throw py::type_error("expected str, bytes or os.PathLike object");
         auto filename = fspath(filename_or_stream);
-        auto io_open = py::module::import("io").attr("open");
+        auto io_open = py::module_::import("io").attr("open");
         stream = io_open(filename, "rb");
         closing_stream = true;
         description = py::str(filename);
@@ -162,7 +162,7 @@ private:
 
 void update_xmp_pdfversion(QPDF &q, std::string version)
 {
-    auto impl = py::module::import("pikepdf._cpphelpers").attr("update_xmp_pdfversion");
+    auto impl = py::module_::import("pikepdf._cpphelpers").attr("update_xmp_pdfversion");
     auto pypdf = py::cast(q);
     impl(pypdf, version);
 }
@@ -190,7 +190,7 @@ void setup_encryption(
         throw py::value_error("Invalid encryption level: must be 2, 3, 4 or 6");
 
     if (encryption_level == 5) {
-        auto warn = py::module::import("warnings").attr("warn");
+        auto warn = py::module_::import("warnings").attr("warn");
         warn("Encryption R=5 is deprecated");
     }
 
@@ -400,7 +400,7 @@ void save_pdf(
         if (samefile_check) {
             auto input_filename = q.getFilename();
 
-            py::object ospath = py::module::import("os").attr("path");
+            py::object ospath = py::module_::import("os").attr("path");
             py::object samefile = ospath.attr("samefile");
             try {
                 if (samefile(output_filename, input_filename).cast<bool>()) {
@@ -418,7 +418,7 @@ void save_pdf(
                     throw;
             }
         }
-        stream = py::module::import("io").attr("open")(output_filename, "wb");
+        stream = py::module_::import("io").attr("open")(output_filename, "wb");
         should_close_stream = true;
         description = py::str(output_filename);
     }
@@ -470,7 +470,7 @@ void save_pdf(
 }
 
 
-void init_qpdf(py::module &m)
+void init_qpdf(py::module_ &m)
 {
     py::enum_<qpdf_object_stream_e>(m, "ObjectStreamMode")
         .value("disable", qpdf_object_stream_e::qpdf_o_disable)
@@ -611,7 +611,7 @@ void init_qpdf(py::module &m)
                     :data:`sys.stderr`.
 
             )~~~",
-            py::arg_v("stream", py::module::import("sys").attr("stderr"), "sys.stderr")
+            py::arg_v("stream", py::module_::import("sys").attr("stderr"), "sys.stderr")
         )
         .def("get_warnings", // this is a def because it modifies state by clearing warnings
             [](QPDF& q) {

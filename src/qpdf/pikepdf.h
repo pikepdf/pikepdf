@@ -145,11 +145,11 @@ typedef std::map<std::string, QPDFObjectHandle> ObjectMap;
 PYBIND11_MAKE_OPAQUE(ObjectMap);
 
 // From qpdf.cpp
-void init_qpdf(py::module& m);
+void init_qpdf(py::module_& m);
 
 // From object.cpp
 size_t list_range_check(QPDFObjectHandle h, int index);
-void init_object(py::module& m);
+void init_object(py::module_& m);
 
 // From object_repr.cpp
 std::string objecthandle_scalar_value(QPDFObjectHandle h, bool escaped=true);
@@ -164,10 +164,10 @@ std::vector<QPDFObjectHandle> array_builder(const py::iterable iter);
 std::map<std::string, QPDFObjectHandle> dict_builder(const py::dict dict);
 
 // From annotation.cpp
-void init_annotation(py::module &m);
+void init_annotation(py::module_ &m);
 
 // From page.cpp
-void init_page(py::module &m);
+void init_page(py::module_ &m);
 
 // Support for recursion checks
 class StackGuard

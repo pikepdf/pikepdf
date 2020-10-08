@@ -34,7 +34,7 @@ As a general rule for code style, PEP8-style naming conventions should be used.
 That is, variable and method names are snake_case, class names are CamelCase.
 Our coding conventions are closer to pybind11's than QPDF's. When a C++ object
 wraps is a Python object, it should follow the Python naming conventions for
-that type of object, e.g. ``auto Decimal = py::module::import("decimal").attr("Decimal")``
+that type of object, e.g. ``auto Decimal = py::module_::import("decimal").attr("Decimal")``
 for a reference to the Python ``Decimal`` class.
 
 We don't like the traditional C++ .cpp/.h separation that results in a lot of

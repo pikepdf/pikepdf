@@ -81,7 +81,7 @@ public:
                 if (op == "ID") {
                     this->inline_metadata = this->tokens;
                 } else if (op == "EI") {
-                    auto PdfInlineImage = py::module::import("pikepdf").attr("PdfInlineImage");
+                    auto PdfInlineImage = py::module_::import("pikepdf").attr("PdfInlineImage");
                     auto kwargs = py::dict();
                     kwargs["image_data"] = this->tokens.at(0);
                     kwargs["image_object"] = this->inline_metadata;

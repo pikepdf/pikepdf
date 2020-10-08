@@ -63,7 +63,7 @@ public:
     }
 };
 
-void init_page(py::module& m)
+void init_page(py::module_& m)
 {
     py::class_<QPDFPageObjectHelper>(m, "Page")
         .def(py::init<QPDFObjectHandle &>())

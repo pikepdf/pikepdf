@@ -68,7 +68,7 @@ array_builder(const py::iterable iter)
 class DecimalPrecision {
 public:
     DecimalPrecision(uint calc_precision) :
-        decimal_context(py::module::import("decimal").attr("getcontext")()),
+        decimal_context(py::module_::import("decimal").attr("getcontext")()),
         saved_precision(decimal_context.attr("prec").cast<uint>())
     {
         decimal_context.attr("prec") = calc_precision;
@@ -103,7 +103,7 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle)
         return QPDFObjectHandle::newBool(as_bool);
     }
 
-    auto decimal_module = py::module::import("decimal");
+    auto decimal_module = py::module_::import("decimal");
     auto Decimal = decimal_module.attr("Decimal");
     if (py::isinstance(handle, Decimal)) {
         DecimalPrecision dp(DECIMAL_PRECISION);
@@ -151,7 +151,7 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle)
 
 py::object decimal_from_pdfobject(QPDFObjectHandle h)
 {
-    auto decimal_constructor = py::module::import("decimal").attr("Decimal");
+    auto decimal_constructor = py::module_::import("decimal").attr("Decimal");
 
     if (h.getTypeCode() == QPDFObject::object_type_e::ot_integer) {
         auto value = h.getIntValue();

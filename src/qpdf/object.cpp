@@ -214,7 +214,7 @@ std::pair<int, int> object_get_objgen(QPDFObjectHandle h)
 }
 
 
-void init_object(py::module& m)
+void init_object(py::module_& m)
 {
     py::enum_<QPDFObject::object_type_e>(m, "ObjectType")
         .value("uninitialized", QPDFObject::object_type_e::ot_uninitialized)
@@ -267,7 +267,7 @@ void init_object(py::module& m)
         .def("__repr__", &objecthandle_repr)
         .def("__hash__",
             [](QPDFObjectHandle &self) -> py::int_ {
-                py::object hash = py::module::import("builtins").attr("hash");
+                py::object hash = py::module_::import("builtins").attr("hash");
 
                 //Objects which compare equal must have the same hash value
                 switch (self.getTypeCode()) {
@@ -724,7 +724,7 @@ void init_object(py::module& m)
                 OperandGrouper og(whitelist);
                 QPDFObjectHandle::parseContentStream(h, &og);
                 if (!og.getWarning().empty()) {
-                    auto warn = py::module::import("warnings").attr("warn");
+                    auto warn = py::module_::import("warnings").attr("warn");
                     warn(og.getWarning());
                 }
                 return og.getInstructions();

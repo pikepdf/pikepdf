@@ -167,7 +167,7 @@ void PageList::insert_page(size_t index, QPDFObjectHandle page)
     }
 }
 
-void init_pagelist(py::module &m)
+void init_pagelist(py::module_ &m)
 {
     py::class_<PageList>(m, "PageList")
         .def("__getitem__",
