@@ -17,6 +17,3 @@ inline bool str_startswith(T haystack, S needle)
 {
     return std::string(haystack).rfind(needle, 0) == 0;
 }
-
-py::memoryview memoryview_from_memory(void *mem, ssize_t size, bool readonly = false);
-py::memoryview memoryview_from_memory(const void *mem, ssize_t size);
