@@ -87,6 +87,8 @@ public:
             if (this->close_stream && py::hasattr(this->stream, "close")) {
                 this->stream.attr("close")();
             }
+        } catch (py::error_already_set &e) {
+            e.discard_as_unraisable(__func__);
         } catch (const std::runtime_error &e) {
             if (!str_startswith(e.what(), "StopIteration"))
                 std::cerr << "Exception in " << __func__ << ": " << e.what();
