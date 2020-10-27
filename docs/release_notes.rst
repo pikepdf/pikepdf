@@ -18,14 +18,30 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
-**Upcoming deprecations in v2.0.0**
+v2.0.0b1
+========
 
--  Support for QPDF <= 10.0.1 will be dropped.
--  Support for Python 3.5 will be dropped when Python 3.5 reaches end of life,
-   on 2020-09-13.
--  Support for macOS High Sierra (10.13 or older) will be dropped.
+**Breaking changes**
+
+-  We now require at least these versions or newer:
+   -  Python 3.6
+   -  pybind11 2.6.0
+   -  QPDF 10.0.1
+   -  For macOS users, macOS 10.14 (Mojave)
 -  Attempting to modifying ``Stream.Length`` will raise an exception instead of a
    warning.
+-  ``pikepdf.Stream()`` can no longer parse content streams. That never made sense,
+   since this class supports streams in general, and many streams are not content
+   streams. Use ``pikepdf.parse_content_stream`` to a parse a content stream.
+-  ``pikepdf.Permissions`` is now represented as a ``NamedTuple``. Probably not a
+   concern unless some user made strong assumptions about this class and its superclass.
+-  Fixed the behavior of the ``__eq__`` on several classes to return
+   ``NotImplemented`` for uncomparable objects, instead of ``False``.
+
+**New features**
+
+-  Python 3.9 is supported.
+-  Significantly improved type hinting, including hints for functions written in C++.
 
 v1.19.3
 =======
