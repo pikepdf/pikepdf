@@ -62,10 +62,6 @@ Files: src/gsl.h
 Copyright: (C) 2015 Microsoft Corporation
 License: MIT
 
-Files: src/QIntC.hh
-Copyright: (C) 2005-2020 Jay Berkenbilt
-License: Apache 2.0
-
 Files: tests/*.py
 Copyright: (C) 2017 James R. Barlow
 License: CC0-1.0
