@@ -83,19 +83,23 @@ reportlab (a "write-only" PDF generator).
 Requirements
 ~~~~~~~~~~~~
 
-pikepdf currently requires **Python 3.6+**. There are no plans to backport to
-2.7 or older versions in the 3.x series. pikepdf 1.x supports Python 3.5.
+pikepdf currently requires **Python 3.6+** or newer. pikepdf 1.x supports Python 3.5.
+Python 2.7 has never been supported.
 
 Similar libraries
 ~~~~~~~~~~~~~~~~~
 
 Unlike similar Python libraries such as PyPDF2 and pdfrw, pikepdf is not pure
-Python. Both were designed prior to Python wheels which has made Python
+Python. These libraries were designed prior to Python wheels which has made Python
 extension libraries much easier to work with. By leveraging the existing mature
 code base of QPDF, despite being new, pikepdf is already more capable than both
 in many respects – for example, it can read compress object streams, repair
 damaged PDFs in many cases, and linearize PDFs. Unlike those libraries, it's not
 pure Python: it is impure and proud of it.
+
+PyMuPDF is a PDF library with impressive capabilities. However, its AGPL license
+its much more restrictive than pikepdf, and its dependency on static libraries
+makes it difficult to include in open source Linux or BSD distributions.
 
 In use
 ~~~~~~
