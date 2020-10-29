@@ -1,7 +1,7 @@
 pikepdf Documentation
 =====================
 
-.. figure:: /images/pike.jpg
+.. figure:: /images/pike.png
    :align: right
    :alt: A northern pike
    :figwidth: 30%

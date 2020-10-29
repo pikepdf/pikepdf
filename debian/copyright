@@ -50,7 +50,7 @@ Files: debian/*
 Copyright: (C) 2018 Sean Whitton <spwhitton@spwhitton.name>
 License: MPL-2.0
 
-Files: docs/images/pike.jpg tests/resources/pike*jp2.pdf
+Files: docs/images/pike.png tests/resources/pike*jp2.pdf
 Copyright: Public domain
 License: public-domain
  From the U.S. Fish and Wildlife Service National Image Library.
