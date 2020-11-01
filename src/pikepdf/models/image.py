@@ -242,7 +242,6 @@ class PdfImageBase(ABC):
             base = str(base[0])
         else:
             base = str(base)
-        _hival = int(_hival)
         lookup = bytes(lookup)
         if not base in self.MAIN_COLORSPACES:
             raise NotImplementedError("not sure how to interpret this palette")
@@ -698,6 +697,10 @@ class PdfJpxImage(PdfImage):
     def __init__(self, obj):
         super().__init__(obj)
         self.pil = self.as_pil_image()
+
+    def __eq__(self, other):  # pylint: disable=useless-super-delegation
+        # self.pil is not relevant to equality
+        return super().__eq__(other)
 
     def _extract_direct(self, *, stream):
         data, filters = self._unstack_compression(
