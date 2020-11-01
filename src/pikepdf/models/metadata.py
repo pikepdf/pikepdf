@@ -591,7 +591,7 @@ class PdfMetadata(MutableMapping):
         try:
             return next(self._get_element_values(key))
         except StopIteration:
-            raise KeyError(key)
+            raise KeyError(key) from None
 
     @ensure_loaded
     def __iter__(self):
@@ -657,7 +657,7 @@ class PdfMetadata(MutableMapping):
                 node = etree.SubElement(rdfdesc, self._qname(key))
                 add_array(node, val)
             elif isinstance(val, str):
-                _rdfdesc = etree.SubElement(
+                _rdfdesc = etree.SubElement(  # lgtm [py/unused-local-variable]
                     rdf,
                     QName(XMP_NS_RDF, 'Description'),
                     attrib={
@@ -666,7 +666,7 @@ class PdfMetadata(MutableMapping):
                     },
                 )
             else:
-                raise TypeError(val)
+                raise TypeError(val) from None
 
     @ensure_loaded
     def __delitem__(self, key):
@@ -686,7 +686,7 @@ class PdfMetadata(MutableMapping):
             else:
                 parent.remove(node)
         except StopIteration:
-            raise KeyError(key)
+            raise KeyError(key) from None
 
     @property
     @ensure_loaded

@@ -4,8 +4,7 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
-import types
-from typing import Any, Dict, NamedTuple, Union
+from typing import Any, Dict, NamedTuple
 
 
 class Permissions(NamedTuple):

@@ -9,8 +9,6 @@ Support functions called by the C++ library binding layer. Not intended to be
 called from Python, and subject to change at any time.
 """
 
-import os
-import sys
 
 from pikepdf import Name, Pdf
 

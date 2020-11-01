@@ -23,7 +23,8 @@
 import argparse
 
 import pikepdf
-from pikepdf import Name
+
+Name = pikepdf.Name
 
 parser = argparse.ArgumentParser(description="Find URIs in a PDF")
 parser.add_argument('input_file')
@@ -38,11 +39,11 @@ def check_action(action):
 
 def check_object_aa(obj):
     if Name.AA in obj:
-        for name, action in obj.AA.items():
+        for _name, action in obj.AA.items():
             yield from check_action(action)
 
 
-def check_page_annots(pdf, page):
+def check_page_annots(page):
     if Name.Annots not in page:
         return
     annots = page.Annots
@@ -57,14 +58,14 @@ def check_page_annots(pdf, page):
         yield from check_object_aa(annot)
 
 
-def check_page(pdf, page):
+def check_page(page):
     yield from check_object_aa(page)
 
 
 def gather_links(pdf):
     for page in pdf.pages:
-        yield from check_page(pdf, page)
-        yield from check_page_annots(pdf, page)
+        yield from check_page(page)
+        yield from check_page_annots(page)
 
 
 def main():

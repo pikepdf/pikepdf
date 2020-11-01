@@ -44,11 +44,11 @@ ObjectType.__module__ = __name__
 class _ObjectMeta(type(Object)):  # type: ignore
     """Supports instance checking"""
 
-    # The instance being checked in a metaclass is a class
-    def __instancecheck__(cls, instance):  # pylint: disable=no-self-argument
+    def __instancecheck__(self, instance):
+        # Note: since this class is a metaclass, self is a class object
         if type(instance) != Object:
             return False
-        return cls.object_type == instance._type_code
+        return self.object_type == instance._type_code
 
 
 class _NameObjectMeta(_ObjectMeta):
