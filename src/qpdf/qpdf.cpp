@@ -529,9 +529,6 @@ void init_qpdf(py::module_ &m)
         .def_property_readonly("Root", &QPDF::getRoot,
             "The /Root object of the PDF."
         )
-        .def_property_readonly("root", &QPDF::getRoot,
-            "Alias for .Root, the /Root object of the PDF."
-        )
         .def_property("docinfo",
             [](QPDF& q) {
                 if (!q.getTrailer().hasKey("/Info")) {

@@ -115,7 +115,7 @@ edit it using the full featured ``python-xmp-toolkit`` library.
 
 .. ipython::
 
-   In [1]: xmp = pdf.root.Metadata.read_bytes()
+   In [1]: xmp = pdf.Root.Metadata.read_bytes()
 
    In [1]: type(xmp)
    Out[1]: bytes

@@ -23,17 +23,23 @@ def test_open_pdf(resources):
     pdf = pikepdf.open(resources / 'graph.pdf')
     assert '1.3' <= pdf.pdf_version <= '1.7'
 
-    assert pdf.root['/Pages']['/Count'] == 1
+    assert pdf.Root['/Pages']['/Count'] == 1
 
 
 def test_open_pdf_password(resources):
     pdf = Pdf.open(resources / 'graph-encrypted.pdf', password='owner')
-    assert pdf.root['/Pages']['/Count'] == 1
+    assert pdf.Root['/Pages']['/Count'] == 1
 
 
 def test_attr_access(resources):
     pdf = Pdf.open(resources / 'graph.pdf')
-    assert int(pdf.root.Pages.Count) == 1
+    assert int(pdf.Root.Pages.Count) == 1
+
+
+def test_root(resources):
+    pdf = Pdf.open(resources / 'graph.pdf')
+    with pytest.warns(DeprecationWarning):
+        assert pdf.root == pdf.Root
 
 
 def test_create_pdf(outdir):

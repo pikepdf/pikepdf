@@ -31,7 +31,7 @@ will say:
 
 .. code-block:: python
 
-    >>> catalog_name = pdf.root.Type
+    >>> catalog_name = pdf.Root.Type
     pikepdf.Name("/Catalog")
     >>> isinstance(catalog_name, pikepdf.Name)
     True

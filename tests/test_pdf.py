@@ -110,7 +110,7 @@ class TestStreams:
     def test_stream(self, resources):
         with (resources / 'pal-1bit-trivial.pdf').open('rb') as stream:
             pdf = Pdf.open(stream)
-        assert pdf.root.Pages.Count == 1
+        assert pdf.Root.Pages.Count == 1
 
     def test_no_text_stream(self, resources):
         with pytest.raises(TypeError):

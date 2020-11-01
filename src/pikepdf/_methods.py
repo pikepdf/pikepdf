@@ -21,6 +21,7 @@ from pathlib import Path
 from subprocess import PIPE, run
 from tempfile import NamedTemporaryFile
 from typing import Any, BinaryIO, Callable, List, Optional, Tuple, Type, TypeVar, Union
+from warnings import warn
 
 from . import Array, Dictionary, Name, Object, Page, Pdf, Stream
 from ._qpdf import (
@@ -264,6 +265,14 @@ class Extend_Object:
 
 @augments(Pdf)
 class Extend_Pdf:
+    @property
+    def root(self):
+        """
+        Deprecated alias for .Root, the /Root object of the PDF.
+        """
+        warn("Pdf.root is deprecated; use Pdf.Root", category=DeprecationWarning)
+        return self.Root
+
     def _repr_mimebundle_(self, **_kwargs):
         """
         Present options to IPython or Jupyter for rich display of this object
