@@ -696,10 +696,10 @@ class PdfImage(PdfImageBase):
 class PdfJpxImage(PdfImage):
     def __init__(self, obj):
         super().__init__(obj)
-        self.pil = self.as_pil_image()
+        self._jpxpil = self.as_pil_image()
 
     def __eq__(self, other):  # pylint: disable=useless-super-delegation
-        # self.pil is not relevant to equality
+        # self._jpxpil is not relevant to equality
         return super().__eq__(other)
 
     def _extract_direct(self, *, stream):
@@ -718,9 +718,9 @@ class PdfJpxImage(PdfImage):
         super_colorspaces = super()._colorspaces
         if super_colorspaces:
             return super_colorspaces
-        if self.pil.mode == 'L':
+        if self._jpxpil.mode == 'L':
             return ['/DeviceGray']
-        elif self.pil.mode == 'RGB':
+        elif self._jpxpil.mode == 'RGB':
             return ['/DeviceRGB']
         raise NotImplementedError('Complex JP2 colorspace')
 
