@@ -60,31 +60,6 @@ For example, to initialize a ``Page`` support model:
 .. autoclass:: pikepdf.Permissions
     :members:
 
-    .. attribute:: accessibility
-
-        The owner of the PDF permission for screen readers and accessibility
-        tools to access the PDF.
-
-    .. attribute:: extract
-
-        The owner of the PDF permission for software to extract content from a PDF.
-
-    .. attribute:: modify_annotation
-
-    .. attribute:: modify_assembly
-
-    .. attribute:: modify_form
-
-    .. attribute:: modify_other
-
-        The owner of the PDF permission to modify various parts of a PDF.
-
-    .. attribute:: print_lowres
-
-    .. attribute:: print_highres
-
-        The owner of the PDF permission to print at low or high resolution.
-
 .. class:: pikepdf.models.EncryptionMethod
 
     Describes which encryption method was used on a particular part of a

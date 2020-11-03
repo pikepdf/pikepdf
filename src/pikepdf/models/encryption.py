@@ -9,21 +9,42 @@ from typing import Any, Dict, NamedTuple
 
 class Permissions(NamedTuple):
     """
-    Stores the permissions for an encrypted PDF.
+    Stores the user-level permissions for an encrypted PDF.
 
-    Unencrypted PDFs implicitly have all permissions allowed.
-    pikepdf does not enforce the restrictions in any way. Permissions
-    can only be changed when a PDF is saved.
+    A compliant PDF reader/writer should enforce these restrictions on people
+    who have the user password and not the owner password. In practice, either
+    password is sufficient to decrypt all document contents. A person who has
+    the owner password should be allowed to modify the document in any way.
+    pikepdf does not enforce the restrictions in any way; it is up to application
+    developers to enforce them as they see fit.
+
+    Unencrypted PDFs implicitly have all permissions allowed. Permissions can
+    only be changed when a PDF is saved.
     """
 
     accessibility: bool = True
+    """Can users use screen readers and accessibility tools to read the PDF?"""
+
     extract: bool = True
+    """Can users extract contents?"""
+
     modify_annotation: bool = True
+    """Can users modify annotations?"""
+
     modify_assembly: bool = False
+    """Can users arrange document contents?"""
+
     modify_form: bool = True
+    """Can users fill out formts?"""
+
     modify_other: bool = True
+    """Can users modify the document?"""
+
     print_lowres: bool = True
+    """Can users print the document at low resolution?"""
+
     print_highres: bool = True
+    """Can users print the document at high resolution?"""
 
 
 class EncryptionInfo:
