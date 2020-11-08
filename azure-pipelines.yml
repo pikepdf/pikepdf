@@ -25,6 +25,8 @@ stages:
         pool: { vmImage: "Ubuntu-18.04" }
         steps:
           - task: UsePythonVersion@0
+            inputs:
+              versionSpec: "3.8"
           - bash: |
               mkdir qpdf && wget -q $QPDF_MIN_RELEASE -O - | tar xz -C qpdf --strip-components=1
               cd qpdf/
