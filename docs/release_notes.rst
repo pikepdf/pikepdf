@@ -26,6 +26,15 @@ Upcoming deprecations in v2.0.0
    on 2020-09-13.
 -  Support for macOS High Sierra (10.13 or older) will be dropped.
 
+v1.19.4
+=======
+
+-  Modify project settings to declare no support for Python 3.9 in pikepdf 1.x.
+   pybind11 upstream has indicated there are stability problems when pybind11
+   2.5 (used by pikepdf 1.x) is used with Python 3.9. As such, we are marking
+   Python 3.9 as unsupported by pikepdf 1.x. Python 3.9 users should switch to
+   pikepdf 2.x.
+
 v1.19.3
 =======
 

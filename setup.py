@@ -14,7 +14,7 @@ class get_pybind_include(object):
 
     The purpose of this class is to postpone importing pybind11
     until it is actually installed, so that the ``get_include()``
-    method can be invoked. """
+    method can be invoked."""
 
     def __str__(self):
         # If we are vendoring use the vendored version
@@ -170,11 +170,11 @@ if __name__ == '__main__':  # for mp_compile
         extras_require={'docs': docs_require},
         cmdclass={'build_ext': BuildExt},
         zip_safe=False,
-        python_requires='>=3.5',
+        python_requires='>=3.5, <3.9',
         setup_requires=[
             'setuptools_scm',
             'setuptools_scm_git_archive',
-            'pybind11 >= 2.4.3, < 3',
+            "pybind11 >= 2.4.3, < 2.6.0 ; python_version < '3.9'",
         ],
         use_scm_version=True,
         tests_require=tests_require,
@@ -190,7 +190,6 @@ if __name__ == '__main__':  # for mp_compile
             "Programming Language :: Python :: 3.6",
             "Programming Language :: Python :: 3.7",
             "Programming Language :: Python :: 3.8",
-            "Programming Language :: Python :: 3.9",
             "Programming Language :: Python :: 3 :: Only",
             "Programming Language :: C++",
             "Topic :: Multimedia :: Graphics",
