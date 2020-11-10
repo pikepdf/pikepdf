@@ -1,0 +1,20 @@
+Exceptions
+**********
+
+.. autoexception:: pikepdf.PdfError
+
+    General pikepdf-specific exception.
+
+.. autoexception:: pikepdf.PasswordError
+
+    Exception thrown when the supplied password is incorrect.
+
+.. autoexception:: pikepdf.OutlineStructureError
+
+    Exception throw when an ``/Outlines`` object violates constraints imposed
+    by the PDF reference manual.
+
+.. autoexception:: pikepdf.UnsupportedImageTypeError
+
+    Exception throw when attempting to manipulate a PDF image of a complex type
+    that pikepdf does not currently support.

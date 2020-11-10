@@ -76,10 +76,6 @@ Main objects
 
 .. autoclass:: pikepdf.Encryption
 
-.. autoexception:: pikepdf.PdfError
-
-.. autoexception:: pikepdf.PasswordError
-
 Object construction
 ===================
 
