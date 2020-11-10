@@ -12,6 +12,8 @@
 #include <cstring>
 #include <cstdio>
 #include <regex>
+#include <vector>
+#include <utility>
 
 #include "pikepdf.h"
 
@@ -41,6 +43,25 @@ public:
 private:
     int stored;
 };
+
+std::string translate_qpdf_error(std::string msg)
+{
+    using match_replace = std::pair<std::regex, std::string>;
+    const static std::vector<match_replace> replacements = {
+        match_replace{"QPDF::copyForeign(?:Object)?", "pikepdf.copy_foreign"},
+        match_replace{"QPDFObjectHandle", "pikepdf.Object"},
+        match_replace{"QPDF", "pikepdf.Pdf"},
+    };
+    for (auto mr : replacements) {
+        msg = std::regex_replace(msg, mr.first, mr.second);
+    }
+    return msg;
+}
+
+std::string translate_qpdf_error(const std::exception& e)
+{
+    return translate_qpdf_error(std::string(e.what()));
+}
 
 
 PYBIND11_MODULE(_qpdf, m) {
@@ -77,6 +98,12 @@ PYBIND11_MODULE(_qpdf, m) {
                 fclose(file);
         },
         "Used to test that C++ system error -> Python exception propagation works."
+    );
+
+    m.def("_translate_qpdf",
+        [](std::string s) {
+            return translate_qpdf_error(s);
+        }
     );
 
     m.def("set_decimal_precision",
@@ -120,11 +147,7 @@ PYBIND11_MODULE(_qpdf, m) {
                 exc_main(e.what());
             }
         } catch (const std::logic_error &e) {
-            std::string msg(e.what());
-            if (msg.find("copyForeign")) {
-                msg = std::regex_replace(msg, std::regex("QPDF::copyForeign(?:Object)?"), "Pdf.copy_foreign()");
-                exc_foreign(msg.c_str());
-            }
+            exc_foreign(translate_qpdf_error(e).c_str());
         }
     });
 
