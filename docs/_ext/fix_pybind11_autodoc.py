@@ -4,13 +4,8 @@
 import re
 
 replacements = [
-    (re.compile(r'pikepdf._qpdf.Object\b'), 'pikepdf.Object'),
-    (re.compile(r'pikepdf._qpdf.Pdf\b'), 'pikepdf.Pdf'),
-    (re.compile(r'pikepdf._qpdf.Page\b'), 'pikepdf.Page'),
+    (re.compile(r'pikepdf._qpdf.(\w+)\b'), r'pikepdf.\1'),
     (re.compile(r'QPDFTokenizer::Token\b'), 'pikepdf.Token'),
-    (re.compile(r'pikepdf._qpdf.Token\b'), 'pikepdf.Token'),
-    (re.compile(r'pikepdf._qpdf.TokenFilter\b'), 'pikepdf.TokenFilter'),
-    (re.compile(r'pikepdf._qpdf.TokenType\b'), 'pikepdf.TokenType'),
     (re.compile(r'QPDFObjectHandle'), 'pikepdf.Object'),
     (re.compile(r'QPDFExc'), 'pikepdf.PdfError'),
 ]
