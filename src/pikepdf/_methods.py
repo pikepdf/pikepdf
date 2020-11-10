@@ -625,7 +625,7 @@ class Extend_Pdf:
         Save all modifications to this :class:`pikepdf.Pdf`.
 
         Args:
-            filename: Where to write the output. If a file
+            filename_or_stream: Where to write the output. If a file
                 exists in this location it will be overwritten.
                 If the file was opened with ``allow_overwriting_input=True``,
                 then it is permitted to overwrite the original file, and
@@ -704,6 +704,9 @@ class Extend_Pdf:
                 encryption settings are copied from the originating PDF.
                 Alternately, an ``Encryption`` object may be provided that
                 sets the parameters for new encryption.
+
+        Raises:
+            PdfError
 
         You may call ``.save()`` multiple times with different parameters
         to generate different versions of a file, and you *may* continue
