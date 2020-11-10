@@ -24,6 +24,7 @@ except ImportError as _e:
 
 from ._qpdf import (
     AccessMode,
+    ForeignObjectError,
     ObjectStreamMode,
     Page,
     PasswordError,

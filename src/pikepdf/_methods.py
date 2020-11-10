@@ -707,6 +707,7 @@ class Extend_Pdf:
 
         Raises:
             PdfError
+            ForeignObjectError
 
         You may call ``.save()`` multiple times with different parameters
         to generate different versions of a file, and you *may* continue

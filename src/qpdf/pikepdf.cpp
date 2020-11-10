@@ -11,6 +11,7 @@
 #include <cerrno>
 #include <cstring>
 #include <cstdio>
+#include <regex>
 
 #include "pikepdf.h"
 
@@ -101,6 +102,7 @@ PYBIND11_MODULE(_qpdf, m) {
 
     static py::exception<QPDFExc> exc_main(m, "PdfError");
     static py::exception<QPDFExc> exc_password(m, "PasswordError");
+    static py::exception<std::logic_error> exc_foreign(m, "ForeignObjectError");
     py::register_exception_translator([](std::exception_ptr p) {
         try {
             if (p) std::rethrow_exception(p);
@@ -116,6 +118,12 @@ PYBIND11_MODULE(_qpdf, m) {
                 PyErr_SetFromErrnoWithFilename(PyExc_OSError, e.getDescription().c_str());
             } else {
                 exc_main(e.what());
+            }
+        } catch (const std::logic_error &e) {
+            std::string msg(e.what());
+            if (msg.find("copyForeign")) {
+                msg = std::regex_replace(msg, std::regex("QPDF::copyForeign(?:Object)?"), "Pdf.copy_foreign()");
+                exc_foreign(msg.c_str());
             }
         }
     });

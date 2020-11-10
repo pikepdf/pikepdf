@@ -9,6 +9,11 @@ Exceptions
 
     Exception thrown when the supplied password is incorrect.
 
+.. autoexception:: pikepdf.ForeignObjectError
+
+    Exception thrown when a complex object was copied into a foreign PDF without
+    using :meth:`Pdf.copy_foreign`.
+
 .. autoexception:: pikepdf.OutlineStructureError
 
     Exception throw when an ``/Outlines`` object violates constraints imposed

@@ -768,7 +768,28 @@ void init_qpdf(py::module_ &m)
             [](QPDF &q, QPDFObjectHandle &h) -> QPDFObjectHandle {
                 return q.copyForeignObject(h);
             },
-            "Copy object from foreign PDF to this one.",
+            R"~~~(
+            Copy an ``Object`` from a foreign ``Pdf`` to this one.
+
+            This function is used to copy a :class:`pikepdf.Object` that is owned by
+            some other ``Pdf`` into this one. This is performs a deep (recursive) copy
+            and preserves circular references that may exist in the foreign object.
+            It also copies all :class:`pikepdf.Stream` objects. Since this may copy
+            a large amount of data, it is not done implicitly. This function does
+            not copy references to pages in the foreign PDF - it stops at page
+            boundaries. Thus, if you use ``copy_foreign()`` on a table of contents
+            (``/Outlines`` dictionary), you may have to update references to pages.
+
+            Direct objects, including dictionaries, do not need ``copy_foreign()``.
+            pikepdf will automatically convert and construct them.
+
+            Note:
+                pikepdf automatically treats incoming pages from a foreign PDF as
+                foreign objects, so :attr:`Pdf.pages` does not require this treatment.
+
+            See also:
+                `QPDF::copyForeignObject <http://qpdf.sourceforge.net/files/qpdf-manual.html#ref.foreign-objects>`_
+            )~~~",
             py::return_value_policy::reference_internal,
             py::keep_alive<1, 2>(),
             py::arg("h")
