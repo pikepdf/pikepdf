@@ -1,6 +1,7 @@
 from typing import (
     Tuple,
     Any,
+    Collection,
     Iterable,
     Iterator,
     List,
@@ -11,6 +12,8 @@ from typing import (
     overload,
 )
 from enum import Enum
+
+from pikepdf.models.image import PdfInlineImage
 
 T = TypeVar('T', bound=Object)
 
@@ -180,7 +183,7 @@ class Object:
 
     def _parse_page_contents_grouped(
         self, whitelist: str
-    ) -> List[Tuple[Tuple, Operator]]:
+    ) -> List[Tuple[Collection[Union[Object, 'PdfInlineImage']], Operator]]:
         ...
 
     def _parse_stream(self, *args, **kwargs) -> Any:
@@ -574,6 +577,10 @@ class PageList:
 
 
 class PasswordError(Exception):
+    ...
+
+
+class ForeignObjectError(Exception):
     ...
 
 

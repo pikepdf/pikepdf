@@ -4,7 +4,7 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
-from typing import Collection, List, Tuple, Union
+from typing import Collection, List, Tuple, Union, cast
 
 from pikepdf import Object, ObjectType, Operator, PdfError, _qpdf
 
@@ -81,10 +81,16 @@ def parse_content_stream(
     try:
         if page_or_stream.get('/Type') == '/Page':
             page = page_or_stream
-            instructions = page._parse_page_contents_grouped(operators)
+            instructions = cast(
+                List[ContentStreamInstructions],
+                page._parse_page_contents_grouped(operators),
+            )
         else:
             stream = page_or_stream
-            instructions = Object._parse_stream_grouped(stream, operators)
+            instructions = cast(
+                List[ContentStreamInstructions],
+                Object._parse_stream_grouped(stream, operators),
+            )
     except PdfError as e:
         if 'ignoring non-stream while parsing' in str(e):
             raise TypeError("parse_content_stream called on non-stream Object")

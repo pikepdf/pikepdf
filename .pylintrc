@@ -136,7 +136,8 @@ disable=print-statement,
         comprehension-escape,
         C,
         protected-access,
-        eval
+        eval,
+        unsubscriptable-object      # https://github.com/PyCQA/pylint/issues/3139
 
 
 # Enable the message, report, category or checker with the given id(s). You can

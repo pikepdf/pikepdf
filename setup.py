@@ -89,7 +89,7 @@ if __name__ == '__main__':  # for mp_compile
         cmd_class={"build_ext": build_ext},
         package_dir={'': 'src'},
         packages=find_packages('src'),
-        package_data={'': ['*.txt'], 'pikepdf': ['*.dll']},
+        package_data={'': ['*.txt'], 'pikepdf': ['*.dll', 'py.typed']},
         classifiers=[
             "Development Status :: 5 - Production/Stable",
             "Intended Audience :: Developers",

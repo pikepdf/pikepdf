@@ -1,6 +1,6 @@
 from enum import Enum
 from itertools import chain
-from typing import Iterable, List, Optional, Set, Tuple, Union
+from typing import Iterable, List, Optional, Set, Tuple, Union, cast
 
 from pikepdf import Array, Dictionary, Name, Object, Pdf
 
@@ -261,10 +261,11 @@ class Outline:
                 sub_items = ()
             self._save_level_outline(out_obj, sub_items, level + 1, visited_objs)
             if item.is_closed:
-                out_obj.Count = -out_obj.Count
+                out_obj.Count = -cast(int, out_obj.Count)
             else:
-                count += out_obj.Count
+                count += cast(int, out_obj.Count)
         if count:
+            assert prev is not None and first is not None
             if Name.Next in prev:
                 del prev.Next
             parent.First = first
