@@ -18,8 +18,16 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.1.0
+======
+
+-  Improved error messages and documentation around ``Pdf.copy_foreign``.
+-  Opt-in to mypy typing.
+
 v2.0.0
 ======
+
+This description includes changes in v2.0 beta releases.
 
 **Breaking changes**
 
@@ -78,6 +86,15 @@ v2.0.0b1
 
 -  Python 3.9 is supported.
 -  Significantly improved type hinting, including hints for functions written in C++.
+
+v1.19.4
+=======
+
+-  Modify project settings to declare no support for Python 3.9 in pikepdf 1.x.
+   pybind11 upstream has indicated there are stability problems when pybind11
+   2.5 (used by pikepdf 1.x) is used with Python 3.9. As such, we are marking
+   Python 3.9 as unsupported by pikepdf 1.x. Python 3.9 users should switch to
+   pikepdf 2.x.
 
 v1.19.3
 =======
