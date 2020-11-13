@@ -3,10 +3,10 @@ extraction:
     prepare:
       packages:
         - g++-7
-        - python3-pybind11
         - qpdf
     index:
       build_command:
+        - python3 -m pip install pybind11
         - python3 setup.py build_ext --inplace
   python:
     before_index:
