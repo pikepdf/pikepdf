@@ -44,25 +44,38 @@ private:
     int stored;
 };
 
-std::string translate_qpdf_error(std::string msg)
+enum pikepdf_error_type {
+    error_type_pdferror,
+    error_type_foreign,
+    error_type_cpp,
+};
+
+auto translate_qpdf_error(std::string msg)
 {
     using match_replace = std::pair<std::regex, std::string>;
+    pikepdf_error_type errtype;
     const static std::vector<match_replace> replacements = {
         match_replace{"QPDF::copyForeign(?:Object)?", "pikepdf.copy_foreign"},
         match_replace{"QPDFObjectHandle", "pikepdf.Object"},
         match_replace{"QPDF", "pikepdf.Pdf"},
     };
+
     for (auto mr : replacements) {
         msg = std::regex_replace(msg, mr.first, mr.second);
     }
-    return msg;
+    if (std::regex_search(msg, std::regex("pikepdf.copy_foreign")))
+        errtype = error_type_foreign;
+    else if (std::regex_search(msg, std::regex("pikepdf.")))
+        errtype = error_type_pdferror;
+    else
+        errtype = error_type_cpp;
+    return std::pair<std::string, pikepdf_error_type>(msg, errtype);
 }
 
-std::string translate_qpdf_error(const std::exception& e)
+auto translate_qpdf_error(const std::exception& e)
 {
     return translate_qpdf_error(std::string(e.what()));
 }
-
 
 PYBIND11_MODULE(_qpdf, m) {
     //py::options options;
@@ -102,7 +115,7 @@ PYBIND11_MODULE(_qpdf, m) {
 
     m.def("_translate_qpdf",
         [](std::string s) {
-            return translate_qpdf_error(s);
+            return translate_qpdf_error(s).first;
         }
     );
 
@@ -147,7 +160,13 @@ PYBIND11_MODULE(_qpdf, m) {
                 exc_main(e.what());
             }
         } catch (const std::logic_error &e) {
-            exc_foreign(translate_qpdf_error(e).c_str());
+            auto trans = translate_qpdf_error(e);
+            if (trans.second == error_type_foreign)
+                exc_foreign(trans.first.c_str());
+            else if (trans.second == error_type_pdferror)
+                exc_main(trans.first.c_str());
+            else
+                std::rethrow_exception(p);
         }
     });
 
