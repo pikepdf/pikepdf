@@ -18,6 +18,13 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.1.1
+======
+
+-  The previous release inadvertently changed the type of exception in certain
+   situations, notably throwing ``ForeignObjectError`` when this was not the correct
+   error to throw. This release fixes that.
+
 v2.1.0
 ======
 
