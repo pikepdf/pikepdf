@@ -597,16 +597,23 @@ void init_qpdf(py::module_ &m)
                     std::cerr,
                     stream
                 );
-                q.checkLinearization();
+                return q.checkLinearization();
             },
             R"~~~(
-            Reports information on the PDF's linearization
+            Reports information on the PDF's linearization.
 
             Args:
                 stream: A stream to write this information too; must
                     implement ``.write()`` and ``.flush()`` method. Defaults to
                     :data:`sys.stderr`.
 
+            Returns:
+                ``True`` if the file is correctly linearized, and ``False`` if
+                the file is linearized but the linearization data contains errors
+                or was incorrectly generated.
+
+            Raises:
+                RuntimeError: If the PDF in question is not linearized at all.
             )~~~",
             py::arg_v("stream", py::module_::import("sys").attr("stderr"), "sys.stderr")
         )

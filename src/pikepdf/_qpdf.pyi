@@ -648,7 +648,7 @@ class Pdf:
     def _swap_objects(self, arg0: Tuple[int, int], arg1: Tuple[int, int]) -> None:
         ...
 
-    def check_linearization(self, stream: object = ...) -> None:
+    def check_linearization(self, stream: object = ...) -> bool:
         ...
 
     def copy_foreign(self, h: Object) -> Object:
