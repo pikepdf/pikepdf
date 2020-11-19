@@ -18,6 +18,7 @@ from pikepdf.models.metadata import (
     XMP_NS_XMP,
     DateConverter,
     decode_pdf_date,
+    fromisoformat,
 )
 
 try:
@@ -596,3 +597,17 @@ def test_issue_135_title_rdf_bag(trivial):
         xmp['dc:title'] = {'Title 1', 'Title 2'}
     with trivial.open_metadata(update_docinfo=False) as xmp:
         assert b'Title 1; Title 2</rdf:li></rdf:Alt></dc:title>' in xmp._get_xml_bytes()
+
+
+def test_xmp_metadatadate_timezone(sandwich, outpdf):
+    with sandwich.open_metadata():
+        pass
+    sandwich.save(outpdf)
+
+    machine_tz = datetime.utcnow().astimezone().tzinfo
+
+    with Pdf.open(outpdf) as pdf:
+        with pdf.open_metadata() as m:
+            dt = fromisoformat(m['xmp:MetadataDate'])
+            assert dt.tzinfo is not None
+            assert dt.tzinfo == machine_tz

@@ -469,7 +469,9 @@ class PdfMetadata(MutableMapping):
         Depending how we are initialized, leave our metadata mark and producer.
         """
         if self.mark:
-            self[QName(XMP_NS_XMP, 'MetadataDate')] = datetime.now().isoformat()
+            self[QName(XMP_NS_XMP, 'MetadataDate')] = datetime.now(
+                datetime.utcnow().astimezone().tzinfo
+            ).isoformat()
             self[QName(XMP_NS_PDF, 'Producer')] = 'pikepdf ' + pikepdf_version
         xml = self._get_xml_bytes()
         self._pdf.Root.Metadata = Stream(self._pdf, xml)

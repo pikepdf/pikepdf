@@ -314,7 +314,8 @@ class Extend_Pdf:
         Args:
             set_pikepdf_as_editor: Update the metadata to show that this
                 version of pikepdf is the most recent software to modify the metadata.
-                Recommended, except for testing.
+                Recommended, except for testing. The timestamp of the metadata
+                record itself will also be updated to the current time and time zone.
 
             update_docinfo: Update the standard fields of DocumentInfo
                 (the old PDF metadata dictionary) to match the corresponding
