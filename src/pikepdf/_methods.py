@@ -312,10 +312,10 @@ class Extend_Pdf:
                     meta['dc:description'] = 'Put the Abstract here'
 
         Args:
-            set_pikepdf_as_editor: Update the metadata to show that this
-                version of pikepdf is the most recent software to modify the metadata.
-                Recommended, except for testing. The timestamp of the metadata
-                record itself will also be updated to the current time and time zone.
+            set_pikepdf_as_editor: Automatically update the metadata ``pdf:Producer``
+                to show that this version of pikepdf is the most recent software to
+                modify the metadata, and ``xmp:MetadataDate`` to timestamp the update.
+                Recommended, except for testing.
 
             update_docinfo: Update the standard fields of DocumentInfo
                 (the old PDF metadata dictionary) to match the corresponding

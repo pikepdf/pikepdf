@@ -18,6 +18,14 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.1.2
+======
+
+-  Fixed an issue the XMP metadata would not have a timezone set when updated.
+   According to the XMP specification, the timezone should be included. Note that
+   pikepdf will include the local machine timezone, unless explicitly directed
+   otherwise.
+
 v2.1.1
 ======
 
