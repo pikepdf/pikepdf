@@ -60,10 +60,8 @@ def make_page_destination(
             try:
                 loc_key = PageLocation[loc_str]
             except KeyError:
-                raise ValueError(
-                    "Invalid or unsupported page location type {0}".format(loc_str)
-                )
-        res.append(Name('/{0}'.format(loc_str)))
+                raise ValueError(f"Invalid or unsupported page location type {loc_str}")
+        res.append(Name(f'/{loc_str}'))
         dest_arg_names = PAGE_LOCATION_ARGS.get(loc_key)
         if dest_arg_names:
             res.extend(kwargs.get(k, 0) for k in dest_arg_names)
@@ -123,7 +121,7 @@ class OutlineItem:
             if k in ALL_PAGE_LOCATION_KWARGS:
                 self.page_location_kwargs[k] = v
             else:
-                raise ValueError("Invalid keyword argument {0}".format(k))
+                raise ValueError(f"Invalid keyword argument {k}")
         self.is_closed = False
         self.children: Iterable[OutlineItem] = []
 
@@ -139,10 +137,10 @@ class OutlineItem:
             dest = self.destination
         else:
             dest = '<Action>'
-        return '{1} {0.title} -> {2}'.format(self, oc_indicator, dest)
+        return f'{oc_indicator} {self.title} -> {dest}'
 
     def __repr__(self):
-        return '<{0.__class__.__name__}: "{0.title}">'.format(self)
+        return f'<{self.__class__.__name__}: "{self.title}">'
 
     @classmethod
     def from_dictionary_object(cls, obj: Dictionary):
@@ -217,7 +215,7 @@ class Outline:
         return str(self.root)
 
     def __repr__(self):
-        return '<{0.__class__.__name__}: {1} items>'.format(self, len(self.root))
+        return f'<{self.__class__.__name__}: {len(self.root)} items>'
 
     def __enter__(self):
         self._updating = True
@@ -247,7 +245,7 @@ class Outline:
             if objgen in visited_objs:
                 if self._strict:
                     raise OutlineStructureError(
-                        "Outline object {0} reoccurred in structure".format(objgen)
+                        f"Outline object {objgen} reoccurred in structure"
                     )
                 out_obj = item.to_dictionary_object(self._pdf, create_new=True)
             else:
@@ -298,7 +296,7 @@ class Outline:
             if objgen in visited_objs:
                 if self._strict:
                     raise OutlineStructureError(
-                        "Outline object {0} reoccurred in structure".format(objgen)
+                        f"Outline object {objgen} reoccurred in structure"
                     )
                 return
             visited_objs.add(objgen)

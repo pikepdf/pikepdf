@@ -29,7 +29,7 @@ def test_split_pdf(fourpages, outdir):
     for n, page in enumerate(fourpages.pages):
         outpdf = Pdf.new()
         outpdf.pages.append(page)
-        outpdf.save(outdir / "page{}.pdf".format(n + 1))
+        outpdf.save(outdir / f"page{n + 1}.pdf")
 
     assert len([f for f in outdir.iterdir() if f.name.startswith('page')]) == 4
 
@@ -258,7 +258,7 @@ def test_concatenate(resources, outdir):
             print(i)
             pdf_page = Pdf.open(resources / 'pal.pdf')
             output_pdf.pages.extend(pdf_page.pages)
-        output_pdf.save(outdir / '{}.pdf'.format(n))
+        output_pdf.save(outdir / f'{n}.pdf')
 
     concatenate(5)
 
@@ -363,14 +363,14 @@ def test_page_splitting_generator(resources, tmp_path):
         part = 1
         for _idx, page in enumerate(pdf.pages):
             if len(output.pages) == 2:
-                part_file = tmp_path / "part-{0}.pdf".format(part)
+                part_file = tmp_path / f"part-{part}.pdf"
                 output.save(part_file)
                 yield part_file
                 output = Pdf.new()
                 part += 1
             output.pages.append(page)
         if len(output.pages) > 0:
-            part_file = tmp_path / "part-{0}.pdf".format(part)
+            part_file = tmp_path / f"part-{part}.pdf"
             output.save(part_file)
             yield part_file
         output.close()

@@ -249,10 +249,8 @@ class Extend_Object:
             if len(decode_parms) != 0:
                 if len(filter) != len(decode_parms):
                     raise ValueError(
-                        (
-                            "filter ({}) and decode_parms ({}) must be arrays of "
-                            " same length"
-                        ).format(repr(filter), repr(decode_parms))
+                        f"filter ({repr(filter)}) and decode_parms "
+                        f"({repr(decode_parms)}) must be arrays of same length"
                     )
             if len(filter) == 1:
                 filter = filter[0]
@@ -962,4 +960,4 @@ class Extend_Page:
 @augments(Token)
 class Extend_Token:
     def __repr__(self):
-        return 'pikepdf.Token({}, {})'.format(self.type_, self.raw_value)
+        return f'pikepdf.Token({self.type_}, {self.raw_value})'

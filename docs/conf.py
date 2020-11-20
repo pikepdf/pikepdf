@@ -37,7 +37,7 @@ if on_rtd:
                     '-m',
                     'pip',
                     'install',
-                    'pikepdf=={}'.format(setup_py_version),
+                    f'pikepdf=={setup_py_version}',
                 ]
             )
         except subprocess.CalledProcessError:

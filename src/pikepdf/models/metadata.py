@@ -112,7 +112,7 @@ def _clean(s, joiner='; '):
     isn't allowed in the spec or not supported.
     """
     if not isinstance(s, str) and isinstance(s, Iterable):
-        warn("Merging elements of {}".format(s))
+        warn(f"Merging elements of {s}")
         if isinstance(s, Set):
             s = joiner.join(sorted(s))
         else:
@@ -142,12 +142,12 @@ def encode_pdf_date(d: datetime) -> str:
     # The formatting of %Y is not consistent as described in
     # https://bugs.python.org/issue13305 and underspecification in libc.
     # So explicitly format the year with leading zeros
-    s = "{:04d}".format(d.year)
+    s = f"{d.year:04d}"
     s += d.strftime(r'%m%d%H%M%S')
     tz = d.strftime('%z')
     if tz:
         sign, tz_hours, tz_mins = tz[0], tz[1:3], tz[3:5]
-        s += "{}{}'{}'".format(sign, tz_hours, tz_mins)
+        s += f"{sign}{tz_hours}'{tz_mins}'"
     return s
 
 
@@ -332,9 +332,7 @@ class PdfMetadata(MutableMapping):
                     continue
                 self[qname] = val
             except (ValueError, AttributeError) as e:
-                msg = "The metadata field {} could not be copied to XMP".format(
-                    docinfo_name
-                )
+                msg = f"The metadata field {docinfo_name} could not be copied to XMP"
                 if raise_failure:
                     raise ValueError(msg) from e
                 else:
@@ -345,9 +343,9 @@ class PdfMetadata(MutableMapping):
         extra_docinfo_names = set(str(k) for k in docinfo.keys()) - valid_docinfo_names
         for extra in extra_docinfo_names:
             msg = (
-                "The metadata field {} with value '{}' has no XMP equivalent, "
-                "so it was discarded"
-            ).format(extra, repr(docinfo.get(extra)))
+                f"The metadata field {extra} with value '{repr(docinfo.get(extra))}' "
+                "has no XMP equivalent, so it was discarded"
+            )
             if raise_failure:
                 raise ValueError(msg)
             else:
@@ -444,16 +442,14 @@ class PdfMetadata(MutableMapping):
                     value = converter.docinfo_from_xmp(value)
                 except ValueError:
                     warn(
-                        "The DocumentInfo field {} could not be updated from XMP".format(
-                            docinfo_name
-                        )
+                        f"The DocumentInfo field {docinfo_name} could not be "
+                        "updated from XMP"
                     )
                     value = None
                 except Exception as e:
                     raise ValueError(
-                        "An error occurred while updating DocumentInfo field {} from XMP {} with value {}".format(
-                            docinfo_name, qname, value
-                        )
+                        "An error occurred while updating DocumentInfo field "
+                        f"{docinfo_name} from XMP {qname} with value {value}"
                     ) from e
             if value is None:
                 if docinfo_name in self._pdf.docinfo:
@@ -503,7 +499,7 @@ class PdfMetadata(MutableMapping):
         if isinstance(name, QName):
             return name
         if not isinstance(name, str):
-            raise TypeError("{} must be str".format(name))
+            raise TypeError(f"{name} must be str")
         if name == '':
             return name
         if name.startswith('{'):
@@ -536,7 +532,7 @@ class PdfMetadata(MutableMapping):
                 return ''
 
         for xmlcontainer, container, insertfn in XMP_CONTAINERS:
-            items = node.find('rdf:{}'.format(xmlcontainer), self.NS)
+            items = node.find(f'rdf:{xmlcontainer}', self.NS)
             if items is None:
                 continue
             result = container()
@@ -626,6 +622,12 @@ class PdfMetadata(MutableMapping):
     def __setitem__(self, key, val):
         if not self._updating:
             raise RuntimeError("Metadata not opened for editing, use with block")
+
+        if self.mark and key in ('xmp:MetdataDate', 'pdf:Producer'):
+            log.warning(
+                f"Update to {key} will be overwritten because metadata was opened "
+                "with set_pikepdf_as_editor=True"
+            )
 
         def add_array(node, items):
             rdf_type = next(

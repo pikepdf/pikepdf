@@ -30,7 +30,7 @@ All we need is a new PDF to hold the destination page.
     In [5]: for n, page in enumerate(pdf.pages):
        ...:     dst = Pdf.new()
        ...:     dst.pages.append(page)
-       ...:     dst.save('{:02d}.pdf'.format(n))
+       ...:     dst.save(f'{n:02d}.pdf')
 
 .. note::
 

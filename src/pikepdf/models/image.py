@@ -681,8 +681,9 @@ class PdfImage(PdfImageBase):
         self.as_pil_image().show()
 
     def __repr__(self):
-        return '<pikepdf.PdfImage image mode={} size={}x{} at {}>'.format(
-            self.mode, self.width, self.height, hex(id(self))
+        return (
+            f'<pikepdf.PdfImage image mode={self.mode} '
+            f'size={self.width}x{self.height} at {hex(id(self))}>'
         )
 
     def _repr_png_(self):
@@ -740,8 +741,9 @@ class PdfJpxImage(PdfImage):
         return False
 
     def __repr__(self):
-        return '<pikepdf.PdfJpxImage JPEG2000 image mode={} size={}x{} at {}>'.format(
-            self.mode, self.width, self.height, hex(id(self))
+        return (
+            f'<pikepdf.PdfJpxImage JPEG2000 image mode={self.mode} '
+            f'size={self.width}x{self.height} at {hex(id(self))}>'
         )
 
 
@@ -847,8 +849,9 @@ class PdfInlineImage(PdfImageBase):
             mode = self.mode
         except Exception:
             pass
-        return '<pikepdf.PdfInlineImage image mode={} size={}x{} at {}>'.format(
-            mode, self.width, self.height, hex(id(self))
+        return (
+            f'<pikepdf.PdfInlineImage JPEG2000 image mode={self.mode} '
+            f'size={self.width}x{self.height} at {hex(id(self))}>'
         )
 
     def as_pil_image(self):

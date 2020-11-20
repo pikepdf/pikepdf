@@ -43,7 +43,7 @@ contrived example above, displays an actual image.
   page = pdf.pages[0]
   commands = []
   for operands, operator in pikepdf.parse_content_stream(page):
-      print("Operands {}, operator {}".format(operands, operator))
+      print(f"Operands {operands}, operator {operator}")
       commands.append([operands, operator])
 
 PDF content streams are stateful. The commands ``q``, ``cm`` and ``Q``

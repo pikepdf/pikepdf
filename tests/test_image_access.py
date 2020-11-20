@@ -182,7 +182,7 @@ def test_image_roundtrip(outdir, w, h, pixeldata, cs, bpc):
     page = pdf.make_indirect(page_dict)
 
     pdf.pages.append(page)
-    outfile = outdir / 'test{w}{h}{cs}{bpc}.pdf'.format(w=w, h=h, cs=cs[1:], bpc=bpc)
+    outfile = outdir / f'test{w}{h}{cs[1:]}{bpc}.pdf'
     pdf.save(
         outfile, compress_streams=False, stream_decode_level=StreamDecodeLevel.none
     )

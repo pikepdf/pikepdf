@@ -68,12 +68,10 @@ class _NameObjectMeta(_ObjectMeta):
         if item.startswith('/'):
             item = item[1:]
         raise TypeError(
-            (
-                "pikepdf.Name is not subscriptable. You probably meant:\n"
-                "    pikepdf.Name.{item}\n"
-                "or\n"
-                "    pikepdf.Name('/{item}')\n"
-            ).format(item=item)
+            "pikepdf.Name is not subscriptable. You probably meant:\n"
+            f"    pikepdf.Name.{item}\n"
+            "or\n"
+            f"    pikepdf.Name('/{item}')\n"
         )
 
 
