@@ -93,7 +93,14 @@ to the PDF/A specification.
 .. note::
 
   Note that this property merely *tests* if the file claims to be conformant to
-  the PDF/A standard. Use a tool such as veraPDF to verify conformance.
+  the PDF/A standard. Use a tool such as `veraPDF`_ (official tool), or third party
+  web services such as `PDFEN`_ or 3-HEIGHTS™ PDF `VALIDATOR`_ to verify conformance.
+
+.. _veraPDF: https://verapdf.org/
+
+.. _PDFEN: https://www.pdfen.com/pdf-a-validator
+
+.. _VALIDATOR: https://www.pdf-online.com/osa/validate.aspx
 
 Notice for application developers
 ---------------------------------
