@@ -7,6 +7,7 @@ from xml.etree import ElementTree as ET
 import pytest
 from hypothesis import assume, example, given, settings
 from hypothesis import strategies as st
+from hypothesis.extra.dateutil import timezones
 from hypothesis.strategies import integers
 from lxml.etree import XMLSyntaxError
 
@@ -17,6 +18,7 @@ from pikepdf.models.metadata import (
     XMP_NS_PDF,
     XMP_NS_XMP,
     DateConverter,
+    _fromisoformat_py36,
     decode_pdf_date,
     fromisoformat,
 )
@@ -611,3 +613,21 @@ def test_xmp_metadatadate_timezone(sandwich, outpdf):
             dt = fromisoformat(m['xmp:MetadataDate'])
             assert dt.tzinfo is not None
             assert dt.tzinfo == machine_tz
+
+
+@given(st.datetimes(timezones=st.one_of(timezones(), st.none())))
+def test_py36_isoformat_microsecs(dt):
+    s = dt.isoformat()
+    assert _fromisoformat_py36(s) == dt
+
+
+@given(st.datetimes(timezones=st.one_of(timezones(), st.none())))
+def test_py36_isoformat_seconds(dt):
+    rounded_dt = dt.replace(microsecond=0)
+    s = rounded_dt.isoformat()
+    assert _fromisoformat_py36(s) == rounded_dt
+
+
+def test_py36_isoformat_invalid():
+    with pytest.raises(ValueError):
+        _fromisoformat_py36('not a datetime')

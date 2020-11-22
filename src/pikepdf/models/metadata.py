@@ -190,18 +190,30 @@ class AuthorConverter:
             return '; '.join(xmp_val)
 
 
-if sys.version_info < (3, 7):
+def _fromisoformat_py36(datestr):
+    """Backported equivalent of datetime.fromisoformat
 
-    def fromisoformat(datestr):
-        # strptime %z can't parse a timezone with punctuation
-        if re.search(r'[+-]\d{2}[-:]\d{2}$', datestr):
-            datestr = datestr[:-3] + datestr[-2:]
+    Can remove whenever we drop Python 3.6 support.
+    """
+    # strptime %z can't parse a timezone with punctuation
+    if re.search(r'[+-]\d{2}[-:]\d{2}$', datestr):
+        datestr = datestr[:-3] + datestr[-2:]
+    formats = [
+        "%Y-%m-%dT%H:%M:%S%z",
+        "%Y-%m-%dT%H:%M:%S",
+        "%Y-%m-%dT%H:%M:%S.%f%z",
+        "%Y-%m-%dT%H:%M:%S.%f",
+    ]
+    for fmt in formats:
         try:
-            return datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%S%z")
+            return datetime.strptime(datestr, fmt)
         except ValueError:
-            return datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%S")
+            continue
+    raise ValueError(f"Could not parse ISO date: {datestr}")
 
 
+if sys.version_info < (3, 7):
+    fromisoformat = _fromisoformat_py36
 else:
     fromisoformat = datetime.fromisoformat
 
