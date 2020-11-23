@@ -1,6 +1,6 @@
 import os
 import re
-from datetime import datetime, timedelta, timezone, tzinfo
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
@@ -615,25 +615,13 @@ def test_xmp_metadatadate_timezone(sandwich, outpdf):
             assert dt.tzinfo == machine_tz
 
 
-class TZUsecs(tzinfo):
-    def utcoffset(self, dt):
-        return timedelta(hours=-6, minutes=-39, seconds=51, microseconds=59)
-
-
 @given(st.datetimes(timezones=st.one_of(timezones(), st.none())))
-@example(datetime(1921, 1, 1, 0, 0, tzinfo=TZUsecs()))
 def test_py36_isoformat_microsecs(dt):
     s = dt.isoformat()
     assert _fromisoformat_py36(s) == dt
 
 
-class TZ(tzinfo):
-    def utcoffset(self, dt):
-        return timedelta(hours=-6, minutes=-39, seconds=51)
-
-
 @given(st.datetimes(timezones=st.one_of(timezones(), st.none())))
-@example(datetime(1921, 1, 1, 0, 0, tzinfo=TZ()))
 def test_py36_isoformat_seconds(dt):
     rounded_dt = dt.replace(microsecond=0)
     s = rounded_dt.isoformat()

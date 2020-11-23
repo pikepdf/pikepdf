@@ -25,8 +25,6 @@ v2.1.2
    According to the XMP specification, the timezone should be included. Note that
    pikepdf will include the local machine timezone, unless explicitly directed
    otherwise.
--  Fixed an exception when parsing ISO 8601 timestamps that included fractional seconds
-   on Python 3.6.
 
 v2.1.1
 ======

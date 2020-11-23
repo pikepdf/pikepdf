@@ -195,22 +195,9 @@ def _fromisoformat_py36(datestr):
 
     Can remove whenever we drop Python 3.6 support.
     """
-    rx = r"""
-	([\d-]+[T ][\d:.]+) # normal timestamp
-	(?: # timezone
-	  ([+-]\d{2}) # tz hours
-	  [-:](\d{2}) # tz minutes
-	  (?:
-	    [-:](\d{2}) # tz seconds
-	    (?:
-	      ([.]\d+) # tz microseconds
-	    )?
-	  )?
-	)?
-	"""
-
-    # strptime %z can't parse a timezone with punctuation, so
-    datestr = re.sub(rx, r"\1\2\3\4\5", datestr, flags=re.VERBOSE)
+    # strptime %z can't parse a timezone with punctuation
+    if re.search(r'[+-]\d{2}[-:]\d{2}$', datestr):
+        datestr = datestr[:-3] + datestr[-2:]
     formats = [
         "%Y-%m-%dT%H:%M:%S%z",
         "%Y-%m-%dT%H:%M:%S",
