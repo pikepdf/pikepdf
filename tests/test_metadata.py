@@ -615,13 +615,13 @@ def test_xmp_metadatadate_timezone(sandwich, outpdf):
             assert dt.tzinfo == machine_tz
 
 
-@given(st.datetimes(timezones=st.one_of(timezones(), st.none())))
+@given(st.datetimes())
 def test_py36_isoformat_microsecs(dt):
     s = dt.isoformat()
     assert _fromisoformat_py36(s) == dt
 
 
-@given(st.datetimes(timezones=st.one_of(timezones(), st.none())))
+@given(st.datetimes())
 def test_py36_isoformat_seconds(dt):
     rounded_dt = dt.replace(microsecond=0)
     s = rounded_dt.isoformat()

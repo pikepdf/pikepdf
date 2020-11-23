@@ -209,7 +209,10 @@ def _fromisoformat_py36(datestr):
             return datetime.strptime(datestr, fmt)
         except ValueError:
             continue
-    raise ValueError(f"Could not parse ISO date: {datestr}")
+    raise ValueError(
+        f"Could not parse ISO date: {datestr}. Try Python 3.7+, which "
+        "has better support for ISO dates."
+    )
 
 
 if sys.version_info < (3, 7):
