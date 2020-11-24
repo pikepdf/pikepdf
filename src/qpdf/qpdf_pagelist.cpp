@@ -9,6 +9,7 @@
 #include "pikepdf.h"
 #include "qpdf_pagelist.h"
 
+#include <qpdf/QPDFPageObjectHelper.hh>
 #include <qpdf/QPDFPageLabelDocumentHelper.hh>
 
 static void assert_pyobject_is_page(py::handle obj)
@@ -293,6 +294,32 @@ void init_pagelist(py::module_ &m)
             [](PageList &pl, const QPDFObjectHandle& h) {
                 QPDF* q = pl.qpdf.get();
                 return page_index(*q, h);
+            }
+        )
+        .def("index",
+            [](PageList &pl, const QPDFPageObjectHelper& poh) {
+                QPDF* q = pl.qpdf.get();
+                return page_index(*q, poh.getObjectHandle());
+            }
+        )
+        .def_property_readonly("labels",
+            [](PageList &pl) -> py::object {
+                QPDF* q = pl.qpdf.get();
+                QPDFPageLabelDocumentHelper pldh(*q);
+                if (!pldh.hasPageLabels())
+                    return py::none();
+
+                py::list result;
+                std::vector<QPDFObjectHandle> labels;
+                pldh.getLabelsForPageRange(0, q->getAllPages().size(), 0, labels);
+                for (auto h: labels) {
+                    if (h.isInteger())
+                        continue;
+                    h.assertDictionary();
+                    auto prefix = h.getKey("/P");
+                    result.append(prefix.getUTF8Value());
+                }
+                return std::move(result);
             }
         )
         .def("__repr__",

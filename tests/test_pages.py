@@ -5,7 +5,7 @@ from sys import getrefcount as refcount
 
 import pytest
 
-from pikepdf import Array, Dictionary, Name, Pdf, PdfMatrix, Stream
+from pikepdf import Array, Dictionary, Name, Page, Pdf, PdfMatrix, Stream
 
 # pylint: disable=redefined-outer-name,pointless-statement
 
@@ -377,3 +377,31 @@ def test_page_splitting_generator(resources, tmp_path):
 
     for pdf in pdfs():
         print(pdf)
+
+
+def test_page_index(fourpages):
+    for n, page in enumerate(fourpages.pages):
+        assert Page(page).index == n
+        assert fourpages.pages.index(page) == n
+    del fourpages.pages[1]
+    for n, page in enumerate(fourpages.pages):
+        assert Page(page).index == n
+        assert fourpages.pages.index(page) == n
+
+
+def test_page_index_foreign_page(fourpages, sandwich):
+    with pytest.raises(ValueError, match="Page is not in this Pdf"):
+        fourpages.pages.index(sandwich.pages[0])
+
+    p3 = fourpages.pages[2]
+    assert Page(p3).index == 2
+    fourpages.pages.insert(2, sandwich.pages[0])
+    assert Page(fourpages.pages[2]).index == 2
+    assert Page(p3).index == 3
+
+    assert fourpages.pages.index(p3) == 3
+    assert fourpages.pages.index(Page(p3)) == 3
+
+    with pytest.raises(ValueError, match="Page is not in this Pdf"):
+        # sandwich.pages[0] is still not "in" fourpages; it gets copied into it
+        assert fourpages.pages.index(sandwich.pages[0])

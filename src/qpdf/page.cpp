@@ -64,8 +64,10 @@ public:
     }
 };
 
-size_t page_index(QPDF& owner, const QPDFObjectHandle& page)
+size_t page_index(QPDF& owner, QPDFObjectHandle page)
 {
+    if (&owner != page.getOwningQPDF())
+        throw py::value_error("Page is not in this Pdf");
     auto all_pages = owner.getAllPages();
     auto it = std::find_if(all_pages.begin(), all_pages.end(),
         [page](const QPDFObjectHandle& iter_page) {
