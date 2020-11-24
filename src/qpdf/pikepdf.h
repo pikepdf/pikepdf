@@ -168,6 +168,7 @@ void init_annotation(py::module_ &m);
 
 // From page.cpp
 void init_page(py::module_ &m);
+size_t page_index(QPDF& owner, const QPDFObjectHandle& page);
 
 // Support for recursion checks
 class StackGuard

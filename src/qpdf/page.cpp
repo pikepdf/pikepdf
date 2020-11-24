@@ -64,6 +64,22 @@ public:
     }
 };
 
+size_t page_index(QPDF& owner, const QPDFObjectHandle& page)
+{
+    auto all_pages = owner.getAllPages();
+    auto it = std::find_if(all_pages.begin(), all_pages.end(),
+        [page](const QPDFObjectHandle& iter_page) {
+            return (page.getObjGen() == iter_page.getObjGen());
+        }
+    );
+    if (it == all_pages.end())
+        throw py::value_error("Page is not consistently registered with Pdf");
+    auto idx = it - all_pages.begin();
+    assert(idx >= 0);
+    return idx;
+}
+
+
 void init_page(py::module_& m)
 {
     py::class_<QPDFPageObjectHelper>(m, "Page")
@@ -205,32 +221,53 @@ void init_page(py::module_& m)
                 If the page's contents is an array of streams, it is coalesced.
             )~~~"
         )
-        .def_property_readonly("page_label",
+        .def_property_readonly("index",
             [](QPDFPageObjectHelper &poh) {
                 auto this_page = poh.getObjectHandle();
                 auto p_owner = this_page.getOwningQPDF();
                 if (!p_owner)
                     throw py::value_error("Page is not attached to a Pdf");
                 auto& owner = *p_owner;
+                return page_index(owner, this_page);
+            },
+            R"~~~(
+                Returns the zero-based index of this page in the pages list.
 
-                auto all_pages = owner.getAllPages();
-                auto it = all_pages.begin();
-                for (; it != all_pages.end(); ++it) {
-                    auto page = (*it);
-                    if (page.getObjGen() == this_page.getObjGen())
-                        break;
-                }
-                if (it == all_pages.end())
-                    throw py::value_error("Page is not consistently registered with Pdf");
-                auto idx = it - all_pages.begin();
+                That is, returns ``n` such that ``pdf.pages[n] == this_page``.
+
+                Requires O(n) search.
+            )~~~"
+        )
+        .def_property_readonly("label",
+            [](QPDFPageObjectHelper &poh) {
+                auto this_page = poh.getObjectHandle();
+                auto p_owner = this_page.getOwningQPDF();
+                if (!p_owner)
+                    throw py::value_error("Page is not attached to a Pdf");
+                auto& owner = *p_owner;
+                auto index = page_index(owner, this_page);
 
                 QPDFPageLabelDocumentHelper pldh(owner);
-                auto label = pldh.getLabelForPage(idx);
+                auto label = pldh.getLabelForPage(index);
                 auto prefix = label.getKey("/P");
                 if (prefix.isInteger())
                     return std::to_string(prefix.getIntValue());
                 return prefix.getUTF8Value();
-            }
+            },
+            R"~~~(
+                Returns the page label for this page, accounting for section numbers.
+
+                For example, if the PDF defines a preface with lower case Roman
+                numerals (i, ii, iii...), followed by standard numbers, followed
+                by an appendix (A-1, A-2, ...), this function returns the appropriate
+                label as a string.
+
+                It is possible for a PDF to define page labels such that multiple
+                pages have the same labels. Labels are not guaranteed to
+                be unique.
+
+                Note that this requires a O(n) search over all pages.
+            )~~~"
         )
         ;
 

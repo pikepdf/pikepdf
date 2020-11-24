@@ -9,6 +9,8 @@
 #include "pikepdf.h"
 #include "qpdf_pagelist.h"
 
+#include <qpdf/QPDFPageLabelDocumentHelper.hh>
+
 static void assert_pyobject_is_page(py::handle obj)
 {
     QPDFObjectHandle h;
@@ -286,6 +288,12 @@ void init_pagelist(py::module_ &m)
             Args:
                 p (int): 1-based page number
             )~~~"
+        )
+        .def("index",
+            [](PageList &pl, const QPDFObjectHandle& h) {
+                QPDF* q = pl.qpdf.get();
+                return page_index(*q, h);
+            }
         )
         .def("__repr__",
             [](PageList &pl) {
