@@ -36,7 +36,7 @@ ALL_PAGE_LOCATION_KWARGS = set(chain.from_iterable(PAGE_LOCATION_ARGS.values()))
 
 
 def make_page_destination(
-    pdf,
+    pdf: Pdf,
     page_num: int,
     page_location: Optional[Union[PageLocation, str]] = None,
     **kwargs,
@@ -45,9 +45,9 @@ def make_page_destination(
     Creates a destination ``Array`` with reference to a Pdf document's page number.
 
     Arguments:
-        pdf: ``Pdf`` document object.
+        pdf: PDF document object.
         page_num: Page number (zero-based).
-        page_location: Optional page location, as a string or ``PageLocation`` enum.
+        page_location: Optional page location, as a string or :enum:`PageLocation`.
         kwargs: Optional keyword arguments for the page location, e.g. ``top``.
     """
     res = [pdf.pages[page_num]]
@@ -197,8 +197,10 @@ class Outline:
         pdf: PDF document object.
         max_depth: Maximum recursion depth to consider when reading the outline.
         strict: If set to ``False`` (default) silently ignores structural errors.
-            Setting it to ``True`` raises a ``OutlineStructureError`` if any object
-            references re-occur while the outline is being read or written.
+            Setting it to ``True`` raises a
+            :class:`pikepdf.OutlineStructureError`
+            if any object references re-occur while the outline is being read or
+            written.
 
     See Also:
         :meth:`pikepdf.Pdf.open_outline`
