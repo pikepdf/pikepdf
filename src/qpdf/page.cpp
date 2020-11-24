@@ -15,6 +15,7 @@
 #include "object_parsers.h"
 
 #include <qpdf/QPDFPageObjectHelper.hh>
+#include <qpdf/QPDFPageLabelDocumentHelper.hh>
 #include <qpdf/Pipeline.hh>
 #include <qpdf/Pl_Buffer.hh>
 
@@ -203,6 +204,33 @@ void init_page(py::module_& m)
 
                 If the page's contents is an array of streams, it is coalesced.
             )~~~"
+        )
+        .def_property_readonly("page_label",
+            [](QPDFPageObjectHelper &poh) {
+                auto this_page = poh.getObjectHandle();
+                auto p_owner = this_page.getOwningQPDF();
+                if (!p_owner)
+                    throw py::value_error("Page is not attached to a Pdf");
+                auto& owner = *p_owner;
+
+                auto all_pages = owner.getAllPages();
+                auto it = all_pages.begin();
+                for (; it != all_pages.end(); ++it) {
+                    auto page = (*it);
+                    if (page.getObjGen() == this_page.getObjGen())
+                        break;
+                }
+                if (it == all_pages.end())
+                    throw py::value_error("Page is not consistently registered with Pdf");
+                auto idx = it - all_pages.begin();
+
+                QPDFPageLabelDocumentHelper pldh(owner);
+                auto label = pldh.getLabelForPage(idx);
+                auto prefix = label.getKey("/P");
+                if (prefix.isInteger())
+                    return std::to_string(prefix.getIntValue());
+                return prefix.getUTF8Value();
+            }
         )
         ;
 
