@@ -45,6 +45,9 @@ License: PIL
  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
  OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
+Files: src/pikepdf/models/outlines.py
+Copyright: (C) 2020 Matthias Erll, (C) 2020 James R. Barlow
+License: MPL-2.0
 
 Files: debian/*
 Copyright: (C) 2018 Sean Whitton <spwhitton@spwhitton.name>
