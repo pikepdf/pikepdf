@@ -58,7 +58,7 @@ class _NameObjectMeta(_ObjectMeta):
 
     def __getattr__(self, attr):
         if attr.startswith('_'):
-            return _ObjectMeta.__getattr__(attr)
+            return getattr(_ObjectMeta, attr)
         return Name('/' + attr)
 
     def __setattr__(self, attr, value):
