@@ -294,13 +294,27 @@ void init_pagelist(py::module_ &m)
             [](PageList &pl, const QPDFObjectHandle& h) {
                 QPDF* q = pl.qpdf.get();
                 return page_index(*q, h);
-            }
+            },
+            R"~~~(
+            Given a pikepdf.Object that is a page, find the index.
+
+            That is, returns ``n`` such that ``pdf.pages[n] == this_page``.
+            A ``ValueError`` exception is thrown if the page does not belong to
+            to this ``Pdf``.
+            )~~~"
         )
         .def("index",
             [](PageList &pl, const QPDFPageObjectHelper& poh) {
                 QPDF* q = pl.qpdf.get();
                 return page_index(*q, poh.getObjectHandle());
-            }
+            },
+            R"~~~(
+            Given a pikepdf.Page (page helper), find the index.
+
+            That is, returns ``n`` such that ``pdf.pages[n] == this_page``.
+            A ``ValueError`` exception is thrown if the page does not belong to
+            to this ``Pdf``.
+            )~~~"
         )
         .def("__repr__",
             [](PageList &pl) {

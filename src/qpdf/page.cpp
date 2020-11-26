@@ -243,7 +243,7 @@ void init_page(py::module_& m)
             R"~~~(
                 Returns the zero-based index of this page in the pages list.
 
-                That is, returns ``n` such that ``pdf.pages[n] == this_page``.
+                That is, returns ``n`` such that ``pdf.pages[n] == this_page``.
                 A ``ValueError`` exception is thrown if the page is not attached
                 to a ``Pdf``.
 

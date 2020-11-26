@@ -222,6 +222,23 @@ PDFs may define their own numbering scheme or different numberings for
 different sections, such as using Roman numerals for an introductory section.
 ``.pages`` does not look up this information.
 
+Accessing page labels
+---------------------
+
+If a PDF defines custom page labels, such as a typical report with preface material
+beginning with Roman numerals (i, ii, iii...), body using Arabic numerals (1, 2, 3...),
+and an appendix using some other convention (A-1, A-2, ...), you can look up the
+page label using the :class:`pikepdf.Page` helper class, as follows:
+
+.. ipython::
+    :verbatim:
+
+    In [1] = Page(pdf.pages[1]).label
+    Out[1] = 'i'
+
+There is currently no API to help with modifying the ``pdf.Root.PageLabels`` data
+structure, which contains the label definitions.
+
 Pages information from Root
 ---------------------------
 
