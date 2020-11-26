@@ -22,6 +22,7 @@ class definition is present as an aide for code introspection.
 # pylint: disable=unused-import, abstract-method
 
 from typing import TYPE_CHECKING, Iterable, Optional, Union
+from warnings import warn
 
 from . import _qpdf
 from ._qpdf import Object, ObjectType
@@ -126,7 +127,7 @@ class String(Object, metaclass=_ObjectMeta):
     def __new__(cls, s: Union[str, bytes]):
         """
         Args:
-            s (str or bytes): The string to use. String will be encoded for
+            s: The string to use. String will be encoded for
                 PDF, bytes will be constructed without encoding.
 
         Returns:
@@ -145,7 +146,7 @@ class Array(Object, metaclass=_ObjectMeta):
     def __new__(cls, a: Optional[Iterable] = None):
         """
         Args:
-            a (iterable): An iterable of objects. All objects must be either
+            a: An iterable of objects. All objects must be either
                 `pikepdf.Object` or convertible to `pikepdf.Object`.
 
         Returns:
@@ -202,13 +203,31 @@ class Stream(Object, metaclass=_ObjectMeta):
 
     object_type = ObjectType.stream
 
-    def __new__(cls, owner: 'Pdf', obj: bytes):
+    def __new__(cls, owner: 'Pdf', data: bytes = None, d=None, **kwargs):
         """
         Args:
-            owner (pikepdf.Pdf): The Pdf to which this stream shall be attached.
-            obj (bytes): The data bytes for the stream.
-
+            owner: The Pdf to which this stream shall be attached.
+            obj: The data bytes for the stream.
+            d: A mapping object that will be used to construct a ``Dictionary``.
+            kwargs: Keyword arguments that will define the dictionary. Do not set
+                /Filter or /Length here as pikepdf will manage these.
         Returns:
             pikepdf.Object
         """
-        return _qpdf._new_stream(owner, obj)
+
+        # Support __new__(...obj=bytes) which should have been data=bytes,
+        # drop in pikepdf 3
+        if 'obj' in kwargs:
+            warn("Deprecated parameter 'obj', use 'data' instead", DeprecationWarning)
+            if data is None:
+                data = kwargs['obj']
+            del kwargs['obj']
+
+        if data is None:
+            raise TypeError("Must make Stream from binary data")
+
+        stream = _qpdf._new_stream(owner, data)
+        if d or kwargs:
+            stream_dict = Dictionary(d, **kwargs)
+            stream.stream_dict = stream_dict
+        return stream

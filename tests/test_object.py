@@ -574,3 +574,15 @@ def test_len_stream(abcxyz_stream):
     with pytest.raises(TypeError):
         len(abcxyz_stream)  # pylint: disable=pointless-statement
     assert len(abcxyz_stream.stream_dict) == 1
+
+
+def test_stream_dict_oneshot():
+    pdf = pikepdf.new()
+    stream1 = Stream(pdf, b'12345', One=1, Two=2)
+    stream2 = Stream(pdf, b'67890', {'/Three': 3, '/Four': 4})
+    stream3 = pdf.make_stream(b'abcdef', One=1, Two=2)
+
+    assert stream1.One == 1
+    assert stream1.read_bytes() == b'12345'
+    assert stream2.Three == 3
+    assert stream3.One == 1

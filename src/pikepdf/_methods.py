@@ -369,14 +369,21 @@ class Extend_Pdf:
         """
         return Outline(self, max_depth=max_depth, strict=strict)
 
-    def make_stream(self, data: bytes) -> Stream:
+    def make_stream(self, data: bytes, d=None, **kwargs) -> Stream:
         """
         Create a new pikepdf.Stream object that is attached to this PDF.
 
         Args:
             data (bytes): Binary data for the stream object
+            d: Dictionary portion of the stream object
+            kwargs: Keyword arguments to define the dictionary. Do not set
+                /Filter or /Length here as pikepdf will manage these.
+
+        Example:
+            pdf.make_stream(b"Binary data here", Type=Name.XObject, Subtype=Name.Image)
+
         """
-        return Stream(self, data)
+        return Stream(self, data, d, **kwargs)
 
     def add_blank_page(
         self, *, page_size: Tuple[Numeric, Numeric] = (612.0, 792.0)
