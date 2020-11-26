@@ -10,7 +10,7 @@ called from Python, and subject to change at any time.
 """
 
 
-from pikepdf import Name, Pdf
+from pikepdf import Dictionary, Name, Pdf
 
 
 def update_xmp_pdfversion(pdf: Pdf, version: str):
@@ -21,3 +21,76 @@ def update_xmp_pdfversion(pdf: Pdf, version: str):
     with pdf.open_metadata(set_pikepdf_as_editor=False, update_docinfo=False) as meta:
         if 'pdf:PDFVersion' in meta:
             meta['pdf:PDFVersion'] = version
+
+
+def _alpha(n):
+    """Excel-style column numbering A..Z, AA..AZ..BA..ZZ.., AAA"""
+    if n < 1:
+        raise ValueError(f"Can't represent {n} in alphabetic numbering")
+    p = []
+    while n > 0:
+        n, r = divmod(n - 1, 26)
+        p.append(r)
+    base = ord('A')
+    ords = [(base + v) for v in reversed(p)]
+    return ''.join(chr(o) for o in ords)
+
+
+def _roman(n):
+    """Converts integer n to Roman numeral representation as a string"""
+    if not (1 <= n <= 5000):
+        raise ValueError(f"Can't represent {n} in Roman numerals")
+    roman_numerals = (
+        (1000, 'M'),
+        (900, 'CM'),
+        (500, 'D'),
+        (400, 'CD'),
+        (100, 'C'),
+        (90, 'XC'),
+        (50, 'L'),
+        (40, 'XL'),
+        (10, 'X'),
+        (9, 'IX'),
+        (5, 'V'),
+        (4, 'IV'),
+        (1, 'I'),
+    )
+    roman = ""
+    for value, numeral in roman_numerals:
+        while n >= value:
+            roman += numeral
+            n -= value
+    return roman
+
+
+LABEL_STYLE_MAP = {
+    Name.D: str,
+    Name.A: _alpha,
+    Name.a: lambda x: _alpha(x).lower(),
+    Name.R: _roman,
+    Name.r: lambda x: _roman(x).lower(),
+}
+
+
+def label_from_label_dict(label_dict):
+    """Convert a label dictionary returned by QPDF into a text string."""
+
+    if isinstance(label_dict, int):
+        return str(label_dict)
+
+    label = ''
+    if Name.P in label_dict:
+        prefix = label_dict[Name.P]
+        label += str(prefix)
+
+    # If there is no S, return only the P portion
+    if Name.S in label_dict:
+        # St defaults to 1
+        numeric_value = label_dict.get(Name.St, 1)
+
+        style = label_dict[Name.S]
+        style_fn = LABEL_STYLE_MAP.get(style, lambda x: '')
+        value = style_fn(numeric_value)
+        label += value
+
+    return label

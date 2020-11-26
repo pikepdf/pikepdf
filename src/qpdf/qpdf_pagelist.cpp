@@ -302,26 +302,6 @@ void init_pagelist(py::module_ &m)
                 return page_index(*q, poh.getObjectHandle());
             }
         )
-        .def_property_readonly("labels",
-            [](PageList &pl) -> py::object {
-                QPDF* q = pl.qpdf.get();
-                QPDFPageLabelDocumentHelper pldh(*q);
-                if (!pldh.hasPageLabels())
-                    return py::none();
-
-                py::list result;
-                std::vector<QPDFObjectHandle> labels;
-                pldh.getLabelsForPageRange(0, q->getAllPages().size(), 0, labels);
-                for (auto h: labels) {
-                    if (h.isInteger())
-                        continue;
-                    h.assertDictionary();
-                    auto prefix = h.getKey("/P");
-                    result.append(prefix.getUTF8Value());
-                }
-                return std::move(result);
-            }
-        )
         .def("__repr__",
             [](PageList &pl) {
                 return std::string("<pikepdf._qpdf.PageList len=")

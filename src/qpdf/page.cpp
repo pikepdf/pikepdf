@@ -69,9 +69,11 @@ size_t page_index(QPDF& owner, QPDFObjectHandle page)
     if (&owner != page.getOwningQPDF())
         throw py::value_error("Page is not in this Pdf");
     auto all_pages = owner.getAllPages();
+
+    auto page_objgen = page.getObjGen();
     auto it = std::find_if(all_pages.begin(), all_pages.end(),
-        [page](const QPDFObjectHandle& iter_page) {
-            return (page.getObjGen() == iter_page.getObjGen());
+        [&page_objgen](const QPDFObjectHandle& iter_page) {
+            return (page_objgen == iter_page.getObjGen());
         }
     );
     if (it == all_pages.end())
@@ -81,6 +83,12 @@ size_t page_index(QPDF& owner, QPDFObjectHandle page)
     return idx;
 }
 
+std::string label_string_from_dict(QPDFObjectHandle label_dict)
+{
+    auto impl = py::module_::import("pikepdf._cpphelpers").attr("label_from_label_dict");
+    py::str result = impl(label_dict);
+    return result;
+}
 
 void init_page(py::module_& m)
 {
@@ -236,6 +244,8 @@ void init_page(py::module_& m)
                 Returns the zero-based index of this page in the pages list.
 
                 That is, returns ``n` such that ``pdf.pages[n] == this_page``.
+                A ``ValueError`` exception is thrown if the page is not attached
+                to a ``Pdf``.
 
                 Requires O(n) search.
             )~~~"
@@ -250,11 +260,9 @@ void init_page(py::module_& m)
                 auto index = page_index(owner, this_page);
 
                 QPDFPageLabelDocumentHelper pldh(owner);
-                auto label = pldh.getLabelForPage(index);
-                auto prefix = label.getKey("/P");
-                if (prefix.isInteger())
-                    return std::to_string(prefix.getIntValue());
-                return prefix.getUTF8Value();
+                auto label_dict = pldh.getLabelForPage(index);
+
+                return label_string_from_dict(label_dict);
             },
             R"~~~(
                 Returns the page label for this page, accounting for section numbers.
@@ -268,7 +276,8 @@ void init_page(py::module_& m)
                 pages have the same labels. Labels are not guaranteed to
                 be unique.
 
-                Note that this requires a O(n) search over all pages.
+                Note that this requires a O(n) search over all pages, to look up
+                the page's index.
             )~~~"
         )
         ;

@@ -6,6 +6,7 @@ from sys import getrefcount as refcount
 import pytest
 
 from pikepdf import Array, Dictionary, Name, Page, Pdf, PdfMatrix, Stream
+from pikepdf._cpphelpers import label_from_label_dict
 
 # pylint: disable=redefined-outer-name,pointless-statement
 
@@ -405,3 +406,21 @@ def test_page_index_foreign_page(fourpages, sandwich):
     with pytest.raises(ValueError, match="Page is not in this Pdf"):
         # sandwich.pages[0] is still not "in" fourpages; it gets copied into it
         assert fourpages.pages.index(sandwich.pages[0])
+
+
+@pytest.mark.parametrize(
+    'd, result',
+    [
+        (Dictionary(), ''),
+        (Dictionary(St=1), ''),
+        (Dictionary(S=Name.D, St=1), '1'),
+        (Dictionary(P='foo'), 'foo'),
+        (Dictionary(P='A', St=2), 'A'),
+        (Dictionary(P='A-', S=Name.D, St=2), 'A-2'),
+        (Dictionary(S=Name.R, St=42), 'XLII'),
+        (Dictionary(S=Name.r, St=1729), 'mdccxxix'),
+        (Dictionary(P="Appendix-", S=Name.a, St=261), 'Appendix-ja'),
+    ],
+)
+def test_page_label_dicts(d, result):
+    assert label_from_label_dict(d) == result
