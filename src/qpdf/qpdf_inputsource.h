@@ -82,14 +82,25 @@ public:
     {
         py::gil_scoped_acquire gil;
 
-        auto view_buffer_info = py::memoryview::from_memory(buffer, length);
+#if defined(PYPY_VERSION)
+        // PyPy does not permit readinto(memoryview), so read to a buffer and
+        // memcpy that buffer. Error message is:
+        // "TypeError: a read-write bytes-like object is required, not memoryview"
+        this->last_offset = this->tell();
+        py::bytes result = this->stream.attr("read")(length);
+        py::buffer pybuf(result);
+        py::buffer_info info = pybuf.request();
+        size_t bytes_read = info.size * info.itemsize;
 
+        memcpy(buffer, info.ptr, std::min(length, bytes_read));
+#else
+        auto view_buffer_info = py::memoryview::from_memory(buffer, length);
         this->last_offset = this->tell();
         py::object result = this->stream.attr("readinto")(view_buffer_info);
         if (result.is_none())
             return 0;
         size_t bytes_read = py::cast<size_t>(result);
-
+#endif
         if (bytes_read == 0) {
             if (length > 0) {
                 // EOF
