@@ -267,18 +267,14 @@ void init_object(py::module_& m)
         .def("__repr__", &objecthandle_repr)
         .def("__hash__",
             [](QPDFObjectHandle &self) -> py::int_ {
-                py::object hash = py::module_::import("builtins").attr("hash");
-
                 //Objects which compare equal must have the same hash value
                 switch (self.getTypeCode()) {
                     case QPDFObject::object_type_e::ot_string:
-                    {
-                        return hash(py::bytes(self.getUTF8Value()));
-                    }
+                        return py::hash(py::bytes(self.getUTF8Value()));
                     case QPDFObject::object_type_e::ot_name:
-                        return hash(py::bytes(self.getName()));
+                        return py::hash(py::bytes(self.getName()));
                     case QPDFObject::object_type_e::ot_operator:
-                        return hash(py::bytes(self.getOperatorValue()));
+                        return py::hash(py::bytes(self.getOperatorValue()));
                     case QPDFObject::object_type_e::ot_array:
                     case QPDFObject::object_type_e::ot_dictionary:
                     case QPDFObject::object_type_e::ot_stream:
