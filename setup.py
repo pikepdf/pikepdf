@@ -6,10 +6,13 @@ from os.path import dirname, join
 from setuptools import find_packages, setup
 
 try:
-    from pybind11.setup_helpers import Pybind11Extension, build_ext
+    from pybind11.setup_helpers import ParallelCompile, Pybind11Extension, build_ext
 except ImportError:
     from setuptools import Extension as Pybind11Extension
     from setuptools.command.build_ext import build_ext
+
+    ParallelCompile = None
+    print("pybind11.setup_helpers NOT loaded - you might need to pip install pybind11")
 
 extra_includes = []
 extra_library_dirs = []
@@ -43,6 +46,8 @@ ext_modules = [
         cxx_std=14,
     )
 ]
+# Debug build
+# ext_modules[0].extra_compile_args.append('-g3')
 
 setup_py_cwd = dirname(__file__)
 
@@ -60,7 +65,9 @@ with open(join(setup_py_cwd, 'requirements/test.txt')) as f:
 with open(join(setup_py_cwd, 'README.md'), encoding='utf-8') as f:
     readme = f.read()
 
-if __name__ == '__main__':  # for mp_compile
+if __name__ == '__main__':
+    if ParallelCompile:
+        ParallelCompile().install()
     setup(
         name='pikepdf',
         author='James R. Barlow',
