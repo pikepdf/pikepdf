@@ -21,7 +21,6 @@
 #include <qpdf/BufferInputSource.hh>
 #include <qpdf/QPDFWriter.hh>
 #include <qpdf/QPDFPageDocumentHelper.hh>
-#include <qpdf/QPDFPageLabelDocumentHelper.hh>
 #include <qpdf/Pl_Discard.hh>
 
 #include <pybind11/stl.h>
@@ -581,16 +580,6 @@ void init_qpdf(py::module_ &m)
                 pikepdf._qpdf.PageList
             )~~~",
             py::return_value_policy::reference_internal
-        )
-        .def("page_label",
-            [](QPDF &q, long long page_idx){
-                QPDFPageLabelDocumentHelper pldh(q);
-                auto label = pldh.getLabelForPage(page_idx);
-                return label;
-                // if (label.isInteger())
-                //     return std::to_string(label.getIntValue());
-                // return label.getUTF8Value();
-            }
         )
         .def_property_readonly("_pages", &QPDF::getAllPages)
         .def_property_readonly("is_encrypted", &QPDF::isEncrypted)
