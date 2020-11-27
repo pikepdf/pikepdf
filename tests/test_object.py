@@ -6,6 +6,7 @@ from math import isclose, isfinite
 from zlib import compress
 
 import pytest
+from conftest import skip_if_pypy
 from hypothesis import assume, example, given
 from hypothesis.strategies import (
     binary,
@@ -159,6 +160,7 @@ def test_list_apis():
     assert a == pikepdf.Array([1, Name.Foo, 4, 42, 666])
 
 
+@skip_if_pypy
 def test_stack_depth():
     a = [42]
     for _ in range(100):

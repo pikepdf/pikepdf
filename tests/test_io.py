@@ -202,6 +202,8 @@ def test_mmap_only_file(resources):
         def readinto(self, *args):
             raise ExpectedError("can't read, you have to mmap me")
 
+        read = readinto  # PyPy uses read() not readinto()
+
     f = UnreadableFile(resources / 'pal.pdf', 'rb')
     with pytest.raises(ExpectedError):
         Pdf.open(f, access_mode=pikepdf._qpdf.AccessMode.stream)

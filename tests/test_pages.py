@@ -1,9 +1,14 @@
 import gc
 from contextlib import suppress
 from shutil import copy
-from sys import getrefcount as refcount
+
+try:
+    from sys import getrefcount as refcount
+except ImportError:
+    refcount = lambda x: 1
 
 import pytest
+from conftest import skip_if_pypy
 
 from pikepdf import Array, Dictionary, Name, Page, Pdf, PdfMatrix, Stream
 from pikepdf._cpphelpers import label_from_label_dict
@@ -98,6 +103,7 @@ def test_reverse_pages(resources, outdir):
         assert qr.pages[n].Contents.stream_dict.Length == length
 
 
+@skip_if_pypy
 def test_evil_page_deletion(resources, outdir):
     # str needed for py<3.6
     copy(str(resources / 'sandwich.pdf'), str(outdir / 'sandwich.pdf'))

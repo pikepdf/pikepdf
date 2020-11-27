@@ -1,9 +1,16 @@
 import gc
-from sys import getrefcount as refcount
+
+try:
+    from sys import getrefcount as refcount
+except ImportError:
+    refcount = lambda x: 1
 
 import pytest
+from conftest import skip_if_pypy
 
 from pikepdf import Pdf
+
+pytestmark = skip_if_pypy
 
 # Try to do some things without blowing up
 

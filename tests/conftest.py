@@ -1,4 +1,5 @@
 import os
+import platform
 import sys
 from pathlib import Path
 
@@ -26,3 +27,8 @@ def outdir(tmp_path):
 @pytest.fixture(scope="function")
 def outpdf(tmp_path):
     return tmp_path / 'out.pdf'
+
+
+skip_if_pypy = pytest.mark.skipif(
+    platform.python_implementation() == 'PyPy', reason="test isn't valid for PyPy"
+)
