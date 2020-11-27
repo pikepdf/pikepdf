@@ -83,6 +83,8 @@ def augments(cls_cpp: Type[Any]):
 
     def class_augment(cls, cls_cpp=cls_cpp):
         for name, member in inspect.getmembers(cls):
+            if hasattr(cls_cpp, name):  # For PyPy: don't replace existing methods
+                continue
             if inspect.isfunction(member):
                 member.__qualname__ = member.__qualname__.replace(
                     cls.__name__, cls_cpp.__name__
