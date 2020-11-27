@@ -18,6 +18,17 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.2.0
+======
+
+-  Added features to look up the index of an page in the document and page labels
+-  Enable parallel compiling (again)
+-  Make it easier to create a ``pikepdf.Stream`` with a dictionary or from an existing
+   dictionary.
+-  Converted most ``.format()`` strings to f-strings.
+-  Fixed incorrect behavior when assigning ``Object.stream_dict``; this use to create
+   a dictionary in the wrong place instead of overriding a stream's dictionary.
+
 v2.1.2
 ======
 
