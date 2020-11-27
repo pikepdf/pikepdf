@@ -411,9 +411,14 @@ void init_object(py::module_& m)
         )
         .def("__setattr__",
             [](QPDFObjectHandle &h, std::string const& name, py::object pyvalue) {
-                std::string key = "/" + name;
-                auto value = objecthandle_encode(pyvalue);
-                object_set_key(h, key, value);
+                if (name == "stream_dict") {
+                    py::object baseobj = py::module_::import("builtins").attr("object");
+                    baseobj.attr("__setattr__")(py::cast(h), py::str(name), pyvalue);
+                } else {
+                    std::string key = "/" + name;
+                    auto value = objecthandle_encode(pyvalue);
+                    object_set_key(h, key, value);
+                }
             },
             "attribute access"
         )
