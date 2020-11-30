@@ -73,6 +73,3 @@ pikepdf has been ported to many platforms already. If you are interesting in
 porting to a new platform, check with
 `Repology <https://repology.org/projects/?search=pikepdf>`__ to see the status
 of that platform.
-
-Packager maintainers, please ensure that the command line completion scripts in
-``misc/`` are installed.
