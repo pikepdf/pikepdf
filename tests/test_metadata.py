@@ -252,9 +252,9 @@ def test_decode_pdf_date():
 
 def test_date_docinfo_from_xmp():
     VALS = [
-        ('2018-12-04T03:02:01', "20181204030201"),
-        ('2018-12-15T07:36:43Z', "20181215073643+00'00'"),
-        ('2018-12-04T03:02:01-01:00', "20181204030201-01'00'"),
+        ('2018-12-04T03:02:01', "D:20181204030201"),
+        ('2018-12-15T07:36:43Z', "D:20181215073643+00'00'"),
+        ('2018-12-04T03:02:01-01:00', "D:20181204030201-01'00'"),
     ]
     for xmp_val, docinfo_val in VALS:
         assert DateConverter.docinfo_from_xmp(xmp_val) == docinfo_val
@@ -272,7 +272,7 @@ def test_date_docinfo_from_xmp():
 def test_random_dates(year, month, day, hour, mins, sec):
     date_args = year, month, day, hour, mins, sec
     xmp = '{:04d}-{:02d}-{:02d}T{:02d}:{:02d}:{:02d}'.format(*date_args)
-    docinfo = '{:04d}{:02d}{:02d}{:02d}{:02d}{:02d}'.format(*date_args)
+    docinfo = 'D:{:04d}{:02d}{:02d}{:02d}{:02d}{:02d}'.format(*date_args)
 
     try:
         converted = DateConverter.docinfo_from_xmp(xmp)

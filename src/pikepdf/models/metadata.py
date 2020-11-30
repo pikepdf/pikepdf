@@ -137,6 +137,8 @@ def encode_pdf_date(d: datetime) -> str:
     considered unknown. Regardless of whether or not GMT
     information is specified, the remainder of the string should specify
     the local time.
+
+    'D:' is required in PDF/A, so we always add it.
     """
 
     # The formatting of %Y is not consistent as described in
