@@ -233,8 +233,8 @@ page label using the :class:`pikepdf.Page` helper class, as follows:
 .. ipython::
     :verbatim:
 
-    In [1] = Page(pdf.pages[1]).label
-    Out[1] = 'i'
+    In [1]: Page(pdf.pages[1]).label
+    Out[1]: 'i'
 
 There is currently no API to help with modifying the ``pdf.Root.PageLabels`` data
 structure, which contains the label definitions.
