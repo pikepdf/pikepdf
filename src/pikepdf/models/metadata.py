@@ -144,7 +144,7 @@ def encode_pdf_date(d: datetime) -> str:
     # The formatting of %Y is not consistent as described in
     # https://bugs.python.org/issue13305 and underspecification in libc.
     # So explicitly format the year with leading zeros
-    s = f"{d.year:04d}"
+    s = f"D:{d.year:04d}"
     s += d.strftime(r'%m%d%H%M%S')
     tz = d.strftime('%z')
     if tz:
