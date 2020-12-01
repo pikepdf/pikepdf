@@ -8,7 +8,7 @@ variables:
   cibw_skip: "cp27-* cp35-* pp*"
   cibw_test_command: "pytest -nauto {project}/tests"
   cibw_test_requires: "-r requirements/test.txt"
-  cibuildwheel_version: "1.6.4"
+  cibuildwheel_version: "1.7.0"
 
 trigger:
   tags:
