@@ -38,10 +38,10 @@ installing the wheel. If you want to get the binary wheel, upgrade ``pip`` with:
     pip install pikepdf
 
 32- and 64-bit wheels are available for Windows, Linux and macOS. Binary wheels
-should work on most systems work on Linux distributions 2010 and newer, macOS
+should work on most systems, i.e. Linux distributions 2010 and newer, macOS
 10.11 and newer (for Homebrew), Windows 7 and newer, **provided a recent version
 of pip is used to install them**. The Linux wheels currently include copies of
-libqpdf, libjpeg, and zlib The Windows wheels include libqpdf. This is to ensure
+libqpdf, libjpeg, and zlib. The Windows wheels include libqpdf. This is to ensure
 that up-to-date, compatible copies of dependent libraries are included.
 
 Currently we do not build wheels for architectures other than x86 and x64.
