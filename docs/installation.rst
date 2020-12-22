@@ -226,6 +226,19 @@ Note that the Python wheels for pikepdf currently compile their own version of
 QPDF and several of its dependencies to ensure the wheels have the latest version.
 You can also refer to the Azure Pipelines CI YAML files for build steps.
 
+**Building against a custom install of QPDF to /usr/local/lib**
+
+If you have previously installed a QPDF from source to ``/usr/local/lib`` on
+a POSIX platform, and you try to build pikepdf from source, it will prefer the
+operating system version of QPDF installed at ``/usr/lib``. Since pikepdf strongly
+prefers recent versions of QPDF, you may want to use a more current version.
+
+From a Git checkout of the pikepdf source tree, run:
+
+.. code-block:: bash
+
+    env LDFLAGS='-L/usr/local/lib' CFLAGS='-I/usr/local/include/qpdf' pip install .
+
 Building the documentation
 --------------------------
 
