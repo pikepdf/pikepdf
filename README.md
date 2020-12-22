@@ -58,6 +58,13 @@ This library is similar to PyPDF2 and pdfrw - it provides low level access to PD
 
 [pdfrw-commits]: https://img.shields.io/github/commit-activity/y/pmaupin/pdfrw.svg
 
+Testimonials
+------------
+
+> I decided to try writing a quick Python program with pikepdf to automate [something] and it "just worked". -Jay Berkenbilt, creator of QPDF
+
+> "Thanks for creating a great pdf library, I tested out several and this is the one that was best able to work with whatever I threw at it." -@cfcurtis
+
 In Production
 -------------
 
