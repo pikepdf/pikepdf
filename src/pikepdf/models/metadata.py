@@ -8,7 +8,6 @@ import logging
 import re
 import sys
 from abc import ABC, abstractstaticmethod
-from collections.abc import Iterable, MutableMapping, Set
 from datetime import datetime
 from functools import wraps
 from io import BytesIO
@@ -20,6 +19,7 @@ from typing import (
     List,
     NamedTuple,
     Optional,
+    Set,
     Type,
     Union,
 )
@@ -30,6 +30,11 @@ from lxml.etree import QName, XMLParser, XMLSyntaxError, parse
 
 from .. import Name, Stream, String
 from .. import __version__ as pikepdf_version
+
+if sys.version_info < (3, 9):
+    from typing import Iterable, MutableMapping
+else:
+    from collections.abc import Iterable, MutableMapping
 
 if TYPE_CHECKING:
     from pikepdf import Pdf
