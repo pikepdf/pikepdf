@@ -303,7 +303,7 @@ def test_xpacket_generation(sandwich):
     assert xmpstr1.startswith(xpacket_begin)
 
     with sandwich.open_metadata() as xmp:
-        xmp['dc:creator'] = 'Foo'
+        xmp['dc:creator'] = ['Foo']
 
     xmpstr2 = sandwich.Root.Metadata.read_bytes()
     assert xmpstr2.startswith(xpacket_begin)

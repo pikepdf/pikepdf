@@ -535,13 +535,13 @@ class PdfMetadata(MutableMapping):
         if self.sync_docinfo:
             self._update_docinfo()
 
-    def _qname(self, name):
+    def _qname(self, name: Union[QName, str]) -> str:
         """Convert name to an XML QName
 
         e.g. pdf:Producer -> {http://ns.adobe.com/pdf/1.3/}Producer
         """
         if isinstance(name, QName):
-            return name
+            return str(name)
         if not isinstance(name, str):
             raise TypeError(f"{name} must be str")
         if name == '':
@@ -550,7 +550,7 @@ class PdfMetadata(MutableMapping):
             return name
         prefix, tag = name.split(':', maxsplit=1)
         uri = self.NS[prefix]
-        return QName(uri, tag)
+        return str(QName(uri, tag))
 
     def _prefix_from_uri(self, uriname):
         """Given a fully qualified XML name, find a prefix
@@ -667,11 +667,17 @@ class PdfMetadata(MutableMapping):
         if not self._updating:
             raise RuntimeError("Metadata not opened for editing, use with block")
 
-        if self.mark and key in ('xmp:MetdataDate', 'pdf:Producer'):
+        qkey = self._qname(key)
+        if self.mark and qkey in (
+            self._qname('xmp:MetadataDate'),
+            self._qname('pdf:Producer'),
+        ):
             log.warning(
                 f"Update to {key} will be overwritten because metadata was opened "
                 "with set_pikepdf_as_editor=True"
             )
+        if isinstance(val, str) and qkey in (self._qname('dc:creator')):
+            log.error(f"{key} should be set to a list of strings")
 
         def add_array(node, items: Iterable):
             rdf_type = next(
