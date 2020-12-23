@@ -18,6 +18,14 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.2.2
+======
+
+-  Fixed issue #150, adding author metadata breaks PDF/A conformance. We now log an
+   error when this metadata is set incorrectly.
+-  Improve type checking in ocrmypdf.models.metadata module.
+-  Improve documentation for custom builds.
+
 v2.2.1
 ======
 
