@@ -46,6 +46,12 @@ ext_modules = [
         cxx_std=14,
     )
 ]
+
+if sys.platform == 'cygwin':
+    # On cygwin, use gnu++14 instead of c++14
+    eca = ext_modules[0].extra_compile_args
+    eca[eca.index('-std=c++14')] = '-std=gnu++14'
+
 # Debug build
 # ext_modules[0].extra_compile_args.append('-g3')
 
