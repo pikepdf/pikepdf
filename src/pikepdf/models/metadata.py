@@ -529,10 +529,17 @@ class PdfMetadata(MutableMapping):
         Depending how we are initialized, leave our metadata mark and producer.
         """
         if self.mark:
-            self[QName(XMP_NS_XMP, 'MetadataDate')] = datetime.now(
-                datetime.utcnow().astimezone().tzinfo
-            ).isoformat()
-            self[QName(XMP_NS_PDF, 'Producer')] = 'pikepdf ' + pikepdf_version
+            # We were asked to mark the file as being edited by pikepdf
+            self._setitem(
+                QName(XMP_NS_XMP, 'MetadataDate'),
+                datetime.now(datetime.utcnow().astimezone().tzinfo).isoformat(),
+                applying_mark=True,
+            )
+            self._setitem(
+                QName(XMP_NS_PDF, 'Producer'),
+                'pikepdf ' + pikepdf_version,
+                applying_mark=True,
+            )
         xml = self._get_xml_bytes()
         self._pdf.Root.Metadata = Stream(self._pdf, xml)
         self._pdf.Root.Metadata[Name.Type] = Name.Metadata
@@ -667,16 +674,28 @@ class PdfMetadata(MutableMapping):
     def __len__(self):
         return len(list(iter(self)))
 
-    @ensure_loaded
-    def __setitem__(self, key: Union[str, QName], val: Union[Set[str], List[str], str]):
+    def _setitem(
+        self,
+        key: Union[str, QName],
+        val: Union[Set[str], List[str], str],
+        applying_mark: bool = False,
+    ):
         if not self._updating:
             raise RuntimeError("Metadata not opened for editing, use with block")
 
         qkey = self._qname(key)
-        if self.mark and qkey in (
-            self._qname('xmp:MetadataDate'),
-            self._qname('pdf:Producer'),
+        if (
+            self.mark
+            and not applying_mark
+            and qkey
+            in (
+                self._qname('xmp:MetadataDate'),
+                self._qname('pdf:Producer'),
+            )
         ):
+            # Complain if user writes self[pdf:Producer] = ... and because it will
+            # be overwritten on save, unless self._updating_mark, in which case
+            # the action was initiated internally
             log.warning(
                 f"Update to {key} will be overwritten because metadata was opened "
                 "with set_pikepdf_as_editor=True"
@@ -742,6 +761,10 @@ class PdfMetadata(MutableMapping):
                 )
             else:
                 raise TypeError(val) from None
+
+    @ensure_loaded
+    def __setitem__(self, key: Union[str, QName], val: Union[Set[str], List[str], str]):
+        return self._setitem(key, val, False)
 
     @ensure_loaded
     def __delitem__(self, key: Union[str, QName]):
