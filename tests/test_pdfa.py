@@ -35,45 +35,53 @@ def test_pdfa_sanity(resources, outdir):
 
     assert verapdf_validate(filename)
 
-    pdf = Pdf.open(filename)
-    pdf.save(outdir / 'pdfa.pdf')
+    with Pdf.open(filename) as pdf:
+        pdf.save(outdir / 'pdfa.pdf')
 
-    assert verapdf_validate(outdir / 'pdfa.pdf')
-    assert pdf.open_metadata().pdfa_status == '1B'
+        assert verapdf_validate(outdir / 'pdfa.pdf')
+        assert pdf.open_metadata().pdfa_status == '1B'
 
 
 def test_pdfa_modify(resources, outdir):
     sandwich = resources / 'sandwich.pdf'
     assert verapdf_validate(sandwich)
 
-    pdf = Pdf.open(sandwich)
-    with pdf.open_metadata(update_docinfo=False, set_pikepdf_as_editor=False) as meta:
-        pass
-    pdf.save(outdir / '1.pdf')
+    with Pdf.open(sandwich) as pdf:
+        with pdf.open_metadata(
+            update_docinfo=False, set_pikepdf_as_editor=False
+        ) as meta:
+            pass
+        pdf.save(outdir / '1.pdf')
     assert verapdf_validate(outdir / '1.pdf')
 
-    pdf = Pdf.open(sandwich)
-    with pdf.open_metadata(update_docinfo=False, set_pikepdf_as_editor=True) as meta:
-        pass
-    pdf.save(outdir / '2.pdf')
+    with Pdf.open(sandwich) as pdf:
+        with pdf.open_metadata(
+            update_docinfo=False, set_pikepdf_as_editor=True
+        ) as meta:
+            pass
+        pdf.save(outdir / '2.pdf')
     assert verapdf_validate(outdir / '2.pdf')
 
-    pdf = Pdf.open(sandwich)
-    with pdf.open_metadata(update_docinfo=True, set_pikepdf_as_editor=True) as meta:
-        meta['dc:source'] = 'Test'
-        meta['dc:title'] = 'Title Test'
-    pdf.save(outdir / '3.pdf')
+    with Pdf.open(sandwich) as pdf:
+        with pdf.open_metadata(update_docinfo=True, set_pikepdf_as_editor=True) as meta:
+            meta['dc:source'] = 'Test'
+            meta['dc:title'] = 'Title Test'
+        pdf.save(outdir / '3.pdf')
     assert verapdf_validate(outdir / '3.pdf')
 
 
 def test_pdfa_creator(resources, outdir, caplog):
     sandwich = resources / 'sandwich.pdf'
 
-    pdf = Pdf.open(sandwich)
-    with pdf.open_metadata(update_docinfo=False, set_pikepdf_as_editor=False) as meta:
-        meta['dc:creator'] = 'The Creator'
-    messages = [
-        rec.message for rec in caplog.records if rec.message.startswith('dc:creator')
-    ]
-    if not messages:
-        pytest.fail("Failed to warn about setting dc:creator to a string")
+    with Pdf.open(sandwich) as pdf:
+        with pdf.open_metadata(
+            update_docinfo=False, set_pikepdf_as_editor=False
+        ) as meta:
+            meta['dc:creator'] = 'The Creator'
+        messages = [
+            rec.message
+            for rec in caplog.records
+            if rec.message.startswith('dc:creator')
+        ]
+        if not messages:
+            pytest.fail("Failed to warn about setting dc:creator to a string")

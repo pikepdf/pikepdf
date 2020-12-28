@@ -187,29 +187,29 @@ def test_image_roundtrip(outdir, w, h, pixeldata, cs, bpc):
         outfile, compress_streams=False, stream_decode_level=StreamDecodeLevel.none
     )
 
-    p2 = Pdf.open(outfile)
-    pim = PdfImage(p2.pages[0].Resources.XObject['/Im1'])
+    with Pdf.open(outfile) as p2:
+        pim = PdfImage(p2.pages[0].Resources.XObject['/Im1'])
 
-    assert pim.bits_per_component == bpc
-    assert pim.colorspace == cs
-    assert pim.width == w
-    assert pim.height == h
-    if cs == '/DeviceRGB':
-        assert pim.mode == 'RGB'
-    elif cs == '/DeviceGray' and bpc == 8:
-        assert pim.mode == 'L'
-    elif bpc == 1:
-        assert pim.mode == '1'
-    assert not pim.palette
+        assert pim.bits_per_component == bpc
+        assert pim.colorspace == cs
+        assert pim.width == w
+        assert pim.height == h
+        if cs == '/DeviceRGB':
+            assert pim.mode == 'RGB'
+        elif cs == '/DeviceGray' and bpc == 8:
+            assert pim.mode == 'L'
+        elif bpc == 1:
+            assert pim.mode == '1'
+        assert not pim.palette
 
-    assert pim.filters == []
-    assert pim.read_bytes() == pixeldata
+        assert pim.filters == []
+        assert pim.read_bytes() == pixeldata
 
-    outstream = BytesIO()
-    pim.extract_to(stream=outstream)
-    outstream.seek(0)
-    im = Image.open(outstream)
-    assert pim.mode == im.mode
+        outstream = BytesIO()
+        pim.extract_to(stream=outstream)
+        outstream.seek(0)
+        im = Image.open(outstream)
+        assert pim.mode == im.mode
 
 
 @pytest.mark.parametrize(

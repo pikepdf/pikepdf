@@ -26,10 +26,10 @@ def graph_encrypted(resources):
 )
 def test_encrypt_basic(trivial, outpdf, R, owner, user):
     trivial.save(outpdf, encryption=dict(R=R, owner=owner, user=user))
-    pdf_owner = pikepdf.open(outpdf, password=owner)
-    assert pdf_owner.is_encrypted
-    pdf_user = pikepdf.open(outpdf, password=user)
-    assert pdf_user.is_encrypted
+    with pikepdf.open(outpdf, password=owner) as pdf_owner:
+        assert pdf_owner.is_encrypted
+    with pikepdf.open(outpdf, password=user) as pdf_user:
+        assert pdf_user.is_encrypted
 
 
 def test_encrypt_R5(trivial, outpdf):
@@ -62,16 +62,16 @@ def test_encrypt_permissions_deny(trivial, outpdf):
     trivial.save(
         outpdf, encryption=pikepdf.Encryption(owner='sun', user='moon', allow=perms)
     )
-    pdf = pikepdf.open(outpdf, password='sun')
-    assert not pdf.allow.extract
-    assert pdf.allow.modify_form
+    with pikepdf.open(outpdf, password='sun') as pdf:
+        assert not pdf.allow.extract
+        assert pdf.allow.modify_form
 
 
 def test_encrypt_info(trivial, outpdf):
     trivial.save(outpdf, encryption=dict(R=4, owner='foo', user='bar'))
-    pdf = pikepdf.open(outpdf, password='foo')
-    assert pdf.encryption.user_password == b'bar'
-    assert pdf.encryption.bits == 128
+    with pikepdf.open(outpdf, password='foo') as pdf:
+        assert pdf.encryption.user_password == b'bar'
+        assert pdf.encryption.bits == 128
 
 
 @pytest.mark.parametrize(

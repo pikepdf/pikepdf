@@ -60,26 +60,25 @@ def test_empty(outdir):
 
 class TestLinearization:
     def test_linearization(self, resources, outdir):
-        pdf = Pdf.open(resources / 'graph.pdf')
-        assert not pdf.is_linearized
+        with Pdf.open(resources / 'graph.pdf') as graph:
+            assert not graph.is_linearized
+            graph.save(outdir / 'lin.pdf', linearize=True)
 
-        pdf.save(outdir / 'lin.pdf', linearize=True)
+        with Pdf.open(outdir / 'lin.pdf') as pdf:
+            assert pdf.is_linearized
 
-        pdf = Pdf.open(outdir / 'lin.pdf')
-        assert pdf.is_linearized
-
-        sio = StringIO()
-        pdf.check_linearization(sio)
+            sio = StringIO()
+            pdf.check_linearization(sio)
 
 
 def test_objgen(resources):
-    src = Pdf.open(resources / 'graph.pdf')
-    im0 = src.pages[0].Resources.XObject['/Im0']
-    assert im0.objgen == (5, 0)
-    object5 = src.get_object((5, 0))
-    assert object5.is_owned_by(src)
-    assert object5 == im0
-    assert object5 == src.get_object(5, 0)
+    with Pdf.open(resources / 'graph.pdf') as src:
+        im0 = src.pages[0].Resources.XObject['/Im0']
+        assert im0.objgen == (5, 0)
+        object5 = src.get_object((5, 0))
+        assert object5.is_owned_by(src)
+        assert object5 == im0
+        assert object5 == src.get_object(5, 0)
 
 
 class TestPasswords:
@@ -99,8 +98,8 @@ class TestPasswords:
 
 class TestPermissions:
     def test_some_permissions_missing(self, resources):
-        pdf = Pdf.open(resources / 'graph-encrypted.pdf', 'owner')
-        assert pdf.allow.print_highres == pdf.allow.modify_annotation == False
+        with Pdf.open(resources / 'graph-encrypted.pdf', 'owner') as pdf:
+            assert pdf.allow.print_highres == pdf.allow.modify_annotation == False
 
     def test_permissions_all_true_not_encrypted(self, trivial):
         assert all(trivial.allow)
@@ -109,8 +108,8 @@ class TestPermissions:
 class TestStreams:
     def test_stream(self, resources):
         with (resources / 'pal-1bit-trivial.pdf').open('rb') as stream:
-            pdf = Pdf.open(stream)
-        assert pdf.Root.Pages.Count == 1
+            with Pdf.open(stream) as pdf:
+                assert pdf.Root.Pages.Count == 1
 
     def test_no_text_stream(self, resources):
         with pytest.raises(TypeError):
@@ -156,12 +155,12 @@ def test_remove_unreferenced(resources, outdir):
     in_ = resources / 'sandwich.pdf'
     out1 = outdir / 'out1.pdf'
     out2 = outdir / 'out2.pdf'
-    pdf = Pdf.open(in_)
-    pdf.pages[0].Contents = Stream(pdf, b' ')
-    pdf.save(out1)
+    with Pdf.open(in_) as pdf:
+        pdf.pages[0].Contents = Stream(pdf, b' ')
+        pdf.save(out1)
 
-    pdf.remove_unreferenced_resources()
-    pdf.save(out2)
+        pdf.remove_unreferenced_resources()
+        pdf.save(out2)
 
     assert out2.stat().st_size < out1.stat().st_size
 
@@ -182,8 +181,8 @@ def test_unicode_filename(resources, outdir):
     target1 = outdir / '测试.pdf'
     target2 = outdir / '通过考试.pdf'
     shutil.copy(fspath(resources / 'pal-1bit-trivial.pdf'), fspath(target1))
-    pdf = Pdf.open(target1)
-    pdf.save(target2)
+    with Pdf.open(target1) as pdf:
+        pdf.save(target2)
     assert target2.exists()
 
 
@@ -191,8 +190,8 @@ def test_min_and_force_version(trivial, outdir):
     pdf = trivial
     pdf.save(outdir / '1.7.pdf', min_version='1.7')
 
-    pdf17 = Pdf.open(outdir / '1.7.pdf')
-    assert pdf17.pdf_version == '1.7'
+    with Pdf.open(outdir / '1.7.pdf') as pdf17:
+        assert pdf17.pdf_version == '1.7'
 
     pdf.save(outdir / '1.2.pdf', force_version='1.2')
     pdf12 = Pdf.open(outdir / '1.2.pdf')

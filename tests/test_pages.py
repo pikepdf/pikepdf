@@ -257,8 +257,8 @@ def test_concatenate(resources, outdir):
         output_pdf = Pdf.new()
         for i in range(n):
             print(i)
-            pdf_page = Pdf.open(resources / 'pal.pdf')
-            output_pdf.pages.extend(pdf_page.pages)
+            with Pdf.open(resources / 'pal.pdf') as pdf_page:
+                output_pdf.pages.extend(pdf_page.pages)
         output_pdf.save(outdir / f'{n}.pdf')
 
     concatenate(5)
@@ -331,9 +331,9 @@ def test_foreign_copied_pages_are_true_copies(graph, outpdf):
         out.pages[n].Rotate = 180
 
     out.save(outpdf)
-    reopened = Pdf.open(outpdf)
-    assert reopened.pages[0].Rotate == 180
-    assert reopened.pages[1].get(Name.Rotate, 0) == 0
+    with Pdf.open(outpdf) as reopened:
+        assert reopened.pages[0].Rotate == 180
+        assert reopened.pages[1].get(Name.Rotate, 0) == 0
 
 
 def test_remove_onebased(fourpages):
@@ -375,6 +375,7 @@ def test_page_splitting_generator(resources, tmp_path):
             output.save(part_file)
             yield part_file
         output.close()
+        pdf.close()
 
     for pdf in pdfs():
         print(pdf)

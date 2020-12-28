@@ -85,6 +85,7 @@ def test_text_filter(resources, outdir):
     page['/Rotate'] = 90
 
     pdf.save(outdir / 'notext.pdf', True)
+    pdf.close()
 
     proc = run(
         ['pdftotext', str(outdir / 'notext.pdf'), '-'],

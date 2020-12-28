@@ -42,21 +42,21 @@ def test_overwrite_with_memory_file(outdir):
 
 def test_overwrite_input(resources, outdir):
     copy(resources / 'sandwich.pdf', outdir / 'sandwich.pdf')
-    p = Pdf.open(outdir / 'sandwich.pdf')
-    with pytest.raises(ValueError, match=r'overwrite input file'):
-        p.save(outdir / 'sandwich.pdf')
+    with Pdf.open(outdir / 'sandwich.pdf') as p:
+        with pytest.raises(ValueError, match=r'overwrite input file'):
+            p.save(outdir / 'sandwich.pdf')
 
 
 def test_fail_only_overwrite_input_check(monkeypatch, resources, outdir):
     copy(resources / 'sandwich.pdf', outdir / 'sandwich.pdf')
-    p = Pdf.open(outdir / 'sandwich.pdf')
+    with Pdf.open(outdir / 'sandwich.pdf') as p:
 
-    def mockraise(*args):
-        raise OSError("samefile mocked")
+        def mockraise(*args):
+            raise OSError("samefile mocked")
 
-    monkeypatch.setattr(os.path, 'samefile', mockraise)
-    with pytest.raises(OSError, match=r'samefile mocked'):
-        p.save(outdir / 'wouldwork.pdf')
+        monkeypatch.setattr(os.path, 'samefile', mockraise)
+        with pytest.raises(OSError, match=r'samefile mocked'):
+            p.save(outdir / 'wouldwork.pdf')
 
 
 class BadBytesIO(BytesIO):
