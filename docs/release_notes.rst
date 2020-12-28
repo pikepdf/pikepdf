@@ -18,6 +18,13 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.2.3
+======
+
+-  Fixed a warning that was incorrectly issued in v2.2.2 when pikepdf updates XMP
+   metadata on the user's behalf.
+-  Hopefully fixed build on Cygwin (not tested, based on user report).
+
 v2.2.2
 ======
 
