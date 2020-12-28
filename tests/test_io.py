@@ -213,8 +213,8 @@ def test_save_bytesio(resources, outpdf):
         for page in input_.pages:
             pdf.pages.append(page)
         bio = BytesIO()
-        pdf.save(bio)
+        pdf.save(bio, static_id=True)
         bio_value = bio.getvalue()
         assert bio_value != b''
-        pdf.save(outpdf)
+        pdf.save(outpdf, static_id=True)
         assert outpdf.read_bytes() == bio_value

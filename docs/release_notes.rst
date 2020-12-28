@@ -23,6 +23,8 @@ v2.2.3
 
 -  Fixed a warning that was incorrectly issued in v2.2.2 when pikepdf updates XMP
    metadata on the user's behalf.
+-  Fixed a rare test suite failure that occurred if two test files were generated with
+   a different timestamp, due to timing of the tests.
 -  Hopefully fixed build on Cygwin (not tested, based on user report).
 
 v2.2.2
