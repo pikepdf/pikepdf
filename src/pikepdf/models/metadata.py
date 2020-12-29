@@ -379,7 +379,7 @@ class PdfMetadata(MutableMapping):
                     val = converter.xmp_from_docinfo(val)
                 if not val:
                     continue
-                self[qname] = val
+                self._setitem(qname, val, True)
             except (ValueError, AttributeError) as e:
                 msg = f"The metadata field {docinfo_name} could not be copied to XMP"
                 if raise_failure:
