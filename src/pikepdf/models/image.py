@@ -383,7 +383,14 @@ class PdfImage(PdfImageBase):
             iccstream = self._iccstream
             iccbuffer = iccstream.get_stream_buffer()
             iccbytesio = BytesIO(iccbuffer)
-            self._icc = ImageCms.ImageCmsProfile(iccbytesio)
+            try:
+                self._icc = ImageCms.ImageCmsProfile(iccbytesio)
+            except OSError as e:
+                if str(e) == 'cannot open profile from string':
+                    # ICC profile is corrupt
+                    raise UnsupportedImageTypeError(
+                        "ICC profile corrupt or not readable"
+                    ) from e
         return self._icc
 
     def _extract_direct(self, *, stream):

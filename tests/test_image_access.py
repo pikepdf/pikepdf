@@ -2,6 +2,7 @@ import zlib
 from io import BytesIO
 from os import fspath
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from PIL import Image, ImageCms
@@ -472,3 +473,15 @@ def test_ccitt_icc(resources):
     assert b'GRAYXYZ' in bio.read(1000)
     bio.seek(0)
     assert Image.open(bio)
+
+
+def test_invalid_icc(resources):
+    xobj, _pdf = first_image_in(resources / 'pink-palette-icc.pdf')
+
+    cs = xobj.ColorSpace[1][1]  # [/Indexed [/ICCBased <stream>]]
+    cs.write(b'foobar')  # corrupt the ICC profile
+    with pytest.raises(
+        UnsupportedImageTypeError, match="ICC profile corrupt or not readable"
+    ):
+        pim = PdfImage(xobj)
+        _icc = pim.icc
