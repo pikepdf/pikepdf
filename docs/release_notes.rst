@@ -18,6 +18,11 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.2.5
+======
+
+-  Change how a C++ function is called to support QPDF 10.1.0.
+
 v2.2.4
 ======
 
