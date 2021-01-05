@@ -17,6 +17,7 @@ import shutil
 from collections.abc import KeysView
 from decimal import Decimal
 from io import BytesIO
+from os import replace
 from pathlib import Path
 from subprocess import PIPE, run
 from tempfile import NamedTemporaryFile
@@ -942,6 +943,67 @@ class Extend_Page:
     def trimbox(self, value):
         check_is_box(value)
         self.obj['/TrimBox'] = value
+
+    @property
+    def resources(self):
+        return self.obj['/Resources']
+
+    def add_resource(
+        self,
+        res: Object,
+        res_type: Name,
+        name: Optional[Name] = None,
+        *,
+        prefix: str = '',
+        replace_existing: bool = True,
+    ) -> str:
+        """Adds a new resource to the page's Resources dictionary.
+
+        If the Resources dictionaries do not exist, they will be created.
+
+        Args:
+            self: The object to add to the resources dictionary.
+            res: The resource dictionary object to add.
+            res_type: Should be one of the following Resource dictionary types:
+                ExtGState, ColorSpace, Pattern, Shading, XObject, Font, Properties.
+            name: The name of the object. If omitted, a random name will be
+                generated with enough randomness to be globally unique.
+            prefix: A prefix for the name of the object. Allows conveniently
+                namespacing when using random names, e.g. prefix="Im" for images.
+                Mutually exclusive with name parameter.
+            replace_existing: If the name already exists in one of the resource
+                dictionaries, remove it.
+        Returns:
+            The name of the object.
+
+        Example:
+            resource_name = Page(pdf.pages[0]).add_resource(formxobj, Name.XObject)
+        """
+        if not Name.Resources in self.obj:
+            self.obj.Resources = Dictionary()
+        elif not isinstance(self.obj.Resources, Dictionary):
+            raise TypeError("Page /Resources exists but is not a dictionary")
+        resources = self.obj.Resources
+
+        if not res_type in resources:
+            resources[res_type] = Dictionary()
+
+        if name is not None and prefix:
+            raise ValueError("Must specify one of name= or prefix=")
+        if name is None:
+            name = Name.random(prefix=prefix)
+
+        for res_dict in resources.as_dict().values():
+            if not isinstance(res_dict, Dictionary):
+                continue
+            if name in res_dict:
+                if replace_existing:
+                    del res_dict[name]
+                else:
+                    raise ValueError(f"Name {name} already exists in page /Resources")
+
+        resources[res_type][name] = res
+        return name
 
     def __repr__(self):
         return repr(self.obj).replace('Dictionary', 'Page')
