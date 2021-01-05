@@ -106,7 +106,10 @@ void init_page(py::module_& m)
         .def("_get_mediabox", &QPDFPageObjectHelper::getMediaBox)
         .def("_get_cropbox", &QPDFPageObjectHelper::getCropBox)
         .def("_get_trimbox", &QPDFPageObjectHelper::getTrimBox)
-        .def("externalize_inline_images", &QPDFPageObjectHelper::externalizeInlineImages,
+        .def("externalize_inline_images",
+            [](QPDFPageObjectHelper &poh, size_t min_size = 0) {
+                return poh.externalizeInlineImages(min_size);
+            },
             py::arg("min_size") = 0,
             R"~~~(
                 Convert inlines image to normal (external) images.
