@@ -21,6 +21,7 @@ class definition is present as an aide for code introspection.
 
 # pylint: disable=unused-import, abstract-method
 
+from secrets import token_urlsafe
 from typing import TYPE_CHECKING, Iterable, Optional, Union
 from warnings import warn
 
@@ -98,6 +99,17 @@ class Name(Object, metaclass=_NameObjectMeta):
         if isinstance(name, bytes):
             raise TypeError("Name should be str")
         return _qpdf._new_name(name)
+
+    @classmethod
+    def random(cls, len_: int = 16, prefix: str = ''):
+        """Generate a cryptographically strong random, valid PDF Name.
+
+        When the length paramater is 16 (16 random bytes or 128 bits), the result
+        is probably globally unique and can be treated as never colliding with
+        other names.
+        """
+        # It so happens that urlsafe names are also safe names for PDF Name objects
+        return _qpdf._new_name(f"/{prefix}{token_urlsafe(len_)}")
 
 
 class Operator(Object, metaclass=_ObjectMeta):
