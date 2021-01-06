@@ -88,4 +88,3 @@ def test_tokenfilter_is_abstract(pal):
     page = pikepdf.Page(pal.pages[0])
     with pytest.raises((RuntimeError, pikepdf.PdfError)):
         page.get_filtered_contents(pikepdf.TokenFilter())
-    assert 'Tried to call pure virtual' in pal.get_warnings()[0]
