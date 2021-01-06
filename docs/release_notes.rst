@@ -18,10 +18,18 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.3.0
+======
+
+-  Fixed two tests that failed with libqpdf 10.1.0.
+-  Add new function ``pikepdf.Page.add_resource`` which helds with adding a new object
+   to the /Resources dictionary.
+-  Binary wheels now provide libqpdf 10.1.0.
+
 v2.2.5
 ======
 
--  Change how a C++ function is called to support QPDF 10.1.0.
+-  Changed how a C++ function is called to support libqpdf 10.1.0.
 
 v2.2.4
 ======
