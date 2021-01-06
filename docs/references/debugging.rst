@@ -30,7 +30,8 @@ system version:
 
     env QPDF_SOURCE_TREE=<location of QPDF> python setup.py build_ext --inplace
 
-When running Python, ensure that you override shared library load locations:
+In addition to building against the QPDF source, you'll need to force your operating
+system to load the locally compiled version of QPDF instead of the installed version:
 
 .. code-block:: bash
 
@@ -41,6 +42,15 @@ When running Python, ensure that you override shared library load locations:
 
     # macOS - may require disabling System Integrity Protection
     env DYLD_LIBRARY_PATH=$QPDF_SOURCE_TREE/libqpdf/build/.libs python ...
+
+On macOS you can make the library persistent by changing the name of the library
+to use in pikepdf's binary extension module:
+
+.. code-block:: bash
+
+    install_name_tool -change /usr/local/lib/libqpdf*.dylib \
+        $QPDF_SOURCE_TREE/libqpdf/build/.libs/libqpdf*.dylib \
+        src/pikepdf/_qpdf.cpython*.so
 
 You can also run Python through a debugger (``gdb`` or ``lldb``) in this manner,
 and you will have access to the source code for both pikepdf's C++ and QPDF.
