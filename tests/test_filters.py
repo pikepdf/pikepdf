@@ -74,19 +74,18 @@ class FilterInvalid(pikepdf.TokenFilter):
 
 def test_invalid_handle_token(pal):
     page = pikepdf.Page(pal.pages[0])
-    with pytest.raises(pikepdf.PdfError):
-        result = page.get_filtered_contents(FilterInvalid())
+    with pytest.raises((TypeError, pikepdf.PdfError)):
+        page.get_filtered_contents(FilterInvalid())
 
 
 def test_invalid_tokenfilter(pal):
     page = pikepdf.Page(pal.pages[0])
     with pytest.raises(TypeError):
-        result = page.get_filtered_contents(list())
+        page.get_filtered_contents(list())
 
 
 def test_tokenfilter_is_abstract(pal):
     page = pikepdf.Page(pal.pages[0])
-    try:
-        result = page.get_filtered_contents(pikepdf.TokenFilter())
-    except pikepdf.PdfError:
-        assert 'Tried to call pure virtual' in pal.get_warnings()[0]
+    with pytest.raises((RuntimeError, pikepdf.PdfError)):
+        page.get_filtered_contents(pikepdf.TokenFilter())
+    assert 'Tried to call pure virtual' in pal.get_warnings()[0]
