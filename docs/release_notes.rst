@@ -22,14 +22,14 @@ v2.3.0
 ======
 
 -  Fixed two tests that failed with libqpdf 10.1.0.
--  Add new function ``pikepdf.Page.add_resource`` which helds with adding a new object
+-  Add new function ``pikepdf.Page.add_resource`` which helps with adding a new object
    to the /Resources dictionary.
 -  Binary wheels now provide libqpdf 10.1.0.
 
 v2.2.5
 ======
 
--  Changed how a C++ function is called to support libqpdf 10.1.0.
+-  Changed how one C++ function is called to support libqpdf 10.1.0.
 
 v2.2.4
 ======
