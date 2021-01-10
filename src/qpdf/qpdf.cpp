@@ -529,36 +529,6 @@ void init_qpdf(py::module_ &m)
         .def_property_readonly("Root", &QPDF::getRoot,
             "The /Root object of the PDF."
         )
-        .def_property("docinfo",
-            [](QPDF& q) {
-                if (!q.getTrailer().hasKey("/Info")) {
-                    auto info = q.makeIndirectObject(QPDFObjectHandle::newDictionary());
-                    q.getTrailer().replaceKey("/Info", info);
-                }
-                return q.getTrailer().getKey("/Info");
-            },
-            [](QPDF& q, QPDFObjectHandle& replace) {
-                if (!replace.isIndirect())
-                    throw py::value_error("docinfo must be an indirect object - use Pdf.make_indirect");
-                q.getTrailer().replaceKey("/Info", replace);
-            },
-            R"~~~(
-            Access the (deprecated) document information dictionary.
-
-            The document information dictionary is a brief metadata record
-            that can store some information about the origin of a PDF. It is
-            deprecated and removed in the PDF 2.0 specification. Use the
-            ``.open_metadata()`` API instead, which will edit the modern (and
-            unfortunately, more complicated) XMP metadata object and synchronize
-            changes to the document information dictionary.
-
-            This property simplifies access to the actual document information
-            dictionary and ensures that it is created correctly if it needs
-            to be created. A new dictionary will be created if this property
-            is accessed and dictionary does not exist. To delete the dictionary
-            use ``del pdf.trailer.Info``.
-            )~~~"
-        )
         .def_property_readonly("trailer", &QPDF::getTrailer,
             R"~~~(
             Provides access to the PDF trailer object.

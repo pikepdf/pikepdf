@@ -72,8 +72,11 @@ The list of available metadata fields may be found in the `XMP Specification`_.
 Removing metadata items
 -----------------------
 
-Use ``del meta['dc:title']`` to delete a metadata entry. To remove all of the XMP
-metadata, use ``del pdf.Root.Metadata``.
+After opening metadata, use ``del meta['dc:title']`` to delete a metadata entry.
+
+To remove all of a PDF's metadata records, don't use ``pdf.open_metadata``.
+Instead, use ``del pdf.Root.Metadata`` and ``del pdf.docinfo``
+to remove the XMP and document info metadata, respectively.
 
 Checking PDF/A conformance
 --------------------------

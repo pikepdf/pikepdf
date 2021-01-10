@@ -124,9 +124,18 @@ def test_update_info(graph, outdir):
 
 
 def test_copy_info(vera, graph, outdir):
-    vera.docinfo = vera.copy_foreign(graph.docinfo)
+    vera.docinfo = vera.copy_foreign(graph.docinfo)  # vera has no docinfo
     assert vera.docinfo.is_indirect, "/Info must be an indirect object"
     vera.save(outdir / 'out.pdf')
+
+
+def test_del_info(graph, outpdf):
+    assert Name.Info in graph.trailer
+    del graph.docinfo
+    assert Name.Info not in graph.trailer
+    graph.save(outpdf)
+    new = Pdf.open(outpdf)
+    assert Name.Info not in new.trailer
 
 
 def test_add_new_xmp_and_mark(trivial):

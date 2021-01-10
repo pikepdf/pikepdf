@@ -286,6 +286,48 @@ class Extend_Pdf:
         data = {'application/pdf': bio.read()}
         return data
 
+    @property
+    def docinfo(self) -> Dictionary:
+        """
+        Access the (deprecated) document information dictionary.
+
+        The document information dictionary is a brief metadata record that can
+        store some information about the origin of a PDF. It is deprecated and
+        removed in the PDF 2.0 specification (not deprecated from the
+        perspective of pikepdf). Use the ``.open_metadata()`` API instead, which
+        will edit the modern (and unfortunately, more complicated) XMP metadata
+        object and synchronize changes to the document information dictionary.
+
+        This property simplifies access to the actual document information
+        dictionary and ensures that it is created correctly if it needs to be
+        created.
+
+        A new, empty dictionary will be created if this property is accessed
+        and dictionary does not exist. (This is to ensure that convenient code
+        like ``pdf.docinfo[Name.Title] = "Title"`` will work when the dictionary
+        does not exist at all.)
+
+        You can delete the document information dictionary by deleting this property,
+        ``del pdf.docinfo``. Note that accessing the property after deleting it
+        will re-create with a new, empty dictionary.
+        """
+        if Name.Info not in self.trailer:
+            self.trailer.Info = self.make_indirect(Dictionary())
+        return self.trailer.Info
+
+    @docinfo.setter
+    def docinfo(self, new_docinfo: Dictionary):
+        if not new_docinfo.is_indirect:
+            raise ValueError(
+                "docinfo must be an indirect object - use Pdf.make_indirect"
+            )
+        self.trailer.Info = new_docinfo
+
+    @docinfo.deleter
+    def docinfo(self):
+        if Name.Info in self.trailer:
+            del self.trailer.Info
+
     def open_metadata(
         self,
         set_pikepdf_as_editor: bool = True,
