@@ -724,8 +724,15 @@ class PdfMetadata(MutableMapping):
             node, attrib, _oldval, _parent = next(self._get_elements(key))
             if attrib:
                 if not isinstance(val, str):
-                    raise TypeError(val)
-                node.set(attrib, _clean(val))
+                    if qkey == self._qname('dc:creator'):
+                        # dc:creator incorrectly created as an attribute - we're
+                        # replacing it anyway, so remove the old one
+                        del node.attrib[qkey]
+                        add_array(node, _clean(val))
+                    else:
+                        raise TypeError(f"Setting {key} to {val} with type {type(val)}")
+                else:
+                    node.set(attrib, _clean(val))
             elif isinstance(val, (list, set)):
                 for child in node.findall('*'):
                     node.remove(child)

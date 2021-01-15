@@ -552,7 +552,11 @@ def test_extension_level(trivial, outpdf):
                 "/Dummy",
             ]
         ),
-        values=st.binary(),
+        values=st.recursive(
+            st.none() | st.binary(max_size=16) | st.booleans(),
+            lambda children: st.lists(children, min_size=0, max_size=4),
+            max_leaves=2,
+        ),
     )
 )
 def test_random_docinfo(docinfo):
@@ -566,6 +570,50 @@ def test_random_docinfo(docinfo):
             assert 'could not be copied to XMP' in str(e) or '/Dummy' in str(e)
         else:
             ET.fromstring(str(m))  # ensure we can parse it
+
+
+@given(
+    st.dictionaries(
+        keys=st.sampled_from(
+            [
+                "/Author",
+                "/Subject",
+                "/Title",
+                "/Keywords",
+                "/Producer",
+                "/Creator",
+            ]
+        ),
+        values=st.none() | st.characters(),
+    )
+)
+def test_random_valid_docinfo(docinfo):
+    p = pikepdf.new()
+    with p.open_metadata() as m:
+        pdf_docinfo = pikepdf.Dictionary(docinfo)
+
+        m.load_from_docinfo(pdf_docinfo, raise_failure=True)
+        ET.fromstring(str(m))  # ensure we can parse it
+
+
+@pytest.mark.parametrize('author', ['', 'King, S.'])
+def test_issue_162(trivial, author):
+    trivial.Root.Metadata = Stream(
+        trivial,
+        b"""
+        <?xpacket begin="\xef\xbb\xbf" id="W5M0MpCehiHzreSzNTczkc9d"?>
+        <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+                xmlns:xmp="http://ns.adobe.com/xap/1.0/"
+                xmlns:dc="http://purl.org/dc/elements/1.1/">
+        <rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/" dc:creator="Foo"></rdf:Description>
+        </rdf:RDF>
+        <?xpacket end="w"?>""",
+    )
+    with trivial.open_metadata() as m:
+        docinfo = pikepdf.Dictionary(Author=author)
+        with pytest.warns(UserWarning, match=r'Merging elements'):
+            m.load_from_docinfo(docinfo, raise_failure=True)
+        assert m['dc:creator'] == [author]
 
 
 def test_set_empty_string(graph):
