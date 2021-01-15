@@ -548,7 +548,8 @@ class PdfMetadata(MutableMapping):
         if self.sync_docinfo:
             self._update_docinfo()
 
-    def _qname(self, name: Union[QName, str]) -> str:
+    @classmethod
+    def _qname(cls, name: Union[QName, str]) -> str:
         """Convert name to an XML QName
 
         e.g. pdf:Producer -> {http://ns.adobe.com/pdf/1.3/}Producer
@@ -562,7 +563,7 @@ class PdfMetadata(MutableMapping):
         if name.startswith('{'):
             return name
         prefix, tag = name.split(':', maxsplit=1)
-        uri = self.NS[prefix]
+        uri = cls.NS[prefix]
         return str(QName(uri, tag))
 
     def _prefix_from_uri(self, uriname):
