@@ -364,6 +364,13 @@ class PdfMetadata(MutableMapping):
         approximately equivalent to certain XMP records. This method copies
         those entries into the XMP metadata.
         """
+
+        def warn_or_raise(msg, e=None):
+            if raise_failure:
+                raise ValueError(msg) from e
+            else:
+                warn(msg)
+
         for uri, shortkey, docinfo_name, converter in self.DOCINFO_MAPPING:
             qname = QName(uri, shortkey)
             # docinfo might be a dict or pikepdf.Dictionary, so lookup keys
@@ -380,25 +387,19 @@ class PdfMetadata(MutableMapping):
                 if not val:
                     continue
                 self._setitem(qname, val, True)
-            except (ValueError, AttributeError) as e:
-                msg = f"The metadata field {docinfo_name} could not be copied to XMP"
-                if raise_failure:
-                    raise ValueError(msg) from e
-                else:
-                    warn(msg)
+            except (ValueError, AttributeError, NotImplementedError) as e:
+                warn_or_raise(
+                    f"The metadata field {docinfo_name} could not be copied to XMP", e
+                )
         valid_docinfo_names = set(
             str(docinfo_name) for _, _, docinfo_name, _ in self.DOCINFO_MAPPING
         )
         extra_docinfo_names = set(str(k) for k in docinfo.keys()) - valid_docinfo_names
         for extra in extra_docinfo_names:
-            msg = (
+            warn_or_raise(
                 f"The metadata field {extra} with value '{repr(docinfo.get(extra))}' "
-                "has no XMP equivalent, so it was discarded"
+                "has no XMP equivalent, so it was discarded",
             )
-            if raise_failure:
-                raise ValueError(msg)
-            else:
-                warn(msg)
 
     def _load(self) -> None:
         try:
