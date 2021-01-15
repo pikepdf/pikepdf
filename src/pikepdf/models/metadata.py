@@ -738,7 +738,7 @@ class PdfMetadata(MutableMapping):
                 else:
                     node.text = _clean(val)
             else:
-                raise TypeError(val)
+                raise TypeError(f"Setting {key} to {val} with type {type(val)}")
         except StopIteration:
             # Insert a new node
             rdf = self._get_rdf_root()
@@ -762,7 +762,9 @@ class PdfMetadata(MutableMapping):
                     },
                 )
             else:
-                raise TypeError(val) from None
+                raise TypeError(
+                    f"Setting {key} to {val} with type {type(val)}"
+                ) from None
 
     @ensure_loaded
     def __setitem__(self, key: Union[str, QName], val: Union[Set[str], List[str], str]):
