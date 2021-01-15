@@ -369,7 +369,7 @@ class PdfMetadata(MutableMapping):
             # docinfo might be a dict or pikepdf.Dictionary, so lookup keys
             # by str(Name)
             val = docinfo.get(str(docinfo_name))
-            if val is None:
+            if val is None or val == '':
                 if delete_missing and qname in self:
                     del self[qname]
                 continue
