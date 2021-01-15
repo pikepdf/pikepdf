@@ -18,6 +18,12 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.4.0
+======
+
+-  The DocumentInfo dictionary can now be deleted with ``del pdf.docinfo``.
+-  Fixed issues with updating the ``dc:creator`` XMP metadata entry.
+
 v2.3.0
 ======
 
