@@ -61,6 +61,12 @@ def test_unicode_involution(s):
     assert str(encode(s)) == s
 
 
+@given(characters(whitelist_categories=('Cs',)))
+def test_unicode_fails(s):
+    with pytest.raises(RuntimeError):
+        encode(s)
+
+
 @given(binary(min_size=0, max_size=300))
 def test_binary_involution(binary_):
     assert bytes(encode(binary_)) == binary_
