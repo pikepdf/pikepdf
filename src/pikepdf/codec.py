@@ -14,10 +14,22 @@ from ._qpdf import pdf_doc_to_utf8, utf8_to_pdf_doc
 
 def pdfdoc_encode(input: str, errors: str = 'strict') -> Tuple[bytes, int]:
     error_marker = b'?' if errors == 'replace' else b'\xad'
-    success, pdfdoc = utf8_to_pdf_doc(input, error_marker)
+    try:
+        success, pdfdoc = utf8_to_pdf_doc(input, error_marker)
+    except RuntimeError as e:
+        if "Unable to extract string contents! (encoding issue)" in str(e):
+            raise ValueError(
+                "'pdfdoc' codec can't process Unicode surrogates"
+            ) from None
+        else:
+            raise
     if not success:
         if errors == 'strict':
-            raise ValueError("'pdfdoc' codec can't encode")
+            # It is acceptable to raise ValueError per documentation for codecs.encode.
+            # Also, libqpdf does not give precise information about where in a
+            # string encoding failed, so we cannot raise UnicodeEncodeError
+            # which requires those details.
+            raise ValueError("'pdfdoc' codec can't encode some characters")
         if errors == 'ignore':
             pdfdoc = pdfdoc.replace(b'\xad', b'')
     return pdfdoc, len(input)
