@@ -584,7 +584,7 @@ def test_random_docinfo(docinfo):
                 "/Creator",
             ]
         ),
-        values=st.none() | st.characters(),
+        values=st.none() | st.characters(blacklist_categories=('Cs',)),
     )
 )
 def test_random_valid_docinfo(docinfo):
