@@ -23,6 +23,10 @@ v2.4.0
 
 -  The DocumentInfo dictionary can now be deleted with ``del pdf.docinfo``.
 -  Fixed issues with updating the ``dc:creator`` XMP metadata entry.
+-  Improved error messages on attempting to encode strings containing Unicode
+   surrogates.
+-  Fixed a rare random test failure related to strings containing Unicode
+   surrogates.
 
 v2.3.0
 ======
