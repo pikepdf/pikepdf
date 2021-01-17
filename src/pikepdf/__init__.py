@@ -13,13 +13,13 @@ import os
 
 try:
     from . import _qpdf
-except ImportError as _e:
+except ImportError as _e:  # pragma: no cover
     msg = "pikepdf's extension library failed to import"
     raise ImportError(msg) from _e
 
 try:
     from ._version import __version__
-except ImportError as _e:
+except ImportError as _e:  # pragma: no cover
     raise ImportError("Failed to determine version") from _e
 
 from ._qpdf import (

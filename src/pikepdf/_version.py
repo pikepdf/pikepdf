@@ -9,7 +9,7 @@ from pkg_resources import get_distribution as _get_distribution
 
 try:
     __version__ = _get_distribution(__package__).version
-except DistributionNotFound:
+except DistributionNotFound:  # pragma: no cover
     __version__ = "Not installed"
 
 __all__ = ['__version__']

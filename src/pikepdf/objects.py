@@ -28,7 +28,7 @@ from warnings import warn
 from . import _qpdf
 from ._qpdf import Object, ObjectType
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from pikepdf import Pdf
 
 # By default pikepdf.Object will identify itself as pikepdf._qpdf.Object
@@ -229,7 +229,7 @@ class Stream(Object, metaclass=_ObjectMeta):
 
         # Support __new__(...obj=bytes) which should have been data=bytes,
         # drop in pikepdf 3
-        if 'obj' in kwargs:
+        if 'obj' in kwargs:  # pragma: no cover
             warn("Deprecated parameter 'obj', use 'data' instead", DeprecationWarning)
             if data is None:
                 data = kwargs['obj']

@@ -592,3 +592,14 @@ def test_stream_dict_oneshot():
     assert stream1.read_bytes() == b'12345'
     assert stream2.Three == 3
     assert stream3.One == 1
+
+
+def test_dict_bad_params():
+    with pytest.raises(ValueError):
+        Dictionary({'/Foo': 1}, Bar=2)
+
+
+def test_stream_bad_params():
+    p = pikepdf.new()
+    with pytest.raises(TypeError, match='data'):
+        Stream(p)

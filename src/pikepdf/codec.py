@@ -57,7 +57,7 @@ def find_pdfdoc(encoding: str) -> Optional[codecs.CodecInfo]:
         return codecs.CodecInfo(
             name='pdfdoc', encode=PdfDocCodec().encode, decode=PdfDocCodec().decode
         )
-    return None
+    return None  # pragma: no cover
 
 
 codecs.register(find_pdfdoc)
