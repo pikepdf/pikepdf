@@ -31,12 +31,12 @@ from lxml.etree import QName, XMLParser, XMLSyntaxError, parse
 from .. import Name, Stream, String
 from .. import __version__ as pikepdf_version
 
-if sys.version_info < (3, 9):
+if sys.version_info < (3, 9):  # pragma: no cover
     from typing import Iterable, MutableMapping
 else:
     from collections.abc import Iterable, MutableMapping
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from pikepdf import Pdf
 
 XMP_NS_DC = "http://purl.org/dc/elements/1.1/"

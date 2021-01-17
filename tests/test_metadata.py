@@ -1,6 +1,6 @@
 import os
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, tzinfo
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
@@ -165,6 +165,8 @@ def test_update_docinfo(vera):
     # Test delete propagation
     with vera.open_metadata(set_pikepdf_as_editor=False, update_docinfo=True) as xmp:
         del xmp['dc:creator']
+        with pytest.raises(KeyError, match='dc:nonexistent'):
+            del xmp['dc:nonexistent']
     assert 'dc:creator' not in xmp
     assert Name.Author not in vera.docinfo
 
@@ -375,6 +377,16 @@ def test_docinfo_problems(sandwich, invalid_creationdate):
         with meta as xmp:
             xmp['xmp:CreateDate'] = 'invalid date'
         assert 'could not be updated' in warned[0].message.args[0]
+
+
+def test_docinfo_delete_missing(sandwich):
+    with sandwich.open_metadata() as m:
+        d = Dictionary(Creator="test creator")
+        assert 'xmp:CreateDate' in m
+        assert m['xmp:CreatorTool'] != 'test creator'
+        m.load_from_docinfo(d, delete_missing=True)
+        assert m['xmp:CreatorTool'] == 'test creator'
+        assert 'xmp:CreateDate' not in m
 
 
 def test_present_bug_empty_tags(trivial):
@@ -683,6 +695,10 @@ def test_py36_isoformat_seconds(dt):
     rounded_dt = dt.replace(microsecond=0)
     s = rounded_dt.isoformat()
     assert _fromisoformat_py36(s) == rounded_dt
+
+
+def test_py36_isoformat_tz_punct():
+    _fromisoformat_py36('2020-12-31T11:22:33+10:30')
 
 
 def test_py36_isoformat_invalid():

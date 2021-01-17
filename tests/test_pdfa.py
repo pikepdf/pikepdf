@@ -39,7 +39,9 @@ def test_pdfa_sanity(resources, outdir):
         pdf.save(outdir / 'pdfa.pdf')
 
         assert verapdf_validate(outdir / 'pdfa.pdf')
-        assert pdf.open_metadata().pdfa_status == '1B'
+        m = pdf.open_metadata()
+        assert m.pdfa_status == '1B'
+        assert m.pdfx_status == ''
 
 
 def test_pdfa_modify(resources, outdir):
@@ -51,6 +53,8 @@ def test_pdfa_modify(resources, outdir):
             update_docinfo=False, set_pikepdf_as_editor=False
         ) as meta:
             pass
+        with pytest.raises(RuntimeError, match="not opened"):
+            del meta['pdfaid:part']
         pdf.save(outdir / '1.pdf')
     assert verapdf_validate(outdir / '1.pdf')
 
