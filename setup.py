@@ -113,6 +113,8 @@ if __name__ == '__main__':
             "Programming Language :: Python :: 3.8",
             "Programming Language :: Python :: 3.9",
             "Programming Language :: Python :: 3 :: Only",
+            "Programming Language :: Python :: Implementation :: CPython",
+            "Programming Language :: Python :: Implementation :: PyPy",
             "Programming Language :: C++",
             "Topic :: Multimedia :: Graphics",
             "Topic :: Software Development :: Libraries",

@@ -48,6 +48,4 @@ assembled from many sources, then all of those sources are held open in memory.
 PyPy3 support
 -------------
 
-pybind11 does not yet support PyPy3, so it's not possible to use pikepdf in
-PyPy3 at this time. When pybind11 finalizes PyPy3 support, pikepdf will be
-able to work with PyPy3 as well.
+PyPy3 is supported.
