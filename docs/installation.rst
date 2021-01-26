@@ -266,3 +266,7 @@ generate PyPy3 wheels of their own.
 +----------------+------------------------+-------+
 | macOS          | ✅                     | ✅    |
 +----------------+------------------------+-------+
+
+PyPy3 is not more performant than CPython for pikepdf, because the core of pikepdf
+is already written in C++. The benefit is for applications that want to use PyPy
+for improved performance of native Python and also want to use pikepdf.
