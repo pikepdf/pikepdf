@@ -69,7 +69,6 @@ wheels.
 |python-pikepdf|
 
 
-
 Debian, Ubuntu and other APT-based distributions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -250,3 +249,20 @@ regenerate it:
     pip install -r requirements/docs.txt
     cd docs
     make html
+
+PyPy3 support
+-------------
+
+PyPy3 3.6 is currently supported. However, binary wheels for PyPy3 are not available
+for some platforms, since some dependencies of pikepdf (namely lxml) do not yet
+generate PyPy3 wheels of their own.
+
++----------------+------------------------+-------+
+| Platform       | Source build supported | Wheel |
++================+========================+=======+
+| Windows 64-bit | ✅                     |       |
++----------------+------------------------+-------+
+| Linux 64-bit   | ✅                     |       |
++----------------+------------------------+-------+
+| macOS          | ✅                     | ✅    |
++----------------+------------------------+-------+

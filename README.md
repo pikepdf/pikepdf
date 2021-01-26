@@ -3,7 +3,7 @@ pikepdf
 
 **pikepdf** is a Python library for reading and writing PDF files.
 
-[![Build Status](https://dev.azure.com/jim0585/pikepdf/_apis/build/status/pikepdf.pikepdf?branchName=master)](https://dev.azure.com/jim0585/pikepdf/_build/latest?definitionId=1&branchName=master) [![PyPI](https://img.shields.io/pypi/v/pikepdf.svg)](https://pypi.org/project/pikepdf/) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pikepdf) [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/pikepdf/pikepdf.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/pikepdf/pikepdf/context:python) [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/pikepdf/pikepdf.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/pikepdf/pikepdf/context:cpp)
+[![Build Status](https://dev.azure.com/jim0585/pikepdf/_apis/build/status/pikepdf.pikepdf?branchName=master)](https://dev.azure.com/jim0585/pikepdf/_build/latest?definitionId=1&branchName=master) [![PyPI](https://img.shields.io/pypi/v/pikepdf.svg)](https://pypi.org/project/pikepdf/) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pikepdf) ![PyPy](https://img.shields.io/badge/PyPy-3.6-blue) [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/pikepdf/pikepdf.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/pikepdf/pikepdf/context:python) [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/pikepdf/pikepdf.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/pikepdf/pikepdf/context:cpp) ![PyPI - License](https://img.shields.io/pypi/l/pikepdf) ![PyPI - Downloads](https://img.shields.io/pypi/dm/pikepdf)
 
 pikepdf is based on [QPDF](https://github.com/qpdf/qpdf), a powerful PDF manipulation and repair library.
 
@@ -61,9 +61,9 @@ This library is similar to PyPDF2 and pdfrw - it provides low level access to PD
 Testimonials
 ------------
 
-> I decided to try writing a quick Python program with pikepdf to automate [something] and it "just worked". -Jay Berkenbilt, creator of QPDF
+> I decided to try writing a quick Python program with pikepdf to automate [something] and it "just worked". –Jay Berkenbilt, creator of QPDF
 
-> "Thanks for creating a great pdf library, I tested out several and this is the one that was best able to work with whatever I threw at it." -@cfcurtis
+> "Thanks for creating a great pdf library, I tested out several and this is the one that was best able to work with whatever I threw at it." –@cfcurtis
 
 In Production
 -------------

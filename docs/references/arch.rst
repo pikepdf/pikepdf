@@ -44,8 +44,3 @@ Because of technical limitations in underlying libraries, pikepdf keeps the
 source PDF file open when a content is copied from it to another PDF, even when
 all Python variables pointing to the source are removed. If a PDF is being
 assembled from many sources, then all of those sources are held open in memory.
-
-PyPy3 support
--------------
-
-PyPy3 is supported.
