@@ -2,7 +2,7 @@
 set -ex
 
 if test "$(arch)" == "x86_64"; then
-    apt-get -y install libxml2-dev libxslt-dev
+    yum install -y libxml2-devel libxslt-devel
 fi
 
 pushd $1/zlib
