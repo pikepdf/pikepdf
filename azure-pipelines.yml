@@ -54,6 +54,34 @@ stages:
               summaryFileLocation: "$(System.DefaultWorkingDirectory)/**/coverage.xml"
           - publish: dist
             artifact: sdist
+      - job: linux_pypy3
+        pool: { vmImage: "Ubuntu-20.04" }
+        steps:
+          - bash: |
+              mkdir qpdf && wget -q $QPDF_MIN_RELEASE -O - | tar xz -C qpdf --strip-components=1
+              cd qpdf/
+              ./configure
+              make -j 2
+              sudo make install
+              cd ..
+            displayName: "Build QPDF"
+          - bash: |
+              sudo apt-get install -y pypy3 pypy3-dev libxml2-dev libxslt-dev
+              pypy3 -m pip install --upgrade pip
+              pypy3 setup.py sdist
+              pypy3 -m pip install dist/*.tar.gz
+              pypy3 -m pip install -r requirements/test.txt
+            displayName: "Build sdist"
+          - bash: |
+              export LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
+              pypy3 -m pytest -nauto --junitxml=test-sdist-pypy3.xml --cov=pikepdf --cov-report=xml
+            displayName: "Test"
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFiles: "test-sdist-pypy3.xml"
+              testRunTitle: "$(Agent.OS) - $(Build.DefinitionName) - PyPy3"
+            condition: succeededOrFailed()
+
   - stage: "Wheels"
     jobs:
       - job: linux64
