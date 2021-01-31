@@ -8,6 +8,7 @@ replacements = [
     (re.compile(r'QPDFTokenizer::Token\b'), 'pikepdf.Token'),
     (re.compile(r'QPDFObjectHandle'), 'pikepdf.Object'),
     (re.compile(r'QPDFExc'), 'pikepdf.PdfError'),
+    (re.compile(r'QPDFPageObjectHelper'), 'pikepdf.Page'),
 ]
 
 
