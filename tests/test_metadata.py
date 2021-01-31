@@ -479,6 +479,7 @@ def test_degenerate_xml_recoverable(trivial, xml):
 
 @settings(deadline=None)
 @given(st.integers(min_value=1, max_value=1350))
+@example(531)
 @example(548)
 @example(1154)
 @example(1155)
