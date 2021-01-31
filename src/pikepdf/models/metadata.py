@@ -251,7 +251,7 @@ def _fromisoformat_py36(datestr: str) -> datetime:
     )
 
 
-if sys.version_info < (3, 7):
+if sys.version_info < (3, 7) or sys.implementation.name == 'pypy':
     fromisoformat = _fromisoformat_py36
 else:
     fromisoformat = datetime.fromisoformat
