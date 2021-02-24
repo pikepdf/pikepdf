@@ -293,7 +293,7 @@ class TestRepr:
         expected = (
             """\
             pikepdf.Dictionary({
-                "/Array": [ 1, 2, Decimal(%s) ],
+                "/Array": [ 1, 2, Decimal('%s') ],
                 "/Boolean": True,
                 "/Dictionary": {
                     "/Color": "Red"
