@@ -1,5 +1,5 @@
 variables:
-  qpdf_version: "10.1.0"
+  qpdf_version: "10.2.0"
   qpdf_release: ${{ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}.tar.gz', variables.qpdf_version) }}
   qpdf_min_version: "10.0.3"
   qpdf_min_release: ${{ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}.tar.gz', variables.qpdf_min_version) }}
