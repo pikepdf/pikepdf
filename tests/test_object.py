@@ -2,6 +2,7 @@ import json
 import sys
 from copy import copy
 from decimal import Decimal, InvalidOperation
+from distutils.version import LooseVersion
 from math import isclose, isfinite
 from zlib import compress
 
@@ -285,9 +286,14 @@ class TestRepr:
                 '/Dictionary': Dictionary({'/Color': 'Red'}),
             }
         )
-        expected = """\
+        if LooseVersion(pikepdf.__libqpdf_version__) >= LooseVersion('10.2.0'):
+            short_pi = '3.14'
+        else:
+            short_pi = '3.140000'
+        expected = (
+            """\
             pikepdf.Dictionary({
-                "/Array": [ 1, 2, Decimal('3.140000') ],
+                "/Array": [ 1, 2, Decimal(%s) ],
                 "/Boolean": True,
                 "/Dictionary": {
                     "/Color": "Red"
@@ -298,6 +304,8 @@ class TestRepr:
                 "/String": "hi"
             })
         """
+            % short_pi
+        )
 
         def strip_all_whitespace(s):
             return ''.join(s.split())
@@ -420,7 +428,7 @@ def test_json():
     json_bytes = d.to_json(False)
     as_dict = json.loads(json_bytes)
     assert as_dict == {
-        "/Array": [1, 2, 3.140000],
+        "/Array": [1, 2, 3.14],
         "/Boolean": True,
         "/Dictionary": {"/Color": "Red"},
         "/Integer": 42,
