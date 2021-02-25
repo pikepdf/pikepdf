@@ -359,7 +359,8 @@ void save_pdf(
     bool qdf=false,
     py::object progress=py::none(),
     py::object encryption=py::none(),
-    bool samefile_check=true)
+    bool samefile_check=true,
+    bool recompress_flate=false)
 {
     std::string description;
     QPDFWriter w(q);
@@ -380,6 +381,7 @@ void save_pdf(
         w.setDecodeLevel(stream_decode_level.cast<qpdf_stream_decode_level_e>());
     }
     w.setObjectStreamMode(object_stream_mode);
+    w.setRecompressFlate(recompress_flate);
 
     py::object stream;
     bool should_close_stream = false;
@@ -661,7 +663,8 @@ void init_qpdf(py::module_ &m)
             py::arg("qdf")=false,
             py::arg("progress")=py::none(),
             py::arg("encryption")=py::none(),
-            py::arg("samefile_check")=true
+            py::arg("samefile_check")=true,
+            py::arg("recompress_flate")=false
         )
         .def("_get_object_id", &QPDF::getObjectByID)
         .def("get_object",

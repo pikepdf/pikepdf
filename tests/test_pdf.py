@@ -5,6 +5,7 @@ Testing focused on pikepdf.Pdf
 import locale
 import shutil
 import sys
+import zlib
 from io import BytesIO, StringIO
 from os import fspath
 from pathlib import Path
@@ -284,3 +285,20 @@ def test_check(resources):
 
 def test_repr(trivial):
     assert repr(trivial).startswith('<')
+
+
+def test_recompress(resources, outdir):
+    with pikepdf.open(resources / 'image-mono-inline.pdf') as pdf:
+        obj = pdf.get_object((7, 0))
+        assert isinstance(obj, pikepdf.Stream)
+
+        data = obj.read_bytes()
+        data_z1 = zlib.compress(data, level=0)  # No compression but zlib wrapper
+
+        obj.write(data_z1, filter=pikepdf.Name.FlateDecode)
+
+        bigger = outdir / 'a.pdf'
+        smaller = outdir / 'b.pdf'
+        pdf.save(bigger, recompress_flate=False)
+        pdf.save(smaller, recompress_flate=True)
+        assert smaller.stat().st_size < bigger.stat().st_size

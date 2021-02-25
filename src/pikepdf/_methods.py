@@ -656,7 +656,7 @@ class Extend_Pdf:
             self.Root.PageMode = Name.UseAttachments
 
     def save(
-        self,
+        self,  # TODO mandatory kwargs
         filename_or_stream: Union[Path, str, BinaryIO, None] = None,
         static_id: bool = False,
         preserve_pdfa: bool = True,
@@ -671,6 +671,7 @@ class Extend_Pdf:
         qdf: bool = False,
         progress: Callable[[int], None] = None,
         encryption: Optional[Union[Encryption, bool]] = None,
+        recompress_flate: bool = False,
     ) -> None:
         """
         Save all modifications to this :class:`pikepdf.Pdf`.
@@ -729,6 +730,12 @@ class Extend_Pdf:
             stream_decode_level: Specifies how
                 to encode stream objects. See documentation for
                 ``StreamDecodeLevel``.
+
+            recompress_flate: When disabled (the default), qpdf does not
+                uncompress and recompress streams compressed with the Flate
+                compression algorithm. If True, pikepdf will instruct qpdf to
+                do this, which may be useful if recompressing streams to a
+                higher compression level.
 
             normalize_content: Enables parsing and reformatting the
                 content stream within PDFs. This may debugging PDFs easier.
@@ -797,10 +804,11 @@ class Extend_Pdf:
             progress=progress,
             encryption=encryption,
             samefile_check=getattr(self, '_tmp_stream', None) is None,
+            recompress_flate=recompress_flate,
         )
 
     @staticmethod
-    def open(
+    def open(  # TODO mandatory kwargs
         filename_or_stream: Union[Path, str, BinaryIO],
         password: Union[str, bytes] = "",
         hex_password: bool = False,
