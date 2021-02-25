@@ -36,7 +36,7 @@
 
 std::string objecthandle_scalar_value(QPDFObjectHandle h, bool escaped)
 {
-    std::stringstream ss;
+    std::ostringstream ss;
     switch (h.getTypeCode()) {
     case QPDFObject::object_type_e::ot_null:
         ss << "None";
@@ -67,53 +67,53 @@ std::string objecthandle_scalar_value(QPDFObjectHandle h, bool escaped)
 
 std::string objecthandle_pythonic_typename(QPDFObjectHandle h, std::string prefix)
 {
-    std::string s;
+    std::ostringstream ss;
 
-    s += prefix;
+    ss << prefix;
     switch (h.getTypeCode()) {
     case QPDFObject::object_type_e::ot_null:
-        s += "NoneType";
+        ss << "NoneType";
         break;
     case QPDFObject::object_type_e::ot_boolean:
-        s += "Boolean";
+        ss << "Boolean";
         break;
     case QPDFObject::object_type_e::ot_integer:
-        s += "Integer";
+        ss << "Integer";
         break;
     case QPDFObject::object_type_e::ot_real:
-        s += "Real";
+        ss << "Real";
         break;
     case QPDFObject::object_type_e::ot_name:
-        s += "Name";
+        ss << "Name";
         break;
     case QPDFObject::object_type_e::ot_string:
-        s += "String";
+        ss << "String";
         break;
     case QPDFObject::object_type_e::ot_operator:
-        s += "Operator";
+        ss << "Operator";
         break;
     case QPDFObject::object_type_e::ot_inlineimage:
-        s += "InlineImage";
+        ss << "InlineImage";
         break;
     case QPDFObject::object_type_e::ot_array:
-        s += "Array";
+        ss << "Array";
         break;
     case QPDFObject::object_type_e::ot_dictionary:
         if (h.hasKey("/Type")) {
-            s += std::string("Dictionary(type_=\"") + h.getKey("/Type").getName() + "\")";
+            ss << "Dictionary(Type=\"" << h.getKey("/Type").getName() << "\")";
         } else {
-            s += "Dictionary";
+            ss << "Dictionary";
         }
         break;
     case QPDFObject::object_type_e::ot_stream:
-        s += "Stream";
+        ss << "Stream";
         break;
     default:
-        s += "<Error>";
+        ss << "<Error>";
         break;
     }
 
-    return s;
+    return ss.str();
 }
 
 
@@ -130,13 +130,13 @@ static
 std::string objecthandle_repr_inner(QPDFObjectHandle h, uint depth, std::set<QPDFObjGen>* visited, bool* pure_expr)
 {
     StackGuard sg(" objecthandle_repr_inner");
-    std::ostringstream oss;
+    std::ostringstream ss;
 
     if (!h.isScalar()) {
         if (visited->count(h.getObjGen()) > 0) {
             *pure_expr = false;
-            oss << "<.get_object(" << h.getObjGen().getObj() << ", " << h.getObjGen().getGen() << ")>";
-            return oss.str();
+            ss << "<.get_object(" << h.getObjGen().getObj() << ", " << h.getObjGen().getGen() << ")>";
+            return ss.str();
         }
 
         if (!(h.getObjGen() == QPDFObjGen(0, 0)))
@@ -150,68 +150,68 @@ std::string objecthandle_repr_inner(QPDFObjectHandle h, uint depth, std::set<QPD
     case QPDFObject::object_type_e::ot_real:
     case QPDFObject::object_type_e::ot_name:
     case QPDFObject::object_type_e::ot_string:
-        oss << objecthandle_scalar_value(h);
+        ss << objecthandle_scalar_value(h);
         break;
     case QPDFObject::object_type_e::ot_operator:
-        oss << objecthandle_repr_typename_and_value(h);
+        ss << objecthandle_repr_typename_and_value(h);
         break;
     case QPDFObject::object_type_e::ot_inlineimage:
-        oss << objecthandle_pythonic_typename(h);
-        oss << "(";
-        oss << "data=<...>";
-        oss << ")";
+        ss << objecthandle_pythonic_typename(h);
+        ss << "(";
+        ss << "data=<...>";
+        ss << ")";
         break;
     case QPDFObject::object_type_e::ot_array:
-        oss << "[";
+        ss << "[";
         {
             bool first = true;
-            oss << " ";
+            ss << " ";
             for (auto item: h.getArrayAsVector()) {
-                if (!first) oss << ", ";
+                if (!first) ss << ", ";
                 first = false;
-                oss << objecthandle_repr_inner(item, depth, visited, pure_expr);
+                ss << objecthandle_repr_inner(item, depth, visited, pure_expr);
             }
-            oss << " ";
+            ss << " ";
         }
-        oss << "]";
+        ss << "]";
         break;
     case QPDFObject::object_type_e::ot_dictionary:
-        oss << "{"; // This will end the line
+        ss << "{"; // This will end the line
         {
             bool first = true;
-            oss << "\n";
+            ss << "\n";
             for (auto item: h.getDictAsMap()) {
-                if (!first) oss << ",\n";
+                if (!first) ss << ",\n";
                 first = false;
-                oss << std::string((depth + 1) * 2, ' '); // Indent each line
+                ss << std::string((depth + 1) * 2, ' '); // Indent each line
                 if (item.first == "/Parent" && item.second.isPagesObject()) {
                     // Don't visit /Parent keys since that just puts every page on the repr() of a single page
-                    oss << std::quoted(item.first) << ": <reference to /Pages>";
+                    ss << std::quoted(item.first) << ": <reference to /Pages>";
                 } else {
-                    oss << std::quoted(item.first) << ": " << objecthandle_repr_inner(item.second, depth + 1, visited, pure_expr);
+                    ss << std::quoted(item.first) << ": " << objecthandle_repr_inner(item.second, depth + 1, visited, pure_expr);
                 }
             }
-            oss << "\n";
+            ss << "\n";
         }
-        oss << std::string(depth * 2, ' '); // Restore previous indent level
-        oss << "}";
+        ss << std::string(depth * 2, ' '); // Restore previous indent level
+        ss << "}";
         break;
     case QPDFObject::object_type_e::ot_stream:
         *pure_expr = false;
-        oss << objecthandle_pythonic_typename(h);
-        oss << "(";
-        oss << "stream_dict=";
-        oss << objecthandle_repr_inner(h.getDict(), depth + 1, visited, pure_expr);
-        oss << ", ";
-        oss << "data=<...>";
-        oss << ")";
+        ss << objecthandle_pythonic_typename(h);
+        ss << "(";
+        ss << "stream_dict=";
+        ss << objecthandle_repr_inner(h.getDict(), depth + 1, visited, pure_expr);
+        ss << ", ";
+        ss << "data=<...>";
+        ss << ")";
         break;
     default:
-        oss << "???";
+        ss << "???";
         break;
     }
 
-    return oss.str();
+    return ss.str();
 }
 
 std::string objecthandle_repr(QPDFObjectHandle h)
