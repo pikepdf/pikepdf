@@ -302,3 +302,11 @@ def test_recompress(resources, outdir):
         pdf.save(bigger, recompress_flate=False)
         pdf.save(smaller, recompress_flate=True)
         assert smaller.stat().st_size < bigger.stat().st_size
+
+
+def test_flate_compression_level():
+    # We don't want to change the compression level because it's global state
+    # and will change subsequent test results, so just ping it with an invalid
+    # value to get partial code coverage.
+    with pytest.raises(ValueError):
+        pikepdf._qpdf.set_flate_compression_level(99)

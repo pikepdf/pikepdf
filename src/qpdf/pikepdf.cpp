@@ -20,6 +20,7 @@
 #include <qpdf/QPDFExc.hh>
 #include <qpdf/QPDFSystemError.hh>
 #include <qpdf/QUtil.hh>
+#include <qpdf/Pl_Flate.hh>
 
 #include <pybind11/stl.h>
 #include <pybind11/iostream.h>
@@ -138,6 +139,15 @@ PYBIND11_MODULE(_qpdf, m) {
             return mmap;
         },
         "If set to true, ``pikepdf.open(...access_mode=access_default)`` will use mmap."
+    );
+    m.def("set_flate_compression_level",
+        [](int level) {
+            if (0 <= level && level <= 9)
+                Pl_Flate::setCompressionLevel(level);
+            else
+                throw py::value_error("Flate compression level must be between 0 and 9");
+        },
+        "Set the compression level whenever the Flate compression algorithm is used."
     );
 
     static py::exception<QPDFExc> exc_main(m, "PdfError");
