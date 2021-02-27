@@ -140,33 +140,51 @@ size_t PageList::count() const
 
 void PageList::insert_page(size_t index, py::handle obj)
 {
-    QPDFObjectHandle page;
+    QPDFObjectHandle h;
     try {
-        page = obj.cast<QPDFObjectHandle>();
+        h = obj.cast<QPDFObjectHandle>();
     } catch (const py::cast_error&) {
         throw py::type_error("only pages can be inserted");
     }
-    if (!page.isPageObject())
-        throw py::type_error("only pages can be inserted");
 
-    this->insert_page(index, page);
+    this->insert_page(index, h);
 }
 
-void PageList::insert_page(size_t index, QPDFObjectHandle page)
+void PageList::insert_page(size_t index, QPDFObjectHandle h)
 {
     // Find out who owns us
-    QPDF *page_owner = page.getOwningQPDF();
+    QPDF *handle_owner = h.getOwningQPDF();
+    QPDFObjectHandle owned, page;
+    bool copied = false;
 
-    if (page_owner == this->qpdf.get()) {
+    if (handle_owner == this->qpdf.get() || !handle_owner) {
         // qpdf does not accept duplicating pages within the same file,
         // so manually create a copy
-        page = this->qpdf->makeIndirectObject(page.shallowCopy());
-    }
-    if (index != this->count()) {
-        QPDFObjectHandle refpage = this->get_page(index);
-        this->qpdf->addPageAt(page, true, refpage);
+        owned = this->qpdf->makeIndirectObject(h.shallowCopy());
+        copied = true;
     } else {
-        this->qpdf->addPage(page, false);
+        owned = h;
+    }
+
+    try {
+        if (!owned.isPageObject()) {
+            throw py::type_error("only pages can be inserted");
+        }
+
+        page = owned;
+        if (index != this->count()) {
+            QPDFObjectHandle refpage = this->get_page(index);
+            this->qpdf->addPageAt(page, true, refpage);
+        } else {
+            this->qpdf->addPage(page, false);
+        }
+    } catch (const std::runtime_error &e) {
+        if (copied) {
+            // If we created a new object to hold the page, and failed, delete
+            // the object we created.
+            this->qpdf->replaceObject(owned.getObjGen(), QPDFObjectHandle::newNull());
+        }
+        throw;
     }
 }
 

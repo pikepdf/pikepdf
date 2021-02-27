@@ -56,3 +56,31 @@ def test_add_resource(graph_page):
     res2 = graph_page.add_resource(d, Name.XObject, prefix='Im')
     assert str(res2).startswith("/Im")
     assert graph_page.resources.XObject[res2].Height == 1
+
+
+def test_add_unowned_page():  # issue 174
+    pdf = pikepdf.new()
+    d = pikepdf.Dictionary(Type=pikepdf.Name.Page)
+    pdf.pages.append(d)
+
+
+def test_failed_add_page_cleanup():
+    pdf = pikepdf.new()
+    d = pikepdf.Dictionary(Type=pikepdf.Name.NotAPage)
+    num_objects = len(pdf.objects)
+    with pytest.raises(TypeError, match="only pages can be inserted"):
+        pdf.pages.append(d)
+    assert len(pdf.pages) == 0
+
+    # If we fail to add a new page, we expect one new null object handle to be
+    # be added (since QPDF does not remove the object outright)
+    assert len(pdf.objects) == num_objects + 1, "QPDF semantics changed"
+    assert pdf.objects[-1] is None, "Left a stale object behind without deleting"
+
+    # But we'd better not delete an existing object...
+    d2 = pdf.make_indirect(pikepdf.Dictionary(Type=pikepdf.Name.StillNotAPage))
+    with pytest.raises(TypeError, match="only pages can be inserted"):
+        pdf.pages.append(d2)
+    assert len(pdf.pages) == 0
+
+    assert d2.same_owner_as(pdf.Root)
