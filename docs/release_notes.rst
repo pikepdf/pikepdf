@@ -18,6 +18,15 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.7.0
+======
+
+-  Added an option to tell ``Pdf.save`` to recompress flate streams, and a global
+   option to set the flate compression level. This option can be use to force
+   the recompression of flate streams if they are not well compressed.
+-  Fixed "TypeError: only pages can be inserted" when attempting to an insert an
+   unowned page using QPDF 10.2.0 or later.
+
 v2.6.0
 ======
 
