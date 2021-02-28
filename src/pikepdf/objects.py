@@ -268,8 +268,11 @@ class Stream(Object, metaclass=_ObjectMeta):
         if data is None:
             raise TypeError("Must make Stream from binary data")
 
-        stream = _qpdf._new_stream(owner, data)
+        stream_dict = None
         if d or kwargs:
             stream_dict = Dictionary(d, **kwargs)
+
+        stream = _qpdf._new_stream(owner, data)
+        if stream_dict:
             stream.stream_dict = stream_dict
         return stream
