@@ -169,6 +169,8 @@ class Array(Object, metaclass=_ObjectMeta):
             raise TypeError('Strings cannot be converted to arrays of chars')
         if a is None:
             a = []
+        if isinstance(a, Array):
+            return a.__copy__()
         return _qpdf._new_array(a)
 
 
@@ -198,11 +200,14 @@ class Dictionary(Object, metaclass=_ObjectMeta):
             pikepdf.Object
         """
         if kwargs and d is not None:
-            raise ValueError('Unsupported parameters')
+            raise ValueError('Cannot use both a mapping object and keyword args')
         if kwargs:
             # Add leading slash
             # Allows Dictionary(MediaBox=(0,0,1,1), Type=Name('/Page')...
             return _qpdf._new_dictionary({('/' + k): v for k, v in kwargs.items()})
+        if isinstance(d, Dictionary):
+            # Already a dictionary
+            return d.__copy__()
         if not d:
             d = {}
         if d and any(not key.startswith('/') for key in d.keys()):

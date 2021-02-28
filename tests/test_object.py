@@ -613,3 +613,17 @@ def test_stream_bad_params():
     p = pikepdf.new()
     with pytest.raises(TypeError, match='data'):
         Stream(p)
+
+
+def test_dict_of_dict():
+    d = Dictionary(One=1, Two=2)
+    d2 = Dictionary(d)
+    assert d == d2
+    assert d is not d2
+
+
+def test_array_of_array():
+    a = Array([1, 2])
+    a2 = Array(a)
+    assert a == a2
+    assert a is not a2
