@@ -18,6 +18,17 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.8.0
+======
+
+-  Fixed an issue with extracting data from images that had their DecodeParms
+   structured as a list of dictionaries.
+-  Fixed an issue where a dangling stream object is created if we fail to create
+   the requested stream dictionary.
+-  Calling ``Dictionary()`` and ``Array()`` on objects which are already of that
+   type returns a shallow copy rather than throwing an exception, in keeping with
+   Python semantics.
+
 v2.7.0
 ======
 
