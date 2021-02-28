@@ -217,14 +217,44 @@ class Stream(Object, metaclass=_ObjectMeta):
 
     def __new__(cls, owner: 'Pdf', data: bytes = None, d=None, **kwargs):
         """
+        Create a new stream object, which stores arbitrary binary data and may
+        or may not be compressed.
+
+        A stream dictionary is like a pikepdf.Dictionary or Python dict, except
+        it has a binary payload of data attached. The dictionary describes
+        how the data is compressed or encoded.
+
+        The dictionary may be initialized just like pikepdf.Dictionary is initialized,
+        using a mapping object or keyword arguments.
+
         Args:
             owner: The Pdf to which this stream shall be attached.
-            obj: The data bytes for the stream.
-            d: A mapping object that will be used to construct a ``Dictionary``.
-            kwargs: Keyword arguments that will define the dictionary. Do not set
-                /Filter or /Length here as pikepdf will manage these.
+            data: The data bytes for the stream.
+            d: An optional mapping object that will be used to construct the stream's
+                dictionary.
+            kwargs: Keyword arguments that will define the stream dictionary. Do not set
+                /Length here as pikepdf will manage this value. Set /Filter
+                if the data is already encoded in some format.
+            obj: Deprecated alias for *data*.
         Returns:
             pikepdf.Object
+
+        Examples:
+            Using kwargs:
+                >>> s1 = pikepdf.Stream(
+                        pdf,
+                        b"uncompressed image data",
+                        BitsPerComponent=8,
+                        ColorSpace=Name.DeviceRGB,
+                        ...
+                    )
+            Using dict:
+                >>> d = pikepdf.Dictionary(...)
+                >>> s2 = pikepdf.Stream(
+                        pdf,
+                        b"data",
+                        d
+                    )
         """
 
         # Support __new__(...obj=bytes) which should have been data=bytes,
