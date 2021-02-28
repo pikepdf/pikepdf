@@ -615,6 +615,14 @@ def test_stream_bad_params():
         Stream(p)
 
 
+def test_stream_no_dangling_stream_on_failure():
+    p = pikepdf.new()
+    num_objects = len(p.objects)
+    with pytest.raises(AttributeError):
+        Stream(p, b'3.14159', ['Not a mapping object'])
+    assert len(p.objects) == num_objects, "A dangling object was created"
+
+
 def test_dict_of_dict():
     d = Dictionary(One=1, Two=2)
     d2 = Dictionary(d)
