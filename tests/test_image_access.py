@@ -10,6 +10,7 @@ from PIL import features as PIL_features
 
 import pikepdf
 from pikepdf import (
+    Array,
     Dictionary,
     Name,
     Pdf,
@@ -485,3 +486,29 @@ def test_invalid_icc(resources):
     ):
         pim = PdfImage(xobj)
         _icc = pim.icc
+
+
+def test_dict_or_array_dict():
+    pdf = pikepdf.new()
+    imobj = Stream(
+        pdf,
+        b'dummy',
+        BitsPerComponent=1,
+        ColorSpace=Name.DeviceGray,
+        DecodeParms=Array(
+            [
+                Dictionary(
+                    BlackIs1=False,
+                    Columns=16,
+                    K=-1,
+                )
+            ]
+        ),
+        Filter=Array([Name.CCITTFaxDecode]),
+        Height=16,
+        Width=16,
+        Type=Name.XObject,
+        Subtype=Name.Image,
+    )
+    pim = pikepdf.PdfImage(imobj)
+    assert pim.decode_parms[0].K == -1  # Check that array of dict is unpacked properly
