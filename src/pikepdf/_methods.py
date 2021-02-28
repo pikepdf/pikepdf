@@ -418,14 +418,8 @@ class Extend_Pdf:
         """
         Create a new pikepdf.Stream object that is attached to this PDF.
 
-        Args:
-            data (bytes): Binary data for the stream object
-            d: Dictionary portion of the stream object
-            kwargs: Keyword arguments to define the dictionary. Do not set
-                /Filter or /Length here as pikepdf will manage these.
-
-        Example:
-            pdf.make_stream(b"Binary data here", Type=Name.XObject, Subtype=Name.Image)
+        See:
+            :meth:`pikepdf.Stream.__new__`
 
         """
         return Stream(self, data, d, **kwargs)
@@ -1029,7 +1023,7 @@ class Extend_Page:
             The name of the object.
 
         Example:
-            resource_name = Page(pdf.pages[0]).add_resource(formxobj, Name.XObject)
+            >>> resource_name = Page(pdf.pages[0]).add_resource(formxobj, Name.XObject)
         """
         if not Name.Resources in self.obj:
             self.obj.Resources = Dictionary()
