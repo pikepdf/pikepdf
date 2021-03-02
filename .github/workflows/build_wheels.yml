@@ -1,0 +1,196 @@
+name: Build and upload to PyPI
+
+on: [push, pull_request]
+
+env:
+  QPDF_MIN_VERSION: "10.0.3"
+  QPDF_VERSION: "10.2.0"
+  QPDF_PATTERN: "https://github.com/qpdf/qpdf/releases/download/release-qpdf-VERSION/qpdf-VERSION.tar.gz"
+  JPEG_RELEASE: "https://www.ijg.org/files/jpegsrc.v9d.tar.gz"
+  ZLIB_RELEASE: "https://www.zlib.net/zlib-1.2.11.tar.gz"
+  CIBW_TEST_SKIP: "*_arm64 *_universal2:arm64"
+
+jobs:
+  wheels_linux:
+    name: Build wheels on ${{ matrix.os }} for ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    env:
+      CIBW_SKIP: "cp27-* cp35-* pp2* pp3*"
+      CIBW_TEST_COMMAND: "pytest -nauto {project}/tests"
+      CIBW_TEST_REQUIRES: "-r requirements/test.txt"
+      CIBW_BEFORE_ALL: "bash {project}/build-scripts/linux-build-wheel-deps.bash"
+      CIBW_BUILD: "*-${{ matrix.platform }}"
+    strategy:
+      matrix:
+        os: [ubuntu-20.04]
+        platform: [manylinux_i686, manylinux_x86_64] # manylinux_aarch64 (too expensive)
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: "0" # 0=all, needed for setuptools-scm to resolve version tags
+
+      - uses: actions/setup-python@v2
+        name: Install Python
+        with:
+          python-version: "3.8"
+
+      - name: Download dependencies
+        run: |
+          build-scripts/linux-download-qpdf-deps.bash
+          build-scripts/linux-download-qpdf.bash ${{ env.QPDF_VERSION }}
+
+      - name: Set up QEMU
+        if: matrix.platform == 'manylinux_aarch64'
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: all
+
+      - name: Build wheels
+        uses: joerick/cibuildwheel@v1.10.0
+        if: matrix.platform != 'manylinux_aarch64'
+
+      - name: Build wheels (emulated)
+        uses: joerick/cibuildwheel@v1.10.0
+        if: matrix.platform == 'manylinux_aarch64'
+        env:
+          CIBW_ARCHS_LINUX: aarch64
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: ./wheelhouse/*.whl
+
+  wheels_macos:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    env:
+      CIBW_SKIP: "cp27-* cp35-* pp2*"
+      CIBW_TEST_COMMAND: "pytest -nauto {project}/tests"
+      CIBW_TEST_REQUIRES: "-r requirements/test.txt"
+      CIBW_BEFORE_ALL: "brew install qpdf"
+    strategy:
+      matrix:
+        os: [macos-10.15]
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: "0"
+
+      - uses: actions/setup-python@v2
+        name: Install Python
+        with:
+          python-version: "3.8"
+
+      - name: Build wheels
+        uses: joerick/cibuildwheel@v1.10.0
+        #env:
+        #  CIBW_ARCHS_MACOS: x86_64 universal2 # for Apple Silicon
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: ./wheelhouse/*.whl
+
+  wheels_windows:
+    name: Build wheels on ${{ matrix.os }} for ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    env:
+      CIBW_SKIP: "cp27-* cp35-* pp2* pp3*"
+      CIBW_TEST_COMMAND: "pytest -nauto {project}/tests"
+      CIBW_TEST_REQUIRES: "-r requirements/test.txt"
+      CIBW_BUILD: "*-${{ matrix.platform }}"
+      CIBW_ENVIRONMENT: >-
+        INCLUDE="$INCLUDE;d:\\qpdf\\include"
+        LIB="$LIB;d:\\qpdf\\lib"
+        LIBPATH="$LIBPATH;d:\\qpdf\\lib"
+    strategy:
+      matrix:
+        os: [windows-2019]
+        platform: [win_amd64, win32]
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: "0"
+
+      - uses: actions/setup-python@v2
+        name: Install Python
+        with:
+          python-version: "3.8"
+
+      - name: Download QPDF
+        run: |
+          build-scripts/win-download-qpdf.ps1 ${{ env.QPDF_VERSION }} ${{ matrix.platform }}
+        shell: pwsh
+
+      - name: Build wheels
+        uses: joerick/cibuildwheel@v1.10.0
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: ./wheelhouse/*.whl
+
+  sdist:
+    name: Build source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: "0"
+
+      - uses: actions/setup-python@v2
+        name: Install Python
+        with:
+          python-version: "3.8"
+
+      - name: Download QPDF
+        run: build-scripts/linux-download-qpdf.bash ${{ env.QPDF_MIN_VERSION }}
+
+      - name: Build QPDF
+        run: build-scripts/linux-build-sdist-deps.bash
+
+      - name: Build sdist
+        run: |
+          export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade setuptools wheel
+          python setup.py sdist
+
+      - name: Install sdist
+        run: |
+          export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+          python -m pip install dist/*.tar.gz
+          python -m pip install -r requirements/test.txt
+
+      - name: Test sdist
+        run: |
+          export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+          python -m pytest -nauto
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: dist/*.tar.gz
+
+  update_docs:
+    needs: [wheels_linux, wheels_macos, wheels_windows, sdist]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger ReadTheDocs
+        run: curl -X POST -d token=${{ secrets.TOKEN_RTD }} https://readthedocs.org/api/v2/webhook/pikepdf/39557/
+
+  upload_pypi:
+    needs: [wheels_linux, wheels_macos, wheels_windows, sdist]
+    runs-on: ubuntu-latest
+    # upload to PyPI on every tag starting with 'v'
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: artifact
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ secrets.TOKEN_PYPI }}
+          # repository_url: https://test.pypi.org/legacy/

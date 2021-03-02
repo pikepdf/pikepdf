@@ -1,253 +1,253 @@
-variables:
-  qpdf_version: "10.2.0"
-  qpdf_release: ${{ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}.tar.gz', variables.qpdf_version) }}
-  qpdf_min_version: "10.0.3"
-  qpdf_min_release: ${{ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}.tar.gz', variables.qpdf_min_version) }}
-  jpeg_release: "https://www.ijg.org/files/jpegsrc.v9d.tar.gz"
-  zlib_release: "https://www.zlib.net/zlib-1.2.11.tar.gz"
-  cibw_skip: "cp27-* cp35-* pp2* pp36-win32* pp36-manylinux* pp37-win32* pp37-manylinux*"
-  cibw_test_command: "pytest -nauto {project}/tests"
-  cibw_test_requires: "-r requirements/test.txt"
-  cibuildwheel_version: "1.7.0"
+# variables:
+#   qpdf_version: "10.2.0"
+#   qpdf_release: ${{ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}.tar.gz', variables.qpdf_version) }}
+#   qpdf_min_version: "10.0.3"
+#   qpdf_min_release: ${{ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}.tar.gz', variables.qpdf_min_version) }}
+#   jpeg_release: "https://www.ijg.org/files/jpegsrc.v9d.tar.gz"
+#   zlib_release: "https://www.zlib.net/zlib-1.2.11.tar.gz"
+#   cibw_skip: "cp27-* cp35-* pp2* pp36-win32* pp36-manylinux* pp37-win32* pp37-manylinux*"
+#   cibw_test_command: "pytest -nauto {project}/tests"
+#   cibw_test_requires: "-r requirements/test.txt"
+#   cibuildwheel_version: "1.7.0"
 
-trigger:
-  tags:
-    include:
-      - v*
-  branches:
-    include:
-      - "*"
+# trigger:
+#   tags:
+#     include:
+#       - v*
+#   branches:
+#     include:
+#       - "*"
 
-stages:
-  - stage: "sdist"
-    jobs:
-      - job: linux_sdist
-        pool: { vmImage: "Ubuntu-18.04" }
-        steps:
-          - task: UsePythonVersion@0
-          - bash: |
-              mkdir qpdf && wget -q $QPDF_MIN_RELEASE -O - | tar xz -C qpdf --strip-components=1
-              cd qpdf/
-              ./configure
-              make -j 2
-              sudo make install
-              cd ..
-            displayName: "Build QPDF"
-          - bash: |
-              python -m pip install --upgrade pip
-              python setup.py sdist
-              python -m pip install dist/*.tar.gz
-              python -m pip install -r requirements/test.txt
-            displayName: "Build sdist"
-          - bash: |
-              export LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
-              python -m pytest -nauto --junitxml=test-sdist.xml --cov=pikepdf --cov-report=xml
-            displayName: "Test"
-          - task: PublishTestResults@2
-            inputs:
-              testResultsFiles: "test-sdist.xml"
-              testRunTitle: "$(Agent.OS) - $(Build.DefinitionName) - Python $(python.version)"
-            condition: succeededOrFailed()
-          - task: PublishCodeCoverageResults@1
-            inputs:
-              codeCoverageTool: Cobertura
-              summaryFileLocation: "$(System.DefaultWorkingDirectory)/**/coverage.xml"
-          - publish: dist
-            artifact: sdist
-      - job: linux_pypy3
-        pool: { vmImage: "Ubuntu-20.04" }
-        steps:
-          - bash: |
-              mkdir qpdf && wget -q $QPDF_MIN_RELEASE -O - | tar xz -C qpdf --strip-components=1
-              cd qpdf/
-              ./configure
-              make -j 2
-              sudo make install
-              cd ..
-            displayName: "Build QPDF"
-          - bash: |
-              sudo apt-get install -y pypy3 pypy3-dev libxml2-dev libxslt-dev
-              pypy3 -m pip install --upgrade pip
-              pypy3 setup.py sdist
-              pypy3 -m pip install dist/*.tar.gz
-              pypy3 -m pip install -r requirements/test.txt
-            displayName: "Build sdist"
-          - bash: |
-              export LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
-              pypy3 -m pytest -nauto --junitxml=test-sdist-pypy3.xml --cov=pikepdf --cov-report=xml
-            displayName: "Test"
-          - task: PublishTestResults@2
-            inputs:
-              testResultsFiles: "test-sdist-pypy3.xml"
-              testRunTitle: "$(Agent.OS) - $(Build.DefinitionName) - PyPy3"
-            condition: succeededOrFailed()
+# stages:
+#   - stage: "sdist"
+#     jobs:
+#       - job: linux_sdist
+#         pool: { vmImage: "Ubuntu-18.04" }
+#         steps:
+#           - task: UsePythonVersion@0
+#           - bash: |
+#               mkdir qpdf && wget -q $QPDF_MIN_RELEASE -O - | tar xz -C qpdf --strip-components=1
+#               cd qpdf/
+#               ./configure
+#               make -j 2
+#               sudo make install
+#               cd ..
+#             displayName: "Build QPDF"
+#           - bash: |
+#               python -m pip install --upgrade pip
+#               python setup.py sdist
+#               python -m pip install dist/*.tar.gz
+#               python -m pip install -r requirements/test.txt
+#             displayName: "Build sdist"
+#           - bash: |
+#               export LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
+#               python -m pytest -nauto --junitxml=test-sdist.xml --cov=pikepdf --cov-report=xml
+#             displayName: "Test"
+#           - task: PublishTestResults@2
+#             inputs:
+#               testResultsFiles: "test-sdist.xml"
+#               testRunTitle: "$(Agent.OS) - $(Build.DefinitionName) - Python $(python.version)"
+#             condition: succeededOrFailed()
+#           - task: PublishCodeCoverageResults@1
+#             inputs:
+#               codeCoverageTool: Cobertura
+#               summaryFileLocation: "$(System.DefaultWorkingDirectory)/**/coverage.xml"
+#           - publish: dist
+#             artifact: sdist
+#       - job: linux_pypy3
+#         pool: { vmImage: "Ubuntu-20.04" }
+#         steps:
+#           - bash: |
+#               mkdir qpdf && wget -q $QPDF_MIN_RELEASE -O - | tar xz -C qpdf --strip-components=1
+#               cd qpdf/
+#               ./configure
+#               make -j 2
+#               sudo make install
+#               cd ..
+#             displayName: "Build QPDF"
+#           - bash: |
+#               sudo apt-get install -y pypy3 pypy3-dev libxml2-dev libxslt-dev
+#               pypy3 -m pip install --upgrade pip
+#               pypy3 setup.py sdist
+#               pypy3 -m pip install dist/*.tar.gz
+#               pypy3 -m pip install -r requirements/test.txt
+#             displayName: "Build sdist"
+#           - bash: |
+#               export LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
+#               pypy3 -m pytest -nauto --junitxml=test-sdist-pypy3.xml --cov=pikepdf --cov-report=xml
+#             displayName: "Test"
+#           - task: PublishTestResults@2
+#             inputs:
+#               testResultsFiles: "test-sdist-pypy3.xml"
+#               testRunTitle: "$(Agent.OS) - $(Build.DefinitionName) - PyPy3"
+#             condition: succeededOrFailed()
 
-  - stage: "Wheels"
-    jobs:
-      - job: linux64
-        pool: { vmImage: "Ubuntu-16.04" }
-        variables:
-          cibw_environment: >-
-            LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-            CXXFLAGS="-I/usr/local/include"
-            LDFLAGS="-L/usr/local/lib"
-          cibw_build: "*-manylinux_x86_64"
-          cibw_test_command: "pytest -nauto --junitxml=/host/$(System.DefaultWorkingDirectory)/test.xml {project}/tests"
-          cibw_before_all: "bash {project}/azure-pipelines/linux-build-deps.bash {project}"
-        steps:
-          - task: UsePythonVersion@0
-          - bash: source azure-pipelines/linux-download-deps.bash
-            displayName: "Download QPDF and components"
-          - bash: source azure-pipelines/build.bash
-            displayName: "cibuildwheel"
-          - task: PublishTestResults@2
-            inputs:
-              testResultsFiles: "test.xml"
-              testRunTitle: "$(Agent.OS) - $(Build.DefinitionName) - Python $(python.version)"
-            condition: succeededOrFailed()
-          - publish: wheelhouse
-            artifact: linux64
-      - job: linux32
-        pool: { vmImage: "Ubuntu-16.04" }
-        variables:
-          cibw_environment: >-
-            LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-            CXXFLAGS="-I/usr/local/include"
-            LDFLAGS="-L/usr/local/lib"
-          cibw_build: "*-manylinux_i686"
-          cibw_test_command: "pytest -nauto --junitxml=/host/$(System.DefaultWorkingDirectory)/test.xml {project}/tests"
-          cibw_before_all: "bash {project}/azure-pipelines/linux-build-deps.bash {project}"
-        steps:
-          - task: UsePythonVersion@0
-          - bash: source azure-pipelines/linux-download-deps.bash
-            displayName: "Download QPDF and components"
-          - bash: source azure-pipelines/build.bash
-            displayName: "cibuildwheel"
-          - task: PublishTestResults@2
-            inputs:
-              testResultsFiles: "test.xml"
-              testRunTitle: "$(Agent.OS) - $(Build.DefinitionName) - Python $(python.version)"
-            condition: succeededOrFailed()
-          - publish: wheelhouse
-            artifact: linux32
-      - job: "macOS_Mojave"
-        pool: { vmImage: "macOS-10.14" }
-        variables:
-          cibw_before_all: brew install qpdf
-        steps:
-          - task: UsePythonVersion@0
-          - bash: source azure-pipelines/build.bash
-            displayName: cibuildwheel
-          - publish: wheelhouse
-            artifact: macos
-      - job: windows64
-        pool: { vmImage: "vs2017-win2016" }
-        variables:
-          qpdf_windows: ${{ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}-bin-msvc64.zip', variables.qpdf_version) }}
-          cibw_build: "*-win_amd64"
-          cibw_environment: >-
-            INCLUDE="$INCLUDE;c:\\qpdf\\include"
-            LIB="$LIB;c:\\qpdf\\lib"
-            LIBPATH="$LIBPATH;c:\\qpdf\\lib"
-        steps:
-          - task: UsePythonVersion@0
-          - powershell: azure-pipelines/win-download-qpdf.ps1
-            displayName: "Download QPDF"
-          - powershell: |
-              # https://github.com/qpdf/qpdf/issues/286#issuecomment-467101492
-              Set-Itemproperty -path 'HKLM:\SOFTWARE\Microsoft\Cryptography\Protect\Providers\df9d8cd0-1501-11d1-8c7a-00c04fc297eb' -name 'ProtectionPolicy' -value 1
-            displayName: "Fix 'unable to acquire crypt context' error"
-          - bash: source azure-pipelines/build.bash
-            displayName: "cibuildwheel"
-          - publish: wheelhouse
-            artifact: win64
-      - job: windows32
-        pool: { vmImage: "vs2017-win2016" }
-        variables:
-          qpdf_windows: ${{ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}-bin-msvc32.zip', variables.qpdf_version) }}
-          cibw_build: "*-win32"
-          cibw_environment: >-
-            INCLUDE="$INCLUDE;c:\\qpdf\\include"
-            LIB="$LIB;c:\\qpdf\\lib"
-            LIBPATH="$LIBPATH;c:\\qpdf\\lib"
-        steps:
-          - task: UsePythonVersion@0
-          - powershell: azure-pipelines/win-download-qpdf.ps1
-            displayName: "Download QPDF"
-          - powershell: |
-              # https://github.com/qpdf/qpdf/issues/286#issuecomment-467101492
-              Set-Itemproperty -path 'HKLM:\SOFTWARE\Microsoft\Cryptography\Protect\Providers\df9d8cd0-1501-11d1-8c7a-00c04fc297eb' -name 'ProtectionPolicy' -value 1
-            displayName: "Fix 'unable to acquire crypt context' error"
-          - bash: source azure-pipelines/build.bash
-            displayName: "cibuildwheel"
-          - publish: wheelhouse
-            artifact: win32
+#   - stage: "Wheels"
+#     jobs:
+#       - job: linux64
+#         pool: { vmImage: "Ubuntu-16.04" }
+#         variables:
+#           cibw_environment: >-
+#             LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+#             CXXFLAGS="-I/usr/local/include"
+#             LDFLAGS="-L/usr/local/lib"
+#           cibw_build: "*-manylinux_x86_64"
+#           cibw_test_command: "pytest -nauto --junitxml=/host/$(System.DefaultWorkingDirectory)/test.xml {project}/tests"
+#           cibw_before_all: "bash {project}/azure-pipelines/linux-build-deps.bash {project}"
+#         steps:
+#           - task: UsePythonVersion@0
+#           - bash: source azure-pipelines/linux-download-deps.bash
+#             displayName: "Download QPDF and components"
+#           - bash: source azure-pipelines/build.bash
+#             displayName: "cibuildwheel"
+#           - task: PublishTestResults@2
+#             inputs:
+#               testResultsFiles: "test.xml"
+#               testRunTitle: "$(Agent.OS) - $(Build.DefinitionName) - Python $(python.version)"
+#             condition: succeededOrFailed()
+#           - publish: wheelhouse
+#             artifact: linux64
+#       - job: linux32
+#         pool: { vmImage: "Ubuntu-16.04" }
+#         variables:
+#           cibw_environment: >-
+#             LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+#             CXXFLAGS="-I/usr/local/include"
+#             LDFLAGS="-L/usr/local/lib"
+#           cibw_build: "*-manylinux_i686"
+#           cibw_test_command: "pytest -nauto --junitxml=/host/$(System.DefaultWorkingDirectory)/test.xml {project}/tests"
+#           cibw_before_all: "bash {project}/azure-pipelines/linux-build-deps.bash {project}"
+#         steps:
+#           - task: UsePythonVersion@0
+#           - bash: source azure-pipelines/linux-download-deps.bash
+#             displayName: "Download QPDF and components"
+#           - bash: source azure-pipelines/build.bash
+#             displayName: "cibuildwheel"
+#           - task: PublishTestResults@2
+#             inputs:
+#               testResultsFiles: "test.xml"
+#               testRunTitle: "$(Agent.OS) - $(Build.DefinitionName) - Python $(python.version)"
+#             condition: succeededOrFailed()
+#           - publish: wheelhouse
+#             artifact: linux32
+#       - job: "macOS_Mojave"
+#         pool: { vmImage: "macOS-10.14" }
+#         variables:
+#           cibw_before_all: brew install qpdf
+#         steps:
+#           - task: UsePythonVersion@0
+#           - bash: source azure-pipelines/build.bash
+#             displayName: cibuildwheel
+#           - publish: wheelhouse
+#             artifact: macos
+#       - job: windows64
+#         pool: { vmImage: "vs2017-win2016" }
+#         variables:
+#           qpdf_windows: ${{ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}-bin-msvc64.zip', variables.qpdf_version) }}
+#           cibw_build: "*-win_amd64"
+#           cibw_environment: >-
+#             INCLUDE="$INCLUDE;c:\\qpdf\\include"
+#             LIB="$LIB;c:\\qpdf\\lib"
+#             LIBPATH="$LIBPATH;c:\\qpdf\\lib"
+#         steps:
+#           - task: UsePythonVersion@0
+#           - powershell: azure-pipelines/win-download-qpdf.ps1
+#             displayName: "Download QPDF"
+#           - powershell: |
+#               # https://github.com/qpdf/qpdf/issues/286#issuecomment-467101492
+#               Set-Itemproperty -path 'HKLM:\SOFTWARE\Microsoft\Cryptography\Protect\Providers\df9d8cd0-1501-11d1-8c7a-00c04fc297eb' -name 'ProtectionPolicy' -value 1
+#             displayName: "Fix 'unable to acquire crypt context' error"
+#           - bash: source azure-pipelines/build.bash
+#             displayName: "cibuildwheel"
+#           - publish: wheelhouse
+#             artifact: win64
+#       - job: windows32
+#         pool: { vmImage: "vs2017-win2016" }
+#         variables:
+#           qpdf_windows: ${{ format('https://github.com/qpdf/qpdf/releases/download/release-qpdf-{0}/qpdf-{0}-bin-msvc32.zip', variables.qpdf_version) }}
+#           cibw_build: "*-win32"
+#           cibw_environment: >-
+#             INCLUDE="$INCLUDE;c:\\qpdf\\include"
+#             LIB="$LIB;c:\\qpdf\\lib"
+#             LIBPATH="$LIBPATH;c:\\qpdf\\lib"
+#         steps:
+#           - task: UsePythonVersion@0
+#           - powershell: azure-pipelines/win-download-qpdf.ps1
+#             displayName: "Download QPDF"
+#           - powershell: |
+#               # https://github.com/qpdf/qpdf/issues/286#issuecomment-467101492
+#               Set-Itemproperty -path 'HKLM:\SOFTWARE\Microsoft\Cryptography\Protect\Providers\df9d8cd0-1501-11d1-8c7a-00c04fc297eb' -name 'ProtectionPolicy' -value 1
+#             displayName: "Fix 'unable to acquire crypt context' error"
+#           - bash: source azure-pipelines/build.bash
+#             displayName: "cibuildwheel"
+#           - publish: wheelhouse
+#             artifact: win32
 
-  - stage: "Deploy"
-    jobs:
-      - deployment: "PyPI"
-        pool: { vmImage: "ubuntu-18.04" }
-        environment: "deploy"
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - task: UsePythonVersion@0
-                  inputs:
-                    versionSpec: "3.8"
-                    architecture: x64
-                - download: current
-                  artifact: sdist
-                - download: current
-                  artifact: linux64
-                - download: current
-                  artifact: linux32
-                - download: current
-                  artifact: macos
-                - download: current
-                  artifact: win64
-                - download: current
-                  artifact: win32
-                - script: |
-                    mkdir -p dist
-                    mv $(Pipeline.Workspace)/sdist/* dist
-                    mv $(Pipeline.Workspace)/linux64/* dist
-                    mv $(Pipeline.Workspace)/linux32/* dist
-                    mv $(Pipeline.Workspace)/macos/* dist
-                    mv $(Pipeline.Workspace)/win64/* dist
-                    mv $(Pipeline.Workspace)/win32/* dist
-                  displayName: "Organize artifacts"
-                - script: |
-                    # Azure is supposed to support PyPI uploads on its own,
-                    # but the documentation is very vague, so it's easier just
-                    # to roll our own.
-                    python -m pip install -U pip
-                    python -m pip install -U twine
-                    cat <<FILE >.pypirc
-                    [distutils]
-                    index-servers =
-                        pypi
-                        testpypi
+#   - stage: "Deploy"
+#     jobs:
+#       - deployment: "PyPI"
+#         pool: { vmImage: "ubuntu-18.04" }
+#         environment: "deploy"
+#         strategy:
+#           runOnce:
+#             deploy:
+#               steps:
+#                 - task: UsePythonVersion@0
+#                   inputs:
+#                     versionSpec: "3.8"
+#                     architecture: x64
+#                 - download: current
+#                   artifact: sdist
+#                 - download: current
+#                   artifact: linux64
+#                 - download: current
+#                   artifact: linux32
+#                 - download: current
+#                   artifact: macos
+#                 - download: current
+#                   artifact: win64
+#                 - download: current
+#                   artifact: win32
+#                 - script: |
+#                     mkdir -p dist
+#                     mv $(Pipeline.Workspace)/sdist/* dist
+#                     mv $(Pipeline.Workspace)/linux64/* dist
+#                     mv $(Pipeline.Workspace)/linux32/* dist
+#                     mv $(Pipeline.Workspace)/macos/* dist
+#                     mv $(Pipeline.Workspace)/win64/* dist
+#                     mv $(Pipeline.Workspace)/win32/* dist
+#                   displayName: "Organize artifacts"
+#                 - script: |
+#                     # Azure is supposed to support PyPI uploads on its own,
+#                     # but the documentation is very vague, so it's easier just
+#                     # to roll our own.
+#                     python -m pip install -U pip
+#                     python -m pip install -U twine
+#                     cat <<FILE >.pypirc
+#                     [distutils]
+#                     index-servers =
+#                         pypi
+#                         testpypi
 
-                    [pypi]
-                    username: __token__
-                    password: $(TOKEN_PYPI)
+#                     [pypi]
+#                     username: __token__
+#                     password: $(TOKEN_PYPI)
 
-                    [testpypi]
-                    repository: https://test.pypi.org/legacy/
-                    username: __token__
-                    password: $(TOKEN_TESTPYPI)
-                    FILE
-                  displayName: "Generate PyPI auth file"
-                - script: |
-                    python -m twine upload -r "testpypi" --config-file .pypirc dist/*
-                  displayName: "Upload to TestPyPI"
-                  condition: not(always())
-                - script: |
-                    python -m twine upload --config-file .pypirc dist/*
-                  displayName: "Upload to PyPI"
-                  condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
-                - script: |
-                    curl -X POST -d "token=$(TOKEN_RTD)" https://readthedocs.org/api/v2/webhook/pikepdf/39557/
-                  displayName: "Trigger ReadTheDocs"
-                  condition: and(succeeded(), or(startsWith(variables['Build.SourceBranch'], 'refs/tags/'), startsWith(variables['Build.SourceBranch'], 'refs/heads/master')))
+#                     [testpypi]
+#                     repository: https://test.pypi.org/legacy/
+#                     username: __token__
+#                     password: $(TOKEN_TESTPYPI)
+#                     FILE
+#                   displayName: "Generate PyPI auth file"
+#                 - script: |
+#                     python -m twine upload -r "testpypi" --config-file .pypirc dist/*
+#                   displayName: "Upload to TestPyPI"
+#                   condition: not(always())
+#                 - script: |
+#                     python -m twine upload --config-file .pypirc dist/*
+#                   displayName: "Upload to PyPI"
+#                   condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
+#                 - script: |
+#                     curl -X POST -d "token=$(TOKEN_RTD)" https://readthedocs.org/api/v2/webhook/pikepdf/39557/
+#                   displayName: "Trigger ReadTheDocs"
+#                   condition: and(succeeded(), or(startsWith(variables['Build.SourceBranch'], 'refs/tags/'), startsWith(variables['Build.SourceBranch'], 'refs/heads/master')))
