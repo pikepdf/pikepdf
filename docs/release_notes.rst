@@ -28,6 +28,11 @@ v2.8.0
 -  Calling ``Dictionary()`` and ``Array()`` on objects which are already of that
    type returns a shallow copy rather than throwing an exception, in keeping with
    Python semantics.
+-  **v2.8.0.post1**: The CI system was changed from Azure Pipelines to GitHub Actions,
+   a transition we made to support generating binary wheels for more platforms.
+   This post-release was the first release made with GitHub Actions. It ought to be
+   functionally identical, but could different in some subtle way, for example
+   because parts of it may have been built with different compiler versions.
 
 v2.7.0
 ======
