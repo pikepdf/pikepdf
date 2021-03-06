@@ -223,7 +223,7 @@ do not want to use Python wheels.
 
 Note that the Python wheels for pikepdf currently compile their own version of
 QPDF and several of its dependencies to ensure the wheels have the latest version.
-You can also refer to the Azure Pipelines CI YAML files for build steps.
+You can also refer to the GitHub Actions YAML files for build steps.
 
 **Building against a custom install of QPDF to /usr/local/lib**
 
