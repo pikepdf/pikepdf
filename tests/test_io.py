@@ -15,7 +15,8 @@ from pikepdf import Pdf, PdfError
 @pytest.fixture
 def sandwich(resources):
     # Has XMP, docinfo, <?adobe-xap-filters esc="CRLF"?>, shorthand attribute XMP
-    return Pdf.open(resources / 'sandwich.pdf')
+    with Pdf.open(resources / 'sandwich.pdf') as pdf:
+        yield pdf
 
 
 class LimitedBytesIO(BytesIO):

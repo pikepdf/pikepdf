@@ -6,12 +6,14 @@ from pikepdf import Dictionary, ForeignObjectError, Name, Object, Pdf, Stream
 @pytest.fixture
 def vera(resources):
     # Has XMP but no docinfo
-    return Pdf.open(resources / 'veraPDF test suite 6-2-10-t02-pass-a.pdf')
+    with Pdf.open(resources / 'veraPDF test suite 6-2-10-t02-pass-a.pdf') as pdf:
+        yield pdf
 
 
 @pytest.fixture
 def outlines(resources):
-    return Pdf.open(resources / 'outlines.pdf')
+    with Pdf.open(resources / 'outlines.pdf') as pdf:
+        yield pdf
 
 
 def test_no_foreign_on_direct(vera):

@@ -18,17 +18,20 @@ from pikepdf._cpphelpers import label_from_label_dict
 
 @pytest.fixture
 def graph(resources):
-    return Pdf.open(resources / 'graph.pdf')
+    with Pdf.open(resources / 'graph.pdf') as pdf:
+        yield pdf
 
 
 @pytest.fixture
 def fourpages(resources):
-    return Pdf.open(resources / 'fourpages.pdf')
+    with Pdf.open(resources / 'fourpages.pdf') as pdf:
+        yield pdf
 
 
 @pytest.fixture
 def sandwich(resources):
-    return Pdf.open(resources / 'sandwich.pdf')
+    with Pdf.open(resources / 'sandwich.pdf') as pdf:
+        yield pdf
 
 
 def test_split_pdf(fourpages, outdir):

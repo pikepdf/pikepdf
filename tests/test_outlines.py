@@ -21,7 +21,8 @@ from pikepdf.models.outlines import ALL_PAGE_LOCATION_KWARGS
 @pytest.fixture
 def outlines_doc(resources):
     # Contains an outline with references
-    return Pdf.open(resources / 'outlines.pdf')
+    with Pdf.open(resources / 'outlines.pdf') as pdf:
+        yield pdf
 
 
 def test_load_outlines(outlines_doc):

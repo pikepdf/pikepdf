@@ -40,31 +40,36 @@ pytestmark = pytest.mark.filterwarnings('ignore:.*XMLParser.*:DeprecationWarning
 @pytest.fixture
 def vera(resources):
     # Has XMP but no docinfo
-    return Pdf.open(resources / 'veraPDF test suite 6-2-10-t02-pass-a.pdf')
+    with Pdf.open(resources / 'veraPDF test suite 6-2-10-t02-pass-a.pdf') as pdf:
+        yield pdf
 
 
 @pytest.fixture
 def graph(resources):
     # Has XMP and docinfo, all standard format XMP
-    return Pdf.open(resources / 'graph.pdf')
+    with Pdf.open(resources / 'graph.pdf') as pdf:
+        yield pdf
 
 
 @pytest.fixture
 def sandwich(resources):
     # Has XMP, docinfo, <?adobe-xap-filters esc="CRLF"?>, shorthand attribute XMP
-    return Pdf.open(resources / 'sandwich.pdf')
+    with Pdf.open(resources / 'sandwich.pdf') as pdf:
+        yield pdf
 
 
 @pytest.fixture
 def trivial(resources):
     # Has no XMP or docinfo
-    return Pdf.open(resources / 'pal-1bit-trivial.pdf')
+    with Pdf.open(resources / 'pal-1bit-trivial.pdf') as pdf:
+        yield pdf
 
 
 @pytest.fixture
 def invalid_creationdate(resources):
     # Has nuls in docinfo, old PDF
-    return Pdf.open(resources / 'invalid_creationdate.pdf')
+    with Pdf.open(resources / 'invalid_creationdate.pdf') as pdf:
+        yield pdf
 
 
 def test_lowlevel(sandwich):

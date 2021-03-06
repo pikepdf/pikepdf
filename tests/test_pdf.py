@@ -21,9 +21,10 @@ from pikepdf import PasswordError, Pdf, PdfError, Stream
 
 @pytest.fixture
 def trivial(resources):
-    return Pdf.open(
+    with Pdf.open(
         resources / 'pal-1bit-trivial.pdf', access_mode=pikepdf.AccessMode.mmap
-    )
+    ) as pdf:
+        yield pdf
 
 
 def test_new(outdir):

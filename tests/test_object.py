@@ -445,7 +445,8 @@ def stream_object():
 
 @pytest.fixture
 def sandwich(resources):
-    return Pdf.open(resources / 'sandwich.pdf')
+    with Pdf.open(resources / 'sandwich.pdf') as pdf:
+        yield pdf
 
 
 class TestStreamReadWrite:
