@@ -1,3 +1,4 @@
+from datetime import timedelta
 from itertools import repeat
 
 import pytest
@@ -386,7 +387,7 @@ def test_dest_or_action(outlines_doc):
     assert '/Dest' not in first_obj
 
 
-@settings(deadline=None)
+@settings(deadline=timedelta(milliseconds=750))
 @given(
     page_num=st.integers(0, 1),
     page_loc=st.sampled_from(PageLocation),
@@ -400,32 +401,35 @@ def test_dest_or_action(outlines_doc):
     kwargs={'left': 0, 'top': 0, 'bottom': 0, 'right': 0, 'zoom': 0},
 )
 def test_page_destination(resources, page_num, page_loc, kwargs):
-    doc = Pdf.open(resources / 'outlines.pdf')
-    page_ref = doc.pages[page_num]
-    dest = make_page_destination(doc, page_num, page_loc, **kwargs)
-    if isinstance(page_loc, PageLocation):
-        loc_str = page_loc.name
-    else:
-        loc_str = page_loc
-    if loc_str == 'XYZ':
-        args = 'left', 'top', 'zoom'
-    elif loc_str == 'FitH':
-        args = ('top',)
-    elif loc_str == 'FitV':
-        args = ('left',)
-    elif loc_str == 'FitR':
-        args = 'left', 'bottom', 'right', 'top'
-    elif loc_str == 'FitBH':
-        args = ('top',)
-    elif loc_str == 'FitBV':
-        args = ('left',)
-    else:
-        args = ()
-    expected_dest = [page_ref, Name(f'/{loc_str}')]
-    expected_dest.extend(kwargs.get(k, 0) for k in args)
-    assert dest == expected_dest
+    # @given precludes use of outlines_doc fixture - causes hypothesis health check to
+    # fail
+    with Pdf.open(resources / 'outlines.pdf') as doc:
+        page_ref = doc.pages[page_num]
+        dest = make_page_destination(doc, page_num, page_loc, **kwargs)
+        if isinstance(page_loc, PageLocation):
+            loc_str = page_loc.name
+        else:
+            loc_str = page_loc
+        if loc_str == 'XYZ':
+            args = 'left', 'top', 'zoom'
+        elif loc_str == 'FitH':
+            args = ('top',)
+        elif loc_str == 'FitV':
+            args = ('left',)
+        elif loc_str == 'FitR':
+            args = 'left', 'bottom', 'right', 'top'
+        elif loc_str == 'FitBH':
+            args = ('top',)
+        elif loc_str == 'FitBV':
+            args = ('left',)
+        else:
+            args = ()
+        expected_dest = [page_ref, Name(f'/{loc_str}')]
+        expected_dest.extend(kwargs.get(k, 0) for k in args)
+        assert dest == expected_dest
 
 
+@settings(deadline=timedelta(milliseconds=750))
 @given(
     title=st.text(),
     page_num=st.integers(0, 1),
@@ -437,29 +441,31 @@ def test_page_destination(resources, page_num, page_loc, kwargs):
     page_loc='FitR',
 )
 def test_new_item(resources, title, page_num, page_loc):
-    doc = Pdf.open(resources / 'outlines.pdf')
-    kwargs = dict.fromkeys(ALL_PAGE_LOCATION_KWARGS, 100)
-    page_ref = doc.pages[page_num]
+    # @given precludes use of outlines_doc fixture - causes hypothesis health check to
+    # fail
+    with Pdf.open(resources / 'outlines.pdf') as doc:
+        kwargs = dict.fromkeys(ALL_PAGE_LOCATION_KWARGS, 100)
+        page_ref = doc.pages[page_num]
 
-    new_item = OutlineItem(title, page_num, page_loc, **kwargs)
-    with doc.open_outline() as outline:
-        outline.root.append(new_item)
-    if isinstance(page_loc, PageLocation):
-        loc_str = page_loc.name
-    else:
-        loc_str = page_loc
-    if loc_str == 'FitR':
-        kwarg_len = 4
-    elif loc_str == 'XYZ':
-        kwarg_len = 3
-    elif loc_str in ('FitH', 'FitV', 'FitBH', 'FitBV'):
-        kwarg_len = 1
-    else:
-        kwarg_len = 0
-    expected_dest = [page_ref, Name(f'/{loc_str}')]
-    expected_dest.extend(repeat(100, kwarg_len))
-    assert new_item.destination == expected_dest
-    new_obj = new_item.obj
-    assert new_obj.Title == title
-    assert new_obj.Dest == expected_dest
-    assert new_obj.is_indirect is True
+        new_item = OutlineItem(title, page_num, page_loc, **kwargs)
+        with doc.open_outline() as outline:
+            outline.root.append(new_item)
+        if isinstance(page_loc, PageLocation):
+            loc_str = page_loc.name
+        else:
+            loc_str = page_loc
+        if loc_str == 'FitR':
+            kwarg_len = 4
+        elif loc_str == 'XYZ':
+            kwarg_len = 3
+        elif loc_str in ('FitH', 'FitV', 'FitBH', 'FitBV'):
+            kwarg_len = 1
+        else:
+            kwarg_len = 0
+        expected_dest = [page_ref, Name(f'/{loc_str}')]
+        expected_dest.extend(repeat(100, kwarg_len))
+        assert new_item.destination == expected_dest
+        new_obj = new_item.obj
+        assert new_obj.Title == title
+        assert new_obj.Dest == expected_dest
+        assert new_obj.is_indirect is True
