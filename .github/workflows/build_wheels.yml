@@ -68,7 +68,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       CIBW_SKIP: "cp27-* cp35-* pp2*"
-      CIBW_TEST_COMMAND: "pytest -nauto {project}/tests --cov=pikepdf --cov-report xml:{host}/coverage.xml"
+      CIBW_TEST_COMMAND: "pytest -nauto {project}/tests --cov=pikepdf --cov-report xml:/host/coverage.xml"
       CIBW_TEST_REQUIRES: "-r requirements/test.txt"
       CIBW_BEFORE_ALL: "brew install qpdf"
     strategy:
