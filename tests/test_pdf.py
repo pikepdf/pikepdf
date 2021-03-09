@@ -97,6 +97,10 @@ class TestPasswords:
         with pytest.raises(PasswordError):
             Pdf.open(resources / 'graph-encrypted.pdf')
 
+    def test_open_pdf_user_password(self, resources):
+        with Pdf.open(resources / 'graph-encrypted.pdf', password='user'):
+            pass
+
 
 class TestPermissions:
     def test_some_permissions_missing(self, resources):
@@ -181,8 +185,8 @@ def test_progress(trivial, outdir):
 
 @pytest.mark.skipif(locale.getpreferredencoding() != 'UTF-8', reason="Unicode check")
 def test_unicode_filename(resources, outdir):
-    target1 = outdir / '测试.pdf'
-    target2 = outdir / '通过考试.pdf'
+    target1 = outdir / '测试.pdf'  # Chinese: test.pdf
+    target2 = outdir / '通过考试.pdf'  # Chinese: pass the test.pdf
     shutil.copy(fspath(resources / 'pal-1bit-trivial.pdf'), fspath(target1))
     with Pdf.open(target1) as pdf:
         pdf.save(target2)
@@ -272,7 +276,7 @@ def test_allow_overwriting_input(resources, tmp_path):
             assert 'dc:title' not in meta
 
 
-def test_allow_overwriting_input_ko(resources):
+def test_allow_overwriting_input_without_filename():
     with pytest.raises(ValueError):
         with pikepdf.open(BytesIO(), allow_overwriting_input=True):
             pass
