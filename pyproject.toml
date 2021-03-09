@@ -1,3 +1,6 @@
+[project]
+requires-python = ">=3.6"
+
 [build-system]
 requires = [
   "setuptools >= 50",
