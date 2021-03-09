@@ -264,6 +264,8 @@ void init_page(py::module_& m)
 
                 QPDFPageLabelDocumentHelper pldh(owner);
                 auto label_dict = pldh.getLabelForPage(index);
+                if (label_dict.isNull())
+                    return std::to_string(index + 1);
 
                 return label_string_from_dict(label_dict);
             },
