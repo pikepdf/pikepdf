@@ -2,7 +2,8 @@ Working with content streams
 ============================
 
 A content stream is a stream object associated with either a page or a Form
-XObject that describes where and how to draw images, vectors, and text.
+XObject that describes where and how to draw images, vectors, and text. (These
+PDF streams have nothing to do with Python I/O streams.)
 
 Content streams are binary data that can be thought of as a list of operators
 and zero or more operands. Operands are given first, followed by the operator.

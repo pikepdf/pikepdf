@@ -7,6 +7,9 @@ encoded. PDF can, and regularly does, use a variety of encoding filters. A
 stream can be encoded with one or more filters. Images are a type of stream
 object.
 
+This is not the same type of object as Python's file-like I/O objects, which are
+sometimes called streams.
+
 Most of the interesting content in a PDF (images and content streams) are
 inside stream objects.
 
@@ -44,6 +47,10 @@ Form XObject
   It is not a fillable PDF form (although a fillable PDF form could involve
   Form XObjects).
 
+(Python) stream
+  A stream is another name for a file object or file-like object, as described
+  in the Python :mod:`io` module.
+
 Reading stream objects
 ----------------------
 
@@ -54,3 +61,18 @@ and decode the uncompressed bytes, or throw an error if this is not possible.
 Three types of stream object are particularly noteworthy: content streams,
 which describe the order of drawing operators; images; and XMP metadata.
 pikepdf provides helper functions for working with these types of streams.
+
+Reading stream objects as a Python I/O streams
+----------------------------------------------
+
+You were warned about terminology.
+
+In the interesting of preversing our remaining sanity, you cannot access a
+stream object as a file-like object directly.
+
+To efficiently access a ``pikepdf.Stream`` as a Python file object, you may do:
+
+.. code-block:: python
+
+  pdf.pages[0].Contents.page_contents_coalesce()
+  filelike_object = BytesIO(pdf.pages[0].Contents.get_stream_buffer())

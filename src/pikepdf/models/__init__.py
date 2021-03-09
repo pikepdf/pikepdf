@@ -46,6 +46,10 @@ def parse_content_stream(
 
     Each instruction contains at least one operator and zero or more operands.
 
+    This function does not have anything to do with opening a PDF file itself or
+    processing data from a whole PDF. It is for processing a specific object inside
+    a PDF that is already opened.
+
     Args:
         page_or_stream: A page object, or the content
             stream attached to another object such as a Form XObject.
