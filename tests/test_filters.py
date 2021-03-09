@@ -35,11 +35,20 @@ class FilterCollectNames(pikepdf.TokenFilter):
     def __init__(self):
         super().__init__()
         self.names = []
+        self.rawnames = []
 
     def handle_token(self, token):
         if token.type_ == pikepdf.TokenType.name:
             self.names.append(token.value)
+            self.rawnames.append(token.raw_value)
         return None
+
+
+def test_token_eq_token():
+    token_42 = pikepdf.Token(pikepdf.TokenType.integer, b'42')
+    assert pikepdf.Token(pikepdf.TokenType.space, b' ') != token_42
+    assert pikepdf.Token(pikepdf.TokenType.integer, b'42') == token_42
+    assert token_42 != 42
 
 
 @pytest.mark.parametrize(
