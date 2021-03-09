@@ -480,3 +480,23 @@ def test_page_labels():
         rawpage = p.pages[n]
         page = Page(rawpage)
         assert page.label == labels[n]
+
+
+def test_unattached_page():
+    rawpage = Dictionary(
+        Type=Name.Page, MediaBox=[0, 0, 612, 792], Resources=Dictionary()
+    )
+    page = Page(rawpage)
+
+    with pytest.raises(ValueError, match='not attached'):
+        page.index
+    with pytest.raises(ValueError, match='not attached'):
+        page.label
+
+
+def test_unindexed_page(graph):
+    rawpage = graph.pages[0]
+    page = Page(rawpage)
+    del graph.pages[0]
+    with pytest.raises(ValueError, match='not consistently registered'):
+        page.index
