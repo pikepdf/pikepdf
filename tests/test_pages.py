@@ -434,3 +434,20 @@ def test_page_index_foreign_page(fourpages, sandwich):
 )
 def test_page_label_dicts(d, result):
     assert label_from_label_dict(d) == result
+
+
+def test_externalize(resources):
+    with Pdf.open(resources / 'image-mono-inline.pdf') as p:
+        page = Page(p.pages[0])
+        page.contents_coalesce()
+        assert b'BI' in page.obj.Contents.read_bytes(), "no inline image"
+
+        assert Name.XObject not in page.obj.Resources, "expected no xobjs"
+        page.externalize_inline_images()
+
+        assert Name.XObject in page.obj.Resources, "image not created"
+
+        pdfimagexobj = next(iter(p.pages[0].images.values()))
+        assert pdfimagexobj.Subtype == Name.Image
+
+        assert page.label == '1'
