@@ -451,3 +451,32 @@ def test_externalize(resources):
         assert pdfimagexobj.Subtype == Name.Image
 
         assert page.label == '1'
+
+
+def test_page_labels():
+    p = Pdf.new()
+    d = Dictionary(Type=Name.Page, MediaBox=[0, 0, 612, 792], Resources=Dictionary())
+    for n in range(5):
+        p.pages.append(d)
+        p.pages[n].Contents = Stream(p, b"BT (Page %s) Tj ET" % str(n).encode())
+
+    p.Root.PageLabels = p.make_indirect(
+        Dictionary(
+            Nums=Array(
+                [
+                    0,  # new label rules begin at index 0
+                    Dictionary(S=Name.r),  # use lowercase roman numerals, until...
+                    2,  # new label rules begin at index 2
+                    Dictionary(
+                        S=Name.D, St=42, P='Prefix-'
+                    ),  # label pages as 'Prefix-42', 'Prefix-43', ...
+                ]
+            )
+        )
+    )
+
+    labels = ['i', 'ii', 'Prefix-42', 'Prefix-43', 'Prefix-44']
+    for n in range(5):
+        rawpage = p.pages[n]
+        page = Page(rawpage)
+        assert page.label == labels[n]
