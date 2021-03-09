@@ -893,6 +893,16 @@ class Extend_Pdf:
                 usable.
             FileNotFoundError: If the file was not found.
         """
+        if isinstance(filename_or_stream, bytes) and filename_or_stream.startswith(
+            b'%PDF-'
+        ):
+            warn(
+                "It looks like you called with Pdf.open(data) with a bytes-like object "
+                "containing a PDF. This will probably fail because this function "
+                "expects a filename or opened file-like object. Instead, please use "
+                "Pdf.open(BytesIO(data))."
+            )
+
         tmp_stream, original_filename = None, False
         if allow_overwriting_input:
             try:

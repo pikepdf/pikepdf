@@ -149,8 +149,9 @@ class TestStreams:
 class TestMemory:
     def test_memory(self, resources):
         pdf = (resources / 'pal-1bit-trivial.pdf').read_bytes()
-        with pytest.raises(Exception):
-            pdf = Pdf.open(pdf)
+        with pytest.warns(UserWarning, match="bytes-like object containing a PDF"):
+            with pytest.raises(Exception):
+                pdf = Pdf.open(pdf)
 
 
 def test_remove_unreferenced(resources, outdir):
