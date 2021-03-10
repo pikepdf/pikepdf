@@ -170,7 +170,7 @@ jobs:
       - name: Install sdist
         run: |
           export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-          env CFLAGS="-coverage" python -m pip install dist/*.tar.gz
+          env CFLAGS="--coverage -g" python -m pip install dist/*.tar.gz
           python -m pip install -r requirements/test.txt
 
       - name: Test sdist
