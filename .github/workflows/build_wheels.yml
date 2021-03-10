@@ -63,41 +63,41 @@ jobs:
   #       with:
   #         path: ./wheelhouse/*.whl
 
-  wheels_macos:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    env:
-      CIBW_SKIP: "cp27-* cp35-* pp2*"
-      CIBW_TEST_COMMAND: "pytest -nauto {project}/tests --cov=pikepdf --cov-report xml:coverage.xml"
-      CIBW_TEST_REQUIRES: "-r requirements/test.txt"
-      CIBW_BEFORE_ALL: "brew install qpdf"
-    strategy:
-      matrix:
-        os: [macos-10.15]
+  # wheels_macos:
+  #   name: Build wheels on ${{ matrix.os }}
+  #   runs-on: ${{ matrix.os }}
+  #   env:
+  #     CIBW_SKIP: "cp27-* cp35-* pp2*"
+  #     CIBW_TEST_COMMAND: "pytest -nauto {project}/tests --cov=pikepdf --cov-report xml:coverage.xml"
+  #     CIBW_TEST_REQUIRES: "-r requirements/test.txt"
+  #     CIBW_BEFORE_ALL: "brew install qpdf"
+  #   strategy:
+  #     matrix:
+  #       os: [macos-10.15]
 
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          fetch-depth: "0"
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: "0"
 
-      - uses: actions/setup-python@v2
-        name: Install Python
-        with:
-          python-version: "3.8"
+  #     - uses: actions/setup-python@v2
+  #       name: Install Python
+  #       with:
+  #         python-version: "3.8"
 
-      - name: Build wheels
-        uses: joerick/cibuildwheel@v1.10.0
-        env:
-          CIBW_BUILD: "cp38-*"
-        #env:
-        #  CIBW_ARCHS_MACOS: x86_64 universal2 # for Apple Silicon
+  #     - name: Build wheels
+  #       uses: joerick/cibuildwheel@v1.10.0
+  #       env:
+  #         CIBW_BUILD: "cp38-*"
+  #       #env:
+  #       #  CIBW_ARCHS_MACOS: x86_64 universal2 # for Apple Silicon
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
+  #     - name: Upload coverage to Codecov
+  #       uses: codecov/codecov-action@v1
 
-      - uses: actions/upload-artifact@v2
-        with:
-          path: ./wheelhouse/*.whl
+  #     - uses: actions/upload-artifact@v2
+  #       with:
+  #         path: ./wheelhouse/*.whl
 
   # wheels_windows:
   #   name: Build wheels on ${{ matrix.os }} for ${{ matrix.platform }}
@@ -138,46 +138,49 @@ jobs:
   #       with:
   #         path: ./wheelhouse/*.whl
 
-  # sdist:
-  #   name: Build source distribution
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #       with:
-  #         fetch-depth: "0"
+  sdist:
+    name: Build source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: "0"
 
-  #     - uses: actions/setup-python@v2
-  #       name: Install Python
-  #       with:
-  #         python-version: "3.8"
+      - uses: actions/setup-python@v2
+        name: Install Python
+        with:
+          python-version: "3.8"
 
-  #     - name: Download QPDF
-  #       run: build-scripts/linux-download-qpdf.bash ${{ env.QPDF_MIN_VERSION }}
+      - name: Download QPDF
+        run: build-scripts/linux-download-qpdf.bash ${{ env.QPDF_MIN_VERSION }}
 
-  #     - name: Build QPDF
-  #       run: build-scripts/linux-build-sdist-deps.bash
+      - name: Build QPDF
+        run: build-scripts/linux-build-sdist-deps.bash
 
-  #     - name: Build sdist
-  #       run: |
-  #         export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-  #         python -m pip install --upgrade pip
-  #         python -m pip install --upgrade setuptools wheel
-  #         python setup.py sdist
+      - name: Build sdist
+        run: |
+          export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade setuptools wheel
+          python setup.py sdist
 
-  #     - name: Install sdist
-  #       run: |
-  #         export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-  #         python -m pip install dist/*.tar.gz
-  #         python -m pip install -r requirements/test.txt
+      - name: Install sdist
+        run: |
+          export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+          env CFLAGS="-coverage" python -m pip install dist/*.tar.gz
+          python -m pip install -r requirements/test.txt
 
-  #     - name: Test sdist
-  #       run: |
-  #         export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-  #         python -m pytest -nauto
+      - name: Test sdist
+        run: |
+          export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+          python -m pytest -nauto --cov=pikepdf --cov-report=xml
 
-  #     - uses: actions/upload-artifact@v2
-  #       with:
-  #         path: dist/*.tar.gz
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: dist/*.tar.gz
 
   # upload_pypi:
   #   needs: [wheels_linux, wheels_macos, wheels_windows, sdist]
