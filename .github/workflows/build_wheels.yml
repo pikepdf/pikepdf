@@ -151,6 +151,9 @@ jobs:
         with:
           python-version: "3.8"
 
+      - name: Install apt packages
+        run: sudo apt-get install -y jbig2dec lcov
+
       - name: Download QPDF
         run: build-scripts/linux-download-qpdf.bash ${{ env.QPDF_MIN_VERSION }}
 
@@ -175,8 +178,14 @@ jobs:
           export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
           python -m pytest -nauto --cov=pikepdf --cov-report=xml
 
+      - name: Generate C++ coverage reports
+        run: |
+          lcov --no-external --capture --directory . --output-file cpp_coverage.info
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
+        with:
+          files: ./coverage.xml,./cpp_coverage.info
 
       - uses: actions/upload-artifact@v2
         with:
