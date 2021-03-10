@@ -33,6 +33,10 @@ v2.8.0
    This post-release was the first release made with GitHub Actions. It ought to be
    functionally identical, but could different in some subtle way, for example
    because parts of it may have been built with different compiler versions.
+-  **v2.8.0.post2**: The previous .post1 release caused binary wheels for Linux to
+   grow much larger, causing problems for AWS Lambda who require small file sizes.
+   This change strips the binaries of debug symbols, also mitigates a rare PyPy
+   test failure.
 
 v2.7.0
 ======

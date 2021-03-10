@@ -100,12 +100,8 @@ def file_descriptor_is_open_for():
         pytest.skip(
             "psutil documentation warns that .open_files() has problems on these"
         )
-    elif (
-        sys.platform == 'linux'
-        and sys.version_info < (3, 7)
-        and sys.implementation.name == 'pypy'
-    ):
-        pytest.xfail("for reasons not entirely clear, this test fails")
+    elif sys.implementation.name == 'pypy':
+        pytest.skip("randomly fails on pypy")
 
     def _file_descriptor_is_open_for(path):
         process = psutil.Process()
