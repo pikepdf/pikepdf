@@ -23,7 +23,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-20.04]
-        platform: [manylinux_i686, manylinux_x86_64] # manylinux_aarch64 (too expensive)
+        platform: [manylinux_x86_64, manylinux_i686] # manylinux_aarch64 (too expensive)
 
     steps:
       - uses: actions/checkout@v2
@@ -143,6 +143,9 @@ jobs:
         with:
           python-version: "3.8"
 
+      - name: Install apt packages
+        run: sudo apt-get install -y jbig2dec lcov
+
       - name: Download QPDF
         run: build-scripts/linux-download-qpdf.bash ${{ env.QPDF_MIN_VERSION }}
 
@@ -156,16 +159,33 @@ jobs:
           python -m pip install --upgrade setuptools wheel
           python setup.py sdist
 
-      - name: Install sdist
+      - name: Install and test sdist
         run: |
           export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+          python -m venv v
+          source v/bin/activate
           python -m pip install dist/*.tar.gz
           python -m pip install -r requirements/test.txt
+          python -m pytest -nauto
+          deactivate
 
-      - name: Test sdist
+      - name: Install natively
         run: |
           export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-          python -m pytest -nauto
+          env CFLAGS="--coverage" CXXFLAGS="--coverage" python -m pip install -e .
+          python -m pip install -r requirements/test.txt
+          python -m pytest -nauto --cov-report xml --cov=src
+
+      - name: Generate C++ coverage reports
+        run: |
+          lcov --no-external --capture --directory . --output-file cpp_coverage_all.info
+          lcov --remove cpp_coverage_all.info '*/pybind11/*' -o cpp_coverage.info
+          rm cpp_coverage_all.info
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          files: ./coverage.xml,./cpp_coverage.info
 
       - uses: actions/upload-artifact@v2
         with:
