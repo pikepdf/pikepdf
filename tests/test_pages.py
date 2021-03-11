@@ -430,10 +430,17 @@ def test_page_index_foreign_page(fourpages, sandwich):
         (Dictionary(S=Name.R, St=42), 'XLII'),
         (Dictionary(S=Name.r, St=1729), 'mdccxxix'),
         (Dictionary(P="Appendix-", S=Name.a, St=261), 'Appendix-ja'),
+        (42, '42'),
+        (Dictionary(S=Name.R, St=-42), ValueError),
+        (Dictionary(S=Name.A, St=-42), ValueError),
     ],
 )
 def test_page_label_dicts(d, result):
-    assert label_from_label_dict(d) == result
+    if isinstance(result, type) and issubclass(result, Exception):
+        with pytest.raises(result):
+            label_from_label_dict(d)
+    else:
+        assert label_from_label_dict(d) == result
 
 
 def test_externalize(resources):
