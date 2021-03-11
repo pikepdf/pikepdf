@@ -15,7 +15,7 @@ jobs:
     name: Build wheels on ${{ matrix.os }} for ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     env:
-      CIBW_SKIP: "cp27-* cp35-* pp2* pp3* cp36-* cp37-* cp39-*" #undo
+      CIBW_SKIP: "cp27-* cp35-* pp2* pp3*"
       CIBW_TEST_COMMAND: "pytest -nauto {project}/tests --cov={project}/ --cov-report=xml"
       CIBW_TEST_REQUIRES: "-r requirements/test.txt"
       CIBW_BEFORE_ALL: "bash {project}/build-scripts/linux-build-wheel-deps.bash"
@@ -23,7 +23,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-20.04]
-        platform: [manylinux_x86_64] #[manylinux_i686, manylinux_x86_64] # manylinux_aarch64 (too expensive)
+        platform: [manylinux_x86_64, manylinux_i686]
 
     steps:
       - uses: actions/checkout@v2
@@ -56,9 +56,6 @@ jobs:
         env:
           CIBW_ARCHS_LINUX: aarch64
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
-
       - uses: actions/upload-artifact@v2
         with:
           path: ./wheelhouse/*.whl
@@ -87,13 +84,8 @@ jobs:
 
       - name: Build wheels
         uses: joerick/cibuildwheel@v1.10.0
-        env:
-          CIBW_BUILD: "cp38-*"
         #env:
         #  CIBW_ARCHS_MACOS: x86_64 universal2 # for Apple Silicon
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
 
       - uses: actions/upload-artifact@v2
         with:
