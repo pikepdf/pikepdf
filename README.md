@@ -3,7 +3,7 @@ pikepdf
 
 **pikepdf** is a Python library for reading and writing PDF files.
 
-[![Build Status](https://github.com/pikepdf/pikepdf/actions/workflows/build_wheels.yml/badge.svg)](https://github.com/pikepdf/pikepdf/actions/workflows/build_wheels.yml) [![PyPI](https://img.shields.io/pypi/v/pikepdf.svg)](https://pypi.org/project/pikepdf/) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pikepdf) ![PyPy](https://img.shields.io/badge/PyPy-3.6 | 3.7-blue) [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/pikepdf/pikepdf.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/pikepdf/pikepdf/context:python) [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/pikepdf/pikepdf.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/pikepdf/pikepdf/context:cpp) ![PyPI - License](https://img.shields.io/pypi/l/pikepdf) ![PyPI - Downloads](https://img.shields.io/pypi/dm/pikepdf)
+[![Build Status](https://github.com/pikepdf/pikepdf/actions/workflows/build_wheels.yml/badge.svg)](https://github.com/pikepdf/pikepdf/actions/workflows/build_wheels.yml) [![PyPI](https://img.shields.io/pypi/v/pikepdf.svg)](https://pypi.org/project/pikepdf/) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pikepdf) ![PyPy](https://img.shields.io/badge/PyPy-3.6 | 3.7-blue) [![Language grade: Python](https://img.shields.io/lgtm/grade/python/g/pikepdf/pikepdf.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/pikepdf/pikepdf/context:python) [![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/pikepdf/pikepdf.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/pikepdf/pikepdf/context:cpp) ![PyPI - License](https://img.shields.io/pypi/l/pikepdf) ![PyPI - Downloads](https://img.shields.io/pypi/dm/pikepdf)  [![codecov](https://codecov.io/gh/pikepdf/pikepdf/branch/master/graph/badge.svg?token=8FJ755317J)](https://codecov.io/gh/pikepdf/pikepdf)
 
 pikepdf is based on [QPDF](https://github.com/qpdf/qpdf), a powerful PDF manipulation and repair library.
 
@@ -43,7 +43,7 @@ This library is similar to PyPDF2 and pdfrw - it provides low level access to PD
 | Save and load PDF compressed object streams (PDF 1.5)               | ✔                                           | ✘                                         | ✘                                       |
 | Creates linearized ("fast web view") PDFs                           | ✔                                           | ✘                                         | ✘                                       |
 | Actively maintained                                                 | ![pikepdf commit activity][pikepdf-commits] | ![PyPDF2 commit activity][pypdf2-commits] | ![pdfrw commit activity][pdfrw-commits] |
-| Test suite coverage                                                 | ~89%                                        | very low                                  | unknown                                 |
+| Test suite coverage                                                 | ![codecov][codecov]                         | very low                                  | unknown                                 |
 | Creates PDFs that pass PDF validation tests                         | ✔                                           | ✘                                         | ?                                       |
 | Modifies PDF/A without breaking PDF/A compliance                    | ✔                                           | ✘                                         | ?                                       |
 | Automatically repairs PDFs with internal errors                     | ✔                                           | ✘                                         | ✘                                       |
@@ -57,6 +57,8 @@ This library is similar to PyPDF2 and pdfrw - it provides low level access to PD
 [pypdf2-commits]: https://img.shields.io/github/commit-activity/y/mstamy2/PyPDF2.svg
 
 [pdfrw-commits]: https://img.shields.io/github/commit-activity/y/pmaupin/pdfrw.svg
+
+[codecov]: https://codecov.io/gh/pikepdf/pikepdf/branch/master/graph/badge.svg?token=8FJ755317J
 
 Testimonials
 ------------
