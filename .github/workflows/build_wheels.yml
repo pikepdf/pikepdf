@@ -178,6 +178,7 @@ jobs:
           deactivate
 
       - name: Install natively
+        run: |
           export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
           env CFLAGS="--coverage" CXXFLAGS="--coverage" python -m pip install -e .
           pytest -nauto --cov-report xml --cov=src
