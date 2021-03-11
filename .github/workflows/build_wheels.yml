@@ -23,7 +23,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-20.04]
-        platform: [manylinux_x86_64, manylinux_i686]
+        platform: [manylinux_x86_64, manylinux_i686] # manylinux_aarch64 (too expensive)
 
     steps:
       - uses: actions/checkout@v2
