@@ -39,7 +39,7 @@ pycov: clean-coverage-pycov
 
 .PHONY: build-cppcov
 build-cppcov:
-	env CFLAGS="-coverage" python setup.py build_ext --inplace
+	env CFLAGS="--coverage" python setup.py build_ext --inplace
 
 coverage/cpp.info: clean-coverage-cppcov build-cppcov pycov
 	lcov --no-external --capture --directory . --output-file coverage/cppall.info
