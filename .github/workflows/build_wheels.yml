@@ -167,20 +167,26 @@ jobs:
           python -m pip install --upgrade setuptools wheel
           python setup.py sdist
 
-      - name: Install sdist
+      - name: Install and test sdist
         run: |
           export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-          env CFLAGS="--coverage -g" python -m pip install dist/*.tar.gz
+          python -m venv v
+          source v/bin/activate
+          python -m pip install dist/*.tar.gz
           python -m pip install -r requirements/test.txt
+          python -m pytest -nauto
+          deactivate
 
-      - name: Test sdist
-        run: |
+      - name: Install natively
           export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-          python -m pytest -nauto --cov=pikepdf --cov-report=xml
+          env CFLAGS="--coverage" CXXFLAGS="--coverage" python -m pip install -e .
+          pytest -nauto --cov-report xml --cov=src
 
       - name: Generate C++ coverage reports
         run: |
-          lcov --no-external --capture --directory . --output-file cpp_coverage.info
+          lcov --no-external --capture --directory . --output-file cpp_coverage_all.info
+          lcov --remove cpp_coverage_all.info '*/pybind11/*' -o cpp_coverage.info
+          rm cpp_coverage_all.info
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
