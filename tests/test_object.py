@@ -36,7 +36,6 @@ from pikepdf import _qpdf as qpdf
 # pylint: disable=eval-used, redefined-outer-name
 
 encode = qpdf._encode
-roundtrip = qpdf._roundtrip
 
 
 def test_none():

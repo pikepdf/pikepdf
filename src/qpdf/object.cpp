@@ -861,16 +861,6 @@ void init_object(py::module_& m)
             return objecthandle_encode(handle);
         }
     );
-    m.def("_roundtrip",
-        [](py::object obj) {
-            return obj;
-        }
-    );
-    m.def("_roundtrip",
-        [](QPDFObjectHandle &h) {
-            return h;
-        }
-    );
     m.def("unparse",
         [](py::object obj) -> py::bytes {
             return objecthandle_encode(obj).unparseBinary();
