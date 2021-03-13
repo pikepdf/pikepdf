@@ -60,57 +60,57 @@ std::string objecthandle_scalar_value(QPDFObjectHandle h, bool escaped)
         ss << std::quoted(h.getOperatorValue());
         break;
     default:
-        return "<not a scalar>";
+        // LCOV_EXCL_START
+        throw std::logic_error("object_handle_scalar value called for non-scalar");
+        // LCOV_EXCL_STOP
     }
     return ss.str();
 }
 
-std::string objecthandle_pythonic_typename(QPDFObjectHandle h, std::string prefix)
+std::string objecthandle_pythonic_typename(QPDFObjectHandle h)
 {
     std::ostringstream ss;
 
-    ss << prefix;
     switch (h.getTypeCode()) {
-    case QPDFObject::object_type_e::ot_null:
-        ss << "NoneType";
-        break;
-    case QPDFObject::object_type_e::ot_boolean:
-        ss << "Boolean";
-        break;
-    case QPDFObject::object_type_e::ot_integer:
-        ss << "Integer";
-        break;
-    case QPDFObject::object_type_e::ot_real:
-        ss << "Real";
-        break;
     case QPDFObject::object_type_e::ot_name:
-        ss << "Name";
+        ss << "pikepdf." << "Name";
         break;
     case QPDFObject::object_type_e::ot_string:
-        ss << "String";
+        ss << "pikepdf." << "String";
         break;
     case QPDFObject::object_type_e::ot_operator:
-        ss << "Operator";
+        ss << "pikepdf." << "Operator";
         break;
     case QPDFObject::object_type_e::ot_inlineimage:
-        ss << "InlineImage";
+        ss << "pikepdf." << "InlineImage";
         break;
     case QPDFObject::object_type_e::ot_array:
-        ss << "Array";
+        ss << "pikepdf." << "Array";
         break;
     case QPDFObject::object_type_e::ot_dictionary:
         if (h.hasKey("/Type")) {
-            ss << "Dictionary(Type=\"" << h.getKey("/Type").getName() << "\")";
+            ss << "pikepdf." << "Dictionary(Type=\"" << h.getKey("/Type").getName() << "\")";
         } else {
-            ss << "Dictionary";
+            ss << "pikepdf." << "Dictionary";
         }
         break;
     case QPDFObject::object_type_e::ot_stream:
-        ss << "Stream";
+        ss << "pikepdf." << "Stream";
         break;
+    case QPDFObject::object_type_e::ot_null:
+    case QPDFObject::object_type_e::ot_boolean:
+    case QPDFObject::object_type_e::ot_integer:
+    case QPDFObject::object_type_e::ot_real:
+        // LCOV_EXCL_START
+        ss << "Unexpected QPDF object type: " << h.getTypeName() << ". ";
+        ss << "Objects of this type are normally converted to native Python objects.";
+        throw std::logic_error(ss.str());
+        // LCOV_EXCL_STOP
     default:
-        ss << "<Error>";
-        break;
+        // LCOV_EXCL_START
+        ss << "Unexpected QPDF object type value: " << h.getTypeCode();
+        throw std::logic_error(ss.str());
+        // LCOV_EXCL_STOP
     }
 
     return ss.str();
@@ -119,8 +119,6 @@ std::string objecthandle_pythonic_typename(QPDFObjectHandle h, std::string prefi
 
 std::string objecthandle_repr_typename_and_value(QPDFObjectHandle h)
 {
-    if (h.isNull())
-        return "None";
     return objecthandle_pythonic_typename(h) + \
                 "(" + objecthandle_scalar_value(h) + ")";
 }
@@ -207,7 +205,9 @@ std::string objecthandle_repr_inner(QPDFObjectHandle h, uint depth, std::set<QPD
         ss << ")";
         break;
     default:
-        ss << "???";
+        // LCOV_EXCL_START
+        ss << "Unexpected QPDF object type value: " << h.getTypeCode();
+        // LCOV_EXCL_STOP
         break;
     }
 

@@ -284,6 +284,7 @@ class TestRepr:
                 '/Array': Array([1, 2, 3.14]),
                 '/Operator': Operator('q'),
                 '/Dictionary': Dictionary({'/Color': 'Red'}),
+                '/None': None,
             }
         )
         if LooseVersion(pikepdf.__libqpdf_version__) >= LooseVersion('10.2.0'):
@@ -299,6 +300,7 @@ class TestRepr:
                     "/Color": "Red"
                 },
                 "/Integer": 42,
+                "/None": None,
                 "/Operator": pikepdf.Operator("q"),
                 "/Real": Decimal('42.42'),
                 "/String": "hi"
@@ -326,9 +328,14 @@ class TestRepr:
             assert eval(repr(s)) == s
 
     def test_repr_indirect(self, resources):
-        graph = pikepdf.open(resources / 'graph.pdf')
-        repr_page0 = repr(graph.pages[0])
-        assert repr_page0[0] == '<', 'should not be constructible'
+        with pikepdf.open(resources / 'graph.pdf') as graph:
+            repr_page0 = repr(graph.pages[0])
+            assert repr_page0[0] == '<', 'should not be constructible'
+
+    def test_repr_circular(self, resources):
+        with pikepdf.open(resources / 'graph.pdf') as graph:
+            repr_pages = repr(graph.Root.Pages)
+            assert 'reference to /Pages' in repr_pages
 
 
 def test_utf16_error():
