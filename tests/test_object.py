@@ -331,10 +331,12 @@ class TestRepr:
             repr_page0 = repr(graph.pages[0])
             assert repr_page0[0] == '<', 'should not be constructible'
 
-    def test_repr_circular(self, resources):
-        with pikepdf.open(resources / 'graph.pdf') as graph:
-            repr_pages = repr(graph.Root.Pages)
-            assert 'reference to /Pages' in repr_pages
+    def test_repr_circular(self):
+        with pikepdf.new() as pdf:
+            pdf.Root.Circular = pdf.make_indirect(Dictionary())
+            pdf.Root.Circular.Parent = pdf.make_indirect(Dictionary())
+            pdf.Root.Circular.Parent = pdf.make_indirect(pdf.Root.Circular)
+            assert '.get_object' in repr(pdf.Root.Circular)
 
 
 def test_utf16_error():
