@@ -18,6 +18,18 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.9.0
+======
+
+-  We now issue a warning when attempting to use ``pikepdf.open`` on a ``bytes``
+   object where it could be either a PDF loaded into memory or a filename.
+-  ``pikepdf.Page.label`` will now return the "ordinary" page number if no special
+   rules for pages are defined.
+-  Many improvements to tests and test coverage. Code coverage for both Python and
+   C++ is now automatically published to codecov.io; previously coverage was only
+   checked on the developer's machine.
+-  An obsolete private function ``Object._roundtrip`` was removed.
+
 v2.8.0
 ======
 
