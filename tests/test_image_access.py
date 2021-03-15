@@ -412,7 +412,6 @@ def test_jbig2_not_available(jbig2, monkeypatch):
 
     monkeypatch.setattr(pikepdf.jbig2, 'run', raise_filenotfound)
 
-    pikepdf.jbig2.jbig2dec_available.cache_clear()
     assert not pikepdf.jbig2.jbig2dec_available()
 
     with pytest.raises(DependencyError):

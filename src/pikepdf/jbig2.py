@@ -31,7 +31,6 @@ def extract_jbig2(im_obj: pikepdf.Object, globals_obj: pikepdf.Object = None) ->
         return im
 
 
-@lru_cache(maxsize=1)
 def jbig2dec_available() -> bool:
     try:
         run(['jbig2dec', '--version'], stdout=DEVNULL, check=True)
