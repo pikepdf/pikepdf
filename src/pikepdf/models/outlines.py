@@ -10,7 +10,7 @@ from enum import Enum
 from itertools import chain
 from typing import Iterable, List, Optional, Set, Tuple, Union, cast
 
-from pikepdf import Array, Dictionary, Name, Object, Pdf
+from pikepdf import Array, Dictionary, Name, Object, Page, Pdf
 
 
 class PageLocation(Enum):
@@ -134,7 +134,9 @@ class OutlineItem:
         else:
             oc_indicator = '[ ]'
         if self.destination is not None:
-            dest = self.destination
+            raw_page = self.destination[0]
+            page = Page(raw_page)
+            dest = page.label
         else:
             dest = '<Action>'
         return f'{oc_indicator} {self.title} -> {dest}'

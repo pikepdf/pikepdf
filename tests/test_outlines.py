@@ -469,3 +469,12 @@ def test_new_item(resources, title, page_num, page_loc):
         assert new_obj.Title == title
         assert new_obj.Dest == expected_dest
         assert new_obj.is_indirect is True
+
+
+def test_outlineitem_str(resources):
+    with Pdf.open(resources / 'outlines.pdf') as pdf:
+        with pdf.open_outline() as outline:
+            assert str(outline.root[0]) == '[+] One -> <Action>'
+            assert str(outline.root[1]) == '[ ] Two -> <Action>'
+            item = OutlineItem('Test', make_page_destination(pdf, 0))
+            assert '[ ] Test -> 1' == str(item)
