@@ -10,7 +10,7 @@ called from Python, and subject to change at any time.
 """
 
 
-from pikepdf import Dictionary, Name, Pdf
+from pikepdf import Name, Pdf
 
 
 def update_xmp_pdfversion(pdf: Pdf, version: str):

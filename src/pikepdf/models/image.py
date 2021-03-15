@@ -851,13 +851,12 @@ class PdfInlineImage(PdfImageBase):
         raise NotImplementedError("Inline images with ICC profiles are not supported")
 
     def __repr__(self):
-        mode = '?'
         try:
             mode = self.mode
-        except Exception:
-            pass
+        except NotImplementedError:
+            mode = '?'
         return (
-            f'<pikepdf.PdfInlineImage JPEG2000 image mode={self.mode} '
+            f'<pikepdf.PdfInlineImage JPEG2000 image mode={mode} '
             f'size={self.width}x{self.height} at {hex(id(self))}>'
         )
 
