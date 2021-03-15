@@ -72,6 +72,13 @@ def test_encrypt_info(trivial, outpdf):
     with pikepdf.open(outpdf, password='foo') as pdf:
         assert pdf.encryption.user_password == b'bar'
         assert pdf.encryption.bits == 128
+        assert pdf.encryption.R == 4
+        assert pdf.encryption.V == 4
+        assert pdf.encryption.P == -3392
+        assert pdf.encryption.stream_method == pikepdf._qpdf.EncryptionMethod.aes
+        assert pdf.encryption.string_method == pikepdf._qpdf.EncryptionMethod.aes
+        assert pdf.encryption.file_method == pikepdf._qpdf.EncryptionMethod.aes
+        assert pdf.encryption.encryption_key[:2] == b'\x02\xdc'
 
 
 @pytest.mark.parametrize(
