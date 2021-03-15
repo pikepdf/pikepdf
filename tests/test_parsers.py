@@ -7,6 +7,7 @@ import pytest
 import pikepdf
 from pikepdf import (
     Dictionary,
+    Name,
     Object,
     Operator,
     Pdf,
@@ -99,7 +100,14 @@ def test_text_filter(resources, outdir):
 
 def test_invalid_stream_object():
     with pytest.raises(TypeError):
+        parse_content_stream(42)
+
+    with pytest.raises(TypeError):
         parse_content_stream(Dictionary({"/Hi": 3}))
+
+    with pytest.raises(PdfError):
+        false_page = Dictionary(Type=Name.Page, Contents=42)
+        parse_content_stream(false_page)
 
 
 # @pytest.mark.parametrize(

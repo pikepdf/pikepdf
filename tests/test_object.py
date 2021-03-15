@@ -188,6 +188,8 @@ def test_bytes():
     assert str(qs) == s
 
     assert Name('/xyz') == b'/xyz'
+    with pytest.raises(TypeError, match='should be str'):
+        Name(b'/bytes')
 
 
 def test_len_array():

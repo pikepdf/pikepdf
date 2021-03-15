@@ -1,8 +1,8 @@
+import subprocess
 import zlib
 from io import BytesIO
 from os import fspath
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 from PIL import Image, ImageCms
@@ -407,7 +407,14 @@ def test_jbig2_not_available(jbig2, monkeypatch):
     xobj, _pdf = jbig2
     pim = PdfImage(xobj)
 
-    monkeypatch.setattr(pikepdf.jbig2, 'jbig2dec_available', lambda: False)
+    def raise_filenotfound(*args, **kwargs):
+        raise FileNotFoundError('jbig2dec')
+
+    monkeypatch.setattr(pikepdf.jbig2, 'run', raise_filenotfound)
+
+    pikepdf.jbig2.jbig2dec_available.cache_clear()
+    assert not pikepdf.jbig2.jbig2dec_available()
+
     with pytest.raises(DependencyError):
         pim.as_pil_image()
 
@@ -445,6 +452,21 @@ def test_jbig2_global_palette(resources):
     im = pim.as_pil_image()
     assert im.size == (4000, 2864)
     assert im.getpixel((0, 0)) == 255  # Ensure loaded
+
+
+def test_jbig2_error(resources, monkeypatch):
+    xobj, _pdf = first_image_in(resources / 'jbig2global.pdf')
+    pim = PdfImage(xobj)
+    monkeypatch.setattr(pikepdf.jbig2, 'jbig2dec_available', lambda: True)
+
+    def raise_calledprocesserror(*args, **kwargs):
+        raise subprocess.CalledProcessError(1, 'jbig2dec')
+
+    monkeypatch.setattr(pikepdf.jbig2, 'run', raise_calledprocesserror)
+
+    pim = PdfImage(xobj)
+    with pytest.raises(subprocess.CalledProcessError):
+        pim.as_pil_image()
 
 
 def test_ccitt_icc(resources):
