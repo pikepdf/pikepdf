@@ -411,14 +411,17 @@ void init_object(py::module_& m)
         )
         .def("__setattr__",
             [](QPDFObjectHandle &h, std::string const& name, py::object pyvalue) {
-                if (name == "stream_dict") {
-                    py::object baseobj = py::module_::import("builtins").attr("object");
-                    baseobj.attr("__setattr__")(py::cast(h), py::str(name), pyvalue);
-                } else {
+                if (h.isDictionary() || (h.isStream() && name != "stream_dict")) {
+                    // Map attribute assignment to setting dictionary key
                     std::string key = "/" + name;
                     auto value = objecthandle_encode(pyvalue);
                     object_set_key(h, key, value);
+                    return;
                 }
+
+                // If we don't have a special rule, do object.__setattr__()
+                py::object baseobj = py::module_::import("builtins").attr("object");
+                baseobj.attr("__setattr__")(py::cast(h), py::str(name), pyvalue);
             },
             "attribute access"
         )
