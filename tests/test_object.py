@@ -505,6 +505,24 @@ class TestStreamReadWrite:
         stream_object.write(b'pi')
         assert bytes(stream_object) == b'pi'
 
+    def test_invalid_filter(self, stream_object):
+        with pytest.raises(TypeError, match="filter must be"):
+            stream_object.write(b'foo', filter=[42])
+
+    def test_invalid_decodeparms(self, stream_object):
+        with pytest.raises(TypeError, match="decode_parms must be"):
+            stream_object.write(
+                compress(b'foo'), filter=Name.FlateDecode, decode_parms=[42]
+            )
+
+    def test_filter_decodeparms_mismatch(self, stream_object):
+        with pytest.raises(ValueError, match=r"filter.*and decode_parms"):
+            stream_object.write(
+                compress(b'foo'),
+                filter=[Name.FlateDecode],
+                decode_parms=[Dictionary(), Dictionary()],
+            )
+
 
 def test_copy():
     d = Dictionary(
