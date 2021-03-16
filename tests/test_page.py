@@ -2,6 +2,7 @@ import pytest
 
 import pikepdf
 
+Array = pikepdf.Array
 Dictionary = pikepdf.Dictionary
 Name = pikepdf.Name
 
@@ -44,18 +45,43 @@ def test_invalid_boxes(graph_page):
         page.mediabox = [0, 0, 0, 0, 0, 0]
 
 
-def test_add_resource(graph_page):
+class TestAddResource:
     d = Dictionary(Type=Name.XObject, Subtype=Name.Image, Width=1, Height=1)
 
-    with pytest.raises(ValueError, match="already exists"):
-        graph_page.add_resource(d, Name.XObject, Name.Im0, replace_existing=False)
+    def test_basic(self, graph_page):
+        d = self.d
 
-    res = graph_page.add_resource(d, Name.XObject, Name.Im0, replace_existing=True)
-    assert graph_page.resources.XObject[res].Width == 1
+        with pytest.raises(ValueError, match="already exists"):
+            graph_page.add_resource(d, Name.XObject, Name.Im0, replace_existing=False)
 
-    res2 = graph_page.add_resource(d, Name.XObject, prefix='Im')
-    assert str(res2).startswith("/Im")
-    assert graph_page.resources.XObject[res2].Height == 1
+        res = graph_page.add_resource(d, Name.XObject, Name.Im0, replace_existing=True)
+        assert graph_page.resources.XObject[res].Width == 1
+
+        res2 = graph_page.add_resource(d, Name.XObject, prefix='Im')
+        assert str(res2).startswith("/Im")
+        assert graph_page.resources.XObject[res2].Height == 1
+
+    def test_resources_exists_but_wrong_type(self, graph_page):
+        del graph_page.obj.Resources
+        graph_page.obj.Resources = Name.Dummy
+        with pytest.raises(TypeError, match='exists but is not a dictionary'):
+            graph_page.add_resource(
+                self.d, Name.XObject, Name.Im0, replace_existing=False
+            )
+
+    def test_create_resource_dict_if_not_exists(self, graph_page):
+        del graph_page.obj.Resources
+        graph_page.add_resource(self.d, Name.XObject, Name.Im0, replace_existing=False)
+        assert Name.Resources in graph_page.obj
+
+    def test_name_and_prefix(self, graph_page):
+        with pytest.raises(ValueError, match="one of"):
+            graph_page.add_resource(self.d, Name.XObject, name=Name.X, prefix='y')
+
+    def test_unrecognized_object_not_disturbed(self, graph_page):
+        graph_page.obj.Resources.InvalidItem = Array([42])
+        graph_page.add_resource(self.d, Name.Pattern)
+        assert Name.InvalidItem in graph_page.obj.Resources
 
 
 def test_add_unowned_page():  # issue 174
