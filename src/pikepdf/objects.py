@@ -108,12 +108,21 @@ class Name(Object, metaclass=_NameObjectMeta):
     def random(cls, len_: int = 16, prefix: str = ''):
         """Generate a cryptographically strong random, valid PDF Name.
 
+        This function uses Python's secrets.token_urlsafe, which returns a
+        URL-safe, Base 64 encoded random number of the desired length. An optional
+        *prefix* may be prepended.
+
         When the length paramater is 16 (16 random bytes or 128 bits), the result
         is probably globally unique and can be treated as never colliding with
         other names.
+
+        Serendipitiously, URL-safe is almost PDF-safe, except for the use of
+        the solidus ('/' or U+002F). We convert this to a '$' which is PDF-safe.
+
+        The length of the string may vary because it is encoded.
         """
-        # It so happens that urlsafe names are also safe names for PDF Name objects
-        return _qpdf._new_name(f"/{prefix}{token_urlsafe(len_)}")
+        random_string = token_urlsafe(len_).replace('/', '$')
+        return _qpdf._new_name(f"/{prefix}{random_string}")
 
 
 class Operator(Object, metaclass=_ObjectMeta):
