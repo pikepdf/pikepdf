@@ -251,6 +251,13 @@ def test_with_block(resources):
     assert pdf.filename != desc
 
 
+def test_closed_anon_pdf():
+    pdf = pikepdf.new()
+    desc = pdf.filename
+    pdf.close()
+    assert pdf.filename != desc
+
+
 def test_with_block_abuse(resources):
     with pikepdf.open(resources / 'pal-1bit-trivial.pdf') as pdf:
         im0 = pdf.pages[0].Resources.XObject['/Im0']

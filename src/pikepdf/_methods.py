@@ -496,10 +496,7 @@ class Extend_Pdf:
             b"%%EOF\n"
         )
 
-        if self.filename:
-            description = "closed file: " + self.filename
-        else:
-            description = "closed object"
+        description = "closed file: " + self.filename
         self._process(description, EMPTY_PDF)
         if getattr(self, '_tmp_stream', None):
             self._tmp_stream.close()
