@@ -62,9 +62,13 @@ class _NameObjectMeta(_ObjectMeta):
         return Name('/' + attr)
 
     def __setattr__(self, attr, value):
-        if attr.startswith('_'):
-            return _ObjectMeta.__setattr__(attr, value)
-        raise TypeError("Attributes may not be set on pikepdf.Name")
+        # No need for a symmetric .startswith('_'). To prevent user error, we
+        # simply don't allow mucking with the pikepdf.Name class's attributes.
+        # There is no reason to every assign of them.
+        raise AttributeError(
+            "Attributes may not be set on pikepdf.Name. Perhaps you meant to "
+            "modify a Dictionary rather than a Name?"
+        )
 
     def __getitem__(self, item):
         if item.startswith('/'):

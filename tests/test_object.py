@@ -232,10 +232,13 @@ def test_empty_name():
 
 
 def test_forbidden_name_usage():
-    with pytest.raises(TypeError):
+    with pytest.raises(AttributeError, match="may not be set on pikepdf.Name"):
         Name.Monty = Name.Python
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="not subscriptable"):
         Name['/Monty']  # pylint: disable=pointless-statement
+    with pytest.raises(AttributeError, match="has no attribute"):
+        monty = Name.Monty
+        monty.Attribute = 42
 
 
 class TestHashViolation:
