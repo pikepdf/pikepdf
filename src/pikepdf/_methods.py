@@ -127,8 +127,6 @@ def _mudraw(buffer, fmt) -> bytes:
             stderr=PIPE,
             check=True,
         )
-        if proc.stderr:
-            raise RuntimeError(proc.stderr.decode())
         return proc.stdout
 
 
