@@ -17,12 +17,11 @@ def pdfdoc_encode(input: str, errors: str = 'strict') -> Tuple[bytes, int]:
     try:
         success, pdfdoc = utf8_to_pdf_doc(input, error_marker)
     except RuntimeError as e:
-        if "Unable to extract string contents! (encoding issue)" in str(e):
-            raise ValueError(
-                "'pdfdoc' codec can't process Unicode surrogates"
-            ) from None
-        else:
-            raise
+        # This error should occur from within in pybind11, with a RuntimeError
+        # message like:
+        #   "Unable to extract string contents! (encoding issue)"
+        # It is not known to happen except when str contains Unicode surrogates.
+        raise ValueError("'pdfdoc' codec can't process Unicode surrogates") from e
     if not success:
         if errors == 'strict':
             # It is acceptable to raise ValueError per documentation for codecs.encode.
