@@ -22,8 +22,8 @@ def test_minimum_qpdf_version():
 def test_open_pdf(resources):
     pdf = pikepdf.open(resources / 'graph.pdf')
     assert '1.3' <= pdf.pdf_version <= '1.7'
-
     assert pdf.Root['/Pages']['/Count'] == 1
+    pdf.close()
 
 
 def test_open_pdf_password(resources):
@@ -140,12 +140,11 @@ def test_open_save(resources, outdir):
 
 
 def test_readme_example(resources, outdir):
-    # Elegant, Pythonic API
-    pdf = pikepdf.open(resources / 'fourpages.pdf')
-    assert len(pdf.pages) == 4
-    del pdf.pages[-1]
-    assert len(pdf.pages) == 3
-    pdf.save(outdir / 'output.pdf')
+    with pikepdf.open(resources / 'fourpages.pdf') as pdf:
+        assert len(pdf.pages) == 4
+        del pdf.pages[-1]
+        assert len(pdf.pages) == 3
+        pdf.save(outdir / 'output.pdf')
 
 
 def test_system_error():

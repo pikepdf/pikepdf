@@ -51,8 +51,8 @@ def test_output_rounded(pal, outdir):
     )
     pal.save(outdir / 'round.pdf')
 
-    pdf = pikepdf.open(outdir / 'round.pdf')
-    assert len(str(pdf.pages[0].MediaBox[2])) == 16
+    with pikepdf.open(outdir / 'round.pdf') as pdf:
+        assert len(str(pdf.pages[0].MediaBox[2])) == 16
 
 
 def test_nonfinite(pal):

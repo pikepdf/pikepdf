@@ -40,12 +40,12 @@ contrived example above, displays an actual image.
 
 .. ipython:: python
 
-  pdf = pikepdf.open("../tests/resources/congress.pdf")
-  page = pdf.pages[0]
-  commands = []
-  for operands, operator in pikepdf.parse_content_stream(page):
-      print(f"Operands {operands}, operator {operator}")
-      commands.append([operands, operator])
+  with pikepdf.open("../tests/resources/congress.pdf") as pdf:
+      page = pdf.pages[0]
+      commands = []
+      for operands, operator in pikepdf.parse_content_stream(page):
+          print(f"Operands {operands}, operator {operator}")
+          commands.append([operands, operator])
 
 PDF content streams are stateful. The commands ``q``, ``cm`` and ``Q``
 manipulate the current transform matrix (CTM) which describes where we will draw

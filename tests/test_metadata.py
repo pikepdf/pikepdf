@@ -196,14 +196,14 @@ def test_build_metadata(trivial, graph, outdir):
         xmp.load_from_docinfo(graph.docinfo)
     trivial.save(outdir / 'tmp.pdf')
 
-    pdf = pikepdf.open(outdir / 'tmp.pdf')
-    assert pdf.Root.Metadata.Type == Name.Metadata
-    assert pdf.Root.Metadata.Subtype == Name.XML
-    with pdf.open_metadata(set_pikepdf_as_editor=False) as xmp:
-        assert 'pdf:Producer' not in xmp
-        xmp_date = xmp['xmp:CreateDate']
-        docinfo_date = decode_pdf_date(trivial.docinfo[Name.CreationDate])
-        assert xmp_date == docinfo_date.isoformat()
+    with pikepdf.open(outdir / 'tmp.pdf') as pdf:
+        assert pdf.Root.Metadata.Type == Name.Metadata
+        assert pdf.Root.Metadata.Subtype == Name.XML
+        with pdf.open_metadata(set_pikepdf_as_editor=False) as xmp:
+            assert 'pdf:Producer' not in xmp
+            xmp_date = xmp['xmp:CreateDate']
+            docinfo_date = decode_pdf_date(trivial.docinfo[Name.CreationDate])
+            assert xmp_date == docinfo_date.isoformat()
 
 
 @needs_libxmp
@@ -510,12 +510,13 @@ def test_truncated_xml(resources, idx):
 @needs_libxmp
 def test_pdf_version_update(graph, outdir):
     def get_xmp_version(filename):
-        meta = pikepdf.open(filename).open_metadata()
-        xmp = XMPMeta(xmp_str=str(meta))
-        try:
-            return xmp.get_property('http://ns.adobe.com/pdf/1.3/', 'PDFVersion')
-        except XMPError:
-            return ''
+        with pikepdf.open(filename) as pdf:
+            meta = pdf.open_metadata()
+            xmp = XMPMeta(xmp_str=str(meta))
+            try:
+                return xmp.get_property('http://ns.adobe.com/pdf/1.3/', 'PDFVersion')
+            except XMPError:
+                return ''
 
     # We don't update PDFVersion unless it is present, even if we change the PDF version
     graph.save(
@@ -544,12 +545,12 @@ def test_pdf_version_update(graph, outdir):
 
 def test_extension_level(trivial, outpdf):
     trivial.save(outpdf, min_version=('1.6', 314159))
-    pdf = pikepdf.open(outpdf)
-    assert pdf.pdf_version >= '1.6' and pdf.extension_level == 314159
+    with pikepdf.open(outpdf) as pdf:
+        assert pdf.pdf_version >= '1.6' and pdf.extension_level == 314159
 
     trivial.save(outpdf, force_version=('1.7', 42))
-    pdf = pikepdf.open(outpdf)
-    assert pdf.pdf_version == '1.7' and pdf.extension_level == 42
+    with pikepdf.open(outpdf) as pdf:
+        assert pdf.pdf_version == '1.7' and pdf.extension_level == 42
 
     with pytest.raises(TypeError):
         trivial.save(outpdf, force_version=('1.7', 'invalid extension level'))

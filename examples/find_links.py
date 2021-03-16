@@ -70,10 +70,10 @@ def gather_links(pdf):
 
 def main():
     args = parser.parse_args()
-    pdf = pikepdf.open(args.input_file)
-    links = gather_links(pdf)
-    for link in links:
-        print(link)
+    with pikepdf.open(args.input_file) as pdf:
+        links = gather_links(pdf)
+        for link in links:
+            print(link)
 
 
 if __name__ == "__main__":
