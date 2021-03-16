@@ -115,6 +115,7 @@ def _single_page_pdf(page) -> bytes:
 
 def _mudraw(buffer, fmt) -> bytes:
     """Use mupdf draw to rasterize the PDF in the memory buffer"""
+    # mudraw cannot read from stdin so NamedTemporaryFile is required
     with NamedTemporaryFile(suffix='.pdf') as tmp_in:
         tmp_in.write(buffer)
         tmp_in.seek(0)
@@ -133,7 +134,7 @@ def _mudraw(buffer, fmt) -> bytes:
 
 @augments(Object)
 class Extend_Object:
-    def _repr_mimebundle_(self, include, exclude, **kwargs):
+    def _repr_mimebundle_(self, include=None, exclude=None):
         """Present options to IPython for rich display of this object
 
         See https://ipython.readthedocs.io/en/stable/config/integrating.html#rich-display
@@ -144,7 +145,7 @@ class Extend_Object:
             and Name.Type in self
             and self.Type == Name.Page
         ):
-            return Page(self)._repr_mimebundle_(include, exclude, **kwargs)
+            return Page(self)._repr_mimebundle_(include, exclude)
         return None
 
     def _ipython_key_completions_(self):
@@ -274,7 +275,7 @@ class Extend_Pdf:
         warn("Pdf.root is deprecated; use Pdf.Root", category=DeprecationWarning)
         return self.Root
 
-    def _repr_mimebundle_(self, **_kwargs):
+    def _repr_mimebundle_(self, include=None, exclude=None):
         """
         Present options to IPython or Jupyter for rich display of this object
 
@@ -1064,7 +1065,7 @@ class Extend_Page:
     def __repr__(self):
         return repr(self.obj).replace('Dictionary', 'Page')
 
-    def _repr_mimebundle_(self, include, exclude, **_kwargs):
+    def _repr_mimebundle_(self, include=None, exclude=None):
         data = {}
         bundle = {'application/pdf', 'image/png'}
         if include:
