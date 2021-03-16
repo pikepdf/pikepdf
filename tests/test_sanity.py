@@ -2,9 +2,12 @@
 A bunch of quick tests that confirm nothing is horribly wrong
 """
 
+import ast
 import gc
 from contextlib import suppress
 from distutils.version import LooseVersion
+from os import read
+from pathlib import Path
 from shutil import copy
 
 import pytest
@@ -139,12 +142,32 @@ def test_open_save(resources, outdir):
     src.save(outdir / 'graph2.pdf')
 
 
-def test_readme_example(resources, outdir):
-    with pikepdf.open(resources / 'fourpages.pdf') as pdf:
-        assert len(pdf.pages) == 4
-        del pdf.pages[-1]
-        assert len(pdf.pages) == 3
-        pdf.save(outdir / 'output.pdf')
+def test_readme_example(resources, outpdf):
+    readme_filename = Path(__file__).parent.with_name('README.md')
+    if not readme_filename.exists():  # In case it's not in some sdist/wheel/etc.
+        pytest.skip('no README')
+    readme = readme_filename.read_text()
+    code_lines = []
+    keep = False
+    for line in readme.splitlines():
+        if line.startswith('```python'):
+            assert (
+                not code_lines
+            ), "Test suite only allows one block of Python in README"
+            keep = True
+            continue
+        elif line.startswith('```'):
+            keep = False
+        if keep:
+            code_lines.append(line)
+
+    code = '\n'.join(code_lines)
+    assert ast.parse(code), "Code in README.md does not parse"
+    code = code.replace("'input.pdf'", "resources / 'sandwich.pdf'")
+    code = code.replace("'output.pdf'", "outpdf")
+    exec(  # pylint: disable=exec-used
+        code, globals(), dict(resources=resources, outpdf=outpdf)
+    )
 
 
 def test_system_error():
