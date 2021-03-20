@@ -18,6 +18,20 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.9.1
+======
+
+-  Further expansion of test coverage.
+-  Fixed function signatures for ``_repr_mimebundle_`` functions to match IPython's
+   spec.
+-  ``Name.random()`` might produce a random name containing a ``/`` which could
+   potentially confuse PDF parsers. This is now avoided.
+-  Fixed some error messages regarding attempts to do strange things with
+   ``pikepdf.Name``, like ``pikepdf.Name.Foo = 3``.
+-  Eliminated code to handle an exception that provably does not occur.
+-  Test suite is now better at closing open file handles.
+-  Ensure that any demo code in README.md is valid and works.
+
 v2.9.0
 ======
 
