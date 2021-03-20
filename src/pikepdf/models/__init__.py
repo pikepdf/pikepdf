@@ -26,7 +26,9 @@ ContentStreamInstructions = Tuple[ContentStreamOperands, Operator]
 
 
 class PdfParsingError(Exception):
-    def __init__(self, message, line=None):
+    def __init__(self, message=None, line=None):
+        if not message:
+            message = f"Error encoding content stream at line {line}"
         super().__init__(message)
         self.line = line
 
@@ -146,7 +148,7 @@ def unparse_content_stream(
                     line = b' '.join(encode(operand) for operand in operands)
                     line += b' ' + encode_operator(operator)
             except (PdfError, ValueError) as e:
-                raise PdfParsingError("Error encoding", line=n + 1) from e
+                raise PdfParsingError(line=n + 1) from e
             yield line
 
     return b'\n'.join(for_each_instruction())

@@ -169,3 +169,10 @@ def test_unparse_inline(resources):
         cmds = parse_content_stream(p0)
         unparsed = unparse_content_stream(cmds)
         assert b'BI' in unparsed
+
+
+def test_unparse_invalid_inline_image():
+    instructions = [((42,), Operator(b'INLINE IMAGE'))]
+
+    with pytest.raises(PdfParsingError):
+        unparse_content_stream(instructions)
