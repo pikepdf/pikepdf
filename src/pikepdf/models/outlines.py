@@ -123,9 +123,8 @@ class OutlineItem:
             May be ``None`` for creating a new object. If present, an existing
             object is modified in-place during writing and original attributes
             are retained.
-        kwargs: Additional keyword arguments. Any of ``left``, ``top``,
-            ``bottom``, ``right``, or ``zoom``, they will be processed for
-            usage of extended page location types, e.g. /XYZ.
+        left, top, bottom, right, zoom: Describes the viewport position associated
+            with a destination.
 
     This object does not contain any information about higher-level or
     neighboring elements.
@@ -138,7 +137,12 @@ class OutlineItem:
         page_location: Optional[Union[PageLocation, str]] = None,
         action: Optional[Dictionary] = None,
         obj: Optional[Dictionary] = None,
-        **kwargs,
+        *,
+        left: Optional[float] = None,
+        top: Optional[float] = None,
+        right: Optional[float] = None,
+        bottom: Optional[float] = None,
+        zoom: Optional[float] = None,
     ):
         self.title = title
         self.destination = destination
@@ -146,11 +150,8 @@ class OutlineItem:
         self.page_location_kwargs = {}
         self.action = action
         self.obj = obj
-        for k, v in kwargs.items():
-            if k in ALL_PAGE_LOCATION_KWARGS:
-                self.page_location_kwargs[k] = v
-            else:
-                raise ValueError(f"Invalid keyword argument {k}")
+        kwargs = dict(left=left, top=top, right=right, bottom=bottom, zoom=zoom)
+        self.page_location_kwargs = {k: v for k, v in kwargs.items() if v is not None}
         self.is_closed = False
         self.children: Iterable[OutlineItem] = []
 
@@ -171,7 +172,7 @@ class OutlineItem:
         return f'{oc_indicator} {self.title} -> {dest}'
 
     def __repr__(self):
-        return f'<{self.__class__.__name__}: "{self.title}">'
+        return f'<pikepdf.{self.__class__.__name__}: "{self.title}">'
 
     @classmethod
     def from_dictionary_object(cls, obj: Dictionary):
@@ -248,7 +249,7 @@ class Outline:
         return str(self.root)
 
     def __repr__(self):
-        return f'<{self.__class__.__name__}: {len(self.root)} items>'
+        return f'<pikepdf.{self.__class__.__name__}: {len(self.root)} items>'
 
     def __enter__(self):
         self._updating = True
@@ -367,7 +368,7 @@ class Outline:
             self._load_level_outline(first_obj, root, 0, set())
 
     @property
-    def root(self):
+    def root(self) -> List[OutlineItem]:
         if self._root is None:
             self._load()
         return self._root
