@@ -74,7 +74,7 @@ def parse_content_stream(
     """
 
     if not isinstance(page_or_stream, Object):
-        raise TypeError("stream must a PDF object")
+        raise TypeError("stream must be a pikepdf.Object")
 
     if (
         page_or_stream._type_code != ObjectType.stream
@@ -96,9 +96,10 @@ def parse_content_stream(
                 Object._parse_stream_grouped(stream, operators),
             )
     except PdfError as e:
-        if 'ignoring non-stream while parsing' in str(e):
-            raise TypeError("parse_content_stream called on non-stream Object")
-        raise e from e
+        if 'supposed to be a stream or an array' in str(e):
+            raise TypeError("parse_content_stream called on non-stream Object") from e
+        else:
+            raise e from e
 
     return instructions
 

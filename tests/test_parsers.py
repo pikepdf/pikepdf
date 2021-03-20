@@ -99,13 +99,15 @@ def test_text_filter(resources, outdir):
 
 
 def test_invalid_stream_object():
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="must be a pikepdf.Object"):
         parse_content_stream(42)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="called on page or stream"):
         parse_content_stream(Dictionary({"/Hi": 3}))
 
-    with pytest.raises(PdfError):
+    with pytest.raises(
+        TypeError, match="parse_content_stream called on non-stream Object"
+    ):
         false_page = Dictionary(Type=Name.Page, Contents=42)
         parse_content_stream(false_page)
 
