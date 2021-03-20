@@ -29,6 +29,7 @@ v2.9.1
 -  Eliminated code to handle an exception that provably does not occur.
 -  Test suite is now better at closing open file handles.
 -  Ensure that any demo code in README.md is valid and works.
+-  Embedded QPDF version in pikepdf Python wheels increased to 10.3.1.
 
 v2.9.0
 ======

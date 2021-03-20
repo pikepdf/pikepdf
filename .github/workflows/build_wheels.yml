@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 env:
   QPDF_MIN_VERSION: "10.0.3"
-  QPDF_VERSION: "10.2.0"
+  QPDF_VERSION: "10.3.1"
   QPDF_PATTERN: "https://github.com/qpdf/qpdf/releases/download/release-qpdf-VERSION/qpdf-VERSION.tar.gz"
   JPEG_RELEASE: "https://www.ijg.org/files/jpegsrc.v9d.tar.gz"
   ZLIB_RELEASE: "https://www.zlib.net/zlib-1.2.11.tar.gz"
