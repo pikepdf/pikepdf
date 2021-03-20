@@ -6,6 +6,17 @@ both of which have different ideas about how to manage memory. This page
 documents some methods that may help should it be necessary to debug the Python
 C++ extension (``pikepdf._qpdf``).
 
+Enabling QPDF tracing
+---------------------
+
+Setting the environment variables ``TC_SCOPE=qpdf`` and
+``TC_FILENAME=your_log_file.txt`` will cause libqpdf to log debug messages to the
+designated file. For example:
+
+.. code-block:: bash
+
+    env TC_SCOPE=qpdf TC_FILENAME=libqpdf_log.txt python my_pikepdf_script.py
+
 Compiling a debug build of QPDF
 -------------------------------
 
