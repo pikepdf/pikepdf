@@ -39,7 +39,12 @@ def make_page_destination(
     pdf: Pdf,
     page_num: int,
     page_location: Optional[Union[PageLocation, str]] = None,
-    **kwargs,
+    *,
+    left: Optional[float] = None,
+    top: Optional[float] = None,
+    right: Optional[float] = None,
+    bottom: Optional[float] = None,
+    zoom: Optional[float] = None,
 ) -> Array:
     """
     Creates a destination ``Array`` with reference to a Pdf document's page number.
@@ -48,8 +53,30 @@ def make_page_destination(
         pdf: PDF document object.
         page_num: Page number (zero-based).
         page_location: Optional page location, as a string or :enum:`PageLocation`.
-        kwargs: Optional keyword arguments for the page location, e.g. ``top``.
+        left, top, right, bottom, zoom: Optional keyword arguments for specifying
+            a position on the page, used in conjunction with the page fit style
+            specified by *page_location*.
     """
+    return _make_page_destination(
+        pdf,
+        page_num,
+        page_location=page_location,
+        left=left,
+        top=top,
+        right=right,
+        bottom=bottom,
+        zoom=zoom,
+    )
+
+
+def _make_page_destination(
+    pdf: Pdf,
+    page_num: int,
+    page_location: Optional[Union[PageLocation, str]] = None,
+    **kwargs,
+) -> Array:
+    kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
     res = [pdf.pages[page_num]]
     if page_location:
         if isinstance(page_location, PageLocation):
@@ -60,7 +87,9 @@ def make_page_destination(
             try:
                 loc_key = PageLocation[loc_str]
             except KeyError:
-                raise ValueError(f"Invalid or unsupported page location type {loc_str}")
+                raise ValueError(
+                    f"Invalid or unsupported page location type {loc_str}"
+                ) from None
         res.append(Name(f'/{loc_str}'))
         dest_arg_names = PAGE_LOCATION_ARGS.get(loc_key)
         if dest_arg_names:

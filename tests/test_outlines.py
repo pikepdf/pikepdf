@@ -390,7 +390,7 @@ def test_dest_or_action(outlines_doc):
 @settings(deadline=timedelta(milliseconds=750))
 @given(
     page_num=st.integers(0, 1),
-    page_loc=st.sampled_from(PageLocation),
+    page_loc=st.sampled_from(list(PageLocation) + ['invalid']),
     kwargs=st.dictionaries(
         st.sampled_from(list(sorted(ALL_PAGE_LOCATION_KWARGS))), st.integers(0, 10000)
     ),
@@ -405,6 +405,12 @@ def test_page_destination(resources, page_num, page_loc, kwargs):
     # fail
     with Pdf.open(resources / 'outlines.pdf') as doc:
         page_ref = doc.pages[page_num]
+
+        if page_loc == 'invalid':
+            with pytest.raises(ValueError, match='unsupported page location'):
+                make_page_destination(doc, page_num, page_loc, **kwargs)
+            return
+
         dest = make_page_destination(doc, page_num, page_loc, **kwargs)
         if isinstance(page_loc, PageLocation):
             loc_str = page_loc.name
