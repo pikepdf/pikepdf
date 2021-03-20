@@ -47,7 +47,7 @@ class PdfMatrix:
             self.values = ((a, b, 0),
                            (c, d, 0),
                            (e, f, 1))
-        elif len(args[0]) == 3 and len(args[0]) == 3:
+        elif len(args[0]) == 3 and len(args[0][0]) == 3:
             self.values = (tuple(args[0][0]),
                            tuple(args[0][1]),
                            tuple(args[0][2]))
@@ -120,6 +120,11 @@ class PdfMatrix:
     @property
     def f(self):
         return self.values[2][1]
+
+    def __eq__(self, other):
+        if isinstance(other, PdfMatrix):
+            return self.shorthand == other.shorthand
+        return False
 
     def encode(self):
         """Encode this matrix in binary suitable for including in a PDF"""
