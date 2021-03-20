@@ -292,6 +292,7 @@ def test_allow_overwriting_input_without_filename():
 def test_check(resources):
     with pikepdf.open(resources / 'content-stream-errors.pdf') as pdf:
         problems = pdf.check()
+        assert len(problems) > 0
         assert all(isinstance(prob, str) for prob in problems)
         assert 'parse error while reading' in problems[0]
 

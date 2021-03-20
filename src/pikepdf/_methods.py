@@ -550,19 +550,12 @@ class Extend_Pdf:
 
         problems: List[str] = []
 
-        try:
-            self._decode_all_streams_and_discard()
-        except PdfError as e:
-            problems.append(str(e))
+        self._decode_all_streams_and_discard()
 
         discarding_parser = DiscardingParser()
-
         for basic_page in self.pages:
             page = Page(basic_page)
-            try:
-                page.parse_contents(discarding_parser)
-            except PdfError as e:
-                problems.append(str(e))
+            page.parse_contents(discarding_parser)
 
         for warning in self.get_warnings():
             problems.append("WARNING: " + warning)
