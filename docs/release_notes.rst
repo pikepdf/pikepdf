@@ -24,8 +24,6 @@ v2.9.1
 -  Further expansion of test coverage.
 -  Fixed function signatures for ``_repr_mimebundle_`` functions to match IPython's
    spec.
--  ``Name.random()`` might produce a random name containing a ``/`` which could
-   potentially confuse PDF parsers. This is now avoided.
 -  Fixed some error messages regarding attempts to do strange things with
    ``pikepdf.Name``, like ``pikepdf.Name.Foo = 3``.
 -  Eliminated code to handle an exception that provably does not occur.
