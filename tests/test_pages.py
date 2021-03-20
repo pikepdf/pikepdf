@@ -329,6 +329,16 @@ def test_add_foreign_twice(graph, outpdf):
     out.save(outpdf)
 
 
+@pytest.mark.xfail(reason="needs qpdf fix to issue 514")
+def test_add_twice_without_copy_foreign(graph, outpdf):
+    out = Pdf.new()
+    out.pages.append(graph.pages[0])
+    assert len(out.pages) == 1
+    out.pages.append(graph.pages[0])
+    assert len(out.pages) == 2
+    out.save(outpdf)
+
+
 def test_repr_pagelist(fourpages):
     assert '4' in repr(fourpages.pages)
 
