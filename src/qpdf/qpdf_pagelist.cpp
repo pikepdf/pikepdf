@@ -154,24 +154,26 @@ void PageList::insert_page(size_t index, QPDFObjectHandle h)
 {
     // Find out who owns us
     QPDF *handle_owner = h.getOwningQPDF();
-    QPDFObjectHandle owned, page;
+    QPDFObjectHandle page;
     bool copied = false;
 
     if (handle_owner == this->qpdf.get() || !handle_owner) {
         // qpdf does not accept duplicating pages within the same file,
         // so manually create a copy
-        owned = this->qpdf->makeIndirectObject(h.shallowCopy());
+        page = this->qpdf->makeIndirectObject(h.shallowCopy());
         copied = true;
     } else {
-        owned = h;
+        page = h;
     }
 
     try {
-        if (!owned.isPageObject()) {
-            throw py::type_error("only pages can be inserted");
+        if (!page.isPageObject()) {
+            throw py::type_error(
+                std::string("only pages can be inserted - you tried to insert this as a page: ")
+                + objecthandle_repr(page)
+            );
         }
 
-        page = owned;
         if (index != this->count()) {
             QPDFObjectHandle refpage = this->get_page(index);
             this->qpdf->addPageAt(page, true, refpage);
@@ -182,7 +184,7 @@ void PageList::insert_page(size_t index, QPDFObjectHandle h)
         if (copied) {
             // If we created a new object to hold the page, and failed, delete
             // the object we created.
-            this->qpdf->replaceObject(owned.getObjGen(), QPDFObjectHandle::newNull());
+            this->qpdf->replaceObject(page.getObjGen(), QPDFObjectHandle::newNull());
         }
         throw;
     }
