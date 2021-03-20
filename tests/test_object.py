@@ -236,6 +236,8 @@ def test_forbidden_name_usage():
         Name.Monty = Name.Python
     with pytest.raises(TypeError, match="not subscriptable"):
         Name['/Monty']  # pylint: disable=pointless-statement
+    if sys.implementation.name == 'pypy':
+        pytest.xfail(reason="pypy seems to do setattr differently")
     with pytest.raises(AttributeError, match="has no attribute"):
         monty = Name.Monty
         monty.Attribute = 42
