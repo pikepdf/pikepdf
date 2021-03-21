@@ -1043,7 +1043,7 @@ class Extend_Page:
         return name
 
     def __repr__(self):
-        return repr(self.obj).replace('Dictionary', 'Page')
+        return repr(self.obj).replace('Dictionary', 'Page', count=1)
 
     def _repr_mimebundle_(self, include=None, exclude=None):
         data = {}
