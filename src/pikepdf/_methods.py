@@ -922,14 +922,6 @@ class Extend_Pdf:
 
 @augments(_ObjectMapping)
 class Extend_ObjectMapping:
-    def __contains__(self, key) -> bool:
-        try:
-            self[key]
-        except KeyError:
-            return False
-        else:
-            return True
-
     def get(self, key, default=None) -> Object:
         try:
             return self[key]
