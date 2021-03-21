@@ -93,11 +93,11 @@ def augments(cls_cpp: Type[Any]):
             elif inspect.isdatadescriptor(member):
                 setattr(cls_cpp, name, member)
 
-        def block_init(self):
+        def disable_init(self):
             # Prevent initialization of the support class
             raise NotImplementedError(self.__class__.__name__ + '.__init__')
 
-        cls.__init__ = block_init
+        cls.__init__ = disable_init
         return cls
 
     return class_augment
