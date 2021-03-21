@@ -49,6 +49,7 @@ def test_token_eq_token():
     assert pikepdf.Token(pikepdf.TokenType.space, b' ') != token_42
     assert pikepdf.Token(pikepdf.TokenType.integer, b'42') == token_42
     assert token_42 != 42
+    assert repr(token_42) == "pikepdf.Token(TokenType.integer, b'42')"
 
 
 @pytest.mark.parametrize(

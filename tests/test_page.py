@@ -45,6 +45,10 @@ def test_invalid_boxes(graph_page):
         page.mediabox = [0, 0, 0, 0, 0, 0]
 
 
+def test_page_repr(graph_page):
+    assert repr(graph_page).startswith('<pikepdf.Page')
+
+
 class TestAddResource:
     d = Dictionary(Type=Name.XObject, Subtype=Name.Image, Width=1, Height=1)
 

@@ -80,12 +80,16 @@ def augments(cls_cpp: Type[Any]):
 
     THIS DOES NOT work for class methods.
     """
+    ATTR_WHITELIST = {'__repr__', '__enter__', '__exit__'}
 
     def class_augment(cls, cls_cpp=cls_cpp):
         for name, member in inspect.getmembers(cls):
-            if hasattr(cls_cpp, name):  # For PyPy: don't replace existing methods
+            # Don't replace existing methods except those in our whitelist
+            if hasattr(cls_cpp, name) and name not in ATTR_WHITELIST:
                 continue
             if inspect.isfunction(member):
+                if member.__qualname__.startswith('object.'):
+                    continue  # To avoid breaking PyPy
                 member.__qualname__ = member.__qualname__.replace(
                     cls.__name__, cls_cpp.__name__
                 )
@@ -1043,7 +1047,7 @@ class Extend_Page:
         return name
 
     def __repr__(self):
-        return repr(self.obj).replace('Dictionary', 'Page', count=1)
+        return repr(self.obj).replace('Dictionary', 'Page', 1)
 
     def _repr_mimebundle_(self, include=None, exclude=None):
         data = {}
