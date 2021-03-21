@@ -669,3 +669,10 @@ def test_array_of_array():
     a2 = Array(a)
     assert a == a2
     assert a is not a2
+
+
+def test_object_mapping(sandwich):
+    object_mapping = sandwich.pages[0].images
+    assert '42' not in object_mapping
+    assert '/R12' in object_mapping
+    assert '/R12' in object_mapping.keys()
