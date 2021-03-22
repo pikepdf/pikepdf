@@ -652,10 +652,7 @@ class PdfMetadata(MutableMapping):
 
     @ensure_loaded
     def __contains__(self, key: Union[str, QName]):
-        try:
-            return any(self._get_element_values(key))
-        except KeyError:
-            return False
+        return any(self._get_element_values(key))
 
     @ensure_loaded
     def __getitem__(self, key: Union[str, QName]):

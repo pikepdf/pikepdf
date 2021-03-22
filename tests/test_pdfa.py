@@ -43,6 +43,10 @@ def test_pdfa_sanity(resources, outdir):
         assert m.pdfa_status == '1B'
         assert m.pdfx_status == ''
 
+    with Pdf.open(resources / 'graph.pdf') as pdf:
+        m = pdf.open_metadata()
+        assert m.pdfa_status == ''
+
 
 def test_pdfa_modify(resources, outdir):
     sandwich = resources / 'sandwich.pdf'

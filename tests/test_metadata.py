@@ -711,3 +711,21 @@ def test_py36_isoformat_tz_punct():
 def test_py36_isoformat_invalid():
     with pytest.raises(ValueError):
         _fromisoformat_py36('not a datetime')
+
+
+def test_modify_not_opened(graph):
+    m = graph.open_metadata()
+    with pytest.raises(RuntimeError, match='not opened for editing'):
+        m['pdf:Producer'] = 'pytest'
+
+
+def test_exception_undoes_edits(graph):
+    try:
+        with graph.open_metadata() as m:
+            m['dc:format'] = 'application/pdf-demo'
+            raise ValueError('test_exception_aborts_edits')
+    except ValueError as e:
+        if 'test_exception_aborts_edits' not in str(e):
+            raise
+        m = graph.open_metadata()
+        assert m['dc:format'] != 'application/pdf-demo'
