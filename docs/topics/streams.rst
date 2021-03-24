@@ -13,7 +13,7 @@ sometimes called streams.
 Most of the interesting content in a PDF (images and content streams) are
 inside stream objects.
 
-Because the PDF specification unfortunately defines several terms involve the
+Because the PDF specification unfortunately defines several terms that involve the
 word stream, let's attempt to clarify:
 
 .. figure:: /images/28fish.jpg
@@ -43,7 +43,7 @@ content stream
 Form XObject
   A group of images, text and drawing commands that can be rendered elsewhere
   in a PDF as a group. This is often used when a group of objects are needed
-  at different scales or multiple pages. In HTML this is like an ``<svg>``.
+  at different scales or on multiple pages. In HTML this is like an ``<svg>``.
   It is not a fillable PDF form (although a fillable PDF form could involve
   Form XObjects).
 

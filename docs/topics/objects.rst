@@ -14,7 +14,7 @@ a pikepdf user.
 The simplest types in PDFs are directly represented as Python types: ``int``,
 ``bool``, and ``None`` stand for PDF integers, booleans and the "null".
 :class:`~decimal.Decimal` is used for floating point numbers in PDFs. If a
-value in a PDF is assigned to a Python ``float``, pikepdf will convert it to
+value in a PDF is assigned a Python ``float``, pikepdf will convert it to
 ``Decimal``.
 
 Types that are not directly convertible to Python are represented as
@@ -90,5 +90,5 @@ closing a PDF.
 
 When objects are copied from one :class:`pikepdf.Pdf` to another, the
 underlying data is copied immediately into the target. As such it is possible
-to merge hundreds of `Pdf` into one, keeping only a single source and the
-target file open at a time.
+to merge hundreds of `Pdf` into one, keeping only a single source at a time and the
+target file open.
