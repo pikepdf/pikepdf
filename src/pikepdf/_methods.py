@@ -79,6 +79,8 @@ def augments(cls_cpp: Type[Any]):
     This works on pure Python classes too.
 
     THIS DOES NOT work for class methods.
+
+    (Alternative ideas: https://github.com/pybind/pybind11/issues/1074)
     """
     ATTR_WHITELIST = {'__repr__', '__enter__', '__exit__'}
 
