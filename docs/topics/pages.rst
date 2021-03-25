@@ -20,7 +20,7 @@ Let’s continue with ``fourpages.pdf`` from the :ref:`tutorial`.
 Split a PDF into one page PDFs
 ------------------------------
 
-All we need is a new PDF to hold the destination page.
+All we need are new PDFs to hold the destination pages.
 
 .. ipython::
     :verbatim:
@@ -36,7 +36,7 @@ All we need is a new PDF to hold the destination page.
 
     This example will transfer data associated with each page, so
     that every page stands on its own. It will *not* transfer some metadata
-    associated with the PDF as a whole, such the list of bookmarks.
+    associated with the PDF as a whole, such as the list of bookmarks.
 
 .. _mergepdf:
 
@@ -61,7 +61,7 @@ We create an empty ``Pdf`` which will be the container for all the others.
 This code sample is enough to merge most PDFs, but there are some things it
 does not do that a more sophisticated function might do. One could call
 :meth:`pikepdf.Pdf.remove_unreferenced_resources` to remove unreferenced objects
-from the page's ``/Resources`` dictionary. It may also be necessary to chose the
+from the pages' ``/Resources`` dictionaries. It may also be necessary to chose the
 most recent version of all source PDFs. Here is a more sophisticated example:
 
 .. ipython::
@@ -128,7 +128,7 @@ position, bumping everything else ahead.
 
 Copying pages between ``Pdf`` objects will create a shallow copy of the source
 page within the target ``Pdf``, rather than the typical Python behavior of
-creating a reference. As such, modifying ``pdf.pages[-1]`` will not affect
+creating a reference. Therefore modifying ``pdf.pages[-1]`` will not affect
 ``appendix.pages[0]``. (Normally, assigning objects between Python lists creates
 a reference, so that the two objects are identical, ``list[0] is list[1]``.)
 
@@ -250,4 +250,4 @@ Pages information from Root
 
     The internal consistency of the various ``/Page`` and ``/Pages`` is not
     guaranteed when accessed in this manner, and in some PDFs the data structure
-    for these is fairly complex. Use the ``.pages`` interface.
+    for these is fairly complex. Use the ``.pages`` interface instead.

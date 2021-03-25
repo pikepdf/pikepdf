@@ -36,7 +36,7 @@ there is no default constructor since the arguments used for creation and
 opening are different. To make a new empty PDF, use ``Pdf.new()`` not ``Pdf()``.
 
 ``Pdf.open()`` also accepts seekable streams as input, and ``Pdf.save()`` accepts
-streams as output. :class:`pathlib.Path` objects are fully supported anywhere
+streams as output. :class:`pathlib.Path` objects are fully supported wherever
 pikepdf accepts a filename.
 
 Inspecting pages
@@ -62,7 +62,7 @@ How many pages?
 
 pikepdf integrates with IPython and Jupyter's rich object APIs so that you can
 view PDFs, PDF pages, or images within PDF in a IPython window or Jupyter
-notebook. This makes easier it to test visual changes.
+notebook. This makes it easier to test visual changes.
 
 .. ipython::
     :verbatim:
@@ -99,9 +99,9 @@ structure much like a Python ``dict`` or ``attrdict``. The major difference is
 that the keys can only be **names**, and the values can only be PDF types, including
 other dictionaries.
 
-PDF dictionaries are represented as :class:`pikepdf.Dictionary`, and names
-are of type :class:`pikepdf.Name`. A page is just a dictionary with a certain
-required keys and a reference from the document's "page tree". (pikepdf manages
+PDF dictionaries are represented as :class:`pikepdf.Dictionary` objects, and names
+are of type :class:`pikepdf.Name`. A page is just a dictionary with certain
+required keys and a reference to the document's "page tree". (pikepdf manages
 the page tree for you.)
 
 .. ipython::
@@ -143,8 +143,8 @@ keys (``page1['/MediaBox']``).
 By convention, pikepdf uses attribute notation for standard names (the names
 that are normally part of a dictionary, according to the PDF Reference Manual),
 and item notation for names that may not always appear. For example, the images
-belong to a page always appear at ``page.Resources.XObject`` but the name
-of images is arbitrarily chosen by whatever software generates the PDF (``/Im0``,
+belong to a page always appear at ``page.Resources.XObject`` but the names
+of images are arbitrarily chosen by whatever software generates the PDF (``/Im0``,
 in this case). (Whenever expressed as strings, names begin with ``/``.)
 
 .. ipython::
