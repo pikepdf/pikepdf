@@ -15,10 +15,16 @@ Let’s continue with ``fourpages.pdf`` from the :ref:`tutorial`.
 
     In [2]: pdf = Pdf.open('../tests/resources/fourpages.pdf')
 
+.. note::
+
+    In some parts of the documentation we skip closing ``Pdf`` objects for brevity.
+    In production code, you should open them in a ``with`` block or explicitly
+    close them.
+
 .. _splitpdf:
 
-Split a PDF into one page PDFs
-------------------------------
+Split a PDF into single page PDFs
+---------------------------------
 
 All we need are new PDFs to hold the destination pages.
 

@@ -101,7 +101,7 @@ other dictionaries.
 
 PDF dictionaries are represented as :class:`pikepdf.Dictionary` objects, and names
 are of type :class:`pikepdf.Name`. A page is just a dictionary with certain
-required keys and a reference to the document's "page tree". (pikepdf manages
+required keys that is referenced by the PDF's "page tree". (pikepdf manages
 the page tree for you.)
 
 .. ipython::

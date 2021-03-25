@@ -14,7 +14,7 @@ Most of the interesting content in a PDF (images and content streams) are
 inside stream objects.
 
 Because the PDF specification unfortunately defines several terms that involve the
-word stream, let's attempt to clarify:
+word *stream*, let's attempt to clarify:
 
 .. figure:: /images/28fish.jpg
   :figwidth: 30%
