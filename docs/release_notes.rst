@@ -18,6 +18,15 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.9.2
+======
+
+-  Further expansion of test coverage of several functions, and minor bug fixes
+   along the way.
+-  Improve parameter validation for some outline-related functions.
+-  Fixed overloaded ``__repr__`` functions in ``_methods.py`` not being applied.
+-  Some proofreading of the documentation by @m-holger - thanks!
+
 v2.9.1
 ======
 
