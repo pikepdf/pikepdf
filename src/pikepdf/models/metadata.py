@@ -26,10 +26,11 @@ from typing import (
 from warnings import warn
 
 from lxml import etree
-from lxml.etree import QName, XMLParser, XMLSyntaxError, parse
+from lxml.etree import QName, XMLSyntaxError
 
 from .. import Name, Stream, String
 from .. import __version__ as pikepdf_version
+from .._xml import parse_xml
 
 if sys.version_info < (3, 9):  # pragma: no cover
     from typing import Iterable, MutableMapping
@@ -413,14 +414,13 @@ class PdfMetadata(MutableMapping):
             data = XMP_EMPTY  # on some platforms lxml chokes on empty documents
 
         def basic_parser(xml):
-            return parse(BytesIO(xml))
+            return parse_xml(BytesIO(xml))
 
         def strip_illegal_bytes_parser(xml):
-            return parse(BytesIO(re_xml_illegal_bytes.sub(b'', xml)))
+            return parse_xml(BytesIO(re_xml_illegal_bytes.sub(b'', xml)))
 
         def recovery_parser(xml):
-            parser = XMLParser(recover=True)
-            return parse(BytesIO(xml), parser)
+            return parse_xml(BytesIO(xml), recover=True)
 
         def replace_with_empty_xmp(_xml=None):
             log.warning("Error occurred parsing XMP, replacing with empty XMP.")

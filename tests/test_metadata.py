@@ -729,3 +729,27 @@ def test_exception_undoes_edits(graph):
             raise
         m = graph.open_metadata()
         assert m['dc:format'] != 'application/pdf-demo'
+
+
+def test_xxe(trivial, outdir):
+    secret = outdir / 'secret.txt'
+    secret.write_text("This is a secret")
+    trivial.Root.Metadata = Stream(
+        trivial,
+        b"""\
+<?xpacket begin='\xef\xbb\xbf' id='W5M0MpCehiHzreSzNTczkc9d'?>
+<!DOCTYPE rdf:RDF [<!ENTITY xxe SYSTEM "file://%s">]>
+<x:xmpmeta xmlns:x='adobe:ns:meta/' x:xmptk='Image'>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+<note>
+<to>&xxe;</to>
+<from>xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</from>
+</note>
+</rdf:RDF>
+</x:xmpmeta>
+<?xpacket end='w'?>
+    """
+        % os.fsencode(secret),
+    )
+    with trivial.open_metadata() as m:
+        assert 'This is a secret' not in str(m)
