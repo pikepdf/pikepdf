@@ -28,8 +28,18 @@ def test_encrypt_basic(trivial, outpdf, R, owner, user):
     trivial.save(outpdf, encryption=dict(R=R, owner=owner, user=user))
     with pikepdf.open(outpdf, password=owner) as pdf_owner:
         assert pdf_owner.is_encrypted
+        assert pdf_owner.owner_password_matched
+        if owner != user:
+            assert not pdf_owner.user_password_matched
+        else:
+            assert pdf_owner.user_password_matched
     with pikepdf.open(outpdf, password=user) as pdf_user:
         assert pdf_user.is_encrypted
+        assert pdf_user.user_password_matched
+        if owner != user:
+            assert not pdf_user.owner_password_matched
+        else:
+            assert pdf_user.owner_password_matched
 
 
 def test_encrypt_R5(trivial, outpdf):

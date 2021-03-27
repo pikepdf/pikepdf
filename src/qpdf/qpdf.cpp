@@ -881,5 +881,19 @@ void init_qpdf(py::module_ &m)
                 );
             }
         )
+        .def_property_readonly("user_password_matched", &QPDF::userPasswordMatched,
+            R"~~~(
+            Returns True if the user password matched when the ``Pdf`` was opened.
+
+            It is possible for both the user and owner passwords to match.
+            )~~~"
+        )
+        .def_property_readonly("owner_password_matched", &QPDF::ownerPasswordMatched,
+            R"~~~(
+            Returns True if the owner password matched when the ``Pdf`` was opened.
+
+            It is possible for both the user and owner passwords to match.
+            )~~~"
+        )
         ; // class Pdf
 }
