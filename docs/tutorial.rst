@@ -224,22 +224,8 @@ specify restrictions.
        ...:      user="user password", owner="owner password", allow=no_extracting
        ...: ))
 
-As in all PDFs, if a user password is set, it will not be possible to
-open the PDF without the password. If the owner password is set, changes will
-not be permitted with the owner password. If the user password is an empty
-string and an owner password is set, the PDF can be viewed by anyone with the
-user (or owner) password. PDF viewers only enforce ``pikepdf.Permissions``
-restrictions when a PDF is opened with the user password, since the owner may
-change anything.
-
-pikepdf does not and cannot enforce the restrictions in ``pikepdf.Permissions``
-if you open a file with the user password. Someone with either the user or
-owner password can access all the contents of PDF. If you are developing an
-application, however, you should consider enforcing the restrictions.
-
-For widest compatibility, passwords should be ASCII, since the PDF reference
-manual is unclear about how non-ASCII passwords are supposed to be encoded.
-See the documentation on ``Pdf.save()`` for more details.
+Refer to our :ref:`security documentation <security>` for more information on
+user/owner passwords and PDF permissions.
 
 Next steps
 ----------
