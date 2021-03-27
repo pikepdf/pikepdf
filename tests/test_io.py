@@ -223,3 +223,16 @@ def test_save_bytesio(resources, outpdf):
         assert bio_value != b''
         pdf.save(outpdf, static_id=True)
         assert outpdf.read_bytes() == bio_value
+
+
+def test_save_failure(sandwich, outdir):
+    dest = outdir / 'notwritable.pdf'
+
+    # This should work on Windows since Python maps the read-only bit
+    dest.touch(mode=0o444, exist_ok=False)
+    if dest.stat().st_mode & 0o400 != 0o400:
+        pytest.skip("Couldn't create a read-only file")
+
+    # Now try to overwrite
+    with pytest.raises(PermissionError, match="denied"):
+        sandwich.save(dest)
