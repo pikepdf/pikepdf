@@ -609,6 +609,7 @@ def test_random_docinfo(docinfo):
         values=st.none() | st.characters(blacklist_categories=('Cs',)),
     )
 )
+@skip_if_pypy
 def test_random_valid_docinfo(docinfo):
     p = pikepdf.new()
     with p.open_metadata() as m:
