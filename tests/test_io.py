@@ -225,6 +225,7 @@ def test_save_bytesio(resources, outpdf):
         assert outpdf.read_bytes() == bio_value
 
 
+@pytest.mark.skipif(os.geteuid() == 0, reason="root can override permissions")
 def test_save_failure(sandwich, outdir):
     dest = outdir / 'notwritable.pdf'
 
