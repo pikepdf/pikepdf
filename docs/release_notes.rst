@@ -18,6 +18,16 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.10.0
+=======
+
+-  Fixed a XML External Entity (XXE) processing vulnerability in PDF XMP metadata
+   parsing. (Reported by Eric Therond of Sonarsource.) All users should upgrade
+   to get this security update.
+-  Bind new functions to check, when a PDF is opened, whether the password used
+   to open the PDF matched the owner password, user password, or both:
+   ``Pdf.user_password_matched`` and ``Pdf.owner_password_matched``.
+
 v2.9.2
 ======
 
