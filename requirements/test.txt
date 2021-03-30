@@ -1,5 +1,5 @@
 attrs >= 20.2.0
-hypothesis >= 5, < 6
+hypothesis >= 5, < 7
 Pillow >= 7, < 9
 psutil >= 5, < 6
 pybind11 >= 2.6.0

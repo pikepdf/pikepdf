@@ -5,6 +5,7 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 import pytest
+from conftest import skip_if_pypy
 from hypothesis import assume, example, given, settings
 from hypothesis import strategies as st
 from hypothesis.extra.dateutil import timezones
@@ -556,6 +557,7 @@ def test_extension_level(trivial, outpdf):
         trivial.save(outpdf, force_version=('1.7', 'invalid extension level'))
 
 
+@settings(deadline=500.0)
 @given(
     st.dictionaries(
         keys=st.sampled_from(
@@ -578,6 +580,7 @@ def test_extension_level(trivial, outpdf):
         ),
     )
 )
+@skip_if_pypy
 def test_random_docinfo(docinfo):
     p = pikepdf.new()
     with p.open_metadata() as m:
