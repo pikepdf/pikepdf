@@ -1,7 +1,7 @@
 import sys
 from glob import glob
 from os import environ
-from os.path import dirname, join
+from os.path import dirname, isfile, join
 
 from setuptools import find_packages, setup
 
@@ -13,6 +13,9 @@ except ImportError:
 
     ParallelCompile = None
     print("pybind11.setup_helpers NOT loaded - you might need to pip install pybind11")
+
+if sys.platform == "linux" and isfile("/system/bin/app_process"):
+    ParallelCompile = None
 
 extra_includes = []
 extra_library_dirs = []
