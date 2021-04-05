@@ -207,11 +207,3 @@ jobs:
           user: __token__
           password: ${{ secrets.TOKEN_PYPI }}
           # repository_url: https://test.pypi.org/legacy/
-
-  update_docs:
-    needs: [upload_pypi]
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (startsWith(github.event.ref, 'refs/tags/v') || github.ref == 'refs/heads/master')
-    steps:
-      - name: Trigger ReadTheDocs
-        run: curl -X POST -d token=${{ secrets.TOKEN_RTD }} https://readthedocs.org/api/v2/webhook/pikepdf/39557/
