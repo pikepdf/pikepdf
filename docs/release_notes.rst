@@ -81,6 +81,12 @@ v2.8.0
    grow much larger, causing problems for AWS Lambda who require small file sizes.
    This change strips the binaries of debug symbols, also mitigates a rare PyPy
    test failure.
+-  Unfortunately, it appears that the transition from Azure Pipelines to GitHub
+   Actions broke compatibility with macOS 10.13 and older. macOS 10.13 and older
+   are considered end of life by Apple. Note that no version of pikepdf v2.x
+   every promised to support macOS 10.13, and 10.14 has always been an explicit
+   requirement. It just so happens that for some time, it did actually work on
+   10.13.
 
 v2.7.0
 ======
