@@ -14,7 +14,7 @@ from unittest.mock import Mock
 import pytest
 
 import pikepdf
-from pikepdf import PasswordError, Pdf, PdfError, Stream
+from pikepdf import Name, PasswordError, Pdf, PdfError, Stream
 
 # pylint: disable=redefined-outer-name
 
@@ -24,6 +24,12 @@ def trivial(resources):
     with Pdf.open(
         resources / 'pal-1bit-trivial.pdf', access_mode=pikepdf.AccessMode.mmap
     ) as pdf:
+        yield pdf
+
+
+@pytest.fixture
+def pdf_form(resources):
+    with Pdf.open(resources / 'form.pdf') as pdf:
         yield pdf
 
 
@@ -324,3 +330,12 @@ def test_flate_compression_level():
     # value to get partial code coverage.
     with pytest.raises(ValueError):
         pikepdf._qpdf.set_flate_compression_level(99)
+
+
+def test_generate_appearance_streams(pdf_form):
+    assert Name.AP not in pdf_form.Root.AcroForm.Fields[0]
+
+    pdf_form.Root.AcroForm.NeedAppearances = True
+    pdf_form.generate_appearance_streams()
+
+    assert Name.AP in pdf_form.Root.AcroForm.Fields[0]

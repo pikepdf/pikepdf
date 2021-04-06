@@ -22,6 +22,7 @@
 #include <qpdf/QPDFWriter.hh>
 #include <qpdf/QPDFPageDocumentHelper.hh>
 #include <qpdf/Pl_Discard.hh>
+#include <qpdf/QPDFAcroFormDocumentHelper.hh>
 
 #include <pybind11/stl.h>
 #include <pybind11/iostream.h>
@@ -893,6 +894,32 @@ void init_qpdf(py::module_ &m)
             Returns True if the owner password matched when the ``Pdf`` was opened.
 
             It is possible for both the user and owner passwords to match.
+            )~~~"
+        )
+        .def("generate_appearance_streams",
+            [](QPDF &q) {
+                QPDFAcroFormDocumentHelper afdh(q);
+                afdh.generateAppearancesIfNeeded();
+            },
+            R"~~~(
+            Generates appearance streams for AcroForm forms and form fields.
+
+            Appearance streams describe exactly how annotations and form fields
+            should appear to the user. If omitted, the PDF viewer is free to
+            render the annotations and form fields according to its own settings,
+            as needed.
+
+            For every form field in the document, this generates appearance
+            streams, subject to the limitations of QPDF's ability to create
+            appearance streams.
+
+            When invoked, this method will modify the ``Pdf`` in memory. It may be
+            best to do this after the ``Pdf`` is opened, or before it is saved,
+            because it may modify objects that the user does not expect to be
+            modified.
+
+            See:
+                https://github.com/qpdf/qpdf/blob/bf6b9ba1c681a6fac6d585c6262fb2778d4bb9d2/include/qpdf/QPDFFormFieldObjectHelper.hh#L216
             )~~~"
         )
         ; // class Pdf
