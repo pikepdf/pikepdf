@@ -16,11 +16,11 @@ Note the following limitations of password security in PDFs:
   its contents, and produce a visually identical PDF;
 - if the user password is an empty string, everyone has the user password;
 - setting a user password and leaving the owner password blank is useless;
-- the only thing you can do not do if you have the user password and not the owner
+- the only thing you can not do if you have the user password and not the owner
   password is create a new PDF encrypted with the same owner password;
 - ``pikepdf.Permissions`` restrictions depend entirely on the PDF viewer software
-  enforce the restrictions – libraries like pikepdf can bypass those restrictions;
-- cracking PDF passwords is easier than many other forms of cracking because,
+  to enforce the restrictions – libraries like pikepdf can bypass those restrictions;
+- cracking PDF passwords is easier than many other forms of cracking because
   a motivated person has unlimited chances to guess the password on a static file.
 
 This is to say, while the AES encryption algorithm is strong, password-protected

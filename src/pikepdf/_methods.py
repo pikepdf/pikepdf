@@ -69,7 +69,7 @@ def augments(cls_cpp: Type[Any]):
     wrapper classes and subclasses can become problematic if the call stack
     crosses the C++/Python boundary multiple times.
 
-    Any existing methods may be used, regardless of whether they defined
+    Any existing methods may be used, regardless of whether they are defined
     elsewhere in the support class or in the target class.
 
     For data fields to work, including @property accessors, the target class must be
@@ -433,7 +433,7 @@ class Extend_Pdf:
         self, *, page_size: Tuple[Numeric, Numeric] = (612.0, 792.0)
     ) -> Object:
         """
-        Add a blank page to this PD. If pages already exist, the page will be added to
+        Add a blank page to this PDF. If pages already exist, the page will be added to
         the end. Pages may be reordered using ``Pdf.pages``.
 
         The caller may add content to the page by modifying its objects after creating
@@ -766,13 +766,13 @@ class Extend_Pdf:
 
             :meth:`pikepdf.Pdf.remove_unreferenced_resources` before saving
             may eliminate unnecessary resources from the output file if there
-            any objects (such as images) that are referenced in a page's
+            are any objects (such as images) that are referenced in a page's
             Resources dictionary but never called in the page's content stream.
 
         .. note::
 
-            pikepdf can read PDFs will incremental updates, but always
-            any coalesces incremental updates into a single non-incremental
+            pikepdf can read PDFs with incremental updates, but always
+            coalesces any incremental updates into a single non-incremental
             PDF file when saving.
         """
         if not filename_or_stream and self._original_filename:
@@ -817,11 +817,11 @@ class Extend_Pdf:
         lazily loaded. Despite this restriction, pikepdf does not try to use any OS
         services to obtain an exclusive lock on the file. Some applications may
         want to attempt this or copy the file to a temporary location before
-        editing. This behaviour change if *allow_overwriting_input* is set: the whole
+        editing. This behaviour changes if *allow_overwriting_input* is set: the whole
         file is then read and copied to memory, so that pikepdf can overwrite it
         when calling ``.save()``.
 
-        When this is function is called with a stream-like object, you must ensure
+        When this function is called with a stream-like object, you must ensure
         that the data it returns cannot be modified, or undefined behavior will
         occur.
 
