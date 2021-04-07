@@ -36,16 +36,18 @@ Unicode in passwords
 
 For widest compatibility, passwords should be composed of only characters in the
 ASCII character set, since the PDF reference manual is unclear about how non-ASCII
-passwords are supposed to be encoded. See the documentation on ``Pdf.save()``
+passwords are supposed to be encoded. See the documentation on :meth:`pikepdf.Pdf.save`
 for more details. pikepdf encodes passwords as UTF-8.
 
 PDF content restrictions
 ========================
 
 If you are developing a PDF application, you should enforce the restrictions in
-``pikepdf.Permissions``, and not permit people who have only the user password
+:class:`pikepdf.Permissions`, and not permit people who have only the user password
 to access restricted content. If the PDF is opened with the owner password,
 any content may be accessed without enforcing restrictions.
+:attr:`pikepdf.Pdf.user_password_matched` and :attr:`pikepdf.Pdf.owner_password_matched`
+can be used to check which password opened the PDF.
 
 It is up to the application developer to implement the restrictions. pikepdf or
 any PDF manipulation library can be used to bypass restrictions.
