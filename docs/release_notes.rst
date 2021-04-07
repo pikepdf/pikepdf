@@ -18,12 +18,22 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.11.0
+=======
+
+-  Add new functions: ``Pdf.generate_appearance_streams`` and ``Pdf.flatten_annotations``,
+   to support common work with PDF forms.
+-  Fixed an issue with ``pip install`` on platforms that lack proper multiprocessing
+   support.
+-  Additional documentation improvements from @m-holger - thanks again!
+
 v2.10.0
 =======
 
 -  Fixed a XML External Entity (XXE) processing vulnerability in PDF XMP metadata
    parsing. (Reported by Eric Therond of Sonarsource.) All users should upgrade
-   to get this security update.
+   to get this security update. `CVE-2021-29421 <https://nvd.nist.gov/vuln/detail/CVE-2021-29421>`__
+   was assigned to this issue.
 -  Bind new functions to check, when a PDF is opened, whether the password used
    to open the PDF matched the owner password, user password, or both:
    ``Pdf.user_password_matched`` and ``Pdf.owner_password_matched``.
