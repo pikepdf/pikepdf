@@ -39,7 +39,7 @@ ObjectType.__module__ = __name__
 
 
 # type(Object) is the metaclass that pybind11 defines; we wish to extend that
-# pylint cannot see the C++ metaclass definition is thoroughly confused.
+# pylint cannot see the C++ metaclass definition and is thoroughly confused.
 # pylint: disable=invalid-metaclass
 
 
@@ -64,7 +64,7 @@ class _NameObjectMeta(_ObjectMeta):
     def __setattr__(self, attr, value):
         # No need for a symmetric .startswith('_'). To prevent user error, we
         # simply don't allow mucking with the pikepdf.Name class's attributes.
-        # There is no reason to every assign of them.
+        # There is no reason to ever assign to them.
         raise AttributeError(
             "Attributes may not be set on pikepdf.Name. Perhaps you meant to "
             "modify a Dictionary rather than a Name?"
