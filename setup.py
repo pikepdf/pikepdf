@@ -14,6 +14,14 @@ except ImportError:
     ParallelCompile = None
     print("pybind11.setup_helpers NOT loaded - you might need to pip install pybind11")
 
+if ParallelCompile:
+    try:
+        # Prevent parallel compile on platforms that lack semaphores
+        # e.g. Android/Termux, AWS Lambda
+        import multiprocessing.synchronize  # pylint: disable=unused-import
+    except ImportError:
+        ParallelCompile = None
+
 extra_includes = []
 extra_library_dirs = []
 qpdf_source_tree = environ.get('QPDF_SOURCE_TREE', None)
