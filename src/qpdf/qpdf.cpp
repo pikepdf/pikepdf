@@ -922,5 +922,44 @@ void init_qpdf(py::module_ &m)
                 https://github.com/qpdf/qpdf/blob/bf6b9ba1c681a6fac6d585c6262fb2778d4bb9d2/include/qpdf/QPDFFormFieldObjectHelper.hh#L216
             )~~~"
         )
+        .def("flatten_annotations",
+            [](QPDF &q, std::string mode) {
+                QPDFPageDocumentHelper dh(q);
+                auto required = 0;
+                auto forbidden = an_invisible | an_hidden;
+
+                if (mode == "screen") {
+                    forbidden |= an_no_view;
+                } else if (mode == "print") {
+                    required |= an_print;
+                } else if (mode == "" || mode == "all") {
+                    // No op
+                } else {
+                    throw py::value_error("Mode must be one of 'all', 'screen', 'print'.");
+                }
+
+                dh.flattenAnnotations(required, forbidden);
+            },
+            R"~~~(
+            Flattens all PDF annotations into regular PDF content.
+
+            Annotations are markup such as review comments, highlights, proofreading
+            marks. User data entered into interactive form fields also counts as an
+            annotation.
+
+            When annotations are flattened, they are "burned into" the regular
+            content stream of the document and the fact that they were once annotations
+            is deleted. This can be useful when preparing a document for printing,
+            to ensure annotations are printed, or to finalize a form that should
+            no longer be changed.
+
+            Args:
+                mode: One of the strings ``'all'``, ``'screen'``, ``'print'``. If
+                    omitted or  set to empty, treated as ``'all'``. ``'screen'``
+                    flattens all except those marked with the PDF flag /NoView.
+                    ``'print'`` flattens only those marked for printing.
+            )~~~",
+            py::arg("mode") = "all"
+        )
         ; // class Pdf
 }

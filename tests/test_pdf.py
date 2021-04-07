@@ -6,6 +6,7 @@ import locale
 import shutil
 import sys
 import zlib
+from contextlib import nullcontext
 from io import BytesIO, StringIO
 from os import fspath
 from pathlib import Path
@@ -339,3 +340,19 @@ def test_generate_appearance_streams(pdf_form):
     pdf_form.generate_appearance_streams()
 
     assert Name.AP in pdf_form.Root.AcroForm.Fields[0]
+
+
+@pytest.mark.parametrize(
+    'mode, exc',
+    [('all', None), ('print', None), ('screen', None), ('', None), ('42', ValueError)],
+)
+def test_flatten_annotations_parameters(pdf_form, mode, exc):
+    if exc is not None:
+        error_ctx = pytest.raises(exc)
+    else:
+        error_ctx = nullcontext()
+    with error_ctx:
+        if mode is None:
+            pdf_form.flatten_annotations()
+        else:
+            pdf_form.flatten_annotations(mode)
