@@ -6,7 +6,6 @@ import locale
 import shutil
 import sys
 import zlib
-from contextlib import nullcontext
 from io import BytesIO, StringIO
 from os import fspath
 from pathlib import Path
@@ -342,11 +341,14 @@ def test_generate_appearance_streams(pdf_form):
     assert Name.AP in pdf_form.Root.AcroForm.Fields[0]
 
 
+@pytest.mark.skipif(sys.version_info < (3, 7), reason="Python 3.6 has no nullcontext")
 @pytest.mark.parametrize(
     'mode, exc',
     [('all', None), ('print', None), ('screen', None), ('', None), ('42', ValueError)],
 )
 def test_flatten_annotations_parameters(pdf_form, mode, exc):
+    from contextlib import nullcontext
+
     if exc is not None:
         error_ctx = pytest.raises(exc)
     else:
