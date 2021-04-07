@@ -23,13 +23,13 @@ Note the following limitations of password security in PDFs:
 - cracking PDF passwords is easier than many other forms of cracking because
   a motivated person has unlimited chances to guess the password on a static file.
 
-This is to say, while the AES encryption algorithm is strong, password-protected
-PDFs have significant practical weaknesses.
+While the AES encryption algorithm is strong, password-protected PDFs have
+significant practical weaknesses.
 
-Despite, the most useful situation is to set the owner password to a strong
-password, and the user password to blank. This allows anyone to view the PDF,
-but you can prove that you (or your software's user) generated the PDF by
-producing a strong owner password.
+In view of all of this, the most useful option is to set the owner password to a
+strong password, and the user password to blank. This allows anyone to view the PDF
+while allowing you to prove that you (or your software's user) generated the PDF by
+producing the strong owner password.
 
 Unicode in passwords
 --------------------
