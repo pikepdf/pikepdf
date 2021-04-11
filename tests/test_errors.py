@@ -1,5 +1,6 @@
 import pytest
 
+import pikepdf
 from pikepdf import Pdf
 
 
@@ -14,3 +15,8 @@ def test_foreign_linearization(vera):
     assert not vera.is_linearized
     with pytest.raises(RuntimeError, match="not linearized"):
         vera.check_linearization()
+
+
+@pytest.mark.parametrize('msg, expected', [('QPDF', 'pikepdf.Pdf')])
+def test_translate_qpdf(msg, expected):
+    assert pikepdf._qpdf._translate_qpdf(msg) == expected
