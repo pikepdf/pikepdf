@@ -108,8 +108,6 @@ PYBIND11_MODULE(_qpdf, m) {
     m.def("_test_file_not_found",
         []() -> void {
             auto file = QUtil::safe_fopen("does_not_exist__42", "rb");
-            if (file)
-                fclose(file);
         },
         "Used to test that C++ system error -> Python exception propagation works."
     );
@@ -143,7 +141,7 @@ PYBIND11_MODULE(_qpdf, m) {
     m.def("set_flate_compression_level",
         [](int level) {
             if (0 <= level && level <= 9)
-                Pl_Flate::setCompressionLevel(level);
+                Pl_Flate::setCompressionLevel(level); // LCOV_EXCL_LINE
             else
                 throw py::value_error("Flate compression level must be between 0 and 9");
         },
