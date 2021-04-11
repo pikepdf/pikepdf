@@ -239,3 +239,14 @@ def test_save_failure(sandwich, outdir):
     # Now try to overwrite
     with pytest.raises(PermissionError, match="denied"):
         sandwich.save(dest)
+
+
+def test_stop_iteration_on_close(resources):
+    class StopIterationOnClose(BytesIO):
+        def close(self):
+            raise StopIteration('To simulate weird generator behavior')
+
+    # Inspired by https://github.com/pikepdf/pikepdf/issues/114
+    stream = StopIterationOnClose((resources / 'pal-1bit-trivial.pdf').read_bytes())
+    pdf = Pdf.open(stream)
+    pdf.close()

@@ -379,6 +379,7 @@ def test_pages_wrong_type(fourpages):
 
 
 def test_page_splitting_generator(resources, tmp_path):
+    # https://github.com/pikepdf/pikepdf/issues/114
     def pdfs():
         pdf = Pdf.open(resources / "content-stream-errors.pdf")
         output = Pdf.new()
