@@ -276,12 +276,22 @@ def test_concatenate(resources, outdir):
 def test_emplace(fourpages):
     p0_objgen = fourpages.pages[0].objgen
     fourpages.pages[0].SpecialKey = "This string will be deleted"
+    fourpages.pages[0].Parent = Name.ParentWillBeRetained
+    repr_fourpages_1 = repr(fourpages.pages[1])
+
     fourpages.pages[0].emplace(fourpages.pages[1])
-    assert p0_objgen == fourpages.pages[0].objgen
-    assert fourpages.pages[0].keys() == fourpages.pages[1].keys()
+
+    assert p0_objgen == fourpages.pages[0].objgen, "objgen modified"
+    assert fourpages.pages[0].keys() == fourpages.pages[1].keys(), "Keys mismatched"
     for k in fourpages.pages[0].keys():
-        assert fourpages.pages[0][k] == fourpages.pages[1][k]
+        if k != Name.Parent:
+            assert fourpages.pages[0][k] == fourpages.pages[1][k], "Key not copied"
+        else:
+            assert (
+                fourpages.pages[0][k] == Name.ParentWillBeRetained
+            ), "Retained key not retained"
     assert Name.SpecialKey not in fourpages.pages[0]
+    assert repr_fourpages_1 == repr(fourpages.pages[1]), "Source page was modified"
 
 
 def test_emplace_foreign(fourpages, sandwich):

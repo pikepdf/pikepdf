@@ -157,13 +157,16 @@ class Extend_Object:
             return self.keys()
         return None
 
-    def emplace(self, other: Object):
+    def emplace(self, other: Object, retain=(Name.Parent,)):
         """Copy all items from other without making a new object.
 
         Particularly when working with pages, it may be desirable to remove all
         of the existing page's contents and emplace (insert) a new page on top
         of it, in a way that preserves all links and references to the original
         page. (Or similarly, for other Dictionary objects in a PDF.)
+
+        Any Dictionary keys in the iterable *retain* are preserved. By default,
+        /Parent is retained.
 
         When a page is assigned (``pdf.pages[0] = new_page``), only the
         application knows if references to the original the original page are
@@ -184,8 +187,9 @@ class Extend_Object:
         """
         if not self.same_owner_as(other):
             raise TypeError("Objects must have the same owner for emplace()")
-        del_keys = set(self.keys()) - set(other.keys())
-        for k in other.keys():
+        retain = set(retain)
+        del_keys = set(self.keys()) - set(other.keys()) - retain
+        for k in (k for k in other.keys() if k not in retain):
             self[k] = other[k]  # pylint: disable=unsupported-assignment-operation
         for k in del_keys:
             del self[k]  # pylint: disable=unsupported-delete-operation
