@@ -18,6 +18,13 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.11.1
+=======
+
+-  Fixed an issue with ``Object.emplace()`` not retaining the original object's
+   /Parent.
+-  Code coverage improvements.
+
 v2.11.0
 =======
 
