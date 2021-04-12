@@ -187,9 +187,16 @@ class Extend_Object:
         """
         if not self.same_owner_as(other):
             raise TypeError("Objects must have the same owner for emplace()")
-        retain = set(retain)
-        del_keys = set(self.keys()) - set(other.keys()) - retain
-        for k in (k for k in other.keys() if k not in retain):
+
+        # .keys() returns strings, so make all strings
+        retain = set(str(k) for k in retain)
+        self_keys = set(self.keys())
+        other_keys = set(other.keys())
+
+        assert all(isinstance(k, str) for k in (retain | self_keys | other_keys))
+
+        del_keys = self_keys - other_keys - retain
+        for k in (k for k in other_keys if k not in retain):
             self[k] = other[k]  # pylint: disable=unsupported-assignment-operation
         for k in del_keys:
             del self[k]  # pylint: disable=unsupported-delete-operation
