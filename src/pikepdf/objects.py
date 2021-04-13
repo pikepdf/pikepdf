@@ -272,6 +272,9 @@ class Stream(Object, metaclass=_ObjectMeta):
                         b"data",
                         d
                     )
+
+        .. versionchanged:: 2.2
+            Support creation of ``pikepdf.Stream`` from existing dictionary.
         """
 
         # Support __new__(...obj=bytes) which should have been data=bytes,

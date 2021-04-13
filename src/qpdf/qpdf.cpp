@@ -738,7 +738,7 @@ void init_qpdf(py::module_ &m)
                 return q.makeIndirectObject(objecthandle_encode(obj));
             },
             R"~~~(
-            Encode a Python object and attach to this Pdf as an indirect object
+            Encode a Python object and attach to this Pdf as an indirect object.
 
             Return type:
                 pikepdf.Object
@@ -770,6 +770,9 @@ void init_qpdf(py::module_ &m)
 
             See also:
                 `QPDF::copyForeignObject <http://qpdf.sourceforge.net/files/qpdf-manual.html#ref.foreign-objects>`_
+
+            .. versionchanged:: 2.1
+                Error messages improved.
             )~~~",
             py::return_value_policy::reference_internal,
             py::keep_alive<1, 2>(),
@@ -887,6 +890,8 @@ void init_qpdf(py::module_ &m)
             Returns True if the user password matched when the ``Pdf`` was opened.
 
             It is possible for both the user and owner passwords to match.
+
+            .. versionadded:: 2.10
             )~~~"
         )
         .def_property_readonly("owner_password_matched", &QPDF::ownerPasswordMatched,
@@ -894,6 +899,8 @@ void init_qpdf(py::module_ &m)
             Returns True if the owner password matched when the ``Pdf`` was opened.
 
             It is possible for both the user and owner passwords to match.
+
+            .. versionadded:: 2.10
             )~~~"
         )
         .def("generate_appearance_streams",
@@ -920,6 +927,8 @@ void init_qpdf(py::module_ &m)
 
             See:
                 https://github.com/qpdf/qpdf/blob/bf6b9ba1c681a6fac6d585c6262fb2778d4bb9d2/include/qpdf/QPDFFormFieldObjectHelper.hh#L216
+
+            .. versionadded:: 2.11
             )~~~"
         )
         .def("flatten_annotations",
@@ -958,6 +967,8 @@ void init_qpdf(py::module_ &m)
                     omitted or  set to empty, treated as ``'all'``. ``'screen'``
                     flattens all except those marked with the PDF flag /NoView.
                     ``'print'`` flattens only those marked for printing.
+
+            .. versionadded:: 2.11
             )~~~",
             py::arg("mode") = "all"
         )

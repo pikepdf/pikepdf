@@ -184,6 +184,9 @@ class Extend_Object:
             >>> pdf.pages[0].emplace(pdf.pages[1])
             >>> pdf.pages[0].objgen
             (16, 0)  # Same object
+
+        .. versionchanged:: 2.11.1
+            Added the *retain* argument.
         """
         if not self.same_owner_as(other):
             raise TypeError("Objects must have the same owner for emplace()")
@@ -286,6 +289,9 @@ class Extend_Pdf:
     def root(self):
         """
         Deprecated alias for .Root, the /Root object of the PDF.
+
+        .. deprecated:: 2.0
+            Use ``.Root``.
         """
         warn("Pdf.root is deprecated; use Pdf.Root", category=DeprecationWarning)
         return self.Root
@@ -328,6 +334,9 @@ class Extend_Pdf:
         You can delete the document information dictionary by deleting this property,
         ``del pdf.docinfo``. Note that accessing the property after deleting it
         will re-create with a new, empty dictionary.
+
+        .. versionchanged: 2.4
+            Added support for ``del pdf.docinfo``.
         """
         if Name.Info not in self.trailer:
             self.trailer.Info = self.make_indirect(Dictionary())
@@ -785,6 +794,9 @@ class Extend_Pdf:
             pikepdf can read PDFs with incremental updates, but always
             coalesces any incremental updates into a single non-incremental
             PDF file when saving.
+
+        .. versionchanged:: 2.7
+            Added *recompress_flate*.
         """
         if not filename_or_stream and self._original_filename:
             filename_or_stream = self._original_filename
@@ -1032,6 +1044,8 @@ class Extend_Page:
 
         Example:
             >>> resource_name = Page(pdf.pages[0]).add_resource(formxobj, Name.XObject)
+
+        .. versionadded: 2.3
         """
         if not Name.Resources in self.obj:
             self.obj.Resources = Dictionary()
