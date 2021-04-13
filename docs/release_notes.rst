@@ -100,10 +100,9 @@ v2.8.0
    test failure.
 -  Unfortunately, it appears that the transition from Azure Pipelines to GitHub
    Actions broke compatibility with macOS 10.13 and older. macOS 10.13 and older
-   are considered end of life by Apple. Note that no version of pikepdf v2.x
-   every promised to support macOS 10.13, and 10.14 has always been an explicit
-   requirement. It just so happens that for some time, it did actually work on
-   10.13.
+   are considered end of life by Apple. No version of pikepdf v2.x ever promised
+   support for macOS 10.13 – 10.14+ has always been an explicit requirement.
+   It just so happens that for some time, pikepdf did actually work on 10.13.
 
 v2.7.0
 ======
