@@ -51,6 +51,11 @@ def jbig2(resources):
     return first_image_in(resources / 'jbig2.pdf')
 
 
+@pytest.fixture
+def trivial(resources):
+    return first_image_in(resources / 'pal-1bit-trivial.pdf')
+
+
 def test_image_from_nonimage(resources):
     pdf = Pdf.open(resources / 'congress.pdf')
     resources = pdf.pages[0].Contents
@@ -68,6 +73,26 @@ def test_image(congress):
 
 def test_imagemask(congress):
     assert PdfImage(congress[0]).image_mask == False
+
+
+def test_imagemask_colorspace(trivial):
+    rawimage = trivial[0]
+    rawimage.ImageMask = True
+    pdfimage = PdfImage(rawimage)
+    assert pdfimage.image_mask
+    assert pdfimage.colorspace is None
+
+
+def test_malformed_palette(trivial):
+    rawimage = trivial[0]
+    rawimage.ColorSpace = [Name.Indexed, 'foo', 'bar']
+    pdfimage = PdfImage(rawimage)
+    with pytest.raises(ValueError, match="interpret this palette"):
+        pdfimage.palette  # pylint: disable=pointless-statement
+
+
+def test_image_eq(trivial):
+    assert PdfImage(trivial[0]) == PdfImage(trivial[0])
 
 
 def test_image_replace(congress, outdir):

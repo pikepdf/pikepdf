@@ -90,7 +90,7 @@ class PdfImageBase(ABC):
 
     @abstractmethod
     def _metadata(self, name, type_, default):
-        pass
+        raise NotImplementedError()
 
     @property
     def width(self):
@@ -155,12 +155,12 @@ class PdfImageBase(ABC):
     @property
     @abstractmethod
     def is_inline(self):
-        pass
+        raise NotImplementedError()
 
     @property
     @abstractmethod
     def icc(self):
-        pass
+        raise NotImplementedError()
 
     @property
     def indexed(self):
@@ -196,16 +196,16 @@ class PdfImageBase(ABC):
                 try:
                     icc_profile = self._colorspaces[1]
                     icc_profile_nchannels = int(icc_profile['/N'])
-                    if icc_profile_nchannels == 1:
-                        m = 'L'
-                    elif icc_profile_nchannels == 3:
-                        m = 'RGB'
-                    elif icc_profile_nchannels == 4:
-                        m = 'CMYK'
-                except (ValueError, TypeError):
-                    pass
+                    mode_from_channels = {1: 'L', 3: 'RGB', 4: 'CMYK'}
+                    m = mode_from_channels.get(icc_profile_nchannels, '')
+                except (ValueError, TypeError) as e:
+                    raise NotImplementedError(
+                        "Not sure how to handle PDF image of this type"
+                    ) from e
         if m == '':
-            raise NotImplementedError("Not sure how to handle PDF image of this type")
+            raise NotImplementedError(
+                "Not sure how to handle PDF image of this type"
+            ) from None
         return m
 
     @property
@@ -262,7 +262,7 @@ class PdfImageBase(ABC):
 
     @abstractmethod
     def as_pil_image(self):
-        pass
+        raise NotImplementedError()
 
     @staticmethod
     def _unstack_compression(buffer, filters):
@@ -280,10 +280,7 @@ class PdfImageBase(ABC):
         """
         data = memoryview(buffer)
         while len(filters) > 1 and filters[0] == '/FlateDecode':
-            try:
-                data = decompress(data)
-            except ZlibError as e:
-                raise UnsupportedImageTypeError() from e
+            data = decompress(data)
             filters = filters[1:]
         return data, filters
 
@@ -802,12 +799,10 @@ class PdfInlineImage(PdfImageBase):
         self.pil = None
 
     def __eq__(self, other):
-        if self.obj == other.obj and (
+        return self.obj == other.obj and (
             self._data._inline_image_raw_bytes()
             == other._data._inline_image_raw_bytes()
-        ):
-            return True
-        return False
+        )
 
     @classmethod
     def _unparse_obj(cls, obj):
@@ -856,7 +851,7 @@ class PdfInlineImage(PdfImageBase):
         except NotImplementedError:
             mode = '?'
         return (
-            f'<pikepdf.PdfInlineImage JPEG2000 image mode={mode} '
+            f'<pikepdf.PdfInlineImage image mode={mode} '
             f'size={self.width}x{self.height} at {hex(id(self))}>'
         )
 
