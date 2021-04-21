@@ -1,13 +1,6 @@
 Installation
 ============
 
-.. figure:: images/pike-tree.jpg
-    :scale: 50%
-    :alt: Picture of pike fish impaled on tree branch
-    :align: right
-
-    A pike installation failure.
-
 Basic installation
 ------------------
 
