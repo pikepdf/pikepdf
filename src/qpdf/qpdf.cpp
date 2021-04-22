@@ -555,7 +555,14 @@ void init_qpdf(py::module_ &m)
             py::return_value_policy::reference_internal
         )
         .def_property_readonly("_pages", &QPDF::getAllPages)
-        .def_property_readonly("is_encrypted", &QPDF::isEncrypted)
+        .def_property_readonly("is_encrypted", &QPDF::isEncrypted,
+            R"~~~(
+            Returns True if the PDF is encrypted.
+
+            For information about the nature of the encryption, see
+            :attr:`Pdf.encryption`.
+            )~~~"
+        )
         .def_property_readonly("is_linearized", &QPDF::isLinearized,
             R"~~~(
             Returns True if the PDF is linearized.
