@@ -18,6 +18,13 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.11.2
+=======
+
+-  Added missing documentation for ``Pdf.is_encrypted``.
+-  Added some documentation annotations about when certain APIs were added or
+   changed, going back to 2.0.
+
 v2.11.1
 =======
 
