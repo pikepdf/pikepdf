@@ -4,8 +4,8 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
-from functools import lru_cache
-from subprocess import DEVNULL, CalledProcessError, run
+from distutils.version import LooseVersion
+from subprocess import DEVNULL, PIPE, CalledProcessError, run
 from tempfile import NamedTemporaryFile as NamedTemp
 
 from PIL import Image
@@ -33,8 +33,11 @@ def extract_jbig2(im_obj: pikepdf.Object, globals_obj: pikepdf.Object = None) ->
 
 def jbig2dec_available() -> bool:
     try:
-        run(['jbig2dec', '--version'], stdout=DEVNULL, check=True)
+        proc = run(['jbig2dec', '--version'], stdout=PIPE, check=True, encoding='ascii')
     except (CalledProcessError, FileNotFoundError):
         return False
     else:
-        return True
+        result = proc.stdout
+        version_str = result.replace('jbig2dec', '').strip()  # returns "jbig2dec 0.xx"
+        version = LooseVersion(version_str)
+        return version >= LooseVersion('0.15')

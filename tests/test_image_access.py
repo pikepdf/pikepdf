@@ -493,6 +493,22 @@ def test_jbig2_error(resources, monkeypatch):
         pim.as_pil_image()
 
 
+def test_jbig2_too_old(resources, monkeypatch):
+    xobj, _pdf = first_image_in(resources / 'jbig2global.pdf')
+    pim = PdfImage(xobj)
+
+    def run_version_override(subprocargs, *args, **kwargs):
+        if '--version' in subprocargs:
+            return subprocess.CompletedProcess(subprocargs, 0, 'jbig2dec 0.12\n')
+        return subprocess.run(subprocargs, *args, **kwargs)
+
+    monkeypatch.setattr(pikepdf.jbig2, 'run', run_version_override)
+
+    pim = PdfImage(xobj)
+    with pytest.raises(DependencyError, match='too old'):
+        pim.as_pil_image()
+
+
 def test_ccitt_icc(resources):
     xobj, pdf = first_image_in(resources / 'sandwich.pdf')
 

@@ -459,7 +459,10 @@ class PdfImage(PdfImageBase):
         elif self.bits_per_component == 1:
             if self.filters and self.filters[0] == '/JBIG2Decode':
                 if not jbig2.jbig2dec_available():
-                    raise DependencyError("jbig2dec - not installed")
+                    raise DependencyError(
+                        "jbig2dec - not installed or installed version is too old "
+                        "(older than version 0.15)"
+                    )
                 jbig2_globals_obj = self.filter_decodeparms[0][1].get('/JBIG2Globals')
                 im = jbig2.extract_jbig2(self.obj, jbig2_globals_obj)
             else:
