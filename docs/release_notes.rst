@@ -18,6 +18,13 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.11.3
+=======
+
+-  Check for versions of jbig2dec that are too old to be supported (lacking the
+   necessary command line arguments to extract an image from a PDF).
+-  Fix setup.py typo: cmd_class changed to cmdclass.
+
 v2.11.2
 =======
 
