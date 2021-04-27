@@ -107,7 +107,7 @@ if __name__ == '__main__':
         python_requires='>=3.6',
         use_scm_version=True,
         tests_require=tests_require,
-        cmd_class={"build_ext": build_ext},
+        cmdclass={"build_ext": build_ext},
         package_dir={'': 'src'},
         packages=find_packages('src'),
         package_data={'': ['*.txt'], 'pikepdf': ['*.dll', 'py.typed']},
