@@ -222,8 +222,8 @@ class Dictionary(Object, metaclass=_ObjectMeta):
             return d.__copy__()
         if not d:
             d = {}
-        if d and any(not key.startswith('/') for key in d.keys()):
-            raise ValueError("Dictionary created from strings must begin with '/'")
+        if d and any(key == '/' or not key.startswith('/') for key in d.keys()):
+            raise KeyError("Dictionary created from strings must begin with '/'")
         return _qpdf._new_dictionary(d)
 
 

@@ -58,7 +58,7 @@ needed.
 size_t list_range_check(QPDFObjectHandle h, int index)
 {
     if (!h.isArray())
-        throw py::value_error("object is not an array");
+        throw py::type_error("object is not an array");
     if (index < 0)
         index += h.getArrayNItems(); // Support negative indexing
     if (!(0 <= index && index < h.getArrayNItems()))
@@ -283,7 +283,7 @@ void init_object(py::module_& m)
                     default:
                         break;
                 }
-                throw std::logic_error("don't know how to hash this");
+                throw std::logic_error("don't know how to hash this"); // LCOV_EXCL_LINE
             }
         )
         .def("__eq__",
@@ -549,6 +549,9 @@ void init_object(py::module_& m)
                     PointerHolder<Buffer> buf = h.getStreamData();
                     // py::bytes will make a copy of the buffer, so releasing is fine
                     return py::bytes((const char*)buf->getBuffer(), buf->getSize());
+                }
+                if (h.isOperator()) {
+                    return py::bytes(h.getOperatorValue());
                 }
                 return py::bytes(h.getStringValue());
             }
@@ -869,12 +872,5 @@ void init_object(py::module_& m)
             return objecthandle_encode(obj).unparseBinary();
         }
     );
-    m.def("unparse",
-        [](QPDFObjectHandle &h) -> py::bytes {
-            return h.unparseBinary();
-        }
-    );
-
-
 
 } // init_object

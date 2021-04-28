@@ -4,6 +4,7 @@ from copy import copy
 from decimal import Decimal, InvalidOperation
 from distutils.version import LooseVersion
 from math import isclose, isfinite
+from typing import Type
 from zlib import compress
 
 import pytest
@@ -158,6 +159,10 @@ def test_list_apis():
     assert a == pikepdf.Array([1, Name.Foo, 4])
     a.extend([42, 666])
     assert a == pikepdf.Array([1, Name.Foo, 4, 42, 666])
+    with pytest.raises(ValueError, match='object is not a dictionary'):
+        del a.ImaginaryKey
+    with pytest.raises(TypeError, match=r"items\(\) not available"):
+        a.items()
 
 
 @skip_if_pypy
@@ -406,9 +411,29 @@ class TestDictionary:
         with pytest.raises(TypeError):
             d.page_contents_add(b'', True)
 
-    def test_bad_name(self):
-        with pytest.raises(ValueError, match=r"must begin with '/'"):
+    def test_bad_name_init(self):
+        with pytest.raises(KeyError, match=r"must begin with '/'"):
             pikepdf.Dictionary({'/Slash': 'dot', 'unslash': 'error'})
+        with pytest.raises(KeyError, match=r"must begin with '/'"):
+            pikepdf.Dictionary({'/': 'slash'})
+
+    def test_bad_name_set(self):
+        d = pikepdf.Dictionary()
+        d['/Slash'] = 'dot'
+        with pytest.raises(KeyError, match=r"must begin with '/'"):
+            d['unslash'] = 'error'
+        with pytest.raises(KeyError, match=r"may not be '/'"):
+            d['/'] = 'error'
+
+    def test_del_missing_key(self):
+        d = pikepdf.Dictionary(A='a')
+        with pytest.raises(KeyError):
+            del d.B
+
+    def test_int_access(self):
+        d = pikepdf.Dictionary()
+        with pytest.raises(TypeError, match="not an array"):
+            d[0] = 3
 
 
 def test_not_convertible():
@@ -575,10 +600,17 @@ def test_object_classes():
         assert issubclass(cls, Object)
 
 
-def test_operator_create():
-    Operator('q')
-    assert Operator('q') == Operator('q')
-    assert Operator('q') != Operator('Q')
+class TestOperator:
+    def test_operator_create(self):
+        Operator('q')
+        assert Operator('q') == Operator('q')
+        assert Operator('q') != Operator('Q')
+
+    def test_operator_str(self):
+        assert str(Operator('Do')) == 'Do'
+
+    def test_operator_bytes(self):
+        assert bytes(Operator('cm')) == b'cm'
 
 
 @pytest.fixture(scope="function")
