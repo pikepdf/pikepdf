@@ -18,6 +18,12 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.11.4
+=======
+
+-  Fix issue #160, 'Tried to call pure virtual function "TokenFilter::handle_token"';
+   this was a Python/C++ reference counting problem.
+
 v2.11.3
 =======
 
