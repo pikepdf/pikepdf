@@ -206,6 +206,13 @@ void init_page(py::module_& m)
         )
         .def("add_content_token_filter",
             [](QPDFPageObjectHelper &poh, PointerHolder<QPDFObjectHandle::TokenFilter> tf) {
+                // TokenFilters may be processed after the Python objects have gone
+                // out of scope, so we need to keep them alive by attaching them to
+                // the corresponding QPDF object.
+                auto pyqpdf = py::cast(poh.getObjectHandle().getOwningQPDF());
+                auto pytf = py::cast(tf);
+                py::detail::keep_alive_impl(pyqpdf, pytf);
+
                 poh.addContentTokenFilter(tf);
             },
             py::keep_alive<1, 2>(), py::arg("tf"),
@@ -217,6 +224,9 @@ void init_page(py::module_& m)
                 saved. If never access, the token filter is not applied.
 
                 Multiple token filters may be added to a page/content stream.
+
+                Token filters may not be removed after being attached to a Pdf.
+                Close and reopen the Pdf to remove token filters.
 
                 If the page's contents is an array of streams, it is coalesced.
             )~~~"

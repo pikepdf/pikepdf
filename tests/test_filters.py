@@ -94,3 +94,29 @@ def test_tokenfilter_is_abstract(pal):
     page = Page(pal.pages[0])
     with pytest.raises((RuntimeError, PdfError)):
         page.get_filtered_contents(TokenFilter())
+
+
+def test_issue160_tokenfilter_refcounting(resources, outpdf):
+    # Ensure that add_content_token_filter properly "remembers" token filters
+    # that are not needed until .save()
+    class MyFilter(TokenFilter):
+        def __init__(self, replace):
+            super().__init__()
+            self.replace = bytes(replace, 'ascii')
+
+        def handle_token(self, tok):
+            if tok.type_ == TokenType.string:
+                l = len(tok.raw_value)
+                s = self.replace * l
+                return Token(TokenType.string, s)
+            return tok
+
+    with Pdf.open(resources / 'outlines.pdf') as pdf:
+        pages = pdf.pages
+        num = 0
+        for page in pages:
+            page = Page(page)
+            f = MyFilter(('%d' % num)[-1])
+            page.add_content_token_filter(f)
+            num += 1
+        pdf.save(outpdf)
