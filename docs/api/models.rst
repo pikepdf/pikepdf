@@ -91,3 +91,6 @@ For example, to initialize a ``Page`` support model:
 
 .. autoclass:: pikepdf.models.EncryptionInfo
     :members:
+
+.. autoclass:: pikepdf.Annotation
+    :members:
