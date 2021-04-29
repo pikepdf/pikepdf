@@ -115,10 +115,13 @@ public:
         this->bis->seek(offset, whence);
     }
 
+    // LCOV_EXCL_START
     void rewind() override
     {
+        // qpdf never seems to use this but still requires
         this->bis->rewind();
     }
+    // LCOV_EXCL_STOP
 
     size_t read(char* buffer, size_t length) override
     {
