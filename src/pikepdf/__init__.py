@@ -9,13 +9,11 @@
 isort:skip_file
 """
 
-import os
-
 try:
     from . import _qpdf
 except ImportError as _e:  # pragma: no cover
-    msg = "pikepdf's extension library failed to import"
-    raise ImportError(msg) from _e
+    _msg = "pikepdf's extension library failed to import"
+    raise ImportError(_msg) from _e
 
 try:
     from ._version import __version__
@@ -68,43 +66,18 @@ from . import _methods, codec
 __libqpdf_version__ = _qpdf.qpdf_version()
 
 
-# Provide pikepdf.{open, new} -> pikepdf.Pdf.open
+# Provide pikepdf.{open, new} -> pikepdf.Pdf.{open, new}
 open = Pdf.open  # pylint: disable=redefined-builtin
 new = Pdf.new
 
 # Exclude .open, .new here from to make sure from pikepdf import * does not clobber
 # builtins.open()
+# Exclude codec, objects, jbig2 because we import the interesting bits from them
+# directly to here.
+_exclude_from__all__ = {'open', 'new', 'codec', 'objects', 'jbig2'}
+
 __all__ = [
-    'AccessMode',
-    'Array',
-    'Dictionary',
-    'Encryption',
-    'Name',
-    'Object',
-    'ObjectStreamMode',
-    'ObjectType',
-    'Operator',
-    'Outline',
-    'OutlineItem',
-    'OutlineStructureError',
-    'Page',
-    'PageLocation',
-    'PasswordError',
-    'Pdf',
-    'PdfError',
-    'PdfImage',
-    'PdfInlineImage',
-    'PdfMatrix',
-    'Permissions',
-    'Stream',
-    'StreamDecodeLevel',
-    'String',
-    'Token',
-    'TokenFilter',
-    'TokenType',
-    'UnsupportedImageTypeError',
-    'make_page_destination',
-    'models',
-    'parse_content_stream',
-    'unparse_content_stream',
+    k
+    for k in locals().keys()
+    if not k.startswith('_') and k not in _exclude_from__all__
 ]
