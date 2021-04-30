@@ -129,8 +129,7 @@ open_pdf(
         success = true;
     }
 
-    if (!success)
-        throw py::value_error("Failed to open the file");
+    // At this point, either we succeeded or threw an exception
 
     if (inherit_page_attributes) {
         // This could be expensive for a large file, plausibly (not tested),
