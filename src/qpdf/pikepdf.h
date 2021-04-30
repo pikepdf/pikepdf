@@ -99,14 +99,20 @@ namespace pybind11 { namespace detail {
             }
             if (primitive && h) {
                 if (policy == return_value_policy::take_ownership)
+                    // LCOV_EXCL_START
+                    // See explanation above - does not happen.
                     delete csrc;
+                    // LCOV_EXCL_STOP
                 return h;
             }
 
             QPDF *owner = src->getOwningQPDF();
             if (policy == return_value_policy::take_ownership) {
+                // LCOV_EXCL_START
+                // See explanation above - does not happen.
                 h = base::cast(std::move(*csrc), policy, parent);
                 delete csrc;
+                // LCOV_EXCL_STOP
             } else {
                 h = base::cast(*csrc, policy, parent);
             }
