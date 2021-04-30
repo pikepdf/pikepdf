@@ -1,6 +1,7 @@
 import gc
 from contextlib import suppress
 from shutil import copy
+from typing import Type
 
 try:
     from sys import getrefcount as refcount
@@ -229,6 +230,9 @@ def test_page_contents_add(graph, outdir):
     pdf.pages[0].page_contents_add(stream1, True)
     pdf.pages[0].page_contents_add(stream2, False)
     pdf.save(outdir / 'out.pdf')
+
+    with pytest.raises(TypeError, match="Not a Page"):
+        Array([42]).page_contents_add(stream1)
 
 
 def test_bad_access(fourpages):

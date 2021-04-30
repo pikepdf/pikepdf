@@ -33,6 +33,7 @@ from pikepdf import (
     String,
 )
 from pikepdf import _qpdf as qpdf
+from pikepdf.models import parse_content_stream
 
 # pylint: disable=eval-used, redefined-outer-name
 
@@ -208,44 +209,45 @@ def test_wrap_array():
     assert Array([42]).wrap_in_array() == Array([42])
 
 
-def test_name_equality():
-    # Who needs transitivity? :P
-    # While this is less than ideal ('/Foo' != b'/Foo') it allows for slightly
-    # sloppy tests like if colorspace == '/Indexed' without requiring
-    # Name('/Indexed') everywhere
-    assert Name('/Foo') == '/Foo'
-    assert Name('/Foo') == b'/Foo'
-    assert Name.Foo == Name('/Foo')
-
-
 def test_no_len():
     with pytest.raises(TypeError):
         len(Name.Foo)
         len(String('abc'))
 
 
-def test_unslashed_name():
-    with pytest.raises(ValueError, match='must begin with'):
-        Name('Monty') not in []  # pylint: disable=expression-not-assigned
+class TestName:
+    def test_name_equality(self):
+        # Who needs transitivity? :P
+        # While this is less than ideal ('/Foo' != b'/Foo') it allows for slightly
+        # sloppy tests like if colorspace == '/Indexed' without requiring
+        # Name('/Indexed') everywhere
+        assert Name('/Foo') == '/Foo'
+        assert Name('/Foo') == b'/Foo'
+        assert Name.Foo == Name('/Foo')
 
+    def test_unslashed_name(self):
+        with pytest.raises(ValueError, match='must begin with'):
+            Name('Monty') not in []  # pylint: disable=expression-not-assigned
 
-def test_empty_name():
-    with pytest.raises(ValueError):
-        Name('')
-    with pytest.raises(ValueError):
-        Name('/')
+    def test_empty_name(self):
+        with pytest.raises(ValueError):
+            Name('')
+        with pytest.raises(ValueError):
+            Name('/')
 
+    def test_forbidden_name_usage(self):
+        with pytest.raises(AttributeError, match="may not be set on pikepdf.Name"):
+            Name.Monty = Name.Python
+        with pytest.raises(TypeError, match="not subscriptable"):
+            Name['/Monty']  # pylint: disable=pointless-statement
+        if sys.implementation.name == 'pypy':
+            pytest.xfail(reason="pypy seems to do setattr differently")
+        with pytest.raises(AttributeError, match="has no attribute"):
+            monty = Name.Monty
+            monty.Attribute = 42
 
-def test_forbidden_name_usage():
-    with pytest.raises(AttributeError, match="may not be set on pikepdf.Name"):
-        Name.Monty = Name.Python
-    with pytest.raises(TypeError, match="not subscriptable"):
-        Name['/Monty']  # pylint: disable=pointless-statement
-    if sys.implementation.name == 'pypy':
-        pytest.xfail(reason="pypy seems to do setattr differently")
-    with pytest.raises(AttributeError, match="has no attribute"):
-        monty = Name.Monty
-        monty.Attribute = 42
+    def test_bytes_of_name(self):
+        assert bytes(Name.ABC) == b'/ABC'
 
 
 class TestHashViolation:
@@ -351,6 +353,14 @@ class TestRepr:
             assert '.get_object' in repr(pdf.Root.Circular)
 
 
+def test_operator_inline(resources):
+    with pikepdf.open(resources / 'image-mono-inline.pdf') as pdf:
+        instructions = parse_content_stream(pdf.pages[0], operators='BI ID EI')
+        assert len(instructions) == 1
+        operands, operator = instructions[0]
+        assert operator == pikepdf.Operator("INLINE IMAGE")
+
+
 def test_utf16_error():
     with pytest.raises((UnicodeEncodeError, RuntimeError)):
         str(encode('\ud801'))
@@ -434,6 +444,11 @@ class TestDictionary:
         d = pikepdf.Dictionary()
         with pytest.raises(TypeError, match="not an array"):
             d[0] = 3
+
+    def test_wrong_contains_type(self):
+        d = pikepdf.Dictionary()
+        with pytest.raises(TypeError, match="can only contain Names"):
+            pikepdf.Array([3]) in d
 
 
 def test_not_convertible():
@@ -576,6 +591,11 @@ def test_object_iteration(sandwich):
         if isinstance(obj, Dictionary):
             assert len(obj.keys()) >= 1
     assert expected == loops
+
+
+def test_object_not_iterable():
+    with pytest.raises(TypeError, match="__iter__ not available"):
+        iter(pikepdf.Name.A)
 
 
 @pytest.mark.parametrize(
