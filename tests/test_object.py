@@ -728,3 +728,17 @@ def test_object_mapping(sandwich):
     assert '42' not in object_mapping
     assert '/R12' in object_mapping
     assert '/R12' in object_mapping.keys()
+
+
+def test_replace_object(sandwich):
+    d = Dictionary(Type=Name.Dummy)
+    sandwich._replace_object(sandwich.pages[0].objgen, d)
+    assert sandwich.pages[0] == d
+
+
+def test_swap_object(resources):
+    with Pdf.open(resources / 'fourpages.pdf') as pdf:
+        pdf.pages[0].MarkPage0 = True
+        pdf._swap_objects(pdf.pages[0].objgen, pdf.pages[1].objgen)
+        assert pdf.pages[1].MarkPage0
+        assert Name.MarkPage0 not in pdf.pages[0]

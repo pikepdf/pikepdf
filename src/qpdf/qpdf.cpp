@@ -785,8 +785,8 @@ void init_qpdf(py::module_ &m)
             py::arg("h")
         )
         .def("_replace_object",
-            [](QPDF &q, int objid, int gen, QPDFObjectHandle &h) {
-                q.replaceObject(objid, gen, h);
+            [](QPDF &q, std::pair<int, int> objgen, QPDFObjectHandle &h) {
+                q.replaceObject(objgen.first, objgen.second, h);
             }
         )
         .def("_swap_objects",
