@@ -82,8 +82,11 @@ std::string objecthandle_pythonic_typename(QPDFObjectHandle h)
         ss << "pikepdf." << "Operator";
         break;
     case QPDFObject::object_type_e::ot_inlineimage:
+        // LCOV_EXCL_START
+        // Objects of this time are not directly returned.
         ss << "pikepdf." << "InlineImage";
         break;
+        // LCOV_EXCL_END
     case QPDFObject::object_type_e::ot_array:
         ss << "pikepdf." << "Array";
         break;
@@ -154,11 +157,16 @@ std::string objecthandle_repr_inner(QPDFObjectHandle h, uint depth, std::set<QPD
         ss << objecthandle_repr_typename_and_value(h);
         break;
     case QPDFObject::object_type_e::ot_inlineimage:
+        // LCOV_EXCL_START
+        // Inline image objects are automatically promoted to higher level objects
+        // in parse_content_stream, so objects of this type should not be returned
+        // directly.
         ss << objecthandle_pythonic_typename(h);
         ss << "(";
         ss << "data=<...>";
         ss << ")";
         break;
+        // LCOV_EXCL_STOP
     case QPDFObject::object_type_e::ot_array:
         ss << "[";
         {
@@ -207,8 +215,8 @@ std::string objecthandle_repr_inner(QPDFObjectHandle h, uint depth, std::set<QPD
     default:
         // LCOV_EXCL_START
         ss << "Unexpected QPDF object type value: " << h.getTypeCode();
-        // LCOV_EXCL_STOP
         break;
+        // LCOV_EXCL_STOP
     }
 
     return ss.str();
