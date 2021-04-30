@@ -67,8 +67,13 @@ def test_encrypt_no_passwords(trivial, outpdf):
     trivial.save(outpdf, encryption=dict(R=6))
 
 
-def test_encrypt_permissions_deny(trivial, outpdf):
-    perms = pikepdf.models.Permissions(extract=False)
+@pytest.mark.parametrize(
+    'highres, lowres', [(True, True), (False, True), (False, False)]
+)
+def test_encrypt_permissions_deny(trivial, outpdf, highres, lowres):
+    perms = pikepdf.models.Permissions(
+        extract=False, print_highres=highres, print_lowres=lowres
+    )
     trivial.save(
         outpdf, encryption=pikepdf.Encryption(owner='sun', user='moon', allow=perms)
     )

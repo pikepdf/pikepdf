@@ -112,6 +112,7 @@ class TestPermissions:
     def test_some_permissions_missing(self, resources):
         with Pdf.open(resources / 'graph-encrypted.pdf', 'owner') as pdf:
             assert pdf.allow.print_highres == pdf.allow.modify_annotation == False
+            assert pdf.allow.print_lowres
 
     def test_permissions_all_true_not_encrypted(self, trivial):
         assert all(trivial.allow)
