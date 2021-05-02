@@ -18,6 +18,14 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.12.0
+=======
+
+-  Complete bindings for ``pikepdf.Annotation`` (useful for interpreting PDF
+   form widgets, comments, etc.)
+-  Ongoing improvements to code coverage: minor bug fixes, unreachable code removal,
+   more coverage.
+
 v2.11.4
 =======
 
