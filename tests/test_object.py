@@ -8,7 +8,7 @@ from typing import Type
 from zlib import compress
 
 import pytest
-from conftest import skip_if_pypy
+from conftest import needs_libqpdf_v, skip_if_pypy
 from hypothesis import assume, example, given
 from hypothesis.strategies import (
     binary,
@@ -730,12 +730,14 @@ def test_object_mapping(sandwich):
     assert '/R12' in object_mapping.keys()
 
 
+@needs_libqpdf_v('10.3.0', reason="behavior of replace improved in v10.3.0")
 def test_replace_object(sandwich):
     d = Dictionary(Type=Name.Dummy)
     sandwich._replace_object(sandwich.pages[0].objgen, d)
     assert sandwich.pages[0] == d
 
 
+@needs_libqpdf_v('10.3.0', reason="behavior of swap improved in v10.3.0")
 def test_swap_object(resources):
     with Pdf.open(resources / 'fourpages.pdf') as pdf:
         pdf.pages[0].MarkPage0 = True

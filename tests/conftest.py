@@ -1,7 +1,14 @@
 import os
 import platform
 import sys
+from distutils.version import LooseVersion
 from pathlib import Path
+
+try:
+    from pikepdf import __libqpdf_version__
+except ImportError:
+    __libqpdf_version__ = '0.0.0'
+
 
 import pytest
 
@@ -32,3 +39,12 @@ def outpdf(tmp_path):
 skip_if_pypy = pytest.mark.skipif(
     platform.python_implementation() == 'PyPy', reason="test isn't valid for PyPy"
 )
+
+
+def needs_libqpdf_v(version, *, reason=None):
+    if reason is None:
+        reason = "installed libqpdf is too old for this test"
+    return pytest.mark.skipif(
+        LooseVersion(__libqpdf_version__) <= LooseVersion(version),
+        reason=reason,
+    )
