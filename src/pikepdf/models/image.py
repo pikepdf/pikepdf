@@ -172,6 +172,21 @@ class PdfImageBase(ABC):
         """Size of image as (width, height)"""
         return self.width, self.height
 
+    def _approx_mode_from_icc(self):
+        if self.indexed:
+            icc_profile = self._colorspaces[1][1]
+        else:
+            icc_profile = self._colorspaces[1]
+        icc_profile_nchannels = int(icc_profile['/N'])
+
+        if icc_profile_nchannels == 1:
+            return 'L'
+
+        # Multiple channels, need to open the profile and look
+        mode_from_xcolor_space = {'RGB ': 'RGB', 'CMYK': 'CMYK'}
+        xcolor_space = self.icc.profile.xcolor_space
+        return mode_from_xcolor_space.get(xcolor_space, '')
+
     @property
     def mode(self):
         """``PIL.Image.mode`` equivalent for this image, where possible
@@ -194,10 +209,7 @@ class PdfImageBase(ABC):
                 m = 'CMYK'
             elif self.colorspace == '/ICCBased':
                 try:
-                    icc_profile = self._colorspaces[1]
-                    icc_profile_nchannels = int(icc_profile['/N'])
-                    mode_from_channels = {1: 'L', 3: 'RGB', 4: 'CMYK'}
-                    m = mode_from_channels.get(icc_profile_nchannels, '')
+                    m = self._approx_mode_from_icc()
                 except (ValueError, TypeError) as e:
                     raise NotImplementedError(
                         "Not sure how to handle PDF image of this type"
@@ -252,12 +264,7 @@ class PdfImageBase(ABC):
         elif base == '/DeviceCMYK':
             base = 'CMYK'
         elif base == '/ICCBased':
-            if iccobj['/N'] == 3:
-                base = 'RGB'
-            elif iccobj['/N'] == 4:
-                base = 'CMYK'
-            elif iccobj['/N'] == 1:
-                base = 'L'
+            base = self._approx_mode_from_icc()
         return base, lookup
 
     @abstractmethod
