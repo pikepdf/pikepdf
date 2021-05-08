@@ -706,10 +706,6 @@ class PdfJpxImage(PdfImage):
         super().__init__(obj)
         self._jpxpil = self.as_pil_image()
 
-    def __eq__(self, other):  # pylint: disable=useless-super-delegation
-        # self._jpxpil is not relevant to equality
-        return super().__eq__(other)
-
     def _extract_direct(self, *, stream):
         data, filters = self._unstack_compression(
             self.obj.get_raw_stream_buffer(), self.filters
