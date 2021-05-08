@@ -64,6 +64,11 @@ from .models import (
 
 from . import _methods, codec
 
+# While _cpphelpers is intended to be called from our C++ code only, explicitly
+# importing helps introspection tools like PyInstaller figure out that the
+# is necessary.
+from . import _cpphelpers
+
 __libqpdf_version__ = _qpdf.qpdf_version()
 
 
