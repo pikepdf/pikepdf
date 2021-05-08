@@ -158,6 +158,7 @@ def test_inline(inline):
     assert iimage.mode == 'RGB'
     assert iimage.is_inline
     assert iimage.colorspace == '/DeviceRGB'
+    assert 'PdfInlineImage' in repr(iimage)
 
     unparsed = iimage.unparse()
 

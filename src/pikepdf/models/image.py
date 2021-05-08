@@ -31,15 +31,19 @@ from pikepdf import (
 
 
 class DependencyError(Exception):
-    pass
+    "A third party dependency is needed to extract images of this type."
 
 
 class UnsupportedImageTypeError(Exception):
-    pass
+    "This image is formatted in a way pikepdf does not supported."
 
 
 class NotExtractableError(Exception):
-    pass
+    "Indicates that an image cannot be directly extracted."
+
+
+class InvalidPdfImageError(Exception):
+    "This image is not valid according to the PDF 1.7 specification."
 
 
 def array_str(value):
@@ -690,7 +694,7 @@ class PdfImage(PdfImageBase):
 
         return tiff_header
 
-    def show(self):
+    def show(self):  # pragma: no cover
         """Show the image however PIL wants to"""
         self.as_pil_image().show()
 
@@ -848,8 +852,10 @@ class PdfInlineImage(PdfImageBase):
         return True
 
     @property
-    def icc(self):
-        raise NotImplementedError("Inline images with ICC profiles are not supported")
+    def icc(self):  # pragma: no cover
+        raise InvalidPdfImageError(
+            "Inline images with ICC profiles are not supported in the PDF specification"
+        )
 
     def __repr__(self):
         try:
