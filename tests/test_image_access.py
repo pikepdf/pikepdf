@@ -3,6 +3,7 @@ import zlib
 from io import BytesIO
 from os import fspath
 from pathlib import Path
+from typing import Dict
 
 import pytest
 from PIL import Image, ImageCms
@@ -574,3 +575,32 @@ def test_dict_or_array_dict():
     )
     pim = pikepdf.PdfImage(imobj)
     assert pim.decode_parms[0].K == -1  # Check that array of dict is unpacked properly
+
+
+@pytest.mark.parametrize(
+    'base, hival, palette, expect_type',
+    [
+        (Name.DeviceGray, 4, b'\x00\x40\x80\xff', 'L'),
+        (Name.DeviceCMYK, 4, b'aaaabbbbccccdddd', 'CMYK'),
+    ],
+)
+def test_palette_nonrgb(base, hival, palette, expect_type):
+    pdf = pikepdf.new()
+    imobj = Stream(
+        pdf,
+        b'\x00\x01\x02\x03' * 4,
+        BitsPerComponent=8,
+        ColorSpace=Array([Name.Indexed, base, hival, palette]),
+        Width=16,
+        Height=1,
+        Type=Name.XObject,
+        Subtype=Name.Image,
+    )
+    pim = pikepdf.PdfImage(imobj)
+    assert pim.palette == (expect_type, palette)
+
+
+def test_extract_to_mutex_params(sandwich):
+    pdfimage = PdfImage(sandwich[0])
+    with pytest.raises(ValueError, match="Cannot set both"):
+        pdfimage.extract_to(stream=BytesIO(), fileprefix='anything')
