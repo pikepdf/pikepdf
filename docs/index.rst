@@ -98,7 +98,7 @@ damaged PDFs in many cases, and linearize PDFs. Unlike those libraries, it's not
 pure Python: it is impure and proud of it.
 
 PyMuPDF is a PDF library with impressive capabilities. However, its AGPL license
-its much more restrictive than pikepdf, and its dependency on static libraries
+is much more restrictive than pikepdf, and its dependency on static libraries
 makes it difficult to include in open source Linux or BSD distributions.
 
 In use
