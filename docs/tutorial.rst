@@ -16,7 +16,8 @@ Opening and saving PDFs
 In contrast to better known PDF libraries, pikepdf uses a single object to
 represent a PDF, whether reading, writing or merging. We have cleverly named
 this :class:`pikepdf.Pdf`. In this documentation, a ``Pdf`` is a class that
-allows manipulate the PDF, meaning the file.
+allows manipulate the PDF, meaning the "file" (whether it exists in memory or on
+a file system).
 
 .. code-block:: python
 

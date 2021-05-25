@@ -869,7 +869,8 @@ class Extend_Pdf:
             >>> pdf = Pdf.open("test.pdf", password="rosebud")
 
         Args:
-            filename_or_stream: Filename of PDF to open.
+            filename_or_stream: Filename or Python readable and seekable file
+                stream of PDF to open.
             password: User or owner password to open an
                 encrypted PDF. If the type of this parameter is ``str``
                 it will be encoded as UTF-8. If the type is ``bytes`` it will
@@ -910,6 +911,15 @@ class Extend_Pdf:
             TypeError: If the type of ``filename_or_stream`` is not
                 usable.
             FileNotFoundError: If the file was not found.
+
+        Note:
+            When *filename_or_stream* is a stream and the stream is located on a
+            network, pikepdf assumes that the stream using buffering and read caches
+            to achieve reasonable performance. Streams that fetch data over a network
+            in response to every read or seek request, no matter how small, will
+            perform poorly. It may be easier to download a PDF from network to
+            temporary local storage (such as ``io.BytesIO``), manipulate it, and
+            then re-upload it.
         """
         if isinstance(filename_or_stream, bytes) and filename_or_stream.startswith(
             b'%PDF-'
