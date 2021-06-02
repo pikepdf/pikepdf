@@ -12,10 +12,10 @@ env:
 
 jobs:
   wheels_linux:
-    name: Build wheels on ${{ matrix.os }} for ${{ matrix.platform }}
+    name: 🏗 ${{ matrix.os }} - ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     env:
-      CIBW_SKIP: "cp27-* cp35-* pp2* pp3*"
+      CIBW_SKIP: "cp27-* cp35-* pp2*"
       CIBW_TEST_COMMAND: "pytest -nauto {project}/tests"
       CIBW_TEST_REQUIRES: "-r requirements/test.txt"
       CIBW_BEFORE_ALL: "bash {project}/build-scripts/linux-build-wheel-deps.bash"
@@ -61,7 +61,7 @@ jobs:
           path: ./wheelhouse/*.whl
 
   wheels_macos:
-    name: Build wheels on ${{ matrix.os }}
+    name: 🏗 ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     env:
       CIBW_SKIP: "cp27-* cp35-* pp2*"
@@ -92,9 +92,13 @@ jobs:
           path: ./wheelhouse/*.whl
 
   wheels_windows:
-    name: Build wheels on ${{ matrix.os }} for ${{ matrix.platform }}
+    name: 🏗 ${{ matrix.os }} - ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     env:
+      # pp3*-win32 fails because there is no wheel for lxml
+      # pp3*-win_amd64 does not execute because cibuildwheel does not implement it
+      # or PyPy3 doesn't work on Windows 64-bit, one or the other
+      # PyPy+Win32 seems like a very low priority combination
       CIBW_SKIP: "cp27-* cp35-* pp2* pp3*"
       CIBW_TEST_COMMAND: "pytest -nauto {project}/tests"
       CIBW_TEST_REQUIRES: "-r requirements/test.txt"
@@ -131,7 +135,7 @@ jobs:
           path: ./wheelhouse/*.whl
 
   sdist:
-    name: Build source distribution
+    name: 🏗 source distribution
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
