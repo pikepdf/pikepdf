@@ -24,7 +24,7 @@ word *stream*, let's attempt to clarify:
   When it comes to taxonomy, software developers have it easy.
 
 stream object
-  A PDF object that contains binary data and a metadata dictionary to describes
+  A PDF object that contains binary data and a metadata dictionary that describes
   it, represented as :class:`pikepdf.Stream`. In HTML this is equivalent to
   a ``<object>`` tag with attributes and data.
 
@@ -67,7 +67,7 @@ Reading stream objects as a Python I/O streams
 
 You were warned about terminology.
 
-In the interesting of preversing our remaining sanity, you cannot access a
+To preserve our remaining sanity, you cannot access a
 stream object as a file-like object directly.
 
 To efficiently access a ``pikepdf.Stream`` as a Python file object, you may do:
