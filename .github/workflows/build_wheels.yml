@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 env:
   QPDF_MIN_VERSION: "10.0.3"
-  QPDF_VERSION: "10.3.1"
+  QPDF_VERSION: "10.3.2"
   QPDF_PATTERN: "https://github.com/qpdf/qpdf/releases/download/release-qpdf-VERSION/qpdf-VERSION.tar.gz"
   JPEG_RELEASE: "https://www.ijg.org/files/jpegsrc.v9d.tar.gz"
   ZLIB_RELEASE: "https://www.zlib.net/zlib-1.2.11.tar.gz"
@@ -47,11 +47,11 @@ jobs:
           platforms: all
 
       - name: Build wheels
-        uses: joerick/cibuildwheel@v1.10.0
+        uses: joerick/cibuildwheel@v1.11.1
         if: matrix.platform != 'manylinux_aarch64'
 
       - name: Build wheels (emulated)
-        uses: joerick/cibuildwheel@v1.10.0
+        uses: joerick/cibuildwheel@v1.11.1
         if: matrix.platform == 'manylinux_aarch64'
         env:
           CIBW_ARCHS_LINUX: aarch64
@@ -83,7 +83,7 @@ jobs:
           python-version: "3.8"
 
       - name: Build wheels
-        uses: joerick/cibuildwheel@v1.10.0
+        uses: joerick/cibuildwheel@v1.11.1
         #env:
         #  CIBW_ARCHS_MACOS: x86_64 universal2 # for Apple Silicon
 
@@ -124,7 +124,7 @@ jobs:
         shell: pwsh
 
       - name: Build wheels
-        uses: joerick/cibuildwheel@v1.10.0
+        uses: joerick/cibuildwheel@v1.11.1
 
       - uses: actions/upload-artifact@v2
         with:
