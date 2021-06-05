@@ -784,6 +784,7 @@ class PdfInlineImage(PdfImageBase):
         b'/CCF': b'/CCITTFaxDecode',
         b'/DCT': b'/DCTDecode',
     }
+    REVERSE_ABBREVS = {v: k for k, v in ABBREVS.items()}
 
     def __init__(self, *, image_data, image_object: tuple):
         """
@@ -800,7 +801,9 @@ class PdfInlineImage(PdfImageBase):
         self._data = image_data
         self._image_object = image_object
 
-        reparse = b' '.join(self._unparse_obj(obj) for obj in image_object)
+        reparse = b' '.join(
+            self._unparse_obj(obj, remap_names=self.ABBREVS) for obj in image_object
+        )
         try:
             reparsed_obj = Object.parse(b'<< ' + reparse + b' >>')
         except PdfError as e:
@@ -815,12 +818,12 @@ class PdfInlineImage(PdfImageBase):
         )
 
     @classmethod
-    def _unparse_obj(cls, obj):
+    def _unparse_obj(cls, obj, remap_names):
         if isinstance(obj, Object):
             if isinstance(obj, Name):
                 name = obj.unparse(resolved=True)
                 assert isinstance(name, bytes)
-                return cls.ABBREVS.get(name, name)
+                return remap_names.get(name, name)
             else:
                 return obj.unparse(resolved=True)
         elif isinstance(obj, bool):
@@ -836,7 +839,9 @@ class PdfInlineImage(PdfImageBase):
     def unparse(self):
         def metadata_tokens():
             for metadata_obj in self._image_object:
-                unparsed = self._unparse_obj(metadata_obj)
+                unparsed = self._unparse_obj(
+                    metadata_obj, remap_names=self.REVERSE_ABBREVS
+                )
                 assert isinstance(unparsed, bytes)
                 yield unparsed
 

@@ -161,6 +161,8 @@ def test_inline(inline):
     assert 'PdfInlineImage' in repr(iimage)
 
     unparsed = iimage.unparse()
+    assert b'/W 8' in unparsed, "inline images should have abbreviated metadata"
+    assert b'/Width 8' not in unparsed, "abbreviations expanded in inline image"
 
     cs = pdf.make_stream(unparsed)
     for operands, _command in parse_content_stream(cs):
