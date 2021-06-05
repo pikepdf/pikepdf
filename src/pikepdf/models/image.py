@@ -630,7 +630,7 @@ class PdfImage(PdfImageBase):
         elif k > 0:
             ccitt_group = 3  # Group 3 2-D
         else:
-            ccitt_group = 2  # CCITT 1-D
+            ccitt_group = 2  # Group 3 1-D
         black_is_one = self.decode_parms[0].get("/BlackIs1", False)
         # TIFF spec says:
         # use 0 for white_is_zero (=> black is 1)
@@ -834,18 +834,20 @@ class PdfInlineImage(PdfImageBase):
         return metadata_from_obj(self.obj, name, type_, default)
 
     def unparse(self):
-        tokens = []
-        tokens.append(b'BI\n')
-        metadata = []
-        for metadata_obj in self._image_object:
-            unparsed = self._unparse_obj(metadata_obj)
-            assert isinstance(unparsed, bytes)
-            metadata.append(unparsed)
-        tokens.append(b' '.join(metadata))
-        tokens.append(b'\nID\n')
-        tokens.append(self._data._inline_image_raw_bytes())
-        tokens.append(b'EI')
-        return b''.join(tokens)
+        def metadata_tokens():
+            for metadata_obj in self._image_object:
+                unparsed = self._unparse_obj(metadata_obj)
+                assert isinstance(unparsed, bytes)
+                yield unparsed
+
+        def inline_image_tokens():
+            yield b'BI\n'
+            yield b' '.join(m for m in metadata_tokens())
+            yield b'\nID\n'
+            yield self._data._inline_image_raw_bytes()
+            yield b'EI'
+
+        return b''.join(inline_image_tokens())
 
     @property
     def is_inline(self):
