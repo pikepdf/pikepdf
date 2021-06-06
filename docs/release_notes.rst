@@ -18,6 +18,17 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.12.2
+=======
+
+-  Rebuild wheels against libqpdf 10.3.2.
+-  Enabled building Linux PyPy x86_64 wheels.
+-  Fixed a minor issue where the inline images would have their abbreviations
+   expanded when unparsed. While unlikely to be problematic, inline images usually
+   use abbreviations in their metadata and should be kept that way. 
+-  Added notes to documentation about loading PDFs through Python file streams 
+   and cases that can lead to poor performance. 
+
 v2.12.1
 =======
 
@@ -769,7 +780,7 @@ v1.0.2
 ======
 
 -  Fixed an issue where invalid values such as out of range years (e.g.
-   0) in DocumentInfo would raise exceptions when using DocumentInfo to
+   1) in DocumentInfo would raise exceptions when using DocumentInfo to
    populate XMP metadata with ``.load_from_docinfo``.
 
 v1.0.1
