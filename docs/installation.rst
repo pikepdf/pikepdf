@@ -246,16 +246,16 @@ regenerate it:
 PyPy3 support
 -------------
 
-PyPy3 3.6 and 3.7 are currently supported. However, binary wheels for PyPy3 are not
-available for some platforms, since some dependencies of pikepdf (namely lxml) do not
-yet generate PyPy3 wheels of their own.
+PyPy3 3.6 and 3.7 are currently supported, these being the latest versions of PyPy
+as of this writing. Windows PyPy support is not available because cibuildwheel
+does not support Windows 64-bit PyPy.
 
 +----------------+------------------------+-------+
 | Platform       | Source build supported | Wheel |
 +================+========================+=======+
 | Windows 64-bit | ✅                     |       |
 +----------------+------------------------+-------+
-| Linux 64-bit   | ✅                     |       |
+| Linux 64-bit   | ✅                     | ✅    |
 +----------------+------------------------+-------+
 | macOS          | ✅                     | ✅    |
 +----------------+------------------------+-------+
