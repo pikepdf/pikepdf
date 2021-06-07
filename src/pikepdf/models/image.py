@@ -12,7 +12,6 @@ from itertools import zip_longest
 from pathlib import Path
 from shutil import copyfileobj
 from zlib import decompress
-from zlib import error as ZlibError
 
 from PIL import Image, ImageCms
 from PIL.TiffTags import TAGS_V2 as TIFF_TAGS
@@ -252,9 +251,7 @@ class PdfImageBase(ABC):
             _idx, base, _hival, lookup = self._colorspaces
         except ValueError as e:
             raise ValueError('Not sure how to interpret this palette') from e
-        iccobj = None
         if self.icc:
-            iccobj = base[1]
             base = str(base[0])
         else:
             base = str(base)

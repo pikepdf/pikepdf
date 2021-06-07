@@ -18,7 +18,7 @@ if ParallelCompile:
     try:
         # Prevent parallel compile on platforms that lack semaphores
         # e.g. Android/Termux, AWS Lambda
-        import multiprocessing.synchronize  # pylint: disable=unused-import
+        import multiprocessing.synchronize  # pylint: disable=unused-import lgtm [py/unused-import]
     except ImportError:
         ParallelCompile = None
 
