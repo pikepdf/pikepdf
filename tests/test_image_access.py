@@ -25,6 +25,7 @@ from pikepdf import (
 from pikepdf.models.image import (
     DependencyError,
     NotExtractableError,
+    PdfJpxImage,
     UnsupportedImageTypeError,
 )
 
@@ -55,6 +56,14 @@ def jbig2(resources):
 @pytest.fixture
 def trivial(resources):
     return first_image_in(resources / 'pal-1bit-trivial.pdf')
+
+
+@pytest.fixture
+def inline(resources):
+    pdf = Pdf.open(resources / 'image-mono-inline.pdf')
+    for operands, _command in parse_content_stream(pdf.pages[0]):
+        if operands and isinstance(operands[0], PdfInlineImage):
+            return operands[0], pdf
 
 
 def test_image_from_nonimage(resources):
@@ -92,8 +101,14 @@ def test_malformed_palette(trivial):
         pdfimage.palette  # pylint: disable=pointless-statement
 
 
-def test_image_eq(trivial):
+def test_image_eq(trivial, congress, inline):
+    # Note: JPX equality is tested in test_jp2 (if we have a jpeg2000 codec)
     assert PdfImage(trivial[0]) == PdfImage(trivial[0])
+    assert PdfImage(trivial[0]).__eq__(42) is NotImplemented
+    assert PdfImage(trivial[0]) != PdfImage(congress[0])
+
+    assert inline != PdfImage(congress[0])
+    assert inline.__eq__(42) is NotImplemented
 
 
 def test_image_replace(congress, outdir):
@@ -141,14 +156,6 @@ def test_lowlevel_replace_jpeg(congress, outdir):
 
     pdf = congress[1]
     pdf.save(outdir / 'congress_gray.pdf')
-
-
-@pytest.fixture
-def inline(resources):
-    pdf = Pdf.open(resources / 'image-mono-inline.pdf')
-    for operands, _command in parse_content_stream(pdf.pages[0]):
-        if operands and isinstance(operands[0], PdfInlineImage):
-            return operands[0], pdf
 
 
 def test_inline(inline):
@@ -306,6 +313,7 @@ def test_jp2(resources):
     pdf = Pdf.open(resources / 'pike-jp2.pdf')
     xobj = next(iter(pdf.pages[0].images.values()))
     pim = PdfImage(xobj)
+    assert isinstance(pim, PdfJpxImage)
 
     assert '/JPXDecode' in pim.filters
     assert pim.colorspace == '/DeviceRGB'
@@ -313,6 +321,8 @@ def test_jp2(resources):
     assert not pim.indexed
     assert pim.mode == 'RGB'
     assert pim.bits_per_component == 8
+    assert pim.__eq__(42) is NotImplemented
+    assert pim == PdfImage(xobj)
 
     outstream = BytesIO()
     pim.extract_to(stream=outstream)

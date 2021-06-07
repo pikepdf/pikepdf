@@ -326,6 +326,8 @@ class PdfImage(PdfImageBase):
         self._icc = None
 
     def __eq__(self, other):
+        if not isinstance(other, PdfImageBase):
+            return NotImplemented
         return self.obj == other.obj
 
     @classmethod
@@ -714,6 +716,15 @@ class PdfJpxImage(PdfImage):
         super().__init__(obj)
         self._jpxpil = self.as_pil_image()
 
+    def __eq__(self, other):
+        if not isinstance(other, PdfImageBase):
+            return NotImplemented
+        return (
+            self.obj == other.obj
+            and isinstance(other, PdfJpxImage)
+            and self._jpxpil == other._jpxpil
+        )
+
     def _extract_direct(self, *, stream):
         data, filters = self._unstack_compression(
             self.obj.get_raw_stream_buffer(), self.filters
@@ -809,9 +820,15 @@ class PdfInlineImage(PdfImageBase):
         self.pil = None
 
     def __eq__(self, other):
-        return self.obj == other.obj and (
-            self._data._inline_image_raw_bytes()
-            == other._data._inline_image_raw_bytes()
+        if not isinstance(other, PdfImageBase):
+            return NotImplemented
+        return (
+            self.obj == other.obj
+            and isinstance(other, PdfInlineImage)
+            and (
+                self._data._inline_image_raw_bytes()
+                == other._data._inline_image_raw_bytes()
+            )
         )
 
     @classmethod
