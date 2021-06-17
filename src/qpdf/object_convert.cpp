@@ -32,30 +32,27 @@
 
 extern uint DECIMAL_PRECISION;
 
-
-std::map<std::string, QPDFObjectHandle>
-dict_builder(const py::dict dict)
+std::map<std::string, QPDFObjectHandle> dict_builder(const py::dict dict)
 {
     StackGuard sg(" dict_builder");
     std::map<std::string, QPDFObjectHandle> result;
 
-    for (const auto& item: dict) {
+    for (const auto &item : dict) {
         std::string key = item.first.cast<std::string>();
 
-        auto value = objecthandle_encode(item.second);
+        auto value  = objecthandle_encode(item.second);
         result[key] = value;
     }
     return result;
 }
 
-std::vector<QPDFObjectHandle>
-array_builder(const py::iterable iter)
+std::vector<QPDFObjectHandle> array_builder(const py::iterable iter)
 {
     StackGuard sg(" array_builder");
     std::vector<QPDFObjectHandle> result;
     int narg = 0;
 
-    for (const auto& item: iter) {
+    for (const auto &item : iter) {
         narg++;
 
         auto value = objecthandle_encode(item);
@@ -64,22 +61,20 @@ array_builder(const py::iterable iter)
     return result;
 }
 
-
 class DecimalPrecision {
 public:
-    DecimalPrecision(uint calc_precision) :
-        decimal_context(py::module_::import("decimal").attr("getcontext")()),
-        saved_precision(decimal_context.attr("prec").cast<uint>())
+    DecimalPrecision(uint calc_precision)
+        : decimal_context(py::module_::import("decimal").attr("getcontext")()),
+          saved_precision(decimal_context.attr("prec").cast<uint>())
     {
         decimal_context.attr("prec") = calc_precision;
     }
-    ~DecimalPrecision() {
-        decimal_context.attr("prec") = saved_precision;
-    }
-    DecimalPrecision(const DecimalPrecision& other) = delete;
-    DecimalPrecision(DecimalPrecision&& other) = delete;
-    DecimalPrecision& operator= (const DecimalPrecision& other) = delete;
-    DecimalPrecision& operator= (DecimalPrecision&& other) = delete;
+    ~DecimalPrecision() { decimal_context.attr("prec") = saved_precision; }
+    DecimalPrecision(const DecimalPrecision &other) = delete;
+    DecimalPrecision(DecimalPrecision &&other)      = delete;
+    DecimalPrecision &operator=(const DecimalPrecision &other) = delete;
+    DecimalPrecision &operator=(DecimalPrecision &&other) = delete;
+
 private:
     py::object decimal_context;
     uint saved_precision;
@@ -95,7 +90,8 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle)
     try {
         auto as_qobj = handle.cast<QPDFObjectHandle>();
         return as_qobj;
-    } catch (const py::cast_error&) {}
+    } catch (const py::cast_error &) {
+    }
 
     // Special-case booleans since pybind11 coerces nonzero integers to boolean
     if (py::isinstance<py::bool_>(handle)) {
@@ -104,11 +100,12 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle)
     }
 
     auto decimal_module = py::module_::import("decimal");
-    auto Decimal = decimal_module.attr("Decimal");
+    auto Decimal        = decimal_module.attr("Decimal");
     if (py::isinstance(handle, Decimal)) {
         DecimalPrecision dp(DECIMAL_PRECISION);
-        auto rounded = py::reinterpret_steal<py::object>(PyNumber_Positive(handle.ptr()));
-        if (! rounded.attr("is_finite")().cast<bool>())
+        auto rounded =
+            py::reinterpret_steal<py::object>(PyNumber_Positive(handle.ptr()));
+        if (!rounded.attr("is_finite")().cast<bool>())
             throw py::value_error("Can't convert NaN or Infinity to PDF real number");
         return QPDFObjectHandle::newReal(py::str(rounded));
     } else if (py::isinstance<py::int_>(handle)) {
@@ -116,7 +113,7 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle)
         return QPDFObjectHandle::newInteger(as_int);
     } else if (py::isinstance<py::float_>(handle)) {
         auto as_double = handle.cast<double>();
-        if (! std::isfinite(as_double))
+        if (!std::isfinite(as_double))
             throw py::value_error("Can't convert NaN or Infinity to PDF real number");
         return QPDFObjectHandle::newReal(as_double);
     }
@@ -132,7 +129,7 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle)
     }
 
     if (py::hasattr(obj, "__iter__")) {
-        //py::print(py::repr(obj));
+        // py::print(py::repr(obj));
         bool is_mapping = false; // PyMapping_Check is unreliable in Py3
         if (py::hasattr(obj, "keys"))
             is_mapping = true;
@@ -145,9 +142,9 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle)
         }
     }
 
-    throw py::cast_error(std::string("don't know how to encode value ") + std::string(py::repr(obj)));
+    throw py::cast_error(
+        std::string("don't know how to encode value ") + std::string(py::repr(obj)));
 }
-
 
 py::object decimal_from_pdfobject(QPDFObjectHandle h)
 {

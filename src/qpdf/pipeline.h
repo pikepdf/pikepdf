@@ -26,21 +26,18 @@
 
 #include "pikepdf.h"
 
-
-class Pl_PythonOutput : public Pipeline
-{
+class Pl_PythonOutput : public Pipeline {
 public:
-    Pl_PythonOutput(const char *identifier, py::object stream) :
-        Pipeline(identifier, nullptr),
-        stream(stream)
+    Pl_PythonOutput(const char *identifier, py::object stream)
+        : Pipeline(identifier, nullptr), stream(stream)
     {
     }
 
-    virtual ~Pl_PythonOutput() = default;
-    Pl_PythonOutput(const Pl_PythonOutput&) = delete;
-    Pl_PythonOutput& operator= (const Pl_PythonOutput&) = delete;
-    Pl_PythonOutput(Pl_PythonOutput&&) = delete;
-    Pl_PythonOutput& operator= (Pl_PythonOutput&&) = delete;
+    virtual ~Pl_PythonOutput()               = default;
+    Pl_PythonOutput(const Pl_PythonOutput &) = delete;
+    Pl_PythonOutput &operator=(const Pl_PythonOutput &) = delete;
+    Pl_PythonOutput(Pl_PythonOutput &&)                 = delete;
+    Pl_PythonOutput &operator=(Pl_PythonOutput &&) = delete;
 
     void write(unsigned char *buf, size_t len) override;
     void finish() override;

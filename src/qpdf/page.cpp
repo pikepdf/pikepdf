@@ -12,21 +12,21 @@
 #include <cctype>
 
 #include "pikepdf.h"
-#include "object_parsers.h"
+#include "object_parsers-inl.h"
 
 #include <qpdf/QPDFPageObjectHelper.hh>
 #include <qpdf/QPDFPageLabelDocumentHelper.hh>
 #include <qpdf/Pipeline.hh>
 #include <qpdf/Pl_Buffer.hh>
 
-
 class TokenFilter : public QPDFObjectHandle::TokenFilter {
 public:
     using QPDFObjectHandle::TokenFilter::TokenFilter;
     virtual ~TokenFilter() = default;
-    using Token = QPDFTokenizer::Token;
+    using Token            = QPDFTokenizer::Token;
 
-    void handleToken(Token const& token) override {
+    void handleToken(Token const &token) override
+    {
         py::object result = this->handle_token(token);
         if (result.is_none())
             return;
@@ -45,37 +45,32 @@ public:
         }
     }
 
-    virtual py::object handle_token(Token const& token) = 0;
+    virtual py::object handle_token(Token const &token) = 0;
 };
-
 
 class TokenFilterTrampoline : public TokenFilter {
 public:
     using TokenFilter::TokenFilter;
     using Token = QPDFTokenizer::Token;
 
-    py::object handle_token(Token const& token) override {
-        PYBIND11_OVERLOAD_PURE(
-            py::object,
-            TokenFilter,
-            handle_token,
-            token
-        );
+    py::object handle_token(Token const &token) override
+    {
+        PYBIND11_OVERLOAD_PURE(py::object, TokenFilter, handle_token, token);
     }
 };
 
-size_t page_index(QPDF& owner, QPDFObjectHandle page)
+size_t page_index(QPDF &owner, QPDFObjectHandle page)
 {
     if (&owner != page.getOwningQPDF())
         throw py::value_error("Page is not in this Pdf");
     auto all_pages = owner.getAllPages();
 
     auto page_objgen = page.getObjGen();
-    auto it = std::find_if(all_pages.begin(), all_pages.end(),
-        [&page_objgen](const QPDFObjectHandle& iter_page) {
+    auto it          = std::find_if(all_pages.begin(),
+        all_pages.end(),
+        [&page_objgen](const QPDFObjectHandle &iter_page) {
             return (page_objgen == iter_page.getObjGen());
-        }
-    );
+        });
     if (it == all_pages.end())
         throw py::value_error("Page is not consistently registered with Pdf");
     auto idx = it - all_pages.begin();
@@ -85,28 +80,28 @@ size_t page_index(QPDF& owner, QPDFObjectHandle page)
 
 std::string label_string_from_dict(QPDFObjectHandle label_dict)
 {
-    auto impl = py::module_::import("pikepdf._cpphelpers").attr("label_from_label_dict");
+    auto impl =
+        py::module_::import("pikepdf._cpphelpers").attr("label_from_label_dict");
     py::str result = impl(label_dict);
     return result;
 }
 
-void init_page(py::module_& m)
+void init_page(py::module_ &m)
 {
     py::class_<QPDFPageObjectHelper>(m, "Page")
         .def(py::init<QPDFObjectHandle &>())
-        .def_property_readonly("obj",
-            [](QPDFPageObjectHelper &poh) {
-                return poh.getObjectHandle();
-            },
+        .def_property_readonly(
+            "obj",
+            [](QPDFPageObjectHelper &poh) { return poh.getObjectHandle(); },
             R"~~~(
                 Get the underlying :class:`pikepdf.Object`.
-            )~~~"
-        )
+            )~~~")
         .def_property_readonly("_images", &QPDFPageObjectHelper::getPageImages)
         .def("_get_mediabox", &QPDFPageObjectHelper::getMediaBox)
         .def("_get_cropbox", &QPDFPageObjectHelper::getCropBox)
         .def("_get_trimbox", &QPDFPageObjectHelper::getTrimBox)
-        .def("externalize_inline_images",
+        .def(
+            "externalize_inline_images",
             [](QPDFPageObjectHelper &poh, size_t min_size = 0) {
                 return poh.externalizeInlineImages(min_size);
             },
@@ -116,10 +111,11 @@ void init_page(py::module_& m)
 
                 Args:
                     min_size (int): minimum size in bytes
-            )~~~"
-        )
-        .def("rotate", &QPDFPageObjectHelper::rotatePage,
-            py::arg("angle"), py::arg("relative"),
+            )~~~")
+        .def("rotate",
+            &QPDFPageObjectHelper::rotatePage,
+            py::arg("angle"),
+            py::arg("relative"),
             R"~~~(
                 Rotate a page.
 
@@ -127,9 +123,9 @@ void init_page(py::module_& m)
                 page to angle. Otherwise, add angle to the rotation of the
                 page. ``angle`` must be a multiple of ``90``. Adding ``90`` to
                 the rotation rotates clockwise by ``90`` degrees.
-            )~~~"
-        )
-        .def("contents_coalesce", &QPDFPageObjectHelper::coalesceContentStreams,
+            )~~~")
+        .def("contents_coalesce",
+            &QPDFPageObjectHelper::coalesceContentStreams,
             R"~~~(
                 Coalesce a page's content streams.
 
@@ -139,9 +135,9 @@ void init_page(py::module_& m)
                 be useful when working with files that split content streams in
                 arbitrary spots, such as in the middle of a token, as that can
                 confuse some software.
-            )~~~"
-        )
-        .def("remove_unreferenced_resources", &QPDFPageObjectHelper::removeUnreferencedResources,
+            )~~~")
+        .def("remove_unreferenced_resources",
+            &QPDFPageObjectHelper::removeUnreferencedResources,
             R"~~~(
                 Removes from the resources dictionary any object not referenced in the content stream.
 
@@ -153,9 +149,9 @@ void init_page(py::module_& m)
                 method is used by page splitting code to avoid copying unused
                 objects in files that used shared resource dictionaries across
                 multiple pages.
-            )~~~"
-        )
-        .def("as_form_xobject", &QPDFPageObjectHelper::getFormXObjectForPage,
+            )~~~")
+        .def("as_form_xobject",
+            &QPDFPageObjectHelper::getFormXObjectForPage,
             py::arg("handle_transformations") = true,
             R"~~~(
                 Return a form XObject that draws this page.
@@ -174,15 +170,15 @@ void init_page(py::module_& m)
                         (``/Rotate``) and scaling (``/UserUnit``) in the page's
                         dictionary. In this way, the page's transformations will
                         be preserved when placing this object on another page.
-            )~~~"
-        )
-        .def("get_filtered_contents",
+            )~~~")
+        .def(
+            "get_filtered_contents",
             [](QPDFPageObjectHelper &poh, TokenFilter &tf) {
                 Pl_Buffer pl_buffer("filter_page");
                 poh.filterPageContents(&tf, &pl_buffer);
 
                 PointerHolder<Buffer> buf(pl_buffer.getBuffer());
-                auto data = reinterpret_cast<const char*>(buf->getBuffer());
+                auto data = reinterpret_cast<const char *>(buf->getBuffer());
                 auto size = buf->getSize();
                 return py::bytes(data, size);
             },
@@ -202,20 +198,22 @@ void init_page(py::module_& m)
 
                 Returns:
                     bytes: the modified content stream
-            )~~~"
-        )
-        .def("add_content_token_filter",
-            [](QPDFPageObjectHelper &poh, PointerHolder<QPDFObjectHandle::TokenFilter> tf) {
+            )~~~")
+        .def(
+            "add_content_token_filter",
+            [](QPDFPageObjectHelper &poh,
+                PointerHolder<QPDFObjectHandle::TokenFilter> tf) {
                 // TokenFilters may be processed after the Python objects have gone
                 // out of scope, so we need to keep them alive by attaching them to
                 // the corresponding QPDF object.
                 auto pyqpdf = py::cast(poh.getObjectHandle().getOwningQPDF());
-                auto pytf = py::cast(tf);
+                auto pytf   = py::cast(tf);
                 py::detail::keep_alive_impl(pyqpdf, pytf);
 
                 poh.addContentTokenFilter(tf);
             },
-            py::keep_alive<1, 2>(), py::arg("tf"),
+            py::keep_alive<1, 2>(),
+            py::arg("tf"),
             R"~~~(
                 Attach a :class:`pikepdf.TokenFilter` to a page's content stream.
 
@@ -229,9 +227,9 @@ void init_page(py::module_& m)
                 Close and reopen the Pdf to remove token filters.
 
                 If the page's contents is an array of streams, it is coalesced.
-            )~~~"
-        )
-        .def("parse_contents",
+            )~~~")
+        .def(
+            "parse_contents",
             [](QPDFPageObjectHelper &poh, PyParserCallbacks &parsercallbacks) {
                 poh.parsePageContents(&parsercallbacks);
             },
@@ -242,15 +240,15 @@ void init_page(py::module_& m)
                 not altered.
 
                 If the page's contents is an array of streams, it is coalesced.
-            )~~~"
-        )
-        .def_property_readonly("index",
+            )~~~")
+        .def_property_readonly(
+            "index",
             [](QPDFPageObjectHelper &poh) {
                 auto this_page = poh.getObjectHandle();
-                auto p_owner = this_page.getOwningQPDF();
+                auto p_owner   = this_page.getOwningQPDF();
                 if (!p_owner)
                     throw py::value_error("Page is not attached to a Pdf");
-                auto& owner = *p_owner;
+                auto &owner = *p_owner;
                 return page_index(owner, this_page);
             },
             R"~~~(
@@ -263,16 +261,16 @@ void init_page(py::module_& m)
                 Requires O(n) search.
 
                 .. versionadded: 2.2
-            )~~~"
-        )
-        .def_property_readonly("label",
+            )~~~")
+        .def_property_readonly(
+            "label",
             [](QPDFPageObjectHelper &poh) {
                 auto this_page = poh.getObjectHandle();
-                auto p_owner = this_page.getOwningQPDF();
+                auto p_owner   = this_page.getOwningQPDF();
                 if (!p_owner)
                     throw py::value_error("Page is not attached to a Pdf");
-                auto& owner = *p_owner;
-                auto index = page_index(owner, this_page);
+                auto &owner = *p_owner;
+                auto index  = page_index(owner, this_page);
 
                 QPDFPageLabelDocumentHelper pldh(owner);
                 auto label_dict = pldh.getLabelForPage(index);
@@ -301,9 +299,7 @@ void init_page(py::module_& m)
                 .. versionchanged: 2.9
                     Returns the ordinary page number if no special rules for page
                     numbers are defined.
-            )~~~"
-        )
-        ;
+            )~~~");
 
     py::enum_<QPDFTokenizer::token_type_e>(m, "TokenType")
         .value("bad", QPDFTokenizer::token_type_e::tt_bad)
@@ -323,51 +319,50 @@ void init_page(py::module_& m)
         .value("eof", QPDFTokenizer::token_type_e::tt_eof)
         .value("space", QPDFTokenizer::token_type_e::tt_space)
         .value("comment", QPDFTokenizer::token_type_e::tt_comment)
-        .value("inline_image", QPDFTokenizer::token_type_e::tt_inline_image)
-        ;
+        .value("inline_image", QPDFTokenizer::token_type_e::tt_inline_image);
 
     py::class_<QPDFTokenizer::Token>(m, "Token")
         .def(py::init<QPDFTokenizer::token_type_e, py::bytes>())
-        .def_property_readonly("type_", &QPDFTokenizer::Token::getType,
+        .def_property_readonly("type_",
+            &QPDFTokenizer::Token::getType,
             R"~~~(
                 Returns the type of token.
 
                 Return type:
                     pikepdf.TokenType
-            )~~~"
-        )
-        .def_property_readonly("value", &QPDFTokenizer::Token::getValue,
+            )~~~")
+        .def_property_readonly("value",
+            &QPDFTokenizer::Token::getValue,
             R"~~~(
                 Interprets the token as a string.
 
                 Return type:
                     str or bytes
-            )~~~"
-        )
-        .def_property_readonly("raw_value",
-            [](const QPDFTokenizer::Token& t) -> py::bytes {
-                return t.getRawValue();
-            },
+            )~~~")
+        .def_property_readonly(
+            "raw_value",
+            [](const QPDFTokenizer::Token &t) -> py::bytes { return t.getRawValue(); },
             R"~~~(
                 The binary representation of a token.
 
                 Return type:
                     bytes
-            )~~~"
-        )
+            )~~~")
         .def_property_readonly("error_msg", &QPDFTokenizer::Token::getErrorMessage)
         .def("__eq__", &QPDFTokenizer::Token::operator==)
-        .def("__eq__", [](const QPDFTokenizer::Token& t, py::object other) {
+        .def("__eq__", [](const QPDFTokenizer::Token &t, py::object other) {
             return py::reinterpret_borrow<py::object>(py::handle(Py_NotImplemented));
-        })
-        ;
+        });
 
     py::class_<QPDFObjectHandle::TokenFilter,
-        PointerHolder<QPDFObjectHandle::TokenFilter>>qpdftokenfilter (m, "_QPDFTokenFilter");
+        PointerHolder<QPDFObjectHandle::TokenFilter>>
+        qpdftokenfilter(m, "_QPDFTokenFilter");
 
-    py::class_<TokenFilter, TokenFilterTrampoline, PointerHolder<TokenFilter>>(m, "TokenFilter", qpdftokenfilter)
+    py::class_<TokenFilter, TokenFilterTrampoline, PointerHolder<TokenFilter>>(
+        m, "TokenFilter", qpdftokenfilter)
         .def(py::init<>())
-        .def("handle_token", &TokenFilter::handle_token,
+        .def("handle_token",
+            &TokenFilter::handle_token,
             R"~~~(
                 Handle a :class:`pikepdf.Token`.
 
@@ -391,7 +386,5 @@ void init_page(py::module_& m)
                 Return type:
                     None or list or pikepdf.Token
             )~~~",
-            py::arg_v("token", QPDFTokenizer::Token(), "pikepdf.Token()")
-        )
-        ;
+            py::arg_v("token", QPDFTokenizer::Token(), "pikepdf.Token()"));
 }

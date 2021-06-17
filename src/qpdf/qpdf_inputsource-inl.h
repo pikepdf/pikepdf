@@ -25,12 +25,10 @@
 #include "pikepdf.h"
 #include "utils.h"
 
-
-class PythonStreamInputSource : public InputSource
-{
+class PythonStreamInputSource : public InputSource {
 public:
-    PythonStreamInputSource(py::object stream, std::string name, bool close) :
-            stream(stream), name(name), close(close)
+    PythonStreamInputSource(py::object stream, std::string name, bool close)
+        : stream(stream), name(name), close(close)
     {
         py::gil_scoped_acquire gil;
         if (!stream.attr("readable")().cast<bool>())
@@ -51,15 +49,12 @@ public:
                 std::cerr << "Exception in " << __func__ << ": " << e.what();
         }
     }
-    PythonStreamInputSource(const PythonStreamInputSource&) = delete;
-    PythonStreamInputSource& operator= (const PythonStreamInputSource&) = delete;
-    PythonStreamInputSource(PythonStreamInputSource&&) = default;
-    PythonStreamInputSource& operator= (PythonStreamInputSource&&) = delete;
+    PythonStreamInputSource(const PythonStreamInputSource &) = delete;
+    PythonStreamInputSource &operator=(const PythonStreamInputSource &) = delete;
+    PythonStreamInputSource(PythonStreamInputSource &&)                 = default;
+    PythonStreamInputSource &operator=(PythonStreamInputSource &&) = delete;
 
-    std::string const& getName() const override
-    {
-        return this->name;
-    }
+    std::string const &getName() const override { return this->name; }
 
     qpdf_offset_t tell() override
     {
@@ -81,7 +76,7 @@ public:
     }
     // LCOV_EXCL_STOP
 
-    size_t read(char* buffer, size_t length) override
+    size_t read(char *buffer, size_t length) override
     {
         py::gil_scoped_acquire gil;
 
@@ -90,16 +85,16 @@ public:
         // memcpy that buffer. Error message is:
         // "TypeError: a read-write bytes-like object is required, not memoryview"
         this->last_offset = this->tell();
-        py::bytes result = this->stream.attr("read")(length);
+        py::bytes result  = this->stream.attr("read")(length);
         py::buffer pybuf(result);
         py::buffer_info info = pybuf.request();
-        size_t bytes_read = info.size * info.itemsize;
+        size_t bytes_read    = info.size * info.itemsize;
 
         memcpy(buffer, info.ptr, std::min(length, bytes_read));
 #else
         auto view_buffer_info = py::memoryview::from_memory(buffer, length);
-        this->last_offset = this->tell();
-        py::object result = this->stream.attr("readinto")(view_buffer_info);
+        this->last_offset     = this->tell();
+        py::object result     = this->stream.attr("readinto")(view_buffer_info);
         if (result.is_none())
             return 0;
         size_t bytes_read = py::cast<size_t>(result);
@@ -114,17 +109,14 @@ public:
         return bytes_read;
     }
 
-    void unreadCh(char ch) override
-    {
-        this->seek(-1, SEEK_CUR);
-    }
+    void unreadCh(char ch) override { this->seek(-1, SEEK_CUR); }
 
     qpdf_offset_t findAndSkipNextEOL() override
     {
         py::gil_scoped_acquire gil;
 
-        qpdf_offset_t result = 0;
-        bool done = false;
+        qpdf_offset_t result   = 0;
+        bool done              = false;
         bool eol_straddles_buf = false;
         std::string buf(4096, '\0');
         std::string line_endings = "\r\n";
@@ -133,7 +125,7 @@ public:
             qpdf_offset_t cur_offset = this->tell();
             size_t len = this->read(const_cast<char *>(buf.data()), buf.size());
             if (len == 0) {
-                done = true;
+                done   = true;
                 result = this->tell();
             } else {
                 size_t found;

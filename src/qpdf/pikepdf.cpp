@@ -30,17 +30,17 @@
 #include "utils.h"
 
 uint DECIMAL_PRECISION = 15;
-bool MMAP_DEFAULT = false;
+bool MMAP_DEFAULT      = false;
 
 class TemporaryErrnoChange {
 public:
-    TemporaryErrnoChange(int val) {
+    TemporaryErrnoChange(int val)
+    {
         stored = errno;
-        errno = val;
+        errno  = val;
     }
-    ~TemporaryErrnoChange() {
-        errno = stored;
-    }
+    ~TemporaryErrnoChange() { errno = stored; }
+
 private:
     int stored;
 };
@@ -73,14 +73,15 @@ auto translate_qpdf_error(std::string msg)
     return std::pair<std::string, pikepdf_error_type>(msg, errtype);
 }
 
-auto translate_qpdf_error(const std::exception& e)
+auto translate_qpdf_error(const std::exception &e)
 {
     return translate_qpdf_error(std::string(e.what()));
 }
 
-PYBIND11_MODULE(_qpdf, m) {
-    //py::options options;
-    //options.disable_function_signatures();
+PYBIND11_MODULE(_qpdf, m)
+{
+    // py::options options;
+    // options.disable_function_signatures();
 
     m.doc() = "pikepdf provides a Pythonic interface for QPDF";
 
@@ -92,68 +93,60 @@ PYBIND11_MODULE(_qpdf, m) {
     init_annotation(m);
     init_page(m);
 
-    m.def("utf8_to_pdf_doc",
-        [](py::str utf8, char unknown) {
-            std::string pdfdoc;
-            bool success = QUtil::utf8_to_pdf_doc(std::string(utf8), pdfdoc, unknown);
-            return py::make_tuple(success, py::bytes(pdfdoc));
-        }
-    );
-    m.def("pdf_doc_to_utf8",
-        [](py::bytes pdfdoc) -> py::str {
-            return py::str(QUtil::pdf_doc_to_utf8(pdfdoc));
-        }
-    );
+    m.def("utf8_to_pdf_doc", [](py::str utf8, char unknown) {
+        std::string pdfdoc;
+        bool success = QUtil::utf8_to_pdf_doc(std::string(utf8), pdfdoc, unknown);
+        return py::make_tuple(success, py::bytes(pdfdoc));
+    });
+    m.def("pdf_doc_to_utf8", [](py::bytes pdfdoc) -> py::str {
+        return py::str(QUtil::pdf_doc_to_utf8(pdfdoc));
+    });
 
-    m.def("_test_file_not_found",
-        []() -> void {
-            (void) QUtil::safe_fopen("does_not_exist__42", "rb");
-        },
-        "Used to test that C++ system error -> Python exception propagation works."
-    );
+    m.def(
+        "_test_file_not_found",
+        []() -> void { (void)QUtil::safe_fopen("does_not_exist__42", "rb"); },
+        "Used to test that C++ system error -> Python exception propagation works.");
 
-    m.def("_translate_qpdf",
-        [](std::string s) {
-            return translate_qpdf_error(s).first;
-        }
-    );
+    m.def(
+        "_translate_qpdf", [](std::string s) { return translate_qpdf_error(s).first; });
 
-    m.def("set_decimal_precision",
+    m.def(
+        "set_decimal_precision",
         [](uint prec) {
             DECIMAL_PRECISION = prec;
             return DECIMAL_PRECISION;
         },
-        "Set the number of decimal digits to use when converting floats."
-    );
-    m.def("get_decimal_precision",
-        []() {
-            return DECIMAL_PRECISION;
-        },
-        "Get the number of decimal digits to use when converting floats."
-    );
-    m.def("set_access_default_mmap",
+        "Set the number of decimal digits to use when converting floats.");
+    m.def(
+        "get_decimal_precision",
+        []() { return DECIMAL_PRECISION; },
+        "Get the number of decimal digits to use when converting floats.");
+    m.def(
+        "set_access_default_mmap",
         [](bool mmap) {
             MMAP_DEFAULT = mmap;
             return mmap;
         },
-        "If set to true, ``pikepdf.open(...access_mode=access_default)`` will use mmap."
-    );
-    m.def("set_flate_compression_level",
+        "If set to true, ``pikepdf.open(...access_mode=access_default)`` will use "
+        "mmap.");
+    m.def(
+        "set_flate_compression_level",
         [](int level) {
             if (0 <= level && level <= 9)
                 Pl_Flate::setCompressionLevel(level); // LCOV_EXCL_LINE
             else
-                throw py::value_error("Flate compression level must be between 0 and 9");
+                throw py::value_error(
+                    "Flate compression level must be between 0 and 9");
         },
-        "Set the compression level whenever the Flate compression algorithm is used."
-    );
+        "Set the compression level whenever the Flate compression algorithm is used.");
 
     static py::exception<QPDFExc> exc_main(m, "PdfError");
     static py::exception<QPDFExc> exc_password(m, "PasswordError");
     static py::exception<std::logic_error> exc_foreign(m, "ForeignObjectError");
     py::register_exception_translator([](std::exception_ptr p) {
         try {
-            if (p) std::rethrow_exception(p);
+            if (p)
+                std::rethrow_exception(p);
         } catch (const QPDFExc &e) {
             if (e.getErrorCode() == qpdf_e_password) {
                 exc_password(e.what());
@@ -164,9 +157,7 @@ PYBIND11_MODULE(_qpdf, m) {
             if (e.getErrno() != 0) {
                 TemporaryErrnoChange errno_holder(e.getErrno());
                 PyErr_SetFromErrnoWithFilename(
-                    PyExc_OSError,
-                    fix_pypy36_const_char(e.getDescription().c_str())
-                );
+                    PyExc_OSError, fix_pypy36_const_char(e.getDescription().c_str()));
             } else {
                 exc_main(e.what());
             }
@@ -181,13 +172,12 @@ PYBIND11_MODULE(_qpdf, m) {
         }
     });
 
-
 #if defined(VERSION_INFO) && defined(_MSC_VER)
-#define msvc_inner_stringify(s) #s
-#define msvc_stringify(s) msvc_inner_stringify(s)
+#    define msvc_inner_stringify(s) #    s
+#    define msvc_stringify(s) msvc_inner_stringify(s)
     m.attr("__version__") = msvc_stringify(VERSION_INFO);
-#undef msvc_stringify
-#undef msvc_inner_stringify
+#    undef msvc_stringify
+#    undef msvc_inner_stringify
 #elif defined(VERSION_INFO)
     m.attr("__version__") = VERSION_INFO;
 #else

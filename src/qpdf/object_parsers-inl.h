@@ -16,37 +16,33 @@
 #include "pikepdf.h"
 #include <qpdf/QPDFTokenizer.hh>
 
-
 class PyParserCallbacks : public QPDFObjectHandle::ParserCallbacks {
 public:
     using QPDFObjectHandle::ParserCallbacks::ParserCallbacks;
     virtual ~PyParserCallbacks() = default;
 
-    void handleObject(QPDFObjectHandle h) override {
-        PYBIND11_OVERLOAD_PURE_NAME(
-            void,
+    void handleObject(QPDFObjectHandle h) override
+    {
+        PYBIND11_OVERLOAD_PURE_NAME(void,
             QPDFObjectHandle::ParserCallbacks,
             "handle_object", /* Python name */
-            handleObject, /* C++ name */
-            h
-        );
+            handleObject,    /* C++ name */
+            h);
     }
 
-    void handleEOF() override {
-        PYBIND11_OVERLOAD_PURE_NAME(
-            void,
+    void handleEOF() override
+    {
+        PYBIND11_OVERLOAD_PURE_NAME(void,
             QPDFObjectHandle::ParserCallbacks,
             "handle_eof", /* Python name */
-            handleEOF, /* C++ name; trailing comma needed for macro */
+            handleEOF,    /* C++ name; trailing comma needed for macro */
         );
     }
 };
 
-
 class OperandGrouper : public QPDFObjectHandle::ParserCallbacks {
 public:
-    OperandGrouper(const std::string& operators)
-        : parsing_inline_image(false), count(0)
+    OperandGrouper(const std::string &operators) : parsing_inline_image(false), count(0)
     {
         std::istringstream f(operators);
         std::string s;
@@ -66,7 +62,8 @@ public:
             if (!this->whitelist.empty()) {
                 if (op[0] == 'q' || op[0] == 'Q') {
                     // We have token with multiple stack push/pops
-                    if (this->whitelist.count("q") == 0 && this->whitelist.count("Q") == 0) {
+                    if (this->whitelist.count("q") == 0 &&
+                        this->whitelist.count("Q") == 0) {
                         this->tokens.clear();
                         return;
                     }
@@ -81,20 +78,19 @@ public:
                 if (op == "ID") {
                     this->inline_metadata = this->tokens;
                 } else if (op == "EI") {
-                    auto PdfInlineImage = py::module_::import("pikepdf").attr("PdfInlineImage");
-                    auto kwargs = py::dict();
-                    kwargs["image_data"] = this->tokens.at(0);
+                    auto PdfInlineImage =
+                        py::module_::import("pikepdf").attr("PdfInlineImage");
+                    auto kwargs            = py::dict();
+                    kwargs["image_data"]   = this->tokens.at(0);
                     kwargs["image_object"] = this->inline_metadata;
-                    auto iimage = PdfInlineImage(**kwargs);
+                    auto iimage            = PdfInlineImage(**kwargs);
 
                     // Package as list with single element for consistency
                     auto iimage_list = py::list();
                     iimage_list.append(iimage);
 
                     auto instruction = py::make_tuple(
-                        iimage_list,
-                        QPDFObjectHandle::newOperator("INLINE IMAGE")
-                    );
+                        iimage_list, QPDFObjectHandle::newOperator("INLINE IMAGE"));
                     this->instructions.append(instruction);
 
                     this->parsing_inline_image = false;
@@ -102,7 +98,7 @@ public:
                 }
             } else {
                 py::list operand_list = py::cast(this->tokens);
-                auto instruction = py::make_tuple(operand_list, obj);
+                auto instruction      = py::make_tuple(operand_list, obj);
                 this->instructions.append(instruction);
             }
             this->tokens.clear();
@@ -117,15 +113,9 @@ public:
             this->warning = "Unexpected end of stream";
     }
 
-    py::list getInstructions() const
-    {
-        return this->instructions;
-    }
+    py::list getInstructions() const { return this->instructions; }
 
-    std::string getWarning() const
-    {
-        return this->warning;
-    }
+    std::string getWarning() const { return this->warning; }
 
 private:
     std::set<std::string> whitelist;

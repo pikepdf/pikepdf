@@ -36,8 +36,7 @@
 std::string objecthandle_scalar_value(QPDFObjectHandle h, bool escaped)
 {
     std::ostringstream ss;
-    switch (h.getTypeCode())
-    {
+    switch (h.getTypeCode()) {
     case QPDFObject::object_type_e::ot_null:
         ss << "None";
         break;
@@ -71,8 +70,7 @@ std::string objecthandle_pythonic_typename(QPDFObjectHandle h)
 {
     std::ostringstream ss;
 
-    switch (h.getTypeCode())
-    {
+    switch (h.getTypeCode()) {
     case QPDFObject::object_type_e::ot_name:
         ss << "pikepdf."
            << "Name";
@@ -97,13 +95,10 @@ std::string objecthandle_pythonic_typename(QPDFObjectHandle h)
            << "Array";
         break;
     case QPDFObject::object_type_e::ot_dictionary:
-        if (h.hasKey("/Type"))
-        {
+        if (h.hasKey("/Type")) {
             ss << "pikepdf."
                << "Dictionary(Type=\"" << h.getKey("/Type").getName() << "\")";
-        }
-        else
-        {
+        } else {
             ss << "pikepdf."
                << "Dictionary";
         }
@@ -133,21 +128,20 @@ std::string objecthandle_pythonic_typename(QPDFObjectHandle h)
 
 std::string objecthandle_repr_typename_and_value(QPDFObjectHandle h)
 {
-    return objecthandle_pythonic_typename(h) +
-           "(" + objecthandle_scalar_value(h) + ")";
+    return objecthandle_pythonic_typename(h) + "(" + objecthandle_scalar_value(h) + ")";
 }
 
-static std::string objecthandle_repr_inner(QPDFObjectHandle h, uint depth, std::set<QPDFObjGen> *visited, bool *pure_expr)
+static std::string objecthandle_repr_inner(
+    QPDFObjectHandle h, uint depth, std::set<QPDFObjGen> *visited, bool *pure_expr)
 {
     StackGuard sg(" objecthandle_repr_inner");
     std::ostringstream ss;
 
-    if (!h.isScalar())
-    {
-        if (visited->count(h.getObjGen()) > 0)
-        {
+    if (!h.isScalar()) {
+        if (visited->count(h.getObjGen()) > 0) {
             *pure_expr = false;
-            ss << "<.get_object(" << h.getObjGen().getObj() << ", " << h.getObjGen().getGen() << ")>";
+            ss << "<.get_object(" << h.getObjGen().getObj() << ", "
+               << h.getObjGen().getGen() << ")>";
             return ss.str();
         }
 
@@ -155,8 +149,7 @@ static std::string objecthandle_repr_inner(QPDFObjectHandle h, uint depth, std::
             visited->insert(h.getObjGen());
     }
 
-    switch (h.getTypeCode())
-    {
+    switch (h.getTypeCode()) {
     case QPDFObject::object_type_e::ot_null:
     case QPDFObject::object_type_e::ot_boolean:
     case QPDFObject::object_type_e::ot_integer:
@@ -184,8 +177,7 @@ static std::string objecthandle_repr_inner(QPDFObjectHandle h, uint depth, std::
         {
             bool first = true;
             ss << " ";
-            for (auto item : h.getArrayAsVector())
-            {
+            for (auto item : h.getArrayAsVector()) {
                 if (!first)
                     ss << ", ";
                 first = false;
@@ -200,20 +192,19 @@ static std::string objecthandle_repr_inner(QPDFObjectHandle h, uint depth, std::
         {
             bool first = true;
             ss << "\n";
-            for (auto item : h.getDictAsMap())
-            {
+            for (auto item : h.getDictAsMap()) {
                 if (!first)
                     ss << ",\n";
                 first = false;
                 ss << std::string((depth + 1) * 2, ' '); // Indent each line
-                if (item.first == "/Parent" && item.second.isPagesObject())
-                {
-                    // Don't visit /Parent keys since that just puts every page on the repr() of a single page
+                if (item.first == "/Parent" && item.second.isPagesObject()) {
+                    // Don't visit /Parent keys since that just puts every page on the
+                    // repr() of a single page
                     ss << std::quoted(item.first) << ": <reference to /Pages>";
-                }
-                else
-                {
-                    ss << std::quoted(item.first) << ": " << objecthandle_repr_inner(item.second, depth + 1, visited, pure_expr);
+                } else {
+                    ss << std::quoted(item.first) << ": "
+                       << objecthandle_repr_inner(
+                              item.second, depth + 1, visited, pure_expr);
                 }
             }
             ss << "\n";
@@ -243,30 +234,25 @@ static std::string objecthandle_repr_inner(QPDFObjectHandle h, uint depth, std::
 
 std::string objecthandle_repr(QPDFObjectHandle h)
 {
-    if (h.isScalar() || h.isOperator())
-    {
+    if (h.isScalar() || h.isOperator()) {
         // qpdf does not consider Operator a scalar but it is as far we
         // are concerned here
         return objecthandle_repr_typename_and_value(h);
     }
 
     std::set<QPDFObjGen> visited;
-    bool pure_expr = true;
+    bool pure_expr    = true;
     std::string inner = objecthandle_repr_inner(h, 0, &visited, &pure_expr);
     std::string output;
 
-    if (h.isScalar() || h.isDictionary() || h.isArray())
-    {
+    if (h.isScalar() || h.isDictionary() || h.isArray()) {
         output = objecthandle_pythonic_typename(h) + "(" + inner + ")";
-    }
-    else
-    {
-        output = inner;
+    } else {
+        output    = inner;
         pure_expr = false;
     }
 
-    if (pure_expr)
-    {
+    if (pure_expr) {
         // The output contains no external or parent objects so this object
         // can be output as a Python expression and rebuild with repr(output)
         return output;

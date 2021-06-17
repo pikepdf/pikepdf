@@ -23,25 +23,25 @@ for internal uses are in single quotes (``'``).
 Code style: C++
 ===============
 
-In lieu of a C++ autoformatter that is half as good as ``black``, formatting is more
-lax.
+The file ``.clang-format`` contains our C++ format based on Clang's formatter,
+imperfect as it is. We eagerly await a dangling parenthesis
+(https://reviews.llvm.org/D33029).
 
-We have no idea whether to put the pointer designator beside the type or the
-variable. It logically belongs to the type, but looks better beside the variable,
-and ugly in between.
-
-As a general rule for code style, PEP8-style naming conventions should be used.
-That is, variable and method names are snake_case, class names are CamelCase.
-Our coding conventions are closer to pybind11's than QPDF's. When a C++ object
-wraps is a Python object, it should follow the Python naming conventions for
-that type of object, e.g. ``auto Decimal = py::module_::import("decimal").attr("Decimal")``
-for a reference to the Python ``Decimal`` class.
+In general we prefer to make our C++ look similar to Python PEP8, within reason,
+because our code is primarily a Python binding. That is, variable and method names
+are snake_case, class names are CamelCase. Our coding conventions are closer to
+pybind11's than QPDF's. When a C++ object wraps is a Python object, it should follow
+the Python naming conventions for that type of object, e.g.
+``auto Decimal = py::module_::import("decimal").attr("Decimal")``
+for a reference to the Python ``Decimal`` class even though it is a C++ object.
 
 We don't like the traditional C++ .cpp/.h separation that results in a lot of
-repetition. Headers that are included by only one .cpp can contain a complete class.
+repetition. Headers that are included by only one .cpp can contain a complete class,
+and get the ``-inl.h`` suffix, unless multiple inclusion is required.
 
 Use RAII. Avoid naked pointers. Use the STL, use ``std::string`` instead of ``char *``.
-Use ``#pragma once`` as a header guard; it's been around for 25 years.
+Use ``#pragma once`` as a header guard rather than silly ``#ifdef``; they have
+been around for 25 years.
 
 Tests
 =====

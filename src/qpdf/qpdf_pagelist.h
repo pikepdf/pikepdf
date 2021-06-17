@@ -16,7 +16,7 @@ void init_pagelist(py::module_ &m);
 
 class PageList {
 public:
-    PageList(std::shared_ptr<QPDF> q, size_t iterpos = 0) : iterpos(iterpos), qpdf(q) {};
+    PageList(std::shared_ptr<QPDF> q, size_t iterpos = 0) : iterpos(iterpos), qpdf(q){};
 
     QPDFObjectHandle get_page(size_t index) const;
     py::list get_pages(py::slice slice) const;
@@ -27,6 +27,7 @@ public:
     size_t count() const;
     void insert_page(size_t index, py::handle obj);
     void insert_page(size_t index, QPDFObjectHandle page);
+
 public:
     size_t iterpos;
     std::shared_ptr<QPDF> qpdf;

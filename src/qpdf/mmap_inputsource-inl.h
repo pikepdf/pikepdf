@@ -6,7 +6,6 @@
  * Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
  */
 
-
 #include <cstdio>
 #include <cstring>
 
@@ -39,21 +38,21 @@
 // When Python is manipulating the PDF, generally the GIL is held, but we
 // can release before doing a read, provided the other thread does not mess with
 // our file.
-class MmapInputSource : public InputSource
-{
+class MmapInputSource : public InputSource {
 public:
-    MmapInputSource(py::object stream, const std::string& description, bool close_stream) :
-            InputSource(), stream(stream), close_stream(close_stream)
+    MmapInputSource(
+        py::object stream, const std::string &description, bool close_stream)
+        : InputSource(), stream(stream), close_stream(close_stream)
     {
         py::gil_scoped_acquire acquire;
-        py::int_ fileno = stream.attr("fileno")();
-        int fd = fileno;
+        py::int_ fileno  = stream.attr("fileno")();
+        int fd           = fileno;
         auto mmap_module = py::module_::import("mmap");
-        auto mmap_fn = mmap_module.attr("mmap");
+        auto mmap_fn     = mmap_module.attr("mmap");
 
         // Use Python's mmap API since it is more portable than platform versions.
         auto access_read = mmap_module.attr("ACCESS_READ");
-        this->mmap = mmap_fn(fd, 0, py::arg("access")=access_read);
+        this->mmap       = mmap_fn(fd, 0, py::arg("access") = access_read);
         py::buffer view(this->mmap);
 
         // .request(false) -> request read-only mapping
@@ -62,13 +61,11 @@ public:
         this->buffer_info = std::make_unique<py::buffer_info>(view.request(false));
 
         auto qpdf_buffer = std::make_unique<Buffer>(
-            static_cast<unsigned char*>(this->buffer_info->ptr),
-            this->buffer_info->size
-        );
-        this->bis = std::make_unique<BufferInputSource>(
-            description,
+            static_cast<unsigned char *>(this->buffer_info->ptr),
+            this->buffer_info->size);
+        this->bis = std::make_unique<BufferInputSource>(description,
             qpdf_buffer.release(),
-            false  // own_memory=false
+            false // own_memory=false
         );
     }
     virtual ~MmapInputSource()
@@ -95,20 +92,14 @@ public:
                 std::cerr << "Exception in " << __func__ << ": " << e.what();
         }
     }
-    MmapInputSource(const MmapInputSource&) = delete;
-    MmapInputSource& operator= (const MmapInputSource&) = delete;
-    MmapInputSource(MmapInputSource&&) = delete;
-    MmapInputSource& operator= (MmapInputSource&&) = delete;
+    MmapInputSource(const MmapInputSource &) = delete;
+    MmapInputSource &operator=(const MmapInputSource &) = delete;
+    MmapInputSource(MmapInputSource &&)                 = delete;
+    MmapInputSource &operator=(MmapInputSource &&) = delete;
 
-    std::string const& getName() const override
-    {
-        return this->bis->getName();
-    }
+    std::string const &getName() const override { return this->bis->getName(); }
 
-    qpdf_offset_t tell() override
-    {
-        return this->bis->tell();
-    }
+    qpdf_offset_t tell() override { return this->bis->tell(); }
 
     void seek(qpdf_offset_t offset, int whence) override
     {
@@ -123,15 +114,12 @@ public:
     }
     // LCOV_EXCL_STOP
 
-    size_t read(char* buffer, size_t length) override
+    size_t read(char *buffer, size_t length) override
     {
         return this->bis->read(buffer, length);
     }
 
-    void unreadCh(char ch) override
-    {
-        this->bis->unreadCh(ch);
-    }
+    void unreadCh(char ch) override { this->bis->unreadCh(ch); }
 
     qpdf_offset_t findAndSkipNextEOL() override
     {
