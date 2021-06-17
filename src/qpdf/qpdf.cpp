@@ -29,8 +29,8 @@
 #include <pybind11/buffer_info.h>
 
 #include "qpdf_pagelist.h"
-#include "qpdf_inputsource.h"
-#include "mmap_inputsource.h"
+#include "qpdf_inputsource-inl.h"
+#include "mmap_inputsource-inl.h"
 #include "pipeline.h"
 #include "utils.h"
 #include "gsl.h"

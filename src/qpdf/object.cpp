@@ -26,7 +26,7 @@
 #include "pikepdf.h"
 #include "utils.h"
 
-#include "object_parsers.h"
+#include "object_parsers-inl.h"
 
 /*
 Type table
