@@ -94,3 +94,11 @@ For example, to initialize a ``Page`` support model:
 
 .. autoclass:: pikepdf.Annotation
     :members:
+
+    Describes an annotation in a PDF, such as a comment, underline, copy editing marks,
+    interactive widgets, redactions, 3D objects, sound and video clips.
+
+    See the PDF reference manual section 12.5.6 for the full list of annotation types
+    and definition of terminology.
+
+    .. versionadded:: 2.12
