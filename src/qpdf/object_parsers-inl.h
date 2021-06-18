@@ -9,6 +9,7 @@
 #pragma once
 
 #include <sstream>
+#include <locale>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -45,6 +46,7 @@ public:
     OperandGrouper(const std::string &operators) : parsing_inline_image(false), count(0)
     {
         std::istringstream f(operators);
+        f.imbue(std::locale::classic());
         std::string s;
         while (std::getline(f, s, ' ')) {
             this->whitelist.insert(s);

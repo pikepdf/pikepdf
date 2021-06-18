@@ -19,6 +19,7 @@
 #include <sstream>
 #include <iostream>
 #include <iomanip>
+#include <locale>
 
 #include <qpdf/Constants.h>
 #include <qpdf/Types.h>
@@ -36,6 +37,7 @@
 std::string objecthandle_scalar_value(QPDFObjectHandle h, bool escaped)
 {
     std::ostringstream ss;
+    ss.imbue(std::locale::classic());
     switch (h.getTypeCode()) {
     case QPDFObject::object_type_e::ot_null:
         ss << "None";
@@ -69,6 +71,7 @@ std::string objecthandle_scalar_value(QPDFObjectHandle h, bool escaped)
 std::string objecthandle_pythonic_typename(QPDFObjectHandle h)
 {
     std::ostringstream ss;
+    ss.imbue(std::locale::classic());
 
     switch (h.getTypeCode()) {
     case QPDFObject::object_type_e::ot_name:
@@ -136,6 +139,7 @@ static std::string objecthandle_repr_inner(
 {
     StackGuard sg(" objecthandle_repr_inner");
     std::ostringstream ss;
+    ss.imbue(std::locale::classic());
 
     if (!h.isScalar()) {
         if (visited->count(h.getObjGen()) > 0) {
