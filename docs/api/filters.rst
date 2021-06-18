@@ -55,10 +55,10 @@ describes how it should transform the stream of tokens.
         The token data represents an integer, real number, null or boolean,
         respectively.
 
-    .. attribute:: Name
+    .. attribute:: name
 
-        The token is the name of an object. In practice, these are among the
-        most interesting tokens.
+        The token is the name (pikepdf.Name) of an object. In practice, these
+        are among the most interesting tokens.
 
     .. attribute:: inline_image
 

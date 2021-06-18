@@ -15,7 +15,7 @@ Code style: Python
 ==================
 
 We use PEP8, ``black`` for code formatting and ``isort`` for import sorting. The
-settings for these programs are in ``pyproject.toml`` and ``setup.cfg``. Pull
+settings for these programs are in :file:`pyproject.toml` and :file:`setup.cfg`. Pull
 requests should follow the style guide. One difference we use from "black" style
 is that strings shown to the user are always in double quotes (``"``) and strings
 for internal uses are in single quotes (``'``).
@@ -23,8 +23,8 @@ for internal uses are in single quotes (``'``).
 Code style: C++
 ===============
 
-The file ``.clang-format`` contains our C++ format based on Clang's formatter,
-imperfect as it is. We eagerly await a dangling parenthesis
+The file :file:`.clang-format` contains our C++ format
+based on Clang's formatter, imperfect as it is. We eagerly await a dangling parenthesis
 (https://reviews.llvm.org/D33029).
 
 In general we prefer to make our C++ look similar to Python PEP8, within reason,
