@@ -1108,3 +1108,32 @@ class Extend_Page:
 class Extend_Token:
     def __repr__(self):
         return f'pikepdf.Token({self.type_}, {self.raw_value})'
+
+
+@augments(NameTree)
+class Extend_NameTree:
+    def __len__(self):
+        return len(self._as_map())
+
+    def __iter__(self):
+        for name, _obj in self._as_map():
+            yield name
+
+    keys = __iter__
+
+    def items(self):
+        for name, obj in self._as_map():
+            yield name, obj
+
+    def values(self):
+        for name, obj in self._as_map():
+            yield obj
+
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+    def __eq__(self, other):
+        return self.obj == other.obj

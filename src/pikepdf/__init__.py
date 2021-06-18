@@ -24,6 +24,7 @@ from ._qpdf import (
     AccessMode,
     Annotation,
     ForeignObjectError,
+    NameTree,
     ObjectStreamMode,
     Page,
     PasswordError,
