@@ -10,17 +10,19 @@ the PDF specification.
 pikepdf does not currently apply support models to "raw" objects automatically,
 but might do so in a future release (this would break backward compatibility).
 
-For example, to initialize a ``Page`` support model:
-
-.. code-block:: python
-
-    from pikepdf import Pdf, Page
-
-    Pdf = open(...)
-    page_support_model = Page(pdf.pages[0])
-
 .. autoclass:: pikepdf.Page
     :members:
+
+    Support model wrapper around a raw page dictionary object.
+
+    To initialize a ``Page`` support model:
+
+    .. code-block:: python
+
+        from pikepdf import Pdf, Page
+
+        Pdf = open(...)
+        page_support_model = Page(pdf.pages[0])
 
 .. autoclass:: pikepdf.PdfMatrix
     :members:
@@ -37,7 +39,10 @@ For example, to initialize a ``Page`` support model:
 
     .. attribute:: f
 
-        Return one of the six "active values" of the matrix.
+        Return one of the six "active values" of the affine matrix. ``e`` and ``f``
+        correspond to x- and y-axis translation respectively. The other four
+        letters are a 2×2 matrix that can express rotation, scaling and skewing;
+        ``a=1 b=0 c=0 d=1`` is the identity matrix.
 
 .. autoclass:: pikepdf.PdfImage
     :members:

@@ -106,7 +106,7 @@ void init_annotation(py::module_ &m)
                 name (pikepdf.Name): What to call the object we create.
                 rotate: Should be set to the page's /Rotate value or 0.
             Note:
-                This method is done mainly with QPDF. It behavior may change when
+                This method is done mainly with QPDF. Its behavior may change when
                 different QPDF versions are used.
             )~~~",
             py::arg("name"),
