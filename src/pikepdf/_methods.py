@@ -14,19 +14,32 @@ We can also move the implementation to C++ if desired.
 
 import inspect
 import shutil
-from collections.abc import KeysView
+from collections.abc import KeysView, MutableMapping
 from decimal import Decimal
 from io import BytesIO
 from os import replace
 from pathlib import Path
 from subprocess import PIPE, run
 from tempfile import NamedTemporaryFile
-from typing import Any, BinaryIO, Callable, List, Optional, Tuple, Type, TypeVar, Union
+from typing import (
+    Any,
+    BinaryIO,
+    Callable,
+    ItemsView,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    ValuesView,
+)
 from warnings import warn
 
 from . import Array, Dictionary, Name, Object, Page, Pdf, Stream
 from ._qpdf import (
     AccessMode,
+    NameTree,
     ObjectStreamMode,
     PdfError,
     StreamDecodeLevel,
@@ -1111,29 +1124,12 @@ class Extend_Token:
 
 
 @augments(NameTree)
-class Extend_NameTree:
+class Extend_NameTree(MutableMapping):
     def __len__(self):
         return len(self._as_map())
 
     def __iter__(self):
-        for name, _obj in self._as_map():
-            yield name
-
-    keys = __iter__
-
-    def items(self):
-        for name, obj in self._as_map():
-            yield name, obj
-
-    def values(self):
-        for name, obj in self._as_map():
-            yield obj
-
-    def get(self, key, default=None):
-        try:
-            return self[key]
-        except KeyError:
-            return default
+        yield from self._as_map()
 
     def __eq__(self, other):
         return self.obj == other.obj
