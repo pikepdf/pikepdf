@@ -1126,16 +1126,16 @@ class Extend_Token:
 @augments(NameTree)
 class Extend_NameTree(MutableMapping):
     def __len__(self):
-        return len(_ for _ in iter(self))
+        return len(self._as_map())
 
     def keys(self):
-        return KeysView(k for k, _v in iter(self))
+        return KeysView(self._as_map())
 
     def values(self):
-        return ValuesView(v for _k, v in iter(self))
+        return ValuesView(self._as_map())
 
     def items(self):
-        return ItemsView(k_v for k_v in iter(self))
+        return ItemsView(self._as_map())
 
     def __eq__(self, other):
         return self.obj == other.obj

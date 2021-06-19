@@ -66,10 +66,10 @@ public:
 
     std::pair<std::string, QPDFObjectHandle> next()
     {
-        if (!this->iter.valid())
-            throw std::logic_error("iterator not valid");
         if (this->iter == this->nt->end())
             throw py::stop_iteration();
+        if (!this->iter.valid())
+            throw std::logic_error("iterator not valid");
         auto result = *(this->iter);
         this->iter++;
         return result;
