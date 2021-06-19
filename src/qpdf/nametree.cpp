@@ -51,8 +51,33 @@ public:
             throw py::key_error(key);
     }
 
+    QPDFNameTreeObjectHelper::iterator begin() { return this->ntoh.begin(); }
+    QPDFNameTreeObjectHelper::iterator end() { return this->ntoh.end(); }
+
 private:
     QPDFNameTreeObjectHelper ntoh;
+};
+
+class NameTreeIterator {
+    friend class NameTreeHolder;
+
+public:
+    NameTreeIterator(std::shared_ptr<NameTreeHolder> nt) : nt(nt), iter(nt->begin()) {}
+
+    std::pair<std::string, QPDFObjectHandle> next()
+    {
+        if (!this->iter.valid())
+            throw std::logic_error("iterator not valid");
+        if (this->iter == this->nt->end())
+            throw py::stop_iteration();
+        auto result = *(this->iter);
+        this->iter++;
+        return result;
+    }
+
+private:
+    std::shared_ptr<NameTreeHolder> nt;
+    QPDFNameTreeObjectHelper::iterator iter;
 };
 
 void init_nametree(py::module_ &m)
@@ -96,5 +121,11 @@ void init_nametree(py::module_ &m)
             })
         .def("__delitem__",
             [](NameTreeHolder &nt, std::string const &name) { nt.remove(name); })
+        .def("__iter__",
+            [](std::shared_ptr<NameTreeHolder> nt) { return NameTreeIterator(nt); })
         .def("_as_map", [](NameTreeHolder &nt) { return nt.getAsMap(); });
+
+    py::class_<NameTreeIterator>(m, "NameTreeIterator")
+        .def("__next__", &NameTreeIterator::next)
+        .def("__iter__", [](NameTreeIterator &nti) { return nti; });
 }
