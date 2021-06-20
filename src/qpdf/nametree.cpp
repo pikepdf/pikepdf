@@ -59,8 +59,6 @@ private:
 };
 
 class NameTreeIterator {
-    friend class NameTreeHolder;
-
 public:
     NameTreeIterator(std::shared_ptr<NameTreeHolder> nt) : nt(nt), iter(nt->begin()) {}
 
@@ -87,7 +85,9 @@ void init_nametree(py::module_ &m)
             py::arg("oh"),
             py::arg("q"),
             py::kw_only(),
-            py::arg("auto_repair") = true)
+            py::arg("auto_repair") = true,
+            py::keep_alive<0, 1>(),
+            py::keep_alive<0, 2>())
         .def_property_readonly(
             "obj",
             [](NameTreeHolder &nt) { return nt.getObjectHandle(); },
@@ -110,19 +110,28 @@ void init_nametree(py::module_ &m)
         .def("__getitem__",
             [](NameTreeHolder &nt, std::string const &name) {
                 QPDFObjectHandle oh;
-                if (nt.findObject(name, oh))
-                    return py::cast(oh);
+                if (nt.findObject(name, oh)) // writes to 'oh'
+                    return oh;
                 else
                     throw py::key_error(name);
             })
         .def("__setitem__",
-            [](NameTreeHolder &nt, std::string const &name, QPDFObjectHandle oh) {
+            [](NameTreeHolder &nt, std::string const &name, py::object obj) {
+                auto oh = objecthandle_encode(obj);
                 nt.insert(name, oh);
             })
+        .def(
+            "__setitem__",
+            [](NameTreeHolder &nt, std::string const &name, QPDFObjectHandle oh) {
+                nt.insert(name, oh);
+            },
+            py::keep_alive<0, 1>())
         .def("__delitem__",
             [](NameTreeHolder &nt, std::string const &name) { nt.remove(name); })
-        .def("__iter__",
-            [](std::shared_ptr<NameTreeHolder> nt) { return NameTreeIterator(nt); })
+        .def(
+            "_nameval_iter",
+            [](std::shared_ptr<NameTreeHolder> nt) { return NameTreeIterator(nt); },
+            py::keep_alive<0, 1>())
         .def("_as_map", [](NameTreeHolder &nt) { return nt.getAsMap(); });
 
     py::class_<NameTreeIterator>(m, "NameTreeIterator")

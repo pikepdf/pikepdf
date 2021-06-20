@@ -1128,6 +1128,10 @@ class Extend_NameTree(MutableMapping):
     def __len__(self):
         return len(self._as_map())
 
+    def __iter__(self):
+        for name, _value in self._nameval_iter():
+            yield name
+
     def keys(self):
         return KeysView(self._as_map())
 
