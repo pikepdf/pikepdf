@@ -95,7 +95,15 @@ def augments(cls_cpp: Type[Any]):
 
     (Alternative ideas: https://github.com/pybind/pybind11/issues/1074)
     """
-    ATTR_WHITELIST = {'__repr__', '__enter__', '__exit__'}
+    ATTR_WHITELIST = {
+        '__enter__',
+        '__eq__',
+        '__exit__',
+        '__iter__',
+        '__len__',
+        '__next__',
+        '__repr__',
+    }
 
     def class_augment(cls, cls_cpp=cls_cpp):
         for name, member in inspect.getmembers(cls):
@@ -1142,4 +1150,4 @@ class Extend_NameTree(MutableMapping):
         return ItemsView(self._as_map())
 
     def __eq__(self, other):
-        return self.obj == other.obj
+        return self.obj.objgen == other.obj.objgen
