@@ -168,7 +168,9 @@ jobs:
           export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
           python -m venv v
           source v/bin/activate
-          python -m pip install dist/*.tar.gz[test]  # yes this works
+          SDIST=dist/*.tar.gz
+          echo $SDIST
+          python -m pip install ${SDIST}[test]  # yes this works
           python -m pytest -nauto
           deactivate
 

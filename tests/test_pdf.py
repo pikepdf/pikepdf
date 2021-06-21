@@ -334,8 +334,8 @@ def test_invalid_flate_compression_level():
         pikepdf._qpdf.set_flate_compression_level(99)
 
 
-@pytest.mark.skipif(os.name in ('nt', 'darwin'), reason="non-forking platform")
 @pytest.mark.forked
+@pytest.mark.skipif(os.name in ('nt', 'darwin'), reason="non-forking platform")
 def test_flate_compression_level():
     pikepdf._qpdf.set_flate_compression_level(1)
 
