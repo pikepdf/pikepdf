@@ -63,73 +63,12 @@ if sys.platform == 'cygwin':
 # Debug build
 # ext_modules[0].extra_compile_args.append('-g3')
 
-setup_py_cwd = dirname(__file__)
-
-with open(join(setup_py_cwd, 'requirements/docs.txt')) as f:
-    docs_require = [
-        line.strip() for line in f if line.strip() and not line.strip().startswith('#')
-    ]
-
-
-with open(join(setup_py_cwd, 'requirements/test.txt')) as f:
-    tests_require = [
-        line.strip() for line in f if line.strip() and not line.strip().startswith('#')
-    ]
-
-with open(join(setup_py_cwd, 'README.md'), encoding='utf-8') as f:
-    readme = f.read()
 
 if __name__ == '__main__':
     if ParallelCompile:
         ParallelCompile().install()
     setup(
-        name='pikepdf',
-        author='James R. Barlow',
-        author_email='james@purplerock.ca',
-        url='https://github.com/pikepdf/pikepdf',
-        description='Read and write PDFs with Python, powered by qpdf',
-        long_description=readme,
-        long_description_content_type='text/markdown',
         ext_modules=ext_modules,
-        install_requires=[
-            'lxml >= 4.0',
-            'Pillow >= 6',  # only needed for manipulating images
-        ],
-        setup_requires=[
-            'setuptools >= 50',
-            'wheel >= 0.35',
-            'setuptools_scm[toml] >= 4.1',
-            'setuptools_scm_git_archive',
-            'pybind11 >= 2.6.0, <3',
-        ],
-        extras_require={'docs': docs_require},
-        zip_safe=False,
-        python_requires='>=3.6',
         use_scm_version=True,
-        tests_require=tests_require,
         cmdclass={"build_ext": build_ext},
-        package_dir={'': 'src'},
-        packages=find_packages('src'),
-        package_data={'': ['*.txt'], 'pikepdf': ['*.dll', 'py.typed']},
-        classifiers=[
-            "Development Status :: 5 - Production/Stable",
-            "Intended Audience :: Developers",
-            "Intended Audience :: Information Technology",
-            "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
-            "Programming Language :: Python :: 3.6",
-            "Programming Language :: Python :: 3.7",
-            "Programming Language :: Python :: 3.8",
-            "Programming Language :: Python :: 3.9",
-            "Programming Language :: Python :: 3 :: Only",
-            "Programming Language :: Python :: Implementation :: CPython",
-            "Programming Language :: Python :: Implementation :: PyPy",
-            "Programming Language :: C++",
-            "Topic :: Multimedia :: Graphics",
-            "Topic :: Software Development :: Libraries",
-        ],
-        project_urls={
-            'Documentation': 'https://pikepdf.readthedocs.io/',
-            'Source': 'https://github.com/pikepdf/pikepdf',
-            'Tracker': 'https://github.com/pikepdf/pikepdf/issues',
-        },
     )

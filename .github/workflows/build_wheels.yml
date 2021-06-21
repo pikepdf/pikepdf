@@ -17,7 +17,7 @@ jobs:
     env:
       CIBW_SKIP: "cp27-* cp35-* pp2*"
       CIBW_TEST_COMMAND: "pytest -nauto {project}/tests"
-      CIBW_TEST_REQUIRES: "-r requirements/test.txt"
+      CIBW_TEST_EXTRAS: test
       CIBW_BEFORE_ALL: "bash {project}/build-scripts/linux-build-wheel-deps.bash"
       CIBW_BUILD: "*-${{ matrix.platform }}"
     strategy:
@@ -66,7 +66,7 @@ jobs:
     env:
       CIBW_SKIP: "cp27-* cp35-* pp2*"
       CIBW_TEST_COMMAND: "pytest -nauto {project}/tests"
-      CIBW_TEST_REQUIRES: "-r requirements/test.txt"
+      CIBW_TEST_EXTRAS: test
       CIBW_BEFORE_ALL: "brew install qpdf"
     strategy:
       matrix:
@@ -84,9 +84,9 @@ jobs:
 
       - name: Build wheels
         uses: joerick/cibuildwheel@v1.11.1
+
         #env:
         #  CIBW_ARCHS_MACOS: x86_64 universal2 # for Apple Silicon
-
       - uses: actions/upload-artifact@v2
         with:
           path: ./wheelhouse/*.whl
@@ -101,7 +101,7 @@ jobs:
       # PyPy+Win32 seems like a very low priority combination
       CIBW_SKIP: "cp27-* cp35-* pp2* pp3*"
       CIBW_TEST_COMMAND: "pytest -nauto {project}/tests"
-      CIBW_TEST_REQUIRES: "-r requirements/test.txt"
+      CIBW_TEST_EXTRAS: test
       CIBW_BUILD: "*-${{ matrix.platform }}"
       CIBW_ENVIRONMENT: >-
         INCLUDE="$INCLUDE;d:\\qpdf\\include"
@@ -168,16 +168,14 @@ jobs:
           export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
           python -m venv v
           source v/bin/activate
-          python -m pip install dist/*.tar.gz
-          python -m pip install -r requirements/test.txt
+          python -m pip install dist/*.tar.gz[test]  # yes this works
           python -m pytest -nauto
           deactivate
 
       - name: Install natively
         run: |
           export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
-          env CFLAGS="--coverage" CXXFLAGS="--coverage" python -m pip install -e .
-          python -m pip install -r requirements/test.txt
+          env CFLAGS="--coverage" CXXFLAGS="--coverage" python -m pip install -e .[test]
           python -m pytest -nauto --cov-report xml --cov=src
 
       - name: Generate C++ coverage reports

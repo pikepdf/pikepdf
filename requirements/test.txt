@@ -1,3 +1,4 @@
+# deprecated file; use pip install pikepdf[test] instead; will be removed next major release
 attrs >= 20.2.0
 hypothesis >= 5, < 7
 Pillow >= 7, < 9
