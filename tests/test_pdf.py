@@ -334,10 +334,12 @@ def test_invalid_flate_compression_level():
         pikepdf._qpdf.set_flate_compression_level(99)
 
 
-@pytest.mark.forked
-@pytest.mark.skipif(os.name in ('nt', 'darwin'), reason="non-forking platform")
-def test_flate_compression_level():
-    pikepdf._qpdf.set_flate_compression_level(1)
+if os.name == 'posix':
+    # Can't even let non-POSIX platforms see this marker e.g. by using .mark.skipif
+    # or they will fail on a pytest internalerror.
+    @pytest.mark.forked
+    def test_flate_compression_level():
+        pikepdf._qpdf.set_flate_compression_level(1)
 
 
 def test_generate_appearance_streams(pdf_form):
