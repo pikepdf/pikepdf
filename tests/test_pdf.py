@@ -3,6 +3,7 @@ Testing focused on pikepdf.Pdf
 """
 
 import locale
+import os
 import shutil
 import sys
 import zlib
@@ -325,12 +326,18 @@ def test_recompress(resources, outdir):
         assert smaller.stat().st_size < bigger.stat().st_size
 
 
-def test_flate_compression_level():
+def test_invalid_flate_compression_level():
     # We don't want to change the compression level because it's global state
     # and will change subsequent test results, so just ping it with an invalid
     # value to get partial code coverage.
     with pytest.raises(ValueError):
         pikepdf._qpdf.set_flate_compression_level(99)
+
+
+@pytest.mark.skipif(os.name in ('nt', 'darwin'), reason="non-forking platform")
+@pytest.mark.forked
+def test_flate_compression_level():
+    pikepdf._qpdf.set_flate_compression_level(1)
 
 
 def test_generate_appearance_streams(pdf_form):
