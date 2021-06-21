@@ -169,8 +169,8 @@ jobs:
           python -m venv v
           source v/bin/activate
           SDIST=dist/*.tar.gz
-          echo $SDIST
-          python -m pip install ${SDIST}[test]  # yes this works
+          SDIST_EXPANDED=$(echo -n $SDIST)
+          python -m pip install ${SDIST_EXPANDED}[test]  # yes this works
           python -m pytest -nauto
           deactivate
 
