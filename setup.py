@@ -68,6 +68,10 @@ if __name__ == '__main__':
     if ParallelCompile:
         ParallelCompile().install()
     setup(
+        setup_requires=[  # can be removed whenever we can drop pip 9 support
+            'setuptools_scm',  # so that version will work
+            'setuptools_scm_git_archive',  # enable version from github tarballs
+        ],
         ext_modules=ext_modules,
         use_scm_version=True,
         cmdclass={"build_ext": build_ext},
