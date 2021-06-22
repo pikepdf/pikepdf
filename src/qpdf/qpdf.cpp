@@ -124,7 +124,11 @@ std::shared_ptr<QPDF> open_pdf(py::object filename_or_stream,
         success = true;
     }
 
-    // At this point, either we succeeded or threw an exception
+    if (!success) {
+        // LCOV_EXCL_LINE
+        throw std::logic_error(
+            "open_pdf: should have succeeded or thrown a Python exception");
+    }
 
     if (inherit_page_attributes) {
         // This could be expensive for a large file, plausibly (not tested),
