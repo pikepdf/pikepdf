@@ -239,7 +239,7 @@ regenerate it:
 
 .. code-block:: bash
 
-    pip install -r requirements/docs.txt
+    pip install pikepdf[docs]
     cd docs
     make html
 
