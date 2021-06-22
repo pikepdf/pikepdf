@@ -133,7 +133,7 @@ PYBIND11_MODULE(_qpdf, m)
         "set_flate_compression_level",
         [](int level) {
             if (0 <= level && level <= 9)
-                Pl_Flate::setCompressionLevel(level); // LCOV_EXCL_LINE
+                Pl_Flate::setCompressionLevel(level);
             else
                 throw py::value_error(
                     "Flate compression level must be between 0 and 9");
