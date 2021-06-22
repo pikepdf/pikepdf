@@ -18,6 +18,20 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.13.0
+=======
+
+-  Build system modernized to use ``setup.cfg`` instead of ``setup.py`` as much as
+   reasonable.
+-  The ``requirements/*.txt`` files are now deprecated. Instead use
+   ``pip install pikepdf[test,docs]`` to install optional extras.
+-  Extended test coverage for a few tests that affect global state, using ``pytest-forked``
+   to isolate them.
+-  All C++ autoformatted with clang-format.
+-  We now imbue all C++ stringstreams with the C locale, to avoid formatting output
+   incorrectly if another Python extension written in C++ happens to change the global
+   ``std::locale``.
+
 v2.12.2
 =======
 
@@ -25,9 +39,9 @@ v2.12.2
 -  Enabled building Linux PyPy x86_64 wheels.
 -  Fixed a minor issue where the inline images would have their abbreviations
    expanded when unparsed. While unlikely to be problematic, inline images usually
-   use abbreviations in their metadata and should be kept that way. 
--  Added notes to documentation about loading PDFs through Python file streams 
-   and cases that can lead to poor performance. 
+   use abbreviations in their metadata and should be kept that way.
+-  Added notes to documentation about loading PDFs through Python file streams
+   and cases that can lead to poor performance.
 
 v2.12.1
 =======
@@ -46,7 +60,7 @@ v2.12.0
 v2.11.4
 =======
 
--  Fix issue #160, 'Tried to call pure virtual function "TokenFilter::handle_token"';
+-  Fix :issue:`160`, 'Tried to call pure virtual function "TokenFilter::handle_token"';
    this was a Python/C++ reference counting problem.
 
 v2.11.3
@@ -220,7 +234,7 @@ v2.2.3
 v2.2.2
 ======
 
--  Fixed issue #150, adding author metadata breaks PDF/A conformance. We now log an
+-  Fixed :issue:`150`, adding author metadata breaks PDF/A conformance. We now log an
    error when this metadata is set incorrectly.
 -  Improve type checking in ocrmypdf.models.metadata module.
 -  Improve documentation for custom builds.
@@ -228,7 +242,7 @@ v2.2.2
 v2.2.1
 ======
 
--  Fixed issue #143, PDF/A validation with veraPDF failing due to missing prefix on
+-  Fixed :issue:`143`, PDF/A validation with veraPDF failing due to missing prefix on
    DocumentInfo dates.
 
 v2.2.0
@@ -276,7 +290,8 @@ This description includes changes in v2.0 beta releases.
    -  QPDF 10.0.3
    -  For macOS users, macOS 10.14 (Mojave)
 -  Attempting to modifying ``Stream.Length`` will raise an exception instead of a
-   warning.
+   warning. pikepdf automatically calculates the length of the stream when a PDF is
+   saved, so there is never a reason to modify this.
 -  ``pikepdf.Stream()`` can no longer parse content streams. That never made sense,
    since this class supports streams in general, and many streams are not content
    streams. Use ``pikepdf.parse_content_stream`` to a parse a content stream.
@@ -377,7 +392,7 @@ v1.18.0
 v1.17.3
 =======
 
--  Fixed crash when ``pikepdf.Pdf`` objects are used inside generators (#114) and
+-  Fixed crash when ``pikepdf.Pdf`` objects are used inside generators (:issue:`114`) and
    not freed or closed before the generator exits.
 
 v1.17.2
@@ -390,14 +405,14 @@ v1.17.1
 =======
 
 -  Fixed building against the oldest supported version of QPDF (8.4.2), and
-   configure CI to test against the oldest version. (#109)
+   configure CI to test against the oldest version. (:issue:`109`)
 
 v1.17.0
 =======
 
 -  Fixed a failure to extract PDF images, where the image had both a palette
    and colorspace set to an ICC profile. The iamge is now extracted with the
-   profile embedded. (#108)
+   profile embedded. (:issue:`108`)
 -  Added opt-in support for memory-mapped file access, using
    ``pikepdf.open(...access_mode=pikepdf.AccessMode.mmap)``. Memory mapping
    file access performance considerably, but may make application exception
@@ -476,7 +491,7 @@ v1.12.0
 v1.11.2
 =======
 
--  Fix "error caused by missing str function of Array" (#100, #101).
+-  Fix "error caused by missing str function of Array" (:issue:`100,101`).
 -  Lots of delinting and minor fixes.
 
 v1.11.1
@@ -506,19 +521,19 @@ v1.10.4
 =======
 
 -  Rebuild Python wheels with newer version of libqpdf. Fixes problems with
-   opening certain password-protected files (#87).
+   opening certain password-protected files (:issue:`87`).
 
 v1.10.3
 =======
 
--  Fixed ``isinstance(obj, pikepdf.Operator)`` not working. (#86)
+-  Fixed ``isinstance(obj, pikepdf.Operator)`` not working. (:issue:`86`)
 -  Documentation updates.
 
 v1.10.2
 =======
 
 -  Fixed an issue where pages added from a foreign PDF were added as references
-   rather than copies. (#80)
+   rather than copies. (:issue:`80`)
 -  Documentation updates.
 
 v1.10.1
@@ -551,7 +566,7 @@ v1.8.2
 ======
 
 -  Fixed an issue where QPDF 8.4.2 would report different errors from QPDF 9.0.0,
-   causing a test to fail. (#71)
+   causing a test to fail. (:issue:`71`)
 
 v1.8.1
 ======
@@ -686,7 +701,7 @@ v1.3.1
 ======
 
 -  Updated pybind11 to v2.3.0, fixing a possible GIL deadlock when
-   pikepdf objects were shared across threads. (#27)
+   pikepdf objects were shared across threads. (:issue:`27`)
 -  Fixed an issue where PDFs with valid XMP metadata but missing an
    element that is usually present would be rejected as malformed XMP.
 
@@ -742,7 +757,7 @@ v1.1.0
 -  Improved translation of certain system errors to their Python
    equivalents.
 -  Fixed issues resulting from platform differences in
-   ``datetime.strftime``. (#25)
+   ``datetime.strftime``. (:issue:`25`)
 -  Added ``Pdf.new``, ``Pdf.add_blank_page`` and ``Pdf.make_stream``
    convenience methods for creating new PDFs from scratch.
 -  Added binding for new QPDF JSON feature: ``Object.to_json``.

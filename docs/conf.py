@@ -84,10 +84,13 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
+    'sphinx_issues',
     'IPython.sphinxext.ipython_console_highlighting',
     'IPython.sphinxext.ipython_directive',
     'fix_pybind11_autodoc',
 ]
+
+issues_github_path = "pikepdf/pikepdf"
 
 ipython_execlines = ['import pikepdf', 'from pikepdf import Pdf']
 
