@@ -27,6 +27,7 @@ from warnings import warn
 from . import Array, Dictionary, Name, Object, Page, Pdf, Stream
 from ._qpdf import (
     AccessMode,
+    AttachedFile,
     ObjectStreamMode,
     PdfError,
     StreamDecodeLevel,
@@ -35,6 +36,7 @@ from ._qpdf import (
     _ObjectMapping,
 )
 from .models import Encryption, EncryptionInfo, Outline, PdfMetadata, Permissions
+from .models.metadata import decode_pdf_date, encode_pdf_date
 
 # pylint: disable=no-member,unsupported-membership-test,unsubscriptable-object
 # mypy: ignore-errors
@@ -1108,3 +1110,25 @@ class Extend_Page:
 class Extend_Token:
     def __repr__(self):
         return f'pikepdf.Token({self.type_}, {self.raw_value})'
+
+
+@augments(AttachedFile)
+class Extend_AttachedFile:
+    @property
+    def creation_date(self):
+        return decode_pdf_date(self._creation_date)
+
+    @creation_date.setter
+    def creation_date(self, value):
+        self._creation_date = encode_pdf_date(value)
+
+    @property
+    def mod_date(self):
+        return decode_pdf_date(self._mod_date)
+
+    @mod_date.setter
+    def mod_date(self, value):
+        self._mod_date = encode_pdf_date(value)
+
+    def read_bytes(self):
+        return self.obj.read_bytes()
