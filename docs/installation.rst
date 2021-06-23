@@ -30,16 +30,28 @@ installing the wheel. If you want to get the binary wheel, upgrade ``pip`` with:
     pip --version  # should be 20.0 or newer
     pip install pikepdf
 
-32- and 64-bit wheels are available for Windows, Linux and macOS. Binary wheels
-should work on most systems, i.e. Linux distributions 2010 and newer, macOS
-10.11 and newer (for Homebrew), Windows 7 and newer, **provided a recent version
-of pip is used to install them**. The Linux wheels currently include copies of
-libqpdf, libjpeg, and zlib. The Windows wheels include libqpdf. This is to ensure
-that up-to-date, compatible copies of dependent libraries are included.
+Binary wheel availability
+-------------------------
 
-Currently we do not build wheels for architectures other than x86 and x64.
+.. csv-table:: Python binary wheel availability
+    :file: binary-wheels.csv
+    :header-rows: 1
 
-`Alpine Linux`_ does not support Python wheels.
+\* *Apple Silicon is supported on a best-effort by manually uploading. These
+releases sometimes come a few days later.*
+
+Binary wheels should work on most systems, **provided a recent version
+of pip is used to install them**. Old versions of pip, especially before 20.0,
+may fail to check appropriate versions.
+
+macOS 10.14 or newer is typically required for binary wheels. Older versions may
+work if compiled from source.
+
+Windows 7 or newer is required. Windows wheels include a recent copy of libqpdf.
+
+Most Linux distributions support manylinux2010, with the notable except of
+`Alpine Linux`_, and older Linux distributions that do not have C++14-capable
+compilers. The Linux wheels include recent copies of libqpdf, libjpeg, and zlib.
 
 Platform support
 ----------------
@@ -247,18 +259,8 @@ PyPy3 support
 -------------
 
 PyPy3 3.6 and 3.7 are currently supported, these being the latest versions of PyPy
-as of this writing. Windows PyPy support is not available because cibuildwheel
-does not support Windows 64-bit PyPy.
-
-+----------------+------------------------+-------+
-| Platform       | Source build supported | Wheel |
-+================+========================+=======+
-| Windows 64-bit | ✅                     |       |
-+----------------+------------------------+-------+
-| Linux 64-bit   | ✅                     | ✅    |
-+----------------+------------------------+-------+
-| macOS          | ✅                     | ✅    |
-+----------------+------------------------+-------+
+as of this writing. Windows PyPy wheels are not supported because cibuildwheel
+does not support Windows 64-bit PyPy. We have not checked if source builds work.
 
 PyPy3 is not more performant than CPython for pikepdf, because the core of pikepdf
 is already written in C++. The benefit is for applications that want to use PyPy

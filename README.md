@@ -25,7 +25,8 @@ pip install pikepdf
 
 For users who want to build from source, see [installation](https://pikepdf.readthedocs.io/en/latest/index.html).
 
-pikepdf is [documented](https://pikepdf.readthedocs.io/en/latest/index.html) and actively maintained. Commercial support is available.
+pikepdf is [documented](https://pikepdf.readthedocs.io/en/latest/index.html) and actively maintained. Commercial support is available. We support just about everything
+x86-64, including PyPy, and Apple Silicon on a best effort basis.
 
 Features
 --------

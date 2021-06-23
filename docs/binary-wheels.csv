@@ -1,0 +1,7 @@
+,3.6,3.7,3.8,3.9,PyPy 3.6,PyPy 3.7
+macOS Intel,✅,✅,✅,✅,✅,✅
+macOS Apple Silicon,,,,✅*,,
+Windows 64-bit,✅,✅,✅,✅,,
+Windows 32-bit,✅,✅,✅,✅,,
+manylinux2010 64-bit,✅,✅,✅,✅,✅,✅
+manylinux2010 32-bit,✅,✅,✅,✅,,
