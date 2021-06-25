@@ -22,7 +22,8 @@
 
 void init_embeddedfiles(py::module_ &m)
 {
-    py::class_<QPDFFileSpecObjectHelper>(m, "FileSpec")
+    py::class_<QPDFFileSpecObjectHelper, std::shared_ptr<QPDFFileSpecObjectHelper>>(
+        m, "FileSpec")
         //.def(py::init<QPDFFileSpecObjectHelper>(), py::keep_alive<0, 1>())
         .def_property_readonly("obj",
             [](QPDFFileSpecObjectHelper &spec) { return spec.getObjectHandle(); })
@@ -121,24 +122,12 @@ void init_embeddedfiles(py::module_ &m)
         .def(py::init<QPDF &>(), py::keep_alive<0, 1>())
         .def_property_readonly(
             "_has_embedded_files", &QPDFEmbeddedFileDocumentHelper::hasEmbeddedFiles)
-        .def(
-            "_get_all_filespecs",
-            [](QPDFEmbeddedFileDocumentHelper &efdh) {
-                auto files = efdh.getEmbeddedFiles();
-                py::dict result;
-                for (auto key_file : files) {
-                    auto key             = key_file.first;
-                    auto file            = key_file.second;
-                    result[py::str(key)] = file;
-                }
-                return result;
-            },
-            py::return_value_policy::reference_internal)
+        .def("_get_all_filespecs", &QPDFEmbeddedFileDocumentHelper::getEmbeddedFiles)
         .def("_get_filespec",
             &QPDFEmbeddedFileDocumentHelper::getEmbeddedFile,
             py::return_value_policy::reference_internal)
         .def("_add_replace_filespec",
             &QPDFEmbeddedFileDocumentHelper::replaceEmbeddedFile,
             py::keep_alive<0, 2>())
-        .def("_remove_filespec", &QPDFEmbeddedFileDocumentHelper::replaceEmbeddedFile);
+        .def("_remove_filespec", &QPDFEmbeddedFileDocumentHelper::removeEmbeddedFile);
 }
