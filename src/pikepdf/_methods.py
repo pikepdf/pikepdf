@@ -14,7 +14,7 @@ We can also move the implementation to C++ if desired.
 
 import inspect
 import shutil
-from collections.abc import KeysView
+from collections.abc import KeysView, MutableMapping
 from decimal import Decimal
 from io import BytesIO
 from os import replace
@@ -28,6 +28,8 @@ from . import Array, Dictionary, Name, Object, Page, Pdf, Stream
 from ._qpdf import (
     AccessMode,
     AttachedFile,
+    Attachments,
+    FileSpec,
     ObjectStreamMode,
     PdfError,
     StreamDecodeLevel,
@@ -84,7 +86,16 @@ def augments(cls_cpp: Type[Any]):
 
     (Alternative ideas: https://github.com/pybind/pybind11/issues/1074)
     """
-    ATTR_WHITELIST = {'__repr__', '__enter__', '__exit__'}
+    ATTR_WHITELIST = {
+        '__delitem__',
+        '__enter__',
+        '__exit__',
+        '__getitem__',
+        '__iter__',
+        '__len__',
+        '__repr__',
+        '__setitem__',
+    }
 
     def class_augment(cls, cls_cpp=cls_cpp):
         for name, member in inspect.getmembers(cls):
@@ -589,6 +600,10 @@ class Extend_Pdf:
             problems.append("WARNING: " + warning)
 
         return problems
+
+    @property
+    def attachments(self) -> Attachments:
+        return Attachments(self)
 
     def _attach(
         self,
@@ -1112,6 +1127,37 @@ class Extend_Token:
         return f'pikepdf.Token({self.type_}, {self.raw_value})'
 
 
+@augments(Attachments)
+class Extend_Attachments(MutableMapping):
+    def __getitem__(self, k: str) -> FileSpec:
+        return self._get_filespec(k)
+
+    def __setitem__(self, k: str, v: FileSpec) -> None:
+        return self._add_replace_filespec(k, v)
+
+    def __delitem__(self, k: str) -> None:
+        return self._remove_filespec(k)
+
+    def __len__(self):
+        return len(self._get_all_filespecs())
+
+    def __iter__(self):
+        for k, _v in self._get_all_filespecs():
+            yield k
+
+    def __repr__(self):
+        return f"<pikepdf._qpdf.Attachments with {len(self)} attached files>"
+
+
+@augments(FileSpec)
+class Extend_FileSpec:
+    def __repr__(self):
+        return (
+            f"<pikepdf._qpdf.FileSpec for {self.filename!r}, "
+            f"description {self.description!r}>"
+        )
+
+
 @augments(AttachedFile)
 class Extend_AttachedFile:
     @property
@@ -1132,3 +1178,10 @@ class Extend_AttachedFile:
 
     def read_bytes(self):
         return self.obj.read_bytes()
+
+    def __repr__(self):
+        return (
+            f'<pikepdf._qpdf.AttachedFile objid={self.obj.objgen} size={self.size} '
+            f'mime_type={self.mime_type} creation_date={self.creation_date} '
+            f'mod_date={self.mod_date}>'
+        )
