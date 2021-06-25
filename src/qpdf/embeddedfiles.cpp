@@ -19,7 +19,7 @@
 
 #include "pikepdf.h"
 
-void init_filespec(py::module_ &m)
+void init_embeddedfiles(py::module_ &m)
 {
     py::class_<QPDFFileSpecObjectHelper>(m, "FileSpec")
         .def(py::init<QPDFFileSpecObjectHelper>(), py::keep_alive<0, 1>())
