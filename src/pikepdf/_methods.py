@@ -72,7 +72,7 @@ def augments(cls_cpp: Type[Any]):
     Any existing methods may be used, regardless of whether they are defined
     elsewhere in the support class or in the target class.
 
-    For data fields to work, including @property accessors, the target class must be
+    For data fields to work, the target class must be
     tagged ``py::dynamic_attr`` in pybind11.
 
     Strictly, the target class does not have to be C++ or derived from pybind11.
