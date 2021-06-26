@@ -27,7 +27,7 @@ from warnings import warn
 from . import Array, Dictionary, Name, Object, Page, Pdf, Stream
 from ._qpdf import (
     AccessMode,
-    AttachedFile,
+    AttachedFileStream,
     Attachments,
     FileSpec,
     ObjectStreamMode,
@@ -1132,6 +1132,7 @@ class Extend_Attachments(MutableMapping):
         return filespec
 
     def __setitem__(self, k: str, v: FileSpec) -> None:
+        v.filename = k
         return self._add_replace_filespec(k, v)
 
     def __delitem__(self, k: str) -> None:
@@ -1151,14 +1152,17 @@ class Extend_Attachments(MutableMapping):
 @augments(FileSpec)
 class Extend_FileSpec:
     def __repr__(self):
-        return (
-            f"<pikepdf._qpdf.FileSpec for {self.filename!r}, "
-            f"description {self.description!r}>"
-        )
+        if self.filename:
+            return (
+                f"<pikepdf._qpdf.FileSpec for {self.filename!r}, "
+                f"description {self.description!r}>"
+            )
+        else:
+            return f"<pikepdf._qpdf.FileSpec description {self.description!r}>"
 
 
-@augments(AttachedFile)
-class Extend_AttachedFile:
+@augments(AttachedFileStream)
+class Extend_AttachedFileStream:
     @property
     def creation_date(self):
         return decode_pdf_date(self._creation_date)
@@ -1180,7 +1184,7 @@ class Extend_AttachedFile:
 
     def __repr__(self):
         return (
-            f'<pikepdf._qpdf.AttachedFile objid={self.obj.objgen} size={self.size} '
+            f'<pikepdf._qpdf.AttachedFileStream objid={self.obj.objgen} size={self.size} '
             f'mime_type={self.mime_type} creation_date={self.creation_date} '
             f'mod_date={self.mod_date}>'
         )

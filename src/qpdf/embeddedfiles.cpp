@@ -23,19 +23,9 @@
 
 void init_embeddedfiles(py::module_ &m)
 {
-    py::class_<QPDFFileSpecObjectHelper, std::shared_ptr<QPDFFileSpecObjectHelper>>(m,
-        "FileSpec",
-        R"~~~(
-        A file specification that describes a file or group of files attached to a PDF.
-
-        PDF supports the concept of having multiple, platform-specific versions of the
-        same file. For example, one could attach a filename (to the user of the PDF)
-        "readme.txt" which could have Windows line endings (CR-LF) and POSIX (LF)
-        or classic Mac OS (CR) and filenames encoding according to the standard code
-        pages of these platforms. Most of the time, a single file will suffice, but
-        older PDFs may have multiple versions.
-        )~~~")
-        .def(py::init([](QPDF &q, std::string const &filename, py::object stream) {
+    py::class_<QPDFFileSpecObjectHelper, std::shared_ptr<QPDFFileSpecObjectHelper>>(
+        m, "FileSpec")
+        .def(py::init([](QPDF &q, py::object stream, std::string description) {
             py::bytes data;
             py::type Path = py::module_::import("pathlib").attr("Path");
 
@@ -49,10 +39,15 @@ void init_embeddedfiles(py::module_ &m)
             auto efstream =
                 QPDFEFStreamObjectHelper::createEFStream(q, std::string(data));
             auto filespec =
-                QPDFFileSpecObjectHelper::createFileSpec(q, filename, efstream);
+                QPDFFileSpecObjectHelper::createFileSpec(q, std::string(""), efstream);
+            filespec.setDescription(description);
             return filespec;
         }),
-            py::keep_alive<0, 1>())
+            py::keep_alive<0, 1>(),
+            py::arg("q"),
+            py::arg("stream"),
+            py::kw_only(),
+            py::arg("description") = std::string(""))
         .def_property_readonly("obj",
             [](QPDFFileSpecObjectHelper &spec) { return spec.getObjectHandle(); })
         .def_property("description",
@@ -99,19 +94,19 @@ void init_embeddedfiles(py::module_ &m)
             encoding must be appropriate to the platform if not Unicode.
             )~~~")
         .def(
-            "get_attached_file",
+            "get_stream",
             [](QPDFFileSpecObjectHelper &spec) {
                 return QPDFEFStreamObjectHelper(spec.getEmbeddedFileStream());
             },
             py::return_value_policy::reference_internal)
         .def(
-            "get_attached_file",
+            "get_stream",
             [](QPDFFileSpecObjectHelper &spec, std::string const &name) {
                 return QPDFEFStreamObjectHelper(spec.getEmbeddedFileStream(name));
             },
             py::return_value_policy::reference_internal)
         .def(
-            "get_attached_file",
+            "get_stream",
             [](QPDFFileSpecObjectHelper &spec, QPDFObjectHandle &name) {
                 if (!name.isName())
                     throw py::type_error("Parameter must be a pikepdf.Name");
@@ -120,8 +115,7 @@ void init_embeddedfiles(py::module_ &m)
             },
             py::return_value_policy::reference_internal);
 
-    py::class_<QPDFEFStreamObjectHelper>(m, "AttachedFile")
-        //.def(py::init<QPDFEFStreamObjectHelper>(), py::keep_alive<0, 1>())
+    py::class_<QPDFEFStreamObjectHelper>(m, "AttachedFileStream")
         .def_property_readonly("obj",
             [](QPDFEFStreamObjectHelper &efstream) {
                 return efstream.getObjectHandle();

@@ -111,8 +111,45 @@ but might do so in a future release (this would break backward compatibility).
 .. autoclass:: pikepdf._qpdf.Attachments
     :members:
 
+    This interface provides access to any files that are attached to this PDF.
+
+    .. versionadded:: 3.0
+
 .. autoclass:: pikepdf._qpdf.FileSpec
     :members:
 
-.. autoclass:: pikepdf._qpdf.AttachedFile
+    A file specification that accounts for the possibility of multiple file streams.
+
+    In the vast majority of cases, only a single AttachedFileStream is present and
+    this object is just a nuisance. Call :meth:`get_attached_file_stream` and be on your
+    way.
+
+    PDF supports the concept of having multiple, platform-specific versions of the
+    file attachment. In theory, this attachment ought to be the same file, but
+    encoded in different ways. For example, one could create a PDF which attached
+    text file encoded with Windows line endings (carriage return-line feed) and
+    POSIX line endings (line feed only). In the vast majority of cases, only a single
+    ``AttachedFileStream`` will be present and will suffice. This was all necessary
+    because PDF predates Unicode.
+
+    Similarly, PDF allows for the possibility that you need to encode platform-specific
+    filenames.
+
+    To attach a new file to a PDF, you must construct a ``FileSpec``.
+
+    .. code-block:: python
+
+        pdf = Pdf.open(...)
+
+        with open('somewhere/spreadsheet.xlsx', 'rb') as data_to_attach:
+            fs = FileSpec(pdf, data_to_attach)
+            pdf.attachments['spreadsheet.xlsx'] = fs
+
+    .. versionadded:: 3.0
+
+.. autoclass:: pikepdf._qpdf.AttachedFileStream
     :members:
+
+    An object that contains the actual attached file.
+
+    .. versionadded:: 3.0

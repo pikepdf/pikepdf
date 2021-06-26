@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from pikepdf import Dictionary, Name, Pdf
-from pikepdf._qpdf import AttachedFile, Attachments, FileSpec
+from pikepdf._qpdf import AttachedFileStream, Attachments, FileSpec
 
 
 @pytest.fixture
@@ -19,7 +19,7 @@ def test_attachment_crud(pal, resources, outpdf):
     with open(resources / 'rle.pdf', 'rb') as rle:
         rle_bytes = rle.read()
         rle.seek(0)
-        fs = FileSpec(pal, 'rle.pdf', rle)
+        fs = FileSpec(pal, rle)
 
     pal.attachments['rle.pdf'] = fs
 
@@ -32,7 +32,7 @@ def test_attachment_crud(pal, resources, outpdf):
         assert len(output.attachments) == 1, "output had no attachment"
         assert 'rle.pdf' in output.attachments, "filename not present"
         rle_spec = output.attachments['rle.pdf']
-        rle_file = rle_spec.get_attached_file()
+        rle_file = rle_spec.get_stream()
         assert (
             rle_bytes == rle_file.read_bytes()
         ), "attachment not reproduced bit for bit"
@@ -43,8 +43,8 @@ def test_filespec_types(pal, resources):
     some_path = resources / 'rle.pdf'
     assert isinstance(some_path, Path)
 
-    fs_bytes = FileSpec(pal, 'somebytes.dat', some_bytes)
-    assert fs_bytes.get_attached_file().read_bytes() == some_bytes
+    fs_bytes = FileSpec(pal, some_bytes)
+    assert fs_bytes.get_stream().read_bytes() == some_bytes
 
-    fs_path = FileSpec(pal, 'resources/rle.pdf', some_path)
-    assert fs_path.get_attached_file().read_bytes() == some_path.read_bytes()
+    fs_path = FileSpec(pal, some_path)
+    assert fs_path.get_stream().read_bytes() == some_path.read_bytes()
