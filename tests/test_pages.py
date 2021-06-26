@@ -11,7 +11,16 @@ except ImportError:
 import pytest
 from conftest import skip_if_pypy
 
-from pikepdf import Array, Dictionary, Name, Page, Pdf, PdfMatrix, Stream
+from pikepdf import (
+    Array,
+    Dictionary,
+    Name,
+    Page,
+    Pdf,
+    PdfMatrix,
+    Stream,
+    __libqpdf_version__,
+)
 from pikepdf._cpphelpers import label_from_label_dict
 
 # pylint: disable=redefined-outer-name,pointless-statement
@@ -343,7 +352,7 @@ def test_add_foreign_twice(graph, outpdf):
     out.save(outpdf)
 
 
-@pytest.mark.xfail(reason="needs qpdf fix to issue 514")
+@pytest.mark.xfail(__libqpdf_version__ < '10.3.2', reason="qpdf issue 514")
 def test_add_twice_without_copy_foreign(graph, outpdf):
     out = Pdf.new()
     out.pages.append(graph.pages[0])
