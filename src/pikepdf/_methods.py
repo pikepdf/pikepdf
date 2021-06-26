@@ -601,10 +601,6 @@ class Extend_Pdf:
 
         return problems
 
-    @property
-    def attachments(self) -> Attachments:
-        return Attachments(self)
-
     def _attach(
         self,
         *,
@@ -1130,7 +1126,10 @@ class Extend_Token:
 @augments(Attachments)
 class Extend_Attachments(MutableMapping):
     def __getitem__(self, k: str) -> FileSpec:
-        return self._get_filespec(k)
+        filespec = self._get_filespec(k)
+        if filespec is None:
+            raise KeyError(k)
+        return filespec
 
     def __setitem__(self, k: str, v: FileSpec) -> None:
         return self._add_replace_filespec(k, v)

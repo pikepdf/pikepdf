@@ -19,12 +19,40 @@
 #include <pybind11/stl.h>
 
 #include "pikepdf.h"
+#include "pipeline.h"
 
 void init_embeddedfiles(py::module_ &m)
 {
-    py::class_<QPDFFileSpecObjectHelper, std::shared_ptr<QPDFFileSpecObjectHelper>>(
-        m, "FileSpec")
-        //.def(py::init<QPDFFileSpecObjectHelper>(), py::keep_alive<0, 1>())
+    py::class_<QPDFFileSpecObjectHelper, std::shared_ptr<QPDFFileSpecObjectHelper>>(m,
+        "FileSpec",
+        R"~~~(
+        A file specification that describes a file or group of files attached to a PDF.
+
+        PDF supports the concept of having multiple, platform-specific versions of the
+        same file. For example, one could attach a filename (to the user of the PDF)
+        "readme.txt" which could have Windows line endings (CR-LF) and POSIX (LF)
+        or classic Mac OS (CR) and filenames encoding according to the standard code
+        pages of these platforms. Most of the time, a single file will suffice, but
+        older PDFs may have multiple versions.
+        )~~~")
+        .def(py::init([](QPDF &q, std::string const &filename, py::object stream) {
+            py::bytes data;
+            py::type Path = py::module_::import("pathlib").attr("Path");
+
+            if (py::isinstance<py::bytes>(stream))
+                data = stream;
+            else if (py::isinstance(stream, Path))
+                data = stream.attr("read_bytes")();
+            else
+                data = stream.attr("read")();
+
+            auto efstream =
+                QPDFEFStreamObjectHelper::createEFStream(q, std::string(data));
+            auto filespec =
+                QPDFFileSpecObjectHelper::createFileSpec(q, filename, efstream);
+            return filespec;
+        }),
+            py::keep_alive<0, 1>())
         .def_property_readonly("obj",
             [](QPDFFileSpecObjectHelper &spec) { return spec.getObjectHandle(); })
         .def_property("description",
@@ -119,7 +147,6 @@ void init_embeddedfiles(py::module_ &m)
             &QPDFEFStreamObjectHelper::setModDate);
 
     py::class_<QPDFEmbeddedFileDocumentHelper>(m, "Attachments")
-        .def(py::init<QPDF &>(), py::keep_alive<0, 1>())
         .def_property_readonly(
             "_has_embedded_files", &QPDFEmbeddedFileDocumentHelper::hasEmbeddedFiles)
         .def("_get_all_filespecs", &QPDFEmbeddedFileDocumentHelper::getEmbeddedFiles)

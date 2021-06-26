@@ -107,3 +107,12 @@ but might do so in a future release (this would break backward compatibility).
     and definition of terminology.
 
     .. versionadded:: 2.12
+
+.. autoclass:: pikepdf._qpdf.Attachments
+    :members:
+
+.. autoclass:: pikepdf._qpdf.FileSpec
+    :members:
+
+.. autoclass:: pikepdf._qpdf.AttachedFile
+    :members:
