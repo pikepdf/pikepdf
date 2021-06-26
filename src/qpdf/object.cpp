@@ -273,11 +273,14 @@ void init_object(py::module_ &m)
                 }
                 throw std::logic_error("don't know how to hash this"); // LCOV_EXCL_LINE
             })
-        .def("__eq__",
+        .def(
+            "__eq__",
             [](QPDFObjectHandle &self, QPDFObjectHandle &other) {
                 return (self == other); // overloaded
-            })
-        .def("__eq__",
+            },
+            py::is_operator())
+        .def(
+            "__eq__",
             [](QPDFObjectHandle &self, py::str other) {
                 std::string utf8_other = other.cast<std::string>();
                 switch (self.getTypeCode()) {
@@ -288,19 +291,25 @@ void init_object(py::module_ &m)
                 default:
                     return false;
                 }
-            })
-        .def("__eq__",
+            },
+            py::is_operator())
+        .def(
+            "__eq__",
             [](QPDFObjectHandle &self, py::object other) -> py::object {
                 QPDFObjectHandle q_other;
                 try {
                     q_other = objecthandle_encode(other);
                 } catch (const py::cast_error &) {
+                    // Cannot remove this construct without reaching into pybind11
+                    // internals - reason being that we don't automatically convert
+                    // py::object to handle, so pybind11 doesn't know that we tried.
                     return py::reinterpret_borrow<py::object>(
                         py::handle(Py_NotImplemented));
                 }
                 bool result = (self == objecthandle_encode(other));
                 return py::bool_(result);
-            })
+            },
+            py::is_operator())
         .def("__copy__", [](QPDFObjectHandle &h) { return h.shallowCopy(); })
         .def("__len__",
             [](QPDFObjectHandle &h) {

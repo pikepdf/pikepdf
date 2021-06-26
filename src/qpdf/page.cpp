@@ -349,10 +349,7 @@ void init_page(py::module_ &m)
                     bytes
             )~~~")
         .def_property_readonly("error_msg", &QPDFTokenizer::Token::getErrorMessage)
-        .def("__eq__", &QPDFTokenizer::Token::operator==)
-        .def("__eq__", [](const QPDFTokenizer::Token &t, py::object other) {
-            return py::reinterpret_borrow<py::object>(py::handle(Py_NotImplemented));
-        });
+        .def("__eq__", &QPDFTokenizer::Token::operator==, py::is_operator());
 
     py::class_<QPDFObjectHandle::TokenFilter,
         PointerHolder<QPDFObjectHandle::TokenFilter>>
