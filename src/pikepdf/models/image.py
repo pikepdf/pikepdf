@@ -93,7 +93,7 @@ class PdfImageBase(ABC):
 
     @abstractmethod
     def _metadata(self, name, type_, default):
-        raise NotImplementedError()
+        ...
 
     @property
     def width(self):
@@ -158,12 +158,12 @@ class PdfImageBase(ABC):
     @property
     @abstractmethod
     def is_inline(self):
-        raise NotImplementedError()
+        ...
 
     @property
     @abstractmethod
     def icc(self):
-        raise NotImplementedError()
+        ...
 
     @property
     def indexed(self):
@@ -270,7 +270,7 @@ class PdfImageBase(ABC):
 
     @abstractmethod
     def as_pil_image(self):
-        raise NotImplementedError()
+        ...
 
     @staticmethod
     def _unstack_compression(buffer, filters):
