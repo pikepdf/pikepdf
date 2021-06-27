@@ -85,14 +85,14 @@ but might do so in a future release (this would break backward compatibility).
 
     .. attribute:: aes
 
-        The AES-based algorithm was used as described in the PDF 1.7 reference manual.
+        The AES-based algorithm was used as described in the |pdfrm|.
 
     .. attribute:: aesv3
 
         An improved version of the AES-based algorithm was used as described in the
-        Adobe Supplement to the ISO 32000, requiring PDF 1.7 extension level 3. This
-        algorithm still uses AES, but allows both AES-128 and AES-256, and improves how
-        the key is derived from the password.
+        :doc:`Adobe Supplement to the ISO 32000 </references/resources>`, requiring
+        PDF 1.7 extension level 3. This algorithm still uses AES, but allows both
+        AES-128 and AES-256, and improves how the key is derived from the password.
 
 .. autoclass:: pikepdf.models.EncryptionInfo
     :members:
@@ -103,7 +103,7 @@ but might do so in a future release (this would break backward compatibility).
     Describes an annotation in a PDF, such as a comment, underline, copy editing marks,
     interactive widgets, redactions, 3D objects, sound and video clips.
 
-    See the PDF reference manual section 12.5.6 for the full list of annotation types
+    See the |pdfrm| section 12.5.6 for the full list of annotation types
     and definition of terminology.
 
     .. versionadded:: 2.12

@@ -35,7 +35,7 @@ Unicode in passwords
 --------------------
 
 For widest compatibility, passwords should be composed of only characters in the
-ASCII character set, since the PDF reference manual is unclear about how non-ASCII
+ASCII character set, since the |pdfrm| is unclear about how non-ASCII
 passwords are supposed to be encoded. See the documentation on :meth:`pikepdf.Pdf.save`
 for more details. pikepdf encodes passwords as UTF-8.
 

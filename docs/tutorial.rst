@@ -142,7 +142,7 @@ keys (``page1['/MediaBox']``).
     In [1]: page1['/MediaBox']  # also works
 
 By convention, pikepdf uses attribute notation for standard names (the names
-that are normally part of a dictionary, according to the PDF Reference Manual),
+that are normally part of a dictionary, according to the |pdfrm|),
 and item notation for names that may not always appear. For example, the images
 belong to a page always appear at ``page.Resources.XObject`` but the names
 of images are arbitrarily chosen by whatever software generates the PDF (``/Im0``,

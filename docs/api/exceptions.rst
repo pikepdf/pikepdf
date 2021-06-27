@@ -17,7 +17,7 @@ Exceptions
 .. autoexception:: pikepdf.OutlineStructureError
 
     Exception throw when an ``/Outlines`` object violates constraints imposed
-    by the PDF reference manual.
+    by the |pdfrm|.
 
 .. autoexception:: pikepdf.UnsupportedImageTypeError
 

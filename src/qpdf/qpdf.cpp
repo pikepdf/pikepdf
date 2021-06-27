@@ -529,7 +529,7 @@ void init_qpdf(py::module_ &m)
             R"~~~(
             Provides access to the PDF trailer object.
 
-            See section 7.5.5 of the PDF reference manual. Generally speaking,
+            See |pdfrm| section 7.5.5. Generally speaking,
             the trailer should not be modified with pikepdf, and modifying it
             may not work. Some of the values in the trailer are automatically
             changed when a file is saved.

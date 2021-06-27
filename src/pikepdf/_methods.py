@@ -738,7 +738,7 @@ class Extend_Pdf:
 
             stream_decode_level: Specifies how
                 to encode stream objects. See documentation for
-                ``StreamDecodeLevel``.
+                :class:`pikepdf.StreamDecodeLevel`.
 
             recompress_flate: When disabled (the default), qpdf does not
                 uncompress and recompress streams compressed with the Flate

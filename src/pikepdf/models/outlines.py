@@ -223,7 +223,7 @@ class OutlineItem:
 
 class Outline:
     """Maintains a intuitive interface for creating and editing PDF document outlines,
-    according to the PDF reference manual (ISO32000:2008) section 12.3.
+    according to the |pdfrm| section 12.3.
 
     Arguments:
         pdf: PDF document object.
