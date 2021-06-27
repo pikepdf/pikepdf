@@ -1,8 +1,10 @@
+import datetime
 from hashlib import md5
 from pathlib import Path
 
 import pytest
 
+import pikepdf
 from pikepdf import Dictionary, Name, Pdf
 from pikepdf._qpdf import AttachedFileStream, Attachments, FileSpec
 
@@ -63,9 +65,27 @@ def test_filespec_types(pal, resources):
 
     fs_bytes = FileSpec(pal, some_bytes)
     assert fs_bytes.get_stream().read_bytes() == some_bytes
+    assert fs_bytes.filename == ''
 
     fs_path = FileSpec(pal, some_path)
     assert fs_path.get_stream().read_bytes() == some_path.read_bytes()
+
+    with pytest.raises(TypeError):
+        fs_path.get_stream(pikepdf.Array([1]))
+
+
+def test_attachment_metadata(pal):
+    fs = FileSpec(pal, b'some data', description='test filespec')
+    attached_stream = fs.get_stream()
+    assert attached_stream.creation_date is None
+    assert attached_stream.mod_date is None
+
+    june_1 = datetime.datetime(2021, 6, 1, 1, 2, 3)
+
+    attached_stream.creation_date = june_1
+    attached_stream.mod_date = june_1
+    assert attached_stream.creation_date == june_1
+    assert attached_stream.mod_date == june_1
 
 
 def test_compound_attachment(pal):
@@ -73,6 +93,7 @@ def test_compound_attachment(pal):
     filename = [b'filename of data stream 1', b'filename of data stream 2']
 
     fs = FileSpec(pal, data[0], description='test filespec')
+    fs.filename = 'compound filespec'
     fs.obj.UF = filename[0]
 
     # Add another data stream to the underlying object
@@ -91,3 +112,5 @@ def test_compound_attachment(pal):
     assert fs.get_stream(Name.F).read_bytes() == data[1]
 
     assert fs.get_stream().md5 == md5(data[0]).digest()
+
+    pal.attachments['compound'] = fs

@@ -12,6 +12,7 @@ bindings after the fact.
 We can also move the implementation to C++ if desired.
 """
 
+import datetime
 import inspect
 import shutil
 from collections.abc import KeysView, MutableMapping
@@ -21,7 +22,18 @@ from os import replace
 from pathlib import Path
 from subprocess import PIPE, run
 from tempfile import NamedTemporaryFile
-from typing import Any, BinaryIO, Callable, List, Optional, Tuple, Type, TypeVar, Union
+from typing import (
+    Any,
+    BinaryIO,
+    Callable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 from warnings import warn
 
 from . import Array, Dictionary, Name, Object, Page, Pdf, Stream
@@ -1132,7 +1144,8 @@ class Extend_Attachments(MutableMapping):
         return filespec
 
     def __setitem__(self, k: str, v: FileSpec) -> None:
-        v.filename = k
+        if not v.filename:
+            v.filename = k
         return self._add_replace_filespec(k, v)
 
     def __delitem__(self, k: str) -> None:
@@ -1141,7 +1154,7 @@ class Extend_Attachments(MutableMapping):
     def __len__(self):
         return len(self._get_all_filespecs())
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         for k in self._get_all_filespecs():
             yield k
 
@@ -1164,22 +1177,26 @@ class Extend_FileSpec:
 @augments(AttachedFileStream)
 class Extend_AttachedFileStream:
     @property
-    def creation_date(self):
+    def creation_date(self) -> Optional[datetime.datetime]:
+        if not self._creation_date:
+            return None
         return decode_pdf_date(self._creation_date)
 
     @creation_date.setter
-    def creation_date(self, value):
+    def creation_date(self, value: datetime.datetime):
         self._creation_date = encode_pdf_date(value)
 
     @property
-    def mod_date(self):
+    def mod_date(self) -> Optional[datetime.datetime]:
+        if not self._mod_date:
+            return None
         return decode_pdf_date(self._mod_date)
 
     @mod_date.setter
-    def mod_date(self, value):
+    def mod_date(self, value: datetime.datetime):
         self._mod_date = encode_pdf_date(value)
 
-    def read_bytes(self):
+    def read_bytes(self) -> bytes:
         return self.obj.read_bytes()
 
     def __repr__(self):
