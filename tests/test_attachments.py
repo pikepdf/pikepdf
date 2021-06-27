@@ -1,3 +1,4 @@
+from hashlib import md5
 from pathlib import Path
 
 import pytest
@@ -48,3 +49,28 @@ def test_filespec_types(pal, resources):
 
     fs_path = FileSpec(pal, some_path)
     assert fs_path.get_stream().read_bytes() == some_path.read_bytes()
+
+
+def test_compound_attachment(pal):
+    data = [b'data stream 1', b'data stream 2']
+    filename = [b'filename of data stream 1', b'filename of data stream 2']
+
+    fs = FileSpec(pal, data[0], description='test filespec')
+    fs.obj.UF = filename[0]
+
+    # Add another data stream to the underlying object
+    fs.obj.EF.F = pal.make_stream(data[1], Type=Name.EmbeddedFile)
+    fs.obj.F = filename[1]
+
+    all_filenames = fs.get_all_filenames()
+    assert len(all_filenames) == 2
+    assert Name.F in all_filenames
+    assert Name.UF in all_filenames
+    assert all_filenames[Name.UF] == filename[0]
+    assert all_filenames[Name.F] == filename[1]
+
+    assert fs.get_stream().read_bytes() == data[0]
+    assert fs.get_stream(Name.UF).read_bytes() == data[0]
+    assert fs.get_stream(Name.F).read_bytes() == data[1]
+
+    assert fs.get_stream().md5 == md5(data[0]).digest()

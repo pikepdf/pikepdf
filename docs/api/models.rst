@@ -114,6 +114,9 @@ but might do so in a future release (this would break backward compatibility).
     This interface provides access to any files that are attached to this PDF,
     exposed as a Python :class:`collections.abc.MutableMapping` interface.
 
+    The keys (virtual filenames) are always ``str``, and values are always
+    :class:`pikepdf._qpdf.FileSpec`.
+
     .. versionadded:: 3.0
 
 .. autoclass:: pikepdf._qpdf.FileSpec
@@ -131,7 +134,7 @@ but might do so in a future release (this would break backward compatibility).
         fs: FileSpec = pdf.attachments['example.txt']
         stream: AttachedFileStream = fs.get_stream()
 
-    To attach a new file to a PDF, you must construct a ``FileSpec``.
+    To attach a new file to a PDF, you may construct a ``FileSpec``.
 
     .. code-block:: python
 

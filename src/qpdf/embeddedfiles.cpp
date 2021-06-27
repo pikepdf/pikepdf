@@ -88,10 +88,6 @@ void init_embeddedfiles(py::module_ &m)
             Multiple filenames are generally a holdover from the pre-Unicode era.
             Modern PDFs can generally set UTF-8 filenames and avoid using
             punctuation or other marks that are forbidden in filenames.
-
-            To set any of these, write directly to the underlying object using, e.g.
-            ``FileSpec.obj.Mac = 'unixfilename.txt'.encode('macroman')``. The
-            encoding must be appropriate to the platform if not Unicode.
             )~~~")
         .def(
             "get_stream",
@@ -100,24 +96,8 @@ void init_embeddedfiles(py::module_ &m)
             },
             py::return_value_policy::reference_internal,
             R"~~~(
-            Return a Python dictionary that describes all filenames.
-
-            The returned dictionary is not a pikepdf Object.
-
-            Multiple filenames are generally a holdover from the pre-Unicode era.
-            Modern PDFs can generally set UTF-8 filenames and avoid using
-            punctuation or other marks that are forbidden in filenames.
-
-            To set any of these, write directly to the underlying object using, e.g.
-            ``FileSpec.obj.Mac = 'unixfilename.txt'.encode('macroman')``. The
-            encoding must be appropriate to the platform if not Unicode.
+            Return the primary (usually only) attached file stream.
             )~~~")
-        .def(
-            "get_stream",
-            [](QPDFFileSpecObjectHelper &spec, std::string const &name) {
-                return QPDFEFStreamObjectHelper(spec.getEmbeddedFileStream(name));
-            },
-            py::return_value_policy::reference_internal)
         .def(
             "get_stream",
             [](QPDFFileSpecObjectHelper &spec, QPDFObjectHandle &name) {
@@ -126,7 +106,13 @@ void init_embeddedfiles(py::module_ &m)
                 return QPDFEFStreamObjectHelper(
                     spec.getEmbeddedFileStream(name.getName()));
             },
-            py::return_value_policy::reference_internal);
+            py::return_value_policy::reference_internal,
+            R"~~~(
+            Return an attached file stream selected by :class:`pikepdf.Name`.
+
+            Typical names would be ``/UF`` and ``/F``. See |pdfrm| for other obsolete
+            names.
+            )~~~");
 
     py::class_<QPDFEFStreamObjectHelper>(m, "AttachedFileStream")
         .def_property_readonly("obj",
