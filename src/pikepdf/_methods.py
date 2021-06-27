@@ -1142,7 +1142,7 @@ class Extend_Attachments(MutableMapping):
         return len(self._get_all_filespecs())
 
     def __iter__(self):
-        for k, _v in self._get_all_filespecs():
+        for k in self._get_all_filespecs():
             yield k
 
     def __repr__(self):

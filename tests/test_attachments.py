@@ -38,6 +38,23 @@ def test_attachment_crud(pal, resources, outpdf):
             rle_bytes == rle_file.read_bytes()
         ), "attachment not reproduced bit for bit"
 
+        del output.attachments['rle.pdf']
+        assert 'rle.pdf' not in output.attachments, "del failed"
+        assert len(output.attachments) == 0, "not removed"
+
+
+def test_attachment_iter(pal):
+    inputs = ['1', '2']
+
+    for input_ in inputs:
+        pal.attachments[f'filename {input_}'] = FileSpec(pal, input_.encode('ascii'))
+
+    for filename in pal.attachments:
+        fileno = filename.replace('filename ', '')
+        assert fileno in inputs
+        filespec = pal.attachments[filename]
+        assert filespec.get_stream().read_bytes().decode('ascii') in inputs
+
 
 def test_filespec_types(pal, resources):
     some_bytes = b'just some bytes'
