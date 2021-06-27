@@ -63,9 +63,9 @@ void init_embeddedfiles(py::module_ &m)
             R"~~~(
             The main filename for this file.
 
-            In priority order, getting this returns /UF, /F, /Unix, /DOS, /Mac if
-            multiple filenames are set. Setting this will set a UTF-8 encoded
-            Unicode filename.
+            In priority order, getting this returns the first of /UF, /F, /Unix,
+            /DOS, /Mac if multiple filenames are set. Setting this will set a UTF-8
+            encoded Unicode filename and write it to /UF.
             )~~~")
         .def(
             "get_all_filenames",
@@ -98,7 +98,20 @@ void init_embeddedfiles(py::module_ &m)
             [](QPDFFileSpecObjectHelper &spec) {
                 return QPDFEFStreamObjectHelper(spec.getEmbeddedFileStream());
             },
-            py::return_value_policy::reference_internal)
+            py::return_value_policy::reference_internal,
+            R"~~~(
+            Return a Python dictionary that describes all filenames.
+
+            The returned dictionary is not a pikepdf Object.
+
+            Multiple filenames are generally a holdover from the pre-Unicode era.
+            Modern PDFs can generally set UTF-8 filenames and avoid using
+            punctuation or other marks that are forbidden in filenames.
+
+            To set any of these, write directly to the underlying object using, e.g.
+            ``FileSpec.obj.Mac = 'unixfilename.txt'.encode('macroman')``. The
+            encoding must be appropriate to the platform if not Unicode.
+            )~~~")
         .def(
             "get_stream",
             [](QPDFFileSpecObjectHelper &spec, std::string const &name) {

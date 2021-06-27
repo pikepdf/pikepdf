@@ -111,29 +111,25 @@ but might do so in a future release (this would break backward compatibility).
 .. autoclass:: pikepdf._qpdf.Attachments
     :members:
 
-    This interface provides access to any files that are attached to this PDF.
+    This interface provides access to any files that are attached to this PDF,
+    exposed as a Python :class:`collections.abc.MutableMapping` interface.
 
     .. versionadded:: 3.0
 
 .. autoclass:: pikepdf._qpdf.FileSpec
     :members:
 
-    A file specification that accounts for the possibility of multiple file streams.
+    A file specification that accounts for the possibility of multiple data streams.
 
     In the vast majority of cases, only a single AttachedFileStream is present and
-    this object is just a nuisance. Call :meth:`get_attached_file_stream` and be on your
-    way.
+    this object can be mostly ignored. Call :meth:`get_stream` and be on your way:
 
-    PDF supports the concept of having multiple, platform-specific versions of the
-    file attachment. In theory, this attachment ought to be the same file, but
-    encoded in different ways. For example, one could create a PDF which attached
-    text file encoded with Windows line endings (carriage return-line feed) and
-    POSIX line endings (line feed only). In the vast majority of cases, only a single
-    ``AttachedFileStream`` will be present and will suffice. This was all necessary
-    because PDF predates Unicode.
+    .. code-block:: python
 
-    Similarly, PDF allows for the possibility that you need to encode platform-specific
-    filenames.
+        pdf = Pdf.open(...)
+
+        fs: FileSpec = pdf.attachments['example.txt']
+        stream: AttachedFileStream = fs.get_stream()
 
     To attach a new file to a PDF, you must construct a ``FileSpec``.
 
@@ -144,6 +140,19 @@ but might do so in a future release (this would break backward compatibility).
         with open('somewhere/spreadsheet.xlsx', 'rb') as data_to_attach:
             fs = FileSpec(pdf, data_to_attach)
             pdf.attachments['spreadsheet.xlsx'] = fs
+
+    PDF supports the concept of having multiple, platform-specialized versions of the
+    file attachment (similar to resource forks on some operating systems). In theory,
+    this attachment ought to be the same file, but
+    encoded in different ways. For example, perhaps a PDF includes a text file encoded
+    with Windows line endings (``\r\n``) and a different one with POSIX line endings
+    (``\n``). Similarly, PDF allows for the possibility that you need to encode
+    platform-specific filenames.
+
+    If you have to deal with multiple versions, use :meth:`get_all_filenames` to
+    enumerate those available.
+
+    Described in the |pdfrm| section 7.11.3.
 
     .. versionadded:: 3.0
 
