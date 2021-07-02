@@ -1,20 +1,18 @@
 import pytest
 
-import pikepdf
+from pikepdf import Array, Dictionary, Name, Page, Pdf
 
-Array = pikepdf.Array
-Dictionary = pikepdf.Dictionary
-Name = pikepdf.Name
+# pylint: disable=redefined-outer-name
 
 
 @pytest.fixture
 def graph(resources):
-    return pikepdf.open(resources / 'graph.pdf')
+    return Pdf.open(resources / 'graph.pdf')
 
 
 @pytest.fixture
 def graph_page(graph):
-    return pikepdf.Page(graph.pages[0])
+    return Page(graph.pages[0])
 
 
 def test_page_boxes(graph_page):
@@ -32,7 +30,7 @@ def test_page_boxes(graph_page):
     assert page.mediabox != page.cropbox
     assert page.cropbox != page.mediabox
 
-    page.cropbox = pikepdf.Array([0, 0, 50, 50])
+    page.cropbox = Array([0, 0, 50, 50])
 
 
 def test_invalid_boxes(graph_page):
@@ -89,14 +87,14 @@ class TestAddResource:
 
 
 def test_add_unowned_page():  # issue 174
-    pdf = pikepdf.new()
-    d = pikepdf.Dictionary(Type=pikepdf.Name.Page)
+    pdf = Pdf.new()
+    d = Dictionary(Type=Name.Page)
     pdf.pages.append(d)
 
 
 def test_failed_add_page_cleanup():
-    pdf = pikepdf.new()
-    d = pikepdf.Dictionary(Type=pikepdf.Name.NotAPage)
+    pdf = Pdf.new()
+    d = Dictionary(Type=Name.NotAPage)
     num_objects = len(pdf.objects)
     with pytest.raises(TypeError, match="only pages can be inserted"):
         pdf.pages.append(d)
@@ -108,7 +106,7 @@ def test_failed_add_page_cleanup():
     assert pdf.objects[-1] is None, "Left a stale object behind without deleting"
 
     # But we'd better not delete an existing object...
-    d2 = pdf.make_indirect(pikepdf.Dictionary(Type=pikepdf.Name.StillNotAPage))
+    d2 = pdf.make_indirect(Dictionary(Type=Name.StillNotAPage))
     with pytest.raises(TypeError, match="only pages can be inserted"):
         pdf.pages.append(d2)
     assert len(pdf.pages) == 0
