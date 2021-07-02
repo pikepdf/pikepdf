@@ -1032,7 +1032,7 @@ class Extend_Page:
         *,
         prefix: str = '',
         replace_existing: bool = True,
-    ) -> str:
+    ) -> Name:
         """Adds a new resource to the page's Resources dictionary.
 
         If the Resources dictionaries do not exist, they will be created.

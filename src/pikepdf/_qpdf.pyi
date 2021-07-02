@@ -4,6 +4,11 @@
 #
 # Copyright (C) 2021, James R. Barlow (https://github.com/jbarlow83/)
 
+# pybind11 does not generate type annotations yet, and mypy doesn't understand
+# the way we're augmenting C++ classes with Python methods as in
+# pikepdf/_methods.py. Thus, we need to manually spell out the resulting types
+# after augmenting.
+
 from enum import Enum
 from typing import (
     Any,
@@ -196,6 +201,8 @@ class Object:
     @stream_dict.setter
     def stream_dict(self, val: Object) -> None: ...
 
+class Name(Object): ...
+
 class _ObjectList:
     @overload
     def __init__(self) -> None: ...
@@ -333,6 +340,16 @@ class Page:
     def trimbox(self) -> Any: ...
     @trimbox.setter
     def trimbox(self, val: Any) -> None: ...
+    @property
+    def resources(self) -> Object: ...
+    def add_resource(
+        res: Object,
+        res_type: Name,
+        name: Optional[Name] = None,
+        *,
+        prefix: str = '',
+        replace_existing: bool = True,
+    ) -> Name: ...
 
 class PageList:
     def __init__(self, *args, **kwargs) -> None: ...

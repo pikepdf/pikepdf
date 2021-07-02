@@ -105,7 +105,7 @@ class Name(Object, metaclass=_NameObjectMeta):
         return _qpdf._new_name(name)
 
     @classmethod
-    def random(cls, len_: int = 16, prefix: str = ''):
+    def random(cls, len_: int = 16, prefix: str = '') -> 'Name':
         """Generate a cryptographically strong random, valid PDF Name.
 
         This function uses Python's secrets.token_urlsafe, which returns a
