@@ -29,6 +29,7 @@ from ._qpdf import (
     AccessMode,
     ObjectStreamMode,
     PdfError,
+    Rectangle,
     StreamDecodeLevel,
     StreamParser,
     Token,
@@ -1093,6 +1094,67 @@ class Extend_Page:
 
         resources[res_type][name] = res
         return name
+
+    def _over_underlay(
+        self, other, rect: Optional[Rectangle], under: bool = True
+    ) -> None:
+        formx = None
+        if isinstance(other, Page):
+            formx = other.as_form_xobject()
+        elif isinstance(other, Dictionary) and other.get(Name.Type) == Name.Page:
+            page = Page(other)
+            formx = page.as_form_xobject()
+        elif (
+            isinstance(other, Stream)
+            and other.get(Name.Type) == Name.XObject
+            and other.get(Name.Subtype) == Name.Form
+        ):
+            formx = other
+
+        if formx is None:
+            raise TypeError("other object is not something we can convert to FormX")
+
+        if rect is None:
+            rect = page.trimbox
+
+        formx_placed_name = self.add_resource(formx, Name.XObject)
+        cs = self.calc_form_xobject_placement(formx, formx_placed_name, rect)
+
+        self.contents_add(cs, prepend=under)
+
+    def add_overlay(self, other: Union[Object, Page], rect: Optional[Rectangle] = None):
+        """Overlay another object on this page.
+
+        Overlays will be drawn after all previous content, potentially drawing on top
+        of existing content.
+
+        Args:
+            other: A Page or Form XObject to render as an overlay on top of this
+                page.
+            rect: The PDF rectangle (in PDF units) in which to draw the overlay.
+                If omitted, this page's trimbox, cropbox or mediabox will be used.
+
+        ..versionadded:: 2.14
+        """
+        return self._over_underlay(other, rect, under=False)
+
+    def add_underlay(
+        self, other: Union[Object, Page], rect: Optional[Rectangle] = None
+    ):
+        """Underlay another object beneath this page.
+
+        Underlays will be drawn before all other content, so they may be overdrawn
+        partially or completely.
+
+        Args:
+            other: A Page or Form XObject to render as an underlay underneath this
+                page.
+            rect: The PDF rectangle (in PDF units) in which to draw the underlay.
+                If omitted, this page's MediaBox will be used.
+
+        ..versionadded:: 2.14
+        """
+        return self._over_underlay(other, rect, under=True)
 
     def __repr__(self):
         return (

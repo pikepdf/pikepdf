@@ -200,6 +200,49 @@ void init_page(py::module_ &m)
                         be preserved when placing this object on another page.
             )~~~")
         .def(
+            "calc_form_xobject_placement",
+            [](QPDFPageObjectHelper &poh,
+                QPDFObjectHandle formx,
+                QPDFObjectHandle name,
+                QPDFObjectHandle::Rectangle rect,
+                bool invert_transformations,
+                bool allow_shrink,
+                bool allow_expand) -> py::bytes {
+                return poh.placeFormXObject(formx,
+                    name.getName(),
+                    rect,
+                    invert_transformations,
+                    allow_shrink,
+                    allow_expand);
+            },
+            py::arg("formx"),
+            py::arg("name"),
+            py::arg("rect"),
+            py::kw_only(),
+            py::arg("invert_transformations") = true,
+            py::arg("allow_shrink")           = true,
+            py::arg("allow_expand")           = false,
+            R"~~~(
+                Generate content stream segment to place a Form XObject on this page.
+
+                The content stream segment must be then be added to the page's
+                content stream.
+
+                The default keyword parameters will preserve the aspect ratio.
+
+                Args:
+                    formx: The Form XObject to place.
+                    name: The name of the Form XObject in this page's /Resources
+                        dictionary.
+                    rect: Rectangle describing the desired placement of the Form
+                        XObject.
+                    invert_transformations: Apply /Rotate and /UserUnit scaling
+                        when determining FormX Object placement.
+                    allow_shrink: Allow the Form XObject to take less than the
+                        full dimensions of rect.
+                    allow_expand: Expand the Form XObject to occupy all of rect.
+            )~~~")
+        .def(
             "get_filtered_contents",
             [](QPDFPageObjectHelper &poh, TokenFilter &tf) {
                 Pl_Buffer pl_buffer("filter_page");

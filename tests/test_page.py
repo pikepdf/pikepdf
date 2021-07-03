@@ -1,13 +1,18 @@
 import pytest
 
-from pikepdf import Array, Dictionary, Name, Page, Pdf
+from pikepdf import Array, Dictionary, Name, Page, Pdf, Rectangle
 
 # pylint: disable=redefined-outer-name
 
 
 @pytest.fixture
 def graph(resources):
-    return Pdf.open(resources / 'graph.pdf')
+    yield Pdf.open(resources / 'graph.pdf')
+
+
+@pytest.fixture
+def fourpages(resources):
+    yield Pdf.open(resources / 'fourpages.pdf')
 
 
 @pytest.fixture
@@ -114,3 +119,33 @@ def test_failed_add_page_cleanup():
     assert len(pdf.pages) == 0
 
     assert d2.same_owner_as(pdf.Root)
+
+
+def test_formx(graph, outpdf):
+    formx = Page(graph.pages[0]).as_form_xobject()
+    graph.add_blank_page()
+    new_page = Page(graph.pages[-1])
+    formx_placed_name = new_page.add_resource(formx, Name.XObject)
+    cs = new_page.calc_form_xobject_placement(
+        formx, formx_placed_name, Rectangle(0, 0, 200, 200)
+    )
+    assert bytes(formx_placed_name) in cs
+    new_page.obj.Contents = graph.make_stream(cs)
+    graph.save(outpdf)
+
+
+def test_fourpages_to_4up(fourpages, outpdf):
+    pdf = Pdf.new()
+    pdf.add_blank_page(page_size=(1000, 1000))
+    page = Page(pdf.pages[0])
+
+    pdf.pages.extend(fourpages.pages)
+
+    page.add_overlay(pdf.pages[1], Rectangle(0, 500, 500, 1000))
+    page.add_overlay(Page(pdf.pages[2]), Rectangle(500, 500, 1000, 1000))
+    page.add_overlay(Page(pdf.pages[3]).as_form_xobject(), Rectangle(0, 0, 500, 500))
+    page.add_underlay(pdf.pages[4], Rectangle(500, 0, 1000, 500))
+
+    del pdf.pages[1:]
+
+    pdf.save(outpdf)
