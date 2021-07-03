@@ -995,6 +995,7 @@ def check_is_box(obj) -> bool:
 class Extend_Page:
     @property
     def mediabox(self):
+        "This page's /MediaBox, in PDF units."
         return self._get_mediabox(True)
 
     @mediabox.setter
@@ -1004,6 +1005,10 @@ class Extend_Page:
 
     @property
     def cropbox(self):
+        """This page's effective /CropBox, in PDF units.
+
+        If the /CropBox is not defined, the /MediaBox is returned.
+        """
         return self._get_cropbox(True)
 
     @cropbox.setter
@@ -1013,6 +1018,11 @@ class Extend_Page:
 
     @property
     def trimbox(self):
+        """This page's effective /TrimBox, in PDF units.
+
+        If the /TrimBox is not defined, the /CropBox is returned (and if
+        /CropBox is not defined, /MediaBox is returned).
+        """
         return self._get_trimbox(True)
 
     @trimbox.setter
@@ -1022,6 +1032,7 @@ class Extend_Page:
 
     @property
     def resources(self):
+        """Return this pages resources dictionary."""
         return self.obj['/Resources']
 
     def add_resource(
