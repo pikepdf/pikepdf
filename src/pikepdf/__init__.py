@@ -29,6 +29,7 @@ from ._qpdf import (
     PasswordError,
     Pdf,
     PdfError,
+    Rectangle,
     StreamDecodeLevel,
     Token,
     TokenFilter,

@@ -87,12 +87,17 @@ PYBIND11_MODULE(_qpdf, m)
 
     m.def("qpdf_version", &QPDF::QPDFVersion, "Get libqpdf version");
 
+    // -- Core objects --
     init_qpdf(m);
     init_pagelist(m);
     init_object(m);
+
+    // -- Support objects (alphabetize order) --
     init_annotation(m);
     init_page(m);
+    init_rectangle(m);
 
+    // -- Module level functions --
     m.def("utf8_to_pdf_doc", [](py::str utf8, char unknown) {
         std::string pdfdoc;
         bool success = QUtil::utf8_to_pdf_doc(std::string(utf8), pdfdoc, unknown);
@@ -140,6 +145,7 @@ PYBIND11_MODULE(_qpdf, m)
         },
         "Set the compression level whenever the Flate compression algorithm is used.");
 
+    // -- Exceptions --
     static py::exception<QPDFExc> exc_main(m, "PdfError");
     static py::exception<QPDFExc> exc_password(m, "PasswordError");
     static py::exception<std::logic_error> exc_foreign(m, "ForeignObjectError");

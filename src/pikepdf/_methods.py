@@ -1123,3 +1123,9 @@ class Extend_Page:
 class Extend_Token:
     def __repr__(self):
         return f'pikepdf.Token({self.type_}, {self.raw_value})'
+
+
+@augments(Rectangle)
+class Extend_Rectangle:
+    def __repr__(self):
+        return f'pikepdf.Rectangle({self.llx}, {self.lly}, {self.urx}, {self.ury})'

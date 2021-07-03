@@ -26,7 +26,7 @@ from typing import TYPE_CHECKING, Iterable, Optional, Union
 from warnings import warn
 
 from . import _qpdf
-from ._qpdf import Object, ObjectType
+from ._qpdf import Object, ObjectType, Rectangle
 
 if TYPE_CHECKING:  # pragma: no cover
     from pikepdf import Pdf
@@ -179,9 +179,11 @@ class Array(Object, metaclass=_ObjectMeta):
 
         if isinstance(a, (str, bytes)):
             raise TypeError('Strings cannot be converted to arrays of chars')
-        if a is None:
+        elif a is None:
             a = []
-        if isinstance(a, Array):
+        elif isinstance(a, Rectangle):
+            return a.as_array()
+        elif isinstance(a, Array):
             return a.__copy__()
         return _qpdf._new_array(a)
 

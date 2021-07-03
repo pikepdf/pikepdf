@@ -835,5 +835,4 @@ void init_object(py::module_ &m)
     m.def("unparse", [](py::object obj) -> py::bytes {
         return objecthandle_encode(obj).unparseBinary();
     });
-
 } // init_object
