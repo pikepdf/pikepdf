@@ -644,7 +644,12 @@ void init_object(py::module_ &m)
                     throw py::type_error("Not a Page");
                 h.addPageContents(contents, prepend);
             },
-            "Append or prepend to an existing page's content stream.",
+            R"~~~(
+            Append or prepend to an existing page's content stream.
+
+            .. deprecated:: 2.14
+                Use :meth:`pikepdf.Page.contents_add` instead.
+            )~~~",
             py::arg("contents"),
             py::arg("prepend") = false,
             py::keep_alive<1, 2>())
@@ -653,10 +658,8 @@ void init_object(py::module_ &m)
             R"~~~(
             Coalesce an array of page content streams into a single content stream.
 
-            The PDF specification allows the ``/Contents`` object to contain either
-            an array of content streams or a single content stream. However, it
-            simplifies parsing and editing if there is only a single content stream.
-            This function merges all content streams.
+            .. deprecated:: 2.14
+                Use :meth:`pikepdf.Page.contents_coalesce` instead.
             )~~~")
         .def_property_readonly("_objgen", &object_get_objgen)
         .def_property_readonly("objgen",

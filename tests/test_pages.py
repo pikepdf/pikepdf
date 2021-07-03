@@ -236,8 +236,8 @@ def test_page_contents_add(graph, outdir):
     stream1 = Stream(pdf, b'q ' + mat.encode() + b' cm')
     stream2 = Stream(pdf, b'Q')
 
-    pdf.pages[0].page_contents_add(stream1, True)
-    pdf.pages[0].page_contents_add(stream2, False)
+    Page(pdf.pages[0]).contents_add(stream1, True)
+    Page(pdf.pages[0]).contents_add(stream2, False)
     pdf.save(outdir / 'out.pdf')
 
     with pytest.raises(TypeError, match="Not a Page"):

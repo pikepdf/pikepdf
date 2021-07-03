@@ -418,8 +418,6 @@ class TestDictionary:
         d = pikepdf.Dictionary(A='a')
         with pytest.raises(TypeError):
             d.images  # pylint: disable=pointless-statement
-        with pytest.raises(TypeError):
-            d.page_contents_add(b'', True)
 
     def test_bad_name_init(self):
         with pytest.raises(KeyError, match=r"must begin with '/'"):

@@ -136,6 +136,33 @@ void init_page(py::module_ &m)
                 arbitrary spots, such as in the middle of a token, as that can
                 confuse some software.
             )~~~")
+        .def(
+            "contents_add",
+            [](QPDFPageObjectHelper &poh, QPDFObjectHandle &contents, bool prepend) {
+                return poh.addPageContents(contents, prepend);
+            },
+            py::arg("contents"),
+            py::kw_only(),
+            py::arg("prepend") = false,
+            py::keep_alive<1, 2>(),
+            R"~~~(
+                Append or prepend to an existing page's content stream using an existing stream object.
+            )~~~")
+        .def(
+            "contents_add",
+            [](QPDFPageObjectHelper &poh, py::bytes contents, bool prepend) {
+                auto q = poh.getObjectHandle().getOwningQPDF();
+                if (!q) {
+                    throw std::logic_error("QPDFPageObjectHelper not attached to QPDF");
+                }
+                auto stream = QPDFObjectHandle::newStream(q, contents);
+                return poh.addPageContents(stream, prepend);
+            },
+            py::arg("contents"),
+            py::arg("prepend") = false,
+            R"~~~(
+                Append or prepend to an existing page's content stream from bytes.
+            )~~~")
         .def("remove_unreferenced_resources",
             &QPDFPageObjectHelper::removeUnreferencedResources,
             R"~~~(
