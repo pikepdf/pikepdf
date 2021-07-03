@@ -69,7 +69,6 @@ However, pikepdf sends ``pikepdf.Object`` types back to Python on return calls,
 in most cases, because pikepdf needs to keep track of objects that came from
 PDFs originally.
 
-
 Object lifecycle and memory management
 ======================================
 
@@ -92,3 +91,26 @@ When objects are copied from one :class:`pikepdf.Pdf` to another, the
 underlying data is copied immediately into the target. As such it is possible
 to merge hundreds of `Pdf` into one, keeping only a single source at a time and the
 target file open.
+
+Indirect objects
+================
+
+PDF has two ways to represented a PDF dictionary that contains another dictionary:
+it can contain the inner dictionary, or provide a reference to another object.
+In the PDF file itself, most objects have an object number that is for referencing.
+
+pikepdf hides the details about whether an object is directly or indirectly
+referenced, since in many situations it does not matter and manually testing each
+object to see if it needs to be dereferenced before accessing it is tedious.
+However, you may need to create indirect references. Sometimes, the :pdfrm:
+specifically requires that a value be an indirect object.
+
+You can use :attr:`pikepdf.Object.is_indirect` to check if an object is actually
+an indirect reference. If you require an indirect object, use
+:meth:`pikepdf.Pdf.make_indirect` to attach the dictionary to a `Pdf` and return
+an indirect copy of it. Direct objects are not attached to any particular `Pdf`
+and can be copied from one to another, just like scalars. Indirect objects
+must be attached.
+
+Stream objects are always indirect objects, and must always be attached to a
+PDF.

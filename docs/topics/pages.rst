@@ -166,11 +166,13 @@ valid. This is shown by the change in :attr:`pikepdf.Object.objgen`.
 Emplacing pages
 ~~~~~~~~~~~~~~~
 
-To preserve indirect references, use :meth:`pikepdf.Object.emplace`,
-which will (conceptually) delete all of the content of target and replace it
-with the content of source, thus preserving indirect references to the page.
-(Think of this as demolishing the interior of a house, but keeping it at the
-same address.)
+Perhaps the PDF you are working has a table of contents or internal hyperlinks,
+meaning that there are indirect references to a specific page object. If you
+want change the content of a page object while preserving references to it,
+use :meth:`pikepdf.Object.emplace`, which will delete all of the content of
+the target and replace it with the content of the source, thus preserving
+indirect references to the page. (Think of this as demolishing the interior
+of a house, but keeping it at the same address.)
 
 .. ipython::
 
