@@ -44,7 +44,9 @@ def test_invalid_boxes(graph_page):
 
 
 def test_page_repr(graph_page):
-    assert repr(graph_page).startswith('<pikepdf.Page')
+    r = repr(graph_page)
+    assert r.startswith('<pikepdf.Page')
+    assert '(Type="/Page")' not in r
 
 
 class TestAddResource:

@@ -1095,7 +1095,11 @@ class Extend_Page:
         return name
 
     def __repr__(self):
-        return repr(self.obj).replace('Dictionary', 'Page', 1)
+        return (
+            repr(self.obj)
+            .replace('Dictionary', 'Page', 1)
+            .replace('(Type="/Page")', '', 1)
+        )
 
     def _repr_mimebundle_(self, include=None, exclude=None):
         data = {}
