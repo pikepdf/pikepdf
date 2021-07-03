@@ -100,6 +100,12 @@ Object construction
 .. autoclass:: pikepdf.Operator
     :members:
 
+Common PDF data structures
+==========================
+
+.. autoclass:: pikepdf.Rectangle
+    :members:
+
 Internal objects
 ================
 

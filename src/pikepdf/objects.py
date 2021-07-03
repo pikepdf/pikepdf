@@ -44,7 +44,7 @@ ObjectType.__module__ = __name__
 
 
 class _ObjectMeta(type(Object)):  # type: ignore
-    """Supports instance checking"""
+    """Supports instance checking."""
 
     def __instancecheck__(self, instance):
         # Note: since this class is a metaclass, self is a class object
@@ -54,7 +54,7 @@ class _ObjectMeta(type(Object)):  # type: ignore
 
 
 class _NameObjectMeta(_ObjectMeta):
-    """Supports usage pikepdf.Name.Whatever -> Name('/Whatever')"""
+    """Supports usage pikepdf.Name.Whatever -> Name('/Whatever')."""
 
     def __getattr__(self, attr):
         if attr.startswith('_'):
@@ -82,7 +82,7 @@ class _NameObjectMeta(_ObjectMeta):
 
 
 class Name(Object, metaclass=_NameObjectMeta):
-    """Constructs a PDF Name object
+    """Constructs a PDF Name object.
 
     Names can be constructed with two notations:
 
@@ -144,7 +144,7 @@ class Operator(Object, metaclass=_ObjectMeta):
 
 
 class String(Object, metaclass=_ObjectMeta):
-    """Constructs a PDF String object"""
+    """Constructs a PDF String object."""
 
     object_type = ObjectType.string
 
@@ -163,7 +163,7 @@ class String(Object, metaclass=_ObjectMeta):
 
 
 class Array(Object, metaclass=_ObjectMeta):
-    """Constructs a PDF Array object"""
+    """Constructs a PDF Array object."""
 
     object_type = ObjectType.array
 
@@ -189,7 +189,7 @@ class Array(Object, metaclass=_ObjectMeta):
 
 
 class Dictionary(Object, metaclass=_ObjectMeta):
-    """Constructs a PDF Dictionary object"""
+    """Constructs a PDF Dictionary object."""
 
     object_type = ObjectType.dictionary
 
@@ -230,7 +230,7 @@ class Dictionary(Object, metaclass=_ObjectMeta):
 
 
 class Stream(Object, metaclass=_ObjectMeta):
-    """Constructs a PDF Stream object"""
+    """Constructs a PDF Stream object."""
 
     object_type = ObjectType.stream
 
