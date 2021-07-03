@@ -32,13 +32,23 @@ void init_rectangle(py::module_ &m)
 
             The rectangle may be considered degenerate if the lower left corner
             is not strictly less than the upper right corner.
+
+            ..versionadded: 2.14
         )~~~")
-        .def(py::init<>())
         .def(py::init<double, double, double, double>())
         .def(py::init([](QPDFObjectHandle &h) {
-            if (h.isArray() && h.getArrayNItems() == 4)
-                return h.getArrayAsRectangle();
-            throw py::cast_error("not a numeric array");
+            if (!h.isArray()) {
+                throw py::type_error(
+                    "Object is not an array; cannot convert to Rectangle");
+            }
+            if (h.getArrayNItems() != 4) {
+                throw py::type_error("Array does not have exactly 4 elements; cannot "
+                                     "convert to Rectangle");
+            }
+            Rect r = h.getArrayAsRectangle();
+            if (r.llx == 0.0 && r.lly == 0.0 && r.urx == 0.0 && r.ury == 0.0)
+                throw py::type_error("Failed to convert Array to a valid Rectangle");
+            return r;
         }))
         .def_property(
             "llx",
