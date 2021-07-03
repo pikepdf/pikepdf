@@ -142,7 +142,7 @@ void init_page(py::module_ &m)
                 return poh.addPageContents(contents, prepend);
             },
             py::arg("contents"),
-            py::kw_only(),
+            // py::kw_only(), // TODO in 3.x
             py::arg("prepend") = false,
             py::keep_alive<1, 2>(),
             R"~~~(
@@ -159,6 +159,7 @@ void init_page(py::module_ &m)
                 return poh.addPageContents(stream, prepend);
             },
             py::arg("contents"),
+            py::kw_only(),
             py::arg("prepend") = false,
             R"~~~(
                 Append or prepend to an existing page's content stream from bytes.
