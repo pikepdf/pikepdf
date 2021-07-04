@@ -241,7 +241,8 @@ def test_page_contents_add(graph, outdir):
     pdf.save(outdir / 'out.pdf')
 
     with pytest.raises(TypeError, match="Not a Page"):
-        Array([42]).page_contents_add(stream1)
+        with pytest.deprecated_call():
+            Array([42]).page_contents_add(stream1)
 
 
 def test_bad_access(fourpages):

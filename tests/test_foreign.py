@@ -45,3 +45,24 @@ def test_copy_foreign_copies(vera, outlines, outpdf):
     assert vera.Root.Names.is_owned_by(vera)
     assert not outlines.Root.Names.is_owned_by(vera)
     vera.save(outpdf)
+
+
+def test_with_same_owner_as(vera, outlines, outpdf):
+    assert vera.Root.is_owned_by(vera)
+
+    # return reference to self
+    indirect_dict = vera.make_indirect(Dictionary(Foo=42))
+    vera.Root.IndirectDict = indirect_dict
+    vera.save(outpdf)
+
+    # copy direct object case
+    vera.Root.CopiedDirectNames = Dictionary(Foo=42).with_same_owner_as(vera.Root)
+    vera.save(outpdf)
+
+    # copy foreign case
+    vera.Root.ForeignNames = outlines.Root.Names.with_same_owner_as(vera.Root)
+    vera.save(outpdf)
+
+    # invalid other owner case
+    with pytest.raises(ValueError):
+        outlines.Root.Names.with_same_owner_as(Dictionary(Foo=42))

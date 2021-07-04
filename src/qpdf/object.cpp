@@ -251,6 +251,37 @@ void init_object(py::module_ &m)
                 return self.getOwningQPDF() == other.getOwningQPDF();
             },
             "Test if two objects are owned by the same :class:`pikepdf.Pdf`.")
+        .def(
+            "with_same_owner_as",
+            [](QPDFObjectHandle &self, QPDFObjectHandle &other) {
+                QPDF *self_owner  = self.getOwningQPDF();
+                QPDF *other_owner = other.getOwningQPDF();
+
+                if (self_owner == other_owner)
+                    return self;
+                if (!other_owner)
+                    throw py::value_error(
+                        "with_same_owner_as() called for object that has no owner");
+                if (!self.isIndirect())
+                    return other_owner->makeIndirectObject(self);
+
+                auto self_in_other = other_owner->copyForeignObject(self);
+                return self_in_other;
+            },
+            R"~~~(
+                Returns an object that is owned by the same Pdf that owns the *other* object.
+
+                If the objects already have the same owner, this object is returned.
+                If the *other* object has a different owner, then a copy is created
+                that is owned by *other*'s owner. If this object is a direct object
+                (no owner), then an indirect object is created that is owned by
+                *other*. An exception is thrown if *other* is a direct object.
+
+                This method may be convenient when a reference to the Pdf is not
+                available.
+
+                ..versionadded:: 2.14
+            )~~~")
         .def_property_readonly("is_indirect", &QPDFObjectHandle::isIndirect)
         .def("__repr__", &objecthandle_repr)
         .def("__hash__",

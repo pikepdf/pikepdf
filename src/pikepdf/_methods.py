@@ -1070,6 +1070,10 @@ class Extend_Page:
 
         .. versionadded:: 2.3
 
+        .. versionchanged:: 2.14
+            If *res* does not belong to the same `Pdf` that owns this page,
+            a copy of *res* is automatically created and added instead. In previous
+            versions, it was necessary to change for this case manually.
         """
         if not Name.Resources in self.obj:
             self.obj.Resources = Dictionary()
@@ -1094,7 +1098,7 @@ class Extend_Page:
                 else:
                     raise ValueError(f"Name {name} already exists in page /Resources")
 
-        resources[res_type][name] = res
+        resources[res_type][name] = res.with_same_owner_as(self.obj)
         return name
 
     def _over_underlay(
