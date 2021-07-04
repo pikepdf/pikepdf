@@ -331,7 +331,7 @@ void init_page(py::module_ &m)
 
                 Requires O(n) search.
 
-                .. versionadded: 2.2
+                .. versionadded:: 2.2
             )~~~")
         .def_property_readonly(
             "label",
@@ -365,9 +365,9 @@ void init_page(py::module_ &m)
                 Note that this requires a O(n) search over all pages, to look up
                 the page's index.
 
-                .. versionadded: 2.2
+                .. versionadded:: 2.2
 
-                .. versionchanged: 2.9
+                .. versionchanged:: 2.9
                     Returns the ordinary page number if no special rules for page
                     numbers are defined.
             )~~~");

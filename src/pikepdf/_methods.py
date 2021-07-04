@@ -1051,7 +1051,8 @@ class Extend_Page:
 
         Args:
             self: The object to add to the resources dictionary.
-            res: The resource dictionary object to add.
+            res: The dictionary object to insert into the resources
+                dictionary.
             res_type: Should be one of the following Resource dictionary types:
                 ExtGState, ColorSpace, Pattern, Shading, XObject, Font, Properties.
             name: The name of the object. If omitted, a random name will be
@@ -1067,7 +1068,8 @@ class Extend_Page:
         Example:
             >>> resource_name = Page(pdf.pages[0]).add_resource(formxobj, Name.XObject)
 
-        .. versionadded: 2.3
+        .. versionadded:: 2.3
+
         """
         if not Name.Resources in self.obj:
             self.obj.Resources = Dictionary()
