@@ -13,11 +13,15 @@ def test_rect_properties():
     assert r.ury == 302.0
     assert r.width == 100.0
     assert r.height == 300.0
+    r.llx *= 2
+    r.lly *= 2
+    r.urx *= 2
+    r.ury *= 2
     assert r.lower_left == (r.llx, r.lly)
     assert r.lower_right == (r.urx, r.lly)
     assert r.upper_right == (r.urx, r.ury)
     assert r.upper_left == (r.llx, r.ury)
-    assert r.as_array() == Array([Decimal(coord) for coord in [1, 2, 101, 302]])
+    assert r.as_array() == Array([Decimal(coord) for coord in [2, 4, 202, 604]])
 
 
 def test_rect_creation():

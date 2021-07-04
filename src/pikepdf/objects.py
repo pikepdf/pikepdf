@@ -167,7 +167,7 @@ class Array(Object, metaclass=_ObjectMeta):
 
     object_type = ObjectType.array
 
-    def __new__(cls, a: Optional[Iterable] = None):
+    def __new__(cls, a: Optional[Union[Iterable, Rectangle]] = None):
         """
         Args:
             a: An iterable of objects. All objects must be either
