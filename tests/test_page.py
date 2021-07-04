@@ -146,6 +146,9 @@ def test_fourpages_to_4up(fourpages, outpdf):
     page.add_overlay(Page(pdf.pages[3]).as_form_xobject(), Rectangle(0, 0, 500, 500))
     page.add_underlay(pdf.pages[4], Rectangle(500, 0, 1000, 500))
 
+    with pytest.raises(TypeError):
+        page.add_overlay(Dictionary(Key=123))
+
     del pdf.pages[1:]
 
     pdf.save(outpdf)
