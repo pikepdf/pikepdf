@@ -640,8 +640,12 @@ void init_object(py::module_ &m)
         .def(
             "page_contents_add",
             [](QPDFObjectHandle &h, QPDFObjectHandle &contents, bool prepend) {
+                deprecation_warning(
+                    "pikepdf.Object.page_contents_add is deprecated; use "
+                    "pikepdf.Page.contents_add instead");
                 if (!h.isPageObject())
                     throw py::type_error("Not a Page");
+
                 h.addPageContents(contents, prepend);
             },
             R"~~~(
@@ -653,8 +657,14 @@ void init_object(py::module_ &m)
             py::arg("contents"),
             py::arg("prepend") = false,
             py::keep_alive<1, 2>())
-        .def("page_contents_coalesce",
-            &QPDFObjectHandle::coalesceContentStreams,
+        .def(
+            "page_contents_coalesce",
+            [](QPDFObjectHandle &h) {
+                deprecation_warning(
+                    "pikepdf.Object.page_contents_coalesce is deprecated; use "
+                    "pikepdf.Page.contents_coalesce instead");
+                return h.coalesceContentStreams();
+            },
             R"~~~(
             Coalesce an array of page content streams into a single content stream.
 
