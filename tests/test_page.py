@@ -134,7 +134,7 @@ def test_formx(graph, outpdf):
     graph.save(outpdf)
 
 
-def test_fourpages_to_4up(fourpages, outpdf):
+def test_fourpages_to_4up(fourpages, graph, outpdf):
     pdf = Pdf.new()
     pdf.add_blank_page(page_size=(1000, 1000))
     page = Page(pdf.pages[0])
@@ -145,6 +145,8 @@ def test_fourpages_to_4up(fourpages, outpdf):
     page.add_overlay(Page(pdf.pages[2]), Rectangle(500, 500, 1000, 1000))
     page.add_overlay(Page(pdf.pages[3]).as_form_xobject(), Rectangle(0, 0, 500, 500))
     page.add_underlay(pdf.pages[4], Rectangle(500, 0, 1000, 500))
+
+    page.add_underlay(graph.pages[0])
 
     with pytest.raises(TypeError):
         page.add_overlay(Dictionary(Key=123))

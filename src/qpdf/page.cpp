@@ -153,6 +153,7 @@ void init_page(py::module_ &m)
             [](QPDFPageObjectHelper &poh, py::bytes contents, bool prepend) {
                 auto q = poh.getObjectHandle().getOwningQPDF();
                 if (!q) {
+                    // LCOV_EXCL_LINE
                     throw std::logic_error("QPDFPageObjectHelper not attached to QPDF");
                 }
                 auto stream = QPDFObjectHandle::newStream(q, contents);

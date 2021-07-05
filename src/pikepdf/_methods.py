@@ -1121,7 +1121,7 @@ class Extend_Page:
             raise TypeError("other object is not something we can convert to FormX")
 
         if rect is None:
-            rect = page.trimbox
+            rect = Rectangle(page.trimbox)
 
         formx_placed_name = self.add_resource(formx, Name.XObject)
         cs = self.calc_form_xobject_placement(formx, formx_placed_name, rect)
