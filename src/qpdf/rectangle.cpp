@@ -50,6 +50,13 @@ void init_rectangle(py::module_ &m)
                 throw py::type_error("Failed to convert Array to a valid Rectangle");
             return r;
         }))
+        .def(
+            "__eq__",
+            [](Rect &self, Rect &other) {
+                return self.llx == other.llx && self.lly == other.lly &&
+                       self.urx == other.urx && self.ury == other.ury;
+            },
+            py::is_operator())
         .def_property(
             "llx",
             [](Rect &r) { return r.llx; },

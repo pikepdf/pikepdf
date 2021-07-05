@@ -83,7 +83,7 @@ def augments(cls_cpp: Type[Any]):
 
     (Alternative ideas: https://github.com/pybind/pybind11/issues/1074)
     """
-    ATTR_WHITELIST = {'__repr__', '__enter__', '__exit__'}
+    ATTR_WHITELIST = {'__repr__', '__enter__', '__exit__', '__hash__'}
 
     def class_augment(cls, cls_cpp=cls_cpp):
         for name, member in inspect.getmembers(cls):
@@ -1197,3 +1197,6 @@ class Extend_Token:
 class Extend_Rectangle:
     def __repr__(self):
         return f'pikepdf.Rectangle({self.llx}, {self.lly}, {self.urx}, {self.ury})'
+
+    def __hash__(self):
+        return hash((self.llx, self.lly, self.urx, self.ury))

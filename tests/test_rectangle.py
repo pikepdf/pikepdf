@@ -2,6 +2,7 @@ from decimal import Decimal
 
 import pytest
 
+import pikepdf
 from pikepdf import Array, Name, Rectangle
 
 
@@ -23,6 +24,10 @@ def test_rect_properties():
     assert r.upper_left == (r.llx, r.ury)
     assert r.as_array() == Array([Decimal(coord) for coord in [2, 4, 202, 604]])
 
+    evaled_r = eval(repr(r), dict(pikepdf=pikepdf))  # pylint: disable=eval-used
+    assert evaled_r == r
+    assert hash(evaled_r) == hash(r)
+
 
 def test_rect_creation():
     assert Rectangle(Array([1, 2, 3, 4])).width == 2
@@ -37,3 +42,8 @@ def test_rect_from_invalid():
         Rectangle(Array([1, 2]))
     with pytest.raises(TypeError):
         Rectangle(Array(['one', 'two', 'three', 'four']))
+
+
+def test_array_from_rect():
+    a = Array(Rectangle(1, 2, 3, 4))
+    assert isinstance(a, Array)
