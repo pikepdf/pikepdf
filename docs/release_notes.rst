@@ -18,6 +18,16 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.14.0
+=======
+
+-  Implemented a major new feature: overlays (watermarks, page composition). This
+   makes it easier to solve many common tasks that involve copying content from
+   pages to other pages, applying watermarks, headers/footers, etc. :issue:`42`
+-  Added :meth:`pikepdf.Object.with_same_owner_as` to simplify creating objects
+   that have the same owner as another object.
+-  Many improvements to type hints for classes implemented in C++. :issue:`213, 214`
+
 v2.13.0
 =======
 
