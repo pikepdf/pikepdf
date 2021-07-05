@@ -130,6 +130,7 @@ practical examples, particular in ``pdfinfo.py``, ``graft.py``, and
     topics/streams
     topics/content_streams
     topics/images
+    topics/overlays
     topics/encoding
     topics/metadata
     topics/outlines

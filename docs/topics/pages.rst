@@ -49,7 +49,11 @@ All we need are new PDFs to hold the destination pages.
 Merge (concatenate) PDF from several PDFs
 -----------------------------------------
 
-We create an empty ``Pdf`` which will be the container for all the others.
+In this example, we create an empty ``Pdf`` which will be the container for all
+the others.
+
+If you are looking to combine multiple PDF pages into a single page, see
+:ref:`overlays`.
 
 .. ipython::
     :verbatim:
