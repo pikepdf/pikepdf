@@ -241,6 +241,8 @@ void init_page(py::module_ &m)
                     allow_shrink: Allow the Form XObject to take less than the
                         full dimensions of rect.
                     allow_expand: Expand the Form XObject to occupy all of rect.
+
+                .. versionadded:: 2.14
             )~~~")
         .def(
             "get_filtered_contents",

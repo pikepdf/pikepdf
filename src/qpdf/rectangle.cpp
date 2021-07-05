@@ -28,12 +28,12 @@ void init_rectangle(py::module_ &m)
 
             Rectangles in PDF are encoded as :class:`pikepdf.Array` with exactly
             four numeric elements, ordered as ``llx lly urx ury``.
-            See :pdfrm: section 7.9.5.
+            See |pdfrm| section 7.9.5.
 
             The rectangle may be considered degenerate if the lower left corner
             is not strictly less than the upper right corner.
 
-            ..versionadded: 2.14
+            .. versionadded: 2.14
         )~~~")
         .def(py::init<double, double, double, double>())
         .def(py::init([](QPDFObjectHandle &h) {

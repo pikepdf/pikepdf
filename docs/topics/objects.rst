@@ -102,7 +102,7 @@ In the PDF file itself, most objects have an object number that is for referenci
 pikepdf hides the details about whether an object is directly or indirectly
 referenced, since in many situations it does not matter and manually testing each
 object to see if it needs to be dereferenced before accessing it is tedious.
-However, you may need to create indirect references. Sometimes, the :pdfrm:
+However, you may need to create indirect references. Sometimes, the |pdfrm|
 specifically requires that a value be an indirect object.
 
 You can use :attr:`pikepdf.Object.is_indirect` to check if an object is actually

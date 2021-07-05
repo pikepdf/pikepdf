@@ -7,6 +7,7 @@ replacements = [
     (re.compile(r'pikepdf._qpdf.(\w+)\b'), r'pikepdf.\1'),
     (re.compile(r'QPDFTokenizer::Token\b'), 'pikepdf.Token'),
     (re.compile(r'QPDFObjectHandle::TokenFilter'), 'pikepdf.TokenFilter'),
+    (re.compile(r'QPDFObjectHandle::Rectangle'), 'pikepdf.Rectangle'),
     (re.compile(r'QPDFObjectHandle'), 'pikepdf.Object'),
     (re.compile(r'QPDFExc'), 'pikepdf.PdfError'),
     (re.compile(r'QPDFPageObjectHelper'), 'pikepdf.Page'),

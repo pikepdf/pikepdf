@@ -1140,7 +1140,7 @@ class Extend_Page:
             rect: The PDF rectangle (in PDF units) in which to draw the overlay.
                 If omitted, this page's trimbox, cropbox or mediabox will be used.
 
-        ..versionadded:: 2.14
+        .. versionadded:: 2.14
         """
         return self._over_underlay(other, rect, under=False)
 
@@ -1158,7 +1158,7 @@ class Extend_Page:
             rect: The PDF rectangle (in PDF units) in which to draw the underlay.
                 If omitted, this page's MediaBox will be used.
 
-        ..versionadded:: 2.14
+        .. versionadded:: 2.14
         """
         return self._over_underlay(other, rect, under=True)
 
