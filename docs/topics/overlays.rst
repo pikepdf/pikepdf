@@ -9,7 +9,7 @@ This might be used to do watermarks (typically an underlay, drawn before everyth
 else), n-up (compositing multiple individual pages on a large page, such as converting
 slides from a presentation to 4-up for reading and printing).
 
-If you are looking to merge pages from different several PDFs, see :ref:`mergepdf`.
+If you are looking to merge pages from different PDFs, see :ref:`mergepdf`.
 
 In this example we use :meth:`pikepdf.Page.add_overlay` to draw a thumbnail of
 of the second page onto the first page.
