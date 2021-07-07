@@ -29,7 +29,7 @@ if on_rtd:
     docs_requirements_text = config['options.extras_require']['docs'] + '\n'
 
     def pip(*args):
-        subprocess.run(sys.executable, '-m', 'pip', *args, check=True)
+        subprocess.run([sys.executable, '-m', 'pip', *args], check=True)
 
     # Temporarily create & install docs/requirements.txt (we are in ./docs)
     docs_requirements = Path('requirements.txt')
