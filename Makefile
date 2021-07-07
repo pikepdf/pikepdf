@@ -9,7 +9,8 @@ invalidate-cppcov:
 
 .PHONY: build
 build: invalidate-cppcov
-	python setup.py build_ext --inplace
+	# python setup.py build_ext --inplace
+	python -m pip install -e .
 
 .PHONY: clean-coverage-pycov
 clean-coverage-pycov:
@@ -32,6 +33,23 @@ clean: clean-coverage
 .PHONY: test
 test: build
 	pytest -n auto
+
+version := $(subst v,,$(shell git describe --tags))
+macwheel := pikepdf-$(version)-cp39-cp39-macosx_11_0_arm64.whl
+#$(info $$version is [${version}])
+#$(info $$macwheel is [${macwheel}])
+
+$(macwheel): clean build
+	rm pikepdf*.whl
+	python -m pip wheel .
+	mv pikepdf*.whl $(macwheel)
+
+fixed/$(macwheel): $(macwheel)
+	delocate-wheel -w fixed -v $(macwheel)
+
+.PHONY: apple-silicon-wheels
+apple-silicon-wheels: fixed/$(macwheel)
+	twine upload fixed/$(macwheel)
 
 .PHONY: pycov
 pycov: clean-coverage-pycov
