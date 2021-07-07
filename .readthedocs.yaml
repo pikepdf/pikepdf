@@ -15,8 +15,11 @@ formats:
 # Optionally set the version of Python and requirements required to build your docs
 python:
   version: 3.7
-  install:
-    - method: pip
-      path: .
-      extra_requirements:
-        - docs
+  # For RTD, don't install, because RTD will try to compile C++ and fail.
+  # See the shim in docs/conf.py which will install the requirements from
+  # setup.cfg and the latest available wheel.
+  # install:
+  #   - method: pip
+  #     path: .
+  #     extra_requirements:
+  #       - docs

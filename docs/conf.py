@@ -12,14 +12,31 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+import configparser
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 from pkg_resources import get_distribution
 
 on_rtd = os.environ.get('READTHEDOCS') == 'True'
 if on_rtd:
+    config = configparser.ConfigParser()
+    with open('../setup.cfg') as f:
+        config.read_file(f)
+
+    docs_requirements_text = config['options.extras_require']['docs'] + '\n'
+
+    def pip(*args):
+        subprocess.run(sys.executable, '-m', 'pip', *args, check=True)
+
+    # Temporarily create & install docs/requirements.txt (we are in ./docs)
+    docs_requirements = Path('requirements.txt')
+    docs_requirements.write_text(docs_requirements)
+    pip('install', '-r', str(docs_requirements))
+    docs_requirements.unlink()
+
     # Borrowed from https://github.com/YannickJadoul/Parselmouth/blob/master/docs/conf.py
     rtd_version = os.environ.get('READTHEDOCS_VERSION')
     setup_py_version = (
@@ -31,32 +48,14 @@ if on_rtd:
     if rtd_version == 'stable':
         branch = None
         try:
-            subprocess.check_call(
-                [
-                    sys.executable,
-                    '-m',
-                    'pip',
-                    'install',
-                    f'pikepdf=={setup_py_version}',
-                ]
-            )
+            pip('install', f'pikepdf=={setup_py_version}')
         except subprocess.CalledProcessError:
             branch = 'master'
     else:
         branch = 'master' if rtd_version == 'latest' else rtd_version
 
     if branch is not None:
-        subprocess.check_call(
-            [
-                sys.executable,
-                '-m',
-                'pip',
-                'install',
-                '--only-binary',
-                'pikepdf',
-                'pikepdf',
-            ]
-        )
+        pip('install', '--only-binary', 'pikepdf', 'pikepdf')
 else:
     sys.path.insert(0, os.path.abspath(os.path.join('..', 'installed')))
 
