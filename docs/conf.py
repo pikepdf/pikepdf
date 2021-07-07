@@ -34,7 +34,7 @@ if on_rtd:
     # Temporarily create & install docs/requirements.txt (we are in ./docs)
     docs_requirements = Path('requirements.txt')
     docs_requirements.write_text(docs_requirements_text)
-    pip('install', '-r', str(docs_requirements))
+    pip('install', '--upgrade', '--requirement', str(docs_requirements))
     docs_requirements.unlink()
 
     # Borrowed from https://github.com/YannickJadoul/Parselmouth/blob/master/docs/conf.py
