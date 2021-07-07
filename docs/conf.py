@@ -26,16 +26,20 @@ if on_rtd:
     with open('../setup.cfg') as f:
         config.read_file(f)
 
+    pikepdf_requirements_text = config['options.install_requires'] + '\n'
     docs_requirements_text = config['options.extras_require']['docs'] + '\n'
 
     def pip(*args):
         subprocess.run([sys.executable, '-m', 'pip', *args], check=True)
 
     # Temporarily create & install docs/requirements.txt (we are in ./docs)
-    docs_requirements = Path('requirements.txt')
-    docs_requirements.write_text(docs_requirements_text)
-    pip('install', '--upgrade', '--requirement', str(docs_requirements))
-    docs_requirements.unlink()
+    reqs_txt = Path('requirements.txt')
+    with reqs_txt.open('w') as f:
+        f.write(pikepdf_requirements_text)
+        f.write(docs_requirements_text)
+
+    pip('install', '--upgrade', '--requirement', str(reqs_txt))
+    reqs_txt.unlink()
 
     # Borrowed from https://github.com/YannickJadoul/Parselmouth/blob/master/docs/conf.py
     rtd_version = os.environ.get('READTHEDOCS_VERSION')
