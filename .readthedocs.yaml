@@ -15,9 +15,12 @@ formats:
 # Optionally set the version of Python and requirements required to build your docs
 python:
   version: 3.7
-  # For RTD, don't install, because RTD will try to compile C++ and fail.
-  # See the shim in docs/conf.py which will install the requirements from
-  # setup.cfg and the latest available wheel.
+  install:
+    - requirements: docs/requirements.txt
+  # For RTD, we'd like to use the setup.cfg config, but then it will try to build
+  # pikepdf instead of using the wheel. See the shim in docs/conf.py that avoids that.
+  # We'd like to derive requirements.txt from setup.cfg, but pkg_resources doesn't
+  # understand, apparently.
   # install:
   #   - method: pip
   #     path: .
