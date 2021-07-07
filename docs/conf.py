@@ -26,7 +26,7 @@ if on_rtd:
     with open('../setup.cfg') as f:
         config.read_file(f)
 
-    pikepdf_requirements_text = config['options.install_requires'] + '\n'
+    pikepdf_requirements_text = config['options']['install_requires'] + '\n'
     docs_requirements_text = config['options.extras_require']['docs'] + '\n'
 
     def pip(*args):
