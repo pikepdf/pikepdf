@@ -18,6 +18,13 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.14.1
+=======
+
+-  Fixed the ReadTheDocs documentation build, which had broken after the ``setup.cfg``
+   changes in v2.13.0.
+-  Amended the Makefile with steps for building Apple Silicon wheels.
+
 v2.14.0
 =======
 
