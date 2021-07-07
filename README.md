@@ -49,7 +49,7 @@ This library is similar to PyPDF2 and pdfrw - it provides low level access to PD
 | Modifies PDF/A without breaking PDF/A compliance                    | ✔                                           | ✘                                         | ?                                       |
 | Automatically repairs PDFs with internal errors                     | ✔                                           | ✘                                         | ✘                                       |
 | PDF XMP metadata editing                                            | ✔                                           | read-only                                 | ✘                                       |
-| Documentation                                                       | ✔                                           | ✘                                         | ✔                                       |
+| Documentation                                                       | ✔                                           | basic                                     | ✔                                       |
 | Integrates with Jupyter and IPython notebooks for rapid development | ✔                                           | ✘                                         | ✘                                       |
 
 
