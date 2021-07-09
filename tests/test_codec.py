@@ -13,9 +13,22 @@ def test_encode():
     assert '你好 world'.encode('pdfdoc', 'ignore') == b' world'
 
 
+def test_encode_pdfdoc_pike():
+    assert 'abc'.encode('pdfdoc_pike') == b'abc'
+    with pytest.raises(ValueError):
+        '你好'.encode('pdfdoc_pike')
+    assert '你好 world'.encode('pdfdoc_pike', 'replace') == b'?? world'
+    assert '你好 world'.encode('pdfdoc_pike', 'ignore') == b' world'
+
+
 def test_decode():
     assert b'A'.decode('pdfdoc') == 'A'
     assert b'\xa0'.decode('pdfdoc') == '€'
+
+
+def test_decode_pdfdoc_pike():
+    assert b'A'.decode('pdfdoc_pike') == 'A'
+    assert b'\xa0'.decode('pdfdoc_pike') == '€'
 
 
 def test_unicode_surrogate():

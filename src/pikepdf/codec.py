@@ -52,9 +52,9 @@ class PdfDocCodec(codecs.Codec):
 
 
 def find_pdfdoc(encoding: str) -> Optional[codecs.CodecInfo]:
-    if encoding == 'pdfdoc':
+    if encoding == 'pdfdoc' or encoding =='pdfdoc_pike':
         return codecs.CodecInfo(
-            name='pdfdoc', encode=PdfDocCodec().encode, decode=PdfDocCodec().decode
+            name=encoding, encode=PdfDocCodec().encode, decode=PdfDocCodec().decode
         )
     return None  # pragma: no cover
 
