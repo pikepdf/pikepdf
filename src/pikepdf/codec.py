@@ -21,16 +21,16 @@ def pdfdoc_encode(input: str, errors: str = 'strict') -> Tuple[bytes, int]:
         # message like:
         #   "Unable to extract string contents! (encoding issue)"
         # It is not known to happen except when str contains Unicode surrogates.
-        raise ValueError("'pdfdoc' codec can't process Unicode surrogates") from e
+        raise UnicodeError("'pdfdoc' codec can't process Unicode surrogates") from e
     if not success:
         if errors == 'strict':
-            # It is acceptable to raise ValueError per documentation for codecs.encode.
-            # Also, libqpdf does not give precise information about where in a
+            # libqpdf does not give precise information about where in a
             # string encoding failed, so we cannot raise UnicodeEncodeError
-            # which requires those details.
-            raise ValueError("'pdfdoc' codec can't encode some characters")
+            # which requires those details, so we raise UnicodeError,
+            # which documentation states is acceptable.
+            raise UnicodeError("'pdfdoc' codec can't encode some characters")
         if errors == 'ignore':
-            pdfdoc = pdfdoc.replace(b'\xad', b'')
+            pdfdoc = pdfdoc.replace(error_marker, b'')
     return pdfdoc, len(input)
 
 
