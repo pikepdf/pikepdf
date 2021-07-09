@@ -4,9 +4,10 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
+import os
 from distutils.version import LooseVersion
 from subprocess import DEVNULL, PIPE, CalledProcessError, run
-from tempfile import NamedTemporaryFile as NamedTemp
+from tempfile import TemporaryDirectory
 
 from PIL import Image
 
@@ -14,20 +15,27 @@ import pikepdf
 
 
 def extract_jbig2(im_obj: pikepdf.Object, globals_obj: pikepdf.Object = None) -> Image:
-    with NamedTemp() as imgfile, NamedTemp() as globalfile, NamedTemp() as outfile:
-        imgfile.write(im_obj.read_raw_bytes())
-        imgfile.seek(0)
 
-        args = ['jbig2dec', '-e', '-o', outfile.name]
+    with TemporaryDirectory() as tmpdir:
+        image_fname = os.path.join(tmpdir, "image")
+        global_fname = os.path.join(tmpdir, "global")
+        output_fname = os.path.join(tmpdir, "outfile")
+        
+        args = ["jbig2dec", "-e", "-o", output_fname]
+
+        with open(image_fname) as img_fd:
+            img_fd.write(im_obj.read_raw_bytes())
+
         if globals_obj is not None:
-            globalfile.write(globals_obj.read_raw_bytes())
-            globalfile.seek(0)
-            args.append(globalfile.name)
-        args.append(imgfile.name)
+            with open(global_fname) as global_fd:
+                global_fd.write(globals_obj.read_raw_bytes())
+            args.append(global_fname)
+
+        args.append(image_fname)
 
         run(args, stdout=DEVNULL, check=True)
-        im = Image.open(outfile)
-        im.load()  # Load pixel data into memory so file can be closed
+        im = Image.open(output_fname)
+        im.load() # Load pixel data into memory so file can be closed
         return im
 
 
