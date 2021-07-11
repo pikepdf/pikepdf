@@ -11,6 +11,51 @@ from ._qpdf import pdf_doc_to_utf8, utf8_to_pdf_doc
 
 # pylint: disable=redefined-builtin
 
+# See PDF Reference Manual 1.7, Table D.2. We record every character that has
+# a Unicode representation.
+PDFDOC_ENCODABLE = frozenset(
+    list(range(0x00, 0x17 + 1))
+    + [0x2D8, 0x2C7, 0x2C6, 0x2D9, 0x2DD, 0x2DB, 0x2DA, 0x2DC]
+    + list(range(0x20, 0x7E + 1))
+    + [
+        0x2022,
+        0x2020,
+        0x2021,
+        0x2026,
+        0x2014,
+        0x2013,
+        0x0192,
+        0x2044,
+        0x2039,
+        0x203A,
+        0x2212,
+        0x2030,
+        0x201E,
+        0x201C,
+        0x201D,
+        0x2018,
+        0x2019,
+        0x201A,
+        0x2122,
+        0xFB01,
+        0xFB02,
+        0x0141,
+        0x0152,
+        0x0160,
+        0x0178,
+        0x017D,
+        0x0131,
+        0x0142,
+        0x0153,
+        0x0161,
+        0x017E,
+        0xFFFD,
+        0x20AC,
+    ]
+    + list(range(0xA1, 0xAC + 1))
+    + list(range(0xAE, 0xFF + 1))
+)
+
 
 def pdfdoc_encode(input: str, errors: str = 'strict') -> Tuple[bytes, int]:
     error_marker = b'?' if errors == 'replace' else b'\xad'
@@ -24,10 +69,20 @@ def pdfdoc_encode(input: str, errors: str = 'strict') -> Tuple[bytes, int]:
         raise ValueError("'pdfdoc' codec can't process Unicode surrogates") from e
     if not success:
         if errors == 'strict':
-            # It is acceptable to raise ValueError per documentation for codecs.encode.
-            # Also, libqpdf does not give precise information about where in a
-            # string encoding failed, so we cannot raise UnicodeEncodeError
-            # which requires those details.
+            # libqpdf doesn't return what character caused the error, and Python
+            # needs this, so make an educated guess and raise an exception based
+            # on that.
+            for n, char in enumerate(input):
+                if ord(char) not in PDFDOC_ENCODABLE:
+                    raise UnicodeEncodeError(
+                        'pdfdoc',
+                        input,
+                        n,
+                        n + 1,
+                        "character cannot be represented in pdfdoc encoding",
+                    )
+
+            # We don't know precisely what happened
             raise ValueError("'pdfdoc' codec can't encode some characters")
         if errors == 'ignore':
             pdfdoc = pdfdoc.replace(b'\xad', b'')

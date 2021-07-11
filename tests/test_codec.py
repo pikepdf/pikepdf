@@ -37,6 +37,7 @@ def test_break_encode(c):
         encoded_bytes = c.encode('pdfdoc')
     except ValueError as e:
         allowed_errors = [
+            "'pdfdoc' codec can't encode character",
             "'pdfdoc' codec can't process Unicode surrogates",
             "'pdfdoc' codec can't encode some characters",
         ]
