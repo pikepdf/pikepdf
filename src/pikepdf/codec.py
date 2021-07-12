@@ -11,11 +11,13 @@ from ._qpdf import pdf_doc_to_utf8, utf8_to_pdf_doc
 
 # pylint: disable=redefined-builtin
 
-# See PDF Reference Manual 1.7, Table D.2. We record every character that has
-# a Unicode representation.
+# See PDF Reference Manual 1.7, Table D.2. We record every Unicode code point
+# that can be encoded to pdfdoc,
+# except for: [0x2D8, 0x2C7, 0x2C6, 0x2D9, 0x2DD, 0x2DB, 0x2DA, 0x2DC]
+# which qpdf does not seem to consider as encodable even though the PDF RM does.
+# Follow qpdf is more important for consistency.
 PDFDOC_ENCODABLE = frozenset(
     list(range(0x00, 0x17 + 1))
-    + [0x2D8, 0x2C7, 0x2C6, 0x2D9, 0x2DD, 0x2DB, 0x2DA, 0x2DC]
     + list(range(0x20, 0x7E + 1))
     + [
         0x2022,
@@ -83,7 +85,9 @@ def pdfdoc_encode(input: str, errors: str = 'strict') -> Tuple[bytes, int]:
                     )
 
             # We don't know precisely what happened
-            raise ValueError("'pdfdoc' codec can't encode some characters")
+            raise UnicodeEncodeError(
+                'pdfdoc', input, 0, len(input), "can't encode some characters"
+            )
         if errors == 'ignore':
             pdfdoc = pdfdoc.replace(b'\xad', b'')
     return pdfdoc, len(input)
@@ -106,10 +110,35 @@ class PdfDocCodec(codecs.Codec):
         return pdfdoc_decode(input, errors)
 
 
+class PdfDocStreamWriter(PdfDocCodec, codecs.StreamWriter):
+    pass
+
+
+class PdfDocStreamReader(PdfDocCodec, codecs.StreamReader):
+    pass
+
+
+class PdfDocIncrementalEncoder(codecs.IncrementalEncoder):
+    def encode(self, input: str, final=False):
+        return pdfdoc_encode(input, 'strict')[0]
+
+
+class PdfDocIncrementalDecoder(codecs.IncrementalDecoder):
+    def decode(self, input: bytes, final=False):
+        return pdfdoc_decode(input, 'strict')[0]
+
+
 def find_pdfdoc(encoding: str) -> Optional[codecs.CodecInfo]:
-    if encoding == 'pdfdoc':
+    if encoding in ('pdfdoc', 'pdfdoc_pikepdf'):
+        codec = PdfDocCodec()
         return codecs.CodecInfo(
-            name='pdfdoc', encode=PdfDocCodec().encode, decode=PdfDocCodec().decode
+            name=encoding,
+            encode=codec.encode,
+            decode=codec.decode,
+            streamwriter=PdfDocStreamWriter,
+            streamreader=PdfDocStreamReader,
+            incrementalencoder=PdfDocIncrementalEncoder,
+            incrementaldecoder=PdfDocIncrementalDecoder,
         )
     return None  # pragma: no cover
 
