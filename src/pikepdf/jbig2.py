@@ -6,6 +6,7 @@
 
 import os
 from distutils.version import LooseVersion
+from pathlib import Path
 from subprocess import DEVNULL, PIPE, CalledProcessError, run
 from tempfile import TemporaryDirectory
 
@@ -16,26 +17,28 @@ import pikepdf
 
 def extract_jbig2(im_obj: pikepdf.Object, globals_obj: pikepdf.Object = None) -> Image:
 
-    with TemporaryDirectory() as tmpdir:
-        image_fname = os.path.join(tmpdir, "image")
-        global_fname = os.path.join(tmpdir, "global")
-        output_fname = os.path.join(tmpdir, "outfile")
-        
-        args = ["jbig2dec", "-e", "-o", output_fname]
+    with TemporaryDirectory(prefix='pikepdf', suffix='.jbig2') as tmpdir:
+        image_path = Path(tmpdir) / "image"
+        global_path = Path(tmpdir) / "global"
+        output_path = Path(tmpdir) / "outfile"
 
-        with open(image_fname) as img_fd:
-            img_fd.write(im_obj.read_raw_bytes())
+        args = ["jbig2dec", "-e", "-o", os.fspath(output_path)]
+
+        # Get the raw stream, because we can't decode im_obj - that is why we are here
+        # (Strictly speaking we should remove any non-JBIG2 filters if double encoded)
+        image_path.write_bytes(im_obj.get_raw_stream_buffer())
 
         if globals_obj is not None:
-            with open(global_fname) as global_fd:
-                global_fd.write(globals_obj.read_raw_bytes())
-            args.append(global_fname)
+            # For globals, we do want to remove any encoding since it's just a binary
+            # blob and won't be marked with /JBIG2Decode
+            global_path.write_bytes(globals_obj.get_stream_buffer())
+            args.append(os.fspath(global_path))
 
-        args.append(image_fname)
+        args.append(os.fspath(image_path))
 
         run(args, stdout=DEVNULL, check=True)
-        im = Image.open(output_fname)
-        im.load() # Load pixel data into memory so file can be closed
+        im = Image.open(output_path)
+        im.load()  # Load pixel data into memory so file/tempdir can be closed
         return im
 
 
