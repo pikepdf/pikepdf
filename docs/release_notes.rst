@@ -18,6 +18,14 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.15.0
+=======
+
+-  Improved our ``pdfdoc`` codec to raise ``UnicodeEncodeError`` identifying the
+   problem, instead of a less specific ``ValueError``. :issue:`218`
+-  We now implement stream reader/writer and incremental encoder/decoder for
+   our ``pdfdoc`` codec, making it useful in more places.
+
 v2.14.2
 =======
 
