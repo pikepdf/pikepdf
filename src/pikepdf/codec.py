@@ -5,7 +5,7 @@
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
 import codecs
-from typing import Optional, Tuple
+from typing import Container, Optional, Tuple
 
 from ._qpdf import pdf_doc_to_utf8, utf8_to_pdf_doc
 
@@ -59,6 +59,17 @@ PDFDOC_ENCODABLE = frozenset(
 )
 
 
+def _find_first_index(
+    s: str, ordinals: Container[int], is_whitelist: bool = True
+) -> int:
+    for n, char in enumerate(s):
+        if is_whitelist and (ord(char) not in ordinals):
+            return n
+        if not is_whitelist and (ord(char) in ordinals):
+            return n
+    raise ValueError("couldn't find the unencodable character")
+
+
 def pdfdoc_encode(input: str, errors: str = 'strict') -> Tuple[bytes, int]:
     error_marker = b'?' if errors == 'replace' else b'\xad'
     try:
@@ -68,26 +79,31 @@ def pdfdoc_encode(input: str, errors: str = 'strict') -> Tuple[bytes, int]:
         # message like:
         #   "Unable to extract string contents! (encoding issue)"
         # It is not known to happen except when str contains Unicode surrogates.
-        raise ValueError("'pdfdoc' codec can't process Unicode surrogates") from e
+        offending_index = _find_first_index(
+            input, range(0xD800, 0xDFFF + 1), is_whitelist=False
+        )
+
+        raise UnicodeEncodeError(
+            'pdfdoc',
+            input,
+            offending_index,
+            offending_index + 1,
+            "can't process Unicode surrogates",
+        ) from e
     if not success:
         if errors == 'strict':
             # libqpdf doesn't return what character caused the error, and Python
             # needs this, so make an educated guess and raise an exception based
             # on that.
-            for n, char in enumerate(input):
-                if ord(char) not in PDFDOC_ENCODABLE:
-                    raise UnicodeEncodeError(
-                        'pdfdoc',
-                        input,
-                        n,
-                        n + 1,
-                        "character cannot be represented in pdfdoc encoding",
-                    )
-
-            # We don't know precisely what happened
+            offending_index = _find_first_index(input, PDFDOC_ENCODABLE)
             raise UnicodeEncodeError(
-                'pdfdoc', input, 0, len(input), "can't encode some characters"
+                'pdfdoc',
+                input,
+                offending_index,
+                offending_index + 1,
+                "character cannot be represented in pdfdoc encoding",
             )
+
         if errors == 'ignore':
             pdfdoc = pdfdoc.replace(b'\xad', b'')
     return pdfdoc, len(input)

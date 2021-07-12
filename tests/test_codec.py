@@ -2,7 +2,7 @@ from io import BytesIO
 from pathlib import Path
 
 import pytest
-from hypothesis import assume, given
+from hypothesis import given
 from hypothesis.strategies import binary, characters, text
 
 import pikepdf.codec
@@ -10,7 +10,7 @@ import pikepdf.codec
 
 def test_encode():
     assert 'abc'.encode('pdfdoc') == b'abc'
-    with pytest.raises(ValueError):
+    with pytest.raises(UnicodeEncodeError):
         '你好'.encode('pdfdoc')
     assert '你好 world'.encode('pdfdoc', 'replace') == b'?? world'
     assert '你好 world'.encode('pdfdoc', 'ignore') == b' world'
@@ -22,7 +22,7 @@ def test_decode():
 
 
 def test_unicode_surrogate():
-    with pytest.raises(ValueError, match=r'surrogate'):
+    with pytest.raises(UnicodeEncodeError, match=r'surrogate'):
         '\ud800'.encode('pdfdoc')
 
 
@@ -51,7 +51,18 @@ def test_break_encode(s):
         assert encoded_bytes.decode('pdfdoc') == s
 
 
-@given(text())
+# whitelist_categories ensures that the listed Unicode categories will be produced
+# whitelist_characters adds further characters (everything that is pdfdoc encodable)
+# We specifically add Cs, surrogates, which pybind11 needs extra help with.
+pdfdoc_text = text(
+    alphabet=characters(
+        whitelist_categories=('N', 'L', 'M', 'P', 'Cs'),
+        whitelist_characters=[chr(c) for c in pikepdf.codec.PDFDOC_ENCODABLE],
+    ),
+)
+
+
+@given(pdfdoc_text)
 def test_open_encoding_pdfdoc_write(tmp_path_factory, s):
     folder = tmp_path_factory.mktemp('pdfdoc')
     txt = folder / 'pdfdoc.txt'
@@ -63,20 +74,15 @@ def test_open_encoding_pdfdoc_write(tmp_path_factory, s):
     assert txt.read_bytes() == s.encode('pdfdoc')
 
 
-pdfdoc_text = text(
-    alphabet=characters(
-        whitelist_categories=(),
-        whitelist_characters=[chr(c) for c in pikepdf.codec.PDFDOC_ENCODABLE],
-    ),
-)
-
-
 @given(pdfdoc_text)
 def test_open_encoding_pdfdoc_read(tmp_path_factory, s: str):
     s = s.replace('\r', '\n')
     folder = tmp_path_factory.mktemp('pdfdoc')
     txt: Path = folder / 'pdfdoc.txt'
-    txt.write_text(s, encoding='pdfdoc')
+    try:
+        txt.write_text(s, encoding='pdfdoc')
+    except UnicodeEncodeError:
+        return
 
     with open(txt, 'r', encoding='pdfdoc') as f:
         result: str = f.read()
@@ -87,7 +93,10 @@ def test_open_encoding_pdfdoc_read(tmp_path_factory, s: str):
 def test_stream_writer(s):
     bio = BytesIO()
     sw = pikepdf.codec.PdfDocStreamWriter(bio)
-    sw.write(s)
+    try:
+        sw.write(s)
+    except UnicodeEncodeError:
+        return
     bio.seek(0)
     data = bio.read()
     assert data == s.encode('pdfdoc')
@@ -95,7 +104,10 @@ def test_stream_writer(s):
 
 @given(pdfdoc_text)
 def test_stream_reader(s):
-    bio = BytesIO(s.encode('pdfdoc_pikepdf'))
+    try:
+        bio = BytesIO(s.encode('pdfdoc_pikepdf'))
+    except UnicodeEncodeError:
+        return
     sr = pikepdf.codec.PdfDocStreamReader(bio)
     result = sr.read()
     assert result == s
