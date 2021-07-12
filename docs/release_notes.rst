@@ -22,9 +22,11 @@ v2.15.0
 =======
 
 -  Improved our ``pdfdoc`` codec to raise ``UnicodeEncodeError`` identifying the
-   problem, instead of a less specific ``ValueError``. :issue:`218`
+   problem, instead of a less specific ``ValueError``. Thanks to @regebro. :issue:`218`
 -  We now implement stream reader/writer and incremental encoder/decoder for
    our ``pdfdoc`` codec, making it useful in more places.
+-  Fixed an issue with extracting JBIG2 images on Windows, due to Windows temporary
+   file behavior. Thanks to @kraptor. :issue:`219`
 
 v2.14.2
 =======
