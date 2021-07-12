@@ -71,7 +71,7 @@ def test_open_encoding_pdfdoc_write(tmp_path_factory, s):
             f.write(s)
         except UnicodeEncodeError:
             return
-    assert txt.read_bytes() == s.encode('pdfdoc')
+    assert txt.read_bytes().replace(b'\r\n', b'\n') == s.encode('pdfdoc')
 
 
 @given(pdfdoc_text)
