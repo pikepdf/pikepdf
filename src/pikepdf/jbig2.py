@@ -4,9 +4,11 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
+import os
 from distutils.version import LooseVersion
+from pathlib import Path
 from subprocess import DEVNULL, PIPE, CalledProcessError, run
-from tempfile import NamedTemporaryFile as NamedTemp
+from tempfile import TemporaryDirectory
 
 from PIL import Image
 
@@ -14,20 +16,29 @@ import pikepdf
 
 
 def extract_jbig2(im_obj: pikepdf.Object, globals_obj: pikepdf.Object = None) -> Image:
-    with NamedTemp() as imgfile, NamedTemp() as globalfile, NamedTemp() as outfile:
-        imgfile.write(im_obj.read_raw_bytes())
-        imgfile.seek(0)
 
-        args = ['jbig2dec', '-e', '-o', outfile.name]
+    with TemporaryDirectory(prefix='pikepdf', suffix='.jbig2') as tmpdir:
+        image_path = Path(tmpdir) / "image"
+        global_path = Path(tmpdir) / "global"
+        output_path = Path(tmpdir) / "outfile"
+
+        args = ["jbig2dec", "-e", "-o", os.fspath(output_path)]
+
+        # Get the raw stream, because we can't decode im_obj - that is why we are here
+        # (Strictly speaking we should remove any non-JBIG2 filters if double encoded)
+        image_path.write_bytes(im_obj.get_raw_stream_buffer())
+
         if globals_obj is not None:
-            globalfile.write(globals_obj.read_raw_bytes())
-            globalfile.seek(0)
-            args.append(globalfile.name)
-        args.append(imgfile.name)
+            # For globals, we do want to remove any encoding since it's just a binary
+            # blob and won't be marked with /JBIG2Decode
+            global_path.write_bytes(globals_obj.get_stream_buffer())
+            args.append(os.fspath(global_path))
+
+        args.append(os.fspath(image_path))
 
         run(args, stdout=DEVNULL, check=True)
-        im = Image.open(outfile)
-        im.load()  # Load pixel data into memory so file can be closed
+        im = Image.open(output_path)
+        im.load()  # Load pixel data into memory so file/tempdir can be closed
         return im
 
 
