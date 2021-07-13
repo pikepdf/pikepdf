@@ -1,8 +1,9 @@
+import os
 from io import BytesIO
 from pathlib import Path
 
 import pytest
-from hypothesis import given
+from hypothesis import given, reproduce_failure
 from hypothesis.strategies import binary, characters, text
 
 import pikepdf.codec
@@ -62,6 +63,7 @@ pdfdoc_text = text(
 )
 
 
+@pytest.mark.skipif(os.name == 'nt', reason="flakey timing on Windows")
 @given(pdfdoc_text)
 def test_open_encoding_pdfdoc_write(tmp_path_factory, s):
     folder = tmp_path_factory.mktemp('pdfdoc')
@@ -74,6 +76,7 @@ def test_open_encoding_pdfdoc_write(tmp_path_factory, s):
     assert txt.read_bytes().replace(b'\r\n', b'\n') == s.encode('pdfdoc')
 
 
+@pytest.mark.skipif(os.name == 'nt', reason="flakey timing on Windows")
 @given(pdfdoc_text)
 def test_open_encoding_pdfdoc_read(tmp_path_factory, s: str):
     s = s.replace('\r', '\n')
