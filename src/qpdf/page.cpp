@@ -147,6 +147,8 @@ void init_page(py::module_ &m)
             py::keep_alive<1, 2>(),
             R"~~~(
                 Append or prepend to an existing page's content stream using an existing stream object.
+
+                .. versionadded:: 2.14
             )~~~")
         .def(
             "contents_add",
@@ -164,6 +166,8 @@ void init_page(py::module_ &m)
             py::arg("prepend") = false,
             R"~~~(
                 Append or prepend to an existing page's content stream from bytes.
+
+                .. versionadded:: 2.14
             )~~~")
         .def("remove_unreferenced_resources",
             &QPDFPageObjectHelper::removeUnreferencedResources,
