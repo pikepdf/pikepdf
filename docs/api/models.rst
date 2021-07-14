@@ -107,3 +107,61 @@ but might do so in a future release (this would break backward compatibility).
     and definition of terminology.
 
     .. versionadded:: 2.12
+
+.. autoclass:: pikepdf._qpdf.Attachments
+    :members:
+
+    This interface provides access to any files that are attached to this PDF,
+    exposed as a Python :class:`collections.abc.MutableMapping` interface.
+
+    The keys (virtual filenames) are always ``str``, and values are always
+    :class:`pikepdf._qpdf.FileSpec`.
+
+    .. versionadded:: 3.0
+
+.. autoclass:: pikepdf._qpdf.FileSpec
+    :members:
+
+    A file specification that accounts for the possibility of multiple data streams.
+
+    In the vast majority of cases, only a single AttachedFileStream is present and
+    this object can be mostly ignored. Call :meth:`get_stream` and be on your way:
+
+    .. code-block:: python
+
+        pdf = Pdf.open(...)
+
+        fs: FileSpec = pdf.attachments['example.txt']
+        stream: AttachedFileStream = fs.get_stream()
+
+    To attach a new file to a PDF, you may construct a ``FileSpec``.
+
+    .. code-block:: python
+
+        pdf = Pdf.open(...)
+
+        with open('somewhere/spreadsheet.xlsx', 'rb') as data_to_attach:
+            fs = FileSpec(pdf, data_to_attach)
+            pdf.attachments['spreadsheet.xlsx'] = fs
+
+    PDF supports the concept of having multiple, platform-specialized versions of the
+    file attachment (similar to resource forks on some operating systems). In theory,
+    this attachment ought to be the same file, but
+    encoded in different ways. For example, perhaps a PDF includes a text file encoded
+    with Windows line endings (``\r\n``) and a different one with POSIX line endings
+    (``\n``). Similarly, PDF allows for the possibility that you need to encode
+    platform-specific filenames.
+
+    If you have to deal with multiple versions, use :meth:`get_all_filenames` to
+    enumerate those available.
+
+    Described in the |pdfrm| section 7.11.3.
+
+    .. versionadded:: 3.0
+
+.. autoclass:: pikepdf._qpdf.AttachedFileStream
+    :members:
+
+    An object that contains the actual attached file.
+
+    .. versionadded:: 3.0

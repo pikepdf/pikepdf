@@ -23,6 +23,7 @@
 #include <qpdf/QPDFPageDocumentHelper.hh>
 #include <qpdf/Pl_Discard.hh>
 #include <qpdf/QPDFAcroFormDocumentHelper.hh>
+#include <qpdf/QPDFEmbeddedFileDocumentHelper.hh>
 
 #include <pybind11/stl.h>
 #include <pybind11/iostream.h>
@@ -927,5 +928,18 @@ void init_qpdf(py::module_ &m)
 
             .. versionadded:: 2.11
             )~~~",
-            py::arg("mode") = "all"); // class Pdf
+            py::arg("mode") = "all") // class Pdf
+        .def_property_readonly(
+            "attachments",
+            [](QPDF &q) { return QPDFEmbeddedFileDocumentHelper(q); },
+            R"~~~(
+            Returns a mapping that provides access to all files attached to this PDF.
+
+            PDF supports attaching (or embedding, if you prefer) any other type of file,
+            including other PDFs. This property provides read and write access to
+            these objects by filename.
+
+            Returns:
+                pikepdf._qpdf.Attachments
+            )~~~");
 }

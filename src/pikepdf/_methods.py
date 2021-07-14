@@ -12,21 +12,36 @@ bindings after the fact.
 We can also move the implementation to C++ if desired.
 """
 
+import datetime
 import inspect
 import shutil
-from collections.abc import KeysView
+from collections.abc import KeysView, MutableMapping
 from decimal import Decimal
 from io import BytesIO
 from os import replace
 from pathlib import Path
 from subprocess import PIPE, run
 from tempfile import NamedTemporaryFile
-from typing import Any, BinaryIO, Callable, List, Optional, Tuple, Type, TypeVar, Union
+from typing import (
+    Any,
+    BinaryIO,
+    Callable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 from warnings import warn
 
 from . import Array, Dictionary, Name, Object, Page, Pdf, Stream
 from ._qpdf import (
     AccessMode,
+    AttachedFileStream,
+    Attachments,
+    FileSpec,
     ObjectStreamMode,
     PdfError,
     Rectangle,
@@ -36,6 +51,7 @@ from ._qpdf import (
     _ObjectMapping,
 )
 from .models import Encryption, EncryptionInfo, Outline, PdfMetadata, Permissions
+from .models.metadata import decode_pdf_date, encode_pdf_date
 
 # pylint: disable=no-member,unsupported-membership-test,unsubscriptable-object
 # mypy: ignore-errors
@@ -83,7 +99,18 @@ def augments(cls_cpp: Type[Any]):
 
     (Alternative ideas: https://github.com/pybind/pybind11/issues/1074)
     """
-    ATTR_WHITELIST = {'__repr__', '__enter__', '__exit__', '__hash__'}
+
+    ATTR_WHITELIST = {
+        '__delitem__',
+        '__enter__',
+        '__exit__',
+        '__getitem__',
+        '__hash__',
+        '__iter__',
+        '__len__',
+        '__repr__',
+        '__setitem__',
+    }
 
     def class_augment(cls, cls_cpp=cls_cpp):
         for name, member in inspect.getmembers(cls):
@@ -1200,3 +1227,75 @@ class Extend_Rectangle:
 
     def __hash__(self):
         return hash((self.llx, self.lly, self.urx, self.ury))
+
+
+@augments(Attachments)
+class Extend_Attachments(MutableMapping):
+    def __getitem__(self, k: str) -> FileSpec:
+        filespec = self._get_filespec(k)
+        if filespec is None:
+            raise KeyError(k)
+        return filespec
+
+    def __setitem__(self, k: str, v: FileSpec) -> None:
+        if not v.filename:
+            v.filename = k
+        return self._add_replace_filespec(k, v)
+
+    def __delitem__(self, k: str) -> None:
+        return self._remove_filespec(k)
+
+    def __len__(self):
+        return len(self._get_all_filespecs())
+
+    def __iter__(self) -> Iterator[str]:
+        for k in self._get_all_filespecs():
+            yield k
+
+    def __repr__(self):
+        return f"<pikepdf._qpdf.Attachments with {len(self)} attached files>"
+
+
+@augments(FileSpec)
+class Extend_FileSpec:
+    def __repr__(self):
+        if self.filename:
+            return (
+                f"<pikepdf._qpdf.FileSpec for {self.filename!r}, "
+                f"description {self.description!r}>"
+            )
+        else:
+            return f"<pikepdf._qpdf.FileSpec description {self.description!r}>"
+
+
+@augments(AttachedFileStream)
+class Extend_AttachedFileStream:
+    @property
+    def creation_date(self) -> Optional[datetime.datetime]:
+        if not self._creation_date:
+            return None
+        return decode_pdf_date(self._creation_date)
+
+    @creation_date.setter
+    def creation_date(self, value: datetime.datetime):
+        self._creation_date = encode_pdf_date(value)
+
+    @property
+    def mod_date(self) -> Optional[datetime.datetime]:
+        if not self._mod_date:
+            return None
+        return decode_pdf_date(self._mod_date)
+
+    @mod_date.setter
+    def mod_date(self, value: datetime.datetime):
+        self._mod_date = encode_pdf_date(value)
+
+    def read_bytes(self) -> bytes:
+        return self.obj.read_bytes()
+
+    def __repr__(self):
+        return (
+            f'<pikepdf._qpdf.AttachedFileStream objid={self.obj.objgen} size={self.size} '
+            f'mime_type={self.mime_type} creation_date={self.creation_date} '
+            f'mod_date={self.mod_date}>'
+        )
