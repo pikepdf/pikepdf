@@ -113,7 +113,7 @@ def augments(cls_cpp: Type[Any]):
         def is_inherited_method(meth):
             # Augmenting a C++ with a method that cls inherits from the Python
             # object is never what we want.
-            return not meth.__qualname__.startswith(cls.__name__)
+            return meth.__qualname__.startswith('object.')
 
         def is_augmentable(m):
             return (
@@ -1343,3 +1343,25 @@ class Extend_NameTree(MutableMapping):
 
     def __eq__(self, other):
         return self.obj.objgen == other.obj.objgen
+
+    def __contains__(self, name: Union[str, bytes]) -> bool:
+        """
+        Returns True if the name tree contains the specified name.
+
+        Args:
+            name (str or bytes): The name to search for in the name tree.
+                This is not a PDF /Name object, but an arbitrary key.
+                If name is a *str*, we search the name tree for the UTF-8
+                encoded form of name. If *bytes*, we search for a key
+                equal to those bytes.
+        """
+        return self._contains(name)
+
+    def __getitem__(self, name: Union[str, bytes]) -> Object:
+        return self._getitem(name)
+
+    def __setitem__(self, name: Union[str, bytes], o: Object):
+        self._setitem(name, o)
+
+    def __delitem__(self, name: Union[str, bytes]):
+        self._delitem(name)

@@ -44,6 +44,9 @@ def test_attachment_crud(pal, resources, outpdf):
         assert 'rle.pdf' not in output.attachments, "del failed"
         assert len(output.attachments) == 0, "not removed"
 
+    with Pdf.open(outpdf) as output:
+        output.attachments.pop('rle.pdf')
+
 
 def test_attachment_iter(pal):
     inputs = ['1', '2']

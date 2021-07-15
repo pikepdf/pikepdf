@@ -92,22 +92,11 @@ void init_nametree(py::module_ &m)
             "obj",
             [](NameTreeHolder &nt) { return nt.getObjectHandle(); },
             "Returns the underlying root object for this name tree.")
-        .def(
-            "__contains__",
+        .def("_contains",
             [](NameTreeHolder &nt, std::string const &name) {
                 return nt.hasName(name);
-            },
-            R"~~~(
-        Returns True if the name tree contains the specified name.
-
-        Args:
-            name (str or bytes): The name to search for in the name tree.
-                This is not a PDF /Name object, but an arbitrary key.
-                If name is a *str*, we search the name tree for the UTF-8
-                encoded form of name. If *bytes*, we search for a key
-                equal to those bytes.
-        )~~~")
-        .def("__getitem__",
+            })
+        .def("_getitem",
             [](NameTreeHolder &nt, std::string const &name) {
                 QPDFObjectHandle oh;
                 if (nt.findObject(name, oh)) // writes to 'oh'
@@ -115,18 +104,18 @@ void init_nametree(py::module_ &m)
                 else
                     throw py::key_error(name);
             })
-        .def("__setitem__",
+        .def("_setitem",
             [](NameTreeHolder &nt, std::string const &name, py::object obj) {
                 auto oh = objecthandle_encode(obj);
                 nt.insert(name, oh);
             })
         .def(
-            "__setitem__",
+            "_setitem",
             [](NameTreeHolder &nt, std::string const &name, QPDFObjectHandle oh) {
                 nt.insert(name, oh);
             },
             py::keep_alive<0, 1>())
-        .def("__delitem__",
+        .def("_delitem",
             [](NameTreeHolder &nt, std::string const &name) { nt.remove(name); })
         .def(
             "_nameval_iter",
