@@ -165,3 +165,34 @@ but might do so in a future release (this would break backward compatibility).
     An object that contains the actual attached file.
 
     .. versionadded:: 3.0
+
+.. autoclass:: pikepdf._qpdf.NameTree
+    :members:
+
+    An object for managing *name tree* data structures in PDFs.
+
+    A name tree is a key-value data structure. The keys are any binary strings
+    (that is, Python ``bytes``). If ``str`` selected is provided as a key,
+    the UTF-8 encoding of that string is tested. Name trees are (confusingly)
+    not indexed by PDF name objects.
+
+    The keys are ordered; pikepdf will ensure that the order is preserved.
+
+    The value may be any PDF object. Typically it will be a dictionary or array.
+
+    If the name tree is invalid in any way, pikepdf will automatically repair it
+    if it is able to. There should not be any reason to access the internal nodes
+    of a name tree; use this interface instead. Likewise, pikepdf will automatically
+    rebalance the tree as appropriate (all thanks to libqpdf).
+
+    NameTrees are used to store certain objects like file attachments in a PDF.
+    Where a more specific interface exists, use that instead, and it will
+    manipulate the name tree in a semantic correct manner for you.
+
+    Do not modify the internal structure of a name tree while you have a
+    ``NameTree`` referencing it. Access it only through the ``NameTree`` object.
+
+    Names trees are described in the |pdfrm| section 7.9.6. See section 7.7.4
+    for a list of PDF objects that are stored in name trees.
+
+    .. versionadded:: 3.0
