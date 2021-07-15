@@ -26,6 +26,7 @@ from typing import (
     Any,
     BinaryIO,
     Callable,
+    ItemsView,
     Iterator,
     List,
     Optional,
@@ -33,6 +34,7 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    ValuesView,
 )
 from warnings import warn
 
@@ -42,6 +44,7 @@ from ._qpdf import (
     AttachedFileStream,
     Attachments,
     FileSpec,
+    NameTree,
     ObjectStreamMode,
     PdfError,
     Rectangle,
@@ -100,30 +103,49 @@ def augments(cls_cpp: Type[Any]):
     (Alternative ideas: https://github.com/pybind/pybind11/issues/1074)
     """
 
-    ATTR_WHITELIST = {
-        '__delitem__',
-        '__enter__',
-        '__exit__',
-        '__getitem__',
+    OVERRIDE_WHITELIST = {
+        '__eq__',
         '__hash__',
-        '__iter__',
-        '__len__',
         '__repr__',
-        '__setitem__',
     }
 
     def class_augment(cls, cls_cpp=cls_cpp):
-        for name, member in inspect.getmembers(cls):
-            # Don't replace existing methods except those in our whitelist
-            if hasattr(cls_cpp, name) and name not in ATTR_WHITELIST:
-                continue
+        def is_inherited_method(meth):
+            # Augmenting a C++ with a method that cls inherits from the Python
+            # object is never what we want.
+            return not meth.__qualname__.startswith(cls.__name__)
+
+        def is_augmentable(m):
+            return (
+                inspect.isfunction(m) and not is_inherited_method(m)
+            ) or inspect.isdatadescriptor(m)
+
+        # inspect.getmembers has different behavior on PyPy - in particular it seems
+        # that a typical PyPy class like cls will have more methods that it considers
+        # methods than CPython does. Our predicate should take care of this.
+        for name, member in inspect.getmembers(cls, predicate=is_augmentable):
+            if (
+                hasattr(cls_cpp, name)
+                and hasattr(cls, name)
+                and name not in getattr(cls, '__abstractmethods__', set())
+                and name not in OVERRIDE_WHITELIST
+            ):
+                # If the original C++ class and Python support class both define the
+                # same name, we generally have a conflict, because this is augmentation
+                # not inheritance. However, if the method provided by the support class
+                # is an abstract method, then we can consider the C++ version the
+                # implementation. Also, pybind11 provides defaults for __eq__,
+                # __hash__ and __repr__ that we often do want to override directly.
+                raise RuntimeError(
+                    f"C++ {cls_cpp} and Python {cls} both define the same "
+                    f"non-abstract method {name}"
+                )
             if inspect.isfunction(member):
-                if member.__qualname__.startswith('object.'):
-                    continue  # To avoid breaking PyPy
-                member.__qualname__ = member.__qualname__.replace(
+                setattr(cls_cpp, name, member)
+                installed_member = getattr(cls_cpp, name)
+                installed_member.__qualname__ = member.__qualname__.replace(
                     cls.__name__, cls_cpp.__name__
                 )
-                setattr(cls_cpp, name, member)
             elif inspect.isdatadescriptor(member):
                 setattr(cls_cpp, name, member)
 
@@ -1299,3 +1321,25 @@ class Extend_AttachedFileStream:
             f'mime_type={self.mime_type} creation_date={self.creation_date} '
             f'mod_date={self.mod_date}>'
         )
+
+
+@augments(NameTree)
+class Extend_NameTree(MutableMapping):
+    def __len__(self):
+        return len(self._as_map())
+
+    def __iter__(self):
+        for name, _value in self._nameval_iter():
+            yield name
+
+    def keys(self):
+        return KeysView(self._as_map())
+
+    def values(self):
+        return ValuesView(self._as_map())
+
+    def items(self):
+        return ItemsView(self._as_map())
+
+    def __eq__(self, other):
+        return self.obj.objgen == other.obj.objgen

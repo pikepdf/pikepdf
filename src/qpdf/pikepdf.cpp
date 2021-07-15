@@ -95,6 +95,7 @@ PYBIND11_MODULE(_qpdf, m)
     // -- Support objects (alphabetize order) --
     init_annotation(m);
     init_embeddedfiles(m);
+    init_nametree(m);
     init_page(m);
     init_rectangle(m);
 
