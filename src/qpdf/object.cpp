@@ -337,7 +337,7 @@ void init_object(py::module_ &m)
                     return py::reinterpret_borrow<py::object>(
                         py::handle(Py_NotImplemented));
                 }
-                bool result = (self == objecthandle_encode(other));
+                bool result = (self == q_other);
                 return py::bool_(result);
             },
             py::is_operator())
