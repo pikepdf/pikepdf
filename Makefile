@@ -7,6 +7,10 @@ all: build
 invalidate-cppcov:
 	find . -name "*.gcno" -delete
 
+.PHONY: ext
+ext: invalidate-cppcov
+	python setup.py build_ext --inplace
+
 .PHONY: build
 build: invalidate-cppcov
 	# python setup.py build_ext --inplace
