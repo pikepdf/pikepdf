@@ -7,13 +7,12 @@ all: build
 invalidate-cppcov:
 	find . -name "*.gcno" -delete
 
-.PHONY: ext
-ext: invalidate-cppcov
-	python setup.py build_ext --inplace
-
 .PHONY: build
 build: invalidate-cppcov
-	# python setup.py build_ext --inplace
+	python setup.py build_ext --inplace
+
+.PHONY: pip-install-e
+pip-install-e: invalidate-cppcov
 	python -m pip install -e .
 
 .PHONY: clean-coverage-pycov
@@ -33,6 +32,7 @@ clean-coverage: clean-coverage-cppcov clean-coverage-pycov
 .PHONY: clean
 clean: clean-coverage
 	python setup.py clean --all
+	rm -f src/pikepdf/_qpdf.*
 
 .PHONY: test
 test: build
@@ -43,7 +43,7 @@ macwheel := pikepdf-$(version)-cp39-cp39-macosx_11_0_arm64.whl
 #$(info $$version is [${version}])
 #$(info $$macwheel is [${macwheel}])
 
-$(macwheel): clean build
+$(macwheel): clean pip-install-e
 	rm pikepdf*.whl
 	python -m pip wheel .
 	mv pikepdf*.whl $(macwheel)
