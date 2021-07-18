@@ -97,6 +97,7 @@ PYBIND11_MODULE(_qpdf, m)
     init_annotation(m);
     init_page(m);
     init_rectangle(m);
+    init_tokenfilter(m);
 
     // -- Module level functions --
     m.def("utf8_to_pdf_doc", [](py::str utf8, char unknown) {
