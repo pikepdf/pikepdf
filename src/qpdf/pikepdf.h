@@ -198,6 +198,9 @@ size_t page_index(QPDF &owner, QPDFObjectHandle page);
 // From rectangle.cpp
 void init_rectangle(py::module_ &m);
 
+// From tokenfilter.cpp
+void init_tokenfilter(py::module_ &m);
+
 inline char *fix_pypy36_const_char(const char *s)
 {
     // PyPy 7.3.1 (=Python 3.6) has a few functions incorrectly defined as requiring
