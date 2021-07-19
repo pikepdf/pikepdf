@@ -418,14 +418,18 @@ class PdfImage(PdfImageBase):
             # be saved as JPEGs, and are probably bugs. Some software in the
             # wild actually produces RGB JPEGs in PDFs (probably a bug).
             DEFAULT_CT_RGB = 1
-            ct = self.filter_decodeparms[0][1].get('/ColorTransform', DEFAULT_CT_RGB)
+            ct = DEFAULT_CT_RGB
+            if self.filter_decodeparms[0][1] is not None:
+                ct = self.filter_decodeparms[0][1].get('/ColorTransform', DEFAULT_CT_RGB)
             return self.mode == 'RGB' and ct == DEFAULT_CT_RGB
 
         def normal_dct_cmyk():
             # Normal DCTDecode CMYKs have /ColorTransform 0 and can be saved.
             # There is a YUVK colorspace but CMYK JPEGs don't generally use it
             DEFAULT_CT_CMYK = 0
-            ct = self.filter_decodeparms[0][1].get('/ColorTransform', DEFAULT_CT_CMYK)
+            ct = DEFAULT_CT_CMYK
+            if self.filter_decodeparms[0][1] is not None:
+                ct = self.filter_decodeparms[0][1].get('/ColorTransform', DEFAULT_CT_CMYK)
             return self.mode == 'CMYK' and ct == DEFAULT_CT_CMYK
 
         data, filters = self._unstack_compression(
