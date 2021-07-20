@@ -114,13 +114,13 @@ Installing on FreeBSD
 
 .. code-block:: bash
 
-    pkg install py37-pikepdf
+    pkg install py38-pikepdf
 
 To attempt a manual install, try something like:
 
 .. code-block:: bash
 
-    pkg install python3 py37-lxml py37-pip py37-pybind11 qpdf
+    pkg install python3 py38-lxml py38-pip py38-pybind11 qpdf
     pip install --user pikepdf
 
 This procedure is known to work on FreeBSD 11.3, 12.0, 12.1-RELEASE and
