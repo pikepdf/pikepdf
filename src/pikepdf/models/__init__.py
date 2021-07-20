@@ -6,7 +6,7 @@
 
 from typing import Collection, List, Tuple, Union, cast
 
-from pikepdf import Object, ObjectType, Operator, PdfError, _qpdf
+from pikepdf import Object, ObjectType, Operator, Page, PdfError, _qpdf
 
 from .encryption import Encryption, EncryptionInfo, Permissions
 from .image import PdfImage, PdfInlineImage, UnsupportedImageTypeError
@@ -34,7 +34,7 @@ class PdfParsingError(Exception):
 
 
 def parse_content_stream(
-    page_or_stream: Object, operators: str = ''
+    page_or_stream: Union[Object, Page], operators: str = ''
 ) -> List[ContentStreamInstructions]:
     """
     Parse a PDF content stream into a sequence of instructions.
@@ -75,11 +75,12 @@ def parse_content_stream(
 
     """
 
-    if not isinstance(page_or_stream, Object):
-        raise TypeError("stream must be a pikepdf.Object")
+    if not isinstance(page_or_stream, (Object, Page)):
+        raise TypeError("stream must be a pikepdf.Object or pikepdf.Page")
 
     if (
-        page_or_stream._type_code != ObjectType.stream
+        isinstance(page_or_stream, Object)
+        and page_or_stream._type_code != ObjectType.stream
         and page_or_stream.get('/Type') != '/Page'
     ):
         raise TypeError("parse_content_stream called on page or stream object")
