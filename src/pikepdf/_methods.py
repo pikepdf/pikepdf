@@ -64,6 +64,11 @@ __all__ = []
 Numeric = TypeVar('Numeric', int, float, Decimal)
 
 
+def augment_override_cpp(fn):
+    fn._augment_override_cpp = True
+    return fn
+
+
 def augments(cls_cpp: Type[Any]):
     """Attach methods of a Python support class to an existing class
 
@@ -129,6 +134,7 @@ def augments(cls_cpp: Type[Any]):
                 and hasattr(cls, name)
                 and name not in getattr(cls, '__abstractmethods__', set())
                 and name not in OVERRIDE_WHITELIST
+                and not getattr(getattr(cls, name), '_augment_override_cpp', False)
             ):
                 # If the original C++ class and Python support class both define the
                 # same name, we generally have a conflict, because this is augmentation
@@ -138,7 +144,9 @@ def augments(cls_cpp: Type[Any]):
                 # __hash__ and __repr__ that we often do want to override directly.
                 raise RuntimeError(
                     f"C++ {cls_cpp} and Python {cls} both define the same "
-                    f"non-abstract method {name}"
+                    f"non-abstract method {name}: "
+                    f"{getattr(cls_cpp, name, '')!r}, "
+                    f"{getattr(cls, name, '')!r}"
                 )
             if inspect.isfunction(member):
                 setattr(cls_cpp, name, member)
