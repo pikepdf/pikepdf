@@ -1223,6 +1223,16 @@ class Extend_Page:
         """
         return self._over_underlay(other, rect, under=True)
 
+    def __getattr__(self, name):
+        return getattr(self.obj, name)
+
+    @augment_override_cpp
+    def __setattr__(self, name, value):
+        setattr(self.obj, name, value)
+
+    def __getitem__(self, key):
+        return self.obj[key]
+
     def __repr__(self):
         return (
             repr(self.obj)
