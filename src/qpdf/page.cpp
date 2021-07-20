@@ -50,6 +50,9 @@ void init_page(py::module_ &m)
 {
     py::class_<QPDFPageObjectHelper>(m, "Page")
         .def(py::init<QPDFObjectHandle &>())
+        .def(py::init([](QPDFPageObjectHelper &poh) {
+            return QPDFPageObjectHelper(poh.getObjectHandle());
+        }))
         .def_property_readonly(
             "obj",
             [](QPDFPageObjectHelper &poh) { return poh.getObjectHandle(); },
