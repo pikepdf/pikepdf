@@ -771,6 +771,10 @@ void init_qpdf(py::module_ &m)
             py::return_value_policy::reference_internal,
             py::keep_alive<1, 2>(),
             py::arg("h"))
+        .def("copy_foreign",
+            [](QPDF &q, QPDFObjectHelper &poh) -> QPDFObjectHandle {
+                return q.copyForeignObject(poh.getObjectHandle());
+            })
         .def("_replace_object",
             [](QPDF &q, std::pair<int, int> objgen, QPDFObjectHandle &h) {
                 q.replaceObject(objgen.first, objgen.second, h);
