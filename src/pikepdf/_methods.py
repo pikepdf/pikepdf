@@ -1089,6 +1089,10 @@ class Extend_Page:
         self.obj['/TrimBox'] = value
 
     @property
+    def images(self):
+        return self.obj.images
+
+    @property
     def resources(self):
         """Return this pages resources dictionary."""
         return self.obj['/Resources']
