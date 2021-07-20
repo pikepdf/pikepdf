@@ -12,7 +12,7 @@
 #include <qpdf/QPDFPageObjectHelper.hh>
 #include <qpdf/QPDFPageLabelDocumentHelper.hh>
 
-static void assert_pyobject_is_page(py::handle obj)
+static void assert_pyobject_is_page_obj(py::handle obj)
 {
     QPDFObjectHandle h;
     try {
@@ -35,7 +35,7 @@ size_t uindex_from_index(PageList &pl, ssize_t index)
     return uindex;
 }
 
-QPDFObjectHandle PageList::get_page(size_t index) const
+QPDFObjectHandle PageList::get_page_obj(size_t index) const
 {
     auto pages = this->qpdf->getAllPages();
     if (index < pages.size())
@@ -43,23 +43,38 @@ QPDFObjectHandle PageList::get_page(size_t index) const
     throw py::index_error("Accessing nonexistent PDF page number");
 }
 
-std::vector<QPDFObjectHandle> PageList::get_pages_impl(py::slice slice) const
+QPDFPageObjectHelper PageList::get_page(size_t index) const
+{
+    return QPDFPageObjectHelper(this->get_page_obj(index));
+}
+
+std::vector<QPDFObjectHandle> PageList::get_page_objs_impl(py::slice slice) const
 {
     size_t start, stop, step, slicelength;
     if (!slice.compute(this->count(), &start, &stop, &step, &slicelength))
         throw py::error_already_set();
     std::vector<QPDFObjectHandle> result;
     for (size_t i = 0; i < slicelength; ++i) {
-        QPDFObjectHandle oh = this->get_page(start);
+        QPDFObjectHandle oh = this->get_page_obj(start);
         result.push_back(oh);
         start += step;
     }
     return result;
 }
 
+py::list PageList::get_page_objs(py::slice slice) const
+{
+    return py::cast(this->get_page_objs_impl(slice));
+}
+
 py::list PageList::get_pages(py::slice slice) const
 {
-    return py::cast(this->get_pages_impl(slice));
+    auto page_objs = this->get_page_objs_impl(slice);
+    py::list result;
+    for (auto &page_obj : page_objs) {
+        result.append(py::cast(QPDFPageObjectHelper(page_obj)));
+    }
+    return result;
 }
 
 void PageList::set_page(size_t index, py::object page)
@@ -81,7 +96,7 @@ void PageList::set_pages_from_iterable(py::slice slice, py::iterable other)
     // Unpack list into iterable, check that each object is a page but
     // don't save the handles yet
     for (; it != py::iterator::sentinel(); ++it) {
-        assert_pyobject_is_page(*it);
+        assert_pyobject_is_page_obj(*it);
         results.append(*it);
     }
 
@@ -116,7 +131,7 @@ void PageList::set_pages_from_iterable(py::slice slice, py::iterable other)
 
 void PageList::delete_page(size_t index)
 {
-    auto page = this->get_page(index);
+    auto page = this->get_page_obj(index);
     this->qpdf->removePage(page);
 }
 
@@ -125,7 +140,7 @@ void PageList::delete_pages_from_iterable(py::slice slice)
     // See above: need a way to dec_ref pages with another owner
     // Get handles for all pages, then remove them, since page numbers shift
     // after delete
-    auto kill_list = this->get_pages_impl(slice);
+    auto kill_list = this->get_page_objs_impl(slice);
     for (auto page : kill_list) {
         this->qpdf->removePage(page);
     }
@@ -137,9 +152,14 @@ void PageList::insert_page(size_t index, py::handle obj)
 {
     QPDFObjectHandle h;
     try {
-        h = obj.cast<QPDFObjectHandle>();
+        auto poh = obj.cast<QPDFPageObjectHelper>();
+        h        = poh.getObjectHandle();
     } catch (const py::cast_error &) {
-        throw py::type_error("only pages can be inserted");
+        try {
+            h = obj.cast<QPDFObjectHandle>();
+        } catch (const py::cast_error &) {
+            throw py::type_error("only pages can be inserted");
+        }
     }
 
     this->insert_page(index, h);
@@ -169,7 +189,7 @@ void PageList::insert_page(size_t index, QPDFObjectHandle h)
         }
 
         if (index != this->count()) {
-            QPDFObjectHandle refpage = this->get_page(index);
+            QPDFObjectHandle refpage = this->get_page_obj(index);
             this->qpdf->addPageAt(page, true, refpage);
         } else {
             this->qpdf->addPage(page, false);
@@ -247,7 +267,7 @@ void init_pagelist(py::module_ &m)
                 py::int_ step(-1);
                 py::slice reversed = py::reinterpret_steal<py::slice>(
                     PySlice_New(Py_None, Py_None, step.ptr()));
-                py::list reversed_pages = pl.get_pages(reversed);
+                py::list reversed_pages = pl.get_page_objs(reversed);
                 pl.set_pages_from_iterable(ordinary_indices, reversed_pages);
             },
             "Reverse the order of pages.")
@@ -265,7 +285,7 @@ void init_pagelist(py::module_ &m)
                     if (other_count != other.count())
                         throw py::value_error(
                             "source page list modified during iteration");
-                    pl.insert_page(pl.count(), other.get_page(i));
+                    pl.insert_page(pl.count(), other.get_page_obj(i));
                 }
             },
             py::keep_alive<1, 2>(),
@@ -276,7 +296,7 @@ void init_pagelist(py::module_ &m)
             [](PageList &pl, py::iterable iterable) {
                 py::iterator it = iterable.attr("__iter__")();
                 while (it != py::iterator::sentinel()) {
-                    assert_pyobject_is_page(*it);
+                    assert_pyobject_is_page_obj(*it);
                     pl.insert_page(pl.count(), *it);
                     ++it;
                 }
