@@ -110,6 +110,7 @@ def pdfdoc_encode(input: str, errors: str = 'strict') -> Tuple[bytes, int]:
 
 
 def pdfdoc_decode(input: bytes, errors: str = 'strict') -> Tuple[str, int]:
+    del errors  # silence pylint warning; all bytes objects have a pdfdoc decoding
     if isinstance(input, memoryview):
         input = input.tobytes()
     utf8 = pdf_doc_to_utf8(input)
@@ -131,7 +132,8 @@ class PdfDocStreamWriter(PdfDocCodec, codecs.StreamWriter):
 
 
 class PdfDocStreamReader(PdfDocCodec, codecs.StreamReader):
-    pass
+    def decode(self, input: bytes, errors: str = 'strict'):
+        return PdfDocCodec.decode(self, input, errors)
 
 
 class PdfDocIncrementalEncoder(codecs.IncrementalEncoder):

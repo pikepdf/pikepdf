@@ -1,9 +1,9 @@
 import sys
 from glob import glob
 from os import environ
-from os.path import dirname, join
+from os.path import join
 
-from setuptools import find_packages, setup
+from setuptools import setup
 
 try:
     from pybind11.setup_helpers import ParallelCompile, Pybind11Extension, build_ext
