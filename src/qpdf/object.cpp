@@ -326,6 +326,20 @@ void init_object(py::module_ &m)
             py::is_operator())
         .def(
             "__eq__",
+            [](QPDFObjectHandle &self, py::bytes other) {
+                std::string bytes_other = other.cast<std::string>();
+                switch (self.getTypeCode()) {
+                case QPDFObject::object_type_e::ot_string:
+                    return self.getStringValue() == bytes_other;
+                case QPDFObject::object_type_e::ot_name:
+                    return self.getName() == bytes_other;
+                default:
+                    return false;
+                }
+            },
+            py::is_operator())
+        .def(
+            "__eq__",
             [](QPDFObjectHandle &self, py::object other) -> py::object {
                 QPDFObjectHandle q_other;
                 try {
@@ -337,7 +351,7 @@ void init_object(py::module_ &m)
                     return py::reinterpret_borrow<py::object>(
                         py::handle(Py_NotImplemented));
                 }
-                bool result = (self == objecthandle_encode(other));
+                bool result = (self == q_other);
                 return py::bool_(result);
             },
             py::is_operator())
