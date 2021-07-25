@@ -135,7 +135,7 @@ def test_unparse_cs():
         ([*PdfMatrix.identity().shorthand], Operator('cm')),
         ([], Operator('Q')),
     ]
-    assert unparse_content_stream(instructions).strip() == b'q\n1 0 0 1 0 0 cm\n Q'
+    assert unparse_content_stream(instructions).strip() == b'q\n1 0 0 1 0 0 cm\nQ'
 
 
 def test_unparse_failure():

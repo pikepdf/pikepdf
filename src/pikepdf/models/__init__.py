@@ -125,7 +125,7 @@ def unparse_content_stream(
     def encode(obj):
         return _qpdf.unparse(obj)
 
-    def encode_iimage(iimage):
+    def encode_iimage(iimage: PdfInlineImage):
         return iimage.unparse()
 
     def encode_operator(obj):
@@ -145,8 +145,11 @@ def unparse_content_stream(
                         )
                     line = encode_iimage(iimage)
                 else:
-                    line = b' '.join(encode(operand) for operand in operands)
-                    line += b' ' + encode_operator(operator)
+                    if operands:
+                        line = b' '.join(encode(operand) for operand in operands)
+                        line += b' ' + encode_operator(operator)
+                    else:
+                        line = encode_operator(operator)
             except (PdfError, ValueError) as e:
                 raise PdfParsingError(line=n + 1) from e
             yield line
