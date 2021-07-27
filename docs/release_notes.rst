@@ -18,6 +18,11 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.16.1
+=======
+
+-  ``unparse_content_stream`` is now less strict about whether elements are lists
+   or tuples, matching its v2.15.1 behavior.
 
 v2.16.0
 =======
