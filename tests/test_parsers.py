@@ -12,8 +12,10 @@ from pikepdf import (
     Operator,
     Pdf,
     PdfError,
+    PdfInlineImage,
     PdfMatrix,
     Stream,
+    _qpdf,
     parse_content_stream,
     unparse_content_stream,
 )
@@ -43,6 +45,42 @@ class ExceptionParser(StreamParser):
 
     def handle_eof(self):
         print("--EOF--")
+
+
+def slow_unparse_content_stream(instructions):
+    def encode(obj):
+        return _qpdf.unparse(obj)
+
+    def encode_iimage(iimage: PdfInlineImage):
+        return iimage.unparse()
+
+    def encode_operator(obj):
+        if isinstance(obj, Operator):
+            return obj.unparse()
+        return encode(Operator(obj))
+
+    def for_each_instruction():
+        for n, (operands, operator) in enumerate(instructions):
+            try:
+                if operator == Operator(b'INLINE IMAGE'):
+                    iimage = operands[0]
+                    if not isinstance(iimage, PdfInlineImage):
+                        raise ValueError(
+                            "Operator was INLINE IMAGE but operands were not "
+                            "a PdfInlineImage"
+                        )
+                    line = encode_iimage(iimage)
+                else:
+                    if operands:
+                        line = b' '.join(encode(operand) for operand in operands)
+                        line += b' ' + encode_operator(operator)
+                    else:
+                        line = encode_operator(operator)
+            except (PdfError, ValueError) as e:
+                raise PdfParsingError(line=n + 1) from e
+            yield line
+
+    return b'\n'.join(for_each_instruction())
 
 
 def test_open_pdf(resources):
@@ -157,9 +195,11 @@ def test_unparse_interpret_operator():
     commands.insert(0, (matrix, 'cm'))
     commands.insert(0, (matrix, b'cm'))
     commands.insert(0, (matrix, Operator('cm')))
+    unparsed = unparse_content_stream(commands)
     assert (
-        unparse_content_stream(commands)
+        unparsed
         == b'2 0 0 2 0 0 cm\n2 0 0 2 0 0 cm\n2 0 0 2 0 0 cm'
+        == slow_unparse_content_stream(commands)
     )
 
 
@@ -169,6 +209,7 @@ def test_unparse_inline(resources):
         cmds = parse_content_stream(p0)
         unparsed = unparse_content_stream(cmds)
         assert b'BI' in unparsed
+        assert unparsed == slow_unparse_content_stream(cmds)
 
 
 def test_unparse_invalid_inline_image():
@@ -176,3 +217,19 @@ def test_unparse_invalid_inline_image():
 
     with pytest.raises(PdfParsingError):
         unparse_content_stream(instructions)
+
+
+class TestMalformedContentStreamInstructions:
+    def test_rejects_not_list_of_pairs(self):
+        with pytest.raises(PdfParsingError):
+            unparse_content_stream([(1, 2, 3)])
+
+    def test_rejects_not_operator(self):
+        with pytest.raises(PdfParsingError):
+            unparse_content_stream([(['one', 'two'], 42)])  # 42 is not an operator
+
+    def test_rejects_inline_image_missing(self):
+        with pytest.raises(PdfParsingError):
+            unparse_content_stream(
+                [('should be a PdfInlineImage but is not', b'INLINE IMAGE')]
+            )

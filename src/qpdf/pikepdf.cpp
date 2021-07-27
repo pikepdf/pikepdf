@@ -28,6 +28,7 @@
 
 #include "qpdf_pagelist.h"
 #include "utils.h"
+#include "parsers.h"
 
 uint DECIMAL_PRECISION = 15;
 bool MMAP_DEFAULT      = false;
@@ -144,6 +145,8 @@ PYBIND11_MODULE(_qpdf, m)
                     "Flate compression level must be between 0 and 9");
         },
         "Set the compression level whenever the Flate compression algorithm is used.");
+
+    m.def("_unparse_content_stream", unparse_content_stream);
 
     // -- Exceptions --
     static py::exception<QPDFExc> exc_main(m, "PdfError");

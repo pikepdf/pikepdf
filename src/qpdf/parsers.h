@@ -40,3 +40,5 @@ private:
     uint count;
     std::string warning;
 };
+
+py::bytes unparse_content_stream(py::iterable contentstream);

@@ -105,3 +105,66 @@ void OperandGrouper::handleEOF()
 
 py::list OperandGrouper::getInstructions() const { return this->instructions; }
 std::string OperandGrouper::getWarning() const { return this->warning; }
+
+py::bytes unparse_content_stream(py::iterable contentstream)
+{
+    uint n = 0;
+    std::ostringstream ss, errmsg;
+    const char *delim = "";
+    ss.imbue(std::locale::classic());
+
+    for (const auto &item : contentstream) {
+        py::tuple operands_op = py::reinterpret_borrow<py::tuple>(item);
+        py::sequence operands = py::reinterpret_borrow<py::sequence>(operands_op[0]);
+
+        // First iteration: print nothing
+        // All others: print "\n" to delimit previous
+        // Result is no leading or trailing delimiter
+        ss << delim;
+        delim = "\n";
+
+        if (operands_op.size() != 2) {
+            errmsg << "Wrong number of operands at content stream instruction " << n
+                   << "; expected 2";
+            throw py::value_error(errmsg.str());
+        }
+
+        QPDFObjectHandle operator_;
+        if (py::isinstance<py::str>(operands_op[1])) {
+            py::str s = py::reinterpret_borrow<py::str>(operands_op[1]);
+            operator_ = QPDFObjectHandle::newOperator(std::string(s).c_str());
+        } else if (py::isinstance<py::bytes>(operands_op[1])) {
+            py::bytes s = py::reinterpret_borrow<py::bytes>(operands_op[1]);
+            operator_   = QPDFObjectHandle::newOperator(std::string(s).c_str());
+        } else {
+            operator_ = operands_op[1].cast<QPDFObjectHandle>();
+            if (!operator_.isOperator()) {
+                errmsg
+                    << "At content stream instruction " << n
+                    << ", the operator is not of type pikepdf.Operator, bytes or str";
+                throw py::type_error(errmsg.str());
+            }
+        }
+
+        if (operator_.getOperatorValue() == std::string("INLINE IMAGE")) {
+            py::object iimage = operands[0];
+            py::handle PdfInlineImage =
+                py::module::import("pikepdf").attr("PdfInlineImage");
+            if (!py::isinstance(iimage, PdfInlineImage)) {
+                errmsg << "Expected PdfInlineImage as operand for instruction " << n;
+                throw py::value_error(errmsg.str());
+            }
+            py::object iimage_unparsed_bytes = iimage.attr("unparse")();
+            ss << std::string(py::bytes(iimage_unparsed_bytes));
+        } else {
+            for (const auto &operand : operands) {
+                QPDFObjectHandle obj = objecthandle_encode(operand);
+                ss << obj.unparseBinary() << " ";
+            }
+            ss << operator_.unparseBinary();
+        }
+
+        n++;
+    }
+    return py::bytes(ss.str());
+}

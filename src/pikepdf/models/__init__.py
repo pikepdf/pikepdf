@@ -122,36 +122,9 @@ def unparse_content_stream(
             To attach to a Pdf, use :meth:`Pdf.make_stream()``.
     """
 
-    def encode(obj):
-        return _qpdf.unparse(obj)
-
-    def encode_iimage(iimage: PdfInlineImage):
-        return iimage.unparse()
-
-    def encode_operator(obj):
-        if isinstance(obj, Operator):
-            return obj.unparse()
-        return encode(Operator(obj))
-
-    def for_each_instruction():
-        for n, (operands, operator) in enumerate(instructions):
-            try:
-                if operator == Operator(b'INLINE IMAGE'):
-                    iimage = operands[0]
-                    if not isinstance(iimage, PdfInlineImage):
-                        raise ValueError(
-                            "Operator was INLINE IMAGE but operands were not "
-                            "a PdfInlineImage"
-                        )
-                    line = encode_iimage(iimage)
-                else:
-                    if operands:
-                        line = b' '.join(encode(operand) for operand in operands)
-                        line += b' ' + encode_operator(operator)
-                    else:
-                        line = encode_operator(operator)
-            except (PdfError, ValueError) as e:
-                raise PdfParsingError(line=n + 1) from e
-            yield line
-
-    return b'\n'.join(for_each_instruction())
+    try:
+        return _qpdf._unparse_content_stream(instructions)
+    except (ValueError, TypeError, RuntimeError) as e:
+        raise PdfParsingError(
+            "While unparsing a content stream, an error occurred"
+        ) from e
