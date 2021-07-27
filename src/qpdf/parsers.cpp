@@ -114,8 +114,8 @@ py::bytes unparse_content_stream(py::iterable contentstream)
     ss.imbue(std::locale::classic());
 
     for (const auto &item : contentstream) {
-        py::tuple operands_op = py::reinterpret_borrow<py::tuple>(item);
-        py::sequence operands = py::reinterpret_borrow<py::sequence>(operands_op[0]);
+        auto operands_op = py::reinterpret_borrow<py::sequence>(item);
+        auto operands    = py::reinterpret_borrow<py::sequence>(operands_op[0]);
 
         // First iteration: print nothing
         // All others: print "\n" to delimit previous

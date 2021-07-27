@@ -233,3 +233,9 @@ class TestMalformedContentStreamInstructions:
             unparse_content_stream(
                 [('should be a PdfInlineImage but is not', b'INLINE IMAGE')]
             )
+
+    def test_accepts_all_lists(self):
+        unparse_content_stream([[[], b'Q']])
+
+    def test_accepts_all_tuples(self):
+        unparse_content_stream((((Name.Foo,), b'/Do'),))
