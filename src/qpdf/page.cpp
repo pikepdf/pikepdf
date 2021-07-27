@@ -12,7 +12,7 @@
 #include <cctype>
 
 #include "pikepdf.h"
-#include "object_parsers-inl.h"
+#include "parsers.h"
 
 #include <qpdf/QPDFPageObjectHelper.hh>
 #include <qpdf/QPDFPageLabelDocumentHelper.hh>
