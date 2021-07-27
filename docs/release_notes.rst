@@ -18,6 +18,15 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+
+v2.16.0
+=======
+
+-  Performance improvement for ``unparse_content_stream``.
+-  Fixed some linter warnings.
+-  Tightened pybind11 dependencies so we don't accept new minor revisions automatically.
+-  Updated docs on FreeBSD.
+
 v2.15.1
 =======
 
