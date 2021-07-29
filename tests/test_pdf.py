@@ -297,6 +297,12 @@ def test_allow_overwriting_input_without_filename():
             pass
 
 
+def test_allow_overwriting_input_from_pdf_new():
+    pdf = Pdf.new()
+    with pytest.raises(ValueError, match="allow_overwriting_input=True"):
+        pdf.save()
+
+
 def test_check(resources):
     with pikepdf.open(resources / 'content-stream-errors.pdf') as pdf:
         problems = pdf.check()

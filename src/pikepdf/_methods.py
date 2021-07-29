@@ -776,6 +776,7 @@ class Extend_Pdf:
         Raises:
             PdfError
             ForeignObjectError
+            ValueError
 
         You may call ``.save()`` multiple times with different parameters
         to generate different versions of a file, and you *may* continue
@@ -798,9 +799,19 @@ class Extend_Pdf:
 
         .. versionchanged:: 2.7
             Added *recompress_flate*.
+
         """
-        if not filename_or_stream and self._original_filename:
+        if not filename_or_stream and getattr(self, '_original_filename', None):
             filename_or_stream = self._original_filename
+        if not filename_or_stream:
+            raise ValueError(
+                "Cannot save to original filename because the original file was "
+                "not opening using Pdf.open(..., allow_overwriting_input=True). "
+                "Either specify a new destination filename/file stream or open "
+                "with allow_overwriting_input=True. If this Pdf was created using "
+                "Pdf.new(), you must specify a destination object since there is "
+                "no original filename to save to."
+            )
         self._save(
             filename_or_stream,
             static_id=static_id,
