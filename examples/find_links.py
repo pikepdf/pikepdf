@@ -1,3 +1,5 @@
+#! /usr/bin/env python3
+
 # Copyright (c) 2019, James R. Barlow
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -21,38 +23,38 @@
 """Use pikepdf to find links in a PDF"""
 
 import argparse
-
 import pikepdf
-
-Name = pikepdf.Name
+PdfName = pikepdf.Name
 
 parser = argparse.ArgumentParser(description="Find URIs in a PDF")
 parser.add_argument('input_file')
 
 
 def check_action(action):
-    if action.Type != Name.Action:
+    if PdfName.Type not in action:
         return
-    if action.S == Name.URI:
+    if action.Type != PdfName.Action:
+        return
+    if action.S == PdfName.URI:
         yield str(bytes(action.URI), encoding='ascii')
 
 
 def check_object_aa(obj):
-    if Name.AA in obj:
+    if PdfName.AA in obj:
         for _name, action in obj.AA.items():
             yield from check_action(action)
 
 
 def check_page_annots(page):
-    if Name.Annots not in page:
+    if PdfName.Annots not in page:
         return
     annots = page.Annots
     for annot in annots:
-        if annot.Type != Name.Annot:
+        if annot.Type != PdfName.Annot:
             continue
-        if annot.Subtype == Name.Link:
+        if annot.Subtype == PdfName.Link:
             link_annot = annot
-            if Name.A in link_annot:
+            if PdfName.A in link_annot:
                 action = link_annot.A
                 yield from check_action(action)
         yield from check_object_aa(annot)
