@@ -569,7 +569,7 @@ class Extend_Pdf:
             def __init__(self):  # pylint: disable=useless-super-delegation
                 super().__init__()  # required for C++
 
-            def handle_object(self, obj):
+            def handle_object(self, *_args):
                 pass
 
             def handle_eof(self):

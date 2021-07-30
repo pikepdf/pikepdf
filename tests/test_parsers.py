@@ -29,7 +29,7 @@ class PrintParser(StreamParser):
     def __init__(self):
         super().__init__()
 
-    def handle_object(self, obj):
+    def handle_object(self, obj, *_args):
         print(repr(obj))
 
     def handle_eof(self):
@@ -40,7 +40,7 @@ class ExceptionParser(StreamParser):
     def __init__(self):
         super().__init__()
 
-    def handle_object(self, obj):  # pylint: disable=unused-argument
+    def handle_object(self, obj, *_args):  # pylint: disable=unused-argument
         raise ValueError("I take exception to this")
 
     def handle_eof(self):

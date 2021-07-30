@@ -12,13 +12,15 @@
 #include "pikepdf.h"
 #include "parsers.h"
 
-void PyParserCallbacks::handleObject(QPDFObjectHandle h)
+void PyParserCallbacks::handleObject(QPDFObjectHandle obj, size_t offset, size_t length)
 {
-    PYBIND11_OVERRIDE_PURE_NAME(void,
+    PYBIND11_OVERRIDE_NAME(void,
         QPDFObjectHandle::ParserCallbacks,
         "handle_object", /* Python name */
         handleObject,    /* C++ name */
-        h);
+        obj,
+        offset,
+        length);
 }
 
 void PyParserCallbacks::handleEOF()

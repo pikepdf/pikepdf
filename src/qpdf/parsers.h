@@ -20,7 +20,7 @@ public:
     using QPDFObjectHandle::ParserCallbacks::ParserCallbacks;
     virtual ~PyParserCallbacks() = default;
 
-    void handleObject(QPDFObjectHandle h) override;
+    void handleObject(QPDFObjectHandle obj, size_t offset, size_t length) override;
     void handleEOF() override;
 };
 

@@ -895,7 +895,9 @@ void init_object(py::module_ &m)
         .def(
             "handle_object",
             [](QPDFObjectHandle::ParserCallbacks &parsercallbacks,
-                QPDFObjectHandle &h) { parsercallbacks.handleObject(h); },
+                QPDFObjectHandle &h,
+                size_t offset,
+                size_t length) { parsercallbacks.handleObject(h, offset, length); },
             R"~~~(
                 This is an abstract method that must be overloaded in a subclass.
 
