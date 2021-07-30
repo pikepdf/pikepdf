@@ -11,6 +11,7 @@ from io import BytesIO
 from itertools import zip_longest
 from pathlib import Path
 from shutil import copyfileobj
+from typing import NamedTuple, Optional
 from zlib import decompress
 
 from PIL import Image, ImageCms
@@ -84,6 +85,19 @@ def metadata_from_obj(obj, name, type_, default):
         if val is None:
             return None
     raise NotImplementedError('Metadata access for ' + name)
+
+
+class PaletteData(NamedTuple):
+    """Returns the color space and binary representation of the palette.
+
+    ``base_colorspace`` is typically ``"RGB"`` or ``"L"`` (for grayscale).
+
+    ``palette`` is typically 256 or 256*3=768 bytes, for grayscale and RGB color
+    respectively, with each unit/triplet being the grayscale/RGB triplet values.
+    """
+
+    base_colorspace: str
+    palette: bytes
 
 
 class PdfImageBase(ABC):
@@ -238,12 +252,8 @@ class PdfImageBase(ABC):
         return list(zip_longest(self.filters, self.decode_parms, fillvalue={}))
 
     @property
-    def palette(self):
-        """Retrieves the color palette for this image
-
-        Returns:
-            tuple (base_colorspace: str, palette: bytes)
-        """
+    def palette(self) -> Optional[PaletteData]:
+        """Retrieves the color palette for this image if applicable."""
 
         if not self.indexed:
             return None
@@ -712,6 +722,8 @@ class PdfImage(PdfImageBase):
 
 
 class PdfJpxImage(PdfImage):
+    """Support class for JPEG 2000 images. Implements the same API as :class:`PdfImage`."""
+
     def __init__(self, obj):
         super().__init__(obj)
         self._jpxpil = self.as_pil_image()
@@ -770,7 +782,7 @@ class PdfJpxImage(PdfImage):
 
 
 class PdfInlineImage(PdfImageBase):
-    """Support class for PDF inline images"""
+    """Support class for PDF inline images. Implements the same API as :class:`PdfImage`."""
 
     # Inline images can contain abbreviations that we write automatically
     ABBREVS = {

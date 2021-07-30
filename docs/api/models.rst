@@ -45,10 +45,9 @@ but might do so in a future release (this would break backward compatibility).
         ``a=1 b=0 c=0 d=1`` is the identity matrix.
 
 .. autoclass:: pikepdf.PdfImage
-    :members:
+    :inherited-members:
 
 .. autoclass:: pikepdf.PdfInlineImage
-    :members:
 
 .. autoclass:: pikepdf.models.PdfMetadata
     :members:
