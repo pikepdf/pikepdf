@@ -52,7 +52,7 @@ public:
 
     py::object handle_token(Token const &token) override
     {
-        PYBIND11_OVERLOAD_PURE(py::object, TokenFilter, handle_token, token);
+        PYBIND11_OVERRIDE_PURE(py::object, TokenFilter, handle_token, token);
     }
 };
 

@@ -14,7 +14,7 @@
 
 void PyParserCallbacks::handleObject(QPDFObjectHandle h)
 {
-    PYBIND11_OVERLOAD_PURE_NAME(void,
+    PYBIND11_OVERRIDE_PURE_NAME(void,
         QPDFObjectHandle::ParserCallbacks,
         "handle_object", /* Python name */
         handleObject,    /* C++ name */
@@ -23,7 +23,7 @@ void PyParserCallbacks::handleObject(QPDFObjectHandle h)
 
 void PyParserCallbacks::handleEOF()
 {
-    PYBIND11_OVERLOAD_PURE_NAME(void,
+    PYBIND11_OVERRIDE_PURE_NAME(void,
         QPDFObjectHandle::ParserCallbacks,
         "handle_eof", /* Python name */
         handleEOF,    /* C++ name; trailing comma needed for macro */
