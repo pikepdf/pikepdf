@@ -17,6 +17,14 @@ designated file. For example:
 
     env TC_SCOPE=qpdf TC_FILENAME=libqpdf_log.txt python my_pikepdf_script.py
 
+Using gdb to debug C++ and Python
+---------------------------------
+
+Current versions of gdb can debug Python and C++ code simultaneously. See
+the Python developer's guide on `gdb Support`_.
+
+.. _gdb Support: https://devguide.python.org/gdb/
+
 Compiling a debug build of QPDF
 -------------------------------
 
@@ -73,3 +81,42 @@ Valgrind may also be helpful - see the Python `documentation`_ for information
 on setting up Python and Valgrind.
 
 .. _documentation: https://github.com/python/cpython/blob/d5d33681c1cd1df7731eb0fb7c0f297bc2f114e6/Misc/README.valgrind
+
+Profiling pikepdf
+-----------------
+
+The standard Python profiling tools in :mod:`cProfile` work fine for many
+purposes but cannot explore inside pikepdf's C++ functions.
+
+The `py-spy`_ program can effectively profile time spent in Python or executing
+C++ code and demangle many C++ names to the appropriate symbols.
+
+Happily it also does not require recompiling in any special mode, unless one
+desires more symbol information than libqpdf or the C++ standard library exports.
+
+For best results, use py-spy to generate speedscope files and use the `speedscope`_
+application to view them. py-spy's SVG output is illegible due to long C++ template
+names as of this writing.
+
+To install profiling and use profiling software:
+
+.. code-block:: bash
+
+    # From a virtual environment with pikepdf installed...
+
+    # Install
+    pip install py-spy
+    npm install -g speedscope  # may need sudo to install this
+
+    # Run profile on a script that executes some pikepdf code we want to profile
+    py-spy record --native --format speedscope -o profile.speedscope -- python some_script.py
+
+    # View results (this will open a browser window)
+    speedscope profile.speedscope
+
+To profile pikepdf's test suite, ensure that you run ``pytest -n0`` to disable
+multiple CPU usage, since py-spy cannot trace inside child processes.
+
+.. _py-spy: https://github.com/benfred/py-spy
+
+.. _speedscope: https://github.com/jlfwong/speedscope
