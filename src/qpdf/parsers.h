@@ -37,9 +37,9 @@ public:
 
 private:
     std::set<std::string> whitelist;
-    std::vector<QPDFObjectHandle> tokens;
+    py::list tokens;
     bool parsing_inline_image;
-    std::vector<QPDFObjectHandle> inline_metadata;
+    py::list inline_metadata;
     py::list instructions;
     uint count;
     std::string warning;

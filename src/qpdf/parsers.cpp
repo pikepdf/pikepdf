@@ -56,11 +56,11 @@ void OperandGrouper::handleObject(QPDFObjectHandle obj)
                 // We have token with multiple stack push/pops
                 if (this->whitelist.count("q") == 0 &&
                     this->whitelist.count("Q") == 0) {
-                    this->tokens.clear();
+                    this->tokens = py::list();
                     return;
                 }
             } else if (this->whitelist.count(op) == 0) {
-                this->tokens.clear();
+                this->tokens = py::list();
                 return;
             }
         }
@@ -73,7 +73,7 @@ void OperandGrouper::handleObject(QPDFObjectHandle obj)
                 auto PdfInlineImage =
                     py::module_::import("pikepdf").attr("PdfInlineImage");
                 auto kwargs            = py::dict();
-                kwargs["image_data"]   = this->tokens.at(0);
+                kwargs["image_data"]   = this->tokens[0];
                 kwargs["image_object"] = this->inline_metadata;
                 auto iimage            = PdfInlineImage(**kwargs);
 
@@ -86,16 +86,16 @@ void OperandGrouper::handleObject(QPDFObjectHandle obj)
                 this->instructions.append(instruction);
 
                 this->parsing_inline_image = false;
-                this->inline_metadata.clear();
+                this->inline_metadata      = py::list();
             }
         } else {
-            py::list operand_list = py::cast(this->tokens);
+            py::list operand_list = this->tokens;
             auto instruction      = py::make_tuple(operand_list, obj);
             this->instructions.append(instruction);
         }
-        this->tokens.clear();
+        this->tokens = py::list();
     } else {
-        this->tokens.push_back(obj);
+        this->tokens.append(obj);
     }
 }
 
