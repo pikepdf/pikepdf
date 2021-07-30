@@ -66,7 +66,7 @@ from .models import (
 from . import _methods, codec
 
 # While _cpphelpers is intended to be called from our C++ code only, explicitly
-# importing helps introspection tools like PyInstaller figure out that the
+# importing helps introspection tools like PyInstaller figure out that the module
 # is necessary.
 from . import _cpphelpers
 

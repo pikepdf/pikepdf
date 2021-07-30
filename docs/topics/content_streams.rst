@@ -1,3 +1,5 @@
+.. _working_with_content_streams:
+
 Working with content streams
 ============================
 

@@ -5,6 +5,9 @@ In PDF, drawing operations are all performed in content streams that describe
 the positioning and drawing order of all graphics (including text, images and
 vector drawing).
 
+.. seealso::
+    :ref:`working_with_content_streams`
+
 pikepdf (and libqpdf) provide two tools for interpreting content streams:
 a parser and filter. The parser returns higher level information, conveniently
 grouping all commands with their operands. The parser is useful when one wants
@@ -17,7 +20,16 @@ comments, and distinguishing different types of spaces. This allows modifying
 content streams. A TokenFilter must be subclassed; the specialized version
 describes how it should transform the stream of tokens.
 
+Content stream parsers
+----------------------
+
 .. autofunction:: pikepdf.parse_content_stream
+
+.. autofunction:: pikepdf.unparse_content_stream
+
+
+Content stream token filters
+----------------------------
 
 .. autoclass:: pikepdf.Token
     :members:

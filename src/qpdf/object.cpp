@@ -879,12 +879,36 @@ void init_object(py::module_ &m)
         py::arg("op"));
     m.def("_Null", &QPDFObjectHandle::newNull, "Construct a PDF Null object");
 
-    py::class_<QPDFObjectHandle::ParserCallbacks, PyParserCallbacks>(m, "StreamParser")
-        .def(py::init<>())
-        .def("handle_object",
+    py::class_<QPDFObjectHandle::ParserCallbacks, PyParserCallbacks>(m,
+        "StreamParser",
+        R"~~~(
+            A simple content stream parser, which must be subclassed to be used.
+
+            In practice, the performance of this class may be quite poor on long
+            content streams because it creates objects and involves multiple
+            function calls for every object in a content stream, some of which
+            may be only a single byte long.
+
+            Consider instead using :func:`pikepdf.parse_content_stream`.
+        )~~~")
+        .def(py::init<>(), "You must call ``super.__init__()`` in subclasses.")
+        .def(
+            "handle_object",
             [](QPDFObjectHandle::ParserCallbacks &parsercallbacks,
-                QPDFObjectHandle &h) { parsercallbacks.handleObject(h); })
-        .def("handle_eof", &QPDFObjectHandle::ParserCallbacks::handleEOF);
+                QPDFObjectHandle &h) { parsercallbacks.handleObject(h); },
+            R"~~~(
+                This is an abstract method that must be overloaded in a subclass.
+
+                This function will be called back once for each object that is
+                parsed in the content stream.
+            )~~~")
+        .def("handle_eof",
+            &QPDFObjectHandle::ParserCallbacks::handleEOF,
+            R"~~~(
+                This is an abstract method that may be overloaded in a subclass.
+
+                Called at the end of a content stream.
+            )~~~");
 
     m.def("_encode", [](py::handle handle) { return objecthandle_encode(handle); });
     m.def("unparse", [](py::object obj) -> py::bytes {

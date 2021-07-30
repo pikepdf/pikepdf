@@ -9,6 +9,7 @@
 # pikepdf/_methods.py. Thus, we need to manually spell out the resulting types
 # after augmenting.
 
+from abc import abstractmethod
 from enum import Enum
 from typing import (
     Any,
@@ -307,8 +308,10 @@ class TokenFilter(_QPDFTokenFilter):
 
 class StreamParser:
     def __init__(self) -> None: ...
+    @abstractmethod
     def handle_eof(self) -> None: ...
-    def handle_object(self, arg0: Object) -> None: ...
+    @abstractmethod
+    def handle_object(self, obj: Object) -> None: ...
 
 class Page:
     _repr_mimebundle_: Any = ...
