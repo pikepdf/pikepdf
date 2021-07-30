@@ -627,7 +627,7 @@ class Extend_Pdf:
 
         if '/Names' not in self.Root:
             self.Root.Names = self.make_indirect(Dictionary())
-        if '/EmbeddedFiles' not in self.Root:
+        if '/EmbeddedFiles' not in self.Root.Names:
             self.Root.Names.EmbeddedFiles = self.make_indirect(Dictionary())
         if '/Names' not in self.Root.Names.EmbeddedFiles:
             self.Root.Names.EmbeddedFiles.Names = Array()
