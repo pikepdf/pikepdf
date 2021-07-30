@@ -512,7 +512,7 @@ class PdfImage(PdfImageBase):
 
         return im
 
-    def _extract_to_stream(self, *, stream):
+    def _extract_to_stream(self, *, stream) -> str:
         """Attempt to extract the image to a stream
 
         If possible, the compressed data is extracted and inserted into
@@ -524,7 +524,7 @@ class PdfImage(PdfImageBase):
             stream: Writable stream to write data to
 
         Returns:
-            str: The file format extension
+            The file format extension.
         """
 
         try:
@@ -544,7 +544,7 @@ class PdfImage(PdfImageBase):
 
         raise UnsupportedImageTypeError(repr(self))
 
-    def extract_to(self, *, stream=None, fileprefix=''):
+    def extract_to(self, *, stream=None, fileprefix='') -> str:
         """Attempt to extract the image directly to a usable image file
 
         If possible, the compressed data is extracted and inserted into
@@ -574,9 +574,6 @@ class PdfImage(PdfImageBase):
             If *fileprefix* was provided, then the fileprefix with the
             appropriate extension. If no *fileprefix*, then an extension
             indicating the file type.
-
-        Return type:
-            str
         """
 
         if bool(stream) == bool(fileprefix):
@@ -600,12 +597,8 @@ class PdfImage(PdfImageBase):
         """Access this image with the buffer protocol"""
         return self.obj.get_stream_buffer(decode_level=decode_level)
 
-    def as_pil_image(self):
-        """Extract the image as a Pillow Image, using decompression as necessary
-
-        Returns:
-            PIL.Image.Image
-        """
+    def as_pil_image(self) -> Image.Image:
+        """Extract the image as a Pillow Image, using decompression as necessary."""
         try:
             bio = BytesIO()
             self._extract_direct(stream=bio)

@@ -154,7 +154,7 @@ class String(Object, metaclass=_ObjectMeta):
             s: The string to use. String will be encoded for
                 PDF, bytes will be constructed without encoding.
 
-        Returns:
+        Return type:
             pikepdf.Object
         """
         if isinstance(s, bytes):
@@ -173,7 +173,7 @@ class Array(Object, metaclass=_ObjectMeta):
             a: An iterable of objects. All objects must be either
                 `pikepdf.Object` or convertible to `pikepdf.Object`.
 
-        Returns:
+        Return type:
             pikepdf.Object
         """
 
@@ -210,7 +210,7 @@ class Dictionary(Object, metaclass=_ObjectMeta):
         correspond to the desired Names in the PDF Dictionary. The values
         must all be convertible to `pikepdf.Object`.
 
-        Returns:
+        Return type:
             pikepdf.Object
         """
         if kwargs and d is not None:
@@ -255,7 +255,7 @@ class Stream(Object, metaclass=_ObjectMeta):
                 /Length here as pikepdf will manage this value. Set /Filter
                 if the data is already encoded in some format.
             obj: Deprecated alias for *data*.
-        Returns:
+        Return type:
             pikepdf.Object
 
         Examples:

@@ -62,9 +62,9 @@ def parse_content_stream(
             all tokens are accepted.
 
     Returns:
-        list: List of ``(operands, command)`` tuples where ``command`` is an
-            operator (str) and ``operands`` is a tuple of str; the PDF drawing
-            command and the command's operands, respectively.
+        List of ``(operands, command)`` tuples where ``command`` is an
+        operator (str) and ``operands`` is a tuple of str; the PDF drawing
+        command and the command's operands, respectively.
 
     Example:
 
@@ -118,8 +118,8 @@ def unparse_content_stream(
             by :func:`parse_content_stream()`
 
     Returns:
-        bytes: a binary content stream, suitable for attaching to a Pdf.
-            To attach to a Pdf, use :meth:`Pdf.make_stream()``.
+        A binary content stream, suitable for attaching to a Pdf.
+        To attach to a Pdf, use :meth:`Pdf.make_stream()``.
     """
 
     try:

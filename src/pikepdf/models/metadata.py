@@ -804,7 +804,7 @@ class PdfMetadata(MutableMapping):
         conformant.
 
         Returns:
-            str: The conformance level of the PDF/A, or an empty string if the
+            The conformance level of the PDF/A, or an empty string if the
             PDF does not claim PDF/A conformance. Possible valid values
             are: 1A, 1B, 2A, 2B, 2U, 3A, 3B, 3U.
         """
@@ -825,7 +825,7 @@ class PdfMetadata(MutableMapping):
         conformant.
 
         Returns:
-            str: The conformance level of the PDF/X, or an empty string if the
+            The conformance level of the PDF/X, or an empty string if the
             PDF does not claim PDF/X conformance.
         """
         pdfx_version = QName(XMP_NS_PDFX_ID, 'GTS_PDFXVersion')

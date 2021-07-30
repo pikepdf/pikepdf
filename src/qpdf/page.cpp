@@ -212,7 +212,8 @@ void init_page(py::module_ &m)
             )~~~")
         .def(
             "get_filtered_contents",
-            [](QPDFPageObjectHelper &poh, QPDFObjectHandle::TokenFilter &tf) {
+            [](QPDFPageObjectHelper &poh,
+                QPDFObjectHandle::TokenFilter &tf) -> py::bytes {
                 Pl_Buffer pl_buffer("filter_page");
                 poh.filterPageContents(&tf, &pl_buffer);
 
@@ -236,7 +237,7 @@ void init_page(py::module_ &m)
                 To modify the content stream, use :meth:`pikepdf.Page.add_content_token_filter`.
 
                 Returns:
-                    bytes: the modified content stream
+                    The modified content stream.
             )~~~")
         .def(
             "add_content_token_filter",

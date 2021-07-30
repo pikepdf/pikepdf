@@ -805,7 +805,7 @@ void init_object(py::module_ &m)
                     indirect object.
 
             Returns:
-                bytes: JSON bytestring of object. The object is UTF-8 encoded
+                JSON bytestring of object. The object is UTF-8 encoded
                 and may be decoded to a Python str that represents the binary
                 values ``\x00-\xFF`` as ``U+0000`` to ``U+00FF``; that is,
                 it may contain mojibake.
