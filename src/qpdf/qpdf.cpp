@@ -699,7 +699,7 @@ void init_qpdf(py::module_ &m)
             to that page, such as images on the page, may still be present.
 
             Retun type:
-                pikepdf._ObjectList
+                pikepdf._qpdf._ObjectList
             )~~~",
             py::return_value_policy::reference_internal)
         .def("make_indirect",

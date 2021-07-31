@@ -117,3 +117,8 @@ but not intended to be created explicitly.
 
     A ``list``-like object enumerating a range of pages in a :class:`pikepdf.Pdf`.
     It may be all of the pages or a subset.
+
+.. autoclass:: pikepdf._qpdf._ObjectList
+    :members:
+
+    A ``list``-like object containing multiple ``pikepdf.Object``.
