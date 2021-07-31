@@ -75,54 +75,44 @@ std::string objecthandle_pythonic_typename(QPDFObjectHandle h)
 
     switch (h.getTypeCode()) {
     case QPDFObject::object_type_e::ot_name:
-        ss << "pikepdf."
-           << "Name";
+        ss << "pikepdf.Name";
         break;
     case QPDFObject::object_type_e::ot_string:
-        ss << "pikepdf."
-           << "String";
+        ss << "pikepdf.String";
         break;
     case QPDFObject::object_type_e::ot_operator:
-        ss << "pikepdf."
-           << "Operator";
+        ss << "pikepdf.Operator";
         break;
     // LCOV_EXCL_START
     case QPDFObject::object_type_e::ot_inlineimage:
         // Objects of this time are not directly returned.
-        ss << "pikepdf."
-           << "InlineImage";
+        ss << "pikepdf.InlineImage";
         break;
     // LCOV_EXCL_END
     case QPDFObject::object_type_e::ot_array:
-        ss << "pikepdf."
-           << "Array";
+        ss << "pikepdf.Array";
         break;
     case QPDFObject::object_type_e::ot_dictionary:
         if (h.hasKey("/Type")) {
-            ss << "pikepdf."
-               << "Dictionary(Type=\"" << h.getKey("/Type").getName() << "\")";
+            ss << "pikepdf.Dictionary(Type=\"" << h.getKey("/Type").getName() << "\")";
         } else {
-            ss << "pikepdf."
-               << "Dictionary";
+            ss << "pikepdf.Dictionary";
         }
         break;
     case QPDFObject::object_type_e::ot_stream:
-        ss << "pikepdf."
-           << "Stream";
+        ss << "pikepdf.Stream";
         break;
     case QPDFObject::object_type_e::ot_null:
     case QPDFObject::object_type_e::ot_boolean:
     case QPDFObject::object_type_e::ot_integer:
     case QPDFObject::object_type_e::ot_real:
-        // LCOV_EXCL_START
-        ss << "Unexpected QPDF object type: " << h.getTypeName() << ". ";
-        ss << "Objects of this type are normally converted to native Python objects.";
-        throw std::logic_error(ss.str());
-        // LCOV_EXCL_STOP
+        break; // No typename since literal is obvious and Decimal automatically adds
+               // Decimal('1.2345.')
+
     // LCOV_EXCL_START
     default:
-        ss << "Unexpected QPDF object type value: " << h.getTypeCode();
-        throw std::logic_error(ss.str());
+        throw std::logic_error(
+            std::string("Unexpected QPDF object type value: ") + h.getTypeName());
         // LCOV_EXCL_STOP
     }
 
@@ -131,6 +121,10 @@ std::string objecthandle_pythonic_typename(QPDFObjectHandle h)
 
 std::string objecthandle_repr_typename_and_value(QPDFObjectHandle h)
 {
+    auto pythonic_typename = objecthandle_pythonic_typename(h);
+    if (pythonic_typename.empty()) {
+        return objecthandle_scalar_value(h);
+    }
     return objecthandle_pythonic_typename(h) + "(" + objecthandle_scalar_value(h) + ")";
 }
 

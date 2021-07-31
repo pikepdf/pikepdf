@@ -232,8 +232,24 @@ void init_object(py::module_ &m)
                 {sizeof(unsigned char)});
         });
 
-    py::bind_vector<std::vector<QPDFObjectHandle>>(m, "_ObjectList");
-    py::bind_map<std::map<std::string, QPDFObjectHandle>>(m, "_ObjectMapping");
+    py::bind_vector<ObjectList>(m, "_ObjectList") // Autoformat fix
+        .def("__repr__", [](ObjectList &ol) {
+            std::ostringstream ss;
+            bool first = true;
+            ss << "pikepdf._qpdf._ObjectList([";
+            for (auto &h : ol) {
+                if (first) {
+                    first = false;
+                } else {
+                    ss << ", ";
+                }
+                ss << objecthandle_repr(h);
+            }
+            ss << "])";
+            return ss.str();
+        });
+
+    py::bind_map<ObjectMap>(m, "_ObjectMapping");
 
     py::class_<QPDFObjectHandle>(m, "Object")
         .def_property_readonly("_type_code", &QPDFObjectHandle::getTypeCode)

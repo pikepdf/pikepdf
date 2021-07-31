@@ -159,9 +159,10 @@ public:
 
 namespace py = pybind11;
 
-PYBIND11_MAKE_OPAQUE(std::vector<QPDFObjectHandle>);
+using ObjectList = std::vector<QPDFObjectHandle>;
+PYBIND11_MAKE_OPAQUE(ObjectList);
 
-typedef std::map<std::string, QPDFObjectHandle> ObjectMap;
+using ObjectMap = std::map<std::string, QPDFObjectHandle>;
 PYBIND11_MAKE_OPAQUE(ObjectMap);
 
 // From qpdf.cpp
