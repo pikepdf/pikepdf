@@ -56,11 +56,11 @@ void OperandGrouper::handleObject(QPDFObjectHandle obj)
                 // We have token with multiple stack push/pops
                 if (this->whitelist.count("q") == 0 &&
                     this->whitelist.count("Q") == 0) {
-                    this->tokens = py::list();
+                    this->tokens.clear();
                     return;
                 }
             } else if (this->whitelist.count(op) == 0) {
-                this->tokens = py::list();
+                this->tokens.clear();
                 return;
             }
         }
@@ -86,16 +86,19 @@ void OperandGrouper::handleObject(QPDFObjectHandle obj)
                 this->instructions.append(instruction);
 
                 this->parsing_inline_image = false;
-                this->inline_metadata      = py::list();
+                this->inline_metadata.clear();
             }
         } else {
-            py::list operand_list = this->tokens;
-            auto instruction      = py::make_tuple(operand_list, obj);
+            py::tuple instruction;
+            if (this->tokens.empty())
+                instruction = py::make_tuple(py::tuple(), obj);
+            else
+                instruction = py::make_tuple(this->tokens, obj);
             this->instructions.append(instruction);
         }
-        this->tokens = py::list();
+        this->tokens.clear();
     } else {
-        this->tokens.append(obj);
+        this->tokens.push_back(obj);
     }
 }
 
@@ -117,7 +120,6 @@ py::bytes unparse_content_stream(py::iterable contentstream)
 
     for (const auto &item : contentstream) {
         auto operands_op = py::reinterpret_borrow<py::sequence>(item);
-        auto operands    = py::reinterpret_borrow<py::sequence>(operands_op[0]);
 
         // First iteration: print nothing
         // All others: print "\n" to delimit previous
@@ -131,16 +133,18 @@ py::bytes unparse_content_stream(py::iterable contentstream)
             throw py::value_error(errmsg.str());
         }
 
-        QPDFObjectHandle operator_;
-        if (py::isinstance<py::str>(operands_op[1])) {
-            py::str s = py::reinterpret_borrow<py::str>(operands_op[1]);
-            operator_ = QPDFObjectHandle::newOperator(std::string(s).c_str());
-        } else if (py::isinstance<py::bytes>(operands_op[1])) {
-            py::bytes s = py::reinterpret_borrow<py::bytes>(operands_op[1]);
-            operator_   = QPDFObjectHandle::newOperator(std::string(s).c_str());
+        auto operator_ = operands_op[1];
+
+        QPDFObjectHandle op;
+        if (py::isinstance<py::str>(operator_)) {
+            py::str s = py::reinterpret_borrow<py::str>(operator_);
+            op        = QPDFObjectHandle::newOperator(std::string(s).c_str());
+        } else if (py::isinstance<py::bytes>(operator_)) {
+            py::bytes s = py::reinterpret_borrow<py::bytes>(operator_);
+            op          = QPDFObjectHandle::newOperator(std::string(s).c_str());
         } else {
-            operator_ = operands_op[1].cast<QPDFObjectHandle>();
-            if (!operator_.isOperator()) {
+            op = operator_.cast<QPDFObjectHandle>();
+            if (!op.isOperator()) {
                 errmsg
                     << "At content stream instruction " << n
                     << ", the operator is not of type pikepdf.Operator, bytes or str";
@@ -148,7 +152,8 @@ py::bytes unparse_content_stream(py::iterable contentstream)
             }
         }
 
-        if (operator_.getOperatorValue() == std::string("INLINE IMAGE")) {
+        if (op.getOperatorValue() == std::string("INLINE IMAGE")) {
+            auto operands     = py::reinterpret_borrow<py::sequence>(operands_op[0]);
             py::object iimage = operands[0];
             py::handle PdfInlineImage =
                 py::module::import("pikepdf").attr("PdfInlineImage");
@@ -159,11 +164,20 @@ py::bytes unparse_content_stream(py::iterable contentstream)
             py::object iimage_unparsed_bytes = iimage.attr("unparse")();
             ss << std::string(py::bytes(iimage_unparsed_bytes));
         } else {
-            for (const auto &operand : operands) {
-                QPDFObjectHandle obj = objecthandle_encode(operand);
-                ss << obj.unparseBinary() << " ";
+            try {
+                // First try direct conversion...
+                auto objectlist = operands_op[0].cast<std::vector<QPDFObjectHandle>>();
+                for (QPDFObjectHandle &obj : objectlist) {
+                    ss << obj.unparseBinary() << " ";
+                }
+            } catch (const py::cast_error &) {
+                auto operands = py::reinterpret_borrow<py::sequence>(operands_op[0]);
+                for (const auto &operand : operands) {
+                    QPDFObjectHandle obj = objecthandle_encode(operand);
+                    ss << obj.unparseBinary() << " ";
+                }
             }
-            ss << operator_.unparseBinary();
+            ss << op.unparseBinary();
         }
 
         n++;

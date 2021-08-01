@@ -8,9 +8,8 @@
 
 #pragma once
 
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#include <qpdf/QPDFObjectHandle.hh>
+#include "pikepdf.h"
+
 #include <qpdf/QPDFTokenizer.hh>
 
 // Used to implement pikepdf.StreamParser, which can be subclassed to implement
@@ -37,9 +36,9 @@ public:
 
 private:
     std::set<std::string> whitelist;
-    py::list tokens;
+    std::vector<QPDFObjectHandle> tokens;
     bool parsing_inline_image;
-    py::list inline_metadata;
+    std::vector<QPDFObjectHandle> inline_metadata;
     py::list instructions;
     uint count;
     std::string warning;
