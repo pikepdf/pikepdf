@@ -32,6 +32,25 @@ void PyParserCallbacks::handleEOF()
     );
 }
 
+ContentStreamInstruction::ContentStreamInstruction(
+    ObjectList operands, QPDFObjectHandle operator_)
+    : operands(operands), operator_(operator_)
+{
+}
+
+std::ostream &operator<<(std::ostream &os, ContentStreamInstruction &csi)
+{
+    for (QPDFObjectHandle &obj : csi.operands) {
+        os << obj.unparseBinary() << " ";
+    }
+    os << csi.operator_.unparseBinary();
+    return os;
+}
+
+// ObjectList ContentStreamInstruction::getOperands() { return this->operands; }
+
+// QPDFObjectHandle ContentStreamInstruction::getOperator() { return this->operator_; }
+
 OperandGrouper::OperandGrouper(const std::string &operators)
     : parsing_inline_image(false), count(0)
 {
@@ -83,18 +102,15 @@ void OperandGrouper::handleObject(QPDFObjectHandle obj)
 
                 auto instruction = py::make_tuple(
                     iimage_list, QPDFObjectHandle::newOperator("INLINE IMAGE"));
+
                 this->instructions.append(instruction);
 
                 this->parsing_inline_image = false;
                 this->inline_metadata.clear();
             }
         } else {
-            py::tuple instruction;
-            if (this->tokens.empty())
-                instruction = py::make_tuple(py::tuple(), obj);
-            else
-                instruction = py::make_tuple(this->tokens, obj);
-            this->instructions.append(instruction);
+            ContentStreamInstruction csi(this->tokens, obj);
+            this->instructions.append(csi);
         }
         this->tokens.clear();
     } else {
@@ -119,13 +135,21 @@ py::bytes unparse_content_stream(py::iterable contentstream)
     ss.imbue(std::locale::classic());
 
     for (const auto &item : contentstream) {
+        ss << delim;
+        delim = "\n";
+
+        try {
+            auto csi = py::cast<ContentStreamInstruction>(item);
+            ss << csi;
+            continue;
+        } catch (py::cast_error &) {
+        }
+
         auto operands_op = py::reinterpret_borrow<py::sequence>(item);
 
         // First iteration: print nothing
         // All others: print "\n" to delimit previous
         // Result is no leading or trailing delimiter
-        ss << delim;
-        delim = "\n";
 
         if (operands_op.size() != 2) {
             errmsg << "Wrong number of operands at content stream instruction " << n
@@ -164,23 +188,61 @@ py::bytes unparse_content_stream(py::iterable contentstream)
             py::object iimage_unparsed_bytes = iimage.attr("unparse")();
             ss << std::string(py::bytes(iimage_unparsed_bytes));
         } else {
-            try {
-                // First try direct conversion...
-                auto objectlist = operands_op[0].cast<std::vector<QPDFObjectHandle>>();
-                for (QPDFObjectHandle &obj : objectlist) {
-                    ss << obj.unparseBinary() << " ";
-                }
-            } catch (const py::cast_error &) {
-                auto operands = py::reinterpret_borrow<py::sequence>(operands_op[0]);
-                for (const auto &operand : operands) {
-                    QPDFObjectHandle obj = objecthandle_encode(operand);
-                    ss << obj.unparseBinary() << " ";
-                }
+            // try {
+            //     // First try direct conversion...
+            //     auto objectlist =
+            //     operands_op[0].cast<std::vector<QPDFObjectHandle>>(); for
+            //     (QPDFObjectHandle &obj : objectlist) {
+            //         ss << obj.unparseBinary() << " ";
+            //     }
+            // } catch (const py::cast_error &) {
+            auto operands = py::reinterpret_borrow<py::sequence>(operands_op[0]);
+            for (const auto &operand : operands) {
+                QPDFObjectHandle obj = objecthandle_encode(operand);
+                ss << obj.unparseBinary() << " ";
             }
+            // }
             ss << op.unparseBinary();
         }
 
         n++;
     }
     return py::bytes(ss.str());
+}
+
+void init_parsers(py::module_ &m)
+{
+    py::class_<ContentStreamInstruction>(m, "ContentStreamInstruction")
+        .def_property(
+            "operator",
+            [](ContentStreamInstruction &csi) { return csi.operator_; },
+            [](ContentStreamInstruction &csi, QPDFObjectHandle op) {
+                csi.operator_ = op;
+            })
+        .def_property(
+            "operands",
+            [](ContentStreamInstruction &csi) { return csi.operands; },
+            [](ContentStreamInstruction &csi, py::object objlist) {
+                if (py::isinstance<ObjectList>(objlist)) {
+                    csi.operands = py::cast<ObjectList>(objlist);
+                } else {
+                    ObjectList newlist;
+                    for (auto &item : objlist) {
+                        newlist.push_back(objecthandle_encode(item));
+                    }
+                    csi.operands = newlist;
+                }
+            })
+        .def("__getitem__",
+            [](ContentStreamInstruction &csi, int index) {
+                if (index == 0 || index == -2)
+                    return py::cast(csi.operands);
+                else if (index == 1 || index == -1)
+                    return py::cast(csi.operator_);
+                throw py::index_error(
+                    std::string("Invalid index ") + std::to_string(index));
+            })
+        .def("__repr__", [](ContentStreamInstruction &csi) {
+            return "pikepdf.ContentStreamInstruction()";
+        });
 }

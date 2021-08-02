@@ -282,6 +282,9 @@ void init_nametree(py::module_ &m);
 void init_page(py::module_ &m);
 size_t page_index(QPDF &owner, QPDFObjectHandle page);
 
+// From parsers.cpp
+void init_parsers(py::module_ &m);
+
 // From rectangle.cpp
 void init_rectangle(py::module_ &m);
 

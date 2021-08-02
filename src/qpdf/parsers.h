@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <iostream>
+
 #include "pikepdf.h"
 
 #include <qpdf/QPDFTokenizer.hh>
@@ -21,6 +23,20 @@ public:
 
     void handleObject(QPDFObjectHandle obj, size_t offset, size_t length) override;
     void handleEOF() override;
+};
+
+class ContentStreamInstruction {
+public:
+    ContentStreamInstruction(ObjectList operands, QPDFObjectHandle operator_);
+    virtual ~ContentStreamInstruction() = default;
+
+    // ObjectList getOperands();
+    // QPDFObjectHandle getOperator();
+
+    friend std::ostream &operator<<(std::ostream &os, ContentStreamInstruction &csi);
+
+    ObjectList operands;
+    QPDFObjectHandle operator_;
 };
 
 // Used for parse_content_stream. Handles each object by grouping into operands
