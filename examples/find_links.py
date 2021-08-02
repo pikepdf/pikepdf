@@ -36,7 +36,7 @@ def check_action(action):
     if action.Type != PdfName.Action:
         return
     if action.S == PdfName.URI:
-        yield str(bytes(action.URI), encoding='ascii')
+        yield str(action.URI)
 
 
 def check_object_aa(obj):
