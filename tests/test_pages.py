@@ -236,8 +236,8 @@ def test_page_contents_add(graph, outdir):
     stream1 = Stream(pdf, b'q ' + mat.encode() + b' cm')
     stream2 = Stream(pdf, b'Q')
 
-    Page(pdf.pages[0]).contents_add(stream1, True)
-    Page(pdf.pages[0]).contents_add(stream2, False)
+    pdf.pages[0].contents_add(stream1, True)
+    pdf.pages[0].contents_add(stream2, False)
     pdf.save(outdir / 'out.pdf')
 
     with pytest.raises(TypeError, match="Not a Page"):
@@ -429,11 +429,11 @@ def test_page_splitting_generator(resources, tmp_path):
 
 def test_page_index(fourpages):
     for n, page in enumerate(fourpages.pages):
-        assert Page(page).index == n
+        assert page.index == n
         assert fourpages.pages.index(page) == n
     del fourpages.pages[1]
     for n, page in enumerate(fourpages.pages):
-        assert Page(page).index == n
+        assert page.index == n
         assert fourpages.pages.index(page) == n
 
 
@@ -442,13 +442,13 @@ def test_page_index_foreign_page(fourpages, sandwich):
         fourpages.pages.index(sandwich.pages[0])
 
     p3 = fourpages.pages[2]
-    assert Page(p3).index == 2
+    assert p3.index == 2
     fourpages.pages.insert(2, sandwich.pages[0])
-    assert Page(fourpages.pages[2]).index == 2
-    assert Page(p3).index == 3
+    assert fourpages.pages[2].index == 2
+    assert p3.index == 3
 
     assert fourpages.pages.index(p3) == 3
-    assert fourpages.pages.index(Page(p3)) == 3
+    assert fourpages.pages.index(Page(p3)) == 3  # Keep
 
     with pytest.raises(ValueError, match="Page is not in this Pdf"):
         # sandwich.pages[0] is still not "in" fourpages; it gets copied into it
@@ -482,7 +482,7 @@ def test_page_label_dicts(d, result):
 
 def test_externalize(resources):
     with Pdf.open(resources / 'image-mono-inline.pdf') as p:
-        page = Page(p.pages[0])
+        page = p.pages[0]
         page.contents_coalesce()
         assert b'BI' in page.obj.Contents.read_bytes(), "no inline image"
 
@@ -521,8 +521,7 @@ def test_page_labels():
 
     labels = ['i', 'ii', 'Prefix-42', 'Prefix-43', 'Prefix-44']
     for n in range(5):
-        rawpage = p.pages[n]
-        page = Page(rawpage)
+        page = p.pages[n]
         assert page.label == labels[n]
 
 
@@ -539,8 +538,7 @@ def test_unattached_page():
 
 
 def test_unindexed_page(graph):
-    rawpage = graph.pages[0]
-    page = Page(rawpage)
+    page = graph.pages[0]
     del graph.pages[0]
     with pytest.raises(ValueError, match='not consistently registered'):
         page.index

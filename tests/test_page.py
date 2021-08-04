@@ -17,7 +17,7 @@ def fourpages(resources):
 
 @pytest.fixture
 def graph_page(graph):
-    return Page(graph.pages[0])
+    return graph.pages[0]
 
 
 def test_page_boxes(graph_page):
@@ -122,9 +122,9 @@ def test_failed_add_page_cleanup():
 
 
 def test_formx(graph, outpdf):
-    formx = Page(graph.pages[0]).as_form_xobject()
+    formx = graph.pages[0].as_form_xobject()
     graph.add_blank_page()
-    new_page = Page(graph.pages[-1])
+    new_page = graph.pages[-1]
     formx_placed_name = new_page.add_resource(formx, Name.XObject)
     cs = new_page.calc_form_xobject_placement(
         formx, formx_placed_name, Rectangle(0, 0, 200, 200)
@@ -137,10 +137,11 @@ def test_formx(graph, outpdf):
 def test_fourpages_to_4up(fourpages, graph, outpdf):
     pdf = Pdf.new()
     pdf.add_blank_page(page_size=(1000, 1000))
-    page = Page(pdf.pages[0])
+    page = pdf.pages[0]
 
     pdf.pages.extend(fourpages.pages)
 
+    # Keep explicit Page(pdf.pages[..]) here
     page.add_overlay(pdf.pages[1], Rectangle(0, 500, 500, 1000))
     page.add_overlay(Page(pdf.pages[2]), Rectangle(500, 500, 1000, 1000))
     page.add_overlay(Page(pdf.pages[3]).as_form_xobject(), Rectangle(0, 0, 500, 500))

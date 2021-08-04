@@ -639,8 +639,7 @@ class Extend_Pdf:
         self._decode_all_streams_and_discard()
 
         discarding_parser = DiscardingParser()
-        for basic_page in self.pages:
-            page = Page(basic_page)
+        for page in self.pages:
             page.parse_contents(discarding_parser)
 
         for warning in self.get_warnings():
@@ -1129,7 +1128,7 @@ class Extend_Page:
             The name of the object.
 
         Example:
-            >>> resource_name = Page(pdf.pages[0]).add_resource(formxobj, Name.XObject)
+            >>> resource_name = pdf.pages[0].add_resource(formxobj, Name.XObject)
 
         .. versionadded:: 2.3
 

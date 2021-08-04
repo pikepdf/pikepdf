@@ -9,7 +9,7 @@ pikepdf is not an ideal tool for producing new PDFs from scratch -- and there ar
 many good tools for that, as mentioned elsewhere. pikepdf is better at inspecting,
 editing and transforming existing PDFs.
 
-Page objects in PDFs are dictionaries.
+Pages in PDFs are wrappers around dictionary objects.
 
 .. ipython::
 
@@ -17,9 +17,9 @@ Page objects in PDFs are dictionaries.
 
     In [1]: example = Pdf.open('../tests/resources/congress.pdf')
 
-    In [1]: pageobj1 = example.pages[0]
+    In [1]: page1 = example.pages[0]
 
-    In [1]: pageobj1
+    In [1]: page1
 
 The page's ``/Contents`` key contains instructions for drawing the page content.
 This is a :doc:`content stream <streams>`, which is a stream object
@@ -35,27 +35,23 @@ The ``/MediaBox`` describes the bounding box of the page in PDF pt units
 
 You *can* access the page dictionary data structure directly, but it's fairly
 complicated. There are a number of rules, optional values and implied values.
-It's easier to use page helpers, which ensure that the page is modified in a
-semantically correct manner.
+To do so, you would access the ``page1.obj`` property.
 
-Page helpers
-------------
+.. note::
 
-pikepdf provides a helper class, :class:`pikepdf.Page`, which provides
-higher-level functions to manipulate pages than the standard page dictionary
-used in the previous examples.
+    In pikepdf 2.x, the raw dictionary object was returned, and it was
+    necessary to manually wrap it with the support model:
+    ``page = Page(pdf.pages[0])``. This is no longer necessary, but also
+    harmless.
 
-Currently pikepdf does not automatically return helper classes. You must
-initialize them. In a future release, it will return them automatically.
+Page boxes
+----------
 
 .. ipython::
 
-    In [1]: from pikepdf import Pdf, Page
+    In [1]: page1.trimbox
 
-    In [1]: page = Page(pageobj1)
-
-    In [1]: page.trimbox
-
-One advantage of page helpers is that they resolve implicit information. For example,
-``page.trimbox`` will return an appropriate trim box for this page, which in this
-case is equal to the media box.
+``Page`` will resolve implicit information. For example, ``page.trimbox``
+will return an appropriate trim box for this page, which in this case is
+equal to the media box. This happens even if the page does not define
+a trim box.

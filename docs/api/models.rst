@@ -7,8 +7,8 @@ that case is the "raw" object. Upon establishing what type of object it is, we
 can wrap it with a support model that adds features to ensure consistency with
 the PDF specification.
 
-pikepdf does not currently apply support models to "raw" objects automatically,
-but might do so in a future release (this would break backward compatibility).
+In version 2.x, did not apply support models to "raw" objects automatically.
+Version 3.x automatically applies support models to ``/Page`` objects.
 
 .. autoclass:: pikepdf.Page
     :members:
@@ -22,7 +22,8 @@ but might do so in a future release (this would break backward compatibility).
         from pikepdf import Pdf, Page
 
         Pdf = open(...)
-        page_support_model = Page(pdf.pages[0])
+        page_support_model = pdf.pages[0]
+        underlying_page_object = page_support_model.obj
 
 .. autoclass:: pikepdf.PdfMatrix
     :members:

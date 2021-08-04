@@ -26,7 +26,7 @@ def test_display_raw_page(pal):
 
 
 def test_display_rich_page(pal):
-    page0 = pikepdf.Page(pal.pages[0])
+    page0 = pal.pages[0]
     mimebundle = page0._repr_mimebundle_(
         include=['application/pdf'], exclude=['application/malware']
     )
@@ -36,7 +36,7 @@ def test_display_rich_page(pal):
 def test_draw_page(pal, monkeypatch):
     # Test page drawing error handling independent of whether mudraw is installed
 
-    page0 = pikepdf.Page(pal.pages[0])
+    page0 = pal.pages[0]
 
     def raise_filenotfound(prog_args, *args, **kwargs):
         raise FileNotFoundError(prog_args[0])

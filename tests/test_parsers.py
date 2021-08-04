@@ -125,7 +125,7 @@ def test_invalid_stream_object():
 # def test_has_text(resources, test_file, expected):
 #     pdf = Pdf.open(resources / test_file)
 #     for p in pdf.pages:
-#         page = Page(p)
+#         page = p
 #         assert page.has_text() == expected
 
 
