@@ -1235,8 +1235,20 @@ class Extend_Page:
             return object.__setattr__(self, name, value)
         setattr(self.obj, name, value)
 
+    @augment_override_cpp
+    def __delattr__(self, name):
+        if hasattr(self.__class__, name):
+            return object.__delattr__(self, name)
+        delattr(self.obj, name)
+
     def __getitem__(self, key):
         return self.obj[key]
+
+    def __setitem__(self, key, value):
+        self.obj[key] = value
+
+    def __delitem__(self, key):
+        del self.obj[key]
 
     def __contains__(self, key):
         return key in self.obj
