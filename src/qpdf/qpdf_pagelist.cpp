@@ -10,6 +10,7 @@
 #include "qpdf_pagelist.h"
 
 #include <qpdf/QPDFPageObjectHelper.hh>
+#include <qpdf/QPDFPageDocumentHelper.hh>
 #include <qpdf/QPDFPageLabelDocumentHelper.hh>
 
 static void assert_pyobject_is_page_obj(py::handle obj)
@@ -18,10 +19,25 @@ static void assert_pyobject_is_page_obj(py::handle obj)
     try {
         h = obj.cast<QPDFObjectHandle>();
     } catch (const py::cast_error &) {
-        throw py::type_error("only pikepdf pages can be assigned to a page list");
+        throw py::type_error(
+            std::string(
+                "only pikepdf pages can be assigned to a page list; tried to assign ") +
+            std::string(py::repr(py::type::of(obj))));
     }
     if (!h.isPageObject()) {
         throw py::type_error("only pages can be assigned to a page list");
+    }
+}
+
+static void assert_pyobject_is_page_helper(py::handle obj)
+{
+    try {
+        auto poh = obj.cast<QPDFPageObjectHelper>();
+    } catch (const py::cast_error &) {
+        throw py::type_error(
+            std::string(
+                "only pikepdf pages can be assigned to a page list; tried to assign ") +
+            std::string(py::repr(py::type::of(obj))));
     }
 }
 
@@ -55,7 +71,7 @@ std::vector<QPDFObjectHandle> PageList::get_page_objs_impl(py::slice slice) cons
         throw py::error_already_set();
     std::vector<QPDFObjectHandle> result;
     for (size_t i = 0; i < slicelength; ++i) {
-        QPDFObjectHandle oh = this->get_page_obj(start);
+        auto oh = this->get_page_obj(start);
         result.push_back(oh);
         start += step;
     }
@@ -96,7 +112,8 @@ void PageList::set_pages_from_iterable(py::slice slice, py::iterable other)
     // Unpack list into iterable, check that each object is a page but
     // don't save the handles yet
     for (; it != py::iterator::sentinel(); ++it) {
-        assert_pyobject_is_page_obj(*it);
+        // assert_pyobject_is_page_obj(*it);
+        assert_pyobject_is_page_helper(*it);
         results.append(*it);
     }
 
@@ -150,55 +167,62 @@ size_t PageList::count() const { return this->qpdf->getAllPages().size(); }
 
 void PageList::insert_page(size_t index, py::handle obj)
 {
-    QPDFObjectHandle h;
     try {
         auto poh = obj.cast<QPDFPageObjectHelper>();
-        h        = poh.getObjectHandle();
-    } catch (const py::cast_error &) {
+        this->insert_page(index, poh);
+        return;
+    } catch (py::cast_error &) {
         try {
-            h = obj.cast<QPDFObjectHandle>();
-        } catch (const py::cast_error &) {
-            throw py::type_error("only pages can be inserted");
+            auto oh = obj.cast<QPDFObjectHandle>();
+            this->insert_page(index, QPDFPageObjectHelper(oh));
+        } catch (py::cast_error &) {
+            throw py::type_error("tried to insert object which is neither pikepdf.Page "
+                                 "nor pikepdf.Dictionary with type page");
         }
+        return;
     }
 
-    this->insert_page(index, h);
+    throw py::type_error("only pages can be inserted to a page list");
 }
 
-void PageList::insert_page(size_t index, QPDFObjectHandle h)
+void PageList::insert_page(size_t index, QPDFPageObjectHelper poh)
 {
     // Find out who owns us
-    QPDF *handle_owner = h.getOwningQPDF();
-    QPDFObjectHandle page;
+    QPDF *handle_owner = poh.getObjectHandle().getOwningQPDF();
+    QPDFObjectHandle page_obj;
     bool copied = false;
 
     if (handle_owner == this->qpdf.get() || !handle_owner) {
         // qpdf does not accept duplicating pages within the same file,
         // so manually create a copy
-        page   = this->qpdf->makeIndirectObject(h.shallowCopy());
-        copied = true;
+        page_obj = this->qpdf->makeIndirectObject(poh.getObjectHandle().shallowCopy());
+        copied   = true;
     } else {
-        page = h;
+        page_obj = poh.getObjectHandle();
     }
 
+    auto doc  = QPDFPageDocumentHelper(*this->qpdf);
+    auto page = QPDFPageObjectHelper(page_obj);
+
     try {
-        if (!page.isPageObject()) {
+        if (!page_obj.isPageObject()) {
             throw py::type_error(std::string("only pages can be inserted - you tried "
                                              "to insert this as a page: ") +
-                                 objecthandle_repr(page));
+                                 objecthandle_repr(page_obj));
         }
 
         if (index != this->count()) {
-            QPDFObjectHandle refpage = this->get_page_obj(index);
-            this->qpdf->addPageAt(page, true, refpage);
+            auto refpage = this->get_page(index);
+            doc.addPageAt(page, true, refpage);
         } else {
-            this->qpdf->addPage(page, false);
+            doc.addPage(page, false);
         }
     } catch (const std::runtime_error &e) {
         if (copied) {
             // If we created a new object to hold the page, and failed, delete
             // the object we created.
-            this->qpdf->replaceObject(page.getObjGen(), QPDFObjectHandle::newNull());
+            this->qpdf->replaceObject(
+                page_obj.getObjGen(), QPDFObjectHandle::newNull());
         }
         throw;
     }
@@ -267,7 +291,7 @@ void init_pagelist(py::module_ &m)
                 py::int_ step(-1);
                 py::slice reversed = py::reinterpret_steal<py::slice>(
                     PySlice_New(Py_None, Py_None, step.ptr()));
-                py::list reversed_pages = pl.get_page_objs(reversed);
+                py::list reversed_pages = pl.get_pages(reversed);
                 pl.set_pages_from_iterable(ordinary_indices, reversed_pages);
             },
             "Reverse the order of pages.")
@@ -296,7 +320,8 @@ void init_pagelist(py::module_ &m)
             [](PageList &pl, py::iterable iterable) {
                 py::iterator it = iterable.attr("__iter__")();
                 while (it != py::iterator::sentinel()) {
-                    assert_pyobject_is_page_obj(*it);
+                    // assert_pyobject_is_page_obj(*it);
+                    assert_pyobject_is_page_helper(*it);
                     pl.insert_page(pl.count(), *it);
                     ++it;
                 }

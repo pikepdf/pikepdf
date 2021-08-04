@@ -30,7 +30,7 @@ public:
     void delete_pages_from_iterable(py::slice slice);
     size_t count() const;
     void insert_page(size_t index, py::handle obj);
-    void insert_page(size_t index, QPDFObjectHandle page);
+    void insert_page(size_t index, QPDFPageObjectHelper page);
 
 public:
     size_t iterpos;
