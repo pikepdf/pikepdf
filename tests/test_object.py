@@ -736,8 +736,9 @@ def test_object_mapping(sandwich):
 @needs_libqpdf_v('10.3.0', reason="behavior of replace improved in v10.3.0")
 def test_replace_object(sandwich):
     d = Dictionary(Type=Name.Dummy)
-    sandwich._replace_object(sandwich.pages[0].objgen, d)
-    assert sandwich.pages[0] == d
+    profile = sandwich.Root.OutputIntents[0].DestOutputProfile.objgen
+    sandwich._replace_object(profile, d)
+    assert sandwich.Root.OutputIntents[0].DestOutputProfile == d
 
 
 @needs_libqpdf_v('10.3.0', reason="behavior of swap improved in v10.3.0")
