@@ -1225,10 +1225,14 @@ class Extend_Page:
         return self._over_underlay(other, rect, under=True)
 
     def __getattr__(self, name):
+        if hasattr(self.__class__, name):
+            return object.__getattr__(self, name)
         return getattr(self.obj, name)
 
     @augment_override_cpp
     def __setattr__(self, name, value):
+        if hasattr(self.__class__, name):
+            return object.__setattr__(self, name, value)
         setattr(self.obj, name, value)
 
     def __getitem__(self, key):
