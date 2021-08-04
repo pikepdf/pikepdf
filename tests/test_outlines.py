@@ -477,23 +477,21 @@ def test_new_item(resources, title, page_num, page_loc):
         assert new_obj.is_indirect is True
 
 
-def test_outlineitem_str(resources):
-    with Pdf.open(resources / 'outlines.pdf') as pdf:
-        with pdf.open_outline() as outline:
-            assert str(outline.root[0]) == '[+] One -> <Action>'
-            assert str(outline.root[1]) == '[ ] Two -> <Action>'
+def test_outlineitem_str(outlines_doc):
+    with outlines_doc.open_outline() as outline:
+        assert str(outline.root[0]) == '[+] One -> <Action>'
+        assert str(outline.root[1]) == '[ ] Two -> <Action>'
 
-            outline.root[0].is_closed = False
-            assert str(outline.root[0]) == '[-] One -> <Action>'
+        outline.root[0].is_closed = False
+        assert str(outline.root[0]) == '[-] One -> <Action>'
 
-            item = OutlineItem('Test', make_page_destination(pdf, 0))
-            assert '[ ] Test -> 1' == str(item)
+        item = OutlineItem('Test', make_page_destination(outlines_doc, 0))
+        assert '[ ] Test -> 1' == str(item)
 
-            assert str(outline) != ''
+        assert str(outline) != ''
 
 
-def test_outline_repr(resources):
-    with Pdf.open(resources / 'outlines.pdf') as pdf:
-        with pdf.open_outline() as outline:
-            assert repr(outline).startswith('<pikepdf.Outline:')
-            assert repr(outline.root[0]).startswith('<pikepdf.OutlineItem')
+def test_outline_repr(outlines_doc):
+    with outlines_doc.open_outline() as outline:
+        assert repr(outline).startswith('<pikepdf.Outline:')
+        assert repr(outline.root[0]).startswith('<pikepdf.OutlineItem')
