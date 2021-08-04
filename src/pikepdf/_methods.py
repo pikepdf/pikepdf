@@ -129,6 +129,8 @@ def augments(cls_cpp: Type[Any]):
         # that a typical PyPy class like cls will have more methods that it considers
         # methods than CPython does. Our predicate should take care of this.
         for name, member in inspect.getmembers(cls, predicate=is_augmentable):
+            if name == '__weakref__':
+                continue
             if (
                 hasattr(cls_cpp, name)
                 and hasattr(cls, name)
@@ -1255,6 +1257,12 @@ class Extend_Page:
 
     def __eq__(self, other):
         return self.obj == other.obj
+
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            return default
 
     def emplace(self, other: Page, retain=(Name.Parent,)):
         return self.obj.emplace(other.obj, retain=retain)
