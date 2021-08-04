@@ -1236,6 +1236,12 @@ class Extend_Page:
     def __contains__(self, key):
         return key in self.obj
 
+    def __eq__(self, other):
+        return self.obj == other.obj
+
+    def emplace(self, other: Page, retain=(Name.Parent,)):
+        return self.obj.emplace(other.obj, retain=retain)
+
     def __repr__(self):
         return (
             repr(self.obj)
