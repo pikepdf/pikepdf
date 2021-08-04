@@ -77,7 +77,7 @@ def _make_page_destination(
 ) -> Array:
     kwargs = {k: v for k, v in kwargs.items() if v is not None}
 
-    res = [pdf.pages[page_num]]
+    res = [pdf.pages[page_num].obj]
     if page_location:
         if isinstance(page_location, PageLocation):
             loc_key = page_location
