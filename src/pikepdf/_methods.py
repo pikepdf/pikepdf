@@ -1233,6 +1233,9 @@ class Extend_Page:
     def __getitem__(self, key):
         return self.obj[key]
 
+    def __contains__(self, key):
+        return key in self.obj
+
     def __repr__(self):
         return (
             repr(self.obj)
