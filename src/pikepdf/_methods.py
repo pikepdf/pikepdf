@@ -1167,6 +1167,7 @@ class Extend_Page:
     ) -> None:
         formx = None
         if isinstance(other, Page):
+            page = other
             formx = other.as_form_xobject()
         elif isinstance(other, Dictionary) and other.get(Name.Type) == Name.Page:
             page = Page(other)
