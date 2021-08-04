@@ -48,7 +48,7 @@ class ExceptionParser(StreamParser):
 def test_open_pdf(resources):
     pdf = Pdf.open(resources / 'graph.pdf')
     page = pdf.pages[0]
-    Object._parse_stream(page, PrintParser())
+    Object._parse_stream(page.obj, PrintParser())
 
 
 def test_parser_exception(resources):
