@@ -250,6 +250,10 @@ class TestName:
     def test_bytes_of_name(self):
         assert bytes(Name.ABC) == b'/ABC'
 
+    def test_name_from_name(self):
+        foo = Name('/Foo')
+        assert Name(foo) == foo
+
 
 class TestHashViolation:
     def check(self, a, b):
