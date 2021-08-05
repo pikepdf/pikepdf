@@ -228,23 +228,6 @@ def test_one_based_pages(fourpages):
         pdf.pages.p(-1)
 
 
-def test_page_contents_add(graph, outdir):
-    pdf = graph
-
-    mat = PdfMatrix().rotated(45)
-
-    stream1 = Stream(pdf, b'q ' + mat.encode() + b' cm')
-    stream2 = Stream(pdf, b'Q')
-
-    pdf.pages[0].contents_add(stream1, True)
-    pdf.pages[0].contents_add(stream2, False)
-    pdf.save(outdir / 'out.pdf')
-
-    with pytest.raises(TypeError, match="Not a Page"):
-        with pytest.deprecated_call():
-            Array([42]).page_contents_add(stream1)
-
-
 def test_bad_access(fourpages):
     pdf = fourpages
     with pytest.raises(IndexError):

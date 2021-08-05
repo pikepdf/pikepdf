@@ -682,40 +682,6 @@ void init_object(py::module_ &m)
             })
         .def("_inline_image_raw_bytes",
             [](QPDFObjectHandle &h) { return py::bytes(h.getInlineImageValue()); })
-        .def(
-            "page_contents_add",
-            [](QPDFObjectHandle &h, QPDFObjectHandle &contents, bool prepend) {
-                deprecation_warning(
-                    "pikepdf.Object.page_contents_add is deprecated; use "
-                    "pikepdf.Page.contents_add instead");
-                if (!h.isPageObject())
-                    throw py::type_error("Not a Page");
-
-                h.addPageContents(contents, prepend);
-            },
-            R"~~~(
-            Append or prepend to an existing page's content stream.
-
-            .. deprecated:: 2.14
-                Use :meth:`pikepdf.Page.contents_add` instead.
-            )~~~",
-            py::arg("contents"),
-            py::arg("prepend") = false,
-            py::keep_alive<1, 2>())
-        .def(
-            "page_contents_coalesce",
-            [](QPDFObjectHandle &h) {
-                deprecation_warning(
-                    "pikepdf.Object.page_contents_coalesce is deprecated; use "
-                    "pikepdf.Page.contents_coalesce instead");
-                return h.coalesceContentStreams();
-            },
-            R"~~~(
-            Coalesce an array of page content streams into a single content stream.
-
-            .. deprecated:: 2.14
-                Use :meth:`pikepdf.Page.contents_coalesce` instead.
-            )~~~")
         .def_property_readonly("_objgen", &object_get_objgen)
         .def_property_readonly("objgen",
             &object_get_objgen,
