@@ -26,7 +26,7 @@ def fix_sigs(app, what, name, obj, options, signature, return_annotation):
 def fix_doc(app, what, name, obj, options, lines):
     for n, line in enumerate(lines[:]):
         for from_, to in replacements:
-            lines[n] = from_.sub(to, lines[n])
+            lines[n] = from_.sub(to, line)
 
 
 def setup(app):

@@ -59,7 +59,9 @@ void init_page(py::module_ &m)
             })
         .def_property_readonly(
             "obj",
-            [](QPDFPageObjectHelper &poh) { return poh.getObjectHandle(); },
+            [](QPDFPageObjectHelper &poh) -> QPDFObjectHandle {
+                return poh.getObjectHandle();
+            },
             R"~~~(
                 Get the underlying :class:`pikepdf.Object`.
             )~~~")

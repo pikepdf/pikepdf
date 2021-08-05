@@ -13,17 +13,7 @@ Version 3.x automatically applies support models to ``/Page`` objects.
 .. autoclass:: pikepdf.Page
     :members:
 
-    Support model wrapper around a raw page dictionary object.
-
-    To initialize a ``Page`` support model:
-
-    .. code-block:: python
-
-        from pikepdf import Pdf, Page
-
-        Pdf = open(...)
-        page_support_model = pdf.pages[0]
-        underlying_page_object = page_support_model.obj
+    Support model wrapper around a page dictionary object.
 
 .. autoclass:: pikepdf.PdfMatrix
     :members:

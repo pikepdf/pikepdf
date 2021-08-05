@@ -1095,8 +1095,8 @@ class Extend_Page:
         return self._images
 
     @property
-    def resources(self):
-        """Return this pages resources dictionary."""
+    def resources(self) -> Dictionary:
+        """Return this page's resources dictionary."""
         return self.obj['/Resources']
 
     def add_resource(

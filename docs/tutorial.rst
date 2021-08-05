@@ -34,9 +34,9 @@ name conflicts or ``from pikepdf import Pdf as PDF`` if you prefer uppercase.
 The PDF class API follows the example of the widely-used
 `Pillow image library <https://pillow.readthedocs.io/en/latest/>`_. For clarity
 there is no default constructor since the arguments used for creation and
-opening are different. To make a new empty PDF, use ``Pdf.new()`` not ``Pdf()``.
+opening are different. To make a new empty PDF, use :func:`Pdf.new()` not ``Pdf()``.
 
-``Pdf.open()`` also accepts seekable streams as input, and ``Pdf.save()`` accepts
+``Pdf.open()`` also accepts seekable streams as input, and :meth:`pikepdf.Pdf.save()` accepts
 streams as output. :class:`pathlib.Path` objects are fully supported wherever
 pikepdf accepts a filename.
 
@@ -92,8 +92,8 @@ slicing them.
 For more details on document assembly, see
 :ref:`PDF split, merge and document assembly <docassembly>`.
 
-Pages are dictionaries
-----------------------
+PDF dictionaries
+----------------
 
 In PDFs, the main data structure is the **dictionary**, a key-value data
 structure much like a Python ``dict`` or ``attrdict``. The major difference is
@@ -101,10 +101,7 @@ that the keys can only be **names**, and the values can only be PDF types, inclu
 other dictionaries.
 
 PDF dictionaries are represented as :class:`pikepdf.Dictionary` objects, and names
-are of type :class:`pikepdf.Name`. A page is just a dictionary with certain
-required keys that is referenced by the PDF's "page tree". (pikepdf manages
-the page tree for you, and wraps page dictionaries to provide special functions
-that help with managing pages.)
+are of type :class:`pikepdf.Name`.
 
 .. ipython::
 
@@ -112,7 +109,28 @@ that help with managing pages.)
 
     In [1]: example = Pdf.open('../tests/resources/congress.pdf')
 
-    In [1]: obj_page1 = example.pages[0].obj
+    In [1]: example.Root  # Show the document's root dictionary
+
+Page dictionaries
+-----------------
+
+A page in a PDF is just a dictionary with certain required keys that is
+referenced by the PDF's "page tree". (pikepdf manages the page tree for you,
+and wraps page dictionaries to provide special functions
+that help with managing pages.) A :class:`pikepdf.Page` is a wrapper around a PDF
+page dictionary that provides many useful functions for working on pages.
+
+.. ipython::
+
+    In [1]: from pikepdf import Pdf
+
+    In [1]: example = Pdf.open('../tests/resources/congress.pdf')
+
+    In [1]: page1 = example.pages[0]
+
+    In [1]: obj_page1 = page1.obj
+
+    In [1]: obj_page1
 
 repr() output
 -------------
@@ -133,14 +151,14 @@ cannot be represented as an expression.
 Item and attribute notation
 ---------------------------
 
-Dictionary keys may be looked up using attributes (``page1.MediaBox``) or
-keys (``page1['/MediaBox']``).
+Dictionary keys may be looked up using attributes (``page1.Type``) or
+keys (``page1['/Type']``).
 
 .. ipython::
 
-    In [1]: page1.MediaBox      # preferred notation for standard PDF names
+    In [1]: page1.Type      # preferred notation for standard PDF names
 
-    In [1]: page1['/MediaBox']  # also works
+    In [1]: page1['/Type']  # also works
 
 By convention, pikepdf uses attribute notation for standard names (the names
 that are normally part of a dictionary, according to the |pdfrm|),
@@ -163,7 +181,7 @@ elements that are not always present, you can use ``.get()``, which behaves like
 <https://github.com/mahmoud/glom>`_ might help when working with complex
 structured data that is not always present.
 
-(For now, we'll set aside what a page's ``MediaBox`` and ``Resources.XObject``
+(For now, we'll set aside what a page's ``Resources.XObject``
 are for. See :ref:`Working with pages <work_with_pages>` for details.)
 
 Deleting pages
