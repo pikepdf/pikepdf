@@ -674,12 +674,6 @@ void init_object(py::module_ &m)
             py::arg("data"),
             py::arg("filter"),
             py::arg("decode_parms"))
-        .def_property_readonly("images",
-            [](QPDFObjectHandle &h) {
-                if (!h.isPageObject())
-                    throw py::type_error("Not a Page");
-                return h.getPageImages();
-            })
         .def("_inline_image_raw_bytes",
             [](QPDFObjectHandle &h) { return py::bytes(h.getInlineImageValue()); })
         .def_property_readonly("_objgen", &object_get_objgen)

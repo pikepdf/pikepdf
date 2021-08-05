@@ -419,11 +419,6 @@ class TestDictionary:
         assert d.get(Name.A) == 'a'
         assert d.get(Name.Resources, 42) == 42
 
-    def test_nonpage(self):
-        d = pikepdf.Dictionary(A='a')
-        with pytest.raises(TypeError):
-            d.images  # pylint: disable=pointless-statement
-
     def test_bad_name_init(self):
         with pytest.raises(KeyError, match=r"must begin with '/'"):
             pikepdf.Dictionary({'/Slash': 'dot', 'unslash': 'error'})

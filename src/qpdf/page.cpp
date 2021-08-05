@@ -53,6 +53,10 @@ void init_page(py::module_ &m)
         .def(py::init([](QPDFPageObjectHelper &poh) {
             return QPDFPageObjectHelper(poh.getObjectHandle());
         }))
+        .def("__hash__",
+            [](QPDFPageObjectHelper &poh) {
+                throw py::type_error("Can't hash mutable object");
+            })
         .def_property_readonly(
             "obj",
             [](QPDFPageObjectHelper &poh) { return poh.getObjectHandle(); },

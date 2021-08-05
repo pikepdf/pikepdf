@@ -18,6 +18,31 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v3.0.0
+======
+
+Breaking changes
+----------------
+
+-  libqpdf 10.3.2 is now required and other requirements were adjusted.
+-  **Improved page API.** ``Pdf.pages`` now returns ``Page`` instead of
+   page object dictionaries, so it is no longer necessary to wrap page objects
+   as in the previous idiom ``page = Page(pdf.pages[0])``. In most cases,
+   if you use the Dictionary object API on a page, it will automatically do the
+   right thing to the underlying dictionary.
+-  Deprecated or private functions were removed:
+   -  ``Object.page_contents_*`` (use ``Page.contents_*``)
+   -  ``Object.images`` (use ``Page.images``)
+   -  ``Page._attach`` (use the new attachment API)
+
+
+New functionality
+-----------------
+
+-  Added :class:`pikepdf.NameTree`. We now bind to QPDF's Name Tree API, for
+   manipulating these complex and important data structures.
+-  We now support adding and removing PDF attachments.
+
 v2.15.0
 =======
 

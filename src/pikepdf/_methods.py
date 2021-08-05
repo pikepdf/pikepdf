@@ -1090,8 +1090,9 @@ class Extend_Page:
         self.obj['/TrimBox'] = value
 
     @property
-    def images(self):
-        return self.obj.images
+    def images(self) -> _ObjectMapping:
+        """Return all images associated with this page."""
+        return self._images
 
     @property
     def resources(self):

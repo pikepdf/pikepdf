@@ -13,22 +13,6 @@
 #include <qpdf/QPDFPageDocumentHelper.hh>
 #include <qpdf/QPDFPageLabelDocumentHelper.hh>
 
-static void assert_pyobject_is_page_obj(py::handle obj)
-{
-    QPDFObjectHandle h;
-    try {
-        h = obj.cast<QPDFObjectHandle>();
-    } catch (const py::cast_error &) {
-        throw py::type_error(
-            std::string(
-                "only pikepdf pages can be assigned to a page list; tried to assign ") +
-            std::string(py::repr(py::type::of(obj))));
-    }
-    if (!h.isPageObject()) {
-        throw py::type_error("only pages can be assigned to a page list");
-    }
-}
-
 static void assert_pyobject_is_page_helper(py::handle obj)
 {
     try {
