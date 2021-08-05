@@ -106,11 +106,11 @@ Version 3.x automatically applies support models to ``/Page`` objects.
     exposed as a Python :class:`collections.abc.MutableMapping` interface.
 
     The keys (virtual filenames) are always ``str``, and values are always
-    :class:`pikepdf._qpdf.FileSpec`.
+    :class:`pikepdf.FileSpec`.
 
     .. versionadded:: 3.0
 
-.. autoclass:: pikepdf._qpdf.FileSpec
+.. autoclass:: pikepdf.FileSpec
     :members:
 
     A file specification that accounts for the possibility of multiple data streams.
@@ -157,7 +157,7 @@ Version 3.x automatically applies support models to ``/Page`` objects.
 
     .. versionadded:: 3.0
 
-.. autoclass:: pikepdf._qpdf.NameTree
+.. autoclass:: pikepdf.NameTree
     :members:
 
     An object for managing *name tree* data structures in PDFs.
