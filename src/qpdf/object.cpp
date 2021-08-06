@@ -71,7 +71,7 @@ bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
 
     // Uninitialized objects are never equal
     if (!self.isInitialized() || !other.isInitialized())
-        return false;
+        return false; // LCOV_EXCL_LINE
 
     // Indirect objects (objid != 0) with the same obj-gen are equal and same owner
     // are equal (in fact, they are identical; they reference the same underlying
