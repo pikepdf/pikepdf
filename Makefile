@@ -32,7 +32,7 @@ clean-coverage: clean-coverage-cppcov clean-coverage-pycov
 .PHONY: clean
 clean: clean-coverage
 	python setup.py clean --all
-	rm -f src/pikepdf/_qpdf.*
+	rm -f src/pikepdf/_qpdf.*so
 
 .PHONY: test
 test: build
