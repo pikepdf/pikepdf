@@ -111,7 +111,7 @@ void init_page(py::module_ &m)
                 return poh.addPageContents(contents, prepend);
             },
             py::arg("contents"),
-            // py::kw_only(), // TODO in 3.x
+            py::kw_only(),
             py::arg("prepend") = false,
             py::keep_alive<1, 2>(),
             R"~~~(
@@ -183,12 +183,12 @@ void init_page(py::module_ &m)
                 bool invert_transformations,
                 bool allow_shrink,
                 bool allow_expand) -> py::bytes {
-                return poh.placeFormXObject(formx,
+                return py::bytes(poh.placeFormXObject(formx,
                     name.getName(),
                     rect,
                     invert_transformations,
                     allow_shrink,
-                    allow_expand);
+                    allow_expand));
             },
             py::arg("formx"),
             py::arg("name"),
