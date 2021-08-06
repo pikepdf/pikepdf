@@ -67,7 +67,7 @@ public:
         if (this->iter == this->nt->end())
             throw py::stop_iteration();
         if (!this->iter.valid())
-            throw std::logic_error("iterator not valid");
+            throw std::logic_error("iterator not valid"); // LCOV_EXCL_LINE
         auto result = *(this->iter);
         this->iter++;
         return result;
@@ -104,17 +104,17 @@ void init_nametree(py::module_ &m)
                 else
                     throw py::key_error(name);
             })
-        .def("_setitem",
-            [](NameTreeHolder &nt, std::string const &name, py::object obj) {
-                auto oh = objecthandle_encode(obj);
-                nt.insert(name, oh);
-            })
         .def(
             "_setitem",
             [](NameTreeHolder &nt, std::string const &name, QPDFObjectHandle oh) {
                 nt.insert(name, oh);
             },
             py::keep_alive<0, 1>())
+        .def("_setitem",
+            [](NameTreeHolder &nt, std::string const &name, py::object obj) {
+                auto oh = objecthandle_encode(obj);
+                nt.insert(name, oh);
+            })
         .def("_delitem",
             [](NameTreeHolder &nt, std::string const &name) { nt.remove(name); })
         .def(

@@ -28,6 +28,16 @@ def test_nametree_crud(outline):
     nt['newentry'] = Array([42])
     assert nt['newentry'] == Array([42])
 
+    nt['py_newentry'] = 42
+
+
+def test_nametree_missing(outline):
+    nt = NameTree(outline.Root.Names.Dests, outline)
+    with pytest.raises(KeyError):
+        nt['does_not_exist']  # pylint: disable=pointless-statement
+    with pytest.raises(KeyError):
+        del nt['does_not_exist']
+
 
 def test_nametree_iter(outline):
     count = 0
