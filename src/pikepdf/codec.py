@@ -66,19 +66,19 @@ def _find_first_index(
         if is_whitelist and (ord(char) not in ordinals):
             return n
         if not is_whitelist and (ord(char) in ordinals):
-            return n
-    raise ValueError("couldn't find the unencodable character")
+            return n  # pragma: no cover
+    raise ValueError("couldn't find the unencodable character")  # pragma: no cover
 
 
 def pdfdoc_encode(input: str, errors: str = 'strict') -> Tuple[bytes, int]:
     error_marker = b'?' if errors == 'replace' else b'\xad'
     try:
         success, pdfdoc = utf8_to_pdf_doc(input, error_marker)
-    except RuntimeError as e:
-        # This error should occur from within in pybind11, with a RuntimeError
-        # message like:
+    except RuntimeError as e:  # pragma: no cover
+        # In pybind11 < 2.7.0, a RuntimeError occurs when attempting to handle
+        # Unicode surrogates. Looks like:
         #   "Unable to extract string contents! (encoding issue)"
-        # It is not known to happen except when str contains Unicode surrogates.
+        # This appears to be fixed for pybind11 >= 2.7.0.
         offending_index = _find_first_index(
             input, range(0xD800, 0xDFFF + 1), is_whitelist=False
         )
