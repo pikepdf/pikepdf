@@ -145,7 +145,7 @@ def test_save_without_encryption(graph_encrypted, outpdf):
 
 def test_save_preserve_encryption(graph_encrypted, outpdf):
     graph_encrypted.save(outpdf, encryption=True)
-    with pikepdf.open(outpdf, 'owner') as pdf:
+    with pikepdf.open(outpdf, password='owner') as pdf:
         assert pdf.is_encrypted
 
 

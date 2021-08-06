@@ -85,7 +85,7 @@ def test_text_filter(resources, outdir):
     page['/Contents'] = new_stream
     page['/Rotate'] = 90
 
-    pdf.save(outdir / 'notext.pdf', True)
+    pdf.save(outdir / 'notext.pdf', static_id=True)
     pdf.close()
 
     proc = run(

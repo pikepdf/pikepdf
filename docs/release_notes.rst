@@ -37,6 +37,8 @@ Breaking changes
    -  ``Stream(obj=)`` (deprecated ``obj`` parameter removed)
 -  :meth:`pikepdf.Page.calc_form_xobject_placement` previously returned ``str`` when
    it should have returned ``bytes``. It now returns the correct type.
+-  :func:`pikepdf.open` and :func:`pikepdf.save`, and their counterparts in
+   :class:`pikepdf.Pdf`, now expect keyword arguments for all expect the first parameter.
 
 
 New functionality

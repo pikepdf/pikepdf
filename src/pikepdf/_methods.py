@@ -648,8 +648,9 @@ class Extend_Pdf:
         return problems
 
     def save(
-        self,  # TODO mandatory kwargs
+        self,
         filename_or_stream: Union[Path, str, BinaryIO, None] = None,
+        *,
         static_id: bool = False,
         preserve_pdfa: bool = True,
         min_version: Union[str, Tuple[str, int]] = "",
@@ -780,6 +781,10 @@ class Extend_Pdf:
 
         .. versionchanged:: 2.7
             Added *recompress_flate*.
+
+        .. versionchanged:: 3.0
+            Keyword arguments now mandatory for everything except the first
+            argument.
         """
         if not filename_or_stream and self._original_filename:
             filename_or_stream = self._original_filename
@@ -803,8 +808,9 @@ class Extend_Pdf:
         )
 
     @staticmethod
-    def open(  # TODO mandatory kwargs
+    def open(
         filename_or_stream: Union[Path, str, BinaryIO],
+        *,
         password: Union[str, bytes] = "",
         hex_password: bool = False,
         ignore_xref_streams: bool = False,
@@ -903,6 +909,10 @@ class Extend_Pdf:
             perform poorly. It may be easier to download a PDF from network to
             temporary local storage (such as ``io.BytesIO``), manipulate it, and
             then re-upload it.
+
+        .. versionchanged:: 3.0
+            Keyword arguments now mandatory for everything except the first
+            argument.
         """
         if isinstance(filename_or_stream, bytes) and filename_or_stream.startswith(
             b'%PDF-'
