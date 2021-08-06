@@ -34,6 +34,7 @@ Breaking changes
    -  ``Object.page_contents_*`` (use ``Page.contents_*``)
    -  ``Object.images`` (use ``Page.images``)
    -  ``Page._attach`` (use the new attachment API)
+   -  ``Stream(obj=)`` (deprecated ``obj`` parameter removed)
 -  :meth:`pikepdf.Page.calc_form_xobject_placement` previously returned ``str`` when
    it should have returned ``bytes``. It now returns the correct type.
 
