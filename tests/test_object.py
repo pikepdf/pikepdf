@@ -721,6 +721,14 @@ def test_array_of_array():
     assert a is not a2
 
 
+def test_array_of_primitives_eq():
+    a = Array([True, False, 0, 1, 42, 42.42])
+    b = Array([True, False, 0, 1, 42, 42.42])
+    assert a == b
+    c = Array([1.0, 0.0, 0.0, 1.0, 42.0, 42.42])
+    assert a == c
+
+
 def test_object_mapping(sandwich):
     object_mapping = sandwich.pages[0].images
     assert '42' not in object_mapping

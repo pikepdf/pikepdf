@@ -83,31 +83,34 @@ bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
         return self.getObjGen() == other.getObjGen();
     }
 
-    // If 'self' is a numeric type, convert both to Decimal objects
-    // and compare them as such.
-    if (self.getTypeCode() == QPDFObject::object_type_e::ot_integer ||
-        self.getTypeCode() == QPDFObject::object_type_e::ot_real ||
-        self.getTypeCode() == QPDFObject::object_type_e::ot_boolean) {
-        try {
-            auto a              = decimal_from_pdfobject(self);
-            auto b              = decimal_from_pdfobject(other);
-            py::object pyresult = a.attr("__eq__")(b);
-            bool result         = pyresult.cast<bool>();
-            return result;
-        } catch (const py::type_error &) {
-            return false;
-        }
+    auto self_typecode  = self.getTypeCode();
+    auto other_typecode = other.getTypeCode();
+
+    if ((self_typecode == QPDFObject::object_type_e::ot_boolean) &&
+        (other_typecode == QPDFObject::object_type_e::ot_boolean)) {
+        return self.getBoolValue() == other.getBoolValue();
+    } else if ((self_typecode == QPDFObject::object_type_e::ot_integer) &&
+               (other_typecode == QPDFObject::object_type_e::ot_integer)) {
+        return self.getIntValue() == other.getIntValue();
+    } else if (self_typecode == QPDFObject::object_type_e::ot_integer ||
+               self_typecode == QPDFObject::object_type_e::ot_real ||
+               self_typecode == QPDFObject::object_type_e::ot_boolean) {
+        // If 'self' and 'other' are different numeric types, convert both to
+        // Decimal objects and compare them as such.
+        auto a              = decimal_from_pdfobject(self);
+        auto b              = decimal_from_pdfobject(other);
+        py::object pyresult = a.attr("__eq__")(b);
+        bool result         = pyresult.cast<bool>();
+        return result;
     }
 
     // Apart from numeric types, disimilar types are never equal
-    if (self.getTypeCode() != other.getTypeCode())
+    if (self_typecode != other_typecode)
         return false;
 
-    switch (self.getTypeCode()) {
+    switch (self_typecode) {
     case QPDFObject::object_type_e::ot_null:
         return true; // Both must be null
-    case QPDFObject::object_type_e::ot_boolean:
-        return self.getBoolValue() == other.getBoolValue();
     case QPDFObject::object_type_e::ot_name:
         return self.getName() == other.getName();
     case QPDFObject::object_type_e::ot_operator:
@@ -129,6 +132,12 @@ bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
         // recurses into this function
         return (self.getDictAsMap() == other.getDictAsMap());
     }
+    case QPDFObject::object_type_e::ot_boolean:
+    case QPDFObject::object_type_e::ot_integer:
+    case QPDFObject::object_type_e::ot_real:
+        // LCOV_EXCL_START
+        throw std::logic_error("should have eliminated numeric types by now");
+        // LCOV_EXCL_STOP
     default:
         break;
     }
