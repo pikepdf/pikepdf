@@ -126,7 +126,7 @@ void init_page(py::module_ &m)
                 if (!q) {
                     // LCOV_EXCL_START
                     throw std::logic_error("QPDFPageObjectHelper not attached to QPDF");
-                    // LCOV_EXCL_END
+                    // LCOV_EXCL_STOP
                 }
                 auto stream = QPDFObjectHandle::newStream(q, contents);
                 return poh.addPageContents(stream, prepend);

@@ -92,7 +92,7 @@ std::string objecthandle_pythonic_typename(QPDFObjectHandle h)
         ss << "pikepdf."
            << "InlineImage";
         break;
-    // LCOV_EXCL_END
+    // LCOV_EXCL_STOP
     case QPDFObject::object_type_e::ot_array:
         ss << "pikepdf."
            << "Array";

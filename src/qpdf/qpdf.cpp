@@ -129,7 +129,7 @@ std::shared_ptr<QPDF> open_pdf(py::object filename_or_stream,
         // LCOV_EXCL_START
         throw std::logic_error(
             "open_pdf: should have succeeded or thrown a Python exception");
-        // LCOV_EXCL_END
+        // LCOV_EXCL_STOP
     }
 
     if (inherit_page_attributes) {
