@@ -1,3 +1,5 @@
+from typing import Type
+
 import pytest
 
 from pikepdf import Array, Dictionary, Name, Page, Pdf, Rectangle
@@ -155,3 +157,19 @@ def test_fourpages_to_4up(fourpages, graph, outpdf):
     del pdf.pages[1:]
 
     pdf.save(outpdf)
+
+
+def test_cant_hash_page(graph):
+    with pytest.raises(TypeError, match="mutable"):
+        hash(graph.pages[0])
+
+
+def test_contents_add(graph):
+    graph.pages[0].contents_add(b'q Q', prepend=True)
+
+    new_cs = graph.make_stream(b'q Q')
+    graph.pages[0].contents_add(new_cs, prepend=False)
+
+    graph.pages[0].contents_coalesce()
+    assert graph.pages[0].Contents.read_bytes().startswith(b'q Q')
+    assert graph.pages[0].Contents.read_bytes().endswith(b'q Q')
