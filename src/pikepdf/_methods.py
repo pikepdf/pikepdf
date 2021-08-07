@@ -18,7 +18,6 @@ import shutil
 from collections.abc import KeysView, MutableMapping
 from decimal import Decimal
 from io import BytesIO
-from os import replace
 from pathlib import Path
 from subprocess import PIPE, run
 from tempfile import NamedTemporaryFile
@@ -46,7 +45,6 @@ from ._qpdf import (
     FileSpec,
     NameTree,
     ObjectStreamMode,
-    PdfError,
     Rectangle,
     StreamDecodeLevel,
     StreamParser,
@@ -356,7 +354,9 @@ class Extend_Pdf:
         warn("Pdf.root is deprecated; use Pdf.Root", category=DeprecationWarning)
         return self.Root
 
-    def _repr_mimebundle_(self, include=None, exclude=None):
+    def _repr_mimebundle_(
+        self, include=None, exclude=None
+    ):  # pylint: disable=unused-argument
         """
         Present options to IPython or Jupyter for rich display of this object
 
@@ -967,19 +967,19 @@ class Extend_ObjectMapping:
         return (v for _k, v in self.items())
 
 
-def check_is_box(obj) -> bool:
+def check_is_box(obj) -> None:
     try:
         if obj.is_rectangle:
-            return True
+            return
     except AttributeError:
         pass
 
     try:
         pdfobj = Array(obj)
         if pdfobj.is_rectangle:
-            return True
-    except Exception:
-        pass
+            return
+    except Exception as e:
+        raise ValueError("object is not a rectangle") from e
 
     raise ValueError("object is not a rectangle")
 

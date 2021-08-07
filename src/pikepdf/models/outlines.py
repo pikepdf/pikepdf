@@ -342,7 +342,7 @@ class Outline:
                     first_child, item.children, level + 1, visited_objs
                 )
                 count = current_obj.get(Name.Count)
-                if count and count < 0:
+                if count is not None and count < 0:
                     item.is_closed = True
             outline_items.append(item)
             current_obj = current_obj.get(Name.Next)

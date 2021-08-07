@@ -9,6 +9,7 @@ from distutils.version import LooseVersion
 from pathlib import Path
 from subprocess import DEVNULL, PIPE, CalledProcessError, run
 from tempfile import TemporaryDirectory
+from typing import cast
 
 from PIL import Image
 
@@ -26,12 +27,12 @@ def extract_jbig2(im_obj: pikepdf.Object, globals_obj: pikepdf.Object = None) ->
 
         # Get the raw stream, because we can't decode im_obj - that is why we are here
         # (Strictly speaking we should remove any non-JBIG2 filters if double encoded)
-        image_path.write_bytes(im_obj.get_raw_stream_buffer())
+        image_path.write_bytes(cast(memoryview, im_obj.get_raw_stream_buffer()))
 
         if globals_obj is not None:
             # For globals, we do want to remove any encoding since it's just a binary
             # blob and won't be marked with /JBIG2Decode
-            global_path.write_bytes(globals_obj.get_stream_buffer())
+            global_path.write_bytes(cast(memoryview, globals_obj.get_stream_buffer()))
             args.append(os.fspath(global_path))
 
         args.append(os.fspath(image_path))
