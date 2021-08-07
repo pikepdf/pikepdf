@@ -511,7 +511,7 @@ class Extend_Pdf:
 
     def add_blank_page(
         self, *, page_size: Tuple[Numeric, Numeric] = (612.0, 792.0)
-    ) -> Object:
+    ) -> Page:
         """
         Add a blank page to this PDF. If pages already exist, the page will be added to
         the end. Pages may be reordered using ``Pdf.pages``.
@@ -533,9 +533,9 @@ class Extend_Pdf:
             Contents=self.make_stream(b''),
             Resources=Dictionary(),
         )
-        page = self.make_indirect(page_dict)
-        self._add_page(page, first=False)
-        return page
+        page_obj = self.make_indirect(page_dict)
+        self._add_page(page_obj, first=False)
+        return Page(page_obj)
 
     def close(self) -> None:
         """
