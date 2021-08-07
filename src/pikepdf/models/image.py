@@ -297,7 +297,7 @@ class PdfImage(PdfImageBase):
     """Support class to provide a consistent API for manipulating PDF images
 
     The data structure for images inside PDFs is irregular and flexible,
-    making it difficult to work with without introducing errors for less
+    making it difficult to work without introducing errors for less
     typical cases. This class addresses these difficulties by providing a
     regular, Pythonic API similar in spirit (and convertible to) the Python
     Pillow imaging library.
