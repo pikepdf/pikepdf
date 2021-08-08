@@ -12,7 +12,7 @@ def outline(resources):
 
 
 def test_nametree_crud(outline):
-    nt = NameTree(outline.Root.Names.Dests, outline)
+    nt = NameTree(outline.Root.Names.Dests)
     assert nt.obj == outline.Root.Names.Dests
     assert '0' in nt
     assert isinstance(nt['0'], Object)
@@ -32,7 +32,7 @@ def test_nametree_crud(outline):
 
 
 def test_nametree_missing(outline):
-    nt = NameTree(outline.Root.Names.Dests, outline)
+    nt = NameTree(outline.Root.Names.Dests)
     with pytest.raises(KeyError):
         nt['does_not_exist']  # pylint: disable=pointless-statement
     with pytest.raises(KeyError):
@@ -41,7 +41,7 @@ def test_nametree_missing(outline):
 
 def test_nametree_iter(outline):
     count = 0
-    nt = NameTree(outline.Root.Names.Dests, outline)
+    nt = NameTree(outline.Root.Names.Dests)
     for name in nt:
         count += 1
         assert name in nt
@@ -49,4 +49,4 @@ def test_nametree_iter(outline):
 
     assert '1' in nt.keys()
     assert len(nt.keys()) == len(nt.values()) == len(nt.items())
-    assert nt == NameTree(outline.Root.Names.Dests, outline)
+    assert nt == NameTree(outline.Root.Names.Dests)

@@ -20,8 +20,8 @@
 
 class NameTreeHolder {
 public:
-    NameTreeHolder(QPDFObjectHandle oh, QPDF &q, bool auto_repair = true)
-        : ntoh(oh, q, auto_repair)
+    NameTreeHolder(QPDFObjectHandle oh, bool auto_repair = true)
+        : ntoh(oh, *oh.getOwningQPDF(), auto_repair)
     {
     }
 
@@ -81,13 +81,11 @@ private:
 void init_nametree(py::module_ &m)
 {
     py::class_<NameTreeHolder, std::shared_ptr<NameTreeHolder>>(m, "NameTree")
-        .def(py::init<QPDFObjectHandle, QPDF &, bool>(),
+        .def(py::init<QPDFObjectHandle, bool>(),
             py::arg("oh"),
-            py::arg("q"),
             py::kw_only(),
             py::arg("auto_repair") = true,
-            py::keep_alive<0, 1>(),
-            py::keep_alive<0, 2>())
+            py::keep_alive<0, 1>())
         .def_property_readonly(
             "obj",
             [](NameTreeHolder &nt) { return nt.getObjectHandle(); },
