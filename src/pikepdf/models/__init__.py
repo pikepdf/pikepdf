@@ -85,6 +85,9 @@ def parse_content_stream(
     ):
         raise TypeError("parse_content_stream called on page or stream object")
 
+    if isinstance(page_or_stream, Page):
+        page_or_stream = page_or_stream.obj
+
     try:
         if page_or_stream.get('/Type') == '/Page':
             page = page_or_stream
