@@ -459,6 +459,11 @@ class PdfImage(PdfImageBase):
         raise NotExtractableError()
 
     def _extract_transcoded(self):
+        # Reminder Pillow palette byte order unintentionally changed in 8.3.0
+        # https://github.com/python-pillow/Pillow/issues/5595
+        # 8.2.0: all aligned by channel (very nonstandard)
+        # 8.3.0: all channels for one color followed by the next color (e.g. RGBRGBRGB)
+
         im = None
         if self.mode == 'RGB' and self.bits_per_component == 8:
             # No point in accessing the buffer here, size qpdf decodes to 3-byte
@@ -472,8 +477,16 @@ class PdfImage(PdfImageBase):
             im = Image.frombuffer('L', self.size, buffer, "raw", 'L', stride, ystep)
             if self.mode == 'P':
                 base_mode, palette = self.palette
-                if base_mode in ('RGB', 'L'):
+                if base_mode == 'RGB':
                     im.putpalette(palette, rawmode=base_mode)
+                elif base_mode == 'L':
+                    # Pillow does not fully support palettes with rawmode='L'.
+                    # Convert to RGB palette.
+                    gray_palette = palette
+                    palette = b''
+                    for entry in gray_palette:
+                        palette += bytes([entry]) * 3
+                    im.putpalette(palette, rawmode='RGB')
                 else:
                     raise NotImplementedError('palette with ' + base_mode)
         elif self.bits_per_component == 1:

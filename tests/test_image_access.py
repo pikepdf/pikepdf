@@ -601,16 +601,17 @@ def test_palette_nonrgb(base, hival, palette, expect_type):
     pdf = pikepdf.new()
     imobj = Stream(
         pdf,
-        b'\x00\x01\x02\x03' * 4,
+        b'\x00\x01\x02\x03' * 16,
         BitsPerComponent=8,
         ColorSpace=Array([Name.Indexed, base, hival, palette]),
         Width=16,
-        Height=1,
+        Height=4,
         Type=Name.XObject,
         Subtype=Name.Image,
     )
     pim = pikepdf.PdfImage(imobj)
     assert pim.palette == (expect_type, palette)
+    pim.extract_to(stream=BytesIO())
 
 
 def test_extract_to_mutex_params(sandwich):
