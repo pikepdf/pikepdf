@@ -590,14 +590,22 @@ def test_dict_or_array_dict():
     assert pim.decode_parms[0].K == -1  # Check that array of dict is unpacked properly
 
 
+CMYK_RED = b'\x00\xc0\xc0\x15'
+CMYK_GREEN = b'\x90\x00\xc0\x15'
+CMYK_BLUE = b'\xc0\xa0\x00\x15'
+CMYK_PINK = b'\x04\xc0\x00\x15'
+
+CMYK_PALETTE = CMYK_RED + CMYK_GREEN + CMYK_BLUE + CMYK_PINK
+
+
 @pytest.mark.parametrize(
-    'base, hival, palette, expect_type',
+    'base, hival, palette, expect_type, expect_mode',
     [
-        (Name.DeviceGray, 4, b'\x00\x40\x80\xff', 'L'),
-        (Name.DeviceCMYK, 4, b'aaaabbbbccccdddd', 'CMYK'),
+        (Name.DeviceGray, 4, b'\x00\x40\x80\xff', 'L', 'P'),
+        (Name.DeviceCMYK, 4, CMYK_PALETTE, 'CMYK', 'P'),
     ],
 )
-def test_palette_nonrgb(base, hival, palette, expect_type):
+def test_palette_nonrgb(base, hival, palette, expect_type, expect_mode):
     pdf = pikepdf.new()
     imobj = Stream(
         pdf,
@@ -612,6 +620,9 @@ def test_palette_nonrgb(base, hival, palette, expect_type):
     pim = pikepdf.PdfImage(imobj)
     assert pim.palette == (expect_type, palette)
     pim.extract_to(stream=BytesIO())
+    # To view images:
+    # pim.extract_to(fileprefix=f'palette_nonrgb_{expect_type}')
+    assert pim.mode == expect_mode
 
 
 def test_extract_to_mutex_params(sandwich):

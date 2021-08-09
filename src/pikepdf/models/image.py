@@ -487,6 +487,17 @@ class PdfImage(PdfImageBase):
                     for entry in gray_palette:
                         palette += bytes([entry]) * 3
                     im.putpalette(palette, rawmode='RGB')
+                elif base_mode == 'CMYK':
+                    # Pillow does not support CMYK with palettes; convert manually
+                    with memoryview(buffer) as mv:
+                        output = bytearray(4 * len(mv))
+                        for n, pal_idx in enumerate(mv):
+                            output[4 * n : 4 * (n + 1)] = palette[
+                                4 * pal_idx : 4 * (pal_idx + 1)
+                            ]
+                    im = Image.frombuffer(
+                        'CMYK', self.size, data=output, decoder_name='raw'
+                    )
                 else:
                     raise NotImplementedError('palette with ' + base_mode)
         elif self.bits_per_component == 1:
@@ -547,7 +558,10 @@ class PdfImage(PdfImageBase):
 
         try:
             im = self._extract_transcoded()
-            if im:
+            if im.mode == 'CMYK':
+                im.save(stream, format='tiff', compression='tiff_adobe_deflate')
+                return '.tiff'
+            elif im:
                 im.save(stream, format='png')
                 return '.png'
         except PdfError as e:
@@ -569,6 +583,8 @@ class PdfImage(PdfImageBase):
         extracted, users should not assume what format they are getting back.
         When saving the image to a file, use a temporary filename, and then
         rename the file to its final name based on the returned file extension.
+
+        Images might be saved as any of .png, .jpg, or .tiff.
 
         Examples:
 
