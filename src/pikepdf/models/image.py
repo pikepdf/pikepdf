@@ -42,17 +42,21 @@ class NotExtractableError(Exception):
     "Indicates that an image cannot be directly extracted."
 
 
+class DeviceNImageNotTranscodableError(NotExtractableError):
+    "Image contains high fidelity printing information and cannot be extracted."
+
+
 class InvalidPdfImageError(Exception):
     "This image is not valid according to the PDF 1.7 specification."
 
 
 def array_str(value):
-    """Simplify pikepdf objects to array of str. Keep Streams intact."""
+    """Simplify pikepdf objects to array of str. Keep Streams and dictionaries intact."""
 
     def _array_str(item):
         if isinstance(item, (list, Array)):
             return [_array_str(subitem) for subitem in item]
-        elif isinstance(item, (Stream, bytes, int)):
+        elif isinstance(item, (Stream, Dictionary, bytes, int)):
             return item
         elif isinstance(item, (Name, str)):
             return str(item)
@@ -145,7 +149,7 @@ class PdfImageBase(ABC):
         return self._metadata('DecodeParms', dict_or_array_dict, [])
 
     @property
-    def colorspace(self):
+    def colorspace(self) -> Optional[str]:
         """PDF name of the colorspace that best describes this image"""
         if self.image_mask:
             return None  # Undefined for image masks
@@ -158,6 +162,9 @@ class PdfImageBase(ABC):
                     return subspace
                 if isinstance(subspace, list) and subspace[0] == '/ICCBased':
                     return subspace[0]
+            if self._colorspaces[0] == '/DeviceN':
+                return '/DeviceN'
+
         raise NotImplementedError(
             "not sure how to get colorspace: " + repr(self._colorspaces)
         )
@@ -183,6 +190,19 @@ class PdfImageBase(ABC):
     def indexed(self):
         """``True`` if the image has a defined color palette"""
         return '/Indexed' in self._colorspaces
+
+    @property
+    def device_n(self):
+        """``True`` if image has a /DeviceN (complex printing) colorspace"""
+        try:
+            cs = self._colorspaces
+            if cs[0] == '/Indexed' and cs[1][0] == '/DeviceN':
+                return True
+            if cs[0] == '/DeviceN':
+                return True
+        except (IndexError, AttributeError, KeyError):
+            pass
+        return False
 
     @property
     def size(self):
@@ -231,6 +251,8 @@ class PdfImageBase(ABC):
                     raise NotImplementedError(
                         "Not sure how to handle PDF image of this type"
                     ) from e
+            elif self.colorspace == '/DeviceN':
+                m = 'DeviceN'
         if m == '':
             raise NotImplementedError(
                 "Not sure how to handle PDF image of this type"
@@ -465,6 +487,9 @@ class PdfImage(PdfImageBase):
         # 8.3.0: all channels for one color followed by the next color (e.g. RGBRGBRGB)
 
         im = None
+        if self.mode == 'DeviceN':
+            raise DeviceNImageNotTranscodableError()
+
         if self.mode == 'RGB' and self.bits_per_component == 8:
             # No point in accessing the buffer here, size qpdf decodes to 3-byte
             # RGB and Pillow needs RGBX for raw access

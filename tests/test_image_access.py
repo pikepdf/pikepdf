@@ -3,7 +3,6 @@ import zlib
 from io import BytesIO
 from os import fspath
 from pathlib import Path
-from typing import Dict
 
 import pytest
 from PIL import Image, ImageCms
@@ -629,3 +628,48 @@ def test_extract_to_mutex_params(sandwich):
     pdfimage = PdfImage(sandwich[0])
     with pytest.raises(ValueError, match="Cannot set both"):
         pdfimage.extract_to(stream=BytesIO(), fileprefix='anything')
+
+
+def test_devicen():
+    # Manually construct a 1"x1" document with a DeviceN
+    # colorspace that devices a single "spot" color channel named
+    # "Black". Define a conversion to standard CMYK that assigns
+    # C=0 M=0 Y=0 and lets black through. The result should appear as a
+    # gradient from white (top left) to black (bottom right).
+    pdf = pikepdf.new()
+    pdf.add_blank_page(page_size=(72, 72))
+    imobj = Stream(
+        pdf,
+        bytes(range(0, 256)),
+        BitsPerComponent=8,
+        ColorSpace=Array(
+            [
+                Name.DeviceN,
+                Array([Name.Black]),
+                Name.DeviceCMYK,
+                Stream(
+                    pdf,
+                    b'{0 0 0 4 -1 roll}',  # Colorspace conversion function
+                    FunctionType=4,
+                    Domain=[0.0, 1.0],
+                    Range=[0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
+                ),
+            ]
+        ),
+        Width=16,
+        Height=16,
+        Type=Name.XObject,
+        Subtype=Name.Image,
+    )
+    pim = pikepdf.PdfImage(imobj)
+    assert pim.mode == 'DeviceN'
+    assert pim.device_n
+    assert not pim.indexed
+    assert repr(pim)
+
+    pdf.pages[0].Contents = Stream(pdf, b'72 0 0 72 0 0 cm /Im0 Do')
+    pdf.pages[0].Resources = Dictionary(XObject=Dictionary(Im0=imobj))
+    # pdf.save('devicen.pdf')
+
+    with pytest.raises(pikepdf.models.image.DeviceNImageNotTranscodableError):
+        pim.extract_to(stream=BytesIO())
