@@ -637,39 +637,58 @@ def test_devicen():
     # C=0 M=0 Y=0 and lets black through. The result should appear as a
     # gradient from white (top left) to black (bottom right).
     pdf = pikepdf.new()
-    pdf.add_blank_page(page_size=(72, 72))
-    imobj = Stream(
+    pdf.add_blank_page(page_size=(144, 72))
+
+    cs = Array(
+        [
+            Name.DeviceN,
+            Array([Name.Black]),
+            Name.DeviceCMYK,
+            Stream(
+                pdf,
+                b'{0 0 0 4 -1 roll}',  # Colorspace conversion function
+                FunctionType=4,
+                Domain=[0.0, 1.0],
+                Range=[0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
+            ),
+        ]
+    )
+
+    def check_pim(imobj, idx):
+        pim = pikepdf.PdfImage(imobj)
+        assert pim.mode == 'DeviceN'
+        assert pim.device_n
+        assert pim.indexed == idx
+        assert repr(pim)
+        with pytest.raises(pikepdf.models.image.DeviceNImageNotTranscodableError):
+            pim.extract_to(stream=BytesIO())
+
+    imobj0 = Stream(
         pdf,
         bytes(range(0, 256)),
         BitsPerComponent=8,
-        ColorSpace=Array(
-            [
-                Name.DeviceN,
-                Array([Name.Black]),
-                Name.DeviceCMYK,
-                Stream(
-                    pdf,
-                    b'{0 0 0 4 -1 roll}',  # Colorspace conversion function
-                    FunctionType=4,
-                    Domain=[0.0, 1.0],
-                    Range=[0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
-                ),
-            ]
-        ),
+        ColorSpace=cs,
         Width=16,
         Height=16,
         Type=Name.XObject,
         Subtype=Name.Image,
     )
-    pim = pikepdf.PdfImage(imobj)
-    assert pim.mode == 'DeviceN'
-    assert pim.device_n
-    assert not pim.indexed
-    assert repr(pim)
+    check_pim(imobj0, idx=False)
 
-    pdf.pages[0].Contents = Stream(pdf, b'72 0 0 72 0 0 cm /Im0 Do')
-    pdf.pages[0].Resources = Dictionary(XObject=Dictionary(Im0=imobj))
-    # pdf.save('devicen.pdf')
+    imobj1 = Stream(
+        pdf,
+        bytes(range(0, 256)),
+        BitsPerComponent=8,
+        ColorSpace=Array([Name.Indexed, cs, 255, bytes(range(255, -1, -1))]),
+        Width=16,
+        Height=16,
+        Type=Name.XObject,
+        Subtype=Name.Image,
+    )
+    check_pim(imobj1, idx=True)
 
-    with pytest.raises(pikepdf.models.image.DeviceNImageNotTranscodableError):
-        pim.extract_to(stream=BytesIO())
+    pdf.pages[0].Contents = Stream(
+        pdf, b'72 0 0 72 0 0 cm /Im0 Do 1 0 0 1 1 0 cm /Im1 Do'
+    )
+    pdf.pages[0].Resources = Dictionary(XObject=Dictionary(Im0=imobj0, Im1=imobj1))
+    pdf.save('devicen.pdf')

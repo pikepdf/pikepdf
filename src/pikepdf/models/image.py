@@ -160,7 +160,10 @@ class PdfImageBase(ABC):
                 subspace = self._colorspaces[1]
                 if isinstance(subspace, str) and subspace in self.MAIN_COLORSPACES:
                     return subspace
-                if isinstance(subspace, list) and subspace[0] == '/ICCBased':
+                if isinstance(subspace, list) and subspace[0] in (
+                    '/ICCBased',
+                    '/DeviceN',
+                ):
                     return subspace[0]
             if self._colorspaces[0] == '/DeviceN':
                 return '/DeviceN'
@@ -233,7 +236,9 @@ class PdfImageBase(ABC):
         """
 
         m = ''
-        if self.indexed:
+        if self.device_n:
+            m = 'DeviceN'
+        elif self.indexed:
             m = 'P'
         elif self.bits_per_component == 1:
             m = '1'
@@ -251,8 +256,6 @@ class PdfImageBase(ABC):
                     raise NotImplementedError(
                         "Not sure how to handle PDF image of this type"
                     ) from e
-            elif self.colorspace == '/DeviceN':
-                m = 'DeviceN'
         if m == '':
             raise NotImplementedError(
                 "Not sure how to handle PDF image of this type"
@@ -283,19 +286,21 @@ class PdfImageBase(ABC):
             _idx, base, _hival, lookup = self._colorspaces
         except ValueError as e:
             raise ValueError('Not sure how to interpret this palette') from e
-        if self.icc:
+        if self.icc or self.device_n:
             base = str(base[0])
         else:
             base = str(base)
         lookup = bytes(lookup)
-        if not base in self.MAIN_COLORSPACES:
-            raise NotImplementedError("not sure how to interpret this palette")
+        if not base in self.MAIN_COLORSPACES and base != '/DeviceN':
+            raise NotImplementedError(f"not sure how to interpret this palette: {base}")
         if base == '/DeviceRGB':
             base = 'RGB'
         elif base == '/DeviceGray':
             base = 'L'
         elif base == '/DeviceCMYK':
             base = 'CMYK'
+        elif base == '/DeviceN':
+            base = 'DeviceN'
         elif base == '/ICCBased':
             base = self._approx_mode_from_icc()
         return base, lookup
@@ -524,7 +529,7 @@ class PdfImage(PdfImageBase):
                         'CMYK', self.size, data=output, decoder_name='raw'
                     )
                 else:
-                    raise NotImplementedError('palette with ' + base_mode)
+                    raise NotImplementedError(f'palette with {base_mode}')
         elif self.bits_per_component == 1:
             if self.filters and self.filters[0] == '/JBIG2Decode':
                 if not jbig2.jbig2dec_available():
