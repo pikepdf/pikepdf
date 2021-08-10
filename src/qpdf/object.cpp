@@ -205,6 +205,26 @@ std::pair<int, int> object_get_objgen(QPDFObjectHandle h)
     return std::pair<int, int>(objgen.getObj(), objgen.getGen());
 }
 
+PointerHolder<Buffer> get_stream_data(
+    QPDFObjectHandle &h, qpdf_stream_decode_level_e decode_level)
+{
+    try {
+        PointerHolder<Buffer> buf = h.getStreamData(decode_level);
+        // py::bytes will make a copy of the buffer, so releasing is fine
+        return buf;
+    } catch (const QPDFExc &e) {
+        // Make a new exception that has the objgen info, since QPDF's
+        // will not
+        std::string msg = e.getMessageDetail();
+        str_replace(msg, "getStreamData", "read_bytes");
+        throw QPDFExc(e.getErrorCode(),
+            e.getFilename(),
+            std::string("object ") + h.getObjGen().unparse(),
+            e.getFilePosition(),
+            msg);
+    }
+}
+
 void init_object(py::module_ &m)
 {
     py::enum_<QPDFObject::object_type_e>(m, "ObjectType")
@@ -644,7 +664,7 @@ void init_object(py::module_ &m)
         .def(
             "get_stream_buffer",
             [](QPDFObjectHandle &h, qpdf_stream_decode_level_e decode_level) {
-                PointerHolder<Buffer> phbuf = h.getStreamData(decode_level);
+                auto phbuf = get_stream_data(h, decode_level);
                 return phbuf;
             },
             "Return a buffer protocol buffer describing the decoded stream.",
@@ -659,8 +679,7 @@ void init_object(py::module_ &m)
         .def(
             "read_bytes",
             [](QPDFObjectHandle &h, qpdf_stream_decode_level_e decode_level) {
-                PointerHolder<Buffer> buf = h.getStreamData(decode_level);
-                // py::bytes will make a copy of the buffer, so releasing is fine
+                auto buf = get_stream_data(h, decode_level);
                 return py::bytes((const char *)buf->getBuffer(), buf->getSize());
             },
             "Decode and read the content stream associated with this object.",

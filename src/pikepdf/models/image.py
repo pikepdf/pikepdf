@@ -595,7 +595,7 @@ class PdfImage(PdfImageBase):
                 im.save(stream, format='png')
                 return '.png'
         except PdfError as e:
-            if 'getStreamData called on unfilterable stream' in str(e):
+            if 'called on unfilterable stream' in str(e):
                 raise UnsupportedImageTypeError(repr(self)) from e
             raise
 
