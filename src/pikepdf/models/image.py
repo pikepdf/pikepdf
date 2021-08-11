@@ -4,8 +4,10 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
+import base64
 import struct
 from abc import ABC, abstractmethod
+from collections import deque
 from decimal import Decimal
 from io import BytesIO
 from itertools import zip_longest
@@ -310,24 +312,45 @@ class PdfImageBase(ABC):
         ...
 
     @staticmethod
-    def _unstack_compression(buffer, filters):
-        """Remove stacked compression where it appears.
-
-        Stacked compression means when an image is set to:
-            ``[/FlateDecode /DCTDecode]``
-        for example.
-
-        Only Flate can be stripped off the front currently.
+    def _remove_simple_filters(obj, filters):
+        """Remove simple lossless compression where it appears.
 
         Args:
-            buffer (pikepdf._qpdf.Buffer): the compressed image data
+            obj (pikepdf.Stream): the compressed object
             filters (list of str): all files on the data
         """
-        data = memoryview(buffer)
-        while len(filters) > 1 and filters[0] == '/FlateDecode':
-            data = decompress(data)
-            filters = filters[1:]
-        return data, filters
+
+        COMPLEX_FILTERS = {
+            '/DCTDecode',
+            '/JPXDecode',
+            '/JBIG2Decode',
+            '/CCITTFaxDecode',
+        }
+
+        idx = [n for n, item in enumerate(filters) if item in COMPLEX_FILTERS]
+        if idx:
+            if len(idx) > 1:
+                raise NotImplementedError(
+                    f"Object {obj.objgen} has compound complex filters: {filters}. "
+                    "We cannot decompress this."
+                )
+            simple_filters = filters[: idx[0]]
+            complex_filters = filters[idx[0] :]
+        else:
+            simple_filters = filters
+            complex_filters = []
+
+        if not simple_filters:
+            return obj.read_raw_bytes(), complex_filters
+
+        original_filters = obj.Filter
+        try:
+            obj.Filter = Array([Name(s) for s in simple_filters])
+            data = obj.read_bytes(StreamDecodeLevel.specialized)
+        finally:
+            obj.Filter = original_filters
+
+        return data, complex_filters
 
 
 class PdfImage(PdfImageBase):
@@ -465,9 +488,7 @@ class PdfImage(PdfImageBase):
             ct = self.filter_decodeparms[0][1].get('/ColorTransform', DEFAULT_CT_CMYK)
             return self.mode == 'CMYK' and ct == DEFAULT_CT_CMYK
 
-        data, filters = self._unstack_compression(
-            self.obj.get_raw_stream_buffer(), self.filters
-        )
+        data, filters = self._remove_simple_filters(self.obj, self.filters)
 
         if filters == ['/CCITTFaxDecode']:
             if self.colorspace == '/ICCBased':
@@ -790,9 +811,7 @@ class PdfJpxImage(PdfImage):
         )
 
     def _extract_direct(self, *, stream):
-        data, filters = self._unstack_compression(
-            self.obj.get_raw_stream_buffer(), self.filters
-        )
+        data, filters = self._remove_simple_filters(self.obj, self.filters)
         if filters != ['/JPXDecode']:
             raise UnsupportedImageTypeError(self.filters)
         stream.write(data)
