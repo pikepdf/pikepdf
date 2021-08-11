@@ -519,8 +519,13 @@ class PdfImage(PdfImageBase):
         if self.mode == 'RGB' and self.bits_per_component == 8:
             # No point in accessing the buffer here, size qpdf decodes to 3-byte
             # RGB and Pillow needs RGBX for raw access
-            data = self.read_bytes()
-            im = Image.frombytes('RGB', self.size, data)
+            im = Image.frombuffer(
+                'RGB', self.size, self.read_bytes(), 'raw', 'RGB', 0, 1
+            )
+        elif self.mode == 'CMYK' and self.bits_per_component == 8:
+            im = Image.frombuffer(
+                'CMYK', self.size, self.get_stream_buffer(), 'raw', 'CMYK', 0, 1
+            )
         elif self.mode in ('L', 'P') and self.bits_per_component == 8:
             buffer = self.get_stream_buffer()
             stride = 0  # tell Pillow to calculate stride from line width
@@ -564,7 +569,7 @@ class PdfImage(PdfImageBase):
                 data = self.read_bytes()
                 im = Image.frombytes('1', self.size, data)
         else:
-            raise UnsupportedImageTypeError(repr(self))
+            raise UnsupportedImageTypeError(repr(self) + ", " + repr(self.obj))
 
         if self.mode == 'P' and self.bits_per_component == 1:
             # Fix paletted 1-bit images

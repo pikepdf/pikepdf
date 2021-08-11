@@ -189,6 +189,7 @@ def test_bits_per_component_missing(congress):
         (1, 1, b'\xff', '/DeviceGray', 1),
         (1, 1, b'\xf0', '/DeviceGray', 8),
         (1, 1, b'\xff\x00\xff', '/DeviceRGB', 8),
+        (1, 1, b'\xff\x80\x40\x20', '/DeviceCMYK', 8),
     ],
 )
 def test_image_roundtrip(outdir, w, h, pixeldata, cs, bpc):
@@ -235,6 +236,8 @@ def test_image_roundtrip(outdir, w, h, pixeldata, cs, bpc):
             assert pim.mode == 'RGB'
         elif cs == '/DeviceGray' and bpc == 8:
             assert pim.mode == 'L'
+        elif cs == '/DeviceCMYK':
+            assert pim.mode == 'CMYK'
         elif bpc == 1:
             assert pim.mode == '1'
         assert not pim.palette
