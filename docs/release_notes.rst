@@ -18,11 +18,14 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
-v2.17.0
-=======
+next
+====
 
 -  Improved support for PDF images that use special printer colorspaces such as
-   DeviceN and Separation, and support extracting more types of images.
+   DeviceN and Separation, and support extracting more types of images. :issue:`237`
+-  Improved error message when ``Pdf.save()`` is called on PDFs without a known
+   source file.
+-  Documentation fixes to StreamParser, return types, PdfImage.
 
 v2.16.1
 =======
