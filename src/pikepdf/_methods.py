@@ -14,6 +14,7 @@ We can also move the implementation to C++ if desired.
 
 import datetime
 import inspect
+import platform
 import shutil
 from collections.abc import KeysView, MutableMapping
 from decimal import Decimal
@@ -106,11 +107,10 @@ def augments(cls_cpp: Type[Any]):
     (Alternative ideas: https://github.com/pybind/pybind11/issues/1074)
     """
 
-    OVERRIDE_WHITELIST = {
-        '__eq__',
-        '__hash__',
-        '__repr__',
-    }
+    OVERRIDE_WHITELIST = {'__eq__', '__hash__', '__repr__'}
+    if platform.python_implementation() == 'PyPy':
+        # Either PyPy or pybind11's interface to PyPy automatically adds a __getattr__
+        OVERRIDE_WHITELIST |= {'__getattr__'}
 
     def class_augment(cls, cls_cpp=cls_cpp):
         def is_inherited_method(meth):
