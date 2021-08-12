@@ -12,6 +12,7 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+import io
 import os
 import subprocess
 import sys
@@ -21,29 +22,49 @@ from pkg_resources import get_distribution
 
 on_rtd = os.environ.get('READTHEDOCS') == 'True'
 if on_rtd:
+    import tempfile
+    import zipfile
+
+    import git
+    import github
+    import requests
+
+    # Borrowed from https://github.com/YannickJadoul/Parselmouth/blob/master/docs/conf.py
+    rtd_version = os.environ.get('READTHEDOCS_VERSION')
+    branch = 'master' if rtd_version == 'latest' else rtd_version
+
+    github_token = os.environ['GITHUB_TOKEN']
+    head_sha = git.Repo(search_parent_directories=True).head.commit.hexsha
+    g = github.Github()
+
+    runs = (
+        g.get_repo('pikepdf/pikepdf')
+        .get_workflow('build_wheels.yml')
+        .get_runs(branch=branch)
+    )
+
+    artifacts_url = next(r for r in runs if r.head_sha == head_sha).artifacts_url
+
+    archive_download_url = next(
+        artifact
+        for artifact in requests.get(artifacts_url).json()['artifacts']
+        if artifact['name'] == 'rtd-wheel'
+    )['archive_download_url']
+    artifact_bin = io.BytesIO(
+        requests.get(
+            archive_download_url,
+            headers={'Authorization': f'token {github_token}'},
+            stream=True,
+        ).content
+    )
 
     def pip(*args):
         subprocess.run([sys.executable, '-m', 'pip', *args], check=True)
 
-    # Borrowed from https://github.com/YannickJadoul/Parselmouth/blob/master/docs/conf.py
-    rtd_version = os.environ.get('READTHEDOCS_VERSION')
-    setup_py_version = (
-        subprocess.check_output([sys.executable, 'setup.py', '--version'], cwd='..')
-        .decode('ascii')
-        .strip()
-    )
-
-    if rtd_version == 'stable':
-        branch = None
-        try:
-            pip('install', f'pikepdf=={setup_py_version}')
-        except subprocess.CalledProcessError:
-            branch = 'master'
-    else:
-        branch = 'master' if rtd_version == 'latest' else rtd_version
-
-    if branch is not None:
-        pip('install', '--only-binary', 'pikepdf', 'pikepdf')
+    with zipfile.ZipFile(artifact_bin) as zf, tempfile.TemporaryDirectory() as tmpdir:
+        assert len(zf.namelist()) == 1
+        zf.extractall(tmpdir)
+        pip('install', '--force-reinstall', f'{tmpdir}/{zf.namelist()[0]}')
 else:
     sys.path.insert(0, os.path.abspath(os.path.join('..', 'installed')))
 
