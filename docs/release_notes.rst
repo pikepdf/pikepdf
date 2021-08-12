@@ -18,6 +18,12 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v2.17.0
+=======
+
+-  Improved support for PDF images that use special printer colorspaces such as
+   DeviceN and Separation, and support extracting more types of images.
+
 v2.16.1
 =======
 
