@@ -44,7 +44,7 @@ class NotExtractableError(Exception):
     "Indicates that an image cannot be directly extracted."
 
 
-class DeviceNImageNotTranscodableError(NotExtractableError):
+class HifiPrintImageNotTranscodableError(NotExtractableError):
     "Image contains high fidelity printing information and cannot be extracted."
 
 
@@ -110,6 +110,7 @@ class PdfImageBase(ABC):
 
     SIMPLE_COLORSPACES = {'/DeviceRGB', '/DeviceGray', '/CalRGB', '/CalGray'}
     MAIN_COLORSPACES = SIMPLE_COLORSPACES | {'/DeviceCMYK', '/CalCMYK', '/ICCBased'}
+    PRINT_COLORSPACES = {'/Separation', '/DeviceN'}
 
     @abstractmethod
     def _metadata(self, name, type_, default):
@@ -196,18 +197,26 @@ class PdfImageBase(ABC):
         """``True`` if the image has a defined color palette"""
         return '/Indexed' in self._colorspaces
 
-    @property
-    def device_n(self):
-        """``True`` if image has a /DeviceN (complex printing) colorspace"""
+    def _colorspace_has_name(self, name):
         try:
             cs = self._colorspaces
-            if cs[0] == '/Indexed' and cs[1][0] == '/DeviceN':
+            if cs[0] == '/Indexed' and cs[1][0] == name:
                 return True
-            if cs[0] == '/DeviceN':
+            if cs[0] == name:
                 return True
         except (IndexError, AttributeError, KeyError):
             pass
         return False
+
+    @property
+    def is_device_n(self):
+        """``True`` if image has a /DeviceN (complex printing) colorspace"""
+        return self._colorspace_has_name('/DeviceN')
+
+    @property
+    def is_separation(self):
+        """``True`` if image has a /DeviceN (complex printing) colorspace"""
+        return self._colorspace_has_name('/Separation')
 
     @property
     def size(self):
@@ -238,8 +247,10 @@ class PdfImageBase(ABC):
         """
 
         m = ''
-        if self.device_n:
+        if self.is_device_n:
             m = 'DeviceN'
+        elif self.is_separation:
+            m = 'Separation'
         elif self.indexed:
             m = 'P'
         elif self.bits_per_component == 1:
@@ -288,12 +299,12 @@ class PdfImageBase(ABC):
             _idx, base, _hival, lookup = self._colorspaces
         except ValueError as e:
             raise ValueError('Not sure how to interpret this palette') from e
-        if self.icc or self.device_n:
+        if self.icc or self.is_device_n or self.is_separation:
             base = str(base[0])
         else:
             base = str(base)
         lookup = bytes(lookup)
-        if not base in self.MAIN_COLORSPACES and base != '/DeviceN':
+        if base not in self.MAIN_COLORSPACES and base not in self.PRINT_COLORSPACES:
             raise NotImplementedError(f"not sure how to interpret this palette: {base}")
         if base == '/DeviceRGB':
             base = 'RGB'
@@ -303,6 +314,8 @@ class PdfImageBase(ABC):
             base = 'CMYK'
         elif base == '/DeviceN':
             base = 'DeviceN'
+        elif base == '/Separation':
+            base = 'Separation'
         elif base == '/ICCBased':
             base = self._approx_mode_from_icc()
         return base, lookup
@@ -513,8 +526,8 @@ class PdfImage(PdfImageBase):
         # 8.3.0: all channels for one color followed by the next color (e.g. RGBRGBRGB)
 
         im = None
-        if self.mode == 'DeviceN':
-            raise DeviceNImageNotTranscodableError()
+        if self.mode in {'DeviceN', 'Separation'}:
+            raise HifiPrintImageNotTranscodableError()
 
         if self.mode == 'RGB' and self.bits_per_component == 8:
             # No point in accessing the buffer here, size qpdf decodes to 3-byte

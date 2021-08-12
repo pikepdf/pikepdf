@@ -633,23 +633,45 @@ def test_extract_to_mutex_params(sandwich):
         pdfimage.extract_to(stream=BytesIO(), fileprefix='anything')
 
 
-def test_devicen():
-    # Manually construct a 1"x1" document with a DeviceN
+def test_separation():
+    # Manually construct a 2"x1" document with a Separation
     # colorspace that devices a single "spot" color channel named
-    # "Black". Define a conversion to standard CMYK that assigns
-    # C=0 M=0 Y=0 and lets black through. The result should appear as a
-    # gradient from white (top left) to black (bottom right).
+    # "LogoGreen". Define a conversion to standard CMYK that assigns
+    # CMYK equivalents. Copied example from PDF RM.
+    # LogoGreen is a teal-ish green. First panel is white to full green,
+    # second is green to full white. RGB ~= (31, 202, 113)
     pdf = pikepdf.new()
     pdf.add_blank_page(page_size=(144, 72))
 
+    # pikepdf does not interpret this - it is for the PDF viewer
+    # Explanation:
+    #   X is implicitly loaded to stack
+    #   dup: X X
+    #   0.84 mul: X 0.84X
+    #   exch: 0.84X X
+    #   0.00: 0.84X X 0.00
+    #   exch: 0.84X 0.00 X
+    #   dup: 0.84X 0.00 X X
+    #   0.44 mul: 0.84X 0.00 X 0.44X
+    #   exch: 0.84X 0.00 0.44X X
+    #   0.21mul: 0.84X 0.00 0.44X 0.21X
+    # X -> {0.84X, 0, 0.44X, 0.21X}
+    tint_transform_logogreen_to_cmyk = b'''
+    {
+        dup 0.84 mul
+        exch 0.00 exch dup 0.44 mul
+        exch 0.21 mul
+    }
+    '''
+
     cs = Array(
         [
-            Name.DeviceN,
-            Array([Name.Black]),
+            Name.Separation,
+            Name.LogoGreen,
             Name.DeviceCMYK,
             Stream(
                 pdf,
-                b'{0 0 0 4 -1 roll}',  # Colorspace conversion function
+                tint_transform_logogreen_to_cmyk,
                 FunctionType=4,
                 Domain=[0.0, 1.0],
                 Range=[0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
@@ -659,11 +681,12 @@ def test_devicen():
 
     def check_pim(imobj, idx):
         pim = pikepdf.PdfImage(imobj)
-        assert pim.mode == 'DeviceN'
-        assert pim.device_n
+        assert pim.mode == 'Separation'
+        assert pim.is_separation
+        assert not pim.is_device_n
         assert pim.indexed == idx
         assert repr(pim)
-        with pytest.raises(pikepdf.models.image.DeviceNImageNotTranscodableError):
+        with pytest.raises(pikepdf.models.image.HifiPrintImageNotTranscodableError):
             pim.extract_to(stream=BytesIO())
 
     imobj0 = Stream(
@@ -694,4 +717,81 @@ def test_devicen():
         pdf, b'72 0 0 72 0 0 cm /Im0 Do 1 0 0 1 1 0 cm /Im1 Do'
     )
     pdf.pages[0].Resources = Dictionary(XObject=Dictionary(Im0=imobj0, Im1=imobj1))
-    pdf.save('devicen.pdf')
+    # pdf.save("separation.pdf")
+
+
+def test_devicen():
+    # Manually construct a 2"x1" document with a DeviceN
+    # colorspace that devices a single "spot" color channel named
+    # "Black". Define a conversion to standard CMYK that assigns
+    # C=0 M=0 Y=0 and lets black through. The result should appear as a
+    # gradient from white (top left) to black (bottom right) in the
+    # left cell, and black to white in the right cell.
+    pdf = pikepdf.new()
+    pdf.add_blank_page(page_size=(144, 72))
+
+    # Postscript function to map X -> CMYK={0, 0, 0, X}
+    # Explanation:
+    #   X is implicitly on the stack
+    #   0 0 0 <- load three zeros on to stack
+    #   stack contains: X 0 0 0
+    #   4 -1 roll <- roll stack 4 elements -1 times, meaning the order is reversed
+    #   stack contains: 0 0 0 X
+    # pikepdf currently does not interpret tint transformation functions. This
+    # is done so that the output test file can be checked in a PDF viewer.
+    tint_transform_k_to_cmyk = b'{0 0 0 4 -1 roll}'
+
+    cs = Array(
+        [
+            Name.DeviceN,
+            Array([Name.Black]),
+            Name.DeviceCMYK,
+            Stream(
+                pdf,
+                tint_transform_k_to_cmyk,
+                FunctionType=4,
+                Domain=[0.0, 1.0],
+                Range=[0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
+            ),
+        ]
+    )
+
+    def check_pim(imobj, idx):
+        pim = pikepdf.PdfImage(imobj)
+        assert pim.mode == 'DeviceN'
+        assert pim.is_device_n
+        assert not pim.is_separation
+        assert pim.indexed == idx
+        assert repr(pim)
+        with pytest.raises(pikepdf.models.image.HifiPrintImageNotTranscodableError):
+            pim.extract_to(stream=BytesIO())
+
+    imobj0 = Stream(
+        pdf,
+        bytes(range(0, 256)),
+        BitsPerComponent=8,
+        ColorSpace=cs,
+        Width=16,
+        Height=16,
+        Type=Name.XObject,
+        Subtype=Name.Image,
+    )
+    check_pim(imobj0, idx=False)
+
+    imobj1 = Stream(
+        pdf,
+        bytes(range(0, 256)),
+        BitsPerComponent=8,
+        ColorSpace=Array([Name.Indexed, cs, 255, bytes(range(255, -1, -1))]),
+        Width=16,
+        Height=16,
+        Type=Name.XObject,
+        Subtype=Name.Image,
+    )
+    check_pim(imobj1, idx=True)
+
+    pdf.pages[0].Contents = Stream(
+        pdf, b'72 0 0 72 0 0 cm /Im0 Do 1 0 0 1 1 0 cm /Im1 Do'
+    )
+    pdf.pages[0].Resources = Dictionary(XObject=Dictionary(Im0=imobj0, Im1=imobj1))
+    # pdf.save('devicen.pdf')
