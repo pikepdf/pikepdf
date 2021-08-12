@@ -19,7 +19,7 @@ from pikepdf import Name, Object, Pdf, Stream
 def test_minimum_qpdf_version():
     from pikepdf import _qpdf
 
-    assert LooseVersion(_qpdf.qpdf_version()) >= LooseVersion('10.0.3')
+    assert LooseVersion(_qpdf.qpdf_version()) >= LooseVersion('10.3.2')
 
 
 def test_open_pdf(resources):

@@ -3,7 +3,7 @@ name: Build and upload to PyPI
 on: [push, pull_request]
 
 env:
-  QPDF_MIN_VERSION: "10.0.3"
+  QPDF_MIN_VERSION: "10.3.2"
   QPDF_VERSION: "10.3.2"
   QPDF_PATTERN: "https://github.com/qpdf/qpdf/releases/download/release-qpdf-VERSION/qpdf-VERSION.tar.gz"
   JPEG_RELEASE: "https://www.ijg.org/files/jpegsrc.v9d.tar.gz"

@@ -131,7 +131,7 @@ Building from source
 
 **Requirements**
 
-.. |qpdf-version| replace:: 10.0.3
+.. |qpdf-version| replace:: 10.3.2
 
 pikepdf requires:
 

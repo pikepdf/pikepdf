@@ -9,7 +9,6 @@ def form(resources):
     yield Pdf.open(resources / 'form.pdf')
 
 
-@needs_libqpdf_v('10.3.0', reason="decimal -> integer truncation")
 def test_button(form):
     annot = Annotation(form.Root.AcroForm.Fields[1])
     assert annot.subtype == Name.Widget
@@ -24,7 +23,6 @@ def test_button(form):
     )
 
 
-@needs_libqpdf_v('10.3.0', reason="decimal -> integer truncation")
 def test_checkbox(form):
     annot = Annotation(form.Root.AcroForm.Fields[2])
     assert annot.subtype == Name.Widget

@@ -305,10 +305,7 @@ class TestRepr:
                 '/None': None,
             }
         )
-        if LooseVersion(pikepdf.__libqpdf_version__) >= LooseVersion('10.2.0'):
-            short_pi = '3.14'
-        else:
-            short_pi = '3.140000'
+        short_pi = '3.14'
         expected = (
             """\
             pikepdf.Dictionary({
@@ -736,7 +733,6 @@ def test_object_mapping(sandwich):
     assert '/R12' in object_mapping.keys()
 
 
-@needs_libqpdf_v('10.3.0', reason="behavior of replace improved in v10.3.0")
 def test_replace_object(sandwich):
     d = Dictionary(Type=Name.Dummy)
     profile = sandwich.Root.OutputIntents[0].DestOutputProfile.objgen
@@ -744,7 +740,6 @@ def test_replace_object(sandwich):
     assert sandwich.Root.OutputIntents[0].DestOutputProfile == d
 
 
-@needs_libqpdf_v('10.3.0', reason="behavior of swap improved in v10.3.0")
 def test_swap_object(resources):
     with Pdf.open(resources / 'fourpages.pdf') as pdf:
         pdf.pages[0].MarkPage0 = True
