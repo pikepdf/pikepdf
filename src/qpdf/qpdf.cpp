@@ -23,6 +23,7 @@
 #include <qpdf/QPDFPageDocumentHelper.hh>
 #include <qpdf/Pl_Discard.hh>
 #include <qpdf/QPDFAcroFormDocumentHelper.hh>
+#include <qpdf/QPDFEmbeddedFileDocumentHelper.hh>
 
 #include <pybind11/stl.h>
 #include <pybind11/iostream.h>
@@ -125,9 +126,10 @@ std::shared_ptr<QPDF> open_pdf(py::object filename_or_stream,
     }
 
     if (!success) {
-        // LCOV_EXCL_LINE
+        // LCOV_EXCL_START
         throw std::logic_error(
             "open_pdf: should have succeeded or thrown a Python exception");
+        // LCOV_EXCL_STOP
     }
 
     if (inherit_page_attributes) {
@@ -770,6 +772,10 @@ void init_qpdf(py::module_ &m)
             py::return_value_policy::reference_internal,
             py::keep_alive<1, 2>(),
             py::arg("h"))
+        .def("copy_foreign",
+            [](QPDF &q, QPDFPageObjectHelper &poh) -> QPDFPageObjectHelper {
+                return QPDFPageObjectHelper(q.copyForeignObject(poh.getObjectHandle()));
+            })
         .def("_replace_object",
             [](QPDF &q, std::pair<int, int> objgen, QPDFObjectHandle &h) {
                 q.replaceObject(objgen.first, objgen.second, h);
@@ -927,5 +933,18 @@ void init_qpdf(py::module_ &m)
 
             .. versionadded:: 2.11
             )~~~",
-            py::arg("mode") = "all"); // class Pdf
+            py::arg("mode") = "all") // class Pdf
+        .def_property_readonly(
+            "attachments",
+            [](QPDF &q) { return QPDFEmbeddedFileDocumentHelper(q); },
+            R"~~~(
+            Returns a mapping that provides access to all files attached to this PDF.
+
+            PDF supports attaching (or embedding, if you prefer) any other type of file,
+            including other PDFs. This property provides read and write access to
+            these objects by filename.
+
+            Returns:
+                pikepdf._qpdf.Attachments
+            )~~~");
 }

@@ -86,7 +86,7 @@ def slow_unparse_content_stream(instructions):
 def test_open_pdf(resources):
     pdf = Pdf.open(resources / 'graph.pdf')
     page = pdf.pages[0]
-    Object._parse_stream(page, PrintParser())
+    Object._parse_stream(page.obj, PrintParser())
 
 
 def test_parser_exception(resources):
@@ -123,7 +123,7 @@ def test_text_filter(resources, outdir):
     page['/Contents'] = new_stream
     page['/Rotate'] = 90
 
-    pdf.save(outdir / 'notext.pdf', True)
+    pdf.save(outdir / 'notext.pdf', static_id=True)
     pdf.close()
 
     proc = run(
@@ -163,7 +163,7 @@ def test_invalid_stream_object():
 # def test_has_text(resources, test_file, expected):
 #     pdf = Pdf.open(resources / test_file)
 #     for p in pdf.pages:
-#         page = Page(p)
+#         page = p
 #         assert page.has_text() == expected
 
 

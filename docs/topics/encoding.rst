@@ -42,6 +42,14 @@ conversions.
 
     "•".encode('pdfdoc') == b'\x81'
 
+Other Python PDF libraries may register their own ``pdfdoc`` codecs. Unfortunately,
+the order of imports will determine which codec "wins" and gets mapped
+to the ``'pdfdoc'`` string. Fortunately, these implementations should be
+quite compatible with each other anyway since they do the same things.
+
+pikepdf also registers ``'pdfdoc_pikepdf'``, if you want to ensure use of
+pikepdf's codec, i.e. ``s.encode('pdfdoc_pikepdf')``.
+
 Other codecs
 ============
 

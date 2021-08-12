@@ -15,6 +15,7 @@
 #include <qpdf/PointerHolder.hh>
 #include <qpdf/QPDF.hh>
 #include <qpdf/QPDFObjectHandle.hh>
+#include <qpdf/QPDFPageObjectHelper.hh>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -58,7 +59,7 @@ public:
     bool load(handle src, bool convert)
     {
         // Do whatever our base does
-        // Potentially we could convert some scalrs to QPDFObjectHandle here,
+        // Potentially we could convert some scalars to QPDFObjectHandle here,
         // but most of the interfaces just expect straight C++ types.
         return base::load(src, convert);
     }
@@ -106,15 +107,15 @@ private:
             break;
         }
         if (primitive && h) {
-            if (policy == return_value_policy::take_ownership)
+            if (policy == return_value_policy::take_ownership) {
                 // LCOV_EXCL_START
                 // See explanation above - does not happen.
                 delete csrc;
-            // LCOV_EXCL_STOP
+                // LCOV_EXCL_STOP
+            }
             return h;
         }
 
-        QPDF *owner = src->getOwningQPDF();
         if (policy == return_value_policy::take_ownership) {
             // LCOV_EXCL_START
             // See explanation above - does not happen.
@@ -124,6 +125,7 @@ private:
         } else {
             h = base::cast(*csrc, policy, parent);
         }
+        QPDF *owner = src->getOwningQPDF();
         if (owner) {
             // Find the Python object that refers to our owner
             // Can do that by casting or more direct lookup
@@ -154,6 +156,90 @@ public:
         return cast(&src, policy, parent);
     }
 };
+
+template <>
+struct type_caster<QPDFPageObjectHelper>
+    : public type_caster_base<QPDFPageObjectHelper> {
+    using base = type_caster_base<QPDFPageObjectHelper>;
+
+protected:
+    QPDFPageObjectHelper value{QPDFObjectHandle()};
+
+public:
+    /**
+     * Conversion part 1 (Python->C++): convert a PyObject into a Object
+     */
+    bool load(handle src, bool convert)
+    {
+        // Do whatever our base does
+        return base::load(src, convert);
+    }
+
+    /**
+     * Conversion part 2 (C++ -> Python): convert an instance into
+     * a Python object.
+     * Purpose of this is to establish the indirect keep_alive relationship
+     * between QPDF and object helpers that refer back to in ways that pybind11
+     * can't trace on its own. Object helpers implicitly reference an object
+     handle
+     * and whatever data is attached to the handle.
+     * The ==take_ownership code paths are currently unused but present
+     * for completeness. They are unused because pybind11 only sets
+     * take_ownership when a binding returns raw pointers to Python, and
+     * by making this caster private we prohibit that.
+     */
+private:
+    // 'private': disallow returning pointers to QPDFPageObjectHelper from bindings
+    static handle cast(
+        const QPDFPageObjectHelper *csrc, return_value_policy policy, handle parent)
+    {
+        QPDFPageObjectHelper *src = const_cast<QPDFPageObjectHelper *>(csrc);
+        if (!csrc)
+            return none().release();
+
+        handle h;
+
+        if (policy == return_value_policy::take_ownership) {
+            // LCOV_EXCL_START
+            // See explanation above - does not happen.
+            h = base::cast(std::move(*csrc), policy, parent);
+            delete csrc;
+            // LCOV_EXCL_STOP
+        } else {
+            h = base::cast(*csrc, policy, parent);
+        }
+        QPDF *owner = src->getObjectHandle().getOwningQPDF();
+        if (owner) {
+            // Find the Python object that refers to our owner
+            // Can do that by casting or more direct lookup
+            // auto pyqpdf = pybind11::cast(owner);
+            auto tinfo    = get_type_info(typeid(QPDF));
+            handle pyqpdf = get_object_handle(owner, tinfo);
+
+            // Tell pybind11 that it must keep pyqpdf alive as long as h is
+            // alive
+            keep_alive_impl(h, pyqpdf);
+        }
+        return h;
+    }
+
+public:
+    static handle cast(
+        QPDFPageObjectHelper &&src, return_value_policy policy, handle parent)
+    {
+        return cast(&src, return_value_policy::move, parent);
+    }
+
+    static handle cast(
+        const QPDFPageObjectHelper &src, return_value_policy policy, handle parent)
+    {
+        if (policy == return_value_policy::automatic ||
+            policy == return_value_policy::automatic_reference)
+            policy = return_value_policy::copy;
+        return cast(&src, policy, parent);
+    }
+};
+
 } // namespace detail
 } // namespace pybind11
 
@@ -186,6 +272,11 @@ std::map<std::string, QPDFObjectHandle> dict_builder(const py::dict dict);
 
 // From annotation.cpp
 void init_annotation(py::module_ &m);
+
+// From embeddedfiles.cpp
+void init_embeddedfiles(py::module_ &m);
+// From nametree.cpp
+void init_nametree(py::module_ &m);
 
 // From page.cpp
 void init_page(py::module_ &m);

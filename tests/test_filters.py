@@ -57,14 +57,14 @@ def test_token_eq_token():
     ],
 )
 def test_filter_thru(pal, filter, expected):
-    page = Page(pal.pages[0])
+    page = pal.pages[0]
     page.add_content_token_filter(filter())
     after = page.obj.Contents.read_bytes()
     assert after == expected
 
 
 def test_filter_names(pal):
-    page = Page(pal.pages[0])
+    page = pal.pages[0]
     filter = FilterCollectNames()
     result = page.get_filtered_contents(filter)
     assert result == b''
@@ -79,19 +79,19 @@ class FilterInvalid(TokenFilter):
 
 
 def test_invalid_handle_token(pal):
-    page = Page(pal.pages[0])
+    page = pal.pages[0]
     with pytest.raises((TypeError, PdfError)):
         page.get_filtered_contents(FilterInvalid())
 
 
 def test_invalid_tokenfilter(pal):
-    page = Page(pal.pages[0])
+    page = pal.pages[0]
     with pytest.raises(TypeError):
         page.get_filtered_contents(list())
 
 
 def test_tokenfilter_is_abstract(pal):
-    page = Page(pal.pages[0])
+    page = pal.pages[0]
     with pytest.raises((RuntimeError, PdfError)):
         page.get_filtered_contents(TokenFilter())
 
@@ -115,7 +115,6 @@ def test_issue160_tokenfilter_refcounting(resources, outpdf):
         pages = pdf.pages
         num = 0
         for page in pages:
-            page = Page(page)
             f = MyFilter(('%d' % num)[-1])
             page.add_content_token_filter(f)
             num += 1

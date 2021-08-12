@@ -7,22 +7,13 @@ that case is the "raw" object. Upon establishing what type of object it is, we
 can wrap it with a support model that adds features to ensure consistency with
 the PDF specification.
 
-pikepdf does not currently apply support models to "raw" objects automatically,
-but might do so in a future release (this would break backward compatibility).
+In version 2.x, did not apply support models to "raw" objects automatically.
+Version 3.x automatically applies support models to ``/Page`` objects.
 
 .. autoclass:: pikepdf.Page
     :members:
 
-    Support model wrapper around a raw page dictionary object.
-
-    To initialize a ``Page`` support model:
-
-    .. code-block:: python
-
-        from pikepdf import Pdf, Page
-
-        Pdf = open(...)
-        page_support_model = Page(pdf.pages[0])
+    Support model wrapper around a page dictionary object.
 
 .. autoclass:: pikepdf.PdfMatrix
     :members:
@@ -106,3 +97,92 @@ but might do so in a future release (this would break backward compatibility).
     and definition of terminology.
 
     .. versionadded:: 2.12
+
+.. autoclass:: pikepdf._qpdf.Attachments
+    :members:
+
+    This interface provides access to any files that are attached to this PDF,
+    exposed as a Python :class:`collections.abc.MutableMapping` interface.
+
+    The keys (virtual filenames) are always ``str``, and values are always
+    :class:`pikepdf.FileSpec`.
+
+    .. versionadded:: 3.0
+
+.. autoclass:: pikepdf.FileSpec
+    :members:
+
+    A file specification that accounts for the possibility of multiple data streams.
+
+    In the vast majority of cases, only a single AttachedFileStream is present and
+    this object can be mostly ignored. Call :meth:`get_stream` and be on your way:
+
+    .. code-block:: python
+
+        pdf = Pdf.open(...)
+
+        fs: FileSpec = pdf.attachments['example.txt']
+        stream: AttachedFileStream = fs.get_stream()
+
+    To attach a new file to a PDF, you may construct a ``FileSpec``.
+
+    .. code-block:: python
+
+        pdf = Pdf.open(...)
+
+        with open('somewhere/spreadsheet.xlsx', 'rb') as data_to_attach:
+            fs = FileSpec(pdf, data_to_attach)
+            pdf.attachments['spreadsheet.xlsx'] = fs
+
+    PDF supports the concept of having multiple, platform-specialized versions of the
+    file attachment (similar to resource forks on some operating systems). In theory,
+    this attachment ought to be the same file, but
+    encoded in different ways. For example, perhaps a PDF includes a text file encoded
+    with Windows line endings (``\r\n``) and a different one with POSIX line endings
+    (``\n``). Similarly, PDF allows for the possibility that you need to encode
+    platform-specific filenames.
+
+    If you have to deal with multiple versions, use :meth:`get_all_filenames` to
+    enumerate those available.
+
+    Described in the |pdfrm| section 7.11.3.
+
+    .. versionadded:: 3.0
+
+.. autoclass:: pikepdf._qpdf.AttachedFileStream
+    :members:
+
+    An object that contains the actual attached file.
+
+    .. versionadded:: 3.0
+
+.. autoclass:: pikepdf.NameTree
+    :members:
+
+    An object for managing *name tree* data structures in PDFs.
+
+    A name tree is a key-value data structure. The keys are any binary strings
+    (that is, Python ``bytes``). If ``str`` selected is provided as a key,
+    the UTF-8 encoding of that string is tested. Name trees are (confusingly)
+    not indexed by PDF name objects.
+
+    The keys are ordered; pikepdf will ensure that the order is preserved.
+
+    The value may be any PDF object. Typically it will be a dictionary or array.
+
+    If the name tree is invalid in any way, pikepdf will automatically repair it
+    if it is able to. There should not be any reason to access the internal nodes
+    of a name tree; use this interface instead. Likewise, pikepdf will automatically
+    rebalance the tree as appropriate (all thanks to libqpdf).
+
+    NameTrees are used to store certain objects like file attachments in a PDF.
+    Where a more specific interface exists, use that instead, and it will
+    manipulate the name tree in a semantic correct manner for you.
+
+    Do not modify the internal structure of a name tree while you have a
+    ``NameTree`` referencing it. Access it only through the ``NameTree`` object.
+
+    Names trees are described in the |pdfrm| section 7.9.6. See section 7.7.4
+    for a list of PDF objects that are stored in name trees.
+
+    .. versionadded:: 3.0

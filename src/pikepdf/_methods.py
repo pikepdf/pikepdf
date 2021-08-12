@@ -12,23 +12,39 @@ bindings after the fact.
 We can also move the implementation to C++ if desired.
 """
 
+import datetime
 import inspect
 import shutil
-from collections.abc import KeysView
+from collections.abc import KeysView, MutableMapping
 from decimal import Decimal
 from io import BytesIO
-from os import replace
 from pathlib import Path
 from subprocess import PIPE, run
 from tempfile import NamedTemporaryFile
-from typing import Any, BinaryIO, Callable, List, Optional, Tuple, Type, TypeVar, Union
+from typing import (
+    Any,
+    BinaryIO,
+    Callable,
+    ItemsView,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+    ValuesView,
+)
 from warnings import warn
 
 from . import Array, Dictionary, Name, Object, Page, Pdf, Stream
 from ._qpdf import (
     AccessMode,
+    AttachedFileStream,
+    Attachments,
+    FileSpec,
+    NameTree,
     ObjectStreamMode,
-    PdfError,
     Rectangle,
     StreamDecodeLevel,
     StreamParser,
@@ -36,6 +52,7 @@ from ._qpdf import (
     _ObjectMapping,
 )
 from .models import Encryption, EncryptionInfo, Outline, PdfMetadata, Permissions
+from .models.metadata import decode_pdf_date, encode_pdf_date
 
 # pylint: disable=no-member,unsupported-membership-test,unsubscriptable-object
 # mypy: ignore-errors
@@ -43,6 +60,11 @@ from .models import Encryption, EncryptionInfo, Outline, PdfMetadata, Permission
 __all__ = []
 
 Numeric = TypeVar('Numeric', int, float, Decimal)
+
+
+def augment_override_cpp(fn):
+    fn._augment_override_cpp = True
+    return fn
 
 
 def augments(cls_cpp: Type[Any]):
@@ -83,20 +105,55 @@ def augments(cls_cpp: Type[Any]):
 
     (Alternative ideas: https://github.com/pybind/pybind11/issues/1074)
     """
-    ATTR_WHITELIST = {'__repr__', '__enter__', '__exit__', '__hash__'}
+
+    OVERRIDE_WHITELIST = {
+        '__eq__',
+        '__hash__',
+        '__repr__',
+    }
 
     def class_augment(cls, cls_cpp=cls_cpp):
-        for name, member in inspect.getmembers(cls):
-            # Don't replace existing methods except those in our whitelist
-            if hasattr(cls_cpp, name) and name not in ATTR_WHITELIST:
+        def is_inherited_method(meth):
+            # Augmenting a C++ with a method that cls inherits from the Python
+            # object is never what we want.
+            return meth.__qualname__.startswith('object.')
+
+        def is_augmentable(m):
+            return (
+                inspect.isfunction(m) and not is_inherited_method(m)
+            ) or inspect.isdatadescriptor(m)
+
+        # inspect.getmembers has different behavior on PyPy - in particular it seems
+        # that a typical PyPy class like cls will have more methods that it considers
+        # methods than CPython does. Our predicate should take care of this.
+        for name, member in inspect.getmembers(cls, predicate=is_augmentable):
+            if name == '__weakref__':
                 continue
+            if (
+                hasattr(cls_cpp, name)
+                and hasattr(cls, name)
+                and name not in getattr(cls, '__abstractmethods__', set())
+                and name not in OVERRIDE_WHITELIST
+                and not getattr(getattr(cls, name), '_augment_override_cpp', False)
+            ):
+                # If the original C++ class and Python support class both define the
+                # same name, we generally have a conflict, because this is augmentation
+                # not inheritance. However, if the method provided by the support class
+                # is an abstract method, then we can consider the C++ version the
+                # implementation. Also, pybind11 provides defaults for __eq__,
+                # __hash__ and __repr__ that we often do want to override directly.
+                raise RuntimeError(
+                    f"C++ {cls_cpp} and Python {cls} both define the same "
+                    f"non-abstract method {name}: "
+                    f"{getattr(cls_cpp, name, '')!r}, "
+                    f"{getattr(cls, name, '')!r}"
+                )
             if inspect.isfunction(member):
-                if member.__qualname__.startswith('object.'):
-                    continue  # To avoid breaking PyPy
-                member.__qualname__ = member.__qualname__.replace(
+                setattr(cls_cpp, name, member)
+                installed_member = getattr(cls_cpp, name)
+                installed_member.__qualname__ = member.__qualname__.replace(
                     cls.__name__, cls_cpp.__name__
                 )
-                setattr(cls_cpp, name, member)
             elif inspect.isdatadescriptor(member):
                 setattr(cls_cpp, name, member)
 
@@ -297,7 +354,9 @@ class Extend_Pdf:
         warn("Pdf.root is deprecated; use Pdf.Root", category=DeprecationWarning)
         return self.Root
 
-    def _repr_mimebundle_(self, include=None, exclude=None):
+    def _repr_mimebundle_(
+        self, include=None, exclude=None
+    ):  # pylint: disable=unused-argument
         """
         Present options to IPython or Jupyter for rich display of this object
 
@@ -452,7 +511,7 @@ class Extend_Pdf:
 
     def add_blank_page(
         self, *, page_size: Tuple[Numeric, Numeric] = (612.0, 792.0)
-    ) -> Object:
+    ) -> Page:
         """
         Add a blank page to this PDF. If pages already exist, the page will be added to
         the end. Pages may be reordered using ``Pdf.pages``.
@@ -474,9 +533,9 @@ class Extend_Pdf:
             Contents=self.make_stream(b''),
             Resources=Dictionary(),
         )
-        page = self.make_indirect(page_dict)
-        self._add_page(page, first=False)
-        return page
+        page_obj = self.make_indirect(page_dict)
+        self._add_page(page_obj, first=False)
+        return Page(page_obj)
 
     def close(self) -> None:
         """
@@ -580,8 +639,7 @@ class Extend_Pdf:
         self._decode_all_streams_and_discard()
 
         discarding_parser = DiscardingParser()
-        for basic_page in self.pages:
-            page = Page(basic_page)
+        for page in self.pages:
             page.parse_contents(discarding_parser)
 
         for warning in self.get_warnings():
@@ -589,85 +647,10 @@ class Extend_Pdf:
 
         return problems
 
-    def _attach(
-        self,
-        *,
-        basename: str,
-        filebytes: bytes,
-        mime: Optional[str] = None,
-        desc: str = '',
-    ):  # pragma: no cover
-        """
-        Attach a file to this PDF
-
-        Args:
-            basename (str): The basename (filename withouth path) to name the
-                file. Not necessarily the name of the file on disk. Will be s
-                hown to the user by the PDF viewer. filebytes (bytes): The file
-                contents.
-
-            mime (str or None): A MIME type for the filebytes. If omitted, we try
-                to guess based on the standard library's
-                :func:`mimetypes.guess_type`. If this cannot be determined, the
-                generic value `application/octet-stream` is used. This value is
-                used by PDF viewers to decide how to present the information to
-                the user.
-
-            desc (str): A extended description of the file contents. PDF viewers
-                also display this information to the user. In Acrobat DC this is
-                hidden in a context menu.
-
-        The PDF will also be modified to request the PDF viewer to display the
-        list of attachments when opened, as opposed to other viewing modes. Some
-        PDF viewers will not make it obvious to the user that attachments are
-        present unless this is done. This behavior may be overridden by changing
-        ``pdf.Root.PageMode`` to some other valid value.
-
-        """
-
-        if '/Names' not in self.Root:
-            self.Root.Names = self.make_indirect(Dictionary())
-        if '/EmbeddedFiles' not in self.Root:
-            self.Root.Names.EmbeddedFiles = self.make_indirect(Dictionary())
-        if '/Names' not in self.Root.Names.EmbeddedFiles:
-            self.Root.Names.EmbeddedFiles.Names = Array()
-
-        if '/' in basename or '\\' in basename:
-            raise ValueError("basename should be a basename (no / or \\)")
-
-        if not mime:
-            from mimetypes import guess_type
-
-            mime, _encoding = guess_type(basename)
-            if not mime:
-                mime = 'application/octet-stream'
-
-        filestream = Stream(self, filebytes)
-        filestream.Subtype = Name('/' + mime)
-
-        filespec = Dictionary(
-            {
-                '/Type': Name.Filespec,
-                '/F': basename,
-                '/UF': basename,
-                '/Desc': desc,
-                '/EF': Dictionary({'/F': filestream}),
-            }
-        )
-
-        # names = self.Root.Names.EmbeddedFiles.Names.as_list()
-        # names.append(filename)  # Key
-        # names.append(self.make_indirect(filespec))
-        self.Root.Names.EmbeddedFiles.Names = Array(
-            [basename, self.make_indirect(filespec)]  # key
-        )
-
-        if '/PageMode' not in self.Root:
-            self.Root.PageMode = Name.UseAttachments
-
     def save(
-        self,  # TODO mandatory kwargs
+        self,
         filename_or_stream: Union[Path, str, BinaryIO, None] = None,
+        *,
         static_id: bool = False,
         preserve_pdfa: bool = True,
         min_version: Union[str, Tuple[str, int]] = "",
@@ -800,6 +783,9 @@ class Extend_Pdf:
         .. versionchanged:: 2.7
             Added *recompress_flate*.
 
+        .. versionchanged:: 3.0
+            Keyword arguments now mandatory for everything except the first
+            argument.
         """
         if not filename_or_stream and getattr(self, '_original_filename', None):
             filename_or_stream = self._original_filename
@@ -832,8 +818,9 @@ class Extend_Pdf:
         )
 
     @staticmethod
-    def open(  # TODO mandatory kwargs
+    def open(
         filename_or_stream: Union[Path, str, BinaryIO],
+        *,
         password: Union[str, bytes] = "",
         hex_password: bool = False,
         ignore_xref_streams: bool = False,
@@ -932,6 +919,10 @@ class Extend_Pdf:
             perform poorly. It may be easier to download a PDF from network to
             temporary local storage (such as ``io.BytesIO``), manipulate it, and
             then re-upload it.
+
+        .. versionchanged:: 3.0
+            Keyword arguments now mandatory for everything except the first
+            argument.
         """
         if isinstance(filename_or_stream, bytes) and filename_or_stream.startswith(
             b'%PDF-'
@@ -986,19 +977,19 @@ class Extend_ObjectMapping:
         return (v for _k, v in self.items())
 
 
-def check_is_box(obj) -> bool:
+def check_is_box(obj) -> None:
     try:
         if obj.is_rectangle:
-            return True
+            return
     except AttributeError:
         pass
 
     try:
         pdfobj = Array(obj)
         if pdfobj.is_rectangle:
-            return True
-    except Exception:
-        pass
+            return
+    except Exception as e:
+        raise ValueError("object is not a rectangle") from e
 
     raise ValueError("object is not a rectangle")
 
@@ -1043,8 +1034,13 @@ class Extend_Page:
         self.obj['/TrimBox'] = value
 
     @property
-    def resources(self):
-        """Return this pages resources dictionary."""
+    def images(self) -> _ObjectMapping:
+        """Return all images associated with this page."""
+        return self._images
+
+    @property
+    def resources(self) -> Dictionary:
+        """Return this page's resources dictionary."""
         return self.obj['/Resources']
 
     def add_resource(
@@ -1077,7 +1073,7 @@ class Extend_Page:
             The name of the object.
 
         Example:
-            >>> resource_name = Page(pdf.pages[0]).add_resource(formxobj, Name.XObject)
+            >>> resource_name = pdf.pages[0].add_resource(formxobj, Name.XObject)
 
         .. versionadded:: 2.3
 
@@ -1117,6 +1113,7 @@ class Extend_Page:
     ) -> None:
         formx = None
         if isinstance(other, Page):
+            page = other
             formx = other.as_form_xobject()
         elif isinstance(other, Dictionary) and other.get(Name.Type) == Name.Page:
             page = Page(other)
@@ -1173,6 +1170,47 @@ class Extend_Page:
         """
         return self._over_underlay(other, rect, under=True)
 
+    def __getattr__(self, name):
+        if hasattr(self.__class__, name):
+            return object.__getattr__(self, name)
+        return getattr(self.obj, name)
+
+    @augment_override_cpp
+    def __setattr__(self, name, value):
+        if hasattr(self.__class__, name):
+            return object.__setattr__(self, name, value)
+        setattr(self.obj, name, value)
+
+    @augment_override_cpp
+    def __delattr__(self, name):
+        if hasattr(self.__class__, name):
+            return object.__delattr__(self, name)
+        delattr(self.obj, name)
+
+    def __getitem__(self, key):
+        return self.obj[key]
+
+    def __setitem__(self, key, value):
+        self.obj[key] = value
+
+    def __delitem__(self, key):
+        del self.obj[key]
+
+    def __contains__(self, key):
+        return key in self.obj
+
+    def __eq__(self, other):
+        return self.obj == other.obj
+
+    def get(self, key, default=None):
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+    def emplace(self, other: Page, retain=(Name.Parent,)):
+        return self.obj.emplace(other.obj, retain=retain)
+
     def __repr__(self):
         return (
             repr(self.obj)
@@ -1211,3 +1249,119 @@ class Extend_Rectangle:
 
     def __hash__(self):
         return hash((self.llx, self.lly, self.urx, self.ury))
+
+
+@augments(Attachments)
+class Extend_Attachments(MutableMapping):
+    def __getitem__(self, k: str) -> FileSpec:
+        filespec = self._get_filespec(k)
+        if filespec is None:
+            raise KeyError(k)
+        return filespec
+
+    def __setitem__(self, k: str, v: FileSpec) -> None:
+        if not v.filename:
+            v.filename = k
+        return self._add_replace_filespec(k, v)
+
+    def __delitem__(self, k: str) -> None:
+        return self._remove_filespec(k)
+
+    def __len__(self):
+        return len(self._get_all_filespecs())
+
+    def __iter__(self) -> Iterator[str]:
+        for k in self._get_all_filespecs():
+            yield k
+
+    def __repr__(self):
+        return f"<pikepdf._qpdf.Attachments with {len(self)} attached files>"
+
+
+@augments(FileSpec)
+class Extend_FileSpec:
+    def __repr__(self):
+        if self.filename:
+            return (
+                f"<pikepdf._qpdf.FileSpec for {self.filename!r}, "
+                f"description {self.description!r}>"
+            )
+        else:
+            return f"<pikepdf._qpdf.FileSpec description {self.description!r}>"
+
+
+@augments(AttachedFileStream)
+class Extend_AttachedFileStream:
+    @property
+    def creation_date(self) -> Optional[datetime.datetime]:
+        if not self._creation_date:
+            return None
+        return decode_pdf_date(self._creation_date)
+
+    @creation_date.setter
+    def creation_date(self, value: datetime.datetime):
+        self._creation_date = encode_pdf_date(value)
+
+    @property
+    def mod_date(self) -> Optional[datetime.datetime]:
+        if not self._mod_date:
+            return None
+        return decode_pdf_date(self._mod_date)
+
+    @mod_date.setter
+    def mod_date(self, value: datetime.datetime):
+        self._mod_date = encode_pdf_date(value)
+
+    def read_bytes(self) -> bytes:
+        return self.obj.read_bytes()
+
+    def __repr__(self):
+        return (
+            f'<pikepdf._qpdf.AttachedFileStream objid={self.obj.objgen} size={self.size} '
+            f'mime_type={self.mime_type} creation_date={self.creation_date} '
+            f'mod_date={self.mod_date}>'
+        )
+
+
+@augments(NameTree)
+class Extend_NameTree(MutableMapping):
+    def __len__(self):
+        return len(self._as_map())
+
+    def __iter__(self):
+        for name, _value in self._nameval_iter():
+            yield name
+
+    def keys(self):
+        return KeysView(self._as_map())
+
+    def values(self):
+        return ValuesView(self._as_map())
+
+    def items(self):
+        return ItemsView(self._as_map())
+
+    def __eq__(self, other):
+        return self.obj.objgen == other.obj.objgen
+
+    def __contains__(self, name: Union[str, bytes]) -> bool:
+        """
+        Returns True if the name tree contains the specified name.
+
+        Args:
+            name (str or bytes): The name to search for in the name tree.
+                This is not a PDF /Name object, but an arbitrary key.
+                If name is a *str*, we search the name tree for the UTF-8
+                encoded form of name. If *bytes*, we search for a key
+                equal to those bytes.
+        """
+        return self._contains(name)
+
+    def __getitem__(self, name: Union[str, bytes]) -> Object:
+        return self._getitem(name)
+
+    def __setitem__(self, name: Union[str, bytes], o: Object):
+        self._setitem(name, o)
+
+    def __delitem__(self, name: Union[str, bytes]):
+        self._delitem(name)

@@ -71,7 +71,7 @@ bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
 
     // Uninitialized objects are never equal
     if (!self.isInitialized() || !other.isInitialized())
-        return false;
+        return false; // LCOV_EXCL_LINE
 
     // Indirect objects (objid != 0) with the same obj-gen are equal and same owner
     // are equal (in fact, they are identical; they reference the same underlying
@@ -83,31 +83,34 @@ bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
         return self.getObjGen() == other.getObjGen();
     }
 
-    // If 'self' is a numeric type, convert both to Decimal objects
-    // and compare them as such.
-    if (self.getTypeCode() == QPDFObject::object_type_e::ot_integer ||
-        self.getTypeCode() == QPDFObject::object_type_e::ot_real ||
-        self.getTypeCode() == QPDFObject::object_type_e::ot_boolean) {
-        try {
-            auto a              = decimal_from_pdfobject(self);
-            auto b              = decimal_from_pdfobject(other);
-            py::object pyresult = a.attr("__eq__")(b);
-            bool result         = pyresult.cast<bool>();
-            return result;
-        } catch (const py::type_error &) {
-            return false;
-        }
+    auto self_typecode  = self.getTypeCode();
+    auto other_typecode = other.getTypeCode();
+
+    if ((self_typecode == QPDFObject::object_type_e::ot_boolean) &&
+        (other_typecode == QPDFObject::object_type_e::ot_boolean)) {
+        return self.getBoolValue() == other.getBoolValue();
+    } else if ((self_typecode == QPDFObject::object_type_e::ot_integer) &&
+               (other_typecode == QPDFObject::object_type_e::ot_integer)) {
+        return self.getIntValue() == other.getIntValue();
+    } else if (self_typecode == QPDFObject::object_type_e::ot_integer ||
+               self_typecode == QPDFObject::object_type_e::ot_real ||
+               self_typecode == QPDFObject::object_type_e::ot_boolean) {
+        // If 'self' and 'other' are different numeric types, convert both to
+        // Decimal objects and compare them as such.
+        auto a              = decimal_from_pdfobject(self);
+        auto b              = decimal_from_pdfobject(other);
+        py::object pyresult = a.attr("__eq__")(b);
+        bool result         = pyresult.cast<bool>();
+        return result;
     }
 
     // Apart from numeric types, disimilar types are never equal
-    if (self.getTypeCode() != other.getTypeCode())
+    if (self_typecode != other_typecode)
         return false;
 
-    switch (self.getTypeCode()) {
+    switch (self_typecode) {
     case QPDFObject::object_type_e::ot_null:
         return true; // Both must be null
-    case QPDFObject::object_type_e::ot_boolean:
-        return self.getBoolValue() == other.getBoolValue();
     case QPDFObject::object_type_e::ot_name:
         return self.getName() == other.getName();
     case QPDFObject::object_type_e::ot_operator:
@@ -129,6 +132,12 @@ bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
         // recurses into this function
         return (self.getDictAsMap() == other.getDictAsMap());
     }
+    case QPDFObject::object_type_e::ot_boolean:
+    case QPDFObject::object_type_e::ot_integer:
+    case QPDFObject::object_type_e::ot_real:
+        // LCOV_EXCL_START
+        throw std::logic_error("should have eliminated numeric types by now");
+        // LCOV_EXCL_STOP
     default:
         break;
     }
@@ -709,48 +718,8 @@ void init_object(py::module_ &m)
             py::arg("data"),
             py::arg("filter"),
             py::arg("decode_parms"))
-        .def_property_readonly("images",
-            [](QPDFObjectHandle &h) {
-                if (!h.isPageObject())
-                    throw py::type_error("Not a Page");
-                return h.getPageImages();
-            })
         .def("_inline_image_raw_bytes",
             [](QPDFObjectHandle &h) { return py::bytes(h.getInlineImageValue()); })
-        .def(
-            "page_contents_add",
-            [](QPDFObjectHandle &h, QPDFObjectHandle &contents, bool prepend) {
-                deprecation_warning(
-                    "pikepdf.Object.page_contents_add is deprecated; use "
-                    "pikepdf.Page.contents_add instead");
-                if (!h.isPageObject())
-                    throw py::type_error("Not a Page");
-
-                h.addPageContents(contents, prepend);
-            },
-            R"~~~(
-            Append or prepend to an existing page's content stream.
-
-            .. deprecated:: 2.14
-                Use :meth:`pikepdf.Page.contents_add` instead.
-            )~~~",
-            py::arg("contents"),
-            py::arg("prepend") = false,
-            py::keep_alive<1, 2>())
-        .def(
-            "page_contents_coalesce",
-            [](QPDFObjectHandle &h) {
-                deprecation_warning(
-                    "pikepdf.Object.page_contents_coalesce is deprecated; use "
-                    "pikepdf.Page.contents_coalesce instead");
-                return h.coalesceContentStreams();
-            },
-            R"~~~(
-            Coalesce an array of page content streams into a single content stream.
-
-            .. deprecated:: 2.14
-                Use :meth:`pikepdf.Page.contents_coalesce` instead.
-            )~~~")
         .def_property_readonly("_objgen", &object_get_objgen)
         .def_property_readonly("objgen",
             &object_get_objgen,

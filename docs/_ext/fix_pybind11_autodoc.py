@@ -6,6 +6,7 @@ import re
 replacements = [
     (re.compile(r'pikepdf._qpdf.(\w+)\b'), r'pikepdf.\1'),
     (re.compile(r'QPDFTokenizer::Token\b'), 'pikepdf.Token'),
+    (re.compile(r'QPDFEFStreamObjectHelper'), 'pikepdf._qpdf.AttachedFileStream'),
     (re.compile(r'QPDFObjectHandle::TokenFilter'), 'pikepdf.TokenFilter'),
     (re.compile(r'QPDFObjectHandle::Rectangle'), 'pikepdf.Rectangle'),
     (re.compile(r'QPDFObjectHandle'), 'pikepdf.Object'),
@@ -24,9 +25,12 @@ def fix_sigs(app, what, name, obj, options, signature, return_annotation):
 
 
 def fix_doc(app, what, name, obj, options, lines):
-    for n, line in enumerate(lines[:]):
-        for from_, to in replacements:
-            lines[n] = from_.sub(to, lines[n])
+    with open('doc.log.txt', 'a') as f:
+        for n, line in enumerate(lines[:]):
+            s = line
+            for from_, to in replacements:
+                s = from_.sub(to, s)
+            lines[n] = s
 
 
 def setup(app):

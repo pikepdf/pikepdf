@@ -97,11 +97,13 @@ class Name(Object, metaclass=_NameObjectMeta):
 
     object_type = ObjectType.name
 
-    def __new__(cls, name: str):
+    def __new__(cls, name: Union[str, 'Name']):
         # QPDF_Name::unparse ensures that names are always saved in a UTF-8
         # compatible way, so we only need to guard the input.
         if isinstance(name, bytes):
             raise TypeError("Name should be str")
+        if isinstance(name, Name):
+            return name  # Names are immutable so we can return a reference
         return _qpdf._new_name(name)
 
     @classmethod
@@ -254,8 +256,7 @@ class Stream(Object, metaclass=_ObjectMeta):
             kwargs: Keyword arguments that will define the stream dictionary. Do not set
                 /Length here as pikepdf will manage this value. Set /Filter
                 if the data is already encoded in some format.
-            obj: Deprecated alias for *data*.
-        Return type:
+        Returns:
             pikepdf.Object
 
         Examples:
@@ -277,15 +278,10 @@ class Stream(Object, metaclass=_ObjectMeta):
 
         .. versionchanged:: 2.2
             Support creation of ``pikepdf.Stream`` from existing dictionary.
-        """
 
-        # Support __new__(...obj=bytes) which should have been data=bytes,
-        # drop in pikepdf 3
-        if 'obj' in kwargs:  # pragma: no cover
-            warn("Deprecated parameter 'obj', use 'data' instead", DeprecationWarning)
-            if data is None:
-                data = kwargs['obj']
-            del kwargs['obj']
+        .. versionchanged:: 3.0
+            Deprecated ``obj`` argument was removed; use ``data``.
+        """
 
         if data is None:
             raise TypeError("Must make Stream from binary data")

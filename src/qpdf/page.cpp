@@ -50,9 +50,18 @@ void init_page(py::module_ &m)
 {
     py::class_<QPDFPageObjectHelper>(m, "Page")
         .def(py::init<QPDFObjectHandle &>())
+        .def(py::init([](QPDFPageObjectHelper &poh) {
+            return QPDFPageObjectHelper(poh.getObjectHandle());
+        }))
+        .def("__hash__",
+            [](QPDFPageObjectHelper &poh) {
+                throw py::type_error("Can't hash mutable object");
+            })
         .def_property_readonly(
             "obj",
-            [](QPDFPageObjectHelper &poh) { return poh.getObjectHandle(); },
+            [](QPDFPageObjectHelper &poh) -> QPDFObjectHandle {
+                return poh.getObjectHandle();
+            },
             R"~~~(
                 Get the underlying :class:`pikepdf.Object`.
             )~~~")
@@ -102,7 +111,7 @@ void init_page(py::module_ &m)
                 return poh.addPageContents(contents, prepend);
             },
             py::arg("contents"),
-            // py::kw_only(), // TODO in 3.x
+            py::kw_only(),
             py::arg("prepend") = false,
             py::keep_alive<1, 2>(),
             R"~~~(
@@ -117,7 +126,7 @@ void init_page(py::module_ &m)
                 if (!q) {
                     // LCOV_EXCL_START
                     throw std::logic_error("QPDFPageObjectHelper not attached to QPDF");
-                    // LCOV_EXCL_END
+                    // LCOV_EXCL_STOP
                 }
                 auto stream = QPDFObjectHandle::newStream(q, contents);
                 return poh.addPageContents(stream, prepend);
@@ -174,12 +183,12 @@ void init_page(py::module_ &m)
                 bool invert_transformations,
                 bool allow_shrink,
                 bool allow_expand) -> py::bytes {
-                return poh.placeFormXObject(formx,
+                return py::bytes(poh.placeFormXObject(formx,
                     name.getName(),
                     rect,
                     invert_transformations,
                     allow_shrink,
-                    allow_expand);
+                    allow_expand));
             },
             py::arg("formx"),
             py::arg("name"),

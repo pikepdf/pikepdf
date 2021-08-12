@@ -18,9 +18,34 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
-next
-====
+v3.0.0b1
+========
 
+Breaking changes
+----------------
+
+-  libqpdf 10.3.2 is now required and other requirements were adjusted.
+-  **Improved page API.** ``Pdf.pages`` now returns ``Page`` instead of
+   page object dictionaries, so it is no longer necessary to wrap page objects
+   as in the previous idiom ``page = Page(pdf.pages[0])``. In most cases,
+   if you use the Dictionary object API on a page, it will automatically do the
+   right thing to the underlying dictionary.
+-  Deprecated or private functions were removed:
+   -  ``Object.page_contents_*`` (use ``Page.contents_*``)
+   -  ``Object.images`` (use ``Page.images``)
+   -  ``Page._attach`` (use the new attachment API)
+   -  ``Stream(obj=)`` (deprecated ``obj`` parameter removed)
+-  :meth:`pikepdf.Page.calc_form_xobject_placement` previously returned ``str`` when
+   it should have returned ``bytes``. It now returns the correct type.
+-  :func:`pikepdf.open` and :func:`pikepdf.save`, and their counterparts in
+   :class:`pikepdf.Pdf`, now expect keyword arguments for all expect the first parameter.
+
+New functionality
+-----------------
+
+-  Added :class:`pikepdf.NameTree`. We now bind to QPDF's Name Tree API, for
+   manipulating these complex and important data structures.
+-  We now support adding and removing PDF attachments.
 -  Improved support for PDF images that use special printer colorspaces such as
    DeviceN and Separation, and support extracting more types of images. :issue:`237`
 -  Improved error message when ``Pdf.save()`` is called on PDFs without a known
@@ -49,6 +74,7 @@ v2.15.1
 -  Fixed a coverage code exclusion.
 -  Added a note missing "version added" comment to documentation.
 -  Fixed license string not appearing in metadata - thanks @mara004.
+=======
 
 v2.15.0
 =======

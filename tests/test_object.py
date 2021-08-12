@@ -250,6 +250,10 @@ class TestName:
     def test_bytes_of_name(self):
         assert bytes(Name.ABC) == b'/ABC'
 
+    def test_name_from_name(self):
+        foo = Name('/Foo')
+        assert Name(foo) == foo
+
 
 class TestHashViolation:
     def check(self, a, b):
@@ -414,11 +418,6 @@ class TestDictionary:
         d = pikepdf.Dictionary(A='a')
         assert d.get(Name.A) == 'a'
         assert d.get(Name.Resources, 42) == 42
-
-    def test_nonpage(self):
-        d = pikepdf.Dictionary(A='a')
-        with pytest.raises(TypeError):
-            d.images  # pylint: disable=pointless-statement
 
     def test_bad_name_init(self):
         with pytest.raises(KeyError, match=r"must begin with '/'"):
@@ -722,6 +721,14 @@ def test_array_of_array():
     assert a is not a2
 
 
+def test_array_of_primitives_eq():
+    a = Array([True, False, 0, 1, 42, 42.42])
+    b = Array([True, False, 0, 1, 42, 42.42])
+    assert a == b
+    c = Array([1.0, 0.0, 0.0, 1.0, 42.0, 42.42])
+    assert a == c
+
+
 def test_object_mapping(sandwich):
     object_mapping = sandwich.pages[0].images
     assert '42' not in object_mapping
@@ -732,8 +739,9 @@ def test_object_mapping(sandwich):
 @needs_libqpdf_v('10.3.0', reason="behavior of replace improved in v10.3.0")
 def test_replace_object(sandwich):
     d = Dictionary(Type=Name.Dummy)
-    sandwich._replace_object(sandwich.pages[0].objgen, d)
-    assert sandwich.pages[0] == d
+    profile = sandwich.Root.OutputIntents[0].DestOutputProfile.objgen
+    sandwich._replace_object(profile, d)
+    assert sandwich.Root.OutputIntents[0].DestOutputProfile == d
 
 
 @needs_libqpdf_v('10.3.0', reason="behavior of swap improved in v10.3.0")

@@ -4,6 +4,7 @@ repos:
     hooks:
       - id: check-case-conflict
       - id: check-merge-conflict
+        exclude: \.rst$
       - id: check-toml
       - id: check-yaml
       - id: debug-statements

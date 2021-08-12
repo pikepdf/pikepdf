@@ -134,6 +134,7 @@ practical examples, particular in ``pdfinfo.py``, ``graft.py``, and
     topics/encoding
     topics/metadata
     topics/outlines
+    topics/nametrees
     topics/security
 
 .. toctree::
