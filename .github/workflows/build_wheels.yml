@@ -15,7 +15,7 @@ jobs:
     name: 🏗 ${{ matrix.os }} - ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     env:
-      CIBW_SKIP: "cp27-* cp35-* pp2*"
+      CIBW_SKIP: ""
       CIBW_TEST_COMMAND: "pytest -nauto {project}/tests"
       CIBW_TEST_EXTRAS: test
       CIBW_BEFORE_ALL: "bash {project}/build-scripts/linux-build-wheel-deps.bash"
@@ -47,11 +47,11 @@ jobs:
           platforms: all
 
       - name: Build wheels
-        uses: joerick/cibuildwheel@v1.11.1
+        uses: joerick/cibuildwheel@v2.1.1
         if: matrix.platform != 'manylinux_aarch64'
 
       - name: Build wheels (emulated)
-        uses: joerick/cibuildwheel@v1.11.1
+        uses: joerick/cibuildwheel@v2.1.1
         if: matrix.platform == 'manylinux_aarch64'
         env:
           CIBW_ARCHS_LINUX: aarch64
@@ -75,7 +75,7 @@ jobs:
     name: 🏗 ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     env:
-      CIBW_SKIP: "cp27-* cp35-* pp2*"
+      CIBW_SKIP: ""
       CIBW_TEST_COMMAND: "pytest -nauto {project}/tests"
       CIBW_TEST_EXTRAS: test
       CIBW_BEFORE_ALL: "brew install qpdf"
@@ -94,7 +94,7 @@ jobs:
           python-version: "3.8"
 
       - name: Build wheels
-        uses: joerick/cibuildwheel@v1.11.1
+        uses: joerick/cibuildwheel@v2.1.1
 
         #env:
         #  CIBW_ARCHS_MACOS: x86_64 universal2 # for Apple Silicon
@@ -140,7 +140,7 @@ jobs:
         shell: pwsh
 
       - name: Build wheels
-        uses: joerick/cibuildwheel@v1.11.1
+        uses: joerick/cibuildwheel@v2.1.1
 
       - uses: actions/upload-artifact@v2
         with:
