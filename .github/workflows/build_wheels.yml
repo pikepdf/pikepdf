@@ -65,6 +65,7 @@ jobs:
 
       - name: Upload wheel for ReadTheDocs
         uses: actions/upload-artifact@v2
+        if: matrix.platform == 'manylinux_x86_64'
         with:
           name: rtd-wheel
           path: ./wheelhouse/pikepdf-*-cp37-cp37m-manylinux2010_x86_64.whl
