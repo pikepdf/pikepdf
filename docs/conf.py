@@ -102,9 +102,9 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'pikepdf'
-copyright = u'2020, James R. Barlow'  # pylint: disable=redefined-builtin
-author = u'James R. Barlow'
+project = 'pikepdf'
+copyright = '2021, James R. Barlow'  # pylint: disable=redefined-builtin
+author = 'James R. Barlow'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
