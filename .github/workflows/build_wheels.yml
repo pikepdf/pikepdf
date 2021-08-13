@@ -2,23 +2,11 @@ name: Build and upload to PyPI
 
 on: [push, pull_request]
 
-env:
-  QPDF_MIN_VERSION: "10.3.2"
-  QPDF_VERSION: "10.3.2"
-  QPDF_PATTERN: "https://github.com/qpdf/qpdf/releases/download/release-qpdf-VERSION/qpdf-VERSION.tar.gz"
-  JPEG_RELEASE: "https://www.ijg.org/files/jpegsrc.v9d.tar.gz"
-  ZLIB_RELEASE: "https://www.zlib.net/zlib-1.2.11.tar.gz"
-  CIBW_TEST_SKIP: "*_arm64 *_universal2:arm64"
-
 jobs:
   wheels_linux:
     name: 🏗 ${{ matrix.os }} - ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     env:
-      CIBW_SKIP: ""
-      CIBW_TEST_COMMAND: "pytest -nauto {project}/tests"
-      CIBW_TEST_EXTRAS: test
-      CIBW_BEFORE_ALL: "bash {project}/build-scripts/linux-build-wheel-deps.bash"
       CIBW_BUILD: "*-${{ matrix.platform }}"
     strategy:
       matrix:
@@ -34,11 +22,6 @@ jobs:
         name: Install Python
         with:
           python-version: "3.8"
-
-      - name: Download dependencies
-        run: |
-          build-scripts/linux-download-qpdf-deps.bash
-          build-scripts/linux-download-qpdf.bash ${{ env.QPDF_VERSION }}
 
       - name: Set up QEMU
         if: matrix.platform == 'manylinux_aarch64'
@@ -68,17 +51,12 @@ jobs:
         if: matrix.platform == 'manylinux_x86_64'
         with:
           name: rtd-wheel
-          path: ./wheelhouse/pikepdf-*-cp37-cp37m-manylinux2010_x86_64.whl
+          path: ./wheelhouse/pikepdf-*-cp37-*.manylinux2010_x86_64.whl
           if-no-files-found: error
 
   wheels_macos:
     name: 🏗 ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    env:
-      CIBW_SKIP: ""
-      CIBW_TEST_COMMAND: "pytest -nauto {project}/tests"
-      CIBW_TEST_EXTRAS: test
-      CIBW_BEFORE_ALL: "brew install qpdf"
     strategy:
       matrix:
         os: [macos-10.15]
@@ -107,13 +85,6 @@ jobs:
     name: 🏗 ${{ matrix.os }} - ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     env:
-      # pp3*-win32 fails because there is no wheel for lxml
-      # pp3*-win_amd64 does not execute because cibuildwheel does not implement it
-      # or PyPy3 doesn't work on Windows 64-bit, one or the other
-      # PyPy+Win32 seems like a very low priority combination
-      CIBW_SKIP: "cp27-* cp35-* pp2* pp3*"
-      CIBW_TEST_COMMAND: "pytest -nauto {project}/tests"
-      CIBW_TEST_EXTRAS: test
       CIBW_BUILD: "*-${{ matrix.platform }}"
       CIBW_ENVIRONMENT: >-
         INCLUDE="$INCLUDE;d:\\qpdf\\include"
@@ -134,10 +105,15 @@ jobs:
         with:
           python-version: "3.8"
 
+      - name: Install toml and read environment from pyproject.toml
+        run: |
+          python -m pip install toml
+          python build-scripts/environ-from-pyproject.py >> $env:GITHUB_ENV
+          dir env:
+
       - name: Download QPDF
         run: |
-          build-scripts/win-download-qpdf.ps1 ${{ env.QPDF_VERSION }} ${{ matrix.platform }}
-        shell: pwsh
+          build-scripts/win-download-qpdf.ps1 $env:QPDF_VERSION ${{ matrix.platform }}
 
       - name: Build wheels
         uses: joerick/cibuildwheel@v2.1.1
@@ -163,22 +139,28 @@ jobs:
       - name: Install apt packages
         run: sudo apt-get install -y jbig2dec lcov
 
+      - name: Install toml and read environment from pyproject.toml
+        run: |
+          python -m pip install toml
+          python build-scripts/environ-from-pyproject.py >> $GITHUB_ENV
+
       - name: Download QPDF
-        run: build-scripts/linux-download-qpdf.bash ${{ env.QPDF_MIN_VERSION }}
+        run: build-scripts/linux-download-qpdf.bash $QPDF_MIN_VERSION
 
       - name: Build QPDF
         run: build-scripts/linux-build-sdist-deps.bash
 
+      - name: Add LD_LIBRARY_PATH
+        run: echo "LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+
       - name: Build sdist
         run: |
-          export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
           python -m pip install --upgrade pip
           python -m pip install --upgrade setuptools wheel
           python setup.py sdist
 
       - name: Install and test sdist
         run: |
-          export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
           python -m venv v
           source v/bin/activate
           SDIST=dist/*.tar.gz
@@ -189,7 +171,6 @@ jobs:
 
       - name: Install natively
         run: |
-          export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
           env CFLAGS="--coverage" CXXFLAGS="--coverage" python -m pip install -e .[test]
           python -m pytest -nauto --cov-report xml --cov=src
 
@@ -221,7 +202,9 @@ jobs:
           echo "::set-output name=branch::${GITHUB_REF##refs/heads/}"
       - name: Trigger ReadTheDocs webhook
         run: |
-          curl -X POST -d "branches=${{ steps.get_branch.outputs.branch }}" -d "token=${{ secrets.TOKEN_RTD }}" https://readthedocs.org/api/v2/webhook/pikepdf/151353/
+          curl -X POST -d "branches=${{ steps.get_branch.outputs.branch }}" \
+                       -d "token=${{ secrets.TOKEN_RTD }}" \
+                       https://readthedocs.org/api/v2/webhook/pikepdf/151353/
 
   upload_pypi:
     needs: [wheels_linux, wheels_macos, wheels_windows, sdist]

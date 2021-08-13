@@ -81,3 +81,7 @@ coverage: cppcov pycov
 docs: build
 	$(MAKE) -C docs clean
 	$(MAKE) -C docs html
+
+cibuildwheel-test: clean-coverage
+	rm -rf build/bdist.* build/lib.* build/temp.*
+	cibuildwheel --platform linux

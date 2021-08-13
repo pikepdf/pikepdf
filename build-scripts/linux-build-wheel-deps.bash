@@ -19,6 +19,3 @@ if [ ! -f /usr/local/lib/libqpdf.a ]; then
     find /usr/local/lib -name 'libqpdf.so*' -type f -exec strip --strip-debug {} \+
     popd
 fi
-
-# For PyPy
-yum install -y libxml2-devel libxslt-devel

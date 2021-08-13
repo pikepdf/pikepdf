@@ -33,3 +33,36 @@ exclude = '''
   | \.egg-info
 )/
 '''
+
+[tool.cibuildwheel]
+test-command = "pytest -nauto {project}/tests"
+test-extras = "test"
+skip = "cp310-*"
+test-skip = "*_arm64 *_universal2:arm64"
+
+[tool.cibuildwheel.environment]
+QPDF_MIN_VERSION = "10.3.2"
+QPDF_VERSION = "10.3.2"
+QPDF_PATTERN = "https://github.com/qpdf/qpdf/releases/download/release-qpdf-VERSION/qpdf-VERSION.tar.gz"
+JPEG_RELEASE = "https://www.ijg.org/files/jpegsrc.v9d.tar.gz"
+ZLIB_RELEASE = "https://www.zlib.net/zlib-1.2.11.tar.gz"
+
+[tool.cibuildwheel.linux]
+before-all = [
+  "yum install -y wget libxml2-devel libxslt-devel",
+  "bash build-scripts/linux-download-qpdf-deps.bash",
+  "bash build-scripts/linux-download-qpdf.bash $QPDF_VERSION",
+  "bash build-scripts/linux-build-wheel-deps.bash"
+]
+manylinux-x86_64-image = "manylinux2010"
+manylinux-i686-image = "manylinux2010"
+
+[tool.cibuildwheel.macos]
+before-all = "brew install qpdf"
+
+[tool.cibuildwheel.windows]
+# pp3*-win32 fails because there is no wheel for lxml
+# pp3*-win_amd64 does not execute because cibuildwheel does not implement it
+# or PyPy3 doesn't work on Windows 64-bit, one or the other
+# PyPy+Win32 seems like a very low priority combination
+skip = "pp3* cp310-*"
