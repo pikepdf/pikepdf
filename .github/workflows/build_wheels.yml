@@ -204,7 +204,7 @@ jobs:
         run: |
           curl -X POST -d "branches=${{ steps.get_branch.outputs.branch }}" \
                        -d "token=${{ secrets.TOKEN_RTD }}" \
-                       https://readthedocs.org/api/v2/webhook/pikepdf/151353/
+                       https://readthedocs.org/api/v2/webhook/pikepdf/163029/
 
   upload_pypi:
     needs: [wheels_linux, wheels_macos, wheels_windows, sdist]
