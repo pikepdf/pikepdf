@@ -10,3 +10,7 @@ setuptools_scm
 Sphinx >= 3
 sphinx-issues
 sphinx-rtd-theme
+
+GitPython
+PyGithub
+requests
