@@ -121,52 +121,6 @@ def test_decimal_from_float(f):
             Object.parse(str(d))
 
 
-@given(lists(integers(-10, 10), min_size=0, max_size=10))
-def test_list(array):
-    a = pikepdf.Array(array)
-    assert a == array
-
-
-@given(lists(lists(integers(1, 10), min_size=1, max_size=5), min_size=1, max_size=5))
-def test_nested_list(array):
-    a = pikepdf.Array(array)
-    assert a == array
-
-
-@given(
-    recursive(
-        integers(1, 10) | booleans(),
-        lambda children: lists(children),  # pylint: disable=unnecessary-lambda
-        max_leaves=20,
-    )
-)
-def test_nested_list2(array):
-    assume(isinstance(array, list))
-    a = pikepdf.Array(array)
-    assert a == array
-
-
-def test_list_apis():
-    a = pikepdf.Array([1, 2, 3])
-    a[1] = None
-    assert a[1] is None
-    assert len(a) == 3
-    del a[1]
-    assert len(a) == 2
-    a[-1] = Name('/Foo')
-    with pytest.raises(IndexError):
-        a[-5555] = Name.Foo
-    assert a == pikepdf.Array([1, Name.Foo])
-    a.append(4)
-    assert a == pikepdf.Array([1, Name.Foo, 4])
-    a.extend([42, 666])
-    assert a == pikepdf.Array([1, Name.Foo, 4, 42, 666])
-    with pytest.raises(ValueError, match='object is not a dictionary'):
-        del a.ImaginaryKey
-    with pytest.raises(TypeError, match=r"items\(\) not available"):
-        a.items()
-
-
 @skip_if_pypy
 def test_stack_depth():
     a = [42]
@@ -199,15 +153,72 @@ def test_bytes():
         Name(b'/bytes')
 
 
-def test_len_array():
-    assert len(Array([])) == 0
-    assert len(Array()) == 0
-    assert len(Array([3])) == 1
+class TestArray:
+    def test_len_array(self):
+        assert len(Array([])) == 0
+        assert len(Array()) == 0
+        assert len(Array([3])) == 1
 
+    def test_wrap_array(self):
+        assert Name('/Foo').wrap_in_array() == Array([Name('/Foo')])
+        assert Array([42]).wrap_in_array() == Array([42])
 
-def test_wrap_array():
-    assert Name('/Foo').wrap_in_array() == Array([Name('/Foo')])
-    assert Array([42]).wrap_in_array() == Array([42])
+    @given(lists(integers(-10, 10), min_size=0, max_size=10))
+    def test_list(self, array):
+        a = pikepdf.Array(array)
+        assert a == array
+
+    @given(
+        lists(lists(integers(1, 10), min_size=1, max_size=5), min_size=1, max_size=5)
+    )
+    def test_nested_list(self, array):
+        a = pikepdf.Array(array)
+        assert a == array
+
+    @given(
+        recursive(
+            integers(1, 10) | booleans(),
+            lambda children: lists(children),  # pylint: disable=unnecessary-lambda
+            max_leaves=20,
+        )
+    )
+    def test_nested_list2(self, array):
+        assume(isinstance(array, list))
+        a = pikepdf.Array(array)
+        assert a == array
+
+    def test_array_of_array(self):
+        a = Array([1, 2])
+        a2 = Array(a)
+        assert a == a2
+        assert a is not a2
+
+    def test_array_of_primitives_eq(self):
+        a = Array([True, False, 0, 1, 42, 42.42])
+        b = Array([True, False, 0, 1, 42, 42.42])
+        assert a == b
+        c = Array([1.0, 0.0, 0.0, 1.0, 42.0, 42.42])
+        assert a == c
+
+    def test_list_apis(self):
+        a = pikepdf.Array([1, 2, 3])
+        a[1] = None
+        assert a[1] is None
+        assert len(a) == 3
+        del a[1]
+        assert len(a) == 2
+        a[-1] = Name('/Foo')
+        with pytest.raises(IndexError):
+            a[-5555] = Name.Foo
+        assert a == pikepdf.Array([1, Name.Foo])
+        a.append(4)
+        assert a == pikepdf.Array([1, Name.Foo, 4])
+        a.extend([42, 666])
+        assert a == pikepdf.Array([1, Name.Foo, 4, 42, 666])
+        with pytest.raises(ValueError, match='object is not a dictionary'):
+            del a.ImaginaryKey
+        with pytest.raises(TypeError, match=r"items\(\) not available"):
+            a.items()
 
 
 def test_no_len():
@@ -444,6 +455,16 @@ class TestDictionary:
         d = pikepdf.Dictionary()
         with pytest.raises(TypeError, match="can only contain Names"):
             pikepdf.Array([3]) in d
+
+    def test_dict_bad_params(self):
+        with pytest.raises(ValueError):
+            Dictionary({'/Foo': 1}, Bar=2)
+
+    def test_dict_of_dict(self):
+        d = Dictionary(One=1, Two=2)
+        d2 = Dictionary(d)
+        assert d == d2
+        assert d is not d2
 
 
 def test_not_convertible():
@@ -685,11 +706,6 @@ def test_stream_dict_oneshot():
     assert stream3.One == 1
 
 
-def test_dict_bad_params():
-    with pytest.raises(ValueError):
-        Dictionary({'/Foo': 1}, Bar=2)
-
-
 def test_stream_bad_params():
     p = pikepdf.new()
     with pytest.raises(TypeError, match='data'):
@@ -702,28 +718,6 @@ def test_stream_no_dangling_stream_on_failure():
     with pytest.raises(AttributeError):
         Stream(p, b'3.14159', ['Not a mapping object'])
     assert len(p.objects) == num_objects, "A dangling object was created"
-
-
-def test_dict_of_dict():
-    d = Dictionary(One=1, Two=2)
-    d2 = Dictionary(d)
-    assert d == d2
-    assert d is not d2
-
-
-def test_array_of_array():
-    a = Array([1, 2])
-    a2 = Array(a)
-    assert a == a2
-    assert a is not a2
-
-
-def test_array_of_primitives_eq():
-    a = Array([True, False, 0, 1, 42, 42.42])
-    b = Array([True, False, 0, 1, 42, 42.42])
-    assert a == b
-    c = Array([1.0, 0.0, 0.0, 1.0, 42.0, 42.42])
-    assert a == c
 
 
 def test_object_mapping(sandwich):
