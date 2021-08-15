@@ -74,7 +74,6 @@ v2.15.1
 -  Fixed a coverage code exclusion.
 -  Added a note missing "version added" comment to documentation.
 -  Fixed license string not appearing in metadata - thanks @mara004.
-=======
 
 v2.15.0
 =======
