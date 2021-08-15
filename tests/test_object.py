@@ -220,6 +220,27 @@ class TestArray:
         with pytest.raises(TypeError, match=r"items\(\) not available"):
             a.items()
 
+    def test_array_contains(self):
+        a = pikepdf.Array([Name.One, Name.Two])
+        assert Name.One in a
+        assert Name.Two in a
+        assert Name.N not in a
+
+        a = pikepdf.Array([1, 2, 3])
+        assert 1 in a
+        assert 3 in a
+        assert 42 not in a
+
+        with pytest.raises(TypeError):
+            'forty two' not in a
+        with pytest.raises(TypeError):
+            b'forty two' not in a
+        assert pikepdf.String('forty two') not in a
+
+        a = pikepdf.Array(['1234', b'\x80\x81\x82'])
+        assert pikepdf.String('1234') in a
+        assert pikepdf.String(b'\x80\x81\x82') in a
+
 
 def test_no_len():
     with pytest.raises(TypeError):

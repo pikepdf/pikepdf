@@ -65,6 +65,23 @@ size_t list_range_check(QPDFObjectHandle h, int index)
     return (size_t)index;
 }
 
+bool typecode_is_bool(QPDFObject::object_type_e typecode)
+{
+    return typecode == QPDFObject::object_type_e::ot_boolean;
+}
+
+bool typecode_is_int(QPDFObject::object_type_e typecode)
+{
+    return typecode == QPDFObject::object_type_e::ot_integer;
+}
+
+bool typecode_is_numeric(QPDFObject::object_type_e typecode)
+{
+    return typecode == QPDFObject::object_type_e::ot_integer ||
+           typecode == QPDFObject::object_type_e::ot_real ||
+           typecode == QPDFObject::object_type_e::ot_boolean;
+}
+
 bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
 {
     StackGuard sg(" objecthandle_equal");
@@ -86,15 +103,12 @@ bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
     auto self_typecode  = self.getTypeCode();
     auto other_typecode = other.getTypeCode();
 
-    if ((self_typecode == QPDFObject::object_type_e::ot_boolean) &&
-        (other_typecode == QPDFObject::object_type_e::ot_boolean)) {
+    if (typecode_is_bool(self_typecode) && typecode_is_bool(other_typecode)) {
         return self.getBoolValue() == other.getBoolValue();
-    } else if ((self_typecode == QPDFObject::object_type_e::ot_integer) &&
-               (other_typecode == QPDFObject::object_type_e::ot_integer)) {
+    } else if (typecode_is_int(self_typecode) && typecode_is_int(other_typecode)) {
         return self.getIntValue() == other.getIntValue();
-    } else if (self_typecode == QPDFObject::object_type_e::ot_integer ||
-               self_typecode == QPDFObject::object_type_e::ot_real ||
-               self_typecode == QPDFObject::object_type_e::ot_boolean) {
+    } else if (typecode_is_numeric(self_typecode) &&
+               typecode_is_numeric(other_typecode)) {
         // If 'self' and 'other' are different numeric types, convert both to
         // Decimal objects and compare them as such.
         auto a              = decimal_from_pdfobject(self);
@@ -157,6 +171,16 @@ bool object_has_key(QPDFObjectHandle h, std::string const &key)
         throw py::value_error("object is not a dictionary or a stream");
     QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
     return dict.hasKey(key);
+}
+
+bool array_has_item(QPDFObjectHandle haystack, QPDFObjectHandle needle)
+{
+    if (!haystack.isArray())
+        throw std::logic_error("object is not an array");
+
+    auto vec    = haystack.getArrayAsVector();
+    auto result = std::find(std::begin(vec), std::end(vec), needle);
+    return (result != std::end(vec));
 }
 
 QPDFObjectHandle object_get_key(QPDFObjectHandle h, std::string const &key)
@@ -563,13 +587,28 @@ void init_object(py::module_ &m)
             "keys.")
         .def("__contains__",
             [](QPDFObjectHandle &h, QPDFObjectHandle &key) {
+                if (h.isArray()) {
+                    return array_has_item(h, key);
+                }
                 if (!key.isName())
                     throw py::type_error("Dictionaries can only contain Names");
                 return object_has_key(h, key.getName());
             })
         .def("__contains__",
             [](QPDFObjectHandle &h, std::string const &key) {
+                if (h.isArray()) {
+                    throw py::type_error(
+                        "Testing `str in pikepdf.Array` is not supported due to "
+                        "ambiguity. Use `pikepdf.String('...') in pikepdf.Array.");
+                }
                 return object_has_key(h, key);
+            })
+        .def("__contains__",
+            [](QPDFObjectHandle &h, py::object key) {
+                if (h.isArray()) {
+                    return array_has_item(h, objecthandle_encode(key));
+                }
+                return false;
             })
         .def("as_list", &QPDFObjectHandle::getArrayAsVector)
         .def("as_dict", &QPDFObjectHandle::getDictAsMap)
