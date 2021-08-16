@@ -18,6 +18,20 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v3.0.0b2
+========
+
+Breaking changes
+----------------
+
+-  libqpdf 10.3.2 is now required, instead of 10.3.1.
+
+New functionality
+-----------------
+
+-  ``x in pikepdf.Array()`` is now supported; previously this construct was raised
+   raised. :issue:`232`
+
 v3.0.0b1
 ========
 
@@ -39,6 +53,7 @@ Breaking changes
    it should have returned ``bytes``. It now returns the correct type.
 -  :func:`pikepdf.open` and :func:`pikepdf.save`, and their counterparts in
    :class:`pikepdf.Pdf`, now expect keyword arguments for all expect the first parameter.
+-  Build scripts and wheel building updated.
 
 New functionality
 -----------------
@@ -50,7 +65,7 @@ New functionality
    DeviceN and Separation, and support extracting more types of images. :issue:`237`
 -  Improved error message when ``Pdf.save()`` is called on PDFs without a known
    source file.
--  Documentation fixes to StreamParser, return types, PdfImage.
+-  Many documentation fixes to StreamParser, return types, PdfImage.
 
 v2.16.1
 =======
