@@ -59,6 +59,8 @@ pikepdf would help you build apps that do things like:
   scanned
 * Alter a PDF to meet a target specification such as PDF/A or PDF/X
 * Add or modify PDF :ref:`metadata <accessmetadata>`
+* Add, remove, extract, and modify PDF :ref:`attachments <attachments>`
+  (i.e. embedded files)
 * Create well-formed but invalid PDFs for testing purposes
 
 What it cannot do:

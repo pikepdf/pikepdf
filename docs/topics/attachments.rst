@@ -1,3 +1,5 @@
+.. _attachments:
+
 Attaching files to a PDF
 ************************
 
