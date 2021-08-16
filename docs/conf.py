@@ -18,6 +18,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import toml
 from pkg_resources import get_distribution
 
 on_rtd = os.environ.get('READTHEDOCS') == 'True'
@@ -107,8 +108,12 @@ autosummary_generate = True
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
-rst_prolog = """
+pyproject_toml = toml.load('../pyproject.toml')
+toml_env = pyproject_toml['tool']['cibuildwheel']['environment']
+
+rst_prolog = f"""
 .. |pdfrm| replace:: :doc:`PDF 1.7 Reference Manual </references/resources>`
+.. |qpdf-min-version| replace:: {toml_env['QPDF_MIN_VERSION']}
 """
 
 # The suffix(es) of source filenames.

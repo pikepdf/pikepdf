@@ -11,6 +11,7 @@ from pathlib import Path
 from shutil import copy
 
 import pytest
+import toml
 
 import pikepdf
 from pikepdf import Name, Object, Pdf, Stream
@@ -19,7 +20,12 @@ from pikepdf import Name, Object, Pdf, Stream
 def test_minimum_qpdf_version():
     from pikepdf import _qpdf
 
-    assert LooseVersion(_qpdf.qpdf_version()) >= LooseVersion('10.3.2')
+    pyproject_toml = toml.load(Path(__file__).parent / '../pyproject.toml')
+    toml_env = pyproject_toml['tool']['cibuildwheel']['environment']
+
+    assert LooseVersion(_qpdf.qpdf_version()) >= LooseVersion(
+        toml_env['QPDF_MIN_VERSION']
+    )
 
 
 def test_open_pdf(resources):
