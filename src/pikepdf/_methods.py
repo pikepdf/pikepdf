@@ -1170,6 +1170,17 @@ class Extend_Page:
         """
         return self._over_underlay(other, rect, under=True)
 
+    def contents_add(self, contents: Union[Stream, bytes], *, prepend: bool = False):
+        """Append or prepend to an existing page's content stream.
+
+        Args:
+            contents: An existing content stream to append or prepend.
+            prepend: Prepend if true, append if false (default).
+
+        .. versionadded:: 2.14
+        """
+        return self._contents_add(contents, prepend=prepend)
+
     def __getattr__(self, name):
         if hasattr(self.__class__, name):
             return object.__getattr__(self, name)

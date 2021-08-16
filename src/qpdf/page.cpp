@@ -106,21 +106,16 @@ void init_page(py::module_ &m)
                 confuse some software.
             )~~~")
         .def(
-            "contents_add",
+            "_contents_add",
             [](QPDFPageObjectHelper &poh, QPDFObjectHandle &contents, bool prepend) {
                 return poh.addPageContents(contents, prepend);
             },
             py::arg("contents"),
             py::kw_only(),
             py::arg("prepend") = false,
-            py::keep_alive<1, 2>(),
-            R"~~~(
-                Append or prepend to an existing page's content stream using an existing stream object.
-
-                .. versionadded:: 2.14
-            )~~~")
+            py::keep_alive<1, 2>())
         .def(
-            "contents_add",
+            "_contents_add",
             [](QPDFPageObjectHelper &poh, py::bytes contents, bool prepend) {
                 auto q = poh.getObjectHandle().getOwningQPDF();
                 if (!q) {
@@ -133,12 +128,7 @@ void init_page(py::module_ &m)
             },
             py::arg("contents"),
             py::kw_only(),
-            py::arg("prepend") = false,
-            R"~~~(
-                Append or prepend to an existing page's content stream from bytes.
-
-                .. versionadded:: 2.14
-            )~~~")
+            py::arg("prepend") = false)
         .def("remove_unreferenced_resources",
             &QPDFPageObjectHelper::removeUnreferencedResources,
             R"~~~(
