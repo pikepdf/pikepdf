@@ -336,6 +336,7 @@ def test_add_foreign_twice(graph, outpdf):
     out.save(outpdf)
 
 
+@pytest.mark.xfail(__libqpdf_version__ < '10.3.2', reason="qpdf issue 514")
 def test_add_twice_without_copy_foreign(graph, outpdf):
     out = Pdf.new()
     out.pages.append(graph.pages[0])
