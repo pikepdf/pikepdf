@@ -60,7 +60,7 @@ New functionality
 
 -  Added :class:`pikepdf.NameTree`. We now bind to QPDF's Name Tree API, for
    manipulating these complex and important data structures.
--  We now support adding and removing PDF attachments.
+-  We now support adding and removing PDF attachments. :issue:`209`
 -  Improved support for PDF images that use special printer colorspaces such as
    DeviceN and Separation, and support extracting more types of images. :issue:`237`
 -  Improved error message when ``Pdf.save()`` is called on PDFs without a known

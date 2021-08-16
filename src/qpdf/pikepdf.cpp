@@ -154,6 +154,7 @@ PYBIND11_MODULE(_qpdf, m)
     // -- Exceptions --
     static py::exception<QPDFExc> exc_main(m, "PdfError");
     static py::exception<QPDFExc> exc_password(m, "PasswordError");
+    static py::exception<QPDFExc> exc_datadecoding(m, "DataDecodingError");
     static py::exception<std::logic_error> exc_foreign(m, "ForeignObjectError");
     py::register_exception_translator([](std::exception_ptr p) {
         try {
@@ -179,6 +180,11 @@ PYBIND11_MODULE(_qpdf, m)
                 exc_foreign(trans.first.c_str());
             else if (trans.second == error_type_pdferror)
                 exc_main(trans.first.c_str());
+            else
+                std::rethrow_exception(p);
+        } catch (const std::runtime_error &e) {
+            if (str_startswith(e.what(), "character out of range"))
+                exc_datadecoding(e.what());
             else
                 std::rethrow_exception(p);
         }

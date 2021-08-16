@@ -16,10 +16,15 @@ Exceptions
 
 .. autoexception:: pikepdf.OutlineStructureError
 
-    Exception throw when an ``/Outlines`` object violates constraints imposed
+    Exception thrown when an ``/Outlines`` object violates constraints imposed
     by the |pdfrm|.
 
 .. autoexception:: pikepdf.UnsupportedImageTypeError
 
-    Exception throw when attempting to manipulate a PDF image of a complex type
+    Exception thrown when attempting to manipulate a PDF image of a complex type
     that pikepdf does not currently support.
+
+.. autoexception:: pikepdf.DataDecodingError
+
+    Exception thrown when a stream object in a PDF is malformed and cannot be
+    decoded.
