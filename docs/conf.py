@@ -114,6 +114,7 @@ toml_env = pyproject_toml['tool']['cibuildwheel']['environment']
 rst_prolog = f"""
 .. |pdfrm| replace:: :doc:`PDF 1.7 Reference Manual </references/resources>`
 .. |qpdf-min-version| replace:: {toml_env['QPDF_MIN_VERSION']}
+.. |qpdf-version| replace:: {toml_env['QPDF_VERSION']}
 """
 
 # The suffix(es) of source filenames.
