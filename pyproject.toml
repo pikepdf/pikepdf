@@ -66,3 +66,45 @@ before-all = "brew install qpdf"
 # or PyPy3 doesn't work on Windows 64-bit, one or the other
 # PyPy+Win32 seems like a very low priority combination
 skip = "pp3* cp310-*"
+
+[tool.mypy]
+
+[[tool.mypy.overrides]]
+module = [
+  'PIL',
+  'PIL.TiffTags',
+  'lxml.etree'
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+norecursedirs = ["lib", ".pc", ".git", "venv"]
+testpaths = ["tests"]
+addopts = "-n auto"
+
+[tool.coverage.run]
+concurrency = ["multiprocessing"]
+
+[tool.coverage.report]
+# Regexes for lines to exclude from consideration
+exclude_lines = [
+    # Have to re-enable the standard pragma
+    "pragma: no cover",
+
+    # Don't complain if tests don't hit defensive assertion code:
+    "raise AssertionError",
+    "raise NotImplementedError",
+
+    # Don't complain if non-runnable code isn't run:
+    "if 0:",
+    "if __name__ == .__main__.:",
+]
+
+[tool.coverage.html]
+directory = "coverage/pycov"
+
+[tool.isort]
+profile = "black"
+known_first_party = ["pikepdf"]
+known_third_party = ["PIL","conftest","hypothesis","lxml","pkg_resources","psutil","pytest","setuptools"]
