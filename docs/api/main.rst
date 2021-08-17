@@ -75,6 +75,7 @@ Main objects
         the preferred method.
 
 .. autoclass:: pikepdf.Encryption
+    :noindex:
 
 Object construction
 ===================
