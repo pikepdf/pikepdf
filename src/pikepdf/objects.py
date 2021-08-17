@@ -57,7 +57,7 @@ class _NameObjectMeta(_ObjectMeta):
     """Supports usage pikepdf.Name.Whatever -> Name('/Whatever')."""
 
     def __getattr__(self, attr):
-        if attr.startswith('_'):
+        if attr.startswith('_') or attr == 'object_type':
             return getattr(_ObjectMeta, attr)
         return Name('/' + attr)
 
@@ -95,7 +95,7 @@ class Name(Object, metaclass=_NameObjectMeta):
     dynamic names and attributes.
     """
 
-    object_type = ObjectType.name
+    object_type = ObjectType.name_
 
     def __new__(cls, name: Union[str, 'Name']):
         # QPDF_Name::unparse ensures that names are always saved in a UTF-8

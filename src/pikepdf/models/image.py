@@ -318,7 +318,7 @@ class PdfImageBase(ABC):
             base = 'Separation'
         elif base == '/ICCBased':
             base = self._approx_mode_from_icc()
-        return base, lookup
+        return PaletteData(base, lookup)
 
     @abstractmethod
     def as_pil_image(self):

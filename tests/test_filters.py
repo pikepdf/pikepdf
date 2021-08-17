@@ -34,7 +34,7 @@ class FilterCollectNames(TokenFilter):
         self.rawnames = []
 
     def handle_token(self, token):
-        if token.type_ == TokenType.name:
+        if token.type_ == TokenType.name_:
             self.names.append(token.value)
             self.rawnames.append(token.raw_value)
         return None

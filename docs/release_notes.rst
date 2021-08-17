@@ -44,6 +44,10 @@ Breaking changes
    as in the previous idiom ``page = Page(pdf.pages[0])``. In most cases,
    if you use the Dictionary object API on a page, it will automatically do the
    right thing to the underlying dictionary.
+-  ``TokenType.name`` and ``ObjectType.name`` were renamed to
+   ``TokenType.name_`` and ``ObjectType.name_``, respectively. Unfortunately,
+   Python's ``Enum`` class of which these are both a subclass uses the ``.name``
+   attribute in a special way that interfered.
 -  Deprecated or private functions were removed:
    -  ``Object.page_contents_*`` (use ``Page.contents_*``)
    -  ``Object.images`` (use ``Page.images``)

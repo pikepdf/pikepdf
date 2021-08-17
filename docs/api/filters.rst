@@ -67,10 +67,14 @@ Content stream token filters
         The token data represents an integer, real number, null or boolean,
         respectively.
 
-    .. attribute:: name
+    .. attribute:: name_
 
         The token is the name (pikepdf.Name) of an object. In practice, these
         are among the most interesting tokens.
+
+        .. versionchanged:: 3.0
+            In versions older than 3.0, ``.name`` was used instead. This interfered
+            with semantics of the ``Enum`` object, so this was fixed.
 
     .. attribute:: inline_image
 
