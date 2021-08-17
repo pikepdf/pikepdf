@@ -122,3 +122,75 @@ but not intended to be created explicitly.
     :members:
 
     A ``list``-like object containing multiple ``pikepdf.Object``.
+
+.. class:: pikepdf.ObjectType
+
+    Enumeration of object types. These values are used to implement
+    pikepdf's instance type checking. In the vast majority of cases it is more
+    pythonic to use ``isinstance(obj, pikepdf.Stream)`` or ``issubclass``.
+
+    These values are low-level and documented for completeness. They are exposed
+    through :attr:`pikepdf.Object._type_code`.
+
+    .. attribute:: uninitialized
+
+        An uninitialized object. If this appears, it is probably a bug.
+
+    .. attribute:: reserved
+
+        A temporary object used in creating circular references. Should not appear
+        in most cases.
+
+    .. attribute:: null
+
+        A PDF null. In most cases, nulls are automatically converted to ``None``,
+        so this should not appear.
+
+    .. attribute:: boolean
+
+        A PDF boolean. In most cases, booleans are automatically converted to
+        ``bool``, so this should not appear.
+
+    .. attribute:: integer
+
+        A PDF integer. In most cases, integers are automatically converted to
+        ``int``, so this should not appear. Unlike Python integers, PDF integers
+        are 32-bit signed integers.
+
+    .. attribute:: real
+
+        A PDF real. In most cases, reals are automatically convert to
+        :class:`decimal.Decimal`.
+
+    .. attribute:: string
+
+        A PDF string, meaning the object is a ``pikepdf.String``.
+
+    .. attribute:: name_
+
+        A PDF name, meaning the object is a ``pikepdf.Name``.
+
+    .. attribute:: array
+
+        A PDF array, meaning the object is a ``pikepdf.Array``.
+
+    .. attribute:: dictionary
+
+        A PDF dictionary, meaning the object is a ``pikepdf.Dictionary``.
+
+    .. attribute:: stream
+
+        A PDF stream, meaning the object is a ``pikepdf.Stream`` (and it also
+        has a dictionary).
+
+    .. attribute:: operator
+
+        A PDF operator, meaning the object is a ``pikepdf.Operator``.
+
+    .. attribute:: inlineimage
+
+        A PDF inline image, meaning the object is the data stream of an inline
+        image. It would be necessary to combine this with the implicit
+        dictionary to interpret the image correctly. pikepdf automatically
+        packages inline images into a more useful class, so this will not
+        generally appear.
