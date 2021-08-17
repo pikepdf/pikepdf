@@ -133,7 +133,7 @@ class OutlineItem:
     def __init__(
         self,
         title: str,
-        destination: Optional[Tuple[int, str, Object]] = None,
+        destination: Optional[Union[Array, Tuple[int, str, Object]]] = None,
         page_location: Optional[Union[PageLocation, str]] = None,
         action: Optional[Dictionary] = None,
         obj: Optional[Dictionary] = None,
@@ -184,7 +184,15 @@ class OutlineItem:
         """
         title = str(obj.Title)
         destination = obj.get(Name.Dest)
+        if destination is not None and not isinstance(destination, Array):
+            raise OutlineStructureError(
+                f"Unexpected object type in Outline's /Dest: {destination!r}"
+            )
         action = obj.get(Name.A)
+        if action is not None and not isinstance(action, Dictionary):
+            raise OutlineStructureError(
+                f"Unexpected object type in Outline's /A: {action!r}"
+            )
         return cls(title, destination=destination, action=action, obj=obj)
 
     def to_dictionary_object(self, pdf: Pdf, create_new: bool = False) -> Dictionary:
@@ -239,7 +247,7 @@ class Outline:
     """
 
     def __init__(self, pdf: Pdf, max_depth: int = 15, strict: bool = False):
-        self._root = None
+        self._root: Optional[List[OutlineItem]] = None
         self._pdf = pdf
         self._max_depth = max_depth
         self._strict = strict
@@ -324,7 +332,7 @@ class Outline:
         level: int,
         visited_objs: Set[Tuple[int, int]],
     ):
-        current_obj = first_obj
+        current_obj: Optional[Dictionary] = first_obj
         while current_obj:
             objgen = current_obj.objgen
             if objgen in visited_objs:
@@ -337,15 +345,21 @@ class Outline:
 
             item = OutlineItem.from_dictionary_object(current_obj)
             first_child = current_obj.get(Name.First)
-            if first_child is not None and level < self._max_depth:
+            if isinstance(first_child, Dictionary) and level < self._max_depth:
                 self._load_level_outline(
                     first_child, item.children, level + 1, visited_objs
                 )
                 count = current_obj.get(Name.Count)
-                if count is not None and count < 0:
+                if isinstance(count, int) and count < 0:
                     item.is_closed = True
             outline_items.append(item)
-            current_obj = current_obj.get(Name.Next)
+            next_obj = current_obj.get(Name.Next)
+            if next_obj is None or isinstance(next_obj, Dictionary):
+                current_obj = next_obj
+            else:
+                raise OutlineStructureError(
+                    f"Outline object {objgen} points to non-dictionary"
+                )
 
     def _save(self):
         if self._root is None:
@@ -368,7 +382,7 @@ class Outline:
             self._load_level_outline(first_obj, root, 0, set())
 
     @property
-    def root(self) -> List[OutlineItem]:
+    def root(self) -> Optional[List[OutlineItem]]:
         if self._root is None:
             self._load()
         return self._root
