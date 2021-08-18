@@ -6,7 +6,7 @@ import pytest
 
 import pikepdf
 from pikepdf import Dictionary, Name, Pdf
-from pikepdf._qpdf import AttachedFileStream, Attachments, FileSpec
+from pikepdf._qpdf import AttachedFile, AttachedFileSpec, Attachments
 
 
 @pytest.fixture
@@ -22,7 +22,7 @@ def test_attachment_crud(pal, resources, outpdf):
     with open(resources / 'rle.pdf', 'rb') as rle:
         rle_bytes = rle.read()
         rle.seek(0)
-        fs = FileSpec(pal, rle)
+        fs = AttachedFileSpec(pal, rle)
 
     pal.attachments['rle.pdf'] = fs
 
@@ -36,7 +36,7 @@ def test_attachment_crud(pal, resources, outpdf):
         assert len(output.attachments) == 1, "output had no attachment"
         assert 'rle.pdf' in output.attachments, "filename not present"
         rle_spec = output.attachments['rle.pdf']
-        rle_file = rle_spec.get_stream()
+        rle_file = rle_spec.get_file()
         assert (
             rle_bytes == rle_file.read_bytes()
         ), "attachment not reproduced bit for bit"
@@ -53,13 +53,15 @@ def test_attachment_iter(pal):
     inputs = ['1', '2']
 
     for input_ in inputs:
-        pal.attachments[f'filename {input_}'] = FileSpec(pal, input_.encode('ascii'))
+        pal.attachments[f'filename {input_}'] = AttachedFileSpec(
+            pal, input_.encode('ascii')
+        )
 
     for filename in pal.attachments:
         fileno = filename.replace('filename ', '')
         assert fileno in inputs
         filespec = pal.attachments[filename]
-        assert filespec.get_stream().read_bytes().decode('ascii') in inputs
+        assert filespec.get_file().read_bytes().decode('ascii') in inputs
 
 
 def test_filespec_types(pal, resources):
@@ -67,20 +69,20 @@ def test_filespec_types(pal, resources):
     some_path = resources / 'rle.pdf'
     assert isinstance(some_path, Path)
 
-    fs_bytes = FileSpec(pal, some_bytes)
-    assert fs_bytes.get_stream().read_bytes() == some_bytes
+    fs_bytes = AttachedFileSpec(pal, some_bytes)
+    assert fs_bytes.get_file().read_bytes() == some_bytes
     assert fs_bytes.filename == ''
 
-    fs_path = FileSpec(pal, some_path)
-    assert fs_path.get_stream().read_bytes() == some_path.read_bytes()
+    fs_path = AttachedFileSpec(pal, some_path)
+    assert fs_path.get_file().read_bytes() == some_path.read_bytes()
 
     with pytest.raises(TypeError):
-        fs_path.get_stream(pikepdf.Array([1]))
+        fs_path.get_file(pikepdf.Array([1]))
 
 
 def test_attachment_metadata(pal):
-    fs = FileSpec(pal, b'some data', description='test filespec')
-    attached_stream = fs.get_stream()
+    fs = AttachedFileSpec(pal, b'some data', description='test filespec')
+    attached_stream = fs.get_file()
     assert attached_stream.creation_date is None
     assert attached_stream.mod_date is None
 
@@ -96,7 +98,7 @@ def test_compound_attachment(pal):
     data = [b'data stream 1', b'data stream 2']
     filename = [b'filename of data stream 1', b'filename of data stream 2']
 
-    fs = FileSpec(pal, data[0], description='test filespec')
+    fs = AttachedFileSpec(pal, data[0], description='test filespec')
     fs.filename = 'compound filespec'
     fs.obj.UF = filename[0]
 
@@ -111,10 +113,10 @@ def test_compound_attachment(pal):
     assert all_filenames[Name.UF] == filename[0]
     assert all_filenames[Name.F] == filename[1]
 
-    assert fs.get_stream().read_bytes() == data[0]
-    assert fs.get_stream(Name.UF).read_bytes() == data[0]
-    assert fs.get_stream(Name.F).read_bytes() == data[1]
+    assert fs.get_file().read_bytes() == data[0]
+    assert fs.get_file(Name.UF).read_bytes() == data[0]
+    assert fs.get_file(Name.F).read_bytes() == data[1]
 
-    assert fs.get_stream().md5 == md5(data[0]).digest()
+    assert fs.get_file().md5 == md5(data[0]).digest()
 
     pal.attachments['compound'] = fs

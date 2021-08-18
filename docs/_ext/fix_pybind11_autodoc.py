@@ -6,7 +6,7 @@ import re
 replacements = [
     (re.compile(r'pikepdf._qpdf.(\w+)\b'), r'pikepdf.\1'),
     (re.compile(r'QPDFTokenizer::Token\b'), 'pikepdf.Token'),
-    (re.compile(r'QPDFEFStreamObjectHelper'), 'pikepdf._qpdf.AttachedFileStream'),
+    (re.compile(r'QPDFEFStreamObjectHelper'), 'pikepdf._qpdf.AttachedFile'),
     (re.compile(r'QPDFObjectHandle::TokenFilter'), 'pikepdf.TokenFilter'),
     (re.compile(r'QPDFObjectHandle::Rectangle'), 'pikepdf.Rectangle'),
     (re.compile(r'QPDFObjectHandle'), 'pikepdf.Object'),

@@ -41,9 +41,9 @@ from warnings import warn
 from . import Array, Dictionary, Name, Object, Page, Pdf, Stream
 from ._qpdf import (
     AccessMode,
-    AttachedFileStream,
+    AttachedFile,
+    AttachedFileSpec,
     Attachments,
-    FileSpec,
     NameTree,
     ObjectStreamMode,
     Rectangle,
@@ -1212,13 +1212,13 @@ class Extend_Rectangle:
 
 @augments(Attachments)
 class Extend_Attachments(MutableMapping):
-    def __getitem__(self, k: str) -> FileSpec:
+    def __getitem__(self, k: str) -> AttachedFileSpec:
         filespec = self._get_filespec(k)
         if filespec is None:
             raise KeyError(k)
         return filespec
 
-    def __setitem__(self, k: str, v: FileSpec) -> None:
+    def __setitem__(self, k: str, v: AttachedFileSpec) -> None:
         if not v.filename:
             v.filename = k
         return self._add_replace_filespec(k, v)
@@ -1237,20 +1237,20 @@ class Extend_Attachments(MutableMapping):
         return f"<pikepdf._qpdf.Attachments with {len(self)} attached files>"
 
 
-@augments(FileSpec)
-class Extend_FileSpec:
+@augments(AttachedFileSpec)
+class Extend_AttachedFileSpec:
     def __repr__(self):
         if self.filename:
             return (
-                f"<pikepdf._qpdf.FileSpec for {self.filename!r}, "
+                f"<pikepdf._qpdf.AttachedFileSpec for {self.filename!r}, "
                 f"description {self.description!r}>"
             )
         else:
-            return f"<pikepdf._qpdf.FileSpec description {self.description!r}>"
+            return f"<pikepdf._qpdf.AttachedFileSpec description {self.description!r}>"
 
 
-@augments(AttachedFileStream)
-class Extend_AttachedFileStream:
+@augments(AttachedFile)
+class Extend_AttachedFile:
     @property
     def creation_date(self) -> Optional[datetime.datetime]:
         if not self._creation_date:
@@ -1276,7 +1276,7 @@ class Extend_AttachedFileStream:
 
     def __repr__(self):
         return (
-            f'<pikepdf._qpdf.AttachedFileStream objid={self.obj.objgen} size={self.size} '
+            f'<pikepdf._qpdf.AttachedFile objid={self.obj.objgen} size={self.size} '
             f'mime_type={self.mime_type} creation_date={self.creation_date} '
             f'mod_date={self.mod_date}>'
         )

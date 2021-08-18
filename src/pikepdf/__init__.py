@@ -23,8 +23,8 @@ except ImportError as _e:  # pragma: no cover
 from ._qpdf import (
     AccessMode,
     Annotation,
+    AttachedFileSpec,
     DataDecodingError,
-    FileSpec,
     ForeignObjectError,
     NameTree,
     ObjectStreamMode,

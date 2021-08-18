@@ -9,12 +9,12 @@ to one of its test files.
 
 .. ipython::
 
-    In [1]: from pikepdf import Pdf, FileSpec
+    In [1]: from pikepdf import Pdf, AttachedFileSpec
 
     In [1]: pdf = Pdf.open('../tests/resources/fourpages.pdf')
 
     In [1]: with open('../README.md', 'rb') as file:
-       ...:     filespec = FileSpec(pdf, file)
+       ...:     filespec = AttachedFileSpec(pdf, file)
 
     In [1]: pdf.attachments['README.md'] = filespec
 
@@ -27,9 +27,9 @@ Now we can retrive the data.
 
     In [1]: pdf.attachments['README.md']
 
-    In [1]: pdf.attachments['README.md'].get_stream()
+    In [1]: pdf.attachments['README.md'].get_file()
 
-    In [1]: pdf.attachments['README.md'].get_stream().read_bytes()[:50]
+    In [1]: pdf.attachments['README.md'].get_file().read_bytes()[:50]
 
 
 General notes on attached files
@@ -41,11 +41,11 @@ General notes on attached files
 * PDF viewers tend to display attachment filenames in alphabetical order. Use prefixes
   if you want to control the display order.
 
-* As shown in the example, the underlying file object can be closed when used to create
-  a ``FileSpec``. The ``FileSpec`` contains the data.
+* The ``AttachedFileSpec`` will capture all of the data when created, so the file object
+  used to create the data can be closed.
 
-* Each attachment is a :class:`pikepdf.FileSpec`. An attachment usually contains only
-  one :class:`pikepdf.AttachedFileStream`, but might contain multiple objects of this
+* Each attachment is a :class:`pikepdf.AttachedFileSpec`. An attachment usually contains only
+  one :class:`pikepdf.AttachedFile`, but might contain multiple objects of this
   type. Usually, multiple versions are used to provide different versions of the
   same file for alternate platforms, such as Windows and macOS versions of a file.
   Newer PDFs rarely provide multiple versions.

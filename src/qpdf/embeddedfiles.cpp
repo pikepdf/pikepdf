@@ -24,8 +24,11 @@
 void init_embeddedfiles(py::module_ &m)
 {
     py::class_<QPDFFileSpecObjectHelper, std::shared_ptr<QPDFFileSpecObjectHelper>>(
-        m, "FileSpec")
-        .def(py::init([](QPDF &q, py::object stream, std::string description) {
+        m, "AttachedFileSpec")
+        .def(py::init([](QPDF &q,
+                          py::object stream,
+                          std::string description,
+                          std::string mime_type) {
             py::bytes data;
             py::type Path = py::module_::import("pathlib").attr("Path");
 
@@ -41,13 +44,15 @@ void init_embeddedfiles(py::module_ &m)
             auto filespec =
                 QPDFFileSpecObjectHelper::createFileSpec(q, std::string(""), efstream);
             filespec.setDescription(description);
+            efstream.setSubtype(mime_type);
             return filespec;
         }),
             py::keep_alive<0, 1>(),
             py::arg("q"),
             py::arg("stream"),
             py::kw_only(),
-            py::arg("description") = std::string(""))
+            py::arg("description") = std::string(""),
+            py::arg("mime_type")   = std::string(""))
         .def_property_readonly("obj",
             [](QPDFFileSpecObjectHelper &spec) { return spec.getObjectHandle(); })
         .def_property("description",
@@ -61,7 +66,7 @@ void init_embeddedfiles(py::module_ &m)
                 spec.setFilename(value);
             },
             R"~~~(
-            The main filename for this file.
+            The main filename for this file spec.
 
             In priority order, getting this returns the first of /UF, /F, /Unix,
             /DOS, /Mac if multiple filenames are set. Setting this will set a UTF-8
@@ -90,16 +95,16 @@ void init_embeddedfiles(py::module_ &m)
             punctuation or other marks that are forbidden in filenames.
             )~~~")
         .def(
-            "get_stream",
+            "get_file",
             [](QPDFFileSpecObjectHelper &spec) {
                 return QPDFEFStreamObjectHelper(spec.getEmbeddedFileStream());
             },
             py::return_value_policy::reference_internal,
             R"~~~(
-            Return the primary (usually only) attached file stream.
+            Return the primary (usually only) attached file.
             )~~~")
         .def(
-            "get_stream",
+            "get_file",
             [](QPDFFileSpecObjectHelper &spec, QPDFObjectHandle &name) {
                 if (!name.isName())
                     throw py::type_error("Parameter must be a pikepdf.Name");
@@ -108,13 +113,13 @@ void init_embeddedfiles(py::module_ &m)
             },
             py::return_value_policy::reference_internal,
             R"~~~(
-            Return an attached file stream selected by :class:`pikepdf.Name`.
+            Return an attached file selected by :class:`pikepdf.Name`.
 
             Typical names would be ``/UF`` and ``/F``. See |pdfrm| for other obsolete
             names.
             )~~~");
 
-    py::class_<QPDFEFStreamObjectHelper>(m, "AttachedFileStream")
+    py::class_<QPDFEFStreamObjectHelper>(m, "AttachedFile")
         .def_property_readonly("obj",
             [](QPDFEFStreamObjectHelper &efstream) {
                 return efstream.getObjectHandle();

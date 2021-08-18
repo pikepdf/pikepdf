@@ -105,42 +105,43 @@ Version 3.x automatically applies support models to ``/Page`` objects.
     exposed as a Python :class:`collections.abc.MutableMapping` interface.
 
     The keys (virtual filenames) are always ``str``, and values are always
-    :class:`pikepdf.FileSpec`.
+    :class:`pikepdf.AttachedFileSpec`.
 
     .. versionadded:: 3.0
 
-.. autoclass:: pikepdf.FileSpec
+.. autoclass:: pikepdf.AttachedFileSpec
     :members:
 
-    A file specification that accounts for the possibility of multiple data streams.
+    In a PDF, a file specification provides name and metadata for a target file.
 
-    In the vast majority of cases, only a single AttachedFileStream is present and
-    this object can be mostly ignored. Call :meth:`get_stream` and be on your way:
+    Most file specifications are *simple* file specifications, and contain only
+    one attached file. Call :meth:`get_file` to get the attached file:
 
     .. code-block:: python
 
         pdf = Pdf.open(...)
 
-        fs: FileSpec = pdf.attachments['example.txt']
-        stream: AttachedFileStream = fs.get_stream()
+        fs: AttachedFileSpec = pdf.attachments['example.txt']
+        stream: AttachedFile = fs.get_file()
 
-    To attach a new file to a PDF, you may construct a ``FileSpec``.
+    To attach a new file to a PDF, you may construct a ``AttachedFileSpec``.
 
     .. code-block:: python
 
         pdf = Pdf.open(...)
 
         with open('somewhere/spreadsheet.xlsx', 'rb') as data_to_attach:
-            fs = FileSpec(pdf, data_to_attach)
+            fs = AttachedFileSpec(pdf, data_to_attach)
             pdf.attachments['spreadsheet.xlsx'] = fs
 
     PDF supports the concept of having multiple, platform-specialized versions of the
-    file attachment (similar to resource forks on some operating systems). In theory,
+    attached file (similar to resource forks on some operating systems). In theory,
     this attachment ought to be the same file, but
     encoded in different ways. For example, perhaps a PDF includes a text file encoded
     with Windows line endings (``\r\n``) and a different one with POSIX line endings
     (``\n``). Similarly, PDF allows for the possibility that you need to encode
-    platform-specific filenames.
+    platform-specific filenames. pikepdf cannot directly create these, because they
+    are arguably obsolete; it can provide access to them, however.
 
     If you have to deal with multiple versions, use :meth:`get_all_filenames` to
     enumerate those available.
@@ -149,10 +150,11 @@ Version 3.x automatically applies support models to ``/Page`` objects.
 
     .. versionadded:: 3.0
 
-.. autoclass:: pikepdf._qpdf.AttachedFileStream
+.. autoclass:: pikepdf._qpdf.AttachedFile
     :members:
 
-    An object that contains the actual attached file.
+    An object that contains an actual attached file. These objects do not need
+    to be created manually; they are normally part of an AttachedFileSpec.
 
     .. versionadded:: 3.0
 
