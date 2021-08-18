@@ -18,27 +18,13 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
-v3.0.0b2
+v3.0.0bN
 ========
 
 Breaking changes
 ----------------
 
--  libqpdf 10.3.2 is now required, instead of 10.3.1.
-
-New functionality
------------------
-
--  ``x in pikepdf.Array()`` is now supported; previously this construct was raised
-   raised. :issue:`232`
-
-v3.0.0b1
-========
-
-Breaking changes
-----------------
-
--  libqpdf 10.3.2 is now required and other requirements were adjusted.
+-  libqpdf 10.3.1 is now required and other requirements were adjusted.
 -  **Improved page API.** ``Pdf.pages`` now returns ``Page`` instead of
    page object dictionaries, so it is no longer necessary to wrap page objects
    as in the previous idiom ``page = Page(pdf.pages[0])``. In most cases,
@@ -53,6 +39,7 @@ Breaking changes
    -  ``Object.images`` (use ``Page.images``)
    -  ``Page._attach`` (use the new attachment API)
    -  ``Stream(obj=)`` (deprecated ``obj`` parameter removed)
+   -  ``Pdf.root`` (use ``Pdf.Root``)
 -  :meth:`pikepdf.Page.calc_form_xobject_placement` previously returned ``str`` when
    it should have returned ``bytes``. It now returns the correct type.
 -  :func:`pikepdf.open` and :func:`pikepdf.save`, and their counterparts in
@@ -70,6 +57,8 @@ New functionality
 -  Improved error message when ``Pdf.save()`` is called on PDFs without a known
    source file.
 -  Many documentation fixes to StreamParser, return types, PdfImage.
+-  ``x in pikepdf.Array()`` is now supported; previously this construct was raised
+   raised. :issue:`232`
 
 v2.16.1
 =======
