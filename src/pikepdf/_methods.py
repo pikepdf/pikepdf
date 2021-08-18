@@ -110,7 +110,7 @@ def augments(cls_cpp: Type[Any]):
     OVERRIDE_WHITELIST = {'__eq__', '__hash__', '__repr__'}
     if platform.python_implementation() == 'PyPy':
         # Either PyPy or pybind11's interface to PyPy automatically adds a __getattr__
-        OVERRIDE_WHITELIST |= {'__getattr__'}
+        OVERRIDE_WHITELIST |= {'__getattr__'}  # pragma: no cover
 
     def class_augment(cls, cls_cpp=cls_cpp):
         def is_inherited_method(meth):
@@ -142,7 +142,7 @@ def augments(cls_cpp: Type[Any]):
                 # is an abstract method, then we can consider the C++ version the
                 # implementation. Also, pybind11 provides defaults for __eq__,
                 # __hash__ and __repr__ that we often do want to override directly.
-                raise RuntimeError(
+                raise RuntimeError(  # pragma: no cover
                     f"C++ {cls_cpp} and Python {cls} both define the same "
                     f"non-abstract method {name}: "
                     f"{getattr(cls_cpp, name, '')!r}, "
@@ -196,20 +196,6 @@ def _mudraw(buffer, fmt) -> bytes:
 
 @augments(Object)
 class Extend_Object:
-    def _repr_mimebundle_(self, include=None, exclude=None):
-        """Present options to IPython for rich display of this object
-
-        See https://ipython.readthedocs.io/en/stable/config/integrating.html#rich-display
-        """
-
-        if (
-            isinstance(self, Dictionary)
-            and Name.Type in self
-            and self.Type == Name.Page
-        ):
-            return Page(self)._repr_mimebundle_(include, exclude)
-        return None
-
     def _ipython_key_completions_(self):
         if isinstance(self, (Dictionary, Stream)):
             return self.keys()
@@ -1182,8 +1168,6 @@ class Extend_Page:
         return self._contents_add(contents, prepend=prepend)
 
     def __getattr__(self, name):
-        if hasattr(self.__class__, name):
-            return object.__getattr__(self, name)
         return getattr(self.obj, name)
 
     @augment_override_cpp

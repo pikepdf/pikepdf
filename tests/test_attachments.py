@@ -28,6 +28,7 @@ def test_attachment_crud(pal, resources, outpdf):
 
     assert len(pal.attachments) == 1, "attachment count not incremented"
     assert 'rle.pdf' in pal.attachments, "attachment filename not registered"
+    assert 'attached' in repr(pal.attachments)
 
     pal.save(outpdf)
 

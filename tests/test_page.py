@@ -173,3 +173,15 @@ def test_contents_add(graph):
     graph.pages[0].contents_coalesce()
     assert graph.pages[0].Contents.read_bytes().startswith(b'q Q')
     assert graph.pages[0].Contents.read_bytes().endswith(b'q Q')
+
+
+def test_page_attrs(graph):
+    # Test __getattr__
+    assert isinstance(graph.pages[0].Resources, Dictionary)
+
+    del graph.pages[0].Resources
+    with pytest.raises(AttributeError, match="can't delete"):
+        del graph.pages[0].obj
+    del graph.pages[0]['/Contents']
+
+    assert Name.Contents not in graph.pages[0] and Name.Resources not in graph.pages[0]

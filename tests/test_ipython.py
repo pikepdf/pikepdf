@@ -85,7 +85,3 @@ def test_object_key_completion(pal):
     page0 = pal.pages[0]
     assert '/Type' in page0._ipython_key_completions_()
     assert page0.MediaBox._ipython_key_completions_() is None
-
-
-def test_useless_mimebundle(pal):
-    assert pal.Root.Type._repr_mimebundle_() is None
