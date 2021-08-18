@@ -1,3 +1,5 @@
+from math import isclose
+
 import pytest
 
 import pikepdf
@@ -12,6 +14,13 @@ def test_init_6():
         repr(m2t)
         == 'pikepdf.Matrix(((2.0, 0.0, 0.0), (0.0, 2.0, 0.0), (2.0, 3.0, 1.0)))'
     )
+    m2tr = m2t.rotated(90)
+    assert isclose(m2tr.a, 0, abs_tol=1e-6)
+    assert isclose(m2tr.b, 2, abs_tol=1e-6)
+    assert isclose(m2tr.c, -2, abs_tol=1e-6)
+    assert isclose(m2tr.d, 0, abs_tol=1e-6)
+    assert isclose(m2tr.e, -3, abs_tol=1e-6)
+    assert isclose(m2tr.f, 2, abs_tol=1e-6)
 
 
 def test_invalid_init():
@@ -24,3 +33,8 @@ def test_matrix_from_matrix():
     m_copy = PdfMatrix(m)
     assert m == m_copy
     assert m != 'not matrix'
+
+
+def test_matrix_encode():
+    m = PdfMatrix(1, 0, 0, 1, 0, 0)
+    assert m.encode() == b'1.000000 0.000000 0.000000 1.000000 0.000000 0.000000'
