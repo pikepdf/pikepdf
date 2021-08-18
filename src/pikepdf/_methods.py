@@ -329,17 +329,6 @@ class Extend_Object:
 
 @augments(Pdf)
 class Extend_Pdf:
-    @property
-    def root(self):
-        """
-        Deprecated alias for .Root, the /Root object of the PDF.
-
-        .. deprecated:: 2.0
-            Use ``.Root``.
-        """
-        warn("Pdf.root is deprecated; use Pdf.Root", category=DeprecationWarning)
-        return self.Root
-
     def _repr_mimebundle_(
         self, include=None, exclude=None
     ):  # pylint: disable=unused-argument

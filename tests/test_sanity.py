@@ -45,12 +45,6 @@ def test_attr_access(resources):
     assert int(pdf.Root.Pages.Count) == 1
 
 
-def test_root(resources):
-    pdf = Pdf.open(resources / 'graph.pdf')
-    with pytest.warns(DeprecationWarning):
-        assert pdf.root == pdf.Root
-
-
 def test_create_pdf(outdir):
     pdf = Pdf.new()
 
