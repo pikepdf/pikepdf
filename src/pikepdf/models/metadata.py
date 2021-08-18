@@ -136,12 +136,15 @@ def _clean(s: Union[str, Iterable[str]], joiner: str = '; ') -> str:
     join it, because it's apparently calling for a new node in a place that
     isn't allowed in the spec or not supported.
     """
-    if not isinstance(s, str) and isinstance(s, Iterable):
-        warn(f"Merging elements of {s}")
-        if isinstance(s, Set):
-            s = joiner.join(sorted(s))
+    if not isinstance(s, str):
+        if isinstance(s, Iterable):
+            warn(f"Merging elements of {s}")
+            if isinstance(s, Set):
+                s = joiner.join(sorted(s))
+            else:
+                s = joiner.join(s)
         else:
-            s = joiner.join(s)
+            raise TypeError("object must be a string or iterable of strings")
     return re_xml_illegal_chars.sub('', s)
 
 
@@ -204,7 +207,7 @@ def decode_pdf_date(s: str) -> datetime:
 
 class Converter(ABC):
     @abstractstaticmethod
-    def xmp_from_docinfo(docinfo_val: Optional[str]) -> Any:
+    def xmp_from_docinfo(docinfo_val: Optional[str]) -> Any:  # type: ignore
         "Derive XMP metadata from a DocumentInfo string"
 
     @abstractstaticmethod
@@ -214,7 +217,7 @@ class Converter(ABC):
 
 class AuthorConverter(Converter):
     @staticmethod
-    def xmp_from_docinfo(docinfo_val):
+    def xmp_from_docinfo(docinfo_val: Optional[str]) -> Any:  # type: ignore
         return [docinfo_val]
 
     @staticmethod
@@ -227,14 +230,14 @@ class AuthorConverter(Converter):
             return '; '.join(xmp_val)
 
 
-def _fromisoformat_py36(datestr: str) -> datetime:
+def _fromisoformat_py36(date_string: str) -> datetime:
     """Backported equivalent of datetime.fromisoformat
 
     Can remove whenever we drop Python 3.6 support.
     """
     # strptime %z can't parse a timezone with punctuation
-    if re.search(r'[+-]\d{2}[-:]\d{2}$', datestr):
-        datestr = datestr[:-3] + datestr[-2:]
+    if re.search(r'[+-]\d{2}[-:]\d{2}$', date_string):
+        date_string = date_string[:-3] + date_string[-2:]
     formats = [
         "%Y-%m-%dT%H:%M:%S%z",
         "%Y-%m-%dT%H:%M:%S",
@@ -243,11 +246,11 @@ def _fromisoformat_py36(datestr: str) -> datetime:
     ]
     for fmt in formats:
         try:
-            return datetime.strptime(datestr, fmt)
+            return datetime.strptime(date_string, fmt)
         except ValueError:
             continue
     raise ValueError(
-        f"Could not parse ISO date: {datestr}. Try Python 3.7+, which "
+        f"Could not parse ISO date: {date_string}. Try Python 3.7+, which "
         "has better support for ISO dates."
     )
 
@@ -448,13 +451,17 @@ class PdfMetadata(MutableMapping):
             else:
                 break
 
-        try:
-            pis = self._xmp.xpath('/processing-instruction()')
-            for pi in pis:
-                etree.strip_tags(self._xmp, pi.tag)
-            self._get_rdf_root()
-        except (Exception if self.overwrite_invalid_xml else NeverRaise) as e:
-            log.warning("Error occurred parsing XMP", exc_info=e)
+        if self._xmp is not None:
+            try:
+                pis = self._xmp.xpath('/processing-instruction()')
+                for pi in pis:
+                    etree.strip_tags(self._xmp, pi.tag)
+                self._get_rdf_root()
+            except (Exception if self.overwrite_invalid_xml else NeverRaise) as e:
+                log.warning("Error occurred parsing XMP", exc_info=e)
+                self._xmp = replace_with_empty_xmp()
+        else:
+            log.warning("Error occurred parsing XMP")
             self._xmp = replace_with_empty_xmp()
         return
 
@@ -795,7 +802,6 @@ class PdfMetadata(MutableMapping):
             raise KeyError(key) from None
 
     @property
-    @ensure_loaded
     def pdfa_status(self) -> str:
         """Returns the PDF/A conformance level claimed by this PDF, or False
 
@@ -808,6 +814,10 @@ class PdfMetadata(MutableMapping):
             PDF does not claim PDF/A conformance. Possible valid values
             are: 1A, 1B, 2A, 2B, 2U, 3A, 3B, 3U.
         """
+        # do same as @ensure_loaded - mypy can't handle decorated property
+        if not self._xmp:
+            self._load()
+
         key_part = QName(XMP_NS_PDFA_ID, 'part')
         key_conformance = QName(XMP_NS_PDFA_ID, 'conformance')
         try:
@@ -816,7 +826,6 @@ class PdfMetadata(MutableMapping):
             return ''
 
     @property
-    @ensure_loaded
     def pdfx_status(self) -> str:
         """Returns the PDF/X conformance level claimed by this PDF, or False
 
@@ -828,6 +837,10 @@ class PdfMetadata(MutableMapping):
             The conformance level of the PDF/X, or an empty string if the
             PDF does not claim PDF/X conformance.
         """
+        # do same as @ensure_loaded - mypy can't handle decorated property
+        if not self._xmp:
+            self._load()
+
         pdfx_version = QName(XMP_NS_PDFX_ID, 'GTS_PDFXVersion')
         try:
             return self[pdfx_version]

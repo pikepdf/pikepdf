@@ -73,6 +73,7 @@ skip = "pp3* cp310-*"
 module = [
   'PIL',
   'PIL.TiffTags',
+  'lxml',
   'lxml.etree'
 ]
 ignore_missing_imports = true
