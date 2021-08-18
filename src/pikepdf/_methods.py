@@ -904,7 +904,7 @@ class Extend_Pdf:
                     '"allow_overwriting_input=True" requires "open" first argument '
                     'to be a file path'
                 ) from error
-            original_filename = str(filename_or_stream)
+            original_filename = Path(filename_or_stream)
             with open(original_filename, 'rb') as pdf_file:
                 tmp_stream = BytesIO()
                 shutil.copyfileobj(pdf_file, tmp_stream)
