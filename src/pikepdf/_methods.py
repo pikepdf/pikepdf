@@ -540,36 +540,11 @@ class Extend_Pdf:
         the destination ``Pdf`` immediately, so after accessing all desired information
         from the source ``Pdf`` it may be closed.
 
-        Caution:
-            Closing the ``Pdf`` is currently implemented by resetting it to an empty
-            sentinel. It is currently possible to edit the sentinel as if it were a live
-            object. This behavior should not be relied on and is subject to change.
+        .. versionchanged:: 3.0
+            In pikepdf 2.x, this function actually worked by resetting to a very short
+            empty PDF. Code that relied on this quirk may not function correctly.
         """
-
-        # We could use QPDF::closeInputSource(), but many functions like
-        # QPDF::getFilename() will segfault if called without an open file, so it's
-        # best to use a sentinel empty file.
-        EMPTY_PDF = (
-            b"%PDF-1.3\n"
-            b"1 0 obj\n"
-            b"<< /Type /Catalog /Pages 2 0 R >>\n"
-            b"endobj\n"
-            b"2 0 obj\n"
-            b"<< /Type /Pages /Kids [] /Count 0 >>\n"
-            b"endobj\n"
-            b"xref\n"
-            b"0 3\n"
-            b"0000000000 65535 f \n"
-            b"0000000009 00000 n \n"
-            b"0000000058 00000 n \n"
-            b"trailer << /Size 3 /Root 1 0 R >>\n"
-            b"startxref\n"
-            b"110\n"
-            b"%%EOF\n"
-        )
-
-        description = "closed file: " + self.filename
-        self._process(description, EMPTY_PDF)
+        self._close()
         if getattr(self, '_tmp_stream', None):
             self._tmp_stream.close()
 

@@ -797,6 +797,10 @@ void init_qpdf(py::module_ &m)
 
             Used to implement Pdf.close().
             )~~~")
+        .def(
+            "_close",
+            [](QPDF &q) { q.closeInputSource(); },
+            "Used to implement Pdf.close().")
         .def("_decode_all_streams_and_discard",
             [](QPDF &q) {
                 QPDFWriter w(q);

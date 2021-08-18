@@ -250,3 +250,11 @@ def test_stop_iteration_on_close(resources):
     stream = StopIterationOnClose((resources / 'pal-1bit-trivial.pdf').read_bytes())
     pdf = Pdf.open(stream)
     pdf.close()
+
+
+def test_read_after_close(resources):
+    pdf = Pdf.open(resources / 'pal.pdf')
+    contents = pdf.pages[0].Contents
+    pdf.close()
+    with pytest.raises(PdfError, match="closed input source"):
+        contents.read_raw_bytes()
