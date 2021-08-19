@@ -504,8 +504,8 @@ void init_qpdf(py::module_ &m)
             "Create a new empty PDF from stratch.")
         .def_static("_open",
             open_pdf,
-            "",
             py::arg("filename_or_stream"),
+            py::kw_only(),
             py::arg("password")                = "",
             py::arg("hex_password")            = false,
             py::arg("ignore_xref_streams")     = false,
@@ -648,8 +648,8 @@ void init_qpdf(py::module_ &m)
             )~~~")
         .def("_save",
             save_pdf,
-            "",
             py::arg("filename"),
+            py::kw_only(),
             py::arg("static_id")            = false,
             py::arg("preserve_pdfa")        = true,
             py::arg("min_version")          = "",
