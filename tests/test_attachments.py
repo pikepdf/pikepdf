@@ -19,10 +19,9 @@ def test_attachment_crud(pal, resources, outpdf):
     assert len(pal.attachments) == 0, "test file already has attachments"
     assert 'anything' not in pal.attachments, "attachment interface is quirky"
 
-    with open(resources / 'rle.pdf', 'rb') as rle:
-        rle_bytes = rle.read()
-        rle.seek(0)
-        fs = AttachedFileSpec(pal, rle)
+    rle = resources / 'rle.pdf'
+    fs = AttachedFileSpec.from_filepath(pal, rle)
+    rle_bytes = rle.read_bytes()
 
     pal.attachments['rle.pdf'] = fs
 
@@ -73,7 +72,7 @@ def test_filespec_types(pal, resources):
     assert fs_bytes.get_file().read_bytes() == some_bytes
     assert fs_bytes.filename == ''
 
-    fs_path = AttachedFileSpec(pal, some_path)
+    fs_path = AttachedFileSpec.from_filepath(pal, some_path)
     assert fs_path.get_file().read_bytes() == some_path.read_bytes()
 
     with pytest.raises(TypeError):
@@ -120,3 +119,13 @@ def test_compound_attachment(pal):
     assert fs.get_file().md5 == md5(data[0]).digest()
 
     pal.attachments['compound'] = fs
+
+
+def test_from_str_filepath(pal, outdir):
+    foofile = outdir / 'foo'
+    foofile.touch()
+    fs = AttachedFileSpec.from_filepath(pal, str(foofile), description='bar')
+    assert 'foo' in repr(fs)
+    fs.filename = ''
+    assert 'foo' not in repr(fs)
+    assert 'AttachedFile' in repr(fs.get_file())

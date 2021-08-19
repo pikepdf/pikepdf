@@ -14,6 +14,7 @@ We can also move the implementation to C++ if desired.
 
 import datetime
 import inspect
+import mimetypes
 import platform
 import shutil
 from collections.abc import KeysView, MutableMapping
@@ -1239,6 +1240,38 @@ class Extend_Attachments(MutableMapping):
 
 @augments(AttachedFileSpec)
 class Extend_AttachedFileSpec:
+    @staticmethod
+    def from_filepath(pdf: Pdf, path: Union[Path, str], *, description: str = ''):
+        """Construct a file specification from a file path.
+
+        This function will automatically add a creation and modified date
+        using the file system, and a MIME type inferred from the file's extension.
+
+        Args:
+            pdf: The Pdf to attach this file specification to.
+            path: A file path for the file to attach to this Pdf.
+            description: An optional description. May be shown to the user in
+                PDF viewers.
+        """
+        mime, _ = mimetypes.guess_type(str(path))
+        if mime is None:
+            mime = ''
+        if not isinstance(path, Path):
+            path = Path(path)
+
+        stat = path.stat()
+        return AttachedFileSpec(
+            pdf,
+            path.read_bytes(),
+            description=description,
+            filename=str(path),
+            mime_type=mime,
+            creation_date=encode_pdf_date(
+                datetime.datetime.fromtimestamp(stat.st_ctime)
+            ),
+            mod_date=encode_pdf_date(datetime.datetime.fromtimestamp(stat.st_mtime)),
+        )
+
     def __repr__(self):
         if self.filename:
             return (

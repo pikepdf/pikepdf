@@ -11,10 +11,11 @@ to one of its test files.
 
     In [1]: from pikepdf import Pdf, AttachedFileSpec
 
+    In [1]: from pathlib import Path
+
     In [1]: pdf = Pdf.open('../tests/resources/fourpages.pdf')
 
-    In [1]: with open('../README.md', 'rb') as file:
-       ...:     filespec = AttachedFileSpec(pdf, file)
+    In [1]: filespec = AttachedFileSpec.from_filepath(pdf, Path('../README.md'))
 
     In [1]: pdf.attachments['README.md'] = filespec
 

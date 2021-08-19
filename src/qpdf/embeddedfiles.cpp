@@ -26,33 +26,49 @@ void init_embeddedfiles(py::module_ &m)
     py::class_<QPDFFileSpecObjectHelper, std::shared_ptr<QPDFFileSpecObjectHelper>>(
         m, "AttachedFileSpec")
         .def(py::init([](QPDF &q,
-                          py::object stream,
+                          py::bytes data,
                           std::string description,
-                          std::string mime_type) {
-            py::bytes data;
-            py::type Path = py::module_::import("pathlib").attr("Path");
-
-            if (py::isinstance<py::bytes>(stream))
-                data = stream;
-            else if (py::isinstance(stream, Path))
-                data = stream.attr("read_bytes")();
-            else
-                data = stream.attr("read")();
-
+                          std::string filename,
+                          std::string mime_type,
+                          std::string creation_date,
+                          std::string mod_date) {
             auto efstream =
                 QPDFEFStreamObjectHelper::createEFStream(q, std::string(data));
             auto filespec =
-                QPDFFileSpecObjectHelper::createFileSpec(q, std::string(""), efstream);
-            filespec.setDescription(description);
-            efstream.setSubtype(mime_type);
+                QPDFFileSpecObjectHelper::createFileSpec(q, filename, efstream);
+
+            if (!description.empty())
+                filespec.setDescription(description);
+            if (!mime_type.empty())
+                efstream.setSubtype(mime_type);
+            if (!creation_date.empty())
+                efstream.setCreationDate(creation_date);
+            if (!mod_date.empty())
+                efstream.setModDate(mod_date);
+
             return filespec;
         }),
             py::keep_alive<0, 1>(),
             py::arg("q"),
-            py::arg("stream"),
+            py::arg("data"),
             py::kw_only(),
-            py::arg("description") = std::string(""),
-            py::arg("mime_type")   = std::string(""))
+            py::arg("description")   = std::string(""),
+            py::arg("filename")      = std::string(""),
+            py::arg("mime_type")     = std::string(""),
+            py::arg("creation_date") = std::string(""),
+            py::arg("mod_date")      = std::string(""),
+            R"~~~(
+            Low-level constructor for attached file spec from data.
+
+            Args:
+                data: Resource to load.
+                description: Any description text for the attachment. May be
+                    shown in PDF viewers.
+                filename: Filename to display in PDF viewers.
+                mime_type: Helps PDF viewers decide how to display the information.
+                creation_date: PDF date string for when this file was creation.
+                mod_date: PDF date string for when this file was last modified.
+            )~~~")
         .def_property_readonly("obj",
             [](QPDFFileSpecObjectHelper &spec) { return spec.getObjectHandle(); })
         .def_property("description",

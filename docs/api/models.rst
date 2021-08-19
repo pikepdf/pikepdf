@@ -111,6 +111,7 @@ Version 3.x automatically applies support models to ``/Page`` objects.
 
 .. autoclass:: pikepdf.AttachedFileSpec
     :members:
+    :special-members: __init__
 
     In a PDF, a file specification provides name and metadata for a target file.
 
@@ -121,8 +122,8 @@ Version 3.x automatically applies support models to ``/Page`` objects.
 
         pdf = Pdf.open(...)
 
-        fs: AttachedFileSpec = pdf.attachments['example.txt']
-        stream: AttachedFile = fs.get_file()
+        fs = pdf.attachments['example.txt']
+        stream = fs.get_file()
 
     To attach a new file to a PDF, you may construct a ``AttachedFileSpec``.
 
@@ -130,9 +131,9 @@ Version 3.x automatically applies support models to ``/Page`` objects.
 
         pdf = Pdf.open(...)
 
-        with open('somewhere/spreadsheet.xlsx', 'rb') as data_to_attach:
-            fs = AttachedFileSpec(pdf, data_to_attach)
-            pdf.attachments['spreadsheet.xlsx'] = fs
+        fs = AttachedFileSpec.from_filepath(pdf, Path('somewhere/spreadsheet.xlsx'))
+
+        pdf.attachments['spreadsheet.xlsx'] = fs
 
     PDF supports the concept of having multiple, platform-specialized versions of the
     attached file (similar to resource forks on some operating systems). In theory,

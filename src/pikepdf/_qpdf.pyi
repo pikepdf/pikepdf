@@ -331,7 +331,14 @@ class AttachedFileSpec:
     description: str
     filename: str
     def __init__(
-        self, stream: Union[Stream, BinaryIO, Path], description: str
+        self,
+        data: bytes,
+        *,
+        description: str,
+        filename: str,
+        mime_type: str,
+        creation_date: str,
+        mod_date: str,
     ) -> None: ...
     def get_all_filenames(self) -> dict: ...
     @overload
@@ -340,6 +347,10 @@ class AttachedFileSpec:
     def get_file(self, name: Name) -> AttachedFile: ...
     @property
     def obj(self) -> Object: ...
+    @staticmethod
+    def from_filepath(
+        pdf: 'Pdf', path: Union[Path, str], *, description: str = ''
+    ) -> 'AttachedFileSpec': ...
 
 class Attachments(MutableMapping[str, AttachedFileSpec]):
     def __contains__(self, k: object) -> bool: ...
