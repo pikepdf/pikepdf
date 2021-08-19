@@ -25,6 +25,7 @@ Breaking changes
 ----------------
 
 -  libqpdf 10.3.1 is now required and other requirements were adjusted.
+-  pybind11 2.7.1 is now required.
 -  **Improved page API.** ``Pdf.pages`` now returns ``Page`` instead of
    page object dictionaries, so it is no longer necessary to wrap page objects
    as in the previous idiom ``page = Page(pdf.pages[0])``. In most cases,
@@ -32,7 +33,7 @@ Breaking changes
    right thing to the underlying dictionary.
 -  ``TokenType.name`` and ``ObjectType.name`` were renamed to
    ``TokenType.name_`` and ``ObjectType.name_``, respectively. Unfortunately,
-   Python's ``Enum`` class of which these are both a subclass uses the ``.name``
+   Python's ``Enum`` class (of which these are both a subclass) uses the ``.name``
    attribute in a special way that interfered.
 -  Deprecated or private functions were removed:
    -  ``Object.page_contents_*`` (use ``Page.contents_*``)
