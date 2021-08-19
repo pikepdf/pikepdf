@@ -107,6 +107,8 @@ Version 3.x automatically applies support models to ``/Page`` objects.
     The keys (virtual filenames) are always ``str``, and values are always
     :class:`pikepdf.AttachedFileSpec`.
 
+    Use this interface through :attr:`pikepdf.Pdf.attachments`.
+
     .. versionadded:: 3.0
 
 .. autoclass:: pikepdf.AttachedFileSpec

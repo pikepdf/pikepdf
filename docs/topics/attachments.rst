@@ -3,6 +3,8 @@
 Attaching files to a PDF
 ************************
 
+.. versionadded:: 3.0
+
 You can attach (or if you prefer, embed) any file to a PDF, including
 other PDFs. As a quick example, let's attach pikepdf's README.md file
 to one of its test files.
