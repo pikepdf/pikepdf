@@ -178,10 +178,9 @@ static std::string objecthandle_repr_inner(QPDFObjectHandle h,
         // Inline image objects are automatically promoted to higher level objects
         // in parse_content_stream, so objects of this type should not be returned
         // directly.
-        ss << objecthandle_pythonic_typename(h);
-        ss << "(";
-        ss << "data=<...>";
-        ss << ")";
+        ss << objecthandle_pythonic_typename(h) << "("
+           << "data=<...>"
+           << ")";
         break;
         // LCOV_EXCL_STOP
     case QPDFObject::object_type_e::ot_array:
@@ -229,19 +228,18 @@ static std::string objecthandle_repr_inner(QPDFObjectHandle h,
             }
             ss << "\n";
         }
-        ss << std::string(indent_depth * 2, ' '); // Restore previous indent level
-        ss << "}";
+        ss << std::string(indent_depth * 2, ' ') // Restore previous indent level
+           << "}";
         break;
     case QPDFObject::object_type_e::ot_stream:
         *pure_expr = false;
-        ss << objecthandle_pythonic_typename(h);
-        ss << "(";
-        ss << "stream_dict=";
-        ss << objecthandle_repr_inner(
-            h.getDict(), recursion_depth + 1, indent_depth + 1, visited, pure_expr);
-        ss << ", ";
-        ss << "data=<...>";
-        ss << ")";
+        ss << objecthandle_pythonic_typename(h) << "(owner=<...>, data=<...>, "
+           << objecthandle_repr_inner(h.getDict(),
+                  recursion_depth + 1,
+                  indent_depth + 1,
+                  visited,
+                  pure_expr)
+           << ")";
         break;
     // LCOV_EXCL_START
     default:
