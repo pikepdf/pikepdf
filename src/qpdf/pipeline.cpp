@@ -50,9 +50,5 @@ void Pl_PythonOutput::write(unsigned char *buf, size_t len)
 void Pl_PythonOutput::finish()
 {
     py::gil_scoped_acquire gil;
-    try {
-        this->stream.attr("flush")();
-    } catch (const py::attr_error &e) {
-        // Suppress
-    }
+    this->stream.attr("flush")();
 }
