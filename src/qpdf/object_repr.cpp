@@ -34,7 +34,7 @@
 
 #include "pikepdf.h"
 
-std::string objecthandle_scalar_value(QPDFObjectHandle h, bool escaped)
+std::string objecthandle_scalar_value(QPDFObjectHandle h)
 {
     std::ostringstream ss;
     ss.imbue(std::locale::classic());
