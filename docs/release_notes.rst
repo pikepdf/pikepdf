@@ -45,7 +45,16 @@ Breaking changes
    it should have returned ``bytes``. It now returns the correct type.
 -  :func:`pikepdf.open` and :func:`pikepdf.save`, and their counterparts in
    :class:`pikepdf.Pdf`, now expect keyword arguments for all expect the first parameter.
+-  Some other functions have stricter typing, required keyword arguments, etc.,
+   for clarity.
+-  If a calculating the ``repr()`` of a page, we now describe a reference to that
+   page rather than printing the page's representation. This makes the output
+   of ``repr(obj)`` more useful when examining data structures that reference
+   many pages, such as ``/Outlines``.
 -  Build scripts and wheel building updated.
+-  We now internally use a different API call to close a PDF in libqpdf. This
+   may change the behavior of attempts to manipulate a PDF after it has been
+   closed. In any case, accessing a closed file was never supported.
 
 New functionality
 -----------------
@@ -60,6 +69,16 @@ New functionality
 -  Many documentation fixes to StreamParser, return types, PdfImage.
 -  ``x in pikepdf.Array()`` is now supported; previously this construct was raised
    raised. :issue:`232`
+-  It is now possible to test our cibuildwheel configuration on a local machine.
+
+Fixes
+-----
+
+-  ``repr(pikepdf.Stream(...))`` now returns syntax matching what the constructor
+   expects.
+-  Fixed certain wrong exception types that occurred when attempting to extract
+   special printer colorspace images.
+-  Lots of typing fixes.
 
 v2.16.1
 =======
