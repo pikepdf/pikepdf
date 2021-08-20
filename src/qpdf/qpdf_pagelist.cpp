@@ -62,11 +62,6 @@ std::vector<QPDFObjectHandle> PageList::get_page_objs_impl(py::slice slice) cons
     return result;
 }
 
-py::list PageList::get_page_objs(py::slice slice) const
-{
-    return py::cast(this->get_page_objs_impl(slice));
-}
-
 py::list PageList::get_pages(py::slice slice) const
 {
     auto page_objs = this->get_page_objs_impl(slice);
