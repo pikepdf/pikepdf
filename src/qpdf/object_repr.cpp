@@ -128,8 +128,17 @@ std::string objecthandle_repr_typename_and_value(QPDFObjectHandle h)
     return objecthandle_pythonic_typename(h) + "(" + objecthandle_scalar_value(h) + ")";
 }
 
-static std::string objecthandle_repr_inner(
-    QPDFObjectHandle h, uint depth, std::set<QPDFObjGen> *visited, bool *pure_expr)
+std::ostream &operator<<(std::ostream &os, const QPDFObjGen &og)
+{
+    os << og.getObj() << ", " << og.getGen();
+    return os;
+}
+
+static std::string objecthandle_repr_inner(QPDFObjectHandle h,
+    uint recursion_depth,
+    uint indent_depth,
+    std::set<QPDFObjGen> *visited,
+    bool *pure_expr)
 {
     StackGuard sg(" objecthandle_repr_inner");
     std::ostringstream ss;
@@ -138,13 +147,18 @@ static std::string objecthandle_repr_inner(
     if (!h.isScalar()) {
         if (visited->count(h.getObjGen()) > 0) {
             *pure_expr = false;
-            ss << "<.get_object(" << h.getObjGen().getObj() << ", "
-               << h.getObjGen().getGen() << ")>";
+            ss << "<.get_object(" << h.getObjGen() << ")>";
             return ss.str();
         }
 
         if (!(h.getObjGen() == QPDFObjGen(0, 0)))
             visited->insert(h.getObjGen());
+    }
+    if (h.isPageObject() && recursion_depth >= 1 && h.isIndirect()) {
+        ss << "<Pdf.pages.from_objgen"
+           << "(" << h.getObjGen() << ")"
+           << ">";
+        return ss.str();
     }
 
     switch (h.getTypeCode()) {
@@ -173,13 +187,16 @@ static std::string objecthandle_repr_inner(
     case QPDFObject::object_type_e::ot_array:
         ss << "[";
         {
-            bool first = true;
+            bool first_item = true;
             ss << " ";
             for (auto item : h.getArrayAsVector()) {
-                if (!first)
+                if (!first_item)
                     ss << ", ";
-                first = false;
-                ss << objecthandle_repr_inner(item, depth, visited, pure_expr);
+                first_item = false;
+                // We don't increase indent_depth when recursing into arrays,
+                // because it doesn't look right. Always increase recursion_depth.
+                ss << objecthandle_repr_inner(
+                    item, recursion_depth + 1, indent_depth, visited, pure_expr);
             }
             ss << " ";
         }
@@ -188,26 +205,31 @@ static std::string objecthandle_repr_inner(
     case QPDFObject::object_type_e::ot_dictionary:
         ss << "{"; // This will end the line
         {
-            bool first = true;
+            bool first_item = true;
             ss << "\n";
             for (auto item : h.getDictAsMap()) {
-                if (!first)
+                auto &key = item.first;
+                auto &obj = item.second;
+                if (!first_item)
                     ss << ",\n";
-                first = false;
-                ss << std::string((depth + 1) * 2, ' '); // Indent each line
-                if (item.first == "/Parent" && item.second.isPagesObject()) {
+                first_item = false;
+                ss << std::string((indent_depth + 1) * 2, ' '); // Indent each line
+                if (key == "/Parent" && obj.isPagesObject()) {
                     // Don't visit /Parent keys since that just puts every page on the
                     // repr() of a single page
-                    ss << std::quoted(item.first) << ": <reference to /Pages>";
+                    ss << std::quoted(key) << ": <reference to /Pages>";
                 } else {
-                    ss << std::quoted(item.first) << ": "
-                       << objecthandle_repr_inner(
-                              item.second, depth + 1, visited, pure_expr);
+                    ss << std::quoted(key) << ": "
+                       << objecthandle_repr_inner(obj,
+                              recursion_depth + 1,
+                              indent_depth + 1,
+                              visited,
+                              pure_expr);
                 }
             }
             ss << "\n";
         }
-        ss << std::string(depth * 2, ' '); // Restore previous indent level
+        ss << std::string(indent_depth * 2, ' '); // Restore previous indent level
         ss << "}";
         break;
     case QPDFObject::object_type_e::ot_stream:
@@ -215,7 +237,8 @@ static std::string objecthandle_repr_inner(
         ss << objecthandle_pythonic_typename(h);
         ss << "(";
         ss << "stream_dict=";
-        ss << objecthandle_repr_inner(h.getDict(), depth + 1, visited, pure_expr);
+        ss << objecthandle_repr_inner(
+            h.getDict(), recursion_depth + 1, indent_depth + 1, visited, pure_expr);
         ss << ", ";
         ss << "data=<...>";
         ss << ")";
@@ -240,7 +263,7 @@ std::string objecthandle_repr(QPDFObjectHandle h)
 
     std::set<QPDFObjGen> visited;
     bool pure_expr    = true;
-    std::string inner = objecthandle_repr_inner(h, 0, &visited, &pure_expr);
+    std::string inner = objecthandle_repr_inner(h, 0, 0, &visited, &pure_expr);
     std::string output;
 
     if (h.isScalar() || h.isDictionary() || h.isArray()) {

@@ -1,7 +1,7 @@
 import gc
 from contextlib import suppress
 from shutil import copy
-from typing import Type
+from typing import Type, ValuesView
 
 try:
     from sys import getrefcount as refcount
@@ -525,3 +525,13 @@ def test_unindexed_page(graph):
     del graph.pages[0]
     with pytest.raises(ValueError, match='not consistently registered'):
         page.index
+
+
+def test_page_from_objgen(graph):
+    assert graph.pages.from_objgen(graph.pages[0].objgen) == graph.pages[0]
+    assert (
+        graph.pages.from_objgen(graph.pages[0].objgen[0], graph.pages[0].objgen[1])
+        == graph.pages[0]
+    )
+    with pytest.raises(ValueError):
+        graph.pages.from_objgen(graph.pages[0].Contents.objgen)

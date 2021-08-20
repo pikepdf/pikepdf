@@ -212,6 +212,14 @@ void PageList::insert_page(size_t index, QPDFPageObjectHelper poh)
     }
 }
 
+QPDFPageObjectHelper from_objgen(QPDF &q, QPDFObjGen og)
+{
+    auto h = q.getObjectByObjGen(og);
+    if (!h.isPageObject())
+        throw py::value_error("Object is not a page");
+    return QPDFPageObjectHelper(h);
+}
+
 void init_pagelist(py::module_ &m)
 {
     py::class_<PageList>(m, "PageList")
@@ -331,8 +339,7 @@ void init_pagelist(py::module_ &m)
         .def(
             "index",
             [](PageList &pl, const QPDFObjectHandle &h) {
-                QPDF *q = pl.qpdf.get();
-                return page_index(*q, h);
+                return page_index(*pl.qpdf, h);
             },
             R"~~~(
             Given a pikepdf.Object that is a page, find the index.
@@ -344,8 +351,7 @@ void init_pagelist(py::module_ &m)
         .def(
             "index",
             [](PageList &pl, const QPDFPageObjectHelper &poh) {
-                QPDF *q = pl.qpdf.get();
-                return page_index(*q, poh.getObjectHandle());
+                return page_index(*pl.qpdf, poh.getObjectHandle());
             },
             R"~~~(
             Given a pikepdf.Page (page helper), find the index.
@@ -354,8 +360,29 @@ void init_pagelist(py::module_ &m)
             A ``ValueError`` exception is thrown if the page does not belong to
             to this ``Pdf``.
             )~~~")
-        .def("__repr__", [](PageList &pl) {
-            return std::string("<pikepdf._qpdf.PageList len=") +
-                   std::to_string(pl.count()) + std::string(">");
-        });
+        .def("__repr__",
+            [](PageList &pl) {
+                return std::string("<pikepdf._qpdf.PageList len=") +
+                       std::to_string(pl.count()) + std::string(">");
+            })
+        .def(
+            "from_objgen",
+            [](PageList &pl, int obj, int gen) {
+                return from_objgen(*pl.qpdf, QPDFObjGen(obj, gen));
+            },
+            R"~~~(
+            Given an "objgen" (object ID, generation), return the page.
+
+            Raises an exception if no page matches .
+            )~~~")
+        .def(
+            "from_objgen",
+            [](PageList &pl, std::pair<int, int> objgen) {
+                return from_objgen(*pl.qpdf, QPDFObjGen(objgen.first, objgen.second));
+            },
+            R"~~~(
+            Given an "objgen" (object ID, generation), return the page.
+
+            Raises an exception if no page matches .
+            )~~~");
 }
