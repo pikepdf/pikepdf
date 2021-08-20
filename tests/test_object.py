@@ -386,12 +386,18 @@ class TestRepr:
             pdf.Root.Circular.Parent = pdf.make_indirect(pdf.Root.Circular)
             assert '.get_object' in repr(pdf.Root.Circular)
 
+    def test_repr_indirect_page(self, resources):
+        with pikepdf.open(resources / 'outlines.pdf') as outlines:
+            assert 'from_objgen' in repr(outlines.Root.Pages.Kids)
+            # An indirect page reference in the Dests name tree
+            assert 'from_objgen' in repr(outlines.Root.Names.Dests.Kids[0].Names[1])
+
 
 def test_operator_inline(resources):
     with pikepdf.open(resources / 'image-mono-inline.pdf') as pdf:
         instructions = parse_content_stream(pdf.pages[0], operators='BI ID EI')
         assert len(instructions) == 1
-        operands, operator = instructions[0]
+        _operands, operator = instructions[0]
         assert operator == pikepdf.Operator("INLINE IMAGE")
 
 
