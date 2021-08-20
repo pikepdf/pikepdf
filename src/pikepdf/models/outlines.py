@@ -10,7 +10,7 @@ from enum import Enum
 from itertools import chain
 from typing import Iterable, List, Optional, Set, Tuple, Union, cast
 
-from pikepdf import Array, Dictionary, Name, Object, Page, Pdf
+from pikepdf import Array, String, Dictionary, Name, Object, Page, Pdf
 
 
 class PageLocation(Enum):
@@ -184,7 +184,7 @@ class OutlineItem:
         """
         title = str(obj.Title)
         destination = obj.get(Name.Dest)
-        if destination is not None and not isinstance(destination, Array):
+        if destination is not None and not isinstance(destination, (Array, String)):
             raise OutlineStructureError(
                 f"Unexpected object type in Outline's /Dest: {destination!r}"
             )
