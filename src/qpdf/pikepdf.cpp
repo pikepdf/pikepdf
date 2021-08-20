@@ -102,54 +102,57 @@ PYBIND11_MODULE(_qpdf, m)
     init_tokenfilter(m);
 
     // -- Module level functions --
-    m.def("utf8_to_pdf_doc", [](py::str utf8, char unknown) {
-        std::string pdfdoc;
-        bool success = QUtil::utf8_to_pdf_doc(std::string(utf8), pdfdoc, unknown);
-        return py::make_tuple(success, py::bytes(pdfdoc));
-    });
-    m.def("pdf_doc_to_utf8", [](py::bytes pdfdoc) -> py::str {
-        return py::str(QUtil::pdf_doc_to_utf8(pdfdoc));
-    });
+    m.def("utf8_to_pdf_doc",
+         [](py::str utf8, char unknown) {
+             std::string pdfdoc;
+             bool success = QUtil::utf8_to_pdf_doc(std::string(utf8), pdfdoc, unknown);
+             return py::make_tuple(success, py::bytes(pdfdoc));
+         })
+        .def("pdf_doc_to_utf8",
+            [](py::bytes pdfdoc) -> py::str {
+                return py::str(QUtil::pdf_doc_to_utf8(pdfdoc));
+            })
+        .def(
+            "_test_file_not_found",
+            []() -> void { (void)QUtil::safe_fopen("does_not_exist__42", "rb"); },
+            "Used to test that C++ system error -> Python exception propagation works.")
+        .def("_translate_qpdf",
+            [](std::string s) { return translate_qpdf_error(s).first; })
+        .def(
+            "set_decimal_precision",
+            [](uint prec) {
+                DECIMAL_PRECISION = prec;
+                return DECIMAL_PRECISION;
+            },
+            "Set the number of decimal digits to use when converting floats.")
+        .def(
+            "get_decimal_precision",
+            []() { return DECIMAL_PRECISION; },
+            "Get the number of decimal digits to use when converting floats.")
+        .def(
+            "get_access_default_mmap",
+            []() { return MMAP_DEFAULT; },
+            "Return True if default access is to use mmap.")
+        .def(
+            "set_access_default_mmap",
+            [](bool mmap) { MMAP_DEFAULT = mmap; },
+            "If True, ``pikepdf.open(...access_mode=access_default)`` will use mmap.")
+        .def(
+            "set_flate_compression_level",
+            [](int level) {
+                if (-1 <= level && level <= 9)
+                    Pl_Flate::setCompressionLevel(level);
+                else
+                    throw py::value_error(
+                        "Flate compression level must be between 0 and 9 (or -1)");
+            },
+            R"~~~(
+            Set the compression level whenever the Flate compression algorithm is used.
 
-    m.def(
-        "_test_file_not_found",
-        []() -> void { (void)QUtil::safe_fopen("does_not_exist__42", "rb"); },
-        "Used to test that C++ system error -> Python exception propagation works.");
-
-    m.def(
-        "_translate_qpdf", [](std::string s) { return translate_qpdf_error(s).first; });
-
-    m.def(
-        "set_decimal_precision",
-        [](uint prec) {
-            DECIMAL_PRECISION = prec;
-            return DECIMAL_PRECISION;
-        },
-        "Set the number of decimal digits to use when converting floats.");
-    m.def(
-        "get_decimal_precision",
-        []() { return DECIMAL_PRECISION; },
-        "Get the number of decimal digits to use when converting floats.");
-    m.def(
-        "set_access_default_mmap",
-        [](bool mmap) {
-            MMAP_DEFAULT = mmap;
-            return mmap;
-        },
-        "If set to true, ``pikepdf.open(...access_mode=access_default)`` will use "
-        "mmap.");
-    m.def(
-        "set_flate_compression_level",
-        [](int level) {
-            if (0 <= level && level <= 9)
-                Pl_Flate::setCompressionLevel(level);
-            else
-                throw py::value_error(
-                    "Flate compression level must be between 0 and 9");
-        },
-        "Set the compression level whenever the Flate compression algorithm is used.");
-
-    m.def("_unparse_content_stream", unparse_content_stream);
+            Args:
+                level: -1 (default), 0 (no compression), 1 to 9 (increasing compression)
+            )~~~")
+        .def("_unparse_content_stream", unparse_content_stream);
 
     // -- Exceptions --
     static py::exception<QPDFExc> exc_main(m, "PdfError");

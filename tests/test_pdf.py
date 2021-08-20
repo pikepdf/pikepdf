@@ -340,12 +340,22 @@ def test_invalid_flate_compression_level():
         pikepdf._qpdf.set_flate_compression_level(99)
 
 
-if os.name == 'posix':
-    # Can't even let non-POSIX platforms see this marker e.g. by using .mark.skipif
-    # or they will fail on a pytest internalerror.
-    @pytest.mark.forked
-    def test_flate_compression_level():
-        pikepdf._qpdf.set_flate_compression_level(1)
+def test_flate_compression_level():
+    # While this function affects global state, we can test it safely because
+    # setting the value to -1 restores the default.
+    try:
+        pikepdf._qpdf.set_flate_compression_level(0)
+        pikepdf._qpdf.set_flate_compression_level(9)
+    finally:
+        pikepdf._qpdf.set_flate_compression_level(-1)
+
+
+def test_set_access_default_mmap():
+    initial = pikepdf._qpdf.get_access_default_mmap()
+    try:
+        pikepdf._qpdf.set_access_default_mmap(True)
+    finally:
+        pikepdf._qpdf.set_access_default_mmap(initial)
 
 
 def test_generate_appearance_streams(pdf_form):
