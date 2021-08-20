@@ -37,7 +37,6 @@ exclude = '''
 [tool.cibuildwheel]
 test-command = "pytest -nauto {project}/tests"
 test-extras = "test"
-skip = "cp310-*"
 test-skip = "*_arm64 *_universal2:arm64"
 
 [tool.cibuildwheel.environment]
@@ -65,7 +64,7 @@ before-all = "brew install qpdf"
 # pp3*-win_amd64 does not execute because cibuildwheel does not implement it
 # or PyPy3 doesn't work on Windows 64-bit, one or the other
 # PyPy+Win32 seems like a very low priority combination
-skip = "pp3* cp310-*"
+skip = "pp3*"
 
 [tool.mypy]
 
