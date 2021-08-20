@@ -26,12 +26,12 @@
 void Pl_PythonOutput::write(unsigned char *buf, size_t len)
 {
     py::gil_scoped_acquire gil;
-    ssize_t so_far = 0;
+    py::ssize_t so_far = 0;
     while (len > 0) {
         auto view_buffer  = py::memoryview::from_memory(buf, len);
         py::object result = this->stream.attr("write")(view_buffer);
         try {
-            so_far = result.cast<ssize_t>();
+            so_far = result.cast<py::ssize_t>();
         } catch (const py::cast_error &e) {
             throw py::type_error("Unexpected return type of write()");
         }

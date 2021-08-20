@@ -426,12 +426,19 @@ void init_object(py::module_ &m)
             py::is_operator())
         .def("__copy__", [](QPDFObjectHandle &h) { return h.shallowCopy(); })
         .def("__len__",
-            [](QPDFObjectHandle &h) {
-                if (h.isDictionary())
-                    return (Py_ssize_t)h.getDictAsMap()
-                        .size(); // getKeys constructs a new object, so this is better
-                else if (h.isArray())
-                    return (Py_ssize_t)h.getArrayNItems();
+            [](QPDFObjectHandle &h) -> py::size_t {
+                if (h.isDictionary()) {
+                    // getKeys constructs a new object, so this is better
+                    return static_cast<py::size_t>(h.getDictAsMap().size());
+                } else if (h.isArray()) {
+                    int nitems = h.getArrayNItems();
+                    // LCOV_EXCL_START
+                    if (nitems < 0) {
+                        throw std::logic_error("Array items < 0");
+                    }
+                    // LCOV_EXCL_STOP
+                    return static_cast<py::size_t>(nitems);
+                }
                 if (h.isStream())
                     throw py::type_error(
                         "length not defined for object - "

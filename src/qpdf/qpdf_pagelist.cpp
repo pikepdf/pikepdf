@@ -25,7 +25,7 @@ static void assert_pyobject_is_page_helper(py::handle obj)
     }
 }
 
-size_t uindex_from_index(PageList &pl, ssize_t index)
+size_t uindex_from_index(PageList &pl, py::ssize_t index)
 {
     if (index < 0)
         index += pl.count();
@@ -219,19 +219,19 @@ void init_pagelist(py::module_ &m)
 {
     py::class_<PageList>(m, "PageList")
         .def("__getitem__",
-            [](PageList &pl, ssize_t index) {
+            [](PageList &pl, py::ssize_t index) {
                 size_t uindex = uindex_from_index(pl, index);
                 return pl.get_page(uindex);
             })
         .def("__getitem__", &PageList::get_pages)
         .def("__setitem__",
-            [](PageList &pl, ssize_t index, py::object page) {
+            [](PageList &pl, py::ssize_t index, py::object page) {
                 size_t uindex = uindex_from_index(pl, index);
                 pl.set_page(uindex, page);
             })
         .def("__setitem__", &PageList::set_pages_from_iterable)
         .def("__delitem__",
-            [](PageList &pl, ssize_t index) {
+            [](PageList &pl, py::ssize_t index) {
                 size_t uindex = uindex_from_index(pl, index);
                 pl.delete_page(uindex);
             })
@@ -239,7 +239,7 @@ void init_pagelist(py::module_ &m)
         .def("__len__", &PageList::count)
         .def(
             "p",
-            [](PageList &pl, ssize_t pnum) {
+            [](PageList &pl, py::ssize_t pnum) {
                 if (pnum <= 0) // Indexing past end is checked in .get_page
                     throw py::index_error(
                         "page access out of range in 1-based indexing");
@@ -257,7 +257,7 @@ void init_pagelist(py::module_ &m)
             })
         .def(
             "insert",
-            [](PageList &pl, ssize_t index, py::object obj) {
+            [](PageList &pl, py::ssize_t index, py::object obj) {
                 size_t uindex = uindex_from_index(pl, index);
                 pl.insert_page(uindex, obj);
             },
@@ -319,7 +319,7 @@ void init_pagelist(py::module_ &m)
         .def(
             "remove",
             [](PageList &pl, py::kwargs kwargs) {
-                auto pnum = kwargs["p"].cast<ssize_t>();
+                auto pnum = kwargs["p"].cast<py::ssize_t>();
                 if (pnum <= 0) // Indexing past end is checked in .get_page
                     throw py::index_error(
                         "page access out of range in 1-based indexing");
