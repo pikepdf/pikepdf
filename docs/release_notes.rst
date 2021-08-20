@@ -41,6 +41,7 @@ Breaking changes
    -  ``Page._attach`` (use the new attachment API)
    -  ``Stream(obj=)`` (deprecated ``obj`` parameter removed)
    -  ``Pdf.root`` (use ``Pdf.Root``)
+   -  ``Pdf._process`` (use ``Pdf.open(BytesIO(...))`` instead)
 -  :meth:`pikepdf.Page.calc_form_xobject_placement` previously returned ``str`` when
    it should have returned ``bytes``. It now returns the correct type.
 -  :func:`pikepdf.open` and :func:`pikepdf.save`, and their counterparts in

@@ -787,17 +787,6 @@ void init_qpdf(py::module_ &m)
                 q.swapObjects(o1, o2);
             })
         .def(
-            "_process",
-            [](QPDF &q, std::string description, py::bytes data) {
-                std::string s = data;
-                q.processMemoryFile(description.c_str(), s.data(), s.size());
-            },
-            R"~~~(
-            Process a new in-memory PDF, replacing the existing PDF
-
-            Used to implement Pdf.close().
-            )~~~")
-        .def(
             "_close",
             [](QPDF &q) { q.closeInputSource(); },
             "Used to implement Pdf.close().")
