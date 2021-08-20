@@ -168,6 +168,12 @@ def test_extend_delete(sandwich, fourpages, outdir):
     pdf.save(outdir / 'out.pdf')
 
 
+def test_extend_with_nonpage(sandwich):
+    pdf = sandwich
+    with pytest.raises(TypeError, match="only pikepdf"):
+        pdf.pages.extend([42])
+
+
 def test_slice_unequal_replacement(fourpages, sandwich, outdir):
     pdf = fourpages
     pdf2 = sandwich
@@ -414,10 +420,11 @@ def test_page_index(fourpages):
     for n, page in enumerate(fourpages.pages):
         assert page.index == n
         assert fourpages.pages.index(page) == n
+        assert fourpages.pages.index(page.obj) == n
     del fourpages.pages[1]
     for n, page in enumerate(fourpages.pages):
         assert page.index == n
-        assert fourpages.pages.index(page) == n
+        assert fourpages.pages.index(page.obj) == n
 
 
 def test_page_index_foreign_page(fourpages, sandwich):

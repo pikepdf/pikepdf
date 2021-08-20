@@ -52,7 +52,7 @@ std::vector<QPDFObjectHandle> PageList::get_page_objs_impl(py::slice slice) cons
 {
     size_t start, stop, step, slicelength;
     if (!slice.compute(this->count(), &start, &stop, &step, &slicelength))
-        throw py::error_already_set();
+        throw py::error_already_set(); // LCOV_EXCL_LINE
     std::vector<QPDFObjectHandle> result;
     for (size_t i = 0; i < slicelength; ++i) {
         auto oh = this->get_page_obj(start);
@@ -84,7 +84,7 @@ void PageList::set_pages_from_iterable(py::slice slice, py::iterable other)
 {
     size_t start, stop, step, slicelength;
     if (!slice.compute(this->count(), &start, &stop, &step, &slicelength))
-        throw py::error_already_set();
+        throw py::error_already_set(); // LCOV_EXCL_LINE
     py::list results;
     py::iterator it = other.attr("__iter__")();
 
