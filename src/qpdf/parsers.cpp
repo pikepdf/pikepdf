@@ -152,6 +152,9 @@ py::bytes unparse_content_stream(py::iterable contentstream)
     ss.imbue(std::locale::classic());
 
     for (const auto &item : contentstream) {
+        // First iteration: print nothing
+        // All others: print "\n" to delimit previous
+        // Result is no leading or trailing delimiter
         ss << delim;
         delim = "\n";
 
@@ -169,11 +172,9 @@ py::bytes unparse_content_stream(py::iterable contentstream)
         } catch (py::cast_error &) {
         }
 
+        // Fallback: instruction is some combination of Python iterables.
+        // Destructure and convert to C++ types...
         auto operands_op = py::reinterpret_borrow<py::sequence>(item);
-
-        // First iteration: print nothing
-        // All others: print "\n" to delimit previous
-        // Result is no leading or trailing delimiter
 
         if (operands_op.size() != 2) {
             errmsg << "Wrong number of operands at content stream instruction " << n
@@ -253,6 +254,7 @@ void init_parsers(py::module_ &m)
                 throw py::index_error(
                     std::string("Invalid index ") + std::to_string(index));
             })
+        .def("__len__", [](ContentStreamInstruction &csi) { return 2; })
         .def("__repr__", [](ContentStreamInstruction &csi) {
             return "pikepdf.ContentStreamInstruction()";
         });
@@ -273,6 +275,7 @@ void init_parsers(py::module_ &m)
                 throw py::index_error(
                     std::string("Invalid index ") + std::to_string(index));
             })
+        .def("__len__", [](ContentStreamInlineImage &csii) { return 2; })
         .def_property_readonly("iimage",
             [](ContentStreamInlineImage &csii) { return csii.get_inline_image(); })
         .def("__repr__", [](ContentStreamInlineImage &csii) {
