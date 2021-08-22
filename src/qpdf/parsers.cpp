@@ -47,9 +47,41 @@ std::ostream &operator<<(std::ostream &os, ContentStreamInstruction &csi)
     return os;
 }
 
-// ObjectList ContentStreamInstruction::getOperands() { return this->operands; }
+ContentStreamInlineImage::ContentStreamInlineImage(
+    ObjectList image_metadata, QPDFObjectHandle image_data)
+    : image_metadata(image_metadata), image_data(image_data)
+{
+}
 
-// QPDFObjectHandle ContentStreamInstruction::getOperator() { return this->operator_; }
+py::object ContentStreamInlineImage::get_inline_image() const
+{
+    auto PdfInlineImage    = py::module_::import("pikepdf").attr("PdfInlineImage");
+    auto kwargs            = py::dict();
+    kwargs["image_data"]   = this->image_data;
+    kwargs["image_object"] = this->image_metadata;
+    auto iimage            = PdfInlineImage(**kwargs);
+    return iimage;
+}
+
+py::list ContentStreamInlineImage::get_operands() const
+{
+    auto list = py::list();
+    list.append(this->get_inline_image());
+    return list;
+}
+
+QPDFObjectHandle ContentStreamInlineImage::get_operator() const
+{
+    return QPDFObjectHandle::newOperator("INLINE IMAGE");
+}
+
+std::ostream &operator<<(std::ostream &os, ContentStreamInlineImage &csii)
+{
+    py::bytes ii_bytes = csii.get_inline_image().attr("unparse")();
+
+    os << std::string(ii_bytes);
+    return os;
+}
 
 OperandGrouper::OperandGrouper(const std::string &operators)
     : parsing_inline_image(false), count(0)
@@ -89,24 +121,9 @@ void OperandGrouper::handleObject(QPDFObjectHandle obj)
             if (op == "ID") {
                 this->inline_metadata = this->tokens;
             } else if (op == "EI") {
-                auto PdfInlineImage =
-                    py::module_::import("pikepdf").attr("PdfInlineImage");
-                auto kwargs            = py::dict();
-                kwargs["image_data"]   = this->tokens[0];
-                kwargs["image_object"] = this->inline_metadata;
-                auto iimage            = PdfInlineImage(**kwargs);
-
-                // Package as list with single element for consistency
-                auto iimage_list = py::list();
-                iimage_list.append(iimage);
-
-                auto instruction = py::make_tuple(
-                    iimage_list, QPDFObjectHandle::newOperator("INLINE IMAGE"));
-
-                this->instructions.append(instruction);
-
-                this->parsing_inline_image = false;
-                this->inline_metadata.clear();
+                ContentStreamInlineImage csii(this->inline_metadata, this->tokens[0]);
+                this->instructions.append(csii);
+                this->inline_metadata = ObjectList();
             }
         } else {
             ContentStreamInstruction csi(this->tokens, obj);
@@ -141,6 +158,13 @@ py::bytes unparse_content_stream(py::iterable contentstream)
         try {
             auto csi = py::cast<ContentStreamInstruction>(item);
             ss << csi;
+            continue;
+        } catch (py::cast_error &) {
+        }
+
+        try {
+            auto csii = py::cast<ContentStreamInlineImage>(item);
+            ss << csii;
             continue;
         } catch (py::cast_error &) {
         }
@@ -188,20 +212,11 @@ py::bytes unparse_content_stream(py::iterable contentstream)
             py::object iimage_unparsed_bytes = iimage.attr("unparse")();
             ss << std::string(py::bytes(iimage_unparsed_bytes));
         } else {
-            // try {
-            //     // First try direct conversion...
-            //     auto objectlist =
-            //     operands_op[0].cast<std::vector<QPDFObjectHandle>>(); for
-            //     (QPDFObjectHandle &obj : objectlist) {
-            //         ss << obj.unparseBinary() << " ";
-            //     }
-            // } catch (const py::cast_error &) {
             auto operands = py::reinterpret_borrow<py::sequence>(operands_op[0]);
             for (const auto &operand : operands) {
                 QPDFObjectHandle obj = objecthandle_encode(operand);
                 ss << obj.unparseBinary() << " ";
             }
-            // }
             ss << op.unparseBinary();
         }
 
@@ -213,12 +228,8 @@ py::bytes unparse_content_stream(py::iterable contentstream)
 void init_parsers(py::module_ &m)
 {
     py::class_<ContentStreamInstruction>(m, "ContentStreamInstruction")
-        .def_property(
-            "operator",
-            [](ContentStreamInstruction &csi) { return csi.operator_; },
-            [](ContentStreamInstruction &csi, QPDFObjectHandle op) {
-                csi.operator_ = op;
-            })
+        .def_property_readonly(
+            "operator", [](ContentStreamInstruction &csi) { return csi.operator_; })
         .def_property(
             "operands",
             [](ContentStreamInstruction &csi) { return csi.operands; },
@@ -243,6 +254,28 @@ void init_parsers(py::module_ &m)
                     std::string("Invalid index ") + std::to_string(index));
             })
         .def("__repr__", [](ContentStreamInstruction &csi) {
+            return "pikepdf.ContentStreamInstruction()";
+        });
+
+    py::class_<ContentStreamInlineImage>(m, "ContentStreamInlineImage")
+        .def_property_readonly("operator",
+            [](ContentStreamInlineImage &csii) {
+                return QPDFObjectHandle::newOperator("INLINE IMAGE");
+            })
+        .def_property_readonly("operands",
+            [](ContentStreamInlineImage &csii) { return csii.get_operands(); })
+        .def("__getitem__",
+            [](ContentStreamInlineImage &csii, int index) -> py::object {
+                if (index == 0 || index == -2)
+                    return csii.get_operands();
+                else if (index == 1 || index == -1)
+                    return py::cast(csii.get_operator());
+                throw py::index_error(
+                    std::string("Invalid index ") + std::to_string(index));
+            })
+        .def_property_readonly("iimage",
+            [](ContentStreamInlineImage &csii) { return csii.get_inline_image(); })
+        .def("__repr__", [](ContentStreamInlineImage &csii) {
             return "pikepdf.ContentStreamInstruction()";
         });
 }

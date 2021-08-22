@@ -895,7 +895,7 @@ class PdfInlineImage(PdfImageBase):
     }
     REVERSE_ABBREVS = {v: k for k, v in ABBREVS.items()}
 
-    def __init__(self, *, image_data, image_object: tuple):
+    def __init__(self, *, image_data: Object, image_object: tuple):
         """
         Args:
             image_data: data stream for image, extracted from content stream
