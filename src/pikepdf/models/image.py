@@ -473,7 +473,7 @@ class PdfImage(PdfImageBase):
                     ) from e
         return self._icc
 
-    def _extract_direct(self, *, stream):
+    def _extract_direct(self, *, stream) -> str:
         """Attempt to extract the image directly to a usable image file
 
         If there is no way to extract the image without decompressing or
@@ -519,7 +519,7 @@ class PdfImage(PdfImageBase):
 
         raise NotExtractableError()
 
-    def _extract_transcoded(self):
+    def _extract_transcoded(self) -> Image.Image:
         # Reminder Pillow palette byte order unintentionally changed in 8.3.0
         # https://github.com/python-pillow/Pillow/issues/5595
         # 8.2.0: all aligned by channel (very nonstandard)

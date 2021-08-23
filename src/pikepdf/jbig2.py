@@ -16,7 +16,9 @@ from PIL import Image
 import pikepdf
 
 
-def extract_jbig2(im_obj: pikepdf.Object, globals_obj: pikepdf.Object = None) -> Image:
+def extract_jbig2(
+    im_obj: pikepdf.Object, globals_obj: pikepdf.Object = None
+) -> Image.Image:
 
     with TemporaryDirectory(prefix='pikepdf', suffix='.jbig2') as tmpdir:
         image_path = Path(tmpdir) / "image"
