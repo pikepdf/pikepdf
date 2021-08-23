@@ -7,9 +7,9 @@ from pikepdf import Pdf
 
 @pytest.fixture
 def congress(resources):
-    pdf = Pdf.open(resources / 'congress.pdf')
-    pdfimage = pdf.pages[0].Resources.XObject['/Im0']
-    return pdfimage, pdf
+    with Pdf.open(resources / 'congress.pdf') as pdf:
+        pdfimage = pdf.pages[0].Resources.XObject['/Im0']
+        yield pdfimage, pdf
 
 
 def test_get_equality_stream(congress):

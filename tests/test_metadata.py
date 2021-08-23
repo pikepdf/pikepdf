@@ -109,8 +109,8 @@ def test_no_info(vera, outdir):
     assert vera.docinfo.is_indirect, "/Info must be an indirect object"
     vera.save(outdir / 'out.pdf')
 
-    new = Pdf.open(outdir / 'out.pdf')
-    assert new.docinfo['/Creator'] == creator
+    with Pdf.open(outdir / 'out.pdf') as new:
+        assert new.docinfo['/Creator'] == creator
 
 
 def test_update_info(graph, outdir):
@@ -118,15 +118,15 @@ def test_update_info(graph, outdir):
     graph.docinfo['/Title'] = new_title
     graph.save(outdir / 'out.pdf')
 
-    new = Pdf.open(outdir / 'out.pdf')
-    assert new.docinfo['/Title'] == new_title
-    assert graph.docinfo['/Author'] == new.docinfo['/Author']
+    with Pdf.open(outdir / 'out.pdf') as new:
+        assert new.docinfo['/Title'] == new_title
+        assert graph.docinfo['/Author'] == new.docinfo['/Author']
 
-    with pytest.raises(ValueError):
-        new.docinfo = Dictionary({'/Keywords': 'bob'})
+        with pytest.raises(ValueError):
+            new.docinfo = Dictionary({'/Keywords': 'bob'})
 
-    new.docinfo = graph.make_indirect(Dictionary({'/Keywords': 'bob'}))
-    assert new.docinfo.is_indirect, "/Info must be an indirect object"
+        new.docinfo = graph.make_indirect(Dictionary({'/Keywords': 'bob'}))
+        assert new.docinfo.is_indirect, "/Info must be an indirect object"
 
 
 def test_copy_info(vera, graph, outdir):
@@ -140,8 +140,8 @@ def test_del_info(graph, outpdf):
     del graph.docinfo
     assert Name.Info not in graph.trailer
     graph.save(outpdf)
-    new = Pdf.open(outpdf)
-    assert Name.Info not in new.trailer
+    with Pdf.open(outpdf) as new:
+        assert Name.Info not in new.trailer
 
 
 def test_add_new_xmp_and_mark(trivial):
@@ -182,14 +182,14 @@ def test_update_docinfo(vera):
 )
 def test_roundtrip(filename):
     try:
-        pdf = Pdf.open(filename)
+        with Pdf.open(filename) as pdf:
+            with pdf.open_metadata() as xmp:
+                for k in xmp.keys():
+                    if not 'Date' in k:
+                        xmp[k] = 'A'
+            assert '<?xpacket' not in str(xmp)
     except PasswordError:
         return
-    with pdf.open_metadata() as xmp:
-        for k in xmp.keys():
-            if not 'Date' in k:
-                xmp[k] = 'A'
-    assert '<?xpacket' not in str(xmp)
 
 
 def test_build_metadata(trivial, graph, outdir):
@@ -493,19 +493,19 @@ def test_degenerate_xml_recoverable(trivial, xml):
 @example(1303)
 @pytest.mark.filterwarnings('ignore:The DocumentInfo field')
 def test_truncated_xml(resources, idx):
-    sandwich = Pdf.open(resources / 'sandwich.pdf')
-    data = sandwich.Root.Metadata.read_bytes()
-    assume(idx < len(data))
+    with Pdf.open(resources / 'sandwich.pdf') as sandwich:
+        data = sandwich.Root.Metadata.read_bytes()
+        assume(idx < len(data))
 
-    sandwich.Root.Metadata = sandwich.make_stream(data[0:idx])
-    try:
-        with sandwich.open_metadata(strict=True) as xmp:
-            xmp['pdfaid:part'] = '5'
-    except (XMLSyntaxError, AssertionError):
-        pass
+        sandwich.Root.Metadata = sandwich.make_stream(data[0:idx])
+        try:
+            with sandwich.open_metadata(strict=True) as xmp:
+                xmp['pdfaid:part'] = '5'
+        except (XMLSyntaxError, AssertionError):
+            pass
 
-    with sandwich.open_metadata(strict=False) as xmp:
-        xmp['pdfaid:part'] = '7'
+        with sandwich.open_metadata(strict=False) as xmp:
+            xmp['pdfaid:part'] = '7'
 
 
 @needs_libxmp

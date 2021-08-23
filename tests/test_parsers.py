@@ -84,16 +84,16 @@ def slow_unparse_content_stream(instructions):
 
 
 def test_open_pdf(resources):
-    pdf = Pdf.open(resources / 'graph.pdf')
-    page = pdf.pages[0]
-    Object._parse_stream(page.obj, PrintParser())
+    with Pdf.open(resources / 'graph.pdf') as pdf:
+        page = pdf.pages[0]
+        Object._parse_stream(page.obj, PrintParser())
 
 
 def test_parser_exception(resources):
-    pdf = Pdf.open(resources / 'graph.pdf')
-    stream = pdf.pages[0]['/Contents']
-    with pytest.raises(ValueError):
-        Object._parse_stream(stream, ExceptionParser())
+    with Pdf.open(resources / 'graph.pdf') as pdf:
+        stream = pdf.pages[0]['/Contents']
+        with pytest.raises(ValueError):
+            Object._parse_stream(stream, ExceptionParser())
 
 
 @pytest.mark.skipif(shutil.which('pdftotext') is None, reason="poppler not installed")
@@ -106,25 +106,24 @@ def test_text_filter(resources, outdir):
     )
     assert proc.stdout.strip() != '', "Need input test file that contains text"
 
-    pdf = Pdf.open(input_pdf)
-    page = pdf.pages[0]
+    with Pdf.open(input_pdf) as pdf:
+        page = pdf.pages[0]
 
-    keep = []
-    for operands, command in parse_content_stream(
-        page, """TJ Tj ' " BT ET Td TD Tm T* Tc Tw Tz TL Tf Tr Ts"""
-    ):
-        if command == Operator('Tj'):
-            print("skipping Tj")
-            continue
-        keep.append((operands, command))
+        keep = []
+        for operands, command in parse_content_stream(
+            page, """TJ Tj ' " BT ET Td TD Tm T* Tc Tw Tz TL Tf Tr Ts"""
+        ):
+            if command == Operator('Tj'):
+                print("skipping Tj")
+                continue
+            keep.append((operands, command))
 
-    new_stream = Stream(pdf, pikepdf.unparse_content_stream(keep))
-    print(new_stream.read_bytes())  # pylint: disable=no-member
-    page['/Contents'] = new_stream
-    page['/Rotate'] = 90
+        new_stream = Stream(pdf, pikepdf.unparse_content_stream(keep))
+        print(new_stream.read_bytes())  # pylint: disable=no-member
+        page['/Contents'] = new_stream
+        page['/Rotate'] = 90
 
-    pdf.save(outdir / 'notext.pdf', static_id=True)
-    pdf.close()
+        pdf.save(outdir / 'notext.pdf', static_id=True)
 
     proc = run(
         ['pdftotext', str(outdir / 'notext.pdf'), '-'],
@@ -161,10 +160,10 @@ def test_invalid_stream_object():
 #     ],
 # )
 # def test_has_text(resources, test_file, expected):
-#     pdf = Pdf.open(resources / test_file)
-#     for p in pdf.pages:
-#         page = p
-#         assert page.has_text() == expected
+#     with Pdf.open(resources / test_file) as pdf:
+#         for p in pdf.pages:
+#             page = p
+#             assert page.has_text() == expected
 
 
 def test_unparse_cs():
@@ -183,10 +182,10 @@ def test_unparse_failure():
 
 
 def test_parse_xobject(resources):
-    pdf = Pdf.open(resources / 'formxobject.pdf')
-    form1 = pdf.pages[0].Resources.XObject.Form1
-    instructions = parse_content_stream(form1)
-    assert instructions[0][1] == Operator('cm')
+    with Pdf.open(resources / 'formxobject.pdf') as pdf:
+        form1 = pdf.pages[0].Resources.XObject.Form1
+        instructions = parse_content_stream(form1)
+        assert instructions[0][1] == Operator('cm')
 
 
 def test_unparse_interpret_operator():

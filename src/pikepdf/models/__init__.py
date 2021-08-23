@@ -68,10 +68,10 @@ def parse_content_stream(
 
     Example:
 
-        >>> pdf = pikepdf.Pdf.open(input_pdf)
-        >>> page = pdf.pages[0]
-        >>> for operands, command in parse_content_stream(page):
-        >>>     print(command)
+        >>> with pikepdf.Pdf.open(input_pdf) as pdf:
+        >>>     page = pdf.pages[0]
+        >>>     for operands, command in parse_content_stream(page):
+        >>>         print(command)
 
     """
 

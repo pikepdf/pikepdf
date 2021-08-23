@@ -112,7 +112,7 @@ def file_descriptor_is_open_for():
 
 def test_open_named_file_closed(resources, file_descriptor_is_open_for):
     path = resources / 'pal.pdf'
-    pdf = Pdf.open(path)
+    pdf = Pdf.open(path)  # no with clause
     assert file_descriptor_is_open_for(path)
 
     pdf.close()
@@ -124,7 +124,7 @@ def test_open_named_file_closed(resources, file_descriptor_is_open_for):
 def test_streamed_file_not_closed(resources, file_descriptor_is_open_for):
     path = resources / 'pal.pdf'
     stream = path.open('rb')
-    pdf = Pdf.open(stream)
+    pdf = Pdf.open(stream)  # no with clause
     assert file_descriptor_is_open_for(path)
 
     pdf.close()
@@ -248,12 +248,12 @@ def test_stop_iteration_on_close(resources):
 
     # Inspired by https://github.com/pikepdf/pikepdf/issues/114
     stream = StopIterationOnClose((resources / 'pal-1bit-trivial.pdf').read_bytes())
-    pdf = Pdf.open(stream)
+    pdf = Pdf.open(stream)  # no with clause
     pdf.close()
 
 
 def test_read_after_close(resources):
-    pdf = Pdf.open(resources / 'pal.pdf')
+    pdf = Pdf.open(resources / 'pal.pdf')  # no with clause
     contents = pdf.pages[0].Contents
     pdf.close()
     with pytest.raises(PdfError, match="closed input source"):

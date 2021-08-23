@@ -36,13 +36,13 @@ def test_open_pdf(resources):
 
 
 def test_open_pdf_password(resources):
-    pdf = Pdf.open(resources / 'graph-encrypted.pdf', password='owner')
-    assert pdf.Root['/Pages']['/Count'] == 1
+    with Pdf.open(resources / 'graph-encrypted.pdf', password='owner') as pdf:
+        assert pdf.Root['/Pages']['/Count'] == 1
 
 
 def test_attr_access(resources):
-    pdf = Pdf.open(resources / 'graph.pdf')
-    assert int(pdf.Root.Pages.Count) == 1
+    with Pdf.open(resources / 'graph.pdf') as pdf:
+        assert int(pdf.Root.Pages.Count) == 1
 
 
 def test_create_pdf(outdir):
@@ -106,21 +106,21 @@ def test_create_pdf(outdir):
 
 
 def test_copy_semantics(resources):
-    pdf = Pdf.open(resources / 'graph.pdf')
+    with Pdf.open(resources / 'graph.pdf') as pdf:
 
-    # Ensure that we can name a reference to a child object and view the
-    # changes from the parent
-    page = pdf.pages[0]
-    mediabox = page['/MediaBox']
-    assert mediabox[2] != 0
-    mediabox[2] = 0
-    assert page['/MediaBox'][2] == mediabox[2]
+        # Ensure that we can name a reference to a child object and view the
+        # changes from the parent
+        page = pdf.pages[0]
+        mediabox = page['/MediaBox']
+        assert mediabox[2] != 0
+        mediabox[2] = 0
+        assert page['/MediaBox'][2] == mediabox[2]
 
 
 def test_copy_page_keepalive(resources, outdir):
     # str for py<3.6
     copy(str(resources / 'sandwich.pdf'), str(outdir / 'sandwich.pdf'))
-    src = Pdf.open(outdir / 'sandwich.pdf')
+    src = Pdf.open(outdir / 'sandwich.pdf')  # no with clause
     pdf = Pdf.open(resources / 'graph.pdf')
 
     pdf.pages.append(src.pages[0])
@@ -131,15 +131,16 @@ def test_copy_page_keepalive(resources, outdir):
     with suppress(PermissionError):
         (outdir / 'sandwich.pdf').unlink()
     pdf.save(outdir / 'out.pdf')
+    pdf.close()
 
 
 def test_open_save(resources, outdir):
     out = str(outdir / 'graph.pdf')
     copy(str(resources / 'graph.pdf'), out)
-    src = Pdf.open(out)
-    with pytest.raises(ValueError):
-        src.save(out)
-    src.save(outdir / 'graph2.pdf')
+    with Pdf.open(out) as src:
+        with pytest.raises(ValueError):
+            src.save(out)
+        src.save(outdir / 'graph2.pdf')
 
 
 def test_readme_example(resources, outpdf):

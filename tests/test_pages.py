@@ -101,19 +101,19 @@ def test_hard_replace_page(fourpages, graph, sandwich, outdir):
 
 
 def test_reverse_pages(resources, outdir):
-    q = Pdf.open(resources / "fourpages.pdf")
-    qr = Pdf.open(resources / "fourpages.pdf")
+    with Pdf.open(resources / "fourpages.pdf") as q, Pdf.open(
+        resources / "fourpages.pdf"
+    ) as qr:
+        lengths = [int(page.Contents.stream_dict.Length) for page in q.pages]
 
-    lengths = [int(page.Contents.stream_dict.Length) for page in q.pages]
+        qr.pages.reverse()
+        qr.save(outdir / "reversed.pdf")
 
-    qr.pages.reverse()
-    qr.save(outdir / "reversed.pdf")
+        for n, length in enumerate(lengths):
+            assert q.pages[n].Contents.stream_dict.Length == length
 
-    for n, length in enumerate(lengths):
-        assert q.pages[n].Contents.stream_dict.Length == length
-
-    for n, length in enumerate(reversed(lengths)):
-        assert qr.pages[n].Contents.stream_dict.Length == length
+        for n, length in enumerate(reversed(lengths)):
+            assert qr.pages[n].Contents.stream_dict.Length == length
 
 
 @skip_if_pypy
@@ -394,23 +394,22 @@ def test_pages_wrong_type(fourpages):
 def test_page_splitting_generator(resources, tmp_path):
     # https://github.com/pikepdf/pikepdf/issues/114
     def pdfs():
-        pdf = Pdf.open(resources / "content-stream-errors.pdf")
-        output = Pdf.new()
-        part = 1
-        for _idx, page in enumerate(pdf.pages):
-            if len(output.pages) == 2:
+        with Pdf.open(
+            resources / "content-stream-errors.pdf"
+        ) as pdf, Pdf.new() as output:
+            part = 1
+            for _idx, page in enumerate(pdf.pages):
+                if len(output.pages) == 2:
+                    part_file = tmp_path / f"part-{part}.pdf"
+                    output.save(part_file)
+                    yield part_file
+                    output = Pdf.new()
+                    part += 1
+                output.pages.append(page)
+            if len(output.pages) > 0:
                 part_file = tmp_path / f"part-{part}.pdf"
                 output.save(part_file)
                 yield part_file
-                output = Pdf.new()
-                part += 1
-            output.pages.append(page)
-        if len(output.pages) > 0:
-            part_file = tmp_path / f"part-{part}.pdf"
-            output.save(part_file)
-            yield part_file
-        output.close()
-        pdf.close()
 
     for pdf in pdfs():
         print(pdf)

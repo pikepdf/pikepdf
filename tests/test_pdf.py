@@ -160,10 +160,10 @@ class TestStreams:
 
 class TestMemory:
     def test_memory(self, resources):
-        pdf = (resources / 'pal-1bit-trivial.pdf').read_bytes()
+        data = (resources / 'pal-1bit-trivial.pdf').read_bytes()
         with pytest.warns(UserWarning, match="bytes-like object containing a PDF"):
             with pytest.raises(Exception):
-                pdf = Pdf.open(pdf)
+                Pdf.open(data)
 
 
 def test_remove_unreferenced(resources, outdir):
@@ -209,8 +209,9 @@ def test_min_and_force_version(trivial, outdir):
         assert pdf17.pdf_version == '1.7'
 
     pdf.save(outdir / '1.2.pdf', force_version='1.2')
-    pdf12 = Pdf.open(outdir / '1.2.pdf')
-    assert pdf12.pdf_version == '1.2'
+
+    with Pdf.open(outdir / '1.2.pdf') as pdf12:
+        assert pdf12.pdf_version == '1.2'
 
 
 def test_normalize_linearize(trivial, outdir):
