@@ -625,6 +625,7 @@ class PdfImage(PdfImageBase):
         except NotExtractableError:
             pass
 
+        im = None
         try:
             im = self._extract_transcoded()
             if im.mode == 'CMYK':
@@ -637,6 +638,9 @@ class PdfImage(PdfImageBase):
             if 'called on unfilterable stream' in str(e):
                 raise UnsupportedImageTypeError(repr(self)) from e
             raise
+        finally:
+            if im:
+                im.close()
 
         raise UnsupportedImageTypeError(repr(self))
 
@@ -696,7 +700,10 @@ class PdfImage(PdfImageBase):
         return self.obj.get_stream_buffer(decode_level=decode_level)
 
     def as_pil_image(self) -> Image.Image:
-        """Extract the image as a Pillow Image, using decompression as necessary."""
+        """Extract the image as a Pillow Image, using decompression as necessary.
+
+        Caller must close the image.
+        """
         try:
             bio = BytesIO()
             self._extract_direct(stream=bio)
@@ -807,9 +814,9 @@ class PdfImage(PdfImageBase):
     def _repr_png_(self):
         """Display hook for IPython/Jupyter"""
         b = BytesIO()
-        im = self.as_pil_image()
-        im.save(b, 'PNG')
-        return b.getvalue()
+        with self.as_pil_image() as im:
+            im.save(b, 'PNG')
+            return b.getvalue()
 
 
 class PdfJpxImage(PdfImage):

@@ -143,9 +143,9 @@ class TestStreams:
         assert saved_file_contents == bio.read()
 
     def test_read_not_readable_file(self, outdir):
-        writable = (Path(outdir) / 'writeme.pdf').open('wb')
-        with pytest.raises(ValueError, match=r'not readable'):
-            Pdf.open(writable)
+        with (Path(outdir) / 'writeme.pdf').open('wb') as writable:
+            with pytest.raises(ValueError, match=r'not readable'):
+                Pdf.open(writable)
 
     def test_open_not_seekable_stream(self, resources):
         class UnseekableBytesIO(BytesIO):
