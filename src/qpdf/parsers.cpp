@@ -210,8 +210,8 @@ py::bytes unparse_content_stream(py::iterable contentstream)
                 errmsg << "Expected PdfInlineImage as operand for instruction " << n;
                 throw py::value_error(errmsg.str());
             }
-            py::object iimage_unparsed_bytes = iimage.attr("unparse")();
-            ss << std::string(py::bytes(iimage_unparsed_bytes));
+            py::bytes iimage_unparsed_bytes = iimage.attr("unparse")();
+            ss << std::string(iimage_unparsed_bytes);
         } else {
             auto operands = py::reinterpret_borrow<py::sequence>(operands_op[0]);
             for (const auto &operand : operands) {
