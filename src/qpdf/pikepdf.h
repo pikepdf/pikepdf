@@ -299,9 +299,14 @@ inline char *fix_pypy36_const_char(const char *s)
     return const_cast<char *>(s);
 }
 
+inline void python_warning(const char *msg, PyObject *category = PyExc_UserWarning)
+{
+    PyErr_WarnEx(category, msg, /*stacklevel=*/1);
+}
+
 inline void deprecation_warning(const char *msg)
 {
-    PyErr_WarnEx(PyExc_DeprecationWarning, msg, /*stacklevel=*/1);
+    python_warning(msg, PyExc_DeprecationWarning);
 }
 
 // Support for recursion checks

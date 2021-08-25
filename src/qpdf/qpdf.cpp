@@ -185,8 +185,7 @@ void setup_encryption(QPDFWriter &w, py::object encryption)
         throw py::value_error("Invalid encryption level: must be 2, 3, 4 or 6");
 
     if (encryption_level == 5) {
-        auto warn = py::module_::import("warnings").attr("warn");
-        warn("Encryption R=5 is deprecated");
+        python_warning("Encryption R=5 is deprecated");
     }
 
     if (encryption.contains("owner")) {
@@ -273,7 +272,6 @@ void setup_encryption(QPDFWriter &w, py::object encryption)
             print,
             metadata);
     } else if (encryption_level == 5) {
-        // TODO WARNING
         w.setR5EncryptionParameters(user.c_str(),
             owner.c_str(),
             allow["accessibility"],

@@ -810,8 +810,7 @@ void init_object(py::module_ &m)
                 OperandGrouper og(whitelist);
                 QPDFObjectHandle::parseContentStream(h, &og);
                 if (!og.getWarning().empty()) {
-                    auto warn = py::module_::import("warnings").attr("warn");
-                    warn(og.getWarning());
+                    python_warning(og.getWarning().c_str());
                 }
                 return og.getInstructions();
             })
