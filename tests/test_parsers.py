@@ -22,7 +22,17 @@ from pikepdf import (
 from pikepdf._qpdf import StreamParser
 from pikepdf.models import PdfParsingError
 
-# pylint: disable=useless-super-delegation
+# pylint: disable=useless-super-delegation,redefined-outer-name
+
+
+@pytest.fixture
+def graph(resources):
+    yield Pdf.open(resources / 'graph.pdf')
+
+
+@pytest.fixture
+def inline(resources):
+    yield Pdf.open(resources / 'image-mono-inline.pdf')
 
 
 class PrintParser(StreamParser):
@@ -83,17 +93,15 @@ def slow_unparse_content_stream(instructions):
     return b'\n'.join(for_each_instruction())
 
 
-def test_open_pdf(resources):
-    with Pdf.open(resources / 'graph.pdf') as pdf:
-        page = pdf.pages[0]
-        Object._parse_stream(page.obj, PrintParser())
+def test_open_pdf(graph):
+    page = graph.pages[0]
+    Object._parse_stream(page.obj, PrintParser())
 
 
-def test_parser_exception(resources):
-    with Pdf.open(resources / 'graph.pdf') as pdf:
-        stream = pdf.pages[0]['/Contents']
-        with pytest.raises(ValueError):
-            Object._parse_stream(stream, ExceptionParser())
+def test_parser_exception(graph):
+    stream = graph.pages[0]['/Contents']
+    with pytest.raises(ValueError):
+        Object._parse_stream(stream, ExceptionParser())
 
 
 @pytest.mark.skipif(shutil.which('pdftotext') is None, reason="poppler not installed")
@@ -216,13 +224,12 @@ def test_unparse_interpret_operator():
     )
 
 
-def test_unparse_inline(resources):
-    with Pdf.open(resources / 'image-mono-inline.pdf') as pdf:
-        p0 = pdf.pages[0]
-        cmds = parse_content_stream(p0)
-        unparsed = unparse_content_stream(cmds)
-        assert b'BI' in unparsed
-        assert unparsed == slow_unparse_content_stream(cmds)
+def test_unparse_inline(inline):
+    p0 = inline.pages[0]
+    cmds = parse_content_stream(p0)
+    unparsed = unparse_content_stream(cmds)
+    assert b'BI' in unparsed
+    assert unparsed == slow_unparse_content_stream(cmds)
 
 
 def test_unparse_invalid_inline_image():
