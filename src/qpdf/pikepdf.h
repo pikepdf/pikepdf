@@ -282,6 +282,9 @@ void init_nametree(py::module_ &m);
 void init_page(py::module_ &m);
 size_t page_index(QPDF &owner, QPDFObjectHandle page);
 
+// From parsers.cpp
+void init_parsers(py::module_ &m);
+
 // From rectangle.cpp
 void init_rectangle(py::module_ &m);
 
@@ -298,10 +301,7 @@ inline char *fix_pypy36_const_char(const char *s)
 
 inline void deprecation_warning(const char *msg)
 {
-    py::object warn = py::module_::import("warnings").attr("warn");
-    py::object DeprecationWarning =
-        py::module_::import("builtins").attr("DeprecationWarning");
-    warn(msg, DeprecationWarning, /*stackleverl=*/1);
+    PyErr_WarnEx(PyExc_DeprecationWarning, msg, /*stacklevel=*/1);
 }
 
 // Support for recursion checks

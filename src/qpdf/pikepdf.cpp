@@ -98,6 +98,7 @@ PYBIND11_MODULE(_qpdf, m)
     init_embeddedfiles(m);
     init_nametree(m);
     init_page(m);
+    init_parsers(m);
     init_rectangle(m);
     init_tokenfilter(m);
 

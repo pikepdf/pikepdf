@@ -188,6 +188,20 @@ def test_parse_xobject(resources):
         assert instructions[0][1] == Operator('cm')
 
 
+def test_parse_results(resources):
+    with Pdf.open(resources / 'image-mono-inline.pdf') as pdf:
+        p0 = pdf.pages[0]
+        cmds = parse_content_stream(p0)
+        assert isinstance(cmds[0], _qpdf.ContentStreamInstruction)
+        csi = cmds[0]
+        assert isinstance(csi.operands, _qpdf._ObjectList)
+        assert isinstance(csi.operator, Operator)
+
+        for cmd in cmds:
+            if isinstance(cmd, _qpdf.ContentStreamInlineImage):
+                assert cmd.operator == Operator("INLINE IMAGE")
+
+
 def test_unparse_interpret_operator():
     commands = []
     matrix = [2, 0, 0, 2, 0, 0]
@@ -223,9 +237,15 @@ class TestMalformedContentStreamInstructions:
         with pytest.raises(PdfParsingError):
             unparse_content_stream([(1, 2, 3)])
 
-    def test_rejects_not_operator(self):
-        with pytest.raises(PdfParsingError):
+    def test_rejects_not_castable_to_object(self):
+        with pytest.raises(PdfParsingError, match="Unable to cast"):
             unparse_content_stream([(['one', 'two'], 42)])  # 42 is not an operator
+
+    def test_rejects_not_castable_to_object(self):
+        with pytest.raises(PdfParsingError, match="While unparsing"):
+            unparse_content_stream(
+                [(['one', 'two'], Name.FortyTwo)]
+            )  # Name is not an operator
 
     def test_rejects_inline_image_missing(self):
         with pytest.raises(PdfParsingError):

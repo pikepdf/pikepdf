@@ -21,8 +21,16 @@ from .outlines import (
 )
 
 # Operands, Operator
-ContentStreamOperands = Collection[Union[Object, PdfInlineImage]]
-ContentStreamInstructions = Tuple[ContentStreamOperands, Operator]
+_OldContentStreamOperands = Collection[Union[Object, PdfInlineImage]]
+_OldContentStreamInstructions = Tuple[_OldContentStreamOperands, Operator]
+
+ContentStreamInstructions = Union[
+    _qpdf.ContentStreamInstruction, _qpdf.ContentStreamInlineImage
+]
+
+UnparseableContentStreamInstructions = Union[
+    ContentStreamInstructions, _OldContentStreamInstructions
+]
 
 
 class PdfParsingError(Exception):
@@ -111,7 +119,7 @@ def parse_content_stream(
 
 
 def unparse_content_stream(
-    instructions: Collection[ContentStreamInstructions],
+    instructions: Collection[UnparseableContentStreamInstructions],
 ) -> bytes:
     """
     Given a parsed list of instructions/operand-operators, convert to bytes suitable
