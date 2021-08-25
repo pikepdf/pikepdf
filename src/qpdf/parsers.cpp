@@ -36,6 +36,8 @@ ContentStreamInstruction::ContentStreamInstruction(
     ObjectList operands, QPDFObjectHandle operator_)
     : operands(operands), operator_(operator_)
 {
+    if (!this->operator_.isOperator())
+        throw py::type_error("operator parameter must be a pikepdf.Operator");
 }
 
 std::ostream &operator<<(std::ostream &os, ContentStreamInstruction &csi)
@@ -229,23 +231,26 @@ py::bytes unparse_content_stream(py::iterable contentstream)
 void init_parsers(py::module_ &m)
 {
     py::class_<ContentStreamInstruction>(m, "ContentStreamInstruction")
+        .def(py::init([](ContentStreamInstruction &csi) {
+            return ContentStreamInstruction(csi);
+        }))
+        .def(py::init([](py::iterable operands, QPDFObjectHandle operator_) {
+            ObjectList newlist;
+            for (auto &item : operands) {
+                newlist.push_back(objecthandle_encode(item));
+            }
+            return ContentStreamInstruction(newlist, operator_);
+        }))
         .def_property_readonly(
-            "operator", [](ContentStreamInstruction &csi) { return csi.operator_; })
-        .def_property(
+            "operator",
+            [](ContentStreamInstruction &csi) { return csi.operator_; },
+            "The operator of used in this instruction.")
+        .def_property_readonly(
             "operands",
             [](ContentStreamInstruction &csi) { return csi.operands; },
-            [](ContentStreamInstruction &csi, py::object objlist) {
-                if (py::isinstance<ObjectList>(objlist)) {
-                    csi.operands = py::cast<ObjectList>(objlist);
-                } else {
-                    ObjectList newlist;
-                    for (auto &item : objlist) {
-                        newlist.push_back(objecthandle_encode(item));
-                    }
-                    csi.operands = newlist;
-                }
-            })
-        .def("__getitem__",
+            "The operands (parameters) supplied to the operator.")
+        .def(
+            "__getitem__",
             [](ContentStreamInstruction &csi, int index) {
                 if (index == 0 || index == -2)
                     return py::cast(csi.operands);
@@ -253,19 +258,39 @@ void init_parsers(py::module_ &m)
                     return py::cast(csi.operator_);
                 throw py::index_error(
                     std::string("Invalid index ") + std::to_string(index));
-            })
+            },
+            "``[0]`` returns the operands, and ``[1]`` returns the operator.")
         .def("__len__", [](ContentStreamInstruction &csi) { return 2; })
         .def("__repr__", [](ContentStreamInstruction &csi) {
-            return "pikepdf.ContentStreamInstruction()";
+            std::ostringstream ss;
+            ss.imbue(std::locale::classic());
+            ss << "pikepdf.ContentStreamInstruction("
+               << py::repr(py::cast(csi.operands)) << ", "
+               << objecthandle_repr(csi.operator_) << ")";
+            return ss.str();
         });
 
     py::class_<ContentStreamInlineImage>(m, "ContentStreamInlineImage")
-        .def_property_readonly("operator",
+        .def(py::init([](ContentStreamInlineImage &csii) {
+            return ContentStreamInlineImage(csii);
+        }))
+        .def(py::init([](py::object iimage) {
+            auto data         = iimage.attr("_data");
+            auto image_object = iimage.attr("_image_object");
+
+            return ContentStreamInlineImage(
+                image_object.cast<ObjectList>(), data.cast<QPDFObjectHandle>());
+        }))
+        .def_property_readonly(
+            "operator",
             [](ContentStreamInlineImage &csii) {
                 return QPDFObjectHandle::newOperator("INLINE IMAGE");
-            })
-        .def_property_readonly("operands",
-            [](ContentStreamInlineImage &csii) { return csii.get_operands(); })
+            },
+            "Always return the fictitious operator 'INLINE IMAGE'.")
+        .def_property_readonly(
+            "operands",
+            [](ContentStreamInlineImage &csii) { return csii.get_operands(); },
+            "Returns a list of operands, whose sole entry is the inline image.")
         .def("__getitem__",
             [](ContentStreamInlineImage &csii, int index) -> py::object {
                 if (index == 0 || index == -2)
@@ -276,9 +301,17 @@ void init_parsers(py::module_ &m)
                     std::string("Invalid index ") + std::to_string(index));
             })
         .def("__len__", [](ContentStreamInlineImage &csii) { return 2; })
-        .def_property_readonly("iimage",
-            [](ContentStreamInlineImage &csii) { return csii.get_inline_image(); })
+        .def_property_readonly(
+            "iimage",
+            [](ContentStreamInlineImage &csii) { return csii.get_inline_image(); },
+            "Returns the inline image itself.")
         .def("__repr__", [](ContentStreamInlineImage &csii) {
-            return "pikepdf.ContentStreamInstruction()";
+            std::ostringstream ss;
+            ss.imbue(std::locale::classic());
+            ss << "<pikepdf.ContentStreamInlineImage("
+               << "[" << py::repr(csii.get_inline_image()) << "], "
+               << "pikepdf.Operator('INLINE IMAGE')"
+               << ")>";
+            return ss.str();
         });
 }

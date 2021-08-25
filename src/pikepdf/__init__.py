@@ -24,6 +24,8 @@ from ._qpdf import (
     AccessMode,
     Annotation,
     AttachedFileSpec,
+    ContentStreamInlineImage,
+    ContentStreamInstruction,
     DataDecodingError,
     ForeignObjectError,
     NameTree,

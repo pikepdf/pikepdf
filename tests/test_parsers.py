@@ -6,6 +6,8 @@ import pytest
 
 import pikepdf
 from pikepdf import (
+    ContentStreamInlineImage,
+    ContentStreamInstruction,
     Dictionary,
     Name,
     Object,
@@ -196,18 +198,29 @@ def test_parse_xobject(resources):
         assert instructions[0][1] == Operator('cm')
 
 
-def test_parse_results(resources):
-    with Pdf.open(resources / 'image-mono-inline.pdf') as pdf:
-        p0 = pdf.pages[0]
-        cmds = parse_content_stream(p0)
-        assert isinstance(cmds[0], _qpdf.ContentStreamInstruction)
-        csi = cmds[0]
-        assert isinstance(csi.operands, _qpdf._ObjectList)
-        assert isinstance(csi.operator, Operator)
+def test_parse_results(inline):
+    p0 = inline.pages[0]
+    cmds = parse_content_stream(p0)
+    assert isinstance(cmds[0], ContentStreamInstruction)
+    csi = cmds[0]
+    assert isinstance(csi.operands, _qpdf._ObjectList)
+    assert isinstance(csi.operator, Operator)
+    assert 'Operator' in repr(csi)
 
-        for cmd in cmds:
-            if isinstance(cmd, _qpdf.ContentStreamInlineImage):
-                assert cmd.operator == Operator("INLINE IMAGE")
+    assert ContentStreamInstruction(cmds[0]).operator == cmds[0].operator
+
+    for cmd in cmds:
+        if isinstance(cmd, ContentStreamInlineImage):
+            assert cmd.operator == Operator("INLINE IMAGE")
+            assert isinstance(cmd.operands[0], PdfInlineImage)
+            assert 'INLINE' in repr(cmd)
+            assert cmd.operands[0] == cmd.iimage
+
+
+def test_build_instructions():
+    cs = ContentStreamInstruction([1, 0, 0, 1, 0, 0], Operator('cm'))
+    assert 'cm' in repr(cs)
+    assert unparse_content_stream([cs]) == b'1 0 0 1 0 0 cm'
 
 
 def test_unparse_interpret_operator():
@@ -237,6 +250,16 @@ def test_unparse_invalid_inline_image():
 
     with pytest.raises(PdfParsingError):
         unparse_content_stream(instructions)
+
+
+def test_inline_copy(inline):
+    for instr in parse_content_stream(inline.pages[0].Contents):
+        if not isinstance(instr, ContentStreamInlineImage):
+            continue
+        csiimage = instr
+        _copy_of_csiimage = ContentStreamInlineImage(csiimage)
+        new_iimage = ContentStreamInlineImage(csiimage.iimage)
+        assert unparse_content_stream([new_iimage]).startswith(b'BI')
 
 
 class TestMalformedContentStreamInstructions:

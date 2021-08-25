@@ -107,6 +107,24 @@ Common PDF data structures
 .. autoclass:: pikepdf.Rectangle
     :members:
 
+Content stream elements
+=======================
+
+.. autoclass:: pikepdf.ContentStreamInstruction
+    :members:
+
+    Represents one complete instruction inside a content stream.
+
+.. autoclass:: pikepdf.ContentStreamInlineImage
+    :members:
+
+    Represents an instruction to draw an inline image inside a content
+    stream.
+
+    pikepdf consolidates the BI-ID-EI sequence of operators, as appears in a PDF to
+    declare an inline image, and replaces them with a single virtual content stream
+    instruction with the operator "INLINE IMAGE".
+
 Internal objects
 ================
 
