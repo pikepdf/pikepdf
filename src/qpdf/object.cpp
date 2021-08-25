@@ -65,17 +65,17 @@ py::size_t list_range_check(QPDFObjectHandle h, int index)
     return static_cast<py::size_t>(index);
 }
 
-bool typecode_is_bool(QPDFObject::object_type_e typecode)
+inline bool typecode_is_bool(QPDFObject::object_type_e typecode)
 {
     return typecode == QPDFObject::object_type_e::ot_boolean;
 }
 
-bool typecode_is_int(QPDFObject::object_type_e typecode)
+inline bool typecode_is_int(QPDFObject::object_type_e typecode)
 {
     return typecode == QPDFObject::object_type_e::ot_integer;
 }
 
-bool typecode_is_numeric(QPDFObject::object_type_e typecode)
+inline bool typecode_is_numeric(QPDFObject::object_type_e typecode)
 {
     return typecode == QPDFObject::object_type_e::ot_integer ||
            typecode == QPDFObject::object_type_e::ot_real ||
