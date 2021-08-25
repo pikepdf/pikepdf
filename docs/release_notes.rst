@@ -31,6 +31,11 @@ Breaking changes
    as in the previous idiom ``page = Page(pdf.pages[0])``. In most cases,
    if you use the Dictionary object API on a page, it will automatically do the
    right thing to the underlying dictionary.
+-  **Improved content stream API.** ``parse_content_stream`` now returns a list of
+   :class:`pikepdf.ContentStreamInstruction` or :class:`pikepdf.ContentStreamInlineImage`.
+   These are "duck type"-compatible with the previous data structure but may
+   affect code that strongly depended on the return types. ``unparse_content_stream``
+   still accepts the same inputs.
 -  ``TokenType.name`` and ``ObjectType.name`` were renamed to
    ``TokenType.name_`` and ``ObjectType.name_``, respectively. Unfortunately,
    Python's ``Enum`` class (of which these are both a subclass) uses the ``.name``
