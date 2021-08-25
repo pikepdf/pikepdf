@@ -14,6 +14,7 @@ from pikepdf import (
     Array,
     Dictionary,
     Name,
+    Operator,
     Pdf,
     PdfError,
     PdfImage,
@@ -186,8 +187,9 @@ def test_inline(inline):
     assert b'/Width 8' not in unparsed, "abbreviations expanded in inline image"
 
     cs = pdf.make_stream(unparsed)
-    for operands, _command in parse_content_stream(cs):
+    for operands, command in parse_content_stream(cs):
         if operands and isinstance(operands[0], PdfInlineImage):
+            assert command == Operator('INLINE IMAGE')
             reparsed_iim = operands[0]
             assert reparsed_iim == iimage
 
