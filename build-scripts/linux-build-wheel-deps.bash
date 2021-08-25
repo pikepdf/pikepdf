@@ -19,3 +19,5 @@ if [ ! -f /usr/local/lib/libqpdf.a ]; then
     find /usr/local/lib -name 'libqpdf.so*' -type f -exec strip --strip-debug {} \+
     popd
 fi
+
+ldconfig

@@ -147,11 +147,11 @@ jobs:
       - name: Download QPDF
         run: build-scripts/linux-download-qpdf.bash $QPDF_MIN_VERSION
 
+      - name: Add /usr/local/lib to dynamic linker path
+        run: echo "/usr/local/lib" | sudo tee /etc/ld.so.conf.d/local-lib.conf
+
       - name: Build QPDF
         run: build-scripts/linux-build-sdist-deps.bash
-
-      - name: Add LD_LIBRARY_PATH
-        run: echo "LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
 
       - name: Build sdist
         run: |
