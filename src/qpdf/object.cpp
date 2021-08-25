@@ -54,7 +54,7 @@ needed.
 
 */
 
-size_t list_range_check(QPDFObjectHandle h, int index)
+py::size_t list_range_check(QPDFObjectHandle h, int index)
 {
     if (!h.isArray())
         throw py::type_error("object is not an array");
@@ -62,7 +62,7 @@ size_t list_range_check(QPDFObjectHandle h, int index)
         index += h.getArrayNItems(); // Support negative indexing
     if (!(0 <= index && index < h.getArrayNItems()))
         throw py::index_error("index out of range");
-    return (size_t)index;
+    return static_cast<py::size_t>(index);
 }
 
 bool typecode_is_bool(QPDFObject::object_type_e typecode)
@@ -675,23 +675,23 @@ void init_object(py::module_ &m)
             })
         .def("__getitem__",
             [](QPDFObjectHandle &h, int index) {
-                size_t u_index = list_range_check(h, index);
+                auto u_index = list_range_check(h, index);
                 return h.getArrayItem(u_index);
             })
         .def("__setitem__",
             [](QPDFObjectHandle &h, int index, QPDFObjectHandle &value) {
-                size_t u_index = list_range_check(h, index);
+                auto u_index = list_range_check(h, index);
                 h.setArrayItem(u_index, value);
             })
         .def("__setitem__",
             [](QPDFObjectHandle &h, int index, py::object pyvalue) {
-                size_t u_index = list_range_check(h, index);
-                auto value     = objecthandle_encode(pyvalue);
+                auto u_index = list_range_check(h, index);
+                auto value   = objecthandle_encode(pyvalue);
                 h.setArrayItem(u_index, value);
             })
         .def("__delitem__",
             [](QPDFObjectHandle &h, int index) {
-                size_t u_index = list_range_check(h, index);
+                auto u_index = list_range_check(h, index);
                 h.eraseItem(u_index);
             })
         .def(

@@ -19,7 +19,7 @@
 #include <qpdf/Pipeline.hh>
 #include <qpdf/Pl_Buffer.hh>
 
-size_t page_index(QPDF &owner, QPDFObjectHandle page)
+py::size_t page_index(QPDF &owner, QPDFObjectHandle page)
 {
     if (&owner != page.getOwningQPDF())
         throw py::value_error("Page is not in this Pdf");

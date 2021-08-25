@@ -25,17 +25,17 @@ static void assert_pyobject_is_page_helper(py::handle obj)
     }
 }
 
-size_t uindex_from_index(PageList &pl, py::ssize_t index)
+py::size_t uindex_from_index(PageList &pl, py::ssize_t index)
 {
     if (index < 0)
         index += pl.count();
     if (index < 0) // Still
         throw py::index_error("Accessing nonexistent PDF page number");
-    size_t uindex = index;
+    py::size_t uindex = index;
     return uindex;
 }
 
-QPDFObjectHandle PageList::get_page_obj(size_t index) const
+QPDFObjectHandle PageList::get_page_obj(py::size_t index) const
 {
     auto pages = this->qpdf->getAllPages();
     if (index < pages.size())
@@ -43,18 +43,18 @@ QPDFObjectHandle PageList::get_page_obj(size_t index) const
     throw py::index_error("Accessing nonexistent PDF page number");
 }
 
-QPDFPageObjectHelper PageList::get_page(size_t index) const
+QPDFPageObjectHelper PageList::get_page(py::size_t index) const
 {
     return QPDFPageObjectHelper(this->get_page_obj(index));
 }
 
 std::vector<QPDFObjectHandle> PageList::get_page_objs_impl(py::slice slice) const
 {
-    size_t start, stop, step, slicelength;
+    py::size_t start, stop, step, slicelength;
     if (!slice.compute(this->count(), &start, &stop, &step, &slicelength))
         throw py::error_already_set(); // LCOV_EXCL_LINE
     std::vector<QPDFObjectHandle> result;
-    for (size_t i = 0; i < slicelength; ++i) {
+    for (py::size_t i = 0; i < slicelength; ++i) {
         auto oh = this->get_page_obj(start);
         result.push_back(oh);
         start += step;
@@ -72,7 +72,7 @@ py::list PageList::get_pages(py::slice slice) const
     return result;
 }
 
-void PageList::set_page(size_t index, py::object page)
+void PageList::set_page(py::size_t index, py::object page)
 {
     this->insert_page(index, page);
     if (index != this->count()) {
@@ -82,7 +82,7 @@ void PageList::set_page(size_t index, py::object page)
 
 void PageList::set_pages_from_iterable(py::slice slice, py::iterable other)
 {
-    size_t start, stop, step, slicelength;
+    py::size_t start, stop, step, slicelength;
     if (!slice.compute(this->count(), &start, &stop, &step, &slicelength))
         throw py::error_already_set(); // LCOV_EXCL_LINE
     py::list results;
@@ -104,7 +104,7 @@ void PageList::set_pages_from_iterable(py::slice slice, py::iterable other)
                                   std::string(" to extended slice of size ") +
                                   std::to_string(slicelength));
         }
-        for (size_t i = 0; i < slicelength; ++i) {
+        for (py::size_t i = 0; i < slicelength; ++i) {
             this->set_page(start + (i * step), results[i]);
         }
     } else {
@@ -114,18 +114,18 @@ void PageList::set_pages_from_iterable(py::slice slice, py::iterable other)
         // and then delete all pages we no longer need
 
         // Insert first to ensure we don't delete any pages we will need
-        for (size_t i = 0; i < results.size(); ++i) {
+        for (py::size_t i = 0; i < results.size(); ++i) {
             this->insert_page(start + i, results[i]);
         }
 
-        size_t del_start = start + results.size();
-        for (size_t i = 0; i < slicelength; ++i) {
+        py::size_t del_start = start + results.size();
+        for (py::size_t i = 0; i < slicelength; ++i) {
             this->delete_page(del_start);
         }
     }
 }
 
-void PageList::delete_page(size_t index)
+void PageList::delete_page(py::size_t index)
 {
     auto page = this->get_page_obj(index);
     this->qpdf->removePage(page);
@@ -142,9 +142,9 @@ void PageList::delete_pages_from_iterable(py::slice slice)
     }
 }
 
-size_t PageList::count() const { return this->qpdf->getAllPages().size(); }
+py::size_t PageList::count() const { return this->qpdf->getAllPages().size(); }
 
-void PageList::insert_page(size_t index, py::handle obj)
+void PageList::insert_page(py::size_t index, py::handle obj)
 {
     try {
         auto poh = obj.cast<QPDFPageObjectHelper>();
@@ -164,7 +164,7 @@ void PageList::insert_page(size_t index, py::handle obj)
     throw py::type_error("only pages can be inserted to a page list");
 }
 
-void PageList::insert_page(size_t index, QPDFPageObjectHelper poh)
+void PageList::insert_page(py::size_t index, QPDFPageObjectHelper poh)
 {
     // Find out who owns us
     QPDF *handle_owner = poh.getObjectHandle().getOwningQPDF();
@@ -220,19 +220,19 @@ void init_pagelist(py::module_ &m)
     py::class_<PageList>(m, "PageList")
         .def("__getitem__",
             [](PageList &pl, py::ssize_t index) {
-                size_t uindex = uindex_from_index(pl, index);
+                auto uindex = uindex_from_index(pl, index);
                 return pl.get_page(uindex);
             })
         .def("__getitem__", &PageList::get_pages)
         .def("__setitem__",
             [](PageList &pl, py::ssize_t index, py::object page) {
-                size_t uindex = uindex_from_index(pl, index);
+                auto uindex = uindex_from_index(pl, index);
                 pl.set_page(uindex, page);
             })
         .def("__setitem__", &PageList::set_pages_from_iterable)
         .def("__delitem__",
             [](PageList &pl, py::ssize_t index) {
-                size_t uindex = uindex_from_index(pl, index);
+                auto uindex = uindex_from_index(pl, index);
                 pl.delete_page(uindex);
             })
         .def("__delitem__", &PageList::delete_pages_from_iterable)
@@ -258,7 +258,7 @@ void init_pagelist(py::module_ &m)
         .def(
             "insert",
             [](PageList &pl, py::ssize_t index, py::object obj) {
-                size_t uindex = uindex_from_index(pl, index);
+                auto uindex = uindex_from_index(pl, index);
                 pl.insert_page(uindex, obj);
             },
             py::keep_alive<1, 3>(),
@@ -291,8 +291,8 @@ void init_pagelist(py::module_ &m)
         .def(
             "extend",
             [](PageList &pl, PageList &other) {
-                size_t other_count = other.count();
-                for (size_t i = 0; i < other_count; i++) {
+                auto other_count = other.count();
+                for (decltype(other_count) i = 0; i < other_count; i++) {
                     if (other_count != other.count())
                         throw py::value_error(
                             "source page list modified during iteration");
