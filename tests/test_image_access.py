@@ -1,5 +1,6 @@
 import subprocess
 import zlib
+from contextlib import contextmanager
 from io import BytesIO
 from os import fspath
 from pathlib import Path
@@ -31,30 +32,43 @@ from pikepdf.models.image import (
 # pylint: disable=redefined-outer-name
 
 
-def first_image_in(filename):
-    pdf = Pdf.open(filename)
-    pdfimagexobj = next(iter(pdf.pages[0].images.values()))
-    return pdfimagexobj, pdf
+@pytest.fixture
+def first_image_in(resources, request):
+    pdf = None
+
+    def opener(filename):
+        nonlocal pdf
+        pdf = Pdf.open(resources / filename)
+        pdfimagexobj = next(iter(pdf.pages[0].images.values()))
+        return pdfimagexobj, pdf
+
+    def closer():
+        if pdf:
+            pdf.close()
+
+    request.addfinalizer(closer)
+
+    return opener
 
 
 @pytest.fixture
-def congress(resources):
-    return first_image_in(resources / 'congress.pdf')
+def congress(first_image_in):
+    return first_image_in('congress.pdf')
 
 
 @pytest.fixture
-def sandwich(resources):
-    return first_image_in(resources / 'sandwich.pdf')
+def sandwich(first_image_in):
+    return first_image_in('sandwich.pdf')
 
 
 @pytest.fixture
-def jbig2(resources):
-    return first_image_in(resources / 'jbig2.pdf')
+def jbig2(first_image_in):
+    return first_image_in('jbig2.pdf')
 
 
 @pytest.fixture
-def trivial(resources):
-    return first_image_in(resources / 'pal-1bit-trivial.pdf')
+def trivial(first_image_in):
+    return first_image_in('pal-1bit-trivial.pdf')
 
 
 @pytest.fixture
@@ -62,14 +76,15 @@ def inline(resources):
     pdf = Pdf.open(resources / 'image-mono-inline.pdf')
     for operands, _command in parse_content_stream(pdf.pages[0]):
         if operands and isinstance(operands[0], PdfInlineImage):
-            return operands[0], pdf
+            yield operands[0], pdf
+    pdf.close()
 
 
 def test_image_from_nonimage(resources):
     pdf = Pdf.open(resources / 'congress.pdf')
-    resources = pdf.pages[0].Contents
+    contents = pdf.pages[0].Contents
     with pytest.raises(TypeError):
-        PdfImage(resources)
+        PdfImage(contents)
 
 
 def test_image(congress):
@@ -261,8 +276,8 @@ def test_image_roundtrip(outdir, w, h, pixeldata, cs, bpc):
         ('cmyk-jpeg.pdf', 8, ['/DCTDecode'], '.jpg', 'CMYK', 'JPEG'),
     ],
 )
-def test_direct_extract(resources, filename, bpc, filters, ext, mode, format_):
-    xobj, _pdf = first_image_in(resources / filename)
+def test_direct_extract(first_image_in, filename, bpc, filters, ext, mode, format_):
+    xobj, _pdf = first_image_in(filename)
     pim = PdfImage(xobj)
 
     assert pim.bits_per_component == bpc
@@ -311,9 +326,8 @@ def test_bool_in_inline_image():
 @pytest.mark.skipif(
     not PIL_features.check_codec('jpg_2000'), reason='no JPEG2000 codec'
 )
-def test_jp2(resources):
-    pdf = Pdf.open(resources / 'pike-jp2.pdf')
-    xobj = next(iter(pdf.pages[0].images.values()))
+def test_jp2(first_image_in):
+    xobj, pdf = first_image_in('pike-jp2.pdf')
     pim = PdfImage(xobj)
     assert isinstance(pim, PdfJpxImage)
 
@@ -370,8 +384,8 @@ def test_extract_direct_fails_nondefault_colortransform(congress):
         pim.extract_to(stream=bio)
 
 
-def test_icc_use(resources):
-    xobj, _pdf = first_image_in(resources / '1biticc.pdf')
+def test_icc_use(first_image_in):
+    xobj, _pdf = first_image_in('1biticc.pdf')
 
     pim = PdfImage(xobj)
     assert pim.mode == '1'
@@ -381,15 +395,15 @@ def test_icc_use(resources):
     assert pim.icc.profile.xcolor_space == 'GRAY'
 
 
-def test_icc_extract(resources):
-    xobj, _pdf = first_image_in(resources / 'aquamarine-cie.pdf')
+def test_icc_extract(first_image_in):
+    xobj, _pdf = first_image_in('aquamarine-cie.pdf')
 
     pim = PdfImage(xobj)
     assert pim.as_pil_image().info['icc_profile'] == pim.icc.tobytes()
 
 
-def test_icc_palette(resources):
-    xobj, _pdf = first_image_in(resources / 'pink-palette-icc.pdf')
+def test_icc_palette(first_image_in):
+    xobj, _pdf = first_image_in('pink-palette-icc.pdf')
     pim = PdfImage(xobj)
     assert pim.icc.profile.xcolor_space == 'RGB '  # with trailing space
     b = BytesIO()
@@ -406,8 +420,8 @@ def test_icc_palette(resources):
     assert pil_prf.tobytes() == pim.icc.tobytes()
 
 
-def test_stacked_compression(resources):
-    xobj, _pdf = first_image_in(resources / 'pike-flate-jp2.pdf')
+def test_stacked_compression(first_image_in):
+    xobj, _pdf = first_image_in('pike-flate-jp2.pdf')
 
     pim = PdfImage(xobj)
     assert pim.mode == 'RGB'
@@ -436,8 +450,8 @@ def test_ccitt_encodedbytealign(sandwich):
         pim.as_pil_image()
 
 
-def test_imagemagick_uses_rle_compression(resources):
-    xobj, _rle = first_image_in(resources / 'rle.pdf')
+def test_imagemagick_uses_rle_compression(first_image_in):
+    xobj, _rle = first_image_in('rle.pdf')
 
     pim = PdfImage(xobj)
     im = pim.as_pil_image()
@@ -474,8 +488,8 @@ def test_jbig2(jbig2):
 
 
 @needs_jbig2dec
-def test_jbig2_global(resources):
-    xobj, _pdf = first_image_in(resources / 'jbig2global.pdf')
+def test_jbig2_global(first_image_in):
+    xobj, _pdf = first_image_in('jbig2global.pdf')
     pim = PdfImage(xobj)
     im = pim.as_pil_image()
     assert im.size == (4000, 2864)
@@ -483,8 +497,8 @@ def test_jbig2_global(resources):
 
 
 @needs_jbig2dec
-def test_jbig2_global_palette(resources):
-    xobj, _pdf = first_image_in(resources / 'jbig2global.pdf')
+def test_jbig2_global_palette(first_image_in):
+    xobj, _pdf = first_image_in('jbig2global.pdf')
     xobj.ColorSpace = pikepdf.Array(
         [Name.Indexed, Name.DeviceRGB, 1, b'\x00\x00\x00\xff\xff\xff']
     )
@@ -494,8 +508,8 @@ def test_jbig2_global_palette(resources):
     assert im.getpixel((0, 0)) == 255  # Ensure loaded
 
 
-def test_jbig2_error(resources, monkeypatch):
-    xobj, _pdf = first_image_in(resources / 'jbig2global.pdf')
+def test_jbig2_error(first_image_in, monkeypatch):
+    xobj, _pdf = first_image_in('jbig2global.pdf')
     pim = PdfImage(xobj)
     monkeypatch.setattr(pikepdf.jbig2, 'jbig2dec_available', lambda: True)
 
@@ -509,8 +523,8 @@ def test_jbig2_error(resources, monkeypatch):
         pim.as_pil_image()
 
 
-def test_jbig2_too_old(resources, monkeypatch):
-    xobj, _pdf = first_image_in(resources / 'jbig2global.pdf')
+def test_jbig2_too_old(first_image_in, monkeypatch):
+    xobj, _pdf = first_image_in('jbig2global.pdf')
     pim = PdfImage(xobj)
 
     def run_version_override(subprocargs, *args, **kwargs):
@@ -525,8 +539,8 @@ def test_jbig2_too_old(resources, monkeypatch):
         pim.as_pil_image()
 
 
-def test_ccitt_icc(resources):
-    xobj, pdf = first_image_in(resources / 'sandwich.pdf')
+def test_ccitt_icc(first_image_in, resources):
+    xobj, pdf = first_image_in('sandwich.pdf')
 
     pim = PdfImage(xobj)
     assert pim.icc is None
@@ -554,8 +568,8 @@ def test_ccitt_icc(resources):
     assert Image.open(bio)
 
 
-def test_invalid_icc(resources):
-    xobj, _pdf = first_image_in(resources / 'pink-palette-icc.pdf')
+def test_invalid_icc(first_image_in):
+    xobj, _pdf = first_image_in('pink-palette-icc.pdf')
 
     cs = xobj.ColorSpace[1][1]  # [/Indexed [/ICCBased <stream>]]
     cs.write(b'foobar')  # corrupt the ICC profile
