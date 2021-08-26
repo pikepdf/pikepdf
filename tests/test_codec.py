@@ -87,7 +87,7 @@ def test_open_encoding_pdfdoc_read(tmp_path_factory, s: str):
     except UnicodeEncodeError:
         return
 
-    with open(txt, 'r', encoding='pdfdoc') as f:
+    with open(txt, encoding='pdfdoc') as f:
         result: str = f.read()
     assert result == s
 

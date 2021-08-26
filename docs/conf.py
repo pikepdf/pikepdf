@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # pikepdf documentation build configuration file, created by
 # sphinx-quickstart on Fri Feb 26 00:29:33 2016.
@@ -300,7 +299,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'pikepdf.tex', u'pikepdf Documentation', u'James R. Barlow', 'manual')
+    (master_doc, 'pikepdf.tex', 'pikepdf Documentation', 'James R. Barlow', 'manual')
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -328,7 +327,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, 'pikepdf', u'pikepdf Documentation', [author], 1)]
+man_pages = [(master_doc, 'pikepdf', 'pikepdf Documentation', [author], 1)]
 
 # If true, show URL addresses after external links.
 # man_show_urls = False
@@ -343,7 +342,7 @@ texinfo_documents = [
     (
         master_doc,
         'pikepdf',
-        u'pikepdf Documentation',
+        'pikepdf Documentation',
         author,
         'pikepdf',
         'Python bindings for QPDF.',

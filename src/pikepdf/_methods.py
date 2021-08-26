@@ -237,7 +237,7 @@ class Extend_Object:
             raise TypeError("Objects must have the same owner for emplace()")
 
         # .keys() returns strings, so make all strings
-        retain = set(str(k) for k in retain)
+        retain = {str(k) for k in retain}
         self_keys = set(self.keys())
         other_keys = set(other.keys())
 
@@ -1231,8 +1231,7 @@ class Extend_Attachments(MutableMapping):
         return len(self._get_all_filespecs())
 
     def __iter__(self) -> Iterator[str]:
-        for k in self._get_all_filespecs():
-            yield k
+        yield from self._get_all_filespecs()
 
     def __repr__(self):
         return f"<pikepdf._qpdf.Attachments with {len(self)} attached files>"

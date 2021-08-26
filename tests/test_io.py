@@ -187,11 +187,11 @@ def test_file_without_fileno(resources):
 def test_file_deny_mmap(resources, monkeypatch):
     import mmap
 
-    def raises_ioerror(*args, **kwargs):
-        raise IOError("This file is temporarily not mmap-able")
+    def raises_oserror(*args, **kwargs):
+        raise OSError("This file is temporarily not mmap-able")
 
-    monkeypatch.setattr(mmap, 'mmap', raises_ioerror)
-    with pytest.raises(IOError):
+    monkeypatch.setattr(mmap, 'mmap', raises_oserror)
+    with pytest.raises(OSError):
         Pdf.open(resources / 'pal.pdf', access_mode=pikepdf._qpdf.AccessMode.mmap_only)
 
     with Pdf.open(

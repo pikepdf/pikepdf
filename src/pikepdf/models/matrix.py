@@ -70,10 +70,7 @@ class PdfMatrix:
         b = other.values
         return PdfMatrix(
             [
-                [
-                    sum([float(i) * float(j) for i, j in zip(row, col)])
-                    for col in zip(*b)
-                ]
+                [sum(float(i) * float(j) for i, j in zip(row, col)) for col in zip(*b)]
                 for row in a
             ]
         )

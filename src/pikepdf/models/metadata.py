@@ -395,10 +395,10 @@ class PdfMetadata(MutableMapping):
                 warn_or_raise(
                     f"The metadata field {docinfo_name} could not be copied to XMP", e
                 )
-        valid_docinfo_names = set(
+        valid_docinfo_names = {
             str(docinfo_name) for _, _, docinfo_name, _ in self.DOCINFO_MAPPING
-        )
-        extra_docinfo_names = set(str(k) for k in docinfo.keys()) - valid_docinfo_names
+        }
+        extra_docinfo_names = {str(k) for k in docinfo.keys()} - valid_docinfo_names
         for extra in extra_docinfo_names:
             warn_or_raise(
                 f"The metadata field {extra} with value '{repr(docinfo.get(extra))}' "
