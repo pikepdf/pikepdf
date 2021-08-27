@@ -7,7 +7,7 @@
 import logging
 import re
 import sys
-from abc import ABC, abstractstaticmethod
+from abc import ABC, abstractmethod
 from datetime import datetime
 from functools import wraps
 from io import BytesIO
@@ -206,11 +206,13 @@ def decode_pdf_date(s: str) -> datetime:
 
 
 class Converter(ABC):
-    @abstractstaticmethod
+    @staticmethod
+    @abstractmethod
     def xmp_from_docinfo(docinfo_val: Optional[str]) -> Any:  # type: ignore
         "Derive XMP metadata from a DocumentInfo string"
 
-    @abstractstaticmethod
+    @staticmethod
+    @abstractmethod
     def docinfo_from_xmp(xmp_val: Any) -> Optional[str]:
         "Derive a DocumentInfo value from equivalent XMP metadata"
 
