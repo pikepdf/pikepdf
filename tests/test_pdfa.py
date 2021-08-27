@@ -2,17 +2,19 @@ import os
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from subprocess import PIPE, STDOUT, run
+from typing import Optional
 
 import pytest
 
 from pikepdf import Pdf
 
+VERAPDF: Optional[Path] = None
 try:
     VERAPDF = Path(os.environ['HOME']) / 'verapdf' / 'verapdf'
     if not VERAPDF.is_file():
         VERAPDF = None
-except Exception:  # pylint: disable=w0703
-    VERAPDF = None
+except Exception:  # pylint: disable=broad-except
+    pass
 
 pytestmark = pytest.mark.skipif(not VERAPDF, reason="verapdf not found")
 

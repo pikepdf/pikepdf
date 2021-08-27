@@ -77,7 +77,7 @@ def _make_page_destination(
 ) -> Array:
     kwargs = {k: v for k, v in kwargs.items() if v is not None}
 
-    res = [pdf.pages[page_num].obj]
+    res: List[Union[Dictionary, Name]] = [pdf.pages[page_num].obj]
     if page_location:
         if isinstance(page_location, PageLocation):
             loc_key = page_location
@@ -128,12 +128,17 @@ class OutlineItem:
 
     This object does not contain any information about higher-level or
     neighboring elements.
+
+    Valid destination arrays:
+        [page /XYZ left top zoom]
+        generally
+        [page, PageLocationEntry, 0 to 4 ints]
     """
 
     def __init__(
         self,
         title: str,
-        destination: Optional[Union[Array, Tuple[int, str, Object]]] = None,
+        destination: Optional[Union[Array, String]] = None,
         page_location: Optional[Union[PageLocation, str]] = None,
         action: Optional[Dictionary] = None,
         obj: Optional[Dictionary] = None,
@@ -149,6 +154,8 @@ class OutlineItem:
         self.page_location = page_location
         self.page_location_kwargs = {}
         self.action = action
+        if self.destination is not None and self.action is not None:
+            raise ValueError("Only one of destination and action may be set")
         self.obj = obj
         kwargs = dict(left=left, top=top, right=right, bottom=bottom, zoom=zoom)
         self.page_location_kwargs = {k: v for k, v in kwargs.items() if v is not None}
@@ -164,9 +171,15 @@ class OutlineItem:
         else:
             oc_indicator = '[ ]'
         if self.destination is not None:
-            raw_page = self.destination[0]
-            page = Page(raw_page)
-            dest = page.label
+            if isinstance(self.destination, Array):
+                # 12.3.2.2 Explicit destination
+                # [raw_page, /PageLocation.SomeThing, integer parameters for viewport]
+                raw_page = self.destination[0]
+                page = Page(raw_page)
+                dest = page.label
+            elif isinstance(self.destination, String):
+                # 12.3.2.2 Named destination
+                dest = f'<Named Destination: {self.destination}>'
         else:
             dest = '<Action>'
         return f'{oc_indicator} {self.title} -> {dest}'

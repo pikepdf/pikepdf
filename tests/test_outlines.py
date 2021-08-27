@@ -390,7 +390,7 @@ def test_dest_or_action(outlines_doc):
 @settings(deadline=timedelta(milliseconds=750))
 @given(
     page_num=st.integers(0, 1),
-    page_loc=st.sampled_from(list(PageLocation) + ['invalid']),
+    page_loc=st.sampled_from(list(PageLocation) + ['invalid']),  # type: ignore
     kwargs=st.dictionaries(
         st.sampled_from(list(sorted(ALL_PAGE_LOCATION_KWARGS))), st.integers(0, 10000)
     ),

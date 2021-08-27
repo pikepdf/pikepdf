@@ -268,10 +268,10 @@ class TestMalformedContentStreamInstructions:
             unparse_content_stream([(1, 2, 3)])
 
     def test_rejects_not_castable_to_object(self):
-        with pytest.raises(PdfParsingError, match="Unable to cast"):
+        with pytest.raises(PdfParsingError, match="While unparsing"):
             unparse_content_stream([(['one', 'two'], 42)])  # 42 is not an operator
 
-    def test_rejects_not_castable_to_object(self):
+    def test_rejects_not_operator(self):
         with pytest.raises(PdfParsingError, match="While unparsing"):
             unparse_content_stream(
                 [(['one', 'two'], Name.FortyTwo)]

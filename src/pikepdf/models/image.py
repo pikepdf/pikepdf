@@ -544,7 +544,7 @@ class PdfImage(PdfImageBase):
             stride = 0  # tell Pillow to calculate stride from line width
             ystep = 1  # image is top to bottom in memory
             im = Image.frombuffer('L', self.size, buffer, "raw", 'L', stride, ystep)
-            if self.mode == 'P':
+            if self.mode == 'P' and self.palette is not None:
                 base_mode, palette = self.palette
                 if base_mode == 'RGB':
                     im.putpalette(palette, rawmode=base_mode)
@@ -584,21 +584,27 @@ class PdfImage(PdfImageBase):
         else:
             raise UnsupportedImageTypeError(repr(self) + ", " + repr(self.obj))
 
-        if self.mode == 'P' and self.bits_per_component == 1:
+        if (
+            self.mode == 'P'
+            and self.bits_per_component == 1
+            and self.palette is not None
+        ):
             # Fix paletted 1-bit images
             base_mode, palette = self.palette
             if base_mode == 'RGB' and palette != b'\x00\x00\x00\xff\xff\xff':
                 im = im.convert('P')
                 im.putpalette(palette, rawmode=base_mode)
                 gp = im.getpalette()
-                gp[765:768] = gp[3:6]  # work around Pillow bug
-                im.putpalette(gp)
+                if gp:
+                    gp[765:768] = gp[3:6]  # work around Pillow bug
+                    im.putpalette(gp)
             elif base_mode == 'L' and palette != b'\x00\xff':
                 im = im.convert('P')
                 im.putpalette(palette, rawmode=base_mode)
                 gp = im.getpalette()
-                gp[255] = gp[1]  # work around Pillow bug
-                im.putpalette(gp)
+                if gp:
+                    gp[255] = gp[1]  # work around Pillow bug
+                    im.putpalette(gp)
 
         if self.colorspace == '/ICCBased':
             im.info['icc_profile'] = self.icc.tobytes()
