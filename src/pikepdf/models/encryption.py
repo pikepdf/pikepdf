@@ -47,6 +47,9 @@ class Permissions(NamedTuple):
     """Can users print the document at high resolution?"""
 
 
+DEFAULT_PERMISSIONS = Permissions()
+
+
 class EncryptionInfo:
     """
     Reports encryption information for an encrypted PDF.
@@ -149,7 +152,7 @@ class Encryption(dict):
         owner: str,
         user: str,
         R: int = 6,
-        allow: Permissions = Permissions(),
+        allow: Permissions = DEFAULT_PERMISSIONS,
         aes: bool = True,
         metadata: bool = True,
     ):

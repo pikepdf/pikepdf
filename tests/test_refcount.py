@@ -3,7 +3,10 @@ import gc
 try:
     from sys import getrefcount as refcount
 except ImportError:
-    refcount = lambda x: 1
+
+    def refcount(_x):  # type: ignore
+        return 1
+
 
 import pytest
 from conftest import skip_if_pypy

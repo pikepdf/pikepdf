@@ -257,7 +257,7 @@ def test_inline_copy(inline):
         if not isinstance(instr, ContentStreamInlineImage):
             continue
         csiimage = instr
-        _copy_of_csiimage = ContentStreamInlineImage(csiimage)
+        _copy_of_csiimage = ContentStreamInlineImage(csiimage)  # noqa: F841
         new_iimage = ContentStreamInlineImage(csiimage.iimage)
         assert unparse_content_stream([new_iimage]).startswith(b'BI')
 

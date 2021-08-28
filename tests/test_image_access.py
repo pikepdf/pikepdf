@@ -97,7 +97,7 @@ def test_image(congress):
 
 
 def test_imagemask(congress):
-    assert PdfImage(congress[0]).image_mask == False
+    assert not PdfImage(congress[0]).image_mask
 
 
 def test_imagemask_colorspace(trivial):
@@ -176,7 +176,7 @@ def test_lowlevel_replace_jpeg(congress, outdir):
 def test_inline(inline):
     iimage, pdf = inline
     assert iimage.width == 8
-    assert iimage.image_mask == False
+    assert not iimage.image_mask
     assert iimage.mode == 'RGB'
     assert iimage.is_inline
     assert iimage.colorspace == '/DeviceRGB'
@@ -579,7 +579,7 @@ def test_invalid_icc(first_image_in):
         UnsupportedImageTypeError, match="ICC profile corrupt or not readable"
     ):
         pim = PdfImage(xobj)
-        _icc = pim.icc
+        assert pim.icc is not None
 
 
 def test_dict_or_array_dict():

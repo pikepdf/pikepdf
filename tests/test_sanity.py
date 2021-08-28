@@ -126,7 +126,7 @@ def test_copy_page_keepalive(resources, outdir):
     pdf.pages.append(src.pages[0])
 
     del src
-    src = None
+
     gc.collect()
     with suppress(PermissionError):
         (outdir / 'sandwich.pdf').unlink()

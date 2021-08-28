@@ -181,7 +181,7 @@ def test_file_without_fileno(resources):
 
     # Confirm we automatically fallback to stream
     with Pdf.open(f, access_mode=pikepdf._qpdf.AccessMode.mmap) as pdf:
-        pass
+        assert pdf.filename
 
 
 def test_file_deny_mmap(resources, monkeypatch):

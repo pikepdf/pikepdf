@@ -106,8 +106,8 @@ def test_issue160_tokenfilter_refcounting(resources, outpdf):
 
         def handle_token(self, tok):
             if tok.type_ == TokenType.string:
-                l = len(tok.raw_value)
-                s = self.replace * l
+                tok_len = len(tok.raw_value)
+                s = self.replace * tok_len
                 return Token(TokenType.string, s)
             return tok
 

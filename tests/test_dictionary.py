@@ -22,7 +22,7 @@ def test_get_equality_stream(congress):
     with pytest.raises(KeyError):
         image['/NoSuchKey']
 
-    image.get('/NoSuchKey', 42) == 42
+    assert image.get('/NoSuchKey', 42) == 42
 
 
 def test_get_equality_dict(congress):
@@ -37,4 +37,4 @@ def test_get_equality_dict(congress):
     with pytest.raises(KeyError):
         page['/NoSuchKey']
 
-    page.get('/NoSuchKey', 42) == 42
+    assert page.get('/NoSuchKey', 42) == 42

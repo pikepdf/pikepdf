@@ -69,6 +69,18 @@ def augment_override_cpp(fn):
     return fn
 
 
+def _is_inherited_method(meth):
+    # Augmenting a C++ with a method that cls inherits from the Python
+    # object is never what we want.
+    return meth.__qualname__.startswith('object.')
+
+
+def _is_augmentable(m):
+    return (
+        inspect.isfunction(m) and not _is_inherited_method(m)
+    ) or inspect.isdatadescriptor(m)
+
+
 def augments(cls_cpp: Type[Any]):
     """Attach methods of a Python support class to an existing class
 
@@ -114,20 +126,11 @@ def augments(cls_cpp: Type[Any]):
         OVERRIDE_WHITELIST |= {'__getattr__'}  # pragma: no cover
 
     def class_augment(cls, cls_cpp=cls_cpp):
-        def is_inherited_method(meth):
-            # Augmenting a C++ with a method that cls inherits from the Python
-            # object is never what we want.
-            return meth.__qualname__.startswith('object.')
-
-        def is_augmentable(m):
-            return (
-                inspect.isfunction(m) and not is_inherited_method(m)
-            ) or inspect.isdatadescriptor(m)
 
         # inspect.getmembers has different behavior on PyPy - in particular it seems
         # that a typical PyPy class like cls will have more methods that it considers
         # methods than CPython does. Our predicate should take care of this.
-        for name, member in inspect.getmembers(cls, predicate=is_augmentable):
+        for name, member in inspect.getmembers(cls, predicate=_is_augmentable):
             if name == '__weakref__':
                 continue
             if (
@@ -249,6 +252,43 @@ class Extend_Object:
         for k in del_keys:
             del self[k]  # pylint: disable=unsupported-delete-operation
 
+    def _type_check_write(self, filter, decode_parms):
+        if isinstance(filter, list):
+            filter = Array(filter)
+        filter = filter.wrap_in_array()
+
+        if isinstance(decode_parms, list):
+            decode_parms = Array(decode_parms)
+        elif decode_parms is None:
+            decode_parms = Array([])
+        else:
+            decode_parms = decode_parms.wrap_in_array()
+
+        if not all(isinstance(item, Name) for item in filter):
+            raise TypeError(
+                "filter must be: pikepdf.Name or pikepdf.Array([pikepdf.Name])"
+            )
+        if not all(
+            (isinstance(item, Dictionary) or item is None) for item in decode_parms
+        ):
+            raise TypeError(
+                "decode_parms must be: pikepdf.Dictionary or "
+                "pikepdf.Array([pikepdf.Dictionary])"
+            )
+        if len(decode_parms) != 0:
+            if len(filter) != len(decode_parms):
+                raise ValueError(
+                    f"filter ({repr(filter)}) and decode_parms "
+                    f"({repr(decode_parms)}) must be arrays of same length"
+                )
+        if len(filter) == 1:
+            filter = filter[0]
+        if len(decode_parms) == 0:
+            decode_parms = None
+        elif len(decode_parms) == 1:
+            decode_parms = decode_parms[0]
+        return filter, decode_parms
+
     def write(
         self,
         data: bytes,
@@ -291,40 +331,8 @@ class Extend_Object:
         """
 
         if type_check and filter is not None:
-            if isinstance(filter, list):
-                filter = Array(filter)
-            filter = filter.wrap_in_array()
+            filter, decode_parms = self._type_check_write(filter, decode_parms)
 
-            if isinstance(decode_parms, list):
-                decode_parms = Array(decode_parms)
-            elif decode_parms is None:
-                decode_parms = Array([])
-            else:
-                decode_parms = decode_parms.wrap_in_array()
-
-            if not all(isinstance(item, Name) for item in filter):
-                raise TypeError(
-                    "filter must be: pikepdf.Name or pikepdf.Array([pikepdf.Name])"
-                )
-            if not all(
-                (isinstance(item, Dictionary) or item is None) for item in decode_parms
-            ):
-                raise TypeError(
-                    "decode_parms must be: pikepdf.Dictionary or "
-                    "pikepdf.Array([pikepdf.Dictionary])"
-                )
-            if len(decode_parms) != 0:
-                if len(filter) != len(decode_parms):
-                    raise ValueError(
-                        f"filter ({repr(filter)}) and decode_parms "
-                        f"({repr(decode_parms)}) must be arrays of same length"
-                    )
-            if len(filter) == 1:
-                filter = filter[0]
-            if len(decode_parms) == 0:
-                decode_parms = None
-            elif len(decode_parms) == 1:
-                decode_parms = decode_parms[0]
         self._write(data, filter=filter, decode_parms=decode_parms)
 
 
@@ -908,8 +916,8 @@ class Extend_Pdf:
             inherit_page_attributes=inherit_page_attributes,
             access_mode=access_mode,
         )
-        setattr(pdf, '_tmp_stream', tmp_stream)
-        setattr(pdf, '_original_filename', original_filename)
+        pdf._tmp_stream = tmp_stream
+        pdf._original_filename = original_filename
         return pdf
 
 
@@ -1033,13 +1041,13 @@ class Extend_Page:
             a copy of *res* is automatically created and added instead. In previous
             versions, it was necessary to change for this case manually.
         """
-        if not Name.Resources in self.obj:
+        if Name.Resources not in self.obj:
             self.obj.Resources = Dictionary()
         elif not isinstance(self.obj.Resources, Dictionary):
             raise TypeError("Page /Resources exists but is not a dictionary")
         resources = self.obj.Resources
 
-        if not res_type in resources:
+        if res_type not in resources:
             resources[res_type] = Dictionary()
 
         if name is not None and prefix:

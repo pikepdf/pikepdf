@@ -6,7 +6,10 @@ from typing import Type, ValuesView
 try:
     from sys import getrefcount as refcount
 except ImportError:
-    refcount = lambda x: 1
+
+    def refcount(_x):  # type: ignore
+        return 1
+
 
 import pytest
 from conftest import skip_if_pypy
@@ -358,7 +361,7 @@ def test_repr_pagelist(fourpages):
 
 def test_foreign_copied_pages_are_true_copies(graph, outpdf):
     out = Pdf.new()
-    for n in range(4):
+    for _ in range(4):
         out.pages.append(out.copy_foreign(graph.pages[0]))
 
     for n in [0, 2]:

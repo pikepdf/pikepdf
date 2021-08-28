@@ -185,7 +185,7 @@ def test_roundtrip(filename):
         with Pdf.open(filename) as pdf:
             with pdf.open_metadata() as xmp:
                 for k in xmp.keys():
-                    if not 'Date' in k:
+                    if 'Date' not in k:
                         xmp[k] = 'A'
             assert '<?xpacket' not in str(xmp)
     except PasswordError:
@@ -409,7 +409,7 @@ def test_present_bug_empty_tags(trivial):
         """,
     )
     with trivial.open_metadata(update_docinfo=True) as meta:
-        pass
+        assert len(meta) > 0
     assert Name.Author not in trivial.docinfo
 
 

@@ -45,8 +45,8 @@ def test_none():
 
 
 def test_booleans():
-    assert encode(True) == True
-    assert encode(False) == False
+    assert encode(True) == True  # noqa: E712
+    assert encode(False) == False  # noqa: E712
 
 
 @given(characters(min_codepoint=0x20, max_codepoint=0x7F))
@@ -132,7 +132,7 @@ def test_stack_depth():
         with pytest.raises(RecursionError):
             assert encode(a) == a
         with pytest.raises(RecursionError):
-            encode(a) == encode(a)  # pylint: disable=expression-not-assigned
+            assert encode(a) == encode(a)  # pylint: disable=expression-not-assigned
         with pytest.raises(RecursionError):
             repr(a)
     finally:
@@ -232,9 +232,9 @@ class TestArray:
         assert 42 not in a
 
         with pytest.raises(TypeError):
-            'forty two' not in a
+            assert 'forty two' not in a
         with pytest.raises(TypeError):
-            b'forty two' not in a
+            assert b'forty two' not in a
         assert pikepdf.String('forty two') not in a
 
         a = pikepdf.Array(['1234', b'\x80\x81\x82'])
@@ -260,7 +260,7 @@ class TestName:
 
     def test_unslashed_name(self):
         with pytest.raises(ValueError, match='must begin with'):
-            Name('Monty') not in []  # pylint: disable=expression-not-assigned
+            assert Name('Monty') not in []  # pylint: disable=expression-not-assigned
 
     def test_empty_name(self):
         with pytest.raises(ValueError):
@@ -481,7 +481,7 @@ class TestDictionary:
     def test_wrong_contains_type(self):
         d = pikepdf.Dictionary()
         with pytest.raises(TypeError, match="can only contain Names"):
-            pikepdf.Array([3]) in d
+            assert pikepdf.Array([3]) not in d
 
     def test_dict_bad_params(self):
         with pytest.raises(ValueError):
@@ -692,7 +692,10 @@ def test_stream_as_dict(abcxyz_stream):
     stream[Name.TestKeyNameAccess] = True
     assert len(stream.keys()) == 4  # Streams always have a /Length
 
-    assert all((v == len(stream.read_bytes()) or v == True) for k, v in stream.items())
+    assert all(
+        (v == len(stream.read_bytes()) or v == True)  # noqa: E712
+        for k, v in stream.items()
+    )
 
     assert stream.stream_dict.TestAttrAccess
 
