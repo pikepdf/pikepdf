@@ -25,12 +25,11 @@ def fix_sigs(app, what, name, obj, options, signature, return_annotation):
 
 
 def fix_doc(app, what, name, obj, options, lines):
-    with open('doc.log.txt', 'a') as f:
-        for n, line in enumerate(lines[:]):
-            s = line
-            for from_, to in replacements:
-                s = from_.sub(to, s)
-            lines[n] = s
+    for n, line in enumerate(lines[:]):
+        s = line
+        for from_, to in replacements:
+            s = from_.sub(to, s)
+        lines[n] = s
 
 
 def setup(app):
