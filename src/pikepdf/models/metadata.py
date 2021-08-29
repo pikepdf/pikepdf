@@ -692,6 +692,16 @@ class PdfMetadata(MutableMapping):
             raise RuntimeError("Metadata not opened for editing, use with block")
 
         qkey = self._qname(key)
+        self._setitem_check_args(key, val, applying_mark, qkey)
+
+        try:
+            # Update existing node
+            self._setitem_update(key, val, qkey)
+        except StopIteration:
+            # Insert a new node
+            self._setitem_insert(key, val)
+
+    def _setitem_check_args(self, key, val, applying_mark: bool, qkey: str) -> None:
         if (
             self.mark
             and not applying_mark
@@ -711,73 +721,69 @@ class PdfMetadata(MutableMapping):
         if isinstance(val, str) and qkey in (self._qname('dc:creator')):
             log.error(f"{key} should be set to a list of strings")
 
-        def add_array(node, items: Iterable):
-            rdf_type = next(
-                c.rdf_type for c in XMP_CONTAINERS if isinstance(items, c.py_type)
-            )
-            seq = etree.SubElement(node, str(QName(XMP_NS_RDF, rdf_type)))
-            tag_attrib: Optional[Dict[str, str]] = None
-            if rdf_type == 'Alt':
-                tag_attrib = {str(QName(XMP_NS_XML, 'lang')): 'x-default'}
-            for item in items:
-                el = etree.SubElement(
-                    seq, str(QName(XMP_NS_RDF, 'li')), attrib=tag_attrib
-                )
-                el.text = _clean(item)
+    def _setitem_add_array(self, node, items: Iterable) -> None:
+        rdf_type = next(
+            c.rdf_type for c in XMP_CONTAINERS if isinstance(items, c.py_type)
+        )
+        seq = etree.SubElement(node, str(QName(XMP_NS_RDF, rdf_type)))
+        tag_attrib: Optional[Dict[str, str]] = None
+        if rdf_type == 'Alt':
+            tag_attrib = {str(QName(XMP_NS_XML, 'lang')): 'x-default'}
+        for item in items:
+            el = etree.SubElement(seq, str(QName(XMP_NS_RDF, 'li')), attrib=tag_attrib)
+            el.text = _clean(item)
 
-        try:
-            # Locate existing node to replace
-            node, attrib, _oldval, _parent = next(self._get_elements(key))
-            if attrib:
-                if not isinstance(val, str):
-                    if qkey == self._qname('dc:creator'):
-                        # dc:creator incorrectly created as an attribute - we're
-                        # replacing it anyway, so remove the old one
-                        del node.attrib[qkey]
-                        add_array(node, _clean(val))
-                    else:
-                        raise TypeError(f"Setting {key} to {val} with type {type(val)}")
+    def _setitem_update(self, key, val, qkey):
+        # Locate existing node to replace
+        node, attrib, _oldval, _parent = next(self._get_elements(key))
+        if attrib:
+            if not isinstance(val, str):
+                if qkey == self._qname('dc:creator'):
+                    # dc:creator incorrectly created as an attribute - we're
+                    # replacing it anyway, so remove the old one
+                    del node.attrib[qkey]
+                    self._setitem_add_array(node, _clean(val))
                 else:
-                    node.set(attrib, _clean(val))
-            elif isinstance(val, (list, set)):
-                for child in node.findall('*'):
-                    node.remove(child)
-                add_array(node, val)
-            elif isinstance(val, str):
-                for child in node.findall('*'):
-                    node.remove(child)
-                if str(self._qname(key)) in LANG_ALTS:
-                    add_array(node, AltList([_clean(val)]))
-                else:
-                    node.text = _clean(val)
+                    raise TypeError(f"Setting {key} to {val} with type {type(val)}")
             else:
-                raise TypeError(f"Setting {key} to {val} with type {type(val)}")
-        except StopIteration:
-            # Insert a new node
-            rdf = self._get_rdf_root()
+                node.set(attrib, _clean(val))
+        elif isinstance(val, (list, set)):
+            for child in node.findall('*'):
+                node.remove(child)
+            self._setitem_add_array(node, val)
+        elif isinstance(val, str):
+            for child in node.findall('*'):
+                node.remove(child)
             if str(self._qname(key)) in LANG_ALTS:
-                val = AltList([_clean(val)])
-            if isinstance(val, (list, set)):
-                rdfdesc = etree.SubElement(
-                    rdf,
-                    str(QName(XMP_NS_RDF, 'Description')),
-                    attrib={str(QName(XMP_NS_RDF, 'about')): ''},
-                )
-                node = etree.SubElement(rdfdesc, self._qname(key))
-                add_array(node, val)
-            elif isinstance(val, str):
-                _rdfdesc = etree.SubElement(  # lgtm [py/unused-local-variable]
-                    rdf,
-                    str(QName(XMP_NS_RDF, 'Description')),
-                    attrib={
-                        QName(XMP_NS_RDF, 'about'): '',
-                        self._qname(key): _clean(val),
-                    },
-                )
+                self._setitem_add_array(node, AltList([_clean(val)]))
             else:
-                raise TypeError(
-                    f"Setting {key} to {val} with type {type(val)}"
-                ) from None
+                node.text = _clean(val)
+        else:
+            raise TypeError(f"Setting {key} to {val} with type {type(val)}")
+
+    def _setitem_insert(self, key, val):
+        rdf = self._get_rdf_root()
+        if str(self._qname(key)) in LANG_ALTS:
+            val = AltList([_clean(val)])
+        if isinstance(val, (list, set)):
+            rdfdesc = etree.SubElement(
+                rdf,
+                str(QName(XMP_NS_RDF, 'Description')),
+                attrib={str(QName(XMP_NS_RDF, 'about')): ''},
+            )
+            node = etree.SubElement(rdfdesc, self._qname(key))
+            self._setitem_add_array(node, val)
+        elif isinstance(val, str):
+            _rdfdesc = etree.SubElement(  # lgtm [py/unused-local-variable]
+                rdf,
+                str(QName(XMP_NS_RDF, 'Description')),
+                attrib={
+                    QName(XMP_NS_RDF, 'about'): '',
+                    self._qname(key): _clean(val),
+                },
+            )
+        else:
+            raise TypeError(f"Setting {key} to {val} with type {type(val)}") from None
 
     @ensure_loaded
     def __setitem__(self, key: Union[str, QName], val: Union[Set[str], List[str], str]):
