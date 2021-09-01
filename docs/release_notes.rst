@@ -73,8 +73,8 @@ New functionality
 -  Improved error message when ``Pdf.save()`` is called on PDFs without a known
    source file.
 -  Many documentation fixes to StreamParser, return types, PdfImage.
--  ``x in pikepdf.Array()`` is now supported; previously this construct was raised
-   raised. :issue:`232`
+-  ``x in pikepdf.Array()`` is now supported; previously this construct raised a
+   TypeError. :issue:`232`
 -  It is now possible to test our cibuildwheel configuration on a local machine.
 
 Fixes
