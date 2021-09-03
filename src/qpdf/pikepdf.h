@@ -291,14 +291,6 @@ void init_rectangle(py::module_ &m);
 // From tokenfilter.cpp
 void init_tokenfilter(py::module_ &m);
 
-inline char *fix_pypy36_const_char(const char *s)
-{
-    // PyPy 7.3.1 (=Python 3.6) has a few functions incorrectly defined as requiring
-    // char* where CPython specifies const char*. PyPy corrected this in newer versions.
-    // So this harmless shim is needed to support some older PyPy's.
-    return const_cast<char *>(s);
-}
-
 inline void python_warning(const char *msg, PyObject *category = PyExc_UserWarning)
 {
     PyErr_WarnEx(category, msg, /*stacklevel=*/1);
@@ -312,10 +304,7 @@ inline void deprecation_warning(const char *msg)
 // Support for recursion checks
 class StackGuard {
 public:
-    StackGuard(const char *where)
-    {
-        Py_EnterRecursiveCall(fix_pypy36_const_char(where));
-    }
+    StackGuard(const char *where) { Py_EnterRecursiveCall(where); }
     StackGuard(const StackGuard &) = delete;
     StackGuard &operator=(const StackGuard &) = delete;
     StackGuard(StackGuard &&)                 = delete;

@@ -249,10 +249,10 @@ class AuthorConverter(Converter):
             return '; '.join(xmp_val)
 
 
-def _fromisoformat_py36(date_string: str) -> datetime:
+def _fromisoformat_pypy37(date_string: str) -> datetime:
     """Backported equivalent of datetime.fromisoformat
 
-    Can remove whenever we drop Python 3.6 support.
+    Shim for PyPy 3.7. Can drop when 3.7 support is dropped.
     """
     # strptime %z can't parse a timezone with punctuation
     if re.search(r'[+-]\d{2}[-:]\d{2}$', date_string):
@@ -274,8 +274,8 @@ def _fromisoformat_py36(date_string: str) -> datetime:
     )
 
 
-if sys.version_info < (3, 7) or sys.implementation.name == 'pypy':
-    fromisoformat = _fromisoformat_py36
+if sys.version_info == (3, 7) and sys.implementation.name == 'pypy':
+    fromisoformat = _fromisoformat_pypy37
 else:
     fromisoformat = datetime.fromisoformat
 

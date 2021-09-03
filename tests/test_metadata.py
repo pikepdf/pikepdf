@@ -18,7 +18,7 @@ from pikepdf.models.metadata import (
     XMP_NS_PDF,
     XMP_NS_XMP,
     DateConverter,
-    _fromisoformat_py36,
+    _fromisoformat_pypy37,
     decode_pdf_date,
     fromisoformat,
 )
@@ -691,25 +691,25 @@ def test_xmp_metadatadate_timezone(sandwich, outpdf):
 
 
 @given(st.datetimes())
-def test_py36_isoformat_microsecs(dt):
+def test_pypy37_isoformat_microsecs(dt):
     s = dt.isoformat()
-    assert _fromisoformat_py36(s) == dt
+    assert _fromisoformat_pypy37(s) == dt
 
 
 @given(st.datetimes())
-def test_py36_isoformat_seconds(dt):
+def test_pypy37_isoformat_seconds(dt):
     rounded_dt = dt.replace(microsecond=0)
     s = rounded_dt.isoformat()
-    assert _fromisoformat_py36(s) == rounded_dt
+    assert _fromisoformat_pypy37(s) == rounded_dt
 
 
-def test_py36_isoformat_tz_punct():
-    _fromisoformat_py36('2020-12-31T11:22:33+10:30')
+def test_pypy37_isoformat_tz_punct():
+    _fromisoformat_pypy37('2020-12-31T11:22:33+10:30')
 
 
-def test_py36_isoformat_invalid():
+def test_pypy37_isoformat_invalid():
     with pytest.raises(ValueError):
-        _fromisoformat_py36('not a datetime')
+        _fromisoformat_pypy37('not a datetime')
 
 
 def test_modify_not_opened(graph):

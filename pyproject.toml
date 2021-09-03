@@ -1,5 +1,5 @@
 [project]
-requires-python = ">=3.6"
+requires-python = ">=3.7"
 
 [build-system]
 requires = [
@@ -13,7 +13,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.black]
 line-length = 88
-target-version = ["py36", "py37", "py38"]
+target-version = ["py37", "py38"]
 skip-string-normalization = true
 include = '\.pyi?$'
 exclude = '''
@@ -37,6 +37,7 @@ exclude = '''
 [tool.cibuildwheel]
 test-command = "pytest -nauto {project}/tests"
 test-extras = "test"
+skip = "cp36-*"
 test-skip = "*_arm64 *_universal2:arm64"
 
 [tool.cibuildwheel.environment]

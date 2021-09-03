@@ -255,7 +255,7 @@ regenerate it:
 PyPy3 support
 -------------
 
-PyPy3 3.6 and 3.7 are currently supported, these being the latest versions of PyPy
+PyPy3 3.7 is currently supported, these being the latest versions of PyPy
 as of this writing. Windows PyPy wheels are not supported because cibuildwheel
 does not support Windows 64-bit PyPy. We have not checked if source builds work.
 
