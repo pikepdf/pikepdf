@@ -249,37 +249,6 @@ class AuthorConverter(Converter):
             return '; '.join(xmp_val)
 
 
-def _fromisoformat_pypy37(date_string: str) -> datetime:
-    """Backported equivalent of datetime.fromisoformat
-
-    Shim for PyPy 3.7. Can drop when 3.7 support is dropped.
-    """
-    # strptime %z can't parse a timezone with punctuation
-    if re.search(r'[+-]\d{2}[-:]\d{2}$', date_string):
-        date_string = date_string[:-3] + date_string[-2:]
-    formats = [
-        "%Y-%m-%dT%H:%M:%S%z",
-        "%Y-%m-%dT%H:%M:%S",
-        "%Y-%m-%dT%H:%M:%S.%f%z",
-        "%Y-%m-%dT%H:%M:%S.%f",
-    ]
-    for fmt in formats:
-        try:
-            return datetime.strptime(date_string, fmt)
-        except ValueError:
-            continue
-    raise ValueError(
-        f"Could not parse ISO date: {date_string}. Try Python 3.7+, which "
-        "has better support for ISO dates."
-    )
-
-
-if sys.version_info == (3, 7) and sys.implementation.name == 'pypy':
-    fromisoformat = _fromisoformat_pypy37
-else:
-    fromisoformat = datetime.fromisoformat
-
-
 class DateConverter(Converter):
     @staticmethod
     def xmp_from_docinfo(docinfo_val):
@@ -291,7 +260,11 @@ class DateConverter(Converter):
     def docinfo_from_xmp(xmp_val):
         if xmp_val.endswith('Z'):
             xmp_val = xmp_val[:-1] + '+00:00'
-        dateobj = fromisoformat(xmp_val)
+        try:
+            dateobj = datetime.fromisoformat(xmp_val)
+        except IndexError:
+            # PyPy 3.7 may raise IndexError - convert to ValueError
+            raise ValueError(f"Invalid isoformat string: '{xmp_val}'") from None
         return encode_pdf_date(dateobj)
 
 
