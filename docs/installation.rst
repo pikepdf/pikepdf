@@ -50,7 +50,7 @@ work if compiled from source.
 Windows 7 or newer is required. Windows wheels include a recent copy of libqpdf.
 
 Most Linux distributions support manylinux2010, with the notable except of
-`Alpine Linux`_, and older Linux distributions that do not have C++14-capable
+`Alpine Linux`_, and older Linux distributions that do not have C++17-capable
 compilers. The Linux wheels include recent copies of libqpdf, libjpeg, and zlib.
 
 Platform support
@@ -133,8 +133,7 @@ Building from source
 
 pikepdf requires:
 
--   a C++14 compliant compiler - GCC (5 and up), clang (3.3 and up), MSVC
-    (2015 or newer)
+-   a C++17 compliant compiler - roughly GCC 7+, clang 6+, or MSVC 19+
 -   `pybind11 <https://github.com/pybind/pybind11>`_
 -   libqpdf |qpdf-min-version| or higher from the
     `QPDF <https://github.com/qpdf/qpdf>`_ project.
@@ -168,7 +167,7 @@ libqpdf.)
 
 .. |msvc-zip| replace:: qpdf-|qpdf-version|-bin-msvc64.zip
 
-pikepdf requires a C++14 compliant compiler (i.e. Visual Studio 2015 on
+pikepdf requires a C++17 compliant compiler (i.e. Visual Studio 2015 on
 Windows). See our continuous integration build script in ``.appveyor.yml``
 for detailed and current instructions. Or use the wheels which save this pain.
 

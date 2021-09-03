@@ -53,8 +53,10 @@ before-all = [
   "bash build-scripts/linux-download-qpdf.bash $QPDF_VERSION",
   "bash build-scripts/linux-build-wheel-deps.bash"
 ]
-manylinux-x86_64-image = "manylinux2010"
-manylinux-i686-image = "manylinux2010"
+manylinux-x86_64-image = "manylinux2014"
+manylinux-i686-image = "manylinux2014"
+manylinux-pypy_x86_64-image = "manylinux2014"
+manylinux-pypy_i686-image = "manylinux2014"
 
 [tool.cibuildwheel.macos]
 before-all = "brew install qpdf"
