@@ -18,8 +18,8 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
-v3.0.0bN
-========
+v3.0.0
+======
 
 Breaking changes
 ----------------
@@ -61,6 +61,8 @@ Breaking changes
 -  We now internally use a different API call to close a PDF in libqpdf. This
    may change the behavior of attempts to manipulate a PDF after it has been
    closed. In any case, accessing a closed file was never supported.
+-  Pillow 8.3.2 is temporarily blacklisted since this version was unintentionally
+   released without support for the manylinux2010 platform.
 
 New functionality
 -----------------
