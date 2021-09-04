@@ -76,6 +76,11 @@ def parse_content_stream(
         >>>     for operands, command in parse_content_stream(page):
         >>>         print(command)
 
+    .. versionchanged:: 3.0
+        Returns a list of ``ContentStreamInstructions`` instead of a list
+        of (operand, operator) tuples. The returned items are duck-type compatible
+        with the previous returned items.
+
     """
 
     if not isinstance(page_or_stream, (Object, Page)):
@@ -121,12 +126,17 @@ def unparse_content_stream(
     for embedding in a PDF. In PDF the operator always follows the operands.
 
     Args:
-        instructions: list of (operands, operator) types such as is returned
+        instructions: collection of instructions such as is returned
             by :func:`parse_content_stream()`
 
     Returns:
         A binary content stream, suitable for attaching to a Pdf.
         To attach to a Pdf, use :meth:`Pdf.make_stream()``.
+
+    .. versionchanged:: 3.0
+        Now accept collections that contain any mixture of
+        ``ContentStreamInstruction``, ``ContentStreamInlineImage``, and the older
+        operand-operator tuples from pikepdf 2.x.
     """
 
     try:

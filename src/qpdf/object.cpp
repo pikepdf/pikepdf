@@ -822,8 +822,21 @@ void init_object(py::module_ &m)
                 return h.unparse();
             },
             py::arg("resolved") = false,
-            "Convert PDF objects into their binary representation, optionally "
-            "resolving indirect objects.")
+            R"~~~(
+            Convert PDF objects into their binary representation, optionally
+            resolving indirect objects.
+
+            If you want to unparse content streams, which are a collection of
+            objects that need special treatment, use
+            :func:`pikepdf.unparse_content_stream` instead.
+
+            Returns ``bytes()`` that can be used with :meth:`Object.parse`
+            to reconstruct the ``pikepdf.Object``. If reconstruction is not possible,
+            a relative object reference is returned, such as ``4 0 R``.
+
+            Args:
+                resolved: If True, deference indirect objects where possible.
+            )~~~")
         .def(
             "to_json",
             [](QPDFObjectHandle &h, bool dereference = false) -> py::bytes {
