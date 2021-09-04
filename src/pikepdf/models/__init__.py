@@ -69,11 +69,6 @@ def parse_content_stream(
             All other operators and associated tokens are ignored. If blank,
             all tokens are accepted.
 
-    Returns:
-        List of ``(operands, command)`` tuples where ``command`` is an
-        operator (str) and ``operands`` is a tuple of str; the PDF drawing
-        command and the command's operands, respectively.
-
     Example:
 
         >>> with pikepdf.Pdf.open(input_pdf) as pdf:
