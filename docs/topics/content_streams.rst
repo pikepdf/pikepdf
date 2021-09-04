@@ -34,6 +34,27 @@ pikepdf provides a C++ optimized content stream parser and a filter. The parser
 is best used for reading and interpreting content streams; the filter is better
 for low level editing.
 
+Pretty-printing content streams
+-------------------------------
+
+To pretty-print a content stream, you can use parse and then unparse it. This
+converts it from binary data form to pikepdf objects and back. In the process,
+the content stream is cleaned up. Every instruction will be separated by a line
+break.
+
+.. ipython:: python
+
+  with pikepdf.open("../tests/resources/congress.pdf") as pdf:
+      page = pdf.pages[0]
+      instructions = pikepdf.parse_content_stream(page)
+      data = pikepdf.unparse_content_stream(instructions)
+      print(data.decode('ascii'))
+
+.. note::
+
+  Content streams are not always decodable to ASCII. This one just happens to be.
+
+
 How content streams draw images
 -------------------------------
 
