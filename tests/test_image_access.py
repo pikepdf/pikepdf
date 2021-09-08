@@ -194,6 +194,21 @@ def test_inline(inline):
             assert reparsed_iim == iimage
 
 
+def test_inline_extract(inline):
+    iimage, _pdf = inline
+    bio = BytesIO()
+    iimage.extract_to(stream=bio)
+    bio.seek(0)
+    im = Image.open(bio)
+    assert im.size == (8, 8) and im.mode == iimage.mode
+
+
+def test_inline_to_pil(inline):
+    iimage, _pdf = inline
+    im = iimage.as_pil_image()
+    assert im.size == (8, 8) and im.mode == iimage.mode
+
+
 def test_bits_per_component_missing(congress):
     cong_im = congress[0]
     del cong_im.stream_dict['/BitsPerComponent']

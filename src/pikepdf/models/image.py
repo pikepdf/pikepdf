@@ -4,17 +4,14 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
-import base64
 import struct
 from abc import ABC, abstractmethod
-from collections import deque
 from decimal import Decimal
 from io import BytesIO
 from itertools import zip_longest
 from pathlib import Path
 from shutil import copyfileobj
 from typing import NamedTuple, Optional
-from zlib import decompress
 
 from PIL import Image, ImageCms
 from PIL.TiffTags import TAGS_V2 as TIFF_TAGS
@@ -24,6 +21,7 @@ from pikepdf import (
     Dictionary,
     Name,
     Object,
+    Pdf,
     PdfError,
     Stream,
     StreamDecodeLevel,
@@ -321,7 +319,7 @@ class PdfImageBase(ABC):
         return PaletteData(base, lookup)
 
     @abstractmethod
-    def as_pil_image(self):
+    def as_pil_image(self) -> Image.Image:
         """Convert this PDF image to a Python PIL (Pillow) image."""
 
     @staticmethod
@@ -931,7 +929,6 @@ class PdfInlineImage(PdfImageBase):
         except PdfError as e:
             raise PdfError("parsing inline " + reparse.decode('unicode_escape')) from e
         self.obj = reparsed_obj
-        self.pil = None
 
     def __eq__(self, other):
         if not isinstance(other, PdfImageBase):
@@ -1002,16 +999,30 @@ class PdfInlineImage(PdfImageBase):
             f'size={self.width}x{self.height} at {hex(id(self))}>'
         )
 
+    def _convert_to_pdfimage(self):
+        # Construct a temporary PDF that holds this inline image, and...
+        tmppdf = Pdf.new()
+        tmppdf.add_blank_page(page_size=(self.width, self.height))
+        tmppdf.pages[0].contents_add(
+            f'{self.width} 0 0 {self.height} 0 0 cm'.encode('ascii'), prepend=True
+        )
+        tmppdf.pages[0].contents_add(self.unparse())
+
+        # ...externalize it,
+        tmppdf.pages[0].externalize_inline_images()
+        raw_img = next(im for im in tmppdf.pages[0].images.values())
+
+        # ...then use the regular PdfImage API to extract it.
+        img = PdfImage(raw_img)
+        return img
+
     def as_pil_image(self):
-        if self.pil:
-            return self.pil
+        return self._convert_to_pdfimage().as_pil_image()
 
-        raise NotImplementedError('not yet')
-
-    def extract_to(
-        self, *, stream=None, fileprefix=''
-    ):  # pylint: disable=unused-argument
-        raise UnsupportedImageTypeError("inline images don't support extract")
+    def extract_to(self, *, stream=None, fileprefix=''):
+        return self._convert_to_pdfimage().extract_to(
+            stream=stream, fileprefix=fileprefix
+        )
 
     def read_bytes(self):
         raise NotImplementedError("qpdf returns compressed")
