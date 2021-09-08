@@ -114,46 +114,46 @@ class PdfImageBase(ABC):
 
     @abstractmethod
     def _metadata(self, name, type_, default):
-        ...
+        """"""
 
     @property
     def width(self):
-        """Width of the image data in pixels"""
+        """Width of the image data in pixels."""
         return self._metadata('Width', int, None)
 
     @property
     def height(self):
-        """Height of the image data in pixels"""
+        """Height of the image data in pixels."""
         return self._metadata('Height', int, None)
 
     @property
     def image_mask(self):
-        """``True`` if this is an image mask"""
+        """``True`` if this is an image mask."""
         return self._metadata('ImageMask', bool, False)
 
     @property
     def _bpc(self):
-        """Bits per component for this image (low-level)"""
+        """Bits per component for this image (low-level)."""
         return self._metadata('BitsPerComponent', int, None)
 
     @property
     def _colorspaces(self):
-        """Colorspace (low-level)"""
+        """Colorspace (low-level)."""
         return self._metadata('ColorSpace', array_str, [])
 
     @property
     def filters(self):
-        """List of names of the filters that we applied to encode this image"""
+        """List of names of the filters that we applied to encode this image."""
         return self._metadata('Filter', array_str, [])
 
     @property
     def decode_parms(self):
-        """List of the /DecodeParms, arguments to filters"""
+        """List of the /DecodeParms, arguments to filters."""
         return self._metadata('DecodeParms', dict_or_array_dict, [])
 
     @property
     def colorspace(self) -> Optional[str]:
-        """PDF name of the colorspace that best describes this image"""
+        """PDF name of the colorspace that best describes this image."""
         if self.image_mask:
             return None  # Undefined for image masks
         if self._colorspaces:
@@ -177,7 +177,7 @@ class PdfImageBase(ABC):
 
     @property
     def bits_per_component(self):
-        """Bits per component of this image"""
+        """Bits per component of this image."""
         if self._bpc is None:
             return 1 if self.image_mask else 8
         return self._bpc
@@ -194,7 +194,7 @@ class PdfImageBase(ABC):
 
     @property
     def indexed(self):
-        """``True`` if the image has a defined color palette"""
+        """``True`` if the image has a defined color palette."""
         return '/Indexed' in self._colorspaces
 
     def _colorspace_has_name(self, name):
@@ -210,17 +210,17 @@ class PdfImageBase(ABC):
 
     @property
     def is_device_n(self):
-        """``True`` if image has a /DeviceN (complex printing) colorspace"""
+        """``True`` if image has a /DeviceN (complex printing) colorspace."""
         return self._colorspace_has_name('/DeviceN')
 
     @property
     def is_separation(self):
-        """``True`` if image has a /DeviceN (complex printing) colorspace"""
+        """``True`` if image has a /DeviceN (complex printing) colorspace."""
         return self._colorspace_has_name('/Separation')
 
     @property
     def size(self):
-        """Size of image as (width, height)"""
+        """Size of image as (width, height)."""
         return self.width, self.height
 
     def _approx_mode_from_icc(self):
@@ -436,7 +436,7 @@ class PdfImage(PdfImageBase):
 
     @property
     def is_inline(self):
-        """``False`` for image XObject"""
+        """``False`` for image XObject."""
         return False
 
     @property
@@ -698,11 +698,11 @@ class PdfImage(PdfImageBase):
         return str(filepath)
 
     def read_bytes(self, decode_level=StreamDecodeLevel.specialized):
-        """Decompress this image and return it as unencoded bytes"""
+        """Decompress this image and return it as unencoded bytes."""
         return self.obj.read_bytes(decode_level=decode_level)
 
     def get_stream_buffer(self, decode_level=StreamDecodeLevel.specialized):
-        """Access this image with the buffer protocol"""
+        """Access this image with the buffer protocol."""
         return self.obj.get_stream_buffer(decode_level=decode_level)
 
     def as_pil_image(self) -> Image.Image:
@@ -725,7 +725,7 @@ class PdfImage(PdfImageBase):
         return im
 
     def _generate_ccitt_header(self, data, icc=None):
-        """Construct a CCITT G3 or G4 header from the PDF metadata"""
+        """Construct a CCITT G3 or G4 header from the PDF metadata."""
         # https://stackoverflow.com/questions/2641770/
         # https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf
 
@@ -808,7 +808,7 @@ class PdfImage(PdfImageBase):
         return tiff_header
 
     def show(self):  # pragma: no cover
-        """Show the image however PIL wants to"""
+        """Show the image however PIL wants to."""
         self.as_pil_image().show()
 
     def __repr__(self):
@@ -818,7 +818,7 @@ class PdfImage(PdfImageBase):
         )
 
     def _repr_png_(self):
-        """Display hook for IPython/Jupyter"""
+        """Display hook for IPython/Jupyter."""
         b = BytesIO()
         with self.as_pil_image() as im:
             im.save(b, 'PNG')

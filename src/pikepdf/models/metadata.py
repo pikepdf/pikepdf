@@ -94,7 +94,7 @@ log = logging.getLogger(__name__)
 
 
 class NeverRaise(Exception):
-    """An exception that is never raised"""
+    """An exception that is never raised."""
 
     pass  # pylint: disable=unnecessary-pass
 

@@ -24,7 +24,7 @@ def update_xmp_pdfversion(pdf: Pdf, version: str):
 
 
 def _alpha(n):
-    """Excel-style column numbering A..Z, AA..AZ..BA..ZZ.., AAA"""
+    """Excel-style column numbering A..Z, AA..AZ..BA..ZZ.., AAA."""
     if n < 1:
         raise ValueError(f"Can't represent {n} in alphabetic numbering")
     p = []
@@ -37,7 +37,7 @@ def _alpha(n):
 
 
 def _roman(n):
-    """Converts integer n to Roman numeral representation as a string"""
+    """Converts integer n to Roman numeral representation as a string."""
     if not (1 <= n <= 5000):
         raise ValueError(f"Can't represent {n} in Roman numerals")
     roman_numerals = (

@@ -118,7 +118,7 @@ def pdfdoc_decode(input: bytes, errors: str = 'strict') -> Tuple[str, int]:
 
 
 class PdfDocCodec(codecs.Codec):
-    """Implements PdfDocEncoding character map used inside PDFs"""
+    """Implements PdfDocEncoding character map used inside PDFs."""
 
     def encode(self, input: str, errors: str = 'strict') -> Tuple[bytes, int]:
         return pdfdoc_encode(input, errors)

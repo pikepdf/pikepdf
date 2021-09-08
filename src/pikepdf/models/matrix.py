@@ -57,7 +57,7 @@ class PdfMatrix:
 
     @staticmethod
     def identity():
-        """Constructs and returns an identity matrix"""
+        """Constructs and returns an identity matrix."""
         return PdfMatrix()
 
     def __matmul__(self, other):
@@ -76,22 +76,22 @@ class PdfMatrix:
         )
 
     def scaled(self, x, y):
-        """Concatenates a scaling matrix on this matrix"""
+        """Concatenates a scaling matrix on this matrix."""
         return self @ PdfMatrix((x, 0, 0, y, 0, 0))
 
     def rotated(self, angle_degrees_ccw):
-        """Concatenates a rotation matrix on this matrix"""
+        """Concatenates a rotation matrix on this matrix."""
         angle = angle_degrees_ccw / 180.0 * pi
         c, s = cos(angle), sin(angle)
         return self @ PdfMatrix((c, s, -s, c, 0, 0))
 
     def translated(self, x, y):
-        """Translates this matrix"""
+        """Translates this matrix."""
         return self @ PdfMatrix((1, 0, 0, 1, x, y))
 
     @property
     def shorthand(self):
-        """Return the 6-tuple (a,b,c,d,e,f) that describes this matrix"""
+        """Return the 6-tuple (a,b,c,d,e,f) that describes this matrix."""
         return (self.a, self.b, self.c, self.d, self.e, self.f)
 
     @property
@@ -124,7 +124,7 @@ class PdfMatrix:
         return False
 
     def encode(self):
-        """Encode this matrix in binary suitable for including in a PDF"""
+        """Encode this matrix in binary suitable for including in a PDF."""
         return '{:.6f} {:.6f} {:.6f} {:.6f} {:.6f} {:.6f}'.format(
             self.a, self.b, self.c, self.d, self.e, self.f
         ).encode()

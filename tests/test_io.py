@@ -20,7 +20,7 @@ def sandwich(resources):
 
 
 class LimitedBytesIO(BytesIO):
-    """Version of BytesIO that only accepts small reads/writes"""
+    """Version of BytesIO that only accepts small reads/writes."""
 
     def write(self, b):
         amt = min(len(b), 100)
@@ -61,7 +61,7 @@ def test_fail_only_overwrite_input_check(monkeypatch, resources, outdir):
 
 
 class BadBytesIO(BytesIO):
-    """Version of BytesIO that reports more bytes written than actual"""
+    """Version of BytesIO that reports more bytes written than actual."""
 
     def write(self, b):
         super().write(b)
@@ -69,7 +69,7 @@ class BadBytesIO(BytesIO):
 
 
 class WrongTypeBytesIO(BytesIO):
-    """Returns wrong type"""
+    """Returns wrong type."""
 
     def write(self, b):  # pylint: disable=unused-argument
         return None  # most likely wrong return type

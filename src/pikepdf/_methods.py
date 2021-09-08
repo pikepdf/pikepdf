@@ -172,7 +172,7 @@ def augments(cls_cpp: Type[Any]):
 
 
 def _single_page_pdf(page) -> bytes:
-    """Construct a single page PDF from the provided page in memory"""
+    """Construct a single page PDF from the provided page in memory."""
     pdf = Pdf.new()
     pdf.pages.append(page)
     bio = BytesIO()
@@ -182,7 +182,7 @@ def _single_page_pdf(page) -> bytes:
 
 
 def _mudraw(buffer, fmt) -> bytes:
-    """Use mupdf draw to rasterize the PDF in the memory buffer"""
+    """Use mupdf draw to rasterize the PDF in the memory buffer."""
     # mudraw cannot read from stdin so NamedTemporaryFile is required
     with NamedTemporaryFile(suffix='.pdf') as tmp_in:
         tmp_in.write(buffer)
