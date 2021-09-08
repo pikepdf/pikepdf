@@ -18,6 +18,12 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+.. note::
+
+   Python 3.6 reaches end of life on December 23, 2021. We will end support
+   for Python 3.6 around that time. The change will be marked with a major
+   release.
+
 v3.0.0
 ======
 
@@ -61,8 +67,6 @@ Breaking changes
 -  We now internally use a different API call to close a PDF in libqpdf. This
    may change the behavior of attempts to manipulate a PDF after it has been
    closed. In any case, accessing a closed file was never supported.
--  Pillow 8.3.2 is temporarily blacklisted since this version was unintentionally
-   released without support for the manylinux2010 platform.
 
 New functionality
 -----------------
