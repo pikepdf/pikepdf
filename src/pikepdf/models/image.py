@@ -114,7 +114,7 @@ class PdfImageBase(ABC):
 
     @abstractmethod
     def _metadata(self, name, type_, default):
-        """"""
+        """Get metadata for this image type."""
 
     @property
     def width(self):
@@ -184,13 +184,13 @@ class PdfImageBase(ABC):
 
     @property
     @abstractmethod
-    def is_inline(self):
-        ...
+    def is_inline(self) -> bool:
+        """Is this an inline image?"""
 
     @property
     @abstractmethod
-    def icc(self):
-        ...
+    def icc(self) -> Image.Image:
+        """Returns ICC profile for this image if one is defined."""
 
     @property
     def indexed(self):
@@ -322,7 +322,7 @@ class PdfImageBase(ABC):
 
     @abstractmethod
     def as_pil_image(self):
-        ...
+        """Convert this PDF image to a Python PIL (Pillow) image."""
 
     @staticmethod
     def _remove_simple_filters(obj, filters):
