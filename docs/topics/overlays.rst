@@ -17,7 +17,7 @@ of the second page onto the first page.
 .. ipython::
     :verbatim:
 
-    In [1]: from pikepdf import Pdf, Page
+    In [1]: from pikepdf import Pdf, Page, Rectangle
 
     In [1]: pdf = Pdf.open(...)
 
