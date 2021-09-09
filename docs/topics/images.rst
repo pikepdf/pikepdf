@@ -75,7 +75,7 @@ lossy formats like JPEG can reduce their quality.)
 .. ipython::
     :verbatim:
 
-    In [1]: pdfimage.extract_to(fileprefix='image'))
+    In [1]: pdfimage.extract_to(fileprefix='image')
     Out[1]: 'image.jpg'
 
 It also possible to extract to a writable Python stream using
