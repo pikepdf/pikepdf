@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2021 James R. Barlow <james@purplerock.ca>
+# SPDX-License-Identifier: MPL-2.0
+
 import shutil
 import sys
 from subprocess import PIPE, run

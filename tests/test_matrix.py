@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2021 James R. Barlow <james@purplerock.ca>
+# SPDX-License-Identifier: MPL-2.0
+
 from math import isclose
 
 import pytest

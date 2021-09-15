@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2021 James R. Barlow <james@purplerock.ca>
+# SPDX-License-Identifier: MPL-2.0
+
 import os.path
 import sys
 from io import BytesIO, FileIO

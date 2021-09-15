@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2021 James R. Barlow <james@purplerock.ca>
+# SPDX-License-Identifier: MPL-2.0
+
 from typing import Type
 
 import pytest

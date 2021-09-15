@@ -1,5 +1,7 @@
-import pytest
+# SPDX-FileCopyrightText: 2021 James R. Barlow <james@purplerock.ca>
+# SPDX-License-Identifier: MPL-2.0
 
+import pytest
 from pikepdf import Dictionary, ForeignObjectError, Name, Object, Pdf, Stream
 
 
