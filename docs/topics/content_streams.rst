@@ -1,3 +1,6 @@
+.. SPDX-FileCopyrightText: 2021 James R. Barlow <james@purplerock.ca>
+.. SPDX-License-Identifier: CC-BY-SA-4.0
+
 .. _working_with_content_streams:
 
 Working with content streams
