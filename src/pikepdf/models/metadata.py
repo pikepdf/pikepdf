@@ -129,6 +129,23 @@ re_xml_illegal_bytes = re.compile(
 )
 
 
+def _parser_basic(xml: bytes):
+    return parse_xml(BytesIO(xml))
+
+
+def _parser_strip_illegal_bytes(xml: bytes):
+    return parse_xml(BytesIO(re_xml_illegal_bytes.sub(b'', xml)))
+
+
+def _parser_recovery(xml: bytes):
+    return parse_xml(BytesIO(xml), recover=True)
+
+
+def _parser_replace_with_empty_xmp(_xml: bytes = b''):
+    log.warning("Error occurred parsing XMP, replacing with empty XMP.")
+    return _parser_basic(XMP_EMPTY)
+
+
 def _clean(s: Union[str, Iterable[str]], joiner: str = '; ') -> str:
     """Ensure an object can safely be inserted in a XML tag body.
 
@@ -340,6 +357,14 @@ class PdfMetadata(MutableMapping):
     NS: Dict[str, str] = {prefix: uri for uri, prefix in DEFAULT_NAMESPACES}
     REVERSE_NS: Dict[str, str] = {uri: prefix for uri, prefix in DEFAULT_NAMESPACES}
 
+    _PARSERS_OVERWRITE_INVALID_XML: Iterable[Callable[[bytes], Any]] = [
+        _parser_basic,
+        _parser_strip_illegal_bytes,
+        _parser_recovery,
+        _parser_replace_with_empty_xmp,
+    ]
+    _PARSERS_STANDARD: Iterable[Callable[[bytes], Any]] = [_parser_basic]
+
     def __init__(
         self,
         pdf: 'Pdf',
@@ -411,35 +436,18 @@ class PdfMetadata(MutableMapping):
         try:
             data = self._pdf.Root.Metadata.read_bytes()
         except AttributeError:
-            data = XMP_EMPTY
+            data = b''
         self._load_from(data)
 
     def _load_from(self, data: bytes) -> None:
         if data.strip() == b'':
             data = XMP_EMPTY  # on some platforms lxml chokes on empty documents
 
-        def basic_parser(xml):
-            return parse_xml(BytesIO(xml))
-
-        def strip_illegal_bytes_parser(xml):
-            return parse_xml(BytesIO(re_xml_illegal_bytes.sub(b'', xml)))
-
-        def recovery_parser(xml):
-            return parse_xml(BytesIO(xml), recover=True)
-
-        def replace_with_empty_xmp(_xml=None):
-            log.warning("Error occurred parsing XMP, replacing with empty XMP.")
-            return basic_parser(XMP_EMPTY)
-
-        if self.overwrite_invalid_xml:
-            parsers: Iterable[Callable] = [
-                basic_parser,
-                strip_illegal_bytes_parser,
-                recovery_parser,
-                replace_with_empty_xmp,
-            ]
-        else:
-            parsers = [basic_parser]
+        parsers = (
+            self._PARSERS_OVERWRITE_INVALID_XML
+            if self.overwrite_invalid_xml
+            else self._PARSERS_STANDARD
+        )
 
         for parser in parsers:
             try:
@@ -448,7 +456,7 @@ class PdfMetadata(MutableMapping):
                 if str(e).startswith("Start tag expected, '<' not found") or str(
                     e
                 ).startswith("Document is empty"):
-                    self._xmp = replace_with_empty_xmp()
+                    self._xmp = _parser_replace_with_empty_xmp()
                     break
             else:
                 break
@@ -461,10 +469,10 @@ class PdfMetadata(MutableMapping):
                 self._get_rdf_root()
             except (Exception if self.overwrite_invalid_xml else NeverRaise) as e:
                 log.warning("Error occurred parsing XMP", exc_info=e)
-                self._xmp = replace_with_empty_xmp()
+                self._xmp = _parser_replace_with_empty_xmp()
         else:
             log.warning("Error occurred parsing XMP")
-            self._xmp = replace_with_empty_xmp()
+            self._xmp = _parser_replace_with_empty_xmp()
         return
 
     @ensure_loaded
