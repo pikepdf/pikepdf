@@ -1,6 +1,6 @@
 import os
 import re
-from datetime import datetime, timedelta, timezone, tzinfo
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
@@ -8,7 +8,6 @@ import pytest
 from conftest import skip_if_pypy
 from hypothesis import assume, example, given, settings
 from hypothesis import strategies as st
-from hypothesis.extra.dateutil import timezones
 from hypothesis.strategies import integers
 from lxml.etree import XMLSyntaxError
 
@@ -24,18 +23,15 @@ from pikepdf.models.metadata import (
     fromisoformat,
 )
 
-try:
-    from libxmp import XMPError, XMPMeta
-except Exception:  # throws libxmp.ExempiLoadError pylint: disable=broad-except
-    XMPMeta, XMPError = None, None
-
-needs_libxmp = pytest.mark.skipif(
-    os.name == 'nt' or not XMPMeta, reason="test requires libxmp"
-)
-
 pytestmark = pytest.mark.filterwarnings('ignore:.*XMLParser.*:DeprecationWarning')
 
 # pylint: disable=redefined-outer-name,pointless-statement
+
+
+@pytest.fixture
+def libxmp_meta():
+    libxmp = pytest.importorskip('libxmp')
+    return libxmp.XMPMeta
 
 
 @pytest.fixture
@@ -207,8 +203,7 @@ def test_build_metadata(trivial, graph, outdir):
             assert xmp_date == docinfo_date.isoformat()
 
 
-@needs_libxmp
-def test_python_xmp_validate_add(trivial):
+def test_python_xmp_validate_add(trivial, libxmp_meta):
     with trivial.open_metadata() as xmp:
         xmp['dc:creator'] = ['Bob', 'Doug']
         xmp['dc:title'] = 'Title'
@@ -218,7 +213,7 @@ def test_python_xmp_validate_add(trivial):
     assert '<rdf:Seq><rdf:li>Bob</rdf:li><rdf:li>Doug</rdf:li>' in xmp_str
     assert '<rdf:Bag><rdf:li>Mackenzie</rdf:li>' in xmp_str
 
-    xmpmeta = XMPMeta(xmp_str=str(xmp))
+    xmpmeta = libxmp_meta(xmp_str=str(xmp))
     DC = XMP_NS_DC
     assert xmpmeta.does_array_item_exist(DC, 'creator', 'Bob')
     assert xmpmeta.does_array_item_exist(DC, 'creator', 'Doug')
@@ -226,28 +221,24 @@ def test_python_xmp_validate_add(trivial):
     assert xmpmeta.does_array_item_exist(DC, 'publisher', 'Mackenzie')
 
 
-@needs_libxmp
-def test_python_xmp_validate_change_list(graph):
+def test_python_xmp_validate_change_list(graph, libxmp_meta):
     with graph.open_metadata() as xmp:
         assert 'dc:creator' in xmp
         xmp['dc:creator'] = ['Dobby', 'Kreacher']
     assert str(xmp)
-    if not XMPMeta:
-        pytest.skip(msg='needs libxmp')
-    xmpmeta = XMPMeta(xmp_str=str(xmp))
+    xmpmeta = libxmp_meta(xmp_str=str(xmp))
     DC = XMP_NS_DC
     assert xmpmeta.does_array_item_exist(DC, 'creator', 'Dobby')
     assert xmpmeta.does_array_item_exist(DC, 'creator', 'Kreacher')
 
 
-@needs_libxmp
-def test_python_xmp_validate_change(sandwich):
+def test_python_xmp_validate_change(sandwich, libxmp_meta):
     with sandwich.open_metadata() as xmp:
         assert 'xmp:CreatorTool' in xmp
         xmp['xmp:CreatorTool'] = 'Creator'  # Exists as a xml tag text
         xmp['pdf:Producer'] = 'Producer'  # Exists as a tag node
     assert str(xmp)
-    xmpmeta = XMPMeta(xmp_str=str(xmp))
+    xmpmeta = libxmp_meta(xmp_str=str(xmp))
     assert xmpmeta.does_property_exist(XMP_NS_XMP, 'CreatorTool')
     assert xmpmeta.does_property_exist(XMP_NS_PDF, 'Producer')
 
@@ -508,15 +499,14 @@ def test_truncated_xml(resources, idx):
             xmp['pdfaid:part'] = '7'
 
 
-@needs_libxmp
-def test_pdf_version_update(graph, outdir):
+def test_pdf_version_update(graph, outdir, libxmp_meta):
     def get_xmp_version(filename):
         with pikepdf.open(filename) as pdf:
             meta = pdf.open_metadata()
-            xmp = XMPMeta(xmp_str=str(meta))
+            xmp = libxmp_meta(xmp_str=str(meta))
             try:
                 return xmp.get_property('http://ns.adobe.com/pdf/1.3/', 'PDFVersion')
-            except XMPError:
+            except Exception:
                 return ''
 
     # We don't update PDFVersion unless it is present, even if we change the PDF version
