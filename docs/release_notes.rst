@@ -24,6 +24,12 @@ should not access directly, along with any modules with a prefixed underscore.
    for Python 3.6 around that time. The change will be marked with a major
    release.
 
+v3.1.0
+======
+
+-  Extraction of common inline image file formats is now supported.
+-  Some refactoring and documentation improvements.
+
 v3.0.0
 ======
 
