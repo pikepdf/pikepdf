@@ -30,7 +30,12 @@ pytestmark = pytest.mark.filterwarnings('ignore:.*XMLParser.*:DeprecationWarning
 
 @pytest.fixture
 def libxmp_meta():
-    libxmp = pytest.importorskip('libxmp')
+    try:
+        libxmp = pytest.importorskip('libxmp')
+    except Exception as e:  # pylint: disable=broad-except
+        # libxmp raises a nonstandard exception sometimes so the standard
+        # pytest.importorskip doesn't trap it *irritated sigh*.
+        pytest.skip(str(e))
     return libxmp.XMPMeta
 
 

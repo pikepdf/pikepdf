@@ -49,7 +49,7 @@ ZLIB_RELEASE = "https://www.zlib.net/zlib-1.2.11.tar.gz"
 
 [tool.cibuildwheel.linux]
 before-all = [
-  "yum install -y wget libxml2-devel libxslt-devel",
+  "yum install -y wget libxml2-devel libxslt-devel libxmp",
   "bash build-scripts/linux-download-qpdf-deps.bash",
   "bash build-scripts/linux-download-qpdf.bash $QPDF_VERSION",
   "bash build-scripts/linux-build-wheel-deps.bash"
