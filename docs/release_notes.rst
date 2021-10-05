@@ -24,6 +24,12 @@ should not access directly, along with any modules with a prefixed underscore.
    for Python 3.6 around that time. The change will be marked with a major
    release.
 
+v3.1.1
+======
+
+-  Fixed errors that occurred on ``import pikepdf`` for an extension module built with
+   pybind11 2.8.0.
+
 v3.1.0
 ======
 
