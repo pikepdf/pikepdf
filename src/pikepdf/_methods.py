@@ -65,7 +65,14 @@ Numeric = TypeVar('Numeric', int, float, Decimal)
 
 
 def augment_override_cpp(fn):
+    """This Python function should replace the C++ implementation, if there is one."""
     fn._augment_override_cpp = True
+    return fn
+
+
+def augment_if_no_cpp(fn):
+    """This Python function provides a Python implementation if no C++ implementation exists."""
+    fn._augment_if_no_cpp = True
     return fn
 
 
@@ -140,12 +147,19 @@ def augments(cls_cpp: Type[Any]):
                 and name not in OVERRIDE_WHITELIST
                 and not getattr(getattr(cls, name), '_augment_override_cpp', False)
             ):
+                if getattr(getattr(cls, name), '_augment_if_no_cpp', False):
+                    # If tagged as "augment if no C++", we are supported older pybind11
+                    # versions that may not define some functions. If pybind11 provides
+                    # the required function, don't override it.
+                    continue
+
                 # If the original C++ class and Python support class both define the
                 # same name, we generally have a conflict, because this is augmentation
                 # not inheritance. However, if the method provided by the support class
                 # is an abstract method, then we can consider the C++ version the
                 # implementation. Also, pybind11 provides defaults for __eq__,
                 # __hash__ and __repr__ that we often do want to override directly.
+
                 raise RuntimeError(  # pragma: no cover
                     f"C++ {cls_cpp} and Python {cls} both define the same "
                     f"non-abstract method {name}: "
@@ -928,9 +942,11 @@ class Extend_ObjectMapping:
         except KeyError:
             return default
 
+    @augment_if_no_cpp
     def keys(self):
         return KeysView(self)
 
+    @augment_if_no_cpp
     def values(self):
         return (v for _k, v in self.items())
 
