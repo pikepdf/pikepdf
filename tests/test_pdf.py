@@ -108,6 +108,11 @@ class TestPasswords:
         with Pdf.open(resources / 'graph-encrypted.pdf', password='user'):
             pass
 
+    def test_unneeded_password_ignored(self, resources):
+        with pytest.warns(UserWarning, match="no password was needed"):
+            with Pdf.open(resources / 'graph.pdf', password='open sesame'):
+                pass
+
 
 class TestPermissions:
     def test_some_permissions_missing(self, resources):
@@ -116,8 +121,24 @@ class TestPermissions:
             assert not pdf.allow.modify_annotation
             assert pdf.allow.print_lowres
 
-    def test_permissions_all_true_not_encrypted(self, trivial):
+    def test_all_true_not_encrypted(self, trivial):
         assert all(trivial.allow)
+
+    def test_omit_encryption_removes_encryption(self, resources, outdir):
+        with Pdf.open(resources / 'graph-encrypted.pdf', password='owner') as pdf:
+            pdf.save(outdir / 'true.pdf')
+            with Pdf.open(outdir / 'true.pdf') as pdf_copy:
+                assert pdf.allow != pdf_copy.allow
+
+    @pytest.mark.parametrize('encryption, expected', [[True, True], [False, False]])
+    @pytest.mark.filterwarnings('ignore:A password was provided')
+    def test_permissions_preserved_on_save(
+        self, resources, outdir, encryption, expected
+    ):
+        with Pdf.open(resources / 'graph-encrypted.pdf', password='owner') as pdf:
+            pdf.save(outdir / 'true.pdf', encryption=encryption)
+            with Pdf.open(outdir / 'true.pdf', password='owner') as pdf_copy:
+                assert (pdf.allow == pdf_copy.allow) == expected
 
 
 class TestStreams:

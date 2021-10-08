@@ -139,6 +139,11 @@ std::shared_ptr<QPDF> open_pdf(py::object filename_or_stream,
         q->pushInheritedAttributesToPage();
     }
 
+    if (!password.empty() && !q->isEncrypted()) {
+        python_warning(
+            "A password was provided, but no password was needed to open this PDF.");
+    }
+
     return q;
 }
 
