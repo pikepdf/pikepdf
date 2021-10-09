@@ -197,7 +197,7 @@ class OutlineItem:
         """
         title = str(obj.Title)
         destination = obj.get(Name.Dest)
-        if destination is not None and not isinstance(destination, (Array, String)):
+        if destination is not None and not isinstance(destination, (Array, String, Name)):
             raise OutlineStructureError(
                 f"Unexpected object type in Outline's /Dest: {destination!r}"
             )
