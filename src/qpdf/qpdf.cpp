@@ -425,20 +425,23 @@ void save_pdf(QPDF &q,
     Pl_PythonOutput output_pipe(description.c_str(), stream);
     w.setOutputPipeline(&output_pipe);
 
-    if (encryption.equal(py::bool_(true)) && !q.isEncrypted()) {
+    bool encryption_is_truthy = encryption.equal(py::bool_(true));
+
+    if (encryption_is_truthy && !q.isEncrypted()) {
         throw py::value_error(
             "can't perserve encryption parameters on a file with no encryption");
     }
 
-    if ((encryption.equal(py::bool_(true)) || py::isinstance<py::dict>(encryption)) &&
+    if ((encryption_is_truthy || py::isinstance<py::dict>(encryption)) &&
         (normalize_content || !stream_decode_level.is_none())) {
-        throw py::value_error(
-            "cannot save with encryption and normalize_content or stream_decode_level");
+        throw py::value_error("cannot save with encryption and normalize_content "
+                              "or stream_decode_level");
     }
 
-    if (encryption.equal(py::bool_(true))) {
+    if (encryption_is_truthy) {
         w.setPreserveEncryption(true); // Keep existing encryption
     } else if (encryption.is_none() || encryption.equal(py::bool_(false))) {
+        // Note: encryption.equal(py::bool_(false)) != !encryption_is_truthy
         w.setPreserveEncryption(false); // Remove encryption
     } else {
         setup_encryption(w, encryption);
