@@ -22,6 +22,7 @@ from typing import (
     Set,
     Type,
     Union,
+    cast,
 )
 from warnings import warn
 
@@ -452,7 +453,11 @@ class PdfMetadata(MutableMapping):
         for parser in parsers:
             try:
                 self._xmp = parser(data)
-            except (XMLSyntaxError if self.overwrite_invalid_xml else NeverRaise) as e:
+            except (
+                XMLSyntaxError
+                if self.overwrite_invalid_xml
+                else NeverRaise  # type: ignore
+            ) as e:
                 if str(e).startswith("Start tag expected, '<' not found") or str(
                     e
                 ).startswith("Document is empty"):

@@ -32,7 +32,8 @@ repos:
     hooks:
       - id: mypy
         additional_dependencies:
-          - types-toml
-          - types-setuptools
-          - types-requests
+          - lxml-stubs
           - types-Pillow
+          - types-requests
+          - types-setuptools
+          - types-toml
