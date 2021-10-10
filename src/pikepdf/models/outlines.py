@@ -178,8 +178,11 @@ class OutlineItem:
                 page = Page(raw_page)
                 dest = page.label
             elif isinstance(self.destination, String):
-                # 12.3.2.2 Named destination
-                dest = f'<Named Destination: {self.destination}>'
+                # 12.3.2.2 Named destination, byte string reference to Names
+                dest = f'<Named Destination in document .Root.Names dictionary: {self.destination}>'
+            elif isinstance(self.destination, Name):
+                # 12.3.2.2 Named desintation, name object (PDF 1.1)
+                dest = f'<Named Destination in document .Root.Dests dictionary: {self.destination}>'
         else:
             dest = '<Action>'
         return f'{oc_indicator} {self.title} -> {dest}'

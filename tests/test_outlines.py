@@ -500,4 +500,5 @@ def test_outline_repr(outlines_doc):
 def test_outline_destination_name_object_types():
     # See issues 258, 261
     obj = Dictionary(Title='foo', Dest=Name.Bar)
-    OutlineItem.from_dictionary_object(obj)
+    item = OutlineItem.from_dictionary_object(obj)
+    assert '.Root.Dests' in str(item)
