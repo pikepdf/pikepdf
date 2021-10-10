@@ -14,7 +14,7 @@ from pikepdf import (
     Pdf,
     make_page_destination,
 )
-from pikepdf.models.outlines import ALL_PAGE_LOCATION_KWARGS
+from pikepdf.models.outlines import ALL_PAGE_LOCATION_KWARGS, Outline
 
 # pylint: disable=redefined-outer-name
 
@@ -495,3 +495,9 @@ def test_outline_repr(outlines_doc):
     with outlines_doc.open_outline() as outline:
         assert repr(outline).startswith('<pikepdf.Outline:')
         assert repr(outline.root[0]).startswith('<pikepdf.OutlineItem')
+
+
+def test_outline_destination_name_object_types():
+    # See issues 258, 261
+    obj = Dictionary(Title='foo', Dest=Name.Bar)
+    OutlineItem.from_dictionary_object(obj)

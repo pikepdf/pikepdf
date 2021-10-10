@@ -138,7 +138,7 @@ class OutlineItem:
     def __init__(
         self,
         title: str,
-        destination: Optional[Union[Array, String]] = None,
+        destination: Optional[Union[Array, String, Name]] = None,
         page_location: Optional[Union[PageLocation, str]] = None,
         action: Optional[Dictionary] = None,
         obj: Optional[Dictionary] = None,
@@ -197,7 +197,10 @@ class OutlineItem:
         """
         title = str(obj.Title)
         destination = obj.get(Name.Dest)
-        if destination is not None and not isinstance(destination, (Array, String, Name)):
+        if destination is not None and not isinstance(
+            destination, (Array, String, Name)
+        ):
+            # 12.3.3: /Dest may be a name, byte string or array
             raise OutlineStructureError(
                 f"Unexpected object type in Outline's /Dest: {destination!r}"
             )
