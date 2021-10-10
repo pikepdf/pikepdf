@@ -20,9 +20,20 @@ should not access directly, along with any modules with a prefixed underscore.
 
 .. note::
 
-   Python 3.6 reaches end of life on December 23, 2021. We will end support
-   for Python 3.6 around that time. The change will be marked with a major
-   release.
+   Python 3.6 reaches end of life on December 23, 2021. pikepdf 3.x will continue
+   to support Python 3.6 until then.
+
+   pikepdf might work with a source build for Python 3.10, but other packages
+   are dropping support for Python 3.6 so we need to do the same. pikepdf 4.0
+   will officially support Python 3.10 and drop Python 3.6.
+
+v3.2.0
+======
+
+-  Fixed support for outline items that have PDF 1.1-style named destinations.
+   :issue:`258, 261`
+-  We now issue a warning if an unnecessary password was provided when opening
+   an unencrypted PDF.
 
 v3.1.1
 ======
