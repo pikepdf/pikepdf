@@ -68,7 +68,8 @@ before-all = "brew install qpdf"
 # pp3*-win_amd64 does not execute because cibuildwheel does not implement it
 # or PyPy3 doesn't work on Windows 64-bit, one or the other
 # PyPy+Win32 seems like a very low priority combination
-skip = "pp3*"
+# lxml for Windows CPython 3.10 also isn't available yet so this fails
+skip = "pp3* cp310*"
 
 [tool.mypy]
 
