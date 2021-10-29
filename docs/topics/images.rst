@@ -160,7 +160,7 @@ not be included in the output file.
 
   In [1]: page = pdf.pages[0]
 
-  In [1]: image_name, image = next(page.images.items())
+  In [1]: image_name, image = next(iter(page.images.items()))
 
   In [1]: new_image = pdf.make_stream(b'\xff')
 
