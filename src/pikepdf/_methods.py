@@ -1083,7 +1083,7 @@ class Extend_Page:
         return name
 
     def _over_underlay(
-        self, other, rect: Optional[Rectangle], under: bool = True
+        self, other, rect: Optional[Rectangle], under: bool, push_stack: bool
     ) -> None:
         formx = None
         if isinstance(other, Page):
@@ -1108,9 +1108,20 @@ class Extend_Page:
         formx_placed_name = self.add_resource(formx, Name.XObject)
         cs = self.calc_form_xobject_placement(formx, formx_placed_name, rect)
 
-        self.contents_add(cs, prepend=under)
+        if push_stack:
+            self.contents_add(b'q\n', prepend=True)  # prepend q
+            self.contents_add(b'Q\n', prepend=False)  # i.e. append Q
 
-    def add_overlay(self, other: Union[Object, Page], rect: Optional[Rectangle] = None):
+        self.contents_add(cs, prepend=under)
+        self.contents_coalesce()
+
+    def add_overlay(
+        self,
+        other: Union[Object, Page],
+        rect: Optional[Rectangle] = None,
+        *,
+        push_stack: Optional[bool] = True,
+    ):
         """Overlay another object on this page.
 
         Overlays will be drawn after all previous content, potentially drawing on top
@@ -1121,10 +1132,19 @@ class Extend_Page:
                 page.
             rect: The PDF rectangle (in PDF units) in which to draw the overlay.
                 If omitted, this page's trimbox, cropbox or mediabox will be used.
+            push_stack: If True (default), push the graphics stack of the existing
+                content stream to ensure that the overlay is rendered correctly.
+                Officially PDF limits the graphics stack depth to 32. Most
+                viewers will tolerate more, but excessive pushes may cause problems.
+                Multiple content streams may also be coalseced into a single content
+                stream where this parameter is True, since the PDF specification
+                permits PDF writers to coalesce streams as they see fit.
 
         .. versionadded:: 2.14
+
+        .. versionchanged:: 3.3.0
         """
-        return self._over_underlay(other, rect, under=False)
+        return self._over_underlay(other, rect, under=False, push_stack=push_stack)
 
     def add_underlay(
         self, other: Union[Object, Page], rect: Optional[Rectangle] = None
@@ -1142,7 +1162,7 @@ class Extend_Page:
 
         .. versionadded:: 2.14
         """
-        return self._over_underlay(other, rect, under=True)
+        return self._over_underlay(other, rect, under=True, push_stack=False)
 
     def contents_add(self, contents: Union[Stream, bytes], *, prepend: bool = False):
         """Append or prepend to an existing page's content stream.

@@ -159,6 +159,31 @@ def test_fourpages_to_4up(fourpages, graph, outpdf):
     pdf.save(outpdf)
 
 
+def test_push_stack(fourpages, outpdf):
+    pdf = Pdf.new()
+    pdf.add_blank_page(page_size=(1000, 1000))
+    page = pdf.pages[0]
+
+    pdf.pages.extend(fourpages.pages)
+
+    page.Contents = pdf.make_stream(
+        b"0.4 G\n"
+        b"0 500 500 1000 re s\n"
+        b"500 500 1000 1000 re s\n"
+        b"-1 0 0 1 500 0 cm\n"
+    )
+
+    page.add_overlay(pdf.pages[1], Rectangle(0, 500, 500, 1000), push_stack=False)
+    page.add_overlay(pdf.pages[2], Rectangle(500, 500, 1000, 1000), push_stack=True)
+
+    # Test requires visual confirmation
+    # Second page should be in upper right corner, properly positioned for a 4-up
+    # First page should be mirrored horizontally since stack was not pushed
+
+    del pdf.pages[1:]
+    pdf.save(outpdf)
+
+
 def test_cant_hash_page(graph):
     with pytest.raises(TypeError, match="mutable"):
         hash(graph.pages[0])

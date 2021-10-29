@@ -56,3 +56,9 @@ existing document will ensure that metadata, annotations and hyperlinks are
 preserved. For example, to convert 16 slides to 4×4-up pages for printing,
 add four pages onto the end of the file, draw the slides onto the target pages,
 and then delete the slides.
+
+By default, ``add_overlay`` encapsulates the existing content stream in a way
+that ensures the transformation matrix is first reset, since this behavior
+aligns with user expectations. This adds a ``q/Q`` pair to (push/pop graphics
+stack) to existing content streams. To disable this (usually) behavior use
+``push_stack=False``.
