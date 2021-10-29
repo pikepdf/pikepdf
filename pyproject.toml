@@ -59,6 +59,13 @@ manylinux-x86_64-image = "manylinux2014"
 manylinux-i686-image = "manylinux2014"
 manylinux-pypy_x86_64-image = "manylinux2014"
 manylinux-pypy_i686-image = "manylinux2014"
+skip = "*-musllinux_*"
+
+[[tool.cibuildwheel.overrides]]
+# As of 2021-10, musllinux image was based on Alpine 3.12
+# We need Alpine 3.14 or newer to get the required package versions
+select = "*-musllinux*"
+before-all = ["apk add py3-lxml py3-pillow python3 py3-setuptools py3-pybind11-dev python3-dev py3-wheel qpdf-dev exempi-dev"]
 
 [tool.cibuildwheel.macos]
 before-all = "brew install qpdf"
