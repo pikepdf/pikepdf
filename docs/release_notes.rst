@@ -18,14 +18,22 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
-.. note::
-
    Python 3.6 reaches end of life on December 23, 2021. pikepdf 3.x will continue
    to support Python 3.6 until then.
 
-   pikepdf might work with a source build for Python 3.10, but other packages
-   are dropping support for Python 3.6 so we need to do the same. pikepdf 4.0
-   will officially support Python 3.10 and drop Python 3.6.
+v4.0.0
+======
+
+Breaking changes
+----------------
+
+-  Python 3.10 is supported.
+-  Dropped support for Python 3.6, since it is reaching end of life soon. We will
+   backport critical fixes to pikepdf 3.x until Python 3.6 reaches end of life in
+   December 2021.
+-  We now require C++17 and generate wheels for manylinux2014 Linux targets. We had
+   to drop support for manylinux2010, our previous target, since some of our
+   dependencies like Pillow are no longer supporting manylinux2010.
 
 v3.2.0
 ======

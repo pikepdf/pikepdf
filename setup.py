@@ -51,14 +51,14 @@ ext_modules = [
         ],
         library_dirs=[*extra_library_dirs],
         libraries=['qpdf'],
-        cxx_std=14,
+        cxx_std=17,
     )
 ]
 
 if sys.platform == 'cygwin':
-    # On cygwin, use gnu++14 instead of c++14
+    # On cygwin, use gnu++17 instead of c++17
     eca = ext_modules[0].extra_compile_args
-    eca[eca.index('-std=c++14')] = '-std=gnu++14'
+    eca[eca.index('-std=c++17')] = '-std=gnu++17'
 
 # Debug build
 # ext_modules[0].extra_compile_args.append('-g3')

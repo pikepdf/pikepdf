@@ -1,5 +1,5 @@
 [project]
-requires-python = ">=3.6"
+requires-python = ">=3.7"
 
 [build-system]
 requires = [
@@ -13,7 +13,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.black]
 line-length = 88
-target-version = ["py36", "py37", "py38"]
+target-version = ["py37", "py38"]
 skip-string-normalization = true
 include = '\.pyi?$'
 exclude = '''
@@ -37,7 +37,7 @@ exclude = '''
 [tool.cibuildwheel]
 test-command = "pytest -nauto {project}/tests"
 test-extras = "test"
-skip = "cp310-*"
+skip = "cp36-*"
 test-skip = "*_arm64 *_universal2:arm64"
 
 [tool.cibuildwheel.environment]
@@ -49,13 +49,23 @@ ZLIB_RELEASE = "https://www.zlib.net/zlib-1.2.11.tar.gz"
 
 [tool.cibuildwheel.linux]
 before-all = [
-  "yum install -y wget libxml2-devel libxslt-devel libxmp",
+  "yum install -y wget libxml2-devel libxslt-devel",
+  "bash build-scripts/linux-install-libxmp.bash",
   "bash build-scripts/linux-download-qpdf-deps.bash",
   "bash build-scripts/linux-download-qpdf.bash $QPDF_VERSION",
   "bash build-scripts/linux-build-wheel-deps.bash"
 ]
-manylinux-x86_64-image = "manylinux2010"
-manylinux-i686-image = "manylinux2010"
+manylinux-x86_64-image = "manylinux2014"
+manylinux-i686-image = "manylinux2014"
+manylinux-pypy_x86_64-image = "manylinux2014"
+manylinux-pypy_i686-image = "manylinux2014"
+skip = "*-musllinux_*"
+
+[[tool.cibuildwheel.overrides]]
+# As of 2021-10, musllinux image was based on Alpine 3.12
+# We need Alpine 3.14 or newer to get the required package versions
+select = "*-musllinux*"
+before-all = ["apk add py3-lxml py3-pillow python3 py3-setuptools py3-pybind11-dev python3-dev py3-wheel qpdf-dev exempi-dev"]
 
 [tool.cibuildwheel.macos]
 before-all = "brew install qpdf"
@@ -65,7 +75,8 @@ before-all = "brew install qpdf"
 # pp3*-win_amd64 does not execute because cibuildwheel does not implement it
 # or PyPy3 doesn't work on Windows 64-bit, one or the other
 # PyPy+Win32 seems like a very low priority combination
-skip = "pp3* cp310-*"
+# lxml for Windows CPython 3.10 also isn't available yet so this fails
+skip = "pp3* cp310*"
 
 [tool.mypy]
 
