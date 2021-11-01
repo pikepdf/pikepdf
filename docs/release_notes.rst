@@ -87,7 +87,7 @@ Breaking changes
 -  :meth:`pikepdf.Page.calc_form_xobject_placement` previously returned ``str`` when
    it should have returned ``bytes``. It now returns the correct type.
 -  :func:`pikepdf.open` and :func:`pikepdf.save`, and their counterparts in
-   :class:`pikepdf.Pdf`, now expect keyword arguments for all expect the first parameter.
+   :class:`pikepdf.Pdf`, now expect keyword arguments for all except the first parameter.
 -  Some other functions have stricter typing, required keyword arguments, etc.,
    for clarity.
 -  If a calculating the ``repr()`` of a page, we now describe a reference to that
