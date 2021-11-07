@@ -138,7 +138,7 @@ class OutlineItem:
     def __init__(
         self,
         title: str,
-        destination: Optional[Union[Array, String, Name]] = None,
+        destination: Optional[Union[Array, String, Name, int]] = None,
         page_location: Optional[Union[PageLocation, str]] = None,
         action: Optional[Dictionary] = None,
         obj: Optional[Dictionary] = None,
@@ -183,6 +183,9 @@ class OutlineItem:
             elif isinstance(self.destination, Name):
                 # 12.3.2.2 Named desintation, name object (PDF 1.1)
                 dest = f'<Named Destination in document .Root.Dests dictionary: {self.destination}>'
+            elif isinstance(self.destination, int):
+                # Page number
+                dest = f'<Page {self.destination}>'
         else:
             dest = '<Action>'
         return f'{oc_indicator} {self.title} -> {dest}'
