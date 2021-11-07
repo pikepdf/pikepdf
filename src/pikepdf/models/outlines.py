@@ -160,7 +160,7 @@ class OutlineItem:
         kwargs = dict(left=left, top=top, right=right, bottom=bottom, zoom=zoom)
         self.page_location_kwargs = {k: v for k, v in kwargs.items() if v is not None}
         self.is_closed = False
-        self.children: Iterable[OutlineItem] = []
+        self.children: List[OutlineItem] = []
 
     def __str__(self):
         if self.children:
@@ -326,7 +326,7 @@ class Outline:
                     del out_obj.Prev
             prev = out_obj
             if level < self._max_depth:
-                sub_items = item.children
+                sub_items: Iterable[OutlineItem] = item.children
             else:
                 sub_items = ()
             self._save_level_outline(out_obj, sub_items, level + 1, visited_objs)
