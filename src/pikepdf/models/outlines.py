@@ -404,7 +404,7 @@ class Outline:
             self._load_level_outline(first_obj, root, 0, set())
 
     @property
-    def root(self) -> Optional[List[OutlineItem]]:
+    def root(self) -> List[OutlineItem]:
         if self._root is None:
             self._load()
-        return self._root
+        return cast(List[OutlineItem], self._root)
