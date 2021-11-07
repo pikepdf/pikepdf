@@ -138,7 +138,7 @@ class OutlineItem:
     def __init__(
         self,
         title: str,
-        destination: Optional[Union[Array, String, Name]] = None,
+        destination: Optional[Union[Array, String, Name, int]] = None,
         page_location: Optional[Union[PageLocation, str]] = None,
         action: Optional[Dictionary] = None,
         obj: Optional[Dictionary] = None,
@@ -160,7 +160,7 @@ class OutlineItem:
         kwargs = dict(left=left, top=top, right=right, bottom=bottom, zoom=zoom)
         self.page_location_kwargs = {k: v for k, v in kwargs.items() if v is not None}
         self.is_closed = False
-        self.children: Iterable[OutlineItem] = []
+        self.children: List[OutlineItem] = []
 
     def __str__(self):
         if self.children:
@@ -183,6 +183,9 @@ class OutlineItem:
             elif isinstance(self.destination, Name):
                 # 12.3.2.2 Named desintation, name object (PDF 1.1)
                 dest = f'<Named Destination in document .Root.Dests dictionary: {self.destination}>'
+            elif isinstance(self.destination, int):
+                # Page number
+                dest = f'<Page {self.destination}>'
         else:
             dest = '<Action>'
         return f'{oc_indicator} {self.title} -> {dest}'
@@ -323,7 +326,7 @@ class Outline:
                     del out_obj.Prev
             prev = out_obj
             if level < self._max_depth:
-                sub_items = item.children
+                sub_items: Iterable[OutlineItem] = item.children
             else:
                 sub_items = ()
             self._save_level_outline(out_obj, sub_items, level + 1, visited_objs)
@@ -401,7 +404,7 @@ class Outline:
             self._load_level_outline(first_obj, root, 0, set())
 
     @property
-    def root(self) -> Optional[List[OutlineItem]]:
+    def root(self) -> List[OutlineItem]:
         if self._root is None:
             self._load()
-        return self._root
+        return cast(List[OutlineItem], self._root)
