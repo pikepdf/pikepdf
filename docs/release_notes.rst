@@ -21,6 +21,15 @@ should not access directly, along with any modules with a prefixed underscore.
    Python 3.6 reaches end of life on December 23, 2021. pikepdf 3.x will continue
    to support Python 3.6 until then.
 
+v4.0.1
+======
+
+-  Fixed documentation build reproducible. (Thanks to Chris Lamb and Sean Whitton.)
+-  Fixed issue where file attachments not located in the current working directory
+   would be created with a directory name.
+-  Removed some references to Python 3.6.
+-  Added some fixes to typing hints from @cherryblossom000.
+
 v4.0.0
 ======
 
