@@ -1305,7 +1305,7 @@ class Extend_AttachedFileSpec:
             pdf,
             path.read_bytes(),
             description=description,
-            filename=str(path),
+            filename=str(path.name),
             mime_type=mime,
             creation_date=encode_pdf_date(
                 datetime.datetime.fromtimestamp(stat.st_ctime)

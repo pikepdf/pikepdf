@@ -1,4 +1,5 @@
 import datetime
+import os
 from hashlib import md5
 from pathlib import Path
 
@@ -125,6 +126,7 @@ def test_from_str_filepath(pal, outdir):
     foofile = outdir / 'foo'
     foofile.touch()
     fs = AttachedFileSpec.from_filepath(pal, str(foofile), description='bar')
+    assert os.sep not in fs.filename
     assert 'foo' in repr(fs)
     fs.filename = ''
     assert 'foo' not in repr(fs)
