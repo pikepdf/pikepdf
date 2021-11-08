@@ -30,9 +30,9 @@ Now we can retrive the data.
 
     In [1]: pdf.attachments['README.md']
 
-    In [1]: pdf.attachments['README.md'].get_file()
+    In [1]: file = pdf.attachments['README.md'].get_file()
 
-    In [1]: pdf.attachments['README.md'].get_file().read_bytes()[:50]
+    In [1]: file.read_bytes()[:50]
 
 
 General notes on attached files
