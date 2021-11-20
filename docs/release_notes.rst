@@ -24,7 +24,7 @@ should not access directly, along with any modules with a prefixed underscore.
 v4.0.1
 ======
 
--  Fixed documentation build reproducible. (Thanks to Chris Lamb and Sean Whitton.)
+-  Fixed documentation build reproducibility. (Thanks to Chris Lamb and Sean Whitton.)
 -  Fixed issue where file attachments not located in the current working directory
    would be created with a directory name.
 -  Removed some references to Python 3.6.
