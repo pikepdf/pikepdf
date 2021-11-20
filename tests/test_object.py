@@ -535,10 +535,79 @@ def test_json():
     }
 
 
-@pytest.fixture
-def stream_object():
-    pdf = pikepdf.new()
-    return Stream(pdf, b'')
+class TestStream:
+    @pytest.fixture(scope="function")
+    def abcxyz_stream(self):
+        pdf = pikepdf.new()
+        data = b'abcxyz'
+        stream = Stream(pdf, data)
+        return stream
+
+    def test_stream_isinstance(self):
+        pdf = pikepdf.new()
+        stream = Stream(pdf, b'xyz')
+        assert isinstance(stream, Stream)
+        assert isinstance(stream, Object)
+
+    def test_stream_as_dict(self, abcxyz_stream):
+        stream = abcxyz_stream
+        assert Name.Length in stream
+        stream.TestAttrAccess = True
+        stream['/TestKeyAccess'] = True
+        stream[Name.TestKeyNameAccess] = True
+        assert len(stream.keys()) == 4  # Streams always have a /Length
+
+        assert all(
+            (v == len(stream.read_bytes()) or v == True)  # noqa: E712
+            for k, v in stream.items()
+        )
+
+        assert stream.stream_dict.TestAttrAccess
+
+        assert stream.get(Name.MissingName, 3.14) == 3.14
+
+        assert {k for k in stream} == {
+            '/TestKeyAccess',
+            '/TestAttrAccess',
+            '/Length',
+            '/TestKeyNameAccess',
+        }
+
+    def test_stream_length_modify(self, abcxyz_stream):
+        stream = abcxyz_stream
+
+        with pytest.raises(KeyError):
+            stream.Length = 42
+        with pytest.raises(KeyError):
+            del stream.Length
+
+    def test_len_stream(self, abcxyz_stream):
+        with pytest.raises(TypeError):
+            len(abcxyz_stream)  # pylint: disable=pointless-statement
+        assert len(abcxyz_stream.stream_dict) == 1
+
+    def test_stream_dict_oneshot(self):
+        pdf = pikepdf.new()
+        stream1 = Stream(pdf, b'12345', One=1, Two=2)
+        stream2 = Stream(pdf, b'67890', {'/Three': 3, '/Four': 4})
+        stream3 = pdf.make_stream(b'abcdef', One=1, Two=2)
+
+        assert stream1.One == 1
+        assert stream1.read_bytes() == b'12345'
+        assert stream2.Three == 3
+        assert stream3.One == 1
+
+    def test_stream_bad_params(self):
+        p = pikepdf.new()
+        with pytest.raises(TypeError, match='data'):
+            Stream(p)
+
+    def test_stream_no_dangling_stream_on_failure(self):
+        p = pikepdf.new()
+        num_objects = len(p.objects)
+        with pytest.raises(AttributeError):
+            Stream(p, b'3.14159', ['Not a mapping object'])
+        assert len(p.objects) == num_objects, "A dangling object was created"
 
 
 @pytest.fixture
@@ -548,6 +617,11 @@ def sandwich(resources):
 
 
 class TestStreamReadWrite:
+    @pytest.fixture
+    def stream_object(self):
+        pdf = pikepdf.new()
+        return Stream(pdf, b'')
+
     def test_basic(self, stream_object):
         stream_object.write(b'abc')
         assert stream_object.read_bytes() == b'abc'
@@ -650,13 +724,6 @@ def test_object_isinstance(obj):
     assert isinstance(obj, Object)
 
 
-def test_stream_isinstance():
-    pdf = pikepdf.new()
-    stream = Stream(pdf, b'xyz')
-    assert isinstance(stream, Stream)
-    assert isinstance(stream, Object)
-
-
 def test_object_classes():
     classes = [Array, Dictionary, Operator, String, Stream]
     for cls in classes:
@@ -674,80 +741,6 @@ class TestOperator:
 
     def test_operator_bytes(self):
         assert bytes(Operator('cm')) == b'cm'
-
-
-@pytest.fixture(scope="function")
-def abcxyz_stream():
-    pdf = pikepdf.new()
-    data = b'abcxyz'
-    stream = Stream(pdf, data)
-    return stream
-
-
-def test_stream_as_dict(abcxyz_stream):
-    stream = abcxyz_stream
-    assert Name.Length in stream
-    stream.TestAttrAccess = True
-    stream['/TestKeyAccess'] = True
-    stream[Name.TestKeyNameAccess] = True
-    assert len(stream.keys()) == 4  # Streams always have a /Length
-
-    assert all(
-        (v == len(stream.read_bytes()) or v == True)  # noqa: E712
-        for k, v in stream.items()
-    )
-
-    assert stream.stream_dict.TestAttrAccess
-
-    assert stream.get(Name.MissingName, 3.14) == 3.14
-
-    assert {k for k in stream} == {
-        '/TestKeyAccess',
-        '/TestAttrAccess',
-        '/Length',
-        '/TestKeyNameAccess',
-    }
-
-
-def test_stream_length_modify(abcxyz_stream):
-    stream = abcxyz_stream
-
-    with pytest.raises(KeyError):
-        stream.Length = 42
-    with pytest.raises(KeyError):
-        del stream.Length
-
-
-def test_len_stream(abcxyz_stream):
-    with pytest.raises(TypeError):
-        len(abcxyz_stream)  # pylint: disable=pointless-statement
-    assert len(abcxyz_stream.stream_dict) == 1
-
-
-def test_stream_dict_oneshot():
-    pdf = pikepdf.new()
-    stream1 = Stream(pdf, b'12345', One=1, Two=2)
-    stream2 = Stream(pdf, b'67890', {'/Three': 3, '/Four': 4})
-    stream3 = pdf.make_stream(b'abcdef', One=1, Two=2)
-
-    assert stream1.One == 1
-    assert stream1.read_bytes() == b'12345'
-    assert stream2.Three == 3
-    assert stream3.One == 1
-
-
-def test_stream_bad_params():
-    p = pikepdf.new()
-    with pytest.raises(TypeError, match='data'):
-        Stream(p)
-
-
-def test_stream_no_dangling_stream_on_failure():
-    p = pikepdf.new()
-    num_objects = len(p.objects)
-    with pytest.raises(AttributeError):
-        Stream(p, b'3.14159', ['Not a mapping object'])
-    assert len(p.objects) == num_objects, "A dangling object was created"
 
 
 def test_object_mapping(sandwich):
