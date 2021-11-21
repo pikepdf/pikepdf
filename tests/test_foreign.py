@@ -1,6 +1,8 @@
+import copy
+
 import pytest
 
-from pikepdf import Dictionary, ForeignObjectError, Name, Object, Pdf, Stream
+from pikepdf import Dictionary, ForeignObjectError, Name, Object, Page, Pdf, Stream
 
 
 @pytest.fixture
@@ -66,3 +68,25 @@ def test_with_same_owner_as(vera, outlines, outpdf):
     # invalid other owner case
     with pytest.raises(ValueError):
         outlines.Root.Names.with_same_owner_as(Dictionary(Foo=42))
+
+
+@pytest.mark.xfail(reason="current qpdf behavior")
+def test_issue_271():
+    f1 = Pdf.new()
+    f2 = Pdf.new()
+    p1 = f1.add_blank_page()
+    # copy p1 to f2 and change its mediabox
+
+    f2.pages.append(p1)
+    p2 = f2.pages[0]
+    p2.MediaBox[0] = 1
+    p2.Rotate = 1
+
+    f2.pages.append(p1)
+    p3 = f2.pages[1]
+
+    assert p2.MediaBox[0] != p1.MediaBox[0]
+    assert Name.Rotate in p2 and Name.Rotate not in p1
+
+    assert p3.MediaBox[0] == p1.MediaBox[0]
+    assert Name.Rotate not in p3
