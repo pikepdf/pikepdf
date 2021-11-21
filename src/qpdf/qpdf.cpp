@@ -780,6 +780,8 @@ void init_qpdf(py::module_ &m)
             py::arg("h"))
         .def("copy_foreign",
             [](QPDF &q, QPDFPageObjectHelper &poh) -> QPDFPageObjectHelper {
+                deprecation_warning("copy_foreign() called on pikepdf.Page - use "
+                                    "Pdf.pages interface instead");
                 return QPDFPageObjectHelper(q.copyForeignObject(poh.getObjectHandle()));
             })
         .def("_replace_object",

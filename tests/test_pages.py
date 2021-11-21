@@ -335,15 +335,6 @@ def test_repeat(graph, outpdf):
     graph.save(outpdf)
 
 
-def test_add_foreign_twice(graph, outpdf):
-    out = Pdf.new()
-    out.pages.append(out.copy_foreign(graph.pages[0]))
-    assert len(out.pages) == 1
-    out.pages.append(out.copy_foreign(graph.pages[0]))
-    assert len(out.pages) == 2
-    out.save(outpdf)
-
-
 @pytest.mark.xfail(__libqpdf_version__ < '10.3.2', reason="qpdf issue 514")
 def test_add_twice_without_copy_foreign(graph, outpdf):
     out = Pdf.new()
@@ -361,7 +352,7 @@ def test_repr_pagelist(fourpages):
 def test_foreign_copied_pages_are_true_copies(graph, outpdf):
     out = Pdf.new()
     for _ in range(4):
-        out.pages.append(out.copy_foreign(graph.pages[0]))
+        out.pages.append(graph.pages[0])
 
     for n in [0, 2]:
         out.pages[n].Rotate = 180
