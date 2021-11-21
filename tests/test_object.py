@@ -609,6 +609,25 @@ class TestStream:
             Stream(p, b'3.14159', ['Not a mapping object'])
         assert len(p.objects) == num_objects, "A dangling object was created"
 
+    def test_identical_streams_equal(self):
+        pdf = pikepdf.new()
+        stream1 = Stream(pdf, b'12345', One=1, Two=2)
+        stream2 = Stream(pdf, b'67890', {'/Three': 3, '/Four': 4})
+        assert stream1 == stream1
+        assert stream1 != stream2
+
+    def test_stream_data_equal(self):
+        pdf1 = pikepdf.new()
+        stream1 = Stream(pdf1, b'abc')
+        pdf2 = pikepdf.new()
+        stream2 = Stream(pdf2, b'abc')
+        stream21 = Stream(pdf2, b'abcdef')
+        assert stream1 == stream2
+        assert stream21 != stream2
+
+        stream2.stream_dict.SomeData = 1
+        assert stream2 != stream1
+
 
 @pytest.fixture
 def sandwich(resources):

@@ -6,6 +6,7 @@
  * Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
  */
 
+#include <cstring>
 #include <cctype>
 
 #include <qpdf/Constants.h>
@@ -96,8 +97,9 @@ bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
     // This lets us compare deeply nested and cyclic structures without recursing
     // into them.
     if (self.getObjectID() != 0 && other.getObjectID() != 0 &&
-        self.getOwningQPDF() == other.getOwningQPDF()) {
-        return self.getObjGen() == other.getObjGen();
+        self.getOwningQPDF() == other.getOwningQPDF() &&
+        self.getObjGen() == other.getObjGen()) {
+        return true;
     }
 
     auto self_typecode  = self.getTypeCode();
@@ -145,6 +147,29 @@ bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
         // Call operator==() on each element of the arrays, meaning this
         // recurses into this function
         return (self.getDictAsMap() == other.getDictAsMap());
+    }
+    case QPDFObject::object_type_e::ot_stream: {
+        // Recurse into this function to check if our dictionaries are equal
+        if (!objecthandle_equal(self.getDict(), other.getDict()))
+            return false;
+
+        // If dictionaries are equal, check our stream
+        // We don't go as far as decompressing the data to see if it's equal
+        auto self_buffer  = self.getRawStreamData();
+        auto other_buffer = other.getRawStreamData();
+
+        // Early out: if underlying QPDF Buffers happen to be the same, the data is the
+        // same
+        if (self_buffer.getPointer() == other_buffer.getPointer())
+            return true;
+        // Early out: if sizes are different, data cannot be the same
+        if (self_buffer.getPointer()->getSize() != other_buffer.getPointer()->getSize())
+            return false;
+
+        // Slow path: memcmp the binary data
+        return 0 == std::memcmp(self_buffer.getPointer()->getBuffer(),
+                        other_buffer.getPointer()->getBuffer(),
+                        self_buffer.getPointer()->getSize());
     }
     case QPDFObject::object_type_e::ot_boolean:
     case QPDFObject::object_type_e::ot_integer:
