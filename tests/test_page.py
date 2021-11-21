@@ -1,4 +1,4 @@
-from typing import Type
+import copy
 
 import pytest
 
@@ -184,8 +184,18 @@ def test_push_stack(fourpages, outpdf):
     pdf.save(outpdf)
 
 
+def test_page_equal(fourpages, graph):
+    assert fourpages.pages[0] == fourpages.pages[0]
+    assert fourpages.pages[0] != fourpages.pages[1]
+    assert graph.pages[0] != fourpages.pages[2]
+
+    graph.pages.append(graph.pages[0])
+    assert graph.pages[1] == graph.pages[0]
+    assert copy.copy(graph.pages[1]) == graph.pages[0]
+
+
 def test_cant_hash_page(graph):
-    with pytest.raises(TypeError, match="mutable"):
+    with pytest.raises(TypeError, match="unhashable"):
         hash(graph.pages[0])
 
 
