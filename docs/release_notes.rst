@@ -21,6 +21,14 @@ should not access directly, along with any modules with a prefixed underscore.
    Python 3.6 reaches end of life on December 23, 2021. pikepdf 3.x will continue
    to support Python 3.6 until then.
 
+v4.0.2
+======
+
+-  Fixed equality and copy operators for ``pikepdf.Page``. :issue:`271`
+-  Fixed equality test on ``pikepdf.Stream`` objects - objects that are not identical
+   but have equal data now compare as equal.
+-  Deprecated the use of ``copy_foreign`` for copying ``pikepdf.Page``.
+
 v4.0.1
 ======
 
