@@ -1288,6 +1288,9 @@ class Extend_AttachedFileSpec:
         This function will automatically add a creation and modified date
         using the file system, and a MIME type inferred from the file's extension.
 
+        If the data required for the attach is in memory, use
+        :meth:`pikepdf.AttachedFileSpec` instead.
+
         Args:
             pdf: The Pdf to attach this file specification to.
             path: A file path for the file to attach to this Pdf.

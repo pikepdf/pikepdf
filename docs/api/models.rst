@@ -146,8 +146,8 @@ Version 3.x automatically applies support models to ``/Page`` objects.
     platform-specific filenames. pikepdf cannot directly create these, because they
     are arguably obsolete; it can provide access to them, however.
 
-    If you have to deal with multiple versions, use :meth:`get_all_filenames` to
-    enumerate those available.
+    If you have to deal with platform-specialized versions,
+    use :meth:`get_all_filenames` to enumerate those available.
 
     Described in the |pdfrm| section 7.11.3.
 

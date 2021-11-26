@@ -58,7 +58,10 @@ void init_embeddedfiles(py::module_ &m)
             py::arg("creation_date") = std::string(""),
             py::arg("mod_date")      = std::string(""),
             R"~~~(
-            Low-level constructor for attached file spec from data.
+            Construct a attached file spec from data in memory.
+
+            To construct a file spec from a file on the computer's file system,
+            use :meth:`from_filepath`.
 
             Args:
                 data: Resource to load.

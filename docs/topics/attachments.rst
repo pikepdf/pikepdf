@@ -34,6 +34,14 @@ Now we can retrive the data.
 
     In [1]: file.read_bytes()[:50]
 
+If the data used to create an attachment is in memory:
+
+.. ipython::
+
+    In [1]: memfilespec = AttachedFileSpec(pdf, b'Some text', mime_type='text/plain')
+
+    In [1]: pdf.attachments['plain.txt'] = memfilespec
+
 
 General notes on attached files
 -------------------------------
