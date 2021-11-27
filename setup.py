@@ -2,25 +2,10 @@ import sys
 from glob import glob
 from os import environ
 from os.path import join
+from typing import List, cast
 
-from setuptools import setup
-
-try:
-    from pybind11.setup_helpers import ParallelCompile, Pybind11Extension, build_ext
-except ImportError:
-    from setuptools import Extension as Pybind11Extension
-    from setuptools.command.build_ext import build_ext
-
-    ParallelCompile = None
-    print("pybind11.setup_helpers NOT loaded - you might need to pip install pybind11")
-
-if ParallelCompile:
-    try:
-        # Prevent parallel compile on platforms that lack semaphores
-        # e.g. Android/Termux, AWS Lambda
-        import multiprocessing.synchronize  # pylint: disable=unused-import lgtm [py/unused-import]
-    except ImportError:
-        ParallelCompile = None
+from pybind11.setup_helpers import ParallelCompile, Pybind11Extension, build_ext
+from setuptools import Extension, setup
 
 extra_includes = []
 extra_library_dirs = []
@@ -72,7 +57,7 @@ if __name__ == '__main__':
             'setuptools_scm',  # so that version will work
             'setuptools_scm_git_archive',  # enable version from github tarballs
         ],
-        ext_modules=ext_modules,
+        ext_modules=cast(List[Extension], ext_modules),
         use_scm_version=True,
         cmdclass={"build_ext": build_ext},
     )
