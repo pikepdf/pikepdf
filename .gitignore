@@ -23,6 +23,7 @@ var/
 coverage/
 pip-wheel-metadata/
 src/vendor/qpdf/
+wheelhouse/
 
 # Main directory testing
 /*.pdf
