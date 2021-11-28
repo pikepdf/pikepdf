@@ -1086,11 +1086,9 @@ class Extend_Page:
     ) -> None:
         formx = None
         if isinstance(other, Page):
-            page = other
             formx = other.as_form_xobject()
         elif isinstance(other, Dictionary) and other.get(Name.Type) == Name.Page:
-            page = Page(other)
-            formx = page.as_form_xobject()
+            formx = Page(other).as_form_xobject()
         elif (
             isinstance(other, Stream)
             and other.get(Name.Type) == Name.XObject
@@ -1102,7 +1100,7 @@ class Extend_Page:
             raise TypeError("other object is not something we can convert to FormX")
 
         if rect is None:
-            rect = Rectangle(page.trimbox)
+            rect = Rectangle(self.trimbox)
 
         formx_placed_name = self.add_resource(formx, Name.XObject)
         cs = self.calc_form_xobject_placement(formx, formx_placed_name, rect)
