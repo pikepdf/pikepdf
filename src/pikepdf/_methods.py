@@ -1155,7 +1155,7 @@ class Extend_Page:
             other: A Page or Form XObject to render as an underlay underneath this
                 page.
             rect: The PDF rectangle (in PDF units) in which to draw the underlay.
-                If omitted, this page's MediaBox will be used.
+                If omitted, this page's trimbox, cropbox or mediabox will be used.
 
         .. versionadded:: 2.14
         """
