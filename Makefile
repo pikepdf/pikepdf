@@ -39,21 +39,37 @@ test: build
 	pytest -n auto
 
 version := $(subst v,,$(shell git describe --tags))
-macwheel := pikepdf-$(version)-cp39-cp39-macosx_11_0_arm64.whl
+macwheel39 := pikepdf-$(version)-cp39-cp39-macosx_11_0_arm64.whl
+macwheel310 := pikepdf-$(version)-cp310-cp310-macosx_11_0_arm64.whl
 #$(info $$version is [${version}])
 #$(info $$macwheel is [${macwheel}])
 
-$(macwheel): clean pip-install-e
-	rm pikepdf*.whl
-	python -m pip wheel .
-	mv pikepdf*.whl $(macwheel)
+wheelhouse/$(macwheel39): clean pip-install-e
+	rm -f wheelhouse/pikepdf*cp39*.whl
+	python -m pip wheel -w wheelhouse .
+	mv wheelhouse/pikepdf*cp39*.whl wheelhouse/$(macwheel39)
 
-fixed/$(macwheel): $(macwheel)
-	delocate-wheel -w fixed -v $(macwheel)
+wheelhouse/$(macwheel310): clean
+	rm -f wheelhouse/pikepdf*cp310*.whl
+	rm -rf .venv310
+	/opt/homebrew/opt/python@3.10/bin/python3.10 -m venv .venv310
+	( \
+		source .venv310/bin/activate; \
+		python -m pip install --upgrade setuptools pip wheel; \
+		python -m pip install .; \
+		python -m pip wheel -w wheelhouse .; \
+	)
+	mv wheelhouse/pikepdf*cp310*.whl wheelhouse/$(macwheel310)
+
+wheelhouse/delocated/$(macwheel39): wheelhouse/$(macwheel39)
+	delocate-wheel -w wheelhouse/delocated -v wheelhouse/$(macwheel39)
+
+wheelhouse/delocated/$(macwheel310): wheelhouse/$(macwheel310)
+	delocate-wheel -w wheelhouse/delocated -v wheelhouse/$(macwheel310)
 
 .PHONY: apple-silicon-wheels
-apple-silicon-wheels: fixed/$(macwheel)
-	twine upload fixed/$(macwheel)
+apple-silicon-wheels: wheelhouse/delocated/$(macwheel310) wheelhouse/delocated/$(macwheel39)
+	echo twine upload wheelhouse/delocated/$(macwheel39) wheelhouse/delocated/$(macwheel310)
 
 .PHONY: pycov
 pycov: clean-coverage-pycov
