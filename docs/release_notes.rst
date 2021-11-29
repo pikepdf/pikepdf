@@ -21,6 +21,13 @@ should not access directly, along with any modules with a prefixed underscore.
    Python 3.6 reaches end of life on December 23, 2021. pikepdf 3.x will continue
    to support Python 3.6 until then.
 
+v4.1.0
+======
+
+-  Declared support for pybind11 2.8.x.
+-  Wheels are now built against libqpdf 10.4.0.
+-  Wheels are now built for macOS Apple Silicon and Python 3.10.
+
 v4.0.2
 ======
 
