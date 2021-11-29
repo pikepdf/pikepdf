@@ -19,6 +19,8 @@
 #include <qpdf/Pipeline.hh>
 #include <qpdf/Pl_Buffer.hh>
 
+// Deprecation: change this to use QPDF::findPage when we drop support for
+// qpdf < 10.4.0. Tests will need adjustment due to different errors.
 py::size_t page_index(QPDF &owner, QPDFObjectHandle page)
 {
     if (&owner != page.getOwningQPDF())
