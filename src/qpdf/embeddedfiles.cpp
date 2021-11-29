@@ -126,7 +126,7 @@ void init_embeddedfiles(py::module_ &m)
             "get_file",
             [](QPDFFileSpecObjectHelper &spec, QPDFObjectHandle &name) {
                 if (!name.isName())
-                    throw py::type_error("Parameter must be a pikepdf.Name");
+                    throw py::type_error("Argument must be a pikepdf.Name");
                 return QPDFEFStreamObjectHelper(
                     spec.getEmbeddedFileStream(name.getName()));
             },
