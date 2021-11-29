@@ -24,6 +24,9 @@
 using uint = unsigned int;
 
 namespace pybind11 {
+// Deprecation: when pybind11 <= 2.8.1 support is dropped, delete this line,
+// and replace all py::attr_error with the library's py::attribute_error.
+// See https://github.com/pybind/pybind11/pull/3387
 PYBIND11_RUNTIME_EXCEPTION(attr_error, PyExc_AttributeError);
 PYBIND11_RUNTIME_EXCEPTION(notimpl_error, PyExc_NotImplementedError);
 }; // namespace pybind11
