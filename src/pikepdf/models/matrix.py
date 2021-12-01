@@ -130,4 +130,4 @@ class PdfMatrix:
         ).encode()
 
     def __repr__(self):
-        return 'pikepdf.Matrix(' + repr(self.values) + ')'
+        return f"pikepdf.PdfMatrix({repr(self.values)})"
