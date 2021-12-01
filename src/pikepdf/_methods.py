@@ -1054,6 +1054,10 @@ class Extend_Page:
             If *res* does not belong to the same `Pdf` that owns this page,
             a copy of *res* is automatically created and added instead. In previous
             versions, it was necessary to change for this case manually.
+
+        .. versionchanged:: 4.3.0
+            Returns the name of the overlay in the resources dictionary instead
+            of returning None.
         """
         if Name.Resources not in self.obj:
             self.obj.Resources = Dictionary()
@@ -1082,8 +1086,14 @@ class Extend_Page:
         return name
 
     def _over_underlay(
-        self, other, rect: Optional[Rectangle], under: bool, push_stack: bool
-    ) -> None:
+        self,
+        other,
+        rect: Optional[Rectangle],
+        under: bool,
+        push_stack: bool,
+        shrink: bool,
+        expand: bool,
+    ) -> Name:
         formx = None
         if isinstance(other, Page):
             page = other
@@ -1105,7 +1115,9 @@ class Extend_Page:
             rect = Rectangle(page.trimbox)
 
         formx_placed_name = self.add_resource(formx, Name.XObject)
-        cs = self.calc_form_xobject_placement(formx, formx_placed_name, rect)
+        cs = self.calc_form_xobject_placement(
+            formx, formx_placed_name, rect, allow_shrink=shrink, allow_expand=expand
+        )
 
         if push_stack:
             self.contents_add(b'q\n', prepend=True)  # prepend q
@@ -1113,14 +1125,17 @@ class Extend_Page:
 
         self.contents_add(cs, prepend=under)
         self.contents_coalesce()
+        return formx_placed_name
 
     def add_overlay(
         self,
         other: Union[Object, Page],
         rect: Optional[Rectangle] = None,
         *,
-        push_stack: Optional[bool] = True,
-    ):
+        push_stack: bool = True,
+        shrink: bool = True,
+        expand: bool = True,
+    ) -> Name:
         """Overlay another object on this page.
 
         Overlays will be drawn after all previous content, potentially drawing on top
@@ -1138,30 +1153,75 @@ class Extend_Page:
                 Multiple content streams may also be coalseced into a single content
                 stream where this parameter is True, since the PDF specification
                 permits PDF writers to coalesce streams as they see fit.
+            shrink: If True (default), allow the object to shrink to fit inside the
+                rectangle. The aspect ratio will be preserved.
+            expand: If True (default), allow the object to expand to fit inside the
+                rectangle. The aspect ratio will be preserved.
+
+        Returns:
+            The name of the Form XObject that contains the overlay.
 
         .. versionadded:: 2.14
 
-        .. versionchanged:: 3.3.0
+        .. versionchanged:: 4.0.0
+            Added the *push_stack* parameter. Previously, this method behaved
+            as if *push_stack* were False.
+
+        .. versionchanged:: 4.2.0
+            Added the *shrink* and *expand* parameters. Previously, this method
+            behaved as if ``shrink=True, expand=False``.
+
+        .. versionchanged:: 4.3.0
+            Returns the name of the overlay in the resources dictionary instead
+            of returning None.
         """
-        return self._over_underlay(other, rect, under=False, push_stack=push_stack)
+        return self._over_underlay(
+            other,
+            rect,
+            under=False,
+            push_stack=push_stack,
+            expand=expand,
+            shrink=shrink,
+        )
 
     def add_underlay(
-        self, other: Union[Object, Page], rect: Optional[Rectangle] = None
-    ):
+        self,
+        other: Union[Object, Page],
+        rect: Optional[Rectangle] = None,
+        *,
+        shrink: bool = True,
+        expand: bool = True,
+    ) -> Name:
         """Underlay another object beneath this page.
 
         Underlays will be drawn before all other content, so they may be overdrawn
         partially or completely.
+
+        There is no *push_stack* parameter for this function, since adding an
+        underlay can be done without manipulating the graphics stack.
 
         Args:
             other: A Page or Form XObject to render as an underlay underneath this
                 page.
             rect: The PDF rectangle (in PDF units) in which to draw the underlay.
                 If omitted, this page's MediaBox will be used.
+            shrink: If True (default), allow the object to shrink to fit inside the
+                rectangle. The aspect ratio will be preserved.
+            expand: If True (default), allow the object to expand to fit inside the
+                rectangle. The aspect ratio will be preserved.
+
+        Returns:
+            The name of the Form XObject that contains the underlay.
 
         .. versionadded:: 2.14
+
+        .. versionchanged:: 4.2.0
+            Added the *shrink* and *expand* parameters. Previously, this method
+            behaved as if ``shrink=True, expand=False``.
         """
-        return self._over_underlay(other, rect, under=True, push_stack=False)
+        return self._over_underlay(
+            other, rect, under=True, push_stack=False, expand=expand, shrink=shrink
+        )
 
     def contents_add(self, contents: Union[Stream, bytes], *, prepend: bool = False):
         """Append or prepend to an existing page's content stream.

@@ -1,8 +1,20 @@
 import copy
+from typing import List, Union
 
 import pytest
 
-from pikepdf import Array, Dictionary, Name, Page, Pdf, Rectangle
+from pikepdf import (
+    Array,
+    Dictionary,
+    Name,
+    Operator,
+    Page,
+    Pdf,
+    PdfMatrix,
+    Rectangle,
+    Stream,
+    parse_content_stream,
+)
 
 # pylint: disable=redefined-outer-name
 
@@ -159,6 +171,22 @@ def test_fourpages_to_4up(fourpages, graph, outpdf):
     pdf.save(outpdf)
 
 
+def _simple_interpret_content_stream(page: Page):
+    ctm = PdfMatrix.identity()
+    stack: List[PdfMatrix] = []
+    for instruction in parse_content_stream(page, operators='q Q cm Do'):
+        operands, op = instruction.operands, instruction.operator
+        if op == Operator('q'):
+            stack.append(ctm)
+        elif op == Operator('Q'):
+            ctm = stack.pop()
+        elif op == Operator('cm'):
+            ctm = PdfMatrix(operands) @ ctm
+        elif op == Operator('Do'):
+            xobj_name = operands[0]
+            yield (xobj_name, ctm)
+
+
 def test_push_stack(fourpages, outpdf):
     pdf = Pdf.new()
     pdf.add_blank_page(page_size=(1000, 1000))
@@ -173,13 +201,25 @@ def test_push_stack(fourpages, outpdf):
         b"-1 0 0 1 500 0 cm\n"
     )
 
-    page.add_overlay(pdf.pages[1], Rectangle(0, 500, 500, 1000), push_stack=False)
-    page.add_overlay(pdf.pages[2], Rectangle(500, 500, 1000, 1000), push_stack=True)
+    xobj1 = page.add_overlay(
+        pdf.pages[1], Rectangle(0, 500, 500, 1000), push_stack=False
+    )
+    xobj2 = page.add_overlay(
+        pdf.pages[2], Rectangle(500, 500, 1000, 1000), push_stack=True
+    )
+
+    draw_events = _simple_interpret_content_stream(page)
+    # First page should be mirrored horizontally since stack was not pushed
+    xobj, ctm = next(draw_events)
+    assert xobj == xobj1
+    assert ctm.a < 0 and ctm.d > 0, "Not horizontally mirrored as expected"
+
+    # Second page should be in upper right corner, properly positioned for a 4-up
+    xobj, ctm = next(draw_events)
+    assert xobj == xobj2
+    assert ctm.e >= 500 and ctm.f >= 500
 
     # Test requires visual confirmation
-    # Second page should be in upper right corner, properly positioned for a 4-up
-    # First page should be mirrored horizontally since stack was not pushed
-
     del pdf.pages[1:]
     pdf.save(outpdf)
 
