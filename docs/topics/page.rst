@@ -35,7 +35,8 @@ The ``/MediaBox`` describes the bounding box of the page in PDF pt units
 
 You *can* access the page dictionary data structure directly, but it's fairly
 complicated. There are a number of rules, optional values and implied values.
-To do so, you would access the ``page1.obj`` property.
+To do so, you would access the ``page1.obj`` property, which returns the
+underlying dictionary object that holds the page data.
 
 .. note::
 

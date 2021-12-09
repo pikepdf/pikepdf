@@ -999,6 +999,28 @@ void init_object(py::module_ &m)
                 Called at the end of a content stream.
             )~~~");
 
+    py::class_<QPDFObjectHelper>(m,
+        "ObjectHelper",
+        R"~~~(
+            Base class for wrapper/helper around an Object.
+
+            Used to expose additional functionality specific to that object type.
+        )~~~")
+        .def("__eq__",
+            [](QPDFObjectHelper &self, QPDFObjectHelper &other) {
+                // Pages that are copies
+                return objecthandle_equal(
+                    self.getObjectHandle(), other.getObjectHandle());
+            })
+        .def_property_readonly(
+            "obj",
+            [](QPDFObjectHelper &poh) -> QPDFObjectHandle {
+                return poh.getObjectHandle();
+            },
+            R"~~~(
+                Get the underlying :class:`pikepdf.Object`.
+            )~~~");
+
     m.def("_encode", [](py::handle handle) { return objecthandle_encode(handle); });
     m.def("unparse", [](py::object obj) -> py::bytes {
         return objecthandle_encode(obj).unparseBinary();

@@ -1,12 +1,13 @@
 .. _metadata:
 
-PDF Metadata
-============
+Metadata
+========
 
 PDF has two different types of metadata: XMP metadata, and DocumentInfo, which
-is deprecated but still relevant. For backward compatibility, both should
-contain the same content. pikepdf provides a convenient interface that
-coordinates edits to both, but is limited to the most common metadata features.
+is deprecated and removed as of PDF 2.0, but still relevant. For backward
+compatibility, both should contain the same content. pikepdf provides a convenient
+interface that coordinates edits to both, but is limited to the most common
+metadata features.
 
 XMP (Extensible Metadata Platform) Metadata is a metadata specification in XML
 format that is used many formats other than PDF. For full information on XMP,

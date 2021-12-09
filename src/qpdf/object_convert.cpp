@@ -93,6 +93,12 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle)
     } catch (const py::cast_error &) {
     }
 
+    if (py::isinstance<QPDFObjectHelper>(handle)) {
+        throw py::type_error(
+            "Can't convert ObjectHelper (or subclass) to Object implicitly. "
+            "Use .obj to get access the underlying object.");
+    }
+
     // Special-case booleans since pybind11 coerces nonzero integers to boolean
     if (py::isinstance<py::bool_>(handle)) {
         bool as_bool = handle.cast<bool>();
@@ -129,7 +135,7 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle)
     }
 
     if (py::hasattr(obj, "__iter__")) {
-        // py::print(py::repr(obj));
+
         bool is_mapping = false; // PyMapping_Check is unreliable in Py3
         if (py::hasattr(obj, "keys"))
             is_mapping = true;

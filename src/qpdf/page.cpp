@@ -50,27 +50,13 @@ std::string label_string_from_dict(QPDFObjectHandle label_dict)
 
 void init_page(py::module_ &m)
 {
-    py::class_<QPDFPageObjectHelper>(m, "Page")
+    py::class_<QPDFPageObjectHelper, QPDFObjectHelper>(m, "Page")
         .def(py::init<QPDFObjectHandle &>())
         .def(py::init([](QPDFPageObjectHelper &poh) {
             return QPDFPageObjectHelper(poh.getObjectHandle());
         }))
-        .def("__eq__",
-            [](QPDFPageObjectHelper &self, QPDFPageObjectHelper &other) {
-                // Pages that are copies
-                return objecthandle_equal(
-                    self.getObjectHandle(), other.getObjectHandle());
-            })
         .def(
             "__copy__", [](QPDFPageObjectHelper &poh) { return poh.shallowCopyPage(); })
-        .def_property_readonly(
-            "obj",
-            [](QPDFPageObjectHelper &poh) -> QPDFObjectHandle {
-                return poh.getObjectHandle();
-            },
-            R"~~~(
-                Get the underlying :class:`pikepdf.Object`.
-            )~~~")
         .def_property_readonly("_images", &QPDFPageObjectHelper::getPageImages)
         .def("_get_mediabox", &QPDFPageObjectHelper::getMediaBox)
         .def("_get_cropbox", &QPDFPageObjectHelper::getCropBox)

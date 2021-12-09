@@ -114,3 +114,12 @@ must be attached.
 
 Stream objects are always indirect objects, and must always be attached to a
 PDF.
+
+Object helpers
+==============
+
+pikepdf also provides :class:`pikepdf.ObjectHelper` and various subclasses of
+this class. Usually these are wrappers around a :class:`pikepdf.Dictionary` with
+special rules applicable to that type of dictionary. :class:`pikepdf.Page` is
+an example of an object helper. The underlying object can be accessed with
+:attr:`pikepdf.ObjectHelper.obj`.

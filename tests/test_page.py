@@ -5,8 +5,10 @@ import pytest
 
 from pikepdf import (
     Array,
+    ContentStreamInlineImage,
     Dictionary,
     Name,
+    Object,
     Operator,
     Page,
     Pdf,
@@ -171,10 +173,12 @@ def test_fourpages_to_4up(fourpages, graph, outpdf):
     pdf.save(outpdf)
 
 
-def _simple_interpret_content_stream(page: Page):
+def _simple_interpret_content_stream(page: Union[Page, Object]):
     ctm = PdfMatrix.identity()
     stack: List[PdfMatrix] = []
     for instruction in parse_content_stream(page, operators='q Q cm Do'):
+        if isinstance(instruction, ContentStreamInlineImage):
+            continue
         operands, op = instruction.operands, instruction.operator
         if op == Operator('q'):
             stack.append(ctm)
@@ -260,3 +264,10 @@ def test_page_attrs(graph):
     del graph.pages[0]['/Contents']
 
     assert Name.Contents not in graph.pages[0] and Name.Resources not in graph.pages[0]
+
+
+def test_block_make_indirect_page(graph: Pdf):
+    with pytest.raises(TypeError, match='implicitly'):
+        graph.make_indirect(graph.pages[0])
+
+    assert isinstance(graph.make_indirect(graph.pages[0].obj), Object)

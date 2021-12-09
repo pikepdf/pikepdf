@@ -374,7 +374,7 @@ def test_dest_or_action(outlines_doc):
         # Set to first page.
         first.destination = 0
     # Reference should be replaced at this point.
-    assert first.destination == [first_page, Name.Fit]
+    assert first.destination == [first_page.obj, Name.Fit]
     assert first_obj.Dest == first.destination
     # Original action should be gone
     assert '/A' not in first_obj
@@ -383,7 +383,7 @@ def test_dest_or_action(outlines_doc):
         first = outline.root[0]
         first.action = Dictionary(D=first.destination, S=Name.GoTo)
         first.destination = None
-    assert first_obj.A.D == [first_page, Name.Fit]
+    assert first_obj.A.D == [first_page.obj, Name.Fit]
     assert '/Dest' not in first_obj
 
 
@@ -430,7 +430,7 @@ def test_page_destination(resources, page_num, page_loc, kwargs):
             args = ('left',)
         else:
             args = ()
-        expected_dest = [page_ref, Name(f'/{loc_str}')]
+        expected_dest = [page_ref.obj, Name(f'/{loc_str}')]
         expected_dest.extend(kwargs.get(k, 0) for k in args)
         assert dest == expected_dest
 
@@ -468,7 +468,7 @@ def test_new_item(resources, title, page_num, page_loc):
             kwarg_len = 1
         else:
             kwarg_len = 0
-        expected_dest = [page_ref, Name(f'/{loc_str}')]
+        expected_dest = [page_ref.obj, Name(f'/{loc_str}')]
         expected_dest.extend(repeat(100, kwarg_len))
         assert new_item.destination == expected_dest
         new_obj = new_item.obj
