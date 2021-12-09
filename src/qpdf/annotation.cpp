@@ -20,7 +20,9 @@
 
 void init_annotation(py::module_ &m)
 {
-    py::class_<QPDFAnnotationObjectHelper, QPDFObjectHelper>(m, "Annotation")
+    py::class_<QPDFAnnotationObjectHelper,
+        std::shared_ptr<QPDFAnnotationObjectHelper>,
+        QPDFObjectHelper>(m, "Annotation")
         .def(py::init<QPDFObjectHandle &>(), py::keep_alive<0, 1>())
         .def_property_readonly(
             "subtype",

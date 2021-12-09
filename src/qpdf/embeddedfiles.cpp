@@ -23,8 +23,9 @@
 
 void init_embeddedfiles(py::module_ &m)
 {
-    py::class_<QPDFFileSpecObjectHelper, std::shared_ptr<QPDFFileSpecObjectHelper>>(
-        m, "AttachedFileSpec")
+    py::class_<QPDFFileSpecObjectHelper,
+        std::shared_ptr<QPDFFileSpecObjectHelper>,
+        QPDFObjectHelper>(m, "AttachedFileSpec")
         .def(py::init([](QPDF &q,
                           py::bytes data,
                           std::string description,
@@ -72,8 +73,6 @@ void init_embeddedfiles(py::module_ &m)
                 creation_date: PDF date string for when this file was creation.
                 mod_date: PDF date string for when this file was last modified.
             )~~~")
-        .def_property_readonly("obj",
-            [](QPDFFileSpecObjectHelper &spec) { return spec.getObjectHandle(); })
         .def_property("description",
             &QPDFFileSpecObjectHelper::getDescription,
             &QPDFFileSpecObjectHelper::setDescription,
@@ -138,11 +137,9 @@ void init_embeddedfiles(py::module_ &m)
             names.
             )~~~");
 
-    py::class_<QPDFEFStreamObjectHelper>(m, "AttachedFile")
-        .def_property_readonly("obj",
-            [](QPDFEFStreamObjectHelper &efstream) {
-                return efstream.getObjectHandle();
-            })
+    py::class_<QPDFEFStreamObjectHelper,
+        std::shared_ptr<QPDFEFStreamObjectHelper>,
+        QPDFObjectHelper>(m, "AttachedFile")
         .def_property_readonly("size",
             &QPDFEFStreamObjectHelper::getSize,
             "Get length of the attached file in bytes according to the PDF creator.")

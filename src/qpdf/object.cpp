@@ -999,7 +999,7 @@ void init_object(py::module_ &m)
                 Called at the end of a content stream.
             )~~~");
 
-    py::class_<QPDFObjectHelper>(m,
+    py::class_<QPDFObjectHelper, std::shared_ptr<QPDFObjectHelper>>(m,
         "ObjectHelper",
         R"~~~(
             Base class for wrapper/helper around an Object.

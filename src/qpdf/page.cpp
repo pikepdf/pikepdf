@@ -50,7 +50,9 @@ std::string label_string_from_dict(QPDFObjectHandle label_dict)
 
 void init_page(py::module_ &m)
 {
-    py::class_<QPDFPageObjectHelper, QPDFObjectHelper>(m, "Page")
+    py::class_<QPDFPageObjectHelper,
+        std::shared_ptr<QPDFPageObjectHelper>,
+        QPDFObjectHelper>(m, "Page")
         .def(py::init<QPDFObjectHandle &>())
         .def(py::init([](QPDFPageObjectHelper &poh) {
             return QPDFPageObjectHelper(poh.getObjectHandle());
