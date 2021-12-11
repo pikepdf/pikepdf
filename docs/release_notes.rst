@@ -21,6 +21,20 @@ should not access directly, along with any modules with a prefixed underscore.
    Python 3.6 reaches end of life on December 23, 2021. pikepdf 3.x will continue
    to support Python 3.6 until then.
 
+v4.2.0
+======
+
+-  Fixed incorrect default rectangle handling in ``Page.add_overlay`` and
+   ``Page.add_underlay``. Thanks @sjahu. :issue:`277`.
+-  Fixed ``Page.add_overlay`` not scaling to larger target sizes automatically.
+   Thanks @bordaigorl. :issue:`276`.
+-  ``pikepdf._qpdf.ObjectHelper`` is now registered as a base class from which other
+   helper classes are derived such as ``pikepdf.Page``.
+-  Prevented implicit conversion of ObjectHelper to Object through their inclusion
+   as for example, parameters to a ``pikepdf.Array``. This functionality was never
+   intended, and was a side effect of certain ObjectHelper subclasses defining an
+   iterable interface that made their conversion possible. :issue:`282`
+
 v4.1.0
 ======
 
