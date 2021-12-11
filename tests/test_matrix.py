@@ -12,7 +12,7 @@ def test_init_6():
     m2t = m2.translated(2, 3)
     assert (
         repr(m2t)
-        == 'pikepdf.Matrix(((2.0, 0.0, 0.0), (0.0, 2.0, 0.0), (2.0, 3.0, 1.0)))'
+        == 'pikepdf.PdfMatrix(((2.0, 0.0, 0.0), (0.0, 2.0, 0.0), (2.0, 3.0, 1.0)))'
     )
     m2tr = m2t.rotated(90)
     assert isclose(m2tr.a, 0, abs_tol=1e-6)
