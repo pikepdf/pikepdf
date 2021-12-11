@@ -1096,11 +1096,9 @@ class Extend_Page:
     ) -> Name:
         formx = None
         if isinstance(other, Page):
-            page = other
             formx = other.as_form_xobject()
         elif isinstance(other, Dictionary) and other.get(Name.Type) == Name.Page:
-            page = Page(other)
-            formx = page.as_form_xobject()
+            formx = Page(other).as_form_xobject()
         elif (
             isinstance(other, Stream)
             and other.get(Name.Type) == Name.XObject
@@ -1109,10 +1107,12 @@ class Extend_Page:
             formx = other
 
         if formx is None:
-            raise TypeError("other object is not something we can convert to FormX")
+            raise TypeError(
+                "other object is not something we can convert to Form XObject"
+            )
 
         if rect is None:
-            rect = Rectangle(page.trimbox)
+            rect = Rectangle(self.trimbox)
 
         formx_placed_name = self.add_resource(formx, Name.XObject)
         cs = self.calc_form_xobject_placement(
@@ -1145,7 +1145,8 @@ class Extend_Page:
             other: A Page or Form XObject to render as an overlay on top of this
                 page.
             rect: The PDF rectangle (in PDF units) in which to draw the overlay.
-                If omitted, this page's trimbox, cropbox or mediabox will be used.
+                If omitted, this page's trimbox, cropbox or mediabox (in that order)
+                will be used.
             push_stack: If True (default), push the graphics stack of the existing
                 content stream to ensure that the overlay is rendered correctly.
                 Officially PDF limits the graphics stack depth to 32. Most
@@ -1204,7 +1205,8 @@ class Extend_Page:
             other: A Page or Form XObject to render as an underlay underneath this
                 page.
             rect: The PDF rectangle (in PDF units) in which to draw the underlay.
-                If omitted, this page's MediaBox will be used.
+                If omitted, this page's trimbox, cropbox or mediabox (in that order)
+                will be used.
             shrink: If True (default), allow the object to shrink to fit inside the
                 rectangle. The aspect ratio will be preserved.
             expand: If True (default), allow the object to expand to fit inside the
@@ -1217,7 +1219,8 @@ class Extend_Page:
 
         .. versionchanged:: 4.2.0
             Added the *shrink* and *expand* parameters. Previously, this method
-            behaved as if ``shrink=True, expand=False``.
+            behaved as if ``shrink=True, expand=False``. Fixed issue with wrong
+            page rect being selected.
         """
         return self._over_underlay(
             other, rect, under=True, push_stack=False, expand=expand, shrink=shrink
