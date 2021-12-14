@@ -11,7 +11,7 @@ to one of its test files.
 
 .. ipython::
 
-    In [1]: from pikepdf import Pdf, AttachedFileSpec
+    In [1]: from pikepdf import Pdf, AttachedFileSpec, Name, Dictionary, Array
 
     In [1]: from pathlib import Path
 
@@ -60,3 +60,44 @@ General notes on attached files
   type. Usually, multiple versions are used to provide different versions of the
   same file for alternate platforms, such as Windows and macOS versions of a file.
   Newer PDFs rarely provide multiple versions.
+
+How to find attachments in a PDF viewer
+---------------------------------------
+
+Your PDF viewer should have an attachments panel that shows available attachments.
+
+.. figure:: /images/acrobat-attachments.png
+  :alt: Screenshot of attachments panel in Acrobat DC on Windows
+
+  Attachments in Adobe Acrobat DC.
+
+Attachments added to ``Pdf.attachments`` will be shown here.
+
+Creating attachment annotations
+-------------------------------
+
+You can also create PDF Annotations and Actions that contain attached files.
+
+Here is an example of an annotation that displays an icon. Clicking the icon
+prompt the user to view the attached document.
+
+.. ipython::
+
+  In [1]: pdf = Pdf.open('../tests/resources/fourpages.pdf')
+
+  In [1]: filespec = AttachedFileSpec.from_filepath(pdf, Path('../README.md'))
+
+  In [1]: pushpin = Dictionary(
+     ...:     Type=Name.Annot,
+     ...:     Subtype=Name.FileAttachment,
+     ...:     Name=Name.GraphPushPin,
+     ...:     FS=filespec.obj,
+     ...:     Rect=[2*72, 9*72, 3*72, 10*72],
+     ...: )
+
+  In [1]: pdf.pages[0].Annots = pdf.make_indirect(Array([
+     ...:     pushpin
+     ...: ]))
+
+Files that are referenced as Annotations and Actions do not need to be added
+to ``Pdf.attachments``. If they are, the file will be attached twice.
