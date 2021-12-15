@@ -65,7 +65,9 @@ skip = "*-musllinux_*"
 # As of 2021-10, musllinux image was based on Alpine 3.12
 # We need Alpine 3.14 or newer to get the required package versions
 select = "*-musllinux*"
-before-all = ["apk add py3-lxml py3-pillow python3 py3-setuptools py3-pybind11-dev python3-dev py3-wheel qpdf-dev exempi-dev"]
+before-all = [
+  "apk add py3-lxml py3-pillow python3 py3-setuptools py3-pybind11-dev python3-dev py3-wheel qpdf-dev exempi-dev"
+]
 
 [tool.cibuildwheel.macos]
 before-all = "brew install qpdf"
@@ -91,16 +93,14 @@ concurrency = ["multiprocessing"]
 [tool.coverage.report]
 # Regexes for lines to exclude from consideration
 exclude_lines = [
-    # Have to re-enable the standard pragma
-    "pragma: no cover",
-
-    # Don't complain if tests don't hit defensive assertion code:
-    "raise AssertionError",
-    "raise NotImplementedError",
-
-    # Don't complain if non-runnable code isn't run:
-    "if 0:",
-    "if __name__ == .__main__.:",
+  # Have to re-enable the standard pragma
+  "pragma: no cover",
+  # Don't complain if tests don't hit defensive assertion code:
+  "raise AssertionError",
+  "raise NotImplementedError",
+  # Don't complain if non-runnable code isn't run:
+  "if 0:",
+  "if __name__ == .__main__.:",
 ]
 
 [tool.coverage.html]
@@ -109,4 +109,13 @@ directory = "coverage/pycov"
 [tool.isort]
 profile = "black"
 known_first_party = ["pikepdf"]
-known_third_party = ["PIL","conftest","hypothesis","lxml","pkg_resources","psutil","pytest","setuptools"]
+known_third_party = [
+  "PIL",
+  "conftest",
+  "hypothesis",
+  "lxml",
+  "pkg_resources",
+  "psutil",
+  "pytest",
+  "setuptools"
+]
