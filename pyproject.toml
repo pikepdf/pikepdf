@@ -64,6 +64,8 @@ skip = "*-musllinux_*"
 [[tool.cibuildwheel.overrides]]
 # As of 2021-10, musllinux image was based on Alpine 3.12
 # We need Alpine 3.14 or newer to get the required package versions
+# Check https://github.com/pypa/manylinux/blob/main/build.sh#L66 to see if
+# musllinux has been updated.
 select = "*-musllinux*"
 before-all = [
   "apk add py3-lxml py3-pillow python3 py3-setuptools py3-pybind11-dev python3-dev py3-wheel qpdf-dev exempi-dev"
