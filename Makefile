@@ -69,7 +69,7 @@ wheelhouse/delocated/$(macwheel310): wheelhouse/$(macwheel310)
 
 .PHONY: apple-silicon-wheels
 apple-silicon-wheels: wheelhouse/delocated/$(macwheel310) wheelhouse/delocated/$(macwheel39)
-	echo twine upload wheelhouse/delocated/$(macwheel39) wheelhouse/delocated/$(macwheel310)
+	twine upload wheelhouse/delocated/$(macwheel39) wheelhouse/delocated/$(macwheel310)
 
 .PHONY: pycov
 pycov: clean-coverage-pycov

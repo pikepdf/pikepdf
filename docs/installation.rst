@@ -37,8 +37,13 @@ Binary wheel availability
     :file: binary-wheels.csv
     :header-rows: 1
 
-\* *Apple Silicon is supported on a best-effort by manually uploading. These
-releases sometimes come a few days later.*
+* ✅ wheels are available
+
+* 🍏 wheels are available for Apple Silicon but their release may lag a few days
+
+* ❌ wheels are not likely to be produced for this platform and Python version
+
+* ⏳ we are waiting on a third party to implement better support for this configuration
 
 Binary wheels should work on most systems, **provided a recent version
 of pip is used to install them**. Old versions of pip, especially before 20.0,
@@ -52,6 +57,8 @@ Windows 7 or newer is required. Windows wheels include a recent copy of libqpdf.
 Most Linux distributions support manylinux2014, with the notable except of
 `Alpine Linux`_, and older Linux distributions that do not have C++17-capable
 compilers. The Linux wheels include recent copies of libqpdf, libjpeg, and zlib.
+
+Source builds are usually possible where binary wheels are available.
 
 Platform support
 ----------------
