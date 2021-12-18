@@ -5,13 +5,12 @@ A bunch of quick tests that confirm nothing is horribly wrong
 import ast
 import gc
 from contextlib import suppress
-from distutils.version import LooseVersion
-from os import read
 from pathlib import Path
 from shutil import copy
 
 import pytest
 import toml
+from packaging.version import Version
 
 import pikepdf
 from pikepdf import Name, Object, Pdf, Stream
@@ -23,9 +22,7 @@ def test_minimum_qpdf_version():
     pyproject_toml = toml.load(Path(__file__).parent / '../pyproject.toml')
     toml_env = pyproject_toml['tool']['cibuildwheel']['environment']
 
-    assert LooseVersion(_qpdf.qpdf_version()) >= LooseVersion(
-        toml_env['QPDF_MIN_VERSION']
-    )
+    assert Version(_qpdf.qpdf_version()) >= Version(toml_env['QPDF_MIN_VERSION'])
 
 
 def test_open_pdf(resources):

@@ -1,8 +1,9 @@
 import os
 import platform
 import sys
-from distutils.version import LooseVersion
 from pathlib import Path
+
+from packaging.version import Version
 
 try:
     from pikepdf import __libqpdf_version__
@@ -45,6 +46,6 @@ def needs_libqpdf_v(version, *, reason=None):
     if reason is None:
         reason = "installed libqpdf is too old for this test"
     return pytest.mark.skipif(
-        LooseVersion(__libqpdf_version__) <= LooseVersion(version),
+        Version(__libqpdf_version__) <= Version(version),
         reason=reason,
     )

@@ -2,7 +2,6 @@ import json
 import sys
 from copy import copy
 from decimal import Decimal, InvalidOperation
-from distutils.version import LooseVersion
 from math import isclose, isfinite
 from typing import Type
 from zlib import compress

@@ -289,7 +289,7 @@ void init_page(py::module_ &m)
 
                 That is, returns ``n`` such that ``pdf.pages[n] == this_page``.
                 A ``ValueError`` exception is thrown if the page is not attached
-                to a ``Pdf``.
+                to this ``Pdf``.
 
                 Requires O(n) search.
 

@@ -5,12 +5,12 @@
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
 import os
-from distutils.version import LooseVersion
 from pathlib import Path
 from subprocess import DEVNULL, PIPE, CalledProcessError, run
 from tempfile import TemporaryDirectory
 from typing import cast
 
+from packaging.version import Version
 from PIL import Image
 
 import pikepdf
@@ -53,5 +53,5 @@ def jbig2dec_available() -> bool:
     else:
         result = proc.stdout
         version_str = result.replace('jbig2dec', '').strip()  # returns "jbig2dec 0.xx"
-        version = LooseVersion(version_str)
-        return version >= LooseVersion('0.15')
+        version = Version(version_str)
+        return version >= Version('0.15')
