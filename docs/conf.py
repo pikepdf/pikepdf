@@ -30,7 +30,7 @@ if on_rtd:
     import requests
 
     # Borrowed from https://github.com/YannickJadoul/Parselmouth/blob/master/docs/conf.py
-    rtd_version = os.environ.get('READTHEDOCS_VERSION')
+    rtd_version = os.environ.get('READTHEDOCS_VERSION', '')
     branch = 'master' if rtd_version == 'latest' else rtd_version
 
     github_token = os.environ['GITHUB_TOKEN']
@@ -93,6 +93,7 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
     'sphinx_issues',
+    'sphinx_panels',
     'IPython.sphinxext.ipython_console_highlighting',
     'IPython.sphinxext.ipython_directive',
     'fix_pybind11_autodoc',
@@ -218,6 +219,11 @@ html_logo = 'images/pike-cartoon.png'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+html_css_files = [
+    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
+]
+
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied

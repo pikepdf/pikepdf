@@ -136,7 +136,8 @@ This procedure is known to work on FreeBSD 11.3, 12.0, 12.1-RELEASE and
 Building from source
 --------------------
 
-**Requirements**
+Requirements
+^^^^^^^^^^^^
 
 pikepdf requires:
 
@@ -155,12 +156,6 @@ must
 (Consider using the binary wheels, which bundle the required version of
 libqpdf.)
 
-**Compiling with GCC or Clang**
-
--  clone this repository
--  install libjpeg, zlib and libqpdf on your platform, including headers
--  ``pip install .``
-
 .. note::
 
     pikepdf should be built with the same compiler and linker as libqpdf; to be
@@ -170,7 +165,37 @@ libqpdf.)
     ``import pikepdf._qpdf`` will throw an ``ImportError`` about a missing
     symbol.
 
-**On Windows (requires Visual Studio 2015)**
+:fa:`linux` :fa:`apple` GCC or Clang, linking to system libraries
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To link to system libraries (the ones installed by your package manager, such
+``apt``, ``brew`` or ``dnf``:
+
+-  Clone the pikepdf repository
+-  Install libjpeg, zlib and libqpdf on your platform, including headers
+-  If desired, activate a virtual environment
+-  Run ``pip install .``
+
+:fa:`linux` :fa:`apple` GCC or Clang and linking to user libraries
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+setuptools will normally attempt to link against your system libraries.
+If you wish to link pikepdf against a different version of the QPDF (say,
+because pikepdf requires a newer version than your operating system has),
+then you might do something like:
+
+-  Install the development headers for libjpeg and zlib (e.g. ``apt install libjpeg-dev``)
+-  Build qpdf from source and run ``make install`` to install it to ``/usr/local``
+-  Clone the pikepdf repository
+-  From the pikepdf directory, run
+
+    .. code-block:: bash
+
+        env CXXFLAGS=-I/usr/local/include/libqpdf LDFLAGS=-L/usr/local/lib  \
+            pip install .
+
+:fa:`windows` On Windows (requires Visual Studio 2015)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. |msvc-zip| replace:: qpdf-|qpdf-version|-bin-msvc64.zip
 
@@ -187,8 +212,8 @@ Running a regular ``pip install`` command will detect the
 version of the compiler used to build Python and attempt to build the
 extension with it. We must force the use of Visual Studio 2015.
 
-#. Clone this repository.
-#. In a command prompt, run:
+-  Clone this repository.
+-  In a command prompt, run:
 
     .. code-block:: bat
 
@@ -196,18 +221,21 @@ extension with it. We must force the use of Visual Studio 2015.
         set DISTUTILS_USE_SDK=1
         set MSSdk=1
 
-#. Download |msvc-zip| from the `QPDF releases page <https://github.com/qpdf/qpdf/releases>`_.
-#. Extract ``bin\*.dll`` (all the DLLs, both QPDF's and the Microsoft Visual C++
+-  Download |msvc-zip| from the `QPDF releases page <https://github.com/qpdf/qpdf/releases>`_.
+-  Extract ``bin\*.dll`` (all the DLLs, both QPDF's and the Microsoft Visual C++
    Runtime library) from the zip file above, and copy it to the ``src/pikepdf``
    folder in the repository.
-#. Run ``pip install .`` in the root directory of the repository.
+-  Run ``pip install .`` in the root directory of the repository.
 
 .. note::
 
     The user compiling ``pikepdf`` to must have registry editing rights on the
     machine to be able to run the ``vcvarsall.bat`` script.
 
-**Building against a QPDF source tree**
+.. |posix| replace:: :fa:`linux` :fa:`apple`
+
+:fa:`linux` :fa:`apple` :fa:`windows` Building against a QPDF source tree
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Follow these steps to build pikepdf against a different version of QPDF, rather than
 the one provided with your operating system. This may be useful if you need a more
@@ -233,19 +261,6 @@ do not want to use Python wheels.
 Note that the Python wheels for pikepdf currently compile their own version of
 QPDF and several of its dependencies to ensure the wheels have the latest version.
 You can also refer to the GitHub Actions YAML files for build steps.
-
-**Building against a custom install of QPDF to /usr/local/lib**
-
-If you have previously installed a QPDF from source to ``/usr/local/lib`` on
-a POSIX platform, and you try to build pikepdf from source, it will prefer the
-operating system version of QPDF installed at ``/usr/lib``. Since pikepdf strongly
-prefers recent versions of QPDF, you may want to use a more current version.
-
-From a Git checkout of the pikepdf source tree, run:
-
-.. code-block:: bash
-
-    env LDFLAGS='-L/usr/local/lib' CFLAGS='-I/usr/local/include/qpdf' pip install .
 
 Building the documentation
 --------------------------
