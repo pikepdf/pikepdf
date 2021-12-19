@@ -171,12 +171,20 @@ void PageList::insert_page(py::size_t index, QPDFPageObjectHelper poh)
     QPDFObjectHandle page_obj;
     bool copied = false;
 
-    if (handle_owner == this->qpdf.get() || !handle_owner) {
-        // qpdf does not accept duplicating pages within the same file,
-        // so manually create a copy
-        page_obj = this->qpdf->makeIndirectObject(poh.getObjectHandle().shallowCopy());
-        copied   = true;
+    if (QPDF::QPDFVersion() == std::string("10.3.1")) {
+        // Attempt to support duplication - this works at times but is problematic.
+        // See issue 192. Can remove this shim when we drop QPDF 10.3.1 support.
+        if (handle_owner == this->qpdf.get() || !handle_owner) {
+            // qpdf does not accept duplicating pages within the same file,
+            // so manually create a copy
+            page_obj =
+                this->qpdf->makeIndirectObject(poh.getObjectHandle().shallowCopy());
+            copied = true;
+        } else {
+            page_obj = poh.getObjectHandle();
+        }
     } else {
+        // QPDF 10.3.2+ supports duplicating a page
         page_obj = poh.getObjectHandle();
     }
 
