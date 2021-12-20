@@ -52,10 +52,10 @@ enum pikepdf_error_type {
     error_type_cpp,
 };
 
-auto translate_qpdf_error(std::string msg)
+auto rewrite_qpdf_logic_error_msg(std::string msg)
 {
     using match_replace = std::pair<std::regex, std::string>;
-    pikepdf_error_type errtype;
+
     const static std::vector<match_replace> replacements = {
         match_replace{"QPDF::copyForeign(?:Object)?", "pikepdf.copy_foreign"},
         match_replace{"QPDFObjectHandle", "pikepdf.Object"},
@@ -65,6 +65,14 @@ auto translate_qpdf_error(std::string msg)
     for (auto mr : replacements) {
         msg = std::regex_replace(msg, mr.first, mr.second);
     }
+    return msg;
+}
+
+auto translate_qpdf_logic_error(std::string msg)
+{
+    pikepdf_error_type errtype;
+    msg = rewrite_qpdf_logic_error_msg(msg);
+
     if (std::regex_search(msg, std::regex("pikepdf.copy_foreign")))
         errtype = error_type_foreign;
     else if (std::regex_search(msg, std::regex("pikepdf.")))
@@ -74,9 +82,9 @@ auto translate_qpdf_error(std::string msg)
     return std::pair<std::string, pikepdf_error_type>(msg, errtype);
 }
 
-auto translate_qpdf_error(const std::exception &e)
+auto translate_qpdf_logic_error(const std::exception &e)
 {
-    return translate_qpdf_error(std::string(e.what()));
+    return translate_qpdf_logic_error(std::string(e.what()));
 }
 
 PYBIND11_MODULE(_qpdf, m)
@@ -117,8 +125,8 @@ PYBIND11_MODULE(_qpdf, m)
             "_test_file_not_found",
             []() -> void { (void)QUtil::safe_fopen("does_not_exist__42", "rb"); },
             "Used to test that C++ system error -> Python exception propagation works.")
-        .def("_translate_qpdf",
-            [](std::string s) { return translate_qpdf_error(s).first; })
+        .def("_translate_qpdf_logic_error",
+            [](std::string s) { return translate_qpdf_logic_error(s).first; })
         .def(
             "set_decimal_precision",
             [](uint prec) {
@@ -179,7 +187,7 @@ PYBIND11_MODULE(_qpdf, m)
                 exc_main(e.what());
             }
         } catch (const std::logic_error &e) {
-            auto trans = translate_qpdf_error(e);
+            auto trans = translate_qpdf_logic_error(e);
             if (trans.second == error_type_foreign)
                 exc_foreign(trans.first.c_str());
             else if (trans.second == error_type_pdferror)

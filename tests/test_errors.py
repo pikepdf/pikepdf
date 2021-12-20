@@ -18,8 +18,8 @@ def test_foreign_linearization(vera):
 
 
 @pytest.mark.parametrize('msg, expected', [('QPDF', 'pikepdf.Pdf')])
-def test_translate_qpdf(msg, expected):
-    assert pikepdf._qpdf._translate_qpdf(msg) == expected
+def test_translate_qpdf_logic_error(msg, expected):
+    assert pikepdf._qpdf._translate_qpdf_logic_error(msg) == expected
 
 
 @pytest.mark.parametrize('filter_', ['/ASCII85Decode', '/ASCIIHexDecode'])
