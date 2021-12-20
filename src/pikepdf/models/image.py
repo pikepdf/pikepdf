@@ -11,7 +11,19 @@ from io import BytesIO
 from itertools import zip_longest
 from pathlib import Path
 from shutil import copyfileobj
-from typing import BinaryIO, Dict, NamedTuple, Optional, Tuple, Union
+from typing import (
+    Any,
+    BinaryIO,
+    Callable,
+    Dict,
+    List,
+    NamedTuple,
+    Optional,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 from PIL import Image, ImageCms
 from PIL.TiffTags import TAGS_V2 as TIFF_TAGS
@@ -50,7 +62,7 @@ class InvalidPdfImageError(Exception):
     "This image is not valid according to the PDF 1.7 specification."
 
 
-def array_str(value):
+def array_str(value: Union[Object, str, list]):
     """Simplify pikepdf objects to array of str. Keep Streams and dictionaries intact."""
 
     def _array_str(item):
@@ -81,7 +93,12 @@ def dict_or_array_dict(value):
     raise NotImplementedError(value)
 
 
-def metadata_from_obj(obj, name, type_, default):
+T = TypeVar('T')
+
+
+def metadata_from_obj(
+    obj: Union[Dictionary, Stream], name: str, type_: Callable[[Any], T], default: T
+) -> Optional[T]:
     val = getattr(obj, name, default)
     try:
         return type_(val)
@@ -111,7 +128,7 @@ class PdfImageBase(ABC):
     PRINT_COLORSPACES = {'/Separation', '/DeviceN'}
 
     @abstractmethod
-    def _metadata(self, name, type_, default):
+    def _metadata(self, name: str, type_: Type[T], default: T) -> T:
         """Get metadata for this image type."""
 
     @property
@@ -764,19 +781,27 @@ class PdfImage(PdfImageBase):
         if icc is None:
             icc = b''
 
-        ifds = []
+        class IFD(NamedTuple):
+            key: int
+            typecode: Any
+            count_: int
+            data: Union[int, Callable[[], Optional[int]]]
 
-        def header_length(ifd_count):
+        ifds: List[IFD] = []
+
+        def header_length(ifd_count) -> int:
             return (
                 struct.calcsize(tiff_header_struct)
                 + struct.calcsize(ifd_struct) * ifd_count
                 + 4
             )
 
-        def add_ifd(tag_name: str, data, count=1):
+        def add_ifd(
+            tag_name: str, data: Union[int, Callable[[], Optional[int]]], count: int = 1
+        ):
             key = tag_keys[tag_name]
             typecode = TIFF_TAGS[key][1]
-            ifds.append((key, typecode, count, data))
+            ifds.append(IFD(key, typecode, count, data))
 
         image_offset = None
         add_ifd('ImageWidth', self.width)
@@ -845,7 +870,7 @@ class PdfJpxImage(PdfImage):
             and self._jpxpil == other._jpxpil
         )
 
-    def _extract_direct(self, *, stream):
+    def _extract_direct(self, *, stream: BinaryIO):
         data, filters = self._remove_simple_filters(self.obj, self.filters)
         if filters != ['/JPXDecode']:
             raise UnsupportedImageTypeError(self.filters)
@@ -866,7 +891,7 @@ class PdfJpxImage(PdfImage):
         raise NotImplementedError('Complex JP2 colorspace')
 
     @property
-    def _bpc(self):
+    def _bpc(self) -> int:
         # (PDF 1.7 Table 89) If the image stream uses the JPXDecode filter, this
         # entry is optional and shall be ignored if present. The bit depth is
         # determined by the conforming reader in the process of decoding the
@@ -874,7 +899,7 @@ class PdfJpxImage(PdfImage):
         return 8
 
     @property
-    def indexed(self):
+    def indexed(self) -> bool:
         # Nothing in the spec precludes an Indexed JPXDecode image, except for
         # the fact that doing so is madness. Let's assume it no one is that
         # insane.
