@@ -1,7 +1,8 @@
 import pytest
+from hypothesis import given
+from hypothesis.strategies import binary, sampled_from
 
-import pikepdf
-from pikepdf import Name, Pdf
+from pikepdf import DataDecodingError, Name, Pdf, PdfError, Stream, _qpdf
 
 
 @pytest.fixture
@@ -19,12 +20,20 @@ def test_foreign_linearization(vera):
 
 @pytest.mark.parametrize('msg, expected', [('QPDF', 'pikepdf.Pdf')])
 def test_translate_qpdf_logic_error(msg, expected):
-    assert pikepdf._qpdf._translate_qpdf_logic_error(msg) == expected
+    assert _qpdf._translate_qpdf_logic_error(msg) == expected
 
 
-@pytest.mark.parametrize('filter_', ['/ASCII85Decode', '/ASCIIHexDecode'])
-def test_char_out_of_range(filter_):
-    p = pikepdf.new()
-    st = pikepdf.Stream(p, b'\xba\xad', Filter=Name(filter_))
-    with pytest.raises(pikepdf.DataDecodingError):
+@pytest.mark.parametrize(
+    'filter_,data,msg',
+    [
+        ('/ASCII85Decode', b'\xba\xad', 'character out of range'),
+        ('/ASCII85Decode', b'fooz', 'unexpected z'),
+        ('/ASCIIHexDecode', b'1g', 'character out of range'),
+        ('/FlateDecode', b'\xba\xad', 'incorrect header check'),
+    ],
+)
+def test_data_decoding_errors(filter_: str, data: bytes, msg: str):
+    p = Pdf.new()
+    st = Stream(p, data, Filter=Name(filter_))
+    with pytest.raises(DataDecodingError, match=msg):
         st.read_bytes()

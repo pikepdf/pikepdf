@@ -87,6 +87,22 @@ auto translate_qpdf_logic_error(const std::exception &e)
     return translate_qpdf_logic_error(std::string(e.what()));
 }
 
+bool is_data_decoding_error(const std::runtime_error &e)
+{
+    static const std::regex decoding_error_pattern(
+        "character out of range"
+        "|broken end-of-data sequence in base 85 data"
+        "|unexpected z during base 85 decode"
+        "|TIFFPredictor created with"
+        "|Pl_LZWDecoder:"
+        "|Pl_Flate:"
+        "|Pl_DCT:"
+        "|stream inflate:",
+        std::regex_constants::icase);
+
+    return std::regex_search(e.what(), decoding_error_pattern);
+}
+
 PYBIND11_MODULE(_qpdf, m)
 {
     // py::options options;
@@ -195,7 +211,7 @@ PYBIND11_MODULE(_qpdf, m)
             else
                 std::rethrow_exception(p);
         } catch (const std::runtime_error &e) {
-            if (str_startswith(e.what(), "character out of range"))
+            if (is_data_decoding_error(e))
                 exc_datadecoding(e.what());
             else
                 std::rethrow_exception(p);
