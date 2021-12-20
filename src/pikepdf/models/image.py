@@ -11,7 +11,7 @@ from io import BytesIO
 from itertools import zip_longest
 from pathlib import Path
 from shutil import copyfileobj
-from typing import NamedTuple, Optional
+from typing import BinaryIO, Dict, NamedTuple, Optional, Tuple, Union
 
 from PIL import Image, ImageCms
 from PIL.TiffTags import TAGS_V2 as TIFF_TAGS
@@ -115,24 +115,24 @@ class PdfImageBase(ABC):
         """Get metadata for this image type."""
 
     @property
-    def width(self):
+    def width(self) -> int:
         """Width of the image data in pixels."""
-        return self._metadata('Width', int, None)
+        return self._metadata('Width', int, 0)
 
     @property
-    def height(self):
+    def height(self) -> int:
         """Height of the image data in pixels."""
-        return self._metadata('Height', int, None)
+        return self._metadata('Height', int, 0)
 
     @property
-    def image_mask(self):
+    def image_mask(self) -> bool:
         """``True`` if this is an image mask."""
         return self._metadata('ImageMask', bool, False)
 
     @property
-    def _bpc(self):
+    def _bpc(self) -> Optional[int]:
         """Bits per component for this image (low-level)."""
-        return self._metadata('BitsPerComponent', int, None)
+        return self._metadata('BitsPerComponent', int, 0)
 
     @property
     def _colorspaces(self):
@@ -174,7 +174,7 @@ class PdfImageBase(ABC):
         )
 
     @property
-    def bits_per_component(self):
+    def bits_per_component(self) -> int:
         """Bits per component of this image."""
         if self._bpc is None:
             return 1 if self.image_mask else 8
@@ -191,7 +191,7 @@ class PdfImageBase(ABC):
         """Returns ICC profile for this image if one is defined."""
 
     @property
-    def indexed(self):
+    def indexed(self) -> bool:
         """``True`` if the image has a defined color palette."""
         return '/Indexed' in self._colorspaces
 
@@ -207,17 +207,17 @@ class PdfImageBase(ABC):
         return False
 
     @property
-    def is_device_n(self):
+    def is_device_n(self) -> bool:
         """``True`` if image has a /DeviceN (complex printing) colorspace."""
         return self._colorspace_has_name('/DeviceN')
 
     @property
-    def is_separation(self):
+    def is_separation(self) -> bool:
         """``True`` if image has a /DeviceN (complex printing) colorspace."""
         return self._colorspace_has_name('/Separation')
 
     @property
-    def size(self):
+    def size(self) -> Tuple[int, int]:
         """Size of image as (width, height)."""
         return self.width, self.height
 
@@ -237,7 +237,7 @@ class PdfImageBase(ABC):
         return mode_from_xcolor_space.get(xcolor_space, '')
 
     @property
-    def mode(self):
+    def mode(self) -> str:
         """``PIL.Image.mode`` equivalent for this image, where possible
 
         If an ICC profile is attached to the image, we still attempt to resolve a Pillow
@@ -471,7 +471,7 @@ class PdfImage(PdfImageBase):
                     ) from e
         return self._icc
 
-    def _extract_direct(self, *, stream) -> str:
+    def _extract_direct(self, *, stream: BinaryIO) -> str:
         """Attempt to extract the image directly to a usable image file
 
         If there is no way to extract the image without decompressing or
@@ -479,10 +479,10 @@ class PdfImage(PdfImageBase):
         generated will vary.
 
         Args:
-            stream: Writable stream to write data to
+            stream: Writable file stream to write data to, e.g. an open file
         """
 
-        def normal_dct_rgb():
+        def normal_dct_rgb() -> bool:
             # Normal DCTDecode RGB images have the default value of
             # /ColorTransform 1 and are actually in YUV. Such a file can be
             # saved as a standard JPEG. RGB JPEGs without YUV conversion can't
@@ -492,7 +492,7 @@ class PdfImage(PdfImageBase):
             ct = self.filter_decodeparms[0][1].get('/ColorTransform', DEFAULT_CT_RGB)
             return self.mode == 'RGB' and ct == DEFAULT_CT_RGB
 
-        def normal_dct_cmyk():
+        def normal_dct_cmyk() -> bool:
             # Normal DCTDecode CMYKs have /ColorTransform 0 and can be saved.
             # There is a YUVK colorspace but CMYK JPEGs don't generally use it
             DEFAULT_CT_CMYK = 0
@@ -609,7 +609,7 @@ class PdfImage(PdfImageBase):
 
         return im
 
-    def _extract_to_stream(self, *, stream) -> str:
+    def _extract_to_stream(self, *, stream: BinaryIO) -> str:
         """Attempt to extract the image to a stream
 
         If possible, the compressed data is extracted and inserted into
@@ -648,7 +648,9 @@ class PdfImage(PdfImageBase):
 
         raise UnsupportedImageTypeError(repr(self))
 
-    def extract_to(self, *, stream=None, fileprefix='') -> str:
+    def extract_to(
+        self, *, stream: Optional[BinaryIO] = None, fileprefix: str = ''
+    ) -> str:
         """Attempt to extract the image directly to a usable image file
 
         If possible, the compressed data is extracted and inserted into
@@ -695,11 +697,15 @@ class PdfImage(PdfImageBase):
             copyfileobj(bio, target)
         return str(filepath)
 
-    def read_bytes(self, decode_level=StreamDecodeLevel.specialized):
+    def read_bytes(
+        self, decode_level: StreamDecodeLevel = StreamDecodeLevel.specialized
+    ) -> bytes:
         """Decompress this image and return it as unencoded bytes."""
         return self.obj.read_bytes(decode_level=decode_level)
 
-    def get_stream_buffer(self, decode_level=StreamDecodeLevel.specialized):
+    def get_stream_buffer(
+        self, decode_level: StreamDecodeLevel = StreamDecodeLevel.specialized
+    ):
         """Access this image with the buffer protocol."""
         return self.obj.get_stream_buffer(decode_level=decode_level)
 
@@ -722,7 +728,7 @@ class PdfImage(PdfImageBase):
 
         return im
 
-    def _generate_ccitt_header(self, data, icc=None):
+    def _generate_ccitt_header(self, data: bytes, icc: Optional[bytes] = None) -> bytes:
         """Construct a CCITT G3 or G4 header from the PDF metadata."""
         # https://stackoverflow.com/questions/2641770/
         # https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf
@@ -752,7 +758,7 @@ class PdfImage(PdfImageBase):
         img_size = len(data)
         tiff_header_struct = '<' + '2s' + 'H' + 'L' + 'H'
 
-        tag_keys = {tag.name: key for key, tag in TIFF_TAGS.items()}
+        tag_keys = {tag[0]: key for key, tag in TIFF_TAGS.items()}
         ifd_struct = '<HHLL'
 
         if icc is None:
@@ -767,9 +773,9 @@ class PdfImage(PdfImageBase):
                 + 4
             )
 
-        def add_ifd(tag_name, data, count=1):
+        def add_ifd(tag_name: str, data, count=1):
             key = tag_keys[tag_name]
-            typecode = TIFF_TAGS[key].type
+            typecode = TIFF_TAGS[key][1]
             ifds.append((key, typecode, count, data))
 
         image_offset = None
@@ -815,7 +821,7 @@ class PdfImage(PdfImageBase):
             f'size={self.width}x{self.height} at {hex(id(self))}>'
         )
 
-    def _repr_png_(self):
+    def _repr_png_(self) -> bytes:
         """Display hook for IPython/Jupyter."""
         b = BytesIO()
         with self.as_pil_image() as im:
@@ -961,7 +967,7 @@ class PdfInlineImage(PdfImageBase):
     def _metadata(self, name, type_, default):
         return metadata_from_obj(self.obj, name, type_, default)
 
-    def unparse(self):
+    def unparse(self) -> bytes:
         def metadata_tokens():
             for metadata_obj in self._image_object:
                 unparsed = self._unparse_obj(
@@ -980,7 +986,7 @@ class PdfInlineImage(PdfImageBase):
         return b''.join(inline_image_tokens())
 
     @property
-    def is_inline(self):
+    def is_inline(self) -> bool:
         return True
 
     @property
@@ -1016,10 +1022,10 @@ class PdfInlineImage(PdfImageBase):
         img = PdfImage(raw_img)
         return img
 
-    def as_pil_image(self):
+    def as_pil_image(self) -> Image.Image:
         return self._convert_to_pdfimage().as_pil_image()
 
-    def extract_to(self, *, stream=None, fileprefix=''):
+    def extract_to(self, *, stream: Optional[BinaryIO] = None, fileprefix: str = ''):
         return self._convert_to_pdfimage().extract_to(
             stream=stream, fileprefix=fileprefix
         )
