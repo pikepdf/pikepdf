@@ -56,7 +56,7 @@ class _ObjectMeta(type(Object)):  # type: ignore
 class _NameObjectMeta(_ObjectMeta):
     """Supports usage pikepdf.Name.Whatever -> Name('/Whatever')."""
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr) -> 'Name':
         if attr.startswith('_') or attr == 'object_type':
             return getattr(_ObjectMeta, attr)
         return Name('/' + attr)
@@ -70,7 +70,7 @@ class _NameObjectMeta(_ObjectMeta):
             "modify a Dictionary rather than a Name?"
         )
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> 'Name':
         if item.startswith('/'):
             item = item[1:]
         raise TypeError(
@@ -97,7 +97,7 @@ class Name(Object, metaclass=_NameObjectMeta):
 
     object_type = ObjectType.name_
 
-    def __new__(cls, name: Union[str, 'Name']):
+    def __new__(cls, name: Union[str, 'Name']) -> 'Name':
         # QPDF_Name::unparse ensures that names are always saved in a UTF-8
         # compatible way, so we only need to guard the input.
         if isinstance(name, bytes):

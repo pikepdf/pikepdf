@@ -9,11 +9,13 @@ Support functions called by the C++ library binding layer. Not intended to be
 called from Python, and subject to change at any time.
 """
 
+from typing import Callable, Dict, Union
+from warnings import warn
 
-from pikepdf import Name, Pdf
+from pikepdf import Dictionary, Name, Pdf
 
 
-def update_xmp_pdfversion(pdf: Pdf, version: str):
+def update_xmp_pdfversion(pdf: Pdf, version: str) -> None:
 
     if Name.Metadata not in pdf.Root:
         return  # Don't create an empty XMP object just to store the version
@@ -23,7 +25,7 @@ def update_xmp_pdfversion(pdf: Pdf, version: str):
             meta['pdf:PDFVersion'] = version
 
 
-def _alpha(n):
+def _alpha(n: int) -> str:
     """Excel-style column numbering A..Z, AA..AZ..BA..ZZ.., AAA."""
     if n < 1:
         raise ValueError(f"Can't represent {n} in alphabetic numbering")
@@ -36,7 +38,7 @@ def _alpha(n):
     return ''.join(chr(o) for o in ords)
 
 
-def _roman(n):
+def _roman(n: int) -> str:
     """Converts integer n to Roman numeral representation as a string."""
     if not (1 <= n <= 5000):
         raise ValueError(f"Can't represent {n} in Roman numerals")
@@ -63,7 +65,7 @@ def _roman(n):
     return roman
 
 
-LABEL_STYLE_MAP = {
+LABEL_STYLE_MAP: Dict[Name, Callable[[int], str]] = {
     Name.D: str,
     Name.A: _alpha,
     Name.a: lambda x: _alpha(x).lower(),
@@ -72,7 +74,7 @@ LABEL_STYLE_MAP = {
 }
 
 
-def label_from_label_dict(label_dict):
+def label_from_label_dict(label_dict: Union[int, Dictionary]) -> str:
     """Convert a label dictionary returned by QPDF into a text string."""
 
     if isinstance(label_dict, int):
@@ -86,11 +88,19 @@ def label_from_label_dict(label_dict):
     # If there is no S, return only the P portion
     if Name.S in label_dict:
         # St defaults to 1
-        numeric_value = label_dict.get(Name.St, 1)
+        numeric_value = label_dict[Name.St] if Name.St in label_dict else 1
+        if not isinstance(numeric_value, int):
+            warn(
+                "Page label dictionary has invalid non-integer start value", UserWarning
+            )
+            numeric_value = 1
 
         style = label_dict[Name.S]
-        style_fn = LABEL_STYLE_MAP.get(style, lambda x: '')
-        value = style_fn(numeric_value)
-        label += value
+        if isinstance(style, Name):
+            style_fn = LABEL_STYLE_MAP[style]
+            value = style_fn(numeric_value)
+            label += value
+        else:
+            warn("Page label dictionary has invalid page label style", UserWarning)
 
     return label
