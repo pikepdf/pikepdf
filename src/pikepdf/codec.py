@@ -132,17 +132,17 @@ class PdfDocStreamWriter(PdfDocCodec, codecs.StreamWriter):
 
 
 class PdfDocStreamReader(PdfDocCodec, codecs.StreamReader):
-    def decode(self, input: bytes, errors: str = 'strict'):
+    def decode(self, input: bytes, errors: str = 'strict') -> Tuple[str, int]:
         return PdfDocCodec.decode(self, input, errors)
 
 
 class PdfDocIncrementalEncoder(codecs.IncrementalEncoder):
-    def encode(self, input: str, final=False):
+    def encode(self, input: str, final: bool = False) -> bytes:
         return pdfdoc_encode(input, 'strict')[0]
 
 
 class PdfDocIncrementalDecoder(codecs.IncrementalDecoder):
-    def decode(self, input: bytes, final=False):
+    def decode(self, input: bytes, final: bool = False) -> str:
         return pdfdoc_decode(input, 'strict')[0]
 
 
