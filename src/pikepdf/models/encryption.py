@@ -65,12 +65,12 @@ class EncryptionInfo:
     @property
     def R(self) -> int:
         """Revision number of the security handler."""
-        return self._encdict['R']
+        return int(self._encdict['R'])
 
     @property
     def V(self) -> int:
         """Version of PDF password algorithm."""
-        return self._encdict['V']
+        return int(self._encdict['V'])
 
     @property
     def P(self) -> int:
@@ -78,22 +78,22 @@ class EncryptionInfo:
 
         See :meth:`Pdf.allow` instead.
         """
-        return self._encdict['P']
+        return int(self._encdict['P'])
 
     @property
     def stream_method(self) -> str:
         """Encryption method used to encode streams."""
-        return self._encdict['stream']
+        return str(self._encdict['stream'])
 
     @property
     def string_method(self) -> str:
         """Encryption method used to encode strings."""
-        return self._encdict['string']
+        return str(self._encdict['string'])
 
     @property
     def file_method(self) -> str:
         """Encryption method used to encode the whole file."""
-        return self._encdict['file']
+        return str(self._encdict['file'])
 
     @property
     def user_password(self) -> bytes:
@@ -106,16 +106,19 @@ class EncryptionInfo:
         The password is always returned as ``bytes`` even if it has
         a clear Unicode representation.
         """
-        return self._encdict['user_passwd']
+        return bytes(self._encdict['user_passwd'])
 
     @property
     def encryption_key(self) -> bytes:
         """The RC4 or AES encryption key used for this file."""
-        return self._encdict['encryption_key']
+        return bytes(self._encdict['encryption_key'])
 
     @property
     def bits(self) -> int:
-        """The number of encryption bits."""
+        """The number of encryption bits.
+
+        e.g. if the algorithm is AES-256, this returns 256.
+        """
         return len(self._encdict['encryption_key']) * 8
 
 
