@@ -204,7 +204,7 @@ class PdfImageBase(ABC):
 
     @property
     @abstractmethod
-    def icc(self) -> Image.Image:
+    def icc(self) -> Optional[ImageCms.ImageCmsProfile]:
         """Returns ICC profile for this image if one is defined."""
 
     @property
@@ -464,13 +464,11 @@ class PdfImage(PdfImageBase):
         raise NotImplementedError("Don't know how to find ICC stream for image")
 
     @property
-    def icc(self):
+    def icc(self) -> Optional[ImageCms.ImageCmsProfile]:
         """If an ICC profile is attached, return a Pillow object that describe it.
 
         Most of the information may be found in ``icc.profile``.
 
-        Returns:
-            PIL.ImageCms.ImageCmsProfile
         """
         if self.colorspace not in ('/ICCBased', '/Indexed'):
             return None
@@ -621,7 +619,7 @@ class PdfImage(PdfImageBase):
                     gp[255] = gp[1]  # work around Pillow bug
                     im.putpalette(gp)
 
-        if self.colorspace == '/ICCBased':
+        if self.colorspace == '/ICCBased' and self.icc is not None:
             im.info['icc_profile'] = self.icc.tobytes()
 
         return im
