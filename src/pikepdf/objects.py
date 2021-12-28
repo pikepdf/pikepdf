@@ -142,7 +142,7 @@ class Operator(Object, metaclass=_ObjectMeta):
     object_type = ObjectType.operator
 
     def __new__(cls, name: str) -> 'Operator':
-        return _qpdf._new_operator(name)
+        return cast('Operator', _qpdf._new_operator(name))
 
 
 class String(Object, metaclass=_ObjectMeta):
