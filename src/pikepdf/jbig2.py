@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from subprocess import DEVNULL, PIPE, CalledProcessError, run
 from tempfile import TemporaryDirectory
-from typing import cast
+from typing import Optional, cast
 
 from packaging.version import Version
 from PIL import Image
@@ -17,7 +17,7 @@ import pikepdf
 
 
 def extract_jbig2(
-    im_obj: pikepdf.Object, globals_obj: pikepdf.Object = None
+    im_obj: pikepdf.Object, globals_obj: Optional[pikepdf.Object] = None
 ) -> Image.Image:
 
     with TemporaryDirectory(prefix='pikepdf', suffix='.jbig2') as tmpdir:
