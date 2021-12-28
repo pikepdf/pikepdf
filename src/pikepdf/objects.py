@@ -22,7 +22,7 @@ class definition is present as an aide for code introspection.
 # pylint: disable=unused-import, abstract-method
 
 from secrets import token_urlsafe
-from typing import TYPE_CHECKING, Iterable, Optional, Union
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, Optional, Union, cast
 from warnings import warn
 
 from . import _qpdf
@@ -46,7 +46,7 @@ ObjectType.__module__ = __name__
 class _ObjectMeta(type(Object)):  # type: ignore
     """Supports instance checking."""
 
-    def __instancecheck__(self, instance):
+    def __instancecheck__(self, instance: Any) -> bool:
         # Note: since this class is a metaclass, self is a class object
         if type(instance) != Object:
             return False
@@ -56,12 +56,12 @@ class _ObjectMeta(type(Object)):  # type: ignore
 class _NameObjectMeta(_ObjectMeta):
     """Supports usage pikepdf.Name.Whatever -> Name('/Whatever')."""
 
-    def __getattr__(self, attr) -> 'Name':
+    def __getattr__(self, attr: str) -> Any:
         if attr.startswith('_') or attr == 'object_type':
             return getattr(_ObjectMeta, attr)
         return Name('/' + attr)
 
-    def __setattr__(self, attr, value):
+    def __setattr__(self, attr: str, value: Any) -> None:
         # No need for a symmetric .startswith('_'). To prevent user error, we
         # simply don't allow mucking with the pikepdf.Name class's attributes.
         # There is no reason to ever assign to them.
@@ -70,7 +70,7 @@ class _NameObjectMeta(_ObjectMeta):
             "modify a Dictionary rather than a Name?"
         )
 
-    def __getitem__(self, item) -> 'Name':
+    def __getitem__(self, item: str) -> 'Name':
         if item.startswith('/'):
             item = item[1:]
         raise TypeError(
@@ -141,7 +141,7 @@ class Operator(Object, metaclass=_ObjectMeta):
 
     object_type = ObjectType.operator
 
-    def __new__(cls, name: str):
+    def __new__(cls, name: str) -> 'Operator':
         return _qpdf._new_operator(name)
 
 
@@ -150,7 +150,7 @@ class String(Object, metaclass=_ObjectMeta):
 
     object_type = ObjectType.string
 
-    def __new__(cls, s: Union[str, bytes]):
+    def __new__(cls, s: Union[str, bytes]) -> 'String':
         """
         Args:
             s: The string to use. String will be encoded for
@@ -169,14 +169,14 @@ class Array(Object, metaclass=_ObjectMeta):
 
     object_type = ObjectType.array
 
-    def __new__(cls, a: Optional[Union[Iterable, Rectangle]] = None):
+    def __new__(cls, a: Optional[Union[Iterable, Rectangle]] = None) -> 'Array':
         """
         Args:
             a: An iterable of objects. All objects must be either
                 `pikepdf.Object` or convertible to `pikepdf.Object`.
 
         Return type:
-            pikepdf.Object
+            pikepdf.Array
         """
 
         if isinstance(a, (str, bytes)):
@@ -186,7 +186,7 @@ class Array(Object, metaclass=_ObjectMeta):
         elif isinstance(a, Rectangle):
             return a.as_array()
         elif isinstance(a, Array):
-            return a.__copy__()
+            return cast(Array, a.__copy__())
         return _qpdf._new_array(a)
 
 
@@ -195,7 +195,7 @@ class Dictionary(Object, metaclass=_ObjectMeta):
 
     object_type = ObjectType.dictionary
 
-    def __new__(cls, d=None, **kwargs):
+    def __new__(cls, d: Optional[Mapping] = None, **kwargs) -> 'Dictionary':
         """
         Constructs a PDF Dictionary from either a Python ``dict`` or keyword
         arguments.
@@ -213,7 +213,7 @@ class Dictionary(Object, metaclass=_ObjectMeta):
         must all be convertible to `pikepdf.Object`.
 
         Return type:
-            pikepdf.Object
+            pikepdf.Dictionary
         """
         if kwargs and d is not None:
             raise ValueError('Cannot use both a mapping object and keyword args')
@@ -236,10 +236,13 @@ class Stream(Object, metaclass=_ObjectMeta):
 
     object_type = ObjectType.stream
 
-    def __new__(cls, owner: 'Pdf', data: bytes = None, d=None, **kwargs):
+    def __new__(
+        cls, owner: 'Pdf', data: Optional[bytes] = None, d=None, **kwargs
+    ) -> 'Stream':
         """
         Create a new stream object, which stores arbitrary binary data and may
-        or may not be compressed.
+        or may not be compressed. It also may or may not be a page or
+        Form XObject's content stream.
 
         A stream dictionary is like a pikepdf.Dictionary or Python dict, except
         it has a binary payload of data attached. The dictionary describes
@@ -257,7 +260,7 @@ class Stream(Object, metaclass=_ObjectMeta):
                 /Length here as pikepdf will manage this value. Set /Filter
                 if the data is already encoded in some format.
         Returns:
-            pikepdf.Object
+            pikepdf.Stream
 
         Examples:
             Using kwargs:
