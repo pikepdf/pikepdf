@@ -259,8 +259,6 @@ class Stream(Object, metaclass=_ObjectMeta):
             kwargs: Keyword arguments that will define the stream dictionary. Do not set
                 /Length here as pikepdf will manage this value. Set /Filter
                 if the data is already encoded in some format.
-        Returns:
-            pikepdf.Stream
 
         Examples:
             Using kwargs:

@@ -1044,8 +1044,6 @@ class Extend_Page:
                 Mutually exclusive with name parameter.
             replace_existing: If the name already exists in one of the resource
                 dictionaries, remove it.
-        Returns:
-            The name of the object.
 
         Example:
             >>> resource_name = pdf.pages[0].add_resource(formxobj, Name.XObject)
