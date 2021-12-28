@@ -193,7 +193,7 @@ class PdfImageBase(ABC):
     @property
     def bits_per_component(self) -> int:
         """Bits per component of this image."""
-        if self._bpc is None:
+        if self._bpc is None or self._bpc == 0:
             return 1 if self.image_mask else 8
         return self._bpc
 
@@ -775,7 +775,7 @@ class PdfImage(PdfImageBase):
         img_size = len(data)
         tiff_header_struct = '<' + '2s' + 'H' + 'L' + 'H'
 
-        tag_keys = {tag[0]: key for key, tag in TIFF_TAGS.items()}
+        tag_keys = {tag.name: key for key, tag in TIFF_TAGS.items()}
         ifd_struct = '<HHLL'
 
         if icc is None:
@@ -800,7 +800,7 @@ class PdfImage(PdfImageBase):
             tag_name: str, data: Union[int, Callable[[], Optional[int]]], count: int = 1
         ):
             key = tag_keys[tag_name]
-            typecode = TIFF_TAGS[key][1]
+            typecode = TIFF_TAGS[key].type
             ifds.append(IFD(key, typecode, count, data))
 
         image_offset = None
