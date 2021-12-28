@@ -312,8 +312,10 @@ class Extend_Object:
         """
         Replace stream object's data with new (possibly compressed) `data`.
 
-        `filter` and `decode_parms` specify that compression that is present on
-        the input `data`.
+        `filter` and `decode_parms` describe any compression that is already
+        present on the input `data`. For example, if your data is already
+        compressed with the Deflate algorithm, you would set
+        ``filter=Name.FlateDecode``.
 
         When writing the PDF in :meth:`pikepdf.Pdf.save`,
         pikepdf may change the compression or apply compression to data that was
