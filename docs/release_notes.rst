@@ -24,6 +24,8 @@ should not access directly, along with any modules with a prefixed underscore.
 v4.3.0
 ======
 
+-  Improved support for images with bits per component set to values between 2 and 7
+   inclusive.
 -  Additional types of runtime errors produced by libqpdf are now resolved to
    ``DataDecodingError`` for improved error message clarity.
 -  Improved typing and documentation for several modules.
