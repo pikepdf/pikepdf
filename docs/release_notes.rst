@@ -21,6 +21,16 @@ should not access directly, along with any modules with a prefixed underscore.
    Python 3.6 reaches end of life on December 23, 2021. pikepdf 3.x will continue
    to support Python 3.6 until then.
 
+v4.3.0
+======
+
+-  Additional types of runtime errors produced by libqpdf are now resolved to
+   ``DataDecodingError`` for improved error message clarity.
+-  Improved typing and documentation for several modules.
+-  Replaced all internal uses of deprecated standard library module distutils
+   with the third party packaging library. This was all for version number checking.
+-  Maintainers: python3-packaging is now required for installation.
+
 v4.2.0
 ======
 
