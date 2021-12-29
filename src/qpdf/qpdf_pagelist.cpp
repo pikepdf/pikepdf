@@ -184,8 +184,15 @@ void PageList::insert_page(py::size_t index, QPDFPageObjectHelper poh)
             page_obj = poh.getObjectHandle();
         }
     } else {
-        // QPDF 10.3.2+ supports duplicating a page
-        page_obj = poh.getObjectHandle();
+        if (!handle_owner) {
+            // User is trying to insert an unowned/direct object dictionary as a new
+            // page. Let them try....
+            page_obj = this->qpdf->makeIndirectObject(poh.getObjectHandle());
+            copied   = true;
+        } else {
+            // QPDF 10.3.2+ will automatically duplicate pages where reasonable.
+            page_obj = poh.getObjectHandle();
+        }
     }
 
     auto doc  = QPDFPageDocumentHelper(*this->qpdf);
