@@ -270,7 +270,7 @@ class PdfImageBase(ABC):
             m = 'P'
         elif self.bits_per_component == 1:
             m = '1'
-        elif self.bits_per_component == 8:
+        elif 2 <= self.bits_per_component <= 8:
             if self.colorspace == '/DeviceRGB':
                 m = 'RGB'
             elif self.colorspace == '/DeviceGray':
@@ -552,12 +552,20 @@ class PdfImage(PdfImageBase):
             im = Image.frombuffer(
                 'CMYK', self.size, self.get_stream_buffer(), 'raw', 'CMYK', 0, 1
             )
-        elif self.mode in ('L', 'P') and self.bits_per_component == 8:
+        elif self.mode in ('L', 'P') and 2 <= self.bits_per_component <= 8:
             buffer = self.get_stream_buffer()
             stride = 0  # tell Pillow to calculate stride from line width
             ystep = 1  # image is top to bottom in memory
             im = Image.frombuffer('L', self.size, buffer, "raw", 'L', stride, ystep)
-            if self.mode == 'P' and self.palette is not None:
+
+            shift = 8 - self.bits_per_component
+            if self.mode == 'L' and self.bits_per_component < 8:
+                graybytes = im.tobytes()
+                output = bytearray(len(graybytes))
+                for n, val in enumerate(graybytes):
+                    output[n] = val << shift
+                im = Image.frombytes('L', self.size, bytes(output))
+            elif self.mode == 'P' and self.palette is not None:
                 base_mode, palette = self.palette
                 if base_mode == 'RGB':
                     im.putpalette(palette, rawmode=base_mode)
@@ -567,7 +575,7 @@ class PdfImage(PdfImageBase):
                     gray_palette = palette
                     palette = b''
                     for entry in gray_palette:
-                        palette += bytes([entry]) * 3
+                        palette += bytes([entry << shift]) * 3
                     im.putpalette(palette, rawmode='RGB')
                 elif base_mode == 'CMYK':
                     # Pillow does not support CMYK with palettes; convert manually

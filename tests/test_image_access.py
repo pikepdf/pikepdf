@@ -632,18 +632,19 @@ CMYK_PALETTE = CMYK_RED + CMYK_GREEN + CMYK_BLUE + CMYK_PINK
 
 
 @pytest.mark.parametrize(
-    'base, hival, palette, expect_type, expect_mode',
+    'base, hival, bits, palette, expect_type, expect_mode',
     [
-        (Name.DeviceGray, 4, b'\x00\x40\x80\xff', 'L', 'P'),
-        (Name.DeviceCMYK, 4, CMYK_PALETTE, 'CMYK', 'P'),
+        (Name.DeviceGray, 4, 8, b'\x00\x40\x80\xff', 'L', 'P'),
+        (Name.DeviceCMYK, 4, 8, CMYK_PALETTE, 'CMYK', 'P'),
+        (Name.DeviceGray, 4, 4, b'\x04\x08\x02\x0f', 'L', 'P'),
     ],
 )
-def test_palette_nonrgb(base, hival, palette, expect_type, expect_mode):
+def test_palette_nonrgb(base, hival, bits, palette, expect_type, expect_mode):
     pdf = pikepdf.new()
     imobj = Stream(
         pdf,
         b'\x00\x01\x02\x03' * 16,
-        BitsPerComponent=8,
+        BitsPerComponent=bits,
         ColorSpace=Array([Name.Indexed, base, hival, palette]),
         Width=16,
         Height=4,
@@ -654,7 +655,7 @@ def test_palette_nonrgb(base, hival, palette, expect_type, expect_mode):
     assert pim.palette == (expect_type, palette)
     pim.extract_to(stream=BytesIO())
     # To view images:
-    # pim.extract_to(fileprefix=f'palette_nonrgb_{expect_type}')
+    # pim.extract_to(fileprefix=f'palette_nonrgb_{expect_type}_{bits}')
     assert pim.mode == expect_mode
 
 
@@ -826,3 +827,33 @@ def test_devicen():
     )
     pdf.pages[0].Resources = Dictionary(XObject=Dictionary(Im0=imobj0, Im1=imobj1))
     # pdf.save('devicen.pdf')
+
+
+def test_oddbit_grayscale():
+    pdf = pikepdf.new()
+    pdf.add_blank_page(page_size=(72, 72))
+
+    imobj = Stream(
+        pdf,
+        bytes([0, 3, 2, 1]),
+        BitsPerComponent=4,
+        ColorSpace=Name.DeviceGray,
+        Width=2,
+        Height=2,
+        Type=Name.XObject,
+        Subtype=Name.Image,
+    )
+
+    pdf.pages[0].Contents = Stream(pdf, b'72 0 0 72 0 0 cm /Im0 Do')
+    pdf.pages[0].Resources = Dictionary(XObject=Dictionary(Im0=imobj))
+
+    pim = PdfImage(pdf.pages[0].Resources.XObject.Im0)
+    assert pim.mode == 'L'
+    assert pim.bits_per_component == 4
+    bio = BytesIO()
+    pim.extract_to(stream=bio)
+    bio.seek(0)
+    im = Image.open(bio)
+    assert im.mode == 'L'
+    assert im.size == (2, 2)
+    assert im.getpixel((1, 1)) == 0x10  # 1 << (8 - 4) == 16 == 0x10
