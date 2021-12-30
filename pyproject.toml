@@ -72,7 +72,7 @@ before-all = [
 ]
 
 [tool.cibuildwheel.macos]
-before-all = "brew install qpdf"
+before-all = "brew install qpdf little-cms2"
 
 [tool.cibuildwheel.windows]
 # pp3*-win32 fails because there is no wheel for lxml
