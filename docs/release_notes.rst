@@ -21,6 +21,11 @@ should not access directly, along with any modules with a prefixed underscore.
    Python 3.6 reaches end of life on December 23, 2021. pikepdf 3.x will continue
    to support Python 3.6 until then.
 
+v4.3.1
+======
+
+-  Mark pybind11 2.9 as supported. Thanks @QuLogic.
+
 v4.3.0
 ======
 
