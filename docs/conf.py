@@ -38,9 +38,7 @@ if on_rtd:
     g = github.Github()
 
     runs = (
-        g.get_repo('pikepdf/pikepdf')
-        .get_workflow('build_wheels.yml')
-        .get_runs(branch=branch)
+        g.get_repo('pikepdf/pikepdf').get_workflow('build.yml').get_runs(branch=branch)
     )
 
     artifacts_url = next(r for r in runs if r.head_sha == head_sha).artifacts_url
