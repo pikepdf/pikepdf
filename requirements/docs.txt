@@ -1,7 +1,0 @@
-# deprecated file; use pip install pikepdf[docs] instead; will be removed next major release
-ipython
-matplotlib
-pybind11  # not strictly necessary if pybind11 is vendored
-setuptools_scm
-Sphinx >= 3
-sphinx-rtd-theme
