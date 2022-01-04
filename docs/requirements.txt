@@ -1,4 +1,8 @@
-# setup.cfg is too complicated for readthedocs, so hold its hand
+# This is provided for the benefit of readthedocs.org, which cannot easily
+# use setup.cfg.
+# Other distributions should build the documentation using
+# pip install pikepdf[docs], i.e. via setup.cfg.
+
 
 lxml >= 4.0
 Pillow >= 6.0  # only needed for images; technically removable
@@ -9,6 +13,7 @@ pybind11
 setuptools_scm
 Sphinx >= 3
 sphinx-issues
+sphinx-panels
 sphinx-rtd-theme
 toml
 
