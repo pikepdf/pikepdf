@@ -51,7 +51,7 @@ jobs:
         if: matrix.platform == 'manylinux_x86_64'
         with:
           name: rtd-wheel
-          path: ./wheelhouse/pikepdf-*-cp37-*.manylinux2014_x86_64.whl
+          path: ./wheelhouse/pikepdf-*-cp39-*.manylinux2014_x86_64.whl
           if-no-files-found: error
 
   wheels_macos:
