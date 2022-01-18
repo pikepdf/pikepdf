@@ -40,6 +40,7 @@ from pikepdf import (
     String,
     jbig2,
 )
+from pikepdf._qpdf import Buffer
 
 
 class DependencyError(Exception):
@@ -553,9 +554,35 @@ class PdfImage(PdfImageBase):
                 'CMYK', self.size, self.get_stream_buffer(), 'raw', 'CMYK', 0, 1
             )
         elif self.mode in ('L', 'P') and 2 <= self.bits_per_component <= 8:
-            buffer = self.get_stream_buffer()
             stride = 0  # tell Pillow to calculate stride from line width
             ystep = 1  # image is top to bottom in memory
+
+            def next_multiple(n, m):
+                return m * ((n + (m - 1)) // m)
+
+            if self.bits_per_component == 2:
+                # Unpack 4x2bits into individual 8-bit values
+                imbytes = self.read_bytes()
+                stride = next_multiple(self.width, 4)
+                buffer: Any = bytearray(4 * stride * self.height)
+                for n, val in enumerate(imbytes):
+                    buffer[4 * n] = val >> 6
+                    buffer[4 * n + 1] = (val >> 4) & 0b11
+                    buffer[4 * n + 2] = (val >> 2) & 0b11
+                    buffer[4 * n + 3] = val & 0b11
+            elif self.bits_per_component == 4:
+                # Unpack 2x4bits into individual 8-bit values
+                imbytes = self.read_bytes()
+                stride = next_multiple(self.width, 2)
+                buffer = bytearray(2 * stride * self.height)
+                for n, val in enumerate(imbytes):
+                    buffer[2 * n] = val >> 4
+                    buffer[2 * n + 1] = val & 0b1111
+            elif self.bits_per_component == 8:
+                buffer = self.get_stream_buffer()
+            else:
+                raise InvalidPdfImageError("BitsPerComponent must be 1, 2, 4, 8, or 16")
+
             im = Image.frombuffer('L', self.size, buffer, "raw", 'L', stride, ystep)
 
             shift = 8 - self.bits_per_component
@@ -728,7 +755,7 @@ class PdfImage(PdfImageBase):
 
     def get_stream_buffer(
         self, decode_level: StreamDecodeLevel = StreamDecodeLevel.specialized
-    ):
+    ) -> Buffer:
         """Access this image with the buffer protocol."""
         return self.obj.get_stream_buffer(decode_level=decode_level)
 

@@ -829,31 +829,41 @@ def test_devicen():
     # pdf.save('devicen.pdf')
 
 
-def test_oddbit_grayscale():
+@pytest.mark.parametrize(
+    'bits, check_pixels',
+    [
+        (2, [(0, 0, 0b00 << 6), (1, 1, 0b01 << 6)]),
+        (4, [(1, 0, 0b1011 << 4), (0, 1, 0b00 << 4), (1, 1, 0b0001 << 4)]),
+    ],
+)
+def test_oddwidth_grayscale(bits, check_pixels):
     pdf = pikepdf.new()
-    pdf.add_blank_page(page_size=(72, 72))
+    pdf.add_blank_page(page_size=(108, 72))
 
     imobj = Stream(
         pdf,
-        bytes([0, 3, 2, 1]),
-        BitsPerComponent=4,
+        bytes([0b00011011, 0b11011000, 0b00000001]),
+        BitsPerComponent=bits,
         ColorSpace=Name.DeviceGray,
-        Width=2,
+        Width=3,
         Height=2,
         Type=Name.XObject,
         Subtype=Name.Image,
     )
 
-    pdf.pages[0].Contents = Stream(pdf, b'72 0 0 72 0 0 cm /Im0 Do')
+    pdf.pages[0].Contents = Stream(pdf, b'108 0 0 72 0 0 cm /Im0 Do')
     pdf.pages[0].Resources = Dictionary(XObject=Dictionary(Im0=imobj))
 
     pim = PdfImage(pdf.pages[0].Resources.XObject.Im0)
     assert pim.mode == 'L'
-    assert pim.bits_per_component == 4
+    assert pim.bits_per_component == bits
     bio = BytesIO()
     pim.extract_to(stream=bio)
     bio.seek(0)
     im = Image.open(bio)
     assert im.mode == 'L'
-    assert im.size == (2, 2)
-    assert im.getpixel((1, 1)) == 0x10  # 1 << (8 - 4) == 16 == 0x10
+    assert im.size == (3, 2)
+
+    # pdf.save(f'oddbit_{bits}.pdf')
+    for check_x, check_y, val in check_pixels:
+        assert im.getpixel((check_x, check_y)) == val
