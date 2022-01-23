@@ -41,11 +41,13 @@
 class MmapInputSource : public InputSource {
 public:
     MmapInputSource(
-        py::object stream, const std::string &description, bool close_stream)
-        : InputSource(), stream(stream), close_stream(close_stream)
+        const py::object &stream, const std::string &description, bool close_stream)
+        : InputSource(), close_stream(close_stream)
     {
         py::gil_scoped_acquire acquire;
-        py::int_ fileno  = stream.attr("fileno")();
+        this->stream = stream;
+
+        py::int_ fileno  = this->stream.attr("fileno")();
         int fd           = fileno;
         auto mmap_module = py::module_::import("mmap");
         auto mmap_fn     = mmap_module.attr("mmap");

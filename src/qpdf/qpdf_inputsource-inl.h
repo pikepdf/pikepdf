@@ -27,13 +27,14 @@
 
 class PythonStreamInputSource : public InputSource {
 public:
-    PythonStreamInputSource(py::object stream, std::string name, bool close)
-        : stream(stream), name(name), close(close)
+    PythonStreamInputSource(const py::object &stream, std::string name, bool close)
+        : name(name), close(close)
     {
         py::gil_scoped_acquire gil;
-        if (!stream.attr("readable")().cast<bool>())
+        this->stream = stream;
+        if (!this->stream.attr("readable")().cast<bool>())
             throw py::value_error("not readable");
-        if (!stream.attr("seekable")().cast<bool>())
+        if (!this->stream.attr("seekable")().cast<bool>())
             throw py::value_error("not seekable");
     }
     virtual ~PythonStreamInputSource()
