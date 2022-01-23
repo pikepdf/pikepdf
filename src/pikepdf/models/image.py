@@ -109,6 +109,20 @@ def metadata_from_obj(
     raise NotImplementedError('Metadata access for ' + name)
 
 
+def _next_multiple(n: int, k: int) -> int:
+    """Returns the multiple of k that is greater than or equal n.
+
+    >>> _next_multiple(101, 4)
+    104
+    >>> _next_multiple(100, 4)
+    100
+    """
+    div, mod = divmod(n, k)
+    if mod > 0:
+        div += 1
+    return div * k
+
+
 class PaletteData(NamedTuple):
     """Returns the color space and binary representation of the palette.
 
@@ -533,6 +547,28 @@ class PdfImage(PdfImageBase):
 
         raise NotExtractableError()
 
+    def _unpack_2bit_image(self):
+        # Unpack 4x2bits into individual 8-bit values
+        imbytes = self.read_bytes()
+        stride = _next_multiple(self.width, 4)
+        buffer = bytearray(4 * stride * self.height)
+        for n, val in enumerate(imbytes):
+            buffer[4 * n] = val >> 6
+            buffer[4 * n + 1] = (val >> 4) & 0b11
+            buffer[4 * n + 2] = (val >> 2) & 0b11
+            buffer[4 * n + 3] = val & 0b11
+        return memoryview(buffer), stride
+
+    def _unpack_4bit_image(self):
+        # Unpack 2x4bits into individual 8-bit values
+        imbytes = self.read_bytes()
+        stride = _next_multiple(self.width, 2)
+        buffer = bytearray(2 * stride * self.height)
+        for n, val in enumerate(imbytes):
+            buffer[2 * n] = val >> 4
+            buffer[2 * n + 1] = val & 0b1111
+        return memoryview(buffer), stride
+
     def _extract_transcoded(self) -> Image.Image:
         # Reminder Pillow palette byte order unintentionally changed in 8.3.0
         # https://github.com/python-pillow/Pillow/issues/5595
@@ -557,27 +593,10 @@ class PdfImage(PdfImageBase):
             stride = 0  # tell Pillow to calculate stride from line width
             ystep = 1  # image is top to bottom in memory
 
-            def next_multiple(n, m):
-                return m * ((n + (m - 1)) // m)
-
             if self.bits_per_component == 2:
-                # Unpack 4x2bits into individual 8-bit values
-                imbytes = self.read_bytes()
-                stride = next_multiple(self.width, 4)
-                buffer: Any = bytearray(4 * stride * self.height)
-                for n, val in enumerate(imbytes):
-                    buffer[4 * n] = val >> 6
-                    buffer[4 * n + 1] = (val >> 4) & 0b11
-                    buffer[4 * n + 2] = (val >> 2) & 0b11
-                    buffer[4 * n + 3] = val & 0b11
+                buffer, stride = self._unpack_2bit_image()
             elif self.bits_per_component == 4:
-                # Unpack 2x4bits into individual 8-bit values
-                imbytes = self.read_bytes()
-                stride = next_multiple(self.width, 2)
-                buffer = bytearray(2 * stride * self.height)
-                for n, val in enumerate(imbytes):
-                    buffer[2 * n] = val >> 4
-                    buffer[2 * n + 1] = val & 0b1111
+                buffer, stride = self._unpack_4bit_image()
             elif self.bits_per_component == 8:
                 buffer = self.get_stream_buffer()
             else:
