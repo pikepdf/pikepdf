@@ -546,13 +546,25 @@ class PdfImage(PdfImageBase):
 
         raise NotExtractableError()
 
-    def _unpack_subbyte_pixels(self, bits: int):
+    def _unpack_subbyte_pixels(self, bits: int, scale: int = 0):
+        """Unpack subbyte *bits* pixels into full bytes and rescale.
+
+        When scale is 0, the appropriate scale is calculated.
+        e.g. for 2-bit, the scale is adjusted so that
+            0b00 = 0.00 = 0x00
+            0b01 = 0.33 = 0x55
+            0b10 = 0.66 = 0xaa
+            0b11 = 1.00 = 0xff
+        When scale is 1, no scaling is applied, appropriate when
+        the bytes are palette indexes.
+        """
         imbytes = self.read_bytes()
         bits_per_byte = 8 // bits
         stride = _next_multiple(self.width, bits_per_byte)
         buffer = bytearray(bits_per_byte * stride * self.height)
         max_read = len(buffer) // bits_per_byte
-        scale = 255 / (2 ** bits - 1)
+        if scale == 0:
+            scale = 255 / ((2 ** bits) - 1)
         if bits == 2:
             self._2bit_inner_loop(imbytes[:max_read], buffer, scale)
         elif bits == 4:
@@ -597,10 +609,11 @@ class PdfImage(PdfImageBase):
             stride = 0  # tell Pillow to calculate stride from line width
             ystep = 1  # image is top to bottom in memory
 
+            scale = 0 if self.mode == 'L' else 1
             if self.bits_per_component == 2:
-                buffer, stride = self._unpack_subbyte_pixels(2)
+                buffer, stride = self._unpack_subbyte_pixels(2, scale)
             elif self.bits_per_component == 4:
-                buffer, stride = self._unpack_subbyte_pixels(4)
+                buffer, stride = self._unpack_subbyte_pixels(4, scale)
             elif self.bits_per_component == 8:
                 buffer = self.get_stream_buffer()
             else:
