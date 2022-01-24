@@ -2,11 +2,17 @@ import subprocess
 import zlib
 from contextlib import contextmanager
 from io import BytesIO
+from math import ceil
 from os import fspath
 from pathlib import Path
+from subprocess import run
+from tempfile import TemporaryDirectory
 
+import PIL
 import pytest
-from PIL import Image, ImageCms
+from hypothesis import assume, example, given
+from hypothesis import strategies as st
+from PIL import Image, ImageChops, ImageCms
 from PIL import features as PIL_features
 
 import pikepdf
@@ -405,7 +411,7 @@ def test_icc_use(first_image_in):
     xobj, _pdf = first_image_in('1biticc.pdf')
 
     pim = PdfImage(xobj)
-    assert pim.mode == '1'
+    assert pim.mode == 'L'  # It may be 1 bit per pixel but it's more complex than that
     assert pim.colorspace == '/ICCBased'
     assert pim.bits_per_component == 1
 
@@ -867,3 +873,114 @@ def test_oddwidth_grayscale(bits, check_pixels):
     # pdf.save(f'oddbit_{bits}.pdf')
     for check_x, check_y, val in check_pixels:
         assert im.getpixel((check_x, check_y)) == val
+
+
+def has_pdfimages():
+    try:
+        run(['pdfimages', '-v'], check=True)
+    except FileNotFoundError:
+        return False
+    else:
+        return True
+
+
+requires_pdfimages = pytest.mark.skipif(
+    not has_pdfimages(), reason="pdfimages not installed"
+)
+
+
+@requires_pdfimages
+@given(
+    bpc=st.sampled_from([1, 2, 4, 8, 16]),
+    width=st.integers(min_value=1, max_value=16),
+    height=st.integers(min_value=1, max_value=16),
+    colorspace=st.sampled_from([Name.DeviceGray, Name.DeviceRGB, Name.DeviceCMYK]),
+    imbytes=st.binary(min_size=1, max_size=512),
+)
+def test_random_image(bpc, width, height, colorspace, imbytes, tmp_path_factory):
+
+    pdf = pikepdf.new()
+    pdfw, pdfh = 18 * width, 18 * height
+
+    pdf.add_blank_page(page_size=(pdfw, pdfh))
+    if len(imbytes) < width * height:
+        imbytes = imbytes + bytes(width * height * (2 if bpc == 16 else 1))
+
+    imobj = Stream(
+        pdf,
+        imbytes,
+        BitsPerComponent=bpc,
+        ColorSpace=colorspace,
+        Width=width,
+        Height=height,
+        Type=Name.XObject,
+        Subtype=Name.Image,
+    )
+
+    pdf.pages[0].Contents = Stream(pdf, b'%f 0 0 %f 0 0 cm /Im0 Do' % (pdfw, pdfh))
+    pdf.pages[0].Resources = Dictionary(XObject=Dictionary(Im0=imobj))
+
+    pim = PdfImage(pdf.pages[0].Resources.XObject.Im0)
+    bio = BytesIO()
+    try:
+        result_extension = pim.extract_to(stream=bio)
+        assert result_extension == '.png'
+    except ValueError as e:
+        if 'not enough image data' in str(e):
+            return
+        elif 'buffer is not large enough' in str(e):
+            ncomps = (
+                4
+                if colorspace == Name.DeviceCMYK
+                else 3
+                if colorspace == Name.DeviceRGB
+                else 1
+            )
+            assert ceil(bpc / 8) * width * height * ncomps > len(imbytes)
+            return
+        raise
+    except PIL.UnidentifiedImageError as e:
+        if len(imbytes) == 0:
+            return
+        raise
+    except UnsupportedImageTypeError as e:
+        if colorspace in (Name.DeviceRGB, Name.DeviceCMYK) and bpc < 8:
+            return
+        if bpc == 16:
+            return
+        raise
+
+    bio.seek(0)
+    im = Image.open(bio)
+    assert im.mode == pim.mode
+    assert im.size == pim.size
+
+    outprefix = f'{width}x{height}x{im.mode}-'
+    tmpdir = tmp_path_factory.mktemp(outprefix)
+    pdf.save(tmpdir / 'pdf.pdf')
+    im.save(tmpdir / 'pikepdf.png')
+    Path(tmpdir / 'imbytes.bin').write_bytes(imbytes)
+    run(
+        [
+            'pdfimages',
+            '-png',
+            fspath('pdf.pdf'),
+            fspath('pdfimage'),  # omit suffix
+        ],
+        cwd=fspath(tmpdir),
+        check=True,
+    )
+    outpng = tmpdir / 'pdfimage-000.png'
+    assert outpng.exists()
+    im_roundtrip = Image.open(outpng)
+
+    assert im.size == im_roundtrip.size
+
+    diff = ImageChops.difference(im, im_roundtrip)
+    assert not diff.getbbox()
+    # if diff.getbbox():
+    #     im.save('im1.png')
+    #     im_roundtrip.save('im2.png')
+    #     diff.save('imdiff.png')
+    #     breakpoint()
+    #     assert False

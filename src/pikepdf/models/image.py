@@ -283,22 +283,21 @@ class PdfImageBase(ABC):
             m = 'Separation'
         elif self.indexed:
             m = 'P'
-        elif self.bits_per_component == 1:
+        elif self.colorspace == '/DeviceGray' and self.bits_per_component == 1:
             m = '1'
-        elif 2 <= self.bits_per_component <= 8:
-            if self.colorspace == '/DeviceRGB':
-                m = 'RGB'
-            elif self.colorspace == '/DeviceGray':
-                m = 'L'
-            elif self.colorspace == '/DeviceCMYK':
-                m = 'CMYK'
-            elif self.colorspace == '/ICCBased':
-                try:
-                    m = self._approx_mode_from_icc()
-                except (ValueError, TypeError) as e:
-                    raise NotImplementedError(
-                        "Not sure how to handle PDF image of this type"
-                    ) from e
+        elif self.colorspace == '/DeviceGray' and self.bits_per_component > 1:
+            m = 'L'
+        elif self.colorspace == '/DeviceRGB':
+            m = 'RGB'
+        elif self.colorspace == '/DeviceCMYK':
+            m = 'CMYK'
+        elif self.colorspace == '/ICCBased':
+            try:
+                m = self._approx_mode_from_icc()
+            except (ValueError, TypeError) as e:
+                raise NotImplementedError(
+                    "Not sure how to handle PDF image of this type"
+                ) from e
         if m == '':
             raise NotImplementedError(
                 "Not sure how to handle PDF image of this type"
@@ -552,7 +551,8 @@ class PdfImage(PdfImageBase):
         imbytes = self.read_bytes()
         stride = _next_multiple(self.width, 4)
         buffer = bytearray(4 * stride * self.height)
-        for n, val in enumerate(imbytes):
+        max_read = len(buffer) // 4
+        for n, val in enumerate(imbytes[:max_read]):
             buffer[4 * n] = val >> 6
             buffer[4 * n + 1] = (val >> 4) & 0b11
             buffer[4 * n + 2] = (val >> 2) & 0b11
@@ -564,7 +564,8 @@ class PdfImage(PdfImageBase):
         imbytes = self.read_bytes()
         stride = _next_multiple(self.width, 2)
         buffer = bytearray(2 * stride * self.height)
-        for n, val in enumerate(imbytes):
+        max_read = len(buffer) // 2
+        for n, val in enumerate(imbytes[:max_read]):
             buffer[2 * n] = val >> 4
             buffer[2 * n + 1] = val & 0b1111
         return memoryview(buffer), stride
@@ -608,8 +609,9 @@ class PdfImage(PdfImageBase):
             if self.mode == 'L' and self.bits_per_component < 8:
                 graybytes = im.tobytes()
                 output = bytearray(len(graybytes))
+                multiple = 255 / (2 ** self.bits_per_component - 1)
                 for n, val in enumerate(graybytes):
-                    output[n] = val << shift
+                    output[n] = int(val * multiple)
                 im = Image.frombytes('L', self.size, bytes(output))
             elif self.mode == 'P' and self.palette is not None:
                 base_mode, palette = self.palette
@@ -646,6 +648,10 @@ class PdfImage(PdfImageBase):
                 jbig2_globals_obj = self.filter_decodeparms[0][1].get('/JBIG2Globals')
                 im = jbig2.extract_jbig2(self.obj, jbig2_globals_obj)
             else:
+                if self.mode in ('RGB', 'CMYK'):
+                    raise UnsupportedImageTypeError(
+                        "1-bit RGB and CMYK are not supported"
+                    )
                 data = self.read_bytes()
                 im = Image.frombytes('1', self.size, data)
         else:
