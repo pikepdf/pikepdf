@@ -552,11 +552,12 @@ class PdfImage(PdfImageBase):
         stride = _next_multiple(self.width, 4)
         buffer = bytearray(4 * stride * self.height)
         max_read = len(buffer) // 4
+        scale = 255 / (2 ** self.bits_per_component - 1)
         for n, val in enumerate(imbytes[:max_read]):
-            buffer[4 * n] = val >> 6
-            buffer[4 * n + 1] = (val >> 4) & 0b11
-            buffer[4 * n + 2] = (val >> 2) & 0b11
-            buffer[4 * n + 3] = val & 0b11
+            buffer[4 * n] = int((val >> 6) * scale)
+            buffer[4 * n + 1] = int(((val >> 4) & 0b11) * scale)
+            buffer[4 * n + 2] = int(((val >> 2) & 0b11) * scale)
+            buffer[4 * n + 3] = int((val & 0b11) * scale)
         return memoryview(buffer), stride
 
     def _unpack_4bit_image(self):
@@ -565,9 +566,10 @@ class PdfImage(PdfImageBase):
         stride = _next_multiple(self.width, 2)
         buffer = bytearray(2 * stride * self.height)
         max_read = len(buffer) // 2
+        scale = 255 / (2 ** self.bits_per_component - 1)
         for n, val in enumerate(imbytes[:max_read]):
-            buffer[2 * n] = val >> 4
-            buffer[2 * n + 1] = val & 0b1111
+            buffer[2 * n] = int((val >> 4) * scale)
+            buffer[2 * n + 1] = int((val & 0b1111) * scale)
         return memoryview(buffer), stride
 
     def _extract_transcoded(self) -> Image.Image:
@@ -609,7 +611,7 @@ class PdfImage(PdfImageBase):
             if self.mode == 'L' and self.bits_per_component < 8:
                 graybytes = im.tobytes()
                 output = bytearray(len(graybytes))
-                multiple = 255 / (2 ** self.bits_per_component - 1)
+                multiple = 1
                 for n, val in enumerate(graybytes):
                     output[n] = int(val * multiple)
                 im = Image.frombytes('L', self.size, bytes(output))
