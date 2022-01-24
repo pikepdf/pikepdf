@@ -608,11 +608,7 @@ class PdfImage(PdfImageBase):
 
             im = Image.frombuffer('L', self.size, buffer, "raw", 'L', stride, ystep)
 
-            shift = 8 - self.bits_per_component
-            if self.mode == 'L' and self.bits_per_component < 8:
-                output = im.tobytes()
-                im = Image.frombytes('L', self.size, bytes(output))
-            elif self.mode == 'P' and self.palette is not None:
+            if self.mode == 'P' and self.palette is not None:
                 base_mode, palette = self.palette
                 if base_mode == 'RGB':
                     im.putpalette(palette, rawmode=base_mode)
@@ -621,6 +617,7 @@ class PdfImage(PdfImageBase):
                     # Convert to RGB palette.
                     gray_palette = palette
                     palette = b''
+                    shift = 8 - self.bits_per_component
                     for entry in gray_palette:
                         palette += bytes([entry << shift]) * 3
                     im.putpalette(palette, rawmode='RGB')

@@ -958,6 +958,11 @@ def test_random_image(bpc, width, height, colorspace, imbytes, tmp_path_factory)
     outprefix = f'{width}x{height}x{im.mode}-'
     tmpdir = tmp_path_factory.mktemp(outprefix)
     pdf.save(tmpdir / 'pdf.pdf')
+
+    # We don't have convenient CMYK checking tools
+    if im.mode == 'CMYK':
+        return
+
     im.save(tmpdir / 'pikepdf.png')
     Path(tmpdir / 'imbytes.bin').write_bytes(imbytes)
     run(
