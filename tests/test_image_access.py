@@ -924,7 +924,7 @@ def test_random_image(bpc, width, height, colorspace, imbytes, tmp_path_factory)
     bio = BytesIO()
     try:
         result_extension = pim.extract_to(stream=bio)
-        assert result_extension == '.png'
+        assert result_extension in ('.png', '.tiff')
     except ValueError as e:
         if 'not enough image data' in str(e):
             return

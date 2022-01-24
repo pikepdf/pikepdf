@@ -609,11 +609,7 @@ class PdfImage(PdfImageBase):
 
             shift = 8 - self.bits_per_component
             if self.mode == 'L' and self.bits_per_component < 8:
-                graybytes = im.tobytes()
-                output = bytearray(len(graybytes))
-                multiple = 1
-                for n, val in enumerate(graybytes):
-                    output[n] = int(val * multiple)
+                output = im.tobytes()
                 im = Image.frombytes('L', self.size, bytes(output))
             elif self.mode == 'P' and self.palette is not None:
                 base_mode, palette = self.palette
