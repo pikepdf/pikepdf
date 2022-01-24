@@ -838,8 +838,8 @@ def test_devicen():
 @pytest.mark.parametrize(
     'bits, check_pixels',
     [
-        (2, [(0, 0, 0b00 << 6), (1, 1, 0b01 << 6)]),
-        (4, [(1, 0, 0b1011 << 4), (0, 1, 0b00 << 4), (1, 1, 0b0001 << 4)]),
+        (2, [(0, 0, 0x00), (1, 1, 0x55)]),
+        (4, [(1, 0, 0xBB), (0, 1, 0x00), (1, 1, 0x11)]),
     ],
 )
 def test_oddwidth_grayscale(bits, check_pixels):
