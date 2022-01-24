@@ -546,31 +546,32 @@ class PdfImage(PdfImageBase):
 
         raise NotExtractableError()
 
-    def _unpack_2bit_image(self):
-        # Unpack 4x2bits into individual 8-bit values
+    def _unpack_subbyte_pixels(self, bits: int):
         imbytes = self.read_bytes()
-        stride = _next_multiple(self.width, 4)
-        buffer = bytearray(4 * stride * self.height)
-        max_read = len(buffer) // 4
-        scale = 255 / (2 ** self.bits_per_component - 1)
-        for n, val in enumerate(imbytes[:max_read]):
-            buffer[4 * n] = int((val >> 6) * scale)
-            buffer[4 * n + 1] = int(((val >> 4) & 0b11) * scale)
-            buffer[4 * n + 2] = int(((val >> 2) & 0b11) * scale)
-            buffer[4 * n + 3] = int((val & 0b11) * scale)
+        bits_per_byte = 8 // bits
+        stride = _next_multiple(self.width, bits_per_byte)
+        buffer = bytearray(bits_per_byte * stride * self.height)
+        max_read = len(buffer) // bits_per_byte
+        scale = 255 / (2 ** bits - 1)
+        if bits == 2:
+            self._2bit_inner_loop(imbytes[:max_read], buffer, scale)
+        elif bits == 4:
+            self._4bit_inner_loop(imbytes[:max_read], buffer, scale)
+        else:
+            raise NotImplementedError(bits)
         return memoryview(buffer), stride
 
-    def _unpack_4bit_image(self):
-        # Unpack 2x4bits into individual 8-bit values
-        imbytes = self.read_bytes()
-        stride = _next_multiple(self.width, 2)
-        buffer = bytearray(2 * stride * self.height)
-        max_read = len(buffer) // 2
-        scale = 255 / (2 ** self.bits_per_component - 1)
-        for n, val in enumerate(imbytes[:max_read]):
-            buffer[2 * n] = int((val >> 4) * scale)
-            buffer[2 * n + 1] = int((val & 0b1111) * scale)
-        return memoryview(buffer), stride
+    def _2bit_inner_loop(self, in_, out, scale):
+        for n, val in enumerate(in_):
+            out[4 * n] = int((val >> 6) * scale)
+            out[4 * n + 1] = int(((val >> 4) & 0b11) * scale)
+            out[4 * n + 2] = int(((val >> 2) & 0b11) * scale)
+            out[4 * n + 3] = int((val & 0b11) * scale)
+
+    def _4bit_inner_loop(self, in_, out, scale):
+        for n, val in enumerate(in_):
+            out[2 * n] = int((val >> 4) * scale)
+            out[2 * n + 1] = int((val & 0b1111) * scale)
 
     def _extract_transcoded(self) -> Image.Image:
         # Reminder Pillow palette byte order unintentionally changed in 8.3.0
@@ -597,9 +598,9 @@ class PdfImage(PdfImageBase):
             ystep = 1  # image is top to bottom in memory
 
             if self.bits_per_component == 2:
-                buffer, stride = self._unpack_2bit_image()
+                buffer, stride = self._unpack_subbyte_pixels(2)
             elif self.bits_per_component == 4:
-                buffer, stride = self._unpack_4bit_image()
+                buffer, stride = self._unpack_subbyte_pixels(4)
             elif self.bits_per_component == 8:
                 buffer = self.get_stream_buffer()
             else:
