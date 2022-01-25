@@ -137,7 +137,9 @@ jobs:
           python-version: "3.8"
 
       - name: Install apt packages
-        run: sudo apt-get install -y jbig2dec lcov
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jbig2dec lcov
 
       - name: Install toml and read environment from pyproject.toml
         run: |
