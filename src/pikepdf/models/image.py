@@ -534,19 +534,62 @@ class PdfImage(PdfImageBase):
 
         raise NotExtractableError()
 
-    def _extract_transcoded(self) -> Image.Image:
-        # Reminder Pillow palette byte order unintentionally changed in 8.3.0
-        # https://github.com/python-pillow/Pillow/issues/5595
-        # 8.2.0: all aligned by channel (very nonstandard)
-        # 8.3.0: all channels for one color followed by the next color (e.g. RGBRGBRGB)
+    def _extract_transcoded_248bits(self) -> Image.Image:
+        """Extract an image when there are 2/4/8 bits packed in byte data."""
 
-        im = None
+        stride = 0  # tell Pillow to calculate stride from line width
+        scale = 0 if self.mode == 'L' else 1
+        if self.bits_per_component in (2, 4):
+            buffer, stride = _transcoding.unpack_subbyte_pixels(
+                self.read_bytes(), self.size, self.bits_per_component, scale
+            )
+        elif self.bits_per_component == 8:
+            buffer = cast(memoryview, self.get_stream_buffer())
+        else:
+            raise InvalidPdfImageError("BitsPerComponent must be 1, 2, 4, 8, or 16")
+
+        if self.mode == 'P' and self.palette is not None:
+            base_mode, palette = self.palette
+            im = _transcoding.image_from_buffer_and_palette(
+                buffer,
+                self.size,
+                stride,
+                self.bits_per_component,
+                base_mode,
+                palette,
+            )
+        else:
+            im = _transcoding.image_from_byte_buffer(buffer, self.size, stride)
+        return im
+
+    def _extract_transcoded_1bit(self) -> Image.Image:
+        if self.filters and self.filters[0] == '/JBIG2Decode':
+            if not jbig2.jbig2dec_available():
+                raise DependencyError(
+                    "jbig2dec - not installed or installed version is too old "
+                    "(older than version 0.15)"
+                )
+            jbig2_globals_obj = self.filter_decodeparms[0][1].get('/JBIG2Globals')
+            im = jbig2.extract_jbig2(self.obj, jbig2_globals_obj)
+        else:
+            if self.mode in ('RGB', 'CMYK'):
+                raise UnsupportedImageTypeError("1-bit RGB and CMYK are not supported")
+            data = self.read_bytes()
+            im = Image.frombytes('1', self.size, data)
+
+        if self.palette is not None:
+            base_mode, palette = self.palette
+            im = _transcoding.fix_1bit_palette_image(im, base_mode, palette)
+
+        return im
+
+    def _extract_transcoded(self) -> Image.Image:
         if self.mode in {'DeviceN', 'Separation'}:
             raise HifiPrintImageNotTranscodableError()
 
         if self.mode == 'RGB' and self.bits_per_component == 8:
-            # No point in accessing the buffer here, size qpdf decodes to 3-byte
-            # RGB and Pillow needs RGBX for raw access
+            # Cannot use the zero-copy .get_stream_buffer here, we have 3-byte
+            # RGB and Pillow needs RGBX.
             im = Image.frombuffer(
                 'RGB', self.size, self.read_bytes(), 'raw', 'RGB', 0, 1
             )
@@ -555,74 +598,11 @@ class PdfImage(PdfImageBase):
                 'CMYK', self.size, self.get_stream_buffer(), 'raw', 'CMYK', 0, 1
             )
         elif self.mode in ('L', 'P') and 2 <= self.bits_per_component <= 8:
-            stride = 0  # tell Pillow to calculate stride from line width
-
-            scale = 0 if self.mode == 'L' else 1
-            if self.bits_per_component in (2, 4):
-                buffer, stride = _transcoding.unpack_subbyte_pixels(
-                    self.read_bytes(), self.size, self.bits_per_component, scale
-                )
-            elif self.bits_per_component == 8:
-                buffer = cast(memoryview, self.get_stream_buffer())
-            else:
-                raise InvalidPdfImageError("BitsPerComponent must be 1, 2, 4, 8, or 16")
-
-            if self.mode == 'P' and self.palette is not None:
-                base_mode, palette = self.palette
-                im = _transcoding.image_from_buffer_and_palette(
-                    base_mode,
-                    palette,
-                    buffer,
-                    self.size,
-                    self.bits_per_component,
-                    stride,
-                )
-            else:
-                im = _transcoding.image_from_byte_buffer(buffer, self.size, stride)
-
+            im = self._extract_transcoded_248bits()
         elif self.bits_per_component == 1:
-            if self.filters and self.filters[0] == '/JBIG2Decode':
-                if not jbig2.jbig2dec_available():
-                    raise DependencyError(
-                        "jbig2dec - not installed or installed version is too old "
-                        "(older than version 0.15)"
-                    )
-                jbig2_globals_obj = self.filter_decodeparms[0][1].get('/JBIG2Globals')
-                im = jbig2.extract_jbig2(self.obj, jbig2_globals_obj)
-            else:
-                if self.mode in ('RGB', 'CMYK'):
-                    raise UnsupportedImageTypeError(
-                        "1-bit RGB and CMYK are not supported"
-                    )
-                data = self.read_bytes()
-                im = Image.frombytes('1', self.size, data)
+            im = self._extract_transcoded_1bit()
         else:
             raise UnsupportedImageTypeError(repr(self) + ", " + repr(self.obj))
-
-        if not im:
-            raise NotImplementedError("This is a problem")
-
-        if (
-            self.mode == 'P'
-            and self.bits_per_component == 1
-            and self.palette is not None
-        ):
-            # Fix paletted 1-bit images
-            base_mode, palette = self.palette
-            if base_mode == 'RGB' and palette != b'\x00\x00\x00\xff\xff\xff':
-                im = im.convert('P')
-                im.putpalette(palette, rawmode=base_mode)
-                gp = im.getpalette()
-                if gp:
-                    gp[765:768] = gp[3:6]  # work around Pillow bug
-                    im.putpalette(gp)
-            elif base_mode == 'L' and palette != b'\x00\xff':
-                im = im.convert('P')
-                im.putpalette(palette, rawmode=base_mode)
-                gp = im.getpalette()
-                if gp:
-                    gp[255] = gp[1]  # work around Pillow bug
-                    im.putpalette(gp)
 
         if self.colorspace == '/ICCBased' and self.icc is not None:
             im.info['icc_profile'] = self.icc.tobytes()

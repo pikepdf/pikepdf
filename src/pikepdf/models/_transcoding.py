@@ -58,6 +58,10 @@ def unpack_subbyte_pixels(
 
 
 def _2bit_inner_loop(in_: BytesLike, out: MutableBytesLike, scale: int) -> None:
+    """Unpack 2-bit values to their 8-bit equivalents.
+
+    Thus *out* must be 4x at long as *in*.
+    """
     for n, val in enumerate(in_):
         out[4 * n] = int((val >> 6) * scale)
         out[4 * n + 1] = int(((val >> 4) & 0b11) * scale)
@@ -66,24 +70,42 @@ def _2bit_inner_loop(in_: BytesLike, out: MutableBytesLike, scale: int) -> None:
 
 
 def _4bit_inner_loop(in_: BytesLike, out: MutableBytesLike, scale: int) -> None:
+    """Unpack 4-bit values to their 8-bit equivalents.
+
+    Thus *out* must be 2x at long as *in*.
+    """
     for n, val in enumerate(in_):
         out[2 * n] = int((val >> 4) * scale)
         out[2 * n + 1] = int((val & 0b1111) * scale)
 
 
-def image_from_byte_buffer(buffer: BytesLike, size: Tuple[int, int], stride):
+def image_from_byte_buffer(buffer: BytesLike, size: Tuple[int, int], stride: int):
+    """Use Pillow to create image from a byte buffer.
+
+    If the buffer conti
+
+    *stride* is the number of bytes per row, and is essential for packed bits
+    with odd image widths.
+    """
     ystep = 1  # image is top to bottom in memory
     return Image.frombuffer('L', size, buffer, "raw", 'L', stride, ystep)
 
 
 def image_from_buffer_and_palette(
-    base_mode: str,
-    palette: BytesLike,
     buffer: BytesLike,
     size: Tuple[int, int],
-    bits: int,
     stride: int,
+    bits: int,
+    base_mode: str,
+    palette: BytesLike,
 ) -> Image.Image:
+    """Construct an image from a byte buffer and palette."""
+
+    # Reminder Pillow palette byte order unintentionally changed in 8.3.0
+    # https://github.com/python-pillow/Pillow/issues/5595
+    # 8.2.0: all aligned by channel (very nonstandard)
+    # 8.3.0: all channels for one color followed by the next color (e.g. RGBRGBRGB)
+
     if base_mode == 'RGB':
         im = image_from_byte_buffer(buffer, size, stride)
         im.putpalette(palette, rawmode=base_mode)
@@ -106,4 +128,25 @@ def image_from_buffer_and_palette(
         im = Image.frombuffer('CMYK', size, data=output, decoder_name='raw')
     else:
         raise NotImplementedError(f'palette with {base_mode}')
+    return im
+
+
+def fix_1bit_palette_image(
+    im: Image.Image, base_mode: str, palette: BytesLike
+) -> Image.Image:
+    """Apply palettes to 1-bit images."""
+    if base_mode == 'RGB' and palette != b'\x00\x00\x00\xff\xff\xff':
+        im = im.convert('P')
+        im.putpalette(palette, rawmode=base_mode)
+        gp = im.getpalette()
+        if gp:
+            gp[765:768] = gp[3:6]  # work around Pillow bug
+            im.putpalette(gp)
+    elif base_mode == 'L' and palette != b'\x00\xff':
+        im = im.convert('P')
+        im.putpalette(palette, rawmode=base_mode)
+        gp = im.getpalette()
+        if gp:
+            gp[255] = gp[1]  # work around Pillow bug
+            im.putpalette(gp)
     return im
