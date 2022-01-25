@@ -49,6 +49,16 @@ wheelhouse/$(macwheel39): clean pip-install-e
 	python -m pip wheel -w wheelhouse .
 	mv wheelhouse/pikepdf*cp39*.whl wheelhouse/$(macwheel39)
 
+	rm -rf unpacked/
+	python -m wheel unpack wheelhouse/$(macwheel39) --dest unpacked
+	rm -f wheelhouse/$(macwheel39) 
+	install_name_tool -change /usr/local/lib/libqpdf.28.dylib \
+		/Users/jb/src/qpdf/libqpdf/build/.libs/libqpdf.28.dylib \
+		unpacked/pikepdf-*/pikepdf/_qpdf.cpython*.so
+	python -m wheel pack unpacked/pikepdf-*/ --dest-dir wheelhouse
+	rm -rf unpacked/
+
+
 wheelhouse/$(macwheel310): clean
 	rm -f wheelhouse/pikepdf*cp310*.whl
 	rm -rf .venv310
@@ -60,6 +70,15 @@ wheelhouse/$(macwheel310): clean
 		python -m pip wheel -w wheelhouse .; \
 	)
 	mv wheelhouse/pikepdf*cp310*.whl wheelhouse/$(macwheel310)
+
+	rm -rf unpacked/
+	python -m wheel unpack wheelhouse/$(macwheel310) --dest unpacked
+	rm -f wheelhouse/$(macwheel310) 
+	install_name_tool -change /usr/local/lib/libqpdf.28.dylib \
+		/Users/jb/src/qpdf/libqpdf/build/.libs/libqpdf.28.dylib \
+		unpacked/pikepdf-*/pikepdf/_qpdf.cpython*.so
+	python -m wheel pack unpacked/pikepdf-*/ --dest-dir wheelhouse
+	rm -rf unpacked/
 
 wheelhouse/delocated/$(macwheel39): wheelhouse/$(macwheel39)
 	delocate-wheel -w wheelhouse/delocated -v wheelhouse/$(macwheel39)

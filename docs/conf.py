@@ -62,7 +62,7 @@ if on_rtd:
     with zipfile.ZipFile(artifact_bin) as zf, tempfile.TemporaryDirectory() as tmpdir:
         assert len(zf.namelist()) == 1
         zf.extractall(tmpdir)
-        pip('install', '--force-reinstall', f'{tmpdir}/{zf.namelist()[0]}[docs]')
+        pip('install', '--force-reinstall', f'{tmpdir}/{zf.namelist()[0]}')
 else:
     sys.path.insert(0, os.path.abspath(os.path.join('..', 'installed')))
 
@@ -128,7 +128,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'pikepdf'
-copyright = '2021, James R. Barlow'  # pylint: disable=redefined-builtin
+copyright = '2022, James R. Barlow'  # pylint: disable=redefined-builtin
 author = 'James R. Barlow'
 
 # The version info for the project you're documenting, acts as replacement for
