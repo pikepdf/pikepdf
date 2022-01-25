@@ -4,7 +4,7 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
-import struct
+
 from abc import ABC, abstractmethod
 from decimal import Decimal
 from io import BytesIO
@@ -15,8 +15,6 @@ from typing import (
     Any,
     BinaryIO,
     Callable,
-    Dict,
-    List,
     NamedTuple,
     Optional,
     Tuple,
@@ -27,7 +25,6 @@ from typing import (
 )
 
 from PIL import Image, ImageCms
-from PIL.TiffTags import TAGS_V2 as TIFF_TAGS
 
 from pikepdf import (
     Array,
@@ -756,68 +753,13 @@ class PdfImage(PdfImageBase):
         photometry = 1 if black_is_one else 0
 
         img_size = len(data)
-        tiff_header_struct = '<' + '2s' + 'H' + 'L' + 'H'
-
-        tag_keys = {tag.name: key for key, tag in TIFF_TAGS.items()}  # type: ignore
-        ifd_struct = '<HHLL'
 
         if icc is None:
             icc = b''
 
-        class IFD(NamedTuple):
-            key: int
-            typecode: Any
-            count_: int
-            data: Union[int, Callable[[], Optional[int]]]
-
-        ifds: List[IFD] = []
-
-        def header_length(ifd_count) -> int:
-            return (
-                struct.calcsize(tiff_header_struct)
-                + struct.calcsize(ifd_struct) * ifd_count
-                + 4
-            )
-
-        def add_ifd(
-            tag_name: str, data: Union[int, Callable[[], Optional[int]]], count: int = 1
-        ):
-            key = tag_keys[tag_name]
-            typecode = TIFF_TAGS[key].type  # type: ignore
-            ifds.append(IFD(key, typecode, count, data))
-
-        image_offset = None
-        add_ifd('ImageWidth', self.width)
-        add_ifd('ImageLength', self.height)
-        add_ifd('BitsPerSample', 1)
-        add_ifd('Compression', ccitt_group)
-        add_ifd('PhotometricInterpretation', int(photometry))
-        add_ifd('StripOffsets', lambda: image_offset)
-        add_ifd('RowsPerStrip', self.height)
-        add_ifd('StripByteCounts', img_size)
-
-        icc_offset = 0
-        if icc:
-            add_ifd('ICCProfile', lambda: icc_offset, count=len(icc))
-
-        icc_offset = header_length(len(ifds))
-        image_offset = icc_offset + len(icc)
-
-        ifd_args = [(arg() if callable(arg) else arg) for ifd in ifds for arg in ifd]
-        tiff_header = struct.pack(
-            (tiff_header_struct + ifd_struct[1:] * len(ifds) + 'L'),
-            b'II',  # Byte order indication: Little endian
-            42,  # Version number (always 42)
-            8,  # Offset to first IFD
-            len(ifds),  # Number of tags in IFD
-            *ifd_args,
-            0,  # Last IFD
+        return _transcoding.generate_ccitt_header(
+            self.size, img_size, ccitt_group, photometry, icc
         )
-
-        if icc:
-            tiff_header += icc
-
-        return tiff_header
 
     def show(self):  # pragma: no cover
         """Show the image however PIL wants to."""

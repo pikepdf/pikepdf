@@ -4,10 +4,11 @@
 #
 # Copyright (C) 2022, James R. Barlow (https://github.com/jbarlow83/)
 
-
-from typing import Tuple, Union
+import struct
+from typing import Any, Callable, List, NamedTuple, Optional, Tuple, Union
 
 from PIL import Image
+from PIL.TiffTags import TAGS_V2 as TIFF_TAGS
 
 BytesLike = Union[bytes, memoryview]
 MutableBytesLike = Union[bytearray, memoryview]
@@ -80,9 +81,7 @@ def _4bit_inner_loop(in_: BytesLike, out: MutableBytesLike, scale: int) -> None:
 
 
 def image_from_byte_buffer(buffer: BytesLike, size: Tuple[int, int], stride: int):
-    """Use Pillow to create image from a byte buffer.
-
-    If the buffer conti
+    """Use Pillow to create one-component image from a byte buffer.
 
     *stride* is the number of bytes per row, and is essential for packed bits
     with odd image widths.
@@ -99,7 +98,10 @@ def image_from_buffer_and_palette(
     base_mode: str,
     palette: BytesLike,
 ) -> Image.Image:
-    """Construct an image from a byte buffer and palette."""
+    """Construct an image from a byte buffer and apply the palette.
+
+    2 and 4 bit images must be unpacked (no scaling!) to byte buffers first.
+    """
 
     # Reminder Pillow palette byte order unintentionally changed in 8.3.0
     # https://github.com/python-pillow/Pillow/issues/5595
@@ -150,3 +152,71 @@ def fix_1bit_palette_image(
             gp[255] = gp[1]  # work around Pillow bug
             im.putpalette(gp)
     return im
+
+
+def generate_ccitt_header(
+    size: Tuple[int, int],
+    data_length: int,
+    ccitt_group: int,
+    photometry: int,
+    icc: bytes,
+) -> bytes:
+    tiff_header_struct = '<' + '2s' + 'H' + 'L' + 'H'
+
+    tag_keys = {tag.name: key for key, tag in TIFF_TAGS.items()}  # type: ignore
+    ifd_struct = '<HHLL'
+
+    class IFD(NamedTuple):
+        key: int
+        typecode: Any
+        count_: int
+        data: Union[int, Callable[[], Optional[int]]]
+
+    ifds: List[IFD] = []
+
+    def header_length(ifd_count) -> int:
+        return (
+            struct.calcsize(tiff_header_struct)
+            + struct.calcsize(ifd_struct) * ifd_count
+            + 4
+        )
+
+    def add_ifd(
+        tag_name: str, data: Union[int, Callable[[], Optional[int]]], count: int = 1
+    ):
+        key = tag_keys[tag_name]
+        typecode = TIFF_TAGS[key].type  # type: ignore
+        ifds.append(IFD(key, typecode, count, data))
+
+    image_offset = None
+    width, height = size
+    add_ifd('ImageWidth', width)
+    add_ifd('ImageLength', height)
+    add_ifd('BitsPerSample', 1)
+    add_ifd('Compression', ccitt_group)
+    add_ifd('PhotometricInterpretation', int(photometry))
+    add_ifd('StripOffsets', lambda: image_offset)
+    add_ifd('RowsPerStrip', height)
+    add_ifd('StripByteCounts', data_length)
+
+    icc_offset = 0
+    if icc:
+        add_ifd('ICCProfile', lambda: icc_offset, count=len(icc))
+
+    icc_offset = header_length(len(ifds))
+    image_offset = icc_offset + len(icc)
+
+    ifd_args = [(arg() if callable(arg) else arg) for ifd in ifds for arg in ifd]
+    tiff_header = struct.pack(
+        (tiff_header_struct + ifd_struct[1:] * len(ifds) + 'L'),
+        b'II',  # Byte order indication: Little endian
+        42,  # Version number (always 42)
+        8,  # Offset to first IFD
+        len(ifds),  # Number of tags in IFD
+        *ifd_args,
+        0,  # Last IFD
+    )
+
+    if icc:
+        tiff_header += icc
+    return tiff_header
