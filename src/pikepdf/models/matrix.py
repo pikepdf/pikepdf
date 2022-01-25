@@ -52,7 +52,7 @@ class PdfMatrix:
                            tuple(args[0][1]),
                            tuple(args[0][2]))
         else:
-            raise ValueError('arguments')
+            raise ValueError('invalid arguments: ' + repr(args))
         # fmt: on
 
     @staticmethod
