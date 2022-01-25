@@ -18,13 +18,17 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v4.4.1
+======
+
+-  Fixed two instances of a Python object being copied without the GIL held.
+   May have caused some instability. Thanks @rwgk.
+
 v4.4.0
 ======
 
 -  Further improvements to handling of 2- and 4-bit per component images. Major
    refactoring of relevant code and improved testing.
--  Fixed two instances of a Python object being copied without the GIL held.
-   May have caused some instability. Thanks @rwgk.
 
 v4.3.1
 ======
