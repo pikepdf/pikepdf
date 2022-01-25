@@ -99,10 +99,10 @@ std::shared_ptr<QPDF> open_pdf(py::object filename_or_stream,
 
     if (access_mode == access_mmap || access_mode == access_mmap_only) {
         try {
-            py::gil_scoped_release release;
             auto mmap_input_source =
                 std::make_unique<MmapInputSource>(stream, description, closing_stream);
             auto input_source = PointerHolder<InputSource>(mmap_input_source.release());
+            py::gil_scoped_release release;
             q->processInputSource(input_source, password.c_str());
             success = true;
         } catch (const py::error_already_set &e) {
@@ -117,10 +117,10 @@ std::shared_ptr<QPDF> open_pdf(py::object filename_or_stream,
     }
 
     if (!success && access_mode == access_stream) {
-        py::gil_scoped_release release;
         auto stream_input_source = std::make_unique<PythonStreamInputSource>(
             stream, description, closing_stream);
         auto input_source = PointerHolder<InputSource>(stream_input_source.release());
+        py::gil_scoped_release release;
         q->processInputSource(input_source, password.c_str());
         success = true;
     }

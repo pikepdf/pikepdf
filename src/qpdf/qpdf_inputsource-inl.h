@@ -25,12 +25,23 @@
 #include "pikepdf.h"
 #include "utils.h"
 
+// GIL usage:
+// The GIL must be held while this class is constructed, by the constructor's caller,
+// since Python objects may be created/destroyed in the process of calling the
+// constructor.
+// When opening the PDF, we release the GIL before calling processInputSource
+// and similar, so we have to acquire it before calling back into Python, which we do
+// (oof) on every read or seek. The benefit is it allows us to use native Python
+// streams. Previous versions had a special code path for C based I/O.
+// When Python is manipulating the PDF, generally the GIL is held, but we
+// can release before doing a read, provided the other thread does not mess with
+// our file.
 class PythonStreamInputSource : public InputSource {
 public:
     PythonStreamInputSource(const py::object &stream, std::string name, bool close)
         : name(name), close(close)
     {
-        py::gil_scoped_acquire gil;
+        py::gil_scoped_acquire gil; // GIL must be held anyway, issue #295
         this->stream = stream;
         if (!this->stream.attr("readable")().cast<bool>())
             throw py::value_error("not readable");
@@ -114,7 +125,7 @@ public:
 
     qpdf_offset_t findAndSkipNextEOL() override
     {
-        py::gil_scoped_acquire gil;
+        py::gil_scoped_acquire gil; // Must acquire so another thread cannot seek
 
         qpdf_offset_t result   = 0;
         bool done              = false;

@@ -33,18 +33,24 @@
 // BufferInputSource.
 
 // GIL usage:
+// The GIL must be held while this class is constructed, by the constructor's caller,
+// since Python objects may be created/destroyed in the process of calling the
+// constructor.
 // When opening the PDF, we release the GIL before calling processInputSource
-// and similar, so we have to acquire it before calling back into Python.
+// and similar. With memory mapping this means we process the input source entirely
+// with re-acquiring the GIL, because Python 1) knows we mapped the memory and
+// hold a reference to it, 2) no Python objects reference because we have returned
+// the PDF object yet.
 // When Python is manipulating the PDF, generally the GIL is held, but we
 // can release before doing a read, provided the other thread does not mess with
-// our file.
+// our file. We can access mapped memory without checking whether the GIL is hed.
 class MmapInputSource : public InputSource {
 public:
     MmapInputSource(
         const py::object &stream, const std::string &description, bool close_stream)
         : InputSource(), close_stream(close_stream)
     {
-        py::gil_scoped_acquire acquire;
+        py::gil_scoped_acquire acquire; // GIL must be held anyway, issue #295
         this->stream = stream;
 
         py::int_ fileno  = this->stream.attr("fileno")();
