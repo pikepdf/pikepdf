@@ -585,6 +585,39 @@ class PdfImage(PdfImageBase):
             out[2 * n] = int((val >> 4) * scale)
             out[2 * n + 1] = int((val & 0b1111) * scale)
 
+    def _apply_palette(self, buffer, stride, ystep) -> Image.Image:
+        if not self.palette:
+            raise NotImplementedError("Called _apply_palette on image with no palette")
+        base_mode, palette = self.palette
+        if base_mode == 'RGB':
+            im = self._image_from_byte_buffer(buffer, stride, ystep)
+            im.putpalette(palette, rawmode=base_mode)
+        elif base_mode == 'L':
+            # Pillow does not fully support palettes with rawmode='L'.
+            # Convert to RGB palette.
+            gray_palette = palette
+            palette = b''
+            shift = 8 - self.bits_per_component
+            for entry in gray_palette:
+                palette += bytes([entry << shift]) * 3
+            im = self._image_from_byte_buffer(buffer, stride, ystep)
+            im.putpalette(palette, rawmode='RGB')
+        elif base_mode == 'CMYK':
+            # Pillow does not support CMYK with palettes; convert manually
+            with memoryview(buffer) as mv:
+                output = bytearray(4 * len(mv))
+                for n, pal_idx in enumerate(mv):
+                    output[4 * n : 4 * (n + 1)] = palette[
+                        4 * pal_idx : 4 * (pal_idx + 1)
+                    ]
+            im = Image.frombuffer('CMYK', self.size, data=output, decoder_name='raw')
+        else:
+            raise NotImplementedError(f'palette with {base_mode}')
+        return im
+
+    def _image_from_byte_buffer(self, buffer, stride, ystep):
+        return Image.frombuffer('L', self.size, buffer, "raw", 'L', stride, ystep)
+
     def _extract_transcoded(self) -> Image.Image:
         # Reminder Pillow palette byte order unintentionally changed in 8.3.0
         # https://github.com/python-pillow/Pillow/issues/5595
@@ -619,34 +652,11 @@ class PdfImage(PdfImageBase):
             else:
                 raise InvalidPdfImageError("BitsPerComponent must be 1, 2, 4, 8, or 16")
 
-            im = Image.frombuffer('L', self.size, buffer, "raw", 'L', stride, ystep)
-
             if self.mode == 'P' and self.palette is not None:
-                base_mode, palette = self.palette
-                if base_mode == 'RGB':
-                    im.putpalette(palette, rawmode=base_mode)
-                elif base_mode == 'L':
-                    # Pillow does not fully support palettes with rawmode='L'.
-                    # Convert to RGB palette.
-                    gray_palette = palette
-                    palette = b''
-                    shift = 8 - self.bits_per_component
-                    for entry in gray_palette:
-                        palette += bytes([entry << shift]) * 3
-                    im.putpalette(palette, rawmode='RGB')
-                elif base_mode == 'CMYK':
-                    # Pillow does not support CMYK with palettes; convert manually
-                    with memoryview(buffer) as mv:
-                        output = bytearray(4 * len(mv))
-                        for n, pal_idx in enumerate(mv):
-                            output[4 * n : 4 * (n + 1)] = palette[
-                                4 * pal_idx : 4 * (pal_idx + 1)
-                            ]
-                    im = Image.frombuffer(
-                        'CMYK', self.size, data=output, decoder_name='raw'
-                    )
-                else:
-                    raise NotImplementedError(f'palette with {base_mode}')
+                im = self._apply_palette(buffer, stride, ystep)
+            else:
+                im = self._image_from_byte_buffer(buffer, stride, ystep)
+
         elif self.bits_per_component == 1:
             if self.filters and self.filters[0] == '/JBIG2Decode':
                 if not jbig2.jbig2dec_available():
@@ -665,6 +675,9 @@ class PdfImage(PdfImageBase):
                 im = Image.frombytes('1', self.size, data)
         else:
             raise UnsupportedImageTypeError(repr(self) + ", " + repr(self.obj))
+
+        if not im:
+            raise NotImplementedError("This is a problem")
 
         if (
             self.mode == 'P'
