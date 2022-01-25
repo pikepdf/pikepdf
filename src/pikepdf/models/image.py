@@ -41,6 +41,7 @@ from pikepdf import (
     jbig2,
 )
 from pikepdf._qpdf import Buffer
+from pikepdf.models._transcoding import unpack_subbyte_pixels
 
 
 class DependencyError(Exception):
@@ -107,20 +108,6 @@ def metadata_from_obj(
         if val is None:
             return None
     raise NotImplementedError('Metadata access for ' + name)
-
-
-def _next_multiple(n: int, k: int) -> int:
-    """Returns the multiple of k that is greater than or equal n.
-
-    >>> _next_multiple(101, 4)
-    104
-    >>> _next_multiple(100, 4)
-    100
-    """
-    div, mod = divmod(n, k)
-    if mod > 0:
-        div += 1
-    return div * k
 
 
 class PaletteData(NamedTuple):
@@ -546,45 +533,6 @@ class PdfImage(PdfImageBase):
 
         raise NotExtractableError()
 
-    def _unpack_subbyte_pixels(self, bits: int, scale: int = 0):
-        """Unpack subbyte *bits* pixels into full bytes and rescale.
-
-        When scale is 0, the appropriate scale is calculated.
-        e.g. for 2-bit, the scale is adjusted so that
-            0b00 = 0.00 = 0x00
-            0b01 = 0.33 = 0x55
-            0b10 = 0.66 = 0xaa
-            0b11 = 1.00 = 0xff
-        When scale is 1, no scaling is applied, appropriate when
-        the bytes are palette indexes.
-        """
-        imbytes = self.read_bytes()
-        bits_per_byte = 8 // bits
-        stride = _next_multiple(self.width, bits_per_byte)
-        buffer = bytearray(bits_per_byte * stride * self.height)
-        max_read = len(buffer) // bits_per_byte
-        if scale == 0:
-            scale = 255 / ((2 ** bits) - 1)
-        if bits == 2:
-            self._2bit_inner_loop(imbytes[:max_read], buffer, scale)
-        elif bits == 4:
-            self._4bit_inner_loop(imbytes[:max_read], buffer, scale)
-        else:
-            raise NotImplementedError(bits)
-        return memoryview(buffer), stride
-
-    def _2bit_inner_loop(self, in_, out, scale):
-        for n, val in enumerate(in_):
-            out[4 * n] = int((val >> 6) * scale)
-            out[4 * n + 1] = int(((val >> 4) & 0b11) * scale)
-            out[4 * n + 2] = int(((val >> 2) & 0b11) * scale)
-            out[4 * n + 3] = int((val & 0b11) * scale)
-
-    def _4bit_inner_loop(self, in_, out, scale):
-        for n, val in enumerate(in_):
-            out[2 * n] = int((val >> 4) * scale)
-            out[2 * n + 1] = int((val & 0b1111) * scale)
-
     def _apply_palette(self, buffer, stride, ystep) -> Image.Image:
         if not self.palette:
             raise NotImplementedError("Called _apply_palette on image with no palette")
@@ -643,10 +591,10 @@ class PdfImage(PdfImageBase):
             ystep = 1  # image is top to bottom in memory
 
             scale = 0 if self.mode == 'L' else 1
-            if self.bits_per_component == 2:
-                buffer, stride = self._unpack_subbyte_pixels(2, scale)
-            elif self.bits_per_component == 4:
-                buffer, stride = self._unpack_subbyte_pixels(4, scale)
+            if self.bits_per_component in (2, 4):
+                buffer, stride = unpack_subbyte_pixels(
+                    self.read_bytes(), self.size, self.bits_per_component, scale
+                )
             elif self.bits_per_component == 8:
                 buffer = self.get_stream_buffer()
             else:
