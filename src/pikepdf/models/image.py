@@ -23,6 +23,7 @@ from typing import (
     Type,
     TypeVar,
     Union,
+    cast,
 )
 
 from PIL import Image, ImageCms
@@ -41,7 +42,7 @@ from pikepdf import (
     jbig2,
 )
 from pikepdf._qpdf import Buffer
-from pikepdf.models._transcoding import unpack_subbyte_pixels
+from pikepdf.models import _transcoding
 
 
 class DependencyError(Exception):
@@ -533,39 +534,6 @@ class PdfImage(PdfImageBase):
 
         raise NotExtractableError()
 
-    def _apply_palette(self, buffer, stride, ystep) -> Image.Image:
-        if not self.palette:
-            raise NotImplementedError("Called _apply_palette on image with no palette")
-        base_mode, palette = self.palette
-        if base_mode == 'RGB':
-            im = self._image_from_byte_buffer(buffer, stride, ystep)
-            im.putpalette(palette, rawmode=base_mode)
-        elif base_mode == 'L':
-            # Pillow does not fully support palettes with rawmode='L'.
-            # Convert to RGB palette.
-            gray_palette = palette
-            palette = b''
-            shift = 8 - self.bits_per_component
-            for entry in gray_palette:
-                palette += bytes([entry << shift]) * 3
-            im = self._image_from_byte_buffer(buffer, stride, ystep)
-            im.putpalette(palette, rawmode='RGB')
-        elif base_mode == 'CMYK':
-            # Pillow does not support CMYK with palettes; convert manually
-            with memoryview(buffer) as mv:
-                output = bytearray(4 * len(mv))
-                for n, pal_idx in enumerate(mv):
-                    output[4 * n : 4 * (n + 1)] = palette[
-                        4 * pal_idx : 4 * (pal_idx + 1)
-                    ]
-            im = Image.frombuffer('CMYK', self.size, data=output, decoder_name='raw')
-        else:
-            raise NotImplementedError(f'palette with {base_mode}')
-        return im
-
-    def _image_from_byte_buffer(self, buffer, stride, ystep):
-        return Image.frombuffer('L', self.size, buffer, "raw", 'L', stride, ystep)
-
     def _extract_transcoded(self) -> Image.Image:
         # Reminder Pillow palette byte order unintentionally changed in 8.3.0
         # https://github.com/python-pillow/Pillow/issues/5595
@@ -588,22 +556,29 @@ class PdfImage(PdfImageBase):
             )
         elif self.mode in ('L', 'P') and 2 <= self.bits_per_component <= 8:
             stride = 0  # tell Pillow to calculate stride from line width
-            ystep = 1  # image is top to bottom in memory
 
             scale = 0 if self.mode == 'L' else 1
             if self.bits_per_component in (2, 4):
-                buffer, stride = unpack_subbyte_pixels(
+                buffer, stride = _transcoding.unpack_subbyte_pixels(
                     self.read_bytes(), self.size, self.bits_per_component, scale
                 )
             elif self.bits_per_component == 8:
-                buffer = self.get_stream_buffer()
+                buffer = cast(memoryview, self.get_stream_buffer())
             else:
                 raise InvalidPdfImageError("BitsPerComponent must be 1, 2, 4, 8, or 16")
 
             if self.mode == 'P' and self.palette is not None:
-                im = self._apply_palette(buffer, stride, ystep)
+                base_mode, palette = self.palette
+                im = _transcoding.image_from_buffer_and_palette(
+                    base_mode,
+                    palette,
+                    buffer,
+                    self.size,
+                    self.bits_per_component,
+                    stride,
+                )
             else:
-                im = self._image_from_byte_buffer(buffer, stride, ystep)
+                im = _transcoding.image_from_byte_buffer(buffer, self.size, stride)
 
         elif self.bits_per_component == 1:
             if self.filters and self.filters[0] == '/JBIG2Decode':
