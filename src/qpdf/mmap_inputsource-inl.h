@@ -43,7 +43,7 @@
 // the PDF object yet.
 // When Python is manipulating the PDF, generally the GIL is held, but we
 // can release before doing a read, provided the other thread does not mess with
-// our file. We can access mapped memory without checking whether the GIL is hed.
+// our file. We can access mapped memory without checking whether the GIL is held.
 class MmapInputSource : public InputSource {
 public:
     MmapInputSource(
