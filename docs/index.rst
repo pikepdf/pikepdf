@@ -48,7 +48,7 @@ pikepdf would help you build apps that do things like:
 
 * :ref:`Copy pages <copyother>` from one PDF into another
 * :ref:`Split <splitpdf>` and :ref:`merge <mergepdf>` PDFs
-* Extract content from a PDF such as text or :ref:`images <extract_image>`
+* Extract content from a PDF such as :ref:`images <extract_image>`
 * Replace content, such as :ref:`replacing an image <replace_image>` without
   altering the rest of the file
 * Repair, reformat or :meth:`linearize <pikepdf.Pdf.save>` PDFs
