@@ -889,22 +889,26 @@ requires_pdfimages = pytest.mark.skipif(
 )
 
 
-@requires_pdfimages
-@given(
-    bpc=st.sampled_from([1, 2, 4, 8, 16]),
-    width=st.integers(min_value=1, max_value=16),
-    height=st.integers(min_value=1, max_value=16),
-    colorspace=st.sampled_from([Name.DeviceGray, Name.DeviceRGB, Name.DeviceCMYK]),
-    imbytes=st.binary(min_size=1, max_size=512),
-)
-def test_random_image(bpc, width, height, colorspace, imbytes, tmp_path_factory):
+@st.composite
+def valid_random_image_pdf(
+    draw,
+    bpcs=st.sampled_from([1, 2, 4, 8, 16]),
+    widths=st.integers(min_value=1, max_value=16),
+    heights=st.integers(min_value=1, max_value=16),
+    colorspaces=st.sampled_from([Name.DeviceGray, Name.DeviceRGB, Name.DeviceCMYK]),
+):
+    bpc = draw(bpcs)
+    width = draw(widths)
+    height = draw(heights)
+    colorspace = draw(colorspaces)
+
+    min_imbytes = width * height * (2 if bpc == 16 else 1)
+    imbytes = draw(st.binary(min_size=min_imbytes, max_size=4 * min_imbytes))
 
     pdf = pikepdf.new()
-    pdfw, pdfh = 18 * width, 18 * height
+    pdfw, pdfh = 36 * width, 36 * height
 
     pdf.add_blank_page(page_size=(pdfw, pdfh))
-    if len(imbytes) < width * height:
-        imbytes = imbytes + bytes(width * height * (2 if bpc == 16 else 1))
 
     imobj = Stream(
         pdf,
@@ -920,8 +924,19 @@ def test_random_image(bpc, width, height, colorspace, imbytes, tmp_path_factory)
     pdf.pages[0].Contents = Stream(pdf, b'%f 0 0 %f 0 0 cm /Im0 Do' % (pdfw, pdfh))
     pdf.pages[0].Resources = Dictionary(XObject=Dictionary(Im0=imobj))
 
+    return pdf
+
+
+@requires_pdfimages
+@given(pdf=valid_random_image_pdf())
+def test_random_image(pdf, tmp_path_factory):
     pim = PdfImage(pdf.pages[0].Resources.XObject.Im0)
     bio = BytesIO()
+    colorspace = pim.colorspace
+    width = pim.width
+    height = pim.height
+    bpc = pim.bits_per_component
+    imbytes = pim.read_bytes()
     try:
         result_extension = pim.extract_to(stream=bio)
         assert result_extension in ('.png', '.tiff')
