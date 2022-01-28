@@ -221,50 +221,68 @@ def test_bits_per_component_missing(congress):
     assert PdfImage(congress[0]).bits_per_component == 8
 
 
-@pytest.mark.parametrize(
-    'w,h,pixeldata,cs,bpc',
-    [
-        (1, 1, b'\xff', '/DeviceGray', 1),
-        (1, 1, b'\xf0', '/DeviceGray', 8),
-        (1, 1, b'\xff\x00\xff', '/DeviceRGB', 8),
-        (1, 1, b'\xff\x80\x40\x20', '/DeviceCMYK', 8),
-    ],
-)
-def test_image_roundtrip(outdir, w, h, pixeldata, cs, bpc):
-    pdf = Pdf.new()
+@st.composite
+def valid_random_image_pdf(
+    draw,
+    bpcs=st.sampled_from([1, 2, 4, 8, 16]),
+    widths=st.integers(min_value=1, max_value=16),
+    heights=st.integers(min_value=1, max_value=16),
+    colorspaces=st.sampled_from([Name.DeviceGray, Name.DeviceRGB, Name.DeviceCMYK]),
+):
+    bpc = draw(bpcs)
+    width = draw(widths)
+    height = draw(heights)
+    colorspace = draw(colorspaces)
 
-    image_data = pixeldata * (w * h)
+    min_imbytes = width * height * (2 if bpc == 16 else 1)
+    if colorspace == Name.DeviceRGB:
+        min_imbytes *= 3
+    elif colorspace == Name.DeviceCMYK:
+        min_imbytes *= 4
+    imbytes = draw(st.binary(min_size=min_imbytes, max_size=2 * min_imbytes))
 
-    image = Stream(pdf, image_data)
-    image.Type = Name('/XObject')
-    image.Subtype = Name('/Image')
-    image.ColorSpace = Name(cs)
-    image.BitsPerComponent = bpc
-    image.Width = w
-    image.Height = h
+    pdf = pikepdf.new()
+    pdfw, pdfh = 36 * width, 36 * height
 
-    xobj = {'/Im1': image}
-    resources = {'/XObject': xobj}
-    mediabox = [0, 0, 100, 100]
-    stream = b'q 100 0 0 100 0 0 cm /Im1 Do Q'
-    contents = Stream(pdf, stream)
+    pdf.add_blank_page(page_size=(pdfw, pdfh))
 
-    page_dict = {
-        '/Type': Name('/Page'),
-        '/MediaBox': mediabox,
-        '/Contents': contents,
-        '/Resources': resources,
-    }
-    page = pdf.make_indirect(page_dict)
+    imobj = Stream(
+        pdf,
+        imbytes,
+        BitsPerComponent=bpc,
+        ColorSpace=colorspace,
+        Width=width,
+        Height=height,
+        Type=Name.XObject,
+        Subtype=Name.Image,
+    )
 
-    pdf.pages.append(page)
+    pdf.pages[0].Contents = Stream(pdf, b'%f 0 0 %f 0 0 cm /Im0 Do' % (pdfw, pdfh))
+    pdf.pages[0].Resources = Dictionary(XObject=Dictionary(Im0=imobj))
+    pdf.pages[0].MediaBox = Array([0, 0, pdfw, pdfh])
+
+    return pdf
+
+
+@given(pdf=valid_random_image_pdf(bpcs=st.sampled_from([1, 2, 4, 8])))
+def test_image_save_compare(tmp_path_factory, pdf):
+    image = pdf.pages[0].Resources.XObject['/Im0']
+    w = image.Width
+    h = image.Height
+    cs = str(image.ColorSpace)
+    bpc = image.BitsPerComponent
+    pixeldata = image.read_bytes()
+
+    assume((bpc < 8 and cs == '/DeviceGray') or (bpc == 8))
+
+    outdir = tmp_path_factory.mktemp('image_roundtrip')
     outfile = outdir / f'test{w}{h}{cs[1:]}{bpc}.pdf'
     pdf.save(
         outfile, compress_streams=False, stream_decode_level=StreamDecodeLevel.none
     )
 
     with Pdf.open(outfile) as p2:
-        pim = PdfImage(p2.pages[0].Resources.XObject['/Im1'])
+        pim = PdfImage(p2.pages[0].Resources.XObject['/Im0'])
 
         assert pim.bits_per_component == bpc
         assert pim.colorspace == cs
@@ -887,44 +905,6 @@ def has_pdfimages():
 requires_pdfimages = pytest.mark.skipif(
     not has_pdfimages(), reason="pdfimages not installed"
 )
-
-
-@st.composite
-def valid_random_image_pdf(
-    draw,
-    bpcs=st.sampled_from([1, 2, 4, 8, 16]),
-    widths=st.integers(min_value=1, max_value=16),
-    heights=st.integers(min_value=1, max_value=16),
-    colorspaces=st.sampled_from([Name.DeviceGray, Name.DeviceRGB, Name.DeviceCMYK]),
-):
-    bpc = draw(bpcs)
-    width = draw(widths)
-    height = draw(heights)
-    colorspace = draw(colorspaces)
-
-    min_imbytes = width * height * (2 if bpc == 16 else 1)
-    imbytes = draw(st.binary(min_size=min_imbytes, max_size=4 * min_imbytes))
-
-    pdf = pikepdf.new()
-    pdfw, pdfh = 36 * width, 36 * height
-
-    pdf.add_blank_page(page_size=(pdfw, pdfh))
-
-    imobj = Stream(
-        pdf,
-        imbytes,
-        BitsPerComponent=bpc,
-        ColorSpace=colorspace,
-        Width=width,
-        Height=height,
-        Type=Name.XObject,
-        Subtype=Name.Image,
-    )
-
-    pdf.pages[0].Contents = Stream(pdf, b'%f 0 0 %f 0 0 cm /Im0 Do' % (pdfw, pdfh))
-    pdf.pages[0].Resources = Dictionary(XObject=Dictionary(Im0=imobj))
-
-    return pdf
 
 
 @requires_pdfimages
