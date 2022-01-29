@@ -29,6 +29,7 @@ from pikepdf import (
     StreamDecodeLevel,
     parse_content_stream,
 )
+from pikepdf.models._transcoding import unpack_subbyte_pixels
 from pikepdf.models.image import (
     DependencyError,
     NotExtractableError,
@@ -397,8 +398,7 @@ def test_extract_filepath(congress, outdir):
     xobj, _pdf = congress
     pim = PdfImage(xobj)
 
-    # fspath is for Python 3.5
-    result = pim.extract_to(fileprefix=fspath(outdir / 'image'))
+    result = pim.extract_to(fileprefix=(outdir / 'image'))
     assert Path(result).exists()
     assert (outdir / 'image.jpg').exists()
 
@@ -853,44 +853,32 @@ def test_devicen():
     # pdf.save('devicen.pdf')
 
 
-@pytest.mark.parametrize(
-    'bits, check_pixels',
-    [
-        (2, [(0, 0, 0x00), (1, 1, 0x55)]),
-        (4, [(1, 0, 0xBB), (0, 1, 0x00), (1, 1, 0x11)]),
-    ],
-)
-def test_oddwidth_grayscale(bits, check_pixels):
-    pdf = pikepdf.new()
-    pdf.add_blank_page(page_size=(108, 72))
-
-    imobj = Stream(
-        pdf,
-        bytes([0b00011011, 0b11011000, 0b00000001]),
-        BitsPerComponent=bits,
-        ColorSpace=Name.DeviceGray,
-        Width=3,
-        Height=2,
-        Type=Name.XObject,
-        Subtype=Name.Image,
+@given(
+    pdf=valid_random_image_pdf(
+        bpcs=st.sampled_from([2, 4]),
+        colorspaces=st.just(Name.DeviceGray),
+        widths=st.integers(1, 7),
+        heights=st.integers(1, 7),
     )
-
-    pdf.pages[0].Contents = Stream(pdf, b'108 0 0 72 0 0 cm /Im0 Do')
-    pdf.pages[0].Resources = Dictionary(XObject=Dictionary(Im0=imobj))
-
+)
+def test_grayscale_stride(pdf):
     pim = PdfImage(pdf.pages[0].Resources.XObject.Im0)
     assert pim.mode == 'L'
-    assert pim.bits_per_component == bits
+    imdata = pim.read_bytes()
+    w = pim.width
+    imdata_unpacked_view, stride = unpack_subbyte_pixels(
+        imdata, pim.size, pim.bits_per_component
+    )
+    imdata_unpacked = bytes(imdata_unpacked_view)
+
     bio = BytesIO()
     pim.extract_to(stream=bio)
-    bio.seek(0)
     im = Image.open(bio)
-    assert im.mode == 'L'
-    assert im.size == (3, 2)
+    assert im.mode == 'L' and im.size == pim.size
 
-    # pdf.save(f'oddbit_{bits}.pdf')
-    for check_x, check_y, val in check_pixels:
-        assert im.getpixel((check_x, check_y)) == val
+    for n, pixel in enumerate(im.getdata()):
+        idx = stride * (n // w) + (n % w)
+        assert imdata_unpacked[idx] == pixel
 
 
 def has_pdfimages():
