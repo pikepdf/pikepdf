@@ -5,8 +5,7 @@ from io import BytesIO
 from math import ceil
 from os import fspath
 from pathlib import Path
-from subprocess import run
-from tempfile import TemporaryDirectory
+from subprocess import PIPE, run
 
 import PIL
 import pytest
@@ -38,6 +37,20 @@ from pikepdf.models.image import (
 )
 
 # pylint: disable=redefined-outer-name
+
+
+def has_pdfimages():
+    try:
+        run(['pdfimages', '-v'], check=True, capture_output=True)
+    except FileNotFoundError:
+        return False
+    else:
+        return True
+
+
+requires_pdfimages = pytest.mark.skipif(
+    not has_pdfimages(), reason="pdfimages not installed"
+)
 
 
 @pytest.fixture
@@ -879,20 +892,6 @@ def test_grayscale_stride(pdf):
     for n, pixel in enumerate(im.getdata()):
         idx = stride * (n // w) + (n % w)
         assert imdata_unpacked[idx] == pixel
-
-
-def has_pdfimages():
-    try:
-        run(['pdfimages', '-v'], check=True)
-    except FileNotFoundError:
-        return False
-    else:
-        return True
-
-
-requires_pdfimages = pytest.mark.skipif(
-    not has_pdfimages(), reason="pdfimages not installed"
-)
 
 
 @requires_pdfimages
