@@ -9,7 +9,7 @@ from pathlib import Path
 from shutil import copy
 
 import pytest
-import toml
+import tomli
 from packaging.version import Version
 
 import pikepdf
@@ -19,7 +19,8 @@ from pikepdf import Name, Object, Pdf, Stream
 def test_minimum_qpdf_version():
     from pikepdf import _qpdf
 
-    pyproject_toml = toml.load(Path(__file__).parent / '../pyproject.toml')
+    with open(Path(__file__).parent / '../pyproject.toml', 'rb') as f:
+        pyproject_toml = tomli.load(f)
     toml_env = pyproject_toml['tool']['cibuildwheel']['environment']
 
     assert Version(_qpdf.qpdf_version()) >= Version(toml_env['QPDF_MIN_VERSION'])
