@@ -25,7 +25,14 @@ def extract_jbig2(
         global_path = Path(tmpdir) / "global"
         output_path = Path(tmpdir) / "outfile"
 
-        args = ["jbig2dec", "-e", "-o", os.fspath(output_path)]
+        args = [
+            "jbig2dec",
+            "--embedded",
+            "--format",
+            "png",
+            "--output",
+            os.fspath(output_path),
+        ]
 
         # Get the raw stream, because we can't decode im_obj - that is why we are here
         # (Strictly speaking we should remove any non-JBIG2 filters if double encoded)
@@ -43,6 +50,35 @@ def extract_jbig2(
         im = Image.open(output_path)
         im.load()  # Load pixel data into memory so file/tempdir can be closed
         return im
+
+
+def extract_jbig2_bytes(jbig2: bytes, jbig2_globals: bytes) -> bytes:
+    with TemporaryDirectory(prefix='pikepdf', suffix='.jbig2') as tmpdir:
+        image_path = Path(tmpdir) / "image"
+        global_path = Path(tmpdir) / "global"
+        output_path = Path(tmpdir) / "outfile"
+
+        args = [
+            "jbig2dec",
+            "--embedded",
+            "--format",
+            "png",
+            "--output",
+            os.fspath(output_path),
+        ]
+
+        # Get the raw stream, because we can't decode im_obj - that is why we are here
+        # (Strictly speaking we should remove any non-JBIG2 filters if double encoded)
+        image_path.write_bytes(jbig2)
+
+        if len(jbig2_globals) > 0:
+            global_path.write_bytes(jbig2_globals)
+            args.append(os.fspath(global_path))
+
+        args.append(os.fspath(image_path))
+
+        run(args, stdout=DEVNULL, check=True)
+        return output_path.read_bytes()
 
 
 def jbig2dec_available() -> bool:

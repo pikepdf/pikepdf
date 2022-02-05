@@ -32,6 +32,7 @@
 #include "qpdf_pagelist.h"
 #include "qpdf_inputsource-inl.h"
 #include "mmap_inputsource-inl.h"
+#include "jbig2-inl.h"
 #include "pipeline.h"
 #include "utils.h"
 #include "gsl.h"
@@ -473,6 +474,8 @@ void save_pdf(QPDF &q,
 
 void init_qpdf(py::module_ &m)
 {
+    QPDF::registerStreamFilter("/JBIG2Decode", &JBIG2StreamFilter::factory);
+
     py::enum_<qpdf_object_stream_e>(m, "ObjectStreamMode")
         .value("disable", qpdf_object_stream_e::qpdf_o_disable)
         .value("preserve", qpdf_object_stream_e::qpdf_o_preserve)
