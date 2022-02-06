@@ -6,6 +6,7 @@ from math import ceil
 from os import fspath
 from pathlib import Path
 from subprocess import run
+from typing import Sequence
 
 import PIL
 import pytest
@@ -29,7 +30,7 @@ from pikepdf import (
     StreamDecodeLevel,
     parse_content_stream,
 )
-from pikepdf.models._transcoding import unpack_subbyte_pixels
+from pikepdf.models._transcoding import _next_multiple, unpack_subbyte_pixels
 from pikepdf.models.image import (
     DependencyError,
     NotExtractableError,
@@ -349,6 +350,116 @@ def test_direct_extract(first_image_in, filename, bpc, filters, ext, mode, forma
     assert im.format == format_
 
 
+def pack_2bit_row(row: Sequence[int]) -> bytes:
+    assert len(row) % 4 == 0
+    im76 = [s << 6 for s in row[0::4]]
+    im54 = [s << 4 for s in row[1::4]]
+    im32 = [s << 2 for s in row[2::4]]
+    im10 = [s << 0 for s in row[3::4]]
+    return bytes(sum(s) for s in zip(im76, im54, im32, im10))
+
+
+def pack_4bit_row(row: Sequence[int]) -> bytes:
+    assert len(row) % 2 == 0
+    upper = [s << 4 for s in row[0::2]]
+    lower = row[1::2]
+    return bytes(sum(s) for s in zip(upper, lower))
+
+
+@st.composite
+def imagelike_data(draw, width, height, bpc, sample_range=None):
+    bits_per_byte = 8 // bpc
+    stride = _next_multiple(width, bits_per_byte)
+
+    if not sample_range:
+        sample_range = (0, 2 ** bpc - 1)
+
+    if bpc in (2, 4, 8):
+        intdata = draw(
+            st.lists(
+                st.lists(
+                    st.integers(*sample_range),
+                    min_size=stride,
+                    max_size=stride,
+                ),
+                min_size=height,
+                max_size=height,
+            )
+        )
+        if bpc == 8:
+            imbytes = b''.join(bytes(row) for row in intdata)
+        elif bpc == 4:
+            imbytes = b''.join(pack_4bit_row(row) for row in intdata)
+        elif bpc == 2:
+            imbytes = b''.join(pack_2bit_row(row) for row in intdata)
+        assert len(imbytes) > 0
+    elif bpc == 1:
+        imdata = draw(
+            st.lists(
+                st.integers(0, 255 if sample_range[1] > 0 else 0),
+                min_size=height * _next_multiple(width, 8),
+                max_size=height * _next_multiple(width, 8),
+            )
+        )
+        imbytes = bytes(imdata)
+    return imbytes
+
+
+@st.composite
+def valid_random_palette_image_pdf(
+    draw,
+    bpcs=st.sampled_from([1, 2, 4, 8]),
+    widths=st.integers(min_value=1, max_value=16),
+    heights=st.integers(min_value=1, max_value=16),
+    colorspaces=st.sampled_from([Name.DeviceGray, Name.DeviceRGB, Name.DeviceCMYK]),
+    palette=None,
+):
+    bpc = draw(bpcs)
+    width = draw(widths)
+    height = draw(heights)
+    colorspace = draw(colorspaces)
+    hival = draw(st.integers(min_value=0, max_value=(2 ** bpc) - 1))
+
+    imbytes = draw(imagelike_data(width, height, bpc, (0, hival)))
+
+    channels = (
+        1
+        if colorspace == Name.DeviceGray
+        else 3
+        if colorspace == Name.DeviceRGB
+        else 4
+        if colorspace == Name.DeviceCMYK
+        else 0
+    )
+
+    if not palette:
+        palette = draw(
+            st.binary(min_size=channels * (hival + 1), max_size=channels * (hival + 1))
+        )
+
+    pdf = pikepdf.new()
+    pdfw, pdfh = 36 * width, 36 * height
+
+    pdf.add_blank_page(page_size=(pdfw, pdfh))
+
+    imobj = Stream(
+        pdf,
+        imbytes,
+        BitsPerComponent=bpc,
+        ColorSpace=Array([Name.Indexed, colorspace, hival, palette]),
+        Width=width,
+        Height=height,
+        Type=Name.XObject,
+        Subtype=Name.Image,
+    )
+
+    pdf.pages[0].Contents = Stream(pdf, b'%f 0 0 %f 0 0 cm /Im0 Do' % (pdfw, pdfh))
+    pdf.pages[0].Resources = Dictionary(XObject=Dictionary(Im0=imobj))
+    pdf.pages[0].MediaBox = Array([0, 0, pdfw, pdfh])
+
+    return pdf
+
+
 @pytest.mark.parametrize(
     'filename,bpc,rgb',
     [
@@ -372,6 +483,60 @@ def test_image_palette(resources, filename, bpc, rgb):
 
     im = pim.as_pil_image().convert('RGB')
     assert im.getpixel((1, 1)) == rgb
+
+
+@contextmanager
+def first_image_from_pdfimages(pdf, tmpdir):
+    if not has_pdfimages():
+        pytest.skip("Need pdfimages for this test")
+
+    pdf.save(tmpdir / 'in.pdf')
+
+    run(
+        ['pdfimages', '-q', '-png', fspath(tmpdir / 'in.pdf'), fspath('pdfimage')],
+        cwd=fspath(tmpdir),
+        check=True,
+    )
+
+    outpng = tmpdir / 'pdfimage-000.png'
+    assert outpng.exists()
+    yield Image.open(outpng)
+
+
+@given(pdf=valid_random_palette_image_pdf())
+# @given(
+#     pdf=valid_random_palette_image_pdf(
+#         bpcs=st.just(1),
+#         widths=st.just(1),
+#         heights=st.just(1),
+#         colorspaces=st.just(Name.DeviceGray),
+#     )
+# )
+def test_image_palette2(pdf, tmp_path_factory):
+    pim = PdfImage(pdf.pages[0].Resources.XObject['/Im0'])
+    note(f"{pim!r}, {pim.palette!r}, {pim.obj!r}, {str(pim.read_bytes())}")
+
+    im1 = pim.as_pil_image()
+
+    with first_image_from_pdfimages(
+        pdf, tmp_path_factory.mktemp('test_image_palette2')
+    ) as im2:
+        if pim.palette.base_colorspace == 'CMYK' and im1.size == im2.size:
+            return  # Good enough - CMYK is hard...
+
+        if im1.mode == im2.mode:
+            diff = ImageChops.difference(im1, im2)
+        else:
+            diff = ImageChops.difference(im1.convert('RGB'), im2.convert('RGB'))
+
+        if diff.getbbox():
+            if pim.palette.base_colorspace in ('L', 'RGB', 'CMYK') and im2.mode == '1':
+                note("pdfimages bug - 1bit image stripped of palette")
+                return
+
+        assert (
+            not diff.getbbox()
+        ), f"{diff.getpixel((0, 0))}, {im1.getpixel((0,0))}, {im2.getpixel((0,0))}"
 
 
 def test_bool_in_inline_image():
@@ -926,6 +1091,7 @@ def test_random_image(pdf, tmp_path_factory):
     height = pim.height
     bpc = pim.bits_per_component
     imbytes = pim.read_bytes()
+    note(f"{pim!r}, {pim.palette!r}, {pim.obj!r}, {str(pim.read_bytes())}")
     try:
         result_extension = pim.extract_to(stream=bio)
         assert result_extension in ('.png', '.tiff')
@@ -943,11 +1109,11 @@ def test_random_image(pdf, tmp_path_factory):
             assert ceil(bpc / 8) * width * height * ncomps > len(imbytes)
             return
         raise
-    except PIL.UnidentifiedImageError as e:
+    except PIL.UnidentifiedImageError:
         if len(imbytes) == 0:
             return
         raise
-    except UnsupportedImageTypeError as e:
+    except UnsupportedImageTypeError:
         if colorspace in (Name.DeviceRGB, Name.DeviceCMYK) and bpc < 8:
             return
         if bpc == 16:

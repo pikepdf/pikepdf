@@ -531,8 +531,8 @@ class PdfImage(PdfImageBase):
 
         raise NotExtractableError()
 
-    def _extract_transcoded_248bits(self) -> Image.Image:
-        """Extract an image when there are 2/4/8 bits packed in byte data."""
+    def _extract_transcoded_1248bits(self) -> Image.Image:
+        """Extract an image when there are 1/2/4/8 bits packed in byte data."""
 
         stride = 0  # tell Pillow to calculate stride from line width
         scale = 0 if self.mode == 'L' else 1
@@ -560,19 +560,22 @@ class PdfImage(PdfImageBase):
         return im
 
     def _extract_transcoded_1bit(self) -> Image.Image:
-        if self.filters and self.filters[0] == '/JBIG2Decode':
-            if not jbig2.jbig2dec_available():
+        if self.mode in ('RGB', 'CMYK'):
+            raise UnsupportedImageTypeError("1-bit RGB and CMYK are not supported")
+        try:
+            data = self.read_bytes()
+        except (RuntimeError, PdfError) as e:
+            if (
+                'read_bytes called on unfilterable stream' in str(e)
+                and not jbig2.jbig2dec_available()
+            ):
                 raise DependencyError(
                     "jbig2dec - not installed or installed version is too old "
                     "(older than version 0.15)"
-                )
-            jbig2_globals_obj = self.filter_decodeparms[0][1].get('/JBIG2Globals')
-            im = jbig2.extract_jbig2(self.obj, jbig2_globals_obj)
-        else:
-            if self.mode in ('RGB', 'CMYK'):
-                raise UnsupportedImageTypeError("1-bit RGB and CMYK are not supported")
-            data = self.read_bytes()
-            im = Image.frombytes('1', self.size, data)
+                ) from None
+            raise
+
+        im = Image.frombytes('1', self.size, data)
 
         if self.palette is not None:
             base_mode, palette = self.palette
@@ -594,10 +597,11 @@ class PdfImage(PdfImageBase):
             im = Image.frombuffer(
                 'CMYK', self.size, self.get_stream_buffer(), 'raw', 'CMYK', 0, 1
             )
-        elif self.mode in ('L', 'P') and 2 <= self.bits_per_component <= 8:
-            im = self._extract_transcoded_248bits()
+        # elif self.mode == '1':
         elif self.bits_per_component == 1:
             im = self._extract_transcoded_1bit()
+        elif self.mode in ('L', 'P') and self.bits_per_component <= 8:
+            im = self._extract_transcoded_1248bits()
         else:
             raise UnsupportedImageTypeError(repr(self) + ", " + repr(self.obj))
 

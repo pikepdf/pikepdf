@@ -49,13 +49,31 @@ def unpack_subbyte_pixels(
     max_read = len(buffer) // bits_per_byte
     if scale == 0:
         scale = 255 / ((2 ** bits) - 1)
-    if bits == 2:
-        _2bit_inner_loop(packed[:max_read], buffer, scale)
-    elif bits == 4:
+    if bits == 4:
         _4bit_inner_loop(packed[:max_read], buffer, scale)
+    elif bits == 2:
+        _2bit_inner_loop(packed[:max_read], buffer, scale)
+    # elif bits == 1:
+    #     _1bit_inner_loop(packed[:max_read], buffer, scale)
     else:
         raise NotImplementedError(bits)
     return memoryview(buffer), stride
+
+
+# def _1bit_inner_loop(in_: BytesLike, out: MutableBytesLike, scale: int) -> None:
+#     """Unpack 1-bit values to their 8-bit equivalents.
+
+#     Thus *out* must be 8x at long as *in*.
+#     """
+#     for n, val in enumerate(in_):
+#         out[8 * n + 0] = int((val >> 7) & 0b1) * scale
+#         out[8 * n + 1] = int((val >> 6) & 0b1) * scale
+#         out[8 * n + 2] = int((val >> 5) & 0b1) * scale
+#         out[8 * n + 3] = int((val >> 4) & 0b1) * scale
+#         out[8 * n + 4] = int((val >> 3) & 0b1) * scale
+#         out[8 * n + 5] = int((val >> 2) & 0b1) * scale
+#         out[8 * n + 6] = int((val >> 1) & 0b1) * scale
+#         out[8 * n + 7] = int((val >> 0) & 0b1) * scale
 
 
 def _2bit_inner_loop(in_: BytesLike, out: MutableBytesLike, scale: int) -> None:
@@ -90,6 +108,13 @@ def image_from_byte_buffer(buffer: BytesLike, size: Tuple[int, int], stride: int
     return Image.frombuffer('L', size, buffer, "raw", 'L', stride, ystep)
 
 
+def _make_rgb_palette(gray_palette: bytes) -> bytes:
+    palette = b''
+    for entry in gray_palette:
+        palette += bytes([entry]) * 3
+    return palette
+
+
 def image_from_buffer_and_palette(
     buffer: BytesLike,
     size: Tuple[int, int],
@@ -118,7 +143,11 @@ def image_from_buffer_and_palette(
         palette = b''
         shift = 8 - bits
         for entry in gray_palette:
-            palette += bytes([entry << shift]) * 3
+            try:
+                # palette += bytes([entry << shift]) * 3
+                palette += bytes([entry]) * 3
+            except ValueError as e:
+                raise ValueError(f'{entry} << {shift}') from e
         im = image_from_byte_buffer(buffer, size, stride)
         im.putpalette(palette, rawmode='RGB')
     elif base_mode == 'CMYK':
@@ -146,11 +175,12 @@ def fix_1bit_palette_image(
             im.putpalette(gp)
     elif base_mode == 'L' and palette != b'\x00\xff':
         im = im.convert('P')
-        im.putpalette(palette, rawmode=base_mode)
-        gp = im.getpalette()
-        if gp:
-            gp[255] = gp[1]  # work around Pillow bug
-            im.putpalette(gp)
+        try:
+            im.putpalette(palette, rawmode=base_mode)
+        except ValueError as e:
+            if 'unrecognized raw mode' in str(e):
+                rgb_palette = _make_rgb_palette(palette)
+                im.putpalette(rgb_palette, 'RGB')
     return im
 
 
