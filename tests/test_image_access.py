@@ -6,12 +6,12 @@ from math import ceil
 from os import fspath
 from pathlib import Path
 from subprocess import run
-from typing import Sequence
+from typing import NamedTuple, Sequence
 
 import PIL
 import pytest
 from conftest import needs_python_v
-from hypothesis import assume, given, note
+from hypothesis import assume, example, given, note
 from hypothesis import strategies as st
 from PIL import Image, ImageChops, ImageCms
 from PIL import features as PIL_features
@@ -237,8 +237,40 @@ def test_bits_per_component_missing(congress):
     assert PdfImage(congress[0]).bits_per_component == 8
 
 
+class ImageSpec(NamedTuple):
+    bpc: int
+    width: int
+    height: int
+    colorspace: pikepdf.Name
+    imbytes: bytes
+
+
+def pdf_from_image_spec(spec: ImageSpec):
+    pdf = pikepdf.new()
+    pdfw, pdfh = 36 * spec.width, 36 * spec.height
+
+    pdf.add_blank_page(page_size=(pdfw, pdfh))
+
+    imobj = Stream(
+        pdf,
+        spec.imbytes,
+        BitsPerComponent=spec.bpc,
+        ColorSpace=spec.colorspace,
+        Width=spec.width,
+        Height=spec.height,
+        Type=Name.XObject,
+        Subtype=Name.Image,
+    )
+
+    pdf.pages[0].Contents = Stream(pdf, b'%f 0 0 %f 0 0 cm /Im0 Do' % (pdfw, pdfh))
+    pdf.pages[0].Resources = Dictionary(XObject=Dictionary(Im0=imobj))
+    pdf.pages[0].MediaBox = Array([0, 0, pdfw, pdfh])
+
+    return pdf
+
+
 @st.composite
-def valid_random_image_pdf(
+def valid_random_image_spec(
     draw,
     bpcs=st.sampled_from([1, 2, 4, 8, 16]),
     widths=st.integers(min_value=1, max_value=16),
@@ -257,31 +289,12 @@ def valid_random_image_pdf(
         min_imbytes *= 4
     imbytes = draw(st.binary(min_size=min_imbytes, max_size=2 * min_imbytes))
 
-    pdf = pikepdf.new()
-    pdfw, pdfh = 36 * width, 36 * height
-
-    pdf.add_blank_page(page_size=(pdfw, pdfh))
-
-    imobj = Stream(
-        pdf,
-        imbytes,
-        BitsPerComponent=bpc,
-        ColorSpace=colorspace,
-        Width=width,
-        Height=height,
-        Type=Name.XObject,
-        Subtype=Name.Image,
-    )
-
-    pdf.pages[0].Contents = Stream(pdf, b'%f 0 0 %f 0 0 cm /Im0 Do' % (pdfw, pdfh))
-    pdf.pages[0].Resources = Dictionary(XObject=Dictionary(Im0=imobj))
-    pdf.pages[0].MediaBox = Array([0, 0, pdfw, pdfh])
-
-    return pdf
+    return ImageSpec(bpc, width, height, colorspace, imbytes)
 
 
-@given(pdf=valid_random_image_pdf(bpcs=st.sampled_from([1, 2, 4, 8])))
-def test_image_save_compare(tmp_path_factory, pdf):
+@given(spec=valid_random_image_spec(bpcs=st.sampled_from([1, 2, 4, 8])))
+def test_image_save_compare(tmp_path_factory, spec):
+    pdf = pdf_from_image_spec(spec)
     image = pdf.pages[0].Resources.XObject['/Im0']
     w = image.Width
     h = image.Height
@@ -405,8 +418,42 @@ def imagelike_data(draw, width, height, bpc, sample_range=None):
     return imbytes
 
 
+class PaletteImageSpec(NamedTuple):
+    bpc: int
+    width: int
+    height: int
+    hival: int
+    colorspace: pikepdf.Name
+    palette: bytes
+    imbytes: bytes
+
+
+def pdf_from_palette_image_spec(spec: PaletteImageSpec):
+    pdf = pikepdf.new()
+    pdfw, pdfh = 36 * spec.width, 36 * spec.height
+
+    pdf.add_blank_page(page_size=(pdfw, pdfh))
+
+    imobj = Stream(
+        pdf,
+        spec.imbytes,
+        BitsPerComponent=spec.bpc,
+        ColorSpace=Array([Name.Indexed, spec.colorspace, spec.hival, spec.palette]),
+        Width=spec.width,
+        Height=spec.height,
+        Type=Name.XObject,
+        Subtype=Name.Image,
+    )
+
+    pdf.pages[0].Contents = Stream(pdf, b'%f 0 0 %f 0 0 cm /Im0 Do' % (pdfw, pdfh))
+    pdf.pages[0].Resources = Dictionary(XObject=Dictionary(Im0=imobj))
+    pdf.pages[0].MediaBox = Array([0, 0, pdfw, pdfh])
+
+    return pdf
+
+
 @st.composite
-def valid_random_palette_image_pdf(
+def valid_random_palette_image_spec(
     draw,
     bpcs=st.sampled_from([1, 2, 4, 8]),
     widths=st.integers(min_value=1, max_value=16),
@@ -437,27 +484,7 @@ def valid_random_palette_image_pdf(
             st.binary(min_size=channels * (hival + 1), max_size=channels * (hival + 1))
         )
 
-    pdf = pikepdf.new()
-    pdfw, pdfh = 36 * width, 36 * height
-
-    pdf.add_blank_page(page_size=(pdfw, pdfh))
-
-    imobj = Stream(
-        pdf,
-        imbytes,
-        BitsPerComponent=bpc,
-        ColorSpace=Array([Name.Indexed, colorspace, hival, palette]),
-        Width=width,
-        Height=height,
-        Type=Name.XObject,
-        Subtype=Name.Image,
-    )
-
-    pdf.pages[0].Contents = Stream(pdf, b'%f 0 0 %f 0 0 cm /Im0 Do' % (pdfw, pdfh))
-    pdf.pages[0].Resources = Dictionary(XObject=Dictionary(Im0=imobj))
-    pdf.pages[0].MediaBox = Array([0, 0, pdfw, pdfh])
-
-    return pdf
+    return PaletteImageSpec(bpc, width, height, hival, colorspace, palette, imbytes)
 
 
 @pytest.mark.parametrize(
@@ -503,18 +530,10 @@ def first_image_from_pdfimages(pdf, tmpdir):
     yield Image.open(outpng)
 
 
-@given(pdf=valid_random_palette_image_pdf())
-# @given(
-#     pdf=valid_random_palette_image_pdf(
-#         bpcs=st.just(1),
-#         widths=st.just(1),
-#         heights=st.just(1),
-#         colorspaces=st.just(Name.DeviceGray),
-#     )
-# )
-def test_image_palette2(pdf, tmp_path_factory):
+@given(spec=valid_random_palette_image_spec())
+def test_image_palette2(spec, tmp_path_factory):
+    pdf = pdf_from_palette_image_spec(spec)
     pim = PdfImage(pdf.pages[0].Resources.XObject['/Im0'])
-    note(f"{pim!r}, {pim.palette!r}, {pim.obj!r}, {str(pim.read_bytes())}")
 
     im1 = pim.as_pil_image()
 
@@ -1054,14 +1073,15 @@ def test_devicen():
 
 
 @given(
-    pdf=valid_random_image_pdf(
+    spec=valid_random_image_spec(
         bpcs=st.sampled_from([2, 4]),
         colorspaces=st.just(Name.DeviceGray),
         widths=st.integers(1, 7),
         heights=st.integers(1, 7),
     )
 )
-def test_grayscale_stride(pdf):
+def test_grayscale_stride(spec):
+    pdf = pdf_from_image_spec(spec)
     pim = PdfImage(pdf.pages[0].Resources.XObject.Im0)
     assert pim.mode == 'L'
     imdata = pim.read_bytes()
@@ -1082,8 +1102,9 @@ def test_grayscale_stride(pdf):
 
 
 @requires_pdfimages
-@given(pdf=valid_random_image_pdf())
-def test_random_image(pdf, tmp_path_factory):
+@given(spec=valid_random_image_spec())
+def test_random_image(spec, tmp_path_factory):
+    pdf = pdf_from_image_spec(spec)
     pim = PdfImage(pdf.pages[0].Resources.XObject.Im0)
     bio = BytesIO()
     colorspace = pim.colorspace
@@ -1091,7 +1112,6 @@ def test_random_image(pdf, tmp_path_factory):
     height = pim.height
     bpc = pim.bits_per_component
     imbytes = pim.read_bytes()
-    note(f"{pim!r}, {pim.palette!r}, {pim.obj!r}, {str(pim.read_bytes())}")
     try:
         result_extension = pim.extract_to(stream=bio)
         assert result_extension in ('.png', '.tiff')
