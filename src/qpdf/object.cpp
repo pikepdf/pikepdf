@@ -268,7 +268,6 @@ PointerHolder<Buffer> get_stream_data(
 {
     try {
         PointerHolder<Buffer> buf = h.getStreamData(decode_level);
-        // py::bytes will make a copy of the buffer, so releasing is fine
         return buf;
     } catch (const QPDFExc &e) {
         // Make a new exception that has the objgen info, since QPDF's
