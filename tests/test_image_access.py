@@ -5,11 +5,12 @@ from io import BytesIO
 from math import ceil
 from os import fspath
 from pathlib import Path
-from subprocess import PIPE, run
+from subprocess import run
 
 import PIL
 import pytest
-from hypothesis import assume, example, given
+from conftest import needs_python_v
+from hypothesis import assume, given, note
 from hypothesis import strategies as st
 from PIL import Image, ImageChops, ImageCms
 from PIL import features as PIL_features
@@ -512,6 +513,15 @@ def test_imagemagick_uses_rle_compression(first_image_in):
     assert im.getpixel((5, 5)) == (255, 128, 0)
 
 
+# Unforuntately pytest cannot test for this using "with pytest.warns(...)".
+# Suppression is the best we can manage
+suppress_unraisable_jbigdec_error_warning = pytest.mark.filterwarnings(
+    "ignore:.*jbig2dec error.*:pytest.PytestUnraisableExceptionWarning"
+)
+
+
+@needs_python_v("3.8", reason="for pytest unraisable exception support")
+@suppress_unraisable_jbigdec_error_warning
 def test_jbig2_not_available(jbig2, monkeypatch):
     xobj, _pdf = jbig2
     pim = PdfImage(xobj)
@@ -530,6 +540,12 @@ def test_jbig2_not_available(jbig2, monkeypatch):
 needs_jbig2dec = pytest.mark.skipif(
     not pikepdf.jbig2.jbig2dec_available(), reason="jbig2dec not installed"
 )
+
+
+@needs_jbig2dec
+def test_jbig2_extractor(jbig2):
+    xobj, _pdf = jbig2
+    pikepdf.jbig2.extract_jbig2_bytes(xobj.read_raw_bytes(), b'')
 
 
 @needs_jbig2dec
@@ -562,6 +578,8 @@ def test_jbig2_global_palette(first_image_in):
     assert im.getpixel((0, 0)) == 255  # Ensure loaded
 
 
+@needs_python_v("3.8", reason="for pytest unraisable exception support")
+@suppress_unraisable_jbigdec_error_warning
 def test_jbig2_error(first_image_in, monkeypatch):
     xobj, _pdf = first_image_in('jbig2global.pdf')
     pim = PdfImage(xobj)
@@ -573,10 +591,12 @@ def test_jbig2_error(first_image_in, monkeypatch):
     monkeypatch.setattr(pikepdf.jbig2, 'run', raise_calledprocesserror)
 
     pim = PdfImage(xobj)
-    with pytest.raises(subprocess.CalledProcessError):
+    with pytest.raises(PdfError, match="unfilterable stream"):
         pim.as_pil_image()
 
 
+@needs_python_v("3.8", reason="for pytest unraisable exception support")
+@suppress_unraisable_jbigdec_error_warning
 def test_jbig2_too_old(first_image_in, monkeypatch):
     xobj, _pdf = first_image_in('jbig2global.pdf')
     pim = PdfImage(xobj)
@@ -584,7 +604,9 @@ def test_jbig2_too_old(first_image_in, monkeypatch):
     def run_version_override(subprocargs, *args, **kwargs):
         if '--version' in subprocargs:
             return subprocess.CompletedProcess(subprocargs, 0, 'jbig2dec 0.12\n')
-        return subprocess.run(subprocargs, *args, **kwargs)
+        return subprocess.run(  # pylint: disable=subprocess-run-check
+            subprocargs, *args, **kwargs
+        )
 
     monkeypatch.setattr(pikepdf.jbig2, 'run', run_version_override)
 
