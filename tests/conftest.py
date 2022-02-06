@@ -42,10 +42,18 @@ skip_if_pypy = pytest.mark.skipif(
 )
 
 
-def needs_libqpdf_v(version, *, reason=None):
+def needs_libqpdf_v(version: str, *, reason=None):
     if reason is None:
         reason = "installed libqpdf is too old for this test"
     return pytest.mark.skipif(
         Version(__libqpdf_version__) <= Version(version),
         reason=reason,
+    )
+
+
+def needs_python_v(version: str, *, reason=None):
+    if reason is None:
+        reason = "only works on newer Python versions"
+    return pytest.mark.skipif(
+        Version(platform.python_version()) <= Version(version), reason=reason
     )
