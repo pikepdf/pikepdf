@@ -20,7 +20,7 @@ def extract_jbig2(
     im_obj: pikepdf.Object, globals_obj: Optional[pikepdf.Object] = None
 ) -> Image.Image:
 
-    with TemporaryDirectory(prefix='pikepdf', suffix='.jbig2') as tmpdir:
+    with TemporaryDirectory(prefix='pikepdf-', suffix='.jbig2') as tmpdir:
         image_path = Path(tmpdir) / "image"
         global_path = Path(tmpdir) / "global"
         output_path = Path(tmpdir) / "outfile"
@@ -53,7 +53,7 @@ def extract_jbig2(
 
 
 def extract_jbig2_bytes(jbig2: bytes, jbig2_globals: bytes) -> bytes:
-    with TemporaryDirectory(prefix='pikepdf', suffix='.jbig2') as tmpdir:
+    with TemporaryDirectory(prefix='pikepdf-', suffix='.jbig2') as tmpdir:
         image_path = Path(tmpdir) / "image"
         global_path = Path(tmpdir) / "global"
         output_path = Path(tmpdir) / "outfile"
@@ -78,7 +78,8 @@ def extract_jbig2_bytes(jbig2: bytes, jbig2_globals: bytes) -> bytes:
         args.append(os.fspath(image_path))
 
         run(args, stdout=DEVNULL, check=True)
-        return output_path.read_bytes()
+        with Image.open(output_path) as im:
+            return im.tobytes()
 
 
 def jbig2dec_available() -> bool:
