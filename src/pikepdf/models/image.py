@@ -551,7 +551,6 @@ class PdfImage(PdfImageBase):
                 buffer,
                 self.size,
                 stride,
-                self.bits_per_component,
                 base_mode,
                 palette,
             )

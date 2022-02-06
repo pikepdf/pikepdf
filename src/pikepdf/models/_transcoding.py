@@ -115,17 +115,25 @@ def _make_rgb_palette(gray_palette: bytes) -> bytes:
     return palette
 
 
+def _depalettize_cmyk(buffer: BytesLike, palette: BytesLike):
+    with memoryview(buffer) as mv:
+        output = bytearray(4 * len(mv))
+        for n, pal_idx in enumerate(mv):
+            output[4 * n : 4 * (n + 1)] = palette[4 * pal_idx : 4 * (pal_idx + 1)]
+    return output
+
+
 def image_from_buffer_and_palette(
     buffer: BytesLike,
     size: Tuple[int, int],
     stride: int,
-    bits: int,
     base_mode: str,
     palette: BytesLike,
 ) -> Image.Image:
     """Construct an image from a byte buffer and apply the palette.
 
-    2 and 4 bit images must be unpacked (no scaling!) to byte buffers first.
+    1/2/4-bit images must be unpacked (no scaling!) to byte buffers first, such
+    that every 8-bit integer is an index into the palette.
     """
 
     # Reminder Pillow palette byte order unintentionally changed in 8.3.0
@@ -139,23 +147,12 @@ def image_from_buffer_and_palette(
     elif base_mode == 'L':
         # Pillow does not fully support palettes with rawmode='L'.
         # Convert to RGB palette.
-        gray_palette = palette
-        palette = b''
-        shift = 8 - bits
-        for entry in gray_palette:
-            try:
-                # palette += bytes([entry << shift]) * 3
-                palette += bytes([entry]) * 3
-            except ValueError as e:
-                raise ValueError(f'{entry} << {shift}') from e
+        gray_palette = _make_rgb_palette(palette)
         im = image_from_byte_buffer(buffer, size, stride)
-        im.putpalette(palette, rawmode='RGB')
+        im.putpalette(gray_palette, rawmode='RGB')
     elif base_mode == 'CMYK':
         # Pillow does not support CMYK with palettes; convert manually
-        with memoryview(buffer) as mv:
-            output = bytearray(4 * len(mv))
-            for n, pal_idx in enumerate(mv):
-                output[4 * n : 4 * (n + 1)] = palette[4 * pal_idx : 4 * (pal_idx + 1)]
+        output = _depalettize_cmyk(buffer, palette)
         im = Image.frombuffer('CMYK', size, data=output, decoder_name='raw')
     else:
         raise NotImplementedError(f'palette with {base_mode}')
