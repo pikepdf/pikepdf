@@ -1,3 +1,4 @@
+import platform
 import subprocess
 import zlib
 from contextlib import contextmanager
@@ -11,7 +12,7 @@ from typing import NamedTuple, Sequence
 import PIL
 import pytest
 from conftest import needs_python_v
-from hypothesis import assume, example, given, note
+from hypothesis import assume, given, note, settings
 from hypothesis import strategies as st
 from PIL import Image, ImageChops, ImageCms
 from PIL import features as PIL_features
@@ -293,6 +294,7 @@ def valid_random_image_spec(
 
 
 @given(spec=valid_random_image_spec(bpcs=st.sampled_from([1, 2, 4, 8])))
+@settings(deadline=None)  # For PyPy
 def test_image_save_compare(tmp_path_factory, spec):
     pdf = pdf_from_image_spec(spec)
     image = pdf.pages[0].Resources.XObject['/Im0']
