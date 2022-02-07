@@ -15,6 +15,13 @@ pikepdf currently has no facility to embed new images into PDFs. We recommend
 img2pdf instead, because it does the job so well. pikepdf instead allows
 for image inspection and lossless/transcode free (where possible) "pdf2img".
 
+pikepdf also cannot extract vector images, that is images produced through a
+combination of PDF drawing commands. These are produced by a content stream,
+or sometimes a Form XObject. Unfortunately there may not be anything in the
+PDF that indicates a particular sequence of operations produces an image,
+and that sequence is not necessarily all in the same place. To extract a
+vector image, use a PDF viewer/editor to crop to that image.
+
 Playing with images
 -------------------
 
