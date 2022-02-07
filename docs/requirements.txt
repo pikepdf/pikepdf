@@ -15,7 +15,7 @@ Sphinx >= 3
 sphinx-issues
 sphinx-panels
 sphinx-rtd-theme
-toml
+tomli
 
 GitPython
 PyGithub
