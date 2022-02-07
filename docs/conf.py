@@ -17,7 +17,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-import toml
+import tomli
 from pkg_resources import get_distribution
 
 on_rtd = os.environ.get('READTHEDOCS') == 'True'
@@ -106,7 +106,8 @@ autosummary_generate = True
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
-pyproject_toml = toml.load('../pyproject.toml')
+with open('../pyproject.toml', 'rb') as f:
+    pyproject_toml = toml.load(f)
 toml_env = pyproject_toml['tool']['cibuildwheel']['environment']
 
 rst_prolog = f"""
