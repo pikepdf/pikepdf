@@ -57,8 +57,6 @@ if sys.platform == 'cygwin':
 # module[0].extra_compile_args.append('-g3')
 
 if qpdf_source_tree:
-    dtags = '' if sys.platform in ('darwin', 'bsd') else ',--enable-new-dtags' 
-    extmodule.extra_link_args.append(dtags)
     for lib in extra_library_dirs:
         extmodule.extra_link_args.append(  # type: ignore    
             f'-Wl,-rpath,{lib}'
