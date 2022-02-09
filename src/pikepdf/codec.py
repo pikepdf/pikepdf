@@ -72,24 +72,7 @@ def _find_first_index(
 
 def pdfdoc_encode(input: str, errors: str = 'strict') -> Tuple[bytes, int]:
     error_marker = b'?' if errors == 'replace' else b'\xad'
-    try:
-        success, pdfdoc = utf8_to_pdf_doc(input, error_marker)
-    except RuntimeError as e:  # pragma: no cover
-        # In pybind11 < 2.7.0, a RuntimeError occurs when attempting to handle
-        # Unicode surrogates. Looks like:
-        #   "Unable to extract string contents! (encoding issue)"
-        # This appears to be fixed for pybind11 >= 2.7.0.
-        offending_index = _find_first_index(
-            input, range(0xD800, 0xDFFF + 1), is_whitelist=False
-        )
-
-        raise UnicodeEncodeError(
-            'pdfdoc',
-            input,
-            offending_index,
-            offending_index + 1,
-            "can't process Unicode surrogates",
-        ) from e
+    success, pdfdoc = utf8_to_pdf_doc(input, error_marker)
     if not success:
         if errors == 'strict':
             # libqpdf doesn't return what character caused the error, and Python
