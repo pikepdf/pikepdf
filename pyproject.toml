@@ -71,6 +71,10 @@ before-all = [
   "apk add py3-lxml py3-pillow python3 py3-setuptools py3-pybind11-dev python3-dev py3-wheel qpdf-dev exempi-dev"
 ]
 
+[[tool.cibuildwheel.overrides]]
+select = "*-manylinux_aarch64"
+test-command = "pytest -nauto {project}/tests/test_sanity.py"
+
 [tool.cibuildwheel.macos]
 before-all = "brew install qpdf little-cms2"
 
