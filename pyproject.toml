@@ -42,7 +42,7 @@ test-skip = "*_arm64 *_universal2:arm64"
 
 [tool.cibuildwheel.environment]
 QPDF_MIN_VERSION = "10.3.1"
-QPDF_VERSION = "10.4.0"
+QPDF_VERSION = "10.5.0"
 QPDF_PATTERN = "https://github.com/qpdf/qpdf/releases/download/release-qpdf-VERSION/qpdf-VERSION.tar.gz"
 JPEG_RELEASE = "https://www.ijg.org/files/jpegsrc.v9d.tar.gz"
 ZLIB_RELEASE = "https://www.zlib.net/zlib-1.2.11.tar.gz"
