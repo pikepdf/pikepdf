@@ -9,7 +9,7 @@ Resources
 
 * Other `Adobe extensions`_ to the PDF specification
 
-.. _QPDF Manual: http://qpdf.sourceforge.net/files/qpdf-manual.html
+.. _QPDF Manual: https://qpdf.readthedocs.io/
 
 .. _PDF 1.7: https://www.adobe.com/content/dam/acom/en/devnet/pdf/pdfs/PDF32000_2008.pdf
 
