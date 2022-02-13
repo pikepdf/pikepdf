@@ -18,6 +18,23 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v4.5.0
+======
+
+-  Fixed gcc linker error with linking to a source-compiled version of qpdf. Thanks @jerkenbilt.
+-  Fixed dead/obsolete link to old QPDF manual. Thanks @m-holger.
+-  Rebuild binary wheels against qpdf 10.5.0. Note 10.6.0 has been released but
+   requires further changes so does not work yet.
+-  Removed some workarounds to support now-unsupported versions of pybind11.
+-  Adjusted hypothesis test settings so it does not randomly fail on PyPy.
+-  Mention vector vs raster images in documentation.
+-  JBIG2 decoding is now more tightly integrated. In particular, we can now decode
+   more types of JBIG2 image and they can be decoded using either the object or
+   image interface.
+-  Switch to tomli for TOML parsing.
+-  Refactor image tests to use hypothesis more effectively and use more random issues,
+   fixing many errors along the way.
+
 v4.4.1
 ======
 
