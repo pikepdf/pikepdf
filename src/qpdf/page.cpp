@@ -19,24 +19,22 @@
 #include <qpdf/Pipeline.hh>
 #include <qpdf/Pl_Buffer.hh>
 
-// Deprecation: change this to use QPDF::findPage when we drop support for
-// qpdf < 10.4.0. Tests will need adjustment due to different errors.
 py::size_t page_index(QPDF &owner, QPDFObjectHandle page)
 {
     if (&owner != page.getOwningQPDF())
         throw py::value_error("Page is not in this Pdf");
-    auto all_pages = owner.getAllPages();
 
-    auto page_objgen = page.getObjGen();
-    auto it          = std::find_if(all_pages.begin(),
-        all_pages.end(),
-        [&page_objgen](const QPDFObjectHandle &iter_page) {
-            return (page_objgen == iter_page.getObjGen());
-        });
-    if (it == all_pages.end())
+    int idx;
+    try {
+        idx = owner.findPage(page);
+    } catch (const QPDFExc &e) {
+        if (std::string(e.what()).find("page object not referenced") >= 0)
+            throw py::value_error("Page is not consistently registered with Pdf");
+        throw e;
+    }
+    if (idx < 0)
         throw py::value_error("Page is not consistently registered with Pdf");
-    auto idx = it - all_pages.begin();
-    assert(idx >= 0);
+
     return idx;
 }
 
