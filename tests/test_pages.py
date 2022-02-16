@@ -335,7 +335,6 @@ def test_repeat(graph, outpdf):
     graph.save(outpdf)
 
 
-@pytest.mark.xfail(__libqpdf_version__ < '10.3.2', reason="qpdf issue 514")
 def test_add_twice_without_copy_foreign(graph, outpdf):
     out = Pdf.new()
     out.pages.append(graph.pages[0])
@@ -349,7 +348,6 @@ def test_repr_pagelist(fourpages):
     assert '4' in repr(fourpages.pages)
 
 
-@pytest.mark.xfail(__libqpdf_version__ < '10.3.2', reason="qpdf issue 514")
 def test_foreign_copied_pages_are_true_copies(graph, outpdf):
     out = Pdf.new()
     for _ in range(4):
