@@ -11,11 +11,12 @@ from ._qpdf import pdf_doc_to_utf8, utf8_to_pdf_doc
 
 # pylint: disable=redefined-builtin
 
-# See PDF Reference Manual 1.7, Table D.2. We record every Unicode code point
-# that can be encoded to pdfdoc,
-# except for: [0x2D8, 0x2C7, 0x2C6, 0x2D9, 0x2DD, 0x2DB, 0x2DA, 0x2DC]
-# which qpdf does not seem to consider as encodable even though the PDF RM does.
-# Follow qpdf is more important for consistency.
+# See PDF Reference Manual 1.7, Table D.2.
+# The following generates set of all Unicode code points that can be encoded in
+# pdfdoc. Since pdfdoc is 8-bit, the vast majority of code points cannot be.
+#
+# Due to a bug, QPDF <= 10.5 and pikepdf < 5 had some inconsistencies around
+# PdfDocEncoding.
 PDFDOC_ENCODABLE = frozenset(
     list(range(0x00, 0x17 + 1))
     + list(range(0x20, 0x7E + 1))
@@ -51,9 +52,9 @@ PDFDOC_ENCODABLE = frozenset(
         0x0153,
         0x0161,
         0x017E,
-        0xFFFD,
         0x20AC,
     ]
+    + [0x02D8, 0x02C7, 0x02C6, 0x02D9, 0x02DD, 0x02DB, 0x02DA, 0x02DC]
     + list(range(0xA1, 0xAC + 1))
     + list(range(0xAE, 0xFF + 1))
 )
@@ -93,11 +94,21 @@ def pdfdoc_encode(input: str, errors: str = 'strict') -> Tuple[bytes, int]:
 
 
 def pdfdoc_decode(input: bytes, errors: str = 'strict') -> Tuple[str, int]:
-    del errors  # silence pylint warning; all bytes objects have a pdfdoc decoding
     if isinstance(input, memoryview):
         input = input.tobytes()
-    utf8 = pdf_doc_to_utf8(input)
-    return utf8, len(input)
+    s = pdf_doc_to_utf8(input)
+    if errors == 'strict':
+        idx = s.find('\ufffd')
+        if idx >= 0:
+            raise UnicodeDecodeError(
+                'pdfdoc',
+                input,
+                idx,
+                idx + 1,
+                "no Unicode mapping is defined for this character",
+            )
+
+    return s, len(input)
 
 
 class PdfDocCodec(codecs.Codec):
