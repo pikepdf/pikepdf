@@ -289,8 +289,6 @@ void init_page(py::module_ &m)
                 A ``ValueError`` exception is thrown if the page is not attached
                 to this ``Pdf``.
 
-                Requires O(n) search.
-
                 .. versionadded:: 2.2
             )~~~")
         .def_property_readonly(
@@ -321,9 +319,6 @@ void init_page(py::module_ &m)
                 It is possible for a PDF to define page labels such that multiple
                 pages have the same labels. Labels are not guaranteed to
                 be unique.
-
-                Note that this requires a O(n) search over all pages, to look up
-                the page's index.
 
                 .. versionadded:: 2.2
 

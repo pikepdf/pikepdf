@@ -24,6 +24,8 @@ v5.0.0
 -  Some errors and inconsistencies are in the "pdfdoc" encoding provided by pikepdf
    have been corrected, in conjunction with fixes in libqpdf.
 -  libqpdf 10.6.2 is required.
+-  Previously, looking up the number of a page, given the page, required a linear
+   search of all pages. We now use a newer QPDF API that allows quicker lookups.
 
 v4.5.0
 ======
