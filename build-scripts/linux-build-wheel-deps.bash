@@ -15,7 +15,7 @@ fi
 
 if [ ! -f /usr/local/lib/libqpdf.a ]; then
     pushd qpdf
-    ./configure --disable-oss-fuzz && make -j install
+    ./configure --disable-oss-fuzz && make -j install-libs
     find /usr/local/lib -name 'libqpdf.so*' -type f -exec strip --strip-debug {} \+
     popd
 fi
