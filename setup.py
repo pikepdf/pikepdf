@@ -3,7 +3,7 @@ from glob import glob
 from itertools import chain
 from os import environ
 from os.path import exists, join
-from typing import List, cast
+from typing import cast
 
 from pybind11.setup_helpers import ParallelCompile, Pybind11Extension, build_ext
 from setuptools import Extension, setup
@@ -58,9 +58,7 @@ if sys.platform == 'cygwin':
 
 if qpdf_source_tree:
     for lib in extra_library_dirs:
-        extmodule.extra_link_args.append(  # type: ignore    
-            f'-Wl,-rpath,{lib}'
-        )
+        extmodule.extra_link_args.append(f'-Wl,-rpath,{lib}')  # type: ignore
 
 
 if __name__ == '__main__':
