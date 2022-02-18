@@ -3,10 +3,18 @@ from io import BytesIO
 from pathlib import Path
 
 import pytest
-from hypothesis import given, reproduce_failure
+from hypothesis import example, given
 from hypothesis.strategies import binary, characters, text
 
 import pikepdf.codec
+
+
+def test_encodable_table():
+    for ordnum in pikepdf.codec.PDFDOC_ENCODABLE:
+        char = chr(ordnum)
+        pdfdoc_encoded = char.encode('pdfdoc')
+        involuted = pdfdoc_encoded.decode('pdfdoc')
+        assert char == involuted
 
 
 def test_encode():
@@ -28,11 +36,16 @@ def test_unicode_surrogate():
 
 
 @given(binary())
+@example(b'\x9f')
 def test_codec_involution(b):
-    # For all binary strings, there is a pdfdoc decoding. The encoding of that
-    # decoding recovers the initial string. (However, not all str have a pdfdoc
-    # encoding.)
-    assert b.decode('pdfdoc').encode('pdfdoc') == b
+    # For most binary strings, there is a pdfdoc decoding and the encoding of that
+    # decoding recovers the initial string.
+    try:
+        assert b.decode('pdfdoc').encode('pdfdoc') == b
+    except UnicodeDecodeError as e:
+        # 0x7f, 0x9f, and 0xad have no defined mapping to Unicode, so we expect
+        # strings contain them to raise a decoding exception
+        assert set(e.object[e.start : e.end]) & set(b'\x7f\x9f\xad')
 
 
 @given(text())
@@ -49,7 +62,12 @@ def test_break_encode(s):
             return
         raise
     else:
-        assert encoded_bytes.decode('pdfdoc') == s
+        try:
+            assert encoded_bytes.decode('pdfdoc') == s, "encode -> decode failed"
+        except UnicodeDecodeError as e:
+            if "can't decode byte 0x9f" in str(e):
+                return
+            raise
 
 
 # whitelist_categories ensures that the listed Unicode categories will be produced

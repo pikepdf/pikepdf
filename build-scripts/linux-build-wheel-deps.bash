@@ -16,9 +16,9 @@ fi
 if [ ! -f /usr/local/lib/libqpdf.a ]; then
     pushd qpdf
     if [[ $(uname -p) == 'aarch64' ]]; then
-        ./configure --disable-oss-fuzz && make install
+        ./configure --disable-oss-fuzz && make install-libs
     else
-        ./configure --disable-oss-fuzz && make -j install
+        ./configure --disable-oss-fuzz && make -j install-libs
     fi
     find /usr/local/lib -name 'libqpdf.so*' -type f -exec strip --strip-debug {} \+
     popd

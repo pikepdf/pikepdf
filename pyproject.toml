@@ -3,11 +3,11 @@ requires-python = ">=3.7"
 
 [build-system]
 requires = [
-  "setuptools >= 50",
+  "setuptools >= 52",
   "wheel >= 0.35",
-  "setuptools_scm[toml] >= 4.1",
+  "setuptools_scm[toml] >= 6.4",
   "setuptools_scm_git_archive",
-  "pybind11 >= 2.7.1, < 2.10.0"
+  "pybind11 >= 2.9.1, < 2.10.0"
 ]
 build-backend = "setuptools.build_meta"
 
@@ -41,8 +41,8 @@ skip = "cp36-*"
 test-skip = "*_arm64 *_universal2:arm64"
 
 [tool.cibuildwheel.environment]
-QPDF_MIN_VERSION = "10.3.1"
-QPDF_VERSION = "10.4.0"
+QPDF_MIN_VERSION = "10.6.2"
+QPDF_VERSION = "10.6.2"
 QPDF_PATTERN = "https://github.com/qpdf/qpdf/releases/download/release-qpdf-VERSION/qpdf-VERSION.tar.gz"
 JPEG_RELEASE = "https://www.ijg.org/files/jpegsrc.v9d.tar.gz"
 ZLIB_RELEASE = "https://www.zlib.net/zlib-1.2.11.tar.gz"
@@ -76,7 +76,7 @@ select = "*-manylinux_aarch64"
 test-command = "pytest -nauto {project}/tests/test_sanity.py"
 
 [tool.cibuildwheel.macos]
-before-all = "brew install qpdf little-cms2"
+before-all = ["brew update", "brew install qpdf little-cms2"]
 
 [tool.cibuildwheel.windows]
 # pp3*-win32 fails because there is no wheel for lxml

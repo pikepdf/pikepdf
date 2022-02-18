@@ -50,6 +50,11 @@ quite compatible with each other anyway since they do the same things.
 pikepdf also registers ``'pdfdoc_pikepdf'``, if you want to ensure use of
 pikepdf's codec, i.e. ``s.encode('pdfdoc_pikepdf')``.
 
+.. versionchanged:: 5.0.0
+    Some issues with the conversion of obscure characters in PDFDocEncoding
+    were fixed. Older versions of pikepdf may not convert PDFDocEncoding
+    in all cases.
+
 Other codecs
 ============
 

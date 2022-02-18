@@ -65,8 +65,7 @@ def test_unicode_involution(s):
 
 @given(characters(whitelist_categories=('Cs',)))
 def test_unicode_fails(s):
-    # pybind11 < 2.7 raises RuntimeError, == 2.7 raises UnicodeEncodeError
-    with pytest.raises((RuntimeError, UnicodeEncodeError)):
+    with pytest.raises(UnicodeEncodeError):
         encode(s)
 
 

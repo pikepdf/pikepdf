@@ -97,22 +97,23 @@ def trivial(first_image_in):
 
 @pytest.fixture
 def inline(resources):
-    pdf = Pdf.open(resources / 'image-mono-inline.pdf')
-    for operands, _command in parse_content_stream(pdf.pages[0]):
-        if operands and isinstance(operands[0], PdfInlineImage):
-            yield operands[0], pdf
-    pdf.close()
+    with Pdf.open(resources / 'image-mono-inline.pdf') as pdf:
+        for operands, _command in parse_content_stream(pdf.pages[0]):
+            if operands and isinstance(operands[0], PdfInlineImage):
+                yield operands[0], pdf
+                break
 
 
 def test_image_from_nonimage(resources):
-    pdf = Pdf.open(resources / 'congress.pdf')
-    contents = pdf.pages[0].Contents
-    with pytest.raises(TypeError):
-        PdfImage(contents)
+    with Pdf.open(resources / 'congress.pdf') as pdf:
+        contents = pdf.pages[0].Contents
+        with pytest.raises(TypeError):
+            PdfImage(contents)
 
 
 def test_image(congress):
-    pdfimage = PdfImage(congress[0])
+    xobj, _ = congress
+    pdfimage = PdfImage(xobj)
     pillowimage = pdfimage.as_pil_image()
 
     assert pillowimage.mode == pdfimage.mode
@@ -120,11 +121,13 @@ def test_image(congress):
 
 
 def test_imagemask(congress):
-    assert not PdfImage(congress[0]).image_mask
+    xobj, _ = congress
+    assert not PdfImage(xobj).image_mask
 
 
 def test_imagemask_colorspace(trivial):
-    rawimage = trivial[0]
+    xobj, _ = trivial
+    rawimage = xobj
     rawimage.ImageMask = True
     pdfimage = PdfImage(rawimage)
     assert pdfimage.image_mask
@@ -132,7 +135,8 @@ def test_imagemask_colorspace(trivial):
 
 
 def test_malformed_palette(trivial):
-    rawimage = trivial[0]
+    xobj, _ = trivial
+    rawimage = xobj
     rawimage.ColorSpace = [Name.Indexed, 'foo', 'bar']
     pdfimage = PdfImage(rawimage)
     with pytest.raises(ValueError, match="interpret this palette"):
@@ -140,59 +144,61 @@ def test_malformed_palette(trivial):
 
 
 def test_image_eq(trivial, congress, inline):
+    xobj_trivial, _ = trivial
+    xobj_congress, _ = congress
+    inline_image, _ = inline
     # Note: JPX equality is tested in test_jp2 (if we have a jpeg2000 codec)
-    assert PdfImage(trivial[0]) == PdfImage(trivial[0])
-    assert PdfImage(trivial[0]).__eq__(42) is NotImplemented
-    assert PdfImage(trivial[0]) != PdfImage(congress[0])
+    assert PdfImage(xobj_trivial) == PdfImage(xobj_trivial)
+    assert PdfImage(xobj_trivial).__eq__(42) is NotImplemented
+    assert PdfImage(xobj_trivial) != PdfImage(xobj_congress)
 
-    assert inline != PdfImage(congress[0])
-    assert inline.__eq__(42) is NotImplemented
+    assert inline_image != PdfImage(xobj_congress)
+    assert inline_image.__eq__(42) is NotImplemented
 
 
 def test_image_replace(congress, outdir):
-    pdfimage = PdfImage(congress[0])
+    xobj, pdf = congress
+    pdfimage = PdfImage(xobj)
     pillowimage = pdfimage.as_pil_image()
 
     grayscale = pillowimage.convert('L')
     grayscale = grayscale.resize((4, 4))  # So it is not obnoxious on error
 
-    congress[0].write(zlib.compress(grayscale.tobytes()), filter=Name("/FlateDecode"))
-    congress[0].ColorSpace = Name("/DeviceGray")
-    pdf = congress[1]
+    xobj.write(zlib.compress(grayscale.tobytes()), filter=Name("/FlateDecode"))
+    xobj.ColorSpace = Name("/DeviceGray")
     pdf.save(outdir / 'congress_gray.pdf')
 
 
 def test_lowlevel_jpeg(congress):
-    raw_bytes = congress[0].read_raw_bytes()
+    xobj, _pdf = congress
+    raw_bytes = xobj.read_raw_bytes()
     with pytest.raises(PdfError):
-        congress[0].read_bytes()
+        xobj.read_bytes()
 
     im = Image.open(BytesIO(raw_bytes))
     assert im.format == 'JPEG'
 
-    pim = PdfImage(congress[0])
+    pim = PdfImage(xobj)
     b = BytesIO()
     pim.extract_to(stream=b)
     b.seek(0)
     im = Image.open(b)
-    assert im.size == (congress[0].Width, congress[0].Height)
+    assert im.size == (xobj.Width, xobj.Height)
     assert im.mode == 'RGB'
 
 
 def test_lowlevel_replace_jpeg(congress, outdir):
+    xobj, pdf = congress
     # This test will modify the PDF so needs its own image
-    raw_bytes = congress[0].read_raw_bytes()
+    raw_bytes = xobj.read_raw_bytes()
 
     im = Image.open(BytesIO(raw_bytes))
     grayscale = im.convert('L')
     grayscale = grayscale.resize((4, 4))  # So it is not obnoxious on error
 
-    congress[0].write(
-        zlib.compress(grayscale.tobytes()[:10]), filter=Name("/FlateDecode")
-    )
-    congress[0].ColorSpace = Name('/DeviceGray')
+    xobj.write(zlib.compress(grayscale.tobytes()[:10]), filter=Name("/FlateDecode"))
+    xobj.ColorSpace = Name('/DeviceGray')
 
-    pdf = congress[1]
     pdf.save(outdir / 'congress_gray.pdf')
 
 
@@ -233,9 +239,9 @@ def test_inline_to_pil(inline):
 
 
 def test_bits_per_component_missing(congress):
-    cong_im = congress[0]
+    cong_im, _ = congress
     del cong_im.stream_dict['/BitsPerComponent']
-    assert PdfImage(congress[0]).bits_per_component == 8
+    assert PdfImage(cong_im).bits_per_component == 8
 
 
 class ImageSpec(NamedTuple):

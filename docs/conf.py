@@ -107,7 +107,7 @@ autosummary_generate = True
 templates_path = ['_templates']
 
 with open('../pyproject.toml', 'rb') as f:
-    pyproject_toml = toml.load(f)
+    pyproject_toml = tomli.load(f)
 toml_env = pyproject_toml['tool']['cibuildwheel']['environment']
 
 rst_prolog = f"""
