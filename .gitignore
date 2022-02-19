@@ -24,6 +24,7 @@ coverage/
 pip-wheel-metadata/
 src/vendor/qpdf/
 wheelhouse/
+unpacked/
 
 # Main directory testing
 /*.pdf

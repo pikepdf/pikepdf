@@ -38,25 +38,48 @@ clean: clean-coverage
 test: build
 	pytest -n auto
 
+# Reminder to not indent if clauses, because Makefile...
+ifdef SETUPTOOLS_SCM_PRETEND_VERSION
+$(info Using version from SETUPTOOLS_SCM_PRETEND_VERSION ${SETUPTOOLS_SCM_PRETEND_VERSION})
+version := ${SETUPTOOLS_SCM_PRETEND_VERSION}
+else
+$(info Using version from git describe)
 version := $(subst v,,$(shell git describe --tags))
-macwheel39 := pikepdf-$(version)-cp39-cp39-macosx_11_0_arm64.whl
-macwheel310 := pikepdf-$(version)-cp310-cp310-macosx_11_0_arm64.whl
-#$(info $$version is [${version}])
-#$(info $$macwheel is [${macwheel}])
+endif
 
-wheelhouse/$(macwheel39): clean pip-install-e
+ifndef MACOSX_DEPLOYMENT_TARGET
+$(info Setting MACOSX_DEPLOYMENT_TARGET to default of 11.0)
+MACOSX_DEPLOYMENT_TARGET=11.0
+endif
+underscored_target := $(subst .,_,${MACOSX_DEPLOYMENT_TARGET})
+$(info $$underscored_target is ${underscored_target})
+
+$(info Version of wheels will be: ${version})
+macwheel39 := pikepdf-$(version)-cp39-cp39-macosx_${underscored_target}_arm64.whl
+macwheel310 := pikepdf-$(version)-cp310-cp310-macosx_${underscored_target}_arm64.whl
+$(info $$macwheel39 is ${macwheel39})
+$(info $$macwheel310 is ${macwheel310})
+
+wheelhouse/$(macwheel39): clean
 	rm -f wheelhouse/pikepdf*cp39*.whl
-	python -m pip wheel -w wheelhouse .
+	rm -rf .venv39
+	/opt/homebrew/bin/python3.9 -m venv .venv39
+	( \
+		source .venv39/bin/activate; \
+		python -m pip install --upgrade setuptools pip wheel; \
+		python -m pip install .; \
+		python -m pip wheel -w wheelhouse .; \
+	)
 	mv wheelhouse/pikepdf*cp39*.whl wheelhouse/$(macwheel39)
 
-	rm -rf unpacked/
-	python -m wheel unpack wheelhouse/$(macwheel39) --dest unpacked
-	rm -f wheelhouse/$(macwheel39) 
-	install_name_tool -change /usr/local/lib/libqpdf.28.dylib \
-		/Users/jb/src/qpdf/libqpdf/build/.libs/libqpdf.28.dylib \
-		unpacked/pikepdf-*/pikepdf/_qpdf.cpython*.so
-	python -m wheel pack unpacked/pikepdf-*/ --dest-dir wheelhouse
-	rm -rf unpacked/
+	# rm -rf unpacked/
+	# python -m wheel unpack wheelhouse/$(macwheel39) --dest unpacked
+	# rm -f wheelhouse/$(macwheel39)
+	# install_name_tool -change /usr/local/lib/libqpdf.28.dylib \
+	# 	/Users/jb/src/qpdf/libqpdf/build/.libs/libqpdf.28.dylib \
+	# 	unpacked/pikepdf-*/pikepdf/_qpdf.cpython*.so
+	# python -m wheel pack unpacked/pikepdf-*/ --dest-dir wheelhouse
+	# rm -rf unpacked/
 
 
 wheelhouse/$(macwheel310): clean
@@ -71,14 +94,14 @@ wheelhouse/$(macwheel310): clean
 	)
 	mv wheelhouse/pikepdf*cp310*.whl wheelhouse/$(macwheel310)
 
-	rm -rf unpacked/
-	python -m wheel unpack wheelhouse/$(macwheel310) --dest unpacked
-	rm -f wheelhouse/$(macwheel310) 
-	install_name_tool -change /usr/local/lib/libqpdf.28.dylib \
-		/Users/jb/src/qpdf/libqpdf/build/.libs/libqpdf.28.dylib \
-		unpacked/pikepdf-*/pikepdf/_qpdf.cpython*.so
-	python -m wheel pack unpacked/pikepdf-*/ --dest-dir wheelhouse
-	rm -rf unpacked/
+	# rm -rf unpacked/
+	# python -m wheel unpack wheelhouse/$(macwheel310) --dest unpacked
+	# rm -f wheelhouse/$(macwheel310)
+	# install_name_tool -change /usr/local/lib/libqpdf.28.dylib \
+	# 	/Users/jb/src/qpdf/libqpdf/build/.libs/libqpdf.28.dylib \
+	# 	unpacked/pikepdf-*/pikepdf/_qpdf.cpython*.so
+	# python -m wheel pack unpacked/pikepdf-*/ --dest-dir wheelhouse
+	# rm -rf unpacked/
 
 wheelhouse/delocated/$(macwheel39): wheelhouse/$(macwheel39)
 	delocate-wheel -w wheelhouse/delocated -v wheelhouse/$(macwheel39)
@@ -86,8 +109,16 @@ wheelhouse/delocated/$(macwheel39): wheelhouse/$(macwheel39)
 wheelhouse/delocated/$(macwheel310): wheelhouse/$(macwheel310)
 	delocate-wheel -w wheelhouse/delocated -v wheelhouse/$(macwheel310)
 
+.PHONY: macwheel39
+macwheel39: wheelhouse/delocated/$(macwheel39)
+	-
+
+.PHONY: macwheel310
+macwheel310: wheelhouse/delocated/$(macwheel310)
+	-
+
 .PHONY: apple-silicon-wheels
-apple-silicon-wheels: wheelhouse/delocated/$(macwheel310) wheelhouse/delocated/$(macwheel39)
+apple-silicon-wheels: wheelhouse/delocated/$(macwheel39) wheelhouse/delocated/$(macwheel310)
 	twine upload wheelhouse/delocated/$(macwheel39) wheelhouse/delocated/$(macwheel310)
 
 .PHONY: pycov

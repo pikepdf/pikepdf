@@ -4,6 +4,7 @@ from itertools import chain
 from os import environ
 from os.path import exists, join
 from typing import cast
+from platform import machine
 
 from pybind11.setup_helpers import ParallelCompile, Pybind11Extension, build_ext
 from setuptools import Extension, setup
@@ -17,6 +18,9 @@ if qpdf_source_tree:
     extra_library_dirs.append(join(qpdf_source_tree, 'libqpdf/build/.libs'))
 if 'bsd' in sys.platform:
     extra_includes.append('/usr/local/include')
+elif 'darwin' in sys.platform and machine() == 'arm64':
+    extra_includes.append('/opt/homebrew/include')
+    extra_library_dirs.append('/opt/homebrew/lib')
 
 try:
     from setuptools_scm import get_version
