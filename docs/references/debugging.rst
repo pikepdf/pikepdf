@@ -36,8 +36,8 @@ Download QPDF and compile a debug build:
 
     # in QPDF source tree
     cd $QPDF_SOURCE_TREE
-    ./configure CFLAGS='-g -O0' CPPFLAGS='-g -O0' CXXFLAGS='-g -O0'
-    make -j
+    cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+    cmake --build build -j
 
 Compile and link against QPDF source tree
 -----------------------------------------
@@ -47,20 +47,25 @@ system version:
 
 .. code-block:: bash
 
-    env QPDF_SOURCE_TREE=<location of QPDF> python setup.py build_ext --inplace
+    env QPDF_SOURCE_TREE=<location of QPDF> \
+      QPDF_BUILD_LIBDIR=<directory containing libqpdf.so> \
+      python setup.py build_ext --inplace
 
-In addition to building against the QPDF source, you'll need to force your operating
-system to load the locally compiled version of QPDF instead of the installed version:
+The libqpdf.so file should be located in the ``libqpdf`` subdirectory of your cmake
+build directory but may be in a subdirectory of that if you are using a
+multi-configuration generator with cmake. In addition to building against the QPDF
+source, you'll need to force your operating system to load the locally compiled
+version of QPDF instead of the installed version:
 
 .. code-block:: bash
 
     # Linux
-    env LD_LIBRARY_PATH=$QPDF_SOURCE_TREE/libqpdf/build/.libs python ...
+    env LD_LIBRARY_PATH=<directory containing libqpdf.so> python ...
 
 .. code-block:: bash
 
     # macOS - may require disabling System Integrity Protection
-    env DYLD_LIBRARY_PATH=$QPDF_SOURCE_TREE/libqpdf/build/.libs python ...
+    env DYLD_LIBRARY_PATH=<directory containing libqpdf.so> python ...
 
 On macOS you can make the library persistent by changing the name of the library
 to use in pikepdf's binary extension module:
@@ -68,7 +73,7 @@ to use in pikepdf's binary extension module:
 .. code-block:: bash
 
     install_name_tool -change /usr/local/lib/libqpdf*.dylib \
-        $QPDF_SOURCE_TREE/libqpdf/build/.libs/libqpdf*.dylib \
+        $QPDF_BUILD_LIBDIR/libqpdf*.dylib \
         src/pikepdf/_qpdf.cpython*.so
 
 You can also run Python through a debugger (``gdb`` or ``lldb``) in this manner,
