@@ -243,14 +243,18 @@ recent version of QPDF than your operating system package manager provides, and 
 do not want to use Python wheels.
 
 * Set the environment variable ``QPDF_SOURCE_TREE`` to the location of the QPDF source
-  tree.
+  tree. Set the environment variable ``QPDF_BUILD_LIBDIR`` to the directory that
+  contains the shared library built by cmake from this source tree. Typically this
+  will be ``.../build/libqpdf`` where ``.../build`` represents the cmake build
+  directory. If you are using a multi-configuration generator, it may be in a
+  subdirectory of that.
 
-* Build QPDF, by running ``make``. Refer to the QPDF installation instructions for
+* Build QPDF, by running ``cmake``. Refer to the QPDF installation instructions for
   further options and details.
 
 * On Linux, modify ``LD_LIBRARY_PATH``, prepending the path where the QPDF build
-  produces ``libqpdfXX.so``. This might be something like
-  ``$QPDF_SOURCE_TREE/.build/libs/libqpdfXX.so``. On macOS, locate the equivalent
+  produces ``libqpdfXX.so``. This is the same directory you assigned the
+  ``QPDF_BUILD_LIBRARY`` environment variable to. On macOS, the equivalent
   variable is ``DYLD_LIBRARY_PATH``. On Windows, no action is needed. Generally,
   what you are doing here is telling the runtime dynamic linker to use the custom
   compiled version of QPDF instead of the system version.
