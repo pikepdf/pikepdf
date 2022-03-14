@@ -17,6 +17,7 @@ from setuptools import Extension, setup
 extra_includes = []
 extra_library_dirs = []
 qpdf_source_tree = environ.get('QPDF_SOURCE_TREE', '')
+qpdf_build_libdir = environ.get('QPDF_BUILD_LIBDIR', '')
 
 # If CFLAGS is defined, disable any efforts to shim the build, because
 # the caller is probably a maintainer and knows what they are doing.
@@ -26,7 +27,17 @@ if not cflags_defined:
     if qpdf_source_tree:
         # Point this to qpdf source tree built with shared libaries
         extra_includes.append(join(qpdf_source_tree, 'include'))
-        extra_library_dirs.append(join(qpdf_source_tree, 'libqpdf/build/.libs'))
+        if not qpdf_build_libdir:
+            # Pre-cmake qpdf build
+            old_libdir = join(qpdf_source_tree, 'libqpdf/build/.libs')
+            if exists(old_libdir):
+                qpdf_build_libdir = old_libdir
+        if not qpdf_build_libdir:
+            raise Exception(
+                'Please set QPDF_BUILD_LIBDIR to the directory'
+                ' containing your libqpdf.so built from'
+                ' $QPDF_SOURCE_TREE')
+        extra_library_dirs.append(join(qpdf_build_libdir))
 
     if 'bsd' in sys.platform:
         extra_includes.append('/usr/local/include')
