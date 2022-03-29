@@ -1,6 +1,7 @@
 [project]
 name = "pikepdf"
-requires-python = ">=3.7"
+requires-python = "~=3.7"
+dynamic = ['version']
 
 [build-system]
 requires = [
