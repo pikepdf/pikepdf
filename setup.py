@@ -3,8 +3,8 @@ from glob import glob
 from itertools import chain
 from os import environ
 from os.path import exists, join
-from typing import cast
 from platform import machine
+from typing import cast
 
 from pybind11.setup_helpers import ParallelCompile, Pybind11Extension, build_ext
 from setuptools import Extension, setup
@@ -12,15 +12,22 @@ from setuptools import Extension, setup
 extra_includes = []
 extra_library_dirs = []
 qpdf_source_tree = environ.get('QPDF_SOURCE_TREE', '')
-if qpdf_source_tree:
-    # Point this to qpdf source tree built with shared libaries
-    extra_includes.append(join(qpdf_source_tree, 'include'))
-    extra_library_dirs.append(join(qpdf_source_tree, 'libqpdf/build/.libs'))
-if 'bsd' in sys.platform:
-    extra_includes.append('/usr/local/include')
-elif 'darwin' in sys.platform and machine() == 'arm64':
-    extra_includes.append('/opt/homebrew/include')
-    extra_library_dirs.append('/opt/homebrew/lib')
+
+# If CFLAGS is defined, disable any efforts to shim the build, because
+# the caller is probably a maintainer and knows what they are doing.
+cflags_defined = bool(environ.get('CFLAGS', ''))
+
+if not cflags_defined:
+    if qpdf_source_tree:
+        # Point this to qpdf source tree built with shared libaries
+        extra_includes.append(join(qpdf_source_tree, 'include'))
+        extra_library_dirs.append(join(qpdf_source_tree, 'libqpdf/build/.libs'))
+
+    if 'bsd' in sys.platform:
+        extra_includes.append('/usr/local/include')
+    elif 'darwin' in sys.platform and machine() == 'arm64':
+        extra_includes.append('/opt/homebrew/include')
+        extra_library_dirs.append('/opt/homebrew/lib')
 
 try:
     from setuptools_scm import get_version
@@ -52,18 +59,18 @@ extmodule: Extension = cast(
     ),
 )
 
-if sys.platform == 'cygwin':
-    # On cygwin, use gnu++17 instead of c++17
-    eca = extmodule.extra_compile_args
-    eca[eca.index('-std=c++17')] = '-std=gnu++17'
+if not cflags_defined:
+    if sys.platform == 'cygwin':
+        # On cygwin, use gnu++17 instead of c++17
+        eca = extmodule.extra_compile_args
+        eca[eca.index('-std=c++17')] = '-std=gnu++17'
 
-# Debug build
-# module[0].extra_compile_args.append('-g3')
+    # Debug build
+    # module[0].extra_compile_args.append('-g3')
 
-if qpdf_source_tree:
-    for lib in extra_library_dirs:
-        extmodule.extra_link_args.append(f'-Wl,-rpath,{lib}')  # type: ignore
-
+    if qpdf_source_tree:
+        for lib in extra_library_dirs:
+            extmodule.extra_link_args.append(f'-Wl,-rpath,{lib}')  # type: ignore
 
 if __name__ == '__main__':
     with ParallelCompile("PIKEPDF_NUM_BUILD_JOBS"):  # optional envvar
