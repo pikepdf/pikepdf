@@ -59,8 +59,8 @@ manylinux-pypy_i686-image = "manylinux2014"
 skip = "*-musllinux_* pp38* pp*-manylinux*_i686"
 
 [[tool.cibuildwheel.overrides]]
-# As of 2021-10, musllinux image was based on Alpine 3.12
-# We need Alpine 3.14 or newer to get the required package versions
+# As of 2022-04, musllinux image was based on Alpine 3.12
+# We need Alpine 3.16 or newer to get the required package versions
 # Check https://github.com/pypa/manylinux/blob/main/build.sh#L66 to see if
 # musllinux has been updated.
 select = "*-musllinux*"

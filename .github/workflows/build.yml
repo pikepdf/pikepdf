@@ -2,6 +2,8 @@ name: Build and upload to PyPI
 
 on: [push, pull_request]
 
+# For musllinux support, see note in pyproject.toml
+
 jobs:
   wheels_linux:
     name: 🏗 ${{ matrix.os }} - ${{ matrix.platform }}
@@ -11,7 +13,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-20.04]
-        platform: [manylinux_x86_64, manylinux_i686] # yet not doing musllinux_x86_64, i686 (dependency issues), manylinux_aarch64 (too expensive)
+        platform: [manylinux_x86_64, manylinux_i686]
 
     steps:
       - uses: actions/checkout@v2
