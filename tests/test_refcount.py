@@ -84,3 +84,15 @@ def test_transfer_page(resources):
 
     del pdf2.pages[2]
     assert before == p2p2.Contents.read_bytes()
+
+
+def test_new_pdf():
+    before = gc.get_count()
+    for _ in range(10):
+        with Pdf.new() as pdf:
+            pdf.add_blank_page()
+    gc.collect()
+    after = gc.get_count()
+
+    for n in range(3):
+        assert after[n] <= before[n]
