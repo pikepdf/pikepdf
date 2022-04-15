@@ -18,6 +18,11 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v5.1.2
+======
+
+-  Fixed test suite failures with Pillow 9.1.0.
+
 v5.1.1
 ======
 
@@ -32,7 +37,7 @@ v5.1.0
 v5.0.1
 ======
 
--  Fix issue where Pdf.check() would report a failure if JBIG2 decoder was not
+-  Fixed issue where Pdf.check() would report a failure if JBIG2 decoder was not
    installed and the PDF contains JBIG2 content.
 
 v5.0.0
