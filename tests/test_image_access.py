@@ -516,7 +516,8 @@ def test_image_palette(resources, filename, bpc, rgb):
     outstream = BytesIO()
     pim.extract_to(stream=outstream)
 
-    im = pim.as_pil_image().convert('RGB')
+    im_pal = pim.as_pil_image()
+    im = im_pal.convert('RGB')
     assert im.getpixel((1, 1)) == rgb
 
 

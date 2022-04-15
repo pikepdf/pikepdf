@@ -163,13 +163,12 @@ def fix_1bit_palette_image(
     im: Image.Image, base_mode: str, palette: BytesLike
 ) -> Image.Image:
     """Apply palettes to 1-bit images."""
-    if base_mode == 'RGB' and palette != b'\x00\x00\x00\xff\xff\xff':
+    if base_mode == 'RGB':
         im = im.convert('P')
+        if len(palette) == 6:
+            # rgbrgb -> rgb000000...rgb
+            palette = palette[0:3] + (b'\x00\x00\x00' * (256 - 2)) + palette[3:6]
         im.putpalette(palette, rawmode=base_mode)
-        gp = im.getpalette()
-        if gp:
-            gp[765:768] = gp[3:6]  # work around Pillow bug
-            im.putpalette(gp)
     elif base_mode == 'L' and palette != b'\x00\xff':
         im = im.convert('P')
         try:
