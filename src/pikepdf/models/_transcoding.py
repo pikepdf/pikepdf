@@ -163,14 +163,12 @@ def fix_1bit_palette_image(
     im: Image.Image, base_mode: str, palette: BytesLike
 ) -> Image.Image:
     """Apply palettes to 1-bit images."""
-    if base_mode == 'RGB':
-        im = im.convert('P')
-        if len(palette) == 6:
-            # rgbrgb -> rgb000000...rgb
-            palette = palette[0:3] + (b'\x00\x00\x00' * (256 - 2)) + palette[3:6]
+    im = im.convert('P')
+    if base_mode == 'RGB' and len(palette) == 6:
+        # rgbrgb -> rgb000000...rgb
+        palette = palette[0:3] + (b'\x00\x00\x00' * (256 - 2)) + palette[3:6]
         im.putpalette(palette, rawmode=base_mode)
-    elif base_mode == 'L' and palette != b'\x00\xff':
-        im = im.convert('P')
+    elif base_mode == 'L':
         try:
             im.putpalette(palette, rawmode=base_mode)
         except ValueError as e:
