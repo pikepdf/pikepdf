@@ -39,28 +39,30 @@ This library is similar to PyPDF2 and pdfrw - it provides low level access to PD
 | Based on an existing, mature PDF library                            | QPDF                                        | ✘                                         | ✘                                       |
 | Implementation                                                      | C++ and Python                              | Python                                    | Python                                  |
 | PDF versions supported                                              | 1.1 to 1.7                                  | 1.3?                                      | 1.7                                     |
-| Python versions supported                                           | 3.7-3.10 [^1]                                    | 2.6-3.6                                   | 2.6-3.6                                 |
+| Python versions supported                                           | 3.7-3.10 [^1]                                    | 2.7-3.10                                   | 2.6-3.6                                 |
 | Save and load password protected (encrypted) PDFs                   | ✔ (except public key)                       | ✘ (Only obsolete RC4)                     | ✘ (not at all)                          |
 | Save and load PDF compressed object streams (PDF 1.5)               | ✔                                           | ✘                                         | ✘                                       |
 | Creates linearized ("fast web view") PDFs                           | ✔                                           | ✘                                         | ✘                                       |
 | Actively maintained                                                 | ![pikepdf commit activity][pikepdf-commits] | ![PyPDF2 commit activity][pypdf2-commits] | ![pdfrw commit activity][pdfrw-commits] |
-| Test suite coverage                                                 | ![codecov][codecov]                         | very low                                  | unknown                                 |
+| Test suite coverage                                                 | ![codecov][codecov]                         | ![pypdf2-codecov][pypdf2-codecov]         | unknown                                 |
 | Creates PDFs that pass PDF validation tests                         | ✔                                           | ✘                                         | ?                                       |
 | Modifies PDF/A without breaking PDF/A compliance                    | ✔                                           | ✘                                         | ?                                       |
 | Automatically repairs PDFs with internal errors                     | ✔                                           | ✘                                         | ✘                                       |
 | PDF XMP metadata editing                                            | ✔                                           | read-only                                 | ✘                                       |
-| Documentation                                                       | ✔                                           | basic                                     | ✔                                       |
+| Documentation                                                       | ✔                                           | ✔                                        | ✔                                       |
 | Integrates with Jupyter and IPython notebooks for rapid development | ✔                                           | ✘                                         | ✘                                       |
 
 [^1]: pikepdf 3.x and older support Python 3.6.
 
 [pikepdf-commits]: https://img.shields.io/github/commit-activity/y/pikepdf/pikepdf.svg
 
-[pypdf2-commits]: https://img.shields.io/github/commit-activity/y/mstamy2/PyPDF2.svg
+[pypdf2-commits]: https://img.shields.io/github/commit-activity/y/py-pdf/PyPDF2.svg
 
 [pdfrw-commits]: https://img.shields.io/github/commit-activity/y/pmaupin/pdfrw.svg
 
 [codecov]: https://codecov.io/gh/pikepdf/pikepdf/branch/master/graph/badge.svg?token=8FJ755317J
+
+[pypdf2-codecov]: https://codecov.io/gh/py-pdf/PyPDF2/branch/main/graph/badge.svg
 
 Testimonials
 ------------
