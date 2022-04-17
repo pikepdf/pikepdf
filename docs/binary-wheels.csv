@@ -4,6 +4,6 @@
 :fa:`windows` Windows 64-bit,✅,✅,✅,✅,⏳,⏳
 :fa:`windows` Windows 32-bit,✅,✅,✅,✅,⏳,⏳
 :fa:`linux` manylinux2014 64-bit,✅,✅,✅,✅,✅,⏳
-:fa:`linux` manylinux2014 32-bit,✅,✅,✅,✅,✅,⏳
+:fa:`linux` manylinux2014 32-bit,✅,✅,✅,✅,❌,⏳
 :fa:`linux` musllinux 64-bit,⏳,⏳,⏳,⏳,⏳,⏳
 :fa:`linux` musllinux 32-bit,⏳,⏳,⏳,⏳,⏳,⏳
