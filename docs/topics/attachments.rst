@@ -73,6 +73,10 @@ Your PDF viewer should have an attachments panel that shows available attachment
 
 Attachments added to ``Pdf.attachments`` will be shown here.
 
+You may find it useful to set ``pdf.root.PageMode = Name.UseAttachments``. This
+tells the PDF viewer to open a pane that lists all attachments in the PDF. Note
+that it is up to the PDF viewer to implement and honor this request.
+
 Creating attachment annotations
 -------------------------------
 

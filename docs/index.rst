@@ -138,6 +138,7 @@ practical examples, particular in ``pdfinfo.py``, ``graft.py``, and
     topics/outlines
     topics/nametrees
     topics/attachments
+    topics/pagelayout
     topics/security
 
 .. toctree::
