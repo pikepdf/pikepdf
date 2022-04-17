@@ -21,12 +21,14 @@ should not access directly, along with any modules with a prefixed underscore.
 v5.1.2
 ======
 
--  Fixed test suite failures with Pillow 9.1.0.
+-  Fixed test suite failures with Pillow 9.1.0. :issue:`328`
 
 v5.1.1
 ======
 
--  Fixes to pyproject.toml to support PEP-621 changes.
+-  Fixes to pyproject.toml to support PEP-621 changes. :issue:`323`
+-  Fixed assuming Homebrew was present on certain macOS systems; and more generally,
+   turn off setup shims when it seems like a maintainer is involved. :issue:`322`
 
 v5.1.0
 ======
