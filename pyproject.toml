@@ -56,7 +56,7 @@ manylinux-x86_64-image = "manylinux2014"
 manylinux-i686-image = "manylinux2014"
 manylinux-pypy_x86_64-image = "manylinux2014"
 manylinux-pypy_i686-image = "manylinux2014"
-skip = "*-musllinux_* pp38* pp37-manylinux*_i686"
+skip = "*-musllinux_* pp38* pp*-manylinux*_i686"
 
 [[tool.cibuildwheel.overrides]]
 # As of 2021-10, musllinux image was based on Alpine 3.12
