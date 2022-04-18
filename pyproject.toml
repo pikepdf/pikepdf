@@ -56,7 +56,7 @@ manylinux-x86_64-image = "manylinux2014"
 manylinux-i686-image = "manylinux2014"
 manylinux-pypy_x86_64-image = "manylinux2014"
 manylinux-pypy_i686-image = "manylinux2014"
-skip = "*-musllinux_* pp38* pp*-manylinux*_i686"
+skip = "*-musllinux_* pp39* pp*-manylinux*_i686"
 
 [[tool.cibuildwheel.overrides]]
 # As of 2022-04, musllinux image was based on Alpine 3.12
@@ -75,6 +75,7 @@ before-all = ["brew update", "brew install qpdf little-cms2"]
 # pp3*-win32 fails because there is no wheel for lxml
 # pp3*-win_amd64 does not execute because cibuildwheel does not implement it
 # or PyPy3 doesn't work on Windows 64-bit, one or the other
+# Check https://pypi.org/project/lxml/#files to see if lxml is providing pp-*win
 # PyPy+Win32 seems like a very low priority combination
 skip = "pp3*"
 
