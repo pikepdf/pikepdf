@@ -17,7 +17,10 @@ to one of its test files.
 
     In [1]: pdf = Pdf.open('../tests/resources/fourpages.pdf')
 
-    In [1]: filespec = AttachedFileSpec.from_filepath(pdf, Path('../README.md'))
+    In [1]: filespec = AttachedFileSpec.from_filepath(
+       ...:     pdf,
+       ...:     Path('../README.md'),
+       ...:     description='This is the file description')
 
     In [1]: pdf.attachments['README.md'] = filespec
 
@@ -104,6 +107,7 @@ prompt the user to view the attached document. Valid icons and their relative si
      ...:     Name=Name.PushPin,
      ...:     FS=filespec.obj,
      ...:     Rect=icon_location,
+     ...:     Contents='This is the file description',
      ...: )
 
   In [1]: pdf.pages[0].Annots = pdf.make_indirect(Array([
