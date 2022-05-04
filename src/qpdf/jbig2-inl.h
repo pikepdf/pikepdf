@@ -107,6 +107,8 @@ public:
 
     virtual bool setDecodeParms(QPDFObjectHandle decode_parms) override
     {
+        if (decode_parms.isNull())
+            return false;
         auto jbig2globals_obj = decode_parms.getKey("/JBIG2Globals");
         if (jbig2globals_obj.isNull())
             return true;
