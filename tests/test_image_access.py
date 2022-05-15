@@ -22,6 +22,7 @@ from pikepdf import (
     Array,
     Dictionary,
     Name,
+    Object,
     Operator,
     Pdf,
     PdfError,
@@ -744,6 +745,27 @@ def test_jbig2_extractor(jbig2):
 @needs_jbig2dec
 def test_jbig2(jbig2):
     xobj, _pdf = jbig2
+    pim = PdfImage(xobj)
+    im = pim.as_pil_image()
+    assert im.size == (1000, 1520)
+    assert im.getpixel((0, 0)) == 0  # Ensure loaded
+
+
+@needs_jbig2dec
+def test_jbig2_decodeparms_null_issue317(jbig2):
+    xobj, _pdf = jbig2
+    xobj.stream_dict = Object.parse(
+        b'''<< /BitsPerComponent 1
+               /ColorSpace /DeviceGray
+               /Filter [ /JBIG2Decode ]
+               /DecodeParms null
+               /Height 1520
+               /Length 19350
+               /Subtype /Image
+               /Type /XObject
+               /Width 1000
+            >>'''
+    )
     pim = PdfImage(xobj)
     im = pim.as_pil_image()
     assert im.size == (1000, 1520)

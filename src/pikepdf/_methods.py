@@ -21,7 +21,7 @@ from collections.abc import KeysView, MutableMapping
 from decimal import Decimal
 from io import BytesIO
 from pathlib import Path
-from subprocess import PIPE, run
+from subprocess import run
 from tempfile import NamedTemporaryFile
 from typing import (
     Any,
