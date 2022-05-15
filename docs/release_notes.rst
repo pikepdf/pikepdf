@@ -18,6 +18,14 @@ is in production use. Note that the C++ extension module
 ``pikepdf._qpdf`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
+v5.1.3
+======
+
+-  Fixed issue with saving files that contained JBIG2 images with null DecodeParms.
+   :issue:`317`
+-  Use cibuildwheel 2.4.0 and update settings to publish PyPy 3.8 binary wheels for
+   manylinux platforms.
+
 v5.1.2
 ======
 
