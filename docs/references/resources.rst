@@ -11,7 +11,7 @@ Resources
 
 .. _QPDF Manual: https://qpdf.readthedocs.io/
 
-.. _PDF 1.7: https://www.adobe.com/content/dam/acom/en/devnet/pdf/pdfs/PDF32000_2008.pdf
+.. _PDF 1.7: https://opensource.adobe.com/dc-acrobat-sdk-docs/standards/pdfstandards/pdf/PDF32000_2008.pdf
 
 .. _Adobe extensions: https://www.adobe.com/devnet/pdf/pdf_reference.html
 
