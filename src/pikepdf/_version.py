@@ -4,12 +4,12 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
-from pkg_resources import DistributionNotFound
-from pkg_resources import get_distribution as _get_distribution
 
 try:
-    __version__ = _get_distribution(__package__).version
-except DistributionNotFound:  # pragma: no cover
-    __version__ = "Not installed"
+    from importlib_metadata import version as _package_version
+except ImportError:
+    from importlib.metadata import version as _package_version
+
+__version__ = _package_version('pikepdf')
 
 __all__ = ['__version__']

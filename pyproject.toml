@@ -114,7 +114,6 @@ known_third_party = [
   "conftest",
   "hypothesis",
   "lxml",
-  "pkg_resources",
   "psutil",
   "pytest",
   "setuptools"
