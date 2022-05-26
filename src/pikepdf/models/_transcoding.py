@@ -48,7 +48,7 @@ def unpack_subbyte_pixels(
     buffer = bytearray(bits_per_byte * stride * height)
     max_read = len(buffer) // bits_per_byte
     if scale == 0:
-        scale = 255 / ((2 ** bits) - 1)
+        scale = 255 / ((2**bits) - 1)
     if bits == 4:
         _4bit_inner_loop(packed[:max_read], buffer, scale)
     elif bits == 2:
@@ -167,14 +167,14 @@ def fix_1bit_palette_image(
     if base_mode == 'RGB' and len(palette) == 6:
         # rgbrgb -> rgb000000...rgb
         palette = palette[0:3] + (b'\x00\x00\x00' * (256 - 2)) + palette[3:6]
-        im.putpalette(palette, rawmode=base_mode)
+        im.putpalette(palette, rawmode='RGB')
     elif base_mode == 'L':
         try:
-            im.putpalette(palette, rawmode=base_mode)
+            im.putpalette(palette, rawmode='L')
         except ValueError as e:
             if 'unrecognized raw mode' in str(e):
                 rgb_palette = _make_rgb_palette(palette)
-                im.putpalette(rgb_palette, 'RGB')
+                im.putpalette(rgb_palette, rawmode='RGB')
     return im
 
 

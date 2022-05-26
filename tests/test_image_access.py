@@ -394,7 +394,7 @@ def imagelike_data(draw, width, height, bpc, sample_range=None):
     stride = _next_multiple(width, bits_per_byte)
 
     if not sample_range:
-        sample_range = (0, 2 ** bpc - 1)
+        sample_range = (0, 2**bpc - 1)
 
     if bpc in (2, 4, 8):
         intdata = draw(
@@ -474,7 +474,7 @@ def valid_random_palette_image_spec(
     width = draw(widths)
     height = draw(heights)
     colorspace = draw(colorspaces)
-    hival = draw(st.integers(min_value=0, max_value=(2 ** bpc) - 1))
+    hival = draw(st.integers(min_value=0, max_value=(2**bpc) - 1))
 
     imbytes = draw(imagelike_data(width, height, bpc, (0, hival)))
 

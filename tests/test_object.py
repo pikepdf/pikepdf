@@ -88,7 +88,7 @@ def test_integer_comparison(a, b):
     assert lessthan == encoded_lessthan
 
 
-@given(integers(-(10 ** 12), 10 ** 12), integers(0, 12))
+@given(integers(-(10**12), 10**12), integers(0, 12))
 def test_decimal_involution(num, radix):
     strnum = str(num)
     if radix > len(strnum):
