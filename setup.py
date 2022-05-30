@@ -27,7 +27,9 @@ if not cflags_defined:
         extra_includes.append('/usr/local/include')
     elif 'darwin' in sys.platform and machine() == 'arm64':
         extra_includes.append('/opt/homebrew/include')
+        extra_includes.append('/opt/local/include')
         extra_library_dirs.append('/opt/homebrew/lib')
+        extra_library_dirs.append('/opt/local/lib')
 
 try:
     from setuptools_scm import get_version
@@ -39,7 +41,8 @@ except ImportError:
 
 for extra_path in chain([qpdf_source_tree], extra_includes, extra_library_dirs):
     if extra_path and not exists(extra_path):
-        raise FileNotFoundError(extra_path)
+        pass
+        # raise FileNotFoundError(extra_path)
 
 # Use cast because mypy has trouble seeing Pybind11Extension is a subclass of
 # Extension.
