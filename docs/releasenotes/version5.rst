@@ -1,3 +1,14 @@
+v5.1.4
+======
+
+-  Reorganized release notes so they are better presented in Sphinx documentation.
+-  Remove all upper bound version constraints.
+-  Replace documentation package sphinx-panels with sphinx-design. Downstream
+   maintainers will need to adjust this in documentation.
+-  Removed use of deprecated pkg_resources and replaced with importlib (and, where
+   necessary for backward compatibility, importlib_metadata).
+-  Fixed some broken links in the documentation and READMEs.
+
 v5.1.3
 ======
 
