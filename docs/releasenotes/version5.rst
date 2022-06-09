@@ -1,3 +1,8 @@
+v5.1.5
+======
+
+-  Fixed removal of necessary package ``packaging``. Needed for import.
+
 v5.1.4
 ======
 
