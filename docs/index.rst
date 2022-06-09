@@ -72,11 +72,17 @@ What it cannot do:
 
    Pikemen bracing for a calvary charge, carrying pikes.
 
+.. _PyMuPDF: https://github.com/pymupdf/PyMuPDF
+.. _MuPDF: https://github.com/ArtifexSoftware/mupdf
+.. _pypdfium2: https://github.com/pypdfium2-team/pypdfium2
+.. _python-poppler: https://github.com/cbrunet/python-poppler
+.. _Ghostscript: https://github.com/ArtifexSoftware/ghostpdl
+
 * Rasterize PDF pages for display (that is, produce an image that shows what
   a PDF page looks like at a particular resolution/zoom level) – use
-  Ghostscript instead
+  `PyMuPDF`_, `pypdfium2`_, `python-poppler`_ or `Ghostscript`_ instead
 * Convert from PDF to other similar paper capture formats like epub, XPS, DjVu,
-  Postscript – use MuPDF or PyMuPDF
+  Postscript – use `MuPDF`_ or `PyMuPDF`_
 * Print to paper
 
 If you only want to generate PDFs and not read or modify them, consider
