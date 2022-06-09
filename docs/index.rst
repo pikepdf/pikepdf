@@ -124,8 +124,13 @@ practical examples, particular in ``pdfinfo.py``, ``graft.py``, and
     :name: intro_toc
 
     installation
-    release_notes
     tutorial
+
+.. toctree::
+    :maxdepth: 1
+    :caption: Release notes
+
+    releasenotes/index.rst
 
 .. toctree::
     :maxdepth: 2
