@@ -6,7 +6,7 @@
 
 
 try:
-    from importlib_metadata import version as _package_version
+    from importlib_metadata import version as _package_version  # type: ignore
 except ImportError:
     from importlib.metadata import version as _package_version
 
