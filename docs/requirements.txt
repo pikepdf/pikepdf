@@ -13,7 +13,7 @@ pybind11
 setuptools_scm
 Sphinx >= 3
 sphinx-issues
-sphinx-panels
+sphinx-design
 sphinx-rtd-theme
 tomli
 
