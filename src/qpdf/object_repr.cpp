@@ -128,12 +128,6 @@ std::string objecthandle_repr_typename_and_value(QPDFObjectHandle h)
     return objecthandle_pythonic_typename(h) + "(" + objecthandle_scalar_value(h) + ")";
 }
 
-std::ostream &operator<<(std::ostream &os, const QPDFObjGen &og)
-{
-    os << og.getObj() << ", " << og.getGen();
-    return os;
-}
-
 static std::string objecthandle_repr_inner(QPDFObjectHandle h,
     uint recursion_depth,
     uint indent_depth,
