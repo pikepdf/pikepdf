@@ -18,6 +18,7 @@ from pikepdf.models.metadata import (
     XMP_NS_PDF,
     XMP_NS_XMP,
     DateConverter,
+    PdfMetadata,
     decode_pdf_date,
 )
 
@@ -728,3 +729,7 @@ def test_xxe(trivial, outdir):
     )
     with trivial.open_metadata() as m:
         assert 'This is a secret' not in str(m)
+
+
+def test_qname_no_namespace():
+    assert PdfMetadata._qname('abc') == '{adobe:ns:meta/}abc'

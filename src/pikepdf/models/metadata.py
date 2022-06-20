@@ -22,7 +22,6 @@ from typing import (
     Set,
     Type,
     Union,
-    cast,
 )
 from warnings import warn
 
@@ -557,7 +556,14 @@ class PdfMetadata(MutableMapping):
             return name
         if name.startswith('{'):
             return name
-        prefix, tag = name.split(':', maxsplit=1)
+        try:
+            prefix, tag = name.split(':', maxsplit=1)
+        except ValueError:
+            # If missing the namespace, put it in the top level namespace
+            # To do this completely correct we actually need to figure out
+            # the namespace based on context defined by parent tags. That
+            #   https://www.w3.org/2001/tag/doc/qnameids.html
+            prefix, tag = 'x', name
         uri = cls.NS[prefix]
         return str(QName(uri, tag))
 
