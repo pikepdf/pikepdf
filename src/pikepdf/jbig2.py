@@ -10,15 +10,19 @@ from subprocess import DEVNULL, PIPE, CalledProcessError, run
 from tempfile import TemporaryDirectory
 from typing import Optional, cast
 
+import deprecation
 from packaging.version import Version
 from PIL import Image
 
 import pikepdf
 
 
+@deprecation.deprecated(
+    deprecated_in="5.1.5", removed_in="6.0", details="Use extract_jbig2_bytes instead"
+)
 def extract_jbig2(
     im_obj: pikepdf.Object, globals_obj: Optional[pikepdf.Object] = None
-) -> Image.Image:
+) -> Image.Image:  # pragma: no cover
 
     with TemporaryDirectory(prefix='pikepdf-', suffix='.jbig2') as tmpdir:
         image_path = Path(tmpdir) / "image"
