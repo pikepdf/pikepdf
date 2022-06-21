@@ -16,11 +16,11 @@ jobs:
         platform: [manylinux_x86_64, manylinux_i686]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: "0" # 0=all, needed for setuptools-scm to resolve version tags
 
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         name: Install Python
         with:
           python-version: "3.8"
@@ -32,24 +32,24 @@ jobs:
           platforms: all
 
       - name: Build wheels
-        uses: joerick/cibuildwheel@v2.4.0
+        uses: joerick/cibuildwheel@v2.7.0
         if: matrix.platform != 'manylinux_aarch64'
 
       - name: Build wheels (emulated)
-        uses: joerick/cibuildwheel@v2.4.0
+        uses: joerick/cibuildwheel@v2.7.0
         if: matrix.platform == 'manylinux_aarch64'
         env:
           CIBW_ARCHS_LINUX: aarch64
 
       - name: Upload built wheels
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: wheels
           path: ./wheelhouse/*.whl
           if-no-files-found: error
 
       - name: Upload wheel for ReadTheDocs
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: matrix.platform == 'manylinux_x86_64'
         with:
           name: rtd-wheel
@@ -64,21 +64,21 @@ jobs:
         os: [macos-10.15]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: "0"
 
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         name: Install Python
         with:
           python-version: "3.8"
 
       - name: Build wheels
-        uses: joerick/cibuildwheel@v2.4.0
+        uses: joerick/cibuildwheel@v2.7.0
 
         #env:
         #  CIBW_ARCHS_MACOS: x86_64 universal2 # for Apple Silicon
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: wheels
           path: ./wheelhouse/*.whl
@@ -98,11 +98,11 @@ jobs:
         platform: [win_amd64, win32]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: "0"
 
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         name: Install Python
         with:
           python-version: "3.8"
@@ -118,9 +118,9 @@ jobs:
           build-scripts/win-download-qpdf.ps1 $env:QPDF_VERSION ${{ matrix.platform }}
 
       - name: Build wheels
-        uses: joerick/cibuildwheel@v2.4.0
+        uses: joerick/cibuildwheel@v2.7.0
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: wheels
           path: ./wheelhouse/*.whl
@@ -129,11 +129,11 @@ jobs:
     name: 🏗 source distribution
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: "0"
 
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         name: Install Python
         with:
           python-version: "3.8"
@@ -189,7 +189,7 @@ jobs:
         with:
           files: ./coverage.xml,./cpp_coverage.info
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: wheels
           path: dist/*.tar.gz
@@ -216,7 +216,7 @@ jobs:
     # upload to PyPI on every tag starting with 'v'
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
     steps:
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: wheels
           path: dist
