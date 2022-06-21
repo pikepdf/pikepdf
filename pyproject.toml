@@ -81,6 +81,10 @@ skip = "pp3*"
 
 [tool.mypy]
 
+[[tool.mypy.overrides]]
+module = ["deprecation"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 minversion = "6.0"
 norecursedirs = ["lib", ".pc", ".git", "venv"]
@@ -377,7 +381,7 @@ max-returns = 6
 max-statements = 50
 
 # Minimum number of public methods for a class (see R0903).
-min-public-methods = 2
+min-public-methods = 1
 
 [tool.pylint.exceptions]
 # Exceptions that will emit a warning when caught.

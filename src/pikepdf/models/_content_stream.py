@@ -103,8 +103,7 @@ def parse_content_stream(
     except PdfError as e:
         if 'supposed to be a stream or an array' in str(e):
             raise TypeError("parse_content_stream called on non-stream Object") from e
-        else:
-            raise e from e
+        raise e from e
 
     return instructions
 

@@ -68,14 +68,13 @@ def array_str(value: Union[Object, str, list]):
     def _array_str(item):
         if isinstance(item, (list, Array)):
             return [_array_str(subitem) for subitem in item]
-        elif isinstance(item, (Stream, Dictionary, bytes, int)):
+        if isinstance(item, (Stream, Dictionary, bytes, int)):
             return item
-        elif isinstance(item, (Name, str)):
+        if isinstance(item, (Name, str)):
             return str(item)
-        elif isinstance(item, (String)):
+        if isinstance(item, (String)):
             return bytes(item)
-        else:
-            raise NotImplementedError(value)
+        raise NotImplementedError(value)
 
     result = _array_str(value)
     if not isinstance(result, list):
@@ -89,7 +88,7 @@ def dict_or_array_dict(value):
     if isinstance(value, Dictionary):
         return [value.as_dict()]
     if isinstance(value, Array):
-        return [v for v in value.as_list()]
+        return list(value.as_list())
     raise NotImplementedError(value)
 
 
@@ -523,7 +522,7 @@ class PdfImage(PdfImageBase):
             stream.write(self._generate_ccitt_header(data, icc=icc))
             stream.write(data)
             return '.tif'
-        elif filters == ['/DCTDecode'] and (
+        if filters == ['/DCTDecode'] and (
             self.mode == 'L' or normal_dct_rgb() or normal_dct_cmyk()
         ):
             stream.write(data)
@@ -635,7 +634,7 @@ class PdfImage(PdfImageBase):
             if im.mode == 'CMYK':
                 im.save(stream, format='tiff', compression='tiff_adobe_deflate')
                 return '.tiff'
-            elif im:
+            if im:
                 im.save(stream, format='png')
                 return '.png'
         except PdfError as e:
@@ -814,7 +813,7 @@ class PdfJpxImage(PdfImage):
             return super_colorspaces
         if self._jpxpil.mode == 'L':
             return ['/DeviceGray']
-        elif self._jpxpil.mode == 'RGB':
+        if self._jpxpil.mode == 'RGB':
             return ['/DeviceRGB']
         raise NotImplementedError('Complex JP2 colorspace')
 
@@ -908,14 +907,12 @@ class PdfInlineImage(PdfImageBase):
                 name = obj.unparse(resolved=True)
                 assert isinstance(name, bytes)
                 return remap_names.get(name, name)
-            else:
-                return obj.unparse(resolved=True)
-        elif isinstance(obj, bool):
+            return obj.unparse(resolved=True)
+        if isinstance(obj, bool):
             return b'true' if obj else b'false'  # Lower case for PDF spec
-        elif isinstance(obj, (int, Decimal, float)):
+        if isinstance(obj, (int, Decimal, float)):
             return str(obj).encode('ascii')
-        else:
-            raise NotImplementedError(repr(obj))
+        raise NotImplementedError(repr(obj))
 
     def _metadata(self, name, type_, default):
         return metadata_from_obj(self.obj, name, type_, default)

@@ -36,4 +36,3 @@ repos:
           - types-Pillow
           - types-requests
           - types-setuptools
-          - types-toml

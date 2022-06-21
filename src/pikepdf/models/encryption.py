@@ -5,14 +5,15 @@
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
 import sys
-from typing import Any, Dict, NamedTuple, cast
+from typing import TYPE_CHECKING, Any, Dict, NamedTuple, cast
 
 if sys.version_info >= (3, 8):
     from typing import Literal
 else:
     from typing_extensions import Literal
 
-from pikepdf._qpdf import EncryptionMethod
+if TYPE_CHECKING:
+    from pikepdf._qpdf import EncryptionMethod
 
 
 class Permissions(NamedTuple):
@@ -89,19 +90,19 @@ class EncryptionInfo:
         return int(self._encdict['P'])
 
     @property
-    def stream_method(self) -> EncryptionMethod:
+    def stream_method(self) -> 'EncryptionMethod':
         """Encryption method used to encode streams."""
-        return cast(EncryptionMethod, self._encdict['stream'])
+        return cast('EncryptionMethod', self._encdict['stream'])
 
     @property
-    def string_method(self) -> EncryptionMethod:
+    def string_method(self) -> 'EncryptionMethod':
         """Encryption method used to encode strings."""
-        return cast(EncryptionMethod, self._encdict['string'])
+        return cast('EncryptionMethod', self._encdict['string'])
 
     @property
-    def file_method(self) -> EncryptionMethod:
+    def file_method(self) -> 'EncryptionMethod':
         """Encryption method used to encode the whole file."""
-        return cast(EncryptionMethod, self._encdict['file'])
+        return cast('EncryptionMethod', self._encdict['file'])
 
     @property
     def user_password(self) -> bytes:

@@ -1,4 +1,3 @@
-import platform
 import subprocess
 import zlib
 from contextlib import contextmanager
@@ -577,7 +576,7 @@ def test_bool_in_inline_image():
     not PIL_features.check_codec('jpg_2000'), reason='no JPEG2000 codec'
 )
 def test_jp2(first_image_in):
-    xobj, pdf = first_image_in('pike-jp2.pdf')
+    xobj, _pdf = first_image_in('pike-jp2.pdf')
     pim = PdfImage(xobj)
     assert isinstance(pim, PdfJpxImage)
 

@@ -265,10 +265,10 @@ class Extend_Object:
         for k in del_keys:
             del self[k]  # pylint: disable=unsupported-delete-operation
 
-    def _type_check_write(self, filter, decode_parms):
-        if isinstance(filter, list):
-            filter = Array(filter)
-        filter = filter.wrap_in_array()
+    def _type_check_write(self, filter_, decode_parms):
+        if isinstance(filter_, list):
+            filter_ = Array(filter_)
+        filter_ = filter_.wrap_in_array()
 
         if isinstance(decode_parms, list):
             decode_parms = Array(decode_parms)
@@ -277,7 +277,7 @@ class Extend_Object:
         else:
             decode_parms = decode_parms.wrap_in_array()
 
-        if not all(isinstance(item, Name) for item in filter):
+        if not all(isinstance(item, Name) for item in filter_):
             raise TypeError(
                 "filter must be: pikepdf.Name or pikepdf.Array([pikepdf.Name])"
             )
@@ -288,18 +288,18 @@ class Extend_Object:
                 "decode_parms must be: pikepdf.Dictionary or "
                 "pikepdf.Array([pikepdf.Dictionary])"
             )
-        if len(decode_parms) != 0 and len(filter) != len(decode_parms):
+        if len(decode_parms) != 0 and len(filter_) != len(decode_parms):
             raise ValueError(
-                f"filter ({repr(filter)}) and decode_parms "
+                f"filter ({repr(filter_)}) and decode_parms "
                 f"({repr(decode_parms)}) must be arrays of same length"
             )
-        if len(filter) == 1:
-            filter = filter[0]
+        if len(filter_) == 1:
+            filter_ = filter_[0]
         if len(decode_parms) == 0:
             decode_parms = None
         elif len(decode_parms) == 1:
             decode_parms = decode_parms[0]
-        return filter, decode_parms
+        return filter_, decode_parms
 
     def write(
         self,
@@ -1243,13 +1243,15 @@ class Extend_Page:
     @augment_override_cpp
     def __setattr__(self, name, value):
         if hasattr(self.__class__, name):
-            return object.__setattr__(self, name, value)
+            object.__setattr__(self, name, value)
+            return
         setattr(self.obj, name, value)
 
     @augment_override_cpp
     def __delattr__(self, name):
         if hasattr(self.__class__, name):
-            return object.__delattr__(self, name)
+            object.__delattr__(self, name)
+            return
         delattr(self.obj, name)
 
     def __getitem__(self, key):
@@ -1385,8 +1387,7 @@ class Extend_AttachedFileSpec:
                 f"<pikepdf._qpdf.AttachedFileSpec for {self.filename!r}, "
                 f"description {self.description!r}>"
             )
-        else:
-            return f"<pikepdf._qpdf.AttachedFileSpec description {self.description!r}>"
+        return f"<pikepdf._qpdf.AttachedFileSpec description {self.description!r}>"
 
 
 @augments(AttachedFile)

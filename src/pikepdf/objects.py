@@ -181,7 +181,8 @@ class Array(Object, metaclass=_ObjectMeta):
 
         if isinstance(a, (str, bytes)):
             raise TypeError('Strings cannot be converted to arrays of chars')
-        elif a is None:
+
+        if a is None:
             a = []
         elif isinstance(a, Rectangle):
             return a.as_array()

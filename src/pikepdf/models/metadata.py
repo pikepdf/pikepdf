@@ -20,6 +20,7 @@ from typing import (
     NamedTuple,
     Optional,
     Set,
+    Tuple,
     Type,
     Union,
 )
@@ -52,7 +53,7 @@ XMP_NS_XMP = "http://ns.adobe.com/xap/1.0/"
 XMP_NS_XMP_MM = "http://ns.adobe.com/xap/1.0/mm/"
 XMP_NS_XMP_RIGHTS = "http://ns.adobe.com/xap/1.0/rights/"
 
-DEFAULT_NAMESPACES = [
+DEFAULT_NAMESPACES: List[Tuple[str, str]] = [
     ('adobe:ns:meta/', 'x'),
     (XMP_NS_DC, 'dc'),
     (XMP_NS_PDF, 'pdf'),
@@ -243,10 +244,9 @@ class AuthorConverter(Converter):
     def docinfo_from_xmp(xmp_val):
         if isinstance(xmp_val, str):
             return xmp_val
-        elif xmp_val is None or xmp_val == [None]:
+        if xmp_val is None or xmp_val == [None]:
             return None
-        else:
-            return '; '.join(xmp_val)
+        return '; '.join(xmp_val)
 
 
 class DateConverter(Converter):
@@ -328,7 +328,7 @@ class PdfMetadata(MutableMapping):
     ]
 
     NS: Dict[str, str] = {prefix: uri for uri, prefix in DEFAULT_NAMESPACES}
-    REVERSE_NS: Dict[str, str] = {uri: prefix for uri, prefix in DEFAULT_NAMESPACES}
+    REVERSE_NS: Dict[str, str] = dict(DEFAULT_NAMESPACES)
 
     _PARSERS_OVERWRITE_INVALID_XML: Iterable[Callable[[bytes], Any]] = [
         _parser_basic,
@@ -372,8 +372,7 @@ class PdfMetadata(MutableMapping):
         def warn_or_raise(msg, e=None):
             if raise_failure:
                 raise ValueError(msg) from e
-            else:
-                warn(msg)
+            warn(msg)
 
         for uri, shortkey, docinfo_name, converter in self.DOCINFO_MAPPING:
             qname = QName(uri, shortkey)
@@ -444,13 +443,16 @@ class PdfMetadata(MutableMapping):
                 for pi in pis:
                     etree.strip_tags(self._xmp, pi.tag)
                 self._get_rdf_root()
-            except (Exception if self.overwrite_invalid_xml else NeverRaise) as e:
+            except (
+                Exception  # pylint: disable=broad-except
+                if self.overwrite_invalid_xml
+                else NeverRaise
+            ) as e:
                 log.warning("Error occurred parsing XMP", exc_info=e)
                 self._xmp = _parser_replace_with_empty_xmp()
         else:
             log.warning("Error occurred parsing XMP")
             self._xmp = _parser_replace_with_empty_xmp()
-        return
 
     @ensure_loaded
     def __enter__(self):
