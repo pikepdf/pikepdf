@@ -4,7 +4,13 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
+import sys
 from typing import Any, Dict, NamedTuple, cast
+
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
+    from typing_extensions import Literal
 
 from pikepdf._qpdf import EncryptionMethod
 
@@ -37,7 +43,7 @@ class Permissions(NamedTuple):
     """Can users arrange document contents?"""
 
     modify_form: bool = True
-    """Can users fill out formts?"""
+    """Can users fill out forms?"""
 
     modify_other: bool = True
     """Can users modify the document?"""
@@ -141,7 +147,7 @@ class Encryption(NamedTuple):
     If blank, the PDF can be opened by anyone, but only modified
     as allowed by the permissions in ``allow``."""
 
-    R: int = 6
+    R: Literal[2, 3, 4, 5, 6] = 6
     """Select the security handler algorithm to use. Choose from:
     ``2``, ``3``, ``4`` or ``6``. By default, the highest version of
     is selected (``6``). ``5`` is a deprecated algorithm that should
