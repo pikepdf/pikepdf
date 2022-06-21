@@ -1,9 +1,10 @@
 import os
+from datetime import timedelta
 from io import BytesIO
 from pathlib import Path
 
 import pytest
-from hypothesis import example, given
+from hypothesis import example, given, settings
 from hypothesis.strategies import binary, characters, text
 
 import pikepdf.codec
@@ -81,8 +82,8 @@ pdfdoc_text = text(
 )
 
 
-@pytest.mark.skipif(os.name == 'nt', reason="flakey timing on Windows")
 @given(pdfdoc_text)
+@settings(deadline=timedelta(seconds=4))  # CI workers can be flakey
 def test_open_encoding_pdfdoc_write(tmp_path_factory, s):
     folder = tmp_path_factory.mktemp('pdfdoc')
     txt = folder / 'pdfdoc.txt'
@@ -94,8 +95,8 @@ def test_open_encoding_pdfdoc_write(tmp_path_factory, s):
     assert txt.read_bytes().replace(b'\r\n', b'\n') == s.encode('pdfdoc')
 
 
-@pytest.mark.skipif(os.name == 'nt', reason="flakey timing on Windows")
 @given(pdfdoc_text)
+@settings(deadline=timedelta(seconds=4))  # CI workers can be flakey
 def test_open_encoding_pdfdoc_read(tmp_path_factory, s: str):
     s = s.replace('\r', '\n')
     folder = tmp_path_factory.mktemp('pdfdoc')
