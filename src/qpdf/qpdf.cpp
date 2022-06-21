@@ -172,15 +172,44 @@ void update_xmp_pdfversion(QPDF &q, std::string version)
     impl(pypdf, version);
 }
 
-void setup_encryption(QPDFWriter &w, py::object encryption)
+std::string encryption_password(
+    py::dict encryption, const int encryption_level, const char *keyname)
+{
+    std::string result;
+    if (encryption.contains(keyname)) {
+        if (encryption[keyname].is_none())
+            throw py::value_error(std::string("Encryption ") + keyname +
+                                  " may not be None; use empty string?");
+        if (encryption_level <= 4) {
+            auto success =
+                QUtil::utf8_to_pdf_doc(encryption[keyname].cast<std::string>(), result);
+            if (!success)
+                throw py::value_error("Encryption level is R3/R4 and password is not "
+                                      "encodable as PDFDocEncoding");
+        } else {
+            result = encryption[keyname].cast<std::string>();
+        }
+    }
+    return result;
+}
+
+void setup_encryption(QPDFWriter &w, py::object encryption_obj)
 {
     std::string owner;
     std::string user;
+
+    py::dict encryption;
 
     bool aes      = true;
     bool metadata = true;
     std::map<std::string, bool> allow;
     int encryption_level = 6;
+
+    if (py::isinstance<py::tuple>(encryption_obj)) {
+        encryption = encryption_obj.attr("_asdict")();
+    } else {
+        encryption = encryption_obj;
+    }
 
     if (encryption.contains("R")) {
         if (!py::isinstance<py::int_>(encryption["R"]))
@@ -194,28 +223,9 @@ void setup_encryption(QPDFWriter &w, py::object encryption)
         python_warning("Encryption R=5 is deprecated");
     }
 
-    if (encryption.contains("owner")) {
-        if (encryption_level <= 4) {
-            auto success =
-                QUtil::utf8_to_pdf_doc(encryption["owner"].cast<std::string>(), owner);
-            if (!success)
-                throw py::value_error("Encryption level is R3/R4 and password is not "
-                                      "encodable as PDFDocEncoding");
-        } else {
-            owner = encryption["owner"].cast<std::string>();
-        }
-    }
-    if (encryption.contains("user")) {
-        if (encryption_level <= 4) {
-            auto success =
-                QUtil::utf8_to_pdf_doc(encryption["user"].cast<std::string>(), user);
-            if (!success)
-                throw py::value_error("Encryption level is R3/R4 and password is not "
-                                      "encodable as PDFDocEncoding");
-        } else {
-            user = encryption["user"].cast<std::string>();
-        }
-    }
+    owner = encryption_password(encryption, encryption_level, "owner");
+    user  = encryption_password(encryption, encryption_level, "user");
+
     if (encryption.contains("allow")) {
         auto pyallow               = encryption["allow"];
         allow["accessibility"]     = pyallow.attr("accessibility").cast<bool>();
@@ -426,25 +436,32 @@ void save_pdf(QPDF &q,
     Pl_PythonOutput output_pipe(description.c_str(), stream);
     w.setOutputPipeline(&output_pipe);
 
-    bool encryption_is_truthy = encryption.equal(py::bool_(true));
+    // Possibilities:
+    // encryption=True -> preserve existing
+    // encryption=False -> remove encryption
+    // encryption=None -> remove encryption
+    // encryption=<dict or NamedTuple> apply new encryption settings
 
-    if (encryption_is_truthy && !q.isEncrypted()) {
-        throw py::value_error(
-            "can't perserve encryption parameters on a file with no encryption");
-    }
+    bool encryption_is_true = encryption.equal(py::bool_(true));
 
-    if ((encryption_is_truthy || py::isinstance<py::dict>(encryption)) &&
-        (normalize_content || !stream_decode_level.is_none())) {
-        throw py::value_error("cannot save with encryption and normalize_content "
-                              "or stream_decode_level");
-    }
-
-    if (encryption_is_truthy) {
+    if (encryption_is_true) {
+        if (!q.isEncrypted()) {
+            throw py::value_error("can't perserve encryption parameters on "
+                                  "a file with no encryption");
+        }
+        if ((normalize_content || !stream_decode_level.is_none())) {
+            throw py::value_error("cannot save with encryption and normalize_content "
+                                  "or stream_decode_level");
+        }
         w.setPreserveEncryption(true); // Keep existing encryption
     } else if (encryption.is_none() || encryption.equal(py::bool_(false))) {
-        // Note: encryption.equal(py::bool_(false)) != !encryption_is_truthy
+        // Note: encryption.equal(py::bool_(false)) != !encryption_is_true
         w.setPreserveEncryption(false); // Remove encryption
     } else {
+        if ((normalize_content || !stream_decode_level.is_none())) {
+            throw py::value_error("cannot save with encryption and normalize_content "
+                                  "or stream_decode_level");
+        }
         setup_encryption(w, encryption);
     }
 
@@ -811,7 +828,8 @@ void init_qpdf(py::module_ &m)
                     w.write();
                 } catch (py::error_already_set &e) {
                     auto cls_dependency_error =
-                        py::module_::import("pikepdf.models.image").attr("DependencyError");
+                        py::module_::import("pikepdf.models.image")
+                            .attr("DependencyError");
                     if (e.matches(cls_dependency_error)) {
                         w.setDecodeLevel(qpdf_dl_generalized);
                         w.write();

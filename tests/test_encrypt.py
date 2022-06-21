@@ -107,6 +107,8 @@ def test_encrypt_info(trivial, outpdf):
         (4, "met", "met", False, True, r"unless AES"),
         (3, "密码", "password", False, False, r"password.*not encodable"),
         (4, "owner", "密码", False, False, r"password.*not encodable"),
+        (6, None, "a", True, True, r"may not be None"),
+        (6, "a", None, True, True, r"may not be None"),
     ],
 )
 def test_bad_settings(trivial, outpdf, R, owner, user, aes, metadata, err):
