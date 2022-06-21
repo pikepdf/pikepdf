@@ -27,7 +27,7 @@ jobs:
 
       - name: Set up QEMU
         if: matrix.platform == 'manylinux_aarch64'
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v2
         with:
           platforms: all
 
@@ -185,7 +185,7 @@ jobs:
           rm cpp_coverage_all.info
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v3
         with:
           files: ./coverage.xml,./cpp_coverage.info
 
