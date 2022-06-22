@@ -127,7 +127,7 @@ jobs:
 
   sdist:
     name: 🏗 source distribution
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
         with:
@@ -141,7 +141,7 @@ jobs:
       - name: Install apt packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y jbig2dec lcov
+          sudo apt-get install -y jbig2dec lcov libexempi8
 
       - name: Install tomli and read environment from pyproject.toml
         run: |
