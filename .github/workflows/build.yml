@@ -141,7 +141,7 @@ jobs:
       - name: Install apt packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y jbig2dec lcov libexempi8
+          sudo apt-get install -y jbig2dec lcov libexempi8 poppler-utils
 
       - name: Install tomli and read environment from pyproject.toml
         run: |
