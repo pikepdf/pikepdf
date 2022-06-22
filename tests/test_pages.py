@@ -437,26 +437,37 @@ def test_page_index_foreign_page(fourpages, sandwich):
 
 
 @pytest.mark.parametrize(
-    'd, result',
+    'd, result, exc, excmsg',
     [
-        (Dictionary(), ''),
-        (Dictionary(St=1), ''),
-        (Dictionary(S=Name.D, St=1), '1'),
-        (Dictionary(P='foo'), 'foo'),
-        (Dictionary(P='A', St=2), 'A'),
-        (Dictionary(P='A-', S=Name.D, St=2), 'A-2'),
-        (Dictionary(S=Name.R, St=42), 'XLII'),
-        (Dictionary(S=Name.r, St=1729), 'mdccxxix'),
-        (Dictionary(P="Appendix-", S=Name.a, St=261), 'Appendix-ja'),
-        (42, '42'),
-        (Dictionary(S=Name.R, St=-42), ValueError),
-        (Dictionary(S=Name.A, St=-42), ValueError),
+        (Dictionary(), '', None, None),
+        (Dictionary(St=1), '', None, None),
+        (Dictionary(S=Name.D, St=1), '1', None, None),
+        (Dictionary(P='foo'), 'foo', None, None),
+        (Dictionary(P='A', St=2), 'A', None, None),
+        (Dictionary(P='A-', S=Name.D, St=2), 'A-2', None, None),
+        (Dictionary(S=Name.R, St=42), 'XLII', None, None),
+        (Dictionary(S=Name.r, St=1729), 'mdccxxix', None, None),
+        (Dictionary(P="Appendix-", S=Name.a, St=261), 'Appendix-ja', None, None),
+        (42, '42', None, None),
+        (Dictionary(S=Name.R, St=-42), None, ValueError, "Can't represent"),
+        (Dictionary(S=Name.A, St=-42), None, ValueError, "Can't represent"),
+        (
+            Dictionary(S=Name.r, St=Name.Invalid),
+            'i',
+            UserWarning,
+            'invalid non-integer start value',
+        ),
+        (Dictionary(S="invalid", St=42), '', UserWarning, 'invalid page label style'),
     ],
 )
-def test_page_label_dicts(d, result):
-    if isinstance(result, type) and issubclass(result, Exception):
-        with pytest.raises(result):
-            label_from_label_dict(d)
+def test_page_label_dicts(d, result, exc, excmsg):
+    if exc:
+        if issubclass(exc, Warning):
+            with pytest.warns(exc, match=excmsg):
+                assert label_from_label_dict(d) == result
+        elif issubclass(exc, Exception):
+            with pytest.raises(exc, match=excmsg):
+                label_from_label_dict(d)
     else:
         assert label_from_label_dict(d) == result
 
