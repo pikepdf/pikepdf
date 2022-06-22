@@ -163,7 +163,7 @@ def test_fourpages_to_4up(fourpages, graph, outpdf):
     page.add_overlay(Page(pdf.pages[3]).as_form_xobject(), Rectangle(0, 0, 500, 500))
     page.add_underlay(pdf.pages[4], Rectangle(500, 0, 1000, 500))
 
-    page.add_underlay(graph.pages[0])
+    page.add_underlay(graph.pages[0].obj)
 
     with pytest.raises(TypeError):
         page.add_overlay(Dictionary(Key=123))
