@@ -943,14 +943,6 @@ class Extend_ObjectMapping:
         except KeyError:
             return default
 
-    @augment_if_no_cpp  # Remove this shim when dropping pybind11 < 2.8.0 support
-    def keys(self):
-        return KeysView(self)
-
-    @augment_if_no_cpp  # Remove this shim when dropping pybind11 < 2.8.0 support
-    def values(self):
-        return (v for _k, v in self.items())
-
 
 def check_is_box(obj) -> None:
     try:
