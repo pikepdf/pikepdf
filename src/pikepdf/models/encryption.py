@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, Dict, NamedTuple, cast
 if sys.version_info >= (3, 8):
     from typing import Literal
 else:
-    from typing_extensions import Literal
+    from typing_extensions import Literal  # pragma: no cover
 
 if TYPE_CHECKING:
     from pikepdf._qpdf import EncryptionMethod
