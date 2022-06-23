@@ -10,6 +10,9 @@ try:
 except ImportError:
     from importlib.metadata import version as _package_version
 
-__version__ = _package_version('pikepdf')
+try:
+    __version__ = _package_version('pikepdf')
+except Exception:
+    __version__ = "Not installed"
 
 __all__ = ['__version__']
