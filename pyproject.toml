@@ -2,7 +2,7 @@
 requires = [
   "setuptools >= 52",
   "wheel >= 0.35",
-  "setuptools_scm[toml] >= 6.4",
+  "setuptools_scm[toml] >= 6.4, < 7",
   "setuptools_scm_git_archive",
   "pybind11 >= 2.9.1, < 2.10.0"
 ]
