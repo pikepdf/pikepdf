@@ -2,8 +2,8 @@
 requires = [
   "setuptools >= 52",
   "wheel >= 0.35",
-  "setuptools_scm[toml] >= 6.4, < 7",
-  "setuptools_scm_git_archive",
+  "setuptools-scm[toml]>=6.4,!=7.0.0,!=7.0.1,!=7.0.2",
+  "setuptools-scm-git-archive>=1.1",
   "pybind11 >= 2.9.1, < 2.10.0"
 ]
 build-backend = "setuptools.build_meta"
