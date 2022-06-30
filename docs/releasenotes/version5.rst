@@ -1,3 +1,14 @@
+v5.2.0
+======
+
+-  Avoid a few versions of setuptools_scm that were found to cause build issues. :issue:`359`
+-  Improved an unhelpful error message when attemping to save a file with invalid
+   encryption settings. :issue:`341`
+-  Added a workaround for XMP metadata blocks that are missing the expected namespace
+   tag. :issue:`349`
+-  Minor improvements to code coverage, type checking, and removed some deprecated 
+   private methods.
+
 v5.1.5
 ======
 
