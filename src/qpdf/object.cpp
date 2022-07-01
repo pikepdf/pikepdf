@@ -171,16 +171,15 @@ bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
                         other_buffer.getPointer()->getBuffer(),
                         self_buffer.getPointer()->getSize());
     }
+    // LCOV_EXCL_START
     case QPDFObject::object_type_e::ot_boolean:
     case QPDFObject::object_type_e::ot_integer:
     case QPDFObject::object_type_e::ot_real:
-        // LCOV_EXCL_START
         throw std::logic_error("should have eliminated numeric types by now");
-        // LCOV_EXCL_STOP
     default:
-        break;
+        throw std::logic_error("invalid object type");
     }
-    return false;
+    // LCOV_EXCL_STOP
 }
 
 bool operator==(QPDFObjectHandle self, QPDFObjectHandle other)
@@ -193,7 +192,7 @@ bool operator==(QPDFObjectHandle self, QPDFObjectHandle other)
 bool object_has_key(QPDFObjectHandle h, std::string const &key)
 {
     if (!h.isDictionary() && !h.isStream())
-        throw py::value_error("object is not a dictionary or a stream");
+        throw py::value_error("pikepdf.Object is not a Dictionary or Stream");
     QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
     return dict.hasKey(key);
 }
@@ -201,7 +200,7 @@ bool object_has_key(QPDFObjectHandle h, std::string const &key)
 bool array_has_item(QPDFObjectHandle haystack, QPDFObjectHandle needle)
 {
     if (!haystack.isArray())
-        throw std::logic_error("object is not an array");
+        throw std::logic_error("pikepdf.Object is not an Array"); // LCOV_EXCL_LINE
 
     auto vec    = haystack.getArrayAsVector();
     auto result = std::find(std::begin(vec), std::end(vec), needle);
@@ -211,7 +210,7 @@ bool array_has_item(QPDFObjectHandle haystack, QPDFObjectHandle needle)
 QPDFObjectHandle object_get_key(QPDFObjectHandle h, std::string const &key)
 {
     if (!h.isDictionary() && !h.isStream())
-        throw py::value_error("object is not a dictionary or a stream");
+        throw py::value_error("pikepdf.Object is not a Dictionary or Stream");
     QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
     if (!dict.hasKey(key))
         throw py::key_error(key);
@@ -221,7 +220,7 @@ QPDFObjectHandle object_get_key(QPDFObjectHandle h, std::string const &key)
 void object_set_key(QPDFObjectHandle h, std::string const &key, QPDFObjectHandle &value)
 {
     if (!h.isDictionary() && !h.isStream())
-        throw py::value_error("object is not a dictionary or a stream");
+        throw py::value_error("pikepdf.Object is not a Dictionary or Stream");
     if (value.isNull())
         throw py::value_error(
             "PDF Dictionary keys may not be set to None - use 'del' to remove");
@@ -243,7 +242,7 @@ void object_set_key(QPDFObjectHandle h, std::string const &key, QPDFObjectHandle
 void object_del_key(QPDFObjectHandle h, std::string const &key)
 {
     if (!h.isDictionary() && !h.isStream())
-        throw py::value_error("object is not a dictionary or a stream");
+        throw py::value_error("pikepdf.Object is not a Dictionary or Stream");
     if (h.isStream() && key == "/Length") {
         throw py::key_error("/Length may not be deleted");
     }

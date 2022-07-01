@@ -213,7 +213,9 @@ class TestArray:
         assert a == pikepdf.Array([1, Name.Foo, 4])
         a.extend([42, 666])
         assert a == pikepdf.Array([1, Name.Foo, 4, 42, 666])
-        with pytest.raises(ValueError, match='object is not a dictionary'):
+        with pytest.raises(
+            ValueError, match='pikepdf.Object is not a Dictionary or Stream'
+        ):
             del a.ImaginaryKey
         with pytest.raises(TypeError, match=r"items\(\) not available"):
             a.items()
@@ -238,6 +240,10 @@ class TestArray:
         a = pikepdf.Array(['1234', b'\x80\x81\x82'])
         assert pikepdf.String('1234') in a
         assert pikepdf.String(b'\x80\x81\x82') in a
+
+    def test_is_rect(self):
+        assert pikepdf.Array([0, 1, 2, 3]).is_rectangle
+        assert not pikepdf.Array(['a', '2', 3, 4]).is_rectangle
 
 
 def test_no_len():
@@ -637,7 +643,7 @@ class TestStreamReadWrite:
     @pytest.fixture
     def stream_object(self):
         pdf = pikepdf.new()
-        return Stream(pdf, b'')
+        return Stream(pdf, b'abc123xyz')
 
     def test_basic(self, stream_object):
         stream_object.write(b'abc')
@@ -699,6 +705,10 @@ class TestStreamReadWrite:
                 decode_parms=[Dictionary(), Dictionary()],
             )
 
+    def test_raw_stream_buffer(self, stream_object):
+        raw_buffer = stream_object.get_raw_stream_buffer()
+        assert bytes(raw_buffer) == b'abc123xyz'
+
 
 def test_copy():
     d = Dictionary(
@@ -758,6 +768,18 @@ class TestOperator:
 
     def test_operator_bytes(self):
         assert bytes(Operator('cm')) == b'cm'
+
+    def test_operator_contains_misuse(self):
+        with pytest.raises(
+            ValueError, match="pikepdf.Object is not a Dictionary or Stream"
+        ):
+            _unused = 'nope' in Operator('Do')
+
+    def test_operator_setitem_misuse(self):
+        with pytest.raises(
+            ValueError, match="pikepdf.Object is not a Dictionary or Stream"
+        ):
+            Operator('Do')['x'] = 42
 
 
 def test_object_mapping(sandwich):

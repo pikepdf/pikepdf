@@ -36,3 +36,10 @@ def test_checkbox(form):
         annot.get_page_content_for_appearance(Name.XYZ, 0)
         == b'q\n1 0 0 1 4.41818 3.10912 cm\n/XYZ Do\nQ\n'
     )
+
+
+def test_annot_eq(form):
+    button = Annotation(form.Root.AcroForm.Fields[1])
+    checkbox = Annotation(form.Root.AcroForm.Fields[2])
+    assert button != checkbox
+    assert button == button
