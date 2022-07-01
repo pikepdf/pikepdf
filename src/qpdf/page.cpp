@@ -32,8 +32,11 @@ py::size_t page_index(QPDF &owner, QPDFObjectHandle page)
             throw py::value_error("Page is not consistently registered with Pdf");
         throw e;
     }
-    if (idx < 0)
-        throw py::value_error("Page is not consistently registered with Pdf");
+    if (idx < 0) {
+        // LCOV_EXCL_START
+        throw std::logic_error("Page index is negative");
+        // LCOV_EXCL_STOP
+    }
 
     return idx;
 }
