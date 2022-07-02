@@ -36,6 +36,12 @@ jobs:
       - name: Download QPDF
         run: build-scripts/linux-download-qpdf.bash $QPDF_VERSION
 
+      - name: Set up QEMU
+        if: matrix.platform == 'manylinux_aarch64'
+        uses: docker/setup-qemu-action@v2
+        with:
+          platforms: arm64
+
       - name: Setup Dockcross
         run: |
           docker pull dockcross/manylinux2014-aarch64
@@ -47,12 +53,6 @@ jobs:
 
       - name: Cross-compile
         run: dockcross bash build-scripts/linux-cross-build-wheel-deps.bash
-
-      - name: Set up QEMU
-        if: matrix.platform == 'manylinux_aarch64'
-        uses: docker/setup-qemu-action@v2
-        with:
-          platforms: all
 
       - name: Build wheels
         uses: joerick/cibuildwheel@v2.7.0

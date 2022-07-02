@@ -12,7 +12,7 @@ make -j install
 popd
 
 pushd jpeg
-./configure --prefix $XCCDEPS --exec-prefix $XCCDEPSARCH --host aarch64-unknown-linux-gnueabi
+./configure --prefix $XCCDEPS --exec-prefix $XCCDEPSARCH
 make -j install
 popd
 
