@@ -41,8 +41,8 @@ test-skip = "*_arm64 *_universal2:arm64"
 QPDF_MIN_VERSION = "10.6.2"
 QPDF_VERSION = "10.6.3"
 QPDF_PATTERN = "https://github.com/qpdf/qpdf/releases/download/release-qpdf-VERSION/qpdf-VERSION.tar.gz"
-JPEG_RELEASE = "https://www.ijg.org/files/jpegsrc.v9d.tar.gz"
-ZLIB_RELEASE = "https://www.zlib.net/zlib-1.2.11.tar.gz"
+JPEG_RELEASE = "https://www.ijg.org/files/jpegsrc.v9e.tar.gz"
+ZLIB_RELEASE = "https://www.zlib.net/zlib-1.2.12.tar.gz"
 
 [tool.cibuildwheel.linux]
 before-all = [
