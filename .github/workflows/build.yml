@@ -5,17 +5,64 @@ on: [push, pull_request]
 # For musllinux support, see note in pyproject.toml
 
 jobs:
-  wheels_linux:
-    name: 🏗 ${{ matrix.os }} - ${{ matrix.platform }}
+  xbuild_qpdf:
+    name: Cross-compile QPDF
     runs-on: ${{ matrix.os }}
     env:
       CIBW_BUILD: "*-${{ matrix.platform }}"
     strategy:
       matrix:
         os: [ubuntu-20.04]
-        platform: [manylinux_x86_64, manylinux_i686]
+        platform: [manylinux_aarch64]
 
     steps:
+      - name: Setup Dockcross
+        run: |
+          docker pull dockcross/manylinux2014-aarch64
+          docker run --rm dockcross/manylinux2014-aarch64 > ./dockcross
+          chmod +x ./dockcross
+          mkdir -p ~/bin/
+          mv ./dockcross ~/bin/
+          echo $HOME/bin >> $GITHUB_PATH
+
+      - name: Download dependencies
+        run: build-scripts/linux-download-qpdf-deps.bash
+
+      - name: Download QPDF
+        run: build-scripts/linux-download-qpdf.bash $QPDF_VERSION
+
+      - name: Cross-compile
+        run: dockcross bash build-scripts/linux-cross-build-wheel-deps.bash
+
+  wheels_linux_aarch64:
+    name: Wheel ${{ matrix.os }} - ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    env:
+      CIBW_BUILD: "*-${{ matrix.platform }}"
+    strategy:
+      matrix:
+        os: [ubuntu-20.04]
+        platform: [manylinux_aarch64]
+
+    steps:
+      - name: Setup Dockcross
+        run: |
+          docker pull dockcross/manylinux2014-aarch64
+          docker run --rm dockcross/manylinux2014-aarch64 > ./dockcross
+          chmod +x ./dockcross
+          mkdir -p ~/bin/
+          mv ./dockcross ~/bin/
+          echo $HOME/bin >> $GITHUB_PATH
+
+      - name: Download dependencies
+        run: build-scripts/linux-download-qpdf-deps.bash
+
+      - name: Download QPDF
+        run: build-scripts/linux-download-qpdf.bash $QPDF_VERSION
+
+      - name: Cross-compile
+        run: dockcross bash build-scripts/linux-cross-build-wheel-deps.bash
+
       - uses: actions/checkout@v3
         with:
           fetch-depth: "0" # 0=all, needed for setuptools-scm to resolve version tags
@@ -56,173 +103,173 @@ jobs:
           path: ./wheelhouse/pikepdf-*-cp39-*.manylinux2014_x86_64.whl
           if-no-files-found: error
 
-  wheels_macos:
-    name: 🏗 ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [macos-10.15]
+  # wheels_macos:
+  #     name: 🏗 ${{ matrix.os }}
+  #   runs-on: ${{ matrix.os }}
+  #   strategy:
+  #     matrix:
+  #       os: [macos-10.15]
 
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: "0"
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #       with:
+  #         fetch-depth: "0"
 
-      - uses: actions/setup-python@v4
-        name: Install Python
-        with:
-          python-version: "3.8"
+  #     - uses: actions/setup-python@v4
+  #       name: Install Python
+  #       with:
+  #         python-version: "3.8"
 
-      - name: Build wheels
-        uses: joerick/cibuildwheel@v2.7.0
+  #     - name: Build wheels
+  #       uses: joerick/cibuildwheel@v2.7.0
 
-        #env:
-        #  CIBW_ARCHS_MACOS: x86_64 universal2 # for Apple Silicon
-      - uses: actions/upload-artifact@v3
-        with:
-          name: wheels
-          path: ./wheelhouse/*.whl
+  #       #env:
+  #       #  CIBW_ARCHS_MACOS: x86_64 universal2 # for Apple Silicon
+  #     - uses: actions/upload-artifact@v3
+  #       with:
+  #         name: wheels
+  #         path: ./wheelhouse/*.whl
 
-  wheels_windows:
-    name: 🏗 ${{ matrix.os }} - ${{ matrix.platform }}
-    runs-on: ${{ matrix.os }}
-    env:
-      CIBW_BUILD: "*-${{ matrix.platform }}"
-      CIBW_ENVIRONMENT: >-
-        INCLUDE="$INCLUDE;d:\\qpdf\\include"
-        LIB="$LIB;d:\\qpdf\\lib"
-        LIBPATH="$LIBPATH;d:\\qpdf\\lib"
-    strategy:
-      matrix:
-        os: [windows-2019]
-        platform: [win_amd64, win32]
+  # wheels_windows:
+  #   name: 🏗 ${{ matrix.os }} - ${{ matrix.platform }}
+  #   runs-on: ${{ matrix.os }}
+  #   env:
+  #     CIBW_BUILD: "*-${{ matrix.platform }}"
+  #     CIBW_ENVIRONMENT: >-
+  #       INCLUDE="$INCLUDE;d:\\qpdf\\include"
+  #       LIB="$LIB;d:\\qpdf\\lib"
+  #       LIBPATH="$LIBPATH;d:\\qpdf\\lib"
+  #   strategy:
+  #     matrix:
+  #       os: [windows-2019]
+  #       platform: [win_amd64, win32]
 
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: "0"
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #       with:
+  #         fetch-depth: "0"
 
-      - uses: actions/setup-python@v4
-        name: Install Python
-        with:
-          python-version: "3.8"
+  #     - uses: actions/setup-python@v4
+  #       name: Install Python
+  #       with:
+  #         python-version: "3.8"
 
-      - name: Install tomli and read environment from pyproject.toml
-        run: |
-          python -m pip install tomli
-          python build-scripts/environ-from-pyproject.py >> $env:GITHUB_ENV
-          dir env:
+  #     - name: Install tomli and read environment from pyproject.toml
+  #       run: |
+  #         python -m pip install tomli
+  #         python build-scripts/environ-from-pyproject.py >> $env:GITHUB_ENV
+  #         dir env:
 
-      - name: Download QPDF
-        run: |
-          build-scripts/win-download-qpdf.ps1 $env:QPDF_VERSION ${{ matrix.platform }}
+  #     - name: Download QPDF
+  #       run: |
+  #         build-scripts/win-download-qpdf.ps1 $env:QPDF_VERSION ${{ matrix.platform }}
 
-      - name: Build wheels
-        uses: joerick/cibuildwheel@v2.7.0
+  #     - name: Build wheels
+  #       uses: joerick/cibuildwheel@v2.7.0
 
-      - uses: actions/upload-artifact@v3
-        with:
-          name: wheels
-          path: ./wheelhouse/*.whl
+  #     - uses: actions/upload-artifact@v3
+  #       with:
+  #         name: wheels
+  #         path: ./wheelhouse/*.whl
 
-  sdist:
-    name: 🏗 source distribution
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: "0"
+  # sdist:
+  #   name: 🏗 source distribution
+  #   runs-on: ubuntu-20.04
+  #   steps:
+  #     - uses: actions/checkout@v3
+  #       with:
+  #         fetch-depth: "0"
 
-      - uses: actions/setup-python@v4
-        name: Install Python
-        with:
-          python-version: "3.8"
+  #     - uses: actions/setup-python@v4
+  #       name: Install Python
+  #       with:
+  #         python-version: "3.8"
 
-      - name: Install apt packages
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jbig2dec lcov libexempi8 poppler-utils
+  #     - name: Install apt packages
+  #       run: |
+  #         sudo apt-get update
+  #         sudo apt-get install -y jbig2dec lcov libexempi8 poppler-utils
 
-      - name: Install tomli and read environment from pyproject.toml
-        run: |
-          python -m pip install tomli
-          python build-scripts/environ-from-pyproject.py >> $GITHUB_ENV
+  #     - name: Install tomli and read environment from pyproject.toml
+  #       run: |
+  #         python -m pip install tomli
+  #         python build-scripts/environ-from-pyproject.py >> $GITHUB_ENV
 
-      - name: Download QPDF
-        run: build-scripts/linux-download-qpdf.bash $QPDF_MIN_VERSION
+  #     - name: Download QPDF
+  #       run: build-scripts/linux-download-qpdf.bash $QPDF_MIN_VERSION
 
-      - name: Add /usr/local/lib to dynamic linker path
-        run: echo "/usr/local/lib" | sudo tee /etc/ld.so.conf.d/local-lib.conf
+  #     - name: Add /usr/local/lib to dynamic linker path
+  #       run: echo "/usr/local/lib" | sudo tee /etc/ld.so.conf.d/local-lib.conf
 
-      - name: Build QPDF
-        run: build-scripts/linux-build-sdist-deps.bash
+  #     - name: Build QPDF
+  #       run: build-scripts/linux-build-sdist-deps.bash
 
-      - name: Build sdist
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install --upgrade setuptools wheel build
-          python -m build --sdist
+  #     - name: Build sdist
+  #       run: |
+  #         python -m pip install --upgrade pip
+  #         python -m pip install --upgrade setuptools wheel build
+  #         python -m build --sdist
 
-      - name: Install and test sdist
-        run: |
-          python -m venv v
-          source v/bin/activate
-          SDIST=dist/*.tar.gz
-          SDIST_EXPANDED=$(echo -n $SDIST)
-          python -m pip install ${SDIST_EXPANDED}[test]  # yes this works
-          python -m pytest -nauto
-          deactivate
+  #     - name: Install and test sdist
+  #       run: |
+  #         python -m venv v
+  #         source v/bin/activate
+  #         SDIST=dist/*.tar.gz
+  #         SDIST_EXPANDED=$(echo -n $SDIST)
+  #         python -m pip install ${SDIST_EXPANDED}[test]  # yes this works
+  #         python -m pytest -nauto
+  #         deactivate
 
-      - name: Install natively
-        run: |
-          env CFLAGS="--coverage" CXXFLAGS="--coverage" python -m pip install -e .[test]
-          python -m pytest -nauto --cov-report xml --cov=src
+  #     - name: Install natively
+  #       run: |
+  #         env CFLAGS="--coverage" CXXFLAGS="--coverage" python -m pip install -e .[test]
+  #         python -m pytest -nauto --cov-report xml --cov=src
 
-      - name: Generate C++ coverage reports
-        run: |
-          lcov --no-external --capture --directory . --output-file cpp_coverage_all.info
-          lcov --remove cpp_coverage_all.info '*/pybind11/*' -o cpp_coverage.info
-          rm cpp_coverage_all.info
+  #     - name: Generate C++ coverage reports
+  #       run: |
+  #         lcov --no-external --capture --directory . --output-file cpp_coverage_all.info
+  #         lcov --remove cpp_coverage_all.info '*/pybind11/*' -o cpp_coverage.info
+  #         rm cpp_coverage_all.info
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          files: ./coverage.xml,./cpp_coverage.info
+  #     - name: Upload coverage to Codecov
+  #       uses: codecov/codecov-action@v3
+  #       with:
+  #         files: ./coverage.xml,./cpp_coverage.info
 
-      - uses: actions/upload-artifact@v3
-        with:
-          name: wheels
-          path: dist/*.tar.gz
+  #     - uses: actions/upload-artifact@v3
+  #       with:
+  #         name: wheels
+  #         path: dist/*.tar.gz
 
-  trigger_rtd:
-    name: Trigger ReadTheDocs
-    runs-on: ubuntu-latest
-    needs: [wheels_linux, wheels_macos, wheels_windows, sdist]
-    if: startsWith(github.ref, 'refs/heads/') && !startsWith(github.ref, 'refs/heads/actions')
-    steps:
-      - name: Get branch name
-        id: get_branch
-        run: |
-          echo "::set-output name=branch::${GITHUB_REF##refs/heads/}"
-      - name: Trigger ReadTheDocs webhook
-        run: |
-          curl -X POST -d "branches=${{ steps.get_branch.outputs.branch }}" \
-                       -d "token=${{ secrets.TOKEN_RTD }}" \
-                       https://readthedocs.org/api/v2/webhook/pikepdf/163029/
+  # trigger_rtd:
+  #   name: Trigger ReadTheDocs
+  #   runs-on: ubuntu-latest
+  #   needs: [wheels_linux, wheels_macos, wheels_windows, sdist]
+  #   if: startsWith(github.ref, 'refs/heads/') && !startsWith(github.ref, 'refs/heads/actions')
+  #   steps:
+  #     - name: Get branch name
+  #       id: get_branch
+  #       run: |
+  #         echo "::set-output name=branch::${GITHUB_REF##refs/heads/}"
+  #     - name: Trigger ReadTheDocs webhook
+  #       run: |
+  #         curl -X POST -d "branches=${{ steps.get_branch.outputs.branch }}" \
+  #                      -d "token=${{ secrets.TOKEN_RTD }}" \
+  #                      https://readthedocs.org/api/v2/webhook/pikepdf/163029/
 
-  upload_pypi:
-    needs: [wheels_linux, wheels_macos, wheels_windows, sdist]
-    runs-on: ubuntu-latest
-    # upload to PyPI on every tag starting with 'v'
-    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
-    steps:
-      - uses: actions/download-artifact@v3
-        with:
-          name: wheels
-          path: dist
+  # upload_pypi:
+  #   needs: [wheels_linux, wheels_macos, wheels_windows, sdist]
+  #   runs-on: ubuntu-latest
+  #   # upload to PyPI on every tag starting with 'v'
+  #   if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
+  #   steps:
+  #     - uses: actions/download-artifact@v3
+  #       with:
+  #         name: wheels
+  #         path: dist
 
-      - uses: pypa/gh-action-pypi-publish@master
-        with:
-          user: __token__
-          password: ${{ secrets.TOKEN_PYPI }}
-          # repository_url: https://test.pypi.org/legacy/
+  #     - uses: pypa/gh-action-pypi-publish@master
+  #       with:
+  #         user: __token__
+  #         password: ${{ secrets.TOKEN_PYPI }}
+  #         # repository_url: https://test.pypi.org/legacy/

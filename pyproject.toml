@@ -68,6 +68,14 @@ before-all = [
   "apk add py3-lxml py3-pillow python3 py3-setuptools py3-pybind11-dev python3-dev py3-wheel qpdf-dev exempi-dev"
 ]
 
+[[tool.cibuildwheel.overrides]]
+select = "*aarch64"
+before-all = [
+  "yum install -y wget libxml2-devel libxslt-devel",
+  "bash build-scripts/linux-install-libxmp.bash"
+]
+environment = { CFLAGS="-isystem xcc/include/", LDFLAGS="-L xcc/lib/"}
+
 [tool.cibuildwheel.macos]
 before-all = ["brew update", "brew install qpdf little-cms2"]
 
