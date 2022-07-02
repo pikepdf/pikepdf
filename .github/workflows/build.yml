@@ -20,6 +20,12 @@ jobs:
         with:
           fetch-depth: "0" # 0=all, needed for setuptools-scm to resolve version tags
 
+      - name: Download dependencies
+        run: build-scripts/linux-download-qpdf-deps.bash
+
+      - name: Download QPDF
+        run: build-scripts/linux-download-qpdf.bash $QPDF_VERSION
+
       - name: Setup Dockcross
         run: |
           docker pull dockcross/manylinux2014-aarch64
@@ -28,12 +34,6 @@ jobs:
           mkdir -p ~/bin/
           mv ./dockcross ~/bin/
           echo $HOME/bin >> $GITHUB_PATH
-
-      - name: Download dependencies
-        run: build-scripts/linux-download-qpdf-deps.bash
-
-      - name: Download QPDF
-        run: build-scripts/linux-download-qpdf.bash $QPDF_VERSION
 
       - name: Cross-compile
         run: dockcross bash build-scripts/linux-cross-build-wheel-deps.bash
@@ -58,6 +58,8 @@ jobs:
         if: matrix.platform == 'manylinux_aarch64'
         env:
           CIBW_ARCHS_LINUX: aarch64
+          CFLAGS: "-isystem xcc/include/"
+          LDFLAGS: "-L xcc/lib/"
 
       - name: Upload built wheels
         uses: actions/upload-artifact@v3
