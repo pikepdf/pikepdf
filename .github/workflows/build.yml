@@ -5,35 +5,6 @@ on: [push, pull_request]
 # For musllinux support, see note in pyproject.toml
 
 jobs:
-  xbuild_qpdf:
-    name: Cross-compile QPDF
-    runs-on: ${{ matrix.os }}
-    env:
-      CIBW_BUILD: "*-${{ matrix.platform }}"
-    strategy:
-      matrix:
-        os: [ubuntu-20.04]
-        platform: [manylinux_aarch64]
-
-    steps:
-      - name: Setup Dockcross
-        run: |
-          docker pull dockcross/manylinux2014-aarch64
-          docker run --rm dockcross/manylinux2014-aarch64 > ./dockcross
-          chmod +x ./dockcross
-          mkdir -p ~/bin/
-          mv ./dockcross ~/bin/
-          echo $HOME/bin >> $GITHUB_PATH
-
-      - name: Download dependencies
-        run: build-scripts/linux-download-qpdf-deps.bash
-
-      - name: Download QPDF
-        run: build-scripts/linux-download-qpdf.bash $QPDF_VERSION
-
-      - name: Cross-compile
-        run: dockcross bash build-scripts/linux-cross-build-wheel-deps.bash
-
   wheels_linux_aarch64:
     name: Wheel ${{ matrix.os }} - ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
@@ -45,6 +16,10 @@ jobs:
         platform: [manylinux_aarch64]
 
     steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: "0" # 0=all, needed for setuptools-scm to resolve version tags
+
       - name: Setup Dockcross
         run: |
           docker pull dockcross/manylinux2014-aarch64
@@ -62,10 +37,6 @@ jobs:
 
       - name: Cross-compile
         run: dockcross bash build-scripts/linux-cross-build-wheel-deps.bash
-
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: "0" # 0=all, needed for setuptools-scm to resolve version tags
 
       - uses: actions/setup-python@v4
         name: Install Python
