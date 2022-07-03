@@ -442,26 +442,26 @@ void save_pdf(QPDF &q,
     // encryption=None -> remove encryption
     // encryption=<dict or NamedTuple> apply new encryption settings
 
-    bool encryption_is_true = encryption.equal(py::bool_(true));
+    bool removing_encryption =
+        encryption.is_none() || encryption.equal(py::bool_(false));
+    if (!removing_encryption) {
+        if ((normalize_content || !stream_decode_level.is_none())) {
+            throw py::value_error("cannot save with encryption and normalize_content "
+                                  "or stream_decode_level");
+        }
+    }
+    bool preserving_encryption = encryption.equal(py::bool_(true));
 
-    if (encryption_is_true) {
+    if (preserving_encryption) {
         if (!q.isEncrypted()) {
             throw py::value_error("can't perserve encryption parameters on "
                                   "a file with no encryption");
         }
-        if ((normalize_content || !stream_decode_level.is_none())) {
-            throw py::value_error("cannot save with encryption and normalize_content "
-                                  "or stream_decode_level");
-        }
         w.setPreserveEncryption(true); // Keep existing encryption
-    } else if (encryption.is_none() || encryption.equal(py::bool_(false))) {
-        // Note: encryption.equal(py::bool_(false)) != !encryption_is_true
+    } else if (removing_encryption) {
+        // Note: encryption.equal(py::bool_(false)) != !preserving_encryption
         w.setPreserveEncryption(false); // Remove encryption
     } else {
-        if ((normalize_content || !stream_decode_level.is_none())) {
-            throw py::value_error("cannot save with encryption and normalize_content "
-                                  "or stream_decode_level");
-        }
         setup_encryption(w, encryption);
     }
 
