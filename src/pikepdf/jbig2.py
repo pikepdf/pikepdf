@@ -57,7 +57,7 @@ def extract_jbig2(
         return im
 
 
-def extract_jbig2_bytes(jbig2: bytes, jbig2_globals: bytes) -> bytes:
+def _extract_jbig2_bytes(jbig2: bytes, jbig2_globals: bytes) -> bytes:
     with TemporaryDirectory(prefix='pikepdf-', suffix='.jbig2') as tmpdir:
         image_path = Path(tmpdir) / "image"
         global_path = Path(tmpdir) / "global"
@@ -85,6 +85,15 @@ def extract_jbig2_bytes(jbig2: bytes, jbig2_globals: bytes) -> bytes:
         run(args, stdout=DEVNULL, check=True)
         with Image.open(output_path) as im:
             return im.tobytes()
+
+
+@deprecation.deprecated(
+    deprecated_in="5.2.0",
+    removed_in="6.0",
+    details="Use jbig2.get_decoder() interface instead",
+)
+def extract_jbig2_bytes(jbig2: bytes, jbig2_globals: bytes) -> bytes:
+    return _extract_jbig2_bytes(jbig2, jbig2_globals)
 
 
 def _check_jbig2dec_available() -> None:
@@ -143,10 +152,26 @@ class JBIG2DecoderInterface(ABC):
 
 class JBIG2Decoder(JBIG2DecoderInterface):
     def check_available(self) -> None:
-        _check_jbig2dec_available()
+        version = self._version()
+        if version < Version('0.15'):
+            raise DependencyError("jbig2dec is too old (older than version 0.15)")
 
     def decode_jbig2(self, jbig2: bytes, jbig2_globals: bytes) -> bytes:
-        return extract_jbig2_bytes(jbig2, jbig2_globals)
+        return _extract_jbig2_bytes(jbig2, jbig2_globals)
+
+    def _version(self) -> Version:
+        try:
+            proc = run(
+                ['jbig2dec', '--version'], stdout=PIPE, check=True, encoding='ascii'
+            )
+        except (CalledProcessError, FileNotFoundError) as e:
+            raise DependencyError("jbig2dec - not installed or not found") from e
+        else:
+            result = proc.stdout
+            version_str = result.replace(
+                'jbig2dec', ''
+            ).strip()  # returns "jbig2dec 0.xx"
+            return Version(version_str)
 
 
 _jbig2_decoder = JBIG2Decoder()

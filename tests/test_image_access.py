@@ -13,6 +13,7 @@ import pytest
 from conftest import needs_python_v
 from hypothesis import assume, given, note, settings
 from hypothesis import strategies as st
+from packaging.version import Version
 from PIL import Image, ImageChops, ImageCms
 from PIL import features as PIL_features
 
@@ -742,7 +743,7 @@ needs_jbig2dec = pytest.mark.skipif(
 @needs_jbig2dec
 def test_jbig2_extractor(jbig2):
     xobj, _pdf = jbig2
-    pikepdf.jbig2.extract_jbig2_bytes(xobj.read_raw_bytes(), b'')
+    pikepdf.jbig2.get_decoder().decode_jbig2(xobj.read_raw_bytes(), b'')
 
 
 @needs_jbig2dec
@@ -822,14 +823,11 @@ def test_jbig2_too_old(first_image_in, monkeypatch):
     xobj, _pdf = first_image_in('jbig2global.pdf')
     pim = PdfImage(xobj)
 
-    def run_version_override(subprocargs, *args, **kwargs):
-        if '--version' in subprocargs:
-            return subprocess.CompletedProcess(subprocargs, 0, 'jbig2dec 0.12\n')
-        return subprocess.run(  # pylint: disable=subprocess-run-check
-            subprocargs, *args, **kwargs
-        )
+    class OldJBIG2Decoder(pikepdf.jbig2.JBIG2Decoder):
+        def _version(self):
+            return Version('0.12')
 
-    monkeypatch.setattr(pikepdf.jbig2, 'run', run_version_override)
+    monkeypatch.setattr(pikepdf.jbig2, 'get_decoder', OldJBIG2Decoder)
 
     pim = PdfImage(xobj)
     with pytest.raises(DependencyError, match='too old'):
