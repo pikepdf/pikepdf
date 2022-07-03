@@ -122,7 +122,7 @@ public:
     void assertDecoderAvailable()
     {
         py::gil_scoped_acquire gil;
-        this->decoder.attr("assert_available")();
+        this->decoder.attr("check_available")();
     }
 
     virtual Pipeline *getDecodePipeline(Pipeline *next) override

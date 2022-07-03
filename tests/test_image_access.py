@@ -719,19 +719,23 @@ def test_jbig2_not_available(jbig2, monkeypatch):
     xobj, _pdf = jbig2
     pim = PdfImage(xobj)
 
-    def raise_filenotfound(*args, **kwargs):
-        raise FileNotFoundError('jbig2dec')
+    class NotFoundJBIG2Decoder(pikepdf.jbig2.JBIG2DecoderInterface):
+        def check_available(self):
+            raise DependencyError('jbig2dec') from FileNotFoundError('jbig2dec')
 
-    monkeypatch.setattr(pikepdf.jbig2, 'run', raise_filenotfound)
+        def decode_jbig2(self, jbig2: bytes, jbig2_globals: bytes) -> bytes:
+            raise FileNotFoundError('jbig2dec')
 
-    assert not pikepdf.jbig2.jbig2dec_available()
+    monkeypatch.setattr(pikepdf.jbig2, 'get_decoder', NotFoundJBIG2Decoder)
+
+    assert not pikepdf.jbig2.get_decoder().available()
 
     with pytest.raises(DependencyError):
         pim.as_pil_image()
 
 
 needs_jbig2dec = pytest.mark.skipif(
-    not pikepdf.jbig2.jbig2dec_available(), reason="jbig2dec not installed"
+    not pikepdf.jbig2.get_decoder().available(), reason="jbig2dec not installed"
 )
 
 
@@ -799,10 +803,7 @@ def test_jbig2_error(first_image_in, monkeypatch):
     pim = PdfImage(xobj)
 
     class BrokenJBIG2Decoder(pikepdf.jbig2.JBIG2DecoderInterface):
-        def available(self):
-            return True
-
-        def assert_available(self):
+        def check_available(self):
             return
 
         def decode_jbig2(self, jbig2: bytes, jbig2_globals: bytes) -> bytes:

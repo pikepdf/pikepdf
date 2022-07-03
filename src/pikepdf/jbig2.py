@@ -87,7 +87,7 @@ def extract_jbig2_bytes(jbig2: bytes, jbig2_globals: bytes) -> bytes:
             return im.tobytes()
 
 
-def assert_jbig2dec_available() -> None:
+def _check_jbig2dec_available() -> None:
     try:
         proc = run(['jbig2dec', '--version'], stdout=PIPE, check=True, encoding='ascii')
     except (CalledProcessError, FileNotFoundError) as e:
@@ -100,9 +100,23 @@ def assert_jbig2dec_available() -> None:
             raise DependencyError("jbig2dec is too old (older than version 0.15)")
 
 
+@deprecation.deprecated(
+    deprecated_in="5.2.0",
+    removed_in="6.0",
+    details="Use jbig2.get_decoder() interface instead",
+)
+def check_jbig2dec_available() -> None:
+    _check_jbig2dec_available()
+
+
+@deprecation.deprecated(
+    deprecated_in="5.2.0",
+    removed_in="6.0",
+    details="Use jbig2.get_decoder() interface instead",
+)
 def jbig2dec_available() -> bool:
     try:
-        assert_jbig2dec_available()
+        _check_jbig2dec_available()
     except (DependencyError, CalledProcessError, FileNotFoundError):
         return False
     else:
@@ -111,24 +125,25 @@ def jbig2dec_available() -> bool:
 
 class JBIG2DecoderInterface(ABC):
     @abstractmethod
-    def available(self) -> bool:
-        ...
-
-    @abstractmethod
-    def assert_available(self) -> None:
+    def check_available(self) -> None:
         ...
 
     @abstractmethod
     def decode_jbig2(self, jbig2: bytes, jbig2_globals: bytes) -> bytes:
         ...
 
+    def available(self) -> bool:
+        try:
+            self.check_available()
+        except DependencyError:
+            return False
+        else:
+            return True
+
 
 class JBIG2Decoder(JBIG2DecoderInterface):
-    def available(self) -> bool:
-        return jbig2dec_available()
-
-    def assert_available(self) -> None:
-        assert_jbig2dec_available()
+    def check_available(self) -> None:
+        _check_jbig2dec_available()
 
     def decode_jbig2(self, jbig2: bytes, jbig2_globals: bytes) -> bytes:
         return extract_jbig2_bytes(jbig2, jbig2_globals)
