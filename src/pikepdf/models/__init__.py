@@ -5,8 +5,6 @@
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
 
-from pikepdf import Object, ObjectType, Operator, Page, PdfError, _qpdf
-
 from ._content_stream import (
     ContentStreamInstructions,
     PdfParsingError,

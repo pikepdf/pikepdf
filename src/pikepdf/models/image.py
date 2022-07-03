@@ -38,12 +38,9 @@ from pikepdf import (
     String,
     jbig2,
 )
+from pikepdf._exceptions import DependencyError
 from pikepdf._qpdf import Buffer
 from pikepdf.models import _transcoding
-
-
-class DependencyError(Exception):
-    "A third party dependency is needed to extract images of this type."
 
 
 class UnsupportedImageTypeError(Exception):

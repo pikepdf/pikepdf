@@ -3,8 +3,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
-
 import os
+from abc import ABC, abstractmethod
 from pathlib import Path
 from subprocess import DEVNULL, PIPE, CalledProcessError, run
 from tempfile import TemporaryDirectory
@@ -15,6 +15,7 @@ from packaging.version import Version
 from PIL import Image
 
 import pikepdf
+from pikepdf._exceptions import DependencyError
 
 
 @deprecation.deprecated(
@@ -86,13 +87,52 @@ def extract_jbig2_bytes(jbig2: bytes, jbig2_globals: bytes) -> bytes:
             return im.tobytes()
 
 
-def jbig2dec_available() -> bool:
+def assert_jbig2dec_available() -> None:
     try:
         proc = run(['jbig2dec', '--version'], stdout=PIPE, check=True, encoding='ascii')
-    except (CalledProcessError, FileNotFoundError):
-        return False
+    except (CalledProcessError, FileNotFoundError) as e:
+        raise DependencyError("jbig2dec - not installed or not found") from e
     else:
         result = proc.stdout
         version_str = result.replace('jbig2dec', '').strip()  # returns "jbig2dec 0.xx"
         version = Version(version_str)
-        return version >= Version('0.15')
+        if version < Version('0.15'):
+            raise DependencyError("jbig2dec is too old (older than version 0.15)")
+
+
+def jbig2dec_available() -> bool:
+    try:
+        assert_jbig2dec_available()
+    except (DependencyError, CalledProcessError, FileNotFoundError):
+        return False
+    else:
+        return True
+
+
+class JBIG2DecoderInterface(ABC):
+    @abstractmethod
+    def available(self) -> bool:
+        ...
+
+    @abstractmethod
+    def assert_available(self) -> None:
+        ...
+
+    @abstractmethod
+    def decode_jbig2(self, jbig2: bytes, jbig2_globals: bytes) -> bytes:
+        ...
+
+
+class JBIG2Decoder(JBIG2DecoderInterface):
+    def available(self) -> bool:
+        return jbig2dec_available()
+
+    def assert_available(self) -> None:
+        assert_jbig2dec_available()
+
+    def decode_jbig2(self, jbig2: bytes, jbig2_globals: bytes) -> bytes:
+        return extract_jbig2_bytes(jbig2, jbig2_globals)
+
+
+def get_decoder():
+    return JBIG2Decoder()

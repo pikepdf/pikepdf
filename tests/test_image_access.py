@@ -797,12 +797,20 @@ def test_jbig2_global_palette(first_image_in):
 def test_jbig2_error(first_image_in, monkeypatch):
     xobj, _pdf = first_image_in('jbig2global.pdf')
     pim = PdfImage(xobj)
+
     monkeypatch.setattr(pikepdf.jbig2, 'jbig2dec_available', lambda: True)
 
-    def raise_calledprocesserror(*args, **kwargs):
-        raise subprocess.CalledProcessError(1, 'jbig2dec')
+    class BrokenJBIG2Decoder(pikepdf.jbig2.JBIG2DecoderInterface):
+        def available(self):
+            return True
 
-    monkeypatch.setattr(pikepdf.jbig2, 'run', raise_calledprocesserror)
+        def assert_available(self):
+            return
+
+        def decode_jbig2(self, jbig2: bytes, jbig2_globals: bytes) -> bytes:
+            raise subprocess.CalledProcessError(1, 'jbig2dec')
+
+    monkeypatch.setattr(pikepdf.jbig2, 'get_decoder', BrokenJBIG2Decoder)
 
     pim = PdfImage(xobj)
     with pytest.raises(PdfError, match="unfilterable stream"):

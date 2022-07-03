@@ -30,25 +30,13 @@ unsigned char *pipeline_caster(const char *s)
     return const_cast<unsigned char *>(reinterpret_cast<const unsigned char *>(s));
 }
 
-void check_jbig2dec_available()
-{
-    auto jbig2dec_available =
-        py::module_::import("pikepdf.jbig2").attr("jbig2dec_available");
-    if (!static_cast<py::bool_>(jbig2dec_available())) {
-        auto cls_dependency_error =
-            py::module_::import("pikepdf.models.image").attr("DependencyError");
-        PyErr_SetString(cls_dependency_error.ptr(),
-            "jbig2dec - not installed or installed version is too old "
-            "(older than version 0.15)");
-        throw py::error_already_set();
-    }
-}
-
 class Pl_JBIG2 : public Pipeline {
 public:
-    Pl_JBIG2(
-        const char *identifier, Pipeline *next, const std::string &jbig2globals = "")
-        : Pipeline(identifier, next), jbig2globals(jbig2globals)
+    Pl_JBIG2(const char *identifier,
+        Pipeline *next,
+        py::object decoder,
+        const std::string &jbig2globals = "")
+        : Pipeline(identifier, next), decoder(decoder), jbig2globals(jbig2globals)
     {
     }
     virtual ~Pl_JBIG2() = default;
@@ -57,18 +45,13 @@ public:
     {
         this->ss.write(reinterpret_cast<const char *>(data), len);
     }
-    virtual void finish() override
-    {
-        std::string data = this->ss.str();
-        if (data.empty()) {
-            if (this->getNext(true))
-                this->getNext()->finish();
-            return;
-        }
 
+    std::string decode_jbig2(const std::string &data)
+    {
+        py::gil_scoped_acquire gil;
         py::bytes pydata = py::bytes(data);
-        py::function extract_jbig2 =
-            py::module_::import("pikepdf.jbig2").attr("extract_jbig2_bytes");
+
+        py::function extract_jbig2 = this->decoder.attr("decode_jbig2");
 
         py::bytes extracted;
         try {
@@ -84,10 +67,21 @@ public:
             throw std::runtime_error("qpdf will consume this exception");
         }
 
-        std::string extracted_cpp = std::string(extracted);
+        return std::string(extracted);
+    }
 
-        this->getNext()->write(
-            pipeline_caster(extracted_cpp.data()), extracted_cpp.length());
+    virtual void finish() override
+    {
+        std::string data = this->ss.str();
+        if (data.empty()) {
+            if (this->getNext(true))
+                this->getNext()->finish();
+            return;
+        }
+
+        auto extracted = this->decode_jbig2(data);
+
+        this->getNext()->write(pipeline_caster(extracted.data()), extracted.length());
 
         if (this->getNext(true)) {
             this->getNext()->finish();
@@ -96,13 +90,18 @@ public:
     }
 
 private:
+    py::object decoder;
     py::bytes jbig2globals;
     std::stringstream ss;
 };
 
 class JBIG2StreamFilter : public QPDFStreamFilter {
 public:
-    JBIG2StreamFilter()          = default;
+    JBIG2StreamFilter()
+    {
+        py::gil_scoped_acquire gil;
+        this->decoder = py::module_::import("pikepdf.jbig2").attr("get_decoder")();
+    }
     virtual ~JBIG2StreamFilter() = default;
 
     virtual bool setDecodeParms(QPDFObjectHandle decode_parms) override
@@ -119,11 +118,18 @@ public:
             std::string(reinterpret_cast<char *>(buf->getBuffer()), buf->getSize());
         return true;
     }
+
+    void assertDecoderAvailable()
+    {
+        py::gil_scoped_acquire gil;
+        this->decoder.attr("assert_available")();
+    }
+
     virtual Pipeline *getDecodePipeline(Pipeline *next) override
     {
-        check_jbig2dec_available();
-        this->pipeline =
-            std::make_shared<Pl_JBIG2>("JBIG2 decode", next, this->jbig2globals);
+        this->assertDecoderAvailable();
+        this->pipeline = std::make_shared<Pl_JBIG2>(
+            "JBIG2 decode", next, this->decoder, this->jbig2globals);
         return this->pipeline.get();
     }
 
@@ -136,6 +142,7 @@ public:
     virtual bool isLossyCompression() override { return false; }
 
 private:
+    py::object decoder;
     std::string jbig2globals;
     std::shared_ptr<Pipeline> pipeline;
 };
