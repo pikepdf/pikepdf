@@ -65,6 +65,7 @@ jobs:
           CIBW_ARCHS_LINUX: aarch64
           CFLAGS: "-isystem xcc/include/"
           LDFLAGS: "-L xcc/lib/"
+          CIBW_ENVIRONMENT_PASS_LINUX: "CFLAGS LDFLAGS"
 
       - name: Upload built wheels
         uses: actions/upload-artifact@v3
