@@ -92,7 +92,9 @@ def _extract_jbig2_bytes(jbig2: bytes, jbig2_globals: bytes) -> bytes:
     removed_in="6.0",
     details="Use jbig2.get_decoder() interface instead",
 )
-def extract_jbig2_bytes(jbig2: bytes, jbig2_globals: bytes) -> bytes:
+def extract_jbig2_bytes(
+    jbig2: bytes, jbig2_globals: bytes
+) -> bytes:  # pragma: no cover
     return _extract_jbig2_bytes(jbig2, jbig2_globals)
 
 
@@ -114,7 +116,7 @@ def _check_jbig2dec_available() -> None:
     removed_in="6.0",
     details="Use jbig2.get_decoder() interface instead",
 )
-def check_jbig2dec_available() -> None:
+def check_jbig2dec_available() -> None:  # pragma: no cover
     _check_jbig2dec_available()
 
 
@@ -123,7 +125,7 @@ def check_jbig2dec_available() -> None:
     removed_in="6.0",
     details="Use jbig2.get_decoder() interface instead",
 )
-def jbig2dec_available() -> bool:
+def jbig2dec_available() -> bool:  # pragma: no cover
     try:
         _check_jbig2dec_available()
     except (DependencyError, CalledProcessError, FileNotFoundError):
