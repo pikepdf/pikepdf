@@ -828,9 +828,13 @@ void init_qpdf(py::module_ &m)
                     w.write();
                 } catch (py::error_already_set &e) {
                     auto cls_dependency_error =
-                        py::module_::import("pikepdf.models.image")
+                        py::module_::import("pikepdf._exceptions")
                             .attr("DependencyError");
                     if (e.matches(cls_dependency_error)) {
+                        python_warning(
+                            "pikepdf is missing some specialized decoders "
+                            "(probably JBIG2) so not all stream contents can be "
+                            "tested.");
                         w.setDecodeLevel(qpdf_dl_generalized);
                         w.write();
                     } else {

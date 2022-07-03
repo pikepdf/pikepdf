@@ -11,12 +11,14 @@ from contextlib import nullcontext
 from io import BytesIO, StringIO
 from os import fspath
 from pathlib import Path
+from subprocess import CalledProcessError
 from unittest.mock import Mock
 
 import pytest
 
 import pikepdf
 from pikepdf import Name, PasswordError, Pdf, PdfError, Stream
+from pikepdf._exceptions import DependencyError
 
 # pylint: disable=redefined-outer-name
 
@@ -333,6 +335,22 @@ def test_check(resources):
         assert len(problems) > 0
         assert all(isinstance(prob, str) for prob in problems)
         assert 'parse error while reading' in problems[0]
+
+
+def test_check_specialized_decoder_fallback(resources, monkeypatch):
+    class MissingJBIG2Decoder(pikepdf.jbig2.JBIG2DecoderInterface):
+        def check_available(self):
+            raise DependencyError('jbig2dec')
+
+        def decode_jbig2(self, jbig2: bytes, jbig2_globals: bytes) -> bytes:
+            raise CalledProcessError(1, 'jbig2dec')
+
+    monkeypatch.setattr(pikepdf.jbig2, 'get_decoder', MissingJBIG2Decoder)
+
+    with pikepdf.open(resources / 'jbig2.pdf') as pdf:
+        with pytest.warns(UserWarning, match=r".*missing some specialized.*"):
+            problems = pdf.check()
+        assert len(problems) == 0
 
 
 def test_repr(trivial):
