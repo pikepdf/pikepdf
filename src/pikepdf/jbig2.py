@@ -134,5 +134,8 @@ class JBIG2Decoder(JBIG2DecoderInterface):
         return extract_jbig2_bytes(jbig2, jbig2_globals)
 
 
+_jbig2_decoder = JBIG2Decoder()
+
+
 def get_decoder():
-    return JBIG2Decoder()
+    return _jbig2_decoder

@@ -798,8 +798,6 @@ def test_jbig2_error(first_image_in, monkeypatch):
     xobj, _pdf = first_image_in('jbig2global.pdf')
     pim = PdfImage(xobj)
 
-    monkeypatch.setattr(pikepdf.jbig2, 'jbig2dec_available', lambda: True)
-
     class BrokenJBIG2Decoder(pikepdf.jbig2.JBIG2DecoderInterface):
         def available(self):
             return True

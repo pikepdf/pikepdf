@@ -562,7 +562,7 @@ class PdfImage(PdfImageBase):
         except (RuntimeError, PdfError) as e:
             if (
                 'read_bytes called on unfilterable stream' in str(e)
-                and not jbig2.jbig2dec_available()
+                and not jbig2.get_decoder().available()
             ):
                 raise DependencyError(
                     "jbig2dec - not installed or installed version is too old "
