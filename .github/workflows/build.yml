@@ -56,6 +56,32 @@ jobs:
           path: ./wheelhouse/pikepdf-*-cp39-*.manylinux2014_x86_64.whl
           if-no-files-found: error
 
+  wheels_linux_arm:
+    name: 🏗 ${{ matrix.os }} - ${{ matrix.platform }}
+    runs-on: self-hosted
+    env:
+      CIBW_BUILD: "*-${{ matrix.platform }}"
+    strategy:
+      matrix:
+        platform: [manylinux_aarch64]
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: "0" # 0=all, needed for setuptools-scm to resolve version tags
+
+      - name: Build wheels
+        uses: joerick/cibuildwheel@v2.7.0
+        env:
+          CIBW_ARCHS_LINUX: aarch64
+
+      - name: Upload built wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: ./wheelhouse/*.whl
+          if-no-files-found: error
+
   wheels_macos:
     name: 🏗 ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
