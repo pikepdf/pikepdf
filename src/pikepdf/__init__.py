@@ -29,6 +29,7 @@ from ._qpdf import (
     DataDecodingError,
     ForeignObjectError,
     NameTree,
+    ObjectHelper,
     ObjectStreamMode,
     Page,
     PasswordError,

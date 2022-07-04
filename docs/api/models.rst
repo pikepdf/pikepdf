@@ -13,8 +13,6 @@ Version 3.x automatically applies support models to ``/Page`` objects.
 .. autoclass:: pikepdf.ObjectHelper
     :members:
 
-    Base class for some support models.
-
 .. autoclass:: pikepdf.Page
     :members:
 
