@@ -1,3 +1,12 @@
+v5.3.0
+======
+
+-  Binary wheels for Linux aarch64 are now being rolled automatically. 🎉
+-  Refactor JBIG2 handling to make JBIG2 decoders more testable and pluggable.
+-  Fixed some typing issues around ``ObjectHelper``.
+-  Exposed some pikepdf settings that were attached to the private ``_qpdf`` module
+   in a new ``pikepdf.settings`` module.
+
 v5.2.0
 ======
 
