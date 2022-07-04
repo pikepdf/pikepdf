@@ -98,7 +98,7 @@ def extract_jbig2_bytes(
     return _extract_jbig2_bytes(jbig2, jbig2_globals)
 
 
-def _check_jbig2dec_available() -> None:
+def _check_jbig2dec_available() -> None:  # pragma: no cover
     try:
         proc = run(['jbig2dec', '--version'], stdout=PIPE, check=True, encoding='ascii')
     except (CalledProcessError, FileNotFoundError) as e:
@@ -135,15 +135,18 @@ def jbig2dec_available() -> bool:  # pragma: no cover
 
 
 class JBIG2DecoderInterface(ABC):
+    """pikepdf's C++ expects this Python interface to be available for JBIG2."""
+
     @abstractmethod
     def check_available(self) -> None:
-        ...
+        """Check if decoder is available. Throws DependencyError if not."""
 
     @abstractmethod
     def decode_jbig2(self, jbig2: bytes, jbig2_globals: bytes) -> bytes:
-        ...
+        """Decode JBIG2 from jbig2 and globals, returning decoded bytes."""
 
     def available(self) -> bool:
+        """Returns True if decoder is available."""
         try:
             self.check_available()
         except DependencyError:
