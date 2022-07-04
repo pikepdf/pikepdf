@@ -29,13 +29,6 @@ if not cflags_defined:
         extra_includes.append('/opt/homebrew/include')
         extra_library_dirs.append('/opt/homebrew/lib')
 
-try:
-    from setuptools_scm import get_version
-
-    __version__ = get_version()
-except ImportError:
-    __version__ = '0.0.1'
-
 
 for extra_path in chain([qpdf_source_tree], extra_includes, extra_library_dirs):
     if extra_path and not exists(extra_path):
@@ -75,11 +68,6 @@ if not cflags_defined:
 if __name__ == '__main__':
     with ParallelCompile("PIKEPDF_NUM_BUILD_JOBS"):  # optional envvar
         setup(
-            setup_requires=[  # can be removed whenever we can drop pip 9 support
-                'setuptools_scm',  # so that version will work
-                'setuptools_scm_git_archive',  # enable version from github tarballs
-            ],
             ext_modules=[extmodule],
-            use_scm_version=True,
             cmdclass={"build_ext": build_ext},  # type: ignore
         )
