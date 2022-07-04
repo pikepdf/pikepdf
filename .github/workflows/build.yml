@@ -6,7 +6,7 @@ on: [push, pull_request]
 
 jobs:
   wheels_linux:
-    name: 🏗 ${{ matrix.os }} - ${{ matrix.platform }}
+    name: ${{ matrix.os }} - ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     env:
       CIBW_BUILD: "*-${{ matrix.platform }}"
@@ -56,8 +56,34 @@ jobs:
           path: ./wheelhouse/pikepdf-*-cp39-*.manylinux2014_x86_64.whl
           if-no-files-found: error
 
+  wheels_linux_arm:
+    name: self-hosted - ${{ matrix.platform }}
+    runs-on: self-hosted
+    env:
+      CIBW_BUILD: "*-${{ matrix.platform }}"
+    strategy:
+      matrix:
+        platform: [manylinux_aarch64]
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: "0" # 0=all, needed for setuptools-scm to resolve version tags
+
+      - name: Build wheels
+        uses: joerick/cibuildwheel@v2.7.0
+        env:
+          CIBW_ARCHS_LINUX: aarch64
+
+      - name: Upload built wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: ./wheelhouse/*.whl
+          if-no-files-found: error
+
   wheels_macos:
-    name: 🏗 ${{ matrix.os }}
+    name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -84,7 +110,7 @@ jobs:
           path: ./wheelhouse/*.whl
 
   wheels_windows:
-    name: 🏗 ${{ matrix.os }} - ${{ matrix.platform }}
+    name: ${{ matrix.os }} - ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     env:
       CIBW_BUILD: "*-${{ matrix.platform }}"
@@ -126,7 +152,7 @@ jobs:
           path: ./wheelhouse/*.whl
 
   sdist:
-    name: 🏗 source distribution
+    name: source distribution
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
@@ -197,7 +223,7 @@ jobs:
   trigger_rtd:
     name: Trigger ReadTheDocs
     runs-on: ubuntu-latest
-    needs: [wheels_linux, wheels_macos, wheels_windows, sdist]
+    needs: [wheels_linux]
     if: startsWith(github.ref, 'refs/heads/') && !startsWith(github.ref, 'refs/heads/actions')
     steps:
       - name: Get branch name
@@ -211,7 +237,7 @@ jobs:
                        https://readthedocs.org/api/v2/webhook/pikepdf/163029/
 
   upload_pypi:
-    needs: [wheels_linux, wheels_macos, wheels_windows, sdist]
+    needs: [wheels_linux, wheels_linux_arm, wheels_macos, wheels_windows, sdist]
     runs-on: ubuntu-latest
     # upload to PyPI on every tag starting with 'v'
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
