@@ -10,6 +10,7 @@
 # after augmenting.
 
 import datetime
+import sys
 from abc import abstractmethod
 from decimal import Decimal
 from enum import Enum
@@ -33,6 +34,11 @@ from typing import (
     Union,
     overload,
 )
+
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
+    from typing_extensions import Literal  # pragma: no cover
 
 from pikepdf.models.encryption import Encryption, EncryptionInfo, Permissions
 from pikepdf.models.image import PdfInlineImage
@@ -724,3 +730,6 @@ def set_decimal_precision(prec: int) -> int: ...
 def unparse(obj: Any) -> bytes: ...
 def utf8_to_pdf_doc(utf8: str, unknown: bytes) -> Tuple[bool, bytes]: ...
 def _unparse_content_stream(contentstream: Iterable[Any]) -> bytes: ...
+def set_flate_compression_level(
+    level: Literal[-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+) -> None: ...

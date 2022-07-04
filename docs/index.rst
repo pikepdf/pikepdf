@@ -162,6 +162,7 @@ practical examples, particular in ``pdfinfo.py``, ``graft.py``, and
     api/models
     api/filters
     api/exceptions
+    api/settings
 
 .. toctree::
     :maxdepth: 2

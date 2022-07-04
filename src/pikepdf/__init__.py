@@ -68,6 +68,10 @@ from .models import (
     unparse_content_stream,
 )
 
+from . import settings
+
+# Importing these will monkeypatch classes defined in C++ and register a new
+# pdfdoc codec
 from . import _methods, codec
 
 # While _cpphelpers is intended to be called from our C++ code only, explicitly
