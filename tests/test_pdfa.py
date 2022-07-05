@@ -16,31 +16,51 @@ try:
 except Exception:  # pylint: disable=broad-except
     pass
 
-pytestmark = pytest.mark.skipif(not VERAPDF, reason="verapdf not found")
 
-
-def verapdf_validate(filename):
+def verapdf_validate(filename) -> bool:
+    assert VERAPDF is not None
     proc = run([VERAPDF, filename], stdout=PIPE, stderr=STDOUT, check=True)
     result = proc.stdout.decode('utf-8')
     xml_start = result.find('<?xml version')
     xml = result[xml_start:]
     root = ET.fromstring(xml)
-    node = root.find(".//validationReports")
-    result = node.attrib['compliant'] == '1' and node.attrib['failedJobs'] == '0'
-    if not result:
-        print(proc.stdout.decode())
-    return result
+    node = root.find(".//validationReport")
+    if not node:
+        raise NotImplementedError("Unexpected XML returned by verapdf")
+
+    compliant = node.attrib['isCompliant'] == 'true'
+    if not compliant:
+        print(result)
+    return compliant
 
 
-def test_pdfa_sanity(resources, outdir):
+@pytest.fixture
+def verapdf():
+    if not VERAPDF:
+        pytest.skip("verapdf not available")
+    return verapdf_validate
+
+
+@pytest.mark.parametrize(
+    'filename, pdfa, pdfx',
+    [('veraPDF test suite 6-2-10-t02-pass-a.pdf', '1B', ''), ('pal.pdf', '', '')],
+)
+def test_pdfa_status(resources, filename, pdfa, pdfx):
+    with Pdf.open(resources / filename) as pdf:
+        m = pdf.open_metadata()
+        assert m.pdfa_status == pdfa
+        assert m.pdfx_status == pdfx
+
+
+def test_pdfa_sanity(resources, outdir, verapdf):
     filename = resources / 'veraPDF test suite 6-2-10-t02-pass-a.pdf'
 
-    assert verapdf_validate(filename)
+    assert verapdf(filename)
 
     with Pdf.open(filename) as pdf:
         pdf.save(outdir / 'pdfa.pdf')
 
-        assert verapdf_validate(outdir / 'pdfa.pdf')
+        assert verapdf(outdir / 'pdfa.pdf')
         m = pdf.open_metadata()
         assert m.pdfa_status == '1B'
         assert m.pdfx_status == ''
@@ -50,9 +70,9 @@ def test_pdfa_sanity(resources, outdir):
         assert m.pdfa_status == ''
 
 
-def test_pdfa_modify(resources, outdir):
+def test_pdfa_modify(resources, outdir, verapdf):
     sandwich = resources / 'sandwich.pdf'
-    assert verapdf_validate(sandwich)
+    assert verapdf(sandwich)
 
     with Pdf.open(sandwich) as pdf:
         with pdf.open_metadata(
@@ -62,7 +82,7 @@ def test_pdfa_modify(resources, outdir):
         with pytest.raises(RuntimeError, match="not opened"):
             del meta['pdfaid:part']
         pdf.save(outdir / '1.pdf')
-    assert verapdf_validate(outdir / '1.pdf')
+    assert verapdf(outdir / '1.pdf')
 
     with Pdf.open(sandwich) as pdf:
         with pdf.open_metadata(
@@ -70,17 +90,17 @@ def test_pdfa_modify(resources, outdir):
         ) as meta:
             pass
         pdf.save(outdir / '2.pdf')
-    assert verapdf_validate(outdir / '2.pdf')
+    assert verapdf(outdir / '2.pdf')
 
     with Pdf.open(sandwich) as pdf:
         with pdf.open_metadata(update_docinfo=True, set_pikepdf_as_editor=True) as meta:
             meta['dc:source'] = 'Test'
             meta['dc:title'] = 'Title Test'
         pdf.save(outdir / '3.pdf')
-    assert verapdf_validate(outdir / '3.pdf')
+    assert verapdf(outdir / '3.pdf')
 
 
-def test_pdfa_creator(resources, outdir, caplog):
+def test_pdfa_creator(resources, caplog):
     sandwich = resources / 'sandwich.pdf'
 
     with Pdf.open(sandwich) as pdf:
