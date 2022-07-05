@@ -1,3 +1,13 @@
+v5.3.1
+======
+
+-  Fixed issue with parsing inline images, causing loss of data after
+   inline images were encountered in a content stream. The issue only affects
+   content streams parsed with ``parse_content_stream``; saved PDFs were not
+   affected. :issue:`299`
+-  Build system requires changed to setuptools-scm 7.0.3, and 
+   setuptools-scm-git-archive is now longer required.
+
 v5.3.0
 ======
 
