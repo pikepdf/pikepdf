@@ -32,11 +32,11 @@ jobs:
           platforms: all
 
       - name: Build wheels
-        uses: joerick/cibuildwheel@v2.7.0
+        uses: joerick/cibuildwheel@v2.8.0
         if: matrix.platform != 'manylinux_aarch64'
 
       - name: Build wheels (emulated)
-        uses: joerick/cibuildwheel@v2.7.0
+        uses: joerick/cibuildwheel@v2.8.0
         if: matrix.platform == 'manylinux_aarch64'
         env:
           CIBW_ARCHS_LINUX: aarch64
@@ -71,7 +71,7 @@ jobs:
           fetch-depth: "0" # 0=all, needed for setuptools-scm to resolve version tags
 
       - name: Build wheels
-        uses: joerick/cibuildwheel@v2.7.0
+        uses: joerick/cibuildwheel@v2.8.0
         env:
           CIBW_ARCHS_LINUX: aarch64
 
@@ -100,7 +100,7 @@ jobs:
           python-version: "3.8"
 
       - name: Build wheels
-        uses: joerick/cibuildwheel@v2.7.0
+        uses: joerick/cibuildwheel@v2.8.0
 
         #env:
         #  CIBW_ARCHS_MACOS: x86_64 universal2 # for Apple Silicon
@@ -144,7 +144,7 @@ jobs:
           build-scripts/win-download-qpdf.ps1 $env:QPDF_VERSION ${{ matrix.platform }}
 
       - name: Build wheels
-        uses: joerick/cibuildwheel@v2.7.0
+        uses: joerick/cibuildwheel@v2.8.0
 
       - uses: actions/upload-artifact@v3
         with:
