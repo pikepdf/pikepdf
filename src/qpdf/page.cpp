@@ -60,7 +60,7 @@ void init_page(py::module_ &m)
         }))
         .def(
             "__copy__", [](QPDFPageObjectHelper &poh) { return poh.shallowCopyPage(); })
-        .def_property_readonly("_images", &QPDFPageObjectHelper::getPageImages)
+        .def_property_readonly("_images", &QPDFPageObjectHelper::getImages)
         .def("_get_mediabox", &QPDFPageObjectHelper::getMediaBox)
         .def("_get_cropbox", &QPDFPageObjectHelper::getCropBox)
         .def("_get_trimbox", &QPDFPageObjectHelper::getTrimBox)
@@ -209,7 +209,7 @@ void init_page(py::module_ &m)
             [](QPDFPageObjectHelper &poh,
                 QPDFObjectHandle::TokenFilter &tf) -> py::bytes {
                 Pl_Buffer pl_buffer("filter_page");
-                poh.filterPageContents(&tf, &pl_buffer);
+                poh.filterContents(&tf, &pl_buffer);
 
                 PointerHolder<Buffer> buf(pl_buffer.getBuffer());
                 auto data = reinterpret_cast<const char *>(buf->getBuffer());
@@ -265,7 +265,7 @@ void init_page(py::module_ &m)
         .def(
             "parse_contents",
             [](QPDFPageObjectHelper &poh, PyParserCallbacks &parsercallbacks) {
-                poh.parsePageContents(&parsercallbacks);
+                poh.parseContents(&parsercallbacks);
             },
             R"~~~(
                 Parse a page's content streams using a :class:`pikepdf.StreamParser`.
