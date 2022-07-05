@@ -878,7 +878,11 @@ class Extend_Page:
 
     @property
     def images(self) -> _ObjectMapping:
-        """Return all images associated with this page."""
+        """Return all regular images associated with this page.
+
+        This method does not recurse into Form XObjects and does not
+        attempt to find inline images.
+        """
         return self._images
 
     @property

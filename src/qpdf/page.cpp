@@ -66,15 +66,18 @@ void init_page(py::module_ &m)
         .def("_get_trimbox", &QPDFPageObjectHelper::getTrimBox)
         .def(
             "externalize_inline_images",
-            [](QPDFPageObjectHelper &poh, size_t min_size = 0) {
-                return poh.externalizeInlineImages(min_size);
+            [](QPDFPageObjectHelper &poh, size_t min_size = 0, bool shallow = false) {
+                return poh.externalizeInlineImages(min_size, shallow);
             },
             py::arg("min_size") = 0,
+            py::arg("shallow")  = false,
             R"~~~(
                 Convert inlines image to normal (external) images.
 
                 Args:
                     min_size (int): minimum size in bytes
+                    shallow (bool): If False, recurse into nested Form XObjects.
+                        If True, do not recurse.
             )~~~")
         .def("rotate",
             &QPDFPageObjectHelper::rotatePage,
