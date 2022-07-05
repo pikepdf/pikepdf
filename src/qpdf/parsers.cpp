@@ -125,7 +125,8 @@ void OperandGrouper::handleObject(QPDFObjectHandle obj)
             } else if (op == "EI") {
                 ContentStreamInlineImage csii(this->inline_metadata, this->tokens[0]);
                 this->instructions.append(csii);
-                this->inline_metadata = ObjectList();
+                this->inline_metadata      = ObjectList();
+                this->parsing_inline_image = false;
             }
         } else {
             ContentStreamInstruction csi(this->tokens, obj);

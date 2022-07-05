@@ -257,9 +257,35 @@ def test_inline_copy(inline):
         if not isinstance(instr, ContentStreamInlineImage):
             continue
         csiimage = instr
-        _copy_of_csiimage = ContentStreamInlineImage(csiimage)  # noqa: F841
+        _copy_of_csiimage = ContentStreamInlineImage(csiimage)
         new_iimage = ContentStreamInlineImage(csiimage.iimage)
         assert unparse_content_stream([new_iimage]).startswith(b'BI')
+
+
+def test_end_inline_parse():
+    pdf = pikepdf.new()
+    pdf.add_blank_page(page_size=(1000, 1000))
+    stream = b"""
+        q 200 0 0 200 500 500 cm
+        BI
+        /W 1
+        /H 1 
+        /BPC 8
+        /CS /RGB
+        ID \x80\x80\x80
+        EI Q
+        q 300 0 0 300 500 200 cm
+        BI
+        /W 2
+        /H 2
+        /BPC 8
+        /CS /RGB
+        ID \xff\x00\x00\x00\xff\x00\x00\xff\x00\x00\x00\xff
+        EI Q
+        """
+    pdf.pages[0].Contents = pdf.make_stream(stream)
+    cs = parse_content_stream(pdf.pages[0])
+    assert unparse_content_stream(cs).split() == stream.split()
 
 
 class TestMalformedContentStreamInstructions:
