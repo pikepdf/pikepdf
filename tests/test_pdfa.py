@@ -43,9 +43,13 @@ def verapdf():
 
 @pytest.mark.parametrize(
     'filename, pdfa, pdfx',
-    [('veraPDF test suite 6-2-10-t02-pass-a.pdf', '1B', ''), ('pal.pdf', '', '')],
+    [
+        ('veraPDF test suite 6-2-10-t02-pass-a.pdf', '1B', ''),
+        ('pal.pdf', '', ''),
+        ('pdfx.pdf', '', 'PDF/X-4'),
+    ],
 )
-def test_pdfa_status(resources, filename, pdfa, pdfx):
+def test_pdfa_pdfx_status(resources, filename, pdfa, pdfx):
     with Pdf.open(resources / filename) as pdf:
         m = pdf.open_metadata()
         assert m.pdfa_status == pdfa
