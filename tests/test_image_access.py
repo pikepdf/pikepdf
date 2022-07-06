@@ -537,7 +537,8 @@ def first_image_from_pdfimages(pdf, tmpdir):
 
     outpng = tmpdir / 'pdfimage-000.png'
     assert outpng.exists()
-    yield Image.open(outpng)
+    with Image.open(outpng) as im:
+        yield im
 
 
 @given(spec=valid_random_palette_image_spec())
