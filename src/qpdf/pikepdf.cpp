@@ -116,6 +116,7 @@ PYBIND11_MODULE(_qpdf, m)
     init_qpdf(m);
     init_pagelist(m);
     init_object(m);
+    init_job(m);
 
     // -- Support objects (alphabetize order) --
     init_annotation(m);
