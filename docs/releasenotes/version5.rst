@@ -1,3 +1,9 @@
+v5.3.2
+======
+
+-  Build system requires changed to setuptools-scm 7.0.5, which includes a fix to
+   an issue where pikepdf source distribution reported a version of "0.0" when installed.
+
 v5.3.1
 ======
 
