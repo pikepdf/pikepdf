@@ -17,6 +17,4 @@ sphinx-design
 sphinx-rtd-theme
 tomli
 
-GitPython
-PyGithub
-requests
+rtds-action
