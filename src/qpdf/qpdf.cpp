@@ -645,7 +645,6 @@ void init_qpdf(py::module_ &m)
             )~~~",
             py::arg("page"),
             py::arg("first") = false)
-        .def("_add_page_at", &QPDF::addPageAt, py::keep_alive<1, 2>())
         .def("_remove_page", &QPDF::removePage)
         .def(
             "remove_unreferenced_resources",
