@@ -954,9 +954,7 @@ void init_object(py::module_ &m)
             return QPDFObjectHandle::newStream(owner.get(),
                 data); // This makes a copy of the data
         },
-        "Construct a PDF Stream object from binary data",
-        py::keep_alive<0, 1>() // returned object references the owner
-    );
+        "Construct a PDF Stream object from binary data");
     m.def(
         "_new_operator",
         [](const std::string &op) { return QPDFObjectHandle::newOperator(op); },

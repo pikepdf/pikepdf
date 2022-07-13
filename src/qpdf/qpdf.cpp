@@ -644,8 +644,7 @@ void init_qpdf(py::module_ &m)
                 first (bool): If True, prepend this before the first page; if False append after last page
             )~~~",
             py::arg("page"),
-            py::arg("first") = false,
-            py::keep_alive<1, 2>())
+            py::arg("first") = false)
         .def("_add_page_at", &QPDF::addPageAt, py::keep_alive<1, 2>())
         .def("_remove_page", &QPDF::removePage)
         .def(
