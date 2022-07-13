@@ -120,3 +120,10 @@ multiple CPU usage, since py-spy cannot trace inside child processes.
 .. _py-spy: https://github.com/benfred/py-spy
 
 .. _speedscope: https://github.com/jlfwong/speedscope
+
+pymemtrace
+----------
+
+`pymemtrace`_ is another helpful tool for diagnosing memory leaks.
+
+.. _pymemtrace: https://pymemtrace.readthedocs.io/en/latest/index.html
