@@ -16,7 +16,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-import tomli
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib  # type: ignore
 
 on_rtd = os.environ.get('READTHEDOCS') == 'True'
 if on_rtd:
@@ -93,7 +96,7 @@ autosummary_generate = True
 templates_path = ['_templates']
 
 with open('../pyproject.toml', 'rb') as f:
-    pyproject_toml = tomli.load(f)
+    pyproject_toml = tomllib.load(f)
 toml_env = pyproject_toml['tool']['cibuildwheel']['environment']
 
 rst_prolog = f"""
