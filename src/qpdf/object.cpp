@@ -520,12 +520,12 @@ void init_object(py::module_ &m)
                     value = object_get_key(h, key);
                 } catch (const py::key_error &e) {
                     if (std::isupper(name[0]))
-                        throw py::attr_error(e.what());
+                        throw py::attribute_error(e.what());
                     else
-                        throw py::attr_error(name);
+                        throw py::attribute_error(name);
                 } catch (const py::value_error &e) {
                     if (name == std::string("__name__"))
-                        throw py::attr_error(name);
+                        throw py::attribute_error(name);
                     throw;
                 }
                 return value;
