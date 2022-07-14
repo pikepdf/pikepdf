@@ -160,16 +160,16 @@ bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
 
         // Early out: if underlying QPDF Buffers happen to be the same, the data is the
         // same
-        if (self_buffer.getPointer() == other_buffer.getPointer())
+        if (self_buffer.get() == other_buffer.get())
             return true;
         // Early out: if sizes are different, data cannot be the same
-        if (self_buffer.getPointer()->getSize() != other_buffer.getPointer()->getSize())
+        if (self_buffer->getSize() != other_buffer->getSize())
             return false;
 
         // Slow path: memcmp the binary data
-        return 0 == std::memcmp(self_buffer.getPointer()->getBuffer(),
-                        other_buffer.getPointer()->getBuffer(),
-                        self_buffer.getPointer()->getSize());
+        return 0 == std::memcmp(self_buffer->getBuffer(),
+                        other_buffer->getBuffer(),
+                        self_buffer->getSize());
     }
     // LCOV_EXCL_START
     case QPDFObject::object_type_e::ot_boolean:

@@ -34,14 +34,6 @@ PYBIND11_RUNTIME_EXCEPTION(notimpl_error, PyExc_NotImplementedError);
 // Declare PointerHolder<T> as a smart pointer
 // https://pybind11.readthedocs.io/en/stable/advanced/smart_ptrs.html#custom-smart-pointers
 PYBIND11_DECLARE_HOLDER_TYPE(T, PointerHolder<T>);
-namespace pybind11 {
-namespace detail {
-template <typename T>
-struct holder_helper<PointerHolder<T>> {
-    static const T *get(const PointerHolder<T> &p) { return p.getPointer(); }
-};
-} // namespace detail
-} // namespace pybind11
 
 // From object_convert.cpp
 pybind11::object decimal_from_pdfobject(QPDFObjectHandle h);
@@ -309,9 +301,9 @@ inline void deprecation_warning(const char *msg)
 class StackGuard {
 public:
     StackGuard(const char *where) { Py_EnterRecursiveCall(where); }
-    StackGuard(const StackGuard &) = delete;
+    StackGuard(const StackGuard &)            = delete;
     StackGuard &operator=(const StackGuard &) = delete;
     StackGuard(StackGuard &&)                 = delete;
-    StackGuard &operator=(StackGuard &&) = delete;
+    StackGuard &operator=(StackGuard &&)      = delete;
     ~StackGuard() { Py_LeaveRecursiveCall(); }
 };
