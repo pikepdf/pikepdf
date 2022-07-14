@@ -482,15 +482,13 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &h, std::string const &key, QPDFObjectHandle &value) {
                 object_set_key(h, key, value);
             },
-            "assign dictionary key to new object",
-            py::keep_alive<1, 3>())
+            "assign dictionary key to new object")
         .def(
             "__setitem__",
             [](QPDFObjectHandle &h, QPDFObjectHandle &name, QPDFObjectHandle &value) {
                 object_set_key(h, name.getName(), value);
             },
-            "assign dictionary key to new object",
-            py::keep_alive<1, 3>())
+            "assign dictionary key to new object")
         .def("__setitem__",
             [](QPDFObjectHandle &h, std::string const &key, py::object pyvalue) {
                 auto value = objecthandle_encode(pyvalue);

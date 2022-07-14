@@ -3,11 +3,10 @@ import sys
 from copy import copy
 from decimal import Decimal, InvalidOperation
 from math import isclose, isfinite
-from typing import Type
 from zlib import compress
 
 import pytest
-from conftest import needs_libqpdf_v, skip_if_pypy
+from conftest import skip_if_pypy
 from hypothesis import assume, example, given
 from hypothesis.strategies import (
     binary,
@@ -631,6 +630,17 @@ class TestStream:
 
         stream2.stream_dict.SomeData = 1
         assert stream2 != stream1
+
+    def test_stream_refcount(self, outpdf):
+        pdf = pikepdf.new()
+        stream = Stream(pdf, b'blahblah')
+        assert sys.getrefcount(stream) == 2
+        pdf.Root.SomeStream = stream
+        assert sys.getrefcount(stream) == 2
+        del stream
+        pdf.save(outpdf)
+        with pikepdf.open(outpdf) as pdf2:
+            assert pdf2.Root.SomeStream.read_bytes() == b'blahblah'
 
 
 @pytest.fixture
