@@ -248,7 +248,6 @@ void init_page(py::module_ &m)
 
                 poh.addContentTokenFilter(tf);
             },
-            py::keep_alive<1, 2>(),
             py::arg("tf"),
             R"~~~(
                 Attach a :class:`pikepdf.TokenFilter` to a page's content stream.
