@@ -174,7 +174,7 @@ Version 3.x automatically applies support models to ``/Page`` objects.
     the UTF-8 encoding of that string is tested. Name trees are (confusingly)
     not indexed by PDF name objects.
 
-    The keys are ordered; pikepdf will ensure that the order is preserved.
+    The keys are sorted; pikepdf will ensure that the order is preserved.
 
     The value may be any PDF object. Typically it will be a dictionary or array.
 
@@ -194,3 +194,46 @@ Version 3.x automatically applies support models to ``/Page`` objects.
     for a list of PDF objects that are stored in name trees.
 
     .. versionadded:: 3.0
+
+.. autoclass:: pikepdf.NumberTree
+    :members:
+
+    An object for managing *number tree* data structures in PDFs.
+
+    A name tree is a key-value data structure, like name trees, except that the
+    key is an integer. 
+    
+    The keys can be sparse - not all integers positions will be populated. Keys
+    are also always sorted; pikepdf will ensure that the order is preserved.
+
+    The value may be any PDF object. Typically it will be a dictionary or array.
+
+    If the number tree is invalid in any way, pikepdf will automatically repair it
+    if it is able to. There should not be any reason to access the internal nodes
+    of a number tree; use this interface instead. Likewise, pikepdf will automatically
+    rebalance the internal tree as appropriate (all thanks to libqpdf).
+
+    NumberTrees are not used much in PDF. The main thing they provide is a mapping
+    between 0-based page numbers and user-facing page numbers (which pikepdf
+    also exposes as ``Page.label``). The ``/PageLabels`` number tree is where the
+    page numbering rules are defined.
+
+    Number trees are described in the |pdfrm| section 7.9.7. See section 12.4.2
+    for a description of the page labels number tree. Here is an example of modifying
+    an existing page labels number tree:
+
+    .. code-block:: python
+
+        pagelabels = NumberTree(pdf.Root.PageLabels)
+        # Label pages starting at 0 with lowercase Roman numerals
+        pagelabels[0] = Dictionary(S=Name.r)  
+        # Label pages starting at 6 with decimal numbers
+        pagelabels[6] = Dictionary(S=Name.D)  
+
+        # Page labels will now be:
+        # i, ii, iii, iv, v, 1, 2, 3, ...
+
+    Do not modify the internal structure of a name tree while you have a
+    ``NumberTree`` referencing it. Access it only through the ``NumberTree`` object.
+
+    .. versionadded:: 5.4
