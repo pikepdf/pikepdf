@@ -50,3 +50,9 @@ def test_nametree_iter(outline):
     assert '1' in nt.keys()
     assert len(nt.keys()) == len(nt.values()) == len(nt.items())
     assert nt == NameTree(outline.Root.Names.Dests)
+
+
+def test_nametree_without_pdf():
+    d = Dictionary()
+    with pytest.raises(ValueError, match="owned"):
+        _nt = NameTree(d)

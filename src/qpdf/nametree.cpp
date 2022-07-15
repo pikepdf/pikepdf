@@ -18,11 +18,18 @@
 
 #include "pikepdf.h"
 
+// Dummy class to avoid error: undefined symbol: _ZTI24QPDFNameTreeObjectHelper
+// That is "typeinfo for QPDFNameTreeObjectHelper"
+// Possibly QPDF needs to export QPDFNameTreeObjectHelper with QPDF_DLL
 class NameTreeHolder {
 public:
     NameTreeHolder(QPDFObjectHandle oh, bool auto_repair = true)
         : ntoh(oh, *oh.getOwningQPDF(), auto_repair)
     {
+        if (!oh.getOwningQPDF()) {
+            throw py::value_error("NameTree needs to be attached to a Dictionary that "
+                                  "is owned by a Pdf.");
+        }
     }
 
     QPDFObjectHandle getObjectHandle() { return this->ntoh.getObjectHandle(); }
@@ -56,26 +63,6 @@ public:
 
 private:
     QPDFNameTreeObjectHelper ntoh;
-};
-
-class NameTreeIterator {
-public:
-    NameTreeIterator(std::shared_ptr<NameTreeHolder> nt) : nt(nt), iter(nt->begin()) {}
-
-    std::pair<std::string, QPDFObjectHandle> next()
-    {
-        if (this->iter == this->nt->end())
-            throw py::stop_iteration();
-        if (!this->iter.valid())
-            throw std::logic_error("iterator not valid"); // LCOV_EXCL_LINE
-        auto result = *(this->iter);
-        this->iter++;
-        return result;
-    }
-
-private:
-    std::shared_ptr<NameTreeHolder> nt;
-    QPDFNameTreeObjectHelper::iterator iter;
 };
 
 void init_nametree(py::module_ &m)
@@ -117,11 +104,7 @@ void init_nametree(py::module_ &m)
             [](NameTreeHolder &nt, std::string const &name) { nt.remove(name); })
         .def(
             "_nameval_iter",
-            [](std::shared_ptr<NameTreeHolder> nt) { return NameTreeIterator(nt); },
-            py::keep_alive<0, 1>())
+            [](NameTreeHolder &nt) { return py::make_iterator(nt); },
+            py::return_value_policy::reference_internal)
         .def("_as_map", [](NameTreeHolder &nt) { return nt.getAsMap(); });
-
-    py::class_<NameTreeIterator>(m, "NameTreeIterator")
-        .def("__next__", &NameTreeIterator::next)
-        .def("__iter__", [](NameTreeIterator &nti) { return nti; });
 }
