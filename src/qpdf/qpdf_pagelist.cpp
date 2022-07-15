@@ -262,7 +262,6 @@ void init_pagelist(py::module_ &m)
                 auto uindex = uindex_from_index(pl, index);
                 pl.insert_page(uindex, obj);
             },
-            py::keep_alive<1, 3>(),
             R"~~~(
             Insert a page at the specified location.
 
@@ -286,7 +285,6 @@ void init_pagelist(py::module_ &m)
         .def(
             "append",
             [](PageList &pl, py::object page) { pl.insert_page(pl.count(), page); },
-            py::keep_alive<1, 2>(),
             "Add another page to the end.",
             py::arg("page"))
         .def(
@@ -300,7 +298,6 @@ void init_pagelist(py::module_ &m)
                     pl.insert_page(pl.count(), other.get_page_obj(i));
                 }
             },
-            py::keep_alive<1, 2>(),
             "Extend the ``Pdf`` by adding pages from another ``Pdf.pages``.",
             py::arg("other"))
         .def(
@@ -314,7 +311,6 @@ void init_pagelist(py::module_ &m)
                     ++it;
                 }
             },
-            py::keep_alive<1, 2>(),
             "Extend the ``Pdf`` by adding pages from an iterable of pages.",
             py::arg("iterable"))
         .def(

@@ -110,8 +110,7 @@ void init_page(py::module_ &m)
             },
             py::arg("contents"),
             py::kw_only(),
-            py::arg("prepend") = false,
-            py::keep_alive<1, 2>())
+            py::arg("prepend") = false)
         .def(
             "_contents_add",
             [](QPDFPageObjectHelper &poh, py::bytes contents, bool prepend) {

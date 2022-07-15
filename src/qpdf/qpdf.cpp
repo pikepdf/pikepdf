@@ -794,7 +794,6 @@ void init_qpdf(py::module_ &m)
                 Error messages improved.
             )~~~",
             py::return_value_policy::reference_internal,
-            py::keep_alive<1, 2>(),
             py::arg("h"))
         .def("copy_foreign",
             [](QPDF &q, QPDFPageObjectHelper &poh) -> QPDFPageObjectHelper {
