@@ -24,12 +24,12 @@ using NumberTree = QPDFNumberTreeObjectHelper;
 
 void init_numbertree(py::module_ &m)
 {
-    py::class_<NumberTree, std::shared_ptr<NumberTree>>(m, "NumberTree")
+    py::class_<NumberTree>(m, "NumberTree")
         .def(py::init([](QPDFObjectHandle &oh, bool auto_repair = true) {
             if (!oh.getOwningQPDF())
                 throw py::value_error(
                     "NumberTree must wrap a Dictionary that is owned by a Pdf");
-            return std::make_shared<NumberTree>(oh, *oh.getOwningQPDF(), auto_repair);
+            return NumberTree(oh, *oh.getOwningQPDF(), auto_repair);
         }),
             py::arg("oh"),
             py::kw_only(),

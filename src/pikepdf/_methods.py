@@ -36,7 +36,7 @@ from typing import (
 from warnings import warn
 
 from . import Array, Dictionary, Name, Object, Page, Pdf, Stream
-from ._augments import augment_override_cpp, augments
+from ._augments import augment_if_no_cpp, augment_override_cpp, augments
 from ._qpdf import (
     AccessMode,
     AttachedFile,
@@ -1297,13 +1297,9 @@ class Extend_AttachedFile:
 
 
 @augments(NameTree)
-class Extend_NameTree(MutableMapping):
-    def __len__(self):
-        return len(self._as_map())
-
-    def __iter__(self):
-        for name, _value in self._nameval_iter():
-            yield name
+class Extend_NameTree:
+    def __eq__(self, other):
+        return self.obj == other.obj
 
     def keys(self):
         return KeysView(self._as_map())
@@ -1314,34 +1310,22 @@ class Extend_NameTree(MutableMapping):
     def items(self):
         return ItemsView(self._as_map())
 
-    def __eq__(self, other):
-        return self.obj.objgen == other.obj.objgen
+    get = MutableMapping.get
+    pop = MutableMapping.pop
+    popitem = MutableMapping.popitem
+    clear = MutableMapping.clear
+    update = MutableMapping.update
+    setdefault = MutableMapping.setdefault
 
-    def __contains__(self, name: Union[str, bytes]) -> bool:
-        """
-        Returns True if the name tree contains the specified name.
 
-        Args:
-            name (str or bytes): The name to search for in the name tree.
-                This is not a PDF /Name object, but an arbitrary key.
-                If name is a *str*, we search the name tree for the UTF-8
-                encoded form of name. If *bytes*, we search for a key
-                equal to those bytes.
-        """
-        return self._contains(name)
-
-    def __getitem__(self, name: Union[str, bytes]) -> Object:
-        return self._getitem(name)
-
-    def __setitem__(self, name: Union[str, bytes], o: Object):
-        self._setitem(name, o)
-
-    def __delitem__(self, name: Union[str, bytes]):
-        self._delitem(name)
+MutableMapping.register(NameTree)
 
 
 @augments(NumberTree)
 class Extend_NumberTree:
+    def __eq__(self, other):
+        return self.obj == other.obj
+
     def keys(self):
         return KeysView(self._as_map())
 
@@ -1350,3 +1334,13 @@ class Extend_NumberTree:
 
     def items(self):
         return ItemsView(self._as_map())
+
+    get = MutableMapping.get
+    pop = MutableMapping.pop
+    popitem = MutableMapping.popitem
+    clear = MutableMapping.clear
+    update = MutableMapping.update
+    setdefault = MutableMapping.setdefault
+
+
+MutableMapping.register(NumberTree)

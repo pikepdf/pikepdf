@@ -30,6 +30,8 @@ def test_nametree_crud(outline):
 
     nt['py_newentry'] = 42
 
+    nt.update(foo='bar')
+
 
 def test_nametree_missing(outline):
     nt = NameTree(outline.Root.Names.Dests)

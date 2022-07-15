@@ -67,7 +67,7 @@ private:
 
 void init_nametree(py::module_ &m)
 {
-    py::class_<NameTreeHolder, std::shared_ptr<NameTreeHolder>>(m, "NameTree")
+    py::class_<NameTreeHolder>(m, "NameTree")
         .def(py::init<QPDFObjectHandle, bool>(),
             py::arg("oh"),
             py::kw_only(),
@@ -77,11 +77,11 @@ void init_nametree(py::module_ &m)
             "obj",
             [](NameTreeHolder &nt) { return nt.getObjectHandle(); },
             "Returns the underlying root object for this name tree.")
-        .def("_contains",
+        .def("__contains__",
             [](NameTreeHolder &nt, std::string const &name) {
                 return nt.hasName(name);
             })
-        .def("_getitem",
+        .def("__getitem__",
             [](NameTreeHolder &nt, std::string const &name) {
                 QPDFObjectHandle oh;
                 if (nt.findObject(name, oh)) // writes to 'oh'
@@ -89,22 +89,24 @@ void init_nametree(py::module_ &m)
                 else
                     throw py::key_error(name);
             })
-        .def(
-            "_setitem",
+        .def("__setitem__",
             [](NameTreeHolder &nt, std::string const &name, QPDFObjectHandle oh) {
                 nt.insert(name, oh);
-            },
-            py::keep_alive<0, 1>())
-        .def("_setitem",
+            })
+        .def("__setitem__",
             [](NameTreeHolder &nt, std::string const &name, py::object obj) {
                 auto oh = objecthandle_encode(obj);
                 nt.insert(name, oh);
             })
-        .def("_delitem",
+        .def("__delitem__",
             [](NameTreeHolder &nt, std::string const &name) { nt.remove(name); })
         .def(
-            "_nameval_iter",
-            [](NameTreeHolder &nt) { return py::make_iterator(nt); },
+            "__iter__",
+            [](NameTreeHolder &nt) { return py::make_key_iterator(nt); },
             py::return_value_policy::reference_internal)
-        .def("_as_map", [](NameTreeHolder &nt) { return nt.getAsMap(); });
+        .def(
+            "_as_map",
+            [](NameTreeHolder &nt) { return nt.getAsMap(); },
+            py::return_value_policy::reference_internal)
+        .def("__len__", [](NameTreeHolder &nt) { return nt.getAsMap().size(); });
 }
