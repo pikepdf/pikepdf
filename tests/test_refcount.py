@@ -76,6 +76,9 @@ def test_transfer_page(refcount, resources):
 
 
 def test_new_pdf():
+    if not hasattr(gc, 'get_count'):
+        pytest.skip(reason="implementation does not have gc.get_count()")
+
     before = gc.get_count()
     for _ in range(10):
         with Pdf.new() as pdf:

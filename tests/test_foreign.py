@@ -1,5 +1,3 @@
-import sys
-
 import pytest
 
 from pikepdf import Dictionary, ForeignObjectError, Name, Pdf
@@ -94,7 +92,7 @@ def test_issue_271():
     assert Name.Rotate not in p3
 
 
-def test_copy_foreign_refcount(vera, outlines):
-    assert sys.getrefcount(outlines.Root.Names) == 2
+def test_copy_foreign_refcount(refcount, vera, outlines):
+    assert refcount(outlines.Root.Names) == 2
     vera.Root.Names = vera.copy_foreign(outlines.Root.Names)
-    assert sys.getrefcount(outlines.Root.Names) == 2
+    assert refcount(outlines.Root.Names) == 2
