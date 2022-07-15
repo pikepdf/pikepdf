@@ -1341,14 +1341,7 @@ class Extend_NameTree(MutableMapping):
 
 
 @augments(NumberTree)
-class Extend_NumberTree(MutableMapping):
-    def __len__(self):
-        return len(self._as_map())
-
-    def __iter__(self):
-        for key, _value in self._iter():
-            yield key
-
+class Extend_NumberTree:
     def keys(self):
         return KeysView(self._as_map())
 
@@ -1357,24 +1350,3 @@ class Extend_NumberTree(MutableMapping):
 
     def items(self):
         return ItemsView(self._as_map())
-
-    def __eq__(self, other):
-        return self.obj.objgen == other.obj.objgen
-
-    def __contains__(self, key: int) -> bool:
-        """
-        Returns True if the number tree contains the specified number.
-
-        Args:
-            key (int): The number to search for
-        """
-        return self._contains(key)
-
-    def __getitem__(self, key: int) -> Object:
-        return self._getitem(key)
-
-    def __setitem__(self, key: int, o: Object):
-        self._setitem(key, o)
-
-    def __delitem__(self, key: int):
-        self._delitem(key)

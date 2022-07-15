@@ -20,22 +20,16 @@
 
 using numtree_number = QPDFNumberTreeObjectHelper::numtree_number;
 
+using NumberTree = QPDFNumberTreeObjectHelper;
+
 void init_numbertree(py::module_ &m)
 {
-    py::class_<QPDFNumberTreeObjectHelper::iterator,
-        std::shared_ptr<QPDFNumberTreeObjectHelper::iterator>>(m, "NumberTreeIterator")
-        .def("__next__",
-            [](QPDFNumberTreeObjectHelper::iterator &nti) {
-                ++nti;
-                return *nti;
-            })
-        .def("__iter__", [](QPDFNumberTreeObjectHelper::iterator &nti) { return nti; });
-
-    py::class_<QPDFNumberTreeObjectHelper, std::shared_ptr<QPDFNumberTreeObjectHelper>>(
-        m, "NumberTree")
+    py::class_<NumberTree, std::shared_ptr<NumberTree>>(m, "NumberTree")
         .def(py::init([](QPDFObjectHandle &oh, bool auto_repair = true) {
-            return std::make_shared<QPDFNumberTreeObjectHelper>(
-                oh, *oh.getOwningQPDF(), auto_repair);
+            if (!oh.getOwningQPDF())
+                throw py::value_error(
+                    "NumberTree must wrap a Dictionary that is owned by a Pdf");
+            return std::make_shared<NumberTree>(oh, *oh.getOwningQPDF(), auto_repair);
         }),
             py::arg("oh"),
             py::kw_only(),
@@ -43,29 +37,37 @@ void init_numbertree(py::module_ &m)
             py::keep_alive<0, 1>())
         .def_property_readonly(
             "obj",
-            [](QPDFNumberTreeObjectHelper &nt) { return nt.getObjectHandle(); },
+            [](NumberTree &nt) { return nt.getObjectHandle(); },
             "Returns the underlying root object for this name tree.")
-        .def("_contains",
-            [](QPDFNumberTreeObjectHelper &nt, numtree_number idx) {
-                return nt.hasIndex(idx);
-            })
-        .def("_getitem",
-            [](QPDFNumberTreeObjectHelper &nt, numtree_number key) {
+        .def("__contains__",
+            [](NumberTree &nt, numtree_number idx) { return nt.hasIndex(idx); })
+        .def("__contains__", [](NumberTree &nt, py::object idx) { return false; })
+        .def(
+            "__eq__",
+            [](NumberTree &self, NumberTree &other) {
+                auto self_obj  = self.getObjectHandle();
+                auto other_obj = other.getObjectHandle();
+                return self_obj.getOwningQPDF() == other_obj.getOwningQPDF() &&
+                       self_obj.getObjGen() == other_obj.getObjGen();
+            },
+            py::is_operator())
+        .def("__getitem__",
+            [](NumberTree &nt, numtree_number key) {
                 QPDFObjectHandle oh;
                 if (nt.findObject(key, oh)) // writes to 'oh'
                     return oh;
                 else
                     throw py::index_error(std::to_string(key));
             })
-        .def("_setitem",
-            [](QPDFNumberTreeObjectHelper &nt,
-                numtree_number key,
-                QPDFObjectHandle oh) { nt.insert(key, oh); })
-        .def("_delitem",
-            [](QPDFNumberTreeObjectHelper &nt, numtree_number key) { nt.remove(key); })
+        .def("__setitem__",
+            [](NumberTree &nt, numtree_number key, QPDFObjectHandle oh) {
+                nt.insert(key, oh);
+            })
+        .def("__delitem__", [](NumberTree &nt, numtree_number key) { nt.remove(key); })
         .def(
-            "_iter",
-            [](QPDFNumberTreeObjectHelper &nt) { return nt.begin(); },
-            py::keep_alive<0, 1>())
-        .def("_as_map", [](QPDFNumberTreeObjectHelper &nt) { return nt.getAsMap(); });
+            "__iter__",
+            [](NumberTree &nt) { return py::make_key_iterator(nt); },
+            py::return_value_policy::reference_internal)
+        .def("_as_map", [](NumberTree &nt) { return nt.getAsMap(); })
+        .def("__len__", [](NumberTree &nt) { return nt.getAsMap().size(); });
 }

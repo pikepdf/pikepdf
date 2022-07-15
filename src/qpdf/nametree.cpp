@@ -27,8 +27,8 @@ public:
         : ntoh(oh, *oh.getOwningQPDF(), auto_repair)
     {
         if (!oh.getOwningQPDF()) {
-            throw py::value_error("NameTree needs to be attached to a Dictionary that "
-                                  "is owned by a Pdf.");
+            throw py::value_error(
+                "NameTree must wrap a Dictionary that is owned by a Pdf");
         }
     }
 
