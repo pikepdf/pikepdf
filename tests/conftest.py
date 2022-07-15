@@ -37,6 +37,13 @@ def outpdf(tmp_path):
     return tmp_path / 'out.pdf'
 
 
+@pytest.fixture
+def refcount():
+    if platform.python_implementation() == 'PyPy':
+        pytest.skip(reason="test isn't valid for PyPy")
+    return sys.getrefcount
+
+
 skip_if_pypy = pytest.mark.skipif(
     platform.python_implementation() == 'PyPy', reason="test isn't valid for PyPy"
 )

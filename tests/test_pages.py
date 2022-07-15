@@ -3,16 +3,7 @@ from contextlib import suppress
 from shutil import copy
 from typing import Type, ValuesView
 
-try:
-    from sys import getrefcount as refcount
-except ImportError:
-
-    def refcount(_x):  # type: ignore
-        return 1
-
-
 import pytest
-from conftest import skip_if_pypy
 
 from pikepdf import (
     Array,
@@ -119,8 +110,7 @@ def test_reverse_pages(resources, outdir):
             assert qr.pages[n].Contents.stream_dict.Length == length
 
 
-@skip_if_pypy
-def test_evil_page_deletion(resources, outdir):
+def test_evil_page_deletion(refcount, resources, outdir):
     copy(resources / 'sandwich.pdf', outdir / 'sandwich.pdf')
 
     src = Pdf.open(outdir / 'sandwich.pdf')  # no with clause

@@ -1,24 +1,13 @@
 import gc
 
-try:
-    from sys import getrefcount as refcount
-except ImportError:
-
-    def refcount(_x):  # type: ignore
-        return 1
-
-
 import pytest
-from conftest import skip_if_pypy
 
 from pikepdf import Pdf
-
-pytestmark = skip_if_pypy
 
 # Try to do some things without blowing up
 
 
-def test_access_image(resources):
+def test_access_image(refcount, resources):
     pdf = Pdf.open(resources / 'congress.pdf')
     assert refcount(pdf) == 2  # refcount is always +1
     im0 = pdf.pages[0].Resources.XObject['/Im0']
@@ -29,7 +18,7 @@ def test_access_image(resources):
     im0.read_raw_bytes()
 
 
-def test_access_page(resources):
+def test_access_page(refcount, resources):
     pdf = Pdf.open(resources / 'graph.pdf')
     page0 = pdf.pages[0]
     also_page0 = pdf.pages.p(1)
@@ -42,7 +31,7 @@ def test_access_page(resources):
     also_page0.Contents.read_raw_bytes()
 
 
-def test_remove_pdf_and_all_pages(resources):
+def test_remove_pdf_and_all_pages(refcount, resources):
     pdf = Pdf.open(resources / 'graph.pdf')
     page0 = pdf.pages[0]
     contents = page0.Contents
@@ -63,7 +52,7 @@ def test_access_pdf_metadata(resources):
     meta.read_raw_bytes()
 
 
-def test_transfer_page(resources):
+def test_transfer_page(refcount, resources):
     pdf = Pdf.open(resources / 'graph.pdf')
     page0 = pdf.pages[0]
     before = page0.Contents.read_bytes()

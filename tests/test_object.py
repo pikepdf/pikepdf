@@ -631,12 +631,12 @@ class TestStream:
         stream2.stream_dict.SomeData = 1
         assert stream2 != stream1
 
-    def test_stream_refcount(self, outpdf):
+    def test_stream_refcount(self, refcount, outpdf):
         pdf = pikepdf.new()
         stream = Stream(pdf, b'blahblah')
-        assert sys.getrefcount(stream) == 2
+        assert refcount(stream) == 2
         pdf.Root.SomeStream = stream
-        assert sys.getrefcount(stream) == 2
+        assert refcount(stream) == 2
         del stream
         pdf.save(outpdf)
         with pikepdf.open(outpdf) as pdf2:
