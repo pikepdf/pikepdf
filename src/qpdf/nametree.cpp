@@ -114,6 +114,8 @@ void init_nametree(py::module_ &m)
             "obj",
             [](NameTreeHolder &nt) { return nt.getObjectHandle(); },
             "Returns the underlying root object for this name tree.")
+        .def_property_readonly("_pikepdf_disallow_objecthandle_encode",
+            [](NameTreeHolder &nt) { return true; })
         .def("__contains__",
             [](NameTreeHolder &nt, std::string const &name) {
                 return nt.hasName(name);
