@@ -5,16 +5,17 @@ import pytest
 from pikepdf import Job
 
 
-def test_job_from_argv(resources, outpdf):
-    job = Job(['--check', str(resources / 'outlines.pdf'), str(outpdf)])
+def test_job_from_argv(resources):
+    job = Job(['pikepdf', '--check', str(resources / 'outlines.pdf')])
     job.check_configuration()
     job.message_prefix = 'foo'
     with pytest.raises(NotImplementedError):
         _ = job.message_prefix
-    assert job.creates_output
+    assert not job.creates_output
     assert not job.has_warnings
     assert job.exit_code == 0
-
+    job.run()
+    assert job.exit_code == 0
     assert not job.encryption_status["encrypted"]
     assert not job.encryption_status["password_incorrect"]
 

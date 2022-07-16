@@ -76,7 +76,16 @@ void init_job(py::module_ &m)
             py::arg("args"),
             py::kw_only(),
             py::arg("progname") = "pikepdf",
-            "Create a Job from command line arguments to the qpdf program.")
+            R"~~~(
+                Create a Job from command line arguments to the qpdf program.
+                
+                The first item in the ``args`` list should be equal to ``progname``,
+                whose default is ``"pikepdf"``.
+
+                Example:
+                    job = Job(['pikepdf', '--check', 'input.pdf'])
+                    job.run()
+            )~~~")
         .def("check_configuration",
             &QPDFJob::checkConfiguration,
             "Checks if the configuration is valid; raises an exception if not.")
