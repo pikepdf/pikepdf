@@ -15,6 +15,7 @@ Version 3.x automatically applies support models to ``/Page`` objects.
 
 .. autoclass:: pikepdf.Page
     :members:
+    :inherited-members:
 
     Support model wrapper around a page dictionary object.
 
@@ -116,6 +117,7 @@ Version 3.x automatically applies support models to ``/Page`` objects.
 
 .. autoclass:: pikepdf.AttachedFileSpec
     :members:
+    :inherited-members:
     :special-members: __init__
 
     In a PDF, a file specification provides name and metadata for a target file.
@@ -158,6 +160,7 @@ Version 3.x automatically applies support models to ``/Page`` objects.
 
 .. autoclass:: pikepdf._qpdf.AttachedFile
     :members:
+    :inherited-members:
 
     An object that contains an actual attached file. These objects do not need
     to be created manually; they are normally part of an AttachedFileSpec.
