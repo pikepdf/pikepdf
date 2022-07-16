@@ -24,7 +24,8 @@ using NumberTree = QPDFNumberTreeObjectHelper;
 
 void init_numbertree(py::module_ &m)
 {
-    py::class_<NumberTree>(m, "NumberTree")
+    py::class_<NumberTree, std::shared_ptr<NumberTree>, QPDFObjectHelper>(
+        m, "NumberTree")
         .def(py::init([](QPDFObjectHandle &oh, bool auto_repair = true) {
             if (!oh.getOwningQPDF())
                 throw py::value_error(
@@ -35,10 +36,27 @@ void init_numbertree(py::module_ &m)
             py::kw_only(),
             py::arg("auto_repair") = true,
             py::keep_alive<0, 1>())
-        .def_property_readonly(
-            "obj",
-            [](NumberTree &nt) { return nt.getObjectHandle(); },
-            "Returns the underlying root object for this name tree.")
+        .def_static(
+            "new",
+            [](QPDF &pdf, bool auto_repair = true) {
+                return NumberTree::newEmpty(pdf, auto_repair);
+            },
+            py::arg("pdf"),
+            py::kw_only(),
+            py::arg("auto_repair") = true,
+            py::keep_alive<0, 1>(),
+            R"~~~(
+                Create a new NumberTree in the provided Pdf.
+
+                You will probably need to insert the number tree in the PDF's
+                catalog. For example, to insert this number tree in 
+                /Root /PageLabels:
+
+                .. code-block:: python
+
+                    nt = NumberTree.new(pdf)
+                    pdf.Root.PageLabels = nt.obj
+            )~~~")
         .def("__contains__",
             [](NumberTree &nt, numtree_number idx) { return nt.hasIndex(idx); })
         .def("__contains__", [](NumberTree &nt, py::object idx) { return false; })
@@ -62,6 +80,10 @@ void init_numbertree(py::module_ &m)
         .def("__setitem__",
             [](NumberTree &nt, numtree_number key, QPDFObjectHandle oh) {
                 nt.insert(key, oh);
+            })
+        .def("__setitem__",
+            [](NumberTree &nt, numtree_number key, py::object obj) {
+                nt.insert(key, objecthandle_encode(obj));
             })
         .def("__delitem__", [](NumberTree &nt, numtree_number key) { nt.remove(key); })
         .def(
