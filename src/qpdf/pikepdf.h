@@ -264,22 +264,19 @@ std::map<std::string, QPDFObjectHandle> dict_builder(const py::dict dict);
 
 // From annotation.cpp
 void init_annotation(py::module_ &m);
-
 // From embeddedfiles.cpp
 void init_embeddedfiles(py::module_ &m);
 // From nametree.cpp
 void init_nametree(py::module_ &m);
-
+// From numbertree.cpp
+void init_numbertree(py::module_ &m);
 // From page.cpp
 void init_page(py::module_ &m);
 size_t page_index(QPDF &owner, QPDFObjectHandle page);
-
 // From parsers.cpp
 void init_parsers(py::module_ &m);
-
 // From rectangle.cpp
 void init_rectangle(py::module_ &m);
-
 // From tokenfilter.cpp
 void init_tokenfilter(py::module_ &m);
 

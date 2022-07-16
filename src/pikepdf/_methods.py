@@ -36,13 +36,14 @@ from typing import (
 from warnings import warn
 
 from . import Array, Dictionary, Name, Object, Page, Pdf, Stream
-from ._augments import augment_override_cpp, augments
+from ._augments import augment_if_no_cpp, augment_override_cpp, augments
 from ._qpdf import (
     AccessMode,
     AttachedFile,
     AttachedFileSpec,
     Attachments,
     NameTree,
+    NumberTree,
     ObjectStreamMode,
     Rectangle,
     StreamDecodeLevel,
@@ -1296,13 +1297,9 @@ class Extend_AttachedFile:
 
 
 @augments(NameTree)
-class Extend_NameTree(MutableMapping):
-    def __len__(self):
-        return len(self._as_map())
-
-    def __iter__(self):
-        for name, _value in self._nameval_iter():
-            yield name
+class Extend_NameTree:
+    def __eq__(self, other):
+        return self.obj == other.obj
 
     def keys(self):
         return KeysView(self._as_map())
@@ -1313,27 +1310,37 @@ class Extend_NameTree(MutableMapping):
     def items(self):
         return ItemsView(self._as_map())
 
+    get = MutableMapping.get
+    pop = MutableMapping.pop
+    popitem = MutableMapping.popitem
+    clear = MutableMapping.clear
+    update = MutableMapping.update
+    setdefault = MutableMapping.setdefault
+
+
+MutableMapping.register(NameTree)
+
+
+@augments(NumberTree)
+class Extend_NumberTree:
     def __eq__(self, other):
-        return self.obj.objgen == other.obj.objgen
+        return self.obj == other.obj
 
-    def __contains__(self, name: Union[str, bytes]) -> bool:
-        """
-        Returns True if the name tree contains the specified name.
+    def keys(self):
+        return KeysView(self._as_map())
 
-        Args:
-            name (str or bytes): The name to search for in the name tree.
-                This is not a PDF /Name object, but an arbitrary key.
-                If name is a *str*, we search the name tree for the UTF-8
-                encoded form of name. If *bytes*, we search for a key
-                equal to those bytes.
-        """
-        return self._contains(name)
+    def values(self):
+        return ValuesView(self._as_map())
 
-    def __getitem__(self, name: Union[str, bytes]) -> Object:
-        return self._getitem(name)
+    def items(self):
+        return ItemsView(self._as_map())
 
-    def __setitem__(self, name: Union[str, bytes], o: Object):
-        self._setitem(name, o)
+    get = MutableMapping.get
+    pop = MutableMapping.pop
+    popitem = MutableMapping.popitem
+    clear = MutableMapping.clear
+    update = MutableMapping.update
+    setdefault = MutableMapping.setdefault
 
-    def __delitem__(self, name: Union[str, bytes]):
-        self._delitem(name)
+
+MutableMapping.register(NumberTree)

@@ -1,6 +1,6 @@
 import pytest
 
-from pikepdf import Array, Dictionary, NameTree, Object, Pdf
+from pikepdf import Array, Dictionary, Name, NameTree, Object, Pdf
 
 # pylint: disable=redefined-outer-name
 
@@ -30,6 +30,8 @@ def test_nametree_crud(outline):
 
     nt['py_newentry'] = 42
 
+    nt.update(foo='bar')
+
 
 def test_nametree_missing(outline):
     nt = NameTree(outline.Root.Names.Dests)
@@ -50,3 +52,26 @@ def test_nametree_iter(outline):
     assert '1' in nt.keys()
     assert len(nt.keys()) == len(nt.values()) == len(nt.items())
     assert nt == NameTree(outline.Root.Names.Dests)
+
+
+def test_nametree_without_pdf():
+    d = Dictionary()
+    with pytest.raises(ValueError, match="owned"):
+        _nt = NameTree(d)
+
+
+def test_nametree_scratch(outline, outpdf, key='brand new name tree', val='yup'):
+    nt = NameTree.new(outline)
+    outline.Root.RandomNameTree = nt.obj
+    nt[key] = val
+    outline.save(outpdf)
+
+    with Pdf.open(outpdf) as pdf:
+        assert Name.Names in pdf.Root.RandomNameTree
+        assert pdf.Root.RandomNameTree.Names[1] == val
+
+
+def test_nametree_assign_setitem(outline):
+    nt = NameTree.new(outline)
+    with pytest.raises(TypeError, match="Can't convert this object to pikepdf.Object"):
+        outline.Root.RandomNameTree = nt
