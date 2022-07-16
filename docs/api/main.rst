@@ -213,3 +213,10 @@ but not intended to be created explicitly.
         dictionary to interpret the image correctly. pikepdf automatically
         packages inline images into a more useful class, so this will not
         generally appear.
+
+Jobs
+====
+
+.. autoclass:: pikepdf.Job
+    :members:
+    :special-members: __init__

@@ -266,6 +266,10 @@ std::map<std::string, QPDFObjectHandle> dict_builder(const py::dict dict);
 void init_annotation(py::module_ &m);
 // From embeddedfiles.cpp
 void init_embeddedfiles(py::module_ &m);
+
+// From job.cpp
+void init_job(py::module_ &m);
+
 // From nametree.cpp
 void init_nametree(py::module_ &m);
 // From numbertree.cpp

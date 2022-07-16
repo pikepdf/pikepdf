@@ -19,6 +19,7 @@
 
 #include <qpdf/QPDFExc.hh>
 #include <qpdf/QPDFSystemError.hh>
+#include <qpdf/QPDFUsage.hh>
 #include <qpdf/QUtil.hh>
 #include <qpdf/Pl_Flate.hh>
 
@@ -116,6 +117,7 @@ PYBIND11_MODULE(_qpdf, m)
     init_qpdf(m);
     init_pagelist(m);
     init_object(m);
+    init_job(m);
 
     // -- Support objects (alphabetize order) --
     init_annotation(m);
@@ -184,6 +186,7 @@ PYBIND11_MODULE(_qpdf, m)
     static py::exception<QPDFExc> exc_main(m, "PdfError");
     static py::exception<QPDFExc> exc_password(m, "PasswordError");
     static py::exception<QPDFExc> exc_datadecoding(m, "DataDecodingError");
+    static py::exception<QPDFUsage> exc_usage(m, "JobUsageError");
     static py::exception<std::logic_error> exc_foreign(m, "ForeignObjectError");
     py::register_exception_translator([](std::exception_ptr p) {
         try {
@@ -203,6 +206,8 @@ PYBIND11_MODULE(_qpdf, m)
             } else {
                 exc_main(e.what());
             }
+        } catch (const QPDFUsage &e) {
+            exc_usage(e.what());
         } catch (const std::logic_error &e) {
             auto trans = translate_qpdf_logic_error(e);
             if (trans.second == error_type_foreign)
