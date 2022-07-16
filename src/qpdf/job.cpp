@@ -28,7 +28,15 @@ QPDFJob job_from_json_str(const std::string &json)
 
 void init_job(py::module_ &m)
 {
-    py::class_<QPDFJob>(m, "Job")
+    py::class_<QPDFJob>(m, "Job", R"~~~(
+        Provides access to the QPDF job interface.
+
+        All of the functionality of the ``qpdf`` command line program
+        is now available to pikepdf through jobs.        
+
+        For further details:
+            https://qpdf.readthedocs.io/en/stable/qpdf-job.html
+    )~~~")
         .def_property_readonly_static(
             "json_out_schema_v1",
             [](const py::object &) { return QPDFJob::json_out_schema_v1(); },

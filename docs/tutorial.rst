@@ -247,6 +247,28 @@ specify restrictions.
 Refer to our :ref:`security documentation <security>` for more information on
 user/owner passwords and PDF permissions.
 
+Running QPDF through Jobs
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+pikepdf can access all of the features of the qpdf command line program, and
+can even execute qpdf-like command lines.
+
+.. ipython::
+    :verbatim:
+
+    In [1]: from pikepdf import Job
+
+    In [1]: Job(['pikepdf', '--check', '../tests/resources/fourpages.pdf'])
+
+You can also specify jobs in QPDF Job JSON:
+
+.. ipython::
+    :verbatim:
+
+    In [1]: job_json = {'inputFile': '../tests/resources/fourpages.pdf', 'check': ''}
+
+    In [1]: Job(job_json).run()
+
 Next steps
 ----------
 
