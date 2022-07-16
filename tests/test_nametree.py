@@ -1,6 +1,6 @@
 import pytest
 
-from pikepdf import Array, Dictionary, NameTree, Object, Pdf
+from pikepdf import Array, Dictionary, Name, NameTree, Object, Pdf
 
 # pylint: disable=redefined-outer-name
 
@@ -58,3 +58,14 @@ def test_nametree_without_pdf():
     d = Dictionary()
     with pytest.raises(ValueError, match="owned"):
         _nt = NameTree(d)
+
+
+def test_name_scratch(outline, outpdf):
+    nt = NameTree.new(outline)
+    outline.Root.RandomNameTree = nt.obj
+    nt['brand new name tree'] = 'yup'
+    outline.save(outpdf)
+
+    with Pdf.open(outpdf) as pdf:
+        assert Name.Names in pdf.Root.RandomNameTree
+        assert pdf.Root.RandomNameTree.Names[1] == 'yup'

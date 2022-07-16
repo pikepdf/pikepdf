@@ -19,12 +19,16 @@
 #include "pikepdf.h"
 
 // Dummy class to avoid error: undefined symbol: _ZTI24QPDFNameTreeObjectHelper
-// That is "typeinfo for QPDFNameTreeObjectHelper"
-// Possibly QPDF needs to export QPDFNameTreeObjectHelper with QPDF_DLL
+// That is, "typeinfo for QPDFNameTreeObjectHelper"
+// Possibly QPDF needs to export QPDFNameTreeObjectHelper with QPDF_DLL although
+// it's not clear why.
+// The unique_ptr allows us to hold a QPDFNameTreeObjectHelper without knowing
+// its typeinfo. Somehow.
 class NameTreeHolder {
 public:
     NameTreeHolder(QPDFObjectHandle oh, bool auto_repair = true)
-        : ntoh(oh, *oh.getOwningQPDF(), auto_repair)
+        : ntoh(std::make_unique<QPDFNameTreeObjectHelper>(
+              oh, *oh.getOwningQPDF(), auto_repair))
     {
         if (!oh.getOwningQPDF()) {
             throw py::value_error(
@@ -32,37 +36,49 @@ public:
         }
     }
 
-    QPDFObjectHandle getObjectHandle() { return this->ntoh.getObjectHandle(); }
+    static NameTreeHolder newEmpty(QPDF &pdf, bool auto_repair = true)
+    {
+        // Would be a little cleaner to do:
+        // auto new_ntoh = QPDFNameTreeObjectHelper::newEmpty(pdf, auto_repair);
+        // Then again, it would be clear to eliminate this class entirely.
+        // But gcc wants QPDF 10.6.3 to export typeinfo and vtable
+        // So work around it for now by duplicating the code in ::newEmpty() to
+        // create a root node, make a holder for it.
+        auto root = pdf.makeIndirectObject(QPDFObjectHandle::parse("<< /Names [] >>"));
+        return NameTreeHolder(root, auto_repair);
+    }
 
-    bool hasName(const std::string &utf8) { return this->ntoh.hasName(utf8); }
+    QPDFObjectHandle getObjectHandle() { return this->ntoh->getObjectHandle(); }
+
+    bool hasName(const std::string &utf8) { return this->ntoh->hasName(utf8); }
 
     bool findObject(const std::string &utf8, QPDFObjectHandle &oh)
     {
-        return this->ntoh.findObject(utf8, oh);
+        return this->ntoh->findObject(utf8, oh);
     }
 
     std::map<std::string, QPDFObjectHandle> getAsMap() const
     {
-        return this->ntoh.getAsMap();
+        return this->ntoh->getAsMap();
     }
 
     void insert(std::string const &key, QPDFObjectHandle value)
     {
-        (void)this->ntoh.insert(key, value);
+        (void)this->ntoh->insert(key, value);
     }
 
     void remove(std::string const &key)
     {
-        bool result = this->ntoh.remove(key);
+        bool result = this->ntoh->remove(key);
         if (!result)
             throw py::key_error(key);
     }
 
-    QPDFNameTreeObjectHelper::iterator begin() { return this->ntoh.begin(); }
-    QPDFNameTreeObjectHelper::iterator end() { return this->ntoh.end(); }
+    QPDFNameTreeObjectHelper::iterator begin() { return this->ntoh->begin(); }
+    QPDFNameTreeObjectHelper::iterator end() { return this->ntoh->end(); }
 
 private:
-    QPDFNameTreeObjectHelper ntoh;
+    std::unique_ptr<QPDFNameTreeObjectHelper> ntoh;
 };
 
 void init_nametree(py::module_ &m)
@@ -73,6 +89,27 @@ void init_nametree(py::module_ &m)
             py::kw_only(),
             py::arg("auto_repair") = true,
             py::keep_alive<0, 1>())
+        .def_static(
+            "new",
+            [](QPDF &pdf, bool auto_repair = true) {
+                return NameTreeHolder::newEmpty(pdf, auto_repair);
+            },
+            py::arg("pdf"),
+            py::kw_only(),
+            py::arg("auto_repair") = true,
+            py::keep_alive<0, 1>(),
+            R"~~~(
+                Create a new NameTree in the provided Pdf.
+
+                You will probably need to insert the name tree in the PDF's
+                catalog. For example, to insert this name tree in 
+                /Root /Names /Dests:
+
+                .. code-block:: python
+
+                    nt = NameTree.new(pdf)
+                    pdf.Root.Names.Dests = nt.obj
+            )~~~")
         .def_property_readonly(
             "obj",
             [](NameTreeHolder &nt) { return nt.getObjectHandle(); },
