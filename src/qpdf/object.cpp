@@ -803,7 +803,6 @@ void init_object(py::module_ &m)
             since it does not take too long for modern CPUs to reconstruct an
             entire PDF. pikepdf will consolidate all incremental updates
             when saving.
-
             )~~~")
         .def_static(
             "parse",

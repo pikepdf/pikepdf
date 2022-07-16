@@ -19,6 +19,7 @@ from typing import (
     Any,
     BinaryIO,
     Callable,
+    ClassVar,
     Collection,
     Dict,
     Iterable,
@@ -28,6 +29,7 @@ from typing import (
     Mapping,
     MutableMapping,
     Optional,
+    Sequence,
     Set,
     Tuple,
     TypeVar,
@@ -707,7 +709,34 @@ class ContentStreamInlineImage:
     @property
     def iimage(self) -> PdfInlineImage: ...
 
-class Job: ...
+class Job:
+    json_out_schema_v1: ClassVar[str]
+    job_json_schema_v1: ClassVar[str]
+    EXIT_ERROR: ClassVar[int] = 2
+    EXIT_WARNING: ClassVar[int] = 3
+    EXIT_IS_NOT_ENCRYPTED: ClassVar[int] = 2
+    EXIT_CORRECT_PASSWORD: ClassVar[int] = 3
+
+    @overload
+    def __init__(self, json: str) -> None: ...
+    @overload
+    def __init__(self, json_dict: Mapping) -> None: ...
+    @overload
+    def __init__(
+        self, args: Sequence[Union[str, bytes]], *, progname: str = "pikepdf"
+    ) -> None: ...
+    def check_configuration(self) -> None: ...
+    @property
+    def creates_output(self) -> bool: ...
+    @property
+    def message_prefix(self) -> str: ...
+    def run(self) -> None: ...
+    @property
+    def has_warnings(self) -> bool: ...
+    @property
+    def exit_code(self) -> int: ...
+    @property
+    def encryption_status(self) -> Dict[str, bool]: ...
 
 def _Null() -> Any: ...
 def _encode(handle: Any) -> Object: ...

@@ -15,66 +15,49 @@
 
 #include "pikepdf.h"
 
-using namespace py::literals;
+void set_job_defaults(QPDFJob &job) { job.setMessagePrefix("pikepdf"); }
 
-struct pyprint_redirect : private std::streambuf, public std::ostream {
-    pyprint_redirect(py::object output) : std::ostream(this), output(output) {}
-
-    virtual ~pyprint_redirect()
-    {
-        py::gil_scoped_acquire{};
-        // output = py::none();
-    }
-
-private:
-    int overflow(int c) override
-    {
-        py::gil_scoped_acquire{};
-        py::print(char(c), "file"_a = this->output, "end"_a = "");
-        return 0;
-    }
-    py::object output;
-};
-
-std::unique_ptr<pyprint_redirect> py_stdout;
-std::unique_ptr<pyprint_redirect> py_stderr;
-
-void set_job_defaults(QPDFJob &job)
+QPDFJob job_from_json_str(const std::string &json)
 {
-    if (!py_stdout) {
-        py::gil_scoped_acquire{};
-        py_stdout = std::make_unique<pyprint_redirect>(
-            py::module_::import("sys").attr("stdout"));
-    }
-    if (!py_stderr) {
-        py::gil_scoped_acquire{};
-        py_stderr = std::make_unique<pyprint_redirect>(
-            py::module_::import("sys").attr("stderr"));
-    }
-
-    job.setMessagePrefix("pikepdf");
-    job.setOutputStreams(py_stdout.get(), py_stderr.get());
+    QPDFJob job;
+    bool partial = false;
+    job.initializeFromJson(json, partial);
+    set_job_defaults(job);
+    return job;
 }
 
 void init_job(py::module_ &m)
 {
-    py::class_<QPDFJob::Config, std::shared_ptr<QPDFJob::Config>> jobconfig(
-        m, "JobConfig");
-
     py::class_<QPDFJob>(m, "Job")
-        .def_property_readonly_static("json_out_schema_v1",
-            [](const py::object &) { return QPDFJob::json_out_schema_v1(); })
-        .def_property_readonly_static("job_json_schema_v1",
-            [](const py::object &) { return QPDFJob::job_json_schema_v1(); })
-        .def(py::init([](const std::string &json, bool partial) {
-            QPDFJob job;
-            job.initializeFromJson(json, partial);
-            set_job_defaults(job);
-            return job;
-        }),
+        .def_property_readonly_static(
+            "json_out_schema_v1",
+            [](const py::object &) { return QPDFJob::json_out_schema_v1(); },
+            "For reference, the QPDF JSON output schema is built-in.")
+        .def_property_readonly_static(
+            "job_json_schema_v1",
+            [](const py::object &) { return QPDFJob::job_json_schema_v1(); },
+            "For reference, the QPDF job command line schema is built-in.")
+        .def_readonly_static("EXIT_ERROR",
+            &QPDFJob::EXIT_ERROR,
+            "Exit code for a job that had an error.")
+        .def_readonly_static("EXIT_WARNING",
+            &QPDFJob::EXIT_WARNING,
+            "Exit code for a job that had a warrning.")
+        .def_readonly_static("EXIT_IS_NOT_ENCRYPTED",
+            &QPDFJob::EXIT_IS_NOT_ENCRYPTED,
+            "Exit code for a job that provide a password when the input was not "
+            "encrypted.")
+        .def_readonly_static("EXIT_CORRECT_PASSWORD", &QPDFJob::EXIT_CORRECT_PASSWORD)
+        .def(py::init(&job_from_json_str),
             py::arg("json"),
-            py::kw_only(),
-            py::arg("partial") = true)
+            "Create a Job from a string containing QPDF job JSON.")
+        .def(py::init([](py::dict &json_dict) {
+            auto json_dumps  = py::module_::import("json").attr("dumps");
+            py::str json_str = json_dumps(json_dict);
+            return job_from_json_str(std::string(json_str));
+        }),
+            py::arg("json_dict"),
+            "Create a Job from a dict in QPDF job JSON schema.")
         .def(py::init(
                  [](const std::vector<std::string> &args, std::string const &progname) {
                      QPDFJob job;
@@ -92,20 +75,43 @@ void init_job(py::module_ &m)
                  }),
             py::arg("args"),
             py::kw_only(),
-            py::arg("progname") = "pikepdf")
-        .def_property_readonly("config", &QPDFJob::config)
-        .def("check_configuration", &QPDFJob::checkConfiguration)
-        .def_property_readonly("creates_output", &QPDFJob::createsOutput)
+            py::arg("progname") = "pikepdf",
+            "Create a Job from command line arguments to the qpdf program.")
+        .def("check_configuration",
+            &QPDFJob::checkConfiguration,
+            "Checks if the configuration is valid; raises an exception if not.")
+        .def_property_readonly("creates_output",
+            &QPDFJob::createsOutput,
+            "Returns True if the Job will create some sort of output file.")
         .def_property(
             "message_prefix",
-            []() {
+            [](QPDFJob &job) {
                 //&QPDFJob::getMessagePrefix
                 throw py::notimpl_error(
                     "QPDFJob::getMessagePrefix not available in qpdf 10.6.3");
             },
-            &QPDFJob::setMessagePrefix)
-        .def("run", &QPDFJob::run)
-        .def_property_readonly("has_warnings", &QPDFJob::hasWarnings)
-        .def_property_readonly("exit_code", &QPDFJob::getExitCode)
-        .def_property_readonly("encryption_status", &QPDFJob::getEncryptionStatus);
+            &QPDFJob::setMessagePrefix,
+            "Allows manipulation of the prefix in front of all output messages.")
+        .def("run", &QPDFJob::run, "Executes the job.")
+        .def_property_readonly("has_warnings",
+            &QPDFJob::hasWarnings,
+            "After run(), returns True if there were warnings.")
+        .def_property_readonly("exit_code",
+            &QPDFJob::getExitCode,
+            R"~~~(
+            After run(), returns an integer exit code. 
+            
+            Some exit codes have integer value. Their applicably is determined by
+            context of the job being run.
+            )~~~")
+        .def_property_readonly(
+            "encryption_status",
+            [](QPDFJob &job) {
+                uint bits = job.getEncryptionStatus();
+                py::dict result;
+                result["encrypted"]          = bool(bits & qpdf_es_encrypted);
+                result["password_incorrect"] = bool(bits & qpdf_es_password_incorrect);
+                return result;
+            },
+            "Returns a Python dictionary describing the encryption status.");
 }
