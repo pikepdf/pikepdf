@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from pikepdf import Job
+from pikepdf import Job, JobUsageError
 
 
 def test_job_from_argv(resources):
@@ -42,7 +42,12 @@ def test_job_from_invalid_json():
     job_json = {}
     job_json['invalidJsonSetting'] = '123'
     with pytest.raises(RuntimeError):
-        _job = Job(job_json)
+        _ = Job(job_json)
+
+    job_json2 = {}
+    job_json2 = {'inputFile': []}
+    with pytest.raises(JobUsageError):
+        _ = Job(job_json2)
 
 
 def test_schemas():

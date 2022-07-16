@@ -29,6 +29,7 @@ from ._qpdf import (
     DataDecodingError,
     ForeignObjectError,
     Job,
+    JobUsageError,
     NameTree,
     ObjectHelper,
     ObjectStreamMode,
