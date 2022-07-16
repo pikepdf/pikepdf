@@ -1,3 +1,14 @@
+v5.4.0
+======
+
+-  New feature: ``pikepdf.Job`` bindings to QPDFJob API.
+-  New feature: ``pikepdf.NumberTree`` to support manipulation of number trees,
+   mainly for applying custom page labels.
+-  Many improvements to ``pikepdf.NameTree`` including the ability to instantiate
+   a new name tree.
+-  Several memory leaks were fixed.
+-  Rebuilt against pybind11 2.10.0.
+
 v5.3.2
 ======
 
