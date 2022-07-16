@@ -28,6 +28,7 @@ from ._qpdf import (
     ContentStreamInstruction,
     DataDecodingError,
     ForeignObjectError,
+    Job,
     NameTree,
     ObjectHelper,
     ObjectStreamMode,
