@@ -92,7 +92,7 @@ void init_page(py::module_ &m)
                 the rotation rotates clockwise by ``90`` degrees.
             )~~~")
         .def("contents_coalesce",
-            &QPDFPageObjectHelper::coalesceContentStreams,
+            &QPDFPageObjectHelper::coalesceContentStreams, // LCOV_EXCL_LINE
             R"~~~(
                 Coalesce a page's content streams.
 
