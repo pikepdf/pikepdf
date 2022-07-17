@@ -32,14 +32,14 @@ if on_rtd:
     rtds_action_path = "."
 
     # The "prefix" used in the `upload-artifact` step of the action
-    rtds_action_artifact_prefix = "rtd-wheel"
+    rtds_action_artifact_prefix = "rtd-wheel-"
 
     # A GitHub personal access token is required, more info below
     rtds_action_github_token = os.environ["GITHUB_TOKEN"]
 
     # Whether or not to raise an error on Read the Docs if the
-    # artifact containing the notebooks can't be downloaded (optional)
-    rtds_action_error_if_missing = False
+    # artifact can't be downloaded (optional)
+    rtds_action_error_if_missing = True
 
     def pip(*args):
         subprocess.run([sys.executable, '-m', 'pip', *args], check=True)

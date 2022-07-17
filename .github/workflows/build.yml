@@ -52,7 +52,7 @@ jobs:
         uses: actions/upload-artifact@v3
         if: matrix.platform == 'manylinux_x86_64'
         with:
-          name: rtd-wheel
+          name: rtd-wheel-${{ github.sha }}
           path: ./wheelhouse/pikepdf-*-cp39-*.manylinux2014_x86_64.whl
           if-no-files-found: error
 
