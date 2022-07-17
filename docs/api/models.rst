@@ -175,16 +175,18 @@ Version 3.x automatically applies support models to ``/Page`` objects.
     A name tree is a key-value data structure. The keys are any binary strings
     (that is, Python ``bytes``). If ``str`` selected is provided as a key,
     the UTF-8 encoding of that string is tested. Name trees are (confusingly)
-    not indexed by PDF name objects.
+    not indexed by ``pikepdf.Name`` objects. They behave like 
+    ``DictMapping[bytes, pikepdf.Object]``.
 
     The keys are sorted; pikepdf will ensure that the order is preserved.
 
     The value may be any PDF object. Typically it will be a dictionary or array.
 
-    If the name tree is invalid in any way, pikepdf will automatically repair it
-    if it is able to. There should not be any reason to access the internal nodes
-    of a name tree; use this interface instead. Likewise, pikepdf will automatically
-    rebalance the tree as appropriate (all thanks to libqpdf).
+    Internally in the PDF, a name tree can be a fairly complex tree data structure
+    implemented with many dictionaries and arrays. pikepdf (using libqpdf) 
+    will automatically read, repair and maintain this tree for you. There should not 
+    be any reason to access the internal nodes of a number tree; use this 
+    interface instead. 
 
     NameTrees are used to store certain objects like file attachments in a PDF.
     Where a more specific interface exists, use that instead, and it will
@@ -203,18 +205,19 @@ Version 3.x automatically applies support models to ``/Page`` objects.
 
     An object for managing *number tree* data structures in PDFs.
 
-    A name tree is a key-value data structure, like name trees, except that the
-    key is an integer. 
+    A number tree is a key-value data structure, like name trees, except that the
+    key is an integer. It behaves like ``Dict[int, pikepdf.Object]``.
     
     The keys can be sparse - not all integers positions will be populated. Keys
     are also always sorted; pikepdf will ensure that the order is preserved.
 
     The value may be any PDF object. Typically it will be a dictionary or array.
 
-    If the number tree is invalid in any way, pikepdf will automatically repair it
-    if it is able to. There should not be any reason to access the internal nodes
-    of a number tree; use this interface instead. Likewise, pikepdf will automatically
-    rebalance the internal tree as appropriate (all thanks to libqpdf).
+    Internally in the PDF, a number tree can be a fairly complex tree data structure
+    implemented with many dictionaries and arrays. pikepdf (using libqpdf) 
+    will automatically read, repair and maintain this tree for you. There should not 
+    be any reason to access the internal nodes of a number tree; use this 
+    interface instead. 
 
     NumberTrees are not used much in PDF. The main thing they provide is a mapping
     between 0-based page numbers and user-facing page numbers (which pikepdf
