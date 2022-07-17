@@ -32,7 +32,7 @@ void init_numbertree(py::module_ &m)
                     "NumberTree must wrap a Dictionary that is owned by a Pdf");
             return NumberTree(oh, *oh.getOwningQPDF(), auto_repair);
         }),
-            py::arg("oh"),
+            py::arg("oh"), // LCOV_EXCL_LINE
             py::kw_only(),
             py::arg("auto_repair") = true,
             py::keep_alive<0, 1>())
@@ -41,7 +41,7 @@ void init_numbertree(py::module_ &m)
             [](QPDF &pdf, bool auto_repair = true) {
                 return NumberTree::newEmpty(pdf, auto_repair);
             },
-            py::arg("pdf"),
+            py::arg("pdf"), // LCOV_EXCL_LINE
             py::kw_only(),
             py::arg("auto_repair") = true,
             py::keep_alive<0, 1>(),
@@ -60,15 +60,6 @@ void init_numbertree(py::module_ &m)
         .def("__contains__",
             [](NumberTree &nt, numtree_number idx) { return nt.hasIndex(idx); })
         .def("__contains__", [](NumberTree &nt, py::object idx) { return false; })
-        .def(
-            "__eq__",
-            [](NumberTree &self, NumberTree &other) {
-                auto self_obj  = self.getObjectHandle();
-                auto other_obj = other.getObjectHandle();
-                return self_obj.getOwningQPDF() == other_obj.getOwningQPDF() &&
-                       self_obj.getObjGen() == other_obj.getObjGen();
-            },
-            py::is_operator())
         .def("__getitem__",
             [](NumberTree &nt, numtree_number key) {
                 QPDFObjectHandle oh;

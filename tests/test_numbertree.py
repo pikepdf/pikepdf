@@ -29,20 +29,31 @@ def pagelabels_pdf():
 
 def test_numbertree_crud(pagelabels_pdf):
     pdf = pagelabels_pdf
+    # __init__
     nt = NumberTree(pdf.Root.PageLabels)
     assert nt.obj == pdf.Root.PageLabels
-    assert 0 in nt
-    assert isinstance(nt[0], Dictionary)
-    assert 'foo' not in nt
 
+    # __contains__
+    assert 0 in nt
+    assert 'foo' not in nt
     assert 2 in nt
+
+    # __getitem__
+    assert isinstance(nt[0], Dictionary)
+    with pytest.raises(IndexError):
+        _ = nt[999]
+
+    # __delitem__
     del nt[2]
     assert 2 not in nt
 
+    # __setitem__
     message = "Life, universe, everything"
     nt[42] = Dictionary(Entry=message)
     assert 42 in nt
     assert nt[42].Entry == message
+    nt[666] = 'beast'
+    assert nt[666] == 'beast'
 
 
 def test_numbertree_iter(pagelabels_pdf):
