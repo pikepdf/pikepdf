@@ -25,7 +25,7 @@ def verapdf_validate(filename) -> bool:
     xml = result[xml_start:]
     root = ET.fromstring(xml)
     node = root.find(".//validationReport")
-    if not node:
+    if node is None:
         raise NotImplementedError("Unexpected XML returned by verapdf")
 
     compliant = node.attrib['isCompliant'] == 'true'
