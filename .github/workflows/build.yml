@@ -32,11 +32,11 @@ jobs:
           platforms: all
 
       - name: Build wheels
-        uses: joerick/cibuildwheel@v2.8.0
+        uses: joerick/cibuildwheel@v2.8.1
         if: matrix.platform != 'manylinux_aarch64'
 
       - name: Build wheels (emulated)
-        uses: joerick/cibuildwheel@v2.8.0
+        uses: joerick/cibuildwheel@v2.8.1
         if: matrix.platform == 'manylinux_aarch64'
         env:
           CIBW_ARCHS_LINUX: aarch64
@@ -70,8 +70,17 @@ jobs:
         with:
           fetch-depth: "0" # 0=all, needed for setuptools-scm to resolve version tags
 
+      # Custom cibuildwheel step since actions doesn't support self-hosted
       - name: Build wheels
-        uses: joerick/cibuildwheel@v2.8.0
+        run: >
+          pipx run
+          --python /usr/bin/python3
+          --spec cibuildwheel==2.8.1
+          cibuildwheel
+          .
+          --output-dir wheelhouse
+          2>&1
+        shell: bash
         env:
           CIBW_ARCHS_LINUX: aarch64
 
@@ -100,7 +109,7 @@ jobs:
           python-version: "3.8"
 
       - name: Build wheels
-        uses: joerick/cibuildwheel@v2.8.0
+        uses: joerick/cibuildwheel@v2.8.1
 
         #env:
         #  CIBW_ARCHS_MACOS: x86_64 universal2 # for Apple Silicon
@@ -144,7 +153,7 @@ jobs:
           build-scripts/win-download-qpdf.ps1 $env:QPDF_VERSION ${{ matrix.platform }}
 
       - name: Build wheels
-        uses: joerick/cibuildwheel@v2.8.0
+        uses: joerick/cibuildwheel@v2.8.1
 
       - uses: actions/upload-artifact@v3
         with:
@@ -226,12 +235,25 @@ jobs:
     needs: [wheels_linux]
     # if: startsWith(github.ref, 'refs/heads/') && !startsWith(github.ref, 'refs/heads/actions')
     steps:
+      - name: Check for secrets
+        id: setvar
+        run: |
+          if [[ "${{ secrets.RTDS_WEBHOOK_URL }}" != "" && \
+                "${{ secrets.RTDS_WEBHOOK_TOKEN }}" != "" ]]; \
+          then
+            echo "Secrets to use trigger ReadTheDocs were configured"
+            echo "::set-output name=have_secrets::true"
+          else
+            echo "Secrets to use trigger ReadTheDocs were not configured"
+            echo "::set-output name=have_secrets::false"
+          fi
       - name: Trigger ReadTheDocs webhook
         uses: dfm/rtds-action@v1
         with:
           webhook_url: ${{ secrets.RTDS_WEBHOOK_URL }}
           webhook_token: ${{ secrets.RTDS_WEBHOOK_TOKEN }}
           commit_ref: ${{ github.ref }}
+        if: ${{ steps.setvar.outputs.have_secrets == 'true' }}
 
   upload_pypi:
     needs: [wheels_linux, wheels_linux_arm, wheels_macos, wheels_windows, sdist]
