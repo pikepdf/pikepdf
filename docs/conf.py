@@ -21,7 +21,24 @@ try:
 except ModuleNotFoundError:
     import tomli as tomllib  # type: ignore
 
+
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.autosummary',
+    'sphinx.ext.napoleon',
+    'sphinx_issues',
+    'sphinx_design',
+    'IPython.sphinxext.ipython_console_highlighting',
+    'IPython.sphinxext.ipython_directive',
+    'fix_pybind11_autodoc',
+]
+
 on_rtd = os.environ.get('READTHEDOCS') == 'True'
+
+if on_rtd:
+    extensions.append('rtds_action')
+
 if on_rtd:
     github_token = os.environ['GITHUB_TOKEN']
     # The name of your GitHub repository
@@ -68,23 +85,6 @@ import pikepdf  # isort:skip pylint: disable=unused-import
 # If your documentation needs a minimal Sphinx version, state it here.
 # needs_sphinx = '1.0'
 
-# Add any Sphinx extension module names here, as strings. They can be
-# extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
-# ones.
-extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.napoleon',
-    'sphinx_issues',
-    'sphinx_design',
-    'IPython.sphinxext.ipython_console_highlighting',
-    'IPython.sphinxext.ipython_directive',
-    'fix_pybind11_autodoc',
-]
-
-if on_rtd:
-    extensions.append('rtds_action')
 
 issues_github_path = "pikepdf/pikepdf"
 
