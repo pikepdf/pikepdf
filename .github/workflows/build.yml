@@ -233,7 +233,7 @@ jobs:
     name: Trigger ReadTheDocs
     runs-on: ubuntu-latest
     needs: [wheels_linux]
-    # if: startsWith(github.ref, 'refs/heads/') && !startsWith(github.ref, 'refs/heads/actions')
+    if: startsWith(github.ref, 'refs/heads/') && !startsWith(github.ref, 'refs/heads/actions')
     steps:
       - name: Check for secrets
         id: setvar
@@ -247,12 +247,15 @@ jobs:
             echo "Secrets to use trigger ReadTheDocs were not configured"
             echo "::set-output name=have_secrets::false"
           fi
+      - name: Get branch name
+        id: get_branch
+        run: |
+          echo "::set-output name=branch::${GITHUB_REF##refs/heads/}"
       - name: Trigger ReadTheDocs webhook
-        uses: dfm/rtds-action@v1
-        with:
-          webhook_url: ${{ secrets.RTDS_WEBHOOK_URL }}
-          webhook_token: ${{ secrets.RTDS_WEBHOOK_TOKEN }}
-          commit_ref: ${{ github.ref }}
+        run: |
+          curl -X POST -d "branches=${{ steps.get_branch.outputs.branch }}" \
+                       -d "token=${{ secrets.RTDS_WEBHOOK_TOKEN }}" \
+                       "${{ secrets.RTDS_WEBHOOK_URL }}""
         if: ${{ steps.setvar.outputs.have_secrets == 'true' }}
 
   upload_pypi:

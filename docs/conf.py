@@ -11,6 +11,7 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
+import io
 import os
 import subprocess
 import sys
@@ -37,39 +38,51 @@ extensions = [
 on_rtd = os.environ.get('READTHEDOCS') == 'True'
 
 if on_rtd:
-    extensions.append('rtds_action')
+    import tempfile
+    import zipfile
 
-if on_rtd:
+    import git
+    import github
+    import requests
+
+    # Borrowed from https://github.com/YannickJadoul/Parselmouth/blob/master/docs/conf.py
+    rtd_version = os.environ.get('READTHEDOCS_VERSION', '')
+    branch = 'master' if rtd_version == 'latest' else rtd_version
+
     github_token = os.environ['GITHUB_TOKEN']
-    # The name of your GitHub repository
-    rtds_action_github_repo = "pikepdf/pikepdf"
+    head_sha = git.Repo(search_parent_directories=True).head.commit.hexsha
+    g = github.Github()
 
-    # The path where the artifact should be extracted
-    # Note: this is relative to the conf.py file!
-    rtds_action_path = "."
+    runs = (
+        g.get_repo('pikepdf/pikepdf').get_workflow('build.yml').get_runs(branch=branch)
+    )
+    artifacts_url = next(r for r in runs if r.head_sha == head_sha).artifacts_url
 
-    # The "prefix" used in the `upload-artifact` step of the action
-    rtds_action_artifact_prefix = "rtd-wheel-"
-
-    # A GitHub personal access token is required, more info below
-    rtds_action_github_token = os.environ["GITHUB_TOKEN"]
-
-    # Whether or not to raise an error on Read the Docs if the
-    # artifact can't be downloaded (optional)
-    rtds_action_error_if_missing = True
+    archive_download_url = next(
+        artifact
+        for artifact in requests.get(artifacts_url).json()['artifacts']
+        if artifact['name'] == 'rtd-wheel'
+    )['archive_download_url']
+    artifact_bin = io.BytesIO(
+        requests.get(
+            archive_download_url,
+            headers={'Authorization': f'token {github_token}'},
+            stream=True,
+        ).content
+    )
 
     def pip(*args):
         subprocess.run([sys.executable, '-m', 'pip', *args], check=True)
 
-    wheel = next(Path('.').glob('*.whl'))
-    pip('install', '--force-reinstall', wheel)
+    with zipfile.ZipFile(artifact_bin) as zf, tempfile.TemporaryDirectory() as tmpdir:
+        assert len(zf.namelist()) == 1
+        zf.extractall(tmpdir)
+        pip('install', '--force-reinstall', f'{tmpdir}/{zf.namelist()[0]}')
 else:
     sys.path.insert(0, os.path.abspath(os.path.join('..', 'installed')))
 
-
 autodoc_mock_imports = ['libxmp']
 autodoc_typehints = 'description'
-
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -77,14 +90,12 @@ autodoc_typehints = 'description'
 sys.path.insert(0, os.path.join(os.path.abspath('.'), './_ext'))
 sys.path.insert(0, os.path.join(os.path.abspath('.'), '..'))
 
-
 import pikepdf  # isort:skip pylint: disable=unused-import
 
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
 # needs_sphinx = '1.0'
-
 
 issues_github_path = "pikepdf/pikepdf"
 
