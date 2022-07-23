@@ -5,6 +5,8 @@
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
 
+from __future__ import annotations
+
 from ._content_stream import (
     ContentStreamInstructions,
     PdfParsingError,

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -8,7 +10,7 @@ import pytest
 
 from pikepdf import Pdf
 
-VERAPDF: Optional[Path] = None
+VERAPDF: Path | None = None
 try:
     VERAPDF = Path(os.environ['HOME']) / 'verapdf' / 'verapdf'
     if not VERAPDF.is_file():

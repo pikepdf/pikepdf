@@ -4,9 +4,11 @@
 #
 # Copyright (C) 2022, James R. Barlow (https://github.com/jbarlow83/)
 
+from __future__ import annotations
+
 import re
 from pathlib import Path
-from typing import List, NamedTuple
+from typing import NamedTuple
 
 import typer
 
@@ -66,7 +68,7 @@ def template_param1(binding):
 
 def process(include: Path):
     lines = include.read_text().splitlines()
-    bindings: List[Binding] = []
+    bindings: list[Binding] = []
     for n, line in enumerate(lines, start=1):
         if line.startswith('//'):
             continue

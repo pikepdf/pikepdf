@@ -12,6 +12,8 @@ bindings after the fact.
 We can also move the implementation to C++ if desired.
 """
 
+from __future__ import annotations
+
 import datetime
 import mimetypes
 import shutil
@@ -182,8 +184,8 @@ class Extend_Object:
         self,
         data: bytes,
         *,
-        filter: Union[Name, Array, None] = None,
-        decode_parms: Union[Dictionary, Array, None] = None,
+        filter: Name | Array | None = None,
+        decode_parms: Dictionary | Array | None = None,
         type_check: bool = True,
     ):  # pylint: disable=redefined-builtin
         """
@@ -385,7 +387,7 @@ class Extend_Pdf:
         return Stream(self, data, d, **kwargs)
 
     def add_blank_page(
-        self, *, page_size: Tuple[Numeric, Numeric] = (612.0, 792.0)
+        self, *, page_size: tuple[Numeric, Numeric] = (612.0, 792.0)
     ) -> Page:
         """
         Add a blank page to this PDF. If pages already exist, the page will be added to
@@ -469,7 +471,7 @@ class Extend_Pdf:
         """
         return EncryptionInfo(self._encryption_data)
 
-    def check(self) -> List[str]:
+    def check(self) -> list[str]:
         """
         Check if PDF is well-formed.  Similar to ``qpdf --check``.
         """
@@ -484,7 +486,7 @@ class Extend_Pdf:
             def handle_eof(self):
                 pass
 
-        problems: List[str] = []
+        problems: list[str] = []
 
         self._decode_all_streams_and_discard()
 
@@ -499,21 +501,21 @@ class Extend_Pdf:
 
     def save(
         self,
-        filename_or_stream: Union[Path, str, BinaryIO, None] = None,
+        filename_or_stream: Path | str | BinaryIO | None = None,
         *,
         static_id: bool = False,
         preserve_pdfa: bool = True,
-        min_version: Union[str, Tuple[str, int]] = "",
-        force_version: Union[str, Tuple[str, int]] = "",
+        min_version: str | tuple[str, int] = "",
+        force_version: str | tuple[str, int] = "",
         fix_metadata_version: bool = True,
         compress_streams: bool = True,
-        stream_decode_level: Optional[StreamDecodeLevel] = None,
+        stream_decode_level: StreamDecodeLevel | None = None,
         object_stream_mode: ObjectStreamMode = ObjectStreamMode.preserve,
         normalize_content: bool = False,
         linearize: bool = False,
         qdf: bool = False,
         progress: Callable[[int], None] = None,
-        encryption: Optional[Union[Encryption, bool]] = None,
+        encryption: Encryption | bool | None = None,
         recompress_flate: bool = False,
     ) -> None:
         """
@@ -669,9 +671,9 @@ class Extend_Pdf:
 
     @staticmethod
     def open(
-        filename_or_stream: Union[Path, str, BinaryIO],
+        filename_or_stream: Path | str | BinaryIO,
         *,
-        password: Union[str, bytes] = "",
+        password: str | bytes = "",
         hex_password: bool = False,
         ignore_xref_streams: bool = False,
         suppress_warnings: bool = True,
@@ -895,7 +897,7 @@ class Extend_Page:
         self,
         res: Object,
         res_type: Name,
-        name: Optional[Name] = None,
+        name: Name | None = None,
         *,
         prefix: str = '',
         replace_existing: bool = True,
@@ -961,7 +963,7 @@ class Extend_Page:
     def _over_underlay(
         self,
         other,
-        rect: Optional[Rectangle],
+        rect: Rectangle | None,
         under: bool,
         push_stack: bool,
         shrink: bool,
@@ -1002,8 +1004,8 @@ class Extend_Page:
 
     def add_overlay(
         self,
-        other: Union[Object, Page],
-        rect: Optional[Rectangle] = None,
+        other: Object | Page,
+        rect: Rectangle | None = None,
         *,
         push_stack: bool = True,
         shrink: bool = True,
@@ -1060,8 +1062,8 @@ class Extend_Page:
 
     def add_underlay(
         self,
-        other: Union[Object, Page],
-        rect: Optional[Rectangle] = None,
+        other: Object | Page,
+        rect: Rectangle | None = None,
         *,
         shrink: bool = True,
         expand: bool = True,
@@ -1099,7 +1101,7 @@ class Extend_Page:
             other, rect, under=True, push_stack=False, expand=expand, shrink=shrink
         )
 
-    def contents_add(self, contents: Union[Stream, bytes], *, prepend: bool = False):
+    def contents_add(self, contents: Stream | bytes, *, prepend: bool = False):
         """Append or prepend to an existing page's content stream.
 
         Args:
@@ -1220,7 +1222,7 @@ class Extend_Attachments(MutableMapping):
 @augments(AttachedFileSpec)
 class Extend_AttachedFileSpec:
     @staticmethod
-    def from_filepath(pdf: Pdf, path: Union[Path, str], *, description: str = ''):
+    def from_filepath(pdf: Pdf, path: Path | str, *, description: str = ''):
         """Construct a file specification from a file path.
 
         This function will automatically add a creation and modified date
@@ -1266,7 +1268,7 @@ class Extend_AttachedFileSpec:
 @augments(AttachedFile)
 class Extend_AttachedFile:
     @property
-    def creation_date(self) -> Optional[datetime.datetime]:
+    def creation_date(self) -> datetime.datetime | None:
         if not self._creation_date:
             return None
         return decode_pdf_date(self._creation_date)
@@ -1276,7 +1278,7 @@ class Extend_AttachedFile:
         self._creation_date = encode_pdf_date(value)
 
     @property
-    def mod_date(self) -> Optional[datetime.datetime]:
+    def mod_date(self) -> datetime.datetime | None:
         if not self._mod_date:
             return None
         return decode_pdf_date(self._mod_date)

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import copy
 from typing import List, Union
 
@@ -173,9 +175,9 @@ def test_fourpages_to_4up(fourpages, graph, outpdf):
     pdf.save(outpdf)
 
 
-def _simple_interpret_content_stream(page: Union[Page, Object]):
+def _simple_interpret_content_stream(page: Page | Object):
     ctm = PdfMatrix.identity()
-    stack: List[PdfMatrix] = []
+    stack: list[PdfMatrix] = []
     for instruction in parse_content_stream(page, operators='q Q cm Do'):
         if isinstance(instruction, ContentStreamInlineImage):
             continue

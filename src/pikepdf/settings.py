@@ -4,6 +4,8 @@
 #
 # Copyright (C) 2022, James R. Barlow (https://github.com/jbarlow83/)
 
+from __future__ import annotations
+
 from ._qpdf import (
     get_decimal_precision,
     set_decimal_precision,

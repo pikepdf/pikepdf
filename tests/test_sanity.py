@@ -2,6 +2,8 @@
 A bunch of quick tests that confirm nothing is horribly wrong
 """
 
+from __future__ import annotations
+
 import ast
 import gc
 from contextlib import suppress

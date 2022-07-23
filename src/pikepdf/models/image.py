@@ -5,24 +5,15 @@
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
 
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from decimal import Decimal
 from io import BytesIO
 from itertools import zip_longest
 from pathlib import Path
 from shutil import copyfileobj
-from typing import (
-    Any,
-    BinaryIO,
-    Callable,
-    NamedTuple,
-    Optional,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import Any, BinaryIO, Callable, NamedTuple, TypeVar, cast
 
 from PIL import Image, ImageCms
 
@@ -59,7 +50,7 @@ class InvalidPdfImageError(Exception):
     "This image is not valid according to the PDF 1.7 specification."
 
 
-def array_str(value: Union[Object, str, list]):
+def array_str(value: Object | str | list):
     """Simplify pikepdf objects to array of str. Keep Streams and dictionaries intact."""
 
     def _array_str(item):
@@ -93,8 +84,8 @@ T = TypeVar('T')
 
 
 def metadata_from_obj(
-    obj: Union[Dictionary, Stream], name: str, type_: Callable[[Any], T], default: T
-) -> Optional[T]:
+    obj: Dictionary | Stream, name: str, type_: Callable[[Any], T], default: T
+) -> T | None:
     val = getattr(obj, name, default)
     try:
         return type_(val)
@@ -124,7 +115,7 @@ class PdfImageBase(ABC):
     PRINT_COLORSPACES = {'/Separation', '/DeviceN'}
 
     @abstractmethod
-    def _metadata(self, name: str, type_: Type[T], default: T) -> T:
+    def _metadata(self, name: str, type_: type[T], default: T) -> T:
         """Get metadata for this image type."""
 
     @property
@@ -143,7 +134,7 @@ class PdfImageBase(ABC):
         return self._metadata('ImageMask', bool, False)
 
     @property
-    def _bpc(self) -> Optional[int]:
+    def _bpc(self) -> int | None:
         """Bits per component for this image (low-level)."""
         return self._metadata('BitsPerComponent', int, 0)
 
@@ -163,7 +154,7 @@ class PdfImageBase(ABC):
         return self._metadata('DecodeParms', dict_or_array_dict, [])
 
     @property
-    def colorspace(self) -> Optional[str]:
+    def colorspace(self) -> str | None:
         """PDF name of the colorspace that best describes this image."""
         if self.image_mask:
             return None  # Undefined for image masks
@@ -200,7 +191,7 @@ class PdfImageBase(ABC):
 
     @property
     @abstractmethod
-    def icc(self) -> Optional[ImageCms.ImageCmsProfile]:
+    def icc(self) -> ImageCms.ImageCmsProfile | None:
         """Returns ICC profile for this image if one is defined."""
 
     @property
@@ -230,7 +221,7 @@ class PdfImageBase(ABC):
         return self._colorspace_has_name('/Separation')
 
     @property
-    def size(self) -> Tuple[int, int]:
+    def size(self) -> tuple[int, int]:
         """Size of image as (width, height)."""
         return self.width, self.height
 
@@ -300,7 +291,7 @@ class PdfImageBase(ABC):
         return list(zip_longest(self.filters, self.decode_parms, fillvalue={}))
 
     @property
-    def palette(self) -> Optional[PaletteData]:
+    def palette(self) -> PaletteData | None:
         """Retrieves the color palette for this image if applicable."""
 
         if not self.indexed:
@@ -459,7 +450,7 @@ class PdfImage(PdfImageBase):
         raise NotImplementedError("Don't know how to find ICC stream for image")
 
     @property
-    def icc(self) -> Optional[ImageCms.ImageCmsProfile]:
+    def icc(self) -> ImageCms.ImageCmsProfile | None:
         """If an ICC profile is attached, return a Pillow object that describe it.
 
         Most of the information may be found in ``icc.profile``.
@@ -645,7 +636,7 @@ class PdfImage(PdfImageBase):
         raise UnsupportedImageTypeError(repr(self))
 
     def extract_to(
-        self, *, stream: Optional[BinaryIO] = None, fileprefix: str = ''
+        self, *, stream: BinaryIO | None = None, fileprefix: str = ''
     ) -> str:
         """Attempt to extract the image directly to a usable image file
 
@@ -724,7 +715,7 @@ class PdfImage(PdfImageBase):
 
         return im
 
-    def _generate_ccitt_header(self, data: bytes, icc: Optional[bytes] = None) -> bytes:
+    def _generate_ccitt_header(self, data: bytes, icc: bytes | None = None) -> bytes:
         """Construct a CCITT G3 or G4 header from the PDF metadata."""
         # https://stackoverflow.com/questions/2641770/
         # https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf
@@ -972,7 +963,7 @@ class PdfInlineImage(PdfImageBase):
     def as_pil_image(self) -> Image.Image:
         return self._convert_to_pdfimage().as_pil_image()
 
-    def extract_to(self, *, stream: Optional[BinaryIO] = None, fileprefix: str = ''):
+    def extract_to(self, *, stream: BinaryIO | None = None, fileprefix: str = ''):
         return self._convert_to_pdfimage().extract_to(
             stream=stream, fileprefix=fileprefix
         )

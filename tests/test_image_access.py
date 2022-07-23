@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import subprocess
 import zlib
 from contextlib import contextmanager

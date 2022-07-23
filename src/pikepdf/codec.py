@@ -4,6 +4,8 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
+from __future__ import annotations
+
 import codecs
 from typing import Container, Optional, Tuple
 
@@ -71,7 +73,7 @@ def _find_first_index(
     raise ValueError("couldn't find the unencodable character")  # pragma: no cover
 
 
-def pdfdoc_encode(input: str, errors: str = 'strict') -> Tuple[bytes, int]:
+def pdfdoc_encode(input: str, errors: str = 'strict') -> tuple[bytes, int]:
     error_marker = b'?' if errors == 'replace' else b'\xad'
     success, pdfdoc = utf8_to_pdf_doc(input, error_marker)
     if not success:
@@ -93,7 +95,7 @@ def pdfdoc_encode(input: str, errors: str = 'strict') -> Tuple[bytes, int]:
     return pdfdoc, len(input)
 
 
-def pdfdoc_decode(input: bytes, errors: str = 'strict') -> Tuple[str, int]:
+def pdfdoc_decode(input: bytes, errors: str = 'strict') -> tuple[str, int]:
     if isinstance(input, memoryview):
         input = input.tobytes()
     s = pdf_doc_to_utf8(input)
@@ -114,10 +116,10 @@ def pdfdoc_decode(input: bytes, errors: str = 'strict') -> Tuple[str, int]:
 class PdfDocCodec(codecs.Codec):
     """Implements PdfDocEncoding character map used inside PDFs."""
 
-    def encode(self, input: str, errors: str = 'strict') -> Tuple[bytes, int]:
+    def encode(self, input: str, errors: str = 'strict') -> tuple[bytes, int]:
         return pdfdoc_encode(input, errors)
 
-    def decode(self, input: bytes, errors: str = 'strict') -> Tuple[str, int]:
+    def decode(self, input: bytes, errors: str = 'strict') -> tuple[str, int]:
         return pdfdoc_decode(input, errors)
 
 
@@ -126,7 +128,7 @@ class PdfDocStreamWriter(PdfDocCodec, codecs.StreamWriter):
 
 
 class PdfDocStreamReader(PdfDocCodec, codecs.StreamReader):
-    def decode(self, input: bytes, errors: str = 'strict') -> Tuple[str, int]:
+    def decode(self, input: bytes, errors: str = 'strict') -> tuple[str, int]:
         return PdfDocCodec.decode(self, input, errors)
 
 
@@ -140,7 +142,7 @@ class PdfDocIncrementalDecoder(codecs.IncrementalDecoder):
         return pdfdoc_decode(input, 'strict')[0]
 
 
-def find_pdfdoc(encoding: str) -> Optional[codecs.CodecInfo]:
+def find_pdfdoc(encoding: str) -> codecs.CodecInfo | None:
     if encoding in ('pdfdoc', 'pdfdoc_pikepdf'):
         codec = PdfDocCodec()
         return codecs.CodecInfo(

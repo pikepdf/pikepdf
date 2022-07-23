@@ -1,6 +1,8 @@
 # pybind11 generates some docstrings and function signatures that are functionally
 # correct but encourage users to rely on implementation details. Fix these here.
 
+from __future__ import annotations
+
 import re
 
 replacements = [

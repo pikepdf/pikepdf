@@ -3,12 +3,14 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
+from __future__ import annotations
+
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
 from subprocess import DEVNULL, PIPE, CalledProcessError, run
 from tempfile import TemporaryDirectory
-from typing import Optional, cast
+from typing import cast
 
 import deprecation
 from packaging.version import Version
@@ -22,7 +24,7 @@ from pikepdf._exceptions import DependencyError
     deprecated_in="5.1.5", removed_in="6.0", details="Use extract_jbig2_bytes instead"
 )
 def extract_jbig2(
-    im_obj: pikepdf.Object, globals_obj: Optional[pikepdf.Object] = None
+    im_obj: pikepdf.Object, globals_obj: pikepdf.Object | None = None
 ) -> Image.Image:  # pragma: no cover
 
     with TemporaryDirectory(prefix='pikepdf-', suffix='.jbig2') as tmpdir:

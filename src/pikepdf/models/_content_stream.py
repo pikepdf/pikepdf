@@ -4,6 +4,8 @@
 #
 # Copyright (C) 2022, James R. Barlow (https://github.com/jbarlow83/)
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Collection, List, Tuple, Union, cast
 
 from pikepdf import Object, ObjectType, Operator, Page, PdfError, _qpdf
@@ -33,8 +35,8 @@ class PdfParsingError(Exception):
 
 
 def parse_content_stream(
-    page_or_stream: Union[Object, Page], operators: str = ''
-) -> List[ContentStreamInstructions]:
+    page_or_stream: Object | Page, operators: str = ''
+) -> list[ContentStreamInstructions]:
     """
     Parse a PDF content stream into a sequence of instructions.
 

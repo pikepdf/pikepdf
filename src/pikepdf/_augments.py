@@ -4,6 +4,8 @@
 #
 # Copyright (C) 2022, James R. Barlow (https://github.com/jbarlow83/)
 
+from __future__ import annotations
+
 import inspect
 import platform
 import sys
@@ -51,7 +53,7 @@ Tcpp = TypeVar('Tcpp')
 T = TypeVar('T')
 
 
-def augments(cls_cpp: Type[Tcpp]):
+def augments(cls_cpp: type[Tcpp]):
     """Attach methods of a Python support class to an existing class
 
     This monkeypatches all methods defined in the support class onto an
@@ -95,7 +97,7 @@ def augments(cls_cpp: Type[Tcpp]):
         # Either PyPy or pybind11's interface to PyPy automatically adds a __getattr__
         OVERRIDE_WHITELIST |= {'__getattr__'}  # pragma: no cover
 
-    def class_augment(cls: Type[T], cls_cpp: Type[Tcpp] = cls_cpp) -> Type[T]:
+    def class_augment(cls: type[T], cls_cpp: type[Tcpp] = cls_cpp) -> type[T]:
 
         # inspect.getmembers has different behavior on PyPy - in particular it seems
         # that a typical PyPy class like cls will have more methods that it considers

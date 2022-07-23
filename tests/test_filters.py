@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 from pikepdf import Page, Pdf, PdfError, Token, TokenFilter, TokenType

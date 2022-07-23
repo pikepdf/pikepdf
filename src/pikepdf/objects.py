@@ -19,10 +19,11 @@ instances of ``pikepdf.Object``, which is a variant container object. The
 class definition is present as an aide for code introspection.
 """
 
-# pylint: disable=unused-import, abstract-method
+from __future__ import annotations
 
+# pylint: disable=unused-import, abstract-method
 from secrets import token_urlsafe
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, cast
 from warnings import warn
 
 from . import _qpdf
@@ -70,7 +71,7 @@ class _NameObjectMeta(_ObjectMeta):
             "modify a Dictionary rather than a Name?"
         )
 
-    def __getitem__(self, item: str) -> 'Name':
+    def __getitem__(self, item: str) -> Name:
         if item.startswith('/'):
             item = item[1:]
         raise TypeError(
@@ -97,7 +98,7 @@ class Name(Object, metaclass=_NameObjectMeta):
 
     object_type = ObjectType.name_
 
-    def __new__(cls, name: Union[str, 'Name']) -> 'Name':
+    def __new__(cls, name: str | Name) -> Name:
         # QPDF_Name::unparse ensures that names are always saved in a UTF-8
         # compatible way, so we only need to guard the input.
         if isinstance(name, bytes):
@@ -107,7 +108,7 @@ class Name(Object, metaclass=_NameObjectMeta):
         return _qpdf._new_name(name)
 
     @classmethod
-    def random(cls, len_: int = 16, prefix: str = '') -> 'Name':
+    def random(cls, len_: int = 16, prefix: str = '') -> Name:
         """Generate a cryptographically strong random, valid PDF Name.
 
         This function uses Python's secrets.token_urlsafe, which returns a
@@ -141,7 +142,7 @@ class Operator(Object, metaclass=_ObjectMeta):
 
     object_type = ObjectType.operator
 
-    def __new__(cls, name: str) -> 'Operator':
+    def __new__(cls, name: str) -> Operator:
         return cast('Operator', _qpdf._new_operator(name))
 
 
@@ -150,7 +151,7 @@ class String(Object, metaclass=_ObjectMeta):
 
     object_type = ObjectType.string
 
-    def __new__(cls, s: Union[str, bytes]) -> 'String':
+    def __new__(cls, s: str | bytes) -> String:
         """
         Args:
             s: The string to use. String will be encoded for
@@ -169,7 +170,7 @@ class Array(Object, metaclass=_ObjectMeta):
 
     object_type = ObjectType.array
 
-    def __new__(cls, a: Optional[Union[Iterable, Rectangle]] = None) -> 'Array':
+    def __new__(cls, a: Iterable | Rectangle | None = None) -> Array:
         """
         Args:
             a: An iterable of objects. All objects must be either
@@ -196,7 +197,7 @@ class Dictionary(Object, metaclass=_ObjectMeta):
 
     object_type = ObjectType.dictionary
 
-    def __new__(cls, d: Optional[Mapping] = None, **kwargs) -> 'Dictionary':
+    def __new__(cls, d: Mapping | None = None, **kwargs) -> Dictionary:
         """
         Constructs a PDF Dictionary from either a Python ``dict`` or keyword
         arguments.
@@ -237,9 +238,7 @@ class Stream(Object, metaclass=_ObjectMeta):
 
     object_type = ObjectType.stream
 
-    def __new__(
-        cls, owner: 'Pdf', data: Optional[bytes] = None, d=None, **kwargs
-    ) -> 'Stream':
+    def __new__(cls, owner: Pdf, data: bytes | None = None, d=None, **kwargs) -> Stream:
         """
         Create a new stream object, which stores arbitrary binary data and may
         or may not be compressed. It also may or may not be a page or

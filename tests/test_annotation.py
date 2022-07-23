@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 from conftest import needs_libqpdf_v
 

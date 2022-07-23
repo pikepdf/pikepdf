@@ -5,6 +5,8 @@
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
 
+from __future__ import annotations
+
 try:
     from importlib_metadata import version as _package_version  # type: ignore
 except ImportError:

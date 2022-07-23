@@ -9,7 +9,9 @@ Support functions called by the C++ library binding layer. Not intended to be
 called from Python, and subject to change at any time.
 """
 
-from typing import Callable, Dict, Union
+from __future__ import annotations
+
+from typing import Callable
 from warnings import warn
 
 from pikepdf import Dictionary, Name, Pdf
@@ -65,7 +67,7 @@ def _roman(n: int) -> str:
     return roman
 
 
-LABEL_STYLE_MAP: Dict[Name, Callable[[int], str]] = {
+LABEL_STYLE_MAP: dict[Name, Callable[[int], str]] = {
     Name.D: str,
     Name.A: _alpha,
     Name.a: lambda x: _alpha(x).lower(),
@@ -74,7 +76,7 @@ LABEL_STYLE_MAP: Dict[Name, Callable[[int], str]] = {
 }
 
 
-def label_from_label_dict(label_dict: Union[int, Dictionary]) -> str:
+def label_from_label_dict(label_dict: int | Dictionary) -> str:
     """Convert a label dictionary returned by QPDF into a text string."""
 
     if isinstance(label_dict, int):

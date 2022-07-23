@@ -4,6 +4,8 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
+from __future__ import annotations
+
 from math import cos, pi, sin
 
 

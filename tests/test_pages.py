@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import gc
 from contextlib import suppress
 from shutil import copy

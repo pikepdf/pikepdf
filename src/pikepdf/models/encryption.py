@@ -4,8 +4,10 @@
 #
 # Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
 
+from __future__ import annotations
+
 import sys
-from typing import TYPE_CHECKING, Any, Dict, NamedTuple, cast
+from typing import TYPE_CHECKING, Any, NamedTuple, cast
 
 if sys.version_info >= (3, 8):
     from typing import Literal
@@ -68,7 +70,7 @@ class EncryptionInfo:
     a PDF, due to non-overlapping information requirements.
     """
 
-    def __init__(self, encdict: Dict[str, Any]):
+    def __init__(self, encdict: dict[str, Any]):
         self._encdict = encdict
 
     @property
@@ -90,17 +92,17 @@ class EncryptionInfo:
         return int(self._encdict['P'])
 
     @property
-    def stream_method(self) -> 'EncryptionMethod':
+    def stream_method(self) -> EncryptionMethod:
         """Encryption method used to encode streams."""
         return cast('EncryptionMethod', self._encdict['stream'])
 
     @property
-    def string_method(self) -> 'EncryptionMethod':
+    def string_method(self) -> EncryptionMethod:
         """Encryption method used to encode strings."""
         return cast('EncryptionMethod', self._encdict['string'])
 
     @property
-    def file_method(self) -> 'EncryptionMethod':
+    def file_method(self) -> EncryptionMethod:
         """Encryption method used to encode the whole file."""
         return cast('EncryptionMethod', self._encdict['file'])
 

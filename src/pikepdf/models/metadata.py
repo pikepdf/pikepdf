@@ -4,6 +4,8 @@
 #
 # Copyright (C) 2018, James R. Barlow (https://github.com/jbarlow83/)
 
+from __future__ import annotations
+
 import logging
 import re
 import sys
@@ -11,19 +13,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from functools import wraps
 from io import BytesIO
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    List,
-    NamedTuple,
-    Optional,
-    Set,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Callable, NamedTuple, Set
 from warnings import warn
 
 from lxml import etree
@@ -53,7 +43,7 @@ XMP_NS_XMP = "http://ns.adobe.com/xap/1.0/"
 XMP_NS_XMP_MM = "http://ns.adobe.com/xap/1.0/mm/"
 XMP_NS_XMP_RIGHTS = "http://ns.adobe.com/xap/1.0/rights/"
 
-DEFAULT_NAMESPACES: List[Tuple[str, str]] = [
+DEFAULT_NAMESPACES: list[tuple[str, str]] = [
     ('adobe:ns:meta/', 'x'),
     (XMP_NS_DC, 'dc'),
     (XMP_NS_PDF, 'pdf'),
@@ -87,7 +77,7 @@ XPACKET_END = b"""\n<?xpacket end="w"?>\n"""
 
 class XmpContainer(NamedTuple):
     rdf_type: str
-    py_type: Type
+    py_type: type
     insert_fn: Callable
 
 
@@ -147,7 +137,7 @@ def _parser_replace_with_empty_xmp(_xml: bytes = b''):
     return _parser_basic(XMP_EMPTY)
 
 
-def _clean(s: Union[str, Iterable[str]], joiner: str = '; ') -> str:
+def _clean(s: str | Iterable[str], joiner: str = '; ') -> str:
     """Ensure an object can safely be inserted in a XML tag body.
 
     If we still have a non-str object at this point, the best option is to
@@ -226,18 +216,18 @@ def decode_pdf_date(s: str) -> datetime:
 class Converter(ABC):
     @staticmethod
     @abstractmethod
-    def xmp_from_docinfo(docinfo_val: Optional[str]) -> Any:  # type: ignore
+    def xmp_from_docinfo(docinfo_val: str | None) -> Any:  # type: ignore
         "Derive XMP metadata from a DocumentInfo string"
 
     @staticmethod
     @abstractmethod
-    def docinfo_from_xmp(xmp_val: Any) -> Optional[str]:
+    def docinfo_from_xmp(xmp_val: Any) -> str | None:
         "Derive a DocumentInfo value from equivalent XMP metadata"
 
 
 class AuthorConverter(Converter):
     @staticmethod
-    def xmp_from_docinfo(docinfo_val: Optional[str]) -> Any:  # type: ignore
+    def xmp_from_docinfo(docinfo_val: str | None) -> Any:  # type: ignore
         return [docinfo_val]
 
     @staticmethod
@@ -272,7 +262,7 @@ class DocinfoMapping(NamedTuple):
     ns: str
     key: str
     name: Name
-    converter: Optional[Type[Converter]]
+    converter: type[Converter] | None
 
 
 def ensure_loaded(fn):
@@ -316,7 +306,7 @@ class PdfMetadata(MutableMapping):
         :meth:`pikepdf.Pdf.open_metadata`
     """
 
-    DOCINFO_MAPPING: List[DocinfoMapping] = [
+    DOCINFO_MAPPING: list[DocinfoMapping] = [
         DocinfoMapping(XMP_NS_DC, 'creator', Name.Author, AuthorConverter),
         DocinfoMapping(XMP_NS_DC, 'description', Name.Subject, None),
         DocinfoMapping(XMP_NS_DC, 'title', Name.Title, None),
@@ -327,8 +317,8 @@ class PdfMetadata(MutableMapping):
         DocinfoMapping(XMP_NS_XMP, 'ModifyDate', Name.ModDate, DateConverter),
     ]
 
-    NS: Dict[str, str] = {prefix: uri for uri, prefix in DEFAULT_NAMESPACES}
-    REVERSE_NS: Dict[str, str] = dict(DEFAULT_NAMESPACES)
+    NS: dict[str, str] = {prefix: uri for uri, prefix in DEFAULT_NAMESPACES}
+    REVERSE_NS: dict[str, str] = dict(DEFAULT_NAMESPACES)
 
     _PARSERS_OVERWRITE_INVALID_XML: Iterable[Callable[[bytes], Any]] = [
         _parser_basic,
@@ -340,7 +330,7 @@ class PdfMetadata(MutableMapping):
 
     def __init__(
         self,
-        pdf: 'Pdf',
+        pdf: Pdf,
         pikepdf_mark: bool = True,
         sync_docinfo: bool = True,
         overwrite_invalid_xml: bool = True,
@@ -545,7 +535,7 @@ class PdfMetadata(MutableMapping):
             self._update_docinfo()
 
     @classmethod
-    def _qname(cls, name: Union[QName, str]) -> str:
+    def _qname(cls, name: QName | str) -> str:
         """Convert name to an XML QName
 
         e.g. pdf:Producer -> {http://ns.adobe.com/pdf/1.3/}Producer
@@ -610,7 +600,7 @@ class PdfMetadata(MutableMapping):
                 raise ValueError("Metadata seems to be XML but not XMP")
         return rdf
 
-    def _get_elements(self, name: Union[str, QName] = ''):
+    def _get_elements(self, name: str | QName = ''):
         """Get elements from XMP
 
         Core routine to find elements matching name within the XMP and yield
@@ -654,11 +644,11 @@ class PdfMetadata(MutableMapping):
         yield from (v[2] for v in self._get_elements(name))
 
     @ensure_loaded
-    def __contains__(self, key: Union[str, QName]):
+    def __contains__(self, key: str | QName):
         return any(self._get_element_values(key))
 
     @ensure_loaded
-    def __getitem__(self, key: Union[str, QName]):
+    def __getitem__(self, key: str | QName):
         try:
             return next(self._get_element_values(key))
         except StopIteration:
@@ -678,8 +668,8 @@ class PdfMetadata(MutableMapping):
 
     def _setitem(
         self,
-        key: Union[str, QName],
-        val: Union[Set[str], List[str], str],
+        key: str | QName,
+        val: set[str] | list[str] | str,
         applying_mark: bool = False,
     ):
         if not self._updating:
@@ -720,7 +710,7 @@ class PdfMetadata(MutableMapping):
             c.rdf_type for c in XMP_CONTAINERS if isinstance(items, c.py_type)
         )
         seq = etree.SubElement(node, str(QName(XMP_NS_RDF, rdf_type)))
-        tag_attrib: Optional[Dict[str, str]] = None
+        tag_attrib: dict[str, str] | None = None
         if rdf_type == 'Alt':
             tag_attrib = {str(QName(XMP_NS_XML, 'lang')): 'x-default'}
         for item in items:
@@ -780,11 +770,11 @@ class PdfMetadata(MutableMapping):
             raise TypeError(f"Setting {key} to {val} with type {type(val)}") from None
 
     @ensure_loaded
-    def __setitem__(self, key: Union[str, QName], val: Union[Set[str], List[str], str]):
+    def __setitem__(self, key: str | QName, val: set[str] | list[str] | str):
         return self._setitem(key, val, False)
 
     @ensure_loaded
-    def __delitem__(self, key: Union[str, QName]):
+    def __delitem__(self, key: str | QName):
         if not self._updating:
             raise RuntimeError("Metadata not opened for editing, use with block")
         try:

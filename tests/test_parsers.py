@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import shutil
 import sys
 from subprocess import PIPE, run

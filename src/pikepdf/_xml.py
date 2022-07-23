@@ -5,7 +5,9 @@
 # Copyright (C) 2021, James R. Barlow (https://github.com/jbarlow83/)
 
 
-from typing import IO, Any, AnyStr, Union
+from __future__ import annotations
+
+from typing import IO, Any, AnyStr
 
 from lxml.etree import XMLParser as _UnsafeXMLParser
 from lxml.etree import _ElementTree
@@ -21,7 +23,7 @@ class _XMLParser(_UnsafeXMLParser):
         super().__init__(*args, **kwargs)
 
 
-def parse_xml(source: Union[AnyStr, IO[Any]], recover: bool = False) -> _ElementTree:
+def parse_xml(source: AnyStr | IO[Any], recover: bool = False) -> _ElementTree:
     """Wrapper around lxml's parse to provide protection against XXE attacks."""
 
     parser = _XMLParser(recover=recover, remove_pis=False)
