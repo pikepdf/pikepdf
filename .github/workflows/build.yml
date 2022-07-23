@@ -255,7 +255,7 @@ jobs:
         run: |
           curl -X POST -d "branches=${{ steps.get_branch.outputs.branch }}" \
                        -d "token=${{ secrets.RTDS_WEBHOOK_TOKEN }}" \
-                       "${{ secrets.RTDS_WEBHOOK_URL }}""
+                       "${{ secrets.RTDS_WEBHOOK_URL }}"
         if: ${{ steps.setvar.outputs.have_secrets == 'true' }}
 
   upload_pypi:
