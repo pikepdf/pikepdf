@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from enum import Enum
 from itertools import chain
-from typing import Iterable, cast
+from typing import Iterable, List, cast
 
 from pikepdf import Array, Dictionary, Name, Object, Page, Pdf, String
 
@@ -409,4 +409,4 @@ class Outline:
     def root(self) -> list[OutlineItem]:
         if self._root is None:
             self._load()
-        return cast(list[OutlineItem], self._root)
+        return cast(List[OutlineItem], self._root)
