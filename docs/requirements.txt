@@ -17,4 +17,6 @@ sphinx-design
 sphinx-rtd-theme
 tomli; python_version < '3.11'
 
-rtds-action
+GitPython
+PyGithub
+requests
