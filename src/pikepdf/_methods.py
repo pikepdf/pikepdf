@@ -23,22 +23,11 @@ from io import BytesIO
 from pathlib import Path
 from subprocess import run
 from tempfile import NamedTemporaryFile
-from typing import (
-    BinaryIO,
-    Callable,
-    ItemsView,
-    Iterator,
-    List,
-    Optional,
-    Tuple,
-    TypeVar,
-    Union,
-    ValuesView,
-)
+from typing import BinaryIO, Callable, ItemsView, Iterator, TypeVar, ValuesView
 from warnings import warn
 
 from . import Array, Dictionary, Name, Object, Page, Pdf, Stream
-from ._augments import augment_if_no_cpp, augment_override_cpp, augments
+from ._augments import augment_override_cpp, augments
 from ._qpdf import (
     AccessMode,
     AttachedFile,
@@ -1119,15 +1108,15 @@ class Extend_Page:
     def __setattr__(self, name, value):
         if hasattr(self.__class__, name):
             object.__setattr__(self, name, value)
-            return
-        setattr(self.obj, name, value)
+        else:
+            setattr(self.obj, name, value)
 
     @augment_override_cpp
     def __delattr__(self, name):
         if hasattr(self.__class__, name):
             object.__delattr__(self, name)
-            return
-        delattr(self.obj, name)
+        else:
+            delattr(self.obj, name)
 
     def __getitem__(self, key):
         return self.obj[key]
