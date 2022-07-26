@@ -1,3 +1,9 @@
+v5.4.1
+======
+
+-  Chores. Fix ReadTheDocs build, update versions, fix a test warning, improve
+   coverage, modernize type annotations.
+
 v5.4.0
 ======
 
