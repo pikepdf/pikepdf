@@ -229,10 +229,27 @@ jobs:
           name: wheels
           path: dist/*.tar.gz
 
+  upload_pypi:
+    needs: [wheels_linux, wheels_linux_arm, wheels_macos, wheels_windows, sdist]
+    runs-on: ubuntu-latest
+    # upload to PyPI on every tag starting with 'v'
+    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: wheels
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ secrets.TOKEN_PYPI }}
+          # repository_url: https://test.pypi.org/legacy/
+
   trigger_rtd:
     name: Trigger ReadTheDocs
     runs-on: ubuntu-latest
-    needs: [wheels_linux]
+    needs: [upload_pypi]
     if: startsWith(github.ref, 'refs/heads/') && !startsWith(github.ref, 'refs/heads/actions')
     steps:
       - name: Check for secrets
@@ -257,20 +274,3 @@ jobs:
                        -d "token=${{ secrets.RTDS_WEBHOOK_TOKEN }}" \
                        "${{ secrets.RTDS_WEBHOOK_URL }}"
         if: ${{ steps.setvar.outputs.have_secrets == 'true' }}
-
-  upload_pypi:
-    needs: [wheels_linux, wheels_linux_arm, wheels_macos, wheels_windows, sdist]
-    runs-on: ubuntu-latest
-    # upload to PyPI on every tag starting with 'v'
-    if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
-    steps:
-      - uses: actions/download-artifact@v3
-        with:
-          name: wheels
-          path: dist
-
-      - uses: pypa/gh-action-pypi-publish@master
-        with:
-          user: __token__
-          password: ${{ secrets.TOKEN_PYPI }}
-          # repository_url: https://test.pypi.org/legacy/
