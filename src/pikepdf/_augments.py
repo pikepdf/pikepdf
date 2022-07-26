@@ -4,6 +4,8 @@
 #
 # Copyright (C) 2022, James R. Barlow (https://github.com/jbarlow83/)
 
+"""A peculiar method of monkeypatching C++ binding classes with Python methods."""
+
 from __future__ import annotations
 
 import inspect
@@ -22,7 +24,7 @@ class AugmentedCallable(Protocol):
     _augment_if_no_cpp: bool
 
     def __call__(self, *args, **kwargs) -> Any:
-        ...
+        ...  # pragma: no cover
 
 
 def augment_override_cpp(fn: AugmentedCallable) -> AugmentedCallable:
@@ -113,9 +115,10 @@ def augments(cls_cpp: type[Tcpp]):
                 and not getattr(getattr(cls, name), '_augment_override_cpp', False)
             ):
                 if getattr(getattr(cls, name), '_augment_if_no_cpp', False):
-                    # If tagged as "augment if no C++", we are supported older pybind11
-                    # versions that may not define some functions. If pybind11 provides
-                    # the required function, don't override it.
+                    # If tagged as "augment if no C++", we only want the binding to be
+                    # applied when the primary class does not provide a C++
+                    # implementation. Usually this would be a function that not is
+                    # provided by pybind11 in some template.
                     continue
 
                 # If the original C++ class and Python support class both define the
@@ -125,7 +128,7 @@ def augments(cls_cpp: type[Tcpp]):
                 # implementation. Also, pybind11 provides defaults for __eq__,
                 # __hash__ and __repr__ that we often do want to override directly.
 
-                raise RuntimeError(  # pragma: no cover
+                raise RuntimeError(
                     f"C++ {cls_cpp} and Python {cls} both define the same "
                     f"non-abstract method {name}: "
                     f"{getattr(cls_cpp, name, '')!r}, "
