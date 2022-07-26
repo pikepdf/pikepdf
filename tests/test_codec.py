@@ -81,6 +81,7 @@ pdfdoc_text = text(
         whitelist_categories=('N', 'L', 'M', 'P', 'Cs'),
         whitelist_characters=[chr(c) for c in pikepdf.codec.PDFDOC_ENCODABLE],
     ),
+    max_size=1000,
 )
 
 
