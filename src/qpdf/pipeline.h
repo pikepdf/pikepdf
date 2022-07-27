@@ -1,10 +1,5 @@
-/*
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- * Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
- */
+// SPDX-FileCopyrightText: 2022 James R. Barlow
+// SPDX-License-Identifier: MPL-2.0
 
 #pragma once
 
@@ -33,11 +28,11 @@ public:
     {
     }
 
-    virtual ~Pl_PythonOutput()               = default;
-    Pl_PythonOutput(const Pl_PythonOutput &) = delete;
+    virtual ~Pl_PythonOutput()                          = default;
+    Pl_PythonOutput(const Pl_PythonOutput &)            = delete;
     Pl_PythonOutput &operator=(const Pl_PythonOutput &) = delete;
     Pl_PythonOutput(Pl_PythonOutput &&)                 = delete;
-    Pl_PythonOutput &operator=(Pl_PythonOutput &&) = delete;
+    Pl_PythonOutput &operator=(Pl_PythonOutput &&)      = delete;
 
     void write(unsigned char *buf, size_t len) override;
     void finish() override;

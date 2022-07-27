@@ -1,8 +1,5 @@
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at http://mozilla.org/MPL/2.0/.
-#
-# Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
+# SPDX-FileCopyrightText: 2022 James R. Barlow
+# SPDX-License-Identifier: MPL-2.0
 
 from __future__ import annotations
 
@@ -16,7 +13,7 @@ from ._qpdf import pdf_doc_to_utf8, utf8_to_pdf_doc
 # See PDF Reference Manual 1.7, Table D.2.
 # The following generates set of all Unicode code points that can be encoded in
 # pdfdoc. Since pdfdoc is 8-bit, the vast majority of code points cannot be.
-#
+
 # Due to a bug, QPDF <= 10.5 and pikepdf < 5 had some inconsistencies around
 # PdfDocEncoding.
 PDFDOC_ENCODABLE = frozenset(

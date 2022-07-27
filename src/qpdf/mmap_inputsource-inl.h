@@ -1,10 +1,5 @@
-/*
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- * Copyright (C) 2017, James R. Barlow (https://github.com/jbarlow83/)
- */
+// SPDX-FileCopyrightText: 2022 James R. Barlow
+// SPDX-License-Identifier: MPL-2.0
 
 #include <cstdio>
 #include <cstring>
@@ -100,10 +95,10 @@ public:
                 std::cerr << "Exception in " << __func__ << ": " << e.what();
         }
     }
-    MmapInputSource(const MmapInputSource &) = delete;
+    MmapInputSource(const MmapInputSource &)            = delete;
     MmapInputSource &operator=(const MmapInputSource &) = delete;
     MmapInputSource(MmapInputSource &&)                 = delete;
-    MmapInputSource &operator=(MmapInputSource &&) = delete;
+    MmapInputSource &operator=(MmapInputSource &&)      = delete;
 
     std::string const &getName() const override { return this->bis->getName(); }
 

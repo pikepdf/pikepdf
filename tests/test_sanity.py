@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2022 James R. Barlow
+# SPDX-License-Identifier: CC0-1.0
+
 """
 A bunch of quick tests that confirm nothing is horribly wrong
 """
