@@ -394,7 +394,7 @@ void init_object(py::module_ &m)
         .def(
             "__eq__",
             [](QPDFObjectHandle &self, QPDFObjectHandle &other) {
-                return (self == other); // overloaded
+                return objecthandle_equal(self, other);
             },
             py::is_operator())
         .def(
@@ -438,7 +438,7 @@ void init_object(py::module_ &m)
                     return py::reinterpret_borrow<py::object>(
                         py::handle(Py_NotImplemented));
                 }
-                bool result = (self == q_other);
+                bool result = objecthandle_equal(self, q_other);
                 return py::bool_(result);
             },
             py::is_operator())
