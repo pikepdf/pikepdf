@@ -1127,9 +1127,6 @@ class Extend_Page:
     def __contains__(self, key):
         return key in self.obj
 
-    def __eq__(self, other):
-        return self.obj == other.obj
-
     def get(self, key, default=None):
         try:
             return self[key]

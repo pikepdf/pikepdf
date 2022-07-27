@@ -994,12 +994,14 @@ void init_object(py::module_ &m)
 
             Used to expose additional functionality specific to that object type.
         )~~~")
-        .def("__eq__",
+        .def(
+            "__eq__",
             [](QPDFObjectHelper &self, QPDFObjectHelper &other) {
                 // Pages that are copies
                 return objecthandle_equal(
                     self.getObjectHandle(), other.getObjectHandle());
-            })
+            },
+            py::is_operator())
         .def_property_readonly(
             "obj",
             [](QPDFObjectHelper &poh) -> QPDFObjectHandle {

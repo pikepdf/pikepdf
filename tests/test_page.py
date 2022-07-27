@@ -242,6 +242,8 @@ def test_page_equal(fourpages, graph):
     assert graph.pages[1] == graph.pages[0]
     assert copy.copy(graph.pages[1]) == graph.pages[0]
 
+    assert graph.pages[0] != "dissimilar type"
+
 
 def test_cant_hash_page(graph):
     with pytest.raises(TypeError, match="unhashable"):
