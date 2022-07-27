@@ -109,6 +109,13 @@ void init_nametree(py::module_ &m)
             "obj",
             [](NameTreeHolder &nt) { return nt.getObjectHandle(); },
             "Returns the underlying root object for this name tree.")
+        .def(
+            "__eq__",
+            [](NameTreeHolder &self, NameTreeHolder &other) {
+                return objecthandle_equal(
+                    self.getObjectHandle(), other.getObjectHandle());
+            },
+            py::is_operator())
         .def_property_readonly("_pikepdf_disallow_objecthandle_encode",
             [](NameTreeHolder &nt) { return true; })
         .def("__contains__",

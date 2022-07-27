@@ -1283,9 +1283,6 @@ class Extend_AttachedFile:
 
 @augments(NameTree)
 class Extend_NameTree:
-    def __eq__(self, other):
-        return self.obj == other.obj
-
     def keys(self):
         return KeysView(self._as_map())
 
@@ -1308,9 +1305,6 @@ MutableMapping.register(NameTree)
 
 @augments(NumberTree)
 class Extend_NumberTree:
-    def __eq__(self, other):
-        return self.obj == other.obj
-
     def keys(self):
         return KeysView(self._as_map())
 
