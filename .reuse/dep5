@@ -37,17 +37,12 @@ Files:
 Copyright: (C) 2022 James R. Barlow
 License: CC-BY-SA-4.0
 
-Files: debian/*
-Copyright: (C) 2018 Sean Whitton <spwhitton@spwhitton.name>
-License: MPL-2.0
-
 Files: docs/images/pike.png tests/resources/pike*jp2.pdf
 Copyright: Public domain
 License: Public-domain
  From the U.S. Fish and Wildlife Service National Image Library.
  .
  See: https://en.wikipedia.org/wiki/File:Esox_lucius1.jpg
-Comment: Maximum resolution version is in debian/missing-sources/.
 
 Files: docs/images/pike-release.jpg
 Copyright: (C) 2014 Azerty197666
