@@ -1,8 +1,15 @@
+v5.4.2
+======
+
+-  Fixed ``Pages.__eq__`` not returning NotImplemented when it ought to.
+-  Fixed possible problems with ``NameTree`` and ``NumberTree.__eq__`` operators.
+-  Changed to SPDX license headers throughout.
+
 v5.4.1
 ======
 
--  Chores. Fix ReadTheDocs build, update versions, fix a test warning, improve
-   coverage, modernize type annotations.
+-  Chores. Fixed ReadTheDocs build, updated versions, fixed a test warning, improved
+   coverage, modernized type annotations.
 
 v5.4.0
 ======
