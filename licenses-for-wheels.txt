@@ -1,38 +1,36 @@
-This license text file is for Python wheels built from the pikepdf source
-distribution.  See LICENSE.txt in the pikepdf source distribution for its
-primary source license.
+========================================================
+Licenses for Python wheels built from the pikepdf source
+========================================================
 
-=====================
-pikepdf wheel license
-=====================
+This text file describes the licenses involved in pikepdf wheels. 
+pikepdf wheels contain an Executable Form and/or Object form 
+distribution ("Object Forms") of pikepdf, and third-party Object Forms.
 
-This Python wheel is a Executable Form and/or Object form distribution
-of pikepdf, qpdf, and other libraries prepared for ease of use.
+See LICENSE.txt in the pikepdf source repository for its primary source code 
+license, the LICENSES/ folder, and .reuse/dep5 for a description of files that
+have other licenses. Since pikepdf wheels do not distribute all of the pikepdf 
+source repository, some licenses included there do not apply to pikepdf 
+wheels.
 
-By using or distributing this software you agree to the terms of the license
-agreements herein.
+pikepdf wheels include Object Forms of:
+- pikepdf (https://github.com/pikepdf/pikepdf), SPDX-License-Identifier: MPL-2.0
+- qpdf (https://github.com/qpdf/qpdf), SPDX-License-Identifier: Apache-2.0
 
-It includes primarily code from two open source projects:
-- pikepdf (https://github.com/pikepdf/pikepdf), licensed under
-Mozilla Public License Version 2.0
-- qpdf (https://github.com/qpdf/qpdf), licensed under
-Apache Software License Version 2.0
+On some platforms, pikepdf wheels may also include Object Forms of:
+- libjpeg, SPDX-License-Identifier: IJG
+- zlib (https://www.zlib.net/), SPDX-License-Identifier: Zlib
 
-On some platforms, it may also included:
-- libjpeg, licensed under the Independent JPEG Group License
-- zlib (https://www.zlib.net/), licensed under the Zlib License
-
-On Microsoft Windows, it will include:
+On Microsoft Windows, pikepdf wheels also include Object Forms of:
 - Microsoft Visual C++ Runtime Files, distributed under section "4. Distributable
   Code" of the Microsoft Software License Terms
   (https://visualstudio.microsoft.com/license-terms/mlt031619/).
 
-These licenses apply to the installation, use and distribution of this
-wheel.  Refer to their web pages for full details of license and
+These licenses apply to the installation, use and distribution of pikepdf
+wheels.  Refer to their web pages for full details of license and
 copyright information.
 
 The text of each license agreement follows. For the Microsoft Visual C++ Runtime
-Files, we include a brief summary of relevant terms from the full agreement.
+Files, we include a brief excerpt of relevant terms from the full agreement.
 
 ==================================
 Mozilla Public License Version 2.0

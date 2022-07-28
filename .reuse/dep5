@@ -5,6 +5,7 @@ Source: https://github.com/pikepdf/pikepdf
 
 Files:
   setup.cfg
+  licenses-for-wheels.txt
 Copyright: (C) 2022 James R. Barlow
 License: MPL-2.0
 
