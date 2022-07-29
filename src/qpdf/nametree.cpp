@@ -80,8 +80,8 @@ void init_nametree(py::module_ &m)
 {
     py::class_<NameTreeHolder>(m, "NameTree")
         .def(py::init<QPDFObjectHandle, bool>(),
-            py::arg("oh"),
-            py::kw_only(),
+            py::arg("oh"), // LCOV_EXCL_LINE
+            py::kw_only(), // LCOV_EXCL_LINE
             py::arg("auto_repair") = true,
             py::keep_alive<0, 1>())
         .def_static(
@@ -89,7 +89,7 @@ void init_nametree(py::module_ &m)
             [](QPDF &pdf, bool auto_repair = true) {
                 return NameTreeHolder::newEmpty(pdf, auto_repair);
             },
-            py::arg("pdf"),
+            py::arg("pdf"), // LCOV_EXCL_LINE
             py::kw_only(),
             py::arg("auto_repair") = true,
             py::keep_alive<0, 1>(),
