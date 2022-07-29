@@ -103,7 +103,7 @@ void init_page(py::module_ &m)
             [](QPDFPageObjectHelper &poh, QPDFObjectHandle &contents, bool prepend) {
                 return poh.addPageContents(contents, prepend);
             },
-            py::arg("contents"),
+            py::arg("contents"), // LCOV_EXCL_LINE
             py::kw_only(),
             py::arg("prepend") = false)
         .def(
@@ -136,7 +136,7 @@ void init_page(py::module_ &m)
                 multiple pages.
             )~~~")
         .def("as_form_xobject",
-            &QPDFPageObjectHelper::getFormXObjectForPage,
+            &QPDFPageObjectHelper::getFormXObjectForPage, // LCOV_EXCL_LINE
             py::arg("handle_transformations") = true,
             R"~~~(
                 Return a form XObject that draws this page.
@@ -172,10 +172,10 @@ void init_page(py::module_ &m)
                     allow_shrink,
                     allow_expand));
             },
-            py::arg("formx"),
+            py::arg("formx"), // LCOV_EXCL_LINE
             py::arg("name"),
             py::arg("rect"),
-            py::kw_only(),
+            py::kw_only(), // LCOV_EXCL_LINE
             py::arg("invert_transformations") = true,
             py::arg("allow_shrink")           = true,
             py::arg("allow_expand")           = false,
@@ -213,7 +213,7 @@ void init_page(py::module_ &m)
                 auto size = buf->getSize();
                 return py::bytes(data, size);
             },
-            py::arg("tf"),
+            py::arg("tf"), // LCOV_EXCL_LINE
             R"~~~(
                 Apply a :class:`pikepdf.TokenFilter` to a content stream, without modifying it.
 

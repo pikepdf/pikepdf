@@ -349,7 +349,7 @@ def test_foreign_copied_pages_are_true_copies(graph, outpdf):
         out.pages.append(graph.pages[0])
 
     for n in [0, 2]:
-        out.pages[n].Rotate = 180
+        out.pages[n].rotate(180, relative=True)
 
     out.save(outpdf)
     with Pdf.open(outpdf) as reopened:

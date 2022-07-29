@@ -261,6 +261,13 @@ def test_contents_add(graph):
     assert graph.pages[0].Contents.read_bytes().endswith(b'q Q')
 
 
+def test_remove_unrefed(graph):
+    assert len(graph.pages[0].Resources.XObject) != 0
+    graph.pages[0].Contents = graph.make_stream(b'')
+    graph.pages[0].remove_unreferenced_resources()
+    assert len(graph.pages[0].Resources.XObject) == 0
+
+
 def test_page_attrs(graph):
     # Test __getattr__
     assert isinstance(graph.pages[0].Resources, Dictionary)
