@@ -70,7 +70,7 @@ private:
     {
         QPDFObjectHandle *src = const_cast<QPDFObjectHandle *>(csrc);
         if (!csrc)
-            return none().release();
+            return none().release(); // LCOV_EXCL_LINE
 
         bool primitive = true;
         handle h;
@@ -181,7 +181,7 @@ private:
     {
         QPDFPageObjectHelper *src = const_cast<QPDFPageObjectHelper *>(csrc);
         if (!csrc)
-            return none().release();
+            return none().release(); // LCOV_EXCL_LINE
 
         handle h;
 
@@ -286,7 +286,7 @@ inline void python_warning(const char *msg, PyObject *category = PyExc_UserWarni
 
 inline void deprecation_warning(const char *msg)
 {
-    python_warning(msg, PyExc_DeprecationWarning);
+    python_warning(msg, PyExc_DeprecationWarning); // LCOV_EXCL_LINE
 }
 
 // Support for recursion checks
