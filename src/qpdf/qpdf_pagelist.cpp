@@ -264,7 +264,7 @@ void init_pagelist(py::module_ &m)
                 index (int): location at which to insert page, 0-based indexing
                 obj (pikepdf.Object): page object to insert
             )~~~",
-            py::arg("index"),
+            py::arg("index"), // LCOV_EXCL_LINE
             py::arg("obj"))
         .def(
             "reverse",
