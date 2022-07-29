@@ -730,7 +730,7 @@ void init_object(py::module_ &m)
             },
             "Extend a pikepdf.Array with an iterable of other objects.")
         .def_property_readonly("is_rectangle",
-            &QPDFObjectHandle::isRectangle,
+            &QPDFObjectHandle::isRectangle, // LCOV_EXCL_LINE
             "Returns True if the object is a rectangle (an array of 4 numbers)")
         .def(
             "get_stream_buffer",
@@ -817,7 +817,7 @@ void init_object(py::module_ &m)
                 return og.getInstructions();
             })
         .def_static("_parse_stream",
-            &QPDFObjectHandle::parseContentStream,
+            &QPDFObjectHandle::parseContentStream, // LCOV_EXCL_LINE
             "Helper for parsing PDF content stream; use "
             "``pikepdf.parse_content_stream``.")
         .def_static("_parse_stream_grouped",
@@ -967,6 +967,8 @@ void init_object(py::module_ &m)
             Consider instead using :func:`pikepdf.parse_content_stream`.
         )~~~")
         .def(py::init<>(), "You must call ``super.__init__()`` in subclasses.")
+        // LCOV_EXCL_START
+        // coverage misses the virtual function call ::handleObject here.
         .def(
             "handle_object",
             [](QPDFObjectHandle::ParserCallbacks &parsercallbacks,
@@ -979,6 +981,7 @@ void init_object(py::module_ &m)
                 This function will be called back once for each object that is
                 parsed in the content stream.
             )~~~")
+        // LCOV_EXCL_STOP
         .def("handle_eof",
             &QPDFObjectHandle::ParserCallbacks::handleEOF,
             R"~~~(
