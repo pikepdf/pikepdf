@@ -123,6 +123,11 @@ def test_decimal_from_float(f):
             Object.parse(str(d))
 
 
+def test_qpdf_real_to_decimal():
+    assert isclose(qpdf._new_real(1.2345, 4), Decimal('1.2345'), abs_tol=1e-5)
+    assert isclose(qpdf._new_real('2.3456'), Decimal('2.3456'), abs_tol=1e-5)
+
+
 @skip_if_pypy
 def test_stack_depth():
     a = [42]
