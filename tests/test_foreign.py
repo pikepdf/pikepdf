@@ -101,3 +101,8 @@ def test_copy_foreign_refcount(refcount, vera, outlines):
     assert refcount(outlines.Root.Names) == 2
     vera.Root.Names = vera.copy_foreign(outlines.Root.Names)
     assert refcount(outlines.Root.Names) == 2
+
+
+def test_copy_foreign_page_object(vera, outlines):
+    with pytest.warns(DeprecationWarning, match="use Pdf.pages"):
+        outlines.copy_foreign(vera.pages[0])
