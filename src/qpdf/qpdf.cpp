@@ -45,7 +45,7 @@ void check_stream_is_usable(py::object stream)
     }
 }
 
-void qpdf_basic_settings(QPDF &q)
+void qpdf_basic_settings(QPDF &q) // LCOV_EXCL_LINE
 {
     q.setSuppressWarnings(true);
     q.setImmediateCopyFrom(true);
@@ -548,7 +548,7 @@ void init_qpdf(py::module_ &m)
         .def_property_readonly("extension_level", &QPDF::getExtensionLevel)
         .def_property_readonly("Root", &QPDF::getRoot, "The /Root object of the PDF.")
         .def_property_readonly("trailer",
-            &QPDF::getTrailer,
+            &QPDF::getTrailer, // LCOV_EXCL_LINE
             R"~~~(
             Provides access to the PDF trailer object.
 
@@ -696,7 +696,7 @@ void init_qpdf(py::module_ &m)
             Return type:
                 pikepdf.Object
             )~~~",
-            py::return_value_policy::reference_internal,
+            py::return_value_policy::reference_internal, // LCOV_EXCL_LINE
             py::arg("objgen"))
         .def(
             "get_object",
