@@ -5,7 +5,6 @@
 #include <qpdf/Types.h>
 #include <qpdf/DLL.h>
 #include <qpdf/QPDFExc.hh>
-#include <qpdf/PointerHolder.hh>
 #include <qpdf/QPDFNameTreeObjectHelper.hh>
 
 #include <pybind11/pybind11.h>

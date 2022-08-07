@@ -7,7 +7,6 @@
 #include <vector>
 #include <map>
 
-#include <qpdf/PointerHolder.hh>
 #include <qpdf/QPDF.hh>
 #include <qpdf/QPDFObjectHandle.hh>
 #include <qpdf/QPDFPageObjectHelper.hh>
@@ -21,10 +20,6 @@ using uint = unsigned int;
 namespace pybind11 {
 PYBIND11_RUNTIME_EXCEPTION(notimpl_error, PyExc_NotImplementedError);
 }; // namespace pybind11
-
-// Declare PointerHolder<T> as a smart pointer
-// https://pybind11.readthedocs.io/en/stable/advanced/smart_ptrs.html#custom-smart-pointers
-PYBIND11_DECLARE_HOLDER_TYPE(T, PointerHolder<T>);
 
 // From object_convert.cpp
 pybind11::object decimal_from_pdfobject(QPDFObjectHandle h);

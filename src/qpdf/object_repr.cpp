@@ -21,7 +21,6 @@
 #include <qpdf/DLL.h>
 #include <qpdf/QPDFExc.hh>
 #include <qpdf/QPDFObjGen.hh>
-#include <qpdf/PointerHolder.hh>
 #include <qpdf/Buffer.hh>
 #include <qpdf/QPDFObjectHandle.hh>
 #include <qpdf/QPDF.hh>

@@ -81,6 +81,7 @@ extmodule: Extension = cast(
             # Path to pybind11 headers
             *extra_includes,
         ],
+        define_macros=[('POINTERHOLDER_TRANSITION', '4')],
         library_dirs=[*extra_library_dirs],
         libraries=['qpdf'],
         cxx_std=17,

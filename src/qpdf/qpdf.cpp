@@ -97,7 +97,8 @@ std::shared_ptr<QPDF> open_pdf(py::object filename_or_stream,
         try {
             auto mmap_input_source =
                 std::make_unique<MmapInputSource>(stream, description, closing_stream);
-            auto input_source = PointerHolder<InputSource>(mmap_input_source.release());
+            auto input_source =
+                std::shared_ptr<InputSource>(mmap_input_source.release());
             py::gil_scoped_release release;
             q->processInputSource(input_source, password.c_str());
             success = true;
@@ -115,7 +116,7 @@ std::shared_ptr<QPDF> open_pdf(py::object filename_or_stream,
     if (!success && access_mode == access_stream) {
         auto stream_input_source = std::make_unique<PythonStreamInputSource>(
             stream, description, closing_stream);
-        auto input_source = PointerHolder<InputSource>(stream_input_source.release());
+        auto input_source = std::shared_ptr<InputSource>(stream_input_source.release());
         py::gil_scoped_release release;
         q->processInputSource(input_source, password.c_str());
         success = true;
@@ -476,7 +477,7 @@ void save_pdf(QPDF &q,
     }
 
     if (!progress.is_none()) {
-        auto reporter = PointerHolder<QPDFWriter::ProgressReporter>(
+        auto reporter = std::shared_ptr<QPDFWriter::ProgressReporter>(
             new PikeProgressReporter(progress));
         w.registerProgressReporter(reporter);
     }

@@ -10,7 +10,6 @@
 #include <qpdf/QPDFExc.hh>
 #include <qpdf/QPDFObjGen.hh>
 #include <qpdf/QPDFXRefEntry.hh>
-#include <qpdf/PointerHolder.hh>
 #include <qpdf/Buffer.hh>
 #include <qpdf/QPDFObjectHandle.hh>
 #include <qpdf/QPDF.hh>
@@ -257,11 +256,11 @@ std::pair<int, int> object_get_objgen(QPDFObjectHandle h)
     return std::pair<int, int>(objgen.getObj(), objgen.getGen());
 }
 
-PointerHolder<Buffer> get_stream_data(
+std::shared_ptr<Buffer> get_stream_data(
     QPDFObjectHandle &h, qpdf_stream_decode_level_e decode_level)
 {
     try {
-        PointerHolder<Buffer> buf = h.getStreamData(decode_level);
+        std::shared_ptr<Buffer> buf = h.getStreamData(decode_level);
         return buf;
     } catch (const QPDFExc &e) {
         // Make a new exception that has the objgen info, since QPDF's
@@ -293,7 +292,7 @@ void init_object(py::module_ &m)
         .value("operator", QPDFObject::object_type_e::ot_operator)
         .value("inlineimage", QPDFObject::object_type_e::ot_inlineimage);
 
-    py::class_<Buffer, PointerHolder<Buffer>>(m, "Buffer", py::buffer_protocol())
+    py::class_<Buffer, std::shared_ptr<Buffer>>(m, "Buffer", py::buffer_protocol())
         .def_buffer([](Buffer &b) -> py::buffer_info {
             return py::buffer_info(b.getBuffer(),
                 sizeof(unsigned char),
@@ -680,7 +679,7 @@ void init_object(py::module_ &m)
                 if (h.isName())
                     return py::bytes(h.getName());
                 if (h.isStream()) {
-                    PointerHolder<Buffer> buf = h.getStreamData();
+                    std::shared_ptr<Buffer> buf = h.getStreamData();
                     // py::bytes will make a copy of the buffer, so releasing is fine
                     return py::bytes((const char *)buf->getBuffer(), buf->getSize());
                 }
@@ -743,7 +742,7 @@ void init_object(py::module_ &m)
         .def(
             "get_raw_stream_buffer",
             [](QPDFObjectHandle &h) {
-                PointerHolder<Buffer> phbuf = h.getRawStreamData();
+                std::shared_ptr<Buffer> phbuf = h.getRawStreamData();
                 return phbuf;
             },
             "Return a buffer protocol buffer describing the raw, encoded stream")
@@ -758,7 +757,7 @@ void init_object(py::module_ &m)
         .def(
             "read_raw_bytes",
             [](QPDFObjectHandle &h) {
-                PointerHolder<Buffer> buf = h.getRawStreamData();
+                std::shared_ptr<Buffer> buf = h.getRawStreamData();
                 // py::bytes will make a copy of the buffer, so releasing is fine
                 return py::bytes((const char *)buf->getBuffer(), buf->getSize());
             },

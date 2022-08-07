@@ -5,7 +5,6 @@
 #include <qpdf/Types.h>
 #include <qpdf/DLL.h>
 #include <qpdf/QPDFExc.hh>
-#include <qpdf/PointerHolder.hh>
 #include <qpdf/QPDFFileSpecObjectHelper.hh>
 #include <qpdf/QPDFEFStreamObjectHelper.hh>
 #include <qpdf/QPDFEmbeddedFileDocumentHelper.hh>

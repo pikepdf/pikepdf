@@ -208,7 +208,7 @@ void init_page(py::module_ &m)
                 Pl_Buffer pl_buffer("filter_page");
                 poh.filterContents(&tf, &pl_buffer);
 
-                PointerHolder<Buffer> buf(pl_buffer.getBuffer());
+                std::shared_ptr<Buffer> buf(pl_buffer.getBuffer());
                 auto data = reinterpret_cast<const char *>(buf->getBuffer());
                 auto size = buf->getSize();
                 return py::bytes(data, size);
@@ -233,7 +233,7 @@ void init_page(py::module_ &m)
         .def(
             "add_content_token_filter",
             [](QPDFPageObjectHelper &poh,
-                PointerHolder<QPDFObjectHandle::TokenFilter> tf) {
+                std::shared_ptr<QPDFObjectHandle::TokenFilter> tf) {
                 // TokenFilters may be processed after the Python objects have gone
                 // out of scope, so we need to keep them alive by attaching them to
                 // the corresponding QPDF object.
