@@ -260,8 +260,7 @@ std::shared_ptr<Buffer> get_stream_data(
     QPDFObjectHandle &h, qpdf_stream_decode_level_e decode_level)
 {
     try {
-        std::shared_ptr<Buffer> buf = h.getStreamData(decode_level);
-        return buf;
+        return h.getStreamData(decode_level);
     } catch (const QPDFExc &e) {
         // Make a new exception that has the objgen info, since QPDF's
         // will not
@@ -679,7 +678,7 @@ void init_object(py::module_ &m)
                 if (h.isName())
                     return py::bytes(h.getName());
                 if (h.isStream()) {
-                    std::shared_ptr<Buffer> buf = h.getStreamData();
+                    auto buf = h.getStreamData();
                     // py::bytes will make a copy of the buffer, so releasing is fine
                     return py::bytes((const char *)buf->getBuffer(), buf->getSize());
                 }
@@ -734,17 +733,13 @@ void init_object(py::module_ &m)
         .def(
             "get_stream_buffer",
             [](QPDFObjectHandle &h, qpdf_stream_decode_level_e decode_level) {
-                auto phbuf = get_stream_data(h, decode_level);
-                return phbuf;
+                return get_stream_data(h, decode_level);
             },
             "Return a buffer protocol buffer describing the decoded stream.",
             py::arg("decode_level") = qpdf_dl_generalized)
         .def(
             "get_raw_stream_buffer",
-            [](QPDFObjectHandle &h) {
-                std::shared_ptr<Buffer> phbuf = h.getRawStreamData();
-                return phbuf;
-            },
+            [](QPDFObjectHandle &h) { return h.getRawStreamData(); },
             "Return a buffer protocol buffer describing the raw, encoded stream")
         .def(
             "read_bytes",
@@ -757,7 +752,7 @@ void init_object(py::module_ &m)
         .def(
             "read_raw_bytes",
             [](QPDFObjectHandle &h) {
-                std::shared_ptr<Buffer> buf = h.getRawStreamData();
+                auto buf = h.getRawStreamData();
                 // py::bytes will make a copy of the buffer, so releasing is fine
                 return py::bytes((const char *)buf->getBuffer(), buf->getSize());
             },
@@ -947,10 +942,9 @@ void init_object(py::module_ &m)
         "can be coerced to PDF objects.");
     m.def(
         "_new_stream",
-        [](std::shared_ptr<QPDF> owner, py::bytes data) {
-            std::string s = data;
-            return QPDFObjectHandle::newStream(owner.get(),
-                data); // This makes a copy of the data
+        [](QPDF &owner, py::bytes data) {
+            // This makes a copy of the data
+            return QPDFObjectHandle::newStream(&owner, data);
         },
         "Construct a PDF Stream object from binary data");
     m.def(
