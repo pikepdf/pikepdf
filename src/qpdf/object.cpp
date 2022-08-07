@@ -600,9 +600,9 @@ void init_object(py::module_ &m)
             py::return_value_policy::reference_internal)
         .def(
             "keys",
-            [](QPDFObjectHandle h) {
+            [](QPDFObjectHandle &h) {
                 if (h.isStream())
-                    h = h.getDict();
+                    return h.getDict().getKeys();
                 return h.getKeys();
             },
             "For ``pikepdf.Dictionary`` or ``pikepdf.Stream`` objects, obtain the "
