@@ -16,17 +16,6 @@
 #include <qpdf/QUtil.hh>
 #include <qpdf/Pipeline.hh>
 
-// LCOV_EXCL_START
-unsigned char *pipeline_caster(const char *s)
-{
-    // QPDF indicates Pipeline::write(unsigned char*) is effectively const
-    // but not actually const for historical reasons, so we can discard the const.
-    // unsigned char* to char* should be safe.
-    // Excluded from coverage since this compiles to nothing after type checking.
-    return const_cast<unsigned char *>(reinterpret_cast<const unsigned char *>(s));
-}
-// LCOV_EXCL_STOP
-
 class Pl_JBIG2 : public Pipeline {
 public:
     Pl_JBIG2(const char *identifier,
@@ -38,7 +27,7 @@ public:
     }
     virtual ~Pl_JBIG2() = default;
 
-    virtual void write(unsigned char *data, size_t len) override
+    virtual void write(const unsigned char *data, size_t len) override
     {
         this->ss.write(reinterpret_cast<const char *>(data), len);
     }
@@ -78,7 +67,7 @@ public:
 
         auto extracted = this->decode_jbig2(data);
 
-        this->getNext()->write(pipeline_caster(extracted.data()), extracted.length());
+        this->getNext()->write(extracted.data(), extracted.length());
 
         if (this->getNext(true)) {
             this->getNext()->finish();

@@ -853,10 +853,13 @@ void init_object(py::module_ &m)
             )~~~")
         .def(
             "to_json",
-            [](QPDFObjectHandle &h, bool dereference = false) -> py::bytes {
-                return h.getJSON(dereference).unparse();
+            [](QPDFObjectHandle &h,
+                bool dereference   = false,
+                int schema_version = 2) -> py::bytes {
+                return h.getJSON(schema_version, dereference).unparse();
             },
-            py::arg("dereference") = false,
+            py::arg("schema_version") = 2,
+            py::arg("dereference")    = false,
             R"~~~(
             Convert to a QPDF JSON representation of the object.
 
@@ -879,12 +882,16 @@ void init_object(py::module_ &m)
             Args:
                 dereference (bool): If True, dereference the object is this is an
                     indirect object.
+                schema_version (int): The version of the JSON schema. Defaults to 2.
 
             Returns:
                 JSON bytestring of object. The object is UTF-8 encoded
                 and may be decoded to a Python str that represents the binary
                 values ``\x00-\xFF`` as ``U+0000`` to ``U+00FF``; that is,
                 it may contain mojibake.
+
+            .. versionchanged:: 6.0
+                Added *schema_version*.
             )~~~"); // end of QPDFObjectHandle bindings
 
     m.def("_new_boolean", &QPDFObjectHandle::newBool, "Construct a PDF Boolean object");

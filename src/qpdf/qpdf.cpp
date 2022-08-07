@@ -295,7 +295,7 @@ void setup_encryption(QPDFWriter &w, py::object encryption_obj)
             print,
             metadata);
     } else if (encryption_level == 4) {
-        w.setR4EncryptionParameters(user.c_str(),
+        w.setR4EncryptionParametersInsecure(user.c_str(),
             owner.c_str(),
             allow["accessibility"],
             allow["extract"],
@@ -307,7 +307,7 @@ void setup_encryption(QPDFWriter &w, py::object encryption_obj)
             metadata,
             aes);
     } else if (encryption_level == 3) {
-        w.setR3EncryptionParameters(user.c_str(),
+        w.setR3EncryptionParametersInsecure(user.c_str(),
             owner.c_str(),
             allow["accessibility"],
             allow["extract"],
@@ -317,7 +317,7 @@ void setup_encryption(QPDFWriter &w, py::object encryption_obj)
             allow["modify_other"],
             print);
     } else if (encryption_level == 2) {
-        w.setR2EncryptionParameters(user.c_str(),
+        w.setR2EncryptionParametersInsecure(user.c_str(),
             owner.c_str(),
             (print != qpdf_r3p_none),
             allow["modify_assembly"],

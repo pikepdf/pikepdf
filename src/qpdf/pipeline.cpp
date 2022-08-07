@@ -17,7 +17,7 @@
 #include "pipeline.h"
 #include "utils.h"
 
-void Pl_PythonOutput::write(unsigned char *buf, size_t len)
+void Pl_PythonOutput::write(const unsigned char *buf, size_t len)
 {
     py::gil_scoped_acquire gil;
     py::ssize_t so_far = 0;
