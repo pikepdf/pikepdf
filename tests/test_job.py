@@ -56,5 +56,8 @@ def test_job_from_invalid_json():
 
 
 def test_schemas():
-    assert isinstance(Job.json_out_schema, str)
-    assert isinstance(Job.job_json_schema, str)
+    assert isinstance(Job.LATEST_JSON, int)
+    assert isinstance(Job.json_out_schema(), str)
+
+    assert isinstance(Job.LATEST_JOB_JSON, int)
+    assert isinstance(Job.job_json_schema(), str)

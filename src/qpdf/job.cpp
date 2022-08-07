@@ -32,13 +32,19 @@ void init_job(py::module_ &m)
         For further details:
             https://qpdf.readthedocs.io/en/stable/qpdf-job.html
     )~~~")
-        .def_property_readonly_static(
+        .def_static(
             "json_out_schema",
-            [](const py::object &) { return QPDFJob::json_out_schema(2); },
+            [](int schema = JSON::LATEST) { return QPDFJob::json_out_schema(schema); },
+            py::kw_only(),
+            py::arg("schema") = JSON::LATEST,
             "For reference, the QPDF JSON output schema is built-in.")
-        .def_property_readonly_static(
+        .def_static(
             "job_json_schema",
-            [](const py::object &) { return QPDFJob::job_json_schema(1); },
+            [](int schema = QPDFJob::LATEST_JOB_JSON) {
+                return QPDFJob::job_json_schema(schema);
+            },
+            py::kw_only(),
+            py::arg("schema") = QPDFJob::LATEST_JOB_JSON,
             "For reference, the QPDF job command line schema is built-in.")
         .def_readonly_static("EXIT_ERROR",
             &QPDFJob::EXIT_ERROR,
@@ -51,6 +57,12 @@ void init_job(py::module_ &m)
             "Exit code for a job that provide a password when the input was not "
             "encrypted.")
         .def_readonly_static("EXIT_CORRECT_PASSWORD", &QPDFJob::EXIT_CORRECT_PASSWORD)
+        .def_readonly_static("LATEST_JOB_JSON",
+            &QPDFJob::LATEST_JOB_JSON,
+            "Version number of the most recent job-JSON schema.")
+        .def_readonly_static("LATEST_JSON",
+            &JSON::LATEST,
+            "Version number of the most recent QPDF-JSON schema.")
         .def(py::init(&job_from_json_str),
             py::arg("json"),
             "Create a Job from a string containing QPDF job JSON.")

@@ -699,13 +699,17 @@ class ContentStreamInlineImage:
     def iimage(self) -> PdfInlineImage: ...
 
 class Job:
-    json_out_schema_v1: ClassVar[str]
-    job_json_schema_v1: ClassVar[str]
     EXIT_ERROR: ClassVar[int] = 2
     EXIT_WARNING: ClassVar[int] = 3
     EXIT_IS_NOT_ENCRYPTED: ClassVar[int] = 2
     EXIT_CORRECT_PASSWORD: ClassVar[int] = 3
+    LATEST_JOB_JSON: ClassVar[int]
+    LATEST_JSON: ClassVar[int]
 
+    @staticmethod
+    def json_out_schema(*, schema: int) -> str: ...
+    @staticmethod
+    def job_json_schema(*, schema: int) -> str: ...
     @overload
     def __init__(self, json: str) -> None: ...
     @overload
