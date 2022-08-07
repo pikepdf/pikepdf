@@ -78,5 +78,8 @@ def test_nametree_scratch(outline, outpdf, key='brand new name tree', val='yup')
 
 def test_nametree_assign_setitem(outline):
     nt = NameTree.new(outline)
-    with pytest.raises(TypeError, match="Can't convert this object to pikepdf.Object"):
+    with pytest.raises(
+        TypeError,
+        match=r"Can't convert ObjectHelper",
+    ):
         outline.Root.RandomNameTree = nt
