@@ -38,7 +38,7 @@ void init_job(py::module_ &m)
             "For reference, the QPDF JSON output schema is built-in.")
         .def_property_readonly_static(
             "job_json_schema",
-            [](const py::object &) { return QPDFJob::job_json_schema(2); },
+            [](const py::object &) { return QPDFJob::job_json_schema(1); },
             "For reference, the QPDF job command line schema is built-in.")
         .def_readonly_static("EXIT_ERROR",
             &QPDFJob::EXIT_ERROR,
