@@ -48,7 +48,7 @@ public:
 };
 
 // Used for parse_content_stream. Handles each object by grouping into operands
-// and operators. The whole parse stream can be retrived at once.
+// and operators. The whole parse stream can be retrieved at once.
 class OperandGrouper : public QPDFObjectHandle::ParserCallbacks {
 public:
     OperandGrouper(const std::string &operators);
