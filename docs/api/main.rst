@@ -15,7 +15,7 @@ Main objects
 .. class:: pikepdf.ObjectStreamMode
 
     Options for saving streams within PDFs, which are more a compact
-    way of saving certains types of data that was added in PDF 1.5. All
+    way of saving certain types of data that was added in PDF 1.5. All
     modern PDF viewers support object streams, but some third party tools
     and libraries cannot read them.
 

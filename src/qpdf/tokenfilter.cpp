@@ -128,7 +128,7 @@ void init_tokenfilter(py::module_ &m)
                 (unless an exception is raised).
 
                 If this method raises an exception, the exception will be
-                caught by C++, consumed, and repalced with a less informative
+                caught by C++, consumed, and replaced with a less informative
                 exception. Use :meth:`pikepdf.Pdf.get_warnings` to view the
                 original.
 

@@ -27,7 +27,7 @@ void init_job(py::module_ &m)
         Provides access to the QPDF job interface.
 
         All of the functionality of the ``qpdf`` command line program
-        is now available to pikepdf through jobs.        
+        is now available to pikepdf through jobs.
 
         For further details:
             https://qpdf.readthedocs.io/en/stable/qpdf-job.html
@@ -45,7 +45,7 @@ void init_job(py::module_ &m)
             "Exit code for a job that had an error.")
         .def_readonly_static("EXIT_WARNING",
             &QPDFJob::EXIT_WARNING,
-            "Exit code for a job that had a warrning.")
+            "Exit code for a job that had a warning.")
         .def_readonly_static("EXIT_IS_NOT_ENCRYPTED",
             &QPDFJob::EXIT_IS_NOT_ENCRYPTED,
             "Exit code for a job that provide a password when the input was not "
@@ -81,7 +81,7 @@ void init_job(py::module_ &m)
             py::arg("progname") = "pikepdf",
             R"~~~(
                 Create a Job from command line arguments to the qpdf program.
-                
+
                 The first item in the ``args`` list should be equal to ``progname``,
                 whose default is ``"pikepdf"``.
 
@@ -111,8 +111,8 @@ void init_job(py::module_ &m)
         .def_property_readonly("exit_code",
             &QPDFJob::getExitCode,
             R"~~~(
-            After run(), returns an integer exit code. 
-            
+            After run(), returns an integer exit code.
+
             Some exit codes have integer value. Their applicably is determined by
             context of the job being run.
             )~~~")

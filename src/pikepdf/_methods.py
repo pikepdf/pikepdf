@@ -1012,7 +1012,7 @@ class Extend_Page:
                 content stream to ensure that the overlay is rendered correctly.
                 Officially PDF limits the graphics stack depth to 32. Most
                 viewers will tolerate more, but excessive pushes may cause problems.
-                Multiple content streams may also be coalseced into a single content
+                Multiple content streams may also be coalesced into a single content
                 stream where this parameter is True, since the PDF specification
                 permits PDF writers to coalesce streams as they see fit.
             shrink: If True (default), allow the object to shrink to fit inside the
