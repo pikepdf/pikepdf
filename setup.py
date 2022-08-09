@@ -24,7 +24,7 @@ cflags_defined = bool(environ.get('CFLAGS', ''))
 
 if not cflags_defined:
     if qpdf_source_tree:
-        # Point this to qpdf source tree built with shared libaries
+        # Point this to qpdf source tree built with shared libraries
         extra_includes.append(join(qpdf_source_tree, 'include'))
         extra_library_dirs.append(join(qpdf_source_tree, 'libqpdf/build/.libs'))
 
