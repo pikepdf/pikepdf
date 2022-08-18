@@ -155,7 +155,7 @@ bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
 
         // Early out: if underlying QPDF Buffers happen to be the same, the data is the
         // same
-        if (self_buffer.get() == other_buffer.get())
+        if (self_buffer == other_buffer)
             return true;
         // Early out: if sizes are different, data cannot be the same
         if (self_buffer->getSize() != other_buffer->getSize())
