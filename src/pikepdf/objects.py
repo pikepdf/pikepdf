@@ -111,10 +111,10 @@ class Name(Object, metaclass=_NameObjectMeta):
         This function uses Python's secrets.token_urlsafe, which returns a
         URL-safe encoded random number of the desired length. An optional
         *prefix* may be prepended. (The encoding is ultimately done with
-        :func:`base64.urlsafe_b64encode`.) Serendipitiously, URL-safe is also
+        :func:`base64.urlsafe_b64encode`.) Serendipitously, URL-safe is also
         PDF-safe.
 
-        When the length paramater is 16 (16 random bytes or 128 bits), the result
+        When the length parameter is 16 (16 random bytes or 128 bits), the result
         is probably globally unique and can be treated as never colliding with
         other names.
 

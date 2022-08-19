@@ -449,7 +449,7 @@ void save_pdf(QPDF &q,
 
     if (preserving_encryption) {
         if (!q.isEncrypted()) {
-            throw py::value_error("can't perserve encryption parameters on "
+            throw py::value_error("can't preserve encryption parameters on "
                                   "a file with no encryption");
         }
         w.setPreserveEncryption(true); // Keep existing encryption
@@ -522,7 +522,7 @@ void init_qpdf(py::module_ &m)
                 qpdf_basic_settings(*q);
                 return q;
             },
-            "Create a new empty PDF from stratch.")
+            "Create a new empty PDF from scratch.")
         .def_static("_open",
             open_pdf,
             py::arg("filename_or_stream"),
@@ -719,7 +719,7 @@ void init_qpdf(py::module_ &m)
             After deleting content from a PDF such as pages, objects related
             to that page, such as images on the page, may still be present.
 
-            Retun type:
+            Return type:
                 pikepdf._qpdf._ObjectList
             )~~~",
             py::return_value_policy::reference_internal)

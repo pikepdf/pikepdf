@@ -42,7 +42,7 @@ PDF semantics dictate that setting a dictionary key to Null deletes the key.
 
     d['/Key'] = None  # would delete /Key
 
-For Python users appears to have an unxpected side effect, so this action is
+For Python users appears to have an unexpected side effect, so this action is
 prohibited. You cannot set keys to None.
 
 pikepdf.String is a "type" that can be converted with str() or bytes() as
@@ -115,7 +115,7 @@ bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
         return result;
     }
 
-    // Apart from numeric types, disimilar types are never equal
+    // Apart from numeric types, dissimilar types are never equal
     if (self_typecode != other_typecode)
         return false;
 

@@ -24,7 +24,7 @@ to one of its test files.
     In [1]: pdf.attachments
 
 This creates an attached file named ``README.md``, which holds the data in ``filespec``.
-Now we can retrive the data.
+Now we can retrieve the data.
 
 .. ipython::
 
