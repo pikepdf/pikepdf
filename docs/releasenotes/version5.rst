@@ -1,3 +1,11 @@
+v5.5.0
+======
+
+-  Fixed undefined behavior on creating NameTree on direct object.
+-  Added support for specifying QPDF's library build directory, for compatibility
+   with QPDF's transition to cmake.
+-  Many typo fixes. Thanks @PabloAlexis611.
+
 v5.4.2
 ======
 
