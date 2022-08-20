@@ -22,13 +22,13 @@
 class NameTreeHolder {
 public:
     NameTreeHolder(QPDFObjectHandle oh, bool auto_repair = true)
-        : ntoh(std::make_unique<QPDFNameTreeObjectHelper>(
-              oh, *oh.getOwningQPDF(), auto_repair))
     {
         if (!oh.getOwningQPDF()) {
             throw py::value_error(
                 "NameTree must wrap a Dictionary that is owned by a Pdf");
         }
+        ntoh = std::make_unique<QPDFNameTreeObjectHelper>(
+              oh, *oh.getOwningQPDF(), auto_repair);
     }
 
     static NameTreeHolder newEmpty(QPDF &pdf, bool auto_repair = true)
