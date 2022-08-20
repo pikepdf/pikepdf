@@ -8,7 +8,7 @@ from __future__ import annotations
 import inspect
 import platform
 import sys
-from typing import Any, Callable, Type, TypeVar
+from typing import Any, Callable, TypeVar
 
 if sys.version_info >= (3, 8):
     from typing import Protocol
@@ -17,21 +17,23 @@ else:
 
 
 class AugmentedCallable(Protocol):
+    """Protocol for any method, with attached booleans."""
+
     _augment_override_cpp: bool
     _augment_if_no_cpp: bool
 
     def __call__(self, *args, **kwargs) -> Any:
-        ...  # pragma: no cover
+        """Any function."""  # pragma: no cover
 
 
 def augment_override_cpp(fn: AugmentedCallable) -> AugmentedCallable:
-    """This Python function should replace the C++ implementation, if there is one."""
+    """Replace the C++ implementation, if there is one."""
     fn._augment_override_cpp = True
     return fn
 
 
 def augment_if_no_cpp(fn: AugmentedCallable) -> AugmentedCallable:
-    """This Python function provides a Python implementation if no C++ implementation exists."""
+    """Provide a Python implementation if no C++ implementation exists."""
     fn._augment_if_no_cpp = True
     return fn
 
@@ -53,7 +55,7 @@ T = TypeVar('T')
 
 
 def augments(cls_cpp: type[Tcpp]):
-    """Attach methods of a Python support class to an existing class
+    """Attach methods of a Python support class to an existing class.
 
     This monkeypatches all methods defined in the support class onto an
     existing class. Example:
@@ -90,7 +92,6 @@ def augments(cls_cpp: type[Tcpp]):
 
     (Alternative ideas: https://github.com/pybind/pybind11/issues/1074)
     """
-
     OVERRIDE_WHITELIST = {'__eq__', '__hash__', '__repr__'}
     if platform.python_implementation() == 'PyPy':
         # Either PyPy or pybind11's interface to PyPy automatically adds a __getattr__

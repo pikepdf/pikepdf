@@ -1,10 +1,12 @@
 # SPDX-FileCopyrightText: 2022 James R. Barlow
 # SPDX-License-Identifier: MPL-2.0
 
+"""Implement pdfdoc codec."""
+
 from __future__ import annotations
 
 import codecs
-from typing import Container, Optional, Tuple
+from typing import Container
 
 from ._qpdf import pdf_doc_to_utf8, utf8_to_pdf_doc
 

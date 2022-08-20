@@ -1,7 +1,8 @@
 # SPDX-FileCopyrightText: 2022 James R. Barlow
 # SPDX-License-Identifier: MPL-2.0
 
-"""
+"""Implement some features in Python and monkey-patch them onto C++ classes.
+
 In several cases the implementation of some higher levels features might as
 well be in Python. Fortunately we can attach Python methods to C++ class
 bindings after the fact.
@@ -208,7 +209,6 @@ class Extend_Object:
         `decode_parms` is an Array of Dictionary, where each array index
         is corresponds to the filter.
         """
-
         if type_check and filter is not None:
             filter, decode_parms = self._type_check_write(filter, decode_parms)
 
@@ -221,11 +221,10 @@ class Extend_Pdf:
         self, include=None, exclude=None
     ):  # pylint: disable=unused-argument
         """
-        Present options to IPython or Jupyter for rich display of this object
+        Present options to IPython or Jupyter for rich display of this object.
 
         See https://ipython.readthedocs.io/en/stable/config/integrating.html#rich-display
         """
-
         bio = BytesIO()
         self.save(bio)
         bio.seek(0)
@@ -376,8 +375,10 @@ class Extend_Pdf:
         self, *, page_size: tuple[Numeric, Numeric] = (612.0, 792.0)
     ) -> Page:
         """
-        Add a blank page to this PDF. If pages already exist, the page will be added to
-        the end. Pages may be reordered using ``Pdf.pages``.
+        Add a blank page to this PDF.
+
+        If pages already exist, the page will be added to the end. Pages may be
+        reordered using ``Pdf.pages``.
 
         The caller may add content to the page by modifying its objects after creating
         it.
@@ -459,7 +460,9 @@ class Extend_Pdf:
 
     def check(self) -> list[str]:
         """
-        Check if PDF is well-formed.  Similar to ``qpdf --check``.
+        Check if PDF is well-formed.
+
+        Similar to ``qpdf --check``.
         """
 
         class DiscardingParser(StreamParser):
@@ -699,7 +702,6 @@ class Extend_Pdf:
         release that object when appropriate.
 
         Examples:
-
             >>> with Pdf.open("test.pdf") as pdf:
                     ...
 
@@ -830,7 +832,7 @@ def check_is_box(obj) -> None:
 class Extend_Page:
     @property
     def mediabox(self):
-        "This page's /MediaBox, in PDF units."
+        """Return page's /MediaBox, in PDF units."""
         return self._get_mediabox(True)
 
     @mediabox.setter
@@ -840,7 +842,7 @@ class Extend_Page:
 
     @property
     def cropbox(self):
-        """This page's effective /CropBox, in PDF units.
+        """Return page's effective /CropBox, in PDF units.
 
         If the /CropBox is not defined, the /MediaBox is returned.
         """
@@ -853,7 +855,7 @@ class Extend_Page:
 
     @property
     def trimbox(self):
-        """This page's effective /TrimBox, in PDF units.
+        """Return page's effective /TrimBox, in PDF units.
 
         If the /TrimBox is not defined, the /CropBox is returned (and if
         /CropBox is not defined, /MediaBox is returned).
@@ -888,7 +890,7 @@ class Extend_Page:
         prefix: str = '',
         replace_existing: bool = True,
     ) -> Name:
-        """Adds a new resource to the page's Resources dictionary.
+        """Add a new resource to the page's Resources dictionary.
 
         If the Resources dictionaries do not exist, they will be created.
 

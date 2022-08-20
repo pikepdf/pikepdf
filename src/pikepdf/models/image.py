@@ -31,19 +31,19 @@ from pikepdf.models import _transcoding
 
 
 class UnsupportedImageTypeError(Exception):
-    "This image is formatted in a way pikepdf does not supported."
+    """This image is formatted in a way pikepdf does not supported."""
 
 
 class NotExtractableError(Exception):
-    "Indicates that an image cannot be directly extracted."
+    """Indicates that an image cannot be directly extracted."""
 
 
 class HifiPrintImageNotTranscodableError(NotExtractableError):
-    "Image contains high fidelity printing information and cannot be extracted."
+    """Image contains high fidelity printing information and cannot be extracted."""
 
 
 class InvalidPdfImageError(Exception):
-    "This image is not valid according to the PDF 1.7 specification."
+    """This image is not valid according to the PDF 1.7 specification."""
 
 
 def array_str(value: Object | str | list):

@@ -193,8 +193,9 @@ class OutlineItem:
 
     @classmethod
     def from_dictionary_object(cls, obj: Dictionary):
-        """Creates a ``OutlineItem`` from a PDF document's ``Dictionary``
-        object. Does not process nested items.
+        """Creates a ``OutlineItem`` from a ``Dictionary``.
+
+        Does not process nested items.
 
         Arguments:
             obj: ``Dictionary`` object representing a single outline node.
@@ -216,8 +217,8 @@ class OutlineItem:
         return cls(title, destination=destination, action=action, obj=obj)
 
     def to_dictionary_object(self, pdf: Pdf, create_new: bool = False) -> Dictionary:
-        """Creates a ``Dictionary`` object from this outline node's data,
-        or updates the existing object.
+        """Creates/updates a ``Dictionary`` object from this outline node.
+
         Page numbers are resolved to a page reference on the input
         ``Pdf`` object.
 
@@ -250,8 +251,9 @@ class OutlineItem:
 
 
 class Outline:
-    """Maintains a intuitive interface for creating and editing PDF document outlines,
-    according to the |pdfrm| section 12.3.
+    """Maintains a intuitive interface for creating and editing PDF document outlines.
+
+    See |pdfrm| section 12.3.
 
     Arguments:
         pdf: PDF document object.

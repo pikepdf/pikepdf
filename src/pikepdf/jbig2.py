@@ -1,6 +1,12 @@
 # SPDX-FileCopyrightText: 2022 James R. Barlow
 # SPDX-License-Identifier: MPL-2.0
 
+"""Integrate JBIG2 image decoding.
+
+Requires third-party JBIG2 decoder in the form of an external program, like
+jbig2dec.
+"""
+
 from __future__ import annotations
 
 import os
@@ -146,7 +152,7 @@ class JBIG2DecoderInterface(ABC):
         """Decode JBIG2 from jbig2 and globals, returning decoded bytes."""
 
     def available(self) -> bool:
-        """Returns True if decoder is available."""
+        """Return True if decoder is available."""
         try:
             self.check_available()
         except DependencyError:
@@ -156,6 +162,8 @@ class JBIG2DecoderInterface(ABC):
 
 
 class JBIG2Decoder(JBIG2DecoderInterface):
+    """JBIG2 decoder implementation."""
+
     def check_available(self) -> None:
         version = self._version()
         if version < Version('0.15'):

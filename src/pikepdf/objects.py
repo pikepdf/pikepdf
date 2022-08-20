@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2022 James R. Barlow
 # SPDX-License-Identifier: MPL-2.0
 
-"""Provide classes to stand in for PDF objects
+"""Provide classes to stand in for PDF objects.
 
 The purpose of these is to provide nice-looking classes to allow explicit
 construction of PDF objects and more pythonic idioms and facilitate discovery
@@ -42,7 +42,7 @@ ObjectType.__module__ = __name__
 
 
 class _ObjectMeta(type(Object)):  # type: ignore
-    """Supports instance checking."""
+    """Support instance checking."""
 
     def __instancecheck__(self, instance: Any) -> bool:
         # Note: since this class is a metaclass, self is a class object
@@ -52,7 +52,7 @@ class _ObjectMeta(type(Object)):  # type: ignore
 
 
 class _NameObjectMeta(_ObjectMeta):
-    """Supports usage pikepdf.Name.Whatever -> Name('/Whatever')."""
+    """Support usage pikepdf.Name.Whatever -> Name('/Whatever')."""
 
     def __getattr__(self, attr: str) -> Any:
         if attr.startswith('_') or attr == 'object_type':
@@ -80,7 +80,7 @@ class _NameObjectMeta(_ObjectMeta):
 
 
 class Name(Object, metaclass=_NameObjectMeta):
-    """Constructs a PDF Name object.
+    """Construct a PDF Name object.
 
     Names can be constructed with two notations:
 
@@ -96,6 +96,7 @@ class Name(Object, metaclass=_NameObjectMeta):
     object_type = ObjectType.name_
 
     def __new__(cls, name: str | Name) -> Name:
+        """Construct a PDF Name."""
         # QPDF_Name::unparse ensures that names are always saved in a UTF-8
         # compatible way, so we only need to guard the input.
         if isinstance(name, bytes):
@@ -125,7 +126,7 @@ class Name(Object, metaclass=_NameObjectMeta):
 
 
 class Operator(Object, metaclass=_ObjectMeta):
-    """Constructs an operator for use in a content stream.
+    """Construct an operator for use in a content stream.
 
     An Operator is one of a limited set of commands that can appear in PDF content
     streams (roughly the mini-language that draws objects, lines and text on a
@@ -140,16 +141,19 @@ class Operator(Object, metaclass=_ObjectMeta):
     object_type = ObjectType.operator
 
     def __new__(cls, name: str) -> Operator:
+        """Construct an operator."""
         return cast('Operator', _qpdf._new_operator(name))
 
 
 class String(Object, metaclass=_ObjectMeta):
-    """Constructs a PDF String object."""
+    """Construct a PDF String object."""
 
     object_type = ObjectType.string
 
     def __new__(cls, s: str | bytes) -> String:
         """
+        Construct a PDF String.
+
         Args:
             s: The string to use. String will be encoded for
                 PDF, bytes will be constructed without encoding.
@@ -163,12 +167,14 @@ class String(Object, metaclass=_ObjectMeta):
 
 
 class Array(Object, metaclass=_ObjectMeta):
-    """Constructs a PDF Array object."""
+    """Construct a PDF Array object."""
 
     object_type = ObjectType.array
 
     def __new__(cls, a: Iterable | Rectangle | None = None) -> Array:
         """
+        Construct a PDF Array.
+
         Args:
             a: An iterable of objects. All objects must be either
                 `pikepdf.Object` or convertible to `pikepdf.Object`.
@@ -176,7 +182,6 @@ class Array(Object, metaclass=_ObjectMeta):
         Return type:
             pikepdf.Array
         """
-
         if isinstance(a, (str, bytes)):
             raise TypeError('Strings cannot be converted to arrays of chars')
 
@@ -190,14 +195,15 @@ class Array(Object, metaclass=_ObjectMeta):
 
 
 class Dictionary(Object, metaclass=_ObjectMeta):
-    """Constructs a PDF Dictionary object."""
+    """Construct a PDF Dictionary object."""
 
     object_type = ObjectType.dictionary
 
     def __new__(cls, d: Mapping | None = None, **kwargs) -> Dictionary:
         """
-        Constructs a PDF Dictionary from either a Python ``dict`` or keyword
-        arguments.
+        Construct a PDF Dictionary.
+
+        Works from either a Python ``dict`` or keyword arguments.
 
         These two examples are equivalent:
 
@@ -231,15 +237,16 @@ class Dictionary(Object, metaclass=_ObjectMeta):
 
 
 class Stream(Object, metaclass=_ObjectMeta):
-    """Constructs a PDF Stream object."""
+    """Construct a PDF Stream object."""
 
     object_type = ObjectType.stream
 
     def __new__(cls, owner: Pdf, data: bytes | None = None, d=None, **kwargs) -> Stream:
         """
-        Create a new stream object, which stores arbitrary binary data and may
-        or may not be compressed. It also may or may not be a page or
-        Form XObject's content stream.
+        Create a new stream object.
+
+        Streams stores arbitrary binary data and may or may not be compressed.
+        It also may or may not be a page or Form XObject's content stream.
 
         A stream dictionary is like a pikepdf.Dictionary or Python dict, except
         it has a binary payload of data attached. The dictionary describes
@@ -280,7 +287,6 @@ class Stream(Object, metaclass=_ObjectMeta):
         .. versionchanged:: 3.0
             Deprecated ``obj`` argument was removed; use ``data``.
         """
-
         if data is None:
             raise TypeError("Must make Stream from binary data")
 

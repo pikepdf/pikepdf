@@ -154,7 +154,7 @@ def _clean(s: str | Iterable[str], joiner: str = '; ') -> str:
 
 
 def encode_pdf_date(d: datetime) -> str:
-    """Encode Python datetime object as PDF date string
+    """Encode Python datetime object as PDF date string.
 
     From Adobe pdfmark manual:
     (D:YYYYMMDDHHmmSSOHH'mm')
@@ -187,7 +187,7 @@ def encode_pdf_date(d: datetime) -> str:
 
 
 def decode_pdf_date(s: str) -> datetime:
-    """Decode a pdfmark date to a Python datetime object
+    """Decode a pdfmark date to a Python datetime object.
 
     A pdfmark date is a string in a paritcular format. See the pdfmark
     Reference for the specification.
@@ -214,12 +214,12 @@ class Converter(ABC):
     @staticmethod
     @abstractmethod
     def xmp_from_docinfo(docinfo_val: str | None) -> Any:  # type: ignore
-        "Derive XMP metadata from a DocumentInfo string"
+        """Derive XMP metadata from a DocumentInfo string."""
 
     @staticmethod
     @abstractmethod
     def docinfo_from_xmp(xmp_val: Any) -> str | None:
-        "Derive a DocumentInfo value from equivalent XMP metadata"
+        """Derive a DocumentInfo value from equivalent XMP metadata."""
 
 
 class AuthorConverter(Converter):
@@ -273,7 +273,7 @@ def ensure_loaded(fn):
 
 
 class PdfMetadata(MutableMapping):
-    """Read and edit the metadata associated with a PDF
+    """Read and edit the metadata associated with a PDF.
 
     The PDF specification contain two types of metadata, the newer XMP
     (Extensible Metadata Platform, XML-based) and older DocumentInformation
@@ -342,7 +342,7 @@ class PdfMetadata(MutableMapping):
     def load_from_docinfo(
         self, docinfo, delete_missing: bool = False, raise_failure: bool = False
     ) -> None:
-        """Populate the XMP metadata object with DocumentInfo
+        """Populate the XMP metadata object with DocumentInfo.
 
         Arguments:
             docinfo: a DocumentInfo, e.g pdf.docinfo
@@ -455,7 +455,7 @@ class PdfMetadata(MutableMapping):
             self._updating = False
 
     def _update_docinfo(self):
-        """Update the PDF's DocumentInfo dictionary to match XMP metadata
+        """Update the PDF's DocumentInfo dictionary to match XMP metadata.
 
         The standard mapping is described here:
             https://www.pdfa.org/pdfa-metadata-xmp-rdf-dublin-core/
@@ -508,7 +508,7 @@ class PdfMetadata(MutableMapping):
         return xml_bytes
 
     def _apply_changes(self):
-        """Serialize our changes back to the PDF in memory
+        """Serialize our changes back to the PDF in memory.
 
         Depending how we are initialized, leave our metadata mark and producer.
         """
@@ -533,7 +533,7 @@ class PdfMetadata(MutableMapping):
 
     @classmethod
     def _qname(cls, name: QName | str) -> str:
-        """Convert name to an XML QName
+        """Convert name to an XML QName.
 
         e.g. pdf:Producer -> {http://ns.adobe.com/pdf/1.3/}Producer
         """
@@ -557,7 +557,7 @@ class PdfMetadata(MutableMapping):
         return str(QName(uri, tag))
 
     def _prefix_from_uri(self, uriname):
-        """Given a fully qualified XML name, find a prefix
+        """Given a fully qualified XML name, find a prefix.
 
         e.g. {http://ns.adobe.com/pdf/1.3/}Producer -> pdf:Producer
         """
@@ -566,7 +566,7 @@ class PdfMetadata(MutableMapping):
         return self.REVERSE_NS[uri] + ':' + tag
 
     def _get_subelements(self, node):
-        """Gather the sub-elements attached to a node
+        """Gather the sub-elements attached to a node.
 
         Gather rdf:Bag and and rdf:Seq into set and list respectively. For
         alternate languages values, take the first language only for
@@ -598,7 +598,7 @@ class PdfMetadata(MutableMapping):
         return rdf
 
     def _get_elements(self, name: str | QName = ''):
-        """Get elements from XMP
+        """Get elements from XMP.
 
         Core routine to find elements matching name within the XMP and yield
         them.
@@ -792,7 +792,7 @@ class PdfMetadata(MutableMapping):
 
     @property
     def pdfa_status(self) -> str:
-        """Returns the PDF/A conformance level claimed by this PDF, or False
+        """Returns the PDF/A conformance level claimed by this PDF, or False.
 
         A PDF may claim to PDF/A compliant without this being true. Use an
         independent verifier such as veraPDF to test if a PDF is truly
@@ -816,7 +816,7 @@ class PdfMetadata(MutableMapping):
 
     @property
     def pdfx_status(self) -> str:
-        """Returns the PDF/X conformance level claimed by this PDF, or False
+        """Returns the PDF/X conformance level claimed by this PDF, or False.
 
         A PDF may claim to PDF/X compliant without this being true. Use an
         independent verifier such as veraPDF to test if a PDF is truly

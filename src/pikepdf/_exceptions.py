@@ -5,4 +5,4 @@ from __future__ import annotations
 
 
 class DependencyError(Exception):
-    "A third party dependency is needed to extract streams of this type."
+    """A third party dependency is needed to extract streams of this type."""

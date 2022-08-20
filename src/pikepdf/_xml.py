@@ -20,8 +20,7 @@ class _XMLParser(_UnsafeXMLParser):
 
 
 def parse_xml(source: AnyStr | IO[Any], recover: bool = False) -> _ElementTree:
-    """Wrapper around lxml's parse to provide protection against XXE attacks."""
-
+    """Wrap lxml's parse to provide protection against XXE attacks."""
     parser = _XMLParser(recover=recover, remove_pis=False)
     return _parse(source, parser=parser)
 
