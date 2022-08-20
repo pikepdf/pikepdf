@@ -73,9 +73,8 @@ public:
     }
     virtual ~MmapInputSource()
     {
+        py::gil_scoped_acquire acquire;
         try {
-            py::gil_scoped_acquire acquire;
-
             // buffer_info.reset() will trigger PyBuffer_Release(), which we must
             // do before we can close the memory mapping, since we exported a pointer
             // from it.
