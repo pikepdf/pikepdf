@@ -28,7 +28,7 @@ public:
                 "NameTree must wrap a Dictionary that is owned by a Pdf");
         }
         ntoh = std::make_unique<QPDFNameTreeObjectHelper>(
-              oh, *oh.getOwningQPDF(), auto_repair);
+            oh, *oh.getOwningQPDF(), auto_repair);
     }
 
     static NameTreeHolder newEmpty(QPDF &pdf, bool auto_repair = true)
