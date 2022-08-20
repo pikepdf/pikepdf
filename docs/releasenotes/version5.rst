@@ -1,7 +1,7 @@
 v5.5.0
 ======
 
--  Fixed undefined behavior on creating NameTree on direct object. Thanks @wangley.
+-  Fixed undefined behavior on creating NameTree on direct object. Thanks @willangley.
 -  Fixed sdist with coverage build.
 -  Added support for specifying QPDF's library build directory, for compatibility
    with QPDF's transition to cmake.
