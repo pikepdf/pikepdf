@@ -11,6 +11,8 @@ repos:
       - id: check-toml
       - id: check-yaml
       - id: debug-statements
+      - id: name-tests-test
+        args: ["--pytest-test-first"]
   - repo: https://github.com/pycqa/isort
     rev: 5.10.1
     hooks:
