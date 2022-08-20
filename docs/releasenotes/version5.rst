@@ -1,9 +1,14 @@
 v5.5.0
 ======
 
--  Fixed undefined behavior on creating NameTree on direct object.
+-  Fixed undefined behavior on creating NameTree on direct object. Thanks @wangley.
+-  Fixed sdist with coverage build.
 -  Added support for specifying QPDF's library build directory, for compatibility
    with QPDF's transition to cmake.
+-  ``QPDF_*`` environment variables will modify build paths even when ``CFLAGS`` is
+   defined.
+-  Fixed rare case where GIL was not held while discarding a certain exception.
+-  Now using cibuildwheel 2.9.0.
 -  Many typo fixes. Thanks @PabloAlexis611.
 
 v5.4.2
