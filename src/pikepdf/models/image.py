@@ -898,8 +898,7 @@ class PdfInlineImage(PdfImageBase):
     _image_object: tuple[Object, ...]
 
     def __init__(self, *, image_data: Object, image_object: tuple):
-        """
-        Construct wrapper for inline image.
+        """Construct wrapper for inline image.
 
         Args:
             image_data: data stream for image, extracted from content stream

@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: 2022 James R. Barlow
 # SPDX-License-Identifier: MPL-2.0
 
+"""Content stream parsing."""
+
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Collection, List, Tuple, Union, cast
@@ -36,8 +38,7 @@ class PdfParsingError(Exception):
 def parse_content_stream(
     page_or_stream: Object | Page, operators: str = ''
 ) -> list[ContentStreamInstructions]:
-    """
-    Parse a PDF content stream into a sequence of instructions.
+    """Parse a PDF content stream into a sequence of instructions.
 
     A PDF content stream is list of instructions that describe where to render
     the text and graphics in a PDF. This is the starting point for analyzing
@@ -109,8 +110,7 @@ def parse_content_stream(
 def unparse_content_stream(
     instructions: Collection[UnparseableContentStreamInstructions],
 ) -> bytes:
-    """
-    Convert collection of instructions to bytes suitable for storing in PDF.
+    """Convert collection of instructions to bytes suitable for storing in PDF.
 
     Given a parsed list of instructions/operand-operators, convert to bytes suitable
     for embedding in a PDF. In PDF the operator always follows the operands.

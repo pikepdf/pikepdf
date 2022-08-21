@@ -136,6 +136,14 @@ known_third_party = [
   "setuptools"
 ]
 
+[tool.pydocstyle]
+convention = "google"
+add-ignore = [
+  "D105",  # missing __magic__ docstring
+  "D107",  # missing __init__ docstring,
+  "D212"   # require multi-line docstring to being with """It starts...
+]
+
 [tool.pylint.main]
 # Analyse import fallback blocks. This can be used to support both Python 2 and 3
 # compatible code, which means that the block might have code that exists only in
