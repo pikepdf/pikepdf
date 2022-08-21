@@ -13,6 +13,7 @@ from pathlib import Path
 from shutil import copyfileobj
 from typing import Any, BinaryIO, Callable, NamedTuple, Sequence, TypeVar, cast
 
+from deprecation import deprecated
 from PIL import Image
 from PIL.ImageCms import ImageCmsProfile
 
@@ -30,6 +31,7 @@ from pikepdf import (
 )
 from pikepdf._exceptions import DependencyError
 from pikepdf._qpdf import Buffer
+from pikepdf._version import __version__
 from pikepdf.models import _transcoding
 
 
@@ -192,8 +194,14 @@ class PdfImageBase(ABC):
             return 1 if self.image_mask else 8
         return self._bpc
 
-    @property
+    @property  # type: ignore
     @abstractmethod
+    @deprecated(
+        deprecated_in='5.5.0',
+        removed_in='6.0.0',
+        current_version=__version__,
+        details="Use isinstance(im, PdfInlineImage) instead",
+    )
     def is_inline(self) -> bool:
         """Test if this an inline image."""
 
@@ -444,7 +452,13 @@ class PdfImage(PdfImageBase):
     def _metadata(self, name, type_, default):
         return metadata_from_obj(self.obj, name, type_, default)
 
-    @property
+    @property  # type: ignore
+    @deprecated(
+        deprecated_in='5.5.0',
+        removed_in='6.0.0',
+        current_version=__version__,
+        details="Use isinstance(im, PdfInlineImage) instead",
+    )
     def is_inline(self):
         """Return False since PdfImage cannot be inline."""
         return False
@@ -945,7 +959,13 @@ class PdfInlineImage(PdfImageBase):
 
         return b''.join(inline_image_tokens())
 
-    @property
+    @property  # type: ignore
+    @deprecated(
+        deprecated_in='5.5.0',
+        removed_in='6.0.0',
+        current_version=__version__,
+        details="Use isinstance(im, PdfInlineImage) instead",
+    )
     def is_inline(self) -> bool:
         """Return True, since this is an inline image."""
         return True
