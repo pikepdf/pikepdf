@@ -1,0 +1,17 @@
+# SPDX-FileCopyrightText: 2022 James R. Barlow
+# SPDX-License-Identifier: MPL-2.0
+
+name: pre-commit
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+      - uses: pre-commit/action@v3.0.0
