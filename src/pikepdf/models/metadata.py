@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: 2022 James R. Barlow
 # SPDX-License-Identifier: MPL-2.0
 
+"""PDF metadata handling."""
+
 from __future__ import annotations
 
 import logging
@@ -27,6 +29,7 @@ else:
 
 if TYPE_CHECKING:  # pragma: no cover
     from pikepdf import Pdf
+
 
 XMP_NS_DC = "http://purl.org/dc/elements/1.1/"
 XMP_NS_PDF = "http://ns.adobe.com/pdf/1.3/"
@@ -73,9 +76,11 @@ XPACKET_END = b"""\n<?xpacket end="w"?>\n"""
 
 
 class XmpContainer(NamedTuple):
+    """Map XMP container object to suitable Python container."""
+
     rdf_type: str
     py_type: type
-    insert_fn: Callable
+    insert_fn: Callable[..., None]
 
 
 log = logging.getLogger(__name__)
@@ -84,11 +89,9 @@ log = logging.getLogger(__name__)
 class NeverRaise(Exception):
     """An exception that is never raised."""
 
-    pass  # pylint: disable=unnecessary-pass
-
 
 class AltList(list):
-    pass
+    """XMP AltList container."""
 
 
 XMP_CONTAINERS = [
@@ -173,7 +176,6 @@ def encode_pdf_date(d: datetime) -> str:
 
     'D:' is required in PDF/A, so we always add it.
     """
-
     # The formatting of %Y is not consistent as described in
     # https://bugs.python.org/issue13305 and underspecification in libc.
     # So explicitly format the year with leading zeros
@@ -211,6 +213,8 @@ def decode_pdf_date(s: str) -> datetime:
 
 
 class Converter(ABC):
+    """XMP <-> DocumentInfo converter."""
+
     @staticmethod
     @abstractmethod
     def xmp_from_docinfo(docinfo_val: str | None) -> Any:  # type: ignore
@@ -223,12 +227,20 @@ class Converter(ABC):
 
 
 class AuthorConverter(Converter):
+    """Convert XMP document authors to DocumentInfo."""
+
     @staticmethod
     def xmp_from_docinfo(docinfo_val: str | None) -> Any:  # type: ignore
+        """Derive XMP authors info from DocumentInfo."""
         return [docinfo_val]
 
     @staticmethod
     def docinfo_from_xmp(xmp_val):
+        """Derive DocumentInfo authors from XMP.
+
+        XMP supports multiple author values, while DocumentInfo has a string,
+        so we return the values separated by semi-colons.
+        """
         if isinstance(xmp_val, str):
             return xmp_val
         if xmp_val is None or xmp_val == [None]:
@@ -237,14 +249,18 @@ class AuthorConverter(Converter):
 
 
 class DateConverter(Converter):
+    """Convert XMP dates to DocumentInfo."""
+
     @staticmethod
     def xmp_from_docinfo(docinfo_val):
+        """Derive XMP date from DocumentInfo."""
         if docinfo_val == '':
             return ''
         return decode_pdf_date(docinfo_val).isoformat()
 
     @staticmethod
     def docinfo_from_xmp(xmp_val):
+        """Derive DocumentInfo from XMP."""
         if xmp_val.endswith('Z'):
             xmp_val = xmp_val[:-1] + '+00:00'
         try:
@@ -256,6 +272,8 @@ class DateConverter(Converter):
 
 
 class DocinfoMapping(NamedTuple):
+    """Map DocumentInfo keys to their XMP equivalents, along with converter."""
+
     ns: str
     key: str
     name: Name
@@ -263,6 +281,11 @@ class DocinfoMapping(NamedTuple):
 
 
 def ensure_loaded(fn):
+    """Ensure the XMP has been loaded and parsed.
+
+    TODO: Can this be removed? Why allow the uninit'ed state to even exist?
+    """
+
     @wraps(fn)
     def wrapper(self, *args, **kwargs):
         if not self._xmp:
@@ -792,7 +815,7 @@ class PdfMetadata(MutableMapping):
 
     @property
     def pdfa_status(self) -> str:
-        """Returns the PDF/A conformance level claimed by this PDF, or False.
+        """Return the PDF/A conformance level claimed by this PDF, or False.
 
         A PDF may claim to PDF/A compliant without this being true. Use an
         independent verifier such as veraPDF to test if a PDF is truly
@@ -816,7 +839,7 @@ class PdfMetadata(MutableMapping):
 
     @property
     def pdfx_status(self) -> str:
-        """Returns the PDF/X conformance level claimed by this PDF, or False.
+        """Return the PDF/X conformance level claimed by this PDF, or False.
 
         A PDF may claim to PDF/X compliant without this being true. Use an
         independent verifier such as veraPDF to test if a PDF is truly
