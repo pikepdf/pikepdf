@@ -240,6 +240,11 @@ def test_inline_extract(inline):
     assert im.size == (8, 8) and im.mode == iimage.mode
 
 
+def test_inline_read(inline):
+    iimage, _pdf = inline
+    assert iimage.read_bytes()[0:6] == b'\xff\xff\xff\x00\x00\x00'
+
+
 def test_inline_to_pil(inline):
     iimage, _pdf = inline
     im = iimage.as_pil_image()
