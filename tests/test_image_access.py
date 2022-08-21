@@ -890,7 +890,7 @@ def test_invalid_icc(first_image_in):
         assert pim.icc is not None
 
 
-def test_dict_or_array_dict():
+def test_decodeparms_filter_alternates():
     pdf = pikepdf.new()
     imobj = Stream(
         pdf,

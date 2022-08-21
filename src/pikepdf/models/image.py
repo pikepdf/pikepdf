@@ -34,6 +34,8 @@ from pikepdf._qpdf import Buffer
 from pikepdf._version import __version__
 from pikepdf.models import _transcoding
 
+T = TypeVar('T')
+
 
 class UnsupportedImageTypeError(Exception):
     """This image is formatted in a way pikepdf does not supported."""
@@ -51,12 +53,12 @@ class InvalidPdfImageError(Exception):
     """This image is not valid according to the PDF 1.7 specification."""
 
 
-def array_str(value: Object | str | list):
+def _array_str(value: Object | str | list):
     """Simplify pikepdf objects to array of str. Keep Streams and dictionaries intact."""
 
-    def _array_str(item):
+    def _convert(item):
         if isinstance(item, (list, Array)):
-            return [_array_str(subitem) for subitem in item]
+            return [_convert(subitem) for subitem in item]
         if isinstance(item, (Stream, Dictionary, bytes, int)):
             return item
         if isinstance(item, (Name, str)):
@@ -65,33 +67,36 @@ def array_str(value: Object | str | list):
             return bytes(item)
         raise NotImplementedError(value)
 
-    result = _array_str(value)
+    result = _convert(value)
     if not isinstance(result, list):
         result = [result]
     return result
 
 
-def dict_or_array_dict(value):
-    """Return value, ensuring it is contained in a list if it was not already in a list.
+@deprecated(deprecated_in='5.5.0', removed_in='6.0.0', current_version=__version__)
+def array_str(value: Object | str | list):  # noqa: D103; pragma: no cover
+    return _array_str(value)
+
+
+def _ensure_list(value: list[Object] | Dictionary | Array) -> list[Object]:
+    """Ensure value is a list of pikepdf.Object, if it was not already.
 
     To support DecodeParms which can be present as either an array of dicts or a single
     dict. It's easier to convert to an array of one dict.
-
-    TODO: Misnamed. Should deprecate. Can probably be replaced with Object.wrap_in_array().
     """
     if isinstance(value, list):
         return value
-    if isinstance(value, Dictionary):
-        return [value.as_dict()]
-    if isinstance(value, Array):
-        return list(value.as_list())
-    raise NotImplementedError(value)
+    return list(value.wrap_in_array().as_list())
 
 
-T = TypeVar('T')
+@deprecated(deprecated_in='5.5.0', removed_in='6.0.0', current_version=__version__)
+def dict_or_array_dict(
+    value: list[Object] | Dictionary | Array,
+) -> list[Object]:  # noqa: D103; pragma: no cover
+    return _ensure_list(value)
 
 
-def metadata_from_obj(
+def _metadata_from_obj(
     obj: Dictionary | Stream, name: str, type_: Callable[[Any], T], default: T
 ) -> T | None:
     """Retrieve metadata from a dictionary or stream, and ensure it is the expected type."""
@@ -102,6 +107,13 @@ def metadata_from_obj(
         if val is None:
             return None
     raise NotImplementedError('Metadata access for ' + name)
+
+
+@deprecated(deprecated_in='5.5.0', removed_in='6.0.0', current_version=__version__)
+def metadata_from_obj(
+    obj: Dictionary | Stream, name: str, type_: Callable[[Any], T], default: T
+) -> T | None:  # noqa: D103; pragma: no cover
+    return _metadata_from_obj(obj, name, type_, default)
 
 
 class PaletteData(NamedTuple):
@@ -125,7 +137,7 @@ class PdfImageBase(ABC):
     PRINT_COLORSPACES = {'/Separation', '/DeviceN'}
 
     @abstractmethod
-    def _metadata(self, name: str, type_: type[T], default: T) -> T:
+    def _metadata(self, name: str, type_: Callable[[Any], T], default: T) -> T:
         """Get metadata for this image type."""
 
     @property
@@ -151,17 +163,17 @@ class PdfImageBase(ABC):
     @property
     def _colorspaces(self):
         """Colorspace (low-level)."""
-        return self._metadata('ColorSpace', array_str, [])
+        return self._metadata('ColorSpace', _array_str, [])
 
     @property
     def filters(self):
         """List of names of the filters that we applied to encode this image."""
-        return self._metadata('Filter', array_str, [])
+        return self._metadata('Filter', _array_str, [])
 
     @property
     def decode_parms(self):
         """List of the /DecodeParms, arguments to filters."""
-        return self._metadata('DecodeParms', dict_or_array_dict, [])
+        return self._metadata('DecodeParms', _ensure_list, [])
 
     @property
     def colorspace(self) -> str | None:
@@ -450,7 +462,7 @@ class PdfImage(PdfImageBase):
         return cls(imstream)
 
     def _metadata(self, name, type_, default):
-        return metadata_from_obj(self.obj, name, type_, default)
+        return _metadata_from_obj(self.obj, name, type_, default)
 
     @property  # type: ignore
     @deprecated(
@@ -937,7 +949,7 @@ class PdfInlineImage(PdfImageBase):
         raise NotImplementedError(repr(obj))
 
     def _metadata(self, name, type_, default):
-        return metadata_from_obj(self.obj, name, type_, default)
+        return _metadata_from_obj(self.obj, name, type_, default)
 
     def unparse(self) -> bytes:
         """Create the content stream bytes that reproduce this inline image."""
