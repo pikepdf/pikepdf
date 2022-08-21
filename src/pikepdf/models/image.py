@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: 2022 James R. Barlow
 # SPDX-License-Identifier: MPL-2.0
 
+"""Extract images embedded in PDF."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -9,9 +11,10 @@ from io import BytesIO
 from itertools import zip_longest
 from pathlib import Path
 from shutil import copyfileobj
-from typing import Any, BinaryIO, Callable, NamedTuple, TypeVar, cast
+from typing import Any, BinaryIO, Callable, NamedTuple, Sequence, TypeVar, cast
 
-from PIL import Image, ImageCms
+from PIL import Image
+from PIL.ImageCms import ImageCmsProfile
 
 from pikepdf import (
     Array,
@@ -67,6 +70,13 @@ def array_str(value: Object | str | list):
 
 
 def dict_or_array_dict(value):
+    """Return value, ensuring it is contained in a list if it was not already in a list.
+
+    To support DecodeParms which can be present as either an array of dicts or a single
+    dict. It's easier to convert to an array of one dict.
+
+    TODO: Misnamed. Should deprecate. Can probably be replaced with Object.wrap_in_array().
+    """
     if isinstance(value, list):
         return value
     if isinstance(value, Dictionary):
@@ -82,6 +92,7 @@ T = TypeVar('T')
 def metadata_from_obj(
     obj: Dictionary | Stream, name: str, type_: Callable[[Any], T], default: T
 ) -> T | None:
+    """Retrieve metadata from a dictionary or stream, and ensure it is the expected type."""
     val = getattr(obj, name, default)
     try:
         return type_(val)
@@ -105,6 +116,7 @@ class PaletteData(NamedTuple):
 
 
 class PdfImageBase(ABC):
+    """Abstract base class for images."""
 
     SIMPLE_COLORSPACES = {'/DeviceRGB', '/DeviceGray', '/CalRGB', '/CalGray'}
     MAIN_COLORSPACES = SIMPLE_COLORSPACES | {'/DeviceCMYK', '/CalCMYK', '/ICCBased'}
@@ -126,7 +138,7 @@ class PdfImageBase(ABC):
 
     @property
     def image_mask(self) -> bool:
-        """``True`` if this is an image mask."""
+        """Return ``True`` if this is an image mask."""
         return self._metadata('ImageMask', bool, False)
 
     @property
@@ -183,16 +195,16 @@ class PdfImageBase(ABC):
     @property
     @abstractmethod
     def is_inline(self) -> bool:
-        """Is this an inline image?"""
+        """Test if this an inline image."""
 
     @property
     @abstractmethod
-    def icc(self) -> ImageCms.ImageCmsProfile | None:
-        """Returns ICC profile for this image if one is defined."""
+    def icc(self) -> ImageCmsProfile | None:
+        """Return ICC profile for this image if one is defined."""
 
     @property
     def indexed(self) -> bool:
-        """``True`` if the image has a defined color palette."""
+        """Check if the image has a defined color palette."""
         return '/Indexed' in self._colorspaces
 
     def _colorspace_has_name(self, name):
@@ -208,12 +220,12 @@ class PdfImageBase(ABC):
 
     @property
     def is_device_n(self) -> bool:
-        """``True`` if image has a /DeviceN (complex printing) colorspace."""
+        """Check if image has a /DeviceN (complex printing) colorspace."""
         return self._colorspace_has_name('/DeviceN')
 
     @property
     def is_separation(self) -> bool:
-        """``True`` if image has a /DeviceN (complex printing) colorspace."""
+        """Check if image has a /DeviceN (complex printing) colorspace."""
         return self._colorspace_has_name('/Separation')
 
     @property
@@ -238,12 +250,11 @@ class PdfImageBase(ABC):
 
     @property
     def mode(self) -> str:
-        """``PIL.Image.mode`` equivalent for this image, where possible
+        """``PIL.Image.mode`` equivalent for this image, where possible.
 
         If an ICC profile is attached to the image, we still attempt to resolve a Pillow
         mode.
         """
-
         m = ''
         if self.is_device_n:
             m = 'DeviceN'
@@ -274,7 +285,9 @@ class PdfImageBase(ABC):
 
     @property
     def filter_decodeparms(self):
-        """PDF has a lot of optional data structures concerning /Filter and
+        """Return normalized the Filter and DecodeParms data.
+
+        PDF has a lot of possible data structures concerning /Filter and
         /DecodeParms. /Filter can be absent or a name or an array, /DecodeParms
         can be absent or a dictionary (if /Filter is a name) or an array (if
         /Filter is an array). When both are arrays the lengths match.
@@ -288,8 +301,7 @@ class PdfImageBase(ABC):
 
     @property
     def palette(self) -> PaletteData | None:
-        """Retrieves the color palette for this image if applicable."""
-
+        """Retrieve the color palette for this image if applicable."""
         if not self.indexed:
             return None
         try:
@@ -322,14 +334,13 @@ class PdfImageBase(ABC):
         """Convert this PDF image to a Python PIL (Pillow) image."""
 
     @staticmethod
-    def _remove_simple_filters(obj, filters):
+    def _remove_simple_filters(obj: Stream, filters: Sequence[str]):
         """Remove simple lossless compression where it appears.
 
         Args:
-            obj (pikepdf.Stream): the compressed object
-            filters (list of str): all files on the data
+            obj: the compressed object
+            filters: all files on the data
         """
-
         COMPLEX_FILTERS = {
             '/DCTDecode',
             '/JPXDecode',
@@ -364,7 +375,7 @@ class PdfImageBase(ABC):
 
 
 class PdfImage(PdfImageBase):
-    """Support class to provide a consistent API for manipulating PDF images
+    """Support class to provide a consistent API for manipulating PDF images.
 
     The data structure for images inside PDFs is irregular and complex,
     making it difficult to use without introducing errors for less
@@ -373,7 +384,11 @@ class PdfImage(PdfImageBase):
     Pillow imaging library.
     """
 
+    obj: Stream
+    _icc: ImageCmsProfile | None
+
     def __new__(cls, obj):
+        """Construct a PdfImage... or a PdfJpxImage if that is what we really are."""
         instance = super().__new__(cls)
         instance.__init__(obj)
         if '/JPXDecode' in instance.filters:
@@ -381,14 +396,13 @@ class PdfImage(PdfImageBase):
             instance.__init__(obj)
         return instance
 
-    def __init__(self, obj):
-        """Construct a PDF image from a Image XObject inside a PDF
+    def __init__(self, obj: Stream):
+        """Construct a PDF image from a Image XObject inside a PDF.
 
         ``pim = PdfImage(page.Resources.XObject['/ImageNN'])``
 
         Args:
-            obj (pikepdf.Object): an Image XObject
-
+            obj: an Image XObject
         """
         if isinstance(obj, Stream) and obj.stream_dict.get("/Subtype") != "/Image":
             raise TypeError("can't construct PdfImage from non-image")
@@ -402,7 +416,7 @@ class PdfImage(PdfImageBase):
 
     @classmethod
     def _from_pil_image(cls, *, pdf, page, name, image):  # pragma: no cover
-        """Insert a PIL image into a PDF (rudimentary)
+        """Insert a PIL image into a PDF (rudimentary).
 
         Args:
             pdf (pikepdf.Pdf): the PDF to attach the image to
@@ -410,7 +424,6 @@ class PdfImage(PdfImageBase):
             name (str or pikepdf.Name): the name to set the image
             image (PIL.Image.Image): the image to insert
         """
-
         data = image.tobytes()
 
         imstream = Stream(pdf, data)
@@ -433,7 +446,7 @@ class PdfImage(PdfImageBase):
 
     @property
     def is_inline(self):
-        """``False`` for image XObject."""
+        """Return False since PdfImage cannot be inline."""
         return False
 
     @property
@@ -446,11 +459,10 @@ class PdfImage(PdfImageBase):
         raise NotImplementedError("Don't know how to find ICC stream for image")
 
     @property
-    def icc(self) -> ImageCms.ImageCmsProfile | None:
+    def icc(self) -> ImageCmsProfile | None:
         """If an ICC profile is attached, return a Pillow object that describe it.
 
         Most of the information may be found in ``icc.profile``.
-
         """
         if self.colorspace not in ('/ICCBased', '/Indexed'):
             return None
@@ -459,7 +471,7 @@ class PdfImage(PdfImageBase):
             iccbuffer = iccstream.get_stream_buffer()
             iccbytesio = BytesIO(iccbuffer)
             try:
-                self._icc = ImageCms.ImageCmsProfile(iccbytesio)
+                self._icc = ImageCmsProfile(iccbytesio)
             except OSError as e:
                 if str(e) == 'cannot open profile from string':
                     # ICC profile is corrupt
@@ -469,7 +481,7 @@ class PdfImage(PdfImageBase):
         return self._icc
 
     def _extract_direct(self, *, stream: BinaryIO) -> str:
-        """Attempt to extract the image directly to a usable image file
+        """Attempt to extract the image directly to a usable image file.
 
         If there is no way to extract the image without decompressing or
         transcoding then raise an exception. The type and format of image
@@ -516,7 +528,6 @@ class PdfImage(PdfImageBase):
 
     def _extract_transcoded_1248bits(self) -> Image.Image:
         """Extract an image when there are 1/2/4/8 bits packed in byte data."""
-
         stride = 0  # tell Pillow to calculate stride from line width
         scale = 0 if self.mode == 'L' else 1
         if self.bits_per_component in (2, 4):
@@ -593,7 +604,7 @@ class PdfImage(PdfImageBase):
         return im
 
     def _extract_to_stream(self, *, stream: BinaryIO) -> str:
-        """Attempt to extract the image to a stream
+        """Extract the image to a stream.
 
         If possible, the compressed data is extracted and inserted into
         a compressed image file format without transcoding the compressed
@@ -606,7 +617,6 @@ class PdfImage(PdfImageBase):
         Returns:
             The file format extension.
         """
-
         try:
             return self._extract_direct(stream=stream)
         except NotExtractableError:
@@ -634,7 +644,7 @@ class PdfImage(PdfImageBase):
     def extract_to(
         self, *, stream: BinaryIO | None = None, fileprefix: str = ''
     ) -> str:
-        """Attempt to extract the image directly to a usable image file
+        """Extract the image directly to a usable image file.
 
         If possible, the compressed data is extracted and inserted into
         a compressed image file format without transcoding the compressed
@@ -649,7 +659,6 @@ class PdfImage(PdfImageBase):
         Images might be saved as any of .png, .jpg, or .tiff.
 
         Examples:
-
             >>> im.extract_to(stream=bytes_io)
             '.png'
 
@@ -666,7 +675,6 @@ class PdfImage(PdfImageBase):
             appropriate extension. If no *fileprefix*, then an extension
             indicating the file type.
         """
-
         if bool(stream) == bool(fileprefix):
             raise ValueError("Cannot set both stream and fileprefix")
         if stream:
@@ -766,9 +774,14 @@ class PdfImage(PdfImageBase):
 
 
 class PdfJpxImage(PdfImage):
-    """Support class for JPEG 2000 images. Implements the same API as :class:`PdfImage`."""
+    """Support class for JPEG 2000 images. Implements the same API as :class:`PdfImage`.
+
+    If you call PdfImage(object_that_is_actually_jpeg2000_image), pikepdf will return
+    this class instead, due to the check in PdfImage.__new__.
+    """
 
     def __init__(self, obj):
+        """Initialize a JPEG 2000 image."""
         super().__init__(obj)
         self._jpxpil = self.as_pil_image()
 
@@ -790,6 +803,11 @@ class PdfJpxImage(PdfImage):
 
     @property
     def _colorspaces(self):
+        """Return the effective colorspace of a JPEG 2000 image.
+
+        If the ColorSpace dictionary is present, the colorspace embedded in the
+        JPEG 2000 data will be ignored, as required by the specification.
+        """
         # (PDF 1.7 Table 89) If ColorSpace is present, any colour space
         # specifications in the JPEG2000 data shall be ignored.
         super_colorspaces = super()._colorspaces
@@ -803,6 +821,7 @@ class PdfJpxImage(PdfImage):
 
     @property
     def _bpc(self) -> int:
+        """Return 8, since bpc is not meaningful for JPEG 2000 encoding."""
         # (PDF 1.7 Table 89) If the image stream uses the JPXDecode filter, this
         # entry is optional and shall be ignored if present. The bit depth is
         # determined by the conforming reader in the process of decoding the
@@ -811,6 +830,7 @@ class PdfJpxImage(PdfImage):
 
     @property
     def indexed(self) -> bool:
+        """Return False, since JPEG 2000 should not be indexed."""
         # Nothing in the spec precludes an Indexed JPXDecode image, except for
         # the fact that doing so is madness. Let's assume it no one is that
         # insane.
@@ -848,13 +868,17 @@ class PdfInlineImage(PdfImageBase):
     }
     REVERSE_ABBREVS = {v: k for k, v in ABBREVS.items()}
 
+    _data: Object
+    _image_object: tuple[Object, ...]
+
     def __init__(self, *, image_data: Object, image_object: tuple):
         """
+        Construct wrapper for inline image.
+
         Args:
             image_data: data stream for image, extracted from content stream
             image_object: the metadata for image, also from content stream
         """
-
         # Convert the sequence of pikepdf.Object from the content stream into
         # a dictionary object by unparsing it (to bytes), eliminating inline
         # image abbreviations, and constructing a bytes string equivalent to
@@ -902,6 +926,8 @@ class PdfInlineImage(PdfImageBase):
         return metadata_from_obj(self.obj, name, type_, default)
 
     def unparse(self) -> bytes:
+        """Create the content stream bytes that reproduce this inline image."""
+
         def metadata_tokens():
             for metadata_obj in self._image_object:
                 unparsed = self._unparse_obj(
@@ -921,10 +947,12 @@ class PdfInlineImage(PdfImageBase):
 
     @property
     def is_inline(self) -> bool:
+        """Return True, since this is an inline image."""
         return True
 
     @property
     def icc(self):  # pragma: no cover
+        """Raise an exception since ICC profiles are not supported on inline images."""
         raise InvalidPdfImageError(
             "Inline images with ICC profiles are not supported in the PDF specification"
         )
@@ -957,9 +985,15 @@ class PdfInlineImage(PdfImageBase):
         return img
 
     def as_pil_image(self) -> Image.Image:
+        """Return inline image as a Pillow Image."""
         return self._convert_to_pdfimage().as_pil_image()
 
     def extract_to(self, *, stream: BinaryIO | None = None, fileprefix: str = ''):
+        """Extract the inline image directly to a usable image file.
+
+        See:
+            :meth:`PdfImage.extract_to`
+        """
         return self._convert_to_pdfimage().extract_to(
             stream=stream, fileprefix=fileprefix
         )
