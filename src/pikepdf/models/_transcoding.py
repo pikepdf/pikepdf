@@ -14,7 +14,7 @@ MutableBytesLike = Union[bytearray, memoryview]
 
 
 def _next_multiple(n: int, k: int) -> int:
-    """Returns the multiple of k that is greater than or equal n.
+    """Return the multiple of k that is greater than or equal n.
 
     >>> _next_multiple(101, 4)
     104
@@ -134,7 +134,6 @@ def image_from_buffer_and_palette(
     1/2/4-bit images must be unpacked (no scaling!) to byte buffers first, such
     that every 8-bit integer is an index into the palette.
     """
-
     # Reminder Pillow palette byte order unintentionally changed in 8.3.0
     # https://github.com/python-pillow/Pillow/issues/5595
     # 8.2.0: all aligned by channel (very nonstandard)
@@ -184,6 +183,7 @@ def generate_ccitt_header(
     photometry: int,
     icc: bytes,
 ) -> bytes:
+    """Generate binary CCITT header for image with given parameters."""
     tiff_header_struct = '<' + '2s' + 'H' + 'L' + 'H'
 
     tag_keys = {tag.name: key for key, tag in TIFF_TAGS.items()}  # type: ignore

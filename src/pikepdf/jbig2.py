@@ -29,7 +29,7 @@ from pikepdf._exceptions import DependencyError
 )
 def extract_jbig2(
     im_obj: pikepdf.Object, globals_obj: pikepdf.Object | None = None
-) -> Image.Image:  # pragma: no cover
+) -> Image.Image:  # noqa: D103; pragma: no cover
 
     with TemporaryDirectory(prefix='pikepdf-', suffix='.jbig2') as tmpdir:
         image_path = Path(tmpdir) / "image"
@@ -100,7 +100,7 @@ def _extract_jbig2_bytes(jbig2: bytes, jbig2_globals: bytes) -> bytes:
 )
 def extract_jbig2_bytes(
     jbig2: bytes, jbig2_globals: bytes
-) -> bytes:  # pragma: no cover
+) -> bytes:  # noqa: D103; pragma: no cover
     return _extract_jbig2_bytes(jbig2, jbig2_globals)
 
 
@@ -122,7 +122,7 @@ def _check_jbig2dec_available() -> None:  # pragma: no cover
     removed_in="6.0",
     details="Use jbig2.get_decoder() interface instead",
 )
-def check_jbig2dec_available() -> None:  # pragma: no cover
+def check_jbig2dec_available() -> None:  # noqa: D103; pragma: no cover
     _check_jbig2dec_available()
 
 
@@ -131,7 +131,7 @@ def check_jbig2dec_available() -> None:  # pragma: no cover
     removed_in="6.0",
     details="Use jbig2.get_decoder() interface instead",
 )
-def jbig2dec_available() -> bool:  # pragma: no cover
+def jbig2dec_available() -> bool:  # noqa: D103; pragma: no cover
     try:
         _check_jbig2dec_available()
     except (DependencyError, CalledProcessError, FileNotFoundError):
@@ -165,11 +165,13 @@ class JBIG2Decoder(JBIG2DecoderInterface):
     """JBIG2 decoder implementation."""
 
     def check_available(self) -> None:
+        """Check if jbig2dec is installed and usable."""
         version = self._version()
         if version < Version('0.15'):
             raise DependencyError("jbig2dec is too old (older than version 0.15)")
 
     def decode_jbig2(self, jbig2: bytes, jbig2_globals: bytes) -> bytes:
+        """Decode JBIG2 from binary data, returning decode bytes."""
         return _extract_jbig2_bytes(jbig2, jbig2_globals)
 
     def _version(self) -> Version:
@@ -190,5 +192,6 @@ class JBIG2Decoder(JBIG2DecoderInterface):
 _jbig2_decoder = JBIG2Decoder()
 
 
-def get_decoder():
+def get_decoder() -> JBIG2DecoderInterface:
+    """Return an instance of a JBIG2 decoder."""
     return _jbig2_decoder

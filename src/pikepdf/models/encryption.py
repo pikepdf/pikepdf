@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: 2022 James R. Barlow
 # SPDX-License-Identifier: MPL-2.0
 
+"""For managing PDF encryption."""
+
 from __future__ import annotations
 
 import sys
@@ -68,6 +70,14 @@ class EncryptionInfo:
     """
 
     def __init__(self, encdict: dict[str, Any]):
+        """
+        Initialize EncryptionInfo.
+
+        Generally pikepdf will initialize and return it.
+
+        Args:
+            encdict: Python dictionary containing encryption settings.
+        """
         self._encdict = encdict
 
     @property
@@ -82,7 +92,7 @@ class EncryptionInfo:
 
     @property
     def P(self) -> int:
-        """Encoded permission bits.
+        """Return encoded permission bits.
 
         See :meth:`Pdf.allow` instead.
         """
@@ -118,12 +128,12 @@ class EncryptionInfo:
 
     @property
     def encryption_key(self) -> bytes:
-        """The RC4 or AES encryption key used for this file."""
+        """Return the RC4 or AES encryption key used for this file."""
         return bytes(self._encdict['encryption_key'])
 
     @property
     def bits(self) -> int:
-        """The number of encryption bits.
+        """Return the number of bits in the encryption algorithm.
 
         e.g. if the algorithm is AES-256, this returns 256.
         """
@@ -131,9 +141,7 @@ class EncryptionInfo:
 
 
 class Encryption(NamedTuple):
-    """
-    Specify the encryption settings to apply when a PDF is saved.
-    """
+    """Specify the encryption settings to apply when a PDF is saved."""
 
     owner: str = ''
     """The owner password to use. This allows full control

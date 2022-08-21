@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: 2022 James R. Barlow
 # SPDX-License-Identifier: MPL-2.0
 
+"""Python implementation of higher level PDF constructs."""
+
 from __future__ import annotations
 
 from ._content_stream import (

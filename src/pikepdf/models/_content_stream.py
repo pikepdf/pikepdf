@@ -24,6 +24,8 @@ UnparseableContentStreamInstructions = Union[
 
 
 class PdfParsingError(Exception):
+    """Error when parsing a PDF content stream."""
+
     def __init__(self, message=None, line=None):
         if not message:
             message = f"Error encoding content stream at line {line}"
@@ -60,7 +62,6 @@ def parse_content_stream(
             all tokens are accepted.
 
     Example:
-
         >>> with pikepdf.Pdf.open(input_pdf) as pdf:
         >>>     page = pdf.pages[0]
         >>>     for operands, command in parse_content_stream(page):
@@ -70,9 +71,7 @@ def parse_content_stream(
         Returns a list of ``ContentStreamInstructions`` instead of a list
         of (operand, operator) tuples. The returned items are duck-type compatible
         with the previous returned items.
-
     """
-
     if not isinstance(page_or_stream, (Object, Page)):
         raise TypeError("stream must be a pikepdf.Object or pikepdf.Page")
 
@@ -111,6 +110,8 @@ def unparse_content_stream(
     instructions: Collection[UnparseableContentStreamInstructions],
 ) -> bytes:
     """
+    Convert collection of instructions to bytes suitable for storing in PDF.
+
     Given a parsed list of instructions/operand-operators, convert to bytes suitable
     for embedding in a PDF. In PDF the operator always follows the operands.
 
@@ -127,7 +128,6 @@ def unparse_content_stream(
         ``ContentStreamInstruction``, ``ContentStreamInlineImage``, and the older
         operand-operator tuples from pikepdf 2.x.
     """
-
     try:
         return _qpdf._unparse_content_stream(instructions)
     except (ValueError, TypeError, RuntimeError) as e:
