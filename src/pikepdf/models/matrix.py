@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: 2022 James R. Barlow
 # SPDX-License-Identifier: MPL-2.0
 
+"""PDF content matrix support."""
+
 from __future__ import annotations
 
 from math import cos, pi, sin
@@ -8,7 +10,7 @@ from math import cos, pi, sin
 
 class PdfMatrix:
     """
-    Support class for PDF content stream matrices
+    Support class for PDF content stream matrices.
 
     PDF content stream matrices are 3x3 matrices summarized by a shorthand
     ``(a, b, c, d, e, f)`` which correspond to the first two column vectors.
@@ -60,10 +62,9 @@ class PdfMatrix:
         return PdfMatrix()
 
     def __matmul__(self, other):
-        """Multiply this matrix by another matrix
+        """Multiply this matrix by another matrix.
 
         Can be used to concatenate transformations.
-
         """
         a = self.values
         b = other.values
@@ -95,26 +96,38 @@ class PdfMatrix:
 
     @property
     def a(self):
+        """Return matrix this value."""
         return self.values[0][0]
 
     @property
     def b(self):
+        """Return matrix this value."""
         return self.values[0][1]
 
     @property
     def c(self):
+        """Return matrix this value."""
         return self.values[1][0]
 
     @property
     def d(self):
+        """Return matrix this value."""
         return self.values[1][1]
 
     @property
     def e(self):
+        """Return matrix this value.
+
+        Typically corresponds to translation on the x-axis.
+        """
         return self.values[2][0]
 
     @property
     def f(self):
+        """Return matrix this value.
+
+        Typically corresponds to translation on the y-axis.
+        """
         return self.values[2][1]
 
     def __eq__(self, other):
