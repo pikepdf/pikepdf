@@ -742,6 +742,7 @@ class Extend_Pdf:
                 entire input file into memory at open time; this will use more
                 memory and may recent performance especially when the opened
                 file will not be modified.
+
         Raises:
             pikepdf.PasswordError: If the password failed to open the
                 file.
