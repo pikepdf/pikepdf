@@ -2,6 +2,8 @@
 
 # SPDX-License-Identifier: MPL-2.0
 
+"""Support for document outlines (e.g. table of contents)."""
+
 from __future__ import annotations
 
 from enum import Enum
@@ -12,6 +14,8 @@ from pikepdf import Array, Dictionary, Name, Object, Page, Pdf, String
 
 
 class PageLocation(Enum):
+    """Page view location definitions, from PDF spec."""
+
     XYZ = 1
     Fit = 2
     FitH = 3
@@ -45,15 +49,20 @@ def make_page_destination(
     zoom: float | None = None,
 ) -> Array:
     """
-    Creates a destination ``Array`` with reference to a Pdf document's page number.
+    Create a destination ``Array`` with reference to a Pdf document's page number.
 
     Arguments:
         pdf: PDF document object.
         page_num: Page number (zero-based).
         page_location: Optional page location, as a string or :enum:`PageLocation`.
-        left, top, right, bottom, zoom: Optional keyword arguments for specifying
-            a position on the page, used in conjunction with the page fit style
-            specified by *page_location*.
+        left: Specify page viewport rectangle.
+        top: Specify page viewport rectangle.
+        right: Specify page viewport rectangle.
+        bottom: Specify page viewport rectangle.
+        zoom: Specify page viewport rectangle's zoom level.
+
+    left, top, right, bottom, zoom are used in conjunction with the page fit style
+    specified by *page_location*.
     """
     return _make_page_destination(
         pdf,
@@ -98,12 +107,13 @@ def _make_page_destination(
 
 
 class OutlineStructureError(Exception):
-    pass
+    """Indicates an error in the outline data structure."""
 
 
 class OutlineItem:
-    """Manages a single item in a PDF document outlines structure, including
-    nested items.
+    """Manage a single item in a PDF document outlines structure.
+
+    Includes nested items.
 
     Arguments:
         title: Title of the outlines item.
@@ -405,6 +415,7 @@ class Outline:
 
     @property
     def root(self) -> list[OutlineItem]:
+        """Return the root node of the outline."""
         if self._root is None:
             self._load()
         return cast(List[OutlineItem], self._root)
