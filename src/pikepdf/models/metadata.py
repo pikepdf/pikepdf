@@ -36,6 +36,7 @@ XMP_NS_PDF = "http://ns.adobe.com/pdf/1.3/"
 XMP_NS_PDFA_ID = "http://www.aiim.org/pdfa/ns/id/"
 XMP_NS_PDFX_ID = "http://www.npes.org/pdfx/ns/id/"
 XMP_NS_PHOTOSHOP = "http://ns.adobe.com/photoshop/1.0/"
+XMP_NS_PRISM = "http://prismstandard.org/namespaces/basic/1.0/"
 XMP_NS_PRISM2 = "http://prismstandard.org/namespaces/basic/2.0/"
 XMP_NS_PRISM3 = "http://prismstandard.org/namespaces/basic/3.0/"
 XMP_NS_RDF = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
@@ -50,6 +51,7 @@ DEFAULT_NAMESPACES: list[tuple[str, str]] = [
     (XMP_NS_PDFA_ID, 'pdfaid'),
     (XMP_NS_PDFX_ID, 'pdfxid'),
     (XMP_NS_PHOTOSHOP, 'photoshop'),
+    (XMP_NS_PRISM, 'prism'),
     (XMP_NS_PRISM2, 'prism2'),
     (XMP_NS_PRISM3, 'prism3'),
     (XMP_NS_RDF, 'rdf'),
