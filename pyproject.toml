@@ -143,6 +143,8 @@ add-ignore = [
   "D107",  # missing __init__ docstring,
   "D212"   # require multi-line docstring to being with """It starts...
 ]
+# This is the best we can do till https://github.com/PyCQA/pydocstyle/pull/529
+match = "(?!test_)[^/]+\\.py"
 
 [tool.pylint.main]
 # Analyse import fallback blocks. This can be used to support both Python 2 and 3

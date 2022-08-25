@@ -46,9 +46,10 @@ repos:
           - types-Pillow
           - types-requests
           - types-setuptools
-  - repo: https://github.com/pycqa/pydocstyle
-    rev: 6.1.1
-    hooks:
-      - id: pydocstyle
-        additional_dependencies:
-          - toml
+  # Disable till https://github.com/PyCQA/pydocstyle/pull/529
+  # - repo: https://github.com/pycqa/pydocstyle
+  #   rev: 6.1.1
+  #   hooks:
+  #     - id: pydocstyle
+  #       additional_dependencies:
+  #         - toml
