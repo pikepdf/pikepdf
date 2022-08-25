@@ -1,3 +1,11 @@
+v5.6.0
+======
+
+-  Improved support for extracting the contents of inline images.
+-  Marked some "always should have been private" functions as deprecated with removal
+   planned for v6, mainly in pikepdf.models.image.
+-  Fixed all Python documentation style inconsistencies.
+
 v5.5.0
 ======
 
@@ -48,7 +56,7 @@ v5.3.1
    inline images were encountered in a content stream. The issue only affects
    content streams parsed with ``parse_content_stream``; saved PDFs were not
    affected. :issue:`299`
--  Build system requires changed to setuptools-scm 7.0.3, and 
+-  Build system requires changed to setuptools-scm 7.0.3, and
    setuptools-scm-git-archive is now longer required.
 
 v5.3.0
@@ -68,7 +76,7 @@ v5.2.0
    encryption settings. :issue:`341`
 -  Added a workaround for XMP metadata blocks that are missing the expected namespace
    tag. :issue:`349`
--  Minor improvements to code coverage, type checking, and removed some deprecated 
+-  Minor improvements to code coverage, type checking, and removed some deprecated
    private methods.
 
 v5.1.5
