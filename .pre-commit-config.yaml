@@ -13,11 +13,10 @@ repos:
       - id: debug-statements
       - id: name-tests-test
         args: ["--pytest-test-first"]
-  - repo: https://gitlab.com/daverona/pre-commit/cpp
-    rev: 0.8.0
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v14.0.6
     hooks:
       - id: clang-format
-        args: ["--style=file:.clang-format"]
   - repo: https://github.com/pycqa/isort
     rev: 5.10.1
     hooks:
