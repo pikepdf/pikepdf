@@ -35,19 +35,36 @@ if qpdf_source_tree:
         )
     extra_library_dirs.append(join(qpdf_build_libdir))
 
-# If CFLAGS is not defined, a user may be trying to install a sdist. Look around
-# their system for places QPDF might be installed.
-# If defined, we assume the user is a package maintainer who does not want us
-# to be clever.
+# Here we have two different use cases. Some users will end up here because
+# their package manager couldn't find a suitable binary wheel and they have to
+# compile from source. Also downstream maintainers prefer sdists.
+# Our priority is trying to make things work as cleanly as possible for users
+# who want to do a source build. It's an imperfect test, but downstream build
+# environments usually define CFLAGS to something interesting, and users who call
+# "pip install pikepdf" probably don't. So we use this to check if we activate
+# shims.
 cflags_defined = bool(environ.get('CFLAGS', ''))
-if not cflags_defined and not qpdf_source_tree:
+shims_enabled = not cflags_defined
+
+# If shims are enabled, we add some known locations where QPDF and other third party
+# libraries might be installed, in hopes the build will succeed if we suggest the
+# obvious.
+if shims_enabled and not qpdf_source_tree:
     if 'bsd' in sys.platform:
-        extra_includes.append('/usr/local/include')
+        shim_includes = ['/usr/local/include']
+        shim_libdirs = []
     elif 'darwin' in sys.platform and machine() == 'arm64':
-        extra_includes.append('/opt/homebrew/include')
-        extra_library_dirs.append('/opt/homebrew/lib')
+        shim_includes = ['/opt/homebrew/include', '/opt/local/include']
+        shim_libdirs = ['/opt/homebrew/lib', '/opt/local/lib']
+    else:
+        shim_includes = []
+        shim_libdirs = []
+    extra_includes.extend(shim for shim in shim_includes if exists(shim))
+    extra_library_dirs.extend(shim for shim in shim_libdirs if exists(shim))
 
-
+# Regardless of shimming, we want to let users know when some parameter they supplied
+# resulted in a non-existent path being added to the list, so they can figure out
+# what went wrong.
 for extra_path in chain([qpdf_source_tree], extra_includes, extra_library_dirs):
     if extra_path and not exists(extra_path):
         raise FileNotFoundError(extra_path)
@@ -70,14 +87,14 @@ extmodule: Extension = cast(
     ),
 )
 
-if not cflags_defined:
+if shims_enabled:
+    eca = extmodule.extra_compile_args
     if sys.platform == 'cygwin':
         # On cygwin, use gnu++17 instead of c++17
-        eca = extmodule.extra_compile_args
         eca[eca.index('-std=c++17')] = '-std=gnu++17'
 
     # Debug build
-    # module[0].extra_compile_args.append('-g3')
+    # eca.append('-g3')
 
     if qpdf_source_tree:
         for lib in extra_library_dirs:
