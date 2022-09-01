@@ -1,3 +1,9 @@
+v5.6.1
+======
+
+-  Made treatment of CCITT image photometry ignore ``BlackIs1``, since this seems
+   more consistent with other programs.
+
 v5.6.0
 ======
 
