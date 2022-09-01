@@ -702,6 +702,16 @@ def test_ccitt_photometry(sandwich):
     im = im.convert('L')
     assert im.getpixel((0, 0)) == 255, "Expected white background"
 
+    xobj.DecodeParms.BlackIs1 = True
+    im = pim.as_pil_image()
+    im = im.convert('L')
+    assert im.getpixel((0, 0)) == 255, "Expected white background"
+
+    xobj.DecodeParms.BlackIs1 = False
+    im = pim.as_pil_image()
+    im = im.convert('L')
+    assert im.getpixel((0, 0)) == 255, "Expected white background"
+
 
 def test_ccitt_encodedbytealign(sandwich):
     xobj, _pdf = sandwich

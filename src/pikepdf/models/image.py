@@ -752,7 +752,6 @@ class PdfImage(PdfImageBase):
 
         if not self.decode_parms:
             raise ValueError("/CCITTFaxDecode without /DecodeParms")
-
         if self.decode_parms[0].get("/EncodedByteAlign", False):
             raise UnsupportedImageTypeError(
                 "/CCITTFaxDecode with /EncodedByteAlign true"
@@ -765,18 +764,23 @@ class PdfImage(PdfImageBase):
             ccitt_group = 3  # Group 3 2-D
         else:
             ccitt_group = 2  # Group 3 1-D
-        black_is_one = self.decode_parms[0].get("/BlackIs1", False)
+        _black_is_one = self.decode_parms[0].get("/BlackIs1", False)
+        # PDF spec says:
+        # BlackIs1: A flag indicating whether 1 bits shall be interpreted as black
+        # pixels and 0 bits as white pixels, the reverse of the normal
+        # PDF convention for image data. Default value: false.
         # TIFF spec says:
-        # use 0 for white_is_zero (=> black is 1)
-        # use 1 for black_is_zero (=> white is 1)
-        # In practice, do the opposite of what the TIFF spec says.
-        photometry = 1 if black_is_one else 0
+        # use 0 for white_is_zero (=> black is 1) MINISWHITE
+        # use 1 for black_is_zero (=> white is 1) MINISBLACK
+        # However, despite the documentation, it seems PDF viewers treat
+        # photometry as 0 when ccitt is involved.
+        # For example see
+        # https://gitlab.gnome.org/GNOME/evince/-/blob/main/backend/tiff/tiff2ps.c#L852-865
+        photometry = 0
 
         img_size = len(data)
-
         if icc is None:
             icc = b''
-
         return _transcoding.generate_ccitt_header(
             self.size, img_size, ccitt_group, photometry, icc
         )
