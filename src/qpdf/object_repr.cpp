@@ -33,25 +33,25 @@ std::string objecthandle_scalar_value(QPDFObjectHandle h)
     std::ostringstream ss;
     ss.imbue(std::locale::classic());
     switch (h.getTypeCode()) {
-    case QPDFObject::object_type_e::ot_null:
+    case qpdf_object_type_e::ot_null:
         ss << "None";
         break;
-    case QPDFObject::object_type_e::ot_boolean:
+    case qpdf_object_type_e::ot_boolean:
         ss << (h.getBoolValue() ? "True" : "False");
         break;
-    case QPDFObject::object_type_e::ot_integer:
+    case qpdf_object_type_e::ot_integer:
         ss << std::to_string(h.getIntValue());
         break;
-    case QPDFObject::object_type_e::ot_real:
+    case qpdf_object_type_e::ot_real:
         ss << "Decimal('" + h.getRealValue() + "')";
         break;
-    case QPDFObject::object_type_e::ot_name:
+    case qpdf_object_type_e::ot_name:
         ss << std::quoted(h.getName());
         break;
-    case QPDFObject::object_type_e::ot_string:
+    case qpdf_object_type_e::ot_string:
         ss << std::quoted(h.getUTF8Value());
         break;
-    case QPDFObject::object_type_e::ot_operator:
+    case qpdf_object_type_e::ot_operator:
         ss << std::quoted(h.getOperatorValue());
         break;
     // LCOV_EXCL_START
@@ -68,40 +68,40 @@ std::string objecthandle_pythonic_typename(QPDFObjectHandle h)
     ss.imbue(std::locale::classic());
 
     switch (h.getTypeCode()) {
-    case QPDFObject::object_type_e::ot_name:
+    case qpdf_object_type_e::ot_name:
         ss << "pikepdf.Name";
         break;
-    case QPDFObject::object_type_e::ot_string:
+    case qpdf_object_type_e::ot_string:
         ss << "pikepdf.String";
         break;
-    case QPDFObject::object_type_e::ot_operator:
+    case qpdf_object_type_e::ot_operator:
         ss << "pikepdf.Operator";
         break;
     // LCOV_EXCL_START
-    case QPDFObject::object_type_e::ot_inlineimage:
+    case qpdf_object_type_e::ot_inlineimage:
         // Objects of this time are not directly returned.
         ss << "pikepdf.InlineImage";
         break;
     // LCOV_EXCL_STOP
-    case QPDFObject::object_type_e::ot_array:
+    case qpdf_object_type_e::ot_array:
         ss << "pikepdf.Array";
         break;
-    case QPDFObject::object_type_e::ot_dictionary:
+    case qpdf_object_type_e::ot_dictionary:
         if (h.hasKey("/Type")) {
             ss << "pikepdf.Dictionary(Type=\"" << h.getKey("/Type").getName() << "\")";
         } else {
             ss << "pikepdf.Dictionary";
         }
         break;
-    case QPDFObject::object_type_e::ot_stream:
+    case qpdf_object_type_e::ot_stream:
         ss << "pikepdf.Stream";
         break;
-    case QPDFObject::object_type_e::ot_null:
-    case QPDFObject::object_type_e::ot_boolean:
-    case QPDFObject::object_type_e::ot_integer:
-    case QPDFObject::object_type_e::ot_real:
-        break; // No typename since literal is obvious and Decimal automatically adds
-               // Decimal('1.2345.')
+    case qpdf_object_type_e::ot_null:
+    case qpdf_object_type_e::ot_boolean:
+    case qpdf_object_type_e::ot_integer:
+    case qpdf_object_type_e::ot_real:
+        break; // No typename since literal is obvious and Decimal automatically
+               // adds Decimal('1.2345.')
 
     // LCOV_EXCL_START
     default:
@@ -150,18 +150,18 @@ static std::string objecthandle_repr_inner(QPDFObjectHandle h,
     }
 
     switch (h.getTypeCode()) {
-    case QPDFObject::object_type_e::ot_null:
-    case QPDFObject::object_type_e::ot_boolean:
-    case QPDFObject::object_type_e::ot_integer:
-    case QPDFObject::object_type_e::ot_real:
-    case QPDFObject::object_type_e::ot_name:
-    case QPDFObject::object_type_e::ot_string:
+    case qpdf_object_type_e::ot_null:
+    case qpdf_object_type_e::ot_boolean:
+    case qpdf_object_type_e::ot_integer:
+    case qpdf_object_type_e::ot_real:
+    case qpdf_object_type_e::ot_name:
+    case qpdf_object_type_e::ot_string:
         ss << objecthandle_scalar_value(h);
         break;
-    case QPDFObject::object_type_e::ot_operator:
+    case qpdf_object_type_e::ot_operator:
         ss << objecthandle_repr_typename_and_value(h);
         break;
-    case QPDFObject::object_type_e::ot_inlineimage:
+    case qpdf_object_type_e::ot_inlineimage:
         // LCOV_EXCL_START
         // Inline image objects are automatically promoted to higher level objects
         // in parse_content_stream, so objects of this type should not be returned
@@ -170,8 +170,8 @@ static std::string objecthandle_repr_inner(QPDFObjectHandle h,
            << "data=<...>"
            << ")";
         break;
-        // LCOV_EXCL_STOP
-    case QPDFObject::object_type_e::ot_array:
+    // LCOV_EXCL_STOP
+    case qpdf_object_type_e::ot_array:
         ss << "[";
         {
             bool first_item = true;
@@ -189,7 +189,7 @@ static std::string objecthandle_repr_inner(QPDFObjectHandle h,
         }
         ss << "]";
         break;
-    case QPDFObject::object_type_e::ot_dictionary:
+    case qpdf_object_type_e::ot_dictionary:
         ss << "{"; // This will end the line
         {
             bool first_item = true;
@@ -219,7 +219,7 @@ static std::string objecthandle_repr_inner(QPDFObjectHandle h,
         ss << std::string(indent_depth * 2, ' ') // Restore previous indent level
            << "}";
         break;
-    case QPDFObject::object_type_e::ot_stream:
+    case qpdf_object_type_e::ot_stream:
         *pure_expr = false;
         ss << objecthandle_pythonic_typename(h) << "(owner=<...>, data=<...>, "
            << objecthandle_repr_inner(h.getDict(),

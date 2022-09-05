@@ -60,21 +60,21 @@ py::size_t list_range_check(QPDFObjectHandle h, int index)
     return static_cast<py::size_t>(index);
 }
 
-inline bool typecode_is_bool(QPDFObject::object_type_e typecode)
+inline bool typecode_is_bool(qpdf_object_type_e typecode)
 {
-    return typecode == QPDFObject::object_type_e::ot_boolean;
+    return typecode == qpdf_object_type_e::ot_boolean;
 }
 
-inline bool typecode_is_int(QPDFObject::object_type_e typecode)
+inline bool typecode_is_int(qpdf_object_type_e typecode)
 {
-    return typecode == QPDFObject::object_type_e::ot_integer;
+    return typecode == qpdf_object_type_e::ot_integer;
 }
 
-inline bool typecode_is_numeric(QPDFObject::object_type_e typecode)
+inline bool typecode_is_numeric(qpdf_object_type_e typecode)
 {
-    return typecode == QPDFObject::object_type_e::ot_integer ||
-           typecode == QPDFObject::object_type_e::ot_real ||
-           typecode == QPDFObject::object_type_e::ot_boolean;
+    return typecode == qpdf_object_type_e::ot_integer ||
+           typecode == qpdf_object_type_e::ot_real ||
+           typecode == qpdf_object_type_e::ot_boolean;
 }
 
 bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
@@ -119,30 +119,30 @@ bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
         return false;
 
     switch (self_typecode) {
-    case QPDFObject::object_type_e::ot_null:
+    case qpdf_object_type_e::ot_null:
         return true; // Both must be null
-    case QPDFObject::object_type_e::ot_name:
+    case qpdf_object_type_e::ot_name:
         return self.getName() == other.getName();
-    case QPDFObject::object_type_e::ot_operator:
+    case qpdf_object_type_e::ot_operator:
         return self.getOperatorValue() == other.getOperatorValue();
-    case QPDFObject::object_type_e::ot_string: {
+    case qpdf_object_type_e::ot_string: {
         // We don't know what encoding the string is in
         // This ensures UTF-16 coded ASCII strings will compare equal to
         // UTF-8/ASCII coded.
         return self.getStringValue() == other.getStringValue() ||
                self.getUTF8Value() == other.getUTF8Value();
     }
-    case QPDFObject::object_type_e::ot_array: {
+    case qpdf_object_type_e::ot_array: {
         // Call operator==() on each element of the arrays, meaning this
         // recurses into this function
         return (self.getArrayAsVector() == other.getArrayAsVector());
     }
-    case QPDFObject::object_type_e::ot_dictionary: {
+    case qpdf_object_type_e::ot_dictionary: {
         // Call operator==() on each element of the arrays, meaning this
         // recurses into this function
         return (self.getDictAsMap() == other.getDictAsMap());
     }
-    case QPDFObject::object_type_e::ot_stream: {
+    case qpdf_object_type_e::ot_stream: {
         // Recurse into this function to check if our dictionaries are equal
         if (!objecthandle_equal(self.getDict(), other.getDict()))
             return false;
@@ -152,8 +152,8 @@ bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
         auto self_buffer  = self.getRawStreamData();
         auto other_buffer = other.getRawStreamData();
 
-        // Early out: if underlying QPDF Buffers happen to be the same, the data is the
-        // same
+        // Early out: if underlying QPDF Buffers happen to be the same, the data is
+        // the same
         if (self_buffer == other_buffer)
             return true;
         // Early out: if sizes are different, data cannot be the same
@@ -166,9 +166,9 @@ bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
                         self_buffer->getSize());
     }
     // LCOV_EXCL_START
-    case QPDFObject::object_type_e::ot_boolean:
-    case QPDFObject::object_type_e::ot_integer:
-    case QPDFObject::object_type_e::ot_real:
+    case qpdf_object_type_e::ot_boolean:
+    case qpdf_object_type_e::ot_integer:
+    case qpdf_object_type_e::ot_real:
         throw std::logic_error("should have eliminated numeric types by now");
     default:
         throw std::logic_error("invalid object type");
@@ -276,20 +276,20 @@ std::shared_ptr<Buffer> get_stream_data(
 
 void init_object(py::module_ &m)
 {
-    py::enum_<QPDFObject::object_type_e>(m, "ObjectType")
-        .value("uninitialized", QPDFObject::object_type_e::ot_uninitialized)
-        .value("reserved", QPDFObject::object_type_e::ot_reserved)
-        .value("null", QPDFObject::object_type_e::ot_null)
-        .value("boolean", QPDFObject::object_type_e::ot_boolean)
-        .value("integer", QPDFObject::object_type_e::ot_integer)
-        .value("real", QPDFObject::object_type_e::ot_real)
-        .value("string", QPDFObject::object_type_e::ot_string)
-        .value("name_", QPDFObject::object_type_e::ot_name)
-        .value("array", QPDFObject::object_type_e::ot_array)
-        .value("dictionary", QPDFObject::object_type_e::ot_dictionary)
-        .value("stream", QPDFObject::object_type_e::ot_stream)
-        .value("operator", QPDFObject::object_type_e::ot_operator)
-        .value("inlineimage", QPDFObject::object_type_e::ot_inlineimage);
+    py::enum_<qpdf_object_type_e>(m, "ObjectType")
+        .value("uninitialized", qpdf_object_type_e::ot_uninitialized)
+        .value("reserved", qpdf_object_type_e::ot_reserved)
+        .value("null", qpdf_object_type_e::ot_null)
+        .value("boolean", qpdf_object_type_e::ot_boolean)
+        .value("integer", qpdf_object_type_e::ot_integer)
+        .value("real", qpdf_object_type_e::ot_real)
+        .value("string", qpdf_object_type_e::ot_string)
+        .value("name_", qpdf_object_type_e::ot_name)
+        .value("array", qpdf_object_type_e::ot_array)
+        .value("dictionary", qpdf_object_type_e::ot_dictionary)
+        .value("stream", qpdf_object_type_e::ot_stream)
+        .value("operator", qpdf_object_type_e::ot_operator)
+        .value("inlineimage", qpdf_object_type_e::ot_inlineimage);
 
     py::class_<Buffer, std::shared_ptr<Buffer>>(m, "Buffer", py::buffer_protocol())
         .def_buffer([](Buffer &b) -> py::buffer_info {
@@ -373,16 +373,16 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &self) -> py::int_ {
                 // Objects which compare equal must have the same hash value
                 switch (self.getTypeCode()) {
-                case QPDFObject::object_type_e::ot_string:
+                case qpdf_object_type_e::ot_string:
                     return py::hash(py::bytes(self.getUTF8Value()));
-                case QPDFObject::object_type_e::ot_name:
+                case qpdf_object_type_e::ot_name:
                     return py::hash(py::bytes(self.getName()));
-                case QPDFObject::object_type_e::ot_operator:
+                case qpdf_object_type_e::ot_operator:
                     return py::hash(py::bytes(self.getOperatorValue()));
-                case QPDFObject::object_type_e::ot_array:
-                case QPDFObject::object_type_e::ot_dictionary:
-                case QPDFObject::object_type_e::ot_stream:
-                case QPDFObject::object_type_e::ot_inlineimage:
+                case qpdf_object_type_e::ot_array:
+                case qpdf_object_type_e::ot_dictionary:
+                case qpdf_object_type_e::ot_stream:
+                case qpdf_object_type_e::ot_inlineimage:
                     throw py::type_error("Can't hash mutable object");
                 default:
                     break;
@@ -400,9 +400,9 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &self, py::str other) {
                 std::string utf8_other = other.cast<std::string>();
                 switch (self.getTypeCode()) {
-                case QPDFObject::object_type_e::ot_string:
+                case qpdf_object_type_e::ot_string:
                     return self.getUTF8Value() == utf8_other;
-                case QPDFObject::object_type_e::ot_name:
+                case qpdf_object_type_e::ot_name:
                     return self.getName() == utf8_other;
                 default:
                     return false;
@@ -414,9 +414,9 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &self, py::bytes other) {
                 std::string bytes_other = other.cast<std::string>();
                 switch (self.getTypeCode()) {
-                case QPDFObject::object_type_e::ot_string:
+                case qpdf_object_type_e::ot_string:
                     return self.getStringValue() == bytes_other;
-                case QPDFObject::object_type_e::ot_name:
+                case qpdf_object_type_e::ot_name:
                     return self.getName() == bytes_other;
                 default:
                     return false;

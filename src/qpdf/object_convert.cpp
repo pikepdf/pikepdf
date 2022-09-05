@@ -157,13 +157,13 @@ py::object decimal_from_pdfobject(QPDFObjectHandle h)
 {
     auto decimal_constructor = py::module_::import("decimal").attr("Decimal");
 
-    if (h.getTypeCode() == QPDFObject::object_type_e::ot_integer) {
+    if (h.getTypeCode() == qpdf_object_type_e::ot_integer) {
         auto value = h.getIntValue();
         return decimal_constructor(py::cast(value));
-    } else if (h.getTypeCode() == QPDFObject::object_type_e::ot_real) {
+    } else if (h.getTypeCode() == qpdf_object_type_e::ot_real) {
         auto value = h.getRealValue();
         return decimal_constructor(py::cast(value));
-    } else if (h.getTypeCode() == QPDFObject::object_type_e::ot_boolean) {
+    } else if (h.getTypeCode() == qpdf_object_type_e::ot_boolean) {
         auto value = h.getBoolValue();
         return decimal_constructor(py::cast(value));
     }

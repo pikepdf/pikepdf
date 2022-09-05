@@ -8,6 +8,7 @@
 #include <map>
 
 #include <qpdf/QPDF.hh>
+#include <qpdf/Constants.h>
 #include <qpdf/QPDFObjectHandle.hh>
 #include <qpdf/QPDFPageObjectHelper.hh>
 
@@ -71,16 +72,16 @@ private:
         handle h;
 
         switch (src->getTypeCode()) {
-        case QPDFObject::object_type_e::ot_null:
+        case qpdf_object_type_e::ot_null:
             h = pybind11::none().release();
             break;
-        case QPDFObject::object_type_e::ot_integer:
+        case qpdf_object_type_e::ot_integer:
             h = pybind11::int_(src->getIntValue()).release();
             break;
-        case QPDFObject::object_type_e::ot_boolean:
+        case qpdf_object_type_e::ot_boolean:
             h = pybind11::bool_(src->getBoolValue()).release();
             break;
-        case QPDFObject::object_type_e::ot_real:
+        case qpdf_object_type_e::ot_real:
             h = decimal_from_pdfobject(*src).release();
             break;
         default:
