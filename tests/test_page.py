@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import copy
-from typing import List, Union
 
 import pytest
 
@@ -19,7 +18,6 @@ from pikepdf import (
     Pdf,
     PdfMatrix,
     Rectangle,
-    Stream,
     parse_content_stream,
 )
 
@@ -76,10 +74,11 @@ def test_page_repr(graph_page):
 
 
 class TestAddResource:
-    d = Dictionary(Type=Name.XObject, Subtype=Name.Image, Width=1, Height=1)
+    def _make_simple_dict(self):
+        return Dictionary(Type=Name.XObject, Subtype=Name.Image, Width=1, Height=1)
 
     def test_basic(self, graph_page):
-        d = self.d
+        d = self._make_simple_dict()
 
         with pytest.raises(ValueError, match="already exists"):
             graph_page.add_resource(d, Name.XObject, Name.Im0, replace_existing=False)
@@ -92,25 +91,31 @@ class TestAddResource:
         assert graph_page.resources.XObject[res2].Height == 1
 
     def test_resources_exists_but_wrong_type(self, graph_page):
+        d = self._make_simple_dict()
+
         del graph_page.obj.Resources
         graph_page.obj.Resources = Name.Dummy
         with pytest.raises(TypeError, match='exists but is not a dictionary'):
-            graph_page.add_resource(
-                self.d, Name.XObject, Name.Im0, replace_existing=False
-            )
+            graph_page.add_resource(d, Name.XObject, Name.Im0, replace_existing=False)
 
     def test_create_resource_dict_if_not_exists(self, graph_page):
+        d = self._make_simple_dict()
+
         del graph_page.obj.Resources
-        graph_page.add_resource(self.d, Name.XObject, Name.Im0, replace_existing=False)
+        graph_page.add_resource(d, Name.XObject, Name.Im0, replace_existing=False)
         assert Name.Resources in graph_page.obj
 
     def test_name_and_prefix(self, graph_page):
+        d = self._make_simple_dict()
+
         with pytest.raises(ValueError, match="one of"):
-            graph_page.add_resource(self.d, Name.XObject, name=Name.X, prefix='y')
+            graph_page.add_resource(d, Name.XObject, name=Name.X, prefix='y')
 
     def test_unrecognized_object_not_disturbed(self, graph_page):
+        d = self._make_simple_dict()
+
         graph_page.obj.Resources.InvalidItem = Array([42])
-        graph_page.add_resource(self.d, Name.Pattern)
+        graph_page.add_resource(d, Name.Pattern)
         assert Name.InvalidItem in graph_page.obj.Resources
 
 
