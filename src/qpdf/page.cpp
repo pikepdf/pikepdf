@@ -208,7 +208,9 @@ void init_page(py::module_ &m)
                 Pl_Buffer pl_buffer("filter_page");
                 poh.filterContents(&tf, &pl_buffer);
 
-                std::shared_ptr<Buffer> buf(pl_buffer.getBuffer());
+                // Hold .getBuffer in unique_ptr to ensure it is deleted.
+                // QPDF makes a copy and expects us to delete it.
+                std::unique_ptr<Buffer> buf(pl_buffer.getBuffer());
                 auto data = reinterpret_cast<const char *>(buf->getBuffer());
                 auto size = buf->getSize();
                 return py::bytes(data, size);
