@@ -109,6 +109,7 @@ PYBIND11_MODULE(_qpdf, m)
     m.def("qpdf_version", &QPDF::QPDFVersion, "Get libqpdf version");
 
     // -- Core objects --
+    init_logger(m);
     init_qpdf(m);
     init_pagelist(m);
     init_object(m);

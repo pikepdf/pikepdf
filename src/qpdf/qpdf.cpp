@@ -19,6 +19,7 @@
 #include <qpdf/Pl_Discard.hh>
 #include <qpdf/QPDFAcroFormDocumentHelper.hh>
 #include <qpdf/QPDFEmbeddedFileDocumentHelper.hh>
+#include <qpdf/QPDFLogger.hh>
 
 #include <pybind11/stl.h>
 #include <pybind11/iostream.h>
@@ -49,6 +50,7 @@ void qpdf_basic_settings(QPDF &q) // LCOV_EXCL_LINE
 {
     q.setSuppressWarnings(true);
     q.setImmediateCopyFrom(true);
+    q.setLogger(get_pikepdf_logger());
 }
 
 std::shared_ptr<QPDF> open_pdf(py::object filename_or_stream,
@@ -140,6 +142,7 @@ std::shared_ptr<QPDF> open_pdf(py::object filename_or_stream,
         python_warning(
             "A password was provided, but no password was needed to open this PDF.");
     }
+    q->getLogger()->info("Opened a file");
 
     return q;
 }
