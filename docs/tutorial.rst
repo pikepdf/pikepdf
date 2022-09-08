@@ -135,7 +135,7 @@ page dictionary that provides many useful functions for working on pages.
 repr() output
 -------------
 
-Let's example the page's ``repr()`` output:
+Let's observe the page's ``repr()`` output:
 
 .. ipython::
 
