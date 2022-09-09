@@ -847,7 +847,7 @@ class Extend_Page:
 
         If the /CropBox is not defined, the /MediaBox is returned.
         """
-        return self._get_cropbox(True)
+        return self._get_cropbox(True, False)
 
     @cropbox.setter
     def cropbox(self, value):
@@ -861,7 +861,7 @@ class Extend_Page:
         If the /TrimBox is not defined, the /CropBox is returned (and if
         /CropBox is not defined, /MediaBox is returned).
         """
-        return self._get_trimbox(True)
+        return self._get_trimbox(True, False)
 
     @trimbox.setter
     def trimbox(self, value):
