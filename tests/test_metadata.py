@@ -130,7 +130,7 @@ def test_update_info(graph, outdir):
         with pytest.raises(ValueError):
             new.docinfo = Dictionary({'/Keywords': 'bob'})
 
-        new.docinfo = graph.make_indirect(Dictionary({'/Keywords': 'bob'}))
+        new.docinfo = new.make_indirect(Dictionary({'/Keywords': 'bob'}))
         assert new.docinfo.is_indirect, "/Info must be an indirect object"
 
 
