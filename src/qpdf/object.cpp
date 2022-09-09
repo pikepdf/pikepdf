@@ -85,14 +85,11 @@ bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
     if (!self.isInitialized() || !other.isInitialized())
         return false; // LCOV_EXCL_LINE
 
-    // Indirect objects (objid != 0) with the same obj-gen are equal and same owner
-    // are equal (in fact, they are identical; they reference the same underlying
-    // QPDFObject, even if the handles are different).
-    // This lets us compare deeply nested and cyclic structures without recursing
-    // into them.
-    if (self.getObjectID() != 0 && other.getObjectID() != 0 &&
-        self.getOwningQPDF() == other.getOwningQPDF() &&
-        self.getObjGen() == other.getObjGen()) {
+    // If two objects point to the same underlying object, they are equal (in fact,
+    // they are identical; they reference the same underlying QPDFObject, even if the
+    // handles are different). This lets us compare deeply nested and cyclic
+    // structures without recursing into them.
+    if (self.isSameObjectAs(other)) {
         return true;
     }
 
