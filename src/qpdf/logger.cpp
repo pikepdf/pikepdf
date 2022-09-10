@@ -4,10 +4,7 @@
 #include "pikepdf.h"
 #include <qpdf/QPDFLogger.hh>
 
-// Create a shared_ptr to qpdf_logger that is configured to not delete
-static QPDFLogger qpdf_logger;
-static std::shared_ptr<QPDFLogger> pikepdf_logger{
-    &qpdf_logger, [](auto p) { /* don't delete */ }};
+static auto pikepdf_logger = QPDFLogger::create();
 
 // Pipeline to relay QPDF log messages to Python logging module
 // This is a sink - cannot pass to other pipeline objects
