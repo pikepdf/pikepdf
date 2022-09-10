@@ -5,7 +5,9 @@
 set -ex
 
 pushd qpdf
-./configure --disable-oss-fuzz && make -j && sudo make install
+cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build build --parallel
+cmake --install build
 popd
 
 sudo ldconfig

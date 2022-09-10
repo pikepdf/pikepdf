@@ -26,9 +26,9 @@ fi
 
 if [ ! -f /usr/local/lib/libqpdf.a ]; then
     pushd qpdf
-    ./configure --disable-oss-fuzz 
-    make -j $MAX_JOBS install-libs
-    find /usr/local/lib -name 'libqpdf.so*' -type f -exec strip --strip-debug {} \+
+    cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    cmake --build build --parallel $MAX_JOBS
+    cmake --install build
     popd
 fi
 

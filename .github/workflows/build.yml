@@ -78,7 +78,7 @@ jobs:
         run: >
           pipx run
           --python /usr/bin/python3
-          --spec cibuildwheel==2.8.1
+          --spec cibuildwheel==2.9.0
           cibuildwheel
           .
           --output-dir wheelhouse
@@ -179,7 +179,7 @@ jobs:
       - name: Install apt packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y jbig2dec lcov libexempi8 poppler-utils
+          sudo apt-get install -y cmake jbig2dec lcov libexempi8 poppler-utils
 
       - name: Install tomli and read environment from pyproject.toml
         run: |
