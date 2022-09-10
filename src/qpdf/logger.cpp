@@ -11,8 +11,10 @@ static auto pikepdf_logger = QPDFLogger::create();
 class Pl_PythonLogger : public Pipeline {
 public:
     Pl_PythonLogger(const char *identifier, py::object logger, const char *level)
-        : Pipeline(identifier, nullptr), logger(logger), level(level)
+        : Pipeline(identifier, nullptr), level(level)
     {
+        py::gil_scoped_acquire gil;
+        this->logger = logger;
     }
 
     virtual ~Pl_PythonLogger()                          = default;
