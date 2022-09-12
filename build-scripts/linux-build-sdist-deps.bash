@@ -7,7 +7,7 @@ set -ex
 pushd qpdf
 cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build build --parallel
-cmake --install build
+sudo cmake --install build
 popd
 
 sudo ldconfig
