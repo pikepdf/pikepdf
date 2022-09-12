@@ -12,14 +12,14 @@ fi
 
 if [ ! -f /usr/local/lib/libz.a ]; then
     pushd zlib
-    ./configure 
+    ./configure
     make -j $MAX_JOBS install
     popd
 fi
 
 if [ ! -f  /usr/local/lib/libjpeg.a ]; then
     pushd jpeg
-    ./configure 
+    ./configure
     make -j $MAX_JOBS install
     popd
 fi
