@@ -770,6 +770,10 @@ void init_qpdf(py::module_ &m)
             R"~~~(
             Copy an ``Object`` from a foreign ``Pdf`` to this one.
 
+            If you want to copy a page from one PDF to another, use:
+            ``pdf_b.pages[0] = pdf_a.pages[0]``. That interface accounts for the
+            complexity of copying pages.
+
             This function is used to copy a :class:`pikepdf.Object` that is owned by
             some other ``Pdf`` into this one. This is performs a deep (recursive) copy
             and preserves circular references that may exist in the foreign object.
@@ -796,9 +800,8 @@ void init_qpdf(py::module_ &m)
             py::arg("h"))
         .def("copy_foreign",
             [](QPDF &q, QPDFPageObjectHelper &poh) -> QPDFPageObjectHelper {
-                deprecation_warning("copy_foreign() called on pikepdf.Page - use "
-                                    "Pdf.pages interface instead");
-                return QPDFPageObjectHelper(q.copyForeignObject(poh.getObjectHandle()));
+                throw py::notimpl_error("Use pikepdf.Pdf.pages interface to copy "
+                                        "pages from one PDF to another.");
             })
         .def("_replace_object",
             [](QPDF &q, std::pair<int, int> objgen, QPDFObjectHandle &h) {
