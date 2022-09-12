@@ -13,7 +13,6 @@ from pathlib import Path
 from subprocess import run
 from typing import NamedTuple, Sequence
 
-import deprecation
 import PIL
 import pytest
 from conftest import needs_python_v
@@ -209,13 +208,11 @@ def test_lowlevel_replace_jpeg(congress, outdir):
     pdf.save(outdir / 'congress_gray.pdf')
 
 
-@deprecation.fail_if_not_removed
 def test_inline(inline):
     iimage, pdf = inline
     assert iimage.width == 8
     assert not iimage.image_mask
     assert iimage.mode == 'RGB'
-    assert iimage.is_inline
     assert iimage.colorspace == '/DeviceRGB'
     assert 'PdfInlineImage' in repr(iimage)
 
@@ -508,7 +505,6 @@ def valid_random_palette_image_spec(
     return PaletteImageSpec(bpc, width, height, hival, colorspace, palette, imbytes)
 
 
-@deprecation.fail_if_not_removed
 @pytest.mark.parametrize(
     'filename,bpc,rgb',
     [
@@ -523,7 +519,6 @@ def test_image_palette(resources, filename, bpc, rgb):
 
     assert pim.palette[0] == 'RGB'
     assert pim.colorspace == '/DeviceRGB'
-    assert not pim.is_inline
     assert pim.mode == 'P'
     assert pim.bits_per_component == bpc
 
@@ -590,7 +585,6 @@ def test_bool_in_inline_image():
 @pytest.mark.skipif(
     not PIL_features.check_codec('jpg_2000'), reason='no JPEG2000 codec'
 )
-@deprecation.fail_if_not_removed
 def test_jp2(first_image_in):
     xobj, _pdf = first_image_in('pike-jp2.pdf')
     pim = PdfImage(xobj)
@@ -598,7 +592,6 @@ def test_jp2(first_image_in):
 
     assert '/JPXDecode' in pim.filters
     assert pim.colorspace == '/DeviceRGB'
-    assert not pim.is_inline
     assert not pim.indexed
     assert pim.mode == 'RGB'
     assert pim.bits_per_component == 8
