@@ -8,9 +8,7 @@ Testing focused on pikepdf.Pdf
 from __future__ import annotations
 
 import locale
-import os
 import shutil
-import sys
 import zlib
 from contextlib import nullcontext
 from io import BytesIO, StringIO
@@ -20,6 +18,7 @@ from subprocess import CalledProcessError
 from unittest.mock import Mock
 
 import pytest
+from conftest import fails_if_pypy
 
 import pikepdf
 from pikepdf import Name, PasswordError, Pdf, PdfError, Stream
@@ -342,6 +341,7 @@ def test_check(resources):
         assert 'parse error while reading' in problems[0]
 
 
+@fails_if_pypy
 def test_check_specialized_decoder_fallback(resources, monkeypatch):
     class MissingJBIG2Decoder(pikepdf.jbig2.JBIG2DecoderInterface):
         def check_available(self):
