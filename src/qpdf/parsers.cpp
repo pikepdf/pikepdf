@@ -94,7 +94,7 @@ OperandGrouper::OperandGrouper(const std::string &operators)
 void OperandGrouper::handleObject(QPDFObjectHandle obj)
 {
     this->count++;
-    if (obj.getTypeCode() == QPDFObject::object_type_e::ot_operator) {
+    if (obj.getTypeCode() == qpdf_object_type_e::ot_operator) {
         std::string op = obj.getOperatorValue();
 
         // If we have a whitelist and this operator is not on the whitelist,

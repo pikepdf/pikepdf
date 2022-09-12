@@ -27,8 +27,6 @@ from pikepdf.models.metadata import (
     decode_pdf_date,
 )
 
-pytestmark = pytest.mark.filterwarnings('ignore:.*XMLParser.*:DeprecationWarning')
-
 # pylint: disable=redefined-outer-name,pointless-statement
 
 
@@ -130,7 +128,7 @@ def test_update_info(graph, outdir):
         with pytest.raises(ValueError):
             new.docinfo = Dictionary({'/Keywords': 'bob'})
 
-        new.docinfo = graph.make_indirect(Dictionary({'/Keywords': 'bob'}))
+        new.docinfo = new.make_indirect(Dictionary({'/Keywords': 'bob'}))
         assert new.docinfo.is_indirect, "/Info must be an indirect object"
 
 

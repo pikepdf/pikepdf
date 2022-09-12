@@ -5,8 +5,6 @@
 #include <qpdf/Types.h>
 #include <qpdf/DLL.h>
 #include <qpdf/QPDFExc.hh>
-#include <qpdf/PointerHolder.hh>
-#include <qpdf/Buffer.hh>
 #include <qpdf/QPDF.hh>
 #include <qpdf/Pipeline.hh>
 #include <qpdf/QUtil.hh>
@@ -18,7 +16,7 @@
 #include "pipeline.h"
 #include "utils.h"
 
-void Pl_PythonOutput::write(unsigned char *buf, size_t len)
+void Pl_PythonOutput::write(const unsigned char *buf, size_t len)
 {
     py::gil_scoped_acquire gil;
     py::ssize_t so_far = 0;

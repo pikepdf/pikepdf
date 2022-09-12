@@ -541,10 +541,10 @@ def test_json():
     assert as_dict == {
         "/Array": [1, 2, 3.14],
         "/Boolean": True,
-        "/Dictionary": {"/Color": "Red"},
+        "/Dictionary": {"/Color": "u:Red"},
         "/Integer": 42,
         "/Real": 42.42,
-        "/String": "hi",
+        "/String": "u:hi",
     }
 
 

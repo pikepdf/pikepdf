@@ -8,8 +8,6 @@
 #include <qpdf/Types.h>
 #include <qpdf/DLL.h>
 #include <qpdf/QPDFExc.hh>
-#include <qpdf/PointerHolder.hh>
-#include <qpdf/Buffer.hh>
 #include <qpdf/QPDF.hh>
 #include <qpdf/InputSource.hh>
 #include <qpdf/QUtil.hh>

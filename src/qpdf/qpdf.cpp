@@ -19,6 +19,7 @@
 #include <qpdf/Pl_Discard.hh>
 #include <qpdf/QPDFAcroFormDocumentHelper.hh>
 #include <qpdf/QPDFEmbeddedFileDocumentHelper.hh>
+#include <qpdf/QPDFLogger.hh>
 
 #include <pybind11/stl.h>
 #include <pybind11/iostream.h>
@@ -49,6 +50,7 @@ void qpdf_basic_settings(QPDF &q) // LCOV_EXCL_LINE
 {
     q.setSuppressWarnings(true);
     q.setImmediateCopyFrom(true);
+    q.setLogger(get_pikepdf_logger());
 }
 
 std::shared_ptr<QPDF> open_pdf(py::object filename_or_stream,
@@ -97,7 +99,8 @@ std::shared_ptr<QPDF> open_pdf(py::object filename_or_stream,
         try {
             auto mmap_input_source =
                 std::make_unique<MmapInputSource>(stream, description, closing_stream);
-            auto input_source = PointerHolder<InputSource>(mmap_input_source.release());
+            auto input_source =
+                std::shared_ptr<InputSource>(mmap_input_source.release());
             py::gil_scoped_release release;
             q->processInputSource(input_source, password.c_str());
             success = true;
@@ -115,7 +118,7 @@ std::shared_ptr<QPDF> open_pdf(py::object filename_or_stream,
     if (!success && access_mode == access_stream) {
         auto stream_input_source = std::make_unique<PythonStreamInputSource>(
             stream, description, closing_stream);
-        auto input_source = PointerHolder<InputSource>(stream_input_source.release());
+        auto input_source = std::shared_ptr<InputSource>(stream_input_source.release());
         py::gil_scoped_release release;
         q->processInputSource(input_source, password.c_str());
         success = true;
@@ -139,6 +142,7 @@ std::shared_ptr<QPDF> open_pdf(py::object filename_or_stream,
         python_warning(
             "A password was provided, but no password was needed to open this PDF.");
     }
+    q->getLogger()->info("Opened a file");
 
     return q;
 }
@@ -294,7 +298,7 @@ void setup_encryption(QPDFWriter &w, py::object encryption_obj)
             print,
             metadata);
     } else if (encryption_level == 4) {
-        w.setR4EncryptionParameters(user.c_str(),
+        w.setR4EncryptionParametersInsecure(user.c_str(),
             owner.c_str(),
             allow["accessibility"],
             allow["extract"],
@@ -306,7 +310,7 @@ void setup_encryption(QPDFWriter &w, py::object encryption_obj)
             metadata,
             aes);
     } else if (encryption_level == 3) {
-        w.setR3EncryptionParameters(user.c_str(),
+        w.setR3EncryptionParametersInsecure(user.c_str(),
             owner.c_str(),
             allow["accessibility"],
             allow["extract"],
@@ -316,7 +320,7 @@ void setup_encryption(QPDFWriter &w, py::object encryption_obj)
             allow["modify_other"],
             print);
     } else if (encryption_level == 2) {
-        w.setR2EncryptionParameters(user.c_str(),
+        w.setR2EncryptionParametersInsecure(user.c_str(),
             owner.c_str(),
             (print != qpdf_r3p_none),
             allow["modify_assembly"],
@@ -476,7 +480,7 @@ void save_pdf(QPDF &q,
     }
 
     if (!progress.is_none()) {
-        auto reporter = PointerHolder<QPDFWriter::ProgressReporter>(
+        auto reporter = std::shared_ptr<QPDFWriter::ProgressReporter>(
             new PikeProgressReporter(progress));
         w.registerProgressReporter(reporter);
     }
@@ -766,6 +770,10 @@ void init_qpdf(py::module_ &m)
             R"~~~(
             Copy an ``Object`` from a foreign ``Pdf`` to this one.
 
+            If you want to copy a page from one PDF to another, use:
+            ``pdf_b.pages[0] = pdf_a.pages[0]``. That interface accounts for the
+            complexity of copying pages.
+
             This function is used to copy a :class:`pikepdf.Object` that is owned by
             some other ``Pdf`` into this one. This is performs a deep (recursive) copy
             and preserves circular references that may exist in the foreign object.
@@ -792,9 +800,8 @@ void init_qpdf(py::module_ &m)
             py::arg("h"))
         .def("copy_foreign",
             [](QPDF &q, QPDFPageObjectHelper &poh) -> QPDFPageObjectHelper {
-                deprecation_warning("copy_foreign() called on pikepdf.Page - use "
-                                    "Pdf.pages interface instead");
-                return QPDFPageObjectHelper(q.copyForeignObject(poh.getObjectHandle()));
+                throw py::notimpl_error("Use pikepdf.Pdf.pages interface to copy "
+                                        "pages from one PDF to another.");
             })
         .def("_replace_object",
             [](QPDF &q, std::pair<int, int> objgen, QPDFObjectHandle &h) {

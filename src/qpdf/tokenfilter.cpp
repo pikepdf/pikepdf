@@ -104,10 +104,10 @@ void init_tokenfilter(py::module_ &m)
         .def("__eq__", &QPDFTokenizer::Token::operator==, py::is_operator());
 
     py::class_<QPDFObjectHandle::TokenFilter,
-        PointerHolder<QPDFObjectHandle::TokenFilter>>
+        std::shared_ptr<QPDFObjectHandle::TokenFilter>>
         qpdftokenfilter(m, "_QPDFTokenFilter");
 
-    py::class_<TokenFilter, TokenFilterTrampoline, PointerHolder<TokenFilter>>(
+    py::class_<TokenFilter, TokenFilterTrampoline, std::shared_ptr<TokenFilter>>(
         m, "TokenFilter", qpdftokenfilter)
         .def(py::init<>())
         .def("handle_token",

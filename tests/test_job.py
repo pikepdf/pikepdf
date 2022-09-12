@@ -14,8 +14,7 @@ def test_job_from_argv(resources):
     job = Job(['pikepdf', '--check', str(resources / 'outlines.pdf')])
     job.check_configuration()
     job.message_prefix = 'foo'
-    with pytest.raises(NotImplementedError):
-        _ = job.message_prefix
+    assert job.message_prefix == 'foo'
     assert not job.creates_output
     assert not job.has_warnings
     assert job.exit_code == 0
@@ -56,5 +55,8 @@ def test_job_from_invalid_json():
 
 
 def test_schemas():
-    assert isinstance(Job.json_out_schema_v1, str)
-    assert isinstance(Job.job_json_schema_v1, str)
+    assert isinstance(Job.LATEST_JSON, int)
+    assert isinstance(Job.json_out_schema(), str)
+
+    assert isinstance(Job.LATEST_JOB_JSON, int)
+    assert isinstance(Job.job_json_schema(), str)

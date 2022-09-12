@@ -7,8 +7,8 @@
 #include <vector>
 #include <map>
 
-#include <qpdf/PointerHolder.hh>
 #include <qpdf/QPDF.hh>
+#include <qpdf/Constants.h>
 #include <qpdf/QPDFObjectHandle.hh>
 #include <qpdf/QPDFPageObjectHelper.hh>
 
@@ -21,10 +21,6 @@ using uint = unsigned int;
 namespace pybind11 {
 PYBIND11_RUNTIME_EXCEPTION(notimpl_error, PyExc_NotImplementedError);
 }; // namespace pybind11
-
-// Declare PointerHolder<T> as a smart pointer
-// https://pybind11.readthedocs.io/en/stable/advanced/smart_ptrs.html#custom-smart-pointers
-PYBIND11_DECLARE_HOLDER_TYPE(T, PointerHolder<T>);
 
 // From object_convert.cpp
 pybind11::object decimal_from_pdfobject(QPDFObjectHandle h);
@@ -76,16 +72,16 @@ private:
         handle h;
 
         switch (src->getTypeCode()) {
-        case QPDFObject::object_type_e::ot_null:
+        case qpdf_object_type_e::ot_null:
             h = pybind11::none().release();
             break;
-        case QPDFObject::object_type_e::ot_integer:
+        case qpdf_object_type_e::ot_integer:
             h = pybind11::int_(src->getIntValue()).release();
             break;
-        case QPDFObject::object_type_e::ot_boolean:
+        case qpdf_object_type_e::ot_boolean:
             h = pybind11::bool_(src->getBoolValue()).release();
             break;
-        case QPDFObject::object_type_e::ot_real:
+        case qpdf_object_type_e::ot_real:
             h = decimal_from_pdfobject(*src).release();
             break;
         default:
@@ -261,10 +257,11 @@ std::map<std::string, QPDFObjectHandle> dict_builder(const py::dict dict);
 void init_annotation(py::module_ &m);
 // From embeddedfiles.cpp
 void init_embeddedfiles(py::module_ &m);
-
 // From job.cpp
 void init_job(py::module_ &m);
-
+// From logger.cpp
+void init_logger(py::module_ &m);
+std::shared_ptr<QPDFLogger> get_pikepdf_logger();
 // From nametree.cpp
 void init_nametree(py::module_ &m);
 // From numbertree.cpp

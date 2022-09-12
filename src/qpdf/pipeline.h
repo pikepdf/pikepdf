@@ -10,7 +10,6 @@
 #include <qpdf/Types.h>
 #include <qpdf/DLL.h>
 #include <qpdf/QPDFExc.hh>
-#include <qpdf/PointerHolder.hh>
 #include <qpdf/Buffer.hh>
 #include <qpdf/QPDF.hh>
 #include <qpdf/Pipeline.hh>
@@ -34,7 +33,7 @@ public:
     Pl_PythonOutput(Pl_PythonOutput &&)                 = delete;
     Pl_PythonOutput &operator=(Pl_PythonOutput &&)      = delete;
 
-    void write(unsigned char *buf, size_t len) override;
+    void write(const unsigned char *buf, size_t len) override;
     void finish() override;
 
 private:

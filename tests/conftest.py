@@ -52,6 +52,9 @@ def refcount():
 skip_if_pypy = pytest.mark.skipif(
     platform.python_implementation() == 'PyPy', reason="test isn't valid for PyPy"
 )
+fails_if_pypy = pytest.mark.xfail(
+    platform.python_implementation() == 'PyPy', reason="test known to fail on PyPy"
+)
 
 
 def needs_libqpdf_v(version: str, *, reason=None):

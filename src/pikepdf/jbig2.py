@@ -14,53 +14,11 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from subprocess import DEVNULL, PIPE, CalledProcessError, run
 from tempfile import TemporaryDirectory
-from typing import cast
 
-import deprecation
 from packaging.version import Version
 from PIL import Image
 
-import pikepdf
 from pikepdf._exceptions import DependencyError
-
-
-@deprecation.deprecated(
-    deprecated_in="5.1.5", removed_in="6.0", details="Use extract_jbig2_bytes instead"
-)
-def extract_jbig2(
-    im_obj: pikepdf.Object, globals_obj: pikepdf.Object | None = None
-) -> Image.Image:  # noqa: D103; pragma: no cover
-
-    with TemporaryDirectory(prefix='pikepdf-', suffix='.jbig2') as tmpdir:
-        image_path = Path(tmpdir) / "image"
-        global_path = Path(tmpdir) / "global"
-        output_path = Path(tmpdir) / "outfile"
-
-        args = [
-            "jbig2dec",
-            "--embedded",
-            "--format",
-            "png",
-            "--output",
-            os.fspath(output_path),
-        ]
-
-        # Get the raw stream, because we can't decode im_obj - that is why we are here
-        # (Strictly speaking we should remove any non-JBIG2 filters if double encoded)
-        image_path.write_bytes(cast(memoryview, im_obj.get_raw_stream_buffer()))
-
-        if globals_obj is not None:
-            # For globals, we do want to remove any encoding since it's just a binary
-            # blob and won't be marked with /JBIG2Decode
-            global_path.write_bytes(cast(memoryview, globals_obj.get_stream_buffer()))
-            args.append(os.fspath(global_path))
-
-        args.append(os.fspath(image_path))
-
-        run(args, stdout=DEVNULL, check=True)
-        im = Image.open(output_path)
-        im.load()  # Load pixel data into memory so file/tempdir can be closed
-        return im
 
 
 def _extract_jbig2_bytes(jbig2: bytes, jbig2_globals: bytes) -> bytes:
@@ -91,53 +49,6 @@ def _extract_jbig2_bytes(jbig2: bytes, jbig2_globals: bytes) -> bytes:
         run(args, stdout=DEVNULL, check=True)
         with Image.open(output_path) as im:
             return im.tobytes()
-
-
-@deprecation.deprecated(
-    deprecated_in="5.2.0",
-    removed_in="6.0",
-    details="Use jbig2.get_decoder() interface instead",
-)
-def extract_jbig2_bytes(
-    jbig2: bytes, jbig2_globals: bytes
-) -> bytes:  # noqa: D103; pragma: no cover
-    return _extract_jbig2_bytes(jbig2, jbig2_globals)
-
-
-def _check_jbig2dec_available() -> None:  # pragma: no cover
-    try:
-        proc = run(['jbig2dec', '--version'], stdout=PIPE, check=True, encoding='ascii')
-    except (CalledProcessError, FileNotFoundError) as e:
-        raise DependencyError("jbig2dec - not installed or not found") from e
-    else:
-        result = proc.stdout
-        version_str = result.replace('jbig2dec', '').strip()  # returns "jbig2dec 0.xx"
-        version = Version(version_str)
-        if version < Version('0.15'):
-            raise DependencyError("jbig2dec is too old (older than version 0.15)")
-
-
-@deprecation.deprecated(
-    deprecated_in="5.2.0",
-    removed_in="6.0",
-    details="Use jbig2.get_decoder() interface instead",
-)
-def check_jbig2dec_available() -> None:  # noqa: D103; pragma: no cover
-    _check_jbig2dec_available()
-
-
-@deprecation.deprecated(
-    deprecated_in="5.2.0",
-    removed_in="6.0",
-    details="Use jbig2.get_decoder() interface instead",
-)
-def jbig2dec_available() -> bool:  # noqa: D103; pragma: no cover
-    try:
-        _check_jbig2dec_available()
-    except (DependencyError, CalledProcessError, FileNotFoundError):
-        return False
-    else:
-        return True
 
 
 class JBIG2DecoderInterface(ABC):

@@ -13,7 +13,6 @@ from pathlib import Path
 from shutil import copyfileobj
 from typing import Any, BinaryIO, Callable, NamedTuple, Sequence, TypeVar, cast
 
-from deprecation import deprecated
 from PIL import Image
 from PIL.ImageCms import ImageCmsProfile
 
@@ -73,11 +72,6 @@ def _array_str(value: Object | str | list):
     return result
 
 
-@deprecated(deprecated_in='5.5.0', removed_in='6.0.0', current_version=__version__)
-def array_str(value: Object | str | list):  # noqa: D103; pragma: no cover
-    return _array_str(value)
-
-
 def _ensure_list(value: list[Object] | Dictionary | Array) -> list[Object]:
     """Ensure value is a list of pikepdf.Object, if it was not already.
 
@@ -87,13 +81,6 @@ def _ensure_list(value: list[Object] | Dictionary | Array) -> list[Object]:
     if isinstance(value, list):
         return value
     return list(value.wrap_in_array().as_list())
-
-
-@deprecated(deprecated_in='5.5.0', removed_in='6.0.0', current_version=__version__)
-def dict_or_array_dict(
-    value: list[Object] | Dictionary | Array,
-) -> list[Object]:  # noqa: D103; pragma: no cover
-    return _ensure_list(value)
 
 
 def _metadata_from_obj(
@@ -107,13 +94,6 @@ def _metadata_from_obj(
         if val is None:
             return None
     raise NotImplementedError('Metadata access for ' + name)
-
-
-@deprecated(deprecated_in='5.5.0', removed_in='6.0.0', current_version=__version__)
-def metadata_from_obj(
-    obj: Dictionary | Stream, name: str, type_: Callable[[Any], T], default: T
-) -> T | None:  # noqa: D103; pragma: no cover
-    return _metadata_from_obj(obj, name, type_, default)
 
 
 class PaletteData(NamedTuple):
@@ -205,17 +185,6 @@ class PdfImageBase(ABC):
         if self._bpc is None or self._bpc == 0:
             return 1 if self.image_mask else 8
         return self._bpc
-
-    @property  # type: ignore
-    @abstractmethod
-    @deprecated(
-        deprecated_in='5.5.0',
-        removed_in='6.0.0',
-        current_version=__version__,
-        details="Use isinstance(im, PdfInlineImage) instead",
-    )
-    def is_inline(self) -> bool:
-        """Test if this an inline image."""
 
     @property
     @abstractmethod
@@ -463,17 +432,6 @@ class PdfImage(PdfImageBase):
 
     def _metadata(self, name, type_, default):
         return _metadata_from_obj(self.obj, name, type_, default)
-
-    @property  # type: ignore
-    @deprecated(
-        deprecated_in='5.5.0',
-        removed_in='6.0.0',
-        current_version=__version__,
-        details="Use isinstance(im, PdfInlineImage) instead",
-    )
-    def is_inline(self):
-        """Return False since PdfImage cannot be inline."""
-        return False
 
     @property
     def _iccstream(self):
@@ -973,17 +931,6 @@ class PdfInlineImage(PdfImageBase):
             yield b'EI'
 
         return b''.join(inline_image_tokens())
-
-    @property  # type: ignore
-    @deprecated(
-        deprecated_in='5.5.0',
-        removed_in='6.0.0',
-        current_version=__version__,
-        details="Use isinstance(im, PdfInlineImage) instead",
-    )
-    def is_inline(self) -> bool:
-        """Return True, since this is an inline image."""
-        return True
 
     @property
     def icc(self):  # pragma: no cover

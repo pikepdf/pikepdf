@@ -104,5 +104,5 @@ def test_copy_foreign_refcount(refcount, vera, outlines):
 
 
 def test_copy_foreign_page_object(vera, outlines):
-    with pytest.warns(DeprecationWarning, match="use Pdf.pages"):
+    with pytest.raises(NotImplementedError, match="Pdf.pages"):
         outlines.copy_foreign(vera.pages[0])

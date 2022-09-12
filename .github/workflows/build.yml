@@ -78,7 +78,7 @@ jobs:
         run: >
           pipx run
           --python /usr/bin/python3
-          --spec cibuildwheel==2.8.1
+          --spec cibuildwheel==2.9.0
           cibuildwheel
           .
           --output-dir wheelhouse
@@ -95,6 +95,7 @@ jobs:
           if-no-files-found: error
 
   wheels_macos:
+    if: ${{ false }} # Homebrew has not released qpdf 11.0
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -122,6 +123,7 @@ jobs:
           path: ./wheelhouse/*.whl
 
   wheels_windows:
+    if: ${{ false }} # Need public: virtual __cdecl QPDFWriter::ProgressReporter::~ProgressReporter(void)
     name: ${{ matrix.os }} - ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     env:
@@ -179,7 +181,7 @@ jobs:
       - name: Install apt packages
         run: |
           sudo apt-get update
-          sudo apt-get install -y jbig2dec lcov libexempi8 poppler-utils
+          sudo apt-get install -y cmake jbig2dec lcov libexempi8 poppler-utils
 
       - name: Install tomli and read environment from pyproject.toml
         run: |

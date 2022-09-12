@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import logging
 import os.path
 import sys
 from io import BytesIO, FileIO
@@ -263,3 +264,12 @@ def test_read_after_close(resources):
     pdf.close()
     with pytest.raises(PdfError, match="closed input source"):
         contents.read_raw_bytes()
+
+
+def test_logging(caplog, resources):
+    caplog.set_level(logging.INFO)
+    with Pdf.open(resources / 'pal.pdf'):
+        pass
+    assert [("pikepdf._qpdf", logging.INFO)] == [
+        (rec[0], rec[1]) for rec in caplog.record_tuples
+    ]
