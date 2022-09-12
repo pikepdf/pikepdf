@@ -123,6 +123,7 @@ jobs:
           path: ./wheelhouse/*.whl
 
   wheels_windows:
+    if: ${{ false }} # Need public: virtual __cdecl QPDFWriter::ProgressReporter::~ProgressReporter(void)
     name: ${{ matrix.os }} - ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     env:
