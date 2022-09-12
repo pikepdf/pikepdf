@@ -5,8 +5,8 @@
 set -ex
 
 pushd qpdf
-cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
-cmake --build build --parallel
+cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DREQUIRE_CRYPTO_OPENSSL=1
+cmake --build build --parallel $(nproc) -- -k
 sudo cmake --install build
 popd
 
