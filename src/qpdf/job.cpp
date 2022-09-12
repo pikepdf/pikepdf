@@ -107,13 +107,8 @@ void init_job(py::module_ &m)
         .def_property_readonly("creates_output",
             &QPDFJob::createsOutput,
             "Returns True if the Job will create some sort of output file.")
-        .def_property(
-            "message_prefix",
-            [](QPDFJob &job) {
-                //&QPDFJob::getMessagePrefix
-                throw py::notimpl_error(
-                    "QPDFJob::getMessagePrefix not available in qpdf 10.6.3");
-            },
+        .def_property("message_prefix",
+            &QPDFJob::getMessagePrefix,
             &QPDFJob::setMessagePrefix,
             "Allows manipulation of the prefix in front of all output messages.")
         .def("run", &QPDFJob::run, "Executes the job.")
