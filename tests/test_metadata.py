@@ -27,8 +27,6 @@ from pikepdf.models.metadata import (
     decode_pdf_date,
 )
 
-pytestmark = pytest.mark.filterwarnings('ignore:.*XMLParser.*:DeprecationWarning')
-
 # pylint: disable=redefined-outer-name,pointless-statement
 
 
