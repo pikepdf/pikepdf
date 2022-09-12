@@ -12,7 +12,7 @@ if ($platform -eq "win_amd64") {
     throw "I don't recognize platform=$platform"
 }
 
-$qpdfurl = "https://github.com/qpdf/qpdf/releases/download/release-qpdf-$version/qpdf-$version-bin-$msvc.zip"
+$qpdfurl = "https://github.com/qpdf/qpdf/releases/download/v$version/qpdf-$version-$msvc.zip"
 echo "Download $qpdfurl"
 
 Invoke-WebRequest -Uri $qpdfurl -OutFile "qpdf-release.zip"
