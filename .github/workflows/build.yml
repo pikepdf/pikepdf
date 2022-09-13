@@ -242,7 +242,11 @@ jobs:
           path: dist/*.tar.gz
 
   upload_pypi:
-    needs: [wheels_linux, wheels_linux_arm, wheels_macos, wheels_windows, sdist]
+    needs: [
+        wheels_linux,
+        wheels_linux_arm, #wheels_macos, wheels_windows,
+        sdist,
+      ]
     runs-on: ubuntu-latest
     # upload to PyPI on every tag starting with 'v'
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
