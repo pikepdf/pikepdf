@@ -243,7 +243,8 @@ jobs:
   upload_pypi:
     needs: [
         wheels_linux,
-        wheels_linux_arm, #wheels_macos, wheels_windows,
+        wheels_linux_arm,
+        wheels_macos, #wheels_windows,
         sdist,
       ]
     runs-on: ubuntu-latest
