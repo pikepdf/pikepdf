@@ -95,7 +95,6 @@ jobs:
           if-no-files-found: error
 
   wheels_macos:
-    if: ${{ false }} # Homebrew has not released qpdf 11.0
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
