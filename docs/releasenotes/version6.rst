@@ -1,3 +1,8 @@
+v6.0.1
+======
+
+- Use qpdf 11.1.0, which fixes problems with building pikepdf on Windows.
+
 v6.0.0
 ======
 

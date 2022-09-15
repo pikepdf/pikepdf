@@ -46,8 +46,8 @@ skip = ["cp36-*", "cp311-*", "pp39-*", "*musllinux*", "pp*-manylinux*_aarch64"]
 test-skip = "*_arm64 *_universal2:arm64"
 
 [tool.cibuildwheel.environment]
-QPDF_MIN_VERSION = "11.0.0"
-QPDF_VERSION = "11.0.0"
+QPDF_MIN_VERSION = "11.1.0"
+QPDF_VERSION = "11.1.0"
 QPDF_PATTERN = "https://github.com/qpdf/qpdf/releases/download/vVERSION/qpdf-VERSION.tar.gz"
 JPEG_RELEASE = "https://www.ijg.org/files/jpegsrc.v9e.tar.gz"
 ZLIB_RELEASE = "https://www.zlib.net/zlib-1.2.12.tar.gz"
