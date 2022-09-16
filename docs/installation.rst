@@ -185,7 +185,7 @@ because pikepdf requires a newer version than your operating system has),
 then you might do something like:
 
 -  Install the development headers for libjpeg and zlib (e.g. ``apt install libjpeg-dev``)
--  Build qpdf from source and run ``make install`` to install it to ``/usr/local``
+-  Build qpdf from source and run ``cmake --install`` to install it to ``/usr/local``
 -  Clone the pikepdf repository
 -  From the pikepdf directory, run
 
@@ -260,7 +260,7 @@ do not want to use Python wheels.
   compiled version of QPDF instead of the system version.
 
 * Build pikepdf. On Windows, locate the QPDF .dll files and copy them into the folder
-  alongside the file named ``_qpdf*.dll``.
+  alongside the file named ``_qpdf*.pyd``.
 
 Note that the Python wheels for pikepdf currently compile their own version of
 QPDF and several of its dependencies to ensure the wheels have the latest version.
@@ -281,9 +281,8 @@ regenerate it:
 PyPy3 support
 -------------
 
-PyPy3 3.7 is currently supported, these being the latest versions of PyPy
-as of this writing. Windows PyPy wheels are not supported because cibuildwheel
-does not support Windows 64-bit PyPy. We have not checked if source builds work.
+PyPy3 is supported in certain configurations as listed in the binary wheel
+availability table above.
 
 PyPy3 is not more performant than CPython for pikepdf, because the core of pikepdf
 is already written in C++. The benefit is for applications that want to use PyPy
