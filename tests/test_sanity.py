@@ -33,9 +33,6 @@ def test_minimum_qpdf_version():
     with open(Path(__file__).parent / '../pyproject.toml', 'rb') as f:
         pyproject_toml = tomllib.load(f)
     toml_env = pyproject_toml['tool']['cibuildwheel']['environment']
-
-    if sys.platform == 'darwin' and toml_env['QPDF_MIN_VERSION'] == '11.1.0':
-        pytest.xfail("Temporarily disable check for Homebrew's sake")
     assert Version(_qpdf.qpdf_version()) >= Version(toml_env['QPDF_MIN_VERSION'])
 
 
