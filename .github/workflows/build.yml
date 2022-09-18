@@ -97,6 +97,8 @@ jobs:
   wheels_macos:
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    env:
+      CIBW_BUILD: "*"
     strategy:
       matrix:
         os: [macos-11]
