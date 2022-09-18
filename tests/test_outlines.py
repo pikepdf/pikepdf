@@ -451,9 +451,16 @@ def test_page_destination(resources, page_num, page_loc, kwargs):
     page_num=0,
     page_loc='FitR',
 )
+@example(
+    title='þÿ',
+    page_num=0,
+    page_loc=PageLocation.XYZ,
+)
 def test_new_item(resources, title, page_num, page_loc):
     # @given precludes use of outlines_doc fixture - causes hypothesis health check to
     # fail
+    if title == 'þÿ':
+        pytest.xfail("Needs a qpdf fix")
     with Pdf.open(resources / 'outlines.pdf') as doc:
         kwargs = dict.fromkeys(ALL_PAGE_LOCATION_KWARGS, 100)
         page_ref = doc.pages[page_num]
