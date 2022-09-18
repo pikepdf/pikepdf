@@ -26,7 +26,7 @@ fi
 
 if [ ! -f /usr/local/lib/libqpdf.a ]; then
     pushd qpdf
-    cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_STATIC_LIBS=OFF
+    cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC_LIBS=OFF
     cmake --build build --parallel $MAX_JOBS --target libqpdf
     cmake --install build --component lib
     cmake --install build --component dev
