@@ -1,3 +1,9 @@
+v6.0.2
+======
+
+- Fixed large increase in binary wheel file size for manylinux wheels.
+- Provide macOS and Linux wheels for Python 3.11.
+
 v6.0.1
 ======
 
