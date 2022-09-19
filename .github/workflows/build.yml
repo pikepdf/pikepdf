@@ -262,7 +262,6 @@ jobs:
     name: Trigger ReadTheDocs
     runs-on: ubuntu-latest
     needs: [upload_pypi]
-    if: startsWith(github.ref, 'refs/heads/') && !startsWith(github.ref, 'refs/heads/actions')
     steps:
       - name: Check for secrets
         id: setvar
