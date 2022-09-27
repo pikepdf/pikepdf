@@ -13,7 +13,6 @@ pybind11
 setuptools_scm
 Sphinx >= 3
 sphinx-issues
-sphinx-design
 sphinx-rtd-theme
 tomli; python_version < '3.11'
 
