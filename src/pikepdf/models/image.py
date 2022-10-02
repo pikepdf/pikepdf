@@ -72,7 +72,7 @@ def _array_str(value: Object | str | list):
     return result
 
 
-def _ensure_list(value: list[Object] | Dictionary | Array) -> list[Object]:
+def _ensure_list(value: list[Object] | Dictionary | Array | Object) -> list[Object]:
     """Ensure value is a list of pikepdf.Object, if it was not already.
 
     To support DecodeParms which can be present as either an array of dicts or a single
@@ -376,14 +376,17 @@ class PdfImage(PdfImageBase):
     obj: Stream
     _icc: ImageCmsProfile | None
 
-    def __new__(cls, obj):
+    def __new__(cls, obj: Stream):
         """Construct a PdfImage... or a PdfJpxImage if that is what we really are."""
-        instance = super().__new__(cls)
-        instance.__init__(obj)
-        if '/JPXDecode' in instance.filters:
-            instance = super().__new__(PdfJpxImage)
-            instance.__init__(obj)
-        return instance
+        try:
+            # Check if JPXDecode is called for and initialize as PdfJpxImage
+            filters = _ensure_list(obj.Filter)
+            if Name.JPXDecode in filters:
+                return super().__new__(PdfJpxImage)
+        except (AttributeError, KeyError):
+            # __init__ will deal with any other errors
+            pass
+        return super().__new__(PdfImage)
 
     def __init__(self, obj: Stream):
         """Construct a PDF image from a Image XObject inside a PDF.
