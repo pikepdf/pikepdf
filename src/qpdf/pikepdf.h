@@ -107,11 +107,12 @@ private:
         } else {
             h = base::cast(*csrc, policy, parent);
         }
+#if 0
         QPDF *owner = src->getOwningQPDF();
         if (owner) {
             // Find the Python object that refers to our owner
             // Can do that by casting or more direct lookup
-            // auto pyqpdf = pybind11::cast(owner);
+            auto pyqpdf = pybind11::cast(owner);
             auto tinfo    = get_type_info(typeid(QPDF));
             handle pyqpdf = get_object_handle(owner, tinfo);
 
@@ -119,6 +120,7 @@ private:
             // alive
             keep_alive_impl(h, pyqpdf);
         }
+#endif
         return h;
     }
 
@@ -175,7 +177,6 @@ private:
     static handle cast(
         const QPDFPageObjectHelper *csrc, return_value_policy policy, handle parent)
     {
-        QPDFPageObjectHelper *src = const_cast<QPDFPageObjectHelper *>(csrc);
         if (!csrc)
             return none().release(); // LCOV_EXCL_LINE
 
@@ -190,6 +191,8 @@ private:
         } else {
             h = base::cast(*csrc, policy, parent);
         }
+#if 0
+        QPDFPageObjectHelper *src = const_cast<QPDFPageObjectHelper *>(csrc);
         QPDF *owner = src->getObjectHandle().getOwningQPDF();
         if (owner) {
             // Find the Python object that refers to our owner
@@ -202,6 +205,7 @@ private:
             // alive
             keep_alive_impl(h, pyqpdf);
         }
+#endif
         return h;
     }
 
