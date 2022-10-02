@@ -1,3 +1,8 @@
+v6.1.0
+======
+
+- Rebuild wheels with qpdf 11.1.1. No new functionality.
+
 v6.0.2
 ======
 
