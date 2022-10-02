@@ -322,8 +322,8 @@ void init_object(py::module_ &m)
         .def_property_readonly("_type_name", &QPDFObjectHandle::getTypeName)
         .def(
             "is_owned_by",
-            [](QPDFObjectHandle &h, std::shared_ptr<QPDF> possible_owner) {
-                return (h.getOwningQPDF() == possible_owner.get());
+            [](QPDFObjectHandle &h, QPDF &possible_owner) {
+                return (h.getOwningQPDF() == &possible_owner);
             },
             "Test if this object is owned by the indicated *possible_owner*.",
             py::arg("possible_owner"))
