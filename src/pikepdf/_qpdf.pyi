@@ -566,6 +566,7 @@ class Pdf:
         progress: Callable[[int], None] = None,
         encryption: Encryption | bool | None = None,
         recompress_flate: bool = False,
+        deterministic_id: bool = False,
     ) -> None: ...
     def show_xref_table(self) -> None: ...
     @property
