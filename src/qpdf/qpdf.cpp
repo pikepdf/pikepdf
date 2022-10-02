@@ -704,7 +704,6 @@ void init_qpdf(py::module_ &m)
             Return type:
                 pikepdf.Object
             )~~~",
-            py::return_value_policy::reference_internal, // LCOV_EXCL_LINE
             py::arg("objgen"))
         .def(
             "get_object",
@@ -715,7 +714,6 @@ void init_qpdf(py::module_ &m)
             Return type:
                 pikepdf.Object
             )~~~",
-            py::return_value_policy::reference_internal,
             py::arg("objid"),
             py::arg("gen"))
         .def_property_readonly(
@@ -800,7 +798,6 @@ void init_qpdf(py::module_ &m)
             .. versionchanged:: 2.1
                 Error messages improved.
             )~~~",
-            py::return_value_policy::reference_internal,
             py::arg("h"))
         .def("copy_foreign",
             [](QPDF &q, QPDFPageObjectHelper &poh) -> QPDFPageObjectHelper {

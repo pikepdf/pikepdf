@@ -576,8 +576,7 @@ void init_object(py::module_ &m)
             "For ``pikepdf.Dictionary`` or ``pikepdf.Stream`` objects, behave as "
             "``dict.get(key, default=None)``",
             py::arg("key"),
-            py::arg("default") = py::none(),
-            py::return_value_policy::reference_internal)
+            py::arg("default") = py::none())
         .def(
             "get",
             [](QPDFObjectHandle &h, QPDFObjectHandle &name, py::object default_) {
@@ -592,8 +591,7 @@ void init_object(py::module_ &m)
             "For ``pikepdf.Dictionary`` or ``pikepdf.Stream`` objects, behave as "
             "``dict.get(key, default=None)``",
             py::arg("key"),
-            py::arg("default") = py::none(),
-            py::return_value_policy::reference_internal)
+            py::arg("default") = py::none())
         .def(
             "keys",
             [](QPDFObjectHandle &h) {
