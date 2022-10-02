@@ -551,10 +551,10 @@ def test_json():
 class TestStream:
     @pytest.fixture(scope="function")
     def abcxyz_stream(self):
-        pdf = pikepdf.new()
-        data = b'abcxyz'
-        stream = Stream(pdf, data)
-        return stream
+        with pikepdf.new() as pdf:
+            data = b'abcxyz'
+            stream = Stream(pdf, data)
+            yield stream
 
     def test_stream_isinstance(self):
         pdf = pikepdf.new()
@@ -662,8 +662,8 @@ def sandwich(resources):
 class TestStreamReadWrite:
     @pytest.fixture
     def stream_object(self):
-        pdf = pikepdf.new()
-        return Stream(pdf, b'abc123xyz')
+        with pikepdf.new() as pdf:
+            yield Stream(pdf, b'abc123xyz')
 
     def test_basic(self, stream_object):
         stream_object.write(b'abc')
