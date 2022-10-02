@@ -375,6 +375,7 @@ class PdfImage(PdfImageBase):
 
     obj: Stream
     _icc: ImageCmsProfile | None
+    _pdf_source: Pdf | None
 
     def __new__(cls, obj: Stream):
         """Construct a PdfImage... or a PdfJpxImage if that is what we really are."""
@@ -750,6 +751,9 @@ class PdfImage(PdfImageBase):
         """Show the image however PIL wants to."""
         self.as_pil_image().show()
 
+    def _set_pdf_source(self, pdf: Pdf):
+        self._pdf_source = pdf
+
     def __repr__(self):
         return (
             f'<pikepdf.PdfImage image mode={self.mode} '
@@ -952,7 +956,7 @@ class PdfInlineImage(PdfImageBase):
             f'size={self.width}x{self.height} at {hex(id(self))}>'
         )
 
-    def _convert_to_pdfimage(self):
+    def _convert_to_pdfimage(self) -> PdfImage:
         # Construct a temporary PDF that holds this inline image, and...
         tmppdf = Pdf.new()
         tmppdf.add_blank_page(page_size=(self.width, self.height))
@@ -967,6 +971,7 @@ class PdfInlineImage(PdfImageBase):
 
         # ...then use the regular PdfImage API to extract it.
         img = PdfImage(raw_img)
+        img._set_pdf_source(tmppdf)  # Hold tmppdf open while PdfImage exists
         return img
 
     def as_pil_image(self) -> Image.Image:
