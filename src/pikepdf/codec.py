@@ -61,37 +61,46 @@ PDFDOC_ENCODABLE = frozenset(
 )
 
 
-def _find_first_index(
-    s: str, ordinals: Container[int], is_whitelist: bool = True
-) -> int:
+def _find_first_index(s: str, ordinals: Container[int]) -> int:
     for n, char in enumerate(s):
-        if is_whitelist and (ord(char) not in ordinals):
+        if ord(char) not in ordinals:
             return n
-        if not is_whitelist and (ord(char) in ordinals):
-            return n  # pragma: no cover
     raise ValueError("couldn't find the unencodable character")  # pragma: no cover
 
 
 def pdfdoc_encode(input: str, errors: str = 'strict') -> tuple[bytes, int]:
     error_marker = b'?' if errors == 'replace' else b'\xad'
     success, pdfdoc = utf8_to_pdf_doc(input, error_marker)
-    if not success:
-        if errors == 'strict':
-            # libqpdf doesn't return what character caused the error, and Python
-            # needs this, so make an educated guess and raise an exception based
-            # on that.
-            offending_index = _find_first_index(input, PDFDOC_ENCODABLE)
+    if success:
+        return pdfdoc, len(input)
+
+    if errors == 'ignore':
+        pdfdoc = pdfdoc.replace(b'\xad', b'')
+        return pdfdoc, len(input)
+    if errors == 'replace':
+        return pdfdoc, len(input)
+    if errors == 'strict':
+        if input.startswith('\xfe\xff'):
             raise UnicodeEncodeError(
                 'pdfdoc',
                 input,
-                offending_index,
-                offending_index + 1,
-                "character cannot be represented in pdfdoc encoding",
+                0,
+                2,
+                "strings beginning with byte order marks cannot be encoded in pdfdoc",
             )
 
-        if errors == 'ignore':
-            pdfdoc = pdfdoc.replace(b'\xad', b'')
-    return pdfdoc, len(input)
+        # libqpdf doesn't return what character caused the error, and Python
+        # needs this, so make an educated guess and raise an exception based
+        # on that.
+        offending_index = _find_first_index(input, PDFDOC_ENCODABLE)
+        raise UnicodeEncodeError(
+            'pdfdoc',
+            input,
+            offending_index,
+            offending_index + 1,
+            "character cannot be represented in pdfdoc encoding",
+        )
+    raise LookupError(errors)
 
 
 def pdfdoc_decode(input: bytes, errors: str = 'strict') -> tuple[str, int]:

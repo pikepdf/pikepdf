@@ -43,6 +43,7 @@ def test_unicode_surrogate():
 
 @given(binary())
 @example(b'\x9f')
+@example(b'\xfe\xff')
 def test_codec_involution(b):
     # For most binary strings, there is a pdfdoc decoding and the encoding of that
     # decoding recovers the initial string.
@@ -52,9 +53,13 @@ def test_codec_involution(b):
         # 0x7f, 0x9f, and 0xad have no defined mapping to Unicode, so we expect
         # strings contain them to raise a decoding exception
         assert set(e.object[e.start : e.end]) & set(b'\x7f\x9f\xad')
+    except UnicodeEncodeError as e:
+        assert "'pdfdoc' codec can't encode characters in position 0-1" in str(e)
+        assert b.startswith(b'\xfe\xff')
 
 
 @given(text())
+@example('\xfe\xff')
 def test_break_encode(s):
     try:
         encoded_bytes = s.encode('pdfdoc')
