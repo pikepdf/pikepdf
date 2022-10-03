@@ -239,6 +239,8 @@ void init_page(py::module_ &m)
                 // TokenFilters may be processed after the Python objects have gone
                 // out of scope, so we need to keep them alive by attaching them to
                 // the corresponding QPDF object.
+                // Standard py::keep_alive<> won't cut it. We could make this
+                // function require a Pdf, or move it to the Pdf.
                 auto pyqpdf = py::cast(poh.getObjectHandle().getOwningQPDF());
                 auto pytf   = py::cast(tf);
                 py::detail::keep_alive_impl(pyqpdf, pytf);
