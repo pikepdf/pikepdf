@@ -80,7 +80,7 @@ def pdfdoc_encode(input: str, errors: str = 'strict') -> tuple[bytes, int]:
     if errors == 'replace':
         return pdfdoc, len(input)
     if errors == 'strict':
-        if input.startswith('\xfe\xff'):
+        if input.startswith('\xfe\xff') or input.startswith('\xff\xfe'):
             raise UnicodeEncodeError(
                 'pdfdoc',
                 input,
