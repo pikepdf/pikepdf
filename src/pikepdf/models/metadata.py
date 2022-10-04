@@ -780,7 +780,7 @@ class PdfMetadata(MutableMapping):
             node = etree.SubElement(rdfdesc, self._qname(key))
             self._setitem_add_array(node, val)
         elif isinstance(val, str):
-            _rdfdesc = etree.SubElement(  # lgtm [py/unused-local-variable]
+            _rdfdesc = etree.SubElement(
                 rdf,
                 str(QName(XMP_NS_RDF, 'Description')),
                 attrib={
