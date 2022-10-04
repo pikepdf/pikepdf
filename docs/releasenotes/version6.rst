@@ -1,3 +1,9 @@
+v6.2.0
+======
+
+- Add new keyword argument ``Pdf.save(..., deterministic_id=True)`` for saving
+  bit-for-bit reproducible PDFs. Thanks @josch for PR.
+
 v6.1.0
 ======
 
