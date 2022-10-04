@@ -23,11 +23,6 @@ if qpdf_source_tree:
     # Point this to qpdf source tree built with shared libraries
     extra_includes.append(join(qpdf_source_tree, 'include'))
     if not qpdf_build_libdir:
-        # Pre-cmake qpdf build
-        old_libdir = join(qpdf_source_tree, 'libqpdf/build/.libs')
-        if exists(old_libdir):
-            qpdf_build_libdir = old_libdir
-    if not qpdf_build_libdir:
         raise Exception(
             'Please set QPDF_BUILD_LIBDIR to the directory'
             ' containing your libqpdf.so built from'
