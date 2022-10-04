@@ -506,6 +506,7 @@ class Extend_Pdf:
         progress: Callable[[int], None] = None,
         encryption: Encryption | bool | None = None,
         recompress_flate: bool = False,
+        deterministic_id: bool = False,
     ) -> None:
         """
         Save all modifications to this :class:`pikepdf.Pdf`.
@@ -522,8 +523,10 @@ class Extend_Pdf:
 
             static_id: Indicates that the ``/ID`` metadata, normally
                 calculated as a hash of certain PDF contents and metadata
-                including the current time, should instead be generated
-                deterministically. Normally for debugging.
+                including the current time, should instead be set to a static
+                value. Only use this for debugging and testing. Use
+                ``deterministic_id`` if you want to get the same ``/ID`` for
+                the same document contents.
             preserve_pdfa: Ensures that the file is generated in a
                 manner compliant with PDF/A and other stricter variants.
                 This should be True, the default, in most cases.
@@ -597,6 +600,14 @@ class Extend_Pdf:
                 Alternately, an ``Encryption`` object may be provided that
                 sets the parameters for new encryption.
 
+            deterministic_id: Indicates that the ``/ID`` metadata, normally
+                calculated as a hash of certain PDF contents and metadata
+                including the current time, should instead be computed using
+                only deterministic data like the file contents. At a small
+                runtime cost, this enables generation of the same ``/ID`` if
+                the same inputs are converted in the same way multiple times.
+                Does not work for encrypted files.
+
         Raises:
             PdfError
             ForeignObjectError
@@ -656,6 +667,7 @@ class Extend_Pdf:
             encryption=encryption,
             samefile_check=getattr(self, '_tmp_stream', None) is None,
             recompress_flate=recompress_flate,
+            deterministic_id=deterministic_id,
         )
 
     @staticmethod

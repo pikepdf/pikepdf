@@ -161,10 +161,10 @@ class TestStreams:
 
     def test_save_stream(self, trivial, outdir):
         pdf = trivial
-        pdf.save(outdir / 'nostream.pdf', static_id=True)
+        pdf.save(outdir / 'nostream.pdf', deterministic_id=True)
 
         bio = BytesIO()
-        pdf.save(bio, static_id=True)
+        pdf.save(bio, deterministic_id=True)
         bio.seek(0)
 
         with (outdir / 'nostream.pdf').open('rb') as saved_file:

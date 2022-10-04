@@ -366,13 +366,17 @@ void save_pdf(QPDF &q,
     py::object progress                     = py::none(),
     py::object encryption                   = py::none(),
     bool samefile_check                     = true,
-    bool recompress_flate                   = false)
+    bool recompress_flate                   = false,
+    bool deterministic_id                   = false)
 {
     std::string description;
     QPDFWriter w(q);
 
     if (static_id) {
         w.setStaticID(true);
+    }
+    if (deterministic_id) {
+        w.setDeterministicID(true);
     }
     w.setNewlineBeforeEndstream(preserve_pdfa);
 
@@ -687,7 +691,8 @@ void init_qpdf(py::module_ &m)
             py::arg("progress")             = py::none(),
             py::arg("encryption")           = py::none(),
             py::arg("samefile_check")       = true,
-            py::arg("recompress_flate")     = false)
+            py::arg("recompress_flate")     = false,
+            py::arg("deterministic_id")     = false)
         .def("_get_object_id", &QPDF::getObjectByID)
         .def(
             "get_object",
