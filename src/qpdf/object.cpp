@@ -985,6 +985,11 @@ void init_object(py::module_ &m)
                 Called at the end of a content stream.
             )~~~");
 
+    // Since QPDFEmbeddedFileDocumentHelper::getEmbeddedFiles returns
+    // std::map<std::string, std::shared_ptr<QPDFFileSpecObjectHelper>>
+    // we must ensure that the entire QPDFObjectHelper type hierarchy is held in
+    // std::shared_ptr or repackage that interface so it does not return a
+    // std::shared_ptr<QPDFFileSpecObjectHelper>> to Python.
     py::class_<QPDFObjectHelper, std::shared_ptr<QPDFObjectHelper>>(m,
         "ObjectHelper",
         R"~~~(

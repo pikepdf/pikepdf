@@ -157,7 +157,9 @@ void init_embeddedfiles(py::module_ &m)
     py::class_<QPDFEmbeddedFileDocumentHelper>(m, "Attachments")
         .def_property_readonly(
             "_has_embedded_files", &QPDFEmbeddedFileDocumentHelper::hasEmbeddedFiles)
-        .def("_get_all_filespecs", &QPDFEmbeddedFileDocumentHelper::getEmbeddedFiles)
+        .def("_get_all_filespecs",
+            &QPDFEmbeddedFileDocumentHelper::getEmbeddedFiles,
+            py::return_value_policy::reference_internal)
         .def("_get_filespec",
             &QPDFEmbeddedFileDocumentHelper::getEmbeddedFile,
             py::return_value_policy::reference_internal)
