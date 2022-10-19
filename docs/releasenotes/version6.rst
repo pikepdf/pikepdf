@@ -1,3 +1,8 @@
+v6.2.1
+======
+
+- Rebuild binary wheels using zlib 1.2.13. Source build unchanged.
+
 v6.2.0
 ======
 
