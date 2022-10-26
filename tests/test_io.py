@@ -8,6 +8,7 @@ import os.path
 import sys
 from io import BytesIO, FileIO
 from shutil import copy
+from time import sleep
 
 import psutil
 import pytest
@@ -100,8 +101,21 @@ def test_invalid_output_stream(sandwich, bio_class, exc_type):
         sandwich.save(bio, static_id=True)
 
 
-@pytest.fixture
-def file_descriptor_is_open_for():
+def _file_descriptor_is_open(
+    path, retry_until: bool, retries: int = 3, delay: float = 1.0
+):
+    n = retries
+    process = psutil.Process()
+    while n:
+        is_open = any((f.path == str(path.resolve())) for f in process.open_files())
+        if is_open == retry_until:
+            return is_open
+        sleep(delay)
+        n -= 1
+        return is_open
+
+
+def _skip_file_descriptor_checks_if_not_supported():
     if sys.platform == 'win32' or sys.platform.startswith('freebsd'):
         pytest.skip(
             "psutil documentation warns that .open_files() has problems on these"
@@ -109,42 +123,58 @@ def file_descriptor_is_open_for():
     elif sys.implementation.name == 'pypy':
         pytest.skip("randomly fails on pypy")
 
-    def _file_descriptor_is_open_for(path):
-        process = psutil.Process()
-        return any((f.path == str(path.resolve())) for f in process.open_files())
 
-    return _file_descriptor_is_open_for
+@pytest.fixture
+def file_descriptor_is_open():
+    _skip_file_descriptor_checks_if_not_supported()
+
+    def _wait_till_open(path):
+        return _file_descriptor_is_open(path, retry_until=True)
+
+    return _wait_till_open
 
 
-def test_open_named_file_closed(resources, file_descriptor_is_open_for):
+@pytest.fixture
+def file_descriptor_is_closed():
+    _skip_file_descriptor_checks_if_not_supported()
+
+    def _wait_till_closed(path):
+        return not _file_descriptor_is_open(path, retry_until=False)
+
+    return _wait_till_closed
+
+
+def test_open_named_file_closed(
+    resources, file_descriptor_is_open, file_descriptor_is_closed
+):
     path = resources / 'pal.pdf'
     pdf = Pdf.open(path)  # no with clause
-    assert file_descriptor_is_open_for(path)
+    assert file_descriptor_is_open(path)
 
     pdf.close()
-    assert not file_descriptor_is_open_for(
-        path
-    ), "pikepdf did not close a stream it opened"
+    assert file_descriptor_is_closed(path), "pikepdf did not close a stream it opened"
 
 
-def test_streamed_file_not_closed(resources, file_descriptor_is_open_for):
+def test_streamed_file_not_closed(resources, file_descriptor_is_open):
     path = resources / 'pal.pdf'
     stream = path.open('rb')
     pdf = Pdf.open(stream)  # no with clause
-    assert file_descriptor_is_open_for(path)
+    assert file_descriptor_is_open(path)
 
     pdf.close()
-    assert file_descriptor_is_open_for(path), "pikepdf closed a stream it did not open"
+    assert file_descriptor_is_open(path), "pikepdf closed a stream it did not open"
 
 
 @pytest.mark.parametrize('branch', ['success', 'failure'])
-def test_save_named_file_closed(resources, outdir, file_descriptor_is_open_for, branch):
+def test_save_named_file_closed(
+    resources, outdir, file_descriptor_is_open, file_descriptor_is_closed, branch
+):
     with Pdf.open(resources / 'pal.pdf') as pdf:
         path = outdir / "pal.pdf"
 
         def confirm_opened(progress_percent):
             if progress_percent == 0:
-                assert file_descriptor_is_open_for(path)
+                assert file_descriptor_is_open(path)
             if progress_percent > 0 and branch == 'failure':
                 raise ValueError('failure branch')
 
@@ -152,24 +182,22 @@ def test_save_named_file_closed(resources, outdir, file_descriptor_is_open_for, 
             pdf.save(path, progress=confirm_opened)
         except ValueError:
             pass
-        assert not file_descriptor_is_open_for(
+        assert file_descriptor_is_closed(
             path
         ), "pikepdf did not close a stream it opened"
 
 
-def test_save_streamed_file_not_closed(resources, outdir, file_descriptor_is_open_for):
+def test_save_streamed_file_not_closed(resources, outdir, file_descriptor_is_open):
     with Pdf.open(resources / 'pal.pdf') as pdf:
         path = outdir / "pal.pdf"
         stream = path.open('wb')
 
         def confirm_opened(progress_percent):
             if progress_percent == 0:
-                assert file_descriptor_is_open_for(path)
+                assert file_descriptor_is_open(path)
 
         pdf.save(stream, progress=confirm_opened)
-        assert file_descriptor_is_open_for(
-            path
-        ), "pikepdf closed a stream it did not open"
+        assert file_descriptor_is_open(path), "pikepdf closed a stream it did not open"
 
 
 class ExpectedError(Exception):
