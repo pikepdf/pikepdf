@@ -1,3 +1,10 @@
+v6.2.2
+======
+
+- Fixed noisy log message.
+- Made some flakey tests less flakey.
+- Fixed deprecated information in setup.cfg. Thanks @mgorny.
+
 v6.2.1
 ======
 
