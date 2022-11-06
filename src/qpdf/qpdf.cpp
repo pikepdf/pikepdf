@@ -142,7 +142,6 @@ std::shared_ptr<QPDF> open_pdf(py::object filename_or_stream,
         python_warning(
             "A password was provided, but no password was needed to open this PDF.");
     }
-    q->getLogger()->info("Opened a file");
 
     return q;
 }
