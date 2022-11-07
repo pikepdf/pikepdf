@@ -294,10 +294,9 @@ def test_read_after_close(resources):
         contents.read_raw_bytes()
 
 
-def test_logging(caplog, resources):
+def test_logging(caplog):
     caplog.set_level(logging.INFO)
-    with Pdf.open(resources / 'pal.pdf'):
-        pass
+    pikepdf._qpdf._log_info("test log message")
     assert [("pikepdf._qpdf", logging.INFO)] == [
         (rec[0], rec[1]) for rec in caplog.record_tuples
     ]

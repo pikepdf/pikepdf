@@ -16,6 +16,7 @@
 #include <qpdf/QPDFSystemError.hh>
 #include <qpdf/QPDFUsage.hh>
 #include <qpdf/QUtil.hh>
+#include <qpdf/QPDFLogger.hh>
 #include <qpdf/Pl_Flate.hh>
 
 #include <pybind11/stl.h>
@@ -140,8 +141,14 @@ PYBIND11_MODULE(_qpdf, m)
             "_test_file_not_found",
             []() -> void { (void)QUtil::safe_fopen("does_not_exist__42", "rb"); },
             "Used to test that C++ system error -> Python exception propagation works.")
-        .def("_translate_qpdf_logic_error",
-            [](std::string s) { return translate_qpdf_logic_error(s).first; })
+        .def(
+            "_translate_qpdf_logic_error",
+            [](std::string s) { return translate_qpdf_logic_error(s).first; },
+            "Used to test interpretation of QPDF errors.")
+        .def(
+            "_log_info",
+            [](std::string s) { return get_pikepdf_logger()->info(s); },
+            "Used to test routing of QPDF's logger to Python logging.")
         .def(
             "set_decimal_precision",
             [](uint prec) {
