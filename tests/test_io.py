@@ -104,15 +104,14 @@ def test_invalid_output_stream(sandwich, bio_class, exc_type):
 def _file_descriptor_is_open(
     path, retry_until: bool, retries: int = 3, delay: float = 1.0
 ):
-    n = retries
     process = psutil.Process()
-    while n:
+    for _ in range(retries):
         is_open = any((f.path == str(path.resolve())) for f in process.open_files())
         if is_open == retry_until:
             return is_open
         sleep(delay)
-        n -= 1
-        return is_open
+
+    return is_open
 
 
 def _skip_file_descriptor_checks_if_not_supported():
