@@ -30,7 +30,7 @@ from pikepdf._exceptions import DependencyError
 @pytest.fixture
 def trivial(resources):
     with Pdf.open(
-        resources / 'pal-1bit-trivial.pdf'  # , access_mode=pikepdf.AccessMode.mmap
+        resources / 'pal-1bit-trivial.pdf', access_mode=pikepdf.AccessMode.mmap
     ) as pdf:
         yield pdf
 
