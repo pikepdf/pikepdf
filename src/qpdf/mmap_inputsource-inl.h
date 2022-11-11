@@ -17,13 +17,19 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include <signal.h>
 #include "pikepdf.h"
 #include "utils.h"
 
 // We could almost subclass BufferInputSource here, except that it expects Buffer
 // as an initialization parameter, we don't know what the buffer location is until
 // the mmap is set up. Instead, this class is an InputSource that has a
-// BufferInputSource.
+// BufferInputSource, which in turn wraps the memory mapped area.
+//
+// Since we delegate most work to the BufferInputSource, we need to preserve the state
+// of InputSource::last_offset by copying it whenever may change. If the design of
+// InputSource changes to introduce other state variables, we need to replicate the
+// BufferInputSource's state.
 
 // GIL usage:
 // The GIL must be held while this class is constructed, by the constructor's caller,
@@ -99,11 +105,19 @@ public:
 
     std::string const &getName() const override { return this->bis->getName(); }
 
-    qpdf_offset_t tell() override { return this->bis->tell(); }
+    qpdf_offset_t tell() override
+    {
+        auto result       = this->bis->tell();
+        this->last_offset = this->bis->getLastOffset();
+        return result;
+    }
 
     void seek(qpdf_offset_t offset, int whence) override
     {
+        std::cout << "at " << tell() << ", seek " << offset << " " << whence
+                  << std::endl;
         this->bis->seek(offset, whence);
+        this->last_offset = this->bis->getLastOffset();
     }
 
     // LCOV_EXCL_START
@@ -111,19 +125,29 @@ public:
     {
         // qpdf never seems to use this but still requires
         this->bis->rewind();
+        this->last_offset = this->bis->getLastOffset();
     }
     // LCOV_EXCL_STOP
 
     size_t read(char *buffer, size_t length) override
     {
-        return this->bis->read(buffer, length);
+        std::cout << "at " << tell() << ", read " << length << std::endl;
+        auto result       = this->bis->read(buffer, length);
+        this->last_offset = this->bis->getLastOffset();
+        return result;
     }
 
-    void unreadCh(char ch) override { this->bis->unreadCh(ch); }
+    void unreadCh(char ch) override
+    {
+        this->bis->unreadCh(ch);
+        this->last_offset = this->bis->getLastOffset();
+    }
 
     qpdf_offset_t findAndSkipNextEOL() override
     {
-        return this->bis->findAndSkipNextEOL();
+        auto result       = this->bis->findAndSkipNextEOL();
+        this->last_offset = this->bis->getLastOffset();
+        return result;
     }
 
 private:
