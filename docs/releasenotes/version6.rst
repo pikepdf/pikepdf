@@ -1,3 +1,8 @@
+v6.2.3
+======
+
+- Fixed errors when using AccessMode.mmap. Thanks @zachgoulet.
+
 v6.2.2
 ======
 
