@@ -1,3 +1,8 @@
+v6.2.4
+======
+
+- Removed a debug message during mmap.
+
 v6.2.3
 ======
 
