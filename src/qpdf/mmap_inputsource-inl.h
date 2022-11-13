@@ -114,8 +114,6 @@ public:
 
     void seek(qpdf_offset_t offset, int whence) override
     {
-        std::cout << "at " << tell() << ", seek " << offset << " " << whence
-                  << std::endl;
         this->bis->seek(offset, whence);
         this->last_offset = this->bis->getLastOffset();
     }
@@ -131,7 +129,6 @@ public:
 
     size_t read(char *buffer, size_t length) override
     {
-        std::cout << "at " << tell() << ", read " << length << std::endl;
         auto result       = this->bis->read(buffer, length);
         this->last_offset = this->bis->getLastOffset();
         return result;
