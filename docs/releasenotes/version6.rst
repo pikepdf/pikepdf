@@ -1,3 +1,8 @@
+v6.2.5
+======
+
+- Rebuild binary wheels using qpdf 11.2.0.
+
 v6.2.4
 ======
 
