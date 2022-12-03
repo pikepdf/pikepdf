@@ -120,7 +120,7 @@ def _skip_file_descriptor_checks_if_not_supported():
         pytest.skip(
             "psutil documentation warns that .open_files() has problems on these"
         )
-    elif os.environ.get('CI', 'false') == 'true':
+    elif sys.implementation.name == 'pypy' or os.environ.get('CI', 'false') == 'true':
         pytest.skip("fails randomly on CI, not worth it")
 
 
