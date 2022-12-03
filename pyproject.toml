@@ -63,6 +63,7 @@ before-all = [
   "bash build-scripts/linux-download-qpdf.bash $QPDF_VERSION",
   "bash build-scripts/linux-build-wheel-deps.bash"
 ]
+environment-pass = ["CI"]
 manylinux-x86_64-image = "manylinux2014"
 manylinux-i686-image = "manylinux2014"
 manylinux-pypy_x86_64-image = "manylinux2014"
