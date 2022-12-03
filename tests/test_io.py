@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import os.path
 import sys
 from io import BytesIO, FileIO
