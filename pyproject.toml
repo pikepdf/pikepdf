@@ -86,12 +86,8 @@ before-all = [
 before-all = ["brew update", "brew install qpdf little-cms2"]
 
 [tool.cibuildwheel.windows]
-# pp3*-win32 fails because there is no wheel for lxml
-# pp3*-win_amd64 does not execute because cibuildwheel does not implement it
-# or PyPy3 doesn't work on Windows 64-bit, one or the other
-# Check https://pypi.org/project/lxml/#files to see if lxml is providing pp-*win
-# PyPy+Win32 seems like a very low priority combination
-skip = ["cp36-*", "pp3*-win32"]
+# *-win32: lxml does not build win32 for cp or pp, so we can't support it
+skip = ["cp36-*", "*-win32"]
 
 [tool.mypy]
 
