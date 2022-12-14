@@ -87,7 +87,8 @@ before-all = ["brew update", "brew install qpdf little-cms2"]
 
 [tool.cibuildwheel.windows]
 # *-win32: lxml does not build win32 for cp or pp, so we can't support it
-skip = ["cp36-*", "*-win32"]
+# pp37-*: lxml does not provide pp37-win_amd64, so we can't support it
+skip = ["cp36-*", "*-win32", "pp37-*"]
 
 [tool.mypy]
 
