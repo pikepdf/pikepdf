@@ -41,11 +41,10 @@ test-command = "pytest -nauto {project}/tests"
 test-extras = "test"
 # cp36: ancient
 # pp39: no Pillow pp39 wheels yet - https://pypi.org/project/Pillow/#files
-# cp311-manylinux*aarch64 - lxml wheels not released yet
 # Reminder:
 #   build.yml sets CIBW_BUILD to select what can be built
 #   this file sets skip to deselect what cannot be built
-skip = ["cp36-*", "pp39-*", "*musllinux*", "pp*-manylinux*_aarch64", "cp311-manylinux*_aarch64"]
+skip = ["cp36-*", "pp39-*", "*musllinux*", "pp*-manylinux*_aarch64"]
 test-skip = "*_arm64 *_universal2:arm64"
 
 [tool.cibuildwheel.environment]
