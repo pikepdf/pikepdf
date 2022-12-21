@@ -170,7 +170,7 @@ valid. This is shown by the change in :attr:`pikepdf.Object.objgen`.
 Emplacing pages
 ~~~~~~~~~~~~~~~
 
-Perhaps the PDF you are working has a table of contents or internal hyperlinks,
+Perhaps the PDF you are working with has a table of contents or internal hyperlinks,
 meaning that there are indirect references to a specific page object. If you
 want change the content of a page object while preserving references to it,
 use :meth:`pikepdf.Object.emplace`, which will delete all of the content of
