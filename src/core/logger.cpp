@@ -52,7 +52,7 @@ std::shared_ptr<QPDFLogger> get_pikepdf_logger()
 
 void init_logger(py::module_ &m)
 {
-    auto py_logger = py::module_::import("logging").attr("getLogger")("pikepdf._qpdf");
+    auto py_logger = py::module_::import("logging").attr("getLogger")("pikepdf._core");
 
     std::shared_ptr<Pipeline> pl_log_info = std::make_shared<Pl_PythonLogger>(
         "QPDF to Python logging pipeline", py_logger, "info");

@@ -13,9 +13,9 @@ Internals
 ---------
 
 Internally the package presents a module named ``pikepdf`` from which objects
-can be imported. The C++ extension module is currently named ``pikepdf._qpdf``.
-Users of ``pikepdf`` should not directly access ``_qpdf`` since it is an
-internal interface.
+can be imported. The C++ extension module is currently named ``pikepdf._core``.
+Users of ``pikepdf`` should not directly access ``_core`` since it is an
+internal interface. In previous versions, this library was named ``_qpdf``.
 
 In general, modules or objects behind an underscore are private (although they
 may be returned in some situations).

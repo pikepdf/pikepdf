@@ -4,9 +4,8 @@
 from __future__ import annotations
 
 import pytest
-from conftest import needs_libqpdf_v
 
-from pikepdf import Annotation, Dictionary, Name, Pdf
+from pikepdf import Annotation, Name, Pdf
 
 
 @pytest.fixture

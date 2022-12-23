@@ -211,10 +211,10 @@ def test_file_without_fileno(resources):
 
     f = FileWithoutFileNo(resources / 'pal.pdf', 'rb')
     with pytest.raises(ExpectedError):
-        Pdf.open(f, access_mode=pikepdf._qpdf.AccessMode.mmap_only)
+        Pdf.open(f, access_mode=pikepdf._core.AccessMode.mmap_only)
 
     # Confirm we automatically fallback to stream
-    with Pdf.open(f, access_mode=pikepdf._qpdf.AccessMode.mmap) as pdf:
+    with Pdf.open(f, access_mode=pikepdf._core.AccessMode.mmap) as pdf:
         assert pdf.filename
 
 
@@ -226,10 +226,10 @@ def test_file_deny_mmap(resources, monkeypatch):
 
     monkeypatch.setattr(mmap, 'mmap', raises_oserror)
     with pytest.raises(OSError):
-        Pdf.open(resources / 'pal.pdf', access_mode=pikepdf._qpdf.AccessMode.mmap_only)
+        Pdf.open(resources / 'pal.pdf', access_mode=pikepdf._core.AccessMode.mmap_only)
 
     with Pdf.open(
-        resources / 'pal.pdf', access_mode=pikepdf._qpdf.AccessMode.default
+        resources / 'pal.pdf', access_mode=pikepdf._core.AccessMode.default
     ) as pdf:
         assert len(pdf.pages) == 1
 
@@ -243,7 +243,7 @@ def test_mmap_only_file(resources):
 
     f = UnreadableFile(resources / 'pal.pdf', 'rb')
     with pytest.raises(ExpectedError):
-        Pdf.open(f, access_mode=pikepdf._qpdf.AccessMode.stream)
+        Pdf.open(f, access_mode=pikepdf._core.AccessMode.stream)
 
 
 def test_save_bytesio(resources, outpdf):
@@ -296,7 +296,7 @@ def test_read_after_close(resources):
 
 def test_logging(caplog):
     caplog.set_level(logging.INFO)
-    pikepdf._qpdf._log_info("test log message")
-    assert [("pikepdf._qpdf", logging.INFO)] == [
+    pikepdf._core._log_info("test log message")
+    assert [("pikepdf._core", logging.INFO)] == [
         (rec[0], rec[1]) for rec in caplog.record_tuples
     ]

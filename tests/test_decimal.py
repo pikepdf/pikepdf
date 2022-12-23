@@ -10,7 +10,7 @@ import pytest
 import pikepdf
 from pikepdf.settings import get_decimal_precision, set_decimal_precision
 
-encode = pikepdf._qpdf._encode
+encode = pikepdf._core._encode
 
 # pylint: disable=redefined-outer-name
 

@@ -26,7 +26,7 @@ from warnings import warn
 
 from . import Array, Dictionary, Name, Object, Page, Pdf, Stream
 from ._augments import augment_override_cpp, augments
-from ._qpdf import (
+from ._core import (
     AccessMode,
     AttachedFile,
     AttachedFileSpec,
@@ -1214,7 +1214,7 @@ class Extend_Attachments(MutableMapping):
         yield from self._get_all_filespecs()
 
     def __repr__(self):
-        return f"<pikepdf._qpdf.Attachments with {len(self)} attached files>"
+        return f"<pikepdf._core.Attachments with {len(self)} attached files>"
 
 
 @augments(AttachedFileSpec)
@@ -1257,10 +1257,10 @@ class Extend_AttachedFileSpec:
     def __repr__(self):
         if self.filename:
             return (
-                f"<pikepdf._qpdf.AttachedFileSpec for {self.filename!r}, "
+                f"<pikepdf._core.AttachedFileSpec for {self.filename!r}, "
                 f"description {self.description!r}>"
             )
-        return f"<pikepdf._qpdf.AttachedFileSpec description {self.description!r}>"
+        return f"<pikepdf._core.AttachedFileSpec description {self.description!r}>"
 
 
 @augments(AttachedFile)
@@ -1290,7 +1290,7 @@ class Extend_AttachedFile:
 
     def __repr__(self):
         return (
-            f'<pikepdf._qpdf.AttachedFile objid={self.obj.objgen} size={self.size} '
+            f'<pikepdf._core.AttachedFile objid={self.obj.objgen} size={self.size} '
             f'mime_type={self.mime_type} creation_date={self.creation_date} '
             f'mod_date={self.mod_date}>'
         )

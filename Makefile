@@ -34,7 +34,7 @@ clean-coverage: clean-coverage-cppcov clean-coverage-pycov
 .PHONY: clean
 clean: clean-coverage
 	python setup.py clean --all
-	rm -f src/pikepdf/_qpdf.*so
+	rm -f src/pikepdf/_core.*so
 
 .PHONY: test
 test: build
@@ -79,7 +79,7 @@ wheelhouse/$(macwheel39): clean
 	# rm -f wheelhouse/$(macwheel39)
 	# install_name_tool -change /usr/local/lib/libqpdf.28.dylib \
 	# 	/Users/jb/src/qpdf/libqpdf/build/.libs/libqpdf.28.dylib \
-	# 	unpacked/pikepdf-*/pikepdf/_qpdf.cpython*.so
+	# 	unpacked/pikepdf-*/pikepdf/_core.cpython*.so
 	# python -m wheel pack unpacked/pikepdf-*/ --dest-dir wheelhouse
 	# rm -rf unpacked/
 
@@ -101,7 +101,7 @@ wheelhouse/$(macwheel310): clean
 	# rm -f wheelhouse/$(macwheel310)
 	# install_name_tool -change /usr/local/lib/libqpdf.28.dylib \
 	# 	/Users/jb/src/qpdf/libqpdf/build/.libs/libqpdf.28.dylib \
-	# 	unpacked/pikepdf-*/pikepdf/_qpdf.cpython*.so
+	# 	unpacked/pikepdf-*/pikepdf/_core.cpython*.so
 	# python -m wheel pack unpacked/pikepdf-*/ --dest-dir wheelhouse
 	# rm -rf unpacked/
 

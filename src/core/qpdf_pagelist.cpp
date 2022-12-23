@@ -348,7 +348,7 @@ void init_pagelist(py::module_ &m)
             )~~~")
         .def("__repr__",
             [](PageList &pl) {
-                return std::string("<pikepdf._qpdf.PageList len=") +
+                return std::string("<pikepdf._core.PageList len=") +
                        std::to_string(pl.count()) + std::string(">");
             })
         .def(

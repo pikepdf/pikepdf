@@ -28,8 +28,8 @@ from pikepdf import (
     String,
     jbig2,
 )
+from pikepdf._core import Buffer
 from pikepdf._exceptions import DependencyError
-from pikepdf._qpdf import Buffer
 from pikepdf._version import __version__
 from pikepdf.models import _transcoding
 

@@ -109,7 +109,7 @@ bool is_destroyed_object_error(const std::runtime_error &e)
     return std::regex_search(e.what(), error_pattern);
 }
 
-PYBIND11_MODULE(_qpdf, m)
+PYBIND11_MODULE(_core, m)
 {
     // py::options options;
     // options.disable_function_signatures();

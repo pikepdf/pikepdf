@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import ast
 import gc
-import sys
 from contextlib import suppress
 from pathlib import Path
 from shutil import copy
@@ -28,12 +27,12 @@ from pikepdf import Name, Object, Pdf, Stream
 
 
 def test_minimum_qpdf_version():
-    from pikepdf import _qpdf
+    from pikepdf import _core
 
     with open(Path(__file__).parent / '../pyproject.toml', 'rb') as f:
         pyproject_toml = tomllib.load(f)
     toml_env = pyproject_toml['tool']['cibuildwheel']['environment']
-    assert Version(_qpdf.qpdf_version()) >= Version(toml_env['QPDF_MIN_VERSION'])
+    assert Version(_core.qpdf_version()) >= Version(toml_env['QPDF_MIN_VERSION'])
 
 
 def test_open_pdf(resources):

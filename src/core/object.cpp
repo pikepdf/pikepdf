@@ -302,7 +302,7 @@ void init_object(py::module_ &m)
         .def("__repr__", [](ObjectList &ol) {
             std::ostringstream ss;
             bool first = true;
-            ss << "pikepdf._qpdf._ObjectList([";
+            ss << "pikepdf._core._ObjectList([";
             for (auto &h : ol) {
                 if (first) {
                     first = false;

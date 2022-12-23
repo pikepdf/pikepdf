@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Collection, List, Tuple, Union, cast
 
-from pikepdf import Object, ObjectType, Operator, Page, PdfError, _qpdf
+from pikepdf import Object, ObjectType, Operator, Page, PdfError, _core
 
 if TYPE_CHECKING:
     from pikepdf.models.image import PdfInlineImage
@@ -17,7 +17,7 @@ _OldContentStreamOperands = Collection[Union[Object, 'PdfInlineImage']]
 _OldContentStreamInstructions = Tuple[_OldContentStreamOperands, Operator]
 
 ContentStreamInstructions = Union[
-    _qpdf.ContentStreamInstruction, _qpdf.ContentStreamInlineImage
+    _core.ContentStreamInstruction, _core.ContentStreamInlineImage
 ]
 
 UnparseableContentStreamInstructions = Union[
@@ -129,7 +129,7 @@ def unparse_content_stream(
         operand-operator tuples from pikepdf 2.x.
     """
     try:
-        return _qpdf._unparse_content_stream(instructions)
+        return _core._unparse_content_stream(instructions)
     except (ValueError, TypeError, RuntimeError) as e:
         raise PdfParsingError(
             "While unparsing a content stream, an error occurred"

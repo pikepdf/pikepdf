@@ -398,11 +398,11 @@ def test_flate_compression_level():
 
 
 def test_set_access_default_mmap():
-    initial = pikepdf._qpdf.get_access_default_mmap()
+    initial = pikepdf._core.get_access_default_mmap()
     try:
-        pikepdf._qpdf.set_access_default_mmap(True)
+        pikepdf._core.set_access_default_mmap(True)
     finally:
-        pikepdf._qpdf.set_access_default_mmap(initial)
+        pikepdf._core.set_access_default_mmap(initial)
 
 
 def test_generate_appearance_streams(pdf_form):

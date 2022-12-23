@@ -220,7 +220,7 @@ jobs:
           # Install it with pip, or else dependencies won't be resolved (*sigh*)
           python -m pip install -e .[test]
           # Nuke the C++ extension but leave the Python install intact
-          rm -rf build/ src/pikepdf/_qpdf*.so
+          rm -rf build/ src/pikepdf/_core*.so
           # Rebuild the extension inplace with coverage
           env CFLAGS="--coverage" CXXFLAGS="--coverage" python setup.py build_ext --inplace
           python -m pytest -nauto --cov-report xml --cov=src

@@ -14,7 +14,7 @@ else:
     from typing_extensions import Literal  # pragma: no cover
 
 if TYPE_CHECKING:
-    from pikepdf._qpdf import EncryptionMethod
+    from pikepdf._core import EncryptionMethod
 
 
 class Permissions(NamedTuple):

@@ -570,7 +570,7 @@ void init_qpdf(py::module_ &m)
             Returns the list of pages.
 
             Return type:
-                pikepdf._qpdf.PageList
+                pikepdf._core.PageList
             )~~~",
             py::return_value_policy::reference_internal)
         .def_property_readonly("_pages", &QPDF::getAllPages)
@@ -725,7 +725,7 @@ void init_qpdf(py::module_ &m)
             to that page, such as images on the page, may still be present.
 
             Return type:
-                pikepdf._qpdf._ObjectList
+                pikepdf._core._ObjectList
             )~~~",
             py::return_value_policy::reference_internal)
         .def("make_indirect",
@@ -981,6 +981,6 @@ void init_qpdf(py::module_ &m)
             these objects by filename.
 
             Returns:
-                pikepdf._qpdf.Attachments
+                pikepdf._core.Attachments
             )~~~");
 }

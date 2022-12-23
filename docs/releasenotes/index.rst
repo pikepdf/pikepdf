@@ -15,7 +15,7 @@ policy.
 
 The pikepdf API (as provided by ``import pikepdf``) is stable and
 is in production use. Note that the C++ extension module
-``pikepdf._qpdf`` is a private interface within pikepdf that applications
+``pikepdf._core`` is a private interface within pikepdf that applications
 should not access directly, along with any modules with a prefixed underscore.
 
 .. toctree::

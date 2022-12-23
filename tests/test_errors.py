@@ -6,7 +6,7 @@ from __future__ import annotations
 import pytest
 
 import pikepdf
-from pikepdf import DataDecodingError, DeletedObjectError, Name, Pdf, Stream, _qpdf
+from pikepdf import DataDecodingError, DeletedObjectError, Name, Pdf, Stream, _core
 
 
 @pytest.fixture
@@ -24,7 +24,7 @@ def test_foreign_linearization(vera):
 
 @pytest.mark.parametrize('msg, expected', [('QPDF', 'pikepdf.Pdf')])
 def test_translate_qpdf_logic_error(msg, expected):
-    assert _qpdf._translate_qpdf_logic_error(msg) == expected
+    assert _core._translate_qpdf_logic_error(msg) == expected
 
 
 @pytest.mark.parametrize(
@@ -45,7 +45,7 @@ def test_data_decoding_errors(filter_: str, data: bytes, msg: str):
 
 def test_system_error():
     with pytest.raises(FileNotFoundError):
-        pikepdf._qpdf._test_file_not_found()
+        pikepdf._core._test_file_not_found()
 
 
 def test_return_object_from_closed():

@@ -131,13 +131,13 @@ Internal objects
 These objects are returned by other pikepdf objects. They are part of the API,
 but not intended to be created explicitly.
 
-.. autoclass:: pikepdf._qpdf.PageList
+.. autoclass:: pikepdf._core.PageList
     :members:
 
     A ``list``-like object enumerating a range of pages in a :class:`pikepdf.Pdf`.
     It may be all of the pages or a subset.
 
-.. autoclass:: pikepdf._qpdf._ObjectList
+.. autoclass:: pikepdf._core._ObjectList
     :members:
 
     A ``list``-like object containing multiple ``pikepdf.Object``.
