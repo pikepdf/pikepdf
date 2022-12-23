@@ -7,7 +7,7 @@ import gc
 
 import pytest
 
-from pikepdf import Pdf
+from pikepdf import DeletedObjectError, Pdf
 
 # Try to do some things without blowing up
 
@@ -18,7 +18,7 @@ def test_access_image(resources):
 
     del pdf
     gc.collect()
-    with pytest.raises(RuntimeError):
+    with pytest.raises(DeletedObjectError):
         im0.read_raw_bytes()
 
 
@@ -43,7 +43,7 @@ def test_remove_pdf_and_all_pages(resources):
     del pdf
     del page0
     gc.collect()
-    with pytest.raises(RuntimeError):
+    with pytest.raises(DeletedObjectError):
         contents.read_raw_bytes()
     gc.collect()
 
@@ -53,7 +53,7 @@ def test_access_pdf_metadata(resources):
     meta = pdf.Root.Metadata
     del pdf
     gc.collect()
-    with pytest.raises(RuntimeError):
+    with pytest.raises(DeletedObjectError):
         meta.read_raw_bytes()
 
 
