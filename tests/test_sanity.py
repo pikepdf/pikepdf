@@ -176,8 +176,3 @@ def test_readme_example(resources, outpdf):
     exec(  # pylint: disable=exec-used
         code, globals(), dict(resources=resources, outpdf=outpdf)
     )
-
-
-def test_system_error():
-    with pytest.raises(FileNotFoundError):
-        pikepdf._qpdf._test_file_not_found()

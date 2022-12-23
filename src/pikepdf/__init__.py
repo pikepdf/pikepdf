@@ -24,6 +24,7 @@ from ._qpdf import (
     ContentStreamInlineImage,
     ContentStreamInstruction,
     DataDecodingError,
+    DeletedObjectError,
     ForeignObjectError,
     Job,
     JobUsageError,

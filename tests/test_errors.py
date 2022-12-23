@@ -4,10 +4,9 @@
 from __future__ import annotations
 
 import pytest
-from hypothesis import given
-from hypothesis.strategies import binary, sampled_from
 
-from pikepdf import DataDecodingError, Name, Pdf, PdfError, Stream, _qpdf
+import pikepdf
+from pikepdf import DataDecodingError, DeletedObjectError, Name, Pdf, Stream, _qpdf
 
 
 @pytest.fixture
@@ -42,3 +41,18 @@ def test_data_decoding_errors(filter_: str, data: bytes, msg: str):
     st = Stream(p, data, Filter=Name(filter_))
     with pytest.raises(DataDecodingError, match=msg):
         st.read_bytes()
+
+
+def test_system_error():
+    with pytest.raises(FileNotFoundError):
+        pikepdf._qpdf._test_file_not_found()
+
+
+def test_return_object_from_closed():
+    p = Pdf.new()
+    obj = p.Root.TestObject = p.make_stream(b'test stream')
+    p.close()
+    del p
+    assert repr(obj) != ''
+    with pytest.raises(DeletedObjectError):
+        obj.read_bytes()

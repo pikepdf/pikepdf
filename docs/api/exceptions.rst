@@ -28,3 +28,12 @@ Exceptions
 
     Exception thrown when a stream object in a PDF is malformed and cannot be
     decoded.
+
+.. autoexception:: pikepdf.DeletedObjectError
+
+    Exception thrown when accessing a pikepdf.Object that relies on a pikepdf.Pdf
+    that was deleted using the Python ``delete`` statement or collected by the
+    Python garbage collector. To resolve this error, you must retain a reference
+    to the Pdf for the whole time you may be accessing it.
+
+    .. versionadded:: 7.0
