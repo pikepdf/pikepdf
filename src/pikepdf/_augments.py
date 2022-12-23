@@ -8,12 +8,7 @@ from __future__ import annotations
 import inspect
 import platform
 import sys
-from typing import Any, Callable, TypeVar
-
-if sys.version_info >= (3, 8):
-    from typing import Protocol
-else:
-    from typing_extensions import Protocol  # pragma: no cover
+from typing import Any, Callable, Protocol, TypeVar
 
 
 class AugmentedCallable(Protocol):

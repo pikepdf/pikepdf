@@ -566,7 +566,7 @@ class Pdf:
         normalize_content: bool = False,
         linearize: bool = False,
         qdf: bool = False,
-        progress: Callable[[int], None] = None,
+        progress: Callable[[int], None] | None = None,
         encryption: Encryption | bool | None = None,
         recompress_flate: bool = False,
         deterministic_id: bool = False,
