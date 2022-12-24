@@ -11,6 +11,83 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "pikepdf"
+dynamic = ["version"]
+description = "Read and write PDFs with Python, powered by qpdf"
+readme = "README.md"
+requires-python = ">= 3.8"
+keywords = ["PDF"]
+authors = [
+  { name = "James R. Barlow", email= "james@purplerock.ca"}
+]
+license = { text = "MPL-2.0" }
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+    "Programming Language :: C++",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Software Development :: Libraries",
+]
+dependencies = [
+    "Pillow>=9.0",
+    "deprecation",
+    "lxml>=4.8",
+    "packaging",
+]
+
+[project.urls]
+documentation = "https://pikepdf.readthedocs.io/"
+repository = "https://github.com/pikepdf/pikepdf"
+changelog = "https://pikepdf.readthedocs.io/en/latest/releasenotes/index.html"
+
+[project.optional-dependencies]
+docs = [
+    "GitPython",
+    "PyGithub",
+    "Sphinx>=3",
+    "ipython",
+    "matplotlib",
+    "pybind11",
+    "requests",
+    "setuptools-scm",
+    "sphinx-design",
+    "sphinx-issues",
+    "sphinx-rtd-theme",
+    "tomli;python_version < '3.11'",
+]
+mypy = [
+      "lxml-stubs",
+    "types-Pillow",
+    "types-requests",
+    "types-setuptools",
+]
+test = [
+    "attrs>=20.2.0",
+    "coverage[toml]",
+    "hypothesis>=6.36",
+    "psutil>=5.9",
+    "pybind11",
+    "pytest>=6.2.5",
+    "pytest-cov>=3.0.0",
+    "pytest-timeout>=2.1.0",
+    "pytest-xdist>=2.5.0",
+    "python-dateutil>=2.8.1",
+    "python-xmp-toolkit>=2.0.1 ;sys_platform != 'nt' and platform_machine == 'x86_64'",
+    "tomli;python_version < '3.11'",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package_data]
+pikepdf = ["*.dll", "py.typed"]
+
 [tool.setuptools_scm]
 
 [tool.black]
@@ -91,6 +168,9 @@ before-all = ["brew update", "brew install qpdf little-cms2"]
 # pp39-*: Pillow does not provide pp38-win_amd64, so we can't support it
 # (For Windows only pp38 makes it through the gauntlet.)
 skip = ["cp36-*", "cp37-*", "*-win32", "pp37-*", "pp39-*"]
+
+[tool.flake8]
+ignore = ["D203","F401","W503","E501","E203","F841"]
 
 [tool.mypy]
 
