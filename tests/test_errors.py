@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import pytest
+from conftest import skip_if_pypy
 
 import pikepdf
 from pikepdf import DataDecodingError, DeletedObjectError, Name, Pdf, Stream, _core
@@ -48,6 +49,7 @@ def test_system_error():
         pikepdf._core._test_file_not_found()
 
 
+@skip_if_pypy
 def test_return_object_from_closed():
     p = Pdf.new()
     obj = p.Root.TestObject = p.make_stream(b'test stream')
