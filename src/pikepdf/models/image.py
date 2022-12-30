@@ -484,7 +484,9 @@ class PdfImage(PdfImageBase):
             DEFAULT_CT_RGB = 1
             ct = DEFAULT_CT_RGB
             if self.filter_decodeparms[0][1] is not None:
-                ct = self.filter_decodeparms[0][1].get('/ColorTransform', DEFAULT_CT_RGB)
+                ct = self.filter_decodeparms[0][1].get(
+                    '/ColorTransform', DEFAULT_CT_RGB
+                )
             return self.mode == 'RGB' and ct == DEFAULT_CT_RGB
 
         def normal_dct_cmyk() -> bool:
@@ -493,7 +495,9 @@ class PdfImage(PdfImageBase):
             DEFAULT_CT_CMYK = 0
             ct = DEFAULT_CT_CMYK
             if self.filter_decodeparms[0][1] is not None:
-                ct = self.filter_decodeparms[0][1].get('/ColorTransform', DEFAULT_CT_CMYK)
+                ct = self.filter_decodeparms[0][1].get(
+                    '/ColorTransform', DEFAULT_CT_CMYK
+                )
             return self.mode == 'CMYK' and ct == DEFAULT_CT_CMYK
 
         data, filters = self._remove_simple_filters(self.obj, self.filters)
