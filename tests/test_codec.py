@@ -95,22 +95,27 @@ pdfdoc_text = text(
 
 
 @given(pdfdoc_text)
+@example('\r\n')
+@example('\r')
+@example('\n')
 @settings(deadline=timedelta(seconds=4))  # CI workers can be flakey
 def test_open_encoding_pdfdoc_write(tmp_path_factory, s):
     folder = tmp_path_factory.mktemp('pdfdoc')
     txt = folder / 'pdfdoc.txt'
-    with open(txt, 'w', encoding='pdfdoc') as f:
+    with open(txt, 'w', encoding='pdfdoc', newline='') as f:
         try:
             f.write(s)
         except UnicodeEncodeError:
             return
-    assert txt.read_bytes().replace(b'\r\n', b'\n') == s.encode('pdfdoc')
+    assert txt.read_bytes() == s.encode('pdfdoc')
 
 
 @given(pdfdoc_text)
 @settings(deadline=timedelta(seconds=4))  # CI workers can be flakey
+@example('\r\n')
+@example('\r')
+@example('\n')
 def test_open_encoding_pdfdoc_read(tmp_path_factory, s: str):
-    s = s.replace('\r', '\n')
     folder = tmp_path_factory.mktemp('pdfdoc')
     txt: Path = folder / 'pdfdoc.txt'
     try:
@@ -118,7 +123,7 @@ def test_open_encoding_pdfdoc_read(tmp_path_factory, s: str):
     except UnicodeEncodeError:
         return
 
-    with open(txt, encoding='pdfdoc') as f:
+    with open(txt, encoding='pdfdoc', newline='') as f:
         result: str = f.read()
     assert result == s
 
