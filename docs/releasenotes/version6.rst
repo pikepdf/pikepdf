@@ -1,8 +1,13 @@
+v6.2.7
+======
+
+- Rebuild binary wheels to improve support for Windows 32-bit.
+
 v6.2.6
 ======
 
 - Rebuild binary wheels for certain platforms they were blocked from release by lxml not releasing compatible wheels.
-Mainly Windows.
+Mainly to take advantage of Windows 64-bit.
 
 v6.2.5
 ======
