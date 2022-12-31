@@ -118,11 +118,11 @@ def test_open_encoding_pdfdoc_write(tmp_path_factory, s):
 def test_open_encoding_pdfdoc_read(tmp_path_factory, s: str):
     folder = tmp_path_factory.mktemp('pdfdoc')
     txt: Path = folder / 'pdfdoc.txt'
-    try:
-        txt.write_text(s, encoding='pdfdoc', newline='')
-    except UnicodeEncodeError:
-        return
-
+    with open(txt, 'w', encoding='pdfdoc', newline='') as f:
+        try:
+            f.write(s)
+        except UnicodeEncodeError:
+            return
     with open(txt, encoding='pdfdoc', newline='') as f:
         result: str = f.read()
     assert result == s
