@@ -119,7 +119,7 @@ def test_open_encoding_pdfdoc_read(tmp_path_factory, s: str):
     folder = tmp_path_factory.mktemp('pdfdoc')
     txt: Path = folder / 'pdfdoc.txt'
     try:
-        txt.write_text(s, encoding='pdfdoc')
+        txt.write_text(s, encoding='pdfdoc', newline='')
     except UnicodeEncodeError:
         return
 
