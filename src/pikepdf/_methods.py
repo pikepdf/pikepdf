@@ -891,8 +891,18 @@ class Extend_Page:
 
     @property
     def resources(self) -> Dictionary:
-        """Return this page's resources dictionary."""
-        return self.obj['/Resources']
+        """Return this page's resources dictionary.
+
+        .. versionchanged:: 7.0.0
+            If the resources dictionary does not exist, an empty one will be created.
+            A TypeError is raised if a page has a /Resources key but it is not a
+            dictionary.
+        """
+        if Name.Resources not in self.obj:
+            self.obj.Resources = Dictionary()
+        elif not isinstance(self.obj.Resources, Dictionary):
+            raise TypeError("Page /Resources exists but is not a dictionary")
+        return self.obj.Resources
 
     def add_resource(
         self,
@@ -935,12 +945,7 @@ class Extend_Page:
             Returns the name of the overlay in the resources dictionary instead
             of returning None.
         """
-        if Name.Resources not in self.obj:
-            self.obj.Resources = Dictionary()
-        elif not isinstance(self.obj.Resources, Dictionary):
-            raise TypeError("Page /Resources exists but is not a dictionary")
-        resources = self.obj.Resources
-
+        resources = self.resources
         if res_type not in resources:
             resources[res_type] = Dictionary()
 
