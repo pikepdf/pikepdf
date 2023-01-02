@@ -56,6 +56,7 @@ void init_page(py::module_ &m)
         .def(
             "__copy__", [](QPDFPageObjectHelper &poh) { return poh.shallowCopyPage(); })
         .def_property_readonly("_images", &QPDFPageObjectHelper::getImages)
+        .def_property_readonly("_form_xobjects", &QPDFPageObjectHelper::getFormXObjects)
         .def("_get_mediabox", &QPDFPageObjectHelper::getMediaBox)
         .def("_get_cropbox", &QPDFPageObjectHelper::getCropBox)
         .def("_get_trimbox", &QPDFPageObjectHelper::getTrimBox)

@@ -159,6 +159,9 @@ def test_formx(graph, outpdf):
     new_page.obj.Contents = graph.make_stream(cs)
     graph.save(outpdf)
 
+    assert formx_placed_name in new_page.form_xobjects
+    assert new_page.form_xobjects[formx_placed_name] == formx
+
 
 def test_fourpages_to_4up(fourpages, graph, outpdf):
     pdf = Pdf.new()
