@@ -823,6 +823,18 @@ class Extend_ObjectMapping:
         except KeyError:
             return default
 
+    @augment_override_cpp
+    def __contains__(self, key: Name | str) -> bool:
+        if isinstance(key, Name):
+            key = str(key)
+        return _ObjectMapping._cpp__contains__(self, key)
+
+    @augment_override_cpp
+    def __getitem__(self, key: Name | str) -> Object:
+        if isinstance(key, Name):
+            key = str(key)
+        return _ObjectMapping._cpp__getitem__(self, key)
+
 
 def check_is_box(obj) -> None:
     try:

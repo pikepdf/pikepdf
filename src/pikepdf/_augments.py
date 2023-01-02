@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import inspect
 import platform
-import sys
 from typing import Any, Callable, Protocol, TypeVar
 
 
@@ -128,6 +127,11 @@ def augments(cls_cpp: type[Tcpp]):
                     f"{getattr(cls, name, '')!r}"
                 )
             if inspect.isfunction(member):
+                if hasattr(cls_cpp, name):
+                    # If overriding a C++ named method, make a copy of the original
+                    # method. This is so that the Python override can call the C++
+                    # implementation if it needs to.
+                    setattr(cls_cpp, f"_cpp{name}", getattr(cls_cpp, name))
                 setattr(cls_cpp, name, member)
                 installed_member = getattr(cls_cpp, name)
                 installed_member.__qualname__ = member.__qualname__.replace(
