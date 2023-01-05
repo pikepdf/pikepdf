@@ -135,7 +135,7 @@ jobs:
     strategy:
       matrix:
         os: [windows-2019]
-        platform: [win_amd64]
+        platform: [win_amd64, win32]
 
     steps:
       - uses: actions/checkout@v3

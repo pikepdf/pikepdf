@@ -1,7 +1,12 @@
-v6.2.7
+v6.2.8
 ======
 
 - Rebuild binary wheels to improve support for Windows 32-bit.
+
+v6.2.7
+======
+
+- Fixed some tests that randomly failed on Windows due to newline handling issues.
 
 v6.2.6
 ======
