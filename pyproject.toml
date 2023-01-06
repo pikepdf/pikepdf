@@ -40,11 +40,12 @@ exclude = '''
 test-command = "pytest -nauto {project}/tests"
 test-extras = "test"
 # cp36: ancient
-# pp39: no Pillow pp39 wheels yet - https://pypi.org/project/Pillow/#files
+# pp37: discontinued by Pillow - https://pypi.org/project/Pillow/#files
+# pp*-win32: lxml does not build win32 for pp, so we can't support it
 # Reminder:
 #   build.yml sets CIBW_BUILD to select what can be built
 #   this file sets skip to deselect what cannot be built
-skip = ["cp36-*", "pp39-*", "*musllinux*", "pp*-manylinux*_aarch64"]
+skip = ["cp36-*", "pp37-*", "pp*-win32", "*musllinux*", "pp*-manylinux*_aarch64"]
 test-skip = "*_arm64 *_universal2:arm64"
 
 [tool.cibuildwheel.environment]
@@ -86,12 +87,6 @@ before-all = [
 before-all = ["brew update", "brew install qpdf little-cms2"]
 
 [tool.cibuildwheel.windows]
-# pp*-win32: lxml does not build win32 for pp, so we can't support it
-# pp37-*: lxml does not provide pp37-win_amd64, so we can't support it
-# pp39-*: Pillow does not provide pp38-win_amd64, so we can't support it
-# (For Windows only pp38 makes it through the gauntlet.)
-# In the past lxml has been slow to release cp*-win32
-skip = ["cp36-*", "pp*-win32", "pp37-*", "pp39-*"]
 
 [tool.mypy]
 
