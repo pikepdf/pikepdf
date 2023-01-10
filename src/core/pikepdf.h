@@ -54,16 +54,18 @@ public:
      * can't trace on its own.
      * We also convert several QPDFObjectHandle types to native Python
      * objects here.
-     * The ==take_ownership code paths are currently unused but present
-     * for completeness. They are unused because pybind11 only sets
-     * take_ownership when a binding returns raw pointers to Python, and
-     * by making this caster private we prohibit that.
+     * The ==take_ownership code is disabled. This would only occur if a raw
+     * pointer is returned to Python, which we prohibit.
      */
 private:
     // 'private': disallow returning pointers to QPDFObjectHandle from bindings
     static handle cast(
         const QPDFObjectHandle *csrc, return_value_policy policy, handle parent)
     {
+        if (policy == return_value_policy::take_ownership) {
+            throw std::logic_error(
+                "return_value_policy::take_ownership not implemented");
+        }
         QPDFObjectHandle *src = const_cast<QPDFObjectHandle *>(csrc);
         if (!csrc)
             return none().release(); // LCOV_EXCL_LINE
@@ -88,39 +90,10 @@ private:
             primitive = false;
             break;
         }
-        if (primitive && h) {
-            if (policy == return_value_policy::take_ownership) {
-                // LCOV_EXCL_START
-                // See explanation above - does not happen.
-                delete csrc;
-                // LCOV_EXCL_STOP
-            }
+        if (primitive && h)
             return h;
-        }
 
-        if (policy == return_value_policy::take_ownership) {
-            // LCOV_EXCL_START
-            // See explanation above - does not happen.
-            h = base::cast(std::move(*csrc), policy, parent);
-            delete csrc;
-            // LCOV_EXCL_STOP
-        } else {
-            h = base::cast(*csrc, policy, parent);
-        }
-#if 0
-        QPDF *owner = src->getOwningQPDF();
-        if (owner) {
-            // Find the Python object that refers to our owner
-            // Can do that by casting or more direct lookup
-            auto pyqpdf = pybind11::cast(owner);
-            auto tinfo    = get_type_info(typeid(QPDF));
-            handle pyqpdf = get_object_handle(owner, tinfo);
-
-            // Tell pybind11 that it must keep pyqpdf alive as long as h is
-            // alive
-            keep_alive_impl(h, pyqpdf);
-        }
-#endif
+        h = base::cast(*csrc, policy, parent);
         return h;
     }
 
@@ -167,45 +140,22 @@ public:
      * can't trace on its own. Object helpers implicitly reference an object
      handle
      * and whatever data is attached to the handle.
-     * The ==take_ownership code paths are currently unused but present
-     * for completeness. They are unused because pybind11 only sets
-     * take_ownership when a binding returns raw pointers to Python, and
-     * by making this caster private we prohibit that.
+     * The ==take_ownership code is disabled. This would only occur if a raw
+     * pointer is returned to Python, which we prohibit.
      */
 private:
     // 'private': disallow returning pointers to QPDFPageObjectHelper from bindings
     static handle cast(
         const QPDFPageObjectHelper *csrc, return_value_policy policy, handle parent)
     {
+        if (policy == return_value_policy::take_ownership) {
+            throw std::logic_error(
+                "return_value_policy::take_ownership not implemented");
+        }
         if (!csrc)
             return none().release(); // LCOV_EXCL_LINE
 
-        handle h;
-
-        if (policy == return_value_policy::take_ownership) {
-            // LCOV_EXCL_START
-            // See explanation above - does not happen.
-            h = base::cast(std::move(*csrc), policy, parent);
-            delete csrc;
-            // LCOV_EXCL_STOP
-        } else {
-            h = base::cast(*csrc, policy, parent);
-        }
-#if 0
-        QPDFPageObjectHelper *src = const_cast<QPDFPageObjectHelper *>(csrc);
-        QPDF *owner = src->getObjectHandle().getOwningQPDF();
-        if (owner) {
-            // Find the Python object that refers to our owner
-            // Can do that by casting or more direct lookup
-            // auto pyqpdf = pybind11::cast(owner);
-            auto tinfo    = get_type_info(typeid(QPDF));
-            handle pyqpdf = get_object_handle(owner, tinfo);
-
-            // Tell pybind11 that it must keep pyqpdf alive as long as h is
-            // alive
-            keep_alive_impl(h, pyqpdf);
-        }
-#endif
+        handle h = base::cast(*csrc, policy, parent);
         return h;
     }
 
