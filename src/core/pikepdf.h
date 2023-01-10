@@ -70,31 +70,19 @@ private:
         if (!csrc)
             return none().release(); // LCOV_EXCL_LINE
 
-        bool primitive = true;
-        handle h;
-
         switch (src->getTypeCode()) {
         case qpdf_object_type_e::ot_null:
-            h = pybind11::none().release();
-            break;
+            return pybind11::none().release();
         case qpdf_object_type_e::ot_integer:
-            h = pybind11::int_(src->getIntValue()).release();
-            break;
+            return pybind11::int_(src->getIntValue()).release();
         case qpdf_object_type_e::ot_boolean:
-            h = pybind11::bool_(src->getBoolValue()).release();
-            break;
+            return pybind11::bool_(src->getBoolValue()).release();
         case qpdf_object_type_e::ot_real:
-            h = decimal_from_pdfobject(*src).release();
-            break;
+            return decimal_from_pdfobject(*src).release();
         default:
-            primitive = false;
             break;
         }
-        if (primitive && h)
-            return h;
-
-        h = base::cast(*csrc, policy, parent);
-        return h;
+        return base::cast(*csrc, policy, parent);
     }
 
 public:
@@ -154,9 +142,7 @@ private:
         }
         if (!csrc)
             return none().release(); // LCOV_EXCL_LINE
-
-        handle h = base::cast(*csrc, policy, parent);
-        return h;
+        return base::cast(*csrc, policy, parent);
     }
 
 public:
