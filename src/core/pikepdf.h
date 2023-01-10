@@ -102,66 +102,6 @@ public:
     }
 };
 
-template <>
-struct type_caster<QPDFPageObjectHelper>
-    : public type_caster_base<QPDFPageObjectHelper> {
-    using base = type_caster_base<QPDFPageObjectHelper>;
-
-protected:
-    QPDFPageObjectHelper value{QPDFObjectHandle()};
-
-public:
-    /**
-     * Conversion part 1 (Python->C++): convert a PyObject into a Object
-     */
-    bool load(handle src, bool convert)
-    {
-        // Do whatever our base does
-        return base::load(src, convert);
-    }
-
-    /**
-     * Conversion part 2 (C++ -> Python): convert an instance into
-     * a Python object.
-     * Purpose of this is to establish the indirect keep_alive relationship
-     * between QPDF and object helpers that refer back to in ways that pybind11
-     * can't trace on its own. Object helpers implicitly reference an object
-     handle
-     * and whatever data is attached to the handle.
-     * The ==take_ownership code is disabled. This would only occur if a raw
-     * pointer is returned to Python, which we prohibit.
-     */
-private:
-    // 'private': disallow returning pointers to QPDFPageObjectHelper from bindings
-    static handle cast(
-        const QPDFPageObjectHelper *csrc, return_value_policy policy, handle parent)
-    {
-        if (policy == return_value_policy::take_ownership) {
-            throw std::logic_error(
-                "return_value_policy::take_ownership not implemented");
-        }
-        if (!csrc)
-            return none().release(); // LCOV_EXCL_LINE
-        return base::cast(*csrc, policy, parent);
-    }
-
-public:
-    static handle cast(
-        QPDFPageObjectHelper &&src, return_value_policy policy, handle parent)
-    {
-        return cast(&src, return_value_policy::move, parent);
-    }
-
-    static handle cast(
-        const QPDFPageObjectHelper &src, return_value_policy policy, handle parent)
-    {
-        if (policy == return_value_policy::automatic ||
-            policy == return_value_policy::automatic_reference)
-            policy = return_value_policy::copy;
-        return cast(&src, policy, parent);
-    }
-};
-
 } // namespace detail
 } // namespace pybind11
 
