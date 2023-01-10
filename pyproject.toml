@@ -160,7 +160,8 @@ before-all = [
 ]
 
 [tool.cibuildwheel.macos]
-before-all = ["brew update", "brew install qpdf little-cms2"]
+# Use workaround until https://github.com/actions/setup-python/issues/577 is fixed
+before-all = ["sh -c 'brew update || true'", "sh -c 'brew install qpdf little-cms2 || true'"]
 
 [tool.cibuildwheel.windows]
 
