@@ -1,8 +1,19 @@
+v6.2.8
+======
+
+- Rebuild binary wheels to improve support for Windows 32-bit.
+- Drop PyPy3.7 from wheel builds, since dependencies (lxml, Pillow) no longer provide it.
+
+v6.2.7
+======
+
+- Fixed some tests that randomly failed on Windows due to newline handling issues.
+
 v6.2.6
 ======
 
 - Rebuild binary wheels for certain platforms they were blocked from release by lxml not releasing compatible wheels.
-Mainly Windows.
+Mainly to take advantage of Windows 64-bit.
 
 v6.2.5
 ======
