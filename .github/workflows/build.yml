@@ -108,11 +108,6 @@ jobs:
         with:
           fetch-depth: "0"
 
-      - uses: actions/setup-python@v4
-        name: Install Python
-        with:
-          python-version: "3.8"
-
       - name: Build wheels
         uses: joerick/cibuildwheel@v2.11.4
 
