@@ -128,14 +128,11 @@ test-skip = "*_arm64 *_universal2:arm64"
 QPDF_MIN_VERSION = "11.1.0"
 QPDF_VERSION = "11.2.0"
 QPDF_PATTERN = "https://github.com/qpdf/qpdf/releases/download/vVERSION/qpdf-VERSION.tar.gz"
-JPEG_RELEASE = "https://www.ijg.org/files/jpegsrc.v9e.tar.gz"
-ZLIB_RELEASE = "https://www.zlib.net/zlib-1.2.13.tar.gz"
 
 [tool.cibuildwheel.linux]
 before-all = [
-  "yum install -y wget libxml2-devel libxslt-devel",
+  "yum install -y wget libxml2-devel libxslt-devel libjpeg-turbo-devel zlib-devel",
   "bash build-scripts/linux-install-libxmp.bash",
-  "bash build-scripts/linux-download-qpdf-deps.bash",
   "bash build-scripts/linux-download-qpdf.bash $QPDF_VERSION",
   "bash build-scripts/linux-build-wheel-deps.bash"
 ]
