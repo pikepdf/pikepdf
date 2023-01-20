@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from copy import copy
 from decimal import Decimal
 from io import BytesIO
 from itertools import zip_longest
@@ -322,46 +323,6 @@ class PdfImageBase(ABC):
     def as_pil_image(self) -> Image.Image:
         """Convert this PDF image to a Python PIL (Pillow) image."""
 
-    @staticmethod
-    def _remove_simple_filters(obj: Stream, filters: Sequence[str]):
-        """Remove simple lossless compression where it appears.
-
-        Args:
-            obj: the compressed object
-            filters: all files on the data
-        """
-        COMPLEX_FILTERS = {
-            '/DCTDecode',
-            '/JPXDecode',
-            '/JBIG2Decode',
-            '/CCITTFaxDecode',
-        }
-
-        idx = [n for n, item in enumerate(filters) if item in COMPLEX_FILTERS]
-        if idx:
-            if len(idx) > 1:
-                raise NotImplementedError(
-                    f"Object {obj.objgen} has compound complex filters: {filters}. "
-                    "We cannot decompress this."
-                )
-            simple_filters = filters[: idx[0]]
-            complex_filters = filters[idx[0] :]
-        else:
-            simple_filters = filters
-            complex_filters = []
-
-        if not simple_filters:
-            return obj.read_raw_bytes(), complex_filters
-
-        original_filters = obj.Filter
-        try:
-            obj.Filter = Array([Name(s) for s in simple_filters])
-            data = obj.read_bytes(StreamDecodeLevel.specialized)
-        finally:
-            obj.Filter = original_filters
-
-        return data, complex_filters
-
 
 class PdfImage(PdfImageBase):
     """Support class to provide a consistent API for manipulating PDF images.
@@ -468,6 +429,34 @@ class PdfImage(PdfImageBase):
                     ) from e
         return self._icc
 
+    def _remove_simple_filters(self):
+        """Remove simple lossless compression where it appears."""
+        COMPLEX_FILTERS = {
+            '/DCTDecode',
+            '/JPXDecode',
+            '/JBIG2Decode',
+            '/CCITTFaxDecode',
+        }
+        indices = [n for n, filt in enumerate(self.filters) if filt in COMPLEX_FILTERS]
+        if len(indices) > 1:
+            raise NotImplementedError(
+                f"Object {self.obj.objgen} has compound complex filters: {self.filters}. "
+                "We cannot decompress this."
+            )
+        if len(indices) == 0:
+            # No complex filter indices, so all filters are simple - remove them all
+            return self.obj.read_bytes(StreamDecodeLevel.specialized), []
+
+        n = indices[0]
+        if n == 0:
+            # The only filter is complex, so return
+            return self.obj.read_raw_bytes(), self.filters
+
+        obj_copy = copy(self.obj)
+        obj_copy.Filter = Array([Name(f) for f in self.filters[:n]])
+        obj_copy.DecodeParms = Array(self.decode_parms[:n])
+        return obj_copy.read_bytes(StreamDecodeLevel.specialized), self.filters[n:]
+
     def _extract_direct(self, *, stream: BinaryIO) -> str:
         """Attempt to extract the image directly to a usable image file.
 
@@ -504,7 +493,7 @@ class PdfImage(PdfImageBase):
                 )
             return self.mode == 'CMYK' and ct == DEFAULT_CT_CMYK
 
-        data, filters = self._remove_simple_filters(self.obj, self.filters)
+        data, filters = self._remove_simple_filters()
 
         if filters == ['/CCITTFaxDecode']:
             if self.colorspace == '/ICCBased':
@@ -798,7 +787,7 @@ class PdfJpxImage(PdfImage):
         )
 
     def _extract_direct(self, *, stream: BinaryIO):
-        data, filters = self._remove_simple_filters(self.obj, self.filters)
+        data, filters = self._remove_simple_filters()
         if filters != ['/JPXDecode']:
             raise UnsupportedImageTypeError(self.filters)
         stream.write(data)

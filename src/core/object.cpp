@@ -437,7 +437,12 @@ void init_object(py::module_ &m)
                 return py::bool_(result);
             },
             py::is_operator())
-        .def("__copy__", [](QPDFObjectHandle &h) { return h.shallowCopy(); })
+        .def("__copy__",
+            [](QPDFObjectHandle &h) {
+                if (h.isStream())
+                    return h.copyStream();
+                return h.shallowCopy();
+            })
         .def("__len__",
             [](QPDFObjectHandle &h) -> py::size_t {
                 if (h.isDictionary()) {
