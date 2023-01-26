@@ -1,3 +1,9 @@
+v6.2.9
+======
+
+- Redo v6.2.8 to avoid confusion around v6.2.8 and its post releases. The release of v6.2.8 was botched by unexpected
+failures third party packages and hitting the 10 GB storage limit on PyPI.
+
 v6.2.8
 ======
 
