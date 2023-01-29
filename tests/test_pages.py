@@ -10,16 +10,7 @@ from typing import Type, ValuesView
 
 import pytest
 
-from pikepdf import (
-    Array,
-    Dictionary,
-    Name,
-    Page,
-    Pdf,
-    PdfMatrix,
-    Stream,
-    __libqpdf_version__,
-)
+from pikepdf import Array, Dictionary, Name, Page, Pdf, Stream, __libqpdf_version__
 from pikepdf._cpphelpers import label_from_label_dict
 
 # pylint: disable=redefined-outer-name,pointless-statement

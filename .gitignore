@@ -40,7 +40,6 @@ unpacked/
 .DS_Store
 
 /__qpdf/
-/qpdf-7.0.0/
 /tests/resources/private/
 /tmp_rpms/
 *.dll

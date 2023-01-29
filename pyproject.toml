@@ -3,19 +3,95 @@
 
 [build-system]
 requires = [
-  "setuptools >= 59.6",
+  "setuptools >= 61",
   "setuptools-scm[toml] >= 7.0.5",
   "wheel >= 0.37",
-  "pybind11 >= 2.9.1",
-  "pybind11 < 2.10.0; python_implementation == 'PyPy'"
+  "pybind11 >= 2.10.1",
 ]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "pikepdf"
+dynamic = ["version"]
+description = "Read and write PDFs with Python, powered by qpdf"
+readme = "README.md"
+requires-python = ">= 3.8"
+keywords = ["PDF"]
+authors = [
+  { name = "James R. Barlow", email= "james@purplerock.ca"}
+]
+license = { text = "MPL-2.0" }
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+    "Programming Language :: C++",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Software Development :: Libraries",
+]
+dependencies = [
+    "Pillow>=9.0",
+    "deprecation",
+    "lxml>=4.8",
+    "packaging",
+]
+
+[project.urls]
+documentation = "https://pikepdf.readthedocs.io/"
+repository = "https://github.com/pikepdf/pikepdf"
+changelog = "https://pikepdf.readthedocs.io/en/latest/releasenotes/index.html"
+
+[project.optional-dependencies]
+docs = [
+    "GitPython",
+    "PyGithub",
+    "Sphinx>=3",
+    "ipython",
+    "matplotlib",
+    "pybind11",
+    "requests",
+    "setuptools-scm",
+    "sphinx-design",
+    "sphinx-issues",
+    "sphinx-rtd-theme",
+    "tomli;python_version < '3.11'",
+]
+mypy = [
+      "lxml-stubs",
+    "types-Pillow",
+    "types-requests",
+    "types-setuptools",
+]
+test = [
+    "attrs>=20.2.0",
+    "coverage[toml]",
+    "hypothesis>=6.36",
+    "psutil>=5.9",
+    "pybind11",
+    "pytest>=6.2.5",
+    "pytest-cov>=3.0.0",
+    "pytest-timeout>=2.1.0",
+    "pytest-xdist>=2.5.0",
+    "python-dateutil>=2.8.1",
+    "python-xmp-toolkit>=2.0.1 ;sys_platform != 'nt' and platform_machine == 'x86_64'",
+    "tomli;python_version < '3.11'",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+pikepdf = ["*.dll", "py.typed"]
 
 [tool.setuptools_scm]
 
 [tool.black]
 line-length = 88
-target-version = ["py37", "py38"]
+target-version = ["py38", "py39", "py310", "py311"]
 skip-string-normalization = true
 include = '\.pyi?$'
 exclude = '''
@@ -45,21 +121,18 @@ test-extras = "test"
 # Reminder:
 #   build.yml sets CIBW_BUILD to select what can be built
 #   this file sets skip to deselect what cannot be built
-skip = ["cp36-*", "pp37-*", "pp*-win32", "*musllinux*", "pp*-manylinux*_aarch64"]
+skip = ["cp36-*", "cp37-*", "pp37-*", "pp*-win32", "*musllinux*", "pp*-manylinux*_aarch64"]
 test-skip = "*_arm64 *_universal2:arm64"
 
 [tool.cibuildwheel.environment]
 QPDF_MIN_VERSION = "11.1.0"
 QPDF_VERSION = "11.2.0"
 QPDF_PATTERN = "https://github.com/qpdf/qpdf/releases/download/vVERSION/qpdf-VERSION.tar.gz"
-JPEG_RELEASE = "https://www.ijg.org/files/jpegsrc.v9e.tar.gz"
-ZLIB_RELEASE = "https://www.zlib.net/zlib-1.2.13.tar.gz"
 
 [tool.cibuildwheel.linux]
 before-all = [
-  "yum install -y wget libxml2-devel libxslt-devel",
+  "yum install -y wget libxml2-devel libxslt-devel libjpeg-turbo-devel zlib-devel",
   "bash build-scripts/linux-install-libxmp.bash",
-  "bash build-scripts/linux-download-qpdf-deps.bash",
   "bash build-scripts/linux-download-qpdf.bash $QPDF_VERSION",
   "bash build-scripts/linux-build-wheel-deps.bash"
 ]
@@ -84,9 +157,13 @@ before-all = [
 ]
 
 [tool.cibuildwheel.macos]
-before-all = ["brew update", "brew install qpdf little-cms2"]
+# Use workaround until https://github.com/actions/setup-python/issues/577 is fixed
+before-all = ["sh -c 'brew update || true'", "sh -c 'brew install qpdf little-cms2 || true'"]
 
 [tool.cibuildwheel.windows]
+
+[tool.flake8]
+ignore = ["D203","F401","W503","E501","E203","F841"]
 
 [tool.mypy]
 
@@ -163,7 +240,7 @@ match = "(?!test_)[^/]+\\.py"
 # be loaded. Extensions are loading into the active Python interpreter and may
 # run arbitrary code. (This is an alternative name to extension-pkg-allow-list
 # for backward compatibility.)
-extension-pkg-whitelist = ["pikepdf._qpdf", "lxml"]
+extension-pkg-whitelist = ["pikepdf._core", "lxml"]
 
 # Return non-zero exit code if any of these messages/categories are detected,
 # even if score is above --fail-under value. Syntax same as enable. Messages
@@ -216,7 +293,7 @@ persistent = true
 
 # Minimum Python version to use for version dependent checks. Will default to the
 # version used to run pylint.
-py-version = "3.7"
+py-version = "3.8"
 
 # Discover python modules and packages in the file system subtree.
 # recursive =

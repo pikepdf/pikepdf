@@ -4,7 +4,7 @@ Debugging
 pikepdf does a complex job in providing bindings from Python to a C++ library,
 both of which have different ideas about how to manage memory. This page
 documents some methods that may help should it be necessary to debug the Python
-C++ extension (``pikepdf._qpdf``).
+C++ extension (``pikepdf._core``).
 
 Using gdb to debug C++ and Python
 ---------------------------------
@@ -30,7 +30,7 @@ To download QPDF and compile a debug build:
 Compile and link against QPDF source tree
 -----------------------------------------
 
-Build ``pikepdf._qpdf`` against the version of QPDF above, rather than the
+Build ``pikepdf._core`` against the version of QPDF above, rather than the
 system version:
 
 .. code-block:: bash
@@ -62,7 +62,7 @@ to use in pikepdf's binary extension module:
 
     install_name_tool -change /usr/local/lib/libqpdf*.dylib \
         $QPDF_BUILD_LIBDIR/libqpdf*.dylib \
-        src/pikepdf/_qpdf.cpython*.so
+        src/pikepdf/_core.cpython*.so
 
 You can also run Python through a debugger (``gdb`` or ``lldb``) in this manner,
 and you will have access to the source code for both pikepdf's C++ and QPDF.

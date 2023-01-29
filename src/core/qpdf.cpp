@@ -53,7 +53,7 @@ void qpdf_basic_settings(QPDF &q) // LCOV_EXCL_LINE
     q.setLogger(get_pikepdf_logger());
 }
 
-std::shared_ptr<QPDF> open_pdf(py::object filename_or_stream,
+std::unique_ptr<QPDF> open_pdf(py::object filename_or_stream,
     std::string password,
     bool hex_password            = false,
     bool ignore_xref_streams     = false,
@@ -62,7 +62,7 @@ std::shared_ptr<QPDF> open_pdf(py::object filename_or_stream,
     bool inherit_page_attributes = true,
     access_mode_e access_mode    = access_mode_e::access_default)
 {
-    auto q = std::make_shared<QPDF>();
+    auto q = std::make_unique<QPDF>();
 
     qpdf_basic_settings(*q);
     q->setSuppressWarnings(suppress_warnings);
@@ -519,12 +519,11 @@ void init_qpdf(py::module_ &m)
         .value("mmap", access_mode_e::access_mmap)
         .value("mmap_only", access_mode_e::access_mmap_only);
 
-    py::class_<QPDF, std::shared_ptr<QPDF>>(
-        m, "Pdf", "In-memory representation of a PDF", py::dynamic_attr())
+    py::class_<QPDF>(m, "Pdf", "In-memory representation of a PDF", py::dynamic_attr())
         .def_static(
             "new",
             []() {
-                auto q = std::make_shared<QPDF>();
+                auto q = std::make_unique<QPDF>();
                 q->emptyPDF();
                 qpdf_basic_settings(*q);
                 return q;
@@ -566,12 +565,12 @@ void init_qpdf(py::module_ &m)
             )~~~")
         .def_property_readonly(
             "pages",
-            [](std::shared_ptr<QPDF> q) { return PageList(q); },
+            [](QPDF &q) { return PageList(q); },
             R"~~~(
             Returns the list of pages.
 
             Return type:
-                pikepdf._qpdf.PageList
+                pikepdf._core.PageList
             )~~~",
             py::return_value_policy::reference_internal)
         .def_property_readonly("_pages", &QPDF::getAllPages)
@@ -704,7 +703,6 @@ void init_qpdf(py::module_ &m)
             Return type:
                 pikepdf.Object
             )~~~",
-            py::return_value_policy::reference_internal, // LCOV_EXCL_LINE
             py::arg("objgen"))
         .def(
             "get_object",
@@ -715,7 +713,6 @@ void init_qpdf(py::module_ &m)
             Return type:
                 pikepdf.Object
             )~~~",
-            py::return_value_policy::reference_internal,
             py::arg("objid"),
             py::arg("gen"))
         .def_property_readonly(
@@ -728,7 +725,7 @@ void init_qpdf(py::module_ &m)
             to that page, such as images on the page, may still be present.
 
             Return type:
-                pikepdf._qpdf._ObjectList
+                pikepdf._core._ObjectList
             )~~~",
             py::return_value_policy::reference_internal)
         .def("make_indirect",
@@ -800,7 +797,6 @@ void init_qpdf(py::module_ &m)
             .. versionchanged:: 2.1
                 Error messages improved.
             )~~~",
-            py::return_value_policy::reference_internal,
             py::arg("h"))
         .def("copy_foreign",
             [](QPDF &q, QPDFPageObjectHelper &poh) -> QPDFPageObjectHelper {
@@ -985,6 +981,6 @@ void init_qpdf(py::module_ &m)
             these objects by filename.
 
             Returns:
-                pikepdf._qpdf.Attachments
+                pikepdf._core.Attachments
             )~~~");
 }

@@ -52,7 +52,7 @@ v4.2.0
    ``Page.add_underlay``. Thanks @sjahu. :issue:`277`.
 -  Fixed ``Page.add_overlay`` not scaling to larger target sizes automatically.
    Thanks @bordaigorl. :issue:`276`.
--  ``pikepdf._qpdf.ObjectHelper`` is now registered as a base class from which other
+-  ``pikepdf._core.ObjectHelper`` is now registered as a base class from which other
    helper classes are derived such as ``pikepdf.Page``.
 -  Prevented implicit conversion of ObjectHelper to Object through their inclusion
    as for example, parameters to a ``pikepdf.Array``. This functionality was never

@@ -26,7 +26,7 @@ from warnings import warn
 
 from . import Array, Dictionary, Name, Object, Page, Pdf, Stream
 from ._augments import augment_override_cpp, augments
-from ._qpdf import (
+from ._core import (
     AccessMode,
     AttachedFile,
     AttachedFileSpec,
@@ -823,6 +823,18 @@ class Extend_ObjectMapping:
         except KeyError:
             return default
 
+    @augment_override_cpp
+    def __contains__(self, key: Name | str) -> bool:
+        if isinstance(key, Name):
+            key = str(key)
+        return _ObjectMapping._cpp__contains__(self, key)
+
+    @augment_override_cpp
+    def __getitem__(self, key: Name | str) -> Object:
+        if isinstance(key, Name):
+            key = str(key)
+        return _ObjectMapping._cpp__getitem__(self, key)
+
 
 def check_is_box(obj) -> None:
     try:
@@ -884,15 +896,35 @@ class Extend_Page:
     def images(self) -> _ObjectMapping:
         """Return all regular images associated with this page.
 
-        This method does not recurse into Form XObjects and does not
-        attempt to find inline images.
+        This method does not search for Form XObjects that contain images,
+        and does not attempt to find inline images.
         """
         return self._images
 
     @property
+    def form_xobjects(self) -> _ObjectMapping:
+        """Return all Form XObjects associated with this page.
+
+        This method does not recurse into nested Form XObjects.
+
+        .. versionadded:: 7.0.0
+        """
+        return self._form_xobjects
+
+    @property
     def resources(self) -> Dictionary:
-        """Return this page's resources dictionary."""
-        return self.obj['/Resources']
+        """Return this page's resources dictionary.
+
+        .. versionchanged:: 7.0.0
+            If the resources dictionary does not exist, an empty one will be created.
+            A TypeError is raised if a page has a /Resources key but it is not a
+            dictionary.
+        """
+        if Name.Resources not in self.obj:
+            self.obj.Resources = Dictionary()
+        elif not isinstance(self.obj.Resources, Dictionary):
+            raise TypeError("Page /Resources exists but is not a dictionary")
+        return self.obj.Resources
 
     def add_resource(
         self,
@@ -935,12 +967,7 @@ class Extend_Page:
             Returns the name of the overlay in the resources dictionary instead
             of returning None.
         """
-        if Name.Resources not in self.obj:
-            self.obj.Resources = Dictionary()
-        elif not isinstance(self.obj.Resources, Dictionary):
-            raise TypeError("Page /Resources exists but is not a dictionary")
-        resources = self.obj.Resources
-
+        resources = self.resources
         if res_type not in resources:
             resources[res_type] = Dictionary()
 
@@ -1214,7 +1241,7 @@ class Extend_Attachments(MutableMapping):
         yield from self._get_all_filespecs()
 
     def __repr__(self):
-        return f"<pikepdf._qpdf.Attachments with {len(self)} attached files>"
+        return f"<pikepdf._core.Attachments with {len(self)} attached files>"
 
 
 @augments(AttachedFileSpec)
@@ -1257,10 +1284,10 @@ class Extend_AttachedFileSpec:
     def __repr__(self):
         if self.filename:
             return (
-                f"<pikepdf._qpdf.AttachedFileSpec for {self.filename!r}, "
+                f"<pikepdf._core.AttachedFileSpec for {self.filename!r}, "
                 f"description {self.description!r}>"
             )
-        return f"<pikepdf._qpdf.AttachedFileSpec description {self.description!r}>"
+        return f"<pikepdf._core.AttachedFileSpec description {self.description!r}>"
 
 
 @augments(AttachedFile)
@@ -1290,7 +1317,7 @@ class Extend_AttachedFile:
 
     def __repr__(self):
         return (
-            f'<pikepdf._qpdf.AttachedFile objid={self.obj.objgen} size={self.size} '
+            f'<pikepdf._core.AttachedFile objid={self.obj.objgen} size={self.size} '
             f'mime_type={self.mime_type} creation_date={self.creation_date} '
             f'mod_date={self.mod_date}>'
         )

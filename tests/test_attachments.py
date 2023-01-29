@@ -11,8 +11,8 @@ from pathlib import Path
 import pytest
 
 import pikepdf
-from pikepdf import Dictionary, Name, Pdf
-from pikepdf._qpdf import AttachedFile, AttachedFileSpec, Attachments
+from pikepdf import Name, Pdf
+from pikepdf._core import AttachedFile, AttachedFileSpec, Attachments
 
 
 @pytest.fixture

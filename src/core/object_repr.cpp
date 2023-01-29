@@ -105,7 +105,7 @@ std::string objecthandle_pythonic_typename(QPDFObjectHandle h)
     // LCOV_EXCL_START
     default:
         throw std::logic_error(
-            std::string("Unexpected QPDF object type value: ") + h.getTypeName());
+            std::string("Unexpected pikepdf object type name: ") + h.getTypeName());
         // LCOV_EXCL_STOP
     }
 
@@ -240,6 +240,9 @@ static std::string objecthandle_repr_inner(QPDFObjectHandle h,
 
 std::string objecthandle_repr(QPDFObjectHandle h)
 {
+    if (h.isDestroyed()) {
+        return std::string("<Object was inside a closed or deleted pikepdf.Pdf>");
+    }
     if (h.isScalar() || h.isOperator()) {
         // qpdf does not consider Operator a scalar but it is as far we
         // are concerned here

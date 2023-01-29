@@ -2,14 +2,14 @@
 Licenses for Python wheels built from the pikepdf source
 ========================================================
 
-This text file describes the licenses involved in pikepdf wheels. 
-pikepdf wheels contain an Executable Form and/or Object form 
+This text file describes the licenses involved in pikepdf wheels.
+pikepdf wheels contain an Executable Form and/or Object form
 distribution ("Object Forms") of pikepdf, and third-party Object Forms.
 
-See LICENSE.txt in the pikepdf source repository for its primary source code 
+See LICENSE.txt in the pikepdf source repository for its primary source code
 license, the LICENSES/ folder, and .reuse/dep5 for a description of files that
-have other licenses. Since pikepdf wheels do not distribute all of the pikepdf 
-source repository, some licenses included there do not apply to pikepdf 
+have other licenses. Since pikepdf wheels do not distribute all of the pikepdf
+source repository, some licenses included there do not apply to pikepdf
 wheels.
 
 pikepdf wheels include Object Forms of:
@@ -18,7 +18,6 @@ pikepdf wheels include Object Forms of:
 
 On some platforms, pikepdf wheels may also include Object Forms of:
 - libjpeg, SPDX-License-Identifier: IJG
-- zlib (https://www.zlib.net/), SPDX-License-Identifier: Zlib
 
 On Microsoft Windows, pikepdf wheels also include Object Forms of:
 - Microsoft Visual C++ Runtime Files, distributed under section "4. Distributable

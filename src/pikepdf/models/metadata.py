@@ -268,7 +268,7 @@ class DateConverter(Converter):
         try:
             dateobj = datetime.fromisoformat(xmp_val)
         except IndexError:
-            # PyPy 3.7 may raise IndexError - convert to ValueError
+            # PyPy 3.8 may raise IndexError - convert to ValueError
             raise ValueError(f"Invalid isoformat string: '{xmp_val}'") from None
         return encode_pdf_date(dateobj)
 

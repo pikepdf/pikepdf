@@ -32,7 +32,7 @@ py::size_t uindex_from_index(PageList &pl, py::ssize_t index)
 
 QPDFObjectHandle PageList::get_page_obj(py::size_t index) const
 {
-    auto pages = this->qpdf->getAllPages();
+    auto pages = this->qpdf.getAllPages();
     if (index < pages.size())
         return pages.at(index);
     throw py::index_error("Accessing nonexistent PDF page number");
@@ -123,7 +123,7 @@ void PageList::set_pages_from_iterable(py::slice slice, py::iterable other)
 void PageList::delete_page(py::size_t index)
 {
     auto page = this->get_page_obj(index);
-    this->qpdf->removePage(page);
+    this->qpdf.removePage(page);
 }
 
 void PageList::delete_pages_from_iterable(py::slice slice)
@@ -133,11 +133,11 @@ void PageList::delete_pages_from_iterable(py::slice slice)
     // after delete
     auto kill_list = this->get_page_objs_impl(slice);
     for (auto page : kill_list) {
-        this->qpdf->removePage(page);
+        this->qpdf.removePage(page);
     }
 }
 
-py::size_t PageList::count() const { return this->qpdf->getAllPages().size(); }
+py::size_t PageList::count() const { return this->qpdf.getAllPages().size(); }
 
 void PageList::insert_page(py::size_t index, py::handle obj)
 {
@@ -169,14 +169,14 @@ void PageList::insert_page(py::size_t index, QPDFPageObjectHelper poh)
     if (!handle_owner) {
         // User is trying to insert an unowned/direct object dictionary as a new
         // page. Let them try....
-        page_obj = this->qpdf->makeIndirectObject(poh.getObjectHandle());
+        page_obj = this->qpdf.makeIndirectObject(poh.getObjectHandle());
         copied   = true;
     } else {
         // QPDF will automatically duplicate pages where reasonable.
         page_obj = poh.getObjectHandle();
     }
 
-    auto doc  = QPDFPageDocumentHelper(*this->qpdf);
+    auto doc  = QPDFPageDocumentHelper(this->qpdf);
     auto page = QPDFPageObjectHelper(page_obj);
 
     try {
@@ -196,8 +196,7 @@ void PageList::insert_page(py::size_t index, QPDFPageObjectHelper poh)
         if (copied) {
             // If we created a new object to hold the page, and failed, delete
             // the object we created.
-            this->qpdf->replaceObject(
-                page_obj.getObjGen(), QPDFObjectHandle::newNull());
+            this->qpdf.replaceObject(page_obj.getObjGen(), QPDFObjectHandle::newNull());
         }
         throw;
     }
@@ -326,7 +325,7 @@ void init_pagelist(py::module_ &m)
         .def(
             "index",
             [](PageList &pl, const QPDFObjectHandle &h) {
-                return page_index(*pl.qpdf, h);
+                return page_index(pl.qpdf, h);
             },
             R"~~~(
             Given a pikepdf.Object that is a page, find the index.
@@ -338,7 +337,7 @@ void init_pagelist(py::module_ &m)
         .def(
             "index",
             [](PageList &pl, const QPDFPageObjectHelper &poh) {
-                return page_index(*pl.qpdf, poh.getObjectHandle());
+                return page_index(pl.qpdf, poh.getObjectHandle());
             },
             R"~~~(
             Given a pikepdf.Page (page helper), find the index.
@@ -349,13 +348,13 @@ void init_pagelist(py::module_ &m)
             )~~~")
         .def("__repr__",
             [](PageList &pl) {
-                return std::string("<pikepdf._qpdf.PageList len=") +
+                return std::string("<pikepdf._core.PageList len=") +
                        std::to_string(pl.count()) + std::string(">");
             })
         .def(
             "from_objgen",
             [](PageList &pl, int obj, int gen) {
-                return from_objgen(*pl.qpdf, QPDFObjGen(obj, gen));
+                return from_objgen(pl.qpdf, QPDFObjGen(obj, gen));
             },
             R"~~~(
             Given an "objgen" (object ID, generation), return the page.
@@ -365,7 +364,7 @@ void init_pagelist(py::module_ &m)
         .def(
             "from_objgen",
             [](PageList &pl, std::pair<int, int> objgen) {
-                return from_objgen(*pl.qpdf, QPDFObjGen(objgen.first, objgen.second));
+                return from_objgen(pl.qpdf, QPDFObjGen(objgen.first, objgen.second));
             },
             R"~~~(
             Given an "objgen" (object ID, generation), return the page.

@@ -7,7 +7,6 @@ from math import isclose
 
 import pytest
 
-import pikepdf
 from pikepdf.models import PdfMatrix
 
 

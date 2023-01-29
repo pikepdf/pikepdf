@@ -95,9 +95,9 @@ def test_encrypt_info(trivial, outpdf):
         assert pdf.encryption.R == 4
         assert pdf.encryption.V == 4
         assert pdf.encryption.P == -3392
-        assert pdf.encryption.stream_method == pikepdf._qpdf.EncryptionMethod.aes
-        assert pdf.encryption.string_method == pikepdf._qpdf.EncryptionMethod.aes
-        assert pdf.encryption.file_method == pikepdf._qpdf.EncryptionMethod.aes
+        assert pdf.encryption.stream_method == pikepdf._core.EncryptionMethod.aes
+        assert pdf.encryption.string_method == pikepdf._core.EncryptionMethod.aes
+        assert pdf.encryption.file_method == pikepdf._core.EncryptionMethod.aes
         assert pdf.encryption.encryption_key[:2] == b'\x02\xdc'
 
 

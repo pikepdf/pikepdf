@@ -35,12 +35,12 @@ from pikepdf import (
     Stream,
     String,
 )
-from pikepdf import _qpdf as qpdf
+from pikepdf import _core as core
 from pikepdf.models import parse_content_stream
 
 # pylint: disable=eval-used, redefined-outer-name
 
-encode = qpdf._encode
+encode = core._encode
 
 
 def test_none():
@@ -124,8 +124,8 @@ def test_decimal_from_float(f):
 
 
 def test_qpdf_real_to_decimal():
-    assert isclose(qpdf._new_real(1.2345, 4), Decimal('1.2345'), abs_tol=1e-5)
-    assert isclose(qpdf._new_real('2.3456'), Decimal('2.3456'), abs_tol=1e-5)
+    assert isclose(core._new_real(1.2345, 4), Decimal('1.2345'), abs_tol=1e-5)
+    assert isclose(core._new_real('2.3456'), Decimal('2.3456'), abs_tol=1e-5)
 
 
 @skip_if_pypy
@@ -551,10 +551,10 @@ def test_json():
 class TestStream:
     @pytest.fixture(scope="function")
     def abcxyz_stream(self):
-        pdf = pikepdf.new()
-        data = b'abcxyz'
-        stream = Stream(pdf, data)
-        return stream
+        with pikepdf.new() as pdf:
+            data = b'abcxyz'
+            stream = Stream(pdf, data)
+            yield stream
 
     def test_stream_isinstance(self):
         pdf = pikepdf.new()
@@ -662,8 +662,8 @@ def sandwich(resources):
 class TestStreamReadWrite:
     @pytest.fixture
     def stream_object(self):
-        pdf = pikepdf.new()
-        return Stream(pdf, b'abc123xyz')
+        with pikepdf.new() as pdf:
+            yield Stream(pdf, b'abc123xyz')
 
     def test_basic(self, stream_object):
         stream_object.write(b'abc')

@@ -6,15 +6,10 @@
 from __future__ import annotations
 
 import sys
-from typing import TYPE_CHECKING, Any, NamedTuple, cast
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal  # pragma: no cover
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, cast
 
 if TYPE_CHECKING:
-    from pikepdf._qpdf import EncryptionMethod
+    from pikepdf._core import EncryptionMethod
 
 
 class Permissions(NamedTuple):

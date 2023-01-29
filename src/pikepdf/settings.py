@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from ._qpdf import (
+from ._core import (
     get_decimal_precision,
     set_decimal_precision,
     set_flate_compression_level,

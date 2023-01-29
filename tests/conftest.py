@@ -18,11 +18,6 @@ except ImportError:
 
 import pytest
 
-if sys.version_info < (3, 7):
-    print("Requires Python 3.7+")
-    sys.exit(1)
-
-
 TESTS_ROOT = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.dirname(TESTS_ROOT)
 

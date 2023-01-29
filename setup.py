@@ -69,9 +69,9 @@ for extra_path in chain([qpdf_source_tree], extra_includes, extra_library_dirs):
 extmodule: Extension = cast(
     Extension,
     Pybind11Extension(
-        'pikepdf._qpdf',
-        sorted(glob('src/qpdf/*.cpp')),
-        depends=sorted(glob('src/qpdf/*.h')),
+        'pikepdf._core',
+        sorted(glob('src/core/*.cpp')),
+        depends=sorted(glob('src/core/*.h')),
         include_dirs=[
             # Path to pybind11 headers
             *extra_includes,

@@ -100,7 +100,16 @@ bool is_data_decoding_error(const std::runtime_error &e)
     return std::regex_search(e.what(), decoding_error_pattern);
 }
 
-PYBIND11_MODULE(_qpdf, m)
+bool is_destroyed_object_error(const std::runtime_error &e)
+{
+    static const std::regex error_pattern(
+        "operation for \\w+ attempted on object of type destroyed",
+        std::regex_constants::icase);
+
+    return std::regex_search(e.what(), error_pattern);
+}
+
+PYBIND11_MODULE(_core, m)
 {
     // py::options options;
     // options.disable_function_signatures();
@@ -191,6 +200,8 @@ PYBIND11_MODULE(_qpdf, m)
     static py::exception<QPDFExc> exc_datadecoding(m, "DataDecodingError");
     static py::exception<QPDFUsage> exc_usage(m, "JobUsageError");
     static py::exception<std::logic_error> exc_foreign(m, "ForeignObjectError");
+    static py::exception<std::runtime_error> exc_destroyedobject(
+        m, "DeletedObjectError");
     py::register_exception_translator([](std::exception_ptr p) {
         try {
             if (p)
@@ -222,13 +233,16 @@ PYBIND11_MODULE(_qpdf, m)
         } catch (const std::runtime_error &e) {
             if (is_data_decoding_error(e))
                 exc_datadecoding(e.what());
+            else if (is_destroyed_object_error(e))
+                exc_destroyedobject(e.what());
             else
                 std::rethrow_exception(p);
         }
     });
 
+    // clang-format off
 #if defined(VERSION_INFO) && defined(_MSC_VER)
-#    define msvc_inner_stringify(s) #    s
+#    define msvc_inner_stringify(s) #s
 #    define msvc_stringify(s) msvc_inner_stringify(s)
     m.attr("__version__") = msvc_stringify(VERSION_INFO);
 #    undef msvc_stringify
@@ -238,4 +252,5 @@ PYBIND11_MODULE(_qpdf, m)
 #else
     m.attr("__version__") = "dev";
 #endif
+    // clang-format on
 }

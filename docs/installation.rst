@@ -162,7 +162,7 @@ libqpdf.)
     precise both **must** use the same C++ ABI. On some platforms, setup.py may
     not pick the correct compiler so one may need to set environment variables
     ``CC`` and ``CXX`` to redirect it. If the wrong compiler is selected,
-    ``import pikepdf._qpdf`` will throw an ``ImportError`` about a missing
+    ``import pikepdf._core`` will throw an ``ImportError`` about a missing
     symbol.
 
 :fa:`linux` :fa:`apple` GCC or Clang, linking to system libraries
@@ -260,7 +260,7 @@ do not want to use Python wheels.
   compiled version of QPDF instead of the system version.
 
 * Build pikepdf. On Windows, locate the QPDF .dll files and copy them into the folder
-  alongside the file named ``_qpdf*.pyd``.
+  alongside the file named ``_core*.pyd``.
 
 Note that the Python wheels for pikepdf currently compile their own version of
 QPDF and several of its dependencies to ensure the wheels have the latest version.

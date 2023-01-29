@@ -7,7 +7,6 @@ Test IPython/Jupyter display hooks
 
 from __future__ import annotations
 
-import shutil
 import subprocess
 from io import BytesIO
 

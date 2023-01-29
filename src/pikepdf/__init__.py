@@ -7,7 +7,7 @@ isort:skip_file
 """
 
 try:
-    from . import _qpdf
+    from . import _core
 except ImportError as _e:  # pragma: no cover
     _msg = "pikepdf's extension library failed to import"
     raise ImportError(_msg) from _e
@@ -17,13 +17,14 @@ try:
 except ImportError as _e:  # pragma: no cover
     raise ImportError("Failed to determine version") from _e
 
-from ._qpdf import (
+from ._core import (
     AccessMode,
     Annotation,
     AttachedFileSpec,
     ContentStreamInlineImage,
     ContentStreamInstruction,
     DataDecodingError,
+    DeletedObjectError,
     ForeignObjectError,
     Job,
     JobUsageError,
@@ -80,7 +81,7 @@ from . import _methods, codec
 # is necessary.
 from . import _cpphelpers
 
-__libqpdf_version__ = _qpdf.qpdf_version()
+__libqpdf_version__ = _core.qpdf_version()
 
 
 # Provide pikepdf.{open, new} -> pikepdf.Pdf.{open, new}
