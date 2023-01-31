@@ -1,9 +1,7 @@
 # SPDX-FileCopyrightText: 2022 James R. Barlow
 # SPDX-License-Identifier: CC0-1.0
 
-"""
-Testing focused on pikepdf.Pdf
-"""
+"""Testing focused on pikepdf.Pdf."""
 
 from __future__ import annotations
 

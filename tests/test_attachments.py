@@ -17,8 +17,7 @@ from pikepdf._core import AttachedFile, AttachedFileSpec, Attachments
 
 @pytest.fixture
 def pal(resources):
-    with Pdf.open(resources / 'pal.pdf') as pdf:
-        yield pdf
+    yield Pdf.open(resources / 'pal.pdf')
 
 
 def test_attachment_crud(pal, resources, outpdf):

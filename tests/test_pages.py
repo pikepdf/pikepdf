@@ -6,11 +6,10 @@ from __future__ import annotations
 import gc
 from contextlib import suppress
 from shutil import copy
-from typing import Type, ValuesView
 
 import pytest
 
-from pikepdf import Array, Dictionary, Name, Page, Pdf, Stream, __libqpdf_version__
+from pikepdf import Array, Dictionary, Name, Page, Pdf, Stream
 from pikepdf._cpphelpers import label_from_label_dict
 
 # pylint: disable=redefined-outer-name,pointless-statement

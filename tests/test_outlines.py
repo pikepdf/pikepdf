@@ -19,7 +19,7 @@ from pikepdf import (
     Pdf,
     make_page_destination,
 )
-from pikepdf.models.outlines import ALL_PAGE_LOCATION_KWARGS, Outline
+from pikepdf.models.outlines import ALL_PAGE_LOCATION_KWARGS
 
 # pylint: disable=redefined-outer-name
 
