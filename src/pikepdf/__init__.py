@@ -1,10 +1,9 @@
 # SPDX-FileCopyrightText: 2022 James R. Barlow
 # SPDX-License-Identifier: MPL-2.0
 
-"""A library for manipulating PDFs.
+"""A library for manipulating PDFs."""
 
-isort:skip_file
-"""
+# isort:skip_file
 
 from __future__ import annotations
 

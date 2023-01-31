@@ -150,8 +150,7 @@ class String(Object, metaclass=_ObjectMeta):
     object_type = ObjectType.string
 
     def __new__(cls, s: str | bytes) -> String:
-        """
-        Construct a PDF String.
+        """Construct a PDF String.
 
         Args:
             s: The string to use. String will be encoded for
@@ -171,8 +170,7 @@ class Array(Object, metaclass=_ObjectMeta):
     object_type = ObjectType.array
 
     def __new__(cls, a: Iterable | Rectangle | None = None) -> Array:
-        """
-        Construct a PDF Array.
+        """Construct a PDF Array.
 
         Args:
             a: An iterable of objects. All objects must be either
@@ -199,8 +197,7 @@ class Dictionary(Object, metaclass=_ObjectMeta):
     object_type = ObjectType.dictionary
 
     def __new__(cls, d: Mapping | None = None, **kwargs) -> Dictionary:
-        """
-        Construct a PDF Dictionary.
+        """Construct a PDF Dictionary.
 
         Works from either a Python ``dict`` or keyword arguments.
 
@@ -241,8 +238,7 @@ class Stream(Object, metaclass=_ObjectMeta):
     object_type = ObjectType.stream
 
     def __new__(cls, owner: Pdf, data: bytes | None = None, d=None, **kwargs) -> Stream:
-        """
-        Create a new stream object.
+        """Create a new stream object.
 
         Streams stores arbitrary binary data and may or may not be compressed.
         It also may or may not be a page or Form XObject's content stream.

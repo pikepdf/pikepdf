@@ -320,7 +320,6 @@ class PdfMetadata(MutableMapping):
     To update metadata, use a with block.
 
     Example:
-
         >>> with pdf.open_metadata() as records:
                 records['dc:title'] = 'New Title'
 
@@ -357,6 +356,7 @@ class PdfMetadata(MutableMapping):
         sync_docinfo: bool = True,
         overwrite_invalid_xml: bool = True,
     ):
+        """Construct PdfMetadata. Use Pdf.open_metadata() instead."""
         self._pdf = pdf
         self._xmp = None
         self.mark = pikepdf_mark
@@ -468,10 +468,12 @@ class PdfMetadata(MutableMapping):
 
     @ensure_loaded
     def __enter__(self):
+        """Open metadata for editing."""
         self._updating = True
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Close metadata and apply changes."""
         try:
             if exc_type is not None:
                 return
@@ -667,10 +669,12 @@ class PdfMetadata(MutableMapping):
 
     @ensure_loaded
     def __contains__(self, key: str | QName):
+        """Test if XMP key is in metadata."""
         return any(self._get_element_values(key))
 
     @ensure_loaded
     def __getitem__(self, key: str | QName):
+        """Retrieve XMP metadata for key."""
         try:
             return next(self._get_element_values(key))
         except StopIteration:
@@ -678,6 +682,7 @@ class PdfMetadata(MutableMapping):
 
     @ensure_loaded
     def __iter__(self):
+        """Iterate through XMP metadata attributes and nodes."""
         for node, attrib, _val, _parents in self._get_elements():
             if attrib:
                 yield attrib
@@ -686,6 +691,7 @@ class PdfMetadata(MutableMapping):
 
     @ensure_loaded
     def __len__(self):
+        """Return number of items in metadata."""
         return len(list(iter(self)))
 
     def _setitem(
@@ -793,10 +799,12 @@ class PdfMetadata(MutableMapping):
 
     @ensure_loaded
     def __setitem__(self, key: str | QName, val: set[str] | list[str] | str):
+        """Set XMP metadata key to value."""
         return self._setitem(key, val, False)
 
     @ensure_loaded
     def __delitem__(self, key: str | QName):
+        """Delete item from XMP metadata."""
         if not self._updating:
             raise RuntimeError("Metadata not opened for editing, use with block")
         try:
@@ -863,4 +871,5 @@ class PdfMetadata(MutableMapping):
 
     @ensure_loaded
     def __str__(self):
+        """Convert XMP metadata to XML string."""
         return self._get_xml_bytes(xpacket=False).decode('utf-8')

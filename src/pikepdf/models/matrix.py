@@ -9,8 +9,7 @@ from math import cos, pi, sin
 
 
 class PdfMatrix:
-    """
-    Support class for PDF content stream matrices.
+    """Support class for PDF content stream matrices.
 
     PDF content stream matrices are 3x3 matrices summarized by a shorthand
     ``(a, b, c, d, e, f)`` which correspond to the first two column vectors.
@@ -29,10 +28,10 @@ class PdfMatrix:
 
     PdfMatrix objects are immutable. All transformations on them produce a new
     matrix.
-
     """
 
     def __init__(self, *args):
+        """Initialize a PdfMatrix."""
         # fmt: off
         if not args:
             self.values = ((1, 0, 0), (0, 1, 0), (0, 0, 1))
@@ -58,7 +57,7 @@ class PdfMatrix:
 
     @staticmethod
     def identity():
-        """Constructs and returns an identity matrix."""
+        """Return an identity matrix."""
         return PdfMatrix()
 
     def __matmul__(self, other):
@@ -76,17 +75,17 @@ class PdfMatrix:
         )
 
     def scaled(self, x, y):
-        """Concatenates a scaling matrix on this matrix."""
+        """Concatenate a scaling matrix to this matrix."""
         return self @ PdfMatrix((x, 0, 0, y, 0, 0))
 
     def rotated(self, angle_degrees_ccw):
-        """Concatenates a rotation matrix on this matrix."""
+        """Concatenate a rotation matrix to this matrix."""
         angle = angle_degrees_ccw / 180.0 * pi
         c, s = cos(angle), sin(angle)
         return self @ PdfMatrix((c, s, -s, c, 0, 0))
 
     def translated(self, x, y):
-        """Translates this matrix."""
+        """Translate this matrix."""
         return self @ PdfMatrix((1, 0, 0, 1, x, y))
 
     @property

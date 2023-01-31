@@ -69,6 +69,7 @@ def _find_first_index(s: str, ordinals: Container[int]) -> int:
 
 
 def pdfdoc_encode(input: str, errors: str = 'strict') -> tuple[bytes, int]:
+    """Convert input string to bytes in PdfDocEncoding."""
     error_marker = b'?' if errors == 'replace' else b'\xad'
     success, pdfdoc = utf8_to_pdf_doc(input, error_marker)
     if success:
@@ -104,6 +105,7 @@ def pdfdoc_encode(input: str, errors: str = 'strict') -> tuple[bytes, int]:
 
 
 def pdfdoc_decode(input: bytes, errors: str = 'strict') -> tuple[str, int]:
+    """Convert PdfDoc-encoded input into a Python str."""
     if isinstance(input, memoryview):
         input = input.tobytes()
     s = pdf_doc_to_utf8(input)
@@ -122,35 +124,54 @@ def pdfdoc_decode(input: bytes, errors: str = 'strict') -> tuple[str, int]:
 
 
 class PdfDocCodec(codecs.Codec):
-    """Implements PdfDocEncoding character map used inside PDFs."""
+    """Implement PdfDocEncoding character map used inside PDFs."""
 
     def encode(self, input: str, errors: str = 'strict') -> tuple[bytes, int]:
+        """Implement codecs.Codec.encode for pdfdoc."""
         return pdfdoc_encode(input, errors)
 
     def decode(self, input: bytes, errors: str = 'strict') -> tuple[str, int]:
+        """Implement codecs.Codec.decode for pdfdoc."""
         return pdfdoc_decode(input, errors)
 
 
 class PdfDocStreamWriter(PdfDocCodec, codecs.StreamWriter):
-    pass
+    """Implement PdfDocEncoding stream writer."""
 
 
 class PdfDocStreamReader(PdfDocCodec, codecs.StreamReader):
+    """Implement PdfDocEncoding stream reader."""
+
     def decode(self, input: bytes, errors: str = 'strict') -> tuple[str, int]:
+        """Implement codecs.StreamReader.decode for pdfdoc."""
         return PdfDocCodec.decode(self, input, errors)
 
 
 class PdfDocIncrementalEncoder(codecs.IncrementalEncoder):
+    """Implement PdfDocEncoding incremental encoder."""
+
     def encode(self, input: str, final: bool = False) -> bytes:
+        """Implement codecs.IncrementalEncoder.encode for pdfdoc."""
         return pdfdoc_encode(input, 'strict')[0]
 
 
 class PdfDocIncrementalDecoder(codecs.IncrementalDecoder):
+    """Implement PdfDocEncoding incremental decoder."""
+
     def decode(self, input: bytes, final: bool = False) -> str:
+        """Implement codecs.IncrementalDecoder.decode for pdfdoc."""
         return pdfdoc_decode(input, 'strict')[0]
 
 
 def find_pdfdoc(encoding: str) -> codecs.CodecInfo | None:
+    """Register pdfdoc codec with Python.
+
+    Both pdfdoc and pdfdoc_pikepdf are registered. Use "pdfdoc_pikepdf" if pikepdf's
+    codec is required. If another third party package installs a codec named pdfdoc,
+    the first imported by Python will be registered and will service all encoding.
+    Unfortunately, Python's codec infrastructure does not give a better mechanism
+    for resolving conflicts.
+    """
     if encoding in ('pdfdoc', 'pdfdoc_pikepdf'):
         codec = PdfDocCodec()
         return codecs.CodecInfo(

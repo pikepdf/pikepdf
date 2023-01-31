@@ -48,8 +48,7 @@ def make_page_destination(
     bottom: float | None = None,
     zoom: float | None = None,
 ) -> Array:
-    """
-    Create a destination ``Array`` with reference to a Pdf document's page number.
+    """Create a destination ``Array`` with reference to a Pdf document's page number.
 
     Arguments:
         pdf: PDF document object.
@@ -157,6 +156,7 @@ class OutlineItem:
         bottom: float | None = None,
         zoom: float | None = None,
     ):
+        """Initialize OutlineItem."""
         self.title = title
         self.destination = destination
         self.page_location = page_location
@@ -209,7 +209,7 @@ class OutlineItem:
 
     @classmethod
     def from_dictionary_object(cls, obj: Dictionary):
-        """Creates a ``OutlineItem`` from a ``Dictionary``.
+        """Create a ``OutlineItem`` from a ``Dictionary``.
 
         Does not process nested items.
 
@@ -233,7 +233,7 @@ class OutlineItem:
         return cls(title, destination=destination, action=action, obj=obj)
 
     def to_dictionary_object(self, pdf: Pdf, create_new: bool = False) -> Dictionary:
-        """Creates/updates a ``Dictionary`` object from this outline node.
+        """Create/update a ``Dictionary`` object from this outline node.
 
         Page numbers are resolved to a page reference on the input
         ``Pdf`` object.
@@ -285,6 +285,7 @@ class Outline:
     """
 
     def __init__(self, pdf: Pdf, max_depth: int = 15, strict: bool = False):
+        """Initialize Outline."""
         self._root: list[OutlineItem] | None = None
         self._pdf = pdf
         self._max_depth = max_depth
