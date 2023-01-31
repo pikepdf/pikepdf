@@ -33,7 +33,7 @@ lighterweight unique_ptr.
 
 - Support for Python 3.7 is dropped.
 - Child objects no longer keep their source Pdf alive, as outlined above.
-- libqpdf 11.1.0 or newer is required.
+- libqpdf 11.2.0 or newer is required.
 - The C++ binding layer has been renamed from ``pikepdf._qpdf`` to ``pikepdf._core``.
   This has always been a private API but we are making note of the change anyway.
   For the moment, a Python module named ``_qpdf`` still exists and imports all of the
