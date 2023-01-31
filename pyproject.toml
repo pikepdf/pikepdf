@@ -214,16 +214,6 @@ known_third_party = [
   "setuptools"
 ]
 
-[tool.pydocstyle]
-convention = "google"
-add-ignore = [
-  "D105",  # missing __magic__ docstring
-  "D107",  # missing __init__ docstring,
-  "D212"   # require multi-line docstring to being with """It starts...
-]
-# This is the best we can do till https://github.com/PyCQA/pydocstyle/pull/529
-match = "(?!test_)[^/]+\\.py"
-
 [tool.ruff]
 select = [
   "D", # pydocstyle
@@ -231,6 +221,7 @@ select = [
   "W", # pycodestyle
   "F", # pyflakes
   "I001", # isort
+  "UP", # pyupgrade
 ]
 ignore = ["D105"]  # docstring in magic method
 src = ["src"]
