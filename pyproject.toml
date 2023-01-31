@@ -162,9 +162,6 @@ before-all = ["sh -c 'brew update || true'", "sh -c 'brew install qpdf little-cm
 
 [tool.cibuildwheel.windows]
 
-[tool.flake8]
-ignore = ["D203","F401","W503","E501","E203","F841"]
-
 [tool.mypy]
 exclude = [
   "^_qpdf\\.py$"
@@ -225,6 +222,7 @@ select = [
 ]
 ignore = ["D105"]  # docstring in magic method
 src = ["src"]
+target-version = "py38"
 
 [tool.ruff.isort]
 known-first-party = ["pikepdf._core"]

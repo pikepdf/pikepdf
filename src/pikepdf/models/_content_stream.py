@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Collection, List, Tuple, Union, cast
+from typing import TYPE_CHECKING, Collection, Union, cast
 
 from pikepdf import Object, ObjectType, Operator, Page, PdfError, _core
 
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 # Operands, Operator
 _OldContentStreamOperands = Collection[Union[Object, 'PdfInlineImage']]
-_OldContentStreamInstructions = Tuple[_OldContentStreamOperands, Operator]
+_OldContentStreamInstructions = tuple[_OldContentStreamOperands, Operator]
 
 ContentStreamInstructions = Union[
     _core.ContentStreamInstruction, _core.ContentStreamInlineImage
@@ -90,13 +90,13 @@ def parse_content_stream(
         if page_or_stream.get('/Type') == '/Page':
             page = page_or_stream
             instructions = cast(
-                List[ContentStreamInstructions],
+                list[ContentStreamInstructions],
                 page._parse_page_contents_grouped(operators),
             )
         else:
             stream = page_or_stream
             instructions = cast(
-                List[ContentStreamInstructions],
+                list[ContentStreamInstructions],
                 Object._parse_stream_grouped(stream, operators),
             )
     except PdfError as e:
