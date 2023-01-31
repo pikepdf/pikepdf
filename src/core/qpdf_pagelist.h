@@ -8,28 +8,29 @@
 #include <pybind11/stl.h>
 
 #include <qpdf/QPDFPageObjectHelper.hh>
+#include <qpdf/QPDFPageDocumentHelper.hh>
 
 void init_pagelist(py::module_ &m);
 
 class PageList { // LCOV_EXCL_LINE
 public:
-    PageList(QPDF &q, py::size_t iterpos = 0) : iterpos(iterpos), qpdf(q){};
+    PageList(QPDF &q, py::size_t iterpos = 0) : iterpos(iterpos), qpdf(q), doc(qpdf){};
 
-    QPDFObjectHandle get_page_obj(py::size_t index) const;
-    QPDFPageObjectHelper get_page(py::size_t index) const;
-    py::list get_pages(py::slice slice) const;
+    QPDFPageObjectHelper get_page(py::size_t index);
+    py::list get_pages(py::slice slice);
     void set_page(py::size_t index, py::object page);
     void set_pages_from_iterable(py::slice slice, py::iterable other);
     void delete_page(py::size_t index);
     void delete_pages_from_iterable(py::slice slice);
-    py::size_t count() const;
+    py::size_t count();
     void insert_page(py::size_t index, py::handle obj);
     void insert_page(py::size_t index, QPDFPageObjectHelper page);
 
 public:
     py::size_t iterpos;
     QPDF &qpdf;
+    QPDFPageDocumentHelper doc;
 
 private:
-    std::vector<QPDFObjectHandle> get_page_objs_impl(py::slice slice) const;
+    std::vector<QPDFPageObjectHelper> get_page_objs_impl(py::slice slice);
 };
