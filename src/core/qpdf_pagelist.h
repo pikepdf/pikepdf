@@ -33,4 +33,5 @@ public:
 
 private:
     std::vector<QPDFPageObjectHelper> get_page_objs_impl(py::slice slice);
+    void try_insert_qpdfobject_as_page(py::size_t index, py::handle obj);
 };
