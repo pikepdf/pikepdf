@@ -6,6 +6,8 @@
 isort:skip_file
 """
 
+from __future__ import annotations
+
 try:
     from . import _core
 except ImportError as _e:  # pragma: no cover
