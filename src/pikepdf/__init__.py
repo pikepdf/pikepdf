@@ -18,13 +18,6 @@ try:
 except ImportError as _e:  # pragma: no cover
     raise ImportError("Failed to determine version") from _e
 
-# Importing these will monkeypatch classes defined in C++ and register a new
-# pdfdoc codec
-# While _cpphelpers is intended to be called from our C++ code only, explicitly
-# importing helps introspection tools like PyInstaller figure out that the module
-# is necessary.
-from . import _cpphelpers, _methods, codec  # noqa: unused-import
-from . import settings
 from ._core import (
     AccessMode,
     Annotation,
@@ -50,6 +43,16 @@ from ._core import (
     TokenFilter,
     TokenType,
 )
+from .objects import (
+    Array,
+    Dictionary,
+    Name,
+    Object,
+    ObjectType,
+    Operator,
+    Stream,
+    String,
+)
 from .models import (
     Encryption,
     Outline,
@@ -65,19 +68,16 @@ from .models import (
     parse_content_stream,
     unparse_content_stream,
 )
-from .objects import (
-    Array,
-    Dictionary,
-    Name,
-    Object,
-    ObjectType,
-    Operator,
-    Stream,
-    String,
-)
+
+# Importing these will monkeypatch classes defined in C++ and register a new
+# pdfdoc codec
+# While _cpphelpers is intended to be called from our C++ code only, explicitly
+# importing helps introspection tools like PyInstaller figure out that the module
+# is necessary.
+from . import _cpphelpers, _methods, codec  # noqa: unused-import
+from . import settings
 
 __libqpdf_version__ = _core.qpdf_version()
-
 
 # Provide pikepdf.{open, new} -> pikepdf.Pdf.{open, new}
 open = Pdf.open  # pylint: disable=redefined-builtin

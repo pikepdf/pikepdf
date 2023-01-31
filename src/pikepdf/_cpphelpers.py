@@ -8,10 +8,13 @@ Not intended to be called from Python, and subject to change at any time.
 
 from __future__ import annotations
 
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 from warnings import warn
 
-from pikepdf import Dictionary, Name, Pdf
+from pikepdf.objects import Name
+
+if TYPE_CHECKING:
+    from pikepdf import Dictionary, Pdf
 
 
 def update_xmp_pdfversion(pdf: Pdf, version: str) -> None:
