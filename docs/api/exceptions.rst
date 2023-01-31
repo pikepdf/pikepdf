@@ -31,7 +31,7 @@ Exceptions
 
 .. autoexception:: pikepdf.DeletedObjectError
 
-    Exception thrown when accessing a pikepdf.Object that relies on a pikepdf.Pdf
+    Exception thrown when accessing a :class:`Object` that relies on a :class:`Pdf`
     that was deleted using the Python ``delete`` statement or collected by the
     Python garbage collector. To resolve this error, you must retain a reference
     to the Pdf for the whole time you may be accessing it.
