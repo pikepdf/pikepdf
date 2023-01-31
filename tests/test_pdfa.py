@@ -7,7 +7,6 @@ import os
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from subprocess import PIPE, STDOUT, run
-from typing import Optional
 
 import pytest
 

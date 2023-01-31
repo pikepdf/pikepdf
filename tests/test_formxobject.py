@@ -3,8 +3,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from pikepdf import Dictionary, Name, Object, Pdf, Stream
 
 # pylint: disable=e1137
