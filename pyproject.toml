@@ -225,7 +225,13 @@ add-ignore = [
 match = "(?!test_)[^/]+\\.py"
 
 [tool.ruff]
-select = ["D", "E", "F"]
+select = [
+  "D", # pydocstyle
+  "E", # pycodestyle
+  "W", # pycodestyle
+  "F", # pyflakes
+  "I001", # isort
+]
 ignore = ["D105"]  # docstring in magic method
 src = ["src"]
 
