@@ -175,8 +175,7 @@ class Extend_Object:
         decode_parms: Dictionary | Array | None = None,
         type_check: bool = True,
     ):  # pylint: disable=redefined-builtin
-        """
-        Replace stream object's data with new (possibly compressed) `data`.
+        """Replace stream object's data with new (possibly compressed) `data`.
 
         `filter` and `decode_parms` describe any compression that is already
         present on the input `data`. For example, if your data is already
@@ -220,10 +219,10 @@ class Extend_Pdf:
     def _repr_mimebundle_(
         self, include=None, exclude=None
     ):  # pylint: disable=unused-argument
-        """
-        Present options to IPython or Jupyter for rich display of this object.
+        """Present options to IPython or Jupyter for rich display of this object.
 
-        See https://ipython.readthedocs.io/en/stable/config/integrating.html#rich-display
+        See:
+        https://ipython.readthedocs.io/en/stable/config/integrating.html#rich-display
         """
         bio = BytesIO()
         self.save(bio)
@@ -234,8 +233,7 @@ class Extend_Pdf:
 
     @property
     def docinfo(self) -> Dictionary:
-        """
-        Access the (deprecated) document information dictionary.
+        """Access the (deprecated) document information dictionary.
 
         The document information dictionary is a brief metadata record that can
         store some information about the origin of a PDF. It is deprecated and
@@ -283,8 +281,7 @@ class Extend_Pdf:
         update_docinfo: bool = True,
         strict: bool = False,
     ) -> PdfMetadata:
-        """
-        Open the PDF's XMP metadata for editing.
+        """Open the PDF's XMP metadata for editing.
 
         There is no ``.close()`` function on the metadata object, since this is
         intended to be used inside a ``with`` block only.
@@ -331,8 +328,7 @@ class Extend_Pdf:
         )
 
     def open_outline(self, max_depth: int = 15, strict: bool = False) -> Outline:
-        """
-        Open the PDF outline ("bookmarks") for editing.
+        """Open the PDF outline ("bookmarks") for editing.
 
         Recommend for use in a ``with`` block. Changes are committed to the
         PDF when the block exits. (The ``Pdf`` must still be opened.)
@@ -362,8 +358,7 @@ class Extend_Pdf:
         return Outline(self, max_depth=max_depth, strict=strict)
 
     def make_stream(self, data: bytes, d=None, **kwargs) -> Stream:
-        """
-        Create a new pikepdf.Stream object that is attached to this PDF.
+        """Create a new pikepdf.Stream object that is attached to this PDF.
 
         See:
             :meth:`pikepdf.Stream.__new__`
@@ -374,8 +369,7 @@ class Extend_Pdf:
     def add_blank_page(
         self, *, page_size: tuple[Numeric, Numeric] = (612.0, 792.0)
     ) -> Page:
-        """
-        Add a blank page to this PDF.
+        """Add a blank page to this PDF.
 
         If pages already exist, the page will be added to the end. Pages may be
         reordered using ``Pdf.pages``.
@@ -402,8 +396,7 @@ class Extend_Pdf:
         return Page(page_obj)
 
     def close(self) -> None:
-        """
-        Close a ``Pdf`` object and release resources acquired by pikepdf.
+        """Close a ``Pdf`` object and release resources acquired by pikepdf.
 
         If pikepdf opened the file handle it will close it (e.g. when opened with a file
         path). If the caller opened the file for pikepdf, the caller close the file.
@@ -414,9 +407,9 @@ class Extend_Pdf:
         case for :class:`pikepdf.Stream` but can be true for any object. Do not close
         the `Pdf` object if you might still be accessing content from it.
 
-        When an ``Object`` is copied from one ``Pdf`` to another, the ``Object`` is copied into
-        the destination ``Pdf`` immediately, so after accessing all desired information
-        from the source ``Pdf`` it may be closed.
+        When an ``Object`` is copied from one ``Pdf`` to another, the ``Object`` is
+        copied into the destination ``Pdf`` immediately, so after accessing all desired
+        information from the source ``Pdf`` it may be closed.
 
         .. versionchanged:: 3.0
             In pikepdf 2.x, this function actually worked by resetting to a very short
@@ -434,8 +427,7 @@ class Extend_Pdf:
 
     @property
     def allow(self) -> Permissions:
-        """
-        Report permissions associated with this PDF.
+        """Report permissions associated with this PDF.
 
         By default these permissions will be replicated when the PDF is
         saved. Permissions may also only be changed when a PDF is being saved,
@@ -451,16 +443,14 @@ class Extend_Pdf:
 
     @property
     def encryption(self) -> EncryptionInfo:
-        """
-        Report encryption information for this PDF.
+        """Report encryption information for this PDF.
 
         Encryption settings may only be changed when a PDF is saved.
         """
         return EncryptionInfo(self._encryption_data)
 
     def check(self) -> list[str]:
-        """
-        Check if PDF is well-formed.
+        """Check if PDF is well-formed.
 
         Similar to ``qpdf --check``.
         """
@@ -508,8 +498,7 @@ class Extend_Pdf:
         recompress_flate: bool = False,
         deterministic_id: bool = False,
     ) -> None:
-        """
-        Save all modifications to this :class:`pikepdf.Pdf`.
+        """Save all modifications to this :class:`pikepdf.Pdf`.
 
         Args:
             filename_or_stream: Where to write the output. If a file
@@ -683,8 +672,7 @@ class Extend_Pdf:
         access_mode: AccessMode = AccessMode.default,
         allow_overwriting_input: bool = False,
     ) -> Pdf:
-        """
-        Open an existing file at *filename_or_stream*.
+        """Open an existing file at *filename_or_stream*.
 
         If *filename_or_stream* is path-like, the file will be opened for reading.
         The file should not be modified by another process while it is open in

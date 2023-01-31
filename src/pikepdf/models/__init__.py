@@ -23,3 +23,24 @@ from .outlines import (
     PageLocation,
     make_page_destination,
 )
+
+__all__ = [
+    'ContentStreamInstructions',
+    'PdfParsingError',
+    'UnparseableContentStreamInstructions',
+    'parse_content_stream',
+    'unparse_content_stream',
+    'Encryption',
+    'EncryptionInfo',
+    'Permissions',
+    'PdfImage',
+    'PdfInlineImage',
+    'UnsupportedImageTypeError',
+    'PdfMatrix',
+    'PdfMetadata',
+    'Outline',
+    'OutlineItem',
+    'OutlineStructureError',
+    'PageLocation',
+    'make_page_destination',
+]

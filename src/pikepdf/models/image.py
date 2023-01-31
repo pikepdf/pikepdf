@@ -12,7 +12,7 @@ from io import BytesIO
 from itertools import zip_longest
 from pathlib import Path
 from shutil import copyfileobj
-from typing import Any, BinaryIO, Callable, NamedTuple, Sequence, TypeVar, cast
+from typing import Any, BinaryIO, Callable, NamedTuple, TypeVar, cast
 
 from PIL import Image
 from PIL.ImageCms import ImageCmsProfile
@@ -31,7 +31,6 @@ from pikepdf import (
 )
 from pikepdf._core import Buffer
 from pikepdf._exceptions import DependencyError
-from pikepdf._version import __version__
 from pikepdf.models import _transcoding
 
 T = TypeVar('T')
@@ -54,7 +53,7 @@ class InvalidPdfImageError(Exception):
 
 
 def _array_str(value: Object | str | list):
-    """Simplify pikepdf objects to array of str. Keep Streams and dictionaries intact."""
+    """Simplify pikepdf objects to array of str. Keep streams, dictionaries intact."""
 
     def _convert(item):
         if isinstance(item, (list, Array)):
@@ -87,7 +86,7 @@ def _ensure_list(value: list[Object] | Dictionary | Array | Object) -> list[Obje
 def _metadata_from_obj(
     obj: Dictionary | Stream, name: str, type_: Callable[[Any], T], default: T
 ) -> T | None:
-    """Retrieve metadata from a dictionary or stream, and ensure it is the expected type."""
+    """Retrieve metadata from a dictionary or stream and wrangle types."""
     val = getattr(obj, name, default)
     try:
         return type_(val)
@@ -440,8 +439,8 @@ class PdfImage(PdfImageBase):
         indices = [n for n, filt in enumerate(self.filters) if filt in COMPLEX_FILTERS]
         if len(indices) > 1:
             raise NotImplementedError(
-                f"Object {self.obj.objgen} has compound complex filters: {self.filters}. "
-                "We cannot decompress this."
+                f"Object {self.obj.objgen} has compound complex filters: "
+                f"{self.filters}. We cannot decompress this."
             )
         if len(indices) == 0:
             # No complex filter indices, so all filters are simple - remove them all
@@ -836,7 +835,7 @@ class PdfJpxImage(PdfImage):
 
 
 class PdfInlineImage(PdfImageBase):
-    """Support class for PDF inline images. Implements the same API as :class:`PdfImage`."""
+    """Support class for PDF inline images."""
 
     # Inline images can contain abbreviations that we write automatically
     ABBREVS = {

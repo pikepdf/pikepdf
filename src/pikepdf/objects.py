@@ -21,7 +21,6 @@ from __future__ import annotations
 # pylint: disable=unused-import, abstract-method
 from secrets import token_urlsafe
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, cast
-from warnings import warn
 
 from . import _core
 from ._core import Object, ObjectType, Rectangle
