@@ -17,6 +17,13 @@ try:
 except ImportError as _e:  # pragma: no cover
     raise ImportError("Failed to determine version") from _e
 
+# Importing these will monkeypatch classes defined in C++ and register a new
+# pdfdoc codec
+# While _cpphelpers is intended to be called from our C++ code only, explicitly
+# importing helps introspection tools like PyInstaller figure out that the module
+# is necessary.
+from . import _cpphelpers, _methods, codec  # noqa: unused-import
+from . import settings
 from ._core import (
     AccessMode,
     Annotation,
@@ -42,18 +49,6 @@ from ._core import (
     TokenFilter,
     TokenType,
 )
-
-from .objects import (
-    Array,
-    Dictionary,
-    Name,
-    Object,
-    ObjectType,
-    Operator,
-    Stream,
-    String,
-)
-
 from .models import (
     Encryption,
     Outline,
@@ -69,17 +64,16 @@ from .models import (
     parse_content_stream,
     unparse_content_stream,
 )
-
-from . import settings
-
-# Importing these will monkeypatch classes defined in C++ and register a new
-# pdfdoc codec
-from . import _methods, codec
-
-# While _cpphelpers is intended to be called from our C++ code only, explicitly
-# importing helps introspection tools like PyInstaller figure out that the module
-# is necessary.
-from . import _cpphelpers
+from .objects import (
+    Array,
+    Dictionary,
+    Name,
+    Object,
+    ObjectType,
+    Operator,
+    Stream,
+    String,
+)
 
 __libqpdf_version__ = _core.qpdf_version()
 
@@ -95,7 +89,51 @@ new = Pdf.new
 _exclude_from__all__ = {'open', 'new', 'codec', 'objects', 'jbig2'}
 
 __all__ = [
-    k
-    for k in locals().keys()
-    if not k.startswith('_') and k not in _exclude_from__all__
+    'AccessMode',
+    'Annotation',
+    'AttachedFileSpec',
+    'ContentStreamInlineImage',
+    'ContentStreamInstruction',
+    'DataDecodingError',
+    'DeletedObjectError',
+    'ForeignObjectError',
+    'Job',
+    'JobUsageError',
+    'NameTree',
+    'NumberTree',
+    'ObjectHelper',
+    'ObjectStreamMode',
+    'Page',
+    'PasswordError',
+    'Pdf',
+    'PdfError',
+    'Rectangle',
+    'StreamDecodeLevel',
+    'Token',
+    'TokenFilter',
+    'TokenType',
+    'Array',
+    'Dictionary',
+    'Name',
+    'Object',
+    'ObjectType',
+    'Operator',
+    'Stream',
+    'String',
+    'models',
+    'Encryption',
+    'Outline',
+    'OutlineItem',
+    'OutlineStructureError',
+    'PageLocation',
+    'PdfImage',
+    'PdfInlineImage',
+    'PdfMatrix',
+    'Permissions',
+    'UnsupportedImageTypeError',
+    'make_page_destination',
+    'parse_content_stream',
+    'unparse_content_stream',
+    'settings',
+    '__version__',
 ]

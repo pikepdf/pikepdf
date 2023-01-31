@@ -3,9 +3,92 @@
 
 from __future__ import annotations
 
-from warnings import warn
+# isort: skip_file
+# type: ignore
 
-warn("pikepdf._qpdf is deprecated, use pikepdf._core instead.", DeprecationWarning)
-del warn
+# This module is deprecated - use pikepdf._core instead, if you must
+from warnings import warn as _warn
 
-from pikepdf._core import *  # pylint:disable=wildcard-import,unused-wildcard-import
+from pikepdf._core import (
+    AccessMode,
+    Annotation,
+    AttachedFile,
+    AttachedFileSpec,
+    Attachments,
+    Buffer,
+    ContentStreamInlineImage,
+    ContentStreamInstruction,
+    DataDecodingError,
+    DeletedObjectError,
+    EncryptionMethod,
+    ForeignObjectError,
+    Job,
+    JobUsageError,
+    NameTree,
+    NumberTree,
+    Object,
+    ObjectHelper,
+    ObjectStreamMode,
+    ObjectType,
+    Page,
+    PageList,
+    PasswordError,
+    Pdf,
+    PdfError,
+    Rectangle,
+    StreamDecodeLevel,
+    StreamParser,
+    Token,
+    TokenFilter,
+    TokenType,
+    get_decimal_precision,
+    pdf_doc_to_utf8,
+    qpdf_version,
+    set_decimal_precision,
+    set_flate_compression_level,
+    unparse,
+    utf8_to_pdf_doc,
+)
+
+__all__ = [
+    'AccessMode',
+    'Annotation',
+    'AttachedFile',
+    'AttachedFileSpec',
+    'Attachments',
+    'Buffer',
+    'ContentStreamInlineImage',
+    'ContentStreamInstruction',
+    'DataDecodingError',
+    'DeletedObjectError',
+    'EncryptionMethod',
+    'ForeignObjectError',
+    'Job',
+    'JobUsageError',
+    'NameTree',
+    'NumberTree',
+    'Object',
+    'ObjectHelper',
+    'ObjectStreamMode',
+    'ObjectType',
+    'Page',
+    'PageList',
+    'PasswordError',
+    'Pdf',
+    'PdfError',
+    'Rectangle',
+    'StreamDecodeLevel',
+    'StreamParser',
+    'Token',
+    'TokenFilter',
+    'TokenType',
+    'get_decimal_precision',
+    'pdf_doc_to_utf8',
+    'qpdf_version',
+    'set_decimal_precision',
+    'set_flate_compression_level',
+    'unparse',
+    'utf8_to_pdf_doc',
+]
+
+_warn("pikepdf._qpdf is deprecated, use pikepdf._core instead.", DeprecationWarning)

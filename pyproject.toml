@@ -61,7 +61,7 @@ docs = [
     "tomli;python_version < '3.11'",
 ]
 mypy = [
-      "lxml-stubs",
+    "lxml-stubs",
     "types-Pillow",
     "types-requests",
     "types-setuptools",
@@ -166,6 +166,9 @@ before-all = ["sh -c 'brew update || true'", "sh -c 'brew install qpdf little-cm
 ignore = ["D203","F401","W503","E501","E203","F841"]
 
 [tool.mypy]
+exclude = [
+  "^_qpdf\\.py$"
+]
 
 [[tool.mypy.overrides]]
 module = ["deprecation"]
@@ -220,6 +223,16 @@ add-ignore = [
 ]
 # This is the best we can do till https://github.com/PyCQA/pydocstyle/pull/529
 match = "(?!test_)[^/]+\\.py"
+
+[tool.ruff]
+select = ["D"]
+src = ["src"]
+
+[tool.ruff.isort]
+known-first-party = ["pikepdf._core"]
+
+[tool.ruff.pydocstyle]
+convention = "google"
 
 [tool.pylint.main]
 # Analyse import fallback blocks. This can be used to support both Python 2 and 3
