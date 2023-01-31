@@ -26,12 +26,14 @@ from pikepdf import (
 
 @pytest.fixture
 def graph(resources):
-    yield Pdf.open(resources / 'graph.pdf')
+    with Pdf.open(resources / 'graph.pdf') as pdf:
+        yield pdf
 
 
 @pytest.fixture
 def fourpages(resources):
-    yield Pdf.open(resources / 'fourpages.pdf')
+    with Pdf.open(resources / 'fourpages.pdf') as pdf:
+        yield pdf
 
 
 @pytest.fixture

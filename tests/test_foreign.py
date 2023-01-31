@@ -91,7 +91,8 @@ def test_issue_271():
     p3 = f2.pages[1]
 
     assert p2.MediaBox[0] != p1.MediaBox[0]
-    assert Name.Rotate in p2 and Name.Rotate not in p1
+    assert Name.Rotate in p2
+    assert Name.Rotate not in p1
 
     assert p3.MediaBox[0] == p1.MediaBox[0]
     assert Name.Rotate not in p3
