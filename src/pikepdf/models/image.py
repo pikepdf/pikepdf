@@ -716,12 +716,15 @@ class PdfImage(PdfImageBase):
             )
 
         k = self.decode_parms[0].get("/K", 0)
+        t4_options = None
         if k < 0:
-            ccitt_group = 4  # Pure two-dimensional encoding (Group 4)
+            ccitt_group = 4  # Group 4
         elif k > 0:
-            ccitt_group = 3  # Group 3 2-D
+            ccitt_group = 3  # Group 3,
+            t4_options = 1  # 2-D
         else:
-            ccitt_group = 3  # Group 3 1-D
+            ccitt_group = 3  # Group 3,
+            t4_options = 0  # 1-D
         _black_is_one = self.decode_parms[0].get("/BlackIs1", False)
         # PDF spec says:
         # BlackIs1: A flag indicating whether 1 bits shall be interpreted as black
@@ -740,7 +743,7 @@ class PdfImage(PdfImageBase):
         if icc is None:
             icc = b''
         return _transcoding.generate_ccitt_header(
-            self.size, img_size, ccitt_group, photometry, icc
+            self.size, img_size, ccitt_group, t4_options, photometry, icc
         )
 
     def show(self):  # pragma: no cover
