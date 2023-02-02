@@ -721,7 +721,7 @@ class PdfImage(PdfImageBase):
         elif k > 0:
             ccitt_group = 3  # Group 3 2-D
         else:
-            ccitt_group = 2  # Group 3 1-D
+            ccitt_group = 3  # Group 3 1-D
         _black_is_one = self.decode_parms[0].get("/BlackIs1", False)
         # PDF spec says:
         # BlackIs1: A flag indicating whether 1 bits shall be interpreted as black
