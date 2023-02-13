@@ -64,7 +64,7 @@ void init_embeddedfiles(py::module_ &m)
                     shown in PDF viewers.
                 filename: Filename to display in PDF viewers.
                 mime_type: Helps PDF viewers decide how to display the information.
-                creation_date: PDF date string for when this file was creation.
+                creation_date: PDF date string for when this file was created.
                 mod_date: PDF date string for when this file was last modified.
             )~~~")
         .def_property("description",
