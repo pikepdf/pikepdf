@@ -711,10 +711,16 @@ class PdfImage(PdfImageBase):
         if not self.decode_parms:
             raise ValueError("/CCITTFaxDecode without /DecodeParms")
 
-        if self.decode_parms[0].get("/EncodedByteAlign", False):
-            raise UnsupportedImageTypeError(
-                "/CCITTFaxDecode with /EncodedByteAlign true"
-            )
+        expected_defaults = [
+            ("/EncodedByteAlign", False),
+            ("/EndOfLine", False),
+            ("/EndOfBlock", True),
+        ]
+        for name, val in expected_defaults:
+            if self.decode_parms[0].get(name, val) != val:
+                raise UnsupportedImageTypeError(
+                    f"/CCITTFaxDecode with decode parameter {name} not equal {val}"
+                )
 
         k = self.decode_parms[0].get("/K", 0)
         t4_options = None
