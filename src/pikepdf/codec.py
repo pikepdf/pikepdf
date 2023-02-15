@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 import codecs
-from typing import Container
+from typing import Any, Container
 
 from ._core import pdf_doc_to_utf8, utf8_to_pdf_doc
 
@@ -158,9 +158,9 @@ class PdfDocIncrementalEncoder(codecs.IncrementalEncoder):
 class PdfDocIncrementalDecoder(codecs.IncrementalDecoder):
     """Implement PdfDocEncoding incremental decoder."""
 
-    def decode(self, input: bytes, final: bool = False) -> str:
+    def decode(self, input: Any, final: bool = False) -> str:  # type: ignore
         """Implement codecs.IncrementalDecoder.decode for pdfdoc."""
-        return pdfdoc_decode(input, 'strict')[0]
+        return pdfdoc_decode(bytes(input), 'strict')[0]
 
 
 def find_pdfdoc(encoding: str) -> codecs.CodecInfo | None:
