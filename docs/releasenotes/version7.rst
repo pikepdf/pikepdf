@@ -22,7 +22,8 @@ will not work as previously - ``obj.read_bytes()`` will return a
 garbage collected.
 
 In the vast majority of cases, no changes are needed. In most cases, a ``with`` block
-surrounding access to an opened pikepdf will be sufficient to ensure.
+surrounding access to an opened pikepdf will be sufficient to ensure any objects
+from that PDF are kept alive.
 
 The benefits to pikepdf from this change are considerable. Reference counting is
 simplified and some possible memory leaks or circular references are avoided. In many
