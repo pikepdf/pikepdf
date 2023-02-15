@@ -8,7 +8,6 @@ from __future__ import annotations
 # pikepdf/_methods.py. Thus, we need to manually spell out the resulting types
 # after augmenting.
 import datetime
-import sys
 from abc import abstractmethod
 from decimal import Decimal
 from enum import Enum
@@ -22,17 +21,13 @@ from typing import (
     Iterable,
     Iterator,
     KeysView,
+    Literal,
     Mapping,
     MutableMapping,
     Sequence,
     TypeVar,
     overload,
 )
-
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal  # pragma: no cover
 
 from pikepdf.models.encryption import Encryption, EncryptionInfo, Permissions
 from pikepdf.models.image import PdfInlineImage
