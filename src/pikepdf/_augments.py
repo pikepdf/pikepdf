@@ -92,7 +92,6 @@ def augments(cls_cpp: type[Tcpp]):
         OVERRIDE_WHITELIST |= {'__getattr__'}  # pragma: no cover
 
     def class_augment(cls: type[T], cls_cpp: type[Tcpp] = cls_cpp) -> type[T]:
-
         # inspect.getmembers has different behavior on PyPy - in particular it seems
         # that a typical PyPy class like cls will have more methods that it considers
         # methods than CPython does. Our predicate should take care of this.

@@ -114,7 +114,6 @@ def test_create_pdf(outdir):
 
 def test_copy_semantics(resources):
     with Pdf.open(resources / 'graph.pdf') as pdf:
-
         # Ensure that we can name a reference to a child object and view the
         # changes from the parent
         page = pdf.pages[0]

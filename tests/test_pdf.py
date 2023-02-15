@@ -417,7 +417,6 @@ def test_generate_appearance_streams(pdf_form):
     [('all', None), ('print', None), ('screen', None), ('', None), ('42', ValueError)],
 )
 def test_flatten_annotations_parameters(pdf_form, mode, exc):
-
     if exc is not None:
         error_ctx = pytest.raises(exc)
     else:
