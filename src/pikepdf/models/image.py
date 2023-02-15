@@ -710,18 +710,27 @@ class PdfImage(PdfImageBase):
 
         if not self.decode_parms:
             raise ValueError("/CCITTFaxDecode without /DecodeParms")
-        if self.decode_parms[0].get("/EncodedByteAlign", False):
-            raise UnsupportedImageTypeError(
-                "/CCITTFaxDecode with /EncodedByteAlign true"
-            )
+
+        expected_defaults = [
+            ("/EncodedByteAlign", False),
+            ("/EndOfLine", False),
+            ("/EndOfBlock", True),
+        ]
+        for name, val in expected_defaults:
+            if self.decode_parms[0].get(name, val) != val:
+                raise UnsupportedImageTypeError(
+                    f"/CCITTFaxDecode with decode parameter {name} not equal {val}"
+                )
 
         k = self.decode_parms[0].get("/K", 0)
+        t4_options = None
         if k < 0:
-            ccitt_group = 4  # Pure two-dimensional encoding (Group 4)
+            ccitt_group = 4  # Group 4
         elif k > 0:
             ccitt_group = 3  # Group 3 2-D
+            t4_options = 1
         else:
-            ccitt_group = 2  # Group 3 1-D
+            ccitt_group = 3  # Group 3 1-D
         _black_is_one = self.decode_parms[0].get("/BlackIs1", False)
         # PDF spec says:
         # BlackIs1: A flag indicating whether 1 bits shall be interpreted as black
@@ -740,7 +749,7 @@ class PdfImage(PdfImageBase):
         if icc is None:
             icc = b''
         return _transcoding.generate_ccitt_header(
-            self.size, img_size, ccitt_group, photometry, icc
+            self.size, img_size, ccitt_group, t4_options, photometry, icc
         )
 
     def show(self):  # pragma: no cover
