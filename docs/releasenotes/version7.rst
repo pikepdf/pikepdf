@@ -1,3 +1,15 @@
+v7.1.0
+======
+
+**New features**
+
+- ``PdfMetadata.register_xml_namespace`` allows registering new XML namespaces for
+  PDFs with more complex XMP metadata. :issue:`436`
+- The list of XMP namespaces registered by default was expanded to include several
+  more common namespaces. :issue:`436`
+- Fixed issues creating TIFF images with CCITT Group 3. :issue:`437,401`
+- Updated README. :issue:`432`
+
 v7.0.0
 ======
 
