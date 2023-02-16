@@ -58,6 +58,10 @@ DEFAULT_NAMESPACES: list[tuple[str, str]] = [
     (XMP_NS_XMP, 'xmp'),
     (XMP_NS_XMP_MM, 'xmpMM'),
     (XMP_NS_XMP_RIGHTS, 'xmpRights'),
+    ('http://crossref.org/crossmark/1.0/', 'crossmark'),
+    ('http://www.niso.org/schemas/jav/1.0/', 'jav'),
+    ('http://ns.adobe.com/pdfx/1.3/', 'pdfx'),
+    ('http://www.niso.org/schemas/ali/1.0/', 'ali'),
 ]
 
 for _uri, _prefix in DEFAULT_NAMESPACES:
@@ -348,6 +352,18 @@ class PdfMetadata(MutableMapping):
         _parser_replace_with_empty_xmp,
     ]
     _PARSERS_STANDARD: Iterable[Callable[[bytes], Any]] = [_parser_basic]
+
+    @classmethod
+    def register_xml_namespace(cls, uri, prefix):
+        """Register a new XML/XMP namespace.
+
+        Arguments:
+            uri: The long form of the namespace.
+            prefix: The alias to use when interpreting XMP.
+        """
+        cls.NS[prefix] = uri
+        cls.REVERSE_NS[uri] = prefix
+        etree.register_namespace(_prefix, _uri)
 
     def __init__(
         self,

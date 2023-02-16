@@ -736,3 +736,10 @@ def test_xxe(trivial, outdir):
 
 def test_qname_no_namespace():
     assert PdfMetadata._qname('abc') == '{adobe:ns:meta/}abc'
+
+
+def test_register_xmlns():
+    PdfMetadata.register_xml_namespace('http://github.com/pikepdf/pikepdf/', 'pikepdf')
+    assert (
+        PdfMetadata._qname('pikepdf:foo') == '{http://github.com/pikepdf/pikepdf/}foo'
+    )
