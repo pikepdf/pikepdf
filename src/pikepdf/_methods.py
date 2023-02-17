@@ -450,9 +450,32 @@ class Extend_Pdf:
         return EncryptionInfo(self._encryption_data)
 
     def check(self) -> list[str]:
-        """Check if PDF is well-formed.
+        """Check if PDF is syntactically well-formed.
 
-        Similar to ``qpdf --check``.
+        Similar to ``qpdf --check``, checks for syntax
+        or structural problems in the PDF. This is mainly useful to PDF
+        developers and may not be informative to the average user. PDFs with
+        these problems still render correctly, if PDF viewers are capable of
+        working around the issues they contain. In many cases, pikepdf can
+        also fix the problems.
+
+        An example problem found by this function is a xref table that is
+        missing an object reference. A page dictionary with the wrong type of
+        key, such as a string instead of an array of integers for its mediabox,
+        is not the sort of issue checked for. If this were an XML checker, it
+        would tell you if the XML is well-formed, but could not tell you if
+        the XML is valid XHTML or if it can be rendered as a usable web page.
+
+        This function also attempts to decompress all streams in the PDF.
+        If no JBIG2 decoder is available and JBIG2 images are presented,
+        a warning will occur that JBIG2 cannot be checked.
+
+        This function returns a list of strings describing the issues. The
+        text is subject to change and should not be treated as a stable API.
+
+        Returns:
+            Empty list if no issues were found. List of issues as text strings
+            if issues were found.
         """
 
         class DiscardingParser(StreamParser):
