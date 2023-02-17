@@ -1,3 +1,9 @@
+v7.1.1
+======
+
+- Add workaround to fix release issue on manylinux-aarch64.
+- Improved documentation of Pdf.check().
+
 v7.1.0
 ======
 
@@ -9,6 +15,9 @@ v7.1.0
   more common namespaces. :issue:`436`
 - Fixed issues creating TIFF images with CCITT Group 3. :issue:`437,401`
 - Updated README. :issue:`432`
+- Note: due to what is believed to be a change in a third party dependency, the
+  manylinux-aarch64 image for this release failed to build. As such, this particular
+  wheel is not available.
 
 v7.0.0
 ======
