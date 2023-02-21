@@ -567,14 +567,33 @@ class Extend_Pdf:
                 creating the smallest files but requiring PDF 1.5+.
 
             compress_streams: Enables or disables the compression of
-                stream objects in the PDF that are created without specifying
-                any compression setting. Metadata is never compressed.
-                By default this is set to ``True``, and should be except
-                for debugging. Existing streams in the PDF or streams will not
-                be modified. To decompress existing streams, you must set
+                uncompressed stream objects. By default this is set to
+                ``True``, and the only reason to set it to ``False`` is for
+                debugging or inspecting PDF contents.
+
+                When enabled, uncompressed stream objects will be compressed
+                whether they were uncompressed in the PDF when it was opened,
+                or when the user creates new :class:`pikepdf.Stream` objects
+                attached to the PDF. Stream objects can also be created
+                indirectly, such as when content from another PDF is merged
+                into the one being saved.
+
+                Only stream objects that have no compression will be
+                compressed when this object is set. If the object is
+                compressed, compression will be preserved.
+
+                Setting compress_streams=False does not trigger decompression
+                unless decompression is specifically requested by setting
                 both ``compress_streams=False`` and ``stream_decode_level``
                 to the desired decode level (e.g. ``.generalized`` will
                 decompress most non-image content).
+
+                This option does not trigger recompression of existing
+                compressed streams. For that, use ``recompress_flate``.
+
+                The XMP metadata stream object, if present, is never
+                compressed, to facilitate metadata reading by parsers that
+                don't understand the full structure of PDF.
 
             stream_decode_level: Specifies how
                 to encode stream objects. See documentation for
