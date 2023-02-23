@@ -34,6 +34,10 @@ if TYPE_CHECKING:  # pragma: no cover
 XMP_NS_DC = "http://purl.org/dc/elements/1.1/"
 XMP_NS_PDF = "http://ns.adobe.com/pdf/1.3/"
 XMP_NS_PDFA_ID = "http://www.aiim.org/pdfa/ns/id/"
+XMP_NS_PDFA_EXTENSION = "http://www.aiim.org/pdfa/ns/extension/"
+XMP_NS_PDFA_PROPERTY = "http://www.aiim.org/pdfa/ns/property#"
+XMP_NS_PDFA_SCHEMA = "http://www.aiim.org/pdfa/ns/schema#"
+XMP_NS_PDFUA_ID = "http://www.aiim.org/pdfua/ns/id/"
 XMP_NS_PDFX_ID = "http://www.npes.org/pdfx/ns/id/"
 XMP_NS_PHOTOSHOP = "http://ns.adobe.com/photoshop/1.0/"
 XMP_NS_PRISM = "http://prismstandard.org/namespaces/basic/1.0/"
@@ -49,6 +53,10 @@ DEFAULT_NAMESPACES: list[tuple[str, str]] = [
     (XMP_NS_DC, 'dc'),
     (XMP_NS_PDF, 'pdf'),
     (XMP_NS_PDFA_ID, 'pdfaid'),
+    (XMP_NS_PDFA_EXTENSION, 'pdfaExtension'),
+    (XMP_NS_PDFA_PROPERTY, 'pdfaProperty'),
+    (XMP_NS_PDFA_SCHEMA, 'pdfaSchema'),
+    (XMP_NS_PDFUA_ID, 'pdfuaid'),
     (XMP_NS_PDFX_ID, 'pdfxid'),
     (XMP_NS_PHOTOSHOP, 'photoshop'),
     (XMP_NS_PRISM, 'prism'),
