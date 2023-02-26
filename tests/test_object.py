@@ -453,9 +453,8 @@ class TestDictionary:
             pass
 
     def test_str(self):
-        d = pikepdf.Dictionary(A='a')
-        with pytest.raises(NotImplementedError):
-            str(d)
+        d = pikepdf.Dictionary(ABCD='abcd')
+        assert 'ABCD' in str(d)
 
     def test_attr(self):
         d = pikepdf.Dictionary(A='a')

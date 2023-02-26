@@ -671,7 +671,8 @@ void init_object(py::module_ &m)
                     return h.getOperatorValue();
                 else if (h.isString())
                     return h.getUTF8Value();
-                throw py::notimpl_error("don't know how to __str__ this object");
+                // Python's default __str__ calls __repr__
+                return objecthandle_repr(h);
             })
         .def("__bytes__",
             [](QPDFObjectHandle &h) {
