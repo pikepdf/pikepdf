@@ -875,7 +875,7 @@ void init_object(py::module_ &m)
               representable and will be serialized as ``null``.
 
             Args:
-                dereference (bool): If True, dereference the object is this is an
+                dereference (bool): If True, dereference the object if this is an
                     indirect object.
                 schema_version (int): The version of the JSON schema. Defaults to 2.
 
