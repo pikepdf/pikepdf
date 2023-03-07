@@ -57,7 +57,7 @@ void init_annotation(py::module_ &m)
             Args:
                 which: Usually one of ``pikepdf.Name.N``, ``pikepdf.Name.R`` or
                     ``pikepdf.Name.D``, indicating the normal, rollover or down
-                    appearance stream, respectively. If any other name is passed, an
+                    appearance stream, respectively. If any other name is passed,
                     an appearance stream with that name is returned.
             )~~~",
             py::arg("which"))
@@ -74,7 +74,7 @@ void init_annotation(py::module_ &m)
             Args:
                 which: Usually one of ``pikepdf.Name.N``, ``pikepdf.Name.R`` or
                     ``pikepdf.Name.D``, indicating the normal, rollover or down
-                    appearance stream, respectively. If any other name is passed, an
+                    appearance stream, respectively. If any other name is passed,
                     an appearance stream with that name is returned.
                 state: The appearance state. For checkboxes or radio buttons, the
                     appearance state is usually whether the button is on or off.
