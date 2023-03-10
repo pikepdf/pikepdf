@@ -183,7 +183,7 @@ void init_page(py::module_ &m)
             R"~~~(
                 Generate content stream segment to place a Form XObject on this page.
 
-                The content stream segment must be then be added to the page's
+                The content stream segment must then be added to the page's
                 content stream.
 
                 The default keyword parameters will preserve the aspect ratio.
