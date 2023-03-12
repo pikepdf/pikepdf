@@ -146,8 +146,9 @@ py::bytes unparse_content_stream(py::iterable contentstream)
 {
     uint n = 0;
     std::ostringstream ss, errmsg;
-    const char *delim = "";
     ss.imbue(std::locale::classic());
+    errmsg.imbue(std::locale::classic());
+    const char *delim = "";
 
     for (const auto &item : contentstream) {
         // First iteration: print nothing

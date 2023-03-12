@@ -301,6 +301,7 @@ void init_object(py::module_ &m)
     py::bind_vector<ObjectList>(m, "_ObjectList") // Autoformat fix
         .def("__repr__", [](ObjectList &ol) {
             std::ostringstream ss;
+            ss.imbue(std::locale::classic());
             bool first = true;
             ss << "pikepdf._core._ObjectList([";
             for (auto &h : ol) {
