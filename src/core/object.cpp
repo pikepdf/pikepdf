@@ -861,7 +861,7 @@ void init_object(py::module_ &m)
             Convert to a QPDF JSON representation of the object.
 
             See the QPDF manual for a description of its JSON representation.
-            http://qpdf.sourceforge.net/files/qpdf-manual.html#ref.json
+            https://qpdf.readthedocs.io/en/stable/json.html#qpdf-json-format
 
             Not necessarily compatible with other PDF-JSON representations that
             exist in the wild.
@@ -877,7 +877,7 @@ void init_object(py::module_ &m)
               representable and will be serialized as ``null``.
 
             Args:
-                dereference (bool): If True, dereference the object is this is an
+                dereference (bool): If True, dereference the object if this is an
                     indirect object.
                 schema_version (int): The version of the JSON schema. Defaults to 2.
 
