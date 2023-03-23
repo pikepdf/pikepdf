@@ -18,4 +18,4 @@ Resources
 .. _Adobe Supplement to ISO 32000 BaseVersion 1.7 ExtensionLevel 3: https://www.adobe.com/content/dam/acom/en/devnet/pdf/adobe_supplement_iso32000.pdf
 
 For information about copyrights and licenses, including those associated with the
-images in this documentation, see the file ``debian/copyright``.
+images in this documentation, see the source tree file ``.reuse/dep5``.
