@@ -1,3 +1,9 @@
+v7.1.2
+======
+
+- Fixed possible segfault if a PDF is opened and accessed without being assigned to a
+  variable. :issue:`465`
+
 v7.1.1
 ======
 
