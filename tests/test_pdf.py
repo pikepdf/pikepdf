@@ -426,3 +426,9 @@ def test_flatten_annotations_parameters(pdf_form, mode, exc):
             pdf_form.flatten_annotations()
         else:
             pdf_form.flatten_annotations(mode)
+
+
+def test_refcount_chaining(resources):
+    # Ensure we can chain without crashing when Pdf is not properly opened or
+    # assigned a name
+    Pdf.open(resources / 'pal-1bit-trivial.pdf').pages[0]

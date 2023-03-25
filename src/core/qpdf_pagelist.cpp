@@ -148,7 +148,7 @@ void PageList::try_insert_qpdfobject_as_page(py::size_t index, py::handle obj)
     try {
         if (!oh.getOwningQPDF()) {
             // No owner means this is a direct object - try making it indirect
-            indirect_oh = this->qpdf.makeIndirectObject(oh);
+            indirect_oh = this->qpdf->makeIndirectObject(oh);
             copied      = true;
         } else {
             indirect_oh = oh;
@@ -167,7 +167,7 @@ void PageList::try_insert_qpdfobject_as_page(py::size_t index, py::handle obj)
         // If we created a new temporary indirect object to hold the page, and
         // failed to insert, delete the object we created as best we can.
         if (copied) {
-            this->qpdf.replaceObject(
+            this->qpdf->replaceObject(
                 indirect_oh.getObjGen(), QPDFObjectHandle::newNull());
         }
         throw;
@@ -189,7 +189,7 @@ void PageList::insert_page(py::size_t index, py::handle obj)
 
 void PageList::insert_page(py::size_t index, QPDFPageObjectHelper page)
 {
-    auto doc = QPDFPageDocumentHelper(this->qpdf);
+    auto doc = QPDFPageDocumentHelper(*this->qpdf);
     if (index != this->count()) {
         auto refpage = this->get_page(index);
         doc.addPageAt(page, true, refpage);
@@ -209,11 +209,13 @@ QPDFPageObjectHelper from_objgen(QPDF &q, QPDFObjGen og)
 void init_pagelist(py::module_ &m)
 {
     py::class_<PageList>(m, "PageList")
-        .def("__getitem__",
+        .def(
+            "__getitem__",
             [](PageList &pl, py::ssize_t index) {
                 auto uindex = uindex_from_index(pl, index);
                 return pl.get_page(uindex);
-            })
+            },
+            py::return_value_policy::reference_internal)
         .def("__getitem__", &PageList::get_pages)
         .def("__setitem__",
             [](PageList &pl, py::ssize_t index, py::object page) {
@@ -328,7 +330,7 @@ void init_pagelist(py::module_ &m)
         .def(
             "index",
             [](PageList &pl, const QPDFObjectHandle &h) {
-                return page_index(pl.qpdf, h);
+                return page_index(*pl.qpdf, h);
             },
             R"~~~(
             Given a pikepdf.Object that is a page, find the index.
@@ -340,7 +342,7 @@ void init_pagelist(py::module_ &m)
         .def(
             "index",
             [](PageList &pl, const QPDFPageObjectHelper &poh) {
-                return page_index(pl.qpdf, poh.getObjectHandle());
+                return page_index(*pl.qpdf, poh.getObjectHandle());
             },
             R"~~~(
             Given a pikepdf.Page (page helper), find the index.
@@ -357,7 +359,7 @@ void init_pagelist(py::module_ &m)
         .def(
             "from_objgen",
             [](PageList &pl, int obj, int gen) {
-                return from_objgen(pl.qpdf, QPDFObjGen(obj, gen));
+                return from_objgen(*pl.qpdf, QPDFObjGen(obj, gen));
             },
             R"~~~(
             Given an "objgen" (object ID, generation), return the page.
@@ -367,7 +369,7 @@ void init_pagelist(py::module_ &m)
         .def(
             "from_objgen",
             [](PageList &pl, std::pair<int, int> objgen) {
-                return from_objgen(pl.qpdf, QPDFObjGen(objgen.first, objgen.second));
+                return from_objgen(*pl.qpdf, QPDFObjGen(objgen.first, objgen.second));
             },
             R"~~~(
             Given an "objgen" (object ID, generation), return the page.

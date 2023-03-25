@@ -14,7 +14,8 @@ void init_pagelist(py::module_ &m);
 
 class PageList { // LCOV_EXCL_LINE
 public:
-    PageList(QPDF &q, py::size_t iterpos = 0) : iterpos(iterpos), qpdf(q), doc(qpdf){};
+    PageList(std::shared_ptr<QPDF> q, py::size_t iterpos = 0)
+        : iterpos(iterpos), qpdf(q), doc(*qpdf){};
 
     QPDFPageObjectHelper get_page(py::size_t index);
     py::list get_pages(py::slice slice);
@@ -28,7 +29,7 @@ public:
 
 public:
     py::size_t iterpos;
-    QPDF &qpdf;
+    std::shared_ptr<QPDF> qpdf;
     QPDFPageDocumentHelper doc;
 
 private:

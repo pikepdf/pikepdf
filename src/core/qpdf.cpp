@@ -53,7 +53,7 @@ void qpdf_basic_settings(QPDF &q) // LCOV_EXCL_LINE
     q.setLogger(get_pikepdf_logger());
 }
 
-std::unique_ptr<QPDF> open_pdf(py::object filename_or_stream,
+std::shared_ptr<QPDF> open_pdf(py::object filename_or_stream,
     std::string password,
     bool hex_password            = false,
     bool ignore_xref_streams     = false,
@@ -62,7 +62,7 @@ std::unique_ptr<QPDF> open_pdf(py::object filename_or_stream,
     bool inherit_page_attributes = true,
     access_mode_e access_mode    = access_mode_e::access_default)
 {
-    auto q = std::make_unique<QPDF>();
+    auto q = std::make_shared<QPDF>();
 
     qpdf_basic_settings(*q);
     q->setSuppressWarnings(suppress_warnings);
@@ -519,11 +519,12 @@ void init_qpdf(py::module_ &m)
         .value("mmap", access_mode_e::access_mmap)
         .value("mmap_only", access_mode_e::access_mmap_only);
 
-    py::class_<QPDF>(m, "Pdf", "In-memory representation of a PDF", py::dynamic_attr())
+    py::class_<QPDF, std::shared_ptr<QPDF>>(
+        m, "Pdf", "In-memory representation of a PDF", py::dynamic_attr())
         .def_static(
             "new",
             []() {
-                auto q = std::make_unique<QPDF>();
+                auto q = std::make_shared<QPDF>();
                 q->emptyPDF();
                 qpdf_basic_settings(*q);
                 return q;
@@ -565,7 +566,7 @@ void init_qpdf(py::module_ &m)
             )~~~")
         .def_property_readonly(
             "pages",
-            [](QPDF &q) { return PageList(q); },
+            [](std::shared_ptr<QPDF> q) { return PageList(q); },
             R"~~~(
             Returns the list of pages.
 
