@@ -238,8 +238,18 @@ void init_pagelist(py::module_ &m)
                         "page access out of range in 1-based indexing");
                 return pl.get_page(pnum - 1);
             },
-            "Convenience - look up page number in ordinal numbering, ``.p(1)`` is "
-            "first page",
+            R"~~~(
+            Look up page number in ordinal numbering, ``.p(1)`` is the first page.
+
+            This is provided for convenience in situations where ordinal numbering
+            is more natural. It is equivalent to ``.pages[pnum - 1]``. ``.p(0)``
+            is an error and negative indexing is not supported.
+
+            If the PDF defines custom page labels (such as labeling front matter
+            with Roman numerals and the main body with Arabic numerals), this
+            function does not account for that. Use :attr:`pikepdf.Page.label`
+            to get the page label for a page.
+            )~~~",
             py::arg("pnum"))
         .def("__iter__", [](PageList &pl) { return PageList(pl.qpdf, 0); })
         .def("__next__",
@@ -279,12 +289,26 @@ void init_pagelist(py::module_ &m)
             [](PageList &pl, QPDFPageObjectHelper &page) {
                 pl.insert_page(pl.count(), page);
             },
-            "Add another page to the end.",
+            R"~~~(
+            Add another page to the end.
+
+            While this method copies pages from one document to another, it does not
+            copy certain metadata such as annotations, form fields, bookmarks or
+            structural tree elements. Copying these is a more complex, application
+            specific operation.
+            )~~~",
             py::arg("page"))
         .def(
             "append",
             [](PageList &pl, py::handle page) { pl.insert_page(pl.count(), page); },
-            "Add another page to the end.",
+            R"~~~(
+            Add another page to the end.
+
+            While this method copies pages from one document to another, it does not
+            copy certain metadata such as annotations, form fields, bookmarks or
+            structural tree elements. Copying these is a more complex, application
+            specific operation.
+            )~~~",
             py::arg("page"))
         .def(
             "extend",
@@ -297,7 +321,14 @@ void init_pagelist(py::module_ &m)
                     pl.insert_page(pl.count(), other.get_page(i));
                 }
             },
-            "Extend the ``Pdf`` by adding pages from another ``Pdf.pages``.",
+            R"~~~(
+            Extend the ``Pdf`` by adding pages from another ``Pdf.pages``.
+
+            While this method copies pages from one document to another, it does not
+            copy certain metadata such as annotations, form fields, bookmarks or
+            structural tree elements. Copying these is a more complex, application
+            specific operation.
+            )~~~",
             py::arg("other"))
         .def(
             "extend",
@@ -310,7 +341,14 @@ void init_pagelist(py::module_ &m)
                     ++it;
                 }
             },
-            "Extend the ``Pdf`` by adding pages from an iterable of pages.",
+            R"~~~(
+            Extend the ``Pdf`` by adding pages from an iterable of pages.
+
+            While this method copies pages from one document to another, it does not
+            copy certain metadata such as annotations, form fields, bookmarks or
+            structural tree elements. Copying these is a more complex, application
+            specific operation.
+            )~~~",
             py::arg("iterable"))
         .def(
             "remove",
@@ -333,11 +371,11 @@ void init_pagelist(py::module_ &m)
                 return page_index(*pl.qpdf, h);
             },
             R"~~~(
-            Given a pikepdf.Object that is a page, find the index.
+            Given a pikepdf.Object that is a page, find the index number.
 
             That is, returns ``n`` such that ``pdf.pages[n] == this_page``.
             A ``ValueError`` exception is thrown if the page does not belong to
-            to this ``Pdf``.
+            to this ``Pdf``. The first page has index 0.
             )~~~")
         .def(
             "index",
@@ -349,7 +387,7 @@ void init_pagelist(py::module_ &m)
 
             That is, returns ``n`` such that ``pdf.pages[n] == this_page``.
             A ``ValueError`` exception is thrown if the page does not belong to
-            to this ``Pdf``.
+            to this ``Pdf``. The first page has index 0.
             )~~~")
         .def("__repr__",
             [](PageList &pl) {
@@ -364,7 +402,7 @@ void init_pagelist(py::module_ &m)
             R"~~~(
             Given an "objgen" (object ID, generation), return the page.
 
-            Raises an exception if no page matches .
+            Raises an exception if no page matches.
             )~~~")
         .def(
             "from_objgen",
@@ -374,6 +412,6 @@ void init_pagelist(py::module_ &m)
             R"~~~(
             Given an "objgen" (object ID, generation), return the page.
 
-            Raises an exception if no page matches .
+            Raises an exception if no page matches.
             )~~~");
 }
