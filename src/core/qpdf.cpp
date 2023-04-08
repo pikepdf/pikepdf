@@ -529,7 +529,18 @@ void init_qpdf(py::module_ &m)
                 qpdf_basic_settings(*q);
                 return q;
             },
-            "Create a new empty PDF from scratch.")
+            R"~~~(
+            Create a new, empty PDF.
+
+            This is best when you are constructing a PDF from scratch.
+
+            In most cases, if you are working from an existing PDF, you should open the
+            PDF using :meth:`pikepdf.Pdf.open` and transform it, instead of a creating
+            a new one, to preserve metadata and structural information. For example,
+            if you want to split a PDF into two parts, you should open the PDF and
+            transform it into the desired parts, rather than creating a new PDF and
+            copying pages into it.
+            )~~~")
         .def_static("_open",
             open_pdf,
             py::arg("filename_or_stream"),
