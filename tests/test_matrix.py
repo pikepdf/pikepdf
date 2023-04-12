@@ -53,7 +53,7 @@ def test_matrix_inverse():
 
 
 def test_numpy():
-    import numpy as np
+    np = pytest.importorskip('numpy')
 
     m = PdfMatrix(1, 0, 0, 2, 7, 0)
     m2 = PdfMatrix(np.array([[1, 0, 0], [0, 2, 0], [7, 0, 1]]))
