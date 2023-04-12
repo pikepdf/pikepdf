@@ -66,6 +66,12 @@ class PdfMatrix:
                            tuple(args[0][1]),
                            tuple(args[0][2]))
         else:
+            try:
+                import numpy as np
+                if isinstance(args[0], (np.ndarray, np.generic)):
+                    self.values = tuple(map(tuple, args[0]))
+            except ImportError:
+                pass
             raise ValueError('invalid arguments: ' + repr(args))
         # fmt: on
 
