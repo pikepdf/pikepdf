@@ -1,3 +1,12 @@
+v7.2.0
+======
+
+- Improved Object.repr() to avoid printing the entire contents of large object trees
+  such as those in PDFs with structural element trees.
+- Fixed typing of NumberTree.
+- Improved matrix documentation, interoperability with numpy, and added matrix inverse.
+- Documentation improvements.
+
 v7.1.2
 ======
 
