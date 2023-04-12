@@ -24,6 +24,7 @@
 #include <qpdf/QPDFObjectHandle.hh>
 #include <qpdf/QPDF.hh>
 #include <qpdf/QPDFWriter.hh>
+#include <qpdf/QUtil.hh>
 
 #include "pikepdf.h"
 
@@ -121,30 +122,68 @@ std::string objecthandle_repr_typename_and_value(QPDFObjectHandle h)
     return objecthandle_pythonic_typename(h) + "(" + objecthandle_scalar_value(h) + ")";
 }
 
+std::string peek_stream_data(QPDFObjectHandle h, uint recursion_depth)
+{
+    const uint MAX_PEEK_RECURSION_DEPTH = 1;
+    const size_t MAX_PEEK_BYTES         = 20;
+
+    std::ostringstream ss;
+    ss.imbue(std::locale::classic());
+
+    if (recursion_depth > MAX_PEEK_RECURSION_DEPTH) {
+        ss << "<...>";
+        return ss.str();
+    }
+
+    auto buffer = h.getStreamData();
+    auto data   = buffer->getBuffer();
+    std::string data_str(reinterpret_cast<const char *>(data),
+        std::min(MAX_PEEK_BYTES, buffer->getSize()));
+
+    py::bytes pydata(data_str);
+    if (buffer->getSize() > MAX_PEEK_BYTES) {
+        ss << py::repr(pydata) << "...";
+    } else {
+        ss << py::repr(pydata);
+    }
+    return ss.str();
+}
+
 static std::string objecthandle_repr_inner(QPDFObjectHandle h,
     uint recursion_depth,
     uint indent_depth,
-    std::set<QPDFObjGen> *visited,
-    bool *pure_expr)
+    uint &object_count,            // shared between recursive calls
+    std::set<QPDFObjGen> &visited, // shared between recursive calls
+    bool &pure_expr)               // shared between recursive calls
 {
+    const uint MAX_OBJECT_COUNT = 40;
+
     StackGuard sg(" objecthandle_repr_inner");
     std::ostringstream ss;
     ss.imbue(std::locale::classic());
 
     if (!h.isScalar()) {
-        if (visited->count(h.getObjGen()) > 0) {
-            *pure_expr = false;
+        if (visited.count(h.getObjGen()) > 0) {
+            pure_expr = false;
             ss << "<.get_object(" << h.getObjGen() << ")>";
             return ss.str();
         }
 
         if (!(h.getObjGen() == QPDFObjGen(0, 0)))
-            visited->insert(h.getObjGen());
+            visited.insert(h.getObjGen());
     }
     if (h.isPageObject() && recursion_depth >= 1 && h.isIndirect()) {
         ss << "<Pdf.pages.from_objgen"
            << "(" << h.getObjGen() << ")"
            << ">";
+        return ss.str();
+    }
+    object_count++;
+    if (object_count > MAX_OBJECT_COUNT && recursion_depth > 1) {
+        // If we've printed too many objects, suppress output, unless
+        // this is the top level object.
+        pure_expr = false;
+        ss << "<...>";
         return ss.str();
     }
 
@@ -181,8 +220,12 @@ static std::string objecthandle_repr_inner(QPDFObjectHandle h,
                 first_item = false;
                 // We don't increase indent_depth when recursing into arrays,
                 // because it doesn't look right. Always increase recursion_depth.
-                ss << objecthandle_repr_inner(
-                    item, recursion_depth + 1, indent_depth, visited, pure_expr);
+                ss << objecthandle_repr_inner(item,
+                    recursion_depth + 1,
+                    indent_depth,
+                    object_count,
+                    visited,
+                    pure_expr);
             }
             ss << " ";
         }
@@ -209,6 +252,7 @@ static std::string objecthandle_repr_inner(QPDFObjectHandle h,
                        << objecthandle_repr_inner(obj,
                               recursion_depth + 1,
                               indent_depth + 1,
+                              object_count,
                               visited,
                               pure_expr);
                 }
@@ -219,11 +263,14 @@ static std::string objecthandle_repr_inner(QPDFObjectHandle h,
            << "}";
         break;
     case qpdf_object_type_e::ot_stream:
-        *pure_expr = false;
-        ss << objecthandle_pythonic_typename(h) << "(owner=<...>, data=<...>, "
+        pure_expr = false;
+        ss << objecthandle_pythonic_typename(h) << "("
+           << "owner=<...>, "
+           << "data=" << peek_stream_data(h, recursion_depth) << ", "
            << objecthandle_repr_inner(h.getDict(),
                   recursion_depth + 1,
-                  indent_depth + 1,
+                  indent_depth, // Don't indent here to align dict with stream
+                  object_count,
                   visited,
                   pure_expr)
            << ")";
@@ -251,7 +298,9 @@ std::string objecthandle_repr(QPDFObjectHandle h)
 
     std::set<QPDFObjGen> visited;
     bool pure_expr    = true;
-    std::string inner = objecthandle_repr_inner(h, 0, 0, &visited, &pure_expr);
+    uint object_count = 0;
+    std::string inner =
+        objecthandle_repr_inner(h, 0, 0, object_count, visited, pure_expr);
     std::string output;
 
     if (h.isScalar() || h.isDictionary() || h.isArray()) {

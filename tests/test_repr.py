@@ -7,6 +7,9 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from hypothesis import example, given
+from hypothesis.strategies import binary, text
+
 import pikepdf
 from pikepdf import Array, Dictionary, Name, Operator, String
 
@@ -82,3 +85,29 @@ def test_repr_indirect_page(resources):
         assert 'from_objgen' in repr(outlines.Root.Pages.Kids)
         # An indirect page reference in the Dests name tree
         assert 'from_objgen' in repr(outlines.Root.Names.Dests.Kids[0].Names[1])
+
+
+def test_array_truncation():
+    wide = Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10] * 5)
+    assert '...' not in repr(wide)
+    wide_wrapper = Array([wide])
+    assert '...' in repr(wide_wrapper)
+
+    a = [42]
+    for _ in range(100):
+        a = [a]
+    deep = Array([a])
+    assert '...' in repr(deep)
+
+
+@given(binary(min_size=0, max_size=300))
+@example(b'hi')
+def test_repr_stream(data):
+    with pikepdf.new() as pdf:
+        pdf.Root.Stream = pikepdf.Stream(pdf, data, {'/Type': '/Example'})
+        assert '/Example' in repr(pdf.Root.Stream)
+
+        if len(data) <= 20:
+            assert repr(data) in repr(pdf.Root.Stream)
+        else:
+            assert repr(data)[:20] in repr(pdf.Root.Stream)
