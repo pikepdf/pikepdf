@@ -47,6 +47,8 @@ def test_matrix_encode():
 
 
 def test_matrix_inverse():
+    pytest.importorskip('numpy')
+
     m = PdfMatrix(2, 0, 0, 1, 0, 3)
     minv_m = m.inverse() @ m
     assert allclose(minv_m, PdfMatrix.identity())
