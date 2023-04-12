@@ -140,7 +140,7 @@ std::string peek_stream_data(QPDFObjectHandle h, uint recursion_depth)
     std::string data_str(reinterpret_cast<const char *>(data),
         std::min(MAX_PEEK_BYTES, buffer->getSize()));
 
-    py::bytes pydata(data_str);
+    py::bytes pydata(data_str); // Use py::bytes to format output like Python does
     if (buffer->getSize() > MAX_PEEK_BYTES) {
         ss << py::repr(pydata) << "...";
     } else {
@@ -180,8 +180,8 @@ static std::string objecthandle_repr_inner(QPDFObjectHandle h,
     }
     object_count++;
     if (object_count > MAX_OBJECT_COUNT && recursion_depth > 1) {
-        // If we've printed too many objects, suppress output, unless
-        // this is the top level object.
+        // If we've printed too many objects, start printing <...> instead
+        // for objects that aren't the top level object.
         pure_expr = false;
         ss << "<...>";
         return ss.str();

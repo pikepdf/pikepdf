@@ -87,17 +87,35 @@ def test_repr_indirect_page(resources):
         assert 'from_objgen' in repr(outlines.Root.Names.Dests.Kids[0].Names[1])
 
 
-def test_array_truncation():
+def test_array_direct_object_preserved():
     wide = Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10] * 5)
     assert '...' not in repr(wide)
     wide_wrapper = Array([wide])
     assert '...' in repr(wide_wrapper)
 
+
+def test_array_indirect_truncation():
+    wide = Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10] * 5)
+    pdf = pikepdf.new()
+    pdf.Root.Wide = pdf.make_indirect([wide])
+    assert '...' in repr(pdf.Root.Wide)
+    assert '...' not in repr(pdf.Root.Wide[0])
+
+
+def test_array_depth_truncation():
     a = [42]
     for _ in range(100):
         a = [a]
     deep = Array([a])
     assert '...' in repr(deep)
+    pdf = pikepdf.new()
+    pdf.Root.Deep = pdf.make_indirect(deep)
+    assert '...' in repr(pdf.Root.Deep)
+
+
+def dequote(s):
+    # Elide the difference between b"" and b''
+    return s.replace('"', '').replace("'", '')
 
 
 @given(binary(min_size=0, max_size=300))
@@ -108,6 +126,6 @@ def test_repr_stream(data):
         assert '/Example' in repr(pdf.Root.Stream)
 
         if len(data) <= 20:
-            assert repr(data) in repr(pdf.Root.Stream)
+            assert dequote(repr(data)) in dequote(repr(pdf.Root.Stream))
         else:
-            assert repr(data)[:20] in repr(pdf.Root.Stream)
+            assert dequote(repr(data)[:20]) in dequote(repr(pdf.Root.Stream))
