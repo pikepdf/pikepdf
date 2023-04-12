@@ -17,6 +17,7 @@ import io
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 try:
@@ -60,11 +61,19 @@ if on_rtd:
     )
     artifacts_url = next(r for r in runs if r.head_sha == head_sha).artifacts_url
 
-    archive_download_url = next(
-        artifact
-        for artifact in requests.get(artifacts_url).json()['artifacts']
-        if artifact['name'] == 'rtd-wheel'
-    )['archive_download_url']
+    archive_download_url = ""
+    for i in range(5):
+        try:
+            archive_download_url = next(
+                artifact
+                for artifact in requests.get(artifacts_url).json()['artifacts']
+                if artifact['name'] == 'rtd-wheel'
+            )['archive_download_url']
+            break
+        except StopIteration:
+            if i == 4:
+                raise
+            time.sleep(15)
     artifact_bin = io.BytesIO(
         requests.get(
             archive_download_url,
