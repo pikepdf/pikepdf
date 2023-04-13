@@ -70,6 +70,7 @@ test = [
     "attrs>=20.2.0",
     "coverage[toml]",
     "hypothesis>=6.36",
+    "numpy>=1.21.0",
     "psutil>=5.9",
     "pybind11",
     "pytest>=6.2.5",
