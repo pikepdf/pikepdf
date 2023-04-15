@@ -122,39 +122,43 @@ std::string objecthandle_repr_typename_and_value(QPDFObjectHandle h)
     return objecthandle_pythonic_typename(h) + "(" + objecthandle_scalar_value(h) + ")";
 }
 
-std::string peek_stream_data(QPDFObjectHandle h, uint recursion_depth)
+std::string preview_stream_data(QPDFObjectHandle h, uint recursion_depth)
 {
+    // If we are looking at the top level object, decode a stream of up to
+    // MAX_BUFFER_TO_EXPAND and display up to MAX_PEEK_BYTES.
+
     const uint MAX_PEEK_RECURSION_DEPTH = 1;
     const size_t MAX_PEEK_BYTES         = 20;
+    const size_t MAX_BUFFER_TO_EXPAND   = 10000;
 
-    std::ostringstream ss;
-    ss.imbue(std::locale::classic());
+    std::string s;
 
-    if (recursion_depth > MAX_PEEK_RECURSION_DEPTH) {
-        ss << "<...>";
-        return ss.str();
+    unsigned long long stream_length;
+    if (recursion_depth > MAX_PEEK_RECURSION_DEPTH ||
+        !h.getDict().getKeyIfDict("/Length").getValueAsUInt(stream_length) ||
+        stream_length > MAX_BUFFER_TO_EXPAND) {
+        return "<...>";
     }
 
     auto buffer = h.getStreamData();
     auto data   = buffer->getBuffer();
-    std::string data_str(reinterpret_cast<const char *>(data),
-        std::min(MAX_PEEK_BYTES, buffer->getSize()));
 
-    py::bytes pydata(data_str); // Use py::bytes to format output like Python does
+    // Use py::bytes to format output like Python does
+    py::bytes pydata(reinterpret_cast<const char *>(data),
+        std::min(MAX_PEEK_BYTES, buffer->getSize()));
+    s = std::string(py::repr(pydata));
     if (buffer->getSize() > MAX_PEEK_BYTES) {
-        ss << py::repr(pydata) << "...";
-    } else {
-        ss << py::repr(pydata);
+        s += "...";
     }
-    return ss.str();
+    return s;
 }
 
 static std::string objecthandle_repr_inner(QPDFObjectHandle h,
     uint recursion_depth,
     uint indent_depth,
-    uint &object_count,            // shared between recursive calls
-    std::set<QPDFObjGen> &visited, // shared between recursive calls
-    bool &pure_expr)               // shared between recursive calls
+    uint &object_count,            // shared among recursive calls
+    std::set<QPDFObjGen> &visited, // shared among recursive calls
+    bool &pure_expr)               // shared among recursive calls
 {
     const uint MAX_OBJECT_COUNT = 40;
 
@@ -266,7 +270,7 @@ static std::string objecthandle_repr_inner(QPDFObjectHandle h,
         pure_expr = false;
         ss << objecthandle_pythonic_typename(h) << "("
            << "owner=<...>, "
-           << "data=" << peek_stream_data(h, recursion_depth) << ", "
+           << "data=" << preview_stream_data(h, recursion_depth) << ", "
            << objecthandle_repr_inner(h.getDict(),
                   recursion_depth + 1,
                   indent_depth, // Don't indent here to align dict with stream

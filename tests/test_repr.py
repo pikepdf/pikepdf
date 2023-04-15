@@ -122,7 +122,7 @@ def dequote(s):
 @example(b'hi')
 def test_repr_stream(data):
     with pikepdf.new() as pdf:
-        pdf.Root.Stream = pikepdf.Stream(pdf, data, {'/Type': '/Example'})
+        pdf.Root.Stream = pikepdf.Stream(pdf, data, {'/Type': '/Example', '/Length': 2})
         assert '/Example' in repr(pdf.Root.Stream)
 
         if len(data) <= 20:
