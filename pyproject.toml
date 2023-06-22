@@ -46,6 +46,9 @@ repository = "https://github.com/pikepdf/pikepdf"
 changelog = "https://pikepdf.readthedocs.io/en/latest/releasenotes/index.html"
 
 [project.optional-dependencies]
+dev = [
+    "pre-commit"
+]
 docs = [
     "GitPython",
     "PyGithub",
