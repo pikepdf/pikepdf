@@ -41,11 +41,11 @@ jobs:
           platforms: all
 
       - name: Build wheels
-        uses: joerick/cibuildwheel@v2.13.0
+        uses: joerick/cibuildwheel@v2.13.1
         if: matrix.platform != 'manylinux_aarch64'
 
       - name: Build wheels (emulated)
-        uses: joerick/cibuildwheel@v2.13.0
+        uses: joerick/cibuildwheel@v2.13.1
         if: matrix.platform == 'manylinux_aarch64'
         env:
           CIBW_ARCHS_LINUX: aarch64
@@ -84,7 +84,7 @@ jobs:
         run: >
           pipx run
           --python /usr/bin/python3
-          --spec cibuildwheel==2.13.0
+          --spec cibuildwheel==2.13.1
           cibuildwheel
           .
           --output-dir wheelhouse
@@ -115,7 +115,7 @@ jobs:
           fetch-depth: "0"
 
       - name: Build wheels
-        uses: joerick/cibuildwheel@v2.13.0
+        uses: joerick/cibuildwheel@v2.13.1
 
         #env:
         #  CIBW_ARCHS_MACOS: x86_64 universal2 # for Apple Silicon
@@ -159,7 +159,7 @@ jobs:
           build-scripts/win-download-qpdf.ps1 $env:QPDF_VERSION ${{ matrix.platform }}
 
       - name: Build wheels
-        uses: joerick/cibuildwheel@v2.13.0
+        uses: joerick/cibuildwheel@v2.13.1
 
       - uses: actions/upload-artifact@v3
         with:
