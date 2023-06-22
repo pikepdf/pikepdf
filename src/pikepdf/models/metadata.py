@@ -259,7 +259,7 @@ class AuthorConverter(Converter):
             return xmp_val
         if xmp_val is None or xmp_val == [None]:
             return None
-        return '; '.join(xmp_val)
+        return '; '.join(author for author in xmp_val if author is not None)
 
 
 class DateConverter(Converter):
