@@ -4,12 +4,8 @@
 name: Build and upload to PyPI
 
 on:
-  push:
-    branches-ignore:
-      - cirrus
-  pull_request:
-    branches-ignore:
-      - cirrus
+  push: {}
+  pull_request: {}
 
 # For musllinux support, see note in pyproject.toml
 
@@ -42,13 +38,6 @@ jobs:
 
       - name: Build wheels
         uses: joerick/cibuildwheel@v2.13.1
-        if: matrix.platform != 'manylinux_aarch64'
-
-      - name: Build wheels (emulated)
-        uses: joerick/cibuildwheel@v2.13.1
-        if: matrix.platform == 'manylinux_aarch64'
-        env:
-          CIBW_ARCHS_LINUX: aarch64
 
       - name: Upload built wheels
         uses: actions/upload-artifact@v3
@@ -66,32 +55,20 @@ jobs:
           if-no-files-found: error
 
   wheels_linux_arm:
-    name: self-hosted - ${{ matrix.platform }}
-    runs-on: self-hosted
-    env:
-      CIBW_BUILD: "*-${{ matrix.platform }}"
-    strategy:
-      matrix:
-        platform: [manylinux_aarch64]
-
+    runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - name: Waiting for Cirrus CI
+        uses: lewagon/wait-on-check-action@v1.3.1
         with:
-          fetch-depth: "0" # 0=all, needed for setuptools-scm to resolve version tags
+          ref: ${{ github.ref || github.sha }}
+          check-regexp: '^linux arm64 Cirrus'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 60
 
-      # Custom cibuildwheel step since actions doesn't support self-hosted
-      - name: Build wheels
-        run: >
-          pipx run
-          --python /usr/bin/python3
-          --spec cibuildwheel==2.13.1
-          cibuildwheel
-          .
-          --output-dir wheelhouse
-          2>&1
-        shell: bash
-        env:
-          CIBW_ARCHS_LINUX: aarch64
+      - name: Download artifacts
+        run: |
+          curl -L https://api.cirrus-ci.com/v1/artifact/github/${{ github.repository }}/wheel_linux_arm/wheels.zip?branch=${{ github.ref_name }} -o wheels.zip
+          unzip wheels.zip
 
       - name: Upload built wheels
         uses: actions/upload-artifact@v3
@@ -117,12 +94,33 @@ jobs:
       - name: Build wheels
         uses: joerick/cibuildwheel@v2.13.1
 
-        #env:
-        #  CIBW_ARCHS_MACOS: x86_64 universal2 # for Apple Silicon
       - uses: actions/upload-artifact@v3
         with:
           name: wheels
           path: ./wheelhouse/*.whl
+
+  wheels_macos_arm:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Waiting for Cirrus CI
+        uses: lewagon/wait-on-check-action@v1.3.1
+        with:
+          ref: ${{ github.sha }}
+          check-regexp: '^macos arm64 Cirrus'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 60
+
+      - name: Download artifacts
+        run: |
+          curl -L https://api.cirrus-ci.com/v1/artifact/github/${{ github.repository }}/wheel_macos_arm/wheels.zip?branch=${{ github.ref_name }} -o wheels.zip
+          unzip wheels.zip
+
+      - name: Upload built wheels
+        uses: actions/upload-artifact@v3
+        with:
+          name: wheels
+          path: ./wheelhouse/*.whl
+          if-no-files-found: error
 
   wheels_windows:
     name: ${{ matrix.os }} - ${{ matrix.platform }}
@@ -243,7 +241,7 @@ jobs:
           path: dist/*.tar.gz
 
   upload_pypi:
-    needs: [wheels_linux, wheels_linux_arm, wheels_macos, wheels_windows, sdist]
+    needs: [wheels_linux, wheels_macos, wheels_windows, sdist]
     runs-on: ubuntu-latest
     # upload to PyPI on every tag starting with 'v'
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')

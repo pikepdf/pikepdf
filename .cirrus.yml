@@ -1,0 +1,36 @@
+cirrus_macos_arm64_wheel_task:
+  name: "macos arm64 Cirrus"
+  alias: wheel_macos_arm
+  macos_instance:
+    image: ghcr.io/cirruslabs/macos-monterey-xcode
+
+  env:
+    CIBW_BUILD: cp39-macosx_arm64 cp310-macosx_arm64 cp311-macosx_arm64
+
+  cibuildwheel_script:
+    - brew install pipx
+    - pipx run --python /usr/bin/python3 --spec cibuildwheel==2.13.0 cibuildwheel
+
+  wheels_artifacts:
+    path: "wheelhouse/*"
+
+cirrus_linux_arm64_wheel_task:
+  name: "linux arm64 Cirrus"
+  alias: wheel_linux_arm
+  compute_engine_instance:
+    image_project: cirrus-images
+    image: family/docker-builder-arm64
+    architecture: arm64
+    platform: linux
+    cpu: 4
+    memory: 4G
+
+  env:
+    CIBW_BUILD: cp38-manylinux_aarch64 cp39-manylinux_aarch64 cp310-manylinux_aarch64 cp311-manylinux_aarch64
+
+  cibuildwheel_script:
+    - apt-get install -y python3 python-is-python3 pipx
+    - pipx run --python /usr/bin/python3 --spec cibuildwheel==2.13.0 cibuildwheel
+
+  wheels_artifacts:
+    path: "wheelhouse/*"
