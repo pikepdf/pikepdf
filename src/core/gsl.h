@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: MIT
 
 // Simplified from
-// https://raw.githubusercontent.com/microsoft/GSL/master/include/gsl/util
+// https://raw.githubusercontent.com/microsoft/GSL/main/include/gsl/util
 
 #pragma once
 

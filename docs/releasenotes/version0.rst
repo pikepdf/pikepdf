@@ -197,7 +197,7 @@ Breaking
 -  If a non-existent file is opened with ``pikepdf.open``, a
    ``FileNotFoundError`` is raised instead of a generic error
 -  We are now *temporarily* vendoring a copy of pybind11 since its
-   master branch contains unreleased and important fixes for Python 3.7.
+   main branch contains unreleased and important fixes for Python 3.7.
 
 .. _updates-4:
 

@@ -152,7 +152,7 @@ compiles code against it and links to it.
 Check `Repology for QPDF <https://repology.org/project/qpdf/badges>`_ to
 see if a recent version of QPDF is available for your platform. Otherwise you
 must
-`build QPDF from source <https://github.com/qpdf/qpdf/blob/master/INSTALL>`_.
+`build QPDF from source <https://github.com/qpdf/qpdf/blob/main/INSTALL>`_.
 (Consider using the binary wheels, which bundle the required version of
 libqpdf.)
 
