@@ -420,6 +420,27 @@ class Outline:
         if first_obj:
             self._load_level_outline(first_obj, root, 0, set())
 
+    def add(self, title: str, destination: Array | int | None) -> OutlineItem:
+        """Add an item to the outline.
+
+        Arguments:
+            title: Title of the outline item.
+            destination: Destination to jump to when the item is selected.
+
+        Returns:
+            The newly created :class:`OutlineItem`.
+        """
+        if self._root is None:
+            self._load()
+        item = OutlineItem(title, destination)
+        if self._root is None:
+            self._root = [item]
+        else:
+            self._root.append(item)
+        if not self._updating:
+            self._save()
+        return item
+
     @property
     def root(self) -> list[OutlineItem]:
         """Return the root node of the outline."""
