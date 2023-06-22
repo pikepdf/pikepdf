@@ -232,8 +232,6 @@ extension with it. We must force the use of Visual Studio 2015.
     The user compiling ``pikepdf`` to must have registry editing rights on the
     machine to be able to run the ``vcvarsall.bat`` script.
 
-.. |posix| replace:: :fa:`linux` :fa:`apple`
-
 :fa:`linux` :fa:`apple` :fa:`windows` Building against a QPDF source tree
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -242,25 +240,18 @@ the one provided with your operating system. This may be useful if you need a mo
 recent version of QPDF than your operating system package manager provides, and you
 do not want to use Python wheels.
 
-* Set the environment variable ``QPDF_SOURCE_TREE`` to the location of the QPDF source
-  tree. Set the environment variable ``QPDF_BUILD_LIBDIR`` to the directory that
-  contains the shared library built by cmake from this source tree. Typically this
-  will be ``.../build/libqpdf`` where ``.../build`` represents the cmake build
-  directory. If you are using a multi-configuration generator, it may be in a
-  subdirectory of that.
+.. code-block:: bash
 
-* Build QPDF, by running ``cmake``. Refer to the QPDF installation instructions for
-  further options and details.
+    # Build libqpdf from source
+    cd $QPDF_SOURCE_TREE
+    cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=ON
+    cmake --build build --parallel --target libqpdf
+    QPDF_BUILD_LIBDIR=$PWD/build/libqpdf
 
-* On Linux, modify ``LD_LIBRARY_PATH``, prepending the path where the QPDF build
-  produces ``libqpdfXX.so``. This is the same directory you assigned the
-  ``QPDF_BUILD_LIBRARY`` environment variable to. On macOS, the equivalent
-  variable is ``DYLD_LIBRARY_PATH``. On Windows, no action is needed. Generally,
-  what you are doing here is telling the runtime dynamic linker to use the custom
-  compiled version of QPDF instead of the system version.
-
-* Build pikepdf. On Windows, locate the QPDF .dll files and copy them into the folder
-  alongside the file named ``_core*.pyd``.
+    # Build pikepdf against the custom libqpdf
+    cd $PIKEPDF_SOURCE_TREE
+    env QPDF_SOURCE_TREE=$QPDF_SOURCE_TREE QPDF_BUILD_LIBDIR=$QPDF_BUILD_LIBDIR \
+        pip install -e .
 
 Note that the Python wheels for pikepdf currently compile their own version of
 QPDF and several of its dependencies to ensure the wheels have the latest version.
