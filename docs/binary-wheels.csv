@@ -2,9 +2,6 @@
 :fa:`apple` macOS Intel,✅,✅,✅,✅,✅,✅
 :fa:`apple` macOS Apple Silicon,❌,✅,✅,✅,⏳,⏳
 :fa:`windows` Windows x64,✅,✅,✅,✅,✅,⏳
-:fa:`windows` Windows 32-bit,✅,✅,✅,✅,❌,❌
 :fa:`linux` manylinux2014 x64,✅,✅,✅,✅,✅,✅
-:fa:`linux` manylinux2014 32-bit,✅,✅,✅,✅,✅,✅
 :fa:`linux` manylinux2014 aarch64 (ARM64),✅,✅,✅,✅,⏳,⏳
 :fa:`linux` musllinux x64,⏳,⏳,⏳,⏳,⏳,⏳
-:fa:`linux` musllinux 32-bit,⏳,⏳,⏳,⏳,⏳,⏳

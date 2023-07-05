@@ -6,8 +6,6 @@ $platform = $args[1]
 
 if ($platform -eq "win_amd64") {
     $msvc = "msvc64"
-} elseif ($platform -eq "win32") {
-    $msvc = "msvc32"
 } else {
     throw "I don't recognize platform=$platform"
 }

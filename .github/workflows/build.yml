@@ -18,7 +18,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-20.04]
-        platform: [manylinux_x86_64, manylinux_i686]
+        platform: [manylinux_x86_64]
 
     steps:
       - uses: actions/checkout@v3
@@ -132,7 +132,7 @@ jobs:
     strategy:
       matrix:
         os: [windows-2019]
-        platform: [win_amd64, win32]
+        platform: [win_amd64]
 
     steps:
       - uses: actions/checkout@v3
@@ -239,7 +239,7 @@ jobs:
           path: dist/*.tar.gz
 
   upload_pypi:
-    needs: [wheels_linux, wheels_macos, wheels_windows, sdist]
+    needs: [wheels_linux, wheels_macos, wheels_windows, wheels_macos_arm, wheels_linux_arm, sdist]
     runs-on: ubuntu-latest
     # upload to PyPI on every tag starting with 'v'
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
