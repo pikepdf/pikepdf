@@ -128,10 +128,11 @@ LANG_ALTS = frozenset(
 re_xml_illegal_chars = re.compile(
     r"(?u)[^\x09\x0A\x0D\x20-\U0000D7FF\U0000E000-\U0000FFFD\U00010000-\U0010FFFF]"
 )
-re_xml_illegal_bytes = re.compile(
-    br"[^\x09\x0A\x0D\x20-\xFF]|&#0;"
-    # br"&#(?:[0-9]|0[0-9]|1[0-9]|2[0-9]|3[0-1]|x[0-9A-Fa-f]|x0[0-9A-Fa-f]|x1[0-9A-Fa-f]);"
-)
+re_xml_illegal_bytes = re.compile(br"[^\x09\x0A\x0D\x20-\xFF]|&#0;")
+
+# Might want to check re_xml_illegal_bytes for patterns such as:
+# br"&#(?:[0-9]|0[0-9]|1[0-9]|2[0-9]|3[0-1]
+#   |x[0-9A-Fa-f]|x0[0-9A-Fa-f]|x1[0-9A-Fa-f]);"
 
 
 def _parser_basic(xml: bytes):
