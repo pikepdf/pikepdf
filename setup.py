@@ -70,7 +70,7 @@ extmodule: Extension = cast(
     Extension,
     Pybind11Extension(
         'pikepdf._core',
-        sorted(glob('src/core/*.cpp')),
+        sources=sorted(glob('src/core/*.cpp')),
         depends=sorted(glob('src/core/*.h')),
         include_dirs=[
             # Path to pybind11 headers
