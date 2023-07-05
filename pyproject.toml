@@ -225,6 +225,7 @@ target-version = "py38"
 
 [tool.ruff.isort]
 known-first-party = ["pikepdf._core"]
+required-imports = ["from __future__ import annotations"]
 
 [tool.ruff.pydocstyle]
 convention = "google"
