@@ -140,7 +140,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'pikepdf'
-copyright = '2022, James R. Barlow'  # pylint: disable=redefined-builtin
+copyright = '2023, James R. Barlow'  # pylint: disable=redefined-builtin
 author = 'James R. Barlow'
 
 # The version info for the project you're documenting, acts as replacement for

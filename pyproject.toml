@@ -4,7 +4,6 @@
 [build-system]
 requires = [
   "setuptools >= 61",
-  "setuptools-scm[toml] >= 7.0.5",
   "wheel >= 0.37",
   "pybind11 >= 2.10.1",
 ]
@@ -12,7 +11,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pikepdf"
-dynamic = ["version"]
+version = "7.2.0.dev0"
 description = "Read and write PDFs with Python, powered by qpdf"
 readme = "README.md"
 requires-python = ">= 3.8"
@@ -47,7 +46,8 @@ changelog = "https://pikepdf.readthedocs.io/en/latest/releasenotes/index.html"
 
 [project.optional-dependencies]
 dev = [
-    "pre-commit"
+    "pre-commit",
+    "typer[all]"
 ]
 docs = [
     "GitPython",
@@ -57,7 +57,6 @@ docs = [
     "matplotlib",
     "pybind11",
     "requests",
-    "setuptools-scm",
     "sphinx-design",
     "sphinx-issues",
     "sphinx-rtd-theme",
@@ -90,8 +89,6 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 pikepdf = ["*.dll", "py.typed"]
-
-[tool.setuptools_scm]
 
 [tool.black]
 line-length = 88

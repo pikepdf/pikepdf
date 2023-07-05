@@ -22,8 +22,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-        with:
-          fetch-depth: "0" # 0=all, needed for setuptools-scm to resolve version tags
 
       - uses: actions/setup-python@v4
         name: Install Python
