@@ -112,6 +112,10 @@ void init_job(py::module_ &m)
             &QPDFJob::setMessagePrefix,
             "Allows manipulation of the prefix in front of all output messages.")
         .def("run", &QPDFJob::run, "Executes the job.")
+        .def("create_pdf",
+             [](QPDFJob &job) { return std::shared_ptr<QPDF>(job.createQPDF()); },
+             "Executes the first stage of the job.")
+        .def("write_pdf", &QPDFJob::writeQPDF, py::arg("pdf"), "Executes the second stage of the job.")
         .def_property_readonly("has_warnings",
             &QPDFJob::hasWarnings,
             "After run(), returns True if there were warnings.")

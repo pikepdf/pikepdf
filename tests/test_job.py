@@ -7,7 +7,7 @@ import json
 
 import pytest
 
-from pikepdf import Job, JobUsageError
+from pikepdf import Job, JobUsageError, Pdf
 
 
 def test_job_from_argv(resources):
@@ -41,6 +41,18 @@ def test_job_from_json(resources, outpdf):
     job.run()
     assert job.exit_code == 0
 
+def test_job_in_stages(resources, outpdf):
+    job_json = {}
+    job_json['inputFile'] = str(resources / 'outlines.pdf')
+    job_json['outputFile'] = str(outpdf)
+    job = Job(json.dumps(job_json))
+    job.check_configuration()
+    pdf = job.create_pdf()
+    del pdf.pages[1]
+    job.write_pdf(pdf)
+    assert job.exit_code == 0
+    with Pdf.open(outpdf) as pdf:
+        assert len(pdf.pages) == 1
 
 def test_job_from_invalid_json():
     job_json = {}
