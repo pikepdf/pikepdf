@@ -28,12 +28,6 @@ jobs:
         with:
           python-version: "3.8"
 
-      - name: Set up QEMU
-        if: matrix.platform == 'manylinux_aarch64'
-        uses: docker/setup-qemu-action@v2
-        with:
-          platforms: all
-
       - name: Build wheels
         uses: joerick/cibuildwheel@v2.13.1
 
