@@ -1232,3 +1232,57 @@ def test_random_image(spec, tmp_path_factory):
     #     diff.save('imdiff.png')
     #     breakpoint()
     #     assert False
+
+
+class StencilMaskSpec(NamedTuple):
+    width: int
+    height: int
+    imbytes: bytes
+
+    def to_pdf(self):
+        pdf = pikepdf.new()
+        pdfw, pdfh = 36 * self.width, 36 * self.height
+
+        pdf.add_blank_page(page_size=(pdfw, pdfh))
+
+        imobj = Stream(
+            pdf,
+            self.imbytes,
+            Width=self.width,
+            Height=self.height,
+            Type=Name.XObject,
+            Subtype=Name.Image,
+            ImageMask=True,
+        )
+
+        pdf.pages[0].Contents = Stream(
+            pdf, b'%f 0 0 %f 0 0 cm 0.5 0.75 1.0 rg /Im0 Do' % (pdfw, pdfh)
+        )
+        pdf.pages[0].Resources = Dictionary(XObject=Dictionary(Im0=imobj))
+        pdf.pages[0].MediaBox = Array([0, 0, pdfw, pdfh])
+        return pdf
+
+
+@st.composite
+def valid_random_stencil_mask_spec(
+    draw,
+    widths=st.integers(min_value=1, max_value=16),
+    heights=st.integers(min_value=1, max_value=16),
+):
+    width = draw(widths)
+    height = draw(heights)
+
+    min_imbytes = _next_multiple(width, 8) * height // 8
+    imbytes = draw(st.binary(min_size=min_imbytes, max_size=min_imbytes))
+
+    return StencilMaskSpec(width, height, imbytes)
+
+
+@given(spec=valid_random_stencil_mask_spec())
+def test_extract_stencil_mask(spec):
+    pdf = spec.to_pdf()
+    pim = PdfImage(pdf.pages[0].Resources.XObject.Im0)
+    bio = BytesIO()
+    pim.extract_to(stream=bio)
+    im = Image.open(bio)
+    assert im.mode == '1'

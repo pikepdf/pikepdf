@@ -537,7 +537,7 @@ class PdfImage(PdfImageBase):
         return im
 
     def _extract_transcoded_1bit(self) -> Image.Image:
-        if self.mode in ('RGB', 'CMYK'):
+        if not self.image_mask and self.mode in ('RGB', 'CMYK'):
             raise UnsupportedImageTypeError("1-bit RGB and CMYK are not supported")
         try:
             data = self.read_bytes()
@@ -560,7 +560,13 @@ class PdfImage(PdfImageBase):
 
         return im
 
+    def _extract_transcoded_mask(self) -> Image.Image:
+        return self._extract_transcoded_1bit()
+
     def _extract_transcoded(self) -> Image.Image:
+        if self.image_mask:
+            return self._extract_transcoded_mask()
+
         if self.mode in {'DeviceN', 'Separation'}:
             raise HifiPrintImageNotTranscodableError()
 
