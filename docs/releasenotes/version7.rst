@@ -1,3 +1,13 @@
+v7.3.0 (in development)
+=======================
+
+- master branch renamed to main.
+- Adjusted stream preview so it does not attempt to decompress very long streams.
+- Fixed error when attempting to convert XMP metadata to DocumentInfo when the
+  author was omitted.
+- Added a method to add items to the document table of contents.
+- Improved the wheel building process.
+
 v7.2.0
 ======
 

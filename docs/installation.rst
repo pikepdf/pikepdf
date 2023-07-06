@@ -39,8 +39,6 @@ Binary wheel availability
 
 * ✅ wheels are available
 
-* 🍏 wheels are available for Apple Silicon but their release may lag a few days
-
 * ❌ wheels are not likely to be produced for this platform and Python version
 
 * ⏳ we are waiting on a third party to implement better support for this configuration

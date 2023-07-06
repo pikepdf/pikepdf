@@ -7,16 +7,13 @@
 
 from __future__ import annotations
 
+__version__ = "7.2.0.dev0"
+
 try:
     from . import _core
 except ImportError as _e:  # pragma: no cover
     _msg = "pikepdf's extension library failed to import"
     raise ImportError(_msg) from _e
-
-try:
-    from ._version import __version__
-except ImportError as _e:  # pragma: no cover
-    raise ImportError("Failed to determine version") from _e
 
 from ._core import (
     AccessMode,

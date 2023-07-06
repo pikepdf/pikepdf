@@ -4,7 +4,6 @@
 [build-system]
 requires = [
   "setuptools >= 61",
-  "setuptools-scm[toml] >= 7.0.5",
   "wheel >= 0.37",
   "pybind11 >= 2.10.1",
 ]
@@ -12,7 +11,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pikepdf"
-dynamic = ["version"]
+version = "7.2.0.dev0"
 description = "Read and write PDFs with Python, powered by qpdf"
 readme = "README.md"
 requires-python = ">= 3.8"
@@ -35,6 +34,7 @@ classifiers = [
 ]
 dependencies = [
     "Pillow>=9.0",
+    "Pillow<10; platform_python_implementation == 'PyPy'",
     "deprecation",
     "lxml>=4.8",
     "packaging",
@@ -47,7 +47,8 @@ changelog = "https://pikepdf.readthedocs.io/en/latest/releasenotes/index.html"
 
 [project.optional-dependencies]
 dev = [
-    "pre-commit"
+    "pre-commit",
+    "typer[all]"
 ]
 docs = [
     "GitPython",
@@ -57,7 +58,6 @@ docs = [
     "matplotlib",
     "pybind11",
     "requests",
-    "setuptools-scm",
     "sphinx-design",
     "sphinx-issues",
     "sphinx-rtd-theme",
@@ -91,8 +91,6 @@ where = ["src"]
 [tool.setuptools.package-data]
 pikepdf = ["*.dll", "py.typed"]
 
-[tool.setuptools_scm]
-
 [tool.black]
 line-length = 88
 target-version = ["py38", "py39", "py310", "py311"]
@@ -121,11 +119,10 @@ test-command = "pytest -nauto {project}/tests"
 test-extras = "test"
 # cp36: ancient
 # pp37: discontinued by Pillow - https://pypi.org/project/Pillow/#files
-# pp*-win32: lxml does not build win32 for pp, so we can't support it
 # Reminder:
 #   build.yml sets CIBW_BUILD to select what can be built
 #   this file sets skip to deselect what cannot be built
-skip = ["cp36-*", "cp37-*", "pp37-*", "pp*-win32", "*musllinux*", "pp*-manylinux*_aarch64"]
+skip = ["cp36-*", "cp37-*", "pp37-*", "*-win32", "*musllinux*", "pp*-manylinux*_aarch64"]
 test-skip = "*_arm64 *_universal2:arm64"
 
 [tool.cibuildwheel.environment]
@@ -142,9 +139,7 @@ before-all = [
 ]
 environment-pass = ["CI"]
 manylinux-x86_64-image = "manylinux2014"
-manylinux-i686-image = "manylinux2014"
 manylinux-pypy_x86_64-image = "manylinux2014"
-manylinux-pypy_i686-image = "manylinux2014"
 # Status of exotic images as of 2022-07
 # musllinux: see below
 # pp*-manylinux*_aarch64: no Pillow pypy-aarch64 wheels yet
@@ -230,6 +225,7 @@ target-version = "py38"
 
 [tool.ruff.isort]
 known-first-party = ["pikepdf._core"]
+required-imports = ["from __future__ import annotations"]
 
 [tool.ruff.pydocstyle]
 convention = "google"
