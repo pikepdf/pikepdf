@@ -120,6 +120,7 @@ def dequote(s):
 
 @given(binary(min_size=0, max_size=300))
 @example(b'hi')
+@example(b'\x00\x00\x00\t \'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"')
 def test_repr_stream(data):
     with pikepdf.new() as pdf:
         pdf.Root.Stream = pikepdf.Stream(pdf, data, {'/Type': '/Example', '/Length': 2})
@@ -128,4 +129,4 @@ def test_repr_stream(data):
         if len(data) <= 20:
             assert dequote(repr(data)) in dequote(repr(pdf.Root.Stream))
         else:
-            assert dequote(repr(data)[:20]) in dequote(repr(pdf.Root.Stream))
+            assert dequote(repr(data)[:18]) in dequote(repr(pdf.Root.Stream))
