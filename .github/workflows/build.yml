@@ -97,7 +97,7 @@ jobs:
       - name: Waiting for Cirrus CI
         uses: lewagon/wait-on-check-action@v1.3.1
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.ref || github.sha }}
           check-regexp: '^macos arm64 Cirrus'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           wait-interval: 60
