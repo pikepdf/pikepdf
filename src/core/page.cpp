@@ -68,7 +68,7 @@ void init_page(py::module_ &m)
             py::arg("min_size") = 0,
             py::arg("shallow")  = false,
             R"~~~(
-                Convert inlines image to normal (external) images.
+                Convert inline images to normal (external) images.
 
                 Args:
                     min_size (int): minimum size in bytes
@@ -133,7 +133,7 @@ void init_page(py::module_ &m)
                 contents. Then it removes from the resources dictionary any
                 object that is not referenced in the contents. This
                 method is used by page splitting code to avoid copying unused
-                objects in files that used shared resource dictionaries across
+                objects in files that use shared resource dictionaries across
                 multiple pages.
             )~~~")
         .def("as_form_xobject",
