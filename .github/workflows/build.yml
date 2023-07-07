@@ -62,7 +62,7 @@ jobs:
           curl -L https://api.cirrus-ci.com/v1/artifact/github/${{ github.repository }}/${{ github.job }}/wheels.zip${{ env.wheel_query }} -o wheels.zip
           unzip wheels.zip
         env:
-          wheel_query: ${{ (contains(github.ref, 'main') || contains(github.ref, 'tags')) && '' || format('?branch={0}', github.ref_name) }}
+          wheel_query: ${{ (contains(github.ref, 'main') || contains(github.ref, 'tags')) && ' ' || format('?branch={0}', github.ref_name) }}
 
       - name: Upload built wheels
         uses: actions/upload-artifact@v3
