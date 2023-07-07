@@ -1,6 +1,6 @@
 cirrus_macos_arm64_wheel_task:
   name: "macos arm64 Cirrus"
-  alias: wheel_macos_arm
+  alias: wheels_macos_arm
   macos_instance:
     image: ghcr.io/cirruslabs/macos-monterey-xcode
 
@@ -16,7 +16,7 @@ cirrus_macos_arm64_wheel_task:
 
 cirrus_linux_arm64_wheel_task:
   name: "linux arm64 Cirrus"
-  alias: wheel_linux_arm
+  alias: wheels_linux_arm
   compute_engine_instance:
     image_project: cirrus-images
     image: family/docker-builder-arm64
