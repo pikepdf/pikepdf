@@ -59,7 +59,7 @@ jobs:
 
       - name: Download artifacts
         run: |
-          curl -L https://api.cirrus-ci.com/v1/artifact/github/${{ github.repository }}/${{ github.job }}/wheels.zip?branch=${{ github.ref_name }} -o wheels.zip
+          curl -L https://api.cirrus-ci.com/v1/artifact/github/${{ github.repository }}/wheel_linux_arm/wheels.zip?branch=${{ github.ref_name }} -o wheels.zip
           unzip wheels.zip
 
       - name: Upload built wheels
@@ -104,7 +104,7 @@ jobs:
 
       - name: Download artifacts
         run: |
-          curl -L https://api.cirrus-ci.com/v1/artifact/github/${{ github.repository }}/${{ github.job }}/wheels.zip?branch=${{ github.ref_name }} -o wheels.zip
+          curl -L https://api.cirrus-ci.com/v1/artifact/github/${{ github.repository }}/wheel_macos_arm/wheels.zip?branch=${{ github.ref_name }} -o wheels.zip
           unzip wheels.zip
 
       - name: Upload built wheels
