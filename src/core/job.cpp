@@ -120,8 +120,7 @@ void init_job(py::module_ &m)
             R"~~~(
             After run(), returns an integer exit code.
 
-            Some exit codes have integer value. Their applicably is determined by
-            context of the job being run.
+            Use properties 'has_warnings' and 'encryption_status' instead.
             )~~~")
         .def_property_readonly(
             "encryption_status",
