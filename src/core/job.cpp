@@ -120,8 +120,9 @@ void init_job(py::module_ &m)
             R"~~~(
             After run(), returns an integer exit code.
 
-            Some exit codes have integer value. Their applicably is determined by
-            context of the job being run.
+            The meaning of exit code depends on the details of the Job that was run.
+            Details are subject to change in libqpdf. Use properties ``has_warnings``
+            and ``encryption_status`` instead.
             )~~~")
         .def_property_readonly(
             "encryption_status",
