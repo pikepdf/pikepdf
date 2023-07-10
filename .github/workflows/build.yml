@@ -29,7 +29,7 @@ jobs:
           python-version: "3.8"
 
       - name: Build wheels
-        uses: joerick/cibuildwheel@v2.13.1
+        uses: joerick/cibuildwheel@v2.14.0
 
       - name: Upload built wheels
         uses: actions/upload-artifact@v3
@@ -89,7 +89,7 @@ jobs:
           fetch-depth: "0"
 
       - name: Build wheels
-        uses: joerick/cibuildwheel@v2.13.1
+        uses: joerick/cibuildwheel@v2.14.0
 
       - uses: actions/upload-artifact@v3
         with:
@@ -159,7 +159,7 @@ jobs:
           build-scripts/win-download-qpdf.ps1 $env:QPDF_VERSION ${{ matrix.platform }}
 
       - name: Build wheels
-        uses: joerick/cibuildwheel@v2.13.1
+        uses: joerick/cibuildwheel@v2.14.0
 
       - uses: actions/upload-artifact@v3
         with:
