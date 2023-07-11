@@ -57,13 +57,27 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           wait-interval: 60
 
+      # When doing a release build and queried, GitHub Actions returns the build
+      # status for both the branch and tag, even when only one is queried. This means
+      # on release, we get two successful builds from Cirrus CI, and the step above will
+      # pass on whichever succeeds first. So we sit here and wait for the second one if
+      # it hasn't finished yet. Cirrus CI might decide to run them sequentially so we
+      # could be waiting for up to a whole build time. Allow one hour.
+      # The particular curl query used here does ensure we get the status for the
+      # appropriate branch/tag build.
+      # An alternative would be creating explicit tasks for the branch and tag builds
+      # on both Cirrus CI and GitHub Actions, but that would be a lot of duplication.
+      # Another alternative would be to fork and improve wait-on-check-action to allow
+      # waiting our specific check.
+      # Same for the macOS arm64 build below.
       - name: Download artifacts
         run: |
-          retries=5
+          retries=120
           while [ $retries -gt 0 ]; do
             sleep 30
             curl --fail -L https://api.cirrus-ci.com/v1/artifact/github/${{ github.repository }}/wheel_macos_arm/wheels.zip?branch=${{ github.ref_name }} -o wheels.zip && break
             retries=$((retries - 1))
+            echo "Retrying... (retries left: $retries)"
           done
           unzip wheels.zip
 
@@ -109,11 +123,12 @@ jobs:
 
       - name: Download artifacts
         run: |
-          retries=5
+          retries=120
           while [ $retries -gt 0 ]; do
             sleep 30
             curl --fail -L https://api.cirrus-ci.com/v1/artifact/github/${{ github.repository }}/wheel_macos_arm/wheels.zip?branch=${{ github.ref_name }} -o wheels.zip && break
             retries=$((retries - 1))
+            echo "Retrying..."
           done
           unzip wheels.zip
 
