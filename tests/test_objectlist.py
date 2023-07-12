@@ -14,7 +14,6 @@ def pal(resources):
         yield pdf
 
 
-@pytest.mark.xfail(reason="Needs further investigation")
 def test_objectlist_repr(pal):
     cs = pikepdf.parse_content_stream(pal.pages[0].Contents)
     assert isinstance(cs[1][0], pikepdf._core._ObjectList)
