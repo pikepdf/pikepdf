@@ -781,7 +781,9 @@ void init_qpdf(py::module_ &m)
                 return q.copyForeignObject(h);
             },
             R"~~~(
-            Copy an ``Object`` from a foreign ``Pdf`` to this one.
+            Copy an ``Object`` from a foreign ``Pdf`` to this one and return a reference
+            to the copy. If the object has previously been copied, return a reference to
+            the existing copy, even if that copy has been modified in the meantime.
 
             If you want to copy a page from one PDF to another, use:
             ``pdf_b.pages[0] = pdf_a.pages[0]``. That interface accounts for the
@@ -789,7 +791,19 @@ void init_qpdf(py::module_ &m)
 
             This function is used to copy a :class:`pikepdf.Object` that is owned by
             some other ``Pdf`` into this one. This is performs a deep (recursive) copy
-            and preserves circular references that may exist in the foreign object.
+            and preserves all references that may exist in the foreign object. For
+            example, if
+
+                >>> object_a = pdf.copy_foreign(object_x)
+                >>> object_b = pdf.copy_foreign(object_y)
+                >>> object_c = pdf.copy_foreign(object_z)
+
+            and ``object_z`` is a shared descendant of both ``object_x`` and ``object_y``
+            in the foreign PDF, then ``object_c`` is a shared descendant of both
+            ``object_a`` and ``object_b`` in this PDF. If ``object_x`` and ``object_y``
+            refer to the same object, then ``object_a`` and ``object_b`` are the
+            same object.
+
             It also copies all :class:`pikepdf.Stream` objects. Since this may copy
             a large amount of data, it is not done implicitly. This function does
             not copy references to pages in the foreign PDF - it stops at page
