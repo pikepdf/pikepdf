@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from subprocess import PIPE, STDOUT, run
@@ -12,18 +13,29 @@ import pytest
 
 from pikepdf import Pdf
 
-VERAPDF: Path | None = None
+VERAPDF: list[str] = []
 try:
-    VERAPDF = Path(os.environ['HOME']) / 'verapdf' / 'verapdf'
-    if not VERAPDF.is_file():
-        VERAPDF = None
+    verapdf_path = Path(os.environ['HOME']) / 'verapdf' / 'verapdf'
+    if verapdf_path.is_file():
+        VERAPDF = [os.fspath(verapdf_path)]
+    else:
+        verapdf_flatpak = [
+            'flatpak',
+            'run',
+            '--filesystem=host:ro',
+            f'--filesystem={tempfile.gettempdir()}:ro',
+            '--command=verapdf',
+            'org.verapdf.veraPDF',
+        ]
+        run([*verapdf_flatpak, '--version'], check=True)
+        VERAPDF = verapdf_flatpak
 except Exception:  # pylint: disable=broad-except
     pass
 
 
 def verapdf_validate(filename) -> bool:
-    assert VERAPDF is not None
-    proc = run([VERAPDF, filename], stdout=PIPE, stderr=STDOUT, check=True)
+    assert VERAPDF
+    proc = run([*VERAPDF, os.fspath(filename)], stdout=PIPE, stderr=STDOUT, check=True)
     result = proc.stdout.decode('utf-8')
     xml_start = result.find('<?xml version')
     xml = result[xml_start:]
