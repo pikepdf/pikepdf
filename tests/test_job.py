@@ -41,6 +41,7 @@ def test_job_from_json(resources, outpdf):
     job.run()
     assert job.exit_code == 0
 
+
 def test_job_in_stages(resources, outpdf):
     job_json = {}
     job_json['inputFile'] = str(resources / 'outlines.pdf')
@@ -53,6 +54,7 @@ def test_job_in_stages(resources, outpdf):
     assert job.exit_code == 0
     with Pdf.open(outpdf) as pdf:
         assert len(pdf.pages) == 1
+
 
 def test_job_from_invalid_json():
     job_json = {}
