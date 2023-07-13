@@ -1,5 +1,5 @@
-v8.0.0 (pre-release)
-====================
+v8.0.0
+======
 
 - master branch renamed to main.
 - QPDF 11.5.0 is now required.
