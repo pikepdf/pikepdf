@@ -781,8 +781,11 @@ void init_qpdf(py::module_ &m)
                 return q.copyForeignObject(h);
             },
             R"~~~(
-            Copy an ``Object`` from a foreign ``Pdf`` to this one and return a reference
-            to the copy. If the object has previously been copied, return a reference to
+            Copy an ``Object`` from a foreign ``Pdf`` and return a reference to the copy.
+
+            The object must be owned by a different ``Pdf`` from this one.
+
+            If the object has previously been copied, return a reference to
             the existing copy, even if that copy has been modified in the meantime.
 
             If you want to copy a page from one PDF to another, use:
