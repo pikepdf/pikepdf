@@ -679,7 +679,7 @@ class Extend_Pdf:
 
         .. versionchanged:: 8.1
             If filename_or_stream is a filename and that file exists, the new file
-            written to a temporary file in the same directory and then moved into
+            is written to a temporary file in the same directory and then moved into
             place. This prevents the existing destination file from being corrupted
             if the process is interrupted during writing; previously, corrupting the
             destination file was possible. If no file exists at the destination, output

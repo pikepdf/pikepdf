@@ -32,4 +32,4 @@ v8.0.0
 - Since Pillow (Python imaging library), a major dependency, has dropped support
   for 32-bit wheels on Windows and Linux, we have done the same. You can still build
   32-bit versions from source.
-- Some documentations changes and improvements. Thanks @m-holger.
+- Some documentation changes and improvements. Thanks @m-holger.
