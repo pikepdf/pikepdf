@@ -1,3 +1,10 @@
+v8.1.0
+======
+
+- Fixed sdist, which was mysteriously missing some files that were previously included. :issue:`490`
+- Some documentation and README updates to improve visibility of release notes. :issue:`488`
+- Fixed issue where an output file could be corrupted if the process was interrupted while writing. :issue:`462`
+
 v8.0.0
 ======
 
