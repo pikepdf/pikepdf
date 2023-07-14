@@ -1,6 +1,12 @@
+v8.1.1
+======
+
+- Fixed a Unicode test that randomly fails on Windows.
+
 v8.1.0
 ======
 
+- Not released due to build failure.
 - Fixed sdist, which was mysteriously missing some files that were previously included. :issue:`490`
 - Some documentation and README updates to improve visibility of release notes. :issue:`488`
 - Fixed issue where an output file could be corrupted if the process was interrupted while writing. :issue:`462`
