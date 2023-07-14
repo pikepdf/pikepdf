@@ -16,6 +16,7 @@ import datetime
 import mimetypes
 import shutil
 from collections.abc import KeysView, MutableMapping
+from contextlib import ExitStack
 from decimal import Decimal
 from io import BytesIO
 from pathlib import Path
@@ -40,7 +41,7 @@ from ._core import (
     Token,
     _ObjectMapping,
 )
-from ._io import check_stream_is_usable
+from ._io import check_different_files, check_stream_is_usable
 from .models import Encryption, EncryptionInfo, Outline, PdfMetadata, Permissions
 from .models.metadata import decode_pdf_date, encode_pdf_date
 
@@ -682,27 +683,35 @@ class Extend_Pdf:
                 "Pdf.new(), you must specify a destination object since there is "
                 "no original filename to save to."
             )
-        if hasattr(filename_or_stream, 'seek'):
-            check_stream_is_usable(filename_or_stream)
-        self._save(
-            filename_or_stream,
-            static_id=static_id,
-            preserve_pdfa=preserve_pdfa,
-            min_version=min_version,
-            force_version=force_version,
-            fix_metadata_version=fix_metadata_version,
-            compress_streams=compress_streams,
-            stream_decode_level=stream_decode_level,
-            object_stream_mode=object_stream_mode,
-            normalize_content=normalize_content,
-            linearize=linearize,
-            qdf=qdf,
-            progress=progress,
-            encryption=encryption,
-            samefile_check=getattr(self, '_tmp_stream', None) is None,
-            recompress_flate=recompress_flate,
-            deterministic_id=deterministic_id,
-        )
+        with ExitStack() as stack:
+            if hasattr(filename_or_stream, 'seek'):
+                stream = filename_or_stream
+                check_stream_is_usable(filename_or_stream)
+            else:
+                if not isinstance(filename_or_stream, (str, bytes, Path)):
+                    raise TypeError("expected str, bytes or os.PathLike object")
+                filename = Path(filename_or_stream)
+                check_different_files(self.filename, filename)
+                stream = stack.enter_context(open(filename, 'wb'))
+            self._save(
+                stream,
+                static_id=static_id,
+                preserve_pdfa=preserve_pdfa,
+                min_version=min_version,
+                force_version=force_version,
+                fix_metadata_version=fix_metadata_version,
+                compress_streams=compress_streams,
+                stream_decode_level=stream_decode_level,
+                object_stream_mode=object_stream_mode,
+                normalize_content=normalize_content,
+                linearize=linearize,
+                qdf=qdf,
+                progress=progress,
+                encryption=encryption,
+                samefile_check=getattr(self, '_tmp_stream', None) is None,
+                recompress_flate=recompress_flate,
+                deterministic_id=deterministic_id,
+            )
 
     @staticmethod
     def open(

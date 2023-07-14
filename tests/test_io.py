@@ -6,6 +6,7 @@ from __future__ import annotations
 import logging
 import os
 import os.path
+import pathlib
 import sys
 from io import BytesIO, FileIO
 from shutil import copy
@@ -63,7 +64,7 @@ def test_fail_only_overwrite_input_check(monkeypatch, resources, outdir):
         def mockraise(*args):
             raise OSError("samefile mocked")
 
-        monkeypatch.setattr(os.path, 'samefile', mockraise)
+        monkeypatch.setattr(pathlib.Path, 'samefile', mockraise)
         with pytest.raises(OSError, match=r'samefile mocked'):
             p.save(outdir / 'wouldwork.pdf')
 
