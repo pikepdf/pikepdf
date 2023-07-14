@@ -1,1 +1,6 @@
+global-exclude *.pyc
 include src/core/*.h
+recursive-include tests/ *.py
+recursive-exclude tests/resources/private/ *
+recursive-exclude .github/ *
+recursive-exclude build-scripts/ *
