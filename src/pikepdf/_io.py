@@ -29,8 +29,13 @@ def check_different_files(file1, file2):
 @contextmanager
 def atomic_overwrite(filename: Path):
     if not filename.exists():
-        with filename.open("wb") as stream:
-            yield stream
+        try:
+            with filename.open("wb") as stream:
+                yield stream
+        except Exception:
+            with suppress(FileNotFoundError):
+                filename.unlink()
+            raise
         return
 
     with filename.open("ab") as stream:

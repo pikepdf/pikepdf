@@ -304,7 +304,19 @@ def test_logging(caplog):
     ]
 
 
-def test_atomic_overwrite(tmp_path):
+def test_atomic_overwrite_new(tmp_path):
+    new_file = tmp_path / 'new.pdf'
+    assert not new_file.exists()
+
+    with pytest.raises(ValueError, match='oops'), atomic_overwrite(new_file) as f:
+        f.write(b'a failed write should not produce an invalid file')
+        raise ValueError('oops')
+    assert not new_file.exists()
+
+    assert list(tmp_path.glob('*.pikepdf')) == [], "Temporary files were not cleaned up"
+
+
+def test_atomic_overwrite_existing(tmp_path):
     existing_file = tmp_path / 'existing.pdf'
     existing_file.write_bytes(b'existing')
 
