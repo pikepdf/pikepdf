@@ -41,7 +41,7 @@ from ._core import (
     Token,
     _ObjectMapping,
 )
-from ._io import check_different_files, check_stream_is_usable
+from ._io import atomic_overwrite, check_different_files, check_stream_is_usable
 from .models import Encryption, EncryptionInfo, Outline, PdfMetadata, Permissions
 from .models.metadata import decode_pdf_date, encode_pdf_date
 
@@ -693,7 +693,7 @@ class Extend_Pdf:
                 filename = Path(filename_or_stream)
                 if not getattr(self, '_tmp_stream', None):
                     check_different_files(self.filename, filename)
-                stream = stack.enter_context(open(filename, 'wb'))
+                stream = stack.enter_context(atomic_overwrite(filename))
             self._save(
                 stream,
                 static_id=static_id,

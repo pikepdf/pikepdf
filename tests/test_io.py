@@ -17,6 +17,7 @@ import pytest
 
 import pikepdf
 from pikepdf import Pdf, PdfError
+from pikepdf._io import atomic_overwrite
 
 # pylint: disable=redefined-outer-name
 
@@ -301,3 +302,19 @@ def test_logging(caplog):
     assert [("pikepdf._core", logging.INFO)] == [
         (rec[0], rec[1]) for rec in caplog.record_tuples
     ]
+
+
+def test_atomic_overwrite(tmp_path):
+    existing_file = tmp_path / 'existing.pdf'
+    existing_file.write_bytes(b'existing')
+
+    with atomic_overwrite(existing_file) as f:
+        f.write(b'new')
+    assert existing_file.read_bytes() == b'new'
+
+    with pytest.raises(ValueError, match='oops'), atomic_overwrite(existing_file) as f:
+        f.write(b'a failed update should not corrupt the file')
+        raise ValueError('oops')
+    assert existing_file.read_bytes() == b'new'
+
+    assert list(tmp_path.glob('*.pikepdf')) == [], "Temporary files were not cleaned up"
