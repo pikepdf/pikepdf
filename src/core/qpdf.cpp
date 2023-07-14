@@ -43,14 +43,16 @@ void qpdf_basic_settings(QPDF &q) // LCOV_EXCL_LINE
     q.setLogger(get_pikepdf_logger());
 }
 
-std::shared_ptr<QPDF> open_pdf(py::object filename_or_stream,
+std::shared_ptr<QPDF> open_pdf(py::object stream,
     std::string password,
     bool hex_password            = false,
     bool ignore_xref_streams     = false,
     bool suppress_warnings       = true,
     bool attempt_recovery        = true,
     bool inherit_page_attributes = true,
-    access_mode_e access_mode    = access_mode_e::access_default)
+    access_mode_e access_mode    = access_mode_e::access_default,
+    std::string description      = "",
+    bool closing_stream          = false)
 {
     auto q = std::make_shared<QPDF>();
 
@@ -59,26 +61,6 @@ std::shared_ptr<QPDF> open_pdf(py::object filename_or_stream,
     q->setPasswordIsHexKey(hex_password);
     q->setIgnoreXRefStreams(ignore_xref_streams);
     q->setAttemptRecovery(attempt_recovery);
-
-    py::object stream;
-    bool closing_stream;
-    std::string description;
-
-    if (py::hasattr(filename_or_stream, "read") &&
-        py::hasattr(filename_or_stream, "seek")) {
-        // Python code gave us an object with a stream interface
-        stream         = filename_or_stream;
-        closing_stream = false;
-        description    = py::repr(stream);
-    } else {
-        if (py::isinstance<py::int_>(filename_or_stream))
-            throw py::type_error("expected str, bytes or os.PathLike object");
-        auto filename  = fspath(filename_or_stream);
-        auto io_open   = py::module_::import("io").attr("open");
-        stream         = io_open(filename, "rb");
-        closing_stream = true;
-        description    = py::str(filename);
-    }
 
     bool success = false;
     if (access_mode == access_default)
@@ -491,7 +473,7 @@ void init_qpdf(py::module_ &m)
             )~~~")
         .def_static("_open",
             open_pdf,
-            py::arg("filename_or_stream"),
+            py::arg("stream"),
             py::kw_only(),
             py::arg("password")                = "",
             py::arg("hex_password")            = false,
@@ -499,7 +481,9 @@ void init_qpdf(py::module_ &m)
             py::arg("suppress_warnings")       = true,
             py::arg("attempt_recovery")        = true,
             py::arg("inherit_page_attributes") = true,
-            py::arg("access_mode")             = access_mode_e::access_default)
+            py::arg("access_mode")             = access_mode_e::access_default,
+            py::arg("description")             = "",
+            py::arg("closing_stream")          = false)
         .def("__repr__",
             [](QPDF &q) {
                 return std::string("<pikepdf.Pdf description='") + q.getFilename() +

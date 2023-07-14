@@ -18,7 +18,7 @@ import shutil
 from collections.abc import KeysView, MutableMapping
 from contextlib import ExitStack
 from decimal import Decimal
-from io import BytesIO
+from io import BytesIO, RawIOBase
 from pathlib import Path
 from subprocess import run
 from tempfile import NamedTemporaryFile
@@ -691,7 +691,8 @@ class Extend_Pdf:
                 if not isinstance(filename_or_stream, (str, bytes, Path)):
                     raise TypeError("expected str, bytes or os.PathLike object")
                 filename = Path(filename_or_stream)
-                check_different_files(self.filename, filename)
+                if not getattr(self, '_tmp_stream', None):
+                    check_different_files(self.filename, filename)
                 stream = stack.enter_context(open(filename, 'wb'))
             self._save(
                 stream,
@@ -828,8 +829,15 @@ class Extend_Pdf:
                 "expects a filename or opened file-like object. Instead, please use "
                 "Pdf.open(BytesIO(data))."
             )
+        if isinstance(filename_or_stream, int):
+            # Attempted to open with integer file descriptor?
+            # TODO improve error
+            raise TypeError("expected str, bytes or os.PathLike object")
 
-        tmp_stream, original_filename = None, False
+        stream: RawIOBase | None = None
+        closing_stream: bool = False
+        original_filename: Path | None = None
+
         if allow_overwriting_input:
             try:
                 Path(filename_or_stream)
@@ -840,9 +848,22 @@ class Extend_Pdf:
                 ) from error
             original_filename = Path(filename_or_stream)
             with open(original_filename, 'rb') as pdf_file:
-                tmp_stream = BytesIO()
-                shutil.copyfileobj(pdf_file, tmp_stream)
-        stream = tmp_stream or filename_or_stream
+                stream = BytesIO()
+                shutil.copyfileobj(pdf_file, stream)
+                stream.seek(0)
+            # description = f"memory copy of {original_filename}"
+            description = str(original_filename)
+        elif hasattr(filename_or_stream, 'read') and hasattr(
+            filename_or_stream, 'seek'
+        ):
+            stream = filename_or_stream
+            description = f"stream {stream}"
+        else:
+            stream = open(filename_or_stream, 'rb')
+            original_filename = Path(filename_or_stream)
+            description = str(filename_or_stream)
+            closing_stream = True
+
         check_stream_is_usable(stream)
         pdf = Pdf._open(
             stream,
@@ -853,8 +874,10 @@ class Extend_Pdf:
             attempt_recovery=attempt_recovery,
             inherit_page_attributes=inherit_page_attributes,
             access_mode=access_mode,
+            description=description,
+            closing_stream=closing_stream,
         )
-        pdf._tmp_stream = tmp_stream
+        pdf._tmp_stream = stream if allow_overwriting_input else None
         pdf._original_filename = original_filename
         return pdf
 
