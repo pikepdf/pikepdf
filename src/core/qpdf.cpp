@@ -37,15 +37,6 @@ extern bool MMAP_DEFAULT;
 
 enum access_mode_e { access_default, access_stream, access_mmap, access_mmap_only };
 
-void check_stream_is_usable(py::object stream)
-{
-    auto TextIOBase = py::module_::import("io").attr("TextIOBase");
-
-    if (py::isinstance(stream, TextIOBase)) {
-        throw py::type_error("stream must be binary (no transcoding) and seekable");
-    }
-}
-
 void qpdf_basic_settings(QPDF &q) // LCOV_EXCL_LINE
 {
     q.setSuppressWarnings(true);
@@ -77,8 +68,7 @@ std::shared_ptr<QPDF> open_pdf(py::object filename_or_stream,
     if (py::hasattr(filename_or_stream, "read") &&
         py::hasattr(filename_or_stream, "seek")) {
         // Python code gave us an object with a stream interface
-        stream = filename_or_stream;
-        check_stream_is_usable(stream);
+        stream         = filename_or_stream;
         closing_stream = false;
         description    = py::repr(stream);
     } else {
@@ -402,8 +392,7 @@ void save_pdf(QPDF &q,
     if (py::hasattr(filename_or_stream, "write") &&
         py::hasattr(filename_or_stream, "seek")) {
         // Python code gave us an object with a stream interface
-        stream = filename_or_stream;
-        check_stream_is_usable(stream);
+        stream      = filename_or_stream;
         description = py::repr(stream);
     } else {
         if (py::isinstance<py::int_>(filename_or_stream))

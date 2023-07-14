@@ -40,6 +40,7 @@ from ._core import (
     Token,
     _ObjectMapping,
 )
+from ._io import check_stream_is_usable
 from .models import Encryption, EncryptionInfo, Outline, PdfMetadata, Permissions
 from .models.metadata import decode_pdf_date, encode_pdf_date
 
@@ -681,6 +682,8 @@ class Extend_Pdf:
                 "Pdf.new(), you must specify a destination object since there is "
                 "no original filename to save to."
             )
+        if hasattr(filename_or_stream, 'seek'):
+            check_stream_is_usable(filename_or_stream)
         self._save(
             filename_or_stream,
             static_id=static_id,
@@ -830,8 +833,10 @@ class Extend_Pdf:
             with open(original_filename, 'rb') as pdf_file:
                 tmp_stream = BytesIO()
                 shutil.copyfileobj(pdf_file, tmp_stream)
+        stream = tmp_stream or filename_or_stream
+        check_stream_is_usable(stream)
         pdf = Pdf._open(
-            tmp_stream or filename_or_stream,
+            stream,
             password=password,
             hex_password=hex_password,
             ignore_xref_streams=ignore_xref_streams,
