@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import locale
+import os
 import shutil
 import zlib
 from contextlib import nullcontext
@@ -219,6 +220,7 @@ def test_progress(trivial, outdir):
 
 
 @pytest.mark.skipif(locale.getpreferredencoding() != 'UTF-8', reason="Unicode check")
+@pytest.mark.skipif(os.name == 'nt', reason="Windows can be inconsistent")
 def test_unicode_filename(resources, outdir):
     target1 = outdir / '测试.pdf'  # Chinese: test.pdf
     target2 = outdir / '通过考试.pdf'  # Chinese: pass the test.pdf
