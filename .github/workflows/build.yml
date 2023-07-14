@@ -99,8 +99,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-        with:
-          fetch-depth: "0"
 
       - name: Build wheels
         uses: joerick/cibuildwheel@v2.14.0
@@ -155,8 +153,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-        with:
-          fetch-depth: "0"
 
       - uses: actions/setup-python@v4
         name: Install Python
@@ -186,8 +182,6 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
-        with:
-          fetch-depth: "0"
 
       - uses: actions/setup-python@v4
         name: Install Python
