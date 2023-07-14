@@ -16,8 +16,9 @@ import datetime
 import mimetypes
 import shutil
 from collections.abc import KeysView, MutableMapping
+from contextlib import ExitStack
 from decimal import Decimal
-from io import BytesIO
+from io import BytesIO, RawIOBase
 from pathlib import Path
 from subprocess import run
 from tempfile import NamedTemporaryFile
@@ -40,6 +41,7 @@ from ._core import (
     Token,
     _ObjectMapping,
 )
+from ._io import atomic_overwrite, check_different_files, check_stream_is_usable
 from .models import Encryption, EncryptionInfo, Outline, PdfMetadata, Permissions
 from .models.metadata import decode_pdf_date, encode_pdf_date
 
@@ -663,12 +665,28 @@ class Extend_Pdf:
             coalesces any incremental updates into a single non-incremental
             PDF file when saving.
 
+        .. note::
+            If filename_or_stream is a stream and the process is interrupted during
+            writing, the stream may be left in a corrupt state. It is the
+            responsibility of the caller to manage the stream in this case.
+
         .. versionchanged:: 2.7
             Added *recompress_flate*.
 
         .. versionchanged:: 3.0
             Keyword arguments now mandatory for everything except the first
             argument.
+
+        .. versionchanged:: 8.1
+            If filename_or_stream is a filename and that file exists, the new file
+            written to a temporary file in the same directory and then moved into
+            place. This prevents the existing destination file from being corrupted
+            if the process is interrupted during writing; previously, corrupting the
+            destination file was possible. If no file exists at the destination, output
+            is written directly to the destination, but the destination will be deleted
+            if errors occur during writing. Prior to 8.1, the file was always written
+            directly to the destination, which could result in a corrupt destination
+            file if the process was interrupted during writing.
         """
         if not filename_or_stream and getattr(self, '_original_filename', None):
             filename_or_stream = self._original_filename
@@ -681,25 +699,36 @@ class Extend_Pdf:
                 "Pdf.new(), you must specify a destination object since there is "
                 "no original filename to save to."
             )
-        self._save(
-            filename_or_stream,
-            static_id=static_id,
-            preserve_pdfa=preserve_pdfa,
-            min_version=min_version,
-            force_version=force_version,
-            fix_metadata_version=fix_metadata_version,
-            compress_streams=compress_streams,
-            stream_decode_level=stream_decode_level,
-            object_stream_mode=object_stream_mode,
-            normalize_content=normalize_content,
-            linearize=linearize,
-            qdf=qdf,
-            progress=progress,
-            encryption=encryption,
-            samefile_check=getattr(self, '_tmp_stream', None) is None,
-            recompress_flate=recompress_flate,
-            deterministic_id=deterministic_id,
-        )
+        with ExitStack() as stack:
+            if hasattr(filename_or_stream, 'seek'):
+                stream = filename_or_stream
+                check_stream_is_usable(filename_or_stream)
+            else:
+                if not isinstance(filename_or_stream, (str, bytes, Path)):
+                    raise TypeError("expected str, bytes or os.PathLike object")
+                filename = Path(filename_or_stream)
+                if not getattr(self, '_tmp_stream', None):
+                    check_different_files(self.filename, filename)
+                stream = stack.enter_context(atomic_overwrite(filename))
+            self._save(
+                stream,
+                static_id=static_id,
+                preserve_pdfa=preserve_pdfa,
+                min_version=min_version,
+                force_version=force_version,
+                fix_metadata_version=fix_metadata_version,
+                compress_streams=compress_streams,
+                stream_decode_level=stream_decode_level,
+                object_stream_mode=object_stream_mode,
+                normalize_content=normalize_content,
+                linearize=linearize,
+                qdf=qdf,
+                progress=progress,
+                encryption=encryption,
+                samefile_check=getattr(self, '_tmp_stream', None) is None,
+                recompress_flate=recompress_flate,
+                deterministic_id=deterministic_id,
+            )
 
     @staticmethod
     def open(
@@ -816,8 +845,15 @@ class Extend_Pdf:
                 "expects a filename or opened file-like object. Instead, please use "
                 "Pdf.open(BytesIO(data))."
             )
+        if isinstance(filename_or_stream, int):
+            # Attempted to open with integer file descriptor?
+            # TODO improve error
+            raise TypeError("expected str, bytes or os.PathLike object")
 
-        tmp_stream, original_filename = None, False
+        stream: RawIOBase | None = None
+        closing_stream: bool = False
+        original_filename: Path | None = None
+
         if allow_overwriting_input:
             try:
                 Path(filename_or_stream)
@@ -828,10 +864,25 @@ class Extend_Pdf:
                 ) from error
             original_filename = Path(filename_or_stream)
             with open(original_filename, 'rb') as pdf_file:
-                tmp_stream = BytesIO()
-                shutil.copyfileobj(pdf_file, tmp_stream)
+                stream = BytesIO()
+                shutil.copyfileobj(pdf_file, stream)
+                stream.seek(0)
+            # description = f"memory copy of {original_filename}"
+            description = str(original_filename)
+        elif hasattr(filename_or_stream, 'read') and hasattr(
+            filename_or_stream, 'seek'
+        ):
+            stream = filename_or_stream
+            description = f"stream {stream}"
+        else:
+            stream = open(filename_or_stream, 'rb')
+            original_filename = Path(filename_or_stream)
+            description = str(filename_or_stream)
+            closing_stream = True
+
+        check_stream_is_usable(stream)
         pdf = Pdf._open(
-            tmp_stream or filename_or_stream,
+            stream,
             password=password,
             hex_password=hex_password,
             ignore_xref_streams=ignore_xref_streams,
@@ -839,8 +890,10 @@ class Extend_Pdf:
             attempt_recovery=attempt_recovery,
             inherit_page_attributes=inherit_page_attributes,
             access_mode=access_mode,
+            description=description,
+            closing_stream=closing_stream,
         )
-        pdf._tmp_stream = tmp_stream
+        pdf._tmp_stream = stream if allow_overwriting_input else None
         pdf._original_filename = original_filename
         return pdf
 

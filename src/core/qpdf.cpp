@@ -31,20 +31,10 @@
 #include "jbig2-inl.h"
 #include "pipeline.h"
 #include "utils.h"
-#include "gsl.h"
 
 extern bool MMAP_DEFAULT;
 
 enum access_mode_e { access_default, access_stream, access_mmap, access_mmap_only };
-
-void check_stream_is_usable(py::object stream)
-{
-    auto TextIOBase = py::module_::import("io").attr("TextIOBase");
-
-    if (py::isinstance(stream, TextIOBase)) {
-        throw py::type_error("stream must be binary (no transcoding) and seekable");
-    }
-}
 
 void qpdf_basic_settings(QPDF &q) // LCOV_EXCL_LINE
 {
@@ -53,14 +43,16 @@ void qpdf_basic_settings(QPDF &q) // LCOV_EXCL_LINE
     q.setLogger(get_pikepdf_logger());
 }
 
-std::shared_ptr<QPDF> open_pdf(py::object filename_or_stream,
+std::shared_ptr<QPDF> open_pdf(py::object stream,
     std::string password,
     bool hex_password            = false,
     bool ignore_xref_streams     = false,
     bool suppress_warnings       = true,
     bool attempt_recovery        = true,
     bool inherit_page_attributes = true,
-    access_mode_e access_mode    = access_mode_e::access_default)
+    access_mode_e access_mode    = access_mode_e::access_default,
+    std::string description      = "",
+    bool closing_stream          = false)
 {
     auto q = std::make_shared<QPDF>();
 
@@ -69,27 +61,6 @@ std::shared_ptr<QPDF> open_pdf(py::object filename_or_stream,
     q->setPasswordIsHexKey(hex_password);
     q->setIgnoreXRefStreams(ignore_xref_streams);
     q->setAttemptRecovery(attempt_recovery);
-
-    py::object stream;
-    bool closing_stream;
-    std::string description;
-
-    if (py::hasattr(filename_or_stream, "read") &&
-        py::hasattr(filename_or_stream, "seek")) {
-        // Python code gave us an object with a stream interface
-        stream = filename_or_stream;
-        check_stream_is_usable(stream);
-        closing_stream = false;
-        description    = py::repr(stream);
-    } else {
-        if (py::isinstance<py::int_>(filename_or_stream))
-            throw py::type_error("expected str, bytes or os.PathLike object");
-        auto filename  = fspath(filename_or_stream);
-        auto io_open   = py::module_::import("io").attr("open");
-        stream         = io_open(filename, "rb");
-        closing_stream = true;
-        description    = py::str(filename);
-    }
 
     bool success = false;
     if (access_mode == access_default)
@@ -350,7 +321,7 @@ pdf_version_extension get_version_extension(py::object ver_ext)
 }
 
 void save_pdf(QPDF &q,
-    py::object filename_or_stream,
+    py::object stream,
     bool static_id                          = false,
     bool preserve_pdfa                      = true,
     py::object min_version                  = py::none(),
@@ -368,7 +339,6 @@ void save_pdf(QPDF &q,
     bool recompress_flate                   = false,
     bool deterministic_id                   = false)
 {
-    std::string description;
     QPDFWriter w(q);
 
     if (static_id) {
@@ -392,47 +362,7 @@ void save_pdf(QPDF &q,
     w.setObjectStreamMode(object_stream_mode);
     w.setRecompressFlate(recompress_flate);
 
-    py::object stream;
-    bool should_close_stream = false;
-    auto close_stream        = gsl::finally([&stream, &should_close_stream] {
-        if (should_close_stream && !stream.is_none() && py::hasattr(stream, "close"))
-            stream.attr("close")();
-    });
-
-    if (py::hasattr(filename_or_stream, "write") &&
-        py::hasattr(filename_or_stream, "seek")) {
-        // Python code gave us an object with a stream interface
-        stream = filename_or_stream;
-        check_stream_is_usable(stream);
-        description = py::repr(stream);
-    } else {
-        if (py::isinstance<py::int_>(filename_or_stream))
-            throw py::type_error("expected str, bytes or os.PathLike object");
-        py::object output_filename = fspath(filename_or_stream);
-        if (samefile_check) {
-            auto input_filename = q.getFilename();
-
-            py::object ospath   = py::module_::import("os").attr("path");
-            py::object samefile = ospath.attr("samefile");
-            try {
-                if (samefile(output_filename, input_filename).cast<bool>()) {
-                    throw py::value_error(
-                        "Cannot overwrite input file. Open the file with "
-                        "pikepdf.open(..., allow_overwriting_input=True) to "
-                        "allow overwriting the input file.");
-                }
-            } catch (const py::error_already_set &e) {
-                // We expect FileNotFoundError if filename refers to a file that does
-                // not exist, or if q.getFilename indicates a memory file. Suppress
-                // that, and rethrow all others.
-                if (!e.matches(PyExc_FileNotFoundError))
-                    throw;
-            }
-        }
-        stream = py::module_::import("io").attr("open")(output_filename, "wb");
-        should_close_stream = true;
-        description         = py::str(output_filename);
-    }
+    std::string description = py::repr(stream);
 
     // We must set up the output pipeline before we configure encryption
     Pl_PythonOutput output_pipe(description.c_str(), stream);
@@ -543,7 +473,7 @@ void init_qpdf(py::module_ &m)
             )~~~")
         .def_static("_open",
             open_pdf,
-            py::arg("filename_or_stream"),
+            py::arg("stream"),
             py::kw_only(),
             py::arg("password")                = "",
             py::arg("hex_password")            = false,
@@ -551,7 +481,9 @@ void init_qpdf(py::module_ &m)
             py::arg("suppress_warnings")       = true,
             py::arg("attempt_recovery")        = true,
             py::arg("inherit_page_attributes") = true,
-            py::arg("access_mode")             = access_mode_e::access_default)
+            py::arg("access_mode")             = access_mode_e::access_default,
+            py::arg("description")             = "",
+            py::arg("closing_stream")          = false)
         .def("__repr__",
             [](QPDF &q) {
                 return std::string("<pikepdf.Pdf description='") + q.getFilename() +
@@ -685,7 +617,7 @@ void init_qpdf(py::module_ &m)
             )~~~")
         .def("_save",
             save_pdf,
-            py::arg("filename"),
+            py::arg("stream"),
             py::kw_only(),
             py::arg("static_id")            = false,
             py::arg("preserve_pdfa")        = true,

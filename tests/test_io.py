@@ -6,6 +6,7 @@ from __future__ import annotations
 import logging
 import os
 import os.path
+import pathlib
 import sys
 from io import BytesIO, FileIO
 from shutil import copy
@@ -16,6 +17,7 @@ import pytest
 
 import pikepdf
 from pikepdf import Pdf, PdfError
+from pikepdf._io import atomic_overwrite
 
 # pylint: disable=redefined-outer-name
 
@@ -63,7 +65,7 @@ def test_fail_only_overwrite_input_check(monkeypatch, resources, outdir):
         def mockraise(*args):
             raise OSError("samefile mocked")
 
-        monkeypatch.setattr(os.path, 'samefile', mockraise)
+        monkeypatch.setattr(pathlib.Path, 'samefile', mockraise)
         with pytest.raises(OSError, match=r'samefile mocked'):
             p.save(outdir / 'wouldwork.pdf')
 
@@ -300,3 +302,31 @@ def test_logging(caplog):
     assert [("pikepdf._core", logging.INFO)] == [
         (rec[0], rec[1]) for rec in caplog.record_tuples
     ]
+
+
+def test_atomic_overwrite_new(tmp_path):
+    new_file = tmp_path / 'new.pdf'
+    assert not new_file.exists()
+
+    with pytest.raises(ValueError, match='oops'), atomic_overwrite(new_file) as f:
+        f.write(b'a failed write should not produce an invalid file')
+        raise ValueError('oops')
+    assert not new_file.exists()
+
+    assert list(tmp_path.glob('*.pikepdf')) == [], "Temporary files were not cleaned up"
+
+
+def test_atomic_overwrite_existing(tmp_path):
+    existing_file = tmp_path / 'existing.pdf'
+    existing_file.write_bytes(b'existing')
+
+    with atomic_overwrite(existing_file) as f:
+        f.write(b'new')
+    assert existing_file.read_bytes() == b'new'
+
+    with pytest.raises(ValueError, match='oops'), atomic_overwrite(existing_file) as f:
+        f.write(b'a failed update should not corrupt the file')
+        raise ValueError('oops')
+    assert existing_file.read_bytes() == b'new'
+
+    assert list(tmp_path.glob('*.pikepdf')) == [], "Temporary files were not cleaned up"
