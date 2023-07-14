@@ -665,12 +665,28 @@ class Extend_Pdf:
             coalesces any incremental updates into a single non-incremental
             PDF file when saving.
 
+        .. note::
+            If filename_or_stream is a stream and the process is interrupted during
+            writing, the stream may be left in a corrupt state. It is the
+            responsibility of the caller to manage the stream in this case.
+
         .. versionchanged:: 2.7
             Added *recompress_flate*.
 
         .. versionchanged:: 3.0
             Keyword arguments now mandatory for everything except the first
             argument.
+
+        .. versionchanged:: 8.1
+            If filename_or_stream is a filename and that file exists, the new file
+            written to a temporary file in the same directory and then moved into
+            place. This prevents the existing destination file from being corrupted
+            if the process is interrupted during writing; previously, corrupting the
+            destination file was possible. If no file exists at the destination, output
+            is written directly to the destination, but the destination will be deleted
+            if errors occur during writing. Prior to 8.1, the file was always written
+            directly to the destination, which could result in a corrupt destination
+            file if the process was interrupted during writing.
         """
         if not filename_or_stream and getattr(self, '_original_filename', None):
             filename_or_stream = self._original_filename
