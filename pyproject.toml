@@ -34,7 +34,7 @@ classifiers = [
 ]
 dependencies = [
     "Pillow>=9.0",
-    "Pillow<10; platform_python_implementation == 'PyPy'",
+    "Pillow<10; platform_python_implementation == 'PyPy' and python_version < '3.9'",
     "deprecation",
     "lxml>=4.8",
     "packaging",
@@ -129,7 +129,7 @@ test-extras = "test"
 # Reminder:
 #   build.yml sets CIBW_BUILD to select what can be built
 #   this file sets skip to deselect what cannot be built
-skip = ["cp36-*", "cp37-*", "pp37-*", "pp310-*", "*-win32", "*musllinux*", "pp*-manylinux*_aarch64"]
+skip = ["cp36-*", "cp37-*", "pp37-*", "*-win32", "*musllinux*", "pp*-manylinux*_aarch64"]
 test-skip = "*_universal2:arm64"
 
 [tool.cibuildwheel.environment]
