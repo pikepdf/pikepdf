@@ -114,8 +114,8 @@ PYBIND11_MODULE(_core, m)
     // py::options options;
     // options.disable_function_signatures();
 
-    m.doc() = "pikepdf provides a Pythonic interface for QPDF";
-
+    m.doc()            = "pikepdf provides a Pythonic interface for QPDF";
+    m.attr("__name__") = "pikepdf._core";
     m.def("qpdf_version", &QPDF::QPDFVersion, "Get libqpdf version");
 
     // -- Core objects --
