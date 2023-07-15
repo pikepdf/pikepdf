@@ -51,6 +51,7 @@ jobs:
     steps:
       - name: Waiting for Cirrus CI
         uses: lewagon/wait-on-check-action@v1.3.1
+        if: github.event_name != 'pull_request'
         with:
           ref: ${{ github.ref || github.sha }}
           check-regexp: '^linux arm64 Cirrus'
@@ -113,6 +114,7 @@ jobs:
     steps:
       - name: Waiting for Cirrus CI
         uses: lewagon/wait-on-check-action@v1.3.1
+        if: github.event_name != 'pull_request'
         with:
           ref: ${{ github.ref || github.sha }}
           check-regexp: '^macos arm64 Cirrus'
