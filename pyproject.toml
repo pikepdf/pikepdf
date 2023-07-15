@@ -85,11 +85,17 @@ test = [
     "tomli;python_version < '3.11'",
 ]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.setuptools]
+
+[tool.setuptools.package-dir]
+pikepdf = "src/pikepdf"
+"pikepdf._core" = "src/core"
 
 [tool.setuptools.package-data]
 pikepdf = ["*.dll", "py.typed"]
+
+[tool.setuptools.exclude-package-data]
+"pikepdf" = ["*.cpp", "*.h"]
 
 [tool.black]
 line-length = 88

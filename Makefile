@@ -70,4 +70,4 @@ docs: build
 
 cibuildwheel-test: clean-coverage
 	rm -rf build/bdist.* build/lib.* build/temp.*
-	cibuildwheel --platform linux
+	pipx run cibuildwheel --platform linux
