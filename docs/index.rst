@@ -30,7 +30,7 @@ to encrypted PDFs.
 
    with pikepdf.Pdf.open('test.pdf') as my_pdf:
        for page in my_pdf.pages:
-           page.Rotate = 180
+           page.rotate(180, relative=True)
        my_pdf.save('test-rotated.pdf')
 
 It is a low level library that requires knowledge of PDF internals and some
