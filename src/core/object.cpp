@@ -855,8 +855,8 @@ void init_object(py::module_ &m)
                 int schema_version = 2) -> py::bytes {
                 return h.getJSON(schema_version, dereference).unparse();
             },
-            py::arg("schema_version") = 2,
             py::arg("dereference")    = false,
+            py::arg("schema_version") = 2,
             R"~~~(
             Convert to a QPDF JSON representation of the object.
 
