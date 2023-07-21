@@ -71,7 +71,7 @@ from .models import (
 # While _cpphelpers is intended to be called from our C++ code only, explicitly
 # importing helps introspection tools like PyInstaller figure out that the module
 # is necessary.
-from . import _cpphelpers, _methods, codec  # noqa: unused-import
+from . import _cpphelpers, _methods, codec  # noqa: F401, F841
 from . import settings
 
 __libqpdf_version__ = _core.qpdf_version()
@@ -133,5 +133,6 @@ __all__ = [
     'parse_content_stream',
     'unparse_content_stream',
     'settings',
+    '__libqpdf_version__',
     '__version__',
 ]
