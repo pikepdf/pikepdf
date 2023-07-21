@@ -28,7 +28,7 @@ void init_rectangle(py::module_ &m)
             The rectangle may be considered degenerate if the lower left corner
             is not strictly less than the upper right corner.
 
-            .. versionadded: 2.14
+            .. versionadded:: 2.14
         )~~~")
         .def(py::init<double, double, double, double>())
         .def(py::init([](QPDFObjectHandle &h) {
