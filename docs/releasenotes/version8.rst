@@ -1,3 +1,12 @@
+v8.2.0
+======
+
+- Removed uses of deprecated function datetime.utcnow(). :issue:`499`
+- Adjusted timeline of potentially flaky hypothesis test.
+- Various documentation fixes. Thanks @m-holger.
+- PyPy 3.10 is now supported on some platforms.
+- PyPy 3.8 support will be dropped in the next major release.
+
 v8.1.1
 ======
 
