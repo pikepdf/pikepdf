@@ -49,6 +49,22 @@ def test_rect_from_invalid():
         Rectangle(Array(['one', 'two', 'three', 'four']))
 
 
+def test_rectangle_operators():
+    assert Rectangle(10, 20, 30, 40) <= Rectangle(10, 20, 30, 40)
+    assert Rectangle(11, 20, 30, 40) <= Rectangle(10, 20, 30, 40)
+    assert Rectangle(10, 21, 30, 40) <= Rectangle(10, 20, 30, 40)
+    assert Rectangle(10, 20, 29, 40) <= Rectangle(10, 20, 30, 40)
+    assert Rectangle(10, 20, 30, 39) <= Rectangle(10, 20, 30, 40)
+    assert not (Rectangle(9, 20, 30, 40) <= Rectangle(10, 20, 30, 40))
+    assert not (Rectangle(10, 19, 30, 40) <= Rectangle(10, 20, 30, 40))
+    assert not (Rectangle(10, 20, 31, 40) <= Rectangle(10, 20, 30, 40))
+    assert not (Rectangle(10, 20, 30, 41) <= Rectangle(10, 20, 30, 40))
+    assert Rectangle(10, 20, 30, 40).__le__(other=Rectangle(10, 20, 30, 40))
+    assert Rectangle(9, 20, 31, 40) & Rectangle(10, 19, 30, 41) == Rectangle(
+        10, 20, 30, 40
+    )
+
+
 def test_array_from_rect():
     a = Array(Rectangle(1, 2, 3, 4))
     assert isinstance(a, Array)
