@@ -74,7 +74,7 @@ from .models import (
 from . import _cpphelpers, _methods, codec  # noqa: F401, F841
 from . import settings
 
-__libqpdf_version__ = _core.qpdf_version()
+__libqpdf_version__: str = _core.qpdf_version()
 
 # Provide pikepdf.{open, new} -> pikepdf.Pdf.{open, new}
 open = Pdf.open  # pylint: disable=redefined-builtin

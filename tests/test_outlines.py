@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-from datetime import timedelta
 from itertools import repeat
 
 import pytest
@@ -392,7 +391,7 @@ def test_dest_or_action(outlines_doc):
     assert '/Dest' not in first_obj
 
 
-@settings(deadline=timedelta(milliseconds=750))
+@settings(deadline=750)
 @given(
     page_num=st.integers(0, 1),
     page_loc=st.sampled_from(list(PageLocation) + ['invalid']),  # type: ignore
@@ -440,7 +439,7 @@ def test_page_destination(resources, page_num, page_loc, kwargs):
         assert dest == expected_dest
 
 
-@settings(deadline=timedelta(milliseconds=750))
+@settings(deadline=750)
 @given(
     title=st.text(),
     page_num=st.integers(0, 1),

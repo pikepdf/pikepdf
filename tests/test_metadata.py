@@ -554,7 +554,7 @@ def test_extension_level(trivial, outpdf):
         trivial.save(outpdf, force_version=('1.7', 'invalid extension level'))
 
 
-@settings(deadline=500.0)
+@settings(deadline=500)
 @given(
     st.dictionaries(
         keys=st.sampled_from(
