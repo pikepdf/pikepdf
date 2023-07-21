@@ -257,7 +257,7 @@ class Extend_Pdf:
         ``del pdf.docinfo``. Note that accessing the property after deleting it
         will re-create with a new, empty dictionary.
 
-        .. versionchanged: 2.4
+        .. versionchanged:: 2.4
             Added support for ``del pdf.docinfo``.
         """
         if Name.Info not in self.trailer:

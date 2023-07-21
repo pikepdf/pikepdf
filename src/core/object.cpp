@@ -363,7 +363,7 @@ void init_object(py::module_ &m)
                 This method may be convenient when a reference to the Pdf is not
                 available.
 
-                ..versionadded:: 2.14
+                .. versionadded:: 2.14
             )~~~")
         .def_property_readonly("is_indirect", &QPDFObjectHandle::isIndirect)
         .def("__repr__", &objecthandle_repr)
