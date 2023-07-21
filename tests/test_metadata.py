@@ -680,17 +680,14 @@ def test_issue_135_title_rdf_bag(trivial):
 
 
 def test_xmp_metadatadate_timezone(sandwich, outpdf):
-    with sandwich.open_metadata():
+    with sandwich.open_metadata(set_pikepdf_as_editor=True):
         pass
     sandwich.save(outpdf)
-
-    machine_tz = datetime.utcnow().astimezone().tzinfo
-
     with Pdf.open(outpdf) as pdf:
         with pdf.open_metadata() as m:
             dt = datetime.fromisoformat(m['xmp:MetadataDate'])
             assert dt.tzinfo is not None
-            assert dt.tzinfo == machine_tz
+            assert dt.tzinfo == timezone.utc
 
 
 def test_modify_not_opened(graph):

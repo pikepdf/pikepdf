@@ -9,7 +9,7 @@ import logging
 import re
 import sys
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 from io import BytesIO
 from typing import TYPE_CHECKING, Any, Callable, NamedTuple, Set
@@ -568,7 +568,7 @@ class PdfMetadata(MutableMapping):
             # We were asked to mark the file as being edited by pikepdf
             self._setitem(
                 QName(XMP_NS_XMP, 'MetadataDate'),
-                datetime.now(datetime.utcnow().astimezone().tzinfo).isoformat(),
+                datetime.now(timezone.utc).isoformat(),
                 applying_mark=True,
             )
             self._setitem(
