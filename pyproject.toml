@@ -87,6 +87,8 @@ test = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+include = ["pikepdf", "pikepdf.*"]
+namespaces = false
 
 [tool.setuptools.package-data]
 pikepdf = ["*.dll", "py.typed"]
