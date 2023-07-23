@@ -282,15 +282,15 @@ jobs:
                 "${{ secrets.RTDS_WEBHOOK_TOKEN }}" != "" ]]; \
           then
             echo "Secrets to use trigger ReadTheDocs were configured"
-            echo "::set-output name=have_secrets::true"
+            echo "have_secrets=true" >> $GITHUB_OUTPUT
           else
             echo "Secrets to use trigger ReadTheDocs were not configured"
-            echo "::set-output name=have_secrets::false"
+            echo "have_secrets=false" >> $GITHUB_OUTPUT
           fi
       - name: Get branch name
         id: get_branch
         run: |
-          echo "::set-output name=branch::${GITHUB_REF##refs/heads/}"
+          echo "branch=${GITHUB_REF##refs/heads/}" >> $GITHUB_OUTPUT
       - name: Trigger ReadTheDocs webhook
         run: |
           curl -X POST -d "branches=${{ steps.get_branch.outputs.branch }}" \
