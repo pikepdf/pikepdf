@@ -1,3 +1,9 @@
+v8.2.1
+======
+
+- Fixed a build issue where pikepdf would install its C++ source files into the
+  site-packages directory. :issue:`447`
+
 v8.2.0
 ======
 
