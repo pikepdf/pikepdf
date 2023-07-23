@@ -17,6 +17,7 @@ repos:
     rev: v16.0.6
     hooks:
       - id: clang-format
+        files: "src/.*\\.(cpp|h|hpp)?$"
   - repo: https://github.com/charliermarsh/ruff-pre-commit
     rev: "v0.0.280"
     hooks:
