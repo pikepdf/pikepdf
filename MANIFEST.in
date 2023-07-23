@@ -1,4 +1,3 @@
-include src/core/*.h
 graft tests
 prune tests/resources/private
 prune .github
