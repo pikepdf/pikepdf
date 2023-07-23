@@ -293,7 +293,8 @@ jobs:
           echo "branch=${GITHUB_REF##refs/heads/}" >> $GITHUB_OUTPUT
       - name: Trigger ReadTheDocs webhook
         run: |
-          curl -X POST -d "branches=${{ steps.get_branch.outputs.branch }}" \
+          curl -X POST -d "branches=latest" \
                        -d "token=${{ secrets.RTDS_WEBHOOK_TOKEN }}" \
+                       -d "default_branch=main" \
                        "${{ secrets.RTDS_WEBHOOK_URL }}"
         if: ${{ steps.setvar.outputs.have_secrets == 'true' }}
