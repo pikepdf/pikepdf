@@ -3,4 +3,6 @@ graft tests
 prune tests/resources/private
 prune .github
 prune build-scripts
+graft docs
+prune docs/_build
 global-exclude *.py[cod]
