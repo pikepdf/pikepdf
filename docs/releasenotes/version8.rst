@@ -1,3 +1,8 @@
+v8.2.2
+======
+
+- Added docs/ directory back to source distribution. :issue:`503`
+
 v8.2.1
 ======
 
