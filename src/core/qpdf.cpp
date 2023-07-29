@@ -753,7 +753,7 @@ void init_qpdf(py::module_ &m)
                 foreign objects, so :attr:`Pdf.pages` does not require this treatment.
 
             See also:
-                `QPDF::copyForeignObject <http://qpdf.sourceforge.net/files/qpdf-manual.html#ref.foreign-objects>`_
+                `QPDF::copyForeignObject <https://qpdf.readthedocs.io/en/stable/design.html#copying-objects-from-other-pdf-files>`_
 
             .. versionchanged:: 2.1
                 Error messages improved.
