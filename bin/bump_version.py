@@ -30,7 +30,7 @@ OFF = "\u001b[0m"
 
 def bump_version() -> None:
     """Bump the version number in all the right places."""
-    current_version = pikepdf.__version__
+    current_version = pikepdf.__version__  # type: ignore
 
     try:
         commit_date_str = subprocess.run(
@@ -57,6 +57,8 @@ def bump_version() -> None:
     except subprocess.CalledProcessError as e:
         print(e)
         print("Failed to get previous version tag information.")
+        print("Is the virtual environment active?")
+        sys.exit(1)
 
     git_changes_result = subprocess.run(["git diff-index --quiet HEAD --"], shell=True)
     repo_has_uncommitted_changes = git_changes_result.returncode != 0
