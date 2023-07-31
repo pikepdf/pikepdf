@@ -129,6 +129,10 @@ def test_qpdf_real_to_decimal():
 
 
 @skip_if_pypy
+@pytest.mark.xfail(
+    sys.version_info >= (3, 12),
+    reason="https://github.com/python/cpython/issues/105003",
+)
 def test_stack_depth():
     a = [42]
     for _ in range(100):

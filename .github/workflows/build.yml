@@ -17,19 +17,14 @@ jobs:
       CIBW_BUILD: "*-${{ matrix.platform }}"
     strategy:
       matrix:
-        os: [ubuntu-20.04]
+        os: [ubuntu-22.04]
         platform: [manylinux_x86_64]
 
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions/setup-python@v4
-        name: Install Python
-        with:
-          python-version: "3.8"
-
       - name: Build wheels
-        uses: joerick/cibuildwheel@v2.14.1
+        uses: pypa/cibuildwheel@v2.14.1
 
       - name: Upload built wheels
         uses: actions/upload-artifact@v3
@@ -45,6 +40,22 @@ jobs:
           name: rtd-wheel
           path: ./wheelhouse/pikepdf-*-cp311-*.manylinux2014_x86_64.whl
           if-no-files-found: error
+
+  wheels_linux_prerelease_python:
+    name: ${{ matrix.os }} - ${{ matrix.platform }} - pre-release
+    runs-on: ${{ matrix.os }}
+    env:
+      CIBW_BUILD: "cp312*-${{ matrix.platform }}"
+      CIBW_PRERELEASE_PYTHONS: true
+    strategy:
+      matrix:
+        os: [ubuntu-22.04]
+        platform: [manylinux_x86_64]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build and test wheels (without upload)
+        uses: pypa/cibuildwheel@v2.14.1
 
   wheels_linux_arm:
     runs-on: ubuntu-22.04
@@ -102,7 +113,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Build wheels
-        uses: joerick/cibuildwheel@v2.14.1
+        uses: pypa/cibuildwheel@v2.14.1
 
       - uses: actions/upload-artifact@v3
         with:
@@ -172,7 +183,7 @@ jobs:
           build-scripts/win-download-qpdf.ps1 $env:QPDF_VERSION ${{ matrix.platform }}
 
       - name: Build wheels
-        uses: joerick/cibuildwheel@v2.14.1
+        uses: pypa/cibuildwheel@v2.14.1
 
       - uses: actions/upload-artifact@v3
         with:
