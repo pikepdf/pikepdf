@@ -44,6 +44,7 @@ jobs:
   wheels_linux_prerelease_python:
     name: ${{ matrix.os }} - ${{ matrix.platform }} - pre-release
     runs-on: ${{ matrix.os }}
+    continue-on-error: true
     env:
       CIBW_BUILD: "cp312*-${{ matrix.platform }}"
       CIBW_PRERELEASE_PYTHONS: true
