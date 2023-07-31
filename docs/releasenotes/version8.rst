@@ -1,3 +1,9 @@
+v8.2.3
+======
+
+- Added a build test for Python 3.12 pre-release versions.
+- Marked a test as xfail that currently fails on Python 3.12.
+
 v8.2.2
 ======
 
