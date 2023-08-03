@@ -884,6 +884,11 @@ void init_qpdf(py::module_ &m)
             because it may modify objects that the user does not expect to be
             modified.
 
+            If ``Pdf.Root.AcroForm.NeedAppearances`` is ``False`` or not present, no
+            action is taken (because no appearance streams need to be generated).
+            If ``True``, the appearance streams are generated, and the NeedAppearances
+            flag is set to ``False``.
+
             See:
                 https://github.com/qpdf/qpdf/blob/bf6b9ba1c681a6fac6d585c6262fb2778d4bb9d2/include/qpdf/QPDFFormFieldObjectHelper.hh#L216
 
