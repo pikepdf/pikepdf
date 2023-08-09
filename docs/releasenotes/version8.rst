@@ -1,3 +1,8 @@
+v8.3.0
+======
+
+- Mark Python 3.12 as supported and release wheels for it.
+
 v8.2.3
 ======
 
