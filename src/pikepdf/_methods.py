@@ -709,7 +709,7 @@ class Extend_Pdf:
                 filename = Path(filename_or_stream)
                 if (
                     not getattr(self, '_tmp_stream', None)
-                    and self._original_filename is not None
+                    and getattr(self, '_original_filename', None) is not None
                 ):
                     check_different_files(self._original_filename, filename)
                 stream = stack.enter_context(atomic_overwrite(filename))
