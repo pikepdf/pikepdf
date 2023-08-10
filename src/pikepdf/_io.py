@@ -5,18 +5,19 @@ from __future__ import annotations
 
 from contextlib import contextmanager, suppress
 from io import TextIOBase
+from os import PathLike
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import IO, Generator
 
 
-def check_stream_is_usable(stream):
+def check_stream_is_usable(stream: IO) -> None:
     """Check that a stream is seekable and binary."""
     if isinstance(stream, TextIOBase):
         raise TypeError("stream must be binary (no transcoding) and seekable")
 
 
-def check_different_files(file1, file2):
+def check_different_files(file1: str | PathLike, file2: str | PathLike) -> None:
     """Check that two files are different."""
     with suppress(FileNotFoundError):
         if Path(file1) == Path(file2) or Path(file1).samefile(Path(file2)):

@@ -707,8 +707,11 @@ class Extend_Pdf:
                 if not isinstance(filename_or_stream, (str, bytes, Path)):
                     raise TypeError("expected str, bytes or os.PathLike object")
                 filename = Path(filename_or_stream)
-                if not getattr(self, '_tmp_stream', None):
-                    check_different_files(self.filename, filename)
+                if (
+                    not getattr(self, '_tmp_stream', None)
+                    and self._original_filename is not None
+                ):
+                    check_different_files(self._original_filename, filename)
                 stream = stack.enter_context(atomic_overwrite(filename))
             self._save(
                 stream,

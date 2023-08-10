@@ -330,3 +330,10 @@ def test_atomic_overwrite_existing(tmp_path):
     assert existing_file.read_bytes() == b'new'
 
     assert list(tmp_path.glob('*.pikepdf')) == [], "Temporary files were not cleaned up"
+
+
+def test_memory_to_path(resources, tmp_path):
+    bio = BytesIO((resources / 'sandwich.pdf').read_bytes())
+    with Pdf.open(bio) as pdf:
+        assert len(pdf.pages) == 1
+        pdf.save(str(tmp_path / 'out.pdf'))
