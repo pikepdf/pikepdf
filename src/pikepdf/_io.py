@@ -7,6 +7,7 @@ from contextlib import contextmanager, suppress
 from io import TextIOBase
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from typing import IO, Generator
 
 
 def check_stream_is_usable(stream):
@@ -27,19 +28,27 @@ def check_different_files(file1, file2):
 
 
 @contextmanager
-def atomic_overwrite(filename: Path):
-    if not filename.exists():
+def atomic_overwrite(filename: Path) -> Generator[IO[bytes], None, None]:
+    try:
         try:
-            with filename.open("wb") as stream:
+            # Try to open the file in exclusive creation mode
+            with filename.open("xb") as stream:
                 yield stream
-        except Exception:
-            with suppress(FileNotFoundError):
-                filename.unlink()
-            raise
-        return
+            return
+        except FileExistsError:
+            pass
+    except Exception:
+        # Error while using exclusive creation mode - clean up
+        with suppress(FileNotFoundError):
+            filename.unlink()
+        raise
+
+    # The destination file already exists, use a temporary file, then rename
+    # it to the destination file if we succeed. Destination file is not touched
+    # if we fail.
 
     with filename.open("ab") as stream:
-        pass  # To confirm we have write permission without truncating
+        pass  # Confirm we will be able to write to the indicated destination
 
     with NamedTemporaryFile(
         dir=filename.parent, prefix=f".pikepdf.{filename.name}", delete=False
