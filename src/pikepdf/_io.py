@@ -30,6 +30,16 @@ def check_different_files(file1: str | PathLike, file2: str | PathLike) -> None:
 
 @contextmanager
 def atomic_overwrite(filename: Path) -> Generator[IO[bytes], None, None]:
+    """Atomically ovewrite a file.
+
+    If the destination file does not exist, it is created. If writing fails,
+    the destination file is deleted.
+
+    If the destination file does exist, a temporaryfile is created in the same
+    directory, and data is written to that file. If writing succeeds, the temporary
+    file is renamed to the destination file. If writing fails, the temporary file
+    is deleted and the original destination file is left untouched.
+    """
     try:
         try:
             # Try to open the file in exclusive creation mode
