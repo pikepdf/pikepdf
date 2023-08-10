@@ -1,3 +1,8 @@
+v8.3.1
+======
+
+- Fixed saving file opened from BytesIO object on Windows. :issue:`510`
+
 v8.3.0
 ======
 
