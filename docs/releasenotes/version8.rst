@@ -1,3 +1,8 @@
+v8.3.2
+======
+
+- Added _core.pyi typing hints, which were missing from wheels.
+
 v8.3.1
 ======
 
