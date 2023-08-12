@@ -77,7 +77,7 @@ include = ["pikepdf", "pikepdf.*"]
 namespaces = false
 
 [tool.setuptools.package-data]
-pikepdf = ["*.dll", "py.typed"]
+pikepdf = ["*.dll", "py.typed", "*.pyi", "**/*.pyi"]
 
 [tool.black]
 line-length = 88
