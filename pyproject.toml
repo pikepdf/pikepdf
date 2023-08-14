@@ -116,7 +116,8 @@ skip = [
   "cp37-*",
   "pp37-*",
   "*-win32",
-  "*musllinux*",
+  "*musllinux*_aarch64",
+  "cp38-musllinux*",
   "pp*-manylinux*_aarch64",
   "pp310-win_amd64",
 ]
@@ -138,19 +139,16 @@ before-all = [
 environment-pass = ["CI"]
 manylinux-x86_64-image = "manylinux2014"
 manylinux-pypy_x86_64-image = "manylinux2014"
-# Status of exotic images as of 2022-07
-# musllinux: see below
+musllinux-x86_64-image = "musllinux_1_2"
+# Status of other images as of 2023-08
 # pp*-manylinux*_aarch64: no Pillow pypy-aarch64 wheels yet
 
 [[tool.cibuildwheel.overrides]]
-# musllinux image was based on Alpine 3.12
-# We need Alpine 3.16 or newer to get newer required package versions
-# Check https://github.com/pypa/manylinux/blob/main/build.sh#L55 to see if
-# musllinux has been updated.
-# To test this, remove musllinux from the skip list in the table above.
 select = "*-musllinux*"
 before-all = [
-  "apk add py3-lxml py3-pillow python3 py3-setuptools py3-pybind11-dev python3-dev py3-wheel qpdf-dev exempi-dev",
+  "apk add py3-lxml py3-pillow python3 py3-setuptools py3-pybind11-dev python3-dev py3-wheel exempi-dev wget cmake make zlib-dev jpeg-dev",
+  "bash build-scripts/linux-download-qpdf.bash $QPDF_VERSION",
+  "bash build-scripts/linux-build-wheel-deps.bash",
 ]
 
 [tool.cibuildwheel.macos]

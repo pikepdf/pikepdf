@@ -10,7 +10,7 @@ else
     MAX_JOBS=
 fi
 
-if [ ! -f /usr/local/lib/libqpdf.a ]; then
+if [ ! -f /usr/local/lib/libqpdf.so ]; then
     pushd qpdf
     cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_STATIC_LIBS=OFF
     cmake --build build --parallel $MAX_JOBS --target libqpdf
@@ -19,4 +19,9 @@ if [ ! -f /usr/local/lib/libqpdf.a ]; then
     popd
 fi
 
-ldconfig
+if [ -f /etc/alpine-release ]; then
+    ldconfig /
+else
+    ldconfig
+fi
+
