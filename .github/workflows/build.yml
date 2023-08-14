@@ -270,6 +270,9 @@ jobs:
   upload_pypi:
     needs: [wheels_linux, wheels_macos, wheels_windows, wheels_macos_arm, wheels_linux_arm, sdist]
     runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      id-token: write
     # upload to PyPI on every tag starting with 'v'
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
     steps:
@@ -278,11 +281,8 @@ jobs:
           name: wheels
           path: dist
 
-      - uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: __token__
-          password: ${{ secrets.TOKEN_PYPI }}
-          # repository_url: https://test.pypi.org/legacy/
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
 
   trigger_rtd:
     name: Trigger ReadTheDocs
