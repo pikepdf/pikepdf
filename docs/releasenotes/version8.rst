@@ -1,3 +1,8 @@
+v8.4.0
+======
+
+- Added support for musllinux_1_2 (Alpine Linux 3.16) on x64.
+
 v8.3.2
 ======
 
