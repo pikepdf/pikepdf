@@ -105,21 +105,18 @@ exclude = '''
 [tool.cibuildwheel]
 test-command = "pytest -nauto {project}/tests"
 test-extras = "test"
-# cp36: ancient
-# pp37: discontinued by Pillow - https://pypi.org/project/Pillow/#files
-# pp310: no Pillow wheels yet
 # Reminder:
 #   build.yml sets CIBW_BUILD to select what can be built
 #   this file sets skip to deselect what cannot be built
 skip = [
-  "cp36-*",
-  "cp37-*",
-  "pp37-*",
-  "*-win32",
-  "*musllinux*_aarch64",
-  "cp38-musllinux*",
-  "pp*-manylinux*_aarch64",
-  "pp310-win_amd64",
+  "cp36-*",                 # too old
+  "cp37-*",                 # too old
+  "pp37-*",                 # too old
+  "*-win32",                # no 32-bit builds/not supported by Pillow anymore
+  "*musllinux*_aarch64",    # haven't tried yet/needs Cirrus tweaks
+  "cp38-musllinux*",        # too old - some dependendies don't have wheels
+  "pp*-manylinux*_aarch64", # not supported by Pillow yet
+  "pp310-win_amd64",        # no pypy3.10 64-bit Windows yet
 ]
 test-skip = "*_universal2:arm64"
 build-frontend = "build"
@@ -140,8 +137,7 @@ environment-pass = ["CI"]
 manylinux-x86_64-image = "manylinux2014"
 manylinux-pypy_x86_64-image = "manylinux2014"
 musllinux-x86_64-image = "musllinux_1_2"
-# Status of other images as of 2023-08
-# pp*-manylinux*_aarch64: no Pillow pypy-aarch64 wheels yet
+musllinux-aarch64-image = "musllinux_1_2"
 
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
