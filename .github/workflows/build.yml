@@ -21,7 +21,7 @@ jobs:
         platform: [manylinux_x86_64, musllinux_x86_64]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.15.0
@@ -55,7 +55,7 @@ jobs:
         os: [ubuntu-22.04]
         platform: [manylinux_x86_64]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build and test wheels (without upload)
         uses: pypa/cibuildwheel@v2.15.0
@@ -113,7 +113,7 @@ jobs:
         os: [macos-11]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.15.0
@@ -168,7 +168,7 @@ jobs:
         platform: [win_amd64]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v4
         name: Install Python
@@ -197,7 +197,7 @@ jobs:
     name: source distribution
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v4
         name: Install Python
