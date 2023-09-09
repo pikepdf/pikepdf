@@ -180,6 +180,7 @@ def fix_1bit_palette_image(
 
 def generate_ccitt_header(
     size: tuple[int, int],
+    *,
     data_length: int,
     ccitt_group: int,
     t4_options: int | None,
@@ -218,9 +219,10 @@ def generate_ccitt_header(
     add_ifd('ImageLength', height)
     add_ifd('BitsPerSample', 1)
     add_ifd('Compression', ccitt_group)
+    add_ifd('FillOrder', 1)
     if t4_options is not None:
         add_ifd('T4Options', t4_options)
-    add_ifd('PhotometricInterpretation', int(photometry))
+    add_ifd('PhotometricInterpretation', photometry)
     add_ifd('StripOffsets', lambda: image_offset)
     add_ifd('RowsPerStrip', height)
     add_ifd('StripByteCounts', data_length)
