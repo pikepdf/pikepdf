@@ -13,7 +13,7 @@ from io import BytesIO
 from itertools import zip_longest
 from pathlib import Path
 from shutil import copyfileobj
-from typing import Any, BinaryIO, Callable, NamedTuple, TypeVar, cast
+from typing import Any, BinaryIO, Callable, NamedTuple, TypeVar, Union, cast
 
 from PIL import Image
 from PIL.ImageCms import ImageCmsProfile
@@ -40,7 +40,7 @@ if sys.version_info >= (3, 9):
     RGBDecodeArray = tuple[float, float, float, float, float, float]
     GrayDecodeArray = tuple[float, float]
     CMYKDecodeArray = tuple[float, float, float, float, float, float, float, float]
-    DecodeArray = RGBDecodeArray | GrayDecodeArray | CMYKDecodeArray
+    DecodeArray = Union[RGBDecodeArray, GrayDecodeArray, CMYKDecodeArray]
 else:
     RGBDecodeArray = Any
     GrayDecodeArray = Any
