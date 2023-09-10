@@ -35,6 +35,11 @@ from pikepdf.models import _transcoding
 
 T = TypeVar('T')
 
+RGBDecodeArray = tuple[float, float, float, float, float, float]
+GrayDecodeArray = tuple[float, float]
+CMYKDecodeArray = tuple[float, float, float, float, float, float, float, float]
+DecodeArray = RGBDecodeArray | GrayDecodeArray | CMYKDecodeArray
+
 
 class UnsupportedImageTypeError(Exception):
     """This image is formatted in a way pikepdf does not supported."""
@@ -149,6 +154,29 @@ class PdfImageBase(ABC):
     def filters(self):
         """List of names of the filters that we applied to encode this image."""
         return self._metadata('Filter', _array_str, [])
+
+    @property
+    def _decode_array(self) -> DecodeArray:
+        """Extract the /Decode array."""
+        decode: list = self._metadata('Decode', _ensure_list, [])
+        if decode and len(decode) in (2, 6, 8):
+            return cast(DecodeArray, tuple(float(value) for value in decode))
+
+        if self.colorspace in ('/DeviceGray', '/CalGray'):
+            return (0.0, 1.0)
+        if self.colorspace == ('/DeviceRGB', '/CalRGB'):
+            return (0.0, 1.0, 0.0, 1.0, 0.0, 1.0)
+        if self.colorspace == '/DeviceCMYK':
+            return (0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0)
+        if self.colorspace == '/ICCBased':
+            if self._approx_mode_from_icc() == 'L':
+                return (0.0, 1.0)
+            if self._approx_mode_from_icc() == 'RGB':
+                return (0.0, 1.0, 0.0, 1.0, 0.0, 1.0)
+
+        raise NotImplementedError(
+            "Don't how to retrieve default /Decode array for image" + repr(self)
+        )
 
     @property
     def decode_parms(self):
@@ -737,7 +765,7 @@ class PdfImage(PdfImageBase):
         else:
             ccitt_group = 3  # Group 3 1-D
         black_is_one = self.decode_parms[0].get("/BlackIs1", False)
-        decode = self.decode_parms[0].get("/Decode", [0.0, 1.0])
+        decode = self._decode_array
         # PDF spec says:
         # BlackIs1: A flag indicating whether 1 bits shall be interpreted as black
         # pixels and 0 bits as white pixels, the reverse of the normal
@@ -748,7 +776,7 @@ class PdfImage(PdfImageBase):
         photometry = 1 if black_is_one else 0
 
         # If Decode is [1, 0] then the photometry is inverted
-        if decode[0] == 1.0 and decode[1] == 0.0:
+        if len(decode) == 2 and decode == (1.0, 0.0):
             photometry = 1 - photometry
 
         img_size = len(data)
