@@ -1,3 +1,8 @@
+v8.4.1
+======
+
+- Fixed an issue with a monochrome that decoded with colors inverted. :issue:`517`
+
 v8.4.0
 ======
 
