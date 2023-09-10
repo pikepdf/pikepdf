@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import sys
 from abc import ABC, abstractmethod
 from copy import copy
 from decimal import Decimal
@@ -35,10 +36,16 @@ from pikepdf.models import _transcoding
 
 T = TypeVar('T')
 
-RGBDecodeArray = tuple[float, float, float, float, float, float]
-GrayDecodeArray = tuple[float, float]
-CMYKDecodeArray = tuple[float, float, float, float, float, float, float, float]
-DecodeArray = RGBDecodeArray | GrayDecodeArray | CMYKDecodeArray
+if sys.version_info >= (3, 9):
+    RGBDecodeArray = tuple[float, float, float, float, float, float]
+    GrayDecodeArray = tuple[float, float]
+    CMYKDecodeArray = tuple[float, float, float, float, float, float, float, float]
+    DecodeArray = RGBDecodeArray | GrayDecodeArray | CMYKDecodeArray
+else:
+    RGBDecodeArray = Any
+    GrayDecodeArray = Any
+    CMYKDecodeArray = Any
+    DecodeArray = Any
 
 
 class UnsupportedImageTypeError(Exception):
