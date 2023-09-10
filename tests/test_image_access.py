@@ -688,23 +688,32 @@ def test_stacked_compression(first_image_in):
     assert pim.filters == ['/FlateDecode', '/JPXDecode']
 
 
-def test_ccitt_photometry(sandwich):
+@pytest.mark.parametrize(
+    'blackis1,decode,expected',
+    [
+        (None, None, 255),
+        (False, None, 255),
+        (True, None, 0),
+        (None, [0, 1], 255),
+        (None, [1, 0], 0),
+        (False, [0, 1], 255),
+        (False, [1, 0], 0),
+        (True, [0, 1], 0),
+        (True, [1, 0], 255),
+    ],
+)
+def test_ccitt_photometry(sandwich, blackis1, decode, expected):
     xobj, _pdf = sandwich
+
+    if blackis1 is not None:
+        xobj.DecodeParms.BlackIs1 = blackis1
+    if decode is not None:
+        xobj.Decode = decode
 
     pim = PdfImage(xobj)
     im = pim.as_pil_image()
     im = im.convert('L')
-    assert im.getpixel((0, 0)) == 255, "Expected white background"
-
-    xobj.DecodeParms.BlackIs1 = True
-    im = pim.as_pil_image()
-    im = im.convert('L')
-    assert im.getpixel((0, 0)) == 0, "Expected white background"
-
-    xobj.DecodeParms.BlackIs1 = False
-    im = pim.as_pil_image()
-    im = im.convert('L')
-    assert im.getpixel((0, 0)) == 255, "Expected white background"
+    assert im.getpixel((0, 0)) == expected, f"Expected background pixel = {expected}"
 
 
 def test_ccitt_encodedbytealign(sandwich):
