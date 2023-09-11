@@ -270,7 +270,9 @@ jobs:
   upload_pypi:
     needs: [wheels_linux, wheels_macos, wheels_windows, wheels_macos_arm, wheels_linux_arm, sdist]
     runs-on: ubuntu-latest
-    environment: release
+    environment:
+      name: release
+      url: https://pypi.org/p/pikepdf
     permissions:
       id-token: write
     # upload to PyPI on every tag starting with 'v'
