@@ -29,6 +29,11 @@ void init_rectangle(py::module_ &m)
             is not strictly less than the upper right corner.
 
             .. versionadded:: 2.14
+
+            .. versionchanged:: 8.5
+                Added operators to test whether rectangle ``a`` is contained in
+                rectangle ``b`` (``a <= b``) and to calculate their intersection
+                (``a & b``).
         )~~~")
         .def(py::init<double, double, double, double>())
         .def(py::init([](QPDFObjectHandle &h) {
@@ -51,7 +56,28 @@ void init_rectangle(py::module_ &m)
                 return self.llx == other.llx && self.lly == other.lly &&
                        self.urx == other.urx && self.ury == other.ury;
             },
+            py::arg("other"),
             py::is_operator())
+        .def(
+            "__le__",
+            [](Rect &self, Rect &other) {
+                return self.llx >= other.llx && self.lly >= other.lly &&
+                       self.urx <= other.urx && self.ury <= other.ury;
+            },
+            py::arg("other"),
+            py::is_operator(),
+            "Return True if self is contained in other or equal to other.")
+        .def(
+            "__and__",
+            [](Rect &self, Rect &other) -> Rect {
+                return {std::max(self.llx, other.llx),
+                    std::max(self.lly, other.lly),
+                    std::min(self.urx, other.urx),
+                    std::min(self.ury, other.ury)};
+            },
+            py::arg("other"),
+            py::is_operator(),
+            "Return the bounding Rectangle of the common area of self and other.")
         .def_property(
             "llx",
             [](Rect &r) { return r.llx; },
