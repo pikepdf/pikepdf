@@ -117,6 +117,7 @@ skip = [
   "cp38-musllinux*",        # too old - some dependendies don't have wheels
   "pp*-manylinux*_aarch64", # not supported by Pillow yet
   "pp310-win_amd64",        # no pypy3.10 64-bit Windows yet
+  "pp310-*",                # numpy isn't shipping pp3.10 wheels yet
 ]
 test-skip = "*_universal2:arm64"
 build-frontend = "build"
