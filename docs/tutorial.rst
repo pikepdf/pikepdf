@@ -22,7 +22,7 @@ a file system).
 .. code-block:: python
 
    from pikepdf import Pdf
-   new_pdf = Pdf.new()
+
    with Pdf.open('sample.pdf') as pdf:
        pdf.save('output.pdf')
 
@@ -39,6 +39,22 @@ opening are different. To make a new empty PDF, use :func:`Pdf.new()` not ``Pdf(
 ``Pdf.open()`` also accepts seekable streams as input, and :meth:`pikepdf.Pdf.save()` accepts
 streams as output. :class:`pathlib.Path` objects are fully supported wherever
 pikepdf accepts a filename.
+
+Creating PDFs
+-------------
+
+Using :meth:`pikepdf.Pdf.new`, you can create a new PDF from scratch. pikepdf
+is not primarily a PDF generation library - you may find other libraries easier
+to use for that purpose. However, pikepdf does provide a few useful functions
+for creating PDFs.
+
+.. code-block:: python
+
+    from pikepdf import Pdf
+
+    pdf = Pdf.new()
+    pdf.add_blank_page()
+    pdf.save('blank_page.pdf')
 
 Inspecting pages
 ----------------
