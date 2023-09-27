@@ -19,14 +19,15 @@ void init_embeddedfiles(py::module_ &m)
 {
     py::class_<QPDFFileSpecObjectHelper,
         std::shared_ptr<QPDFFileSpecObjectHelper>,
-        QPDFObjectHelper>(m, "AttachedFileSpec")
+        QPDFObjectHelper>(m, "AttachedFileSpec") // /Type /Filespec
         .def(py::init([](QPDF &q,
                           py::bytes data,
                           std::string description,
                           std::string filename,
                           std::string mime_type,
                           std::string creation_date,
-                          std::string mod_date) {
+                          std::string mod_date,
+                          QPDFObjectHandle &relationship) {
             auto efstream =
                 QPDFEFStreamObjectHelper::createEFStream(q, std::string(data));
             auto filespec =
@@ -41,6 +42,10 @@ void init_embeddedfiles(py::module_ &m)
             if (!mod_date.empty())
                 efstream.setModDate(mod_date);
 
+            if (relationship.isName()) {
+                filespec.getObjectHandle().replaceKey("/AFRelationship", relationship);
+            }
+
             return filespec;
         }),
             py::keep_alive<0, 1>(),
@@ -52,6 +57,7 @@ void init_embeddedfiles(py::module_ &m)
             py::arg("mime_type")     = std::string(""),
             py::arg("creation_date") = std::string(""),
             py::arg("mod_date")      = std::string(""),
+            py::arg("relationship")  = QPDFObjectHandle::newName("/Unspecified"),
             R"~~~(
             Construct a attached file spec from data in memory.
 
@@ -66,6 +72,11 @@ void init_embeddedfiles(py::module_ &m)
                 mime_type: Helps PDF viewers decide how to display the information.
                 creation_date: PDF date string for when this file was created.
                 mod_date: PDF date string for when this file was last modified.
+                relationship: A :class:`pikepdf.Name` indicating the relationship
+                    of this file to the document. Canonically, this should be a name
+                    from the PDF specification:
+                    Source, Data, Alternative, Supplement, EncryptedPayload, FormData,
+                    Schema, Unspecified. If omitted, Unspecified is used.
             )~~~")
         .def_property("description",
             &QPDFFileSpecObjectHelper::getDescription,
@@ -133,7 +144,7 @@ void init_embeddedfiles(py::module_ &m)
 
     py::class_<QPDFEFStreamObjectHelper,
         std::shared_ptr<QPDFEFStreamObjectHelper>,
-        QPDFObjectHelper>(m, "AttachedFile")
+        QPDFObjectHelper>(m, "AttachedFile") // /Type /EmbeddedFile
         .def_property_readonly("size",
             &QPDFEFStreamObjectHelper::getSize,
             "Get length of the attached file in bytes according to the PDF creator.")

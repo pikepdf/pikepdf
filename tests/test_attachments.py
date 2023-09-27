@@ -92,6 +92,10 @@ def test_attachment_metadata(pal, data=b'some data', description='test filespec'
     fs.description = 'xyz'
     assert fs.description == 'xyz'
 
+    assert fs.relationship == Name.Unspecified
+    fs.relationship = Name.Source
+    assert fs.relationship == Name.Source
+
     attached_stream = fs.get_file()
     assert attached_stream.creation_date is None
     assert attached_stream.mod_date is None
@@ -114,7 +118,9 @@ def test_compound_attachment(pal):
     data = [b'data stream 1', b'data stream 2']
     filename = [b'filename of data stream 1', b'filename of data stream 2']
 
-    fs = AttachedFileSpec(pal, data[0], description='test filespec')
+    fs = AttachedFileSpec(
+        pal, data[0], description='test filespec', relationship=Name.Data
+    )
     fs.filename = 'compound filespec'
     fs.obj.UF = filename[0]
 
@@ -134,6 +140,7 @@ def test_compound_attachment(pal):
     assert fs.get_file(Name.F).read_bytes() == data[1]
 
     assert fs.get_file().md5 == md5(data[0]).digest()
+    assert fs.relationship == Name.Data
 
     pal.attachments['compound'] = fs
 
@@ -141,9 +148,12 @@ def test_compound_attachment(pal):
 def test_from_str_filepath(pal, outdir):
     foofile = outdir / 'foo'
     foofile.touch()
-    fs = AttachedFileSpec.from_filepath(pal, str(foofile), description='bar')
+    fs = AttachedFileSpec.from_filepath(
+        pal, str(foofile), description='bar', relationship=Name.Data
+    )
     assert os.sep not in fs.filename
     assert 'foo' in repr(fs)
     fs.filename = ''
     assert 'foo' not in repr(fs)
     assert 'AttachedFile' in repr(fs.get_file())
+    assert fs.relationship == Name.Data

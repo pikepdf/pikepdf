@@ -1333,7 +1333,13 @@ class Extend_Attachments(MutableMapping):
 @augments(AttachedFileSpec)
 class Extend_AttachedFileSpec:
     @staticmethod
-    def from_filepath(pdf: Pdf, path: Path | str, *, description: str = ''):
+    def from_filepath(
+        pdf: Pdf,
+        path: Path | str,
+        *,
+        description: str = '',
+        relationship: Name | None = Name.Unspecified,
+    ):
         """Construct a file specification from a file path.
 
         This function will automatically add a creation and modified date
@@ -1347,6 +1353,11 @@ class Extend_AttachedFileSpec:
             path: A file path for the file to attach to this Pdf.
             description: An optional description. May be shown to the user in
                 PDF viewers.
+            relationship: An optional relationship type. May be used to
+                indicate the type of attachment, e.g. Name.Source or Name.Data.
+                Canonically, this should be a name from the PDF specification:
+                Source, Data, Alternative, Supplement, EncryptedPayload, FormData,
+                Schema, Unspecified. If omitted, Unspecified is used.
         """
         mime, _ = mimetypes.guess_type(str(path))
         if mime is None:
@@ -1365,7 +1376,19 @@ class Extend_AttachedFileSpec:
                 datetime.datetime.fromtimestamp(stat.st_ctime)
             ),
             mod_date=encode_pdf_date(datetime.datetime.fromtimestamp(stat.st_mtime)),
+            relationship=relationship,
         )
+
+    @property
+    def relationship(self) -> Name | None:
+        return self.obj.get(Name.AFRelationship)
+
+    @relationship.setter
+    def relationship(self, value: Name | None):
+        if value is None:
+            del self.obj[Name.AFRelationship]
+        else:
+            self.obj[Name.AFRelationship] = value
 
     def __repr__(self):
         if self.filename:
