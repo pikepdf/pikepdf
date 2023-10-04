@@ -2,9 +2,11 @@ v8.5.0
 ======
 
 - We now require Pillow 10.0.1, due a serious security vulnerability in all earlier
-  versions. As a consequence, we no longer build binary wheels for PyPy 3.8. CPython
-  3.8 is still supported on all platforms.
-- The embedded files/attachments API now supports described the relationship of the
+  versions of that dependency. The vulnerability concerns WebP images, which are
+  likely not involved in PDF processing, but we have updated the dependency anyway
+  as a precaution. As a consequence, we no longer build binary wheels for PyPy 3.8.
+  CPython 3.8 is still supported on all platforms.
+- The embedded files/attachments API now supports describing the relationship of the
   attached file (AFRelationship).
 
 v8.4.1
