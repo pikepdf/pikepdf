@@ -26,13 +26,7 @@ classifiers = [
   "Topic :: Multimedia :: Graphics",
   "Topic :: Software Development :: Libraries",
 ]
-dependencies = [
-  "Pillow>=9.0",
-  "Pillow<10; platform_python_implementation == 'PyPy' and python_version < '3.9'",
-  "deprecation",
-  "lxml>=4.8",
-  "packaging",
-]
+dependencies = ["Pillow>=10.0.1", "deprecation", "lxml>=4.8", "packaging"]
 
 [project.urls]
 documentation = "https://pikepdf.readthedocs.io/"
@@ -112,6 +106,7 @@ skip = [
   "cp36-*",                 # too old
   "cp37-*",                 # too old
   "pp37-*",                 # too old
+  "pp38-*",                 # too old (no Pillow support)
   "*-win32",                # no 32-bit builds/not supported by Pillow anymore
   "*musllinux*_aarch64",    # haven't tried yet/needs Cirrus tweaks
   "cp38-musllinux*",        # too old - some dependendies don't have wheels
