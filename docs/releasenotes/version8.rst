@@ -1,3 +1,12 @@
+v8.5.0
+======
+
+- We now require Pillow 10.0.1, due a serious security vulnerability in all earlier
+  versions. As a consequence, we no longer build binary wheels for PyPy 3.8. CPython
+  3.8 is still supported on all platforms.
+- The embedded files/attachments API now supports described the relationship of the
+  attached file (AFRelationship).
+
 v8.4.1
 ======
 
