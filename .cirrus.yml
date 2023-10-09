@@ -5,7 +5,11 @@ cirrus_macos_arm64_wheel_task:
     image: ghcr.io/cirruslabs/macos-monterey-xcode
 
   env:
-    CIBW_BUILD: cp39-macosx_arm64 cp310-macosx_arm64 cp311-macosx_arm64
+    CIBW_BUILD: >-
+      cp39-macosx_arm64
+      cp310-macosx_arm64
+      cp311-macosx_arm64
+      cp312-macosx_arm64
 
   cibuildwheel_script:
     - brew install pipx
@@ -26,7 +30,16 @@ cirrus_linux_arm64_wheel_task:
     memory: 4G
 
   env:
-    CIBW_BUILD: cp38-manylinux_aarch64 cp39-manylinux_aarch64 cp310-manylinux_aarch64 cp311-manylinux_aarch64
+    CIBW_BUILD: >-
+      cp38-manylinux_aarch64
+      cp39-manylinux_aarch64
+      cp310-manylinux_aarch64
+      cp311-manylinux_aarch64
+      cp312-manylinux_aarch64
+      cp39-musllinux_aarch64
+      cp310-musllinux_aarch64
+      cp311-musllinux_aarch64
+      cp312-musllinux_aarch64
 
   cibuildwheel_script:
     - apt-get install -y python3 python-is-python3 pipx
