@@ -41,20 +41,23 @@ def atomic_overwrite(filename: Path) -> Generator[IO[bytes], None, None]:
     is deleted and the original destination file is left untouched.
     """
     try:
+        # Try to create the file using exclusive creation mode
+        stream = filename.open("xb")
+    except FileExistsError:
+        pass
+    else:
+        # We were able to create the file, so we can use it directly
         try:
-            # Try to open the file in exclusive creation mode
-            with filename.open("xb") as stream:
+            with stream:
                 yield stream
-            return
-        except FileExistsError:
-            pass
-    except Exception:
-        # Error while using exclusive creation mode - clean up
-        with suppress(FileNotFoundError):
-            filename.unlink()
-        raise
+        except Exception:
+            # ...but if an error occurs while using it, clean up
+            with suppress(FileNotFoundError):
+                filename.unlink()
+            raise
+        return
 
-    # The destination file already exists, use a temporary file, then rename
+    # If we get here, the file already exists. Use a temporary file, then rename
     # it to the destination file if we succeed. Destination file is not touched
     # if we fail.
 
