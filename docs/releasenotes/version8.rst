@@ -1,3 +1,10 @@
+v8.5.1
+======
+
+- Added building of Python 3.12 aarch64 images.
+- Added building of musllinux_1_2 aarch64 images.
+- Tweaked exception handler of ``atomic_overwrite``.
+
 v8.5.0
 ======
 
