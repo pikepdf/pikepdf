@@ -175,16 +175,20 @@ PYBIND11_MODULE(_core, m)
             "Return True if default access is to use mmap.")
         .def(
             "set_access_default_mmap",
-            [](bool mmap) { MMAP_DEFAULT = mmap; },
+            [](bool mmap) {
+                MMAP_DEFAULT = mmap;
+                return MMAP_DEFAULT;
+            },
             "If True, ``pikepdf.open(...access_mode=access_default)`` will use mmap.")
         .def(
             "set_flate_compression_level",
             [](int level) {
-                if (-1 <= level && level <= 9)
+                if (-1 <= level && level <= 9) {
                     Pl_Flate::setCompressionLevel(level);
-                else
-                    throw py::value_error(
-                        "Flate compression level must be between 0 and 9 (or -1)");
+                    return level;
+                }
+                throw py::value_error(
+                    "Flate compression level must be between 0 and 9 (or -1)");
             },
             R"~~~(
             Set the compression level whenever the Flate compression algorithm is used.
