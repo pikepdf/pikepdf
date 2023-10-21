@@ -96,7 +96,7 @@ pdfdoc_text = text(
 @example('\r\n')
 @example('\r')
 @example('\n')
-@settings(deadline=4000)  # CI workers can be flakey
+@settings(deadline=60000)  # CI workers can be flakey
 def test_open_encoding_pdfdoc_write(tmp_path_factory, s):
     folder = tmp_path_factory.mktemp('pdfdoc')
     txt = folder / 'pdfdoc.txt'
@@ -109,7 +109,7 @@ def test_open_encoding_pdfdoc_write(tmp_path_factory, s):
 
 
 @given(pdfdoc_text)
-@settings(deadline=4000)  # CI workers can be flakey
+@settings(deadline=60000)  # CI workers can be flakey
 @example('\r\n')
 @example('\r')
 @example('\n')

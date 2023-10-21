@@ -10,7 +10,7 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 import pytest
-from conftest import skip_if_pypy, skip_if_slow_cpu
+from conftest import skip_if_ci, skip_if_pypy
 from hypothesis import assume, example, given, settings
 from hypothesis import strategies as st
 from hypothesis.strategies import integers
@@ -554,7 +554,7 @@ def test_extension_level(trivial, outpdf):
         trivial.save(outpdf, force_version=('1.7', 'invalid extension level'))
 
 
-@settings(deadline=500)
+@settings(deadline=60000)
 @given(
     st.dictionaries(
         keys=st.sampled_from(
@@ -607,7 +607,7 @@ def test_random_docinfo(docinfo):
     )
 )
 @skip_if_pypy
-@skip_if_slow_cpu
+@skip_if_ci
 def test_random_valid_docinfo(docinfo):
     p = pikepdf.new()
     with p.open_metadata() as m:

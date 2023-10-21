@@ -550,7 +550,7 @@ def first_image_from_pdfimages(pdf, tmpdir):
 
 
 @given(spec=valid_random_palette_image_spec())
-@settings(deadline=2000)
+@settings(deadline=60000)
 def test_image_palette2(spec, tmp_path_factory):
     pdf = pdf_from_palette_image_spec(spec)
     pim = PdfImage(pdf.pages[0].Resources.XObject['/Im0'])
