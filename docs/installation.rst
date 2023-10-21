@@ -20,16 +20,6 @@ virtual environment).
 Use ``pip install --user pikepdf`` to install the package for the current user
 only. Use ``pip install pikepdf`` to install to a virtual environment.
 
-**Linux users:** If you have an older version of ``pip``, such as the one that ships
-with Ubuntu 18.04, this command will attempt to compile the project instead of
-installing the wheel. If you want to get the binary wheel, upgrade ``pip`` with:
-
-.. code-block:: bash
-
-    wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
-    pip --version  # should be 20.0 or newer
-    pip install pikepdf
-
 Binary wheel availability
 -------------------------
 
