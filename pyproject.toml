@@ -54,14 +54,14 @@ test = [
   "coverage[toml]",
   "hypothesis>=6.36",
   "numpy>=1.21.0",
-  "psutil>=5.9; sys_platform != 'nt'",
+  "psutil>=5.9; os_name != 'nt'",
   "pybind11",
   "pytest>=6.2.5",
   "pytest-cov>=3.0.0",
   "pytest-timeout>=2.1.0",
   "pytest-xdist>=2.5.0",
   "python-dateutil>=2.8.1",
-  "python-xmp-toolkit>=2.0.1; sys_platform != 'nt' and platform_machine == 'x86_64'",
+  "python-xmp-toolkit>=2.0.1; os_name != 'nt' and platform_machine == 'x86_64'",
   "tomli; python_version < '3.11'",
 ]
 
