@@ -53,7 +53,7 @@ class _ObjectMeta(type(Object)):  # type: ignore
 class _NameObjectMeta(_ObjectMeta):
     """Support usage pikepdf.Name.Whatever -> Name('/Whatever')."""
 
-    def __getattr__(self, attr: str) -> Any:
+    def __getattr__(self, attr: str) -> Name:
         if attr.startswith('_') or attr == 'object_type':
             return getattr(_ObjectMeta, attr)
         return Name('/' + attr)
@@ -67,7 +67,7 @@ class _NameObjectMeta(_ObjectMeta):
             "modify a Dictionary rather than a Name?"
         )
 
-    def __getitem__(self, item: str) -> Name:
+    def __getitem__(self, item: str) -> None:
         if item.startswith('/'):
             item = item[1:]
         raise TypeError(
