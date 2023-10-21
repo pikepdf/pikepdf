@@ -3,6 +3,8 @@ v8.5.2
 
 - Rebuilt wheels with libqpdf 11.6.3, which solves a potential data loss issue,
   albeit in rare circumstances. See `QPDF issue #1050 <https://github.com/qpdf/qpdf/issues/1050>`_.
+- Fixed unclear return values of pikepdf._core.set/get* functions. The set functions
+  now return the current value.
 - Fixed minor typing issues.
 
 v8.5.1
