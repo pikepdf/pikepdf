@@ -807,8 +807,12 @@ class PdfImage(PdfImageBase):
         self._pdf_source = pdf
 
     def __repr__(self):
+        try:
+            mode = self.mode
+        except NotImplementedError:
+            mode = '?'
         return (
-            f'<pikepdf.PdfImage image mode={self.mode} '
+            f'<pikepdf.PdfImage image mode={mode} '
             f'size={self.width}x{self.height} at {hex(id(self))}>'
         )
 

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import re
 import subprocess
 import zlib
 from contextlib import contextmanager
@@ -1296,3 +1297,22 @@ def test_extract_stencil_mask(spec):
     pim.extract_to(stream=bio)
     im = Image.open(bio)
     assert im.mode == '1'
+
+
+def test_repr_when_mode_not_impl():
+    pdf = Pdf.new()
+    pim = PdfImage(
+        Stream(
+            pdf,
+            b'',
+            BitsPerComponent=1,
+            ColorSpace=Name.InvalidColorSpace,
+            Width=1,
+            Height=1,
+            Type=Name.XObject,
+            Subtype=Name.Image,
+        )
+    )
+    assert repr(pim).startswith('<pikepdf.PdfImage image mode=? size=1x1')
+    with pytest.raises(NotImplementedError):
+        pim.mode
