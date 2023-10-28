@@ -280,7 +280,7 @@ class Stream(Object, metaclass=_ObjectMeta):
             Support creation of ``pikepdf.Stream`` from existing dictionary.
 
         .. versionchanged:: 3.0
-            Deprecated ``obj`` argument was removed; use ``data``.
+            ``obj`` argument was removed; use ``data``.
         """
         if data is None:
             raise TypeError("Must make Stream from binary data")

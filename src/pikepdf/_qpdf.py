@@ -3,10 +3,12 @@
 
 from __future__ import annotations
 
+# pragma: no cover
 # isort: skip_file
 # type: ignore
 
 # This module is deprecated - use pikepdf._core instead, if you must
+# Remove for pikepdf 9
 from warnings import warn as _warn
 
 from pikepdf._core import (

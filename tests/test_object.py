@@ -740,6 +740,8 @@ def test_object_mapping(sandwich):
     assert '42' not in object_mapping
     assert '/R12' in object_mapping
     assert '/R12' in object_mapping.keys()
+    assert object_mapping.get(Name.R12) == object_mapping[Name.R12]
+    assert object_mapping.get(Name.DoesNotExist, 42) == 42
 
 
 def test_replace_object(sandwich):

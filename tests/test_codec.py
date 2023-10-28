@@ -148,3 +148,9 @@ def test_stream_reader(s):
     sr = pikepdf.codec.PdfDocStreamReader(bio)
     result = sr.read()
     assert result == s
+
+
+def test_pdfdoc_encode_lookup_error():
+    not_in_pdfdoc = '你好'
+    with pytest.raises(LookupError):
+        not_in_pdfdoc.encode('pdfdoc_pikepdf', errors="invalid error handler")
