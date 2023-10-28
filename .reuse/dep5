@@ -4,27 +4,22 @@ Upstream-Contact: James R. Barlow <james@purplerock.ca>
 Source: https://github.com/pikepdf/pikepdf
 
 Files:
-  setup.cfg
   licenses-for-wheels.txt
 Copyright: (C) 2022 James R. Barlow
 License: MPL-2.0
 
-Files: 
+Files:
   .git_archival.txt
-  docs/*.rst 
-  docs/*.py 
-  docs/Makefile 
-  docs/*.csv 
-  docs/make.bat 
-  docs/requirements.txt
-  docs/*.ipynb 
+  docs/*.csv
+  docs/*.ipynb
+  docs/*.py
+  docs/*.rst
   docs/images/acrobat-attachments.png
   docs/images/pdfcoords.svg
+  docs/make.bat
+  docs/Makefile
+  docs/requirements.txt
   tests/resources/1biticc.pdf
-  tests/resources/pal*.pdf
-  tests/resources/pdfx.pdf
-  tests/resources/rle.pdf
-  licenses/license.wheel.txt
   tests/resources/aquamarine-cie.pdf
   tests/resources/aquamarine-cie.png
   tests/resources/cmyk-jpeg.pdf
@@ -33,9 +28,13 @@ Files:
   tests/resources/fourpages.pdf
   tests/resources/image-mono-inline.pdf
   tests/resources/invalid_creationdate.pdf
+  tests/resources/newline-buffer-test.pdf
+  tests/resources/pal*.pdf
+  tests/resources/pdfx.pdf
   tests/resources/pink-palette-icc.pdf
-  tests/resources/pink-palette-icc.png  
-Copyright: (C) 2022 James R. Barlow
+  tests/resources/pink-palette-icc.png
+  tests/resources/rle.pdf
+Copyright: (C) 2023 James R. Barlow
 License: CC-BY-SA-4.0
 
 Files: docs/images/pike.png tests/resources/pike*jp2.pdf

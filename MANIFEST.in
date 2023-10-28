@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2023 James R. Barlow
+# SPDX-License-Identifier: MPL-2.0
+
 include src/core/*.h
 graft tests
 prune tests/resources/private
