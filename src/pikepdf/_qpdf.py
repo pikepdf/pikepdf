@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-# pragma: no cover
 # isort: skip_file
 # type: ignore
 

@@ -167,6 +167,7 @@ addopts = "-n auto"
 
 [tool.coverage.run]
 concurrency = ["multiprocessing"]
+omit = ["src/pikepdf/_qpdf.py"]  # Remove in pikepdf 9
 
 [tool.coverage.report]
 # Regexes for lines to exclude from consideration
