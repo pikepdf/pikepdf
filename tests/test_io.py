@@ -236,3 +236,16 @@ def test_memory_to_path(resources, tmp_path):
     with Pdf.open(bio) as pdf:
         assert len(pdf.pages) == 1
         pdf.save(str(tmp_path / 'out.pdf'))
+
+
+def test_newline_handling(resources):
+    with Pdf.open(
+        resources / 'newline-buffer-test.pdf',
+        access_mode=pikepdf._core.AccessMode.mmap_only,
+    ) as pdf:
+        assert pdf.check() == []
+    with Pdf.open(
+        resources / 'newline-buffer-test.pdf',
+        access_mode=pikepdf._core.AccessMode.stream,
+    ) as pdf:
+        assert pdf.check() == []
