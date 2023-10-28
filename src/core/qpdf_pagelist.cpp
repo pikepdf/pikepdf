@@ -184,7 +184,6 @@ void PageList::insert_page(py::size_t index, py::handle obj)
         this->try_insert_qpdfobject_as_page(index, obj);
         return;
     }
-    throw py::type_error("only pages can be inserted to a page list");
 }
 
 void PageList::insert_page(py::size_t index, QPDFPageObjectHelper page)
