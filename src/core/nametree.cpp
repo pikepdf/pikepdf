@@ -40,7 +40,7 @@ void init_nametree(py::module_ &m)
                 Create a new NameTree in the provided Pdf.
 
                 You will probably need to insert the name tree in the PDF's
-                catalog. For example, to insert this name tree in 
+                catalog. For example, to insert this name tree in
                 /Root /Names /Dests:
 
                 .. code-block:: python
@@ -59,8 +59,6 @@ void init_nametree(py::module_ &m)
                     self.getObjectHandle(), other.getObjectHandle());
             },
             py::is_operator())
-        .def_property_readonly(
-            "_pikepdf_disallow_objecthandle_encode", [](NameTree &nt) { return true; })
         .def("__contains__",
             [](NameTree &nt, std::string const &name) { return nt.hasName(name); })
         .def("__getitem__",

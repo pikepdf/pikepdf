@@ -128,14 +128,6 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle)
     }
 
     if (py::hasattr(obj, "__iter__")) {
-        // Kludge to prevent converting certain objects into Dictionary or Array
-        // when passed, e.g. to Object.__setitem__('/Key', ...). Specifically
-        // added for NameTree.
-        if (py::hasattr(obj, "_pikepdf_disallow_objecthandle_encode")) {
-            throw py::type_error(
-                "Can't convert this object to pikepdf.Object implicitly.");
-        }
-
         bool is_mapping = false; // PyMapping_Check is unreliable in Py3
         if (py::hasattr(obj, "keys"))
             is_mapping = true;
