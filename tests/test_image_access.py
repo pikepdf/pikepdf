@@ -38,6 +38,7 @@ from pikepdf import (
     StreamDecodeLevel,
     parse_content_stream,
 )
+from pikepdf.jbig2 import JBIG2Decoder
 from pikepdf.models._transcoding import _next_multiple, unpack_subbyte_pixels
 from pikepdf.models.image import (
     DependencyError,
@@ -736,27 +737,45 @@ def test_imagemagick_uses_rle_compression(first_image_in):
     assert im.getpixel((5, 5)) == (255, 128, 0)
 
 
-# Unforuntately pytest cannot test for this using "with pytest.warns(...)".
+# Unfortunately pytest cannot test for this using "with pytest.warns(...)".
 # Suppression is the best we can manage
 suppress_unraisable_jbigdec_error_warning = pytest.mark.filterwarnings(
     "ignore:.*jbig2dec error.*:pytest.PytestUnraisableExceptionWarning"
 )
 
 
-@needs_python_v("3.8", reason="for pytest unraisable exception support")
+@pytest.fixture
+def patch_jbig2dec():
+    original = pikepdf.jbig2.get_decoder()
+
+    def _patch_jbig2dec(runner):
+        pikepdf.jbig2.set_decoder(JBIG2Decoder(subprocess_run=runner))
+
+    yield _patch_jbig2dec
+    pikepdf.jbig2.set_decoder(original)
+
+
+def test_check_specialized_decoder_fallback(resources, patch_jbig2dec):
+    def run_claim_notfound(args, *pargs, **kwargs):
+        raise FileNotFoundError(args[0])
+
+    patch_jbig2dec(run_claim_notfound)
+
+    with pikepdf.open(resources / 'jbig2.pdf') as pdf:
+        with pytest.warns(UserWarning, match=r".*missing some specialized.*"):
+            problems = pdf.check()
+        assert len(problems) == 0
+
+
 @suppress_unraisable_jbigdec_error_warning
-def test_jbig2_not_available(jbig2, monkeypatch):
+def test_jbig2_not_available(jbig2, patch_jbig2dec):
     xobj, _pdf = jbig2
     pim = PdfImage(xobj)
 
-    class NotFoundJBIG2Decoder(pikepdf.jbig2.JBIG2DecoderInterface):
-        def check_available(self):
-            raise DependencyError('jbig2dec') from FileNotFoundError('jbig2dec')
+    def run_claim_notfound(args, *pargs, **kwargs):
+        raise FileNotFoundError('jbig2dec')
 
-        def decode_jbig2(self, jbig2: bytes, jbig2_globals: bytes) -> bytes:
-            raise FileNotFoundError('jbig2dec')
-
-    monkeypatch.setattr(pikepdf.jbig2, 'get_decoder', NotFoundJBIG2Decoder)
+    patch_jbig2dec(run_claim_notfound)
 
     assert not pikepdf.jbig2.get_decoder().available()
 
@@ -826,37 +845,32 @@ def test_jbig2_global_palette(first_image_in):
     assert im.getpixel((0, 0)) == 255  # Ensure loaded
 
 
-@needs_python_v("3.8", reason="for pytest unraisable exception support")
 @suppress_unraisable_jbigdec_error_warning
-def test_jbig2_error(first_image_in, monkeypatch):
+def test_jbig2_error(first_image_in, patch_jbig2dec):
     xobj, _pdf = first_image_in('jbig2global.pdf')
     pim = PdfImage(xobj)
 
-    class BrokenJBIG2Decoder(pikepdf.jbig2.JBIG2DecoderInterface):
-        def check_available(self):
-            return
+    def run_claim_broken(args, *pargs, **kwargs):
+        if args[1] == '--version':
+            return subprocess.CompletedProcess(args, 0, stdout='0.15', stderr='')
+        raise subprocess.CalledProcessError(1, 'jbig2dec')
 
-        def decode_jbig2(self, jbig2: bytes, jbig2_globals: bytes) -> bytes:
-            raise subprocess.CalledProcessError(1, 'jbig2dec')
-
-    monkeypatch.setattr(pikepdf.jbig2, 'get_decoder', BrokenJBIG2Decoder)
+    patch_jbig2dec(run_claim_broken)
 
     pim = PdfImage(xobj)
     with pytest.raises(PdfError, match="unfilterable stream"):
         pim.as_pil_image()
 
 
-@needs_python_v("3.8", reason="for pytest unraisable exception support")
 @suppress_unraisable_jbigdec_error_warning
-def test_jbig2_too_old(first_image_in, monkeypatch):
+def test_jbig2_too_old(first_image_in, patch_jbig2dec):
     xobj, _pdf = first_image_in('jbig2global.pdf')
     pim = PdfImage(xobj)
 
-    class OldJBIG2Decoder(pikepdf.jbig2.JBIG2Decoder):
-        def _version(self):
-            return Version('0.12')
+    def run_claim_old(args, *pargs, **kwargs):
+        return subprocess.CompletedProcess(args, 0, stdout='0.12', stderr='')
 
-    monkeypatch.setattr(pikepdf.jbig2, 'get_decoder', OldJBIG2Decoder)
+    patch_jbig2dec(run_claim_old)
 
     pim = PdfImage(xobj)
     with pytest.raises(DependencyError, match='too old'):
