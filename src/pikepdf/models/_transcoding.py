@@ -79,6 +79,9 @@ def _2bit_inner_loop(in_: BytesLike, out: MutableBytesLike, scale: int) -> None:
     """Unpack 2-bit values to their 8-bit equivalents.
 
     Thus *out* must be 4x at long as *in*.
+
+    Images of this type are quite rare in practice, so we don't
+    optimize this loop.
     """
     for n, val in enumerate(in_):
         out[4 * n] = int((val >> 6) * scale)
@@ -91,6 +94,9 @@ def _4bit_inner_loop(in_: BytesLike, out: MutableBytesLike, scale: int) -> None:
     """Unpack 4-bit values to their 8-bit equivalents.
 
     Thus *out* must be 2x at long as *in*.
+
+    Images of this type are quite rare in practice, so we don't
+    optimize this loop.
     """
     for n, val in enumerate(in_):
         out[2 * n] = int((val >> 4) * scale)
