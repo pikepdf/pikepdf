@@ -48,10 +48,10 @@ void init_embeddedfiles(py::module_ &m)
 
             return filespec;
         }),
-            py::keep_alive<0, 1>(),
+            py::keep_alive<0, 1>(), // LCOV_EXCL_LINE
             py::arg("q"),
             py::arg("data"),
-            py::kw_only(),
+            py::kw_only(), // LCOV_EXCL_LINE
             py::arg("description")   = std::string(""),
             py::arg("filename")      = std::string(""),
             py::arg("mime_type")     = std::string(""),
@@ -80,7 +80,7 @@ void init_embeddedfiles(py::module_ &m)
             )~~~")
         .def_property("description",
             &QPDFFileSpecObjectHelper::getDescription,
-            &QPDFFileSpecObjectHelper::setDescription,
+            &QPDFFileSpecObjectHelper::setDescription, // LCOV_EXCL_LINE
             "Description text associated with the embedded file.")
         .def_property(
             "filename",
@@ -146,11 +146,11 @@ void init_embeddedfiles(py::module_ &m)
         std::shared_ptr<QPDFEFStreamObjectHelper>,
         QPDFObjectHelper>(m, "AttachedFile") // /Type /EmbeddedFile
         .def_property_readonly("size",
-            &QPDFEFStreamObjectHelper::getSize,
+            &QPDFEFStreamObjectHelper::getSize, // LCOV_EXCL_LINE
             "Get length of the attached file in bytes according to the PDF creator.")
         .def_property("mime_type",
             &QPDFEFStreamObjectHelper::getSubtype,
-            &QPDFEFStreamObjectHelper::setSubtype,
+            &QPDFEFStreamObjectHelper::setSubtype, // LCOV_EXCL_LINE
             "Get the MIME type of the attached file according to the PDF creator.")
         .def_property_readonly(
             "md5",

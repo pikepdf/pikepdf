@@ -64,7 +64,7 @@ void init_job(py::module_ &m)
             &JSON::LATEST,
             "Version number of the most recent QPDF-JSON schema.")
         .def(py::init(&job_from_json_str),
-            py::arg("json"),
+            py::arg("json"), // LCOV_EXCL_LINE
             "Create a Job from a string containing QPDF job JSON.")
         .def(py::init([](py::dict &json_dict) {
             auto json_dumps  = py::module_::import("json").attr("dumps");
@@ -105,7 +105,7 @@ void init_job(py::module_ &m)
             &QPDFJob::checkConfiguration,
             "Checks if the configuration is valid; raises an exception if not.")
         .def_property_readonly("creates_output",
-            &QPDFJob::createsOutput,
+            &QPDFJob::createsOutput, // LCOV_EXCL_LINE
             "Returns True if the Job will create some sort of output file.")
         .def_property("message_prefix",
             &QPDFJob::getMessagePrefix,

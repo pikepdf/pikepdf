@@ -44,7 +44,7 @@ void init_annotation(py::module_ &m)
             or ``pikepdf.Name.Off``.
             )~~~")
         .def_property_readonly("appearance_dict",
-            &QPDFAnnotationObjectHelper::getAppearanceDictionary,
+            &QPDFAnnotationObjectHelper::getAppearanceDictionary, // LCOV_EXCL_LINE
             "Returns the annotations appearance dictionary.")
         .def(
             "get_appearance_stream",
@@ -64,7 +64,7 @@ void init_annotation(py::module_ &m)
         .def(
             "get_appearance_stream",
             [](QPDFAnnotationObjectHelper &anno,
-                QPDFObjectHandle &which,
+                QPDFObjectHandle &which, // LCOV_EXCL_LINE
                 QPDFObjectHandle &state) {
                 return anno.getAppearanceStream(which.getName(), state.getName());
             },
