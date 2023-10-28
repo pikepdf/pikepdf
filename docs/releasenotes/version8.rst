@@ -1,3 +1,10 @@
+v8.5.3
+======
+
+- Fixed exception on certain ``PdfImage.__repr__`` when the image's mode was invalid.
+- Fixed some minor issues that caused code coverage to miss some covered lines.
+- Removed some unused code.
+
 v8.5.2
 ======
 
