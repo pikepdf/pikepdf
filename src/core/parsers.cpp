@@ -44,12 +44,6 @@ std::ostream &operator<<(std::ostream &os, ContentStreamInstruction &csi)
     return os;
 }
 
-ContentStreamInlineImage::ContentStreamInlineImage(
-    ObjectList image_metadata, QPDFObjectHandle image_data)
-    : image_metadata(image_metadata), image_data(image_data)
-{
-}
-
 py::object ContentStreamInlineImage::get_inline_image() const
 {
     auto PdfInlineImage    = py::module_::import("pikepdf").attr("PdfInlineImage");

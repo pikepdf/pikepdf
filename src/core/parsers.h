@@ -33,7 +33,10 @@ public:
 
 class ContentStreamInlineImage {
 public:
-    ContentStreamInlineImage(ObjectList image_metadata, QPDFObjectHandle image_data);
+    ContentStreamInlineImage(ObjectList image_metadata, QPDFObjectHandle image_data)
+        : image_metadata(image_metadata), image_data(image_data)
+    {
+    }
     virtual ~ContentStreamInlineImage() = default;
 
     friend std::ostream &operator<<(std::ostream &os, ContentStreamInstruction &csi);

@@ -3,8 +3,6 @@
 
 #pragma once
 
-#include "pikepdf.h"
-
 template <typename T, typename S>
 inline bool str_startswith(T haystack, S needle)
 {
