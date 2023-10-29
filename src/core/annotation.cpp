@@ -79,7 +79,7 @@ void init_annotation(py::module_ &m)
                 state: The appearance state. For checkboxes or radio buttons, the
                     appearance state is usually whether the button is on or off.
             )~~~",
-            py::arg("which"),
+            py::arg("which"), // LCOV_EXCL_LINE
             py::arg("state"))
         .def(
             "get_page_content_for_appearance",

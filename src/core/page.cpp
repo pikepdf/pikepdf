@@ -123,7 +123,7 @@ void init_page(py::module_ &m)
             py::kw_only(),
             py::arg("prepend") = false)
         .def("remove_unreferenced_resources",
-            &QPDFPageObjectHelper::removeUnreferencedResources,
+            &QPDFPageObjectHelper::removeUnreferencedResources, // LCOV_EXCL_LINE
             R"~~~(
                 Removes from the resources dictionary any object not referenced in the content stream.
 
