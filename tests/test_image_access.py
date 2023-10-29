@@ -3,8 +3,6 @@
 
 from __future__ import annotations
 
-import re
-import subprocess
 import zlib
 from contextlib import contextmanager
 from io import BytesIO
@@ -16,10 +14,8 @@ from typing import NamedTuple, Sequence
 
 import PIL
 import pytest
-from conftest import needs_python_v
 from hypothesis import assume, given, note, settings
 from hypothesis import strategies as st
-from packaging.version import Version
 from PIL import Image, ImageChops, ImageCms
 from PIL import features as PIL_features
 
@@ -28,7 +24,6 @@ from pikepdf import (
     Array,
     Dictionary,
     Name,
-    Object,
     Operator,
     Pdf,
     PdfError,
@@ -38,10 +33,8 @@ from pikepdf import (
     StreamDecodeLevel,
     parse_content_stream,
 )
-from pikepdf.jbig2 import JBIG2Decoder
 from pikepdf.models._transcoding import _next_multiple, unpack_subbyte_pixels
 from pikepdf.models.image import (
-    DependencyError,
     NotExtractableError,
     PdfJpxImage,
     UnsupportedImageTypeError,
@@ -91,11 +84,6 @@ def congress(first_image_in):
 @pytest.fixture
 def sandwich(first_image_in):
     return first_image_in('sandwich.pdf')
-
-
-@pytest.fixture
-def jbig2(first_image_in):
-    return first_image_in('jbig2.pdf')
 
 
 @pytest.fixture
@@ -735,146 +723,6 @@ def test_imagemagick_uses_rle_compression(first_image_in):
     pim = PdfImage(xobj)
     im = pim.as_pil_image()
     assert im.getpixel((5, 5)) == (255, 128, 0)
-
-
-# Unfortunately pytest cannot test for this using "with pytest.warns(...)".
-# Suppression is the best we can manage
-suppress_unraisable_jbigdec_error_warning = pytest.mark.filterwarnings(
-    "ignore:.*jbig2dec error.*:pytest.PytestUnraisableExceptionWarning"
-)
-
-
-@pytest.fixture
-def patch_jbig2dec():
-    original = pikepdf.jbig2.get_decoder()
-
-    def _patch_jbig2dec(runner):
-        pikepdf.jbig2.set_decoder(JBIG2Decoder(subprocess_run=runner))
-
-    yield _patch_jbig2dec
-    pikepdf.jbig2.set_decoder(original)
-
-
-def test_check_specialized_decoder_fallback(resources, patch_jbig2dec):
-    def run_claim_notfound(args, *pargs, **kwargs):
-        raise FileNotFoundError(args[0])
-
-    patch_jbig2dec(run_claim_notfound)
-
-    with pikepdf.open(resources / 'jbig2.pdf') as pdf:
-        with pytest.warns(UserWarning, match=r".*missing some specialized.*"):
-            problems = pdf.check()
-        assert len(problems) == 0
-
-
-@suppress_unraisable_jbigdec_error_warning
-def test_jbig2_not_available(jbig2, patch_jbig2dec):
-    xobj, _pdf = jbig2
-    pim = PdfImage(xobj)
-
-    def run_claim_notfound(args, *pargs, **kwargs):
-        raise FileNotFoundError('jbig2dec')
-
-    patch_jbig2dec(run_claim_notfound)
-
-    assert not pikepdf.jbig2.get_decoder().available()
-
-    with pytest.raises(DependencyError):
-        pim.as_pil_image()
-
-
-needs_jbig2dec = pytest.mark.skipif(
-    not pikepdf.jbig2.get_decoder().available(), reason="jbig2dec not installed"
-)
-
-
-@needs_jbig2dec
-def test_jbig2_extractor(jbig2):
-    xobj, _pdf = jbig2
-    pikepdf.jbig2.get_decoder().decode_jbig2(xobj.read_raw_bytes(), b'')
-
-
-@needs_jbig2dec
-def test_jbig2(jbig2):
-    xobj, _pdf = jbig2
-    pim = PdfImage(xobj)
-    im = pim.as_pil_image()
-    assert im.size == (1000, 1520)
-    assert im.getpixel((0, 0)) == 0  # Ensure loaded
-
-
-@needs_jbig2dec
-def test_jbig2_decodeparms_null_issue317(jbig2):
-    xobj, _pdf = jbig2
-    xobj.stream_dict = Object.parse(
-        b'''<< /BitsPerComponent 1
-               /ColorSpace /DeviceGray
-               /Filter [ /JBIG2Decode ]
-               /DecodeParms null
-               /Height 1520
-               /Length 19350
-               /Subtype /Image
-               /Type /XObject
-               /Width 1000
-            >>'''
-    )
-    pim = PdfImage(xobj)
-    im = pim.as_pil_image()
-    assert im.size == (1000, 1520)
-    assert im.getpixel((0, 0)) == 0  # Ensure loaded
-
-
-@needs_jbig2dec
-def test_jbig2_global(first_image_in):
-    xobj, _pdf = first_image_in('jbig2global.pdf')
-    pim = PdfImage(xobj)
-    im = pim.as_pil_image()
-    assert im.size == (4000, 2864)
-    assert im.getpixel((0, 0)) == 255  # Ensure loaded
-
-
-@needs_jbig2dec
-def test_jbig2_global_palette(first_image_in):
-    xobj, _pdf = first_image_in('jbig2global.pdf')
-    xobj.ColorSpace = pikepdf.Array(
-        [Name.Indexed, Name.DeviceRGB, 1, b'\x00\x00\x00\xff\xff\xff']
-    )
-    pim = PdfImage(xobj)
-    im = pim.as_pil_image()
-    assert im.size == (4000, 2864)
-    assert im.getpixel((0, 0)) == 255  # Ensure loaded
-
-
-@suppress_unraisable_jbigdec_error_warning
-def test_jbig2_error(first_image_in, patch_jbig2dec):
-    xobj, _pdf = first_image_in('jbig2global.pdf')
-    pim = PdfImage(xobj)
-
-    def run_claim_broken(args, *pargs, **kwargs):
-        if args[1] == '--version':
-            return subprocess.CompletedProcess(args, 0, stdout='0.15', stderr='')
-        raise subprocess.CalledProcessError(1, 'jbig2dec')
-
-    patch_jbig2dec(run_claim_broken)
-
-    pim = PdfImage(xobj)
-    with pytest.raises(PdfError, match="unfilterable stream"):
-        pim.as_pil_image()
-
-
-@suppress_unraisable_jbigdec_error_warning
-def test_jbig2_too_old(first_image_in, patch_jbig2dec):
-    xobj, _pdf = first_image_in('jbig2global.pdf')
-    pim = PdfImage(xobj)
-
-    def run_claim_old(args, *pargs, **kwargs):
-        return subprocess.CompletedProcess(args, 0, stdout='0.12', stderr='')
-
-    patch_jbig2dec(run_claim_old)
-
-    pim = PdfImage(xobj)
-    with pytest.raises(DependencyError, match='too old'):
-        pim.as_pil_image()
 
 
 def test_ccitt_icc(first_image_in, resources):

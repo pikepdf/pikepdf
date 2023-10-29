@@ -40,6 +40,7 @@ from ._core import (
     TokenFilter,
     TokenType,
 )
+from ._exceptions import DependencyError
 from .objects import (
     Array,
     Dictionary,
@@ -94,6 +95,7 @@ __all__ = [
     'ContentStreamInstruction',
     'DataDecodingError',
     'DeletedObjectError',
+    'DependencyError',
     'ForeignObjectError',
     'Job',
     'JobUsageError',
