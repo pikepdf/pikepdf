@@ -56,7 +56,7 @@ void init_rectangle(py::module_ &m)
                 return self.llx == other.llx && self.lly == other.lly &&
                        self.urx == other.urx && self.ury == other.ury;
             },
-            py::arg("other"),
+            py::arg("other"), // LCOV_EXCL_LINE
             py::is_operator())
         .def(
             "__le__",
@@ -64,7 +64,7 @@ void init_rectangle(py::module_ &m)
                 return self.llx >= other.llx && self.lly >= other.lly &&
                        self.urx <= other.urx && self.ury <= other.ury;
             },
-            py::arg("other"),
+            py::arg("other"), // LCOV_EXCL_LINE
             py::is_operator(),
             "Return True if self is contained in other or equal to other.")
         .def(
