@@ -619,15 +619,13 @@ def test_extract_direct_fails_nondefault_colortransform(congress):
     pim = PdfImage(xobj)
 
     bio = BytesIO()
-    with pytest.raises(NotExtractableError):
-        pim._extract_direct(stream=bio)
+    assert pim._extract_direct(stream=bio) is None
     with pytest.raises(UnsupportedImageTypeError):
         pim.extract_to(stream=bio)
 
     xobj.ColorSpace = Name.DeviceCMYK
     pim = PdfImage(xobj)
-    with pytest.raises(NotExtractableError):
-        pim._extract_direct(stream=bio)
+    assert pim._extract_direct(stream=bio) is None
     with pytest.raises(UnsupportedImageTypeError):
         pim.extract_to(stream=bio)
 

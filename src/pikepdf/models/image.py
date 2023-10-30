@@ -491,7 +491,7 @@ class PdfImage(PdfImageBase):
         obj_copy.DecodeParms = Array(self.decode_parms[:n])
         return obj_copy.read_bytes(StreamDecodeLevel.specialized), self.filters[n:]
 
-    def _extract_direct(self, *, stream: BinaryIO) -> str:
+    def _extract_direct(self, *, stream: BinaryIO) -> str | None:
         """Attempt to extract the image directly to a usable image file.
 
         If there is no way to extract the image without decompressing or
@@ -543,7 +543,7 @@ class PdfImage(PdfImageBase):
             stream.write(data)
             return '.jpg'
 
-        raise NotExtractableError()
+        return None
 
     def _extract_transcoded_1248bits(self) -> Image.Image:
         """Extract an image when there are 1/2/4/8 bits packed in byte data."""
@@ -642,10 +642,9 @@ class PdfImage(PdfImageBase):
         Returns:
             The file format extension.
         """
-        try:
-            return self._extract_direct(stream=stream)
-        except NotExtractableError:
-            pass
+        direct_extraction = self._extract_direct(stream=stream)
+        if direct_extraction:
+            return direct_extraction
 
         im = None
         try:
@@ -730,13 +729,11 @@ class PdfImage(PdfImageBase):
 
         Caller must close the image.
         """
-        try:
-            bio = BytesIO()
-            self._extract_direct(stream=bio)
+        bio = BytesIO()
+        direct_extraction = self._extract_direct(stream=bio)
+        if direct_extraction:
             bio.seek(0)
             return Image.open(bio)
-        except NotExtractableError:
-            pass
 
         im = self._extract_transcoded()
         if not im:
@@ -845,12 +842,15 @@ class PdfJpxImage(PdfImage):
             and self._jpxpil == other._jpxpil
         )
 
-    def _extract_direct(self, *, stream: BinaryIO):
+    def _extract_direct(self, *, stream: BinaryIO) -> str | None:
         data, filters = self._remove_simple_filters()
         if filters != ['/JPXDecode']:
-            raise UnsupportedImageTypeError(self.filters)
+            return None
         stream.write(data)
         return '.jp2'
+
+    def _extract_transcoded(self) -> Image.Image:
+        return super()._extract_transcoded()
 
     @property
     def _colorspaces(self):
