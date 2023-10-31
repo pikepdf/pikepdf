@@ -58,6 +58,8 @@ void init_page(py::module_ &m)
         .def_property_readonly("_images", &QPDFPageObjectHelper::getImages)
         .def_property_readonly("_form_xobjects", &QPDFPageObjectHelper::getFormXObjects)
         .def("_get_mediabox", &QPDFPageObjectHelper::getMediaBox)
+        .def("_get_artbox", &QPDFPageObjectHelper::getArtBox)
+        .def("_get_bleedbox", &QPDFPageObjectHelper::getBleedBox)
         .def("_get_cropbox", &QPDFPageObjectHelper::getCropBox)
         .def("_get_trimbox", &QPDFPageObjectHelper::getTrimBox)
         .def(

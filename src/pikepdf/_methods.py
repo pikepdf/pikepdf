@@ -943,7 +943,12 @@ def check_is_box(obj) -> None:
 class Extend_Page:
     @property
     def mediabox(self):
-        """Return page's /MediaBox, in PDF units."""
+        """Return page's /MediaBox, in PDF units.
+
+        According to the PDF specification:
+        "The media box defines the boundaries of the physical medium on which
+        the page is to be printed."
+        """
         return self._get_mediabox(True)
 
     @mediabox.setter
@@ -952,8 +957,48 @@ class Extend_Page:
         self.obj['/MediaBox'] = value
 
     @property
+    def artbox(self):
+        """Return page's effective /ArtBox, in PDF units.
+
+        According to the PDF specification:
+        "The art box defines the page's meaningful content area, including
+        white space."
+
+        If the /ArtBox is not defined, the /CropBox is returned.
+        """
+        return self._get_artbox(True, False)
+
+    @artbox.setter
+    def artbox(self, value):
+        check_is_box(value)
+        self.obj['/ArtBox'] = value
+
+    @property
+    def bleedbox(self):
+        """Return page's effective /BleedBox, in PDF units.
+
+        According to the PDF specification:
+        "The bleed box defines the region to which the contents of the page
+        should be clipped when output in a print production environment."
+
+        If the /BleedBox is not defined, the /CropBox is returned.
+        """
+        return self._get_bleedbox(True, False)
+
+    @bleedbox.setter
+    def bleedbox(self, value):
+        check_is_box(value)
+        self.obj['/BleedBox'] = value
+
+    @property
     def cropbox(self):
         """Return page's effective /CropBox, in PDF units.
+
+        According to the PDF specification:
+        "The crop box defines the region to which the contents of the page
+        shall be clipped (cropped) when displayed or printed. It has no
+        defined meaning in the context of the PDF imaging model; it merely
+        imposes clipping on the page contents."
 
         If the /CropBox is not defined, the /MediaBox is returned.
         """
@@ -967,6 +1012,12 @@ class Extend_Page:
     @property
     def trimbox(self):
         """Return page's effective /TrimBox, in PDF units.
+
+        According to the PDF specification:
+        "The trim box defines the intended dimensions of the finished page
+        after trimming. It may be smaller than the media box to allow for
+        production-related content, such as printing instructions, cut marks,
+        or color bars."
 
         If the /TrimBox is not defined, the /CropBox is returned (and if
         /CropBox is not defined, /MediaBox is returned).

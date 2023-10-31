@@ -43,20 +43,26 @@ def graph_page(graph):
 
 def test_page_boxes(graph_page):
     page = graph_page
-    assert page.mediabox == page.cropbox == page.trimbox
-    page.cropbox = [0, 0, page.mediabox[2] - 100, page.mediabox[3] - 100]
+    assert page.mediabox == page.cropbox == page.trimbox == page.artbox == page.bleedbox
     page.mediabox = [
-        page.mediabox[0] - 50,
-        page.mediabox[1] - 50,
-        page.mediabox[2] + 50,
-        page.mediabox[3] + 50,
+        page.mediabox[0],
+        page.mediabox[1],
+        page.mediabox[2],
+        page.mediabox[3],
     ]
-    page.trimbox = [50, 50, page.mediabox[2] - 50, page.mediabox[3] - 50]
+    inset = 10
+    page.bleedbox = [inset, inset, page.mediabox[2] - inset, page.mediabox[3] - inset]
+    inset = 20
+    page.trimbox = [inset, inset, page.mediabox[2] - inset, page.mediabox[3] - inset]
+    inset = 30
+    page.cropbox = [inset, inset, page.mediabox[2] - inset, page.mediabox[3] - inset]
+    inset = 40
+    page.artbox = [inset, inset, page.mediabox[2] - inset, page.mediabox[3] - inset]
 
+    assert page.mediabox != page.bleedbox
+    assert page.mediabox != page.artbox
     assert page.mediabox != page.cropbox
-    assert page.cropbox != page.mediabox
-
-    page.cropbox = Array([0, 0, 50, 50])
+    assert page.mediabox != page.trimbox
 
 
 def test_invalid_boxes(graph_page):
