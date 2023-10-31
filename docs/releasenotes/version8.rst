@@ -1,3 +1,8 @@
+v8.6.0
+======
+
+- Implemented Page.artbox and Page.bleedbox to access these page dimension boxes.
+
 v8.5.3
 ======
 
