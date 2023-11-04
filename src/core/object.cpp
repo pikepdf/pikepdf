@@ -465,6 +465,36 @@ void init_object(py::module_ &m)
                         "or len(bytes(obj)) for length of stream data");
                 throw py::type_error("length not defined for object");
             })
+        .def("__bool__",
+            [](QPDFObjectHandle &h) -> bool {
+                if (h.isDictionary()) {
+                    return h.getDictAsMap().size() > 0;
+                } else if (h.isArray()) {
+                    int nitems = h.getArrayNItems();
+                    // LCOV_EXCL_START
+                    if (nitems < 0) {
+                        throw std::logic_error("Array items < 0");
+                    }
+                    // LCOV_EXCL_STOP
+                    return nitems > 0;
+                } else if (h.isStream()) {
+                    auto stream_dict = h.getDict();
+                    auto len         = stream_dict.getKey("/Length");
+                    if (len.isNull() || !len.isInteger() || len.getIntValue() <= 0) {
+                        return false;
+                    }
+                    return true;
+                } else if (h.isString()) {
+                    return h.getStringValue().size() > 0;
+                } else if (h.isName()) {
+                    return h.getName().size() > 0;
+                } else if (h.isOperator()) {
+                    return h.getOperatorValue().size() > 0;
+                } else if (h.isNull()) {
+                    return false;
+                }
+                throw py::notimpl_error("code is unreachable");
+            })
         .def("__getitem__",
             [](QPDFObjectHandle &h, std::string const &key) {
                 return object_get_key(h, key);
@@ -916,8 +946,8 @@ void init_object(py::module_ &m)
                 throw py::value_error("Name objects must begin with '/'");
             return QPDFObjectHandle::newName(s);
         },
-        "Create a Name from a string. Must begin with '/'. All other characters except "
-        "null are valid.");
+        "Create a Name from a string. Must begin with '/'. All other characters "
+        "except null are valid.");
     m.def(
         "_new_string",
         [](const std::string &s) { return QPDFObjectHandle::newString(s); },
@@ -933,15 +963,15 @@ void init_object(py::module_ &m)
         [](py::iterable iterable) {
             return QPDFObjectHandle::newArray(array_builder(iterable));
         },
-        "Construct a PDF Array object from an iterable of PDF objects or types that "
-        "can be coerced to PDF objects.");
+        "Construct a PDF Array object from an iterable of PDF objects or types "
+        "that can be coerced to PDF objects.");
     m.def(
         "_new_dictionary",
         [](py::dict dict) {
             return QPDFObjectHandle::newDictionary(dict_builder(dict));
         },
-        "Construct a PDF Dictionary from a mapping of PDF objects or Python types that "
-        "can be coerced to PDF objects.");
+        "Construct a PDF Dictionary from a mapping of PDF objects or Python types "
+        "that can be coerced to PDF objects.");
     m.def(
         "_new_stream",
         [](QPDF &owner, py::bytes data) {

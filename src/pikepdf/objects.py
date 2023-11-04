@@ -157,7 +157,7 @@ class String(Object, metaclass=_ObjectMeta):
                 PDF, bytes will be constructed without encoding.
 
         Return type:
-            pikepdf.Object
+            pikepdf.String
         """
         if isinstance(s, bytes):
             return _core._new_string(s)

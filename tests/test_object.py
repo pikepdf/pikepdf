@@ -258,6 +258,10 @@ class TestArray:
         assert pikepdf.Array([0, 1, 2, 3]).is_rectangle
         assert not pikepdf.Array(['a', '2', 3, 4]).is_rectangle
 
+    def test_array_bool(self):
+        assert bool(pikepdf.Array([1, 2, 3])) is True
+        assert bool(pikepdf.Array([])) is False
+
 
 def test_no_len():
     with pytest.raises(TypeError):
@@ -302,6 +306,14 @@ class TestName:
     def test_name_from_name(self):
         foo = Name('/Foo')
         assert Name(foo) == foo
+
+    def test_name_bool(self):
+        assert bool(Name('/Foo')) is True
+        # Currently we forbid the empty name. All creatable names are true.
+        with pytest.raises(ValueError):
+            bool(Name('/'))
+        with pytest.raises(ValueError):
+            bool(Name(''))
 
 
 class TestHashViolation:
@@ -438,6 +450,10 @@ class TestDictionary:
         d2 = Dictionary(d)
         assert d == d2
         assert d is not d2
+
+    def test_dict_bool(self):
+        assert bool(pikepdf.Dictionary()) is False
+        assert bool(pikepdf.Dictionary(One=1)) is True
 
 
 def test_not_convertible():
@@ -584,6 +600,12 @@ class TestStream:
         pdf.save(outpdf)
         with pikepdf.open(outpdf) as pdf2:
             assert pdf2.Root.SomeStream.read_bytes() == b'blahblah'
+
+    def test_stream_bool(self):
+        pdf = pikepdf.new()
+        assert bool(Stream(pdf, b'')) is False
+        stream = Stream(pdf, b'blahblah')
+        assert bool(stream) is True
 
 
 @pytest.fixture
@@ -734,6 +756,10 @@ class TestOperator:
         ):
             Operator('Do')['x'] = 42
 
+    def test_operator_bool(self):
+        assert bool(Operator('Do')) is True
+        assert bool(Operator('')) is False
+
 
 def test_object_mapping(sandwich):
     object_mapping = sandwich.pages[0].images
@@ -757,3 +783,9 @@ def test_swap_object(resources):
         pdf._swap_objects(pdf.pages[0].objgen, pdf.pages[1].objgen)
         assert pdf.pages[1].MarkPage0
         assert Name.MarkPage0 not in pdf.pages[0]
+
+
+class TestString:
+    def test_string_bool(self):
+        assert bool(String('')) is False
+        assert bool(String('abc')) is True
