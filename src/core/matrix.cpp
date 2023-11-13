@@ -320,6 +320,15 @@ void init_matrix(py::module_ &m)
                 py::str s("pikepdf.Matrix({:g}, {:g}, {:g}, {:g}, {:g}, {:g})");
                 return s.format(self.a, self.b, self.c, self.d, self.e, self.f);
             })
+        .def("_repr_latex_",
+            [](QPDFMatrix &self) {
+                py::str s("$$\n\\begin{{bmatrix}}\n"
+                          "{:g} & {:g} & 0 \\\\\n"
+                          "{:g} & {:g} & 0 \\\\\n"
+                          "{:g} & {:g} & 1 \n"
+                          "\\end{{bmatrix}}\n$$");
+                return s.format(self.a, self.b, self.c, self.d, self.e, self.f);
+            })
         .def(py::pickle([](QPDFMatrix const &self) { return tuple_from_matrix(self); },
             [](py::tuple t) { return matrix_from_tuple(t); }));
 }
