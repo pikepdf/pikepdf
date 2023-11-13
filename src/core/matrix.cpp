@@ -36,6 +36,9 @@ py::tuple tuple_from_matrix(const QPDFMatrix &m)
 
 void init_matrix(py::module_ &m)
 {
+    using Point = std::pair<double, double>;
+    using Rect  = QPDFObjectHandle::Rectangle;
+
     py::class_<QPDFMatrix>(m, "Matrix", R"~~~(
             A 2D affine matrix for PDF transformations.
 
@@ -119,6 +122,10 @@ void init_matrix(py::module_ &m)
                 throw py::value_error(
                     "pikepdf.Object could not be converted to Matrix");
             }
+            // QPDF defines an older class, QPDFObjectHandle::Matrix,
+            // for interop with QPDFObjectHandle. We want to ignore it as
+            // much as possible, but here, only the older class has the
+            // right function.
             QPDFObjectHandle::Matrix ohmatrix = h.getArrayAsMatrix();
             return QPDFMatrix(ohmatrix);
         }))
@@ -244,8 +251,41 @@ void init_matrix(py::module_ &m)
 
             If numpy is not installed, this will throw an exception.
             )~~~")
-        .def("as_array",
-            [](QPDFMatrix const &self) { return QPDFObjectHandle::newArray(self); })
+        .def(
+            "as_array",
+            [](QPDFMatrix const &self) { return QPDFObjectHandle::newArray(self); },
+            R"~~~(
+            Convert this matrix to a pikepdf.Array.
+
+            A Matrix cannot be inserted into a PDF directly. Use this function
+            to convert a Matrix to a pikepdf.Array, which can be inserted.
+            )~~~")
+        .def(
+            "transform",
+            [](QPDFMatrix const &self, Point const &point) {
+                double x = point.first;
+                double y = point.second;
+                double xp, yp;
+                self.transform(x, y, xp, yp);
+                return py::make_tuple(xp, yp);
+            },
+            R"~~~(
+            Transform a point by this matrix.
+
+            Computes [x y 1] @ self.
+            )~~~")
+        .def(
+            "transform",
+            [](QPDFMatrix const &self, Rect const &rect) {
+                auto trans_rect = self.transformRectangle(rect);
+                return trans_rect;
+            },
+            R"~~~(
+            Transform a rectangle by this matrix.
+
+            The new rectangle tightly bounds the polygon resulting
+            from transforming the four corners.
+            )~~~")
         .def(
             "__eq__",
             [](QPDFMatrix &self, const QPDFMatrix &other) { return self == other; },

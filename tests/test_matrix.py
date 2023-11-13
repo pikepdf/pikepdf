@@ -9,7 +9,7 @@ from math import isclose
 import pytest
 
 from pikepdf import Array
-from pikepdf._core import Matrix
+from pikepdf._core import Matrix, Rectangle
 from pikepdf.models import PdfMatrix
 
 
@@ -19,6 +19,7 @@ def allclose(m1, m2, abs_tol=1e-6):
     )
 
 
+@pytest.mark.filterwarnings('ignore::DeprecationWarning')
 class TestOldPdfMatrix:
     def test_init_6(self):
         m = PdfMatrix(1, 0, 0, 1, 0, 0)
@@ -125,3 +126,15 @@ class TestMatrix:
 
     def test_from_object_array(self):
         assert Matrix(Array([1, 2, 3, 4, 5, 6])).shorthand == (1, 2, 3, 4, 5, 6)
+
+    def test_transform_point(self):
+        m = Matrix(1, 0, 0, 1, 0, 0)
+        assert m.transform((0, 0)) == (0, 0)
+        assert m.transform((1, 1)) == (1, 1)
+        m = Matrix(2, 0, 0, 2, 0, 1)
+        assert m.transform((0, 0)) == (0, 1)
+        assert m.transform((1, 1)) == (2, 3)
+
+    def test_transform_rect(self):
+        m = Matrix(2, 0, 0, 2, 1, 1)
+        assert m.transform(Rectangle(0, 0, 1, 1)) == Rectangle(1, 1, 3, 3)

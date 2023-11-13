@@ -10,8 +10,8 @@
 void init_rectangle(py::module_ &m)
 {
     using Point = std::pair<double, double>;
+    using Rect  = QPDFObjectHandle::Rectangle;
 
-    using Rect = QPDFObjectHandle::Rectangle;
     py::class_<Rect>(m,
         "Rectangle",
         R"~~~(
