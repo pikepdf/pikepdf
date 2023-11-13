@@ -224,5 +224,5 @@ convention = "google"
 "bin/bump_version.py" = ["E501"]
 "examples/*.py" = ["D103"]
 
-[tool.ruff.format]
-quote-style = "single"
+# [tool.ruff.format]
+# quote-style = "single"
