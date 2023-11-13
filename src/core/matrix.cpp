@@ -16,12 +16,26 @@
 
 constexpr double pi = 3.14159265358979323846;
 
+QPDFMatrix matrix_from_tuple(const py::tuple &t)
+{
+    if (t.size() != 6) {
+        throw py::value_error("tuple must have 6 elements");
+    }
+    return QPDFMatrix(t[0].cast<double>(),
+        t[1].cast<double>(),
+        t[2].cast<double>(),
+        t[3].cast<double>(),
+        t[4].cast<double>(),
+        t[5].cast<double>());
+}
+
 void init_matrix(py::module_ &m)
 {
     py::class_<QPDFMatrix>(m, "Matrix")
         .def(py::init<>())
         .def(py::init<double, double, double, double, double, double>())
         .def(py::init<QPDFMatrix const &>())
+        .def(py::init<>([](const py::tuple &t) { return matrix_from_tuple(t); }))
         .def_readonly("a", &QPDFMatrix::a)
         .def_readonly("b", &QPDFMatrix::b)
         .def_readonly("c", &QPDFMatrix::c)
@@ -32,7 +46,7 @@ void init_matrix(py::module_ &m)
             [](QPDFMatrix const &self) {
                 return py::make_tuple(self.a, self.b, self.c, self.d, self.e, self.f);
             })
-        .def("encode", &QPDFMatrix::unparse)
+        .def("encode", [](QPDFMatrix const &self) { return py::bytes(self.unparse()); })
         .def("translated",
             [](QPDFMatrix const &self, double tx, double ty) {
                 QPDFMatrix copy(self);
@@ -79,7 +93,8 @@ void init_matrix(py::module_ &m)
                     self.b * self.e - self.a * self.f
                     // clang-format on
                 );
-                return adjugate.scale(1.0 / determinant, 1.0 / determinant);
+                adjugate.scale(1.0 / determinant, 1.0 / determinant);
+                return adjugate;
             })
         .def("__array__",
             [](QPDFMatrix const &self) {
@@ -102,6 +117,7 @@ void init_matrix(py::module_ &m)
             py::is_operator())
         .def("__bool__",
             [](QPDFMatrix &self) {
+                // numpy refuses to provide a truth value on arrays so we do too
                 throw py::value_error("Truth value of Matrix is ambiguous");
             })
         .def("__repr__",
@@ -113,19 +129,5 @@ void init_matrix(py::module_ &m)
             [](QPDFMatrix const &self) {
                 return py::make_tuple(self.a, self.b, self.c, self.d, self.e, self.f);
             },
-            [](py::tuple t) {
-                if (t.size() != 6) {
-                    throw std::runtime_error("Invalid state");
-                }
-                return QPDFMatrix(
-                    // clang-format off
-                    t[0].cast<double>(),
-                    t[1].cast<double>(),
-                    t[2].cast<double>(),
-                    t[3].cast<double>(),
-                    t[4].cast<double>(),
-                    t[5].cast<double>()
-                    // clang-format on
-                );
-            }));
+            [](py::tuple t) { return matrix_from_tuple(t); }));
 }

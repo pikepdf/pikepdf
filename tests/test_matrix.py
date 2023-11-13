@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import pickle
 from math import isclose
 
 import pytest
@@ -66,13 +67,13 @@ class TestMatrix:
         assert Matrix() == Matrix(1, 0, 0, 1, 0, 0)
 
     def test_accessors(self):
-        m = Matrix(1, 0, 0, 1, 0, 0)
+        m = Matrix(1, 2, 3, 4, 5, 6)
         assert m.a == 1
-        assert m.b == 0
-        assert m.c == 0
-        assert m.d == 1
-        assert m.e == 0
-        assert m.f == 0
+        assert m.b == 2
+        assert m.c == 3
+        assert m.d == 4
+        assert m.e == 5
+        assert m.f == 6
 
     def test_init(self):
         m = Matrix()
@@ -82,3 +83,41 @@ class TestMatrix:
         m2tr = m2t.rotated(90)
         expected = Matrix(0, -2, 2, 0, 4, 6)
         assert allclose(m2tr, expected)
+
+    def test_matmul(self):
+        m = Matrix()
+        scale = Matrix().scaled(3, 3)
+        translate = Matrix().translated(10, 10)
+        assert allclose(translate @ scale @ m, Matrix(3, 0, 0, 3, 30, 30))
+        assert allclose(scale @ translate @ m, Matrix(3, 0, 0, 3, 10, 10))
+        assert allclose(m.scaled(3, 3).translated(10, 10), Matrix(3, 0, 0, 3, 30, 30))
+
+    def test_inverse(self):
+        m = Matrix().rotated(45)
+        minv_m = m.inverse() @ m
+        assert allclose(minv_m, Matrix())
+
+    def test_non_invertible(self):
+        m = Matrix(4, 4, 4, 4, 0, 0)
+        with pytest.raises(ValueError, match='not invertible'):
+            m.inverse()
+
+    def test_numpy(self):
+        np = pytest.importorskip('numpy')
+
+        m = Matrix(1, 0, 0, 2, 7, 0)
+        a = np.array([[1, 0, 0], [0, 2, 0], [7, 0, 1]])
+        arr = np.array(m)
+        assert np.array_equal(arr, a)
+
+    def test_bool(self):
+        with pytest.raises(ValueError):
+            bool(Matrix(1, 0, 0, 1, 0, 0))
+
+    def test_pickle(self):
+        assert Matrix(1, 0, 0, 1, 42, 0) == pickle.loads(
+            pickle.dumps(Matrix(1, 0, 0, 1, 42, 0))
+        )
+
+    def test_encode(self):
+        assert Matrix((1, 2, 3, 4, 0, 0)).encode() == b'1 2 3 4 0 0'
