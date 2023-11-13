@@ -1,3 +1,8 @@
+v8.7.1
+======
+
+- Fixed ``pikepdf.Matrix.rotated()`` so it now rotates in the advertised direction.
+
 v8.7.0
 ======
 
