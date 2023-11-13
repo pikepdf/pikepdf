@@ -2,7 +2,7 @@ v6.2.9
 ======
 
 - Redo v6.2.8 to avoid confusion around v6.2.8 and its post releases. The release of v6.2.8 was botched by unexpected
-failures third party packages and hitting the 10 GB storage limit on PyPI.
+  failures third party packages and hitting the 10 GB storage limit on PyPI.
 
 v6.2.8
 ======
@@ -19,7 +19,7 @@ v6.2.6
 ======
 
 - Rebuild binary wheels for certain platforms they were blocked from release by lxml not releasing compatible wheels.
-Mainly to take advantage of Windows 64-bit.
+  Mainly to take advantage of Windows 64-bit.
 
 v6.2.5
 ======
@@ -76,9 +76,8 @@ v6.0.0
 - pikepdf 6.0.0 was released to align with backward incompatible changes in qpdf 11.
 - Remove deprecated APIs. Mostly these were public APIs that had no business being
   public.
-    - Several functions in pikepdf.jbig2
-    - Some helper functions in pikepdf.models.image
-    - The property PdfImage.is_inline. (Use isinstance PdfInlineImage instead.)
-    - Attempting to copy pages using the ``.copy_foreign`` method now raises an
-      exception. Use The ``Pdf.pages`` interface to copy pages.
+  - Several functions in pikepdf.jbig2
+  - Some helper functions in pikepdf.models.image
+  - The property PdfImage.is_inline. (Use isinstance PdfInlineImage instead.)
+  - Attempting to copy pages using the ``.copy_foreign`` method now raises an exception. Use The ``Pdf.pages`` interface to copy pages.
 

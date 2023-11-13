@@ -97,7 +97,7 @@ scale by 0.5: ``.scaled(0.5, 0.5)``.
 
 .. ipython:: python
 
-  original = pikepdf.PdfMatrix(commands[1][0])  # command cm, operands
+  original = pikepdf.Matrix(commands[1][0])  # command cm, operands
   new_matrix = original.translated(200/2, 304/2).scaled(0.5, 0.5)
   new_matrix
 
