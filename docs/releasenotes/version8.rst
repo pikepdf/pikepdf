@@ -1,3 +1,13 @@
+v8.7.0
+======
+
+- ``pikepdf.PdfMatrix`` is now deprecated, in favor of ``pikepdf.Matrix``. The former,
+  unfortunately, implemented some operations backwards compared to the PDF reference
+  manual. The new class fixes these issues, and adds more functionality, promoting
+  transformation matrix to first class objects. ``PdfMatrix`` is now deprecated and
+  will be removed in the next major release.
+- Improve behavior around truthiness of ``pikepdf.Name``.
+
 v8.6.0
 ======
 
