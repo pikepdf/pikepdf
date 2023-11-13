@@ -7,12 +7,10 @@ from __future__ import annotations
 
 from math import cos, pi, sin
 
-from deprecation import deprecated
-
-from pikepdf import __version__ as pikepdf_version
+from deprecated import deprecated
 
 
-@deprecated(current_version=pikepdf_version, details='use pikepdf.Matrix instead')
+@deprecated('use pikepdf.Matrix instead')
 class PdfMatrix:
     """Support class for PDF content stream matrices.
 
@@ -47,6 +45,9 @@ class PdfMatrix:
 
     PdfMatrix objects are immutable. All transformations on them produce a new
     matrix.
+
+    .. deprecated:: 8.7
+        Use :class:`pikepdf.Matrix` instead.
     """
 
     def __init__(self, *args):

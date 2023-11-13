@@ -26,7 +26,7 @@ classifiers = [
   "Topic :: Multimedia :: Graphics",
   "Topic :: Software Development :: Libraries",
 ]
-dependencies = ["Pillow>=10.0.1", "deprecation", "lxml>=4.8", "packaging"]
+dependencies = ["Pillow>=10.0.1", "Deprecated", "lxml>=4.8", "packaging"]
 
 [project.urls]
 documentation = "https://pikepdf.readthedocs.io/"
