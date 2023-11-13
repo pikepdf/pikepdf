@@ -13,13 +13,13 @@ from pikepdf import (
     ContentStreamInlineImage,
     ContentStreamInstruction,
     Dictionary,
+    Matrix,
     Name,
     Object,
     Operator,
     Pdf,
     PdfError,
     PdfInlineImage,
-    PdfMatrix,
     Stream,
     _core,
     parse_content_stream,
@@ -183,7 +183,7 @@ def test_invalid_stream_object():
 def test_unparse_cs():
     instructions = [
         ([], Operator('q')),
-        ([*PdfMatrix.identity().shorthand], Operator('cm')),
+        (Matrix().as_array(), Operator('cm')),
         ([], Operator('Q')),
     ]
     assert unparse_content_stream(instructions).strip() == b'q\n1 0 0 1 0 0 cm\nQ'

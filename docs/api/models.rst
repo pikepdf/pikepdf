@@ -23,23 +23,6 @@ Version 3.x automatically applies support models to ``/Page`` objects.
     :members:
     :special-members: __init__, __matmul__, __array__
 
-    .. attribute:: a
-
-    .. attribute:: b
-
-    .. attribute:: c
-
-    .. attribute:: d
-
-    .. attribute:: e
-
-    .. attribute:: f
-
-        Return one of the six "active values" of the affine matrix. ``e`` and ``f``
-        correspond to x- and y-axis translation respectively. The other four
-        letters are a 2×2 matrix that can express rotation, scaling and skewing;
-        ``a=1 b=0 c=0 d=1`` is the identity matrix.
-
 .. autoclass:: pikepdf.PdfImage
     :inherited-members:
 

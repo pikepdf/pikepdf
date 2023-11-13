@@ -11,12 +11,12 @@ from pikepdf import (
     Array,
     ContentStreamInlineImage,
     Dictionary,
+    Matrix,
     Name,
     Object,
     Operator,
     Page,
     Pdf,
-    PdfMatrix,
     Rectangle,
     parse_content_stream,
 )
@@ -195,8 +195,8 @@ def test_fourpages_to_4up(fourpages, graph, outpdf):
 
 
 def _simple_interpret_content_stream(page: Page | Object):
-    ctm = PdfMatrix.identity()
-    stack: list[PdfMatrix] = []
+    ctm = Matrix()
+    stack: list[Matrix] = []
     for instruction in parse_content_stream(page, operators='q Q cm Do'):
         if isinstance(instruction, ContentStreamInlineImage):
             continue
@@ -206,7 +206,7 @@ def _simple_interpret_content_stream(page: Page | Object):
         elif op == Operator('Q'):
             ctm = stack.pop()
         elif op == Operator('cm'):
-            ctm = PdfMatrix(operands) @ ctm
+            ctm = Matrix(operands) @ ctm
         elif op == Operator('Do'):
             xobj_name = operands[0]
             yield (xobj_name, ctm)
