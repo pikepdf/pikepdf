@@ -104,6 +104,9 @@ Object construction
 Common PDF data structures
 ==========================
 
+.. autoclass:: pikepdf.Matrix
+    :members:
+
 .. autoclass:: pikepdf.Rectangle
     :members:
 

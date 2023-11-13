@@ -31,7 +31,77 @@ QPDFMatrix matrix_from_tuple(const py::tuple &t)
 
 void init_matrix(py::module_ &m)
 {
-    py::class_<QPDFMatrix>(m, "Matrix")
+    py::class_<QPDFMatrix>(m, "Matrix", R"~~~(
+            An affine matrix for PDF transformations.
+
+            PDF matrices are encoded as :class:`pikepdf.Array` with exactly
+            six numeric elements, ordered as ``a b c d e f``.
+
+            .. math::
+
+                \begin{bmatrix}
+                a & b & 0 \\
+                c & d & 0 \\
+                e & f & 1 \\
+                \end{bmatrix}
+
+            The parameters mean approximately the following:
+            * ``a`` is the horizontal scaling factor.
+            * ``b`` is horizontal skewing.
+            * ``c`` is vertical skewing.
+            * ``d`` is the vertical scaling factor.
+            * ``e`` is the horizontal translation.
+            * ``f`` is the vertical translation.
+
+            For pure scaling and translation, ``b`` and ``c`` should both be
+            0.
+
+            PDF transformation matrices are the transpose of most textbook
+            treatments.  In a textbook, typically ``A × vc`` is used to
+            transform a column vector ``vc=(x, y, 1)`` by the affine matrix ``A``.
+            In PDF, the matrix is the transpose of that in the textbook,
+            and ``vr × A'`` is used to transform a row vector ``vr=(x, y, 1)``.
+
+            Transformation matrices specify the transformation from the new
+            (transformed) coordinate system to the original (untransformed)
+            coordinate system.
+
+            PDF order:
+
+            .. math::
+
+                \begin{equation}
+                \begin{bmatrix}
+                x' \\
+                y' \\
+                1
+                \end{bmatrix}
+                =
+                \begin{bmatrix}
+                x \\
+                y \\
+                1
+                \end{bmatrix}
+                \begin{bmatrix}
+                a & b & 0 \\
+                c & d & 0 \\
+                e & f & 1
+                \end{bmatrix}
+                \end{equation}
+
+
+            To concatenate transformations, use the matrix multiple (``@``)
+            operator to pre-multiply the next transformation onto existing
+            transformations.
+
+            Alternatively, use the .translated(), .scaled(), and .rotated()
+            methods to chain transformation operations.
+
+            Matrix objects are immutable. All transformation methods return
+            new matrix objects.
+
+            .. versionadded:: 8.7
+        )~~~")
         .def(py::init<>())
         .def(py::init<double, double, double, double, double, double>())
         .def(py::init<QPDFMatrix const &>())

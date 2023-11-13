@@ -28,8 +28,9 @@ except ModuleNotFoundError:
 
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx.ext.intersphinx',
     'sphinx.ext.autosummary',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
     'sphinx_issues',
     'sphinx_design',
@@ -76,7 +77,7 @@ if on_rtd:
             )
         artifacts_url = current_run.artifacts_url
 
-        archive_download_url = ""
+        archive_download_url = ''
         for i in range(5):
             try:
                 archive_download_url = next(
@@ -121,7 +122,7 @@ import pikepdf  # isort:skip pylint: disable=unused-import
 # If your documentation needs a minimal Sphinx version, state it here.
 # needs_sphinx = '1.0'
 
-issues_github_path = "pikepdf/pikepdf"
+issues_github_path = 'pikepdf/pikepdf'
 
 ipython_execlines = ['import pikepdf', 'from pikepdf import Pdf']
 
@@ -168,7 +169,7 @@ version = '.'.join(release.split('.')[:2])
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:
@@ -244,7 +245,7 @@ html_logo = 'images/pike-cartoon.png'
 html_static_path = ['_static']
 
 html_css_files = [
-    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
+    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css'
 ]
 
 

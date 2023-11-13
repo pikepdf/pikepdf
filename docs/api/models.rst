@@ -21,6 +21,7 @@ Version 3.x automatically applies support models to ``/Page`` objects.
 
 .. autoclass:: pikepdf.PdfMatrix
     :members:
+    :special-members: __init__, __matmul__, __array__
 
     .. attribute:: a
 
