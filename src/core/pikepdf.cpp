@@ -128,6 +128,7 @@ PYBIND11_MODULE(_core, m)
     // -- Support objects (alphabetize order) --
     init_annotation(m);
     init_embeddedfiles(m);
+    init_matrix(m);
     init_nametree(m);
     init_numbertree(m);
     init_page(m);

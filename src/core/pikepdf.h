@@ -142,6 +142,8 @@ void init_job(py::module_ &m);
 // From logger.cpp
 void init_logger(py::module_ &m);
 std::shared_ptr<QPDFLogger> get_pikepdf_logger();
+// From matrix.cpp
+void init_matrix(py::module_ &m);
 // From nametree.cpp
 void init_nametree(py::module_ &m);
 // From numbertree.cpp
