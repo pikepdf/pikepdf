@@ -29,10 +29,18 @@ QPDFMatrix matrix_from_tuple(const py::tuple &t)
         t[5].cast<double>());
 }
 
+py::tuple tuple_from_matrix(const QPDFMatrix &m)
+{
+    return py::make_tuple(m.a, m.b, m.c, m.d, m.e, m.f);
+}
+
 void init_matrix(py::module_ &m)
 {
     py::class_<QPDFMatrix>(m, "Matrix", R"~~~(
-            An affine matrix for PDF transformations.
+            A 2D affine matrix for PDF transformations.
+
+            PDF uses matrices to transform document coordinates to screen/device
+            coordinates.
 
             PDF matrices are encoded as :class:`pikepdf.Array` with exactly
             six numeric elements, ordered as ``a b c d e f``.
@@ -46,15 +54,16 @@ void init_matrix(py::module_ &m)
                 \end{bmatrix}
 
             The parameters mean approximately the following:
-            * ``a`` is the horizontal scaling factor.
-            * ``b`` is horizontal skewing.
-            * ``c`` is vertical skewing.
-            * ``d`` is the vertical scaling factor.
-            * ``e`` is the horizontal translation.
-            * ``f`` is the vertical translation.
 
-            For pure scaling and translation, ``b`` and ``c`` should both be
-            0.
+                * ``a`` is the horizontal scaling factor.
+                * ``b`` is horizontal skewing.
+                * ``c`` is vertical skewing.
+                * ``d`` is the vertical scaling factor.
+                * ``e`` is the horizontal translation.
+                * ``f`` is the vertical translation.
+
+            The values (0, 0, 1) in the third column are fixed, so some
+            general matrices cannot be converted to affine matrices.
 
             PDF transformation matrices are the transpose of most textbook
             treatments.  In a textbook, typically ``A × vc`` is used to
@@ -64,7 +73,9 @@ void init_matrix(py::module_ &m)
 
             Transformation matrices specify the transformation from the new
             (transformed) coordinate system to the original (untransformed)
-            coordinate system.
+            coordinate system. x' and y' are the coordinates in the
+            *untransformed* coordinate system, and x and y are the
+            coordinates in the *transformed* coordinate system.
 
             PDF order:
 
@@ -72,15 +83,11 @@ void init_matrix(py::module_ &m)
 
                 \begin{equation}
                 \begin{bmatrix}
-                x' \\
-                y' \\
-                1
+                x' & y' & 1
                 \end{bmatrix}
                 =
                 \begin{bmatrix}
-                x \\
-                y \\
-                1
+                x & y & 1
                 \end{bmatrix}
                 \begin{bmatrix}
                 a & b & 0 \\
@@ -89,13 +96,15 @@ void init_matrix(py::module_ &m)
                 \end{bmatrix}
                 \end{equation}
 
-
             To concatenate transformations, use the matrix multiple (``@``)
-            operator to pre-multiply the next transformation onto existing
+            operator to **pre**-multiply the next transformation onto existing
             transformations.
 
             Alternatively, use the .translated(), .scaled(), and .rotated()
             methods to chain transformation operations.
+
+            Addition and other operations are not implemented because they're not
+            that meaningful in a PDF context.
 
             Matrix objects are immutable. All transformation methods return
             new matrix objects.
@@ -105,6 +114,31 @@ void init_matrix(py::module_ &m)
         .def(py::init<>())
         .def(py::init<double, double, double, double, double, double>())
         .def(py::init<QPDFMatrix const &>())
+        .def(py::init<>([](QPDFObjectHandle &h) {
+            if (!h.isMatrix()) {
+                throw py::value_error(
+                    "pikepdf.Object could not be converted to Matrix");
+            }
+            QPDFObjectHandle::Matrix ohmatrix = h.getArrayAsMatrix();
+            return QPDFMatrix(ohmatrix);
+        }))
+        .def(py::init<>([](ObjectList &ol) {
+            if (ol.size() != 6) {
+                throw py::value_error("ObjectList must have 6 elements");
+            }
+            double converted[6];
+            for (int i = 0; i < 6; ++i) {
+                if (!ol[i].getValueAsNumber(converted[i])) {
+                    throw py::value_error("Values must be numeric");
+                }
+            }
+            return QPDFMatrix(converted[0],
+                converted[1],
+                converted[2],
+                converted[3],
+                converted[4],
+                converted[5]);
+        }))
         .def(py::init<>([](const py::tuple &t) { return matrix_from_tuple(t); }))
         .def_readonly("a", &QPDFMatrix::a)
         .def_readonly("b", &QPDFMatrix::b)
@@ -113,23 +147,32 @@ void init_matrix(py::module_ &m)
         .def_readonly("e", &QPDFMatrix::e)
         .def_readonly("f", &QPDFMatrix::f)
         .def_property_readonly("shorthand",
-            [](QPDFMatrix const &self) {
-                return py::make_tuple(self.a, self.b, self.c, self.d, self.e, self.f);
-            })
-        .def("encode", [](QPDFMatrix const &self) { return py::bytes(self.unparse()); })
-        .def("translated",
+            &tuple_from_matrix,
+            "Return the 6-tuple (a,b,c,d,e,f) that describes this matrix.")
+        .def(
+            "encode",
+            [](QPDFMatrix const &self) { return py::bytes(self.unparse()); },
+            R"~~~(
+            Encode this matrix in bytes suitable for including in a PDF content stream.
+            )~~~")
+        .def(
+            "translated",
             [](QPDFMatrix const &self, double tx, double ty) {
                 QPDFMatrix copy(self);
                 copy.translate(tx, ty);
                 return copy;
-            })
-        .def("scaled",
+            },
+            "Return a translated copy of a matrix.")
+        .def(
+            "scaled",
             [](QPDFMatrix const &self, double sx, double sy) {
                 QPDFMatrix copy(self);
                 copy.scale(sx, sy);
                 return copy;
-            })
-        .def("rotated",
+            },
+            "Return a scaled copy of a matrix.")
+        .def(
+            "rotated",
             [](QPDFMatrix const &self, double angle_degrees_ccw) {
                 QPDFMatrix copy(self);
                 auto radians = angle_degrees_ccw * pi / 180.0;
@@ -137,17 +180,26 @@ void init_matrix(py::module_ &m)
                 auto s       = std::sin(radians);
                 copy.concat(QPDFMatrix(c, -s, s, c, 0, 0));
                 return copy;
-            })
+            },
+            "Return a rotated copy of a matrix.")
         .def(
             "__matmul__",
             [](QPDFMatrix const &self, QPDFMatrix const &other) {
-                // a.concat(b) ==> b @ a
+                // As implemented by QPDFMatrix, b.concat(a) ==> a @ b
+                // so we must compute other.concat(self) to get self @ other
                 auto copy = QPDFMatrix(other);
                 copy.concat(self);
                 return copy; // self @ other
             },
-            py::is_operator())
-        .def("inverse",
+            py::is_operator(),
+            R"~~~(
+            Return the matrix product of two matrices.
+
+            Can be used to concatenate transformations. Transformations should be
+            composed by **pre**-multiplying matrices.
+            )~~~")
+        .def(
+            "inverse",
             [](QPDFMatrix const &self) {
                 auto determinant = self.a * self.d - self.b * self.c;
                 if (determinant == 0.0) {
@@ -165,8 +217,14 @@ void init_matrix(py::module_ &m)
                 );
                 adjugate.scale(1.0 / determinant, 1.0 / determinant);
                 return adjugate;
-            })
-        .def("__array__",
+            },
+            R"~~~(
+            Return the inverse of the matrix.
+
+            The inverse matrix reverses the transformation of the original matrix.
+            )~~~")
+        .def(
+            "__array__",
             [](QPDFMatrix const &self) {
                 // Use numpy via Python to avoid a runtime dependency on numpy.
                 auto np  = py::module_::import("numpy");
@@ -180,7 +238,14 @@ void init_matrix(py::module_ &m)
                     // clang-format on
                 );
                 return arr;
-            })
+            },
+            R"~~~(
+            Convert this matrix to a NumPy array.
+
+            If numpy is not installed, this will throw an exception.
+            )~~~")
+        .def("as_array",
+            [](QPDFMatrix const &self) { return QPDFObjectHandle::newArray(self); })
         .def(
             "__eq__",
             [](QPDFMatrix &self, const QPDFMatrix &other) { return self == other; },
@@ -195,9 +260,6 @@ void init_matrix(py::module_ &m)
                 py::str s("pikepdf.Matrix({:g}, {:g}, {:g}, {:g}, {:g}, {:g})");
                 return s.format(self.a, self.b, self.c, self.d, self.e, self.f);
             })
-        .def(py::pickle(
-            [](QPDFMatrix const &self) {
-                return py::make_tuple(self.a, self.b, self.c, self.d, self.e, self.f);
-            },
+        .def(py::pickle([](QPDFMatrix const &self) { return tuple_from_matrix(self); },
             [](py::tuple t) { return matrix_from_tuple(t); }));
 }

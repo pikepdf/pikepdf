@@ -106,6 +106,7 @@ Common PDF data structures
 
 .. autoclass:: pikepdf.Matrix
     :members:
+    :special-members: __init__, __matmul__, __array__
 
 .. autoclass:: pikepdf.Rectangle
     :members:

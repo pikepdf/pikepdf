@@ -8,6 +8,7 @@ from math import isclose
 
 import pytest
 
+from pikepdf import Array
 from pikepdf._core import Matrix
 from pikepdf.models import PdfMatrix
 
@@ -121,3 +122,6 @@ class TestMatrix:
 
     def test_encode(self):
         assert Matrix((1, 2, 3, 4, 0, 0)).encode() == b'1 2 3 4 0 0'
+
+    def test_from_object_array(self):
+        assert Matrix(Array([1, 2, 3, 4, 5, 6])).shorthand == (1, 2, 3, 4, 5, 6)

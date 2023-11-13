@@ -23,7 +23,7 @@ from secrets import token_urlsafe
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, cast
 
 from . import _core
-from ._core import Object, ObjectType, Rectangle
+from ._core import Matrix, Object, ObjectType, Rectangle
 
 if TYPE_CHECKING:  # pragma: no cover
     from pikepdf import Pdf
@@ -169,7 +169,7 @@ class Array(Object, metaclass=_ObjectMeta):
 
     object_type = ObjectType.array
 
-    def __new__(cls, a: Iterable | Rectangle | None = None) -> Array:
+    def __new__(cls, a: Iterable | Rectangle | Matrix | None = None) -> Array:
         """Construct a PDF Array.
 
         Args:
@@ -184,7 +184,7 @@ class Array(Object, metaclass=_ObjectMeta):
 
         if a is None:
             a = []
-        elif isinstance(a, Rectangle):
+        elif isinstance(a, (Rectangle, Matrix)):
             return a.as_array()
         elif isinstance(a, Array):
             return cast(Array, a.__copy__())
