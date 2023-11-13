@@ -187,20 +187,11 @@ exclude_lines = [
 [tool.coverage.html]
 directory = "coverage/pycov"
 
-[tool.isort]
-profile = "black"
-known_first_party = ["pikepdf"]
-known_third_party = [
-  "PIL",
-  "conftest",
-  "hypothesis",
-  "lxml",
-  "psutil",
-  "pytest",
-  "setuptools",
-]
-
 [tool.ruff]
+src = ["src/pikepdf"]
+target-version = "py38"
+
+[tool.ruff.lint]
 select = [
   "D",    # pydocstyle
   "E",    # pycodestyle
@@ -210,15 +201,28 @@ select = [
   "UP",   # pyupgrade
 ]
 ignore = ["D105"] # docstring in magic method
-src = ["src"]
-target-version = "py38"
 
-[tool.ruff.isort]
-known-first-party = ["pikepdf._core"]
+[tool.ruff.lint.isort]
+known-first-party = ["pikepdf", "pikepdf._core"]
+known-third-party = [
+  "PIL",
+  "conftest",
+  "hypothesis",
+  "lxml",
+  "psutil",
+  "pytest",
+  "setuptools",
+]
 required-imports = ["from __future__ import annotations"]
 
-[tool.ruff.pydocstyle]
+[tool.ruff.lint.pydocstyle]
 convention = "google"
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "tests/*test*.py" = ["D", "E501"]
+"docs/*.py" = ["D", "E501", "E402", "F401"]
+"bin/bump_version.py" = ["E501"]
+"examples/*.py" = ["D103"]
+
+[tool.ruff.format]
+quote-style = "single"

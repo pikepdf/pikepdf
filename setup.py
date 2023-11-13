@@ -1,6 +1,11 @@
 # SPDX-FileCopyrightText: 2022 James R. Barlow
 # SPDX-License-Identifier: MPL-2.0
 
+"""Setup script for pikepdf, to compile pikepdf._core.
+
+We use pyproject.toml whenever possible for settings.
+"""
+
 from __future__ import annotations
 
 import sys
@@ -97,8 +102,8 @@ if shims_enabled:
             extmodule.extra_link_args.append(f'-Wl,-rpath,{lib}')  # type: ignore
 
 if __name__ == '__main__':
-    with ParallelCompile("PIKEPDF_NUM_BUILD_JOBS"):  # optional envvar
+    with ParallelCompile('PIKEPDF_NUM_BUILD_JOBS'):  # optional envvar
         setup(
             ext_modules=[extmodule],
-            cmdclass={"build_ext": build_ext},  # type: ignore
+            cmdclass={'build_ext': build_ext},  # type: ignore
         )
