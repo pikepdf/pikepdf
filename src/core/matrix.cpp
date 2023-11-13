@@ -114,9 +114,15 @@ void init_matrix(py::module_ &m)
 
             .. versionadded:: 8.7
         )~~~")
-        .def(py::init<>())
-        .def(py::init<double, double, double, double, double, double>())
-        .def(py::init<QPDFMatrix const &>())
+        .def(py::init<>(), "Construct an identity matrix.")
+        .def(py::init<double, double, double, double, double, double>(),
+            py::arg("a"),
+            py::arg("b"),
+            py::arg("c"),
+            py::arg("d"),
+            py::arg("e"),
+            py::arg("f"))
+        .def(py::init<QPDFMatrix const &>(), py::arg("other"))
         .def(py::init<>([](QPDFObjectHandle &h) {
             if (!h.isMatrix()) {
                 throw py::value_error(
@@ -128,7 +134,8 @@ void init_matrix(py::module_ &m)
             // right function.
             QPDFObjectHandle::Matrix ohmatrix = h.getArrayAsMatrix();
             return QPDFMatrix(ohmatrix);
-        }))
+        }),
+            py::arg("h"))
         .def(py::init<>([](ObjectList &ol) {
             if (ol.size() != 6) {
                 throw py::value_error("ObjectList must have 6 elements");
@@ -146,7 +153,8 @@ void init_matrix(py::module_ &m)
                 converted[4],
                 converted[5]);
         }))
-        .def(py::init<>([](const py::tuple &t) { return matrix_from_tuple(t); }))
+        .def(py::init<>([](const py::tuple &t) { return matrix_from_tuple(t); }),
+            py::arg("t6"))
         .def_readonly("a", &QPDFMatrix::a)
         .def_readonly("b", &QPDFMatrix::b)
         .def_readonly("c", &QPDFMatrix::c)
@@ -188,7 +196,13 @@ void init_matrix(py::module_ &m)
                 copy.concat(QPDFMatrix(c, -s, s, c, 0, 0));
                 return copy;
             },
-            "Return a rotated copy of a matrix.")
+            py::arg("angle_degrees_ccw"),
+            R"~~~(
+            Return a rotated copy of a matrix.
+
+            Args:
+                angle_degrees_ccw: angle in degrees counterclockwise
+            )~~~")
         .def(
             "__matmul__",
             [](QPDFMatrix const &self, QPDFMatrix const &other) {
@@ -199,6 +213,7 @@ void init_matrix(py::module_ &m)
                 return copy; // self @ other
             },
             py::is_operator(),
+            py::arg("other"),
             R"~~~(
             Return the matrix product of two matrices.
 
@@ -229,6 +244,9 @@ void init_matrix(py::module_ &m)
             Return the inverse of the matrix.
 
             The inverse matrix reverses the transformation of the original matrix.
+
+            In rare situations, the inverse may not exist. In that case, an
+            exception is thrown. The PDF will likely have rendering problems.
             )~~~")
         .def(
             "__array__",
@@ -269,6 +287,7 @@ void init_matrix(py::module_ &m)
                 self.transform(x, y, xp, yp);
                 return py::make_tuple(xp, yp);
             },
+            py::arg("point"),
             R"~~~(
             Transform a point by this matrix.
 
@@ -280,6 +299,7 @@ void init_matrix(py::module_ &m)
                 auto trans_rect = self.transformRectangle(rect);
                 return trans_rect;
             },
+            py::arg("rect"),
             R"~~~(
             Transform a rectangle by this matrix.
 
