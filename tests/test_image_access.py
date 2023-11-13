@@ -35,7 +35,6 @@ from pikepdf import (
 )
 from pikepdf.models._transcoding import _next_multiple, unpack_subbyte_pixels
 from pikepdf.models.image import (
-    NotExtractableError,
     PdfJpxImage,
     UnsupportedImageTypeError,
 )

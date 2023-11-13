@@ -13,16 +13,12 @@ from contextlib import nullcontext
 from io import BytesIO, StringIO
 from os import fspath
 from pathlib import Path
-from subprocess import CalledProcessError, run
 from unittest.mock import Mock
 
 import pytest
-from conftest import fails_if_pypy
 
 import pikepdf
 from pikepdf import Name, PasswordError, Pdf, PdfError, Stream
-from pikepdf._exceptions import DependencyError
-from pikepdf.jbig2 import JBIG2Decoder
 
 # pylint: disable=redefined-outer-name
 

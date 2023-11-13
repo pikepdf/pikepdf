@@ -8,7 +8,7 @@ from __future__ import annotations
 from decimal import Decimal
 
 from hypothesis import example, given
-from hypothesis.strategies import binary, text
+from hypothesis.strategies import binary
 
 import pikepdf
 from pikepdf import Array, Dictionary, Name, Operator, String
