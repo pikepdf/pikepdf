@@ -83,7 +83,7 @@ class TestMatrix:
         m2t = m2.translated(2, 3)
         assert repr(m2t) == 'pikepdf.Matrix(2, 0, 0, 2, 4, 6)'
         m2tr = m2t.rotated(90)
-        expected = Matrix(0, -2, 2, 0, 4, 6)
+        expected = Matrix(0, 2, -2, 0, 4, 6)
         assert allclose(m2tr, expected)
 
     def test_matmul(self):
@@ -138,3 +138,9 @@ class TestMatrix:
     def test_transform_rect(self):
         m = Matrix(2, 0, 0, 2, 1, 1)
         assert m.transform(Rectangle(0, 0, 1, 1)) == Rectangle(1, 1, 3, 3)
+
+    def test_rotated_ccw(self):
+        m = Matrix().rotated(45)
+        assert (0, 0) < m.transform((1, 0)) < (1, 1)
+        m = Matrix().rotated(-45)
+        assert (0, 0) < m.transform((1, 0)) < (1, -1)

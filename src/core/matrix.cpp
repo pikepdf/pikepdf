@@ -193,7 +193,7 @@ void init_matrix(py::module_ &m)
                 auto radians = angle_degrees_ccw * pi / 180.0;
                 auto c       = std::cos(radians);
                 auto s       = std::sin(radians);
-                copy.concat(QPDFMatrix(c, -s, s, c, 0, 0));
+                copy.concat(QPDFMatrix(c, s, -s, c, 0, 0));
                 return copy;
             },
             py::arg("angle_degrees_ccw"),
