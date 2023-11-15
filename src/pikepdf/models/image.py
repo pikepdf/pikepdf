@@ -18,21 +18,18 @@ from typing import Any, BinaryIO, Callable, NamedTuple, TypeVar, Union, cast
 from PIL import Image
 from PIL.ImageCms import ImageCmsProfile
 
-from pikepdf import (
+from pikepdf import jbig2
+from pikepdf._core import Buffer, Pdf, PdfError, StreamDecodeLevel
+from pikepdf._exceptions import DependencyError
+from pikepdf.models import _transcoding
+from pikepdf.objects import (
     Array,
     Dictionary,
     Name,
     Object,
-    Pdf,
-    PdfError,
     Stream,
-    StreamDecodeLevel,
     String,
-    jbig2,
 )
-from pikepdf._core import Buffer
-from pikepdf._exceptions import DependencyError
-from pikepdf.models import _transcoding
 
 T = TypeVar('T')
 

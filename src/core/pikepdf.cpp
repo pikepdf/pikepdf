@@ -159,17 +159,12 @@ PYBIND11_MODULE(_core, m)
             "_log_info",
             [](std::string s) { return get_pikepdf_logger()->info(s); },
             "Used to test routing of QPDF's logger to Python logging.")
-        .def(
-            "set_decimal_precision",
+        .def("set_decimal_precision",
             [](uint prec) {
                 DECIMAL_PRECISION = prec;
                 return DECIMAL_PRECISION;
-            },
-            "Set the number of decimal digits to use when converting floats.")
-        .def(
-            "get_decimal_precision",
-            []() { return DECIMAL_PRECISION; },
-            "Get the number of decimal digits to use when converting floats.")
+            })
+        .def("get_decimal_precision", []() { return DECIMAL_PRECISION; })
         .def(
             "get_access_default_mmap",
             []() { return MMAP_DEFAULT; },
@@ -181,8 +176,7 @@ PYBIND11_MODULE(_core, m)
                 return MMAP_DEFAULT;
             },
             "If True, ``pikepdf.open(...access_mode=access_default)`` will use mmap.")
-        .def(
-            "set_flate_compression_level",
+        .def("set_flate_compression_level",
             [](int level) {
                 if (-1 <= level && level <= 9) {
                     Pl_Flate::setCompressionLevel(level);
@@ -190,13 +184,7 @@ PYBIND11_MODULE(_core, m)
                 }
                 throw py::value_error(
                     "Flate compression level must be between 0 and 9 (or -1)");
-            },
-            R"~~~(
-            Set the compression level whenever the Flate compression algorithm is used.
-
-            Args:
-                level: -1 (default), 0 (no compression), 1 to 9 (increasing compression)
-            )~~~")
+            })
         .def("_unparse_content_stream", unparse_content_stream);
 
     // -- Exceptions --
