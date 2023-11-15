@@ -326,16 +326,12 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &h, QPDF &possible_owner) {
                 return (h.getOwningQPDF() == &possible_owner);
             },
-            "Test if this object is owned by the indicated *possible_owner*.",
             py::arg("possible_owner"))
-        .def(
-            "same_owner_as",
+        .def("same_owner_as",
             [](QPDFObjectHandle &self, QPDFObjectHandle &other) {
                 return self.getOwningQPDF() == other.getOwningQPDF();
-            },
-            "Test if two objects are owned by the same :class:`pikepdf.Pdf`.")
-        .def(
-            "with_same_owner_as",
+            })
+        .def("with_same_owner_as",
             [](QPDFObjectHandle &self, QPDFObjectHandle &other) {
                 QPDF *self_owner  = self.getOwningQPDF();
                 QPDF *other_owner = other.getOwningQPDF();
@@ -350,21 +346,7 @@ void init_object(py::module_ &m)
 
                 auto self_in_other = other_owner->copyForeignObject(self);
                 return self_in_other;
-            },
-            R"~~~(
-                Returns an object that is owned by the same Pdf that owns the *other* object.
-
-                If the objects already have the same owner, this object is returned.
-                If the *other* object has a different owner, then a copy is created
-                that is owned by *other*'s owner. If this object is a direct object
-                (no owner), then an indirect object is created that is owned by
-                *other*. An exception is thrown if *other* is a direct object.
-
-                This method may be convenient when a reference to the Pdf is not
-                available.
-
-                .. versionadded:: 2.14
-            )~~~")
+            })
         .def_property_readonly("is_indirect", &QPDFObjectHandle::isIndirect)
         .def("__repr__", &objecthandle_repr)
         .def("__hash__",
@@ -503,18 +485,14 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &h, QPDFObjectHandle &name) {
                 return object_get_key(h, name.getName());
             })
-        .def(
-            "__setitem__",
+        .def("__setitem__",
             [](QPDFObjectHandle &h, std::string const &key, QPDFObjectHandle &value) {
                 object_set_key(h, key, value);
-            },
-            "assign dictionary key to new object")
-        .def(
-            "__setitem__",
+            })
+        .def("__setitem__",
             [](QPDFObjectHandle &h, QPDFObjectHandle &name, QPDFObjectHandle &value) {
                 object_set_key(h, name.getName(), value);
-            },
-            "assign dictionary key to new object")
+            })
         .def("__setitem__",
             [](QPDFObjectHandle &h, std::string const &key, py::object pyvalue) {
                 auto value = objecthandle_encode(pyvalue);
@@ -535,8 +513,7 @@ void init_object(py::module_ &m)
                 object_del_key(h, name.getName());
             },
             "delete a dictionary key")
-        .def(
-            "__getattr__",
+        .def("__getattr__",
             [](QPDFObjectHandle &h, std::string const &name) {
                 QPDFObjectHandle value;
                 std::string key = "/" + name;
@@ -553,15 +530,13 @@ void init_object(py::module_ &m)
                     throw;
                 }
                 return value;
-            },
-            "attribute lookup name")
+            })
         .def_property("stream_dict",
             &QPDFObjectHandle::getDict,
             &QPDFObjectHandle::replaceDict,
             "Access the dictionary key-values for a :class:`pikepdf.Stream`.",
             py::return_value_policy::reference_internal)
-        .def(
-            "__setattr__",
+        .def("__setattr__",
             [](QPDFObjectHandle &h, std::string const &name, py::object pyvalue) {
                 if (h.isDictionary() || (h.isStream() && name != "stream_dict")) {
                     // Map attribute assignment to setting dictionary key
@@ -574,8 +549,7 @@ void init_object(py::module_ &m)
                 // If we don't have a special rule, do object.__setattr__()
                 py::object baseobj = py::module_::import("builtins").attr("object");
                 baseobj.attr("__setattr__")(py::cast(h), py::str(name), pyvalue);
-            },
-            "attribute access")
+            })
         .def("__delattr__",
             [](QPDFObjectHandle &h, std::string const &name) {
                 std::string key = "/" + name;
@@ -609,8 +583,6 @@ void init_object(py::module_ &m)
                 }
                 return py::cast(value);
             },
-            "For ``pikepdf.Dictionary`` or ``pikepdf.Stream`` objects, behave as "
-            "``dict.get(key, default=None)``",
             py::arg("key"),
             py::arg("default") = py::none())
         .def(
@@ -624,19 +596,14 @@ void init_object(py::module_ &m)
                 }
                 return py::cast(value);
             },
-            "For ``pikepdf.Dictionary`` or ``pikepdf.Stream`` objects, behave as "
-            "``dict.get(key, default=None)``",
             py::arg("key"),
             py::arg("default") = py::none())
-        .def(
-            "keys",
+        .def("keys",
             [](QPDFObjectHandle &h) {
                 if (h.isStream())
                     return h.getDict().getKeys();
                 return h.getKeys();
-            },
-            "For ``pikepdf.Dictionary`` or ``pikepdf.Stream`` objects, obtain the "
-            "keys.")
+            })
         .def("__contains__",
             [](QPDFObjectHandle &h, QPDFObjectHandle &key) {
                 if (h.isArray()) {
@@ -740,55 +707,42 @@ void init_object(py::module_ &m)
                 auto u_index = list_range_check(h, index);
                 h.eraseItem(u_index);
             })
-        .def(
-            "wrap_in_array",
-            [](QPDFObjectHandle &h) { return h.wrapInArray(); },
-            "Return the object wrapped in an array if not already an array.")
-        .def(
-            "append",
+        .def("wrap_in_array", [](QPDFObjectHandle &h) { return h.wrapInArray(); })
+        .def("append",
             [](QPDFObjectHandle &h, py::object pyitem) {
                 auto item = objecthandle_encode(pyitem);
                 return h.appendItem(item);
-            },
-            "Append another object to an array; fails if the object is not an array.")
-        .def(
-            "extend",
+            })
+        .def("extend",
             [](QPDFObjectHandle &h, py::iterable iter) {
                 for (auto item : iter) {
                     h.appendItem(objecthandle_encode(item));
                 }
-            },
-            "Extend a pikepdf.Array with an iterable of other objects.")
+            })
         .def_property_readonly("is_rectangle",
-            &QPDFObjectHandle::isRectangle, // LCOV_EXCL_LINE
-            "Returns True if the object is a rectangle (an array of 4 numbers)")
+            &QPDFObjectHandle::isRectangle // LCOV_EXCL_LINE
+            )
         .def(
             "get_stream_buffer",
             [](QPDFObjectHandle &h, qpdf_stream_decode_level_e decode_level) {
                 return get_stream_data(h, decode_level);
             },
-            "Return a buffer protocol buffer describing the decoded stream.",
             py::arg("decode_level") = qpdf_dl_generalized)
-        .def(
-            "get_raw_stream_buffer",
-            [](QPDFObjectHandle &h) { return h.getRawStreamData(); },
-            "Return a buffer protocol buffer describing the raw, encoded stream")
+        .def("get_raw_stream_buffer",
+            [](QPDFObjectHandle &h) { return h.getRawStreamData(); })
         .def(
             "read_bytes",
             [](QPDFObjectHandle &h, qpdf_stream_decode_level_e decode_level) {
                 auto buf = get_stream_data(h, decode_level);
                 return py::bytes((const char *)buf->getBuffer(), buf->getSize());
             },
-            "Decode and read the content stream associated with this object.",
             py::arg("decode_level") = qpdf_dl_generalized)
-        .def(
-            "read_raw_bytes",
+        .def("read_raw_bytes",
             [](QPDFObjectHandle &h) {
                 auto buf = h.getRawStreamData();
                 // py::bytes will make a copy of the buffer, so releasing is fine
                 return py::bytes((const char *)buf->getBuffer(), buf->getSize());
-            },
-            "Read the content stream associated with this object without decoding")
+            })
         .def(
             "_write",
             [](QPDFObjectHandle &h,
@@ -800,37 +754,18 @@ void init_object(py::module_ &m)
                 QPDFObjectHandle h_decode_parms = objecthandle_encode(decode_parms);
                 h.replaceStreamData(sdata, h_filter, h_decode_parms);
             },
-            R"~~~(
-            Low level write/replace stream data without argument checking. Use .write().
-            )~~~",
             py::arg("data"),
             py::arg("filter"),
             py::arg("decode_parms"))
         .def("_inline_image_raw_bytes",
             [](QPDFObjectHandle &h) { return py::bytes(h.getInlineImageValue()); })
         .def_property_readonly("_objgen", &object_get_objgen)
-        .def_property_readonly("objgen",
-            &object_get_objgen,
-            R"~~~(
-            Return the object-generation number pair for this object.
-
-            If this is a direct object, then the returned value is ``(0, 0)``.
-            By definition, if this is an indirect object, it has a "objgen",
-            and can be looked up using this in the cross-reference (xref) table.
-            Direct objects cannot necessarily be looked up.
-
-            The generation number is usually 0, except for PDFs that have been
-            incrementally updated. Incrementally updated PDFs are now uncommon,
-            since it does not take too long for modern CPUs to reconstruct an
-            entire PDF. pikepdf will consolidate all incremental updates
-            when saving.
-            )~~~")
+        .def_property_readonly("objgen", &object_get_objgen)
         .def_static(
             "parse",
             [](std::string const &stream, std::string const &description) {
                 return QPDFObjectHandle::parse(stream, description);
             },
-            "Parse PDF binary representation into PDF objects.",
             py::arg("stream"),
             py::arg("description") = "")
         .def("_parse_page_contents",
@@ -862,22 +797,7 @@ void init_object(py::module_ &m)
                     return h.unparseResolved();
                 return h.unparse();
             },
-            py::arg("resolved") = false,
-            R"~~~(
-            Convert PDF objects into their binary representation, optionally
-            resolving indirect objects.
-
-            If you want to unparse content streams, which are a collection of
-            objects that need special treatment, use
-            :func:`pikepdf.unparse_content_stream` instead.
-
-            Returns ``bytes()`` that can be used with :meth:`Object.parse`
-            to reconstruct the ``pikepdf.Object``. If reconstruction is not possible,
-            a relative object reference is returned, such as ``4 0 R``.
-
-            Args:
-                resolved: If True, deference indirect objects where possible.
-            )~~~")
+            py::arg("resolved") = false)
         .def(
             "to_json",
             [](QPDFObjectHandle &h,
@@ -886,40 +806,7 @@ void init_object(py::module_ &m)
                 return h.getJSON(schema_version, dereference).unparse();
             },
             py::arg("dereference")    = false,
-            py::arg("schema_version") = 2,
-            R"~~~(
-            Convert to a QPDF JSON representation of the object.
-
-            See the QPDF manual for a description of its JSON representation.
-            https://qpdf.readthedocs.io/en/stable/json.html#qpdf-json-format
-
-            Not necessarily compatible with other PDF-JSON representations that
-            exist in the wild.
-
-            * Names are encoded as UTF-8 strings
-            * Indirect references are encoded as strings containing ``obj gen R``
-            * Strings are encoded as UTF-8 strings with unrepresentable binary
-              characters encoded as ``\uHHHH``
-            * Encoding streams just encodes the stream's dictionary; the stream
-              data is not represented
-            * Object types that are only valid in content streams (inline
-              image, operator) as well as "reserved" objects are not
-              representable and will be serialized as ``null``.
-
-            Args:
-                dereference (bool): If True, dereference the object if this is an
-                    indirect object.
-                schema_version (int): The version of the JSON schema. Defaults to 2.
-
-            Returns:
-                JSON bytestring of object. The object is UTF-8 encoded
-                and may be decoded to a Python str that represents the binary
-                values ``\x00-\xFF`` as ``U+0000`` to ``U+00FF``; that is,
-                it may contain mojibake.
-
-            .. versionchanged:: 6.0
-                Added *schema_version*.
-            )~~~"); // end of QPDFObjectHandle bindings
+            py::arg("schema_version") = 2); // end of QPDFObjectHandle bindings
 
     m.def("_new_boolean", &QPDFObjectHandle::newBool, "Construct a PDF Boolean object");
     m.def("_new_integer",
