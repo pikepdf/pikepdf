@@ -10,37 +10,37 @@ the PDF specification.
 In version 2.x, did not apply support models to "raw" objects automatically.
 Version 3.x automatically applies support models to ``/Page`` objects.
 
-.. autoclass:: pikepdf.ObjectHelper
+.. autoapiclass:: pikepdf.ObjectHelper
     :members:
 
-.. autoclass:: pikepdf.Page
+.. autoapiclass:: pikepdf.Page
     :members:
     :inherited-members:
 
     Support model wrapper around a page dictionary object.
 
-.. autoclass:: pikepdf.PdfMatrix
+.. autoapiclass:: pikepdf.PdfMatrix
     :members:
     :special-members: __init__, __matmul__, __array__
 
-.. autoclass:: pikepdf.PdfImage
+.. autoapiclass:: pikepdf.PdfImage
     :inherited-members:
 
-.. autoclass:: pikepdf.PdfInlineImage
+.. autoapiclass:: pikepdf.PdfInlineImage
 
-.. autoclass:: pikepdf.models.PdfMetadata
+.. autoapiclass:: pikepdf.models.PdfMetadata
     :members:
 
-.. autoclass:: pikepdf.models.Encryption
+.. autoapiclass:: pikepdf.models.Encryption
     :members:
 
-.. autoclass:: pikepdf.models.Outline
+.. autoapiclass:: pikepdf.models.Outline
     :members:
 
-.. autoclass:: pikepdf.models.OutlineItem
+.. autoapiclass:: pikepdf.models.OutlineItem
     :members:
 
-.. autoclass:: pikepdf.Permissions
+.. autoapiclass:: pikepdf.Permissions
     :members:
 
 .. class:: pikepdf.models.EncryptionMethod
@@ -72,10 +72,10 @@ Version 3.x automatically applies support models to ``/Page`` objects.
         PDF 1.7 extension level 3. This algorithm still uses AES, but allows both
         AES-128 and AES-256, and improves how the key is derived from the password.
 
-.. autoclass:: pikepdf.models.EncryptionInfo
+.. autoapiclass:: pikepdf.models.EncryptionInfo
     :members:
 
-.. autoclass:: pikepdf.Annotation
+.. autoapiclass:: pikepdf.Annotation
     :members:
 
     Describes an annotation in a PDF, such as a comment, underline, copy editing marks,
@@ -86,7 +86,7 @@ Version 3.x automatically applies support models to ``/Page`` objects.
 
     .. versionadded:: 2.12
 
-.. autoclass:: pikepdf._core.Attachments
+.. autoapiclass:: pikepdf._core.Attachments
     :members:
 
     This interface provides access to any files that are attached to this PDF,
@@ -99,7 +99,7 @@ Version 3.x automatically applies support models to ``/Page`` objects.
 
     .. versionadded:: 3.0
 
-.. autoclass:: pikepdf.AttachedFileSpec
+.. autoapiclass:: pikepdf.AttachedFileSpec
     :members:
     :inherited-members:
     :special-members: __init__
@@ -142,7 +142,7 @@ Version 3.x automatically applies support models to ``/Page`` objects.
 
     .. versionadded:: 3.0
 
-.. autoclass:: pikepdf._core.AttachedFile
+.. autoapiclass:: pikepdf._core.AttachedFile
     :members:
     :inherited-members:
 
@@ -151,7 +151,7 @@ Version 3.x automatically applies support models to ``/Page`` objects.
 
     .. versionadded:: 3.0
 
-.. autoclass:: pikepdf.NameTree
+.. autoapiclass:: pikepdf.NameTree
     :members:
 
     An object for managing *name tree* data structures in PDFs.
@@ -184,7 +184,7 @@ Version 3.x automatically applies support models to ``/Page`` objects.
 
     .. versionadded:: 3.0
 
-.. autoclass:: pikepdf.NumberTree
+.. autoapiclass:: pikepdf.NumberTree
     :members:
 
     An object for managing *number tree* data structures in PDFs.

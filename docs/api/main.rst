@@ -1,7 +1,7 @@
 Main objects
 ************
 
-.. autoclass:: pikepdf.Pdf
+.. autoapiclass:: pikepdf.Pdf
     :members:
 
 .. function:: pikepdf.open
@@ -74,52 +74,52 @@ Main objects
         (low-level) retrieving image data; see :class:`pikepdf.PdfImage` for
         the preferred method.
 
-.. autoclass:: pikepdf.Encryption
+.. autoapiclass:: pikepdf.Encryption
     :noindex:
 
 Object construction
 ===================
 
-.. autoclass:: pikepdf.Object
+.. autoapiclass:: pikepdf.Object
     :members:
 
-.. autoclass:: pikepdf.Name
+.. autoapiclass:: pikepdf.Name
     :members: __new__
 
-.. autoclass:: pikepdf.String
+.. autoapiclass:: pikepdf.String
     :members: __new__
 
-.. autoclass:: pikepdf.Array
+.. autoapiclass:: pikepdf.Array
     :members: __new__
 
-.. autoclass:: pikepdf.Dictionary
+.. autoapiclass:: pikepdf.Dictionary
     :members: __new__
 
-.. autoclass:: pikepdf.Stream
+.. autoapiclass:: pikepdf.Stream
     :members: __new__
 
-.. autoclass:: pikepdf.Operator
+.. autoapiclass:: pikepdf.Operator
     :members:
 
 Common PDF data structures
 ==========================
 
-.. autoclass:: pikepdf.Matrix
+.. autoapiclass:: pikepdf.Matrix
     :members:
     :special-members: __init__, __matmul__, __array__
 
-.. autoclass:: pikepdf.Rectangle
+.. autoapiclass:: pikepdf.Rectangle
     :members:
 
 Content stream elements
 =======================
 
-.. autoclass:: pikepdf.ContentStreamInstruction
+.. autoapiclass:: pikepdf.ContentStreamInstruction
     :members:
 
     Represents one complete instruction inside a content stream.
 
-.. autoclass:: pikepdf.ContentStreamInlineImage
+.. autoapiclass:: pikepdf.ContentStreamInlineImage
     :members:
 
     Represents an instruction to draw an inline image inside a content
@@ -135,13 +135,13 @@ Internal objects
 These objects are returned by other pikepdf objects. They are part of the API,
 but not intended to be created explicitly.
 
-.. autoclass:: pikepdf._core.PageList
+.. autoapiclass:: pikepdf._core.PageList
     :members:
 
     A ``list``-like object enumerating a range of pages in a :class:`pikepdf.Pdf`.
     It may be all of the pages or a subset.
 
-.. autoclass:: pikepdf._core._ObjectList
+.. autoapiclass:: pikepdf._core._ObjectList
     :members:
 
     A ``list``-like object containing multiple ``pikepdf.Object``.
@@ -221,6 +221,6 @@ but not intended to be created explicitly.
 Jobs
 ====
 
-.. autoclass:: pikepdf.Job
+.. autoapiclass:: pikepdf.Job
     :members:
     :special-members: __init__

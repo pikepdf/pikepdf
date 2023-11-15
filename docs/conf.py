@@ -27,6 +27,7 @@ except ModuleNotFoundError:
 
 
 extensions = [
+    'autoapi.extension',
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
@@ -36,7 +37,7 @@ extensions = [
     'sphinx_design',
     'IPython.sphinxext.ipython_console_highlighting',
     'IPython.sphinxext.ipython_directive',
-    'fix_pybind11_autodoc',
+    #'fix_pybind11_autodoc',
 ]
 
 on_rtd = os.environ.get('READTHEDOCS') == 'True'
@@ -108,6 +109,9 @@ else:
 
 autodoc_mock_imports = ['libxmp']
 autodoc_typehints = 'description'
+
+autoapi_dirs = ['../src/pikepdf']
+autoapi_generate_api_docs = False
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -391,7 +395,3 @@ texinfo_documents = [
 
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 # texinfo_no_detailmenu = False
-
-
-# Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'https://docs.python.org/': None}

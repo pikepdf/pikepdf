@@ -23,15 +23,15 @@ describes how it should transform the stream of tokens.
 Content stream parsers
 ----------------------
 
-.. autofunction:: pikepdf.parse_content_stream
+.. autoapifunction:: pikepdf.parse_content_stream
 
-.. autofunction:: pikepdf.unparse_content_stream
+.. autoapifunction:: pikepdf.unparse_content_stream
 
 
 Content stream token filters
 ----------------------------
 
-.. autoclass:: pikepdf.Token
+.. autoapiclass:: pikepdf.Token
     :members:
 
 .. class:: pikepdf.TokenType
@@ -104,5 +104,5 @@ Content stream token filters
 
         Denotes the end of the tokens in this content stream.
 
-.. autoclass:: pikepdf.TokenFilter
+.. autoapiclass:: pikepdf.TokenFilter
     :members:
