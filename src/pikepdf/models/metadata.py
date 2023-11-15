@@ -18,9 +18,9 @@ from warnings import warn
 from lxml import etree
 from lxml.etree import QName, XMLSyntaxError
 
-from .. import Name, Stream, String
-from .. import __version__ as pikepdf_version
-from .._xml import parse_xml
+from pikepdf._version import __version__ as pikepdf_version
+from pikepdf._xml import parse_xml
+from pikepdf.objects import Name, Stream, String
 
 if sys.version_info < (3, 9):  # pragma: no cover
     from typing import Iterable, MutableMapping

@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-__version__ = "8.8.0"
+from ._version import __version__
 
 try:
     from . import _core

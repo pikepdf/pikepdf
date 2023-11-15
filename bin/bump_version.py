@@ -19,7 +19,7 @@ import pikepdf
 
 config = [
     # file path, version find/replace format
-    ("src/pikepdf/__init__.py", '__version__ = "{}"'),
+    ("src/pikepdf/_version.py", '__version__ = "{}"'),
     ("pyproject.toml", 'version = "{}"'),
 ]
 

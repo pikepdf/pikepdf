@@ -14,7 +14,8 @@ from warnings import warn
 from pikepdf.objects import Name
 
 if TYPE_CHECKING:
-    from pikepdf import Dictionary, Pdf
+    from pikepdf._core import Pdf
+    from pikepdf.objects import Dictionary
 
 
 def update_xmp_pdfversion(pdf: Pdf, version: str) -> None:

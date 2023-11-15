@@ -25,9 +25,8 @@ from tempfile import NamedTemporaryFile
 from typing import BinaryIO, Callable, ItemsView, Iterator, TypeVar, ValuesView
 from warnings import warn
 
-from . import Array, Dictionary, Name, Object, Page, Pdf, Stream
-from ._augments import augment_override_cpp, augments
-from ._core import (
+from pikepdf._augments import augment_override_cpp, augments
+from pikepdf._core import (
     AccessMode,
     AttachedFile,
     AttachedFileSpec,
@@ -35,15 +34,18 @@ from ._core import (
     NameTree,
     NumberTree,
     ObjectStreamMode,
+    Page,
+    Pdf,
     Rectangle,
     StreamDecodeLevel,
     StreamParser,
     Token,
     _ObjectMapping,
 )
-from ._io import atomic_overwrite, check_different_files, check_stream_is_usable
-from .models import Encryption, EncryptionInfo, Outline, PdfMetadata, Permissions
-from .models.metadata import decode_pdf_date, encode_pdf_date
+from pikepdf._io import atomic_overwrite, check_different_files, check_stream_is_usable
+from pikepdf.models import Encryption, EncryptionInfo, Outline, Permissions
+from pikepdf.models.metadata import PdfMetadata, decode_pdf_date, encode_pdf_date
+from pikepdf.objects import Array, Dictionary, Name, Object, Stream
 
 # pylint: disable=no-member,unsupported-membership-test,unsubscriptable-object
 # mypy: ignore-errors

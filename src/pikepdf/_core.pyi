@@ -30,15 +30,14 @@ from typing import (
     overload,
 )
 
-from pikepdf.models.encryption import Encryption, EncryptionInfo, Permissions
-from pikepdf.models.metadata import PdfMetadata
-from pikepdf.models.outlines import Outline
-from pikepdf.objects import Array, Dictionary, Name, Stream, String
-
 if TYPE_CHECKING:
     import numpy as np
 
+    from pikepdf.models.encryption import Encryption, EncryptionInfo, Permissions
     from pikepdf.models.image import PdfInlineImage
+    from pikepdf.models.metadata import PdfMetadata
+    from pikepdf.models.outlines import Outline
+    from pikepdf.objects import Array, Dictionary, Name, Stream, String
 
 # This is the whole point of stub files, but apparently we have to do this...
 # pylint: disable=no-method-argument,unused-argument,no-self-use,too-many-public-methods

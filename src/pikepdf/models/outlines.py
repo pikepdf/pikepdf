@@ -10,7 +10,8 @@ from enum import Enum
 from itertools import chain
 from typing import Iterable, List, cast
 
-from pikepdf import Array, Dictionary, Name, Object, Page, Pdf, String
+from pikepdf._core import Page, Pdf
+from pikepdf.objects import Array, Dictionary, Name, Object, String
 
 
 class PageLocation(Enum):
