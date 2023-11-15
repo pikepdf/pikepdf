@@ -368,27 +368,54 @@ class Operator(Object): ...
 
 class Annotation:
     def __init__(self, arg0: Object) -> None: ...
-    @overload
-    def get_appearance_stream(self, which: Object) -> Object: ...
-    @overload
-    def get_appearance_stream(self, which: Object, state: Object) -> Object: ...
+    def get_appearance_stream(
+        self, which: Object, state: Object | None = ...
+    ) -> Object:
+        """Returns one of the appearance streams associated with an annotation.
+
+        Args:
+            which: Usually one of ``pikepdf.Name.N``, ``pikepdf.Name.R`` or
+                ``pikepdf.Name.D``, indicating the normal, rollover or down
+                appearance stream, respectively. If any other name is passed,
+                an appearance stream with that name is returned.
+            state: The appearance state. For checkboxes or radio buttons, the
+                appearance state is usually whether the button is on or off.
+        """
     def get_page_content_for_appearance(
         self,
-        name: Object,
+        name: Name,
         rotate: int,
         required_flags: int = ...,
         forbidden_flags: int = ...,
-    ) -> bytes: ...
+    ) -> bytes:
+        """Generate content stream text that draws this annotation as a Form XObject.
+
+        Args:
+            name: What to call the object we create.
+            rotate: Should be set to the page's /Rotate value or 0.
+
+        Note:
+            This method is done mainly with QPDF. Its behavior may change when
+            different QPDF versions are used.
+        """
     @property
-    def appearance_dict(self) -> Object: ...
+    def appearance_dict(self) -> Object:
+        """Returns the annotations appearance dictionary."""
     @property
-    def appearance_state(self) -> Object: ...
+    def appearance_state(self) -> Object:
+        """Returns the annotation's appearance state (or None).
+
+        For a checkbox or radio button, the appearance state may be ``pikepdf.Name.On``
+        or ``pikepdf.Name.Off``.
+        """
     @property
-    def flags(self) -> int: ...
+    def flags(self) -> int:
+        """Returns the annotation's flags."""
     @property
     def obj(self) -> Object: ...
     @property
-    def subtype(self) -> str: ...
+    def subtype(self) -> str:
+        """Returns the subtype of this annotation."""
 
 class AttachedFile:
     _creation_date: str
