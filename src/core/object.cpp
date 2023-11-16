@@ -503,16 +503,12 @@ void init_object(py::module_ &m)
                 auto value = objecthandle_encode(pyvalue);
                 object_set_key(h, name.getName(), value);
             })
-        .def(
-            "__delitem__",
-            [](QPDFObjectHandle &h, std::string const &key) { object_del_key(h, key); },
-            "delete a dictionary key")
-        .def(
-            "__delitem__",
+        .def("__delitem__",
+            [](QPDFObjectHandle &h, std::string const &key) { object_del_key(h, key); })
+        .def("__delitem__",
             [](QPDFObjectHandle &h, QPDFObjectHandle &name) {
                 object_del_key(h, name.getName());
-            },
-            "delete a dictionary key")
+            })
         .def("__getattr__",
             [](QPDFObjectHandle &h, std::string const &name) {
                 QPDFObjectHandle value;
@@ -534,7 +530,6 @@ void init_object(py::module_ &m)
         .def_property("stream_dict",
             &QPDFObjectHandle::getDict,
             &QPDFObjectHandle::replaceDict,
-            "Access the dictionary key-values for a :class:`pikepdf.Stream`.",
             py::return_value_policy::reference_internal)
         .def("__setattr__",
             [](QPDFObjectHandle &h, std::string const &name, py::object pyvalue) {
@@ -808,119 +803,63 @@ void init_object(py::module_ &m)
             py::arg("dereference")    = false,
             py::arg("schema_version") = 2); // end of QPDFObjectHandle bindings
 
-    m.def("_new_boolean", &QPDFObjectHandle::newBool, "Construct a PDF Boolean object");
-    m.def("_new_integer",
-        &QPDFObjectHandle::newInteger,
-        "Construct a PDF Integer object");
-    m.def(
-        "_new_real",
-        [](const std::string &value) { return QPDFObjectHandle::newReal(value); },
-        "Construct a PDF Real value, that is, a decimal number");
+    m.def("_new_boolean", &QPDFObjectHandle::newBool);
+    m.def("_new_integer", &QPDFObjectHandle::newInteger);
+    m.def("_new_real",
+        [](const std::string &value) { return QPDFObjectHandle::newReal(value); });
     m.def(
         "_new_real",
         [](double value, uint places) {
             return QPDFObjectHandle::newReal(value, places);
         },
-        "Construct PDF real",
         py::arg("value"),
         py::arg("places") = 0);
-    m.def(
-        "_new_name",
-        [](const std::string &s) {
-            if (s.length() < 2)
-                throw py::value_error("Name must be at least one character long");
-            if (s.at(0) != '/')
-                throw py::value_error("Name objects must begin with '/'");
-            return QPDFObjectHandle::newName(s);
-        },
-        "Create a Name from a string. Must begin with '/'. All other characters "
-        "except null are valid.");
-    m.def(
-        "_new_string",
-        [](const std::string &s) { return QPDFObjectHandle::newString(s); },
-        "Construct a PDF String object.");
-    m.def(
-        "_new_string_utf8",
-        [](const std::string &utf8) {
-            return QPDFObjectHandle::newUnicodeString(utf8);
-        },
-        "Construct a PDF String object from UTF-8 bytes.");
-    m.def(
-        "_new_array",
-        [](py::iterable iterable) {
-            return QPDFObjectHandle::newArray(array_builder(iterable));
-        },
-        "Construct a PDF Array object from an iterable of PDF objects or types "
-        "that can be coerced to PDF objects.");
-    m.def(
-        "_new_dictionary",
-        [](py::dict dict) {
-            return QPDFObjectHandle::newDictionary(dict_builder(dict));
-        },
-        "Construct a PDF Dictionary from a mapping of PDF objects or Python types "
-        "that can be coerced to PDF objects.");
-    m.def(
-        "_new_stream",
-        [](QPDF &owner, py::bytes data) {
-            // This makes a copy of the data
-            return QPDFObjectHandle::newStream(&owner, data);
-        },
-        "Construct a PDF Stream object from binary data");
+    m.def("_new_name", [](const std::string &s) {
+        if (s.length() < 2)
+            throw py::value_error("Name must be at least one character long");
+        if (s.at(0) != '/')
+            throw py::value_error("Name objects must begin with '/'");
+        return QPDFObjectHandle::newName(s);
+    });
+    m.def("_new_string",
+        [](const std::string &s) { return QPDFObjectHandle::newString(s); });
+    m.def("_new_string_utf8", [](const std::string &utf8) {
+        return QPDFObjectHandle::newUnicodeString(utf8);
+    });
+    m.def("_new_array", [](py::iterable iterable) {
+        return QPDFObjectHandle::newArray(array_builder(iterable));
+    });
+    m.def("_new_dictionary", [](py::dict dict) {
+        return QPDFObjectHandle::newDictionary(dict_builder(dict));
+    });
+    m.def("_new_stream", [](QPDF &owner, py::bytes data) {
+        // This makes a copy of the data
+        return QPDFObjectHandle::newStream(&owner, data);
+    });
     m.def(
         "_new_operator",
         [](const std::string &op) { return QPDFObjectHandle::newOperator(op); },
-        "Construct a PDF Operator object for use in content streams.",
         py::arg("op"));
     m.def("_Null", &QPDFObjectHandle::newNull, "Construct a PDF Null object");
 
-    py::class_<QPDFObjectHandle::ParserCallbacks, PyParserCallbacks>(m,
-        "StreamParser",
-        R"~~~(
-            A simple content stream parser, which must be subclassed to be used.
-
-            In practice, the performance of this class may be quite poor on long
-            content streams because it creates objects and involves multiple
-            function calls for every object in a content stream, some of which
-            may be only a single byte long.
-
-            Consider instead using :func:`pikepdf.parse_content_stream`.
-        )~~~")
+    py::class_<QPDFObjectHandle::ParserCallbacks, PyParserCallbacks>(m, "StreamParser")
         .def(py::init<>(), "You must call ``super.__init__()`` in subclasses.")
         // LCOV_EXCL_START
         // coverage misses the virtual function call ::handleObject here.
-        .def(
-            "handle_object",
+        .def("handle_object",
             [](QPDFObjectHandle::ParserCallbacks &parsercallbacks,
                 QPDFObjectHandle &h,
                 size_t offset,
-                size_t length) { parsercallbacks.handleObject(h, offset, length); },
-            R"~~~(
-                This is an abstract method that must be overloaded in a subclass.
-
-                This function will be called back once for each object that is
-                parsed in the content stream.
-            )~~~")
+                size_t length) { parsercallbacks.handleObject(h, offset, length); })
         // LCOV_EXCL_STOP
-        .def("handle_eof",
-            &QPDFObjectHandle::ParserCallbacks::handleEOF,
-            R"~~~(
-                This is an abstract method that may be overloaded in a subclass.
-
-                Called at the end of a content stream.
-            )~~~");
+        .def("handle_eof", &QPDFObjectHandle::ParserCallbacks::handleEOF);
 
     // Since QPDFEmbeddedFileDocumentHelper::getEmbeddedFiles returns
     // std::map<std::string, std::shared_ptr<QPDFFileSpecObjectHelper>>
     // we must ensure that the entire QPDFObjectHelper type hierarchy is held in
     // std::shared_ptr or repackage that interface so it does not return a
     // std::shared_ptr<QPDFFileSpecObjectHelper>> to Python.
-    py::class_<QPDFObjectHelper, std::shared_ptr<QPDFObjectHelper>>(m,
-        "ObjectHelper",
-        R"~~~(
-            Base class for wrapper/helper around an Object.
-
-            Used to expose additional functionality specific to that object type.
-        )~~~")
+    py::class_<QPDFObjectHelper, std::shared_ptr<QPDFObjectHelper>>(m, "ObjectHelper")
         .def(
             "__eq__",
             [](QPDFObjectHelper &self, QPDFObjectHelper &other) {
@@ -929,14 +868,9 @@ void init_object(py::module_ &m)
                     self.getObjectHandle(), other.getObjectHandle());
             },
             py::is_operator())
-        .def_property_readonly(
-            "obj",
-            [](QPDFObjectHelper &poh) -> QPDFObjectHandle {
-                return poh.getObjectHandle();
-            },
-            R"~~~(
-                Get the underlying :class:`pikepdf.Object`.
-            )~~~");
+        .def_property_readonly("obj", [](QPDFObjectHelper &poh) -> QPDFObjectHandle {
+            return poh.getObjectHandle();
+        });
 
     m.def("_encode", [](py::handle handle) { return objecthandle_encode(handle); });
     m.def("unparse", [](py::object obj) -> py::bytes {

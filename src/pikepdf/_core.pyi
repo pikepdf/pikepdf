@@ -292,14 +292,25 @@ class Object:
         when saving.
         """
     @property
-    def stream_dict(self) -> Object: ...
+    def stream_dict(self) -> Dictionary:
+        """Access the dictionary key-values for a :class:`pikepdf.Stream`."""
     @stream_dict.setter
-    def stream_dict(self, val: Object) -> None: ...
+    def stream_dict(self, val: Dictionary) -> None: ...
 
 class ObjectHelper:
+    """Base class for wrapper/helper around an Object.
+
+    Used to expose additional functionality specific to that object type.
+
+    :class:`pikepdf.Page` is an example of an object helper. The actual
+    page object is a PDF is a Dictionary. The helper provides additional
+    methods specific to pages.
+    """
+
     def __eq__(self, other: Any) -> bool: ...
     @property
-    def obj(self) -> Object: ...
+    def obj(self) -> Dictionary:
+        """Get the underlying PDF object (typically a Dictionary)."""
 
 class _ObjectList:
     @overload
@@ -393,6 +404,8 @@ class Annotation:
         Args:
             name: What to call the object we create.
             rotate: Should be set to the page's /Rotate value or 0.
+            required_flags: The required appearance flags. See PDF reference manual.
+            forbidden_flags: The forbidden appearance flags. See PDF reference manual.
 
         Note:
             This method is done mainly with QPDF. Its behavior may change when
@@ -495,11 +508,30 @@ class TokenFilter(_QPDFTokenFilter):
     def handle_token(self, token: Token = ...) -> None | list | Token: ...
 
 class StreamParser:
+    """A simple content stream parser, which must be subclassed to be used.
+
+    In practice, the performance of this class may be quite poor on long
+    content streams because it creates objects and involves multiple
+    function calls for every object in a content stream, some of which
+    may be only a single byte long.
+
+    Consider instead using :func:`pikepdf.parse_content_stream`.
+    """
+
     def __init__(self) -> None: ...
     @abstractmethod
-    def handle_eof(self) -> None: ...
+    def handle_eof(self) -> None:
+        """An abstract method that may be overloaded in a subclass.
+
+        Called at the end of a content stream.
+        """
     @abstractmethod
-    def handle_object(self, obj: Object, offset: int, length: int) -> None: ...
+    def handle_object(self, obj: Object, offset: int, length: int) -> None:
+        """An abstract method that must be overloaded in a subclass.
+
+        This function will be called back once for each object that is
+        parsed in the content stream.
+        """
 
 class Page:
     _repr_mimebundle_: Any = ...
@@ -894,25 +926,87 @@ class Matrix:
 
 def _Null() -> Any: ...
 def _encode(handle: Any) -> Object: ...
-def _new_array(arg0: Iterable) -> Array: ...
-def _new_boolean(arg0: bool) -> Object: ...
-def _new_dictionary(arg0: Mapping[Any, Any]) -> Dictionary: ...
-def _new_integer(arg0: int) -> Object: ...
-def _new_name(arg0: str) -> Name: ...
-def _new_operator(op: str) -> Operator: ...
+def _new_array(arg0: Iterable) -> Array:
+    """Low-level function to construct a PDF Array.
+
+    Construct a PDF Array object from an iterable of PDF objects or types
+    that can be coerced to PDF objects.
+    """
+
+def _new_boolean(arg0: bool) -> Object:
+    """Low-level function to construct a PDF Boolean.
+
+    pikepdf automatically converts PDF booleans to Python booleans and
+    vice versa. This function serves no purpose other than to test
+    that functionality.
+    """
+
+def _new_dictionary(arg0: Mapping[Any, Any]) -> Dictionary:
+    """Low-level function to construct a PDF Dictionary.
+
+    Construct a PDF Dictionary from a mapping of PDF objects or Python types
+    that can be coerced to PDF objects."
+    """
+
+def _new_integer(arg0: int) -> int:
+    """Low-level function to construct a PDF Integer.
+
+    pikepdf automatically converts PDF integers to Python integers and
+    vice versa. This function serves no purpose other than to test
+    that functionality.
+    """
+
+def _new_name(s: str | bytes) -> Name:
+    """Low-level function to construct a PDF Name.
+
+    Must begin with '/'. Certain characters are escaped according to
+    the PDF specification.
+    """
+
+def _new_operator(op: str) -> Operator:
+    """Low-level function to construct a PDF Operator."""
+
 @overload
-def _new_real(arg0: str) -> Object: ...
+def _new_real(s: str) -> Decimal:  # noqa: D418
+    """Low-level function to construct a PDF Real.
+
+    pikepdf automatically PDF real numbers to Python Decimals.
+    This function serves no purpose other than to test that
+    functionality.
+    """
+
 @overload
-def _new_real(value: float, places: int = ...) -> Object: ...
-def _new_stream(arg0: Pdf, arg1: bytes) -> Stream: ...
-def _new_string(s: str | bytes) -> String: ...
-def _new_string_utf8(s: str) -> String: ...
+def _new_real(value: float, places: int = ...) -> Decimal:  # noqa: D418
+    """Low-level function to construct a PDF Real.
+
+    pikepdf automatically PDF real numbers to Python Decimals.
+    This function serves no purpose other than to test that
+    functionality.
+    """
+
+def _new_stream(owner: Pdf, data: bytes) -> Stream:
+    """Low-level function to construct a PDF Stream.
+
+    Construct a PDF Stream object from binary data.
+    """
+
+def _new_string(s: str | bytes) -> String:
+    """Low-level function to construct a PDF String object."""
+
+def _new_string_utf8(s: str) -> String:
+    """Low-level function to construct a PDF String object from UTF-8 bytes."""
+
 def _test_file_not_found(*args, **kwargs) -> Any: ...
 def _translate_qpdf_logic_error(arg0: str) -> str: ...
 def get_decimal_precision() -> int:
     """Set the number of decimal digits to use when converting floats."""
 
-def pdf_doc_to_utf8(pdfdoc: bytes) -> str: ...
+def pdf_doc_to_utf8(pdfdoc: bytes) -> str:
+    """Low-level function to convert PDFDocEncoding to UTF-8.
+
+    Use the pdfdoc codec instead of using this directly.
+    """
+
 def qpdf_version() -> str: ...
 def set_access_default_mmap(mmap: bool) -> bool: ...
 def get_access_default_mmap() -> bool: ...
