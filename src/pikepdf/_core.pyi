@@ -444,9 +444,7 @@ class AttachedFile:
     @property
     def size(self) -> int: ...
 
-class AttachedFileSpec:
-    description: str
-    filename: str
+class AttachedFileSpec(ObjectHelper):
     def __init__(
         self,
         data: bytes,
@@ -456,20 +454,83 @@ class AttachedFileSpec:
         mime_type: str,
         creation_date: str,
         mod_date: str,
-    ) -> None: ...
-    def get_all_filenames(self) -> dict: ...
-    @overload
-    def get_file(self) -> AttachedFile: ...
-    @overload
-    def get_file(self, name: Name) -> AttachedFile: ...
-    @property
-    def obj(self) -> Object: ...
+    ) -> None:
+        """Construct a attached file spec from data in memory.
+
+        To construct a file spec from a file on the computer's file system,
+        use :meth:`from_filepath`.
+
+        Args:
+            data: Resource to load.
+            description: Any description text for the attachment. May be
+                shown in PDF viewers.
+            filename: Filename to display in PDF viewers.
+            mime_type: Helps PDF viewers decide how to display the information.
+            creation_date: PDF date string for when this file was created.
+            mod_date: PDF date string for when this file was last modified.
+            relationship: A :class:`pikepdf.Name` indicating the relationship
+                of this file to the document. Canonically, this should be a name
+                from the PDF specification:
+                Source, Data, Alternative, Supplement, EncryptedPayload, FormData,
+                Schema, Unspecified. If omitted, Unspecified is used.
+        """
+    def get_all_filenames(self) -> dict:
+        """Return a Python dictionary that describes all filenames.
+
+        The returned dictionary is not a pikepdf Object.
+
+        Multiple filenames are generally a holdover from the pre-Unicode era.
+        Modern PDFs can generally set UTF-8 filenames and avoid using
+        punctuation or other marks that are forbidden in filenames.
+        """
+    def get_file(self, name: Name = ...) -> AttachedFile:
+        """Return an attached file.
+
+        Typically, only one file is attached to an attached file spec.
+        When multiple files are attached, use the ``name`` parameter to
+        specify which one to return.
+
+        Args:
+            name: Typical names would be ``/UF`` and ``/F``. See |pdfrm|
+                for other obsolete names.
+        """
     @staticmethod
     def from_filepath(
         pdf: Pdf, path: Path | str, *, description: str = ''
-    ) -> AttachedFileSpec: ...
+    ) -> AttachedFileSpec:
+        """Construct a file specification from a file path.
+
+        This function will automatically add a creation and modified date
+        using the file system, and a MIME type inferred from the file's extension.
+
+        If the data required for the attach is in memory, use
+        :meth:`pikepdf.AttachedFileSpec` instead.
+
+        Args:
+            pdf: The Pdf to attach this file specification to.
+            path: A file path for the file to attach to this Pdf.
+            description: An optional description. May be shown to the user in
+                PDF viewers.
+            relationship: An optional relationship type. May be used to
+                indicate the type of attachment, e.g. Name.Source or Name.Data.
+                Canonically, this should be a name from the PDF specification:
+                Source, Data, Alternative, Supplement, EncryptedPayload, FormData,
+                Schema, Unspecified. If omitted, Unspecified is used.
+        """
     @property
-    def relationship(self) -> Name | None: ...
+    def description(self) -> str:
+        """Description text associated with the embedded file."""
+    @property
+    def filename(self) -> str:
+        """The main filename for this file spec.
+
+        In priority order, getting this returns the first of /UF, /F, /Unix,
+        /DOS, /Mac if multiple filenames are set. Setting this will set a UTF-8
+        encoded Unicode filename and write it to /UF.
+        """
+    @property
+    def relationship(self) -> Name | None:
+        """Describes the relationship of this attached file to the PDF."""
     @relationship.setter
     def relationship(self, value: Name | None) -> None: ...
 

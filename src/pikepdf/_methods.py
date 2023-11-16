@@ -1393,25 +1393,6 @@ class Extend_AttachedFileSpec:
         description: str = '',
         relationship: Name | None = Name.Unspecified,
     ):
-        """Construct a file specification from a file path.
-
-        This function will automatically add a creation and modified date
-        using the file system, and a MIME type inferred from the file's extension.
-
-        If the data required for the attach is in memory, use
-        :meth:`pikepdf.AttachedFileSpec` instead.
-
-        Args:
-            pdf: The Pdf to attach this file specification to.
-            path: A file path for the file to attach to this Pdf.
-            description: An optional description. May be shown to the user in
-                PDF viewers.
-            relationship: An optional relationship type. May be used to
-                indicate the type of attachment, e.g. Name.Source or Name.Data.
-                Canonically, this should be a name from the PDF specification:
-                Source, Data, Alternative, Supplement, EncryptedPayload, FormData,
-                Schema, Unspecified. If omitted, Unspecified is used.
-        """
         mime, _ = mimetypes.guess_type(str(path))
         if mime is None:
             mime = ''

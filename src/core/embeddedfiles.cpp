@@ -45,7 +45,6 @@ void init_embeddedfiles(py::module_ &m)
             if (relationship.isName()) {
                 filespec.getObjectHandle().replaceKey("/AFRelationship", relationship);
             }
-
             return filespec;
         }),
             py::keep_alive<0, 1>(), // LCOV_EXCL_LINE
@@ -57,46 +56,18 @@ void init_embeddedfiles(py::module_ &m)
             py::arg("mime_type")     = std::string(""),
             py::arg("creation_date") = std::string(""),
             py::arg("mod_date")      = std::string(""),
-            py::arg("relationship")  = QPDFObjectHandle::newName("/Unspecified"),
-            R"~~~(
-            Construct a attached file spec from data in memory.
-
-            To construct a file spec from a file on the computer's file system,
-            use :meth:`from_filepath`.
-
-            Args:
-                data: Resource to load.
-                description: Any description text for the attachment. May be
-                    shown in PDF viewers.
-                filename: Filename to display in PDF viewers.
-                mime_type: Helps PDF viewers decide how to display the information.
-                creation_date: PDF date string for when this file was created.
-                mod_date: PDF date string for when this file was last modified.
-                relationship: A :class:`pikepdf.Name` indicating the relationship
-                    of this file to the document. Canonically, this should be a name
-                    from the PDF specification:
-                    Source, Data, Alternative, Supplement, EncryptedPayload, FormData,
-                    Schema, Unspecified. If omitted, Unspecified is used.
-            )~~~")
+            py::arg("relationship")  = QPDFObjectHandle::newName("/Unspecified"))
         .def_property("description",
             &QPDFFileSpecObjectHelper::getDescription,
-            &QPDFFileSpecObjectHelper::setDescription, // LCOV_EXCL_LINE
-            "Description text associated with the embedded file.")
+            &QPDFFileSpecObjectHelper::setDescription // LCOV_EXCL_LINE
+            )
         .def_property(
             "filename",
             [](QPDFFileSpecObjectHelper &spec) { return spec.getFilename(); },
             [](QPDFFileSpecObjectHelper &spec, std::string const &value) {
                 spec.setFilename(value);
-            },
-            R"~~~(
-            The main filename for this file spec.
-
-            In priority order, getting this returns the first of /UF, /F, /Unix,
-            /DOS, /Mac if multiple filenames are set. Setting this will set a UTF-8
-            encoded Unicode filename and write it to /UF.
-            )~~~")
-        .def(
-            "get_all_filenames",
+            })
+        .def("get_all_filenames",
             [](QPDFFileSpecObjectHelper &spec) -> py::dict {
                 auto filenames = spec.getFilenames();
                 py::dict result;
@@ -107,25 +78,13 @@ void init_embeddedfiles(py::module_ &m)
                     result[py::cast(key_as_name)] = py::bytes(filename);
                 }
                 return result;
-            },
-            R"~~~(
-            Return a Python dictionary that describes all filenames.
-
-            The returned dictionary is not a pikepdf Object.
-
-            Multiple filenames are generally a holdover from the pre-Unicode era.
-            Modern PDFs can generally set UTF-8 filenames and avoid using
-            punctuation or other marks that are forbidden in filenames.
-            )~~~")
+            })
         .def(
             "get_file",
             [](QPDFFileSpecObjectHelper &spec) {
                 return QPDFEFStreamObjectHelper(spec.getEmbeddedFileStream());
             },
-            py::return_value_policy::reference_internal,
-            R"~~~(
-            Return the primary (usually only) attached file.
-            )~~~")
+            py::return_value_policy::reference_internal)
         .def(
             "get_file",
             [](QPDFFileSpecObjectHelper &spec, QPDFObjectHandle &name) {
@@ -134,13 +93,7 @@ void init_embeddedfiles(py::module_ &m)
                 return QPDFEFStreamObjectHelper(
                     spec.getEmbeddedFileStream(name.getName()));
             },
-            py::return_value_policy::reference_internal,
-            R"~~~(
-            Return an attached file selected by :class:`pikepdf.Name`.
-
-            Typical names would be ``/UF`` and ``/F``. See |pdfrm| for other obsolete
-            names.
-            )~~~");
+            py::return_value_policy::reference_internal);
 
     py::class_<QPDFEFStreamObjectHelper,
         std::shared_ptr<QPDFEFStreamObjectHelper>,
