@@ -42,6 +42,12 @@ if TYPE_CHECKING:
 # This is the whole point of stub files, but apparently we have to do this...
 # pylint: disable=no-method-argument,unused-argument,no-self-use,too-many-public-methods
 
+# Rule: Function decorated with `@overload` shouldn't contain a docstring
+# ruff: noqa: D418
+# Seems to be no alternative for the moment.
+
+# mypy: disable-error-code="misc"
+
 T = TypeVar('T', bound='Object')
 Numeric = TypeVar('Numeric', int, float, Decimal)
 
@@ -943,6 +949,7 @@ class Job:
     def __init__(self, json: str) -> None: ...
     @overload
     def __init__(self, json_dict: Mapping) -> None: ...
+    @overload
     def __init__(
         self, args: Sequence[str | bytes], *, progname: str = 'pikepdf'
     ) -> None: ...
@@ -1001,17 +1008,9 @@ class Matrix:
         e & f & 1 \\
         \end{bmatrix}
 
-    The parameters mean approximately the following:
-
-        * ``a`` is the horizontal scaling factor.
-        * ``b`` is horizontal skewing.
-        * ``c`` is vertical skewing.
-        * ``d`` is the vertical scaling factor.
-        * ``e`` is the horizontal translation.
-        * ``f`` is the vertical translation.
-
-    The values (0, 0, 1) in the third column are fixed, so some
-    general matrices cannot be converted to affine matrices.
+    The approximate interpretation of these six parameters is documented
+    below. The values (0, 0, 1) in the third column are fixed, so a
+    general 3×3 matrix cannot be converted to a PDF matrix.
 
     PDF transformation matrices are the transpose of most textbook
     treatments.  In a textbook, typically ``A × vc`` is used to
@@ -1071,28 +1070,51 @@ class Matrix:
     @overload
     def __init__(self, values: tuple[float, float, float, float, float, float], /): ...
     @property
-    def a(self) -> float: ...
+    def a(self) -> float:
+        """``a`` is the horizontal scaling factor."""
     @property
-    def b(self) -> float: ...
+    def b(self) -> float:
+        """``b`` is horizontal skewing."""
     @property
-    def c(self) -> float: ...
+    def c(self) -> float:
+        """``c`` is vertical skewing."""
     @property
-    def d(self) -> float: ...
+    def d(self) -> float:
+        """``d`` is the vertical scaling factor."""
     @property
-    def e(self) -> float: ...
+    def e(self) -> float:
+        """``e`` is the horizontal translation."""
     @property
-    def f(self) -> float: ...
+    def f(self) -> float:
+        """``f`` is the vertical translation."""
     @property
     def shorthand(self) -> tuple[float, float, float, float, float, float]:
         """Return the 6-tuple (a,b,c,d,e,f) that describes this matrix."""
     def encode(self) -> bytes:
         """Encode matrix to bytes suitable for including in a PDF content stream."""
     def translated(self, tx, ty) -> Matrix:
-        """Return a translated copy of a matrix."""
+        """Return a translated copy of this matrix.
+
+        Calculates ``Matrix(1, 0, 0, 1, tx, ty) @ self``.
+
+        Args:
+            tx: horizontal translation
+            ty: vertical translation
+        """
     def scaled(self, sx, sy) -> Matrix:
-        """Return a scaled copy of a matrix."""
+        """Return a scaled copy of this matrix.
+
+        Calculates ``Matrix(sx, 0, 0, sy, 0, 0) @ self``.
+
+        Args:
+            sx: horizontal scaling
+            sy: vertical scaling
+        """
     def rotated(self, angle_degrees_ccw) -> Matrix:
-        """Return a rotated copy of a matrix.
+        """Return a rotated copy of this matrix.
+
+        Calculates
+        ``Matrix(cos(angle), sin(angle), -sin(angle), cos(angle), 0, 0) @ self``.
 
         Args:
             angle_degrees_ccw: angle in degrees counterclockwise
@@ -1101,7 +1123,11 @@ class Matrix:
         """Return the matrix product of two matrices.
 
         Can be used to concatenate transformations. Transformations should be
-        composed by **pre**-multiplying matrices.
+        composed by **pre**-multiplying matrices. For example, to apply a
+        scaling transform, one could do::
+
+            scale = pikepdf.Matrix(2, 0, 0, 2, 0, 0)
+            scaled = scale @ matrix
         """
     def inverse(self) -> Matrix:
         """Return the inverse of the matrix.
