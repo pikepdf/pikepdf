@@ -943,7 +943,6 @@ class Job:
     def __init__(self, json: str) -> None: ...
     @overload
     def __init__(self, json_dict: Mapping) -> None: ...
-    @overload
     def __init__(
         self, args: Sequence[str | bytes], *, progname: str = 'pikepdf'
     ) -> None: ...
@@ -986,6 +985,81 @@ class Job:
         """Returns a Python dictionary describing the encryption status."""
 
 class Matrix:
+    r"""A 2D affine matrix for PDF transformations.
+
+    PDF uses matrices to transform document coordinates to screen/device
+    coordinates.
+
+    PDF matrices are encoded as :class:`pikepdf.Array` with exactly
+    six numeric elements, ordered as ``a b c d e f``.
+
+    .. math::
+
+        \begin{bmatrix}
+        a & b & 0 \\
+        c & d & 0 \\
+        e & f & 1 \\
+        \end{bmatrix}
+
+    The parameters mean approximately the following:
+
+        * ``a`` is the horizontal scaling factor.
+        * ``b`` is horizontal skewing.
+        * ``c`` is vertical skewing.
+        * ``d`` is the vertical scaling factor.
+        * ``e`` is the horizontal translation.
+        * ``f`` is the vertical translation.
+
+    The values (0, 0, 1) in the third column are fixed, so some
+    general matrices cannot be converted to affine matrices.
+
+    PDF transformation matrices are the transpose of most textbook
+    treatments.  In a textbook, typically ``A × vc`` is used to
+    transform a column vector ``vc=(x, y, 1)`` by the affine matrix ``A``.
+    In PDF, the matrix is the transpose of that in the textbook,
+    and ``vr × A'`` is used to transform a row vector ``vr=(x, y, 1)``.
+
+    Transformation matrices specify the transformation from the new
+    (transformed) coordinate system to the original (untransformed)
+    coordinate system. x' and y' are the coordinates in the
+    *untransformed* coordinate system, and x and y are the
+    coordinates in the *transformed* coordinate system.
+
+    PDF order:
+
+    .. math::
+
+        \begin{equation}
+        \begin{bmatrix}
+        x' & y' & 1
+        \end{bmatrix}
+        =
+        \begin{bmatrix}
+        x & y & 1
+        \end{bmatrix}
+        \begin{bmatrix}
+        a & b & 0 \\
+        c & d & 0 \\
+        e & f & 1
+        \end{bmatrix}
+        \end{equation}
+
+    To concatenate transformations, use the matrix multiple (``@``)
+    operator to **pre**-multiply the next transformation onto existing
+    transformations.
+
+    Alternatively, use the .translated(), .scaled(), and .rotated()
+    methods to chain transformation operations.
+
+    Addition and other operations are not implemented because they're not
+    that meaningful in a PDF context.
+
+    Matrix objects are immutable. All transformation methods return
+    new matrix objects.
+
+    .. versionadded:: 8.7
+    """
+
     @overload
     def __init__(self): ...
     @overload
@@ -1009,17 +1083,51 @@ class Matrix:
     @property
     def f(self) -> float: ...
     @property
-    def shorthand(self) -> tuple[float, float, float, float, float, float]: ...
-    def encode(self) -> bytes: ...
-    def translated(self) -> Matrix: ...
-    def scaled(self) -> Matrix: ...
-    def rotated(self) -> Matrix: ...
-    def __matmul__(self, other: Matrix) -> Matrix: ...
-    def inverse(self) -> Matrix: ...
-    def __array__(self) -> np.ndarray: ...
-    def as_array(self) -> Array: ...
+    def shorthand(self) -> tuple[float, float, float, float, float, float]:
+        """Return the 6-tuple (a,b,c,d,e,f) that describes this matrix."""
+    def encode(self) -> bytes:
+        """Encode matrix to bytes suitable for including in a PDF content stream."""
+    def translated(self, tx, ty) -> Matrix:
+        """Return a translated copy of a matrix."""
+    def scaled(self, sx, sy) -> Matrix:
+        """Return a scaled copy of a matrix."""
+    def rotated(self, angle_degrees_ccw) -> Matrix:
+        """Return a rotated copy of a matrix.
+
+        Args:
+            angle_degrees_ccw: angle in degrees counterclockwise
+        """
+    def __matmul__(self, other: Matrix) -> Matrix:
+        """Return the matrix product of two matrices.
+
+        Can be used to concatenate transformations. Transformations should be
+        composed by **pre**-multiplying matrices.
+        """
+    def inverse(self) -> Matrix:
+        """Return the inverse of the matrix.
+
+        The inverse matrix reverses the transformation of the original matrix.
+
+        In rare situations, the inverse may not exist. In that case, an
+        exception is thrown. The PDF will likely have rendering problems.
+        """
+    def __array__(self) -> np.ndarray:
+        """Convert this matrix to a NumPy array.
+
+        If numpy is not installed, this will throw an exception.
+        """
+    def as_array(self) -> Array:
+        """Convert this matrix to a pikepdf.Array.
+
+        A Matrix cannot be inserted into a PDF directly. Use this function
+        to convert a Matrix to a pikepdf.Array, which can be inserted.
+        """
     @overload
-    def transform(self, point: tuple[float, float]) -> tuple[float, float]: ...
+    def transform(self, point: tuple[float, float]) -> tuple[float, float]:
+        """Transform a point by this matrix.
+
+        Computes [x y 1] @ self.
+        """
     @overload
     def transform(self, rect: Rectangle) -> Rectangle: ...
     def __repr__(self) -> str: ...
