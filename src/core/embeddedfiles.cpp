@@ -99,18 +99,16 @@ void init_embeddedfiles(py::module_ &m)
         std::shared_ptr<QPDFEFStreamObjectHelper>,
         QPDFObjectHelper>(m, "AttachedFile") // /Type /EmbeddedFile
         .def_property_readonly("size",
-            &QPDFEFStreamObjectHelper::getSize, // LCOV_EXCL_LINE
-            "Get length of the attached file in bytes according to the PDF creator.")
+            &QPDFEFStreamObjectHelper::getSize // LCOV_EXCL_LINE
+            )
         .def_property("mime_type",
             &QPDFEFStreamObjectHelper::getSubtype,
             &QPDFEFStreamObjectHelper::setSubtype, // LCOV_EXCL_LINE
-            "Get the MIME type of the attached file according to the PDF creator.")
-        .def_property_readonly(
-            "md5",
+            "")
+        .def_property_readonly("md5",
             [](QPDFEFStreamObjectHelper &efstream) {
                 return py::bytes(efstream.getChecksum());
-            },
-            "Get the MD5 checksum of the attached file according to the PDF creator.")
+            })
         .def_property("_creation_date",
             &QPDFEFStreamObjectHelper::getCreationDate,
             &QPDFEFStreamObjectHelper::setCreationDate)

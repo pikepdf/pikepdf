@@ -435,14 +435,17 @@ class AttachedFile:
     _mod_date: str
     creation_date: datetime.datetime | None
     mime_type: str
+    """Get the MIME type of the attached file according to the PDF creator."""
     mod_date: datetime.datetime | None
     @property
-    def md5(self) -> bytes: ...
+    def md5(self) -> bytes:
+        """Get the MD5 checksum of attached file according to the PDF creator."""
     @property
     def obj(self) -> Object: ...
     def read_bytes(self) -> bytes: ...
     @property
-    def size(self) -> int: ...
+    def size(self) -> int:
+        """Get length of the attached file in bytes according to the PDF creator."""
 
 class AttachedFileSpec(ObjectHelper):
     def __init__(
