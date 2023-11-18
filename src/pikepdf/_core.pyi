@@ -99,27 +99,86 @@ class ObjectStreamMode(Enum):
     """Generate object streams."""
 
 class ObjectType(Enum):
+    """Enumeration of PDF object types.
+
+    These values are used to implement
+    pikepdf's instance type checking. In the vast majority of cases it is more
+    pythonic to use ``isinstance(obj, pikepdf.Stream)`` or ``issubclass``.
+
+    These values are low-level and documented for completeness. They are exposed
+    through :attr:`pikepdf.Object._type_code`.
+    """
+
     array: int = ...
+    """A PDF array, meaning the object is a ``pikepdf.Array``."""
     boolean: int = ...
+    """A PDF boolean. In most cases, booleans are automatically converted to
+        ``bool``, so this should not appear."""
     dictionary: int = ...
+    """A PDF dictionary, meaning the object is a ``pikepdf.Dictionary``."""
     inlineimage: int = ...
+    """A PDF inline image, meaning the object is the data stream of an inline
+        image. It would be necessary to combine this with the implicit
+        dictionary to interpret the image correctly. pikepdf automatically
+        packages inline images into a more useful class, so this will not
+        generally appear."""
     integer: int = ...
+    """A PDF integer. In most cases, integers are automatically converted to
+        ``int``, so this should not appear. Unlike Python integers, PDF integers
+        are 32-bit signed integers."""
     name_: int = ...
+    """A PDF name, meaning the object is a ``pikepdf.Name``."""
     null: int = ...
+    """A PDF null. In most cases, nulls are automatically converted to ``None``,
+        so this should not appear."""
     operator: int = ...
+    """A PDF operator, meaning the object is a ``pikepdf.Operator``."""
     real: int = ...
+    """A PDF real. In most cases, reals are automatically convert to
+        :class:`decimal.Decimal`."""
     reserved: int = ...
+    """A temporary object used in creating circular references. Should not appear
+        in most cases."""
     stream: int = ...
+    """A PDF stream, meaning the object is a ``pikepdf.Stream`` (and it also
+        has a dictionary)."""
     string: int = ...
+    """A PDF string, meaning the object is a ``pikepdf.String``."""
     uninitialized: int = ...
+    """An uninitialized object. If this appears, it is probably a bug."""
 
 class StreamDecodeLevel(Enum):
     """Options for decoding streams within PDFs."""
 
     all: int = ...
+    """Do not attempt to apply any filters. Streams
+        remain as they appear in the original file. Note that
+        uncompressed streams may still be compressed on output. You can
+        disable that by saving with ``.save(..., compress_streams=False)``."""
     generalized: int = ...
+    """This is the default. libqpdf will apply
+        LZWDecode, ASCII85Decode, ASCIIHexDecode, and FlateDecode
+        filters on the input. When saved with
+        ``compress_streams=True``, the default, the effect of this
+        is that streams filtered with these older and less efficient
+        filters will be recompressed with the Flate filter. As a
+        special case, if a stream is already compressed with
+        FlateDecode and ``compress_streams=True``, the original
+        compressed data will be preserved."""
     none: int = ...
+    """In addition to uncompressing the
+        generalized compression formats, supported non-lossy
+        compression will also be be decoded. At present, this includes
+        the RunLengthDecode filter."""
     specialized: int = ...
+    """        In addition to generalized and non-lossy
+        specialized filters, supported lossy compression filters will
+        be applied. At present, this includes DCTDecode (JPEG)
+        compression. Note that compressing the resulting data with
+        DCTDecode again will accumulate loss, so avoid multiple
+        compression and decompression cycles. This is mostly useful for
+        (low-level) retrieving image data; see :class:`pikepdf.PdfImage` for
+        the preferred method."""
 
 class TokenType(Enum):
     array_close: int = ...
@@ -933,6 +992,12 @@ class Page:
     ) -> Name: ...
 
 class PageList:
+    """For accessing pages in a PDF.
+
+    A ``list``-like object enumerating a range of pages in a :class:`pikepdf.Pdf`.
+    It may be all of the pages or a subset.
+    """
+
     def __init__(self, *args, **kwargs) -> None: ...
     def append(self, page: Page) -> None:
         """Add another page to the end.
@@ -1942,6 +2007,8 @@ class NumberTree(MutableMapping[int, Object]):
     def obj(self) -> Object: ...
 
 class ContentStreamInstruction:
+    """Represents one complete instruction inside a content stream."""
+
     def __init__(self, *args) -> None: ...
     @property
     def operands(self) -> _ObjectList: ...
@@ -1951,6 +2018,13 @@ class ContentStreamInstruction:
     def __len__(self) -> int: ...
 
 class ContentStreamInlineImage:
+    """Represents an instruction to draw an inline image.
+
+    pikepdf consolidates the BI-ID-EI sequence of operators, as appears in a PDF to
+    declare an inline image, and replaces them with a single virtual content stream
+    instruction with the operator "INLINE IMAGE".
+    """
+
     @property
     def operands(self) -> _ObjectList: ...
     @property
