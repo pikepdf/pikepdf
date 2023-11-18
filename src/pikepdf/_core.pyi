@@ -1530,7 +1530,8 @@ class Matrix:
     """
 
     @overload
-    def __init__(self): ...
+    def __init__(self):
+        """Construct an identity matrix."""
     @overload
     def __init__(
         self, a: float, b: float, c: float, d: float, e: float, f: float, /

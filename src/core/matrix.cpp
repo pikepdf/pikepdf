@@ -39,10 +39,8 @@ void init_matrix(py::module_ &m)
     using Point = std::pair<double, double>;
     using Rect  = QPDFObjectHandle::Rectangle;
 
-    py::class_<QPDFMatrix>(m, "Matrix", R"~~~(
-
-        )~~~")
-        .def(py::init<>(), "Construct an identity matrix.")
+    py::class_<QPDFMatrix>(m, "Matrix")
+        .def(py::init<>())
         .def(py::init<double, double, double, double, double, double>(),
             py::arg("a"),
             py::arg("b"),
