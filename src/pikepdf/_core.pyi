@@ -854,15 +854,78 @@ class Page:
 
 class PageList:
     def __init__(self, *args, **kwargs) -> None: ...
-    def append(self, page: Page) -> None: ...
+    def append(self, page: Page) -> None:
+        """Add another page to the end.
+
+        While this method copies pages from one document to another, it does not
+        copy certain metadata such as annotations, form fields, bookmarks or
+        structural tree elements. Copying these is a more complex, application
+        specific operation.
+        """
     @overload
-    def extend(self, other: PageList) -> None: ...
+    def extend(self, other: PageList) -> None:
+        """Extend the ``Pdf`` by adding pages from another ``Pdf.pages``.
+
+        While this method copies pages from one document to another, it does not
+        copy certain metadata such as annotations, form fields, bookmarks or
+        structural tree elements. Copying these is a more complex, application
+        specific operation.
+        """
     @overload
-    def extend(self, iterable: Iterable[Page]) -> None: ...
-    def insert(self, index: int, obj: Page) -> None: ...
-    def p(self, pnum: int) -> Page: ...
-    def remove(self, **kwargs) -> None: ...
-    def reverse(self) -> None: ...
+    def extend(self, iterable: Iterable[Page]) -> None:
+        """Extend the ``Pdf`` by adding pages from an iterable of pages.
+
+        While this method copies pages from one document to another, it does not
+        copy certain metadata such as annotations, form fields, bookmarks or
+        structural tree elements. Copying these is a more complex, application
+        specific operation.
+        """
+    @overload
+    def from_objgen(self, objgen: tuple[int, int]) -> Page:
+        """Given an "objgen" (object ID, generation), return the page.
+
+        Raises an exception if no page matches.
+        """
+    @overload
+    def from_objgen(self, objid: int, gen: int) -> Page:
+        """Given an "objgen" (object ID, generation), return the page.
+
+        Raises an exception if no page matches.
+        """
+    def index(self, page: Page | Object) -> int:
+        """Given a page, find the index.
+
+        That is, returns ``n`` such that ``pdf.pages[n] == this_page``.
+        A ``ValueError`` exception is thrown if the page does not belong to
+        to this ``Pdf``. The first page has index 0.
+        """
+    def insert(self, index: int, obj: Page) -> None:
+        """Insert a page at the specified location.
+
+        Args:
+            index: location at which to insert page, 0-based indexing
+            obj: page object to insert
+        """
+    def p(self, pnum: int) -> Page:
+        """Look up page number in ordinal numbering, where 1 is the first page.
+
+        This is provided for convenience in situations where ordinal numbering
+        is more natural. It is equivalent to ``.pages[pnum - 1]``. ``.p(0)``
+        is an error and negative indexing is not supported.
+
+        If the PDF defines custom page labels (such as labeling front matter
+        with Roman numerals and the main body with Arabic numerals), this
+        function does not account for that. Use :attr:`pikepdf.Page.label`
+        to get the page label for a page.
+        """
+    def remove(self, *, p: int) -> None:
+        """Remove a page (using 1-based numbering).
+
+        Args:
+            p: 1-based page number
+        """
+    def reverse(self) -> None:
+        """Reverse the order of pages."""
     @overload
     def __delitem__(self, arg0: int) -> None: ...
     @overload

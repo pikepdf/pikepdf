@@ -237,18 +237,6 @@ void init_pagelist(py::module_ &m)
                         "page access out of range in 1-based indexing");
                 return pl.get_page(pnum - 1);
             },
-            R"~~~(
-            Look up page number in ordinal numbering, ``.p(1)`` is the first page.
-
-            This is provided for convenience in situations where ordinal numbering
-            is more natural. It is equivalent to ``.pages[pnum - 1]``. ``.p(0)``
-            is an error and negative indexing is not supported.
-
-            If the PDF defines custom page labels (such as labeling front matter
-            with Roman numerals and the main body with Arabic numerals), this
-            function does not account for that. Use :attr:`pikepdf.Page.label`
-            to get the page label for a page.
-            )~~~",
             py::arg("pnum"))
         .def("__iter__", [](PageList &pl) { return PageList(pl.qpdf, 0); })
         .def("__next__",
@@ -263,17 +251,9 @@ void init_pagelist(py::module_ &m)
                 auto uindex = uindex_from_index(pl, index);
                 pl.insert_page(uindex, obj);
             },
-            R"~~~(
-            Insert a page at the specified location.
-
-            Args:
-                index (int): location at which to insert page, 0-based indexing
-                obj (pikepdf.Object): page object to insert
-            )~~~",
             py::arg("index"), // LCOV_EXCL_LINE
             py::arg("obj"))
-        .def(
-            "reverse",
+        .def("reverse",
             [](PageList &pl) {
                 py::slice ordinary_indices(0, pl.count(), 1);
                 py::int_ step(-1);
@@ -281,33 +261,16 @@ void init_pagelist(py::module_ &m)
                     PySlice_New(Py_None, Py_None, step.ptr()));
                 py::list reversed_pages = pl.get_pages(reversed);
                 pl.set_pages_from_iterable(ordinary_indices, reversed_pages);
-            },
-            "Reverse the order of pages.")
+            })
         .def(
             "append",
             [](PageList &pl, QPDFPageObjectHelper &page) {
                 pl.insert_page(pl.count(), page);
             },
-            R"~~~(
-            Add another page to the end.
-
-            While this method copies pages from one document to another, it does not
-            copy certain metadata such as annotations, form fields, bookmarks or
-            structural tree elements. Copying these is a more complex, application
-            specific operation.
-            )~~~",
             py::arg("page"))
         .def(
             "append",
             [](PageList &pl, py::handle page) { pl.insert_page(pl.count(), page); },
-            R"~~~(
-            Add another page to the end.
-
-            While this method copies pages from one document to another, it does not
-            copy certain metadata such as annotations, form fields, bookmarks or
-            structural tree elements. Copying these is a more complex, application
-            specific operation.
-            )~~~",
             py::arg("page"))
         .def(
             "extend",
@@ -320,14 +283,6 @@ void init_pagelist(py::module_ &m)
                     pl.insert_page(pl.count(), other.get_page(i));
                 }
             },
-            R"~~~(
-            Extend the ``Pdf`` by adding pages from another ``Pdf.pages``.
-
-            While this method copies pages from one document to another, it does not
-            copy certain metadata such as annotations, form fields, bookmarks or
-            structural tree elements. Copying these is a more complex, application
-            specific operation.
-            )~~~",
             py::arg("other"))
         .def(
             "extend",
@@ -340,77 +295,33 @@ void init_pagelist(py::module_ &m)
                     ++it;
                 }
             },
-            R"~~~(
-            Extend the ``Pdf`` by adding pages from an iterable of pages.
-
-            While this method copies pages from one document to another, it does not
-            copy certain metadata such as annotations, form fields, bookmarks or
-            structural tree elements. Copying these is a more complex, application
-            specific operation.
-            )~~~",
             py::arg("iterable"))
-        .def(
-            "remove",
+        .def("remove",
             [](PageList &pl, py::kwargs kwargs) {
                 auto pnum = kwargs["p"].cast<py::ssize_t>();
                 if (pnum <= 0) // Indexing past end is checked in .get_page
                     throw py::index_error(
                         "page access out of range in 1-based indexing");
                 pl.delete_page(pnum - 1);
-            },
-            R"~~~(
-            Remove a page (using 1-based numbering)
-
-            Args:
-                p (int): 1-based page number
-            )~~~")
-        .def(
-            "index",
+            })
+        .def("index",
             [](PageList &pl, const QPDFObjectHandle &h) {
                 return page_index(*pl.qpdf, h);
-            },
-            R"~~~(
-            Given a pikepdf.Object that is a page, find the index number.
-
-            That is, returns ``n`` such that ``pdf.pages[n] == this_page``.
-            A ``ValueError`` exception is thrown if the page does not belong to
-            to this ``Pdf``. The first page has index 0.
-            )~~~")
-        .def(
-            "index",
+            })
+        .def("index",
             [](PageList &pl, const QPDFPageObjectHelper &poh) {
                 return page_index(*pl.qpdf, poh.getObjectHandle());
-            },
-            R"~~~(
-            Given a pikepdf.Page (page helper), find the index.
-
-            That is, returns ``n`` such that ``pdf.pages[n] == this_page``.
-            A ``ValueError`` exception is thrown if the page does not belong to
-            to this ``Pdf``. The first page has index 0.
-            )~~~")
+            })
         .def("__repr__",
             [](PageList &pl) {
                 return std::string("<pikepdf._core.PageList len=") +
                        std::to_string(pl.count()) + std::string(">");
             })
-        .def(
-            "from_objgen",
+        .def("from_objgen",
             [](PageList &pl, int obj, int gen) {
                 return from_objgen(*pl.qpdf, QPDFObjGen(obj, gen));
-            },
-            R"~~~(
-            Given an "objgen" (object ID, generation), return the page.
-
-            Raises an exception if no page matches.
-            )~~~")
-        .def(
-            "from_objgen",
-            [](PageList &pl, std::pair<int, int> objgen) {
-                return from_objgen(*pl.qpdf, QPDFObjGen(objgen.first, objgen.second));
-            },
-            R"~~~(
-            Given an "objgen" (object ID, generation), return the page.
-
-            Raises an exception if no page matches.
-            )~~~");
+            })
+        .def("from_objgen", [](PageList &pl, std::pair<int, int> objgen) {
+            return from_objgen(*pl.qpdf, QPDFObjGen(objgen.first, objgen.second));
+        });
 }
