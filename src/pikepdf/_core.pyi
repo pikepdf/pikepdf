@@ -77,9 +77,26 @@ class EncryptionMethod(Enum):
     aesv3: int = ...
 
 class ObjectStreamMode(Enum):
+    """Options for saving object streams within PDFs.
+
+    Object streams are more a compact
+    way of saving certain types of data that was added in PDF 1.5. All
+    modern PDF viewers support object streams, but some third party tools
+    and libraries cannot read them.
+    """
+
     disable: int = ...
+    """Disable the use of object streams.
+
+    If any object streams exist in the file, remove them when the file is saved.
+    """
     generate: int = ...
+    """Preserve any existing object streams in the original file.
+
+    This is the default behavior.
+    """
     preserve: int = ...
+    """Generate object streams."""
 
 class ObjectType(Enum):
     array: int = ...
@@ -146,7 +163,37 @@ class Object:
         """Append another object to an array; fails if the object is not an array."""
     def as_dict(self) -> _ObjectMapping: ...
     def as_list(self) -> _ObjectList: ...
-    def emplace(self, other: Object, retain: Iterable[Name] = ...) -> None: ...
+    def emplace(self, other: Object, retain: Iterable[Name] = ...) -> None:
+        """Copy all items from other without making a new object.
+
+        Particularly when working with pages, it may be desirable to remove all
+        of the existing page's contents and emplace (insert) a new page on top
+        of it, in a way that preserves all links and references to the original
+        page. (Or similarly, for other Dictionary objects in a PDF.)
+
+        Any Dictionary keys in the iterable *retain* are preserved. By default,
+        /Parent is retained.
+
+        When a page is assigned (``pdf.pages[0] = new_page``), only the
+        application knows if references to the original the original page are
+        still valid. For example, a PDF optimizer might restructure a page
+        object into another visually similar one, and references would be valid;
+        but for a program that reorganizes page contents such as a N-up
+        compositor, references may not be valid anymore.
+
+        This method takes precautions to ensure that child objects in common
+        with ``self`` and ``other`` are not inadvertently deleted.
+
+        Example:
+            >>> pdf.pages[0].objgen
+            (16, 0)
+            >>> pdf.pages[0].emplace(pdf.pages[1])
+            >>> pdf.pages[0].objgen
+            (16, 0)  # Same object
+
+        .. versionchanged:: 2.11.1
+            Added the *retain* argument.
+        """
     def extend(self, iter: Iterable[Object]) -> None:
         """Extend a pikepdf.Array with an iterable of other pikepdf.Object."""
     def get(self, key: int | str | Name, default: T | None = ...) -> Object | T | None:
@@ -244,7 +291,40 @@ class Object:
         filter: Name | Array | None = ...,  # pylint: disable=redefined-builtin
         decode_parms: Dictionary | Array | None = ...,
         type_check: bool = ...,
-    ) -> None: ...
+    ) -> None:
+        """Replace stream object's data with new (possibly compressed) `data`.
+
+        `filter` and `decode_parms` describe any compression that is already
+        present on the input `data`. For example, if your data is already
+        compressed with the Deflate algorithm, you would set
+        ``filter=Name.FlateDecode``.
+
+        When writing the PDF in :meth:`pikepdf.Pdf.save`,
+        pikepdf may change the compression or apply compression to data that was
+        not compressed, depending on the parameters given to that function. It
+        will never change lossless to lossy encoding.
+
+        PNG and TIFF images, even if compressed, cannot be directly inserted
+        into a PDF and displayed as images.
+
+        Args:
+            data: the new data to use for replacement
+            filter: The filter(s) with which the
+                data is (already) encoded
+            decode_parms: Parameters for the
+                filters with which the object is encode
+            type_check: Check arguments; use False only if you want to
+                intentionally create malformed PDFs.
+
+        If only one `filter` is specified, it may be a name such as
+        `Name('/FlateDecode')`. If there are multiple filters, then array
+        of names should be given.
+
+        If there is only one filter, `decode_parms` is a Dictionary of
+        parameters for that filter. If there are multiple filters, then
+        `decode_parms` is an Array of Dictionary, where each array index
+        is corresponds to the filter.
+        """
     def __bool__(self) -> bool: ...
     def __bytes__(self) -> bytes: ...
     def __contains__(self, obj: Object | str) -> bool: ...
@@ -943,8 +1023,25 @@ class PageList:
     def __setitem__(self, arg0: slice, arg1: Iterable[Page]) -> None: ...
 
 class Pdf:
-    _repr_mimebundle_: Any = ...
-    def add_blank_page(self, *, page_size: tuple[Numeric, Numeric] = ...) -> Page: ...
+    def _repr_mimebundle_(include: Any = ..., exclude: Any = ...) -> Any:
+        """Present options to IPython or Jupyter for rich display of this object.
+
+        See:
+        https://ipython.readthedocs.io/en/stable/config/integrating.html#rich-display
+        """
+    def add_blank_page(self, *, page_size: tuple[Numeric, Numeric] = ...) -> Page:
+        """Add a blank page to this PDF.
+
+        If pages already exist, the page will be added to the end. Pages may be
+        reordered using ``Pdf.pages``.
+
+        The caller may add content to the page by modifying its objects after creating
+        it.
+
+        Args:
+            page_size (tuple): The size of the page in PDF units (1/72 inch or 0.35mm).
+                Default size is set to a US Letter 8.5" x 11" page.
+        """
     def __enter__(self) -> Pdf: ...
     def __exit__(self, exc_type, exc_value, traceback) -> None: ...
     def __init__(self, *args, **kwargs) -> None: ...
@@ -965,7 +1062,34 @@ class Pdf:
     def _remove_page(self, arg0: Object) -> None: ...
     def _replace_object(self, arg0: tuple[int, int], arg1: Object) -> None: ...
     def _swap_objects(self, arg0: tuple[int, int], arg1: tuple[int, int]) -> None: ...
-    def check(self) -> list[str]: ...
+    def check(self) -> list[str]:
+        """Check if PDF is syntactically well-formed.
+
+        Similar to ``qpdf --check``, checks for syntax
+        or structural problems in the PDF. This is mainly useful to PDF
+        developers and may not be informative to the average user. PDFs with
+        these problems still render correctly, if PDF viewers are capable of
+        working around the issues they contain. In many cases, pikepdf can
+        also fix the problems.
+
+        An example problem found by this function is a xref table that is
+        missing an object reference. A page dictionary with the wrong type of
+        key, such as a string instead of an array of integers for its mediabox,
+        is not the sort of issue checked for. If this were an XML checker, it
+        would tell you if the XML is well-formed, but could not tell you if
+        the XML is valid XHTML or if it can be rendered as a usable web page.
+
+        This function also attempts to decompress all streams in the PDF.
+        If no JBIG2 decoder is available and JBIG2 images are presented,
+        a warning will occur that JBIG2 cannot be checked.
+
+        This function returns a list of strings describing the issues. The
+        text is subject to change and should not be treated as a stable API.
+
+        Returns:
+            Empty list if no issues were found. List of issues as text strings
+            if issues were found.
+        """
     def check_linearization(self, stream: object = ...) -> bool:
         """Reports information on the PDF's linearization.
 
@@ -982,7 +1106,26 @@ class Pdf:
         Raises:
             RuntimeError: If the PDF in question is not linearized at all.
         """
-    def close(self) -> None: ...
+    def close(self) -> None:
+        """Close a ``Pdf`` object and release resources acquired by pikepdf.
+
+        If pikepdf opened the file handle it will close it (e.g. when opened with a file
+        path). If the caller opened the file for pikepdf, the caller close the file.
+        ``with`` blocks will call close when exit.
+
+        pikepdf lazily loads data from PDFs, so some :class:`pikepdf.Object` may
+        implicitly depend on the :class:`pikepdf.Pdf` being open. This is always the
+        case for :class:`pikepdf.Stream` but can be true for any object. Do not close
+        the `Pdf` object if you might still be accessing content from it.
+
+        When an ``Object`` is copied from one ``Pdf`` to another, the ``Object`` is
+        copied into the destination ``Pdf`` immediately, so after accessing all desired
+        information from the source ``Pdf`` it may be closed.
+
+        .. versionchanged:: 3.0
+            In pikepdf 2.x, this function actually worked by resetting to a very short
+            empty PDF. Code that relied on this quirk may not function correctly.
+        """
     def copy_foreign(self, h: Object) -> Object:
         """Copy an ``Object`` from a foreign ``Pdf`` and return a copy.
 
@@ -1074,7 +1217,12 @@ class Pdf:
         See Also:
             :meth:`pikepdf.Object.is_indirect`
         """
-    def make_stream(self, data: bytes, d=None, **kwargs) -> Stream: ...
+    def make_stream(self, data: bytes, d=None, **kwargs) -> Stream:
+        """Create a new pikepdf.Stream object that is attached to this PDF.
+
+        See:
+            :meth:`pikepdf.Stream.__new__`
+        """
     @classmethod
     def new(cls) -> Pdf:
         """Create a new, empty PDF.
@@ -1100,14 +1248,173 @@ class Pdf:
         inherit_page_attributes: bool = True,
         access_mode: AccessMode = AccessMode.default,
         allow_overwriting_input: bool = False,
-    ) -> Pdf: ...
+    ) -> Pdf:
+        """Open an existing file at *filename_or_stream*.
+
+        If *filename_or_stream* is path-like, the file will be opened for reading.
+        The file should not be modified by another process while it is open in
+        pikepdf, or undefined behavior may occur. This is because the file may be
+        lazily loaded. Despite this restriction, pikepdf does not try to use any OS
+        services to obtain an exclusive lock on the file. Some applications may
+        want to attempt this or copy the file to a temporary location before
+        editing. This behaviour changes if *allow_overwriting_input* is set: the whole
+        file is then read and copied to memory, so that pikepdf can overwrite it
+        when calling ``.save()``.
+
+        When this function is called with a stream-like object, you must ensure
+        that the data it returns cannot be modified, or undefined behavior will
+        occur.
+
+        Any changes to the file must be persisted by using ``.save()``.
+
+        If *filename_or_stream* has ``.read()`` and ``.seek()`` methods, the file
+        will be accessed as a readable binary stream. pikepdf will read the
+        entire stream into a private buffer.
+
+        ``.open()`` may be used in a ``with``-block; ``.close()`` will be called when
+        the block exits, if applicable.
+
+        Whenever pikepdf opens a file, it will close it. If you open the file
+        for pikepdf or give it a stream-like object to read from, you must
+        release that object when appropriate.
+
+        Examples:
+            >>> with Pdf.open("test.pdf") as pdf:
+                    ...
+
+            >>> pdf = Pdf.open("test.pdf", password="rosebud")
+
+        Args:
+            filename_or_stream: Filename or Python readable and seekable file
+                stream of PDF to open.
+            password: User or owner password to open an
+                encrypted PDF. If the type of this parameter is ``str``
+                it will be encoded as UTF-8. If the type is ``bytes`` it will
+                be saved verbatim. Passwords are always padded or
+                truncated to 32 bytes internally. Use ASCII passwords for
+                maximum compatibility.
+            hex_password: If True, interpret the password as a
+                hex-encoded version of the exact encryption key to use, without
+                performing the normal key computation. Useful in forensics.
+            ignore_xref_streams: If True, ignore cross-reference
+                streams. See qpdf documentation.
+            suppress_warnings: If True (default), warnings are not
+                printed to stderr. Use :meth:`pikepdf.Pdf.get_warnings()` to
+                retrieve warnings.
+            attempt_recovery: If True (default), attempt to recover
+                from PDF parsing errors.
+            inherit_page_attributes: If True (default), push attributes
+                set on a group of pages to individual pages
+            access_mode: If ``.default``, pikepdf will
+                decide how to access the file. Currently, it will always
+                selected stream access. To attempt memory mapping and fallback
+                to stream if memory mapping failed, use ``.mmap``.  Use
+                ``.mmap_only`` to require memory mapping or fail
+                (this is expected to only be useful for testing). Applications
+                should be prepared to handle the SIGBUS signal on POSIX in
+                the event that the file is successfully mapped but later goes
+                away.
+            allow_overwriting_input: If True, allows calling ``.save()``
+                to overwrite the input file. This is performed by loading the
+                entire input file into memory at open time; this will use more
+                memory and may recent performance especially when the opened
+                file will not be modified.
+
+        Raises:
+            pikepdf.PasswordError: If the password failed to open the
+                file.
+            pikepdf.PdfError: If for other reasons we could not open
+                the file.
+            TypeError: If the type of ``filename_or_stream`` is not
+                usable.
+            FileNotFoundError: If the file was not found.
+
+        Note:
+            When *filename_or_stream* is a stream and the stream is located on a
+            network, pikepdf assumes that the stream using buffering and read caches
+            to achieve reasonable performance. Streams that fetch data over a network
+            in response to every read or seek request, no matter how small, will
+            perform poorly. It may be easier to download a PDF from network to
+            temporary local storage (such as ``io.BytesIO``), manipulate it, and
+            then re-upload it.
+
+        .. versionchanged:: 3.0
+            Keyword arguments now mandatory for everything except the first
+            argument.
+        """
     def open_metadata(
         self,
         set_pikepdf_as_editor: bool = True,
         update_docinfo: bool = True,
         strict: bool = False,
-    ) -> PdfMetadata: ...
-    def open_outline(self, max_depth: int = 15, strict: bool = False) -> Outline: ...
+    ) -> PdfMetadata:
+        """Open the PDF's XMP metadata for editing.
+
+        There is no ``.close()`` function on the metadata object, since this is
+        intended to be used inside a ``with`` block only.
+
+        For historical reasons, certain parts of PDF metadata are stored in
+        two different locations and formats. This feature coordinates edits so
+        that both types of metadata are updated consistently and "atomically"
+        (assuming single threaded access). It operates on the ``Pdf`` in memory,
+        not any file on disk. To persist metadata changes, you must still use
+        ``Pdf.save()``.
+
+        Example:
+            >>> with pdf.open_metadata() as meta:
+                    meta['dc:title'] = 'Set the Dublic Core Title'
+                    meta['dc:description'] = 'Put the Abstract here'
+
+        Args:
+            set_pikepdf_as_editor: Automatically update the metadata ``pdf:Producer``
+                to show that this version of pikepdf is the most recent software to
+                modify the metadata, and ``xmp:MetadataDate`` to timestamp the update.
+                Recommended, except for testing.
+
+            update_docinfo: Update the standard fields of DocumentInfo
+                (the old PDF metadata dictionary) to match the corresponding
+                XMP fields. The mapping is described in
+                :attr:`PdfMetadata.DOCINFO_MAPPING`. Nonstandard DocumentInfo
+                fields and XMP metadata fields with no DocumentInfo equivalent
+                are ignored.
+
+            strict: If ``False`` (the default), we aggressively attempt
+                to recover from any parse errors in XMP, and if that fails we
+                overwrite the XMP with an empty XMP record.  If ``True``, raise
+                errors when either metadata bytes are not valid and well-formed
+                XMP (and thus, XML). Some trivial cases that are equivalent to
+                empty or incomplete "XMP skeletons" are never treated as errors,
+                and always replaced with a proper empty XMP block. Certain
+                errors may be logged.
+        """
+    def open_outline(self, max_depth: int = 15, strict: bool = False) -> Outline:
+        """Open the PDF outline ("bookmarks") for editing.
+
+        Recommend for use in a ``with`` block. Changes are committed to the
+        PDF when the block exits. (The ``Pdf`` must still be opened.)
+
+        Example:
+            >>> with pdf.open_outline() as outline:
+                    outline.root.insert(0, OutlineItem('Intro', 0))
+
+        Args:
+            max_depth: Maximum recursion depth of the outline to be
+                imported and re-written to the document. ``0`` means only
+                considering the root level, ``1`` the first-level
+                sub-outline of each root element, and so on. Items beyond
+                this depth will be silently ignored. Default is ``15``.
+            strict: With the default behavior (set to ``False``),
+                structural errors (e.g. reference loops) in the PDF document
+                will only cancel processing further nodes on that particular
+                level, recovering the valid parts of the document outline
+                without raising an exception. When set to ``True``, any such
+                error will raise an ``OutlineStructureError``, leaving the
+                invalid parts in place.
+                Similarly, outline objects that have been accidentally
+                duplicated in the ``Outline`` container will be silently
+                fixed (i.e. reproduced as new objects) or raise an
+                ``OutlineStructureError``.
+        """
     def remove_unreferenced_resources(self) -> None:
         """Remove from /Resources any object not referenced in page's contents.
 
@@ -1145,7 +1452,172 @@ class Pdf:
         encryption: Encryption | bool | None = None,
         recompress_flate: bool = False,
         deterministic_id: bool = False,
-    ) -> None: ...
+    ) -> None:
+        """Save all modifications to this :class:`pikepdf.Pdf`.
+
+        Args:
+            filename_or_stream: Where to write the output. If a file
+                exists in this location it will be overwritten.
+                If the file was opened with ``allow_overwriting_input=True``,
+                then it is permitted to overwrite the original file, and
+                this parameter may be omitted to implicitly use the original
+                filename. Otherwise, the filename may not be the same as the
+                input file, as overwriting the input file would corrupt data
+                since pikepdf using lazy loading.
+
+            static_id: Indicates that the ``/ID`` metadata, normally
+                calculated as a hash of certain PDF contents and metadata
+                including the current time, should instead be set to a static
+                value. Only use this for debugging and testing. Use
+                ``deterministic_id`` if you want to get the same ``/ID`` for
+                the same document contents.
+            preserve_pdfa: Ensures that the file is generated in a
+                manner compliant with PDF/A and other stricter variants.
+                This should be True, the default, in most cases.
+
+            min_version: Sets the minimum version of PDF
+                specification that should be required. If left alone QPDF
+                will decide. If a tuple, the second element is an integer, the
+                extension level. If the version number is not a valid format,
+                QPDF will decide what to do.
+            force_version: Override the version recommend by QPDF,
+                potentially creating an invalid file that does not display
+                in old versions. See QPDF manual for details. If a tuple, the
+                second element is an integer, the extension level.
+            fix_metadata_version: If ``True`` (default) and the XMP metadata
+                contains the optional PDF version field, ensure the version in
+                metadata is correct. If the XMP metadata does not contain a PDF
+                version field, none will be added. To ensure that the field is
+                added, edit the metadata and insert a placeholder value in
+                ``pdf:PDFVersion``. If XMP metadata does not exist, it will
+                not be created regardless of the value of this argument.
+
+            object_stream_mode:
+                ``disable`` prevents the use of object streams.
+                ``preserve`` keeps object streams from the input file.
+                ``generate`` uses object streams wherever possible,
+                creating the smallest files but requiring PDF 1.5+.
+
+            compress_streams: Enables or disables the compression of
+                uncompressed stream objects. By default this is set to
+                ``True``, and the only reason to set it to ``False`` is for
+                debugging or inspecting PDF contents.
+
+                When enabled, uncompressed stream objects will be compressed
+                whether they were uncompressed in the PDF when it was opened,
+                or when the user creates new :class:`pikepdf.Stream` objects
+                attached to the PDF. Stream objects can also be created
+                indirectly, such as when content from another PDF is merged
+                into the one being saved.
+
+                Only stream objects that have no compression will be
+                compressed when this object is set. If the object is
+                compressed, compression will be preserved.
+
+                Setting compress_streams=False does not trigger decompression
+                unless decompression is specifically requested by setting
+                both ``compress_streams=False`` and ``stream_decode_level``
+                to the desired decode level (e.g. ``.generalized`` will
+                decompress most non-image content).
+
+                This option does not trigger recompression of existing
+                compressed streams. For that, use ``recompress_flate``.
+
+                The XMP metadata stream object, if present, is never
+                compressed, to facilitate metadata reading by parsers that
+                don't understand the full structure of PDF.
+
+            stream_decode_level: Specifies how
+                to encode stream objects. See documentation for
+                :class:`pikepdf.StreamDecodeLevel`.
+
+            recompress_flate: When disabled (the default), qpdf does not
+                uncompress and recompress streams compressed with the Flate
+                compression algorithm. If True, pikepdf will instruct qpdf to
+                do this, which may be useful if recompressing streams to a
+                higher compression level.
+
+            normalize_content: Enables parsing and reformatting the
+                content stream within PDFs. This may debugging PDFs easier.
+
+            linearize: Enables creating linear or "fast web view",
+                where the file's contents are organized sequentially so that
+                a viewer can begin rendering before it has the whole file.
+                As a drawback, it tends to make files larger.
+
+            qdf: Save output QDF mode.  QDF mode is a special output
+                mode in QPDF to allow editing of PDFs in a text editor. Use
+                the program ``fix-qdf`` to fix convert back to a standard
+                PDF.
+
+            progress: Specify a callback function that is called
+                as the PDF is written. The function will be called with an
+                integer between 0-100 as the sole parameter, the progress
+                percentage. This function may not access or modify the PDF
+                while it is being written, or data corruption will almost
+                certainly occur.
+
+            encryption: If ``False``
+                or omitted, existing encryption will be removed. If ``True``
+                encryption settings are copied from the originating PDF.
+                Alternately, an ``Encryption`` object may be provided that
+                sets the parameters for new encryption.
+
+            deterministic_id: Indicates that the ``/ID`` metadata, normally
+                calculated as a hash of certain PDF contents and metadata
+                including the current time, should instead be computed using
+                only deterministic data like the file contents. At a small
+                runtime cost, this enables generation of the same ``/ID`` if
+                the same inputs are converted in the same way multiple times.
+                Does not work for encrypted files.
+
+        Raises:
+            PdfError
+            ForeignObjectError
+            ValueError
+
+        You may call ``.save()`` multiple times with different parameters
+        to generate different versions of a file, and you *may* continue
+        to modify the file after saving it. ``.save()`` does not modify
+        the ``Pdf`` object in memory, except possibly by updating the XMP
+        metadata version with ``fix_metadata_version``.
+
+        .. note::
+
+            :meth:`pikepdf.Pdf.remove_unreferenced_resources` before saving
+            may eliminate unnecessary resources from the output file if there
+            are any objects (such as images) that are referenced in a page's
+            Resources dictionary but never called in the page's content stream.
+
+        .. note::
+
+            pikepdf can read PDFs with incremental updates, but always
+            coalesces any incremental updates into a single non-incremental
+            PDF file when saving.
+
+        .. note::
+            If filename_or_stream is a stream and the process is interrupted during
+            writing, the stream may be left in a corrupt state. It is the
+            responsibility of the caller to manage the stream in this case.
+
+        .. versionchanged:: 2.7
+            Added *recompress_flate*.
+
+        .. versionchanged:: 3.0
+            Keyword arguments now mandatory for everything except the first
+            argument.
+
+        .. versionchanged:: 8.1
+            If filename_or_stream is a filename and that file exists, the new file
+            is written to a temporary file in the same directory and then moved into
+            place. This prevents the existing destination file from being corrupted
+            if the process is interrupted during writing; previously, corrupting the
+            destination file was possible. If no file exists at the destination, output
+            is written directly to the destination, but the destination will be deleted
+            if errors occur during writing. Prior to 8.1, the file was always written
+            directly to the destination, which could result in a corrupt destination
+            file if the process was interrupted during writing.
+        """
     def show_xref_table(self) -> None:
         """Pretty-print the Pdf's xref (cross-reference table)."""
     @property
@@ -1173,13 +1645,51 @@ class Pdf:
     @property
     def _pages(self) -> Any: ...
     @property
-    def allow(self) -> Permissions: ...
+    def allow(self) -> Permissions:
+        """Report permissions associated with this PDF.
+
+        By default these permissions will be replicated when the PDF is
+        saved. Permissions may also only be changed when a PDF is being saved,
+        and are only available for encrypted PDFs. If a PDF is not encrypted,
+        all operations are reported as allowed.
+
+        pikepdf has no way of enforcing permissions.
+        """
     @property
-    def docinfo(self) -> Object: ...
+    def docinfo(self) -> Object:
+        """Access the (deprecated) document information dictionary.
+
+        The document information dictionary is a brief metadata record that can
+        store some information about the origin of a PDF. It is deprecated and
+        removed in the PDF 2.0 specification (not deprecated from the
+        perspective of pikepdf). Use the ``.open_metadata()`` API instead, which
+        will edit the modern (and unfortunately, more complicated) XMP metadata
+        object and synchronize changes to the document information dictionary.
+
+        This property simplifies access to the actual document information
+        dictionary and ensures that it is created correctly if it needs to be
+        created.
+
+        A new, empty dictionary will be created if this property is accessed
+        and dictionary does not exist. (This is to ensure that convenient code
+        like ``pdf.docinfo[Name.Title] = "Title"`` will work when the dictionary
+        does not exist at all.)
+
+        You can delete the document information dictionary by deleting this property,
+        ``del pdf.docinfo``. Note that accessing the property after deleting it
+        will re-create with a new, empty dictionary.
+
+        .. versionchanged:: 2.4
+            Added support for ``del pdf.docinfo``.
+        """
     @docinfo.setter
     def docinfo(self, val: Object) -> None: ...
     @property
-    def encryption(self) -> EncryptionInfo: ...
+    def encryption(self) -> EncryptionInfo:
+        """Report encryption information for this PDF.
+
+        Encryption settings may only be changed when a PDF is saved.
+        """
     @property
     def extension_level(self) -> int:
         """Returns the extension level of this PDF.

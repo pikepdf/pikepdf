@@ -12,26 +12,11 @@ Main objects
 
     Alias for :meth:`pikepdf.Pdf.new`.
 
-.. class:: pikepdf.ObjectStreamMode
+Access modes
+============
 
-    Options for saving streams within PDFs, which are more a compact
-    way of saving certain types of data that was added in PDF 1.5. All
-    modern PDF viewers support object streams, but some third party tools
-    and libraries cannot read them.
-
-    .. attribute:: disable
-
-        Disable the use of object streams. If any object streams exist in the
-        file, remove them when the file is saved.
-
-    .. attribute:: preserve
-
-        Preserve any existing object streams in the original file. This is
-        the default behavior.
-
-    .. attribute:: generate
-
-        Generate object streams.
+.. autoapiclass:: pikepdf.ObjectStreamMode
+    :members:
 
 .. class:: pikepdf.StreamDecodeLevel
 
