@@ -563,19 +563,42 @@ class Token:
     def __init__(self, arg0: TokenType, arg1: bytes) -> None: ...
     def __eq__(self, other: Any) -> bool: ...
     @property
-    def error_msg(self) -> str: ...
+    def error_msg(self) -> str:
+        """If the token is an error, this returns the error message."""
     @property
-    def raw_value(self) -> bytes: ...
+    def raw_value(self) -> bytes:
+        """The binary representation of a token."""
     @property
-    def type_(self) -> TokenType: ...
+    def type_(self) -> TokenType:
+        """Returns the type of token."""
     @property
-    def value(self) -> str: ...
+    def value(self) -> str:
+        """Interprets the token as a string."""
 
 class _QPDFTokenFilter: ...
 
 class TokenFilter(_QPDFTokenFilter):
     def __init__(self) -> None: ...
-    def handle_token(self, token: Token = ...) -> None | list | Token: ...
+    def handle_token(self, token: Token = ...) -> None | Token | Iterable[Token]:
+        """Handle a :class:`pikepdf.Token`.
+
+        This is an abstract method that must be defined in a subclass
+        of ``TokenFilter``. The method will be called for each token.
+        The implementation may return either ``None`` to discard the
+        token, the original token to include it, a new token, or an
+        iterable containing zero or more tokens. An implementation may
+        also buffer tokens and release them in groups (for example, it
+        could collect an entire PDF command with all of its operands,
+        and then return all of it).
+
+        The final token will always be a token of type ``TokenType.eof``,
+        (unless an exception is raised).
+
+        If this method raises an exception, the exception will be
+        caught by C++, consumed, and replaced with a less informative
+        exception. Use :meth:`pikepdf.Pdf.get_warnings` to view the
+        original.
+        """
 
 class StreamParser:
     """A simple content stream parser, which must be subclassed to be used.
@@ -987,31 +1010,65 @@ class Pdf:
     def attachments(self) -> Attachments: ...
 
 class Rectangle:
+    """A PDF rectangle.
+
+    Typically this will be a rectangle in PDF units (points, 1/72").
+    Unlike raster graphics, the rectangle is defined by the **lower**
+    left and upper right points.
+
+    Rectangles in PDF are encoded as :class:`pikepdf.Array` with exactly
+    four numeric elements, ordered as ``llx lly urx ury``.
+    See |pdfrm| section 7.9.5.
+
+    The rectangle may be considered degenerate if the lower left corner
+    is not strictly less than the upper right corner.
+
+    .. versionadded:: 2.14
+
+    .. versionchanged:: 8.5
+        Added operators to test whether rectangle ``a`` is contained in
+        rectangle ``b`` (``a <= b``) and to calculate their intersection
+        (``a & b``).
+    """
+
     llx: float = ...
+    """The lower left corner on the x-axis."""
     lly: float = ...
+    """The lower left corner on the y-axis."""
     urx: float = ...
+    """The upper right corner on the x-axis."""
     ury: float = ...
+    """The upper right corner on the y-axis."""
     @overload
     def __init__(self, llx: float, lly: float, urx: float, ury: float, /) -> None: ...
     @overload
     def __init__(self, other: Rectangle): ...
     @overload
     def __init__(self, other: Array) -> None: ...
-    def __and__(self, other: Rectangle) -> Rectangle: ...
-    def __le__(self, other: Rectangle) -> bool: ...
+    def __and__(self, other: Rectangle) -> Rectangle:
+        """Return the bounding Rectangle of the common area of self and other."""
+    def __le__(self, other: Rectangle) -> bool:
+        """Return True if self is contained in other or equal to other."""
     @property
-    def width(self) -> float: ...
+    def width(self) -> float:
+        """The width of the rectangle."""
     @property
-    def height(self) -> float: ...
+    def height(self) -> float:
+        """The height of the rectangle."""
     @property
-    def lower_left(self) -> tuple[float, float]: ...
+    def lower_left(self) -> tuple[float, float]:
+        """A point for the lower left corner."""
     @property
-    def lower_right(self) -> tuple[float, float]: ...
+    def lower_right(self) -> tuple[float, float]:
+        """A point for the lower right corner."""
     @property
-    def upper_left(self) -> tuple[float, float]: ...
+    def upper_left(self) -> tuple[float, float]:
+        """A point for the upper left corner."""
     @property
-    def upper_right(self) -> tuple[float, float]: ...
-    def as_array(self) -> Array: ...
+    def upper_right(self) -> tuple[float, float]:
+        """A point for the upper right corner."""
+    def as_array(self) -> Array:
+        """Returns this rectangle as a :class:`pikepdf.Array`."""
     def __eq__(self, other: Any) -> bool: ...
     def __repr__(self) -> str: ...
 

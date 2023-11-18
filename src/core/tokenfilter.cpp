@@ -75,31 +75,10 @@ void init_tokenfilter(py::module_ &m)
 
     py::class_<QPDFTokenizer::Token>(m, "Token")
         .def(py::init<QPDFTokenizer::token_type_e, py::bytes>())
-        .def_property_readonly("type_",
-            &QPDFTokenizer::Token::getType,
-            R"~~~(
-                Returns the type of token.
-
-                Return type:
-                    pikepdf.TokenType
-            )~~~")
-        .def_property_readonly("value",
-            &QPDFTokenizer::Token::getValue,
-            R"~~~(
-                Interprets the token as a string.
-
-                Return type:
-                    str or bytes
-            )~~~")
-        .def_property_readonly(
-            "raw_value",
-            [](const QPDFTokenizer::Token &t) -> py::bytes { return t.getRawValue(); },
-            R"~~~(
-                The binary representation of a token.
-
-                Return type:
-                    bytes
-            )~~~")
+        .def_property_readonly("type_", &QPDFTokenizer::Token::getType)
+        .def_property_readonly("value", &QPDFTokenizer::Token::getValue)
+        .def_property_readonly("raw_value",
+            [](const QPDFTokenizer::Token &t) -> py::bytes { return t.getRawValue(); })
         .def_property_readonly("error_msg", &QPDFTokenizer::Token::getErrorMessage)
         .def("__eq__", &QPDFTokenizer::Token::operator==, py::is_operator());
 
@@ -112,28 +91,5 @@ void init_tokenfilter(py::module_ &m)
         .def(py::init<>())
         .def("handle_token",
             &TokenFilter::handle_token,
-            R"~~~(
-                Handle a :class:`pikepdf.Token`.
-
-                This is an abstract method that must be defined in a subclass
-                of ``TokenFilter``. The method will be called for each token.
-                The implementation may return either ``None`` to discard the
-                token, the original token to include it, a new token, or an
-                iterable containing zero or more tokens. An implementation may
-                also buffer tokens and release them in groups (for example, it
-                could collect an entire PDF command with all of its operands,
-                and then return all of it).
-
-                The final token will always be a token of type ``TokenType.eof``,
-                (unless an exception is raised).
-
-                If this method raises an exception, the exception will be
-                caught by C++, consumed, and replaced with a less informative
-                exception. Use :meth:`pikepdf.Pdf.get_warnings` to view the
-                original.
-
-                Return type:
-                    None or list or pikepdf.Token
-            )~~~",
             py::arg_v("token", QPDFTokenizer::Token(), "pikepdf.Token()"));
 }
