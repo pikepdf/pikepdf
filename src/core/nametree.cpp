@@ -35,23 +35,8 @@ void init_nametree(py::module_ &m)
             py::arg("pdf"), // LCOV_EXCL_LINE
             py::kw_only(),
             py::arg("auto_repair") = true,
-            py::keep_alive<0, 1>(),
-            R"~~~(
-                Create a new NameTree in the provided Pdf.
-
-                You will probably need to insert the name tree in the PDF's
-                catalog. For example, to insert this name tree in
-                /Root /Names /Dests:
-
-                .. code-block:: python
-
-                    nt = NameTree.new(pdf)
-                    pdf.Root.Names.Dests = nt.obj
-            )~~~")
-        .def_property_readonly(
-            "obj",
-            [](NameTree &nt) { return nt.getObjectHandle(); },
-            "Returns the underlying root object for this name tree.")
+            py::keep_alive<0, 1>())
+        .def_property_readonly("obj", [](NameTree &nt) { return nt.getObjectHandle(); })
         .def(
             "__eq__",
             [](NameTree &self, NameTree &other) {

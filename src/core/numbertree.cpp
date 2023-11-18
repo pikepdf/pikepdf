@@ -38,19 +38,7 @@ void init_numbertree(py::module_ &m)
             py::arg("pdf"), // LCOV_EXCL_LINE
             py::kw_only(),
             py::arg("auto_repair") = true,
-            py::keep_alive<0, 1>(),
-            R"~~~(
-                Create a new NumberTree in the provided Pdf.
-
-                You will probably need to insert the number tree in the PDF's
-                catalog. For example, to insert this number tree in 
-                /Root /PageLabels:
-
-                .. code-block:: python
-
-                    nt = NumberTree.new(pdf)
-                    pdf.Root.PageLabels = nt.obj
-            )~~~")
+            py::keep_alive<0, 1>())
         .def("__contains__",
             [](NumberTree &nt, numtree_number idx) { return nt.hasIndex(idx); })
         .def("__contains__", [](NumberTree &nt, py::object idx) { return false; })

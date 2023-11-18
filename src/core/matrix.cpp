@@ -113,9 +113,7 @@ void init_matrix(py::module_ &m)
                 copy.concat(QPDFMatrix(c, s, -s, c, 0, 0));
                 return copy;
             },
-            py::arg("angle_degrees_ccw"),
-            R"~~~(
-            )~~~")
+            py::arg("angle_degrees_ccw"))
         .def(
             "__matmul__",
             [](QPDFMatrix const &self, QPDFMatrix const &other) {
@@ -172,10 +170,7 @@ void init_matrix(py::module_ &m)
                 self.transform(x, y, xp, yp);
                 return py::make_tuple(xp, yp);
             },
-            py::arg("point"),
-            R"~~~(
-
-            )~~~")
+            py::arg("point"))
         .def(
             "transform",
             [](QPDFMatrix const &self, Rect const &rect) {

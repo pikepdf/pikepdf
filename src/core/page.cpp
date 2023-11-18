@@ -68,39 +68,14 @@ void init_page(py::module_ &m)
                 return poh.externalizeInlineImages(min_size, shallow);
             },
             py::arg("min_size") = 0,
-            py::arg("shallow")  = false,
-            R"~~~(
-                Convert inline image to normal (external) images.
-
-                Args:
-                    min_size (int): minimum size in bytes
-                    shallow (bool): If False, recurse into nested Form XObjects.
-                        If True, do not recurse.
-            )~~~")
+            py::arg("shallow")  = false)
         .def("rotate",
             &QPDFPageObjectHelper::rotatePage,
             py::arg("angle"),
-            py::arg("relative"),
-            R"~~~(
-                Rotate a page.
-
-                If ``relative`` is ``False``, set the rotation of the
-                page to angle. Otherwise, add angle to the rotation of the
-                page. ``angle`` must be a multiple of ``90``. Adding ``90`` to
-                the rotation rotates clockwise by ``90`` degrees.
-            )~~~")
+            py::arg("relative"))
         .def("contents_coalesce",
-            &QPDFPageObjectHelper::coalesceContentStreams, // LCOV_EXCL_LINE
-            R"~~~(
-                Coalesce a page's content streams.
-
-                A page's content may be a
-                stream or an array of streams. If this page's content is an
-                array, concatenate the streams into a single stream. This can
-                be useful when working with files that split content streams in
-                arbitrary spots, such as in the middle of a token, as that can
-                confuse some software.
-            )~~~")
+            &QPDFPageObjectHelper::coalesceContentStreams // LCOV_EXCL_LINE
+            )
         .def(
             "_contents_add",
             [](QPDFPageObjectHelper &poh, QPDFObjectHandle &contents, bool prepend) {
@@ -125,40 +100,11 @@ void init_page(py::module_ &m)
             py::kw_only(),
             py::arg("prepend") = false)
         .def("remove_unreferenced_resources",
-            &QPDFPageObjectHelper::removeUnreferencedResources, // LCOV_EXCL_LINE
-            R"~~~(
-                Removes from the resources dictionary any object not referenced in the content stream.
-
-                A page's resources dictionary maps names to objects elsewhere
-                in the file. This method walks through a page's contents and
-                keeps tracks of which resources are referenced somewhere in the
-                contents. Then it removes from the resources dictionary any
-                object that is not referenced in the contents. This
-                method is used by page splitting code to avoid copying unused
-                objects in files that use shared resource dictionaries across
-                multiple pages.
-            )~~~")
+            &QPDFPageObjectHelper::removeUnreferencedResources // LCOV_EXCL_LINE
+            )
         .def("as_form_xobject",
             &QPDFPageObjectHelper::getFormXObjectForPage, // LCOV_EXCL_LINE
-            py::arg("handle_transformations") = true,
-            R"~~~(
-                Return a form XObject that draws this page.
-
-                This is useful for
-                n-up operations, underlay, overlay, thumbnail generation, or
-                any other case in which it is useful to replicate the contents
-                of a page in some other context. The dictionaries are shallow
-                copies of the original page dictionary, and the contents are
-                coalesced from the page's contents. The resulting object handle
-                is not referenced anywhere.
-
-                Args:
-                    handle_transformations (bool): If True, the resulting form
-                        XObject's ``/Matrix`` will be set to replicate rotation
-                        (``/Rotate``) and scaling (``/UserUnit``) in the page's
-                        dictionary. In this way, the page's transformations will
-                        be preserved when placing this object on another page.
-            )~~~")
+            py::arg("handle_transformations") = true)
         .def(
             "calc_form_xobject_placement",
             [](QPDFPageObjectHelper &poh,
@@ -181,29 +127,7 @@ void init_page(py::module_ &m)
             py::kw_only(), // LCOV_EXCL_LINE
             py::arg("invert_transformations") = true,
             py::arg("allow_shrink")           = true,
-            py::arg("allow_expand")           = false,
-            R"~~~(
-                Generate content stream segment to place a Form XObject on this page.
-
-                The content stream segment must then be added to the page's
-                content stream.
-
-                The default keyword parameters will preserve the aspect ratio.
-
-                Args:
-                    formx: The Form XObject to place.
-                    name: The name of the Form XObject in this page's /Resources
-                        dictionary.
-                    rect: Rectangle describing the desired placement of the Form
-                        XObject.
-                    invert_transformations: Apply /Rotate and /UserUnit scaling
-                        when determining FormX Object placement.
-                    allow_shrink: Allow the Form XObject to take less than the
-                        full dimensions of rect.
-                    allow_expand: Expand the Form XObject to occupy all of rect.
-
-                .. versionadded:: 2.14
-            )~~~")
+            py::arg("allow_expand")           = false)
         .def(
             "get_filtered_contents",
             [](QPDFPageObjectHelper &poh,
@@ -218,23 +142,8 @@ void init_page(py::module_ &m)
                 auto size = buf->getSize();
                 return py::bytes(data, size);
             },
-            py::arg("tf"), // LCOV_EXCL_LINE
-            R"~~~(
-                Apply a :class:`pikepdf.TokenFilter` to a content stream, without modifying it.
-
-                This may be used when the results of a token filter do not need
-                to be applied, such as when filtering is being used to retrieve
-                information rather than edit the content stream.
-
-                Note that it is possible to create a subclassed ``TokenFilter``
-                that saves information of interest to its object attributes; it
-                is not necessary to return data in the content stream.
-
-                To modify the content stream, use :meth:`pikepdf.Page.add_content_token_filter`.
-
-                Returns:
-                    The modified content stream.
-            )~~~")
+            py::arg("tf") // LCOV_EXCL_LINE
+            )
         .def(
             "add_content_token_filter",
             [](QPDFPageObjectHelper &poh,
@@ -250,36 +159,14 @@ void init_page(py::module_ &m)
 
                 poh.addContentTokenFilter(tf);
             },
-            py::arg("tf"),
-            R"~~~(
-                Attach a :class:`pikepdf.TokenFilter` to a page's content stream.
-
-                This function applies token filters lazily, if/when the page's
-                content stream is read for any reason, such as when the PDF is
-                saved. If never access, the token filter is not applied.
-
-                Multiple token filters may be added to a page/content stream.
-
-                Token filters may not be removed after being attached to a Pdf.
-                Close and reopen the Pdf to remove token filters.
-
-                If the page's contents is an array of streams, it is coalesced.
-            )~~~")
+            py::arg("tf"))
         .def(
             "parse_contents",
-            [](QPDFPageObjectHelper &poh, PyParserCallbacks &parsercallbacks) {
-                poh.parseContents(&parsercallbacks);
+            [](QPDFPageObjectHelper &poh, PyParserCallbacks &stream_parser) {
+                poh.parseContents(&stream_parser);
             },
-            R"~~~(
-                Parse a page's content streams using a :class:`pikepdf.StreamParser`.
-
-                The content stream may be interpreted by the StreamParser but is
-                not altered.
-
-                If the page's contents is an array of streams, it is coalesced.
-            )~~~")
-        .def_property_readonly(
-            "index",
+            py::arg("stream_parser"))
+        .def_property_readonly("index",
             [](QPDFPageObjectHelper &poh) {
                 auto this_page = poh.getObjectHandle();
                 auto p_owner   = this_page.getOwningQPDF();
@@ -287,49 +174,20 @@ void init_page(py::module_ &m)
                     throw py::value_error("Page is not attached to a Pdf");
                 auto &owner = *p_owner;
                 return page_index(owner, this_page);
-            },
-            R"~~~(
-                Returns the zero-based index of this page in the pages list.
+            })
+        .def_property_readonly("label", [](QPDFPageObjectHelper &poh) {
+            auto this_page = poh.getObjectHandle();
+            auto p_owner   = this_page.getOwningQPDF();
+            if (!p_owner)
+                throw py::value_error("Page is not attached to a Pdf");
+            auto &owner = *p_owner;
+            auto index  = page_index(owner, this_page);
 
-                That is, returns ``n`` such that ``pdf.pages[n] == this_page``.
-                A ``ValueError`` exception is thrown if the page is not attached
-                to this ``Pdf``.
+            QPDFPageLabelDocumentHelper pldh(owner);
+            auto label_dict = pldh.getLabelForPage(index);
+            if (label_dict.isNull())
+                return std::to_string(index + 1);
 
-                .. versionadded:: 2.2
-            )~~~")
-        .def_property_readonly(
-            "label",
-            [](QPDFPageObjectHelper &poh) {
-                auto this_page = poh.getObjectHandle();
-                auto p_owner   = this_page.getOwningQPDF();
-                if (!p_owner)
-                    throw py::value_error("Page is not attached to a Pdf");
-                auto &owner = *p_owner;
-                auto index  = page_index(owner, this_page);
-
-                QPDFPageLabelDocumentHelper pldh(owner);
-                auto label_dict = pldh.getLabelForPage(index);
-                if (label_dict.isNull())
-                    return std::to_string(index + 1);
-
-                return label_string_from_dict(label_dict);
-            },
-            R"~~~(
-                Returns the page label for this page, accounting for section numbers.
-
-                For example, if the PDF defines a preface with lower case Roman
-                numerals (i, ii, iii...), followed by standard numbers, followed
-                by an appendix (A-1, A-2, ...), this function returns the appropriate
-                label as a string.
-
-                It is possible for a PDF to define page labels such that multiple
-                pages have the same labels. Labels are not guaranteed to
-                be unique.
-
-                .. versionadded:: 2.2
-
-                .. versionchanged:: 2.9
-                    Returns the ordinary page number if no special rules for page
-                    numbers are defined.
-            )~~~");
+            return label_string_from_dict(label_dict);
+        });
 }
