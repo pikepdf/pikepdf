@@ -885,7 +885,17 @@ class Pdf:
     def __enter__(self) -> Pdf: ...
     def __exit__(self, exc_type, exc_value, traceback) -> None: ...
     def __init__(self, *args, **kwargs) -> None: ...
-    def _add_page(self, page: Object, first: bool = ...) -> None: ...
+    def _add_page(self, page: Object, first: bool = ...) -> None:
+        """Low-level private method to attach a page to this PDF.
+
+        The page can be either be a newly constructed PDF object or it can
+        be obtained from another PDF.
+
+        Args:
+            page: The page object to attach.
+            first: If True, prepend this before the first page;
+                if False append after last page.
+        """
     def _decode_all_streams_and_discard(self) -> None: ...
     def _get_object_id(self, arg0: int, arg1: int) -> Object: ...
     def _process(self, arg0: str, arg1: bytes) -> None: ...
@@ -893,21 +903,128 @@ class Pdf:
     def _replace_object(self, arg0: tuple[int, int], arg1: Object) -> None: ...
     def _swap_objects(self, arg0: tuple[int, int], arg1: tuple[int, int]) -> None: ...
     def check(self) -> list[str]: ...
-    def check_linearization(self, stream: object = ...) -> bool: ...
+    def check_linearization(self, stream: object = ...) -> bool:
+        """Reports information on the PDF's linearization.
+
+        Args:
+            stream: A stream to write this information too; must
+                implement ``.write()`` and ``.flush()`` method. Defaults to
+                :data:`sys.stderr`.
+
+        Returns:
+            ``True`` if the file is correctly linearized, and ``False`` if
+            the file is linearized but the linearization data contains errors
+            or was incorrectly generated.
+
+        Raises:
+            RuntimeError: If the PDF in question is not linearized at all.
+        """
     def close(self) -> None: ...
-    def copy_foreign(self, h: Object) -> Object: ...
+    def copy_foreign(self, h: Object) -> Object:
+        """Copy an ``Object`` from a foreign ``Pdf`` and return a copy.
+
+        The object must be owned by a different ``Pdf`` from this one.
+
+        If the object has previously been copied, return a reference to
+        the existing copy, even if that copy has been modified in the meantime.
+
+        If you want to copy a page from one PDF to another, use:
+        ``pdf_b.pages[0] = pdf_a.pages[0]``. That interface accounts for the
+        complexity of copying pages.
+
+        This function is used to copy a :class:`pikepdf.Object` that is owned by
+        some other ``Pdf`` into this one. This is performs a deep (recursive) copy
+        and preserves all references that may exist in the foreign object. For
+        example, if
+
+            >>> object_a = pdf.copy_foreign(object_x)
+            >>> object_b = pdf.copy_foreign(object_y)
+            >>> object_c = pdf.copy_foreign(object_z)
+
+        and ``object_z`` is a shared descendant of both ``object_x`` and ``object_y``
+        in the foreign PDF, then ``object_c`` is a shared descendant of both
+        ``object_a`` and ``object_b`` in this PDF. If ``object_x`` and ``object_y``
+        refer to the same object, then ``object_a`` and ``object_b`` are the
+        same object.
+
+        It also copies all :class:`pikepdf.Stream` objects. Since this may copy
+        a large amount of data, it is not done implicitly. This function does
+        not copy references to pages in the foreign PDF - it stops at page
+        boundaries. Thus, if you use ``copy_foreign()`` on a table of contents
+        (``/Outlines`` dictionary), you may have to update references to pages.
+
+        Direct objects, including dictionaries, do not need ``copy_foreign()``.
+        pikepdf will automatically convert and construct them.
+
+        Note:
+            pikepdf automatically treats incoming pages from a foreign PDF as
+            foreign objects, so :attr:`Pdf.pages` does not require this treatment.
+
+        See Also:
+            `QPDF::copyForeignObject <https://qpdf.readthedocs.io/en/stable/design.html#copying-objects-from-other-pdf-files>`_
+
+        .. versionchanged:: 2.1
+            Error messages improved.
+        """
     @overload
-    def get_object(self, objgen: tuple[int, int]) -> Object: ...
+    def get_object(self, objgen: tuple[int, int]) -> Object:
+        """Retrieve an object from the PDF.
+
+        Args:
+            objgen: A tuple containing the object ID and generation.
+        """
     @overload
-    def get_object(self, objid: int, gen: int) -> Object: ...
+    def get_object(self, objid: int, gen: int) -> Object:
+        """Retrieve an object from the PDF.
+
+        Args:
+            objid: The object ID of the object to retrieve.
+            gen: The generation number of the object to retrieve.
+        """
     def get_warnings(self) -> list: ...
     @overload
-    def make_indirect(self, h: T) -> T: ...
-    @overload
-    def make_indirect(self, obj: Any) -> Object: ...
+    def make_indirect(self, obj: T) -> T: ...
+    def make_indirect(self, obj: Any) -> Object:
+        """Attach an object to the Pdf as an indirect object.
+
+        Direct objects appear inline in the binary encoding of the PDF.
+        Indirect objects appear inline as references (in English, "look
+        up object 4 generation 0") and then read from another location in
+        the file. The PDF specification requires that certain objects
+        are indirect - consult the PDF specification to confirm.
+
+        Generally a resource that is shared should be attached as an
+        indirect object. :class:`pikepdf.Stream` objects are always
+        indirect, and creating them will automatically attach it to the
+        Pdf.
+
+        Args:
+            obj: The object to attach. If this a :class:`pikepdf.Object`,
+                it will be attached as an indirect object. If it is
+                any other Python object, we attempt conversion to
+                :class:`pikepdf.Object` attach the result. If the
+                object is already an indirect object, a reference to
+                the existing object is returned. If the ``pikepdf.Object``
+                is owned by a different Pdf, an exception is raised; use
+                :meth:`pikepdf.Object.copy_foreign` instead.
+
+        See Also:
+            :meth:`pikepdf.Object.is_indirect`
+        """
     def make_stream(self, data: bytes, d=None, **kwargs) -> Stream: ...
     @classmethod
-    def new(cls) -> Pdf: ...
+    def new(cls) -> Pdf:
+        """Create a new, empty PDF.
+
+        This is best when you are constructing a PDF from scratch.
+
+        In most cases, if you are working from an existing PDF, you should open the
+        PDF using :meth:`pikepdf.Pdf.open` and transform it, instead of a creating
+        a new one, to preserve metadata and structural information. For example,
+        if you want to split a PDF into two parts, you should open the PDF and
+        transform it into the desired parts, rather than creating a new PDF and
+        copying pages into it.
+        """
     @staticmethod
     def open(
         filename_or_stream: Path | str | BinaryIO,
@@ -928,7 +1045,24 @@ class Pdf:
         strict: bool = False,
     ) -> PdfMetadata: ...
     def open_outline(self, max_depth: int = 15, strict: bool = False) -> Outline: ...
-    def remove_unreferenced_resources(self) -> None: ...
+    def remove_unreferenced_resources(self) -> None:
+        """Remove from /Resources any object not referenced in page's contents.
+
+        PDF pages may share resource dictionaries with other pages. If
+        pikepdf is used for page splitting, pages may reference resources
+        in their /Resources dictionary that are not actually required.
+        This purges all unnecessary resource entries.
+
+        For clarity, if all references to any type of object are removed, that
+        object will be excluded from the output PDF on save. (Conversely, only
+        objects that are discoverable from the PDF's root object are included.)
+        This function removes objects that are referenced from the page /Resources
+        dictionary, but never called for in the content stream, making them
+        unnecessary.
+
+        Suggested before saving, if content streams or /Resources dictionaries
+        are edited.
+        """
     def save(
         self,
         filename_or_stream: Path | str | BinaryIO | None = None,
@@ -949,7 +1083,8 @@ class Pdf:
         recompress_flate: bool = False,
         deterministic_id: bool = False,
     ) -> None: ...
-    def show_xref_table(self) -> None: ...
+    def show_xref_table(self) -> None:
+        """Pretty-print the Pdf's xref (cross-reference table)."""
     @property
     def Root(self) -> Object: ...
     @property
@@ -983,31 +1118,139 @@ class Pdf:
     @property
     def encryption(self) -> EncryptionInfo: ...
     @property
-    def extension_level(self) -> int: ...
+    def extension_level(self) -> int:
+        """Returns the extension level of this PDF.
+
+        If a developer has released multiple extensions of a PDF version against
+        the same base version value, they shall increase the extension level
+        by 1. To be interpreted with :attr:`pdf_version`.
+        """
     @property
-    def filename(self) -> str: ...
+    def filename(self) -> str:
+        """The source filename of an existing PDF, when available.
+
+        When the Pdf was created from scratch, this returns 'empty PDF'.
+        When the Pdf was created from a stream, the return value is the
+        word 'stream' followed by some information about the stream, if
+        available.
+        """
     @property
-    def is_encrypted(self) -> bool: ...
+    def is_encrypted(self) -> bool:
+        """Returns True if the PDF is encrypted.
+
+        For information about the nature of the encryption, see
+        :attr:`Pdf.encryption`.
+        """
     @property
-    def is_linearized(self) -> bool: ...
+    def is_linearized(self) -> bool:
+        """Returns True if the PDF is linearized.
+
+        Specifically returns True iff the file starts with a linearization
+        parameter dictionary.  Does no additional validation.
+        """
     @property
-    def objects(self) -> Any: ...
+    def objects(self) -> _ObjectList:
+        """Return an iterable list of all objects in the PDF.
+
+        After deleting content from a PDF such as pages, objects related
+        to that page, such as images on the page, may still be present in
+        this list.
+        """
     @property
-    def pages(self) -> PageList: ...
+    def pages(self) -> PageList:
+        """Returns the list of pages."""
     @property
-    def pdf_version(self) -> str: ...
+    def pdf_version(self) -> str:
+        """The version of the PDF specification used for this file, such as '1.7'.
+
+        More precise information about the PDF version can be opened from the
+        Pdf's XMP metadata.
+        """
     @property
-    def root(self) -> Object: ...
+    def root(self) -> Object:
+        """The /Root object of the PDF."""
     @property
-    def trailer(self) -> Object: ...
+    def trailer(self) -> Object:
+        """Provides access to the PDF trailer object.
+
+        See |pdfrm| section 7.5.5. Generally speaking,
+        the trailer should not be modified with pikepdf, and modifying it
+        may not work. Some of the values in the trailer are automatically
+        changed when a file is saved.
+        """
     @property
-    def user_password_matched(self) -> bool: ...
+    def user_password_matched(self) -> bool:
+        """Returns True if the user password matched when the ``Pdf`` was opened.
+
+        It is possible for both the user and owner passwords to match.
+
+        .. versionadded:: 2.10
+        """
     @property
-    def owner_password_matched(self) -> bool: ...
-    def generate_appearance_streams(self) -> None: ...
-    def flatten_annotations(self, mode: str) -> None: ...
+    def owner_password_matched(self) -> bool:
+        """Returns True if the owner password matched when the ``Pdf`` was opened.
+
+        It is possible for both the user and owner passwords to match.
+
+        .. versionadded:: 2.10
+        """
+    def generate_appearance_streams(self) -> None:
+        """Generates appearance streams for AcroForm forms and form fields.
+
+        Appearance streams describe exactly how annotations and form fields
+        should appear to the user. If omitted, the PDF viewer is free to
+        render the annotations and form fields according to its own settings,
+        as needed.
+
+        For every form field in the document, this generates appearance
+        streams, subject to the limitations of QPDF's ability to create
+        appearance streams.
+
+        When invoked, this method will modify the ``Pdf`` in memory. It may be
+        best to do this after the ``Pdf`` is opened, or before it is saved,
+        because it may modify objects that the user does not expect to be
+        modified.
+
+        If ``Pdf.Root.AcroForm.NeedAppearances`` is ``False`` or not present, no
+        action is taken (because no appearance streams need to be generated).
+        If ``True``, the appearance streams are generated, and the NeedAppearances
+        flag is set to ``False``.
+
+        See:
+            https://github.com/qpdf/qpdf/blob/bf6b9ba1c681a6fac6d585c6262fb2778d4bb9d2/include/qpdf/QPDFFormFieldObjectHelper.hh#L216
+
+        .. versionadded:: 2.11
+        """
+    def flatten_annotations(self, mode: str) -> None:
+        """Flattens all PDF annotations into regular PDF content.
+
+        Annotations are markup such as review comments, highlights, proofreading
+        marks. User data entered into interactive form fields also counts as an
+        annotation.
+
+        When annotations are flattened, they are "burned into" the regular
+        content stream of the document and the fact that they were once annotations
+        is deleted. This can be useful when preparing a document for printing,
+        to ensure annotations are printed, or to finalize a form that should
+        no longer be changed.
+
+        Args:
+            mode: One of the strings ``'all'``, ``'screen'``, ``'print'``. If
+                omitted or  set to empty, treated as ``'all'``. ``'screen'``
+                flattens all except those marked with the PDF flag /NoView.
+                ``'print'`` flattens only those marked for printing.
+                Default is ``'all'``.
+
+        .. versionadded:: 2.11
+        """
     @property
-    def attachments(self) -> Attachments: ...
+    def attachments(self) -> Attachments:
+        """Returns a mapping that provides access to all files attached to this PDF.
+
+        PDF supports attaching (or embedding, if you prefer) any other type of file,
+        including other PDFs. This property provides read and write access to
+        these objects by filename.
+        """
 
 class Rectangle:
     """A PDF rectangle.
