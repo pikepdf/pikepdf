@@ -70,11 +70,26 @@ class AccessMode(Enum):
     stream: int = ...
 
 class EncryptionMethod(Enum):
+    """PDF encryption methods.
+
+    Describes which encryption method was used on a particular part of a
+    PDF. These values are returned by :class:`pikepdf.EncryptionInfo` but
+    are not currently used to specify how encryption is requested.
+    """
+
     none: int = ...
+    """Data was not encrypted."""
     unknown: int = ...
+    """An unknown algorithm was used."""
     rc4: int = ...
+    """The RC4 encryption algorithm was used (obsolete)."""
     aes: int = ...
+    """The AES-based algorithm was used as described in the |pdfrm|."""
     aesv3: int = ...
+    """An improved version of the AES-based algorithm was used as described in the
+        :doc:`Adobe Supplement to the ISO 32000 </references/resources>`, requiring
+        PDF 1.7 extension level 3. This algorithm still uses AES, but allows both
+        AES-128 and AES-256, and improves how the key is derived from the password."""
 
 class ObjectStreamMode(Enum):
     """Options for saving object streams within PDFs.
@@ -181,24 +196,57 @@ class StreamDecodeLevel(Enum):
         the preferred method."""
 
 class TokenType(Enum):
+    """Type of a token that appeared in a PDF content stream.
+
+    When filtering content streams, each token is labeled according to the role
+    in plays.
+    """
+
     array_close: int = ...
+    """The token data represents the end of an array."""
     array_open: int = ...
+    """The token data represents the start of an array."""
     bad: int = ...
+    """An invalid token."""
     bool: int = ...
+    """The token data represents an integer, real number, null or boolean,
+        respectively."""
     brace_close: int = ...
+    """The token data represents the end of a brace."""
     brace_open: int = ...
+    """The token data represents the start of a brace."""
     comment: int = ...
+    """Signifies a comment that appears in the content stream."""
     dict_close: int = ...
+    """The token data represents the end of a dictionary."""
     dict_open: int = ...
+    """The token data represents the start of a dictionary."""
     eof: int = ...
+    """Denotes the end of the tokens in this content stream."""
     inline_image: int = ...
+    """An inline image in the content stream. The whole inline image is
+        represented by the single token."""
     integer: int = ...
+    """The token data represents an integer."""
     name_: int = ...
+    """The token is the name (pikepdf.Name) of an object. In practice, these
+        are among the most interesting tokens.
+
+        .. versionchanged:: 3.0
+            In versions older than 3.0, ``.name`` was used instead. This interfered
+            with semantics of the ``Enum`` object, so this was fixed.
+    """
     null: int = ...
+    """The token data represents a null."""
     real: int = ...
+    """The token data represents a real number."""
     space: int = ...
+    """Whitespace within the content stream."""
     string: int = ...
+    """The token data represents a string. The encoding is unclear and situational."""
     word: int = ...
+    """Otherwise uncategorized bytes are returned as ``word`` tokens. PDF
+        operators are words."""
 
 class Object:
     def _ipython_key_completions_(self) -> KeysView | None: ...
@@ -523,7 +571,19 @@ class _ObjectMapping:
 class Operator(Object): ...
 
 class Annotation:
-    def __init__(self, arg0: Object) -> None: ...
+    """A PDF annotation. Wrapper around a PDF dictionary.
+
+    Describes an annotation in a PDF, such as a comment, underline,
+    copy editing marks, interactive widgets, redactions, 3D objects, sound
+    and video clips.
+
+    See the |pdfrm| section 12.5.6 for the full list of annotation types
+    and definition of terminology.
+
+    .. versionadded:: 2.12
+    """
+
+    def __init__(self, obj: Object) -> None: ...
     def get_appearance_stream(
         self, which: Object, state: Object | None = ...
     ) -> Object:
