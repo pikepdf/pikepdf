@@ -55,12 +55,33 @@ class Buffer: ...
 
 # Exceptions
 
-class DataDecodingError(Exception): ...
+class DataDecodingError(Exception):
+    """Exception thrown when a stream object in a PDF cannot be decoded."""
+
 class JobUsageError(Exception): ...
-class PasswordError(Exception): ...
-class PdfError(Exception): ...
-class ForeignObjectError(Exception): ...
-class DeletedObjectError(Exception): ...
+
+class PasswordError(Exception):
+    """Exception thrown when the supplied password is incorrect."""
+
+class PdfError(Exception):
+    """General pikepdf-specific exception."""
+
+class ForeignObjectError(Exception):
+    """When a complex object is copied into a foreign PDF without proper methods.
+
+    Use :meth:`Pdf.copy_foreign`.
+    """
+
+class DeletedObjectError(Exception):
+    """When a required object is accessed after deletion.
+
+    Thrown when accessing a :class:`Object` that relies on a :class:`Pdf`
+    that was deleted using the Python ``delete`` statement or collected by the
+    Python garbage collector. To resolve this error, you must retain a reference
+    to the Pdf for the whole time you may be accessing it.
+
+    .. versionadded:: 7.0
+    """
 
 # Enums
 class AccessMode(Enum):
@@ -636,6 +657,14 @@ class Annotation:
         """Returns the subtype of this annotation."""
 
 class AttachedFile:
+    """An object that contains an actual attached file.
+
+    These objects do not need to be created manually; they are normally part of an
+    AttachedFileSpec.
+
+    .. versionadded:: 3.0
+    """
+
     _creation_date: str
     _mod_date: str
     creation_date: datetime.datetime | None
@@ -653,6 +682,45 @@ class AttachedFile:
         """Get length of the attached file in bytes according to the PDF creator."""
 
 class AttachedFileSpec(ObjectHelper):
+    r"""In a PDF, a file specification provides name and metadata for a target file.
+
+    Most file specifications are *simple* file specifications, and contain only
+    one attached file. Call :meth:`get_file` to get the attached file:
+
+    .. code-block:: python
+
+        pdf = Pdf.open(...)
+
+        fs = pdf.attachments['example.txt']
+        stream = fs.get_file()
+
+    To attach a new file to a PDF, you may construct a ``AttachedFileSpec``.
+
+    .. code-block:: python
+
+        pdf = Pdf.open(...)
+
+        fs = AttachedFileSpec.from_filepath(pdf, Path('somewhere/spreadsheet.xlsx'))
+
+        pdf.attachments['spreadsheet.xlsx'] = fs
+
+    PDF supports the concept of having multiple, platform-specialized versions of the
+    attached file (similar to resource forks on some operating systems). In theory,
+    this attachment ought to be the same file, but
+    encoded in different ways. For example, perhaps a PDF includes a text file encoded
+    with Windows line endings (``\r\n``) and a different one with POSIX line endings
+    (``\n``). Similarly, PDF allows for the possibility that you need to encode
+    platform-specific filenames. pikepdf cannot directly create these, because they
+    are arguably obsolete; it can provide access to them, however.
+
+    If you have to deal with platform-specialized versions,
+    use :meth:`get_all_filenames` to enumerate those available.
+
+    Described in the |pdfrm| section 7.11.3.
+
+    .. versionadded:: 3.0
+    """
+
     def __init__(
         self,
         data: bytes,
@@ -743,6 +811,19 @@ class AttachedFileSpec(ObjectHelper):
     def relationship(self, value: Name | None) -> None: ...
 
 class Attachments(MutableMapping[str, AttachedFileSpec]):
+    """Exposes files attached to a PDF.
+
+    This interface provides access to any files that are attached to this PDF,
+    exposed as a Python :class:`collections.abc.MutableMapping` interface.
+
+    The keys (virtual filenames) are always ``str``, and values are always
+    :class:`pikepdf.AttachedFileSpec`.
+
+    Use this interface through :attr:`pikepdf.Pdf.attachments`.
+
+    .. versionadded:: 3.0
+    """
+
     def __contains__(self, k: object) -> bool: ...
     def __delitem__(self, k: str) -> None: ...
     def __eq__(self, other: Any) -> bool: ...
@@ -826,7 +907,14 @@ class StreamParser:
         """
 
 class Page:
-    _repr_mimebundle_: Any = ...
+    """Support model wrapper around a page dictionary object."""
+
+    def _repr_mimebundle_(include: Any = ..., exclude: Any = ...) -> Any:
+        """Present options to IPython or Jupyter for rich display of this object.
+
+        See:
+        https://ipython.readthedocs.io/en/stable/config/integrating.html#rich-display
+        """
     @overload
     def __init__(self, arg0: Object) -> None: ...
     @overload
@@ -2014,6 +2102,37 @@ class Rectangle:
     def __repr__(self) -> str: ...
 
 class NameTree(MutableMapping[str | bytes, Object]):
+    """An object for managing *name tree* data structures in PDFs.
+
+    A name tree is a key-value data structure. The keys are any binary strings
+    (that is, Python ``bytes``). If ``str`` selected is provided as a key,
+    the UTF-8 encoding of that string is tested. Name trees are (confusingly)
+    not indexed by ``pikepdf.Name`` objects. They behave like
+    ``DictMapping[bytes, pikepdf.Object]``.
+
+    The keys are sorted; pikepdf will ensure that the order is preserved.
+
+    The value may be any PDF object. Typically it will be a dictionary or array.
+
+    Internally in the PDF, a name tree can be a fairly complex tree data structure
+    implemented with many dictionaries and arrays. pikepdf (using libqpdf)
+    will automatically read, repair and maintain this tree for you. There should not
+    be any reason to access the internal nodes of a number tree; use this
+    interface instead.
+
+    NameTrees are used to store certain objects like file attachments in a PDF.
+    Where a more specific interface exists, use that instead, and it will
+    manipulate the name tree in a semantic correct manner for you.
+
+    Do not modify the internal structure of a name tree while you have a
+    ``NameTree`` referencing it. Access it only through the ``NameTree`` object.
+
+    Names trees are described in the |pdfrm| section 7.9.6. See section 7.7.4
+    for a list of PDF objects that are stored in name trees.
+
+    .. versionadded:: 3.0
+    """
+
     @staticmethod
     def new(pdf: Pdf, *, auto_repair: bool = True) -> NameTree:
         """Create a new NameTree in the provided Pdf.
@@ -2041,6 +2160,48 @@ class NameTree(MutableMapping[str | bytes, Object]):
         """Returns the underlying root object for this name tree."""
 
 class NumberTree(MutableMapping[int, Object]):
+    """An object for managing *number tree* data structures in PDFs.
+
+    A number tree is a key-value data structure, like name trees, except that the
+    key is an integer. It behaves like ``Dict[int, pikepdf.Object]``.
+
+    The keys can be sparse - not all integers positions will be populated. Keys
+    are also always sorted; pikepdf will ensure that the order is preserved.
+
+    The value may be any PDF object. Typically it will be a dictionary or array.
+
+    Internally in the PDF, a number tree can be a fairly complex tree data structure
+    implemented with many dictionaries and arrays. pikepdf (using libqpdf)
+    will automatically read, repair and maintain this tree for you. There should not
+    be any reason to access the internal nodes of a number tree; use this
+    interface instead.
+
+    NumberTrees are not used much in PDF. The main thing they provide is a mapping
+    between 0-based page numbers and user-facing page numbers (which pikepdf
+    also exposes as ``Page.label``). The ``/PageLabels`` number tree is where the
+    page numbering rules are defined.
+
+    Number trees are described in the |pdfrm| section 7.9.7. See section 12.4.2
+    for a description of the page labels number tree. Here is an example of modifying
+    an existing page labels number tree:
+
+    .. code-block:: python
+
+        pagelabels = NumberTree(pdf.Root.PageLabels)
+        # Label pages starting at 0 with lowercase Roman numerals
+        pagelabels[0] = Dictionary(S=Name.r)
+        # Label pages starting at 6 with decimal numbers
+        pagelabels[6] = Dictionary(S=Name.D)
+
+        # Page labels will now be:
+        # i, ii, iii, iv, v, 1, 2, 3, ...
+
+    Do not modify the internal structure of a name tree while you have a
+    ``NumberTree`` referencing it. Access it only through the ``NumberTree`` object.
+
+    .. versionadded:: 5.4
+    """
+
     @staticmethod
     def new(pdf: Pdf, *, auto_repair: bool = True) -> NumberTree:
         """Create a new NumberTree in the provided Pdf.
