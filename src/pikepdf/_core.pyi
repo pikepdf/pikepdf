@@ -416,7 +416,10 @@ class Object:
         self,
         data: bytes,
         *,
-        filter: Name | Array | None = ...,  # pylint: disable=redefined-builtin
+        filter: Name
+        | Array
+        | list[Name]
+        | None = ...,  # pylint: disable=redefined-builtin
         decode_parms: Dictionary | Array | None = ...,
         type_check: bool = ...,
     ) -> None:
@@ -2230,6 +2233,12 @@ class NumberTree(MutableMapping[int, Object]):
 class ContentStreamInstruction:
     """Represents one complete instruction inside a content stream."""
 
+    @overload
+    def __init__(
+        self, operands: Iterable | _ObjectList, operator: Operator
+    ) -> None: ...
+    @overload
+    def __init__(self, other: ContentStreamInstruction) -> None: ...
     def __init__(self, *args) -> None: ...
     @property
     def operands(self) -> _ObjectList: ...
