@@ -450,12 +450,6 @@ def check_is_box(obj) -> None:
 class Extend_Page:
     @property
     def mediabox(self):
-        """Return page's /MediaBox, in PDF units.
-
-        According to the PDF specification:
-        "The media box defines the boundaries of the physical medium on which
-        the page is to be printed."
-        """
         return self._get_mediabox(True)
 
     @mediabox.setter
@@ -465,14 +459,6 @@ class Extend_Page:
 
     @property
     def artbox(self):
-        """Return page's effective /ArtBox, in PDF units.
-
-        According to the PDF specification:
-        "The art box defines the page's meaningful content area, including
-        white space."
-
-        If the /ArtBox is not defined, the /CropBox is returned.
-        """
         return self._get_artbox(True, False)
 
     @artbox.setter
@@ -482,14 +468,6 @@ class Extend_Page:
 
     @property
     def bleedbox(self):
-        """Return page's effective /BleedBox, in PDF units.
-
-        According to the PDF specification:
-        "The bleed box defines the region to which the contents of the page
-        should be clipped when output in a print production environment."
-
-        If the /BleedBox is not defined, the /CropBox is returned.
-        """
         return self._get_bleedbox(True, False)
 
     @bleedbox.setter
@@ -499,16 +477,6 @@ class Extend_Page:
 
     @property
     def cropbox(self):
-        """Return page's effective /CropBox, in PDF units.
-
-        According to the PDF specification:
-        "The crop box defines the region to which the contents of the page
-        shall be clipped (cropped) when displayed or printed. It has no
-        defined meaning in the context of the PDF imaging model; it merely
-        imposes clipping on the page contents."
-
-        If the /CropBox is not defined, the /MediaBox is returned.
-        """
         return self._get_cropbox(True, False)
 
     @cropbox.setter
@@ -518,17 +486,6 @@ class Extend_Page:
 
     @property
     def trimbox(self):
-        """Return page's effective /TrimBox, in PDF units.
-
-        According to the PDF specification:
-        "The trim box defines the intended dimensions of the finished page
-        after trimming. It may be smaller than the media box to allow for
-        production-related content, such as printing instructions, cut marks,
-        or color bars."
-
-        If the /TrimBox is not defined, the /CropBox is returned (and if
-        /CropBox is not defined, /MediaBox is returned).
-        """
         return self._get_trimbox(True, False)
 
     @trimbox.setter
@@ -538,32 +495,14 @@ class Extend_Page:
 
     @property
     def images(self) -> _ObjectMapping:
-        """Return all regular images associated with this page.
-
-        This method does not search for Form XObjects that contain images,
-        and does not attempt to find inline images.
-        """
         return self._images
 
     @property
     def form_xobjects(self) -> _ObjectMapping:
-        """Return all Form XObjects associated with this page.
-
-        This method does not recurse into nested Form XObjects.
-
-        .. versionadded:: 7.0.0
-        """
         return self._form_xobjects
 
     @property
     def resources(self) -> Dictionary:
-        """Return this page's resources dictionary.
-
-        .. versionchanged:: 7.0.0
-            If the resources dictionary does not exist, an empty one will be created.
-            A TypeError is raised if a page has a /Resources key but it is not a
-            dictionary.
-        """
         if Name.Resources not in self.obj:
             self.obj.Resources = Dictionary()
         elif not isinstance(self.obj.Resources, Dictionary):
@@ -579,38 +518,6 @@ class Extend_Page:
         prefix: str = '',
         replace_existing: bool = True,
     ) -> Name:
-        """Add a new resource to the page's Resources dictionary.
-
-        If the Resources dictionaries do not exist, they will be created.
-
-        Args:
-            self: The object to add to the resources dictionary.
-            res: The dictionary object to insert into the resources
-                dictionary.
-            res_type: Should be one of the following Resource dictionary types:
-                ExtGState, ColorSpace, Pattern, Shading, XObject, Font, Properties.
-            name: The name of the object. If omitted, a random name will be
-                generated with enough randomness to be globally unique.
-            prefix: A prefix for the name of the object. Allows conveniently
-                namespacing when using random names, e.g. prefix="Im" for images.
-                Mutually exclusive with name parameter.
-            replace_existing: If the name already exists in one of the resource
-                dictionaries, remove it.
-
-        Example:
-            >>> resource_name = pdf.pages[0].add_resource(formxobj, Name.XObject)
-
-        .. versionadded:: 2.3
-
-        .. versionchanged:: 2.14
-            If *res* does not belong to the same `Pdf` that owns this page,
-            a copy of *res* is automatically created and added instead. In previous
-            versions, it was necessary to change for this case manually.
-
-        .. versionchanged:: 4.3.0
-            Returns the name of the overlay in the resources dictionary instead
-            of returning None.
-        """
         resources = self.resources
         if res_type not in resources:
             resources[res_type] = Dictionary()
@@ -683,46 +590,6 @@ class Extend_Page:
         shrink: bool = True,
         expand: bool = True,
     ) -> Name:
-        """Overlay another object on this page.
-
-        Overlays will be drawn after all previous content, potentially drawing on top
-        of existing content.
-
-        Args:
-            other: A Page or Form XObject to render as an overlay on top of this
-                page.
-            rect: The PDF rectangle (in PDF units) in which to draw the overlay.
-                If omitted, this page's trimbox, cropbox or mediabox (in that order)
-                will be used.
-            push_stack: If True (default), push the graphics stack of the existing
-                content stream to ensure that the overlay is rendered correctly.
-                Officially PDF limits the graphics stack depth to 32. Most
-                viewers will tolerate more, but excessive pushes may cause problems.
-                Multiple content streams may also be coalesced into a single content
-                stream where this parameter is True, since the PDF specification
-                permits PDF writers to coalesce streams as they see fit.
-            shrink: If True (default), allow the object to shrink to fit inside the
-                rectangle. The aspect ratio will be preserved.
-            expand: If True (default), allow the object to expand to fit inside the
-                rectangle. The aspect ratio will be preserved.
-
-        Returns:
-            The name of the Form XObject that contains the overlay.
-
-        .. versionadded:: 2.14
-
-        .. versionchanged:: 4.0.0
-            Added the *push_stack* parameter. Previously, this method behaved
-            as if *push_stack* were False.
-
-        .. versionchanged:: 4.2.0
-            Added the *shrink* and *expand* parameters. Previously, this method
-            behaved as if ``shrink=True, expand=False``.
-
-        .. versionchanged:: 4.3.0
-            Returns the name of the overlay in the resources dictionary instead
-            of returning None.
-        """
         return self._over_underlay(
             other,
             rect,
@@ -740,48 +607,11 @@ class Extend_Page:
         shrink: bool = True,
         expand: bool = True,
     ) -> Name:
-        """Underlay another object beneath this page.
-
-        Underlays will be drawn before all other content, so they may be overdrawn
-        partially or completely.
-
-        There is no *push_stack* parameter for this function, since adding an
-        underlay can be done without manipulating the graphics stack.
-
-        Args:
-            other: A Page or Form XObject to render as an underlay underneath this
-                page.
-            rect: The PDF rectangle (in PDF units) in which to draw the underlay.
-                If omitted, this page's trimbox, cropbox or mediabox (in that order)
-                will be used.
-            shrink: If True (default), allow the object to shrink to fit inside the
-                rectangle. The aspect ratio will be preserved.
-            expand: If True (default), allow the object to expand to fit inside the
-                rectangle. The aspect ratio will be preserved.
-
-        Returns:
-            The name of the Form XObject that contains the underlay.
-
-        .. versionadded:: 2.14
-
-        .. versionchanged:: 4.2.0
-            Added the *shrink* and *expand* parameters. Previously, this method
-            behaved as if ``shrink=True, expand=False``. Fixed issue with wrong
-            page rect being selected.
-        """
         return self._over_underlay(
             other, rect, under=True, push_stack=False, expand=expand, shrink=shrink
         )
 
     def contents_add(self, contents: Stream | bytes, *, prepend: bool = False):
-        """Append or prepend to an existing page's content stream.
-
-        Args:
-            contents: An existing content stream to append or prepend.
-            prepend: Prepend if true, append if false (default).
-
-        .. versionadded:: 2.14
-        """
         return self._contents_add(contents, prepend=prepend)
 
     def __getattr__(self, name):
