@@ -66,18 +66,18 @@ void init_matrix(py::module_ &m)
             if (ol.size() != 6) {
                 throw py::value_error("ObjectList must have 6 elements");
             }
-            double converted[6];
+            std::vector<double> converted(6);
             for (int i = 0; i < 6; ++i) {
-                if (!ol[i].getValueAsNumber(converted[i])) {
+                if (!ol.at(i).getValueAsNumber(converted.at(i))) {
                     throw py::value_error("Values must be numeric");
                 }
             }
-            return QPDFMatrix(converted[0],
-                converted[1],
-                converted[2],
-                converted[3],
-                converted[4],
-                converted[5]);
+            return QPDFMatrix(converted.at(0),
+                converted.at(1),
+                converted.at(2),
+                converted.at(3),
+                converted.at(4),
+                converted.at(5));
         }))
         .def(py::init<>([](const py::tuple &t) { return matrix_from_tuple(t); }),
             py::arg("t6"))
