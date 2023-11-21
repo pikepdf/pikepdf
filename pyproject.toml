@@ -53,7 +53,7 @@ test = [
   "attrs>=20.2.0",
   "coverage[toml]",
   "hypothesis>=6.36",
-  "numpy>=1.21.0",
+  "numpy>=1.21.0; platform_python_implementation == 'CPython'",
   "psutil>=5.9; os_name != 'nt'",
   "pybind11",
   "pytest>=6.2.5",
