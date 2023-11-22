@@ -106,7 +106,12 @@ class Name(Object, metaclass=_NameObjectMeta):
 
     @classmethod
     def random(cls, len_: int = 16, prefix: str = '') -> Name:
-        """Generate a cryptographically strong random, valid PDF Name.
+        """Generate a cryptographically strong, random, valid PDF Name.
+
+        If you are inserting a new name into a PDF (for example,
+        name for a new image), you can use this function to generate a
+        cryptographically strong random name that is almost certainly already
+        not already in the PDF, and not colliding with other existing names.
 
         This function uses Python's secrets.token_urlsafe, which returns a
         URL-safe encoded random number of the desired length. An optional
@@ -118,7 +123,12 @@ class Name(Object, metaclass=_NameObjectMeta):
         is probably globally unique and can be treated as never colliding with
         other names.
 
-        The length of the string may vary because it is encoded.
+        The length of the returned string may vary because it is encoded,
+        but will always have ``8 * len_`` random bits.
+
+        Args:
+            len_: The length of the random string.
+            prefix: A prefix to prepend to the random string.
         """
         random_string = token_urlsafe(len_)
         return _core._new_name(f"/{prefix}{random_string}")
@@ -155,9 +165,6 @@ class String(Object, metaclass=_ObjectMeta):
         Args:
             s: The string to use. String will be encoded for
                 PDF, bytes will be constructed without encoding.
-
-        Return type:
-            pikepdf.String
         """
         if isinstance(s, bytes):
             return _core._new_string(s)
@@ -175,9 +182,6 @@ class Array(Object, metaclass=_ObjectMeta):
         Args:
             a: An iterable of objects. All objects must be either
                 `pikepdf.Object` or convertible to `pikepdf.Object`.
-
-        Return type:
-            pikepdf.Array
         """
         if isinstance(a, (str, bytes)):
             raise TypeError('Strings cannot be converted to arrays of chars')
@@ -212,9 +216,6 @@ class Dictionary(Object, metaclass=_ObjectMeta):
         In either case, the keys must be strings, and the strings
         correspond to the desired Names in the PDF Dictionary. The values
         must all be convertible to `pikepdf.Object`.
-
-        Return type:
-            pikepdf.Dictionary
         """
         if kwargs and d is not None:
             raise ValueError('Cannot use both a mapping object and keyword args')

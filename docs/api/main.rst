@@ -22,16 +22,18 @@ Access modes
     :members:
 
 .. autoapiclass:: pikepdf.Encryption
-    :noindex:
+    :members:
 
 Object construction
 ===================
 
 .. autoapiclass:: pikepdf.Object
     :members:
+    :special-members:
 
 .. autoapiclass:: pikepdf.Name
-    :members: __new__
+    :members: random
+    :special-members: __new__
 
 .. autoapiclass:: pikepdf.String
     :members: __new__
@@ -46,7 +48,7 @@ Object construction
     :members: __new__
 
 .. autoapiclass:: pikepdf.Operator
-    :members:
+    :members: __new__
 
 Common PDF data structures
 ==========================
@@ -57,6 +59,7 @@ Common PDF data structures
 
 .. autoapiclass:: pikepdf.Rectangle
     :members:
+    :special-members: __init__, __and__
 
 Content stream elements
 =======================

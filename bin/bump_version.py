@@ -21,6 +21,7 @@ config = [
     # file path, version find/replace format
     ("src/pikepdf/_version.py", '__version__ = "{}"'),
     ("pyproject.toml", 'version = "{}"'),
+    ("docs/conf.py", 'release = "{}"'),
 ]
 
 RED = "\u001b[31m"
