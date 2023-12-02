@@ -1,3 +1,10 @@
+
+v8.8.0
+======
+
+- Added new ``pikepdf.canvas`` module with rudimentary content stream creation
+  functions.
+
 v8.7.1
 ======
 
