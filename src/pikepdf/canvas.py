@@ -52,7 +52,7 @@ class Font(ABC):
     """Base class for fonts."""
 
     @abstractmethod
-    def text_width(self, text: str, fontsize: float) -> int:
+    def text_width(self, text: str, fontsize: float) -> float:
         """Estimate the width of a text string when rendered with the given font."""
 
     @abstractmethod
@@ -65,6 +65,22 @@ class Font(ABC):
 
         Returns a Dictionary suitable for insertion into a /Resources /Font dictionary.
         """
+
+
+class Helvetica(Font):
+    """Helvetica font."""
+
+    def text_width(self, text: str, fontsize: float) -> float:
+        """Estimate the width of a text string when rendered with the given font."""
+        return len(text) * fontsize
+
+    def register(self, pdf: Pdf) -> Dictionary:
+        """Register the font."""
+        return Dictionary(
+            BaseFont=Name.Helvetica,
+            Type=Name.Font,
+            Subtype=Name.Type1,
+        )
 
 
 class ContentStreamBuilder:
@@ -282,7 +298,7 @@ class _CanvasAccessor:
         self._cs.stroke_and_close()
         return self
 
-    def rect(self, x, y, w, h, fill):
+    def rect(self, x, y, w, h, fill: bool):
         """Draw optionally filled rectangle at (x,y) with width w and height h."""
         self._cs.append_rectangle(x, y, w, h)
         if fill:
@@ -407,7 +423,8 @@ class Canvas:
             self._page.Resources.XObject[li.name] = self._save_image(li)
         bio = BytesIO()
         self._pdf.save(bio)
-        result = Pdf(bio.getvalue())
+        bio.seek(0)
+        result = Pdf.open(bio)
 
         # Reset the graphics state to before we saved the page
         self.do.push()
