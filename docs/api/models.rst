@@ -227,3 +227,5 @@ Version 3.x automatically applies support models to ``/Page`` objects.
     ``NumberTree`` referencing it. Access it only through the ``NumberTree`` object.
 
     .. versionadded:: 5.4
+
+.. automodule:: pikepdf.canvas
