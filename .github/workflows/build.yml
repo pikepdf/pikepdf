@@ -110,7 +110,7 @@ jobs:
       CIBW_BUILD: "*"
     strategy:
       matrix:
-        os: [macos-11]
+        os: [macos-12]
 
     steps:
       - uses: actions/checkout@v4
