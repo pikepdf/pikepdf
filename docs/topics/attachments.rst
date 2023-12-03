@@ -17,7 +17,10 @@ to one of its test files.
 
     In [1]: pdf = Pdf.open('../tests/resources/fourpages.pdf')
 
-    In [1]: filespec = AttachedFileSpec.from_filepath(pdf, Path('../README.md'))
+    In [1]: filespec = AttachedFileSpec.from_filepath(
+       ...:     pdf,
+       ...:     Path('../README.md'),
+       ...:     description='This is the file description')
 
     In [1]: pdf.attachments['README.md'] = filespec
 
@@ -83,7 +86,8 @@ Creating attachment annotations
 You can also create PDF Annotations and Actions that contain attached files.
 
 Here is an example of an annotation that displays an icon. Clicking the icon
-prompt the user to view the attached document.
+prompt the user to view the attached document. Valid icons and their relative size are: 
+`Graph` (40 x 40),  `PushPin` (28 x 40), `Paperclip` (14 x 34) and `Tag` (40 x 32).
 
 .. ipython::
 
@@ -91,12 +95,19 @@ prompt the user to view the attached document.
 
   In [1]: filespec = AttachedFileSpec.from_filepath(pdf, Path('../README.md'))
 
+  In [1]: icon_size = (28, 40)
+  
+  In [1]: icon_location = (144, 648, 144 + icon_size[0] * 2, 648 + icon_size[1] * 2)
+  
+  In [1]: locationfilespec = AttachedFileSpec.from_filepath(pdf, Path('../README.md'))
+
   In [1]: pushpin = Dictionary(
      ...:     Type=Name.Annot,
      ...:     Subtype=Name.FileAttachment,
-     ...:     Name=Name.GraphPushPin,
+     ...:     Name=Name.PushPin,
      ...:     FS=filespec.obj,
-     ...:     Rect=[2*72, 9*72, 3*72, 10*72],
+     ...:     Rect=icon_location,
+     ...:     Contents='This is the file description',
      ...: )
 
   In [1]: pdf.pages[0].Annots = pdf.make_indirect(Array([
