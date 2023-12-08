@@ -7,7 +7,15 @@ import pytest
 from PIL import Image
 
 from pikepdf import Matrix
-from pikepdf.canvas import BLACK, Canvas, Color, ContentStreamBuilder, Helvetica, Text
+from pikepdf.canvas import (
+    BLACK,
+    Canvas,
+    Color,
+    ContentStreamBuilder,
+    Helvetica,
+    Text,
+    TextDirection,
+)
 from pikepdf.objects import Name, Operator
 
 
@@ -101,7 +109,20 @@ class TestCanvas:
             Matrix().translated(10, 10)
         ).horiz_scale(110).move_cursor(10, 10).show('Hello, World!')
 
+        rtltext = Text(TextDirection.RTL)
+        rtltext.font(Name.Helvetica, 12).render_mode(0).text_transform(
+            Matrix().translated(10, 10)
+        ).move_cursor(50, 50).show(
+            'مرحبا بالعالم'
+        )  # Hello world
+
         canvas.do.stroke_color(BLACK).draw_text(text)
         canvas.add_font(Name.Helvetica, Helvetica())
         pdf = canvas.to_pdf()
         pdf.check()
+
+    def test_stack_abuse(self, caplog):
+        canvas = Canvas(page_size=(100, 100))
+        canvas.do.pop().pop()
+        canvas.to_pdf()
+        assert "Graphics state stack is not empty when page saved" in caplog.text

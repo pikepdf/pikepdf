@@ -72,7 +72,7 @@ class Helvetica(Font):
 
     def text_width(self, text: str, fontsize: float) -> float:
         """Estimate the width of a text string when rendered with the given font."""
-        return len(text) * fontsize
+        raise NotImplementedError()
 
     def register(self, pdf: Pdf) -> Dictionary:
         """Register the font."""
@@ -385,7 +385,6 @@ class Canvas:
         self._cs = ContentStreamBuilder()
         self._images: list[LoadedImage] = []
         self._accessor = _CanvasAccessor(self._cs, self._images)
-        self._stack_depth = 0
         self.do.push()
 
     def add_font(self, resource_name: Name, font: Font):
@@ -413,7 +412,7 @@ class Canvas:
     def to_pdf(self) -> Pdf:
         """Render the canvas as a single page PDF."""
         self.do.pop()
-        if self._stack_depth != 0:
+        if self._accessor._stack_depth != 0:
             log.warning(
                 "Graphics state stack is not empty when page saved - "
                 "rendering may be incorrect"
