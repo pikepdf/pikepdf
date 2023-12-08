@@ -26,7 +26,14 @@ class Permissions(NamedTuple):
     """
 
     accessibility: bool = True
-    """Can users use screen readers and accessibility tools to read the PDF?"""
+    """Deprecated in PDF 2.0. Formerly used to block accessibility tools.
+
+    In older versions of the PDF specification, it was possible to request
+    a PDF reader to block a user's right to use accessibility tools. Modern
+    PDF readers do not support this archaic feature and always allow accessibility
+    tools to be used. The only purpose of this permission is to provide
+    testing of this deprecated feature.
+    """
 
     extract: bool = True
     """Can users extract contents?"""
