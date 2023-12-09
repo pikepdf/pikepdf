@@ -98,7 +98,7 @@ jobs:
 
   wheels_macos:
     name: ${{ matrix.platform }}
-    runs-on: macos-12
+    runs-on: macos-latest
     env:
       CIBW_BUILD: "*"
     strategy:
@@ -212,13 +212,13 @@ jobs:
           python build-scripts/environ-from-pyproject.py >> $GITHUB_ENV
 
       - name: Download QPDF
-        run: build-scripts/linux-download-qpdf.bash $QPDF_MIN_VERSION
+        run: build-scripts/posix-download-qpdf.bash $QPDF_MIN_VERSION
 
       - name: Add /usr/local/lib to dynamic linker path
         run: echo "/usr/local/lib" | sudo tee /etc/ld.so.conf.d/local-lib.conf
 
       - name: Build QPDF
-        run: build-scripts/linux-build-sdist-deps.bash
+        run: build-scripts/posix-build-sdist-deps.bash
 
       - name: Build sdist
         run: |

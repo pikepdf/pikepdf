@@ -119,10 +119,16 @@ QPDF_PATTERN = "https://github.com/qpdf/qpdf/releases/download/vVERSION/qpdf-VER
 
 [tool.cibuildwheel.linux]
 before-all = [
-  "yum install -y wget libxml2-devel libxslt-devel libjpeg-turbo-devel zlib-devel",
+  """yum install -y \
+    libjpeg-turbo-devel \
+    libxml2-devel \
+    libxslt-devel \
+    wget \
+    zlib-devel \
+  """,
   "sh -c 'yum install -y libxmp || true'",
-  "bash build-scripts/linux-download-qpdf.bash $QPDF_VERSION",
-  "bash build-scripts/linux-build-wheel-deps.bash",
+  "bash build-scripts/posix-download-qpdf.bash $QPDF_VERSION",
+  "bash build-scripts/posix-build-wheel-deps.bash",
 ]
 environment-pass = ["CI"]
 manylinux-x86_64-image = "manylinux2014"
@@ -133,16 +139,35 @@ musllinux-aarch64-image = "musllinux_1_2"
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
 before-all = [
-  "apk add py3-lxml py3-pillow python3 py3-setuptools py3-pybind11-dev python3-dev py3-wheel exempi-dev mupdf-tools wget cmake make zlib-dev jpeg-dev",
-  "bash build-scripts/linux-download-qpdf.bash $QPDF_VERSION",
-  "bash build-scripts/linux-build-wheel-deps.bash",
+  """apk add \
+    cmake \
+    exempi-dev \
+    jpeg-dev \
+    make \
+    mupdf-tools \
+    py3-lxml \
+    py3-pillow \
+    py3-pybind11-dev \
+    py3-setuptools \
+    py3-wheel \
+    python3 \
+    python3-dev \
+    wget \
+    zlib-dev \
+  """,
+  "bash build-scripts/posix-download-qpdf.bash $QPDF_VERSION",
+  "bash build-scripts/posix-build-wheel-deps.bash",
 ]
 
 [tool.cibuildwheel.macos]
-# Use workaround until https://github.com/actions/setup-python/issues/577 is fixed
 before-all = [
   "sh -c 'brew update || true'",
-  "sh -c 'brew install qpdf little-cms2 mupdf || true'",
+  "sh -c 'brew install gnutls little-cms2 mupdf wget || true'",
+  "bash build-scripts/posix-download-qpdf.bash $QPDF_VERSION",
+  "bash build-scripts/posix-build-wheel-deps.bash",
+] # Use 'brew whatever || true' workaround until https://github.com/actions/setup-python/issues/577 is fixed
+before-build = [
+  'if [ "$(uname -m)" == "arm64" ]; then export MACOSX_DEPLOYMENT_TARGET="11.0"; fi',
 ]
 
 [tool.cibuildwheel.windows]

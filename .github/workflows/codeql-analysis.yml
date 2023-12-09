@@ -42,9 +42,9 @@ jobs:
 
       - name: Download and build QPDF source and libraries
         run: |
-          build-scripts/linux-download-qpdf.bash $QPDF_VERSION
+          build-scripts/posix-download-qpdf.bash $QPDF_VERSION
           echo "/usr/local/lib" | sudo tee /etc/ld.so.conf.d/local-lib.conf
-          build-scripts/linux-build-sdist-deps.bash
+          build-scripts/posix-build-sdist-deps.bash
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
