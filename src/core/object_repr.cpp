@@ -291,6 +291,10 @@ static std::string objecthandle_repr_inner(QPDFObjectHandle h,
 
 std::string objecthandle_repr(QPDFObjectHandle h)
 {
+    // While we would normally expect a repr function to be a constant,
+    // accessing the repr of an object can trigger dereferencing of indirect objects
+    // and loading data from the source PDF. Thus, it is not constant.
+
     if (h.isDestroyed()) {
         return std::string("<Object was inside a closed or deleted pikepdf.Pdf>");
     }
