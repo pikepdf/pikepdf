@@ -37,7 +37,7 @@ if TYPE_CHECKING:
     from pikepdf.models.image import PdfInlineImage
     from pikepdf.models.metadata import PdfMetadata
     from pikepdf.models.outlines import Outline
-    from pikepdf.objects import Array, Dictionary, Name, Stream, String
+    from pikepdf.objects import Array, Dictionary, Name, Operator, Stream, String
 
 # This is the whole point of stub files, but apparently we have to do this...
 # pylint: disable=no-method-argument,unused-argument,no-self-use,too-many-public-methods
@@ -592,8 +592,6 @@ class _ObjectMapping:
     def __iter__(self) -> Iterator: ...
     def __len__(self) -> int: ...
     def __setitem__(self, key: str, value: Object) -> None: ...
-
-class Operator(Object): ...
 
 class Annotation:
     """A PDF annotation. Wrapper around a PDF dictionary.
@@ -2401,8 +2399,10 @@ class ContentStreamInstruction:
     """Represents one complete instruction inside a content stream."""
 
     @overload
+    def __init__(self, operands: _ObjectList, operator: Operator) -> None: ...
+    @overload
     def __init__(
-        self, operands: Iterable | _ObjectList, operator: Operator
+        self, operands: Iterable[Object | int | float | String], operator: Operator
     ) -> None: ...
     @overload
     def __init__(self, other: ContentStreamInstruction) -> None: ...

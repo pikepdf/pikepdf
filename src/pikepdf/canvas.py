@@ -25,6 +25,7 @@ from pikepdf import (
     Pdf,
     unparse_content_stream,
 )
+from pikepdf.objects import String
 
 log = logging.getLogger(__name__)
 
@@ -174,7 +175,7 @@ class ContentStreamBuilder:
     def show_text(self, text: str):
         """Show text."""
         encoded = text.encode("utf-16be")
-        inst = ContentStreamInstruction([[encoded]], Operator("TJ"))
+        inst = ContentStreamInstruction([String(encoded)], Operator("TJ"))
         self._append(inst)
         return self
 
