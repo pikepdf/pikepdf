@@ -75,7 +75,7 @@ void init_job(py::module_ &m)
             )
         .def_property(
             "message_prefix", &QPDFJob::getMessagePrefix, &QPDFJob::setMessagePrefix)
-        .def("run", &QPDFJob::run, "Executes the job.")
+        .def("run", &QPDFJob::run)
         .def("create_pdf",
             [](QPDFJob &job) { return std::shared_ptr<QPDF>(job.createQPDF()); })
         .def("write_pdf", &QPDFJob::writeQPDF, py::arg("pdf"))

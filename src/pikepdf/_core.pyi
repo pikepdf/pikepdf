@@ -1345,8 +1345,10 @@ class PageList:
     @overload
     def from_objgen(self, objgen: tuple[int, int]) -> Page: ...
     @overload
-    def from_objgen(self, objid: int, gen: int) -> Page: ...
-    def from_objgen(self, *args) -> Page:
+    def from_objgen(self, objgen: int, gen: int) -> Page: ...
+    def from_objgen(
+        self, objgen: tuple[int, int] | int, gen: int | None = None
+    ) -> Page:
         """Given an objgen (object ID, generation), return the page.
 
         Raises an exception if no page matches.
@@ -1552,19 +1554,16 @@ class Pdf:
             Error messages improved.
         """
     @overload
-    def get_object(self, objgen: tuple[int, int]) -> Object:
-        """Retrieve an object from the PDF.
-
-        Args:
-            objgen: A tuple containing the object ID and generation.
-        """
+    def get_object(self, objgen: tuple[int, int]) -> Object: ...
     @overload
-    def get_object(self, objid: int, gen: int) -> Object:
+    def get_object(self, objgen: int, gen: int) -> Object: ...
+    def get_object(
+        self, objgen: tuple[int, int] | int, gen: int | None = None
+    ) -> Object:
         """Retrieve an object from the PDF.
 
-        Args:
-            objid: The object ID of the object to retrieve.
-            gen: The generation number of the object to retrieve.
+        Can be called with either a 2-tuple of (objid, gen) or
+        two integers objid and gen.
         """
     def get_warnings(self) -> list: ...
     @overload
@@ -2485,7 +2484,8 @@ class Job:
     @property
     def message_prefix(self) -> str:
         """Allows manipulation of the prefix in front of all output messages."""
-    def run(self) -> None: ...
+    def run(self) -> None:
+        """Executes the job."""
     def create_pdf(self):
         """Executes the first stage of the job."""
     def write_pdf(self, pdf: Pdf):
