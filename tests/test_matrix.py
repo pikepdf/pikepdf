@@ -49,6 +49,7 @@ class TestOldPdfMatrix:
         assert m.encode() == b'1.000000 0.000000 0.000000 1.000000 0.000000 0.000000'
 
     def test_matrix_inverse(self):
+        _np = pytest.importorskip('numpy')
         m = PdfMatrix(2, 0, 0, 1, 0, 3)
         minv_m = m.inverse() @ m
         assert allclose(minv_m, PdfMatrix.identity())
