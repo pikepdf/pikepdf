@@ -303,32 +303,3 @@ jobs:
           asset_path: |
             ./dist/*.whl
             ./dist/*.tar.gz
-
-  trigger_rtd:
-    name: Trigger ReadTheDocs
-    runs-on: ubuntu-latest
-    needs: [upload_pypi]
-    steps:
-      - name: Check for secrets
-        id: setvar
-        run: |
-          if [[ "${{ secrets.RTDS_WEBHOOK_URL }}" != "" && \
-                "${{ secrets.RTDS_WEBHOOK_TOKEN }}" != "" ]]; \
-          then
-            echo "Secrets to use trigger ReadTheDocs were configured"
-            echo "have_secrets=true" >> $GITHUB_OUTPUT
-          else
-            echo "Secrets to use trigger ReadTheDocs were not configured"
-            echo "have_secrets=false" >> $GITHUB_OUTPUT
-          fi
-      - name: Get branch name
-        id: get_branch
-        run: |
-          echo "branch=${GITHUB_REF##refs/heads/}" >> $GITHUB_OUTPUT
-      - name: Trigger ReadTheDocs webhook
-        run: |
-          curl -X POST -d "branches=latest" \
-                       -d "token=${{ secrets.RTDS_WEBHOOK_TOKEN }}" \
-                       -d "default_branch=main" \
-                       "${{ secrets.RTDS_WEBHOOK_URL }}"
-        if: ${{ steps.setvar.outputs.have_secrets == 'true' }}
