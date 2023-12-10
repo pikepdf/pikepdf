@@ -1020,7 +1020,7 @@ class PdfInlineImage(PdfImageBase):
 
         # ...externalize it,
         tmppdf.pages[0].externalize_inline_images()
-        raw_img = next(im for im in tmppdf.pages[0].images.values())
+        raw_img = cast(Stream, next(im for im in tmppdf.pages[0].images.values()))
 
         # ...then use the regular PdfImage API to extract it.
         img = PdfImage(raw_img)
