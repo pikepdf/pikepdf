@@ -14,20 +14,19 @@ If you are looking to merge pages from different PDFs, see :ref:`mergepdf`.
 In this example we use :meth:`pikepdf.Page.add_overlay` to draw a thumbnail of
 of the second page onto the first page.
 
-.. ipython::
-    :verbatim:
+.. code-block:: python
 
-    In [1]: from pikepdf import Pdf, Page, Rectangle
+    >>> from pikepdf import Pdf, Page, Rectangle
 
-    In [1]: pdf = Pdf.open(...)
+    >>> pdf = Pdf.open(...)
 
-    In [1]: destination_page = Page(pdf.pages[0])
+    >>> destination_page = Page(pdf.pages[0])
 
-    In [1]: thumbnail = Page(pdf.pages[1])
+    >>> thumbnail = Page(pdf.pages[1])
 
-    In [1]: destination_page.add_overlay(thumbnail, Rectangle(0, 0, 300, 300))
+    >>> destination_page.add_overlay(thumbnail, Rectangle(0, 0, 300, 300))
 
-    In [1]: pdf.save("page1_with_page2_thumbnail.pdf")
+    >>> pdf.save("page1_with_page2_thumbnail.pdf")
 
 The :class:`pikepdf.Rectangle` specifies the position on the target page into which
 the other page can be drawn. The object will be drawn centered in a way that

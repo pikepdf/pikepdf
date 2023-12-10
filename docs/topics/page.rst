@@ -11,15 +11,37 @@ editing and transforming existing PDFs.
 
 Pages in PDFs are wrappers around dictionary objects.
 
-.. ipython::
+.. doctest::
 
-    In [1]: from pikepdf import Pdf, Page
+    >>> from pikepdf import Pdf, Page
 
-    In [1]: example = Pdf.open('../tests/resources/congress.pdf')
+    >>> example = Pdf.open('../tests/resources/congress.pdf')
 
-    In [1]: page1 = example.pages[0]
+    >>> page1 = example.pages[0]
 
-    In [1]: page1
+    >>> page1
+    <pikepdf.Page({
+      "/Contents": pikepdf.Stream(owner=<...>, data=b'q\n200.0000 0 0 304.0'..., {
+        "/Length": 50
+      }),
+      "/MediaBox": [ 0, 0, 200, 304 ],
+      "/Parent": <reference to /Pages>,
+      "/Resources": {
+        "/XObject": {
+          "/Im0": pikepdf.Stream(owner=<...>, data=<...>, {
+            "/BitsPerComponent": 8,
+            "/ColorSpace": "/DeviceRGB",
+            "/Filter": [ "/DCTDecode" ],
+            "/Height": 1520,
+            "/Length": 192956,
+            "/Subtype": "/Image",
+            "/Type": "/XObject",
+            "/Width": 1000
+          })
+        }
+      },
+      "/Type": "/Page"
+    })>
 
 The page's ``/Contents`` key contains instructions for drawing the page content.
 This is a :doc:`content stream <streams>`, which is a stream object
@@ -48,9 +70,10 @@ underlying dictionary object that holds the page data.
 Page boxes
 ----------
 
-.. ipython::
+.. doctest::
 
-    In [1]: page1.trimbox
+    >>> page1.trimbox
+    pikepdf.Array([ 0, 0, 200, 304 ])
 
 ``Page`` will resolve implicit information. For example, ``page.trimbox``
 will return an appropriate trim box for this page, which in this case is

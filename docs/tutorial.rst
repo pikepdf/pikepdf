@@ -65,40 +65,39 @@ protocol. As such page numbers begin at 0.
 
 Let’s open a simple PDF that contains four pages.
 
-.. ipython::
+.. doctest::
 
-    In [1]: from pikepdf import Pdf
+    >>> from pikepdf import Pdf
 
-    In [2]: pdf = Pdf.open('../tests/resources/fourpages.pdf')
+    >>> pdf = Pdf.open('../tests/resources/fourpages.pdf')
 
 How many pages?
 
-.. ipython::
+.. doctest::
 
-    In [2]: len(pdf.pages)
+    >>> len(pdf.pages)
+    4
 
 pikepdf integrates with IPython and Jupyter's rich object APIs so that you can
 view PDFs, PDF pages, or images within PDF in a IPython window or Jupyter
 notebook. This makes it easier to test visual changes.
 
-.. ipython::
-    :verbatim:
+.. code-block:: python
 
-    In [1]: pdf
-    Out[1]: « In Jupyter you would see the PDF here »
+    >>> pdf
+    « In Jupyter you would see the PDF here »
 
-    In [1]: pdf.pages[0]
-    Out[1]: « In Jupyter you would see an image of the PDF page here »
+    >>> pdf.pages[0]
+    « In Jupyter you would see an image of the PDF page here »
 
 You can also examine individual pages, which we’ll explore in the next
 section. Suffice to say that you can access pages by indexing them and
 slicing them.
 
-.. ipython::
-    :verbatim:
+.. code-block:: python
 
-    In [1]: pdf.pages[0]
-    Out[1]: « In Jupyter you would see an image of the PDF page here »
+    >>> pdf.pages[0]
+    « In Jupyter you would see an image of the PDF page here »
 
 .. note::
 
@@ -119,13 +118,21 @@ other dictionaries.
 PDF dictionaries are represented as :class:`pikepdf.Dictionary` objects, and names
 are of type :class:`pikepdf.Name`.
 
-.. ipython::
+.. doctest::
 
-    In [1]: from pikepdf import Pdf
+    >>> from pikepdf import Pdf
 
-    In [1]: example = Pdf.open('../tests/resources/congress.pdf')
+    >>> example = Pdf.open('../tests/resources/congress.pdf')
 
-    In [1]: example.Root  # Show the document's root dictionary
+    >>> example.Root  # Show the document's root dictionary
+    pikepdf.Dictionary(Type="/Catalog")({
+      "/Pages": {
+        "/Count": 1,
+        "/Kids": [ <Pdf.pages.from_objgen(4,0)> ],
+        "/Type": "/Pages"
+      },
+      "/Type": "/Catalog"
+    })
 
 Page dictionaries
 -----------------
@@ -136,26 +143,49 @@ and wraps page dictionaries to provide special functions
 that help with managing pages.) A :class:`pikepdf.Page` is a wrapper around a PDF
 page dictionary that provides many useful functions for working on pages.
 
-.. ipython::
+.. doctest::
 
-    In [1]: from pikepdf import Pdf
+    >>> from pikepdf import Pdf
 
-    In [1]: example = Pdf.open('../tests/resources/congress.pdf')
+    >>> example = Pdf.open('../tests/resources/congress.pdf')
 
-    In [1]: page1 = example.pages[0]
+    >>> page1 = example.pages[0]
 
-    In [1]: obj_page1 = page1.obj
+    >>> obj_page1 = page1.obj
 
-    In [1]: obj_page1
+    >>> obj_page1
+    <pikepdf.Dictionary(Type="/Page")({
+      "/Contents": pikepdf.Stream(owner=<...>, data=b'q\n200.0000 0 0 304.0'..., {
+        "/Length": 50
+      }),
+      "/MediaBox": [ 0, 0, 200, 304 ],
+      "/Parent": <reference to /Pages>,
+      "/Resources": {
+        "/XObject": {
+          "/Im0": pikepdf.Stream(owner=<...>, data=<...>, {
+            "/BitsPerComponent": 8,
+            "/ColorSpace": "/DeviceRGB",
+            "/Filter": [ "/DCTDecode" ],
+            "/Height": 1520,
+            "/Length": 192956,
+            "/Subtype": "/Image",
+            "/Type": "/XObject",
+            "/Width": 1000
+          })
+        }
+      },
+      "/Type": "/Page"
+    })>
 
 repr() output
 -------------
 
 Let's observe the page's ``repr()`` output:
 
-.. ipython::
+.. doctest::
 
-    In [1]: repr(page1)
+    >>> repr(page1)
+    '<pikepdf.Page({\n  "/Contents": pikepdf.Stream(owner=<...>, data=b\'q\\n200.0000 0 0 304.0\'..., {\n    "/Length": 50\n  }),\n  "/MediaBox": [ 0, 0, 200, 304 ],\n  "/Parent": <reference to /Pages>,\n  "/Resources": {\n    "/XObject": {\n      "/Im0": pikepdf.Stream(owner=<...>, data=<...>, {\n        "/BitsPerComponent": 8,\n        "/ColorSpace": "/DeviceRGB",\n        "/Filter": [ "/DCTDecode" ],\n        "/Height": 1520,\n        "/Length": 192956,\n        "/Subtype": "/Image",\n        "/Type": "/XObject",\n        "/Width": 1000\n      })\n    }\n  },\n  "/Type": "/Page"\n})>'
 
 The angle brackets in the output indicate that this object cannot be constructed
 with a Python expression because it contains a reference. When angle brackets
@@ -170,11 +200,13 @@ Item and attribute notation
 Dictionary keys may be looked up using attributes (``page1.Type``) or
 keys (``page1['/Type']``).
 
-.. ipython::
+.. doctest::
 
-    In [1]: page1.Type      # preferred notation for standard PDF names
+    >>> page1.Type      # preferred notation for standard PDF names
+    pikepdf.Name("/Page")
 
-    In [1]: page1['/Type']  # also works
+    >>> page1['/Type']  # also works
+    pikepdf.Name("/Page")
 
 By convention, pikepdf uses attribute notation for standard names (the names
 that are normally part of a dictionary, according to the |pdfrm|),
@@ -183,10 +215,9 @@ belong to a page always appear at ``page.Resources.XObject`` but the names
 of images are arbitrarily chosen by whatever software generates the PDF (``/Im0``,
 in this case). (Whenever expressed as strings, names begin with ``/``.)
 
-.. ipython::
-    :verbatim:
+.. code-block:: python
 
-    In [1]: page1.Resources.XObject['/Im0']
+    >>> page1.Resources.XObject['/Im0']
 
 Item notation here would be quite cumbersome:
 ``['/Resources']['/XObject]['/Im0']`` (not recommended).
@@ -205,13 +236,14 @@ Deleting pages
 
 Removing pages is easy too.
 
-.. ipython::
+.. doctest::
 
-    In [1]: del pdf.pages[1:3]  # Remove pages 2-3 labeled "second page" and "third page"
+    >>> del pdf.pages[1:3]  # Remove pages 2-3 labeled "second page" and "third page"
 
-.. ipython::
+.. doctest::
 
-    In [1]: len(pdf.pages)
+    >>> len(pdf.pages)
+    2
 
 Saving changes
 --------------
@@ -226,10 +258,9 @@ Saving changes
 Naturally, you can save your changes with :meth:`pikepdf.Pdf.save`.
 ``filename`` can be a :class:`pathlib.Path`, which we accept everywhere.
 
-.. ipython::
-    :verbatim:
+.. code-block:: python
 
-    In [1]: pdf.save('output.pdf')
+    >>> pdf.save('output.pdf')
 
 You may save a file multiple times, and you may continue modifying it after
 saving. For example, you could create an unencrypted version of document, then
@@ -251,14 +282,13 @@ strongest security handler and algorithm (AES-256), but allows full access to
 modify file contents. A :class:`pikepdf.Permissions` object can be used to
 specify restrictions.
 
-.. ipython::
-    :verbatim:
+.. code-block:: python
 
-    In [1]: no_extracting = pikepdf.Permissions(extract=False)
+    >>> no_extracting = pikepdf.Permissions(extract=False)
 
-    In [1]: pdf.save('encrypted.pdf', encryption=pikepdf.Encryption(
-       ...:      user="user password", owner="owner password", allow=no_extracting
-       ...: ))
+    >>> pdf.save('encrypted.pdf', encryption=pikepdf.Encryption(
+    ...      user="user password", owner="owner password", allow=no_extracting
+    ... ))
 
 Refer to our :ref:`security documentation <security>` for more information on
 user/owner passwords and PDF permissions.
@@ -269,21 +299,19 @@ Running QPDF through Jobs
 pikepdf can access all of the features of the qpdf command line program, and
 can even execute qpdf-like command lines.
 
-.. ipython::
-    :verbatim:
+.. code-block:: python
 
-    In [1]: from pikepdf import Job
+    >>> from pikepdf import Job
 
-    In [1]: Job(['pikepdf', '--check', '../tests/resources/fourpages.pdf'])
+    >>> Job(['pikepdf', '--check', '../tests/resources/fourpages.pdf'])
 
 You can also specify jobs in QPDF Job JSON:
 
-.. ipython::
-    :verbatim:
+.. code-block:: python
 
-    In [1]: job_json = {'inputFile': '../tests/resources/fourpages.pdf', 'check': ''}
+    >>> job_json = {'inputFile': '../tests/resources/fourpages.pdf', 'check': ''}
 
-    In [1]: Job(job_json).run()
+    >>> Job(job_json).run()
 
 Next steps
 ----------

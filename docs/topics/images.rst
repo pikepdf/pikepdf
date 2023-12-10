@@ -29,21 +29,23 @@ pikepdf provides a helper class :class:`~pikepdf.PdfImage` for manipulating
 images in a PDF. The helper class helps manage the complexity of the image
 dictionaries.
 
-.. ipython::
+.. doctest::
 
-    In [1]: from pikepdf import Pdf, PdfImage, Name
+    >>> from pikepdf import Pdf, PdfImage, Name
 
-    In [1]: example = Pdf.open('../tests/resources/congress.pdf')
+    >>> example = Pdf.open('../tests/resources/congress.pdf')
 
-    In [1]: page1 = example.pages[0]
+    >>> page1 = example.pages[0]
 
-    In [1]: list(page1.images.keys())
+    >>> list(page1.images.keys())
+    ['/Im0']
 
-    In [1]: rawimage = page1.images['/Im0']  # The raw object/dictionary
+    >>> rawimage = page1.images['/Im0']  # The raw object/dictionary
 
-    In [1]: pdfimage = PdfImage(rawimage)
+    >>> pdfimage = PdfImage(rawimage)
 
-    In [1]: type(pdfimage)
+    >>> type(pdfimage)
+    <class 'pikepdf.models.image.PdfImage'>
 
 In Jupyter (or IPython with a suitable backend) the image will be
 displayed.
@@ -56,11 +58,13 @@ displayed.
 You can also inspect the properties of the image. The parameters are similar
 to Pillow's.
 
-.. ipython::
+.. doctest::
 
-    In [1]: pdfimage.colorspace
+    >>> pdfimage.colorspace
+    '/DeviceRGB'
 
-    In [1]: pdfimage.width, pdfimage.height
+    >>> pdfimage.width, pdfimage.height
+    (1000, 1520)
 
 .. note::
 
@@ -79,20 +83,20 @@ extracting and appended to the filename. Where possible, ``extract_to``
 writes compressed data directly to the stream without transcoding. (Transcoding
 lossy formats like JPEG can reduce their quality.)
 
-.. ipython::
-    :verbatim:
+.. code-block:: python
 
-    In [1]: pdfimage.extract_to(fileprefix='image')
-    Out[1]: 'image.jpg'
+    >>> pdfimage.extract_to(fileprefix='image')
+    'image.jpg'
 
 It also possible to extract to a writable Python stream using
 ``.extract_to(stream=...`)``.
 
 You can also retrieve the image as a Pillow image (this will transcode):
 
-.. ipython::
+.. doctest::
 
-    In [1]: type(pdfimage.as_pil_image())
+    >>> type(pdfimage.as_pil_image())
+    <class 'PIL.JpegImagePlugin.JpegImageFile'>
 
 Another way to view the image is using Pillow's ``Image.show()`` method.
 
@@ -121,23 +125,23 @@ Replacing an image
 In this example we extract an image and replace it with a grayscale
 equivalent.
 
-.. ipython::
+.. doctest::
 
-    In [1]: import zlib
+    >>> import zlib
 
-    In [1]: rawimage = pdfimage.obj
+    >>> rawimage = pdfimage.obj
 
-    In [1]: pillowimage = pdfimage.as_pil_image()
+    >>> pillowimage = pdfimage.as_pil_image()
 
-    In [1]: grayscale = pillowimage.convert('L')
+    >>> grayscale = pillowimage.convert('L')
 
-    In [1]: grayscale = grayscale.resize((32, 32))
+    >>> grayscale = grayscale.resize((32, 32))
 
-    In [1]: rawimage.write(zlib.compress(grayscale.tobytes()), filter=Name("/FlateDecode"))
+    >>> rawimage.write(zlib.compress(grayscale.tobytes()), filter=Name("/FlateDecode"))
 
-    In [1]: rawimage.ColorSpace = Name("/DeviceGray")
+    >>> rawimage.ColorSpace = Name("/DeviceGray")
 
-    In [1]: rawimage.Width, rawimage.Height = 32, 32
+    >>> rawimage.Width, rawimage.Height = 32, 32
 
 Notes on this example:
 
@@ -161,22 +165,22 @@ Note that, if an image is referenced on multiple pages, this procedure only upda
 the occurrence on one page. If all references to the image are deleted, it should
 not be included in the output file.
 
-.. ipython::
+.. doctest::
 
-  In [1]: pdf = pikepdf.open('../tests/resources/sandwich.pdf')
+  >>> pdf = pikepdf.open('../tests/resources/sandwich.pdf')
 
-  In [1]: page = pdf.pages[0]
+  >>> page = pdf.pages[0]
 
-  In [1]: image_name, image = next(iter(page.images.items()))
+  >>> image_name, image = next(iter(page.images.items()))
 
-  In [1]: new_image = pdf.make_stream(b'\xff')
+  >>> new_image = pdf.make_stream(b'\xff')
 
-  In [1]: new_image.Width, new_image.Height = 1, 1
+  >>> new_image.Width, new_image.Height = 1, 1
 
-  In [1]: new_image.BitsPerComponent = 1
+  >>> new_image.BitsPerComponent = 1
 
-  In [1]: new_image.ImageMask = True
+  >>> new_image.ImageMask = True
 
-  In [1]: new_image.Decode = [0, 1]
+  >>> new_image.Decode = [0, 1]
 
-  In [1]: page.Resources.XObject[image_name] = new_image
+  >>> page.Resources.XObject[image_name] = new_image

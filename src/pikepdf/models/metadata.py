@@ -334,7 +334,7 @@ class PdfMetadata(MutableMapping):
 
     Example:
         >>> with pdf.open_metadata() as records:
-                records['dc:title'] = 'New Title'
+        ...     records['dc:title'] = 'New Title'
 
     See Also:
         :meth:`pikepdf.Pdf.open_metadata`

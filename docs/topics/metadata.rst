@@ -46,14 +46,14 @@ pikepdf will synchronize changes to new and old metadata.
 
 A PDF must still be saved after metadata is changed.
 
-.. ipython::
+.. doctest::
 
-  In [1]: pdf = pikepdf.open('../tests/resources/sandwich.pdf')
+  >>> pdf = pikepdf.open('../tests/resources/sandwich.pdf')
 
-  In [2]: meta = pdf.open_metadata()
+  >>> meta = pdf.open_metadata()
 
-  In [3]: meta['xmp:CreatorTool']
-  Out[3]: 'ocrmypdf 5.3.3 / Tesseract OCR-PDF 3.05.01'
+  >>> meta['xmp:CreatorTool']
+  'ocrmypdf 5.3.3 / Tesseract OCR-PDF 3.05.01'
 
 If no XMP metadata exists, an empty XMP metadata container will be created.
 
@@ -62,11 +62,11 @@ exited, changes are committed (updating XMP and the Document Info dictionary)
 and attached to the PDF object. The PDF must still be saved. If an exception
 occurs in the block, changes are discarded.
 
-.. ipython::
+.. doctest::
 
-  In [4]: with pdf.open_metadata() as meta:
-     ...:     meta['dc:title'] = "Let's change the title"
-     ...:
+  >>> with pdf.open_metadata() as meta:
+  ...     meta['dc:title'] = "Let's change the title"
+  ...
 
 The list of available metadata fields may be found in the `XMP Specification`_.
 
@@ -85,14 +85,14 @@ Checking PDF/A conformance
 The metadata interface can also test if a file **claims** to be conformant
 to the PDF/A specification.
 
-.. ipython::
+.. doctest::
 
-  In [9]: pdf = pikepdf.open('../tests/resources/veraPDF test suite 6-2-10-t02-pass-a.pdf')
+  >>> pdf = pikepdf.open('../tests/resources/veraPDF test suite 6-2-10-t02-pass-a.pdf')
 
-  In [10]: meta = pdf.open_metadata()
+  >>> meta = pdf.open_metadata()
 
-  In [11]: meta.pdfa_status
-  Out[11]: '1B'
+  >>> meta.pdfa_status
+  '1B'
 
 .. note::
 
@@ -124,14 +124,15 @@ Low-level XMP metadata access
 You can read the raw XMP metadata if desired. For example, one could extract it and
 edit it using the full featured ``python-xmp-toolkit`` library.
 
-.. ipython::
+.. doctest::
 
-   In [1]: xmp = pdf.Root.Metadata.read_bytes()
+   >>> xmp = pdf.Root.Metadata.read_bytes()
 
-   In [1]: type(xmp)
-   Out[1]: bytes
+   >>> type(xmp)
+   <class 'bytes'>
 
-   In [1]: print(xmp.decode())
+   >>> print(xmp.decode()[:len("<?xpacket")] + "...")
+   <?xpacket...
 
 Editing XMP with a generic XML library is probably not worth the trouble; the
 semantics are fairly complex.
@@ -151,12 +152,11 @@ touching the ``.docinfo`` will properly initialize an empty one.
 
 Here is an example of a Document Info block.
 
-.. ipython::
+.. doctest::
 
-  In [12]: pdf = pikepdf.open('../tests/resources/sandwich.pdf')
+  >>> pdf = pikepdf.open('../tests/resources/sandwich.pdf')
 
-  In [12]: pdf.docinfo
-  Out[12]:
+  >>> pdf.docinfo
   pikepdf.Dictionary({
     "/CreationDate": "D:20170911132748-07'00'",
     "/Creator": "ocrmypdf 5.3.3 / Tesseract OCR-PDF 3.05.01",

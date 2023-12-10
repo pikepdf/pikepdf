@@ -65,7 +65,7 @@ coverage: cppcov pycov
 .PHONY: docs
 docs: build
 	$(MAKE) -C docs clean
-	$(MAKE) -C docs html
+	$(MAKE) -C docs html doctest
 	rm -f docs/doc.log.txt
 
 cibuildwheel-test: clean-coverage

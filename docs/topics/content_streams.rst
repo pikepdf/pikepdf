@@ -42,7 +42,7 @@ converts it from binary data form to pikepdf objects and back. In the process,
 the content stream is cleaned up. Every instruction will be separated by a line
 break.
 
-.. ipython:: python
+.. doctest::
 
   with pikepdf.open("../tests/resources/congress.pdf") as pdf:
       page = pdf.pages[0]
@@ -61,7 +61,7 @@ How content streams draw images
 This example prints a typical content stream from a real file, which like the
 contrived example above, displays an actual image.
 
-.. ipython:: python
+.. doctest::
 
   with pikepdf.open("../tests/resources/congress.pdf") as pdf:
       page = pdf.pages[0]
@@ -100,7 +100,7 @@ dimensions (to create a border of 25% all around) and then scale it by 0.5.
 (We could also scale by 50%, and then translate by 50%, which would be 25% in
 the full image coordinate system.)
 
-.. ipython:: python
+.. doctest::
 
   new_matrix = matrix.translated(0.25, 0.25).scaled(0.5, 0.5)
   new_matrix
@@ -122,7 +122,7 @@ After calculating our new matrix, we need to insert it back into the parsed
 content stream, "unparse" it to binary data, and replace the old content
 stream.
 
-.. ipython:: python
+.. doctest::
 
   commands[1][0] = pikepdf.Array(new_matrix)
   new_content_stream = pikepdf.unparse_content_stream(commands)

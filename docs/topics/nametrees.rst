@@ -21,14 +21,16 @@ Some objects that are stored in name trees include the objects in
 Attached files (or embedded files) are managed in a name tree, but pikepdf
 provides an interface specifically for managing them. Use that instead.
 
-.. ipython::
+.. doctest::
 
-    In [1]: from pikepdf import Pdf, Page, NameTree
+    >>> from pikepdf import Pdf, Page, NameTree
 
-    In [1]: pdf = Pdf.open('../tests/resources/outlines.pdf')
+    >>> pdf = Pdf.open('../tests/resources/outlines.pdf')
 
-    In [1]: nt = NameTree(pdf.Root.Names.Dests)
+    >>> nt = NameTree(pdf.Root.Names.Dests)
 
-    In [1]: print([k for k in nt.keys()])
+    >>> print([k for k in nt.keys()])
+    ['0', '1', '2', '3', '4', '5', '6', '7', '8']
 
-    In [1]: nt['2'][0].objgen, nt['2'][1], nt['2'][2]
+    >>> nt['2'][0].objgen, nt['2'][1], nt['2'][2]
+    ((3, 0), pikepdf.Name("/XYZ"), Decimal('89.29'))

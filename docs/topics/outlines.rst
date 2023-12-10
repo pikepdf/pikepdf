@@ -13,43 +13,41 @@ into a single document.
 The following example adds outline entries referring to the 1st, 3rd and 9th page
 of an existing PDF.
 
-.. ipython::
-    :verbatim:
+.. code-block:: python
 
-    In [1]: from pikepdf import Pdf, OutlineItem
+    >>> from pikepdf import Pdf, OutlineItem
 
-    In [1]: pdf = Pdf.open('document.pdf')
+    >>> pdf = Pdf.open('document.pdf')
 
-    In [1]: with pdf.open_outline() as outline:
-       ...:     outline.root.extend([
-       ...:         # Page counts are zero-based
-       ...:         OutlineItem('Section One', 0),
-       ...:         OutlineItem('Section Two', 2),
-       ...:         OutlineItem('Section Three', 8)
-       ...:     ])
+    >>> with pdf.open_outline() as outline:
+    ...     outline.root.extend([
+    ...         # Page counts are zero-based
+    ...         OutlineItem('Section One', 0),
+    ...         OutlineItem('Section Two', 2),
+    ...         OutlineItem('Section Three', 8)
+    ...     ])
 
-    In [1]: pdf.save('document_with_outline.pdf')
+    >>> pdf.save('document_with_outline.pdf')
 
 Another example, for automatically adding an entry for each file in a merged document:
 
-.. ipython::
-    :verbatim:
+.. code-block:: python
 
-    In [1]: from glob import glob
+    >>> from glob import glob
 
-    In [1]: pdf = Pdf.new()
+    >>> pdf = Pdf.new()
 
-    In [1]: page_count = 0
+    >>> page_count = 0
 
-    In [1]: with pdf.open_outline() as outline:
-       ...:     for file in glob('*.pdf'):
-       ...:         src = Pdf.open(file)
-       ...:         oi = OutlineItem(file, page_count)
-       ...:         outline.root.append(oi)
-       ...:         page_count += len(src.pages)
-       ...:         pdf.pages.extend(src.pages)
+    >>> with pdf.open_outline() as outline:
+    ...     for file in glob('*.pdf'):
+    ...         src = Pdf.open(file)
+    ...         oi = OutlineItem(file, page_count)
+    ...         outline.root.append(oi)
+    ...         page_count += len(src.pages)
+    ...         pdf.pages.extend(src.pages)
 
-    In [1]: pdf.save('merged.pdf')
+    >>> pdf.save('merged.pdf')
 
 Editing outlines
 ----------------
@@ -73,27 +71,24 @@ handle this as follows:
 
 Creating a more detailed destination with page location:
 
-.. ipython::
-    :verbatim:
+.. code-block:: python
 
-    In [1]: oi = OutlineItem('First', 0, 'FitB', top=1000)
+    >>> oi = OutlineItem('First', 0, 'FitB', top=1000)
 
 The above will call ``make_page_destination`` when saving to a ``Pdf`` document,
 roughly equivalent to the following:
 
-.. ipython::
-    :verbatim:
+.. code-block:: python
 
-    In [1]: oi.destination = make_page_destination(pdf, 0, 'FitB', top=1000)
+    >>> oi.destination = make_page_destination(pdf, 0, 'FitB', top=1000)
 
 Outline structure
 ------------------
 For nesting outlines, add items to the ``children`` list of another ``OutlineItem``.
 
-.. ipython::
-    :verbatim:
+.. code-block:: python
 
-    In [1]: with pdf.open_outline() as outline:
-       ...:     main_item = OutlineItem('Main', 0)
-       ...:     outline.root.append(main_item)
-       ...:     main_item.children.append(OutlineItem('A', 1))
+    >>> with pdf.open_outline() as outline:
+    ...     main_item = OutlineItem('Main', 0)
+    ...     outline.root.append(main_item)
+    ...     main_item.children.append(OutlineItem('A', 1))

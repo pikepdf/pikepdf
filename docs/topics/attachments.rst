@@ -9,38 +9,43 @@ You can attach (or if you prefer, embed) any file to a PDF, including
 other PDFs. As a quick example, let's attach pikepdf's README.md file
 to one of its test files.
 
-.. ipython::
+.. doctest::
 
-    In [1]: from pikepdf import Pdf, AttachedFileSpec, Name, Dictionary, Array
+    >>> from pikepdf import Pdf, AttachedFileSpec, Name, Dictionary, Array
 
-    In [1]: from pathlib import Path
+    >>> from pathlib import Path
 
-    In [1]: pdf = Pdf.open('../tests/resources/fourpages.pdf')
+    >>> pdf = Pdf.open('../tests/resources/fourpages.pdf')
 
-    In [1]: filespec = AttachedFileSpec.from_filepath(pdf, Path('../README.md'))
+    >>> filespec = AttachedFileSpec.from_filepath(pdf, Path('../README.md'))
 
-    In [1]: pdf.attachments['README.md'] = filespec
+    >>> pdf.attachments['README.md'] = filespec
 
-    In [1]: pdf.attachments
+    >>> pdf.attachments
+    <pikepdf._core.Attachments with 1 attached files>
 
 This creates an attached file named ``README.md``, which holds the data in ``filespec``.
 Now we can retrieve the data.
 
-.. ipython::
+.. doctest::
 
-    In [1]: pdf.attachments['README.md']
+    >>> pdf.attachments['README.md']
+    <pikepdf._core.AttachedFileSpec for 'README.md', description ''>
 
-    In [1]: file = pdf.attachments['README.md'].get_file()
+    >>> file = pdf.attachments['README.md'].get_file()
 
-    In [1]: file.read_bytes()[:50]
+.. code-block:: python
+
+    >>> file.read_bytes()[...]
+    b'**pikepdf** is a Python library for reading and writing PDF files.'
 
 If the data used to create an attachment is in memory:
 
-.. ipython::
+.. doctest::
 
-    In [1]: memfilespec = AttachedFileSpec(pdf, b'Some text', mime_type='text/plain')
+    >>> memfilespec = AttachedFileSpec(pdf, b'Some text', mime_type='text/plain')
 
-    In [1]: pdf.attachments['plain.txt'] = memfilespec
+    >>> pdf.attachments['plain.txt'] = memfilespec
 
 
 General notes on attached files
@@ -85,23 +90,23 @@ You can also create PDF Annotations and Actions that contain attached files.
 Here is an example of an annotation that displays an icon. Clicking the icon
 prompt the user to view the attached document.
 
-.. ipython::
+.. doctest::
 
-  In [1]: pdf = Pdf.open('../tests/resources/fourpages.pdf')
+  >>> pdf = Pdf.open('../tests/resources/fourpages.pdf')
 
-  In [1]: filespec = AttachedFileSpec.from_filepath(pdf, Path('../README.md'))
+  >>> filespec = AttachedFileSpec.from_filepath(pdf, Path('../README.md'))
 
-  In [1]: pushpin = Dictionary(
-     ...:     Type=Name.Annot,
-     ...:     Subtype=Name.FileAttachment,
-     ...:     Name=Name.GraphPushPin,
-     ...:     FS=filespec.obj,
-     ...:     Rect=[2*72, 9*72, 3*72, 10*72],
-     ...: )
+  >>> pushpin = Dictionary(
+  ...     Type=Name.Annot,
+  ...     Subtype=Name.FileAttachment,
+  ...     Name=Name.GraphPushPin,
+  ...     FS=filespec.obj,
+  ...     Rect=[2*72, 9*72, 3*72, 10*72],
+  ... )
 
-  In [1]: pdf.pages[0].Annots = pdf.make_indirect(Array([
-     ...:     pushpin
-     ...: ]))
+  >>> pdf.pages[0].Annots = pdf.make_indirect(Array([
+  ...     pushpin
+  ... ]))
 
 Files that are referenced as Annotations and Actions do not need to be added
 to ``Pdf.attachments``. If they are, the file will be attached twice.

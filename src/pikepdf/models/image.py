@@ -680,10 +680,10 @@ class PdfImage(PdfImageBase):
         Images might be saved as any of .png, .jpg, or .tiff.
 
         Examples:
-            >>> im.extract_to(stream=bytes_io)
+            >>> im.extract_to(stream=bytes_io)  # doctest: +SKIP
             '.png'
 
-            >>> im.extract_to(fileprefix='/tmp/image00')
+            >>> im.extract_to(fileprefix='/tmp/image00')  # doctest: +SKIP
             '/tmp/image00.jpg'
 
         Args:

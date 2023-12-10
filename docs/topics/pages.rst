@@ -9,11 +9,11 @@ individual pages.
 
 Let’s continue with ``fourpages.pdf`` from the :ref:`tutorial`.
 
-.. ipython::
+.. doctest::
 
-    In [1]: from pikepdf import Pdf
+    >>> from pikepdf import Pdf
 
-    In [2]: pdf = Pdf.open('../tests/resources/fourpages.pdf')
+    >>> pdf = Pdf.open('../tests/resources/fourpages.pdf')
 
 .. note::
 
@@ -28,15 +28,14 @@ Split a PDF into single page PDFs
 
 All we need are new PDFs to hold the destination pages.
 
-.. ipython::
-    :verbatim:
+.. code-block:: python
 
-    In [1]: pdf = Pdf.open('../tests/resources/fourpages.pdf')
+    >>> pdf = Pdf.open('../tests/resources/fourpages.pdf')
 
-    In [5]: for n, page in enumerate(pdf.pages):
-       ...:     dst = Pdf.new()
-       ...:     dst.pages.append(page)
-       ...:     dst.save(f'{n:02d}.pdf')
+    >>> for n, page in enumerate(pdf.pages):
+    ...     dst = Pdf.new()
+    ...     dst.pages.append(page)
+    ...     dst.save(f'{n:02d}.pdf')
 
 .. note::
 
@@ -55,18 +54,17 @@ the others.
 If you are looking to combine multiple PDF pages into a single page, see
 :ref:`overlays`.
 
-.. ipython::
-    :verbatim:
+.. code-block:: python
 
-    In [1]: from glob import glob
+    >>> from glob import glob
 
-    In [1]: pdf = Pdf.new()
+    >>> pdf = Pdf.new()
 
-    In [1]: for file in glob('*.pdf'):
-       ...:     src = Pdf.open(file)
-       ...:     pdf.pages.extend(src.pages)
+    >>> for file in glob('*.pdf'):
+    ...     src = Pdf.open(file)
+    ...     pdf.pages.extend(src.pages)
 
-    In [1]: pdf.save('merged.pdf')
+    >>> pdf.save('merged.pdf')
 
 This code sample is enough to merge most PDFs, but there are some things it
 does not do that a more sophisticated function might do. One could call
@@ -74,23 +72,22 @@ does not do that a more sophisticated function might do. One could call
 from the pages' ``/Resources`` dictionaries. It may also be necessary to chose the
 most recent version of all source PDFs. Here is a more sophisticated example:
 
-.. ipython::
-    :verbatim:
+.. code-block:: python
 
-    In [1]: from glob import glob
+    >>> from glob import glob
 
-    In [1]: pdf = Pdf.new()
+    >>> pdf = Pdf.new()
 
-    In [1]: version = pdf.pdf_version
+    >>> version = pdf.pdf_version
 
-    In [1]: for file in glob('*.pdf'):
-       ...:     src = Pdf.open(file)
-       ...:     version = max(version, src.pdf_version)
-       ...:     pdf.pages.extend(src.pages)
+    >>> for file in glob('*.pdf'):
+    ...     src = Pdf.open(file)
+    ...     version = max(version, src.pdf_version)
+    ...     pdf.pages.extend(src.pages)
 
-    In [1]: pdf.remove_unreferenced_resources()
+    >>> pdf.remove_unreferenced_resources()
 
-    In [1]: pdf.save('merged.pdf', min_version=version)
+    >>> pdf.save('merged.pdf', min_version=version)
 
 This improved example would still leave metadata blank. It's up to you
 to decide how to combine metadata from multiple PDFs.
@@ -102,20 +99,21 @@ Suppose the file was scanned backwards. We can easily reverse it in
 place - maybe it was scanned backwards, a common problem with automatic
 document scanners.
 
-.. ipython::
+.. doctest::
 
-    In [1]: pdf.pages.reverse()
+    >>> pdf.pages.reverse()
 
-.. ipython::
+.. doctest::
 
-    In [1]: pdf
+    >>> pdf
+    <pikepdf.Pdf description='../tests/resources/fourpages.pdf'>
 
 Pretty nice, isn’t it? But the pages in this file already were in correct
 order, so let’s put them back.
 
-.. ipython::
+.. doctest::
 
-    In [1]: pdf.pages.reverse()
+    >>> pdf.pages.reverse()
 
 .. _copyother:
 
@@ -125,13 +123,13 @@ Copying pages from other PDFs
 Now, let’s add some content from another file. Because ``pdf.pages`` behaves
 like a list, we can use ``pages.extend()`` on another file's pages.
 
-.. ipython::
+.. doctest::
 
-    In [1]: pdf = Pdf.open('../tests/resources/fourpages.pdf')
+    >>> pdf = Pdf.open('../tests/resources/fourpages.pdf')
 
-    In [1]: appendix = Pdf.open('../tests/resources/sandwich.pdf')
+    >>> appendix = Pdf.open('../tests/resources/sandwich.pdf')
 
-    In [2]: pdf.pages.extend(appendix.pages)
+    >>> pdf.pages.extend(appendix.pages)
 
 We can use ``pages.insert()`` to insert into one of more pages into a specific
 position, bumping everything else ahead.
@@ -142,25 +140,28 @@ creating a reference. Therefore modifying ``pdf.pages[-1]`` will not affect
 ``appendix.pages[0]``. (Normally, assigning objects between Python lists creates
 a reference, so that the two objects are identical, ``list[0] is list[1]``.)
 
-.. ipython::
+.. doctest::
 
-    In [3]: graph = Pdf.open('../tests/resources/graph.pdf')
+    >>> graph = Pdf.open('../tests/resources/graph.pdf')
 
-    In [4]: pdf.pages.insert(1, graph.pages[0])
+    >>> pdf.pages.insert(1, graph.pages[0])
 
-    In [5]: len(pdf.pages)
+    >>> len(pdf.pages)
+    6
 
 We can also replace specific pages with assignment (or slicing).
 
-.. ipython::
+.. doctest::
 
-    In [1]: congress = Pdf.open('../tests/resources/congress.pdf')
+    >>> congress = Pdf.open('../tests/resources/congress.pdf')
 
-    In [1]: pdf.pages[2].objgen
+    >>> pdf.pages[2].objgen
+    (4, 0)
 
-    In [1]: pdf.pages[2] = congress.pages[0]
+    >>> pdf.pages[2] = congress.pages[0]
 
-    In [1]: pdf.pages[2].objgen
+    >>> pdf.pages[2].objgen
+    (33, 0)
 
 The method above will break any indirect references (such as table of contents
 entries and hyperlinks) within ``pdf`` to ``pdf.pages[2]``. Perhaps that is the
@@ -178,32 +179,34 @@ the target and replace it with the content of the source, thus preserving
 indirect references to the page. (Think of this as demolishing the interior
 of a house, but keeping it at the same address.)
 
-.. ipython::
+.. doctest::
 
-    In [1]: pdf = Pdf.open('../tests/resources/fourpages.pdf')
+    >>> pdf = Pdf.open('../tests/resources/fourpages.pdf')
 
-    In [1]: congress = Pdf.open('../tests/resources/congress.pdf')
+    >>> congress = Pdf.open('../tests/resources/congress.pdf')
 
-    In [1]: pdf.pages[2].objgen
+    >>> pdf.pages[2].objgen
+    (5, 0)
 
-    In [1]: pdf.pages.append(congress.pages[0])  # Transfer page to new pdf
+    >>> pdf.pages.append(congress.pages[0])  # Transfer page to new pdf
 
-    In [1]: pdf.pages[2].emplace(pdf.pages[-1])
+    >>> pdf.pages[2].emplace(pdf.pages[-1])
 
-    In [1]: del pdf.pages[-1]  # Remove donor page
+    >>> del pdf.pages[-1]  # Remove donor page
 
-    In [1]: pdf.pages[2].objgen
+    >>> pdf.pages[2].objgen
+    (5, 0)
 
 Copying pages within a PDF
 --------------------------
 
 As you may have guessed, we can assign pages to copy them within a ``Pdf``:
 
-.. ipython::
+.. doctest::
 
-    In [1]: pdf = Pdf.open('../tests/resources/fourpages.pdf')
+    >>> pdf = Pdf.open('../tests/resources/fourpages.pdf')
 
-    In [1]: pdf.pages[3] = pdf.pages[0]  # The last shall be made first
+    >>> pdf.pages[3] = pdf.pages[0]  # The last shall be made first
 
 As above, copying a page creates a shallow copy rather than a Python object
 reference.
@@ -218,14 +221,13 @@ Because PDF pages are usually numbered in counting numbers (1, 2, 3…),
 pikepdf provides a convenience accessor ``.p()`` that uses counting
 numbers:
 
-.. ipython::
-    :verbatim:
+.. code-block:: python
 
-    In [1]: pdf.pages.p(1)        # The first page in the document
+    >>> pdf.pages.p(1)        # The first page in the document
 
-    In [1]: pdf.pages[0]          # Also the first page in the document
+    >>> pdf.pages[0]          # Also the first page in the document
 
-    In [1]: pdf.pages.remove(p=1)   # Remove first page in the document
+    >>> pdf.pages.remove(p=1)   # Remove first page in the document
 
 To avoid confusion, the ``.p()`` accessor does not accept Python slices,
 and ``.p(0)`` raises an exception. It is also not possible to delete using it.
@@ -242,11 +244,10 @@ beginning with Roman numerals (i, ii, iii...), body using Arabic numerals (1, 2,
 and an appendix using some other convention (A-1, A-2, ...), you can look up the
 page label as follows:
 
-.. ipython::
-    :verbatim:
+.. code-block:: python
 
-    In [1]: pdf.pages[1].label
-    Out[1]: 'i'
+    >>> pdf.pages[1].label
+    'i'
 
 There is currently no API to help with modifying the ``pdf.Root.PageLabels`` data
 structure, which contains the label definitions.

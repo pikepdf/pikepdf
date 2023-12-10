@@ -314,11 +314,13 @@ class Object:
         with ``self`` and ``other`` are not inadvertently deleted.
 
         Example:
+            >>> pdf = pikepdf.Pdf.open('../tests/resources/fourpages.pdf')
             >>> pdf.pages[0].objgen
-            (16, 0)
+            (3, 0)
             >>> pdf.pages[0].emplace(pdf.pages[1])
             >>> pdf.pages[0].objgen
-            (16, 0)  # Same object
+            (3, 0)
+            >>> # Same object
 
         .. versionchanged:: 2.11.1
             Added the *retain* argument.
@@ -1304,6 +1306,23 @@ class Page:
                 dictionaries, remove it.
 
         Example:
+            >>> pdf = pikepdf.Pdf.new()
+            >>> pdf.add_blank_page(page_size=(100, 100))
+            <pikepdf.Page({
+              "/Contents": pikepdf.Stream(owner=<...>, data=<...>, {
+            <BLANKLINE>
+              }),
+              "/MediaBox": [ 0, 0, 100, 100 ],
+              "/Parent": <reference to /Pages>,
+              "/Resources": {
+            <BLANKLINE>
+              },
+              "/Type": "/Page"
+            })>
+            >>> formxobj = pikepdf.Dictionary(
+            ...     Type=Name.XObject,
+            ...     Subtype=Name.Form
+            ... )
             >>> resource_name = pdf.pages[0].add_resource(formxobj, Name.XObject)
 
         .. versionadded:: 2.3
@@ -1524,9 +1543,9 @@ class Pdf:
         and preserves all references that may exist in the foreign object. For
         example, if
 
-            >>> object_a = pdf.copy_foreign(object_x)
-            >>> object_b = pdf.copy_foreign(object_y)
-            >>> object_c = pdf.copy_foreign(object_z)
+            >>> object_a = pdf.copy_foreign(object_x)  # doctest: +SKIP
+            >>> object_b = pdf.copy_foreign(object_y)  # doctest: +SKIP
+            >>> object_c = pdf.copy_foreign(object_z)  # doctest: +SKIP
 
         and ``object_z`` is a shared descendant of both ``object_x`` and ``object_y``
         in the foreign PDF, then ``object_c`` is a shared descendant of both
@@ -1657,10 +1676,10 @@ class Pdf:
         release that object when appropriate.
 
         Examples:
-            >>> with Pdf.open("test.pdf") as pdf:
-                    ...
+            >>> with Pdf.open("test.pdf") as pdf:  # doctest: +SKIP
+            ...     pass
 
-            >>> pdf = Pdf.open("test.pdf", password="rosebud")
+            >>> pdf = Pdf.open("test.pdf", password="rosebud")  # doctest: +SKIP
 
         Args:
             filename_or_stream: Filename or Python readable and seekable file
@@ -1739,9 +1758,10 @@ class Pdf:
         ``Pdf.save()``.
 
         Example:
+            >>> pdf = pikepdf.Pdf.open("../tests/resources/graph.pdf")
             >>> with pdf.open_metadata() as meta:
-                    meta['dc:title'] = 'Set the Dublic Core Title'
-                    meta['dc:description'] = 'Put the Abstract here'
+            ...     meta['dc:title'] = 'Set the Dublic Core Title'
+            ...     meta['dc:description'] = 'Put the Abstract here'
 
         Args:
             set_pikepdf_as_editor: Automatically update the metadata ``pdf:Producer``
@@ -1772,8 +1792,9 @@ class Pdf:
         PDF when the block exits. (The ``Pdf`` must still be opened.)
 
         Example:
+            >>> pdf = pikepdf.open('../tests/resources/outlines.pdf')
             >>> with pdf.open_outline() as outline:
-                    outline.root.insert(0, OutlineItem('Intro', 0))
+            ...     outline.root.insert(0, pikepdf.OutlineItem('Intro', 0))
 
         Args:
             max_depth: Maximum recursion depth of the outline to be

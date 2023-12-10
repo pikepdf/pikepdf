@@ -70,10 +70,14 @@ def parse_content_stream(
             all tokens are accepted.
 
     Example:
-        >>> with pikepdf.Pdf.open(input_pdf) as pdf:
-        >>>     page = pdf.pages[0]
-        >>>     for operands, command in parse_content_stream(page):
-        >>>         print(command)
+        >>> with pikepdf.Pdf.open("../tests/resources/pal-1bit-trivial.pdf") as pdf:
+        ...     page = pdf.pages[0]
+        ...     for operands, command in pikepdf.parse_content_stream(page):
+        ...         print(command)
+        q
+        cm
+        Do
+        Q
 
     .. versionchanged:: 3.0
         Returns a list of ``ContentStreamInstructions`` instead of a list

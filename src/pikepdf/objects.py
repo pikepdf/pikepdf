@@ -262,20 +262,21 @@ class Stream(Object, metaclass=_ObjectMeta):
 
         Examples:
             Using kwargs:
+                >>> pdf = pikepdf.Pdf.new()
                 >>> s1 = pikepdf.Stream(
-                        pdf,
-                        b"uncompressed image data",
-                        BitsPerComponent=8,
-                        ColorSpace=Name.DeviceRGB,
-                        ...
-                    )
+                ...     pdf,
+                ...     b"uncompressed image data",
+                ...     BitsPerComponent=8,
+                ...     ColorSpace=pikepdf.Name.DeviceRGB,
+                ... )
             Using dict:
-                >>> d = pikepdf.Dictionary(...)
+                >>> pdf = pikepdf.Pdf.new()
+                >>> d = pikepdf.Dictionary(Key1=1, Key2=2)
                 >>> s2 = pikepdf.Stream(
-                        pdf,
-                        b"data",
-                        d
-                    )
+                ...     pdf,
+                ...     b"data",
+                ...     d
+                ... )
 
         .. versionchanged:: 2.2
             Support creation of ``pikepdf.Stream`` from existing dictionary.

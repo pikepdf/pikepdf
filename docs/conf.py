@@ -30,13 +30,12 @@ extensions = [
     'autoapi.extension',
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
+    'sphinx.ext.doctest',
     'sphinx.ext.intersphinx',
     'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
     'sphinx_issues',
     'sphinx_design',
-    'IPython.sphinxext.ipython_console_highlighting',
-    'IPython.sphinxext.ipython_directive',
     #'fix_pybind11_autodoc',
 ]
 
@@ -113,6 +112,11 @@ autodoc_typehints = 'description'
 autoapi_dirs = ['../src/pikepdf']
 autoapi_generate_api_docs = False
 
+doctest_global_setup = """
+import pikepdf
+Name = pikepdf.Name
+"""
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -127,8 +131,6 @@ import pikepdf  # isort:skip pylint: disable=unused-import
 # needs_sphinx = '1.0'
 
 issues_github_path = 'pikepdf/pikepdf'
-
-ipython_execlines = ['import pikepdf', 'from pikepdf import Pdf']
 
 autosummary_generate = True
 
