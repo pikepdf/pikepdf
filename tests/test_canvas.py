@@ -102,24 +102,34 @@ class TestCanvas:
         pdf.check()
 
     def test_text(self):
+        hello_msg = 'Hello, World!'
+        hello_arabic = 'مرحبا بالعالم'
         canvas = Canvas(page_size=(100, 100))
 
         text = Text()
         text.font(Name.Helvetica, 12).render_mode(1).text_transform(
             Matrix().translated(10, 10)
-        ).horiz_scale(110).move_cursor(10, 10).show('Hello, World!')
+        ).horiz_scale(110).move_cursor(10, 10).show(hello_msg)
 
+        # This is cheating! We're using one of the 14 base PDF fonts for a quick
+        # test. If the resulting PDF is viewed, the result will not be in Arabic.
+        # This does not properly register the font. The point of this test is
+        # to ensure that the content stream is properly encoded.
         rtltext = Text(TextDirection.RTL)
         rtltext.font(Name.Helvetica, 12).render_mode(0).text_transform(
             Matrix().translated(10, 10)
-        ).move_cursor(50, 50).show(
-            'مرحبا بالعالم'
-        )  # Hello world
+        ).move_cursor(50, 50).show(hello_arabic)
 
         canvas.do.stroke_color(BLACK).draw_text(text)
+        canvas.do.fill_color(BLACK).draw_text(rtltext)
         canvas.add_font(Name.Helvetica, Helvetica())
         pdf = canvas.to_pdf()
         pdf.check()
+
+        for msg in [hello_msg, hello_arabic]:
+            # str -> UTF-16 big endian bytes -> hex encoded str -> hex bytes
+            hex_bytes = msg.encode('utf-16be').hex().encode('ascii')
+            assert hex_bytes in pdf.pages[0].Contents.read_bytes()
 
     def test_stack_abuse(self, caplog):
         canvas = Canvas(page_size=(100, 100))

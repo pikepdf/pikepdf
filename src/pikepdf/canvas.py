@@ -17,6 +17,7 @@ from pathlib import Path
 from PIL import Image
 
 from pikepdf import (
+    Array,
     ContentStreamInstruction,
     Dictionary,
     Matrix,
@@ -172,10 +173,14 @@ class ContentStreamBuilder:
         self._append(inst)
         return self
 
-    def show_text(self, text: str):
-        """Show text."""
-        encoded = text.encode("utf-16be")
-        inst = ContentStreamInstruction([[String(encoded)]], Operator("TJ"))
+    def show_text(self, encoded: bytes):
+        """Show text.
+
+        The text must be encoded in character codes expected by the font.
+        """
+        # [ <text string> ] TJ
+        # operands need to be enclosed in Array
+        inst = ContentStreamInstruction([Array([String(encoded)])], Operator("TJ"))
         self._append(inst)
         return self
 
@@ -455,13 +460,24 @@ class Text:
         self._cs.set_text_matrix(matrix)
         return self
 
-    def show(self, text: str):
-        """Show text."""
+    def show(self, text: str | bytes):
+        """Show text.
+
+        The text must be encoded in character codes expected by the font.
+        If a text string is passed, it will be encoded as UTF-16BE.
+        Text rendering will not work properly if the font's character
+        codes are not consistent with UTF-16BE. This is a rudimentary
+        interface. You've been warned.
+        """
+        if isinstance(text, str):
+            encoded = b"\xfe\xff" + text.encode("utf-16be")
+        else:
+            encoded = text
         if self._direction == TextDirection.LTR:
-            self._cs.show_text(text)
+            self._cs.show_text(encoded)
         else:
             self._cs.begin_marked_content(Name.ReversedChars)
-            self._cs.show_text(text)
+            self._cs.show_text(encoded)
             self._cs.end_marked_content()
         return self
 
