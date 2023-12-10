@@ -27,6 +27,7 @@ from pikepdf import (
 )
 from pikepdf._core import StreamParser
 from pikepdf.models import PdfParsingError
+from pikepdf.objects import Array
 
 # pylint: disable=useless-super-delegation,redefined-outer-name
 
@@ -318,3 +319,17 @@ class TestMalformedContentStreamInstructions:
 
     def test_accepts_all_tuples(self):
         unparse_content_stream((((Name.Foo,), b'/Do'),))
+
+
+class TestBadSingleInstructions:
+    def test_indirect_object(self):
+        p = pikepdf.new()
+        arr = p.make_indirect(Array([42]))
+        d = p.make_indirect(Dictionary(Foo=Name.Bar))
+        stream = p.make_stream(b'test stream')
+        with pytest.raises(TypeError):
+            ContentStreamInstruction([arr], Operator('Do'))
+        with pytest.raises(TypeError):
+            ContentStreamInstruction([d], Operator('Do'))
+        with pytest.raises(TypeError):
+            ContentStreamInstruction([Name.Him, stream], Operator('Do'))

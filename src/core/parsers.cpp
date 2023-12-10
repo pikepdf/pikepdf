@@ -27,12 +27,60 @@ void PyParserCallbacks::handleEOF()
     );
 }
 
+void check_operand(QPDFObjectHandle obj)
+{
+    switch (obj.getTypeCode()) {
+    case qpdf_object_type_e::ot_null:
+    case qpdf_object_type_e::ot_boolean:
+    case qpdf_object_type_e::ot_integer:
+    case qpdf_object_type_e::ot_real:
+    case qpdf_object_type_e::ot_name:
+    case qpdf_object_type_e::ot_string:
+    case qpdf_object_type_e::ot_inlineimage:
+        break;
+    case qpdf_object_type_e::ot_array: {
+        if (obj.isIndirect()) {
+            throw py::type_error(
+                "Indirect arrays are not allowed in content stream instructions");
+        }
+        for (auto &inner : obj.aitems()) {
+            check_operand(inner);
+        }
+        break;
+    }
+    case qpdf_object_type_e::ot_dictionary: {
+        if (obj.isIndirect()) {
+            throw py::type_error(
+                "Indirect dictionaries are not allowed in content stream instructions");
+        }
+        for (auto &kv : obj.ditems()) {
+            check_operand(kv.second);
+        }
+        break;
+    }
+    case qpdf_object_type_e::ot_stream:
+        throw py::type_error("Streams are not allowed in content stream instructions");
+    default: {
+        throw py::type_error("Only scalar types, arrays, and dictionaries are allowed "
+                             "in content streams.");
+    }
+    }
+}
+
+void check_objects_in_operands(std::vector<QPDFObjectHandle> &operands)
+{
+    for (QPDFObjectHandle &obj : operands) {
+        check_operand(obj);
+    }
+}
+
 ContentStreamInstruction::ContentStreamInstruction(
     ObjectList operands, QPDFObjectHandle operator_)
     : operands(operands), operator_(operator_)
 {
     if (!this->operator_.isOperator())
         throw py::type_error("operator parameter must be a pikepdf.Operator");
+    check_objects_in_operands(this->operands);
 }
 
 std::ostream &operator<<(std::ostream &os, ContentStreamInstruction &csi)
@@ -187,9 +235,9 @@ py::bytes unparse_content_stream(py::iterable contentstream)
         } else {
             op = operator_.cast<QPDFObjectHandle>();
             if (!op.isOperator()) {
-                errmsg
-                    << "At content stream instruction " << n
-                    << ", the operator is not of type pikepdf.Operator, bytes or str";
+                errmsg << "At content stream instruction " << n
+                       << ", the operator is not of type pikepdf.Operator, bytes "
+                          "or str";
                 throw py::type_error(errmsg.str());
             }
         }
@@ -223,6 +271,9 @@ void init_parsers(py::module_ &m)
 {
     py::class_<ContentStreamInstruction>(m, "ContentStreamInstruction")
         .def(py::init<const ContentStreamInstruction &>())
+        .def(py::init([](ObjectList operands, QPDFObjectHandle operator_) {
+            return ContentStreamInstruction(operands, operator_);
+        }))
         .def(py::init([](py::iterable operands, QPDFObjectHandle operator_) {
             ObjectList newlist;
             for (auto &item : operands) {
