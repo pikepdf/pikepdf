@@ -1,4 +1,16 @@
 
+v8.9.0
+======
+
+- Overhauled documentation. Previously the documentation could only be generated in
+  an environment where pikepdf was compiled and installed, since generating the final
+  result depended on executing pikepdf. Now, these dynamic features are removed and
+  the documentation is static. All documentation that was defined in C++ has been
+  pulled out and defined in Python stub files instead, which means compiled binaries
+  are no longer needed to access documentation. This change simplifies the generation of
+  documentation and makes it easier for IDEs to look up function signatures.
+- Similarly, typing is now defined only in Python stub files.
+
 v8.8.0
 ======
 
