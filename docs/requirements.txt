@@ -2,9 +2,8 @@
 # yet read pyproject.toml to obtain what
 # pip install pikepdf[docs] would install.
 
-docutils == 0.17.1  # https://stackoverflow.com/questions/67542699/readthedocs-sphinx-not-rendering-bullet-list-from-rst-file
 Sphinx >= 3
-sphinx-autoapi
+sphinx-autoapi >= 3
 sphinx-issues
 sphinx-design
 sphinx-rtd-theme
