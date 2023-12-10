@@ -36,13 +36,8 @@ changelog = "https://pikepdf.readthedocs.io/en/latest/releasenotes/index.html"
 [project.optional-dependencies]
 dev = ["pre-commit", "typer[all]"]
 docs = [
-  "GitPython",
-  "PyGithub",
   "Sphinx>=3",
-  "ipython",
-  "matplotlib",
-  "pybind11",
-  "requests",
+  "sphinx-autoapi",
   "sphinx-design",
   "sphinx-issues",
   "sphinx-rtd-theme",

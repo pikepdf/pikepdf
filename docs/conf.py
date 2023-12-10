@@ -13,12 +13,8 @@
 
 from __future__ import annotations
 
-import io
 import os
-import subprocess
 import sys
-import time
-from pathlib import Path
 
 try:
     import tomllib
@@ -36,75 +32,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx_issues',
     'sphinx_design',
-    #'fix_pybind11_autodoc',
 ]
-
-on_rtd = os.environ.get('READTHEDOCS') == 'True'
-
-if on_rtd:
-    import tempfile
-    import zipfile
-
-    import git
-    import github
-    import requests
-
-    # Borrowed from https://github.com/YannickJadoul/Parselmouth/blob/master/docs/conf.py
-    def pip(*args):
-        """Run pip with the given arguments."""
-        subprocess.run([sys.executable, '-m', 'pip', *args], check=True)
-
-    rtd_version = os.environ.get('READTHEDOCS_VERSION', '')
-    if rtd_version == 'stable':
-        # Stable - install whatever was last successfully released to PyPI
-        pip('install', '--force-reinstall', 'pikepdf')
-    else:
-        branch = 'main' if rtd_version == 'latest' else rtd_version
-
-        github_token = os.environ['GITHUB_TOKEN']
-        head_sha = git.Repo(search_parent_directories=True).head.commit.hexsha
-        g = github.Github()
-
-        runs = (
-            g.get_repo('pikepdf/pikepdf')
-            .get_workflow('build.yml')
-            .get_runs(branch=branch)
-        )
-        current_run = next((r for r in runs if r.head_sha == head_sha), None)
-        if current_run is None:
-            raise RuntimeError(
-                f'Could not find a run for branch {branch} and head SHA {head_sha}'
-            )
-        artifacts_url = current_run.artifacts_url
-
-        archive_download_url = ''
-        for i in range(5):
-            try:
-                archive_download_url = next(
-                    artifact
-                    for artifact in requests.get(artifacts_url).json()['artifacts']
-                    if artifact['name'] == 'rtd-wheel'
-                )['archive_download_url']
-                break
-            except StopIteration:
-                if i == 4:
-                    raise
-                time.sleep(15)
-        artifact_bin = io.BytesIO(
-            requests.get(
-                archive_download_url,
-                headers={'Authorization': f'token {github_token}'},
-                stream=True,
-            ).content
-        )
-        with zipfile.ZipFile(
-            artifact_bin
-        ) as zf, tempfile.TemporaryDirectory() as tmpdir:
-            assert len(zf.namelist()) == 1
-            zf.extractall(tmpdir)
-            pip('install', '--force-reinstall', f'{tmpdir}/{zf.namelist()[0]}')
-else:
-    sys.path.insert(0, os.path.abspath(os.path.join('..', 'installed')))
 
 autodoc_mock_imports = ['libxmp']
 autodoc_typehints = 'description'
@@ -123,7 +51,6 @@ Name = pikepdf.Name
 sys.path.insert(0, os.path.join(os.path.abspath('.'), './_ext'))
 sys.path.insert(0, os.path.join(os.path.abspath('.'), '..'))
 
-import pikepdf  # isort:skip pylint: disable=unused-import
 
 # -- General configuration ------------------------------------------------
 
