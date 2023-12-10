@@ -33,14 +33,6 @@ jobs:
           path: ./wheelhouse/*.whl
           if-no-files-found: error
 
-      - name: Upload wheel for ReadTheDocs
-        uses: actions/upload-artifact@v3
-        if: matrix.platform == 'manylinux_x86_64'
-        with:
-          name: rtd-wheel
-          path: ./wheelhouse/pikepdf-*-cp311-*.manylinux2014_x86_64.whl
-          if-no-files-found: error
-
   wheels_linux_prerelease_python:
     name: ${{ matrix.os }} - ${{ matrix.platform }} - pre-release
     runs-on: ${{ matrix.os }}
