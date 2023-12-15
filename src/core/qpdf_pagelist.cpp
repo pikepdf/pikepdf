@@ -273,9 +273,7 @@ void init_pagelist(py::module_ &m)
         .def("reverse",
             [](PageList &pl) {
                 py::slice ordinary_indices(0, pl.count(), 1);
-                py::int_ step(-1);
-                py::slice reversed = py::reinterpret_steal<py::slice>(
-                    PySlice_New(Py_None, Py_None, step.ptr()));
+                py::slice reversed{{}, {}, -1};
                 py::list reversed_pages = pl.get_pages(reversed);
                 pl.set_pages_from_iterable(ordinary_indices, reversed_pages);
             })
