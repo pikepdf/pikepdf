@@ -202,11 +202,10 @@ def test_slice_differing_lengths(fourpages, sandwich):
         pdf.pages[0::2] = pdf2.pages[0:1]
 
 
-@pytest.mark.timeout(1)
 def test_self_extend(fourpages):
     pdf = fourpages
-    with pytest.raises(ValueError, match="source page list modified during iteration"):
-        pdf.pages.extend(pdf.pages)
+    pdf.pages.extend(pdf.pages)
+    assert len(pdf.pages) == 8
 
 
 def test_one_based_pages(fourpages):

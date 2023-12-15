@@ -292,9 +292,6 @@ void init_pagelist(py::module_ &m)
             [](PageList &pl, PageList &other) {
                 auto other_count = other.count();
                 for (decltype(other_count) i = 0; i < other_count; i++) {
-                    if (other_count != other.count())
-                        throw py::value_error(
-                            "source page list modified during iteration");
                     pl.append_page(other.get_page(i));
                 }
             },
