@@ -26,6 +26,8 @@ public:
     py::size_t count();
     void insert_page(py::size_t index, py::handle obj);
     void insert_page(py::size_t index, QPDFPageObjectHelper page);
+    void append_page(py::handle obj);
+    void append_page(QPDFPageObjectHelper page);
 
 public:
     py::size_t iterpos;
@@ -34,5 +36,5 @@ public:
 
 private:
     std::vector<QPDFPageObjectHelper> get_page_objs_impl(py::slice slice);
-    void try_insert_qpdfobject_as_page(py::size_t index, py::handle obj);
+    QPDFPageObjectHelper page_from_object(py::handle obj);
 };

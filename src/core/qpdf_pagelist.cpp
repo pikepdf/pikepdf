@@ -134,8 +134,15 @@ void PageList::delete_pages_from_iterable(py::slice slice)
 
 py::size_t PageList::count() { return this->doc.getAllPages().size(); }
 
-void PageList::try_insert_qpdfobject_as_page(py::size_t index, py::handle obj)
+QPDFPageObjectHelper PageList::page_from_object(py::handle obj)
 {
+    try {
+        auto page = obj.cast<QPDFPageObjectHelper>();
+        return page;
+    } catch (py::cast_error &) {
+        // Perhaps obj is a dictionary with Type=Name.Page
+    }
+
     QPDFObjectHandle oh, indirect_oh;
     try {
         oh = obj.cast<QPDFObjectHandle>();
@@ -161,8 +168,7 @@ void PageList::try_insert_qpdfobject_as_page(py::size_t index, py::handle obj)
                                              "to insert this as a page: ") +
                                  objecthandle_repr(oh));
         }
-        auto page = QPDFPageObjectHelper(indirect_oh);
-        this->insert_page(index, page);
+        return QPDFPageObjectHelper(indirect_oh);
     } catch (std::runtime_error &) {
         // If we created a new temporary indirect object to hold the page, and
         // failed to insert, delete the object we created as best we can.
@@ -181,20 +187,31 @@ void PageList::insert_page(py::size_t index, py::handle obj)
         this->insert_page(index, poh);
         return;
     } catch (py::cast_error &) {
-        this->try_insert_qpdfobject_as_page(index, obj);
+        auto page = this->page_from_object(obj);
+        this->insert_page(index, page);
         return;
     }
 }
 
 void PageList::insert_page(py::size_t index, QPDFPageObjectHelper page)
 {
-    auto doc = QPDFPageDocumentHelper(*this->qpdf);
     if (index != this->count()) {
         auto refpage = this->get_page(index);
-        doc.addPageAt(page, true, refpage);
+        this->doc.addPageAt(page, true, refpage);
     } else {
-        doc.addPage(page, false);
+        this->doc.addPage(page, false);
     }
+}
+
+void PageList::append_page(py::handle obj)
+{
+    auto page = this->page_from_object(obj);
+    this->doc.addPage(page, false);
+}
+
+void PageList::append_page(QPDFPageObjectHelper page)
+{
+    this->doc.addPage(page, false);
 }
 
 QPDFPageObjectHelper from_objgen(QPDF &q, QPDFObjGen og)
@@ -264,13 +281,11 @@ void init_pagelist(py::module_ &m)
             })
         .def(
             "append",
-            [](PageList &pl, QPDFPageObjectHelper &page) {
-                pl.insert_page(pl.count(), page);
-            },
+            [](PageList &pl, QPDFPageObjectHelper &page) { pl.append_page(page); },
             py::arg("page"))
         .def(
             "append",
-            [](PageList &pl, py::handle page) { pl.insert_page(pl.count(), page); },
+            [](PageList &pl, py::handle page) { pl.append_page(page); },
             py::arg("page"))
         .def(
             "extend",
@@ -280,7 +295,7 @@ void init_pagelist(py::module_ &m)
                     if (other_count != other.count())
                         throw py::value_error(
                             "source page list modified during iteration");
-                    pl.insert_page(pl.count(), other.get_page(i));
+                    pl.append_page(other.get_page(i));
                 }
             },
             py::arg("other"))
@@ -289,9 +304,8 @@ void init_pagelist(py::module_ &m)
             [](PageList &pl, py::iterable iterable) {
                 py::iterator it = iterable.attr("__iter__")();
                 while (it != py::iterator::sentinel()) {
-                    // assert_pyobject_is_page_obj(*it);
                     assert_pyobject_is_page_helper(*it);
-                    pl.insert_page(pl.count(), *it);
+                    pl.append_page(*it);
                     ++it;
                 }
             },
