@@ -360,6 +360,16 @@ def test_remove_onebased(fourpages):
         fourpages.pages.remove(p=-1)
 
 
+def test_remove_by_ref(fourpages):
+    second_page = fourpages.pages[1]
+    assert second_page == fourpages.pages[1]
+    fourpages.pages.remove(second_page)
+    assert second_page not in fourpages.pages
+    assert len(fourpages.pages) == 3
+    with pytest.raises(ValueError):
+        fourpages.pages.remove(second_page)
+
+
 def test_pages_wrong_type(fourpages):
     with pytest.raises(TypeError):
         fourpages.pages.insert(3, {})

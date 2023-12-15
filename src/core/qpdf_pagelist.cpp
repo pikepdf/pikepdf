@@ -306,13 +306,23 @@ void init_pagelist(py::module_ &m)
             },
             py::arg("iterable"))
         .def("remove",
-            [](PageList &pl, py::kwargs kwargs) {
-                auto pnum = kwargs["p"].cast<py::ssize_t>();
+            [](PageList &pl, QPDFPageObjectHelper &page) {
+                try {
+                    pl.doc.removePage(page);
+                } catch (const QPDFExc &e) {
+                    throw py::value_error("Page is not referenced in the PDF");
+                }
+            })
+        .def(
+            "remove",
+            [](PageList &pl, py::ssize_t pnum) {
                 if (pnum <= 0) // Indexing past end is checked in .get_page
                     throw py::index_error(
                         "page access out of range in 1-based indexing");
                 pl.delete_page(pnum - 1);
-            })
+            },
+            py::kw_only(),
+            py::arg("p"))
         .def("index",
             [](PageList &pl, const QPDFObjectHandle &h) {
                 return page_index(*pl.qpdf, h);

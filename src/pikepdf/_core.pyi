@@ -1341,10 +1341,11 @@ class PageList:
     """For accessing pages in a PDF.
 
     A ``list``-like object enumerating a range of pages in a :class:`pikepdf.Pdf`.
-    It may be all of the pages or a subset.
+    It may be all of the pages or a subset. Obtain using :attr:`pikepdf.Pdf.pages`.
+
+    See :class:`pikepdf.Page` for accessing individual pages.
     """
 
-    def __init__(self, *args, **kwargs) -> None: ...
     def append(self, page: Page) -> None:
         """Add another page to the end.
 
@@ -1372,7 +1373,7 @@ class PageList:
 
         Raises an exception if no page matches.
         """
-    def index(self, page: Page | Object) -> int:
+    def index(self, page: Page) -> int:
         """Given a page, find the index.
 
         That is, returns ``n`` such that ``pdf.pages[n] == this_page``.
@@ -1398,29 +1399,30 @@ class PageList:
         function does not account for that. Use :attr:`pikepdf.Page.label`
         to get the page label for a page.
         """
-    def remove(self, *, p: int) -> None:
-        """Remove a page (using 1-based numbering).
+    def remove(self, page: Page | None = None, *, p: int) -> None:
+        """Remove a page.
 
         Args:
-            p: 1-based page number
+            page: If page is not None, remove that page.
+            p: 1-based page number to remove, if page is None.
         """
     def reverse(self) -> None:
         """Reverse the order of pages."""
     @overload
-    def __delitem__(self, arg0: int) -> None: ...
+    def __delitem__(self, idx: int) -> None: ...
     @overload
-    def __delitem__(self, arg0: slice) -> None: ...
+    def __delitem__(self, sl: slice) -> None: ...
     @overload
-    def __getitem__(self, arg0: int) -> Page: ...
+    def __getitem__(self, idx: int) -> Page: ...
     @overload
-    def __getitem__(self, arg0: slice) -> list[Page]: ...
+    def __getitem__(self, sl: slice) -> list[Page]: ...
     def __iter__(self) -> PageList: ...
     def __len__(self) -> int: ...
     def __next__(self) -> Page: ...
     @overload
-    def __setitem__(self, arg0: int, arg1: Page) -> None: ...
+    def __setitem__(self, idx: int, page: Page) -> None: ...
     @overload
-    def __setitem__(self, arg0: slice, arg1: Iterable[Page]) -> None: ...
+    def __setitem__(self, sl: slice, pages: Iterable[Page]) -> None: ...
 
 class Pdf:
     def _repr_mimebundle_(include: Any = ..., exclude: Any = ...) -> Any:
