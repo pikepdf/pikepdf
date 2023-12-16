@@ -136,6 +136,17 @@ PYBIND11_MODULE(_core, m)
     init_rectangle(m);
     init_tokenfilter(m);
 
+    auto m_test = m.def_submodule("_test", "pikepdf._core test functions");
+    m_test
+        .def(
+            "fopen_nonexistent_file",
+            []() -> void { (void)QUtil::safe_fopen("does_not_exist__42", "rb"); },
+            "Used to test that C++ system error -> Python exception propagation works.")
+        .def(
+            "log_info",
+            [](std::string s) { return get_pikepdf_logger()->info(s); },
+            "Used to test routing of QPDF's logger to Python logging.");
+
     // -- Module level functions --
     m.def("utf8_to_pdf_doc",
          [](py::str utf8, char unknown) {
@@ -148,17 +159,9 @@ PYBIND11_MODULE(_core, m)
                 return py::str(QUtil::pdf_doc_to_utf8(pdfdoc));
             })
         .def(
-            "_test_file_not_found",
-            []() -> void { (void)QUtil::safe_fopen("does_not_exist__42", "rb"); },
-            "Used to test that C++ system error -> Python exception propagation works.")
-        .def(
             "_translate_qpdf_logic_error",
             [](std::string s) { return translate_qpdf_logic_error(s).first; },
             "Used to test interpretation of QPDF errors.")
-        .def(
-            "_log_info",
-            [](std::string s) { return get_pikepdf_logger()->info(s); },
-            "Used to test routing of QPDF's logger to Python logging.")
         .def("set_decimal_precision",
             [](uint prec) {
                 DECIMAL_PRECISION = prec;

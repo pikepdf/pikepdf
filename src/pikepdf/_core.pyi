@@ -2778,7 +2778,6 @@ def _new_string(s: str | bytes) -> String:
 def _new_string_utf8(s: str) -> String:
     """Low-level function to construct a PDF String object from UTF-8 bytes."""
 
-def _test_file_not_found(*args, **kwargs) -> Any: ...
 def _translate_qpdf_logic_error(arg0: str) -> str: ...
 def get_decimal_precision() -> int:
     """Set the number of decimal digits to use when converting floats."""

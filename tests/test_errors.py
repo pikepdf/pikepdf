@@ -46,7 +46,7 @@ def test_data_decoding_errors(filter_: str, data: bytes, msg: str):
 
 def test_system_error():
     with pytest.raises(FileNotFoundError):
-        pikepdf._core._test_file_not_found()
+        pikepdf._core._test.fopen_nonexistent_file()
 
 
 @skip_if_pypy
