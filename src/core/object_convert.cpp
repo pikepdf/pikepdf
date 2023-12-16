@@ -43,13 +43,9 @@ std::vector<QPDFObjectHandle> array_builder(const py::iterable iter)
 {
     StackGuard sg(" array_builder");
     std::vector<QPDFObjectHandle> result;
-    int narg = 0;
 
     for (const auto &item : iter) {
-        narg++;
-
-        auto value = objecthandle_encode(item);
-        result.push_back(value);
+        result.emplace_back(objecthandle_encode(item));
     }
     return result;
 }

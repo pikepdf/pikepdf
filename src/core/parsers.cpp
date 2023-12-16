@@ -277,7 +277,7 @@ void init_parsers(py::module_ &m)
         .def(py::init([](py::iterable operands, QPDFObjectHandle operator_) {
             ObjectList newlist;
             for (auto &item : operands) {
-                newlist.push_back(objecthandle_encode(item));
+                newlist.emplace_back(objecthandle_encode(item));
             }
             return ContentStreamInstruction(newlist, operator_);
         }))
