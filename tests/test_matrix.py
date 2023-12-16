@@ -11,6 +11,7 @@ import pytest
 from pikepdf import Array
 from pikepdf._core import Matrix, Rectangle
 from pikepdf.models import PdfMatrix
+from pikepdf.objects import Dictionary
 
 
 def allclose(m1, m2, abs_tol=1e-6):
@@ -68,6 +69,21 @@ class TestOldPdfMatrix:
 class TestMatrix:
     def test_default_is_identity(self):
         assert Matrix() == Matrix(1, 0, 0, 1, 0, 0)
+
+    def test_not_enough_args(self):
+        with pytest.raises(TypeError):
+            Matrix(1, 2, 3, 4, 5)
+
+    def test_tuple(self):
+        assert Matrix() == Matrix((1, 0, 0, 1, 0, 0))
+        with pytest.raises(ValueError):
+            Matrix((1, 2, 3, 4, 5))
+
+    def test_failed_object_conversion(self):
+        with pytest.raises(ValueError):
+            assert Matrix(Array([1, 2, 3]))
+        with pytest.raises(ValueError):
+            assert Matrix(Dictionary(Foo=1))
 
     def test_accessors(self):
         m = Matrix(1, 2, 3, 4, 5, 6)
@@ -145,3 +161,6 @@ class TestMatrix:
         assert (0, 0) < m.transform((1, 0)) < (1, 1)
         m = Matrix().rotated(-45)
         assert (0, 0) < m.transform((1, 0)) < (1, -1)
+
+    def test_latex(self):
+        assert '\\begin' in Matrix(1, 0, 0, 1, 0, 0)._repr_latex_()
