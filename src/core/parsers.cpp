@@ -271,9 +271,7 @@ void init_parsers(py::module_ &m)
 {
     py::class_<ContentStreamInstruction>(m, "ContentStreamInstruction")
         .def(py::init<const ContentStreamInstruction &>())
-        .def(py::init([](ObjectList operands, QPDFObjectHandle operator_) {
-            return ContentStreamInstruction(operands, operator_);
-        }))
+        .def(py::init<ObjectList, QPDFObjectHandle>())
         .def(py::init([](py::iterable operands, QPDFObjectHandle operator_) {
             ObjectList newlist;
             for (auto &item : operands) {
