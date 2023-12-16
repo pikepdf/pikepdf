@@ -227,8 +227,22 @@ QPDFPageObjectHelper from_objgen(QPDF &q, QPDFObjGen og)
     return QPDFPageObjectHelper(h);
 }
 
+QPDFPageObjectHelper PageListIterator::next()
+{
+    if (this->index >= this->pages.size()) {
+        throw py::stop_iteration();
+    }
+    auto page = this->pages.at(this->index);
+    this->index++;
+    return page;
+}
+
 void init_pagelist(py::module_ &m)
 {
+    py::class_<PageListIterator>(m, "_PageListIterator")
+        .def("__iter__", [](PageListIterator &it) { return it; })
+        .def("__next__", &PageListIterator::next);
+
     py::class_<PageList>(m, "PageList")
         .def(
             "__getitem__",
@@ -260,13 +274,12 @@ void init_pagelist(py::module_ &m)
                 return pl.get_page(pnum - 1);
             },
             py::arg("pnum"))
-        .def("__iter__", [](PageList &pl) { return PageList(pl.qpdf, 0); })
-        .def("__next__",
+        .def(
+            "__iter__",
             [](PageList &pl) {
-                if (pl.iterpos < pl.count())
-                    return pl.get_page(pl.iterpos++);
-                throw py::stop_iteration();
-            })
+                return PageListIterator{pl, 0};
+            },
+            py::keep_alive<0, 1>())
         .def(
             "insert",
             [](PageList &pl, py::ssize_t index, py::object obj) {

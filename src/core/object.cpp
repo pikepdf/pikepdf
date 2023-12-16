@@ -863,7 +863,7 @@ void init_object(py::module_ &m)
         .def(
             "__eq__",
             [](QPDFObjectHelper &self, QPDFObjectHelper &other) {
-                // Pages that are copies
+                // Object helpers are equal if their object handles are equal
                 return objecthandle_equal(
                     self.getObjectHandle(), other.getObjectHandle());
             },

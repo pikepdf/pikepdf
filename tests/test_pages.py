@@ -538,3 +538,11 @@ def test_page_from_objgen(graph):
     )
     with pytest.raises(ValueError):
         graph.pages.from_objgen(graph.pages[0].Contents.objgen)
+
+
+def test_page_iteration(graph, fourpages):
+    fourpages_iter = iter(fourpages.pages)
+    next(fourpages_iter)  # Discard
+    next(fourpages_iter)  # Discard
+    graph.pages.extend(fourpages_iter)  # Append remaining two
+    assert len(graph.pages) == 3
