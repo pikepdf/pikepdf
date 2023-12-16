@@ -232,7 +232,7 @@ def test_bad_insert(fourpages):
     pdf = fourpages
     with pytest.raises(TypeError):
         pdf.pages.insert(0, 'this is a string not a page')
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError), pytest.deprecated_call():
         pdf.pages.insert(0, Dictionary(Type=Name.NotAPage, Value="Not a page"))
 
 
@@ -371,9 +371,9 @@ def test_remove_by_ref(fourpages):
 
 
 def test_pages_wrong_type(fourpages):
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError), pytest.deprecated_call():
         fourpages.pages.insert(3, {})
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError), pytest.deprecated_call():
         fourpages.pages.insert(3, Array([42]))
 
 
@@ -487,7 +487,7 @@ def test_page_labels():
     p = Pdf.new()
     d = Dictionary(Type=Name.Page, MediaBox=[0, 0, 612, 792], Resources=Dictionary())
     for n in range(5):
-        p.pages.append(d)
+        p.pages.append(Page(d))
         p.pages[n].Contents = Stream(p, b"BT (Page %s) Tj ET" % str(n).encode())
 
     p.Root.PageLabels = p.make_indirect(

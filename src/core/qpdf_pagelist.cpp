@@ -152,6 +152,10 @@ QPDFPageObjectHelper PageList::page_from_object(py::handle obj)
                              "nor pikepdf.Dictionary with Type=Name.Page");
     }
 
+    python_warning("Implicit conversion of pikepdf.Dictionary to pikepdf.Page is "
+                   "deprecated. Use pikepdf.Page(dictionary) instead.",
+        PyExc_DeprecationWarning);
+
     bool copied = false;
     try {
         if (!oh.getOwningQPDF()) {

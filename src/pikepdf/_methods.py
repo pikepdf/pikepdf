@@ -55,7 +55,7 @@ __all__ = []
 Numeric = TypeVar('Numeric', int, float, Decimal)
 
 
-def _single_page_pdf(page) -> bytes:
+def _single_page_pdf(page: Page) -> bytes:
     """Construct a single page PDF from the provided page in memory."""
     pdf = Pdf.new()
     pdf.pages.append(page)
@@ -666,7 +666,7 @@ class Extend_Page:
             bundle = {k for k in bundle if k in include}
         if exclude:
             bundle = {k for k in bundle if k not in exclude}
-        pagedata = _single_page_pdf(self.obj)
+        pagedata = _single_page_pdf(self)
         if 'application/pdf' in bundle:
             data['application/pdf'] = pagedata
         if 'image/png' in bundle:

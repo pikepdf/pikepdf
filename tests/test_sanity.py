@@ -23,7 +23,7 @@ except ModuleNotFoundError:
 from packaging.version import Version
 
 import pikepdf
-from pikepdf import Name, Object, Pdf, Stream
+from pikepdf import Name, Object, Page, Pdf, Stream
 
 
 def test_minimum_qpdf_version():
@@ -106,7 +106,7 @@ def test_create_pdf(outdir):
         '/Resources': resources,
     }
     qpdf_page_dict = page_dict
-    page = pdf.make_indirect(qpdf_page_dict)
+    page = Page(pdf.make_indirect(qpdf_page_dict))
 
     pdf.pages.append(page)
     pdf.save(outdir / 'hi.pdf')

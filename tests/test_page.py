@@ -130,14 +130,16 @@ class TestAddResource:
 def test_add_unowned_page():  # issue 174
     pdf = Pdf.new()
     d = Dictionary(Type=Name.Page)
-    pdf.pages.append(d)
+    pdf.pages.append(Page(d))
 
 
 def test_failed_add_page_cleanup():
     pdf = Pdf.new()
     d = Dictionary(Type=Name.NotAPage)
     num_objects = len(pdf.objects)
-    with pytest.raises(TypeError, match="only pages can be inserted"):
+    with pytest.raises(
+        TypeError, match="only pages can be inserted"
+    ), pytest.deprecated_call():
         pdf.pages.append(d)
     assert len(pdf.pages) == 0
 
@@ -148,7 +150,9 @@ def test_failed_add_page_cleanup():
 
     # But we'd better not delete an existing object...
     d2 = pdf.make_indirect(Dictionary(Type=Name.StillNotAPage))
-    with pytest.raises(TypeError, match="only pages can be inserted"):
+    with pytest.raises(
+        TypeError, match="only pages can be inserted"
+    ), pytest.deprecated_call():
         pdf.pages.append(d2)
     assert len(pdf.pages) == 0
 

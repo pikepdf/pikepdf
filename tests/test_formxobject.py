@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from pikepdf import Dictionary, Name, Object, Pdf, Stream
+from pikepdf import Dictionary, Name, Object, Page, Pdf, Stream
 
 # pylint: disable=e1137
 
@@ -71,13 +71,15 @@ def test_create_form_xobjects(outdir):
 
     contents = Stream(pdf, stream)
 
-    page = pdf.make_indirect(
-        {
-            '/Type': Name('/Page'),
-            '/MediaBox': mediabox,
-            '/Contents': contents,
-            '/Resources': resources,
-        }
+    page = Page(
+        pdf.make_indirect(
+            {
+                '/Type': Name('/Page'),
+                '/MediaBox': mediabox,
+                '/Contents': contents,
+                '/Resources': resources,
+            }
+        )
     )
 
     pdf.pages.append(page)
