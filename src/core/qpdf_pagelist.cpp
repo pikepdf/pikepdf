@@ -44,6 +44,7 @@ std::vector<QPDFPageObjectHelper> PageList::get_page_objs_impl(py::slice slice)
     if (!slice.compute(this->count(), &start, &stop, &step, &slicelength))
         throw py::error_already_set(); // LCOV_EXCL_LINE
     std::vector<QPDFPageObjectHelper> result;
+    result.reserve(slicelength);
     for (py::size_t i = 0; i < slicelength; ++i) {
         auto oh = this->get_page(start);
         result.push_back(oh);
@@ -288,9 +289,9 @@ void init_pagelist(py::module_ &m)
         .def(
             "extend",
             [](PageList &pl, PageList &other) {
-                auto other_count = other.count();
-                for (decltype(other_count) i = 0; i < other_count; i++) {
-                    pl.append_page(other.get_page(i));
+                auto other_pages = other.doc.getAllPages();
+                for (auto &page : other_pages) {
+                    pl.append_page(page);
                 }
             },
             py::arg("other"))
