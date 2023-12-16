@@ -1,4 +1,18 @@
 
+v8.10.0
+=======
+
+- Fixed a performance regression when appending thousands of pages from one PDF to
+  another.
+- Fixed some obscure issues with iterators over ``Pdf.pages`` that would have led
+  to incorrect or unintuitive behavior, like partial iteration not being accounted
+  for.
+- Using the ``Pdf.pages`` API to insert objects other ``pikepdf.Pdf`` is now
+  deprecated. Previously, we accepted ``pikepdf.Dictionary`` that had its ``/Type``
+  set to ``/Page``. Now, one must wrap these dictionaries in ``pikepdf.Page()``.
+- Added type hints that ``pikepdf.Object`` can be implicitly converted to float
+  and int.
+
 v8.9.0
 ======
 
