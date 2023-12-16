@@ -112,14 +112,14 @@ def test_decimal_from_float(f):
         except InvalidOperation:
             return  # PDF doesn't support exponential notation
         try:
-            py_d = Object.parse(decstr)
+            py_d = Object.parse(decstr.encode('pdfdoc'))
         except RuntimeError as e:
             if 'overflow' in str(e) or 'underflow' in str(e):
-                py_d = Object.parse(str(f))
+                py_d = Object.parse(f.encode('pdfdoc'))
 
         assert isclose(py_d, d, abs_tol=1e-5), (d, f.hex())
     else:
-        with pytest.raises(PdfError):
+        with pytest.raises(PdfError), pytest.deprecated_call():
             Object.parse(str(d))
 
 
@@ -325,11 +325,11 @@ class TestHashViolation:
         assert Name('/Foo') != String('/Foo')
 
     def test_numbers(self):
-        self.check(Object.parse('1.0'), 1)
-        self.check(Object.parse('42'), 42)
+        self.check(Object.parse(b'1.0'), 1)
+        self.check(Object.parse(b'42'), 42)
 
     def test_bool_comparison(self):
-        self.check(Object.parse('0.0'), False)
+        self.check(Object.parse(b'0.0'), False)
         self.check(True, 1)
 
     def test_string(self):

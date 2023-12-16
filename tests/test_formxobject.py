@@ -30,7 +30,7 @@ def test_create_form_xobjects(outdir):
 
     image = Stream(pdf, image_data)
     image.stream_dict = Object.parse(
-        """
+        b"""
             <<
                 /Type /XObject
                 /Subtype /Image

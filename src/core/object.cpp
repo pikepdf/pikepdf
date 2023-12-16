@@ -758,7 +758,17 @@ void init_object(py::module_ &m)
         .def_property_readonly("objgen", &object_get_objgen)
         .def_static(
             "parse",
-            [](std::string const &stream, std::string const &description) {
+            [](py::bytes stream, py::str description) {
+                return QPDFObjectHandle::parse(
+                    std::string(stream), std::string(description));
+            },
+            py::arg("stream"),
+            py::arg("description") = "")
+        .def_static(
+            "parse",
+            [](py::str stream, std::string const &description) {
+                python_warning("pikepdf.Object.parse(str) is deprecated; use bytes.",
+                    PyExc_DeprecationWarning);
                 return QPDFObjectHandle::parse(stream, description);
             },
             py::arg("stream"),
