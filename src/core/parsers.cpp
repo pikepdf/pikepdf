@@ -58,8 +58,6 @@ void check_operand(QPDFObjectHandle obj)
         }
         break;
     }
-    case qpdf_object_type_e::ot_stream:
-        throw py::type_error("Streams are not allowed in content stream instructions");
     default: {
         throw py::type_error("Only scalar types, arrays, and dictionaries are allowed "
                              "in content streams.");
