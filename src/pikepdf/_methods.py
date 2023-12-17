@@ -700,7 +700,9 @@ class Extend_Attachments(MutableMapping):
             raise KeyError(k)
         return filespec
 
-    def __setitem__(self, k: str, v: AttachedFileSpec) -> None:
+    def __setitem__(self, k: str, v: AttachedFileSpec | bytes) -> None:
+        if isinstance(v, bytes):
+            return self._attach_data(k, v)
         if not v.filename:
             v.filename = k
         return self._add_replace_filespec(k, v)
@@ -715,7 +717,9 @@ class Extend_Attachments(MutableMapping):
         yield from self._get_all_filespecs()
 
     def __repr__(self):
-        return f"<pikepdf._core.Attachments with {len(self)} attached files>"
+        if len(self) == 0:
+            return "<pikepdf._core.Attachments no attached files>"
+        return f"<pikepdf._core.Attachments: {list(self)}>"
 
 
 @augments(AttachedFileSpec)

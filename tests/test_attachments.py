@@ -33,7 +33,7 @@ def test_attachment_crud(pal, resources, outpdf):
 
     assert len(pal.attachments) == 1, "attachment count not incremented"
     assert 'rle.pdf' in pal.attachments, "attachment filename not registered"
-    assert 'attached' in repr(pal.attachments)
+    assert 'rle.pdf' in repr(pal.attachments), "attachment filename not enumerated"
 
     pal.save(outpdf)
 
@@ -157,3 +157,9 @@ def test_from_str_filepath(pal, outdir):
     assert 'foo' not in repr(fs)
     assert 'AttachedFile' in repr(fs.get_file())
     assert fs.relationship == Name.Data
+
+
+def test_attach_direct(pal):
+    data = b'some data'
+    pal.attachments['direct.txt'] = data
+    assert pal.attachments['direct.txt'].get_file().read_bytes() == data

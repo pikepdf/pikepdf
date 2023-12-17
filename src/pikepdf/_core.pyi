@@ -819,15 +819,36 @@ class AttachedFileSpec(ObjectHelper):
 class Attachments(MutableMapping[str, AttachedFileSpec]):
     """Exposes files attached to a PDF.
 
+    If a file is attached to a PDF, it is exposed through this interface.
+    For example ``p.attachments['readme.txt']`` would return a
+    :class:`pikepdf._core.AttachedFileSpec` that describes the attached file,
+    if a file were attached under that name.
+    ``p.attachments['readme.txt'].get_file()`` would return a
+    :class:`pikepdf._core.AttachedFile`, an archaic intermediate object to support
+    different versions of the file for different platforms. Typically one
+    just calls ``p.attachments['readme.txt'].read_bytes()`` to get the
+    contents of the file.
+
     This interface provides access to any files that are attached to this PDF,
     exposed as a Python :class:`collections.abc.MutableMapping` interface.
 
     The keys (virtual filenames) are always ``str``, and values are always
     :class:`pikepdf.AttachedFileSpec`.
 
+    To create a new attached file, use
+    :meth:`pikepdf._core.AttachedFileSpec.from_filepath`
+    to create a :class:`pikepdf._core.AttachedFileSpec` and then assign it to the
+    :attr:`pikepdf.Pdf.attachments` mapping. If the file is in memory, use
+    ``p.attachments['test.pdf'] = b'binary data'``.
+
     Use this interface through :attr:`pikepdf.Pdf.attachments`.
 
     .. versionadded:: 3.0
+
+    .. versionchanged:: 8.10.1
+        Added convenience interface for directly loading attached files, e.g.
+        ``pdf.attachments['/test.pdf'] = b'binary data'``. Prior to this release,
+        there was no way to attach data in memory as a file.
     """
 
     def __contains__(self, k: object) -> bool: ...
@@ -836,7 +857,7 @@ class Attachments(MutableMapping[str, AttachedFileSpec]):
     def __getitem__(self, k: str) -> AttachedFileSpec: ...
     def __iter__(self) -> Iterator[str]: ...
     def __len__(self) -> int: ...
-    def __setitem__(self, k: str, v: AttachedFileSpec): ...
+    def __setitem__(self, k: str, v: AttachedFileSpec | bytes): ...
     def __init__(self, *args, **kwargs) -> None: ...
     def _add_replace_filespec(self, arg0: str, arg1: AttachedFileSpec) -> None: ...
     def _get_all_filespecs(self) -> dict[str, AttachedFileSpec]: ...
