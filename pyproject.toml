@@ -114,7 +114,7 @@ build-frontend = "build"
 
 [tool.cibuildwheel.environment]
 QPDF_MIN_VERSION = "11.5.0"
-QPDF_VERSION = "11.6.3"
+QPDF_VERSION = "11.6.4"
 QPDF_PATTERN = "https://github.com/qpdf/qpdf/releases/download/vVERSION/qpdf-VERSION.tar.gz"
 
 [tool.cibuildwheel.linux]
