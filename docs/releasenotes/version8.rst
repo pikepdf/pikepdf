@@ -1,3 +1,11 @@
+v8.10.1
+=======
+
+- Rebuilt with QPDF 11.6.4.
+- Replaced use of a custom C++ logger with sharing QPDF's. It is still relayed to
+  the Python logger.
+- Added a simpler API for adding attachments from bytes data.
+- Deprecated use of Object.parse(str) in favor of Object.parse(bytes).
 
 v8.10.0
 =======
