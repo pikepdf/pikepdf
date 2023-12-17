@@ -4,8 +4,6 @@
 #include "pikepdf.h"
 #include <qpdf/QPDFLogger.hh>
 
-static auto pikepdf_logger = QPDFLogger::create();
-
 // Pipeline to relay QPDF log messages to Python logging module
 // This is a sink - cannot pass to other pipeline objects
 class Pl_PythonLogger : public Pipeline {
@@ -47,7 +45,7 @@ void Pl_PythonLogger::finish()
 std::shared_ptr<QPDFLogger> get_pikepdf_logger()
 {
     // All QPDFs can use the same logger
-    return pikepdf_logger;
+    return QPDFLogger::defaultLogger();
 }
 
 void init_logger(py::module_ &m)
@@ -61,6 +59,7 @@ void init_logger(py::module_ &m)
     std::shared_ptr<Pipeline> pl_log_error = std::make_shared<Pl_PythonLogger>(
         "QPDF to Python logging pipeline", py_logger, "error");
 
+    auto pikepdf_logger = get_pikepdf_logger();
     pikepdf_logger->setInfo(pl_log_info);
     pikepdf_logger->setWarn(pl_log_warn);
     pikepdf_logger->setError(pl_log_error);
