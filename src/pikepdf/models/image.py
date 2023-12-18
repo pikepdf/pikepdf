@@ -354,6 +354,13 @@ class PdfImageBase(ABC):
     def as_pil_image(self) -> Image.Image:
         """Convert this PDF image to a Python PIL (Pillow) image."""
 
+    def _repr_png_(self) -> bytes:
+        """Display hook for IPython/Jupyter."""
+        b = BytesIO()
+        with self.as_pil_image() as im:
+            im.save(b, 'PNG')
+            return b.getvalue()
+
 
 class PdfImage(PdfImageBase):
     """Support class to provide a consistent API for manipulating PDF images.
@@ -809,13 +816,6 @@ class PdfImage(PdfImageBase):
             f'<pikepdf.PdfImage image mode={mode} '
             f'size={self.width}x{self.height} at {hex(id(self))}>'
         )
-
-    def _repr_png_(self) -> bytes:
-        """Display hook for IPython/Jupyter."""
-        b = BytesIO()
-        with self.as_pil_image() as im:
-            im.save(b, 'PNG')
-            return b.getvalue()
 
 
 class PdfJpxImage(PdfImage):
