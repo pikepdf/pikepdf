@@ -74,7 +74,7 @@ def _mudraw(buffer, fmt) -> bytes:
         tmp_in.flush()
 
         proc = run(
-            ['mudraw', '-F', fmt, '-o', '-', tmp_in.name],
+            ['mutool', 'draw', '-F', fmt, '-o', '-', tmp_in.name],
             capture_output=True,
             check=True,
         )
@@ -157,14 +157,20 @@ class Extend_Object:
 
 @augments(Pdf)
 class Extend_Pdf:
-    def _repr_mimebundle_(
-        self, include=None, exclude=None
-    ):  # pylint: disable=unused-argument
+    def _quick_save(self):
         bio = BytesIO()
         self.save(bio)
         bio.seek(0)
+        return bio
 
-        data = {'application/pdf': bio.read()}
+    def _repr_mimebundle_(
+        self, include=None, exclude=None
+    ):  # pylint: disable=unused-argument
+        pdf_data = self._quick_save().read()
+        data = {
+            'application/pdf': pdf_data,
+            'image/svg+xml': _mudraw(pdf_data, 'svg').decode('utf-8'),
+        }
         return data
 
     @property
@@ -657,7 +663,7 @@ class Extend_Page:
 
     def _repr_mimebundle_(self, include=None, exclude=None):
         data = {}
-        bundle = {'application/pdf', 'image/png'}
+        bundle = {'application/pdf', 'image/svg+xml'}
         if include:
             bundle = {k for k in bundle if k in include}
         if exclude:
@@ -665,11 +671,9 @@ class Extend_Page:
         pagedata = _single_page_pdf(self)
         if 'application/pdf' in bundle:
             data['application/pdf'] = pagedata
-        if 'image/png' in bundle:
-            try:
-                data['image/png'] = _mudraw(pagedata, 'png')
-            except (FileNotFoundError, RuntimeError):
-                pass
+        if 'image/svg+xml' in bundle:
+            with suppress(FileNotFoundError, RuntimeError):
+                data['image/svg+xml'] = _mudraw(pagedata, 'svg').decode('utf-8')
         return data
 
 
