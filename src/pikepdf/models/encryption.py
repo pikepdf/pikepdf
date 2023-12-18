@@ -137,6 +137,14 @@ class EncryptionInfo:
         """
         return len(self._encdict['encryption_key']) * 8
 
+    def __repr__(self):
+        return (
+            f'<{self.__class__.__name__}: {self.R=}, {self.V=}, {self.P=} '
+            f'{self.stream_method=}, {self.string_method=}, '
+            f'{self.file_method=}, {self.user_password=}, '
+            f'{self.encryption_key=}, {self.bits=}>'
+        )
+
 
 class Encryption(NamedTuple):
     """Specify the encryption settings to apply when a PDF is saved."""
