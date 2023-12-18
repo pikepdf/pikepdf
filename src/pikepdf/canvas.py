@@ -435,6 +435,9 @@ class Canvas:
         self.do.push()
         return result
 
+    def _repr_mimebundle_(self, include=None, exclude=None):
+        return self.to_pdf()._repr_mimebundle_(include, exclude)
+
 
 class Text:
     """Text object for rendering text on a pikepdf canvas."""
