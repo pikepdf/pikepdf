@@ -27,7 +27,7 @@ jobs:
         uses: pypa/cibuildwheel@v2.16.2
 
       - name: Upload built wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: ./wheelhouse/*.whl
@@ -89,7 +89,7 @@ jobs:
           unzip wheels.zip
 
       - name: Upload built wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: ./wheelhouse/*.whl
@@ -110,7 +110,7 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.16.2
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: ./wheelhouse/*.whl
@@ -139,7 +139,7 @@ jobs:
           unzip wheels.zip
 
       - name: Upload built wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: ./wheelhouse/*.whl
@@ -180,7 +180,7 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.16.2
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: ./wheelhouse/*.whl
@@ -254,7 +254,7 @@ jobs:
         with:
           files: ./coverage.xml,./cpp_coverage.info
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: wheels
           path: dist/*.tar.gz
