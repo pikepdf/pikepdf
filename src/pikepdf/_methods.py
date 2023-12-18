@@ -717,8 +717,6 @@ class Extend_Attachments(MutableMapping):
         yield from self._get_all_filespecs()
 
     def __repr__(self):
-        if len(self) == 0:
-            return "<pikepdf._core.Attachments no attached files>"
         return f"<pikepdf._core.Attachments: {list(self)}>"
 
 
