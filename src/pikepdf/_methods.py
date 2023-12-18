@@ -16,7 +16,7 @@ import datetime
 import mimetypes
 import shutil
 from collections.abc import KeysView, MutableMapping
-from contextlib import ExitStack
+from contextlib import ExitStack, suppress
 from decimal import Decimal
 from io import BytesIO, RawIOBase
 from pathlib import Path
@@ -430,19 +430,15 @@ class Extend_ObjectMapping:
 
 
 def check_is_box(obj) -> None:
-    try:
+    with suppress(AttributeError):
         if obj.is_rectangle:
             return
-    except AttributeError:
-        pass
-
     try:
         pdfobj = Array(obj)
         if pdfobj.is_rectangle:
             return
     except Exception as e:
         raise ValueError("object is not a rectangle") from e
-
     raise ValueError("object is not a rectangle")
 
 

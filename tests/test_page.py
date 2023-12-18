@@ -55,9 +55,13 @@ def test_page_boxes(graph_page):
     inset = 20
     page.trimbox = [inset, inset, page.mediabox[2] - inset, page.mediabox[3] - inset]
     inset = 30
-    page.cropbox = [inset, inset, page.mediabox[2] - inset, page.mediabox[3] - inset]
+    page.cropbox = Array(
+        [inset, inset, page.mediabox[2] - inset, page.mediabox[3] - inset]
+    )
     inset = 40
-    page.artbox = [inset, inset, page.mediabox[2] - inset, page.mediabox[3] - inset]
+    page.artbox = Rectangle(
+        inset, inset, page.mediabox[2] - inset, page.mediabox[3] - inset
+    )
 
     assert page.mediabox != page.bleedbox
     assert page.mediabox != page.artbox

@@ -1238,7 +1238,7 @@ class Page:
         If the /ArtBox is not defined, the /CropBox is returned.
         """
     @artbox.setter
-    def artbox(self, val: Array) -> None: ...
+    def artbox(self, val: Array | Rectangle) -> None: ...
     @property
     def bleedbox(self) -> Array:
         """Return page's effective /BleedBox, in PDF units.
@@ -1250,7 +1250,7 @@ class Page:
         If the /BleedBox is not defined, the /CropBox is returned.
         """
     @bleedbox.setter
-    def bleedbox(self, val: Array) -> None: ...
+    def bleedbox(self, val: Array | Rectangle) -> None: ...
     @property
     def cropbox(self) -> Array:
         """Return page's effective /CropBox, in PDF units.
@@ -1264,7 +1264,7 @@ class Page:
         If the /CropBox is not defined, the /MediaBox is returned.
         """
     @cropbox.setter
-    def cropbox(self, val: Array) -> None: ...
+    def cropbox(self, val: Array | Rectangle) -> None: ...
     @property
     def mediabox(self) -> Array:
         """Return page's /MediaBox, in PDF units.
@@ -1274,7 +1274,7 @@ class Page:
         the page is to be printed."
         """
     @mediabox.setter
-    def mediabox(self, val: Array) -> None: ...
+    def mediabox(self, val: Array | Rectangle) -> None: ...
     @property
     def obj(self) -> Dictionary: ...
     @property
@@ -1291,7 +1291,7 @@ class Page:
         /CropBox is not defined, /MediaBox is returned).
         """
     @trimbox.setter
-    def trimbox(self, val: Array) -> None: ...
+    def trimbox(self, val: Array | Rectangle) -> None: ...
     @property
     def resources(self) -> Dictionary:
         """Return this page's resources dictionary.

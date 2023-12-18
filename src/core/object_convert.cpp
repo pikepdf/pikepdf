@@ -87,6 +87,10 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle)
             "Can't convert ObjectHelper (or subclass) to Object implicitly. "
             "Use .obj to get access the underlying object.");
     }
+    if (py::isinstance<QPDFObjectHandle::Rectangle>(handle)) {
+        auto rect = handle.cast<QPDFObjectHandle::Rectangle>();
+        return QPDFObjectHandle::newFromRectangle(rect);
+    }
 
     // Special-case booleans since pybind11 coerces nonzero integers to boolean
     if (py::isinstance<py::bool_>(handle)) {
