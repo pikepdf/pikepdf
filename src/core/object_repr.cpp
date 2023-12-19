@@ -218,7 +218,7 @@ static std::string objecthandle_repr_inner(QPDFObjectHandle h,
         {
             bool first_item = true;
             ss << " ";
-            for (auto item : h.getArrayAsVector()) {
+            for (auto &item : h.aitems()) {
                 if (!first_item)
                     ss << ", ";
                 first_item = false;

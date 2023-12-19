@@ -193,9 +193,11 @@ bool array_has_item(QPDFObjectHandle haystack, QPDFObjectHandle needle)
     if (!haystack.isArray())
         throw std::logic_error("pikepdf.Object is not an Array"); // LCOV_EXCL_LINE
 
-    auto vec    = haystack.getArrayAsVector();
-    auto result = std::find(std::begin(vec), std::end(vec), needle);
-    return (result != std::end(vec));
+    for (auto &item : haystack.aitems()) {
+        if (objecthandle_equal(item, needle))
+            return true;
+    }
+    return false;
 }
 
 QPDFObjectHandle object_get_key(QPDFObjectHandle h, std::string const &key)
