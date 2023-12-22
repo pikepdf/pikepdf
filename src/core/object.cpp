@@ -132,7 +132,19 @@ bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
     case qpdf_object_type_e::ot_array: {
         // Call operator==() on each element of the arrays, meaning this
         // recurses into this function
-        return (self.getArrayAsVector() == other.getArrayAsVector());
+        if (self.getArrayNItems() != other.getArrayNItems())
+            return false;
+        {
+            auto self_aitems  = self.aitems();
+            auto other_aitems = other.aitems();
+            auto iter_self    = self_aitems.begin();
+            auto iter_other   = other_aitems.begin();
+            for (; iter_self != self_aitems.end(); ++iter_self, ++iter_other) {
+                if (!objecthandle_equal(*iter_self, *iter_other))
+                    return false;
+            }
+        }
+        return true;
     }
     case qpdf_object_type_e::ot_dictionary: {
         // Call operator==() on each element of the arrays, meaning this
