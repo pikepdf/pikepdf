@@ -59,8 +59,8 @@ auto rewrite_qpdf_logic_error_msg(std::string msg)
         match_replace{"QPDF", "pikepdf.Pdf"},
     };
 
-    for (auto mr : replacements) {
-        msg = std::regex_replace(msg, mr.first, mr.second);
+    for (auto [regex, replacement] : replacements) {
+        msg = std::regex_replace(msg, regex, replacement);
     }
     return msg;
 }
