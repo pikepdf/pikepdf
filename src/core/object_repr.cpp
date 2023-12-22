@@ -240,9 +240,7 @@ static std::string objecthandle_repr_inner(QPDFObjectHandle h,
         {
             bool first_item = true;
             ss << "\n";
-            for (auto item : h.getDictAsMap()) {
-                auto &key = item.first;
-                auto &obj = item.second;
+            for (auto &[key, obj] : h.ditems()) {
                 if (!first_item)
                     ss << ",\n";
                 first_item = false;
