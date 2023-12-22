@@ -53,20 +53,17 @@ def test_draw_page(pal, monkeypatch):
         'image/png' not in mimebundle
     ), "Generated image/png when mudraw() was rigged to fail"
 
-    def return_simple_png(prog_args, *args, **kwargs):
-        im = Image.new('1', (1, 1))
-        bio = BytesIO()
-        im.save(bio, format='PNG')
-        bio.seek(0)
+    def return_simple_svg(prog_args, *args, **kwargs):
+        bio = BytesIO(b'<svg xmlns="http://www.w3.org/2000/svg"></svg>')
         return subprocess.CompletedProcess(prog_args, 0, stdout=bio.read(), stderr=b'')
 
-    monkeypatch.setattr(pikepdf._methods, 'run', return_simple_png)
+    monkeypatch.setattr(pikepdf._methods, 'run', return_simple_svg)
     mimebundle = page0._repr_mimebundle_(
-        include=['image/png'], exclude=['application/pdf']
+        include=['image/svg+xml'], exclude=['application/pdf']
     )
     assert (
-        'image/png' in mimebundle
-    ), "Did not generate image/png when mudraw() was rigged to succeed"
+        'image/svg+xml' in mimebundle
+    ), "Did not generate image/svg+xml when mudraw() was rigged to succeed"
 
 
 def test_display_image(pal):
