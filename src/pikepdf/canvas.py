@@ -65,6 +65,9 @@ class Font(ABC):
         the data, a reference should be set in at least one page's /Resources dictionary
         to retain the font in the output PDF and ensure it is usable on that page.
 
+        The returned Dictionary should be created as an indirect object, using
+        ``pdf.make_indirect()``.
+
         Returns a Dictionary suitable for insertion into a /Resources /Font dictionary.
         """
 
@@ -78,10 +81,12 @@ class Helvetica(Font):
 
     def register(self, pdf: Pdf) -> Dictionary:
         """Register the font."""
-        return Dictionary(
-            BaseFont=Name.Helvetica,
-            Type=Name.Font,
-            Subtype=Name.Type1,
+        return pdf.make_indirect(
+            Dictionary(
+                BaseFont=Name.Helvetica,
+                Type=Name.Font,
+                Subtype=Name.Type1,
+            )
         )
 
 
