@@ -133,7 +133,7 @@ musllinux-aarch64-image = "musllinux_1_2"
 [[tool.cibuildwheel.overrides]]
 select = "*-musllinux*"
 before-all = [
-  "apk add py3-lxml py3-pillow python3 py3-setuptools py3-pybind11-dev python3-dev py3-wheel exempi-dev wget cmake make zlib-dev jpeg-dev",
+  "apk add py3-lxml py3-pillow python3 py3-setuptools py3-pybind11-dev python3-dev py3-wheel exempi-dev mupdf-tools wget cmake make zlib-dev jpeg-dev",
   "bash build-scripts/linux-download-qpdf.bash $QPDF_VERSION",
   "bash build-scripts/linux-build-wheel-deps.bash",
 ]
@@ -142,7 +142,7 @@ before-all = [
 # Use workaround until https://github.com/actions/setup-python/issues/577 is fixed
 before-all = [
   "sh -c 'brew update || true'",
-  "sh -c 'brew install qpdf little-cms2 || true'",
+  "sh -c 'brew install qpdf little-cms2 mupdf || true'",
 ]
 
 [tool.cibuildwheel.windows]
