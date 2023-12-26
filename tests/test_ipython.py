@@ -11,7 +11,7 @@ import subprocess
 from io import BytesIO
 
 import pytest
-from PIL import Image
+from conftest import fails_if_no_mutool
 
 import pikepdf
 
@@ -73,6 +73,7 @@ def test_display_image(pal):
     assert result[1:4] == b'PNG'
 
 
+@fails_if_no_mutool
 def test_display_pdf(pal):
     mimebundle = pal._repr_mimebundle_(
         include=['application/pdf'], exclude=['text/css']

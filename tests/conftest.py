@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import os
 import platform
+import shutil
 import sys
 from pathlib import Path
 
@@ -52,6 +53,9 @@ fails_if_pypy = pytest.mark.xfail(
 )
 skip_if_ci = pytest.mark.skipif(
     os.environ.get('CI', '') == 'true', reason="test too slow for CI"
+)
+fails_if_no_mutool = pytest.mark.xfail(
+    shutil.which("mutool") is None, reason="test fails without mutool"
 )
 
 
