@@ -299,6 +299,15 @@ class Outline:
     def __repr__(self):
         return f'<pikepdf.{self.__class__.__name__}: {len(self.root)} items>'
 
+    def _repr_pretty_(self, p, cycle):
+        if cycle:
+            p.text("...")
+        else:
+            with p.group(2, "pikepdf.models.outlines.Outline<\n", "\n>"):
+                for i, item in enumerate(self.root):
+                    p.breakable()
+                    p.pretty(str(item))
+
     def __enter__(self):
         self._updating = True
         return self

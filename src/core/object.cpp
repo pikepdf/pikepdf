@@ -132,7 +132,19 @@ bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
     case qpdf_object_type_e::ot_array: {
         // Call operator==() on each element of the arrays, meaning this
         // recurses into this function
-        return (self.getArrayAsVector() == other.getArrayAsVector());
+        if (self.getArrayNItems() != other.getArrayNItems())
+            return false;
+        {
+            auto self_aitems  = self.aitems();
+            auto other_aitems = other.aitems();
+            auto iter_self    = self_aitems.begin();
+            auto iter_other   = other_aitems.begin();
+            for (; iter_self != self_aitems.end(); ++iter_self, ++iter_other) {
+                if (!objecthandle_equal(*iter_self, *iter_other))
+                    return false;
+            }
+        }
+        return true;
     }
     case qpdf_object_type_e::ot_dictionary: {
         // Call operator==() on each element of the arrays, meaning this
@@ -193,9 +205,11 @@ bool array_has_item(QPDFObjectHandle haystack, QPDFObjectHandle needle)
     if (!haystack.isArray())
         throw std::logic_error("pikepdf.Object is not an Array"); // LCOV_EXCL_LINE
 
-    auto vec    = haystack.getArrayAsVector();
-    auto result = std::find(std::begin(vec), std::end(vec), needle);
-    return (result != std::end(vec));
+    for (auto &item : haystack.aitems()) {
+        if (objecthandle_equal(item, needle))
+            return true;
+    }
+    return false;
 }
 
 QPDFObjectHandle object_get_key(QPDFObjectHandle h, std::string const &key)
