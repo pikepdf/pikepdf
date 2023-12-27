@@ -52,7 +52,7 @@ from pikepdf.objects import Array, Dictionary, Name, Object, Stream
 
 __all__ = []
 
-Numeric = TypeVar('Numeric', int, float, Decimal)
+Numeric = TypeVar("Numeric", int, float, Decimal)
 
 
 def _single_page_pdf(page: Page) -> bytes:
@@ -68,13 +68,13 @@ def _single_page_pdf(page: Page) -> bytes:
 def _mudraw(buffer, fmt) -> bytes:
     """Use mupdf draw to rasterize the PDF in the memory buffer."""
     # mudraw cannot read from stdin so NamedTemporaryFile is required
-    with NamedTemporaryFile(suffix='.pdf') as tmp_in:
+    with NamedTemporaryFile(suffix=".pdf") as tmp_in:
         tmp_in.write(buffer)
         tmp_in.seek(0)
         tmp_in.flush()
 
         proc = run(
-            ['mutool', 'draw', '-F', fmt, '-o', '-', tmp_in.name],
+            ["mutool", "draw", "-F", fmt, "-o", "-", tmp_in.name],
             capture_output=True,
             check=True,
         )
@@ -163,13 +163,11 @@ class Extend_Pdf:
         bio.seek(0)
         return bio
 
-    def _repr_mimebundle_(
-        self, include=None, exclude=None
-    ):  # pylint: disable=unused-argument
+    def _repr_mimebundle_(self, include=None, exclude=None):  # pylint: disable=unused-argument
         pdf_data = self._quick_save().read()
         data = {
-            'application/pdf': pdf_data,
-            'image/svg+xml': _mudraw(pdf_data, 'svg').decode('utf-8'),
+            "application/pdf": pdf_data,
+            "image/svg+xml": _mudraw(pdf_data, "svg").decode("utf-8"),
         }
         return data
 
@@ -216,12 +214,12 @@ class Extend_Pdf:
     ) -> Page:
         for dim in page_size:
             if not (3 <= dim <= 14400):
-                raise ValueError('Page size must be between 3 and 14400 PDF units')
+                raise ValueError("Page size must be between 3 and 14400 PDF units")
 
         page_dict = Dictionary(
             Type=Name.Page,
             MediaBox=Array([0, 0, page_size[0], page_size[1]]),
-            Contents=self.make_stream(b''),
+            Contents=self.make_stream(b""),
             Resources=Dictionary(),
         )
         page_obj = self.make_indirect(page_dict)
@@ -230,7 +228,7 @@ class Extend_Pdf:
 
     def close(self) -> None:
         self._close()
-        if getattr(self, '_tmp_stream', None):
+        if getattr(self, "_tmp_stream", None):
             self._tmp_stream.close()
 
     def __enter__(self):
@@ -243,7 +241,7 @@ class Extend_Pdf:
     def allow(self) -> Permissions:
         results = {}
         for field in Permissions._fields:
-            results[field] = getattr(self, '_allow_' + field)
+            results[field] = getattr(self, "_allow_" + field)
         return Permissions(**results)
 
     @property
@@ -294,7 +292,7 @@ class Extend_Pdf:
         recompress_flate: bool = False,
         deterministic_id: bool = False,
     ) -> None:
-        if not filename_or_stream and getattr(self, '_original_filename', None):
+        if not filename_or_stream and getattr(self, "_original_filename", None):
             filename_or_stream = self._original_filename
         if not filename_or_stream:
             raise ValueError(
@@ -306,7 +304,7 @@ class Extend_Pdf:
                 "no original filename to save to."
             )
         with ExitStack() as stack:
-            if hasattr(filename_or_stream, 'seek'):
+            if hasattr(filename_or_stream, "seek"):
                 stream = filename_or_stream
                 check_stream_is_usable(filename_or_stream)
             else:
@@ -314,8 +312,8 @@ class Extend_Pdf:
                     raise TypeError("expected str, bytes or os.PathLike object")
                 filename = Path(filename_or_stream)
                 if (
-                    not getattr(self, '_tmp_stream', None)
-                    and getattr(self, '_original_filename', None) is not None
+                    not getattr(self, "_tmp_stream", None)
+                    and getattr(self, "_original_filename", None) is not None
                 ):
                     check_different_files(self._original_filename, filename)
                 stream = stack.enter_context(atomic_overwrite(filename))
@@ -334,7 +332,7 @@ class Extend_Pdf:
                 qdf=qdf,
                 progress=progress,
                 encryption=encryption,
-                samefile_check=getattr(self, '_tmp_stream', None) is None,
+                samefile_check=getattr(self, "_tmp_stream", None) is None,
                 recompress_flate=recompress_flate,
                 deterministic_id=deterministic_id,
             )
@@ -353,7 +351,7 @@ class Extend_Pdf:
         allow_overwriting_input: bool = False,
     ) -> Pdf:
         if isinstance(filename_or_stream, bytes) and filename_or_stream.startswith(
-            b'%PDF-'
+            b"%PDF-"
         ):
             warn(
                 "It looks like you called with Pdf.open(data) with a bytes-like object "
@@ -376,22 +374,22 @@ class Extend_Pdf:
             except TypeError as error:
                 raise ValueError(
                     '"allow_overwriting_input=True" requires "open" first argument '
-                    'to be a file path'
+                    "to be a file path"
                 ) from error
             original_filename = Path(filename_or_stream)
-            with open(original_filename, 'rb') as pdf_file:
+            with open(original_filename, "rb") as pdf_file:
                 stream = BytesIO()
                 shutil.copyfileobj(pdf_file, stream)
                 stream.seek(0)
             # description = f"memory copy of {original_filename}"
             description = str(original_filename)
-        elif hasattr(filename_or_stream, 'read') and hasattr(
-            filename_or_stream, 'seek'
+        elif hasattr(filename_or_stream, "read") and hasattr(
+            filename_or_stream, "seek"
         ):
             stream = filename_or_stream
             description = f"stream {stream}"
         else:
-            stream = open(filename_or_stream, 'rb')
+            stream = open(filename_or_stream, "rb")
             original_filename = Path(filename_or_stream)
             description = str(filename_or_stream)
             closing_stream = True
@@ -457,7 +455,7 @@ class Extend_Page:
     @mediabox.setter
     def mediabox(self, value):
         check_is_box(value)
-        self.obj['/MediaBox'] = value
+        self.obj["/MediaBox"] = value
 
     @property
     def artbox(self):
@@ -466,7 +464,7 @@ class Extend_Page:
     @artbox.setter
     def artbox(self, value):
         check_is_box(value)
-        self.obj['/ArtBox'] = value
+        self.obj["/ArtBox"] = value
 
     @property
     def bleedbox(self):
@@ -475,7 +473,7 @@ class Extend_Page:
     @bleedbox.setter
     def bleedbox(self, value):
         check_is_box(value)
-        self.obj['/BleedBox'] = value
+        self.obj["/BleedBox"] = value
 
     @property
     def cropbox(self):
@@ -484,7 +482,7 @@ class Extend_Page:
     @cropbox.setter
     def cropbox(self, value):
         check_is_box(value)
-        self.obj['/CropBox'] = value
+        self.obj["/CropBox"] = value
 
     @property
     def trimbox(self):
@@ -493,7 +491,7 @@ class Extend_Page:
     @trimbox.setter
     def trimbox(self, value):
         check_is_box(value)
-        self.obj['/TrimBox'] = value
+        self.obj["/TrimBox"] = value
 
     @property
     def images(self) -> _ObjectMapping:
@@ -517,7 +515,7 @@ class Extend_Page:
         res_type: Name,
         name: Name | None = None,
         *,
-        prefix: str = '',
+        prefix: str = "",
         replace_existing: bool = True,
     ) -> Name:
         resources = self.resources
@@ -576,8 +574,8 @@ class Extend_Page:
         )
 
         if push_stack:
-            self.contents_add(b'q\n', prepend=True)  # prepend q
-            self.contents_add(b'Q\n', prepend=False)  # i.e. append Q
+            self.contents_add(b"q\n", prepend=True)  # prepend q
+            self.contents_add(b"Q\n", prepend=False)  # i.e. append Q
 
         self.contents_add(cs, prepend=under)
         self.contents_coalesce()
@@ -657,36 +655,36 @@ class Extend_Page:
     def __repr__(self):
         return (
             repr(self.obj)
-            .replace('Dictionary', 'Page', 1)
-            .replace('(Type="/Page")', '', 1)
+            .replace("Dictionary", "Page", 1)
+            .replace('(Type="/Page")', "", 1)
         )
 
     def _repr_mimebundle_(self, include=None, exclude=None):
         data = {}
-        bundle = {'application/pdf', 'image/svg+xml'}
+        bundle = {"application/pdf", "image/svg+xml"}
         if include:
             bundle = {k for k in bundle if k in include}
         if exclude:
             bundle = {k for k in bundle if k not in exclude}
         pagedata = _single_page_pdf(self)
-        if 'application/pdf' in bundle:
-            data['application/pdf'] = pagedata
-        if 'image/svg+xml' in bundle:
+        if "application/pdf" in bundle:
+            data["application/pdf"] = pagedata
+        if "image/svg+xml" in bundle:
             with suppress(FileNotFoundError, RuntimeError):
-                data['image/svg+xml'] = _mudraw(pagedata, 'svg').decode('utf-8')
+                data["image/svg+xml"] = _mudraw(pagedata, "svg").decode("utf-8")
         return data
 
 
 @augments(Token)
 class Extend_Token:
     def __repr__(self):
-        return f'pikepdf.Token({self.type_}, {self.raw_value})'
+        return f"pikepdf.Token({self.type_}, {self.raw_value})"
 
 
 @augments(Rectangle)
 class Extend_Rectangle:
     def __repr__(self):
-        return f'pikepdf.Rectangle({self.llx}, {self.lly}, {self.urx}, {self.ury})'
+        return f"pikepdf.Rectangle({self.llx}, {self.lly}, {self.urx}, {self.ury})"
 
     def __hash__(self):
         return hash((self.llx, self.lly, self.urx, self.ury))
@@ -727,12 +725,12 @@ class Extend_AttachedFileSpec:
         pdf: Pdf,
         path: Path | str,
         *,
-        description: str = '',
+        description: str = "",
         relationship: Name | None = Name.Unspecified,
     ):
         mime, _ = mimetypes.guess_type(str(path))
         if mime is None:
-            mime = ''
+            mime = ""
         if not isinstance(path, Path):
             path = Path(path)
 
@@ -797,9 +795,9 @@ class Extend_AttachedFile:
 
     def __repr__(self):
         return (
-            f'<pikepdf._core.AttachedFile objid={self.obj.objgen} size={self.size} '
-            f'mime_type={self.mime_type} creation_date={self.creation_date} '
-            f'mod_date={self.mod_date}>'
+            f"<pikepdf._core.AttachedFile objid={self.obj.objgen} size={self.size} "
+            f"mime_type={self.mime_type} creation_date={self.creation_date} "
+            f"mod_date={self.mod_date}>"
         )
 
 

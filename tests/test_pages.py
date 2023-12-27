@@ -17,19 +17,19 @@ from pikepdf._cpphelpers import label_from_label_dict
 
 @pytest.fixture
 def graph(resources):
-    with Pdf.open(resources / 'graph.pdf') as pdf:
+    with Pdf.open(resources / "graph.pdf") as pdf:
         yield pdf
 
 
 @pytest.fixture
 def fourpages(resources):
-    with Pdf.open(resources / 'fourpages.pdf') as pdf:
+    with Pdf.open(resources / "fourpages.pdf") as pdf:
         yield pdf
 
 
 @pytest.fixture
 def sandwich(resources):
-    with Pdf.open(resources / 'sandwich.pdf') as pdf:
+    with Pdf.open(resources / "sandwich.pdf") as pdf:
         yield pdf
 
 
@@ -39,20 +39,20 @@ def test_split_pdf(fourpages, outdir):
         outpdf.pages.append(page)
         outpdf.save(outdir / f"page{n + 1}.pdf")
 
-    assert len([f for f in outdir.iterdir() if f.name.startswith('page')]) == 4
+    assert len([f for f in outdir.iterdir() if f.name.startswith("page")]) == 4
 
 
 def test_empty_pdf(outdir):
     q = Pdf.new()
     with pytest.raises(IndexError):
         q.pages[0]
-    q.save(outdir / 'empty.pdf')
+    q.save(outdir / "empty.pdf")
 
 
 def test_delete_last_page(graph, outdir):
     q = graph
     del q.pages[0]
-    q.save(outdir / 'empty.pdf')
+    q.save(outdir / "empty.pdf")
 
 
 def test_replace_page(graph, fourpages):
@@ -86,7 +86,7 @@ def test_hard_replace_page(fourpages, graph, sandwich, outdir):
     del q2_page
     gc.collect()
 
-    q.save(outdir / 'out.pdf')
+    q.save(outdir / "out.pdf")
 
 
 def test_reverse_pages(resources, outdir):
@@ -106,10 +106,10 @@ def test_reverse_pages(resources, outdir):
 
 
 def test_evil_page_deletion(refcount, resources, outdir):
-    copy(resources / 'sandwich.pdf', outdir / 'sandwich.pdf')
+    copy(resources / "sandwich.pdf", outdir / "sandwich.pdf")
 
-    src = Pdf.open(outdir / 'sandwich.pdf')  # no with clause
-    pdf = Pdf.open(resources / 'graph.pdf')
+    src = Pdf.open(outdir / "sandwich.pdf")  # no with clause
+    pdf = Pdf.open(resources / "graph.pdf")
 
     assert refcount(src) == 2
     pdf.pages.append(src.pages[0])
@@ -120,14 +120,14 @@ def test_evil_page_deletion(refcount, resources, outdir):
     assert refcount(src) == 2
 
     with suppress(PermissionError):  # Fails on Windows
-        (outdir / 'sandwich.pdf').unlink()
-    pdf.save(outdir / 'out.pdf')
+        (outdir / "sandwich.pdf").unlink()
+    pdf.save(outdir / "out.pdf")
 
     del pdf.pages[0]
-    pdf.save(outdir / 'out2.pdf')
+    pdf.save(outdir / "out2.pdf")
 
     del pdf.pages[0]
-    pdf.save(outdir / 'out_nopages.pdf')
+    pdf.save(outdir / "out_nopages.pdf")
     del pdf
     gc.collect()
 
@@ -140,7 +140,7 @@ def test_append_all(sandwich, fourpages, outdir):
         pdf.pages.append(page)
 
     assert len(pdf.pages) == 5
-    pdf.save(outdir / 'out.pdf')
+    pdf.save(outdir / "out.pdf")
 
 
 def test_extend_delete(sandwich, fourpages, outdir):
@@ -152,7 +152,7 @@ def test_extend_delete(sandwich, fourpages, outdir):
 
     del pdf.pages[2:4]
 
-    pdf.save(outdir / 'out.pdf')
+    pdf.save(outdir / "out.pdf")
 
 
 def test_extend_with_nonpage(sandwich):
@@ -171,7 +171,7 @@ def test_slice_unequal_replacement(fourpages, sandwich, outdir):
     pdf.pages[1:] = pdf2.pages
 
     assert len(pdf.pages) == 2, "number of pages must be changed"
-    pdf.save(outdir / 'out.pdf')
+    pdf.save(outdir / "out.pdf")
     assert (
         pdf.pages[0].Contents.Length == page0_content_len
     ), "page 0 should be unchanged"
@@ -189,7 +189,7 @@ def test_slice_with_step(fourpages, sandwich, outdir):
     pdf2_content_len = int(pdf2.pages[0].Contents.Length)
 
     pdf.pages[0::2] = pdf2.pages
-    pdf.save(outdir / 'out.pdf')
+    pdf.save(outdir / "out.pdf")
 
     assert all(page.Contents.Length == pdf2_content_len for page in pdf.pages[0::2])
 
@@ -231,7 +231,7 @@ def test_bad_access(fourpages):
 def test_bad_insert(fourpages):
     pdf = fourpages
     with pytest.raises(TypeError):
-        pdf.pages.insert(0, 'this is a string not a page')
+        pdf.pages.insert(0, "this is a string not a page")
     with pytest.raises(TypeError), pytest.deprecated_call():
         pdf.pages.insert(0, Dictionary(Type=Name.NotAPage, Value="Not a page"))
 
@@ -255,9 +255,9 @@ def test_concatenate(resources, outdir):
         output_pdf = Pdf.new()
         for i in range(n):
             print(i)
-            with Pdf.open(resources / 'pal.pdf') as pdf_page:
+            with Pdf.open(resources / "pal.pdf") as pdf_page:
                 output_pdf.pages.extend(pdf_page.pages)
-        output_pdf.save(outdir / f'{n}.pdf')
+        output_pdf.save(outdir / f"{n}.pdf")
 
     concatenate(5)
 
@@ -329,7 +329,7 @@ def test_add_twice_without_copy_foreign(graph, outpdf):
 
 
 def test_repr_pagelist(fourpages):
-    assert '4' in repr(fourpages.pages)
+    assert "4" in repr(fourpages.pages)
 
 
 def test_foreign_copied_pages_are_true_copies(graph, outpdf):
@@ -431,27 +431,27 @@ def test_page_index_foreign_page(fourpages, sandwich):
 
 
 @pytest.mark.parametrize(
-    'd, result, exc, excmsg',
+    "d, result, exc, excmsg",
     [
-        (Dictionary(), '', None, None),
-        (Dictionary(St=1), '', None, None),
-        (Dictionary(S=Name.D, St=1), '1', None, None),
-        (Dictionary(P='foo'), 'foo', None, None),
-        (Dictionary(P='A', St=2), 'A', None, None),
-        (Dictionary(P='A-', S=Name.D, St=2), 'A-2', None, None),
-        (Dictionary(S=Name.R, St=42), 'XLII', None, None),
-        (Dictionary(S=Name.r, St=1729), 'mdccxxix', None, None),
-        (Dictionary(P="Appendix-", S=Name.a, St=261), 'Appendix-ja', None, None),
-        (42, '42', None, None),
+        (Dictionary(), "", None, None),
+        (Dictionary(St=1), "", None, None),
+        (Dictionary(S=Name.D, St=1), "1", None, None),
+        (Dictionary(P="foo"), "foo", None, None),
+        (Dictionary(P="A", St=2), "A", None, None),
+        (Dictionary(P="A-", S=Name.D, St=2), "A-2", None, None),
+        (Dictionary(S=Name.R, St=42), "XLII", None, None),
+        (Dictionary(S=Name.r, St=1729), "mdccxxix", None, None),
+        (Dictionary(P="Appendix-", S=Name.a, St=261), "Appendix-ja", None, None),
+        (42, "42", None, None),
         (Dictionary(S=Name.R, St=-42), None, ValueError, "Can't represent"),
         (Dictionary(S=Name.A, St=-42), None, ValueError, "Can't represent"),
         (
             Dictionary(S=Name.r, St=Name.Invalid),
-            'i',
+            "i",
             UserWarning,
-            'invalid non-integer start value',
+            "invalid non-integer start value",
         ),
-        (Dictionary(S="invalid", St=42), '', UserWarning, 'invalid page label style'),
+        (Dictionary(S="invalid", St=42), "", UserWarning, "invalid page label style"),
     ],
 )
 def test_page_label_dicts(d, result, exc, excmsg):
@@ -467,10 +467,10 @@ def test_page_label_dicts(d, result, exc, excmsg):
 
 
 def test_externalize(resources):
-    with Pdf.open(resources / 'image-mono-inline.pdf') as p:
+    with Pdf.open(resources / "image-mono-inline.pdf") as p:
         page = p.pages[0]
         page.contents_coalesce()
-        assert b'BI' in page.obj.Contents.read_bytes(), "no inline image"
+        assert b"BI" in page.obj.Contents.read_bytes(), "no inline image"
 
         assert Name.XObject not in page.obj.Resources, "expected no xobjs"
         page.externalize_inline_images()
@@ -480,7 +480,7 @@ def test_externalize(resources):
         pdfimagexobj = next(iter(p.pages[0].images.values()))
         assert pdfimagexobj.Subtype == Name.Image
 
-        assert page.label == '1'
+        assert page.label == "1"
 
 
 def test_page_labels():
@@ -498,14 +498,14 @@ def test_page_labels():
                     Dictionary(S=Name.r),  # use lowercase roman numerals, until...
                     2,  # new label rules begin at index 2
                     Dictionary(
-                        S=Name.D, St=42, P='Prefix-'
+                        S=Name.D, St=42, P="Prefix-"
                     ),  # label pages as 'Prefix-42', 'Prefix-43', ...
                 ]
             )
         )
     )
 
-    labels = ['i', 'ii', 'Prefix-42', 'Prefix-43', 'Prefix-44']
+    labels = ["i", "ii", "Prefix-42", "Prefix-43", "Prefix-44"]
     for n in range(5):
         page = p.pages[n]
         assert page.label == labels[n]
@@ -517,16 +517,16 @@ def test_unattached_page():
     )
     page = Page(rawpage)
 
-    with pytest.raises(ValueError, match='not attached'):
+    with pytest.raises(ValueError, match="not attached"):
         page.index
-    with pytest.raises(ValueError, match='not attached'):
+    with pytest.raises(ValueError, match="not attached"):
         page.label
 
 
 def test_unindexed_page(graph):
     page = graph.pages[0]
     del graph.pages[0]
-    with pytest.raises(ValueError, match='not consistently registered'):
+    with pytest.raises(ValueError, match="not consistently registered"):
         page.index
 
 

@@ -23,7 +23,7 @@ def pagelabels_pdf():
                         Dictionary(S=Name.r),  # use lowercase roman numerals, until...
                         2,  # new label rules begin at index 2
                         Dictionary(
-                            S=Name.D, St=42, P='Prefix-'
+                            S=Name.D, St=42, P="Prefix-"
                         ),  # label pages as 'Prefix-42', 'Prefix-43', ...
                     ]
                 )
@@ -40,7 +40,7 @@ def test_numbertree_crud(pagelabels_pdf):
 
     # __contains__
     assert 0 in nt
-    assert 'foo' not in nt
+    assert "foo" not in nt
     assert 2 in nt
 
     # __getitem__
@@ -57,8 +57,8 @@ def test_numbertree_crud(pagelabels_pdf):
     nt[42] = Dictionary(Entry=message)
     assert 42 in nt
     assert nt[42].Entry == message
-    nt[666] = 'beast'
-    assert nt[666] == 'beast'
+    nt[666] = "beast"
+    assert nt[666] == "beast"
 
 
 def test_numbertree_iter(pagelabels_pdf):
@@ -85,6 +85,6 @@ def test_numbertree_relabeling(pagelabels_pdf):
     pdf = pagelabels_pdf
     nt = NumberTree(pdf.Root.PageLabels)
 
-    assert pdf.pages[1].label == 'ii'
+    assert pdf.pages[1].label == "ii"
     nt[0] = Dictionary(S=Name.R)
-    assert pdf.pages[1].label == 'II'
+    assert pdf.pages[1].label == "II"

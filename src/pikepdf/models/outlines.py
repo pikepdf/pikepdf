@@ -28,12 +28,12 @@ class PageLocation(Enum):
 
 
 PAGE_LOCATION_ARGS = {
-    PageLocation.XYZ: ('left', 'top', 'zoom'),
-    PageLocation.FitH: ('top',),
-    PageLocation.FitV: ('left',),
-    PageLocation.FitR: ('left', 'bottom', 'right', 'top'),
-    PageLocation.FitBH: ('top',),
-    PageLocation.FitBV: ('left',),
+    PageLocation.XYZ: ("left", "top", "zoom"),
+    PageLocation.FitH: ("top",),
+    PageLocation.FitV: ("left",),
+    PageLocation.FitR: ("left", "bottom", "right", "top"),
+    PageLocation.FitBH: ("top",),
+    PageLocation.FitBV: ("left",),
 }
 ALL_PAGE_LOCATION_KWARGS = set(chain.from_iterable(PAGE_LOCATION_ARGS.values()))
 
@@ -97,7 +97,7 @@ def _make_page_destination(
                 raise ValueError(
                     f"Invalid or unsupported page location type {loc_str}"
                 ) from None
-        res.append(Name(f'/{loc_str}'))
+        res.append(Name(f"/{loc_str}"))
         dest_arg_names = PAGE_LOCATION_ARGS.get(loc_key)
         if dest_arg_names:
             res.extend(kwargs.get(k, 0) for k in dest_arg_names)
@@ -174,11 +174,11 @@ class OutlineItem:
     def __str__(self):
         if self.children:
             if self.is_closed:
-                oc_indicator = '[+]'
+                oc_indicator = "[+]"
             else:
-                oc_indicator = '[-]'
+                oc_indicator = "[-]"
         else:
-            oc_indicator = '[ ]'
+            oc_indicator = "[ ]"
         if self.destination is not None:
             if isinstance(self.destination, Array):
                 # 12.3.2.2 Explicit destination
@@ -200,10 +200,10 @@ class OutlineItem:
                 )
             elif isinstance(self.destination, int):
                 # Page number
-                dest = f'<Page {self.destination}>'
+                dest = f"<Page {self.destination}>"
         else:
-            dest = '<Action>'
-        return f'{oc_indicator} {self.title} -> {dest}'
+            dest = "<Action>"
+        return f"{oc_indicator} {self.title} -> {dest}"
 
     def __repr__(self):
         return f'<pikepdf.{self.__class__.__name__}: "{self.title}">'
@@ -297,7 +297,7 @@ class Outline:
         return str(self.root)
 
     def __repr__(self):
-        return f'<pikepdf.{self.__class__.__name__}: {len(self.root)} items>'
+        return f"<pikepdf.{self.__class__.__name__}: {len(self.root)} items>"
 
     def _repr_pretty_(self, p, cycle):
         if cycle:

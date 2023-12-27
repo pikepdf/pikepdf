@@ -26,13 +26,13 @@ from pikepdf import (
 
 @pytest.fixture
 def graph(resources):
-    with Pdf.open(resources / 'graph.pdf') as pdf:
+    with Pdf.open(resources / "graph.pdf") as pdf:
         yield pdf
 
 
 @pytest.fixture
 def fourpages(resources):
-    with Pdf.open(resources / 'fourpages.pdf') as pdf:
+    with Pdf.open(resources / "fourpages.pdf") as pdf:
         yield pdf
 
 
@@ -72,7 +72,7 @@ def test_page_boxes(graph_page):
 def test_invalid_boxes(graph_page):
     page = graph_page
     with pytest.raises(ValueError):
-        page.mediabox = 'hi'
+        page.mediabox = "hi"
     with pytest.raises(ValueError):
         page.mediabox = [0, 0, 0]
     with pytest.raises(ValueError):
@@ -81,7 +81,7 @@ def test_invalid_boxes(graph_page):
 
 def test_page_repr(graph_page):
     r = repr(graph_page)
-    assert r.startswith('<pikepdf.Page')
+    assert r.startswith("<pikepdf.Page")
     assert '(Type="/Page")' not in r
 
 
@@ -98,7 +98,7 @@ class TestAddResource:
         res = graph_page.add_resource(d, Name.XObject, Name.Im0, replace_existing=True)
         assert graph_page.resources.XObject[res].Width == 1
 
-        res2 = graph_page.add_resource(d, Name.XObject, prefix='Im')
+        res2 = graph_page.add_resource(d, Name.XObject, prefix="Im")
         assert str(res2).startswith("/Im")
         assert graph_page.resources.XObject[res2].Height == 1
 
@@ -107,7 +107,7 @@ class TestAddResource:
 
         del graph_page.obj.Resources
         graph_page.obj.Resources = Name.Dummy
-        with pytest.raises(TypeError, match='exists but is not a dictionary'):
+        with pytest.raises(TypeError, match="exists but is not a dictionary"):
             graph_page.add_resource(d, Name.XObject, Name.Im0, replace_existing=False)
 
     def test_create_resource_dict_if_not_exists(self, graph_page):
@@ -121,7 +121,7 @@ class TestAddResource:
         d = self._make_simple_dict()
 
         with pytest.raises(ValueError, match="one of"):
-            graph_page.add_resource(d, Name.XObject, name=Name.X, prefix='y')
+            graph_page.add_resource(d, Name.XObject, name=Name.X, prefix="y")
 
     def test_unrecognized_object_not_disturbed(self, graph_page):
         d = self._make_simple_dict()
@@ -205,17 +205,17 @@ def test_fourpages_to_4up(fourpages, graph, outpdf):
 def _simple_interpret_content_stream(page: Page | Object):
     ctm = Matrix()
     stack: list[Matrix] = []
-    for instruction in parse_content_stream(page, operators='q Q cm Do'):
+    for instruction in parse_content_stream(page, operators="q Q cm Do"):
         if isinstance(instruction, ContentStreamInlineImage):
             continue
         operands, op = instruction.operands, instruction.operator
-        if op == Operator('q'):
+        if op == Operator("q"):
             stack.append(ctm)
-        elif op == Operator('Q'):
+        elif op == Operator("Q"):
             ctm = stack.pop()
-        elif op == Operator('cm'):
+        elif op == Operator("cm"):
             ctm = Matrix(operands) @ ctm
-        elif op == Operator('Do'):
+        elif op == Operator("Do"):
             xobj_name = operands[0]
             yield (xobj_name, ctm)
 
@@ -275,19 +275,19 @@ def test_cant_hash_page(graph):
 
 
 def test_contents_add(graph):
-    graph.pages[0].contents_add(b'q Q', prepend=True)
+    graph.pages[0].contents_add(b"q Q", prepend=True)
 
-    new_cs = graph.make_stream(b'q Q')
+    new_cs = graph.make_stream(b"q Q")
     graph.pages[0].contents_add(new_cs, prepend=False)
 
     graph.pages[0].contents_coalesce()
-    assert graph.pages[0].Contents.read_bytes().startswith(b'q Q')
-    assert graph.pages[0].Contents.read_bytes().endswith(b'q Q')
+    assert graph.pages[0].Contents.read_bytes().startswith(b"q Q")
+    assert graph.pages[0].Contents.read_bytes().endswith(b"q Q")
 
 
 def test_remove_unrefed(graph):
     assert len(graph.pages[0].Resources.XObject) != 0
-    graph.pages[0].Contents = graph.make_stream(b'')
+    graph.pages[0].Contents = graph.make_stream(b"")
     graph.pages[0].remove_unreferenced_resources()
     assert len(graph.pages[0].Resources.XObject) == 0
 
@@ -301,13 +301,13 @@ def test_page_attrs(graph):
         AttributeError, match=r"can't delete|property of 'Page' object has no deleter"
     ):
         del graph.pages[0].obj
-    del graph.pages[0]['/Contents']
+    del graph.pages[0]["/Contents"]
 
     assert Name.Contents not in graph.pages[0] and Name.Resources not in graph.pages[0]
 
 
 def test_block_make_indirect_page(graph: Pdf):
-    with pytest.raises(TypeError, match='implicitly'):
+    with pytest.raises(TypeError, match="implicitly"):
         graph.make_indirect(graph.pages[0])
 
     assert isinstance(graph.make_indirect(graph.pages[0].obj), Object)

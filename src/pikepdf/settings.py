@@ -12,7 +12,7 @@ from ._core import (
 )
 
 __all__ = [
-    'get_decimal_precision',
-    'set_decimal_precision',
-    'set_flate_compression_level',
+    "get_decimal_precision",
+    "set_decimal_precision",
+    "set_flate_compression_level",
 ]

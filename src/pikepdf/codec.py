@@ -68,22 +68,22 @@ def _find_first_index(s: str, ordinals: Container[int]) -> int:
     raise ValueError("couldn't find the unencodable character")  # pragma: no cover
 
 
-def pdfdoc_encode(input: str, errors: str = 'strict') -> tuple[bytes, int]:
+def pdfdoc_encode(input: str, errors: str = "strict") -> tuple[bytes, int]:
     """Convert input string to bytes in PdfDocEncoding."""
-    error_marker = b'?' if errors == 'replace' else b'\xad'
+    error_marker = b"?" if errors == "replace" else b"\xad"
     success, pdfdoc = utf8_to_pdf_doc(input, error_marker)
     if success:
         return pdfdoc, len(input)
 
-    if errors == 'ignore':
-        pdfdoc = pdfdoc.replace(b'\xad', b'')
+    if errors == "ignore":
+        pdfdoc = pdfdoc.replace(b"\xad", b"")
         return pdfdoc, len(input)
-    if errors == 'replace':
+    if errors == "replace":
         return pdfdoc, len(input)
-    if errors == 'strict':
-        if input.startswith('\xfe\xff') or input.startswith('\xff\xfe'):
+    if errors == "strict":
+        if input.startswith("\xfe\xff") or input.startswith("\xff\xfe"):
             raise UnicodeEncodeError(
-                'pdfdoc',
+                "pdfdoc",
                 input,
                 0,
                 2,
@@ -95,7 +95,7 @@ def pdfdoc_encode(input: str, errors: str = 'strict') -> tuple[bytes, int]:
         # on that.
         offending_index = _find_first_index(input, PDFDOC_ENCODABLE)
         raise UnicodeEncodeError(
-            'pdfdoc',
+            "pdfdoc",
             input,
             offending_index,
             offending_index + 1,
@@ -104,16 +104,16 @@ def pdfdoc_encode(input: str, errors: str = 'strict') -> tuple[bytes, int]:
     raise LookupError(errors)
 
 
-def pdfdoc_decode(input: bytes, errors: str = 'strict') -> tuple[str, int]:
+def pdfdoc_decode(input: bytes, errors: str = "strict") -> tuple[str, int]:
     """Convert PdfDoc-encoded input into a Python str."""
     if isinstance(input, memoryview):
         input = input.tobytes()
     s = pdf_doc_to_utf8(input)
-    if errors == 'strict':
-        idx = s.find('\ufffd')
+    if errors == "strict":
+        idx = s.find("\ufffd")
         if idx >= 0:
             raise UnicodeDecodeError(
-                'pdfdoc',
+                "pdfdoc",
                 input,
                 idx,
                 idx + 1,
@@ -126,11 +126,11 @@ def pdfdoc_decode(input: bytes, errors: str = 'strict') -> tuple[str, int]:
 class PdfDocCodec(codecs.Codec):
     """Implement PdfDocEncoding character map used inside PDFs."""
 
-    def encode(self, input: str, errors: str = 'strict') -> tuple[bytes, int]:
+    def encode(self, input: str, errors: str = "strict") -> tuple[bytes, int]:
         """Implement codecs.Codec.encode for pdfdoc."""
         return pdfdoc_encode(input, errors)
 
-    def decode(self, input: bytes, errors: str = 'strict') -> tuple[str, int]:
+    def decode(self, input: bytes, errors: str = "strict") -> tuple[str, int]:
         """Implement codecs.Codec.decode for pdfdoc."""
         return pdfdoc_decode(input, errors)
 
@@ -142,7 +142,7 @@ class PdfDocStreamWriter(PdfDocCodec, codecs.StreamWriter):
 class PdfDocStreamReader(PdfDocCodec, codecs.StreamReader):
     """Implement PdfDocEncoding stream reader."""
 
-    def decode(self, input: bytes, errors: str = 'strict') -> tuple[str, int]:
+    def decode(self, input: bytes, errors: str = "strict") -> tuple[str, int]:
         """Implement codecs.StreamReader.decode for pdfdoc."""
         return PdfDocCodec.decode(self, input, errors)
 
@@ -152,7 +152,7 @@ class PdfDocIncrementalEncoder(codecs.IncrementalEncoder):
 
     def encode(self, input: str, final: bool = False) -> bytes:
         """Implement codecs.IncrementalEncoder.encode for pdfdoc."""
-        return pdfdoc_encode(input, 'strict')[0]
+        return pdfdoc_encode(input, "strict")[0]
 
 
 class PdfDocIncrementalDecoder(codecs.IncrementalDecoder):
@@ -160,7 +160,7 @@ class PdfDocIncrementalDecoder(codecs.IncrementalDecoder):
 
     def decode(self, input: Any, final: bool = False) -> str:  # type: ignore
         """Implement codecs.IncrementalDecoder.decode for pdfdoc."""
-        return pdfdoc_decode(bytes(input), 'strict')[0]
+        return pdfdoc_decode(bytes(input), "strict")[0]
 
 
 def find_pdfdoc(encoding: str) -> codecs.CodecInfo | None:
@@ -172,7 +172,7 @@ def find_pdfdoc(encoding: str) -> codecs.CodecInfo | None:
     Unfortunately, Python's codec infrastructure does not give a better mechanism
     for resolving conflicts.
     """
-    if encoding in ('pdfdoc', 'pdfdoc_pikepdf'):
+    if encoding in ("pdfdoc", "pdfdoc_pikepdf"):
         codec = PdfDocCodec()
         return codecs.CodecInfo(
             name=encoding,
@@ -188,4 +188,4 @@ def find_pdfdoc(encoding: str) -> codecs.CodecInfo | None:
 
 codecs.register(find_pdfdoc)
 
-__all__ = ['utf8_to_pdf_doc', 'pdf_doc_to_utf8']
+__all__ = ["utf8_to_pdf_doc", "pdf_doc_to_utf8"]

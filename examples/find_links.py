@@ -12,14 +12,14 @@ import pikepdf
 Name = pikepdf.Name
 
 parser = argparse.ArgumentParser(description="Find URIs in a PDF")
-parser.add_argument('input_file')
+parser.add_argument("input_file")
 
 
 def check_action(action):
     if action.Type != Name.Action:
         return
     if action.S == Name.URI:
-        yield str(bytes(action.URI), encoding='ascii')
+        yield str(bytes(action.URI), encoding="ascii")
 
 
 def check_object_aa(obj):

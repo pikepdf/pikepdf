@@ -10,7 +10,7 @@ from math import cos, pi, sin
 from deprecated import deprecated
 
 
-@deprecated('use pikepdf.Matrix instead')
+@deprecated("use pikepdf.Matrix instead")
 class PdfMatrix:
     """Support class for PDF content stream matrices.
 
@@ -206,9 +206,9 @@ class PdfMatrix:
 
     def encode(self):
         """Encode this matrix in binary suitable for including in a PDF."""
-        return '{:.6f} {:.6f} {:.6f} {:.6f} {:.6f} {:.6f}'.format(
+        return "{:.6f} {:.6f} {:.6f} {:.6f} {:.6f} {:.6f}".format(
             self.a, self.b, self.c, self.d, self.e, self.f
         ).encode()
 
     def __repr__(self):
-        return f'pikepdf.PdfMatrix({repr(self.values)})'
+        return f"pikepdf.PdfMatrix({repr(self.values)})"

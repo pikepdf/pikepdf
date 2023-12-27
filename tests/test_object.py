@@ -53,21 +53,21 @@ def test_booleans():
 
 
 @given(characters(min_codepoint=0x20, max_codepoint=0x7F))
-@example('')
+@example("")
 def test_ascii_involution(ascii_):
-    b = ascii_.encode('ascii')
+    b = ascii_.encode("ascii")
     assert encode(b) == b
 
 
 @given(
-    characters(min_codepoint=0x0, max_codepoint=0xFEF0, blacklist_categories=('Cs',))
+    characters(min_codepoint=0x0, max_codepoint=0xFEF0, blacklist_categories=("Cs",))
 )
-@example('')
+@example("")
 def test_unicode_involution(s):
     assert str(encode(s)) == s
 
 
-@given(characters(whitelist_categories=('Cs',)))
+@given(characters(whitelist_categories=("Cs",)))
 def test_unicode_fails(s):
     with pytest.raises(UnicodeEncodeError):
         encode(s)
@@ -96,7 +96,7 @@ def test_integer_comparison(a, b):
 def test_decimal_involution(num, radix):
     strnum = str(num)
     if radix > len(strnum):
-        strnum = strnum[:radix] + '.' + strnum[radix:]
+        strnum = strnum[:radix] + "." + strnum[radix:]
 
     d = Decimal(strnum)
     assert encode(d) == d
@@ -108,14 +108,14 @@ def test_decimal_from_float(f):
     if isfinite(f) and d.is_finite():
         try:
             # PDF is limited to ~5 sig figs
-            decstr = str(d.quantize(Decimal('1.000000')))
+            decstr = str(d.quantize(Decimal("1.000000")))
         except InvalidOperation:
             return  # PDF doesn't support exponential notation
         try:
-            py_d = Object.parse(decstr.encode('pdfdoc'))
+            py_d = Object.parse(decstr.encode("pdfdoc"))
         except RuntimeError as e:
-            if 'overflow' in str(e) or 'underflow' in str(e):
-                py_d = Object.parse(f.encode('pdfdoc'))
+            if "overflow" in str(e) or "underflow" in str(e):
+                py_d = Object.parse(f.encode("pdfdoc"))
 
         assert isclose(py_d, d, abs_tol=1e-5), (d, f.hex())
     else:
@@ -124,8 +124,8 @@ def test_decimal_from_float(f):
 
 
 def test_qpdf_real_to_decimal():
-    assert isclose(core._new_real(1.2345, 4), Decimal('1.2345'), abs_tol=1e-5)
-    assert isclose(core._new_real('2.3456'), Decimal('2.3456'), abs_tol=1e-5)
+    assert isclose(core._new_real(1.2345, 4), Decimal("1.2345"), abs_tol=1e-5)
+    assert isclose(core._new_real("2.3456"), Decimal("2.3456"), abs_tol=1e-5)
 
 
 @skip_if_pypy
@@ -151,17 +151,17 @@ def test_stack_depth():
 
 
 def test_bytes():
-    b = b'\x79\x78\x77\x76'
+    b = b"\x79\x78\x77\x76"
     qs = String(b)
     assert bytes(qs) == b
 
-    s = 'é'
+    s = "é"
     qs = String(s)
     assert str(qs) == s
 
-    assert Name('/xyz') == b'/xyz'
-    with pytest.raises(TypeError, match='should be str'):
-        Name(b'/bytes')
+    assert Name("/xyz") == b"/xyz"
+    with pytest.raises(TypeError, match="should be str"):
+        Name(b"/bytes")
 
 
 class TestArray:
@@ -171,7 +171,7 @@ class TestArray:
         assert len(Array([3])) == 1
 
     def test_wrap_array(self):
-        assert Name('/Foo').wrap_in_array() == Array([Name('/Foo')])
+        assert Name("/Foo").wrap_in_array() == Array([Name("/Foo")])
         assert Array([42]).wrap_in_array() == Array([42])
 
     @given(lists(integers(-10, 10), min_size=0, max_size=10))
@@ -218,7 +218,7 @@ class TestArray:
         assert len(a) == 3
         del a[1]
         assert len(a) == 2
-        a[-1] = Name('/Foo')
+        a[-1] = Name("/Foo")
         with pytest.raises(IndexError):
             a[-5555] = Name.Foo
         assert a == pikepdf.Array([1, Name.Foo])
@@ -227,7 +227,7 @@ class TestArray:
         a.extend([42, 666])
         assert a == pikepdf.Array([1, Name.Foo, 4, 42, 666])
         with pytest.raises(
-            ValueError, match='pikepdf.Object is not a Dictionary or Stream'
+            ValueError, match="pikepdf.Object is not a Dictionary or Stream"
         ):
             del a.ImaginaryKey
         with pytest.raises(TypeError, match=r"items\(\) not available"):
@@ -245,18 +245,18 @@ class TestArray:
         assert 42 not in a
 
         with pytest.raises(TypeError):
-            assert 'forty two' not in a
+            assert "forty two" not in a
         with pytest.raises(TypeError):
-            assert b'forty two' not in a
-        assert pikepdf.String('forty two') not in a
+            assert b"forty two" not in a
+        assert pikepdf.String("forty two") not in a
 
-        a = pikepdf.Array(['1234', b'\x80\x81\x82'])
-        assert pikepdf.String('1234') in a
-        assert pikepdf.String(b'\x80\x81\x82') in a
+        a = pikepdf.Array(["1234", b"\x80\x81\x82"])
+        assert pikepdf.String("1234") in a
+        assert pikepdf.String(b"\x80\x81\x82") in a
 
     def test_is_rect(self):
         assert pikepdf.Array([0, 1, 2, 3]).is_rectangle
-        assert not pikepdf.Array(['a', '2', 3, 4]).is_rectangle
+        assert not pikepdf.Array(["a", "2", 3, 4]).is_rectangle
 
     def test_array_bool(self):
         assert bool(pikepdf.Array([1, 2, 3])) is True
@@ -266,7 +266,7 @@ class TestArray:
 def test_no_len():
     with pytest.raises(TypeError):
         len(Name.Foo)
-        len(String('abc'))
+        len(String("abc"))
 
 
 class TestName:
@@ -275,45 +275,45 @@ class TestName:
         # While this is less than ideal ('/Foo' != b'/Foo') it allows for slightly
         # sloppy tests like if colorspace == '/Indexed' without requiring
         # Name('/Indexed') everywhere
-        assert Name('/Foo') == '/Foo'
-        assert Name('/Foo') == b'/Foo'
-        assert Name.Foo == Name('/Foo')
+        assert Name("/Foo") == "/Foo"
+        assert Name("/Foo") == b"/Foo"
+        assert Name.Foo == Name("/Foo")
 
     def test_unslashed_name(self):
-        with pytest.raises(ValueError, match='must begin with'):
-            assert Name('Monty') not in []  # pylint: disable=expression-not-assigned
+        with pytest.raises(ValueError, match="must begin with"):
+            assert Name("Monty") not in []  # pylint: disable=expression-not-assigned
 
     def test_empty_name(self):
         with pytest.raises(ValueError):
-            Name('')
+            Name("")
         with pytest.raises(ValueError):
-            Name('/')
+            Name("/")
 
     def test_forbidden_name_usage(self):
         with pytest.raises(AttributeError, match="may not be set on pikepdf.Name"):
             Name.Monty = Name.Python
         with pytest.raises(TypeError, match="not subscriptable"):
-            Name['/Monty']  # pylint: disable=pointless-statement
-        if sys.implementation.name == 'pypy':
+            Name["/Monty"]  # pylint: disable=pointless-statement
+        if sys.implementation.name == "pypy":
             pytest.xfail(reason="pypy seems to do setattr differently")
         with pytest.raises(AttributeError, match="has no attribute"):
             monty = Name.Monty
             monty.Attribute = 42
 
     def test_bytes_of_name(self):
-        assert bytes(Name.ABC) == b'/ABC'
+        assert bytes(Name.ABC) == b"/ABC"
 
     def test_name_from_name(self):
-        foo = Name('/Foo')
+        foo = Name("/Foo")
         assert Name(foo) == foo
 
     def test_name_bool(self):
-        assert bool(Name('/Foo')) is True
+        assert bool(Name("/Foo")) is True
         # Currently we forbid the empty name. All creatable names are true.
         with pytest.raises(ValueError):
-            bool(Name('/'))
+            bool(Name("/"))
         with pytest.raises(ValueError):
-            bool(Name(''))
+            bool(Name(""))
 
 
 class TestHashViolation:
@@ -322,25 +322,25 @@ class TestHashViolation:
         assert hash(a) == hash(b), "hash violation"
 
     def test_unequal_but_similar(self):
-        assert Name('/Foo') != String('/Foo')
+        assert Name("/Foo") != String("/Foo")
 
     def test_numbers(self):
-        self.check(Object.parse(b'1.0'), 1)
-        self.check(Object.parse(b'42'), 42)
+        self.check(Object.parse(b"1.0"), 1)
+        self.check(Object.parse(b"42"), 42)
 
     def test_bool_comparison(self):
-        self.check(Object.parse(b'0.0'), False)
+        self.check(Object.parse(b"0.0"), False)
         self.check(True, 1)
 
     def test_string(self):
-        utf16 = b'\xfe\xff' + 'hello'.encode('utf-16be')
-        self.check(String(utf16), String('hello'))
+        utf16 = b"\xfe\xff" + "hello".encode("utf-16be")
+        self.check(String(utf16), String("hello"))
 
     def test_name(self):
-        self.check(Name.This, Name('/This'))
+        self.check(Name.This, Name("/This"))
 
     def test_operator(self):
-        self.check(Operator('q'), Operator('q'))
+        self.check(Operator("q"), Operator("q"))
 
     def test_array_not_hashable(self):
         with pytest.raises(TypeError):
@@ -353,8 +353,8 @@ def test_not_constructible():
 
 
 def test_operator_inline(resources):
-    with pikepdf.open(resources / 'image-mono-inline.pdf') as pdf:
-        instructions = parse_content_stream(pdf.pages[0], operators='BI ID EI')
+    with pikepdf.open(resources / "image-mono-inline.pdf") as pdf:
+        instructions = parse_content_stream(pdf.pages[0], operators="BI ID EI")
         assert len(instructions) == 1
         _operands, operator = instructions[0]
         assert operator == pikepdf.Operator("INLINE IMAGE")
@@ -362,72 +362,72 @@ def test_operator_inline(resources):
 
 def test_utf16_error():
     with pytest.raises((UnicodeEncodeError, RuntimeError)):
-        str(encode('\ud801'))
+        str(encode("\ud801"))
 
 
 class TestDictionary:
     def test_contains(self):
-        d = Dictionary({'/Monty': 'Python', '/Flying': 'Circus'})
+        d = Dictionary({"/Monty": "Python", "/Flying": "Circus"})
         assert Name.Flying in d
-        assert Name('/Monty') in d
+        assert Name("/Monty") in d
         assert Name.Brian not in d
 
     def test_none(self):
-        d = pikepdf.Dictionary({'/One': 1, '/Two': 2})
+        d = pikepdf.Dictionary({"/One": 1, "/Two": 2})
         with pytest.raises(ValueError):
-            d['/Two'] = None
+            d["/Two"] = None
 
     def test_init(self):
-        d1 = pikepdf.Dictionary({'/Animal': 'Dog'})
-        d2 = pikepdf.Dictionary(Animal='Dog')
+        d1 = pikepdf.Dictionary({"/Animal": "Dog"})
+        d2 = pikepdf.Dictionary(Animal="Dog")
         assert d1 == d2
 
     def test_kwargs(self):
-        d = pikepdf.Dictionary(A='a', B='b', C='c')
-        assert '/B' in d
-        assert 'B' in dir(d)
+        d = pikepdf.Dictionary(A="a", B="b", C="c")
+        assert "/B" in d
+        assert "B" in dir(d)
 
     def test_iter(self):
-        d = pikepdf.Dictionary(A='a')
+        d = pikepdf.Dictionary(A="a")
         for k in d:
-            assert k == '/A'
-            assert d[k] == 'a'
+            assert k == "/A"
+            assert d[k] == "a"
 
     def test_items(self):
-        d = pikepdf.Dictionary(A='a')
+        d = pikepdf.Dictionary(A="a")
         for _k in d.items():
             pass
 
     def test_str(self):
-        d = pikepdf.Dictionary(ABCD='abcd')
-        assert 'ABCD' in str(d)
+        d = pikepdf.Dictionary(ABCD="abcd")
+        assert "ABCD" in str(d)
 
     def test_attr(self):
-        d = pikepdf.Dictionary(A='a')
+        d = pikepdf.Dictionary(A="a")
         with pytest.raises(AttributeError):
             d.invalidname  # pylint: disable=pointless-statement
 
     def test_get(self):
-        d = pikepdf.Dictionary(A='a')
-        assert d.get(Name.A) == 'a'
+        d = pikepdf.Dictionary(A="a")
+        assert d.get(Name.A) == "a"
         assert d.get(Name.Resources, 42) == 42
 
     def test_bad_name_init(self):
         with pytest.raises(KeyError, match=r"must begin with '/'"):
-            pikepdf.Dictionary({'/Slash': 'dot', 'unslash': 'error'})
+            pikepdf.Dictionary({"/Slash": "dot", "unslash": "error"})
         with pytest.raises(KeyError, match=r"must begin with '/'"):
-            pikepdf.Dictionary({'/': 'slash'})
+            pikepdf.Dictionary({"/": "slash"})
 
     def test_bad_name_set(self):
         d = pikepdf.Dictionary()
-        d['/Slash'] = 'dot'
+        d["/Slash"] = "dot"
         with pytest.raises(KeyError, match=r"must begin with '/'"):
-            d['unslash'] = 'error'
+            d["unslash"] = "error"
         with pytest.raises(KeyError, match=r"may not be '/'"):
-            d['/'] = 'error'
+            d["/"] = "error"
 
     def test_del_missing_key(self):
-        d = pikepdf.Dictionary(A='a')
+        d = pikepdf.Dictionary(A="a")
         with pytest.raises(KeyError):
             del d.B
 
@@ -443,7 +443,7 @@ class TestDictionary:
 
     def test_dict_bad_params(self):
         with pytest.raises(ValueError):
-            Dictionary({'/Foo': 1}, Bar=2)
+            Dictionary({"/Foo": 1}, Bar=2)
 
     def test_dict_of_dict(self):
         d = Dictionary(One=1, Two=2)
@@ -459,7 +459,7 @@ class TestDictionary:
 def test_not_convertible():
     class PurePythonObj:
         def __repr__(self):
-            return 'PurePythonObj()'
+            return "PurePythonObj()"
 
     c = PurePythonObj()
     with pytest.raises(RuntimeError):
@@ -477,12 +477,12 @@ def test_not_convertible():
 def test_json():
     d = Dictionary(
         {
-            '/Boolean': True,
-            '/Integer': 42,
-            '/Real': Decimal('42.42'),
-            '/String': String('hi'),
-            '/Array': Array([1, 2, 3.14]),
-            '/Dictionary': Dictionary({'/Color': 'Red'}),
+            "/Boolean": True,
+            "/Integer": 42,
+            "/Real": Decimal("42.42"),
+            "/String": String("hi"),
+            "/Array": Array([1, 2, 3.14]),
+            "/Dictionary": Dictionary({"/Color": "Red"}),
         }
     )
     json_bytes = d.to_json(False)
@@ -501,13 +501,13 @@ class TestStream:
     @pytest.fixture(scope="function")
     def abcxyz_stream(self):
         with pikepdf.new() as pdf:
-            data = b'abcxyz'
+            data = b"abcxyz"
             stream = Stream(pdf, data)
             yield stream
 
     def test_stream_isinstance(self):
         pdf = pikepdf.new()
-        stream = Stream(pdf, b'xyz')
+        stream = Stream(pdf, b"xyz")
         assert isinstance(stream, Stream)
         assert isinstance(stream, Object)
 
@@ -515,7 +515,7 @@ class TestStream:
         stream = abcxyz_stream
         assert Name.Length in stream
         stream.TestAttrAccess = True
-        stream['/TestKeyAccess'] = True
+        stream["/TestKeyAccess"] = True
         stream[Name.TestKeyNameAccess] = True
         assert len(stream.keys()) == 4  # Streams always have a /Length
 
@@ -529,10 +529,10 @@ class TestStream:
         assert stream.get(Name.MissingName, 3.14) == 3.14
 
         assert {k for k in stream} == {
-            '/TestKeyAccess',
-            '/TestAttrAccess',
-            '/Length',
-            '/TestKeyNameAccess',
+            "/TestKeyAccess",
+            "/TestAttrAccess",
+            "/Length",
+            "/TestKeyNameAccess",
         }
 
     def test_stream_length_modify(self, abcxyz_stream):
@@ -550,40 +550,40 @@ class TestStream:
 
     def test_stream_dict_oneshot(self):
         pdf = pikepdf.new()
-        stream1 = Stream(pdf, b'12345', One=1, Two=2)
-        stream2 = Stream(pdf, b'67890', {'/Three': 3, '/Four': 4})
-        stream3 = pdf.make_stream(b'abcdef', One=1, Two=2)
+        stream1 = Stream(pdf, b"12345", One=1, Two=2)
+        stream2 = Stream(pdf, b"67890", {"/Three": 3, "/Four": 4})
+        stream3 = pdf.make_stream(b"abcdef", One=1, Two=2)
 
         assert stream1.One == 1
-        assert stream1.read_bytes() == b'12345'
+        assert stream1.read_bytes() == b"12345"
         assert stream2.Three == 3
         assert stream3.One == 1
 
     def test_stream_bad_params(self):
         p = pikepdf.new()
-        with pytest.raises(TypeError, match='data'):
+        with pytest.raises(TypeError, match="data"):
             Stream(p)
 
     def test_stream_no_dangling_stream_on_failure(self):
         p = pikepdf.new()
         num_objects = len(p.objects)
         with pytest.raises(AttributeError):
-            Stream(p, b'3.14159', ['Not a mapping object'])
+            Stream(p, b"3.14159", ["Not a mapping object"])
         assert len(p.objects) == num_objects, "A dangling object was created"
 
     def test_identical_streams_equal(self):
         pdf = pikepdf.new()
-        stream1 = Stream(pdf, b'12345', One=1, Two=2)
-        stream2 = Stream(pdf, b'67890', {'/Three': 3, '/Four': 4})
+        stream1 = Stream(pdf, b"12345", One=1, Two=2)
+        stream2 = Stream(pdf, b"67890", {"/Three": 3, "/Four": 4})
         assert stream1 == stream1
         assert stream1 != stream2
 
     def test_stream_data_equal(self):
         pdf1 = pikepdf.new()
-        stream1 = Stream(pdf1, b'abc')
+        stream1 = Stream(pdf1, b"abc")
         pdf2 = pikepdf.new()
-        stream2 = Stream(pdf2, b'abc')
-        stream21 = Stream(pdf2, b'abcdef')
+        stream2 = Stream(pdf2, b"abc")
+        stream21 = Stream(pdf2, b"abcdef")
         assert stream1 == stream2
         assert stream21 != stream2
 
@@ -592,25 +592,25 @@ class TestStream:
 
     def test_stream_refcount(self, refcount, outpdf):
         pdf = pikepdf.new()
-        stream = Stream(pdf, b'blahblah')
+        stream = Stream(pdf, b"blahblah")
         assert refcount(stream) == 2
         pdf.Root.SomeStream = stream
         assert refcount(stream) == 2
         del stream
         pdf.save(outpdf)
         with pikepdf.open(outpdf) as pdf2:
-            assert pdf2.Root.SomeStream.read_bytes() == b'blahblah'
+            assert pdf2.Root.SomeStream.read_bytes() == b"blahblah"
 
     def test_stream_bool(self):
         pdf = pikepdf.new()
-        assert bool(Stream(pdf, b'')) is False
-        stream = Stream(pdf, b'blahblah')
+        assert bool(Stream(pdf, b"")) is False
+        stream = Stream(pdf, b"blahblah")
         assert bool(stream) is True
 
 
 @pytest.fixture
 def sandwich(resources):
-    with Pdf.open(resources / 'sandwich.pdf') as pdf:
+    with Pdf.open(resources / "sandwich.pdf") as pdf:
         yield pdf
 
 
@@ -618,40 +618,40 @@ class TestStreamReadWrite:
     @pytest.fixture
     def stream_object(self):
         with pikepdf.new() as pdf:
-            yield Stream(pdf, b'abc123xyz')
+            yield Stream(pdf, b"abc123xyz")
 
     def test_basic(self, stream_object):
-        stream_object.write(b'abc')
-        assert stream_object.read_bytes() == b'abc'
+        stream_object.write(b"abc")
+        assert stream_object.read_bytes() == b"abc"
 
     def test_compressed_readback(self, stream_object):
-        stream_object.write(compress(b'def'), filter=Name.FlateDecode)
-        assert stream_object.read_bytes() == b'def'
+        stream_object.write(compress(b"def"), filter=Name.FlateDecode)
+        assert stream_object.read_bytes() == b"def"
 
     def test_stacked_compression(self, stream_object):
-        double_compressed = compress(compress(b'pointless'))
+        double_compressed = compress(compress(b"pointless"))
         stream_object.write(
             double_compressed, filter=[Name.FlateDecode, Name.FlateDecode]
         )
-        assert stream_object.read_bytes() == b'pointless'
+        assert stream_object.read_bytes() == b"pointless"
         assert stream_object.read_raw_bytes() == double_compressed
 
     def test_explicit_decodeparms(self, stream_object):
-        double_compressed = compress(compress(b'pointless'))
+        double_compressed = compress(compress(b"pointless"))
         stream_object.write(
             double_compressed,
             filter=[Name.FlateDecode, Name.FlateDecode],
             decode_parms=[None, None],
         )
-        assert stream_object.read_bytes() == b'pointless'
+        assert stream_object.read_bytes() == b"pointless"
         assert stream_object.read_raw_bytes() == double_compressed
 
     def test_no_kwargs(self, stream_object):
         with pytest.raises(TypeError):
-            stream_object.write(compress(b'x'), [Name.FlateDecode])
+            stream_object.write(compress(b"x"), [Name.FlateDecode])
 
     def test_ccitt(self, stream_object):
-        ccitt = b'\x00'  # Not valid data, just for testing decode_parms
+        ccitt = b"\x00"  # Not valid data, just for testing decode_parms
         stream_object.write(
             ccitt,
             filter=Name.CCITTFaxDecode,
@@ -659,47 +659,47 @@ class TestStreamReadWrite:
         )
 
     def test_stream_bytes(self, stream_object):
-        stream_object.write(b'pi')
-        assert bytes(stream_object) == b'pi'
+        stream_object.write(b"pi")
+        assert bytes(stream_object) == b"pi"
 
     def test_invalid_filter(self, stream_object):
         with pytest.raises(TypeError, match="filter must be"):
-            stream_object.write(b'foo', filter=[42])
+            stream_object.write(b"foo", filter=[42])
 
     def test_invalid_decodeparms(self, stream_object):
         with pytest.raises(TypeError, match="decode_parms must be"):
             stream_object.write(
-                compress(b'foo'), filter=Name.FlateDecode, decode_parms=[42]
+                compress(b"foo"), filter=Name.FlateDecode, decode_parms=[42]
             )
 
     def test_filter_decodeparms_mismatch(self, stream_object):
         with pytest.raises(ValueError, match=r"filter.*and decode_parms"):
             stream_object.write(
-                compress(b'foo'),
+                compress(b"foo"),
                 filter=[Name.FlateDecode],
                 decode_parms=[Dictionary(), Dictionary()],
             )
 
     def test_raw_stream_buffer(self, stream_object):
         raw_buffer = stream_object.get_raw_stream_buffer()
-        assert bytes(raw_buffer) == b'abc123xyz'
+        assert bytes(raw_buffer) == b"abc123xyz"
 
 
 def test_copy():
     d = Dictionary(
         {
-            '/Boolean': True,
-            '/Integer': 42,
-            '/Real': Decimal('42.42'),
-            '/String': String('hi'),
-            '/Array': Array([1, 2, 3.14]),
-            '/Dictionary': Dictionary({'/Color': 'Red'}),
+            "/Boolean": True,
+            "/Integer": 42,
+            "/Real": Decimal("42.42"),
+            "/String": String("hi"),
+            "/Array": Array([1, 2, 3.14]),
+            "/Dictionary": Dictionary({"/Color": "Red"}),
         }
     )
     d2 = copy(d)
     assert d2 == d
     assert d2 is not d
-    assert d2['/Dictionary'] == d['/Dictionary']
+    assert d2["/Dictionary"] == d["/Dictionary"]
 
 
 def test_object_iteration(sandwich):
@@ -718,7 +718,7 @@ def test_object_not_iterable():
 
 
 @pytest.mark.parametrize(
-    'obj', [Array([1]), Dictionary({'/A': 'b'}), Operator('q'), String('s')]
+    "obj", [Array([1]), Dictionary({"/A": "b"}), Operator("q"), String("s")]
 )
 def test_object_isinstance(obj):
     assert isinstance(obj, (Array, Dictionary, Operator, String, Stream))
@@ -734,38 +734,38 @@ def test_object_classes():
 
 class TestOperator:
     def test_operator_create(self):
-        Operator('q')
-        assert Operator('q') == Operator('q')
-        assert Operator('q') != Operator('Q')
+        Operator("q")
+        assert Operator("q") == Operator("q")
+        assert Operator("q") != Operator("Q")
 
     def test_operator_str(self):
-        assert str(Operator('Do')) == 'Do'
+        assert str(Operator("Do")) == "Do"
 
     def test_operator_bytes(self):
-        assert bytes(Operator('cm')) == b'cm'
+        assert bytes(Operator("cm")) == b"cm"
 
     def test_operator_contains_misuse(self):
         with pytest.raises(
             ValueError, match="pikepdf.Object is not a Dictionary or Stream"
         ):
-            _unused = 'nope' in Operator('Do')
+            _unused = "nope" in Operator("Do")
 
     def test_operator_setitem_misuse(self):
         with pytest.raises(
             ValueError, match="pikepdf.Object is not a Dictionary or Stream"
         ):
-            Operator('Do')['x'] = 42
+            Operator("Do")["x"] = 42
 
     def test_operator_bool(self):
-        assert bool(Operator('Do')) is True
-        assert bool(Operator('')) is False
+        assert bool(Operator("Do")) is True
+        assert bool(Operator("")) is False
 
 
 def test_object_mapping(sandwich):
     object_mapping = sandwich.pages[0].images
-    assert '42' not in object_mapping
-    assert '/R12' in object_mapping
-    assert '/R12' in object_mapping.keys()
+    assert "42" not in object_mapping
+    assert "/R12" in object_mapping
+    assert "/R12" in object_mapping.keys()
     assert object_mapping.get(Name.R12) == object_mapping[Name.R12]
     assert object_mapping.get(Name.DoesNotExist, 42) == 42
 
@@ -778,7 +778,7 @@ def test_replace_object(sandwich):
 
 
 def test_swap_object(resources):
-    with Pdf.open(resources / 'fourpages.pdf') as pdf:
+    with Pdf.open(resources / "fourpages.pdf") as pdf:
         pdf.pages[0].MarkPage0 = True
         pdf._swap_objects(pdf.pages[0].objgen, pdf.pages[1].objgen)
         assert pdf.pages[1].MarkPage0
@@ -787,5 +787,5 @@ def test_swap_object(resources):
 
 class TestString:
     def test_string_bool(self):
-        assert bool(String('')) is False
-        assert bool(String('abc')) is True
+        assert bool(String("")) is False
+        assert bool(String("abc")) is True

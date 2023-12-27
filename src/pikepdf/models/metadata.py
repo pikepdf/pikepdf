@@ -49,27 +49,27 @@ XMP_NS_XMP_MM = "http://ns.adobe.com/xap/1.0/mm/"
 XMP_NS_XMP_RIGHTS = "http://ns.adobe.com/xap/1.0/rights/"
 
 DEFAULT_NAMESPACES: list[tuple[str, str]] = [
-    ('adobe:ns:meta/', 'x'),
-    (XMP_NS_DC, 'dc'),
-    (XMP_NS_PDF, 'pdf'),
-    (XMP_NS_PDFA_ID, 'pdfaid'),
-    (XMP_NS_PDFA_EXTENSION, 'pdfaExtension'),
-    (XMP_NS_PDFA_PROPERTY, 'pdfaProperty'),
-    (XMP_NS_PDFA_SCHEMA, 'pdfaSchema'),
-    (XMP_NS_PDFUA_ID, 'pdfuaid'),
-    (XMP_NS_PDFX_ID, 'pdfxid'),
-    (XMP_NS_PHOTOSHOP, 'photoshop'),
-    (XMP_NS_PRISM, 'prism'),
-    (XMP_NS_PRISM2, 'prism2'),
-    (XMP_NS_PRISM3, 'prism3'),
-    (XMP_NS_RDF, 'rdf'),
-    (XMP_NS_XMP, 'xmp'),
-    (XMP_NS_XMP_MM, 'xmpMM'),
-    (XMP_NS_XMP_RIGHTS, 'xmpRights'),
-    ('http://crossref.org/crossmark/1.0/', 'crossmark'),
-    ('http://www.niso.org/schemas/jav/1.0/', 'jav'),
-    ('http://ns.adobe.com/pdfx/1.3/', 'pdfx'),
-    ('http://www.niso.org/schemas/ali/1.0/', 'ali'),
+    ("adobe:ns:meta/", "x"),
+    (XMP_NS_DC, "dc"),
+    (XMP_NS_PDF, "pdf"),
+    (XMP_NS_PDFA_ID, "pdfaid"),
+    (XMP_NS_PDFA_EXTENSION, "pdfaExtension"),
+    (XMP_NS_PDFA_PROPERTY, "pdfaProperty"),
+    (XMP_NS_PDFA_SCHEMA, "pdfaSchema"),
+    (XMP_NS_PDFUA_ID, "pdfuaid"),
+    (XMP_NS_PDFX_ID, "pdfxid"),
+    (XMP_NS_PHOTOSHOP, "photoshop"),
+    (XMP_NS_PRISM, "prism"),
+    (XMP_NS_PRISM2, "prism2"),
+    (XMP_NS_PRISM3, "prism3"),
+    (XMP_NS_RDF, "rdf"),
+    (XMP_NS_XMP, "xmp"),
+    (XMP_NS_XMP_MM, "xmpMM"),
+    (XMP_NS_XMP_RIGHTS, "xmpRights"),
+    ("http://crossref.org/crossmark/1.0/", "crossmark"),
+    ("http://www.niso.org/schemas/jav/1.0/", "jav"),
+    ("http://ns.adobe.com/pdfx/1.3/", "pdfx"),
+    ("http://www.niso.org/schemas/ali/1.0/", "ali"),
 ]
 
 for _uri, _prefix in DEFAULT_NAMESPACES:
@@ -109,17 +109,17 @@ class AltList(list):
 
 
 XMP_CONTAINERS = [
-    XmpContainer('Alt', AltList, AltList.append),
-    XmpContainer('Bag', set, set.add),
-    XmpContainer('Seq', list, list.append),
+    XmpContainer("Alt", AltList, AltList.append),
+    XmpContainer("Bag", set, set.add),
+    XmpContainer("Seq", list, list.append),
 ]
 
 LANG_ALTS = frozenset(
     [
-        str(QName(XMP_NS_DC, 'title')),
-        str(QName(XMP_NS_DC, 'description')),
-        str(QName(XMP_NS_DC, 'rights')),
-        str(QName(XMP_NS_XMP_RIGHTS, 'UsageTerms')),
+        str(QName(XMP_NS_DC, "title")),
+        str(QName(XMP_NS_DC, "description")),
+        str(QName(XMP_NS_DC, "rights")),
+        str(QName(XMP_NS_XMP_RIGHTS, "UsageTerms")),
     ]
 )
 
@@ -128,7 +128,7 @@ LANG_ALTS = frozenset(
 re_xml_illegal_chars = re.compile(
     r"(?u)[^\x09\x0A\x0D\x20-\U0000D7FF\U0000E000-\U0000FFFD\U00010000-\U0010FFFF]"
 )
-re_xml_illegal_bytes = re.compile(br"[^\x09\x0A\x0D\x20-\xFF]|&#0;")
+re_xml_illegal_bytes = re.compile(rb"[^\x09\x0A\x0D\x20-\xFF]|&#0;")
 
 # Might want to check re_xml_illegal_bytes for patterns such as:
 # br"&#(?:[0-9]|0[0-9]|1[0-9]|2[0-9]|3[0-1]
@@ -140,19 +140,19 @@ def _parser_basic(xml: bytes):
 
 
 def _parser_strip_illegal_bytes(xml: bytes):
-    return parse_xml(BytesIO(re_xml_illegal_bytes.sub(b'', xml)))
+    return parse_xml(BytesIO(re_xml_illegal_bytes.sub(b"", xml)))
 
 
 def _parser_recovery(xml: bytes):
     return parse_xml(BytesIO(xml), recover=True)
 
 
-def _parser_replace_with_empty_xmp(_xml: bytes = b''):
+def _parser_replace_with_empty_xmp(_xml: bytes = b""):
     log.warning("Error occurred parsing XMP, replacing with empty XMP.")
     return _parser_basic(XMP_EMPTY)
 
 
-def _clean(s: str | Iterable[str], joiner: str = '; ') -> str:
+def _clean(s: str | Iterable[str], joiner: str = "; ") -> str:
     """Ensure an object can safely be inserted in a XML tag body.
 
     If we still have a non-str object at this point, the best option is to
@@ -168,7 +168,7 @@ def _clean(s: str | Iterable[str], joiner: str = '; ') -> str:
                 s = joiner.join(s)
         else:
             raise TypeError("object must be a string or iterable of strings")
-    return re_xml_illegal_chars.sub('', s)
+    return re_xml_illegal_chars.sub("", s)
 
 
 def encode_pdf_date(d: datetime) -> str:
@@ -195,8 +195,8 @@ def encode_pdf_date(d: datetime) -> str:
     # https://bugs.python.org/issue13305 and underspecification in libc.
     # So explicitly format the year with leading zeros
     s = f"D:{d.year:04d}"
-    s += d.strftime(r'%m%d%H%M%S')
-    tz = d.strftime('%z')
+    s += d.strftime(r"%m%d%H%M%S")
+    tz = d.strftime("%z")
     if tz:
         sign, tz_hours, tz_mins = tz[0], tz[1:3], tz[3:5]
         s += f"{sign}{tz_hours}'{tz_mins}'"
@@ -211,20 +211,20 @@ def decode_pdf_date(s: str) -> datetime:
     """
     if isinstance(s, String):
         s = str(s)
-    if s.startswith('D:'):
+    if s.startswith("D:"):
         s = s[2:]
 
     # Literal Z00'00', is incorrect but found in the wild,
     # probably made by OS X Quartz -- standardize
     if s.endswith("Z00'00'"):
-        s = s.replace("Z00'00'", '+0000')
-    elif s.endswith('Z'):
-        s = s.replace('Z', '+0000')
+        s = s.replace("Z00'00'", "+0000")
+    elif s.endswith("Z"):
+        s = s.replace("Z", "+0000")
     s = s.replace("'", "")  # Remove apos from PDF time strings
     try:
-        return datetime.strptime(s, r'%Y%m%d%H%M%S%z')
+        return datetime.strptime(s, r"%Y%m%d%H%M%S%z")
     except ValueError:
-        return datetime.strptime(s, r'%Y%m%d%H%M%S')
+        return datetime.strptime(s, r"%Y%m%d%H%M%S")
 
 
 class Converter(ABC):
@@ -260,7 +260,7 @@ class AuthorConverter(Converter):
             return xmp_val
         if xmp_val is None or xmp_val == [None]:
             return None
-        return '; '.join(author for author in xmp_val if author is not None)
+        return "; ".join(author for author in xmp_val if author is not None)
 
 
 class DateConverter(Converter):
@@ -269,15 +269,15 @@ class DateConverter(Converter):
     @staticmethod
     def xmp_from_docinfo(docinfo_val):
         """Derive XMP date from DocumentInfo."""
-        if docinfo_val == '':
-            return ''
+        if docinfo_val == "":
+            return ""
         return decode_pdf_date(docinfo_val).isoformat()
 
     @staticmethod
     def docinfo_from_xmp(xmp_val):
         """Derive DocumentInfo from XMP."""
-        if xmp_val.endswith('Z'):
-            xmp_val = xmp_val[:-1] + '+00:00'
+        if xmp_val.endswith("Z"):
+            xmp_val = xmp_val[:-1] + "+00:00"
         try:
             dateobj = datetime.fromisoformat(xmp_val)
         except IndexError:
@@ -341,14 +341,14 @@ class PdfMetadata(MutableMapping):
     """
 
     DOCINFO_MAPPING: list[DocinfoMapping] = [
-        DocinfoMapping(XMP_NS_DC, 'creator', Name.Author, AuthorConverter),
-        DocinfoMapping(XMP_NS_DC, 'description', Name.Subject, None),
-        DocinfoMapping(XMP_NS_DC, 'title', Name.Title, None),
-        DocinfoMapping(XMP_NS_PDF, 'Keywords', Name.Keywords, None),
-        DocinfoMapping(XMP_NS_PDF, 'Producer', Name.Producer, None),
-        DocinfoMapping(XMP_NS_XMP, 'CreateDate', Name.CreationDate, DateConverter),
-        DocinfoMapping(XMP_NS_XMP, 'CreatorTool', Name.Creator, None),
-        DocinfoMapping(XMP_NS_XMP, 'ModifyDate', Name.ModDate, DateConverter),
+        DocinfoMapping(XMP_NS_DC, "creator", Name.Author, AuthorConverter),
+        DocinfoMapping(XMP_NS_DC, "description", Name.Subject, None),
+        DocinfoMapping(XMP_NS_DC, "title", Name.Title, None),
+        DocinfoMapping(XMP_NS_PDF, "Keywords", Name.Keywords, None),
+        DocinfoMapping(XMP_NS_PDF, "Producer", Name.Producer, None),
+        DocinfoMapping(XMP_NS_XMP, "CreateDate", Name.CreationDate, DateConverter),
+        DocinfoMapping(XMP_NS_XMP, "CreatorTool", Name.Creator, None),
+        DocinfoMapping(XMP_NS_XMP, "ModifyDate", Name.ModDate, DateConverter),
     ]
 
     NS: dict[str, str] = {prefix: uri for uri, prefix in DEFAULT_NAMESPACES}
@@ -445,11 +445,11 @@ class PdfMetadata(MutableMapping):
         try:
             data = self._pdf.Root.Metadata.read_bytes()
         except AttributeError:
-            data = b''
+            data = b""
         self._load_from(data)
 
     def _load_from(self, data: bytes) -> None:
-        if data.strip() == b'':
+        if data.strip() == b"":
             data = XMP_EMPTY  # on some platforms lxml chokes on empty documents
 
         parsers = (
@@ -462,9 +462,7 @@ class PdfMetadata(MutableMapping):
             try:
                 self._xmp = parser(data)
             except (
-                XMLSyntaxError
-                if self.overwrite_invalid_xml
-                else NeverRaise  # type: ignore
+                XMLSyntaxError if self.overwrite_invalid_xml else NeverRaise  # type: ignore
             ) as e:
                 if str(e).startswith("Start tag expected, '<' not found") or str(
                     e
@@ -476,7 +474,7 @@ class PdfMetadata(MutableMapping):
 
         if self._xmp is not None:
             try:
-                pis = self._xmp.xpath('/processing-instruction()')
+                pis = self._xmp.xpath("/processing-instruction()")
                 for pi in pis:
                     etree.strip_tags(self._xmp, pi.tag)
                 self._get_rdf_root()
@@ -543,7 +541,7 @@ class PdfMetadata(MutableMapping):
             value = _clean(value)
             try:
                 # Try to save pure ASCII
-                self._pdf.docinfo[docinfo_name] = value.encode('ascii')
+                self._pdf.docinfo[docinfo_name] = value.encode("ascii")
             except UnicodeEncodeError:
                 # qpdf will serialize this as a UTF-16 with BOM string
                 self._pdf.docinfo[docinfo_name] = value
@@ -552,7 +550,7 @@ class PdfMetadata(MutableMapping):
         data = BytesIO()
         if xpacket:
             data.write(XPACKET_BEGIN)
-        self._xmp.write(data, encoding='utf-8', pretty_print=True)
+        self._xmp.write(data, encoding="utf-8", pretty_print=True)
         if xpacket:
             data.write(XPACKET_END)
         data.seek(0)
@@ -567,13 +565,13 @@ class PdfMetadata(MutableMapping):
         if self.mark:
             # We were asked to mark the file as being edited by pikepdf
             self._setitem(
-                QName(XMP_NS_XMP, 'MetadataDate'),
+                QName(XMP_NS_XMP, "MetadataDate"),
                 datetime.now(timezone.utc).isoformat(),
                 applying_mark=True,
             )
             self._setitem(
-                QName(XMP_NS_PDF, 'Producer'),
-                'pikepdf ' + pikepdf_version,
+                QName(XMP_NS_PDF, "Producer"),
+                "pikepdf " + pikepdf_version,
                 applying_mark=True,
             )
         xml = self._get_xml_bytes()
@@ -593,18 +591,18 @@ class PdfMetadata(MutableMapping):
             return str(name)
         if not isinstance(name, str):
             raise TypeError(f"{name} must be str")
-        if name == '':
+        if name == "":
             return name
-        if name.startswith('{'):
+        if name.startswith("{"):
             return name
         try:
-            prefix, tag = name.split(':', maxsplit=1)
+            prefix, tag = name.split(":", maxsplit=1)
         except ValueError:
             # If missing the namespace, put it in the top level namespace
             # To do this completely correct we actually need to figure out
             # the namespace based on context defined by parent tags. That
             #   https://www.w3.org/2001/tag/doc/qnameids.html
-            prefix, tag = 'x', name
+            prefix, tag = "x", name
         uri = cls.NS[prefix]
         return str(QName(uri, tag))
 
@@ -613,9 +611,9 @@ class PdfMetadata(MutableMapping):
 
         e.g. {http://ns.adobe.com/pdf/1.3/}Producer -> pdf:Producer
         """
-        uripart, tag = uriname.split('}', maxsplit=1)
-        uri = uripart.replace('{', '')
-        return self.REVERSE_NS[uri] + ':' + tag
+        uripart, tag = uriname.split("}", maxsplit=1)
+        uri = uripart.replace("{", "")
+        return self.REVERSE_NS[uri] + ":" + tag
 
     def _get_subelements(self, node):
         """Gather the sub-elements attached to a node.
@@ -624,32 +622,32 @@ class PdfMetadata(MutableMapping):
         alternate languages values, take the first language only for
         simplicity.
         """
-        items = node.find('rdf:Alt', self.NS)
+        items = node.find("rdf:Alt", self.NS)
         if items is not None:
             try:
                 return items[0].text
             except IndexError:
-                return ''
+                return ""
 
         for xmlcontainer, container, insertfn in XMP_CONTAINERS:
-            items = node.find(f'rdf:{xmlcontainer}', self.NS)
+            items = node.find(f"rdf:{xmlcontainer}", self.NS)
             if items is None:
                 continue
             result = container()
             for item in items:
                 insertfn(result, item.text)
             return result
-        return ''
+        return ""
 
     def _get_rdf_root(self):
-        rdf = self._xmp.find('.//rdf:RDF', self.NS)
+        rdf = self._xmp.find(".//rdf:RDF", self.NS)
         if rdf is None:
             rdf = self._xmp.getroot()
-            if not rdf.tag == '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}RDF':
+            if not rdf.tag == "{http://www.w3.org/1999/02/22-rdf-syntax-ns#}RDF":
                 raise ValueError("Metadata seems to be XML but not XMP")
         return rdf
 
-    def _get_elements(self, name: str | QName = ''):
+    def _get_elements(self, name: str | QName = ""):
         """Get elements from XMP.
 
         Core routine to find elements matching name within the XMP and yield
@@ -681,7 +679,7 @@ class PdfMetadata(MutableMapping):
                 for k, v in rdfdesc.items():
                     if v:
                         yield (rdfdesc, k, v, rdf)
-            xpath = qname if name else '*'
+            xpath = qname if name else "*"
             for node in rdfdesc.findall(xpath, self.NS):
                 if node.text and node.text.strip():
                     yield (node, None, node.text, rdfdesc)
@@ -689,7 +687,7 @@ class PdfMetadata(MutableMapping):
                 values = self._get_subelements(node)
                 yield (node, None, values, rdfdesc)
 
-    def _get_element_values(self, name=''):
+    def _get_element_values(self, name=""):
         yield from (v[2] for v in self._get_elements(name))
 
     @ensure_loaded
@@ -744,8 +742,8 @@ class PdfMetadata(MutableMapping):
             and not applying_mark
             and qkey
             in (
-                self._qname('xmp:MetadataDate'),
-                self._qname('pdf:Producer'),
+                self._qname("xmp:MetadataDate"),
+                self._qname("pdf:Producer"),
             )
         ):
             # Complain if user writes self[pdf:Producer] = ... and because it will
@@ -755,7 +753,7 @@ class PdfMetadata(MutableMapping):
                 f"Update to {key} will be overwritten because metadata was opened "
                 "with set_pikepdf_as_editor=True"
             )
-        if isinstance(val, str) and qkey in (self._qname('dc:creator')):
+        if isinstance(val, str) and qkey in (self._qname("dc:creator")):
             log.error(f"{key} should be set to a list of strings")
 
     def _setitem_add_array(self, node, items: Iterable) -> None:
@@ -764,10 +762,10 @@ class PdfMetadata(MutableMapping):
         )
         seq = etree.SubElement(node, str(QName(XMP_NS_RDF, rdf_type)))
         tag_attrib: dict[str, str] | None = None
-        if rdf_type == 'Alt':
-            tag_attrib = {str(QName(XMP_NS_XML, 'lang')): 'x-default'}
+        if rdf_type == "Alt":
+            tag_attrib = {str(QName(XMP_NS_XML, "lang")): "x-default"}
         for item in items:
-            el = etree.SubElement(seq, str(QName(XMP_NS_RDF, 'li')), attrib=tag_attrib)
+            el = etree.SubElement(seq, str(QName(XMP_NS_RDF, "li")), attrib=tag_attrib)
             el.text = _clean(item)
 
     def _setitem_update(self, key, val, qkey):
@@ -775,7 +773,7 @@ class PdfMetadata(MutableMapping):
         node, attrib, _oldval, _parent = next(self._get_elements(key))
         if attrib:
             if not isinstance(val, str):
-                if qkey == self._qname('dc:creator'):
+                if qkey == self._qname("dc:creator"):
                     # dc:creator incorrectly created as an attribute - we're
                     # replacing it anyway, so remove the old one
                     del node.attrib[qkey]
@@ -785,11 +783,11 @@ class PdfMetadata(MutableMapping):
             else:
                 node.set(attrib, _clean(val))
         elif isinstance(val, (list, set)):
-            for child in node.findall('*'):
+            for child in node.findall("*"):
                 node.remove(child)
             self._setitem_add_array(node, val)
         elif isinstance(val, str):
-            for child in node.findall('*'):
+            for child in node.findall("*"):
                 node.remove(child)
             if str(self._qname(key)) in LANG_ALTS:
                 self._setitem_add_array(node, AltList([_clean(val)]))
@@ -805,17 +803,17 @@ class PdfMetadata(MutableMapping):
         if isinstance(val, (list, set)):
             rdfdesc = etree.SubElement(
                 rdf,
-                str(QName(XMP_NS_RDF, 'Description')),
-                attrib={str(QName(XMP_NS_RDF, 'about')): ''},
+                str(QName(XMP_NS_RDF, "Description")),
+                attrib={str(QName(XMP_NS_RDF, "about")): ""},
             )
             node = etree.SubElement(rdfdesc, self._qname(key))
             self._setitem_add_array(node, val)
         elif isinstance(val, str):
             _rdfdesc = etree.SubElement(
                 rdf,
-                str(QName(XMP_NS_RDF, 'Description')),
+                str(QName(XMP_NS_RDF, "Description")),
                 attrib={
-                    QName(XMP_NS_RDF, 'about'): '',
+                    QName(XMP_NS_RDF, "about"): "",
                     self._qname(key): _clean(val),
                 },
             )
@@ -839,7 +837,7 @@ class PdfMetadata(MutableMapping):
                 if (
                     len(node.attrib) == 1
                     and len(node) == 0
-                    and QName(XMP_NS_RDF, 'about') in node.attrib
+                    and QName(XMP_NS_RDF, "about") in node.attrib
                 ):
                     # The only thing left on this node is rdf:about="", so remove it
                     parent.remove(node)
@@ -865,12 +863,12 @@ class PdfMetadata(MutableMapping):
         if not self._xmp:
             self._load()
 
-        key_part = QName(XMP_NS_PDFA_ID, 'part')
-        key_conformance = QName(XMP_NS_PDFA_ID, 'conformance')
+        key_part = QName(XMP_NS_PDFA_ID, "part")
+        key_conformance = QName(XMP_NS_PDFA_ID, "conformance")
         try:
             return self[key_part] + self[key_conformance]
         except KeyError:
-            return ''
+            return ""
 
     @property
     def pdfx_status(self) -> str:
@@ -888,13 +886,13 @@ class PdfMetadata(MutableMapping):
         if not self._xmp:
             self._load()
 
-        pdfx_version = QName(XMP_NS_PDFX_ID, 'GTS_PDFXVersion')
+        pdfx_version = QName(XMP_NS_PDFX_ID, "GTS_PDFXVersion")
         try:
             return self[pdfx_version]
         except KeyError:
-            return ''
+            return ""
 
     @ensure_loaded
     def __str__(self):
         """Convert XMP metadata to XML string."""
-        return self._get_xml_bytes(xpacket=False).decode('utf-8')
+        return self._get_xml_bytes(xpacket=False).decode("utf-8")

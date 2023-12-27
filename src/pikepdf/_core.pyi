@@ -48,8 +48,8 @@ if TYPE_CHECKING:
 
 # mypy: disable-error-code="misc"
 
-T = TypeVar('T', bound='Object')
-Numeric = TypeVar('Numeric', int, float, Decimal)
+T = TypeVar("T", bound="Object")
+Numeric = TypeVar("Numeric", int, float, Decimal)
 
 class Buffer:
     """A Buffer for reading data from a PDF."""
@@ -419,10 +419,7 @@ class Object:
         self,
         data: bytes,
         *,
-        filter: Name
-        | Array
-        | list[Name]
-        | None = ...,  # pylint: disable=redefined-builtin
+        filter: Name | Array | list[Name] | None = ...,  # pylint: disable=redefined-builtin
         decode_parms: Dictionary | Array | None = ...,
         type_check: bool = ...,
     ) -> None:
@@ -778,7 +775,7 @@ class AttachedFileSpec(ObjectHelper):
         """
     @staticmethod
     def from_filepath(
-        pdf: Pdf, path: Path | str, *, description: str = ''
+        pdf: Pdf, path: Path | str, *, description: str = ""
     ) -> AttachedFileSpec:
         """Construct a file specification from a file path.
 
@@ -1307,7 +1304,7 @@ class Page:
         res_type: Name,
         name: Name | None = None,
         *,
-        prefix: str = '',
+        prefix: str = "",
         replace_existing: bool = True,
     ) -> Name:
         """Add a new resource to the page's Resources dictionary.
@@ -1665,7 +1662,7 @@ class Pdf:
     def open(
         filename_or_stream: Path | str | BinaryIO,
         *,
-        password: str | bytes = '',
+        password: str | bytes = "",
         hex_password: bool = False,
         ignore_xref_streams: bool = False,
         suppress_warnings: bool = True,
@@ -1866,8 +1863,8 @@ class Pdf:
         *,
         static_id: bool = False,
         preserve_pdfa: bool = True,
-        min_version: str | tuple[str, int] = '',
-        force_version: str | tuple[str, int] = '',
+        min_version: str | tuple[str, int] = "",
+        force_version: str | tuple[str, int] = "",
         fix_metadata_version: bool = True,
         compress_streams: bool = True,
         stream_decode_level: StreamDecodeLevel | None = None,
@@ -2513,7 +2510,7 @@ class Job:
     def __init__(self, json_dict: Mapping) -> None: ...
     @overload
     def __init__(
-        self, args: Sequence[str | bytes], *, progname: str = 'pikepdf'
+        self, args: Sequence[str | bytes], *, progname: str = "pikepdf"
     ) -> None: ...
     def __init__(self, *args, **kwargs) -> None:
         """Create a Job from command line arguments to the qpdf program.
@@ -2819,7 +2816,7 @@ def unparse(obj: Any) -> bytes: ...
 def utf8_to_pdf_doc(utf8: str, unknown: bytes) -> tuple[bool, bytes]: ...
 def _unparse_content_stream(contentstream: Iterable[Any]) -> bytes: ...
 def set_flate_compression_level(
-    level: Literal[-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    level: Literal[-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
 ) -> int:
     """Set compression level whenever Flate compression is used.
 

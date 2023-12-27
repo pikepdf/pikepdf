@@ -42,7 +42,7 @@ def first_image_in(resources, request):
 
 @pytest.fixture
 def jbig2(first_image_in):
-    return first_image_in('jbig2.pdf')
+    return first_image_in("jbig2.pdf")
 
 
 # Unfortunately pytest cannot test for this using "with pytest.warns(...)".
@@ -71,7 +71,7 @@ def test_check_specialized_decoder_fallback(
 
     patch_jbig2dec(run_claim_notfound)
 
-    with pikepdf.open(resources / 'jbig2.pdf') as pdf:
+    with pikepdf.open(resources / "jbig2.pdf") as pdf:
         with pytest.warns(UserWarning, match=r".*missing some specialized.*"):
             problems = pdf.check()
         assert len(problems) == 0
@@ -83,7 +83,7 @@ def test_jbig2_not_available(jbig2: Any, patch_jbig2dec: Callable[..., None]):
     pim = PdfImage(xobj)
 
     def run_claim_notfound(args, *pargs, **kwargs):
-        raise FileNotFoundError('jbig2dec')
+        raise FileNotFoundError("jbig2dec")
 
     patch_jbig2dec(run_claim_notfound)
 
@@ -101,7 +101,7 @@ needs_jbig2dec = pytest.mark.skipif(
 @needs_jbig2dec
 def test_jbig2_extractor(jbig2: Any):
     xobj, _pdf = jbig2
-    pikepdf.jbig2.get_decoder().decode_jbig2(xobj.read_raw_bytes(), b'')
+    pikepdf.jbig2.get_decoder().decode_jbig2(xobj.read_raw_bytes(), b"")
 
 
 @needs_jbig2dec
@@ -117,7 +117,7 @@ def test_jbig2(jbig2: Any):
 def test_jbig2_decodeparms_null_issue317(jbig2: Any):
     xobj, _pdf = jbig2
     xobj.stream_dict = Object.parse(
-        b'''<< /BitsPerComponent 1
+        b"""<< /BitsPerComponent 1
                /ColorSpace /DeviceGray
                /Filter [ /JBIG2Decode ]
                /DecodeParms null
@@ -126,7 +126,7 @@ def test_jbig2_decodeparms_null_issue317(jbig2: Any):
                /Subtype /Image
                /Type /XObject
                /Width 1000
-            >>'''
+            >>"""
     )
     pim = PdfImage(xobj)
     im = pim.as_pil_image()
@@ -136,7 +136,7 @@ def test_jbig2_decodeparms_null_issue317(jbig2: Any):
 
 @needs_jbig2dec
 def test_jbig2_global(first_image_in):
-    xobj, _pdf = first_image_in('jbig2global.pdf')
+    xobj, _pdf = first_image_in("jbig2global.pdf")
     pim = PdfImage(xobj)
     im = pim.as_pil_image()
     assert im.size == (4000, 2864)
@@ -145,9 +145,9 @@ def test_jbig2_global(first_image_in):
 
 @needs_jbig2dec
 def test_jbig2_global_palette(first_image_in):
-    xobj, _pdf = first_image_in('jbig2global.pdf')
+    xobj, _pdf = first_image_in("jbig2global.pdf")
     xobj.ColorSpace = pikepdf.Array(
-        [Name.Indexed, Name.DeviceRGB, 1, b'\x00\x00\x00\xff\xff\xff']
+        [Name.Indexed, Name.DeviceRGB, 1, b"\x00\x00\x00\xff\xff\xff"]
     )
     pim = PdfImage(xobj)
     im = pim.as_pil_image()
@@ -157,13 +157,13 @@ def test_jbig2_global_palette(first_image_in):
 
 @suppress_unraisable_jbigdec_error_warning
 def test_jbig2_error(first_image_in, patch_jbig2dec: Callable[..., None]):
-    xobj, _pdf = first_image_in('jbig2global.pdf')
+    xobj, _pdf = first_image_in("jbig2global.pdf")
     pim = PdfImage(xobj)
 
     def run_claim_broken(args, *pargs, **kwargs):
-        if args[1] == '--version':
-            return subprocess.CompletedProcess(args, 0, stdout='0.15', stderr='')
-        raise subprocess.CalledProcessError(1, 'jbig2dec')
+        if args[1] == "--version":
+            return subprocess.CompletedProcess(args, 0, stdout="0.15", stderr="")
+        raise subprocess.CalledProcessError(1, "jbig2dec")
 
     patch_jbig2dec(run_claim_broken)
 
@@ -174,14 +174,14 @@ def test_jbig2_error(first_image_in, patch_jbig2dec: Callable[..., None]):
 
 @suppress_unraisable_jbigdec_error_warning
 def test_jbig2_too_old(first_image_in, patch_jbig2dec: Callable[..., None]):
-    xobj, _pdf = first_image_in('jbig2global.pdf')
+    xobj, _pdf = first_image_in("jbig2global.pdf")
     pim = PdfImage(xobj)
 
     def run_claim_old(args, *pargs, **kwargs):
-        return subprocess.CompletedProcess(args, 0, stdout='0.12', stderr='')
+        return subprocess.CompletedProcess(args, 0, stdout="0.12", stderr="")
 
     patch_jbig2dec(run_claim_old)
 
     pim = PdfImage(xobj)
-    with pytest.raises(DependencyError, match='too old'):
+    with pytest.raises(DependencyError, match="too old"):
         pim.as_pil_image()

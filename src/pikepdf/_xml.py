@@ -14,8 +14,8 @@ class _XMLParser(_UnsafeXMLParser):
     def __init__(self, *args: Any, **kwargs: Any):
         # Prevent XXE attacks
         # https://rules.sonarsource.com/python/type/Vulnerability/RSPEC-2755
-        kwargs['resolve_entities'] = False
-        kwargs['no_network'] = True
+        kwargs["resolve_entities"] = False
+        kwargs["no_network"] = True
         super().__init__(*args, **kwargs)
 
 
@@ -25,4 +25,4 @@ def parse_xml(source: AnyStr | IO[Any], recover: bool = False) -> _ElementTree:
     return _parse(source, parser=parser)
 
 
-__all__ = ['parse_xml']
+__all__ = ["parse_xml"]
