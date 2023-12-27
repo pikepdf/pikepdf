@@ -11,13 +11,12 @@ on:
 
 jobs:
   wheels_linux:
-    name: ${{ matrix.os }} - ${{ matrix.platform }}
-    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.platform }}
+    runs-on: ubuntu-22.04
     env:
       CIBW_BUILD: "*-${{ matrix.platform }}"
     strategy:
       matrix:
-        os: [ubuntu-22.04]
         platform: [manylinux_x86_64, musllinux_x86_64]
 
     steps:
@@ -27,15 +26,15 @@ jobs:
         uses: pypa/cibuildwheel@v2.16.2
 
       - name: Upload built wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-${{ matrix.platform }}
           path: ./wheelhouse/*.whl
           if-no-files-found: error
 
   wheels_linux_prerelease_python:
-    name: ${{ matrix.os }} - ${{ matrix.platform }} - pre-release
-    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.platform }} - pre-release
+    runs-on: ubuntu-22.04
     continue-on-error: true
     # Disabled until we have a pre-release of Python 3.13
     if: false
@@ -44,7 +43,6 @@ jobs:
       CIBW_PRERELEASE_PYTHONS: true
     strategy:
       matrix:
-        os: [ubuntu-22.04]
         platform: [manylinux_x86_64]
     steps:
       - uses: actions/checkout@v4
@@ -54,6 +52,9 @@ jobs:
 
   wheels_linux_arm:
     runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        platform: [manylinux_musllinux_arm64]
     steps:
       - name: Waiting for Cirrus CI
         uses: lewagon/wait-on-check-action@v1.3.1
@@ -89,20 +90,20 @@ jobs:
           unzip wheels.zip
 
       - name: Upload built wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-${{ matrix.platform }}
           path: ./wheelhouse/*.whl
           if-no-files-found: error
 
   wheels_macos:
-    name: ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.platform }}
+    runs-on: macos-12
     env:
       CIBW_BUILD: "*"
     strategy:
       matrix:
-        os: [macos-12]
+        platform: [macosx_x86_64]
 
     steps:
       - uses: actions/checkout@v4
@@ -110,13 +111,17 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.16.2
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-${{ matrix.platform }}
           path: ./wheelhouse/*.whl
 
   wheels_macos_arm:
-    runs-on: ubuntu-22.04
+    name: ${{ matrix.platform }}
+    runs-on: ubuntu-22.04  # ubuntu 22.04 manages Cirrus CI ARM builder
+    strategy:
+      matrix:
+        platform: [macosx_arm64]
     steps:
       - name: Waiting for Cirrus CI
         uses: lewagon/wait-on-check-action@v1.3.1
@@ -139,14 +144,14 @@ jobs:
           unzip wheels.zip
 
       - name: Upload built wheels
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-${{ matrix.platform }}
           path: ./wheelhouse/*.whl
           if-no-files-found: error
 
   wheels_windows:
-    name: ${{ matrix.os }} - ${{ matrix.platform }}
+    name: ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     env:
       CIBW_BUILD: "*-${{ matrix.platform }}"
@@ -180,9 +185,9 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.16.2
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-${{ matrix.platform }}
           path: ./wheelhouse/*.whl
 
   sdist:
@@ -254,9 +259,9 @@ jobs:
         with:
           files: ./coverage.xml,./cpp_coverage.info
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: sdist
           path: dist/*.tar.gz
 
   upload_pypi:
@@ -270,9 +275,16 @@ jobs:
     # upload to PyPI on every tag starting with 'v'
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: wheels
+          path: dist
+          pattern: wheels-*
+          merge-multiple: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sdist
           path: dist
 
       - name: Publish to PyPI
@@ -287,9 +299,16 @@ jobs:
       # Required to create a release
       contents: write
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: wheels
+          path: dist
+          pattern: wheels-*
+          merge-multiple: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: sdist
           path: dist
 
       - name: Create Release
