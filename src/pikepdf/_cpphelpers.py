@@ -24,8 +24,8 @@ def update_xmp_pdfversion(pdf: Pdf, version: str) -> None:
         return  # Don't create an empty XMP object just to store the version
 
     with pdf.open_metadata(set_pikepdf_as_editor=False, update_docinfo=False) as meta:
-        if 'pdf:PDFVersion' in meta:
-            meta['pdf:PDFVersion'] = version
+        if "pdf:PDFVersion" in meta:
+            meta["pdf:PDFVersion"] = version
 
 
 def _alpha(n: int) -> str:
@@ -36,9 +36,9 @@ def _alpha(n: int) -> str:
     while n > 0:
         n, r = divmod(n - 1, 26)
         p.append(r)
-    base = ord('A')
+    base = ord("A")
     ords = [(base + v) for v in reversed(p)]
-    return ''.join(chr(o) for o in ords)
+    return "".join(chr(o) for o in ords)
 
 
 def _roman(n: int) -> str:
@@ -46,19 +46,19 @@ def _roman(n: int) -> str:
     if not (1 <= n <= 5000):
         raise ValueError(f"Can't represent {n} in Roman numerals")
     roman_numerals = (
-        (1000, 'M'),
-        (900, 'CM'),
-        (500, 'D'),
-        (400, 'CD'),
-        (100, 'C'),
-        (90, 'XC'),
-        (50, 'L'),
-        (40, 'XL'),
-        (10, 'X'),
-        (9, 'IX'),
-        (5, 'V'),
-        (4, 'IV'),
-        (1, 'I'),
+        (1000, "M"),
+        (900, "CM"),
+        (500, "D"),
+        (400, "CD"),
+        (100, "C"),
+        (90, "XC"),
+        (50, "L"),
+        (40, "XL"),
+        (10, "X"),
+        (9, "IX"),
+        (5, "V"),
+        (4, "IV"),
+        (1, "I"),
     )
     roman = ""
     for value, numeral in roman_numerals:
@@ -82,7 +82,7 @@ def label_from_label_dict(label_dict: int | Dictionary) -> str:
     if isinstance(label_dict, int):
         return str(label_dict)
 
-    label = ''
+    label = ""
     if Name.P in label_dict:
         prefix = label_dict[Name.P]
         label += str(prefix)

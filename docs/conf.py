@@ -23,21 +23,21 @@ except ModuleNotFoundError:
 
 
 extensions = [
-    'autoapi.extension',
-    'sphinx.ext.autodoc',
-    'sphinx.ext.autosummary',
-    'sphinx.ext.doctest',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.napoleon',
-    'sphinx_issues',
-    'sphinx_design',
+    "autoapi.extension",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.doctest",
+    "sphinx.ext.intersphinx",
+    "sphinx.ext.mathjax",
+    "sphinx.ext.napoleon",
+    "sphinx_issues",
+    "sphinx_design",
 ]
 
-autodoc_mock_imports = ['libxmp']
-autodoc_typehints = 'description'
+autodoc_mock_imports = ["libxmp"]
+autodoc_typehints = "description"
 
-autoapi_dirs = ['../src/pikepdf']
+autoapi_dirs = ["../src/pikepdf"]
 autoapi_generate_api_docs = False
 
 doctest_global_setup = """
@@ -48,8 +48,8 @@ Name = pikepdf.Name
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, os.path.join(os.path.abspath('.'), './_ext'))
-sys.path.insert(0, os.path.join(os.path.abspath('.'), '..'))
+sys.path.insert(0, os.path.join(os.path.abspath("."), "./_ext"))
+sys.path.insert(0, os.path.join(os.path.abspath("."), ".."))
 
 
 # -- General configuration ------------------------------------------------
@@ -57,16 +57,16 @@ sys.path.insert(0, os.path.join(os.path.abspath('.'), '..'))
 # If your documentation needs a minimal Sphinx version, state it here.
 # needs_sphinx = '1.0'
 
-issues_github_path = 'pikepdf/pikepdf'
+issues_github_path = "pikepdf/pikepdf"
 
 autosummary_generate = True
 
 # Add any paths that contain templates here, relative to this directory.
-templates_path = ['_templates']
+templates_path = ["_templates"]
 
-with open('../pyproject.toml', 'rb') as f:
+with open("../pyproject.toml", "rb") as f:
     pyproject_toml = tomllib.load(f)
-toml_env = pyproject_toml['tool']['cibuildwheel']['environment']
+toml_env = pyproject_toml["tool"]["cibuildwheel"]["environment"]
 
 rst_prolog = f"""
 .. |pdfrm| replace:: :doc:`PDF 1.7 Reference Manual </references/resources>`
@@ -75,23 +75,22 @@ rst_prolog = f"""
 """
 
 # The suffix(es) of source filenames.
-source_suffix = ['.rst', '.md']
+source_suffix = [".rst", ".md"]
 
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 # General information about the project.
-project = 'pikepdf'
-copyright = '2023, James R. Barlow'  # pylint: disable=redefined-builtin
-author = 'James R. Barlow'
+project = "pikepdf"
+copyright = "2023, James R. Barlow"  # pylint: disable=redefined-builtin
+author = "James R. Barlow"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
-
 release = "8.11.0"
 version = '.'.join(release.split('.')[:2])
 
@@ -100,7 +99,7 @@ version = '.'.join(release.split('.')[:2])
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = 'en'
+language = "en"
 
 # There are two options for replacing |today|: either, you set today to some
 # non-false value, then it is used:
@@ -110,7 +109,7 @@ language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['_build', '**.ipynb_checkpoints', '_notebooks']
+exclude_patterns = ["_build", "**.ipynb_checkpoints", "_notebooks"]
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -128,7 +127,7 @@ exclude_patterns = ['_build', '**.ipynb_checkpoints', '_notebooks']
 # show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = "sphinx"
 
 # A list of ignored prefixes for module index sorting.
 # modindex_common_prefix = []
@@ -144,7 +143,7 @@ todo_include_todos = False
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'sphinx_rtd_theme'
+html_theme = "sphinx_rtd_theme"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -163,7 +162,7 @@ html_theme = 'sphinx_rtd_theme'
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = 'images/pike-cartoon.png'
+html_logo = "images/pike-cartoon.png"
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -173,10 +172,10 @@ html_logo = 'images/pike-cartoon.png'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = ["_static"]
 
 html_css_files = [
-    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css'
+    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
 ]
 
 
@@ -241,7 +240,7 @@ html_css_files = [
 # html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'pikepdfdoc'
+htmlhelp_basename = "pikepdfdoc"
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -260,7 +259,7 @@ latex_elements = {  # type: ignore
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'pikepdf.tex', 'pikepdf Documentation', 'James R. Barlow', 'manual')
+    (master_doc, "pikepdf.tex", "pikepdf Documentation", "James R. Barlow", "manual")
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -288,7 +287,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, 'pikepdf', 'pikepdf Documentation', [author], 1)]
+man_pages = [(master_doc, "pikepdf", "pikepdf Documentation", [author], 1)]
 
 # If true, show URL addresses after external links.
 # man_show_urls = False
@@ -302,12 +301,12 @@ man_pages = [(master_doc, 'pikepdf', 'pikepdf Documentation', [author], 1)]
 texinfo_documents = [
     (
         master_doc,
-        'pikepdf',
-        'pikepdf Documentation',
+        "pikepdf",
+        "pikepdf Documentation",
         author,
-        'pikepdf',
-        'Python bindings for QPDF.',
-        'Miscellaneous',
+        "pikepdf",
+        "Python bindings for QPDF.",
+        "Miscellaneous",
     )
 ]
 

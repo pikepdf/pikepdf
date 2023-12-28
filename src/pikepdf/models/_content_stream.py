@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from pikepdf.models.image import PdfInlineImage
 
 # Operands, Operator
-_OldContentStreamOperands = Collection[Union[Object, 'PdfInlineImage']]
+_OldContentStreamOperands = Collection[Union[Object, "PdfInlineImage"]]
 _OldContentStreamInstructions = Tuple[_OldContentStreamOperands, Operator]
 
 ContentStreamInstructions = Union[ContentStreamInstruction, ContentStreamInlineImage]
@@ -43,7 +43,7 @@ class PdfParsingError(Exception):
 
 
 def parse_content_stream(
-    page_or_stream: Object | Page, operators: str = ''
+    page_or_stream: Object | Page, operators: str = ""
 ) -> list[ContentStreamInstructions]:
     """Parse a PDF content stream into a sequence of instructions.
 
@@ -90,7 +90,7 @@ def parse_content_stream(
     if (
         isinstance(page_or_stream, Object)
         and page_or_stream._type_code != ObjectType.stream
-        and page_or_stream.get('/Type') != '/Page'
+        and page_or_stream.get("/Type") != "/Page"
     ):
         raise TypeError("parse_content_stream called on page or stream object")
 
@@ -98,7 +98,7 @@ def parse_content_stream(
         page_or_stream = page_or_stream.obj
 
     try:
-        if page_or_stream.get('/Type') == '/Page':
+        if page_or_stream.get("/Type") == "/Page":
             page = page_or_stream
             instructions = cast(
                 List[ContentStreamInstructions],
@@ -111,7 +111,7 @@ def parse_content_stream(
                 Object._parse_stream_grouped(stream, operators),
             )
     except PdfError as e:
-        if 'supposed to be a stream or an array' in str(e):
+        if "supposed to be a stream or an array" in str(e):
             raise TypeError("parse_content_stream called on non-stream Object") from e
         raise e from e
 

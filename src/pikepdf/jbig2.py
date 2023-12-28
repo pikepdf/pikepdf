@@ -52,12 +52,12 @@ class JBIG2Decoder(JBIG2DecoderInterface):
     def check_available(self) -> None:
         """Check if jbig2dec is installed and usable."""
         version = self._version()
-        if version < Version('0.15'):
+        if version < Version("0.15"):
             raise DependencyError("jbig2dec is too old (older than version 0.15)")
 
     def decode_jbig2(self, jbig2: bytes, jbig2_globals: bytes) -> bytes:
         """Decode JBIG2 from binary data, returning decode bytes."""
-        with TemporaryDirectory(prefix='pikepdf-', suffix='.jbig2') as tmpdir:
+        with TemporaryDirectory(prefix="pikepdf-", suffix=".jbig2") as tmpdir:
             image_path = Path(tmpdir) / "image"
             global_path = Path(tmpdir) / "global"
             output_path = Path(tmpdir) / "outfile"
@@ -90,14 +90,14 @@ class JBIG2Decoder(JBIG2DecoderInterface):
     def _version(self) -> Version:
         try:
             proc = self._run(
-                ['jbig2dec', '--version'], stdout=PIPE, check=True, encoding='ascii'
+                ["jbig2dec", "--version"], stdout=PIPE, check=True, encoding="ascii"
             )
         except (CalledProcessError, FileNotFoundError) as e:
             raise DependencyError("jbig2dec - not installed or not found") from e
         else:
             result = proc.stdout
             version_str = result.replace(
-                'jbig2dec', ''
+                "jbig2dec", ""
             ).strip()  # returns "jbig2dec 0.xx"
             return Version(version_str)
 

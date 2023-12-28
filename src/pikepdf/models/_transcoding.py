@@ -110,11 +110,11 @@ def image_from_byte_buffer(buffer: BytesLike, size: tuple[int, int], stride: int
     with odd image widths.
     """
     ystep = 1  # image is top to bottom in memory
-    return Image.frombuffer('L', size, buffer, "raw", 'L', stride, ystep)
+    return Image.frombuffer("L", size, buffer, "raw", "L", stride, ystep)
 
 
 def _make_rgb_palette(gray_palette: bytes) -> bytes:
-    palette = b''
+    palette = b""
     for entry in gray_palette:
         palette += bytes([entry]) * 3
     return palette
@@ -145,21 +145,21 @@ def image_from_buffer_and_palette(
     # 8.2.0: all aligned by channel (very nonstandard)
     # 8.3.0: all channels for one color followed by the next color (e.g. RGBRGBRGB)
 
-    if base_mode == 'RGB':
+    if base_mode == "RGB":
         im = image_from_byte_buffer(buffer, size, stride)
         im.putpalette(palette, rawmode=base_mode)
-    elif base_mode == 'L':
+    elif base_mode == "L":
         # Pillow does not fully support palettes with rawmode='L'.
         # Convert to RGB palette.
         gray_palette = _make_rgb_palette(palette)
         im = image_from_byte_buffer(buffer, size, stride)
-        im.putpalette(gray_palette, rawmode='RGB')
-    elif base_mode == 'CMYK':
+        im.putpalette(gray_palette, rawmode="RGB")
+    elif base_mode == "CMYK":
         # Pillow does not support CMYK with palettes; convert manually
         output = _depalettize_cmyk(buffer, palette)
-        im = Image.frombuffer('CMYK', size, data=output, decoder_name='raw')
+        im = Image.frombuffer("CMYK", size, data=output, decoder_name="raw")
     else:
-        raise NotImplementedError(f'palette with {base_mode}')
+        raise NotImplementedError(f"palette with {base_mode}")
     return im
 
 
@@ -167,20 +167,22 @@ def fix_1bit_palette_image(
     im: Image.Image, base_mode: str, palette: BytesLike
 ) -> Image.Image:
     """Apply palettes to 1-bit images."""
-    im = im.convert('P')
-    if base_mode == 'RGB' and len(palette) == 6:
+    im = im.convert("P")
+    if base_mode == "RGB" and len(palette) == 6:
         # rgbrgb -> rgb000000...rgb
-        expanded_palette = b''.join(
-            [palette[0:3], (b'\x00\x00\x00' * (256 - 2)), palette[3:6]]
-        )
-        im.putpalette(expanded_palette, rawmode='RGB')
-    elif base_mode == 'L':
+        expanded_palette = b"".join([
+            palette[0:3],
+            (b"\x00\x00\x00" * (256 - 2)),
+            palette[3:6],
+        ])
+        im.putpalette(expanded_palette, rawmode="RGB")
+    elif base_mode == "L":
         try:
-            im.putpalette(palette, rawmode='L')
+            im.putpalette(palette, rawmode="L")
         except ValueError as e:
-            if 'unrecognized raw mode' in str(e):
+            if "unrecognized raw mode" in str(e):
                 rgb_palette = _make_rgb_palette(palette)
-                im.putpalette(rgb_palette, rawmode='RGB')
+                im.putpalette(rgb_palette, rawmode="RGB")
     return im
 
 
@@ -194,10 +196,10 @@ def generate_ccitt_header(
     icc: bytes,
 ) -> bytes:
     """Generate binary CCITT header for image with given parameters."""
-    tiff_header_struct = '<' + '2s' + 'H' + 'L' + 'H'
+    tiff_header_struct = "<" + "2s" + "H" + "L" + "H"
 
     tag_keys = {tag.name: key for key, tag in TIFF_TAGS.items()}  # type: ignore
-    ifd_struct = '<HHLL'
+    ifd_struct = "<HHLL"
 
     class IFD(NamedTuple):
         key: int
@@ -221,29 +223,29 @@ def generate_ccitt_header(
 
     image_offset = None
     width, height = size
-    add_ifd('ImageWidth', width)
-    add_ifd('ImageLength', height)
-    add_ifd('BitsPerSample', 1)
-    add_ifd('Compression', ccitt_group)
-    add_ifd('FillOrder', 1)
+    add_ifd("ImageWidth", width)
+    add_ifd("ImageLength", height)
+    add_ifd("BitsPerSample", 1)
+    add_ifd("Compression", ccitt_group)
+    add_ifd("FillOrder", 1)
     if t4_options is not None:
-        add_ifd('T4Options', t4_options)
-    add_ifd('PhotometricInterpretation', photometry)
-    add_ifd('StripOffsets', lambda: image_offset)
-    add_ifd('RowsPerStrip', height)
-    add_ifd('StripByteCounts', data_length)
+        add_ifd("T4Options", t4_options)
+    add_ifd("PhotometricInterpretation", photometry)
+    add_ifd("StripOffsets", lambda: image_offset)
+    add_ifd("RowsPerStrip", height)
+    add_ifd("StripByteCounts", data_length)
 
     icc_offset = 0
     if icc:
-        add_ifd('ICCProfile', lambda: icc_offset, count=len(icc))
+        add_ifd("ICCProfile", lambda: icc_offset, count=len(icc))
 
     icc_offset = header_length(len(ifds))
     image_offset = icc_offset + len(icc)
 
     ifd_args = [(arg() if callable(arg) else arg) for ifd in ifds for arg in ifd]
     tiff_header = struct.pack(
-        (tiff_header_struct + ifd_struct[1:] * len(ifds) + 'L'),
-        b'II',  # Byte order indication: Little endian
+        (tiff_header_struct + ifd_struct[1:] * len(ifds) + "L"),
+        b"II",  # Byte order indication: Little endian
         42,  # Version number (always 42)
         8,  # Offset to first IFD
         len(ifds),  # Number of tags in IFD

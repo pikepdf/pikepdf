@@ -14,7 +14,7 @@ from pikepdf import Pdf, PdfError
 
 
 # Files with unknown copyright status can't be shared publicly
-PRIVATE_RESOURCES = Path(__file__).parent / 'resources' / 'private'
+PRIVATE_RESOURCES = Path(__file__).parent / "resources" / "private"
 
 
 @pytest.fixture
@@ -23,11 +23,11 @@ def private():
 
 
 pytestmark = pytest.mark.skipif(
-    not PRIVATE_RESOURCES.is_dir(), reason='private resources not available'
+    not PRIVATE_RESOURCES.is_dir(), reason="private resources not available"
 )
 
 
 def test_pypdf2_issue_361(private):
-    with gzip.open(str(private / 'pypdf2_issue_361.pdf.gz'), 'rb') as gz:
-        with pytest.raises(PdfError, match=r'trailer'):
+    with gzip.open(str(private / "pypdf2_issue_361.pdf.gz"), "rb") as gz:
+        with pytest.raises(PdfError, match=r"trailer"):
             Pdf.open(gz)

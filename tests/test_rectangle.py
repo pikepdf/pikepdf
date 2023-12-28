@@ -40,13 +40,13 @@ def test_rect_creation():
 
 def test_rect_from_invalid():
     with pytest.raises(TypeError):
-        Rectangle('foo')
+        Rectangle("foo")
     with pytest.raises(TypeError):
         Rectangle(Name.Foo)
     with pytest.raises(TypeError):
         Rectangle(Array([1, 2]))
     with pytest.raises(TypeError):
-        Rectangle(Array(['one', 'two', 'three', 'four']))
+        Rectangle(Array(["one", "two", "three", "four"]))
 
 
 def test_rectangle_operators():

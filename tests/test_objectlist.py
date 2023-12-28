@@ -10,7 +10,7 @@ import pikepdf
 
 @pytest.fixture
 def pal(resources):
-    with pikepdf.open(resources / 'pal.pdf') as pdf:
+    with pikepdf.open(resources / "pal.pdf") as pdf:
         yield pdf
 
 
