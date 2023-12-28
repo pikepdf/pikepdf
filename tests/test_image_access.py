@@ -770,15 +770,13 @@ def test_decodeparms_filter_alternates():
         b"dummy",
         BitsPerComponent=1,
         ColorSpace=Name.DeviceGray,
-        DecodeParms=Array(
-            [
-                Dictionary(
-                    BlackIs1=False,
-                    Columns=16,
-                    K=-1,
-                )
-            ]
-        ),
+        DecodeParms=Array([
+            Dictionary(
+                BlackIs1=False,
+                Columns=16,
+                K=-1,
+            )
+        ]),
         Filter=Array([Name.CCITTFaxDecode]),
         Height=16,
         Width=16,
@@ -862,20 +860,18 @@ def test_separation():
     }
     """
 
-    cs = Array(
-        [
-            Name.Separation,
-            Name.LogoGreen,
-            Name.DeviceCMYK,
-            Stream(
-                pdf,
-                tint_transform_logogreen_to_cmyk,
-                FunctionType=4,
-                Domain=[0.0, 1.0],
-                Range=[0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
-            ),
-        ]
-    )
+    cs = Array([
+        Name.Separation,
+        Name.LogoGreen,
+        Name.DeviceCMYK,
+        Stream(
+            pdf,
+            tint_transform_logogreen_to_cmyk,
+            FunctionType=4,
+            Domain=[0.0, 1.0],
+            Range=[0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
+        ),
+    ])
 
     def check_pim(imobj, idx):
         pim = pikepdf.PdfImage(imobj)
@@ -939,20 +935,18 @@ def test_devicen():
     # is done so that the output test file can be checked in a PDF viewer.
     tint_transform_k_to_cmyk = b"{0 0 0 4 -1 roll}"
 
-    cs = Array(
-        [
-            Name.DeviceN,
-            Array([Name.Black]),
-            Name.DeviceCMYK,
-            Stream(
-                pdf,
-                tint_transform_k_to_cmyk,
-                FunctionType=4,
-                Domain=[0.0, 1.0],
-                Range=[0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
-            ),
-        ]
-    )
+    cs = Array([
+        Name.DeviceN,
+        Array([Name.Black]),
+        Name.DeviceCMYK,
+        Stream(
+            pdf,
+            tint_transform_k_to_cmyk,
+            FunctionType=4,
+            Domain=[0.0, 1.0],
+            Range=[0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
+        ),
+    ])
 
     def check_pim(imobj, idx):
         pim = pikepdf.PdfImage(imobj)

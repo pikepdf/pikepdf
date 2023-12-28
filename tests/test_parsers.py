@@ -304,15 +304,15 @@ class TestMalformedContentStreamInstructions:
 
     def test_rejects_not_operator(self):
         with pytest.raises(PdfParsingError, match="While unparsing"):
-            unparse_content_stream(
-                [(["one", "two"], Name.FortyTwo)]
-            )  # Name is not an operator
+            unparse_content_stream([
+                (["one", "two"], Name.FortyTwo)
+            ])  # Name is not an operator
 
     def test_rejects_inline_image_missing(self):
         with pytest.raises(PdfParsingError):
-            unparse_content_stream(
-                [("should be a PdfInlineImage but is not", b"INLINE IMAGE")]
-            )
+            unparse_content_stream([
+                ("should be a PdfInlineImage but is not", b"INLINE IMAGE")
+            ])
 
     def test_accepts_all_lists(self):
         unparse_content_stream([[[], b"Q"]])

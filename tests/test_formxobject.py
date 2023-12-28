@@ -72,14 +72,12 @@ def test_create_form_xobjects(outdir):
     contents = Stream(pdf, stream)
 
     page = Page(
-        pdf.make_indirect(
-            {
-                "/Type": Name("/Page"),
-                "/MediaBox": mediabox,
-                "/Contents": contents,
-                "/Resources": resources,
-            }
-        )
+        pdf.make_indirect({
+            "/Type": Name("/Page"),
+            "/MediaBox": mediabox,
+            "/Contents": contents,
+            "/Resources": resources,
+        })
     )
 
     pdf.pages.append(page)

@@ -146,9 +146,12 @@ def test_jbig2_global(first_image_in):
 @needs_jbig2dec
 def test_jbig2_global_palette(first_image_in):
     xobj, _pdf = first_image_in("jbig2global.pdf")
-    xobj.ColorSpace = pikepdf.Array(
-        [Name.Indexed, Name.DeviceRGB, 1, b"\x00\x00\x00\xff\xff\xff"]
-    )
+    xobj.ColorSpace = pikepdf.Array([
+        Name.Indexed,
+        Name.DeviceRGB,
+        1,
+        b"\x00\x00\x00\xff\xff\xff",
+    ])
     pim = PdfImage(xobj)
     im = pim.as_pil_image()
     assert im.size == (4000, 2864)

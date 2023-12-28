@@ -475,16 +475,14 @@ def test_not_convertible():
 
 
 def test_json():
-    d = Dictionary(
-        {
-            "/Boolean": True,
-            "/Integer": 42,
-            "/Real": Decimal("42.42"),
-            "/String": String("hi"),
-            "/Array": Array([1, 2, 3.14]),
-            "/Dictionary": Dictionary({"/Color": "Red"}),
-        }
-    )
+    d = Dictionary({
+        "/Boolean": True,
+        "/Integer": 42,
+        "/Real": Decimal("42.42"),
+        "/String": String("hi"),
+        "/Array": Array([1, 2, 3.14]),
+        "/Dictionary": Dictionary({"/Color": "Red"}),
+    })
     json_bytes = d.to_json(False)
     as_dict = json.loads(json_bytes)
     assert as_dict == {
@@ -686,16 +684,14 @@ class TestStreamReadWrite:
 
 
 def test_copy():
-    d = Dictionary(
-        {
-            "/Boolean": True,
-            "/Integer": 42,
-            "/Real": Decimal("42.42"),
-            "/String": String("hi"),
-            "/Array": Array([1, 2, 3.14]),
-            "/Dictionary": Dictionary({"/Color": "Red"}),
-        }
-    )
+    d = Dictionary({
+        "/Boolean": True,
+        "/Integer": 42,
+        "/Real": Decimal("42.42"),
+        "/String": String("hi"),
+        "/Array": Array([1, 2, 3.14]),
+        "/Dictionary": Dictionary({"/Color": "Red"}),
+    })
     d2 = copy(d)
     assert d2 == d
     assert d2 is not d

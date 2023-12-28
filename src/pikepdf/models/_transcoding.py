@@ -170,9 +170,11 @@ def fix_1bit_palette_image(
     im = im.convert("P")
     if base_mode == "RGB" and len(palette) == 6:
         # rgbrgb -> rgb000000...rgb
-        expanded_palette = b"".join(
-            [palette[0:3], (b"\x00\x00\x00" * (256 - 2)), palette[3:6]]
-        )
+        expanded_palette = b"".join([
+            palette[0:3],
+            (b"\x00\x00\x00" * (256 - 2)),
+            palette[3:6],
+        ])
         im.putpalette(expanded_palette, rawmode="RGB")
     elif base_mode == "L":
         try:

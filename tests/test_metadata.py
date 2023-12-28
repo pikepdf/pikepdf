@@ -557,19 +557,17 @@ def test_extension_level(trivial, outpdf):
 @settings(deadline=60000)
 @given(
     st.dictionaries(
-        keys=st.sampled_from(
-            [
-                "/Author",
-                "/Subject",
-                "/Title",
-                "/Keywords",
-                "/Producer",
-                "/CreationDate",
-                "/Creator",
-                "/ModDate",
-                "/Dummy",
-            ]
-        ),
+        keys=st.sampled_from([
+            "/Author",
+            "/Subject",
+            "/Title",
+            "/Keywords",
+            "/Producer",
+            "/CreationDate",
+            "/Creator",
+            "/ModDate",
+            "/Dummy",
+        ]),
         values=st.recursive(
             st.none() | st.binary(max_size=16) | st.booleans(),
             lambda children: st.lists(children, min_size=0, max_size=4),
@@ -593,16 +591,14 @@ def test_random_docinfo(docinfo):
 
 @given(
     st.dictionaries(
-        keys=st.sampled_from(
-            [
-                "/Author",
-                "/Subject",
-                "/Title",
-                "/Keywords",
-                "/Producer",
-                "/Creator",
-            ]
-        ),
+        keys=st.sampled_from([
+            "/Author",
+            "/Subject",
+            "/Title",
+            "/Keywords",
+            "/Producer",
+            "/Creator",
+        ]),
         values=st.none() | st.characters(blacklist_categories=("Cs",)),
     )
 )

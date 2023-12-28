@@ -114,14 +114,12 @@ XMP_CONTAINERS = [
     XmpContainer("Seq", list, list.append),
 ]
 
-LANG_ALTS = frozenset(
-    [
-        str(QName(XMP_NS_DC, "title")),
-        str(QName(XMP_NS_DC, "description")),
-        str(QName(XMP_NS_DC, "rights")),
-        str(QName(XMP_NS_XMP_RIGHTS, "UsageTerms")),
-    ]
-)
+LANG_ALTS = frozenset([
+    str(QName(XMP_NS_DC, "title")),
+    str(QName(XMP_NS_DC, "description")),
+    str(QName(XMP_NS_DC, "rights")),
+    str(QName(XMP_NS_XMP_RIGHTS, "UsageTerms")),
+])
 
 # These are the illegal characters in XML 1.0. (XML 1.1 is a bit more permissive,
 # but we'll be strict to ensure wider compatibility.)

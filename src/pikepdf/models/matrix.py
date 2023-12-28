@@ -94,12 +94,10 @@ class PdfMatrix:
         """
         a = self.values
         b = other.values
-        return PdfMatrix(
-            [
-                [sum(float(i) * float(j) for i, j in zip(row, col)) for col in zip(*b)]
-                for row in a
-            ]
-        )
+        return PdfMatrix([
+            [sum(float(i) * float(j) for i, j in zip(row, col)) for col in zip(*b)]
+            for row in a
+        ])
 
     def __array__(self):
         """Return a numpy array of the matrix.

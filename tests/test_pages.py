@@ -492,16 +492,14 @@ def test_page_labels():
 
     p.Root.PageLabels = p.make_indirect(
         Dictionary(
-            Nums=Array(
-                [
-                    0,  # new label rules begin at index 0
-                    Dictionary(S=Name.r),  # use lowercase roman numerals, until...
-                    2,  # new label rules begin at index 2
-                    Dictionary(
-                        S=Name.D, St=42, P="Prefix-"
-                    ),  # label pages as 'Prefix-42', 'Prefix-43', ...
-                ]
-            )
+            Nums=Array([
+                0,  # new label rules begin at index 0
+                Dictionary(S=Name.r),  # use lowercase roman numerals, until...
+                2,  # new label rules begin at index 2
+                Dictionary(
+                    S=Name.D, St=42, P="Prefix-"
+                ),  # label pages as 'Prefix-42', 'Prefix-43', ...
+            ])
         )
     )
 

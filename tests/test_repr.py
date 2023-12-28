@@ -15,17 +15,15 @@ from pikepdf import Array, Dictionary, Name, Operator, String
 
 
 def test_repr_dict():
-    d = Dictionary(
-        {
-            "/Boolean": True,
-            "/Integer": 42,
-            "/Real": Decimal("42.42"),
-            "/String": String("hi"),
-            "/Array": Array([1, 2, 3.14]),
-            "/Operator": Operator("q"),
-            "/Dictionary": Dictionary({"/Color": "Red"}),
-        }
-    )
+    d = Dictionary({
+        "/Boolean": True,
+        "/Integer": 42,
+        "/Real": Decimal("42.42"),
+        "/String": String("hi"),
+        "/Array": Array([1, 2, 3.14]),
+        "/Operator": Operator("q"),
+        "/Dictionary": Dictionary({"/Color": "Red"}),
+    })
     short_pi = "3.14"
     expected = (
         """\
