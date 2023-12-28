@@ -277,7 +277,6 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: wheels
           path: dist
           pattern: wheels-*
           merge-multiple: true
@@ -301,7 +300,6 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: wheels
           path: dist
           pattern: wheels-*
           merge-multiple: true
