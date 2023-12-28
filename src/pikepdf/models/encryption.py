@@ -81,12 +81,12 @@ class EncryptionInfo:
     @property
     def R(self) -> int:
         """Revision number of the security handler."""
-        return int(self._encdict["R"])
+        return int(self._encdict['R'])
 
     @property
     def V(self) -> int:
         """Version of PDF password algorithm."""
-        return int(self._encdict["V"])
+        return int(self._encdict['V'])
 
     @property
     def P(self) -> int:
@@ -94,22 +94,22 @@ class EncryptionInfo:
 
         See :meth:`Pdf.allow` instead.
         """
-        return int(self._encdict["P"])
+        return int(self._encdict['P'])
 
     @property
     def stream_method(self) -> EncryptionMethod:
         """Encryption method used to encode streams."""
-        return cast("EncryptionMethod", self._encdict["stream"])
+        return cast('EncryptionMethod', self._encdict['stream'])
 
     @property
     def string_method(self) -> EncryptionMethod:
         """Encryption method used to encode strings."""
-        return cast("EncryptionMethod", self._encdict["string"])
+        return cast('EncryptionMethod', self._encdict['string'])
 
     @property
     def file_method(self) -> EncryptionMethod:
         """Encryption method used to encode the whole file."""
-        return cast("EncryptionMethod", self._encdict["file"])
+        return cast('EncryptionMethod', self._encdict['file'])
 
     @property
     def user_password(self) -> bytes:
@@ -122,12 +122,12 @@ class EncryptionInfo:
         The password is always returned as ``bytes`` even if it has
         a clear Unicode representation.
         """
-        return bytes(self._encdict["user_passwd"])
+        return bytes(self._encdict['user_passwd'])
 
     @property
     def encryption_key(self) -> bytes:
         """Return the RC4 or AES encryption key used for this file."""
-        return bytes(self._encdict["encryption_key"])
+        return bytes(self._encdict['encryption_key'])
 
     @property
     def bits(self) -> int:
@@ -135,27 +135,27 @@ class EncryptionInfo:
 
         e.g. if the algorithm is AES-256, this returns 256.
         """
-        return len(self._encdict["encryption_key"]) * 8
+        return len(self._encdict['encryption_key']) * 8
 
     def __repr__(self):
         return (
-            f"<{self.__class__.__name__}: {self.R=}, {self.V=}, {self.P=} "
-            f"{self.stream_method=}, {self.string_method=}, "
-            f"{self.file_method=}, {self.user_password=}, "
-            f"{self.encryption_key=}, {self.bits=}>"
+            f'<{self.__class__.__name__}: {self.R=}, {self.V=}, {self.P=} '
+            f'{self.stream_method=}, {self.string_method=}, '
+            f'{self.file_method=}, {self.user_password=}, '
+            f'{self.encryption_key=}, {self.bits=}>'
         )
 
 
 class Encryption(NamedTuple):
     """Specify the encryption settings to apply when a PDF is saved."""
 
-    owner: str = ""
+    owner: str = ''
     """The owner password to use. This allows full control
     of the file. If blank, the PDF will be encrypted and
     present as "(SECURED)" in PDF viewers. If the owner password
     is blank, the user password should be as well."""
 
-    user: str = ""
+    user: str = ''
     """The user password to use. With this password, some
     restrictions will be imposed by a typical PDF reader.
     If blank, the PDF can be opened by anyone, but only modified

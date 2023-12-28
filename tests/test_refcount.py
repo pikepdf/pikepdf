@@ -13,8 +13,8 @@ from pikepdf import DeletedObjectError, Pdf
 
 
 def test_access_image(resources):
-    pdf = Pdf.open(resources / "congress.pdf")
-    im0 = pdf.pages[0].Resources.XObject["/Im0"]
+    pdf = Pdf.open(resources / 'congress.pdf')
+    im0 = pdf.pages[0].Resources.XObject['/Im0']
 
     del pdf
     gc.collect()
@@ -23,7 +23,7 @@ def test_access_image(resources):
 
 
 def test_access_page(resources):
-    pdf = Pdf.open(resources / "graph.pdf")
+    pdf = Pdf.open(resources / 'graph.pdf')
     page0 = pdf.pages[0]
     also_page0 = pdf.pages.p(1)
     del pdf
@@ -37,7 +37,7 @@ def test_access_page(resources):
 
 
 def test_remove_pdf_and_all_pages(resources):
-    pdf = Pdf.open(resources / "graph.pdf")
+    pdf = Pdf.open(resources / 'graph.pdf')
     page0 = pdf.pages[0]
     contents = page0.Contents
     del pdf
@@ -49,7 +49,7 @@ def test_remove_pdf_and_all_pages(resources):
 
 
 def test_access_pdf_metadata(resources):
-    pdf = Pdf.open(resources / "graph.pdf")
+    pdf = Pdf.open(resources / 'graph.pdf')
     meta = pdf.Root.Metadata
     del pdf
     gc.collect()
@@ -58,11 +58,11 @@ def test_access_pdf_metadata(resources):
 
 
 def test_transfer_page(resources):
-    pdf = Pdf.open(resources / "graph.pdf")
+    pdf = Pdf.open(resources / 'graph.pdf')
     page0 = pdf.pages[0]
     before = page0.Contents.read_bytes()
 
-    pdf2 = Pdf.open(resources / "fourpages.pdf")
+    pdf2 = Pdf.open(resources / 'fourpages.pdf')
     pdf2.pages.insert(2, page0)
     p2p2 = pdf2.pages[2]
 
@@ -74,7 +74,7 @@ def test_transfer_page(resources):
 
 
 def test_new_pdf():
-    if not hasattr(gc, "get_count"):
+    if not hasattr(gc, 'get_count'):
         pytest.skip(reason="implementation does not have gc.get_count()")
 
     before = gc.get_count()

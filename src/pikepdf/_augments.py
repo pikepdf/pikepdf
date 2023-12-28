@@ -35,7 +35,7 @@ def augment_if_no_cpp(fn: AugmentedCallable) -> AugmentedCallable:
 def _is_inherited_method(meth: Callable) -> bool:
     # Augmenting a C++ with a method that cls inherits from the Python
     # object is never what we want.
-    return meth.__qualname__.startswith("object.")
+    return meth.__qualname__.startswith('object.')
 
 
 def _is_augmentable(m: Any) -> bool:
@@ -44,8 +44,8 @@ def _is_augmentable(m: Any) -> bool:
     ) or inspect.isdatadescriptor(m)
 
 
-Tcpp = TypeVar("Tcpp")
-T = TypeVar("T")
+Tcpp = TypeVar('Tcpp')
+T = TypeVar('T')
 
 
 def augments(cls_cpp: type[Tcpp]):
@@ -86,26 +86,26 @@ def augments(cls_cpp: type[Tcpp]):
 
     (Alternative ideas: https://github.com/pybind/pybind11/issues/1074)
     """
-    OVERRIDE_WHITELIST = {"__eq__", "__hash__", "__repr__"}
-    if platform.python_implementation() == "PyPy":
+    OVERRIDE_WHITELIST = {'__eq__', '__hash__', '__repr__'}
+    if platform.python_implementation() == 'PyPy':
         # Either PyPy or pybind11's interface to PyPy automatically adds a __getattr__
-        OVERRIDE_WHITELIST |= {"__getattr__"}  # pragma: no cover
+        OVERRIDE_WHITELIST |= {'__getattr__'}  # pragma: no cover
 
     def class_augment(cls: type[T], cls_cpp: type[Tcpp] = cls_cpp) -> type[T]:
         # inspect.getmembers has different behavior on PyPy - in particular it seems
         # that a typical PyPy class like cls will have more methods that it considers
         # methods than CPython does. Our predicate should take care of this.
         for name, member in inspect.getmembers(cls, predicate=_is_augmentable):
-            if name == "__weakref__":
+            if name == '__weakref__':
                 continue
             if (
                 hasattr(cls_cpp, name)
                 and hasattr(cls, name)
-                and name not in getattr(cls, "__abstractmethods__", set())
+                and name not in getattr(cls, '__abstractmethods__', set())
                 and name not in OVERRIDE_WHITELIST
-                and not getattr(getattr(cls, name), "_augment_override_cpp", False)
+                and not getattr(getattr(cls, name), '_augment_override_cpp', False)
             ):
-                if getattr(getattr(cls, name), "_augment_if_no_cpp", False):
+                if getattr(getattr(cls, name), '_augment_if_no_cpp', False):
                     # If tagged as "augment if no C++", we only want the binding to be
                     # applied when the primary class does not provide a C++
                     # implementation. Usually this would be a function that not is
@@ -141,7 +141,7 @@ def augments(cls_cpp: type[Tcpp]):
 
         def disable_init(self):
             # Prevent initialization of the support class
-            raise NotImplementedError(self.__class__.__name__ + ".__init__")
+            raise NotImplementedError(self.__class__.__name__ + '.__init__')
 
         cls.__init__ = disable_init  # type: ignore
         return cls

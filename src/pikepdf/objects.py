@@ -54,9 +54,9 @@ class _NameObjectMeta(_ObjectMeta):
     """Support usage pikepdf.Name.Whatever -> Name('/Whatever')."""
 
     def __getattr__(self, attr: str) -> Name:
-        if attr.startswith("_") or attr == "object_type":
+        if attr.startswith('_') or attr == 'object_type':
             return getattr(_ObjectMeta, attr)
-        return Name("/" + attr)
+        return Name('/' + attr)
 
     def __setattr__(self, attr: str, value: Any) -> None:
         # No need for a symmetric .startswith('_'). To prevent user error, we
@@ -68,7 +68,7 @@ class _NameObjectMeta(_ObjectMeta):
         )
 
     def __getitem__(self, item: str) -> None:
-        if item.startswith("/"):
+        if item.startswith('/'):
             item = item[1:]
         raise TypeError(
             "pikepdf.Name is not subscriptable. You probably meant:\n"
@@ -105,7 +105,7 @@ class Name(Object, metaclass=_NameObjectMeta):
         return _core._new_name(name)
 
     @classmethod
-    def random(cls, len_: int = 16, prefix: str = "") -> Name:
+    def random(cls, len_: int = 16, prefix: str = '') -> Name:
         """Generate a cryptographically strong, random, valid PDF Name.
 
         If you are inserting a new name into a PDF (for example,
@@ -151,7 +151,7 @@ class Operator(Object, metaclass=_ObjectMeta):
 
     def __new__(cls, name: str) -> Operator:
         """Construct an operator."""
-        return cast("Operator", _core._new_operator(name))
+        return cast('Operator', _core._new_operator(name))
 
 
 class String(Object, metaclass=_ObjectMeta):
@@ -184,7 +184,7 @@ class Array(Object, metaclass=_ObjectMeta):
                 `pikepdf.Object` or convertible to `pikepdf.Object`.
         """
         if isinstance(a, (str, bytes)):
-            raise TypeError("Strings cannot be converted to arrays of chars")
+            raise TypeError('Strings cannot be converted to arrays of chars')
 
         if a is None:
             a = []
@@ -218,17 +218,17 @@ class Dictionary(Object, metaclass=_ObjectMeta):
         must all be convertible to `pikepdf.Object`.
         """
         if kwargs and d is not None:
-            raise ValueError("Cannot use both a mapping object and keyword args")
+            raise ValueError('Cannot use both a mapping object and keyword args')
         if kwargs:
             # Add leading slash
             # Allows Dictionary(MediaBox=(0,0,1,1), Type=Name('/Page')...
-            return _core._new_dictionary({("/" + k): v for k, v in kwargs.items()})
+            return _core._new_dictionary({('/' + k): v for k, v in kwargs.items()})
         if isinstance(d, Dictionary):
             # Already a dictionary
             return d.__copy__()
         if not d:
             d = {}
-        if d and any(key == "/" or not key.startswith("/") for key in d.keys()):
+        if d and any(key == '/' or not key.startswith('/') for key in d.keys()):
             raise KeyError("Dictionary created from strings must begin with '/'")
         return _core._new_dictionary(d)
 

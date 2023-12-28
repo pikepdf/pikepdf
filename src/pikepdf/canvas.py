@@ -31,7 +31,7 @@ from pikepdf.objects import String
 log = logging.getLogger(__name__)
 
 
-Color = namedtuple("Color", ["red", "green", "blue", "alpha"])
+Color = namedtuple('Color', ['red', 'green', 'blue', 'alpha'])
 
 BLACK = Color(0, 0, 0, 1)
 WHITE = Color(1, 1, 1, 1)
@@ -417,7 +417,7 @@ class Canvas:
             ),
             Type=Name.XObject,
             Subtype=Name.Image,
-            BitsPerComponent=1 if li.image.mode == "1" else 8,
+            BitsPerComponent=1 if li.image.mode == '1' else 8,
         )
 
     def to_pdf(self) -> Pdf:

@@ -33,7 +33,7 @@ from pikepdf.models.metadata import (
 @pytest.fixture
 def libxmp_meta():
     try:
-        libxmp = pytest.importorskip("libxmp")
+        libxmp = pytest.importorskip('libxmp')
     except Exception as e:  # pylint: disable=broad-except
         # libxmp raises a nonstandard exception sometimes so the standard
         # pytest.importorskip doesn't trap it *irritated sigh*.
@@ -44,98 +44,98 @@ def libxmp_meta():
 @pytest.fixture
 def vera(resources):
     # Has XMP but no docinfo
-    with Pdf.open(resources / "veraPDF test suite 6-2-10-t02-pass-a.pdf") as pdf:
+    with Pdf.open(resources / 'veraPDF test suite 6-2-10-t02-pass-a.pdf') as pdf:
         yield pdf
 
 
 @pytest.fixture
 def graph(resources):
     # Has XMP and docinfo, all standard format XMP
-    with Pdf.open(resources / "graph.pdf") as pdf:
+    with Pdf.open(resources / 'graph.pdf') as pdf:
         yield pdf
 
 
 @pytest.fixture
 def sandwich(resources):
     # Has XMP, docinfo, <?adobe-xap-filters esc="CRLF"?>, shorthand attribute XMP
-    with Pdf.open(resources / "sandwich.pdf") as pdf:
+    with Pdf.open(resources / 'sandwich.pdf') as pdf:
         yield pdf
 
 
 @pytest.fixture
 def trivial(resources):
     # Has no XMP or docinfo
-    with Pdf.open(resources / "pal-1bit-trivial.pdf") as pdf:
+    with Pdf.open(resources / 'pal-1bit-trivial.pdf') as pdf:
         yield pdf
 
 
 @pytest.fixture
 def invalid_creationdate(resources):
     # Has nuls in docinfo, old PDF
-    with Pdf.open(resources / "invalid_creationdate.pdf") as pdf:
+    with Pdf.open(resources / 'invalid_creationdate.pdf') as pdf:
         yield pdf
 
 
 def test_lowlevel(sandwich):
     meta = sandwich.open_metadata()
-    assert meta._qname("pdf:Producer") == "{http://ns.adobe.com/pdf/1.3/}Producer"
+    assert meta._qname('pdf:Producer') == '{http://ns.adobe.com/pdf/1.3/}Producer'
     assert (
-        meta._prefix_from_uri("{http://ns.adobe.com/pdf/1.3/}Producer")
-        == "pdf:Producer"
+        meta._prefix_from_uri('{http://ns.adobe.com/pdf/1.3/}Producer')
+        == 'pdf:Producer'
     )
-    assert "pdf:Producer" in meta
-    assert "{http://ns.adobe.com/pdf/1.3/}Producer" in meta
-    assert "xmp:CreateDate" in meta
-    assert meta["xmp:ModifyDate"].startswith("2017")
+    assert 'pdf:Producer' in meta
+    assert '{http://ns.adobe.com/pdf/1.3/}Producer' in meta
+    assert 'xmp:CreateDate' in meta
+    assert meta['xmp:ModifyDate'].startswith('2017')
     assert len(meta) > 0
-    assert meta["dc:title"] == "Untitled"
+    assert meta['dc:title'] == 'Untitled'
 
-    assert "pdf:invalid" not in meta
-    assert "{http://ns.adobe.com/pdf/1.3/}invalid" not in meta
+    assert 'pdf:invalid' not in meta
+    assert '{http://ns.adobe.com/pdf/1.3/}invalid' not in meta
     with pytest.raises(TypeError):
-        assert ["hi"] in meta
+        assert ['hi'] in meta
 
     with pytest.raises(KeyError):
-        meta["dc:invalid"]
+        meta['dc:invalid']
     with pytest.raises(KeyError):
-        meta["{http://ns.adobe.com/pdf/1.3/}invalid"]
+        meta['{http://ns.adobe.com/pdf/1.3/}invalid']
     with pytest.raises(KeyError):
-        meta["{http://invalid.com/ns/}doublyinvalid"]
+        meta['{http://invalid.com/ns/}doublyinvalid']
 
 
 def test_no_info(vera, outdir):
-    assert vera.trailer.get("/Info") is None, "need a test file with no /Info"
+    assert vera.trailer.get('/Info') is None, 'need a test file with no /Info'
 
     assert len(vera.docinfo) == 0
-    creator = "pikepdf test suite"
-    vera.docinfo["/Creator"] = creator
+    creator = 'pikepdf test suite'
+    vera.docinfo['/Creator'] = creator
     assert vera.docinfo.is_indirect, "/Info must be an indirect object"
-    vera.save(outdir / "out.pdf")
+    vera.save(outdir / 'out.pdf')
 
-    with Pdf.open(outdir / "out.pdf") as new:
-        assert new.docinfo["/Creator"] == creator
+    with Pdf.open(outdir / 'out.pdf') as new:
+        assert new.docinfo['/Creator'] == creator
 
 
 def test_update_info(graph, outdir):
-    new_title = "我敢打赌，你只是想看看这意味着什么"
-    graph.docinfo["/Title"] = new_title
-    graph.save(outdir / "out.pdf")
+    new_title = '我敢打赌，你只是想看看这意味着什么'
+    graph.docinfo['/Title'] = new_title
+    graph.save(outdir / 'out.pdf')
 
-    with Pdf.open(outdir / "out.pdf") as new:
-        assert new.docinfo["/Title"] == new_title
-        assert graph.docinfo["/Author"] == new.docinfo["/Author"]
+    with Pdf.open(outdir / 'out.pdf') as new:
+        assert new.docinfo['/Title'] == new_title
+        assert graph.docinfo['/Author'] == new.docinfo['/Author']
 
         with pytest.raises(ValueError):
-            new.docinfo = Dictionary({"/Keywords": "bob"})
+            new.docinfo = Dictionary({'/Keywords': 'bob'})
 
-        new.docinfo = new.make_indirect(Dictionary({"/Keywords": "bob"}))
+        new.docinfo = new.make_indirect(Dictionary({'/Keywords': 'bob'}))
         assert new.docinfo.is_indirect, "/Info must be an indirect object"
 
 
 def test_copy_info(vera, graph, outdir):
     vera.docinfo = vera.copy_foreign(graph.docinfo)  # vera has no docinfo
     assert vera.docinfo.is_indirect, "/Info must be an indirect object"
-    vera.save(outdir / "out.pdf")
+    vera.save(outdir / 'out.pdf')
 
 
 def test_del_info(graph, outpdf):
@@ -160,37 +160,37 @@ def test_add_new_xmp_and_mark(trivial):
     print(trivial.Root.Metadata.read_bytes())
 
     with trivial.open_metadata(update_docinfo=False) as xmp:
-        assert xmp["pdf:Producer"] == "pikepdf " + pikepdf.__version__
-        assert "xmp:MetadataDate" in xmp
+        assert xmp['pdf:Producer'] == 'pikepdf ' + pikepdf.__version__
+        assert 'xmp:MetadataDate' in xmp
 
 
 def test_update_docinfo(vera):
     with vera.open_metadata(set_pikepdf_as_editor=False, update_docinfo=True) as xmp:
         pass
-    assert xmp["pdf:Producer"] == vera.docinfo[Name.Producer]
-    assert xmp["xmp:CreatorTool"] == vera.docinfo[Name.Creator]
-    assert xmp["dc:creator"][0] == vera.docinfo[Name.Author]
+    assert xmp['pdf:Producer'] == vera.docinfo[Name.Producer]
+    assert xmp['xmp:CreatorTool'] == vera.docinfo[Name.Creator]
+    assert xmp['dc:creator'][0] == vera.docinfo[Name.Author]
 
     # Test delete propagation
     with vera.open_metadata(set_pikepdf_as_editor=False, update_docinfo=True) as xmp:
-        del xmp["dc:creator"]
-        with pytest.raises(KeyError, match="dc:nonexistent"):
-            del xmp["dc:nonexistent"]
-    assert "dc:creator" not in xmp
+        del xmp['dc:creator']
+        with pytest.raises(KeyError, match='dc:nonexistent'):
+            del xmp['dc:nonexistent']
+    assert 'dc:creator' not in xmp
     assert Name.Author not in vera.docinfo
 
 
 @pytest.mark.parametrize(
-    "filename", list((Path(__file__).parent / "resources").glob("*.pdf"))
+    'filename', list((Path(__file__).parent / 'resources').glob('*.pdf'))
 )
 def test_roundtrip(filename):
     try:
         with Pdf.open(filename) as pdf:
             with pdf.open_metadata() as xmp:
                 for k in xmp.keys():
-                    if "Date" not in k:
-                        xmp[k] = "A"
-            assert "<?xpacket" not in str(xmp)
+                    if 'Date' not in k:
+                        xmp[k] = 'A'
+            assert '<?xpacket' not in str(xmp)
     except PasswordError:
         return
 
@@ -198,61 +198,61 @@ def test_roundtrip(filename):
 def test_build_metadata(trivial, graph, outdir):
     with trivial.open_metadata(set_pikepdf_as_editor=False) as xmp:
         xmp.load_from_docinfo(graph.docinfo)
-    trivial.save(outdir / "tmp.pdf")
+    trivial.save(outdir / 'tmp.pdf')
 
-    with pikepdf.open(outdir / "tmp.pdf") as pdf:
+    with pikepdf.open(outdir / 'tmp.pdf') as pdf:
         assert pdf.Root.Metadata.Type == Name.Metadata
         assert pdf.Root.Metadata.Subtype == Name.XML
         with pdf.open_metadata(set_pikepdf_as_editor=False) as xmp:
-            assert "pdf:Producer" not in xmp
-            xmp_date = xmp["xmp:CreateDate"]
+            assert 'pdf:Producer' not in xmp
+            xmp_date = xmp['xmp:CreateDate']
             docinfo_date = decode_pdf_date(trivial.docinfo[Name.CreationDate])
             assert xmp_date == docinfo_date.isoformat()
 
 
 def test_python_xmp_validate_add(trivial, libxmp_meta):
     with trivial.open_metadata() as xmp:
-        xmp["dc:creator"] = ["Bob", "Doug"]
-        xmp["dc:title"] = "Title"
-        xmp["dc:publisher"] = {"Mackenzie"}
+        xmp['dc:creator'] = ['Bob', 'Doug']
+        xmp['dc:title'] = 'Title'
+        xmp['dc:publisher'] = {'Mackenzie'}
 
-    xmp_str = str(xmp).replace("\n", "")
-    assert "<rdf:Seq><rdf:li>Bob</rdf:li><rdf:li>Doug</rdf:li>" in xmp_str
-    assert "<rdf:Bag><rdf:li>Mackenzie</rdf:li>" in xmp_str
+    xmp_str = str(xmp).replace('\n', '')
+    assert '<rdf:Seq><rdf:li>Bob</rdf:li><rdf:li>Doug</rdf:li>' in xmp_str
+    assert '<rdf:Bag><rdf:li>Mackenzie</rdf:li>' in xmp_str
 
     xmpmeta = libxmp_meta(xmp_str=str(xmp))
     DC = XMP_NS_DC
-    assert xmpmeta.does_array_item_exist(DC, "creator", "Bob")
-    assert xmpmeta.does_array_item_exist(DC, "creator", "Doug")
-    assert xmpmeta.get_localized_text(DC, "title", None, "x-default") == "Title"
-    assert xmpmeta.does_array_item_exist(DC, "publisher", "Mackenzie")
+    assert xmpmeta.does_array_item_exist(DC, 'creator', 'Bob')
+    assert xmpmeta.does_array_item_exist(DC, 'creator', 'Doug')
+    assert xmpmeta.get_localized_text(DC, 'title', None, 'x-default') == 'Title'
+    assert xmpmeta.does_array_item_exist(DC, 'publisher', 'Mackenzie')
 
 
 def test_python_xmp_validate_change_list(graph, libxmp_meta):
     with graph.open_metadata() as xmp:
-        assert "dc:creator" in xmp
-        xmp["dc:creator"] = ["Dobby", "Kreacher"]
+        assert 'dc:creator' in xmp
+        xmp['dc:creator'] = ['Dobby', 'Kreacher']
     assert str(xmp)
     xmpmeta = libxmp_meta(xmp_str=str(xmp))
     DC = XMP_NS_DC
-    assert xmpmeta.does_array_item_exist(DC, "creator", "Dobby")
-    assert xmpmeta.does_array_item_exist(DC, "creator", "Kreacher")
+    assert xmpmeta.does_array_item_exist(DC, 'creator', 'Dobby')
+    assert xmpmeta.does_array_item_exist(DC, 'creator', 'Kreacher')
 
 
 def test_python_xmp_validate_change(sandwich, libxmp_meta):
     with sandwich.open_metadata() as xmp:
-        assert "xmp:CreatorTool" in xmp
-        xmp["xmp:CreatorTool"] = "Creator"  # Exists as a xml tag text
-        xmp["pdf:Producer"] = "Producer"  # Exists as a tag node
+        assert 'xmp:CreatorTool' in xmp
+        xmp['xmp:CreatorTool'] = 'Creator'  # Exists as a xml tag text
+        xmp['pdf:Producer'] = 'Producer'  # Exists as a tag node
     assert str(xmp)
     xmpmeta = libxmp_meta(xmp_str=str(xmp))
-    assert xmpmeta.does_property_exist(XMP_NS_XMP, "CreatorTool")
-    assert xmpmeta.does_property_exist(XMP_NS_PDF, "Producer")
+    assert xmpmeta.does_property_exist(XMP_NS_XMP, 'CreatorTool')
+    assert xmpmeta.does_property_exist(XMP_NS_PDF, 'Producer')
 
 
 def test_decode_pdf_date():
     VALS = [
-        ("20160220040559", datetime(2016, 2, 20, 4, 5, 59)),
+        ('20160220040559', datetime(2016, 2, 20, 4, 5, 59)),
         ("20180101010101Z00'00'", datetime(2018, 1, 1, 1, 1, 1, tzinfo=timezone.utc)),
         ("20180101010101Z", datetime(2018, 1, 1, 1, 1, 1, tzinfo=timezone.utc)),
         ("20180101010101+0000", datetime(2018, 1, 1, 1, 1, 1, tzinfo=timezone.utc)),
@@ -267,9 +267,9 @@ def test_decode_pdf_date():
 
 def test_date_docinfo_from_xmp():
     VALS = [
-        ("2018-12-04T03:02:01", "D:20181204030201"),
-        ("2018-12-15T07:36:43Z", "D:20181215073643+00'00'"),
-        ("2018-12-04T03:02:01-01:00", "D:20181204030201-01'00'"),
+        ('2018-12-04T03:02:01', "D:20181204030201"),
+        ('2018-12-15T07:36:43Z', "D:20181215073643+00'00'"),
+        ('2018-12-04T03:02:01-01:00', "D:20181204030201-01'00'"),
     ]
     for xmp_val, docinfo_val in VALS:
         assert DateConverter.docinfo_from_xmp(xmp_val) == docinfo_val
@@ -286,8 +286,8 @@ def test_date_docinfo_from_xmp():
 @example(1, 1, 1, 0, 0, 0)
 def test_random_dates(year, month, day, hour, mins, sec):
     date_args = year, month, day, hour, mins, sec
-    xmp = "{:04d}-{:02d}-{:02d}T{:02d}:{:02d}:{:02d}".format(*date_args)
-    docinfo = "D:{:04d}{:02d}{:02d}{:02d}{:02d}{:02d}".format(*date_args)
+    xmp = '{:04d}-{:02d}-{:02d}T{:02d}:{:02d}:{:02d}'.format(*date_args)
+    docinfo = 'D:{:04d}{:02d}{:02d}{:02d}{:02d}{:02d}'.format(*date_args)
 
     try:
         converted = DateConverter.docinfo_from_xmp(xmp)
@@ -306,19 +306,19 @@ def test_random_dates(year, month, day, hour, mins, sec):
 
 def test_bad_char_rejection(trivial):
     with trivial.open_metadata() as xmp:
-        xmp["dc:description"] = "Bad characters \x00 \x01 \x02"
-        xmp["dc:creator"] = ["\ue001bad", "\ufff0bad"]
+        xmp['dc:description'] = 'Bad characters \x00 \x01 \x02'
+        xmp['dc:creator'] = ['\ue001bad', '\ufff0bad']
     ET.fromstring(str(xmp))
 
 
 def test_xpacket_generation(sandwich):
     xmpstr1 = sandwich.Root.Metadata.read_bytes()
-    xpacket_begin = b"<?xpacket begin="
-    xpacket_end = b"<?xpacket end="
+    xpacket_begin = b'<?xpacket begin='
+    xpacket_end = b'<?xpacket end='
     assert xmpstr1.startswith(xpacket_begin)
 
     with sandwich.open_metadata() as xmp:
-        xmp["dc:creator"] = ["Foo"]
+        xmp['dc:creator'] = ['Foo']
 
     xmpstr2 = sandwich.Root.Metadata.read_bytes()
     assert xmpstr2.startswith(xpacket_begin)
@@ -332,19 +332,19 @@ def test_xpacket_generation(sandwich):
 
 def test_no_rdf_subtags(graph):
     xmp = graph.open_metadata()
-    assert "{http://www.w3.org/1999/02/22-rdf-syntax-ns#}Alt" not in xmp.keys()
-    assert "{http://www.w3.org/1999/02/22-rdf-syntax-ns#}Bag" not in xmp.keys()
-    assert "{http://www.w3.org/1999/02/22-rdf-syntax-ns#}li" not in xmp.keys()
+    assert '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}Alt' not in xmp.keys()
+    assert '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}Bag' not in xmp.keys()
+    assert '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}li' not in xmp.keys()
 
 
 def test_remove_attribute_metadata(sandwich):
     with sandwich.open_metadata() as xmp:
-        del xmp["pdfaid:part"]
-    assert "pdfaid:part" not in xmp
-    assert "pdfaid:conformance" in xmp
+        del xmp['pdfaid:part']
+    assert 'pdfaid:part' not in xmp
+    assert 'pdfaid:conformance' in xmp
 
     with sandwich.open_metadata() as xmp:
-        del xmp["pdfaid:conformance"]
+        del xmp['pdfaid:conformance']
 
     # Ensure the whole node was deleted
     assert not re.search(r'rdf:Description xmlns:[^\s]+ rdf:about=""/', str(xmp))
@@ -373,24 +373,24 @@ def test_docinfo_problems(sandwich, invalid_creationdate):
     with meta:
         with pytest.warns(UserWarning) as warned:
             meta.load_from_docinfo(invalid_creationdate.docinfo)
-        assert "could not be copied" in warned[0].message.args[0]
+        assert 'could not be copied' in warned[0].message.args[0]
         with pytest.raises(ValueError):
             meta.load_from_docinfo(invalid_creationdate.docinfo, raise_failure=True)
 
     with pytest.warns(UserWarning) as warned:
         with meta as xmp:
-            xmp["xmp:CreateDate"] = "invalid date"
-        assert "could not be updated" in warned[0].message.args[0]
+            xmp['xmp:CreateDate'] = 'invalid date'
+        assert 'could not be updated' in warned[0].message.args[0]
 
 
 def test_docinfo_delete_missing(sandwich):
     with sandwich.open_metadata() as m:
         d = Dictionary(Creator="test creator")
-        assert "xmp:CreateDate" in m
-        assert m["xmp:CreatorTool"] != "test creator"
+        assert 'xmp:CreateDate' in m
+        assert m['xmp:CreatorTool'] != 'test creator'
         m.load_from_docinfo(d, delete_missing=True)
-        assert m["xmp:CreatorTool"] == "test creator"
-        assert "xmp:CreateDate" not in m
+        assert m['xmp:CreatorTool'] == 'test creator'
+        assert 'xmp:CreateDate' not in m
 
 
 def test_present_bug_empty_tags(trivial):
@@ -419,11 +419,11 @@ def test_wrong_xml(sandwich):
     """.strip(),
     )
     meta = sandwich.open_metadata(strict=True)
-    with pytest.raises(ValueError, match="not XMP"):
+    with pytest.raises(ValueError, match='not XMP'):
         with meta:
             pass
-    with pytest.raises(ValueError, match="not XMP"):
-        meta["pdfaid:part"]
+    with pytest.raises(ValueError, match='not XMP'):
+        meta['pdfaid:part']
 
 
 def test_no_x_xmpmeta(trivial):
@@ -450,12 +450,12 @@ def test_no_x_xmpmeta(trivial):
 
     with trivial.open_metadata() as xmp:
         assert xmp._get_rdf_root() is not None
-        xmp["pdfaid:part"] = "2"
-    assert xmp["pdfaid:part"] == "2"
+        xmp['pdfaid:part'] = '2'
+    assert xmp['pdfaid:part'] == '2'
 
 
 @pytest.mark.parametrize(
-    "xml",
+    'xml',
     [
         (b"      \n   "),
         (b" <"),
@@ -466,7 +466,7 @@ def test_no_x_xmpmeta(trivial):
         (
             b'<?xpacket begin="" id=""?>\n'
             b'<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="">\n'
-            b"</x:xmpmeta>\n"
+            b'</x:xmpmeta>\n'
             b'<?xpacket end=""?>\n'
         ),
     ],
@@ -474,11 +474,11 @@ def test_no_x_xmpmeta(trivial):
 def test_degenerate_xml_recoverable(trivial, xml):
     trivial.Root.Metadata = trivial.make_stream(xml)
     with trivial.open_metadata(strict=False) as xmp:
-        xmp["pdfaid:part"] = "2"
-    assert xmp["pdfaid:part"] == "2"
+        xmp['pdfaid:part'] = '2'
+    assert xmp['pdfaid:part'] == '2'
 
     with trivial.open_metadata(strict=True) as xmp:
-        xmp["pdfaid:part"] = "5"
+        xmp['pdfaid:part'] = '5'
 
 
 @settings(deadline=None)
@@ -489,21 +489,21 @@ def test_degenerate_xml_recoverable(trivial, xml):
 @example(1155)
 @example(1195)
 @example(1303)
-@pytest.mark.filterwarnings("ignore:The DocumentInfo field")
+@pytest.mark.filterwarnings('ignore:The DocumentInfo field')
 def test_truncated_xml(resources, idx):
-    with Pdf.open(resources / "sandwich.pdf") as sandwich:
+    with Pdf.open(resources / 'sandwich.pdf') as sandwich:
         data = sandwich.Root.Metadata.read_bytes()
         assume(idx < len(data))
 
         sandwich.Root.Metadata = sandwich.make_stream(data[0:idx])
         try:
             with sandwich.open_metadata(strict=True) as xmp:
-                xmp["pdfaid:part"] = "5"
+                xmp['pdfaid:part'] = '5'
         except (XMLSyntaxError, AssertionError):
             pass
 
         with sandwich.open_metadata(strict=False) as xmp:
-            xmp["pdfaid:part"] = "7"
+            xmp['pdfaid:part'] = '7'
 
 
 def test_pdf_version_update(graph, outdir, libxmp_meta):
@@ -512,62 +512,64 @@ def test_pdf_version_update(graph, outdir, libxmp_meta):
             meta = pdf.open_metadata()
             xmp = libxmp_meta(xmp_str=str(meta))
             try:
-                return xmp.get_property("http://ns.adobe.com/pdf/1.3/", "PDFVersion")
+                return xmp.get_property('http://ns.adobe.com/pdf/1.3/', 'PDFVersion')
             except Exception:
-                return ""
+                return ''
 
     # We don't update PDFVersion unless it is present, even if we change the PDF version
     graph.save(
-        outdir / "empty_xmp_pdfversion.pdf",
-        force_version="1.7",
+        outdir / 'empty_xmp_pdfversion.pdf',
+        force_version='1.7',
         fix_metadata_version=True,
     )
-    assert get_xmp_version(outdir / "empty_xmp_pdfversion.pdf") == ""
+    assert get_xmp_version(outdir / 'empty_xmp_pdfversion.pdf') == ''
 
     # Add PDFVersion field for remaining tests
     with graph.open_metadata() as m:
-        m["pdf:PDFVersion"] = graph.pdf_version
+        m['pdf:PDFVersion'] = graph.pdf_version
 
     # Confirm we don't update the field when the flag is false
     graph.save(
-        outdir / "inconsistent_version.pdf",
-        force_version="1.6",
+        outdir / 'inconsistent_version.pdf',
+        force_version='1.6',
         fix_metadata_version=False,
     )
-    assert get_xmp_version(outdir / "inconsistent_version.pdf") == "1.3"
+    assert get_xmp_version(outdir / 'inconsistent_version.pdf') == '1.3'
 
     # Confirm we update if present
-    graph.save(outdir / "consistent_version.pdf", force_version="1.5")
-    assert get_xmp_version(outdir / "consistent_version.pdf") == "1.5"
+    graph.save(outdir / 'consistent_version.pdf', force_version='1.5')
+    assert get_xmp_version(outdir / 'consistent_version.pdf') == '1.5'
 
 
 def test_extension_level(trivial, outpdf):
-    trivial.save(outpdf, min_version=("1.6", 314159))
+    trivial.save(outpdf, min_version=('1.6', 314159))
     with pikepdf.open(outpdf) as pdf:
-        assert pdf.pdf_version >= "1.6" and pdf.extension_level == 314159
+        assert pdf.pdf_version >= '1.6' and pdf.extension_level == 314159
 
-    trivial.save(outpdf, force_version=("1.7", 42))
+    trivial.save(outpdf, force_version=('1.7', 42))
     with pikepdf.open(outpdf) as pdf:
-        assert pdf.pdf_version == "1.7" and pdf.extension_level == 42
+        assert pdf.pdf_version == '1.7' and pdf.extension_level == 42
 
     with pytest.raises(TypeError):
-        trivial.save(outpdf, force_version=("1.7", "invalid extension level"))
+        trivial.save(outpdf, force_version=('1.7', 'invalid extension level'))
 
 
 @settings(deadline=60000)
 @given(
     st.dictionaries(
-        keys=st.sampled_from([
-            "/Author",
-            "/Subject",
-            "/Title",
-            "/Keywords",
-            "/Producer",
-            "/CreationDate",
-            "/Creator",
-            "/ModDate",
-            "/Dummy",
-        ]),
+        keys=st.sampled_from(
+            [
+                "/Author",
+                "/Subject",
+                "/Title",
+                "/Keywords",
+                "/Producer",
+                "/CreationDate",
+                "/Creator",
+                "/ModDate",
+                "/Dummy",
+            ]
+        ),
         values=st.recursive(
             st.none() | st.binary(max_size=16) | st.booleans(),
             lambda children: st.lists(children, min_size=0, max_size=4),
@@ -584,22 +586,24 @@ def test_random_docinfo(docinfo):
         try:
             m.load_from_docinfo(pdf_docinfo, raise_failure=True)
         except ValueError as e:
-            assert "could not be copied to XMP" in str(e) or "/Dummy" in str(e)
+            assert 'could not be copied to XMP' in str(e) or '/Dummy' in str(e)
         else:
             ET.fromstring(str(m))  # ensure we can parse it
 
 
 @given(
     st.dictionaries(
-        keys=st.sampled_from([
-            "/Author",
-            "/Subject",
-            "/Title",
-            "/Keywords",
-            "/Producer",
-            "/Creator",
-        ]),
-        values=st.none() | st.characters(blacklist_categories=("Cs",)),
+        keys=st.sampled_from(
+            [
+                "/Author",
+                "/Subject",
+                "/Title",
+                "/Keywords",
+                "/Producer",
+                "/Creator",
+            ]
+        ),
+        values=st.none() | st.characters(blacklist_categories=('Cs',)),
     )
 )
 @skip_if_pypy
@@ -613,7 +617,7 @@ def test_random_valid_docinfo(docinfo):
         ET.fromstring(str(m))  # ensure we can parse it
 
 
-@pytest.mark.parametrize("author", ["", "King, S."])
+@pytest.mark.parametrize('author', ['', 'King, S.'])
 def test_issue_162(trivial, author):
     trivial.Root.Metadata = Stream(
         trivial,
@@ -628,21 +632,21 @@ def test_issue_162(trivial, author):
     )
     with trivial.open_metadata() as m:
         docinfo = pikepdf.Dictionary(Author=author)
-        with pytest.warns(UserWarning, match=r"Merging elements"):
+        with pytest.warns(UserWarning, match=r'Merging elements'):
             m.load_from_docinfo(docinfo, raise_failure=True)
-        assert m["dc:creator"] == [author]
+        assert m['dc:creator'] == [author]
 
 
 def test_set_empty_string(graph):
     with graph.open_metadata() as m:
-        m["dc:title"] = "a"
+        m['dc:title'] = 'a'
 
     generated_xmp = graph.Root.Metadata.read_bytes()
     print(generated_xmp)
-    assert generated_xmp.count(b"<dc:title>") == 1
+    assert generated_xmp.count(b'<dc:title>') == 1
 
 
-@pytest.mark.parametrize("fix_metadata", [True, False])
+@pytest.mark.parametrize('fix_metadata', [True, False])
 def test_dont_create_empty_xmp(trivial, outpdf, fix_metadata):
     trivial.save(outpdf, fix_metadata_version=fix_metadata)
 
@@ -650,7 +654,7 @@ def test_dont_create_empty_xmp(trivial, outpdf, fix_metadata):
         assert Name.Metadata not in p.Root
 
 
-@pytest.mark.parametrize("fix_metadata", [True, False])
+@pytest.mark.parametrize('fix_metadata', [True, False])
 def test_dont_create_empty_docinfo(trivial, outpdf, fix_metadata):
     del trivial.trailer.Info
     trivial.save(outpdf, fix_metadata_version=fix_metadata)
@@ -663,16 +667,16 @@ def test_issue_100(trivial):
     with trivial.open_metadata() as m, pytest.warns(
         UserWarning, match="no XMP equivalent"
     ):
-        m.load_from_docinfo({"/AAPL:Example": pikepdf.Array([42])})
+        m.load_from_docinfo({'/AAPL:Example': pikepdf.Array([42])})
 
 
 def test_issue_135_title_rdf_bag(trivial):
     with trivial.open_metadata(update_docinfo=True) as xmp, pytest.warns(
         UserWarning, match="Merging elements"
     ):
-        xmp["dc:title"] = {"Title 1", "Title 2"}
+        xmp['dc:title'] = {'Title 1', 'Title 2'}
     with trivial.open_metadata(update_docinfo=False) as xmp:
-        assert b"Title 1; Title 2</rdf:li></rdf:Alt></dc:title>" in xmp._get_xml_bytes()
+        assert b'Title 1; Title 2</rdf:li></rdf:Alt></dc:title>' in xmp._get_xml_bytes()
 
 
 def test_xmp_metadatadate_timezone(sandwich, outpdf):
@@ -681,31 +685,31 @@ def test_xmp_metadatadate_timezone(sandwich, outpdf):
     sandwich.save(outpdf)
     with Pdf.open(outpdf) as pdf:
         with pdf.open_metadata() as m:
-            dt = datetime.fromisoformat(m["xmp:MetadataDate"])
+            dt = datetime.fromisoformat(m['xmp:MetadataDate'])
             assert dt.tzinfo is not None
             assert dt.tzinfo == timezone.utc
 
 
 def test_modify_not_opened(graph):
     m = graph.open_metadata()
-    with pytest.raises(RuntimeError, match="not opened for editing"):
-        m["pdf:Producer"] = "pytest"
+    with pytest.raises(RuntimeError, match='not opened for editing'):
+        m['pdf:Producer'] = 'pytest'
 
 
 def test_exception_undoes_edits(graph):
     try:
         with graph.open_metadata() as m:
-            m["dc:format"] = "application/pdf-demo"
-            raise ValueError("test_exception_aborts_edits")
+            m['dc:format'] = 'application/pdf-demo'
+            raise ValueError('test_exception_aborts_edits')
     except ValueError as e:
-        if "test_exception_aborts_edits" not in str(e):
+        if 'test_exception_aborts_edits' not in str(e):
             raise
         m = graph.open_metadata()
-        assert m["dc:format"] != "application/pdf-demo"
+        assert m['dc:format'] != 'application/pdf-demo'
 
 
 def test_xxe(trivial, outdir):
-    secret = outdir / "secret.txt"
+    secret = outdir / 'secret.txt'
     secret.write_text("This is a secret")
     trivial.Root.Metadata = Stream(
         trivial,
@@ -725,15 +729,15 @@ def test_xxe(trivial, outdir):
         % os.fsencode(secret),
     )
     with trivial.open_metadata() as m:
-        assert "This is a secret" not in str(m)
+        assert 'This is a secret' not in str(m)
 
 
 def test_qname_no_namespace():
-    assert PdfMetadata._qname("abc") == "{adobe:ns:meta/}abc"
+    assert PdfMetadata._qname('abc') == '{adobe:ns:meta/}abc'
 
 
 def test_register_xmlns():
-    PdfMetadata.register_xml_namespace("http://github.com/pikepdf/pikepdf/", "pikepdf")
+    PdfMetadata.register_xml_namespace('http://github.com/pikepdf/pikepdf/', 'pikepdf')
     assert (
-        PdfMetadata._qname("pikepdf:foo") == "{http://github.com/pikepdf/pikepdf/}foo"
+        PdfMetadata._qname('pikepdf:foo') == '{http://github.com/pikepdf/pikepdf/}foo'
     )

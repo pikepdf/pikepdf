@@ -11,10 +11,10 @@ from pikepdf import Job, JobUsageError, Pdf
 
 
 def test_job_from_argv(resources):
-    job = Job(["pikepdf", "--check", str(resources / "outlines.pdf")])
+    job = Job(['pikepdf', '--check', str(resources / 'outlines.pdf')])
     job.check_configuration()
-    job.message_prefix = "foo"
-    assert job.message_prefix == "foo"
+    job.message_prefix = 'foo'
+    assert job.message_prefix == 'foo'
     assert not job.creates_output
     assert not job.has_warnings
     assert job.exit_code == 0
@@ -26,16 +26,16 @@ def test_job_from_argv(resources):
 
 def test_job_from_json(resources, outpdf):
     job_json = {}
-    job_json["inputFile"] = str(resources / "outlines.pdf")
-    job_json["outputFile"] = str(outpdf)
+    job_json['inputFile'] = str(resources / 'outlines.pdf')
+    job_json['outputFile'] = str(outpdf)
     job = Job(json.dumps(job_json))
     job.check_configuration()
     job.run()
     assert job.exit_code == 0
 
     job_json = {}
-    job_json["inputFile"] = str(resources / "outlines.pdf")
-    job_json["outputFile"] = str(outpdf)
+    job_json['inputFile'] = str(resources / 'outlines.pdf')
+    job_json['outputFile'] = str(outpdf)
     job = Job(job_json)
     job.check_configuration()
     job.run()
@@ -44,8 +44,8 @@ def test_job_from_json(resources, outpdf):
 
 def test_job_in_stages(resources, outpdf):
     job_json = {}
-    job_json["inputFile"] = str(resources / "outlines.pdf")
-    job_json["outputFile"] = str(outpdf)
+    job_json['inputFile'] = str(resources / 'outlines.pdf')
+    job_json['outputFile'] = str(outpdf)
     job = Job(json.dumps(job_json))
     job.check_configuration()
     pdf = job.create_pdf()
@@ -58,12 +58,12 @@ def test_job_in_stages(resources, outpdf):
 
 def test_job_from_invalid_json():
     job_json = {}
-    job_json["invalidJsonSetting"] = "123"
+    job_json['invalidJsonSetting'] = '123'
     with pytest.raises(RuntimeError):
         _ = Job(job_json)
 
     job_json2 = {}
-    job_json2 = {"inputFile": []}
+    job_json2 = {'inputFile': []}
     with pytest.raises(JobUsageError):
         _ = Job(job_json2)
 

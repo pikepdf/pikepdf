@@ -44,7 +44,7 @@ from pikepdf.models.image import (
 
 def has_pdfimages():
     try:
-        run(["pdfimages", "-v"], check=True, capture_output=True)
+        run(['pdfimages', '-v'], check=True, capture_output=True)
     except FileNotFoundError:
         return False
     else:
@@ -77,22 +77,22 @@ def first_image_in(resources, request):
 
 @pytest.fixture
 def congress(first_image_in):
-    return first_image_in("congress.pdf")
+    return first_image_in('congress.pdf')
 
 
 @pytest.fixture
 def sandwich(first_image_in):
-    return first_image_in("sandwich.pdf")
+    return first_image_in('sandwich.pdf')
 
 
 @pytest.fixture
 def trivial(first_image_in):
-    return first_image_in("pal-1bit-trivial.pdf")
+    return first_image_in('pal-1bit-trivial.pdf')
 
 
 @pytest.fixture
 def inline(resources):
-    with Pdf.open(resources / "image-mono-inline.pdf") as pdf:
+    with Pdf.open(resources / 'image-mono-inline.pdf') as pdf:
         for operands, _command in parse_content_stream(pdf.pages[0]):
             if operands and isinstance(operands[0], PdfInlineImage):
                 yield operands[0], pdf
@@ -100,7 +100,7 @@ def inline(resources):
 
 
 def test_image_from_nonimage(resources):
-    with Pdf.open(resources / "congress.pdf") as pdf:
+    with Pdf.open(resources / 'congress.pdf') as pdf:
         contents = pdf.pages[0].Contents
         with pytest.raises(TypeError):
             PdfImage(contents)
@@ -132,7 +132,7 @@ def test_imagemask_colorspace(trivial):
 def test_malformed_palette(trivial):
     xobj, _ = trivial
     rawimage = xobj
-    rawimage.ColorSpace = [Name.Indexed, "foo", "bar"]
+    rawimage.ColorSpace = [Name.Indexed, 'foo', 'bar']
     pdfimage = PdfImage(rawimage)
     with pytest.raises(ValueError, match="interpret this palette"):
         pdfimage.palette  # pylint: disable=pointless-statement
@@ -156,12 +156,12 @@ def test_image_replace(congress, outdir):
     pdfimage = PdfImage(xobj)
     pillowimage = pdfimage.as_pil_image()
 
-    grayscale = pillowimage.convert("L")
+    grayscale = pillowimage.convert('L')
     grayscale = grayscale.resize((4, 4))  # So it is not obnoxious on error
 
     xobj.write(zlib.compress(grayscale.tobytes()), filter=Name("/FlateDecode"))
     xobj.ColorSpace = Name("/DeviceGray")
-    pdf.save(outdir / "congress_gray.pdf")
+    pdf.save(outdir / 'congress_gray.pdf')
 
 
 def test_lowlevel_jpeg(congress):
@@ -171,7 +171,7 @@ def test_lowlevel_jpeg(congress):
         xobj.read_bytes()
 
     im = Image.open(BytesIO(raw_bytes))
-    assert im.format == "JPEG"
+    assert im.format == 'JPEG'
 
     pim = PdfImage(xobj)
     b = BytesIO()
@@ -179,7 +179,7 @@ def test_lowlevel_jpeg(congress):
     b.seek(0)
     im = Image.open(b)
     assert im.size == (xobj.Width, xobj.Height)
-    assert im.mode == "RGB"
+    assert im.mode == 'RGB'
 
 
 def test_lowlevel_replace_jpeg(congress, outdir):
@@ -188,31 +188,31 @@ def test_lowlevel_replace_jpeg(congress, outdir):
     raw_bytes = xobj.read_raw_bytes()
 
     im = Image.open(BytesIO(raw_bytes))
-    grayscale = im.convert("L")
+    grayscale = im.convert('L')
     grayscale = grayscale.resize((4, 4))  # So it is not obnoxious on error
 
     xobj.write(zlib.compress(grayscale.tobytes()[:10]), filter=Name("/FlateDecode"))
-    xobj.ColorSpace = Name("/DeviceGray")
+    xobj.ColorSpace = Name('/DeviceGray')
 
-    pdf.save(outdir / "congress_gray.pdf")
+    pdf.save(outdir / 'congress_gray.pdf')
 
 
 def test_inline(inline):
     iimage, pdf = inline
     assert iimage.width == 8
     assert not iimage.image_mask
-    assert iimage.mode == "RGB"
-    assert iimage.colorspace == "/DeviceRGB"
-    assert "PdfInlineImage" in repr(iimage)
+    assert iimage.mode == 'RGB'
+    assert iimage.colorspace == '/DeviceRGB'
+    assert 'PdfInlineImage' in repr(iimage)
 
     unparsed = iimage.unparse()
-    assert b"/W 8" in unparsed, "inline images should have abbreviated metadata"
-    assert b"/Width 8" not in unparsed, "abbreviations expanded in inline image"
+    assert b'/W 8' in unparsed, "inline images should have abbreviated metadata"
+    assert b'/Width 8' not in unparsed, "abbreviations expanded in inline image"
 
     cs = pdf.make_stream(unparsed)
     for operands, command in parse_content_stream(cs):
         if operands and isinstance(operands[0], PdfInlineImage):
-            assert command == Operator("INLINE IMAGE")
+            assert command == Operator('INLINE IMAGE')
             reparsed_iim = operands[0]
             assert reparsed_iim == iimage
 
@@ -228,7 +228,7 @@ def test_inline_extract(inline):
 
 def test_inline_read(inline):
     iimage, _pdf = inline
-    assert iimage.read_bytes()[0:6] == b"\xff\xff\xff\x00\x00\x00"
+    assert iimage.read_bytes()[0:6] == b'\xff\xff\xff\x00\x00\x00'
 
 
 def test_inline_to_pil(inline):
@@ -239,7 +239,7 @@ def test_inline_to_pil(inline):
 
 def test_bits_per_component_missing(congress):
     cong_im, _ = congress
-    del cong_im.stream_dict["/BitsPerComponent"]
+    del cong_im.stream_dict['/BitsPerComponent']
     assert PdfImage(cong_im).bits_per_component == 8
 
 
@@ -268,7 +268,7 @@ def pdf_from_image_spec(spec: ImageSpec):
         Subtype=Name.Image,
     )
 
-    pdf.pages[0].Contents = Stream(pdf, b"%f 0 0 %f 0 0 cm /Im0 Do" % (pdfw, pdfh))
+    pdf.pages[0].Contents = Stream(pdf, b'%f 0 0 %f 0 0 cm /Im0 Do' % (pdfw, pdfh))
     pdf.pages[0].Resources = Dictionary(XObject=Dictionary(Im0=imobj))
     pdf.pages[0].MediaBox = Array([0, 0, pdfw, pdfh])
 
@@ -302,36 +302,36 @@ def valid_random_image_spec(
 @settings(deadline=None)  # For PyPy
 def test_image_save_compare(tmp_path_factory, spec):
     pdf = pdf_from_image_spec(spec)
-    image = pdf.pages[0].Resources.XObject["/Im0"]
+    image = pdf.pages[0].Resources.XObject['/Im0']
     w = image.Width
     h = image.Height
     cs = str(image.ColorSpace)
     bpc = image.BitsPerComponent
     pixeldata = image.read_bytes()
 
-    assume((bpc < 8 and cs == "/DeviceGray") or (bpc == 8))
+    assume((bpc < 8 and cs == '/DeviceGray') or (bpc == 8))
 
-    outdir = tmp_path_factory.mktemp("image_roundtrip")
-    outfile = outdir / f"test{w}{h}{cs[1:]}{bpc}.pdf"
+    outdir = tmp_path_factory.mktemp('image_roundtrip')
+    outfile = outdir / f'test{w}{h}{cs[1:]}{bpc}.pdf'
     pdf.save(
         outfile, compress_streams=False, stream_decode_level=StreamDecodeLevel.none
     )
 
     with Pdf.open(outfile) as p2:
-        pim = PdfImage(p2.pages[0].Resources.XObject["/Im0"])
+        pim = PdfImage(p2.pages[0].Resources.XObject['/Im0'])
 
         assert pim.bits_per_component == bpc
         assert pim.colorspace == cs
         assert pim.width == w
         assert pim.height == h
-        if cs == "/DeviceRGB":
-            assert pim.mode == "RGB"
-        elif cs == "/DeviceGray" and bpc == 8:
-            assert pim.mode == "L"
-        elif cs == "/DeviceCMYK":
-            assert pim.mode == "CMYK"
+        if cs == '/DeviceRGB':
+            assert pim.mode == 'RGB'
+        elif cs == '/DeviceGray' and bpc == 8:
+            assert pim.mode == 'L'
+        elif cs == '/DeviceCMYK':
+            assert pim.mode == 'CMYK'
         elif bpc == 1:
-            assert pim.mode == "1"
+            assert pim.mode == '1'
         assert not pim.palette
 
         assert pim.filters == []
@@ -345,12 +345,12 @@ def test_image_save_compare(tmp_path_factory, spec):
 
 
 @pytest.mark.parametrize(
-    "filename,bpc,filters,ext,mode,format_",
+    'filename,bpc,filters,ext,mode,format_',
     [
-        ("sandwich.pdf", 1, ["/CCITTFaxDecode"], ".tif", "1", "TIFF"),
-        ("congress-gray.pdf", 8, ["/DCTDecode"], ".jpg", "L", "JPEG"),
-        ("congress.pdf", 8, ["/DCTDecode"], ".jpg", "RGB", "JPEG"),
-        ("cmyk-jpeg.pdf", 8, ["/DCTDecode"], ".jpg", "CMYK", "JPEG"),
+        ('sandwich.pdf', 1, ['/CCITTFaxDecode'], '.tif', '1', 'TIFF'),
+        ('congress-gray.pdf', 8, ['/DCTDecode'], '.jpg', 'L', 'JPEG'),
+        ('congress.pdf', 8, ['/DCTDecode'], '.jpg', 'RGB', 'JPEG'),
+        ('cmyk-jpeg.pdf', 8, ['/DCTDecode'], '.jpg', 'CMYK', 'JPEG'),
     ],
 )
 def test_direct_extract(first_image_in, filename, bpc, filters, ext, mode, format_):
@@ -362,7 +362,7 @@ def test_direct_extract(first_image_in, filename, bpc, filters, ext, mode, forma
 
     outstream = BytesIO()
     outext = pim.extract_to(stream=outstream)
-    assert outext == ext, "unexpected output file"
+    assert outext == ext, 'unexpected output file'
     outstream.seek(0)
 
     im = Image.open(outstream)
@@ -407,11 +407,11 @@ def imagelike_data(draw, width, height, bpc, sample_range=None):
             )
         )
         if bpc == 8:
-            imbytes = b"".join(bytes(row) for row in intdata)
+            imbytes = b''.join(bytes(row) for row in intdata)
         elif bpc == 4:
-            imbytes = b"".join(pack_4bit_row(row) for row in intdata)
+            imbytes = b''.join(pack_4bit_row(row) for row in intdata)
         elif bpc == 2:
-            imbytes = b"".join(pack_2bit_row(row) for row in intdata)
+            imbytes = b''.join(pack_2bit_row(row) for row in intdata)
         assert len(imbytes) > 0
     elif bpc == 1:
         imdata = draw(
@@ -452,7 +452,7 @@ def pdf_from_palette_image_spec(spec: PaletteImageSpec):
         Subtype=Name.Image,
     )
 
-    pdf.pages[0].Contents = Stream(pdf, b"%f 0 0 %f 0 0 cm /Im0 Do" % (pdfw, pdfh))
+    pdf.pages[0].Contents = Stream(pdf, b'%f 0 0 %f 0 0 cm /Im0 Do' % (pdfw, pdfh))
     pdf.pages[0].Resources = Dictionary(XObject=Dictionary(Im0=imobj))
     pdf.pages[0].MediaBox = Array([0, 0, pdfw, pdfh])
 
@@ -495,27 +495,27 @@ def valid_random_palette_image_spec(
 
 
 @pytest.mark.parametrize(
-    "filename,bpc,rgb",
+    'filename,bpc,rgb',
     [
-        ("pal.pdf", 8, (0, 0, 255)),
-        ("pal-1bit-trivial.pdf", 1, (255, 255, 255)),
-        ("pal-1bit-rgb.pdf", 1, (255, 128, 0)),
+        ('pal.pdf', 8, (0, 0, 255)),
+        ('pal-1bit-trivial.pdf', 1, (255, 255, 255)),
+        ('pal-1bit-rgb.pdf', 1, (255, 128, 0)),
     ],
 )
 def test_image_palette(resources, filename, bpc, rgb):
     pdf = Pdf.open(resources / filename)
     pim = PdfImage(next(iter(pdf.pages[0].images.values())))
 
-    assert pim.palette[0] == "RGB"
-    assert pim.colorspace == "/DeviceRGB"
-    assert pim.mode == "P"
+    assert pim.palette[0] == 'RGB'
+    assert pim.colorspace == '/DeviceRGB'
+    assert pim.mode == 'P'
     assert pim.bits_per_component == bpc
 
     outstream = BytesIO()
     pim.extract_to(stream=outstream)
 
     im_pal = pim.as_pil_image()
-    im = im_pal.convert("RGB")
+    im = im_pal.convert('RGB')
     assert im.getpixel((1, 1)) == rgb
 
 
@@ -524,15 +524,15 @@ def first_image_from_pdfimages(pdf, tmpdir):
     if not has_pdfimages():
         pytest.skip("Need pdfimages for this test")
 
-    pdf.save(tmpdir / "in.pdf")
+    pdf.save(tmpdir / 'in.pdf')
 
     run(
-        ["pdfimages", "-q", "-png", fspath(tmpdir / "in.pdf"), fspath("pdfimage")],
+        ['pdfimages', '-q', '-png', fspath(tmpdir / 'in.pdf'), fspath('pdfimage')],
         cwd=fspath(tmpdir),
         check=True,
     )
 
-    outpng = tmpdir / "pdfimage-000.png"
+    outpng = tmpdir / 'pdfimage-000.png'
     assert outpng.exists()
     with Image.open(outpng) as im:
         yield im
@@ -542,23 +542,23 @@ def first_image_from_pdfimages(pdf, tmpdir):
 @settings(deadline=60000)
 def test_image_palette2(spec, tmp_path_factory):
     pdf = pdf_from_palette_image_spec(spec)
-    pim = PdfImage(pdf.pages[0].Resources.XObject["/Im0"])
+    pim = PdfImage(pdf.pages[0].Resources.XObject['/Im0'])
 
     im1 = pim.as_pil_image()
 
     with first_image_from_pdfimages(
-        pdf, tmp_path_factory.mktemp("test_image_palette2")
+        pdf, tmp_path_factory.mktemp('test_image_palette2')
     ) as im2:
-        if pim.palette.base_colorspace == "CMYK" and im1.size == im2.size:
+        if pim.palette.base_colorspace == 'CMYK' and im1.size == im2.size:
             return  # Good enough - CMYK is hard...
 
         if im1.mode == im2.mode:
             diff = ImageChops.difference(im1, im2)
         else:
-            diff = ImageChops.difference(im1.convert("RGB"), im2.convert("RGB"))
+            diff = ImageChops.difference(im1.convert('RGB'), im2.convert('RGB'))
 
         if diff.getbbox():
-            if pim.palette.base_colorspace in ("L", "RGB", "CMYK") and im2.mode == "1":
+            if pim.palette.base_colorspace in ('L', 'RGB', 'CMYK') and im2.mode == '1':
                 note("pdfimages bug - 1bit image stripped of palette")
                 return
 
@@ -568,22 +568,22 @@ def test_image_palette2(spec, tmp_path_factory):
 
 
 def test_bool_in_inline_image():
-    piim = PdfInlineImage(image_data=b"", image_object=(Name.IM, True))
+    piim = PdfInlineImage(image_data=b'', image_object=(Name.IM, True))
     assert piim.image_mask
 
 
 @pytest.mark.skipif(
-    not PIL_features.check_codec("jpg_2000"), reason="no JPEG2000 codec"
+    not PIL_features.check_codec('jpg_2000'), reason='no JPEG2000 codec'
 )
 def test_jp2(first_image_in):
-    xobj, _pdf = first_image_in("pike-jp2.pdf")
+    xobj, _pdf = first_image_in('pike-jp2.pdf')
     pim = PdfImage(xobj)
     assert isinstance(pim, PdfJpxImage)
 
-    assert "/JPXDecode" in pim.filters
-    assert pim.colorspace == "/DeviceRGB"
+    assert '/JPXDecode' in pim.filters
+    assert pim.colorspace == '/DeviceRGB'
     assert not pim.indexed
-    assert pim.mode == "RGB"
+    assert pim.mode == 'RGB'
     assert pim.bits_per_component == 8
     assert pim.__eq__(42) is NotImplemented
     assert pim == PdfImage(xobj)
@@ -596,7 +596,7 @@ def test_jp2(first_image_in):
     # If there is no explicit ColorSpace metadata we should get it from the
     # compressed data stream
     pim = PdfImage(xobj)
-    assert pim.colorspace == "/DeviceRGB"
+    assert pim.colorspace == '/DeviceRGB'
     assert pim.bits_per_component == 8
 
 
@@ -604,9 +604,9 @@ def test_extract_filepath(congress, outdir):
     xobj, _pdf = congress
     pim = PdfImage(xobj)
 
-    result = pim.extract_to(fileprefix=(outdir / "image"))
+    result = pim.extract_to(fileprefix=(outdir / 'image'))
     assert Path(result).exists()
-    assert (outdir / "image.jpg").exists()
+    assert (outdir / 'image.jpg').exists()
 
 
 def test_extract_direct_fails_nondefault_colortransform(congress):
@@ -630,35 +630,35 @@ def test_extract_direct_fails_nondefault_colortransform(congress):
 
 
 def test_icc_use(first_image_in):
-    xobj, _pdf = first_image_in("1biticc.pdf")
+    xobj, _pdf = first_image_in('1biticc.pdf')
 
     pim = PdfImage(xobj)
-    assert pim.mode == "L"  # It may be 1 bit per pixel but it's more complex than that
-    assert pim.colorspace == "/ICCBased"
+    assert pim.mode == 'L'  # It may be 1 bit per pixel but it's more complex than that
+    assert pim.colorspace == '/ICCBased'
     assert pim.bits_per_component == 1
 
-    assert pim.icc.profile.xcolor_space == "GRAY"
+    assert pim.icc.profile.xcolor_space == 'GRAY'
 
 
 def test_icc_extract(first_image_in):
-    xobj, _pdf = first_image_in("aquamarine-cie.pdf")
+    xobj, _pdf = first_image_in('aquamarine-cie.pdf')
 
     pim = PdfImage(xobj)
-    assert pim.as_pil_image().info["icc_profile"] == pim.icc.tobytes()
+    assert pim.as_pil_image().info['icc_profile'] == pim.icc.tobytes()
 
 
 def test_icc_palette(first_image_in):
-    xobj, _pdf = first_image_in("pink-palette-icc.pdf")
+    xobj, _pdf = first_image_in('pink-palette-icc.pdf')
     pim = PdfImage(xobj)
-    assert pim.icc.profile.xcolor_space == "RGB "  # with trailing space
+    assert pim.icc.profile.xcolor_space == 'RGB '  # with trailing space
     b = BytesIO()
     pim.extract_to(stream=b)
     b.seek(0)
 
     im = Image.open(b)
     assert im.size == (xobj.Width, xobj.Height)
-    assert im.mode == "P"
-    pil_icc = im.info.get("icc_profile")
+    assert im.mode == 'P'
+    pil_icc = im.info.get('icc_profile')
     pil_icc_stream = BytesIO(pil_icc)
     pil_prf = ImageCms.ImageCmsProfile(pil_icc_stream)
 
@@ -666,17 +666,17 @@ def test_icc_palette(first_image_in):
 
 
 def test_stacked_compression(first_image_in):
-    xobj, _pdf = first_image_in("pike-flate-jp2.pdf")
+    xobj, _pdf = first_image_in('pike-flate-jp2.pdf')
 
     pim = PdfImage(xobj)
-    assert pim.mode == "RGB"
-    assert pim.colorspace == "/DeviceRGB"
+    assert pim.mode == 'RGB'
+    assert pim.colorspace == '/DeviceRGB'
     assert pim.bits_per_component == 8
-    assert pim.filters == ["/FlateDecode", "/JPXDecode"]
+    assert pim.filters == ['/FlateDecode', '/JPXDecode']
 
 
 @pytest.mark.parametrize(
-    "blackis1,decode,expected",
+    'blackis1,decode,expected',
     [
         (None, None, 255),
         (False, None, 255),
@@ -699,7 +699,7 @@ def test_ccitt_photometry(sandwich, blackis1, decode, expected):
 
     pim = PdfImage(xobj)
     im = pim.as_pil_image()
-    im = im.convert("L")
+    im = im.convert('L')
     assert im.getpixel((0, 0)) == expected, f"Expected background pixel = {expected}"
 
 
@@ -715,7 +715,7 @@ def test_ccitt_encodedbytealign(sandwich):
 
 
 def test_imagemagick_uses_rle_compression(first_image_in):
-    xobj, _rle = first_image_in("rle.pdf")
+    xobj, _rle = first_image_in('rle.pdf')
 
     pim = PdfImage(xobj)
     im = pim.as_pil_image()
@@ -723,39 +723,39 @@ def test_imagemagick_uses_rle_compression(first_image_in):
 
 
 def test_ccitt_icc(first_image_in, resources):
-    xobj, pdf = first_image_in("sandwich.pdf")
+    xobj, pdf = first_image_in('sandwich.pdf')
 
     pim = PdfImage(xobj)
     assert pim.icc is None
     bio = BytesIO()
     output_type = pim.extract_to(stream=bio)
-    assert output_type == ".tif"
+    assert output_type == '.tif'
     bio.seek(0)
-    assert b"GRAYXYZ" not in bio.read(1000)
+    assert b'GRAYXYZ' not in bio.read(1000)
     bio.seek(0)
     assert Image.open(bio)
 
-    icc_data = (resources / "Gray.icc").read_bytes()
+    icc_data = (resources / 'Gray.icc').read_bytes()
     icc_stream = pdf.make_stream(icc_data)
     icc_stream.N = 1
     xobj.ColorSpace = pikepdf.Array([Name.ICCBased, icc_stream])
 
     pim = PdfImage(xobj)
-    assert pim.icc.profile.xcolor_space == "GRAY"
+    assert pim.icc.profile.xcolor_space == 'GRAY'
     bio = BytesIO()
     output_type = pim.extract_to(stream=bio)
-    assert output_type == ".tif"
+    assert output_type == '.tif'
     bio.seek(0)
-    assert b"GRAYXYZ" in bio.read(1000)
+    assert b'GRAYXYZ' in bio.read(1000)
     bio.seek(0)
     assert Image.open(bio)
 
 
 def test_invalid_icc(first_image_in):
-    xobj, _pdf = first_image_in("pink-palette-icc.pdf")
+    xobj, _pdf = first_image_in('pink-palette-icc.pdf')
 
     cs = xobj.ColorSpace[1][1]  # [/Indexed [/ICCBased <stream>]]
-    cs.write(b"foobar")  # corrupt the ICC profile
+    cs.write(b'foobar')  # corrupt the ICC profile
     with pytest.raises(
         UnsupportedImageTypeError, match="ICC profile corrupt or not readable"
     ):
@@ -767,16 +767,18 @@ def test_decodeparms_filter_alternates():
     pdf = pikepdf.new()
     imobj = Stream(
         pdf,
-        b"dummy",
+        b'dummy',
         BitsPerComponent=1,
         ColorSpace=Name.DeviceGray,
-        DecodeParms=Array([
-            Dictionary(
-                BlackIs1=False,
-                Columns=16,
-                K=-1,
-            )
-        ]),
+        DecodeParms=Array(
+            [
+                Dictionary(
+                    BlackIs1=False,
+                    Columns=16,
+                    K=-1,
+                )
+            ]
+        ),
         Filter=Array([Name.CCITTFaxDecode]),
         Height=16,
         Width=16,
@@ -787,27 +789,27 @@ def test_decodeparms_filter_alternates():
     assert pim.decode_parms[0].K == -1  # Check that array of dict is unpacked properly
 
 
-CMYK_RED = b"\x00\xc0\xc0\x15"
-CMYK_GREEN = b"\x90\x00\xc0\x15"
-CMYK_BLUE = b"\xc0\xa0\x00\x15"
-CMYK_PINK = b"\x04\xc0\x00\x15"
+CMYK_RED = b'\x00\xc0\xc0\x15'
+CMYK_GREEN = b'\x90\x00\xc0\x15'
+CMYK_BLUE = b'\xc0\xa0\x00\x15'
+CMYK_PINK = b'\x04\xc0\x00\x15'
 
 CMYK_PALETTE = CMYK_RED + CMYK_GREEN + CMYK_BLUE + CMYK_PINK
 
 
 @pytest.mark.parametrize(
-    "base, hival, bits, palette, expect_type, expect_mode",
+    'base, hival, bits, palette, expect_type, expect_mode',
     [
-        (Name.DeviceGray, 4, 8, b"\x00\x40\x80\xff", "L", "P"),
-        (Name.DeviceCMYK, 4, 8, CMYK_PALETTE, "CMYK", "P"),
-        (Name.DeviceGray, 4, 4, b"\x04\x08\x02\x0f", "L", "P"),
+        (Name.DeviceGray, 4, 8, b'\x00\x40\x80\xff', 'L', 'P'),
+        (Name.DeviceCMYK, 4, 8, CMYK_PALETTE, 'CMYK', 'P'),
+        (Name.DeviceGray, 4, 4, b'\x04\x08\x02\x0f', 'L', 'P'),
     ],
 )
 def test_palette_nonrgb(base, hival, bits, palette, expect_type, expect_mode):
     pdf = pikepdf.new()
     imobj = Stream(
         pdf,
-        b"\x00\x01\x02\x03" * 16,
+        b'\x00\x01\x02\x03' * 16,
         BitsPerComponent=bits,
         ColorSpace=Array([Name.Indexed, base, hival, palette]),
         Width=16,
@@ -826,7 +828,7 @@ def test_palette_nonrgb(base, hival, bits, palette, expect_type, expect_mode):
 def test_extract_to_mutex_params(sandwich):
     pdfimage = PdfImage(sandwich[0])
     with pytest.raises(ValueError, match="Cannot set both"):
-        pdfimage.extract_to(stream=BytesIO(), fileprefix="anything")
+        pdfimage.extract_to(stream=BytesIO(), fileprefix='anything')
 
 
 def test_separation():
@@ -852,30 +854,32 @@ def test_separation():
     #   exch: 0.84X 0.00 0.44X X
     #   0.21mul: 0.84X 0.00 0.44X 0.21X
     # X -> {0.84X, 0, 0.44X, 0.21X}
-    tint_transform_logogreen_to_cmyk = b"""
+    tint_transform_logogreen_to_cmyk = b'''
     {
         dup 0.84 mul
         exch 0.00 exch dup 0.44 mul
         exch 0.21 mul
     }
-    """
+    '''
 
-    cs = Array([
-        Name.Separation,
-        Name.LogoGreen,
-        Name.DeviceCMYK,
-        Stream(
-            pdf,
-            tint_transform_logogreen_to_cmyk,
-            FunctionType=4,
-            Domain=[0.0, 1.0],
-            Range=[0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
-        ),
-    ])
+    cs = Array(
+        [
+            Name.Separation,
+            Name.LogoGreen,
+            Name.DeviceCMYK,
+            Stream(
+                pdf,
+                tint_transform_logogreen_to_cmyk,
+                FunctionType=4,
+                Domain=[0.0, 1.0],
+                Range=[0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
+            ),
+        ]
+    )
 
     def check_pim(imobj, idx):
         pim = pikepdf.PdfImage(imobj)
-        assert pim.mode == "Separation"
+        assert pim.mode == 'Separation'
         assert pim.is_separation
         assert not pim.is_device_n
         assert pim.indexed == idx
@@ -908,7 +912,7 @@ def test_separation():
     check_pim(imobj1, idx=True)
 
     pdf.pages[0].Contents = Stream(
-        pdf, b"72 0 0 72 0 0 cm /Im0 Do 1 0 0 1 1 0 cm /Im1 Do"
+        pdf, b'72 0 0 72 0 0 cm /Im0 Do 1 0 0 1 1 0 cm /Im1 Do'
     )
     pdf.pages[0].Resources = Dictionary(XObject=Dictionary(Im0=imobj0, Im1=imobj1))
     # pdf.save("separation.pdf")
@@ -933,24 +937,26 @@ def test_devicen():
     #   stack contains: 0 0 0 X
     # pikepdf currently does not interpret tint transformation functions. This
     # is done so that the output test file can be checked in a PDF viewer.
-    tint_transform_k_to_cmyk = b"{0 0 0 4 -1 roll}"
+    tint_transform_k_to_cmyk = b'{0 0 0 4 -1 roll}'
 
-    cs = Array([
-        Name.DeviceN,
-        Array([Name.Black]),
-        Name.DeviceCMYK,
-        Stream(
-            pdf,
-            tint_transform_k_to_cmyk,
-            FunctionType=4,
-            Domain=[0.0, 1.0],
-            Range=[0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
-        ),
-    ])
+    cs = Array(
+        [
+            Name.DeviceN,
+            Array([Name.Black]),
+            Name.DeviceCMYK,
+            Stream(
+                pdf,
+                tint_transform_k_to_cmyk,
+                FunctionType=4,
+                Domain=[0.0, 1.0],
+                Range=[0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
+            ),
+        ]
+    )
 
     def check_pim(imobj, idx):
         pim = pikepdf.PdfImage(imobj)
-        assert pim.mode == "DeviceN"
+        assert pim.mode == 'DeviceN'
         assert pim.is_device_n
         assert not pim.is_separation
         assert pim.indexed == idx
@@ -983,7 +989,7 @@ def test_devicen():
     check_pim(imobj1, idx=True)
 
     pdf.pages[0].Contents = Stream(
-        pdf, b"72 0 0 72 0 0 cm /Im0 Do 1 0 0 1 1 0 cm /Im1 Do"
+        pdf, b'72 0 0 72 0 0 cm /Im0 Do 1 0 0 1 1 0 cm /Im1 Do'
     )
     pdf.pages[0].Resources = Dictionary(XObject=Dictionary(Im0=imobj0, Im1=imobj1))
     # pdf.save('devicen.pdf')
@@ -1000,7 +1006,7 @@ def test_devicen():
 def test_grayscale_stride(spec):
     pdf = pdf_from_image_spec(spec)
     pim = PdfImage(pdf.pages[0].Resources.XObject.Im0)
-    assert pim.mode == "L"
+    assert pim.mode == 'L'
     imdata = pim.read_bytes()
     w = pim.width
     imdata_unpacked_view, stride = unpack_subbyte_pixels(
@@ -1011,7 +1017,7 @@ def test_grayscale_stride(spec):
     bio = BytesIO()
     pim.extract_to(stream=bio)
     im = Image.open(bio)
-    assert im.mode == "L" and im.size == pim.size
+    assert im.mode == 'L' and im.size == pim.size
 
     for n, pixel in enumerate(im.getdata()):
         idx = stride * (n // w) + (n % w)
@@ -1031,11 +1037,11 @@ def test_random_image(spec, tmp_path_factory):
     imbytes = pim.read_bytes()
     try:
         result_extension = pim.extract_to(stream=bio)
-        assert result_extension in (".png", ".tiff")
+        assert result_extension in ('.png', '.tiff')
     except ValueError as e:
-        if "not enough image data" in str(e):
+        if 'not enough image data' in str(e):
             return
-        elif "buffer is not large enough" in str(e):
+        elif 'buffer is not large enough' in str(e):
             ncomps = (
                 4
                 if colorspace == Name.DeviceCMYK
@@ -1062,27 +1068,27 @@ def test_random_image(spec, tmp_path_factory):
     assert im.mode == pim.mode
     assert im.size == pim.size
 
-    outprefix = f"{width}x{height}x{im.mode}-"
+    outprefix = f'{width}x{height}x{im.mode}-'
     tmpdir = tmp_path_factory.mktemp(outprefix)
-    pdf.save(tmpdir / "pdf.pdf")
+    pdf.save(tmpdir / 'pdf.pdf')
 
     # We don't have convenient CMYK checking tools
-    if im.mode == "CMYK":
+    if im.mode == 'CMYK':
         return
 
-    im.save(tmpdir / "pikepdf.png")
-    Path(tmpdir / "imbytes.bin").write_bytes(imbytes)
+    im.save(tmpdir / 'pikepdf.png')
+    Path(tmpdir / 'imbytes.bin').write_bytes(imbytes)
     run(
         [
-            "pdfimages",
-            "-png",
-            fspath("pdf.pdf"),
-            fspath("pdfimage"),  # omit suffix
+            'pdfimages',
+            '-png',
+            fspath('pdf.pdf'),
+            fspath('pdfimage'),  # omit suffix
         ],
         cwd=fspath(tmpdir),
         check=True,
     )
-    outpng = tmpdir / "pdfimage-000.png"
+    outpng = tmpdir / 'pdfimage-000.png'
     assert outpng.exists()
     im_roundtrip = Image.open(outpng)
 
@@ -1120,7 +1126,7 @@ class StencilMaskSpec(NamedTuple):
         )
 
         pdf.pages[0].Contents = Stream(
-            pdf, b"%f 0 0 %f 0 0 cm 0.5 0.75 1.0 rg /Im0 Do" % (pdfw, pdfh)
+            pdf, b'%f 0 0 %f 0 0 cm 0.5 0.75 1.0 rg /Im0 Do' % (pdfw, pdfh)
         )
         pdf.pages[0].Resources = Dictionary(XObject=Dictionary(Im0=imobj))
         pdf.pages[0].MediaBox = Array([0, 0, pdfw, pdfh])
@@ -1149,7 +1155,7 @@ def test_extract_stencil_mask(spec):
     bio = BytesIO()
     pim.extract_to(stream=bio)
     im = Image.open(bio)
-    assert im.mode == "1"
+    assert im.mode == '1'
 
 
 def test_repr_when_mode_not_impl():
@@ -1157,7 +1163,7 @@ def test_repr_when_mode_not_impl():
     pim = PdfImage(
         Stream(
             pdf,
-            b"",
+            b'',
             BitsPerComponent=1,
             ColorSpace=Name.InvalidColorSpace,
             Width=1,
@@ -1166,6 +1172,6 @@ def test_repr_when_mode_not_impl():
             Subtype=Name.Image,
         )
     )
-    assert repr(pim).startswith("<pikepdf.PdfImage image mode=? size=1x1")
+    assert repr(pim).startswith('<pikepdf.PdfImage image mode=? size=1x1')
     with pytest.raises(NotImplementedError):
         pim.mode

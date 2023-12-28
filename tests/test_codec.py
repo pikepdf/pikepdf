@@ -16,52 +16,52 @@ import pikepdf.codec
 def test_encodable_table():
     for ordnum in pikepdf.codec.PDFDOC_ENCODABLE:
         char = chr(ordnum)
-        pdfdoc_encoded = char.encode("pdfdoc")
-        involuted = pdfdoc_encoded.decode("pdfdoc")
+        pdfdoc_encoded = char.encode('pdfdoc')
+        involuted = pdfdoc_encoded.decode('pdfdoc')
         assert char == involuted
 
 
 def test_encode():
-    assert "abc".encode("pdfdoc") == b"abc"
+    assert 'abc'.encode('pdfdoc') == b'abc'
     with pytest.raises(UnicodeEncodeError):
-        "你好".encode("pdfdoc")
-    assert "你好 world".encode("pdfdoc", "replace") == b"?? world"
-    assert "你好 world".encode("pdfdoc", "ignore") == b" world"
+        '你好'.encode('pdfdoc')
+    assert '你好 world'.encode('pdfdoc', 'replace') == b'?? world'
+    assert '你好 world'.encode('pdfdoc', 'ignore') == b' world'
 
 
 def test_decode():
-    assert b"A".decode("pdfdoc") == "A"
-    assert b"\xa0".decode("pdfdoc") == "€"
+    assert b'A'.decode('pdfdoc') == 'A'
+    assert b'\xa0'.decode('pdfdoc') == '€'
 
 
 def test_unicode_surrogate():
-    with pytest.raises(UnicodeEncodeError, match=r"surrogate"):
-        "\ud800".encode("pdfdoc")
+    with pytest.raises(UnicodeEncodeError, match=r'surrogate'):
+        '\ud800'.encode('pdfdoc')
 
 
 @given(binary())
-@example(b"\x9f")
-@example(b"\xfe\xff")
-@example(b"\xff\xfe")
+@example(b'\x9f')
+@example(b'\xfe\xff')
+@example(b'\xff\xfe')
 def test_codec_involution(b):
     # For most binary strings, there is a pdfdoc decoding and the encoding of that
     # decoding recovers the initial string.
     try:
-        assert b.decode("pdfdoc").encode("pdfdoc") == b
+        assert b.decode('pdfdoc').encode('pdfdoc') == b
     except UnicodeDecodeError as e:
         # 0x7f, 0x9f, and 0xad have no defined mapping to Unicode, so we expect
         # strings contain them to raise a decoding exception
-        assert set(e.object[e.start : e.end]) & set(b"\x7f\x9f\xad")
+        assert set(e.object[e.start : e.end]) & set(b'\x7f\x9f\xad')
     except UnicodeEncodeError as e:
         assert "'pdfdoc' codec can't encode characters in position 0-1" in str(e)
-        assert b.startswith(b"\xfe\xff") or b.startswith(b"\xff\xfe")
+        assert b.startswith(b'\xfe\xff') or b.startswith(b'\xff\xfe')
 
 
 @given(text())
-@example("\xfe\xff")
+@example('\xfe\xff')
 def test_break_encode(s):
     try:
-        encoded_bytes = s.encode("pdfdoc")
+        encoded_bytes = s.encode('pdfdoc')
     except ValueError as e:
         allowed_errors = [
             "'pdfdoc' codec can't encode character",
@@ -73,7 +73,7 @@ def test_break_encode(s):
         raise
     else:
         try:
-            assert encoded_bytes.decode("pdfdoc") == s, "encode -> decode failed"
+            assert encoded_bytes.decode('pdfdoc') == s, "encode -> decode failed"
         except UnicodeDecodeError as e:
             if "can't decode byte 0x9f" in str(e):
                 return
@@ -85,7 +85,7 @@ def test_break_encode(s):
 # We specifically add Cs, surrogates, which pybind11 needs extra help with.
 pdfdoc_text = text(
     alphabet=characters(
-        whitelist_categories=("N", "L", "M", "P", "Cs"),
+        whitelist_categories=('N', 'L', 'M', 'P', 'Cs'),
         whitelist_characters=[chr(c) for c in pikepdf.codec.PDFDOC_ENCODABLE],
     ),
     max_size=1000,
@@ -93,35 +93,35 @@ pdfdoc_text = text(
 
 
 @given(pdfdoc_text)
-@example("\r\n")
-@example("\r")
-@example("\n")
+@example('\r\n')
+@example('\r')
+@example('\n')
 @settings(deadline=60000)  # CI workers can be flakey
 def test_open_encoding_pdfdoc_write(tmp_path_factory, s):
-    folder = tmp_path_factory.mktemp("pdfdoc")
-    txt = folder / "pdfdoc.txt"
-    with open(txt, "w", encoding="pdfdoc", newline="") as f:
+    folder = tmp_path_factory.mktemp('pdfdoc')
+    txt = folder / 'pdfdoc.txt'
+    with open(txt, 'w', encoding='pdfdoc', newline='') as f:
         try:
             f.write(s)
         except UnicodeEncodeError:
             return
-    assert txt.read_bytes() == s.encode("pdfdoc")
+    assert txt.read_bytes() == s.encode('pdfdoc')
 
 
 @given(pdfdoc_text)
 @settings(deadline=60000)  # CI workers can be flakey
-@example("\r\n")
-@example("\r")
-@example("\n")
+@example('\r\n')
+@example('\r')
+@example('\n')
 def test_open_encoding_pdfdoc_read(tmp_path_factory, s: str):
-    folder = tmp_path_factory.mktemp("pdfdoc")
-    txt: Path = folder / "pdfdoc.txt"
-    with open(txt, "w", encoding="pdfdoc", newline="") as f:
+    folder = tmp_path_factory.mktemp('pdfdoc')
+    txt: Path = folder / 'pdfdoc.txt'
+    with open(txt, 'w', encoding='pdfdoc', newline='') as f:
         try:
             f.write(s)
         except UnicodeEncodeError:
             return
-    with open(txt, encoding="pdfdoc", newline="") as f:
+    with open(txt, encoding='pdfdoc', newline='') as f:
         result: str = f.read()
     assert result == s
 
@@ -136,13 +136,13 @@ def test_stream_writer(s):
         return
     bio.seek(0)
     data = bio.read()
-    assert data == s.encode("pdfdoc")
+    assert data == s.encode('pdfdoc')
 
 
 @given(pdfdoc_text)
 def test_stream_reader(s):
     try:
-        bio = BytesIO(s.encode("pdfdoc_pikepdf"))
+        bio = BytesIO(s.encode('pdfdoc_pikepdf'))
     except UnicodeEncodeError:
         return
     sr = pikepdf.codec.PdfDocStreamReader(bio)
@@ -151,6 +151,6 @@ def test_stream_reader(s):
 
 
 def test_pdfdoc_encode_lookup_error():
-    not_in_pdfdoc = "你好"
+    not_in_pdfdoc = '你好'
     with pytest.raises(LookupError):
-        not_in_pdfdoc.encode("pdfdoc_pikepdf", errors="invalid error handler")
+        not_in_pdfdoc.encode('pdfdoc_pikepdf', errors="invalid error handler")

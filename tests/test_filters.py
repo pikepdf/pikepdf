@@ -10,7 +10,7 @@ from pikepdf import Pdf, PdfError, Token, TokenFilter, TokenType
 
 @pytest.fixture
 def pal(resources):
-    return Pdf.open(resources / "pal-1bit-rgb.pdf")
+    return Pdf.open(resources / 'pal-1bit-rgb.pdf')
 
 
 class FilterThru(TokenFilter):
@@ -46,19 +46,19 @@ class FilterCollectNames(TokenFilter):
 
 
 def test_token_eq_token():
-    token_42 = Token(TokenType.integer, b"42")
-    assert Token(TokenType.space, b" ") != token_42
-    assert Token(TokenType.integer, b"42") == token_42
+    token_42 = Token(TokenType.integer, b'42')
+    assert Token(TokenType.space, b' ') != token_42
+    assert Token(TokenType.integer, b'42') == token_42
     assert token_42 != 42
     assert repr(token_42) == "pikepdf.Token(TokenType.integer, b'42')"
 
 
 @pytest.mark.parametrize(
-    "filter, expected",
+    'filter, expected',
     [
-        (FilterThru, b"q\n144.0000 0 0 144.0000 0.0000 0.0000 cm\n/Im0 Do\nQ"),
-        (FilterDrop, b""),
-        (FilterNumbers, b"144.0000 0 0 144.0000 0.0000 0.0000 "),
+        (FilterThru, b'q\n144.0000 0 0 144.0000 0.0000 0.0000 cm\n/Im0 Do\nQ'),
+        (FilterDrop, b''),
+        (FilterNumbers, b'144.0000 0 0 144.0000 0.0000 0.0000 '),
     ],
 )
 def test_filter_thru(pal, filter, expected):
@@ -72,10 +72,10 @@ def test_filter_names(pal):
     page = pal.pages[0]
     filter = FilterCollectNames()
     result = page.get_filtered_contents(filter)
-    assert result == b""
-    assert filter.names == ["/Im0"]
+    assert result == b''
+    assert filter.names == ['/Im0']
     after = page.obj.Contents.read_bytes()
-    assert after != b""
+    assert after != b''
 
 
 class FilterInvalid(TokenFilter):
@@ -107,7 +107,7 @@ def test_issue160_tokenfilter_refcounting(resources, outpdf):
     class MyFilter(TokenFilter):
         def __init__(self, replace):
             super().__init__()
-            self.replace = bytes(replace, "ascii")
+            self.replace = bytes(replace, 'ascii')
 
         def handle_token(self, tok):
             if tok.type_ == TokenType.string:
@@ -116,11 +116,11 @@ def test_issue160_tokenfilter_refcounting(resources, outpdf):
                 return Token(TokenType.string, s)
             return tok
 
-    with Pdf.open(resources / "outlines.pdf") as pdf:
+    with Pdf.open(resources / 'outlines.pdf') as pdf:
         pages = pdf.pages
         num = 0
         for page in pages:
-            f = MyFilter(("%d" % num)[-1])
+            f = MyFilter(('%d' % num)[-1])
             page.add_content_token_filter(f)
             num += 1
         pdf.save(outpdf)

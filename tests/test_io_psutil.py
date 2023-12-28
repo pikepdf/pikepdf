@@ -12,7 +12,7 @@ import pytest
 
 from pikepdf import Pdf
 
-psutil = pytest.importorskip("psutil")
+psutil = pytest.importorskip('psutil')
 
 
 def _file_descriptor_is_open(
@@ -29,11 +29,11 @@ def _file_descriptor_is_open(
 
 
 def _skip_file_descriptor_checks_if_not_supported():
-    if sys.platform == "win32" or sys.platform.startswith("freebsd"):
+    if sys.platform == 'win32' or sys.platform.startswith('freebsd'):
         pytest.skip(
             "psutil documentation warns that .open_files() has problems on these"
         )
-    elif sys.implementation.name == "pypy" or os.environ.get("CI", "false") == "true":
+    elif sys.implementation.name == 'pypy' or os.environ.get('CI', 'false') == 'true':
         pytest.skip("fails randomly on CI, not worth it")
 
 
@@ -60,7 +60,7 @@ def file_descriptor_is_closed():
 def test_open_named_file_closed(
     resources, file_descriptor_is_open, file_descriptor_is_closed
 ):
-    path = resources / "pal.pdf"
+    path = resources / 'pal.pdf'
     pdf = Pdf.open(path)  # no with clause
     assert file_descriptor_is_open(path)
 
@@ -69,8 +69,8 @@ def test_open_named_file_closed(
 
 
 def test_streamed_file_not_closed(resources, file_descriptor_is_open):
-    path = resources / "pal.pdf"
-    stream = path.open("rb")
+    path = resources / 'pal.pdf'
+    stream = path.open('rb')
     pdf = Pdf.open(stream)  # no with clause
     assert file_descriptor_is_open(path)
 
@@ -78,18 +78,18 @@ def test_streamed_file_not_closed(resources, file_descriptor_is_open):
     assert file_descriptor_is_open(path), "pikepdf closed a stream it did not open"
 
 
-@pytest.mark.parametrize("branch", ["success", "failure"])
+@pytest.mark.parametrize('branch', ['success', 'failure'])
 def test_save_named_file_closed(
     resources, outdir, file_descriptor_is_open, file_descriptor_is_closed, branch
 ):
-    with Pdf.open(resources / "pal.pdf") as pdf:
+    with Pdf.open(resources / 'pal.pdf') as pdf:
         path = outdir / "pal.pdf"
 
         def confirm_opened(progress_percent):
             if progress_percent == 0:
                 assert file_descriptor_is_open(path)
-            if progress_percent > 0 and branch == "failure":
-                raise ValueError("failure branch")
+            if progress_percent > 0 and branch == 'failure':
+                raise ValueError('failure branch')
 
         try:
             pdf.save(path, progress=confirm_opened)
@@ -101,9 +101,9 @@ def test_save_named_file_closed(
 
 
 def test_save_streamed_file_not_closed(resources, outdir, file_descriptor_is_open):
-    with Pdf.open(resources / "pal.pdf") as pdf:
+    with Pdf.open(resources / 'pal.pdf') as pdf:
         path = outdir / "pal.pdf"
-        stream = path.open("wb")
+        stream = path.open('wb')
 
         def confirm_opened(progress_percent):
             if progress_percent == 0:

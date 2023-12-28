@@ -26,7 +26,7 @@ from pikepdf.models.outlines import ALL_PAGE_LOCATION_KWARGS
 @pytest.fixture
 def outlines_doc(resources):
     # Contains an outline with references
-    with Pdf.open(resources / "outlines.pdf") as pdf:
+    with Pdf.open(resources / 'outlines.pdf') as pdf:
         yield pdf
 
 
@@ -41,13 +41,13 @@ def test_load_outlines(outlines_doc):
         sec_two = outline.root[1]
         sec_three = outline.root[2]
         assert len(outline.root) == 3
-    assert sec_one.title == "One"
+    assert sec_one.title == 'One'
     assert sec_one.is_closed is True
     assert sec_one.obj == first_obj
-    assert sec_two.title == "Two"
+    assert sec_two.title == 'Two'
     assert sec_two.is_closed is False
     assert sec_two.obj == second_obj
-    assert sec_three.title == "Three"
+    assert sec_three.title == 'Three'
     assert sec_three.is_closed is True
     assert sec_three.obj == third_obj
 
@@ -80,7 +80,7 @@ def test_reproduce_outlines_structure(outlines_doc):
             third_obj_a,
             third_obj_b,
         ]:
-            for n in ["/First", "/Last", "/Prev", "/Next", "/Parent"]:
+            for n in ['/First', '/Last', '/Prev', '/Next', '/Parent']:
                 if n in obj:
                     del obj[n]
 
@@ -125,15 +125,15 @@ def test_recursion_depth_zero(outlines_doc):
 
         # Attach an item to the first root level element
         # that should be ignored when writing
-        outline.root[0].children.append(OutlineItem("New", 0))
+        outline.root[0].children.append(OutlineItem('New', 0))
 
     root_obj = outlines_doc.Root.Outlines
     first_obj = root_obj.First
     second_obj = first_obj.Next
     third_obj = second_obj.Next
     for obj in [first_obj, second_obj, third_obj]:
-        assert "/First" not in obj
-        assert "/Last" not in obj
+        assert '/First' not in obj
+        assert '/Last' not in obj
 
 
 def test_recursion_depth_one(outlines_doc):
@@ -147,7 +147,7 @@ def test_recursion_depth_one(outlines_doc):
 
         # Attach an item to the first sub level element
         # that should be ignored when writing
-        outline.root[0].children[1].children.append(OutlineItem("New", 0))
+        outline.root[0].children[1].children.append(OutlineItem('New', 0))
 
     root_obj = outlines_doc.Root.Outlines
     first_obj = root_obj.First
@@ -158,8 +158,8 @@ def test_recursion_depth_one(outlines_doc):
     third_obj_a = third_obj.First
     third_obj_b = third_obj_a.Next
     for obj in [first_obj_a, first_obj_b, third_obj_a, third_obj_b]:
-        assert "/First" not in obj
-        assert "/Last" not in obj
+        assert '/First' not in obj
+        assert '/Last' not in obj
 
 
 def test_reference_loop_on_level(outlines_doc):
@@ -180,7 +180,7 @@ def test_reference_loop_on_level(outlines_doc):
     with outlines_doc.open_outline() as outline:
         list(outline.root)
     # Back-reference should now be removed
-    assert "/Next" not in last_obj
+    assert '/Next' not in last_obj
 
 
 def test_reference_loop_on_recursion_only_element(outlines_doc):
@@ -203,8 +203,8 @@ def test_reference_loop_on_recursion_only_element(outlines_doc):
     with outlines_doc.open_outline() as outline:
         list(outline.root)
     # Invalid structure should now be absent
-    assert "/First" not in first_obj_a
-    assert "/Last" not in first_obj_a
+    assert '/First' not in first_obj_a
+    assert '/Last' not in first_obj_a
 
 
 def test_reference_loop_on_recursion_last_element(outlines_doc):
@@ -230,7 +230,7 @@ def test_reference_loop_on_recursion_last_element(outlines_doc):
     with outlines_doc.open_outline() as outline:
         list(outline.root)
     # Invalid references should now be removed
-    assert "/Next" not in first_obj_b_ii
+    assert '/Next' not in first_obj_b_ii
     assert first_obj_b.Last == first_obj_b_ii
 
 
@@ -276,8 +276,8 @@ def test_fix_references_swap_root(outlines_doc):
     assert second_obj.Next == first_obj
     assert first_obj.Prev == second_obj
     assert second_obj.Prev == third_obj
-    assert "/Prev" not in third_obj
-    assert "/Next" not in first_obj
+    assert '/Prev' not in third_obj
+    assert '/Next' not in first_obj
 
 
 def test_fix_references_move_level(outlines_doc):
@@ -300,22 +300,22 @@ def test_fix_references_move_level(outlines_doc):
     assert sec_one_b_i.obj.Parent == root_obj
     assert sec_one_b_ii.obj.Parent == root_obj
     assert first_b_obj.Count == 0
-    assert "/First" not in first_b_obj
-    assert "/Last" not in first_b_obj
+    assert '/First' not in first_b_obj
+    assert '/Last' not in first_b_obj
 
 
 def test_noop(outlines_doc):
     with outlines_doc.open_outline(strict=True):
         # Forget to attach it - should simply not modify.
-        OutlineItem("New")
+        OutlineItem('New')
 
 
 def test_append_items(outlines_doc):
     # Simple check that we can write new objects
     # without failing the object duplicate checks
     with outlines_doc.open_outline(strict=True) as outline:
-        new_item = OutlineItem("Four")
-        new_item.children.extend([OutlineItem("Four-A"), OutlineItem("Four-B")])
+        new_item = OutlineItem('Four')
+        new_item.children.extend([OutlineItem('Four-A'), OutlineItem('Four-B')])
         outline.root.append(new_item)
 
     with outlines_doc.open_outline(strict=True):
@@ -327,8 +327,8 @@ def test_create_from_scratch(outlines_doc):
     # and create a new one.
     del outlines_doc.Root.Outlines
     with outlines_doc.open_outline(strict=True) as outline:
-        new_item = OutlineItem("One")
-        new_item.children.extend([OutlineItem("One-A"), OutlineItem("One-B")])
+        new_item = OutlineItem('One')
+        new_item.children.extend([OutlineItem('One-A'), OutlineItem('One-B')])
         outline.root.append(new_item)
 
     with outlines_doc.open_outline(strict=True):
@@ -337,7 +337,7 @@ def test_create_from_scratch(outlines_doc):
     # Should also work while the outline is open
     with outlines_doc.open_outline(strict=True) as outline:
         del outlines_doc.Root.Outlines
-        new_item = OutlineItem("One")
+        new_item = OutlineItem('One')
         outline.root.append(new_item)
 
     with outlines_doc.open_outline(strict=True):
@@ -371,8 +371,8 @@ def test_modify_closed(outlines_doc):
 def test_dest_or_action(outlines_doc):
     first_obj = outlines_doc.Root.Outlines.First
     first_page = outlines_doc.pages[0]
-    assert "/A" in first_obj
-    assert "/Dest" not in first_obj
+    assert '/A' in first_obj
+    assert '/Dest' not in first_obj
     with outlines_doc.open_outline() as outline:
         first = outline.root[0]
         # Set to first page.
@@ -381,37 +381,37 @@ def test_dest_or_action(outlines_doc):
     assert first.destination == [first_page.obj, Name.Fit]
     assert first_obj.Dest == first.destination
     # Original action should be gone
-    assert "/A" not in first_obj
+    assert '/A' not in first_obj
     # Now save with a new action instead
     with outlines_doc.open_outline() as outline:
         first = outline.root[0]
         first.action = Dictionary(D=first.destination, S=Name.GoTo)
         first.destination = None
     assert first_obj.A.D == [first_page.obj, Name.Fit]
-    assert "/Dest" not in first_obj
+    assert '/Dest' not in first_obj
 
 
 @settings(deadline=60000)
 @given(
     page_num=st.integers(0, 1),
-    page_loc=st.sampled_from(list(PageLocation) + ["invalid"]),  # type: ignore
+    page_loc=st.sampled_from(list(PageLocation) + ['invalid']),  # type: ignore
     kwargs=st.dictionaries(
         st.sampled_from(list(sorted(ALL_PAGE_LOCATION_KWARGS))), st.integers(0, 10000)
     ),
 )
 @example(
     page_num=0,
-    page_loc="FitR",
-    kwargs={"left": 0, "top": 0, "bottom": 0, "right": 0, "zoom": 0},
+    page_loc='FitR',
+    kwargs={'left': 0, 'top': 0, 'bottom': 0, 'right': 0, 'zoom': 0},
 )
 def test_page_destination(resources, page_num, page_loc, kwargs):
     # @given precludes use of outlines_doc fixture - causes hypothesis health check to
     # fail
-    with Pdf.open(resources / "outlines.pdf") as doc:
+    with Pdf.open(resources / 'outlines.pdf') as doc:
         page_ref = doc.pages[page_num]
 
-        if page_loc == "invalid":
-            with pytest.raises(ValueError, match="unsupported page location"):
+        if page_loc == 'invalid':
+            with pytest.raises(ValueError, match='unsupported page location'):
                 make_page_destination(doc, page_num, page_loc, **kwargs)
             return
 
@@ -420,21 +420,21 @@ def test_page_destination(resources, page_num, page_loc, kwargs):
             loc_str = page_loc.name
         else:
             loc_str = page_loc
-        if loc_str == "XYZ":
-            args = "left", "top", "zoom"
-        elif loc_str == "FitH":
-            args = ("top",)
-        elif loc_str == "FitV":
-            args = ("left",)
-        elif loc_str == "FitR":
-            args = "left", "bottom", "right", "top"
-        elif loc_str == "FitBH":
-            args = ("top",)
-        elif loc_str == "FitBV":
-            args = ("left",)
+        if loc_str == 'XYZ':
+            args = 'left', 'top', 'zoom'
+        elif loc_str == 'FitH':
+            args = ('top',)
+        elif loc_str == 'FitV':
+            args = ('left',)
+        elif loc_str == 'FitR':
+            args = 'left', 'bottom', 'right', 'top'
+        elif loc_str == 'FitBH':
+            args = ('top',)
+        elif loc_str == 'FitBV':
+            args = ('left',)
         else:
             args = ()
-        expected_dest = [page_ref.obj, Name(f"/{loc_str}")]
+        expected_dest = [page_ref.obj, Name(f'/{loc_str}')]
         expected_dest.extend(kwargs.get(k, 0) for k in args)
         assert dest == expected_dest
 
@@ -446,19 +446,19 @@ def test_page_destination(resources, page_num, page_loc, kwargs):
     page_loc=st.sampled_from(PageLocation),
 )
 @example(
-    title="",
+    title='',
     page_num=0,
-    page_loc="FitR",
+    page_loc='FitR',
 )
 @example(
-    title="þÿ",
+    title='þÿ',
     page_num=0,
     page_loc=PageLocation.XYZ,
 )
 def test_new_item(resources, title, page_num, page_loc):
     # @given precludes use of outlines_doc fixture - causes hypothesis health check to
     # fail
-    with Pdf.open(resources / "outlines.pdf") as doc:
+    with Pdf.open(resources / 'outlines.pdf') as doc:
         kwargs = dict.fromkeys(ALL_PAGE_LOCATION_KWARGS, 100)
         page_ref = doc.pages[page_num]
 
@@ -469,15 +469,15 @@ def test_new_item(resources, title, page_num, page_loc):
             loc_str = page_loc.name
         else:
             loc_str = page_loc
-        if loc_str == "FitR":
+        if loc_str == 'FitR':
             kwarg_len = 4
-        elif loc_str == "XYZ":
+        elif loc_str == 'XYZ':
             kwarg_len = 3
-        elif loc_str in ("FitH", "FitV", "FitBH", "FitBV"):
+        elif loc_str in ('FitH', 'FitV', 'FitBH', 'FitBV'):
             kwarg_len = 1
         else:
             kwarg_len = 0
-        expected_dest = [page_ref.obj, Name(f"/{loc_str}")]
+        expected_dest = [page_ref.obj, Name(f'/{loc_str}')]
         expected_dest.extend(repeat(100, kwarg_len))
         assert new_item.destination == expected_dest
         new_obj = new_item.obj
@@ -488,26 +488,26 @@ def test_new_item(resources, title, page_num, page_loc):
 
 def test_outlineitem_str(outlines_doc):
     with outlines_doc.open_outline() as outline:
-        assert str(outline.root[0]) == "[+] One -> <Action>"
-        assert str(outline.root[1]) == "[ ] Two -> <Action>"
+        assert str(outline.root[0]) == '[+] One -> <Action>'
+        assert str(outline.root[1]) == '[ ] Two -> <Action>'
 
         outline.root[0].is_closed = False
-        assert str(outline.root[0]) == "[-] One -> <Action>"
+        assert str(outline.root[0]) == '[-] One -> <Action>'
 
-        item = OutlineItem("Test", make_page_destination(outlines_doc, 0))
-        assert "[ ] Test -> 1" == str(item)
+        item = OutlineItem('Test', make_page_destination(outlines_doc, 0))
+        assert '[ ] Test -> 1' == str(item)
 
-        assert str(outline) != ""
+        assert str(outline) != ''
 
 
 def test_outline_repr(outlines_doc):
     with outlines_doc.open_outline() as outline:
-        assert repr(outline).startswith("<pikepdf.Outline:")
-        assert repr(outline.root[0]).startswith("<pikepdf.OutlineItem")
+        assert repr(outline).startswith('<pikepdf.Outline:')
+        assert repr(outline.root[0]).startswith('<pikepdf.OutlineItem')
 
 
 def test_outline_destination_name_object_types():
     # See issues 258, 261
-    obj = Dictionary(Title="foo", Dest=Name.Bar)
+    obj = Dictionary(Title='foo', Dest=Name.Bar)
     item = OutlineItem.from_dictionary_object(obj)
-    assert ".Root.Dests" in str(item)
+    assert '.Root.Dests' in str(item)

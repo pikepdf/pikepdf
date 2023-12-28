@@ -14,7 +14,7 @@ from packaging.version import Version
 try:
     from pikepdf import __libqpdf_version__
 except ImportError:
-    __libqpdf_version__ = "0.0.0"
+    __libqpdf_version__ = '0.0.0'
 
 
 import pytest
@@ -25,7 +25,7 @@ PROJECT_ROOT = os.path.dirname(TESTS_ROOT)
 
 @pytest.fixture(scope="session")
 def resources():
-    return Path(TESTS_ROOT) / "resources"
+    return Path(TESTS_ROOT) / 'resources'
 
 
 @pytest.fixture(scope="function")
@@ -35,24 +35,24 @@ def outdir(tmp_path):
 
 @pytest.fixture(scope="function")
 def outpdf(tmp_path):
-    return tmp_path / "out.pdf"
+    return tmp_path / 'out.pdf'
 
 
 @pytest.fixture
 def refcount():
-    if platform.python_implementation() == "PyPy":
+    if platform.python_implementation() == 'PyPy':
         pytest.skip(reason="test isn't valid for PyPy")
     return sys.getrefcount
 
 
 skip_if_pypy = pytest.mark.skipif(
-    platform.python_implementation() == "PyPy", reason="test isn't valid for PyPy"
+    platform.python_implementation() == 'PyPy', reason="test isn't valid for PyPy"
 )
 fails_if_pypy = pytest.mark.xfail(
-    platform.python_implementation() == "PyPy", reason="test known to fail on PyPy"
+    platform.python_implementation() == 'PyPy', reason="test known to fail on PyPy"
 )
 skip_if_ci = pytest.mark.skipif(
-    os.environ.get("CI", "") == "true", reason="test too slow for CI"
+    os.environ.get('CI', '') == 'true', reason="test too slow for CI"
 )
 fails_if_no_mutool = pytest.mark.xfail(
     shutil.which("mutool") is None, reason="test fails without mutool"
