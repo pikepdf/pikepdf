@@ -57,7 +57,7 @@ jobs:
         platform: [manylinux_musllinux_arm64]
     steps:
       - name: Waiting for Cirrus CI
-        uses: lewagon/wait-on-check-action@v1.3.1
+        uses: lewagon/wait-on-check-action@v1.3.3
         if: github.event_name != 'pull_request'
         with:
           ref: ${{ github.ref || github.sha }}
@@ -124,7 +124,7 @@ jobs:
         platform: [macosx_arm64]
     steps:
       - name: Waiting for Cirrus CI
-        uses: lewagon/wait-on-check-action@v1.3.1
+        uses: lewagon/wait-on-check-action@v1.3.3
         if: github.event_name != 'pull_request'
         with:
           ref: ${{ github.ref || github.sha }}
