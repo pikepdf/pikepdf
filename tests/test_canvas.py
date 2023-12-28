@@ -27,31 +27,31 @@ class TestContentStreamBuilder:
     def test_append(self):
         builder = ContentStreamBuilder()
         builder.push()
-        assert builder.build() == b"q\n"
+        assert builder.build() == b'q\n'
 
     def test_extend(self):
         builder1 = ContentStreamBuilder()
         builder2 = ContentStreamBuilder()
         builder2.push()
         builder1.extend(builder2)
-        assert builder1.build() == b"q\n"
+        assert builder1.build() == b'q\n'
 
     @pytest.mark.parametrize(
-        "method,args,operator",
+        'method,args,operator',
         [
-            (ContentStreamBuilder.push, (), "q"),
-            (ContentStreamBuilder.pop, (), "Q"),
-            (ContentStreamBuilder.cm, (Matrix(),), "cm"),
+            (ContentStreamBuilder.push, (), 'q'),
+            (ContentStreamBuilder.pop, (), 'Q'),
+            (ContentStreamBuilder.cm, (Matrix(),), 'cm'),
             (
                 ContentStreamBuilder.begin_marked_content_proplist,
                 (Name.Test, 42),
-                "BDC",
+                'BDC',
             ),
-            (ContentStreamBuilder.end_marked_content, (), "EMC"),
-            (ContentStreamBuilder.begin_marked_content, (Name.Foo,), "BMC"),
-            (ContentStreamBuilder.begin_text, (), "BT"),
-            (ContentStreamBuilder.end_text, (), "ET"),
-            (ContentStreamBuilder.set_text_font, (Name.Test, 12), "Tf"),
+            (ContentStreamBuilder.end_marked_content, (), 'EMC'),
+            (ContentStreamBuilder.begin_marked_content, (Name.Foo,), 'BMC'),
+            (ContentStreamBuilder.begin_text, (), 'BT'),
+            (ContentStreamBuilder.end_text, (), 'ET'),
+            (ContentStreamBuilder.set_text_font, (Name.Test, 12), 'Tf'),
             (ContentStreamBuilder.set_text_matrix, (Matrix(),), "Tm"),
             (ContentStreamBuilder.set_text_rendering, (3,), "Tr"),
             (ContentStreamBuilder.set_text_horizontal_scaling, (100.0,), "Tz"),
@@ -72,7 +72,7 @@ class TestContentStreamBuilder:
     def test_operators(self, method, operator, args):
         builder = ContentStreamBuilder()
         method(builder, *args)
-        assert builder.build().endswith(Operator(operator).unparse() + b"\n")
+        assert builder.build().endswith(Operator(operator).unparse() + b'\n')
 
 
 class TestCanvas:
@@ -92,18 +92,18 @@ class TestCanvas:
 
     def test_image(self, resources):
         canvas = Canvas(page_size=(400, 100))
-        canvas.do.draw_image(resources / "pink-palette-icc.png", 0, 0, 100, 100)
-        im = Image.open(resources / "pink-palette-icc.png")
-        canvas.do.draw_image(im.convert("1"), 100, 0, 100, 100)
-        canvas.do.draw_image(im.convert("L"), 200, 0, 100, 100)
-        canvas.do.draw_image(im.convert("RGB"), 300, 0, 100, 100)
+        canvas.do.draw_image(resources / 'pink-palette-icc.png', 0, 0, 100, 100)
+        im = Image.open(resources / 'pink-palette-icc.png')
+        canvas.do.draw_image(im.convert('1'), 100, 0, 100, 100)
+        canvas.do.draw_image(im.convert('L'), 200, 0, 100, 100)
+        canvas.do.draw_image(im.convert('RGB'), 300, 0, 100, 100)
 
         pdf = canvas.to_pdf()
         pdf.check()
 
     def test_text(self):
-        hello_msg = "Hello, World!"
-        hello_arabic = "مرحبا بالعالم"
+        hello_msg = 'Hello, World!'
+        hello_arabic = 'مرحبا بالعالم'
         canvas = Canvas(page_size=(100, 100))
 
         text = Text()
@@ -128,7 +128,7 @@ class TestCanvas:
 
         for msg in [hello_msg, hello_arabic]:
             # str -> UTF-16 big endian bytes -> hex encoded str -> hex bytes
-            hex_bytes = msg.encode("utf-16be").hex().encode("ascii")
+            hex_bytes = msg.encode('utf-16be').hex().encode('ascii')
             assert hex_bytes in pdf.pages[0].Contents.read_bytes()
 
     def test_stack_abuse(self, caplog):

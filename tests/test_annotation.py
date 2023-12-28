@@ -10,7 +10,7 @@ from pikepdf import Annotation, Name, Pdf
 
 @pytest.fixture
 def form(resources):
-    with Pdf.open(resources / "form.pdf") as pdf:
+    with Pdf.open(resources / 'form.pdf') as pdf:
         yield pdf
 
 
@@ -24,7 +24,7 @@ def test_button(form):
     assert stream == annot.obj.AP.N
     assert (
         annot.get_page_content_for_appearance(Name.XYZ, 0)
-        == b"q\n1 0 0 1 0 24.0182 cm\n/XYZ Do\nQ\n"
+        == b'q\n1 0 0 1 0 24.0182 cm\n/XYZ Do\nQ\n'
     )
 
 
@@ -39,7 +39,7 @@ def test_checkbox(form):
     assert stream == annot.obj.AP.D.Yes
     assert (
         annot.get_page_content_for_appearance(Name.XYZ, 0)
-        == b"q\n1 0 0 1 4.41818 3.10912 cm\n/XYZ Do\nQ\n"
+        == b'q\n1 0 0 1 4.41818 3.10912 cm\n/XYZ Do\nQ\n'
     )
 
 

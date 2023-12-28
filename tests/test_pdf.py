@@ -26,20 +26,20 @@ from pikepdf import Name, PasswordError, Pdf, PdfError, Stream
 @pytest.fixture
 def trivial(resources):
     with Pdf.open(
-        resources / "pal-1bit-trivial.pdf", access_mode=pikepdf.AccessMode.mmap
+        resources / 'pal-1bit-trivial.pdf', access_mode=pikepdf.AccessMode.mmap
     ) as pdf:
         yield pdf
 
 
 @pytest.fixture
 def pdf_form(resources):
-    with Pdf.open(resources / "form.pdf") as pdf:
+    with Pdf.open(resources / 'form.pdf') as pdf:
         yield pdf
 
 
 def test_new(outdir):
     pdf = pikepdf.new()
-    pdf.save(outdir / "new-empty.pdf")
+    pdf.save(outdir / 'new-empty.pdf')
 
 
 def test_non_filename():
@@ -48,7 +48,7 @@ def test_non_filename():
 
 
 def test_file_descriptor(resources):
-    with (resources / "pal-1bit-trivial.pdf").open("rb") as f:
+    with (resources / 'pal-1bit-trivial.pdf').open('rb') as f:
         with pytest.raises(TypeError):
             Pdf.open(f.fileno())
 
@@ -60,11 +60,11 @@ def test_save_to_file_descriptor_fails(trivial):
 
 def test_not_existing_file():
     with pytest.raises(FileNotFoundError):
-        Pdf.open("does_not_exist.pdf")
+        Pdf.open('does_not_exist.pdf')
 
 
 def test_empty(outdir):
-    target = outdir / "empty.pdf"
+    target = outdir / 'empty.pdf'
     target.touch()
     with pytest.raises(PdfError):
         Pdf.open(target)
@@ -72,11 +72,11 @@ def test_empty(outdir):
 
 class TestLinearization:
     def test_linearization(self, resources, outdir):
-        with Pdf.open(resources / "graph.pdf") as graph:
+        with Pdf.open(resources / 'graph.pdf') as graph:
             assert not graph.is_linearized
-            graph.save(outdir / "lin.pdf", linearize=True)
+            graph.save(outdir / 'lin.pdf', linearize=True)
 
-        with Pdf.open(outdir / "lin.pdf") as pdf:
+        with Pdf.open(outdir / 'lin.pdf') as pdf:
             assert pdf.is_linearized
 
             sio = StringIO()
@@ -84,8 +84,8 @@ class TestLinearization:
 
 
 def test_objgen(resources):
-    with Pdf.open(resources / "graph.pdf") as src:
-        im0 = src.pages[0].Resources.XObject["/Im0"]
+    with Pdf.open(resources / 'graph.pdf') as src:
+        im0 = src.pages[0].Resources.XObject['/Im0']
         assert im0.objgen == (5, 0)
         object5 = src.get_object((5, 0))
         assert object5.is_owned_by(src)
@@ -97,29 +97,29 @@ class TestPasswords:
     def test_open_pdf_wrong_password(self, resources):
         # The correct passwords are "owner" and "user"
         with pytest.raises(PasswordError):
-            Pdf.open(resources / "graph-encrypted.pdf", password="wrong")
+            Pdf.open(resources / 'graph-encrypted.pdf', password='wrong')
 
     def test_open_pdf_password_encoding(self, resources):
         with pytest.raises(PasswordError):
-            Pdf.open(resources / "graph-encrypted.pdf", password=b"\x01\xfe")
+            Pdf.open(resources / 'graph-encrypted.pdf', password=b'\x01\xfe')
 
     def test_open_pdf_no_password_but_needed(self, resources):
         with pytest.raises(PasswordError):
-            Pdf.open(resources / "graph-encrypted.pdf")
+            Pdf.open(resources / 'graph-encrypted.pdf')
 
     def test_open_pdf_user_password(self, resources):
-        with Pdf.open(resources / "graph-encrypted.pdf", password="user"):
+        with Pdf.open(resources / 'graph-encrypted.pdf', password='user'):
             pass
 
     def test_unneeded_password_ignored(self, resources):
         with pytest.warns(UserWarning, match="no password was needed"):
-            with Pdf.open(resources / "graph.pdf", password="open sesame"):
+            with Pdf.open(resources / 'graph.pdf', password='open sesame'):
                 pass
 
 
 class TestPermissions:
     def test_some_permissions_missing(self, resources):
-        with Pdf.open(resources / "graph-encrypted.pdf", password="owner") as pdf:
+        with Pdf.open(resources / 'graph-encrypted.pdf', password='owner') as pdf:
             assert not pdf.allow.print_highres
             assert not pdf.allow.modify_annotation
             assert pdf.allow.print_lowres
@@ -128,48 +128,48 @@ class TestPermissions:
         assert all(trivial.allow)
 
     def test_omit_encryption_removes_encryption(self, resources, outdir):
-        with Pdf.open(resources / "graph-encrypted.pdf", password="owner") as pdf:
-            pdf.save(outdir / "true.pdf")
-            with Pdf.open(outdir / "true.pdf") as pdf_copy:
+        with Pdf.open(resources / 'graph-encrypted.pdf', password='owner') as pdf:
+            pdf.save(outdir / 'true.pdf')
+            with Pdf.open(outdir / 'true.pdf') as pdf_copy:
                 assert pdf.allow != pdf_copy.allow
 
-    @pytest.mark.parametrize("encryption, expected", [[True, True], [False, False]])
-    @pytest.mark.filterwarnings("ignore:A password was provided")
+    @pytest.mark.parametrize('encryption, expected', [[True, True], [False, False]])
+    @pytest.mark.filterwarnings('ignore:A password was provided')
     def test_permissions_preserved_on_save(
         self, resources, outdir, encryption, expected
     ):
-        with Pdf.open(resources / "graph-encrypted.pdf", password="owner") as pdf:
-            pdf.save(outdir / "true.pdf", encryption=encryption)
-            with Pdf.open(outdir / "true.pdf", password="owner") as pdf_copy:
+        with Pdf.open(resources / 'graph-encrypted.pdf', password='owner') as pdf:
+            pdf.save(outdir / 'true.pdf', encryption=encryption)
+            with Pdf.open(outdir / 'true.pdf', password='owner') as pdf_copy:
                 assert (pdf.allow == pdf_copy.allow) == expected
 
 
 class TestStreams:
     def test_stream(self, resources):
-        with (resources / "pal-1bit-trivial.pdf").open("rb") as stream:
+        with (resources / 'pal-1bit-trivial.pdf').open('rb') as stream:
             with Pdf.open(stream) as pdf:
                 assert pdf.Root.Pages.Count == 1
 
     def test_no_text_stream(self, resources):
         with pytest.raises(TypeError):
-            with (resources / "pal-1bit-trivial.pdf").open("r") as stream:
+            with (resources / 'pal-1bit-trivial.pdf').open('r') as stream:
                 Pdf.open(stream)
 
     def test_save_stream(self, trivial, outdir):
         pdf = trivial
-        pdf.save(outdir / "nostream.pdf", deterministic_id=True)
+        pdf.save(outdir / 'nostream.pdf', deterministic_id=True)
 
         bio = BytesIO()
         pdf.save(bio, deterministic_id=True)
         bio.seek(0)
 
-        with (outdir / "nostream.pdf").open("rb") as saved_file:
+        with (outdir / 'nostream.pdf').open('rb') as saved_file:
             saved_file_contents = saved_file.read()
         assert saved_file_contents == bio.read()
 
     def test_read_not_readable_file(self, outdir):
-        with (Path(outdir) / "writeme.pdf").open("wb") as writable:
-            with pytest.raises(ValueError, match=r"not readable"):
+        with (Path(outdir) / 'writeme.pdf').open('wb') as writable:
+            with pytest.raises(ValueError, match=r'not readable'):
                 Pdf.open(writable)
 
     def test_open_not_seekable_stream(self, resources):
@@ -177,26 +177,26 @@ class TestStreams:
             def seekable(self):
                 return False
 
-        testio = UnseekableBytesIO((resources / "pal-1bit-trivial.pdf").read_bytes())
+        testio = UnseekableBytesIO((resources / 'pal-1bit-trivial.pdf').read_bytes())
 
-        with pytest.raises(ValueError, match=r"not seekable"):
+        with pytest.raises(ValueError, match=r'not seekable'):
             Pdf.open(testio)
 
 
 class TestMemory:
     def test_memory(self, resources):
-        data = (resources / "pal-1bit-trivial.pdf").read_bytes()
+        data = (resources / 'pal-1bit-trivial.pdf').read_bytes()
         with pytest.warns(UserWarning, match="bytes-like object containing a PDF"):
             with pytest.raises(Exception):
                 Pdf.open(data)
 
 
 def test_remove_unreferenced(resources, outdir):
-    in_ = resources / "sandwich.pdf"
-    out1 = outdir / "out1.pdf"
-    out2 = outdir / "out2.pdf"
+    in_ = resources / 'sandwich.pdf'
+    out1 = outdir / 'out1.pdf'
+    out2 = outdir / 'out2.pdf'
     with Pdf.open(in_) as pdf:
-        pdf.pages[0].Contents = Stream(pdf, b" ")
+        pdf.pages[0].Contents = Stream(pdf, b' ')
         pdf.save(out1)
 
         pdf.remove_unreferenced_resources()
@@ -212,16 +212,16 @@ def test_show_xref(trivial):
 def test_progress(trivial, outdir):
     pdf = trivial
     mock = Mock()
-    pdf.save(outdir / "out.pdf", progress=mock)
+    pdf.save(outdir / 'out.pdf', progress=mock)
     mock.assert_called()
 
 
-@pytest.mark.skipif(locale.getpreferredencoding() != "UTF-8", reason="Unicode check")
-@pytest.mark.skipif(os.name == "nt", reason="Windows can be inconsistent")
+@pytest.mark.skipif(locale.getpreferredencoding() != 'UTF-8', reason="Unicode check")
+@pytest.mark.skipif(os.name == 'nt', reason="Windows can be inconsistent")
 def test_unicode_filename(resources, outdir):
-    target1 = outdir / "测试.pdf"  # Chinese: test.pdf
-    target2 = outdir / "通过考试.pdf"  # Chinese: pass the test.pdf
-    shutil.copy(fspath(resources / "pal-1bit-trivial.pdf"), fspath(target1))
+    target1 = outdir / '测试.pdf'  # Chinese: test.pdf
+    target2 = outdir / '通过考试.pdf'  # Chinese: pass the test.pdf
+    shutil.copy(fspath(resources / 'pal-1bit-trivial.pdf'), fspath(target1))
     with Pdf.open(target1) as pdf:
         pdf.save(target2)
     assert target2.exists()
@@ -229,27 +229,27 @@ def test_unicode_filename(resources, outdir):
 
 def test_min_and_force_version(trivial, outdir):
     pdf = trivial
-    pdf.save(outdir / "1.7.pdf", min_version="1.7")
+    pdf.save(outdir / '1.7.pdf', min_version='1.7')
 
-    with Pdf.open(outdir / "1.7.pdf") as pdf17:
-        assert pdf17.pdf_version == "1.7"
+    with Pdf.open(outdir / '1.7.pdf') as pdf17:
+        assert pdf17.pdf_version == '1.7'
 
-    pdf.save(outdir / "1.2.pdf", force_version="1.2")
+    pdf.save(outdir / '1.2.pdf', force_version='1.2')
 
-    with Pdf.open(outdir / "1.2.pdf") as pdf12:
-        assert pdf12.pdf_version == "1.2"
+    with Pdf.open(outdir / '1.2.pdf') as pdf12:
+        assert pdf12.pdf_version == '1.2'
 
 
 def test_normalize_linearize(trivial, outdir):
     with pytest.raises(ValueError):
-        trivial.save(outdir / "no.pdf", linearize=True, normalize_content=True)
+        trivial.save(outdir / 'no.pdf', linearize=True, normalize_content=True)
 
 
 def test_make_stream(trivial, outdir):
     pdf = trivial
-    stream = pdf.make_stream(b"q Q")
+    stream = pdf.make_stream(b'q Q')
     pdf.pages[0].Contents = stream
-    pdf.save(outdir / "s.pdf")
+    pdf.save(outdir / 's.pdf')
 
 
 def test_add_blank_page(trivial):
@@ -265,23 +265,23 @@ def test_add_blank_page(trivial):
 
 def test_object_stream_mode_generated(trivial, outdir):
     trivial.save(
-        outdir / "1.pdf",
+        outdir / '1.pdf',
         fix_metadata_version=True,
         object_stream_mode=pikepdf.ObjectStreamMode.generate,
     )
-    assert b"/ObjStm" in (outdir / "1.pdf").read_bytes()
+    assert b'/ObjStm' in (outdir / '1.pdf').read_bytes()
 
     trivial.save(
-        outdir / "2.pdf",
+        outdir / '2.pdf',
         fix_metadata_version=False,
         object_stream_mode=pikepdf.ObjectStreamMode.generate,
     )
-    assert b"/ObjStm" in (outdir / "2.pdf").read_bytes()
+    assert b'/ObjStm' in (outdir / '2.pdf').read_bytes()
 
 
 def test_with_block(resources):
-    desc = ""
-    with pikepdf.open(resources / "pal-1bit-trivial.pdf") as pdf:
+    desc = ''
+    with pikepdf.open(resources / 'pal-1bit-trivial.pdf') as pdf:
         desc = pdf.filename
     assert pdf.filename != desc
 
@@ -294,28 +294,28 @@ def test_closed_anon_pdf():
 
 
 def test_with_block_abuse(resources):
-    with pikepdf.open(resources / "pal-1bit-trivial.pdf") as pdf:
-        im0 = pdf.pages[0].Resources.XObject["/Im0"]
+    with pikepdf.open(resources / 'pal-1bit-trivial.pdf') as pdf:
+        im0 = pdf.pages[0].Resources.XObject['/Im0']
     with pytest.raises(PdfError):
         im0.read_bytes()
 
 
 def test_allow_overwriting_input(resources, tmp_path):
-    orig_pdf_path = fspath(resources / "pal-1bit-trivial.pdf")
-    tmp_pdf_path = fspath(tmp_path / "pal-1bit-trivial.pdf")
+    orig_pdf_path = fspath(resources / 'pal-1bit-trivial.pdf')
+    tmp_pdf_path = fspath(tmp_path / 'pal-1bit-trivial.pdf')
     shutil.copy(orig_pdf_path, tmp_pdf_path)
     with pikepdf.open(tmp_pdf_path, allow_overwriting_input=True) as pdf:
         with pdf.open_metadata() as meta:
-            meta["dc:title"] = "New Title"
-        pdf.save("other.pdf", encryption=dict(owner="owner"))
+            meta['dc:title'] = 'New Title'
+        pdf.save('other.pdf', encryption=dict(owner="owner"))
         pdf.save()
         pdf.save(linearize=True)
     with pikepdf.open(tmp_pdf_path) as pdf:
         with pdf.open_metadata() as meta:
-            assert meta["dc:title"] == "New Title"
+            assert meta['dc:title'] == 'New Title'
     with pikepdf.open(orig_pdf_path) as pdf:
         with pdf.open_metadata() as meta:
-            assert "dc:title" not in meta
+            assert 'dc:title' not in meta
 
 
 def test_allow_overwriting_input_without_filename():
@@ -331,19 +331,19 @@ def test_allow_overwriting_input_from_pdf_new():
 
 
 def test_check(resources):
-    with pikepdf.open(resources / "content-stream-errors.pdf") as pdf:
+    with pikepdf.open(resources / 'content-stream-errors.pdf') as pdf:
         problems = pdf.check()
         assert len(problems) > 0
         assert all(isinstance(prob, str) for prob in problems)
-        assert "parse error while reading" in problems[0]
+        assert 'parse error while reading' in problems[0]
 
 
 def test_repr(trivial):
-    assert repr(trivial).startswith("<")
+    assert repr(trivial).startswith('<')
 
 
 def test_recompress(resources, outdir):
-    with pikepdf.open(resources / "image-mono-inline.pdf") as pdf:
+    with pikepdf.open(resources / 'image-mono-inline.pdf') as pdf:
         obj = pdf.get_object((7, 0))
         assert isinstance(obj, pikepdf.Stream)
 
@@ -352,8 +352,8 @@ def test_recompress(resources, outdir):
 
         obj.write(data_z1, filter=pikepdf.Name.FlateDecode)
 
-        bigger = outdir / "a.pdf"
-        smaller = outdir / "b.pdf"
+        bigger = outdir / 'a.pdf'
+        smaller = outdir / 'b.pdf'
         pdf.save(bigger, recompress_flate=False)
         pdf.save(smaller, recompress_flate=True)
         assert smaller.stat().st_size < bigger.stat().st_size
@@ -395,8 +395,8 @@ def test_generate_appearance_streams(pdf_form):
 
 
 @pytest.mark.parametrize(
-    "mode, exc",
-    [("all", None), ("print", None), ("screen", None), ("", None), ("42", ValueError)],
+    'mode, exc',
+    [('all', None), ('print', None), ('screen', None), ('', None), ('42', ValueError)],
 )
 def test_flatten_annotations_parameters(pdf_form, mode, exc):
     if exc is not None:
@@ -413,4 +413,4 @@ def test_flatten_annotations_parameters(pdf_form, mode, exc):
 def test_refcount_chaining(resources):
     # Ensure we can chain without crashing when Pdf is not properly opened or
     # assigned a name
-    Pdf.open(resources / "pal-1bit-trivial.pdf").pages[0]
+    Pdf.open(resources / 'pal-1bit-trivial.pdf').pages[0]

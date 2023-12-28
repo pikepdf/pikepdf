@@ -21,17 +21,17 @@ from setuptools import Extension, setup
 
 extra_includes = []
 extra_library_dirs = []
-qpdf_source_tree = environ.get("QPDF_SOURCE_TREE", "")
-qpdf_build_libdir = environ.get("QPDF_BUILD_LIBDIR", "")
+qpdf_source_tree = environ.get('QPDF_SOURCE_TREE', '')
+qpdf_build_libdir = environ.get('QPDF_BUILD_LIBDIR', '')
 
 if qpdf_source_tree:
     # Point this to qpdf source tree built with shared libraries
-    extra_includes.append(join(qpdf_source_tree, "include"))
+    extra_includes.append(join(qpdf_source_tree, 'include'))
     if not qpdf_build_libdir:
         raise Exception(
-            "Please set QPDF_BUILD_LIBDIR to the directory"
-            " containing your libqpdf.so built from"
-            " $QPDF_SOURCE_TREE"
+            'Please set QPDF_BUILD_LIBDIR to the directory'
+            ' containing your libqpdf.so built from'
+            ' $QPDF_SOURCE_TREE'
         )
     extra_library_dirs.append(join(qpdf_build_libdir))
 
@@ -43,19 +43,19 @@ if qpdf_source_tree:
 # environments usually define CFLAGS to something interesting, and users who call
 # "pip install pikepdf" probably don't. So we use this to check if we activate
 # shims.
-cflags_defined = bool(environ.get("CFLAGS", ""))
+cflags_defined = bool(environ.get('CFLAGS', ''))
 shims_enabled = not cflags_defined
 
 # If shims are enabled, we add some known locations where QPDF and other third party
 # libraries might be installed, in hopes the build will succeed if we suggest the
 # obvious.
 if shims_enabled and not qpdf_source_tree:
-    if "bsd" in sys.platform:
-        shim_includes = ["/usr/local/include"]
+    if 'bsd' in sys.platform:
+        shim_includes = ['/usr/local/include']
         shim_libdirs = []
-    elif "darwin" in sys.platform and machine() == "arm64":
-        shim_includes = ["/opt/homebrew/include", "/opt/local/include"]
-        shim_libdirs = ["/opt/homebrew/lib", "/opt/local/lib"]
+    elif 'darwin' in sys.platform and machine() == 'arm64':
+        shim_includes = ['/opt/homebrew/include', '/opt/local/include']
+        shim_libdirs = ['/opt/homebrew/lib', '/opt/local/lib']
     else:
         shim_includes = []
         shim_libdirs = []
@@ -74,36 +74,36 @@ for extra_path in chain([qpdf_source_tree], extra_includes, extra_library_dirs):
 extmodule: Extension = cast(
     Extension,
     Pybind11Extension(
-        "pikepdf._core",
-        sources=sorted(glob("src/core/*.cpp")),
-        depends=sorted(glob("src/core/*.h")),
+        'pikepdf._core',
+        sources=sorted(glob('src/core/*.cpp')),
+        depends=sorted(glob('src/core/*.h')),
         include_dirs=[
             # Path to pybind11 headers
             *extra_includes,
         ],
-        define_macros=[("POINTERHOLDER_TRANSITION", "4")],
+        define_macros=[('POINTERHOLDER_TRANSITION', '4')],
         library_dirs=[*extra_library_dirs],
-        libraries=["qpdf"],
+        libraries=['qpdf'],
         cxx_std=17,
     ),
 )
 
 if shims_enabled:
     eca = extmodule.extra_compile_args
-    if sys.platform == "cygwin":
+    if sys.platform == 'cygwin':
         # On cygwin, use gnu++17 instead of c++17
-        eca[eca.index("-std=c++17")] = "-std=gnu++17"
+        eca[eca.index('-std=c++17')] = '-std=gnu++17'
 
     # Debug build
     # eca.append('-g3')
 
     if qpdf_source_tree:
         for lib in extra_library_dirs:
-            extmodule.extra_link_args.append(f"-Wl,-rpath,{lib}")  # type: ignore
+            extmodule.extra_link_args.append(f'-Wl,-rpath,{lib}')  # type: ignore
 
-if __name__ == "__main__":
-    with ParallelCompile("PIKEPDF_NUM_BUILD_JOBS"):  # optional envvar
+if __name__ == '__main__':
+    with ParallelCompile('PIKEPDF_NUM_BUILD_JOBS'):  # optional envvar
         setup(
             ext_modules=[extmodule],
-            cmdclass={"build_ext": build_ext},  # type: ignore
+            cmdclass={'build_ext': build_ext},  # type: ignore
         )

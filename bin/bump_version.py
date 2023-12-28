@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
 """Bump the version number in all the right places."""
-
 from __future__ import annotations
 
 import glob
@@ -49,9 +48,9 @@ def bump_version() -> None:
         ).stdout
         cd_date, cd_time, cd_tz = commit_date_str.split(" ")
 
-        url_opts = urllib.parse.urlencode({
-            "q": f"is:pr merged:>{cd_date}T{cd_time}{cd_tz}"
-        })
+        url_opts = urllib.parse.urlencode(
+            {"q": f"is:pr merged:>{cd_date}T{cd_time}{cd_tz}"}
+        )
         url = f"https://github.com/pikepdf/pikepdf/pulls?{url_opts}"
 
         print(f"PRs merged since last release:\n  {url}")
@@ -98,11 +97,13 @@ def bump_version() -> None:
             contents = path.read_text(encoding="utf8")
             if find_pattern in contents:
                 found_at_least_one_file_needing_update = True
-                actions.append((
-                    path,
-                    find_pattern,
-                    replace_pattern,
-                ))
+                actions.append(
+                    (
+                        path,
+                        find_pattern,
+                        replace_pattern,
+                    )
+                )
 
         if not found_at_least_one_file_needing_update:
             print(

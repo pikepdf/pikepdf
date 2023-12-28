@@ -12,38 +12,38 @@ from pikepdf import Array, Dictionary, Name, NameTree, Object, Pdf
 
 @pytest.fixture
 def outline(resources):
-    with Pdf.open(resources / "outlines.pdf") as pdf:
+    with Pdf.open(resources / 'outlines.pdf') as pdf:
         yield pdf
 
 
 def test_nametree_crud(outline):
     nt = NameTree(outline.Root.Names.Dests)
     assert nt.obj == outline.Root.Names.Dests
-    assert "0" in nt
-    assert isinstance(nt["0"], Object)
-    assert "foo" not in nt
+    assert '0' in nt
+    assert isinstance(nt['0'], Object)
+    assert 'foo' not in nt
 
-    assert "3" in nt
-    del nt["3"]
-    assert "3" not in nt
+    assert '3' in nt
+    del nt['3']
+    assert '3' not in nt
 
-    nt["3"] = Dictionary(Entry=3)
-    assert nt["3"].Entry == 3
+    nt['3'] = Dictionary(Entry=3)
+    assert nt['3'].Entry == 3
 
-    nt["newentry"] = Array([42])
-    assert nt["newentry"] == Array([42])
+    nt['newentry'] = Array([42])
+    assert nt['newentry'] == Array([42])
 
-    nt["py_newentry"] = 42
+    nt['py_newentry'] = 42
 
-    nt.update(foo="bar")
+    nt.update(foo='bar')
 
 
 def test_nametree_missing(outline):
     nt = NameTree(outline.Root.Names.Dests)
     with pytest.raises(KeyError):
-        nt["does_not_exist"]  # pylint: disable=pointless-statement
+        nt['does_not_exist']  # pylint: disable=pointless-statement
     with pytest.raises(KeyError):
-        del nt["does_not_exist"]
+        del nt['does_not_exist']
 
 
 def test_nametree_iter(outline):
@@ -54,7 +54,7 @@ def test_nametree_iter(outline):
         assert name in nt
     assert count == len(nt)
 
-    assert "1" in nt.keys()
+    assert '1' in nt.keys()
     assert len(nt.keys()) == len(nt.values()) == len(nt.items())
     assert nt == NameTree(outline.Root.Names.Dests)
 
@@ -65,7 +65,7 @@ def test_nametree_without_pdf():
         _nt = NameTree(d)
 
 
-def test_nametree_scratch(outline, outpdf, key="brand new name tree", val="yup"):
+def test_nametree_scratch(outline, outpdf, key='brand new name tree', val='yup'):
     nt = NameTree.new(outline)
     outline.Root.RandomNameTree = nt.obj
     nt[key] = val

@@ -13,13 +13,13 @@ from pikepdf import Dictionary, ForeignObjectError, Name, Pdf
 @pytest.fixture
 def vera(resources):
     # Has XMP but no docinfo
-    with Pdf.open(resources / "veraPDF test suite 6-2-10-t02-pass-a.pdf") as pdf:
+    with Pdf.open(resources / 'veraPDF test suite 6-2-10-t02-pass-a.pdf') as pdf:
         yield pdf
 
 
 @pytest.fixture
 def outlines(resources):
-    with Pdf.open(resources / "outlines.pdf") as pdf:
+    with Pdf.open(resources / 'outlines.pdf') as pdf:
         yield pdf
 
 

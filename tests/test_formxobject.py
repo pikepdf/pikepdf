@@ -41,25 +41,25 @@ def test_create_form_xobjects(outdir):
             >>
     """
     )
-    xobj_image = Dictionary({"/Im1": image})
+    xobj_image = Dictionary({'/Im1': image})
 
-    form_xobj_res = Dictionary({"/XObject": xobj_image})
+    form_xobj_res = Dictionary({'/XObject': xobj_image})
     form_xobj = Stream(
         pdf,
         b"""
         /Im1 Do
     """,
     )
-    form_xobj["/Type"] = Name("/XObject")
-    form_xobj["/Subtype"] = Name("/Form")
-    form_xobj["/FormType"] = 1
-    form_xobj["/Matrix"] = [1, 0, 0, 1, 0, 0]
-    form_xobj["/BBox"] = [0, 0, 1, 1]
-    form_xobj["/Resources"] = form_xobj_res
+    form_xobj['/Type'] = Name('/XObject')
+    form_xobj['/Subtype'] = Name('/Form')
+    form_xobj['/FormType'] = 1
+    form_xobj['/Matrix'] = [1, 0, 0, 1, 0, 0]
+    form_xobj['/BBox'] = [0, 0, 1, 1]
+    form_xobj['/Resources'] = form_xobj_res
 
-    rfont = {"/F1": font}
+    rfont = {'/F1': font}
 
-    resources = {"/Font": rfont, "/XObject": {"/Form1": form_xobj}}
+    resources = {'/Font': rfont, '/XObject': {'/Form1': form_xobj}}
 
     mediabox = [0, 0, 612, 792]
 
@@ -72,13 +72,15 @@ def test_create_form_xobjects(outdir):
     contents = Stream(pdf, stream)
 
     page = Page(
-        pdf.make_indirect({
-            "/Type": Name("/Page"),
-            "/MediaBox": mediabox,
-            "/Contents": contents,
-            "/Resources": resources,
-        })
+        pdf.make_indirect(
+            {
+                '/Type': Name('/Page'),
+                '/MediaBox': mediabox,
+                '/Contents': contents,
+                '/Resources': resources,
+            }
+        )
     )
 
     pdf.pages.append(page)
-    pdf.save(outdir / "formxobj.pdf")
+    pdf.save(outdir / 'formxobj.pdf')

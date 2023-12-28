@@ -34,12 +34,12 @@ from pikepdf.objects import Array
 
 @pytest.fixture
 def graph(resources):
-    yield Pdf.open(resources / "graph.pdf")
+    yield Pdf.open(resources / 'graph.pdf')
 
 
 @pytest.fixture
 def inline(resources):
-    yield Pdf.open(resources / "image-mono-inline.pdf")
+    yield Pdf.open(resources / 'image-mono-inline.pdf')
 
 
 class PrintParser(StreamParser):
@@ -79,7 +79,7 @@ def slow_unparse_content_stream(instructions):
     def for_each_instruction():
         for n, (operands, operator) in enumerate(instructions):
             try:
-                if operator == Operator(b"INLINE IMAGE"):
+                if operator == Operator(b'INLINE IMAGE'):
                     iimage = operands[0]
                     if not isinstance(iimage, PdfInlineImage):
                         raise ValueError(
@@ -89,15 +89,15 @@ def slow_unparse_content_stream(instructions):
                     line = encode_iimage(iimage)
                 else:
                     if operands:
-                        line = b" ".join(encode(operand) for operand in operands)
-                        line += b" " + encode_operator(operator)
+                        line = b' '.join(encode(operand) for operand in operands)
+                        line += b' ' + encode_operator(operator)
                     else:
                         line = encode_operator(operator)
             except (PdfError, ValueError) as e:
                 raise PdfParsingError(line=n + 1) from e
             yield line
 
-    return b"\n".join(for_each_instruction())
+    return b'\n'.join(for_each_instruction())
 
 
 def test_open_pdf(graph):
@@ -106,20 +106,20 @@ def test_open_pdf(graph):
 
 
 def test_parser_exception(graph):
-    stream = graph.pages[0]["/Contents"]
+    stream = graph.pages[0]['/Contents']
     with pytest.raises(ValueError):
         Object._parse_stream(stream, ExceptionParser())
 
 
-@pytest.mark.skipif(shutil.which("pdftotext") is None, reason="poppler not installed")
+@pytest.mark.skipif(shutil.which('pdftotext') is None, reason="poppler not installed")
 def test_text_filter(resources, outdir):
-    input_pdf = resources / "veraPDF test suite 6-2-10-t02-pass-a.pdf"
+    input_pdf = resources / 'veraPDF test suite 6-2-10-t02-pass-a.pdf'
 
     # Ensure the test PDF has detect we can find
     proc = run(
-        ["pdftotext", str(input_pdf), "-"], check=True, stdout=PIPE, encoding="utf-8"
+        ['pdftotext', str(input_pdf), '-'], check=True, stdout=PIPE, encoding='utf-8'
     )
-    assert proc.stdout.strip() != "", "Need input test file that contains text"
+    assert proc.stdout.strip() != '', "Need input test file that contains text"
 
     with Pdf.open(input_pdf) as pdf:
         page = pdf.pages[0]
@@ -128,26 +128,26 @@ def test_text_filter(resources, outdir):
         for operands, command in parse_content_stream(
             page, """TJ Tj ' " BT ET Td TD Tm T* Tc Tw Tz TL Tf Tr Ts"""
         ):
-            if command == Operator("Tj"):
+            if command == Operator('Tj'):
                 print("skipping Tj")
                 continue
             keep.append((operands, command))
 
         new_stream = Stream(pdf, pikepdf.unparse_content_stream(keep))
         print(new_stream.read_bytes())  # pylint: disable=no-member
-        page["/Contents"] = new_stream
-        page["/Rotate"] = 90
+        page['/Contents'] = new_stream
+        page['/Rotate'] = 90
 
-        pdf.save(outdir / "notext.pdf", static_id=True)
+        pdf.save(outdir / 'notext.pdf', static_id=True)
 
     proc = run(
-        ["pdftotext", str(outdir / "notext.pdf"), "-"],
+        ['pdftotext', str(outdir / 'notext.pdf'), '-'],
         check=True,
         stdout=PIPE,
-        encoding="utf-8",
+        encoding='utf-8',
     )
 
-    assert proc.stdout.strip() == "", "Expected text to be removed"
+    assert proc.stdout.strip() == '', "Expected text to be removed"
 
 
 def test_invalid_stream_object():
@@ -183,24 +183,24 @@ def test_invalid_stream_object():
 
 def test_unparse_cs():
     instructions = [
-        ([], Operator("q")),
-        (Matrix().as_array(), Operator("cm")),
-        ([], Operator("Q")),
+        ([], Operator('q')),
+        (Matrix().as_array(), Operator('cm')),
+        ([], Operator('Q')),
     ]
-    assert unparse_content_stream(instructions).strip() == b"q\n1 0 0 1 0 0 cm\nQ"
+    assert unparse_content_stream(instructions).strip() == b'q\n1 0 0 1 0 0 cm\nQ'
 
 
 def test_unparse_failure():
-    instructions = [([float("nan")], Operator("cm"))]
+    instructions = [([float('nan')], Operator('cm'))]
     with pytest.raises(PdfParsingError):
         unparse_content_stream(instructions)
 
 
 def test_parse_xobject(resources):
-    with Pdf.open(resources / "formxobject.pdf") as pdf:
+    with Pdf.open(resources / 'formxobject.pdf') as pdf:
         form1 = pdf.pages[0].Resources.XObject.Form1
         instructions = parse_content_stream(form1)
-        assert instructions[0][1] == Operator("cm")
+        assert instructions[0][1] == Operator('cm')
 
 
 def test_parse_results(inline):
@@ -210,7 +210,7 @@ def test_parse_results(inline):
     csi = cmds[0]
     assert isinstance(csi.operands, _core._ObjectList)
     assert isinstance(csi.operator, Operator)
-    assert "Operator" in repr(csi)
+    assert 'Operator' in repr(csi)
 
     assert ContentStreamInstruction(cmds[0]).operator == cmds[0].operator
 
@@ -218,26 +218,26 @@ def test_parse_results(inline):
         if isinstance(cmd, ContentStreamInlineImage):
             assert cmd.operator == Operator("INLINE IMAGE")
             assert isinstance(cmd.operands[0], PdfInlineImage)
-            assert "INLINE" in repr(cmd)
+            assert 'INLINE' in repr(cmd)
             assert cmd.operands[0] == cmd.iimage
 
 
 def test_build_instructions():
-    cs = ContentStreamInstruction([1, 0, 0, 1, 0, 0], Operator("cm"))
-    assert "cm" in repr(cs)
-    assert unparse_content_stream([cs]) == b"1 0 0 1 0 0 cm"
+    cs = ContentStreamInstruction([1, 0, 0, 1, 0, 0], Operator('cm'))
+    assert 'cm' in repr(cs)
+    assert unparse_content_stream([cs]) == b'1 0 0 1 0 0 cm'
 
 
 def test_unparse_interpret_operator():
     commands = []
     matrix = [2, 0, 0, 2, 0, 0]
-    commands.insert(0, (matrix, "cm"))
-    commands.insert(0, (matrix, b"cm"))
-    commands.insert(0, (matrix, Operator("cm")))
+    commands.insert(0, (matrix, 'cm'))
+    commands.insert(0, (matrix, b'cm'))
+    commands.insert(0, (matrix, Operator('cm')))
     unparsed = unparse_content_stream(commands)
     assert (
         unparsed
-        == b"2 0 0 2 0 0 cm\n2 0 0 2 0 0 cm\n2 0 0 2 0 0 cm"
+        == b'2 0 0 2 0 0 cm\n2 0 0 2 0 0 cm\n2 0 0 2 0 0 cm'
         == slow_unparse_content_stream(commands)
     )
 
@@ -246,12 +246,12 @@ def test_unparse_inline(inline):
     p0 = inline.pages[0]
     cmds = parse_content_stream(p0)
     unparsed = unparse_content_stream(cmds)
-    assert b"BI" in unparsed
+    assert b'BI' in unparsed
     assert unparsed == slow_unparse_content_stream(cmds)
 
 
 def test_unparse_invalid_inline_image():
-    instructions = [((42,), Operator(b"INLINE IMAGE"))]
+    instructions = [((42,), Operator(b'INLINE IMAGE'))]
 
     with pytest.raises(PdfParsingError):
         unparse_content_stream(instructions)
@@ -264,7 +264,7 @@ def test_inline_copy(inline):
         csiimage = instr
         _copy_of_csiimage = ContentStreamInlineImage(csiimage)
         new_iimage = ContentStreamInlineImage(csiimage.iimage)
-        assert unparse_content_stream([new_iimage]).startswith(b"BI")
+        assert unparse_content_stream([new_iimage]).startswith(b'BI')
 
 
 def test_end_inline_parse():
@@ -300,25 +300,25 @@ class TestMalformedContentStreamInstructions:
 
     def test_rejects_not_castable_to_object(self):
         with pytest.raises(PdfParsingError, match="While unparsing"):
-            unparse_content_stream([(["one", "two"], 42)])  # 42 is not an operator
+            unparse_content_stream([(['one', 'two'], 42)])  # 42 is not an operator
 
     def test_rejects_not_operator(self):
         with pytest.raises(PdfParsingError, match="While unparsing"):
-            unparse_content_stream([
-                (["one", "two"], Name.FortyTwo)
-            ])  # Name is not an operator
+            unparse_content_stream(
+                [(['one', 'two'], Name.FortyTwo)]
+            )  # Name is not an operator
 
     def test_rejects_inline_image_missing(self):
         with pytest.raises(PdfParsingError):
-            unparse_content_stream([
-                ("should be a PdfInlineImage but is not", b"INLINE IMAGE")
-            ])
+            unparse_content_stream(
+                [('should be a PdfInlineImage but is not', b'INLINE IMAGE')]
+            )
 
     def test_accepts_all_lists(self):
-        unparse_content_stream([[[], b"Q"]])
+        unparse_content_stream([[[], b'Q']])
 
     def test_accepts_all_tuples(self):
-        unparse_content_stream((((Name.Foo,), b"/Do"),))
+        unparse_content_stream((((Name.Foo,), b'/Do'),))
 
 
 class TestBadSingleInstructions:
@@ -326,10 +326,10 @@ class TestBadSingleInstructions:
         p = pikepdf.new()
         arr = p.make_indirect(Array([42]))
         d = p.make_indirect(Dictionary(Foo=Name.Bar))
-        stream = p.make_stream(b"test stream")
+        stream = p.make_stream(b'test stream')
         with pytest.raises(TypeError):
-            ContentStreamInstruction([arr], Operator("Do"))
+            ContentStreamInstruction([arr], Operator('Do'))
         with pytest.raises(TypeError):
-            ContentStreamInstruction([d], Operator("Do"))
+            ContentStreamInstruction([d], Operator('Do'))
         with pytest.raises(TypeError):
-            ContentStreamInstruction([Name.Him, stream], Operator("Do"))
+            ContentStreamInstruction([Name.Him, stream], Operator('Do'))

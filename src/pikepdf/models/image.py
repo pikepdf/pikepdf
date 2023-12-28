@@ -31,7 +31,7 @@ from pikepdf.objects import (
     String,
 )
 
-T = TypeVar("T")
+T = TypeVar('T')
 
 if sys.version_info >= (3, 9):
     RGBDecodeArray = tuple[float, float, float, float, float, float]
@@ -102,7 +102,7 @@ def _metadata_from_obj(
     except TypeError:
         if val is None:
             return None
-    raise NotImplementedError("Metadata access for " + name)
+    raise NotImplementedError('Metadata access for ' + name)
 
 
 class PaletteData(NamedTuple):
@@ -121,9 +121,9 @@ class PaletteData(NamedTuple):
 class PdfImageBase(ABC):
     """Abstract base class for images."""
 
-    SIMPLE_COLORSPACES = {"/DeviceRGB", "/DeviceGray", "/CalRGB", "/CalGray"}
-    MAIN_COLORSPACES = SIMPLE_COLORSPACES | {"/DeviceCMYK", "/CalCMYK", "/ICCBased"}
-    PRINT_COLORSPACES = {"/Separation", "/DeviceN"}
+    SIMPLE_COLORSPACES = {'/DeviceRGB', '/DeviceGray', '/CalRGB', '/CalGray'}
+    MAIN_COLORSPACES = SIMPLE_COLORSPACES | {'/DeviceCMYK', '/CalCMYK', '/ICCBased'}
+    PRINT_COLORSPACES = {'/Separation', '/DeviceN'}
 
     @abstractmethod
     def _metadata(self, name: str, type_: Callable[[Any], T], default: T) -> T:
@@ -132,50 +132,50 @@ class PdfImageBase(ABC):
     @property
     def width(self) -> int:
         """Width of the image data in pixels."""
-        return self._metadata("Width", int, 0)
+        return self._metadata('Width', int, 0)
 
     @property
     def height(self) -> int:
         """Height of the image data in pixels."""
-        return self._metadata("Height", int, 0)
+        return self._metadata('Height', int, 0)
 
     @property
     def image_mask(self) -> bool:
         """Return ``True`` if this is an image mask."""
-        return self._metadata("ImageMask", bool, False)
+        return self._metadata('ImageMask', bool, False)
 
     @property
     def _bpc(self) -> int | None:
         """Bits per component for this image (low-level)."""
-        return self._metadata("BitsPerComponent", int, 0)
+        return self._metadata('BitsPerComponent', int, 0)
 
     @property
     def _colorspaces(self):
         """Colorspace (low-level)."""
-        return self._metadata("ColorSpace", _array_str, [])
+        return self._metadata('ColorSpace', _array_str, [])
 
     @property
     def filters(self):
         """List of names of the filters that we applied to encode this image."""
-        return self._metadata("Filter", _array_str, [])
+        return self._metadata('Filter', _array_str, [])
 
     @property
     def _decode_array(self) -> DecodeArray:
         """Extract the /Decode array."""
-        decode: list = self._metadata("Decode", _ensure_list, [])
+        decode: list = self._metadata('Decode', _ensure_list, [])
         if decode and len(decode) in (2, 6, 8):
             return cast(DecodeArray, tuple(float(value) for value in decode))
 
-        if self.colorspace in ("/DeviceGray", "/CalGray"):
+        if self.colorspace in ('/DeviceGray', '/CalGray'):
             return (0.0, 1.0)
-        if self.colorspace == ("/DeviceRGB", "/CalRGB"):
+        if self.colorspace == ('/DeviceRGB', '/CalRGB'):
             return (0.0, 1.0, 0.0, 1.0, 0.0, 1.0)
-        if self.colorspace == "/DeviceCMYK":
+        if self.colorspace == '/DeviceCMYK':
             return (0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0)
-        if self.colorspace == "/ICCBased":
-            if self._approx_mode_from_icc() == "L":
+        if self.colorspace == '/ICCBased':
+            if self._approx_mode_from_icc() == 'L':
                 return (0.0, 1.0)
-            if self._approx_mode_from_icc() == "RGB":
+            if self._approx_mode_from_icc() == 'RGB':
                 return (0.0, 1.0, 0.0, 1.0, 0.0, 1.0)
 
         raise NotImplementedError(
@@ -185,7 +185,7 @@ class PdfImageBase(ABC):
     @property
     def decode_parms(self):
         """List of the /DecodeParms, arguments to filters."""
-        return self._metadata("DecodeParms", _ensure_list, [])
+        return self._metadata('DecodeParms', _ensure_list, [])
 
     @property
     def colorspace(self) -> str | None:
@@ -195,17 +195,17 @@ class PdfImageBase(ABC):
         if self._colorspaces:
             if self._colorspaces[0] in self.MAIN_COLORSPACES:
                 return self._colorspaces[0]
-            if self._colorspaces[0] == "/Indexed":
+            if self._colorspaces[0] == '/Indexed':
                 subspace = self._colorspaces[1]
                 if isinstance(subspace, str) and subspace in self.MAIN_COLORSPACES:
                     return subspace
                 if isinstance(subspace, list) and subspace[0] in (
-                    "/ICCBased",
-                    "/DeviceN",
+                    '/ICCBased',
+                    '/DeviceN',
                 ):
                     return subspace[0]
-            if self._colorspaces[0] == "/DeviceN":
-                return "/DeviceN"
+            if self._colorspaces[0] == '/DeviceN':
+                return '/DeviceN'
 
         raise NotImplementedError(
             "not sure how to get colorspace: " + repr(self._colorspaces)
@@ -226,12 +226,12 @@ class PdfImageBase(ABC):
     @property
     def indexed(self) -> bool:
         """Check if the image has a defined color palette."""
-        return "/Indexed" in self._colorspaces
+        return '/Indexed' in self._colorspaces
 
     def _colorspace_has_name(self, name):
         try:
             cs = self._colorspaces
-            if cs[0] == "/Indexed" and cs[1][0] == name:
+            if cs[0] == '/Indexed' and cs[1][0] == name:
                 return True
             if cs[0] == name:
                 return True
@@ -242,12 +242,12 @@ class PdfImageBase(ABC):
     @property
     def is_device_n(self) -> bool:
         """Check if image has a /DeviceN (complex printing) colorspace."""
-        return self._colorspace_has_name("/DeviceN")
+        return self._colorspace_has_name('/DeviceN')
 
     @property
     def is_separation(self) -> bool:
         """Check if image has a /DeviceN (complex printing) colorspace."""
-        return self._colorspace_has_name("/Separation")
+        return self._colorspace_has_name('/Separation')
 
     @property
     def size(self) -> tuple[int, int]:
@@ -259,15 +259,15 @@ class PdfImageBase(ABC):
             icc_profile = self._colorspaces[1][1]
         else:
             icc_profile = self._colorspaces[1]
-        icc_profile_nchannels = int(icc_profile["/N"])
+        icc_profile_nchannels = int(icc_profile['/N'])
 
         if icc_profile_nchannels == 1:
-            return "L"
+            return 'L'
 
         # Multiple channels, need to open the profile and look
-        mode_from_xcolor_space = {"RGB ": "RGB", "CMYK": "CMYK"}
+        mode_from_xcolor_space = {'RGB ': 'RGB', 'CMYK': 'CMYK'}
         xcolor_space = self.icc.profile.xcolor_space
-        return mode_from_xcolor_space.get(xcolor_space, "")
+        return mode_from_xcolor_space.get(xcolor_space, '')
 
     @property
     def mode(self) -> str:
@@ -276,29 +276,29 @@ class PdfImageBase(ABC):
         If an ICC profile is attached to the image, we still attempt to resolve a Pillow
         mode.
         """
-        m = ""
+        m = ''
         if self.is_device_n:
-            m = "DeviceN"
+            m = 'DeviceN'
         elif self.is_separation:
-            m = "Separation"
+            m = 'Separation'
         elif self.indexed:
-            m = "P"
-        elif self.colorspace == "/DeviceGray" and self.bits_per_component == 1:
-            m = "1"
-        elif self.colorspace == "/DeviceGray" and self.bits_per_component > 1:
-            m = "L"
-        elif self.colorspace == "/DeviceRGB":
-            m = "RGB"
-        elif self.colorspace == "/DeviceCMYK":
-            m = "CMYK"
-        elif self.colorspace == "/ICCBased":
+            m = 'P'
+        elif self.colorspace == '/DeviceGray' and self.bits_per_component == 1:
+            m = '1'
+        elif self.colorspace == '/DeviceGray' and self.bits_per_component > 1:
+            m = 'L'
+        elif self.colorspace == '/DeviceRGB':
+            m = 'RGB'
+        elif self.colorspace == '/DeviceCMYK':
+            m = 'CMYK'
+        elif self.colorspace == '/ICCBased':
             try:
                 m = self._approx_mode_from_icc()
             except (ValueError, TypeError) as e:
                 raise NotImplementedError(
                     "Not sure how to handle PDF image of this type"
                 ) from e
-        if m == "":
+        if m == '':
             raise NotImplementedError(
                 "Not sure how to handle PDF image of this type"
             ) from None
@@ -328,7 +328,7 @@ class PdfImageBase(ABC):
         try:
             _idx, base, _hival, lookup = self._colorspaces
         except ValueError as e:
-            raise ValueError("Not sure how to interpret this palette") from e
+            raise ValueError('Not sure how to interpret this palette') from e
         if self.icc or self.is_device_n or self.is_separation:
             base = str(base[0])
         else:
@@ -336,17 +336,17 @@ class PdfImageBase(ABC):
         lookup = bytes(lookup)
         if base not in self.MAIN_COLORSPACES and base not in self.PRINT_COLORSPACES:
             raise NotImplementedError(f"not sure how to interpret this palette: {base}")
-        if base == "/DeviceRGB":
-            base = "RGB"
-        elif base == "/DeviceGray":
-            base = "L"
-        elif base == "/DeviceCMYK":
-            base = "CMYK"
-        elif base == "/DeviceN":
-            base = "DeviceN"
-        elif base == "/Separation":
-            base = "Separation"
-        elif base == "/ICCBased":
+        if base == '/DeviceRGB':
+            base = 'RGB'
+        elif base == '/DeviceGray':
+            base = 'L'
+        elif base == '/DeviceCMYK':
+            base = 'CMYK'
+        elif base == '/DeviceN':
+            base = 'DeviceN'
+        elif base == '/Separation':
+            base = 'Separation'
+        elif base == '/ICCBased':
             base = self._approx_mode_from_icc()
         return PaletteData(base, lookup)
 
@@ -358,7 +358,7 @@ class PdfImageBase(ABC):
         """Display hook for IPython/Jupyter."""
         b = BytesIO()
         with self.as_pil_image() as im:
-            im.save(b, "PNG")
+            im.save(b, 'PNG')
             return b.getvalue()
 
 
@@ -419,13 +419,13 @@ class PdfImage(PdfImageBase):
         data = image.tobytes()
 
         imstream = Stream(pdf, data)
-        imstream.Type = Name("/XObject")
-        imstream.Subtype = Name("/Image")
-        if image.mode == "RGB":
-            imstream.ColorSpace = Name("/DeviceRGB")
-        elif image.mode in ("1", "L"):
-            imstream.ColorSpace = Name("/DeviceGray")
-        imstream.BitsPerComponent = 1 if image.mode == "1" else 8
+        imstream.Type = Name('/XObject')
+        imstream.Subtype = Name('/Image')
+        if image.mode == 'RGB':
+            imstream.ColorSpace = Name('/DeviceRGB')
+        elif image.mode in ('1', 'L'):
+            imstream.ColorSpace = Name('/DeviceGray')
+        imstream.BitsPerComponent = 1 if image.mode == '1' else 8
         imstream.Width = image.width
         imstream.Height = image.height
 
@@ -438,7 +438,7 @@ class PdfImage(PdfImageBase):
 
     @property
     def _iccstream(self):
-        if self.colorspace == "/ICCBased":
+        if self.colorspace == '/ICCBased':
             if not self.indexed:
                 return self._colorspaces[1]
             assert isinstance(self._colorspaces[1], list)
@@ -451,7 +451,7 @@ class PdfImage(PdfImageBase):
 
         Most of the information may be found in ``icc.profile``.
         """
-        if self.colorspace not in ("/ICCBased", "/Indexed"):
+        if self.colorspace not in ('/ICCBased', '/Indexed'):
             return None
         if not self._icc:
             iccstream = self._iccstream
@@ -460,7 +460,7 @@ class PdfImage(PdfImageBase):
             try:
                 self._icc = ImageCmsProfile(iccbytesio)
             except OSError as e:
-                if str(e) == "cannot open profile from string":
+                if str(e) == 'cannot open profile from string':
                     # ICC profile is corrupt
                     raise UnsupportedImageTypeError(
                         "ICC profile corrupt or not readable"
@@ -470,10 +470,10 @@ class PdfImage(PdfImageBase):
     def _remove_simple_filters(self):
         """Remove simple lossless compression where it appears."""
         COMPLEX_FILTERS = {
-            "/DCTDecode",
-            "/JPXDecode",
-            "/JBIG2Decode",
-            "/CCITTFaxDecode",
+            '/DCTDecode',
+            '/JPXDecode',
+            '/JBIG2Decode',
+            '/CCITTFaxDecode',
         }
         indices = [n for n, filt in enumerate(self.filters) if filt in COMPLEX_FILTERS]
         if len(indices) > 1:
@@ -516,9 +516,9 @@ class PdfImage(PdfImageBase):
             ct = DEFAULT_CT_RGB
             if self.filter_decodeparms[0][1] is not None:
                 ct = self.filter_decodeparms[0][1].get(
-                    "/ColorTransform", DEFAULT_CT_RGB
+                    '/ColorTransform', DEFAULT_CT_RGB
                 )
-            return self.mode == "RGB" and ct == DEFAULT_CT_RGB
+            return self.mode == 'RGB' and ct == DEFAULT_CT_RGB
 
         def normal_dct_cmyk() -> bool:
             # Normal DCTDecode CMYKs have /ColorTransform 0 and can be saved.
@@ -527,32 +527,32 @@ class PdfImage(PdfImageBase):
             ct = DEFAULT_CT_CMYK
             if self.filter_decodeparms[0][1] is not None:
                 ct = self.filter_decodeparms[0][1].get(
-                    "/ColorTransform", DEFAULT_CT_CMYK
+                    '/ColorTransform', DEFAULT_CT_CMYK
                 )
-            return self.mode == "CMYK" and ct == DEFAULT_CT_CMYK
+            return self.mode == 'CMYK' and ct == DEFAULT_CT_CMYK
 
         data, filters = self._remove_simple_filters()
 
-        if filters == ["/CCITTFaxDecode"]:
-            if self.colorspace == "/ICCBased":
+        if filters == ['/CCITTFaxDecode']:
+            if self.colorspace == '/ICCBased':
                 icc = self._iccstream.read_bytes()
             else:
                 icc = None
             stream.write(self._generate_ccitt_header(data, icc=icc))
             stream.write(data)
-            return ".tif"
-        if filters == ["/DCTDecode"] and (
-            self.mode == "L" or normal_dct_rgb() or normal_dct_cmyk()
+            return '.tif'
+        if filters == ['/DCTDecode'] and (
+            self.mode == 'L' or normal_dct_rgb() or normal_dct_cmyk()
         ):
             stream.write(data)
-            return ".jpg"
+            return '.jpg'
 
         return None
 
     def _extract_transcoded_1248bits(self) -> Image.Image:
         """Extract an image when there are 1/2/4/8 bits packed in byte data."""
         stride = 0  # tell Pillow to calculate stride from line width
-        scale = 0 if self.mode == "L" else 1
+        scale = 0 if self.mode == 'L' else 1
         if self.bits_per_component in (2, 4):
             buffer, stride = _transcoding.unpack_subbyte_pixels(
                 self.read_bytes(), self.size, self.bits_per_component, scale
@@ -562,7 +562,7 @@ class PdfImage(PdfImageBase):
         else:
             raise InvalidPdfImageError("BitsPerComponent must be 1, 2, 4, 8, or 16")
 
-        if self.mode == "P" and self.palette is not None:
+        if self.mode == 'P' and self.palette is not None:
             base_mode, palette = self.palette
             im = _transcoding.image_from_buffer_and_palette(
                 buffer,
@@ -576,13 +576,13 @@ class PdfImage(PdfImageBase):
         return im
 
     def _extract_transcoded_1bit(self) -> Image.Image:
-        if not self.image_mask and self.mode in ("RGB", "CMYK"):
+        if not self.image_mask and self.mode in ('RGB', 'CMYK'):
             raise UnsupportedImageTypeError("1-bit RGB and CMYK are not supported")
         try:
             data = self.read_bytes()
         except (RuntimeError, PdfError) as e:
             if (
-                "read_bytes called on unfilterable stream" in str(e)
+                'read_bytes called on unfilterable stream' in str(e)
                 and not jbig2.get_decoder().available()
             ):
                 raise DependencyError(
@@ -591,7 +591,7 @@ class PdfImage(PdfImageBase):
                 ) from None
             raise
 
-        im = Image.frombytes("1", self.size, data)
+        im = Image.frombytes('1', self.size, data)
 
         if self.palette is not None:
             base_mode, palette = self.palette
@@ -606,29 +606,29 @@ class PdfImage(PdfImageBase):
         if self.image_mask:
             return self._extract_transcoded_mask()
 
-        if self.mode in {"DeviceN", "Separation"}:
+        if self.mode in {'DeviceN', 'Separation'}:
             raise HifiPrintImageNotTranscodableError()
 
-        if self.mode == "RGB" and self.bits_per_component == 8:
+        if self.mode == 'RGB' and self.bits_per_component == 8:
             # Cannot use the zero-copy .get_stream_buffer here, we have 3-byte
             # RGB and Pillow needs RGBX.
             im = Image.frombuffer(
-                "RGB", self.size, self.read_bytes(), "raw", "RGB", 0, 1
+                'RGB', self.size, self.read_bytes(), 'raw', 'RGB', 0, 1
             )
-        elif self.mode == "CMYK" and self.bits_per_component == 8:
+        elif self.mode == 'CMYK' and self.bits_per_component == 8:
             im = Image.frombuffer(
-                "CMYK", self.size, self.get_stream_buffer(), "raw", "CMYK", 0, 1
+                'CMYK', self.size, self.get_stream_buffer(), 'raw', 'CMYK', 0, 1
             )
         # elif self.mode == '1':
         elif self.bits_per_component == 1:
             im = self._extract_transcoded_1bit()
-        elif self.mode in ("L", "P") and self.bits_per_component <= 8:
+        elif self.mode in ('L', 'P') and self.bits_per_component <= 8:
             im = self._extract_transcoded_1248bits()
         else:
             raise UnsupportedImageTypeError(repr(self) + ", " + repr(self.obj))
 
-        if self.colorspace == "/ICCBased" and self.icc is not None:
-            im.info["icc_profile"] = self.icc.tobytes()
+        if self.colorspace == '/ICCBased' and self.icc is not None:
+            im.info['icc_profile'] = self.icc.tobytes()
 
         return im
 
@@ -653,14 +653,14 @@ class PdfImage(PdfImageBase):
         im = None
         try:
             im = self._extract_transcoded()
-            if im.mode == "CMYK":
-                im.save(stream, format="tiff", compression="tiff_adobe_deflate")
-                return ".tiff"
+            if im.mode == 'CMYK':
+                im.save(stream, format='tiff', compression='tiff_adobe_deflate')
+                return '.tiff'
             if im:
-                im.save(stream, format="png")
-                return ".png"
+                im.save(stream, format='png')
+                return '.png'
         except PdfError as e:
-            if "called on unfilterable stream" in str(e):
+            if 'called on unfilterable stream' in str(e):
                 raise UnsupportedImageTypeError(repr(self)) from e
             raise
         finally:
@@ -670,7 +670,7 @@ class PdfImage(PdfImageBase):
         raise UnsupportedImageTypeError(repr(self))
 
     def extract_to(
-        self, *, stream: BinaryIO | None = None, fileprefix: str = ""
+        self, *, stream: BinaryIO | None = None, fileprefix: str = ''
     ) -> str:
         """Extract the image directly to a usable image file.
 
@@ -712,7 +712,7 @@ class PdfImage(PdfImageBase):
         extension = self._extract_to_stream(stream=bio)
         bio.seek(0)
         filepath = Path(str(Path(fileprefix)) + extension)
-        with filepath.open("wb") as target:
+        with filepath.open('wb') as target:
             copyfileobj(bio, target)
         return str(filepath)
 
@@ -789,7 +789,7 @@ class PdfImage(PdfImageBase):
 
         img_size = len(data)
         if icc is None:
-            icc = b""
+            icc = b''
 
         return _transcoding.generate_ccitt_header(
             self.size,
@@ -811,10 +811,10 @@ class PdfImage(PdfImageBase):
         try:
             mode = self.mode
         except NotImplementedError:
-            mode = "?"
+            mode = '?'
         return (
-            f"<pikepdf.PdfImage image mode={mode} "
-            f"size={self.width}x{self.height} at {hex(id(self))}>"
+            f'<pikepdf.PdfImage image mode={mode} '
+            f'size={self.width}x{self.height} at {hex(id(self))}>'
         )
 
 
@@ -841,10 +841,10 @@ class PdfJpxImage(PdfImage):
 
     def _extract_direct(self, *, stream: BinaryIO) -> str | None:
         data, filters = self._remove_simple_filters()
-        if filters != ["/JPXDecode"]:
+        if filters != ['/JPXDecode']:
             return None
         stream.write(data)
-        return ".jp2"
+        return '.jp2'
 
     def _extract_transcoded(self) -> Image.Image:
         return super()._extract_transcoded()
@@ -861,11 +861,11 @@ class PdfJpxImage(PdfImage):
         super_colorspaces = super()._colorspaces
         if super_colorspaces:
             return super_colorspaces
-        if self._jpxpil.mode == "L":
-            return ["/DeviceGray"]
-        if self._jpxpil.mode == "RGB":
-            return ["/DeviceRGB"]
-        raise NotImplementedError("Complex JP2 colorspace")
+        if self._jpxpil.mode == 'L':
+            return ['/DeviceGray']
+        if self._jpxpil.mode == 'RGB':
+            return ['/DeviceRGB']
+        raise NotImplementedError('Complex JP2 colorspace')
 
     @property
     def _bpc(self) -> int:
@@ -886,8 +886,8 @@ class PdfJpxImage(PdfImage):
 
     def __repr__(self):
         return (
-            f"<pikepdf.PdfJpxImage JPEG2000 image mode={self.mode} "
-            f"size={self.width}x{self.height} at {hex(id(self))}>"
+            f'<pikepdf.PdfJpxImage JPEG2000 image mode={self.mode} '
+            f'size={self.width}x{self.height} at {hex(id(self))}>'
         )
 
 
@@ -896,23 +896,23 @@ class PdfInlineImage(PdfImageBase):
 
     # Inline images can contain abbreviations that we write automatically
     ABBREVS = {
-        b"/W": b"/Width",
-        b"/H": b"/Height",
-        b"/BPC": b"/BitsPerComponent",
-        b"/IM": b"/ImageMask",
-        b"/CS": b"/ColorSpace",
-        b"/F": b"/Filter",
-        b"/DP": b"/DecodeParms",
-        b"/G": b"/DeviceGray",
-        b"/RGB": b"/DeviceRGB",
-        b"/CMYK": b"/DeviceCMYK",
-        b"/I": b"/Indexed",
-        b"/AHx": b"/ASCIIHexDecode",
-        b"/A85": b"/ASCII85Decode",
-        b"/LZW": b"/LZWDecode",
-        b"/RL": b"/RunLengthDecode",
-        b"/CCF": b"/CCITTFaxDecode",
-        b"/DCT": b"/DCTDecode",
+        b'/W': b'/Width',
+        b'/H': b'/Height',
+        b'/BPC': b'/BitsPerComponent',
+        b'/IM': b'/ImageMask',
+        b'/CS': b'/ColorSpace',
+        b'/F': b'/Filter',
+        b'/DP': b'/DecodeParms',
+        b'/G': b'/DeviceGray',
+        b'/RGB': b'/DeviceRGB',
+        b'/CMYK': b'/DeviceCMYK',
+        b'/I': b'/Indexed',
+        b'/AHx': b'/ASCIIHexDecode',
+        b'/A85': b'/ASCII85Decode',
+        b'/LZW': b'/LZWDecode',
+        b'/RL': b'/RunLengthDecode',
+        b'/CCF': b'/CCITTFaxDecode',
+        b'/DCT': b'/DCTDecode',
     }
     REVERSE_ABBREVS = {v: k for k, v in ABBREVS.items()}
 
@@ -934,13 +934,13 @@ class PdfInlineImage(PdfImageBase):
         self._data = image_data
         self._image_object = image_object
 
-        reparse = b" ".join(
+        reparse = b' '.join(
             self._unparse_obj(obj, remap_names=self.ABBREVS) for obj in image_object
         )
         try:
-            reparsed_obj = Object.parse(b"<< " + reparse + b" >>")
+            reparsed_obj = Object.parse(b'<< ' + reparse + b' >>')
         except PdfError as e:
-            raise PdfError("parsing inline " + reparse.decode("unicode_escape")) from e
+            raise PdfError("parsing inline " + reparse.decode('unicode_escape')) from e
         self.obj = reparsed_obj
 
     def __eq__(self, other):
@@ -964,9 +964,9 @@ class PdfInlineImage(PdfImageBase):
                 return remap_names.get(name, name)
             return obj.unparse(resolved=True)
         if isinstance(obj, bool):
-            return b"true" if obj else b"false"  # Lower case for PDF spec
+            return b'true' if obj else b'false'  # Lower case for PDF spec
         if isinstance(obj, (int, Decimal, float)):
-            return str(obj).encode("ascii")
+            return str(obj).encode('ascii')
         raise NotImplementedError(repr(obj))
 
     def _metadata(self, name, type_, default):
@@ -984,13 +984,13 @@ class PdfInlineImage(PdfImageBase):
                 yield unparsed
 
         def inline_image_tokens():
-            yield b"BI\n"
-            yield b" ".join(m for m in metadata_tokens())
-            yield b"\nID\n"
+            yield b'BI\n'
+            yield b' '.join(m for m in metadata_tokens())
+            yield b'\nID\n'
             yield self._data._inline_image_raw_bytes()
-            yield b"EI"
+            yield b'EI'
 
-        return b"".join(inline_image_tokens())
+        return b''.join(inline_image_tokens())
 
     @property
     def icc(self):  # pragma: no cover
@@ -1003,10 +1003,10 @@ class PdfInlineImage(PdfImageBase):
         try:
             mode = self.mode
         except NotImplementedError:
-            mode = "?"
+            mode = '?'
         return (
-            f"<pikepdf.PdfInlineImage image mode={mode} "
-            f"size={self.width}x{self.height} at {hex(id(self))}>"
+            f'<pikepdf.PdfInlineImage image mode={mode} '
+            f'size={self.width}x{self.height} at {hex(id(self))}>'
         )
 
     def _convert_to_pdfimage(self) -> PdfImage:
@@ -1014,7 +1014,7 @@ class PdfInlineImage(PdfImageBase):
         tmppdf = Pdf.new()
         tmppdf.add_blank_page(page_size=(self.width, self.height))
         tmppdf.pages[0].contents_add(
-            f"{self.width} 0 0 {self.height} 0 0 cm".encode("ascii"), prepend=True
+            f'{self.width} 0 0 {self.height} 0 0 cm'.encode('ascii'), prepend=True
         )
         tmppdf.pages[0].contents_add(self.unparse())
 
@@ -1031,7 +1031,7 @@ class PdfInlineImage(PdfImageBase):
         """Return inline image as a Pillow Image."""
         return self._convert_to_pdfimage().as_pil_image()
 
-    def extract_to(self, *, stream: BinaryIO | None = None, fileprefix: str = ""):
+    def extract_to(self, *, stream: BinaryIO | None = None, fileprefix: str = ''):
         """Extract the inline image directly to a usable image file.
 
         See:
