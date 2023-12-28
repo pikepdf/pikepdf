@@ -1,3 +1,17 @@
+v8.11.0
+=======
+
+- Rebuilt with QPDF 11.7.0.
+- Added support for setting page boxes to a rectangle directly, e.g.
+  ``page.mediabox = rectangle`` - previously rectangle had to
+  manually converted to an array.
+- Fixed rendering of PDF and individual pages in Jupyter/IPython. Newer versions
+  of these tools are now pickier about what types of data they render, and don't
+  render PDFs directly; we now provide SVG which works well. Requires installation
+  of MuPDF as before.
+- Fixed rendering of inline images in Jupyter/IPython, which was not implemented.
+- Fixed build process to use new artifacts v4 actions on GitHub.
+
 v8.10.1
 =======
 
