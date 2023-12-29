@@ -220,4 +220,4 @@ convention = "google"
 "examples/*.py" = ["D103"]
 
 # [tool.ruff.format]
-# quote-style = "single"
+# quote-style = "preserve"  # 2023-12-28 - ruff feature not ready yet
