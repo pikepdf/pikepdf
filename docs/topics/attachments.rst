@@ -22,7 +22,7 @@ to one of its test files.
     >>> pdf.attachments['README.md'] = filespec
 
     >>> pdf.attachments
-    <pikepdf._core.Attachments with 1 attached files>
+    <pikepdf._core.Attachments: ['README.md']>
 
 This creates an attached file named ``README.md``, which holds the data in ``filespec``.
 Now we can retrieve the data.
