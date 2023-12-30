@@ -218,9 +218,15 @@ select = [
   "W",    # pycodestyle
   "F",    # pyflakes
   "I001", # isort
+  "TID",  # flake8-tidy-imports
   "UP",   # pyupgrade
+  "YTT",  # flake8-2020
 ]
-ignore = ["D105"] # docstring in magic method
+ignore = ["D105", "B028"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+banned-module-level-imports = ["numpy"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["pikepdf", "pikepdf._core"]

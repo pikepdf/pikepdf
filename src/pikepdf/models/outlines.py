@@ -304,7 +304,7 @@ class Outline:
             p.text("...")
         else:
             with p.group(2, "pikepdf.models.outlines.Outline<\n", "\n>"):
-                for i, item in enumerate(self.root):
+                for _, item in enumerate(self.root):
                     p.breakable()
                     p.pretty(str(item))
 
