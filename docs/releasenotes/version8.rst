@@ -1,3 +1,13 @@
+v8.11.1
+=======
+
+- macOS wheels are now linked against the GnuTLS crypto library instead of
+  OpenSSL. Hopefully this will alleviate situations where the legacy crypto
+  provider could not be loaded. :issue:`520`
+- Replaced all relative imports with absolute imports.
+- Excluded lxml 5.x for Python 3.8 and 3.9, since this project is not producing
+  wheels for 3.8 and 3.9 for the latest versions.
+
 v8.11.0
 =======
 
