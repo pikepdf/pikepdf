@@ -7,15 +7,15 @@
 
 from __future__ import annotations
 
-from ._version import __version__
+from pikepdf._version import __version__
 
 try:
-    from . import _core
+    from pikepdf import _core
 except ImportError as _e:  # pragma: no cover
     _msg = "pikepdf's extension library failed to import"
     raise ImportError(_msg) from _e
 
-from ._core import (
+from pikepdf._core import (
     AccessMode,
     Annotation,
     AttachedFileSpec,
@@ -41,8 +41,8 @@ from ._core import (
     TokenFilter,
     TokenType,
 )
-from ._exceptions import DependencyError
-from .objects import (
+from pikepdf._exceptions import DependencyError
+from pikepdf.objects import (
     Array,
     Dictionary,
     Name,
@@ -52,7 +52,7 @@ from .objects import (
     Stream,
     String,
 )
-from .models import (
+from pikepdf.models import (
     Encryption,
     Outline,
     OutlineItem,
@@ -73,8 +73,8 @@ from .models import (
 # While _cpphelpers is intended to be called from our C++ code only, explicitly
 # importing helps introspection tools like PyInstaller figure out that the module
 # is necessary.
-from . import _cpphelpers, _methods, codec  # noqa: F401, F841
-from . import settings
+from pikepdf import _cpphelpers, _methods, codec  # noqa: F401, F841
+from pikepdf import settings
 
 __libqpdf_version__: str = _core.qpdf_version()
 
