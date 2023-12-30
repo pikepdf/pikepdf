@@ -29,8 +29,8 @@ classifiers = [
 dependencies = [
   "Pillow>=10.0.1",
   "Deprecated",
-  "lxml>=4.8",
-  "lxml<5; python_version == '3.8' or python_version == '3.9'", # lxml doesn't make 5.0 wheels for python < 3.10
+  "lxml>=4.8; python_version >= '3.10'",
+  "lxml>=4.8,<5; python_version < '3.10'", # lxml doesn't make 5.0 wheels for python < 3.10
   "packaging",
 ]
 
@@ -47,7 +47,7 @@ docs = [
   "sphinx-design",
   "sphinx-issues",
   "sphinx-rtd-theme",
-  "tomli; python_version == '3.8' or python_version == '3.9' or python_version == '3.10'",
+  "tomli; python_version < '3.11'",
 ]
 mypy = ["lxml-stubs", "types-Pillow", "types-requests", "types-setuptools"]
 test = [
@@ -63,7 +63,7 @@ test = [
   "pytest-xdist>=2.5.0",
   "python-dateutil>=2.8.1",
   "python-xmp-toolkit>=2.0.1; os_name != 'nt' and platform_machine == 'x86_64'",
-  "tomli; python_version == '3.8' or python_version == '3.9' or python_version == '3.10'",
+  "tomli; python_version < '3.11'",
 ]
 
 [tool.setuptools.packages.find]
