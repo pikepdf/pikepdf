@@ -5,18 +5,18 @@
 
 from __future__ import annotations
 
-from ._content_stream import (
+from pikepdf.models._content_stream import (
     ContentStreamInstructions,
     PdfParsingError,
     UnparseableContentStreamInstructions,
     parse_content_stream,
     unparse_content_stream,
 )
-from .encryption import Encryption, EncryptionInfo, Permissions
-from .image import PdfImage, PdfInlineImage, UnsupportedImageTypeError
-from .matrix import PdfMatrix
-from .metadata import PdfMetadata
-from .outlines import (
+from pikepdf.models.encryption import Encryption, EncryptionInfo, Permissions
+from pikepdf.models.image import PdfImage, PdfInlineImage, UnsupportedImageTypeError
+from pikepdf.models.matrix import PdfMatrix
+from pikepdf.models.metadata import PdfMetadata
+from pikepdf.models.outlines import (
     Outline,
     OutlineItem,
     OutlineStructureError,
