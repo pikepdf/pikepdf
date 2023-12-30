@@ -22,8 +22,8 @@ from __future__ import annotations
 from secrets import token_urlsafe
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, cast
 
-from . import _core
-from ._core import Matrix, Object, ObjectType, Rectangle
+from pikepdf import _core
+from pikepdf._core import Matrix, Object, ObjectType, Rectangle
 
 if TYPE_CHECKING:  # pragma: no cover
     from pikepdf import Pdf

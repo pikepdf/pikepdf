@@ -8,7 +8,7 @@ from __future__ import annotations
 import codecs
 from typing import Any, Container
 
-from ._core import pdf_doc_to_utf8, utf8_to_pdf_doc
+from pikepdf._core import pdf_doc_to_utf8, utf8_to_pdf_doc
 
 # pylint: disable=redefined-builtin
 
