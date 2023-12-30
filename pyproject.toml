@@ -168,7 +168,7 @@ before-all = [
 ] # Use 'brew whatever || true' workaround until https://github.com/actions/setup-python/issues/577 is fixed
 before-build = [
   'if [ "$(uname -m)" == "arm64" ]; then export MACOSX_DEPLOYMENT_TARGET="11.0"; fi',
-]
+] # Ensure each build is targeting 11.0 when we are on arm64. See docs/references/build.rst
 
 [tool.cibuildwheel.windows]
 

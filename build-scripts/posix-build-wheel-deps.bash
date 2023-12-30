@@ -13,9 +13,10 @@ if [ "$arch" == "aarch64" -o "$arch" == "arm64" ]; then
 fi
 
 if [ "$os" == "Darwin" ]; then
-    # Setting this here only affects the QPDF build, not pikepdf.
-    # pybind11 will set --macosx-version-min automatically based on
-    # the requested cxx_std unless MACOSX_DEPLOYMENT_TARGET is set.
+    # Setting MACOSX_DEPLOYMENT_TARGET here affects the QPDF build,
+    # not the pikepdf, since this script runs in different process
+    # from that build.
+    # See docs/references/build.rst for why we do this.
     export MACOSX_DEPLOYMENT_TARGET="11.0"
 fi
 
