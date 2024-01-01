@@ -1,3 +1,9 @@
+v8.11.2
+=======
+
+- Fixed handling of XMP metadata when metadata contains objects in a default
+  namespace.
+
 v8.11.1
 =======
 
