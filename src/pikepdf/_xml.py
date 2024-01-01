@@ -6,7 +6,7 @@ from __future__ import annotations
 from typing import IO, Any, AnyStr
 
 from lxml.etree import XMLParser as _UnsafeXMLParser
-from lxml.etree import _ElementTree
+from lxml.etree import _Element, _ElementTree
 from lxml.etree import parse as _parse
 
 
@@ -25,4 +25,4 @@ def parse_xml(source: AnyStr | IO[Any], recover: bool = False) -> _ElementTree:
     return _parse(source, parser=parser)
 
 
-__all__ = ['parse_xml']
+__all__ = ['parse_xml', '_ElementTree', '_Element']

@@ -12,14 +12,14 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from functools import wraps
 from io import BytesIO
-from typing import TYPE_CHECKING, Any, Callable, NamedTuple, Set
+from typing import TYPE_CHECKING, Any, Callable, Iterator, NamedTuple, Set
 from warnings import warn
 
 from lxml import etree
 from lxml.etree import QName, XMLSyntaxError
 
 from pikepdf._version import __version__ as pikepdf_version
-from pikepdf._xml import parse_xml
+from pikepdf._xml import _Element, parse_xml
 from pikepdf.objects import Name, Stream, String
 
 if sys.version_info < (3, 9):  # pragma: no cover
@@ -383,11 +383,11 @@ class PdfMetadata(MutableMapping):
     ):
         """Construct PdfMetadata. Use Pdf.open_metadata() instead."""
         self._pdf = pdf
-        self._xmp = None
         self.mark = pikepdf_mark
         self.sync_docinfo = sync_docinfo
         self._updating = False
         self.overwrite_invalid_xml = overwrite_invalid_xml
+        self._xmp = None
 
     def load_from_docinfo(
         self, docinfo, delete_missing: bool = False, raise_failure: bool = False
@@ -641,7 +641,8 @@ class PdfMetadata(MutableMapping):
             return result
         return ''
 
-    def _get_rdf_root(self):
+    def _get_rdf_root(self) -> _Element:
+        assert self._xmp is not None
         rdf = self._xmp.find('.//rdf:RDF', self.NS)
         if rdf is None:
             rdf = self._xmp.getroot()
@@ -649,7 +650,9 @@ class PdfMetadata(MutableMapping):
                 raise ValueError("Metadata seems to be XML but not XMP")
         return rdf
 
-    def _get_elements(self, name: str | QName = ''):
+    def _get_elements(
+        self, name: str | QName = ''
+    ) -> Iterator[tuple[_Element, str | bytes | None, str | bytes | None, _Element]]:
         """Get elements from XMP.
 
         Core routine to find elements matching name within the XMP and yield
@@ -689,7 +692,9 @@ class PdfMetadata(MutableMapping):
                 values = self._get_subelements(node)
                 yield (node, None, values, rdfdesc)
 
-    def _get_element_values(self, name=''):
+    def _get_element_values(
+        self, name: str | QName = ''
+    ) -> Iterator[str | bytes | None]:
         yield from (v[2] for v in self._get_elements(name))
 
     @ensure_loaded
@@ -839,7 +844,7 @@ class PdfMetadata(MutableMapping):
                 if (
                     len(node.attrib) == 1
                     and len(node) == 0
-                    and QName(XMP_NS_RDF, 'about') in node.attrib
+                    and QName(XMP_NS_RDF, 'about') in node.attrib.keys()
                 ):
                     # The only thing left on this node is rdf:about="", so remove it
                     parent.remove(node)
