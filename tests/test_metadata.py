@@ -733,7 +733,7 @@ def test_xxe(trivial, outdir):
 
 
 def test_qname_no_namespace():
-    assert PdfMetadata._qname('abc') == '{adobe:ns:meta/}abc'
+    assert PdfMetadata._qname('abc') == 'abc'
 
 
 def test_register_xmlns():
@@ -741,3 +741,73 @@ def test_register_xmlns():
     assert (
         PdfMetadata._qname('pikepdf:foo') == '{http://github.com/pikepdf/pikepdf/}foo'
     )
+
+
+def test_undocumented_pdfx_identifier(trivial):
+    trivial.Root.Metadata = Stream(
+        trivial,
+        """\
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Adobe XMP Core 4.0-c316 44.253921, Sun Oct 01 2006 17:14:39">
+   <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+      <rdf:Description xmlns:dc="http://purl.org/dc/elements/1.1/" rdf:about="">
+         <dc:format>application/pdf</dc:format>
+         <dc:title>
+            <rdf:Alt>
+               <rdf:li xml:lang="x-default">A</rdf:li>
+            </rdf:Alt>
+         </dc:title>
+         <dc:creator>
+            <rdf:Seq>
+               <rdf:li>B</rdf:li>
+               <rdf:li>C</rdf:li>
+            </rdf:Seq>
+         </dc:creator>
+         <dc:description>
+            <rdf:Alt>
+               <rdf:li xml:lang="x-default">D</rdf:li>
+            </rdf:Alt>
+         </dc:description>
+         <dc:publisher>
+            <rdf:Bag>
+               <rdf:li>E</rdf:li>
+            </rdf:Bag>
+         </dc:publisher>
+      </rdf:Description>
+      <rdf:Description xmlns:prism="http://prismstandard.org/namespaces/basic/3.0/" rdf:about="">
+         <prism:aggregationType>journal</prism:aggregationType>
+         <prism:publicationName>Journal</prism:publicationName>
+         <prism:copyright>© 2023</prism:copyright>
+         <prism:issn>1234-5678</prism:issn>
+         <prism:volume>1</prism:volume>
+         <prism:number>1</prism:number>
+         <prism:coverDisplayDate>March-April 2023</prism:coverDisplayDate>
+         <prism:pageRange>1-2</prism:pageRange>
+         <prism:startingPage>1</prism:startingPage>
+         <prism:endingPage>2</prism:endingPage>
+      </rdf:Description>
+      <rdf:Description xmlns:pdfx="http://ns.adobe.com/pdfx/1.3/" rdf:about="">
+         <TGji2z9aLyPf_nweGmtj-nLNNnt2Nlwj7yteGngiQzd2Sy937zt-Jo9eQmdmKn9yJmMmTma/>
+         <pdfx:robots>noindex</pdfx:robots>
+      </rdf:Description>
+      <rdf:Description xmlns:xap="http://ns.adobe.com/xap/1.0/" rdf:about="">
+         <xap:CreatorTool>NA</xap:CreatorTool>
+         <xap:CreateDate>2023-03-07T23:47:54+05:30</xap:CreateDate>
+         <xap:ModifyDate>2023-03-07T23:48:24+05:30</xap:ModifyDate>
+         <xap:MetadataDate>2023-03-07T23:48:24+05:30</xap:MetadataDate>
+      </rdf:Description>
+      <rdf:Description xmlns:xapRights="http://ns.adobe.com/xap/1.0/rights/" rdf:about="">
+         <xapRights:Marked>True</xapRights:Marked>
+      </rdf:Description>
+      <rdf:Description xmlns:pdf="http://ns.adobe.com/pdf/1.3/" rdf:about="">
+         <pdf:Producer>Acrobat Distiller 8.1.0 (Windows)</pdf:Producer>
+      </rdf:Description>
+      <rdf:Description xmlns:xapMM="http://ns.adobe.com/xap/1.0/mm/" rdf:about="">
+         <xapMM:DocumentID>uuid:81b6d753-a810-4613-b207-111111111111</xapMM:DocumentID>
+         <xapMM:InstanceID>uuid:0d50ecbf-b7d1-4b76-b4a7-222222222222</xapMM:InstanceID>
+      </rdf:Description>
+   </rdf:RDF>
+</x:xmpmeta>
+""".encode(),
+    )
+    with trivial.open_metadata() as m:
+        list(m.items())

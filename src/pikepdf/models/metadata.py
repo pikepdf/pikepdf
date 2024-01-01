@@ -600,12 +600,17 @@ class PdfMetadata(MutableMapping):
         try:
             prefix, tag = name.split(':', maxsplit=1)
         except ValueError:
-            # If missing the namespace, put it in the top level namespace
-            # To do this completely correct we actually need to figure out
-            # the namespace based on context defined by parent tags. That
-            #   https://www.w3.org/2001/tag/doc/qnameids.html
-            prefix, tag = 'x', name
-        uri = cls.NS[prefix]
+            # If missing the namespace, it belongs in the default namespace.
+            # A tag such <xyz xmlns="http://example.com"> defines a default
+            # namespace of http://example.com for all enclosed tags that don't
+            # override the namespace with a colon prefix.
+            # XMP does not usually use the default namespace, so we can
+            # assume it's just blank. In practice a document that depends on
+            # defining a default namespace over some part of its content
+            # could introduce a collision.
+            # See: https://www.w3.org/TR/REC-xml-names/#dt-defaultNS
+            prefix, tag = '', name
+        uri = cls.NS.get(prefix, None)
         return str(QName(uri, tag))
 
     def _prefix_from_uri(self, uriname):
