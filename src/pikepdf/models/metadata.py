@@ -622,7 +622,7 @@ class PdfMetadata(MutableMapping):
         uri = uripart.replace('{', '')
         return self.REVERSE_NS[uri] + ':' + tag
 
-    def _get_subelements(self, node):
+    def _get_subelements(self, node: _Element) -> Any:
         """Gather the sub-elements attached to a node.
 
         Gather rdf:Bag and and rdf:Seq into set and list respectively. For
@@ -657,7 +657,7 @@ class PdfMetadata(MutableMapping):
 
     def _get_elements(
         self, name: str | QName = ''
-    ) -> Iterator[tuple[_Element, str | bytes | None, str | bytes | None, _Element]]:
+    ) -> Iterator[tuple[_Element, str | bytes | None, Any, _Element]]:
         """Get elements from XMP.
 
         Core routine to find elements matching name within the XMP and yield
@@ -697,9 +697,7 @@ class PdfMetadata(MutableMapping):
                 values = self._get_subelements(node)
                 yield (node, None, values, rdfdesc)
 
-    def _get_element_values(
-        self, name: str | QName = ''
-    ) -> Iterator[str | bytes | None]:
+    def _get_element_values(self, name: str | QName = '') -> Iterator[Any]:
         yield from (v[2] for v in self._get_elements(name))
 
     @ensure_loaded
