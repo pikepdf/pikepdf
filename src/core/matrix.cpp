@@ -61,7 +61,7 @@ void init_matrix(py::module_ &m)
             QPDFObjectHandle::Matrix ohmatrix = h.getArrayAsMatrix();
             return QPDFMatrix(ohmatrix);
         }),
-            py::arg("h"))
+            py::arg("h")) // LCOV_EXCL_LINE
         .def(py::init<>([](ObjectList &ol) {
             if (ol.size() != 6) {
                 throw py::value_error("ObjectList must have 6 elements");
@@ -80,7 +80,7 @@ void init_matrix(py::module_ &m)
                 converted.at(5));
         }))
         .def(py::init<>([](const py::tuple &t) { return matrix_from_tuple(t); }),
-            py::arg("t6"))
+            py::arg("t")) // LCOV_EXCL_LINE
         .def_readonly("a", &QPDFMatrix::a)
         .def_readonly("b", &QPDFMatrix::b)
         .def_readonly("c", &QPDFMatrix::c)

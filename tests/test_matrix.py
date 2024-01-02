@@ -103,6 +103,21 @@ class TestMatrix:
         expected = Matrix(0, 2, -2, 0, 4, 6)
         assert allclose(m2tr, expected)
 
+    def test_init_copy(self):
+        m = Matrix(1, 2, 3, 4, 5, 6)
+        m2 = Matrix(m)
+        assert m == m2
+
+    def test_init_from_objlist(self):
+        a = Array([1, 2, 3, 4, 5, 6])
+        assert Matrix(a.as_list()).shorthand == (1, 2, 3, 4, 5, 6)
+        b = Array([1, 2, 3, 4, 5])
+        with pytest.raises(ValueError, match='must have 6 elements'):
+            Matrix(b.as_list())
+        c = Array([1, 2, b"foo", 4, 5, 6])
+        with pytest.raises(ValueError, match='must be numeric'):
+            Matrix(c.as_list())
+
     def test_matmul(self):
         m = Matrix()
         scale = Matrix().scaled(3, 3)
