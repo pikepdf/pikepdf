@@ -122,16 +122,17 @@ public:
 
         qpdf_offset_t result   = 0;
         bool eol_straddles_buf = false;
-        std::string buf(4096, '\0');
+        char rawbuf[4096];
         std::string line_endings = "\r\n";
 
         while (true) {
             qpdf_offset_t cur_offset = this->tell();
-            size_t len = this->read(const_cast<char *>(buf.data()), buf.size());
+            size_t len               = this->read(rawbuf, sizeof(rawbuf));
             if (len == 0) {
                 result = this->tell();
                 break;
             }
+            std::string_view buf(rawbuf, len);
             size_t found;
             if (!eol_straddles_buf) {
                 found = buf.find_first_of(line_endings);
