@@ -206,8 +206,8 @@ def encode_pdf_date(d: datetime) -> str:
 def decode_pdf_date(s: str) -> datetime:
     """Decode a pdfmark date to a Python datetime object.
 
-    A pdfmark date is a string in a paritcular format. See the pdfmark
-    Reference for the specification.
+    A pdfmark date is a string in a particular format, as described in
+    :func:`encode_pdf_date`.
     """
     if isinstance(s, String):
         s = str(s)
