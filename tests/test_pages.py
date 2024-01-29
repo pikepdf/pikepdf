@@ -375,6 +375,8 @@ def test_pages_wrong_type(fourpages):
         fourpages.pages.insert(3, {})
     with pytest.raises(TypeError), pytest.deprecated_call():
         fourpages.pages.insert(3, Array([42]))
+    with pytest.deprecated_call():
+        fourpages.pages.insert(3, Dictionary(Type=Name.Page))
 
 
 def test_page_splitting_generator(resources, tmp_path):
