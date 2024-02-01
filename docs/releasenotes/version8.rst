@@ -1,3 +1,11 @@
+v8.12.0
+=======
+
+- Rebuilt wheels with QPDF 11.8.0.
+- Improved test coverage slightly.
+- Minor performance improvement when using file streams.
+- Minor update to metadata documentation.
+
 v8.11.2
 =======
 
