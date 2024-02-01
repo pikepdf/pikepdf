@@ -372,7 +372,7 @@ def test_remove_by_ref(fourpages):
 
 def test_pages_wrong_type(fourpages):
     with pytest.raises(TypeError), pytest.deprecated_call():
-        fourpages.pages.insert(3, {})
+        fourpages.pages.insert(3, Dictionary())
     with pytest.raises(TypeError), pytest.deprecated_call():
         fourpages.pages.insert(3, Array([42]))
 
