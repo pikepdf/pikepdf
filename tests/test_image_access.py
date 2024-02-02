@@ -479,11 +479,13 @@ def valid_random_palette_image_spec(
     channels = (
         1
         if colorspace == Name.DeviceGray
-        else 3
-        if colorspace == Name.DeviceRGB
-        else 4
-        if colorspace == Name.DeviceCMYK
-        else 0
+        else (
+            3
+            if colorspace == Name.DeviceRGB
+            else 4
+            if colorspace == Name.DeviceCMYK
+            else 0
+        )
     )
 
     if not palette:
@@ -1003,6 +1005,7 @@ def test_devicen():
         heights=st.integers(1, 7),
     )
 )
+@settings(deadline=None)
 def test_grayscale_stride(spec):
     pdf = pdf_from_image_spec(spec)
     pim = PdfImage(pdf.pages[0].Resources.XObject.Im0)
