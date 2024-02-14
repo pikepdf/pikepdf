@@ -54,7 +54,7 @@ test = [
   "attrs>=20.2.0",
   "coverage[toml]",
   "hypothesis>=6.36",
-  "numpy>=1.21.0; platform_machine == 'x86_64' or platform_python_implementation == 'CPython'",
+  "numpy>=1.21.0; platform_machine == 'x86_64' and platform_python_implementation == 'CPython'",
   "psutil>=5.9; os_name != 'nt'",
   "pybind11",
   "pytest>=6.2.5",
@@ -112,8 +112,6 @@ skip = [
   "*musllinux*_aarch64",    # haven't tried yet/needs Cirrus tweaks
   "cp38-musllinux*",        # too old - some dependendies don't have wheels
   "pp*-manylinux*_aarch64", # not supported by Pillow yet
-  "pp310-win_amd64",        # no pypy3.10 64-bit Windows yet
-  "pp310-*",                # numpy isn't shipping pp3.10 wheels yet
 ]
 test-skip = "*_universal2:arm64"
 build-frontend = "build"
