@@ -12,8 +12,11 @@ from __future__ import annotations
 import os
 from abc import ABC, abstractmethod
 from pathlib import Path
-from subprocess import DEVNULL, PIPE, CalledProcessError, run
 from tempfile import TemporaryDirectory
+
+from subprocess import DEVNULL, PIPE, CalledProcessError, run
+if os.name == 'nt':
+    from subprocess import CREATE_NO_WINDOW
 
 from packaging.version import Version
 from PIL import Image
@@ -82,15 +85,24 @@ class JBIG2Decoder(JBIG2DecoderInterface):
                 args.append(os.fspath(global_path))
 
             args.append(os.fspath(image_path))
-
-            self._run(args, stdout=DEVNULL, check=True)
+           
+            run_kwargs={'stdout':DEVNULL,'check':True}
+            if os.name == 'nt':
+                run_kwargs['creationflags'] = CREATE_NO_WINDOW
+            
+            self._run(args, **run_kwargs)
             with Image.open(output_path) as im:
                 return im.tobytes()
 
     def _version(self) -> Version:
+        
+        run_kwargs={'stdout':PIPE,'check':True, 'encoding':'ascii'}
+        if os.name == 'nt':
+            run_kwargs['creationflags'] = CREATE_NO_WINDOW
+        
         try:
             proc = self._run(
-                ['jbig2dec', '--version'], stdout=PIPE, check=True, encoding='ascii'
+                ['jbig2dec', '--version'], **run_kwargs
             )
         except (CalledProcessError, FileNotFoundError) as e:
             raise DependencyError("jbig2dec - not installed or not found") from e
