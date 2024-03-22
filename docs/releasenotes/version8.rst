@@ -1,3 +1,12 @@
+v8.14.0
+=======
+
+- Added QPDF_FUTURE environment variable for compile time testing of new QPDF
+  features.
+- Added new code to suppress console window from appearing on Windows in some
+  situations when decoding JBIG2.
+- Updated GitHub Actions versions.
+
 v8.13.0
 =======
 
