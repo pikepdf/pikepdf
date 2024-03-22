@@ -10,6 +10,7 @@ jbig2dec.
 from __future__ import annotations
 
 import os
+import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
 from subprocess import DEVNULL, PIPE, CalledProcessError, run
@@ -19,6 +20,13 @@ from packaging.version import Version
 from PIL import Image
 
 from pikepdf._exceptions import DependencyError
+
+if sys.platform == 'win32':
+    from subprocess import CREATE_NO_WINDOW
+
+    CREATION_FLAGS: int = CREATE_NO_WINDOW
+else:
+    CREATION_FLAGS = 0
 
 
 class JBIG2DecoderInterface(ABC):
@@ -45,9 +53,10 @@ class JBIG2DecoderInterface(ABC):
 class JBIG2Decoder(JBIG2DecoderInterface):
     """JBIG2 decoder implementation."""
 
-    def __init__(self, *, subprocess_run=run):
+    def __init__(self, *, subprocess_run=run, creationflags=CREATION_FLAGS):
         """Initialize the decoder."""
         self._run = subprocess_run
+        self._creationflags = creationflags
 
     def check_available(self) -> None:
         """Check if jbig2dec is installed and usable."""
@@ -83,14 +92,20 @@ class JBIG2Decoder(JBIG2DecoderInterface):
 
             args.append(os.fspath(image_path))
 
-            self._run(args, stdout=DEVNULL, check=True)
+            self._run(
+                args, stdout=DEVNULL, check=True, creationflags=self._creationflags
+            )
             with Image.open(output_path) as im:
                 return im.tobytes()
 
     def _version(self) -> Version:
         try:
             proc = self._run(
-                ['jbig2dec', '--version'], stdout=PIPE, check=True, encoding='ascii'
+                ['jbig2dec', '--version'],
+                stdout=PIPE,
+                check=True,
+                encoding='ascii',
+                creationflags=self._creationflags,
             )
         except (CalledProcessError, FileNotFoundError) as e:
             raise DependencyError("jbig2dec - not installed or not found") from e
