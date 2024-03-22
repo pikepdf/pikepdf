@@ -16,7 +16,7 @@ cirrus_macos_arm64_wheel_task:
 
   cibuildwheel_script:
     - brew install pipx
-    - pipx run --python /usr/bin/python3 --spec cibuildwheel==2.16.5 cibuildwheel
+    - pipx run --python /usr/bin/python3 --spec cibuildwheel==2.17.0 cibuildwheel
 
   wheels_artifacts:
     path: "wheelhouse/*"
@@ -46,7 +46,7 @@ cirrus_linux_arm64_wheel_task:
 
   cibuildwheel_script:
     - apt-get install -y python3 python-is-python3 pipx
-    - pipx run --python /usr/bin/python3 --spec cibuildwheel==2.16.5 cibuildwheel
+    - pipx run --python /usr/bin/python3 --spec cibuildwheel==2.17.0 cibuildwheel
 
   wheels_artifacts:
     path: "wheelhouse/*"
