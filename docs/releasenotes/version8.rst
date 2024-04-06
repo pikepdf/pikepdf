@@ -1,11 +1,20 @@
+v8.15.0
+=======
+
+- Rebuild wheels with QPDF 11.9.0.
+- Relaxed dependency requirements on lxml, now that that project is publishing wheels
+  for less common platforms again.
+
 v8.14.0
 =======
 
-- Added QPDF_FUTURE environment variable for compile time testing of new QPDF
-  features.
 - Added new code to suppress console window from appearing on Windows in some
   situations when decoding JBIG2.
 - Updated GitHub Actions versions.
+- Added QPDF_FUTURE environment variable for compile-time testing of new QPDF
+  features. This option is mainly for the developers of QPDF to confirm that pikepdf
+  supports change they are considering in future releases; other users will not
+  gain any benefit.
 
 v8.13.0
 =======
