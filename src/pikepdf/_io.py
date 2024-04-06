@@ -50,9 +50,9 @@ def atomic_overwrite(filename: Path) -> Generator[IO[bytes], None, None]:
         try:
             with stream:
                 yield stream
-        except Exception:
+        except (Exception, KeyboardInterrupt):
             # ...but if an error occurs while using it, clean up
-            with suppress(FileNotFoundError):
+            with suppress(OSError):
                 filename.unlink()
             raise
         return
@@ -69,9 +69,10 @@ def atomic_overwrite(filename: Path) -> Generator[IO[bytes], None, None]:
     ) as tf:
         try:
             yield tf
-        except Exception:
-            tf.close()
-            Path(tf.name).unlink()
+        except (Exception, KeyboardInterrupt):
+            with suppress(OSError):
+                tf.close()
+                Path(tf.name).unlink()
             raise
         tf.flush()
         tf.close()
