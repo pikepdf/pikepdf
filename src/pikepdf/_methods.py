@@ -163,9 +163,7 @@ class Extend_Pdf:
         bio.seek(0)
         return bio
 
-    def _repr_mimebundle_(
-        self, include=None, exclude=None
-    ):  # pylint: disable=unused-argument
+    def _repr_mimebundle_(self, include=None, exclude=None):  # pylint: disable=unused-argument
         pdf_data = self._quick_save().read()
         data = {
             'application/pdf': pdf_data,

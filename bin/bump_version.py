@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
 """Bump the version number in all the right places."""
+
 from __future__ import annotations
 
 import glob

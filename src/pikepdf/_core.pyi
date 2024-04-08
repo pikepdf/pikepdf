@@ -419,10 +419,7 @@ class Object:
         self,
         data: bytes,
         *,
-        filter: Name
-        | Array
-        | list[Name]
-        | None = ...,  # pylint: disable=redefined-builtin
+        filter: Name | Array | list[Name] | None = ...,  # pylint: disable=redefined-builtin
         decode_parms: Dictionary | Array | None = ...,
         type_check: bool = ...,
     ) -> None:
@@ -2819,7 +2816,7 @@ def unparse(obj: Any) -> bytes: ...
 def utf8_to_pdf_doc(utf8: str, unknown: bytes) -> tuple[bool, bytes]: ...
 def _unparse_content_stream(contentstream: Iterable[Any]) -> bytes: ...
 def set_flate_compression_level(
-    level: Literal[-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    level: Literal[-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
 ) -> int:
     """Set compression level whenever Flate compression is used.
 
