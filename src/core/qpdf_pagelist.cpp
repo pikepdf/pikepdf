@@ -276,9 +276,7 @@ void init_pagelist(py::module_ &m)
             py::arg("pnum"))
         .def(
             "__iter__",
-            [](PageList &pl) {
-                return PageListIterator{pl, 0};
-            },
+            [](PageList &pl) { return PageListIterator{pl, 0}; },
             py::keep_alive<0, 1>())
         .def(
             "insert",

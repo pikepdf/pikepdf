@@ -177,9 +177,7 @@ static std::string objecthandle_repr_inner(QPDFObjectHandle h,
             visited.insert(h.getObjGen());
     }
     if (h.isPageObject() && recursion_depth >= 1 && h.isIndirect()) {
-        ss << "<Pdf.pages.from_objgen"
-           << "(" << h.getObjGen() << ")"
-           << ">";
+        ss << "<Pdf.pages.from_objgen(" << h.getObjGen() << ")>";
         return ss.str();
     }
     object_count++;
@@ -208,9 +206,7 @@ static std::string objecthandle_repr_inner(QPDFObjectHandle h,
         // Inline image objects are automatically promoted to higher level objects
         // in parse_content_stream, so objects of this type should not be returned
         // directly.
-        ss << objecthandle_pythonic_typename(h) << "("
-           << "data=<...>"
-           << ")";
+        ss << objecthandle_pythonic_typename(h) << "(" << "data=<...>" << ")";
         break;
     // LCOV_EXCL_STOP
     case qpdf_object_type_e::ot_array:
@@ -266,8 +262,7 @@ static std::string objecthandle_repr_inner(QPDFObjectHandle h,
         break;
     case qpdf_object_type_e::ot_stream:
         pure_expr = false;
-        ss << objecthandle_pythonic_typename(h) << "("
-           << "owner=<...>, "
+        ss << objecthandle_pythonic_typename(h) << "(" << "owner=<...>, "
            << "data=" << preview_stream_data(h, recursion_depth) << ", "
            << objecthandle_repr_inner(h.getDict(),
                   recursion_depth + 1,
