@@ -100,6 +100,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       CIBW_BUILD: "*"
+      CIBW_TEST_SKIP: "cp38-macosx_*:arm64"  # cibuildwheel cannot test Python 3.8 on ARM64
     strategy:
       matrix:
         os: [macos-13, macos-14]  # macos-13 is an intel runner, macos-14 is apple silicon

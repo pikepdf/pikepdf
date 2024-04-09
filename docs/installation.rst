@@ -33,6 +33,8 @@ Binary wheel availability
 
 * ⏳ we are waiting on a third party to implement better support for this configuration
 
+* ⚠️ wheel is released but cannot be tested - use with caution
+
 Binary wheels should work on most systems, **provided a recent version
 of pip is used to install them**. Old versions of pip, especially before 20.0,
 may fail to check appropriate versions.
