@@ -206,8 +206,10 @@ class PdfMatrix:
 
     def encode(self):
         """Encode this matrix in binary suitable for including in a PDF."""
-        return '{:.6f} {:.6f} {:.6f} {:.6f} {:.6f} {:.6f}'.format(
-            self.a, self.b, self.c, self.d, self.e, self.f
+        return (
+            f'{self.a:.6f} {self.b:.6f} '
+            f'{self.c:.6f} {self.d:.6f} '
+            f'{self.e:.6f} {self.f:.6f}'
         ).encode()
 
     def __repr__(self):
