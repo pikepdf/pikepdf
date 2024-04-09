@@ -18,7 +18,6 @@ jobs:
     strategy:
       matrix:
         platform: [manylinux_x86_64, musllinux_x86_64]
-
     steps:
       - uses: actions/checkout@v4
 
@@ -97,13 +96,13 @@ jobs:
           if-no-files-found: error
 
   wheels_macos:
-    name: ${{ matrix.platform }}
-    runs-on: macos-latest
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     env:
       CIBW_BUILD: "*"
     strategy:
       matrix:
-        platform: [macosx_x86_64]
+        os: [macos-13, macos-14]  # macos-13 is an intel runner, macos-14 is apple silicon
 
     steps:
       - uses: actions/checkout@v4
@@ -113,42 +112,8 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.platform }}
+          name: wheels-${{ matrix.os }}-${{ strategy.job-index }}
           path: ./wheelhouse/*.whl
-
-  wheels_macos_arm:
-    name: ${{ matrix.platform }}
-    runs-on: ubuntu-22.04  # ubuntu 22.04 manages Cirrus CI ARM builder
-    strategy:
-      matrix:
-        platform: [macosx_arm64]
-    steps:
-      - name: Waiting for Cirrus CI
-        uses: lewagon/wait-on-check-action@v1.3.4
-        if: github.event_name != 'pull_request'
-        with:
-          ref: ${{ github.ref || github.sha }}
-          check-regexp: '^macos arm64 Cirrus'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          wait-interval: 60
-
-      - name: Download artifacts
-        run: |
-          retries=120
-          while [ $retries -gt 0 ]; do
-            sleep 30
-            curl --fail -L https://api.cirrus-ci.com/v1/artifact/github/${{ github.repository }}/wheel_macos_arm/wheels.zip?branch=${{ github.ref_name }} -o wheels.zip && break
-            retries=$((retries - 1))
-            echo "Retrying..."
-          done
-          unzip wheels.zip
-
-      - name: Upload built wheels
-        uses: actions/upload-artifact@v4
-        with:
-          name: wheels-${{ matrix.platform }}
-          path: ./wheelhouse/*.whl
-          if-no-files-found: error
 
   wheels_windows:
     name: ${{ matrix.platform }}
@@ -265,7 +230,7 @@ jobs:
           path: dist/*.tar.gz
 
   upload_pypi:
-    needs: [wheels_linux, wheels_macos, wheels_windows, wheels_macos_arm, wheels_linux_arm, sdist]
+    needs: [wheels_linux, wheels_macos, wheels_windows, wheels_linux_arm, sdist]
     runs-on: ubuntu-latest
     environment:
       name: release
@@ -291,7 +256,7 @@ jobs:
 
   create_release:
     name: Create GitHub release
-    needs: [wheels_linux, wheels_macos, wheels_windows, wheels_macos_arm, wheels_linux_arm, sdist]
+    needs: [wheels_linux, wheels_macos, wheels_windows, wheels_linux_arm, sdist]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
     permissions:

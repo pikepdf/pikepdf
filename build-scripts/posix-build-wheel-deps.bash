@@ -21,7 +21,7 @@ if [ "$os" == "Darwin" ]; then
 fi
 
 maybe_sudo () {
-    if [ "$os" == "Darwin" -a "${CIRRUS_CI:-}" == "true" ]; then
+    if [ "$os" == "Darwin" ]; then
         sudo -E "$@"
     else
         "$@"

@@ -1,26 +1,6 @@
 # SPDX-FileCopyrightText: 2023 James R. Barlow
 # SPDX-License-Identifier: MPL-2.0
 
-cirrus_macos_arm64_wheel_task:
-  name: "macos arm64 Cirrus"
-  alias: wheel_macos_arm
-  macos_instance:
-    image: ghcr.io/cirruslabs/macos-monterey-xcode
-
-  env:
-    CIBW_BUILD: >-
-      cp39-macosx_arm64
-      cp310-macosx_arm64
-      cp311-macosx_arm64
-      cp312-macosx_arm64
-
-  cibuildwheel_script:
-    - brew install pipx
-    - pipx run --python /usr/bin/python3 --spec cibuildwheel==2.17.0 cibuildwheel
-
-  wheels_artifacts:
-    path: "wheelhouse/*"
-
 cirrus_linux_arm64_wheel_task:
   name: "linux arm64 Cirrus"
   alias: wheel_linux_arm
