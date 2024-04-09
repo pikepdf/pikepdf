@@ -224,6 +224,7 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           files: ./coverage.xml,./cpp_coverage.info
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - uses: actions/upload-artifact@v4
         with:
