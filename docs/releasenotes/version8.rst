@@ -1,3 +1,9 @@
+v8.15.1
+=======
+
+- Reformat with ruff.
+- Various updates to build procedures and wheel generation.
+
 v8.15.0
 =======
 
