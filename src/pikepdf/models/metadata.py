@@ -221,10 +221,18 @@ def decode_pdf_date(s: str) -> datetime:
     elif s.endswith('Z'):
         s = s.replace('Z', '+0000')
     s = s.replace("'", "")  # Remove apos from PDF time strings
-    try:
-        return datetime.strptime(s, r'%Y%m%d%H%M%S%z')
-    except ValueError:
-        return datetime.strptime(s, r'%Y%m%d%H%M%S')
+
+    date_formats = [
+        r"%Y%m%d%H%M%S%z",  # Format with timezone
+        r"%Y%m%d%H%M%S",    # Format without timezone
+        r"%Y%m%d",          # Date only format
+    ]
+    for date_format in date_formats:
+        try:
+            return datetime.strptime(s, date_format)
+        except ValueError:
+            continue
+    raise ValueError(f"Date string does not match any known format: {s}")
 
 
 class Converter(ABC):
