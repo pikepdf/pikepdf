@@ -523,6 +523,10 @@ class ObjectHelper:
     def obj(self) -> Dictionary:
         """Get the underlying PDF object (typically a Dictionary)."""
 
+class DocumentHelper:
+    """Base class for wrapper/helper around a Document.
+    """
+
 class _ObjectList:
     """A list whose elements are always pikepdf.Object.
 
@@ -684,7 +688,7 @@ class AttachedFile:
     def size(self) -> int:
         """Get length of the attached file in bytes according to the PDF creator."""
 
-class AcroFormDocument(ObjectHelper):
+class AcroFormDocument(DocumentHelper):
     def __init__(
         self
     ) -> None:

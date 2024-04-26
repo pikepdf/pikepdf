@@ -14,6 +14,7 @@
 #include <qpdf/QPDFObjectHandle.hh>
 #include <qpdf/QPDF.hh>
 #include <qpdf/QPDFWriter.hh>
+#include <qpdf/QPDFDocumentHelper.hh>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -895,6 +896,18 @@ void init_object(py::module_ &m)
         .def_property_readonly("obj", [](QPDFObjectHelper &poh) -> QPDFObjectHandle {
             return poh.getObjectHandle();
         });
+    py::class_<QPDFDocumentHelper, std::shared_ptr<QPDFDocumentHelper>>(m, "DocumentHelper");
+//        .def(
+//            "__eq__",
+//            [](QPDFObjectHelper &self, QPDFObjectHelper &other) {
+//                // Object helpers are equal if their object handles are equal
+//                return objecthandle_equal(
+//                    self.getObjectHandle(), other.getObjectHandle());
+//            },
+//            py::is_operator())
+//        .def_property_readonly("obj", [](QPDFObjectHelper &poh) -> QPDFObjectHandle {
+//            return poh.getObjectHandle();
+//        });
 
     m.def("_encode", [](py::handle handle) { return objecthandle_encode(handle); });
     m.def("unparse", [](py::object obj) -> py::bytes {

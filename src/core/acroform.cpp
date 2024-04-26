@@ -9,6 +9,7 @@
 
 #include <qpdf/QPDFObjectHandle.hh>
 #include <qpdf/QPDFAcroFormDocumentHelper.hh>
+#include <qpdf/QPDFDocumentHelper.hh>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
