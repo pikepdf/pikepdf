@@ -1,15 +1,7 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
-#include <qpdf/QPDF.hh>
-#include <qpdf/Constants.h>
-#include <qpdf/Types.h>
-#include <qpdf/DLL.h>
-#include <qpdf/QPDFExc.hh>
-
-#include <qpdf/QPDFObjectHandle.hh>
 #include <qpdf/QPDFAcroFormDocumentHelper.hh>
-#include <qpdf/QPDFDocumentHelper.hh>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
