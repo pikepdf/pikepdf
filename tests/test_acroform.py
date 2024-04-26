@@ -20,3 +20,7 @@ def test_set_form_field_name(form):
     assert field.T == 'Text1'
     afd.set_form_field_name(field, 'new_field_name')
     assert field.T == 'new_field_name'
+
+def test_get_form_fields(form):
+    afd = AcroFormDocument(form)
+    assert len(afd.get_form_fields()) == 4
