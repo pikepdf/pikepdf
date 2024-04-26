@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import pytest
 
-from pikepdf import AcroFormDocument, Array, Dictionary, Name, Pdf
+from pikepdf import AcroFormDocument, Annotation, Array, Dictionary, Name, Pdf
 
 
 @pytest.fixture
@@ -16,12 +16,7 @@ def form(resources):
 
 def test_set_form_field_name(form):
     afd = AcroFormDocument(form)
-    for page in form.pages:
-        if Name.Annots not in page:
-            continue
-        annotations = page[Name.Annots]
-        for index, annot in annotations:
-            if "/T" in annot:
-                newName = annot + 'test' + index
-                afd.set_form_field_name(annot, newName)
-                assert annot.T == newName
+    annot = Annotation(form.Root.AcroForm.Fields[0])
+    assert annot.T == 'Text1'
+    afd.set_form_field_name(annot, 'new_field_name')
+    assert annot.T == 'new_field_name'
