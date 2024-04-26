@@ -28,7 +28,6 @@ from warnings import warn
 from pikepdf._augments import augment_override_cpp, augments
 from pikepdf._core import (
     AccessMode,
-    AcroFormDocument,
     AttachedFile,
     AttachedFileSpec,
     Attachments,
@@ -689,6 +688,7 @@ class Extend_Rectangle:
 
     def __hash__(self):
         return hash((self.llx, self.lly, self.urx, self.ury))
+
 
 @augments(Attachments)
 class Extend_Attachments(MutableMapping):
