@@ -351,7 +351,6 @@ class Extend_Pdf:
         access_mode: AccessMode = AccessMode.default,
         allow_overwriting_input: bool = False,
     ) -> Pdf:
-        print('open')
         if isinstance(filename_or_stream, bytes) and filename_or_stream.startswith(
             b'%PDF-'
         ):
@@ -690,12 +689,6 @@ class Extend_Rectangle:
 
     def __hash__(self):
         return hash((self.llx, self.lly, self.urx, self.ury))
-
-
-@augments(AcroFormDocument)
-class Extend_AcroFormDocument:
-    def __repr__(self):
-        return f"<pikepdf._core.AcroFormDocument>"
 
 @augments(Attachments)
 class Extend_Attachments(MutableMapping):
