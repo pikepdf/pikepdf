@@ -695,7 +695,7 @@ class Extend_Rectangle:
 @augments(AcroFormDocument)
 class Extend_AcroFormDocument:
     def __repr__(self):
-        return f"<pikepdf._core.AcroFormDocument description>"
+        return f"<pikepdf._core.AcroFormDocument>"
 
 @augments(Attachments)
 class Extend_Attachments(MutableMapping):
