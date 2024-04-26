@@ -35,5 +35,16 @@ void init_acroform(py::module_ &m)
                     afdh.setFormFieldName(ffh, name);
                 }
             }
+        )
+        .def(
+            "get_form_fields",
+            [](QPDFAcroFormDocumentHelper &afdh) {
+                return afdh.getFormFields();
+            },
+            py::return_value_policy::reference_internal
         );
+
+    py::class_<QPDFFormFieldObjectHelper,
+        std::shared_ptr<QPDFFormFieldObjectHelper>,
+        QPDFObjectHelper>(m, "FormField");
 }
