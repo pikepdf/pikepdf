@@ -19,7 +19,7 @@ void init_acroform(py::module_ &m)
 {
     py::class_<QPDFAcroFormDocumentHelper,
         std::shared_ptr<QPDFAcroFormDocumentHelper>,
-        QPDFObjectHelper>(m, "AcroFormDocument")
+        QPDFDocumentHelper>(m, "AcroFormDocument")
         .def(
             py::init([](QPDF &q) {
                 QPDFAcroFormDocumentHelper afdh(q);
