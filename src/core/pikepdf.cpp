@@ -126,6 +126,7 @@ PYBIND11_MODULE(_core, m)
     init_job(m);
 
     // -- Support objects (alphabetize order) --
+    init_acroform(m);
     init_annotation(m);
     init_embeddedfiles(m);
     init_matrix(m);

@@ -28,6 +28,7 @@ from warnings import warn
 from pikepdf._augments import augment_override_cpp, augments
 from pikepdf._core import (
     AccessMode,
+    AcroFormDocument,
     AttachedFile,
     AttachedFileSpec,
     Attachments,
@@ -350,6 +351,7 @@ class Extend_Pdf:
         access_mode: AccessMode = AccessMode.default,
         allow_overwriting_input: bool = False,
     ) -> Pdf:
+        print('open')
         if isinstance(filename_or_stream, bytes) and filename_or_stream.startswith(
             b'%PDF-'
         ):
@@ -689,6 +691,11 @@ class Extend_Rectangle:
     def __hash__(self):
         return hash((self.llx, self.lly, self.urx, self.ury))
 
+
+@augments(AcroFormDocument)
+class Extend_AcroFormDocument:
+    def __repr__(self):
+        return f"<pikepdf._core.AcroFormDocument description>"
 
 @augments(Attachments)
 class Extend_Attachments(MutableMapping):

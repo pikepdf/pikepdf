@@ -12,6 +12,7 @@ from warnings import warn as _warn
 
 from pikepdf._core import (
     AccessMode,
+    AcroFormDocument,
     Annotation,
     AttachedFile,
     AttachedFileSpec,
@@ -53,6 +54,7 @@ from pikepdf._core import (
 
 __all__ = [
     'AccessMode',
+    'AcroFormDocument',
     'Annotation',
     'AttachedFile',
     'AttachedFileSpec',

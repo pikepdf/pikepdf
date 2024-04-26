@@ -684,6 +684,16 @@ class AttachedFile:
     def size(self) -> int:
         """Get length of the attached file in bytes according to the PDF creator."""
 
+class AcroFormDocument(ObjectHelper):
+    def __init__(
+            self
+    ) -> None:
+        """Construct an AcroFormDocumentHelper.
+        """
+    def set_form_field_name(self, annot: Object, name: str) -> None:
+        """Set form field name
+        """
+
 class AttachedFileSpec(ObjectHelper):
     r"""In a PDF, a file specification provides name and metadata for a target file.
 
