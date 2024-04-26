@@ -17,6 +17,7 @@ except ImportError as _e:  # pragma: no cover
 
 from pikepdf._core import (
     AccessMode,
+    AcroFormDocument,
     Annotation,
     AttachedFileSpec,
     ContentStreamInlineImage,
@@ -90,6 +91,7 @@ _exclude_from__all__ = {'open', 'new', 'codec', 'objects', 'jbig2'}
 
 __all__ = [
     'AccessMode',
+    'AcroFormDocument',
     'Annotation',
     'AttachedFileSpec',
     'ContentStreamInlineImage',
