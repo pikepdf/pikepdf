@@ -686,7 +686,7 @@ class AttachedFile:
 
 class AcroFormDocument(ObjectHelper):
     def __init__(
-            self
+        self
     ) -> None:
         """Construct an AcroFormDocumentHelper.
         """
