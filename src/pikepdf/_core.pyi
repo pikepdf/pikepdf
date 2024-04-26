@@ -697,6 +697,9 @@ class AcroFormDocument(DocumentHelper):
     def set_form_field_name(self, annot: Object, name: str) -> None:
         """Set form field name
         """
+    def get_form_fields(self) -> list[ObjectHelper]:
+        """Get form fields
+        """
 
 class AttachedFileSpec(ObjectHelper):
     r"""In a PDF, a file specification provides name and metadata for a target file.
