@@ -101,9 +101,20 @@ jobs:
     env:
       CIBW_BUILD: "*"
       CIBW_TEST_SKIP: "cp38-macosx_*:arm64"  # cibuildwheel cannot test Python 3.8 on ARM64
+
     strategy:
       matrix:
-        os: [macos-13, macos-14]  # macos-13 is an intel runner, macos-14 is apple silicon
+        # macos-14 is Apple silicon and we configure it to build only arm64 wheels.
+        # macos-13 and lower are an Intel runners and we configure them to build
+        # only x86_64 wheels.
+        # The macos-13 intel runner builds wheels that cause segfaults when executed on
+        # macos-11, so we build on macos-12. When we drop macos-11 support, we can
+        # drop macos-12 from the matrix and use macos-13 instead, assuming it works.
+        include:
+          - os: macos-12
+            os_arch: macos-x86_64
+          - os: macos-14
+            os_arch: macos-arm64
 
     steps:
       - uses: actions/checkout@v4
@@ -113,8 +124,40 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.os }}-${{ strategy.job-index }}
+          name: wheels-${{ matrix.os_arch }}
           path: ./wheelhouse/*.whl
+
+  cross_check_macos:
+    needs: [wheels_macos]
+    name: Test Python x86_64 wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-11, macos-12, macos-13]
+        python: ["3.8"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        name: Install Python
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Download x86_64 wheels
+        uses: actions/download-artifact@v4
+        with:
+          name: wheels-macos-x86_64  # download wheels for x86_64
+          path: wheelhouse
+
+      - name: Output downloads
+        run: |
+          ls -l wheelhouse
+
+      - name: Install wheels
+        run: |
+          WHEEL=wheelhouse/pikepdf*cp38*macos*x86_64.whl
+          python -m pip install $WHEEL
+          python -c "import pikepdf; print(pikepdf.__version__)"
 
   wheels_windows:
     name: ${{ matrix.platform }}

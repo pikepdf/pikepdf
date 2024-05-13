@@ -42,16 +42,12 @@ but installing on a macos-12-x86_64 runner gives this error:
 
 (Same for MACOSX_DEPLOYMENT_TARGET="12.0").
 
-Thus, we have to pick a different value for this environment variable
-for the pikepdf. Clearly something is wrong here, but this unintuitive
-configuration is what works. When MACOSX_DEPLOYMENT_TARGET is not set
-pybind11's Pybind11Extension class examines other settings and should
-set -mmacosx-version-min=10.14 for when cxx_std=17.
+Setting SYSTEM_VERSION_COMPAT=0 will generate wheels with the correct
+target.
 
-Adding to confusion, the build logs from setuptools show that are
-targeting 10.9, and the wheels are generated for 10.9.
-
-There may be dragons here, still.
+macos-13 GitHub runners appear to be incapable of generating wheels that
+run on macos-11. macos-11 is past of end of life anyway, but this is
+an irritating complication.
 
 3. arm64. MACOSX_DEPLOYMENT_TARGET="11.0" is the minimum version for arm64.
 We set this to ensure that pikepdf builds for this target, and then

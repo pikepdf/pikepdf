@@ -12,14 +12,6 @@ if [ "$arch" == "aarch64" -o "$arch" == "arm64" ]; then
     max_jobs=3
 fi
 
-if [ "$os" == "Darwin" ]; then
-    # Setting MACOSX_DEPLOYMENT_TARGET here affects the QPDF build,
-    # not the pikepdf, since this script runs in different process
-    # from that build.
-    # See docs/references/build.rst for why we do this.
-    export MACOSX_DEPLOYMENT_TARGET="11.0"
-fi
-
 maybe_sudo () {
     if [ "$os" == "Darwin" ]; then
         sudo -E "$@"
@@ -27,6 +19,8 @@ maybe_sudo () {
         "$@"
     fi
 }
+
+echo "Building dependencies for $os $arch MACOSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET:-}"
 
 if [ ! -f /usr/local/lib/libqpdf.so -a ! -f /usr/local/lib/libqpdf.dylib ]; then
     pushd qpdf

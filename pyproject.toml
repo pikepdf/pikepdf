@@ -164,9 +164,20 @@ before-all = [
   "bash build-scripts/posix-download-qpdf.bash $QPDF_VERSION",
   "bash build-scripts/posix-build-wheel-deps.bash",
 ] # Use 'brew whatever || true' workaround until https://github.com/actions/setup-python/issues/577 is fixed
-before-build = [
-  'if [ "$(uname -m)" == "arm64" ]; then export MACOSX_DEPLOYMENT_TARGET="11.0"; fi',
-] # Ensure each build is targeting 11.0 when we are on arm64. See docs/references/build.rst
+
+[[tool.cibuildwheel.overrides]]
+select = "*-macosx*x86_64"
+inherit.environment = "append"
+# QPDF requires C++17 which is not fully supported on macOS < 11.0.
+environment.MACOSX_DEPLOYMENT_TARGET = "11.0"
+# When MACOSX_DEPLOYMENT_TARGET is >= 11.0, set this to 0
+# to ensure that pip/auditwheel generate the correct version stamp.
+environment.SYSTEM_VERSION_COMPAT = 0
+
+[[tool.cibuildwheel.overrides]]
+select = "*-macosx*arm64"
+inherit.environment = "append"
+environment.MACOSX_DEPLOYMENT_TARGET = "11.0"
 
 [tool.cibuildwheel.windows]
 
