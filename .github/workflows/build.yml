@@ -111,7 +111,7 @@ jobs:
         # macos-11, so we build on macos-12. When we drop macos-11 support, we can
         # drop macos-12 from the matrix and use macos-13 instead, assuming it works.
         include:
-          - os: macos-12
+          - os: macos-11
             os_arch: macos-x86_64
           - os: macos-14
             os_arch: macos-arm64

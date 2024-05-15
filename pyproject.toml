@@ -169,7 +169,7 @@ before-all = [
 select = "*-macosx*x86_64"
 inherit.environment = "append"
 # QPDF requires C++17 which is not fully supported on macOS < 11.0.
-environment.MACOSX_DEPLOYMENT_TARGET = "12.0"
+environment.MACOSX_DEPLOYMENT_TARGET = "11.0"
 # When MACOSX_DEPLOYMENT_TARGET is >= 11.0, set this to 0
 # to ensure that pip/auditwheel generate the correct version stamp.
 environment.SYSTEM_VERSION_COMPAT = 0
