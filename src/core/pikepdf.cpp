@@ -204,9 +204,9 @@ PYBIND11_MODULE(_core, m)
                 std::rethrow_exception(p);
         } catch (const QPDFExc &e) {
             if (e.getErrorCode() == qpdf_e_password) {
-                exc_password(e.what());
+                py::set_error(exc_password, e.what());
             } else {
-                exc_main(e.what());
+                py::set_error(exc_main, e.what());
             }
         } catch (const QPDFSystemError &e) {
             if (e.getErrno() != 0) {
@@ -214,23 +214,23 @@ PYBIND11_MODULE(_core, m)
                 PyErr_SetFromErrnoWithFilename(
                     PyExc_OSError, e.getDescription().c_str());
             } else {
-                exc_main(e.what());
+                py::set_error(exc_main, e.what());
             }
         } catch (const QPDFUsage &e) {
-            exc_usage(e.what());
+            py::set_error(exc_usage, e.what());
         } catch (const std::logic_error &e) {
             auto trans = translate_qpdf_logic_error(e);
             if (trans.second == error_type_foreign)
-                exc_foreign(trans.first.c_str());
+                py::set_error(exc_foreign, trans.first.c_str());
             else if (trans.second == error_type_pdferror)
-                exc_main(trans.first.c_str());
+                py::set_error(exc_main, trans.first.c_str());
             else
                 std::rethrow_exception(p);
         } catch (const std::runtime_error &e) {
             if (is_data_decoding_error(e))
-                exc_datadecoding(e.what());
+                py::set_error(exc_datadecoding, e.what());
             else if (is_destroyed_object_error(e))
-                exc_destroyedobject(e.what());
+                py::set_error(exc_destroyedobject, e.what());
             else
                 std::rethrow_exception(p);
         }
