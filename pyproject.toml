@@ -177,7 +177,7 @@ environment.SYSTEM_VERSION_COMPAT = 0
 [[tool.cibuildwheel.overrides]]
 select = "*-macosx*arm64"
 inherit.environment = "append"
-environment.MACOSX_DEPLOYMENT_TARGET = "11.0"
+environment.MACOSX_DEPLOYMENT_TARGET = "14.0"
 
 [tool.cibuildwheel.windows]
 
