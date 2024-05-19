@@ -8,10 +8,10 @@
 #include <qpdf/QPDFPageDocumentHelper.hh>
 #include <qpdf/QPDFPageLabelDocumentHelper.hh>
 
-static void assert_pyobject_is_page_helper(py::handle obj)
+static QPDFPageObjectHelper as_page_helper(py::handle obj)
 {
     try {
-        auto poh = obj.cast<QPDFPageObjectHelper>();
+        return obj.cast<QPDFPageObjectHelper>();
     } catch (const py::cast_error &) {
         throw py::type_error(
             std::string(
@@ -63,7 +63,12 @@ py::list PageList::get_pages(py::slice slice)
     return result;
 }
 
-void PageList::set_page(py::size_t index, py::object page)
+void PageList::set_page(py::size_t index, py::object obj)
+{
+    set_page(index, as_page_helper(obj));
+}
+
+void PageList::set_page(py::size_t index, QPDFPageObjectHelper page)
 {
     this->insert_page(index, page);
     if (index != this->count()) {
@@ -76,15 +81,13 @@ void PageList::set_pages_from_iterable(py::slice slice, py::iterable other)
     py::size_t start, stop, step, slicelength;
     if (!slice.compute(this->count(), &start, &stop, &step, &slicelength))
         throw py::error_already_set(); // LCOV_EXCL_LINE
-    py::list results;
+    std::vector<QPDFPageObjectHelper> results;
     py::iterator it = other.attr("__iter__")();
 
     // Unpack list into iterable, check that each object is a page but
     // don't save the handles yet
     for (; it != py::iterator::sentinel(); ++it) {
-        // assert_pyobject_is_page_obj(*it);
-        assert_pyobject_is_page_helper(*it);
-        results.append(*it);
+        results.push_back(as_page_helper(*it));
     }
 
     if (step != 1) {
@@ -96,7 +99,7 @@ void PageList::set_pages_from_iterable(py::slice slice, py::iterable other)
                                   std::to_string(slicelength));
         }
         for (py::size_t i = 0; i < slicelength; ++i) {
-            this->set_page(start + (i * step), results[i]);
+            this->set_page(start + (i * step), results.at(i));
         }
     } else {
         // For simple slices, we can replace differing sizes
@@ -106,7 +109,7 @@ void PageList::set_pages_from_iterable(py::slice slice, py::iterable other)
 
         // Insert first to ensure we don't delete any pages we will need
         for (py::size_t i = 0; i < results.size(); ++i) {
-            this->insert_page(start + i, results[i]);
+            this->insert_page(start + i, results.at(i));
         }
 
         py::size_t del_start = start + results.size();
@@ -185,19 +188,6 @@ QPDFPageObjectHelper PageList::page_from_object(py::handle obj)
     }
 }
 
-void PageList::insert_page(py::size_t index, py::handle obj)
-{
-    try {
-        auto poh = obj.cast<QPDFPageObjectHelper>();
-        this->insert_page(index, poh);
-        return;
-    } catch (py::cast_error &) {
-        auto page = this->page_from_object(obj);
-        this->insert_page(index, page);
-        return;
-    }
-}
-
 void PageList::insert_page(py::size_t index, QPDFPageObjectHelper page)
 {
     if (index != this->count()) {
@@ -206,12 +196,6 @@ void PageList::insert_page(py::size_t index, QPDFPageObjectHelper page)
     } else {
         this->doc.addPage(page, false);
     }
-}
-
-void PageList::append_page(py::handle obj)
-{
-    auto page = this->page_from_object(obj);
-    this->doc.addPage(page, false);
 }
 
 void PageList::append_page(QPDFPageObjectHelper page)
@@ -280,9 +264,16 @@ void init_pagelist(py::module_ &m)
             py::keep_alive<0, 1>())
         .def(
             "insert",
-            [](PageList &pl, py::ssize_t index, py::object obj) {
+            [](PageList &pl, py::ssize_t index, QPDFPageObjectHelper &page) {
                 auto uindex = uindex_from_index(pl, index);
-                pl.insert_page(uindex, obj);
+                pl.insert_page(uindex, page);
+            },
+            py::arg("index"), // LCOV_EXCL_LINE
+            py::arg("obj"))
+        .def(
+            "insert",
+            [](PageList &pl, py::ssize_t index, py::object obj) {
+                throw py::type_error("only pikepdf.Page can be inserted to PageList");
             },
             py::arg("index"), // LCOV_EXCL_LINE
             py::arg("obj"))
@@ -299,7 +290,9 @@ void init_pagelist(py::module_ &m)
             py::arg("page"))
         .def(
             "append",
-            [](PageList &pl, py::handle page) { pl.append_page(page); },
+            [](PageList &pl, py::handle h) {
+                throw py::type_error("only pikepdf.Page can be appended to PageList");
+            },
             py::arg("page"))
         .def(
             "extend",
@@ -315,8 +308,7 @@ void init_pagelist(py::module_ &m)
             [](PageList &pl, py::iterable iterable) {
                 py::iterator it = iterable.attr("__iter__")();
                 while (it != py::iterator::sentinel()) {
-                    assert_pyobject_is_page_helper(*it);
-                    pl.append_page(*it);
+                    pl.append_page(as_page_helper(*it));
                     ++it;
                 }
             },
@@ -326,7 +318,7 @@ void init_pagelist(py::module_ &m)
                 try {
                     pl.doc.removePage(page);
                 } catch (const QPDFExc &e) {
-                    throw py::value_error("Page is not referenced in the PDF");
+                    throw py::value_error("pikepdf.Page is not referenced in the PDF");
                 }
             })
         .def(

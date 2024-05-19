@@ -230,9 +230,9 @@ def test_bad_access(fourpages):
 
 def test_bad_insert(fourpages):
     pdf = fourpages
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="only pikepdf.Page"):
         pdf.pages.insert(0, 'this is a string not a page')
-    with pytest.raises(TypeError), pytest.deprecated_call():
+    with pytest.raises(TypeError, match="only pikepdf.Page"):
         pdf.pages.insert(0, Dictionary(Type=Name.NotAPage, Value="Not a page"))
 
 
@@ -371,9 +371,9 @@ def test_remove_by_ref(fourpages):
 
 
 def test_pages_wrong_type(fourpages):
-    with pytest.raises(TypeError), pytest.deprecated_call():
+    with pytest.raises(TypeError):
         fourpages.pages.insert(3, Dictionary())
-    with pytest.raises(TypeError), pytest.deprecated_call():
+    with pytest.raises(TypeError):
         fourpages.pages.insert(3, Array([42]))
 
 

@@ -9,7 +9,9 @@ pikepdf is not an ideal tool for producing new PDFs from scratch -- and there ar
 many good tools for that, as mentioned elsewhere. pikepdf is better at inspecting,
 editing and transforming existing PDFs.
 
-Pages in PDFs are wrappers around dictionary objects.
+``pikepdf.Page`` objects can be thought of a subclass of ``pikepdf.Dictionary``. Since
+pages are important, they are special objects, and the ``Pdf.pages`` API will only
+accept or return pikepdf.Page.
 
 .. doctest::
 
@@ -60,12 +62,23 @@ complicated. There are a number of rules, optional values and implied values.
 To do so, you would access the ``page1.obj`` property, which returns the
 underlying dictionary object that holds the page data.
 
-.. note::
+.. versionchanged:: 9.0
+
+    The ``Pdf.pages`` API was made strict, and now accepts only pikepdf.Page
+    for its various functions. In most cases, if you intend to create a
+    Dictionary and use it as a page, all you need to do is be explicit:
+    ```pikepdf.Page(pikepdf.Dictionary(Type=Name.Page))``
+
+.. versionchanged:: 8.x
+
+    The use of Python dictionary or pikepdf.Dictionary to represent pages
+    was deprecated.
+
+.. versionchanged:: 2.x
 
     In pikepdf 2.x, the raw dictionary object was returned, and it was
     necessary to manually wrap it with the support model:
-    ``page = Page(pdf.pages[0])``. This is no longer necessary, but also
-    harmless.
+    ``page = Page(pdf.pages[0])``. This is no longer necessary.
 
 Page boxes
 ----------
