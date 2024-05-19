@@ -31,7 +31,6 @@ from pikepdf import (
     Object,
     Operator,
     Pdf,
-    PdfError,
     Stream,
     String,
 )
