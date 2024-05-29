@@ -141,22 +141,17 @@ def test_failed_add_page_cleanup():
     pdf = Pdf.new()
     d = Dictionary(Type=Name.NotAPage)
     num_objects = len(pdf.objects)
-    with pytest.raises(
-        TypeError, match="only pages can be inserted"
-    ), pytest.deprecated_call():
+    with pytest.raises(TypeError, match="pikepdf.Page"):
         pdf.pages.append(d)
     assert len(pdf.pages) == 0
 
-    # If we fail to add a new page, we expect one new null object handle to be
-    # be added (since QPDF does not remove the object outright)
-    assert len(pdf.objects) == num_objects + 1, "QPDF semantics changed"
-    assert pdf.objects[-1] is None, "Left a stale object behind without deleting"
+    # If we fail to add a new page, confirm we did not create a new object
+    assert len(pdf.objects) == num_objects, "A dangling page object was created"
+    assert pdf.objects[-1] is not None, "Left a stale object behind without deleting"
 
     # But we'd better not delete an existing object...
     d2 = pdf.make_indirect(Dictionary(Type=Name.StillNotAPage))
-    with pytest.raises(
-        TypeError, match="only pages can be inserted"
-    ), pytest.deprecated_call():
+    with pytest.raises(TypeError, match="pikepdf.Page"):
         pdf.pages.append(d2)
     assert len(pdf.pages) == 0
 

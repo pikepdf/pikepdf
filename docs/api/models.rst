@@ -17,10 +17,6 @@ Version 3.x automatically applies support models to ``/Page`` objects.
     :members:
     :inherited-members:
 
-.. autoapiclass:: pikepdf.PdfMatrix
-    :members:
-    :special-members: __init__, __matmul__, __array__
-
 .. autoapiclass:: pikepdf.PdfImage
     :inherited-members:
 

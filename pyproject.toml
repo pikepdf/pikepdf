@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pikepdf"
-version = "8.15.1"
+version = "9.0.0rc1"
 description = "Read and write PDFs with Python, powered by qpdf"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -103,7 +103,6 @@ skip = [
   "pp37-*",                 # too old
   "pp38-*",                 # too old (no Pillow support)
   "*-win32",                # no 32-bit builds/not supported by Pillow anymore
-  "*musllinux*_aarch64",    # haven't tried yet/needs Cirrus tweaks
   "cp38-musllinux*",        # too old - some dependendies don't have wheels
   "pp*-manylinux*_aarch64", # not supported by Pillow yet
 ]

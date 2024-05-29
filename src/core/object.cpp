@@ -778,15 +778,6 @@ void init_object(py::module_ &m)
             },
             py::arg("stream"),
             py::arg("description") = "")
-        .def_static(
-            "parse",
-            [](py::str stream, std::string const &description) {
-                python_warning("pikepdf.Object.parse(str) is deprecated; use bytes.",
-                    PyExc_DeprecationWarning);
-                return QPDFObjectHandle::parse(stream, description);
-            },
-            py::arg("stream"),
-            py::arg("description") = "")
         .def("_parse_page_contents",
             &QPDFObjectHandle::parsePageContents,
             "Helper for parsing page contents; use ``pikepdf.parse_content_stream``.")

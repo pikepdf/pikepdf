@@ -56,6 +56,7 @@ auto rewrite_qpdf_logic_error_msg(std::string msg)
     const static std::vector<match_replace> replacements = {
         match_replace{"QPDF::copyForeign(?:Object)?", "pikepdf.copy_foreign"},
         match_replace{"QPDFObjectHandle", "pikepdf.Object"},
+        match_replace{"QPDFPageObjectHelper", "pikepdf.Page"},
         match_replace{"QPDF", "pikepdf.Pdf"},
     };
 

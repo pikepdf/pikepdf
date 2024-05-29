@@ -12,7 +12,7 @@ import pytest
 
 import pikepdf
 from pikepdf import Name, Pdf
-from pikepdf._core import AttachedFile, AttachedFileSpec, Attachments
+from pikepdf._core import AttachedFileSpec
 
 
 @pytest.fixture

@@ -18,14 +18,13 @@ public:
 
     QPDFPageObjectHelper get_page(py::size_t index);
     py::list get_pages(py::slice slice);
-    void set_page(py::size_t index, py::object page);
+    void set_page(py::size_t index, QPDFPageObjectHelper page);
+    void set_page(py::size_t index, py::object obj);
     void set_pages_from_iterable(py::slice slice, py::iterable other);
     void delete_page(py::size_t index);
     void delete_pages_from_iterable(py::slice slice);
     py::size_t count();
-    void insert_page(py::size_t index, py::handle obj);
     void insert_page(py::size_t index, QPDFPageObjectHelper page);
-    void append_page(py::handle obj);
     void append_page(QPDFPageObjectHelper page);
 
 public:

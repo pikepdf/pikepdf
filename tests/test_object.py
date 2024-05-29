@@ -31,7 +31,6 @@ from pikepdf import (
     Object,
     Operator,
     Pdf,
-    PdfError,
     Stream,
     String,
 )
@@ -119,7 +118,7 @@ def test_decimal_from_float(f):
 
         assert isclose(py_d, d, abs_tol=1e-5), (d, f.hex())
     else:
-        with pytest.raises(PdfError), pytest.deprecated_call():
+        with pytest.raises(TypeError):
             Object.parse(str(d))
 
 
