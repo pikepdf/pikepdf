@@ -274,7 +274,7 @@ static std::string objecthandle_repr_inner(QPDFObjectHandle h,
         break;
     // LCOV_EXCL_START
     default:
-        ss << "Unexpected QPDF object type value: " << h.getTypeCode();
+        ss << "Unexpected qpdf object type value: " << h.getTypeCode();
         break;
         // LCOV_EXCL_STOP
     }

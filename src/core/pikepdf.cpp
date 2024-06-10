@@ -115,7 +115,7 @@ PYBIND11_MODULE(_core, m)
     // py::options options;
     // options.disable_function_signatures();
 
-    m.doc()            = "pikepdf provides a Pythonic interface for QPDF";
+    m.doc()            = "pikepdf provides a Pythonic interface for qpdf";
     m.attr("__name__") = "pikepdf._core";
     m.def("qpdf_version", &QPDF::QPDFVersion, "Get libqpdf version");
 
@@ -146,7 +146,7 @@ PYBIND11_MODULE(_core, m)
         .def(
             "log_info",
             [](std::string s) { return get_pikepdf_logger()->info(s); },
-            "Used to test routing of QPDF's logger to Python logging.");
+            "Used to test routing of qpdf's logger to Python logging.");
 
     // -- Module level functions --
     m.def("utf8_to_pdf_doc",
@@ -162,7 +162,7 @@ PYBIND11_MODULE(_core, m)
         .def(
             "_translate_qpdf_logic_error",
             [](std::string s) { return translate_qpdf_logic_error(s).first; },
-            "Used to test interpretation of QPDF errors.")
+            "Used to test interpretation of qpdf errors.")
         .def("set_decimal_precision",
             [](uint prec) {
                 DECIMAL_PRECISION = prec;

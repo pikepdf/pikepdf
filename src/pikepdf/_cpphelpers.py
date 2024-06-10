@@ -78,7 +78,7 @@ LABEL_STYLE_MAP: dict[Name, Callable[[int], str]] = {
 
 
 def label_from_label_dict(label_dict: int | Dictionary) -> str:
-    """Convert a label dictionary returned by QPDF into a text string."""
+    """Convert a label dictionary returned by qpdf into a text string."""
     if isinstance(label_dict, int):
         return str(label_dict)
 

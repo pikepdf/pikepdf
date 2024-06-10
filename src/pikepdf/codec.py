@@ -16,7 +16,7 @@ from pikepdf._core import pdf_doc_to_utf8, utf8_to_pdf_doc
 # The following generates set of all Unicode code points that can be encoded in
 # pdfdoc. Since pdfdoc is 8-bit, the vast majority of code points cannot be.
 
-# Due to a bug, QPDF <= 10.5 and pikepdf < 5 had some inconsistencies around
+# Due to a bug, qpdf <= 10.5 and pikepdf < 5 had some inconsistencies around
 # PdfDocEncoding.
 PDFDOC_ENCODABLE = frozenset(
     list(range(0x00, 0x17 + 1))

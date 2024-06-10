@@ -43,7 +43,7 @@ public:
         try {
             extracted = extract_jbig2(pydata, this->jbig2globals);
         } catch (py::error_already_set &e) {
-            // In QPDF over here...
+            // In qpdf over here...
             // https://github.com/qpdf/qpdf/blob/dd3b2cedd3164692925df1ef7414eb452343372f/libqpdf/QPDF.cc#L2955-2984
             // all exceptions that happen during Pipeline::finish() will be trapped
             // and converted into a generic error about the object being not decodable.

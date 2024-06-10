@@ -20,13 +20,13 @@ void init_annotation(py::module_ &m)
         .def(py::init<QPDFObjectHandle &>(), py::keep_alive<0, 1>())
         .def_property_readonly("subtype",
             [](QPDFAnnotationObjectHelper &anno) {
-                // Don't use QPDF because the method returns std::string
+                // Don't use qpdf because the method returns std::string
                 return anno.getObjectHandle().getKey("/Subtype");
             })
         .def_property_readonly("flags", &QPDFAnnotationObjectHelper::getFlags)
         .def_property_readonly("appearance_state",
             [](QPDFAnnotationObjectHelper &anno) {
-                // Don't use QPDF because the method returns std::string
+                // Don't use qpdf because the method returns std::string
                 auto key = anno.getObjectHandle().getKey("/AS");
                 if (key.isName())
                     return key;
