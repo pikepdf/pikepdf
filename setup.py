@@ -47,7 +47,7 @@ if qpdf_source_tree:
 cflags_defined = bool(environ.get('CFLAGS', ''))
 shims_enabled = not cflags_defined
 
-# If shims are enabled, we add some known locations where QPDF and other third party
+# If shims are enabled, we add some known locations where qpdf and other third party
 # libraries might be installed, in hopes the build will succeed if we suggest the
 # obvious.
 if shims_enabled and not qpdf_source_tree:

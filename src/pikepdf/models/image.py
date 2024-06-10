@@ -1043,10 +1043,10 @@ class PdfInlineImage(PdfImageBase):
 
     def read_bytes(self):
         """Return decompressed image bytes."""
-        # QPDF does not have an API to return this directly, so convert it.
+        # qpdf does not have an API to return this directly, so convert it.
         return self._convert_to_pdfimage().read_bytes()
 
     def get_stream_buffer(self):
         """Return decompressed stream buffer."""
-        # QPDF does not have an API to return this directly, so convert it.
+        # qpdf does not have an API to return this directly, so convert it.
         return self._convert_to_pdfimage().get_stream_buffer()

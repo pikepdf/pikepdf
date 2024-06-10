@@ -54,7 +54,7 @@ void init_matrix(py::module_ &m)
                 throw py::value_error(
                     "pikepdf.Object could not be converted to Matrix");
             }
-            // QPDF defines an older class, QPDFObjectHandle::Matrix,
+            // qpdf defines an older class, QPDFObjectHandle::Matrix,
             // for interop with QPDFObjectHandle. We want to ignore it as
             // much as possible, but here, only the older class has the
             // right function.
