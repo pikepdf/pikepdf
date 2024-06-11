@@ -28,9 +28,9 @@ Type table
 
 See objects.rst. In short and with technical details:
 
-These QPDF types are directly mapped to a native Python equivalent. The C++
+These qpdf types are directly mapped to a native Python equivalent. The C++
 object is never returned to Python; a Python object is returned instead.
-Adding one of these to a QPDF container type causes the appropriate conversion.
+Adding one of these to a qpdf container type causes the appropriate conversion.
     Boolean <-> bool
     Integer <-> int
     Real <-> Decimal
@@ -161,7 +161,7 @@ bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
         auto self_buffer  = self.getRawStreamData();
         auto other_buffer = other.getRawStreamData();
 
-        // Early out: if underlying QPDF Buffers happen to be the same, the data is
+        // Early out: if underlying qpdf Buffers happen to be the same, the data is
         // the same
         if (self_buffer == other_buffer)
             return true;
@@ -273,7 +273,7 @@ std::shared_ptr<Buffer> get_stream_data(
     try {
         return h.getStreamData(decode_level);
     } catch (const QPDFExc &e) {
-        // Make a new exception that has the objgen info, since QPDF's
+        // Make a new exception that has the objgen info, since qpdf's
         // will not
         std::string msg = e.getMessageDetail();
         str_replace(msg, "getStreamData", "read_bytes");
