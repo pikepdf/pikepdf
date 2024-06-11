@@ -351,9 +351,9 @@ class Object:
     def same_owner_as(self, other: Object) -> bool:
         """Test if two objects are owned by the same :class:`pikepdf.Pdf`."""
     def to_json(self, dereference: bool = ..., schema_version: int = ...) -> bytes:
-        r"""Convert to a QPDF JSON representation of the object.
+        r"""Convert to a qpdf JSON representation of the object.
 
-        See the QPDF manual for a description of its JSON representation.
+        See the qpdf manual for a description of its JSON representation.
         https://qpdf.readthedocs.io/en/stable/json.html#qpdf-json-format
 
         Not necessarily compatible with other PDF-JSON representations that
@@ -637,8 +637,8 @@ class Annotation:
             forbidden_flags: The forbidden appearance flags. See PDF reference manual.
 
         Note:
-            This method is done mainly with QPDF. Its behavior may change when
-            different QPDF versions are used.
+            This method is done mainly with qpdf. Its behavior may change when
+            different qpdf versions are used.
         """
     @property
     def appearance_dict(self) -> Object:
@@ -1900,13 +1900,13 @@ class Pdf:
                 This should be True, the default, in most cases.
 
             min_version: Sets the minimum version of PDF
-                specification that should be required. If left alone QPDF
+                specification that should be required. If left alone qpdf
                 will decide. If a tuple, the second element is an integer, the
                 extension level. If the version number is not a valid format,
-                QPDF will decide what to do.
-            force_version: Override the version recommend by QPDF,
+                qpdf will decide what to do.
+            force_version: Override the version recommend by qpdf,
                 potentially creating an invalid file that does not display
-                in old versions. See QPDF manual for details. If a tuple, the
+                in old versions. See qpdf manual for details. If a tuple, the
                 second element is an integer, the extension level.
             fix_metadata_version: If ``True`` (default) and the XMP metadata
                 contains the optional PDF version field, ensure the version in
@@ -1970,7 +1970,7 @@ class Pdf:
                 As a drawback, it tends to make files larger.
 
             qdf: Save output QDF mode.  QDF mode is a special output
-                mode in QPDF to allow editing of PDFs in a text editor. Use
+                mode in qpdf to allow editing of PDFs in a text editor. Use
                 the program ``fix-qdf`` to fix convert back to a standard
                 PDF.
 
@@ -2200,7 +2200,7 @@ class Pdf:
         as needed.
 
         For every form field in the document, this generates appearance
-        streams, subject to the limitations of QPDF's ability to create
+        streams, subject to the limitations of qpdf's ability to create
         appearance streams.
 
         When invoked, this method will modify the ``Pdf`` in memory. It may be
@@ -2477,7 +2477,7 @@ class ContentStreamInlineImage:
     def iimage(self) -> PdfInlineImage: ...
 
 class Job:
-    """Provides access to the QPDF job interface.
+    """Provides access to the qpdf job interface.
 
     All of the functionality of the ``qpdf`` command line program
     is now available to pikepdf through jobs.
@@ -2496,14 +2496,14 @@ class Job:
     LATEST_JOB_JSON: ClassVar[int]
     """Version number of the most recent job-JSON schema."""
     LATEST_JSON: ClassVar[int]
-    """Version number of the most recent QPDF-JSON schema."""
+    """Version number of the most recent qpdf-JSON schema."""
 
     @staticmethod
     def json_out_schema(*, schema: int) -> str:
-        """For reference, the QPDF JSON output schema is built-in."""
+        """For reference, the qpdf JSON output schema is built-in."""
     @staticmethod
     def job_json_schema(*, schema: int) -> str:
-        """For reference, the QPDF job command line schema is built-in."""
+        """For reference, the qpdf job command line schema is built-in."""
     @overload
     def __init__(self, json: str) -> None: ...
     @overload

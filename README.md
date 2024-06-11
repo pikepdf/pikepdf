@@ -8,9 +8,9 @@ pikepdf
 
 [![Build Status](https://github.com/pikepdf/pikepdf/actions/workflows/build.yml/badge.svg)](https://github.com/pikepdf/pikepdf/actions/workflows/build.yml) [![PyPI](https://img.shields.io/pypi/v/pikepdf.svg)](https://pypi.org/project/pikepdf/) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pikepdf) ![PyPy](https://img.shields.io/badge/3.9-blue) ![PyPI - License](https://img.shields.io/pypi/l/pikepdf) ![PyPI - Downloads](https://img.shields.io/pypi/dm/pikepdf)  [![codecov](https://codecov.io/gh/pikepdf/pikepdf/branch/main/graph/badge.svg?token=8FJ755317J)](https://codecov.io/gh/pikepdf/pikepdf)
 
-pikepdf is based on [QPDF](https://github.com/qpdf/qpdf), a powerful PDF manipulation and repair library.
+pikepdf is based on [qpdf](https://github.com/qpdf/qpdf), a powerful PDF manipulation and repair library.
 
-Python + QPDF = "py" + "qpdf" = "pyqpdf", which looks like a dyslexia test. Say it out loud, and it sounds like "pikepdf".
+Python + qpdf = "py" + "qpdf" = "pyqpdf", which looks like a dyslexia test. Say it out loud, and it sounds like "pikepdf".
 
 ```python
 # Elegant, Pythonic API
@@ -37,19 +37,19 @@ Features
 
 This library is similar to pypdf (formerly PyPDF2) - it provides low level access to PDF features and allows editing and content transformation of existing PDFs. Some knowledge of the PDF specification may be helpful. It does not have the capability to render a PDF to image.
 
-| **Feature**                                                         | **pikepdf**                                 | **pypdf** (PyPDF2)                        |
-| ------------------------------------------------------------------- | ------------------------------------------- | ----------------------------------------- |
-| Editing, manipulation and transformation of existing PDFs           | ✔                                           | ✔                                         |
-| Based on an existing, mature PDF library                            | QPDF                                        | ✘                                         |
-| Implementation                                                      | C++ and Python                              | Python                                    |
-| PDF versions supported                                              | 1.1 to 1.7                                  | 1.1 to 1.7                                |
-| Save and load password protected (encrypted) PDFs                   | ✔ (except public key)                       | ✔ (except public key)                     |
-| Creates linearized ("fast web view") PDFs                           | ✔                                           | ✘                                         |
-| Test suite coverage                                                 | ![codecov][codecov]                         | ![codecovpypdf2][codecovpypdf]            |
-| Creates PDFs that pass PDF validation tests                         | ✔                                           | ✘                                         |
-| Modifies PDF/A without breaking PDF/A compliance                    | ✔                                           | ✘                                         |
-| PDF XMP metadata editing                                            | ✔                                           | read-only                                 |
-| Integrates with Jupyter and IPython notebooks for rapid development | ✔                                           | ✘                                         |
+| **Feature**                                                         | **pikepdf**           | **pypdf** (PyPDF2)                        |
+| ------------------------------------------------------------------- |-----------------------| ----------------------------------------- |
+| Editing, manipulation and transformation of existing PDFs           | ✔                     | ✔                                         |
+| Based on an existing, mature PDF library                            | qpdf                  | ✘                                         |
+| Implementation                                                      | C++ and Python        | Python                                    |
+| PDF versions supported                                              | 1.1 to 1.7            | 1.1 to 1.7                                |
+| Save and load password protected (encrypted) PDFs                   | ✔ (except public key) | ✔ (except public key)                     |
+| Creates linearized ("fast web view") PDFs                           | ✔                     | ✘                                         |
+| Test suite coverage                                                 | ![codecov][codecov]   | ![codecovpypdf2][codecovpypdf]            |
+| Creates PDFs that pass PDF validation tests                         | ✔                     | ✘                                         |
+| Modifies PDF/A without breaking PDF/A compliance                    | ✔                     | ✘                                         |
+| PDF XMP metadata editing                                            | ✔                     | read-only                                 |
+| Integrates with Jupyter and IPython notebooks for rapid development | ✔                     | ✘                                         |
 
 [codecov]: https://codecov.io/gh/pikepdf/pikepdf/branch/main/graph/badge.svg?token=8FJ755317J
 
@@ -58,7 +58,7 @@ This library is similar to pypdf (formerly PyPDF2) - it provides low level acces
 Testimonials
 ------------
 
-> I decided to try writing a quick Python program with pikepdf to automate [something] and it "just worked". –Jay Berkenbilt, creator of QPDF
+> I decided to try writing a quick Python program with pikepdf to automate [something] and it "just worked". –Jay Berkenbilt, creator of qpdf
 
 > "Thanks for creating a great pdf library, I tested out several and this is the one that was best able to work with whatever I threw at it." –@cfcurtis
 
