@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.19.0
+        uses: pypa/cibuildwheel@v2.19.1
 
       - name: Upload built wheels
         uses: actions/upload-artifact@v4
@@ -47,7 +47,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build and test wheels (without upload)
-        uses: pypa/cibuildwheel@v2.19.0
+        uses: pypa/cibuildwheel@v2.19.1
 
   wheels_linux_arm:
     runs-on: ubuntu-22.04
@@ -120,7 +120,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.19.0
+        uses: pypa/cibuildwheel@v2.19.1
 
       - uses: actions/upload-artifact@v4
         with:
@@ -192,7 +192,7 @@ jobs:
           build-scripts/win-download-qpdf.ps1 $env:QPDF_VERSION ${{ matrix.platform }}
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.19.0
+        uses: pypa/cibuildwheel@v2.19.1
 
       - uses: actions/upload-artifact@v4
         with:
