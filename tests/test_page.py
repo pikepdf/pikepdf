@@ -293,7 +293,7 @@ def test_page_attrs(graph):
 
     del graph.pages[0].Resources
     with pytest.raises(
-        AttributeError, match=r"can't delete|property of 'Page' object has no deleter"
+        AttributeError, match=r"can't delete|property( '')? of 'Page' object has no deleter"
     ):
         del graph.pages[0].obj
     del graph.pages[0]['/Contents']
