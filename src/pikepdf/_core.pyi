@@ -1374,7 +1374,7 @@ class PageList:
         structural tree elements. Copying these is a more complex, application
         specific operation.
         """
-    def extend(self, other: PageList | Iterable[Page]):
+    def extend(self, other: PageList | Iterable[Page]) -> None:
         """Extend the ``Pdf`` by adding pages from an iterable of pages.
 
         While this method copies pages from one document to another, it does not
