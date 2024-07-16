@@ -242,7 +242,9 @@ def test_atomic_ovewrite_stat_preservation(tmp_path):
     stat = existing_file.stat()
     assert stat.st_ctime >= ctime
     assert stat.st_mtime > 0
-    assert stat.st_mode & 0o777 == 0o755
+    if os.name != 'nt':
+        # st_mode is not preserved on Windows
+        assert stat.st_mode & 0o777 == 0o755
 
 
 def test_memory_to_path(resources, tmp_path):
