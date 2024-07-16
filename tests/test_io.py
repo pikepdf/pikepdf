@@ -231,6 +231,20 @@ def test_atomic_overwrite_existing(tmp_path):
     assert list(tmp_path.glob('*.pikepdf')) == [], "Temporary files were not cleaned up"
 
 
+def test_atomic_ovewrite_stat_preservation(tmp_path):
+    existing_file = tmp_path / 'existing.pdf'
+    existing_file.touch(0o755)
+    os.utime(existing_file, ns=(0, 0))
+
+    ctime = existing_file.stat().st_ctime
+    with atomic_overwrite(existing_file) as f:
+        f.write(b'new')
+    stat = existing_file.stat()
+    assert stat.st_ctime >= ctime
+    assert stat.st_mtime > 0
+    assert stat.st_mode & 0o777 == 0o755
+
+
 def test_memory_to_path(resources, tmp_path):
     bio = BytesIO((resources / 'sandwich.pdf').read_bytes())
     with Pdf.open(bio) as pdf:
