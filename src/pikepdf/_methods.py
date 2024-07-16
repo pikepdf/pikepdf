@@ -394,19 +394,24 @@ class Extend_Pdf:
             description = str(filename_or_stream)
             closing_stream = True
 
-        check_stream_is_usable(stream)
-        pdf = Pdf._open(
-            stream,
-            password=password,
-            hex_password=hex_password,
-            ignore_xref_streams=ignore_xref_streams,
-            suppress_warnings=suppress_warnings,
-            attempt_recovery=attempt_recovery,
-            inherit_page_attributes=inherit_page_attributes,
-            access_mode=access_mode,
-            description=description,
-            closing_stream=closing_stream,
-        )
+        try:
+            check_stream_is_usable(stream)
+            pdf = Pdf._open(
+                stream,
+                password=password,
+                hex_password=hex_password,
+                ignore_xref_streams=ignore_xref_streams,
+                suppress_warnings=suppress_warnings,
+                attempt_recovery=attempt_recovery,
+                inherit_page_attributes=inherit_page_attributes,
+                access_mode=access_mode,
+                description=description,
+                closing_stream=closing_stream,
+            )
+        except Exception:
+            if stream is not None and closing_stream:
+                stream.close()
+            raise
         pdf._tmp_stream = stream if allow_overwriting_input else None
         pdf._original_filename = original_filename
         return pdf
