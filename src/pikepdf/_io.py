@@ -7,6 +7,7 @@ from contextlib import contextmanager, suppress
 from io import TextIOBase
 from os import PathLike
 from pathlib import Path
+from shutil import copystat
 from tempfile import NamedTemporaryFile
 from typing import IO, Generator
 
@@ -76,4 +77,10 @@ def atomic_overwrite(filename: Path) -> Generator[IO[bytes], None, None]:
             raise
         tf.flush()
         tf.close()
+        with suppress(OSError):
+            # Copy permissions, create time, etc. from the original
+            copystat(filename, Path(tf.name))
         Path(tf.name).replace(filename)
+        with suppress(OSError):
+            # Update modified time of the destination file
+            filename.touch()
