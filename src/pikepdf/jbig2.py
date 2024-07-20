@@ -16,7 +16,7 @@ from pathlib import Path
 from subprocess import DEVNULL, PIPE, CalledProcessError, run
 from tempfile import TemporaryDirectory
 
-from packaging.version import Version
+from packaging.version import InvalidVersion, Version
 from PIL import Image
 
 from pikepdf._exceptions import DependencyError
@@ -61,7 +61,7 @@ class JBIG2Decoder(JBIG2DecoderInterface):
     def check_available(self) -> None:
         """Check if jbig2dec is installed and usable."""
         version = self._version()
-        if version < Version('0.15'):
+        if version is not None and version < Version('0.15'):
             raise DependencyError("jbig2dec is too old (older than version 0.15)")
 
     def decode_jbig2(self, jbig2: bytes, jbig2_globals: bytes) -> bytes:
@@ -98,7 +98,7 @@ class JBIG2Decoder(JBIG2DecoderInterface):
             with Image.open(output_path) as im:
                 return im.tobytes()
 
-    def _version(self) -> Version:
+    def _version(self) -> Version | None:
         try:
             proc = self._run(
                 ['jbig2dec', '--version'],
@@ -114,7 +114,10 @@ class JBIG2Decoder(JBIG2DecoderInterface):
             version_str = result.replace(
                 'jbig2dec', ''
             ).strip()  # returns "jbig2dec 0.xx"
-            return Version(version_str)
+            try:
+                return Version(version_str)
+            except InvalidVersion:
+                return None
 
 
 _jbig2_decoder: JBIG2DecoderInterface = JBIG2Decoder()
