@@ -185,3 +185,25 @@ def test_jbig2_too_old(first_image_in, patch_jbig2dec: Callable[..., None]):
     pim = PdfImage(xobj)
     with pytest.raises(DependencyError, match='too old'):
         pim.as_pil_image()
+
+
+@suppress_unraisable_jbigdec_error_warning
+def test_jbig2_reports_no_version(first_image_in, patch_jbig2dec: Callable[..., None]):
+    xobj, _pdf = first_image_in('jbig2global.pdf')
+    pim = PdfImage(xobj)
+
+    # We patch jbig2dec to return a blank version string, or raise an error.
+    # Some compiled versions of jbig2dec in the wild such as DietPi OS don't
+    # return a version string.
+    def run_claim_no_version(args, *pargs, **kwargs):
+        if args[1] == '--version':
+            return subprocess.CompletedProcess(args, 0, stdout='', stderr='')
+        raise subprocess.CalledProcessError(1, 'jbig2dec')
+
+    patch_jbig2dec(run_claim_no_version)
+
+    # Our patch to jbig2dec only provides a blank version string, or returns an error.
+    # So we expect a PdfError here (and not an InvalidVersion or DependencyError).
+    pim = PdfImage(xobj)
+    with pytest.raises(PdfError, match='read_bytes called on unfilterable stream'):
+        pim.as_pil_image()
