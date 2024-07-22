@@ -1673,32 +1673,28 @@ class Pdf:
     ) -> Pdf:
         """Open an existing file at *filename_or_stream*.
 
-        If *filename_or_stream* is path-like, the file will be opened for reading.
-        The file should not be modified by another process while it is open in
-        pikepdf, or undefined behavior may occur. This is because the file may be
-        lazily loaded. Despite this restriction, pikepdf does not try to use any OS
-        services to obtain an exclusive lock on the file. Some applications may
-        want to attempt this or copy the file to a temporary location before
-        editing. This behaviour changes if *allow_overwriting_input* is set: the whole
-        file is then read and copied to memory, so that pikepdf can overwrite it
-        when calling ``.save()``.
+        If *filename_or_stream* is path-like, the file will be opened for reading. The
+        file should not be modified by another process while it is open in pikepdf, or
+        undefined behavior may occur. This is because the file may be lazily loaded.
+        When ``.close()`` is called, the file handle that pikepdf opened will be closed.
 
-        When this function is called with a stream-like object, you must ensure
-        that the data it returns cannot be modified, or undefined behavior will
-        occur.
+        If *filename_or_stream* is stream, the data will be accessed as a readable
+        binary stream, from the current position in that stream.  When ``pdf =
+        Pdf.open(stream)`` is called on a stream, pikepdf will not call
+        ``stream.close()``; the caller must call both ``pdf.close()`` and
+        ``stream.close()``, in that order, when the Pdf and stream are no longer needed.
+        Use with-blocks will call ``.close()`` automatically.
+
+        Whether a file or stream is opened, you must ensure that the data is not
+        modified by another thread or process, or undefined behavior will occur. You
+        also may not overwrite the input file using ``.save()``, unless
+        ``allow_overwriting_input=True``. This is because data may be lazily loaded.
+
+        If you intend to edit the file in place, or want to protect the file against
+        modification by another process, use ``allow_overwriting_input=True``. This
+        tells pikepdf to make a private copy of the file.
 
         Any changes to the file must be persisted by using ``.save()``.
-
-        If *filename_or_stream* has ``.read()`` and ``.seek()`` methods, the file
-        will be accessed as a readable binary stream. pikepdf will read the
-        entire stream into a private buffer.
-
-        ``.open()`` may be used in a ``with``-block; ``.close()`` will be called when
-        the block exits, if applicable.
-
-        Whenever pikepdf opens a file, it will close it. If you open the file
-        for pikepdf or give it a stream-like object to read from, you must
-        release that object when appropriate.
 
         Examples:
             >>> with Pdf.open("test.pdf") as pdf:  # doctest: +SKIP
@@ -1710,37 +1706,33 @@ class Pdf:
             filename_or_stream: Filename or Python readable and seekable file
                 stream of PDF to open.
             password: User or owner password to open an
-                encrypted PDF. If the type of this parameter is ``str``
-                it will be encoded as UTF-8. If the type is ``bytes`` it will
-                be saved verbatim. Passwords are always padded or
-                truncated to 32 bytes internally. Use ASCII passwords for
-                maximum compatibility.
+                encrypted PDF. If the type of this parameter is ``str`` it will be
+                encoded as UTF-8. If the type is ``bytes`` it will be saved verbatim.
+                Passwords are always padded or truncated to 32 bytes internally. Use
+                ASCII passwords for maximum compatibility.
             hex_password: If True, interpret the password as a
                 hex-encoded version of the exact encryption key to use, without
                 performing the normal key computation. Useful in forensics.
             ignore_xref_streams: If True, ignore cross-reference
                 streams. See qpdf documentation.
             suppress_warnings: If True (default), warnings are not
-                printed to stderr. Use :meth:`pikepdf.Pdf.get_warnings()` to
-                retrieve warnings.
+                printed to stderr. Use :meth:`pikepdf.Pdf.get_warnings()` to retrieve
+                warnings.
             attempt_recovery: If True (default), attempt to recover
                 from PDF parsing errors.
             inherit_page_attributes: If True (default), push attributes
                 set on a group of pages to individual pages
             access_mode: If ``.default``, pikepdf will
-                decide how to access the file. Currently, it will always
-                selected stream access. To attempt memory mapping and fallback
-                to stream if memory mapping failed, use ``.mmap``.  Use
-                ``.mmap_only`` to require memory mapping or fail
-                (this is expected to only be useful for testing). Applications
-                should be prepared to handle the SIGBUS signal on POSIX in
-                the event that the file is successfully mapped but later goes
-                away.
+                decide how to access the file. Currently, it will always selected stream
+                access. To attempt memory mapping and fallback to stream if memory
+                mapping failed, use ``.mmap``.  Use ``.mmap_only`` to require memory
+                mapping or fail (this is expected to only be useful for testing).
+                Applications should be prepared to handle the SIGBUS signal on POSIX in
+                the event that the file is successfully mapped but later goes away.
             allow_overwriting_input: If True, allows calling ``.save()``
-                to overwrite the input file. This is performed by loading the
-                entire input file into memory at open time; this will use more
-                memory and may recent performance especially when the opened
-                file will not be modified.
+                to overwrite the input file. This is performed by loading the entire
+                input file into memory at open time; this will use more memory and may
+                recent performance especially when the opened file will not be modified.
 
         Raises:
             pikepdf.PasswordError: If the password failed to open the
@@ -1753,12 +1745,11 @@ class Pdf:
 
         Note:
             When *filename_or_stream* is a stream and the stream is located on a
-            network, pikepdf assumes that the stream using buffering and read caches
-            to achieve reasonable performance. Streams that fetch data over a network
-            in response to every read or seek request, no matter how small, will
-            perform poorly. It may be easier to download a PDF from network to
-            temporary local storage (such as ``io.BytesIO``), manipulate it, and
-            then re-upload it.
+            network, pikepdf assumes that the stream using buffering and read caches to
+            achieve reasonable performance. Streams that fetch data over a network in
+            response to every read or seek request, no matter how small, will perform
+            poorly. It may be easier to download a PDF from network to temporary local
+            storage (such as ``io.BytesIO``), manipulate it, and then re-upload it.
 
         .. versionchanged:: 3.0
             Keyword arguments now mandatory for everything except the first
@@ -2041,6 +2032,13 @@ class Pdf:
             if errors occur during writing. Prior to 8.1, the file was always written
             directly to the destination, which could result in a corrupt destination
             file if the process was interrupted during writing.
+
+        .. versionchanged:: 9.1
+            When opened with ``allow_overwriting_input=True``, we now attempt to
+            restore the original file permissions, ownership and creation time.
+            The modified time is always set to the time of saving. An unusual
+            umask or other settings changes still cause a failure to restore
+            permissions.
         """
     def show_xref_table(self) -> None:
         """Pretty-print the Pdf's xref (cross-reference table)."""
