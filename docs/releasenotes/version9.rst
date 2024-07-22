@@ -1,3 +1,14 @@
+v9.1.0
+======
+
+- Fixed a potential resource leak if we opened a file to read it as a PDF but
+  it was not a valid PDF.
+- When overwriting an existing PDF with ``Pdf.save()``, pikepdf now attempts to
+  retain the original file permissions and ownership.
+- Fixed missing return type for PageList.Extend. :issue:`592`
+- Fixed tests on Python 3.13 pre-release. Thanks @QuLogic.
+- Changed all references of "QPDF" to "qpdf", its new spelling. Thanks @m-holger.
+
 v9.0.0
 ======
 
