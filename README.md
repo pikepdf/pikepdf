@@ -65,7 +65,7 @@ Testimonials
 In Production
 -------------
 
-* [OCRmyPDF](https://github.com/ocrmypdf/OCRmyPDF) uses pikepdf to graft OCR text layers onto existing PDFs, to examine the contents of input PDFs, and to optimize PDFs.
+* [OCRmyPDF](https://github.com/ocrmypdf/OCRmyPDF) uses pikepdf to draft OCR text layers onto existing PDFs, to examine the contents of input PDFs, and to optimize PDFs.
 
 * [PDF Arranger](https://github.com/jeromerobert/pdfarranger) is a small Python application that provides a graphical user interface to rotate, crop and rearrange PDFs.
 
