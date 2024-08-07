@@ -332,6 +332,10 @@ void init_object(py::module_ &m)
 
     py::bind_map<ObjectMap>(m, "_ObjectMapping");
 
+// MSVC raises a false positive warning here
+#if _MSC_VER
+#    pragma warning(suppress : 4267)
+#endif
     py::class_<QPDFObjectHandle>(m, "Object")
         .def_property_readonly("_type_code", &QPDFObjectHandle::getTypeCode)
         .def_property_readonly("_type_name", &QPDFObjectHandle::getTypeName)
