@@ -105,6 +105,8 @@ skip = [
   "*-win32",                # no 32-bit builds/not supported by Pillow anymore
   "cp38-musllinux*",        # too old - some dependendies don't have wheels
   "pp*-manylinux*_aarch64", # not supported by Pillow yet
+  "cp313-musllinux*",       # too new - some dependendies don't have wheels
+  "cp313-win_amd64",        # too new - some dependendies don't have wheels
 ]
 test-skip = "*_universal2:arm64"
 build-frontend = "build"
