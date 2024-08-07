@@ -75,7 +75,7 @@ std::shared_ptr<QPDF> open_pdf(py::object stream,
             py::gil_scoped_release release;
             q->processInputSource(input_source, password.c_str());
             success = true;
-        } catch (const py::error_already_set &e) {
+        } catch (const py::error_already_set &) {
             if (access_mode == access_mmap) {
                 // Prepare to fallback to stream access
                 stream.attr("seek")(0);

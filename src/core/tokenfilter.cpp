@@ -32,7 +32,7 @@ public:
                 const auto returned_token = result.cast<Token>();
                 this->writeToken(returned_token);
             }
-        } catch (const py::cast_error &e) {
+        } catch (const py::cast_error &) {
             throw py::type_error("returned object that is not a token");
         }
     }
