@@ -534,7 +534,7 @@ void init_object(py::module_ &m)
                         throw py::attribute_error(e.what());
                     else
                         throw py::attribute_error(name);
-                } catch (const py::value_error &e) {
+                } catch (const py::value_error &) {
                     if (name == std::string("__name__"))
                         throw py::attribute_error(name);
                     throw;

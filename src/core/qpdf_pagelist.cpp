@@ -317,7 +317,7 @@ void init_pagelist(py::module_ &m)
             [](PageList &pl, QPDFPageObjectHelper &page) {
                 try {
                     pl.doc.removePage(page);
-                } catch (const QPDFExc &e) {
+                } catch (const QPDFExc &) {
                     throw py::value_error("pikepdf.Page is not referenced in the PDF");
                 }
             })

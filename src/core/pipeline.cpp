@@ -25,7 +25,7 @@ void Pl_PythonOutput::write(const unsigned char *buf, size_t len)
         py::object result = this->stream.attr("write")(view_buffer);
         try {
             so_far = result.cast<py::ssize_t>();
-        } catch (const py::cast_error &e) {
+        } catch (const py::cast_error &) {
             throw py::type_error("Unexpected return type of write()");
         }
         if (so_far <= 0) {
