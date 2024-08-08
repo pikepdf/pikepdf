@@ -53,21 +53,20 @@ std::vector<QPDFObjectHandle> array_builder(const py::iterable iter)
 class DecimalPrecision {
 public:
     DecimalPrecision(uint calc_precision)
+        : decimal_context(py::module_::import("decimal").attr("getcontext")()),
+          saved_precision(decimal_context.attr("prec").cast<uint>())
     {
-        auto decimal           = py::module_::import("decimal");
-        this->local_context    = decimal.attr("localcontext")();
-        this->ctx              = local_context.attr("__enter__")();
-        this->ctx.attr("prec") = calc_precision;
+        decimal_context.attr("prec") = calc_precision;
     }
-    ~DecimalPrecision() { this->local_context.attr("__exit__")(); }
+    ~DecimalPrecision() { decimal_context.attr("prec") = saved_precision; }
     DecimalPrecision(const DecimalPrecision &other)            = delete;
     DecimalPrecision(DecimalPrecision &&other)                 = delete;
     DecimalPrecision &operator=(const DecimalPrecision &other) = delete;
     DecimalPrecision &operator=(DecimalPrecision &&other)      = delete;
 
 private:
-    py::object local_context;
-    py::object ctx;
+    py::object decimal_context;
+    uint saved_precision;
 };
 
 QPDFObjectHandle objecthandle_encode(const py::handle handle)
