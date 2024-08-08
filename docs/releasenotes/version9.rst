@@ -1,3 +1,11 @@
+v9.1.1
+======
+
+- Fixed an issue where small floating point values would be recorded in
+  scientific notation, contrary to the PDF specification. :issue:`598`
+- Fixed some false positive warnings on Windows C++ compilers.
+- Improved support for Python 3.13 pre-release.
+
 v9.1.0
 ======
 
