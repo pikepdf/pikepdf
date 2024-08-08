@@ -107,7 +107,15 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle)
             py::reinterpret_steal<py::object>(PyNumber_Positive(handle.ptr()));
         if (!rounded.attr("is_finite")().cast<bool>())
             throw py::value_error("Can't convert NaN or Infinity to PDF real number");
-        return QPDFObjectHandle::newReal(py::str(rounded));
+
+        // Use str(decimal) equivalent in Python to express the number as a string
+        auto as_decimal_string = std::string(py::str(rounded));
+        // Check for scientific notation
+        if (as_decimal_string.find_first_of("Ee") != std::string::npos) {
+            return QPDFObjectHandle::newReal(
+                rounded.attr("__float__")().cast<double>());
+        }
+        return QPDFObjectHandle::newReal(as_decimal_string);
     } else if (py::isinstance<py::int_>(handle)) {
         auto as_int = handle.cast<long long>();
         return QPDFObjectHandle::newInteger(as_int);
