@@ -69,3 +69,26 @@ def test_nonfinite(pal):
         pal.pages[0].MediaBox[2] = float('NaN')
     with pytest.raises(ValueError):
         pal.pages[0].MediaBox[2] = float('Infinity')
+
+
+def test_issue_598_scientific_notation():
+    doc = pikepdf.Pdf.new()
+    doc.add_blank_page()
+
+    # Define a ridiculous transformation matrix
+    cm = (
+        [
+            Decimal(1.0000008),
+            Decimal(-0.0000006),
+            Decimal(0.0000006),
+            Decimal(1.0000008),
+            Decimal(-0.0000015),
+            Decimal(-0.0000014),
+        ],
+        pikepdf.Operator("cm"),
+    )
+    # Express as bytes
+    contents = pikepdf.unparse_content_stream([cm])
+
+    # Ensure we did not output scientific notation
+    assert b'E-' not in contents and b'e-' not in contents
