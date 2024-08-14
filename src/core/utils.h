@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include <string>
+
 template <typename T, typename S>
 inline bool str_startswith(T haystack, S needle)
 {
