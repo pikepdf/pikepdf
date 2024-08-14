@@ -798,6 +798,8 @@ CMYK_PINK = b'\x04\xc0\x00\x15'
 
 CMYK_PALETTE = CMYK_RED + CMYK_GREEN + CMYK_BLUE + CMYK_PINK
 
+GRAY_RGB_PALETTE = b''.join(bytes([gray, gray, gray]) for gray in range(256))
+
 
 @pytest.mark.parametrize(
     'base, hival, bits, palette, expect_type, expect_mode',
@@ -805,6 +807,14 @@ CMYK_PALETTE = CMYK_RED + CMYK_GREEN + CMYK_BLUE + CMYK_PINK
         (Name.DeviceGray, 4, 8, b'\x00\x40\x80\xff', 'L', 'P'),
         (Name.DeviceCMYK, 4, 8, CMYK_PALETTE, 'CMYK', 'P'),
         (Name.DeviceGray, 4, 4, b'\x04\x08\x02\x0f', 'L', 'P'),
+        (
+            Array([Name.CalRGB, Dictionary(WhitePoint=Array([1.0, 1.0, 1.0]))]),
+            255,
+            8,
+            GRAY_RGB_PALETTE,
+            'RGB',
+            'P',
+        ),
     ],
 )
 def test_palette_nonrgb(base, hival, bits, palette, expect_type, expect_mode):
