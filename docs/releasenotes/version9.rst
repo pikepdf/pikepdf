@@ -1,3 +1,8 @@
+v9.1.2
+======
+
+- Fixed handling of CalRGB and CalGray images with palettes.
+
 v9.1.1
 ======
 

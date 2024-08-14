@@ -202,6 +202,8 @@ class PdfImageBase(ABC):
                 if isinstance(subspace, list) and subspace[0] in (
                     '/ICCBased',
                     '/DeviceN',
+                    '/CalGray',
+                    '/CalRGB',
                 ):
                     return subspace[0]
             if self._colorspaces[0] == '/DeviceN':
@@ -329,16 +331,16 @@ class PdfImageBase(ABC):
             _idx, base, _hival, lookup = self._colorspaces
         except ValueError as e:
             raise ValueError('Not sure how to interpret this palette') from e
-        if self.icc or self.is_device_n or self.is_separation:
+        if self.icc or self.is_device_n or self.is_separation or isinstance(base, list):
             base = str(base[0])
         else:
             base = str(base)
         lookup = bytes(lookup)
         if base not in self.MAIN_COLORSPACES and base not in self.PRINT_COLORSPACES:
             raise NotImplementedError(f"not sure how to interpret this palette: {base}")
-        if base == '/DeviceRGB':
+        if base in ('/DeviceRGB', '/CalRGB'):
             base = 'RGB'
-        elif base == '/DeviceGray':
+        elif base in ('/DeviceGray', '/CalGray'):
             base = 'L'
         elif base == '/DeviceCMYK':
             base = 'CMYK'
@@ -348,6 +350,8 @@ class PdfImageBase(ABC):
             base = 'Separation'
         elif base == '/ICCBased':
             base = self._approx_mode_from_icc()
+        else:
+            raise NotImplementedError(f"not sure how to interpret this palette: {base}")
         return PaletteData(base, lookup)
 
     @abstractmethod
