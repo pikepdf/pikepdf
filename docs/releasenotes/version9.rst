@@ -2,6 +2,9 @@ v9.1.2
 ======
 
 - Fixed handling of CalRGB and CalGray images with palettes.
+- Fixed a test suite failure when numpy 2.1 is installed. :issue:`603`
+- Prevented use of setuptools 72+ since it seems to introduce build errors.
+- Added a missing #include header. :issue:`600`
 
 v9.1.1
 ======
