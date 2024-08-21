@@ -2696,8 +2696,10 @@ class Matrix:
         In rare situations, the inverse may not exist. In that case, an
         exception is thrown. The PDF will likely have rendering problems.
         """
-    def __array__(self) -> np.ndarray:
-        """Convert this matrix to a NumPy array.
+    def __array__(self, dtype: Any = None, copy: bool | None = True) -> np.ndarray:
+        """Convert this matrix to a NumPy array of type dtype.
+
+        If copy is True, a copy is made. If copy is False, an exception is raised.
 
         If numpy is not installed, this will throw an exception.
         """
