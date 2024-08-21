@@ -142,9 +142,13 @@ void init_matrix(py::module_ &m)
                 adjugate.scale(1.0 / determinant, 1.0 / determinant);
                 return adjugate;
             })
-        .def("__array__",
-            [](QPDFMatrix const &self) {
+        .def(
+            "__array__",
+            [](QPDFMatrix const &self, py::object dtype, py::object copy) {
                 // Use numpy via Python to avoid a runtime dependency on numpy.
+                if (!copy.is_none() && !copy) {
+                    throw py::value_error("copy=False is not supported");
+                }
                 auto np  = py::module_::import("numpy");
                 auto arr = np.attr("array")(
                     // clang-format off
@@ -152,11 +156,13 @@ void init_matrix(py::module_ &m)
                         py::make_tuple(self.a, self.b, 0),
                         py::make_tuple(self.c, self.d, 0),
                         py::make_tuple(self.e, self.f, 1)
-                    )
+                    ),
                     // clang-format on
-                );
+                    dtype);
                 return arr;
-            })
+            },
+            py::arg("dtype") = py::none(),
+            py::arg("copy")  = py::none())
         .def("as_array",
             [](QPDFMatrix const &self) { return QPDFObjectHandle::newArray(self); })
         .def(
