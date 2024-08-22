@@ -13,11 +13,11 @@ source repository, some licenses included there do not apply to pikepdf
 wheels.
 
 pikepdf wheels include Object Forms of:
-- pikepdf (https://github.com/pikepdf/pikepdf), SPDX-License-Identifier: MPL-2.0
-- qpdf (https://github.com/qpdf/qpdf), SPDX-License-Identifier: Apache-2.0
+- pikepdf (https://github.com/pikepdf/pikepdf), MPL-2.0 license
+- qpdf (https://github.com/qpdf/qpdf), Apache-2.0 license
 
 On some platforms, pikepdf wheels may also include Object Forms of:
-- libjpeg, SPDX-License-Identifier: IJG
+- libjpeg, IJG license
 
 On Microsoft Windows, pikepdf wheels also include Object Forms of:
 - Microsoft Visual C++ Runtime Files, distributed under section "4. Distributable
