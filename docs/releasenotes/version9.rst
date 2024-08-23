@@ -1,3 +1,14 @@
+v9.2.0
+======
+
+- Updated C++/Python exception translation to new pybind11 2.12.0+ protocol,
+  fixing possible undefined behavior in multithreaded applications.
+- pybind11 2.12.0 is now required.
+- qpdf 11.9.1 is now used to build wheels.
+- Modernized copyright information to REUSE.toml specification.
+- Added a new test file for a rare case, CCITT with EndOfLine=True. Thanks
+  @ekordas. :issue:`602,601`
+
 v9.1.2
 ======
 
