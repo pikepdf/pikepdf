@@ -759,7 +759,6 @@ class PdfImage(PdfImageBase):
 
         expected_defaults = [
             ("/EncodedByteAlign", False),
-            ("/EndOfLine", False),
         ]
         for name, val in expected_defaults:
             if self.decode_parms[0].get(name, val) != val:
