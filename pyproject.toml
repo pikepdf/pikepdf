@@ -6,7 +6,7 @@ requires = [
   "setuptools >= 61",
   "setuptools < 72; python_implementation == 'PyPy'", # https://github.com/pypa/distutils/issues/283
   "wheel >= 0.37",
-  "pybind11 >= 2.10.1",
+  "pybind11 >= 2.12.0",
 ]
 build-backend = "setuptools.build_meta"
 

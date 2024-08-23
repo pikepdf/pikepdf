@@ -22,6 +22,7 @@
 #include <pybind11/stl.h>
 #include <pybind11/iostream.h>
 #include <pybind11/buffer_info.h>
+#include <pybind11/gil_safe_call_once.h>
 
 #include "qpdf_pagelist.h"
 #include "utils.h"
@@ -192,22 +193,35 @@ PYBIND11_MODULE(_core, m)
         .def("_unparse_content_stream", unparse_content_stream);
 
     // -- Exceptions --
-    static py::exception<QPDFExc> exc_main(m, "PdfError");
-    static py::exception<QPDFExc> exc_password(m, "PasswordError");
-    static py::exception<QPDFExc> exc_datadecoding(m, "DataDecodingError");
-    static py::exception<QPDFUsage> exc_usage(m, "JobUsageError");
-    static py::exception<std::logic_error> exc_foreign(m, "ForeignObjectError");
-    static py::exception<std::runtime_error> exc_destroyedobject(
-        m, "DeletedObjectError");
+    // clang-format off
+    PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object> exc_main;
+    exc_main.call_once_and_store_result(
+        [&]() { return py::exception<QPDFExc>(m, "PdfError"); });
+    PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object> exc_password;
+    exc_password.call_once_and_store_result(
+        [&]() { return py::exception<QPDFExc>(m, "PasswordError"); });
+    PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object> exc_datadecoding;
+    exc_datadecoding.call_once_and_store_result(
+        [&]() { return py::exception<QPDFExc>(m, "DataDecodingError"); });
+    PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object> exc_usage;
+    exc_usage.call_once_and_store_result(
+        [&]() { return py::exception<QPDFUsage>(m, "JobUsageError"); });
+    PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object> exc_foreign;
+    exc_foreign.call_once_and_store_result(
+        [&]() { return py::exception<std::logic_error>(m, "ForeignObjectError"); });
+    PYBIND11_CONSTINIT static py::gil_safe_call_once_and_store<py::object> exc_destroyedobject;
+    exc_destroyedobject.call_once_and_store_result(
+        [&]() { return py::exception<std::runtime_error>(m, "DeletedObjectError"); });
+    // clang-format on
     py::register_exception_translator([](std::exception_ptr p) {
         try {
             if (p)
                 std::rethrow_exception(p);
         } catch (const QPDFExc &e) {
             if (e.getErrorCode() == qpdf_e_password) {
-                py::set_error(exc_password, e.what());
+                py::set_error(exc_password.get_stored(), e.what());
             } else {
-                py::set_error(exc_main, e.what());
+                py::set_error(exc_main.get_stored(), e.what());
             }
         } catch (const QPDFSystemError &e) {
             if (e.getErrno() != 0) {
@@ -215,23 +229,23 @@ PYBIND11_MODULE(_core, m)
                 PyErr_SetFromErrnoWithFilename(
                     PyExc_OSError, e.getDescription().c_str());
             } else {
-                py::set_error(exc_main, e.what());
+                py::set_error(exc_main.get_stored(), e.what());
             }
         } catch (const QPDFUsage &e) {
-            py::set_error(exc_usage, e.what());
+            py::set_error(exc_usage.get_stored(), e.what());
         } catch (const std::logic_error &e) {
             auto trans = translate_qpdf_logic_error(e);
             if (trans.second == error_type_foreign)
-                py::set_error(exc_foreign, trans.first.c_str());
+                py::set_error(exc_foreign.get_stored(), trans.first.c_str());
             else if (trans.second == error_type_pdferror)
-                py::set_error(exc_main, trans.first.c_str());
+                py::set_error(exc_main.get_stored(), trans.first.c_str());
             else
                 std::rethrow_exception(p);
         } catch (const std::runtime_error &e) {
             if (is_data_decoding_error(e))
-                py::set_error(exc_datadecoding, e.what());
+                py::set_error(exc_datadecoding.get_stored(), e.what());
             else if (is_destroyed_object_error(e))
-                py::set_error(exc_destroyedobject, e.what());
+                py::set_error(exc_destroyedobject.get_stored(), e.what());
             else
                 std::rethrow_exception(p);
         }
