@@ -23,11 +23,22 @@ void init_rectangle(py::module_ &m)
                 throw py::type_error("Array does not have exactly 4 elements; cannot "
                                      "convert to Rectangle");
             }
-            Rect r = h.getArrayAsRectangle();
-            if (r.llx == 0.0 && r.lly == 0.0 && r.urx == 0.0 && r.ury == 0.0)
-                throw py::type_error("Failed to convert Array to a valid Rectangle");
-            return r;
+            // Do conversion manually instead of using
+            // QPDFObjectHandle::getArrayAsRectangle() since that function
+            // returns (0,0,0,0) on error, but that could be a valid rectangle.
+            double items[4];
+            for (int i = 0; i < 4; ++i) {
+                if (!h.getArrayItem(i).getValueAsNumber(items[i])) {
+                    throw py::type_error(
+                        "Failed to convert Array to a valid Rectangle");
+                }
+            }
+            return Rect(std::min(items[0], items[2]),
+                std::min(items[1], items[3]),
+                std::max(items[0], items[2]),
+                std::max(items[1], items[3]));
         }))
+        .def(py::init([](const Rect &r) { return Rect(r.llx, r.lly, r.urx, r.ury); }))
         .def(
             "__eq__",
             [](Rect &self, Rect &other) {
