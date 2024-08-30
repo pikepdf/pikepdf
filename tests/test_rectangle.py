@@ -36,6 +36,10 @@ def test_rect_properties():
 
 def test_rect_creation():
     assert Rectangle(Array([1, 2, 3, 4])).width == 2
+    assert Rectangle(1, 2, 3, 4).height == 2
+    r1 = Rectangle(1, 2, 3, 4)
+    assert Rectangle(r1) == r1 and r1 is not Rectangle(r1)
+    assert Rectangle(0, 0, 0, 0) == Rectangle(Array([0, 0, 0, 0]))
 
 
 def test_rect_from_invalid():
