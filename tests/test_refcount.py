@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import gc
+import sys
 
 import pytest
 
@@ -73,10 +74,13 @@ def test_transfer_page(resources):
     assert before == p2p2.Contents.read_bytes()
 
 
+@pytest.mark.skipif(
+    not hasattr(gc, 'get_count'), reason="implementation does not have gc.get_count()"
+)
+@pytest.mark.skipif(
+    'free-threading' in sys.version, reason="test not compatible with free-threading"
+)
 def test_new_pdf():
-    if not hasattr(gc, 'get_count'):
-        pytest.skip(reason="implementation does not have gc.get_count()")
-
     before = gc.get_count()
     for _ in range(10):
         with Pdf.new() as pdf:
