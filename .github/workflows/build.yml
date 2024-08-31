@@ -38,9 +38,11 @@ jobs:
     env:
       CIBW_BUILD: "cp313*-${{ matrix.platform }}"
       CIBW_PRERELEASE_PYTHONS: true
+      CIBW_FREE_THREADED_SUPPORT: ${{ matrix.freethreading }}
     strategy:
       matrix:
         platform: [manylinux_x86_64]
+        freethreading: [0, 1]
     steps:
       - uses: actions/checkout@v4
 
