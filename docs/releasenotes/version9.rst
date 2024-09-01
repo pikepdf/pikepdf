@@ -1,3 +1,11 @@
+v9.2.1
+======
+
+- Fixed some inconsistencies with the pikepdf.Rectangle class. :issue:`605`
+- Python 3.13 with free-threading added to test matrix.
+- Removed wheel package as build requirement since modern packing no longer
+  needs it.
+
 v9.2.0
 ======
 
