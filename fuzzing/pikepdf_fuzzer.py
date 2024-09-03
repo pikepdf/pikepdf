@@ -28,8 +28,8 @@ def TestOneInput(data):
             with pikepdf.Pdf.open(pdf_f) as my_pdf:
                 for page in my_pdf.pages:
                     page.rotate(180, relative=True)
-                #my_pdf.save(out_f)
-    except (PdfError, ValueError) as e:
+                my_pdf.save(out_f)
+    except PdfError as e:
         return -1
 
 
