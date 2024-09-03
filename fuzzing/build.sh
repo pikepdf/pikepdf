@@ -23,7 +23,6 @@ ldconfig
 
 # Build pikepdf
 cd "$SRC"/pikepdf
-pip3 install -r $SRC/pikepdf/fuzzing/requirements.txt
 env QPDF_SOURCE_TREE=$QPDF_SOURCE_TREE QPDF_BUILD_LIBDIR=$QPDF_BUILD_LIBDIR \
     CC="$CLANG_PATH" CFLAGS="-fsanitize=address,fuzzer-no-link" CXX="$CLANGXX_PATH" CXXFLAGS="-fsanitize=address,fuzzer-no-link" LDSHARED="$CLANGXX_PATH -shared" \
     pip3 install --verbose -e .
