@@ -8,9 +8,8 @@ from fuzz_helpers import EnhancedFuzzedDataProvider
 
 with atheris.instrument_imports():
     import pikepdf
+    from pikepdf import PdfError
 
-
-from pikepdf import PdfError
 
 @contextmanager
 def silence():
@@ -21,6 +20,8 @@ def silence():
     yield
     sys.stdout = so
     sys.stderr = se
+
+
 def TestOneInput(data):
     fdp = EnhancedFuzzedDataProvider(data)
     try:
