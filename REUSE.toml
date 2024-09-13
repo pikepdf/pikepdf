@@ -166,3 +166,9 @@ precedence = "aggregate"
 SPDX-FileCopyrightText = "(C) 2015 veraPDF Consortium"
 SPDX-License-Identifier = "CC-BY-4.0"
 SPDX-FileComment = "Obtained from: https://github.com/veraPDF/veraPDF-corpus"
+
+[[annotations]]
+path = "fuzzing/corpus/small.pdf"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "(C) 2024 ennamarie19"
+SPDX-License-Identifier = "CC-BY-SA-4.0"
