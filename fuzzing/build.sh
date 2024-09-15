@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2024 ennamarie19
+# SPDX-License-Identifier: MIT
+
 # Build qpdf dependency
 export QPDF_SOURCE_TREE="$SRC"/qpdf
 export QPDF_BUILD_LIBDIR=$QPDF_SOURCE_TREE/build/libqpdf

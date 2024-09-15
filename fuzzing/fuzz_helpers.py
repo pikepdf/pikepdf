@@ -1,8 +1,12 @@
+# SPDX-FileCopyrightText: 2024 ennamarie19
+# SPDX-License-Identifier: MIT
+from __future__ import annotations
+
 import contextlib
 import datetime
 import io
 import tempfile
-from typing import List, TypeVar, Generator, Union, Optional
+from typing import Generator, List, Optional, TypeVar, Union
 
 import atheris
 
@@ -25,9 +29,7 @@ class EnhancedFuzzedDataProvider(atheris.FuzzedDataProvider):
         return self.ConsumeBytes(self.remaining_bytes())
 
     def ConsumeSublist(self, source: List[T]) -> List[T]:
-        """
-        Returns a shuffled sub-list of the given list of len [1, len(source)]
-        """
+        """Returns a shuffled sub-list of the given list of len [1, len(source)]"""
         chosen = [elem for elem in source if self.ConsumeBool()]
 
         # Shuffle
@@ -48,9 +50,15 @@ class EnhancedFuzzedDataProvider(atheris.FuzzedDataProvider):
         self, all_data: bool = False, as_bytes: bool = True
     ) -> Generator[io.IOBase, None, None]:
         if all_data:
-            file_data = self.ConsumeRemainingBytes() if as_bytes else self.ConsumeRemainingString()
+            file_data = (
+                self.ConsumeRemainingBytes()
+                if as_bytes
+                else self.ConsumeRemainingString()
+            )
         else:
-            file_data = self.ConsumeRandomBytes() if as_bytes else self.ConsumeRandomString()
+            file_data = (
+                self.ConsumeRandomBytes() if as_bytes else self.ConsumeRandomString()
+            )
 
         file: Optional[Union[io.StringIO, io.BytesIO]] = None
 
@@ -69,9 +77,15 @@ class EnhancedFuzzedDataProvider(atheris.FuzzedDataProvider):
         self, suffix: str, all_data: bool = False, as_bytes: bool = True
     ) -> Generator[str, None, None]:
         if all_data:
-            file_data = self.ConsumeRemainingBytes() if as_bytes else self.ConsumeRemainingString()
+            file_data = (
+                self.ConsumeRemainingBytes()
+                if as_bytes
+                else self.ConsumeRemainingString()
+            )
         else:
-            file_data = self.ConsumeRandomBytes() if as_bytes else self.ConsumeRandomString()
+            file_data = (
+                self.ConsumeRandomBytes() if as_bytes else self.ConsumeRandomString()
+            )
 
         mode = "w+b" if as_bytes else "w+"
         tfile = tempfile.NamedTemporaryFile(mode=mode, suffix=suffix)
