@@ -118,7 +118,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       CIBW_BUILD: "*"
-      CIBW_TEST_SKIP: "cp38-macosx_*:arm64"  # cibuildwheel cannot test Python 3.8 on ARM64
 
     strategy:
       matrix:
@@ -153,7 +152,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-13]
-        python: ["3.8"]
+        python: ["3.9"]
     steps:
       - uses: actions/checkout@v4
 
@@ -174,7 +173,7 @@ jobs:
 
       - name: Install wheels
         run: |
-          WHEEL=wheelhouse/pikepdf*cp38*macos*x86_64.whl
+          WHEEL=wheelhouse/pikepdf*cp39*macos*x86_64.whl
           python -m pip install $WHEEL
           python -c "import pikepdf; print(pikepdf.__version__)"
 
@@ -198,7 +197,7 @@ jobs:
       - uses: actions/setup-python@v5
         name: Install Python
         with:
-          python-version: "3.8"
+          python-version: "3.9"
 
       - name: Install tomli and read environment from pyproject.toml
         run: |

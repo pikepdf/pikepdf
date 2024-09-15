@@ -14,7 +14,7 @@ name = "pikepdf"
 version = "9.2.1"
 description = "Read and write PDFs with Python, powered by qpdf"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 keywords = ["PDF"]
 authors = [{ name = "James R. Barlow", email = "james@purplerock.ca" }]
 license = { text = "MPL-2.0" }
@@ -104,10 +104,10 @@ test-extras = "test"
 skip = [
   "cp36-*",                 # too old
   "cp37-*",                 # too old
+  "cp38-*",                 # too old
   "pp37-*",                 # too old
   "pp38-*",                 # too old (no Pillow support)
   "*-win32",                # no 32-bit builds/not supported by Pillow anymore
-  "cp38-musllinux*",        # too old - some dependendies don't have wheels
   "pp*-manylinux*_aarch64", # not supported by Pillow yet
   "cp313-musllinux*",       # too new - some dependendies don't have wheels
   "cp313-win_amd64",        # too new - some dependendies don't have wheels
