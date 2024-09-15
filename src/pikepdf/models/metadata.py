@@ -7,8 +7,8 @@ from __future__ import annotations
 
 import logging
 import re
-import sys
 from abc import ABC, abstractmethod
+from collections.abc import Iterable, MutableMapping
 from datetime import datetime, timezone
 from functools import wraps
 from io import BytesIO
@@ -21,11 +21,6 @@ from lxml.etree import QName, XMLSyntaxError
 from pikepdf._version import __version__ as pikepdf_version
 from pikepdf._xml import _Element, parse_xml
 from pikepdf.objects import Name, Stream, String
-
-if sys.version_info < (3, 9):  # pragma: no cover
-    from typing import Iterable, MutableMapping
-else:
-    from collections.abc import Iterable, MutableMapping
 
 if TYPE_CHECKING:  # pragma: no cover
     from pikepdf import Pdf
