@@ -1,3 +1,11 @@
+v9.3.0
+======
+
+- Integrated OSS Fuzz.
+- Prevented generation of PDF date strings with invalid trailing apostrophes,
+  while still accepting them.
+- Improved error message on parsing invalid date strings.
+
 v9.2.1
 ======
 
