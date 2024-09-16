@@ -211,19 +211,19 @@ def decode_pdf_date(s: str) -> datetime:
     """
     if isinstance(s, String):
         s = str(s)
-    if s.startswith('D:'):
-        s = s[2:]
-
+    t = s
+    if t.startswith('D:'):
+        t = t[2:]
     utcs = [
         "Z00'00'",  # Literal Z00'00', is incorrect but found in the wild
         "Z00'00",  # Correctly formatted UTC
         "Z",  # Alternate UTC
     ]
     for utc in utcs:
-        if s.endswith(utc):
-            s = s.replace(utc, "+0000")
+        if t.endswith(utc):
+            t = t.replace(utc, "+0000")
             break
-    s = s.replace("'", "")  # Remove apos from PDF time strings
+    t = t.replace("'", "")  # Remove apos from PDF time strings
 
     date_formats = [
         r"%Y%m%d%H%M%S%z",  # Format with timezone
@@ -232,10 +232,10 @@ def decode_pdf_date(s: str) -> datetime:
     ]
     for date_format in date_formats:
         try:
-            return datetime.strptime(s, date_format)
+            return datetime.strptime(t, date_format)
         except ValueError:
             continue
-    raise ValueError(f"Date string does not match any known format: {s}")
+    raise ValueError(f"Date string does not match any known format: {s} (read as {t})")
 
 
 class Converter(ABC):
