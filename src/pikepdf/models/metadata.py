@@ -199,7 +199,7 @@ def encode_pdf_date(d: datetime) -> str:
     tz = d.strftime('%z')
     if tz:
         sign, tz_hours, tz_mins = tz[0], tz[1:3], tz[3:5]
-        s += f"{sign}{tz_hours}'{tz_mins}'"
+        s += f"{sign}{tz_hours}'{tz_mins}"
     return s
 
 
@@ -214,18 +214,21 @@ def decode_pdf_date(s: str) -> datetime:
     if s.startswith('D:'):
         s = s[2:]
 
-    # Literal Z00'00', is incorrect but found in the wild,
-    # probably made by OS X Quartz -- standardize
-    if s.endswith("Z00'00'"):
-        s = s.replace("Z00'00'", '+0000')
-    elif s.endswith('Z'):
-        s = s.replace('Z', '+0000')
+    utcs = [
+        "Z00'00'",  # Literal Z00'00', is incorrect but found in the wild
+        "Z00'00",  # Correctly formatted UTC
+        "Z",  # Alternate UTC
+    ]
+    for utc in utcs:
+        if s.endswith(utc):
+            s = s.replace(utc, "+0000")
+            break
     s = s.replace("'", "")  # Remove apos from PDF time strings
 
     date_formats = [
         r"%Y%m%d%H%M%S%z",  # Format with timezone
-        r"%Y%m%d%H%M%S",    # Format without timezone
-        r"%Y%m%d",          # Date only format
+        r"%Y%m%d%H%M%S",  # Format without timezone
+        r"%Y%m%d",  # Date only format
     ]
     for date_format in date_formats:
         try:

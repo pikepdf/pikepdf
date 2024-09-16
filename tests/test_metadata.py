@@ -254,6 +254,7 @@ def test_decode_pdf_date():
     VALS = [
         ('20160220040559', datetime(2016, 2, 20, 4, 5, 59)),
         ("20180101010101Z00'00'", datetime(2018, 1, 1, 1, 1, 1, tzinfo=timezone.utc)),
+        ("20180101010101Z00'00", datetime(2018, 1, 1, 1, 1, 1, tzinfo=timezone.utc)),
         ("20180101010101Z", datetime(2018, 1, 1, 1, 1, 1, tzinfo=timezone.utc)),
         ("20180101010101+0000", datetime(2018, 1, 1, 1, 1, 1, tzinfo=timezone.utc)),
         (
@@ -268,8 +269,8 @@ def test_decode_pdf_date():
 def test_date_docinfo_from_xmp():
     VALS = [
         ('2018-12-04T03:02:01', "D:20181204030201"),
-        ('2018-12-15T07:36:43Z', "D:20181215073643+00'00'"),
-        ('2018-12-04T03:02:01-01:00', "D:20181204030201-01'00'"),
+        ('2018-12-15T07:36:43Z', "D:20181215073643+00'00"),
+        ('2018-12-04T03:02:01-01:00', "D:20181204030201-01'00"),
     ]
     for xmp_val, docinfo_val in VALS:
         assert DateConverter.docinfo_from_xmp(xmp_val) == docinfo_val
