@@ -241,6 +241,7 @@ convention = "google"
 "bin/bump_version.py" = ["E501"]
 "examples/*.py" = ["D103"]
 "fuzzing/*.py" = ["D", "E501"]
+"**/*.ipynb" = ["D", "E", "F"]
 
 [tool.ruff.format]
 quote-style = "preserve"
