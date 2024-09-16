@@ -6,9 +6,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from enum import Enum
 from itertools import chain
-from typing import Iterable, List, cast
+from typing import cast
 
 from pikepdf._core import Page, Pdf
 from pikepdf.objects import Array, Dictionary, Name, Object, String
@@ -456,4 +457,4 @@ class Outline:
         """Return the root node of the outline."""
         if self._root is None:
             self._load()
-        return cast(List[OutlineItem], self._root)
+        return cast(list[OutlineItem], self._root)

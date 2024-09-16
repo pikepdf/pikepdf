@@ -18,9 +18,11 @@ class definition is present as an aide for code introspection.
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping
+
 # pylint: disable=unused-import, abstract-method
 from secrets import token_urlsafe
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from pikepdf import _core
 from pikepdf._core import Matrix, Object, ObjectType, Rectangle
@@ -45,7 +47,7 @@ class _ObjectMeta(type(Object)):  # type: ignore
 
     def __instancecheck__(self, instance: Any) -> bool:
         # Note: since this class is a metaclass, self is a class object
-        if type(instance) != Object:
+        if type(instance) is not Object:
             return False
         return self.object_type == instance._type_code
 

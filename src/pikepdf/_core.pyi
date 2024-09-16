@@ -9,6 +9,15 @@ from __future__ import annotations
 # after augmenting.
 import datetime
 from abc import abstractmethod
+from collections.abc import (
+    Collection,
+    Iterable,
+    Iterator,
+    KeysView,
+    Mapping,
+    MutableMapping,
+    Sequence,
+)
 from decimal import Decimal
 from enum import Enum
 from pathlib import Path
@@ -18,14 +27,7 @@ from typing import (
     BinaryIO,
     Callable,
     ClassVar,
-    Collection,
-    Iterable,
-    Iterator,
-    KeysView,
     Literal,
-    Mapping,
-    MutableMapping,
-    Sequence,
     TypeVar,
     overload,
 )

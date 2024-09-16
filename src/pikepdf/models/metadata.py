@@ -8,11 +8,11 @@ from __future__ import annotations
 import logging
 import re
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, MutableMapping
+from collections.abc import Iterable, Iterator, MutableMapping
 from datetime import datetime, timezone
 from functools import wraps
 from io import BytesIO
-from typing import TYPE_CHECKING, Any, Callable, Iterator, NamedTuple, Set
+from typing import TYPE_CHECKING, Any, Callable, NamedTuple
 from warnings import warn
 
 from lxml import etree
@@ -157,7 +157,7 @@ def _clean(s: str | Iterable[str], joiner: str = '; ') -> str:
     if not isinstance(s, str):
         if isinstance(s, Iterable):
             warn(f"Merging elements of {s}")
-            if isinstance(s, Set):
+            if isinstance(s, set):
                 s = joiner.join(sorted(s))
             else:
                 s = joiner.join(s)

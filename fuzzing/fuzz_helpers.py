@@ -6,7 +6,8 @@ import contextlib
 import datetime
 import io
 import tempfile
-from typing import Generator, List, Optional, TypeVar, Union
+from collections.abc import Generator
+from typing import TypeVar
 
 import atheris
 
@@ -28,7 +29,7 @@ class EnhancedFuzzedDataProvider(atheris.FuzzedDataProvider):
     def ConsumeRemainingBytes(self) -> bytes:
         return self.ConsumeBytes(self.remaining_bytes())
 
-    def ConsumeSublist(self, source: List[T]) -> List[T]:
+    def ConsumeSublist(self, source: list[T]) -> list[T]:
         """Returns a shuffled sub-list of the given list of len [1, len(source)]"""
         chosen = [elem for elem in source if self.ConsumeBool()]
 
@@ -60,7 +61,7 @@ class EnhancedFuzzedDataProvider(atheris.FuzzedDataProvider):
                 self.ConsumeRandomBytes() if as_bytes else self.ConsumeRandomString()
             )
 
-        file: Optional[Union[io.StringIO, io.BytesIO]] = None
+        file: io.StringIO | io.BytesIO | None = None
 
         if isinstance(file_data, str):
             file = io.StringIO(file_data)

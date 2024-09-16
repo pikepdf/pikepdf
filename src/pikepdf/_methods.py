@@ -15,14 +15,14 @@ from __future__ import annotations
 import datetime
 import mimetypes
 import shutil
-from collections.abc import KeysView, MutableMapping
+from collections.abc import ItemsView, Iterator, KeysView, MutableMapping, ValuesView
 from contextlib import ExitStack, suppress
 from decimal import Decimal
 from io import BytesIO, RawIOBase
 from pathlib import Path
 from subprocess import run
 from tempfile import NamedTemporaryFile
-from typing import BinaryIO, Callable, ItemsView, Iterator, TypeVar, ValuesView
+from typing import BinaryIO, Callable, TypeVar
 from warnings import warn
 
 from pikepdf._augments import augment_override_cpp, augments
