@@ -1,6 +1,5 @@
 # SPDX-FileCopyrightText: 2024 ennamarie19
 # SPDX-License-Identifier: MIT
-from __future__ import annotations
 
 import io
 import sys
