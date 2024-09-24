@@ -19,7 +19,7 @@ more complex changes consider using the ``python-xmp-toolkit`` library and its
 libexempi dependency; but note that it is not capable of synchronizing changes
 to the older DocumentInfo metadata.
 
-.. _XMP Specification: https://wwwimages2.adobe.com/content/dam/acom/en/devnet/xmp/pdfs/XMP%20SDK%20Release%20cc-2016-08/XMPSpecificationPart1.pdf
+.. _XMP Specification: https://github.com/adobe/XMP-Toolkit-SDK/blob/main/docs/XMPSpecificationPart1.pdf
 
 Automatic metadata updates
 --------------------------
