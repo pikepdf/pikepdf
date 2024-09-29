@@ -5,6 +5,7 @@ v9.3.0
 - Prevented generation of PDF date strings with invalid trailing apostrophes,
   while still accepting them.
 - Improved error message on parsing invalid date strings.
+- Dropped support for Python 3.8 (end of life October 2024).
 
 v9.2.1
 ======
