@@ -1,6 +1,5 @@
 # SPDX-FileCopyrightText: 2024 ennamarie19
 # SPDX-License-Identifier: MIT
-from __future__ import annotations
 
 import io
 import sys
@@ -9,7 +8,7 @@ from contextlib import contextmanager
 import atheris
 from fuzz_helpers import EnhancedFuzzedDataProvider
 
-with atheris.instrument_imports():
+with atheris.instrument_imports(exclude=['pikepdf.settings']):
     import pikepdf
     from pikepdf import PdfError  # type: ignore
 
@@ -34,6 +33,8 @@ def TestOneInput(data):
                     page.rotate(180, relative=True)
                 my_pdf.save(out_f)
     except PdfError:
+        return -1
+    except SystemError:
         return -1
 
 
