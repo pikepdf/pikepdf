@@ -4,13 +4,14 @@
 from __future__ import annotations
 
 import zlib
+from collections.abc import Sequence
 from contextlib import contextmanager
 from io import BytesIO
 from math import ceil
 from os import fspath
 from pathlib import Path
 from subprocess import run
-from typing import NamedTuple, Sequence
+from typing import NamedTuple
 
 import PIL
 import pytest

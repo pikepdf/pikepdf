@@ -7,12 +7,12 @@ from __future__ import annotations
 
 import logging
 import re
-import sys
 from abc import ABC, abstractmethod
+from collections.abc import Iterable, Iterator, MutableMapping
 from datetime import datetime, timezone
 from functools import wraps
 from io import BytesIO
-from typing import TYPE_CHECKING, Any, Callable, Iterator, NamedTuple, Set
+from typing import TYPE_CHECKING, Any, Callable, NamedTuple
 from warnings import warn
 
 from lxml import etree
@@ -21,11 +21,6 @@ from lxml.etree import QName, XMLSyntaxError
 from pikepdf._version import __version__ as pikepdf_version
 from pikepdf._xml import _Element, parse_xml
 from pikepdf.objects import Name, Stream, String
-
-if sys.version_info < (3, 9):  # pragma: no cover
-    from typing import Iterable, MutableMapping
-else:
-    from collections.abc import Iterable, MutableMapping
 
 if TYPE_CHECKING:  # pragma: no cover
     from pikepdf import Pdf
@@ -162,7 +157,7 @@ def _clean(s: str | Iterable[str], joiner: str = '; ') -> str:
     if not isinstance(s, str):
         if isinstance(s, Iterable):
             warn(f"Merging elements of {s}")
-            if isinstance(s, Set):
+            if isinstance(s, set):
                 s = joiner.join(sorted(s))
             else:
                 s = joiner.join(s)
@@ -289,11 +284,7 @@ class DateConverter(Converter):
         """Derive DocumentInfo from XMP."""
         if xmp_val.endswith('Z'):
             xmp_val = xmp_val[:-1] + '+00:00'
-        try:
-            dateobj = datetime.fromisoformat(xmp_val)
-        except IndexError:
-            # PyPy 3.8 may raise IndexError - convert to ValueError
-            raise ValueError(f"Invalid isoformat string: '{xmp_val}'") from None
+        dateobj = datetime.fromisoformat(xmp_val)
         return encode_pdf_date(dateobj)
 
 

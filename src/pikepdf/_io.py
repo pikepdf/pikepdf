@@ -3,13 +3,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Generator
 from contextlib import contextmanager, suppress
 from io import TextIOBase
 from os import PathLike
 from pathlib import Path
 from shutil import copystat
 from tempfile import NamedTemporaryFile
-from typing import IO, Generator
+from typing import IO
 
 
 def check_stream_is_usable(stream: IO) -> None:

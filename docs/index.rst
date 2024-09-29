@@ -92,9 +92,9 @@ reportlab (a "write-only" PDF generator).
 Requirements
 ~~~~~~~~~~~~
 
-pikepdf currently requires **Python 3.8+**. pikepdf 1.x supports Python 3.5.
+pikepdf currently requires **Python 3.9+**. pikepdf 1.x supports Python 3.5.
 pikepdf 2.x and 3.x support Python 3.6; pikepdf 4.x through 6.x support Python
-3.7. Python 2.7 has never been supported.
+3.7; pikepdf 7.x through 9.x support Python 3.8.
 
 Similar libraries
 ~~~~~~~~~~~~~~~~~
