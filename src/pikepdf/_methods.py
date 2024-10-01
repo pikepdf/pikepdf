@@ -167,8 +167,9 @@ class Extend_Pdf:
         pdf_data = self._quick_save().read()
         data = {
             'application/pdf': pdf_data,
-            'image/svg+xml': _mudraw(pdf_data, 'svg').decode('utf-8'),
         }
+        with suppress(FileNotFoundError, RuntimeError):
+            data['image/svg+xml'] = _mudraw(pdf_data, 'svg').decode('utf-8')
         return data
 
     @property
