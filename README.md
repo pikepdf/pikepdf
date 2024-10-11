@@ -76,4 +76,4 @@ License
 
 pikepdf is licensed under the [Mozilla Public License 2.0](https://www.mozilla.org/en-US/MPL/2.0/) license (MPL-2.0) that can be found in the LICENSE file. By using, distributing, or contributing to this project, you agree to the terms and conditions of this license. MPL 2.0 permits you to combine the software with other work, including commercial and closed source software, but asks you to publish source-level modifications you make to pikepdf itself.
 
-Some components of the project may be under other license agreements, as indicated in their SPDX license header or the [`.dep5/reuse`](REUSE) file.
+Some components of the project may be under other license agreements, as indicated in their SPDX license header or the [`REUSE.toml`](REUSE.toml) file.
