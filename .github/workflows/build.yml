@@ -42,7 +42,7 @@ jobs:
     strategy:
       matrix:
         platform: [manylinux_x86_64]
-        freethreading: [0, 1]
+        freethreading: [1]
     steps:
       - uses: actions/checkout@v4
 
