@@ -79,11 +79,6 @@ test-extras = "test"
 #   build.yml sets CIBW_BUILD to select what can be built
 #   this file sets skip to deselect what cannot be built
 skip = [
-  "cp36-*",                 # too old
-  "cp37-*",                 # too old
-  "cp38-*",                 # too old
-  "pp37-*",                 # too old
-  "pp38-*",                 # too old (no Pillow support)
   "*-win32",                # no 32-bit builds/not supported by Pillow anymore
   "pp*-manylinux*_aarch64", # not supported by Pillow yet
   "cp313-musllinux*",       # too new - some dependendies don't have wheels

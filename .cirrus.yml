@@ -25,7 +25,7 @@ cirrus_linux_arm64_wheel_task:
 
   cibuildwheel_script:
     - apt-get install -y python3 python-is-python3 pipx
-    - pipx run --python /usr/bin/python3 --spec cibuildwheel==2.20.0 cibuildwheel
+    - pipx run --python /usr/bin/python3 --spec cibuildwheel==2.21.3 cibuildwheel
 
   wheels_artifacts:
     path: "wheelhouse/*"
