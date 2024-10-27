@@ -143,7 +143,6 @@ before-all = [
 [[tool.cibuildwheel.overrides]]
 select = "*-macosx*x86_64"
 inherit.environment = "append"
-# qpdf requires C++17 which is not fully supported on macOS < 11.0.
 environment.MACOSX_DEPLOYMENT_TARGET = "13.0"
 # When MACOSX_DEPLOYMENT_TARGET is >= 11.0, set this to 0
 # to ensure that pip/auditwheel generate the correct version stamp.
@@ -171,7 +170,6 @@ addopts = "-n auto"
 
 [tool.coverage.run]
 concurrency = ["multiprocessing"]
-omit = ["src/pikepdf/_qpdf.py"]   # Remove in pikepdf 9
 
 [tool.coverage.report]
 # Regexes for lines to exclude from consideration
