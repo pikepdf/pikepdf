@@ -38,7 +38,7 @@ Here are the current constraints for building on macOS:
 
 - Homebrew creates binaries with MACOSX_DEPLOYMENT_TARGET="macos-x".
   Therefore, we should build on the minimum runner. For x86_64 that is
-  macos-12.
+  macos-13.
 
 - Setting SYSTEM_VERSION_COMPAT=0 is necessary for pip to understand
   MACOSX_DEPLOYMENT_TARGET="11.0" rather than macOS X 10.x syntax.
