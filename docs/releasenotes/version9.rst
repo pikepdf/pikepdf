@@ -1,3 +1,12 @@
+v9.4.0
+======
+
+- Added missing Python 3.13 wheels for a few platforms that were missing them,
+  mainly ARM Linux, musllinux/Alpine, and Windows.
+- Since Homebrew has ended support for macOS 12, macOS 13 is now the minimum
+  requirement for Intel macOS.
+- Suppressed some spurious warnings during build tests.
+
 v9.3.0
 ======
 

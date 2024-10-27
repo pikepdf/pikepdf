@@ -39,7 +39,7 @@ Binary wheels should work on most systems, **provided a recent version
 of pip is used to install them**. Old versions of pip, especially before 20.0,
 may fail to check appropriate versions.
 
-macOS 10.14 or newer is typically required for binary wheels. Older versions may
+macOS 14 or newer is typically required for binary wheels. Older versions may
 work if compiled from source.
 
 Windows 7 or newer is required. Windows wheels include a recent copy of libqpdf.
