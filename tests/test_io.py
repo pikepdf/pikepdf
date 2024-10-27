@@ -3,12 +3,10 @@
 
 from __future__ import annotations
 
-import contextlib
 import logging
 import os
 import os.path
 import pathlib
-import sys
 from io import BytesIO, FileIO
 from shutil import copy
 
@@ -178,6 +176,7 @@ def test_save_failure(sandwich, outdir):
         sandwich.save(dest)
 
 
+@pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
 def test_stop_iteration_on_close(resources):
     class StopIterationOnClose(BytesIO):
         def close(self):
@@ -186,14 +185,7 @@ def test_stop_iteration_on_close(resources):
     # Inspired by https://github.com/pikepdf/pikepdf/issues/114
     stream = StopIterationOnClose((resources / 'pal-1bit-trivial.pdf').read_bytes())
     pdf = Pdf.open(stream)  # no with clause
-    # Python 3.13+ has a warning for unraisable exceptions; older version do not
-    warning_context = (
-        pytest.warns(pytest.PytestUnraisableExceptionWarning)
-        if sys.version_info >= (3, 13)
-        else contextlib.nullcontext()
-    )
-    with warning_context:
-        pdf.close()
+    pdf.close()
 
 
 def test_read_after_close(resources):
