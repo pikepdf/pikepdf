@@ -43,3 +43,4 @@ unpacked/
 /tests/resources/private/
 /tmp_rpms/
 *.dll
+/issuepdf
