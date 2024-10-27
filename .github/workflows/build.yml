@@ -124,12 +124,10 @@ jobs:
         # macos-14 is Apple silicon and we configure it to build only arm64 wheels.
         # macos-13 and lower are an Intel runners and we configure them to build
         # only x86_64 wheels.
-        # We build on macos-12 because it does a better job of forward compatible
-        # builds with macos-13 than vice versa. macos-11 is end of life and dropped by
-        # both Apple and Homebrew, so it probably works but takes forever to build.
+        # We build on macos-13 because Homebrew still supports it.
         # See notes in build.rst.
         include:
-          - os: macos-12
+          - os: macos-13
             os_arch: macos-x86_64
           - os: macos-14
             os_arch: macos-arm64
