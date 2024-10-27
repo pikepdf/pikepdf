@@ -34,18 +34,19 @@ Here are the current constraints for building on macOS:
 - QPDF needs at least MACOSX_DEPLOYMENT_TARGET="11.0" since it uses
   C++17.
 
-- Homebrew ended support for macOS 11, so we can't support it.
+- Homebrew requires macOS 13+, so we can't support older versions.
 
 - Homebrew creates binaries with MACOSX_DEPLOYMENT_TARGET="macos-x".
   Therefore, we should build on the minimum runner. For x86_64 that is
-  macos-12.
+  macos-13.
 
 - Setting SYSTEM_VERSION_COMPAT=0 is necessary for pip to understand
-  MACOSX_DEPLOYMENT_TARGET="11.0" rather than macOS X 10.x syntax.
+  MACOSX_DEPLOYMENT_TARGET="13.0" rather than macOS X 10.x syntax.
 
 - GitHub's macos-14 runner is the first to be Apple Silicon. Since we
   use Homebrew, it can only build macos-14. We only support macos-14
-  for arm64. Cirrus CI did support earlier macos. W
+  for arm64. Cirrus CI did support earlier macos. We no longer use
+  Cirrus for Apple Silicon, just for Linux ARM64.
 
 - Environment differences between GitHub runners and Cirrus CI runners
   mean we need to use sudo for Cirrus CI, hence maybe_sudo.
@@ -55,4 +56,4 @@ and use QEMU or Cirrus CI to confirm that they work. That would be another
 big build overhaul.
 
 Users who build from source have more options and can likely get
-functional builds on anything newer than macOS 10.14.
+functional builds on anything newer than macOS 14.

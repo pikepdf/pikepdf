@@ -176,6 +176,7 @@ def test_save_failure(sandwich, outdir):
         sandwich.save(dest)
 
 
+@pytest.mark.filterwarnings("ignore::pytest.PytestUnraisableExceptionWarning")
 def test_stop_iteration_on_close(resources):
     class StopIterationOnClose(BytesIO):
         def close(self):

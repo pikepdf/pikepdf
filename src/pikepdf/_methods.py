@@ -360,7 +360,7 @@ class Extend_Pdf:
                 "expects a filename or opened file-like object. Instead, please use "
                 "Pdf.open(BytesIO(data))."
             )
-        if isinstance(filename_or_stream, int):
+        if isinstance(filename_or_stream, (int, float)):
             # Attempted to open with integer file descriptor?
             # TODO improve error
             raise TypeError("expected str, bytes or os.PathLike object")
