@@ -16,13 +16,16 @@
 #include <qpdf/QUtil.hh>
 #include <qpdf/Pipeline.hh>
 
+py::object get_decoder(py::gil_scoped_acquire &gil)
+{
+    return py::module_::import("pikepdf.jbig2").attr("get_decoder")();
+}
+
 class Pl_JBIG2 : public Pipeline {
 public:
-    Pl_JBIG2(const char *identifier,
-        Pipeline *next,
-        py::object decoder,
-        const std::string &jbig2globals = "")
-        : Pipeline(identifier, next), decoder(decoder), jbig2globals(jbig2globals)
+    Pl_JBIG2(
+        const char *identifier, Pipeline *next, const std::string &jbig2globals = "")
+        : Pipeline(identifier, next), jbig2globals(jbig2globals)
     {
     }
     virtual ~Pl_JBIG2() = default;
@@ -37,11 +40,12 @@ public:
         py::gil_scoped_acquire gil;
         py::bytes pydata = py::bytes(data);
 
-        py::function extract_jbig2 = this->decoder.attr("decode_jbig2");
+        auto decoder               = get_decoder(gil);
+        py::function extract_jbig2 = decoder.attr("decode_jbig2");
 
         py::bytes extracted;
         try {
-            extracted = extract_jbig2(pydata, this->jbig2globals);
+            extracted = extract_jbig2(pydata, py::bytes(this->jbig2globals));
         } catch (py::error_already_set &e) {
             // In qpdf over here...
             // https://github.com/qpdf/qpdf/blob/dd3b2cedd3164692925df1ef7414eb452343372f/libqpdf/QPDF.cc#L2955-2984
@@ -76,20 +80,13 @@ public:
     }
 
 private:
-    py::object decoder;
-    py::bytes jbig2globals;
+    // Do not hold any Python objects in this class to avoid GIL issues.
+    std::string jbig2globals;
     std::stringstream ss;
 };
 
 class JBIG2StreamFilter : public QPDFStreamFilter {
 public:
-    JBIG2StreamFilter()
-    {
-        py::gil_scoped_acquire gil;
-        this->decoder = py::module_::import("pikepdf.jbig2").attr("get_decoder")();
-    }
-    virtual ~JBIG2StreamFilter() = default;
-
     virtual bool setDecodeParms(QPDFObjectHandle decode_parms) override
     {
         if (decode_parms.isNull())
@@ -108,14 +105,15 @@ public:
     void assertDecoderAvailable()
     {
         py::gil_scoped_acquire gil;
-        this->decoder.attr("check_available")();
+        auto decoder = get_decoder(gil);
+        decoder.attr("check_available")();
     }
 
     virtual Pipeline *getDecodePipeline(Pipeline *next) override
     {
         this->assertDecoderAvailable();
-        this->pipeline = std::make_shared<Pl_JBIG2>(
-            "JBIG2 decode", next, this->decoder, this->jbig2globals);
+        this->pipeline =
+            std::make_shared<Pl_JBIG2>("JBIG2 decode", next, this->jbig2globals);
         return this->pipeline.get();
     }
 
@@ -128,7 +126,7 @@ public:
     virtual bool isLossyCompression() override { return false; }
 
 private:
-    py::object decoder;
+    // Do not hold any Python objects in this class to avoid GIL issues.
     std::string jbig2globals;
     std::shared_ptr<Pipeline> pipeline;
 };
