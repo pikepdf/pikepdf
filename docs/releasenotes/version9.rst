@@ -1,3 +1,11 @@
+v9.4.1
+======
+
+- Fixed a process abort in JBIG2 handling related to cleanup of Python objects
+  owned by C++ code.
+- Fixed inconsistent behavior when setting metadata records to an empty value.
+  :issue:`622`
+
 v9.4.0
 ======
 
