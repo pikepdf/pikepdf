@@ -618,7 +618,7 @@ def test_random_valid_docinfo(docinfo):
         ET.fromstring(str(m))  # ensure we can parse it
 
 
-@pytest.mark.parametrize('author', ['', 'King, S.'])
+@pytest.mark.parametrize('author', ['Queen, C.', 'King, S.'])
 def test_issue_162(trivial, author):
     trivial.Root.Metadata = Stream(
         trivial,
@@ -665,15 +665,17 @@ def test_dont_create_empty_docinfo(trivial, outpdf, fix_metadata):
 
 
 def test_issue_100(trivial):
-    with trivial.open_metadata() as m, pytest.warns(
-        UserWarning, match="no XMP equivalent"
+    with (
+        trivial.open_metadata() as m,
+        pytest.warns(UserWarning, match="no XMP equivalent"),
     ):
         m.load_from_docinfo({'/AAPL:Example': pikepdf.Array([42])})
 
 
 def test_issue_135_title_rdf_bag(trivial):
-    with trivial.open_metadata(update_docinfo=True) as xmp, pytest.warns(
-        UserWarning, match="Merging elements"
+    with (
+        trivial.open_metadata(update_docinfo=True) as xmp,
+        pytest.warns(UserWarning, match="Merging elements"),
     ):
         xmp['dc:title'] = {'Title 1', 'Title 2'}
     with trivial.open_metadata(update_docinfo=False) as xmp:
@@ -812,3 +814,20 @@ def test_undocumented_pdfx_identifier(trivial):
     )
     with trivial.open_metadata() as m:
         list(m.items())
+
+
+@pytest.mark.parametrize('assign,expect', [([], []), ([''], [None]), ([None], [None])])
+def test_empty_list(graph, outpdf, assign, expect):
+    with graph.open_metadata() as m:
+        m['dc:creator'] = assign
+        assert (
+            m['dc:creator'] == expect
+        ), f"Before saving, expected {expect}, got {m['dc:creator']}"
+
+    graph.save(outpdf)
+
+    with pikepdf.open(outpdf) as pdf:
+        with pdf.open_metadata() as m:
+            assert (
+                m['dc:creator'] == expect
+            ), f"After saving, expected {expect}, got {m['dc:creator']}"

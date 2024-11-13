@@ -776,7 +776,11 @@ class PdfMetadata(MutableMapping):
             tag_attrib = {str(QName(XMP_NS_XML, 'lang')): 'x-default'}
         for item in items:
             el = etree.SubElement(seq, str(QName(XMP_NS_RDF, 'li')), attrib=tag_attrib)
-            el.text = _clean(item)
+            if item is not None:
+                inner_text: str | None = _clean(item)
+                if inner_text == '':
+                    inner_text = None
+                el.text = inner_text
 
     def _setitem_update(self, key, val, qkey):
         # Locate existing node to replace
