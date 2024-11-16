@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import pytest
 
-from pikepdf import Pdf
+from pikepdf import Pdf, PdfError
 
 # pylint: disable=redefined-outer-name,pointless-statement,expression-not-assigned
 
@@ -35,7 +35,7 @@ def test_get_equality_dict(congress):
 
     assert page.MediaBox == page['/MediaBox'] == page.get('/MediaBox')
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises((RuntimeError, PdfError)):
         page.stream_dict
     with pytest.raises(AttributeError):
         page.NoSuchKey

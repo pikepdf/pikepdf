@@ -111,6 +111,15 @@ bool is_destroyed_object_error(const std::runtime_error &e)
     return std::regex_search(e.what(), error_pattern);
 }
 
+bool is_object_type_assertion_error(const std::runtime_error &e)
+{
+    static const std::regex error_pattern(
+        "operation for \\w+ attempted on object of type (?!destroyed)\\w+",
+        std::regex_constants::icase);
+
+    return std::regex_search(e.what(), error_pattern);
+}
+
 PYBIND11_MODULE(_core, m)
 {
     // py::options options;
@@ -246,6 +255,8 @@ PYBIND11_MODULE(_core, m)
                 py::set_error(exc_datadecoding.get_stored(), e.what());
             else if (is_destroyed_object_error(e))
                 py::set_error(exc_destroyedobject.get_stored(), e.what());
+            else if (is_object_type_assertion_error(e))
+                py::set_error(exc_main.get_stored(), e.what());
             else
                 std::rethrow_exception(p);
         }

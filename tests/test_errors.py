@@ -7,7 +7,15 @@ import pytest
 from conftest import skip_if_pypy
 
 import pikepdf
-from pikepdf import DataDecodingError, DeletedObjectError, Name, Pdf, Stream, _core
+from pikepdf import (
+    DataDecodingError,
+    DeletedObjectError,
+    Name,
+    Pdf,
+    PdfError,
+    Stream,
+    _core,
+)
 
 
 @pytest.fixture
@@ -58,3 +66,9 @@ def test_return_object_from_closed():
     assert repr(obj) != ''
     with pytest.raises(DeletedObjectError):
         obj.read_bytes()
+
+
+def test_object_type_assertion(resources):
+    with pytest.raises(PdfError):
+        with Pdf.open(resources / 'fuzz378014596.pdf') as p:
+            p.check()
