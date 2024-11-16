@@ -14,7 +14,7 @@ from warnings import warn
 from pikepdf.objects import Name
 
 if TYPE_CHECKING:
-    from pikepdf._core import Pdf
+    from pikepdf._core import Pdf, PdfError
     from pikepdf.objects import Dictionary
 
 
@@ -23,9 +23,14 @@ def update_xmp_pdfversion(pdf: Pdf, version: str) -> None:
     if Name.Metadata not in pdf.Root:
         return  # Don't create an empty XMP object just to store the version
 
-    with pdf.open_metadata(set_pikepdf_as_editor=False, update_docinfo=False) as meta:
-        if 'pdf:PDFVersion' in meta:
-            meta['pdf:PDFVersion'] = version
+    try:
+        with pdf.open_metadata(
+            set_pikepdf_as_editor=False, update_docinfo=False
+        ) as meta:
+            if 'pdf:PDFVersion' in meta:
+                meta['pdf:PDFVersion'] = version
+    except Exception as e:
+        raise PdfError("While trying to update XMP metadata, an error occurred") from e
 
 
 def _alpha(n: int) -> str:
