@@ -174,7 +174,7 @@ SPDX-FileCopyrightText = "(C) 2024 ennamarie19"
 SPDX-License-Identifier = "CC-BY-SA-4.0"
 
 [[annotations]]
-path = "tests/resources/fuzz*.pdf"
+path = "tests/resources/fuzz/*.pdf"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "(C) 2024 ennamarie19"
 SPDX-License-Identifier = "CC-BY-SA-4.0"
