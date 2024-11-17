@@ -1,9 +1,12 @@
-next
-====
+v9.4.2
+======
 
 - Internal type assertion error messages from qpdf that previously triggered
   a RuntimeError will now raise a PdfError. Generally these errors only occur
   in corrupted files.
+- When we are updating XMP in the processing of saving, errors from updating
+  XML are wrapped differently to clarify the context in which the error
+  occurs.
 
 v9.4.1
 ======
