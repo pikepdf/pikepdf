@@ -6,15 +6,15 @@ Default appearance in PDF viewers
 Using pikepdf you can control the initial page layout and page mode, that is,
 how a PDF will appear by default when loaded in a PDF viewer.
 
-These settings are changed written to the PDF's root object. Note that the PDF
+These settings are changed written to the PDF's Root object. Note that the PDF
 viewer may ignore them and user preferences may override, etc.
 
 .. code-block:: python
 
     from pikepdf import Pdf, Dictionary, Name
     with Pdf.open('input.pdf') as pdf:
-        pdf.root.PageLayout = Name.SinglePage
-        pdf.root.PageMode = Name.FullScreen
+        pdf.Root.PageLayout = Name.SinglePage
+        pdf.Root.PageMode = Name.FullScreen
         pdf.save('output.pdf')
 
 For reference, the tables below provide summarize the available options.
