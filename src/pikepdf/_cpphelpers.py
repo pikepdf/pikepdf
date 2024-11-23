@@ -11,10 +11,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Callable
 from warnings import warn
 
+from pikepdf._core import PdfError
 from pikepdf.objects import Name
 
 if TYPE_CHECKING:
-    from pikepdf._core import Pdf, PdfError
+    from pikepdf._core import Pdf
     from pikepdf.objects import Dictionary
 
 
