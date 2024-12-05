@@ -140,11 +140,6 @@ def image_from_buffer_and_palette(
     1/2/4-bit images must be unpacked (no scaling!) to byte buffers first, such
     that every 8-bit integer is an index into the palette.
     """
-    # Reminder Pillow palette byte order unintentionally changed in 8.3.0
-    # https://github.com/python-pillow/Pillow/issues/5595
-    # 8.2.0: all aligned by channel (very nonstandard)
-    # 8.3.0: all channels for one color followed by the next color (e.g. RGBRGBRGB)
-
     if base_mode == 'RGB':
         im = image_from_byte_buffer(buffer, size, stride)
         im.putpalette(palette, rawmode=base_mode)
