@@ -816,7 +816,9 @@ def test_undocumented_pdfx_identifier(trivial):
         list(m.items())
 
 
-@pytest.mark.parametrize('assign,expect', [([], []), ([''], [None]), ([None], [None])])
+@pytest.mark.parametrize(
+    'assign,expect', [([], []), ([''], [None]), ([None], [None]), (['Foo'], ['Foo'])]
+)
 def test_empty_list(graph, outpdf, assign, expect):
     with graph.open_metadata() as m:
         m['dc:creator'] = assign
