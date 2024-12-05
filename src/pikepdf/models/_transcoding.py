@@ -9,6 +9,11 @@ from typing import Any, Callable, NamedTuple, Union
 from PIL import Image
 from PIL.TiffTags import TAGS_V2 as TIFF_TAGS
 
+
+class ImageDecompressionError(Exception):
+    """Image decompression error."""
+
+
 BytesLike = Union[bytes, memoryview]
 MutableBytesLike = Union[bytearray, memoryview]
 
@@ -110,7 +115,23 @@ def image_from_byte_buffer(buffer: BytesLike, size: tuple[int, int], stride: int
     with odd image widths.
     """
     ystep = 1  # image is top to bottom in memory
-    return Image.frombuffer('L', size, buffer, "raw", 'L', stride, ystep)
+    # Even if the image is type 'P' (palette), we create it as a 'L' grayscale
+    # at this step. The palette is attached later.
+    try:
+        return Image.frombuffer('L', size, buffer, "raw", 'L', stride, ystep)
+    except ValueError as e:
+        if 'buffer is not large enough' in str(e):
+            # If Pillow says the buffer is not large enough, then we're going
+            # to guess that it's padded to a multiple of 4 bytes. In practice
+            # the image may just be corrupted.
+            try:
+                return Image.frombuffer(
+                    'L', size, buffer, "raw", 'L', (size[0] + 3) // 4, ystep
+                )
+            except ValueError as e2:
+                raise ImageDecompressionError(str(e2)) from e2
+        else:
+            raise ImageDecompressionError() from e
 
 
 def _make_rgb_palette(gray_palette: bytes) -> bytes:
