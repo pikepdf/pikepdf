@@ -61,7 +61,8 @@ class Buffer:
 class DataDecodingError(Exception):
     """Exception thrown when a stream object in a PDF cannot be decoded."""
 
-class JobUsageError(Exception): ...
+class JobUsageError(Exception):
+    """Exception thrown when the pikepdf.Job interface is used incorrectly."""
 
 class PasswordError(Exception):
     """Exception thrown when the supplied password is incorrect."""

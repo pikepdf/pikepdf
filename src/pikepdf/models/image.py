@@ -18,8 +18,11 @@ from PIL import Image
 from PIL.ImageCms import ImageCmsProfile
 
 from pikepdf import jbig2
-from pikepdf._core import Buffer, Pdf, PdfError, StreamDecodeLevel
-from pikepdf._exceptions import DependencyError
+from pikepdf._core import Buffer, Pdf, StreamDecodeLevel
+from pikepdf.exceptions import (
+    DependencyError,
+    PdfError,
+)
 from pikepdf.models import _transcoding
 from pikepdf.objects import (
     Array,
@@ -52,6 +55,9 @@ class HifiPrintImageNotTranscodableError(NotExtractableError):
 
 class InvalidPdfImageError(Exception):
     """This image is not valid according to the PDF 1.7 specification."""
+
+
+ImageDecompressionError = _transcoding.ImageDecompressionError
 
 
 def _array_str(value: Object | str | list):

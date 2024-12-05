@@ -1,16 +1,28 @@
 Exceptions
 **********
 
-.. autoapiexception:: pikepdf.PdfError
+.. autoapiexception:: pikepdf.exceptions.PdfError
 
-.. autoapiexception:: pikepdf.PasswordError
+.. autoapiexception:: pikepdf.exceptions.PasswordError
 
-.. autoapiexception:: pikepdf.ForeignObjectError
+.. autoapiexception:: pikepdf.exceptions.ForeignObjectError
 
-.. autoapiexception:: pikepdf.OutlineStructureError
+.. autoapiexception:: pikepdf.exceptions.OutlineStructureError
 
-.. autoapiexception:: pikepdf.UnsupportedImageTypeError
+.. autoapiexception:: pikepdf.exceptions.UnsupportedImageTypeError
 
-.. autoapiexception:: pikepdf.DataDecodingError
+.. autoapiexception:: pikepdf.exceptions.HifiPrintImageNotTranscodableError
 
-.. autoapiexception:: pikepdf.DeletedObjectError
+.. autoapiexception:: pikepdf.exceptions.InvalidPdfImageError
+
+.. autoapiexception:: pikepdf.exceptions.DataDecodingError
+
+.. autoapiexception:: pikepdf.exceptions.DeletedObjectError
+
+.. autoapiexception:: pikepdf.exceptions.DependencyError
+
+.. autoapiexception:: pikepdf.exceptions.PdfParsingError
+
+.. autoapiexception:: pikepdf.exceptions.JobUsageError
+
+.. autoapiexception:: pikepdf.exceptions.ImageDecompressionError
