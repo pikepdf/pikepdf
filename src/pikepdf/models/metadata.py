@@ -823,14 +823,15 @@ class PdfMetadata(MutableMapping):
             node = etree.SubElement(rdfdesc, self._qname(key))
             self._setitem_add_array(node, val)
         elif isinstance(val, str):
-            _rdfdesc = etree.SubElement(
-                rdf,
-                str(QName(XMP_NS_RDF, 'Description')),
-                attrib={
-                    QName(XMP_NS_RDF, 'about'): '',
-                    self._qname(key): _clean(val),
-                },
-            )
+            rdfdesc = rdf.find('rdf:Description[@rdf:about=""]', self.NS)
+            if rdfdesc is None:
+                rdfdesc = etree.SubElement(
+                    rdf,
+                    str(QName(XMP_NS_RDF, 'Description')),
+                    attrib={str(QName(XMP_NS_RDF, 'about')): ''},
+                )
+            node = etree.SubElement(rdfdesc, self._qname(key))
+            node.text = _clean(val)
         else:
             raise TypeError(f"Setting {key} to {val} with type {type(val)}") from None
 
