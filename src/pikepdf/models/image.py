@@ -161,7 +161,7 @@ class PdfImageBase(ABC):
 
         if self.colorspace in ('/DeviceGray', '/CalGray'):
             return (0.0, 1.0)
-        if self.colorspace == ('/DeviceRGB', '/CalRGB'):
+        if self.colorspace in ('/DeviceRGB', '/CalRGB'):
             return (0.0, 1.0, 0.0, 1.0, 0.0, 1.0)
         if self.colorspace == '/DeviceCMYK':
             return (0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0)
