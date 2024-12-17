@@ -458,3 +458,14 @@ class Outline:
         if self._root is None:
             self._load()
         return cast(list[OutlineItem], self._root)
+
+    @root.setter
+    def root(self, new_root: list[OutlineItem]):
+        """Set the root node of the outline."""
+        if not isinstance(new_root, list):
+            raise ValueError("Root must be a list of OutlineItem objects.")
+        for item in new_root:
+            if not isinstance(item, OutlineItem):
+                raise ValueError("Each item in root must be an OutlineItem.")
+    
+        self._root = new_root
