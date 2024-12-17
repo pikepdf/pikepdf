@@ -467,5 +467,5 @@ class Outline:
         for item in new_root:
             if not isinstance(item, OutlineItem):
                 raise ValueError("Each item in root must be an OutlineItem.")
-    
+
         self._root = new_root
