@@ -511,3 +511,34 @@ def test_outline_destination_name_object_types():
     obj = Dictionary(Title='foo', Dest=Name.Bar)
     item = OutlineItem.from_dictionary_object(obj)
     assert '.Root.Dests' in str(item)
+
+
+def test_outline_root_setter_valid_input(outlines_doc):
+    """Test that root.setter accepts a valid list of OutlineItem."""
+    with outlines_doc.open_outline() as outline:
+        # Test empty list input
+        outline.root = []
+        assert outline.root == []
+
+        # Test setting outline.root with valid input
+        new_root = [
+            OutlineItem("Test outline 1"),
+            OutlineItem("Test outline 2"),
+        ]
+        outline.root = new_root
+        assert outline.root == new_root
+
+
+def test_outline_root_setter_invalid_input_not_list(outlines_doc):
+    """Test that root.setter raises ValueError if input is not a list."""
+    with outlines_doc.open_outline() as outline:
+        with pytest.raises(ValueError, match="Root must be a list of OutlineItem objects."):
+            outline.root = "Not a list"
+
+
+def test_outline_root_setter_invalid_input_non_outlineitem(outlines_doc):
+    """Test that root.setter raises ValueError if input list contains non-OutlineItem."""
+    with outlines_doc.open_outline() as outline:
+        invalid_root = ["Invalid", OutlineItem("Valid Section")]
+        with pytest.raises(ValueError, match="Each item in root must be an OutlineItem."):
+            outline.root = invalid_root
