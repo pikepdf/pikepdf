@@ -164,7 +164,17 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-norecursedirs = ["lib", ".pc", ".git", "venv"]
+norecursedirs = [
+  "*.egg",
+  ".*",
+  "lib",
+  "_darcs",
+  "dist",
+  "build",
+  "node_modules",
+  "venv",
+  "{arch}",
+]
 testpaths = ["tests"]
 addopts = "-n auto"
 
