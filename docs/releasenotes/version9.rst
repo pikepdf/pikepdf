@@ -1,3 +1,19 @@
+v9.5.0
+======
+
+- Created setter for Outline management to make manipulating outlines easier.
+  Thanks @Zhongheng-Cheng for this contribution. :issue:`636`
+- pikepdf now sets XMP properties as subelements instead of inline properties,
+  in line with the XMP specification. Thanks @federicobond. :issue:`628`
+- pikepdf an issue with converting certain images to PIL. Thanks @DaveDeCaprio.
+  :issue:`632`
+- Added a new ``pikepdf.exceptions`` module which organizes all exceptions more
+  conveniently.
+- pikepdf now tries harder to extract corrupt images in a PDF when they are found.
+- Fixed an issue where an exception handler referred to an object not in scope,
+  causing another exception. Thanks @dhazelett. :issue:`627`
+- Dropped a comment about an unsupported dependency.
+
 v9.4.2
 ======
 
