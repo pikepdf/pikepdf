@@ -1,3 +1,8 @@
+v9.5.1
+======
+
+- Bump version to address sigstore build issues.
+
 v9.5.0
 ======
 
