@@ -81,6 +81,7 @@ test-extras = "test"
 skip = [
   "*-win32",                # no 32-bit builds/not supported by Pillow anymore
   "pp*-manylinux*_aarch64", # not supported by Pillow yet
+  "pp39-*",                 # dropped by Pillow
 ]
 test-skip = "*_universal2:arm64"
 build-frontend = "build"

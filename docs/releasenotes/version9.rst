@@ -2,6 +2,7 @@ v9.5.1
 ======
 
 - Bump version to address sigstore build issues.
+- Pillow dropped PyPy 3.9 so we're dropping it too.
 
 v9.5.0
 ======
