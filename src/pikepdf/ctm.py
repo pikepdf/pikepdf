@@ -1,6 +1,6 @@
 """Parsing the matrixes in a PDF file"""
 from logging import getLogger
-from typing import Any
+from typing import Any, Optional
 from pikepdf import Matrix, Operator, Page, parse_content_stream
 
 logger = getLogger(__file__)
@@ -32,7 +32,7 @@ class MatrixStack:
     """
     def __init__(self) -> None:
         self._identity_matrix = Matrix(1, 0, 0, 1, 0, 0)
-        self._stack: list[Matrix | None] = [self._identity_matrix]
+        self._stack: list[Optional[Matrix]] = [self._identity_matrix]
     
     def stack(self):
         """Copying the current CTM onto the stack"""
