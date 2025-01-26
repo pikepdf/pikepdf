@@ -13,6 +13,7 @@
 
 from __future__ import annotations
 
+import datetime
 import os
 import sys
 
@@ -85,7 +86,11 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'pikepdf'
-copyright = '2023, James R. Barlow'  # pylint: disable=redefined-builtin
+year = str(datetime.date.today().year)
+copyright = (
+    f'{year}, James R. Barlow. ',
+    'Licensed under Creative Commons Attribution-ShareAlike 4.0.',
+)
 author = 'James R. Barlow'
 
 # The version info for the project you're documenting, acts as replacement for
