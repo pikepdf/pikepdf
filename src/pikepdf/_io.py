@@ -66,16 +66,12 @@ def atomic_overwrite(filename: Path) -> Generator[IO[bytes], None, None]:
     with filename.open("ab") as stream:
         pass  # Confirm we will be able to write to the indicated destination
 
-    with NamedTemporaryFile(
-        dir=filename.parent, prefix=f".pikepdf.{filename.name}", delete=False
-    ) as tf:
-        try:
-            yield tf
-        except (Exception, KeyboardInterrupt):
-            with suppress(OSError):
-                tf.close()
-                Path(tf.name).unlink()
-            raise
+    tf = None
+    try:
+        tf = NamedTemporaryFile(
+            dir=filename.parent, prefix=f".pikepdf.{filename.name}", delete=False
+        )
+        yield tf
         tf.flush()
         tf.close()
         with suppress(OSError):
@@ -85,3 +81,9 @@ def atomic_overwrite(filename: Path) -> Generator[IO[bytes], None, None]:
         with suppress(OSError):
             # Update modified time of the destination file
             filename.touch()
+    finally:
+        if tf is not None:
+            with suppress(OSError):
+                tf.close()
+            with suppress(OSError):
+                Path(tf.name).unlink()
