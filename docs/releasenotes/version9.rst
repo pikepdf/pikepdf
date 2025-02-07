@@ -1,3 +1,12 @@
+v9.5.2
+======
+
+- Fixed an issue where temporary files could be left behind when using
+  allow_overwriting_input=True and a SIGINT is sent while the file is being
+  flushed to disk, or generally within a specific timing window.
+- Fixed an issue via OCRmyPDF by replacing an invalid Document Info dictionary
+  with a valid dictionary.
+
 v9.5.1
 ======
 
