@@ -40,6 +40,11 @@ jobs:
           python -m pip install tomli
           python build-scripts/environ-from-pyproject.py >> $GITHUB_ENV
 
+      - name: Install apt packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libjpeg-dev
+
       - name: Download and build QPDF source and libraries
         run: |
           build-scripts/posix-download-qpdf.bash $QPDF_VERSION
