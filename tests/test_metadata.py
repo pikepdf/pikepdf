@@ -833,3 +833,15 @@ def test_empty_list(graph, outpdf, assign, expect):
             assert (
                 m['dc:creator'] == expect
             ), f"After saving, expected {expect}, got {m['dc:creator']}"
+
+
+def test_docinfo_wrong_type():
+    pdf = pikepdf.Pdf.new()
+    pdf.trailer.Info = 42
+
+    assert isinstance(pdf.docinfo, pikepdf.Dictionary)
+
+    pdf.trailer.Info = Dictionary(Key=42)
+
+    assert isinstance(pdf.docinfo, pikepdf.Dictionary)
+    assert pdf.docinfo.is_indirect

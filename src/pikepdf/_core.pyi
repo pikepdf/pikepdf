@@ -2081,7 +2081,7 @@ class Pdf:
         pikepdf has no way of enforcing permissions.
         """
     @property
-    def docinfo(self) -> Object:
+    def docinfo(self) -> Dictionary:
         """Access the (deprecated) document information dictionary.
 
         The document information dictionary is a brief metadata record that can
@@ -2096,9 +2096,10 @@ class Pdf:
         created.
 
         A new, empty dictionary will be created if this property is accessed
-        and dictionary does not exist. (This is to ensure that convenient code
+        and dictionary does not exist or the wrong object type exists at that
+        location. (This is to ensure that convenient code
         like ``pdf.docinfo[Name.Title] = "Title"`` will work when the dictionary
-        does not exist at all.)
+        does not exist at all.) This dictionary is always indirect.
 
         You can delete the document information dictionary by deleting this property,
         ``del pdf.docinfo``. Note that accessing the property after deleting it
@@ -2108,7 +2109,7 @@ class Pdf:
             Added support for ``del pdf.docinfo``.
         """
     @docinfo.setter
-    def docinfo(self, val: Object) -> None: ...
+    def docinfo(self, val: Dictionary) -> None: ...
     @property
     def encryption(self) -> EncryptionInfo:
         """Report encryption information for this PDF.

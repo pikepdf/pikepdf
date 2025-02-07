@@ -174,8 +174,12 @@ class Extend_Pdf:
 
     @property
     def docinfo(self) -> Dictionary:
-        if Name.Info not in self.trailer:
+        if Name.Info not in self.trailer or not isinstance(
+            self.trailer.Info, Dictionary
+        ):
             self.trailer.Info = self.make_indirect(Dictionary())
+        if not self.trailer.Info.is_indirect:
+            self.trailer.Info = self.make_indirect(self.trailer.Info)
         return self.trailer.Info
 
     @docinfo.setter
