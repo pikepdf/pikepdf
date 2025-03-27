@@ -30,7 +30,7 @@ based on Clang's formatter, imperfect as it is. We eagerly await a dangling pare
 In general we prefer to make our C++ look similar to Python PEP8, within reason,
 because our code is primarily a Python binding. That is, variable and method names
 are snake_case, class names are CamelCase. Our coding conventions are closer to
-pybind11's than QPDF's. When a C++ object wraps is a Python object, it should follow
+pybind11's than qpdf's. When a C++ object wraps is a Python object, it should follow
 the Python naming conventions for that type of object, e.g.
 ``auto Decimal = py::module_::import("decimal").attr("Decimal")``
 for a reference to the Python ``Decimal`` class even though it is a C++ object.

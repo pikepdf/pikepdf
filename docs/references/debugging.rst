@@ -11,39 +11,39 @@ Using gdb to debug C++ and Python
 
 Current versions of gdb can debug Python and C++ code simultaneously. See
 the Python developer's guide on `gdb Support`_. To use this effectively, a debug
-build of pikepdf and QPDF should be created.
+build of pikepdf and qpdf should be created.
 
 .. _gdb Support: https://devguide.python.org/gdb/
 
-Compiling a debug build of QPDF
+Compiling a debug build of qpdf
 -------------------------------
 
-To download QPDF and compile a debug build:
+To download qpdf and compile a debug build:
 
 .. code-block:: bash
 
-    # in QPDF source tree
+    # in qpdf source tree
     cd $QPDF_SOURCE_TREE
     cmake -S . -B build -DENABLE_QTC=ON -DCMAKE_BUILD_TYPE=Debug
     cmake --build build -j
 
-Compile and link against QPDF source tree
+Compile and link against qpdf source tree
 -----------------------------------------
 
-Build ``pikepdf._core`` against the version of QPDF above, rather than the
+Build ``pikepdf._core`` against the version of qpdf above, rather than the
 system version:
 
 .. code-block:: bash
 
-    env QPDF_SOURCE_TREE=<location of QPDF> \
+    env QPDF_SOURCE_TREE=<location of qpdf> \
       QPDF_BUILD_LIBDIR=<directory containing libqpdf.so> \
       python setup.py build_ext --inplace
 
 The libqpdf.so file should be located in the ``libqpdf`` subdirectory of your cmake
 build directory but may be in a subdirectory of that if you are using a
-multi-configuration generator with cmake. In addition to building against the QPDF
+multi-configuration generator with cmake. In addition to building against the qpdf
 source, you'll need to force your operating system to load the locally compiled
-version of QPDF instead of the installed version:
+version of qpdf instead of the installed version:
 
 .. code-block:: bash
 
@@ -65,12 +65,12 @@ to use in pikepdf's binary extension module:
         src/pikepdf/_core.cpython*.so
 
 You can also run Python through a debugger (``gdb`` or ``lldb``) in this manner,
-and you will have access to the source code for both pikepdf's C++ and QPDF.
+and you will have access to the source code for both pikepdf's C++ and qpdf.
 
-Enabling QPDF tracing
+Enabling qpdf tracing
 ---------------------
 
-For builds of QPDF having ENABLE_QTC=ON, setting the environment variables
+For builds of qpdf having ENABLE_QTC=ON, setting the environment variables
 ``TC_SCOPE=qpdf`` and ``TC_FILENAME=your_log_file.txt`` will cause libqpdf to
 log debug messages to the designated file. For example:
 

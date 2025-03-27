@@ -10,9 +10,9 @@ pikepdf Documentation
 
 **pikepdf** is a Python library allowing creation, manipulation and repair of
 PDFs. It provides a Pythonic wrapper around the C++ PDF content transformation
-library, `QPDF <https://github.com/qpdf/qpdf>`_.
+library `qpdf <https://qpdf.org>`_.
 
-Python + QPDF = "py" + "qpdf" = "pyqpdf", which looks like a dyslexia test and
+Python + qpdf = "py" + "qpdf" = "pyqpdf", which looks like a dyslexia test and
 is no fun to type. But say "pyqpdf" out loud, and it sounds like "pikepdf".
 
 At a glance
@@ -20,7 +20,7 @@ At a glance
 
 pikepdf is a library intended for developers who want to create, manipulate, parse,
 repair, and abuse the PDF format. It supports reading and write PDFs, including
-creating from scratch. Thanks to QPDF, it supports linearizing PDFs and access
+creating from scratch. Thanks to qpdf, it supports linearizing PDFs and access
 to encrypted PDFs.
 
 .. code-block:: python
@@ -102,7 +102,7 @@ Similar libraries
 Unlike similar Python libraries such as pypdf, pikepdf is not pure
 Python. These libraries were designed prior to Python wheels which has made Python
 extension libraries much easier to work with. By leveraging the existing mature
-code base of QPDF, despite being new, pikepdf is already more capable than both
+code base of qpdf, despite being new, pikepdf is already more capable than both
 in many respects – for example, it can read compress object streams, repair
 damaged PDFs in many cases, and linearize PDFs. Unlike those libraries, it's not
 pure Python: it is impure and proud of it.
