@@ -293,7 +293,7 @@ specify restrictions.
 Refer to our :ref:`security documentation <security>` for more information on
 user/owner passwords and PDF permissions.
 
-Running QPDF through Jobs
+Running qpdf through Jobs
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 pikepdf can access all of the features of the qpdf command line program, and
@@ -305,7 +305,7 @@ can even execute qpdf-like command lines.
 
     >>> Job(['pikepdf', '--check', '../tests/resources/fourpages.pdf'])
 
-You can also specify jobs in QPDF Job JSON:
+You can also specify jobs in qpdf Job JSON:
 
 .. code-block:: python
 

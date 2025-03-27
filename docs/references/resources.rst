@@ -1,7 +1,7 @@
 Resources
 =========
 
-* `QPDF Manual`_
+* `qpdf manual`_
 
 * `PDF 1.7`_ ISO Specification PDF 32000-1:2008
 
@@ -9,7 +9,7 @@ Resources
 
 * Other `Adobe extensions`_ to the PDF specification
 
-.. _QPDF Manual: https://qpdf.readthedocs.io/
+.. _qpdf manual: https://qpdf.readthedocs.io/
 
 .. _PDF 1.7: https://opensource.adobe.com/dc-acrobat-sdk-docs/standards/pdfstandards/pdf/PDF32000_2008.pdf
 

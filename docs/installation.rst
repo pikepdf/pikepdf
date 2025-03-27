@@ -133,15 +133,15 @@ pikepdf requires:
 -   a C++17 compliant compiler - roughly GCC 7+, clang 6+, or MSVC 19+
 -   `pybind11 <https://github.com/pybind/pybind11>`_
 -   libqpdf |qpdf-min-version| or higher from the
-    `QPDF <https://github.com/qpdf/qpdf>`_ project.
+    `qpdf <https://qpdf.org>`_ project.
 
 On Linux the library and headers for libqpdf must be installed because pikepdf
 compiles code against it and links to it.
 
-Check `Repology for QPDF <https://repology.org/project/qpdf/badges>`_ to
-see if a recent version of QPDF is available for your platform. Otherwise you
+Check `Repology for qpdf <https://repology.org/project/qpdf/badges>`_ to
+see if a recent version of qpdf is available for your platform. Otherwise you
 must
-`build QPDF from source <https://github.com/qpdf/qpdf/blob/main/INSTALL>`_.
+`build qpdf from source <https://github.com/qpdf/qpdf?tab=readme-ov-file#building-from-source-distribution-on-unixlinux>`_.
 (Consider using the binary wheels, which bundle the required version of
 libqpdf.)
 
@@ -169,7 +169,7 @@ To link to system libraries (the ones installed by your package manager, such
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 setuptools will normally attempt to link against your system libraries.
-If you wish to link pikepdf against a different version of the QPDF (say,
+If you wish to link pikepdf against a different version of the qpdf (say,
 because pikepdf requires a newer version than your operating system has),
 then you might do something like:
 
@@ -192,7 +192,7 @@ pikepdf requires a C++17 compliant compiler (i.e. Visual Studio 2015 on
 Windows). See our continuous integration build script in ``.appveyor.yml``
 for detailed and current instructions. Or use the wheels which save this pain.
 
-These instructions require the precompiled binary ``qpdf.dll``. See the QPDF
+These instructions require the precompiled binary ``qpdf.dll``. See the qpdf
 documentation if you also need to build this DLL from source. Both should be
 built with the same compiler. You may not mix and match MinGW and Visual C++
 for example.
@@ -210,8 +210,8 @@ extension with it. We must force the use of Visual Studio 2015.
         set DISTUTILS_USE_SDK=1
         set MSSdk=1
 
--  Download |msvc-zip| from the `QPDF releases page <https://github.com/qpdf/qpdf/releases>`_.
--  Extract ``bin\*.dll`` (all the DLLs, both QPDF's and the Microsoft Visual C++
+-  Download |msvc-zip| from the `qpdf releases page <https://github.com/qpdf/qpdf/releases>`_.
+-  Extract ``bin\*.dll`` (all the DLLs, both qpdf's and the Microsoft Visual C++
    Runtime library) from the zip file above, and copy it to the ``src/pikepdf``
    folder in the repository.
 -  Run ``pip install .`` in the root directory of the repository.
@@ -221,12 +221,12 @@ extension with it. We must force the use of Visual Studio 2015.
     The user compiling ``pikepdf`` to must have registry editing rights on the
     machine to be able to run the ``vcvarsall.bat`` script.
 
-:fa:`linux` :fa:`apple` :fa:`windows` Building against a QPDF source tree
+:fa:`linux` :fa:`apple` :fa:`windows` Building against a qpdf source tree
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Follow these steps to build pikepdf against a different version of QPDF, rather than
+Follow these steps to build pikepdf against a different version of qpdf, rather than
 the one provided with your operating system. This may be useful if you need a more
-recent version of QPDF than your operating system package manager provides, and you
+recent version of qpdf than your operating system package manager provides, and you
 do not want to use Python wheels.
 
 .. code-block:: bash
@@ -243,7 +243,7 @@ do not want to use Python wheels.
         pip install -e .
 
 Note that the Python wheels for pikepdf currently compile their own version of
-QPDF and several of its dependencies to ensure the wheels have the latest version.
+qpdf and several of its dependencies to ensure the wheels have the latest version.
 You can also refer to the GitHub Actions YAML files for build steps.
 
 Building the documentation
