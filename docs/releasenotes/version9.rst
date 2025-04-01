@@ -1,3 +1,8 @@
+v9.6.0
+======
+
+- Wheels are now built against qpdf 12.0.0.
+
 v9.5.2
 ======
 
