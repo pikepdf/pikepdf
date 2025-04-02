@@ -17,12 +17,11 @@ readme = "README.md"
 requires-python = ">=3.9"
 keywords = ["PDF"]
 authors = [{ name = "James R. Barlow", email = "james@purplerock.ca" }]
-license = { text = "MPL-2.0" }
+license = "MPL-2.0"
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
   "Intended Audience :: Information Technology",
-  "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
   "Programming Language :: C++",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: Implementation :: CPython",
