@@ -7,6 +7,7 @@
 #include <qpdf/Constants.h>
 #include <qpdf/Types.h>
 #include <qpdf/DLL.h>
+#include <qpdf/Pl_String.hh>
 #include <qpdf/QPDFExc.hh>
 #include <qpdf/QPDFObjGen.hh>
 #include <qpdf/QPDFXRefEntry.hh>
@@ -817,7 +818,10 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &h,
                 bool dereference   = false,
                 int schema_version = 2) -> py::bytes {
-                return h.getJSON(schema_version, dereference).unparse();
+                std::string result;
+                Pl_String p("json", nullptr, result);
+                h.writeJSON(schema_version, &p, dereference);
+                return result;
             },
             py::arg("dereference")    = false,
             py::arg("schema_version") = 2); // end of QPDFObjectHandle bindings
