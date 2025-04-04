@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import sys
+
 import pytest
 
 import pikepdf
@@ -14,6 +16,10 @@ def pal(resources):
         yield pdf
 
 
+@pytest.mark.xfail(
+    sys.platform == 'win32',
+    reason="MSVC doesn't compile bind_vector<QPDFObjectHandle> properly",
+)
 def test_objectlist_repr(pal):
     cs = pikepdf.parse_content_stream(pal.pages[0].Contents)
     assert isinstance(cs[1][0], pikepdf._core._ObjectList)
