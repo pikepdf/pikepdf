@@ -4,7 +4,7 @@
 [build-system]
 requires = [
   "setuptools >= 61",
-  "setuptools < 72; python_implementation == 'PyPy'", # https://github.com/pypa/distutils/issues/283
+  "setuptools != 72.2.0; python_implementation == 'PyPy'", # https://github.com/pypa/distutils/issues/283
   "pybind11 >= 2.12.0",
 ]
 build-backend = "setuptools.build_meta"
@@ -17,12 +17,11 @@ readme = "README.md"
 requires-python = ">=3.9"
 keywords = ["PDF"]
 authors = [{ name = "James R. Barlow", email = "james@purplerock.ca" }]
-license = { text = "MPL-2.0" }
+license = "MPL-2.0"
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",
   "Intended Audience :: Information Technology",
-  "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
   "Programming Language :: C++",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: Implementation :: CPython",
@@ -82,13 +81,15 @@ skip = [
   "*-win32",                # no 32-bit builds/not supported by Pillow anymore
   "pp*-manylinux*_aarch64", # not supported by Pillow yet
   "pp39-*",                 # dropped by Pillow
+  "pp*-macosx*",            # https://github.com/pypa/distutils/issues/283 PyPy/setuptools is broken on macos
+  "pp311-*",                # not supported by lxml
 ]
 test-skip = "*_universal2:arm64"
 build-frontend = "build"
 
 [tool.cibuildwheel.environment]
-QPDF_MIN_VERSION = "11.5.0"
-QPDF_VERSION = "11.9.1"
+QPDF_MIN_VERSION = "11.9.0"
+QPDF_VERSION = "12.0.0"
 QPDF_PATTERN = "https://github.com/qpdf/qpdf/releases/download/vVERSION/qpdf-VERSION.tar.gz"
 
 [tool.cibuildwheel.linux]

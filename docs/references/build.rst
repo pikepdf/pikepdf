@@ -57,3 +57,41 @@ big build overhaul.
 
 Users who build from source have more options and can likely get
 functional builds on anything newer than macOS 14.
+
+Windows
+-------
+
+Using Visual Studio C++:
+
+* ``winget install git.git``
+* ``winget install python.python.3.12``
+* ``winget install  Microsoft.VisualStudio.2022.BuildTools``
+* ``winget install kitware.cmake``
+
+Download qpdf external libs and unpack in place.
+
+.. code-block:: powershell
+
+  wget https://github.com/qpdf/external-libs/releases/download/release-$version/qpdf-external-libs-bin.zip -Outfile libs.zip
+  expand-archive -path libs.zip -destinationpath .
+
+Download qpdf and build from source using:
+
+.. code-block:: powershell
+
+  cd $qpdf
+  cmake -S . -B build
+  cmake --build build --config Release
+
+Switch to pikepdf source folder. Set up environment variables and get pip to build/install:
+
+.. code-block:: powershell
+
+  cd $pikepdf
+  $env:INCLUDE = "$qpdf\include"
+  $env:LIB = "$qpdf\build\libqpdf\Release\"
+  cp $LIB\libqpdfXX.dll src\pikepdf  # Help Python loader find libqpdf.dll
+  python -m venv .venv
+  .venv\scripts\activate
+  pip install -e .
+

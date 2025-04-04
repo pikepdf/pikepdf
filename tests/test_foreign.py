@@ -75,27 +75,29 @@ def test_with_same_owner_as(vera, outlines, outpdf):
         outlines.Root.Names.with_same_owner_as(Dictionary(Foo=42))
 
 
-@pytest.mark.xfail(reason="current qpdf behavior")
 def test_issue_271():
     f1 = Pdf.new()
     f2 = Pdf.new()
-    p1 = f1.add_blank_page()
+    p11 = f1.add_blank_page()
     # copy p1 to f2 and change its mediabox
 
-    f2.pages.append(p1)
-    p2 = f2.pages[0]
-    p2.MediaBox[0] = 1
-    p2.Rotate = 1
+    f2.pages.append(p11)
+    p21 = f2.pages[0]
+    p21.MediaBox[0] = 1
+    p21.Rotate = 1
 
-    f2.pages.append(p1)
-    p3 = f2.pages[1]
+    f2.pages.append(p11)
+    p22 = f2.pages[1]
 
-    assert p2.MediaBox[0] != p1.MediaBox[0]
-    assert Name.Rotate in p2
-    assert Name.Rotate not in p1
+    assert p21.MediaBox[0] != p11.MediaBox[0]
+    assert Name.Rotate in p21
+    assert Name.Rotate not in p11
 
-    assert p3.MediaBox[0] == p1.MediaBox[0]
-    assert Name.Rotate not in p3
+    # This behavior is counterintuitive, but it is what we do, because it is what
+    # qpdf does. When a page is copied from one pdf to another, qpdf caches the
+    # copy and returns it.
+    assert p22.MediaBox[0] != p11.MediaBox[0]
+    assert p22.MediaBox[0] == p21.MediaBox[0]
 
 
 def test_copy_foreign_refcount(refcount, vera, outlines):
