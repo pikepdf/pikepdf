@@ -82,6 +82,7 @@ skip = [
   "pp*-manylinux*_aarch64", # not supported by Pillow yet
   "pp39-*",                 # dropped by Pillow
   "pp*-macosx*",            # https://github.com/pypa/distutils/issues/283 PyPy/setuptools is broken on macos
+  "pp311-*",                # not supported by lxml
 ]
 test-skip = "*_universal2:arm64"
 build-frontend = "build"

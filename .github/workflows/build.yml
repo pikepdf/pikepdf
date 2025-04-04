@@ -69,6 +69,7 @@ jobs:
         uses: pypa/cibuildwheel@v2.23.2
 
   wheels_linux_arm:
+    name: ${{ matrix.platform }}
     runs-on: ubuntu-22.04-arm
     strategy:
       matrix:
