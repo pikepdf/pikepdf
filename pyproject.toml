@@ -3,7 +3,7 @@
 [build-system]
 requires = [
   "setuptools >= 61",
-  "setuptools < 72; python_implementation == 'PyPy'", # https://github.com/pypa/distutils/issues/283
+  "setuptools != 72.2.0; python_implementation == 'PyPy'", # https://github.com/pypa/distutils/issues/283
   "pybind11 >= 2.12.0",
 ]
 build-backend = "setuptools.build_meta"
