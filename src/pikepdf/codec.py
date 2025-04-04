@@ -6,10 +6,16 @@
 from __future__ import annotations
 
 import codecs
+import sys
 from collections.abc import Container
 from typing import Any
 
 from pikepdf._core import pdf_doc_to_utf8, utf8_to_pdf_doc
+
+if sys.version_info >= (3, 12):
+    from collections.abc import Buffer
+else:
+    Buffer = Any
 
 # pylint: disable=redefined-builtin
 
@@ -105,7 +111,7 @@ def pdfdoc_encode(input: str, errors: str = 'strict') -> tuple[bytes, int]:
     raise LookupError(errors)
 
 
-def pdfdoc_decode(input: bytes, errors: str = 'strict') -> tuple[str, int]:
+def pdfdoc_decode(input: Buffer, errors: str = 'strict') -> tuple[str, int]:
     """Convert PdfDoc-encoded input into a Python str."""
     if isinstance(input, memoryview):
         input = input.tobytes()
@@ -131,7 +137,7 @@ class PdfDocCodec(codecs.Codec):
         """Implement codecs.Codec.encode for pdfdoc."""
         return pdfdoc_encode(input, errors)
 
-    def decode(self, input: bytes, errors: str = 'strict') -> tuple[str, int]:
+    def decode(self, input: Buffer, errors: str = 'strict') -> tuple[str, int]:
         """Implement codecs.Codec.decode for pdfdoc."""
         return pdfdoc_decode(input, errors)
 
