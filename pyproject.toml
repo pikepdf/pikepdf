@@ -1,4 +1,5 @@
 # SPDX-FileCopyrightText: 2022 James R. Barlow
+# SPDX-License-Identifier: MPL-2.0
 
 [build-system]
 requires = [
@@ -80,6 +81,7 @@ skip = [
   "*-win32",                # no 32-bit builds/not supported by Pillow anymore
   "pp*-manylinux*_aarch64", # not supported by Pillow yet
   "pp39-*",                 # dropped by Pillow
+  "pp*-macosx*",            # https://github.com/pypa/distutils/issues/283 PyPy/setuptools is broken on macos
 ]
 test-skip = "*_universal2:arm64"
 build-frontend = "build"

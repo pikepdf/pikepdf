@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.21.3
+        uses: pypa/cibuildwheel@v2.23.2
 
       - name: Upload built wheels
         uses: actions/upload-artifact@v4
@@ -66,45 +66,18 @@ jobs:
             libxcb1-dev
 
       - name: Build and test wheels (without upload)
-        uses: pypa/cibuildwheel@v2.21.3
+        uses: pypa/cibuildwheel@v2.23.2
 
   wheels_linux_arm:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-22.04-arm
     strategy:
       matrix:
-        platform: [manylinux_musllinux_arm64]
+        platform: [manylinux_arm64, musllinux_arm64]
     steps:
-      - name: Waiting for Cirrus CI
-        uses: lewagon/wait-on-check-action@v1.3.4
-        if: github.event_name != 'pull_request'
-        with:
-          ref: ${{ github.ref || github.sha }}
-          check-regexp: '^linux arm64 Cirrus'
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          wait-interval: 60
+      - uses: actions/checkout@v4
 
-      # When doing a release build and queried, GitHub Actions returns the build
-      # status for both the branch and tag, even when only one is queried. This means
-      # on release, we get two successful builds from Cirrus CI, and the step above will
-      # pass on whichever succeeds first. So we sit here and wait for the second one if
-      # it hasn't finished yet. Cirrus CI might decide to run them sequentially so we
-      # could be waiting for up to a whole build time. Allow one hour.
-      # The particular curl query used here does ensure we get the status for the
-      # appropriate branch/tag build.
-      # An alternative would be creating explicit tasks for the branch and tag builds
-      # on both Cirrus CI and GitHub Actions, but that would be a lot of duplication.
-      # Another alternative would be to fork and improve wait-on-check-action to allow
-      # waiting our specific check.
-      - name: Download artifacts
-        run: |
-          retries=120
-          while [ $retries -gt 0 ]; do
-            sleep 30
-            curl --fail -L https://api.cirrus-ci.com/v1/artifact/github/${{ github.repository }}/wheel_linux_arm/wheels.zip?branch=${{ github.ref_name }} -o wheels.zip && break
-            retries=$((retries - 1))
-            echo "Retrying... (retries left: $retries)"
-          done
-          unzip wheels.zip
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v2.23.2
 
       - name: Upload built wheels
         uses: actions/upload-artifact@v4
@@ -136,7 +109,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.21.3
+        uses: pypa/cibuildwheel@v2.23.2
 
       - uses: actions/upload-artifact@v4
         with:
@@ -208,7 +181,7 @@ jobs:
           build-scripts/win-download-qpdf.ps1 $env:QPDF_VERSION ${{ matrix.platform }}
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.21.3
+        uses: pypa/cibuildwheel@v2.23.2
 
       - uses: actions/upload-artifact@v4
         with:
