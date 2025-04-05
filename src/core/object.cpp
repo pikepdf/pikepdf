@@ -369,6 +369,9 @@ void init_object(py::module_ &m)
         .def("__repr__", &objecthandle_repr)
         .def("__hash__",
             [](QPDFObjectHandle &self) -> py::int_ {
+                if (self.isIndirect())
+                    throw py::type_error("Can't hash indirect object");
+
                 // Objects which compare equal must have the same hash value
                 switch (self.getTypeCode()) {
                 case qpdf_object_type_e::ot_string:
