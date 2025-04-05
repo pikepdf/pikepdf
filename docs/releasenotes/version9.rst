@@ -1,7 +1,19 @@
 v9.6.0
 ======
 
-- Wheels are now built against qpdf 12.0.0.
+- ``pikepdf.Object`` that are indirect objects now raise an exception on attempts
+  to hash them (add to dict-type containers), since they are in fact potentially
+  mutable. For now, direct objects can still be hashed, but this is likely to be
+  discontinued. :issue:`647`
+- Wheels are now built against qpdf 12.0.0, which should bring performance
+  improvements for most workloads.
+- qpdf 11.9.0 is now the minimum build requirement.
+- We no longer build PyPy wheels on macOS, due to poor supporting infrastructure
+  and unfixed issues. pikepdf will likely drop PyPy in its next major release.
+- ``pikepdf._core._ObjectList`` no longer reports its ``repr()`` correctly on
+  Windows. This issue appears to be a compiler bug in MSVC++ and has no known
+  resolution, but also very minor impact.
+- Updates to tooling.
 
 v9.5.2
 ======
