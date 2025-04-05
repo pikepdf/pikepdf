@@ -74,12 +74,12 @@ def _roman(n: int) -> str:
     return roman
 
 
-LABEL_STYLE_MAP: dict[Name, Callable[[int], str]] = {
-    Name.D: str,
-    Name.A: _alpha,
-    Name.a: lambda x: _alpha(x).lower(),
-    Name.R: _roman,
-    Name.r: lambda x: _roman(x).lower(),
+LABEL_STYLE_MAP: dict[str, Callable[[int], str]] = {
+    "D": str,
+    "A": _alpha,
+    "a": lambda x: _alpha(x).lower(),
+    "R": _roman,
+    "r": lambda x: _roman(x).lower(),
 }
 
 
@@ -105,7 +105,7 @@ def label_from_label_dict(label_dict: int | Dictionary) -> str:
 
         style = label_dict[Name.S]
         if isinstance(style, Name):
-            style_fn = LABEL_STYLE_MAP[style]
+            style_fn = LABEL_STYLE_MAP[str(style)[1:]]
             value = style_fn(numeric_value)
             label += value
         else:
