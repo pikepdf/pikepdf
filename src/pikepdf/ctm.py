@@ -85,7 +85,8 @@ def get_objects_with_ctm(page: Page) -> list[tuple[str, Matrix]]:
         tuple[str, Matrix]
     ] = []  # Stores the matrixes and the corresponding objects
     matrix_stack = MatrixStack()
-    for operands, operator in parse_content_stream(page):
+    for inst in parse_content_stream(page):
+        operator, operands = inst.operator, inst.operands
         if operator == OPERATOR_STACK:
             matrix_stack.stack()
 
