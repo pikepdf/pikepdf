@@ -2,11 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 [build-system]
-requires = [
-  "setuptools >= 61",
-  "setuptools != 72.2.0; python_implementation == 'PyPy'", # https://github.com/pypa/distutils/issues/283
-  "pybind11 >= 2.12.0",
-]
+requires = ["setuptools >= 77.0.0", "pybind11 >= 2.13.6"]
 build-backend = "setuptools.build_meta"
 
 [project]
