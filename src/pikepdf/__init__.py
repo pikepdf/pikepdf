@@ -69,7 +69,7 @@ from pikepdf.models import (
     unparse_content_stream,
 )
 
-from pikepdf.ctm import (
+from pikepdf.models.ctm import (
     get_objects_with_ctm,
 )
 
