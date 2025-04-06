@@ -18,9 +18,9 @@ OPERATOR_POP = Operator('Q')  # Restores the previous CTM
 class MatrixStack:
     """Tracks the CTM (current transformation matrix) in a PDF content stream.
 
-    The CTM starts as the identity matrix and can be changed via the 'cm'
+    The CTM starts as the initial matrix and can be changed via the 'cm'
     (concatenate matrix) operator --> CTM = CTM x CM (with CTM and CM
-    being 3x3 matrixes).
+    being 3x3 matrixes). Initial matrix is the identity matrix unless overridden.
 
     Furthermore can the CTM be stored to the stack via the 'q' operator.
     This save the CTM and subsequent 'cm' operators change a copy of that CTM
@@ -39,10 +39,10 @@ class MatrixStack:
     --> The CTM is valid again when all invalid CTMs are popped off the stack
     """
 
-    def __init__(self) -> None:
+    def __init__(self, initial_matrix: Matrix = Matrix.identity()) -> None:
         """Initializing the stack with the identity matrix."""
-        self._identity_matrix = Matrix(1, 0, 0, 1, 0, 0)
-        self._stack: list[Matrix | None] = [self._identity_matrix]
+        self._initial_matrix = initial_matrix
+        self._stack: list[Matrix | None] = [self._initial_matrix]
 
     def stack(self):
         """Copying the current CTM onto the stack."""
@@ -52,7 +52,7 @@ class MatrixStack:
         """Removing the current CTM from the stack."""
         assert len(self._stack) >= 1, "can't be empty"
         if len(self._stack) == 1:
-            self._stack = [self._identity_matrix]
+            self._stack = [self._initial_matrix]
         else:
             self._stack.pop()
 
@@ -76,7 +76,9 @@ class MatrixStack:
         return self._stack[-1]
 
 
-def get_objects_with_ctm(page: Page) -> list[tuple[str, Matrix]]:
+def get_objects_with_ctm(
+    page: Page, initial_matrix: Matrix = Matrix.identity()
+) -> list[tuple[str, Matrix]]:
     """Determines the current transformation matrix (CTM) for each drawn object.
 
     Filters objects with an invalid CTM.
@@ -84,7 +86,7 @@ def get_objects_with_ctm(page: Page) -> list[tuple[str, Matrix]]:
     objects_with_ctm: list[
         tuple[str, Matrix]
     ] = []  # Stores the matrixes and the corresponding objects
-    matrix_stack = MatrixStack()
+    matrix_stack = MatrixStack(initial_matrix)
     for inst in parse_content_stream(page):
         operator, operands = inst.operator, inst.operands
         if operator == OPERATOR_STACK:
