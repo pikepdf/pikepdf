@@ -21,7 +21,7 @@ def allclose(m1, m2, abs_tol=1e-6):
 
 class TestMatrix:
     def test_default_is_identity(self):
-        assert Matrix() == Matrix(1, 0, 0, 1, 0, 0)
+        assert Matrix() == Matrix(1, 0, 0, 1, 0, 0) == Matrix.identity()
 
     def test_not_enough_args(self):
         with pytest.raises(TypeError):

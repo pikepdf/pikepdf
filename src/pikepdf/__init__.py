@@ -69,6 +69,11 @@ from pikepdf.models import (
     unparse_content_stream,
 )
 
+from pikepdf.models.ctm import (
+    get_objects_with_ctm,
+)
+
+
 # Importing these will monkeypatch classes defined in C++ and register a new
 # pdfdoc codec
 # While _cpphelpers is intended to be called from our C++ code only, explicitly
@@ -106,6 +111,7 @@ __all__ = [
     'Encryption',
     'exceptions',
     'ForeignObjectError',
+    'get_objects_with_ctm',
     'HifiPrintImageNotTranscodableError',
     'InvalidPdfImageError',
     'Job',

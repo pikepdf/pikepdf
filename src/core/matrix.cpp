@@ -41,6 +41,7 @@ void init_matrix(py::module_ &m)
 
     py::class_<QPDFMatrix>(m, "Matrix")
         .def(py::init<>())
+        .def_static("identity", []() { return QPDFMatrix(); })
         .def(py::init<double, double, double, double, double, double>(),
             py::arg("a"),
             py::arg("b"),

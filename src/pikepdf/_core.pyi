@@ -2632,6 +2632,14 @@ class Matrix:
     def __init__(self, other: Matrix): ...
     @overload
     def __init__(self, values: tuple[float, float, float, float, float, float], /): ...
+    @classmethod
+    def identity(cls) -> Matrix:
+        """Construct an identity matrix.
+
+        More explicit than the constructor.
+
+        .. versionadded:: 9.7.0
+        """
     @property
     def a(self) -> float:
         """``a`` is the horizontal scaling factor."""
