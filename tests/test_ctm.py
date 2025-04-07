@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from pikepdf import Matrix, Pdf, get_objects_with_ctm
+from pikepdf.models.ctm import MatrixStack
 
 
 # Crafted test PDF that contains 4 'Do' (Draw Object) operations
@@ -46,3 +47,16 @@ def test_get_matrices_scaled(ctm_cm):
     assert matrixes[0] == first
     assert matrixes[1] == second
     assert matrixes[2] == second @ fourth
+
+
+def test_underflow():
+    stack = MatrixStack()
+    for _ in range(4):
+        stack.pop()
+    assert stack.ctm == Matrix.identity()
+
+
+def test_invalid_ctm():
+    stack = MatrixStack()
+    stack.invalidate_current_transformation_matrix()
+    assert stack.ctm is None

@@ -31,7 +31,7 @@ class MatrixStack:
     stack.
 
     Error handling:
-    1. Popping from an empty stack results in CTM being set to the identity matrix
+    1. Popping from an empty stack results in CTM being set to the initial matrix
     2. Multiplying with invalid operands sets the CTM to invalid
     3. Multiplying an invalid CTM with a valid CM results in an invalid CTM
     4. Stacking an invalid CTM results in a copy of that invalid CTM onto the stack
@@ -40,7 +40,7 @@ class MatrixStack:
     """
 
     def __init__(self, initial_matrix: Matrix = Matrix.identity()) -> None:
-        """Initializing the stack with the identity matrix."""
+        """Initializing the stack with the initial matrix."""
         self._initial_matrix = initial_matrix
         self._stack: list[Matrix | None] = [self._initial_matrix]
 
@@ -49,7 +49,13 @@ class MatrixStack:
         self._stack.append(self._stack[-1])
 
     def pop(self):
-        """Removing the current CTM from the stack."""
+        """Removing the current CTM from the stack.
+
+        The stack is not permitted to underflow. If popped too many times, the CTM
+        is set to the initial matrix. Some PDFs contain invalid content streams
+        that would result in an underflow, therefore the initial matrix is used
+        as a safe fallback.
+        """
         assert len(self._stack) >= 1, "can't be empty"
         if len(self._stack) == 1:
             self._stack = [self._initial_matrix]
@@ -57,7 +63,7 @@ class MatrixStack:
             self._stack.pop()
 
     def multiply(self, matrix: Matrix):
-        """Multiplies the CTM with `matrix`."""
+        """Multiplies the CTM with `matrix`. The result is not returned."""
         if self._stack[-1] is None:
             return
         else:
