@@ -1,3 +1,12 @@
+v9.7.0
+======
+
+- Merged :pr:`639`, a branch containing support for calculating the current
+  transformation matrix at time of rendering. This is a valuable building block
+  for users wishing to determine when and where images are drawn. Thanks
+  @rakurtz for the contribution.
+- Clarified need for setuptools 77.0.3 to build. :issue:`648`
+
 v9.6.0
 ======
 
@@ -13,6 +22,7 @@ v9.6.0
 - ``pikepdf._core._ObjectList`` no longer reports its ``repr()`` correctly on
   Windows. This issue appears to be a compiler bug in MSVC++ and has no known
   resolution, but also very minor impact.
+- setuptools 77.0.3 is now required for building.
 - Updates to tooling.
 
 v9.5.2
