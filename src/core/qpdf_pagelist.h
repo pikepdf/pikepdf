@@ -33,7 +33,6 @@ public:
 
 private:
     std::vector<QPDFPageObjectHelper> get_page_objs_impl(py::slice slice);
-    QPDFPageObjectHelper page_from_object(py::handle obj);
 };
 
 class PageListIterator { // LCOV_EXCL_LINE

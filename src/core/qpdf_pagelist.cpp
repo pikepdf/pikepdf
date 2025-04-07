@@ -138,56 +138,6 @@ void PageList::delete_pages_from_iterable(py::slice slice)
 
 py::size_t PageList::count() { return this->doc.getAllPages().size(); }
 
-QPDFPageObjectHelper PageList::page_from_object(py::handle obj)
-{
-    try {
-        auto page = obj.cast<QPDFPageObjectHelper>();
-        return page;
-    } catch (py::cast_error &) {
-        // Perhaps obj is a dictionary with Type=Name.Page
-    }
-
-    QPDFObjectHandle oh, indirect_oh;
-    try {
-        oh = obj.cast<QPDFObjectHandle>();
-    } catch (py::cast_error &) {
-        throw py::type_error("tried to insert object which is neither pikepdf.Page "
-                             "nor pikepdf.Dictionary with Type=Name.Page");
-    }
-
-    python_warning("Implicit conversion of pikepdf.Dictionary to pikepdf.Page is "
-                   "deprecated. Use pikepdf.Page(dictionary) instead.",
-        PyExc_DeprecationWarning);
-
-    bool copied = false;
-    try {
-        if (!oh.getOwningQPDF()) {
-            // No owner means this is a direct object - try making it indirect
-            indirect_oh = this->qpdf->makeIndirectObject(oh);
-            copied      = true;
-        } else {
-            indirect_oh = oh;
-        }
-        if (!indirect_oh.isPageObject()) {
-            // PDFs in the wild often have malformed page objects, but when we're
-            // building new pages we might as enforce correctness. If you really
-            // want a malformed PDF, you can break it after making it properly.
-            throw py::type_error(std::string("only pages can be inserted - you tried "
-                                             "to insert this as a page: ") +
-                                 objecthandle_repr(oh));
-        }
-        return QPDFPageObjectHelper(indirect_oh);
-    } catch (std::runtime_error &) {
-        // If we created a new temporary indirect object to hold the page, and
-        // failed to insert, delete the object we created as best we can.
-        if (copied) {
-            this->qpdf->replaceObject(
-                indirect_oh.getObjGen(), QPDFObjectHandle::newNull());
-        }
-        throw;
-    }
-}
-
 void PageList::insert_page(py::size_t index, QPDFPageObjectHelper page)
 {
     if (index != this->count()) {
