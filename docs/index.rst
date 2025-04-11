@@ -126,6 +126,7 @@ practical examples, particular in ``pdfinfo.py``, ``graft.py``, and
     :name: intro_toc
 
     installation
+    source_build
     tutorial
 
 .. toctree::
@@ -171,7 +172,7 @@ practical examples, particular in ``pdfinfo.py``, ``graft.py``, and
     :name: reference_toc
 
     references/arch
-    references/build
+    references/build_process
     references/contributing
     references/debugging
     references/resources
