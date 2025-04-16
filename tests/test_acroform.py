@@ -63,7 +63,7 @@ def test_checkbox(form):
 
 def test_radio_button(form):
     fields = form.acroform.get_fields_with_qualified_name('Group4')
-    assert len(fields) == 1 # 1 group, but not the 2 individual radio buttons
+    assert len(fields) == 1  # 1 group, but not the 2 individual radio buttons
     field = fields[0]
     assert field.fully_qualified_name == 'Group4'
     assert field.is_top_level
@@ -81,5 +81,3 @@ def test_remove_fields(form):
     acro.remove_fields(fields)
     fields = acro.get_fields_with_qualified_name('Button2')
     assert len(fields) == 0
-
-
