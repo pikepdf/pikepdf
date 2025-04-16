@@ -687,6 +687,5 @@ void init_qpdf(py::module_ &m)
         .def_property_readonly(
             "acroform", [](QPDF &q) { return QPDFAcroFormDocumentHelper(q); })
         .def_property_readonly(
-            "attachments", [](QPDF &q) { return QPDFEmbeddedFileDocumentHelper(q); })
-        ;
+            "attachments", [](QPDF &q) { return QPDFEmbeddedFileDocumentHelper(q); });
 }

@@ -19,14 +19,10 @@ void init_acroform(py::module_ &m)
         std::shared_ptr<QPDFFormFieldObjectHelper>,
         QPDFObjectHelper>(m, "FormField")
         .def(py::init<QPDFObjectHandle &>(), py::keep_alive<0, 1>())
-        .def_property_readonly("is_null", 
-            &QPDFFormFieldObjectHelper::isNull)
-        .def_property_readonly("parent", 
-            &QPDFFormFieldObjectHelper::getParent)
+        .def_property_readonly("is_null", &QPDFFormFieldObjectHelper::isNull)
+        .def_property_readonly("parent", &QPDFFormFieldObjectHelper::getParent)
         .def_property_readonly("top_level_field",
-            [](QPDFFormFieldObjectHelper &field) {
-                return field.getTopLevelField();
-            })
+            [](QPDFFormFieldObjectHelper &field) { return field.getTopLevelField(); })
         .def_property_readonly("is_top_level",
             [](QPDFFormFieldObjectHelper &field) {
                 bool is_different;
@@ -42,86 +38,79 @@ void init_acroform(py::module_ &m)
         .def("get_inheritable_field_value_as_name",
             &QPDFFormFieldObjectHelper::getInheritableFieldValueAsName,
             py::arg("name"))
-        .def_property_readonly("field_type",
-            &QPDFFormFieldObjectHelper::getFieldType)
-        .def_property_readonly("fully_qualified_name",
-            &QPDFFormFieldObjectHelper::getFullyQualifiedName)
-        .def_property_readonly("partial_name",
-            &QPDFFormFieldObjectHelper::getPartialName)
-        .def_property_readonly("alternate_name",
-            &QPDFFormFieldObjectHelper::getAlternativeName)
-        .def_property_readonly("mapping_name",
-            &QPDFFormFieldObjectHelper::getMappingName)
-        .def_property_readonly("value",
-            &QPDFFormFieldObjectHelper::getValue)
-        .def_property_readonly("value_as_string",
-            &QPDFFormFieldObjectHelper::getValueAsString)
-        .def_property_readonly("default_value",
-            &QPDFFormFieldObjectHelper::getDefaultValue)
+        .def_property_readonly("field_type", &QPDFFormFieldObjectHelper::getFieldType)
+        .def_property_readonly(
+            "fully_qualified_name", &QPDFFormFieldObjectHelper::getFullyQualifiedName)
+        .def_property_readonly(
+            "partial_name", &QPDFFormFieldObjectHelper::getPartialName)
+        .def_property_readonly(
+            "alternate_name", &QPDFFormFieldObjectHelper::getAlternativeName)
+        .def_property_readonly(
+            "mapping_name", &QPDFFormFieldObjectHelper::getMappingName)
+        .def_property_readonly("value", &QPDFFormFieldObjectHelper::getValue)
+        .def_property_readonly(
+            "value_as_string", &QPDFFormFieldObjectHelper::getValueAsString)
+        .def_property_readonly(
+            "default_value", &QPDFFormFieldObjectHelper::getDefaultValue)
         .def_property_readonly("default_value_as_string",
             &QPDFFormFieldObjectHelper::getDefaultValueAsString)
-        .def_property_readonly("default_appearance",
-            &QPDFFormFieldObjectHelper::getDefaultAppearance)
-        .def_property_readonly("default_resources",
-            &QPDFFormFieldObjectHelper::getDefaultResources)
-        .def_property_readonly("quadding",
-            &QPDFFormFieldObjectHelper::getQuadding)
-        .def_property_readonly("flags",
-            &QPDFFormFieldObjectHelper::getFlags)
-        .def_property_readonly("is_text",
-            &QPDFFormFieldObjectHelper::isText)
-        .def_property_readonly("is_checkbox",
-            &QPDFFormFieldObjectHelper::isCheckbox)
+        .def_property_readonly(
+            "default_appearance", &QPDFFormFieldObjectHelper::getDefaultAppearance)
+        .def_property_readonly(
+            "default_resources", &QPDFFormFieldObjectHelper::getDefaultResources)
+        .def_property_readonly("quadding", &QPDFFormFieldObjectHelper::getQuadding)
+        .def_property_readonly("flags", &QPDFFormFieldObjectHelper::getFlags)
+        .def_property_readonly("is_text", &QPDFFormFieldObjectHelper::isText)
+        .def_property_readonly("is_checkbox", &QPDFFormFieldObjectHelper::isCheckbox)
         // .def_property_readonly("is_checked",
         //     &QPDFFormFieldObjectHelper::isChecked)
-        .def_property_readonly("is_radio_button",
-            &QPDFFormFieldObjectHelper::isRadioButton)
-        .def_property_readonly("is_pushbutton",
-            &QPDFFormFieldObjectHelper::isPushbutton)
-        .def_property_readonly("is_choice",
-            &QPDFFormFieldObjectHelper::isChoice)
-        .def_property_readonly("choices",
-            &QPDFFormFieldObjectHelper::getChoices)
-        ;
+        .def_property_readonly(
+            "is_radio_button", &QPDFFormFieldObjectHelper::isRadioButton)
+        .def_property_readonly(
+            "is_pushbutton", &QPDFFormFieldObjectHelper::isPushbutton)
+        .def_property_readonly("is_choice", &QPDFFormFieldObjectHelper::isChoice)
+        .def_property_readonly("choices", &QPDFFormFieldObjectHelper::getChoices);
 
-    py::class_<QPDFAcroFormDocumentHelper,
-        std::shared_ptr<QPDFAcroFormDocumentHelper>
-        >(m, "AcroForm")
+    py::class_<QPDFAcroFormDocumentHelper, std::shared_ptr<QPDFAcroFormDocumentHelper>>(
+        m, "AcroForm")
         .def(py::init<QPDF &>(), py::keep_alive<0, 1>())
-        .def_property_readonly("exists", 
-            &QPDFAcroFormDocumentHelper::hasAcroForm)
-        .def("add_field",
-            &QPDFAcroFormDocumentHelper::addFormField,
-            py::arg("field"))
+        .def_property_readonly("exists", &QPDFAcroFormDocumentHelper::hasAcroForm)
+        .def("add_field", &QPDFAcroFormDocumentHelper::addFormField, py::arg("field"))
         .def("add_and_rename_fields",
             &QPDFAcroFormDocumentHelper::addAndRenameFormFields,
             py::arg("fields"))
-        .def("add_and_rename_fields",
-            [](QPDFAcroFormDocumentHelper &acroform, std::vector<QPDFObjectHelper> fields) {
+        .def(
+            "add_and_rename_fields",
+            [](QPDFAcroFormDocumentHelper &acroform,
+                std::vector<QPDFObjectHelper> fields) {
                 // convert fields to object handles
                 std::vector<QPDFObjectHandle> objects;
-                for (auto & field : fields){
+                for (auto &field : fields) {
                     objects.push_back(field.getObjectHandle());
                 }
                 acroform.removeFormFields(objects);
             },
             &QPDFAcroFormDocumentHelper::addAndRenameFormFields,
             py::arg("fields"))
-        .def("remove_fields",
-            [](QPDFAcroFormDocumentHelper &acroform, std::vector<QPDFObjectHelper> fields) {
+        .def(
+            "remove_fields",
+            [](QPDFAcroFormDocumentHelper &acroform,
+                std::vector<QPDFObjectHelper> fields) {
                 // convert fields to obj/gen refs
                 std::set<QPDFObjGen> refs;
-                for (auto & field : fields){
+                for (auto &field : fields) {
                     refs.insert(field.getObjectHandle().getObjGen());
                 }
                 acroform.removeFormFields(refs);
             },
             py::arg("fields"))
-        .def("remove_fields",
-            [](QPDFAcroFormDocumentHelper &acroform, std::vector<QPDFObjectHandle> fields) {
+        .def(
+            "remove_fields",
+            [](QPDFAcroFormDocumentHelper &acroform,
+                std::vector<QPDFObjectHandle> fields) {
                 // convert fields to obj/gen refs
                 std::set<QPDFObjGen> refs;
-                for (auto & field : fields){
+                for (auto &field : fields) {
                     refs.insert(field.getObjGen());
                 }
                 acroform.removeFormFields(refs);
@@ -129,18 +118,19 @@ void init_acroform(py::module_ &m)
             py::arg("fields"))
         .def("set_field_name",
             &QPDFAcroFormDocumentHelper::setFormFieldName,
-            py::arg("field"), py::arg("name"))
-        .def_property_readonly("fields", 
-            &QPDFAcroFormDocumentHelper::getFormFields)
-        .def("get_fields_with_qualified_name",
-            [](QPDFAcroFormDocumentHelper &acroform, std::string const& name) {
+            py::arg("field"),
+            py::arg("name"))
+        .def_property_readonly("fields", &QPDFAcroFormDocumentHelper::getFormFields)
+        .def(
+            "get_fields_with_qualified_name",
+            [](QPDFAcroFormDocumentHelper &acroform, std::string const &name) {
                 auto refs = acroform.getFieldsWithQualifiedName(name);
                 // Convert obj/gen refs to field object helpers
                 std::vector<QPDFFormFieldObjectHelper> fields;
-                QPDF& qpdf = acroform.getQPDF();
-                for(auto ref : refs) {
+                QPDF &qpdf = acroform.getQPDF();
+                for (auto ref : refs) {
                     auto object = qpdf.getObjectByObjGen(ref);
-                    auto field = new QPDFFormFieldObjectHelper(object);
+                    auto field  = new QPDFFormFieldObjectHelper(object);
                     fields.push_back(*field);
                 }
                 return fields;
@@ -172,13 +162,12 @@ void init_acroform(py::module_ &m)
             py::arg("new_fields"),
             py::arg("old_fields"),
             py::arg("matrix"),
-            py::arg("from_pdf") = py::none(),
+            py::arg("from_pdf")      = py::none(),
             py::arg("from_acroform") = py::none())
         .def("_fix_copied_annotations",
             &QPDFAcroFormDocumentHelper::fixCopiedAnnotations,
-            py::arg("to_page"), 
-            py::arg("from_page"), 
+            py::arg("to_page"),
+            py::arg("from_page"),
             py::arg("from_acroform"),
-            py::arg("new_fields"))
-        ;
+            py::arg("new_fields"));
 }

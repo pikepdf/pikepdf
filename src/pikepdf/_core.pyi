@@ -598,9 +598,7 @@ class _ObjectMapping:
     def __setitem__(self, key: str, value: Object) -> None: ...
 
 class FormField:
-    """An AcroForm field. Wrapper around a PDF dictionary.
-
-    """
+    """An AcroForm field. Wrapper around a PDF dictionary."""
     @property
     def is_null(self) -> bool:
         """True if the field is null."""
@@ -608,7 +606,7 @@ class FormField:
     def parent(self) -> FormField:
         """This field's parent.
 
-        If there is no parent, a FormField where ``field.is_null is True`` is 
+        If there is no parent, a FormField where ``field.is_null is True`` is
         returned.
         """
     @property
@@ -620,20 +618,19 @@ class FormField:
     @property
     def is_top_level(self) -> bool:
         """True if this field is a top-level field.
-        
+
         This is equivlent to calling ``field.top_level_field is field``.
         """
     def get_inheritable_field_value(self, name: str):
-        """Get a field value, possibly inheriting the value from an ancestor 
-        node."""
+        """Get field value, possibly inheriting the value from ancestor node."""
     def get_inheritable_field_value_as_string(self, name: str) -> str:
         """Get an inherited field value as a string.
-        
+
         If the value is not a string, this property will hold an empty string.
         """
     def get_inheritable_field_value_as_name(self, name: str) -> Name:
-        """Get an inherited field value as a Name object. 
-        
+        """Get an inherited field value as a Name object.
+
         If the value is not a name, this property will hold an empty name.
         """
     @property
@@ -642,8 +639,8 @@ class FormField:
     @property
     def fully_qualified_name(self) -> str:
         """The field's fully qualified name.
-        
-        This is defined as being the /T value of this and all ancestors, 
+
+        This is defined as being the /T value of this and all ancestors,
         concatenated together with dots.
         """
     @property
@@ -651,17 +648,16 @@ class FormField:
         """The field's partial name."""
     @property
     def alternate_name(self) -> str:
-        """The alternative field name (/TU), which is the field name intended 
-        to be presented to users. 
-        
-        If a value is not present in the underlying field, this property falls 
+        """The alternative field name (/TU), the field name presented to users.
+
+        If a value is not present in the underlying field, this property falls
         back to the fully qualified name.
         """
     @property
     def mapping_name(self) -> str:
         """Return the mapping field name (/TM).
-        
-        If a value is not present in the underlying field, this property falls 
+
+        If a value is not present in the underlying field, this property falls
         back to the fully qualified name.
         """
     @property
@@ -670,7 +666,7 @@ class FormField:
     @property
     def value_as_string(self) -> str:
         """The field's value as a string.
-        
+
         If the value is not a string, this property will hold an empty string.
         """
     @property
@@ -679,33 +675,33 @@ class FormField:
     @property
     def default_value_as_string(self) -> str:
         """The field's default value as a string.
-        
-        If the value is not a string, this property will hold an empty string."""
+
+        If the value is not a string, this property will hold an empty string.
+        """
     @property
     def default_appearance(self) -> str:
-        """The default appearance string, inheriting from ancestor fields if 
-        needed.
-     
-        This property will contain and empty string if the default appearance 
-        string is not available (because it's erroneously absent or because 
-        this is not a variable text field). If not found in the field 
+        """Default appearance string, inheriting from ancestor fields if needed.
+
+        This property will contain and empty string if the default appearance
+        string is not available (because it's erroneously absent or because
+        this is not a variable text field). If not found in the field
         hierarchy, look in /AcroForm.
         """
     @property
     def default_resources(self) -> Dictionary:
         """The default resource dictionary for the field.
-        
-        This comes not from the field but from the document-level /AcroForm 
-        dictionary. While several PDF generates put a /DR key in the form 
-        field's dictionary, experimentation suggests that many popular 
-        readers, including Adobe Acrobat and Acrobat Reader, ignore any /DR 
+
+        This comes not from the field but from the document-level /AcroForm
+        dictionary. While several PDF generates put a /DR key in the form
+        field's dictionary, experimentation suggests that many popular
+        readers, including Adobe Acrobat and Acrobat Reader, ignore any /DR
         item on the field.
         """
     @property
     def quadding(self) -> int:
-        """The quadding value, inheriting from ancestor fields if needed. 
-        
-        This will be 0 if the quadding is not specified. Look in /AcroForm if 
+        """The quadding value, inheriting from ancestor fields if needed.
+
+        This will be 0 if the quadding is not specified. Look in /AcroForm if
         not found in the field hierarchy.
         """
     @property
@@ -713,79 +709,80 @@ class FormField:
         """Field flags from /Ff."""
     @property
     def is_text(self) -> bool:
-        """True if field is of type /Tx"""
+        """True if field is of type /Tx."""
     @property
     def is_checkbox(self) -> bool:
-        """True if field is of type /Btn and flags do not indicate some other type of button."""
+        """True if field is type /Btn and flags do not indicate other type of button."""
     @property
     def is_checked(self) -> bool:
         """True if field is a checkbox and is checked."""
     @property
     def is_radio_button(self) -> bool:
-        """True if field is of type /Btn and flags indicate that it is a radio button"""
+        """True if field is of type /Btn and flags indicate that a radio button."""
     @property
     def is_pushbutton(self) -> bool:
-        """True if field is of type /Btn and flags indicate that it is a pushbutton"""
+        """True if field is of type /Btn and flags indicate that a pushbutton."""
     @property
     def is_choice(self) -> bool:
-        """True if fields if of type /Ch"""
+        """True if fields if of type /Ch."""
     @property
     def choices(self) -> Sequence[str]:
         """Available choices for this field, if this is a choice field.
-        
-        This does not contain choices for radio buttons. For radio buttons, 
-        traverse the /Kids of the top-level field and inspect the individual 
+
+        This does not contain choices for radio buttons. For radio buttons,
+        traverse the /Kids of the top-level field and inspect the individual
         buttons.
         """
 
 class AcroForm:
-    """A helper for working with PDF interactive forms.
-
-
-    """
+    """A helper for working with PDF interactive forms."""
     @property
     def exists(self) -> bool:
         """True if the current document has an interactive form."""
     def add_field(self, field: FormField):
-        """Add a form field, initializing the document's AcroForm dictionary if
-        needed, and updating the cache if necessary.
-        
+        """Add a form field.
+
+        Initializes the document's AcroForm dictionary if needed, and
+        updates the cache if necessary.
+
         Note that you are adding fields that are copies of other fields, this
-        method may result in multiple fields existing with the same qualified 
-        name, which can have unexpected side effects. In that case, you should 
+        method may result in multiple fields existing with the same qualified
+        name, which can have unexpected side effects. In that case, you should
         use ``add_and_rename_fields()`` instead.
         """
     def add_and_rename_fields(self, fields: Sequence[FormField]):
-        """Add a collection of form fields, making sure that their fully 
-        qualified names don't conflict with already present form fields. 
-        
-        Fields within the collection of new fields that have the same name as 
+        """Add a collection of form fields.
+
+        Ensures that their fully qualified names don't conflict with
+        already present form fields.
+
+        Fields within the collection of new fields that have the same name as
         each other will continue to do so.
         """
     def remove_fields(self, fields: Sequence[FormField]):
-        """Remove fields from the ``fields`` list"""
+        """Remove fields from the ``fields`` list."""
     def set_field_name(self, field: FormField, name: str):
         """Set the name of a field, updating internal records of field names."""
     @property
     def fields(self) -> Sequence[FormField]:
         """A list of all terminal fields in this interactive form.
-        
-        Terminal fields are fields that have no children that are also fields. 
-        Terminal fields may still have children that are annotations. 
-        
-        Intermediate nodes in the fields tree are not included in this list, 
+
+        Terminal fields are fields that have no children that are also fields.
+        Terminal fields may still have children that are annotations.
+
+        Intermediate nodes in the fields tree are not included in this list,
         but you can still reach them through the ``FormField.parent`` property.
-        For radio buttons, the radio group can be accessed with the 
+        For radio buttons, the radio group can be accessed with the
         ``FormField.top_level_field`` property.
         """
     def get_fields_with_qualified_name(self, name: str) -> Sequence[FormField]:
         """Get a list of all fields with the given qualified name.
 
-        Generally, this list will contain only one member, as having multiple 
+        Generally, this list will contain only one member, as having multiple
         fields with the same name is discouraged (but not impossible).
 
-        This will only return elements that have an explicit name (/T) in the 
-        field dictionary. In practice, this means that it should return the 
+        This will only return elements that have an explicit name (/T) in the
+        field dictionary. In practice, this means that it should return the
         top-level field, but not any children. (For example, this method will
         return a radio group rather than individual radio buttons.)
         """
@@ -794,45 +791,48 @@ class AcroForm:
     def get_widget_annotations_for_page(self, page: Page) -> Sequence[Annotation]:
         """Find all the interactive form widgets on a page."""
     def get_form_fields_for_page(self, page: Page) -> Sequence[FormField]:
-        """Find all the interactive form fields on a page"""
+        """Find all the interactive form fields on a page."""
     def get_field_for_annotation(self, annotation: Annotation) -> FormField:
         """Given an annotation for a widget, return the associated form field."""
     @property
     def needs_appearances(self) -> bool:
         """Indicates whether appearance streams must be regenerated.
 
-        This should be set to True if you modify any field values in the 
-        interactive form, unless you also generate the appearance streams for 
+        This should be set to True if you modify any field values in the
+        interactive form, unless you also generate the appearance streams for
         the modified fields.
         """
     def generate_appearances_if_needed(self) -> None:
         """Generate appearance streams for all form fields that need them.
 
-        For checkbox and radio button fields, this method ensures that 
-        appearance state is consistent with the field's value and uses any 
+        For checkbox and radio button fields, this method ensures that
+        appearance state is consistent with the field's value and uses any
         pre-existing appearance streams.
 
         If ``needs_appearances`` is False, this method does nothing.
         """
     def disable_digital_signatures(self) -> None:
-        """Disables digital signature fields. 
-        
-        This method removes all digital signature fields from the document, 
+        """Disables digital signature fields.
+
+        This method removes all digital signature fields from the document,
         leaving any annotation showing the content of the field intact.
         """
-    def _transform_annotations(self, 
-                               old_annots: Sequence[Annotation], 
-                               new_annots: Sequence[Annotation], 
-                               new_fields: Sequence[FormField], 
-                               old_fields: Sequence[FormField], 
-                               matrix: Matrix, 
-                               from_pdf: Pdf | None = None, 
-                               from_acroform: AcroForm | None = None):
-        """
-        For each annotation in old_annots, apply the given transformation 
-        matrix to create a new annotation. New annotations are appended to 
-        new_annots. If the annotation is associated with a form field, a new 
-        form field is created that points to the new annotation and is appended 
+    def _transform_annotations(
+        self,
+        old_annots: Sequence[Annotation],
+        new_annots: Sequence[Annotation],
+        new_fields: Sequence[FormField],
+        old_fields: Sequence[FormField],
+        matrix: Matrix,
+        from_pdf: Pdf | None = None,
+        from_acroform: AcroForm | None = None,
+    ):
+        """Transform annotations and form fields.
+
+        For each annotation in old_annots, apply the given transformation
+        matrix to create a new annotation. New annotations are appended to
+        new_annots. If the annotation is associated with a form field, a new
+        form field is created that points to the new annotation and is appended
         to new_fields, and the old field is added to old_fields.
 
         .. note::
@@ -840,33 +840,35 @@ class AcroForm:
             This method works on all annotations, not just ones with associated
             fields.
 
-        old_annots may belong to a different PDF object. In that case, you 
+        old_annots may belong to a different PDF object. In that case, you
         should pass in from_pdf and from_acroform. New fields and annotations
-        are not added to the document or pages. You have to do that yourself 
-        after calling transform_annotations. If this operation will leave 
-        orphaned fields behind, such as if you are replacing the old 
-        annotations with the new ones on the same page and the fields and 
-        annotations are not shared, you will also need to remove the old fields 
+        are not added to the document or pages. You have to do that yourself
+        after calling transform_annotations. If this operation will leave
+        orphaned fields behind, such as if you are replacing the old
+        annotations with the new ones on the same page and the fields and
+        annotations are not shared, you will also need to remove the old fields
         to prevent them from hanging around unreferenced.
         """
-    def _fix_copied_annotations(self, 
-                                to_page: Page, 
-                                from_page: Page, 
-                                from_acroform: AcroForm, 
-                                new_fields: Sequence[FormField]):
+    def _fix_copied_annotations(
+        self,
+        to_page: Page,
+        from_page: Page,
+        from_acroform: AcroForm,
+        new_fields: Sequence[FormField],
+    ):
         """Copy form fields and annotations from one page to another.
-        
-        This would typically be called after copying a new page in order to add 
-        field/annotation awareness. When just copying the page by itself, 
-        annotations end up being shared, and fields end up being omitted 
-        because there is no reference to the field from the page. This method 
+
+        This would typically be called after copying a new page in order to add
+        field/annotation awareness. When just copying the page by itself,
+        annotations end up being shared, and fields end up being omitted
+        because there is no reference to the field from the page. This method
         ensures that each separate copy of a page has private annotations and
-        that fields and annotations are properly updated to resolve conflicts 
+        that fields and annotations are properly updated to resolve conflicts
         that may occur from common resource and field names across documents.
 
         Args:
             to_page: The page to copy to.
-            from_page: The page to copy from. May be in a different PDF or in 
+            from_page: The page to copy from. May be in a different PDF or in
                 the same PDF.
             from_acroform: The acroform object for the source PDF.
             new_fields: Newly-created fields will be added to this list
@@ -2520,10 +2522,10 @@ class Pdf:
     @property
     def acroform(self) -> AcroForm:
         """Returns a helper object for working with interactive forms.
-        
+
         .. tip::
 
-            This creates a new AcroForm helper object each time this property is 
+            This creates a new AcroForm helper object each time this property is
             used. If you're planning on doing multiple form-related operations,
             keep a reference to this object. The helper has an internal cache
             that can speed up certain operations.
