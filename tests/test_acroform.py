@@ -22,7 +22,7 @@ def test_acroform(form):
 
 def test_appearances(form):
     acro = form.acroform
-    acro.needs_appearences = True
+    acro.needs_appearances = True
     assert acro.needs_appearances is True
     acro.generate_appearances_if_needed()
     assert acro.needs_appearances is False
