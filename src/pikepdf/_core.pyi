@@ -597,7 +597,7 @@ class _ObjectMapping:
     def __len__(self) -> int: ...
     def __setitem__(self, key: str, value: Object) -> None: ...
 
-class FormField:
+class FormField(ObjectHelper):
     """An AcroForm field. Wrapper around a PDF dictionary."""
     @property
     def is_null(self) -> bool:
@@ -613,13 +613,13 @@ class FormField:
     def top_level_field(self) -> FormField:
         """The top-level field for this field.
 
-        Typically this will be the field itself, or its parent.
-        """
-    @property
-    def is_top_level(self) -> bool:
-        """True if this field is a top-level field.
+        This will be the field itself, or one of its ancestors (often the 
+        immediate parent).
 
-        This is equivlent to calling ``field.top_level_field is field``.
+        Note that the top-level field may not itself be a "real" field. Fields 
+        may be nested underneath one another at any arbitrary level, with the 
+        outer fields forming groups or sets of fields. This property references
+        the highest field in this field's hierarchy.
         """
     def get_inheritable_field_value(self, name: str):
         """Get field value, possibly inheriting the value from ancestor node."""
@@ -640,12 +640,12 @@ class FormField:
     def fully_qualified_name(self) -> str:
         """The field's fully qualified name.
 
-        This is defined as being the /T value of this and all ancestors,
-        concatenated together with dots.
+        This is defined as being the /T (partial_name) value of this and all 
+        ancestors, concatenated together with dots.
         """
     @property
     def partial_name(self) -> str:
-        """The field's partial name."""
+        """The field's partial name (/T)."""
     @property
     def alternate_name(self) -> str:
         """The alternative field name (/TU), the field name presented to users.
@@ -732,6 +732,13 @@ class FormField:
         This does not contain choices for radio buttons. For radio buttons,
         traverse the /Kids of the top-level field and inspect the individual
         buttons.
+
+        This also only works for choice fields where the options are 
+        represented as an array of strings. However, some PDFs represent 
+        choices as an array of ``[export_value, display_value]`` pairs. This 
+        is a limitation of the underlying QPDF library. 
+        See `QPDF Issue 1433 <https://github.com/qpdf/qpdf/issues/1433>`_.
+        To get options for such fields, use `field.obj.Opt` instead.
         """
 
 class AcroForm:
@@ -762,18 +769,25 @@ class AcroForm:
     def remove_fields(self, fields: Sequence[FormField]):
         """Remove fields from the ``fields`` list."""
     def set_field_name(self, field: FormField, name: str):
-        """Set the name of a field, updating internal records of field names."""
+        """Set the partial name of a field, updating internal records of field 
+        names.
+        """
     @property
     def fields(self) -> Sequence[FormField]:
         """A list of all terminal fields in this interactive form.
 
         Terminal fields are fields that have no children that are also fields.
-        Terminal fields may still have children that are annotations.
+        Terminal fields should have children that are annotations, or be 
+        annotations themselves. Only terminal fields are displayed as actual 
+        widgets in the PDF document; non-terminal fields exist only for 
+        grouping.
 
         Intermediate nodes in the fields tree are not included in this list,
         but you can still reach them through the ``FormField.parent`` property.
         For radio buttons, the radio group can be accessed with the
         ``FormField.top_level_field`` property.
+
+        Signature fields are not included in this list.
         """
     def get_fields_with_qualified_name(self, name: str) -> Sequence[FormField]:
         """Get a list of all fields with the given qualified name.
@@ -783,17 +797,51 @@ class AcroForm:
 
         This will only return elements that have an explicit name (/T) in the
         field dictionary. In practice, this means that it should return the
-        top-level field, but not any children. (For example, this method will
-        return a radio group rather than individual radio buttons.)
+        highest-level matching field, but not any children. (For example, this 
+        method will return a radio group rather than individual radio buttons.)
+
+        This method will not return signature fields.
         """
     def get_annotations_for_field(self, field: FormField) -> Sequence[Annotation]:
-        """Given a form field, return the associated annotations."""
+        """Given a form field, return the associated annotation(s).
+        
+        Typically, interactive forms store field information and annotation 
+        information in the same dictionary, meaning this method will often 
+        return a single `pikepdf.Annotation` which refers to the same 
+        underlying `pikepdf.Dictionary`. However, this is not necessarily always 
+        the case and should not be relied on. A field may store annotation data
+        in its own dictionary, and may even have multiple annotations.
+        """
     def get_widget_annotations_for_page(self, page: Page) -> Sequence[Annotation]:
-        """Find all the interactive form widgets on a page."""
+        """Find all the interactive form widgets on a page.
+        
+        In many PDFs, you may find that this returns a list that perfectly 
+        corresponds to that returned by ``get_form_fields_for_page``. However,
+        you should not rely on this behavior. This will not always be the case.
+        Use this method to get the annotations, then use the
+        ``get_field_for_annotation`` method for each to get the corresponding 
+        field.
+        """
     def get_form_fields_for_page(self, page: Page) -> Sequence[FormField]:
-        """Find all the interactive form fields on a page."""
+        """Find all the interactive form fields on a page.
+        
+        In many PDFs, you may find that this returns a list that perfectly 
+        corresponds to that returned by ``get_widget_annotations_for_page``. 
+        However, you should not rely on this behavior. This will not always be 
+        the case. Use this method to get all the fields, then use the 
+        ``get_annotations_for_field`` method for each to get the corresponding 
+        annotations.
+        """
     def get_field_for_annotation(self, annotation: Annotation) -> FormField:
-        """Given an annotation for a widget, return the associated form field."""
+        """Given an annotation for a widget, return the associated form field.
+        
+        Typically, interactive forms store field information and annotation 
+        information in the same dictionary, meaning this method will often 
+        return a `pikepdf.FormField` which refers to the same underlying 
+        `pikepdf.Dictionary`. However, this is not necessarily always 
+        the case and should not be relied on. A field may store annotation data
+        in its own dictionary.
+        """
     @property
     def needs_appearances(self) -> bool:
         """Indicates whether appearance streams must be regenerated.
@@ -810,6 +858,13 @@ class AcroForm:
         pre-existing appearance streams.
 
         If ``needs_appearances`` is False, this method does nothing.
+
+        This method uses the underlying QPDF implementation, which has several 
+        limitations:
+
+         * Only supports ASCII characters in text fields
+         * Does not support multi-line text
+         * Ignores quadding (alignment)
         """
     def disable_digital_signatures(self) -> None:
         """Disables digital signature fields.
@@ -849,13 +904,12 @@ class AcroForm:
         annotations are not shared, you will also need to remove the old fields
         to prevent them from hanging around unreferenced.
         """
-    def _fix_copied_annotations(
+    def fix_copied_annotations(
         self,
         to_page: Page,
         from_page: Page,
         from_acroform: AcroForm,
-        new_fields: Sequence[FormField],
-    ):
+    ) -> Sequence[FormField]:
         """Copy form fields and annotations from one page to another.
 
         This would typically be called after copying a new page in order to add
@@ -871,7 +925,8 @@ class AcroForm:
             from_page: The page to copy from. May be in a different PDF or in
                 the same PDF.
             from_acroform: The acroform object for the source PDF.
-            new_fields: Newly-created fields will be added to this list
+        
+        Returns a list of newly created fields.
         """
 
 class Annotation:
