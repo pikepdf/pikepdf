@@ -133,6 +133,8 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle);
 std::vector<QPDFObjectHandle> array_builder(const py::iterable iter);
 std::map<std::string, QPDFObjectHandle> dict_builder(const py::dict dict);
 
+// From acroform.cpp
+void init_acroform(py::module_ &m);
 // From annotation.cpp
 void init_annotation(py::module_ &m);
 // From embeddedfiles.cpp
