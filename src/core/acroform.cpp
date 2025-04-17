@@ -23,12 +23,6 @@ void init_acroform(py::module_ &m)
         .def_property_readonly("parent", &QPDFFormFieldObjectHelper::getParent)
         .def_property_readonly("top_level_field",
             [](QPDFFormFieldObjectHelper &field) { return field.getTopLevelField(); })
-        .def_property_readonly("is_top_level",
-            [](QPDFFormFieldObjectHelper &field) {
-                bool is_different;
-                field.getTopLevelField(&is_different);
-                return !is_different;
-            })
         .def("get_inheritable_field_value",
             &QPDFFormFieldObjectHelper::getInheritableFieldValue,
             py::arg("name"))
@@ -62,8 +56,7 @@ void init_acroform(py::module_ &m)
         .def_property_readonly("flags", &QPDFFormFieldObjectHelper::getFlags)
         .def_property_readonly("is_text", &QPDFFormFieldObjectHelper::isText)
         .def_property_readonly("is_checkbox", &QPDFFormFieldObjectHelper::isCheckbox)
-        // .def_property_readonly("is_checked",
-        //     &QPDFFormFieldObjectHelper::isChecked)
+        // An `isChecked` method is also documented in the header, but doesn't seem to actually be implemented
         .def_property_readonly(
             "is_radio_button", &QPDFFormFieldObjectHelper::isRadioButton)
         .def_property_readonly(
@@ -154,19 +147,24 @@ void init_acroform(py::module_ &m)
             &QPDFAcroFormDocumentHelper::generateAppearancesIfNeeded)
         .def("disable_digital_signatures",
             &QPDFAcroFormDocumentHelper::disableDigitalSignatures)
-        .def("_transform_annotations",
-            &QPDFAcroFormDocumentHelper::transformAnnotations,
-            py::arg("old_annots"),
-            py::arg("new_annots"),
-            py::arg("new_fields"),
-            py::arg("old_fields"),
-            py::arg("matrix"),
-            py::arg("from_pdf")      = py::none(),
-            py::arg("from_acroform") = py::none())
-        .def("_fix_copied_annotations",
-            &QPDFAcroFormDocumentHelper::fixCopiedAnnotations,
+        .def("fix_copied_annotations",
+            [](QPDFAcroFormDocumentHelper &acroform, 
+                QPDFPageObjectHelper to_page,
+                QPDFPageObjectHelper from_page,
+                QPDFAcroFormDocumentHelper& from_afdh
+            ){
+                std::set<QPDFObjGen> refs;
+                acroform.fixCopiedAnnotations(to_page.getObjectHandle(), from_page.getObjectHandle(), from_afdh, &refs);
+                std::vector<QPDFFormFieldObjectHelper> fields;
+                QPDF &qpdf = acroform.getQPDF();
+                for (auto ref : refs) {
+                    auto object = qpdf.getObjectByObjGen(ref);
+                    auto field  = new QPDFFormFieldObjectHelper(object);
+                    fields.push_back(*field);
+                }
+                return fields;
+            },
             py::arg("to_page"),
             py::arg("from_page"),
-            py::arg("from_acroform"),
-            py::arg("new_fields"));
+            py::arg("from_acroform"));
 }
