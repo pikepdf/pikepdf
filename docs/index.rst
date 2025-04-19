@@ -162,6 +162,7 @@ practical examples, particular in ``pdfinfo.py``, ``graft.py``, and
 
     api/main
     api/models
+    api/canvas
     api/filters
     api/exceptions
     api/settings
