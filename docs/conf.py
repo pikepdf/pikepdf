@@ -88,8 +88,8 @@ master_doc = 'index'
 project = 'pikepdf'
 year = str(datetime.date.today().year)
 copyright = (
-    f'{year}, James R. Barlow. ',
-    'Licensed under Creative Commons Attribution-ShareAlike 4.0.',
+    f'{year}, James R. Barlow. '
+    + 'Licensed under Creative Commons Attribution-ShareAlike 4.0.'
 )
 author = 'James R. Barlow'
 
