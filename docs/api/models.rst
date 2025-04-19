@@ -63,5 +63,5 @@ Version 3.x automatically applies support models to ``/Page`` objects.
 .. autoapiclass:: pikepdf.NumberTree
     :members:
 
-.. automodule:: pikepdf.canvas
+.. autoapimodule:: pikepdf.canvas
     :members:
