@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from logging import getLogger
 
-from pikepdf import Matrix, Operator, Page, parse_content_stream
+from pikepdf._core import Matrix, Page
+from pikepdf.models import parse_content_stream
+from pikepdf.objects import Operator
 
 logger = getLogger(__file__)
 OPERATOR_CM = Operator(
