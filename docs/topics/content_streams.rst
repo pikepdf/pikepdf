@@ -179,3 +179,12 @@ mapping (when a PDF contains a subsetted font for example).
 pikepdf does not currently implement text extraction. We recommend `pdfminer.six <https://github.com/pdfminer/pdfminer.six>`_, a
 read-only text extraction tool. If you wish to write PDFs containing text, consider
 `reportlab <https://www.reportlab.com/opensource/>`_.
+
+Interpreting and generating content streams
+-------------------------------------------
+
+:mod:`pikepdf.ctm` has functions to interpret content streams, specifically
+to determine the state of the current transformation matrix at certain rendering
+events.
+
+:mod:`pikepdf.canvas` has functions to generate simple content streams.

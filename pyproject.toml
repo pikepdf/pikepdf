@@ -35,7 +35,7 @@ changelog = "https://pikepdf.readthedocs.io/en/latest/releasenotes/index.html"
 [project.optional-dependencies]
 dev = ["pre-commit", "typer"]
 docs = [
-  "Sphinx>=3",
+  "sphinx>=3",
   "sphinx-autoapi",
   "sphinx-design",
   "sphinx-issues",

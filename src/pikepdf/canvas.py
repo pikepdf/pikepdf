@@ -38,8 +38,10 @@ RED = Color(1, 0, 0, 1)
 class TextDirection(Enum):
     """Enumeration for text direction."""
 
-    LTR = 1  # Left to right: the default
-    RTL = 2  # Right to left: Arabic, Hebrew, Persian
+    LTR = 1
+    """Left to right, the default."""
+    RTL = 2
+    """Right to left, Arabic, Hebrew, Persian, etc."""
 
 
 class Font(ABC):
