@@ -16,10 +16,10 @@ from typing import TYPE_CHECKING, Any, Callable, NamedTuple
 from warnings import warn
 
 from lxml import etree
-from lxml.etree import QName, XMLSyntaxError
+from lxml.etree import QName, XMLSyntaxError, _Element
 
 from pikepdf._version import __version__ as pikepdf_version
-from pikepdf._xml import _Element, parse_xml
+from pikepdf._xml import parse_xml
 from pikepdf.objects import Name, Stream, String
 
 if TYPE_CHECKING:  # pragma: no cover

@@ -18,11 +18,8 @@ from PIL import Image
 from PIL.ImageCms import ImageCmsProfile
 
 from pikepdf import jbig2
-from pikepdf._core import Buffer, Pdf, StreamDecodeLevel
-from pikepdf.exceptions import (
-    DependencyError,
-    PdfError,
-)
+from pikepdf._core import Buffer, Pdf, PdfError, StreamDecodeLevel
+from pikepdf._exceptions import DependencyError
 from pikepdf.models import _transcoding
 from pikepdf.objects import (
     Array,
