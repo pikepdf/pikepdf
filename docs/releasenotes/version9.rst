@@ -1,3 +1,9 @@
+v9.7.1
+======
+
+- Numerous fixes to documentation, to fix some sections where documentation
+  failed to generate properly, and to fix sphinx errors.
+
 v9.7.0
 ======
 
