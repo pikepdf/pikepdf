@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2025 @rakurtz
+# SPDX-FileCopyrightText: 2025 James R. Barlow
+# SPDX-License-Identifier: MPL-2.0
+
 """Parsing the matrixes in a PDF file."""
 
 from __future__ import annotations

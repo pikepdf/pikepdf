@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2025 James R. Barlow
+# SPDX-License-Identifier: MPL-2.0
+
 """Benchmark the performance of pikepdf."""
 
 from __future__ import annotations

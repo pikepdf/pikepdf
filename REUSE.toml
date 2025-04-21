@@ -4,24 +4,16 @@ SPDX-PackageSupplier = "James R. Barlow <james@purplerock.ca>"
 SPDX-PackageDownloadLocation = "https://github.com/pikepdf/pikepdf"
 
 [[annotations]]
-path = "licenses-for-wheels.txt"
+path = ["licenses-for-wheels.txt", "uv.lock"]
 precedence = "aggregate"
-SPDX-FileCopyrightText = "(C) 2022 James R. Barlow"
+SPDX-FileCopyrightText = "(C) 2025 James R. Barlow"
 SPDX-License-Identifier = "MPL-2.0"
 
 [[annotations]]
 path = [
     ".git_archival.txt",
     "REUSE.toml",
-    "docs/**.csv",
-    "docs/**.ipynb",
-    "docs/**.py",
-    "docs/**.rst",
-    "docs/images/acrobat-attachments.png",
-    "docs/images/pdfcoords.svg",
-    "docs/make.bat",
-    "docs/Makefile",
-    "docs/requirements.txt",
+    "docs/**",
     "tests/resources/1biticc.pdf",
     "tests/resources/aquamarine-cie.pdf",
     "tests/resources/aquamarine-cie.png",
@@ -40,6 +32,12 @@ path = [
 ]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "(C) 2023 James R. Barlow"
+SPDX-License-Identifier = "CC-BY-SA-4.0"
+
+[[annotations]]
+path = ["tests/resources/ctm_cm.pdf"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "(C) 2025 rakurtz"
 SPDX-License-Identifier = "CC-BY-SA-4.0"
 
 [[annotations]]
