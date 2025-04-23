@@ -15,9 +15,31 @@
 
 void init_acroform(py::module_ &m)
 {
+    py::enum_<pdf_form_field_flag_e>(m, "FormFieldFlag", py::arithmetic())
+        .value("read_only", pdf_form_field_flag_e::ff_all_read_only)
+        .value("required", pdf_form_field_flag_e::ff_all_required)
+        .value("no_export", pdf_form_field_flag_e::ff_all_no_export)
+        .value("btn_no_toggle_off", pdf_form_field_flag_e::ff_btn_no_toggle_off)
+        .value("btn_radio", pdf_form_field_flag_e::ff_btn_radio)
+        .value("btn_pushbutton", pdf_form_field_flag_e::ff_btn_pushbutton)
+        .value("btn_radios_in_unison", pdf_form_field_flag_e::ff_btn_radios_in_unison)
+        .value("tx_multiline", pdf_form_field_flag_e::ff_tx_multiline)
+        .value("tx_password", pdf_form_field_flag_e::ff_tx_password)
+        .value("tx_file_select", pdf_form_field_flag_e::ff_tx_file_select)
+        .value("tx_do_not_spell_check", pdf_form_field_flag_e::ff_tx_do_not_spell_check)
+        .value("tx_do_not_scroll", pdf_form_field_flag_e::ff_tx_do_not_scroll)
+        .value("tx_comb", pdf_form_field_flag_e::ff_tx_comb)
+        .value("tx_rich_text", pdf_form_field_flag_e::ff_tx_rich_text)
+        .value("ch_combo", pdf_form_field_flag_e::ff_ch_combo)
+        .value("ch_edit", pdf_form_field_flag_e::ff_ch_edit)
+        .value("ch_sort", pdf_form_field_flag_e::ff_ch_sort)
+        .value("ch_multi_select", pdf_form_field_flag_e::ff_ch_multi_select)
+        .value("ch_do_not_spell_check", pdf_form_field_flag_e::ff_ch_do_not_spell_check)
+        .value("ch_commit_on_sel_change", pdf_form_field_flag_e::ff_ch_commit_on_sel_change);
+
     py::class_<QPDFFormFieldObjectHelper,
         std::shared_ptr<QPDFFormFieldObjectHelper>,
-        QPDFObjectHelper>(m, "FormField")
+        QPDFObjectHelper>(m, "AcroFormField")
         .def(py::init<QPDFObjectHandle &>(), py::keep_alive<0, 1>())
         .def_property_readonly("is_null", &QPDFFormFieldObjectHelper::isNull)
         .def_property_readonly("parent", &QPDFFormFieldObjectHelper::getParent)
@@ -48,8 +70,10 @@ void init_acroform(py::module_ &m)
             "default_value", &QPDFFormFieldObjectHelper::getDefaultValue)
         .def_property_readonly("default_value_as_string",
             &QPDFFormFieldObjectHelper::getDefaultValueAsString)
-        .def_property_readonly(
-            "default_appearance", &QPDFFormFieldObjectHelper::getDefaultAppearance)
+        .def_property_readonly("default_appearance",
+            [](QPDFFormFieldObjectHelper &field) {
+                return py::bytes(field.getDefaultAppearance());
+            })
         .def_property_readonly(
             "default_resources", &QPDFFormFieldObjectHelper::getDefaultResources)
         .def_property_readonly("quadding", &QPDFFormFieldObjectHelper::getQuadding)
@@ -62,7 +86,10 @@ void init_acroform(py::module_ &m)
         .def_property_readonly(
             "is_pushbutton", &QPDFFormFieldObjectHelper::isPushbutton)
         .def_property_readonly("is_choice", &QPDFFormFieldObjectHelper::isChoice)
-        .def_property_readonly("choices", &QPDFFormFieldObjectHelper::getChoices);
+        .def_property_readonly("choices", &QPDFFormFieldObjectHelper::getChoices)
+        // .def("set_value", &QPDFFormFieldObjectHelper::setV,
+        //     py::arg("value"), py::arg("need_appearance") = py::bool_(true))
+        .def("generate_appearance", &QPDFFormFieldObjectHelper::generateAppearance);
 
     py::class_<QPDFAcroFormDocumentHelper, std::shared_ptr<QPDFAcroFormDocumentHelper>>(
         m, "AcroForm")
