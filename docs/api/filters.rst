@@ -27,6 +27,9 @@ Content stream parsers
 
 .. autoapifunction:: pikepdf.unparse_content_stream
 
+.. autoapiclass:: pikepdf.models.ctm.MatrixStack
+
+.. autoapifunction:: pikepdf.models.ctm.get_objects_with_ctm
 
 Content stream token filters
 ----------------------------

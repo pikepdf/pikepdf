@@ -27,22 +27,19 @@ def test_repr_dict():
         }
     )
     short_pi = '3.14'
-    expected = (
-        """\
-        pikepdf.Dictionary({
-            "/Array": [ 1, 2, Decimal('%s') ],
+    expected = f"""\
+        pikepdf.Dictionary({{
+            "/Array": [ 1, 2, Decimal('{short_pi}') ],
             "/Boolean": True,
-            "/Dictionary": {
+            "/Dictionary": {{
                 "/Color": "Red"
-            },
+            }},
             "/Integer": 42,
             "/Operator": pikepdf.Operator("q"),
             "/Real": Decimal('42.42'),
             "/String": "hi"
-        })
+        }})
     """
-        % short_pi
-    )
 
     def strip_all_whitespace(s):
         return ''.join(s.split())

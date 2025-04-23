@@ -17,17 +17,9 @@ from pathlib import Path
 
 from PIL import Image
 
-from pikepdf import (
-    Array,
-    ContentStreamInstruction,
-    Dictionary,
-    Matrix,
-    Name,
-    Operator,
-    Pdf,
-    unparse_content_stream,
-)
-from pikepdf.objects import String
+from pikepdf._core import ContentStreamInstruction, Matrix, Pdf
+from pikepdf.models import unparse_content_stream
+from pikepdf.objects import Array, Dictionary, Name, Operator, String
 
 log = logging.getLogger(__name__)
 
@@ -47,8 +39,10 @@ RED = Color(1, 0, 0, 1)
 class TextDirection(Enum):
     """Enumeration for text direction."""
 
-    LTR = 1  # Left to right: the default
-    RTL = 2  # Right to left: Arabic, Hebrew, Persian
+    LTR = 1
+    """Left to right, the default."""
+    RTL = 2
+    """Right to left, Arabic, Hebrew, Persian, etc."""
 
 
 class Font(ABC):
@@ -74,7 +68,11 @@ class Font(ABC):
 
 
 class Helvetica(Font):
-    """Helvetica font.
+    """Helvetica font, which is included by default in the PDF specification.
+
+    When the exact Helvetica font is not available, the platform substitute is used.
+    Referring to Helvetica via this class does not cause the font to be embedded in
+    the output PDF.
 
     Helvetica is one of the 14 PDF standard fonts that can typically be counted on being 
     present even if not embedded in the PDF document. However, starting with PDF 2.0, PDF 
@@ -551,7 +549,11 @@ class ContentStreamBuilder:
 
 @dataclass
 class LoadedImage:
-    """Loaded image."""
+    """Loaded image.
+
+    This class is used to track images that have been loaded into a
+    canvas.
+    """
 
     name: Name
     image: Image.Image
@@ -642,6 +644,7 @@ class _CanvasAccessor:
 
         Optionally, concatenate a transformation matrix. Implements
         the commonly used pattern of:
+
             q cm ... Q
         """
         self.push()
@@ -659,10 +662,10 @@ class _CanvasAccessor:
 class Canvas:
     """Canvas for rendering PDFs with pikepdf.
 
-    All drawing is done on a pikepdf canvas using the .do property.
+    All drawing is done on a pikepdf canvas using the ``.do`` property.
     This interface manages the graphics state of the canvas.
 
-    A Canvas can be exported as a single page Pdf using .to_pdf. This Pdf can
+    A Canvas can be exported as a single page Pdf using ``.to_pdf``. This Pdf can
     then be merged into other PDFs or written to a file.
     """
 

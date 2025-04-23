@@ -1,3 +1,5 @@
+"""Benchmark the performance of pikepdf."""
+
 from __future__ import annotations
 
 import time
