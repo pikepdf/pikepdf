@@ -14,6 +14,18 @@
 
 void init_annotation(py::module_ &m)
 {
+    py::enum_<pdf_annotation_flag_e>(m, "AnnotationFlag", py::arithmetic())
+        .value("invisible", pdf_annotation_flag_e::an_invisible)
+        .value("hidden", pdf_annotation_flag_e::an_hidden)
+        .value("print", pdf_annotation_flag_e::an_print)
+        .value("no_zoom", pdf_annotation_flag_e::an_no_zoom)
+        .value("no_rotate", pdf_annotation_flag_e::an_no_rotate)
+        .value("no_view", pdf_annotation_flag_e::an_no_view)
+        .value("read_only", pdf_annotation_flag_e::an_read_only)
+        .value("locked", pdf_annotation_flag_e::an_locked)
+        .value("toggle_no_view", pdf_annotation_flag_e::an_toggle_no_view)
+        .value("locked_contents", pdf_annotation_flag_e::an_locked_contents);
+
     py::class_<QPDFAnnotationObjectHelper,
         std::shared_ptr<QPDFAnnotationObjectHelper>,
         QPDFObjectHelper>(m, "Annotation")
@@ -23,6 +35,7 @@ void init_annotation(py::module_ &m)
                 // Don't use qpdf because the method returns std::string
                 return anno.getObjectHandle().getKey("/Subtype");
             })
+        .def_property_readonly("rect", &QPDFAnnotationObjectHelper::getRect)
         .def_property_readonly("flags", &QPDFAnnotationObjectHelper::getFlags)
         .def_property_readonly("appearance_state",
             [](QPDFAnnotationObjectHelper &anno) {

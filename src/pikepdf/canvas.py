@@ -10,6 +10,7 @@ from abc import ABC, abstractmethod
 from collections import namedtuple
 from contextlib import contextmanager
 from dataclasses import dataclass
+from decimal import Decimal
 from enum import Enum
 from io import BytesIO
 from pathlib import Path
@@ -54,7 +55,7 @@ class Font(ABC):
     """Base class for fonts."""
 
     @abstractmethod
-    def text_width(self, text: str, fontsize: float) -> float:
+    def text_width(self, text: str, fontsize: float | int | Decimal) -> float | int | Decimal:
         """Estimate the width of a text string when rendered with the given font."""
 
     @abstractmethod
@@ -73,9 +74,14 @@ class Font(ABC):
 
 
 class Helvetica(Font):
-    """Helvetica font."""
+    """Helvetica font.
 
-    def text_width(self, text: str, fontsize: float) -> float:
+    Helvetica is one of the 14 PDF standard fonts that can typically be counted on being 
+    present even if not embedded in the PDF document. However, starting with PDF 2.0, PDF 
+    processors are no longer guaranteed to have these fonts. See 9.6.2.2.
+    """
+
+    def text_width(self, text: str, fontsize: float | int | Decimal) -> float | int | Decimal:
         """Estimate the width of a text string when rendered with the given font."""
         raise NotImplementedError()
 
@@ -90,6 +96,160 @@ class Helvetica(Font):
         )
 
 
+class SimpleFont(Font):
+    """Font implementation designed to work with Type 1 Fonts and TrueType fonts, as 
+    described in section 9.6 of the PDF spec.
+
+    See also section 9.8: Font Descriptors.
+
+    The PDF spec also considers Type3 fonts to be "Simple Fonts", but Type3 fonts are not 
+    implemented here.
+    """
+
+    data: Dictionary
+
+    def __init__(self, data: Dictionary):
+        if Name.Subtype not in data or data.Subtype not in (Name.Type1, Name.MMType1, Name.TrueType):
+            raise ValueError('Font resource dictionary does not describe a Type1 or TrueType font:', data)
+        self.data = data
+
+    @classmethod
+    def load(cls, name: Name, resource_dict: Dictionary):
+        """Load a font from the specified resource dictionary."""
+        if name not in resource_dict.Font:
+            raise LookupError(f'Cannot find font information for {name} (Available fonts: {", ".join(resource_dict.Font.keys())})')
+        font_data = resource_dict.Font[name]
+        return cls(font_data)
+    
+    def register(self, pdf: Pdf) -> Dictionary:
+        """Register the font."""
+        return pdf.make_indirect(self.data)
+
+    @property
+    def leading(self) -> int | float | Decimal:
+        if Name.Leading in self.data.FontDescriptor:
+            return self.data.FontDescriptor.Leading
+        else:
+            return 0
+
+    def unscaled_char_width(self, char:int) -> Decimal:
+        """
+        Get the (unscaled) width of the character, in glyph-space units.
+
+        :param char: The character to check.
+        """
+        char_code = char - int(self.data.get(Name.FirstChar, 0))
+        if Name.Widths in self.data and len(self.data.Widths) > char_code:
+            width = self.data.Widths[char_code]
+        elif Name.MissingWidth in self.data.FontDescriptor:
+            width = self.data.FontDescriptor.MissingWidth
+        else:
+            width = Decimal(0)
+        return width
+    
+    def convert_width(self, width: int | float | Decimal, fontsize: int | float | Decimal = 1) -> int | float | Decimal:
+        """Convert a width from glyph space into text space, also scaling by the given 
+        font size.
+
+        Scaling based on the nominal height (see 9.2.2):
+
+        "This standard is arranged so that the nominal height of tightly spaced lines of 
+        text is 1 unit. ... The standard-size font shall then be scaled to be usable."
+
+        This means, essentially, that a font size of 1 means a character is 1 text-space 
+        unit high, and a font size of 12 is 12 text-space units high. Assuming no text 
+        scaling is in place (such as via the text matrix), and the PDF has not set a 
+        user-defined unit in the page dictionary, then text space units will be points 
+        (defined as 1/72 of an inch).
+        """
+        # For all but Type3 fonts, the ratio of text-space units to glyph-space units is a 
+        # fixed ratio of 1 to 1000 (See 9.2.4: Glyph Positioning and Metrics)
+        glyph_space_ratio = 1000
+        return (width / glyph_space_ratio) * fontsize
+
+    def encode(self, text: str) -> bytes:
+        """Encode a string in the encoding used by this font.
+        
+        This currently only works with fonts that use the WinAnsiEncoding or the 
+        MacRomanEncoding and which do not use a difference map.
+        """
+        if Name.Encoding not in self.data:
+            # This is allowed by the spec, and if I understand correctly has the same 
+            # meaning as StandardEncoding, which I don't see a good way to detect
+            raise NotImplementedError('Cannot encode font without explicitly defined encoding')
+        if isinstance(self.data.Encoding, Name):
+            return self._encode_named(text, self.data.Encoding)
+        if isinstance(self.data.Encoding, Dictionary):
+            if Name.Differences in self.data.Encoding:
+                raise NotImplementedError('Cannot encode using an encoding dictionary with a difference map')
+            if Name.BaseEncoding not in self.data.Encoding:
+                raise NotImplementedError('Cannot encode font without defined encoding')
+            return self._encode_named(text, self.data.Encoding.BaseEncoding)
+    
+    def _encode_named(self, text: str, encoding: Name):
+        if encoding == Name.StandardEncoding:
+            # Standard encoding is defined as "whatever the underlying font uses by 
+            # default", but we have to good way to detect that.
+            raise NotImplementedError('Cannot encode to StandardEncoding')
+        if encoding == Name.WinAnsiEncoding:
+            return text.encode('cp1252')
+        if encoding == Name.MacRomanEncoding:
+            return text.encode('mac_roman')
+        if encoding == Name.MacExpertEncoding:
+            # D.4 describes this character set if we want to implement a codec
+            raise NotImplementedError('Cannot encode to MacExpertEncoding')
+        if encoding == Name.PDFDocEncoding:
+            # The spec says this is generally not used to show text, but includes it as an 
+            # option anyway, so we'll do the same.
+            return text.encode('pdfdoc_pikepdf')
+        raise ValueError('Unknown encoding:', encoding)
+
+    def text_width(self, text: str, fontsize: int | float | Decimal = 1, 
+                   *, 
+                   char_spacing: int | float | Decimal = 0, 
+                   word_spacing: int | float | Decimal = 0
+                   ) -> float | int | Decimal:
+        """
+        Get the width of the string.
+
+        :param text: The string to check
+        :param fontsize: The target font size in text-space units. (Assuming text space 
+            isn't being scaled, this means the font size in points.)
+        :param char_spacing: Additional space that will be added between each character.
+            May be negative.
+        :param char_spacing: Additional space that will be added after each ASCII space 
+            character (' '). May be negative.
+        """
+        width = 0
+        ascii_space = ord(' ')
+        for byte in self.encode(text):
+            # It may seem like we are ignoring the possibility for multi-byte encodings 
+            # here. However, Simple Fonts are explicitly defined as using only single-byte
+            # encodings (See 9.2.2), so this is safe. Composite fonts will obviously 
+            # require a more sophisticated implementation.
+            width += self.unscaled_char_width(byte) + char_spacing
+            if byte == ascii_space:
+                width += word_spacing
+        return self.convert_width(width, fontsize)
+
+
+def _decode_differences_map(diffmap: Array):
+    """Decodes a Differences map to `(char_code, char_name)` pairs, as described in 
+    9.6.5.1."""
+    # Before this can be useful, we also need to map char_name to unicode codepoints.
+    # This may be impossible for Type1 and Type3 fonts, as such fonts can give glyphs 
+    # arbitrary names. And Difference maps should not be used for TrueType fonts.
+    # D.2 through D.6 in the spec do define some standard names though.
+    counter = 0
+    for value in diffmap:
+        if isinstance(value, Name):
+            yield counter, value
+            counter += 1
+        else:
+            # An index
+            counter = value
+
+
 class ContentStreamBuilder:
     """Content stream builder."""
 
@@ -100,9 +260,12 @@ class ContentStreamBuilder:
     def _append(self, inst: ContentStreamInstruction):
         self._stream += unparse_content_stream([inst]) + b"\n"
 
-    def extend(self, other: ContentStreamBuilder):
+    def extend(self, other: ContentStreamBuilder | bytes):
         """Append another content stream."""
-        self._stream += other._stream
+        if isinstance(other, ContentStreamBuilder):
+            self._stream += other._stream
+        else:
+            self._stream += other
 
     def push(self):
         """Save the graphics state."""
@@ -123,7 +286,12 @@ class ContentStreamBuilder:
         return self
 
     def begin_text(self):
-        """Begin text object."""
+        """Begin text object.
+        
+        All text operations must be contained within a text object, and are invalid 
+        otherwise. The text matrix and font are reset for each text object. Text objects
+        may not be nested.
+        """
         inst = ContentStreamInstruction([], Operator("BT"))
         self._append(inst)
         return self
@@ -154,14 +322,68 @@ class ContentStreamBuilder:
         self._append(inst)
         return self
 
-    def set_text_font(self, font: Name, size: int):
-        """Set text font and size."""
+    def set_text_font(self, font: Name, size: int | float | Decimal):
+        """Set text font and size.
+
+        This operator is mandatory in order to show text. Any text object which attempts
+        to show text without first calling this operator is invalid.
+        
+        The font name must match an entry in the current resources dictionary. The font 
+        size is expressed in text-space units. Assuming no text scaling is in place, and 
+        the PDF has not set a user-defined unit in the page dictionary, then text space 
+        units will be points (defined as 1/72 of an inch).
+        """
         inst = ContentStreamInstruction([font, size], Operator("Tf"))
+        self._append(inst)
+        return self
+    
+    def set_text_char_spacing(self, size: int | float | Decimal):
+        """Set the character spacing (Tc) for future text operations.
+        
+        This is a value, measured in unscaled text-space units, which will be used to 
+        adjust the spacing between characters. A value of 0 (the default) means that, 
+        for each rendered glyph, the cursor will advance only the actual width of the 
+        glyph. Positive values will result in additional space between characters, and 
+        negative values will cause glyphs to overlap.
+
+        In vertical writing, the sign works opposite of what one might expect: a positive
+        value shrinks the space, and a negative value increases it.
+        """
+        inst = ContentStreamInstruction([size], Operator("Tc"))
+        self._append(inst)
+        return self
+    
+    def set_text_word_spacing(self, size: int | float | Decimal):
+        """Set the word spacing (Tw) for future text operations.
+        
+        This is a value, measured in unscaled text-space units, which will be added to 
+        the width of any ASCII space characters.
+
+        In vertical writing, the sign works opposite of what one might expect: a positive
+        value shrinks the space, and a negative value increases it.
+        """
+        inst = ContentStreamInstruction([size], Operator("Tw"))
+        self._append(inst)
+        return self
+    
+    def set_text_leading(self, size: int | float | Decimal):
+        """Set the leading value (TL) for future text operations.
+        
+        This is the vertical spacing between lines. Specifically, it is defined as the 
+        distance between the baseline of the previous line to the baseline of the next 
+        line.
+        """
+        inst = ContentStreamInstruction([size], Operator("TL"))
         self._append(inst)
         return self
 
     def set_text_matrix(self, matrix: Matrix):
-        """Set text matrix."""
+        """Set text matrix.
+        
+        The text matrix defines the conversion between text-space and page-space, in 
+        terms of both scaling and translation. If this matrix scales the text, then
+        it redefines text-space units as being some scale factor of page-space units.
+        """
         inst = ContentStreamInstruction(matrix.shorthand, Operator("Tm"))
         self._append(inst)
         return self
@@ -189,9 +411,66 @@ class ContentStreamBuilder:
         self._append(inst)
         return self
 
+    def show_text_string(self, encoded: bytes):
+        """Show a single text string"""
+        inst = ContentStreamInstruction([String(encoded)], Operator("Tj"))
+        self._append(inst)
+        return self
+    
+    def show_text_line(self, encoded: bytes):
+        """Advance to the next line and show text.
+
+        The text must be encoded in character codes expected by the font.
+
+        This is functionally equivalent to ``move_cursor_new_line()`` followed by
+        ``show_text_string(encoded)``, but in a single operation.
+        """
+        inst = ContentStreamInstruction([String(encoded)], Operator("'"))
+        self._append(inst)
+        return self
+    
+    def show_text_line_with_spacing(self, encoded: bytes, word_spacing: int, char_spacing: int):
+        """Advance to the next line and show text.
+
+        The text must be encoded in character codes expected by the font.
+
+        This is functionally equivalent to ``set_text_char_spacing(char_spacing)`` and
+        ``set_text_word_spacing()``, followed by ``move_cursor_new_line()`` and then
+        ``show_text(encoded)``, all in a single operation.
+        """
+        inst = ContentStreamInstruction([word_spacing, char_spacing, String(encoded)], Operator('"'))
+        self._append(inst)
+        return self
+
     def move_cursor(self, dx, dy):
-        """Move cursor."""
+        """Move cursor by the given offset, relative to the start of the current line.
+
+        This operator modifies the both current text matrix and the text line matrix.
+        This means that, in addition to moving the current cursor, the new cursor will
+        also be defined as the start of a new line.
+        
+        The new position will be redefined as the new start of the line even if the y
+        offset is 0; what to a user may look like a single line of text could be encoded 
+        in the PDF content stream as multiple "lines". It's not uncommon for PDFs to be
+        written with every word as a separate "line", allowing the PDF writer to 
+        explicitly define the spacing between each word.
+        """
         inst = ContentStreamInstruction([dx, dy], Operator("Td"))
+        self._append(inst)
+        return self
+    
+    def move_cursor_new_line(self):
+        """Move cursor to the start of the next line. This moves down by the current 
+        leading value, and resets the x position back to the value it had at the beginning 
+        of the current line.
+
+        This operator modifies the both current text matrix and the text line matrix.
+        This means that, in addition to moving the current cursor, the new cursor will
+        also be defined as the start of a new line.
+        
+        The value this operation moves the cursor is set using ``set_text_leading``.
+        """
+        inst = ContentStreamInstruction([], Operator("T*"))
         self._append(inst)
         return self
 

@@ -19,7 +19,7 @@ from collections.abc import (
     Sequence,
 )
 from decimal import Decimal
-from enum import Enum
+from enum import Enum, IntFlag
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -94,6 +94,61 @@ class AccessMode(Enum):
     mmap_only: int = ...
     stream: int = ...
 
+class AnnotationFlag(IntFlag):
+    """Flag values for `pikepdf.Annotation.flags`."""
+    invisible: int = ...
+    """Do not attempt to display the appearance stream for this annotation.
+    
+    This flag is only to be used in cases where the annotation is not a standard type. 
+    For standard annotation types, use the ``hidden`` flag instead.
+    """
+    hidden: int = ...
+    """This annotation should not be displayed to users.
+    
+    This flag overrides all other display-related flags, and applies in both print and 
+    screen versions of the PDF.
+    """
+    print: int = ...
+    """If set, this annotation should also be included when the PDF is printed. 
+    Otherwise, it is only shown on screen but omitted when printing.
+    """
+    no_zoom: int = ...
+    """When zooming in on the page, this annotation will not grow larger. It will remain 
+    anchored by the top-left corner.
+    """
+    no_rotate: int = ...
+    """When rotating the page, this annotation will not rotate along with it. It will 
+    remain anchored by the top-left corner.
+    """
+    no_view: int = ...
+    """Do not display this annotation on-screen. The annotation may still show when 
+    printing the PDF, depending on the value of the ``print`` flag.
+    """
+    read_only: int = ...
+    """This annotation is non-interactive.
+    
+    This does not merely prevent editing, but all interactions. The annotation will not 
+    respond to any mouse or keyboard events, including hover."""
+    locked: int = ...
+    """This annotation cannot be altered or deleted.
+    
+    This does not restrict altering the annotation contents, or normal interaction with 
+    form widgets, but merely indicates that the annotation itself cannot be moved or 
+    otherwise altered.
+    """
+    toggle_no_view: int = ...
+    """If set, the value of the ``no_view`` flag will be inverted on selection or hover. 
+    This can be used to create annotations that are only visible when hovered, or 
+    annotations that disappear when hovered."""
+    locked_contents: int = ...
+    """Prevent the contents of the annotation from being changed by the user.
+    
+    Opposite the ``locked`` flag, this *does not* prevent altering or deleting the 
+    annotation; but its contents.
+    
+    For form fields, use the ``read_only`` field flag rather than this annotation flag.
+    """
+
 class EncryptionMethod(Enum):
     """PDF encryption methods.
 
@@ -115,6 +170,73 @@ class EncryptionMethod(Enum):
         :doc:`Adobe Supplement to the ISO 32000 </references/resources>`, requiring
         PDF 1.7 extension level 3. This algorithm still uses AES, but allows both
         AES-128 and AES-256, and improves how the key is derived from the password."""
+
+class FormFieldFlag(IntFlag):
+    """Flag values for `pikepdf.AcroFormField.flags`."""
+    read_only: int = ...
+    """The field is read-only. Users should not be allowed to change the value of this 
+    field."""
+    required: int = ...
+    """The field is required. Users should be required to submit a value for this field.
+    """
+    no_export: int = ...
+    """No value should be exported from this field when the user submits the form."""
+    btn_no_toggle_off: int = ...
+    """For radio buttons only. Indicates users should no be able to deselect a value, 
+    and values should only be deselected by selecting another value in the same group.
+    (This is the normal, familiar behavior of radio buttons.)"""
+    btn_radio: int = ...
+    """Indicates that the button is a radio button."""
+    btn_pushbutton: int = ...
+    """Indicates that the button is a pushbutton."""
+    btn_radios_in_unison: int = ...
+    """If two radio buttons in this group share the same on-state value, both buttons 
+    should toggle on or off together."""
+    tx_multiline: int = ...
+    """Indicates this is a multiline text field."""
+    tx_password: int = ...
+    """Indicates this is a password field."""
+    tx_file_select: int = ...
+    """Indicates this is a file upload field."""
+    tx_do_not_spell_check: int = ...
+    """Disables spell checking for this text field."""
+    tx_do_not_scroll: int = ...
+    """Prevent the text in this field from being scrolled (horizontally or vertically).
+    
+    Once the field is full, the field should not accept additional text."""
+    tx_comb: int = ...
+    """Divide characters into evenly-spaced "combs", depending on the value of 
+    ``MaxLen`` in the field dictionary.
+    """
+    tx_rich_text: int = ...
+    """Indicates this field contains rich text.
+    
+    Rich text is entered in an XML-based markup language known as XFA.
+    """
+    ch_combo: int = ...
+    """Indicates this field is a combo-box. Otherwise, it will be a list box."""
+    ch_edit: int = ...
+    """Also allow entry of free-text values into this choice field.
+    
+    The ``ch_combo`` flag must also be set.
+    """
+    ch_sort: int = ...
+    """Request that options be sorted alphabetically.
+    
+    You should check this flag when inserting new options into this choice field. It 
+    does not effect how the form displays to the user.
+    """
+    ch_multi_select: int = ...
+    """Allow multiple selections."""
+    ch_do_not_spell_check: int = ...
+    """Disables spell checking for free-text values in this choice field.
+
+    The ``edit`` flag must be set for this to have any effect.
+    """
+    ch_commit_on_sel_change: int = ...
+    """Indicates that the new value should be committed immediately upon selection. If
+    this is not set, the value will not be committed until the user moves on to the next 
+    field."""
 
 class ObjectStreamMode(Enum):
     """Options for saving object streams within PDFs.
@@ -597,20 +719,20 @@ class _ObjectMapping:
     def __len__(self) -> int: ...
     def __setitem__(self, key: str, value: Object) -> None: ...
 
-class FormField(ObjectHelper):
+class AcroFormField(ObjectHelper):
     """An AcroForm field. Wrapper around a PDF dictionary."""
     @property
     def is_null(self) -> bool:
         """True if the field is null."""
     @property
-    def parent(self) -> FormField:
+    def parent(self) -> AcroFormField:
         """This field's parent.
 
-        If there is no parent, a FormField where ``field.is_null is True`` is
+        If there is no parent, a AcroFormField where ``field.is_null is True`` is
         returned.
         """
     @property
-    def top_level_field(self) -> FormField:
+    def top_level_field(self) -> AcroFormField:
         """The top-level field for this field.
 
         This will be the field itself, or one of its ancestors (often the 
@@ -679,7 +801,7 @@ class FormField(ObjectHelper):
         If the value is not a string, this property will hold an empty string.
         """
     @property
-    def default_appearance(self) -> str:
+    def default_appearance(self) -> bytes:
         """Default appearance string, inheriting from ancestor fields if needed.
 
         This property will contain and empty string if the default appearance
@@ -740,13 +862,19 @@ class FormField(ObjectHelper):
         See `QPDF Issue 1433 <https://github.com/qpdf/qpdf/issues/1433>`_.
         To get options for such fields, use `field.obj.Opt` instead.
         """
+    def set_value(self, value, need_appearance: bool = True):
+        """Set the ``value`` property. If ``need_appearance`` is true, and this is a text 
+        or choice field, the ``pikepdf.AcroForm.needs_appearances will also be set.
+        """
+    def generate_appearance(self):
+        """Generate an appearance stream for this field."""
 
 class AcroForm:
     """A helper for working with PDF interactive forms."""
     @property
     def exists(self) -> bool:
         """True if the current document has an interactive form."""
-    def add_field(self, field: FormField):
+    def add_field(self, field: AcroFormField):
         """Add a form field.
 
         Initializes the document's AcroForm dictionary if needed, and
@@ -757,7 +885,7 @@ class AcroForm:
         name, which can have unexpected side effects. In that case, you should
         use ``add_and_rename_fields()`` instead.
         """
-    def add_and_rename_fields(self, fields: Sequence[FormField]):
+    def add_and_rename_fields(self, fields: Sequence[AcroFormField]):
         """Add a collection of form fields.
 
         Ensures that their fully qualified names don't conflict with
@@ -766,14 +894,14 @@ class AcroForm:
         Fields within the collection of new fields that have the same name as
         each other will continue to do so.
         """
-    def remove_fields(self, fields: Sequence[FormField]):
+    def remove_fields(self, fields: Sequence[AcroFormField]):
         """Remove fields from the ``fields`` list."""
-    def set_field_name(self, field: FormField, name: str):
+    def set_field_name(self, field: AcroFormField, name: str):
         """Set the partial name of a field, updating internal records of field 
         names.
         """
     @property
-    def fields(self) -> Sequence[FormField]:
+    def fields(self) -> Sequence[AcroFormField]:
         """A list of all terminal fields in this interactive form.
 
         Terminal fields are fields that have no children that are also fields.
@@ -783,13 +911,12 @@ class AcroForm:
         grouping.
 
         Intermediate nodes in the fields tree are not included in this list,
-        but you can still reach them through the ``FormField.parent`` property.
-        For radio buttons, the radio group can be accessed with the
-        ``FormField.top_level_field`` property.
+        but you can still reach them through the `pikepdf.AcroFormField.parent`
+        and `pikepdf.AcroFormField.top_level_field`` properties.
 
         Signature fields are not included in this list.
         """
-    def get_fields_with_qualified_name(self, name: str) -> Sequence[FormField]:
+    def get_fields_with_qualified_name(self, name: str) -> Sequence[AcroFormField]:
         """Get a list of all fields with the given qualified name.
 
         Generally, this list will contain only one member, as having multiple
@@ -802,7 +929,7 @@ class AcroForm:
 
         This method will not return signature fields.
         """
-    def get_annotations_for_field(self, field: FormField) -> Sequence[Annotation]:
+    def get_annotations_for_field(self, field: AcroFormField) -> Sequence[Annotation]:
         """Given a form field, return the associated annotation(s).
         
         Typically, interactive forms store field information and annotation 
@@ -822,7 +949,7 @@ class AcroForm:
         ``get_field_for_annotation`` method for each to get the corresponding 
         field.
         """
-    def get_form_fields_for_page(self, page: Page) -> Sequence[FormField]:
+    def get_form_fields_for_page(self, page: Page) -> Sequence[AcroFormField]:
         """Find all the interactive form fields on a page.
         
         In many PDFs, you may find that this returns a list that perfectly 
@@ -832,12 +959,12 @@ class AcroForm:
         ``get_annotations_for_field`` method for each to get the corresponding 
         annotations.
         """
-    def get_field_for_annotation(self, annotation: Annotation) -> FormField:
+    def get_field_for_annotation(self, annotation: Annotation) -> AcroFormField:
         """Given an annotation for a widget, return the associated form field.
         
         Typically, interactive forms store field information and annotation 
         information in the same dictionary, meaning this method will often 
-        return a `pikepdf.FormField` which refers to the same underlying 
+        return a `pikepdf.AcroFormField` which refers to the same underlying 
         `pikepdf.Dictionary`. However, this is not necessarily always 
         the case and should not be relied on. A field may store annotation data
         in its own dictionary.
@@ -872,44 +999,12 @@ class AcroForm:
         This method removes all digital signature fields from the document,
         leaving any annotation showing the content of the field intact.
         """
-    def _transform_annotations(
-        self,
-        old_annots: Sequence[Annotation],
-        new_annots: Sequence[Annotation],
-        new_fields: Sequence[FormField],
-        old_fields: Sequence[FormField],
-        matrix: Matrix,
-        from_pdf: Pdf | None = None,
-        from_acroform: AcroForm | None = None,
-    ):
-        """Transform annotations and form fields.
-
-        For each annotation in old_annots, apply the given transformation
-        matrix to create a new annotation. New annotations are appended to
-        new_annots. If the annotation is associated with a form field, a new
-        form field is created that points to the new annotation and is appended
-        to new_fields, and the old field is added to old_fields.
-
-        .. note::
-
-            This method works on all annotations, not just ones with associated
-            fields.
-
-        old_annots may belong to a different PDF object. In that case, you
-        should pass in from_pdf and from_acroform. New fields and annotations
-        are not added to the document or pages. You have to do that yourself
-        after calling transform_annotations. If this operation will leave
-        orphaned fields behind, such as if you are replacing the old
-        annotations with the new ones on the same page and the fields and
-        annotations are not shared, you will also need to remove the old fields
-        to prevent them from hanging around unreferenced.
-        """
     def fix_copied_annotations(
         self,
         to_page: Page,
         from_page: Page,
         from_acroform: AcroForm,
-    ) -> Sequence[FormField]:
+    ) -> Sequence[AcroFormField]:
         """Copy form fields and annotations from one page to another.
 
         This would typically be called after copying a new page in order to add
@@ -985,6 +1080,9 @@ class Annotation:
         For a checkbox or radio button, the appearance state may be ``pikepdf.Name.On``
         or ``pikepdf.Name.Off``.
         """
+    @property
+    def rect(self) -> Rectangle:
+        """Returns a rectangle defining the location of the annotation."""
     @property
     def flags(self) -> int:
         """Returns the annotation's flags."""
