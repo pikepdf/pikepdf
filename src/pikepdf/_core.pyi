@@ -866,7 +866,7 @@ class AcroFormField(ObjectHelper):
         """Set the ``value`` property. If ``need_appearance`` is true, and this is a text 
         or choice field, the ``pikepdf.AcroForm.needs_appearances will also be set.
         """
-    def generate_appearance(self):
+    def generate_appearance(self, annot: Annotation):
         """Generate an appearance stream for this field."""
 
 class AcroForm:
@@ -913,8 +913,6 @@ class AcroForm:
         Intermediate nodes in the fields tree are not included in this list,
         but you can still reach them through the `pikepdf.AcroFormField.parent`
         and `pikepdf.AcroFormField.top_level_field`` properties.
-
-        Signature fields are not included in this list.
         """
     def get_fields_with_qualified_name(self, name: str) -> Sequence[AcroFormField]:
         """Get a list of all fields with the given qualified name.
@@ -926,8 +924,6 @@ class AcroForm:
         field dictionary. In practice, this means that it should return the
         highest-level matching field, but not any children. (For example, this 
         method will return a radio group rather than individual radio buttons.)
-
-        This method will not return signature fields.
         """
     def get_annotations_for_field(self, field: AcroFormField) -> Sequence[Annotation]:
         """Given a form field, return the associated annotation(s).
