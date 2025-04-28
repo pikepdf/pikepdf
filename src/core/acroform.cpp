@@ -63,9 +63,16 @@ void init_acroform(py::module_ &m)
             "alternate_name", &QPDFFormFieldObjectHelper::getAlternativeName)
         .def_property_readonly(
             "mapping_name", &QPDFFormFieldObjectHelper::getMappingName)
-        .def_property_readonly("value", &QPDFFormFieldObjectHelper::getValue)
-        .def_property_readonly(
-            "value_as_string", &QPDFFormFieldObjectHelper::getValueAsString)
+        .def_property("value", 
+            &QPDFFormFieldObjectHelper::getValue, 
+            [](QPDFFormFieldObjectHelper &field, QPDFObjectHandle value) {
+                field.setV(value, true);
+            })
+        .def_property("value_as_string", 
+            &QPDFFormFieldObjectHelper::getValueAsString, 
+            [](QPDFFormFieldObjectHelper &field, std::string value) {
+                field.setV(value, true);
+            })
         .def_property_readonly(
             "default_value", &QPDFFormFieldObjectHelper::getDefaultValue)
         .def_property_readonly("default_value_as_string",
@@ -80,16 +87,32 @@ void init_acroform(py::module_ &m)
         .def_property_readonly("flags", &QPDFFormFieldObjectHelper::getFlags)
         .def_property_readonly("is_text", &QPDFFormFieldObjectHelper::isText)
         .def_property_readonly("is_checkbox", &QPDFFormFieldObjectHelper::isCheckbox)
-        // An `isChecked` method is also documented in the header, but doesn't seem to actually be implemented
+        .def_property_readonly("is_checked",
+            [](QPDFFormFieldObjectHelper &field) {
+                // This is the same as the QPDF implementation, but re-implemented here
+                // for versions of QPDF that did not define this method.
+                return field.isCheckbox() && field.getValue().isName() && (field.getValue().getName() != "/Off");
+            })
         .def_property_readonly(
             "is_radio_button", &QPDFFormFieldObjectHelper::isRadioButton)
         .def_property_readonly(
             "is_pushbutton", &QPDFFormFieldObjectHelper::isPushbutton)
         .def_property_readonly("is_choice", &QPDFFormFieldObjectHelper::isChoice)
         .def_property_readonly("choices", &QPDFFormFieldObjectHelper::getChoices)
-        // .def("set_value", &QPDFFormFieldObjectHelper::setV,
-        //     py::arg("value"), py::arg("need_appearance") = py::bool_(true))
-        .def("generate_appearance", &QPDFFormFieldObjectHelper::generateAppearance);
+        .def("set_value", 
+            [](QPDFFormFieldObjectHelper &field, QPDFObjectHandle value, bool need_appearances) {
+                // We get an error if we try to pass setV directly, so we wrap it
+                field.setV(value, need_appearances);
+            },
+            py::arg("value"), py::arg("need_appearance") = py::bool_(true))
+        .def("set_value", 
+            [](QPDFFormFieldObjectHelper &field, std::string value, bool need_appearances) {
+                // We get an error if we try to pass setV directly, so we wrap it
+                field.setV(value, need_appearances);
+            },
+            py::arg("value"), py::arg("need_appearance") = py::bool_(true))
+        .def("generate_appearance", &QPDFFormFieldObjectHelper::generateAppearance.
+            py::arg("annot"));
 
     py::class_<QPDFAcroFormDocumentHelper, std::shared_ptr<QPDFAcroFormDocumentHelper>>(
         m, "AcroForm")

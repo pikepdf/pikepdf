@@ -67,8 +67,8 @@ class TestSimpleFont:
         'pdf,resource_dict,simplefont,char_code,expected_width',
         [
             (*FONTS['arial-truetype-winansi'], ord('a'), 556),
-            (*FONTS['arialbold-truetype-winansi'], ord('a'), 556),
-            (*FONTS['times-truetype-winansi'], ord('a'), 444),
+            (*FONTS['arialbold-truetype-winansi'], b'a', 556),
+            (*FONTS['times-truetype-winansi'], 'a', 444),
         ],
         indirect=['pdf', 'resource_dict', 'simplefont']
     )

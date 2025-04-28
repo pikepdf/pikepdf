@@ -18,6 +18,7 @@ from pathlib import Path
 from PIL import Image
 
 from pikepdf._core import ContentStreamInstruction, Matrix, Pdf
+from pikepdf._data import CHARNAMES_TO_UNICODE
 from pikepdf.models import unparse_content_stream
 from pikepdf.objects import Array, Dictionary, Name, Operator, String
 
@@ -48,11 +49,20 @@ class TextDirection(Enum):
 class Font(ABC):
     """Base class for fonts."""
 
+    @property
+    @abstractmethod
+    def leading(self) -> int:
+        """The default leading (line spacing) value for this font, or 0 if not applicable."""
+
     @abstractmethod
     def text_width(
-        self, text: str, fontsize: float | int | Decimal
+        self, text: str | bytes, fontsize: float | int | Decimal
     ) -> float | int | Decimal:
         """Estimate the width of a text string when rendered with the given font."""
+
+    @abstractmethod
+    def encode(self, text: str) -> bytes:
+        """Encode a string in the encoding used by this font."""
 
     @abstractmethod
     def register(self, pdf: Pdf) -> Dictionary:
@@ -77,10 +87,18 @@ class Helvetica(Font):
     processors are no longer guaranteed to have these fonts. See 9.6.2.2.
     """
 
+    @property
+    def leading(self):
+        return 0
+
     def text_width(
-        self, text: str, fontsize: float | int | Decimal
+        self, text: str | bytes, fontsize: float | int | Decimal
     ) -> float | int | Decimal:
         """Estimate the width of a text string when rendered with the given font."""
+        raise NotImplementedError()
+
+    def encode(self, text: str) -> bytes:
+        """Encode a string in the encoding used by this font."""
         raise NotImplementedError()
 
     def register(self, pdf: Pdf) -> Dictionary:
@@ -106,6 +124,8 @@ class SimpleFont(Font):
 
     data: Dictionary
 
+    _diffmap_cache = None
+
     def __init__(self, data: Dictionary):
         if Name.Subtype not in data or data.Subtype not in (
             Name.Type1,
@@ -119,7 +139,7 @@ class SimpleFont(Font):
         self.data = data
 
     @classmethod
-    def load(cls, name: Name, resource_dict: Dictionary):
+    def load(cls, name: Name, resource_dict: Dictionary) -> 'SimpleFont':
         """Load a font from the specified resource dictionary."""
         if name not in resource_dict.Font:
             raise LookupError(
@@ -133,18 +153,24 @@ class SimpleFont(Font):
         return pdf.make_indirect(self.data)
 
     @property
-    def leading(self) -> int | float | Decimal:
+    def leading(self) -> int | Decimal:
         if Name.Leading in self.data.FontDescriptor:
             return self.data.FontDescriptor.Leading
         else:
             return 0
 
-    def unscaled_char_width(self, char: int) -> Decimal:
+    def unscaled_char_width(self, char: int | bytes | str) -> Decimal:
         """
         Get the (unscaled) width of the character, in glyph-space units.
 
-        :param char: The character to check.
+        :param char: The character to check. May be a char code, or a string containing a
+            single character.
         """
+        if isinstance(char, str):
+            char = self.encode(str)
+        if isinstance(char, bytes):
+            # Simple fonts always use single-byte encodings, so this is safe
+            char = char[0]
         char_code = char - int(self.data.get(Name.FirstChar, 0))
         if Name.Widths in self.data and len(self.data.Widths) > char_code:
             width = self.data.Widths[char_code]
@@ -155,8 +181,8 @@ class SimpleFont(Font):
         return width
 
     def convert_width(
-        self, width: int | float | Decimal, fontsize: int | float | Decimal = 1
-    ) -> int | float | Decimal:
+        self, width: int | Decimal, fontsize: int | Decimal = 1
+    ) -> int | Decimal:
         """Convert a width from glyph space into text space, also scaling by the given
         font size.
 
@@ -173,43 +199,49 @@ class SimpleFont(Font):
         """
         # For all but Type3 fonts, the ratio of text-space units to glyph-space units is a
         # fixed ratio of 1 to 1000 (See 9.2.4: Glyph Positioning and Metrics)
-        glyph_space_ratio = 1000
+        glyph_space_ratio = Decimal(1000)
         return (width / glyph_space_ratio) * fontsize
 
     def encode(self, text: str) -> bytes:
         """Encode a string in the encoding used by this font.
 
         This currently only works with fonts that use the WinAnsiEncoding or the
-        MacRomanEncoding and which do not use a difference map.
+        MacRomanEncoding. Differences maps are supported, though with a limited
+        set of recognized character names.
         """
         if Name.Encoding not in self.data:
             # This is allowed by the spec, and if I understand correctly has the same
-            # meaning as StandardEncoding, which I don't see a good way to detect
+            # meaning as StandardEncoding.
             raise NotImplementedError(
-                'Cannot encode font without explicitly defined encoding'
+                'Cannot encode without explicitly defined encoding'
             )
         if isinstance(self.data.Encoding, Name):
             return self._encode_named(text, self.data.Encoding)
         if isinstance(self.data.Encoding, Dictionary):
             if Name.Differences in self.data.Encoding:
-                raise NotImplementedError(
-                    'Cannot encode using an encoding dictionary with a difference map'
+                return self._encode_diffmap(
+                    text,
+                    self.data.Encoding.Differences,
+                    self.data.Encoding.get(Name.BaseEncoding),
                 )
             if Name.BaseEncoding not in self.data.Encoding:
-                raise NotImplementedError('Cannot encode font without defined encoding')
+                raise NotImplementedError(
+                    'Cannot encode without explicitly defined encoding'
+                )
             return self._encode_named(text, self.data.Encoding.BaseEncoding)
 
     def _encode_named(self, text: str, encoding: Name):
         if encoding == Name.StandardEncoding:
             # Standard encoding is defined as "whatever the underlying font uses by
-            # default", but we have to good way to detect that.
+            # default", but we have no good way to detect that.
             raise NotImplementedError('Cannot encode to StandardEncoding')
         if encoding == Name.WinAnsiEncoding:
             return text.encode('cp1252')
         if encoding == Name.MacRomanEncoding:
             return text.encode('mac_roman')
         if encoding == Name.MacExpertEncoding:
-            # D.4 describes this character set if we want to implement a codec
+            # D.4 describes this character set if we want to implement a codec. However,
+            # it doesn't seem actually useful to me.
             raise NotImplementedError('Cannot encode to MacExpertEncoding')
         if encoding == Name.PDFDocEncoding:
             # The spec says this is generally not used to show text, but includes it as an
@@ -217,14 +249,32 @@ class SimpleFont(Font):
             return text.encode('pdfdoc_pikepdf')
         raise ValueError('Unknown encoding:', encoding)
 
+    def _encode_diffmap(
+        self, text: str, diffmap: Array, base_encoding: Name | None = None
+    ):
+        if self._diffmap_cache is None:
+            self._diffmap_cache = _differences_map_lookup(diffmap)
+        result = bytearray()
+        for char in text:
+            if char in self._diffmap_cache:
+                result.append(self._diffmap_cache[char])
+            elif base_encoding is not None:
+                result.extend(self._encode_named(char, base_encoding))
+            elif char.isascii():
+                result.append(ord(char))
+            else:
+                # Can't map character
+                # TODO: should we throw an error or just emit a warning?
+                ...
+
     def text_width(
         self,
-        text: str,
-        fontsize: int | float | Decimal = 1,
+        text: str | bytes,
+        fontsize: int | Decimal = 1,
         *,
-        char_spacing: int | float | Decimal = 0,
-        word_spacing: int | float | Decimal = 0,
-    ) -> float | int | Decimal:
+        char_spacing: int | Decimal = 0,
+        word_spacing: int | Decimal = 0,
+    ) -> int | Decimal:
         """
         Get the width of the string.
 
@@ -238,7 +288,9 @@ class SimpleFont(Font):
         """
         width = 0
         ascii_space = ord(' ')
-        for byte in self.encode(text):
+        if isinstance(text, str):
+            text = self.encode(text)
+        for byte in text:
             # It may seem like we are ignoring the possibility for multi-byte encodings
             # here. However, Simple Fonts are explicitly defined as using only single-byte
             # encodings (See 9.2.2), so this is safe. Composite fonts will obviously
@@ -249,13 +301,18 @@ class SimpleFont(Font):
         return self.convert_width(width, fontsize)
 
 
-def _decode_differences_map(diffmap: Array):
-    """Decodes a Differences map to `(char_code, char_name)` pairs, as described in
-    9.6.5.1."""
-    # Before this can be useful, we also need to map char_name to unicode codepoints.
-    # This may be impossible for Type1 and Type3 fonts, as such fonts can give glyphs
-    # arbitrary names. And Difference maps should not be used for TrueType fonts.
-    # D.2 through D.6 in the spec do define some standard names though.
+def _parse_differences_map(diffmap: Array):
+    """Parses a Differences map to ``(char_code, char_name)`` pairs, as described in
+    9.6.5.1.
+
+    Here, ``char_code`` refers to the byte value of the character as it would appear in a
+    text content stream using this font; it is the PDF encoding, not the true unicode
+    character code. The corresponding ``char_name`` refers to the name of the glyph. The
+    name is used by Type1 and Type3 fonts to look up the actual glyph used from the font.
+
+    A partial mapping of glyph names to true unicode characters is available at
+    pikepdf._data.CHARNAMES_TO_UNICODE`.
+    """
     counter = 0
     for value in diffmap:
         if isinstance(value, Name):
@@ -264,6 +321,28 @@ def _decode_differences_map(diffmap: Array):
         else:
             # An index
             counter = value
+
+
+# pdfminer.six has a some closely related code:
+# https://github.com/pdfminer/pdfminer.six/blob/master/pdfminer/encodingdb.py
+# It works exactly opposite of what we would need here, but still could be interesting to
+# adapt.
+def _differences_map_lookup(diffmap: Array) -> dict:
+    """Convert a Differences map (See 9.6.5.1) to a Python dict mapping unicode characters
+    to the character index value.
+
+    The character index values are the byte values used in actual text content streams.
+
+    If the difference map encodes characters whose names aren't recognized, they will be
+    omitted from the final map, and a warning emitted.
+    """
+    diff = {}
+    for index, name in _parse_differences_map(diffmap):
+        try:
+            diff[CHARNAMES_TO_UNICODE[str(name)]] = index
+        except KeyError:
+            # TODO emit warning
+            ...
 
 
 class ContentStreamBuilder:
@@ -423,13 +502,34 @@ class ContentStreamBuilder:
         """
         # [ <text string> ] TJ
         # operands need to be enclosed in Array
+        # There is a Tj operator (lowercase j) which does not have this requirement,
+        # but for some reason QPDF hex-encodes the strings when using that operator.
+        # The TJ operator (Uppercase J) is technically meant for including spacing
+        # options, rather than showing a single string.
         inst = ContentStreamInstruction([Array([String(encoded)])], Operator("TJ"))
         self._append(inst)
         return self
 
-    def show_text_string(self, encoded: bytes):
-        """Show a single text string"""
-        inst = ContentStreamInstruction([String(encoded)], Operator("Tj"))
+    def show_text_with_kerning(self, *parts: bytes | int | float | Decimal):
+        """Show text, with manual spacing (kerning) options.
+
+        Arguments are either bytes, which represent the actual text to show, or numbers,
+        which move the cursor. The units for the numbers are expressed in thousandths
+        of a text-space unit (thus typically equivalent to a glyph-space unit).
+
+        For horizontal writing, positive values move the cursor left, and negative right.
+        For vertical writing, positive values move down and negative up.
+
+        The text must be encoded in character codes expected by the font.
+        """
+        inst = ContentStreamInstruction(
+            [
+                Array(
+                    String(part) if isinstance(part, bytes) else part for part in parts
+                )
+            ],
+            Operator("TJ"),
+        )
         self._append(inst)
         return self
 
