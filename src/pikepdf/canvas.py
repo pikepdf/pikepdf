@@ -51,8 +51,18 @@ class Font(ABC):
 
     @property
     @abstractmethod
-    def leading(self) -> int:
+    def leading(self) -> Decimal | int:
         """The default leading (line spacing) value for this font, or 0 if not applicable."""
+
+    @property
+    @abstractmethod
+    def ascent(self) -> Decimal | int | None:
+        """The max height of the font above the baseline."""
+
+    @property
+    @abstractmethod
+    def descent(self) -> Decimal | int | None:
+        """The max height of the font below the baseline."""
 
     @abstractmethod
     def text_width(self, text: str | bytes, fontsize: float | int | Decimal) -> float | int | Decimal:
@@ -92,6 +102,14 @@ class Helvetica(Font):
     @property
     def leading(self):
         return 0
+    
+    @property
+    def ascent(self):
+        return None
+    
+    @property
+    def descent(self):
+        return None
 
     def text_width(self, text: str | bytes, fontsize: float | int | Decimal) -> float | int | Decimal:
         """Estimate the width of a text string when rendered with the given font."""
@@ -149,6 +167,16 @@ class SimpleFont(Font):
             return self.data.FontDescriptor.Leading
         else:
             return 0
+        
+    @property
+    def ascent(self) -> Decimal:
+        # Required for all byt type 3 fonts, so should be present
+        return self.data.FontDescriptor.Ascent
+        
+    @property
+    def descent(self) -> Decimal:
+        # Required for all byt type 3 fonts, so should be present
+        return self.data.FontDescriptor.Descent
 
     def unscaled_char_width(self, char:int | bytes | str) -> Decimal:
         """
@@ -330,7 +358,7 @@ class ContentStreamBuilder:
 
     def __init__(self):
         """Initialize."""
-        self._stream = b""
+        self._stream = bytearray()
 
     def _append(self, inst: ContentStreamInstruction):
         self._stream += unparse_content_stream([inst]) + b"\n"
@@ -340,7 +368,7 @@ class ContentStreamBuilder:
         if isinstance(other, ContentStreamBuilder):
             self._stream += other._stream
         else:
-            self._stream += other
+            self._stream += other + b"\n"
 
     def push(self):
         """Save the graphics state."""
@@ -638,7 +666,7 @@ class ContentStreamBuilder:
 
     def build(self) -> bytes:
         """Build content stream."""
-        return self._stream
+        return bytes(self._stream)
 
 
 @dataclass

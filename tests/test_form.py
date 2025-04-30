@@ -71,28 +71,39 @@ def test_radio(form):
     assert Name('/Choice2') in field.states
     assert field.options[0].on_value == Name('/Choice1')
     assert field.options[1].on_value == Name('/Choice2')
-    assert not field.options[0].selected
-    assert not field.options[1].selected
+    assert not field.options[0].checked
+    assert not field.options[1].checked
+    # Set value directly
     field.value = Name('/Choice1')
     assert field.value == Name('/Choice1')
-    assert field.options[0].selected
-    assert not field.options[1].selected
+    assert field.options[0].checked
+    assert not field.options[1].checked
     assert field.options[0]._annot_dict.AS == Name('/Choice1')
     assert field.options[1]._annot_dict.AS == Name('/Off')
-    # field.selected = field.options[1]
-    field.value = Name('/Choice2')
+    # Using `group.selected`
+    field.selected = field.options[1]
     assert field.value == Name('/Choice2')
-    assert not field.options[0].selected
-    assert field.options[1].selected
+    assert not field.options[0].checked
+    assert field.options[1].checked
     assert field.options[0]._annot_dict.AS == Name('/Off')
     assert field.options[1]._annot_dict.AS == Name('/Choice2')
-    # field.options[1].select()
-    field.value = Name('/Choice1')
+    # Using `option.select`
+    field.options[0].select()
     assert field.value == Name('/Choice1')
-    assert field.options[0].selected
-    assert not field.options[1].selected
+    assert field.options[0].checked
+    assert not field.options[1].checked
     assert field.options[0]._annot_dict.AS == Name('/Choice1')
     assert field.options[1]._annot_dict.AS == Name('/Off')
+    # Using `option.checked`
+    field.options[1].checked = True
+    assert field.value == Name('/Choice2')
+    assert not field.options[0].checked
+    assert field.options[1].checked
+    assert field.options[0]._annot_dict.AS == Name('/Off')
+    assert field.options[1]._annot_dict.AS == Name('/Choice2')
+    # We don't support directly unchecking a radio button
+    with pytest.raises(ValueError):
+        field.options[1].checked = False
 
 
 def test_choice(dd0293):
@@ -116,13 +127,23 @@ def test_choice(dd0293):
     assert field.value == 'SPC2/E-2'
 
 
+def test_signature_stamp(resources, dd0293):
+    f = Form(dd0293)
+    field = f['form1[0].page2[0].SignatureField1[0]']
+    with Pdf.open(resources / 'pike-jp2.pdf') as sig_pdf:
+        xobj_name = field.stamp_overlay(sig_pdf.pages[0])
+    assert xobj_name in dd0293.pages[1].Resources.XObject
+    stream = dd0293.pages[1].Contents.read_bytes()
+    assert bytes(xobj_name) + b' Do' in stream
+
+
 def test_default_appearance_generator_text(form):
     f = Form(form, DefaultAppearanceStreamGenerator)
     field = f['Text1']
     field.value = 'Stuff'
     assert field.value == 'Stuff'
     assert not f._acroform.needs_appearances
-    stream = bytes(field._field.obj.AP.N.get_stream_buffer())
+    stream = field._field.obj.AP.N.read_bytes()
     assert field._field.default_appearance in stream
     assert b"(Stuff)" in stream
 
@@ -141,7 +162,7 @@ def test_extended_appearance_generator_multiline_text(dd0293):
     field.value = text
     assert field.value == text
     assert not f._acroform.needs_appearances
-    stream = bytes(field._field.obj.AP.N.get_stream_buffer())
+    stream = field._field.obj.AP.N.read_bytes()
     assert field._field.default_appearance in stream
     assert b"Manual" in stream
     assert b"nonsense" in stream

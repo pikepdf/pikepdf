@@ -147,6 +147,7 @@ practical examples, particular in ``pdfinfo.py``, ``graft.py``, and
     topics/content_streams
     topics/images
     topics/overlays
+    topics/interactive_forms
     topics/encoding
     topics/metadata
     topics/outlines
@@ -163,6 +164,7 @@ practical examples, particular in ``pdfinfo.py``, ``graft.py``, and
     api/main
     api/models
     api/canvas
+    api/form
     api/filters
     api/exceptions
     api/settings
