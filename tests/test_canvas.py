@@ -156,7 +156,7 @@ class TestContentStreamBuilder:
             (ContentStreamBuilder.set_text_matrix, (Matrix(),), "Tm"),
             (ContentStreamBuilder.set_text_rendering, (3,), "Tr"),
             (ContentStreamBuilder.set_text_horizontal_scaling, (100.0,), "Tz"),
-            (ContentStreamBuilder.show_text_string, (b'hello world',), "Tj"),
+            (ContentStreamBuilder.show_text_with_kerning, (b'A', 120, b'W', 120, b'A', 95, b'Y'), "TJ"),
             (ContentStreamBuilder.show_text_line, (b'hello world',), "'"),
             (ContentStreamBuilder.show_text_line_with_spacing, (b'hello world', .25, .25), '"'),
             (ContentStreamBuilder.move_cursor, (1, 2), "Td"),

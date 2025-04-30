@@ -2,8 +2,7 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from dataclasses import dataclass
 from decimal import Decimal
-from pikepdf import Array, Dictionary, Page, Pdf, Rectangle, Matrix, Name, Object, Operator, String, parse_content_stream
-from pikepdf._core import AcroForm, AcroFormField, FormFieldFlag
+from pikepdf import AcroForm, AcroFormField, Array, Dictionary, FormFieldFlag, Page, Pdf, Rectangle, Matrix, Name, Object, Operator, String, parse_content_stream
 from pikepdf.canvas import ContentStreamBuilder, Font, SimpleFont
 from typing import Mapping, Optional, Sequence, Tuple, Type
 
@@ -89,12 +88,10 @@ class Form:
             else:
                 seen.add(name)
                 yield name, self._wrap(field, name)
-    
 
     def __iter__(self):
         for name, item in self.items():
             yield item
-
     
     def _wrap(self, field: AcroFormField, name: str):
         if field.is_text:
@@ -114,7 +111,14 @@ class Form:
         self._cache[name] = wrapped
         return wrapped
 
+
 class _FieldWrapper:
+    """Base class for other field types.
+    
+    In addition to the methods and properties documented here, all fields expose the same 
+    properties and methods defined on `pikepdf.AcroFormField`. These are forwarded to the
+    underlying field object.
+    """
     def __init__(self, form: Form, field: AcroFormField):
         self._form = form
         self._field = field
@@ -233,7 +237,15 @@ class CheckboxField(_FieldWrapper):
         return (Name(key) for key in self._field.obj.AP.N.keys())
     
     @property
+    def on_value(self) -> Name:
+        """The underlying value associated with this checkbox's "on" state."""
+        for name in self._annot_dict.AP.N.keys():
+            if name != Name.Off:
+                return Name(name)
+    
+    @property
     def value(self) -> Name | None:
+        """The actual current stored value of this checkbox."""
         return self._field.value
     
     @property
@@ -275,7 +287,7 @@ class RadioButtonGroup(_FieldWrapper):
                 for index, kid in enumerate(self._field.obj.Kids))
     
     @property
-    def value(self):
+    def value(self) -> Name | None:
         """The value of the currently selected option."""
         return self._field.value
     
@@ -317,28 +329,43 @@ class RadioButtonOption:
         self._group = group
         self._annot_dict = annot_dict
         self._index = index
+
+    @property
+    def states(self) -> Sequence[Name]:
+        """List the possible states for this radio button. Typically this will be /Off 
+        plus one additional arbitrary value representing the on state."""
+        return (Name(key) for key in self._field.obj.AP.N.keys())
     
     @property
     def on_value(self) -> Name:
         """The underlying value associated with this button's "on" state."""
         for name in self._annot_dict.AP.N.keys():
             if name != Name.Off:
-                return name
+                return Name(name)
         
     def select(self):
         """Mark this as the selected option."""
         self._group.value = self.on_value
     
     @property
-    def selected(self) -> bool:
+    def checked(self) -> bool:
         """If this is the currently selected option"""
         return self.on_value == self._group.value
+    
+    @checked.setter
+    def checked(self, value: bool):
+        if value:
+            self._group.value = self.on_value
+        else:
+            raise ValueError('To uncheck a radio button, check another.')
 
 
 class PushbuttonField(_FieldWrapper):
-    # Pushbutton fields are useless, so we won't attempt to do anything with them, but 
-    # this is here for completeness.
-    pass
+    """Represents a pushbutton field.
+    
+    Pushbuttons retain no permanent state, so this class is merely a placeholder. It 
+    exposes no functionality.
+    """
 
 
 class ChoiceField(_FieldWrapper):
@@ -442,7 +469,6 @@ class ChoiceField(_FieldWrapper):
             self._form.generate_appearances.generate_choice(self._field)
         
 
-
 class ChoiceFieldOption:
     """Represents a single option for a choice field."""
     def __init__(self, field: ChoiceField, opt: String | Array, index: int | None):
@@ -492,29 +518,12 @@ class ChoiceFieldOption:
         return self._field.value == self.export_value
 
 
-def _iter_fields(pdf, annots:Sequence[Dictionary]):
-    """
-    Flattened iterator over a set of nested fields.
-
-    :param annots: The annotations or fields to iterate over, can be:
-
-        * ``pdf.Root.AcroForm.Fields``
-        * ``page.Annots``
-        * ``field.Kids``
-    """
-    for annot in annots:
-        yield AcroFormField(annot)
-        if Name.Kids in annot:
-            # This is a group
-            yield from _iter_fields(pdf, annot.Kids)
-
-
 class SignatureField(_FieldWrapper):
     """Represents a signature field.
     
     Signatures are not truly supported."""
 
-    def stamp_overlay(self, overlay: Object | Page):
+    def stamp_overlay(self, overlay: Object | Page) -> Name:
         """Stamp an image over the top of a signature field.
         
         This is *not* true support for PDF signatures. Rather, it is merely a utility for 
@@ -526,12 +535,11 @@ class SignatureField(_FieldWrapper):
         # There is allowed to be only one annot per sig fields, see 12.7.5.5
         # We could just use the value from acroform.get_annotations_for_field() to get the 
         # rect, but we could not get page info that way.
-        field_annot = self._form._acroform.get_annotations_for_field()[0]
+        field_annot = self._form._acroform.get_annotations_for_field(self._field)[0]
         for page in self._form._pdf.pages:
             for annot in self._form._acroform.get_widget_annotations_for_page(page):
                 if annot == field_annot:
-                    page.add_overlay(overlay, annot.rect)
-                    return
+                    return page.add_overlay(overlay, annot.rect)
 
 
 class AppearanceStreamGenerator(ABC):
@@ -596,9 +604,16 @@ class ExtendedAppearanceStreamGenerator(DefaultAppearanceStreamGenerator):
     the limitations of the default implementation. Currently:
      
       * Supports multiline text fields, with caveats:
-        - Word wrap does not take scaling factors (other than font size) into account
-        - Spacing operators not taken into consideration either
-        - Quadding is still ignored
+
+        * Word wrap does not take scaling factors (other than font size) into account
+
+        * Spacing operators not taken into consideration either
+
+        * Quadding is still ignored
+
+        * Due to limitations in Firefox's PDF viewer, the font and the line breaks will be 
+          incorrect when viewed in Firefox. PDFs filled by full-fat PDF readers, including 
+          Adobe Acrobat Reader, exhibit the same behavior when viewed in Firefox.
 
     Otherwise, this implementation has most of the same limitations as the default 
     implementation. Unlike the default implementation, this is implemented in Python 
@@ -638,8 +653,15 @@ def _text_appearance_multiline(pdf: Pdf, form: AcroForm, field: AcroFormField):
             if da_info.text_matrix is None:
                 # If there is no existing matrix, create located at the upper-right of 
                 # the bbox (with allowance for the height of the text).
+                top_offset = da_info.font.ascent 
+                if top_offset is None:
+                    # Fallback to full line height
+                    top_offset = da_info.line_spacing
+                else:
+                    # Scale to text-space
+                    top_offset = da_info.font.convert_width(top_offset, da_info.font_size)
                 cs.set_text_matrix(Matrix.identity()
-                                   .translated(bbox.urx, bbox.ury - da_info.line_spacing))
+                                   .translated(bbox.llx, Decimal(bbox.ury) - top_offset))
             _layout_multiline_text(cs, field.value_as_string, da_info, bbox)
         # Convert content stream to a Form XObject and save in the annotation appearance 
         # dictionary (AP) under the normal (N) key.
@@ -770,38 +792,35 @@ def _layout_multiline_text(content: ContentStreamBuilder, text: str, da_info: _D
     # account for what we're doing.
     word_spacing = font.text_width(' ', font_size) + (da_info.word_spacing or 0)
     # Fallback to font size if line spacing not provided
-    line_spacing = da_info.line_spacing or font_size
+    content.set_text_leading(da_info.line_spacing or font_size)
     width = bbox.width
-    # We render each word with a separate Td and Tj operator. This is how Adobe does it.
-    # The PDF specification does include operators for showing entire lines of text with
-    # a single operation. However, when viewed in some PDF viewers (e.g. Firefox's built-
-    # in viewer) these operations do not apply proper spacing. (I'll note that even forms
-    # filled by some non-Adobe PDF Readers, such as Evince, also exhibit some spacing 
-    # issues when viewed in Firefox, so this is likely a Firefox issue rather than 
-    # anything actually incorrect. But we'll work around it anyway.)
     try:
         text = font.encode(text)
     except NotImplementedError:
         # If the font uses an unsupported encoding, we will assume it is at least an 
         # ASCII-compatible encoding and go for it.
         text = text.encode('ascii', errors='replace')
-    current_width = Decimal(0)
-    for line in text.splitlines():
-        last_width = Decimal(0)
+    for lineno, line in enumerate(text.splitlines()):
+        if lineno != 0:
+            # Manual newlines
+            content.move_cursor_new_line()
+        line_width = Decimal(0)
+        line_words = []
         for word in line.split():
             word_len = font.text_width(word, font_size)
-            if current_width + word_len > width:
+            if line_width + word_spacing + word_len > width:
                 # Wrap if too long
-                content.move_cursor(-current_width, -line_spacing)
-                current_width = Decimal(0)
-                last_width = Decimal(0)
+                content.show_text(b' '.join(line_words))
+                content.move_cursor_new_line()
+                line_width = word_len
+                line_words = [word]
             else:
-                # Advance forward
-                content.move_cursor(last_width, 0)
-                current_width += last_width
-                last_width = word_len + word_spacing
-            print(repr(word+b' '))
-            content.show_text(word+b' ')
+                # Append to end of current line
+                line_words.append(word)
+                line_width += word_spacing + word_len
+        if line_words:
+            # Show last line
+            content.show_text(b' '.join(line_words))
 
 
 def _create_form_xobject(pdf: Pdf, bbox: Rectangle, content: ContentStreamBuilder, resources: Dictionary):
