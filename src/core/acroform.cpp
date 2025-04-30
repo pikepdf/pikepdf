@@ -111,7 +111,7 @@ void init_acroform(py::module_ &m)
                 field.setV(value, need_appearances);
             },
             py::arg("value"), py::arg("need_appearance") = py::bool_(true))
-        .def("generate_appearance", &QPDFFormFieldObjectHelper::generateAppearance.
+        .def("generate_appearance", &QPDFFormFieldObjectHelper::generateAppearance,
             py::arg("annot"));
 
     py::class_<QPDFAcroFormDocumentHelper, std::shared_ptr<QPDFAcroFormDocumentHelper>>(
