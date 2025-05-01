@@ -543,7 +543,7 @@ class SignatureField(_FieldWrapper):
         field_annot = self._form._acroform.get_annotations_for_field(self._field)[0]
         if Name.P in field_annot.obj:
             # The annot keeps a reference to the page (not always the case)
-            Page(field_annot.obj.P).add_overlay(overlay, field_annot)
+            Page(field_annot.obj.P).add_overlay(overlay, field_annot.rect)
         for page in self._form._pdf.pages:
             # Fall back to looping through all possible pages.
             for annot in self._form._acroform.get_widget_annotations_for_page(page):
