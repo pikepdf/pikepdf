@@ -76,7 +76,10 @@ class Form:
             if name in self._cache and name not in seen:
                 seen.add(name)
                 yield name, self._cache[name]
-            elif name in self._cache and not (field.is_radio_button and field.parent == self._cache[name]._field):
+            elif name in self._cache and field.is_radio_button and field.parent == self._cache[name]._field:
+                # We already returned the parent of this radio button
+                continue
+            elif name in self._cache:
                 raise RuntimeError(f'Multiple fields with same name: {name}')
             elif field.is_radio_button:
                 # QPDF does something here which is perhaps not entirely correct by the 
