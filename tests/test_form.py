@@ -53,6 +53,7 @@ def test_checkbox(form):
     f = Form(form)
     field = f['Check Box3']
     assert field.checked is False
+    assert field.on_value == Name.Yes
     field.checked = True
     assert field.checked is True
     assert field._field.obj.AS == Name.Yes

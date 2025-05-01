@@ -275,8 +275,7 @@ class SimpleFont(Font):
                 result.append(ord(char))
             else:
                 # Can't map character
-                # TODO: should we throw an error or just emit a warning?
-                ...
+                log.warning(f"No mapping for {repr(char)} in current encoding; skipped")
 
     def text_width(self, text: str | bytes, fontsize: int | Decimal = 1, 
                    *, 
@@ -349,8 +348,7 @@ def _differences_map_lookup(diffmap: Array) -> dict:
         try:
             diff[CHARNAMES_TO_UNICODE[str(name)]] = index
         except KeyError:
-            # TODO emit warning
-            ...
+            log.warning("Unknown character name in difference map: {str(name)}")
     
 
 class ContentStreamBuilder:
