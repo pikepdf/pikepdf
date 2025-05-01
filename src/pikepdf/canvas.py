@@ -100,11 +100,11 @@ class Helvetica(Font):
     @property
     def leading(self):
         return 0
-    
+
     @property
     def ascent(self):
         return None
-    
+
     @property
     def descent(self):
         return None
@@ -176,12 +176,12 @@ class SimpleFont(Font):
             return self.data.FontDescriptor.Leading
         else:
             return 0
-        
+
     @property
     def ascent(self) -> Decimal:
         # Required for all byt type 3 fonts, so should be present
         return self.data.FontDescriptor.Ascent
-        
+
     @property
     def descent(self) -> Decimal:
         # Required for all byt type 3 fonts, so should be present
@@ -292,8 +292,7 @@ class SimpleFont(Font):
                 result.append(ord(char))
             else:
                 # Can't map character
-                # TODO: should we throw an error or just emit a warning?
-                ...
+                log.warning(f"No mapping for {repr(char)} in current encoding; skipped")
 
     def text_width(
         self,
@@ -369,8 +368,7 @@ def _differences_map_lookup(diffmap: Array) -> dict:
         try:
             diff[CHARNAMES_TO_UNICODE[str(name)]] = index
         except KeyError:
-            # TODO emit warning
-            ...
+            log.warning(f"Unknown character name in difference map: {str(name)}")
 
 
 class ContentStreamBuilder:

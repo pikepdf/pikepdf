@@ -2,9 +2,13 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from dataclasses import dataclass
 from decimal import Decimal
+import logging
 from pikepdf import AcroForm, AcroFormField, Array, Dictionary, FormFieldFlag, Page, Pdf, Rectangle, Matrix, Name, Object, Operator, String, parse_content_stream
 from pikepdf.canvas import ContentStreamBuilder, Font, SimpleFont
-from typing import Mapping, Optional, Sequence, Tuple, Type
+from typing import Mapping, Optional, Sequence, Type
+
+log = logging.getLogger(__name__)
+
 
 class Form:
     """Utility class to make it easier to work with interactive forms.
@@ -44,6 +48,9 @@ class Form:
         if generate_appearances is not None:
             self.generate_appearances = generate_appearances(self._pdf, self._acroform)
         self.ignore_max_length = ignore_max_length
+
+    def __getattr__(self, name):
+        return getattr(self._acroform, name)
     
     def __getitem__(self, name: str):
         if name in self._cache:
@@ -220,7 +227,7 @@ class TextField(_FieldWrapper):
         max_length = self.max_length
         if not self._form.ignore_max_length and max_length is not None and len(value) > max_length:
             value = value[:max_length]
-            # TODO emit warning
+            log.warning('Value is too long for text field and is being truncated')
         # Set the value
         self._field.set_value(value, self._form.generate_appearances is None)
         # Generate appearance streams if requested.
@@ -234,12 +241,12 @@ class CheckboxField(_FieldWrapper):
     def states(self) -> Sequence[Name]:
         """List the possible states for this checkbox. Typically this will be /Off plus 
         one additional arbitrary value representing the on state."""
-        return (Name(key) for key in self._field.obj.AP.N.keys())
+        return tuple(Name(key) for key in self._field.obj.AP.N.keys())
     
     @property
     def on_value(self) -> Name:
         """The underlying value associated with this checkbox's "on" state."""
-        for name in self._annot_dict.AP.N.keys():
+        for name in self._field.obj.AP.N.keys():
             if name != Name.Off:
                 return Name(name)
     
@@ -532,11 +539,13 @@ class SignatureField(_FieldWrapper):
         This uses `pikepdf.Page.add_overlay` under the hood, see that method for 
         additional usage information.
         """
-        # There is allowed to be only one annot per sig fields, see 12.7.5.5
-        # We could just use the value from acroform.get_annotations_for_field() to get the 
-        # rect, but we could not get page info that way.
+        # There is allowed to be only one annot per sig field, see 12.7.5.5
         field_annot = self._form._acroform.get_annotations_for_field(self._field)[0]
+        if Name.P in field_annot.obj:
+            # The annot keeps a reference to the page (not always the case)
+            Page(field_annot.obj.P).add_overlay(overlay, field_annot)
         for page in self._form._pdf.pages:
+            # Fall back to looping through all possible pages.
             for annot in self._form._acroform.get_widget_annotations_for_page(page):
                 if annot == field_annot:
                     return page.add_overlay(overlay, annot.rect)
@@ -715,7 +724,7 @@ class _DaInfo:
         # Load styling information from the DA
         font_family, font_size = tf_inst.operands
         if font_size == 0:
-            # TODO it is allowed for the font_size to be zero, which is supposed to 
+            # It is allowed for the font_size to be zero, which is supposed to 
             # indicate an auto-sized font (See 12.7.4.3). This means we should evaluate
             # the size of the actual text and scale it to fit in the bounding box. I feel 
             # like supporting this is out of scope for now, but it could be supported in
@@ -732,7 +741,7 @@ class _DaInfo:
         # the font size as the line spacing appears to be what Evince Document Viewer is 
         # doing, so it seems like a reasonable fallback.
         #
-        # TODO: We could parse the DA and see if by chance we can extract custom values 
+        # We could parse the DA and see if by chance we can extract custom values 
         # that may be set for spacing. (I haven't seen examples of this, but it would 
         # probably be more correct.)
         line_spacing = font.leading or font_size
