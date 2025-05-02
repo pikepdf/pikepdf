@@ -151,6 +151,15 @@ def test_signature_stamp(resources, dd0293):
     stream = dd0293.pages[1].Contents.read_bytes()
     assert bytes(xobj_name) + b' Do' in stream
 
+def test_signature_stamp_expand(resources, va210966):
+    f = Form(va210966)
+    field = f['F[0].#subform[1].Digital_Signature[0]']
+    with Pdf.open(resources / 'pike-jp2.pdf') as sig_pdf:
+        xobj_name = field.stamp_overlay(sig_pdf.pages[0], expand_rect=(0, 17))
+    assert xobj_name in va210966.pages[1].Resources.XObject
+    stream = va210966.pages[1].Contents.read_bytes()
+    assert bytes(xobj_name) + b' Do' in stream
+
 
 def test_default_appearance_generator_text(form):
     f = Form(form, DefaultAppearanceStreamGenerator)

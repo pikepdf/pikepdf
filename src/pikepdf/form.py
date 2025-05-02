@@ -533,7 +533,9 @@ class SignatureField(_FieldWrapper):
     
     Signatures are not truly supported."""
 
-    def stamp_overlay(self, overlay: Object | Page) -> Name:
+    def stamp_overlay(self, overlay: Object | Page, *, 
+                      expand_rect: int | float | Decimal | Sequence[int | float | Decimal] | None = None
+                      ) -> Name:
         """Stamp an image over the top of a signature field.
         
         This is *not* true support for PDF signatures. Rather, it is merely a utility for 
@@ -541,17 +543,46 @@ class SignatureField(_FieldWrapper):
 
         This uses `pikepdf.Page.add_overlay` under the hood, see that method for 
         additional usage information.
+
+        If the bounding box of the signature field is smaller than the "visual" signature 
+        area in the PDF, you may use the ``expand_rect`` parameter to increase the 
+        dimensions of the rectangle when stamping. This may be any of the following types:
+
+        * A number, which will be added equally to all sides of the box
+        * A sequence of two numbers, which will be added on the X and Y axis respectively
+        * A sequence of four numbers, which will be added to the left, bottom, right, and 
+          top sides respectively
+
+        Positive numbers will increase the size of the box, and negative numbers will 
+        decease it.
         """
         # There is allowed to be only one annot per sig field, see 12.7.5.5
         field_annot = self._form._acroform.get_annotations_for_field(self._field)[0]
         if Name.P in field_annot.obj:
             # The annot keeps a reference to the page (not always the case)
-            Page(field_annot.obj.P).add_overlay(overlay, field_annot.rect)
+            Page(field_annot.obj.P).add_overlay(overlay, 
+                                        self._expand_rect(field_annot.rect, expand_rect))
         for page in self._form._pdf.pages:
             # Fall back to looping through all possible pages.
             for annot in self._form._acroform.get_widget_annotations_for_page(page):
                 if annot == field_annot:
-                    return page.add_overlay(overlay, annot.rect)
+                    return page.add_overlay(overlay, 
+                                            self._expand_rect(annot.rect, expand_rect))
+    
+    def _expand_rect(self, rect:Rectangle, expand_by):
+        if expand_by is None:
+            return rect
+        if isinstance(expand_by, (int, float, Decimal)):
+            expand_by = (expand_by, expand_by, expand_by, expand_by)
+        if len(expand_by) == 2:
+            expand_by = (*expand_by, *expand_by)
+        return Rectangle(
+            rect.llx - float(expand_by[0]),
+            rect.lly - float(expand_by[1]),
+            rect.urx + float(expand_by[2]),
+            rect.ury + float(expand_by[3]),
+        )
+
 
 
 class AppearanceStreamGenerator(ABC):
