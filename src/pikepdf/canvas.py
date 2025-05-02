@@ -229,6 +229,15 @@ class SimpleFont(Font):
         # fixed ratio of 1 to 1000 (See 9.2.4: Glyph Positioning and Metrics)
         glyph_space_ratio = Decimal(1000)
         return (width / glyph_space_ratio) * fontsize
+    
+    def convert_width_reverse(self, width: int | Decimal, fontsize: int | Decimal = 1) -> int | Decimal:
+        """Convert a width from text space back into glyph space, also scaling by the given 
+        font size.
+        """
+        # For all but Type3 fonts, the ratio of text-space units to glyph-space units is a 
+        # fixed ratio of 1 to 1000 (See 9.2.4: Glyph Positioning and Metrics)
+        glyph_space_ratio = Decimal(1000)
+        return (width * glyph_space_ratio) / fontsize
 
     def encode(self, text: str) -> bytes:
         """Encode a string in the encoding used by this font.
