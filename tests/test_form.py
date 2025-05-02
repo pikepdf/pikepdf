@@ -121,6 +121,47 @@ def test_radio(form):
         field.options[1].checked = False
 
 
+def test_radio_with_parent(va210966):
+    f = Form(va210966)
+    field = f['F[0].Page_1[0].RadioButtonList[1]']
+    assert field.value == Name.Off
+    assert field.selected is None
+    assert len(field.states) == 7
+    assert len(field.options) == 7
+    assert Name('/0') in field.states
+    assert Name('/6') in field.states
+    assert field.options[0].on_value == Name('/0')
+    assert field.options[6].on_value == Name('/6')
+    assert not field.options[0].checked
+    assert not field.options[6].checked
+    # Set value directly
+    field.value = Name('/0')
+    assert field.value == Name('/0')
+    assert field.options[0].checked
+    assert field.options[0]._annot_dict.AS == Name('/0')
+    # Using `group.selected`
+    field.selected = field.options[1]
+    assert field.value == Name('/1')
+    assert not field.options[0].checked
+    assert field.options[1].checked
+    assert field.options[0]._annot_dict.AS == Name('/Off')
+    assert field.options[1]._annot_dict.AS == Name('/1')
+    # Using `option.select`
+    field.options[2].select()
+    assert field.value == Name('/2')
+    assert field.options[2].checked
+    assert not field.options[1].checked
+    assert field.options[2]._annot_dict.AS == Name('/2')
+    assert field.options[1]._annot_dict.AS == Name('/Off')
+    # Using `option.checked`
+    field.options[3].checked = True
+    assert field.value == Name('/3')
+    assert not field.options[2].checked
+    assert field.options[3].checked
+    assert field.options[2]._annot_dict.AS == Name('/Off')
+    assert field.options[3]._annot_dict.AS == Name('/3')
+
+
 def test_choice(dd0293):
     f = Form(dd0293)
     field = f['form1[0].page1[0].#subform[2].DropDownList1[5]']
@@ -150,6 +191,7 @@ def test_signature_stamp(resources, dd0293):
     assert xobj_name in dd0293.pages[1].Resources.XObject
     stream = dd0293.pages[1].Contents.read_bytes()
     assert bytes(xobj_name) + b' Do' in stream
+
 
 def test_signature_stamp_expand(resources, va210966):
     f = Form(va210966)

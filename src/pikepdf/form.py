@@ -277,6 +277,11 @@ class CheckboxField(_FieldWrapper):
 class RadioButtonGroup(_FieldWrapper):
     """Represents a radio button group."""
     @property
+    def can_toggle_off(self):
+        """If radio buttons in this group are allowed to be togged off."""
+        return not self._field.flags & FormFieldFlag.btn_no_toggle_off
+
+    @property
     def states(self) -> Sequence[Name]:
         """List the possible on states of all component radio buttons in this group."""
         if Name.Kids not in self._field.obj:
@@ -303,9 +308,27 @@ class RadioButtonGroup(_FieldWrapper):
     
     @value.setter
     def value(self, value: Name):
-        self._field.set_value(value)
-        # Appearance stream generation not needed for radio buttons, and QDPF already sets 
-        # /AS for all children when it sets /V for the parent, so no further action needed
+        if value == Name.Off and not self.can_toggle_off:
+            raise ValueError('To uncheck a radio button, check another.')
+        if self._field.parent is None:
+            self._field.set_value(value)
+            # Appearance stream generation not needed for radio buttons, and QDPF already 
+            # sets /AS for all children when it sets /V for the parent, so no further 
+            # action needed.
+        else:
+            # This is a workaround for https://github.com/qpdf/qpdf/issues/1449 and can
+            # be removed once a fix for that issue is broadly available in QPDF.
+            # We should be able to already assume we are a terminal field, because of how
+            # the Form class above works, so all the checks QPDF does should be unneeded.
+            self._field.obj.V = value
+            for kid in self._field.obj.Kids:
+                # Set appearance streams for children (individual radio buttons)
+                states = set(kid.AP.N.keys())
+                if value in states:
+                    kid.AS = value
+                elif '/AS' in kid:
+                    kid.AS = Name.Off
+
     
     @property
     def selected(self) -> Optional['RadioButtonOption']:
@@ -325,7 +348,7 @@ class RadioButtonGroup(_FieldWrapper):
     def selected(self, option: 'RadioButtonOption'):
         if option._group is not self:
             raise ValueError('Option does not belong to this group')
-        self._field.set_value(option.on_value)
+        self.value =option.on_value
         # Appearance stream generation not needed for radio buttons, and QDPF already sets 
         # /AS for all children when it sets /V for the parent, so no further action needed
 
@@ -367,7 +390,8 @@ class RadioButtonOption:
         if value:
             self._group.value = self.on_value
         else:
-            raise ValueError('To uncheck a radio button, check another.')
+            self._group.value = Name.Off
+            
 
 
 class PushbuttonField(_FieldWrapper):
