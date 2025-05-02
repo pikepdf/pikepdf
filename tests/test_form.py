@@ -23,6 +23,20 @@ def dd0293(resources):
         yield pdf
 
 
+@pytest.fixture
+def va210966(resources):
+    """This is a real-world fillable form with significantly more complexity than the 
+    basic example form above. It has examples of:
+
+    * Combed text fields
+    * Radio buttons with parent fields
+    * Digital signature fields
+    * Fields with an alternate name
+    """
+    with Pdf.open(resources / 'form_210966.pdf') as pdf:
+        yield pdf
+
+
 def test_form_getitem(form):
     f = Form(form)
     assert isinstance(f['Text1'], TextField)
@@ -168,4 +182,17 @@ def test_extended_appearance_generator_multiline_text(dd0293):
     assert b"Manual" in stream
     assert b"nonsense" in stream
 
-    
+
+def test_extended_appearance_generator_combed_text(va210966):
+    f = Form(va210966, ExtendedAppearanceStreamGenerator)
+    field = f['F[0].Page_1[0].Veterans_First_Name[0]']
+    field.value = 'Nemo'
+    assert field.value == 'Nemo'
+    assert not f._acroform.needs_appearances
+    stream = field._field.obj.AP.N.read_bytes()
+    assert field._field.default_appearance in stream
+    assert b"(N)" in stream
+    assert b"(e)" in stream
+    assert b"(m)" in stream
+    assert b"(o)" in stream
+    assert b"] TJ" in stream

@@ -89,6 +89,15 @@ Lastly, you may implement your own class for generating appearance streams that 
 fits your specific use case. It must implement the interface provided by 
 `pikepdf.form.AppearanceStreamGenerator`.
 
+After filling a form, you may also wish to flatten it. This converts the interactive form 
+fields into normal, un-editable text. This can be done as follows:
+
+.. code-block:: python
+
+    pdf.flatten_annotations()
+
+Generating appearance streams is required if you wish to flatten the form.
+
 
 Text Fields
 -----------

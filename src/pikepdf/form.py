@@ -626,6 +626,8 @@ class ExtendedAppearanceStreamGenerator(DefaultAppearanceStreamGenerator):
         * Due to limitations in Firefox's PDF viewer, the font and the line breaks will be 
           incorrect when viewed in Firefox. PDFs filled by full-fat PDF readers, including 
           Adobe Acrobat Reader, exhibit the same behavior when viewed in Firefox.
+    
+      * Supports combed text fields, with most of the same caveats as above
 
     Otherwise, this implementation has most of the same limitations as the default 
     implementation. Unlike the default implementation, this is implemented in Python 
@@ -635,6 +637,8 @@ class ExtendedAppearanceStreamGenerator(DefaultAppearanceStreamGenerator):
         """Generate the appearance stream for a text field."""
         if field.flags & FormFieldFlag.tx_multiline:
             _text_appearance_multiline(self.pdf, self.form, field)
+        elif field.flags & FormFieldFlag.tx_comb:
+            _text_appearance_combed(self.pdf, self.form, field)
         else:
             # Fall back to the default implementation if we don't have a better one
             super().generate_text(field)
@@ -675,16 +679,40 @@ def _text_appearance_multiline(pdf: Pdf, form: AcroForm, field: AcroFormField):
                 cs.set_text_matrix(Matrix.identity()
                                    .translated(bbox.llx, Decimal(bbox.ury) - top_offset))
             _layout_multiline_text(cs, field.value_as_string, da_info, bbox)
-        # Convert content stream to a Form XObject and save in the annotation appearance 
-        # dictionary (AP) under the normal (N) key.
-        fonts_dict = Dictionary()
-        fonts_dict[da_info.font_name] = da_info.font.register(pdf)
-        resources = Dictionary(Font = fonts_dict)
-        xobj = _create_form_xobject(pdf, bbox, cs, resources)
-        if Name.AP in annot.obj:
-            annot.obj.AP.N = xobj
-        else:
-            annot.obj.AP = Dictionary(N = xobj)
+        _apply_appearance_stream(pdf, annot, cs, bbox, da_info)
+
+
+def _text_appearance_combed(pdf: Pdf, form: AcroForm, field: AcroFormField):
+    da_info = _DaInfo.decode_for_field(field)
+    for annot in form.get_annotations_for_field(field):
+        # There is likely only one annot, but we have to allow for multiple
+        bbox = annot.rect.to_bbox()
+        with _text_stream_builder(da_info.da) as cs:
+            if da_info.text_matrix is None:
+                # If there is no existing matrix, create located at the lower-right of 
+                # the bbox (with allowance for the descent of the text).
+                # Fallback to zero
+                bottom_offset = da_info.font.descent or 0
+                # Scale to text-space
+                bottom_offset = da_info.font.convert_width(bottom_offset, da_info.font_size)
+                cs.set_text_matrix(Matrix.identity()
+                                   .translated(bbox.llx, Decimal(bbox.lly) - bottom_offset))
+            _layout_combed_text(cs, field.value_as_string, da_info, bbox, field.get_inheritable_field_value("/MaxLen"))
+        _apply_appearance_stream(pdf, annot, cs, bbox, da_info)
+
+
+def _apply_appearance_stream(pdf, annot, cs, bbox, da_info):
+    """Convert content stream to a Form XObject and save in the annotation appearance 
+    dictionary (AP) under the normal (N) key."""
+    fonts_dict = Dictionary()
+    fonts_dict[da_info.font_name] = da_info.font.register(pdf)
+    resources = Dictionary(Font = fonts_dict)
+    xobj = _create_form_xobject(pdf, bbox, cs, resources)
+    if Name.AP in annot.obj:
+        annot.obj.AP.N = xobj
+    else:
+        annot.obj.AP = Dictionary(N = xobj)
+
 
 @dataclass
 class _DaInfo:
@@ -833,6 +861,39 @@ def _layout_multiline_text(content: ContentStreamBuilder, text: str, da_info: _D
         if line_words:
             # Show last line
             content.show_text(b' '.join(line_words))
+
+
+def _layout_combed_text(content: ContentStreamBuilder, text: str, da_info: _DaInfo, bbox: Rectangle, max_length: int | Decimal):
+    """Lay out the given text, spacing the characters evenly according to the 
+    comb size.
+
+    This layout algorithm is incomplete and somewhat rudimentary, but should produce
+    acceptable results for most common use cases.
+
+    Known issues:
+
+    * Does not respect field-defined alignment (quadding).
+    * Only ASCII, WinAnsi, and MacRoman encodings are supported.
+    """
+    font = da_info.font
+    font_size = da_info.font_size
+    width = bbox.width
+    comb_size = Decimal(width) / max_length
+    comb_size_gs = font.convert_width_reverse(comb_size, font_size)
+    parts = []
+    last_width = 0
+    for char in text:
+        try:
+            char = font.encode(char)
+        except NotImplementedError:
+            # If the font uses an unsupported encoding, we will assume it is at least an 
+            # ASCII-compatible encoding and go for it.
+            char = char.encode('ascii', errors='replace')
+        space_needed = (font.unscaled_char_width(char) - comb_size_gs) / 2
+        parts.append(last_width + space_needed)
+        parts.append(char)
+        last_width = space_needed
+    content.show_text_with_kerning(*parts)
 
 
 def _create_form_xobject(pdf: Pdf, bbox: Rectangle, content: ContentStreamBuilder, resources: Dictionary):
