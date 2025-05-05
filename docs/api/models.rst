@@ -43,6 +43,12 @@ Version 3.x automatically applies support models to ``/Page`` objects.
 .. autoapiclass:: pikepdf.models.EncryptionInfo
     :members:
 
+.. autoapiclass:: pikepdf.AcroForm
+    :members:
+
+.. autoapiclass:: pikepdf.AcroFormField
+    :members:
+
 .. autoapiclass:: pikepdf.Annotation
     :members:
 

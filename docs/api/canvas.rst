@@ -30,5 +30,8 @@ Text and fonts
 .. autoapiclass:: pikepdf.canvas.Helvetica
     :members:
 
+.. autoapiclass:: pikepdf.canvas.SimpleFont
+    :members:
+
 
 
