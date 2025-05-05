@@ -334,23 +334,21 @@ class RadioButtonGroup(_FieldWrapper):
     def selected(self) -> Optional['RadioButtonOption']:
         """The currently selected option."""
         value = self._field.value
-        if value is None:
+        if value is None or value == Name.Off:
             return None
         if Name.Kids not in self._field.obj:
             return None
         for index, kid in enumerate(self._field.obj.Kids):
             if value in kid.AP.N:
                 return RadioButtonOption(self, kid, index)
-        # No valid radio button should reach this point
+        log.warning('Radio button group value does not match any radio buttons')
         return None
     
     @selected.setter
     def selected(self, option: 'RadioButtonOption'):
         if option._group is not self:
             raise ValueError('Option does not belong to this group')
-        self.value =option.on_value
-        # Appearance stream generation not needed for radio buttons, and QDPF already sets 
-        # /AS for all children when it sets /V for the parent, so no further action needed
+        self.value = option.on_value
 
 
 class RadioButtonOption:
