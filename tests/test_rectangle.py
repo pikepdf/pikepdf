@@ -72,3 +72,9 @@ def test_rectangle_operators():
 def test_array_from_rect():
     a = Array(Rectangle(1, 2, 3, 4))
     assert isinstance(a, Array)
+
+
+def test_to_bbox():
+    rect = Rectangle(50, 50, 100, 100)
+    bbox = rect.to_bbox()
+    assert bbox == Rectangle(0, 0, 50, 50)
