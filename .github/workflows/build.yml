@@ -32,17 +32,23 @@ jobs:
           if-no-files-found: error
 
   wheels_linux_prerelease_python:
-    name: ${{ matrix.platform }} - pre-release ${{ matrix.freethreading && '- freethreading' || '' }}
+    name: ${{ matrix.platform }} - pre-release ${{ matrix.python }}${{ matrix.freethreading && 't' || '' }}
     runs-on: ubuntu-24.04
     continue-on-error: true
     env:
-      CIBW_BUILD: "cp314*-${{ matrix.platform }}"
+      CIBW_BUILD: "${{ matrix.python }}*-${{ matrix.platform }}"
       CIBW_PRERELEASE_PYTHONS: true
       CIBW_FREE_THREADED_SUPPORT: ${{ matrix.freethreading }}
     strategy:
       matrix:
         platform: [manylinux_x86_64]
-        freethreading: [1]
+        include:
+          - python: "cp313"
+            freethreading: 1
+          - python: "cp314"
+            freethreading: 0
+          - python: "cp314"
+            freethreading: 1
     steps:
       - uses: actions/checkout@v4
 
