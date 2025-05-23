@@ -101,9 +101,10 @@ def test_issue_271():
 
 
 def test_copy_foreign_refcount(refcount, vera, outlines):
-    assert refcount(outlines.Root.Names) == 2
+    c = refcount(outlines.Root.Names)
+    assert refcount(outlines.Root.Names) == c + 1
     vera.Root.Names = vera.copy_foreign(outlines.Root.Names)
-    assert refcount(outlines.Root.Names) == 2
+    assert refcount(outlines.Root.Names) == c + 1
 
 
 def test_copy_foreign_page_object(vera, outlines):

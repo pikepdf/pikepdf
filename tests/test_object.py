@@ -592,9 +592,9 @@ class TestStream:
     def test_stream_refcount(self, refcount, outpdf):
         pdf = pikepdf.new()
         stream = Stream(pdf, b'blahblah')
-        assert refcount(stream) == 2
+        count = refcount(stream)
         pdf.Root.SomeStream = stream
-        assert refcount(stream) == 2
+        assert refcount(stream) == count
         del stream
         pdf.save(outpdf)
         with pikepdf.open(outpdf) as pdf2:

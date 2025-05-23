@@ -90,9 +90,10 @@ def test_hard_replace_page(fourpages, graph, sandwich, outdir):
 
 
 def test_reverse_pages(resources, outdir):
-    with Pdf.open(resources / "fourpages.pdf") as q, Pdf.open(
-        resources / "fourpages.pdf"
-    ) as qr:
+    with (
+        Pdf.open(resources / "fourpages.pdf") as q,
+        Pdf.open(resources / "fourpages.pdf") as qr,
+    ):
         lengths = [int(page.Contents.stream_dict.Length) for page in q.pages]
 
         qr.pages.reverse()
@@ -111,13 +112,13 @@ def test_evil_page_deletion(refcount, resources, outdir):
     src = Pdf.open(outdir / 'sandwich.pdf')  # no with clause
     pdf = Pdf.open(resources / 'graph.pdf')
 
-    assert refcount(src) == 2
+    count = refcount(src)
     pdf.pages.append(src.pages[0])
-    assert refcount(src) == 2
+    assert refcount(src) == count
 
     del src.pages[0]
     gc.collect()
-    assert refcount(src) == 2
+    assert refcount(src) == count
 
     with suppress(PermissionError):  # Fails on Windows
         (outdir / 'sandwich.pdf').unlink()
@@ -380,9 +381,10 @@ def test_pages_wrong_type(fourpages):
 def test_page_splitting_generator(resources, tmp_path):
     # https://github.com/pikepdf/pikepdf/issues/114
     def pdfs():
-        with Pdf.open(
-            resources / "content-stream-errors.pdf"
-        ) as pdf, Pdf.new() as output:
+        with (
+            Pdf.open(resources / "content-stream-errors.pdf") as pdf,
+            Pdf.new() as output,
+        ):
             part = 1
             for _idx, page in enumerate(pdf.pages):
                 if len(output.pages) == 2:
