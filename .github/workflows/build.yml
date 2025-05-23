@@ -32,44 +32,33 @@ jobs:
           if-no-files-found: error
 
   wheels_linux_prerelease_python:
-    name: ${{ matrix.platform }} - pre-release ${{ matrix.python }}${{ matrix.freethreading && 't' || '' }}
+    name: test pre-release (${{ matrix.platform }})
     runs-on: ubuntu-24.04
     continue-on-error: true
     env:
-      CIBW_BUILD: "${{ matrix.python }}*-${{ matrix.platform }}"
-      CIBW_PRERELEASE_PYTHONS: true
-      CIBW_FREE_THREADED_SUPPORT: ${{ matrix.freethreading }}
+      CIBW_BUILD: "cp314*-${{ matrix.platform }}"
+      CIBW_ENABLE: "cpython-prerelease"
     strategy:
       matrix:
         platform: [manylinux_x86_64]
-        include:
-          - python: "cp313"
-            freethreading: 1
-          - python: "cp314"
-            freethreading: 0
-          - python: "cp314"
-            freethreading: 1
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install apt packages for source build of Pillow for Python 3.14
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            python3-dev \
-            python3-setuptools \
-            libtiff5-dev \
-            libjpeg8-dev \
-            libopenjp2-7-dev \
-            zlib1g-dev \
-            libfreetype6-dev \
-            liblcms2-dev \
-            libwebp-dev \
-            tcl8.6-dev \
-            python3-tk \
-            libharfbuzz-dev \
-            libfribidi-dev \
-            libxcb1-dev
+      - name: Build and test wheels (without upload)
+        uses: pypa/cibuildwheel@v2.23.3
+
+  wheels_linux_freethreading:
+    name: test freethreading (${{ matrix.platform }})
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    env:
+      CIBW_BUILD: "cp313*-${{ matrix.platform }}"
+      CIBW_ENABLE: "cpython-freethreading"
+    strategy:
+      matrix:
+        platform: [manylinux_x86_64]
+    steps:
+      - uses: actions/checkout@v4
 
       - name: Build and test wheels (without upload)
         uses: pypa/cibuildwheel@v2.23.3
