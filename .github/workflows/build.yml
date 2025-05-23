@@ -12,7 +12,7 @@ on:
 jobs:
   wheels_linux:
     name: ${{ matrix.platform }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     env:
       CIBW_BUILD: "*-${{ matrix.platform }}"
     strategy:
@@ -22,7 +22,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.23.2
+        uses: pypa/cibuildwheel@v2.23.3
 
       - name: Upload built wheels
         uses: actions/upload-artifact@v4
@@ -33,10 +33,10 @@ jobs:
 
   wheels_linux_prerelease_python:
     name: ${{ matrix.platform }} - pre-release ${{ matrix.freethreading && '- freethreading' || '' }}
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     continue-on-error: true
     env:
-      CIBW_BUILD: "cp313*-${{ matrix.platform }}"
+      CIBW_BUILD: "cp314*-${{ matrix.platform }}"
       CIBW_PRERELEASE_PYTHONS: true
       CIBW_FREE_THREADED_SUPPORT: ${{ matrix.freethreading }}
     strategy:
@@ -46,7 +46,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install apt packages for source build of Pillow for Python 3.13
+      - name: Install apt packages for source build of Pillow for Python 3.14
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -66,11 +66,11 @@ jobs:
             libxcb1-dev
 
       - name: Build and test wheels (without upload)
-        uses: pypa/cibuildwheel@v2.23.2
+        uses: pypa/cibuildwheel@v2.23.3
 
   wheels_linux_arm:
     name: ${{ matrix.platform }}
-    runs-on: ubuntu-22.04-arm
+    runs-on: ubuntu-24.04-arm
     strategy:
       matrix:
         platform: [manylinux_arm64, musllinux_arm64]
@@ -78,7 +78,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.23.2
+        uses: pypa/cibuildwheel@v2.23.3
 
       - name: Upload built wheels
         uses: actions/upload-artifact@v4
@@ -110,7 +110,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.23.2
+        uses: pypa/cibuildwheel@v2.23.3
 
       - uses: actions/upload-artifact@v4
         with:
@@ -182,7 +182,7 @@ jobs:
           build-scripts/win-download-qpdf.ps1 $env:QPDF_VERSION ${{ matrix.platform }}
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.23.2
+        uses: pypa/cibuildwheel@v2.23.3
 
       - uses: actions/upload-artifact@v4
         with:
@@ -191,7 +191,7 @@ jobs:
 
   sdist:
     name: source distribution
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
