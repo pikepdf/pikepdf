@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 from pikepdf import Name, Pdf
@@ -20,7 +22,7 @@ def form(resources):
 
 @pytest.fixture
 def dd0293(resources):
-    """This is a real-world fillable form with significantly more complexity than the 
+    """This is a real-world fillable form with significantly more complexity than the
     basic example form above. It has examples of:
 
     * Choice fields
@@ -34,7 +36,7 @@ def dd0293(resources):
 
 @pytest.fixture
 def va210966(resources):
-    """This is a real-world fillable form with significantly more complexity than the 
+    """This is a real-world fillable form with significantly more complexity than the
     basic example form above. It has examples of:
 
     * Combed text fields

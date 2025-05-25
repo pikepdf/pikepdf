@@ -16,7 +16,7 @@ def form(resources):
 
 @pytest.fixture
 def dd0293(resources):
-    """This is a real-world fillable form with significantly more complexity than the 
+    """This is a real-world fillable form with significantly more complexity than the
     basic example form above. It has examples of:
 
     * Choice fields
@@ -90,8 +90,9 @@ def test_radio_button(form):
     assert top_field.is_radio_button
     assert not top_field.is_pushbutton
     assert not top_field.is_choice
-    terminal_fields = list(filter(lambda f: f.fully_qualified_name == 'Group4',
-                                  form.acroform.fields))
+    terminal_fields = list(
+        filter(lambda f: f.fully_qualified_name == 'Group4', form.acroform.fields)
+    )
     assert len(terminal_fields) == 2
     for field in terminal_fields:
         assert field.top_level_field != field
@@ -106,10 +107,17 @@ def test_radio_button(form):
 
 
 def test_choice(dd0293):
-    field = dd0293.acroform.get_fields_with_qualified_name('form1[0].page1[0].#subform[2].DropDownList1[0]')[0]
-    assert field.fully_qualified_name == 'form1[0].page1[0].#subform[2].DropDownList1[0]'
+    field = dd0293.acroform.get_fields_with_qualified_name(
+        'form1[0].page1[0].#subform[2].DropDownList1[0]'
+    )[0]
+    assert (
+        field.fully_qualified_name == 'form1[0].page1[0].#subform[2].DropDownList1[0]'
+    )
     assert field.partial_name == 'DropDownList1[0]'
-    assert field.alternate_name == 'SECTION 2: SERVICE INFORMATION (Information from DD Form 214. Include Member Copy of DD Form 214 and enter as much as is readily available. - 7. GRADE/RANK AT DISCHARGE - ARMY - Select from drop-down list.'
+    assert (
+        field.alternate_name
+        == 'SECTION 2: SERVICE INFORMATION (Information from DD Form 214. Include Member Copy of DD Form 214 and enter as much as is readily available. - 7. GRADE/RANK AT DISCHARGE - ARMY - Select from drop-down list.'
+    )
     assert field.top_level_field.partial_name == 'form1[0]'
     assert not field.is_text
     assert not field.is_checkbox
@@ -122,11 +130,15 @@ def test_choice(dd0293):
 
 
 def test_existing_value(dd0293):
-    field = dd0293.acroform.get_fields_with_qualified_name('form1[0].#pageSet[0].Page1[0].TextField7[0]')[0]
+    field = dd0293.acroform.get_fields_with_qualified_name(
+        'form1[0].#pageSet[0].Page1[0].TextField7[0]'
+    )[0]
     assert field.value == "Controlled by: CUI Category: LDC: POC: "
     assert field.value_as_string == "Controlled by: CUI Category: LDC: POC: "
     assert field.default_value == "Controlled by: \nCUI Category: \nLDC: \nPOC: "
-    assert field.default_value_as_string == "Controlled by: \nCUI Category: \nLDC: \nPOC: "
+    assert (
+        field.default_value_as_string == "Controlled by: \nCUI Category: \nLDC: \nPOC: "
+    )
 
 
 def test_remove_fields(form):
@@ -157,13 +169,15 @@ def test_get_annotations_for_field(form):
 def test_get_widget_annotations_for_page(form):
     page = form.pages[0]
     annots = form.acroform.get_widget_annotations_for_page(page)
-    assert len(annots) == 5 # 1 annotation per terminal field (radio buttons each have their own)
+    assert (
+        len(annots) == 5
+    )  # 1 annotation per terminal field (radio buttons each have their own)
 
 
 def test_get_form_fields_for_page(form):
     page = form.pages[0]
     fields = form.acroform.get_form_fields_for_page(page)
-    assert len(fields) == 4 # 1 field per top-level field (2 radio buttons count as 1)
+    assert len(fields) == 4  # 1 field per top-level field (2 radio buttons count as 1)
 
 
 def test_get_field_for_annotation(form):
@@ -175,7 +189,9 @@ def test_get_field_for_annotation(form):
 def test_copy_form(form, dd0293):
     orig_count = len(dd0293.acroform.fields)
     dd0293.pages.extend(form.pages)
-    copied_fields = dd0293.acroform.fix_copied_annotations(dd0293.pages[-1], form.pages[0], form.acroform)
+    copied_fields = dd0293.acroform.fix_copied_annotations(
+        dd0293.pages[-1], form.pages[0], form.acroform
+    )
     new_count = len(dd0293.acroform.fields)
-    assert len(copied_fields) == 4 # Count is top-level fields
-    assert new_count == orig_count + 5 # Count is terminal fields
+    assert len(copied_fields) == 4  # Count is top-level fields
+    assert new_count == orig_count + 5  # Count is terminal fields

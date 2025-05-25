@@ -27,6 +27,7 @@ def pdf(request, resources):
     with Pdf.open(resources / request.param) as pdf:
         yield pdf
 
+
 @pytest.fixture
 def resource_dict(request, pdf):
     if request.param == 'form':
@@ -34,9 +35,11 @@ def resource_dict(request, pdf):
     else:
         return pdf.pages[0].Resources
 
+
 @pytest.fixture
 def simplefont(request, resource_dict):
     return SimpleFont.load(request.param, resource_dict)
+
 
 FONTS = {
     # TODO These are all TrueType fonts using the WinAnsiEncoding. Would be good to find
@@ -58,7 +61,7 @@ class TestSimpleFont:
             FONTS['arialbold-truetype-winansi'],
             FONTS['times-truetype-winansi'],
         ],
-        indirect=['pdf', 'resource_dict']
+        indirect=['pdf', 'resource_dict'],
     )
     def test_load(self, pdf, resource_dict, name):
         font = SimpleFont.load(name, resource_dict)
@@ -71,9 +74,11 @@ class TestSimpleFont:
             (*FONTS['arialbold-truetype-winansi'], b'a', 556),
             (*FONTS['times-truetype-winansi'], 'a', 444),
         ],
-        indirect=['pdf', 'resource_dict', 'simplefont']
+        indirect=['pdf', 'resource_dict', 'simplefont'],
     )
-    def test_unscaled_char_width_known(self, pdf, resource_dict, simplefont, char_code, expected_width):
+    def test_unscaled_char_width_known(
+        self, pdf, resource_dict, simplefont, char_code, expected_width
+    ):
         width = simplefont.unscaled_char_width(char_code)
         assert width == expected_width
 
@@ -84,29 +89,42 @@ class TestSimpleFont:
             FONTS['arialbold-truetype-winansi'],
             FONTS['times-truetype-winansi'],
         ],
-        indirect=True
+        indirect=True,
     )
-    @pytest.mark.parametrize('font_size,width,expected', [
-        (1, 1000, 1),
-        (12, 500, 6),
-    ])
-    def test_convert_width(self, pdf, resource_dict, simplefont, font_size, width, expected):
+    @pytest.mark.parametrize(
+        'font_size,width,expected',
+        [
+            (1, 1000, 1),
+            (12, 500, 6),
+        ],
+    )
+    def test_convert_width(
+        self, pdf, resource_dict, simplefont, font_size, width, expected
+    ):
         assert simplefont.convert_width(width, font_size) == expected
 
     @pytest.mark.parametrize(
         'pdf,resource_dict,simplefont,string,encoded',
         [
-            (*FONTS['arial-truetype-winansi'], "This is just ASCII!", b"This is just ASCII!"),
-            (*FONTS['times-truetype-winansi'],
+            (
+                *FONTS['arial-truetype-winansi'],
+                "This is just ASCII!",
+                b"This is just ASCII!",
+            ),
+            (
+                *FONTS['times-truetype-winansi'],
                 # Sentence constructed in a deliberate attempt to use multiple different
                 # non-ascii latin characters, don't read too much into it. I assure you my
                 # grandmother and I are fine.
                 "«Disparaître avec ma grand-mère française aiguë à l'hôpital dégoûtant cet été»",
-                b"\253Dispara\356tre avec ma grand-m\350re fran\347aise aigu\353 \340 l'h\364pital d\351go\373tant cet \351t\351\273"),
+                b"\253Dispara\356tre avec ma grand-m\350re fran\347aise aigu\353 \340 l'h\364pital d\351go\373tant cet \351t\351\273",
+            ),
         ],
-        indirect=['pdf', 'resource_dict', 'simplefont']
+        indirect=['pdf', 'resource_dict', 'simplefont'],
     )
-    def test_unscaled_char_width_known(self, pdf, resource_dict, simplefont, string, encoded):
+    def test_unscaled_char_width_known2(
+        self, pdf, resource_dict, simplefont, string, encoded
+    ):
         assert simplefont.encode(string) == encoded
 
 
@@ -157,9 +175,17 @@ class TestContentStreamBuilder:
             (ContentStreamBuilder.set_text_matrix, (Matrix(),), "Tm"),
             (ContentStreamBuilder.set_text_rendering, (3,), "Tr"),
             (ContentStreamBuilder.set_text_horizontal_scaling, (100.0,), "Tz"),
-            (ContentStreamBuilder.show_text_with_kerning, (b'A', 120, b'W', 120, b'A', 95, b'Y'), "TJ"),
+            (
+                ContentStreamBuilder.show_text_with_kerning,
+                (b'A', 120, b'W', 120, b'A', 95, b'Y'),
+                "TJ",
+            ),
             (ContentStreamBuilder.show_text_line, (b'hello world',), "'"),
-            (ContentStreamBuilder.show_text_line_with_spacing, (b'hello world', .25, .25), '"'),
+            (
+                ContentStreamBuilder.show_text_line_with_spacing,
+                (b'hello world', 0.25, 0.25),
+                '"',
+            ),
             (ContentStreamBuilder.move_cursor, (1, 2), "Td"),
             (ContentStreamBuilder.move_cursor_new_line, (), "T*"),
             (ContentStreamBuilder.stroke_and_close, (), "s"),
