@@ -52,7 +52,7 @@ class Font(ABC):
     @property
     @abstractmethod
     def leading(self) -> Decimal | int:
-        """The default leading (line spacing) value for this font, or 0 if not applicable."""
+        """Default leading (line spacing) value for this font; 0 if not applicable."""
 
     @property
     @abstractmethod
@@ -93,20 +93,23 @@ class Helvetica(Font):
     """Helvetica font.
 
     Helvetica is one of the 14 PDF standard fonts that can typically be counted on being
-    present even if not embedded in the PDF document. However, starting with PDF 2.0, PDF
-    processors are no longer guaranteed to have these fonts. See 9.6.2.2.
+    present even if not embedded in the PDF document. However, starting with PDF 2.0,
+    PDF processors are no longer guaranteed to have these fonts. See 9.6.2.2.
     """
 
     @property
     def leading(self):
+        """Returns leading for Helvetica (0pt)."""
         return 0
 
     @property
     def ascent(self):
+        """Returns None as no standard information is available."""
         return None
 
     @property
     def descent(self):
+        """Returns None as no standard information is available."""
         return None
 
     def text_width(
@@ -131,13 +134,14 @@ class Helvetica(Font):
 
 
 class SimpleFont(Font):
-    """Font implementation designed to work with Type 1 Fonts and TrueType fonts, as
-    described in section 9.6 of the PDF spec.
+    """Font implementation designed to work with Type 1 Fonts and TrueType fonts.
+
+    As described in section 9.6 of the PDF spec.
 
     See also section 9.8: Font Descriptors.
 
-    The PDF spec also considers Type3 fonts to be "Simple Fonts", but Type3 fonts are not
-    implemented here.
+    The PDF spec also considers Type3 fonts to be "Simple Fonts", but Type3 fonts are
+    not implemented here.
     """
 
     data: Dictionary
@@ -145,6 +149,7 @@ class SimpleFont(Font):
     _diffmap_cache = None
 
     def __init__(self, data: Dictionary):
+        """Create a SimpleFont instance from a font resource dictionary."""
         if Name.Subtype not in data or data.Subtype not in (
             Name.Type1,
             Name.MMType1,
@@ -161,7 +166,8 @@ class SimpleFont(Font):
         """Load a font from the specified resource dictionary."""
         if name not in resource_dict.Font:
             raise LookupError(
-                f'Cannot find font information for {name} (Available fonts: {", ".join(resource_dict.Font.keys())})'
+                f'Cannot find font information for {name} '
+                f'(Available fonts: {", ".join(resource_dict.Font.keys())})'
             )
         font_data = resource_dict.Font[name]
         return cls(font_data)
@@ -172,6 +178,7 @@ class SimpleFont(Font):
 
     @property
     def leading(self) -> int | Decimal:
+        """Returns leading for a SimpleFont."""
         if Name.Leading in self.data.FontDescriptor:
             return self.data.FontDescriptor.Leading
         else:
@@ -179,19 +186,22 @@ class SimpleFont(Font):
 
     @property
     def ascent(self) -> Decimal:
+        """Returns ascent for a SimpleFont."""
         # Required for all byt type 3 fonts, so should be present
         return self.data.FontDescriptor.Ascent
 
     @property
     def descent(self) -> Decimal:
+        """Returns descent for a SimpleFont."""
         # Required for all byt type 3 fonts, so should be present
         return self.data.FontDescriptor.Descent
 
     def unscaled_char_width(self, char: int | bytes | str) -> Decimal:
         """Get the (unscaled) width of the character, in glyph-space units.
 
-        :param char: The character to check. May be a char code, or a string containing a
-            single character.
+        Args:
+            char: The character to check. May be a char code, or a string containing a
+                single character.
         """
         if isinstance(char, str):
             char = self.encode(str)
@@ -210,8 +220,7 @@ class SimpleFont(Font):
     def convert_width(
         self, width: int | Decimal, fontsize: int | Decimal = 1
     ) -> int | Decimal:
-        """Convert a width from glyph space into text space, also scaling by the given
-        font size.
+        """Convert width from glyph space to text space, scaling by font size.
 
         Scaling based on the nominal height (see 9.2.2):
 
@@ -224,17 +233,17 @@ class SimpleFont(Font):
         user-defined unit in the page dictionary, then text space units will be points
         (defined as 1/72 of an inch).
         """
-        # For all but Type3 fonts, the ratio of text-space units to glyph-space units is a
-        # fixed ratio of 1 to 1000 (See 9.2.4: Glyph Positioning and Metrics)
+        # For all but Type3 fonts, the ratio of text-space units to glyph-space units is
+        # a fixed ratio of 1 to 1000 (See 9.2.4: Glyph Positioning and Metrics)
         glyph_space_ratio = Decimal(1000)
         return (width / glyph_space_ratio) * fontsize
 
-    def convert_width_reverse(self, width: int | Decimal, fontsize: int | Decimal = 1) -> int | Decimal:
-        """Convert a width from text space back into glyph space, also scaling by the given
-        font size.
-        """
-        # For all but Type3 fonts, the ratio of text-space units to glyph-space units is a
-        # fixed ratio of 1 to 1000 (See 9.2.4: Glyph Positioning and Metrics)
+    def convert_width_reverse(
+        self, width: int | Decimal, fontsize: int | Decimal = 1
+    ) -> int | Decimal:
+        """Convert width from text space back to glyph space, scaling by font size."""
+        # For all but Type3 fonts, the ratio of text-space units to glyph-space units is
+        # a fixed ratio of 1 to 1000 (See 9.2.4: Glyph Positioning and Metrics)
         glyph_space_ratio = Decimal(1000)
         return (width * glyph_space_ratio) / fontsize
 
@@ -280,8 +289,8 @@ class SimpleFont(Font):
             # it doesn't seem actually useful to me.
             raise NotImplementedError('Cannot encode to MacExpertEncoding')
         if encoding == Name.PDFDocEncoding:
-            # The spec says this is generally not used to show text, but includes it as an
-            # option anyway, so we'll do the same.
+            # The spec says this is generally not used to show text, but includes it as
+            # an option anyway, so we'll do the same.
             return text.encode('pdfdoc_pikepdf')
         raise ValueError('Unknown encoding:', encoding)
 
@@ -312,13 +321,17 @@ class SimpleFont(Font):
     ) -> int | Decimal:
         """Get the width of the string.
 
-        :param text: The string to check
-        :param fontsize: The target font size in text-space units. (Assuming text space
-            isn't being scaled, this means the font size in points.)
-        :param char_spacing: Additional space that will be added between each character.
-            May be negative.
-        :param char_spacing: Additional space that will be added after each ASCII space
-            character (' '). May be negative.
+        This is the width of the string when rendered with the current font, scaled by
+        the given font size.
+
+        Args:
+            text: The string to check
+            fontsize: The target font size in text-space units. (Assuming text space
+                isn't being scaled, this means the font size in points.)
+            char_spacing: Additional space that will be added between each character.
+                May be negative.
+            word_spacing: Additional space that will be added after each ASCII space
+                character (' '). May be negative.
         """
         width = 0
         ascii_space = ord(' ')
@@ -326,9 +339,9 @@ class SimpleFont(Font):
             text = self.encode(text)
         for byte in text:
             # It may seem like we are ignoring the possibility for multi-byte encodings
-            # here. However, Simple Fonts are explicitly defined as using only single-byte
-            # encodings (See 9.2.2), so this is safe. Composite fonts will obviously
-            # require a more sophisticated implementation.
+            # here. However, Simple Fonts are explicitly defined as using only
+            # single-byte encodings (See 9.2.2), so this is safe. Composite fonts will
+            # obviously require a more sophisticated implementation.
             width += self.unscaled_char_width(byte) + char_spacing
             if byte == ascii_space:
                 width += word_spacing
@@ -336,13 +349,15 @@ class SimpleFont(Font):
 
 
 def _parse_differences_map(diffmap: Array):
-    """Parses a Differences map to ``(char_code, char_name)`` pairs, as described in
-    9.6.5.1.
+    """Parses a Differences map to ``(char_code, char_name)`` pairs.
 
-    Here, ``char_code`` refers to the byte value of the character as it would appear in a
-    text content stream using this font; it is the PDF encoding, not the true unicode
+    This procedure is as described in 9.6.5.1.
+
+    Here, ``char_code`` refers to the byte value of the character as it would appear in
+    a text content stream using this font; it is the PDF encoding, not the true unicode
     character code. The corresponding ``char_name`` refers to the name of the glyph. The
-    name is used by Type1 and Type3 fonts to look up the actual glyph used from the font.
+    name is used by Type1 and Type3 fonts to look up the actual glyph used from the
+    font.
 
     A partial mapping of glyph names to true unicode characters is available at
     pikepdf._data.CHARNAMES_TO_UNICODE`.
@@ -359,11 +374,12 @@ def _parse_differences_map(diffmap: Array):
 
 # pdfminer.six has a some closely related code:
 # https://github.com/pdfminer/pdfminer.six/blob/master/pdfminer/encodingdb.py
-# It works exactly opposite of what we would need here, but still could be interesting to
-# adapt.
+# It works exactly opposite of what we would need here, but still could be interesting
+# to adapt.
 def _differences_map_lookup(diffmap: Array) -> dict:
-    """Convert a Differences map (See 9.6.5.1) to a Python dict mapping unicode characters
-    to the character index value.
+    """Convert a Differences map (See 9.6.5.1) to a Python dict.
+
+    The Python dict maps unicode characters to the character index value.
 
     The character index values are the byte values used in actual text content streams.
 
@@ -474,8 +490,8 @@ class ContentStreamBuilder:
         glyph. Positive values will result in additional space between characters, and
         negative values will cause glyphs to overlap.
 
-        In vertical writing, the sign works opposite of what one might expect: a positive
-        value shrinks the space, and a negative value increases it.
+        In vertical writing, the sign works opposite of what one might expect: a
+        positive value shrinks the space, and a negative value increases it.
         """
         inst = ContentStreamInstruction([size], Operator("Tc"))
         self._append(inst)
@@ -487,8 +503,8 @@ class ContentStreamBuilder:
         This is a value, measured in unscaled text-space units, which will be added to
         the width of any ASCII space characters.
 
-        In vertical writing, the sign works opposite of what one might expect: a positive
-        value shrinks the space, and a negative value increases it.
+        In vertical writing, the sign works opposite of what one might expect: a
+        positive value shrinks the space, and a negative value increases it.
         """
         inst = ContentStreamInstruction([size], Operator("Tw"))
         self._append(inst)
@@ -550,8 +566,8 @@ class ContentStreamBuilder:
         which move the cursor. The units for the numbers are expressed in thousandths
         of a text-space unit (thus typically equivalent to a glyph-space unit).
 
-        For horizontal writing, positive values move the cursor left, and negative right.
-        For vertical writing, positive values move down and negative up.
+        For horizontal writing, positive values move the cursor left, and negative
+        right. For vertical writing, positive values move down and negative up.
 
         The text must be encoded in character codes expected by the font.
         """
@@ -613,9 +629,10 @@ class ContentStreamBuilder:
         return self
 
     def move_cursor_new_line(self):
-        """Move cursor to the start of the next line. This moves down by the current
-        leading value, and resets the x position back to the value it had at the beginning
-        of the current line.
+        """Move cursor to the start of the next line.
+
+        This moves down by the current leading value, and resets the x position back to
+        the value it had at the beginning of the current line.
 
         This operator modifies the both current text matrix and the text line matrix.
         This means that, in addition to moving the current cursor, the new cursor will

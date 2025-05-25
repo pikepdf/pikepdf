@@ -700,10 +700,12 @@ class Extend_Rectangle:
         return hash((self.llx, self.lly, self.urx, self.ury))
 
     def to_bbox(self) -> Rectangle:
-        """Get a rectangle with the same width and height as this one, but located at the
-        origin (0, 0).
+        """Returns the origin-centred bounding box that encloses this rectangle.
 
-        Bounding boxes represent independent coordinate systems, such as for Form 
+        Create a new rectangle with the same width and height as this one, but located
+        at the origin (0, 0).
+
+        Bounding boxes represent independent coordinate systems, such as for Form
         XObjects.
         """
         return Rectangle(0, 0, self.width, self.height)
