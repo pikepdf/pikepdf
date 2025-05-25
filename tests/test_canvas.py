@@ -3,11 +3,12 @@
 
 from __future__ import annotations
 
-import pytest
 from decimal import Decimal
+
+import pytest
 from PIL import Image
 
-from pikepdf import Dictionary, Matrix, Pdf
+from pikepdf import Matrix, Pdf
 from pikepdf.canvas import (
     BLACK,
     Canvas,
@@ -24,7 +25,7 @@ from pikepdf.objects import Name, Operator
 @pytest.fixture
 def pdf(request, resources):
     with Pdf.open(resources / request.param) as pdf:
-        yield pdf 
+        yield pdf
 
 @pytest.fixture
 def resource_dict(request, pdf):
@@ -38,10 +39,10 @@ def simplefont(request, resource_dict):
     return SimpleFont.load(request.param, resource_dict)
 
 FONTS = {
-    # TODO These are all TrueType fonts using the WinAnsiEncoding. Would be good to find 
-    # other examples. Having trouble finding other example PDFs with fonts that would be 
-    # supported by our current limited implementation. All the Type1 fonts I see reference 
-    # built-in fonts with no widths, or have difference maps, and MacRoman doesn't seem to 
+    # TODO These are all TrueType fonts using the WinAnsiEncoding. Would be good to find
+    # other examples. Having trouble finding other example PDFs with fonts that would be
+    # supported by our current limited implementation. All the Type1 fonts I see reference
+    # built-in fonts with no widths, or have difference maps, and MacRoman doesn't seem to
     # really exist in the wild anymore as far as I can tell.
     'arial-truetype-winansi': ('form_dd0293.pdf', 'form', Name('/ArialMT')),
     'arialbold-truetype-winansi': ('form_dd0293.pdf', 'form', Name('/Arial-BoldMT')),
@@ -62,7 +63,7 @@ class TestSimpleFont:
     def test_load(self, pdf, resource_dict, name):
         font = SimpleFont.load(name, resource_dict)
         assert font.data == resource_dict.Font[name]
-    
+
     @pytest.mark.parametrize(
         'pdf,resource_dict,simplefont,char_code,expected_width',
         [
@@ -75,7 +76,7 @@ class TestSimpleFont:
     def test_unscaled_char_width_known(self, pdf, resource_dict, simplefont, char_code, expected_width):
         width = simplefont.unscaled_char_width(char_code)
         assert width == expected_width
-    
+
     @pytest.mark.parametrize(
         'pdf,resource_dict,simplefont',
         [
@@ -91,16 +92,16 @@ class TestSimpleFont:
     ])
     def test_convert_width(self, pdf, resource_dict, simplefont, font_size, width, expected):
         assert simplefont.convert_width(width, font_size) == expected
-    
+
     @pytest.mark.parametrize(
         'pdf,resource_dict,simplefont,string,encoded',
         [
             (*FONTS['arial-truetype-winansi'], "This is just ASCII!", b"This is just ASCII!"),
-            (*FONTS['times-truetype-winansi'], 
-                # Sentence constructed in a deliberate attempt to use multiple different 
-                # non-ascii latin characters, don't read too much into it. I assure you my 
+            (*FONTS['times-truetype-winansi'],
+                # Sentence constructed in a deliberate attempt to use multiple different
+                # non-ascii latin characters, don't read too much into it. I assure you my
                 # grandmother and I are fine.
-                "«Disparaître avec ma grand-mère française aiguë à l'hôpital dégoûtant cet été»", 
+                "«Disparaître avec ma grand-mère française aiguë à l'hôpital dégoûtant cet été»",
                 b"\253Dispara\356tre avec ma grand-m\350re fran\347aise aigu\353 \340 l'h\364pital d\351go\373tant cet \351t\351\273"),
         ],
         indirect=['pdf', 'resource_dict', 'simplefont']

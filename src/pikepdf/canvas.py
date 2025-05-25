@@ -157,7 +157,7 @@ class SimpleFont(Font):
         self.data = data
 
     @classmethod
-    def load(cls, name: Name, resource_dict: Dictionary) -> 'SimpleFont':
+    def load(cls, name: Name, resource_dict: Dictionary) -> SimpleFont:
         """Load a font from the specified resource dictionary."""
         if name not in resource_dict.Font:
             raise LookupError(
@@ -188,8 +188,7 @@ class SimpleFont(Font):
         return self.data.FontDescriptor.Descent
 
     def unscaled_char_width(self, char: int | bytes | str) -> Decimal:
-        """
-        Get the (unscaled) width of the character, in glyph-space units.
+        """Get the (unscaled) width of the character, in glyph-space units.
 
         :param char: The character to check. May be a char code, or a string containing a
             single character.
@@ -229,12 +228,12 @@ class SimpleFont(Font):
         # fixed ratio of 1 to 1000 (See 9.2.4: Glyph Positioning and Metrics)
         glyph_space_ratio = Decimal(1000)
         return (width / glyph_space_ratio) * fontsize
-    
+
     def convert_width_reverse(self, width: int | Decimal, fontsize: int | Decimal = 1) -> int | Decimal:
-        """Convert a width from text space back into glyph space, also scaling by the given 
+        """Convert a width from text space back into glyph space, also scaling by the given
         font size.
         """
-        # For all but Type3 fonts, the ratio of text-space units to glyph-space units is a 
+        # For all but Type3 fonts, the ratio of text-space units to glyph-space units is a
         # fixed ratio of 1 to 1000 (See 9.2.4: Glyph Positioning and Metrics)
         glyph_space_ratio = Decimal(1000)
         return (width * glyph_space_ratio) / fontsize
@@ -311,8 +310,7 @@ class SimpleFont(Font):
         char_spacing: int | Decimal = 0,
         word_spacing: int | Decimal = 0,
     ) -> int | Decimal:
-        """
-        Get the width of the string.
+        """Get the width of the string.
 
         :param text: The string to check
         :param fontsize: The target font size in text-space units. (Assuming text space

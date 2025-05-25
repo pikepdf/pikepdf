@@ -1,7 +1,16 @@
 import pytest
 
-from pikepdf import Pdf, Name
-from pikepdf.form import Form, TextField, CheckboxField, RadioButtonGroup, ChoiceField, DefaultAppearanceStreamGenerator, ExtendedAppearanceStreamGenerator
+from pikepdf import Name, Pdf
+from pikepdf.form import (
+    CheckboxField,
+    ChoiceField,
+    DefaultAppearanceStreamGenerator,
+    ExtendedAppearanceStreamGenerator,
+    Form,
+    RadioButtonGroup,
+    TextField,
+)
+
 
 @pytest.fixture
 def form(resources):

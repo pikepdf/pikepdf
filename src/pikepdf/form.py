@@ -1,11 +1,28 @@
+import logging
 from abc import ABC, abstractmethod
+from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from decimal import Decimal
-import logging
-from pikepdf import AcroForm, AcroFormField, Array, Dictionary, FormFieldFlag, Page, Pdf, Rectangle, Matrix, Name, Object, Operator, String, parse_content_stream
+from typing import Optional, Type
+
+from pikepdf import (
+    AcroForm,
+    AcroFormField,
+    Array,
+    Dictionary,
+    FormFieldFlag,
+    Matrix,
+    Name,
+    Object,
+    Operator,
+    Page,
+    Pdf,
+    Rectangle,
+    String,
+    parse_content_stream,
+)
 from pikepdf.canvas import ContentStreamBuilder, Font, SimpleFont
-from typing import Mapping, Optional, Sequence, Type
 
 log = logging.getLogger(__name__)
 
@@ -51,7 +68,7 @@ class Form:
 
     def __getattr__(self, name):
         return getattr(self._acroform, name)
-    
+
     def __getitem__(self, name: str):
         if name in self._cache:
             return self._cache[name]
@@ -61,14 +78,14 @@ class Form:
         if len(fields) > 1:
             raise RuntimeError(f'Multiple fields with same name: {name}')
         return self._wrap(fields[0], name)
-    
+
     def __contains__(self, name: str):
         try:
             self.__getitem__(name)
             return True
         except KeyError:
             return False
-    
+
     def items(self):
         seen = set()
         for field in self._acroform.fields:
@@ -82,13 +99,13 @@ class Form:
             elif name in self._cache:
                 raise RuntimeError(f'Multiple fields with same name: {name}')
             elif field.is_radio_button:
-                # QPDF does something here which is perhaps not entirely correct by the 
-                # spec, and which causes issues. By the spec, a radio button group is a 
-                # single field with multiple widget annotations in the Kids array. (See 
-                # 12.7.5.2.4 of the 2.0 spec) However, QPDF here treats is as a group 
-                # containing separate terminal fields for each button, each inheriting 
-                # the same name. Fortunately, the implementation of 
-                # `get_fields_with_qualified_name` seems to be correct, so we'll fall 
+                # QPDF does something here which is perhaps not entirely correct by the
+                # spec, and which causes issues. By the spec, a radio button group is a
+                # single field with multiple widget annotations in the Kids array. (See
+                # 12.7.5.2.4 of the 2.0 spec) However, QPDF here treats is as a group
+                # containing separate terminal fields for each button, each inheriting
+                # the same name. Fortunately, the implementation of
+                # `get_fields_with_qualified_name` seems to be correct, so we'll fall
                 # back to using that.
                 fields = self._acroform.get_fields_with_qualified_name(name)
                 if len(fields) > 1:
@@ -102,7 +119,7 @@ class Form:
     def __iter__(self):
         for name, item in self.items():
             yield item
-    
+
     def _wrap(self, field: AcroFormField, name: str):
         if field.is_text:
             wrapped = TextField(self, field)
@@ -135,17 +152,17 @@ class _FieldWrapper:
 
     def __getattr__(self, name):
         return getattr(self._field, name)
-    
+
     @property
     def is_required(self) -> bool:
         """Is this a required field?"""
         return bool(self._field.flags & FormFieldFlag.required)
-    
+
     @property
     def is_read_only(self) -> bool:
         """Is this a read-only field"""
         return bool(self._field.flags & FormFieldFlag.read_only)
-    
+
     @property
     def export_enabled(self) -> bool:
         """Should the value of this field be included when exporting data from the PDF?"""
@@ -162,7 +179,7 @@ class TextField(_FieldWrapper):
         not be wrapped and newlines are stripped.
         """
         return bool(self._field.flags & FormFieldFlag.tx_multiline)
-    
+
     @property
     def is_combed(self) -> bool:
         """Is this a combed text field?
@@ -171,7 +188,7 @@ class TextField(_FieldWrapper):
         ``max_length``, containing one character each.
         """
         return bool(self._field.flags & FormFieldFlag.tx_comb)
-    
+
     @property
     def is_rich_text(self) -> bool:
         """Is this a rich text field?
@@ -180,7 +197,7 @@ class TextField(_FieldWrapper):
         for your information.
         """
         return bool(self._field.flags & FormFieldFlag.tx_rich_text)
-    
+
     @property
     def is_password(self) -> bool:
         """Is this a password field?
@@ -189,7 +206,7 @@ class TextField(_FieldWrapper):
         your information.
         """
         return bool(self._field.flags & FormFieldFlag.tx_password)
-    
+
     @property
     def is_file_select(self) -> bool:
         """Is this a file select field?
@@ -198,30 +215,30 @@ class TextField(_FieldWrapper):
         your information.
         """
         return bool(self._field.flags & FormFieldFlag.tx_file_select)
-    
+
     @property
     def spell_check_enabled(self) -> bool:
         """Should spell-checking be enabled in this field?"""
         return not self._field.flags & FormFieldFlag.tx_do_not_spell_check
-    
+
     @property
     def scrolling_enabled(self) -> bool:
         """Should scrolling (horizontal or vertical) be allowed in this field?"""
         return not self._field.flags & FormFieldFlag.tx_do_not_scroll
-    
+
     @property
     def max_length(self) -> int | None:
         """The maximum length of the text in this field."""
         return self._field.get_inheritable_field_value("/MaxLen")
-    
+
     @property
     def default_value(self) -> str:
         return self._field.default_value_as_string
-    
+
     @property
     def value(self) -> str:
         return self._field.value_as_string
-    
+
     @value.setter
     def value(self, value: str):
         # Coerce the value into something acceptable if it isn't
@@ -242,26 +259,27 @@ class CheckboxField(_FieldWrapper):
     """Represents a checkbox field."""
     @property
     def states(self) -> Sequence[Name]:
-        """List the possible states for this checkbox. Typically this will be /Off plus 
-        one additional arbitrary value representing the on state."""
+        """List the possible states for this checkbox. Typically this will be /Off plus
+        one additional arbitrary value representing the on state.
+        """
         return tuple(Name(key) for key in self._field.obj.AP.N.keys())
-    
+
     @property
     def on_value(self) -> Name:
         """The underlying value associated with this checkbox's "on" state."""
         for name in self._field.obj.AP.N.keys():
             if name != Name.Off:
                 return Name(name)
-    
+
     @property
     def value(self) -> Name | None:
         """The actual current stored value of this checkbox."""
         return self._field.value
-    
+
     @property
     def checked(self) -> bool:
         return self._field.is_checked
-    
+
     @checked.setter
     def checked(self, checked: bool):
         if checked:
@@ -270,7 +288,7 @@ class CheckboxField(_FieldWrapper):
             self._field.set_value(Name(states.pop()))
         else:
             self._field.set_value(Name.Off)
-        # Appearance stream generation not needed for checkboxes, and QDPF already sets 
+        # Appearance stream generation not needed for checkboxes, and QDPF already sets
         # /AS when it sets /V, so no further action needed
 
 
@@ -291,29 +309,29 @@ class RadioButtonGroup(_FieldWrapper):
             states.update(kid.AP.N.keys())
         states.discard(Name.Off)
         return tuple(Name(state) for state in states)
-        
+
 
     @property
     def options(self) -> Sequence['RadioButtonOption']:
         """A list of all available options."""
         if Name.Kids not in self._field.obj:
             return ()
-        return tuple(RadioButtonOption(self, kid, index) 
+        return tuple(RadioButtonOption(self, kid, index)
                 for index, kid in enumerate(self._field.obj.Kids))
-    
+
     @property
     def value(self) -> Name | None:
         """The value of the currently selected option."""
         return self._field.value
-    
+
     @value.setter
     def value(self, value: Name):
         if value == Name.Off and not self.can_toggle_off:
             raise ValueError('To uncheck a radio button, check another.')
         if self._field.parent is None:
             self._field.set_value(value)
-            # Appearance stream generation not needed for radio buttons, and QDPF already 
-            # sets /AS for all children when it sets /V for the parent, so no further 
+            # Appearance stream generation not needed for radio buttons, and QDPF already
+            # sets /AS for all children when it sets /V for the parent, so no further
             # action needed.
         else:
             # This is a workaround for https://github.com/qpdf/qpdf/issues/1449 and can
@@ -329,7 +347,7 @@ class RadioButtonGroup(_FieldWrapper):
                 elif '/AS' in kid:
                     kid.AS = Name.Off
 
-    
+
     @property
     def selected(self) -> Optional['RadioButtonOption']:
         """The currently selected option."""
@@ -343,7 +361,7 @@ class RadioButtonGroup(_FieldWrapper):
                 return RadioButtonOption(self, kid, index)
         log.warning('Radio button group value does not match any radio buttons')
         return None
-    
+
     @selected.setter
     def selected(self, option: 'RadioButtonOption'):
         if option._group is not self:
@@ -363,33 +381,34 @@ class RadioButtonOption:
 
     @property
     def states(self) -> Sequence[Name]:
-        """List the possible states for this radio button. Typically this will be /Off 
-        plus one additional arbitrary value representing the on state."""
+        """List the possible states for this radio button. Typically this will be /Off
+        plus one additional arbitrary value representing the on state.
+        """
         return (Name(key) for key in self._field.obj.AP.N.keys())
-    
+
     @property
     def on_value(self) -> Name:
         """The underlying value associated with this button's "on" state."""
         for name in self._annot_dict.AP.N.keys():
             if name != Name.Off:
                 return Name(name)
-        
+
     def select(self):
         """Mark this as the selected option."""
         self._group.value = self.on_value
-    
+
     @property
     def checked(self) -> bool:
         """If this is the currently selected option"""
         return self.on_value == self._group.value
-    
+
     @checked.setter
     def checked(self, value: bool):
         if value:
             self._group.value = self.on_value
         else:
             self._group.value = Name.Off
-            
+
 
 
 class PushbuttonField(_FieldWrapper):
@@ -414,17 +433,17 @@ class ChoiceField(_FieldWrapper):
         multiselect is not yet supported, but this flag is presented for your 
         information.
         """
-        # True multiselect could be enabled by setting /V to an array. However, I'm not 
-        # sure how to generate an appropriate appearance stream for a multiselect, and 
-        # QPDF doesn't seem to account for multiselect fields in it's appearance stream 
+        # True multiselect could be enabled by setting /V to an array. However, I'm not
+        # sure how to generate an appropriate appearance stream for a multiselect, and
+        # QPDF doesn't seem to account for multiselect fields in it's appearance stream
         # generation algorithm either. This would require more research.
         return bool(self._field.flags & FormFieldFlag.ch_multi_select)
-    
+
     @property
     def is_combobox(self) -> bool:
         """Is this a combobox field? If false, this is instead a list box."""
         return bool(self._field.flags & FormFieldFlag.ch_combo)
-    
+
     @property
     def allow_edit(self) -> bool:
         """Does this field include an editable text box in addition to the dropdown?
@@ -432,7 +451,7 @@ class ChoiceField(_FieldWrapper):
         The field must be a comboxbox; this option is not valid for list boxes.
         """
         return bool(self._field.flags & FormFieldFlag.ch_edit)
-    
+
     @property
     def spell_check_enabled(self) -> bool:
         """Should spell-checking be enabled in this field?
@@ -444,30 +463,30 @@ class ChoiceField(_FieldWrapper):
     @property
     def options(self) -> Sequence['ChoiceFieldOption']:
         """A list of all available options."""
-        # The implementation in QPDF is not correct, as it only includes options which are 
-        # strings (see https://github.com/qpdf/qpdf/issues/1433). We opt for our own 
+        # The implementation in QPDF is not correct, as it only includes options which are
+        # strings (see https://github.com/qpdf/qpdf/issues/1433). We opt for our own
         # implementation here.
         if Name.Opt not in self._field.obj:
             # It is perfectly valid for the choice field to have no options
             return ()
-        return tuple(ChoiceFieldOption(self, opt, index) 
+        return tuple(ChoiceFieldOption(self, opt, index)
                 for index, opt in enumerate(self._field.obj.Opt))
-    
+
     @property
     def selected(self) -> Optional['ChoiceFieldOption']:
         if Name.Opt in self._field.obj:
             for index, opt in enumerate(self._field.obj.Opt):
-                opt = ChoiceFieldOption(self, opt, index) 
+                opt = ChoiceFieldOption(self, opt, index)
                 if opt.export_value == self.value:
                     return opt
         return ChoiceFieldOption(self, self.value, None)
-    
+
     @selected.setter
     def selected(self, option: 'ChoiceFieldOption'):
         if option._field is not self:
             raise ValueError('Option does not belong to this field')
-        # The PDF spec uses some language which makes me believe that it may still be 
-        # expected to use the display value as the value of V rather than the export 
+        # The PDF spec uses some language which makes me believe that it may still be
+        # expected to use the display value as the value of V rather than the export
         # value. It isn't entirely clear to me either way. So, this may be incorrect.
         # If so, it should be as simple a matter to fix as changing `export_value` to
         # `display_value` in both the getter and the setter.
@@ -476,13 +495,13 @@ class ChoiceField(_FieldWrapper):
         if self._form.generate_appearances is not None:
             self._form.generate_appearances.generate_choice(self._field)
         # I'm ignoring the /I array for now, as it only is required for multiselect.
-    
+
     @property
     def value(self) -> str | None:
         if self._field.value is not None:
             return self._field.value_as_string
         return None
-    
+
     @value.setter
     def value(self, value: str | None):
         if not self.allow_edit:
@@ -499,7 +518,7 @@ class ChoiceField(_FieldWrapper):
         # Generate appearance streams if requested.
         if self._form.generate_appearances is not None:
             self._form.generate_appearances.generate_choice(self._field)
-        
+
 
 class ChoiceFieldOption:
     """Represents a single option for a choice field."""
@@ -507,7 +526,7 @@ class ChoiceFieldOption:
         self._field = field
         self._opt = opt
         self._index = index
-    
+
     @property
     def display_value(self):
         """The value that will be displayed on-screen to the user in a PDF reader."""
@@ -515,7 +534,7 @@ class ChoiceFieldOption:
             return self._opt[1]
         else:
             return self._opt
-    
+
     @property
     def export_value(self):
         """The value that will be used when exporting data from this form."""
@@ -523,7 +542,7 @@ class ChoiceFieldOption:
             return self._opt[0]
         else:
             return self._opt
-    
+
     @property
     def is_hidden(self) -> bool:
         """Is this option hidden?
@@ -540,11 +559,11 @@ class ChoiceFieldOption:
         If false, this is a manually entered value typed by the user in an editable choice field.
         """
         return self._index is not None
-    
+
     def select(self):
         """Set this option as the selected option."""
         self._field.selected = self
-    
+
     @property
     def selected(self) -> bool:
         return self._field.value == self.export_value
@@ -553,9 +572,10 @@ class ChoiceFieldOption:
 class SignatureField(_FieldWrapper):
     """Represents a signature field.
     
-    Signatures are not truly supported."""
+    Signatures are not truly supported.
+    """
 
-    def stamp_overlay(self, overlay: Object | Page, *, 
+    def stamp_overlay(self, overlay: Object | Page, *,
                       expand_rect: int | float | Decimal | Sequence[int | float | Decimal] | None = None
                       ) -> Name:
         """Stamp an image over the top of a signature field.
@@ -582,15 +602,15 @@ class SignatureField(_FieldWrapper):
         field_annot = self._form._acroform.get_annotations_for_field(self._field)[0]
         if Name.P in field_annot.obj:
             # The annot keeps a reference to the page (not always the case)
-            Page(field_annot.obj.P).add_overlay(overlay, 
+            Page(field_annot.obj.P).add_overlay(overlay,
                                         self._expand_rect(field_annot.rect, expand_rect))
         for page in self._form._pdf.pages:
             # Fall back to looping through all possible pages.
             for annot in self._form._acroform.get_widget_annotations_for_page(page):
                 if annot == field_annot:
-                    return page.add_overlay(overlay, 
+                    return page.add_overlay(overlay,
                                             self._expand_rect(annot.rect, expand_rect))
-    
+
     def _expand_rect(self, rect:Rectangle, expand_by):
         if expand_by is None:
             return rect
@@ -608,8 +628,9 @@ class SignatureField(_FieldWrapper):
 
 
 class AppearanceStreamGenerator(ABC):
-    """Appearance stream generators are used by the `pikepdf.form.Form` class to 
-    optionally generate appearance streams as forms are filled."""
+    """Appearance stream generators are used by the `pikepdf.form.Form` class to
+    optionally generate appearance streams as forms are filled.
+    """
     pdf: Pdf
     form: AcroForm
 
@@ -627,7 +648,7 @@ class AppearanceStreamGenerator(ABC):
 
 
 class DefaultAppearanceStreamGenerator(AppearanceStreamGenerator):
-    """An appearance stream generator using the normal QDPF appearance stream generation 
+    """An appearance stream generator using the normal QDPF appearance stream generation
     algorithm. It is thus subject to all the same 
     `limitations <https://qpdf.readthedocs.io/en/stable/cli.html#option-generate-appearances>`_.
 
@@ -665,7 +686,7 @@ class DefaultAppearanceStreamGenerator(AppearanceStreamGenerator):
 
 
 class ExtendedAppearanceStreamGenerator(DefaultAppearanceStreamGenerator):
-    """An alternate appearance stream generator that has been extended to address some of 
+    """An alternate appearance stream generator that has been extended to address some of
     the limitations of the default implementation. Currently:
      
       * Supports multiline text fields, with caveats:
@@ -697,14 +718,14 @@ class ExtendedAppearanceStreamGenerator(DefaultAppearanceStreamGenerator):
             super().generate_text(field)
 
 
-# The following functions are used to generate appearance streams for text inputs. With 
-# some additional refinement, some of this functionality could be moved to the canvas 
+# The following functions are used to generate appearance streams for text inputs. With
+# some additional refinement, some of this functionality could be moved to the canvas
 # submodule and exposed as part of a public API. Right now, however, it's probably too
-# specialized; it couldn't be used to create an arbitrary text box separate from a form 
+# specialized; it couldn't be used to create an arbitrary text box separate from a form
 # field.
 #
-# Generating appearance streams for text fields is not trivial. Section 12.7.4.3 of the 
-# PDF 2.0 spec (Variable text) lays out how this is to be done. Also refer to the 
+# Generating appearance streams for text fields is not trivial. Section 12.7.4.3 of the
+# PDF 2.0 spec (Variable text) lays out how this is to be done. Also refer to the
 # following similar implementations for references:
 #
 # * https://github.com/py-pdf/pypdf/blob/5c3550f66c5da530eb8853da91afe0f942afcbef/pypdf/_writer.py#L857
@@ -720,9 +741,9 @@ def _text_appearance_multiline(pdf: Pdf, form: AcroForm, field: AcroFormField):
         bbox = annot.rect.to_bbox()
         with _text_stream_builder(da_info.da) as cs:
             if da_info.text_matrix is None:
-                # If there is no existing matrix, create located at the upper-right of 
+                # If there is no existing matrix, create located at the upper-right of
                 # the bbox (with allowance for the height of the text).
-                top_offset = da_info.font.ascent 
+                top_offset = da_info.font.ascent
                 if top_offset is None:
                     # Fallback to full line height
                     top_offset = da_info.line_spacing
@@ -742,7 +763,7 @@ def _text_appearance_combed(pdf: Pdf, form: AcroForm, field: AcroFormField):
         bbox = annot.rect.to_bbox()
         with _text_stream_builder(da_info.da) as cs:
             if da_info.text_matrix is None:
-                # If there is no existing matrix, create located at the lower-right of 
+                # If there is no existing matrix, create located at the lower-right of
                 # the bbox (with allowance for the descent of the text).
                 # Fallback to zero
                 bottom_offset = da_info.font.descent or 0
@@ -755,8 +776,9 @@ def _text_appearance_combed(pdf: Pdf, form: AcroForm, field: AcroFormField):
 
 
 def _apply_appearance_stream(pdf, annot, cs, bbox, da_info):
-    """Convert content stream to a Form XObject and save in the annotation appearance 
-    dictionary (AP) under the normal (N) key."""
+    """Convert content stream to a Form XObject and save in the annotation appearance
+    dictionary (AP) under the normal (N) key.
+    """
     fonts_dict = Dictionary()
     fonts_dict[da_info.font_name] = da_info.font.register(pdf)
     resources = Dictionary(Font = fonts_dict)
@@ -790,7 +812,7 @@ class _DaInfo:
         tmp_pdf = Pdf.new()
         tmp_stream = tmp_pdf.make_stream(da)
         instructions = parse_content_stream(tmp_stream)
-        # Locate the last Tf operator and use its operands (In theory there should only be 
+        # Locate the last Tf operator and use its operands (In theory there should only be
         # one, but you never know...) Also locate the optional Tm operator.
         tf_op = Operator('Tf')
         tm_op = Operator('Tm')
@@ -802,15 +824,15 @@ class _DaInfo:
             if inst.operator == tm_op:
                 tm_inst = inst
         if tf_inst is None:
-            # This state is not valid according to the spec, but for robustness we could 
+            # This state is not valid according to the spec, but for robustness we could
             # consider adding a fallback.
             raise RuntimeError(f"No Tf operator found in default appearance stream for {field.fully_qualified_name}")
         # Load styling information from the DA
         font_family, font_size = tf_inst.operands
         if font_size == 0:
-            # It is allowed for the font_size to be zero, which is supposed to 
+            # It is allowed for the font_size to be zero, which is supposed to
             # indicate an auto-sized font (See 12.7.4.3). This means we should evaluate
-            # the size of the actual text and scale it to fit in the bounding box. I feel 
+            # the size of the actual text and scale it to fit in the bounding box. I feel
             # like supporting this is out of scope for now, but it could be supported in
             # the future. For now, we'll pretend it was 11pt.
             da = da.replace(b'0 Tf', b'11 Tf')
@@ -819,14 +841,14 @@ class _DaInfo:
         matrix = tm_inst.operands[0] if tm_inst is not None else None
         # Make up a value for line spacing.
         #
-        # The PDF spec gives no information about what forms should use for line spacing 
-        # if not defined in the DA (which is usually isn't). I've chosen to use the font's 
-        # default leading value if available, then fall back to using the font size. Using 
-        # the font size as the line spacing appears to be what Evince Document Viewer is 
+        # The PDF spec gives no information about what forms should use for line spacing
+        # if not defined in the DA (which is usually isn't). I've chosen to use the font's
+        # default leading value if available, then fall back to using the font size. Using
+        # the font size as the line spacing appears to be what Evince Document Viewer is
         # doing, so it seems like a reasonable fallback.
         #
-        # We could parse the DA and see if by chance we can extract custom values 
-        # that may be set for spacing. (I haven't seen examples of this, but it would 
+        # We could parse the DA and see if by chance we can extract custom values
+        # that may be set for spacing. (I haven't seen examples of this, but it would
         # probably be more correct.)
         line_spacing = font.leading or font_size
         return cls(da, font, font_family, font_size, None, None, line_spacing, matrix)
@@ -851,9 +873,9 @@ def _text_stream_builder(da: bytes):
     content_builder = ContentStreamBuilder()
     content_builder.begin_marked_content(Name.Tx)
     content_builder.push()
-    # Adobe includes a re, E, and n operation here (Creating a clip rectangle). Many other 
-    # PDF viewers do similarly. This is probably a good idea for the future, but for now, 
-    # while the layout algorithm is still imperfect, there is probably value in not 
+    # Adobe includes a re, E, and n operation here (Creating a clip rectangle). Many other
+    # PDF viewers do similarly. This is probably a good idea for the future, but for now,
+    # while the layout algorithm is still imperfect, there is probably value in not
     # clipping and just showing what was entered.
     content_builder.begin_text()
     content_builder.extend(da)
@@ -880,7 +902,7 @@ def _layout_multiline_text(content: ContentStreamBuilder, text: str, da_info: _D
     """
     font = da_info.font
     font_size = da_info.font_size
-    # Word spacing in the PDF specification is something that is added *in addition* to 
+    # Word spacing in the PDF specification is something that is added *in addition* to
     # the width of the space, but we also want to take the width of the space itself into
     # account for what we're doing.
     word_spacing = font.text_width(' ', font_size) + (da_info.word_spacing or 0)
@@ -890,7 +912,7 @@ def _layout_multiline_text(content: ContentStreamBuilder, text: str, da_info: _D
     try:
         text = font.encode(text)
     except NotImplementedError:
-        # If the font uses an unsupported encoding, we will assume it is at least an 
+        # If the font uses an unsupported encoding, we will assume it is at least an
         # ASCII-compatible encoding and go for it.
         text = text.encode('ascii', errors='replace')
     for lineno, line in enumerate(text.splitlines()):
@@ -917,7 +939,7 @@ def _layout_multiline_text(content: ContentStreamBuilder, text: str, da_info: _D
 
 
 def _layout_combed_text(content: ContentStreamBuilder, text: str, da_info: _DaInfo, bbox: Rectangle, max_length: int | Decimal):
-    """Lay out the given text, spacing the characters evenly according to the 
+    """Lay out the given text, spacing the characters evenly according to the
     comb size.
 
     This layout algorithm is incomplete and somewhat rudimentary, but should produce
@@ -939,7 +961,7 @@ def _layout_combed_text(content: ContentStreamBuilder, text: str, da_info: _DaIn
         try:
             char = font.encode(char)
         except NotImplementedError:
-            # If the font uses an unsupported encoding, we will assume it is at least an 
+            # If the font uses an unsupported encoding, we will assume it is at least an
             # ASCII-compatible encoding and go for it.
             char = char.encode('ascii', errors='replace')
         space_needed = (font.unscaled_char_width(char) - comb_size_gs) / 2
@@ -951,7 +973,7 @@ def _layout_combed_text(content: ContentStreamBuilder, text: str, da_info: _DaIn
 
 def _create_form_xobject(pdf: Pdf, bbox: Rectangle, content: ContentStreamBuilder, resources: Dictionary):
     """Convert a content stream into a Form XObject."""
-    return pdf.make_stream(content.build(), 
+    return pdf.make_stream(content.build(),
             Type = 'XObject',
             Subtype = 'Form',
             FormType = 1,

@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
 
 
-# This mapping comes from appendix D of the PDF 2.0 spec. However, I doubt it is 
+# This mapping comes from appendix D of the PDF 2.0 spec. However, I doubt it is
 # exhaustive. It may be that an exhaustive list is not possible.
 CHARNAMES_TO_UNICODE = {
     #### Table D.2 ####
@@ -235,8 +234,8 @@ CHARNAMES_TO_UNICODE = {
     '/zero': '0',
     '/ring': '˚',
     #### Table D.4 ####
-    # Much of this table is commented out on account of (as far as I can tell) not mapping 
-    # to real unicode values. The values below seem to be substitutions I got when 
+    # Much of this table is commented out on account of (as far as I can tell) not mapping
+    # to real unicode values. The values below seem to be substitutions I got when
     # copy/pasting from the spec. Such values might still be useful if our intent was to
     # convert PDF to text, but currently our intent is only to do the inverse.
     # '/AEsmall': 'ᴁ',

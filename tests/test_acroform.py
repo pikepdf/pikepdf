@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import pytest
 
-from pikepdf import Pdf, Name, Annotation
+from pikepdf import Annotation, Name, Pdf
 
 
 @pytest.fixture
@@ -90,7 +90,7 @@ def test_radio_button(form):
     assert top_field.is_radio_button
     assert not top_field.is_pushbutton
     assert not top_field.is_choice
-    terminal_fields = list(filter(lambda f: f.fully_qualified_name == 'Group4', 
+    terminal_fields = list(filter(lambda f: f.fully_qualified_name == 'Group4',
                                   form.acroform.fields))
     assert len(terminal_fields) == 2
     for field in terminal_fields:
@@ -116,8 +116,8 @@ def test_choice(dd0293):
     assert not field.is_radio_button
     assert not field.is_pushbutton
     assert field.is_choice
-    # In theory, field.choices should be populated. However, this does not 
-    # work. The underlaying QPDF implementation appears to be at fault. See 
+    # In theory, field.choices should be populated. However, this does not
+    # work. The underlaying QPDF implementation appears to be at fault. See
     # https://github.com/qpdf/qpdf/issues/1433
 
 

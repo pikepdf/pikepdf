@@ -1,5 +1,5 @@
 from pikepdf import Pdf
-from pikepdf.form import Form, DefaultAppearanceStreamGenerator
+from pikepdf.form import DefaultAppearanceStreamGenerator, Form
 
 with Pdf.open('tests/resources/form.pdf') as pdf:
     form = Form(pdf, DefaultAppearanceStreamGenerator)
