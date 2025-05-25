@@ -865,8 +865,10 @@ class AcroFormField(ObjectHelper):
         To get options for such fields, use `field.obj.Opt` instead.
         """
     def set_value(self, value, need_appearance: bool = True):
-        """Set the ``value`` property. If ``need_appearance`` is true, and this is a text
-        or choice field, the ``pikepdf.AcroForm.needs_appearances will also be set.
+        """Set the ``value`` property.
+
+        If ``need_appearance`` is true, and this is a text or choice field, the
+        ``pikepdf.AcroForm.needs_appearances will also be set.
         """
     def generate_appearance(self, annot: Annotation):
         """Generate an appearance stream for this field."""
@@ -899,9 +901,7 @@ class AcroForm:
     def remove_fields(self, fields: Sequence[AcroFormField]):
         """Remove fields from the ``fields`` list."""
     def set_field_name(self, field: AcroFormField, name: str):
-        """Set the partial name of a field, updating internal records of field
-        names.
-        """
+        """Set partial name of a field, updating internal records of field names."""
     @property
     def fields(self) -> Sequence[AcroFormField]:
         """A list of all terminal fields in this interactive form.
