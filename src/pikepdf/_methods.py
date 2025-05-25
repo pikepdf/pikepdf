@@ -699,6 +699,17 @@ class Extend_Rectangle:
     def __hash__(self):
         return hash((self.llx, self.lly, self.urx, self.ury))
 
+    def to_bbox(self) -> Rectangle:
+        """Returns the origin-centred bounding box that encloses this rectangle.
+
+        Create a new rectangle with the same width and height as this one, but located
+        at the origin (0, 0).
+
+        Bounding boxes represent independent coordinate systems, such as for Form
+        XObjects.
+        """
+        return Rectangle(0, 0, self.width, self.height)
+
 
 @augments(Attachments)
 class Extend_Attachments(MutableMapping):
