@@ -165,7 +165,7 @@ class EncryptionMethod(Enum):
     rc4: int = ...
     """The RC4 encryption algorithm was used (obsolete)."""
     aes: int = ...
-    """The AES-based algorithm was used as described in the |pdfrm|."""
+    """The AES-based algorithm was used as described in the {{ pdfrm }}."""
     aesv3: int = ...
     """An improved version of the AES-based algorithm was used as described in the
         :doc:`Adobe Supplement to the ISO 32000 </references/resources>`, requiring
@@ -868,7 +868,7 @@ class AcroFormField(ObjectHelper):
         """Set the ``value`` property.
 
         If ``need_appearance`` is true, and this is a text or choice field, the
-        ``pikepdf.AcroForm.needs_appearances will also be set.
+        ``pikepdf.AcroForm.needs_appearances`` will also be set.
         """
     def generate_appearance(self, annot: Annotation):
         """Generate an appearance stream for this field."""
@@ -1029,7 +1029,7 @@ class Annotation:
     copy editing marks, interactive widgets, redactions, 3D objects, sound
     and video clips.
 
-    See the |pdfrm| section 12.5.6 for the full list of annotation types
+    See the {{ pdfrm }} section 12.5.6 for the full list of annotation types
     and definition of terminology.
 
     .. versionadded:: 2.12
@@ -1150,7 +1150,7 @@ class AttachedFileSpec(ObjectHelper):
     If you have to deal with platform-specialized versions,
     use :meth:`get_all_filenames` to enumerate those available.
 
-    Described in the |pdfrm| section 7.11.3.
+    Described in the {{ pdfrm }} section 7.11.3.
 
     .. versionadded:: 3.0
     """
@@ -1201,7 +1201,7 @@ class AttachedFileSpec(ObjectHelper):
         specify which one to return.
 
         Args:
-            name: Typical names would be ``/UF`` and ``/F``. See |pdfrm|
+            name: Typical names would be ``/UF`` and ``/F``. See {{ pdfrm }}
                 for other obsolete names.
         """
     @staticmethod
@@ -2600,7 +2600,7 @@ class Pdf:
     def trailer(self) -> Object:
         """Provides access to the PDF trailer object.
 
-        See |pdfrm| section 7.5.5. Generally speaking,
+        See {{ pdfrm }} section 7.5.5. Generally speaking,
         the trailer should not be modified with pikepdf, and modifying it
         may not work. Some of the values in the trailer are automatically
         changed when a file is saved.
@@ -2699,7 +2699,7 @@ class Rectangle:
 
     Rectangles in PDF are encoded as :class:`pikepdf.Array` with exactly
     four numeric elements, ordered as ``llx lly urx ury``.
-    See |pdfrm| section 7.9.5.
+    See {{ pdfrm }} section 7.9.5.
 
     The rectangle may be considered degenerate if the lower left corner
     is not strictly less than the upper right corner.
@@ -2781,7 +2781,7 @@ class NameTree(MutableMapping[str | bytes, Object]):
     Do not modify the internal structure of a name tree while you have a
     ``NameTree`` referencing it. Access it only through the ``NameTree`` object.
 
-    Names trees are described in the |pdfrm| section 7.9.6. See section 7.7.4
+    Names trees are described in the {{ pdfrm }} section 7.9.6. See section 7.7.4
     for a list of PDF objects that are stored in name trees.
 
     .. versionadded:: 3.0
@@ -2835,7 +2835,7 @@ class NumberTree(MutableMapping[int, Object]):
     also exposes as ``Page.label``). The ``/PageLabels`` number tree is where the
     page numbering rules are defined.
 
-    Number trees are described in the |pdfrm| section 7.9.7. See section 12.4.2
+    Number trees are described in the {{ pdfrm }} section 7.9.7. See section 12.4.2
     for a description of the page labels number tree. Here is an example of modifying
     an existing page labels number tree:
 

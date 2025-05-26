@@ -35,6 +35,7 @@ changelog = "https://pikepdf.readthedocs.io/en/latest/releasenotes/index.html"
 [project.optional-dependencies]
 dev = ["pre-commit", "typer", "mypy"]
 docs = [
+  "myst-parser>=3.0.1",
   "sphinx>=3",
   "sphinx-autoapi",
   "sphinx-design",
