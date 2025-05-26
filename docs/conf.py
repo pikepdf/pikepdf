@@ -24,6 +24,7 @@ except ModuleNotFoundError:
 
 
 extensions = [
+    "myst_parser",
     'autoapi.extension',
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
@@ -34,6 +35,7 @@ extensions = [
     'sphinx_issues',
     'sphinx_design',
 ]
+myst_enable_extensions = ['colon_fence', 'attrs_block', 'attrs_inline', 'substitution']
 
 autodoc_mock_imports = ['libxmp']
 autodoc_typehints = 'description'
@@ -69,11 +71,17 @@ with open('../pyproject.toml', 'rb') as f:
     pyproject_toml = tomllib.load(f)
 toml_env = pyproject_toml['tool']['cibuildwheel']['environment']
 
-rst_prolog = f"""
-.. |pdfrm| replace:: :doc:`PDF 1.7 Reference Manual </references/resources>`
-.. |qpdf-min-version| replace:: {toml_env['QPDF_MIN_VERSION']}
-.. |qpdf-version| replace:: {toml_env['QPDF_VERSION']}
-"""
+# rst_prolog = f"""
+# .. |pdfrm| replace:: :doc:`PDF 1.7 Reference Manual </references/resources>`
+# .. |qpdf-min-version| replace:: {toml_env['QPDF_MIN_VERSION']}
+# .. |qpdf-version| replace:: {toml_env['QPDF_VERSION']}
+# """
+
+myst_substitutions = {
+    "pdfrm": "[PDF 1.7 Reference Manual](/references/resources)",
+    "qpdf_min_version": toml_env['QPDF_MIN_VERSION'],
+    "qpdf_version": toml_env['QPDF_VERSION'],
+}
 
 # The suffix(es) of source filenames.
 source_suffix = ['.rst', '.md']
