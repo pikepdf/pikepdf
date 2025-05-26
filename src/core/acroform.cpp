@@ -35,7 +35,8 @@ void init_acroform(py::module_ &m)
         .value("ch_sort", pdf_form_field_flag_e::ff_ch_sort)
         .value("ch_multi_select", pdf_form_field_flag_e::ff_ch_multi_select)
         .value("ch_do_not_spell_check", pdf_form_field_flag_e::ff_ch_do_not_spell_check)
-        .value("ch_commit_on_sel_change", pdf_form_field_flag_e::ff_ch_commit_on_sel_change);
+        .value("ch_commit_on_sel_change",
+            pdf_form_field_flag_e::ff_ch_commit_on_sel_change);
 
     py::class_<QPDFFormFieldObjectHelper,
         std::shared_ptr<QPDFFormFieldObjectHelper>,
@@ -63,13 +64,13 @@ void init_acroform(py::module_ &m)
             "alternate_name", &QPDFFormFieldObjectHelper::getAlternativeName)
         .def_property_readonly(
             "mapping_name", &QPDFFormFieldObjectHelper::getMappingName)
-        .def_property("value", 
-            &QPDFFormFieldObjectHelper::getValue, 
+        .def_property("value",
+            &QPDFFormFieldObjectHelper::getValue,
             [](QPDFFormFieldObjectHelper &field, QPDFObjectHandle value) {
                 field.setV(value, true);
             })
-        .def_property("value_as_string", 
-            &QPDFFormFieldObjectHelper::getValueAsString, 
+        .def_property("value_as_string",
+            &QPDFFormFieldObjectHelper::getValueAsString,
             [](QPDFFormFieldObjectHelper &field, std::string value) {
                 field.setV(value, true);
             })
@@ -91,7 +92,8 @@ void init_acroform(py::module_ &m)
             [](QPDFFormFieldObjectHelper &field) {
                 // This is the same as the QPDF implementation, but re-implemented here
                 // for versions of QPDF that did not define this method.
-                return field.isCheckbox() && field.getValue().isName() && (field.getValue().getName() != "/Off");
+                return field.isCheckbox() && field.getValue().isName() &&
+                       (field.getValue().getName() != "/Off");
             })
         .def_property_readonly(
             "is_radio_button", &QPDFFormFieldObjectHelper::isRadioButton)
@@ -99,19 +101,28 @@ void init_acroform(py::module_ &m)
             "is_pushbutton", &QPDFFormFieldObjectHelper::isPushbutton)
         .def_property_readonly("is_choice", &QPDFFormFieldObjectHelper::isChoice)
         .def_property_readonly("choices", &QPDFFormFieldObjectHelper::getChoices)
-        .def("set_value", 
-            [](QPDFFormFieldObjectHelper &field, QPDFObjectHandle value, bool need_appearances) {
+        .def(
+            "set_value",
+            [](QPDFFormFieldObjectHelper &field,
+                QPDFObjectHandle value,
+                bool need_appearances) {
                 // We get an error if we try to pass setV directly, so we wrap it
                 field.setV(value, need_appearances);
             },
-            py::arg("value"), py::arg("need_appearance") = py::bool_(true))
-        .def("set_value", 
-            [](QPDFFormFieldObjectHelper &field, std::string value, bool need_appearances) {
+            py::arg("value"),
+            py::arg("need_appearance") = py::bool_(true))
+        .def(
+            "set_value",
+            [](QPDFFormFieldObjectHelper &field,
+                std::string value,
+                bool need_appearances) {
                 // We get an error if we try to pass setV directly, so we wrap it
                 field.setV(value, need_appearances);
             },
-            py::arg("value"), py::arg("need_appearance") = py::bool_(true))
-        .def("generate_appearance", &QPDFFormFieldObjectHelper::generateAppearance,
+            py::arg("value"),
+            py::arg("need_appearance") = py::bool_(true))
+        .def("generate_appearance",
+            &QPDFFormFieldObjectHelper::generateAppearance,
             py::arg("annot"));
 
     py::class_<QPDFAcroFormDocumentHelper, std::shared_ptr<QPDFAcroFormDocumentHelper>>(
@@ -197,14 +208,17 @@ void init_acroform(py::module_ &m)
             &QPDFAcroFormDocumentHelper::generateAppearancesIfNeeded)
         .def("disable_digital_signatures",
             &QPDFAcroFormDocumentHelper::disableDigitalSignatures)
-        .def("fix_copied_annotations",
-            [](QPDFAcroFormDocumentHelper &acroform, 
+        .def(
+            "fix_copied_annotations",
+            [](QPDFAcroFormDocumentHelper &acroform,
                 QPDFPageObjectHelper to_page,
                 QPDFPageObjectHelper from_page,
-                QPDFAcroFormDocumentHelper& from_afdh
-            ){
+                QPDFAcroFormDocumentHelper &from_afdh) {
                 std::set<QPDFObjGen> refs;
-                acroform.fixCopiedAnnotations(to_page.getObjectHandle(), from_page.getObjectHandle(), from_afdh, &refs);
+                acroform.fixCopiedAnnotations(to_page.getObjectHandle(),
+                    from_page.getObjectHandle(),
+                    from_afdh,
+                    &refs);
                 std::vector<QPDFFormFieldObjectHelper> fields;
                 QPDF &qpdf = acroform.getQPDF();
                 for (auto ref : refs) {
