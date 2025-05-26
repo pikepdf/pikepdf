@@ -170,6 +170,10 @@ class SimpleFont(Font):
                 f'(Available fonts: {", ".join(resource_dict.Font.keys())})'
             )
         font_data = resource_dict.Font[name]
+        if not isinstance(font_data, Dictionary):
+            raise TypeError(
+                f'Font data for {name} is not a dictionary, but a {type(font_data)}'
+            )
         return cls(font_data)
 
     def register(self, pdf: Pdf) -> Dictionary:
@@ -274,6 +278,7 @@ class SimpleFont(Font):
                     'Cannot encode without explicitly defined encoding'
                 )
             return self._encode_named(text, self.data.Encoding.BaseEncoding)
+        raise TypeError(f'Unsupported encoding type: {type(self.data.Encoding)}')
 
     def _encode_named(self, text: str, encoding: Name):
         if encoding == Name.StandardEncoding:
@@ -392,6 +397,7 @@ def _differences_map_lookup(diffmap: Array) -> dict:
             diff[CHARNAMES_TO_UNICODE[str(name)]] = index
         except KeyError:
             log.warning(f"Unknown character name in difference map: {str(name)}")
+    return diff
 
 
 class ContentStreamBuilder:

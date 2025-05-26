@@ -28,7 +28,7 @@ from pikepdf import (
     String,
     parse_content_stream,
 )
-from pikepdf.canvas import ContentStreamBuilder, Font, SimpleFont
+from pikepdf.canvas import ContentStreamBuilder, SimpleFont
 
 log = logging.getLogger(__name__)
 
@@ -508,14 +508,14 @@ class ChoiceField(_FieldWrapper):
             return ()
         return tuple(
             ChoiceFieldOption(self, opt, index)
-            for index, opt in enumerate(self._field.obj.Opt)
+            for index, opt in enumerate(self._field.obj.Opt.as_list())
         )
 
     @property
     def selected(self) -> ChoiceFieldOption | None:
         """The currently selected option, or None if no option is selected."""
         if Name.Opt in self._field.obj:
-            for index, opt in enumerate(self._field.obj.Opt):
+            for index, opt in enumerate(self._field.obj.Opt.as_list()):
                 opt = ChoiceFieldOption(self, opt, index)
                 if opt.export_value == self.value:
                     return opt
@@ -671,8 +671,9 @@ class SignatureField(_FieldWrapper):
                     return page.add_overlay(
                         overlay, self._expand_rect(annot.rect, expand_rect)
                     )
+        raise ValueError("Could not find annotation for signature field")
 
-    def _expand_rect(self, rect: Rectangle, expand_by):
+    def _expand_rect(self, rect: Rectangle, expand_by: int | float | Decimal | None):
         if expand_by is None:
             return rect
         if isinstance(expand_by, (int, float, Decimal)):
@@ -877,7 +878,7 @@ def _apply_appearance_stream(pdf, annot, cs, bbox, da_info):
 @dataclass
 class _DaInfo:
     da: bytes
-    font: Font
+    font: SimpleFont
     font_name: Name
     font_size: Decimal
     char_spacing: Decimal | None = None
