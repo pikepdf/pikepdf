@@ -6,7 +6,7 @@ SPDX-PackageDownloadLocation = "https://github.com/pikepdf/pikepdf"
 [[annotations]]
 path = ["licenses-for-wheels.txt", "uv.lock"]
 precedence = "aggregate"
-SPDX-FileCopyrightText = "(C) 2025 James R. Barlow"
+SPDX-FileCopyrightText = "2025 James R. Barlow"
 SPDX-License-Identifier = "MPL-2.0"
 
 [[annotations]]
@@ -31,67 +31,73 @@ path = [
     "tests/resources/rle.pdf",
 ]
 precedence = "aggregate"
-SPDX-FileCopyrightText = "(C) 2023 James R. Barlow"
+SPDX-FileCopyrightText = "2023 James R. Barlow"
 SPDX-License-Identifier = "CC-BY-SA-4.0"
+
+[[annotations]]
+path = ["tests/resources/form_210966.pdf", "tests/resources/form_dd0293.pdf"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "NONE"
+SPDX-License-Identifier = "CC-PDDC"
 
 [[annotations]]
 path = ["tests/resources/ctm_cm.pdf"]
 precedence = "aggregate"
-SPDX-FileCopyrightText = "(C) 2025 rakurtz"
+SPDX-FileCopyrightText = "2025 rakurtz"
 SPDX-License-Identifier = "CC-BY-SA-4.0"
 
 [[annotations]]
 path = "tests/resources/ccitt-endofline-true.pdf"
 precedence = "aggregate"
-SPDX-FileCopyrightText = "(C) 2024 Leon Eckardt"
+SPDX-FileCopyrightText = "2024 Leon Eckardt"
 SPDX-License-Identifier = "CC0-1.0"
 
 [[annotations]]
 path = ["docs/images/pike.png", "tests/resources/pike**jp2.pdf"]
 precedence = "aggregate"
-SPDX-FileCopyrightText = "Public domain"
-SPDX-License-Identifier = "Public-domain"
+SPDX-FileCopyrightText = "NONE"
+SPDX-License-Identifier = "CC-PDDC"
 SPDX-FileComment = "From the U.S. Fish and Wildlife Service National Image Library. See: https://en.wikipedia.org/wiki/File:Esox_lucius1.jpg"
 
 [[annotations]]
 path = "docs/images/pike-release.jpg"
 precedence = "aggregate"
-SPDX-FileCopyrightText = "(C) 2014 Azerty197666"
+SPDX-FileCopyrightText = "2014 Azerty197666"
 SPDX-License-Identifier = "CC-BY-SA-4.0"
 SPDX-FileComment = "Obtained from: https://commons.wikimedia.org/wiki/File:Release_of_a_pike.jpg"
 
 [[annotations]]
 path = "docs/images/pike-cartoon.png"
 precedence = "aggregate"
-SPDX-FileCopyrightText = "(C) 2017 creozavr"
+SPDX-FileCopyrightText = "2017 creozavr"
 SPDX-License-Identifier = "CC0-1.0"
 SPDX-FileComment = "Obtained from: https://pixabay.com/en/pike-fish-predator-shchuchin-2612354/"
 
 [[annotations]]
 path = "docs/images/pikemen.jpg"
 precedence = "aggregate"
-SPDX-FileCopyrightText = "(C) 2009 Rama"
+SPDX-FileCopyrightText = "2009 Rama"
 SPDX-License-Identifier = "CECILL-2.0"
 SPDX-FileComment = "Obtained from: https://commons.wikimedia.org/wiki/File:Pike_square_img_3653.jpg"
 
 [[annotations]]
 path = "docs/images/save-pike.jpg"
 precedence = "aggregate"
-SPDX-FileCopyrightText = "(C) 2007 Sarah777"
-SPDX-License-Identifier = "Public-domain"
+SPDX-FileCopyrightText = "NONE"
+SPDX-License-Identifier = "CC-PDDC"
 SPDX-FileComment = "See: https://upload.wikimedia.org/wikipedia/commons/3/33/SaveDePike.jpg"
 
 [[annotations]]
 path = "docs/images/sushi.jpg"
 precedence = "aggregate"
-SPDX-FileCopyrightText = "(C) 2004 Gérald Anfossi"
+SPDX-FileCopyrightText = "2004 Gérald Anfossi"
 SPDX-License-Identifier = "GFDL-1.2-or-later or CC-BY-SA-3.0"
 SPDX-FileComment = "See: https://commons.wikimedia.org/wiki/File:Sushi_bento.jpg"
 
 [[annotations]]
 path = "docs/images/28fish.jpg"
 precedence = "aggregate"
-SPDX-FileCopyrightText = "(C) 2014 Wellcome Library, London"
+SPDX-FileCopyrightText = "2014 Wellcome Library, London"
 SPDX-License-Identifier = "CC-BY-4.0"
 SPDX-FileComment = "Obtained from https://commons.wikimedia.org/wiki/File:Twenty_eight_types_of_fish._Engraving_by_R._Scott_after_T._B_Wellcome_V0022737EL.jpg\n               https://wellcomecollection.org/works/hwzup9cj?wellcomeImagesUrl=/indexplus/image/V0022737EL.html Year of copyright given above is date of upload to Wikimedia Commons.\n This may not be when the scan/photograph was actually produced by the\n Wellcome Library.  The original work is from the 19th century."
 
@@ -114,65 +120,65 @@ path = [
     "tests/resources/congress-gray.pdf",
 ]
 precedence = "aggregate"
-SPDX-FileCopyrightText = "Public domain"
-SPDX-License-Identifier = "Public-domain"
+SPDX-FileCopyrightText = "NONE"
+SPDX-License-Identifier = "CC-PDDC"
 SPDX-FileComment = "From US Congressional Records. Converted from JPEG to PDF."
 
 [[annotations]]
 path = "tests/resources/content-stream-errors.pdf"
 precedence = "aggregate"
-SPDX-FileCopyrightText = "(C) 2019 Jay Berkenbilt"
+SPDX-FileCopyrightText = "2019 Jay Berkenbilt"
 SPDX-License-Identifier = "Apache-2.0"
 
 [[annotations]]
 path = "tests/resources/graph**.pdf"
 precedence = "aggregate"
-SPDX-FileCopyrightText = "Public domain"
-SPDX-License-Identifier = "Public-domain"
+SPDX-FileCopyrightText = "NONE"
+SPDX-License-Identifier = "CC-PDDC"
 SPDX-FileComment = "Released into the public domain by author; see: <https://en.wikipedia.org/wiki/File:Pandas_text_analysis.png>. For -encrypted.pdf, user password is \"user\" and owner password is \"owner\"."
 
 [[annotations]]
 path = "tests/resources/jbig2.pdf"
 precedence = "aggregate"
-SPDX-FileCopyrightText = "Public domain"
-SPDX-License-Identifier = "Public-domain"
+SPDX-FileCopyrightText = "NONE"
+SPDX-License-Identifier = "CC-PDDC"
 
 [[annotations]]
 path = "tests/resources/jbig2global.pdf"
 precedence = "aggregate"
-SPDX-FileCopyrightText = "(C) 2005 Ellywa"
+SPDX-FileCopyrightText = "2005 Ellywa"
 SPDX-License-Identifier = "GFDL-1.2-or-later or CC-BY-SA-1.0 or CC-BY-SA-2.0 or CC-BY-SA-2.5 or CC-BY-SA-3.0"
 SPDX-FileComment = "Obtained from: https://commons.wikimedia.org/wiki/File:Triumph.typewriter_text_Linzensoep.gif\n Converted to PDF."
 
 [[annotations]]
 path = "tests/resources/outlines.pdf"
 precedence = "aggregate"
-SPDX-FileCopyrightText = "(C) 2020 Matthias Erll"
+SPDX-FileCopyrightText = "2020 Matthias Erll"
 SPDX-License-Identifier = "MPL-2.0"
 SPDX-FileComment = "License assumed from LICENSE.txt in project root."
 
 [[annotations]]
 path = "tests/resources/sandwich.pdf"
 precedence = "aggregate"
-SPDX-FileCopyrightText = "(C) 1985 Forat Electronics"
+SPDX-FileCopyrightText = "1985 Forat Electronics"
 SPDX-License-Identifier = "GFDL-1.2-or-later or CC-BY-SA-3.0"
 SPDX-FileComment = "Created using ocrmypdf --pdf-renderer sandwich, to test Tesseract PDF\n text encoding. Originally obtained from: https://commons.wikimedia.org/wiki/File:LinnSequencer_hardware_MIDI_sequencer_brochure_page_2_300dpi.jpg"
 
 [[annotations]]
 path = "tests/resources/veraPDF**.pdf"
 precedence = "aggregate"
-SPDX-FileCopyrightText = "(C) 2015 veraPDF Consortium"
+SPDX-FileCopyrightText = "2015 veraPDF Consortium"
 SPDX-License-Identifier = "CC-BY-4.0"
 SPDX-FileComment = "Obtained from: https://github.com/veraPDF/veraPDF-corpus"
 
 [[annotations]]
 path = "fuzzing/corpus/small.pdf"
 precedence = "aggregate"
-SPDX-FileCopyrightText = "(C) 2024 ennamarie19"
+SPDX-FileCopyrightText = "2024 ennamarie19"
 SPDX-License-Identifier = "CC-BY-SA-4.0"
 
 [[annotations]]
 path = "tests/resources/fuzz/*.pdf"
 precedence = "aggregate"
-SPDX-FileCopyrightText = "(C) 2024 ennamarie19"
+SPDX-FileCopyrightText = "2024 ennamarie19"
 SPDX-License-Identifier = "CC-BY-SA-4.0"

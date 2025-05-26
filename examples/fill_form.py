@@ -1,3 +1,10 @@
+# SPDX-FileCopyrightText: 2025 Dominick Johnson
+# SPDX-License-Identifier: CC0-1.0
+
+"""This example shows how to fill out a form."""
+
+from __future__ import annotations
+
 from pikepdf import Pdf
 from pikepdf.form import DefaultAppearanceStreamGenerator, Form
 

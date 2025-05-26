@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2025 Dominick Johnson
+# SPDX-License-Identifier: CC0-1.0
+
 from __future__ import annotations
 
 import pytest

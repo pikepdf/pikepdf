@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2025 Dominick Johnson
+# SPDX-License-Identifier: MPL-2.0
+
 """Support for working with interactive forms."""
 
 from __future__ import annotations

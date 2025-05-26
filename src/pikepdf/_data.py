@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2025 Dominick Johnson
+# SPDX-License-Identifier: MPL-2.0
+
 # This mapping comes from appendix D of the PDF 2.0 spec. However, I doubt it is
 # exhaustive. It may be that an exhaustive list is not possible.
 from __future__ import annotations
