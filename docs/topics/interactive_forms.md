@@ -1,9 +1,10 @@
 # Working with interactive forms
 
-Pikepdf provides two interfaces for working with interactive forms. There is a low-level
-interface, `pikepdf.AcroForm`, which is exposed as the `pikepdf.Pdf.acroform` property.
-There is also a higher-level interface available in the `pikepdf.form` module, which
-provides several abstractions to make usage easier.
+pikepdf provides two interfaces for working with interactive forms. There is a low-level
+interface, {class}`pikepdf.AcroForm`, which is exposed as the
+{attr}`pikepdf.Pdf.acroform` property. There is also a higher-level interface available
+in the {mod}`pikepdf.form` module, which provides several abstractions to make usage
+easier.
 
 ## Extracting Form Data
 
@@ -63,12 +64,12 @@ several options available.
 First, you may choose not to generate appearance streams at all. Most full-fat PDF readers
 are capable of generating these appearance streams themselves, so depending on your use
 case it may be acceptable to leave appearance stream generation to the end-user
-application. This is the default behavior of the `pikepdf.form.Form` class.
+application. This is the default behavior of the {class}`pikepdf.form.Form` class.
 
 If you do need or want to generate appearance streams, you must provide the class you wish
 to use to accomplish this task. There are two possible implementations provided with
-Pikepdf: `pikepdf.form.DefaultAppearanceStreamGenerator` and
-`pikepdf.form.ExtendedAppearanceStreamGenerator`. To use either of these, simply pass
+pikepdf: {class}`pikepdf.form.DefaultAppearanceStreamGenerator` and
+{class}`pikepdf.form.ExtendedAppearanceStreamGenerator`. To use either of these, simply pass
 the class as the second argument to the constructor:
 
 ```python
@@ -81,7 +82,7 @@ The differences between these two options is explained in the documentation for 
 
 Lastly, you may implement your own class for generating appearance streams that better
 fits your specific use case. It must implement the interface provided by
-`pikepdf.form.AppearanceStreamGenerator`.
+{class}`pikepdf.form.AppearanceStreamGenerator`.
 
 After filling a form, you may also wish to flatten it. This converts the interactive form
 fields into normal, un-editable text. This can be done as follows:
@@ -95,7 +96,7 @@ Generating appearance streams is required if you wish to flatten the form.
 ### Text Fields
 
 Text fields can either resemble an HTML text input, or an HTML textarea, as well as a
-password field, file upload, or rich text input. Pikepdf supports only the first two
+password field, file upload, or rich text input. pikepdf supports only the first two
 options, which can be distinguished from one another using the `is_multiline` property.
 
 The underlying value of the text field is stored in the `value` property. The field
@@ -226,7 +227,7 @@ False
 
 ### Signature Fields
 
-Pikepdf does not support signature fields, but does include a utility function to stamp an
+pikepdf does not support signature fields, but does include a utility function to stamp an
 image over the top of the field's bounding box. The stamped image must be a PDF.
 
 ```python

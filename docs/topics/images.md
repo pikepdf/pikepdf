@@ -157,7 +157,8 @@ Notes on this example:
 
 - It is generally possible to use `zlib.compress()` to
   generate compressed image data, although this is not as efficient as using
-  a program that knows it is preparing a PDF.
+  a program that knows it is preparing a PDF. This works only when the filter is
+  set to FlateDecode. You cannot use most other compression algorithms, since in general they are not supported in PDF.
 - In general we can resize an image to any scale. The PDF content stream
   specifies where to draw an image and at what scale.
 - This example would replace all occurrences of the image if it were used

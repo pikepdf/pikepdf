@@ -24,13 +24,11 @@ When it comes to taxonomy, software developers have it easy.
 :::
 
 stream object
-
 : A PDF object that contains binary data and a metadata dictionary that describes
   it, represented as {class}`pikepdf.Stream`, a subclass of {class}`pikepdf.Object`.
   In HTML this is equivalent to a `<object>` tag with attributes and data.
 
 object stream
-
 : A stream object (not a typo, an object stream really is a type of stream
   object) in a PDF that contains a number of other objects in a
   PDF, grouped together for better compression. In pikepdf there is an option
@@ -40,7 +38,6 @@ object stream
   steps are needed to access a PDF that contains object streams.
 
 content stream
-
 : A stream object that contains some instructions to draw graphics
   and text on a page, or inside a Form XObject, and in some other situations.
   In HTML this is equivalent to the HTML file itself. Content streams only draw
@@ -48,7 +45,6 @@ content stream
   to draw its contents.
 
 Form XObject
-
 : A group of images, text and drawing commands that can be rendered elsewhere
   in a PDF as a group. This is often used when a group of objects are needed
   at different scales or on multiple pages. In HTML this is like an `<svg>`.
@@ -56,7 +52,6 @@ Form XObject
   Form XObjects).
 
 (Python) stream
-
 : A stream is another name for a file object or file-like object, as described
   in the Python {mod}`io` module.
 

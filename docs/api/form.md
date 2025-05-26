@@ -3,6 +3,8 @@
 The `pikepdf.form` module provides a high-level API for working with interactive forms, built on top of the lower-level `pikepdf.AcroForm` interface.
 
 ```{eval-rst}
+.. autoapimodule:: pikepdf.form
+
 .. autoapiclass:: pikepdf.form.Form
     :members:
 ```

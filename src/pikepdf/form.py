@@ -36,7 +36,7 @@ log = logging.getLogger(__name__)
 class Form:
     """Utility class to make it easier to work with interactive forms.
 
-    This is easier to use than the core `pikepdf.AcroForm` implementation, but is
+    This is easier to use than the core {class}`pikepdf.AcroForm` implementation, but is
     higher-level, and abstracts over details in ways which do impose some limitations,
     such as failing for PDFs which have multiple fields with the same name.
 
@@ -47,8 +47,8 @@ class Form:
     * No support for rich text fields
     * Multiselect choice fields are treated as single-select
     * Generating appearance streams imposes additional limitations (see
-      `pikepdf.form.DefaultAppearanceStreamGenerator` and
-      `pikepdf.form.ExtendedAppearanceStreamGenerator` for details.)
+      {class}`pikepdf.form.DefaultAppearanceStreamGenerator` and
+      {class}`pikepdf.form.ExtendedAppearanceStreamGenerator` for details.)
     """
 
     generate_appearances: AppearanceStreamGenerator | None = None
