@@ -66,6 +66,8 @@ jobs:
   wheels_linux_arm:
     name: ${{ matrix.platform }}
     runs-on: ubuntu-24.04-arm
+    env:
+      CIBW_BUILD: "*-${{ matrix.platform }}"
     strategy:
       matrix:
         platform: [manylinux_arm64, musllinux_arm64]
@@ -87,7 +89,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       CIBW_BUILD: "*"
-
     strategy:
       matrix:
         # macos-14 is Apple silicon and we configure it to build only arm64 wheels.
