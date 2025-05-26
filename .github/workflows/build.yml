@@ -70,7 +70,7 @@ jobs:
       CIBW_BUILD: "*-${{ matrix.platform }}"
     strategy:
       matrix:
-        platform: [manylinux_arm64, musllinux_arm64]
+        platform: [manylinux_aarch64, musllinux_aarch64]
     steps:
       - uses: actions/checkout@v4
 
