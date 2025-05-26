@@ -21,6 +21,7 @@ from pikepdf import jbig2
 from pikepdf._core import Buffer, Pdf, PdfError, StreamDecodeLevel
 from pikepdf._exceptions import DependencyError
 from pikepdf.models import _transcoding
+from pikepdf.models._transcoding import ImageDecompressionError
 from pikepdf.objects import (
     Array,
     Dictionary,
@@ -52,9 +53,6 @@ class HifiPrintImageNotTranscodableError(NotExtractableError):
 
 class InvalidPdfImageError(Exception):
     """This image is not valid according to the PDF 1.7 specification."""
-
-
-ImageDecompressionError = _transcoding.ImageDecompressionError
 
 
 def _array_str(value: Object | str | list):
@@ -1049,3 +1047,19 @@ class PdfInlineImage(PdfImageBase):
         """Return decompressed stream buffer."""
         # qpdf does not have an API to return this directly, so convert it.
         return self._convert_to_pdfimage().get_stream_buffer()
+
+
+__all__ = [
+    'CMYKDecodeArray',
+    'DecodeArray',
+    'HifiPrintImageNotTranscodableError',
+    'ImageDecompressionError',
+    'InvalidPdfImageError',
+    'PaletteData',
+    'PdfImage',
+    'PdfImageBase',
+    'PdfInlineImage',
+    'PdfJpxImage',
+    'RGBDecodeArray',
+    'UnsupportedImageTypeError',
+]

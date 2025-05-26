@@ -1,7 +1,7 @@
 ---
 myst:
   substitutions:
-    msvc_zip: qpdf-{{ qpdf-version }}-bin-msvc64.zip
+    msvc_zip: qpdf-{{ qpdf_version }}-bin-msvc64.zip
 ---
 
 (source-build)=

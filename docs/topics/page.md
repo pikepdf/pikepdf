@@ -1,4 +1,4 @@
-(work-with-pages)=
+(work_with_pages)=
 
 # Working with pages
 
