@@ -1,3 +1,9 @@
+# v9.8.1
+
+- Introduced a new {class}`DimensionedFont` to avoid breaking changes in other
+  code (mainly OCRmyPDF) that subclasses {class}`Font`. Remove the new
+  abstract methods from {class}`Font.
+
 # v9.8.0
 
 - Added a new significant to support filling and rendering PDF forms.

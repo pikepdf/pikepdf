@@ -49,6 +49,42 @@ class TextDirection(Enum):
 class Font(ABC):
     """Base class for fonts."""
 
+    @abstractmethod
+    def text_width(
+        self, text: str | bytes, fontsize: float | int | Decimal
+    ) -> float | int | Decimal:
+        """Estimate the width of a text string when rendered with the given font."""
+
+    @abstractmethod
+    def register(self, pdf: Pdf) -> Dictionary:
+        """Register the font.
+
+        Create several data structures in the Pdf to describe the font.
+
+        After registering the font, the returned object should be added to the
+        /Resources dictionary of any page or Form XObject that uses the font. For
+        example one might write:
+
+        ```python
+        page.Resources.Font[Name.Arial] = font.register(pdf)
+        ```
+
+        The same object can be used for multiple pages or Form XObjects, since it is
+        an indirect object.
+
+        Returns a Dictionary suitable for insertion into a /Resources /Font dictionary.
+        """
+
+
+class DimensionedFont(Font):
+    """Base class for fonts that have dimensional information.
+
+    Specifically, these fonts can provide leading and ascent/descent values, and
+    encode strings to the encoding used by the font.
+
+    .. versionadded:: 9.8.1
+    """
+
     @property
     @abstractmethod
     def leading(self) -> Decimal | int:
@@ -65,28 +101,8 @@ class Font(ABC):
         """The max height of the font below the baseline."""
 
     @abstractmethod
-    def text_width(
-        self, text: str | bytes, fontsize: float | int | Decimal
-    ) -> float | int | Decimal:
-        """Estimate the width of a text string when rendered with the given font."""
-
-    @abstractmethod
     def encode(self, text: str) -> bytes:
         """Encode a string in the encoding used by this font."""
-
-    @abstractmethod
-    def register(self, pdf: Pdf) -> Dictionary:
-        """Register the font.
-
-        Create several data structures in the Pdf to describe the font. While it create
-        the data, a reference should be set in at least one page's /Resources dictionary
-        to retain the font in the output PDF and ensure it is usable on that page.
-
-        The returned Dictionary should be created as an indirect object, using
-        ``pdf.make_indirect()``.
-
-        Returns a Dictionary suitable for insertion into a /Resources /Font dictionary.
-        """
 
 
 class Helvetica(Font):
@@ -97,29 +113,10 @@ class Helvetica(Font):
     PDF processors are no longer guaranteed to have these fonts. See 9.6.2.2.
     """
 
-    @property
-    def leading(self):
-        """Returns leading for Helvetica (0pt)."""
-        return 0
-
-    @property
-    def ascent(self):
-        """Returns None as no standard information is available."""
-        return None
-
-    @property
-    def descent(self):
-        """Returns None as no standard information is available."""
-        return None
-
     def text_width(
         self, text: str | bytes, fontsize: float | int | Decimal
     ) -> float | int | Decimal:
         """Estimate the width of a text string when rendered with the given font."""
-        raise NotImplementedError()
-
-    def encode(self, text: str) -> bytes:
-        """Encode a string in the encoding used by this font."""
         raise NotImplementedError()
 
     def register(self, pdf: Pdf) -> Dictionary:
@@ -133,7 +130,7 @@ class Helvetica(Font):
         )
 
 
-class SimpleFont(Font):
+class SimpleFont(DimensionedFont):
     """Font implementation designed to work with Type 1 Fonts and TrueType fonts.
 
     As described in section 9.6 of the PDF spec.
