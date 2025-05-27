@@ -30,7 +30,7 @@ Here are the current constraints for building on macOS:
 
 - General rule for macOS: build on the oldest available macOS runner.
 - QPDF needs at least MACOSX_DEPLOYMENT_TARGET="11.0" since it uses
-  C++17.
+  C++20.
 - Homebrew requires macOS 13+, so we can't support older versions.
 - Homebrew creates binaries with MACOSX_DEPLOYMENT_TARGET="macos-x".
   Therefore, we should build on the minimum runner. For x86_64 that is

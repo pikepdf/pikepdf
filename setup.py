@@ -88,15 +88,15 @@ extmodule: Extension = cast(
         define_macros=macros,
         library_dirs=[*extra_library_dirs],
         libraries=['qpdf'],
-        cxx_std=17,
+        cxx_std=20,
     ),
 )
 
 if shims_enabled:
     eca = extmodule.extra_compile_args
     if sys.platform == 'cygwin':
-        # On cygwin, use gnu++17 instead of c++17
-        eca[eca.index('-std=c++17')] = '-std=gnu++17'
+        # On cygwin, use gnu++20 instead of c++20
+        eca[eca.index('-std=c++20')] = '-std=gnu++20'
 
     # Debug build
     # eca.append('-g3')
