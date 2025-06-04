@@ -23,7 +23,7 @@ env QPDF_SOURCE_TREE=$QPDF_SOURCE_TREE QPDF_BUILD_LIBDIR=$QPDF_BUILD_LIBDIR \
 # Build fuzzers in $OUT
 for fuzzer in $(find fuzzing -name '*_fuzzer.py');do
   compile_python_fuzzer "$fuzzer" \
-      --add-binary="/src/qpdf/build/libqpdf/libqpdf.so.29:." \
+      --add-binary="/src/qpdf/build/libqpdf/libqpdf.so.30:." \
       --add-binary="/lib/x86_64-linux-gnu/libz.so.1:." \
       --add-binary="/lib/x86_64-linux-gnu/libjpeg.so.8:."
 done
