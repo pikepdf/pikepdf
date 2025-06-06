@@ -503,7 +503,8 @@ void init_qpdf(py::module_ &m)
             [](QPDF &q) {
                 py::list warnings;
                 for (auto w : q.getWarnings()) {
-                    warnings.append(w.what());
+                    py::bytes msg_bytes(w.what());
+                    warnings.append(msg_bytes.attr("decode")("utf-8", "replace"));
                 }
                 return warnings;
             })
