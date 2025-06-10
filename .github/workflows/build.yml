@@ -156,7 +156,7 @@ jobs:
         LIBPATH="$LIBPATH;d:\\qpdf\\lib"
     strategy:
       matrix:
-        os: [windows-2019]
+        os: [windows-2022]
         platform: [win_amd64]
 
     steps:
