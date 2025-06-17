@@ -68,17 +68,15 @@ def _single_page_pdf(page: Page) -> bytes:
 def _mudraw(buffer, fmt) -> bytes:
     """Use mupdf draw to rasterize the PDF in the memory buffer."""
     # mudraw cannot read from stdin so NamedTemporaryFile is required
-    with NamedTemporaryFile(suffix='.pdf') as tmp_in:
+    with NamedTemporaryFile(suffix='.pdf') as tmp_in, NamedTemporaryFile() as tmp_out:
         tmp_in.write(buffer)
         tmp_in.seek(0)
         tmp_in.flush()
-
-        proc = run(
-            ['mutool', 'draw', '-F', fmt, '-o', '-', tmp_in.name],
-            capture_output=True,
+        run(
+            ['mutool', 'draw', '-F', fmt, '-o', tmp_out.name, tmp_in.name],
             check=True,
         )
-        return proc.stdout
+        return tmp_out.read()
 
 
 @augments(Object)
