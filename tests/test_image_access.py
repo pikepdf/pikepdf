@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import sys
 import zlib
 from collections.abc import Sequence
 from contextlib import contextmanager
@@ -39,6 +40,16 @@ from pikepdf.models.image import (
     PdfJpxImage,
     UnsupportedImageTypeError,
 )
+
+if sys.version_info.releaselevel in ('alpha', 'beta'):
+    # When testing a pre-release, we are likely building Pillow from source, and it will
+    # be missing several of its libraries and trigger errors around missing libtiff and
+    # the CMS library. Rather than trying to get a full build of Pillow, just skip these
+    # tests.
+    pytest.skip(
+        "skipping image tests on alpha/beta due to complex Pillow deps",
+        allow_module_level=True,
+    )
 
 # pylint: disable=redefined-outer-name
 
