@@ -64,7 +64,7 @@ work if compiled from source.
 Windows 7 or newer is required. Windows wheels include a recent copy of libqpdf.
 
 Most Linux distributions support manylinux2014, with the notable except of
-[Alpine Linux], and older Linux distributions that do not have C++17-capable
+[Alpine Linux], and older Linux distributions that do not have C++20-capable
 compilers. The Linux wheels include recent copies of libqpdf, libjpeg, and zlib.
 
 Source builds are usually possible where binary wheels are available.

@@ -14,7 +14,7 @@ If you are a developer and you want to build from source, follow these steps.
 
 pikepdf requires:
 
-- a C++17 compliant compiler - roughly GCC 7+, clang 6+, or MSVC 19+
+- a C++20 compliant compiler
 - [pybind11](https://github.com/pybind/pybind11)
 - libqpdf {{ qpdf_min_version }} or higher from the
   [qpdf](https://qpdf.org) project.
@@ -70,8 +70,8 @@ then you might do something like:
 
 ### {fa}`windows` On Windows (requires Visual Studio 2015)
 
-pikepdf requires a C++17 compliant compiler (i.e. Visual Studio 2015 on
-Windows). See our continuous integration build script in `.appveyor.yml`
+pikepdf requires a C++20 compliant compiler.
+See our continuous integration build script in `.appveyor.yml`
 for detailed and current instructions. Or use the wheels which save this pain.
 
 These instructions require the precompiled binary `qpdf.dll`. See the qpdf
