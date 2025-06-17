@@ -98,7 +98,7 @@ before-all = [
   "bash build-scripts/posix-build-wheel-deps.bash",
 ]
 environment-pass = ["CI"]
-manylinux-x86_64-image = "manylinux2014"
+manylinux-x86_64-image = "manylinux_2_28"
 musllinux-x86_64-image = "musllinux_1_2"
 musllinux-aarch64-image = "musllinux_1_2"
 
