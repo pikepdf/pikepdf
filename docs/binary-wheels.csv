@@ -1,8 +1,8 @@
-,3.9,3.10,3.11,3.12,3.13,PyPy 3.10
-:fa:`apple` macOS Intel,✅,✅,✅,✅,✅,❌
-:fa:`apple` macOS Apple Silicon,✅,✅,✅,✅,✅,❌
-:fa:`windows` Windows x64,✅,✅,✅,✅,✅,❌
-:fa:`linux` manylinux2014 x64,✅,✅,✅,✅,✅,✅
-:fa:`linux` manylinux2014 aarch64 (ARM64),✅,✅,✅,✅,✅,❌
-:fa:`linux` musllinux x64,✅,✅,✅,✅,✅,❌
-:fa:`linux` musllinux aarch64 (ARM64),✅,✅,✅,✅,✅,❌
+,3.9,3.10,3.11,3.12,3.13
+:fa:`apple` macOS Intel,✅,✅,✅,✅,✅
+:fa:`apple` macOS Apple Silicon,✅,✅,✅,✅,✅
+:fa:`windows` Windows x64,✅,✅,✅,✅,✅
+:fa:`linux` manylinux2014 x64,✅,✅,✅,✅,✅
+:fa:`linux` manylinux2014 aarch64 (ARM64),✅,✅,✅,✅,✅
+:fa:`linux` musllinux x64,✅,✅,✅,✅,✅
+:fa:`linux` musllinux aarch64 (ARM64),✅,✅,✅,✅,✅

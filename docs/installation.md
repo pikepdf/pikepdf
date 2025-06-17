@@ -125,9 +125,4 @@ This procedure is known to work on FreeBSD 13.4 and 14.1.
 
 ## PyPy3 support
 
-PyPy3 is supported in certain configurations as listed in the binary wheel
-availability table above.
-
-PyPy3 is not more performant than CPython for pikepdf, because the core of pikepdf
-is already written in C++. The benefit is for applications that want to use PyPy
-for improved performance of native Python and also want to use pikepdf.
+We stopped generating binary wheels for PyPy3 after pikepdf 9.8.1 since some dependencies are reducing support for PyPy. You can use earlier versions or compile binary wheels from source.

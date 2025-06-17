@@ -21,7 +21,6 @@ classifiers = [
   "Programming Language :: C++",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: Implementation :: CPython",
-  "Programming Language :: Python :: Implementation :: PyPy",
   "Topic :: Multimedia :: Graphics",
   "Topic :: Software Development :: Libraries",
 ]
@@ -75,12 +74,7 @@ test-extras = "test"
 #   build.yml sets CIBW_BUILD to select what can be built
 #   this file sets skip to deselect what cannot be built
 skip = [
-  "*-win32",                # no 32-bit builds/not supported by Pillow anymore
-  "pp*-manylinux*_aarch64", # not supported by Pillow yet
-  "pp39-*",                 # dropped by Pillow
-  "pp*-macosx*",            # https://github.com/pypa/distutils/issues/283 PyPy/setuptools is broken on macos
-  "pp311-*",                # not supported by lxml
-  "pp*-win_amd64",          # unexplained test failures
+  "*-win32", # no 32-bit builds/not supported by Pillow anymore
 ]
 test-skip = "*_universal2:arm64"
 build-frontend = "build"
@@ -105,7 +99,6 @@ before-all = [
 ]
 environment-pass = ["CI"]
 manylinux-x86_64-image = "manylinux2014"
-manylinux-pypy_x86_64-image = "manylinux2014"
 musllinux-x86_64-image = "musllinux_1_2"
 musllinux-aarch64-image = "musllinux_1_2"
 
