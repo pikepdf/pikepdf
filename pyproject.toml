@@ -98,6 +98,9 @@ before-all = [
   "bash build-scripts/posix-build-wheel-deps.bash",
 ]
 environment-pass = ["CI"]
+# For manylinux_2_28 we need this shim for auditwheel
+# https://github.com/pypa/auditwheel/pull/597
+repair-wheel-command = "LD_LIBRARY_PATH=\"/usr/local/lib:/usr/local/lib64\" auditwheel repair -w {dest_dir} {wheel}"
 manylinux-x86_64-image = "manylinux_2_28"
 musllinux-x86_64-image = "musllinux_1_2"
 musllinux-aarch64-image = "musllinux_1_2"
@@ -131,7 +134,7 @@ before-all = [
   "sh -c 'brew install gnutls little-cms2 mupdf wget || true'",
   "bash build-scripts/posix-download-qpdf.bash $QPDF_VERSION",
   "bash build-scripts/posix-build-wheel-deps.bash",
-] # Use 'brew whatever || true' workaround until https://github.com/actions/setup-python/issues/577 is fixed
+] # Use 'brew whatever || true' workaround until https://github.com/actions/setup-python/issues/9966 is fixed
 
 [[tool.cibuildwheel.overrides]]
 select = "*-macosx*x86_64"

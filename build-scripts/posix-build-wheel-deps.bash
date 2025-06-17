@@ -22,7 +22,13 @@ maybe_sudo () {
 
 echo "Building dependencies for $os $arch MACOSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET:-}"
 
-if [ ! -f /usr/local/lib/libqpdf.so -a ! -f /usr/local/lib/libqpdf.dylib ]; then
+if [ grep -q almalinux /etc/os-release ]; then
+    libdir=/usr/local/lib64
+else
+    libdir=/usr/local/lib
+fi
+
+if [ ! -f $libdir/libqpdf.so -a ! -f $libdir/libqpdf.dylib ]; then
     pushd qpdf
     if [ "$os" == "Darwin" ]; then
         cmake -S . -B build \
