@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import sys
+
 import pytest
 
 from pikepdf import Dictionary, ForeignObjectError, Name, Pdf
@@ -102,9 +104,10 @@ def test_issue_271():
 
 def test_copy_foreign_refcount(refcount, vera, outlines):
     c = refcount(outlines.Root.Names)
-    assert refcount(outlines.Root.Names) == c + 1
+    expected = c if sys.version_info >= (3, 14) else c + 1
+    assert refcount(outlines.Root.Names) == expected
     vera.Root.Names = vera.copy_foreign(outlines.Root.Names)
-    assert refcount(outlines.Root.Names) == c + 1
+    assert refcount(outlines.Root.Names) == expected
 
 
 def test_copy_foreign_page_object(vera, outlines):
