@@ -12,7 +12,7 @@ import sys
 from glob import glob
 from itertools import chain
 from os import environ
-from os.path import exists, join
+from os.path import abspath, exists, join
 from platform import machine
 from typing import cast
 
@@ -24,6 +24,11 @@ extra_library_dirs = []
 qpdf_source_tree = environ.get('QPDF_SOURCE_TREE', '')
 qpdf_build_libdir = environ.get('QPDF_BUILD_LIBDIR', '')
 qpdf_future = environ.get('QPDF_FUTURE', '')
+
+if not qpdf_source_tree and exists('../qpdf'):
+    print("Using local qpdf source tree at '../qpdf'")
+    qpdf_source_tree = abspath('../qpdf')
+    qpdf_build_libdir = abspath('../qpdf/build/libqpdf')
 
 if qpdf_source_tree:
     # Point this to qpdf source tree built with shared libraries
