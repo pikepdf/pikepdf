@@ -76,7 +76,6 @@ test-extras = "test"
 skip = [
   "*-win32", # no 32-bit builds/not supported by Pillow anymore
 ]
-test-skip = "*_universal2:arm64"
 build-frontend = "build"
 
 [tool.cibuildwheel.environment]
