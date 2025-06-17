@@ -874,6 +874,9 @@ requires-dist = [
 ]
 provides-extras = ["dev", "docs", "mypy", "test"]
 
+[package.metadata.requires-dev]
+dev = []
+
 [[package]]
 name = "pillow"
 version = "11.2.1"

@@ -239,3 +239,6 @@ convention = "google"
 
 [tool.ruff.format]
 quote-style = "preserve"
+
+[dependency-groups]
+dev = []
