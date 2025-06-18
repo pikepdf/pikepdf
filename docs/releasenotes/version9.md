@@ -1,3 +1,17 @@
+# v9.9.0
+
+- Upgraded to cibuildwheel 3.0.0.
+- We now build Linux wheels using manylinux_2_28 which is based on AlmaLinux 8.
+  This means that some of the libraries included in the pikepdf wheel will be
+  upgraded to newer versions.
+- C++-20 compiler is now required for build pikepdf.
+- Fixed a reference counting test on Python 3.14a.
+- We no longer build PyPy wheels by default.
+- If a folder named ``../qpdf`` is found, we automatically use that as the
+  companion qpdf when building. For developers this means building works
+  without setting environment variables. Environment variables can still be
+  set to redirect to specific installation.
+
 # v9.8.1
 
 - Introduced a new {class}`DimensionedFont` to avoid breaking changes in other
