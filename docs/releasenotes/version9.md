@@ -20,7 +20,7 @@
 
 # v9.8.0
 
-- Added a new significant to support filling and rendering PDF forms.
+- Added a significant new feature to support filling and rendering PDF forms.
   Thanks @dmjohnsson23. See `pikepdf.form` and `pikepdf.canvas`.
 - Now building wheels against qpdf 12.2.0.
 - We no longer build PyPy wheels on Windows, due to strange test failures that
