@@ -40,7 +40,7 @@ public:
     virtual py::object handle_token(Token const &token) = 0;
 };
 
-class TokenFilterTrampoline : public TokenFilter {
+class TokenFilterTrampoline : public TokenFilter, py::trampoline_self_life_support {
 public:
     using TokenFilter::TokenFilter;
     using Token = QPDFTokenizer::Token;
@@ -82,11 +82,10 @@ void init_tokenfilter(py::module_ &m)
         .def_property_readonly("error_msg", &QPDFTokenizer::Token::getErrorMessage)
         .def("__eq__", &QPDFTokenizer::Token::operator==, py::is_operator());
 
-    py::class_<QPDFObjectHandle::TokenFilter,
-        std::shared_ptr<QPDFObjectHandle::TokenFilter>>
-        qpdftokenfilter(m, "_QPDFTokenFilter");
+    py::class_<QPDFObjectHandle::TokenFilter, py::smart_holder> qpdftokenfilter(
+        m, "_QPDFTokenFilter");
 
-    py::class_<TokenFilter, TokenFilterTrampoline, std::shared_ptr<TokenFilter>>(
+    py::class_<TokenFilter, TokenFilterTrampoline, py::smart_holder>(
         m, "TokenFilter", qpdftokenfilter)
         .def(py::init<>())
         .def("handle_token",

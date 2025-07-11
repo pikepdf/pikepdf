@@ -303,7 +303,7 @@ void init_object(py::module_ &m)
         .value("operator", qpdf_object_type_e::ot_operator)
         .value("inlineimage", qpdf_object_type_e::ot_inlineimage);
 
-    py::class_<Buffer, std::shared_ptr<Buffer>>(m, "Buffer", py::buffer_protocol())
+    py::class_<Buffer, py::smart_holder>(m, "Buffer", py::buffer_protocol())
         .def_buffer([](Buffer &b) -> py::buffer_info {
             return py::buffer_info(b.getBuffer(),
                 sizeof(unsigned char),
@@ -882,10 +882,8 @@ void init_object(py::module_ &m)
 
     // Since QPDFEmbeddedFileDocumentHelper::getEmbeddedFiles returns
     // std::map<std::string, std::shared_ptr<QPDFFileSpecObjectHelper>>
-    // we must ensure that the entire QPDFObjectHelper type hierarchy is held in
-    // std::shared_ptr or repackage that interface so it does not return a
-    // std::shared_ptr<QPDFFileSpecObjectHelper>> to Python.
-    py::class_<QPDFObjectHelper, std::shared_ptr<QPDFObjectHelper>>(m, "ObjectHelper")
+    // we must use smart_holder.
+    py::class_<QPDFObjectHelper, py::smart_holder>(m, "ObjectHelper")
         .def(
             "__eq__",
             [](QPDFObjectHelper &self, QPDFObjectHelper &other) {

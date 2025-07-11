@@ -449,7 +449,7 @@ void init_qpdf(py::module_ &m)
         .value("mmap", access_mode_e::access_mmap)
         .value("mmap_only", access_mode_e::access_mmap_only);
 
-    py::class_<QPDF, std::shared_ptr<QPDF>>(
+    py::class_<QPDF, py::smart_holder>(
         m, "Pdf", "In-memory representation of a PDF", py::dynamic_attr())
         .def_static("new",
             []() {

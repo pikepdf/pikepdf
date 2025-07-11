@@ -16,7 +16,7 @@ using NameTree = QPDFNameTreeObjectHelper;
 
 void init_nametree(py::module_ &m)
 {
-    py::class_<NameTree, std::shared_ptr<NameTree>, QPDFObjectHelper>(m, "NameTree")
+    py::class_<NameTree, py::smart_holder, QPDFObjectHelper>(m, "NameTree")
         .def(py::init([](QPDFObjectHandle &oh, bool auto_repair = true) {
             if (!oh.getOwningQPDF())
                 throw py::value_error(
