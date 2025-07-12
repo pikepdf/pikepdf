@@ -73,7 +73,7 @@ def test_check_specialized_decoder_fallback(
 
     with pikepdf.open(resources / 'jbig2.pdf') as pdf:
         with pytest.warns(UserWarning, match=r".*missing some specialized.*"):
-            problems = pdf.check()
+            problems = pdf.check_pdf_syntax()
         assert len(problems) == 0
 
 

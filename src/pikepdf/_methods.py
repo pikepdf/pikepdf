@@ -25,6 +25,8 @@ from tempfile import NamedTemporaryFile
 from typing import BinaryIO, Callable, TypeVar
 from warnings import warn
 
+from deprecated import deprecated
+
 from pikepdf._augments import augment_override_cpp, augments
 from pikepdf._core import (
     AccessMode,
@@ -251,7 +253,11 @@ class Extend_Pdf:
     def encryption(self) -> EncryptionInfo:
         return EncryptionInfo(self._encryption_data)
 
+    @deprecated(version='9.10.0', reason="Use Pdf.check_pdf_syntax instead")
     def check(self) -> list[str]:
+        return self.check_pdf_syntax()
+
+    def check_pdf_syntax(self) -> list[str]:
         class DiscardingParser(StreamParser):
             def __init__(self):  # pylint: disable=useless-super-delegation
                 super().__init__()  # required for C++
