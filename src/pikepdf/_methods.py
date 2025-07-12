@@ -65,6 +65,17 @@ def _single_page_pdf(page: Page) -> bytes:
     return bio.read()
 
 
+def _run_mudraw(in_path: Path, out_pattern: Path) -> Path:
+    run(
+        ['mutool', 'draw', '-o', str(out_pattern), str(in_path)],
+        check=True,
+    )
+    out_path = out_pattern.with_name(out_pattern.name.format(1))  # Replace %d with 1
+    if not out_path.exists():
+        raise FileNotFoundError(out_path)
+    return out_path
+
+
 def _mudraw(buffer: bytes | memoryview, fmt: Literal["svg"]) -> bytes:
     """Use mupdf draw to rasterize the PDF in the memory buffer."""
     # mudraw cannot read from stdin so a temporary file is required
@@ -76,10 +87,7 @@ def _mudraw(buffer: bytes | memoryview, fmt: Literal["svg"]) -> bytes:
         out_pattern = Path(tmp_dir) / f'output%d.{fmt}'
         out_path = Path(tmp_dir) / f'output1.{fmt}'
         in_path.write_bytes(buffer)
-        run(
-            ['mutool', 'draw', '-o', str(out_pattern), str(in_path)],
-            check=True,
-        )
+        out_path = _run_mudraw(in_path, out_pattern)
         return out_path.read_bytes()
 
 
