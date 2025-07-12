@@ -22,7 +22,7 @@ from io import BytesIO, RawIOBase
 from pathlib import Path
 from subprocess import run
 from tempfile import TemporaryDirectory
-from typing import BinaryIO, Callable, TypeVar
+from typing import BinaryIO, Callable, Literal, TypeVar
 from warnings import warn
 
 from pikepdf._augments import augment_override_cpp, augments
@@ -65,7 +65,7 @@ def _single_page_pdf(page: Page) -> bytes:
     return bio.read()
 
 
-def _mudraw(buffer, fmt) -> bytes:
+def _mudraw(buffer: bytes | memoryview, fmt: Literal["svg"]) -> bytes:
     """Use mupdf draw to rasterize the PDF in the memory buffer."""
     # mudraw cannot read from stdin so a temporary file is required
     # '-o -' does not work on macos-14
@@ -73,11 +73,11 @@ def _mudraw(buffer, fmt) -> bytes:
     # instead; see https://bugs.ghostscript.com/show_bug.cgi?id=708653
     with TemporaryDirectory() as tmp_dir:
         in_path = Path(tmp_dir) / 'input.pdf'
-        out_pattern = Path(tmp_dir) / 'output%d.svg'
-        out_path = Path(tmp_dir) / 'output1.svg'
+        out_pattern = Path(tmp_dir) / f'output%d.{fmt}'
+        out_path = Path(tmp_dir) / f'output1.{fmt}'
         in_path.write_bytes(buffer)
         run(
-            ['mutool', 'draw', '-F', fmt, '-o', str(out_pattern), str(in_path)],
+            ['mutool', 'draw', '-o', str(out_pattern), str(in_path)],
             check=True,
         )
         return out_path.read_bytes()
