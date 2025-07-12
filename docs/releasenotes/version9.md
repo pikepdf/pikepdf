@@ -1,3 +1,11 @@
+# v9.10.0
+
+- Upgraded to pybind11 3.0, which is now required. Changed many of our pointer
+  holder types to use the py::smart_holder.
+- ``Pdf.check()`` is now deprecated, in favor of ``Pdf.check_pdf_syntax()``.
+- Use explicit page number substitution in mupdf to avoid problems in how it
+  names output files. {issue}`661`
+
 # v9.9.0
 
 - Upgraded to cibuildwheel 3.0.0.
