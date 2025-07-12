@@ -21,7 +21,7 @@ from decimal import Decimal
 from io import BytesIO, RawIOBase
 from pathlib import Path
 from subprocess import run
-from tempfile import NamedTemporaryFile
+from tempfile import TemporaryDirectory
 from typing import BinaryIO, Callable, TypeVar
 from warnings import warn
 
@@ -67,16 +67,20 @@ def _single_page_pdf(page: Page) -> bytes:
 
 def _mudraw(buffer, fmt) -> bytes:
     """Use mupdf draw to rasterize the PDF in the memory buffer."""
-    # mudraw cannot read from stdin so NamedTemporaryFile is required
-    with NamedTemporaryFile(suffix='.pdf') as tmp_in, NamedTemporaryFile() as tmp_out:
-        tmp_in.write(buffer)
-        tmp_in.seek(0)
-        tmp_in.flush()
+    # mudraw cannot read from stdin so a temporary file is required
+    # '-o -' does not work on macos-14
+    # '-o <path>' can accidentally prepend numbers to dots, so use explicit %d
+    # instead; see https://bugs.ghostscript.com/show_bug.cgi?id=708653
+    with TemporaryDirectory() as tmp_dir:
+        in_path = Path(tmp_dir) / 'input.pdf'
+        out_pattern = Path(tmp_dir) / 'output%d.svg'
+        out_path = Path(tmp_dir) / 'output1.svg'
+        in_path.write_bytes(buffer)
         run(
-            ['mutool', 'draw', '-F', fmt, '-o', tmp_out.name, tmp_in.name],
+            ['mutool', 'draw', '-F', fmt, '-o', str(out_pattern), str(in_path)],
             check=True,
         )
-        return tmp_out.read()
+        return out_path.read_bytes()
 
 
 @augments(Object)
