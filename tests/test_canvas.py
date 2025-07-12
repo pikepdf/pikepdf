@@ -220,7 +220,7 @@ class TestCanvas:
             ).rect(10, 10, 5, 5, fill=True)
         pdf = canvas.to_pdf()
         assert len(pdf.pages) == 1
-        pdf.check()
+        pdf.check_pdf_syntax()
 
     def test_image(self, resources):
         canvas = Canvas(page_size=(400, 100))
@@ -231,7 +231,7 @@ class TestCanvas:
         canvas.do.draw_image(im.convert('RGB'), 300, 0, 100, 100)
 
         pdf = canvas.to_pdf()
-        pdf.check()
+        pdf.check_pdf_syntax()
 
     def test_text(self):
         hello_msg = 'Hello, World!'
@@ -256,7 +256,7 @@ class TestCanvas:
         canvas.do.fill_color(BLACK).draw_text(rtltext)
         canvas.add_font(Name.Helvetica, Helvetica())
         pdf = canvas.to_pdf()
-        pdf.check()
+        pdf.check_pdf_syntax()
 
         for msg in [hello_msg, hello_arabic]:
             # str -> UTF-16 big endian bytes -> hex encoded str -> hex bytes

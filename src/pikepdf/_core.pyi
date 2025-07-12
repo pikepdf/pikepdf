@@ -32,6 +32,8 @@ from typing import (
     overload,
 )
 
+from deprecated import deprecated
+
 if TYPE_CHECKING:
     import numpy as np
 
@@ -1918,7 +1920,9 @@ class Pdf:
     def _remove_page(self, arg0: Object) -> None: ...
     def _replace_object(self, arg0: tuple[int, int], arg1: Object) -> None: ...
     def _swap_objects(self, arg0: tuple[int, int], arg1: tuple[int, int]) -> None: ...
-    def check(self) -> list[str]:
+    @deprecated(version='9.10.0', reason="Use Pdf.check_pdf_syntax instead")
+    def check(self) -> list[str]: ...
+    def check_pdf_syntax(self) -> list[str]:
         """Check if PDF is syntactically well-formed.
 
         Similar to ``qpdf --check``, checks for syntax
@@ -1927,6 +1931,11 @@ class Pdf:
         these problems still render correctly, if PDF viewers are capable of
         working around the issues they contain. In many cases, pikepdf can
         also fix the problems.
+
+        Unlike ``qpdf --check``, this function does not check for linearization
+        issues (see ``check_linearization()``) and some other issues. To
+        replicate the exact behavior of qpdf's check in pikepdf, use
+        ``pikepdf.Job(['pikepdf', '--check', 'input.pdf']).run()``.
 
         An example problem found by this function is a xref table that is
         missing an object reference. A page dictionary with the wrong type of

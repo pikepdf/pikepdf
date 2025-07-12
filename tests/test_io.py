@@ -260,9 +260,9 @@ def test_newline_handling(resources):
         resources / 'newline-buffer-test.pdf',
         access_mode=pikepdf._core.AccessMode.mmap_only,
     ) as pdf:
-        assert pdf.check() == []
+        assert pdf.check_pdf_syntax() == []
     with Pdf.open(
         resources / 'newline-buffer-test.pdf',
         access_mode=pikepdf._core.AccessMode.stream,
     ) as pdf:
-        assert pdf.check() == []
+        assert pdf.check_pdf_syntax() == []

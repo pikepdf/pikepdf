@@ -1,5 +1,4 @@
-# SPDX-FileCopyrightText: 2022 James R. Barlow
-# SPDX-License-Identifier: CC0-1.0
+# SPDX-FileCopyrightText: 2022 James R. Barlow # SPDX-License-Identifier: CC0-1.0
 
 """Testing focused on pikepdf.Pdf."""
 
@@ -332,7 +331,7 @@ def test_allow_overwriting_input_from_pdf_new():
 
 def test_check(resources):
     with pikepdf.open(resources / 'content-stream-errors.pdf') as pdf:
-        problems = pdf.check()
+        problems = pdf.check_pdf_syntax()
         assert len(problems) > 0
         assert all(isinstance(prob, str) for prob in problems)
         assert 'parse error while reading' in problems[0]

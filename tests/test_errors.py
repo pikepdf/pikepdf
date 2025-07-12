@@ -71,4 +71,4 @@ def test_return_object_from_closed():
 def test_object_type_assertion(resources):
     with pytest.raises(PdfError):
         with Pdf.open(resources / 'fuzz' / '378014596.pdf') as p:
-            p.check()
+            p.check_pdf_syntax()
