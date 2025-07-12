@@ -18,8 +18,7 @@ using NumberTree = QPDFNumberTreeObjectHelper;
 
 void init_numbertree(py::module_ &m)
 {
-    py::class_<NumberTree, std::shared_ptr<NumberTree>, QPDFObjectHelper>(
-        m, "NumberTree")
+    py::class_<NumberTree, py::smart_holder, QPDFObjectHelper>(m, "NumberTree")
         .def(py::init([](QPDFObjectHandle &oh, bool auto_repair = true) {
             if (!oh.getOwningQPDF())
                 throw py::value_error(

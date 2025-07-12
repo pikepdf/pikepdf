@@ -26,9 +26,8 @@ void init_annotation(py::module_ &m)
         .value("toggle_no_view", pdf_annotation_flag_e::an_toggle_no_view)
         .value("locked_contents", pdf_annotation_flag_e::an_locked_contents);
 
-    py::class_<QPDFAnnotationObjectHelper,
-        std::shared_ptr<QPDFAnnotationObjectHelper>,
-        QPDFObjectHelper>(m, "Annotation")
+    py::class_<QPDFAnnotationObjectHelper, py::smart_holder, QPDFObjectHelper>(
+        m, "Annotation")
         .def(py::init<QPDFObjectHandle &>(), py::keep_alive<0, 1>())
         .def_property_readonly("subtype",
             [](QPDFAnnotationObjectHelper &anno) {

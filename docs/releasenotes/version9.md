@@ -4,7 +4,7 @@
 - We now build Linux wheels using manylinux_2_28 which is based on AlmaLinux 8.
   This means that some of the libraries included in the pikepdf wheel will be
   upgraded to newer versions.
-- C++-20 compiler is now required for build pikepdf.
+- C++-20 compiler is now required for building pikepdf.
 - Fixed a reference counting test on Python 3.14a.
 - We no longer build PyPy wheels by default.
 - If a folder named ``../qpdf`` is found, we automatically use that as the

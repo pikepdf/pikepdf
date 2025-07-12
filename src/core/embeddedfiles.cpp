@@ -44,9 +44,8 @@ QPDFFileSpecObjectHelper create_filespec(QPDF &q,
 
 void init_embeddedfiles(py::module_ &m)
 {
-    py::class_<QPDFFileSpecObjectHelper,
-        std::shared_ptr<QPDFFileSpecObjectHelper>,
-        QPDFObjectHelper>(m, "AttachedFileSpec") // /Type /Filespec
+    py::class_<QPDFFileSpecObjectHelper, py::smart_holder, QPDFObjectHelper>(
+        m, "AttachedFileSpec") // /Type /Filespec
         .def(py::init([](QPDF &q,
                           py::bytes data,
                           std::string description,
@@ -112,9 +111,8 @@ void init_embeddedfiles(py::module_ &m)
             },
             py::return_value_policy::reference_internal);
 
-    py::class_<QPDFEFStreamObjectHelper,
-        std::shared_ptr<QPDFEFStreamObjectHelper>,
-        QPDFObjectHelper>(m, "AttachedFile") // /Type /EmbeddedFile
+    py::class_<QPDFEFStreamObjectHelper, py::smart_holder, QPDFObjectHelper>(
+        m, "AttachedFile") // /Type /EmbeddedFile
         .def_property_readonly("size",
             &QPDFEFStreamObjectHelper::getSize // LCOV_EXCL_LINE
             )
@@ -133,7 +131,7 @@ void init_embeddedfiles(py::module_ &m)
             &QPDFEFStreamObjectHelper::getModDate,
             &QPDFEFStreamObjectHelper::setModDate);
 
-    py::class_<QPDFEmbeddedFileDocumentHelper>(m, "Attachments")
+    py::class_<QPDFEmbeddedFileDocumentHelper, py::smart_holder>(m, "Attachments")
         .def_property_readonly(
             "_has_embedded_files", &QPDFEmbeddedFileDocumentHelper::hasEmbeddedFiles)
         .def("_attach_data",

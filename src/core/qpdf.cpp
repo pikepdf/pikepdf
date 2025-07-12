@@ -43,6 +43,11 @@ void qpdf_basic_settings(QPDF &q) // LCOV_EXCL_LINE
     q.setLogger(get_pikepdf_logger());
 }
 
+// The holder for QPDF should still be shared_ptr because the Python Pdf.pages accessor
+// needs to keep a reference to the QPDF, since users can do things like:
+//  accessor = pdf.pages
+//  del pdf
+//  accessor[0]
 std::shared_ptr<QPDF> open_pdf(py::object stream,
     std::string password,
     bool hex_password            = false,
@@ -449,7 +454,7 @@ void init_qpdf(py::module_ &m)
         .value("mmap", access_mode_e::access_mmap)
         .value("mmap_only", access_mode_e::access_mmap_only);
 
-    py::class_<QPDF, std::shared_ptr<QPDF>>(
+    py::class_<QPDF, py::smart_holder>(
         m, "Pdf", "In-memory representation of a PDF", py::dynamic_attr())
         .def_static("new",
             []() {
