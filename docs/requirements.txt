@@ -1,7 +1,7 @@
 # This is provided for the benefit of readthedocs.org, which cannot
 # yet read pyproject.toml to obtain what
 # pip install pikepdf[docs] would install.
-
+myst-parser>=3.0.1
 Sphinx >= 3
 sphinx-autoapi >= 3
 sphinx-issues
