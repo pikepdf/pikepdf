@@ -1,6 +1,7 @@
 # v9.10.1
 
 - Fixed a missing dependency for ReadTheDocs documentation generation.
+  Thanks @SteinRobert. {issue}`663`
 
 # v9.10.0
 
