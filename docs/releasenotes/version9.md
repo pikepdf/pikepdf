@@ -1,3 +1,7 @@
+# v9.10.1
+
+- Fixed a missing dependency for ReadTheDocs documentation generation.
+
 # v9.10.0
 
 - Upgraded to pybind11 3.0, which is now required. Changed many of our pointer
