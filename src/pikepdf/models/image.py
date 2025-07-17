@@ -171,6 +171,8 @@ class PdfImageBase(ABC):
                 return (0.0, 1.0)
             if self._approx_mode_from_icc() == 'RGB':
                 return (0.0, 1.0, 0.0, 1.0, 0.0, 1.0)
+        if self.image_mask:
+            return (0.0, 1.0)  # Default for image masks; per RM 8.9.6.2
 
         raise NotImplementedError(
             "Don't how to retrieve default /Decode array for image" + repr(self)

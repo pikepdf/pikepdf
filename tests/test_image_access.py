@@ -141,6 +141,15 @@ def test_imagemask_colorspace(trivial):
     assert pdfimage.colorspace is None
 
 
+def test_imagemask_decode(trivial):
+    xobj, _ = trivial
+    rawimage = xobj
+    rawimage.ImageMask = True
+    pdfimage = PdfImage(rawimage)
+    assert pdfimage.image_mask
+    assert pdfimage._decode_array == (0.0, 1.0)
+
+
 def test_malformed_palette(trivial):
     xobj, _ = trivial
     rawimage = xobj
