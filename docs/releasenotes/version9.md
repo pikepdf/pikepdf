@@ -1,3 +1,7 @@
+# v9.10.2
+
+- Fixed missing default /Decode for image masks. {issue}`664`
+
 # v9.10.1
 
 - Fixed a missing dependency for ReadTheDocs documentation generation.
