@@ -1159,6 +1159,7 @@ class AttachedFileSpec(ObjectHelper):
 
     def __init__(
         self,
+        pdf: Pdf,
         data: bytes,
         *,
         description: str,
@@ -1173,6 +1174,7 @@ class AttachedFileSpec(ObjectHelper):
         use :meth:`from_filepath`.
 
         Args:
+            pdf: The Pdf to attach this file specification to.
             data: Resource to load.
             description: Any description text for the attachment. May be
                 shown in PDF viewers.
