@@ -10,11 +10,9 @@ work you're contemplating is already half-done in a development branch.
 
 ## Code style: Python
 
-We use PEP8, `black` for code formatting and `isort` for import sorting. The
-settings for these programs are in {file}`pyproject.toml` and {file}`setup.cfg`. Pull
-requests should follow the style guide. One difference we use from "black" style
-is that strings shown to the user are always in double quotes (`"`) and strings
-for internal uses are in single quotes (`'`).
+We use `ruff` to format code and imports. The settings for this program are in
+{file}`pyproject.toml` and {file}`setup.cfg`. Pull requests should follow `ruff` code
+style.
 
 ## Code style: C++
 
@@ -32,11 +30,18 @@ for a reference to the Python `Decimal` class even though it is a C++ object.
 
 We don't like the traditional C++ .cpp/.h separation that results in a lot of
 repetition. Headers that are included by only one .cpp can contain a complete class,
-and get the `-inl.h` suffix, unless multiple inclusion is required.
+and get the `-inl.h` suffix, unless multiple inclusion is required. Where possible,
+combined the C++ interface and implementation in a single .cpp or `-inl.h` file.
+For classes that actually provide an interface used by multiple translation units,
+a full header is necessary.
 
 Use RAII. Avoid naked pointers. Use the STL, use `std::string` instead of `char *`.
 Use `#pragma once` as a header guard rather than silly `#ifdef`; they have
 been around for 25 years.
+
+## Adding C++ code
+
+Where possible, we implement features in Python, unless qpdf provides them.
 
 ## Tests
 

@@ -26,7 +26,7 @@ with pikepdf.open('input.pdf') as pdf:
 pip install pikepdf
 ```
 
-For users who want to build from source, see [installation](https://pikepdf.readthedocs.io/en/latest/index.html).
+For users who want to build from source, see [installation](https://pikepdf.readthedocs.io/en/latest/source_build.html).
 
 pikepdf is [documented](https://pikepdf.readthedocs.io/en/latest/index.html) and actively maintained. Binary wheels are available for all common platforms, both x86-64 and ARM64/Apple Silicon. For information on the latest changes, see the [release notes](https://pikepdf.readthedocs.io/en/latest/releasenotes/index.html).
 
@@ -70,6 +70,11 @@ In Production
 * [PDF Arranger](https://github.com/jeromerobert/pdfarranger) is a small Python application that provides a graphical user interface to rotate, crop and rearrange PDFs.
 
 * [PDFStitcher](https://github.com/cfcurtis/sewingutils) is a utility for stitching PDF pages into a single document (i.e. N-up or page imposition).
+
+Contributing
+------------
+
+Contributions welcome. Please check our [contributing guidelines](https://pikepdf.readthedocs.io/en/latest/references/contributing.html) first.
 
 License
 -------

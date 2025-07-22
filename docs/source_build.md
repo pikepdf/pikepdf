@@ -50,7 +50,14 @@ To link to system libraries (the ones installed by your package manager, such
 
 ## {fa}`linux` {fa}`apple` GCC or Clang and linking to user libraries
 
-setuptools will normally attempt to link against your system libraries.
+pikepdf's setup.py will check the following locations, in the order given here, for
+qpdf's headers and libraries (both of which are required for a build):
+1. the paths specified by environment variables `QPDF_SOURCE_TREE` and
+   `QPDF_BUILD_LIBDIR`
+1. a folder named `qpdf` that is installed parallel to `pikepdf`, e.g. if pikepdf is
+   located in `$HOME/src/pikepdf`, then we check `$HOME/src/qpdf` for qpdf
+1. the system default's location for these resources
+
 If you wish to link pikepdf against a different version of the qpdf (say,
 because pikepdf requires a newer version than your operating system has),
 then you might do something like:
