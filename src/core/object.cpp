@@ -337,7 +337,7 @@ void init_object(py::module_ &m)
 #if _MSC_VER
 #    pragma warning(suppress : 4267)
 #endif
-    py::class_<QPDFObjectHandle>(m, "Object")
+    py::class_<QPDFObjectHandle, py::smart_holder>(m, "Object")
         .def_property_readonly("_type_code", &QPDFObjectHandle::getTypeCode)
         .def_property_readonly("_type_name", &QPDFObjectHandle::getTypeName)
         .def(
@@ -868,7 +868,8 @@ void init_object(py::module_ &m)
         py::arg("op"));
     m.def("_Null", &QPDFObjectHandle::newNull, "Construct a PDF Null object");
 
-    py::class_<QPDFObjectHandle::ParserCallbacks, PyParserCallbacks>(m, "StreamParser")
+    py::class_<QPDFObjectHandle::ParserCallbacks, py::smart_holder, PyParserCallbacks>(
+        m, "StreamParser")
         .def(py::init<>(), "You must call ``super.__init__()`` in subclasses.")
         // LCOV_EXCL_START
         // coverage misses the virtual function call ::handleObject here.

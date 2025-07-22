@@ -11,7 +11,8 @@
 
 // Used to implement pikepdf.StreamParser, which can be subclassed to implement
 // custom parsing.
-class PyParserCallbacks : public QPDFObjectHandle::ParserCallbacks {
+class PyParserCallbacks : public QPDFObjectHandle::ParserCallbacks,
+                          py::trampoline_self_life_support {
 public:
     using QPDFObjectHandle::ParserCallbacks::ParserCallbacks;
     virtual ~PyParserCallbacks() = default;

@@ -12,7 +12,7 @@ void init_rectangle(py::module_ &m)
     using Point = std::pair<double, double>;
     using Rect  = QPDFObjectHandle::Rectangle;
 
-    py::class_<Rect>(m, "Rectangle")
+    py::class_<Rect, py::smart_holder>(m, "Rectangle")
         .def(py::init<double, double, double, double>())
         .def(py::init([](QPDFObjectHandle &h) {
             if (!h.isArray()) {

@@ -267,7 +267,8 @@ py::bytes unparse_content_stream(py::iterable contentstream)
 
 void init_parsers(py::module_ &m)
 {
-    py::class_<ContentStreamInstruction>(m, "ContentStreamInstruction")
+    py::class_<ContentStreamInstruction, py::smart_holder>(
+        m, "ContentStreamInstruction")
         .def(py::init<const ContentStreamInstruction &>())
         .def(py::init<ObjectList, QPDFObjectHandle>())
         .def(py::init([](py::iterable operands, QPDFObjectHandle operator_) {
@@ -306,7 +307,8 @@ void init_parsers(py::module_ &m)
             return ss.str();
         });
 
-    py::class_<ContentStreamInlineImage>(m, "ContentStreamInlineImage")
+    py::class_<ContentStreamInlineImage, py::smart_holder>(
+        m, "ContentStreamInlineImage")
         .def(py::init<const ContentStreamInlineImage &>())
         .def(py::init([](py::object iimage) {
             auto data         = iimage.attr("_data");

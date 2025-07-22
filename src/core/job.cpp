@@ -23,7 +23,7 @@ QPDFJob job_from_json_str(const std::string &json)
 
 void init_job(py::module_ &m)
 {
-    py::class_<QPDFJob>(m, "Job")
+    py::class_<QPDFJob, py::smart_holder>(m, "Job")
         .def_static(
             "json_out_schema",
             [](int schema = JSON::LATEST) { return QPDFJob::json_out_schema(schema); },

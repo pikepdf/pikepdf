@@ -73,7 +73,7 @@ void init_tokenfilter(py::module_ &m)
         .value("comment", QPDFTokenizer::token_type_e::tt_comment)
         .value("inline_image", QPDFTokenizer::token_type_e::tt_inline_image);
 
-    py::class_<QPDFTokenizer::Token>(m, "Token")
+    py::class_<QPDFTokenizer::Token, py::smart_holder>(m, "Token")
         .def(py::init<QPDFTokenizer::token_type_e, py::bytes>())
         .def_property_readonly("type_", &QPDFTokenizer::Token::getType)
         .def_property_readonly("value", &QPDFTokenizer::Token::getValue)
