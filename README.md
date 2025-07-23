@@ -26,7 +26,7 @@ with pikepdf.open('input.pdf') as pdf:
 pip install pikepdf
 ```
 
-For users who want to build from source, see [installation](https://pikepdf.readthedocs.io/en/latest/index.html).
+For users who want to build from source, see [installation](https://pikepdf.readthedocs.io/en/latest/source_build.html).
 
 pikepdf is [documented](https://pikepdf.readthedocs.io/en/latest/index.html) and actively maintained. Binary wheels are available for all common platforms, both x86-64 and ARM64/Apple Silicon. For information on the latest changes, see the [release notes](https://pikepdf.readthedocs.io/en/latest/releasenotes/index.html).
 
