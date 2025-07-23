@@ -71,6 +71,13 @@ In Production
 
 * [PDFStitcher](https://github.com/cfcurtis/sewingutils) is a utility for stitching PDF pages into a single document (i.e. N-up or page imposition).
 
+Contributing Guidelines
+-----------------------
+
+Contributions are welcome!
+
+For details, please consult the [Contributing Guidelines](https://pikepdf.readthedocs.io/en/latest/references/contributing.html).
+
 License
 -------
 
