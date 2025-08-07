@@ -1,8 +1,7 @@
 <!-- SPDX-FileCopyrightText: 2022 James R. Barlow -->
 <!-- SPDX-License-Identifier: MPL-2.0 -->
 
-pikepdf
-=======
+# pikepdf
 
 **pikepdf** is a Python library for reading and writing PDF files.
 
@@ -32,8 +31,7 @@ pikepdf is [documented](https://pikepdf.readthedocs.io/en/latest/index.html) and
 
 Commercial support is available.
 
-Features
---------
+## Features
 
 This library is similar to pypdf (formerly PyPDF2) - it provides low level access to PDF features and allows editing and content transformation of existing PDFs. Some knowledge of the PDF specification may be helpful. It does not have the capability to render a PDF to image.
 
@@ -55,15 +53,13 @@ This library is similar to pypdf (formerly PyPDF2) - it provides low level acces
 
 [codecovpypdf]: https://codecov.io/gh/py-pdf/pypdf/branch/main/graph/badge.svg?token=id42cGNZ5Z
 
-Testimonials
-------------
+## Testimonials
 
 > I decided to try writing a quick Python program with pikepdf to automate [something] and it "just worked". –Jay Berkenbilt, creator of qpdf
 
 > "Thanks for creating a great pdf library, I tested out several and this is the one that was best able to work with whatever I threw at it." –@cfcurtis
 
-In Production
--------------
+## In Production
 
 * [OCRmyPDF](https://github.com/ocrmypdf/OCRmyPDF) uses pikepdf to graft OCR text layers onto existing PDFs, to examine the contents of input PDFs, and to optimize PDFs.
 
@@ -71,13 +67,11 @@ In Production
 
 * [PDFStitcher](https://github.com/cfcurtis/sewingutils) is a utility for stitching PDF pages into a single document (i.e. N-up or page imposition).
 
-Contributing
-------------
+## Contributing
 
-Contributions welcome. Please check our [contributing guidelines](https://pikepdf.readthedocs.io/en/latest/references/contributing.html) first.
+Contributions are welcome! If you'd like to make a contribution, see the [Contributing Guidelines](https://pikepdf.readthedocs.io/en/latest/references/contributing.html)
 
-License
--------
+## License
 
 pikepdf is licensed under the [Mozilla Public License 2.0](https://www.mozilla.org/en-US/MPL/2.0/) license (MPL-2.0) that can be found in the LICENSE file. By using, distributing, or contributing to this project, you agree to the terms and conditions of this license. MPL 2.0 permits you to combine the software with other work, including commercial and closed source software, but asks you to publish source-level modifications you make to pikepdf itself.
 
