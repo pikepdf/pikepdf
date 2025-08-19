@@ -809,6 +809,16 @@ void init_object(py::module_ &m)
                 return og.getInstructions();
             })
         .def(
+            "_get_unique_resource_name",
+            [](QPDFObjectHandle &h, std::string const &prefix, int min_suffix) {
+                auto name = h.getUniqueResourceName(prefix, min_suffix);
+                return std::pair(name, min_suffix);
+            },
+            py::arg("prefix")     = "",
+            py::arg("min_suffix") = 0)
+        .def("_get_resource_names",
+            [](QPDFObjectHandle &h) { return h.getResourceNames(); })
+        .def(
             "unparse",
             [](QPDFObjectHandle &h, bool resolved) -> py::bytes {
                 if (resolved)

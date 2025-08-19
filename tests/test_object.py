@@ -788,3 +788,17 @@ class TestString:
     def test_string_bool(self):
         assert bool(String('')) is False
         assert bool(String('abc')) is True
+
+
+def test_get_resource_names(sandwich):
+    assert '/R12' in sandwich.pages[0].Resources._get_resource_names()
+
+
+def test_get_unique_resource_names(sandwich):
+    name, suffix = sandwich.pages[0].Resources._get_unique_resource_name("/R", 12)
+    assert name == "/R13"
+    assert suffix == 13
+    sandwich.pages[0].Resources.XObject['/R13'] = Dictionary()
+    name, suffix = sandwich.pages[0].Resources._get_unique_resource_name("/R", 12)
+    assert name == "/R14"
+    assert suffix == 14
