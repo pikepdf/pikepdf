@@ -243,4 +243,4 @@ convention = "google"
 quote-style = "preserve"
 
 [dependency-groups]
-dev = []
+dev = ["ruff>=0.12.9"]
