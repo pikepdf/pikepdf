@@ -76,7 +76,7 @@ test-extras = "test"
 skip = [
   "*-win32", # no 32-bit builds/not supported by Pillow anymore
 ]
-build-frontend = "build"
+build-frontend = "build[uv]"
 
 [tool.cibuildwheel.environment]
 QPDF_MIN_VERSION = "11.9.0"
