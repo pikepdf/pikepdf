@@ -156,9 +156,11 @@ jobs:
         LIBPATH="$LIBPATH;d:\\qpdf\\lib"
     strategy:
       matrix:
-        os: [windows-2022, windows-11-arm]
-        platform: [windows]
-
+        include:
+          - os: windows-2022
+            platform: win_amd64
+          - os: windows-11-arm
+            platform: win_arm64
     steps:
       - uses: actions/checkout@v4
 
