@@ -14,7 +14,7 @@ $qpdfurl = "https://github.com/qpdf/qpdf/releases/download/v$version/qpdf-$versi
 echo "Download $qpdfurl"
 
 Invoke-WebRequest -Uri $qpdfurl -OutFile "qpdf-release.zip"
-7z x "qpdf-release.zip" -o.\
+7z x "qpdf-release.zip" -o.
 $qpdfdir = Get-ChildItem .\qpdf-*
 Move-Item -Path $qpdfdir -Destination .\qpdf
 cp .\qpdf\bin\*.dll src\pikepdf
