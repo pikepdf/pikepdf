@@ -165,7 +165,7 @@ jobs:
       - uses: actions/setup-python@v5
         name: Install Python
         with:
-          python-version: "3.9"
+          python-version: "3.11"  # Minimum for arm
 
       - name: Install tomli and read environment from pyproject.toml
         run: |
