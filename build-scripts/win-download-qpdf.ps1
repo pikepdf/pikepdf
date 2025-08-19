@@ -13,12 +13,10 @@ if ($platform -eq "win_amd64" -or $platform -eq "win_arm64") {
 $qpdfurl = "https://github.com/qpdf/qpdf/releases/download/v$version/qpdf-$version-$msvc.zip"
 echo "Download $qpdfurl"
 
-Set-PSDebug -Trace 2
-
 Invoke-WebRequest -Uri $qpdfurl -OutFile "qpdf-release.zip"
 7z x "qpdf-release.zip" -ounzipped
-tree
 $qpdfdir = Get-ChildItem .\unzipped\qpdf-*
+# We unzip to something like unzipped\qpdf-x.y.z, so rename/move the whole folder to
+# just .\qpdf
 Move-Item -Path $qpdfdir -Destination .\qpdf
-tree qpdf
 cp .\qpdf\bin\*.dll src\pikepdf
