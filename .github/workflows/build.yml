@@ -13,8 +13,6 @@ jobs:
   wheels_linux:
     name: ${{ matrix.platform }}
     runs-on: ubuntu-24.04
-    env:
-      CIBW_BUILD: "*-${{ matrix.platform }}"
     strategy:
       matrix:
         platform: [manylinux_x86_64, musllinux_x86_64]
@@ -23,6 +21,8 @@ jobs:
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.1.4
+        env:
+          CIBW_BUILD: "*-${{ matrix.platform }}"
 
       - name: Upload built wheels
         uses: actions/upload-artifact@v4
@@ -51,9 +51,6 @@ jobs:
     name: test freethreading (${{ matrix.platform }})
     runs-on: ubuntu-24.04
     continue-on-error: true
-    env:
-      CIBW_BUILD: "cp313*-${{ matrix.platform }}"
-      CIBW_ENABLE: "cpython-freethreading"
     strategy:
       matrix:
         platform: [manylinux_x86_64]
@@ -62,12 +59,13 @@ jobs:
 
       - name: Build and test wheels (without upload)
         uses: pypa/cibuildwheel@v3.1.4
+        env:
+          CIBW_BUILD: "cp313*-${{ matrix.platform }}"
+          CIBW_ENABLE: "cpython-freethreading"
 
   wheels_linux_arm:
     name: ${{ matrix.platform }}
     runs-on: ubuntu-24.04-arm
-    env:
-      CIBW_BUILD: "*-${{ matrix.platform }}"
     strategy:
       matrix:
         platform: [manylinux_aarch64, musllinux_aarch64]
@@ -76,6 +74,8 @@ jobs:
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.1.4
+        env:
+          CIBW_BUILD: "*-${{ matrix.platform }}"
 
       - name: Upload built wheels
         uses: actions/upload-artifact@v4
@@ -87,8 +87,6 @@ jobs:
   wheels_macos:
     name: ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    env:
-      CIBW_BUILD: "*"
     strategy:
       matrix:
         # macos-14 is Apple silicon and we configure it to build only arm64 wheels.
@@ -107,6 +105,8 @@ jobs:
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.1.4
+        env:
+          CIBW_BUILD: "*"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -148,19 +148,15 @@ jobs:
   wheels_windows:
     name: ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
-    env:
-      CIBW_BUILD: "*-${{ matrix.platform }}"
-      CIBW_ENVIRONMENT: >-
-        INCLUDE="$INCLUDE;d:\\qpdf\\include"
-        LIB="$LIB;d:\\qpdf\\lib"
-        LIBPATH="$LIBPATH;d:\\qpdf\\lib"
     strategy:
       matrix:
         include:
           - os: windows-2022
             platform: win_amd64
+            builder_drive: "D:"
           - os: windows-11-arm
             platform: win_arm64
+            builder_drive: "C:"  # Why, Microsoft, why?
     steps:
       - uses: actions/checkout@v4
 
@@ -181,6 +177,12 @@ jobs:
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.1.4
+        env:
+          CIBW_BUILD: "*-${{ matrix.platform }}"
+          CIBW_ENVIRONMENT: >-
+            INCLUDE="$INCLUDE;${{ matrix.builder_drive }}\\qpdf\\include"
+            LIB="$LIB;${{ matrix.builder_drive }}\\qpdf\\lib"
+            LIBPATH="$LIBPATH;${{ matrix.builder_drive }}\\qpdf\\lib"
 
       - uses: actions/upload-artifact@v4
         with:
