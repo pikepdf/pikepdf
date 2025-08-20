@@ -3,6 +3,7 @@
 
 $version = $args[0]
 $platform = $args[1]
+$drive = $args[2]
 
 if ($platform -eq "win_amd64" -or $platform -eq "win_arm64") {
     $msvc = "msvc64"
@@ -17,6 +18,6 @@ Invoke-WebRequest -Uri $qpdfurl -OutFile "qpdf-release.zip"
 7z x "qpdf-release.zip" -ounzipped
 $qpdfdir = Get-ChildItem .\unzipped\qpdf-*
 # We unzip to something like unzipped\qpdf-x.y.z, so rename/move the whole folder to
-# just .\qpdf
-Move-Item -Path $qpdfdir -Destination .\qpdf
-cp .\qpdf\bin\*.dll src\pikepdf
+# $drive\qpdf
+Move-Item -Path $qpdfdir -Destination $drive\qpdf
+cp $drive\qpdf\bin\*.dll src\pikepdf

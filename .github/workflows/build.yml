@@ -173,7 +173,7 @@ jobs:
 
       - name: Download QPDF
         run: |
-          build-scripts/win-download-qpdf.ps1 $env:QPDF_VERSION ${{ matrix.platform }}
+          build-scripts/win-download-qpdf.ps1 $env:QPDF_VERSION ${{ matrix.platform }} ${{ matrix.builder_drive }}
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.1.4
