@@ -74,9 +74,10 @@ test-extras = "test"
 #   build.yml sets CIBW_BUILD to select what can be built
 #   this file sets skip to deselect what cannot be built
 skip = [
-  "*-win32", # no 32-bit builds/not supported by Pillow anymore
+  "*-win32",  # no 32-bit builds/not supported by Pillow anymore,
+  "cp3??t-*", # no freethreading builds
 ]
-build-frontend = "build"
+build-frontend = "build[uv]"
 
 [tool.cibuildwheel.environment]
 QPDF_MIN_VERSION = "11.9.0"

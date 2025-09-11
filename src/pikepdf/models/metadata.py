@@ -872,7 +872,10 @@ class PdfMetadata(MutableMapping):
         Returns:
             The conformance level of the PDF/A, or an empty string if the
             PDF does not claim PDF/A conformance. Possible valid values
-            are: 1A, 1B, 2A, 2B, 2U, 3A, 3B, 3U.
+            are: 1A, 1B, 2A, 2B, 2U, 3A, 3B, 3U. Note that ISO standard
+            typically refers to PDF/A-1b for example, using lower case;
+            this function returns the value as it appears in the PDF, which
+            is uppercase.
         """
         # do same as @ensure_loaded - mypy can't handle decorated property
         if not self._xmp:
