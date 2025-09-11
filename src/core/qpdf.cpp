@@ -612,7 +612,7 @@ void init_qpdf(py::module_ &m)
                     if (e.matches(cls_dependency_error)) {
                         python_warning(
                             "pikepdf is missing some specialized decoders "
-                            "(probably JBIG2) so not all stream contents can be "
+                            "(probably jbig2dec) so not all stream contents can be "
                             "tested.");
                         w.setDecodeLevel(qpdf_dl_generalized);
                         w.write();
