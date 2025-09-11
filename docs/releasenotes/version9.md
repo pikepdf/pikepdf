@@ -1,3 +1,14 @@
+# v9.11.0
+
+- Upgraded to cibuildwheel 3.1.4.
+- We now build wheels for the CPython 3.14 prerelease (but without freethreading,
+  since lxml does not release wheels with freethreading).
+- Now using uv for building.
+- Fixed broken link in documentation.
+- Migrated all remaining uses of "dumb" pointer holders to ``py::smart_holder``.
+- Updated contributing guidelines and build steps.
+- Fixed type signature of AttachedFileSpec to clarify its usage.
+
 # v9.10.2
 
 - Fixed missing default /Decode for image masks. {issue}`664`
