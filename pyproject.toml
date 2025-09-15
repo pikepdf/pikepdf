@@ -10,7 +10,7 @@ name = "pikepdf"
 version = "9.11.0"
 description = "Read and write PDFs with Python, powered by qpdf"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 keywords = ["PDF"]
 authors = [{ name = "James R. Barlow", email = "james@purplerock.ca" }]
 license = "MPL-2.0"
@@ -197,7 +197,7 @@ directory = "coverage/pycov"
 
 [tool.ruff]
 src = ["src/pikepdf"]
-target-version = "py39"
+target-version = "py310"
 
 [tool.ruff.lint]
 select = [
