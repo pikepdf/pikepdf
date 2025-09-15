@@ -676,7 +676,7 @@ class SignatureField(_FieldWrapper):
     def _expand_rect(self, rect: Rectangle, expand_by: int | float | Decimal | None):
         if expand_by is None:
             return rect
-        if isinstance(expand_by, (int, float, Decimal)):
+        if isinstance(expand_by, int | float | Decimal):
             expand_by = (expand_by, expand_by, expand_by, expand_by)
         if len(expand_by) == 2:
             expand_by = (*expand_by, *expand_by)

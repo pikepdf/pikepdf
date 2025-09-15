@@ -10,6 +10,7 @@ from __future__ import annotations
 import datetime
 from abc import abstractmethod
 from collections.abc import (
+    Callable,
     Collection,
     Iterable,
     Iterator,
@@ -25,7 +26,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     BinaryIO,
-    Callable,
     ClassVar,
     Literal,
     TypeVar,

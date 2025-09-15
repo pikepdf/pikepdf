@@ -7,7 +7,8 @@ from __future__ import annotations
 
 import inspect
 import platform
-from typing import Any, Callable, Protocol, TypeVar
+from collections.abc import Callable
+from typing import Any, Protocol, TypeVar
 
 
 class AugmentedCallable(Protocol):

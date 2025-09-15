@@ -720,7 +720,7 @@ def test_object_not_iterable():
     'obj', [Array([1]), Dictionary({'/A': 'b'}), Operator('q'), String('s')]
 )
 def test_object_isinstance(obj):
-    assert isinstance(obj, (Array, Dictionary, Operator, String, Stream))
+    assert isinstance(obj, Array | Dictionary | Operator | String | Stream)
     assert isinstance(obj, type(obj))
     assert isinstance(obj, Object)
 

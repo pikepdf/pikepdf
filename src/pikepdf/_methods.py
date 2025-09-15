@@ -15,14 +15,21 @@ from __future__ import annotations
 import datetime
 import mimetypes
 import shutil
-from collections.abc import ItemsView, Iterator, KeysView, MutableMapping, ValuesView
+from collections.abc import (
+    Callable,
+    ItemsView,
+    Iterator,
+    KeysView,
+    MutableMapping,
+    ValuesView,
+)
 from contextlib import ExitStack, suppress
 from decimal import Decimal
 from io import BytesIO, RawIOBase
 from pathlib import Path
 from subprocess import run
 from tempfile import TemporaryDirectory
-from typing import BinaryIO, Callable, Literal, TypeVar
+from typing import BinaryIO, Literal, TypeVar
 from warnings import warn
 
 from deprecated import deprecated
@@ -96,7 +103,7 @@ def _mudraw(buffer: bytes | memoryview, fmt: Literal["svg"]) -> bytes:
 @augments(Object)
 class Extend_Object:
     def _ipython_key_completions_(self):
-        if isinstance(self, (Dictionary, Stream)):
+        if isinstance(self, Dictionary | Stream):
             return self.keys()
         return None
 
@@ -331,7 +338,7 @@ class Extend_Pdf:
                 stream = filename_or_stream
                 check_stream_is_usable(filename_or_stream)
             else:
-                if not isinstance(filename_or_stream, (str, bytes, Path)):
+                if not isinstance(filename_or_stream, str | bytes | Path):
                     raise TypeError("expected str, bytes or os.PathLike object")
                 filename = Path(filename_or_stream)
                 if (
@@ -382,7 +389,7 @@ class Extend_Pdf:
                 "expects a filename or opened file-like object. Instead, please use "
                 "Pdf.open(BytesIO(data))."
             )
-        if isinstance(filename_or_stream, (int, float)):
+        if isinstance(filename_or_stream, int | float):
             # Attempted to open with integer file descriptor?
             # TODO improve error
             raise TypeError("expected str, bytes or os.PathLike object")

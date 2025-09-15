@@ -697,7 +697,7 @@ class ContentStreamBuilder:
         """Set dashes."""
         if array is None:
             array = []
-        if isinstance(array, (int, float)):
+        if isinstance(array, int | float):
             array = (array, phase)
             phase = 0
         inst = ContentStreamInstruction([array, phase], Operator("d"))
@@ -777,7 +777,7 @@ class _CanvasAccessor:
     def draw_image(self, image: Path | str | Image.Image, x, y, width, height):
         """Draw image at (x,y) with width w and height h."""
         with self.save_state(cm=Matrix(width, 0, 0, height, x, y)):
-            if isinstance(image, (Path, str)):
+            if isinstance(image, Path | str):
                 image = Image.open(image)
             image.load()
             if image.mode == "P":

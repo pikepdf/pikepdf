@@ -26,11 +26,11 @@ if TYPE_CHECKING:
 _OldContentStreamOperands = Collection[Union[Object, 'PdfInlineImage']]
 _OldContentStreamInstructions = tuple[_OldContentStreamOperands, Operator]
 
-ContentStreamInstructions = Union[ContentStreamInstruction, ContentStreamInlineImage]
+ContentStreamInstructions = ContentStreamInstruction | ContentStreamInlineImage
 
-UnparseableContentStreamInstructions = Union[
-    ContentStreamInstructions, _OldContentStreamInstructions
-]
+UnparseableContentStreamInstructions = (
+    ContentStreamInstructions | _OldContentStreamInstructions
+)
 
 
 class PdfParsingError(Exception):
@@ -85,7 +85,7 @@ def parse_content_stream(
         of (operand, operator) tuples. The returned items are duck-type compatible
         with the previous returned items.
     """
-    if not isinstance(page_or_stream, (Object, Page)):
+    if not isinstance(page_or_stream, Object | Page):
         raise TypeError("stream must be a pikepdf.Object or pikepdf.Page")
 
     if (

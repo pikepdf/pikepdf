@@ -4,7 +4,8 @@
 from __future__ import annotations
 
 import struct
-from typing import Any, Callable, NamedTuple, Union
+from collections.abc import Callable
+from typing import Any, NamedTuple
 
 from PIL import Image
 from PIL.TiffTags import TAGS_V2 as TIFF_TAGS
@@ -14,8 +15,8 @@ class ImageDecompressionError(Exception):
     """Image decompression error."""
 
 
-BytesLike = Union[bytes, memoryview]
-MutableBytesLike = Union[bytearray, memoryview]
+BytesLike = bytes | memoryview
+MutableBytesLike = bytearray | memoryview
 
 
 def _next_multiple(n: int, k: int) -> int:

@@ -6,13 +6,14 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from copy import copy
 from decimal import Decimal
 from io import BytesIO
 from itertools import zip_longest
 from pathlib import Path
 from shutil import copyfileobj
-from typing import Any, BinaryIO, Callable, NamedTuple, TypeVar, Union, cast
+from typing import Any, BinaryIO, NamedTuple, TypeVar, cast
 
 from PIL import Image
 from PIL.ImageCms import ImageCmsProfile
@@ -36,7 +37,7 @@ T = TypeVar('T')
 RGBDecodeArray = tuple[float, float, float, float, float, float]
 GrayDecodeArray = tuple[float, float]
 CMYKDecodeArray = tuple[float, float, float, float, float, float, float, float]
-DecodeArray = Union[RGBDecodeArray, GrayDecodeArray, CMYKDecodeArray]
+DecodeArray = RGBDecodeArray | GrayDecodeArray | CMYKDecodeArray
 
 
 class UnsupportedImageTypeError(Exception):
@@ -59,11 +60,11 @@ def _array_str(value: Object | str | list):
     """Simplify pikepdf objects to array of str. Keep streams, dictionaries intact."""
 
     def _convert(item):
-        if isinstance(item, (list, Array)):
+        if isinstance(item, list | Array):
             return [_convert(subitem) for subitem in item]
-        if isinstance(item, (Stream, Dictionary, bytes, int)):
+        if isinstance(item, Stream | Dictionary | bytes | int):
             return item
-        if isinstance(item, (Name, str)):
+        if isinstance(item, Name | str):
             return str(item)
         if isinstance(item, (String)):
             return bytes(item)
@@ -964,7 +965,7 @@ class PdfInlineImage(PdfImageBase):
             return obj.unparse(resolved=True)
         if isinstance(obj, bool):
             return b'true' if obj else b'false'  # Lower case for PDF spec
-        if isinstance(obj, (int, Decimal, float)):
+        if isinstance(obj, int | Decimal | float):
             return str(obj).encode('ascii')
         raise NotImplementedError(repr(obj))
 

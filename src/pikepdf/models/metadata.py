@@ -8,11 +8,11 @@ from __future__ import annotations
 import logging
 import re
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Iterator, MutableMapping
+from collections.abc import Callable, Iterable, Iterator, MutableMapping
 from datetime import datetime, timezone
 from functools import wraps
 from io import BytesIO
-from typing import TYPE_CHECKING, Any, Callable, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple
 from warnings import warn
 
 from lxml import etree
@@ -796,7 +796,7 @@ class PdfMetadata(MutableMapping):
                     raise TypeError(f"Setting {key} to {val} with type {type(val)}")
             else:
                 node.set(attrib, _clean(val))
-        elif isinstance(val, (list, set)):
+        elif isinstance(val, list | set):
             for child in node.findall('*'):
                 node.remove(child)
             self._setitem_add_array(node, val)
@@ -814,7 +814,7 @@ class PdfMetadata(MutableMapping):
         rdf = self._get_rdf_root()
         if str(self._qname(key)) in LANG_ALTS:
             val = AltList([_clean(val)])
-        if isinstance(val, (list, set)):
+        if isinstance(val, list | set):
             rdfdesc = etree.SubElement(
                 rdf,
                 str(QName(XMP_NS_RDF, 'Description')),

@@ -185,12 +185,12 @@ class Array(Object, metaclass=_ObjectMeta):
             a: An iterable of objects. All objects must be either
                 `pikepdf.Object` or convertible to `pikepdf.Object`.
         """
-        if isinstance(a, (str, bytes)):
+        if isinstance(a, str | bytes):
             raise TypeError('Strings cannot be converted to arrays of chars')
 
         if a is None:
             a = []
-        elif isinstance(a, (Rectangle, Matrix)):
+        elif isinstance(a, Rectangle | Matrix):
             return a.as_array()
         elif isinstance(a, Array):
             return cast(Array, a.__copy__())

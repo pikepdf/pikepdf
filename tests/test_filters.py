@@ -120,7 +120,7 @@ def test_issue160_tokenfilter_refcounting(resources, outpdf):
         pages = pdf.pages
         num = 0
         for page in pages:
-            f = MyFilter(('%d' % num)[-1])
+            f = MyFilter((f'{num}')[-1])
             page.add_content_token_filter(f)
             num += 1
         pdf.save(outpdf)

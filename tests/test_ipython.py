@@ -7,9 +7,6 @@ Test IPython/Jupyter display hooks
 
 from __future__ import annotations
 
-import subprocess
-from io import BytesIO
-
 import pytest
 from conftest import fails_if_no_mutool
 

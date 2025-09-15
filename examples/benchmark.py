@@ -17,7 +17,7 @@ def main():
         for p in pdf.pages:
             p.Contents.read_bytes()
         for o in pdf.objects:
-            if isinstance(o, (pikepdf.Stream, pikepdf.Dictionary, pikepdf.Array)):
+            if isinstance(o, pikepdf.Stream | pikepdf.Dictionary | pikepdf.Array):
                 o.unparse()
         with NamedTemporaryFile(suffix=".pdf") as f:
             pdf.save(

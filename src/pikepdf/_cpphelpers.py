@@ -8,7 +8,8 @@ Not intended to be called from Python, and subject to change at any time.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 from warnings import warn
 
 from pikepdf.exceptions import PdfError

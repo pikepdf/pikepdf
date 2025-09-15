@@ -221,7 +221,7 @@ class OutlineItem:
         title = str(obj.Title)
         destination = obj.get(Name.Dest)
         if destination is not None and not isinstance(
-            destination, (Array, String, Name)
+            destination, Array | String | Name
         ):
             # 12.3.3: /Dest may be a name, byte string or array
             raise OutlineStructureError(
