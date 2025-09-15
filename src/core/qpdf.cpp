@@ -603,6 +603,8 @@ void init_qpdf(py::module_ &m)
                 Pl_Discard discard;
                 w.setOutputPipeline(&discard);
                 w.setDecodeLevel(qpdf_dl_all);
+                w.setCompressStreams(false);
+                w.setRecompressFlate(false);
                 try {
                     w.write();
                 } catch (py::error_already_set &e) {
