@@ -93,12 +93,9 @@ jobs:
     strategy:
       matrix:
         # macos-14 is Apple silicon and we configure it to build only arm64 wheels.
-        # macos-13 and lower are an Intel runners and we configure them to build
-        # only x86_64 wheels.
-        # We build on macos-13 because Homebrew still supports it.
         # See notes in build.rst.
         include:
-          - os: macos-13
+          - os: macos-15-intel
             os_arch: macos-x86_64
           - os: macos-14
             os_arch: macos-arm64
@@ -124,7 +121,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-13]
+        os: [macos-15]
         python: ["3.10"]
     steps:
       - uses: actions/checkout@v4
@@ -137,7 +134,7 @@ jobs:
       - name: Download x86_64 wheels
         uses: actions/download-artifact@v4
         with:
-          name: wheels-macos-x86_64  # download wheels for x86_64
+          name: wheels-macos-x86_64 # download wheels for x86_64
           path: wheelhouse
 
       - name: Output downloads
@@ -146,7 +143,7 @@ jobs:
 
       - name: Install wheels
         run: |
-          WHEEL=wheelhouse/pikepdf*cp39*macos*x86_64.whl
+          WHEEL=wheelhouse/pikepdf*cp310*macos*x86_64.whl
           python -m pip install $WHEEL
           python -c "import pikepdf; print(pikepdf.__version__)"
 
