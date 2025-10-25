@@ -1,4 +1,6 @@
-# v1.19.4
+# v1
+
+## v1.19.4
 
 - Modify project settings to declare no support for Python 3.9 in pikepdf 1.x.
   pybind11 upstream has indicated there are stability problems when pybind11
@@ -6,32 +8,32 @@
   Python 3.9 as unsupported by pikepdf 1.x. Python 3.9 users should switch to
   pikepdf 2.x.
 
-# v1.19.3
+## v1.19.3
 
 - Fixed an exception that occurred when building the documentation, introduced in
   the previous release.
 
-# v1.19.2
+## v1.19.2
 
 - Fixed an exception with setting metadata objects to unsupported RDF types.
   Instead we make a best effort to convert to an appropriate type.
 - Prevent creating certain illegal dictionary key names.
 - Document procedure to remove an image.
 
-# v1.19.1
+## v1.19.1
 
 - Fixed an issue with `unparse_content_stream`: we now assume the second item
   of each step in the content stream is an `Operator`.
 - Fixed an issue with unparsing inline images.
 
-# v1.19.0
+## v1.19.0
 
 - Learned how to export CCITT images from PDFs that have ICC profiles attached.
 - Cherry-picked a workaround to a possible use-after-free caused by pybind11
   (pybind11 PR 2223).
 - Improved test coverage of code that handles inline images.
 
-# v1.18.0
+## v1.18.0
 
 - You can now use `pikepdf.open(...allow_overwriting_input=True)` to allow
   overwriting the input file, which was previously forbidden because it can corrupt
@@ -40,22 +42,22 @@
   default, to avoid a performance hit.
 - Prevent setup.py from creating junk temporary files (finally!)
 
-# v1.17.3
+## v1.17.3
 
 - Fixed crash when `pikepdf.Pdf` objects are used inside generators ({issue}`114`) and
   not freed or closed before the generator exits.
 
-# v1.17.2
+## v1.17.2
 
 - Fixed issue, "seek of closed file" where JBIG2 image data could not be accessed
   (only metadata could be) when a JBIG2 was extracted from a PDF.
 
-# v1.17.1
+## v1.17.1
 
 - Fixed building against the oldest supported version of QPDF (8.4.2), and
   configure CI to test against the oldest version. ({issue}`109`)
 
-# v1.17.0
+## v1.17.0
 
 - Fixed a failure to extract PDF images, where the image had both a palette
   and colorspace set to an ICC profile. The iamge is now extracted with the
@@ -65,7 +67,7 @@
   file access performance considerably, but may make application exception
   handling more difficult.
 
-# v1.16.1
+## v1.16.1
 
 - Fixed an issue with JBIG2 extraction, where the version number of the jbig2dec
   software may be written to standard output as a side effect. This could
@@ -75,7 +77,7 @@
 - Fixed setup.py to better support Python 3.8 and 3.9.
 - Documentation updates.
 
-# v1.16.0
+## v1.16.0
 
 - Added support for extracting JBIG2 images with the image API. JBIG2 images are
   converted to `PIL.Image`. Requires a JBIG2 decoder such as jbig2dec.
@@ -84,13 +86,13 @@
   3.5 because they depend on Python 3.6.
 - Python 3.9beta is supported and is known to work on Fedora 33.
 
-# v1.15.1
+## v1.15.1
 
 - Fixed a regression - `Pdf.save(filename)` may hold file handles open after
   the file is fully written.
 - Documentation updates.
 
-# v1.15.0
+## v1.15.0
 
 - Fixed an issue where `Decimal` objects of precision exceeding the
   PDF specification could be written to output files, causing some PDF viewers,
@@ -102,7 +104,7 @@
 - `pikepdf.Array` objects now implement `.append()` and `.extend()` with
   familiar Python `list` semantics, making them easier to edit.
 
-# v1.14.0
+## v1.14.0
 
 - Allowed use of `.keys()`, `.items()` on `pikepdf.Stream` objects.
 - We now warn on attempts to modify `pikepdf.Stream.Length`, which pikepdf will
@@ -110,7 +112,7 @@
   change it will become an error.
 - Clarified documentation in some areas about behavior of `pikepdf.Stream`.
 
-# v1.13.0
+## v1.13.0
 
 - Added support for editing PDF Outlines (also known as bookmarks or the table of
   contents). Many thanks to Matthias Erll for this contribution.
@@ -120,7 +122,7 @@
 - Fixed test suite warnings related to pytest and hypothesis.
 - Fixed build on Cygwin. Thanks to @jhgarrison for report and testing.
 
-# v1.12.0
+## v1.12.0
 
 - Microsoft Visual C++ Runtime libraries are now included in the pikepdf Windows
   wheel, to improve ease of use on Windows.
@@ -128,18 +130,18 @@
   foreign PDF without first copying the object. Previously, this would raise
   an exception when the file was saved.
 
-# v1.11.2
+## v1.11.2
 
 - Fix "error caused by missing str function of Array" ({issue}`100,101`).
 - Lots of delinting and minor fixes.
 
-# v1.11.1
+## v1.11.1
 
 - We now avoid creating an empty XMP metadata entry when files are saved.
 - Updated documentation to describe how to delete the document information
   dictionary.
 
-# v1.11.0
+## v1.11.0
 
 - Prevent creation of dictionaries with invalid names (not beginning with `/`).
 - Allow pikepdf's build to specify a qpdf source tree, allowing one to compile
@@ -154,56 +156,56 @@
 - Fixed a test that randomly failed due to a "deadline error".
 - Removed a possibly nonfree test file.
 
-# v1.10.4
+## v1.10.4
 
 - Rebuild Python wheels with newer version of libqpdf. Fixes problems with
   opening certain password-protected files ({issue}`87`).
 
-# v1.10.3
+## v1.10.3
 
 - Fixed `isinstance(obj, pikepdf.Operator)` not working. ({issue}`86`)
 - Documentation updates.
 
-# v1.10.2
+## v1.10.2
 
 - Fixed an issue where pages added from a foreign PDF were added as references
   rather than copies. ({issue}`80`)
 - Documentation updates.
 
-# v1.10.1
+## v1.10.1
 
 - Fixed build reproducibility (thanks to @lamby)
 - Fixed a broken link in documentation (thanks to @maxwell-k)
 
-# v1.10.0
+## v1.10.0
 
 - Further attempts to recover malformed XMP packets.
 - Added missing functionality to extract 1-bit palette images from PDFs.
 
-# v1.9.0
+## v1.9.0
 
 - Improved a few cases of malformed XMP recovery.
 - Added an `unparse_content_stream` API to assist with converting the previously
   parsed content streams back to binary.
 
-# v1.8.3
+## v1.8.3
 
 - If the XMP metadata packet is not well-formed and we are confident that it
   is essentially empty apart from XML fluff, we fix the problem instead of
   raising an exception.
 
-# v1.8.2
+## v1.8.2
 
 - Fixed an issue where QPDF 8.4.2 would report different errors from QPDF 9.0.0,
   causing a test to fail. ({issue}`71`)
 
-# v1.8.1
+## v1.8.1
 
 - Fixed an issue where files opened by name may not be closed correctly. Regression
   from v1.8.0.
 - Fixed test for readable/seekable streams evaluated to always true.
 
-# v1.8.0
+## v1.8.0
 
 - Added API/property to iterate all objects in a PDF: `pikepdf.Pdf.objects`.
 - Added `pikepdf.Pdf.check()`, to check for problems in the PDF and return a
@@ -214,13 +216,13 @@
   Python wheels.
 - Minor internal fixes and improvements to the continuous integration scripts.
 
-# v1.7.1
+## v1.7.1
 
 - This release was incorrectly marked as a patch-level release when it actually
   introduced one minor new feature. It includes the API change to support
   `pikepdf.Pdf.objects`.
 
-# v1.7.0
+## v1.7.0
 
 - Shallow object copy with `copy.copy(pikepdf.Object)` is now supported. (Deep
   copy is not yet supported.)
@@ -229,14 +231,14 @@
 - Build and deploy infrastructure migrated to Azure Pipelines.
 - All wheels are now available for Python 3.5 through 3.8.
 
-# v1.6.5
+## v1.6.5
 
 - Fixed build settings to support Python 3.8 on macOS and Linux. Windows support
   for Python 3.8 is not currently tested since continuous integration providers
   have not updated to Python 3.8 yet.
 - pybind11 2.4.3 is now required, to support Python 3.8.
 
-# v1.6.4
+## v1.6.4
 
 - When images were encoded with CCITTFaxDecode, type G4, with the /EncodedByteAlign
   set to true (not default), the image extracted by pikepdf would be a corrupted
@@ -246,7 +248,7 @@
   with these parameters, as there is not sufficient documentation to determine
   how to extract them. This image format is relatively rare.
 
-# v1.6.3
+## v1.6.3
 
 - Fixed compatibility with libqpdf 9.0.0.
 
@@ -266,19 +268,19 @@
 
 - libqpdf 8.4.2 and 9.0.0 are both supported.
 
-# v1.6.2
+## v1.6.2
 
 - Fixed another build problem on Alpine Linux - musl-libc defines `struct FILE`
   as an incomplete type, which breaks pybind11 metaprogramming that attempts
   to reason about the type.
 - Documentation improved to mention FreeBSD port.
 
-# v1.6.1
+## v1.6.1
 
 - Dropped our one usage of QPDF's C API so that we use only C++.
 - Documentation improvements.
 
-# v1.6.0
+## v1.6.0
 
 - Added bindings for QPDF's page object helpers and token filters. These
   enable: filtering content streams, capturing pages as Form XObjects, more
@@ -292,7 +294,7 @@
 - More tests and more coverage.
 - libqpdf 8.4.2 is required.
 
-# v1.5.0
+## v1.5.0
 
 - Improved interpretation of images within PDFs that use an ICC colorspace.
   Where possible we embed the ICC profile when extracting the image, and
@@ -308,7 +310,7 @@
   is `/FlateDecode`.
 - Add convenience function `Object.wrap_in_array()`.
 
-# v1.4.0
+## v1.4.0
 
 - Added support for saving encrypted PDFs. (Reading them has been supported
   for a long time.)
@@ -316,14 +318,14 @@
 - Added support converting strings to and from PDFDocEncoding, by
   registering a `"pdfdoc"` codec.
 
-# v1.3.1
+## v1.3.1
 
 - Updated pybind11 to v2.3.0, fixing a possible GIL deadlock when
   pikepdf objects were shared across threads. ({issue}`27`)
 - Fixed an issue where PDFs with valid XMP metadata but missing an
   element that is usually present would be rejected as malformed XMP.
 
-# v1.3.0
+## v1.3.0
 
 - Remove dependency on `defusedxml.lxml`, because this library is deprecated.
   In the absence of other options for XML hardening we have reverted to
@@ -343,7 +345,7 @@
 - Added `PageList.remove(p=1)`, so that it is possible to remove
   pages using counting numbers.
 
-# v1.2.0
+## v1.2.0
 
 - Implemented `Pdf.close()` and `with`-block context manager, to
   allow Pdf objects to be closed without relying on `del`.
@@ -365,7 +367,7 @@
 - libqpdf 8.4.0 is now required
 - Various documentation improvements
 
-# v1.1.0
+## v1.1.0
 
 - Added workaround for macOS/clang build problem of the wrong exception
   type being thrown in some cases.
@@ -385,7 +387,7 @@
 - Fixed handling of XMP metadata that omits the standard
   `<x:xmpmeta>` wrapper.
 
-# v1.0.5
+## v1.0.5
 
 - Fixed an issue where an invalid date in XMP metadata would cause an
   exception when updating DocumentInfo. For now, we warn that some
@@ -394,26 +396,26 @@
 - Rebuilt the binary wheels with libqpdf 8.3.0. libqpdf 8.2.1 is still
   supported.
 
-# v1.0.4
+## v1.0.4
 
 - Updates to tests/resources (provenance of one test file, replaced
   another test file with a synthetic one)
 
-# v1.0.3
+## v1.0.3
 
 - Fixed regression on negative indexing of pages.
 
-# v1.0.2
+## v1.0.2
 
 - Fixed an issue where invalid values such as out of range years (e.g.
   1\) in DocumentInfo would raise exceptions when using DocumentInfo to
   populate XMP metadata with `.load_from_docinfo`.
 
-# v1.0.1
+## v1.0.1
 
 - Fixed an exception with handling metadata that contains the invalid
   XML entity `&#0;` (an escaped NUL)
 
-# v1.0.0
+## v1.0.0
 
 - Changed version to 1.0.

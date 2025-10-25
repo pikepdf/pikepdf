@@ -1,23 +1,25 @@
-# v3.2.0
+# v3
+
+## v3.2.0
 
 - Fixed support for outline items that have PDF 1.1-style named destinations.
   {issue}`258, 261`
 - We now issue a warning if an unnecessary password was provided when opening
   an unencrypted PDF.
 
-# v3.1.1
+## v3.1.1
 
 - Fixed errors that occurred on `import pikepdf` for an extension module built with
   pybind11 2.8.0.
 
-# v3.1.0
+## v3.1.0
 
 - Extraction of common inline image file formats is now supported.
 - Some refactoring and documentation improvements.
 
-# v3.0.0
+## v3.0.0
 
-## Breaking changes
+### Breaking changes
 
 - libqpdf 10.3.1 is now required and other requirements were adjusted.
 - pybind11 2.7.1 is now required.
@@ -57,7 +59,7 @@
   may change the behavior of attempts to manipulate a PDF after it has been
   closed. In any case, accessing a closed file was never supported.
 
-## New functionality
+### New functionality
 
 - Added {class}`pikepdf.NameTree`. We now bind to QPDF's Name Tree API, for
   manipulating these complex and important data structures.
@@ -71,7 +73,7 @@
   TypeError. {issue}`232`
 - It is now possible to test our cibuildwheel configuration on a local machine.
 
-## Fixes
+### Fixes
 
 - `repr(pikepdf.Stream(...))` now returns syntax matching what the constructor
   expects.

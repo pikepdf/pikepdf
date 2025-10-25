@@ -1,47 +1,49 @@
-# v0.10.2
+# v0
 
-## Fixes
+## v0.10.2
+
+### Fixes
 
 - Fixed segfault when overwriting the pikepdf file that is currently
   open on Linux.
 - Fixed removal of an attribute metadata value when values were present
   on the same node.
 
-# v0.10.1
+## v0.10.1
 
 (fixes-1)=
 
-## Fixes
+### Fixes
 
 - Avoid canonical XML since it is apparently too strict for XMP.
 
-# v0.10.0
+## v0.10.0
 
 (fixes-2-1)=
 
-## Fixes
+### Fixes
 
 - Fixed several issues related to generating XMP metadata that passed
   veraPDF validation.
 - Fixed a random test suite failure for very large negative integers.
 - The lxml library is now required.
 
-# v0.9.2
+## v0.9.2
 
 (fixes-3-1)=
 
-## Fixes
+### Fixes
 
 - Added all of the commonly used XML namespaces to XMP metadata
   handling, so we are less likely to name something 'ns1', etc.
 - Skip a test that fails on Windows.
 - Fixed build errors in documentation.
 
-# v0.9.1
+## v0.9.1
 
 (fixes-4-1)=
 
-## Fixes
+### Fixes
 
 - Fix `Object.write()` accepting positional arguments it wouldn't use
 - Fix handling of XMP data with timezones (or missing timezone
@@ -49,9 +51,9 @@
 - Fix generation of XMP with invalid XML characters if the invalid
   characters were inside a non-scalar object
 
-# v0.9.0
+## v0.9.0
 
-## Updates
+### Updates
 
 - New API to access and edit PDF metadata and make consistent edits to
   the new and old style of PDF metadata.
@@ -63,23 +65,23 @@
 
 (fixes-5-1)=
 
-## Fixes
+### Fixes
 
 - Fixed handling of filenames that contain multibyte characters on
   non-UTF-8 systems
 
-## Breaking
+### Breaking
 
 - The `Pdf.metadata` property was removed, and replaced with the new
   metadata API
 - `Pdf.attach()` has been removed, because the interface as
   implemented had no way to deal with existing attachments.
 
-# v0.3.7
+## v0.3.7
 
 - Add API for inline images to unparse themselves
 
-# v0.3.6
+## v0.3.6
 
 - Performance of reading files from memory improved to avoid
   unnecessary copies.
@@ -88,11 +90,11 @@
   objects behave more like Python containers should now.
 - Package API declared beta.
 
-# v0.3.5
+## v0.3.5
 
 (breaking-1)=
 
-## Breaking
+### Breaking
 
 - `Pdf.save(...stream_data_mode=...)` has been dropped in favor of
   the newer `compress_streams=` and `stream_decode_level`
@@ -100,31 +102,31 @@
 
 (fixes-6-1)=
 
-## Fixes
+### Fixes
 
 - A use-after-free memory error that caused occasional segfaults and
   "QPDFFakeName" errors when opening from stream objects has been
   resolved.
 
-# v0.3.4
+## v0.3.4
 
 (updates-1)=
 
-## Updates
+### Updates
 
 - pybind11 vendoring has ended now that v2.2.4 has been released
 
-# v0.3.3
+## v0.3.3
 
 (breaking-2-1)=
 
-## Breaking
+### Breaking
 
 - libqpdf 8.2.1 is now required
 
 (updates-2-1)=
 
-## Updates
+### Updates
 
 - Improved support for working with JPEG2000 images in PDFs
 - Added progress callback for saving files,
@@ -133,7 +135,7 @@
 
 (fixes-7-1)=
 
-## Fixes
+### Fixes
 
 - `del obj.AttributeName` was not implemented. The attribute
   interface is now consistent
@@ -142,11 +144,11 @@
 - Fixed handling of JPEG2000 images where metadata must be retrieved
   from the file
 
-# v0.3.2
+## v0.3.2
 
 (updates-3-1)=
 
-## Updates
+### Updates
 
 - Added support for direct image extraction of CMYK and grayscale
   JPEGs, where previously only RGB (internally YUV) was supported
@@ -154,11 +156,11 @@
 - The syntax `Name.Foo in Dictionary()`, e.g.
   `Name.XObject in page.Resources`, now works
 
-# v0.3.1
+## v0.3.1
 
 (breaking-3-1)=
 
-## Breaking
+### Breaking
 
 - `pikepdf.open` now validates its keyword arguments properly,
   potentially breaking code that passed invalid arguments
@@ -171,7 +173,7 @@
 
 (updates-4-1)=
 
-## Updates
+### Updates
 
 - The syntax `Name.Thing` (e.g. `Name.DecodeParms`) is now
   supported as equivalent to `Name('/Thing')` and is the recommended
@@ -182,17 +184,17 @@
 
 (fixes-8-1)=
 
-## Fixes
+### Fixes
 
 - Fixed an error parsing inline images that have masks
 - Fixed several instances of catching C++ exceptions by value instead
   of by reference
 
-# v0.3.0
+## v0.3.0
 
 (breaking-4-1)=
 
-## Breaking
+### Breaking
 
 - Modified `Object.write` method signature to require `filter` and
   `decode_parms` as keyword arguments
@@ -204,7 +206,7 @@
 
 (updates-5-1)=
 
-## Updates
+### Updates
 
 - Improved IPython/Jupyter interface to directly export temporary PDFs
 - Updated to qpdf 8.1.0 in wheels
@@ -214,14 +216,14 @@
 - Added ability to delete a slice of pages
 - Began using Jupyter notebooks for documentation
 
-# v0.2.2
+## v0.2.2
 
 - Added Python 3.7 support to build and test (not yet available for
   Windows, due to lack of availability on Appveyor)
 - Removed setter API from `PdfImage` because it never worked anyway
 - Improved handling of `PdfImage` with trivial palettes
 
-# v0.2.1
+## v0.2.1
 
 - `Object.check_owner` renamed to `Object.is_owned_by`
 - `Object.objgen` and `Object.get_object_id` are now public
@@ -230,7 +232,7 @@
   submodule that holds support code to ease access to PDF objects as
   opposed to wrapping QPDF.
 
-# v0.2.0
+## v0.2.0
 
 - Implemented automatic type conversion for `int`, `bool` and
   `Decimal`, eliminating the `pikepdf.{Integer,Boolean,Real}`

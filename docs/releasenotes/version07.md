@@ -1,4 +1,6 @@
-# v7.2.0
+# v7
+
+## v7.2.0
 
 - Improved Object.repr() to avoid printing the entire contents of large object trees
   such as those in PDFs with structural element trees.
@@ -6,17 +8,17 @@
 - Improved matrix documentation, interoperability with numpy, and added matrix inverse.
 - Documentation improvements.
 
-# v7.1.2
+## v7.1.2
 
 - Fixed possible segfault if a PDF is opened and accessed without being assigned to a
   variable. {issue}`465`
 
-# v7.1.1
+## v7.1.1
 
 - Add workaround to fix release issue on manylinux-aarch64.
 - Improved documentation of Pdf.check().
 
-# v7.1.0
+## v7.1.0
 
 **New features**
 
@@ -30,7 +32,7 @@
   manylinux-aarch64 image for this release failed to build. As such, this particular
   wheel is not available.
 
-# v7.0.0
+## v7.0.0
 
 pikepdf 7 introduces a subtle change to how it holds objects from the libqpdf C++ library:
 dependent objects no longer keep their parent alive.
