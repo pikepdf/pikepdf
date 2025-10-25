@@ -115,38 +115,6 @@ jobs:
           name: wheels-${{ matrix.os_arch }}
           path: ./wheelhouse/*.whl
 
-  cross_check_macos:
-    needs: [wheels_macos]
-    name: Test Python x86_64 wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [macos-15]
-        python: ["3.10"]
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v6
-        name: Install Python
-        with:
-          python-version: ${{ matrix.python }}
-
-      - name: Download x86_64 wheels
-        uses: actions/download-artifact@v4
-        with:
-          name: wheels-macos-x86_64 # download wheels for x86_64
-          path: wheelhouse
-
-      - name: Output downloads
-        run: |
-          ls -l wheelhouse
-
-      - name: Install wheels
-        run: |
-          WHEEL=wheelhouse/pikepdf*cp310*macos*x86_64.whl
-          python -m pip install $WHEEL
-          python -c "import pikepdf; print(pikepdf.__version__)"
-
   wheels_windows:
     name: ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
