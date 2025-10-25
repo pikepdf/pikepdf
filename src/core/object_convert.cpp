@@ -23,8 +23,6 @@
 
 #include "pikepdf.h"
 
-extern uint DECIMAL_PRECISION;
-
 std::map<std::string, QPDFObjectHandle> dict_builder(const py::dict dict)
 {
     StackGuard sg(" dict_builder");
@@ -101,7 +99,7 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle)
     auto decimal_module = py::module_::import("decimal");
     auto Decimal        = decimal_module.attr("Decimal");
     if (py::isinstance(handle, Decimal)) {
-        DecimalPrecision dp(DECIMAL_PRECISION);
+        DecimalPrecision dp(get_decimal_precision());
         auto rounded =
             py::reinterpret_steal<py::object>(PyNumber_Positive(handle.ptr()));
         if (!rounded.attr("is_finite")().cast<bool>())

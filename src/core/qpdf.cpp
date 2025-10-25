@@ -32,8 +32,6 @@
 #include "pipeline.h"
 #include "utils.h"
 
-extern bool MMAP_DEFAULT;
-
 enum access_mode_e { access_default, access_stream, access_mmap, access_mmap_only };
 
 void qpdf_basic_settings(QPDF &q) // LCOV_EXCL_LINE
@@ -69,7 +67,7 @@ std::shared_ptr<QPDF> open_pdf(py::object stream,
 
     bool success = false;
     if (access_mode == access_default)
-        access_mode = MMAP_DEFAULT ? access_mmap : access_stream;
+        access_mode = get_mmap_default() ? access_mmap : access_stream;
 
     if (access_mode == access_mmap || access_mode == access_mmap_only) {
         try {

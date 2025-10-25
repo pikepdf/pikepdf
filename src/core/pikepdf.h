@@ -160,6 +160,10 @@ void init_rectangle(py::module_ &m);
 // From tokenfilter.cpp
 void init_tokenfilter(py::module_ &m);
 
+// pikepdf.cpp
+uint get_decimal_precision();
+bool get_mmap_default();
+
 inline void python_warning(const char *msg, PyObject *category = PyExc_UserWarning)
 {
     PyErr_WarnEx(category, msg, /*stacklevel=*/1);

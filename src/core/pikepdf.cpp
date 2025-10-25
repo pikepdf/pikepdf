@@ -28,8 +28,11 @@
 #include "utils.h"
 #include "parsers.h"
 
-uint DECIMAL_PRECISION = 15;
-bool MMAP_DEFAULT      = false;
+static constinit std::atomic<uint> DECIMAL_PRECISION = 15;
+static constinit std::atomic<bool> MMAP_DEFAULT      = false;
+
+uint get_decimal_precision() { return DECIMAL_PRECISION.load(); }
+bool get_mmap_default() { return MMAP_DEFAULT.load(); }
 
 class TemporaryErrnoChange {
 public:
@@ -175,21 +178,15 @@ PYBIND11_MODULE(_core, m)
             [](std::string s) { return translate_qpdf_logic_error(s).first; },
             "Used to test interpretation of qpdf errors.")
         .def("set_decimal_precision",
-            [](uint prec) {
-                DECIMAL_PRECISION = prec;
-                return DECIMAL_PRECISION;
-            })
-        .def("get_decimal_precision", []() { return DECIMAL_PRECISION; })
+            [](uint prec) { return DECIMAL_PRECISION.exchange(prec); })
+        .def("get_decimal_precision", []() { return DECIMAL_PRECISION.load(); })
         .def(
             "get_access_default_mmap",
-            []() { return MMAP_DEFAULT; },
+            []() { return MMAP_DEFAULT.load(); },
             "Return True if default access is to use mmap.")
         .def(
             "set_access_default_mmap",
-            [](bool mmap) {
-                MMAP_DEFAULT = mmap;
-                return MMAP_DEFAULT;
-            },
+            [](bool mmap) { return MMAP_DEFAULT.exchange(mmap); },
             "If True, ``pikepdf.open(...access_mode=access_default)`` will use mmap.")
         .def("set_flate_compression_level",
             [](int level) {
