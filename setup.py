@@ -75,7 +75,7 @@ for extra_path in chain([qpdf_source_tree], extra_includes, extra_library_dirs):
     if extra_path and not exists(extra_path):
         raise FileNotFoundError(extra_path)
 
-macros = [('POINTERHOLDER_TRANSITION', '4')]
+macros = []
 if qpdf_future:
     macros.append(('QPDF_FUTURE', 'True'))
 # Use cast because mypy has trouble seeing Pybind11Extension is a subclass of
