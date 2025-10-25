@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-24.04
     continue-on-error: true
     env:
-      CIBW_BUILD: "cp314-${{ matrix.platform }}"
+      CIBW_BUILD: "cp315-${{ matrix.platform }}"
       CIBW_ENABLE: "cpython-prerelease"
     strategy:
       matrix:
@@ -52,9 +52,9 @@ jobs:
     runs-on: ubuntu-24.04
     continue-on-error: true
     env:
-      CIBW_BUILD: "cp3??t-${{ matrix.platform }}"
+      CIBW_BUILD: "cp314t-${{ matrix.platform }}"
       CIBW_SKIP: ""
-      CIBW_ENABLE: "cpython-prerelease cpython-freethreading"
+      CIBW_ENABLE: "cpython-freethreading"
     strategy:
       matrix:
         platform: [manylinux_x86_64]
