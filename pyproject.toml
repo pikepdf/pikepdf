@@ -141,7 +141,7 @@ before-all = [
 # See (and update) build_process.md.
 select = "*-macosx*x86_64"
 inherit.environment = "append"
-environment.MACOSX_DEPLOYMENT_TARGET = "14.0"
+environment.MACOSX_DEPLOYMENT_TARGET = "15.0"
 
 [[tool.cibuildwheel.overrides]]
 select = "*-macosx*arm64"
