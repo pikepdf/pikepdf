@@ -418,8 +418,8 @@ void save_pdf(QPDF &q,
     }
 
     if (!progress.is_none()) {
-        auto reporter = std::shared_ptr<QPDFWriter::ProgressReporter>(
-            new PikeProgressReporter(progress));
+        std::shared_ptr<QPDFWriter::ProgressReporter> reporter =
+            std::make_shared<PikeProgressReporter>(progress);
         w.registerProgressReporter(reporter);
     }
 
