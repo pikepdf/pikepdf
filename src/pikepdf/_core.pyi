@@ -32,8 +32,6 @@ from typing import (
     overload,
 )
 
-from deprecated import deprecated
-
 if TYPE_CHECKING:
     import numpy as np
 
@@ -1922,8 +1920,6 @@ class Pdf:
     def _remove_page(self, arg0: Object) -> None: ...
     def _replace_object(self, arg0: tuple[int, int], arg1: Object) -> None: ...
     def _swap_objects(self, arg0: tuple[int, int], arg1: tuple[int, int]) -> None: ...
-    @deprecated(version='9.10.0', reason="Use Pdf.check_pdf_syntax instead")
-    def check(self) -> list[str]: ...
     def check_pdf_syntax(
         self, progress: Callable[[int], None] | None = ...
     ) -> list[str]:
