@@ -1916,7 +1916,7 @@ class Pdf:
             first: If True, prepend this before the first page;
                 if False append after last page.
         """
-    def _decode_all_streams_and_discard(self) -> None: ...
+    def _decode_all_streams_and_discard(self, progress) -> None: ...
     def _get_object_id(self, arg0: int, arg1: int) -> Object: ...
     def _process(self, arg0: str, arg1: bytes) -> None: ...
     def _remove_page(self, arg0: Object) -> None: ...
@@ -1924,7 +1924,9 @@ class Pdf:
     def _swap_objects(self, arg0: tuple[int, int], arg1: tuple[int, int]) -> None: ...
     @deprecated(version='9.10.0', reason="Use Pdf.check_pdf_syntax instead")
     def check(self) -> list[str]: ...
-    def check_pdf_syntax(self) -> list[str]:
+    def check_pdf_syntax(
+        self, progress: Callable[[int], None] | None = ...
+    ) -> list[str]:
         """Check if PDF is syntactically well-formed.
 
         Similar to ``qpdf --check``, checks for syntax
@@ -1952,6 +1954,10 @@ class Pdf:
 
         This function returns a list of strings describing the issues. The
         text is subject to change and should not be treated as a stable API.
+
+        Args:
+            progress: A function to call with progress updates, from 0 to 100.
+                If None (default), no progress will be reported.
 
         Returns:
             Empty list if no issues were found. List of issues as text strings

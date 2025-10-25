@@ -269,7 +269,9 @@ class Extend_Pdf:
     def check(self) -> list[str]:
         return self.check_pdf_syntax()
 
-    def check_pdf_syntax(self) -> list[str]:
+    def check_pdf_syntax(
+        self, progress: Callable[[int], None] | None = None
+    ) -> list[str]:
         class DiscardingParser(StreamParser):
             def __init__(self):  # pylint: disable=useless-super-delegation
                 super().__init__()  # required for C++
@@ -282,7 +284,7 @@ class Extend_Pdf:
 
         problems: list[str] = []
 
-        self._decode_all_streams_and_discard()
+        self._decode_all_streams_and_discard(progress)
 
         discarding_parser = DiscardingParser()
         for page in self.pages:
@@ -308,7 +310,7 @@ class Extend_Pdf:
         normalize_content: bool = False,
         linearize: bool = False,
         qdf: bool = False,
-        progress: Callable[[int], None] = None,
+        progress: Callable[[int], None] | None = None,
         encryption: Encryption | bool | None = None,
         recompress_flate: bool = False,
         deterministic_id: bool = False,

@@ -72,3 +72,16 @@ def test_object_type_assertion(resources):
     with pytest.raises(PdfError):
         with Pdf.open(resources / 'fuzz' / '378014596.pdf') as p:
             p.check_pdf_syntax()
+
+
+def test_pdf_syntax_check_progress(resources):
+    called = False
+
+    def progress_fn(update):
+        nonlocal called
+        called = True
+
+    with Pdf.open(resources / 'outlines.pdf') as p:
+        p.check_pdf_syntax(progress_fn)
+
+    assert called, "progress function not called"

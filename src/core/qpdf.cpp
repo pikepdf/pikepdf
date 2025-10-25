@@ -598,13 +598,18 @@ void init_qpdf(py::module_ &m)
             [](QPDF &q) { q.closeInputSource(); },
             "Used to implement Pdf.close().")
         .def("_decode_all_streams_and_discard",
-            [](QPDF &q) {
+            [](QPDF &q, py::object progress = py::none()) {
                 QPDFWriter w(q);
                 Pl_Discard discard;
                 w.setOutputPipeline(&discard);
                 w.setDecodeLevel(qpdf_dl_all);
+                w.setLinearization(false);
                 w.setCompressStreams(false);
                 w.setRecompressFlate(false);
+                if (!progress.is_none()) {
+                    w.registerProgressReporter(
+                        std::make_shared<PikeProgressReporter>(progress));
+                }
                 try {
                     w.write();
                 } catch (py::error_already_set &e) {
