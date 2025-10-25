@@ -23,6 +23,7 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Topic :: Multimedia :: Graphics",
   "Topic :: Software Development :: Libraries",
+  "Programming Language :: Python :: Free Threading :: 1 - Unstable",
 ]
 dependencies = ["Pillow>=10.0.1", "Deprecated", "lxml>=4.8", "packaging"]
 

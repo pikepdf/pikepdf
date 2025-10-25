@@ -123,7 +123,7 @@ bool is_object_type_assertion_error(const std::runtime_error &e)
     return std::regex_search(e.what(), error_pattern);
 }
 
-PYBIND11_MODULE(_core, m)
+PYBIND11_MODULE(_core, m, py::mod_gil_not_used())
 {
     // py::options options;
     // options.disable_function_signatures();
@@ -273,4 +273,11 @@ PYBIND11_MODULE(_core, m)
     m.attr("__version__") = "dev";
 #endif
     // clang-format on
+
+#ifdef Py_GIL_DISABLED
+    m.attr("__threading__") = "freethreading";
+    py::print("Warning: pikepdf freethreading support is unstable");
+#else
+    m.attr("__threading__") = "gil";
+#endif
 }
