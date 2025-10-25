@@ -1,5 +1,4 @@
-,3.9,3.10,3.11,3.12,3.13
-:fa:`apple` macOS Intel,✅,✅,✅,✅,✅
+,3.10,3.11,3.12,3.13,3.14
 :fa:`apple` macOS Apple Silicon,✅,✅,✅,✅,✅
 :fa:`windows` Windows x64,✅,✅,✅,✅,✅
 :fa:`linux` manylinux2014 x64,✅,✅,✅,✅,✅
