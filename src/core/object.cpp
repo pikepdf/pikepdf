@@ -78,7 +78,9 @@ inline bool typecode_is_numeric(qpdf_object_type_e typecode)
            typecode == qpdf_object_type_e::ot_boolean;
 }
 
-bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
+
+
+bool objecthandle_equal_inner(QPDFObjectHandle self, QPDFObjectHandle other, std::vector<std::pair<QPDFObjectHandle, QPDFObjectHandle>> &visited)
 {
     StackGuard sg(" objecthandle_equal");
 
@@ -131,30 +133,44 @@ bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
                self.getUTF8Value() == other.getUTF8Value();
     }
     case qpdf_object_type_e::ot_array: {
-        // Call operator==() on each element of the arrays, meaning this
-        // recurses into this function
         if (self.getArrayNItems() != other.getArrayNItems())
             return false;
-        {
-            auto self_aitems  = self.aitems();
-            auto other_aitems = other.aitems();
-            auto iter_self    = self_aitems.begin();
-            auto iter_other   = other_aitems.begin();
-            for (; iter_self != self_aitems.end(); ++iter_self, ++iter_other) {
-                if (!objecthandle_equal(*iter_self, *iter_other))
-                    return false;
+        auto self_aitems  = self.aitems();
+        auto other_aitems = other.aitems();
+        auto iter_self    = self_aitems.begin();
+        auto iter_other   = other_aitems.begin();
+        // If previously visited, we have a cycle
+        if (std::find(visited.begin(), visited.end(), std::make_pair(self, other)) != visited.end())
+            return true;
+        // We are going to recurse, so record the current pair as visited
+        visited.push_back(std::make_pair(self, other));
+        for (; iter_self != self_aitems.end(); ++iter_self, ++iter_other) {
+            if (!objecthandle_equal_inner(*iter_self, *iter_other, visited)) {
+                return false;
             }
         }
         return true;
     }
     case qpdf_object_type_e::ot_dictionary: {
-        // Call operator==() on each element of the arrays, meaning this
-        // recurses into this function
-        return (self.getDictAsMap() == other.getDictAsMap());
+        if (self.getKeys() != other.getKeys())
+            return false;
+        if (std::find(visited.begin(), visited.end(), std::make_pair(self, other)) != visited.end())
+            return true;
+        // Potential recursive comparison
+        visited.push_back(std::make_pair(self, other));
+        for (auto &key : self.getKeys()) {
+            auto value = self.getKey(key);
+            auto other_value = other.getKey(key);
+            if (other_value.isNull())
+                return false;
+            if (!objecthandle_equal_inner(value, other_value, visited))
+                return false;
+        }
+        return true;
     }
     case qpdf_object_type_e::ot_stream: {
         // Recurse into this function to check if our dictionaries are equal
-        if (!objecthandle_equal(self.getDict(), other.getDict()))
+        if (!objecthandle_equal_inner(self.getDict(), other.getDict(), visited))
             return false;
 
         // If dictionaries are equal, check our stream
@@ -186,11 +202,10 @@ bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
     // LCOV_EXCL_STOP
 }
 
-bool operator==(QPDFObjectHandle self, QPDFObjectHandle other)
+bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
 {
-    // A lot of functions in QPDFObjectHandle are not tagged const where they
-    // should be, but are const-safe
-    return objecthandle_equal(self, other);
+    std::vector<std::pair<QPDFObjectHandle, QPDFObjectHandle>> visited;
+    return objecthandle_equal_inner(self, other, visited);
 }
 
 bool object_has_key(QPDFObjectHandle h, std::string const &key)

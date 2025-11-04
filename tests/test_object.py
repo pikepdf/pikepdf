@@ -802,3 +802,15 @@ def test_get_unique_resource_names(sandwich):
     name, suffix = sandwich.pages[0].Resources._get_unique_resource_name("/R", 12)
     assert name == "/R14"
     assert suffix == 14
+
+@pytest.fixture
+def cyclic_toc(resources):
+    with Pdf.open(resources / 'cyclic-toc.pdf') as pdf:
+        yield pdf
+
+
+class TestCyclicEquality:
+    def test_cyclic_toc(self, cyclic_toc):
+        assert cyclic_toc.get_object(5,0) != cyclic_toc.get_object(9,0)
+
+
