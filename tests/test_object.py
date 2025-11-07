@@ -812,5 +812,41 @@ def cyclic_toc(resources):
 class TestCyclicEquality:
     def test_cyclic_toc(self, cyclic_toc):
         assert cyclic_toc.get_object(5,0) != cyclic_toc.get_object(9,0)
+        assert cyclic_toc.get_object(5,0) == cyclic_toc.get_object(5,0)
+        assert cyclic_toc.get_object(9,0) == cyclic_toc.get_object(9,0)
 
+    def test_loop(self):
+        pdf = pikepdf.new()
+        d1 = pdf.make_indirect(Dictionary())
+        d2 = pdf.make_indirect(Dictionary())
+        d1['/x'] = d2
+        d2['/x'] = d1
+        assert d1 == d1
+        assert d1['/x'] == d2
+        assert d1 == d2
+        d2['/y'] = d1
+        assert d1 != d2
 
+    def test_loop3(self):
+        pdf = pikepdf.new()
+        a = pdf.make_indirect(Dictionary())
+        b = pdf.make_indirect(Dictionary())
+        c = pdf.make_indirect(Dictionary())
+        a['/b'] = b
+        b['/c'] = c
+        c['/a'] = a
+        assert a == c['/a']
+
+    def test_crossed_tree(self):
+        pdf = pikepdf.new()
+        a = pdf.make_indirect(Dictionary())
+        a1 = pdf.make_indirect(Dictionary())
+        a2 = pdf.make_indirect(Dictionary())
+        a['/a1'] = a1
+        a['/a2'] = a2
+        a1['/parent'] = a
+        a1['/sibling'] = a2
+        a2['/parent'] = a
+        a2['/sibling'] = a1
+        assert a == a1['/parent']
+        assert a1 == a2
