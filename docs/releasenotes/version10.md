@@ -12,6 +12,11 @@ pikepdf now declares unstable "support" for freethreading, and does not publish
 freethreading wheels. All tests seem to pass, but that's because the existing
 tests don't try to create race conditions. Must be compiled manually.
 
+## v10.0.1
+
+- Fixed issue with performing equality test on dictionaries with cyclic subgraphs.
+  :issue:`677`
+
 ## v10.0.0
 
 See breaking changes for v10.0.0 above.
