@@ -78,9 +78,12 @@ inline bool typecode_is_numeric(qpdf_object_type_e typecode)
            typecode == qpdf_object_type_e::ot_boolean;
 }
 
+std::pair<std::string, std::string> make_unparsed_pair(QPDFObjectHandle &self, QPDFObjectHandle &other)
+{
+    return std::make_pair(self.unparseBinary(), other.unparseBinary());
+}
 
-
-bool objecthandle_equal_inner(QPDFObjectHandle self, QPDFObjectHandle other, std::vector<std::pair<QPDFObjectHandle, QPDFObjectHandle>> &visited)
+bool objecthandle_equal_inner(QPDFObjectHandle self, QPDFObjectHandle other, std::set<std::pair<std::string, std::string>> &visited)
 {
     StackGuard sg(" objecthandle_equal");
 
@@ -139,11 +142,12 @@ bool objecthandle_equal_inner(QPDFObjectHandle self, QPDFObjectHandle other, std
         auto other_aitems = other.aitems();
         auto iter_self    = self_aitems.begin();
         auto iter_other   = other_aitems.begin();
+        auto unparsed_pair = make_unparsed_pair(self, other);
         // If previously visited, we have a cycle
-        if (std::find(visited.begin(), visited.end(), std::make_pair(self, other)) != visited.end())
+        if (visited.count(unparsed_pair) > 0)
             return true;
         // We are going to recurse, so record the current pair as visited
-        visited.push_back(std::make_pair(self, other));
+        visited.insert(unparsed_pair);
         for (; iter_self != self_aitems.end(); ++iter_self, ++iter_other) {
             if (!objecthandle_equal_inner(*iter_self, *iter_other, visited)) {
                 return false;
@@ -154,10 +158,11 @@ bool objecthandle_equal_inner(QPDFObjectHandle self, QPDFObjectHandle other, std
     case qpdf_object_type_e::ot_dictionary: {
         if (self.getKeys() != other.getKeys())
             return false;
-        if (std::find(visited.begin(), visited.end(), std::make_pair(self, other)) != visited.end())
+        auto unparsed_pair = make_unparsed_pair(self, other);
+        if (visited.count(unparsed_pair) > 0)
             return true;
         // Potential recursive comparison
-        visited.push_back(std::make_pair(self, other));
+        visited.insert(unparsed_pair);
         for (auto &key : self.getKeys()) {
             auto value = self.getKey(key);
             auto other_value = other.getKey(key);
@@ -204,7 +209,7 @@ bool objecthandle_equal_inner(QPDFObjectHandle self, QPDFObjectHandle other, std
 
 bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
 {
-    std::vector<std::pair<QPDFObjectHandle, QPDFObjectHandle>> visited;
+    auto visited = std::set<std::pair<std::string, std::string>>();
     return objecthandle_equal_inner(self, other, visited);
 }
 
