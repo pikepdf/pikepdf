@@ -119,6 +119,8 @@ void init_qpdf(py::module_ &m);
 // From object.cpp
 size_t list_range_check(QPDFObjectHandle h, int index);
 void init_object(py::module_ &m);
+
+// From object_equality.cpp
 bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other);
 
 // From object_repr.cpp
