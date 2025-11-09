@@ -53,6 +53,12 @@ SPDX-FileCopyrightText = "2024 Leon Eckardt"
 SPDX-License-Identifier = "CC0-1.0"
 
 [[annotations]]
+path = "tests/resources/cyclic-toc.pdf"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2025 qooxzuub"
+SPDX-License-Identifier = "CC-BY-SA-4.0"
+
+[[annotations]]
 path = ["docs/images/pike.png", "tests/resources/pike**jp2.pdf"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "NONE"
