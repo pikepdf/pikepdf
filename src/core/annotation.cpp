@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: MPL-2.0
 
 #include <qpdf/Constants.h>
-#include <qpdf/Types.h>
 #include <qpdf/DLL.h>
-#include <qpdf/QPDFExc.hh>
 #include <qpdf/QPDFAnnotationObjectHelper.hh>
+#include <qpdf/QPDFExc.hh>
+#include <qpdf/Types.h>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -74,6 +74,6 @@ void init_annotation(py::module_ &m)
             },
             py::arg("name"),
             py::arg("rotate"),
-            py::arg("required_flags")  = 0,
+            py::arg("required_flags") = 0,
             py::arg("forbidden_flags") = an_invisible | an_hidden);
 }

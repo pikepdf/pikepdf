@@ -1,45 +1,51 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
+#include <cerrno>
+#include <cstdio>
+#include <cstring>
+#include <regex>
 #include <sstream>
 #include <type_traits>
-#include <cerrno>
-#include <cstring>
-#include <cstdio>
-#include <regex>
-#include <vector>
 #include <utility>
+#include <vector>
 
 #include "pikepdf.h"
 
+#include <qpdf/Pl_Flate.hh>
 #include <qpdf/QPDFExc.hh>
+#include <qpdf/QPDFLogger.hh>
 #include <qpdf/QPDFSystemError.hh>
 #include <qpdf/QPDFUsage.hh>
 #include <qpdf/QUtil.hh>
-#include <qpdf/QPDFLogger.hh>
-#include <qpdf/Pl_Flate.hh>
 
-#include <pybind11/stl.h>
-#include <pybind11/iostream.h>
 #include <pybind11/buffer_info.h>
 #include <pybind11/gil_safe_call_once.h>
+#include <pybind11/iostream.h>
+#include <pybind11/stl.h>
 
+#include "parsers.h"
 #include "qpdf_pagelist.h"
 #include "utils.h"
-#include "parsers.h"
 
 static constinit std::atomic<uint> DECIMAL_PRECISION = 15;
-static constinit std::atomic<bool> MMAP_DEFAULT      = false;
+static constinit std::atomic<bool> MMAP_DEFAULT = false;
 
-uint get_decimal_precision() { return DECIMAL_PRECISION.load(); }
-bool get_mmap_default() { return MMAP_DEFAULT.load(); }
+uint get_decimal_precision()
+{
+    return DECIMAL_PRECISION.load();
+}
+bool get_mmap_default()
+{
+    return MMAP_DEFAULT.load();
+}
 
 class TemporaryErrnoChange {
 public:
     TemporaryErrnoChange(int val)
     {
         stored = errno;
-        errno  = val;
+        errno = val;
     }
     ~TemporaryErrnoChange() { errno = stored; }
 
@@ -128,7 +134,7 @@ PYBIND11_MODULE(_core, m, py::mod_gil_not_used())
     // py::options options;
     // options.disable_function_signatures();
 
-    m.doc()            = "pikepdf provides a Pythonic interface for qpdf";
+    m.doc() = "pikepdf provides a Pythonic interface for qpdf";
     m.attr("__name__") = "pikepdf._core";
     m.def("qpdf_version", &QPDF::QPDFVersion, "Get libqpdf version");
 

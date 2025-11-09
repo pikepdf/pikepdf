@@ -6,15 +6,15 @@
 #include <cstdio>
 #include <cstring>
 
-#include <qpdf/Constants.h>
-#include <qpdf/Types.h>
-#include <qpdf/DLL.h>
-#include <qpdf/QPDFExc.hh>
 #include <qpdf/Buffer.hh>
+#include <qpdf/Constants.h>
+#include <qpdf/DLL.h>
+#include <qpdf/Pipeline.hh>
 #include <qpdf/QPDF.hh>
+#include <qpdf/QPDFExc.hh>
 #include <qpdf/QPDFStreamFilter.hh>
 #include <qpdf/QUtil.hh>
-#include <qpdf/Pipeline.hh>
+#include <qpdf/Types.h>
 
 py::object get_decoder(py::gil_scoped_acquire &gil)
 {
@@ -40,7 +40,7 @@ public:
         py::gil_scoped_acquire gil;
         py::bytes pydata = py::bytes(data);
 
-        auto decoder               = get_decoder(gil);
+        auto decoder = get_decoder(gil);
         py::function extract_jbig2 = decoder.attr("decode_jbig2");
 
         py::bytes extracted;

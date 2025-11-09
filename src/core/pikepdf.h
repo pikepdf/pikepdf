@@ -4,11 +4,11 @@
 #pragma once
 
 #include <exception>
-#include <vector>
 #include <map>
+#include <vector>
 
-#include <qpdf/QPDF.hh>
 #include <qpdf/Constants.h>
+#include <qpdf/QPDF.hh>
 #include <qpdf/QPDFObjectHandle.hh>
 #include <qpdf/QPDFPageObjectHelper.hh>
 
@@ -180,9 +180,9 @@ inline void deprecation_warning(const char *msg)
 class StackGuard {
 public:
     StackGuard(const char *where) { Py_EnterRecursiveCall(where); }
-    StackGuard(const StackGuard &)            = delete;
+    StackGuard(const StackGuard &) = delete;
     StackGuard &operator=(const StackGuard &) = delete;
-    StackGuard(StackGuard &&)                 = delete;
-    StackGuard &operator=(StackGuard &&)      = delete;
+    StackGuard(StackGuard &&) = delete;
+    StackGuard &operator=(StackGuard &&) = delete;
     ~StackGuard() { Py_LeaveRecursiveCall(); }
 };

@@ -11,20 +11,20 @@
  * objecthandle_repr_inner cannot cannot use references because it calls itself.
  */
 
-#include <sstream>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 #include <locale>
+#include <sstream>
 
 #include <qpdf/Constants.h>
-#include <qpdf/Types.h>
 #include <qpdf/DLL.h>
+#include <qpdf/QPDF.hh>
 #include <qpdf/QPDFExc.hh>
 #include <qpdf/QPDFObjGen.hh>
 #include <qpdf/QPDFObjectHandle.hh>
-#include <qpdf/QPDF.hh>
 #include <qpdf/QPDFWriter.hh>
 #include <qpdf/QUtil.hh>
+#include <qpdf/Types.h>
 
 #include "pikepdf.h"
 
@@ -128,8 +128,8 @@ std::string preview_stream_data(QPDFObjectHandle h, uint recursion_depth)
     // MAX_BUFFER_TO_EXPAND and display up to MAX_PEEK_BYTES.
 
     const uint MAX_PEEK_RECURSION_DEPTH = 1;
-    const size_t MAX_PEEK_BYTES         = 20;
-    const size_t MAX_BUFFER_TO_EXPAND   = 10000;
+    const size_t MAX_PEEK_BYTES = 20;
+    const size_t MAX_BUFFER_TO_EXPAND = 10000;
 
     std::string s;
 
@@ -141,7 +141,7 @@ std::string preview_stream_data(QPDFObjectHandle h, uint recursion_depth)
     }
 
     auto buffer = h.getStreamData();
-    auto data   = buffer->getBuffer();
+    auto data = buffer->getBuffer();
 
     // Use py::bytes to format output like Python does
     py::bytes pydata(reinterpret_cast<const char *>(data),
@@ -298,7 +298,7 @@ std::string objecthandle_repr(QPDFObjectHandle h)
     }
 
     std::set<QPDFObjGen> visited;
-    bool pure_expr    = true;
+    bool pure_expr = true;
     uint object_count = 0;
     std::string inner =
         objecthandle_repr_inner(h, 0, 0, object_count, visited, pure_expr);
@@ -307,7 +307,7 @@ std::string objecthandle_repr(QPDFObjectHandle h)
     if (h.isScalar() || h.isDictionary() || h.isArray()) {
         output = objecthandle_pythonic_typename(h) + "(" + inner + ")";
     } else {
-        output    = inner;
+        output = inner;
         pure_expr = false;
     }
 

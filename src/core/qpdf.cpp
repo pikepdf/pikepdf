@@ -1,35 +1,35 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
-#include <sstream>
-#include <type_traits>
 #include <cerrno>
 #include <cstring>
+#include <sstream>
+#include <type_traits>
 
 #include "pikepdf.h"
 
-#include <qpdf/QPDFExc.hh>
-#include <qpdf/QPDFSystemError.hh>
-#include <qpdf/QPDFObjGen.hh>
-#include <qpdf/QPDFXRefEntry.hh>
 #include <qpdf/Buffer.hh>
 #include <qpdf/BufferInputSource.hh>
-#include <qpdf/QPDFWriter.hh>
-#include <qpdf/QPDFPageDocumentHelper.hh>
 #include <qpdf/Pl_Discard.hh>
 #include <qpdf/QPDFAcroFormDocumentHelper.hh>
 #include <qpdf/QPDFEmbeddedFileDocumentHelper.hh>
+#include <qpdf/QPDFExc.hh>
 #include <qpdf/QPDFLogger.hh>
+#include <qpdf/QPDFObjGen.hh>
+#include <qpdf/QPDFPageDocumentHelper.hh>
+#include <qpdf/QPDFSystemError.hh>
+#include <qpdf/QPDFWriter.hh>
+#include <qpdf/QPDFXRefEntry.hh>
 
-#include <pybind11/stl.h>
-#include <pybind11/iostream.h>
 #include <pybind11/buffer_info.h>
+#include <pybind11/iostream.h>
+#include <pybind11/stl.h>
 
-#include "qpdf_pagelist.h"
-#include "qpdf_inputsource-inl.h"
-#include "mmap_inputsource-inl.h"
 #include "jbig2-inl.h"
+#include "mmap_inputsource-inl.h"
 #include "pipeline.h"
+#include "qpdf_inputsource-inl.h"
+#include "qpdf_pagelist.h"
 #include "utils.h"
 
 enum access_mode_e { access_default, access_stream, access_mmap, access_mmap_only };
@@ -48,14 +48,14 @@ void qpdf_basic_settings(QPDF &q) // LCOV_EXCL_LINE
 //  accessor[0]
 std::shared_ptr<QPDF> open_pdf(py::object stream,
     std::string password,
-    bool hex_password            = false,
-    bool ignore_xref_streams     = false,
-    bool suppress_warnings       = true,
-    bool attempt_recovery        = true,
+    bool hex_password = false,
+    bool ignore_xref_streams = false,
+    bool suppress_warnings = true,
+    bool attempt_recovery = true,
     bool inherit_page_attributes = true,
-    access_mode_e access_mode    = access_mode_e::access_default,
-    std::string description      = "",
-    bool closing_stream          = false)
+    access_mode_e access_mode = access_mode_e::access_default,
+    std::string description = "",
+    bool closing_stream = false)
 {
     auto q = std::make_shared<QPDF>();
 
@@ -172,7 +172,7 @@ void setup_encryption(QPDFWriter &w, py::object encryption_obj)
 
     py::dict encryption;
 
-    bool aes      = true;
+    bool aes = true;
     bool metadata = true;
     std::map<std::string, bool> allow;
     int encryption_level = 6;
@@ -196,18 +196,18 @@ void setup_encryption(QPDFWriter &w, py::object encryption_obj)
     }
 
     owner = encryption_password(encryption, encryption_level, "owner");
-    user  = encryption_password(encryption, encryption_level, "user");
+    user = encryption_password(encryption, encryption_level, "user");
 
     if (encryption.contains("allow")) {
-        auto pyallow               = encryption["allow"];
-        allow["accessibility"]     = pyallow.attr("accessibility").cast<bool>();
-        allow["extract"]           = pyallow.attr("extract").cast<bool>();
-        allow["modify_assembly"]   = pyallow.attr("modify_assembly").cast<bool>();
+        auto pyallow = encryption["allow"];
+        allow["accessibility"] = pyallow.attr("accessibility").cast<bool>();
+        allow["extract"] = pyallow.attr("extract").cast<bool>();
+        allow["modify_assembly"] = pyallow.attr("modify_assembly").cast<bool>();
         allow["modify_annotation"] = pyallow.attr("modify_annotation").cast<bool>();
-        allow["modify_form"]       = pyallow.attr("modify_form").cast<bool>();
-        allow["modify_other"]      = pyallow.attr("modify_other").cast<bool>();
-        allow["print_lowres"]      = pyallow.attr("print_lowres").cast<bool>();
-        allow["print_highres"]     = pyallow.attr("print_highres").cast<bool>();
+        allow["modify_form"] = pyallow.attr("modify_form").cast<bool>();
+        allow["modify_other"] = pyallow.attr("modify_other").cast<bool>();
+        allow["print_lowres"] = pyallow.attr("print_lowres").cast<bool>();
+        allow["print_highres"] = pyallow.attr("print_highres").cast<bool>();
     }
     if (encryption.contains("aes")) {
         if (py::isinstance<py::bool_>(encryption["aes"]))
@@ -307,15 +307,15 @@ typedef std::pair<std::string, int> pdf_version_extension;
 pdf_version_extension get_version_extension(py::object ver_ext)
 {
     std::string version = "";
-    int extension       = 0;
+    int extension = 0;
     try {
-        version   = ver_ext.cast<std::string>();
+        version = ver_ext.cast<std::string>();
         extension = 0;
     } catch (const py::cast_error &) {
         try {
             auto version_ext = ver_ext.cast<pdf_version_extension>();
-            version          = version_ext.first;
-            extension        = version_ext.second;
+            version = version_ext.first;
+            extension = version_ext.second;
         } catch (const py::cast_error &) {
             throw py::type_error("PDF version must be a tuple: (str, int)");
         }
@@ -325,22 +325,22 @@ pdf_version_extension get_version_extension(py::object ver_ext)
 
 void save_pdf(QPDF &q,
     py::object stream,
-    bool static_id                          = false,
-    bool preserve_pdfa                      = true,
-    py::object min_version                  = py::none(),
-    py::object force_version                = py::none(),
-    bool fix_metadata_version               = true,
-    bool compress_streams                   = true,
-    py::object stream_decode_level          = py::none(),
+    bool static_id = false,
+    bool preserve_pdfa = true,
+    py::object min_version = py::none(),
+    py::object force_version = py::none(),
+    bool fix_metadata_version = true,
+    bool compress_streams = true,
+    py::object stream_decode_level = py::none(),
     qpdf_object_stream_e object_stream_mode = qpdf_o_preserve,
-    bool normalize_content                  = false,
-    bool linearize                          = false,
-    bool qdf                                = false,
-    py::object progress                     = py::none(),
-    py::object encryption                   = py::none(),
-    bool samefile_check                     = true,
-    bool recompress_flate                   = false,
-    bool deterministic_id                   = false)
+    bool normalize_content = false,
+    bool linearize = false,
+    bool qdf = false,
+    py::object progress = py::none(),
+    py::object encryption = py::none(),
+    bool samefile_check = true,
+    bool recompress_flate = false,
+    bool deterministic_id = false)
 {
     QPDFWriter w(q);
 
@@ -465,15 +465,15 @@ void init_qpdf(py::module_ &m)
             open_pdf,
             py::arg("stream"),
             py::kw_only(),
-            py::arg("password")                = "",
-            py::arg("hex_password")            = false,
-            py::arg("ignore_xref_streams")     = false,
-            py::arg("suppress_warnings")       = true,
-            py::arg("attempt_recovery")        = true,
+            py::arg("password") = "",
+            py::arg("hex_password") = false,
+            py::arg("ignore_xref_streams") = false,
+            py::arg("suppress_warnings") = true,
+            py::arg("attempt_recovery") = true,
             py::arg("inherit_page_attributes") = true,
-            py::arg("access_mode")             = access_mode_e::access_default,
-            py::arg("description")             = "",
-            py::arg("closing_stream")          = false)
+            py::arg("access_mode") = access_mode_e::access_default,
+            py::arg("description") = "",
+            py::arg("closing_stream") = false)
         .def("__repr__",
             [](QPDF &q) {
                 return std::string("<pikepdf.Pdf description='") + q.getFilename() +
@@ -531,22 +531,22 @@ void init_qpdf(py::module_ &m)
             save_pdf,
             py::arg("stream"),
             py::kw_only(),
-            py::arg("static_id")            = false,
-            py::arg("preserve_pdfa")        = true,
-            py::arg("min_version")          = "",
-            py::arg("force_version")        = "",
+            py::arg("static_id") = false,
+            py::arg("preserve_pdfa") = true,
+            py::arg("min_version") = "",
+            py::arg("force_version") = "",
             py::arg("fix_metadata_version") = true,
-            py::arg("compress_streams")     = true,
-            py::arg("stream_decode_level")  = py::none(),
-            py::arg("object_stream_mode")   = qpdf_object_stream_e::qpdf_o_preserve,
-            py::arg("normalize_content")    = false,
-            py::arg("linearize")            = false,
-            py::arg("qdf")                  = false,
-            py::arg("progress")             = py::none(),
-            py::arg("encryption")           = py::none(),
-            py::arg("samefile_check")       = true,
-            py::arg("recompress_flate")     = false,
-            py::arg("deterministic_id")     = false)
+            py::arg("compress_streams") = true,
+            py::arg("stream_decode_level") = py::none(),
+            py::arg("object_stream_mode") = qpdf_object_stream_e::qpdf_o_preserve,
+            py::arg("normalize_content") = false,
+            py::arg("linearize") = false,
+            py::arg("qdf") = false,
+            py::arg("progress") = py::none(),
+            py::arg("encryption") = py::none(),
+            py::arg("samefile_check") = true,
+            py::arg("recompress_flate") = false,
+            py::arg("deterministic_id") = false)
         .def("_get_object_id", &QPDF::getObjectByID)
         .def(
             "get_object",
@@ -646,25 +646,25 @@ void init_qpdf(py::module_ &m)
             "_allow_modify_all", [](QPDF &q) { return q.allowModifyAll(); })
         .def_property_readonly("_encryption_data",
             [](QPDF &q) {
-                int R                                   = 0;
-                int P                                   = 0;
-                int V                                   = 0;
+                int R = 0;
+                int P = 0;
+                int V = 0;
                 QPDF::encryption_method_e stream_method = QPDF::e_unknown;
                 QPDF::encryption_method_e string_method = QPDF::e_unknown;
-                QPDF::encryption_method_e file_method   = QPDF::e_unknown;
+                QPDF::encryption_method_e file_method = QPDF::e_unknown;
                 if (!q.isEncrypted(R, P, V, stream_method, string_method, file_method))
                     return py::dict();
 
-                auto user_passwd    = q.getTrimmedUserPassword();
+                auto user_passwd = q.getTrimmedUserPassword();
                 auto encryption_key = q.getEncryptionKey();
 
-                return py::dict(py::arg("R")  = R,
-                    py::arg("P")              = P,
-                    py::arg("V")              = V,
-                    py::arg("stream")         = stream_method,
-                    py::arg("string")         = string_method,
-                    py::arg("file")           = file_method,
-                    py::arg("user_passwd")    = py::bytes(user_passwd),
+                return py::dict(py::arg("R") = R,
+                    py::arg("P") = P,
+                    py::arg("V") = V,
+                    py::arg("stream") = stream_method,
+                    py::arg("string") = string_method,
+                    py::arg("file") = file_method,
+                    py::arg("user_passwd") = py::bytes(user_passwd),
                     py::arg("encryption_key") = py::bytes(encryption_key));
             })
         .def_property_readonly("user_password_matched", &QPDF::userPasswordMatched)
@@ -678,7 +678,7 @@ void init_qpdf(py::module_ &m)
             "flatten_annotations",
             [](QPDF &q, std::string mode) {
                 QPDFPageDocumentHelper dh(q);
-                auto required  = 0;
+                auto required = 0;
                 auto forbidden = an_invisible | an_hidden;
 
                 if (mode == "screen") {

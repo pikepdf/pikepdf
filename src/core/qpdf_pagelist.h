@@ -7,8 +7,8 @@
 
 #include <pybind11/stl.h>
 
-#include <qpdf/QPDFPageObjectHelper.hh>
 #include <qpdf/QPDFPageDocumentHelper.hh>
+#include <qpdf/QPDFPageObjectHelper.hh>
 
 void init_pagelist(py::module_ &m);
 

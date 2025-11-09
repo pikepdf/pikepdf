@@ -5,12 +5,12 @@
 #include <cstring>
 
 #include <qpdf/Constants.h>
-#include <qpdf/Types.h>
 #include <qpdf/DLL.h>
-#include <qpdf/QPDFExc.hh>
-#include <qpdf/QPDF.hh>
 #include <qpdf/InputSource.hh>
+#include <qpdf/QPDF.hh>
+#include <qpdf/QPDFExc.hh>
 #include <qpdf/QUtil.hh>
+#include <qpdf/Types.h>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -54,10 +54,10 @@ public:
                 std::cerr << "Exception in " << __func__ << ": " << e.what();
         }
     }
-    PythonStreamInputSource(const PythonStreamInputSource &)            = delete;
+    PythonStreamInputSource(const PythonStreamInputSource &) = delete;
     PythonStreamInputSource &operator=(const PythonStreamInputSource &) = delete;
-    PythonStreamInputSource(PythonStreamInputSource &&)                 = default;
-    PythonStreamInputSource &operator=(PythonStreamInputSource &&)      = delete;
+    PythonStreamInputSource(PythonStreamInputSource &&) = default;
+    PythonStreamInputSource &operator=(PythonStreamInputSource &&) = delete;
 
     std::string const &getName() const override { return this->name; }
 
@@ -90,16 +90,16 @@ public:
         // memcpy that buffer. Error message is:
         // "TypeError: a read-write bytes-like object is required, not memoryview"
         this->last_offset = this->tell();
-        py::bytes result  = this->stream.attr("read")(length);
+        py::bytes result = this->stream.attr("read")(length);
         py::buffer pybuf(result);
         py::buffer_info info = pybuf.request();
-        size_t bytes_read    = info.size * info.itemsize;
+        size_t bytes_read = info.size * info.itemsize;
 
         memcpy(buffer, info.ptr, std::min(length, bytes_read));
 #else
         auto view_buffer_info = py::memoryview::from_memory(buffer, length);
-        this->last_offset     = this->tell();
-        py::object result     = this->stream.attr("readinto")(view_buffer_info);
+        this->last_offset = this->tell();
+        py::object result = this->stream.attr("readinto")(view_buffer_info);
         if (result.is_none())
             return 0;
         size_t bytes_read = py::cast<size_t>(result);
@@ -120,14 +120,14 @@ public:
     {
         py::gil_scoped_acquire gil; // Must acquire so another thread cannot seek
 
-        qpdf_offset_t result   = 0;
+        qpdf_offset_t result = 0;
         bool eol_straddles_buf = false;
         char rawbuf[4096];
         std::string line_endings = "\r\n";
 
         while (true) {
             qpdf_offset_t cur_offset = this->tell();
-            size_t len               = this->read(rawbuf, sizeof(rawbuf));
+            size_t len = this->read(rawbuf, sizeof(rawbuf));
             if (len == 0) {
                 result = this->tell();
                 break;

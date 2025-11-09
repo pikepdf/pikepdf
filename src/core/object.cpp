@@ -1,20 +1,20 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
-#include <cstring>
 #include <cctype>
+#include <cstring>
 
+#include <qpdf/Buffer.hh>
 #include <qpdf/Constants.h>
-#include <qpdf/Types.h>
 #include <qpdf/DLL.h>
 #include <qpdf/Pl_String.hh>
+#include <qpdf/QPDF.hh>
 #include <qpdf/QPDFExc.hh>
 #include <qpdf/QPDFObjGen.hh>
-#include <qpdf/QPDFXRefEntry.hh>
-#include <qpdf/Buffer.hh>
 #include <qpdf/QPDFObjectHandle.hh>
-#include <qpdf/QPDF.hh>
 #include <qpdf/QPDFWriter.hh>
+#include <qpdf/QPDFXRefEntry.hh>
+#include <qpdf/Types.h>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -220,7 +220,7 @@ void init_object(py::module_ &m)
             })
         .def("with_same_owner_as",
             [](QPDFObjectHandle &self, QPDFObjectHandle &other) {
-                QPDF *self_owner  = self.getOwningQPDF();
+                QPDF *self_owner = self.getOwningQPDF();
                 QPDF *other_owner = other.getOwningQPDF();
 
                 if (self_owner == other_owner)
@@ -351,7 +351,7 @@ void init_object(py::module_ &m)
                     return nitems > 0;
                 } else if (h.isStream()) {
                     auto stream_dict = h.getDict();
-                    auto len         = stream_dict.getKey("/Length");
+                    auto len = stream_dict.getKey("/Length");
                     if (len.isNull() || !len.isInteger() || len.getIntValue() <= 0) {
                         return false;
                     }
@@ -426,7 +426,7 @@ void init_object(py::module_ &m)
                 if (h.isDictionary() || (h.isStream() && name != "stream_dict")) {
                     // Map attribute assignment to setting dictionary key
                     std::string key = "/" + name;
-                    auto value      = objecthandle_encode(pyvalue);
+                    auto value = objecthandle_encode(pyvalue);
                     object_set_key(h, key, value);
                     return;
                 }
@@ -520,13 +520,13 @@ void init_object(py::module_ &m)
             "__iter__",
             [](QPDFObjectHandle h) -> py::iterable {
                 if (h.isArray()) {
-                    auto vec   = h.getArrayAsVector();
+                    auto vec = h.getArrayAsVector();
                     auto pyvec = py::cast(vec);
                     return pyvec.attr("__iter__")();
                 } else if (h.isDictionary() || h.isStream()) {
                     if (h.isStream())
                         h = h.getDict();
-                    auto keys   = h.getKeys();
+                    auto keys = h.getKeys();
                     auto pykeys = py::cast(keys);
                     return pykeys.attr("__iter__")();
                 } else {
@@ -541,7 +541,7 @@ void init_object(py::module_ &m)
                     h = h.getDict();
                 if (!h.isDictionary())
                     throw py::type_error("items() not available on this type");
-                auto dict   = h.getDictAsMap();
+                auto dict = h.getDictAsMap();
                 auto pydict = py::cast(dict);
                 return pydict.attr("items")();
             },
@@ -584,7 +584,7 @@ void init_object(py::module_ &m)
         .def("__setitem__",
             [](QPDFObjectHandle &h, int index, py::object pyvalue) {
                 auto u_index = list_range_check(h, index);
-                auto value   = objecthandle_encode(pyvalue);
+                auto value = objecthandle_encode(pyvalue);
                 h.setArrayItem(u_index, value);
             })
         .def("__delitem__",
@@ -634,8 +634,8 @@ void init_object(py::module_ &m)
                 py::bytes data,
                 py::object filter,
                 py::object decode_parms) {
-                std::string sdata               = data;
-                QPDFObjectHandle h_filter       = objecthandle_encode(filter);
+                std::string sdata = data;
+                QPDFObjectHandle h_filter = objecthandle_encode(filter);
                 QPDFObjectHandle h_decode_parms = objecthandle_encode(decode_parms);
                 h.replaceStreamData(sdata, h_filter, h_decode_parms);
             },
@@ -682,7 +682,7 @@ void init_object(py::module_ &m)
                 auto name = h.getUniqueResourceName(prefix, min_suffix);
                 return std::pair(name, min_suffix);
             },
-            py::arg("prefix")     = "",
+            py::arg("prefix") = "",
             py::arg("min_suffix") = 0)
         .def("_get_resource_names",
             [](QPDFObjectHandle &h) { return h.getResourceNames(); })
@@ -697,14 +697,14 @@ void init_object(py::module_ &m)
         .def(
             "to_json",
             [](QPDFObjectHandle &h,
-                bool dereference   = false,
+                bool dereference = false,
                 int schema_version = 2) -> py::bytes {
                 std::string result;
                 Pl_String p("json", nullptr, result);
                 h.writeJSON(schema_version, &p, dereference);
                 return result;
             },
-            py::arg("dereference")    = false,
+            py::arg("dereference") = false,
             py::arg("schema_version") = 2); // end of QPDFObjectHandle bindings
 
     m.def("_new_boolean", &QPDFObjectHandle::newBool);

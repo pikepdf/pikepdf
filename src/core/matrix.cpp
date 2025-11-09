@@ -4,10 +4,10 @@
 #include <cmath>
 
 #include <qpdf/Constants.h>
-#include <qpdf/Types.h>
 #include <qpdf/DLL.h>
 #include <qpdf/QPDFExc.hh>
 #include <qpdf/QPDFMatrix.hh>
+#include <qpdf/Types.h>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -37,7 +37,7 @@ py::tuple tuple_from_matrix(const QPDFMatrix &m)
 void init_matrix(py::module_ &m)
 {
     using Point = std::pair<double, double>;
-    using Rect  = QPDFObjectHandle::Rectangle;
+    using Rect = QPDFObjectHandle::Rectangle;
 
     py::class_<QPDFMatrix, py::smart_holder>(m, "Matrix")
         .def(py::init<>())
@@ -107,8 +107,8 @@ void init_matrix(py::module_ &m)
             [](QPDFMatrix const &self, double angle_degrees_ccw) {
                 QPDFMatrix copy(self);
                 auto radians = angle_degrees_ccw * pi / 180.0;
-                auto c       = std::cos(radians);
-                auto s       = std::sin(radians);
+                auto c = std::cos(radians);
+                auto s = std::sin(radians);
                 copy.concat(QPDFMatrix(c, s, -s, c, 0, 0));
                 return copy;
             },
@@ -150,7 +150,7 @@ void init_matrix(py::module_ &m)
                 if (!copy.is_none() && !copy) {
                     throw py::value_error("copy=False is not supported");
                 }
-                auto np  = py::module_::import("numpy");
+                auto np = py::module_::import("numpy");
                 auto arr = np.attr("array")(
                     // clang-format off
                     py::make_tuple(
@@ -163,7 +163,7 @@ void init_matrix(py::module_ &m)
                 return arr;
             },
             py::arg("dtype") = py::none(),
-            py::arg("copy")  = py::none())
+            py::arg("copy") = py::none())
         .def("as_array",
             [](QPDFMatrix const &self) { return QPDFObjectHandle::newArray(self); })
         .def(

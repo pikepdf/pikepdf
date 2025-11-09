@@ -1,18 +1,18 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
-#include <sstream>
-#include <iostream>
-#include <iomanip>
 #include <cctype>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
 
-#include "pikepdf.h"
 #include "parsers.h"
+#include "pikepdf.h"
 
-#include <qpdf/QPDFPageObjectHelper.hh>
-#include <qpdf/QPDFPageLabelDocumentHelper.hh>
 #include <qpdf/Pipeline.hh>
 #include <qpdf/Pl_Buffer.hh>
+#include <qpdf/QPDFPageLabelDocumentHelper.hh>
+#include <qpdf/QPDFPageObjectHelper.hh>
 
 py::size_t page_index(QPDF &owner, QPDFObjectHandle page)
 {
@@ -66,7 +66,7 @@ void init_page(py::module_ &m)
                 return poh.externalizeInlineImages(min_size, shallow);
             },
             py::arg("min_size") = 0,
-            py::arg("shallow")  = false)
+            py::arg("shallow") = false)
         .def("rotate",
             &QPDFPageObjectHelper::rotatePage,
             py::arg("angle"),
@@ -124,8 +124,8 @@ void init_page(py::module_ &m)
             py::arg("rect"),
             py::kw_only(), // LCOV_EXCL_LINE
             py::arg("invert_transformations") = true,
-            py::arg("allow_shrink")           = true,
-            py::arg("allow_expand")           = false)
+            py::arg("allow_shrink") = true,
+            py::arg("allow_expand") = false)
         .def(
             "get_filtered_contents",
             [](QPDFPageObjectHelper &poh,
@@ -152,7 +152,7 @@ void init_page(py::module_ &m)
                 // Standard py::keep_alive<> won't cut it. We could make this
                 // function require a Pdf, or move it to the Pdf.
                 auto pyqpdf = py::cast(poh.getObjectHandle().getOwningQPDF());
-                auto pytf   = py::cast(tf);
+                auto pytf = py::cast(tf);
                 py::detail::keep_alive_impl(pyqpdf, pytf);
 
                 poh.addContentTokenFilter(tf);
@@ -167,7 +167,7 @@ void init_page(py::module_ &m)
         .def_property_readonly("index",
             [](QPDFPageObjectHelper &poh) {
                 auto this_page = poh.getObjectHandle();
-                auto p_owner   = this_page.getOwningQPDF();
+                auto p_owner = this_page.getOwningQPDF();
                 if (!p_owner)
                     throw py::value_error("Page is not attached to a Pdf");
                 auto &owner = *p_owner;
@@ -175,11 +175,11 @@ void init_page(py::module_ &m)
             })
         .def_property_readonly("label", [](QPDFPageObjectHelper &poh) {
             auto this_page = poh.getObjectHandle();
-            auto p_owner   = this_page.getOwningQPDF();
+            auto p_owner = this_page.getOwningQPDF();
             if (!p_owner)
                 throw py::value_error("Page is not attached to a Pdf");
             auto &owner = *p_owner;
-            auto index  = page_index(owner, this_page);
+            auto index = page_index(owner, this_page);
 
             QPDFPageLabelDocumentHelper pldh(owner);
             auto label_dict = pldh.getLabelForPage(index);

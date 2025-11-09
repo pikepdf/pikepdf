@@ -1,10 +1,10 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
-#include <sstream>
-#include <iostream>
-#include <iomanip>
 #include <cctype>
+#include <iomanip>
+#include <iostream>
+#include <sstream>
 
 #include "pikepdf.h"
 
@@ -15,7 +15,7 @@ class TokenFilter : public QPDFObjectHandle::TokenFilter {
 public:
     using QPDFObjectHandle::TokenFilter::TokenFilter;
     virtual ~TokenFilter() = default;
-    using Token            = QPDFTokenizer::Token;
+    using Token = QPDFTokenizer::Token;
 
     void handleToken(Token const &token) override
     {

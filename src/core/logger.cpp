@@ -15,11 +15,11 @@ public:
         this->logger = logger;
     }
 
-    virtual ~Pl_PythonLogger()                          = default;
-    Pl_PythonLogger(const Pl_PythonLogger &)            = delete;
+    virtual ~Pl_PythonLogger() = default;
+    Pl_PythonLogger(const Pl_PythonLogger &) = delete;
     Pl_PythonLogger &operator=(const Pl_PythonLogger &) = delete;
-    Pl_PythonLogger(Pl_PythonLogger &&)                 = delete;
-    Pl_PythonLogger &operator=(Pl_PythonLogger &&)      = delete;
+    Pl_PythonLogger(Pl_PythonLogger &&) = delete;
+    Pl_PythonLogger &operator=(Pl_PythonLogger &&) = delete;
 
     void write(const unsigned char *buf, size_t len) override;
     void finish() override;

@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: MPL-2.0
 
 #include <qpdf/Constants.h>
-#include <qpdf/Types.h>
 #include <qpdf/DLL.h>
+#include <qpdf/QPDFAcroFormDocumentHelper.hh>
 #include <qpdf/QPDFExc.hh>
 #include <qpdf/QPDFFormFieldObjectHelper.hh>
-#include <qpdf/QPDFAcroFormDocumentHelper.hh>
+#include <qpdf/Types.h>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -181,7 +181,7 @@ void init_acroform(py::module_ &m)
                 QPDF &qpdf = acroform.getQPDF();
                 for (auto ref : refs) {
                     auto object = qpdf.getObjectByObjGen(ref);
-                    auto field  = new QPDFFormFieldObjectHelper(object);
+                    auto field = new QPDFFormFieldObjectHelper(object);
                     fields.push_back(*field);
                 }
                 return fields;
@@ -221,7 +221,7 @@ void init_acroform(py::module_ &m)
                 QPDF &qpdf = acroform.getQPDF();
                 for (auto ref : refs) {
                     auto object = qpdf.getObjectByObjGen(ref);
-                    auto field  = new QPDFFormFieldObjectHelper(object);
+                    auto field = new QPDFFormFieldObjectHelper(object);
                     fields.push_back(*field);
                 }
                 return fields;

@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: MPL-2.0
 
 #include <qpdf/Constants.h>
-#include <qpdf/Types.h>
 #include <qpdf/DLL.h>
-#include <qpdf/QPDFExc.hh>
-#include <qpdf/QPDF.hh>
 #include <qpdf/Pipeline.hh>
+#include <qpdf/QPDF.hh>
+#include <qpdf/QPDFExc.hh>
 #include <qpdf/QUtil.hh>
+#include <qpdf/Types.h>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -21,7 +21,7 @@ void Pl_PythonOutput::write(const unsigned char *buf, size_t len)
     py::gil_scoped_acquire gil;
     py::ssize_t so_far = 0;
     while (len > 0) {
-        auto view_buffer  = py::memoryview::from_memory(buf, len);
+        auto view_buffer = py::memoryview::from_memory(buf, len);
         py::object result = this->stream.attr("write")(view_buffer);
         try {
             so_far = result.cast<py::ssize_t>();

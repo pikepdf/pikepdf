@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: MPL-2.0
 
 #include <qpdf/Constants.h>
-#include <qpdf/Types.h>
 #include <qpdf/DLL.h>
-#include <qpdf/QPDFExc.hh>
-#include <qpdf/QPDFFileSpecObjectHelper.hh>
 #include <qpdf/QPDFEFStreamObjectHelper.hh>
 #include <qpdf/QPDFEmbeddedFileDocumentHelper.hh>
+#include <qpdf/QPDFExc.hh>
+#include <qpdf/QPDFFileSpecObjectHelper.hh>
+#include <qpdf/Types.h>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -67,12 +67,12 @@ void init_embeddedfiles(py::module_ &m)
             py::arg("q"),
             py::arg("data"),
             py::kw_only(), // LCOV_EXCL_LINE
-            py::arg("description")   = std::string(""),
-            py::arg("filename")      = std::string(""),
-            py::arg("mime_type")     = std::string(""),
+            py::arg("description") = std::string(""),
+            py::arg("filename") = std::string(""),
+            py::arg("mime_type") = std::string(""),
             py::arg("creation_date") = std::string(""),
-            py::arg("mod_date")      = std::string(""),
-            py::arg("relationship")  = QPDFObjectHandle::newName("/Unspecified"))
+            py::arg("mod_date") = std::string(""),
+            py::arg("relationship") = QPDFObjectHandle::newName("/Unspecified"))
         .def_property("description",
             &QPDFFileSpecObjectHelper::getDescription,
             &QPDFFileSpecObjectHelper::setDescription // LCOV_EXCL_LINE
@@ -88,9 +88,9 @@ void init_embeddedfiles(py::module_ &m)
                 auto filenames = spec.getFilenames();
                 py::dict result;
                 for (auto key_filename : filenames) {
-                    auto key                      = key_filename.first;
-                    auto filename                 = key_filename.second;
-                    auto key_as_name              = QPDFObjectHandle::newName(key);
+                    auto key = key_filename.first;
+                    auto filename = key_filename.second;
+                    auto key_as_name = QPDFObjectHandle::newName(key);
                     result[py::cast(key_as_name)] = py::bytes(filename);
                 }
                 return result;

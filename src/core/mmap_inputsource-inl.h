@@ -4,22 +4,22 @@
 #include <cstdio>
 #include <cstring>
 
-#include <qpdf/Constants.h>
-#include <qpdf/Types.h>
-#include <qpdf/DLL.h>
-#include <qpdf/QPDFExc.hh>
-#include <qpdf/QPDF.hh>
-#include <qpdf/InputSource.hh>
-#include <qpdf/QUtil.hh>
 #include <qpdf/Buffer.hh>
 #include <qpdf/BufferInputSource.hh>
+#include <qpdf/Constants.h>
+#include <qpdf/DLL.h>
+#include <qpdf/InputSource.hh>
+#include <qpdf/QPDF.hh>
+#include <qpdf/QPDFExc.hh>
+#include <qpdf/QUtil.hh>
+#include <qpdf/Types.h>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include <signal.h>
 #include "pikepdf.h"
 #include "utils.h"
+#include <signal.h>
 
 // We could almost subclass BufferInputSource here, except that it expects Buffer
 // as an initialization parameter, we don't know what the buffer location is until
@@ -52,14 +52,14 @@ public:
         py::gil_scoped_acquire acquire; // GIL must be held anyway, issue #295
         this->stream = stream;
 
-        py::int_ fileno  = this->stream.attr("fileno")();
-        int fd           = fileno;
+        py::int_ fileno = this->stream.attr("fileno")();
+        int fd = fileno;
         auto mmap_module = py::module_::import("mmap");
-        auto mmap_fn     = mmap_module.attr("mmap");
+        auto mmap_fn = mmap_module.attr("mmap");
 
         // Use Python's mmap API since it is more portable than platform versions.
         auto access_read = mmap_module.attr("ACCESS_READ");
-        this->mmap       = mmap_fn(fd, 0, py::arg("access") = access_read);
+        this->mmap = mmap_fn(fd, 0, py::arg("access") = access_read);
         py::buffer view(this->mmap);
 
         // .request(false) -> request read-only mapping
@@ -98,16 +98,16 @@ public:
                 std::cerr << "Exception in " << __func__ << ": " << e.what();
         }
     }
-    MmapInputSource(const MmapInputSource &)            = delete;
+    MmapInputSource(const MmapInputSource &) = delete;
     MmapInputSource &operator=(const MmapInputSource &) = delete;
-    MmapInputSource(MmapInputSource &&)                 = delete;
-    MmapInputSource &operator=(MmapInputSource &&)      = delete;
+    MmapInputSource(MmapInputSource &&) = delete;
+    MmapInputSource &operator=(MmapInputSource &&) = delete;
 
     std::string const &getName() const override { return this->bis->getName(); }
 
     qpdf_offset_t tell() override
     {
-        auto result       = this->bis->tell();
+        auto result = this->bis->tell();
         this->last_offset = this->bis->getLastOffset();
         return result;
     }
@@ -129,7 +129,7 @@ public:
 
     size_t read(char *buffer, size_t length) override
     {
-        auto result       = this->bis->read(buffer, length);
+        auto result = this->bis->read(buffer, length);
         this->last_offset = this->bis->getLastOffset();
         return result;
     }
@@ -142,7 +142,7 @@ public:
 
     qpdf_offset_t findAndSkipNextEOL() override
     {
-        auto result       = this->bis->findAndSkipNextEOL();
+        auto result = this->bis->findAndSkipNextEOL();
         this->last_offset = this->bis->getLastOffset();
         return result;
     }

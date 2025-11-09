@@ -6,14 +6,14 @@
 #include <cstdio>
 #include <cstring>
 
-#include <qpdf/Constants.h>
-#include <qpdf/Types.h>
-#include <qpdf/DLL.h>
-#include <qpdf/QPDFExc.hh>
 #include <qpdf/Buffer.hh>
-#include <qpdf/QPDF.hh>
+#include <qpdf/Constants.h>
+#include <qpdf/DLL.h>
 #include <qpdf/Pipeline.hh>
+#include <qpdf/QPDF.hh>
+#include <qpdf/QPDFExc.hh>
 #include <qpdf/QUtil.hh>
+#include <qpdf/Types.h>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -27,11 +27,11 @@ public:
     {
     }
 
-    virtual ~Pl_PythonOutput()                          = default;
-    Pl_PythonOutput(const Pl_PythonOutput &)            = delete;
+    virtual ~Pl_PythonOutput() = default;
+    Pl_PythonOutput(const Pl_PythonOutput &) = delete;
     Pl_PythonOutput &operator=(const Pl_PythonOutput &) = delete;
-    Pl_PythonOutput(Pl_PythonOutput &&)                 = delete;
-    Pl_PythonOutput &operator=(Pl_PythonOutput &&)      = delete;
+    Pl_PythonOutput(Pl_PythonOutput &&) = delete;
+    Pl_PythonOutput &operator=(Pl_PythonOutput &&) = delete;
 
     void write(const unsigned char *buf, size_t len) override;
     void finish() override;

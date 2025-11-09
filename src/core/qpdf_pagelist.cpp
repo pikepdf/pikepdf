@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
-#include "pikepdf.h"
 #include "qpdf_pagelist.h"
+#include "pikepdf.h"
 
-#include <qpdf/QPDFPageObjectHelper.hh>
 #include <qpdf/QPDFPageDocumentHelper.hh>
 #include <qpdf/QPDFPageLabelDocumentHelper.hh>
+#include <qpdf/QPDFPageObjectHelper.hh>
 
 static QPDFPageObjectHelper as_page_helper(py::handle obj)
 {
@@ -136,7 +136,10 @@ void PageList::delete_pages_from_iterable(py::slice slice)
     }
 }
 
-py::size_t PageList::count() { return this->doc.getAllPages().size(); }
+py::size_t PageList::count()
+{
+    return this->doc.getAllPages().size();
+}
 
 void PageList::insert_page(py::size_t index, QPDFPageObjectHelper page)
 {

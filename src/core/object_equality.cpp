@@ -48,7 +48,7 @@ static bool objecthandle_equal_inner(QPDFObjectHandle self,
         return true;
     }
 
-    auto self_typecode  = self.getTypeCode();
+    auto self_typecode = self.getTypeCode();
     auto other_typecode = other.getTypeCode();
 
     if (typecode_is_bool(self_typecode) && typecode_is_bool(other_typecode)) {
@@ -59,10 +59,10 @@ static bool objecthandle_equal_inner(QPDFObjectHandle self,
                typecode_is_numeric(other_typecode)) {
         // If 'self' and 'other' are different numeric types, convert both to
         // Decimal objects and compare them as such.
-        auto a              = decimal_from_pdfobject(self);
-        auto b              = decimal_from_pdfobject(other);
+        auto a = decimal_from_pdfobject(self);
+        auto b = decimal_from_pdfobject(other);
         py::object pyresult = a.attr("__eq__")(b);
-        bool result         = pyresult.cast<bool>();
+        bool result = pyresult.cast<bool>();
         return result;
     }
 
@@ -87,10 +87,10 @@ static bool objecthandle_equal_inner(QPDFObjectHandle self,
     case qpdf_object_type_e::ot_array: {
         if (self.getArrayNItems() != other.getArrayNItems())
             return false;
-        auto self_aitems   = self.aitems();
-        auto other_aitems  = other.aitems();
-        auto iter_self     = self_aitems.begin();
-        auto iter_other    = other_aitems.begin();
+        auto self_aitems = self.aitems();
+        auto other_aitems = other.aitems();
+        auto iter_self = self_aitems.begin();
+        auto iter_other = other_aitems.begin();
         auto unparsed_pair = make_unparsed_pair(self, other);
         // If previously visited, we have a cycle
         if (visited.count(unparsed_pair) > 0)
@@ -113,7 +113,7 @@ static bool objecthandle_equal_inner(QPDFObjectHandle self,
         // Potential recursive comparison
         visited.insert(unparsed_pair);
         for (auto &key : self.getKeys()) {
-            auto value       = self.getKey(key);
+            auto value = self.getKey(key);
             auto other_value = other.getKey(key);
             if (other_value.isNull())
                 return false;
@@ -129,7 +129,7 @@ static bool objecthandle_equal_inner(QPDFObjectHandle self,
 
         // If dictionaries are equal, check our stream
         // We don't go as far as decompressing the data to see if it's equal
-        auto self_buffer  = self.getRawStreamData();
+        auto self_buffer = self.getRawStreamData();
         auto other_buffer = other.getRawStreamData();
 
         // Early out: if underlying qpdf Buffers happen to be the same, the data is

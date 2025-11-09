@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
-#include <sstream>
 #include <locale>
+#include <sstream>
 
-#include "pikepdf.h"
 #include "parsers.h"
+#include "pikepdf.h"
 
 void PyParserCallbacks::handleObject(QPDFObjectHandle obj, size_t offset, size_t length)
 {
@@ -92,11 +92,11 @@ std::ostream &operator<<(std::ostream &os, ContentStreamInstruction &csi)
 
 py::object ContentStreamInlineImage::get_inline_image() const
 {
-    auto PdfInlineImage    = py::module_::import("pikepdf").attr("PdfInlineImage");
-    auto kwargs            = py::dict();
-    kwargs["image_data"]   = this->image_data;
+    auto PdfInlineImage = py::module_::import("pikepdf").attr("PdfInlineImage");
+    auto kwargs = py::dict();
+    kwargs["image_data"] = this->image_data;
     kwargs["image_object"] = this->image_metadata;
-    auto iimage            = PdfInlineImage(**kwargs);
+    auto iimage = PdfInlineImage(**kwargs);
     return iimage;
 }
 
@@ -160,7 +160,7 @@ void OperandGrouper::handleObject(QPDFObjectHandle obj)
             } else if (op == "EI") {
                 ContentStreamInlineImage csii(this->inline_metadata, this->tokens[0]);
                 this->instructions.append(csii);
-                this->inline_metadata      = ObjectList();
+                this->inline_metadata = ObjectList();
                 this->parsing_inline_image = false;
             }
         } else {
@@ -179,8 +179,14 @@ void OperandGrouper::handleEOF()
         this->warning = "Unexpected end of stream";
 }
 
-py::list OperandGrouper::getInstructions() const { return this->instructions; }
-std::string OperandGrouper::getWarning() const { return this->warning; }
+py::list OperandGrouper::getInstructions() const
+{
+    return this->instructions;
+}
+std::string OperandGrouper::getWarning() const
+{
+    return this->warning;
+}
 
 py::bytes unparse_content_stream(py::iterable contentstream)
 {
@@ -226,10 +232,10 @@ py::bytes unparse_content_stream(py::iterable contentstream)
         QPDFObjectHandle op;
         if (py::isinstance<py::str>(operator_)) {
             py::str s = py::reinterpret_borrow<py::str>(operator_);
-            op        = QPDFObjectHandle::newOperator(std::string(s).c_str());
+            op = QPDFObjectHandle::newOperator(std::string(s).c_str());
         } else if (py::isinstance<py::bytes>(operator_)) {
             py::bytes s = py::reinterpret_borrow<py::bytes>(operator_);
-            op          = QPDFObjectHandle::newOperator(std::string(s).c_str());
+            op = QPDFObjectHandle::newOperator(std::string(s).c_str());
         } else {
             op = operator_.cast<QPDFObjectHandle>();
             if (!op.isOperator()) {
@@ -241,7 +247,7 @@ py::bytes unparse_content_stream(py::iterable contentstream)
         }
 
         if (op.getOperatorValue() == std::string("INLINE IMAGE")) {
-            auto operands     = py::reinterpret_borrow<py::sequence>(operands_op[0]);
+            auto operands = py::reinterpret_borrow<py::sequence>(operands_op[0]);
             py::object iimage = operands[0];
             py::handle PdfInlineImage =
                 py::module::import("pikepdf").attr("PdfInlineImage");
@@ -311,7 +317,7 @@ void init_parsers(py::module_ &m)
         m, "ContentStreamInlineImage")
         .def(py::init<const ContentStreamInlineImage &>())
         .def(py::init([](py::object iimage) {
-            auto data         = iimage.attr("_data");
+            auto data = iimage.attr("_data");
             auto image_object = iimage.attr("_image_object");
 
             return ContentStreamInlineImage(

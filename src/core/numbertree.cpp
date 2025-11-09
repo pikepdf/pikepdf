@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: MPL-2.0
 
 #include <qpdf/Constants.h>
-#include <qpdf/Types.h>
 #include <qpdf/DLL.h>
 #include <qpdf/QPDFExc.hh>
 #include <qpdf/QPDFNumberTreeObjectHelper.hh>
+#include <qpdf/Types.h>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>

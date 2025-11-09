@@ -2,15 +2,18 @@
 // SPDX-License-Identifier: MPL-2.0
 
 #include <iostream>
-#include <streambuf>
 #include <qpdf/QPDFJob.hh>
+#include <streambuf>
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
 #include "pikepdf.h"
 
-void set_job_defaults(QPDFJob &job) { job.setMessagePrefix("pikepdf"); }
+void set_job_defaults(QPDFJob &job)
+{
+    job.setMessagePrefix("pikepdf");
+}
 
 QPDFJob job_from_json_str(const std::string &json)
 {
@@ -46,7 +49,7 @@ void init_job(py::module_ &m)
             py::arg("json") // LCOV_EXCL_LINE
             )
         .def(py::init([](py::dict &json_dict) {
-            auto json_dumps  = py::module_::import("json").attr("dumps");
+            auto json_dumps = py::module_::import("json").attr("dumps");
             py::str json_str = json_dumps(json_dict);
             return job_from_json_str(std::string(json_str));
         }),
@@ -84,7 +87,7 @@ void init_job(py::module_ &m)
         .def_property_readonly("encryption_status", [](QPDFJob &job) {
             uint bits = job.getEncryptionStatus();
             py::dict result;
-            result["encrypted"]          = bool(bits & qpdf_es_encrypted);
+            result["encrypted"] = bool(bits & qpdf_es_encrypted);
             result["password_incorrect"] = bool(bits & qpdf_es_password_incorrect);
             return result;
         });
