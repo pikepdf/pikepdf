@@ -12,6 +12,11 @@ pikepdf now declares unstable "support" for freethreading, and does not publish
 freethreading wheels. All tests seem to pass, but that's because the existing
 tests don't try to create race conditions. Must be compiled manually.
 
+## v10.0.2
+
+- Fixed presentation of strings using `unparse_content_stream` - if the stream can be represented using PdfDocEncoding, it is rendered in that way for ease of reading. :issue:`682`
+- Reformatted C++ source.
+
 ## v10.0.1
 
 - Fixed issue with performing equality test on dictionaries with cyclic subgraphs.
