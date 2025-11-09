@@ -84,9 +84,9 @@ ContentStreamInstruction::ContentStreamInstruction(
 std::ostream &operator<<(std::ostream &os, ContentStreamInstruction &csi)
 {
     for (QPDFObjectHandle &obj : csi.operands) {
-        os << obj.unparseBinary() << " ";
+        os << obj.unparse() << " ";
     }
-    os << csi.operator_.unparseBinary();
+    os << csi.operator_.unparse();
     return os;
 }
 

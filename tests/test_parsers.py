@@ -333,3 +333,19 @@ class TestBadSingleInstructions:
             ContentStreamInstruction([d], Operator('Do'))
         with pytest.raises(TypeError):
             ContentStreamInstruction([Name.Him, stream], Operator('Do'))
+
+
+def test_string_parse_unparse_pdfdoc():
+    pdf = pikepdf.new()
+    parsed = pikepdf.parse_content_stream(pikepdf.Stream(pdf, b'(Hello, world!) Tj'))
+    assert pikepdf.unparse_content_stream(parsed) == b'(Hello, world!) Tj'
+
+
+def test_string_parse_unparse_not_pdfdoc_safe():
+    pdf = pikepdf.new()
+    hello_world_chinese = '你好世界'
+    hello_world_chinese_pdf_encoded = hello_world_chinese.encode('utf-16be').hex()
+    parsed = pikepdf.parse_content_stream(
+        pikepdf.Stream(pdf, f'<{hello_world_chinese_pdf_encoded}> Tj'.encode('ascii'))
+    )
+    assert pikepdf.unparse_content_stream(parsed) == b'<4f60597d4e16754c> Tj'
