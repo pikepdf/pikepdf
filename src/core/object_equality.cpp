@@ -24,12 +24,15 @@ inline bool typecode_is_numeric(qpdf_object_type_e typecode)
            typecode == qpdf_object_type_e::ot_boolean;
 }
 
-static std::pair<std::string, std::string> make_unparsed_pair(QPDFObjectHandle &self, QPDFObjectHandle &other)
+static std::pair<std::string, std::string> make_unparsed_pair(
+    QPDFObjectHandle &self, QPDFObjectHandle &other)
 {
     return std::make_pair(self.unparseBinary(), other.unparseBinary());
 }
 
-static bool objecthandle_equal_inner(QPDFObjectHandle self, QPDFObjectHandle other, std::set<std::pair<std::string, std::string>> &visited)
+static bool objecthandle_equal_inner(QPDFObjectHandle self,
+    QPDFObjectHandle other,
+    std::set<std::pair<std::string, std::string>> &visited)
 {
     StackGuard sg(" objecthandle_equal");
 
@@ -84,10 +87,10 @@ static bool objecthandle_equal_inner(QPDFObjectHandle self, QPDFObjectHandle oth
     case qpdf_object_type_e::ot_array: {
         if (self.getArrayNItems() != other.getArrayNItems())
             return false;
-        auto self_aitems  = self.aitems();
-        auto other_aitems = other.aitems();
-        auto iter_self    = self_aitems.begin();
-        auto iter_other   = other_aitems.begin();
+        auto self_aitems   = self.aitems();
+        auto other_aitems  = other.aitems();
+        auto iter_self     = self_aitems.begin();
+        auto iter_other    = other_aitems.begin();
         auto unparsed_pair = make_unparsed_pair(self, other);
         // If previously visited, we have a cycle
         if (visited.count(unparsed_pair) > 0)
@@ -110,7 +113,7 @@ static bool objecthandle_equal_inner(QPDFObjectHandle self, QPDFObjectHandle oth
         // Potential recursive comparison
         visited.insert(unparsed_pair);
         for (auto &key : self.getKeys()) {
-            auto value = self.getKey(key);
+            auto value       = self.getKey(key);
             auto other_value = other.getKey(key);
             if (other_value.isNull())
                 return false;
