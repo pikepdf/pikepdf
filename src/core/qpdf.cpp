@@ -511,9 +511,7 @@ void init_qpdf(py::module_ &m)
                 }
                 return warnings;
             })
-        .def("show_xref_table",
-            &QPDF::showXRefTable,
-            py::call_guard<py::scoped_ostream_redirect>())
+        .def("show_xref_table", &QPDF::showXRefTable)
         .def(
             "_add_page",
             [](QPDF &q, QPDFObjectHandle &page, bool first = false) {

@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import locale
+import logging
 import os
 import shutil
 import zlib
@@ -204,8 +205,11 @@ def test_remove_unreferenced(resources, outdir):
     assert out2.stat().st_size < out1.stat().st_size
 
 
-def test_show_xref(trivial):
-    trivial.show_xref_table()
+def test_show_xref(trivial, caplog):
+    with caplog.at_level(logging.INFO):
+        trivial.show_xref_table()
+
+    assert '1/0' in caplog.records[0].message
 
 
 def test_progress(trivial, outdir):

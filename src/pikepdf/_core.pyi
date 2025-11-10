@@ -2485,7 +2485,18 @@ class Pdf:
             permissions.
         """
     def show_xref_table(self) -> None:
-        """Pretty-print the Pdf's xref (cross-reference table)."""
+        """Pretty-print the Pdf's xref (cross-reference table).
+
+        The xref table will be written to the `pikepdf._core` module's logger
+        with a logging level of ``logging.INFO``. You may need to adjust the
+        logging level to see the output.
+
+        This function is mainly for debugging or curiosity. In practice, pikepdf
+        does not trust the xref table; it instead reads the PDF to determine
+        the position of objects, and recalculates the xref table when a PDF is
+        saved. One could use to locate objects within a PDF using a hex editor,
+        assuming the PDF is well-formed.
+        """
     @property
     def Root(self) -> Object: ...
     @property
