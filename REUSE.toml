@@ -55,8 +55,9 @@ SPDX-License-Identifier = "CC0-1.0"
 [[annotations]]
 path = "tests/resources/cyclic-toc.pdf"
 precedence = "aggregate"
-SPDX-FileCopyrightText = "2025 qooxzuub"
-SPDX-License-Identifier = "CC-BY-SA-4.0"
+SPDX-FileCopyrightText = "NONE"
+SPDX-License-Identifier = "CC-PDDC"
+SPDX-FileComment = "Released by author into the public domain. See: https://github.com/pikepdf/pikepdf/issues/677#issuecomment-3516842721"
 
 [[annotations]]
 path = ["docs/images/pike.png", "tests/resources/pike**jp2.pdf"]
