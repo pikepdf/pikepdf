@@ -244,7 +244,4 @@ convention = "google"
 quote-style = "preserve"
 
 [dependency-groups]
-dev = [
-    "ruff>=0.12.9",
-    "setuptools>=80.9.0",
-]
+dev = ["ruff>=0.12.9", "setuptools>=80.9.0"]

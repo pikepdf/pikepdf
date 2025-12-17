@@ -44,3 +44,4 @@ unpacked/
 /tmp_rpms/
 *.dll
 /issuepdf
+.aider*
