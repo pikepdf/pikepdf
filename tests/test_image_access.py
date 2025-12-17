@@ -698,6 +698,19 @@ def test_stacked_compression(first_image_in):
     assert pim.filters == ['/FlateDecode', '/JPXDecode']
 
 
+def test_stacked_compression_no_orphaned_objects(first_image_in):
+    # Regression test for issue #691
+    xobj, pdf = first_image_in('pike-flate-jp2.pdf')
+
+    initial_count = len(pdf.objects)
+    pim = PdfImage(xobj)
+
+    for _ in range(3):
+        pim.as_pil_image().close()
+
+    assert len(pdf.objects) == initial_count
+
+
 @pytest.mark.parametrize(
     'blackis1,decode,expected',
     [
