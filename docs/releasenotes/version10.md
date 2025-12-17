@@ -17,6 +17,7 @@ tests don't try to create race conditions. Must be compiled manually.
 - Fixed an issue where `PdfImage.as_pil_image()` would create additional unused objects in the PDF that called it.
 - Fixed a shutdown segfault in the alpha release of Python 3.15.
 - Fixed `Pdf.show_xref_table()` not actually showing its output.
+- python-xmp-toolkit 2.1.0 is effective a breaking change, requiring a new version of libexempi to be installed that is not available on some cibuildwheel builders. As a workaround, we have pinned the older version.
 
 ## v10.0.2
 
