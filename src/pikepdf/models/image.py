@@ -490,11 +490,12 @@ class PdfImage(PdfImageBase):
             # The only filter is complex, so return
             return self.obj.read_raw_bytes(), self.filters
 
-        tmp_pdf = Pdf.new()
-        obj_copy = tmp_pdf.copy_foreign(self.obj)
-        obj_copy.Filter = Array([Name(f) for f in self.filters[:n]])
-        obj_copy.DecodeParms = Array(self.decode_parms[:n])
-        return obj_copy.read_bytes(StreamDecodeLevel.specialized), self.filters[n:]
+        # Put copy in a temporary PDF to ensure we don't permanently modify self
+        with Pdf.new() as tmp_pdf:
+            obj_copy = tmp_pdf.copy_foreign(self.obj)
+            obj_copy.Filter = Array([Name(f) for f in self.filters[:n]])
+            obj_copy.DecodeParms = Array(self.decode_parms[:n])
+            return obj_copy.read_bytes(StreamDecodeLevel.specialized), self.filters[n:]
 
     def _extract_direct(self, *, stream: BinaryIO) -> str | None:
         """Attempt to extract the image directly to a usable image file.
