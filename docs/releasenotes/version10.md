@@ -12,6 +12,12 @@ pikepdf now declares unstable "support" for freethreading, and does not publish
 freethreading wheels. All tests seem to pass, but that's because the existing
 tests don't try to create race conditions. Must be compiled manually.
 
+## v10.0.3
+
+- Fixed an issue where `PdfImage.as_pil_image()` would create additional unused objects in the PDF that called it.
+- Fixed a shutdown segfault in the alpha release of Python 3.15.
+- Fixed `Pdf.show_xref_table()` not actually showing its output.
+
 ## v10.0.2
 
 - Fixed presentation of strings using `unparse_content_stream` - if the stream can be represented using PdfDocEncoding, it is rendered in that way for ease of reading. :issue:`682`
