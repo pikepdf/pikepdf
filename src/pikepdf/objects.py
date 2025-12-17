@@ -45,6 +45,8 @@ ObjectType.__module__ = __name__
 class _ObjectMeta(type(Object)):  # type: ignore
     """Support instance checking."""
 
+    object_type: ObjectType
+
     def __instancecheck__(self, instance: Any) -> bool:
         # Note: since this class is a metaclass, self is a class object
         if type(instance) is not Object:
@@ -168,7 +170,7 @@ class String(Object, metaclass=_ObjectMeta):
             s: The string to use. String will be encoded for
                 PDF, bytes will be constructed without encoding.
         """
-        if isinstance(s, bytes):
+        if isinstance(s, bytes | bytearray | memoryview):
             return _core._new_string(s)
         return _core._new_string_utf8(s)
 
@@ -227,7 +229,7 @@ class Dictionary(Object, metaclass=_ObjectMeta):
             return _core._new_dictionary({('/' + k): v for k, v in kwargs.items()})
         if isinstance(d, Dictionary):
             # Already a dictionary
-            return d.__copy__()
+            return cast(Dictionary, d.__copy__())
         if not d:
             d = {}
         if d and any(key == '/' or not key.startswith('/') for key in d.keys()):
