@@ -24,6 +24,7 @@ from pikepdf.models.metadata import (
     XMP_NS_XMP,
     DateConverter,
     PdfMetadata,
+    XmpDocument,
     decode_pdf_date,
 )
 
@@ -894,3 +895,305 @@ def test_docinfo_wrong_type():
 
     assert isinstance(pdf.docinfo, pikepdf.Dictionary)
     assert pdf.docinfo.is_indirect
+
+
+# --- XmpDocument standalone tests ---
+
+
+class TestXmpDocumentStandalone:
+    """Tests for XmpDocument used independently of PdfMetadata."""
+
+    def test_create_empty(self):
+        """Creating XmpDocument with no data creates valid empty XMP."""
+        xmp = XmpDocument()
+        assert len(xmp) == 0
+        xml = xmp.to_bytes()
+        assert b'rdf:RDF' in xml
+        assert b'xpacket' in xml
+
+    def test_create_from_bytes(self):
+        """XmpDocument can parse existing XMP bytes."""
+        xmp_bytes = b"""\
+<?xpacket begin="\xef\xbb\xbf" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about=""
+      xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:format>application/pdf</dc:format>
+  </rdf:Description>
+</rdf:RDF>
+</x:xmpmeta>
+<?xpacket end="w"?>
+"""
+        xmp = XmpDocument(xmp_bytes)
+        assert 'dc:format' in xmp
+        assert xmp['dc:format'] == 'application/pdf'
+
+    def test_get_simple_property(self):
+        """Get a simple string property."""
+        xmp_bytes = b"""\
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about="" xmlns:pdf="http://ns.adobe.com/pdf/1.3/">
+    <pdf:Producer>TestProducer</pdf:Producer>
+  </rdf:Description>
+</rdf:RDF>
+</x:xmpmeta>
+"""
+        xmp = XmpDocument(xmp_bytes)
+        assert xmp['pdf:Producer'] == 'TestProducer'
+        assert xmp.get('pdf:Producer') == 'TestProducer'
+        assert xmp.get('pdf:Missing') is None
+        assert xmp.get('pdf:Missing', 'default') == 'default'
+
+    def test_get_language_alternative(self):
+        """Get a language alternative (rdf:Alt) property."""
+        xmp_bytes = b"""\
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:title>
+      <rdf:Alt>
+        <rdf:li xml:lang="x-default">My Title</rdf:li>
+      </rdf:Alt>
+    </dc:title>
+  </rdf:Description>
+</rdf:RDF>
+</x:xmpmeta>
+"""
+        xmp = XmpDocument(xmp_bytes)
+        assert xmp['dc:title'] == 'My Title'
+
+    def test_get_ordered_array(self):
+        """Get an ordered array (rdf:Seq) property."""
+        xmp_bytes = b"""\
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:creator>
+      <rdf:Seq>
+        <rdf:li>Author One</rdf:li>
+        <rdf:li>Author Two</rdf:li>
+      </rdf:Seq>
+    </dc:creator>
+  </rdf:Description>
+</rdf:RDF>
+</x:xmpmeta>
+"""
+        xmp = XmpDocument(xmp_bytes)
+        assert xmp['dc:creator'] == ['Author One', 'Author Two']
+
+    def test_get_unordered_array(self):
+        """Get an unordered array (rdf:Bag) property."""
+        xmp_bytes = b"""\
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:subject>
+      <rdf:Bag>
+        <rdf:li>keyword1</rdf:li>
+        <rdf:li>keyword2</rdf:li>
+      </rdf:Bag>
+    </dc:subject>
+  </rdf:Description>
+</rdf:RDF>
+</x:xmpmeta>
+"""
+        xmp = XmpDocument(xmp_bytes)
+        assert xmp['dc:subject'] == {'keyword1', 'keyword2'}
+
+    def test_set_simple_property(self):
+        """Set a simple string property."""
+        xmp = XmpDocument()
+        xmp['pdf:Producer'] = 'MyProducer'
+        assert xmp['pdf:Producer'] == 'MyProducer'
+
+    def test_set_language_alternative(self):
+        """Setting dc:title auto-wraps in rdf:Alt."""
+        xmp = XmpDocument()
+        xmp['dc:title'] = 'New Title'
+        assert xmp['dc:title'] == 'New Title'
+        # Verify it's wrapped in Alt
+        xml = xmp.to_bytes()
+        assert b'rdf:Alt' in xml
+        assert b'xml:lang="x-default"' in xml
+
+    def test_set_ordered_array(self):
+        """Set an ordered array (list)."""
+        xmp = XmpDocument()
+        xmp['dc:creator'] = ['Author A', 'Author B']
+        assert xmp['dc:creator'] == ['Author A', 'Author B']
+        xml = xmp.to_bytes()
+        assert b'rdf:Seq' in xml
+
+    def test_set_unordered_array(self):
+        """Set an unordered array (set)."""
+        xmp = XmpDocument()
+        xmp['dc:subject'] = {'tag1', 'tag2'}
+        assert xmp['dc:subject'] == {'tag1', 'tag2'}
+        xml = xmp.to_bytes()
+        assert b'rdf:Bag' in xml
+
+    def test_update_existing_property(self):
+        """Update an existing property value."""
+        xmp_bytes = b"""\
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about="" xmlns:pdf="http://ns.adobe.com/pdf/1.3/">
+    <pdf:Producer>OldProducer</pdf:Producer>
+  </rdf:Description>
+</rdf:RDF>
+</x:xmpmeta>
+"""
+        xmp = XmpDocument(xmp_bytes)
+        assert xmp['pdf:Producer'] == 'OldProducer'
+        xmp['pdf:Producer'] = 'NewProducer'
+        assert xmp['pdf:Producer'] == 'NewProducer'
+
+    def test_delete_property(self):
+        """Delete a property."""
+        xmp_bytes = b"""\
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about="" xmlns:pdf="http://ns.adobe.com/pdf/1.3/">
+    <pdf:Producer>ToDelete</pdf:Producer>
+  </rdf:Description>
+</rdf:RDF>
+</x:xmpmeta>
+"""
+        xmp = XmpDocument(xmp_bytes)
+        assert 'pdf:Producer' in xmp
+        del xmp['pdf:Producer']
+        assert 'pdf:Producer' not in xmp
+
+    def test_delete_returns_success(self):
+        """The delete() method returns whether deletion succeeded."""
+        xmp = XmpDocument()
+        xmp['pdf:Producer'] = 'Test'
+        assert xmp.delete('pdf:Producer') is True
+        assert xmp.delete('pdf:Producer') is False  # Already deleted
+
+    def test_delete_missing_raises_keyerror(self):
+        """Deleting non-existent key with del raises KeyError."""
+        xmp = XmpDocument()
+        with pytest.raises(KeyError):
+            del xmp['pdf:Missing']
+
+    def test_contains(self):
+        """Test key membership."""
+        xmp = XmpDocument()
+        assert 'pdf:Producer' not in xmp
+        xmp['pdf:Producer'] = 'Test'
+        assert 'pdf:Producer' in xmp
+
+    def test_len(self):
+        """Test length."""
+        xmp = XmpDocument()
+        assert len(xmp) == 0
+        xmp['pdf:Producer'] = 'Test'
+        assert len(xmp) == 1
+        xmp['dc:title'] = 'Title'
+        assert len(xmp) == 2
+
+    def test_iter(self):
+        """Test iteration over keys."""
+        xmp = XmpDocument()
+        xmp['pdf:Producer'] = 'Test'
+        xmp['dc:title'] = 'Title'
+        keys = list(xmp)
+        assert len(keys) == 2
+
+    def test_to_bytes_with_xpacket(self):
+        """Serialization includes xpacket markers by default."""
+        xmp = XmpDocument()
+        xmp['pdf:Producer'] = 'Test'
+        xml = xmp.to_bytes()
+        assert xml.startswith(b'<?xpacket begin')
+        assert b'<?xpacket end="w"?>' in xml
+
+    def test_to_bytes_without_xpacket(self):
+        """Serialization can exclude xpacket markers."""
+        xmp = XmpDocument()
+        xmp['pdf:Producer'] = 'Test'
+        xml = xmp.to_bytes(xpacket=False)
+        assert not xml.startswith(b'<?xpacket')
+        assert b'<?xpacket end' not in xml
+
+    def test_str(self):
+        """String representation is XML without xpacket."""
+        xmp = XmpDocument()
+        xmp['pdf:Producer'] = 'Test'
+        s = str(xmp)
+        assert '<?xpacket' not in s
+        assert 'rdf:RDF' in s
+
+    def test_roundtrip(self):
+        """Parse -> modify -> serialize -> parse roundtrip."""
+        xmp = XmpDocument()
+        xmp['dc:title'] = 'Original'
+        xmp['dc:creator'] = ['Author']
+        xmp['pdf:Producer'] = 'Producer'
+
+        # Serialize and re-parse
+        xml = xmp.to_bytes()
+        xmp2 = XmpDocument(xml)
+
+        assert xmp2['dc:title'] == 'Original'
+        assert xmp2['dc:creator'] == ['Author']
+        assert xmp2['pdf:Producer'] == 'Producer'
+
+    def test_qname_conversion(self):
+        """Test qualified name conversion."""
+        assert XmpDocument.qname('dc:title') == '{http://purl.org/dc/elements/1.1/}title'
+        assert XmpDocument.qname('pdf:Producer') == '{http://ns.adobe.com/pdf/1.3/}Producer'
+        # Already qualified names pass through
+        assert XmpDocument.qname('{http://example.com}foo') == '{http://example.com}foo'
+
+    def test_prefix_from_uri(self):
+        """Test URI to prefix conversion."""
+        xmp = XmpDocument()
+        assert xmp.prefix_from_uri('{http://purl.org/dc/elements/1.1/}title') == 'dc:title'
+        assert xmp.prefix_from_uri('{http://ns.adobe.com/pdf/1.3/}Producer') == 'pdf:Producer'
+
+    def test_register_namespace(self):
+        """Test custom namespace registration."""
+        XmpDocument.register_xml_namespace('http://example.com/ns/', 'example')
+        xmp = XmpDocument()
+        xmp['example:custom'] = 'value'
+        assert xmp['example:custom'] == 'value'
+        xml = xmp.to_bytes()
+        assert b'http://example.com/ns/' in xml
+
+    def test_invalid_xml_overwrite_mode(self):
+        """Invalid XML is replaced with empty XMP in overwrite mode."""
+        xmp = XmpDocument(b'not xml at all', overwrite_invalid_xml=True)
+        assert len(xmp) == 0  # Empty XMP created
+
+    def test_invalid_xml_strict_mode(self):
+        """Invalid XML raises error in strict mode."""
+        with pytest.raises(XMLSyntaxError):
+            XmpDocument(b'not xml at all', overwrite_invalid_xml=False)
+
+    def test_valid_xml_but_not_xmp_overwrite_mode(self):
+        """Valid XML but not XMP is replaced in overwrite mode."""
+        xmp = XmpDocument(b'<root><child/></root>', overwrite_invalid_xml=True)
+        assert len(xmp) == 0  # Empty XMP created
+
+    def test_valid_xml_but_not_xmp_strict_mode(self):
+        """Valid XML but not XMP raises in strict mode."""
+        with pytest.raises(ValueError, match='not XMP'):
+            XmpDocument(b'<root><child/></root>', overwrite_invalid_xml=False)
+
+    def test_attribute_style_property(self):
+        """Properties can be expressed as XML attributes."""
+        xmp_bytes = b"""\
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about=""
+      xmlns:pdf="http://ns.adobe.com/pdf/1.3/"
+      pdf:Producer="AttributeProducer"/>
+</rdf:RDF>
+</x:xmpmeta>
+"""
+        xmp = XmpDocument(xmp_bytes)
+        assert xmp['pdf:Producer'] == 'AttributeProducer'
