@@ -18,7 +18,7 @@ from pikepdf.models.image import (
     PdfInlineImage,
     UnsupportedImageTypeError,  # legacy
 )
-from pikepdf.models.metadata import PdfMetadata
+from pikepdf.models.metadata import PdfMetadata, XmpDocument
 from pikepdf.models.outlines import (
     Outline,
     OutlineItem,
@@ -40,6 +40,7 @@ __all__ = [
     'PdfInlineImage',
     'UnsupportedImageTypeError',  # legacy
     'PdfMetadata',
+    'XmpDocument',
     'Outline',
     'OutlineItem',
     'OutlineStructureError',  # legacy

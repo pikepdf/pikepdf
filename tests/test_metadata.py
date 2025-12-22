@@ -471,12 +471,9 @@ def test_wrong_xml(sandwich):
         <test><xml>This is valid xml but not valid XMP</xml></test>
     """.strip(),
     )
-    meta = sandwich.open_metadata(strict=True)
+    # With lazy loading removed, ValueError is raised immediately in open_metadata()
     with pytest.raises(ValueError, match='not XMP'):
-        with meta:
-            pass
-    with pytest.raises(ValueError, match='not XMP'):
-        meta['pdfaid:part']
+        sandwich.open_metadata(strict=True)
 
 
 def test_no_x_xmpmeta(trivial):
