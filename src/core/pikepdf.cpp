@@ -30,6 +30,7 @@
 
 static constinit std::atomic<uint> DECIMAL_PRECISION = 15;
 static constinit std::atomic<bool> MMAP_DEFAULT = false;
+static constinit std::atomic<bool> EXPLICIT_CONVERSION_MODE = false;
 
 uint get_decimal_precision()
 {
@@ -38,6 +39,10 @@ uint get_decimal_precision()
 bool get_mmap_default()
 {
     return MMAP_DEFAULT.load();
+}
+bool get_explicit_conversion_mode()
+{
+    return EXPLICIT_CONVERSION_MODE.load();
 }
 
 class TemporaryErrnoChange {
@@ -194,6 +199,14 @@ PYBIND11_MODULE(_core, m, py::mod_gil_not_used())
             "set_access_default_mmap",
             [](bool mmap) { return MMAP_DEFAULT.exchange(mmap); },
             "If True, ``pikepdf.open(...access_mode=access_default)`` will use mmap.")
+        .def(
+            "_get_explicit_conversion_mode",
+            []() { return EXPLICIT_CONVERSION_MODE.load(); },
+            "Return True if explicit conversion mode is enabled.")
+        .def(
+            "_set_explicit_conversion_mode",
+            [](bool mode) { return EXPLICIT_CONVERSION_MODE.exchange(mode); },
+            "Set explicit conversion mode. Returns previous value.")
         .def("set_flate_compression_level",
             [](int level) {
                 if (-1 <= level && level <= 9) {

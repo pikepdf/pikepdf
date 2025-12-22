@@ -19,6 +19,7 @@ class definition is present as an aide for code introspection.
 from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
+from decimal import Decimal
 
 # pylint: disable=unused-import, abstract-method
 from secrets import token_urlsafe
@@ -299,3 +300,88 @@ class Stream(Object, metaclass=_ObjectMeta):
         if stream_dict:
             stream.stream_dict = stream_dict
         return stream
+
+
+class Integer(Object, metaclass=_ObjectMeta):
+    """A PDF integer object.
+
+    In explicit conversion mode, PDF integers are returned as this type instead
+    of being automatically converted to Python ``int``.
+
+    Supports ``int()`` conversion, indexing operations (via ``__index__``),
+    and arithmetic operations. Arithmetic operations return native Python ``int``.
+
+    .. versionadded:: 10.1
+    """
+
+    object_type = ObjectType.integer
+
+    def __new__(cls, val: int | Integer) -> Integer:
+        """Construct a PDF Integer.
+
+        Args:
+            val: The integer value.
+        """
+        if isinstance(val, Integer):
+            return val
+        return _core._new_integer(val)  # type: ignore[return-value]
+
+
+class Boolean(Object, metaclass=_ObjectMeta):
+    """A PDF boolean object.
+
+    In explicit conversion mode, PDF booleans are returned as this type instead
+    of being automatically converted to Python ``bool``.
+
+    Supports ``bool()`` conversion via ``__bool__``.
+
+    .. versionadded:: 10.1
+    """
+
+    object_type = ObjectType.boolean
+
+    def __new__(cls, val: bool | Boolean) -> Boolean:
+        """Construct a PDF Boolean.
+
+        Args:
+            val: The boolean value.
+        """
+        if isinstance(val, Boolean):
+            return val
+        return _core._new_boolean(val)  # type: ignore[return-value]
+
+
+class Real(Object, metaclass=_ObjectMeta):
+    """A PDF real (floating-point) object.
+
+    In explicit conversion mode, PDF reals are returned as this type instead
+    of being automatically converted to Python ``Decimal``.
+
+    Supports ``float()`` conversion. Use ``as_decimal()`` for lossless conversion.
+
+    .. versionadded:: 10.1
+    """
+
+    object_type = ObjectType.real
+
+    def __new__(cls, val: float | Decimal | Real, places: int = 6) -> Real:
+        """Construct a PDF Real.
+
+        Args:
+            val: The real value. Converted to string representation internally.
+            places: Number of decimal places (used when val is float).
+        """
+        if isinstance(val, Real):
+            return val
+        if isinstance(val, float):
+            return _core._new_real(val, places)  # type: ignore[return-value]
+        return _core._new_real(str(val))  # type: ignore[return-value]
+
+
+# Note on numbers ABC registration:
+# numbers.Integral.register(Integer) and numbers.Real.register(Real) don't work
+# as expected because of the "smoke and mirrors" design - at runtime all Objects
+# are actually pikepdf.Object instances, not Integer/Real instances.
+# The isinstance(obj, Integer) check uses metaclass magic (_ObjectMeta) that
+# checks the object's _type_code attribute. This doesn't satisfy the numbers ABC
+# registration mechanism which checks the actual type hierarchy.

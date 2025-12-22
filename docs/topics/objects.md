@@ -24,6 +24,70 @@ methods, some of which only if the underlying type is suitable. Use the
 fact that the PDF specification allows many data fields to be one of several
 types.
 
+## Explicit conversion mode
+
+By default, pikepdf automatically converts PDF scalar types to Python native
+types (`int`, `bool`, `Decimal`). This is convenient but can make type checking
+difficult, especially when handling potentially malformed PDFs where a field
+might contain an unexpected type.
+
+pikepdf provides an **explicit conversion mode** that preserves PDF type
+information by returning {class}`pikepdf.Integer`, {class}`pikepdf.Boolean`,
+and {class}`pikepdf.Real` objects instead of native Python types.
+
+```python
+>>> import pikepdf
+>>> with pikepdf.explicit_conversion():
+...     pdf = pikepdf.open("example.pdf")
+...     count = pdf.Root.Pages.Count
+...     isinstance(count, pikepdf.Integer)  # True
+...     int(count)  # Convert to Python int
+5
+```
+
+You can enable explicit mode globally with
+{func}`pikepdf.set_object_conversion_mode`:
+
+```python
+>>> pikepdf.set_object_conversion_mode('explicit')
+>>> pikepdf.get_object_conversion_mode()
+'explicit'
+```
+
+### Safe accessor methods
+
+When working with PDF objects, you often need to extract scalar values while
+handling type mismatches gracefully. The `as_*` methods provide type-safe
+access with optional defaults:
+
+```python
+>>> with pikepdf.explicit_conversion():
+...     d = pikepdf.Dictionary(Width=100, Name=pikepdf.Name.Foo)
+...     d.Width.as_int()  # Returns 100
+...     d.Name.as_int(default=0)  # Returns 0 (Name is not an integer)
+...     d.Name.as_int()  # Raises TypeError
+```
+
+Available methods:
+- {meth}`~pikepdf.Object.as_int` - convert to `int`, or return default
+- {meth}`~pikepdf.Object.as_bool` - convert to `bool`, or return default
+- {meth}`~pikepdf.Object.as_float` - convert to `float`, or return default
+- {meth}`~pikepdf.Object.as_decimal` - convert to `Decimal` (for Real only), or return default
+
+### Arithmetic with scalar types
+
+{class}`pikepdf.Integer` and {class}`pikepdf.Real` support arithmetic
+operations with both `int` and `float` operands:
+
+```python
+>>> with pikepdf.explicit_conversion():
+...     d = pikepdf.Dictionary(Value=10)
+...     d.Value + 5      # Returns 15 (int)
+...     d.Value + 2.5    # Returns 12.5 (float)
+...     d.Value / 4      # Returns 2.5 (float, true division)
+...     d.Value // 3     # Returns 3 (int, floor division)
+```
+
 For convenience, the `repr()` of a `pikepdf.Object` will display a
 Python expression that replicates the existing object (when possible), so it
 will say:
@@ -46,6 +110,9 @@ You may construct a new object with one of the classes:
 - {class}`pikepdf.Name` - the type used for keys in PDF Dictionary objects
 - {class}`pikepdf.String` - a text string
   (treated as `bytes` and `str` depending on context)
+- {class}`pikepdf.Integer` - a PDF integer (explicit mode)
+- {class}`pikepdf.Boolean` - a PDF boolean (explicit mode)
+- {class}`pikepdf.Real` - a PDF real/floating-point number (explicit mode)
 
 These may be thought of as subclasses of `pikepdf.Object`. (Internally they
 **are** `pikepdf.Object`.)

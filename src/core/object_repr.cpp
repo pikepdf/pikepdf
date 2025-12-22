@@ -43,7 +43,13 @@ std::string objecthandle_scalar_value(QPDFObjectHandle h)
         ss << std::to_string(h.getIntValue());
         break;
     case qpdf_object_type_e::ot_real:
-        ss << "Decimal('" + h.getRealValue() + "')";
+        if (get_explicit_conversion_mode()) {
+            // In explicit mode, show as quoted string since pikepdf.Real wraps it
+            ss << "'" << h.getRealValue() << "'";
+        } else {
+            // In implicit mode, show as Decimal for backward compatibility
+            ss << "Decimal('" + h.getRealValue() + "')";
+        }
         break;
     case qpdf_object_type_e::ot_name:
         ss << std::quoted(h.getName());
@@ -97,11 +103,22 @@ std::string objecthandle_pythonic_typename(QPDFObjectHandle h)
         ss << "pikepdf.Stream";
         break;
     case qpdf_object_type_e::ot_null:
+        break; // None is always represented as None
     case qpdf_object_type_e::ot_boolean:
+        if (get_explicit_conversion_mode()) {
+            ss << "pikepdf.Boolean";
+        }
+        break;
     case qpdf_object_type_e::ot_integer:
+        if (get_explicit_conversion_mode()) {
+            ss << "pikepdf.Integer";
+        }
+        break;
     case qpdf_object_type_e::ot_real:
-        break; // No typename since literal is obvious and Decimal automatically
-               // adds Decimal('1.2345.')
+        if (get_explicit_conversion_mode()) {
+            ss << "pikepdf.Real";
+        }
+        break;
 
     // LCOV_EXCL_START
     default:

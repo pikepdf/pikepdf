@@ -25,6 +25,9 @@ PYBIND11_RUNTIME_EXCEPTION(notimpl_error, PyExc_NotImplementedError);
 // From object_convert.cpp
 pybind11::object decimal_from_pdfobject(QPDFObjectHandle h);
 
+// From pikepdf.cpp - forward declaration for type_caster
+bool get_explicit_conversion_mode();
+
 namespace pybind11 {
 namespace detail {
 template <>
@@ -70,17 +73,27 @@ private:
         if (!csrc)
             return none().release(); // LCOV_EXCL_LINE
 
-        switch (src->getTypeCode()) {
-        case qpdf_object_type_e::ot_null:
-            return pybind11::none().release();
-        case qpdf_object_type_e::ot_integer:
-            return pybind11::int_(src->getIntValue()).release();
-        case qpdf_object_type_e::ot_boolean:
-            return pybind11::bool_(src->getBoolValue()).release();
-        case qpdf_object_type_e::ot_real:
-            return decimal_from_pdfobject(*src).release();
-        default:
-            break;
+        // In explicit conversion mode, return scalars as pikepdf.Object
+        // so that Integer/Boolean/Real types are preserved.
+        // In implicit mode (default), auto-convert to native Python types.
+        if (!get_explicit_conversion_mode()) {
+            switch (src->getTypeCode()) {
+            case qpdf_object_type_e::ot_null:
+                return pybind11::none().release();
+            case qpdf_object_type_e::ot_integer:
+                return pybind11::int_(src->getIntValue()).release();
+            case qpdf_object_type_e::ot_boolean:
+                return pybind11::bool_(src->getBoolValue()).release();
+            case qpdf_object_type_e::ot_real:
+                return decimal_from_pdfobject(*src).release();
+            default:
+                break;
+            }
+        } else {
+            // Explicit mode: still convert null to None (no value in pikepdf.Null)
+            if (src->getTypeCode() == qpdf_object_type_e::ot_null) {
+                return pybind11::none().release();
+            }
         }
         return base::cast(*csrc, policy, parent);
     }
@@ -165,6 +178,7 @@ void init_tokenfilter(py::module_ &m);
 // pikepdf.cpp
 uint get_decimal_precision();
 bool get_mmap_default();
+bool get_explicit_conversion_mode();
 
 inline void python_warning(const char *msg, PyObject *category = PyExc_UserWarning)
 {
