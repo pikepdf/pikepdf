@@ -276,6 +276,58 @@ def test_date_docinfo_from_xmp():
         assert DateConverter.docinfo_from_xmp(xmp_val) == docinfo_val
 
 
+def test_reduced_precision_date_docinfo_from_xmp():
+    VALS = [
+        ('2023', 'D:2023'),
+        ('2023-11', 'D:202311'),
+        ('1999', 'D:1999'),
+        ('2000-01', 'D:200001'),
+    ]
+    for xmp_val, docinfo_val in VALS:
+        assert DateConverter.docinfo_from_xmp(xmp_val) == docinfo_val
+
+
+def test_reduced_precision_date_xmp_from_docinfo():
+    VALS = [
+        ('D:2023', '2023'),
+        ('D:202311', '2023-11'),
+        ('D:1999', '1999'),
+        ('D:200001', '2000-01'),
+    ]
+    for docinfo_val, xmp_val in VALS:
+        assert DateConverter.xmp_from_docinfo(docinfo_val) == xmp_val
+
+
+def test_reduced_precision_date_roundtrip():
+    VALS = ['2023', '2023-11', '1999', '2000-01']
+    for xmp_date in VALS:
+        pdf_date = DateConverter.docinfo_from_xmp(xmp_date)
+        roundtrip = DateConverter.xmp_from_docinfo(pdf_date)
+        assert roundtrip == xmp_date
+
+
+def test_reduced_precision_date_in_metadata(trivial, outpdf):
+    with trivial.open_metadata() as meta:
+        meta['xmp:CreateDate'] = '2023'
+    trivial.save(outpdf)
+
+    with pikepdf.open(outpdf) as pdf:
+        with pdf.open_metadata() as meta:
+            assert meta['xmp:CreateDate'] == '2023'
+        assert str(pdf.docinfo.get(Name.CreationDate, '')).startswith('D:2023')
+
+
+def test_reduced_precision_date_year_month_in_metadata(trivial, outpdf):
+    with trivial.open_metadata() as meta:
+        meta['xmp:CreateDate'] = '2023-11'
+    trivial.save(outpdf)
+
+    with pikepdf.open(outpdf) as pdf:
+        with pdf.open_metadata() as meta:
+            assert meta['xmp:CreateDate'] == '2023-11'
+        assert str(pdf.docinfo.get(Name.CreationDate, '')).startswith('D:202311')
+
+
 @given(
     integers(-9999, 9999),
     integers(0, 99),

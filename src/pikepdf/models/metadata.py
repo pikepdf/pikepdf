@@ -275,17 +275,23 @@ class DateConverter(Converter):
     @staticmethod
     def xmp_from_docinfo(docinfo_val):
         """Derive XMP date from DocumentInfo."""
+        if isinstance(docinfo_val, String):
+            docinfo_val = str(docinfo_val)
         if docinfo_val == '':
             return ''
+        val = docinfo_val[2:] if docinfo_val.startswith('D:') else docinfo_val
+        if len(val) in (4, 6) and val.isdigit():
+            return val if len(val) == 4 else f'{val[:4]}-{val[4:]}'
         return decode_pdf_date(docinfo_val).isoformat()
 
     @staticmethod
     def docinfo_from_xmp(xmp_val):
         """Derive DocumentInfo from XMP."""
+        if len(xmp_val) in (4, 7) and 'T' not in xmp_val:
+            return f'D:{xmp_val.replace("-", "")}'
         if xmp_val.endswith('Z'):
             xmp_val = xmp_val[:-1] + '+00:00'
-        dateobj = datetime.fromisoformat(xmp_val)
-        return encode_pdf_date(dateobj)
+        return encode_pdf_date(datetime.fromisoformat(xmp_val))
 
 
 class DocinfoMapping(NamedTuple):
