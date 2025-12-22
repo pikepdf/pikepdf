@@ -820,22 +820,19 @@ class PdfMetadata(MutableMapping):
         rdf = self._get_rdf_root()
         if str(self._qname(key)) in LANG_ALTS:
             val = AltList([_clean(val)])
-        if isinstance(val, list | set):
+        # Reuse existing rdf:Description element if available, to avoid
+        # creating multiple Description elements with the same rdf:about=""
+        rdfdesc = rdf.find('rdf:Description[@rdf:about=""]', self.NS)
+        if rdfdesc is None:
             rdfdesc = etree.SubElement(
                 rdf,
                 str(QName(XMP_NS_RDF, 'Description')),
                 attrib={str(QName(XMP_NS_RDF, 'about')): ''},
             )
+        if isinstance(val, list | set):
             node = etree.SubElement(rdfdesc, self._qname(key))
             self._setitem_add_array(node, val)
         elif isinstance(val, str):
-            rdfdesc = rdf.find('rdf:Description[@rdf:about=""]', self.NS)
-            if rdfdesc is None:
-                rdfdesc = etree.SubElement(
-                    rdf,
-                    str(QName(XMP_NS_RDF, 'Description')),
-                    attrib={str(QName(XMP_NS_RDF, 'about')): ''},
-                )
             node = etree.SubElement(rdfdesc, self._qname(key))
             node.text = _clean(val)
         else:
