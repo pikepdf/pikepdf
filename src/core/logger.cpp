@@ -15,8 +15,8 @@ public:
         this->logger = logger;
     }
 
+    // LCOV_EXCL_START - destructor never called due to no_op_deleter
     virtual ~Pl_PythonLogger() = default;
-    // LCOV_EXCL_START
     Pl_PythonLogger(const Pl_PythonLogger &) = delete;
     Pl_PythonLogger &operator=(const Pl_PythonLogger &) = delete;
     Pl_PythonLogger(Pl_PythonLogger &&) = delete;
@@ -24,7 +24,9 @@ public:
     // LCOV_EXCL_STOP
 
     void write(const unsigned char *buf, size_t len) override;
+    // LCOV_EXCL_START - qpdf logger doesn't call finish() on pipelines
     void finish() override;
+    // LCOV_EXCL_STOP
 
 private:
     py::object logger;
@@ -38,11 +40,13 @@ void Pl_PythonLogger::write(const unsigned char *buf, size_t len)
     this->logger.attr(this->level)(msg);
 }
 
+// LCOV_EXCL_START - qpdf logger doesn't call finish() on pipelines
 void Pl_PythonLogger::finish()
 {
     py::gil_scoped_acquire gil;
     this->logger.attr("flush")();
 }
+// LCOV_EXCL_STOP
 
 std::shared_ptr<QPDFLogger> get_pikepdf_logger()
 {

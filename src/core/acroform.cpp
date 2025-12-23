@@ -132,18 +132,6 @@ void init_acroform(py::module_ &m)
             &QPDFAcroFormDocumentHelper::addAndRenameFormFields,
             py::arg("fields"))
         .def(
-            "add_and_rename_fields",
-            [](QPDFAcroFormDocumentHelper &acroform,
-                const std::vector<QPDFObjectHelper> &fields) {
-                // convert fields to object handles
-                std::set<QPDFObjGen> objects;
-                for (auto &field : fields) {
-                    objects.insert(field.getObjectHandle().getObjGen());
-                }
-                acroform.removeFormFields(objects);
-            },
-            py::arg("fields"))
-        .def(
             "remove_fields",
             [](QPDFAcroFormDocumentHelper &acroform,
                 const std::vector<QPDFObjectHelper> &fields) {
