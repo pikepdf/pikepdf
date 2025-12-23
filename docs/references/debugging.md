@@ -25,12 +25,22 @@ cmake --build build -j
 ## Compile and link against qpdf source tree
 
 Build `pikepdf._core` against the version of qpdf above, rather than the
-system version:
+system version. If qpdf is checked out as a sibling directory (`../qpdf`),
+it will be auto-detected:
 
 ```bash
-env QPDF_SOURCE_TREE=<location of qpdf> \
-  QPDF_BUILD_LIBDIR=<directory containing libqpdf.so> \
-  python setup.py build_ext --inplace
+# Auto-detection (if ../qpdf exists)
+pip install -e .
+
+# Or specify paths explicitly
+pip install -e . -Csetup-args=-Dqpdf_source_tree=/path/to/qpdf \
+                 -Csetup-args=-Dqpdf_build_libdir=/path/to/qpdf/build/libqpdf
+
+# Or use meson directly for more control
+meson setup builddir -Dqpdf_source_tree=/path/to/qpdf \
+                     -Dqpdf_build_libdir=/path/to/qpdf/build/libqpdf
+meson compile -C builddir
+cp builddir/src/core/_core*.so src/pikepdf/
 ```
 
 The libqpdf.so file should be located in the `libqpdf` subdirectory of your cmake
