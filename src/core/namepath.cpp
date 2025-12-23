@@ -79,7 +79,7 @@ void init_namepath(py::module_ &m)
                             components.push_back(h.getName());
                             continue;
                         }
-                    } catch (const py::cast_error &) {
+                    } catch (const py::cast_error &) { // LCOV_EXCL_LINE
                         // Not a QPDFObjectHandle
                     }
                     throw py::type_error(
@@ -109,7 +109,7 @@ void init_namepath(py::module_ &m)
                         if (h.isName()) {
                             return p.append_name(h.getName());
                         }
-                    } catch (const py::cast_error &) {
+                    } catch (const py::cast_error &) { // LCOV_EXCL_LINE
                         // Not a QPDFObjectHandle
                     }
                 }

@@ -16,10 +16,12 @@ public:
     }
 
     virtual ~Pl_PythonLogger() = default;
+    // LCOV_EXCL_START
     Pl_PythonLogger(const Pl_PythonLogger &) = delete;
     Pl_PythonLogger &operator=(const Pl_PythonLogger &) = delete;
     Pl_PythonLogger(Pl_PythonLogger &&) = delete;
     Pl_PythonLogger &operator=(Pl_PythonLogger &&) = delete;
+    // LCOV_EXCL_STOP
 
     void write(const unsigned char *buf, size_t len) override;
     void finish() override;
@@ -48,16 +50,18 @@ std::shared_ptr<QPDFLogger> get_pikepdf_logger()
     return QPDFLogger::defaultLogger();
 }
 
+// LCOV_EXCL_START
 static void no_op_deleter(void *ptr) noexcept
 {
     // Intentionally left empty. The object is never deleted by the shared_ptr.
     // The memory will be reclaimed when the program terminates.
     // As a result, we deliberately leak memory associated with Pl_PythonLogger
-    // objects to avoid shutdown sequencing isseus between Python and C++
+    // objects to avoid shutdown sequencing issues between Python and C++
     // destructors.
     // https://github.com/pikepdf/pikepdf/issues/686
     (void)ptr;
 }
+// LCOV_EXCL_STOP
 
 void init_logger(py::module_ &m)
 {

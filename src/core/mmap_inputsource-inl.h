@@ -91,17 +91,21 @@ public:
             if (this->close_stream && py::hasattr(this->stream, "close")) {
                 this->stream.attr("close")();
             }
+            // LCOV_EXCL_START
         } catch (py::error_already_set &e) {
             e.discard_as_unraisable(__func__);
         } catch (const std::runtime_error &e) {
             if (!str_startswith(e.what(), "StopIteration"))
                 std::cerr << "Exception in " << __func__ << ": " << e.what();
         }
+        // LCOV_EXCL_STOP
     }
+    // LCOV_EXCL_START
     MmapInputSource(const MmapInputSource &) = delete;
     MmapInputSource &operator=(const MmapInputSource &) = delete;
     MmapInputSource(MmapInputSource &&) = delete;
     MmapInputSource &operator=(MmapInputSource &&) = delete;
+    // LCOV_EXCL_STOP
 
     std::string const &getName() const override { return this->bis->getName(); }
 
