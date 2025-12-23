@@ -3,7 +3,7 @@
 
 #include "namepath.h"
 
-#include <qpdf/QPDFObjectHandle.hh>
+#include "pikepdf.h"
 
 NamePath::NamePath(std::vector<PathComponent> components)
     : components_(std::move(components))
