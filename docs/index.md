@@ -135,6 +135,7 @@ releasenotes/index.rst
 topics/pages
 topics/page
 topics/objects
+topics/namepath
 topics/streams
 topics/content_streams
 topics/images

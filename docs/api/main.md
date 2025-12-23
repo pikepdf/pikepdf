@@ -49,6 +49,10 @@
 ```
 
 ```{eval-rst}
+.. autoapiclass:: pikepdf.NamePath
+```
+
+```{eval-rst}
 .. autoapiclass:: pikepdf.String
     :members: __new__
 ```

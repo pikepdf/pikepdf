@@ -1,6 +1,6 @@
 # v10
 
-Breaking changes for v10.x:
+## Breaking changes for v10.x
 - Dropped Python 3.9 compatibility, since it is end of life. Python 3.10 through
   3.14 are supported.
 - Dropped macOS 13 support, since it is end of life.
@@ -11,6 +11,27 @@ Breaking changes for v10.x:
 pikepdf now declares unstable "support" for freethreading, and does not publish
 freethreading wheels. All tests seem to pass, but that's because the existing
 tests don't try to create race conditions. Must be compiled manually.
+
+## v10.1.0
+
+- Added {class}`pikepdf.NamePath` for ergonomic access to deeply nested PDF
+  structures. NamePath provides a single-operation traversal with helpful error
+  messages showing exactly where traversal failed.
+  See {ref}`Accessing nested objects with NamePath <namepath>` for details.
+- Added explicit scalar types: {class}`pikepdf.Integer`, {class}`pikepdf.Boolean`,
+  and {class}`pikepdf.Real`. When explicit conversion mode is enabled, these types
+  are returned instead of Python native types (`int`, `bool`, `Decimal`), enabling
+  better type safety and static type checking.
+- Added {func}`pikepdf.set_object_conversion_mode` and
+  {func}`pikepdf.get_object_conversion_mode` to control conversion behavior globally.
+- Added {func}`pikepdf.explicit_conversion` context manager for temporarily enabling
+  explicit conversion mode.
+- Added safe accessor methods to {class}`pikepdf.Object`: {meth}`~pikepdf.Object.as_int`,
+  {meth}`~pikepdf.Object.as_bool`, {meth}`~pikepdf.Object.as_float`, and
+  {meth}`~pikepdf.Object.as_decimal` with optional default parameters for type-safe
+  access to scalar values.
+- `pikepdf.Integer` and `pikepdf.Real` now support full arithmetic operations with
+  both `int` and `float` operands, including true division (`/`).
 
 ## v10.0.3
 
