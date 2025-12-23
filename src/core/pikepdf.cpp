@@ -24,6 +24,7 @@
 #include <pybind11/iostream.h>
 #include <pybind11/stl.h>
 
+#include "namepath.h"
 #include "parsers.h"
 #include "qpdf_pagelist.h"
 #include "utils.h"
@@ -155,6 +156,7 @@ PYBIND11_MODULE(_core, m, py::mod_gil_not_used())
     init_annotation(m);
     init_embeddedfiles(m);
     init_matrix(m);
+    init_namepath(m);
     init_nametree(m);
     init_numbertree(m);
     init_page(m);

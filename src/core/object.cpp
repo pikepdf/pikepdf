@@ -23,6 +23,7 @@
 #include "pikepdf.h"
 #include "utils.h"
 
+#include "namepath.h"
 #include "parsers.h"
 
 /*
@@ -129,6 +130,47 @@ void object_del_key(QPDFObjectHandle h, std::string const &key)
         throw py::key_error(key);
 
     dict.removeKey(key);
+}
+
+// Traverse a NamePath, returning the final object or throwing with context
+QPDFObjectHandle traverse_namepath(
+    QPDFObjectHandle h, NamePath const &path, bool for_set = false)
+{
+    auto const &components = path.components();
+    size_t end = for_set ? components.size() - 1 : components.size();
+
+    QPDFObjectHandle current = h;
+    for (size_t i = 0; i < end; ++i) {
+        if (std::holds_alternative<std::string>(components[i])) {
+            auto const &key = std::get<std::string>(components[i]);
+            if (!current.isDictionary() && !current.isStream()) {
+                throw py::type_error("Expected Dictionary or Stream at " +
+                                     path.format_path(i) + ", got " +
+                                     current.getTypeName());
+            }
+            QPDFObjectHandle dict = current.isStream() ? current.getDict() : current;
+            if (!dict.hasKey(key)) {
+                throw py::key_error(
+                    "Key " + key + " not found; traversed " + path.format_path(i));
+            }
+            current = dict.getKey(key);
+        } else {
+            int index = std::get<int>(components[i]);
+            if (!current.isArray()) {
+                throw py::type_error("Expected Array at " + path.format_path(i) +
+                                     ", got " + current.getTypeName());
+            }
+            int size = current.getArrayNItems();
+            if (index < 0)
+                index += size;
+            if (index < 0 || index >= size) {
+                throw py::index_error("Index " + std::to_string(index) +
+                                      " out of range at " + path.format_path(i));
+            }
+            current = current.getArrayItem(static_cast<size_t>(index));
+        }
+    }
+    return current;
 }
 
 std::pair<int, int> object_get_objgen(QPDFObjectHandle h)
@@ -795,6 +837,13 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &h, QPDFObjectHandle &name) {
                 return object_get_key(h, name.getName());
             })
+        .def("__getitem__",
+            [](QPDFObjectHandle &h, NamePath const &path) {
+                if (path.empty()) {
+                    return h; // Empty path returns self
+                }
+                return traverse_namepath(h, path);
+            })
         .def("__setitem__",
             [](QPDFObjectHandle &h, std::string const &key, QPDFObjectHandle &value) {
                 object_set_key(h, key, value);
@@ -812,6 +861,67 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &h, QPDFObjectHandle &name, py::object pyvalue) {
                 auto value = objecthandle_encode(pyvalue);
                 object_set_key(h, name.getName(), value);
+            })
+        .def("__setitem__",
+            [](QPDFObjectHandle &h, NamePath const &path, QPDFObjectHandle &value) {
+                if (path.empty()) {
+                    throw py::value_error("Cannot assign to empty NamePath");
+                }
+                auto const &components = path.components();
+
+                // Traverse to parent
+                QPDFObjectHandle parent =
+                    path.size() == 1 ? h : traverse_namepath(h, path, true);
+
+                // Get final component
+                auto const &last = components.back();
+                if (std::holds_alternative<std::string>(last)) {
+                    auto const &key = std::get<std::string>(last);
+                    object_set_key(parent, key, value);
+                } else {
+                    int index = std::get<int>(last);
+                    if (!parent.isArray()) {
+                        throw py::type_error("Cannot use integer index on non-Array");
+                    }
+                    int size = parent.getArrayNItems();
+                    if (index < 0)
+                        index += size;
+                    if (index < 0 || index >= size) {
+                        throw py::index_error("Index out of range");
+                    }
+                    parent.setArrayItem(static_cast<size_t>(index), value);
+                }
+            })
+        .def("__setitem__",
+            [](QPDFObjectHandle &h, NamePath const &path, py::object pyvalue) {
+                if (path.empty()) {
+                    throw py::value_error("Cannot assign to empty NamePath");
+                }
+                auto value = objecthandle_encode(pyvalue);
+                auto const &components = path.components();
+
+                // Traverse to parent
+                QPDFObjectHandle parent =
+                    path.size() == 1 ? h : traverse_namepath(h, path, true);
+
+                // Get final component
+                auto const &last = components.back();
+                if (std::holds_alternative<std::string>(last)) {
+                    auto const &key = std::get<std::string>(last);
+                    object_set_key(parent, key, value);
+                } else {
+                    int index = std::get<int>(last);
+                    if (!parent.isArray()) {
+                        throw py::type_error("Cannot use integer index on non-Array");
+                    }
+                    int size = parent.getArrayNItems();
+                    if (index < 0)
+                        index += size;
+                    if (index < 0 || index >= size) {
+                        throw py::index_error("Index out of range");
+                    }
+                    parent.setArrayItem(static_cast<size_t>(index), value);
+                }
             })
         .def("__delitem__",
             [](QPDFObjectHandle &h, std::string const &key) { object_del_key(h, key); })
@@ -902,6 +1012,24 @@ void init_object(py::module_ &m)
                 return py::cast(value);
             },
             py::arg("key"),
+            py::arg("default") = py::none())
+        .def(
+            "get",
+            [](QPDFObjectHandle &h, NamePath const &path, py::object default_) {
+                if (path.empty()) {
+                    return py::cast(h);
+                }
+                try {
+                    return py::cast(traverse_namepath(h, path));
+                } catch (const py::key_error &) {
+                    return default_;
+                } catch (const py::index_error &) {
+                    return default_;
+                } catch (const py::type_error &) {
+                    return default_;
+                }
+            },
+            py::arg("path"),
             py::arg("default") = py::none())
         .def("keys",
             [](QPDFObjectHandle &h) {

@@ -385,3 +385,71 @@ class Real(Object, metaclass=_ObjectMeta):
 # The isinstance(obj, Integer) check uses metaclass magic (_ObjectMeta) that
 # checks the object's _type_code attribute. This doesn't satisfy the numbers ABC
 # registration mechanism which checks the actual type hierarchy.
+
+
+class _NamePathMeta(type):
+    """Metaclass for NamePath to support NamePath.A.B syntax."""
+
+    def __getattr__(cls, name: str) -> _core._NamePath:
+        if name.startswith('_'):
+            raise AttributeError(name)
+        return _core._NamePath()._append_name(name)
+
+    def __getitem__(cls, key: str | int | Name) -> _core._NamePath:
+        # NamePath['/A'] or NamePath[0]
+        if isinstance(key, str):
+            return _core._NamePath()._append_name(key)
+        elif isinstance(key, int):
+            return _core._NamePath()._append_index(key)
+        elif isinstance(key, Name):
+            return _core._NamePath()._append_name(str(key))
+        raise TypeError(f"NamePath key must be str, int, or Name, not {type(key)}")
+
+    def __call__(cls, *args) -> _core._NamePath:
+        # NamePath() or NamePath('/A', '/B')
+        if not args:
+            return _core._NamePath()
+        return _core._NamePath(*args)
+
+
+class NamePath(metaclass=_NamePathMeta):
+    """Path for accessing nested Dictionary/Stream values.
+
+    NamePath provides ergonomic access to deeply nested PDF structures with a
+    single access operation and helpful error messages when keys are not found.
+
+    Usage examples::
+
+        # Shorthand syntax - most common
+        obj[NamePath.Resources.Font.F1]
+
+        # With array indices
+        obj[NamePath.Pages.Kids[0].MediaBox]
+
+        # Chained access - supports non Python-identifier names
+        NamePath['/A']['/B'].C[0]  # equivalent to NamePath.A.B.C[0]
+
+        # Alternate syntax to support lists
+        obj[NamePath(Name.Resources, Name.Font)]
+
+        # Using string objects
+        obj[NamePath('/Resources', '/Weird-Name')]
+
+        # Empty path returns the object itself
+        obj[NamePath()]
+
+        # Setting nested values (all parents must exist)
+        obj[NamePath.Root.Info.Title] = pikepdf.String("Test")
+
+        # With default value
+        obj.get(NamePath.Root.Metadata, None)
+
+    When a key is not found, the KeyError message identifies the exact failure
+    point, e.g.: "Key /C not found; traversed NamePath.A.B"
+
+    .. versionadded:: 10.2
+    """
+
+    # This class is never instantiated - the metaclass intercepts construction
+    # and returns _core._NamePath instances instead
+    pass
