@@ -12,15 +12,12 @@ pikepdf now declares unstable "support" for freethreading, and does not publish
 freethreading wheels. All tests seem to pass, but that's because the existing
 tests don't try to create race conditions. Must be compiled manually.
 
-## v10.2.0
+## v10.1.0
 
 - Added {class}`pikepdf.NamePath` for ergonomic access to deeply nested PDF
   structures. NamePath provides a single-operation traversal with helpful error
   messages showing exactly where traversal failed.
   See {ref}`Accessing nested objects with NamePath <namepath>` for details.
-
-## v10.1.0
-
 - Added explicit scalar types: {class}`pikepdf.Integer`, {class}`pikepdf.Boolean`,
   and {class}`pikepdf.Real`. When explicit conversion mode is enabled, these types
   are returned instead of Python native types (`int`, `bool`, `Decimal`), enabling
