@@ -11,7 +11,7 @@ invalidate-cppcov:
 
 .PHONY: build
 build: invalidate-cppcov
-	python setup.py build_ext --inplace
+	python -m pip install --no-build-isolation -e .
 
 .PHONY: pip-install-e
 pip-install-e: invalidate-cppcov
@@ -33,8 +33,8 @@ clean-coverage: clean-coverage-cppcov clean-coverage-pycov
 
 .PHONY: clean
 clean: clean-coverage
-	python setup.py clean --all
-	rm -f src/pikepdf/_core.*so
+	rm -rf build builddir
+	rm -f src/pikepdf/_core*.so
 
 .PHONY: test
 test: build
@@ -46,21 +46,30 @@ pycov: clean-coverage-pycov
 
 .PHONY: build-cppcov
 build-cppcov:
-	env CFLAGS="--coverage" python setup.py build_ext --inplace
+	meson setup builddir-cov -Db_coverage=true --wipe || meson setup builddir-cov -Db_coverage=true
+	meson compile -C builddir-cov
+	cp builddir-cov/src/core/_core*.so src/pikepdf/
 
-coverage/cpp.info: clean-coverage-cppcov build-cppcov pycov
-	lcov --no-external --capture --directory . --output-file coverage/cppall.info
-	lcov --remove coverage/cppall.info '*/pybind11/*' -o coverage/cpp.info
+# For coverage, we need to bypass the meson-python editable loader and use src/ directly
+.PHONY: pycov-cppcov
+pycov-cppcov: clean-coverage-pycov
+	-pip uninstall -y pikepdf
+	PYTHONPATH=src LD_LIBRARY_PATH="$(shell dirname $(shell readlink -f ../qpdf/build/libqpdf/libqpdf.so 2>/dev/null || echo /usr/local/lib)):$$LD_LIBRARY_PATH" \
+		pytest --cov-report html --cov=src -n auto
+
+coverage/cpp.info: clean-coverage-cppcov build-cppcov pycov-cppcov
+	lcov --capture --directory builddir-cov --output-file coverage/cppall.info
+	lcov --extract coverage/cppall.info '*/src/core/*' -o coverage/cpp.info
 
 coverage/cppcov: coverage/cpp.info
 	-mkdir -p coverage/cppcov
 	genhtml coverage/cpp.info --output-directory coverage/cppcov
 
 .PHONY: cppcov
-cppcov: clean-coverage-cppcov build-cppcov pycov coverage/cppcov
+cppcov: clean-coverage-cppcov build-cppcov pycov-cppcov coverage/cppcov
 
 .PHONY: coverage
-coverage: cppcov pycov
+coverage: cppcov
 
 .PHONY: docs
 docs: build
@@ -69,5 +78,5 @@ docs: build
 	rm -f docs/doc.log.txt
 
 cibuildwheel-test: clean-coverage
-	rm -rf build/bdist.* build/lib.* build/temp.*
+	rm -rf build builddir
 	pipx run cibuildwheel --platform linux

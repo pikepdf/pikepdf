@@ -15,6 +15,7 @@ If you are a developer and you want to build from source, follow these steps.
 pikepdf requires:
 
 - a C++20 compliant compiler
+- [Meson](https://mesonbuild.com/) >= 1.2.0 build system
 - [pybind11](https://github.com/pybind/pybind11)
 - libqpdf {{ qpdf_min_version }} or higher from the
   [qpdf](https://qpdf.org) project.
@@ -31,7 +32,7 @@ libqpdf.)
 
 :::{note}
 pikepdf should be built with the same compiler and linker as libqpdf; to be
-precise both **must** use the same C++ ABI. On some platforms, setup.py may
+precise both **must** use the same C++ ABI. On some platforms, Meson may
 not pick the correct compiler so one may need to set environment variables
 `CC` and `CXX` to redirect it. If the wrong compiler is selected,
 `import pikepdf._core` will throw an `ImportError` about a missing
@@ -50,13 +51,13 @@ To link to system libraries (the ones installed by your package manager, such
 
 ## {fa}`linux` {fa}`apple` GCC or Clang and linking to user libraries
 
-pikepdf's setup.py will check the following locations, in the order given here, for
+pikepdf's Meson build will check the following locations, in the order given here, for
 qpdf's headers and libraries (both of which are required for a build):
-1. the paths specified by environment variables `QPDF_SOURCE_TREE` and
-   `QPDF_BUILD_LIBDIR`
+1. the paths specified by Meson options `-Dqpdf_source_tree=...` and
+   `-Dqpdf_build_libdir=...`
 1. a folder named `qpdf` that is installed parallel to `pikepdf`, e.g. if pikepdf is
    located in `$HOME/src/pikepdf`, then we check `$HOME/src/qpdf` for qpdf
-1. the system default's location for these resources
+1. the system default's location for these resources (via pkg-config)
 
 If you wish to link pikepdf against a different version of the qpdf (say,
 because pikepdf requires a newer version than your operating system has),
@@ -71,9 +72,10 @@ then you might do something like:
 - From the pikepdf directory, run
 
   > ```bash
-  > env CXXFLAGS=-I/usr/local/include/libqpdf LDFLAGS=-L/usr/local/lib  \
-  >     pip install .
+  > pip install .
   > ```
+  >
+  > (Meson will find libqpdf via pkg-config if it was installed to a standard location.)
 
 ### {fa}`windows` On Windows (requires Visual Studio 2015)
 
@@ -120,6 +122,9 @@ the one provided with your operating system. This may be useful if you need a mo
 recent version of qpdf than your operating system package manager provides, and you
 do not want to use Python wheels.
 
+If you have qpdf checked out as a sibling directory to pikepdf (i.e., `../qpdf`),
+pikepdf's build system will auto-detect it. Otherwise, use the Meson options below.
+
 ```bash
 # Build libqpdf from source
 cd $QPDF_SOURCE_TREE
@@ -132,9 +137,12 @@ cd $PIKEPDF_SOURCE_TREE
 python3 -m venv .venv
 source .venv/bin/activate
 
-# Build pikepdf from source
-env QPDF_SOURCE_TREE=$QPDF_SOURCE_TREE QPDF_BUILD_LIBDIR=$QPDF_BUILD_LIBDIR \
-    pip install -e .
+# Build pikepdf from source (auto-detects ../qpdf if present)
+pip install -e .
+
+# Or specify paths explicitly using meson setup options via pip:
+pip install -e . -Csetup-args=-Dqpdf_source_tree=$QPDF_SOURCE_TREE \
+                 -Csetup-args=-Dqpdf_build_libdir=$QPDF_BUILD_LIBDIR
 ```
 
 Note that the Python wheels for pikepdf currently compile their own version of

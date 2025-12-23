@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: 2025 James R. Barlow
+# SPDX-License-Identifier: MPL-2.0
+
+option(
+    'qpdf_future',
+    type: 'boolean',
+    value: false,
+    description: 'Enable QPDF_FUTURE macro for testing upcoming qpdf features'
+)
+
+option(
+    'qpdf_source_tree',
+    type: 'string',
+    value: '',
+    description: 'Path to qpdf source tree (for development builds)'
+)
+
+option(
+    'qpdf_build_libdir',
+    type: 'string',
+    value: '',
+    description: 'Path to directory containing built libqpdf.so'
+)
