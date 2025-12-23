@@ -229,8 +229,20 @@ Item notation here would be quite cumbersome:
 
 Attribute notation is convenient, but not robust if elements are missing. For
 elements that are not always present, you can use `.get()`, which behaves like
-`dict.get()` in core Python. A library such as [glom](https://github.com/mahmoud/glom) might help when working with complex
-structured data that is not always present.
+`dict.get()` in core Python. For deeply nested access, {class}`pikepdf.NamePath`
+provides ergonomic syntax with helpful error messages:
+
+```python
+>>> from pikepdf import NamePath
+
+>>> # Access nested value with default
+>>> font = page.get(NamePath.Resources.Font.F1, None)
+
+>>> # Or access directly (raises KeyError if missing)
+>>> page[NamePath.Resources.XObject['/Im0']]
+```
+
+See {ref}`Accessing nested objects with NamePath <namepath>` for more details.
 
 (For now, we'll set aside what a page's `Resources.XObject`
 are for. See {ref}`Working with pages <work_with_pages>` for details.)

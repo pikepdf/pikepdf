@@ -133,6 +133,12 @@ However, pikepdf sends `pikepdf.Object` types back to Python on return calls,
 in most cases, because pikepdf needs to keep track of objects that came from
 PDFs originally.
 
+## Accessing nested objects
+
+For accessing deeply nested structures, {class}`pikepdf.NamePath` provides
+ergonomic syntax with helpful error messages. See
+{ref}`Accessing nested objects with NamePath <namepath>` for details.
+
 ## Object lifecycle and memory management
 
 As mentioned above, a {class}`pikepdf.Object` may reference data that is lazily
