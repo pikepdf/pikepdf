@@ -25,7 +25,7 @@ from collections.abc import (
 )
 from contextlib import ExitStack, suppress
 from decimal import Decimal
-from io import BytesIO, RawIOBase
+from io import BytesIO
 from pathlib import Path
 from subprocess import run
 from tempfile import TemporaryDirectory
@@ -496,7 +496,7 @@ class Extend_Pdf:
             # TODO improve error
             raise TypeError("expected str, bytes or os.PathLike object")
 
-        stream: RawIOBase | None = None
+        stream: BinaryIO | None = None
         closing_stream: bool = False
         original_filename: Path | None = None
 
@@ -551,7 +551,7 @@ class Extend_Pdf:
 
 @augments(_ObjectMapping)
 class Extend_ObjectMapping:
-    def get(self, key, default=None) -> Object:
+    def get(self, key, default: T | None = None) -> Object | T | None:
         try:
             return self[key]
         except KeyError:
