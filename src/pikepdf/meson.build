@@ -8,6 +8,7 @@ python_sources = files(
     '_cpphelpers.py',
     '_data.py',
     '_exceptions.py',
+    '_explicit_conv.py',
     '_io.py',
     '_methods.py',
     '_version.py',

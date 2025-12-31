@@ -740,6 +740,30 @@ wheels = [
 ]
 
 [[package]]
+name = "meson"
+version = "1.10.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/45/76/c2f4cff5dabcd64711bd327dd00fd22ec603bed6a928dd5d058044d568d8/meson-1.10.0.tar.gz", hash = "sha256:8071860c1f46a75ea34801490fd1c445c9d75147a65508cd3a10366a7006cc1c", size = 2412381, upload-time = "2025-12-08T17:14:57.124Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/32/4f/c398c6f06ece1c6c246e008d5dac3824c98f54d3eb3d8014f4910afd6d48/meson-1.10.0-py3-none-any.whl", hash = "sha256:4b27aafce281e652dcb437b28007457411245d975c48b5db3a797d3e93ae1585", size = 1057029, upload-time = "2025-12-08T17:14:55.038Z" },
+]
+
+[[package]]
+name = "meson-python"
+version = "0.18.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "meson" },
+    { name = "packaging" },
+    { name = "pyproject-metadata" },
+    { name = "tomli", marker = "python_full_version < '3.11'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/26/bd/fdb26366443620f1a8a4d4ec7bfa37d1fbbe7bf737b257c205bbcf95ba95/meson_python-0.18.0.tar.gz", hash = "sha256:c56a99ec9df669a40662fe46960321af6e4b14106c14db228709c1628e23848d", size = 95630, upload-time = "2025-05-05T10:13:56.889Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/28/58/66db620a8a7ccb32633de9f403fe49f1b63c68ca94e5c340ec5cceeb9821/meson_python-0.18.0-py3-none-any.whl", hash = "sha256:3b0fe051551cc238f5febb873247c0949cd60ded556efa130aa57021804868e2", size = 28420, upload-time = "2025-05-05T10:13:55.218Z" },
+]
+
+[[package]]
 name = "mypy"
 version = "1.19.1"
 source = { registry = "https://pypi.org/simple" }
@@ -975,8 +999,9 @@ test = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "meson" },
+    { name = "meson-python" },
     { name = "ruff" },
-    { name = "setuptools" },
 ]
 
 [package.metadata]
@@ -1017,8 +1042,9 @@ provides-extras = ["dev", "docs", "mypy", "test"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "meson", specifier = ">=1.2.0" },
+    { name = "meson-python", specifier = ">=0.16" },
     { name = "ruff", specifier = ">=0.12.9" },
-    { name = "setuptools", specifier = ">=80.9.0" },
 ]
 
 [[package]]
@@ -1191,6 +1217,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/b0/77/a5b8c569bf593b0140bde72ea885a803b82086995367bf2037de0159d924/pygments-2.19.2.tar.gz", hash = "sha256:636cb2477cec7f8952536970bc533bc43743542f70392ae026374600add5b887", size = 4968631, upload-time = "2025-06-21T13:39:12.283Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c7/21/705964c7812476f378728bdf590ca4b771ec72385c533964653c68e86bdc/pygments-2.19.2-py3-none-any.whl", hash = "sha256:86540386c03d588bb81d44bc3928634ff26449851e99741617ecb9037ee5ec0b", size = 1225217, upload-time = "2025-06-21T13:39:07.939Z" },
+]
+
+[[package]]
+name = "pyproject-metadata"
+version = "0.10.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "packaging" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/75/bd/74706b3671c443944f487a42a0148a507b733c60600df1d34cde41e6d10b/pyproject_metadata-0.10.0.tar.gz", hash = "sha256:7f5bd0ef398b60169556cb17ea261d715caf7f8561238151f51b2305084ba8d4", size = 40568, upload-time = "2025-11-21T15:29:23.573Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c0/57/e69a1de45ec7a99a707e9f1a5defa035a48de0cae2d8582451c72d2db456/pyproject_metadata-0.10.0-py3-none-any.whl", hash = "sha256:b1e439a9f7560f9792ee5975dcf5e89d2510b1fc84a922d7e5d665aa9102d966", size = 19806, upload-time = "2025-11-21T15:29:22.062Z" },
 ]
 
 [[package]]

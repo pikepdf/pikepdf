@@ -11,11 +11,11 @@ invalidate-cppcov:
 
 .PHONY: build
 build: invalidate-cppcov
-	python -m pip install --no-build-isolation -e .
+	uv pip install --no-build-isolation -e .
 
 .PHONY: pip-install-e
 pip-install-e: invalidate-cppcov
-	python -m pip install -e .
+	uv pip install -e .
 
 .PHONY: clean-coverage-pycov
 clean-coverage-pycov:
