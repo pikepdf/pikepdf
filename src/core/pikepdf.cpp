@@ -33,6 +33,11 @@ static constinit std::atomic<uint> DECIMAL_PRECISION = 15;
 static constinit std::atomic<bool> MMAP_DEFAULT = false;
 static constinit std::atomic<bool> EXPLICIT_CONVERSION_MODE = false;
 
+// Thread-local counter for explicit_conversion() context manager nesting.
+// When > 0, the current thread is inside one or more context managers and
+// explicit mode takes precedence over the global EXPLICIT_CONVERSION_MODE.
+static thread_local int thread_explicit_depth = 0;
+
 uint get_decimal_precision()
 {
     return DECIMAL_PRECISION.load();
@@ -43,6 +48,10 @@ bool get_mmap_default()
 }
 bool get_explicit_conversion_mode()
 {
+    // Thread-local context manager takes precedence over global setting
+    if (thread_explicit_depth > 0) {
+        return true;
+    }
     return EXPLICIT_CONVERSION_MODE.load();
 }
 
@@ -204,11 +213,27 @@ PYBIND11_MODULE(_core, m, py::mod_gil_not_used())
         .def(
             "_get_explicit_conversion_mode",
             []() { return EXPLICIT_CONVERSION_MODE.load(); },
-            "Return True if explicit conversion mode is enabled.")
+            "Return True if explicit conversion mode is enabled (global baseline).")
+        .def(
+            "_get_effective_explicit_mode",
+            []() { return get_explicit_conversion_mode(); },
+            "Return True if explicit mode is active (includes thread-local override).")
         .def(
             "_set_explicit_conversion_mode",
             [](bool mode) { return EXPLICIT_CONVERSION_MODE.exchange(mode); },
-            "Set explicit conversion mode. Returns previous value.")
+            "Set explicit conversion mode (global baseline). Returns previous value.")
+        .def(
+            "_enter_thread_explicit_mode",
+            []() { ++thread_explicit_depth; },
+            "Enter thread-local explicit conversion mode (for context manager).")
+        .def(
+            "_exit_thread_explicit_mode",
+            []() {
+                if (thread_explicit_depth > 0) {
+                    --thread_explicit_depth;
+                }
+            },
+            "Exit thread-local explicit conversion mode (for context manager).")
         .def("set_flate_compression_level",
             [](int level) {
                 if (-1 <= level && level <= 9) {
