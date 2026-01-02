@@ -349,3 +349,16 @@ def test_string_parse_unparse_not_pdfdoc_safe():
         pikepdf.Stream(pdf, f'<{hello_world_chinese_pdf_encoded}> Tj'.encode('ascii'))
     )
     assert pikepdf.unparse_content_stream(parsed) == b'<4f60597d4e16754c> Tj'
+
+
+def test_unparse_raw_tuples_preserve_literal_strings():
+    """Issue #689: Raw tuples should preserve literal strings when pdfdoc-safe."""
+    # Operator-only instruction should not be hex-encoded
+    instructions = [([], Operator('Q'))]
+    result = unparse_content_stream(instructions)
+    assert result == b'Q', f"Expected b'Q', got {result!r}"
+
+    # String operand should use literal when pdfdoc-safe
+    instructions = [([pikepdf.String("Hello")], Operator('Tj'))]
+    result = unparse_content_stream(instructions)
+    assert result == b'(Hello) Tj', f"Expected b'(Hello) Tj', got {result!r}"
