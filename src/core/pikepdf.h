@@ -65,10 +65,10 @@ private:
     static handle cast(
         const QPDFObjectHandle *csrc, return_value_policy policy, handle parent)
     {
-        if (policy == return_value_policy::take_ownership) {
+        if (policy == return_value_policy::take_ownership) { // LCOV_EXCL_START
             throw std::logic_error(
                 "return_value_policy::take_ownership not implemented");
-        }
+        } // LCOV_EXCL_STOP
         QPDFObjectHandle *src = const_cast<QPDFObjectHandle *>(csrc);
         if (!csrc)
             return none().release(); // LCOV_EXCL_LINE

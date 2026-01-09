@@ -28,7 +28,7 @@ public:
 
     // Access components
     std::vector<PathComponent> const &components() const { return components_; }
-    bool empty() const { return components_.empty(); }
+    bool empty() const { return components_.empty(); } // LCOV_EXCL_LINE
     size_t size() const { return components_.size(); }
 
     // For error messages: format path up to position

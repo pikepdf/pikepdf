@@ -195,3 +195,35 @@ def test_copy_form(form, dd0293):
     new_count = len(dd0293.acroform.fields)
     assert len(copied_fields) == 4  # Count is top-level fields
     assert new_count == orig_count + 5  # Count is terminal fields
+
+
+def test_field_value_property_setter(form):
+    """Test AcroFormField.value property setter (lines 68-70 of acroform.cpp)."""
+    import pikepdf
+
+    field = form.acroform.get_fields_with_qualified_name('Text1')[0]
+    # Set value using QPDFObjectHandle via property setter
+    field.value = pikepdf.String("Test Value")
+    assert field.value_as_string == "Test Value"
+
+
+def test_field_value_as_string_property_setter(form):
+    """Test AcroFormField.value_as_string property setter (lines 73-75 of acroform.cpp)."""
+    field = form.acroform.get_fields_with_qualified_name('Text1')[0]
+    # Set value using string via property setter
+    field.value_as_string = "Another Test"
+    assert field.value_as_string == "Another Test"
+
+
+def test_remove_fields_objecthandle(form):
+    """Test remove_fields with ObjectHandle list (lines 160-168 of acroform.cpp)."""
+    from pikepdf._core import _ObjectList
+
+    fields = form.acroform.get_fields_with_qualified_name('Button2')
+    assert len(fields) == 1
+    # Pass ObjectList (ObjectHandle list) instead of ObjectHelper list
+    objlist = _ObjectList()
+    objlist.append(fields[0].obj)
+    form.acroform.remove_fields(objlist)
+    fields = form.acroform.get_fields_with_qualified_name('Button2')
+    assert len(fields) == 0

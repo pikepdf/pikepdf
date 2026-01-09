@@ -319,3 +319,27 @@ class TestNamePathEdgeCases:
         # but we handle both for convenience
         path = NamePath('Resources')  # No leading /
         assert repr(path) == "NamePath.Resources"
+
+    def test_constructor_with_int(self):
+        """Test NamePath(0) constructor with int argument (line 73 of namepath.cpp)."""
+        path = NamePath(0)
+        assert repr(path) == "NamePath[0]"
+        assert len(path) == 1
+
+    def test_call_with_int(self):
+        """Test path(0) call syntax with int (line 104 of namepath.cpp)."""
+        path = NamePath.Items(0)
+        assert repr(path) == "NamePath.Items[0]"
+        assert len(path) == 2
+
+    def test_call_with_name_object(self):
+        """Test path(Name.X) call syntax with Name (lines 109-110 of namepath.cpp)."""
+        path = NamePath.Resources(Name.Font)
+        assert repr(path) == "NamePath.Resources.Font"
+        assert len(path) == 2
+
+    def test_constructor_with_mixed_args(self):
+        """Test NamePath('/A', 0, Name.B) with mixed argument types."""
+        path = NamePath('/Resources', 0, Name.Font)
+        assert repr(path) == "NamePath.Resources[0].Font"
+        assert len(path) == 3
