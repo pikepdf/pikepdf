@@ -44,5 +44,5 @@ unpacked/
 /tmp_rpms/
 *.dll
 /issuepdf
-.aider*
 CLAUDE.md
+.claude

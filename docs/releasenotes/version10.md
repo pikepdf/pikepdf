@@ -12,6 +12,16 @@ pikepdf now declares unstable "support" for freethreading, and does not publish
 freethreading wheels. All tests seem to pass, but that's because the existing
 tests don't try to create race conditions. Must be compiled manually.
 
+## v10.2.0
+
+- Fixed `unparse_content_stream()` not preserving literal strings when given raw
+  Python tuples. :issue:`689`
+- The {func}`pikepdf.explicit_conversion` context manager is now thread-local and
+  takes precedence over the global setting from {func}`pikepdf.set_object_conversion_mode`.
+  Nested context managers are supported via a depth counter.
+- Moved explicit conversion functions to their own module for better code organization.
+- Improved C++ test coverage to 97.5% (from 96.4% line coverage, 94.9% to 95.1% function coverage).
+
 ## v10.1.0
 
 - Added {class}`pikepdf.NamePath` for ergonomic access to deeply nested PDF
