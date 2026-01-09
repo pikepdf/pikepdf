@@ -261,9 +261,9 @@ py::bytes unparse_content_stream(py::iterable contentstream)
             auto operands = py::reinterpret_borrow<py::sequence>(operands_op[0]);
             for (const auto &operand : operands) {
                 QPDFObjectHandle obj = objecthandle_encode(operand);
-                ss << obj.unparseBinary() << " ";
+                ss << obj.unparse() << " ";
             }
-            ss << op.unparseBinary();
+            ss << op.unparse();
         }
 
         n++;
