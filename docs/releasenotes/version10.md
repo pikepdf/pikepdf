@@ -12,6 +12,12 @@ pikepdf now declares unstable "support" for freethreading, and does not publish
 freethreading wheels. All tests seem to pass, but that's because the existing
 tests don't try to create race conditions. Must be compiled manually.
 
+## Unreleased
+
+- Fixed an issue where opening a PDF with duplicate form field names would cause a
+  crash. Accessing a duplicate field by name now returns a proxy list of all matching
+  fields.
+
 ## v10.2.0
 
 - Fixed `unparse_content_stream()` not preserving literal strings when given raw
