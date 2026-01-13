@@ -270,4 +270,4 @@ def test_newline_handling(resources):
 
 def test_save_to_dev_null():
     with Pdf.new() as pdf:
-        pdf.save('/dev/null')
+        pdf.save(os.devnull)
