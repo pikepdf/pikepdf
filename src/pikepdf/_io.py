@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import Generator
 from contextlib import contextmanager, suppress
 from io import TextIOBase
@@ -68,16 +69,28 @@ def atomic_overwrite(filename: Path) -> Generator[IO[bytes], None, None]:
 
     tf = None
     try:
-        tf = NamedTemporaryFile(
-            dir=filename.parent, prefix=f".pikepdf.{filename.name}", delete=False
-        )
+        try:
+            # First try to create the file in the same directory, so that Path.replace()
+            # is more likely to be atomic.
+            tf = NamedTemporaryFile(
+                dir=filename.parent, prefix=f".pikepdf.{filename.name}", delete=False
+            )
+        except PermissionError:
+            # If same directory fails, write to stand temporary folder (losing
+            # atomicity, if different file systems)
+            tf = NamedTemporaryFile(prefix=f".pikepdf.{filename.name}", delete=False)
         yield tf
         tf.flush()
         tf.close()
         with suppress(OSError):
             # Copy permissions, create time, etc. from the original
             copystat(filename, Path(tf.name))
-        Path(tf.name).replace(filename)
+        try:
+            Path(tf.name).replace(filename)
+        except OSError:
+            if not Path(filename).resolve().samefile(os.devnull):
+                # If user is writing to /dev/null, ignore permission errors
+                raise
         with suppress(OSError):
             # Update modified time of the destination file
             filename.touch()

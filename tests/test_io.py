@@ -266,3 +266,8 @@ def test_newline_handling(resources):
         access_mode=pikepdf._core.AccessMode.stream,
     ) as pdf:
         assert pdf.check_pdf_syntax() == []
+
+
+def test_save_to_dev_null():
+    with Pdf.new() as pdf:
+        pdf.save('/dev/null')
