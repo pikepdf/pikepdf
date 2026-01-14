@@ -160,8 +160,9 @@ class Form:
                     self._cache[name] = wrapped
                     seen.add(name)
                     yield name, wrapped
-                seen.add(name)
-                yield name, self._wrap(fields[0], name)
+                else:
+                    seen.add(name)
+                    yield name, self._wrap(fields[0], name)
             else:
                 seen.add(name)
                 yield name, self._wrap(field, name)
