@@ -26,6 +26,37 @@
 #include "namepath.h"
 #include "parsers.h"
 
+// Encodes Python key to bytes, handling surrogates for invalid UTF-8.
+std::string key_to_string(py::handle key) {
+    if (py::isinstance<py::bytes>(key)) {
+        return key.cast<std::string>();
+    }
+    if (py::isinstance<py::str>(key)) {
+        // Use C-API for performance (faster than calling .attr("encode"))
+        PyObject* bytes_ptr = PyUnicode_AsEncodedString(key.ptr(), "utf-8", "surrogateescape");
+        if (!bytes_ptr) throw py::error_already_set();
+
+        // reinterpret_steal takes ownership of the 'New Reference' from the C-API.
+        // .cast<std::string>() copies the data into the C++ string.
+        // The temporary py::bytes wrapper is destroyed here, correctly decref-ing the object.
+        return py::reinterpret_steal<py::bytes>(bytes_ptr).cast<std::string>();
+    }
+    throw py::type_error("Key must be str or bytes");
+}
+
+/*
+  Helper: Decode C++ string to Python str using surrogateescape
+  This prevents crashes when dictionary keys contain invalid UTF-8 (e.g. \x80)
+*/
+py::str safe_decode(std::string const &s)
+{
+    // Use the Python C-API directly to specify the error handler
+    PyObject *u = PyUnicode_DecodeUTF8(s.c_str(), s.size(), "surrogateescape");
+    if (!u)
+        throw py::error_already_set();
+    return py::reinterpret_steal<py::str>(u);
+}
+
 /*
 Type table
 
@@ -830,8 +861,9 @@ void init_object(py::module_ &m)
                 throw py::type_error("Object is not numeric");
             })
         .def("__getitem__",
-            [](QPDFObjectHandle &h, std::string const &key) {
-                return object_get_key(h, key);
+            [](QPDFObjectHandle &h, int index) {
+                auto u_index = list_range_check(h, index);
+                return h.getArrayItem(u_index);
             })
         .def("__getitem__",
             [](QPDFObjectHandle &h, QPDFObjectHandle &name) {
@@ -844,18 +876,14 @@ void init_object(py::module_ &m)
                 }
                 return traverse_namepath(h, path);
             })
-        .def("__setitem__",
-            [](QPDFObjectHandle &h, std::string const &key, QPDFObjectHandle &value) {
-                object_set_key(h, key, value);
+        .def("__getitem__",
+            [](QPDFObjectHandle &h, py::object key) -> QPDFObjectHandle {
+                std::string k = key_to_string(key);
+                return object_get_key(h, k);
             })
         .def("__setitem__",
             [](QPDFObjectHandle &h, QPDFObjectHandle &name, QPDFObjectHandle &value) {
                 object_set_key(h, name.getName(), value);
-            })
-        .def("__setitem__",
-            [](QPDFObjectHandle &h, std::string const &key, py::object pyvalue) {
-                auto value = objecthandle_encode(pyvalue);
-                object_set_key(h, key, value);
             })
         .def("__setitem__",
             [](QPDFObjectHandle &h, QPDFObjectHandle &name, py::object pyvalue) {
@@ -924,10 +952,18 @@ void init_object(py::module_ &m)
                 }
             })
         .def("__delitem__",
-            [](QPDFObjectHandle &h, std::string const &key) { object_del_key(h, key); })
+            [](QPDFObjectHandle &h, int index) {
+                auto u_index = list_range_check(h, index);
+                h.eraseItem(u_index);
+            })
         .def("__delitem__",
             [](QPDFObjectHandle &h, QPDFObjectHandle &name) {
                 object_del_key(h, name.getName());
+            })
+        .def("__delitem__",
+            [](QPDFObjectHandle &h, py::object key) {
+                std::string k = key_to_string(key);
+                object_del_key(h, k);
             })
         .def("__getattr__",
             [](QPDFObjectHandle &h, std::string const &name) {
@@ -1033,9 +1069,13 @@ void init_object(py::module_ &m)
             py::arg("default") = py::none())
         .def("keys",
             [](QPDFObjectHandle &h) {
-                if (h.isStream())
-                    return h.getDict().getKeys();
-                return h.getKeys();
+                std::set<std::string> keys =
+                    h.isStream() ? h.getDict().getKeys() : h.getKeys();
+                py::set result;
+                for (auto const &k : keys) {
+                    result.add(safe_decode(k));
+                }
+                return result;
             })
         .def("__contains__",
             [](QPDFObjectHandle &h, QPDFObjectHandle &key) {
@@ -1047,21 +1087,21 @@ void init_object(py::module_ &m)
                 return object_has_key(h, key.getName());
             })
         .def("__contains__",
-            [](QPDFObjectHandle &h, std::string const &key) {
-                if (h.isArray()) {
-                    throw py::type_error(
-                        "Testing `str in pikepdf.Array` is not supported due to "
-                        "ambiguity. Use `pikepdf.String('...') in pikepdf.Array.");
-                }
-                return object_has_key(h, key);
-            })
-        .def("__contains__",
-            [](QPDFObjectHandle &h, py::object key) {
-                if (h.isArray()) {
-                    return array_has_item(h, objecthandle_encode(key));
-                }
-                return false;
-            })
+             [](QPDFObjectHandle &h, py::object key) {
+                 if (h.isArray()) {
+                     if (py::isinstance<py::str>(key) || py::isinstance<py::bytes>(key)) {
+                         throw py::type_error(
+                             "Testing `str in pikepdf.Array` is not supported due to "
+                             "ambiguity. Use `pikepdf.String('...') in pikepdf.Array`.");
+                     }
+                     return array_has_item(h, objecthandle_encode(key));
+                 }
+                 try {
+                     return object_has_key(h, key_to_string(key));
+                 } catch (py::type_error &) {
+                     return false;
+                 }
+             })
         .def("as_list", &QPDFObjectHandle::getArrayAsVector)
         .def("as_dict", &QPDFObjectHandle::getDictAsMap)
         .def(
@@ -1074,9 +1114,14 @@ void init_object(py::module_ &m)
                 } else if (h.isDictionary() || h.isStream()) {
                     if (h.isStream())
                         h = h.getDict();
+
+                    // Manually build safe list to iterate over
                     auto keys = h.getKeys();
-                    auto pykeys = py::cast(keys);
-                    return pykeys.attr("__iter__")();
+                    py::list result;
+                    for (auto const &k : keys) {
+                        result.append(safe_decode(k));
+                    }
+                    return result.attr("__iter__")();
                 } else {
                     throw py::type_error("__iter__ not available on this type");
                 }
@@ -1089,8 +1134,14 @@ void init_object(py::module_ &m)
                     h = h.getDict();
                 if (!h.isDictionary())
                     throw py::type_error("items() not available on this type");
-                auto dict = h.getDictAsMap();
-                auto pydict = py::cast(dict);
+
+                // Manually build dict to ensure keys are safely decoded
+                auto dict_map = h.getDictAsMap();
+                py::dict pydict;
+                for (auto const &item : dict_map) {
+                    // item.first is std::string (key), item.second is QPDFObjectHandle (value)
+                    pydict[safe_decode(item.first)] = py::cast(item.second);
+                }
                 return pydict.attr("items")();
             },
             py::return_value_policy::reference_internal)
@@ -1119,11 +1170,6 @@ void init_object(py::module_ &m)
                 }
                 return py::bytes(h.getStringValue());
             })
-        .def("__getitem__",
-            [](QPDFObjectHandle &h, int index) {
-                auto u_index = list_range_check(h, index);
-                return h.getArrayItem(u_index);
-            })
         .def("__setitem__",
             [](QPDFObjectHandle &h, int index, QPDFObjectHandle &value) {
                 auto u_index = list_range_check(h, index);
@@ -1135,11 +1181,12 @@ void init_object(py::module_ &m)
                 auto value = objecthandle_encode(pyvalue);
                 h.setArrayItem(u_index, value);
             })
-        .def("__delitem__",
-            [](QPDFObjectHandle &h, int index) {
-                auto u_index = list_range_check(h, index);
-                h.eraseItem(u_index);
-            })
+        .def("__setitem__",
+             [](QPDFObjectHandle &h, py::object key, py::object pyvalue) {
+                 std::string k = key_to_string(key);
+                 auto value = objecthandle_encode(pyvalue);
+                 object_set_key(h, k, value);
+             })
         .def("wrap_in_array", [](QPDFObjectHandle &h) { return h.wrapInArray(); })
         .def("append",
             [](QPDFObjectHandle &h, py::object pyitem) {
