@@ -53,7 +53,7 @@ py::str safe_decode(std::string const &s)
     // Use the Python C-API directly to specify the error handler
     PyObject *u = PyUnicode_DecodeUTF8(s.c_str(), s.size(), "surrogateescape");
     if (!u)
-        throw py::error_already_set();
+        throw py::error_already_set();  // LCOV_EXCL_LINE
     return py::reinterpret_steal<py::str>(u);
 }
 

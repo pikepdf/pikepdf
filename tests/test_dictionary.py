@@ -130,3 +130,22 @@ def test_invalid_utf8_keys():
     # 5. Test Deletion
     del d[bad_key_surrogate]
     assert bad_key_surrogate not in d
+
+
+def test_dictionary_coverage_edges(bad_pdf_obj):
+    """Cover edge cases for bytes keys and invalid types in __contains__."""
+    _, obj = bad_pdf_obj
+
+    # Cover lookup using a bytes object
+    # We know the key is /Key\x80. In C++, this matches the raw bytes.
+    assert obj[b'/Key\x80'] == 'Value'
+
+    # Cover 'in' operator with invalid type
+    # This forces key_to_string to throw TypeError, which is caught and returns False
+    assert 123 not in obj
+    assert None not in obj
+
+    # Cover iterating the object directly (not .keys())
+    iterator_keys = list(obj)
+    assert len(iterator_keys) == 1
+    assert iterator_keys[0] == '/Key\udc80'
