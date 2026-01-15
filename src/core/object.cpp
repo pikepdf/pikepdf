@@ -27,19 +27,13 @@
 #include "parsers.h"
 
 // Encodes Python key to bytes, handling surrogates for invalid UTF-8.
-std::string key_to_string(py::handle key) {
+std::string string_from_key(py::handle key) {
     if (py::isinstance<py::bytes>(key)) {
         return key.cast<std::string>();
     }
     if (py::isinstance<py::str>(key)) {
-        // Use C-API for performance (faster than calling .attr("encode"))
-        PyObject* bytes_ptr = PyUnicode_AsEncodedString(key.ptr(), "utf-8", "surrogateescape");
-        if (!bytes_ptr) throw py::error_already_set();
-
-        // reinterpret_steal takes ownership of the 'New Reference' from the C-API.
-        // .cast<std::string>() copies the data into the C++ string.
-        // The temporary py::bytes wrapper is destroyed here, correctly decref-ing the object.
-        return py::reinterpret_steal<py::bytes>(bytes_ptr).cast<std::string>();
+      py::bytes encoded_key = key.attr("encode")("utf-8", "surrogateescape");
+      return encoded_key.cast<std::string>();
     }
     throw py::type_error("Key must be str or bytes");
 }
@@ -50,11 +44,15 @@ std::string key_to_string(py::handle key) {
 */
 py::str safe_decode(std::string const &s)
 {
-    // Use the Python C-API directly to specify the error handler
-    PyObject *u = PyUnicode_DecodeUTF8(s.c_str(), s.size(), "surrogateescape");
-    if (!u)
-        throw py::error_already_set();  // LCOV_EXCL_LINE
-    return py::reinterpret_steal<py::str>(u);
+    // Use the C-API to handle the specific "surrogateescape" requirement
+    // PyUnicode_DecodeUTF8 returns a "New Reference"
+    py::handle py_s = PyUnicode_DecodeUTF8(s.c_str(), s.size(), "surrogateescape");
+
+    if (!py_s) {
+        throw py::error_already_set();
+    }
+
+    return py::reinterpret_steal<py::str>(py_s);
 }
 
 /*
@@ -878,7 +876,7 @@ void init_object(py::module_ &m)
             })
         .def("__getitem__",
             [](QPDFObjectHandle &h, py::object key) -> QPDFObjectHandle {
-                std::string k = key_to_string(key);
+                std::string k = string_from_key(key);
                 return object_get_key(h, k);
             })
         .def("__setitem__",
@@ -962,7 +960,7 @@ void init_object(py::module_ &m)
             })
         .def("__delitem__",
             [](QPDFObjectHandle &h, py::object key) {
-                std::string k = key_to_string(key);
+                std::string k = string_from_key(key);
                 object_del_key(h, k);
             })
         .def("__getattr__",
@@ -1097,7 +1095,7 @@ void init_object(py::module_ &m)
                      return array_has_item(h, objecthandle_encode(key));
                  }
                  try {
-                     return object_has_key(h, key_to_string(key));
+                     return object_has_key(h, string_from_key(key));
                  } catch (py::type_error &) {
                      return false;
                  }
@@ -1183,7 +1181,7 @@ void init_object(py::module_ &m)
             })
         .def("__setitem__",
              [](QPDFObjectHandle &h, py::object key, py::object pyvalue) {
-                 std::string k = key_to_string(key);
+                 std::string k = string_from_key(key);
                  auto value = objecthandle_encode(pyvalue);
                  object_set_key(h, k, value);
              })
