@@ -850,3 +850,29 @@ class TestCyclicEquality:
         a2['/sibling'] = a1
         assert a == a1['/parent']
         assert a1 == a2
+
+
+class TestKeyErrors:
+    def test_scalar_lookup_error(self):
+        """Test object_get_key (via __getattr__)"""
+        n = Name("/Foo")
+        with pytest.raises(ValueError, match=r"cannot get key '/startswith'"):
+            _ = n.startswith
+
+    def test_scalar_contains_error(self):
+        """Test object_has_key (via 'in' operator)"""
+        n = Name("/Foo")
+        with pytest.raises(ValueError, match=r"cannot check existence of key '/Bar'"):
+            _ = '/Bar' in n
+
+    def test_array_set_error(self):
+        """Test object_set_key (via __setitem__)"""
+        arr = Array([1, 2])
+        with pytest.raises(ValueError, match=r"cannot set key '/Bar'"):
+            arr['/Bar'] = 1
+
+    def test_array_del_error(self):
+        """Test object_del_key (via __delitem__)"""
+        arr = Array([1, 2])
+        with pytest.raises(ValueError, match=r"cannot delete key '/Bar'"):
+            del arr['/Bar']

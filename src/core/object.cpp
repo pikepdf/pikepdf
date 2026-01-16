@@ -63,10 +63,19 @@ py::size_t list_range_check(QPDFObjectHandle h, int index)
     return static_cast<py::size_t>(index);
 }
 
+static void ensure_keyed(
+    QPDFObjectHandle &h, const char *action, std::string const &key)
+{
+    if (!h.isDictionary() && !h.isStream()) {
+        throw py::value_error("pikepdf.Object is not a Dictionary or Stream: cannot " +
+                              std::string(action) + " key '" + key +
+                              "' on object of type " + h.getTypeName());
+    }
+}
+
 bool object_has_key(QPDFObjectHandle h, std::string const &key)
 {
-    if (!h.isDictionary() && !h.isStream())
-        throw py::value_error("pikepdf.Object is not a Dictionary or Stream");
+    ensure_keyed(h, "check existence of", key);
     QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
     return dict.hasKey(key);
 }
@@ -85,8 +94,7 @@ bool array_has_item(QPDFObjectHandle haystack, QPDFObjectHandle needle)
 
 QPDFObjectHandle object_get_key(QPDFObjectHandle h, std::string const &key)
 {
-    if (!h.isDictionary() && !h.isStream())
-        throw py::value_error("pikepdf.Object is not a Dictionary or Stream");
+    ensure_keyed(h, "get", key);
     QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
     if (!dict.hasKey(key))
         throw py::key_error(key);
@@ -95,8 +103,7 @@ QPDFObjectHandle object_get_key(QPDFObjectHandle h, std::string const &key)
 
 void object_set_key(QPDFObjectHandle h, std::string const &key, QPDFObjectHandle &value)
 {
-    if (!h.isDictionary() && !h.isStream())
-        throw py::value_error("pikepdf.Object is not a Dictionary or Stream");
+    ensure_keyed(h, "set", key);
     if (value.isNull())
         throw py::value_error(
             "PDF Dictionary keys may not be set to None - use 'del' to remove");
@@ -117,8 +124,7 @@ void object_set_key(QPDFObjectHandle h, std::string const &key, QPDFObjectHandle
 
 void object_del_key(QPDFObjectHandle h, std::string const &key)
 {
-    if (!h.isDictionary() && !h.isStream())
-        throw py::value_error("pikepdf.Object is not a Dictionary or Stream");
+    ensure_keyed(h, "delete", key);
     if (h.isStream() && key == "/Length") {
         throw py::key_error("/Length may not be deleted");
     }
