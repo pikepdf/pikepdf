@@ -862,6 +862,44 @@ void init_object(py::module_ &m)
                 auto value = objecthandle_encode(pyvalue);
                 object_set_key(h, name.getName(), value);
             })
+        .def(
+            "copy",
+            [](QPDFObjectHandle &h) {
+                if (!h.isDictionary()) {
+                    throw py::type_error("copy() is only supported for Dictionaries");
+                }
+                QPDFObjectHandle copy = QPDFObjectHandle::newDictionary();
+                for (auto const &key : h.getKeys()) {
+                    copy.replaceKey(key, h.getKey(key));
+                }
+                return copy;
+            },
+            "Create a shallow copy of the dictionary.")
+        .def(
+            "update",
+            [](QPDFObjectHandle &h, py::dict other) {
+                // object_set_key handles the check if 'h' is a dictionary
+                for (auto item : other) {
+                    std::string key = py::str(item.first);
+                    auto value = objecthandle_encode(item.second);
+                    object_set_key(h, key, value);
+                }
+            },
+            "Update the dictionary with key/value pairs from another dictionary.")
+        .def(
+            "update",
+            [](QPDFObjectHandle &h, QPDFObjectHandle &other) {
+                if (!other.isDictionary()) {
+                    throw py::type_error("update() argument must be a dictionary");
+                }
+                // Efficient C++-to-C++ merge without Python overhead
+                for (auto const &key : other.getKeys()) {
+                    QPDFObjectHandle val = other.getKey(key);
+                    object_set_key(h, key, val);
+                }
+            },
+            "Update the dictionary with key/value pairs from another pikepdf "
+            "Dictionary.")
         .def("__setitem__",
             [](QPDFObjectHandle &h, NamePath const &path, QPDFObjectHandle &value) {
                 if (path.empty()) {
