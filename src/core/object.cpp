@@ -27,13 +27,14 @@
 #include "parsers.h"
 
 // Encodes Python key to bytes, handling surrogates for invalid UTF-8.
-std::string string_from_key(py::handle key) {
+std::string string_from_key(py::handle key)
+{
     if (py::isinstance<py::bytes>(key)) {
         return key.cast<std::string>();
     }
     if (py::isinstance<py::str>(key)) {
-      py::bytes encoded_key = key.attr("encode")("utf-8", "surrogateescape");
-      return encoded_key.cast<std::string>();
+        py::bytes encoded_key = key.attr("encode")("utf-8", "surrogateescape");
+        return encoded_key.cast<std::string>();
     }
     throw py::type_error("Key must be str or bytes");
 }
@@ -1085,21 +1086,22 @@ void init_object(py::module_ &m)
                 return object_has_key(h, key.getName());
             })
         .def("__contains__",
-             [](QPDFObjectHandle &h, py::object key) {
-                 if (h.isArray()) {
-                     if (py::isinstance<py::str>(key) || py::isinstance<py::bytes>(key)) {
-                         throw py::type_error(
-                             "Testing `str in pikepdf.Array` is not supported due to "
-                             "ambiguity. Use `pikepdf.String('...') in pikepdf.Array`.");
-                     }
-                     return array_has_item(h, objecthandle_encode(key));
-                 }
-                 try {
-                     return object_has_key(h, string_from_key(key));
-                 } catch (py::type_error &) {
-                     return false;
-                 }
-             })
+            [](QPDFObjectHandle &h, py::object key) {
+                if (h.isArray()) {
+                    if (py::isinstance<py::str>(key) ||
+                        py::isinstance<py::bytes>(key)) {
+                        throw py::type_error(
+                            "Testing `str in pikepdf.Array` is not supported due to "
+                            "ambiguity. Use `pikepdf.String('...') in pikepdf.Array`.");
+                    }
+                    return array_has_item(h, objecthandle_encode(key));
+                }
+                try {
+                    return object_has_key(h, string_from_key(key));
+                } catch (py::type_error &) {
+                    return false;
+                }
+            })
         .def("as_list", &QPDFObjectHandle::getArrayAsVector)
         .def("as_dict", &QPDFObjectHandle::getDictAsMap)
         .def(
@@ -1137,7 +1139,8 @@ void init_object(py::module_ &m)
                 auto dict_map = h.getDictAsMap();
                 py::dict pydict;
                 for (auto const &item : dict_map) {
-                    // item.first is std::string (key), item.second is QPDFObjectHandle (value)
+                    // item.first is std::string (key), item.second is QPDFObjectHandle
+                    // (value)
                     pydict[safe_decode(item.first)] = py::cast(item.second);
                 }
                 return pydict.attr("items")();
@@ -1180,11 +1183,11 @@ void init_object(py::module_ &m)
                 h.setArrayItem(u_index, value);
             })
         .def("__setitem__",
-             [](QPDFObjectHandle &h, py::object key, py::object pyvalue) {
-                 std::string k = string_from_key(key);
-                 auto value = objecthandle_encode(pyvalue);
-                 object_set_key(h, k, value);
-             })
+            [](QPDFObjectHandle &h, py::object key, py::object pyvalue) {
+                std::string k = string_from_key(key);
+                auto value = objecthandle_encode(pyvalue);
+                object_set_key(h, k, value);
+            })
         .def("wrap_in_array", [](QPDFObjectHandle &h) { return h.wrapInArray(); })
         .def("append",
             [](QPDFObjectHandle &h, py::object pyitem) {
