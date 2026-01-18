@@ -15,7 +15,10 @@ tests don't try to create race conditions. Must be compiled manually.
 ## Unreleased
 
 - Fixed UnicodeDecodeError when listing keys of a dictionary containing invalid
-  UTF-8. (#696)
+  UTF-8. Thanks @qooxzuub. :issue:`696`
+- Fixed an issue where opening a PDF with duplicate form field names would cause a
+  crash. Accessing a duplicate field by name now returns a proxy list of all matching
+  fields. Thanks @qooxzuub. :issue:`697`
 
 ## v10.2.0
 

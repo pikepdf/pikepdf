@@ -54,6 +54,10 @@ True
 False
 ```
 
+Fields with duplicate names are supported. Accessing them by name returns a list of fields
+instead of a single field. Accessing attributes directly on this list (e.g. `field.value`)
+will proxy to the first field in the list.
+
 ## Filling Form Data
 
 Before filling a form, you will need to determine how you will deal with appearance
