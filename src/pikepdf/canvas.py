@@ -24,13 +24,16 @@ from decimal import Decimal
 from enum import Enum
 from io import BytesIO
 from pathlib import Path
-
-from PIL import Image
+from typing import TYPE_CHECKING
 
 from pikepdf._core import ContentStreamInstruction, Matrix, Pdf
 from pikepdf._data import CHARNAMES_TO_UNICODE
 from pikepdf.models import unparse_content_stream
 from pikepdf.objects import Array, Dictionary, Name, Operator, String
+
+if TYPE_CHECKING:
+    from PIL import Image
+
 
 log = logging.getLogger(__name__)
 
@@ -788,6 +791,8 @@ class _CanvasAccessor:
         """Draw image at (x,y) with width w and height h."""
         with self.save_state(cm=Matrix(width, 0, 0, height, x, y)):
             if isinstance(image, Path | str):
+                from PIL import Image
+
                 image = Image.open(image)
             image.load()
             if image.mode == "P":
