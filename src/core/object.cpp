@@ -898,16 +898,16 @@ void init_object(py::module_ &m)
         .def(
             "copy",
             [](QPDFObjectHandle &h) {
-                if (!h.isDictionary()) {
-                    throw py::type_error("copy() is only supported for Dictionaries");
+                if (!h.isDictionary() && !h.isStream()) {
+                    throw py::type_error(
+                        std::string("pikepdf.Object is not a Dictionary or Stream: ") +
+                        "cannot copy an object of type " + h.getTypeName());
                 }
-                QPDFObjectHandle copy = QPDFObjectHandle::newDictionary();
-                for (auto const &key : h.getKeys()) {
-                    copy.replaceKey(key, h.getKey(key));
-                }
-                return copy;
+                if (h.isStream())
+                    return h.copyStream();
+                return h.shallowCopy();
             },
-            "Create a shallow copy of the dictionary.")
+            "Create a shallow copy of the object.")
         .def(
             "update",
             [](QPDFObjectHandle &h, py::dict other) {
@@ -922,6 +922,10 @@ void init_object(py::module_ &m)
         .def(
             "update",
             [](QPDFObjectHandle &h, QPDFObjectHandle &other) {
+                if (other.isStream()) {
+                    throw py::type_error("update(): cannot update from a Stream; use "
+                                         ".update(other.stream_dict()) instead");
+                }
                 if (!other.isDictionary()) {
                     throw py::type_error("update() argument must be a dictionary");
                 }

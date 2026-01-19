@@ -6,7 +6,7 @@ from __future__ import annotations
 import io
 import pytest
 
-from pikepdf import Pdf, PdfError, Dictionary, Name, Array
+from pikepdf import Pdf, PdfError, Dictionary, Name, Array, Stream
 
 # pylint: disable=redefined-outer-name,pointless-statement,expression-not-assigned
 
@@ -91,7 +91,7 @@ def test_copy_raises_on_non_dict():
     # throws the error we defined in C++ if called on an Array.
     arr = Array([1, 2, 3])
 
-    with pytest.raises(TypeError, match="only supported for Dictionaries"):
+    with pytest.raises(TypeError, match="not a Dictionary or Stream: cannot copy"):
         arr.copy()
 
 def test_dictionary_update_from_pikepdf_dict():
@@ -208,3 +208,10 @@ def test_dictionary_coverage_edges(bad_pdf_obj):
     iterator_keys = list(obj)
     assert len(iterator_keys) == 1
     assert iterator_keys[0] == '/Key\udc80'
+
+def test_update_stream_error():
+    d = Dictionary()
+    p = Pdf.new()
+    s = Stream(p, b"")
+    with pytest.raises(TypeError, match="stream_dict"):
+        d.update(s)

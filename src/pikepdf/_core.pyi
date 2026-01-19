@@ -455,6 +455,7 @@ class Object:
     @overload
     def as_decimal(self, default: T) -> Decimal | T: ...
     def _get_real_value(self) -> str: ...
+    def copy(self) -> Object: ...
     def emplace(self, other: Object, retain: Iterable[Name] = ...) -> None:
         """Copy all items from other without making a new object.
 
@@ -570,6 +571,7 @@ class Object:
         Args:
             resolved: If True, deference indirect objects where possible.
         """
+    def update(self, other: Mapping[Any, Any] | Object) -> None: ...
     def with_same_owner_as(self, arg0: Object) -> Object:
         """Returns an object that is owned by the same Pdf that owns *other* object.
 
