@@ -168,7 +168,7 @@ void init_matrix(py::module_ &m)
             [](QPDFMatrix const &self) { return QPDFObjectHandle::newArray(self); })
         .def(
             "transform",
-            [](QPDFMatrix const &self, Point const &point) {
+            [](QPDFMatrix const &self, Point point) {
                 double x = point.first;
                 double y = point.second;
                 double xp, yp;

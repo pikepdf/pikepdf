@@ -33,6 +33,29 @@ from pikepdf.canvas import ContentStreamBuilder, SimpleFont
 log = logging.getLogger(__name__)
 
 
+class MultipleFieldProxy(list):
+    """A list of fields that share the same name.
+
+    Behaves like a list, allowing access to all duplicate fields.
+    Also behaves like the first field in the list, proxying attribute access,
+    to maintain backward compatibility with code expecting a single field.
+    """
+
+    def __getattr__(self, name):
+        return getattr(self[0], name)
+
+    def __setattr__(self, name, value):
+        # If the attribute exists on the first field, proxy the write to it
+        if len(self) > 0 and hasattr(self[0], name):
+            setattr(self[0], name, value)
+        else:
+            # Otherwise set it on the list object (e.g. internal python stuff)
+            super().__setattr__(name, value)
+
+    def __repr__(self):
+        return f"<MultipleFieldProxy: {super().__repr__()}>"
+
+
 class Form:
     """Utility class to make it easier to work with interactive forms.
 
@@ -89,8 +112,13 @@ class Form:
         fields = self._acroform.get_fields_with_qualified_name(name)
         if not fields:
             raise KeyError(name)
+
         if len(fields) > 1:
-            raise RuntimeError(f'Multiple fields with same name: {name}')
+            # Wrap all fields and return the proxy list
+            wrapped = MultipleFieldProxy([self._wrap(f, name) for f in fields])
+            self._cache[name] = wrapped
+            return wrapped
+
         return self._wrap(fields[0], name)
 
     def __contains__(self, name: str):
@@ -116,7 +144,7 @@ class Form:
                 # We already returned the parent of this radio button
                 continue
             elif name in self._cache:
-                raise RuntimeError(f'Multiple fields with same name: {name}')
+                continue
             elif field.is_radio_button:
                 # QPDF does something here which is perhaps not entirely correct by the
                 # spec, and which causes issues. By the spec, a radio button group is a
@@ -128,9 +156,13 @@ class Form:
                 # back to using that.
                 fields = self._acroform.get_fields_with_qualified_name(name)
                 if len(fields) > 1:
-                    raise RuntimeError(f'Multiple fields with same name: {name}')
-                seen.add(name)
-                yield name, self._wrap(fields[0], name)
+                    wrapped = MultipleFieldProxy([self._wrap(f, name) for f in fields])
+                    self._cache[name] = wrapped
+                    seen.add(name)
+                    yield name, wrapped
+                else:
+                    seen.add(name)
+                    yield name, self._wrap(fields[0], name)
             else:
                 seen.add(name)
                 yield name, self._wrap(field, name)
