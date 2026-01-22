@@ -215,6 +215,13 @@ std::pair<int, int> object_get_objgen(QPDFObjectHandle h)
     return std::pair<int, int>(objgen.getObj(), objgen.getGen());
 }
 
+QPDFObjectHandle copy_object(QPDFObjectHandle &h)
+{
+    if (h.isStream())
+        return h.copyStream();
+    return h.shallowCopy();
+}
+
 std::shared_ptr<Buffer> get_stream_data(
     QPDFObjectHandle &h, qpdf_stream_decode_level_e decode_level)
 {
@@ -389,12 +396,7 @@ void init_object(py::module_ &m)
                 return py::bool_(result);
             },
             py::is_operator())
-        .def("__copy__",
-            [](QPDFObjectHandle &h) {
-                if (h.isStream())
-                    return h.copyStream();
-                return h.shallowCopy();
-            })
+        .def("__copy__", &copy_object)
         .def("__len__",
             [](QPDFObjectHandle &h) -> py::size_t {
                 if (h.isDictionary()) {
@@ -898,14 +900,13 @@ void init_object(py::module_ &m)
         .def(
             "copy",
             [](QPDFObjectHandle &h) {
-                if (!h.isDictionary() && !h.isStream()) {
+                if (!h.isDictionary() && !h.isStream() && !h.isArray()) {
                     throw py::type_error(
-                        std::string("pikepdf.Object is not a Dictionary or Stream: ") +
+                        std::string(
+                            "pikepdf.Object is not an Array, Dictionary or Stream: ") +
                         "cannot copy an object of type " + h.getTypeName());
                 }
-                if (h.isStream())
-                    return h.copyStream();
-                return h.shallowCopy();
+                return copy_object(h);
             },
             "Create a shallow copy of the object.")
         .def(
