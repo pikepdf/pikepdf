@@ -4,9 +4,10 @@
 from __future__ import annotations
 
 import io
+
 import pytest
 
-from pikepdf import Pdf, PdfError, Dictionary, Name, Array, Stream
+from pikepdf import Array, Dictionary, Name, Pdf, PdfError, Stream, String
 
 # pylint: disable=redefined-outer-name,pointless-statement,expression-not-assigned
 
@@ -44,6 +45,7 @@ def test_get_equality_dict(congress):
         page['/NoSuchKey']
 
     assert page.get('/NoSuchKey', 42) == 42
+
 
 def test_dictionary_copy_semantics():
     """Ensure copy() creates a shallow copy, not a reference."""
@@ -85,19 +87,21 @@ def test_dictionary_update():
     assert str(d['/D']) == "hello"
     assert float(d['/E']) == 3.14
 
+
 def test_copy_raises_on_non_dict():
     """Ensure we can't call .copy() on an Array or other types."""
     # Since QPDFObjectHandle wraps everything, we must ensure .copy()
     # throws the error we defined in C++ if called on an Array.
-    arr = Array([1, 2, 3])
+    s = String('hello')
 
-    with pytest.raises(TypeError, match="not a Dictionary or Stream: cannot copy"):
-        arr.copy()
+    with pytest.raises(TypeError, match="cannot copy an object of type"):
+        s.copy()
+
 
 def test_dictionary_update_from_pikepdf_dict():
     """Ensure we can update a pikepdf.Dictionary using another pikepdf.Dictionary."""
     d1 = Dictionary({'/A': 1})
-    d2 = Dictionary({'/B': 2, '/A': 99}) # Overlap on /A
+    d2 = Dictionary({'/B': 2, '/A': 99})  # Overlap on /A
 
     # This previously would have raised TypeError
     d1.update(d2)
@@ -208,6 +212,7 @@ def test_dictionary_coverage_edges(bad_pdf_obj):
     iterator_keys = list(obj)
     assert len(iterator_keys) == 1
     assert iterator_keys[0] == '/Key\udc80'
+
 
 def test_update_stream_error():
     d = Dictionary()
