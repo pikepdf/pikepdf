@@ -6,7 +6,7 @@ from __future__ import annotations
 import io
 import pytest
 
-from pikepdf import Pdf, PdfError, Dictionary
+from pikepdf import Pdf, PdfError, Dictionary, Name, Array, Stream
 
 # pylint: disable=redefined-outer-name,pointless-statement,expression-not-assigned
 
@@ -45,6 +45,65 @@ def test_get_equality_dict(congress):
 
     assert page.get('/NoSuchKey', 42) == 42
 
+def test_dictionary_copy_semantics():
+    """Ensure copy() creates a shallow copy, not a reference."""
+    d1 = Dictionary({'/A': 1, '/B': 2})
+    d2 = d1.copy()
+
+    # 1. Content equality check
+    assert d1 == d2
+    assert d1.keys() == d2.keys()
+
+    # 2. Independence check (Modifying copy shouldn't affect original)
+    d2['/C'] = 3
+    assert '/C' in d2
+    assert '/C' not in d1
+
+    # 3. Independence check (Modifying original shouldn't affect copy)
+    d1['/A'] = 99
+    assert d1['/A'] == 99
+    assert d2['/A'] == 1  # Should remain 1
+
+
+def test_dictionary_update():
+    """Ensure update() merges keys correctly."""
+    d = Dictionary({'/A': 1, '/B': 2})
+
+    # 1. Update with new key
+    d.update({'/C': 3})
+    assert d['/C'] == 3
+
+    # 2. Update overwriting existing key
+    d.update({'/A': 100})
+    assert d['/A'] == 100
+
+    # 3. Ensure untouched keys remain
+    assert d['/B'] == 2
+
+    # 4. Test mixed Python types
+    d.update({'/D': "hello", '/E': 3.14})
+    assert str(d['/D']) == "hello"
+    assert float(d['/E']) == 3.14
+
+def test_copy_raises_on_non_dict():
+    """Ensure we can't call .copy() on an Array or other types."""
+    # Since QPDFObjectHandle wraps everything, we must ensure .copy()
+    # throws the error we defined in C++ if called on an Array.
+    arr = Array([1, 2, 3])
+
+    with pytest.raises(TypeError, match="not a Dictionary or Stream: cannot copy"):
+        arr.copy()
+
+def test_dictionary_update_from_pikepdf_dict():
+    """Ensure we can update a pikepdf.Dictionary using another pikepdf.Dictionary."""
+    d1 = Dictionary({'/A': 1})
+    d2 = Dictionary({'/B': 2, '/A': 99}) # Overlap on /A
+
+    # This previously would have raised TypeError
+    d1.update(d2)
+
+    assert d1['/A'] == 99
+    assert d1['/B'] == 2
 
 
 @pytest.fixture
@@ -149,3 +208,10 @@ def test_dictionary_coverage_edges(bad_pdf_obj):
     iterator_keys = list(obj)
     assert len(iterator_keys) == 1
     assert iterator_keys[0] == '/Key\udc80'
+
+def test_update_stream_error():
+    d = Dictionary()
+    p = Pdf.new()
+    s = Stream(p, b"")
+    with pytest.raises(TypeError, match="stream_dict"):
+        d.update(s)
