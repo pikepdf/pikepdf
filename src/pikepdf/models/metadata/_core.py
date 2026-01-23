@@ -11,8 +11,6 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 from warnings import warn
 
-from lxml.etree import QName
-
 from pikepdf._version import __version__ as pikepdf_version
 from pikepdf.models.metadata._constants import (
     XMP_NS_PDF,
@@ -27,7 +25,10 @@ from pikepdf.models.metadata._xmp import XmpDocument
 from pikepdf.objects import Name, Stream
 
 if TYPE_CHECKING:  # pragma: no cover
+    from lxml.etree import QName
+
     from pikepdf import Pdf
+
 
 log = logging.getLogger(__name__)
 
@@ -116,6 +117,7 @@ class PdfMetadata(MutableMapping):
         approximately equivalent to certain XMP records. This method copies
         those entries into the XMP metadata.
         """
+        from lxml.etree import QName
 
         def warn_or_raise(msg, e=None):
             if raise_failure:
@@ -172,6 +174,8 @@ class PdfMetadata(MutableMapping):
         The standard mapping is described here:
             https://www.pdfa.org/pdfa-metadata-xmp-rdf-dublin-core/
         """
+        from lxml.etree import QName
+
         # Touch object to ensure it exists
         self._pdf.docinfo  # pylint: disable=pointless-statement
         for uri, element, docinfo_name, converter in self.DOCINFO_MAPPING:
@@ -207,6 +211,8 @@ class PdfMetadata(MutableMapping):
 
         Depending how we are initialized, leave our metadata mark and producer.
         """
+        from lxml.etree import QName
+
         if self.mark:
             # We were asked to mark the file as being edited by pikepdf
             self._setitem(
@@ -253,6 +259,8 @@ class PdfMetadata(MutableMapping):
 
     def __contains__(self, key: object) -> bool:  # type: ignore[override]
         """Test if XMP key is in metadata."""
+        from lxml.etree import QName
+
         if not isinstance(key, (str, QName)):
             raise TypeError(f"{key!r} must be str or QName")
         return key in self._xmp_doc
@@ -330,6 +338,8 @@ class PdfMetadata(MutableMapping):
             this function returns the value as it appears in the PDF, which
             is uppercase.
         """
+        from lxml.etree import QName
+
         key_part = QName(XMP_NS_PDFA_ID, 'part')
         key_conformance = QName(XMP_NS_PDFA_ID, 'conformance')
         try:
@@ -349,6 +359,8 @@ class PdfMetadata(MutableMapping):
             The conformance level of the PDF/X, or an empty string if the
             PDF does not claim PDF/X conformance.
         """
+        from lxml.etree import QName
+
         pdfx_version = QName(XMP_NS_PDFX_ID, 'GTS_PDFXVersion')
         try:
             return self[pdfx_version]

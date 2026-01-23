@@ -7,10 +7,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable, Iterable
-from typing import NamedTuple
-
-from lxml import etree
-from lxml.etree import QName
+from typing import Any, NamedTuple
 
 # XMP Namespace URIs
 XMP_NS_DC = "http://purl.org/dc/elements/1.1/"
@@ -57,9 +54,6 @@ DEFAULT_NAMESPACES: list[tuple[str, str]] = [
     ('http://www.niso.org/schemas/ali/1.0/', 'ali'),
 ]
 
-# Register all namespaces with lxml
-for _uri, _prefix in DEFAULT_NAMESPACES:
-    etree.register_namespace(_prefix, _uri)
 
 # XMP packet wrappers
 XPACKET_BEGIN = b"""<?xpacket begin="\xef\xbb\xbf" id="W5M0MpCehiHzreSzNTczkc9d"?>\n"""
@@ -91,14 +85,37 @@ XMP_CONTAINERS = [
     XmpContainer('Seq', list, list.append),
 ]
 
-LANG_ALTS = frozenset(
-    [
-        str(QName(XMP_NS_DC, 'title')),
-        str(QName(XMP_NS_DC, 'description')),
-        str(QName(XMP_NS_DC, 'rights')),
-        str(QName(XMP_NS_XMP_RIGHTS, 'UsageTerms')),
-    ]
-)
+
+_LANG_ALTS_LAZY = [
+    (XMP_NS_DC, 'title'),
+    (XMP_NS_DC, 'description'),
+    (XMP_NS_DC, 'rights'),
+    (XMP_NS_XMP_RIGHTS, 'UsageTerms'),
+]
+
+_LOADED_LXML_NAMESPACES = False
+
+# lxml lazy-loading
+def __getattr__(name: str) -> Any:
+    global _LOADED_LXML_NAMESPACES
+
+    if name == 'LANG_ALTS':
+        from lxml.etree import QName
+
+        if not _LOADED_LXML_NAMESPACES:
+            from lxml import etree
+            # Register all namespaces with lxml
+            for _uri, _prefix in DEFAULT_NAMESPACES:
+                etree.register_namespace(_prefix, _uri)
+            _LOADED_LXML_NAMESPACES = True
+
+        val = frozenset([str(QName(x, y)) for x,y in _LANG_ALTS_LAZY])
+        globals()[name] = val
+
+        return val
+
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 # These are the illegal characters in XML 1.0. (XML 1.1 is a bit more permissive,
 # but we'll be strict to ensure wider compatibility.)

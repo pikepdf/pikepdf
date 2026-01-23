@@ -5,11 +5,10 @@ from __future__ import annotations
 
 import struct
 from collections.abc import Callable
-from typing import Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple
 
-from PIL import Image
-from PIL.TiffTags import TAGS_V2 as TIFF_TAGS
-
+if TYPE_CHECKING:
+    from PIL import Image
 
 class ImageDecompressionError(Exception):
     """Image decompression error."""
@@ -115,6 +114,8 @@ def image_from_byte_buffer(buffer: BytesLike, size: tuple[int, int], stride: int
     *stride* is the number of bytes per row, and is essential for packed bits
     with odd image widths.
     """
+    from PIL import Image
+
     ystep = 1  # image is top to bottom in memory
     # Even if the image is type 'P' (palette), we create it as a 'L' grayscale
     # at this step. The palette is attached later.
@@ -172,6 +173,8 @@ def image_from_buffer_and_palette(
         im = image_from_byte_buffer(buffer, size, stride)
         im.putpalette(gray_palette, rawmode='RGB')
     elif base_mode == 'CMYK':
+        from PIL import Image
+
         # Pillow does not support CMYK with palettes; convert manually
         output = _depalettize_cmyk(buffer, palette)
         im = Image.frombuffer('CMYK', size, data=output, decoder_name='raw')
@@ -212,6 +215,7 @@ def generate_ccitt_header(
 ) -> bytes:
     """Generate binary CCITT header for image with given parameters."""
     tiff_header_struct = '<' + '2s' + 'H' + 'L' + 'H'
+    from PIL.TiffTags import TAGS_V2 as TIFF_TAGS
 
     tag_keys = {tag.name: key for key, tag in TIFF_TAGS.items()}  # type: ignore
     ifd_struct = '<HHLL'
@@ -232,6 +236,7 @@ def generate_ccitt_header(
         )
 
     def add_ifd(tag_name: str, data: int | Callable[[], int | None], count: int = 1):
+
         key = tag_keys[tag_name]
         typecode = TIFF_TAGS[key].type  # type: ignore
         ifds.append(IFD(key, typecode, count, data))

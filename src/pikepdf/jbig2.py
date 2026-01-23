@@ -17,7 +17,6 @@ from subprocess import DEVNULL, PIPE, CalledProcessError, run
 from tempfile import TemporaryDirectory
 
 from packaging.version import InvalidVersion, Version
-from PIL import Image
 
 from pikepdf._exceptions import DependencyError
 
@@ -95,6 +94,8 @@ class JBIG2Decoder(JBIG2DecoderInterface):
             self._run(
                 args, stdout=DEVNULL, check=True, creationflags=self._creationflags
             )
+            from PIL import Image
+
             with Image.open(output_path) as im:
                 return im.tobytes()
 

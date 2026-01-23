@@ -1197,3 +1197,25 @@ class TestXmpDocumentStandalone:
 """
         xmp = XmpDocument(xmp_bytes)
         assert xmp['pdf:Producer'] == 'AttributeProducer'
+
+
+def test_metadata_roundtrip_without_lang_alts(tmp_path):
+    """
+    Ensure metadata round-trip works without explicitly touching LANG_ALTS,
+    and that lazy lxml loading does not break namespace registration.
+    """
+    out = tmp_path / "out.pdf"
+
+    with pikepdf.Pdf.new() as pdf:
+        with pdf.open_metadata(set_pikepdf_as_editor=False) as meta:
+            # Use non-LANG_ALT fields
+            meta["dc:creator"] = "Test Author"
+            meta["pdf:Producer"] = "pikepdf-test"
+
+        pdf.save(out)
+
+    # Reload and verify metadata survived
+    with pikepdf.open(out) as pdf:
+        meta = pdf.open_metadata()
+        assert meta["dc:creator"] == "Test Author"
+        assert meta["pdf:Producer"] == "pikepdf-test"
