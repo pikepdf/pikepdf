@@ -234,6 +234,13 @@ std::pair<int, int> object_get_objgen(QPDFObjectHandle h)
     return std::pair<int, int>(objgen.getObj(), objgen.getGen());
 }
 
+QPDFObjectHandle copy_object(QPDFObjectHandle &h)
+{
+    if (h.isStream())
+        return h.copyStream();
+    return h.shallowCopy();
+}
+
 std::shared_ptr<Buffer> get_stream_data(
     QPDFObjectHandle &h, qpdf_stream_decode_level_e decode_level)
 {
@@ -408,12 +415,7 @@ void init_object(py::module_ &m)
                 return py::bool_(result);
             },
             py::is_operator())
-        .def("__copy__",
-            [](QPDFObjectHandle &h) {
-                if (h.isStream())
-                    return h.copyStream();
-                return h.shallowCopy();
-            })
+        .def("__copy__", &copy_object)
         .def("__len__",
             [](QPDFObjectHandle &h) -> py::size_t {
                 if (h.isDictionary()) {
@@ -914,6 +916,47 @@ void init_object(py::module_ &m)
                 auto value = objecthandle_encode(pyvalue);
                 object_set_key(h, name.getName(), value);
             })
+        .def(
+            "copy",
+            [](QPDFObjectHandle &h) {
+                if (!h.isDictionary() && !h.isStream() && !h.isArray()) {
+                    throw py::type_error(
+                        std::string(
+                            "pikepdf.Object is not an Array, Dictionary or Stream: ") +
+                        "cannot copy an object of type " + h.getTypeName());
+                }
+                return copy_object(h);
+            },
+            "Create a shallow copy of the object.")
+        .def(
+            "update",
+            [](QPDFObjectHandle &h, py::dict other) {
+                // object_set_key handles the check if 'h' is a dictionary
+                for (auto item : other) {
+                    std::string key = py::str(item.first);
+                    auto value = objecthandle_encode(item.second);
+                    object_set_key(h, key, value);
+                }
+            },
+            "Update the dictionary with key/value pairs from another dictionary.")
+        .def(
+            "update",
+            [](QPDFObjectHandle &h, QPDFObjectHandle &other) {
+                if (other.isStream()) {
+                    throw py::type_error("update(): cannot update from a Stream; use "
+                                         ".update(other.stream_dict()) instead");
+                }
+                if (!other.isDictionary()) {
+                    throw py::type_error("update() argument must be a dictionary");
+                }
+                // Efficient C++-to-C++ merge without Python overhead
+                for (auto const &key : other.getKeys()) {
+                    QPDFObjectHandle val = other.getKey(key);
+                    object_set_key(h, key, val);
+                }
+            },
+            "Update the dictionary with key/value pairs from another pikepdf "
+            "Dictionary.")
         .def("__setitem__",
             [](QPDFObjectHandle &h, NamePath const &path, QPDFObjectHandle &value) {
                 if (path.empty()) {

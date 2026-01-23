@@ -1066,7 +1066,10 @@ def test_grayscale_stride(spec):
     im = Image.open(bio)
     assert im.mode == 'L' and im.size == pim.size
 
-    for n, pixel in enumerate(im.getdata()):
+    imdata = (
+        im.get_flattened_data() if hasattr(im, 'get_flattened_data') else im.getdata()
+    )
+    for n, pixel in enumerate(imdata):
         idx = stride * (n // w) + (n % w)
         assert imdata_unpacked[idx] == pixel
 

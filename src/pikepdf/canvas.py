@@ -322,6 +322,7 @@ class SimpleFont(DimensionedFont):
             else:
                 # Can't map character
                 log.warning(f"No mapping for {repr(char)} in current encoding; skipped")
+        return result
 
     def text_width(
         self,

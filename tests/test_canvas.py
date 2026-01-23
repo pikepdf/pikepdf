@@ -127,6 +127,31 @@ class TestSimpleFont:
     ):
         assert simplefont.encode(string) == encoded
 
+    def test_encode_diffmap_with_base_encoding(self, resources):
+        """Test that _encode_diffmap returns the encoded result.
+
+        Regression test for bug where _encode_diffmap built a result bytearray
+        but didn't return it, causing appearance generation for multiline text
+        fields to fail with "'NoneType' object is not iterable".
+        """
+        with Pdf.open(resources / 'multiline_diffmap_font.pdf') as pdf:
+            acroform = pdf.Root.AcroForm
+            dr = acroform.DR
+
+            # Get the font with Differences encoding
+            font = SimpleFont.load(Name('/TestFont'), dr)
+
+            # Encode a space character - this should work, not return None
+            # The space is not in the Differences map, so it falls through to base_encoding
+            encoded = font.encode(' ')
+            assert encoded is not None, "_encode_diffmap must return the result"
+            assert encoded == b' ', "Space character should encode correctly"
+
+            # Also test that text_width works (it calls encode internally)
+            width = font.text_width(' ', 12)
+            assert width is not None
+            assert isinstance(width, (int, Decimal))
+
 
 class TestContentStreamBuilder:
     def test_init(self):
