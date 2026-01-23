@@ -432,7 +432,7 @@ class TestDictionary:
 
     def test_int_access(self):
         d = pikepdf.Dictionary()
-        with pytest.raises(TypeError, match="not an array"):
+        with pytest.raises(TypeError, match="not an Array"):
             d[0] = 3
 
     def test_wrong_contains_type(self):
@@ -877,7 +877,6 @@ class TestKeyErrors:
         arr = Array([1, 2])
         with pytest.raises(ValueError, match=r"cannot delete key '/Bar'"):
             del arr['/Bar']
-
 
 class TestCopy:
     def test_copy_array(self):
