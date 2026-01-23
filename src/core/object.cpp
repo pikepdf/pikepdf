@@ -56,6 +56,25 @@ py::str safe_decode(std::string const &s)
     return py::reinterpret_steal<py::str>(py_s);
 }
 
+// Convert QPDF Dictionary/Stream to temporary Python dict, or throw
+static py::dict pydict_from_object(QPDFObjectHandle h, const char *method_name)
+{
+    if (h.isStream())
+        h = h.getDict();
+
+    if (!h.isDictionary()) {
+        std::string msg = std::string(method_name) + "() not available on this type";
+        throw py::type_error(msg);
+    }
+
+    auto dict_map = h.getDictAsMap();
+    py::dict pydict;
+    for (auto const &item : dict_map) {
+        pydict[safe_decode(item.first)] = py::cast(item.second);
+    }
+    return pydict;
+}
+
 /*
 Type table
 
@@ -1178,21 +1197,14 @@ void init_object(py::module_ &m)
             py::return_value_policy::reference_internal)
         .def(
             "items",
-            [](QPDFObjectHandle h) -> py::iterable {
-                if (h.isStream())
-                    h = h.getDict();
-                if (!h.isDictionary())
-                    throw py::type_error("items() not available on this type");
-
-                // Manually build dict to ensure keys are safely decoded
-                auto dict_map = h.getDictAsMap();
-                py::dict pydict;
-                for (auto const &item : dict_map) {
-                    // item.first is std::string (key), item.second is QPDFObjectHandle
-                    // (value)
-                    pydict[safe_decode(item.first)] = py::cast(item.second);
-                }
-                return pydict.attr("items")();
+            [](QPDFObjectHandle h) {
+                return pydict_from_object(h, "items").attr("items")();
+            },
+            py::return_value_policy::reference_internal)
+        .def(
+            "values",
+            [](QPDFObjectHandle h) {
+                return pydict_from_object(h, "values").attr("values")();
             },
             py::return_value_policy::reference_internal)
         .def("__str__",
