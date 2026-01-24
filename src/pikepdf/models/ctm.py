@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from collections import deque
 from logging import getLogger
 
 from pikepdf._core import Matrix, Page
@@ -48,7 +49,7 @@ class MatrixStack:
     def __init__(self, initial_matrix: Matrix = Matrix.identity()) -> None:
         """Initializing the stack with the initial matrix."""
         self._initial_matrix = initial_matrix
-        self._stack: list[Matrix | None] = [self._initial_matrix]
+        self._stack: deque[Matrix | None] = deque([self._initial_matrix])
 
     def stack(self):
         """Copying the current CTM onto the stack."""
@@ -64,7 +65,7 @@ class MatrixStack:
         """
         assert len(self._stack) >= 1, "can't be empty"
         if len(self._stack) == 1:
-            self._stack = [self._initial_matrix]
+            self._stack = deque([self._initial_matrix])
         else:
             self._stack.pop()
 
