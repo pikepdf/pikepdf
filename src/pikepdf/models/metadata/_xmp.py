@@ -8,15 +8,11 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Iterable, Iterator
 from io import BytesIO
-from typing import Any
-
-from lxml import etree
-from lxml.etree import QName, XMLSyntaxError, _Element, _ElementTree
+from typing import TYPE_CHECKING, Any
 
 from pikepdf._xml import parse_xml
 from pikepdf.models.metadata._constants import (
     DEFAULT_NAMESPACES,
-    LANG_ALTS,
     XMP_CONTAINERS,
     XMP_EMPTY,
     XMP_NS_RDF,
@@ -27,6 +23,10 @@ from pikepdf.models.metadata._constants import (
     clean,
     re_xml_illegal_bytes,
 )
+
+if TYPE_CHECKING:
+    from lxml.etree import QName, _Element, _ElementTree
+
 
 log = logging.getLogger(__name__)
 
@@ -111,6 +111,9 @@ class XmpDocument:
         overwrite_invalid_xml: bool,
     ) -> _ElementTree:
         """Parse XMP data using fallback parsers."""
+        from lxml import etree
+        from lxml.etree import XMLSyntaxError
+
         if data.strip() == b'':
             data = XMP_EMPTY  # on some platforms lxml chokes on empty documents
 
@@ -156,6 +159,8 @@ class XmpDocument:
             uri: The long form of the namespace.
             prefix: The alias to use when interpreting XMP.
         """
+        from lxml import etree
+
         cls.NS[prefix] = uri
         cls.REVERSE_NS[uri] = prefix
         etree.register_namespace(prefix, uri)
@@ -166,6 +171,8 @@ class XmpDocument:
 
         e.g. pdf:Producer -> {http://ns.adobe.com/pdf/1.3/}Producer
         """
+        from lxml.etree import QName
+
         if isinstance(name, QName):
             return str(name)
         if not isinstance(name, str):
@@ -326,6 +333,8 @@ class XmpDocument:
         rdf_type = next(
             c.rdf_type for c in XMP_CONTAINERS if isinstance(items, c.py_type)
         )
+        from lxml import etree
+        from lxml.etree import QName
         seq = etree.SubElement(node, str(QName(XMP_NS_RDF, rdf_type)))
         tag_attrib: dict[str, str] | None = None
         if rdf_type == 'Alt':
@@ -339,6 +348,8 @@ class XmpDocument:
                 el.text = inner_text
 
     def _setitem_update(self, key: str | QName, val: Any, qkey: str) -> None:
+        from pikepdf.models.metadata._constants import LANG_ALTS
+
         # Locate existing node to replace
         node, attrib, _oldval, _parent = next(self._get_elements(key))
         if attrib:
@@ -367,6 +378,11 @@ class XmpDocument:
             raise TypeError(f"Setting {key} to {val} with type {type(val)}")
 
     def _setitem_insert(self, key: str | QName, val: Any) -> None:
+        from lxml import etree
+        from lxml.etree import QName
+
+        from pikepdf.models.metadata._constants import LANG_ALTS
+
         rdf = self._get_rdf_root()
         if str(self.qname(key)) in LANG_ALTS:
             val = AltList([clean(val)])
@@ -394,6 +410,8 @@ class XmpDocument:
         Returns:
             True if item was found and deleted, False if not found.
         """
+        from lxml.etree import QName
+
         try:
             node, attrib, _oldval, parent = next(self._get_elements(key))
             if attrib:  # Inline
