@@ -1,0 +1,81 @@
+# SPDX-FileCopyrightText: 2023 James R. Barlow
+# SPDX-License-Identifier: MPL-2.0
+
+name: Publish Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    name: Publish release
+    runs-on: ubuntu-latest
+    environment:
+      name: release
+      url: https://pypi.org/p/pikepdf
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifacts from draft release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p dist
+          gh release download "$GITHUB_REF_NAME" --dir dist --pattern '*.whl'
+          gh release download "$GITHUB_REF_NAME" --dir dist --pattern '*.tar.gz'
+
+      - name: Sign the dists with Sigstore
+        uses: sigstore/gh-action-sigstore-python@v3.0.0
+        with:
+          inputs: |
+            ./dist/*.tar.gz
+            ./dist/*.whl
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+      - name: Extract release notes
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          MAJOR="${VERSION%%.*}"
+          MAJOR_PADDED=$(printf "%02d" "$MAJOR")
+          RELEASE_FILE="docs/releasenotes/version${MAJOR_PADDED}.md"
+
+          python3 << EOF
+          import re
+
+          version = "${VERSION}"
+          release_file = "${RELEASE_FILE}"
+
+          try:
+              with open(release_file) as f:
+                  content = f.read()
+
+              # Find the section for this version
+              # Match from "## vX.Y.Z" until the next "## v" or end of file
+              pattern = rf"## v{re.escape(version)}\n(.*?)(?=\n## v|\Z)"
+              match = re.search(pattern, content, re.DOTALL)
+              notes = match.group(1).strip() if match else ""
+          except FileNotFoundError:
+              notes = ""
+
+          with open("release_notes.md", "w") as f:
+              f.write(notes)
+          EOF
+
+      - name: Publish release (convert draft to published)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          # Update release: remove draft status, add release notes
+          gh release edit "$GITHUB_REF_NAME" \
+            --draft=false \
+            --notes-file release_notes.md
+
+          # Upload signatures to the release
+          gh release upload "$GITHUB_REF_NAME" dist/*.sigstore.json --clobber

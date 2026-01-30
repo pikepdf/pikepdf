@@ -233,12 +233,12 @@ required-imports = ["from __future__ import annotations"]
 convention = "google"
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*test*.py" = ["D", "E501"]
-"docs/*.py" = ["D", "E501", "E402", "F401"]
+"**/*.ipynb" = ["D", "E", "F"]
 "bin/bump_version.py" = ["E501"]
+"docs/*.py" = ["D", "E501", "E402", "F401"]
 "examples/*.py" = ["D103"]
 "fuzzing/*.py" = ["D", "E501"]
-"**/*.ipynb" = ["D", "E", "F"]
+"tests/*test*.py" = ["D", "E501"]
 
 [tool.ruff.format]
 quote-style = "preserve"
