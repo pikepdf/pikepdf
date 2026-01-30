@@ -255,7 +255,7 @@ def test_values_type_error():
 
     pdf = pikepdf.new()
     arr = pdf.make_indirect([1, 2, 3])
-    with pytest.raises(TypeError, match="values\(\) not available"):
+    with pytest.raises(TypeError, match=r"values\(\) not available"):
         arr.values()
 
 def test_update_stream_error():
