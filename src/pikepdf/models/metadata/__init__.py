@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from pikepdf.models.metadata._constants import (
     DEFAULT_NAMESPACES,
-    LANG_ALTS,
     XMP_CONTAINERS,
     XMP_EMPTY,
     XMP_NS_DC,
@@ -46,6 +45,15 @@ from pikepdf.models.metadata._converters import (
 )
 from pikepdf.models.metadata._core import PdfMetadata
 from pikepdf.models.metadata._xmp import XmpDocument
+
+
+def __getattr__(name):
+    if name == 'LANG_ALTS':
+        from pikepdf.models.metadata import _constants
+        val = getattr(_constants, 'LANG_ALTS')
+        globals()[name] = val
+        return val
+    raise AttributeError(f"module {__name__} has no attribute {name}")
 
 __all__ = [
     # Main classes

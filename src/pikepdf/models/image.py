@@ -12,10 +12,7 @@ from io import BytesIO
 from itertools import zip_longest
 from pathlib import Path
 from shutil import copyfileobj
-from typing import Any, BinaryIO, NamedTuple, TypeVar, cast
-
-from PIL import Image
-from PIL.ImageCms import ImageCmsProfile
+from typing import TYPE_CHECKING, Any, BinaryIO, NamedTuple, TypeVar, cast
 
 from pikepdf import jbig2
 from pikepdf._core import Buffer, Pdf, PdfError, StreamDecodeLevel
@@ -30,6 +27,11 @@ from pikepdf.objects import (
     Stream,
     String,
 )
+
+if TYPE_CHECKING:
+    from PIL import Image
+    from PIL.ImageCms import ImageCmsProfile
+
 
 T = TypeVar('T')
 
@@ -458,6 +460,7 @@ class PdfImage(PdfImageBase):
             iccbuffer = iccstream.get_stream_buffer()
             iccbytesio = BytesIO(iccbuffer)
             try:
+                from PIL.ImageCms import ImageCmsProfile
                 self._icc = ImageCmsProfile(iccbytesio)
             except OSError as e:
                 if str(e) == 'cannot open profile from string':
@@ -578,6 +581,8 @@ class PdfImage(PdfImageBase):
         return im
 
     def _extract_transcoded_1bit(self) -> Image.Image:
+        from PIL import Image
+
         if not self.image_mask and self.mode in ('RGB', 'CMYK'):
             raise UnsupportedImageTypeError("1-bit RGB and CMYK are not supported")
         try:
@@ -605,6 +610,7 @@ class PdfImage(PdfImageBase):
         return self._extract_transcoded_1bit()
 
     def _extract_transcoded(self) -> Image.Image:
+        from PIL import Image
         if self.image_mask:
             return self._extract_transcoded_mask()
 
@@ -735,6 +741,8 @@ class PdfImage(PdfImageBase):
 
         Caller must close the image.
         """
+        from PIL import Image
+
         bio = BytesIO()
         direct_extraction = self._extract_direct(stream=bio)
         if direct_extraction:
