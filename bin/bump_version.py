@@ -148,12 +148,7 @@ Be concise. Use present tense (e.g., "Fixed" not "Fixes")."""
 
     try:
         result = subprocess.run(
-            [
-                "claude",
-                "-p",
-                prompt,
-                "--no-input",
-            ],
+            ["claude", "-p", prompt],
             capture_output=True,
             encoding="utf8",
             timeout=120,

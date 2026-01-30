@@ -12,7 +12,7 @@ pikepdf now declares unstable "support" for freethreading, and does not publish
 freethreading wheels. All tests seem to pass, but that's because the existing
 tests don't try to create race conditions. Must be compiled manually.
 
-## Unreleased
+## v10.3.0
 
 - Fixed UnicodeDecodeError when listing keys of a dictionary containing invalid
   UTF-8. Thanks @qooxzuub. :issue:`696`
