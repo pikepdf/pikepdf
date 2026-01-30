@@ -6,7 +6,7 @@ name: Publish Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   publish:
@@ -29,15 +29,16 @@ jobs:
           gh release download "$GITHUB_REF_NAME" --dir dist --pattern '*.whl'
           gh release download "$GITHUB_REF_NAME" --dir dist --pattern '*.tar.gz'
 
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+      # PyPI doesn't support sigstore publishing, so generate after publishing to PyPI
       - name: Sign the dists with Sigstore
         uses: sigstore/gh-action-sigstore-python@v3.0.0
         with:
           inputs: |
             ./dist/*.tar.gz
             ./dist/*.whl
-
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
 
       - name: Extract release notes
         run: |
