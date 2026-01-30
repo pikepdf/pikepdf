@@ -19,6 +19,13 @@ tests don't try to create race conditions. Must be compiled manually.
 - Fixed an issue where opening a PDF with duplicate form field names would cause a
   crash. Accessing a duplicate field by name now returns a proxy list of all matching
   fields. Thanks @qooxzuub. :issue:`697`
+- Added `.values()` accessor to `Object` for iterating over dictionary values. Thanks @qooxzuub.:issue:`699,697`
+- Added `.copy()` and `.update()` methods to `Dictionary`. Thanks @qooxzuub.:issue:`700`
+- Improved `Object.copy` implementation and added type stubs. Thanks @qooxzuub.:issue:`702`
+- Fixed missing return in `SimpleFont._encode_diffmap()`. Thanks @lachlan.charlick :issue:`706`
+- Improved error messages for invalid dictionary access. Thanks @qooxzuub.:issue:`701`
+- Lazy load lxml and Pillow to improve import time. Thanks @qooxzuub. :issue:`704`
+- Improved `atomic_overwrite` robustness for restricted directories and special files. :issue:`695`
 
 ## v10.2.0
 
