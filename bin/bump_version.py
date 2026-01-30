@@ -15,7 +15,7 @@ import urllib.parse
 from pathlib import Path
 from textwrap import dedent
 
-import typer
+import cyclopts
 from packaging.version import InvalidVersion, Version
 
 try:
@@ -540,4 +540,4 @@ def bump_version() -> None:
 
 if __name__ == "__main__":
     os.chdir(Path(__file__).parent.parent.resolve())
-    typer.run(bump_version)
+    cyclopts.run(bump_version)

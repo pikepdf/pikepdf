@@ -33,7 +33,7 @@ repository = "https://github.com/pikepdf/pikepdf"
 changelog = "https://pikepdf.readthedocs.io/en/latest/releasenotes/index.html"
 
 [project.optional-dependencies]
-dev = ["pre-commit", "typer", "mypy"]
+dev = ["pre-commit", "cyclopts", "mypy", "pygithub"]
 docs = [
   "myst-parser>=3.0.1",
   "sphinx>=3",
