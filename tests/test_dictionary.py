@@ -159,6 +159,15 @@ def test_items_invalid_utf8(bad_pdf_obj):
     assert str(value) == "Value"
 
 
+def test_values_invalid_utf8(bad_pdf_obj):
+    """Verify values() iteration works."""
+    obj = bad_pdf_obj[1]
+    values = list(obj.values())
+
+    assert len(values) == 1
+    assert str(values[0]) == "Value"
+
+
 def test_contains_invalid_utf8(bad_pdf_obj):
     """Verify 'in' operator works with the surrogated key."""
     obj = bad_pdf_obj[1]
@@ -213,6 +222,41 @@ def test_dictionary_coverage_edges(bad_pdf_obj):
     assert len(iterator_keys) == 1
     assert iterator_keys[0] == '/Key\udc80'
 
+
+def test_values_standard():
+    """Verify standard .values() usage on Dict and Stream."""
+    import pikepdf
+
+    pdf = pikepdf.new()
+    pdf.add_blank_page()
+
+    # Dictionary test
+    d = pdf.make_indirect({
+        "/A": 1,
+        "/B": 2
+    })
+
+    vals = list(d.values())
+    assert len(vals) == 2
+    assert 1 in vals
+    assert 2 in vals
+
+    # Stream tests
+    stream = pdf.pages[0].Contents
+    stream["/Type"] = pikepdf.Name.TestStream
+
+    stream_vals = list(stream.values())
+    assert pikepdf.Name.TestStream in stream_vals
+
+
+def test_values_type_error():
+    """Verify .values() throws the correct error on non-dicts."""
+    import pikepdf
+
+    pdf = pikepdf.new()
+    arr = pdf.make_indirect([1, 2, 3])
+    with pytest.raises(TypeError, match=r"values\(\) not available"):
+        arr.values()
 
 def test_update_stream_error():
     d = Dictionary()
