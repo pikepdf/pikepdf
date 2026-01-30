@@ -4,7 +4,9 @@
 name: Build and upload to PyPI
 
 on:
-  push: {}
+  push:
+    branches:
+      - '**'
   pull_request: {}
 
 # For musllinux support, see note in pyproject.toml
