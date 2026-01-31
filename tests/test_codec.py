@@ -35,7 +35,7 @@ def test_decode():
 
 
 def test_unicode_surrogate():
-    with pytest.raises(UnicodeEncodeError, match=r'surrogate'):
+    with pytest.raises(UnicodeEncodeError):
         '\ud800'.encode('pdfdoc')
 
 
@@ -62,22 +62,15 @@ def test_codec_involution(b):
 def test_break_encode(s):
     try:
         encoded_bytes = s.encode('pdfdoc')
-    except ValueError as e:
-        allowed_errors = [
-            "'pdfdoc' codec can't encode character",
-            "'pdfdoc' codec can't process Unicode surrogates",
-            "'pdfdoc' codec can't encode some characters",
-        ]
-        if any((allowed in str(e)) for allowed in allowed_errors):
-            return
-        raise
+    except UnicodeEncodeError:
+        # Characters not in PDFDocEncoding will raise UnicodeEncodeError
+        return
     else:
         try:
             assert encoded_bytes.decode('pdfdoc') == s, "encode -> decode failed"
-        except UnicodeDecodeError as e:
-            if "can't decode byte 0x9f" in str(e):
-                return
-            raise
+        except UnicodeDecodeError:
+            # Some byte sequences (0x7f, 0x9f, 0xad) have no Unicode mapping
+            return
 
 
 # whitelist_categories ensures that the listed Unicode categories will be produced
@@ -154,3 +147,47 @@ def test_pdfdoc_encode_lookup_error():
     not_in_pdfdoc = '你好'
     with pytest.raises(LookupError):
         not_in_pdfdoc.encode('pdfdoc_pikepdf', errors="invalid error handler")
+
+
+@given(binary(max_size=30))
+def test_pdfdoc_qpdf_decode_consistency(b):
+    pdfdoc_result, qpdf_result = None, None
+    pdfdoc_error = False
+    try:
+        pdfdoc_result = b.decode('pdfdoc')
+    except UnicodeDecodeError:
+        pdfdoc_error = True
+
+    qpdf_error = False
+    try:
+        qpdf_result = pikepdf._core.pdf_doc_to_utf8(b)
+        if '\ufffd' in qpdf_result:
+            qpdf_error = True
+    except Exception:
+        qpdf_error = True
+
+    assert pdfdoc_error == qpdf_error
+    if not pdfdoc_error and not qpdf_error:
+        assert pdfdoc_result == qpdf_result
+
+
+@given(text(max_size=30))
+def test_pdfdoc_qpdf_encode_consistency(t):
+    pdfdoc_result, qpdf_result = None, None
+    pdfdoc_error = False
+    try:
+        pdfdoc_result = t.encode('pdfdoc')
+    except UnicodeEncodeError:
+        pdfdoc_error = True
+
+    qpdf_error = False
+    try:
+        qpdf_success, qpdf_result = pikepdf._core.utf8_to_pdf_doc(t, b'\xad')
+        if not qpdf_success:
+            qpdf_error = True
+    except Exception:
+        qpdf_error = True
+
+    assert pdfdoc_error == qpdf_error
+    if not pdfdoc_error and not qpdf_error:
+        assert pdfdoc_result == qpdf_result

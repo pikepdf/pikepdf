@@ -1,173 +1,327 @@
-# SPDX-FileCopyrightText: 2022 James R. Barlow
+# SPDX-FileCopyrightText: 2026 James R. Barlow
 # SPDX-License-Identifier: MPL-2.0
 
-"""Implement pdfdoc codec."""
+"""Implement pdfdoc codec.
+
+PdfDocEncoding character mapping codec following the standard Python codec pattern.
+See PDF Reference Manual 1.7, Table D.2 for the encoding specification.
+"""
 
 from __future__ import annotations
 
 import codecs
-import sys
-from collections.abc import Container
 from typing import Any
 
-from pikepdf._core import pdf_doc_to_utf8, utf8_to_pdf_doc
-
-if sys.version_info >= (3, 12):
-    from collections.abc import Buffer
-else:
-    Buffer = Any
-
-# pylint: disable=redefined-builtin
-
-# See PDF Reference Manual 1.7, Table D.2.
-# The following generates set of all Unicode code points that can be encoded in
-# pdfdoc. Since pdfdoc is 8-bit, the vast majority of code points cannot be.
-
-# Due to a bug, qpdf <= 10.5 and pikepdf < 5 had some inconsistencies around
-# PdfDocEncoding.
-PDFDOC_ENCODABLE = frozenset(
-    list(range(0x00, 0x17 + 1))
-    + list(range(0x20, 0x7E + 1))
-    + [
-        0x2022,
-        0x2020,
-        0x2021,
-        0x2026,
-        0x2014,
-        0x2013,
-        0x0192,
-        0x2044,
-        0x2039,
-        0x203A,
-        0x2212,
-        0x2030,
-        0x201E,
-        0x201C,
-        0x201D,
-        0x2018,
-        0x2019,
-        0x201A,
-        0x2122,
-        0xFB01,
-        0xFB02,
-        0x0141,
-        0x0152,
-        0x0160,
-        0x0178,
-        0x017D,
-        0x0131,
-        0x0142,
-        0x0153,
-        0x0161,
-        0x017E,
-        0x20AC,
-    ]
-    + [0x02D8, 0x02C7, 0x02C6, 0x02D9, 0x02DD, 0x02DB, 0x02DA, 0x02DC]
-    + list(range(0xA1, 0xAC + 1))
-    + list(range(0xAE, 0xFF + 1))
+# PdfDocEncoding decoding table: maps byte values 0x00-0xFF to Unicode characters.
+# Undefined positions use \ufffe which causes charmap_decode to raise
+# UnicodeDecodeError.
+# fmt: off
+decoding_table = (
+    '\x00'     #  0x00 -> NULL
+    '\x01'     #  0x01 -> START OF HEADING
+    '\x02'     #  0x02 -> START OF TEXT
+    '\x03'     #  0x03 -> END OF TEXT
+    '\x04'     #  0x04 -> END OF TRANSMISSION
+    '\x05'     #  0x05 -> ENQUIRY
+    '\x06'     #  0x06 -> ACKNOWLEDGE
+    '\x07'     #  0x07 -> BELL
+    '\x08'     #  0x08 -> BACKSPACE
+    '\t'       #  0x09 -> HORIZONTAL TABULATION
+    '\n'       #  0x0A -> LINE FEED
+    '\x0b'     #  0x0B -> VERTICAL TABULATION
+    '\x0c'     #  0x0C -> FORM FEED
+    '\r'       #  0x0D -> CARRIAGE RETURN
+    '\x0e'     #  0x0E -> SHIFT OUT
+    '\x0f'     #  0x0F -> SHIFT IN
+    '\x10'     #  0x10 -> DATA LINK ESCAPE
+    '\x11'     #  0x11 -> DEVICE CONTROL ONE
+    '\x12'     #  0x12 -> DEVICE CONTROL TWO
+    '\x13'     #  0x13 -> DEVICE CONTROL THREE
+    '\x14'     #  0x14 -> DEVICE CONTROL FOUR
+    '\x15'     #  0x15 -> NEGATIVE ACKNOWLEDGE
+    '\x16'     #  0x16 -> SYNCHRONOUS IDLE
+    '\x17'     #  0x17 -> END OF TRANSMISSION BLOCK
+    '\u02d8'   #  0x18 -> BREVE
+    '\u02c7'   #  0x19 -> CARON
+    '\u02c6'   #  0x1A -> MODIFIER LETTER CIRCUMFLEX ACCENT
+    '\u02d9'   #  0x1B -> DOT ABOVE
+    '\u02dd'   #  0x1C -> DOUBLE ACUTE ACCENT
+    '\u02db'   #  0x1D -> OGONEK
+    '\u02da'   #  0x1E -> RING ABOVE
+    '\u02dc'   #  0x1F -> SMALL TILDE
+    ' '        #  0x20 -> SPACE
+    '!'        #  0x21 -> EXCLAMATION MARK
+    '"'        #  0x22 -> QUOTATION MARK
+    '#'        #  0x23 -> NUMBER SIGN
+    '$'        #  0x24 -> DOLLAR SIGN
+    '%'        #  0x25 -> PERCENT SIGN
+    '&'        #  0x26 -> AMPERSAND
+    "'"        #  0x27 -> APOSTROPHE
+    '('        #  0x28 -> LEFT PARENTHESIS
+    ')'        #  0x29 -> RIGHT PARENTHESIS
+    '*'        #  0x2A -> ASTERISK
+    '+'        #  0x2B -> PLUS SIGN
+    ','        #  0x2C -> COMMA
+    '-'        #  0x2D -> HYPHEN-MINUS
+    '.'        #  0x2E -> FULL STOP
+    '/'        #  0x2F -> SOLIDUS
+    '0'        #  0x30 -> DIGIT ZERO
+    '1'        #  0x31 -> DIGIT ONE
+    '2'        #  0x32 -> DIGIT TWO
+    '3'        #  0x33 -> DIGIT THREE
+    '4'        #  0x34 -> DIGIT FOUR
+    '5'        #  0x35 -> DIGIT FIVE
+    '6'        #  0x36 -> DIGIT SIX
+    '7'        #  0x37 -> DIGIT SEVEN
+    '8'        #  0x38 -> DIGIT EIGHT
+    '9'        #  0x39 -> DIGIT NINE
+    ':'        #  0x3A -> COLON
+    ';'        #  0x3B -> SEMICOLON
+    '<'        #  0x3C -> LESS-THAN SIGN
+    '='        #  0x3D -> EQUALS SIGN
+    '>'        #  0x3E -> GREATER-THAN SIGN
+    '?'        #  0x3F -> QUESTION MARK
+    '@'        #  0x40 -> COMMERCIAL AT
+    'A'        #  0x41 -> LATIN CAPITAL LETTER A
+    'B'        #  0x42 -> LATIN CAPITAL LETTER B
+    'C'        #  0x43 -> LATIN CAPITAL LETTER C
+    'D'        #  0x44 -> LATIN CAPITAL LETTER D
+    'E'        #  0x45 -> LATIN CAPITAL LETTER E
+    'F'        #  0x46 -> LATIN CAPITAL LETTER F
+    'G'        #  0x47 -> LATIN CAPITAL LETTER G
+    'H'        #  0x48 -> LATIN CAPITAL LETTER H
+    'I'        #  0x49 -> LATIN CAPITAL LETTER I
+    'J'        #  0x4A -> LATIN CAPITAL LETTER J
+    'K'        #  0x4B -> LATIN CAPITAL LETTER K
+    'L'        #  0x4C -> LATIN CAPITAL LETTER L
+    'M'        #  0x4D -> LATIN CAPITAL LETTER M
+    'N'        #  0x4E -> LATIN CAPITAL LETTER N
+    'O'        #  0x4F -> LATIN CAPITAL LETTER O
+    'P'        #  0x50 -> LATIN CAPITAL LETTER P
+    'Q'        #  0x51 -> LATIN CAPITAL LETTER Q
+    'R'        #  0x52 -> LATIN CAPITAL LETTER R
+    'S'        #  0x53 -> LATIN CAPITAL LETTER S
+    'T'        #  0x54 -> LATIN CAPITAL LETTER T
+    'U'        #  0x55 -> LATIN CAPITAL LETTER U
+    'V'        #  0x56 -> LATIN CAPITAL LETTER V
+    'W'        #  0x57 -> LATIN CAPITAL LETTER W
+    'X'        #  0x58 -> LATIN CAPITAL LETTER X
+    'Y'        #  0x59 -> LATIN CAPITAL LETTER Y
+    'Z'        #  0x5A -> LATIN CAPITAL LETTER Z
+    '['        #  0x5B -> LEFT SQUARE BRACKET
+    '\\'       #  0x5C -> REVERSE SOLIDUS
+    ']'        #  0x5D -> RIGHT SQUARE BRACKET
+    '^'        #  0x5E -> CIRCUMFLEX ACCENT
+    '_'        #  0x5F -> LOW LINE
+    '`'        #  0x60 -> GRAVE ACCENT
+    'a'        #  0x61 -> LATIN SMALL LETTER A
+    'b'        #  0x62 -> LATIN SMALL LETTER B
+    'c'        #  0x63 -> LATIN SMALL LETTER C
+    'd'        #  0x64 -> LATIN SMALL LETTER D
+    'e'        #  0x65 -> LATIN SMALL LETTER E
+    'f'        #  0x66 -> LATIN SMALL LETTER F
+    'g'        #  0x67 -> LATIN SMALL LETTER G
+    'h'        #  0x68 -> LATIN SMALL LETTER H
+    'i'        #  0x69 -> LATIN SMALL LETTER I
+    'j'        #  0x6A -> LATIN SMALL LETTER J
+    'k'        #  0x6B -> LATIN SMALL LETTER K
+    'l'        #  0x6C -> LATIN SMALL LETTER L
+    'm'        #  0x6D -> LATIN SMALL LETTER M
+    'n'        #  0x6E -> LATIN SMALL LETTER N
+    'o'        #  0x6F -> LATIN SMALL LETTER O
+    'p'        #  0x70 -> LATIN SMALL LETTER P
+    'q'        #  0x71 -> LATIN SMALL LETTER Q
+    'r'        #  0x72 -> LATIN SMALL LETTER R
+    's'        #  0x73 -> LATIN SMALL LETTER S
+    't'        #  0x74 -> LATIN SMALL LETTER T
+    'u'        #  0x75 -> LATIN SMALL LETTER U
+    'v'        #  0x76 -> LATIN SMALL LETTER V
+    'w'        #  0x77 -> LATIN SMALL LETTER W
+    'x'        #  0x78 -> LATIN SMALL LETTER X
+    'y'        #  0x79 -> LATIN SMALL LETTER Y
+    'z'        #  0x7A -> LATIN SMALL LETTER Z
+    '{'        #  0x7B -> LEFT CURLY BRACKET
+    '|'        #  0x7C -> VERTICAL LINE
+    '}'        #  0x7D -> RIGHT CURLY BRACKET
+    '~'        #  0x7E -> TILDE
+    '\ufffe'   #  0x7F -> UNDEFINED
+    '\u2022'   #  0x80 -> BULLET
+    '\u2020'   #  0x81 -> DAGGER
+    '\u2021'   #  0x82 -> DOUBLE DAGGER
+    '\u2026'   #  0x83 -> HORIZONTAL ELLIPSIS
+    '\u2014'   #  0x84 -> EM DASH
+    '\u2013'   #  0x85 -> EN DASH
+    '\u0192'   #  0x86 -> LATIN SMALL LETTER F WITH HOOK
+    '\u2044'   #  0x87 -> FRACTION SLASH
+    '\u2039'   #  0x88 -> SINGLE LEFT-POINTING ANGLE QUOTATION MARK
+    '\u203a'   #  0x89 -> SINGLE RIGHT-POINTING ANGLE QUOTATION MARK
+    '\u2212'   #  0x8A -> MINUS SIGN
+    '\u2030'   #  0x8B -> PER MILLE SIGN
+    '\u201e'   #  0x8C -> DOUBLE LOW-9 QUOTATION MARK
+    '\u201c'   #  0x8D -> LEFT DOUBLE QUOTATION MARK
+    '\u201d'   #  0x8E -> RIGHT DOUBLE QUOTATION MARK
+    '\u2018'   #  0x8F -> LEFT SINGLE QUOTATION MARK
+    '\u2019'   #  0x90 -> RIGHT SINGLE QUOTATION MARK
+    '\u201a'   #  0x91 -> SINGLE LOW-9 QUOTATION MARK
+    '\u2122'   #  0x92 -> TRADE MARK SIGN
+    '\ufb01'   #  0x93 -> LATIN SMALL LIGATURE FI
+    '\ufb02'   #  0x94 -> LATIN SMALL LIGATURE FL
+    '\u0141'   #  0x95 -> LATIN CAPITAL LETTER L WITH STROKE
+    '\u0152'   #  0x96 -> LATIN CAPITAL LIGATURE OE
+    '\u0160'   #  0x97 -> LATIN CAPITAL LETTER S WITH CARON
+    '\u0178'   #  0x98 -> LATIN CAPITAL LETTER Y WITH DIAERESIS
+    '\u017d'   #  0x99 -> LATIN CAPITAL LETTER Z WITH CARON
+    '\u0131'   #  0x9A -> LATIN SMALL LETTER DOTLESS I
+    '\u0142'   #  0x9B -> LATIN SMALL LETTER L WITH STROKE
+    '\u0153'   #  0x9C -> LATIN SMALL LIGATURE OE
+    '\u0161'   #  0x9D -> LATIN SMALL LETTER S WITH CARON
+    '\u017e'   #  0x9E -> LATIN SMALL LETTER Z WITH CARON
+    '\ufffe'   #  0x9F -> UNDEFINED
+    '\u20ac'   #  0xA0 -> EURO SIGN
+    '\xa1'     #  0xA1 -> INVERTED EXCLAMATION MARK
+    '\xa2'     #  0xA2 -> CENT SIGN
+    '\xa3'     #  0xA3 -> POUND SIGN
+    '\xa4'     #  0xA4 -> CURRENCY SIGN
+    '\xa5'     #  0xA5 -> YEN SIGN
+    '\xa6'     #  0xA6 -> BROKEN BAR
+    '\xa7'     #  0xA7 -> SECTION SIGN
+    '\xa8'     #  0xA8 -> DIAERESIS
+    '\xa9'     #  0xA9 -> COPYRIGHT SIGN
+    '\xaa'     #  0xAA -> FEMININE ORDINAL INDICATOR
+    '\xab'     #  0xAB -> LEFT-POINTING DOUBLE ANGLE QUOTATION MARK
+    '\xac'     #  0xAC -> NOT SIGN
+    '\ufffe'   #  0xAD -> UNDEFINED (soft hyphen not in PDFDocEncoding)
+    '\xae'     #  0xAE -> REGISTERED SIGN
+    '\xaf'     #  0xAF -> MACRON
+    '\xb0'     #  0xB0 -> DEGREE SIGN
+    '\xb1'     #  0xB1 -> PLUS-MINUS SIGN
+    '\xb2'     #  0xB2 -> SUPERSCRIPT TWO
+    '\xb3'     #  0xB3 -> SUPERSCRIPT THREE
+    '\xb4'     #  0xB4 -> ACUTE ACCENT
+    '\xb5'     #  0xB5 -> MICRO SIGN
+    '\xb6'     #  0xB6 -> PILCROW SIGN
+    '\xb7'     #  0xB7 -> MIDDLE DOT
+    '\xb8'     #  0xB8 -> CEDILLA
+    '\xb9'     #  0xB9 -> SUPERSCRIPT ONE
+    '\xba'     #  0xBA -> MASCULINE ORDINAL INDICATOR
+    '\xbb'     #  0xBB -> RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK
+    '\xbc'     #  0xBC -> VULGAR FRACTION ONE QUARTER
+    '\xbd'     #  0xBD -> VULGAR FRACTION ONE HALF
+    '\xbe'     #  0xBE -> VULGAR FRACTION THREE QUARTERS
+    '\xbf'     #  0xBF -> INVERTED QUESTION MARK
+    '\xc0'     #  0xC0 -> LATIN CAPITAL LETTER A WITH GRAVE
+    '\xc1'     #  0xC1 -> LATIN CAPITAL LETTER A WITH ACUTE
+    '\xc2'     #  0xC2 -> LATIN CAPITAL LETTER A WITH CIRCUMFLEX
+    '\xc3'     #  0xC3 -> LATIN CAPITAL LETTER A WITH TILDE
+    '\xc4'     #  0xC4 -> LATIN CAPITAL LETTER A WITH DIAERESIS
+    '\xc5'     #  0xC5 -> LATIN CAPITAL LETTER A WITH RING ABOVE
+    '\xc6'     #  0xC6 -> LATIN CAPITAL LETTER AE
+    '\xc7'     #  0xC7 -> LATIN CAPITAL LETTER C WITH CEDILLA
+    '\xc8'     #  0xC8 -> LATIN CAPITAL LETTER E WITH GRAVE
+    '\xc9'     #  0xC9 -> LATIN CAPITAL LETTER E WITH ACUTE
+    '\xca'     #  0xCA -> LATIN CAPITAL LETTER E WITH CIRCUMFLEX
+    '\xcb'     #  0xCB -> LATIN CAPITAL LETTER E WITH DIAERESIS
+    '\xcc'     #  0xCC -> LATIN CAPITAL LETTER I WITH GRAVE
+    '\xcd'     #  0xCD -> LATIN CAPITAL LETTER I WITH ACUTE
+    '\xce'     #  0xCE -> LATIN CAPITAL LETTER I WITH CIRCUMFLEX
+    '\xcf'     #  0xCF -> LATIN CAPITAL LETTER I WITH DIAERESIS
+    '\xd0'     #  0xD0 -> LATIN CAPITAL LETTER ETH
+    '\xd1'     #  0xD1 -> LATIN CAPITAL LETTER N WITH TILDE
+    '\xd2'     #  0xD2 -> LATIN CAPITAL LETTER O WITH GRAVE
+    '\xd3'     #  0xD3 -> LATIN CAPITAL LETTER O WITH ACUTE
+    '\xd4'     #  0xD4 -> LATIN CAPITAL LETTER O WITH CIRCUMFLEX
+    '\xd5'     #  0xD5 -> LATIN CAPITAL LETTER O WITH TILDE
+    '\xd6'     #  0xD6 -> LATIN CAPITAL LETTER O WITH DIAERESIS
+    '\xd7'     #  0xD7 -> MULTIPLICATION SIGN
+    '\xd8'     #  0xD8 -> LATIN CAPITAL LETTER O WITH STROKE
+    '\xd9'     #  0xD9 -> LATIN CAPITAL LETTER U WITH GRAVE
+    '\xda'     #  0xDA -> LATIN CAPITAL LETTER U WITH ACUTE
+    '\xdb'     #  0xDB -> LATIN CAPITAL LETTER U WITH CIRCUMFLEX
+    '\xdc'     #  0xDC -> LATIN CAPITAL LETTER U WITH DIAERESIS
+    '\xdd'     #  0xDD -> LATIN CAPITAL LETTER Y WITH ACUTE
+    '\xde'     #  0xDE -> LATIN CAPITAL LETTER THORN
+    '\xdf'     #  0xDF -> LATIN SMALL LETTER SHARP S
+    '\xe0'     #  0xE0 -> LATIN SMALL LETTER A WITH GRAVE
+    '\xe1'     #  0xE1 -> LATIN SMALL LETTER A WITH ACUTE
+    '\xe2'     #  0xE2 -> LATIN SMALL LETTER A WITH CIRCUMFLEX
+    '\xe3'     #  0xE3 -> LATIN SMALL LETTER A WITH TILDE
+    '\xe4'     #  0xE4 -> LATIN SMALL LETTER A WITH DIAERESIS
+    '\xe5'     #  0xE5 -> LATIN SMALL LETTER A WITH RING ABOVE
+    '\xe6'     #  0xE6 -> LATIN SMALL LETTER AE
+    '\xe7'     #  0xE7 -> LATIN SMALL LETTER C WITH CEDILLA
+    '\xe8'     #  0xE8 -> LATIN SMALL LETTER E WITH GRAVE
+    '\xe9'     #  0xE9 -> LATIN SMALL LETTER E WITH ACUTE
+    '\xea'     #  0xEA -> LATIN SMALL LETTER E WITH CIRCUMFLEX
+    '\xeb'     #  0xEB -> LATIN SMALL LETTER E WITH DIAERESIS
+    '\xec'     #  0xEC -> LATIN SMALL LETTER I WITH GRAVE
+    '\xed'     #  0xED -> LATIN SMALL LETTER I WITH ACUTE
+    '\xee'     #  0xEE -> LATIN SMALL LETTER I WITH CIRCUMFLEX
+    '\xef'     #  0xEF -> LATIN SMALL LETTER I WITH DIAERESIS
+    '\xf0'     #  0xF0 -> LATIN SMALL LETTER ETH
+    '\xf1'     #  0xF1 -> LATIN SMALL LETTER N WITH TILDE
+    '\xf2'     #  0xF2 -> LATIN SMALL LETTER O WITH GRAVE
+    '\xf3'     #  0xF3 -> LATIN SMALL LETTER O WITH ACUTE
+    '\xf4'     #  0xF4 -> LATIN SMALL LETTER O WITH CIRCUMFLEX
+    '\xf5'     #  0xF5 -> LATIN SMALL LETTER O WITH TILDE
+    '\xf6'     #  0xF6 -> LATIN SMALL LETTER O WITH DIAERESIS
+    '\xf7'     #  0xF7 -> DIVISION SIGN
+    '\xf8'     #  0xF8 -> LATIN SMALL LETTER O WITH STROKE
+    '\xf9'     #  0xF9 -> LATIN SMALL LETTER U WITH GRAVE
+    '\xfa'     #  0xFA -> LATIN SMALL LETTER U WITH ACUTE
+    '\xfb'     #  0xFB -> LATIN SMALL LETTER U WITH CIRCUMFLEX
+    '\xfc'     #  0xFC -> LATIN SMALL LETTER U WITH DIAERESIS
+    '\xfd'     #  0xFD -> LATIN SMALL LETTER Y WITH ACUTE
+    '\xfe'     #  0xFE -> LATIN SMALL LETTER THORN
+    '\xff'     #  0xFF -> LATIN SMALL LETTER Y WITH DIAERESIS
 )
+# fmt: on
 
+# Build encoding table from decoding table
+encoding_table = codecs.charmap_build(decoding_table)
 
-def _find_first_index(s: str, ordinals: Container[int]) -> int:
-    for n, char in enumerate(s):
-        if ord(char) not in ordinals:
-            return n
-    raise ValueError("couldn't find the unencodable character")  # pragma: no cover
-
-
-def pdfdoc_encode(input: str, errors: str = 'strict') -> tuple[bytes, int]:
-    """Convert input string to bytes in PdfDocEncoding."""
-    error_marker = b'?' if errors == 'replace' else b'\xad'
-    success, pdfdoc = utf8_to_pdf_doc(input, error_marker)
-    if success:
-        return pdfdoc, len(input)
-
-    if errors == 'ignore':
-        pdfdoc = pdfdoc.replace(b'\xad', b'')
-        return pdfdoc, len(input)
-    if errors == 'replace':
-        return pdfdoc, len(input)
-    if errors == 'strict':
-        if input.startswith('\xfe\xff') or input.startswith('\xff\xfe'):
-            raise UnicodeEncodeError(
-                'pdfdoc',
-                input,
-                0,
-                2,
-                "strings beginning with byte order marks cannot be encoded in pdfdoc",
-            )
-
-        # libqpdf doesn't return what character caused the error, and Python
-        # needs this, so make an educated guess and raise an exception based
-        # on that.
-        offending_index = _find_first_index(input, PDFDOC_ENCODABLE)
-        raise UnicodeEncodeError(
-            'pdfdoc',
-            input,
-            offending_index,
-            offending_index + 1,
-            "character cannot be represented in pdfdoc encoding",
-        )
-    raise LookupError(errors)
-
-
-def pdfdoc_decode(input: Buffer, errors: str = 'strict') -> tuple[str, int]:
-    """Convert PdfDoc-encoded input into a Python str."""
-    if isinstance(input, memoryview):
-        input = input.tobytes()
-    s = pdf_doc_to_utf8(input)
-    if errors == 'strict':
-        idx = s.find('\ufffd')
-        if idx >= 0:
-            raise UnicodeDecodeError(
-                'pdfdoc',
-                input,
-                idx,
-                idx + 1,
-                "no Unicode mapping is defined for this character",
-            )
-
-    return s, len(input)
+# Set of all Unicode code points that can be encoded in pdfdoc.
+# Derived from the decoding table, excluding undefined positions.
+PDFDOC_ENCODABLE = frozenset(ord(ch) for ch in decoding_table if ch != '\ufffe')
 
 
 class PdfDocCodec(codecs.Codec):
     """Implement PdfDocEncoding character map used inside PDFs."""
 
     def encode(self, input: str, errors: str = 'strict') -> tuple[bytes, int]:
-        """Implement codecs.Codec.encode for pdfdoc."""
-        return pdfdoc_encode(input, errors)
+        """Encode string to PdfDocEncoding bytes."""
+        return codecs.charmap_encode(input, errors, encoding_table)
 
-    def decode(self, input: Buffer, errors: str = 'strict') -> tuple[str, int]:
-        """Implement codecs.Codec.decode for pdfdoc."""
-        return pdfdoc_decode(input, errors)
-
-
-class PdfDocStreamWriter(PdfDocCodec, codecs.StreamWriter):
-    """Implement PdfDocEncoding stream writer."""
-
-
-class PdfDocStreamReader(PdfDocCodec, codecs.StreamReader):
-    """Implement PdfDocEncoding stream reader."""
-
-    def decode(self, input: bytes, errors: str = 'strict') -> tuple[str, int]:
-        """Implement codecs.StreamReader.decode for pdfdoc."""
-        return PdfDocCodec.decode(self, input, errors)
+    def decode(self, input: Any, errors: str = 'strict') -> tuple[str, int]:
+        """Decode PdfDocEncoding bytes to string."""
+        return codecs.charmap_decode(input, errors, decoding_table)  # type: ignore[arg-type]
 
 
 class PdfDocIncrementalEncoder(codecs.IncrementalEncoder):
     """Implement PdfDocEncoding incremental encoder."""
 
     def encode(self, input: str, final: bool = False) -> bytes:
-        """Implement codecs.IncrementalEncoder.encode for pdfdoc."""
-        return pdfdoc_encode(input, 'strict')[0]
+        """Encode string incrementally."""
+        return codecs.charmap_encode(input, self.errors, encoding_table)[0]
 
 
 class PdfDocIncrementalDecoder(codecs.IncrementalDecoder):
     """Implement PdfDocEncoding incremental decoder."""
 
-    def decode(self, input: Any, final: bool = False) -> str:  # type: ignore
-        """Implement codecs.IncrementalDecoder.decode for pdfdoc."""
-        return pdfdoc_decode(bytes(input), 'strict')[0]
+    def decode(self, input: Any, final: bool = False) -> str:
+        """Decode bytes incrementally."""
+        return codecs.charmap_decode(input, self.errors, decoding_table)[0]  # type: ignore[arg-type]
+
+
+class PdfDocStreamWriter(PdfDocCodec, codecs.StreamWriter):
+    """Implement PdfDocEncoding stream writer."""
+
+    pass
+
+
+class PdfDocStreamReader(PdfDocCodec, codecs.StreamReader):
+    """Implement PdfDocEncoding stream reader."""
+
+    pass
 
 
 def find_pdfdoc(encoding: str) -> codecs.CodecInfo | None:
@@ -180,19 +334,23 @@ def find_pdfdoc(encoding: str) -> codecs.CodecInfo | None:
     for resolving conflicts.
     """
     if encoding in ('pdfdoc', 'pdfdoc_pikepdf'):
-        codec = PdfDocCodec()
         return codecs.CodecInfo(
             name=encoding,
-            encode=codec.encode,
-            decode=codec.decode,
-            streamwriter=PdfDocStreamWriter,
-            streamreader=PdfDocStreamReader,
+            encode=PdfDocCodec().encode,
+            decode=PdfDocCodec().decode,
             incrementalencoder=PdfDocIncrementalEncoder,
             incrementaldecoder=PdfDocIncrementalDecoder,
+            streamwriter=PdfDocStreamWriter,
+            streamreader=PdfDocStreamReader,
         )
-    return None  # pragma: no cover
+    return None
 
 
 codecs.register(find_pdfdoc)
 
-__all__ = ['utf8_to_pdf_doc', 'pdf_doc_to_utf8']
+__all__ = [
+    'PdfDocCodec',
+    'PdfDocStreamWriter',
+    'PdfDocStreamReader',
+    'PDFDOC_ENCODABLE',
+]
