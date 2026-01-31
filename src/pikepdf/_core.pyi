@@ -333,7 +333,7 @@ class ObjectType(Enum):
 class StreamDecodeLevel(Enum):
     """Options for decoding streams within PDFs."""
 
-    all: ...
+    none: ...
     """Do not attempt to apply any filters. Streams
         remain as they appear in the original file. Note that
         uncompressed streams may still be compressed on output. You can
@@ -348,11 +348,6 @@ class StreamDecodeLevel(Enum):
         special case, if a stream is already compressed with
         FlateDecode and ``compress_streams=True``, the original
         compressed data will be preserved."""
-    none: ...
-    """In addition to uncompressing the
-        generalized compression formats, supported non-lossy
-        compression will also be be decoded. At present, this includes
-        the RunLengthDecode filter."""
     specialized: ...
     """        In addition to generalized and non-lossy
         specialized filters, supported lossy compression filters will
@@ -362,6 +357,11 @@ class StreamDecodeLevel(Enum):
         compression and decompression cycles. This is mostly useful for
         (low-level) retrieving image data; see :class:`pikepdf.PdfImage` for
         the preferred method."""
+    all: ...
+    """In addition to uncompressing the
+        generalized compression formats, supported non-lossy
+        compression will also be be decoded. At present, this includes
+        the RunLengthDecode filter."""
 
 class TokenType(Enum):
     """Type of a token that appeared in a PDF content stream.
