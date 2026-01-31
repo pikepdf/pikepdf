@@ -261,7 +261,7 @@ std::shared_ptr<Buffer> get_stream_data(
 
 void init_object(py::module_ &m)
 {
-    py::enum_<qpdf_object_type_e>(m, "ObjectType")
+    py::native_enum<qpdf_object_type_e>(m, "ObjectType", "enum.Enum")
         .value("uninitialized", qpdf_object_type_e::ot_uninitialized)
         .value("reserved", qpdf_object_type_e::ot_reserved)
         .value("null", qpdf_object_type_e::ot_null)
@@ -274,7 +274,8 @@ void init_object(py::module_ &m)
         .value("dictionary", qpdf_object_type_e::ot_dictionary)
         .value("stream", qpdf_object_type_e::ot_stream)
         .value("operator", qpdf_object_type_e::ot_operator)
-        .value("inlineimage", qpdf_object_type_e::ot_inlineimage);
+        .value("inlineimage", qpdf_object_type_e::ot_inlineimage)
+        .finalize();
 
     py::class_<Buffer, py::smart_holder>(m, "Buffer", py::buffer_protocol())
         .def_buffer([](Buffer &b) -> py::buffer_info {

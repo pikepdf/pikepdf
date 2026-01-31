@@ -53,7 +53,7 @@ public:
 
 void init_tokenfilter(py::module_ &m)
 {
-    py::enum_<QPDFTokenizer::token_type_e>(m, "TokenType")
+    py::native_enum<QPDFTokenizer::token_type_e>(m, "TokenType", "enum.Enum")
         .value("bad", QPDFTokenizer::token_type_e::tt_bad)
         .value("array_close", QPDFTokenizer::token_type_e::tt_array_close)
         .value("array_open", QPDFTokenizer::token_type_e::tt_array_open)
@@ -71,7 +71,8 @@ void init_tokenfilter(py::module_ &m)
         .value("eof", QPDFTokenizer::token_type_e::tt_eof)
         .value("space", QPDFTokenizer::token_type_e::tt_space)
         .value("comment", QPDFTokenizer::token_type_e::tt_comment)
-        .value("inline_image", QPDFTokenizer::token_type_e::tt_inline_image);
+        .value("inline_image", QPDFTokenizer::token_type_e::tt_inline_image)
+        .finalize();
 
     py::class_<QPDFTokenizer::Token, py::smart_holder>(m, "Token")
         .def(py::init<QPDFTokenizer::token_type_e, py::bytes>())

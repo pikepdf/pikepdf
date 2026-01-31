@@ -14,7 +14,7 @@
 
 void init_annotation(py::module_ &m)
 {
-    py::enum_<pdf_annotation_flag_e>(m, "AnnotationFlag", py::arithmetic())
+    py::native_enum<pdf_annotation_flag_e>(m, "AnnotationFlag", "enum.IntFlag")
         .value("invisible", pdf_annotation_flag_e::an_invisible)
         .value("hidden", pdf_annotation_flag_e::an_hidden)
         .value("print", pdf_annotation_flag_e::an_print)
@@ -24,7 +24,8 @@ void init_annotation(py::module_ &m)
         .value("read_only", pdf_annotation_flag_e::an_read_only)
         .value("locked", pdf_annotation_flag_e::an_locked)
         .value("toggle_no_view", pdf_annotation_flag_e::an_toggle_no_view)
-        .value("locked_contents", pdf_annotation_flag_e::an_locked_contents);
+        .value("locked_contents", pdf_annotation_flag_e::an_locked_contents)
+        .finalize();
 
     py::class_<QPDFAnnotationObjectHelper, py::smart_holder, QPDFObjectHelper>(
         m, "Annotation")

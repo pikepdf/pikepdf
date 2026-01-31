@@ -15,7 +15,7 @@
 
 void init_acroform(py::module_ &m)
 {
-    py::enum_<pdf_form_field_flag_e>(m, "FormFieldFlag", py::arithmetic())
+    py::native_enum<pdf_form_field_flag_e>(m, "FormFieldFlag", "enum.IntFlag")
         .value("read_only", pdf_form_field_flag_e::ff_all_read_only)
         .value("required", pdf_form_field_flag_e::ff_all_required)
         .value("no_export", pdf_form_field_flag_e::ff_all_no_export)
@@ -36,7 +36,8 @@ void init_acroform(py::module_ &m)
         .value("ch_multi_select", pdf_form_field_flag_e::ff_ch_multi_select)
         .value("ch_do_not_spell_check", pdf_form_field_flag_e::ff_ch_do_not_spell_check)
         .value("ch_commit_on_sel_change",
-            pdf_form_field_flag_e::ff_ch_commit_on_sel_change);
+            pdf_form_field_flag_e::ff_ch_commit_on_sel_change)
+        .finalize();
 
     py::class_<QPDFFormFieldObjectHelper, py::smart_holder, QPDFObjectHelper>(
         m, "AcroFormField")

@@ -428,29 +428,33 @@ void init_qpdf(py::module_ &m)
 {
     QPDF::registerStreamFilter("/JBIG2Decode", &JBIG2StreamFilter::factory);
 
-    py::enum_<qpdf_object_stream_e>(m, "ObjectStreamMode")
+    py::native_enum<qpdf_object_stream_e>(m, "ObjectStreamMode", "enum.Enum")
         .value("disable", qpdf_object_stream_e::qpdf_o_disable)
         .value("preserve", qpdf_object_stream_e::qpdf_o_preserve)
-        .value("generate", qpdf_object_stream_e::qpdf_o_generate);
+        .value("generate", qpdf_object_stream_e::qpdf_o_generate)
+        .finalize();
 
-    py::enum_<qpdf_stream_decode_level_e>(m, "StreamDecodeLevel")
+    py::native_enum<qpdf_stream_decode_level_e>(m, "StreamDecodeLevel", "enum.Enum")
         .value("none", qpdf_stream_decode_level_e::qpdf_dl_none)
         .value("generalized", qpdf_stream_decode_level_e::qpdf_dl_generalized)
         .value("specialized", qpdf_stream_decode_level_e::qpdf_dl_specialized)
-        .value("all", qpdf_stream_decode_level_e::qpdf_dl_all);
+        .value("all", qpdf_stream_decode_level_e::qpdf_dl_all)
+        .finalize();
 
-    py::enum_<QPDF::encryption_method_e>(m, "EncryptionMethod")
+    py::native_enum<QPDF::encryption_method_e>(m, "EncryptionMethod", "enum.Enum")
         .value("none", QPDF::encryption_method_e::e_none)
         .value("unknown", QPDF::encryption_method_e::e_unknown)
         .value("rc4", QPDF::encryption_method_e::e_rc4)
         .value("aes", QPDF::encryption_method_e::e_aes)
-        .value("aesv3", QPDF::encryption_method_e::e_aesv3);
+        .value("aesv3", QPDF::encryption_method_e::e_aesv3)
+        .finalize();
 
-    py::enum_<access_mode_e>(m, "AccessMode")
+    py::native_enum<access_mode_e>(m, "AccessMode", "enum.Enum")
         .value("default", access_mode_e::access_default)
         .value("stream", access_mode_e::access_stream)
         .value("mmap", access_mode_e::access_mmap)
-        .value("mmap_only", access_mode_e::access_mmap_only);
+        .value("mmap_only", access_mode_e::access_mmap_only)
+        .finalize();
 
     py::class_<QPDF, py::smart_holder>(
         m, "Pdf", "In-memory representation of a PDF", py::dynamic_attr())
