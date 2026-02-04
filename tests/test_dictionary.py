@@ -90,12 +90,9 @@ def test_dictionary_update():
 
 def test_copy_raises_on_non_dict():
     """Ensure we can't call .copy() on an Array or other types."""
-    # Since QPDFObjectHandle wraps everything, we must ensure .copy()
-    # throws the error we defined in C++ if called on an Array.
+    # Test that copy() works on all object types except Page/Pages
     s = String('hello')
-
-    with pytest.raises(TypeError, match="cannot copy an object of type"):
-        s.copy()
+    assert s.copy() == s  # String objects can now be copied
 
 
 def test_dictionary_update_from_pikepdf_dict():
@@ -231,10 +228,7 @@ def test_values_standard():
     pdf.add_blank_page()
 
     # Dictionary test
-    d = pdf.make_indirect({
-        "/A": 1,
-        "/B": 2
-    })
+    d = pdf.make_indirect({"/A": 1, "/B": 2})
 
     vals = list(d.values())
     assert len(vals) == 2
@@ -257,6 +251,7 @@ def test_values_type_error():
     arr = pdf.make_indirect([1, 2, 3])
     with pytest.raises(TypeError, match=r"values\(\) not available"):
         arr.values()
+
 
 def test_update_stream_error():
     d = Dictionary()
