@@ -982,18 +982,6 @@ void init_object(py::module_ &m)
                 object_set_key(h, name.getName(), value);
             })
         .def(
-            "copy",
-            [](QPDFObjectHandle &h) {
-                if (!h.isDictionary() && !h.isStream() && !h.isArray()) {
-                    throw py::type_error(
-                        std::string(
-                            "pikepdf.Object is not an Array, Dictionary or Stream: ") +
-                        "cannot copy an object of type " + h.getTypeName());
-                }
-                return copy_object(h);
-            },
-            "Create a shallow copy of the object.")
-        .def(
             "update",
             [](QPDFObjectHandle &h, py::dict other) {
                 // object_set_key handles the check if 'h' is a dictionary
@@ -1349,7 +1337,13 @@ void init_object(py::module_ &m)
             "Reverse the elements of the array in place.")
         .def(
             "copy",
-            [](QPDFObjectHandle &h) { return h.shallowCopy(); },
+            [](QPDFObjectHandle &h) {
+                if (h.isPageObject() || h.isPagesObject()) {
+                    throw py::type_error("Cannot copy a Page or Pages object directly. "
+                                         "Use Pdf.pages interface instead.");
+                }
+                return copy_object(h);
+            },
             "Return a shallow copy of this PDF object.")
         .def(
             "extend",
@@ -1536,12 +1530,6 @@ void init_object(py::module_ &m)
                 return h.appendItem(item);
             },
             py::arg("value"))
-        .def("extend",
-            [](QPDFObjectHandle &h, py::iterable iter) {
-                for (auto item : iter) {
-                    h.appendItem(objecthandle_encode(item));
-                }
-            })
         .def_property_readonly("is_rectangle",
             &QPDFObjectHandle::isRectangle // LCOV_EXCL_LINE
             )
