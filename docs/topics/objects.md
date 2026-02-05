@@ -133,6 +133,32 @@ However, pikepdf sends `pikepdf.Object` types back to Python on return calls,
 in most cases, because pikepdf needs to keep track of objects that came from
 PDFs originally.
 
+## Working with Arrays
+
+`pikepdf.Array` objects implement the standard Python {class}`list` interface,
+supporting indexing, slicing (including `del` on slices), and iteration.
+
+### List methods
+
+You can use the `+` and `+=` operators with pikepdf arrays.
+
+The following methods modify a pikepdf array in-place:
+`append()`, `extend()`, `insert()`, `pop()`, `remove()`, `clear()`, and `reverse()`.
+
+You can also use `count()`, `index()`, and `copy()`.
+
+```{note}
+**Shallow vs Deep Copy**: While `copy()` is a shallow copy of the handle,
+PDF "direct objects" (those without an object number) behave like values.
+Modifying a direct object inside a copied array will not affect the original.
+For "indirect objects," standard shallow copy behavior applies.
+```
+
+`pikepdf.Array` does not implement `sort()`. Instead you can use the pattern
+```
+sorted_pikepdf_array = pikepdf.Array(sorted(original_pikepdf_array))
+```
+
 ## Accessing nested objects
 
 For accessing deeply nested structures, {class}`pikepdf.NamePath` provides
