@@ -78,7 +78,7 @@ skip = [
   "*-win32",  # no 32-bit builds/not supported by Pillow anymore,
   "cp3??t-*", # no freethreading builds
 ]
-build-frontend = "pip"  # avoid build 1.4.0 + uv venv issue
+build-frontend = "build[uv]"
 
 [tool.cibuildwheel.environment]
 QPDF_MIN_VERSION = "12.2.0"
@@ -101,8 +101,8 @@ before-all = [
 environment-pass = ["CI"]
 # For manylinux_2_28 we need this shim for auditwheel
 # https://github.com/pypa/auditwheel/pull/597
-repair-wheel-command = "pip install auditwheel==6.4.2 && LD_LIBRARY_PATH=\"/usr/local/lib:/usr/local/lib64\" auditwheel repair -w {dest_dir} {wheel}"
-manylinux-x86_64-image = "manylinux_2_28"
+repair-wheel-command = "LD_LIBRARY_PATH=\"/usr/local/lib:/usr/local/lib64\" auditwheel repair -w {dest_dir} {wheel}"
+manylinux-x86_64-image = "quay.io/pypa/manylinux_2_28_x86_64:2025.08.15-1"
 musllinux-x86_64-image = "musllinux_1_2"
 musllinux-aarch64-image = "musllinux_1_2"
 
