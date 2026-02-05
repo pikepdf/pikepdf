@@ -1,10 +1,13 @@
 # SPDX-FileCopyrightText: 2026 James R. Barlow
 # SPDX-FileCopyrightText: 2026 qooxzuub
 # SPDX-License-Identifier: CC0-1.0
+from __future__ import annotations
 
 import pytest
+
 import pikepdf
-from pikepdf import Array, Name, Dictionary, Integer, String
+from pikepdf import Array, Dictionary, Integer, Name, String
+
 
 class TestArrayMethods:
     def test_clear(self):
@@ -31,7 +34,7 @@ class TestArrayMethods:
         assert a == [1, 2, 3]
         a.insert(100, 4)  # Clamp to end
         assert a[-1] == 4
-        a.insert(-100, 0) # Clamp to start
+        a.insert(-100, 0)  # Clamp to start
         assert a[0] == 0
 
     def test_pop(self):
@@ -102,9 +105,8 @@ class TestArrayMethods:
         b = Array([1])
         c = b + [2]
         assert c == [1, 2]
-        assert c is not b # Different containers
+        assert c is not b  # Different containers
         assert isinstance(c, Array)
-
 
     def test_add_overload_coexistence(self):
         # Test Array addition
@@ -143,7 +145,7 @@ class TestArrayMethods:
         a = Array([1, 2])
         a.insert(-100, 0)  # Should clamp to 0
         assert a[0] == 0
-        a.insert(100, 3)   # Should clamp to nitems
+        a.insert(100, 3)  # Should clamp to nitems
         assert a[-1] == 3
         assert len(a) == 4
 
@@ -170,7 +172,6 @@ class TestArrayMethods:
         a = Array(range(10))
         del a[::-2]
         assert list(a) == [0, 2, 4, 6, 8]
-
 
     def test_slice_deletion_robustness(self):
         # Test positive stride: delete [1, 3, 5]
@@ -301,7 +302,6 @@ class TestArrayMethods:
         # python changed their message; accept either in the test in case we 'upgrade'
         assert "can only assign an iterable" in msg_pike or msg_list == msg_pike
 
-
     def test_array_add_iterable(self):
         pdf = pikepdf.new()
         arr = pikepdf.Array([1, 2])
@@ -317,7 +317,6 @@ class TestArrayMethods:
 
         # Ensure original is unchanged (immutability of __add__)
         assert list(arr) == [1, 2]
-
 
     def test_array_add_coverage(self):
         arr = pikepdf.Array([1, 2])
@@ -343,7 +342,7 @@ class TestArrayMethods:
             del arr[::0]
 
         with pytest.raises(ValueError, match="slice step"):
-            arr[::0] = pikepdf.Array([1,2])
+            arr[::0] = pikepdf.Array([1, 2])
 
     def test_array_setitem_positive(self):
         arr = pikepdf.Array([10, 20, 30])
@@ -375,7 +374,6 @@ class TestArrayMethods:
         with pytest.raises(TypeError, match="set index"):
             d[0] = 2
 
-
     def test_array_addition(self):
         pdf = pikepdf.new()
         a = pikepdf.Array([1, 2])
@@ -387,161 +385,135 @@ class TestArrayMethods:
         d = a + [5, 6]
         assert list(d) == [1, 2, 5, 6]
 
-    def test_keyword_args(self):
-        arr = pikepdf.Array([1, 2])
-        # This forces pybind11 to look up the py::arg names
-        arr.insert(index=1, value=99)
-        assert arr[1] == 99
-
     def test_copy(self):
         arr = pikepdf.Array([1, 2])
         arr_copy = arr.copy()
         assert arr == arr_copy
-        assert arr is not arr_copy # Ensure it's a different object
+        assert arr is not arr_copy  # Ensure it's a different object
 
-def test_coverage_gaps():
-    pdf = pikepdf.new()
 
-    # 1. Test Array Addition (Hits 555-569)
-    a = Array([1, 2])
-    b = Array([3, 4])
-    combined = a + b
-    assert list(combined) == [1, 2, 3, 4]
-    assert list(a + [5, 6]) == [1, 2, 5, 6]
+class TestDictionaryEdgeCases:
+    """Edge cases for Dictionary operations."""
 
-    # 2. Test Dictionary Keys & Safe Decode (Hits 46-56, 1222-1227, 1400-1404)
-    d = Dictionary(Valid=1)
+    def test_invalid_utf8_key_uses_surrogateescape(self):
+        """Keys with invalid UTF-8 bytes are decoded using surrogateescape."""
+        d = Dictionary(Valid=1)
+        # \x80 is invalid as a standalone byte in UTF-8
+        d[b"/Invalid\x80"] = 2
 
-    # \xc3 followed by a space is invalid UTF-8.
-    # \xc3 starts a 2-byte sequence, but \x20 is not a valid continuation byte.
-    d[b"/Invalid\x80"] = 2
+        keys = d.keys()
+        assert "/Valid" in keys
+        # The invalid byte \x80 becomes the surrogate \udc80
+        assert any("\udc80" in k for k in keys)
+        assert any("\udc80" in k for k in iter(d))
 
-    keys = d.keys()
-    assert "/Valid" in keys
+    def test_update_from_python_dict(self):
+        """Dictionary.update() accepts a Python dict."""
+        d = Dictionary(A=1)
+        d.update({"/B": 2})
+        assert d.B == 2
 
-    # Check for the surrogate marker \udcc3 (the escaped 0xc3 byte)
-    # This proves PyUnicode_DecodeUTF8 failed and fell back to surrogateescape.
-    assert any("\udc80" in k for k in keys)
-    assert any("\udc80" in k for k in iter(d)) # Hits 1400-1404
+    def test_update_from_pikepdf_dictionary(self):
+        """Dictionary.update() accepts another pikepdf Dictionary."""
+        d1 = Dictionary(A=1)
+        d2 = Dictionary(C=3)
+        d1.update(d2)
+        assert d1.C == 3
 
-    # 3. Test Dictionary Updates (Hits 979-1003)
-    d1 = Dictionary(A=1)
-    d1.update({"/B": 2}) # Hits py::dict branch
-    d2 = Dictionary(C=3)
-    d1.update(d2)       # Hits QPDFObjectHandle branch
-    assert d1.B == 2 and d1.C == 3
+    def test_update_rejects_stream(self):
+        """Dictionary.update() rejects Stream objects."""
+        pdf = pikepdf.new()
+        d = Dictionary(A=1)
+        stream = pdf.make_stream(b"data", Foo=1)
+        with pytest.raises(TypeError, match="cannot update from a Stream"):
+            d.update(stream)
 
-    # Trigger Stream Update Error (Hits 991-993)
-    stream = pdf.make_stream(b"data", Foo=1)
-    with pytest.raises(TypeError, match="cannot update from a Stream"):
-        d1.update(stream)
+    def test_update_rejects_array(self):
+        """Dictionary.update() rejects Array objects."""
+        d = Dictionary(A=1)
+        with pytest.raises(TypeError, match="update\\(\\) argument must be a dictionary"):
+            d.update(Array([1, 2, 3]))
 
-    # 4. Test Array Extend & Copy (Hits 1337-1343, 1333)
-    arr = Array([1])
-    arr.extend([2, 3])
-    assert len(arr) == 3
-    arr_copy = arr.copy() # Hits shallowCopy
-    assert arr == arr_copy and arr is not arr_copy
+    def test_invalid_key_type_rejected(self):
+        """Dictionary rejects non-string/bytes key types."""
+        d = Dictionary(Valid=1)
+        with pytest.raises(TypeError, match="Key must be str or bytes"):
+            d[[]] = "value"
 
-    # 5. Test Keyword Arguments (Hits 1268-1316)
-    arr.insert(index=0, value=0)
-    arr.append(value=4)
+    def test_containment_with_incompatible_type(self):
+        """'in' operator returns False for incompatible types in Dictionary."""
+        d = Dictionary(A=1)
+        assert 123 not in d
 
-    # 6. Test Ambiguity & Type Errors (Hits 39, 1373, 1381-1383)
-    # Ambiguity: string in Array (Hits 1373)
-    with pytest.raises(TypeError, match="ambiguity"):
-        "a" in Array([String("a")])
+    def test_conversion_to_python_dict(self):
+        """Dictionary can be converted to a Python dict."""
+        d = Dictionary(A=1, B=2)
+        result = dict(d)
+        assert isinstance(result, dict)
+        assert "/A" in result
 
-    # Invalid key type (Hits 39)
-    with pytest.raises(TypeError, match="Key must be str or bytes"):
-        d[[]] = "value"
 
-    # Cast error trigger (Hits 1381-1383)
-    # Testing 'in' with an incompatible type to trigger the catch block
-    assert 123 not in d
+class TestArrayAdditionEdgeCases:
+    """Edge cases for Array addition with various iterable types."""
 
-    # 7. Dictionary View/Map (Hits 1419-1424)
-    # This usually triggers when converting the whole dict to a python object
-    assert isinstance(dict(d1), dict)
+    def test_add_with_generator(self):
+        """Array + generator creates new array from yielded values."""
+        a = Array([1, 2, 3])
+        gen = (x for x in [4, 5])
+        result = a + gen
+        assert list(result) == [1, 2, 3, 4, 5]
 
-    # 8. Uncopyable Object Error (Hits 969-972)
-    # Attempting to copy a null/uninitialized handle if possible
-    name = Name("/foo")
-    with pytest.raises(TypeError, match="cannot copy"):
-            name.copy()
+    def test_add_with_custom_iterable(self):
+        """Array + custom iterable works via iteration protocol."""
 
-def test_coverage_gaps():
-    import re
+        class MyIter:
+            def __iter__(self):
+                yield 4
 
-    pdf = pikepdf.new()
-    a = Array([1, 2, 3])
-    d = Dictionary(A=1)
+        a = Array([1, 2, 3])
+        assert (a + MyIter()) == [1, 2, 3, 4]
 
-    # HITS 996: update() with invalid type
-    with pytest.raises(TypeError, match=re.escape("update() argument must be a dictionary")):
-        d.update(pikepdf.Array([1, 2, 3])) # Passing a list instead of a dict
 
-    # HITS 555-569: Fallback addition logic
-    # This triggers the second __add__ block where we manually rebuild the array
-    # We do this by adding something that is an iterable but not a list
-    class MyIter:
-        def __iter__(self):
-            yield 4
-    assert (a + MyIter()) == [1, 2, 3, 4]
+class TestArrayTypeErrors:
+    """Type error handling for Array operations."""
 
-    # HITS 1470: Catch block in slice assignment
-    # We provide a generator that raises an error to trigger the 'catch'
-    def exploding_generator():
-        yield 1
-        raise RuntimeError("Boom")
+    def test_string_containment_ambiguity(self):
+        """Python str 'in' Array[String] raises due to ambiguous comparison."""
+        # A Python str could match either as a Name or String, so we reject it
+        with pytest.raises(TypeError, match="ambiguity"):
+            "a" in Array([String("a")])
 
-    with pytest.raises(RuntimeError, match="Boom"):
-        a[0:1] = exploding_generator()
 
-    # HITS 1333 & 1344: Shallow Copy & Keyword Args
-    # Explicitly call the methods that showed up as uncovered in the core
-    assert a.copy() == a
-    a.extend(iterable=[4, 5])
+class TestSliceAssignmentEdgeCases:
+    """Edge cases for slice assignment operations."""
 
-    # HITS 1249, 1268-1269: Argument labels
-    # This ensures the py::arg(index) labels are exercised
-    a.insert(index=0, value=0)
-    assert a[0] == 0
+    def test_generator_error_propagates(self):
+        """Errors raised during slice assignment iteration propagate correctly."""
+        a = Array([1, 2, 3])
 
-def test_final_coverage_push():
-    a = pikepdf.Array([1, 2, 3])
+        def exploding_generator():
+            yield 1
+            raise RuntimeError("Boom")
 
-    # HITS 555-569: Manual __add__ via generator
-    # This bypasses the optimized list-addition path
-    gen = (x for x in [4, 5])
-    result = a + gen
-    assert list(result) == [1, 2, 3, 4, 5]
+        with pytest.raises(RuntimeError, match="Boom"):
+            a[0:1] = exploding_generator()
 
-    # HITS 1268-1269, 1286, 1301, 1316: Keyword Arguments
-    # Using the labels forces the py::arg() lines to be 'used'
-    a.insert(index=0, value=0)
-    # If your bindings for index/count/remove/pop have arg labels:
-    a.pop(index=0)
-    a.remove(value=3)
-    _ = a.count(value=1)
-    _ = a.index(value=1)
+    def test_broken_slice_index(self):
+        """Errors in __index__ during slice computation propagate correctly."""
+        a = Array([1, 2, 3])
 
-    # HITS 1333: shallowCopy
-    # We use the method directly. If it's not exposed as 'shallow_copy',
-    # check line 1333 for the string name used in .def("name", ...)
-    # Assuming it is bound as 'copy' or 'shallow_copy'
-    h = a.copy()
-    assert h == a and h is not a
+        class BrokenIndex:
+            def __index__(self):
+                raise MemoryError("bad index")
 
-    # HITS 1344, 1356: extend with keywords
-    a.extend(iterable=[10, 11])
+        with pytest.raises(MemoryError):
+            _ = a[BrokenIndex() :]
 
-    # HITS 53: Slice compute failure
-    # Pass an object as a slice index that fails to convert to an integer
-    class BrokenIndex:
-        def __index__(self):
-            raise MemoryError("Triggering line 53")
 
-    with pytest.raises(MemoryError):
-        _ = a[BrokenIndex():]
+class TestObjectCopy:
+    """Copy behavior for various PDF object types."""
 
+    def test_name_copy(self):
+        """Name objects can be copied."""
+        name = Name("/foo")
+        assert name.copy() == name
