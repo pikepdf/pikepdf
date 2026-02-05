@@ -432,7 +432,7 @@ class TestDictionary:
 
     def test_int_access(self):
         d = pikepdf.Dictionary()
-        with pytest.raises(TypeError, match="not an Array"):
+        with pytest.raises(TypeError, match="not an array"):
             d[0] = 3
 
     def test_wrong_contains_type(self):
