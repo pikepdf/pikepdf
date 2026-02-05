@@ -99,6 +99,19 @@ before-all = [
   "bash build-scripts/posix-build-wheel-deps.bash",
 ]
 environment-pass = ["CI"]
+# Diagnostic output to debug CI resource exhaustion
+before-build = """
+echo "=== DIAGNOSTICS before building {wheel} ==="
+echo "--- Disk usage ---"
+df -h /tmp /var/tmp / 2>/dev/null || true
+echo "--- /tmp contents ---"
+du -sh /tmp/* 2>/dev/null | sort -h | tail -20 || true
+echo "--- Memory ---"
+free -m 2>/dev/null || true
+echo "--- Build env files ---"
+ls -la /tmp/build-env-* 2>/dev/null || echo "No build-env dirs found"
+echo "=== END DIAGNOSTICS ==="
+"""
 # For manylinux_2_28 we need this shim for auditwheel
 # https://github.com/pypa/auditwheel/pull/597
 repair-wheel-command = "LD_LIBRARY_PATH=\"/usr/local/lib:/usr/local/lib64\" auditwheel repair -w {dest_dir} {wheel}"
