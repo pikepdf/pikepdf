@@ -21,9 +21,8 @@ tests don't try to create race conditions. Must be compiled manually.
   library charmap pattern, removing the C++ dependency on qpdf for encoding.
 - Upgraded to qpdf 12.3.2.
 - Fixed incorrect docstrings for ``StreamDecodeLevel``. :issue:`708`
-- Fixed type stubs: added PEP 570 positional-only markers, removed duplicate
-  ``copy()``/``extend()`` methods, and corrected ``index()`` signature.
-- ``Object.copy()`` now works on all object types except Page and Pages.
+- Fixed type stubs: added PEP 570 positional-only markers, and corrected
+  ``index()`` signature.
 
 ## v10.3.0
 
