@@ -79,7 +79,6 @@ skip = [
   "cp3??t-*", # no freethreading builds
 ]
 build-frontend = "build[uv]"
-dependency-versions = "build-constraints.txt" # build <1.4.0 workaround
 
 [tool.cibuildwheel.environment]
 QPDF_MIN_VERSION = "12.2.0"
