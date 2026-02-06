@@ -102,7 +102,7 @@ environment-pass = ["CI"]
 # For manylinux_2_28 we need this shim for auditwheel
 # https://github.com/pypa/auditwheel/pull/597
 repair-wheel-command = "LD_LIBRARY_PATH=\"/usr/local/lib:/usr/local/lib64\" auditwheel repair -w {dest_dir} {wheel}"
-manylinux-x86_64-image = "quay.io/pypa/manylinux_2_28_x86_64:2025.08.15-1"
+manylinux-x86_64-image = "manylinux_2_28"
 musllinux-x86_64-image = "musllinux_1_2"
 musllinux-aarch64-image = "musllinux_1_2"
 
