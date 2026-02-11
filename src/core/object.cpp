@@ -313,6 +313,8 @@ void init_object(py::module_ &m)
 #endif
     py::class_<QPDFObjectHandle, py::smart_holder>(m, "Object")
         .def_property_readonly("_type_code", &QPDFObjectHandle::getTypeCode)
+        .def_property_readonly("_type_code_int",
+            [](QPDFObjectHandle &self) { return static_cast<int>(self.getTypeCode()); })
         .def_property_readonly("_type_name", &QPDFObjectHandle::getTypeName)
         .def(
             "is_owned_by",
