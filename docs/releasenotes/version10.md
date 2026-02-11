@@ -12,6 +12,19 @@ pikepdf now declares unstable "support" for freethreading, and does not publish
 freethreading wheels. All tests seem to pass, but that's because the existing
 tests don't try to create race conditions. Must be compiled manually.
 
+## v10.4.0
+
+- Enums are now proper Python ``enum.Enum``/``enum.IntFlag`` types (PEP 435
+  compliant), migrated from pybind11's deprecated ``py::enum_`` to
+  ``py::native_enum``.
+- Reimplemented the PDFDocEncoding codec in pure Python using the standard
+  library charmap pattern, removing the C++ dependency on qpdf for encoding.
+- Upgraded to qpdf 12.3.2.
+- Fixed incorrect docstrings for ``StreamDecodeLevel``. :issue:`708`
+- Fixed type stubs: added PEP 570 positional-only markers, removed duplicate
+  ``copy()``/``extend()`` methods, and corrected ``index()`` signature.
+- ``Object.copy()`` now works on all object types except Page and Pages.
+
 ## v10.3.0
 
 - Fixed UnicodeDecodeError when listing keys of a dictionary containing invalid
