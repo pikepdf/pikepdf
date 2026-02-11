@@ -74,98 +74,6 @@ def validate_release_notes(new_version: str) -> bool:
     return True
 
 
-def is_claude_cli_available() -> bool:
-    """Check if Claude CLI is available."""
-    try:
-        result = subprocess.run(
-            ["claude", "--version"],
-            capture_output=True,
-            timeout=5,
-        )
-        return result.returncode == 0
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        return False
-
-
-def get_git_log_since_last_release(current_version: str) -> str:
-    """Get git log since last version tag."""
-    try:
-        result = subprocess.run(
-            [
-                "git",
-                "log",
-                "--pretty=format:%h %s",
-                f"v{current_version}..HEAD",
-            ],
-            capture_output=True,
-            encoding="utf8",
-            check=True,
-        )
-        return result.stdout
-    except subprocess.CalledProcessError:
-        return ""
-
-
-def suggest_release_notes_with_claude(
-    new_version: str, git_log: str, release_notes_path: Path
-) -> str | None:
-    """Use Claude CLI to suggest release notes based on git log."""
-    if not is_claude_cli_available():
-        print(
-            f"{YELLOW}Note:{OFF} Claude CLI not installed; skipping changelog automation"
-        )
-        return None
-
-    if not git_log.strip():
-        print(f"{YELLOW}Note:{OFF} No commits since last release")
-        return None
-
-    # Read existing release notes for context
-    existing_notes = ""
-    if release_notes_path.exists():
-        existing_notes = release_notes_path.read_text(encoding="utf8")
-
-    prompt = f"""You are helping review release notes for pikepdf v{new_version}.
-
-Here is the git log since the last release:
-
-{git_log}
-
-Here are the current release notes:
-
-{existing_notes}
-
-Please review the git log and the existing release notes. Check if all significant
-changes from the git log are reflected in the release notes for v{new_version}.
-
-If the release notes are complete, say "Release notes look complete."
-
-If changes are missing, suggest additions in this format:
-- <description of change>. :issue:`<number>` (if the commit references an issue)
-
-Focus on user-visible changes, not internal refactoring.
-Be concise. Use present tense (e.g., "Fixed" not "Fixes")."""
-
-    try:
-        result = subprocess.run(
-            ["claude", "-p", prompt],
-            capture_output=True,
-            encoding="utf8",
-            timeout=120,
-        )
-        if result.returncode == 0:
-            return result.stdout.strip()
-        else:
-            print(f"{YELLOW}Warning:{OFF} Claude CLI returned error: {result.stderr}")
-            return None
-    except subprocess.TimeoutExpired:
-        print(f"{YELLOW}Warning:{OFF} Claude CLI timed out")
-        return None
-    except Exception as e:
-        print(f"{YELLOW}Warning:{OFF} Claude CLI failed: {e}")
-        return None
-
-
 def get_github_client():
     """Get an authenticated GitHub client."""
     if Github is None:
@@ -451,27 +359,6 @@ def bump_version() -> None:
         path.write_text(contents, encoding="utf8")
 
     print("Files updated.")
-    print()
-
-    # Offer Claude-based release notes review
-    git_log = get_git_log_since_last_release(current_version)
-    if git_log:
-        version_obj = Version(new_version)
-        release_notes_path = Path(
-            f"docs/releasenotes/version{version_obj.major:02d}.md"
-        )
-        suggestion = suggest_release_notes_with_claude(
-            new_version, git_log, release_notes_path
-        )
-        if suggestion:
-            print()
-            print(f"{YELLOW}Claude's review of release notes:{OFF}")
-            print("-" * 60)
-            print(suggestion)
-            print("-" * 60)
-            print()
-
-    print("Review/update the release notes if needed.")
     print()
 
     while input('Type "done" to continue: ').strip().lower() != "done":
