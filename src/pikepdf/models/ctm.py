@@ -12,7 +12,7 @@ from pikepdf._core import Matrix, Page
 from pikepdf.models._content_stream import parse_content_stream
 from pikepdf.objects import Operator
 
-logger = getLogger(__file__)
+logger = getLogger(__name__)
 OPERATOR_CM = Operator(
     'cm'
 )  # "Concatenate Matrix": Changes the CTM (Current Transformation Matrix)
