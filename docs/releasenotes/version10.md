@@ -12,6 +12,13 @@ pikepdf now declares unstable "support" for freethreading, and does not publish
 freethreading wheels. All tests seem to pass, but that's because the existing
 tests don't try to create race conditions. Must be compiled manually.
 
+## v10.5.0
+
+- Fixed logger in ``ctm`` module using ``__file__`` instead of ``__name__``,
+  which produced unhelpful log names. :issue:`712`
+- Modernized README.
+- Test all README code blocks instead of just one.
+
 ## v10.4.0
 
 - Enums are now proper Python ``enum.Enum``/``enum.IntFlag`` types (PEP 435
