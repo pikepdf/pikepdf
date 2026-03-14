@@ -103,7 +103,8 @@ if shims_enabled:
         # On cygwin, use gnu++20 instead of c++20
         eca[eca.index('-std=c++20')] = '-std=gnu++20'
     # Suppress GCC note about C++17 ABI change for std::pair in pybind11 headers
-    eca.append('-Wno-psabi')
+    if sys.platform != 'win32':
+        eca.append('-Wno-psabi')
 
     # Debug build
     # eca.append('-g3')
