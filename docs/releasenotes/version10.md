@@ -12,6 +12,15 @@ pikepdf now declares unstable "support" for freethreading, and does not publish
 freethreading wheels. All tests seem to pass, but that's because the existing
 tests don't try to create race conditions. Must be compiled manually.
 
+## v10.5.1
+
+- Updated lockfile to avoid a PyJWT CVE. We only depend use PyJWT via pygithub
+  for developer release tooling not in pikepdf itself, so this is
+  inconsequential for pikepdf users but does silence automated security
+  advisories.
+- Suppressed GCC ``-Wpsabi`` note about C++17 ABI change for ``std::pair`` in
+  pybind11 headers.
+
 ## v10.5.0
 
 - Fixed logger in ``ctm`` module using ``__file__`` instead of ``__name__``,
