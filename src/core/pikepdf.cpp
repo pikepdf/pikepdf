@@ -18,6 +18,7 @@
 #include <qpdf/QPDFSystemError.hh>
 #include <qpdf/QPDFUsage.hh>
 #include <qpdf/QUtil.hh>
+#include <qpdf/global.hh>
 
 #include <pybind11/buffer_info.h>
 #include <pybind11/gil_safe_call_once.h>
@@ -243,7 +244,20 @@ PYBIND11_MODULE(_core, m, py::mod_gil_not_used())
                 throw py::value_error(
                     "Flate compression level must be between 0 and 9 (or -1)");
             })
-        .def("_unparse_content_stream", unparse_content_stream);
+        .def("_unparse_content_stream", unparse_content_stream)
+        .def(
+            "set_inspection_mode",
+            [](bool mode) {
+                if (!mode && qpdf::global::options::inspection_mode()) {
+                    throw std::runtime_error("inspection mode is enabled and cannot be disabled");
+                }
+                qpdf::global::options::inspection_mode(mode);
+            },
+            "Enable qpdf inspection mode (global, irreversible).")
+        .def(
+            "get_inspection_mode",
+            []() { return qpdf::global::options::inspection_mode(); },
+            "Return True if qpdf inspection mode is enabled.");
 
     // -- Exceptions --
     // clang-format off
