@@ -42,7 +42,6 @@ ObjectType.__module__ = __name__
 # pylint cannot see the C++ metaclass definition and is thoroughly confused.
 # pylint: disable=invalid-metaclass
 
-_TYPE_CACHE = {}
 
 class _ObjectMeta(type(Object)):  # type: ignore
     """Support instance checking."""
@@ -53,11 +52,7 @@ class _ObjectMeta(type(Object)):  # type: ignore
         # Note: since this class is a metaclass, self is a class object
         if type(instance) is not Object:
             return False
-        try:
-            target_type_int = _TYPE_CACHE[self]
-        except KeyError:
-            target_type_int = _TYPE_CACHE[self] = self.object_type.value
-        return target_type_int == instance._type_code_int
+        return self.object_type.value == instance._type_code_int
 
 
 class _NameObjectMeta(_ObjectMeta):
