@@ -52,7 +52,7 @@ class _ObjectMeta(type(Object)):  # type: ignore
         # Note: since this class is a metaclass, self is a class object
         if type(instance) is not Object:
             return False
-        return self.object_type == instance._type_code
+        return self.object_type.value == instance._type_code_int
 
 
 class _NameObjectMeta(_ObjectMeta):
