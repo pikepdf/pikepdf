@@ -7,14 +7,11 @@
 #include <qpdf/QPDFExc.hh>
 #include <qpdf/Types.h>
 
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
 #include "pikepdf.h"
 
 void init_annotation(py::module_ &m)
 {
-    py::native_enum<pdf_annotation_flag_e>(m, "AnnotationFlag", "enum.IntFlag")
+    py::enum_<pdf_annotation_flag_e>(m, "AnnotationFlag", py::is_flag())
         .value("invisible", pdf_annotation_flag_e::an_invisible)
         .value("hidden", pdf_annotation_flag_e::an_hidden)
         .value("print", pdf_annotation_flag_e::an_print)
@@ -24,20 +21,18 @@ void init_annotation(py::module_ &m)
         .value("read_only", pdf_annotation_flag_e::an_read_only)
         .value("locked", pdf_annotation_flag_e::an_locked)
         .value("toggle_no_view", pdf_annotation_flag_e::an_toggle_no_view)
-        .value("locked_contents", pdf_annotation_flag_e::an_locked_contents)
-        .finalize();
+        .value("locked_contents", pdf_annotation_flag_e::an_locked_contents);
 
-    py::class_<QPDFAnnotationObjectHelper, py::smart_holder, QPDFObjectHelper>(
-        m, "Annotation")
+    py::class_<QPDFAnnotationObjectHelper, QPDFObjectHelper>(m, "Annotation")
         .def(py::init<QPDFObjectHandle &>(), py::keep_alive<0, 1>())
-        .def_property_readonly("subtype",
+        .def_prop_ro("subtype",
             [](QPDFAnnotationObjectHelper &anno) {
                 // Don't use qpdf because the method returns std::string
                 return anno.getObjectHandle().getKey("/Subtype");
             })
-        .def_property_readonly("rect", &QPDFAnnotationObjectHelper::getRect)
-        .def_property_readonly("flags", &QPDFAnnotationObjectHelper::getFlags)
-        .def_property_readonly("appearance_state",
+        .def_prop_ro("rect", &QPDFAnnotationObjectHelper::getRect)
+        .def_prop_ro("flags", &QPDFAnnotationObjectHelper::getFlags)
+        .def_prop_ro("appearance_state",
             [](QPDFAnnotationObjectHelper &anno) {
                 // Don't use qpdf because the method returns std::string
                 auto key = anno.getObjectHandle().getKey("/AS");
@@ -45,7 +40,7 @@ void init_annotation(py::module_ &m)
                     return key;
                 return QPDFObjectHandle::newNull();
             })
-        .def_property_readonly("appearance_dict",
+        .def_prop_ro("appearance_dict",
             &QPDFAnnotationObjectHelper::getAppearanceDictionary // LCOV_EXCL_LINE
             )
         .def(
@@ -70,8 +65,9 @@ void init_annotation(py::module_ &m)
                 int rotate,
                 int required_flags,
                 int forbidden_flags) {
-                return py::bytes(anno.getPageContentForAppearance(
-                    name.getName(), rotate, required_flags, forbidden_flags));
+                auto content = anno.getPageContentForAppearance(
+                    name.getName(), rotate, required_flags, forbidden_flags);
+                return py::bytes(content.data(), content.size());
             },
             py::arg("name"),
             py::arg("rotate"),

@@ -18,7 +18,7 @@
 
 py::object get_decoder(py::gil_scoped_acquire &gil)
 {
-    return py::module_::import("pikepdf.jbig2").attr("get_decoder")();
+    return py::module_::import_("pikepdf.jbig2").attr("get_decoder")();
 }
 
 class Pl_JBIG2 : public Pipeline {
@@ -38,26 +38,28 @@ public:
     std::string decode_jbig2(const std::string &data)
     {
         py::gil_scoped_acquire gil;
-        py::bytes pydata = py::bytes(data);
+        py::bytes pydata = py::bytes(data.data(), data.size());
 
         auto decoder = get_decoder(gil);
-        py::function extract_jbig2 = decoder.attr("decode_jbig2");
+        py::object extract_jbig2 = decoder.attr("decode_jbig2");
 
-        py::bytes extracted;
+        py::object extracted_obj;
         try {
-            extracted = extract_jbig2(pydata, py::bytes(this->jbig2globals));
-        } catch (py::error_already_set &e) {
+            extracted_obj = extract_jbig2(pydata,
+                py::bytes(this->jbig2globals.data(), this->jbig2globals.size()));
+        } catch (py::python_error &e) {
             // In qpdf over here...
             // https://github.com/qpdf/qpdf/blob/dd3b2cedd3164692925df1ef7414eb452343372f/libqpdf/QPDF.cc#L2955-2984
             // all exceptions that happen during Pipeline::finish() will be trapped
             // and converted into a generic error about the object being not decodable.
             // As a consequence we get a Python exception through C++, so we discard it
             // as unraisable so that at least the user gets a chance to see it.
-            e.discard_as_unraisable("jbig2dec error");
+            e.restore();
+            PyErr_WriteUnraisable(nullptr);
             throw std::runtime_error("qpdf will consume this exception");
         }
 
-        return std::string(extracted);
+        return py::cast<std::string>(extracted_obj);
     }
 
     virtual void finish() override

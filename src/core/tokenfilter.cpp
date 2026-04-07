@@ -8,6 +8,8 @@
 
 #include "pikepdf.h"
 
+#include <nanobind/trampoline.h>
+
 #include <qpdf/QPDFObjectHandle.hh>
 #include <qpdf/QPDFPageObjectHelper.hh>
 
@@ -25,11 +27,11 @@ public:
         try {
             if (py::hasattr(result, "__iter__")) {
                 for (auto item : result) {
-                    const auto returned_token = item.cast<Token>();
+                    const auto returned_token = py::cast<Token>(item);
                     this->writeToken(returned_token);
                 }
             } else {
-                const auto returned_token = result.cast<Token>();
+                const auto returned_token = py::cast<Token>(result);
                 this->writeToken(returned_token);
             }
         } catch (const py::cast_error &) {
@@ -40,20 +42,20 @@ public:
     virtual py::object handle_token(Token const &token) = 0;
 };
 
-class TokenFilterTrampoline : public TokenFilter, py::trampoline_self_life_support {
+class TokenFilterTrampoline : public TokenFilter {
 public:
-    using TokenFilter::TokenFilter;
+    NB_TRAMPOLINE(TokenFilter, 1);
     using Token = QPDFTokenizer::Token;
 
     py::object handle_token(Token const &token) override
     {
-        PYBIND11_OVERRIDE_PURE(py::object, TokenFilter, handle_token, token);
+        NB_OVERRIDE_PURE(handle_token, token);
     }
 };
 
 void init_tokenfilter(py::module_ &m)
 {
-    py::native_enum<QPDFTokenizer::token_type_e>(m, "TokenType", "enum.Enum")
+    py::enum_<QPDFTokenizer::token_type_e>(m, "TokenType")
         .value("bad", QPDFTokenizer::token_type_e::tt_bad)
         .value("array_close", QPDFTokenizer::token_type_e::tt_array_close)
         .value("array_open", QPDFTokenizer::token_type_e::tt_array_open)
@@ -71,25 +73,30 @@ void init_tokenfilter(py::module_ &m)
         .value("eof", QPDFTokenizer::token_type_e::tt_eof)
         .value("space", QPDFTokenizer::token_type_e::tt_space)
         .value("comment", QPDFTokenizer::token_type_e::tt_comment)
-        .value("inline_image", QPDFTokenizer::token_type_e::tt_inline_image)
-        .finalize();
+        .value("inline_image", QPDFTokenizer::token_type_e::tt_inline_image);
 
-    py::class_<QPDFTokenizer::Token, py::smart_holder>(m, "Token")
-        .def(py::init<QPDFTokenizer::token_type_e, py::bytes>())
-        .def_property_readonly("type_", &QPDFTokenizer::Token::getType)
-        .def_property_readonly("value", &QPDFTokenizer::Token::getValue)
-        .def_property_readonly("raw_value",
-            [](const QPDFTokenizer::Token &t) -> py::bytes { return t.getRawValue(); })
-        .def_property_readonly("error_msg", &QPDFTokenizer::Token::getErrorMessage)
+    py::class_<QPDFTokenizer::Token>(m, "Token")
+        .def("__init__",
+            [](QPDFTokenizer::Token *self,
+                QPDFTokenizer::token_type_e type,
+                py::bytes value) {
+                new (self) QPDFTokenizer::Token(type, py::cast<std::string>(value));
+            })
+        .def_prop_ro("type_", &QPDFTokenizer::Token::getType)
+        .def_prop_ro("value", &QPDFTokenizer::Token::getValue)
+        .def_prop_ro("raw_value",
+            [](const QPDFTokenizer::Token &t) -> py::bytes {
+                auto v = t.getRawValue();
+                return py::bytes(v.data(), v.size());
+            })
+        .def_prop_ro("error_msg", &QPDFTokenizer::Token::getErrorMessage)
         .def("__eq__", &QPDFTokenizer::Token::operator==, py::is_operator());
 
-    py::class_<QPDFObjectHandle::TokenFilter, py::smart_holder> qpdftokenfilter(
-        m, "_QPDFTokenFilter");
+    py::class_<QPDFObjectHandle::TokenFilter> qpdftokenfilter(m, "_QPDFTokenFilter");
 
-    py::class_<TokenFilter, TokenFilterTrampoline, py::smart_holder>(
-        m, "TokenFilter", qpdftokenfilter)
+    py::class_<TokenFilter, TokenFilterTrampoline>(m, "TokenFilter", qpdftokenfilter)
         .def(py::init<>())
         .def("handle_token",
             &TokenFilter::handle_token,
-            py::arg_v("token", QPDFTokenizer::Token(), "pikepdf.Token()"));
+            py::arg("token") = QPDFTokenizer::Token());
 }

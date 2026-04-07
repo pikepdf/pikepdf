@@ -9,9 +9,6 @@
 #include <qpdf/QUtil.hh>
 #include <qpdf/Types.h>
 
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
 #include "pikepdf.h"
 #include "pipeline.h"
 #include "utils.h"
@@ -21,10 +18,11 @@ void Pl_PythonOutput::write(const unsigned char *buf, size_t len)
     py::gil_scoped_acquire gil;
     py::ssize_t so_far = 0;
     while (len > 0) {
-        auto view_buffer = py::memoryview::from_memory(buf, len);
+        auto view_buffer = py::steal<py::object>(py::handle(PyMemoryView_FromMemory(
+            const_cast<char *>(reinterpret_cast<const char *>(buf)), len, PyBUF_READ)));
         py::object result = this->stream.attr("write")(view_buffer);
         try {
-            so_far = result.cast<py::ssize_t>();
+            so_far = py::cast<py::ssize_t>(result);
         } catch (const py::cast_error &) {
             throw py::type_error("Unexpected return type of write()");
         }

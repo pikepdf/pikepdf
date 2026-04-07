@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2025 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
+#include <cstring>
 #include <string>
 
 #include <qpdf/QPDFObjectHandle.hh>
@@ -62,7 +63,7 @@ static bool objecthandle_equal_inner(QPDFObjectHandle self,
         auto a = decimal_from_pdfobject(self);
         auto b = decimal_from_pdfobject(other);
         py::object pyresult = a.attr("__eq__")(b);
-        bool result = pyresult.cast<bool>();
+        bool result = py::cast<bool>(pyresult);
         return result;
     }
 

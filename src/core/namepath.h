@@ -3,14 +3,12 @@
 
 #pragma once
 
-#include <pybind11/pybind11.h>
-
 #include <sstream>
 #include <string>
 #include <variant>
 #include <vector>
 
-namespace py = pybind11;
+#include "pikepdf.h"
 
 // Path component: either a Name (string) or array index (int)
 using PathComponent = std::variant<std::string, int>;

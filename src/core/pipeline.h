@@ -15,9 +15,6 @@
 #include <qpdf/QUtil.hh>
 #include <qpdf/Types.h>
 
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
 #include "pikepdf.h"
 
 class Pl_PythonOutput : public Pipeline {

@@ -12,67 +12,55 @@
 #include <qpdf/QPDFObjectHandle.hh>
 #include <qpdf/QPDFPageObjectHelper.hh>
 
-#include <pybind11/native_enum.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#include <pybind11/stl_bind.h>
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/bind_map.h>
+#include <nanobind/stl/bind_vector.h>
+#include <nanobind/stl/map.h>
+#include <nanobind/stl/pair.h>
+#include <nanobind/stl/shared_ptr.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
 
 using uint = unsigned int;
 
-namespace pybind11 {
-PYBIND11_RUNTIME_EXCEPTION(notimpl_error, PyExc_NotImplementedError);
-}; // namespace pybind11
+// Use 'py' as alias for nanobind to minimize diff across all binding files.
+// Most nanobind types share names with pybind11 (py::object, py::str, etc.).
+namespace py = nanobind;
 
 // From object_convert.cpp
-pybind11::object decimal_from_pdfobject(QPDFObjectHandle h);
+py::object decimal_from_pdfobject(QPDFObjectHandle h);
 
 // From pikepdf.cpp - forward declaration for type_caster
 bool get_explicit_conversion_mode();
 
-namespace pybind11 {
+namespace nanobind {
 namespace detail {
 template <>
 struct type_caster<QPDFObjectHandle> : public type_caster_base<QPDFObjectHandle> {
     using base = type_caster_base<QPDFObjectHandle>;
 
-protected:
-    QPDFObjectHandle value;
-
-public:
-    /**
-     * Conversion part 1 (Python->C++): convert a PyObject into a Object
-     */
-    bool load(handle src, bool convert)
+    NB_INLINE bool from_python(
+        handle src, uint8_t flags, cleanup_list *cleanup) noexcept
     {
-        // Do whatever our base does
-        // Potentially we could convert some scalars to QPDFObjectHandle here,
-        // but most of the interfaces just expect straight C++ types.
-        return base::load(src, convert);
+        return base::from_python(src, flags, cleanup);
     }
 
-    /**
-     * Conversion part 2 (C++ -> Python): convert an instance into
-     * a Python object.
-     * Purpose of this is to establish the indirect keep_alive relationship
-     * between QPDF and objects that refer back to in ways that pybind11
-     * can't trace on its own.
-     * We also convert several QPDFObjectHandle types to native Python
-     * objects here.
-     * The ==take_ownership code is disabled. This would only occur if a raw
-     * pointer is returned to Python, which we prohibit.
-     */
-private:
-    // 'private': disallow returning pointers to QPDFObjectHandle from bindings
-    static handle cast(
-        const QPDFObjectHandle *csrc, return_value_policy policy, handle parent)
+    template <typename T>
+    NB_INLINE static handle from_cpp(
+        T &&value, rv_policy policy, cleanup_list *cleanup) noexcept
     {
-        if (policy == return_value_policy::take_ownership) { // LCOV_EXCL_START
-            throw std::logic_error(
-                "return_value_policy::take_ownership not implemented");
-        } // LCOV_EXCL_STOP
-        QPDFObjectHandle *src = const_cast<QPDFObjectHandle *>(csrc);
-        if (!csrc)
-            return none().release(); // LCOV_EXCL_LINE
+        QPDFObjectHandle *src;
+        if constexpr (is_pointer_v<T>)
+            src = (QPDFObjectHandle *)value;
+        else
+            src = (QPDFObjectHandle *)&value;
+
+        if (!src)
+            return handle(Py_None).inc_ref();
+
+        // Adjust automatic policies to copy
+        if (policy == rv_policy::automatic || policy == rv_policy::automatic_reference)
+            policy = rv_policy::copy;
 
         // In explicit conversion mode, return scalars as pikepdf.Object
         // so that Integer/Boolean/Real types are preserved.
@@ -80,52 +68,38 @@ private:
         if (!get_explicit_conversion_mode()) {
             switch (src->getTypeCode()) {
             case qpdf_object_type_e::ot_null:
-                return pybind11::none().release();
+                return handle(Py_None).inc_ref();
             case qpdf_object_type_e::ot_integer:
-                return pybind11::int_(src->getIntValue()).release();
+                return nanobind::int_(src->getIntValue()).release();
             case qpdf_object_type_e::ot_boolean:
-                return pybind11::bool_(src->getBoolValue()).release();
+                return nanobind::bool_(src->getBoolValue()).release();
             case qpdf_object_type_e::ot_real:
-                return decimal_from_pdfobject(*src).release();
+                try {
+                    return decimal_from_pdfobject(*src).release();
+                } catch (...) {
+                    return handle(); // noexcept: return null on failure
+                }
             default:
                 break;
             }
         } else {
             // Explicit mode: still convert null to None (no value in pikepdf.Null)
             if (src->getTypeCode() == qpdf_object_type_e::ot_null) {
-                return pybind11::none().release();
+                return handle(Py_None).inc_ref();
             }
         }
-        return base::cast(*csrc, policy, parent);
-    }
-
-public:
-    static handle cast(
-        QPDFObjectHandle &&src, return_value_policy policy, handle parent)
-    {
-        return cast(&src, return_value_policy::move, parent);
-    }
-
-    static handle cast(
-        const QPDFObjectHandle &src, return_value_policy policy, handle parent)
-    {
-        if (policy == return_value_policy::automatic ||
-            policy == return_value_policy::automatic_reference)
-            policy = return_value_policy::copy;
-        return cast(&src, policy, parent);
+        return base::from_cpp(std::forward<T>(value), policy, cleanup);
     }
 };
 
 } // namespace detail
-} // namespace pybind11
-
-namespace py = pybind11;
+} // namespace nanobind
 
 using ObjectList = std::vector<QPDFObjectHandle>;
-PYBIND11_MAKE_OPAQUE(ObjectList);
+NB_MAKE_OPAQUE(ObjectList);
 
 using ObjectMap = std::map<std::string, QPDFObjectHandle>;
-PYBIND11_MAKE_OPAQUE(ObjectMap);
+NB_MAKE_OPAQUE(ObjectMap);
 
 // From qpdf.cpp
 void init_qpdf(py::module_ &m);

@@ -58,36 +58,37 @@ void init_namepath(py::module_ &m)
 {
     py::class_<NamePath>(m, "_NamePath")
         .def(py::init<>())
-        .def(py::init([](py::args args) {
-            std::vector<PathComponent> components;
-            for (auto const &arg : args) {
-                if (py::isinstance<py::str>(arg)) {
-                    auto s = arg.cast<std::string>();
-                    // Ensure name starts with /
-                    if (!s.empty() && s[0] != '/') {
-                        components.push_back("/" + s);
-                    } else {
-                        components.push_back(s);
-                    }
-                } else if (py::isinstance<py::int_>(arg)) {
-                    components.push_back(arg.cast<int>());
-                } else {
-                    // Try to cast to QPDFObjectHandle (Name object)
-                    try {
-                        auto h = arg.cast<QPDFObjectHandle>();
-                        if (h.isName()) {
-                            components.push_back(h.getName());
-                            continue;
+        .def("__init__",
+            [](NamePath *self, py::args args) {
+                std::vector<PathComponent> components;
+                for (auto const &arg : args) {
+                    if (py::isinstance<py::str>(arg)) {
+                        auto s = py::cast<std::string>(arg);
+                        // Ensure name starts with /
+                        if (!s.empty() && s[0] != '/') {
+                            components.push_back("/" + s);
+                        } else {
+                            components.push_back(s);
                         }
-                    } catch (const py::cast_error &) { // LCOV_EXCL_LINE
-                        // Not a QPDFObjectHandle
+                    } else if (py::isinstance<py::int_>(arg)) {
+                        components.push_back(py::cast<int>(arg));
+                    } else {
+                        // Try to cast to QPDFObjectHandle (Name object)
+                        try {
+                            auto h = py::cast<QPDFObjectHandle>(arg);
+                            if (h.isName()) {
+                                components.push_back(h.getName());
+                                continue;
+                            }
+                        } catch (const py::cast_error &) { // LCOV_EXCL_LINE
+                            // Not a QPDFObjectHandle
+                        }
+                        throw py::type_error(
+                            "NamePath components must be str, int, or Name");
                     }
-                    throw py::type_error(
-                        "NamePath components must be str, int, or Name");
                 }
-            }
-            return NamePath(std::move(components));
-        }))
+                new (self) NamePath(std::move(components));
+            })
         .def("_append_name", &NamePath::append_name)
         .def("_append_index", &NamePath::append_index)
         .def("_format_path", &NamePath::format_path)
@@ -99,13 +100,13 @@ void init_namepath(py::module_ &m)
         .def("__call__",
             [](NamePath const &p, py::object arg) {
                 if (py::isinstance<py::str>(arg)) {
-                    return p.append_name(arg.cast<std::string>());
+                    return p.append_name(py::cast<std::string>(arg));
                 } else if (py::isinstance<py::int_>(arg)) {
-                    return p.append_index(arg.cast<int>());
+                    return p.append_index(py::cast<int>(arg));
                 } else {
                     // Try to cast to QPDFObjectHandle (Name object)
                     try {
-                        auto h = arg.cast<QPDFObjectHandle>();
+                        auto h = py::cast<QPDFObjectHandle>(arg);
                         if (h.isName()) {
                             return p.append_name(h.getName());
                         }
@@ -121,7 +122,7 @@ void init_namepath(py::module_ &m)
         // __getattr__ for name syntax: path.Resources
         .def("__getattr__", [](NamePath const &p, std::string const &name) {
             if (name.empty() || name[0] == '_') {
-                throw py::attribute_error(name);
+                throw py::attribute_error(name.c_str());
             }
             return p.append_name(name);
         });

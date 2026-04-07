@@ -7,8 +7,7 @@
 #include <qpdf/QPDFNameTreeObjectHelper.hh>
 #include <qpdf/Types.h>
 
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include <nanobind/make_iterator.h>
 
 #include "pikepdf.h"
 
@@ -16,13 +15,15 @@ using NameTree = QPDFNameTreeObjectHelper;
 
 void init_nametree(py::module_ &m)
 {
-    py::class_<NameTree, py::smart_holder, QPDFObjectHelper>(m, "NameTree")
-        .def(py::init([](QPDFObjectHandle &oh, bool auto_repair = true) {
-            if (!oh.getOwningQPDF())
-                throw py::value_error(
-                    "NameTree must wrap a Dictionary that is owned by a Pdf");
-            return NameTree(oh, *oh.getOwningQPDF(), auto_repair);
-        }),
+    py::class_<NameTree, QPDFObjectHelper>(m, "NameTree")
+        .def(
+            "__init__",
+            [](NameTree *self, QPDFObjectHandle &oh, bool auto_repair) {
+                if (!oh.getOwningQPDF())
+                    throw py::value_error(
+                        "NameTree must wrap a Dictionary that is owned by a Pdf");
+                new (self) NameTree(oh, *oh.getOwningQPDF(), auto_repair);
+            },
             py::arg("oh"), // LCOV_EXCL_LINE
             py::kw_only(), // LCOV_EXCL_LINE
             py::arg("auto_repair") = true,
@@ -36,7 +37,7 @@ void init_nametree(py::module_ &m)
             py::kw_only(),
             py::arg("auto_repair") = true,
             py::keep_alive<0, 1>())
-        .def_property_readonly("obj", [](NameTree &nt) { return nt.getObjectHandle(); })
+        .def_prop_ro("obj", [](NameTree &nt) { return nt.getObjectHandle(); })
         .def(
             "__eq__",
             [](NameTree &self, NameTree &other) {
@@ -52,7 +53,7 @@ void init_nametree(py::module_ &m)
                 if (nt.findObject(name, oh)) // writes to 'oh'
                     return oh;
                 else
-                    throw py::key_error(name);
+                    throw py::key_error(name.c_str());
             })
         .def("__setitem__",
             [](NameTree &nt, std::string const &name, QPDFObjectHandle oh) {
@@ -67,15 +68,19 @@ void init_nametree(py::module_ &m)
             [](NameTree &nt, std::string const &name) {
                 bool result = nt.remove(name);
                 if (!result)
-                    throw py::key_error(name);
+                    throw py::key_error(name.c_str());
             })
         .def(
             "__iter__",
-            [](NameTree &nt) { return py::make_key_iterator(nt); },
-            py::return_value_policy::reference_internal)
+            [](py::handle self) {
+                auto &nt = py::cast<NameTree &>(self);
+                return py::make_key_iterator(
+                    py::type<NameTree>(), "key_iterator", nt.begin(), nt.end());
+            },
+            py::keep_alive<0, 1>())
         .def(
             "_as_map",
             [](NameTree &nt) { return nt.getAsMap(); },
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def("__len__", [](NameTree &nt) { return nt.getAsMap().size(); });
 }

@@ -163,7 +163,7 @@ std::string preview_stream_data(QPDFObjectHandle h, uint recursion_depth)
     // Use py::bytes to format output like Python does
     py::bytes pydata(reinterpret_cast<const char *>(data),
         std::min(MAX_PEEK_BYTES, buffer->getSize()));
-    s = std::string(py::repr(pydata));
+    s = py::cast<std::string>(py::repr(pydata));
     if (buffer->getSize() > MAX_PEEK_BYTES) {
         s += "...";
     }

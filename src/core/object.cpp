@@ -17,9 +17,6 @@
 #include <qpdf/QPDFXRefEntry.hh>
 #include <qpdf/Types.h>
 
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
 #include "pikepdf.h"
 #include "utils.h"
 
@@ -30,11 +27,14 @@
 std::string string_from_key(py::handle key)
 {
     if (py::isinstance<py::bytes>(key)) {
-        return key.cast<std::string>();
+        py::bytes b = py::borrow<py::bytes>(key);
+        return std::string(static_cast<const char *>(b.data()), b.size());
     }
     if (py::isinstance<py::str>(key)) {
-        py::bytes encoded_key = key.attr("encode")("utf-8", "surrogateescape");
-        return encoded_key.cast<std::string>();
+        py::bytes encoded_key =
+            py::borrow<py::bytes>(key.attr("encode")("utf-8", "surrogateescape"));
+        return std::string(
+            static_cast<const char *>(encoded_key.data()), encoded_key.size());
     }
     throw py::type_error("Key must be str or bytes");
 }
@@ -50,10 +50,10 @@ py::str safe_decode(std::string const &s)
     py::handle py_s = PyUnicode_DecodeUTF8(s.c_str(), s.size(), "surrogateescape");
 
     if (!py_s) {
-        throw py::error_already_set();
+        throw py::python_error();
     }
 
-    return py::reinterpret_steal<py::str>(py_s);
+    return py::steal<py::str>(py_s);
 }
 
 // Convert QPDF Dictionary/Stream to temporary Python dict, or throw
@@ -64,7 +64,7 @@ static py::dict pydict_from_object(QPDFObjectHandle h, const char *method_name)
 
     if (!h.isDictionary()) {
         std::string msg = std::string(method_name) + "() not available on this type";
-        throw py::type_error(msg);
+        throw py::type_error(msg.c_str());
     }
 
     auto dict_map = h.getDictAsMap();
@@ -101,7 +101,7 @@ needed.
 
 */
 
-py::size_t list_range_check(QPDFObjectHandle h, int index)
+size_t list_range_check(QPDFObjectHandle h, int index)
 {
     if (!h.isArray())
         throw py::type_error("object is not an array");
@@ -109,16 +109,17 @@ py::size_t list_range_check(QPDFObjectHandle h, int index)
         index += h.getArrayNItems(); // Support negative indexing
     if (!(0 <= index && index < h.getArrayNItems()))
         throw py::index_error("index out of range");
-    return static_cast<py::size_t>(index);
+    return static_cast<size_t>(index);
 }
 
 static void ensure_keyed(
     QPDFObjectHandle &h, const char *action, std::string const &key)
 {
     if (!h.isDictionary() && !h.isStream()) {
-        throw py::value_error("pikepdf.Object is not a Dictionary or Stream: cannot " +
-                              std::string(action) + " key '" + key +
-                              "' on object of type " + h.getTypeName());
+        throw py::value_error(("pikepdf.Object is not a Dictionary or Stream: cannot " +
+                               std::string(action) + " key '" + key +
+                               "' on object of type " + h.getTypeName())
+                .c_str());
     }
 }
 
@@ -146,7 +147,7 @@ QPDFObjectHandle object_get_key(QPDFObjectHandle h, std::string const &key)
     ensure_keyed(h, "get", key);
     QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
     if (!dict.hasKey(key))
-        throw py::key_error(key);
+        throw py::key_error(key.c_str());
     return dict.getKey(key);
 }
 
@@ -182,7 +183,7 @@ void object_del_key(QPDFObjectHandle h, std::string const &key)
     QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
 
     if (!dict.hasKey(key))
-        throw py::key_error(key);
+        throw py::key_error(key.c_str());
 
     dict.removeKey(key);
 }
@@ -199,28 +200,32 @@ QPDFObjectHandle traverse_namepath(
         if (std::holds_alternative<std::string>(components[i])) {
             auto const &key = std::get<std::string>(components[i]);
             if (!current.isDictionary() && !current.isStream()) {
-                throw py::type_error("Expected Dictionary or Stream at " +
-                                     path.format_path(i) + ", got " +
-                                     current.getTypeName());
+                throw py::type_error(
+                    ("Expected Dictionary or Stream at " + path.format_path(i) +
+                        ", got " + current.getTypeName())
+                        .c_str());
             }
             QPDFObjectHandle dict = current.isStream() ? current.getDict() : current;
             if (!dict.hasKey(key)) {
                 throw py::key_error(
-                    "Key " + key + " not found; traversed " + path.format_path(i));
+                    ("Key " + key + " not found; traversed " + path.format_path(i))
+                        .c_str());
             }
             current = dict.getKey(key);
         } else {
             int index = std::get<int>(components[i]);
             if (!current.isArray()) {
-                throw py::type_error("Expected Array at " + path.format_path(i) +
-                                     ", got " + current.getTypeName());
+                throw py::type_error(("Expected Array at " + path.format_path(i) +
+                                      ", got " + current.getTypeName())
+                        .c_str());
             }
             int size = current.getArrayNItems();
             if (index < 0)
                 index += size;
             if (index < 0 || index >= size) {
-                throw py::index_error("Index " + std::to_string(index) +
-                                      " out of range at " + path.format_path(i));
+                throw py::index_error(("Index " + std::to_string(index) +
+                                       " out of range at " + path.format_path(i))
+                        .c_str());
             }
             current = current.getArrayItem(static_cast<size_t>(index));
         }
@@ -261,7 +266,7 @@ std::shared_ptr<Buffer> get_stream_data(
 
 void init_object(py::module_ &m)
 {
-    py::native_enum<qpdf_object_type_e>(m, "ObjectType", "enum.Enum")
+    py::enum_<qpdf_object_type_e>(m, "ObjectType")
         .value("uninitialized", qpdf_object_type_e::ot_uninitialized)
         .value("reserved", qpdf_object_type_e::ot_reserved)
         .value("null", qpdf_object_type_e::ot_null)
@@ -274,18 +279,14 @@ void init_object(py::module_ &m)
         .value("dictionary", qpdf_object_type_e::ot_dictionary)
         .value("stream", qpdf_object_type_e::ot_stream)
         .value("operator", qpdf_object_type_e::ot_operator)
-        .value("inlineimage", qpdf_object_type_e::ot_inlineimage)
-        .finalize();
+        .value("inlineimage", qpdf_object_type_e::ot_inlineimage);
 
-    py::class_<Buffer, py::smart_holder>(m, "Buffer", py::buffer_protocol())
-        .def_buffer([](Buffer &b) -> py::buffer_info {
-            return py::buffer_info(b.getBuffer(),
-                sizeof(unsigned char),
-                py::format_descriptor<unsigned char>::format(),
-                1,
-                {b.getSize()},
-                {sizeof(unsigned char)});
-        });
+    py::class_<Buffer>(m, "Buffer")
+        .def("__bytes__",
+            [](Buffer &b) {
+                return py::bytes((const char *)b.getBuffer(), b.getSize());
+            })
+        .def("__len__", [](Buffer &b) { return b.getSize(); });
 
     py::bind_vector<ObjectList>(m, "_ObjectList") // Autoformat fix
         .def("__repr__", [](ObjectList &ol) {
@@ -311,11 +312,11 @@ void init_object(py::module_ &m)
 #if _MSC_VER
 #    pragma warning(suppress : 4267)
 #endif
-    py::class_<QPDFObjectHandle, py::smart_holder>(m, "Object")
-        .def_property_readonly("_type_code", &QPDFObjectHandle::getTypeCode)
-        .def_property_readonly("_type_code_int",
+    py::class_<QPDFObjectHandle>(m, "Object")
+        .def_prop_ro("_type_code", &QPDFObjectHandle::getTypeCode)
+        .def_prop_ro("_type_code_int",
             [](QPDFObjectHandle &self) { return static_cast<int>(self.getTypeCode()); })
-        .def_property_readonly("_type_name", &QPDFObjectHandle::getTypeName)
+        .def_prop_ro("_type_name", &QPDFObjectHandle::getTypeName)
         .def(
             "is_owned_by",
             [](QPDFObjectHandle &h, QPDF &possible_owner) {
@@ -342,7 +343,7 @@ void init_object(py::module_ &m)
                 auto self_in_other = other_owner->copyForeignObject(self);
                 return self_in_other;
             })
-        .def_property_readonly("is_indirect", &QPDFObjectHandle::isIndirect)
+        .def_prop_ro("is_indirect", &QPDFObjectHandle::isIndirect)
         .def("__repr__", &objecthandle_repr)
         .def("__hash__",
             [](QPDFObjectHandle &self) -> py::int_ {
@@ -351,12 +352,18 @@ void init_object(py::module_ &m)
 
                 // Objects which compare equal must have the same hash value
                 switch (self.getTypeCode()) {
-                case qpdf_object_type_e::ot_string:
-                    return py::hash(py::bytes(self.getUTF8Value()));
-                case qpdf_object_type_e::ot_name:
-                    return py::hash(py::bytes(self.getName()));
-                case qpdf_object_type_e::ot_operator:
-                    return py::hash(py::bytes(self.getOperatorValue()));
+                case qpdf_object_type_e::ot_string: {
+                    auto v = self.getUTF8Value();
+                    return py::int_(py::hash(py::bytes(v.data(), v.size())));
+                }
+                case qpdf_object_type_e::ot_name: {
+                    auto v = self.getName();
+                    return py::int_(py::hash(py::bytes(v.data(), v.size())));
+                }
+                case qpdf_object_type_e::ot_operator: {
+                    auto v = self.getOperatorValue();
+                    return py::int_(py::hash(py::bytes(v.data(), v.size())));
+                }
                 case qpdf_object_type_e::ot_array:
                 case qpdf_object_type_e::ot_dictionary:
                 case qpdf_object_type_e::ot_stream:
@@ -376,7 +383,7 @@ void init_object(py::module_ &m)
         .def(
             "__eq__",
             [](QPDFObjectHandle &self, py::str other) {
-                std::string utf8_other = other.cast<std::string>();
+                std::string utf8_other = py::cast<std::string>(other);
                 switch (self.getTypeCode()) {
                 case qpdf_object_type_e::ot_string:
                     return self.getUTF8Value() == utf8_other;
@@ -390,7 +397,7 @@ void init_object(py::module_ &m)
         .def(
             "__eq__",
             [](QPDFObjectHandle &self, py::bytes other) {
-                std::string bytes_other = other.cast<std::string>();
+                std::string bytes_other = py::cast<std::string>(other);
                 switch (self.getTypeCode()) {
                 case qpdf_object_type_e::ot_string:
                     return self.getStringValue() == bytes_other;
@@ -408,11 +415,10 @@ void init_object(py::module_ &m)
                 try {
                     q_other = objecthandle_encode(other);
                 } catch (const py::cast_error &) {
-                    // Cannot remove this construct without reaching into pybind11
+                    // Cannot remove this construct without reaching into nanobind
                     // internals - reason being that we don't automatically convert
-                    // py::object to handle, so pybind11 doesn't know that we tried.
-                    return py::reinterpret_borrow<py::object>(
-                        py::handle(Py_NotImplemented));
+                    // py::object to handle, so nanobind doesn't know that we tried.
+                    return py::borrow<py::object>(py::handle(Py_NotImplemented));
                 }
                 bool result = objecthandle_equal(self, q_other);
                 return py::bool_(result);
@@ -420,10 +426,10 @@ void init_object(py::module_ &m)
             py::is_operator())
         .def("__copy__", &copy_object)
         .def("__len__",
-            [](QPDFObjectHandle &h) -> py::size_t {
+            [](QPDFObjectHandle &h) -> size_t {
                 if (h.isDictionary()) {
                     // getKeys constructs a new object, so this is better
-                    return static_cast<py::size_t>(h.getDictAsMap().size());
+                    return static_cast<size_t>(h.getDictAsMap().size());
                 } else if (h.isArray()) {
                     int nitems = h.getArrayNItems();
                     // LCOV_EXCL_START
@@ -431,7 +437,7 @@ void init_object(py::module_ &m)
                         throw std::logic_error("Array items < 0");
                     }
                     // LCOV_EXCL_STOP
-                    return static_cast<py::size_t>(nitems);
+                    return static_cast<size_t>(nitems);
                 }
                 if (h.isStream())
                     throw py::type_error(
@@ -472,7 +478,8 @@ void init_object(py::module_ &m)
                 } else if (h.isNull()) {
                     return false;
                 }
-                throw py::notimpl_error("code is unreachable");
+                PyErr_SetString(PyExc_NotImplementedError, "code is unreachable");
+                throw py::python_error();
             })
         .def("__int__",
             [](QPDFObjectHandle &h) -> long long {
@@ -545,7 +552,7 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &h, py::object other) -> py::object {
                 if (!h.isInteger() && !h.isReal())
                     throw py::type_error("Object is not numeric");
-                return py::handle(Py_NotImplemented).cast<py::object>();
+                return py::borrow<py::object>(py::handle(Py_NotImplemented));
             },
             py::is_operator())
         .def(
@@ -553,7 +560,7 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &h, py::object other) -> py::object {
                 if (!h.isInteger() && !h.isReal())
                     throw py::type_error("Object is not numeric");
-                return py::handle(Py_NotImplemented).cast<py::object>();
+                return py::borrow<py::object>(py::handle(Py_NotImplemented));
             },
             py::is_operator())
         .def(
@@ -597,7 +604,7 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &h, py::object other) -> py::object {
                 if (!h.isInteger() && !h.isReal())
                     throw py::type_error("Object is not numeric");
-                return py::handle(Py_NotImplemented).cast<py::object>();
+                return py::borrow<py::object>(py::handle(Py_NotImplemented));
             },
             py::is_operator())
         .def(
@@ -605,7 +612,7 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &h, py::object other) -> py::object {
                 if (!h.isInteger() && !h.isReal())
                     throw py::type_error("Object is not numeric");
-                return py::handle(Py_NotImplemented).cast<py::object>();
+                return py::borrow<py::object>(py::handle(Py_NotImplemented));
             },
             py::is_operator())
         .def(
@@ -649,7 +656,7 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &h, py::object other) -> py::object {
                 if (!h.isInteger() && !h.isReal())
                     throw py::type_error("Object is not numeric");
-                return py::handle(Py_NotImplemented).cast<py::object>();
+                return py::borrow<py::object>(py::handle(Py_NotImplemented));
             },
             py::is_operator())
         .def(
@@ -657,7 +664,7 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &h, py::object other) -> py::object {
                 if (!h.isInteger() && !h.isReal())
                     throw py::type_error("Object is not numeric");
-                return py::handle(Py_NotImplemented).cast<py::object>();
+                return py::borrow<py::object>(py::handle(Py_NotImplemented));
             },
             py::is_operator())
         // True division: always returns float
@@ -722,7 +729,7 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &h, py::object other) -> py::object {
                 if (!h.isInteger() && !h.isReal())
                     throw py::type_error("Object is not numeric");
-                return py::handle(Py_NotImplemented).cast<py::object>();
+                return py::borrow<py::object>(py::handle(Py_NotImplemented));
             },
             py::is_operator())
         .def(
@@ -730,7 +737,7 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &h, py::object other) -> py::object {
                 if (!h.isInteger() && !h.isReal())
                     throw py::type_error("Object is not numeric");
-                return py::handle(Py_NotImplemented).cast<py::object>();
+                return py::borrow<py::object>(py::handle(Py_NotImplemented));
             },
             py::is_operator())
         // Floor division: Integer // int -> int
@@ -789,7 +796,7 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &h, py::object other) -> py::object {
                 if (!h.isInteger() && !h.isReal())
                     throw py::type_error("Object is not numeric");
-                return py::handle(Py_NotImplemented).cast<py::object>();
+                return py::borrow<py::object>(py::handle(Py_NotImplemented));
             },
             py::is_operator())
         .def(
@@ -797,7 +804,7 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &h, py::object other) -> py::object {
                 if (!h.isInteger() && !h.isReal())
                     throw py::type_error("Object is not numeric");
-                return py::handle(Py_NotImplemented).cast<py::object>();
+                return py::borrow<py::object>(py::handle(Py_NotImplemented));
             },
             py::is_operator())
         .def(
@@ -854,7 +861,7 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &h, py::object other) -> py::object {
                 if (!h.isInteger() && !h.isReal())
                     throw py::type_error("Object is not numeric");
-                return py::handle(Py_NotImplemented).cast<py::object>();
+                return py::borrow<py::object>(py::handle(Py_NotImplemented));
             },
             py::is_operator())
         .def(
@@ -862,7 +869,7 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &h, py::object other) -> py::object {
                 if (!h.isInteger() && !h.isReal())
                     throw py::type_error("Object is not numeric");
-                return py::handle(Py_NotImplemented).cast<py::object>();
+                return py::borrow<py::object>(py::handle(Py_NotImplemented));
             },
             py::is_operator())
         .def("__neg__",
@@ -924,9 +931,10 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &h) {
                 if (!h.isDictionary() && !h.isStream() && !h.isArray()) {
                     throw py::type_error(
-                        std::string(
-                            "pikepdf.Object is not an Array, Dictionary or Stream: ") +
-                        "cannot copy an object of type " + h.getTypeName());
+                        (std::string(
+                             "pikepdf.Object is not an Array, Dictionary or Stream: ") +
+                            "cannot copy an object of type " + h.getTypeName())
+                            .c_str());
                 }
                 return copy_object(h);
             },
@@ -936,7 +944,7 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &h, py::dict other) {
                 // object_set_key handles the check if 'h' is a dictionary
                 for (auto item : other) {
-                    std::string key = py::str(item.first);
+                    std::string key = py::cast<std::string>(py::str(item.first));
                     auto value = objecthandle_encode(item.second);
                     object_set_key(h, key, value);
                 }
@@ -1041,22 +1049,26 @@ void init_object(py::module_ &m)
                 std::string key = "/" + name;
                 try {
                     value = object_get_key(h, key);
-                } catch (const py::key_error &e) {
-                    if (std::isupper(name[0]))
-                        throw py::attribute_error(e.what());
-                    else
-                        throw py::attribute_error(name);
-                } catch (const py::value_error &) {
-                    if (name == std::string("__name__"))
-                        throw py::attribute_error(name);
-                    throw;
+                } catch (const py::builtin_exception &e) {
+                    if (e.type() == py::exception_type::key_error) {
+                        if (std::isupper(name[0]))
+                            throw py::attribute_error(e.what());
+                        else
+                            throw py::attribute_error(name.c_str());
+                    } else if (e.type() == py::exception_type::value_error) {
+                        if (name == std::string("__name__"))
+                            throw py::attribute_error(name.c_str());
+                        throw;
+                    } else {
+                        throw;
+                    }
                 }
                 return value;
             })
-        .def_property("stream_dict",
+        .def_prop_rw("stream_dict",
             &QPDFObjectHandle::getDict,
             &QPDFObjectHandle::replaceDict,
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def("__setattr__",
             [](QPDFObjectHandle &h, std::string const &name, py::object pyvalue) {
                 if (h.isDictionary() || (h.isStream() && name != "stream_dict")) {
@@ -1068,8 +1080,9 @@ void init_object(py::module_ &m)
                 }
 
                 // If we don't have a special rule, do object.__setattr__()
-                py::object baseobj = py::module_::import("builtins").attr("object");
-                baseobj.attr("__setattr__")(py::cast(h), py::str(name), pyvalue);
+                py::object baseobj = py::module_::import_("builtins").attr("object");
+                baseobj.attr("__setattr__")(
+                    py::cast(h), py::str(name.c_str()), pyvalue);
             })
         .def("__delattr__",
             [](QPDFObjectHandle &h, std::string const &name) {
@@ -1088,7 +1101,7 @@ void init_object(py::module_ &m)
                 if (h.isDictionary() || h.isStream()) {
                     for (auto key_attr : h.getKeys()) {
                         std::string s = key_attr.substr(1);
-                        result.append(py::str(s));
+                        result.append(py::str(s.c_str()));
                     }
                 }
                 return result;
@@ -1099,7 +1112,7 @@ void init_object(py::module_ &m)
                 QPDFObjectHandle value;
                 try {
                     value = object_get_key(h, key);
-                } catch (const py::key_error &) {
+                } catch (const py::builtin_exception &) {
                     return default_;
                 }
                 return py::cast(value);
@@ -1112,7 +1125,7 @@ void init_object(py::module_ &m)
                 QPDFObjectHandle value;
                 try {
                     value = object_get_key(h, name.getName());
-                } catch (const py::key_error &) {
+                } catch (const py::builtin_exception &) {
                     return default_;
                 }
                 return py::cast(value);
@@ -1127,11 +1140,7 @@ void init_object(py::module_ &m)
                 }
                 try {
                     return py::cast(traverse_namepath(h, path));
-                } catch (const py::key_error &) {
-                    return default_;
-                } catch (const py::index_error &) {
-                    return default_;
-                } catch (const py::type_error &) {
+                } catch (const py::builtin_exception &) {
                     return default_;
                 }
             },
@@ -1169,7 +1178,7 @@ void init_object(py::module_ &m)
                 }
                 try {
                     return object_has_key(h, string_from_key(key));
-                } catch (py::type_error &) {
+                } catch (py::builtin_exception &) {
                     return false;
                 }
             })
@@ -1177,7 +1186,7 @@ void init_object(py::module_ &m)
         .def("as_dict", &QPDFObjectHandle::getDictAsMap)
         .def(
             "__iter__",
-            [](QPDFObjectHandle h) -> py::iterable {
+            [](QPDFObjectHandle h) -> py::object {
                 if (h.isArray()) {
                     auto vec = h.getArrayAsVector();
                     auto pyvec = py::cast(vec);
@@ -1197,43 +1206,47 @@ void init_object(py::module_ &m)
                     throw py::type_error("__iter__ not available on this type");
                 }
             },
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def(
             "items",
             [](QPDFObjectHandle h) {
                 return pydict_from_object(h, "items").attr("items")();
             },
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def(
             "values",
             [](QPDFObjectHandle h) {
                 return pydict_from_object(h, "values").attr("values")();
             },
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def("__str__",
             [](QPDFObjectHandle &h) -> py::str {
                 if (h.isName())
-                    return h.getName();
+                    return py::str(h.getName().c_str());
                 else if (h.isOperator())
-                    return h.getOperatorValue();
+                    return py::str(h.getOperatorValue().c_str());
                 else if (h.isString())
-                    return h.getUTF8Value();
+                    return py::str(h.getUTF8Value().c_str());
                 // Python's default __str__ calls __repr__
-                return objecthandle_repr(h);
+                return py::str(objecthandle_repr(h).c_str());
             })
         .def("__bytes__",
             [](QPDFObjectHandle &h) {
-                if (h.isName())
-                    return py::bytes(h.getName());
+                if (h.isName()) {
+                    auto v = h.getName();
+                    return py::bytes(v.data(), v.size());
+                }
                 if (h.isStream()) {
                     auto buf = h.getStreamData();
                     // py::bytes will make a copy of the buffer, so releasing is fine
                     return py::bytes((const char *)buf->getBuffer(), buf->getSize());
                 }
                 if (h.isOperator()) {
-                    return py::bytes(h.getOperatorValue());
+                    auto v = h.getOperatorValue();
+                    return py::bytes(v.data(), v.size());
                 }
-                return py::bytes(h.getStringValue());
+                auto v = h.getStringValue();
+                return py::bytes(v.data(), v.size());
             })
         .def("__setitem__",
             [](QPDFObjectHandle &h, int index, QPDFObjectHandle &value) {
@@ -1264,7 +1277,7 @@ void init_object(py::module_ &m)
                     h.appendItem(objecthandle_encode(item));
                 }
             })
-        .def_property_readonly("is_rectangle",
+        .def_prop_ro("is_rectangle",
             &QPDFObjectHandle::isRectangle // LCOV_EXCL_LINE
             )
         .def(
@@ -1294,7 +1307,7 @@ void init_object(py::module_ &m)
                 py::bytes data,
                 py::object filter,
                 py::object decode_parms) {
-                std::string sdata = data;
+                std::string sdata = py::cast<std::string>(data);
                 QPDFObjectHandle h_filter = objecthandle_encode(filter);
                 QPDFObjectHandle h_decode_parms = objecthandle_encode(decode_parms);
                 h.replaceStreamData(sdata, h_filter, h_decode_parms);
@@ -1303,14 +1316,17 @@ void init_object(py::module_ &m)
             py::arg("filter"),
             py::arg("decode_parms"))
         .def("_inline_image_raw_bytes",
-            [](QPDFObjectHandle &h) { return py::bytes(h.getInlineImageValue()); })
-        .def_property_readonly("_objgen", &object_get_objgen)
-        .def_property_readonly("objgen", &object_get_objgen)
+            [](QPDFObjectHandle &h) {
+                auto v = h.getInlineImageValue();
+                return py::bytes(v.data(), v.size());
+            })
+        .def_prop_ro("_objgen", &object_get_objgen)
+        .def_prop_ro("objgen", &object_get_objgen)
         .def_static(
             "parse",
             [](py::bytes stream, py::str description) {
                 return QPDFObjectHandle::parse(
-                    std::string(stream), std::string(description));
+                    py::cast<std::string>(stream), py::cast<std::string>(description));
             },
             py::arg("stream"),
             py::arg("description") = "")
@@ -1349,9 +1365,8 @@ void init_object(py::module_ &m)
         .def(
             "unparse",
             [](QPDFObjectHandle &h, bool resolved) -> py::bytes {
-                if (resolved)
-                    return h.unparseResolved();
-                return h.unparse();
+                auto s = resolved ? h.unparseResolved() : h.unparse();
+                return py::bytes(s.data(), s.size());
             },
             py::arg("resolved") = false)
         .def(
@@ -1362,7 +1377,7 @@ void init_object(py::module_ &m)
                 std::string result;
                 Pl_String p("json", nullptr, result);
                 h.writeJSON(schema_version, &p, dereference);
-                return result;
+                return py::bytes(result.data(), result.size());
             },
             py::arg("dereference") = false,
             py::arg("schema_version") = 2); // end of QPDFObjectHandle bindings
@@ -1398,7 +1413,7 @@ void init_object(py::module_ &m)
     });
     m.def("_new_stream", [](QPDF &owner, py::bytes data) {
         // This makes a copy of the data
-        return QPDFObjectHandle::newStream(&owner, data);
+        return QPDFObjectHandle::newStream(&owner, py::cast<std::string>(data));
     });
     m.def(
         "_new_operator",
@@ -1406,8 +1421,7 @@ void init_object(py::module_ &m)
         py::arg("op"));
     m.def("_Null", &QPDFObjectHandle::newNull, "Construct a PDF Null object");
 
-    py::class_<QPDFObjectHandle::ParserCallbacks, py::smart_holder, PyParserCallbacks>(
-        m, "StreamParser")
+    py::class_<QPDFObjectHandle::ParserCallbacks, PyParserCallbacks>(m, "StreamParser")
         .def(py::init<>(), "You must call ``super.__init__()`` in subclasses.")
         // LCOV_EXCL_START
         // coverage misses the virtual function call ::handleObject here.
@@ -1421,8 +1435,7 @@ void init_object(py::module_ &m)
 
     // Since QPDFEmbeddedFileDocumentHelper::getEmbeddedFiles returns
     // std::map<std::string, std::shared_ptr<QPDFFileSpecObjectHelper>>
-    // we must use smart_holder.
-    py::class_<QPDFObjectHelper, py::smart_holder>(m, "ObjectHelper")
+    py::class_<QPDFObjectHelper>(m, "ObjectHelper")
         .def(
             "__eq__",
             [](QPDFObjectHelper &self, QPDFObjectHelper &other) {
@@ -1431,12 +1444,13 @@ void init_object(py::module_ &m)
                     self.getObjectHandle(), other.getObjectHandle());
             },
             py::is_operator())
-        .def_property_readonly("obj", [](QPDFObjectHelper &poh) -> QPDFObjectHandle {
+        .def_prop_ro("obj", [](QPDFObjectHelper &poh) -> QPDFObjectHandle {
             return poh.getObjectHandle();
         });
 
     m.def("_encode", [](py::handle handle) { return objecthandle_encode(handle); });
     m.def("unparse", [](py::object obj) -> py::bytes {
-        return objecthandle_encode(obj).unparseBinary();
+        auto s = objecthandle_encode(obj).unparseBinary();
+        return py::bytes(s.data(), s.size());
     });
 } // init_object

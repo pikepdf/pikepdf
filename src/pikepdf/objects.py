@@ -38,41 +38,46 @@ Object.__module__ = __name__
 ObjectType.__module__ = __name__
 
 
-# type(Object) is the metaclass that pybind11 defines; we wish to extend that
-# pylint cannot see the C++ metaclass definition and is thoroughly confused.
+# Metaclass for pikepdf object wrapper types. These allow isinstance() checks
+# against specific PDF types (e.g. isinstance(obj, Name)).
+# Note: nanobind's metaclass cannot be subclassed, so we use a plain `type`
+# metaclass and override __instancecheck__ to look at the underlying C++ type.
 # pylint: disable=invalid-metaclass
 
 
-class _ObjectMeta(type(Object)):  # type: ignore
+class _ObjectMeta(type):  # type: ignore
     """Support instance checking."""
 
     object_type: ObjectType
 
-    def __instancecheck__(self, instance: Any) -> bool:
-        # Note: since this class is a metaclass, self is a class object
-        if type(instance) is not Object:
+    def __instancecheck__(cls, instance: Any) -> bool:
+        # Note: since this class is a metaclass, cls is a class object
+        if not isinstance(instance, Object):
             return False
-        return self.object_type.value == instance._type_code_int
+        try:
+            return cls.object_type.value == instance._type_code_int
+        except AttributeError:
+            return False
 
 
 class _NameObjectMeta(_ObjectMeta):
     """Support usage pikepdf.Name.Whatever -> Name('/Whatever')."""
 
-    def __getattr__(self, attr: str) -> Name:
+    def __getattr__(cls, attr: str) -> Name:
         if attr.startswith('_') or attr == 'object_type':
             return getattr(_ObjectMeta, attr)
         return Name('/' + attr)
 
-    def __setattr__(self, attr: str, value: Any) -> None:
-        # No need for a symmetric .startswith('_'). To prevent user error, we
-        # simply don't allow mucking with the pikepdf.Name class's attributes.
-        # There is no reason to ever assign to them.
+    def __setattr__(cls, attr: str, value: Any) -> None:
+        if attr.startswith('_') or attr == 'object_type':
+            super().__setattr__(attr, value)
+            return
         raise AttributeError(
             "Attributes may not be set on pikepdf.Name. Perhaps you meant to "
             "modify a Dictionary rather than a Name?"
         )
 
-    def __getitem__(self, item: str) -> None:
+    def __getitem__(cls, item: str) -> None:
         if item.startswith('/'):
             item = item[1:]
         raise TypeError(
@@ -83,7 +88,7 @@ class _NameObjectMeta(_ObjectMeta):
         )
 
 
-class Name(Object, metaclass=_NameObjectMeta):
+class Name(metaclass=_NameObjectMeta):
     """Construct a PDF Name object.
 
     Names can be constructed with two notations:
@@ -139,7 +144,7 @@ class Name(Object, metaclass=_NameObjectMeta):
         return _core._new_name(f"/{prefix}{random_string}")
 
 
-class Operator(Object, metaclass=_ObjectMeta):
+class Operator(metaclass=_ObjectMeta):
     """Construct an operator for use in a content stream.
 
     An Operator is one of a limited set of commands that can appear in PDF content
@@ -159,7 +164,7 @@ class Operator(Object, metaclass=_ObjectMeta):
         return cast('Operator', _core._new_operator(name))
 
 
-class String(Object, metaclass=_ObjectMeta):
+class String(metaclass=_ObjectMeta):
     """Construct a PDF String object."""
 
     object_type = ObjectType.string
@@ -176,7 +181,7 @@ class String(Object, metaclass=_ObjectMeta):
         return _core._new_string_utf8(s)
 
 
-class Array(Object, metaclass=_ObjectMeta):
+class Array(metaclass=_ObjectMeta):
     """Construct a PDF Array object."""
 
     object_type = ObjectType.array
@@ -200,7 +205,7 @@ class Array(Object, metaclass=_ObjectMeta):
         return _core._new_array(a)
 
 
-class Dictionary(Object, metaclass=_ObjectMeta):
+class Dictionary(metaclass=_ObjectMeta):
     """Construct a PDF Dictionary object."""
 
     object_type = ObjectType.dictionary
@@ -238,7 +243,7 @@ class Dictionary(Object, metaclass=_ObjectMeta):
         return _core._new_dictionary(d)
 
 
-class Stream(Object, metaclass=_ObjectMeta):
+class Stream(metaclass=_ObjectMeta):
     """Construct a PDF Stream object."""
 
     object_type = ObjectType.stream
@@ -302,7 +307,7 @@ class Stream(Object, metaclass=_ObjectMeta):
         return stream
 
 
-class Integer(Object, metaclass=_ObjectMeta):
+class Integer(metaclass=_ObjectMeta):
     """A PDF integer object.
 
     In explicit conversion mode, PDF integers are returned as this type instead
@@ -327,7 +332,7 @@ class Integer(Object, metaclass=_ObjectMeta):
         return _core._new_integer(val)  # type: ignore[return-value]
 
 
-class Boolean(Object, metaclass=_ObjectMeta):
+class Boolean(metaclass=_ObjectMeta):
     """A PDF boolean object.
 
     In explicit conversion mode, PDF booleans are returned as this type instead
@@ -351,7 +356,7 @@ class Boolean(Object, metaclass=_ObjectMeta):
         return _core._new_boolean(val)  # type: ignore[return-value]
 
 
-class Real(Object, metaclass=_ObjectMeta):
+class Real(metaclass=_ObjectMeta):
     """A PDF real (floating-point) object.
 
     In explicit conversion mode, PDF reals are returned as this type instead

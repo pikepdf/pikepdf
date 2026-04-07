@@ -5,8 +5,6 @@
 
 #include "pikepdf.h"
 
-#include <pybind11/stl.h>
-
 #include <qpdf/QPDFPageDocumentHelper.hh>
 #include <qpdf/QPDFPageObjectHelper.hh>
 
@@ -16,15 +14,15 @@ class PageList { // LCOV_EXCL_LINE
 public:
     PageList(std::shared_ptr<QPDF> q) : qpdf(q), doc(*qpdf) {};
 
-    QPDFPageObjectHelper get_page(py::size_t index);
+    QPDFPageObjectHelper get_page(size_t index);
     py::list get_pages(py::slice slice);
-    void set_page(py::size_t index, QPDFPageObjectHelper page);
-    void set_page(py::size_t index, py::object obj);
+    void set_page(size_t index, QPDFPageObjectHelper page);
+    void set_page(size_t index, py::object obj);
     void set_pages_from_iterable(py::slice slice, py::iterable other);
-    void delete_page(py::size_t index);
+    void delete_page(size_t index);
     void delete_pages_from_iterable(py::slice slice);
-    py::size_t count();
-    void insert_page(py::size_t index, QPDFPageObjectHelper page);
+    size_t count();
+    void insert_page(size_t index, QPDFPageObjectHelper page);
     void append_page(QPDFPageObjectHelper page);
 
 public:

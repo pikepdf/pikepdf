@@ -12,9 +12,6 @@
 #include <qpdf/QUtil.hh>
 #include <qpdf/Types.h>
 
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
 #include "pikepdf.h"
 #include "utils.h"
 
@@ -36,9 +33,9 @@ public:
     {
         py::gil_scoped_acquire gil; // GIL must be held anyway, issue #295
         this->stream = stream;
-        if (!this->stream.attr("readable")().cast<bool>())
+        if (!py::cast<bool>(this->stream.attr("readable")()))
             throw py::value_error("not readable");
-        if (!this->stream.attr("seekable")().cast<bool>())
+        if (!py::cast<bool>(this->stream.attr("seekable")()))
             throw py::value_error("not seekable");
     }
     virtual ~PythonStreamInputSource()
@@ -91,13 +88,13 @@ public:
         // "TypeError: a read-write bytes-like object is required, not memoryview"
         this->last_offset = this->tell();
         py::bytes result = this->stream.attr("read")(length);
-        py::buffer pybuf(result);
-        py::buffer_info info = pybuf.request();
-        size_t bytes_read = info.size * info.itemsize;
+        const char *data = PyBytes_AsString(result.ptr());
+        Py_ssize_t bytes_read = PyBytes_Size(result.ptr());
 
-        memcpy(buffer, info.ptr, std::min(length, bytes_read));
+        memcpy(buffer, data, std::min(length, static_cast<size_t>(bytes_read)));
 #else
-        auto view_buffer_info = py::memoryview::from_memory(buffer, length);
+        auto view_buffer_info = py::steal<py::object>(
+            py::handle(PyMemoryView_FromMemory(buffer, length, PyBUF_WRITE)));
         this->last_offset = this->tell();
         py::object result = this->stream.attr("readinto")(view_buffer_info);
         if (result.is_none())

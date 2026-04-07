@@ -9,9 +9,6 @@
 #include <qpdf/QPDFMatrix.hh>
 #include <qpdf/Types.h>
 
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
 #include "pikepdf.h"
 
 constexpr double pi = 3.14159265358979323846;
@@ -21,12 +18,12 @@ QPDFMatrix matrix_from_tuple(const py::tuple &t)
     if (t.size() != 6) {
         throw py::value_error("tuple must have 6 elements");
     }
-    return QPDFMatrix(t[0].cast<double>(),
-        t[1].cast<double>(),
-        t[2].cast<double>(),
-        t[3].cast<double>(),
-        t[4].cast<double>(),
-        t[5].cast<double>());
+    return QPDFMatrix(py::cast<double>(t[0]),
+        py::cast<double>(t[1]),
+        py::cast<double>(t[2]),
+        py::cast<double>(t[3]),
+        py::cast<double>(t[4]),
+        py::cast<double>(t[5]));
 }
 
 py::tuple tuple_from_matrix(const QPDFMatrix &m)
@@ -39,7 +36,7 @@ void init_matrix(py::module_ &m)
     using Point = std::pair<double, double>;
     using Rect = QPDFObjectHandle::Rectangle;
 
-    py::class_<QPDFMatrix, py::smart_holder>(m, "Matrix")
+    py::class_<QPDFMatrix>(m, "Matrix")
         .def(py::init<>())
         .def_static("identity", []() { return QPDFMatrix(); })
         .def(py::init<double, double, double, double, double, double>(),
@@ -50,46 +47,53 @@ void init_matrix(py::module_ &m)
             py::arg("e"),
             py::arg("f"))
         .def(py::init<QPDFMatrix const &>(), py::arg("other"))
-        .def(py::init<>([](QPDFObjectHandle &h) {
-            if (!h.isMatrix()) {
-                throw py::value_error(
-                    "pikepdf.Object could not be converted to Matrix");
-            }
-            // qpdf defines an older class, QPDFObjectHandle::Matrix,
-            // for interop with QPDFObjectHandle. We want to ignore it as
-            // much as possible, but here, only the older class has the
-            // right function.
-            QPDFObjectHandle::Matrix ohmatrix = h.getArrayAsMatrix();
-            return QPDFMatrix(ohmatrix);
-        }),
-            py::arg("h")) // LCOV_EXCL_LINE
-        .def(py::init<>([](ObjectList &ol) {
-            if (ol.size() != 6) {
-                throw py::value_error("ObjectList must have 6 elements");
-            }
-            std::vector<double> converted(6);
-            for (int i = 0; i < 6; ++i) {
-                if (!ol.at(i).getValueAsNumber(converted.at(i))) {
-                    throw py::value_error("Values must be numeric");
+        .def(
+            "__init__",
+            [](QPDFMatrix *self, QPDFObjectHandle &h) {
+                if (!h.isMatrix()) {
+                    throw py::value_error(
+                        "pikepdf.Object could not be converted to Matrix");
                 }
-            }
-            return QPDFMatrix(converted.at(0),
-                converted.at(1),
-                converted.at(2),
-                converted.at(3),
-                converted.at(4),
-                converted.at(5));
-        }))
-        .def(py::init<>([](const py::tuple &t) { return matrix_from_tuple(t); }),
+                QPDFObjectHandle::Matrix ohmatrix = h.getArrayAsMatrix();
+                new (self) QPDFMatrix(ohmatrix);
+            },
+            py::arg("h")) // LCOV_EXCL_LINE
+        .def("__init__",
+            [](QPDFMatrix *self, ObjectList &ol) {
+                if (ol.size() != 6) {
+                    throw py::value_error("ObjectList must have 6 elements");
+                }
+                std::vector<double> converted(6);
+                for (int i = 0; i < 6; ++i) {
+                    if (!ol.at(i).getValueAsNumber(converted.at(i))) {
+                        throw py::value_error("Values must be numeric");
+                    }
+                }
+                new (self) QPDFMatrix(converted.at(0),
+                    converted.at(1),
+                    converted.at(2),
+                    converted.at(3),
+                    converted.at(4),
+                    converted.at(5));
+            })
+        .def(
+            "__init__",
+            [](QPDFMatrix *self, const py::tuple &t) {
+                new (self) QPDFMatrix(matrix_from_tuple(t));
+            },
             py::arg("t")) // LCOV_EXCL_LINE
-        .def_readonly("a", &QPDFMatrix::a)
-        .def_readonly("b", &QPDFMatrix::b)
-        .def_readonly("c", &QPDFMatrix::c)
-        .def_readonly("d", &QPDFMatrix::d)
-        .def_readonly("e", &QPDFMatrix::e)
-        .def_readonly("f", &QPDFMatrix::f)
-        .def_property_readonly("shorthand", &tuple_from_matrix)
-        .def("encode", [](QPDFMatrix const &self) { return py::bytes(self.unparse()); })
+        .def_ro("a", &QPDFMatrix::a)
+        .def_ro("b", &QPDFMatrix::b)
+        .def_ro("c", &QPDFMatrix::c)
+        .def_ro("d", &QPDFMatrix::d)
+        .def_ro("e", &QPDFMatrix::e)
+        .def_ro("f", &QPDFMatrix::f)
+        .def_prop_ro("shorthand", &tuple_from_matrix)
+        .def("encode",
+            [](QPDFMatrix const &self) {
+                auto unparsed = self.unparse();
+                return py::bytes(unparsed.data(), unparsed.size());
+            })
         .def("translated",
             [](QPDFMatrix const &self, double tx, double ty) {
                 QPDFMatrix copy(self);
@@ -150,7 +154,7 @@ void init_matrix(py::module_ &m)
                 if (!copy.is_none() && !copy) {
                     throw py::value_error("copy=False is not supported");
                 }
-                auto np = py::module_::import("numpy");
+                auto np = py::module_::import_("numpy");
                 auto arr = np.attr("array")(
                     // clang-format off
                     py::make_tuple(
@@ -195,7 +199,7 @@ void init_matrix(py::module_ &m)
         .def("__repr__",
             [](QPDFMatrix &self) {
                 py::str s("pikepdf.Matrix({:g}, {:g}, {:g}, {:g}, {:g}, {:g})");
-                return s.format(self.a, self.b, self.c, self.d, self.e, self.f);
+                return s.attr("format")(self.a, self.b, self.c, self.d, self.e, self.f);
             })
         .def("_repr_latex_",
             [](QPDFMatrix &self) {
@@ -204,8 +208,11 @@ void init_matrix(py::module_ &m)
                           "{:g} & {:g} & 0 \\\\\n"
                           "{:g} & {:g} & 1 \n"
                           "\\end{{bmatrix}}\n$$");
-                return s.format(self.a, self.b, self.c, self.d, self.e, self.f);
+                return s.attr("format")(self.a, self.b, self.c, self.d, self.e, self.f);
             })
-        .def(py::pickle([](QPDFMatrix const &self) { return tuple_from_matrix(self); },
-            [](py::tuple t) { return matrix_from_tuple(t); }));
+        .def("__getstate__",
+            [](QPDFMatrix const &self) { return tuple_from_matrix(self); })
+        .def("__setstate__", [](QPDFMatrix &self, py::tuple t) {
+            new (&self) QPDFMatrix(matrix_from_tuple(t));
+        });
 }

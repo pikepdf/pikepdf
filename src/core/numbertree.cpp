@@ -7,8 +7,7 @@
 #include <qpdf/QPDFNumberTreeObjectHelper.hh>
 #include <qpdf/Types.h>
 
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include <nanobind/make_iterator.h>
 
 #include "pikepdf.h"
 
@@ -18,13 +17,15 @@ using NumberTree = QPDFNumberTreeObjectHelper;
 
 void init_numbertree(py::module_ &m)
 {
-    py::class_<NumberTree, py::smart_holder, QPDFObjectHelper>(m, "NumberTree")
-        .def(py::init([](QPDFObjectHandle &oh, bool auto_repair = true) {
-            if (!oh.getOwningQPDF())
-                throw py::value_error(
-                    "NumberTree must wrap a Dictionary that is owned by a Pdf");
-            return NumberTree(oh, *oh.getOwningQPDF(), auto_repair);
-        }),
+    py::class_<NumberTree, QPDFObjectHelper>(m, "NumberTree")
+        .def(
+            "__init__",
+            [](NumberTree *self, QPDFObjectHandle &oh, bool auto_repair) {
+                if (!oh.getOwningQPDF())
+                    throw py::value_error(
+                        "NumberTree must wrap a Dictionary that is owned by a Pdf");
+                new (self) NumberTree(oh, *oh.getOwningQPDF(), auto_repair);
+            },
             py::arg("oh"), // LCOV_EXCL_LINE
             py::kw_only(),
             py::arg("auto_repair") = true,
@@ -47,7 +48,7 @@ void init_numbertree(py::module_ &m)
                 if (nt.findObject(key, oh)) // writes to 'oh'
                     return oh;
                 else
-                    throw py::index_error(std::to_string(key));
+                    throw py::index_error(std::to_string(key).c_str());
             })
         .def("__setitem__",
             [](NumberTree &nt, numtree_number key, QPDFObjectHandle oh) {
@@ -60,8 +61,12 @@ void init_numbertree(py::module_ &m)
         .def("__delitem__", [](NumberTree &nt, numtree_number key) { nt.remove(key); })
         .def(
             "__iter__",
-            [](NumberTree &nt) { return py::make_key_iterator(nt); },
-            py::return_value_policy::reference_internal)
+            [](py::handle self) {
+                auto &nt = py::cast<NumberTree &>(self);
+                return py::make_key_iterator(
+                    py::type<NumberTree>(), "key_iterator", nt.begin(), nt.end());
+            },
+            py::keep_alive<0, 1>())
         .def("_as_map", [](NumberTree &nt) { return nt.getAsMap(); })
         .def("__len__", [](NumberTree &nt) { return nt.getAsMap().size(); });
 }

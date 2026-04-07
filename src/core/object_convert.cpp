@@ -18,15 +18,12 @@
 #include <qpdf/QPDFWriter.hh>
 #include <qpdf/Types.h>
 
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
 #include "pikepdf.h"
 
 static py::handle get_decimal_cls()
 {
     // Intentionally leaked to avoid destruction order issues at interpreter shutdown
-    static auto *cls = new py::object(py::module_::import("decimal").attr("Decimal"));
+    static auto *cls = new py::object(py::module_::import_("decimal").attr("Decimal"));
     return *cls;
 }
 
@@ -34,7 +31,7 @@ static py::handle get_decimal_getcontext()
 {
     // Intentionally leaked to avoid destruction order issues at interpreter shutdown
     static auto *func =
-        new py::object(py::module_::import("decimal").attr("getcontext"));
+        new py::object(py::module_::import_("decimal").attr("getcontext"));
     return *func;
 }
 
@@ -45,7 +42,7 @@ std::map<std::string, QPDFObjectHandle> dict_builder(const py::dict dict)
 
     for (const auto &item : dict) {
         result.emplace(
-            item.first.cast<std::string>(), objecthandle_encode(item.second));
+            py::cast<std::string>(item.first), objecthandle_encode(item.second));
     }
     return result;
 }
@@ -56,7 +53,7 @@ std::vector<QPDFObjectHandle> array_builder(const py::iterable iter)
     std::vector<QPDFObjectHandle> result;
 
     // If it's a list/tuple, pre-allocate memory
-    if (py::isinstance<py::sequence>(iter)) {
+    if (py::isinstance<py::list>(iter) || py::isinstance<py::tuple>(iter)) {
         result.reserve(py::len(iter));
     }
 
@@ -71,7 +68,7 @@ public:
     DecimalPrecision(uint calc_precision)
     {
         decimal_context = get_decimal_getcontext()();
-        saved_precision = decimal_context.attr("prec").cast<uint>();
+        saved_precision = py::cast<uint>(decimal_context.attr("prec"));
         decimal_context.attr("prec") = calc_precision;
     }
     ~DecimalPrecision() { decimal_context.attr("prec") = saved_precision; }
@@ -91,7 +88,7 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle)
         return QPDFObjectHandle::newNull();
 
     if (py::isinstance<QPDFObjectHandle>(handle)) {
-        return handle.cast<QPDFObjectHandle>();
+        return py::cast<QPDFObjectHandle>(handle);
     }
 
     auto *type_ptr = Py_TYPE(handle.ptr());
@@ -101,24 +98,24 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle)
         const char *ptr = PyUnicode_AsUTF8AndSize(handle.ptr(), &size);
 
         if (!ptr) {
-            throw py::error_already_set();
+            throw py::python_error();
         }
         return QPDFObjectHandle::newUnicodeString(std::string(ptr, size));
     }
     if (type_ptr == &PyLong_Type) {
-        return QPDFObjectHandle::newInteger(handle.cast<long long>());
+        return QPDFObjectHandle::newInteger(py::cast<long long>(handle));
     }
     if (type_ptr == &PyBool_Type) {
-        return QPDFObjectHandle::newBool(handle.cast<bool>());
+        return QPDFObjectHandle::newBool(py::cast<bool>(handle));
     }
     if (type_ptr == &PyFloat_Type) {
-        double val = handle.cast<double>();
+        double val = py::cast<double>(handle);
         if (!std::isfinite(val))
             throw py::value_error("Can't convert NaN or Infinity to PDF real number");
         return QPDFObjectHandle::newReal(val);
     }
     if (type_ptr == &PyBytes_Type) {
-        return QPDFObjectHandle::newString(handle.cast<std::string>());
+        return QPDFObjectHandle::newString(py::cast<std::string>(handle));
     }
 
     if (py::isinstance<QPDFObjectHelper>(handle)) {
@@ -126,21 +123,20 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle)
     }
     if (py::isinstance<QPDFObjectHandle::Rectangle>(handle)) {
         return QPDFObjectHandle::newFromRectangle(
-            handle.cast<QPDFObjectHandle::Rectangle>());
+            py::cast<QPDFObjectHandle::Rectangle>(handle));
     }
 
     auto Decimal = get_decimal_cls();
     if (py::isinstance(handle, Decimal)) {
         DecimalPrecision dp(get_decimal_precision());
-        auto rounded =
-            py::reinterpret_steal<py::object>(PyNumber_Positive(handle.ptr()));
-        if (!rounded.attr("is_finite")().cast<bool>())
+        auto rounded = py::steal<py::object>(PyNumber_Positive(handle.ptr()));
+        if (!py::cast<bool>(rounded.attr("is_finite")()))
             throw py::value_error("Can't convert NaN or Infinity to PDF real number");
 
-        auto as_decimal_string = std::string(py::str(rounded));
+        auto as_decimal_string = py::cast<std::string>(py::str(rounded));
         if (as_decimal_string.find_first_of("Ee") != std::string::npos) {
             return QPDFObjectHandle::newReal(
-                rounded.attr("__float__")().cast<double>());
+                py::cast<double>(rounded.attr("__float__")()));
         }
         return QPDFObjectHandle::newReal(as_decimal_string);
     }
@@ -149,16 +145,17 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle)
     if (py::hasattr(handle, "__iter__")) {
         if (py::hasattr(handle, "keys")) {
             return QPDFObjectHandle::newDictionary(
-                dict_builder(handle.cast<py::dict>()));
+                dict_builder(py::cast<py::dict>(handle)));
         }
         if (PySequence_Check(handle.ptr())) {
             return QPDFObjectHandle::newArray(
-                array_builder(handle.cast<py::iterable>()));
+                array_builder(py::cast<py::iterable>(handle)));
         }
     }
 
-    throw py::cast_error(
-        std::string("don't know how to encode value ") + std::string(py::repr(handle)));
+    throw py::type_error((std::string("don't know how to encode value ") +
+                          py::cast<std::string>(py::repr(handle)))
+            .c_str());
 }
 
 py::object decimal_from_pdfobject(QPDFObjectHandle h)

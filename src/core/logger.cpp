@@ -69,7 +69,7 @@ static void no_op_deleter(void *ptr) noexcept
 
 void init_logger(py::module_ &m)
 {
-    auto py_logger = py::module_::import("logging").attr("getLogger")("pikepdf._core");
+    auto py_logger = py::module_::import_("logging").attr("getLogger")("pikepdf._core");
 
     std::shared_ptr<Pipeline> pl_log_info = std::shared_ptr<Pl_PythonLogger>(
         new Pl_PythonLogger("qpdf to Python logging pipeline", py_logger, "info"),

@@ -11,7 +11,7 @@ invalidate-cppcov:
 
 .PHONY: build
 build: invalidate-cppcov
-	python setup.py build_ext --inplace
+	pip install --no-build-isolation -e .
 
 .PHONY: pip-install-e
 pip-install-e: invalidate-cppcov
@@ -33,7 +33,7 @@ clean-coverage: clean-coverage-cppcov clean-coverage-pycov
 
 .PHONY: clean
 clean: clean-coverage
-	python setup.py clean --all
+	rm -rf build/
 	rm -f src/pikepdf/_core.*so
 
 .PHONY: test
@@ -46,11 +46,11 @@ pycov: clean-coverage-pycov
 
 .PHONY: build-cppcov
 build-cppcov:
-	env CFLAGS="--coverage" python setup.py build_ext --inplace
+	env CFLAGS="--coverage" pip install --no-build-isolation -e .
 
 coverage/cpp.info: clean-coverage-cppcov build-cppcov pycov
 	lcov --no-external --capture --directory . --output-file coverage/cppall.info
-	lcov --remove coverage/cppall.info '*/pybind11/*' -o coverage/cpp.info
+	lcov --remove coverage/cppall.info '*/nanobind/*' -o coverage/cpp.info
 
 coverage/cppcov: coverage/cpp.info
 	-mkdir -p coverage/cppcov

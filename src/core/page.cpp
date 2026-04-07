@@ -14,7 +14,7 @@
 #include <qpdf/QPDFPageLabelDocumentHelper.hh>
 #include <qpdf/QPDFPageObjectHelper.hh>
 
-py::size_t page_index(QPDF &owner, QPDFObjectHandle page)
+size_t page_index(QPDF &owner, QPDFObjectHandle page)
 {
     if (&owner != page.getOwningQPDF())
         throw py::value_error("Page is not in this Pdf");
@@ -39,22 +39,23 @@ py::size_t page_index(QPDF &owner, QPDFObjectHandle page)
 std::string label_string_from_dict(QPDFObjectHandle label_dict)
 {
     auto impl =
-        py::module_::import("pikepdf._cpphelpers").attr("label_from_label_dict");
-    py::str result = impl(label_dict);
-    return result;
+        py::module_::import_("pikepdf._cpphelpers").attr("label_from_label_dict");
+    py::str result = py::borrow<py::str>(impl(label_dict));
+    return py::cast<std::string>(result);
 }
 
 void init_page(py::module_ &m)
 {
-    py::class_<QPDFPageObjectHelper, py::smart_holder, QPDFObjectHelper>(m, "Page")
+    py::class_<QPDFPageObjectHelper, QPDFObjectHelper>(m, "Page")
         .def(py::init<QPDFObjectHandle &>())
-        .def(py::init([](QPDFPageObjectHelper &poh) {
-            return QPDFPageObjectHelper(poh.getObjectHandle());
-        }))
+        .def("__init__",
+            [](QPDFPageObjectHelper *self, QPDFPageObjectHelper &poh) {
+                new (self) QPDFPageObjectHelper(poh.getObjectHandle());
+            })
         .def(
             "__copy__", [](QPDFPageObjectHelper &poh) { return poh.shallowCopyPage(); })
-        .def_property_readonly("_images", &QPDFPageObjectHelper::getImages)
-        .def_property_readonly("_form_xobjects", &QPDFPageObjectHelper::getFormXObjects)
+        .def_prop_ro("_images", &QPDFPageObjectHelper::getImages)
+        .def_prop_ro("_form_xobjects", &QPDFPageObjectHelper::getFormXObjects)
         .def("_get_mediabox", &QPDFPageObjectHelper::getMediaBox)
         .def("_get_artbox", &QPDFPageObjectHelper::getArtBox)
         .def("_get_bleedbox", &QPDFPageObjectHelper::getBleedBox)
@@ -91,7 +92,8 @@ void init_page(py::module_ &m)
                     throw std::logic_error("QPDFPageObjectHelper not attached to QPDF");
                     // LCOV_EXCL_STOP
                 }
-                auto stream = QPDFObjectHandle::newStream(q, contents);
+                auto stream =
+                    QPDFObjectHandle::newStream(q, py::cast<std::string>(contents));
                 return poh.addPageContents(stream, prepend);
             },
             py::arg("contents"),
@@ -112,12 +114,13 @@ void init_page(py::module_ &m)
                 bool invert_transformations,
                 bool allow_shrink,
                 bool allow_expand) -> py::bytes {
-                return py::bytes(poh.placeFormXObject(formx,
+                auto content = poh.placeFormXObject(formx,
                     name.getName(),
                     rect,
                     invert_transformations,
                     allow_shrink,
-                    allow_expand));
+                    allow_expand);
+                return py::bytes(content.data(), content.size());
             },
             py::arg("formx"), // LCOV_EXCL_LINE
             py::arg("name"),
@@ -153,7 +156,12 @@ void init_page(py::module_ &m)
                 // function require a Pdf, or move it to the Pdf.
                 auto pyqpdf = py::cast(poh.getObjectHandle().getOwningQPDF());
                 auto pytf = py::cast(tf);
-                py::detail::keep_alive_impl(pyqpdf, pytf);
+                // Keep token filter alive by storing ref on the QPDF object
+                if (!py::hasattr(pyqpdf, "_token_filter_refs")) {
+                    py::setattr(pyqpdf, "_token_filter_refs", py::list());
+                }
+                py::list refs = py::borrow<py::list>(pyqpdf.attr("_token_filter_refs"));
+                refs.append(pytf);
 
                 poh.addContentTokenFilter(tf);
             },
@@ -164,7 +172,7 @@ void init_page(py::module_ &m)
                 poh.parseContents(&stream_parser);
             },
             py::arg("stream_parser"))
-        .def_property_readonly("index",
+        .def_prop_ro("index",
             [](QPDFPageObjectHelper &poh) {
                 auto this_page = poh.getObjectHandle();
                 auto p_owner = this_page.getOwningQPDF();
@@ -173,7 +181,7 @@ void init_page(py::module_ &m)
                 auto &owner = *p_owner;
                 return page_index(owner, this_page);
             })
-        .def_property_readonly("label", [](QPDFPageObjectHelper &poh) {
+        .def_prop_ro("label", [](QPDFPageObjectHelper &poh) {
             auto this_page = poh.getObjectHandle();
             auto p_owner = this_page.getOwningQPDF();
             if (!p_owner)

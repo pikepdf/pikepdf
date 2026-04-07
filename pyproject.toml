@@ -2,8 +2,12 @@
 # SPDX-License-Identifier: MPL-2.0
 
 [build-system]
-requires = ["setuptools >= 77.0.3", "pybind11 >= 3"]
-build-backend = "setuptools.build_meta"
+requires = ["scikit-build-core>=0.10", "nanobind>=2.0"]
+build-backend = "scikit_build_core.build"
+
+[tool.scikit-build]
+wheel.packages = ["src/pikepdf"]
+cmake.build-type = "Release"
 
 [project]
 name = "pikepdf"
@@ -50,7 +54,7 @@ test = [
   "hypothesis>=6.36",
   "numpy>=1.21.0; platform_machine == 'x86_64' and platform_python_implementation == 'CPython'",
   "psutil>=5.9; os_name != 'nt'",
-  "pybind11",
+  "nanobind",
   "pytest>=6.2.5",
   "pytest-cov>=3.0.0",
   "pytest-timeout>=2.1.0",
@@ -60,13 +64,9 @@ test = [
   "tomli; python_version < '3.11'",
 ]
 
-[tool.setuptools.packages.find]
-where = ["src"]
-include = ["pikepdf", "pikepdf.*"]
-namespaces = false
-
-[tool.setuptools.package-data]
-pikepdf = ["*.dll", "py.typed", "*.pyi", "**/*.pyi"]
+[tool.scikit-build.cmake.define]
+# Pass version info to CMake
+VERSION_INFO = "10.5.1"
 
 [tool.cibuildwheel]
 test-command = "pytest -nauto {project}/tests"
@@ -115,10 +115,9 @@ before-all = [
     jpeg-dev \
     make \
     mupdf-tools \
+    ninja \
     py3-lxml \
     py3-pillow \
-    py3-pybind11-dev \
-    py3-setuptools \
     py3-wheel \
     python3 \
     python3-dev \

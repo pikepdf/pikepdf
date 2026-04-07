@@ -7,14 +7,14 @@
 
 #include "pikepdf.h"
 
+#include <nanobind/trampoline.h>
 #include <qpdf/QPDFTokenizer.hh>
 
 // Used to implement pikepdf.StreamParser, which can be subclassed to implement
 // custom parsing.
-class PyParserCallbacks : public QPDFObjectHandle::ParserCallbacks,
-                          py::trampoline_self_life_support {
+class PyParserCallbacks : public QPDFObjectHandle::ParserCallbacks {
 public:
-    using QPDFObjectHandle::ParserCallbacks::ParserCallbacks;
+    NB_TRAMPOLINE(QPDFObjectHandle::ParserCallbacks, 2);
     virtual ~PyParserCallbacks() = default;
 
     void handleObject(QPDFObjectHandle obj, size_t offset, size_t length) override;

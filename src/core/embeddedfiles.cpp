@@ -9,9 +9,6 @@
 #include <qpdf/QPDFFileSpecObjectHelper.hh>
 #include <qpdf/Types.h>
 
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
 #include "pikepdf.h"
 #include "pipeline.h"
 
@@ -24,7 +21,8 @@ QPDFFileSpecObjectHelper create_filespec(QPDF &q,
     std::string mod_date,
     QPDFObjectHandle relationship)
 {
-    auto efstream = QPDFEFStreamObjectHelper::createEFStream(q, std::string(data));
+    auto efstream =
+        QPDFEFStreamObjectHelper::createEFStream(q, py::cast<std::string>(data));
     auto filespec = QPDFFileSpecObjectHelper::createFileSpec(q, filename, efstream);
 
     if (!description.empty())
@@ -44,25 +42,29 @@ QPDFFileSpecObjectHelper create_filespec(QPDF &q,
 
 void init_embeddedfiles(py::module_ &m)
 {
-    py::class_<QPDFFileSpecObjectHelper, py::smart_holder, QPDFObjectHelper>(
+    py::class_<QPDFFileSpecObjectHelper, QPDFObjectHelper>(
         m, "AttachedFileSpec") // /Type /Filespec
-        .def(py::init([](QPDF &q,
-                          py::bytes data,
-                          std::string description,
-                          std::string filename,
-                          std::string mime_type,
-                          std::string creation_date,
-                          std::string mod_date,
-                          QPDFObjectHandle &relationship) {
-            return create_filespec(q,
-                data,
-                description,
-                filename,
-                mime_type,
-                creation_date,
-                mod_date,
-                relationship);
-        }),
+        .def(
+            "__init__",
+            [](QPDFFileSpecObjectHelper *self,
+                QPDF &q,
+                py::bytes data,
+                std::string description,
+                std::string filename,
+                std::string mime_type,
+                std::string creation_date,
+                std::string mod_date,
+                QPDFObjectHandle &relationship) {
+                auto fs = create_filespec(q,
+                    data,
+                    description,
+                    filename,
+                    mime_type,
+                    creation_date,
+                    mod_date,
+                    relationship);
+                new (self) QPDFFileSpecObjectHelper(fs);
+            },
             py::keep_alive<0, 1>(), // LCOV_EXCL_LINE
             py::arg("q"),
             py::arg("data"),
@@ -73,11 +75,11 @@ void init_embeddedfiles(py::module_ &m)
             py::arg("creation_date") = std::string(""),
             py::arg("mod_date") = std::string(""),
             py::arg("relationship") = QPDFObjectHandle::newName("/Unspecified"))
-        .def_property("description",
+        .def_prop_rw("description",
             &QPDFFileSpecObjectHelper::getDescription,
             &QPDFFileSpecObjectHelper::setDescription // LCOV_EXCL_LINE
             )
-        .def_property(
+        .def_prop_rw(
             "filename",
             [](QPDFFileSpecObjectHelper &spec) { return spec.getFilename(); },
             [](QPDFFileSpecObjectHelper &spec, std::string const &value) {
@@ -91,7 +93,8 @@ void init_embeddedfiles(py::module_ &m)
                     auto key = key_filename.first;
                     auto filename = key_filename.second;
                     auto key_as_name = QPDFObjectHandle::newName(key);
-                    result[py::cast(key_as_name)] = py::bytes(filename);
+                    result[py::cast(key_as_name)] =
+                        py::bytes(filename.data(), filename.size());
                 }
                 return result;
             })
@@ -100,7 +103,7 @@ void init_embeddedfiles(py::module_ &m)
             [](QPDFFileSpecObjectHelper &spec) {
                 return QPDFEFStreamObjectHelper(spec.getEmbeddedFileStream());
             },
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def(
             "get_file",
             [](QPDFFileSpecObjectHelper &spec, QPDFObjectHandle &name) {
@@ -109,49 +112,50 @@ void init_embeddedfiles(py::module_ &m)
                 return QPDFEFStreamObjectHelper(
                     spec.getEmbeddedFileStream(name.getName()));
             },
-            py::return_value_policy::reference_internal);
+            py::rv_policy::reference_internal);
 
-    py::class_<QPDFEFStreamObjectHelper, py::smart_holder, QPDFObjectHelper>(
+    py::class_<QPDFEFStreamObjectHelper, QPDFObjectHelper>(
         m, "AttachedFile") // /Type /EmbeddedFile
-        .def_property_readonly("size",
+        .def_prop_ro("size",
             &QPDFEFStreamObjectHelper::getSize // LCOV_EXCL_LINE
             )
-        .def_property("mime_type",
+        .def_prop_rw("mime_type",
             &QPDFEFStreamObjectHelper::getSubtype,
             &QPDFEFStreamObjectHelper::setSubtype, // LCOV_EXCL_LINE
             "")
-        .def_property_readonly("md5",
+        .def_prop_ro("md5",
             [](QPDFEFStreamObjectHelper &efstream) {
-                return py::bytes(efstream.getChecksum());
+                auto checksum = efstream.getChecksum();
+                return py::bytes(checksum.data(), checksum.size());
             })
-        .def_property("_creation_date",
+        .def_prop_rw("_creation_date",
             &QPDFEFStreamObjectHelper::getCreationDate,
             &QPDFEFStreamObjectHelper::setCreationDate)
-        .def_property("_mod_date",
+        .def_prop_rw("_mod_date",
             &QPDFEFStreamObjectHelper::getModDate,
             &QPDFEFStreamObjectHelper::setModDate);
 
-    py::class_<QPDFEmbeddedFileDocumentHelper, py::smart_holder>(m, "Attachments")
-        .def_property_readonly(
+    py::class_<QPDFEmbeddedFileDocumentHelper>(m, "Attachments")
+        .def_prop_ro(
             "_has_embedded_files", &QPDFEmbeddedFileDocumentHelper::hasEmbeddedFiles)
         .def("_attach_data",
             [](QPDFEmbeddedFileDocumentHelper &efdh, py::str key, py::bytes data) {
                 auto ef = create_filespec(efdh.getQPDF(),
-                    std::string(data),
+                    data,
                     std::string(""),
-                    std::string(key),
+                    py::cast<std::string>(key),
                     std::string(""),
                     std::string(""),
                     std::string(""),
                     QPDFObjectHandle::newName("/Unspecified"));
-                efdh.replaceEmbeddedFile(key, ef);
+                efdh.replaceEmbeddedFile(py::cast<std::string>(key), ef);
             })
         .def("_get_all_filespecs",
             &QPDFEmbeddedFileDocumentHelper::getEmbeddedFiles,
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def("_get_filespec",
             &QPDFEmbeddedFileDocumentHelper::getEmbeddedFile,
-            py::return_value_policy::reference_internal)
+            py::rv_policy::reference_internal)
         .def("_add_replace_filespec",
             &QPDFEmbeddedFileDocumentHelper::replaceEmbeddedFile,
             py::keep_alive<0, 2>())

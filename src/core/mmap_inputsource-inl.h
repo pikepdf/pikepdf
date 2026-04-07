@@ -14,9 +14,6 @@
 #include <qpdf/QUtil.hh>
 #include <qpdf/Types.h>
 
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
 #include "pikepdf.h"
 #include "utils.h"
 #include <signal.h>
@@ -52,24 +49,21 @@ public:
         py::gil_scoped_acquire acquire; // GIL must be held anyway, issue #295
         this->stream = stream;
 
-        py::int_ fileno = this->stream.attr("fileno")();
-        int fd = fileno;
-        auto mmap_module = py::module_::import("mmap");
+        py::object fileno = this->stream.attr("fileno")();
+        int fd = py::cast<int>(fileno);
+        auto mmap_module = py::module_::import_("mmap");
         auto mmap_fn = mmap_module.attr("mmap");
 
         // Use Python's mmap API since it is more portable than platform versions.
         auto access_read = mmap_module.attr("ACCESS_READ");
         this->mmap = mmap_fn(fd, 0, py::arg("access") = access_read);
-        py::buffer view(this->mmap);
-
-        // .request(false) -> request read-only mapping
-        // Use a unique_ptr here so we can control the timing of our buffer_info's
-        // deconstruction.
-        this->buffer_info = std::make_unique<py::buffer_info>(view.request(false));
+        if (PyObject_GetBuffer(this->mmap.ptr(), &this->pybuf, PyBUF_SIMPLE) != 0) {
+            throw py::python_error();
+        }
+        this->pybuf_valid = true;
 
         auto qpdf_buffer = std::make_unique<Buffer>(
-            static_cast<unsigned char *>(this->buffer_info->ptr),
-            this->buffer_info->size);
+            static_cast<unsigned char *>(this->pybuf.buf), this->pybuf.len);
         this->bis = std::make_unique<BufferInputSource>(description,
             qpdf_buffer.release(),
             false // own_memory=false
@@ -79,11 +73,13 @@ public:
     {
         py::gil_scoped_acquire acquire;
         try {
-            // buffer_info.reset() will trigger PyBuffer_Release(), which we must
-            // do before we can close the memory mapping, since we exported a pointer
-            // from it.
+            // Release the Py_buffer before we can close the memory mapping,
+            // since we exported a pointer from it.
             this->bis.reset();
-            this->buffer_info.reset();
+            if (this->pybuf_valid) {
+                PyBuffer_Release(&this->pybuf);
+                this->pybuf_valid = false;
+            }
             if (!this->mmap.is_none()) {
                 this->mmap.attr("close")();
             }
@@ -92,8 +88,9 @@ public:
                 this->stream.attr("close")();
             }
             // LCOV_EXCL_START
-        } catch (py::error_already_set &e) {
-            e.discard_as_unraisable(__func__);
+        } catch (py::python_error &e) {
+            e.restore();
+            PyErr_WriteUnraisable(nullptr);
         } catch (const std::runtime_error &e) {
             if (!str_startswith(e.what(), "StopIteration"))
                 std::cerr << "Exception in " << __func__ << ": " << e.what();
@@ -155,6 +152,7 @@ private:
     py::object stream;
     bool close_stream;
     py::object mmap;
-    std::unique_ptr<py::buffer_info> buffer_info;
+    Py_buffer pybuf;
+    bool pybuf_valid = false;
     std::unique_ptr<BufferInputSource> bis;
 };
