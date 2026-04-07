@@ -31,6 +31,16 @@ from pikepdf._core import Matrix, Object, ObjectType, Rectangle
 if TYPE_CHECKING:  # pragma: no cover
     from pikepdf import Pdf
 
+    # At type-check time, the wrapper classes below appear to inherit from
+    # ``Object`` so that mypy knows about ``__getattr__``, ``__getitem__``,
+    # ``__contains__``, etc. At runtime they do NOT inherit from ``Object``
+    # because nanobind's metaclass cannot be subclassed; instead the metaclass
+    # ``_ObjectMeta`` overrides ``__instancecheck__`` to look at the underlying
+    # C++ type code.
+    _ObjectBase = Object
+else:
+    _ObjectBase = object
+
 # By default pikepdf.Object will identify itself as pikepdf._core.Object
 # Here we change the module to discourage people from using that internal name
 # Instead it will become pikepdf.objects.Object
@@ -96,7 +106,7 @@ class _NameObjectMeta(_ObjectMeta):
         )
 
 
-class Name(metaclass=_NameObjectMeta):
+class Name(_ObjectBase, metaclass=_NameObjectMeta):
     """Construct a PDF Name object.
 
     Names can be constructed with two notations:
@@ -152,7 +162,7 @@ class Name(metaclass=_NameObjectMeta):
         return _core._new_name(f"/{prefix}{random_string}")
 
 
-class Operator(metaclass=_ObjectMeta):
+class Operator(_ObjectBase, metaclass=_ObjectMeta):
     """Construct an operator for use in a content stream.
 
     An Operator is one of a limited set of commands that can appear in PDF content
@@ -172,7 +182,7 @@ class Operator(metaclass=_ObjectMeta):
         return cast('Operator', _core._new_operator(name))
 
 
-class String(metaclass=_ObjectMeta):
+class String(_ObjectBase, metaclass=_ObjectMeta):
     """Construct a PDF String object."""
 
     object_type = ObjectType.string
@@ -189,7 +199,7 @@ class String(metaclass=_ObjectMeta):
         return _core._new_string_utf8(s)
 
 
-class Array(metaclass=_ObjectMeta):
+class Array(_ObjectBase, metaclass=_ObjectMeta):
     """Construct a PDF Array object."""
 
     object_type = ObjectType.array
@@ -213,7 +223,7 @@ class Array(metaclass=_ObjectMeta):
         return _core._new_array(a)
 
 
-class Dictionary(metaclass=_ObjectMeta):
+class Dictionary(_ObjectBase, metaclass=_ObjectMeta):
     """Construct a PDF Dictionary object."""
 
     object_type = ObjectType.dictionary
@@ -251,7 +261,7 @@ class Dictionary(metaclass=_ObjectMeta):
         return _core._new_dictionary(d)
 
 
-class Stream(metaclass=_ObjectMeta):
+class Stream(_ObjectBase, metaclass=_ObjectMeta):
     """Construct a PDF Stream object."""
 
     object_type = ObjectType.stream
@@ -315,7 +325,7 @@ class Stream(metaclass=_ObjectMeta):
         return stream
 
 
-class Integer(metaclass=_ObjectMeta):
+class Integer(_ObjectBase, metaclass=_ObjectMeta):
     """A PDF integer object.
 
     In explicit conversion mode, PDF integers are returned as this type instead
@@ -340,7 +350,7 @@ class Integer(metaclass=_ObjectMeta):
         return _core._new_integer(val)  # type: ignore[return-value]
 
 
-class Boolean(metaclass=_ObjectMeta):
+class Boolean(_ObjectBase, metaclass=_ObjectMeta):
     """A PDF boolean object.
 
     In explicit conversion mode, PDF booleans are returned as this type instead
@@ -364,7 +374,7 @@ class Boolean(metaclass=_ObjectMeta):
         return _core._new_boolean(val)  # type: ignore[return-value]
 
 
-class Real(metaclass=_ObjectMeta):
+class Real(_ObjectBase, metaclass=_ObjectMeta):
     """A PDF real (floating-point) object.
 
     In explicit conversion mode, PDF reals are returned as this type instead

@@ -349,9 +349,11 @@ void init_parsers(py::module_ &m)
         .def("__repr__", [](ContentStreamInlineImage &csii) {
             std::ostringstream ss;
             ss.imbue(std::locale::classic());
-            ss << "<pikepdf.ContentStreamInlineImage(" << "["
-               << py::cast<std::string>(py::repr(csii.get_inline_image())) << "], "
-               << "pikepdf.Operator('INLINE IMAGE')" << ")>";
+            ss << "<pikepdf.ContentStreamInlineImage("
+               << "[" << py::cast<std::string>(py::repr(csii.get_inline_image()))
+               << "], "
+               << "pikepdf.Operator('INLINE IMAGE')"
+               << ")>";
             return ss.str();
         });
 }

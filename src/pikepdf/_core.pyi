@@ -50,7 +50,8 @@ if TYPE_CHECKING:
 
 # mypy: disable-error-code="misc"
 
-T = TypeVar('T', bound='Object')
+T = TypeVar('T')
+TObj = TypeVar('TObj', bound='Object')
 Numeric = TypeVar('Numeric', int, float, Decimal)
 
 class Buffer:
@@ -492,18 +493,22 @@ class Object:
     def extend(self, iter: Iterable[Object], /) -> None:
         """Extend a pikepdf.Array with an iterable of other pikepdf.Object."""
     @overload
-    def get(self, key: int | str | Name, default: T | None = ...) -> Object | T | None:
+    def get(self, key: int | str | Name, /) -> Object | None:
         """Retrieve an attribute from the object.
 
         Only works if the object is a Dictionary, Array or Stream.
         """
     @overload
-    def get(self, path: _NamePath, default: T | None = ...) -> Object | T | None:
+    def get(self, key: int | str | Name, default: T, /) -> Object | T: ...
+    @overload
+    def get(self, path: _NamePath, /) -> Object | None:
         """Retrieve a nested value using a NamePath.
 
         Returns the default value if the path doesn't exist or encounters
         type mismatches (e.g., trying to traverse into a non-dict).
         """
+    @overload
+    def get(self, path: _NamePath, default: T, /) -> Object | T: ...
     def get_raw_stream_buffer(self) -> Buffer:
         """Return a buffer protocol buffer describing the raw, encoded stream."""
     def get_stream_buffer(self, decode_level: StreamDecodeLevel = ...) -> Buffer:
@@ -659,7 +664,7 @@ class Object:
     def __neg__(self) -> int: ...
     def __pos__(self) -> int: ...
     def __abs__(self) -> int: ...
-    def __iter__(self) -> Iterable[Object]: ...
+    def __iter__(self) -> Iterator[Object]: ...
     def __len__(self) -> int: ...
     def __setattr__(self, name: str, value: Any, /) -> None: ...
     @overload
@@ -768,7 +773,10 @@ class _ObjectList:
 class _ObjectMapping:
     """A mapping whose keys and values are always pikepdf.Name and pikepdf.Object."""
 
-    def get(self, key: Name | str, default: T = ...) -> Object | T: ...
+    @overload
+    def get(self, key: Name | str, /) -> Object | None: ...
+    @overload
+    def get(self, key: Name | str, default: T, /) -> Object | T: ...
     def keys(self) -> Iterator[Name]: ...
     def values(self) -> Iterator[Object]: ...
     def __contains__(self, key: Name | str, /) -> bool: ...
@@ -1628,7 +1636,10 @@ class Page:
 
         .. versionadded:: 7.0.0
         """
-    def get(self, key: str | Name, default: T | None = ...) -> T | None | Object: ...
+    @overload
+    def get(self, key: str | Name, /) -> Object | None: ...
+    @overload
+    def get(self, key: str | Name, default: T, /) -> Object | T: ...
     def get_filtered_contents(self, tf: TokenFilter) -> bytes:
         """Apply a :class:`pikepdf.TokenFilter` to a content stream.
 
@@ -2115,7 +2126,7 @@ class Pdf:
         """
     def get_warnings(self) -> list: ...
     @overload
-    def make_indirect(self, obj: T) -> T: ...
+    def make_indirect(self, obj: TObj) -> TObj: ...
     def make_indirect(self, obj: Any) -> Object:
         """Attach an object to the Pdf as an indirect object.
 
@@ -2836,6 +2847,8 @@ class Rectangle:
         """A point for the upper right corner."""
     def as_array(self) -> Array:
         """Returns this rectangle as a :class:`pikepdf.Array`."""
+    def to_bbox(self) -> Rectangle:
+        """Returns the origin-centred bounding box that encloses this rectangle."""
     def __eq__(self, other: Any, /) -> bool: ...
     def __repr__(self) -> str: ...
 
@@ -2972,7 +2985,10 @@ class ContentStreamInstruction:
     def __init__(self, operands: _ObjectList, operator: Operator, /) -> None: ...
     @overload
     def __init__(
-        self, operands: Iterable[Object | int | float | Array], operator: Operator, /
+        self,
+        operands: Iterable[Object | int | float | Decimal | Array],
+        operator: Operator,
+        /,
     ) -> None: ...
     @overload
     def __init__(self, other: ContentStreamInstruction, /) -> None: ...

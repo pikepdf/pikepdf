@@ -24,7 +24,7 @@ from decimal import Decimal
 from enum import Enum
 from io import BytesIO
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from pikepdf._core import ContentStreamInstruction, Matrix, Pdf
 from pikepdf._data import CHARNAMES_TO_UNICODE
@@ -64,7 +64,12 @@ class Font(ABC):
 
     @abstractmethod
     def text_width(
-        self, text: str | bytes, fontsize: float | int | Decimal
+        self,
+        text: str | bytes,
+        fontsize: float | int | Decimal = 1,
+        *,
+        char_spacing: int | Decimal = 0,
+        word_spacing: int | Decimal = 0,
     ) -> float | int | Decimal:
         """Estimate the width of a text string when rendered with the given font."""
 
@@ -127,7 +132,12 @@ class Helvetica(Font):
     """
 
     def text_width(
-        self, text: str | bytes, fontsize: float | int | Decimal
+        self,
+        text: str | bytes,
+        fontsize: float | int | Decimal = 1,
+        *,
+        char_spacing: int | Decimal = 0,
+        word_spacing: int | Decimal = 0,
     ) -> float | int | Decimal:
         """Estimate the width of a text string when rendered with the given font."""
         raise NotImplementedError()
@@ -194,7 +204,8 @@ class SimpleFont(DimensionedFont):
     def leading(self) -> int | Decimal:
         """Returns leading for a SimpleFont."""
         if Name.Leading in self.data.FontDescriptor:
-            return self.data.FontDescriptor.Leading
+            # At runtime, scalar Object values are auto-converted to Python int/Decimal
+            return cast('int | Decimal', self.data.FontDescriptor.Leading)
         else:
             return 0
 
@@ -202,13 +213,13 @@ class SimpleFont(DimensionedFont):
     def ascent(self) -> Decimal:
         """Returns ascent for a SimpleFont."""
         # Required for all byt type 3 fonts, so should be present
-        return self.data.FontDescriptor.Ascent
+        return cast(Decimal, self.data.FontDescriptor.Ascent)
 
     @property
     def descent(self) -> Decimal:
         """Returns descent for a SimpleFont."""
         # Required for all byt type 3 fonts, so should be present
-        return self.data.FontDescriptor.Descent
+        return cast(Decimal, self.data.FontDescriptor.Descent)
 
     def unscaled_char_width(self, char: int | bytes | str) -> Decimal:
         """Get the (unscaled) width of the character, in glyph-space units.
@@ -218,15 +229,17 @@ class SimpleFont(DimensionedFont):
                 single character.
         """
         if isinstance(char, str):
-            char = self.encode(str)
-        if isinstance(char, bytes):
+            char = self.encode(char)
+        if isinstance(char, (bytes, bytearray, memoryview)):
             # Simple fonts always use single-byte encodings, so this is safe
-            char = char[0]
-        char_code = char - int(self.data.get(Name.FirstChar, 0))
+            char = int(char[0])
+        first_char = self.data.get(Name.FirstChar)
+        char_code: int = char - (int(first_char) if first_char is not None else 0)
+        width: Decimal
         if Name.Widths in self.data and len(self.data.Widths) > char_code:
-            width = self.data.Widths[char_code]
+            width = cast(Decimal, self.data.Widths[char_code])
         elif Name.MissingWidth in self.data.FontDescriptor:
-            width = self.data.FontDescriptor.MissingWidth
+            width = cast(Decimal, self.data.FontDescriptor.MissingWidth)
         else:
             width = Decimal(0)
         return width
@@ -275,19 +288,21 @@ class SimpleFont(DimensionedFont):
                 'Cannot encode without explicitly defined encoding'
             )
         if isinstance(self.data.Encoding, Name):
-            return self._encode_named(text, self.data.Encoding)
+            return self._encode_named(text, cast(Name, self.data.Encoding))
         if isinstance(self.data.Encoding, Dictionary):
-            if Name.Differences in self.data.Encoding:
+            encoding_dict = cast(Dictionary, self.data.Encoding)
+            if Name.Differences in encoding_dict:
+                base_encoding = encoding_dict.get(Name.BaseEncoding)
                 return self._encode_diffmap(
                     text,
-                    self.data.Encoding.Differences,
-                    self.data.Encoding.get(Name.BaseEncoding),
+                    cast(Array, encoding_dict.Differences),
+                    cast('Name | None', base_encoding),
                 )
-            if Name.BaseEncoding not in self.data.Encoding:
+            if Name.BaseEncoding not in encoding_dict:
                 raise NotImplementedError(
                     'Cannot encode without explicitly defined encoding'
                 )
-            return self._encode_named(text, self.data.Encoding.BaseEncoding)
+            return self._encode_named(text, cast(Name, encoding_dict.BaseEncoding))
         raise TypeError(f'Unsupported encoding type: {type(self.data.Encoding)}')
 
     def _encode_named(self, text: str, encoding: Name):
@@ -330,11 +345,11 @@ class SimpleFont(DimensionedFont):
     def text_width(
         self,
         text: str | bytes,
-        fontsize: int | Decimal = 1,
+        fontsize: float | int | Decimal = 1,
         *,
         char_spacing: int | Decimal = 0,
         word_spacing: int | Decimal = 0,
-    ) -> int | Decimal:
+    ) -> float | int | Decimal:
         """Get the width of the string.
 
         This is the width of the string when rendered with the current font, scaled by
@@ -349,7 +364,7 @@ class SimpleFont(DimensionedFont):
             word_spacing: Additional space that will be added after each ASCII space
                 character (' '). May be negative.
         """
-        width = 0
+        width: int | Decimal = 0
         ascii_space = ord(' ')
         if isinstance(text, str):
             text = self.encode(text)
@@ -361,6 +376,8 @@ class SimpleFont(DimensionedFont):
             width += self.unscaled_char_width(byte) + char_spacing
             if byte == ascii_space:
                 width += word_spacing
+        if isinstance(fontsize, float):
+            fontsize = Decimal(fontsize)
         return self.convert_width(width, fontsize)
 
 
@@ -378,14 +395,14 @@ def _parse_differences_map(diffmap: Array):
     A partial mapping of glyph names to true unicode characters is available at
     pikepdf._data.CHARNAMES_TO_UNICODE`.
     """
-    counter = 0
+    counter: int = 0
     for value in diffmap:
         if isinstance(value, Name):
             yield counter, value
             counter += 1
         else:
             # An index
-            counter = value
+            counter = int(value)
 
 
 # pdfminer.six has a some closely related code:

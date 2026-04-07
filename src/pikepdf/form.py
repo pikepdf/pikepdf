@@ -7,10 +7,11 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Generator, Mapping, Sequence
+from collections.abc import Generator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from decimal import Decimal
+from typing import cast
 
 from pikepdf import (
     AcroForm,
@@ -86,7 +87,7 @@ class Form:
     """
     _pdf: Pdf
     _acroform: AcroForm
-    _cache: Mapping[str, _FieldWrapper]
+    _cache: dict[str, _FieldWrapper | MultipleFieldProxy]
 
     def __init__(
         self,
@@ -128,7 +129,7 @@ class Form:
         except KeyError:
             return False
 
-    def items(self) -> Generator[tuple[str, _FieldWrapper]]:
+    def items(self) -> Generator[tuple[str, _FieldWrapper | MultipleFieldProxy]]:
         """Yield (name, field) pairs for all fields in this form."""
         seen = set()
         for field in self._acroform.fields:
@@ -171,7 +172,8 @@ class Form:
         for name, item in self.items():
             yield item
 
-    def _wrap(self, field: AcroFormField, name: str):
+    def _wrap(self, field: AcroFormField, name: str) -> _FieldWrapper:
+        wrapped: _FieldWrapper
         if field.is_text:
             wrapped = TextField(self, field)
         elif field.is_checkbox:
@@ -332,6 +334,7 @@ class CheckboxField(_FieldWrapper):
         for name in self._field.obj.AP.N.keys():
             if name != Name.Off:
                 return Name(name)
+        raise RuntimeError("Checkbox has no on state")
 
     @property
     def value(self) -> Name | None:
@@ -347,7 +350,7 @@ class CheckboxField(_FieldWrapper):
     def checked(self, checked: bool):
         if checked:
             states = set(self._field.obj.AP.N.keys())
-            states.discard(Name.Off)
+            states.discard(str(Name.Off))
             self._field.set_value(Name(states.pop()))
         else:
             self._field.set_value(Name.Off)
@@ -368,10 +371,10 @@ class RadioButtonGroup(_FieldWrapper):
         """List the possible on states of all component radio buttons in this group."""
         if Name.Kids not in self._field.obj:
             return ()
-        states = set()
+        states: set[str] = set()
         for kid in self._field.obj.Kids:
             states.update(kid.AP.N.keys())
-        states.discard(Name.Off)
+        states.discard(str(Name.Off))
         return tuple(Name(state) for state in states)
 
     @property
@@ -380,7 +383,7 @@ class RadioButtonGroup(_FieldWrapper):
         if Name.Kids not in self._field.obj:
             return ()
         return tuple(
-            RadioButtonOption(self, kid, index)
+            RadioButtonOption(self, cast(Dictionary, kid), index)
             for index, kid in enumerate(self._field.obj.Kids)
         )
 
@@ -423,7 +426,7 @@ class RadioButtonGroup(_FieldWrapper):
             return None
         for index, kid in enumerate(self._field.obj.Kids):
             if value in kid.AP.N:
-                return RadioButtonOption(self, kid, index)
+                return RadioButtonOption(self, cast(Dictionary, kid), index)
         log.warning('Radio button group value does not match any radio buttons')
         return None
 
@@ -453,7 +456,7 @@ class RadioButtonOption:
         Typically this will be /Off plus one additional arbitrary value representing the
         on state.
         """
-        return (Name(key) for key in self._field.obj.AP.N.keys())
+        return tuple(Name(key) for key in self._annot_dict.AP.N.keys())
 
     @property
     def on_value(self) -> Name:
@@ -461,6 +464,7 @@ class RadioButtonOption:
         for name in self._annot_dict.AP.N.keys():
             if name != Name.Off:
                 return Name(name)
+        raise RuntimeError("Radio button has no on state")
 
     def select(self):
         """Mark this as the selected option."""
@@ -539,7 +543,7 @@ class ChoiceField(_FieldWrapper):
             # It is perfectly valid for the choice field to have no options
             return ()
         return tuple(
-            ChoiceFieldOption(self, opt, index)
+            ChoiceFieldOption(self, cast('String | Array', opt), index)
             for index, opt in enumerate(self._field.obj.Opt.as_list())
         )
 
@@ -548,10 +552,12 @@ class ChoiceField(_FieldWrapper):
         """The currently selected option, or None if no option is selected."""
         if Name.Opt in self._field.obj:
             for index, opt in enumerate(self._field.obj.Opt.as_list()):
-                opt = ChoiceFieldOption(self, opt, index)
-                if opt.export_value == self.value:
-                    return opt
-        return ChoiceFieldOption(self, self.value, None)
+                option = ChoiceFieldOption(self, cast('String | Array', opt), index)
+                if option.export_value == self.value:
+                    return option
+        if self.value is None:
+            return None
+        return ChoiceFieldOption(self, String(self.value), None)
 
     @selected.setter
     def selected(self, option: ChoiceFieldOption):
@@ -584,8 +590,8 @@ class ChoiceField(_FieldWrapper):
             # editable
             okay = False
             for index, opt in enumerate(self._field.obj.Opt):
-                opt = ChoiceFieldOption(self, opt, index)
-                if opt.export_value == value:
+                option = ChoiceFieldOption(self, cast('String | Array', opt), index)
+                if option.export_value == value:
                     okay = True
                     break
             if not okay:
@@ -628,8 +634,8 @@ class ChoiceFieldOption:
         Hidden options are still settable via code, but are not shown to users in PDF
         reader applications.
         """
-        return self._index is not None and self._index < self._field._field.obj.get(
-            Name.TI, 0
+        return self._index is not None and self._index < int(
+            self._field._field.obj.get(Name.TI, 0)
         )
 
     @property
@@ -705,18 +711,30 @@ class SignatureField(_FieldWrapper):
                     )
         raise ValueError("Could not find annotation for signature field")
 
-    def _expand_rect(self, rect: Rectangle, expand_by: int | float | Decimal | None):
+    def _expand_rect(
+        self,
+        rect: Rectangle,
+        expand_by: int | float | Decimal | Sequence[int | float | Decimal] | None,
+    ):
         if expand_by is None:
             return rect
-        if isinstance(expand_by, int | float | Decimal):
-            expand_by = (expand_by, expand_by, expand_by, expand_by)
-        if len(expand_by) == 2:
-            expand_by = (*expand_by, *expand_by)
+        expand: tuple[
+            int | float | Decimal,
+            int | float | Decimal,
+            int | float | Decimal,
+            int | float | Decimal,
+        ]
+        if isinstance(expand_by, (int, float, Decimal)):
+            expand = (expand_by, expand_by, expand_by, expand_by)
+        elif len(expand_by) == 2:
+            expand = (expand_by[0], expand_by[1], expand_by[0], expand_by[1])
+        else:
+            expand = (expand_by[0], expand_by[1], expand_by[2], expand_by[3])
         return Rectangle(
-            rect.llx - float(expand_by[0]),
-            rect.lly - float(expand_by[1]),
-            rect.urx + float(expand_by[2]),
-            rect.ury + float(expand_by[3]),
+            rect.llx - float(expand[0]),
+            rect.lly - float(expand[1]),
+            rect.urx + float(expand[2]),
+            rect.ury + float(expand[3]),
         )
 
 
@@ -843,14 +861,15 @@ def _text_appearance_multiline(pdf: Pdf, form: AcroForm, field: AcroFormField):
             if da_info.text_matrix is None:
                 # If there is no existing matrix, create located at the upper-right of
                 # the bbox (with allowance for the height of the text).
-                top_offset = da_info.font.ascent
-                if top_offset is None:
+                ascent = da_info.font.ascent
+                top_offset: int | Decimal
+                if ascent is None:
                     # Fallback to full line height
-                    top_offset = da_info.line_spacing
+                    top_offset = da_info.line_spacing or 0
                 else:
                     # Scale to text-space
                     top_offset = da_info.font.convert_width(
-                        top_offset, da_info.font_size
+                        ascent, da_info.font_size
                     )
                 cs.set_text_matrix(
                     Matrix.identity().translated(
@@ -949,17 +968,24 @@ class _DaInfo:
                 f"{field.fully_qualified_name}"
             )
         # Load styling information from the DA
-        font_family, font_size = tf_inst.operands
-        if font_size == 0:
+        font_family_obj, font_size_obj = tf_inst.operands
+        font_size: Decimal
+        if font_size_obj == 0:
             # It is allowed for the font_size to be zero, which is supposed to indicate
             # an auto-sized font (See 12.7.4.3). This means we should evaluate the size
             # of the actual text and scale it to fit in the bounding box. I feel like
             # supporting this is out of scope for now, but it could be supported in the
             # future. For now, we'll pretend it was 11pt.
             da = da.replace(b'0 Tf', b'11 Tf')
-            font_size = 11
+            font_size = Decimal(11)
+        else:
+            # At runtime, scalar Object values are auto-converted to Python int/Decimal
+            font_size = cast(Decimal, font_size_obj)
+        font_family = cast(Name, font_family_obj)
         font = SimpleFont.load(font_family, field.default_resources)
-        matrix = tm_inst.operands[0] if tm_inst is not None else None
+        matrix: Matrix | None = (
+            cast(Matrix, tm_inst.operands[0]) if tm_inst is not None else None
+        )
         # Make up a value for line spacing.
         #
         # The PDF spec gives no information about what forms should use for line spacing
@@ -971,7 +997,7 @@ class _DaInfo:
         # We could parse the DA and see if by chance we can extract custom values
         # that may be set for spacing. (I haven't seen examples of this, but it would
         # probably be more correct.)
-        line_spacing = font.leading or font_size
+        line_spacing = Decimal(font.leading) if font.leading else font_size
         return cls(da, font, font_family, font_size, None, None, line_spacing, matrix)
 
 
@@ -1029,24 +1055,26 @@ def _layout_multiline_text(
     # Word spacing in the PDF specification is something that is added *in addition* to
     # the width of the space, but we also want to take the width of the space itself
     # into account for what we're doing.
-    word_spacing = font.text_width(' ', font_size) + (da_info.word_spacing or 0)
+    word_spacing = Decimal(font.text_width(' ', font_size)) + (
+        da_info.word_spacing or Decimal(0)
+    )
     # Fallback to font size if line spacing not provided
     content.set_text_leading(da_info.line_spacing or font_size)
     width = bbox.width
     try:
-        text = font.encode(text)
+        encoded_text = font.encode(text)
     except NotImplementedError:
         # If the font uses an unsupported encoding, we will assume it is at least an
         # ASCII-compatible encoding and go for it.
-        text = text.encode('ascii', errors='replace')
-    for lineno, line in enumerate(text.splitlines()):
+        encoded_text = text.encode('ascii', errors='replace')
+    for lineno, line in enumerate(encoded_text.splitlines()):
         if lineno != 0:
             # Manual newlines
             content.move_cursor_new_line()
-        line_width = Decimal(0)
-        line_words = []
+        line_width: Decimal = Decimal(0)
+        line_words: list[bytes] = []
         for word in line.split():
-            word_len = font.text_width(word, font_size)
+            word_len = Decimal(font.text_width(word, font_size))
             if line_width + word_spacing + word_len > width:
                 # Wrap if too long
                 content.show_text(b' '.join(line_words))
@@ -1083,19 +1111,19 @@ def _layout_combed_text(
     font_size = da_info.font_size
     width = bbox.width
     comb_size = Decimal(width) / max_length
-    comb_size_gs = font.convert_width_reverse(comb_size, font_size)
-    parts = []
-    last_width = 0
+    comb_size_gs = Decimal(font.convert_width_reverse(comb_size, font_size))
+    parts: list[bytes | int | float | Decimal] = []
+    last_width: Decimal = Decimal(0)
     for char in text:
         try:
-            char = font.encode(char)
+            encoded_char = font.encode(char)
         except NotImplementedError:
             # If the font uses an unsupported encoding, we will assume it is at least an
             # ASCII-compatible encoding and go for it.
-            char = char.encode('ascii', errors='replace')
-        space_needed = (font.unscaled_char_width(char) - comb_size_gs) / 2
+            encoded_char = char.encode('ascii', errors='replace')
+        space_needed = (font.unscaled_char_width(encoded_char) - comb_size_gs) / 2
         parts.append(last_width + space_needed)
-        parts.append(char)
+        parts.append(encoded_char)
         last_width = space_needed
     content.show_text_with_kerning(*parts)
 
