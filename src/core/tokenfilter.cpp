@@ -80,7 +80,7 @@ void init_tokenfilter(py::module_ &m)
             [](QPDFTokenizer::Token *self,
                 QPDFTokenizer::token_type_e type,
                 py::bytes value) {
-                new (self) QPDFTokenizer::Token(type, py::cast<std::string>(value));
+                new (self) QPDFTokenizer::Token(type, to_string(value));
             })
         .def_prop_ro("type_", &QPDFTokenizer::Token::getType)
         .def_prop_ro("value", &QPDFTokenizer::Token::getValue)

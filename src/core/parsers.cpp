@@ -107,7 +107,7 @@ std::ostream &operator<<(std::ostream &os, ContentStreamInlineImage &csii)
     py::bytes ii_bytes =
         py::borrow<py::bytes>(csii.get_inline_image().attr("unparse")());
 
-    os << py::cast<std::string>(ii_bytes);
+    os << to_string(ii_bytes);
     return os;
 }
 
@@ -194,25 +194,28 @@ py::bytes unparse_content_stream(py::iterable contentstream)
         ss << delim;
         delim = "\n";
 
-        try {
-            auto csi = py::cast<ContentStreamInstruction>(item);
+        if (py::isinstance<ContentStreamInstruction>(item)) {
+            auto &csi = py::cast<ContentStreamInstruction &>(item);
             ss << csi;
             continue;
-        } catch (py::cast_error &) {
         }
 
-        try {
-            auto csii = py::cast<ContentStreamInlineImage>(item);
+        if (py::isinstance<ContentStreamInlineImage>(item)) {
+            auto &csii = py::cast<ContentStreamInlineImage &>(item);
             ss << csii;
             continue;
-        } catch (py::cast_error &) {
         }
 
         // Fallback: instruction is some combination of Python iterables.
-        // Destructure and convert to C++ types...
-        auto operands_op = py::borrow<py::tuple>(item);
+        // Destructure and convert to C++ types. Use py::object so we accept
+        // both lists and tuples (and any sequence with __getitem__).
+        py::object operands_op = py::borrow<py::object>(item);
+        Py_ssize_t op_size = PyObject_Length(operands_op.ptr());
+        if (op_size < 0) {
+            throw py::python_error();
+        }
 
-        if (operands_op.size() != 2) {
+        if ((size_t)op_size != 2) {
             errmsg << "Wrong number of operands at content stream instruction " << n
                    << "; expected 2";
             throw py::value_error(errmsg.str().c_str());
@@ -225,7 +228,7 @@ py::bytes unparse_content_stream(py::iterable contentstream)
             auto s = py::cast<std::string>(operator_);
             op = QPDFObjectHandle::newOperator(s.c_str());
         } else if (py::isinstance<py::bytes>(operator_)) {
-            auto s = py::cast<std::string>(operator_);
+            auto s = to_string(operator_);
             op = QPDFObjectHandle::newOperator(s.c_str());
         } else {
             op = py::cast<QPDFObjectHandle>(operator_);
@@ -238,8 +241,9 @@ py::bytes unparse_content_stream(py::iterable contentstream)
         }
 
         if (op.getOperatorValue() == std::string("INLINE IMAGE")) {
-            auto operands = py::borrow<py::tuple>(operands_op[0]);
-            py::object iimage = operands[0];
+            py::object operands_obj = py::borrow<py::object>(operands_op[0]);
+            py::object iimage =
+                py::borrow<py::object>(operands_obj.attr("__getitem__")(0));
             py::handle PdfInlineImage =
                 py::module_::import_("pikepdf").attr("PdfInlineImage");
             if (!py::isinstance(iimage, PdfInlineImage)) {
@@ -248,10 +252,10 @@ py::bytes unparse_content_stream(py::iterable contentstream)
             }
             py::bytes iimage_unparsed_bytes =
                 py::borrow<py::bytes>(iimage.attr("unparse")());
-            ss << py::cast<std::string>(iimage_unparsed_bytes);
+            ss << to_string(iimage_unparsed_bytes);
         } else {
-            auto operands = py::borrow<py::tuple>(operands_op[0]);
-            for (const auto &operand : operands) {
+            py::object operands_obj = py::borrow<py::object>(operands_op[0]);
+            for (auto operand : operands_obj) {
                 QPDFObjectHandle obj = objecthandle_encode(operand);
                 ss << obj.unparse() << " ";
             }

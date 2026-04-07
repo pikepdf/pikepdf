@@ -12,7 +12,8 @@
 
 void init_acroform(py::module_ &m)
 {
-    py::enum_<pdf_form_field_flag_e>(m, "FormFieldFlag", py::is_flag())
+    py::enum_<pdf_form_field_flag_e>(
+        m, "FormFieldFlag", py::is_flag(), py::is_arithmetic())
         .value("read_only", pdf_form_field_flag_e::ff_all_read_only)
         .value("required", pdf_form_field_flag_e::ff_all_required)
         .value("no_export", pdf_form_field_flag_e::ff_all_no_export)

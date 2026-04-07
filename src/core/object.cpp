@@ -281,7 +281,38 @@ void init_object(py::module_ &m)
         .value("operator", qpdf_object_type_e::ot_operator)
         .value("inlineimage", qpdf_object_type_e::ot_inlineimage);
 
-    py::class_<Buffer>(m, "Buffer")
+    // Buffer protocol implementation for Buffer class via PyType_Slot.
+    // This is needed because nanobind removed py::buffer_protocol().
+    static PyType_Slot buffer_slots[] = {
+        {Py_bf_getbuffer,
+            (void *)+[](PyObject *exporter, Py_buffer *view, int flags) -> int {
+                if (view == nullptr) {
+                    PyErr_SetString(PyExc_BufferError, "NULL Py_buffer pointer");
+                    return -1;
+                }
+                Buffer *b = py::inst_ptr<Buffer>(exporter);
+                view->buf = b->getBuffer();
+                view->obj = exporter;
+                Py_INCREF(exporter);
+                view->len = static_cast<Py_ssize_t>(b->getSize());
+                view->itemsize = 1;
+                view->readonly = 1;
+                view->ndim = 1;
+                view->format =
+                    (flags & PyBUF_FORMAT) ? const_cast<char *>("B") : nullptr;
+                view->shape = (flags & PyBUF_ND) ? &view->len : nullptr;
+                view->strides = (flags & PyBUF_STRIDES) ? &view->itemsize : nullptr;
+                view->suboffsets = nullptr;
+                view->internal = nullptr;
+                return 0;
+            }},
+        {Py_bf_releasebuffer,
+            (void *)+[](PyObject *, Py_buffer *) -> void {
+                // Nothing to release
+            }},
+        {0, nullptr}};
+
+    py::class_<Buffer>(m, "Buffer", py::type_slots(buffer_slots))
         .def("__bytes__",
             [](Buffer &b) {
                 return py::bytes((const char *)b.getBuffer(), b.getSize());
@@ -397,7 +428,7 @@ void init_object(py::module_ &m)
         .def(
             "__eq__",
             [](QPDFObjectHandle &self, py::bytes other) {
-                std::string bytes_other = py::cast<std::string>(other);
+                std::string bytes_other = to_string(other);
                 switch (self.getTypeCode()) {
                 case qpdf_object_type_e::ot_string:
                     return self.getStringValue() == bytes_other;
@@ -414,10 +445,10 @@ void init_object(py::module_ &m)
                 QPDFObjectHandle q_other;
                 try {
                     q_other = objecthandle_encode(other);
-                } catch (const py::cast_error &) {
-                    // Cannot remove this construct without reaching into nanobind
-                    // internals - reason being that we don't automatically convert
-                    // py::object to handle, so nanobind doesn't know that we tried.
+                } catch (const std::exception &) {
+                    // The other type is not encodable to a PDF object, so it
+                    // cannot be equal to a pikepdf.Object. Return NotImplemented
+                    // so Python will try the reverse comparison.
                     return py::borrow<py::object>(py::handle(Py_NotImplemented));
                 }
                 bool result = objecthandle_equal(self, q_other);
@@ -921,11 +952,14 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &h, QPDFObjectHandle &name, QPDFObjectHandle &value) {
                 object_set_key(h, name.getName(), value);
             })
-        .def("__setitem__",
+        .def(
+            "__setitem__",
             [](QPDFObjectHandle &h, QPDFObjectHandle &name, py::object pyvalue) {
                 auto value = objecthandle_encode(pyvalue);
                 object_set_key(h, name.getName(), value);
-            })
+            },
+            py::arg("name"),
+            py::arg("value").none())
         .def(
             "copy",
             [](QPDFObjectHandle &h) {
@@ -1165,7 +1199,8 @@ void init_object(py::module_ &m)
                     throw py::type_error("Dictionaries can only contain Names");
                 return object_has_key(h, key.getName());
             })
-        .def("__contains__",
+        .def(
+            "__contains__",
             [](QPDFObjectHandle &h, py::object key) {
                 if (h.isArray()) {
                     if (py::isinstance<py::str>(key) ||
@@ -1178,10 +1213,13 @@ void init_object(py::module_ &m)
                 }
                 try {
                     return object_has_key(h, string_from_key(key));
-                } catch (py::builtin_exception &) {
-                    return false;
+                } catch (py::builtin_exception &e) {
+                    if (e.type() == py::exception_type::type_error)
+                        return false;
+                    throw;
                 }
-            })
+            },
+            py::arg("key").none())
         .def("as_list", &QPDFObjectHandle::getArrayAsVector)
         .def("as_dict", &QPDFObjectHandle::getDictAsMap)
         .def(
@@ -1221,14 +1259,18 @@ void init_object(py::module_ &m)
             py::rv_policy::reference_internal)
         .def("__str__",
             [](QPDFObjectHandle &h) -> py::str {
+                std::string s;
                 if (h.isName())
-                    return py::str(h.getName().c_str());
+                    s = h.getName();
                 else if (h.isOperator())
-                    return py::str(h.getOperatorValue().c_str());
+                    s = h.getOperatorValue();
                 else if (h.isString())
-                    return py::str(h.getUTF8Value().c_str());
-                // Python's default __str__ calls __repr__
-                return py::str(objecthandle_repr(h).c_str());
+                    s = h.getUTF8Value();
+                else
+                    // Python's default __str__ calls __repr__
+                    s = objecthandle_repr(h);
+                return py::steal<py::str>(
+                    PyUnicode_FromStringAndSize(s.data(), s.size()));
             })
         .def("__bytes__",
             [](QPDFObjectHandle &h) {
@@ -1253,18 +1295,24 @@ void init_object(py::module_ &m)
                 auto u_index = list_range_check(h, index);
                 h.setArrayItem(u_index, value);
             })
-        .def("__setitem__",
+        .def(
+            "__setitem__",
             [](QPDFObjectHandle &h, int index, py::object pyvalue) {
                 auto u_index = list_range_check(h, index);
                 auto value = objecthandle_encode(pyvalue);
                 h.setArrayItem(u_index, value);
-            })
-        .def("__setitem__",
+            },
+            py::arg("index"),
+            py::arg("value").none())
+        .def(
+            "__setitem__",
             [](QPDFObjectHandle &h, py::object key, py::object pyvalue) {
                 std::string k = string_from_key(key);
                 auto value = objecthandle_encode(pyvalue);
                 object_set_key(h, k, value);
-            })
+            },
+            py::arg("key"),
+            py::arg("value").none())
         .def("wrap_in_array", [](QPDFObjectHandle &h) { return h.wrapInArray(); })
         .def("append",
             [](QPDFObjectHandle &h, py::object pyitem) {
@@ -1307,14 +1355,14 @@ void init_object(py::module_ &m)
                 py::bytes data,
                 py::object filter,
                 py::object decode_parms) {
-                std::string sdata = py::cast<std::string>(data);
+                std::string sdata = to_string(data);
                 QPDFObjectHandle h_filter = objecthandle_encode(filter);
                 QPDFObjectHandle h_decode_parms = objecthandle_encode(decode_parms);
                 h.replaceStreamData(sdata, h_filter, h_decode_parms);
             },
             py::arg("data"),
-            py::arg("filter"),
-            py::arg("decode_parms"))
+            py::arg("filter").none(),
+            py::arg("decode_parms").none())
         .def("_inline_image_raw_bytes",
             [](QPDFObjectHandle &h) {
                 auto v = h.getInlineImageValue();
@@ -1326,12 +1374,15 @@ void init_object(py::module_ &m)
             "parse",
             [](py::bytes stream, py::str description) {
                 return QPDFObjectHandle::parse(
-                    py::cast<std::string>(stream), py::cast<std::string>(description));
+                    to_string(stream), py::cast<std::string>(description));
             },
             py::arg("stream"),
             py::arg("description") = "")
-        .def("_parse_page_contents",
-            &QPDFObjectHandle::parsePageContents,
+        .def(
+            "_parse_page_contents",
+            [](QPDFObjectHandle &h, QPDFObjectHandle::ParserCallbacks &parser) {
+                h.parsePageContents(&parser);
+            },
             "Helper for parsing page contents; use ``pikepdf.parse_content_stream``.")
         .def("_parse_page_contents_grouped",
             [](QPDFObjectHandle &h, std::string const &whitelist) {
@@ -1401,7 +1452,7 @@ void init_object(py::module_ &m)
         return QPDFObjectHandle::newName(s);
     });
     m.def("_new_string",
-        [](const std::string &s) { return QPDFObjectHandle::newString(s); });
+        [](py::handle s) { return QPDFObjectHandle::newString(to_string(s)); });
     m.def("_new_string_utf8", [](const std::string &utf8) {
         return QPDFObjectHandle::newUnicodeString(utf8);
     });
@@ -1413,11 +1464,11 @@ void init_object(py::module_ &m)
     });
     m.def("_new_stream", [](QPDF &owner, py::bytes data) {
         // This makes a copy of the data
-        return QPDFObjectHandle::newStream(&owner, py::cast<std::string>(data));
+        return QPDFObjectHandle::newStream(&owner, to_string(data));
     });
     m.def(
         "_new_operator",
-        [](const std::string &op) { return QPDFObjectHandle::newOperator(op); },
+        [](py::handle op) { return QPDFObjectHandle::newOperator(to_string(op)); },
         py::arg("op"));
     m.def("_Null", &QPDFObjectHandle::newNull, "Construct a PDF Null object");
 
@@ -1448,7 +1499,10 @@ void init_object(py::module_ &m)
             return poh.getObjectHandle();
         });
 
-    m.def("_encode", [](py::handle handle) { return objecthandle_encode(handle); });
+    m.def(
+        "_encode",
+        [](py::handle handle) { return objecthandle_encode(handle); },
+        py::arg("handle").none());
     m.def("unparse", [](py::object obj) -> py::bytes {
         auto s = objecthandle_encode(obj).unparseBinary();
         return py::bytes(s.data(), s.size());

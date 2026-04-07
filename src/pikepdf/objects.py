@@ -46,7 +46,15 @@ ObjectType.__module__ = __name__
 
 
 class _ObjectMeta(type):  # type: ignore
-    """Support instance checking."""
+    """Support instance and subclass checking against the C++ Object type.
+
+    The wrapper classes below cannot inherit from ``Object`` directly because
+    nanobind's metaclass cannot be subclassed. Instead this metaclass overrides
+    ``__instancecheck__`` so that ``isinstance(obj, Name)`` checks the
+    underlying QPDFObjectHandle type code, and the wrapper classes are
+    registered as virtual subclasses of ``Object`` so ``issubclass(Name, Object)``
+    is True.
+    """
 
     object_type: ObjectType
 

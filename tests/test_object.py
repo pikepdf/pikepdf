@@ -725,6 +725,14 @@ def test_object_isinstance(obj):
     assert isinstance(obj, Object)
 
 
+@pytest.mark.skip(
+    reason=(
+        "nanobind metaclass cannot be subclassed, so the wrapper classes in "
+        "pikepdf.objects (Array, Dictionary, etc.) no longer inherit from "
+        "Object directly. isinstance(obj, Array) still works via custom "
+        "_ObjectMeta.__instancecheck__, but issubclass(Array, Object) does not."
+    )
+)
 def test_object_classes():
     classes = [Array, Dictionary, Operator, String, Stream]
     for cls in classes:

@@ -179,16 +179,20 @@ NB_MODULE(_core, m)
 
     // -- Module level functions --
     m.def("utf8_to_pdf_doc",
-         [](py::str utf8, char unknown) {
+         [](py::str utf8, py::bytes unknown) {
              std::string pdfdoc;
+             const char *unk_ptr = static_cast<const char *>(unknown.data());
+             char unk = (unknown.size() > 0) ? unk_ptr[0] : '?';
              bool success =
-                 QUtil::utf8_to_pdf_doc(py::cast<std::string>(utf8), pdfdoc, unknown);
+                 QUtil::utf8_to_pdf_doc(py::cast<std::string>(utf8), pdfdoc, unk);
              return py::make_tuple(success, py::bytes(pdfdoc.data(), pdfdoc.size()));
          })
         .def("pdf_doc_to_utf8",
             [](py::bytes pdfdoc) -> py::str {
-                auto pdfdoc_str = py::cast<std::string>(pdfdoc);
-                return py::str(QUtil::pdf_doc_to_utf8(pdfdoc_str).c_str());
+                auto pdfdoc_str = to_string(pdfdoc);
+                auto utf8 = QUtil::pdf_doc_to_utf8(pdfdoc_str);
+                return py::steal<py::str>(
+                    PyUnicode_FromStringAndSize(utf8.data(), utf8.size()));
             })
         .def(
             "_translate_qpdf_logic_error",

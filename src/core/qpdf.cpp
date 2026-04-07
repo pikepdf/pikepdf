@@ -43,7 +43,7 @@ void qpdf_basic_settings(QPDF &q) // LCOV_EXCL_LINE
 //  del pdf
 //  accessor[0]
 std::shared_ptr<QPDF> open_pdf(py::object stream,
-    std::string password,
+    py::object password_arg,
     bool hex_password = false,
     bool ignore_xref_streams = false,
     bool suppress_warnings = true,
@@ -53,6 +53,7 @@ std::shared_ptr<QPDF> open_pdf(py::object stream,
     std::string description = "",
     bool closing_stream = false)
 {
+    std::string password = to_string(password_arg);
     auto q = std::make_shared<QPDF>();
 
     qpdf_basic_settings(*q);
@@ -136,7 +137,7 @@ void update_xmp_pdfversion(QPDF &q, std::string version)
 {
     auto impl =
         py::module_::import_("pikepdf._cpphelpers").attr("update_xmp_pdfversion");
-    auto pypdf = py::cast(q);
+    auto pypdf = py::cast(&q, py::rv_policy::reference);
     impl(pypdf, version);
 }
 
@@ -150,13 +151,13 @@ std::string encryption_password(
                                    " may not be None; use empty string?")
                     .c_str());
         if (encryption_level <= 4) {
-            auto success = QUtil::utf8_to_pdf_doc(
-                py::cast<std::string>(encryption[keyname]), result);
+            auto success =
+                QUtil::utf8_to_pdf_doc(to_string(encryption[keyname]), result);
             if (!success)
                 throw py::value_error("Encryption level is R3/R4 and password is not "
                                       "encodable as PDFDocEncoding");
         } else {
-            result = py::cast<std::string>(encryption[keyname]);
+            result = to_string(encryption[keyname]);
         }
     }
     return result;
@@ -461,7 +462,7 @@ void init_qpdf(py::module_ &m)
             open_pdf,
             py::arg("stream"),
             py::kw_only(),
-            py::arg("password") = "",
+            py::arg("password") = py::str(""),
             py::arg("hex_password") = false,
             py::arg("ignore_xref_streams") = false,
             py::arg("suppress_warnings") = true,
@@ -536,17 +537,17 @@ void init_qpdf(py::module_ &m)
             py::kw_only(),
             py::arg("static_id") = false,
             py::arg("preserve_pdfa") = true,
-            py::arg("min_version") = "",
-            py::arg("force_version") = "",
+            py::arg("min_version").none() = py::none(),
+            py::arg("force_version").none() = py::none(),
             py::arg("fix_metadata_version") = true,
             py::arg("compress_streams") = true,
-            py::arg("stream_decode_level") = py::none(),
+            py::arg("stream_decode_level").none() = py::none(),
             py::arg("object_stream_mode") = qpdf_object_stream_e::qpdf_o_preserve,
             py::arg("normalize_content") = false,
             py::arg("linearize") = false,
             py::arg("qdf") = false,
-            py::arg("progress") = py::none(),
-            py::arg("encryption") = py::none(),
+            py::arg("progress").none() = py::none(),
+            py::arg("encryption").none() = py::none(),
             py::arg("samefile_check") = true,
             py::arg("recompress_flate") = false,
             py::arg("deterministic_id") = false)
@@ -600,8 +601,9 @@ void init_qpdf(py::module_ &m)
             "_close",
             [](QPDF &q) { q.closeInputSource(); },
             "Used to implement Pdf.close().")
-        .def("_decode_all_streams_and_discard",
-            [](QPDF &q, py::object progress = py::none()) {
+        .def(
+            "_decode_all_streams_and_discard",
+            [](QPDF &q, py::object progress) {
                 QPDFWriter w(q);
                 Pl_Discard discard;
                 w.setOutputPipeline(&discard);
@@ -630,7 +632,8 @@ void init_qpdf(py::module_ &m)
                         throw;
                     }
                 }
-            })
+            },
+            py::arg("progress").none() = py::none())
         .def_prop_ro(
             "_allow_accessibility", [](QPDF &q) { return q.allowAccessibility(); })
         .def_prop_ro("_allow_extract", [](QPDF &q) { return q.allowExtractAll(); })

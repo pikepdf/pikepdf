@@ -21,8 +21,7 @@ QPDFFileSpecObjectHelper create_filespec(QPDF &q,
     std::string mod_date,
     QPDFObjectHandle relationship)
 {
-    auto efstream =
-        QPDFEFStreamObjectHelper::createEFStream(q, py::cast<std::string>(data));
+    auto efstream = QPDFEFStreamObjectHelper::createEFStream(q, to_string(data));
     auto filespec = QPDFFileSpecObjectHelper::createFileSpec(q, filename, efstream);
 
     if (!description.empty())

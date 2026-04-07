@@ -59,7 +59,7 @@ public:
             throw std::runtime_error("qpdf will consume this exception");
         }
 
-        return py::cast<std::string>(extracted_obj);
+        return to_string(extracted_obj);
     }
 
     virtual void finish() override

@@ -41,8 +41,7 @@ std::map<std::string, QPDFObjectHandle> dict_builder(const py::dict dict)
     std::map<std::string, QPDFObjectHandle> result;
 
     for (const auto &item : dict) {
-        result.emplace(
-            py::cast<std::string>(item.first), objecthandle_encode(item.second));
+        result.emplace(to_string(item.first), objecthandle_encode(item.second));
     }
     return result;
 }
@@ -115,7 +114,12 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle)
         return QPDFObjectHandle::newReal(val);
     }
     if (type_ptr == &PyBytes_Type) {
-        return QPDFObjectHandle::newString(py::cast<std::string>(handle));
+        Py_ssize_t size;
+        char *ptr;
+        if (PyBytes_AsStringAndSize(handle.ptr(), &ptr, &size) != 0) {
+            throw py::python_error();
+        }
+        return QPDFObjectHandle::newString(std::string(ptr, size));
     }
 
     if (py::isinstance<QPDFObjectHelper>(handle)) {
@@ -153,9 +157,8 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle)
         }
     }
 
-    throw py::type_error((std::string("don't know how to encode value ") +
-                          py::cast<std::string>(py::repr(handle)))
-            .c_str());
+    throw std::runtime_error(std::string("don't know how to encode value ") +
+                             py::cast<std::string>(py::repr(handle)));
 }
 
 py::object decimal_from_pdfobject(QPDFObjectHandle h)

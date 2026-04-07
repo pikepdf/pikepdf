@@ -11,7 +11,8 @@
 
 void init_annotation(py::module_ &m)
 {
-    py::enum_<pdf_annotation_flag_e>(m, "AnnotationFlag", py::is_flag())
+    py::enum_<pdf_annotation_flag_e>(
+        m, "AnnotationFlag", py::is_flag(), py::is_arithmetic())
         .value("invisible", pdf_annotation_flag_e::an_invisible)
         .value("hidden", pdf_annotation_flag_e::an_hidden)
         .value("print", pdf_annotation_flag_e::an_print)

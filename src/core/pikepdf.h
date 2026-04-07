@@ -17,6 +17,7 @@
 #include <nanobind/stl/bind_vector.h>
 #include <nanobind/stl/map.h>
 #include <nanobind/stl/pair.h>
+#include <nanobind/stl/set.h>
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
@@ -165,10 +166,30 @@ inline void deprecation_warning(const char *msg)
     python_warning(msg, PyExc_DeprecationWarning); // LCOV_EXCL_LINE
 }
 
+// Helper: convert a py::bytes or py::str to std::string.
+// Nanobind's std::string type_caster only accepts py::str, unlike pybind11
+// which also accepts py::bytes. This helper handles both.
+inline std::string to_string(py::handle src)
+{
+    if (py::isinstance<py::bytes>(src)) {
+        py::bytes b = py::borrow<py::bytes>(src);
+        return std::string(static_cast<const char *>(b.data()), b.size());
+    }
+    if (py::isinstance<py::str>(src)) {
+        return py::cast<std::string>(src);
+    }
+    throw py::type_error("expected str or bytes");
+}
+
 // Support for recursion checks
 class StackGuard {
 public:
-    StackGuard(const char *where) { Py_EnterRecursiveCall(where); }
+    StackGuard(const char *where)
+    {
+        if (Py_EnterRecursiveCall(where) != 0) {
+            throw py::python_error();
+        }
+    }
     StackGuard(const StackGuard &) = delete;
     StackGuard &operator=(const StackGuard &) = delete;
     StackGuard(StackGuard &&) = delete;
