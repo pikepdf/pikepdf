@@ -96,7 +96,5 @@ void init_tokenfilter(py::module_ &m)
 
     py::class_<TokenFilter, TokenFilterTrampoline>(m, "TokenFilter", qpdftokenfilter)
         .def(py::init<>())
-        .def("handle_token",
-            &TokenFilter::handle_token,
-            py::arg("token") = QPDFTokenizer::Token());
+        .def("handle_token", &TokenFilter::handle_token, py::arg("token"));
 }

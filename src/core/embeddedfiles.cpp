@@ -53,7 +53,14 @@ void init_embeddedfiles(py::module_ &m)
                 std::string mime_type,
                 std::string creation_date,
                 std::string mod_date,
-                QPDFObjectHandle &relationship) {
+                py::object relationship) {
+                // Resolve the default lazily: None -> /Unspecified. Keeping the
+                // default out of py::arg() prevents nanobind from materializing
+                // a persistent pikepdf.Object instance at module-init time
+                // (which would appear in the shutdown leak report).
+                QPDFObjectHandle rel = relationship.is_none()
+                                           ? QPDFObjectHandle::newName("/Unspecified")
+                                           : py::cast<QPDFObjectHandle>(relationship);
                 auto fs = create_filespec(q,
                     data,
                     description,
@@ -61,7 +68,7 @@ void init_embeddedfiles(py::module_ &m)
                     mime_type,
                     creation_date,
                     mod_date,
-                    relationship);
+                    rel);
                 new (self) QPDFFileSpecObjectHelper(fs);
             },
             py::keep_alive<0, 1>(), // LCOV_EXCL_LINE
@@ -73,7 +80,7 @@ void init_embeddedfiles(py::module_ &m)
             py::arg("mime_type") = std::string(""),
             py::arg("creation_date") = std::string(""),
             py::arg("mod_date") = std::string(""),
-            py::arg("relationship") = QPDFObjectHandle::newName("/Unspecified"))
+            py::arg("relationship") = py::none())
         .def_prop_rw("description",
             &QPDFFileSpecObjectHelper::getDescription,
             &QPDFFileSpecObjectHelper::setDescription // LCOV_EXCL_LINE

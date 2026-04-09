@@ -272,7 +272,6 @@ void init_parsers(py::module_ &m)
 {
     py::class_<ContentStreamInstruction>(m, "ContentStreamInstruction")
         .def(py::init<const ContentStreamInstruction &>())
-        .def(py::init<ObjectList, QPDFObjectHandle>())
         .def("__init__",
             [](ContentStreamInstruction *self,
                 py::iterable operands,

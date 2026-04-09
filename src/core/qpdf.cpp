@@ -494,6 +494,8 @@ void init_qpdf(py::module_ &m)
             "check_linearization",
             [](QPDF &q, py::object stream) {
                 auto sys = py::module_::import_("sys");
+                if (stream.is_none())
+                    stream = sys.attr("stderr");
                 auto old_stderr = sys.attr("stderr");
                 sys.attr("stderr") = stream;
                 try {
@@ -505,7 +507,7 @@ void init_qpdf(py::module_ &m)
                     throw;
                 }
             },
-            py::arg("stream") = py::module_::import_("sys").attr("stderr"))
+            py::arg("stream") = py::none())
         .def("get_warnings", // this is a def because it modifies state by clearing
                              // warnings
             [](QPDF &q) {

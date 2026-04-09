@@ -10,15 +10,17 @@ from logging import getLogger
 
 from pikepdf._core import Matrix, Page
 from pikepdf.models._content_stream import parse_content_stream
-from pikepdf.objects import Operator
 
 logger = getLogger(__name__)
-OPERATOR_CM = Operator(
-    'cm'
-)  # "Concatenate Matrix": Changes the CTM (Current Transformation Matrix)
-OPERATOR_DO = Operator('Do')  # "Draw Object":
-OPERATOR_STACK = Operator('q')  # Stores the CTM to a stack
-OPERATOR_POP = Operator('Q')  # Restores the previous CTM
+
+# Operator names we dispatch on. Kept as plain strings (instead of module-level
+# pikepdf.Operator instances) so that importing this module does not create
+# long-lived pikepdf.Object instances that nanobind reports as leaks at
+# interpreter shutdown.
+_OP_CM = 'cm'  # "Concatenate Matrix": changes the current transformation matrix
+_OP_DO = 'Do'  # "Draw Object"
+_OP_STACK = 'q'  # Push the CTM onto the graphics state stack
+_OP_POP = 'Q'  # Pop the CTM from the graphics state stack
 
 
 class MatrixStack:
@@ -101,20 +103,23 @@ def get_objects_with_ctm(
     matrix_stack = MatrixStack(initial_matrix)
     for inst in parse_content_stream(page):
         operator, operands = inst.operator, inst.operands
-        if operator == OPERATOR_STACK:
+        # Compare as strings - pikepdf.Operator.__eq__ supports comparison to
+        # str / bytes, avoiding the need to allocate Operator instances.
+        op_name = str(operator)
+        if op_name == _OP_STACK:
             matrix_stack.stack()
 
-        elif operator == OPERATOR_POP:
+        elif op_name == _OP_POP:
             matrix_stack.pop()
 
-        elif operator == OPERATOR_CM:
+        elif op_name == _OP_CM:
             try:
                 matrix_stack.multiply(Matrix(*operands))
             except TypeError:
                 logger.debug(f"malformed operands for `cm` operator: {operands}")
                 matrix_stack.invalidate_current_transformation_matrix()
 
-        elif operator == OPERATOR_DO:
+        elif op_name == _OP_DO:
             name = str(operands[0])  # Name of the image (or other object)
             if matrix_stack.ctm is not None:
                 objects_with_ctm.append(

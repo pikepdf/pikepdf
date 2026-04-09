@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import Any, NamedTuple
 
 from pikepdf.models.metadata._constants import XMP_NS_DC, XMP_NS_PDF, XMP_NS_XMP
-from pikepdf.objects import Name, String
+from pikepdf.objects import String
 
 
 def encode_pdf_date(d: datetime) -> str:
@@ -142,21 +142,29 @@ class DateConverter(Converter):
 
 
 class DocinfoMapping(NamedTuple):
-    """Map DocumentInfo keys to their XMP equivalents, along with converter."""
+    """Map DocumentInfo keys to their XMP equivalents, along with converter.
+
+    ``name`` is stored as the raw PDF name string (e.g. ``"/Author"``) rather
+    than as a ``pikepdf.Name`` instance. This keeps the module-level
+    DOCINFO_MAPPING free of persistent ``pikepdf.Object`` references, which
+    nanobind reports as shutdown leaks. Consumers can pass the string directly
+    to a ``pikepdf.Dictionary`` (which accepts str keys) or wrap it in
+    ``pikepdf.Name()`` if a Name instance is specifically required.
+    """
 
     ns: str
     key: str
-    name: Name
+    name: str
     converter: type[Converter] | None
 
 
 DOCINFO_MAPPING: list[DocinfoMapping] = [
-    DocinfoMapping(XMP_NS_DC, 'creator', Name.Author, AuthorConverter),
-    DocinfoMapping(XMP_NS_DC, 'description', Name.Subject, None),
-    DocinfoMapping(XMP_NS_DC, 'title', Name.Title, None),
-    DocinfoMapping(XMP_NS_PDF, 'Keywords', Name.Keywords, None),
-    DocinfoMapping(XMP_NS_PDF, 'Producer', Name.Producer, None),
-    DocinfoMapping(XMP_NS_XMP, 'CreateDate', Name.CreationDate, DateConverter),
-    DocinfoMapping(XMP_NS_XMP, 'CreatorTool', Name.Creator, None),
-    DocinfoMapping(XMP_NS_XMP, 'ModifyDate', Name.ModDate, DateConverter),
+    DocinfoMapping(XMP_NS_DC, 'creator', '/Author', AuthorConverter),
+    DocinfoMapping(XMP_NS_DC, 'description', '/Subject', None),
+    DocinfoMapping(XMP_NS_DC, 'title', '/Title', None),
+    DocinfoMapping(XMP_NS_PDF, 'Keywords', '/Keywords', None),
+    DocinfoMapping(XMP_NS_PDF, 'Producer', '/Producer', None),
+    DocinfoMapping(XMP_NS_XMP, 'CreateDate', '/CreationDate', DateConverter),
+    DocinfoMapping(XMP_NS_XMP, 'CreatorTool', '/Creator', None),
+    DocinfoMapping(XMP_NS_XMP, 'ModifyDate', '/ModDate', DateConverter),
 ]

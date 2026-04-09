@@ -20,21 +20,6 @@
 
 #include "pikepdf.h"
 
-static py::handle get_decimal_cls()
-{
-    // Intentionally leaked to avoid destruction order issues at interpreter shutdown
-    static auto *cls = new py::object(py::module_::import_("decimal").attr("Decimal"));
-    return *cls;
-}
-
-static py::handle get_decimal_getcontext()
-{
-    // Intentionally leaked to avoid destruction order issues at interpreter shutdown
-    static auto *func =
-        new py::object(py::module_::import_("decimal").attr("getcontext"));
-    return *func;
-}
-
 std::map<std::string, QPDFObjectHandle> dict_builder(const py::dict dict)
 {
     StackGuard sg(" dict_builder");
@@ -66,7 +51,7 @@ class DecimalPrecision {
 public:
     DecimalPrecision(uint calc_precision)
     {
-        decimal_context = get_decimal_getcontext()();
+        decimal_context = py::module_::import_("decimal").attr("getcontext")();
         saved_precision = py::cast<uint>(decimal_context.attr("prec"));
         decimal_context.attr("prec") = calc_precision;
     }
@@ -130,7 +115,7 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle)
             py::cast<QPDFObjectHandle::Rectangle>(handle));
     }
 
-    auto Decimal = get_decimal_cls();
+    auto Decimal = py::module_::import_("decimal").attr("Decimal");
     if (py::isinstance(handle, Decimal)) {
         DecimalPrecision dp(get_decimal_precision());
         auto rounded = py::steal<py::object>(PyNumber_Positive(handle.ptr()));
@@ -163,7 +148,7 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle)
 
 py::object decimal_from_pdfobject(QPDFObjectHandle h)
 {
-    auto Decimal = get_decimal_cls();
+    auto Decimal = py::module_::import_("decimal").attr("Decimal");
 
     if (h.getTypeCode() == qpdf_object_type_e::ot_integer) {
         auto value = h.getIntValue();

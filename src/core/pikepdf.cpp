@@ -29,6 +29,20 @@ static constinit std::atomic<uint> DECIMAL_PRECISION = 15;
 static constinit std::atomic<bool> MMAP_DEFAULT = false;
 static constinit std::atomic<bool> EXPLICIT_CONVERSION_MODE = false;
 
+// Exception class pointers, populated once in NB_MODULE and then read-only.
+// Borrowed references - the owning strong reference lives in the module dict
+// via m.attr(...) = py::handle(ptr), so the PyObject remains valid for the
+// module's lifetime (i.e. as long as the exception translator can run).
+// std::atomic provides the memory-visibility guarantee across threads that
+// the C++ memory model requires; CPython's import machinery already serializes
+// NB_MODULE, so a single release-store is enough to publish the value.
+static constinit std::atomic<PyObject *> exc_main{nullptr};
+static constinit std::atomic<PyObject *> exc_password{nullptr};
+static constinit std::atomic<PyObject *> exc_datadecoding{nullptr};
+static constinit std::atomic<PyObject *> exc_usage{nullptr};
+static constinit std::atomic<PyObject *> exc_foreign{nullptr};
+static constinit std::atomic<PyObject *> exc_destroyedobject{nullptr};
+
 // Thread-local counter for explicit_conversion() context manager nesting.
 // When > 0, the current thread is inside one or more context managers and
 // explicit mode takes precedence over the global EXPLICIT_CONVERSION_MODE.
@@ -245,32 +259,57 @@ NB_MODULE(_core, m)
         .def("_unparse_content_stream", unparse_content_stream);
 
     // -- Exceptions --
-    // Create exception types using Python C API since we need multiple
-    // Python exception classes mapping to the same C++ type (QPDFExc),
-    // which nanobind's nb::exception<T> cannot handle directly.
-    auto exc_main = py::steal<py::object>(py::handle(
-        PyErr_NewException("pikepdf._core.PdfError", PyExc_Exception, nullptr)));
-    m.attr("PdfError") = exc_main;
+    // Create exception types using the Python C API. We need multiple Python
+    // exception classes mapping to the same C++ type (QPDFExc), which
+    // nanobind's nb::exception<T> cannot express directly.
+    //
+    // The module attr holds the owning strong reference. We also publish a
+    // borrowed pointer into the file-scope std::atomic so the exception
+    // translator can dispatch without re-importing pikepdf._core on every
+    // exception (which was creating reference-count churn and, together with
+    // other migration-era regressions, visible leak-report entries at
+    // interpreter shutdown).
+    auto publish = [](std::atomic<PyObject *> &slot,
+                       py::module_ &m,
+                       const char *attr,
+                       PyObject *cls) {
+        // NB_MODULE is serialized by CPython's import machinery, so a single
+        // release-store is sufficient to publish the value to any thread
+        // that later observes the module via the import system.
+        slot.store(cls, std::memory_order_release);
+        m.attr(attr) = py::handle(cls);
+    };
 
-    auto exc_password = py::steal<py::object>(py::handle(
-        PyErr_NewException("pikepdf._core.PasswordError", exc_main.ptr(), nullptr)));
-    m.attr("PasswordError") = exc_password;
-
-    auto exc_datadecoding = py::steal<py::object>(py::handle(PyErr_NewException(
-        "pikepdf._core.DataDecodingError", exc_main.ptr(), nullptr)));
-    m.attr("DataDecodingError") = exc_datadecoding;
-
-    auto exc_usage = py::steal<py::object>(py::handle(
-        PyErr_NewException("pikepdf._core.JobUsageError", PyExc_Exception, nullptr)));
-    m.attr("JobUsageError") = exc_usage;
-
-    auto exc_foreign = py::steal<py::object>(py::handle(PyErr_NewException(
-        "pikepdf._core.ForeignObjectError", PyExc_Exception, nullptr)));
-    m.attr("ForeignObjectError") = exc_foreign;
-
-    auto exc_destroyedobject = py::steal<py::object>(py::handle(PyErr_NewException(
-        "pikepdf._core.DeletedObjectError", PyExc_Exception, nullptr)));
-    m.attr("DeletedObjectError") = exc_destroyedobject;
+    publish(exc_main,
+        m,
+        "PdfError",
+        PyErr_NewException("pikepdf._core.PdfError", PyExc_Exception, nullptr));
+    publish(exc_password,
+        m,
+        "PasswordError",
+        PyErr_NewException("pikepdf._core.PasswordError",
+            exc_main.load(std::memory_order_relaxed),
+            nullptr));
+    publish(exc_datadecoding,
+        m,
+        "DataDecodingError",
+        PyErr_NewException("pikepdf._core.DataDecodingError",
+            exc_main.load(std::memory_order_relaxed),
+            nullptr));
+    publish(exc_usage,
+        m,
+        "JobUsageError",
+        PyErr_NewException("pikepdf._core.JobUsageError", PyExc_Exception, nullptr));
+    publish(exc_foreign,
+        m,
+        "ForeignObjectError",
+        PyErr_NewException(
+            "pikepdf._core.ForeignObjectError", PyExc_Exception, nullptr));
+    publish(exc_destroyedobject,
+        m,
+        "DeletedObjectError",
+        PyErr_NewException(
+            "pikepdf._core.DeletedObjectError", PyExc_Exception, nullptr));
 
     py::register_exception_translator([](const std::exception_ptr &p, void *payload) {
         (void)payload;
@@ -278,11 +317,10 @@ NB_MODULE(_core, m)
             if (p)
                 std::rethrow_exception(p);
         } catch (const QPDFExc &e) {
-            auto _core = py::module_::import_("pikepdf._core");
             if (e.getErrorCode() == qpdf_e_password) {
-                PyErr_SetString(_core.attr("PasswordError").ptr(), e.what());
+                PyErr_SetString(exc_password.load(std::memory_order_acquire), e.what());
             } else {
-                PyErr_SetString(_core.attr("PdfError").ptr(), e.what());
+                PyErr_SetString(exc_main.load(std::memory_order_acquire), e.what());
             }
         } catch (const QPDFSystemError &e) {
             if (e.getErrno() != 0) {
@@ -290,30 +328,29 @@ NB_MODULE(_core, m)
                 PyErr_SetFromErrnoWithFilename(
                     PyExc_OSError, e.getDescription().c_str());
             } else {
-                auto _core = py::module_::import_("pikepdf._core");
-                PyErr_SetString(_core.attr("PdfError").ptr(), e.what());
+                PyErr_SetString(exc_main.load(std::memory_order_acquire), e.what());
             }
         } catch (const QPDFUsage &e) {
-            auto _core = py::module_::import_("pikepdf._core");
-            PyErr_SetString(_core.attr("JobUsageError").ptr(), e.what());
+            PyErr_SetString(exc_usage.load(std::memory_order_acquire), e.what());
         } catch (const std::logic_error &e) {
             auto trans = translate_qpdf_logic_error(e);
-            auto _core = py::module_::import_("pikepdf._core");
             if (trans.second == error_type_foreign)
                 PyErr_SetString(
-                    _core.attr("ForeignObjectError").ptr(), trans.first.c_str());
+                    exc_foreign.load(std::memory_order_acquire), trans.first.c_str());
             else if (trans.second == error_type_pdferror)
-                PyErr_SetString(_core.attr("PdfError").ptr(), trans.first.c_str());
+                PyErr_SetString(
+                    exc_main.load(std::memory_order_acquire), trans.first.c_str());
             else
                 std::rethrow_exception(p);
         } catch (const std::runtime_error &e) {
-            auto _core = py::module_::import_("pikepdf._core");
             if (is_data_decoding_error(e))
-                PyErr_SetString(_core.attr("DataDecodingError").ptr(), e.what());
+                PyErr_SetString(
+                    exc_datadecoding.load(std::memory_order_acquire), e.what());
             else if (is_destroyed_object_error(e))
-                PyErr_SetString(_core.attr("DeletedObjectError").ptr(), e.what());
+                PyErr_SetString(
+                    exc_destroyedobject.load(std::memory_order_acquire), e.what());
             else if (is_object_type_assertion_error(e))
-                PyErr_SetString(_core.attr("PdfError").ptr(), e.what());
+                PyErr_SetString(exc_main.load(std::memory_order_acquire), e.what());
             else
                 std::rethrow_exception(p);
         }

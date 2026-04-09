@@ -55,7 +55,10 @@ if(NOT QPDF_SOURCE_TREE)
 endif()
 
 # -- Build the extension module --
+# NB_DOMAIN scopes nanobind's leak warnings to pikepdf's own extension so they
+# don't commingle with any other nanobind modules loaded in the same interpreter.
 nanobind_add_module(_core
+    NB_DOMAIN pikepdf
     ${PIKEPDF_SOURCES}
 )
 

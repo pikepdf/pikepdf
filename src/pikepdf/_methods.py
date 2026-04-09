@@ -18,6 +18,7 @@ import shutil
 from collections.abc import (
     Callable,
     ItemsView,
+    Iterable,
     Iterator,
     KeysView,
     MutableMapping,
@@ -110,19 +111,25 @@ class Extend_Object:
             return self.keys()
         return None
 
-    def emplace(self, other: Object, retain=(Name.Parent,)):
+    def emplace(self, other: Object, retain: Iterable[Name] | None = None):
         if not self.same_owner_as(other):
             raise TypeError("Objects must have the same owner for emplace()")
 
+        # Default to (Name.Parent,) lazily so that importing this module does
+        # not allocate a persistent pikepdf.Object instance in the function's
+        # __defaults__ tuple (which nanobind reports as a shutdown leak).
+        if retain is None:
+            retain = (Name.Parent,)
+
         # .keys() returns strings, so make all strings
-        retain = {str(k) for k in retain}
+        retain_set: set[str] = {str(k) for k in retain}
         self_keys = set(self.keys())
         other_keys = set(other.keys())
 
-        assert all(isinstance(k, str) for k in (retain | self_keys | other_keys))
+        assert all(isinstance(k, str) for k in (retain_set | self_keys | other_keys))
 
-        del_keys = self_keys - other_keys - retain
-        for k in (k for k in other_keys if k not in retain):
+        del_keys = self_keys - other_keys - retain_set
+        for k in (k for k in other_keys if k not in retain_set):
             self[k] = other[k]  # pylint: disable=unsupported-assignment-operation
         for k in del_keys:
             del self[k]  # pylint: disable=unsupported-delete-operation
@@ -786,7 +793,11 @@ class Extend_Page:
         except KeyError:
             return default
 
-    def emplace(self, other: Page, retain=(Name.Parent,)):
+    def emplace(self, other: Page, retain: Iterable[Name] | None = None):
+        # Lazy default: keeping Name.Parent out of __defaults__ avoids a
+        # persistent pikepdf.Object reference at module import time.
+        if retain is None:
+            retain = (Name.Parent,)
         return self.obj.emplace(other.obj, retain=retain)
 
     def __repr__(self):
@@ -874,8 +885,12 @@ class Extend_AttachedFileSpec:
         path: Path | str,
         *,
         description: str = '',
-        relationship: Name | None = Name.Unspecified,
+        relationship: Name | None = None,
     ):
+        # Lazy default: keeping Name.Unspecified out of __defaults__ avoids a
+        # persistent pikepdf.Object reference at module import time.
+        if relationship is None:
+            relationship = Name.Unspecified
         mime, _ = mimetypes.guess_type(str(path))
         if mime is None:
             mime = ''
