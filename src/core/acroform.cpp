@@ -9,6 +9,7 @@
 #include <qpdf/Types.h>
 
 #include "pikepdf.h"
+#include "qpdf_lock.h"
 
 void init_acroform(py::module_ &m)
 {
@@ -194,6 +195,7 @@ void init_acroform(py::module_ &m)
                 QPDFPageObjectHelper to_page,
                 QPDFPageObjectHelper from_page,
                 QPDFAcroFormDocumentHelper &from_afdh) {
+                DualQpdfLockGuard lock(&acroform.getQPDF(), &from_afdh.getQPDF());
                 std::set<QPDFObjGen> refs;
                 acroform.fixCopiedAnnotations(to_page.getObjectHandle(),
                     from_page.getObjectHandle(),

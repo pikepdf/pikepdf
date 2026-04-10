@@ -59,6 +59,7 @@ endif()
 # don't commingle with any other nanobind modules loaded in the same interpreter.
 nanobind_add_module(_core
     NB_DOMAIN pikepdf
+    FREE_THREADED
     ${PIKEPDF_SOURCES}
 )
 

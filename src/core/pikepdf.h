@@ -22,6 +22,8 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 
+#include "qpdf_lock.h"
+
 using uint = unsigned int;
 
 // Use 'py' as alias for nanobind to minimize diff across all binding files.
@@ -74,6 +76,11 @@ struct type_caster<QPDFObjectHandle> : public type_caster_base<QPDFObjectHandle>
         // Adjust automatic policies to copy
         if (policy == rv_policy::automatic || policy == rv_policy::automatic_reference)
             policy = rv_policy::copy;
+
+        // Lock the owning QPDF while resolving indirect objects during
+        // type conversion. The lock is re-entrant so this is safe even
+        // when the caller already holds the lock.
+        QpdfLockGuard qpdf_lock(src->getOwningQPDF());
 
         // In explicit conversion mode, return scalars as pikepdf.Object
         // so that Integer/Boolean/Real types are preserved.

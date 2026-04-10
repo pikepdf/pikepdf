@@ -24,7 +24,7 @@ from collections.abc import (
     MutableMapping,
     ValuesView,
 )
-from contextlib import ExitStack, suppress
+from contextlib import ExitStack, contextmanager, suppress
 from decimal import Decimal
 from io import BytesIO
 from pathlib import Path
@@ -289,6 +289,23 @@ class Extend_Object:
 
 @augments(Pdf)
 class Extend_Pdf:
+    @contextmanager
+    def lock(self):
+        """Context manager to hold the per-Pdf lock for compound operations.
+
+        Under free-threaded Python, individual C++ method calls are
+        automatically serialized, but multi-step Python operations (e.g.
+        read-modify-write on the same dictionary) are not atomic.  Wrap
+        such sequences in ``with pdf.lock():`` to prevent interleaving.
+
+        On GIL-enabled builds this is a no-op.
+        """
+        self._acquire_lock()
+        try:
+            yield
+        finally:
+            self._release_lock()
+
     def _quick_save(self):
         bio = BytesIO()
         self.save(bio)
@@ -306,26 +323,29 @@ class Extend_Pdf:
 
     @property
     def docinfo(self) -> Dictionary:
-        if Name.Info not in self.trailer or not isinstance(
-            self.trailer.Info, Dictionary
-        ):
-            self.trailer.Info = self.make_indirect(Dictionary())
-        if not self.trailer.Info.is_indirect:
-            self.trailer.Info = self.make_indirect(self.trailer.Info)
-        return self.trailer.Info
+        with self.lock():
+            if Name.Info not in self.trailer or not isinstance(
+                self.trailer.Info, Dictionary
+            ):
+                self.trailer.Info = self.make_indirect(Dictionary())
+            if not self.trailer.Info.is_indirect:
+                self.trailer.Info = self.make_indirect(self.trailer.Info)
+            return self.trailer.Info
 
     @docinfo.setter
     def docinfo(self, new_docinfo: Dictionary):
-        if not new_docinfo.is_indirect:
-            raise ValueError(
-                "docinfo must be an indirect object - use Pdf.make_indirect"
-            )
-        self.trailer.Info = new_docinfo
+        with self.lock():
+            if not new_docinfo.is_indirect:
+                raise ValueError(
+                    "docinfo must be an indirect object - use Pdf.make_indirect"
+                )
+            self.trailer.Info = new_docinfo
 
     @docinfo.deleter
     def docinfo(self):
-        if Name.Info in self.trailer:
-            del self.trailer.Info
+        with self.lock():
+            if Name.Info in self.trailer:
+                del self.trailer.Info
 
     def open_metadata(
         self,
@@ -353,15 +373,16 @@ class Extend_Pdf:
             if not (3 <= dim <= 14400):
                 raise ValueError('Page size must be between 3 and 14400 PDF units')
 
-        page_dict = Dictionary(
-            Type=Name.Page,
-            MediaBox=Array([0, 0, page_size[0], page_size[1]]),
-            Contents=self.make_stream(b''),
-            Resources=Dictionary(),
-        )
-        page_obj = self.make_indirect(page_dict)
-        self._add_page(page_obj, first=False)
-        return Page(page_obj)
+        with self.lock():
+            page_dict = Dictionary(
+                Type=Name.Page,
+                MediaBox=Array([0, 0, page_size[0], page_size[1]]),
+                Contents=self.make_stream(b''),
+                Resources=Dictionary(),
+            )
+            page_obj = self.make_indirect(page_dict)
+            self._add_page(page_obj, first=False)
+            return Page(page_obj)
 
     def close(self) -> None:
         self._close()

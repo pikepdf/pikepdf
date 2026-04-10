@@ -11,6 +11,7 @@
 
 #include "pikepdf.h"
 #include "pipeline.h"
+#include "qpdf_lock.h"
 
 QPDFFileSpecObjectHelper create_filespec(QPDF &q,
     py::bytes data,
@@ -21,6 +22,7 @@ QPDFFileSpecObjectHelper create_filespec(QPDF &q,
     std::string mod_date,
     QPDFObjectHandle relationship)
 {
+    QpdfLockGuard lock(&q);
     auto efstream = QPDFEFStreamObjectHelper::createEFStream(q, to_string(data));
     auto filespec = QPDFFileSpecObjectHelper::createFileSpec(q, filename, efstream);
 

@@ -18,6 +18,7 @@
 #include <qpdf/Types.h>
 
 #include "pikepdf.h"
+#include "qpdf_lock.h"
 #include "utils.h"
 
 #include "namepath.h"
@@ -59,6 +60,7 @@ py::str safe_decode(std::string const &s)
 // Convert QPDF Dictionary/Stream to temporary Python dict, or throw
 static py::dict pydict_from_object(QPDFObjectHandle h, const char *method_name)
 {
+    QpdfLockGuard lock(h.getOwningQPDF());
     if (h.isStream())
         h = h.getDict();
 
@@ -103,6 +105,7 @@ needed.
 
 size_t list_range_check(QPDFObjectHandle h, int index)
 {
+    QpdfLockGuard lock(h.getOwningQPDF());
     if (!h.isArray())
         throw py::type_error("object is not an array");
     if (index < 0)
@@ -125,6 +128,7 @@ static void ensure_keyed(
 
 bool object_has_key(QPDFObjectHandle h, std::string const &key)
 {
+    QpdfLockGuard lock(h.getOwningQPDF());
     ensure_keyed(h, "check existence of", key);
     QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
     return dict.hasKey(key);
@@ -144,6 +148,7 @@ bool array_has_item(QPDFObjectHandle haystack, QPDFObjectHandle needle)
 
 QPDFObjectHandle object_get_key(QPDFObjectHandle h, std::string const &key)
 {
+    QpdfLockGuard lock(h.getOwningQPDF());
     ensure_keyed(h, "get", key);
     QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
     if (!dict.hasKey(key))
@@ -153,6 +158,7 @@ QPDFObjectHandle object_get_key(QPDFObjectHandle h, std::string const &key)
 
 void object_set_key(QPDFObjectHandle h, std::string const &key, QPDFObjectHandle &value)
 {
+    QpdfLockGuard lock(h.getOwningQPDF());
     ensure_keyed(h, "set", key);
     if (value.isNull())
         throw py::value_error(
@@ -174,6 +180,7 @@ void object_set_key(QPDFObjectHandle h, std::string const &key, QPDFObjectHandle
 
 void object_del_key(QPDFObjectHandle h, std::string const &key)
 {
+    QpdfLockGuard lock(h.getOwningQPDF());
     ensure_keyed(h, "delete", key);
     if (h.isStream() && key == "/Length") {
         throw py::key_error("/Length may not be deleted");
@@ -192,6 +199,7 @@ void object_del_key(QPDFObjectHandle h, std::string const &key)
 QPDFObjectHandle traverse_namepath(
     QPDFObjectHandle h, NamePath const &path, bool for_set = false)
 {
+    QpdfLockGuard lock(h.getOwningQPDF());
     auto const &components = path.components();
     size_t end = for_set ? components.size() - 1 : components.size();
 
@@ -241,6 +249,7 @@ std::pair<int, int> object_get_objgen(QPDFObjectHandle h)
 
 QPDFObjectHandle copy_object(QPDFObjectHandle &h)
 {
+    QpdfLockGuard lock(h.getOwningQPDF());
     if (h.isStream())
         return h.copyStream();
     return h.shallowCopy();
@@ -249,6 +258,7 @@ QPDFObjectHandle copy_object(QPDFObjectHandle &h)
 std::shared_ptr<Buffer> get_stream_data(
     QPDFObjectHandle &h, qpdf_stream_decode_level_e decode_level)
 {
+    QpdfLockGuard lock(h.getOwningQPDF());
     try {
         return h.getStreamData(decode_level);
     } catch (const QPDFExc &e) {
@@ -368,6 +378,7 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &self, QPDFObjectHandle &other) {
                 QPDF *self_owner = self.getOwningQPDF();
                 QPDF *other_owner = other.getOwningQPDF();
+                DualQpdfLockGuard lock(self_owner, other_owner);
 
                 if (self_owner == other_owner)
                     return self;
@@ -381,9 +392,14 @@ void init_object(py::module_ &m)
                 return self_in_other;
             })
         .def_prop_ro("is_indirect", &QPDFObjectHandle::isIndirect)
-        .def("__repr__", &objecthandle_repr)
+        .def("__repr__",
+            [](QPDFObjectHandle &self) {
+                QpdfLockGuard lock(self.getOwningQPDF());
+                return objecthandle_repr(self);
+            })
         .def("__hash__",
             [](QPDFObjectHandle &self) -> py::int_ {
+                QpdfLockGuard lock(self.getOwningQPDF());
                 if (self.isIndirect())
                     throw py::type_error("Can't hash indirect object");
 
@@ -414,12 +430,14 @@ void init_object(py::module_ &m)
         .def(
             "__eq__",
             [](QPDFObjectHandle &self, QPDFObjectHandle &other) {
+                DualQpdfLockGuard lock(self.getOwningQPDF(), other.getOwningQPDF());
                 return objecthandle_equal(self, other);
             },
             py::is_operator())
         .def(
             "__eq__",
             [](QPDFObjectHandle &self, py::str other) {
+                QpdfLockGuard lock(self.getOwningQPDF());
                 std::string utf8_other = py::cast<std::string>(other);
                 switch (self.getTypeCode()) {
                 case qpdf_object_type_e::ot_string:
@@ -434,6 +452,7 @@ void init_object(py::module_ &m)
         .def(
             "__eq__",
             [](QPDFObjectHandle &self, py::bytes other) {
+                QpdfLockGuard lock(self.getOwningQPDF());
                 std::string bytes_other = to_string(other);
                 switch (self.getTypeCode()) {
                 case qpdf_object_type_e::ot_string:
@@ -448,13 +467,11 @@ void init_object(py::module_ &m)
         .def(
             "__eq__",
             [](QPDFObjectHandle &self, py::object other) -> py::object {
+                QpdfLockGuard lock(self.getOwningQPDF());
                 QPDFObjectHandle q_other;
                 try {
                     q_other = objecthandle_encode(other);
                 } catch (const std::exception &) {
-                    // The other type is not encodable to a PDF object, so it
-                    // cannot be equal to a pikepdf.Object. Return NotImplemented
-                    // so Python will try the reverse comparison.
                     return py::borrow<py::object>(py::handle(Py_NotImplemented));
                 }
                 bool result = objecthandle_equal(self, q_other);
@@ -464,6 +481,7 @@ void init_object(py::module_ &m)
         .def("__copy__", &copy_object)
         .def("__len__",
             [](QPDFObjectHandle &h) -> size_t {
+                QpdfLockGuard lock(h.getOwningQPDF());
                 if (h.isDictionary()) {
                     // getKeys constructs a new object, so this is better
                     return static_cast<size_t>(h.getDictAsMap().size());
@@ -485,6 +503,7 @@ void init_object(py::module_ &m)
             })
         .def("__bool__",
             [](QPDFObjectHandle &h) -> bool {
+                QpdfLockGuard lock(h.getOwningQPDF());
                 // Handle boolean objects (in explicit conversion mode)
                 if (h.isBool()) {
                     return h.getBoolValue();
@@ -935,15 +954,18 @@ void init_object(py::module_ &m)
             })
         .def("__getitem__",
             [](QPDFObjectHandle &h, int index) {
+                QpdfLockGuard lock(h.getOwningQPDF());
                 auto u_index = list_range_check(h, index);
                 return h.getArrayItem(u_index);
             })
         .def("__getitem__",
             [](QPDFObjectHandle &h, QPDFObjectHandle &name) {
+                QpdfLockGuard lock(h.getOwningQPDF());
                 return object_get_key(h, name.getName());
             })
         .def("__getitem__",
             [](QPDFObjectHandle &h, NamePath const &path) {
+                QpdfLockGuard lock(h.getOwningQPDF());
                 if (path.empty()) {
                     return h; // Empty path returns self
                 }
@@ -951,6 +973,7 @@ void init_object(py::module_ &m)
             })
         .def("__getitem__",
             [](QPDFObjectHandle &h, py::object key) -> QPDFObjectHandle {
+                QpdfLockGuard lock(h.getOwningQPDF());
                 std::string k = string_from_key(key);
                 return object_get_key(h, k);
             })
@@ -1071,6 +1094,7 @@ void init_object(py::module_ &m)
             })
         .def("__delitem__",
             [](QPDFObjectHandle &h, int index) {
+                QpdfLockGuard lock(h.getOwningQPDF());
                 auto u_index = list_range_check(h, index);
                 h.eraseItem(u_index);
             })
@@ -1085,6 +1109,7 @@ void init_object(py::module_ &m)
             })
         .def("__getattr__",
             [](QPDFObjectHandle &h, std::string const &name) {
+                QpdfLockGuard lock(h.getOwningQPDF());
                 QPDFObjectHandle value;
                 std::string key = "/" + name;
                 try {
@@ -1111,6 +1136,7 @@ void init_object(py::module_ &m)
             py::rv_policy::reference_internal)
         .def("__setattr__",
             [](QPDFObjectHandle &h, std::string const &name, py::object pyvalue) {
+                QpdfLockGuard lock(h.getOwningQPDF());
                 if (h.isDictionary() || (h.isStream() && name != "stream_dict")) {
                     // Map attribute assignment to setting dictionary key
                     std::string key = "/" + name;
@@ -1126,11 +1152,13 @@ void init_object(py::module_ &m)
             })
         .def("__delattr__",
             [](QPDFObjectHandle &h, std::string const &name) {
+                QpdfLockGuard lock(h.getOwningQPDF());
                 std::string key = "/" + name;
                 object_del_key(h, key);
             })
         .def("__dir__",
             [](QPDFObjectHandle &h) {
+                QpdfLockGuard lock(h.getOwningQPDF());
                 py::list result;
                 py::object obj = py::cast(h);
                 py::object class_keys =
@@ -1188,6 +1216,7 @@ void init_object(py::module_ &m)
             py::arg("default") = py::none())
         .def("keys",
             [](QPDFObjectHandle &h) {
+                QpdfLockGuard lock(h.getOwningQPDF());
                 std::set<std::string> keys =
                     h.isStream() ? h.getDict().getKeys() : h.getKeys();
                 py::set result;
@@ -1198,6 +1227,7 @@ void init_object(py::module_ &m)
             })
         .def("__contains__",
             [](QPDFObjectHandle &h, QPDFObjectHandle &key) {
+                QpdfLockGuard lock(h.getOwningQPDF());
                 if (h.isArray()) {
                     return array_has_item(h, key);
                 }
@@ -1208,6 +1238,7 @@ void init_object(py::module_ &m)
         .def(
             "__contains__",
             [](QPDFObjectHandle &h, py::object key) {
+                QpdfLockGuard lock(h.getOwningQPDF());
                 if (h.isArray()) {
                     if (py::isinstance<py::str>(key) ||
                         py::isinstance<py::bytes>(key)) {
@@ -1231,6 +1262,7 @@ void init_object(py::module_ &m)
         .def(
             "__iter__",
             [](QPDFObjectHandle h) -> py::object {
+                QpdfLockGuard lock(h.getOwningQPDF());
                 if (h.isArray()) {
                     auto vec = h.getArrayAsVector();
                     auto pyvec = py::cast(vec);
@@ -1265,6 +1297,7 @@ void init_object(py::module_ &m)
             py::rv_policy::reference_internal)
         .def("__str__",
             [](QPDFObjectHandle &h) -> py::str {
+                QpdfLockGuard lock(h.getOwningQPDF());
                 std::string s;
                 if (h.isName())
                     s = h.getName();
@@ -1280,6 +1313,7 @@ void init_object(py::module_ &m)
             })
         .def("__bytes__",
             [](QPDFObjectHandle &h) {
+                QpdfLockGuard lock(h.getOwningQPDF());
                 if (h.isName()) {
                     auto v = h.getName();
                     return py::bytes(v.data(), v.size());
@@ -1322,11 +1356,13 @@ void init_object(py::module_ &m)
         .def("wrap_in_array", [](QPDFObjectHandle &h) { return h.wrapInArray(); })
         .def("append",
             [](QPDFObjectHandle &h, py::object pyitem) {
+                QpdfLockGuard lock(h.getOwningQPDF());
                 auto item = objecthandle_encode(pyitem);
                 return h.appendItem(item);
             })
         .def("extend",
             [](QPDFObjectHandle &h, py::iterable iter) {
+                QpdfLockGuard lock(h.getOwningQPDF());
                 for (auto item : iter) {
                     h.appendItem(objecthandle_encode(item));
                 }
@@ -1341,7 +1377,10 @@ void init_object(py::module_ &m)
             },
             py::arg("decode_level") = qpdf_dl_generalized)
         .def("get_raw_stream_buffer",
-            [](QPDFObjectHandle &h) { return h.getRawStreamData(); })
+            [](QPDFObjectHandle &h) {
+                QpdfLockGuard lock(h.getOwningQPDF());
+                return h.getRawStreamData();
+            })
         .def(
             "read_bytes",
             [](QPDFObjectHandle &h, qpdf_stream_decode_level_e decode_level) {
@@ -1351,6 +1390,7 @@ void init_object(py::module_ &m)
             py::arg("decode_level") = qpdf_dl_generalized)
         .def("read_raw_bytes",
             [](QPDFObjectHandle &h) {
+                QpdfLockGuard lock(h.getOwningQPDF());
                 auto buf = h.getRawStreamData();
                 // py::bytes will make a copy of the buffer, so releasing is fine
                 return py::bytes((const char *)buf->getBuffer(), buf->getSize());
@@ -1361,6 +1401,7 @@ void init_object(py::module_ &m)
                 py::bytes data,
                 py::object filter,
                 py::object decode_parms) {
+                QpdfLockGuard lock(h.getOwningQPDF());
                 std::string sdata = to_string(data);
                 QPDFObjectHandle h_filter = objecthandle_encode(filter);
                 QPDFObjectHandle h_decode_parms = objecthandle_encode(decode_parms);
@@ -1422,6 +1463,7 @@ void init_object(py::module_ &m)
         .def(
             "unparse",
             [](QPDFObjectHandle &h, bool resolved) -> py::bytes {
+                QpdfLockGuard lock(h.getOwningQPDF());
                 auto s = resolved ? h.unparseResolved() : h.unparse();
                 return py::bytes(s.data(), s.size());
             },
@@ -1431,6 +1473,7 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &h,
                 bool dereference = false,
                 int schema_version = 2) -> py::bytes {
+                QpdfLockGuard lock(h.getOwningQPDF());
                 std::string result;
                 Pl_String p("json", nullptr, result);
                 h.writeJSON(schema_version, &p, dereference);
@@ -1469,6 +1512,7 @@ void init_object(py::module_ &m)
         return QPDFObjectHandle::newDictionary(dict_builder(dict));
     });
     m.def("_new_stream", [](QPDF &owner, py::bytes data) {
+        QpdfLockGuard lock(&owner);
         // This makes a copy of the data
         return QPDFObjectHandle::newStream(&owner, to_string(data));
     });

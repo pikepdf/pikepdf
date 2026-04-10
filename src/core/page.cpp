@@ -8,6 +8,7 @@
 
 #include "parsers.h"
 #include "pikepdf.h"
+#include "qpdf_lock.h"
 
 #include <qpdf/Pipeline.hh>
 #include <qpdf/Pl_Buffer.hh>
@@ -16,6 +17,7 @@
 
 size_t page_index(QPDF &owner, QPDFObjectHandle page)
 {
+    QpdfLockGuard lock(&owner);
     if (&owner != page.getOwningQPDF())
         throw py::value_error("Page is not in this Pdf");
 
@@ -91,6 +93,7 @@ void init_page(py::module_ &m)
                 "_contents_add",
                 [](QPDFPageObjectHelper &poh, py::bytes contents, bool prepend) {
                     auto q = poh.getObjectHandle().getOwningQPDF();
+                    QpdfLockGuard lock(q);
                     if (!q) {
                         // LCOV_EXCL_START
                         throw std::logic_error(
@@ -137,6 +140,7 @@ void init_page(py::module_ &m)
                 "get_filtered_contents",
                 [](QPDFPageObjectHelper &poh,
                     QPDFObjectHandle::TokenFilter &tf) -> py::bytes {
+                    QpdfLockGuard lock(poh.getObjectHandle().getOwningQPDF());
                     Pl_Buffer pl_buffer("filter_page");
                     poh.filterContents(&tf, &pl_buffer);
 
@@ -153,6 +157,7 @@ void init_page(py::module_ &m)
                 "add_content_token_filter",
                 [](QPDFPageObjectHelper &poh,
                     std::shared_ptr<QPDFObjectHandle::TokenFilter> tf) {
+                    QpdfLockGuard lock(poh.getObjectHandle().getOwningQPDF());
                     // TokenFilters may be processed after the Python objects have gone
                     // out of scope, so we need to keep them alive by attaching them to
                     // the corresponding QPDF object.
@@ -180,6 +185,7 @@ void init_page(py::module_ &m)
                 py::arg("stream_parser"))
             .def_prop_ro("index",
                 [](QPDFPageObjectHelper &poh) {
+                    QpdfLockGuard lock(poh.getObjectHandle().getOwningQPDF());
                     auto this_page = poh.getObjectHandle();
                     auto p_owner = this_page.getOwningQPDF();
                     if (!p_owner)
@@ -188,6 +194,7 @@ void init_page(py::module_ &m)
                     return page_index(owner, this_page);
                 })
             .def_prop_ro("label", [](QPDFPageObjectHelper &poh) {
+                QpdfLockGuard lock(poh.getObjectHandle().getOwningQPDF());
                 auto this_page = poh.getObjectHandle();
                 auto p_owner = this_page.getOwningQPDF();
                 if (!p_owner)

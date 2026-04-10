@@ -7,6 +7,7 @@
 #include <type_traits>
 
 #include "pikepdf.h"
+#include "qpdf_lock.h"
 
 #include <qpdf/Buffer.hh>
 #include <qpdf/BufferInputSource.hh>
@@ -29,6 +30,19 @@
 #include "utils.h"
 
 enum access_mode_e { access_default, access_stream, access_mmap, access_mmap_only };
+
+// Create a shared_ptr<QPDF> with a custom deleter that unregisters from the
+// per-QPDF mutex registry. This ensures cleanup even if the user never
+// explicitly calls close().
+std::shared_ptr<QPDF> make_registered_qpdf()
+{
+    auto q = std::shared_ptr<QPDF>(new QPDF(), [](QPDF *p) {
+        QpdfRegistry::instance().unregister_qpdf(p);
+        delete p;
+    });
+    QpdfRegistry::instance().register_qpdf(q.get());
+    return q;
+}
 
 void qpdf_basic_settings(QPDF &q) // LCOV_EXCL_LINE
 {
@@ -54,7 +68,7 @@ std::shared_ptr<QPDF> open_pdf(py::object stream,
     bool closing_stream = false)
 {
     std::string password = to_string(password_arg);
-    auto q = std::make_shared<QPDF>();
+    auto q = make_registered_qpdf();
 
     qpdf_basic_settings(*q);
     q->setSuppressWarnings(suppress_warnings);
@@ -340,6 +354,7 @@ void save_pdf(QPDF &q,
     bool recompress_flate = false,
     bool deterministic_id = false)
 {
+    QpdfLockGuard lock(&q);
     QPDFWriter w(q);
 
     if (static_id) {
@@ -453,7 +468,7 @@ void init_qpdf(py::module_ &m)
     py::class_<QPDF>(m, "Pdf", "In-memory representation of a PDF", py::dynamic_attr())
         .def_static("new",
             []() {
-                auto q = std::make_shared<QPDF>();
+                auto q = make_registered_qpdf();
                 q->emptyPDF();
                 qpdf_basic_settings(*q);
                 return q;
@@ -473,26 +488,61 @@ void init_qpdf(py::module_ &m)
             py::arg("closing_stream") = false)
         .def("__repr__",
             [](QPDF &q) {
+                QpdfLockGuard lock(&q);
                 return std::string("<pikepdf.Pdf description='") + q.getFilename() +
                        std::string("'>");
             })
-        .def_prop_ro("filename", &QPDF::getFilename)
-        .def_prop_ro("pdf_version", &QPDF::getPDFVersion)
-        .def_prop_ro("extension_level", &QPDF::getExtensionLevel)
-        .def_prop_ro("Root", &QPDF::getRoot)
+        .def_prop_ro("filename",
+            [](QPDF &q) {
+                QpdfLockGuard lock(&q);
+                return q.getFilename();
+            })
+        .def_prop_ro("pdf_version",
+            [](QPDF &q) {
+                QpdfLockGuard lock(&q);
+                return q.getPDFVersion();
+            })
+        .def_prop_ro("extension_level",
+            [](QPDF &q) {
+                QpdfLockGuard lock(&q);
+                return q.getExtensionLevel();
+            })
+        .def_prop_ro("Root",
+            [](QPDF &q) {
+                QpdfLockGuard lock(&q);
+                return q.getRoot();
+            })
         .def_prop_ro("trailer",
-            &QPDF::getTrailer // LCOV_EXCL_LINE
-            )
+            [](QPDF &q) {
+                QpdfLockGuard lock(&q);
+                return q.getTrailer();
+            })
         .def_prop_ro(
             "pages",
-            [](std::shared_ptr<QPDF> q) { return PageList(q); },
+            [](std::shared_ptr<QPDF> q) {
+                QpdfLockGuard lock(q.get());
+                return PageList(q);
+            },
             py::rv_policy::reference_internal)
-        .def_prop_ro("_pages", &QPDF::getAllPages)
-        .def_prop_ro("is_encrypted", [](QPDF &q) { return q.isEncrypted(); })
-        .def_prop_ro("is_linearized", &QPDF::isLinearized)
+        .def_prop_ro("_pages",
+            [](QPDF &q) {
+                QpdfLockGuard lock(&q);
+                return q.getAllPages();
+            })
+        .def_prop_ro("is_encrypted",
+            [](QPDF &q) {
+                QpdfLockGuard lock(&q);
+                return q.isEncrypted();
+            })
+        .def_prop_ro("is_linearized",
+            [](QPDF &q) {
+                QpdfLockGuard lock(&q);
+                return q.isLinearized();
+            })
         .def(
             "check_linearization",
             [](QPDF &q, py::object stream) {
+                QpdfLockGuard lock(&q);
                 auto sys = py::module_::import_("sys");
                 if (stream.is_none())
                     stream = sys.attr("stderr");
@@ -511,6 +561,7 @@ void init_qpdf(py::module_ &m)
         .def("get_warnings", // this is a def because it modifies state by clearing
                              // warnings
             [](QPDF &q) {
+                QpdfLockGuard lock(&q);
                 py::list warnings;
                 for (auto w : q.getWarnings()) {
                     auto what_str = std::string(w.what());
@@ -519,17 +570,27 @@ void init_qpdf(py::module_ &m)
                 }
                 return warnings;
             })
-        .def("show_xref_table", &QPDF::showXRefTable)
+        .def("show_xref_table",
+            [](QPDF &q) {
+                QpdfLockGuard lock(&q);
+                q.showXRefTable();
+            })
         .def(
             "_add_page",
             [](QPDF &q, QPDFObjectHandle &page, bool first = false) {
+                QpdfLockGuard lock(&q);
                 q.addPage(page, first);
             },
             py::arg("page"),
             py::arg("first") = false)
-        .def("_remove_page", &QPDF::removePage)
+        .def("_remove_page",
+            [](QPDF &q, QPDFObjectHandle &page) {
+                QpdfLockGuard lock(&q);
+                q.removePage(page);
+            })
         .def("remove_unreferenced_resources",
             [](QPDF &q) {
+                QpdfLockGuard lock(&q);
                 QPDFPageDocumentHelper helper(q);
                 helper.removeUnreferencedResources();
             })
@@ -553,32 +614,51 @@ void init_qpdf(py::module_ &m)
             py::arg("samefile_check") = true,
             py::arg("recompress_flate") = false,
             py::arg("deterministic_id") = false)
-        .def("_get_object_id", &QPDF::getObjectByID)
+        .def("_get_object_id",
+            [](QPDF &q, int objid, int gen) {
+                QpdfLockGuard lock(&q);
+                return q.getObjectByID(objid, gen);
+            })
         .def(
             "get_object",
             [](QPDF &q, std::pair<int, int> objgen) {
+                QpdfLockGuard lock(&q);
                 return q.getObjectByID(objgen.first, objgen.second);
             },
             py::arg("objgen"))
         .def(
             "get_object",
-            [](QPDF &q, int objid, int gen) { return q.getObjectByID(objid, gen); },
+            [](QPDF &q, int objid, int gen) {
+                QpdfLockGuard lock(&q);
+                return q.getObjectByID(objid, gen);
+            },
             py::arg("objid"),
             py::arg("gen"))
         .def_prop_ro(
             "objects",
-            [](QPDF &q) { return q.getAllObjects(); },
+            [](QPDF &q) {
+                QpdfLockGuard lock(&q);
+                return q.getAllObjects();
+            },
             py::rv_policy::reference_internal)
-        .def("make_indirect", &QPDF::makeIndirectObject, py::arg("h"))
+        .def(
+            "make_indirect",
+            [](QPDF &q, QPDFObjectHandle &h) {
+                QpdfLockGuard lock(&q);
+                return q.makeIndirectObject(h);
+            },
+            py::arg("h"))
         .def(
             "make_indirect",
             [](QPDF &q, py::object obj) -> QPDFObjectHandle {
+                QpdfLockGuard lock(&q);
                 return q.makeIndirectObject(objecthandle_encode(obj));
             },
             py::arg("obj"))
         .def(
             "copy_foreign",
             [](QPDF &q, QPDFObjectHandle &h) -> QPDFObjectHandle {
+                DualQpdfLockGuard lock(&q, h.getOwningQPDF());
                 return q.copyForeignObject(h);
             },
             py::arg("h"))
@@ -591,21 +671,27 @@ void init_qpdf(py::module_ &m)
             })
         .def("_replace_object",
             [](QPDF &q, std::pair<int, int> objgen, QPDFObjectHandle &h) {
+                QpdfLockGuard lock(&q);
                 q.replaceObject(objgen.first, objgen.second, h);
             })
         .def("_swap_objects",
             [](QPDF &q, std::pair<int, int> objgen1, std::pair<int, int> objgen2) {
+                QpdfLockGuard lock(&q);
                 QPDFObjGen o1(objgen1.first, objgen1.second);
                 QPDFObjGen o2(objgen2.first, objgen2.second);
                 q.swapObjects(o1, o2);
             })
         .def(
             "_close",
-            [](QPDF &q) { q.closeInputSource(); },
+            [](QPDF &q) {
+                QpdfLockGuard lock(&q);
+                q.closeInputSource();
+            },
             "Used to implement Pdf.close().")
         .def(
             "_decode_all_streams_and_discard",
             [](QPDF &q, py::object progress) {
+                QpdfLockGuard lock(&q);
                 QPDFWriter w(q);
                 Pl_Discard discard;
                 w.setOutputPipeline(&discard);
@@ -636,23 +722,54 @@ void init_qpdf(py::module_ &m)
                 }
             },
             py::arg("progress").none() = py::none())
-        .def_prop_ro(
-            "_allow_accessibility", [](QPDF &q) { return q.allowAccessibility(); })
-        .def_prop_ro("_allow_extract", [](QPDF &q) { return q.allowExtractAll(); })
-        .def_prop_ro(
-            "_allow_print_lowres", [](QPDF &q) { return q.allowPrintLowRes(); })
-        .def_prop_ro(
-            "_allow_print_highres", [](QPDF &q) { return q.allowPrintHighRes(); })
-        .def_prop_ro(
-            "_allow_modify_assembly", [](QPDF &q) { return q.allowModifyAssembly(); })
-        .def_prop_ro("_allow_modify_form", [](QPDF &q) { return q.allowModifyForm(); })
+        .def_prop_ro("_allow_accessibility",
+            [](QPDF &q) {
+                QpdfLockGuard lock(&q);
+                return q.allowAccessibility();
+            })
+        .def_prop_ro("_allow_extract",
+            [](QPDF &q) {
+                QpdfLockGuard lock(&q);
+                return q.allowExtractAll();
+            })
+        .def_prop_ro("_allow_print_lowres",
+            [](QPDF &q) {
+                QpdfLockGuard lock(&q);
+                return q.allowPrintLowRes();
+            })
+        .def_prop_ro("_allow_print_highres",
+            [](QPDF &q) {
+                QpdfLockGuard lock(&q);
+                return q.allowPrintHighRes();
+            })
+        .def_prop_ro("_allow_modify_assembly",
+            [](QPDF &q) {
+                QpdfLockGuard lock(&q);
+                return q.allowModifyAssembly();
+            })
+        .def_prop_ro("_allow_modify_form",
+            [](QPDF &q) {
+                QpdfLockGuard lock(&q);
+                return q.allowModifyForm();
+            })
         .def_prop_ro("_allow_modify_annotation",
-            [](QPDF &q) { return q.allowModifyAnnotation(); })
-        .def_prop_ro(
-            "_allow_modify_other", [](QPDF &q) { return q.allowModifyOther(); })
-        .def_prop_ro("_allow_modify_all", [](QPDF &q) { return q.allowModifyAll(); })
+            [](QPDF &q) {
+                QpdfLockGuard lock(&q);
+                return q.allowModifyAnnotation();
+            })
+        .def_prop_ro("_allow_modify_other",
+            [](QPDF &q) {
+                QpdfLockGuard lock(&q);
+                return q.allowModifyOther();
+            })
+        .def_prop_ro("_allow_modify_all",
+            [](QPDF &q) {
+                QpdfLockGuard lock(&q);
+                return q.allowModifyAll();
+            })
         .def_prop_ro("_encryption_data",
             [](QPDF &q) {
+                QpdfLockGuard lock(&q);
                 int R = 0;
                 int P = 0;
                 int V = 0;
@@ -678,16 +795,26 @@ void init_qpdf(py::module_ &m)
                     py::bytes(encryption_key.data(), encryption_key.size());
                 return result;
             })
-        .def_prop_ro("user_password_matched", &QPDF::userPasswordMatched)
-        .def_prop_ro("owner_password_matched", &QPDF::ownerPasswordMatched)
+        .def_prop_ro("user_password_matched",
+            [](QPDF &q) {
+                QpdfLockGuard lock(&q);
+                return q.userPasswordMatched();
+            })
+        .def_prop_ro("owner_password_matched",
+            [](QPDF &q) {
+                QpdfLockGuard lock(&q);
+                return q.ownerPasswordMatched();
+            })
         .def("generate_appearance_streams",
             [](QPDF &q) {
+                QpdfLockGuard lock(&q);
                 QPDFAcroFormDocumentHelper afdh(q);
                 afdh.generateAppearancesIfNeeded();
             })
         .def(
             "flatten_annotations",
             [](QPDF &q, std::string mode) {
+                QpdfLockGuard lock(&q);
                 QPDFPageDocumentHelper dh(q);
                 auto required = 0;
                 auto forbidden = an_invisible | an_hidden;
@@ -706,7 +833,25 @@ void init_qpdf(py::module_ &m)
                 dh.flattenAnnotations(required, forbidden);
             },
             py::arg("mode") = "all") // class Pdf
-        .def_prop_ro("acroform", [](QPDF &q) { return QPDFAcroFormDocumentHelper(q); })
-        .def_prop_ro(
-            "attachments", [](QPDF &q) { return QPDFEmbeddedFileDocumentHelper(q); });
+        .def_prop_ro("acroform",
+            [](QPDF &q) {
+                QpdfLockGuard lock(&q);
+                return QPDFAcroFormDocumentHelper(q);
+            })
+        .def_prop_ro("attachments",
+            [](QPDF &q) {
+                QpdfLockGuard lock(&q);
+                return QPDFEmbeddedFileDocumentHelper(q);
+            })
+        .def("_acquire_lock",
+            [](QPDF &q) {
+                auto *m = QpdfRegistry::instance().lookup(&q);
+                if (m)
+                    m->lock();
+            })
+        .def("_release_lock", [](QPDF &q) {
+            auto *m = QpdfRegistry::instance().lookup(&q);
+            if (m)
+                m->unlock();
+        });
 }
