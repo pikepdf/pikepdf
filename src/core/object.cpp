@@ -1472,7 +1472,20 @@ void init_object(py::module_ &m)
         py::arg("op"));
     m.def("_Null", &QPDFObjectHandle::newNull, "Construct a PDF Null object");
 
-    py::class_<QPDFObjectHandle::ParserCallbacks, PyParserCallbacks>(m, "StreamParser")
+    // GC traversal slots for the StreamParser trampoline. Enables
+    // Py_TPFLAGS_HAVE_GC so Python's cyclic GC can track instances of
+    // user subclasses and break type-level reference cycles at shutdown.
+    static PyType_Slot streamparser_gc_slots[] = {
+        {Py_tp_traverse,
+            (void *)+[](PyObject *self, visitproc visit, void *arg) -> int {
+                Py_VISIT(Py_TYPE(self));
+                return 0;
+            }},
+        {Py_tp_clear, (void *)+[](PyObject *) -> int { return 0; }},
+        {0, nullptr}};
+
+    py::class_<QPDFObjectHandle::ParserCallbacks, PyParserCallbacks>(
+        m, "StreamParser", py::type_slots(streamparser_gc_slots))
         .def(py::init<>(), "You must call ``super.__init__()`` in subclasses.")
         // LCOV_EXCL_START
         // coverage misses the virtual function call ::handleObject here.

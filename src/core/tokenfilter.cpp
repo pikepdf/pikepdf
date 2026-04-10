@@ -53,6 +53,18 @@ public:
     }
 };
 
+// GC traversal slots for the TokenFilter trampoline. Enables
+// Py_TPFLAGS_HAVE_GC so Python's cyclic GC can track instances of
+// user subclasses and break type-level reference cycles at shutdown.
+static PyType_Slot tokenfilter_gc_slots[] = {
+    {Py_tp_traverse,
+        (void *)+[](PyObject *self, visitproc visit, void *arg) -> int {
+            Py_VISIT(Py_TYPE(self));
+            return 0;
+        }},
+    {Py_tp_clear, (void *)+[](PyObject *) -> int { return 0; }},
+    {0, nullptr}};
+
 void init_tokenfilter(py::module_ &m)
 {
     py::enum_<QPDFTokenizer::token_type_e>(m, "TokenType")
@@ -94,7 +106,8 @@ void init_tokenfilter(py::module_ &m)
 
     py::class_<QPDFObjectHandle::TokenFilter> qpdftokenfilter(m, "_QPDFTokenFilter");
 
-    py::class_<TokenFilter, TokenFilterTrampoline>(m, "TokenFilter", qpdftokenfilter)
+    py::class_<TokenFilter, TokenFilterTrampoline>(
+        m, "TokenFilter", qpdftokenfilter, py::type_slots(tokenfilter_gc_slots))
         .def(py::init<>())
         .def("handle_token", &TokenFilter::handle_token, py::arg("token"));
 }
