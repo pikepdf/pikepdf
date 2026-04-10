@@ -47,7 +47,8 @@ std::string label_string_from_dict(QPDFObjectHandle label_dict)
 void init_page(py::module_ &m)
 {
     auto page_class =
-        py::class_<QPDFPageObjectHelper, QPDFObjectHelper>(m, "Page")
+        py::class_<QPDFPageObjectHelper, QPDFObjectHelper>(
+            m, "Page", py::type_slots(pikepdf_gc_slots))
             .def(py::init<QPDFObjectHandle &>())
             .def("__init__",
                 [](QPDFPageObjectHelper *self, QPDFPageObjectHelper &poh) {

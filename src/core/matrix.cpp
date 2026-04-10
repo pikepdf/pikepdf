@@ -36,7 +36,7 @@ void init_matrix(py::module_ &m)
     using Point = std::pair<double, double>;
     using Rect = QPDFObjectHandle::Rectangle;
 
-    py::class_<QPDFMatrix>(m, "Matrix")
+    py::class_<QPDFMatrix>(m, "Matrix", py::type_slots(pikepdf_gc_slots))
         .def(py::init<>())
         .def_static("identity", []() { return QPDFMatrix(); })
         .def(py::init<double, double, double, double, double, double>(),

@@ -53,18 +53,6 @@ public:
     }
 };
 
-// GC traversal slots for the TokenFilter trampoline. Enables
-// Py_TPFLAGS_HAVE_GC so Python's cyclic GC can track instances of
-// user subclasses and break type-level reference cycles at shutdown.
-static PyType_Slot tokenfilter_gc_slots[] = {
-    {Py_tp_traverse,
-        (void *)+[](PyObject *self, visitproc visit, void *arg) -> int {
-            Py_VISIT(Py_TYPE(self));
-            return 0;
-        }},
-    {Py_tp_clear, (void *)+[](PyObject *) -> int { return 0; }},
-    {0, nullptr}};
-
 void init_tokenfilter(py::module_ &m)
 {
     py::enum_<QPDFTokenizer::token_type_e>(m, "TokenType")
@@ -87,7 +75,7 @@ void init_tokenfilter(py::module_ &m)
         .value("comment", QPDFTokenizer::token_type_e::tt_comment)
         .value("inline_image", QPDFTokenizer::token_type_e::tt_inline_image);
 
-    py::class_<QPDFTokenizer::Token>(m, "Token")
+    py::class_<QPDFTokenizer::Token>(m, "Token", py::type_slots(pikepdf_gc_slots))
         .def("__init__",
             [](QPDFTokenizer::Token *self,
                 QPDFTokenizer::token_type_e type,
@@ -104,10 +92,11 @@ void init_tokenfilter(py::module_ &m)
         .def_prop_ro("error_msg", &QPDFTokenizer::Token::getErrorMessage)
         .def("__eq__", &QPDFTokenizer::Token::operator==, py::is_operator());
 
-    py::class_<QPDFObjectHandle::TokenFilter> qpdftokenfilter(m, "_QPDFTokenFilter");
+    py::class_<QPDFObjectHandle::TokenFilter> qpdftokenfilter(
+        m, "_QPDFTokenFilter", py::type_slots(pikepdf_gc_slots));
 
     py::class_<TokenFilter, TokenFilterTrampoline>(
-        m, "TokenFilter", qpdftokenfilter, py::type_slots(tokenfilter_gc_slots))
+        m, "TokenFilter", qpdftokenfilter, py::type_slots(pikepdf_gc_slots))
         .def(py::init<>())
         .def("handle_token", &TokenFilter::handle_token, py::arg("token"));
 }

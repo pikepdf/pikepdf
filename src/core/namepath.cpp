@@ -56,7 +56,7 @@ std::string NamePath::format_full() const
 
 void init_namepath(py::module_ &m)
 {
-    py::class_<NamePath>(m, "_NamePath")
+    py::class_<NamePath>(m, "_NamePath", py::type_slots(pikepdf_gc_slots))
         .def(py::init<>())
         .def("__init__",
             [](NamePath *self, py::args args) {

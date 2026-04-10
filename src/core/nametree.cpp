@@ -15,7 +15,8 @@ using NameTree = QPDFNameTreeObjectHelper;
 
 void init_nametree(py::module_ &m)
 {
-    py::class_<NameTree, QPDFObjectHelper>(m, "NameTree")
+    py::class_<NameTree, QPDFObjectHelper>(
+        m, "NameTree", py::type_slots(pikepdf_gc_slots))
         .def(
             "__init__",
             [](NameTree *self, QPDFObjectHandle &oh, bool auto_repair) {

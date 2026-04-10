@@ -42,7 +42,7 @@ QPDFFileSpecObjectHelper create_filespec(QPDF &q,
 void init_embeddedfiles(py::module_ &m)
 {
     py::class_<QPDFFileSpecObjectHelper, QPDFObjectHelper>(
-        m, "AttachedFileSpec") // /Type /Filespec
+        m, "AttachedFileSpec", py::type_slots(pikepdf_gc_slots)) // /Type /Filespec
         .def(
             "__init__",
             [](QPDFFileSpecObjectHelper *self,
@@ -121,7 +121,7 @@ void init_embeddedfiles(py::module_ &m)
             py::rv_policy::reference_internal);
 
     py::class_<QPDFEFStreamObjectHelper, QPDFObjectHelper>(
-        m, "AttachedFile") // /Type /EmbeddedFile
+        m, "AttachedFile", py::type_slots(pikepdf_gc_slots)) // /Type /EmbeddedFile
         .def_prop_ro("size",
             &QPDFEFStreamObjectHelper::getSize // LCOV_EXCL_LINE
             )
@@ -141,7 +141,8 @@ void init_embeddedfiles(py::module_ &m)
             &QPDFEFStreamObjectHelper::getModDate,
             &QPDFEFStreamObjectHelper::setModDate);
 
-    py::class_<QPDFEmbeddedFileDocumentHelper>(m, "Attachments")
+    py::class_<QPDFEmbeddedFileDocumentHelper>(
+        m, "Attachments", py::type_slots(pikepdf_gc_slots))
         .def_prop_ro(
             "_has_embedded_files", &QPDFEmbeddedFileDocumentHelper::hasEmbeddedFiles)
         .def("_attach_data",

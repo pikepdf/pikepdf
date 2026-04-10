@@ -270,7 +270,8 @@ py::bytes unparse_content_stream(py::iterable contentstream)
 
 void init_parsers(py::module_ &m)
 {
-    py::class_<ContentStreamInstruction>(m, "ContentStreamInstruction")
+    py::class_<ContentStreamInstruction>(
+        m, "ContentStreamInstruction", py::type_slots(pikepdf_gc_slots))
         .def(py::init<const ContentStreamInstruction &>())
         .def("__init__",
             [](ContentStreamInstruction *self,
@@ -311,7 +312,8 @@ void init_parsers(py::module_ &m)
             return ss.str();
         });
 
-    py::class_<ContentStreamInlineImage>(m, "ContentStreamInlineImage")
+    py::class_<ContentStreamInlineImage>(
+        m, "ContentStreamInlineImage", py::type_slots(pikepdf_gc_slots))
         .def(py::init<const ContentStreamInlineImage &>())
         .def("__init__",
             [](ContentStreamInlineImage *self, py::object iimage) {

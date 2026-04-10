@@ -54,3 +54,14 @@ def test_import_pikepdf_does_not_leak():
 def test_import_pikepdf_core_does_not_leak():
     """Importing pikepdf._core directly must not leak."""
     _assert_no_nanobind_leaks(_run_and_capture("import pikepdf._core"))
+
+
+def test_object_creation_does_not_leak():
+    """Creating and destroying Objects must not leak."""
+    _assert_no_nanobind_leaks(
+        _run_and_capture(
+            "import pikepdf; pdf = pikepdf.Pdf.new(); "
+            "pdf.add_blank_page(); m = pikepdf.Matrix(); "
+            "del m, pdf"
+        )
+    )

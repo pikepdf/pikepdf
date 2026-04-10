@@ -284,6 +284,12 @@ void init_object(py::module_ &m)
     // Buffer protocol implementation for Buffer class via PyType_Slot.
     // This is needed because nanobind removed py::buffer_protocol().
     static PyType_Slot buffer_slots[] = {
+        {Py_tp_traverse,
+            (void *)+[](PyObject *self, visitproc visit, void *arg) -> int {
+                Py_VISIT(Py_TYPE(self));
+                return 0;
+            }},
+        {Py_tp_clear, (void *)+[](PyObject *) -> int { return 0; }},
         {Py_bf_getbuffer,
             (void *)+[](PyObject *exporter, Py_buffer *view, int flags) -> int {
                 if (view == nullptr) {
@@ -319,7 +325,7 @@ void init_object(py::module_ &m)
             })
         .def("__len__", [](Buffer &b) { return b.getSize(); });
 
-    py::bind_vector<ObjectList>(m, "_ObjectList") // Autoformat fix
+    py::bind_vector<ObjectList>(m, "_ObjectList", py::type_slots(pikepdf_gc_slots))
         .def("__repr__", [](ObjectList &ol) {
             std::ostringstream ss;
             ss.imbue(std::locale::classic());
@@ -337,13 +343,13 @@ void init_object(py::module_ &m)
             return ss.str();
         });
 
-    py::bind_map<ObjectMap>(m, "_ObjectMapping");
+    py::bind_map<ObjectMap>(m, "_ObjectMapping", py::type_slots(pikepdf_gc_slots));
 
 // MSVC raises a false positive warning here
 #if _MSC_VER
 #    pragma warning(suppress : 4267)
 #endif
-    py::class_<QPDFObjectHandle>(m, "Object")
+    py::class_<QPDFObjectHandle>(m, "Object", py::type_slots(pikepdf_gc_slots))
         .def_prop_ro("_type_code", &QPDFObjectHandle::getTypeCode)
         .def_prop_ro("_type_code_int",
             [](QPDFObjectHandle &self) { return static_cast<int>(self.getTypeCode()); })
@@ -1472,20 +1478,8 @@ void init_object(py::module_ &m)
         py::arg("op"));
     m.def("_Null", &QPDFObjectHandle::newNull, "Construct a PDF Null object");
 
-    // GC traversal slots for the StreamParser trampoline. Enables
-    // Py_TPFLAGS_HAVE_GC so Python's cyclic GC can track instances of
-    // user subclasses and break type-level reference cycles at shutdown.
-    static PyType_Slot streamparser_gc_slots[] = {
-        {Py_tp_traverse,
-            (void *)+[](PyObject *self, visitproc visit, void *arg) -> int {
-                Py_VISIT(Py_TYPE(self));
-                return 0;
-            }},
-        {Py_tp_clear, (void *)+[](PyObject *) -> int { return 0; }},
-        {0, nullptr}};
-
     py::class_<QPDFObjectHandle::ParserCallbacks, PyParserCallbacks>(
-        m, "StreamParser", py::type_slots(streamparser_gc_slots))
+        m, "StreamParser", py::type_slots(pikepdf_gc_slots))
         .def(py::init<>(), "You must call ``super.__init__()`` in subclasses.")
         // LCOV_EXCL_START
         // coverage misses the virtual function call ::handleObject here.
@@ -1499,7 +1493,7 @@ void init_object(py::module_ &m)
 
     // Since QPDFEmbeddedFileDocumentHelper::getEmbeddedFiles returns
     // std::map<std::string, std::shared_ptr<QPDFFileSpecObjectHelper>>
-    py::class_<QPDFObjectHelper>(m, "ObjectHelper")
+    py::class_<QPDFObjectHelper>(m, "ObjectHelper", py::type_slots(pikepdf_gc_slots))
         .def(
             "__eq__",
             [](QPDFObjectHelper &self, QPDFObjectHelper &other) {

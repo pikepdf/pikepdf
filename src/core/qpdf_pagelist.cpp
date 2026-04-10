@@ -175,11 +175,12 @@ QPDFPageObjectHelper PageListIterator::next()
 
 void init_pagelist(py::module_ &m)
 {
-    py::class_<PageListIterator>(m, "_PageListIterator")
+    py::class_<PageListIterator>(
+        m, "_PageListIterator", py::type_slots(pikepdf_gc_slots))
         .def("__iter__", [](PageListIterator &it) { return it; })
         .def("__next__", &PageListIterator::next);
 
-    py::class_<PageList>(m, "PageList")
+    py::class_<PageList>(m, "PageList", py::type_slots(pikepdf_gc_slots))
         .def(
             "__getitem__",
             [](PageList &pl, py::ssize_t index) {

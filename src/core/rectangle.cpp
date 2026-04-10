@@ -10,7 +10,7 @@ void init_rectangle(py::module_ &m)
     using Point = std::pair<double, double>;
     using Rect = QPDFObjectHandle::Rectangle;
 
-    py::class_<Rect>(m, "Rectangle")
+    py::class_<Rect>(m, "Rectangle", py::type_slots(pikepdf_gc_slots))
         .def(py::init<double, double, double, double>())
         .def("__init__",
             [](Rect *self, QPDFObjectHandle &h) {

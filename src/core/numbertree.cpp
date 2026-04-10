@@ -17,7 +17,8 @@ using NumberTree = QPDFNumberTreeObjectHelper;
 
 void init_numbertree(py::module_ &m)
 {
-    py::class_<NumberTree, QPDFObjectHelper>(m, "NumberTree")
+    py::class_<NumberTree, QPDFObjectHelper>(
+        m, "NumberTree", py::type_slots(pikepdf_gc_slots))
         .def(
             "__init__",
             [](NumberTree *self, QPDFObjectHandle &oh, bool auto_repair) {

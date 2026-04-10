@@ -36,7 +36,8 @@ void init_acroform(py::module_ &m)
         .value("ch_commit_on_sel_change",
             pdf_form_field_flag_e::ff_ch_commit_on_sel_change);
 
-    py::class_<QPDFFormFieldObjectHelper, QPDFObjectHelper>(m, "AcroFormField")
+    py::class_<QPDFFormFieldObjectHelper, QPDFObjectHelper>(
+        m, "AcroFormField", py::type_slots(pikepdf_gc_slots))
         .def(py::init<QPDFObjectHandle &>(), py::keep_alive<0, 1>())
         .def_prop_ro("is_null", &QPDFFormFieldObjectHelper::isNull)
         .def_prop_ro("parent", &QPDFFormFieldObjectHelper::getParent)
@@ -116,7 +117,8 @@ void init_acroform(py::module_ &m)
             &QPDFFormFieldObjectHelper::generateAppearance,
             py::arg("annot"));
 
-    py::class_<QPDFAcroFormDocumentHelper>(m, "AcroForm")
+    py::class_<QPDFAcroFormDocumentHelper>(
+        m, "AcroForm", py::type_slots(pikepdf_gc_slots))
         .def(py::init<QPDF &>(), py::keep_alive<0, 1>())
         .def_prop_ro("exists", &QPDFAcroFormDocumentHelper::hasAcroForm)
         .def("add_field", &QPDFAcroFormDocumentHelper::addFormField, py::arg("field"))

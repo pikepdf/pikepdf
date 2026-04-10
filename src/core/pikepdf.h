@@ -28,6 +28,18 @@ using uint = unsigned int;
 // Most nanobind types share names with pybind11 (py::object, py::str, etc.).
 namespace py = nanobind;
 
+// GC traversal slots for all nanobind-bound types. Enables Py_TPFLAGS_HAVE_GC
+// so Python's cyclic GC can break type-level reference cycles (type -> method
+// descriptors -> type) at shutdown. See nanobind refleaks docs.
+inline PyType_Slot pikepdf_gc_slots[] = {
+    {Py_tp_traverse,
+        (void *)+[](PyObject *self, visitproc visit, void *arg) -> int {
+            Py_VISIT(Py_TYPE(self));
+            return 0;
+        }},
+    {Py_tp_clear, (void *)+[](PyObject *) -> int { return 0; }},
+    {0, nullptr}};
+
 // From object_convert.cpp
 py::object decimal_from_pdfobject(QPDFObjectHandle h);
 
