@@ -157,7 +157,12 @@ std::string preview_stream_data(QPDFObjectHandle h, uint recursion_depth)
         return "<...>";
     }
 
-    auto buffer = h.getStreamData();
+    std::shared_ptr<Buffer> buffer;
+    try {
+        buffer = h.getStreamData();
+    } catch (QPDFExc &) {
+        return "<...>";
+    }
     auto data = buffer->getBuffer();
 
     // Use py::bytes to format output like Python does

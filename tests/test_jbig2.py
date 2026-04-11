@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 from collections.abc import Callable
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -46,11 +48,25 @@ def jbig2(first_image_in):
     return first_image_in('jbig2.pdf')
 
 
-# Unfortunately pytest cannot test for this using "with pytest.warns(...)".
-# Suppression is the best we can manage
-suppress_unraisable_jbigdec_error_warning = pytest.mark.filterwarnings(
-    "ignore:.*jbig2dec error.*:pytest.PytestUnraisableExceptionWarning"
-)
+@contextmanager
+def expect_unraisable_exception():
+    """Assert that an unraisable exception occurs, suppressing pytest's warning.
+
+    pytest defers PytestUnraisableExceptionWarning until after the test body,
+    so pytest.warns() cannot capture it. We intercept sys.unraisablehook directly.
+    """
+    captured = []
+    old_hook = sys.unraisablehook
+
+    def hook(unraisable):
+        captured.append(unraisable)
+
+    sys.unraisablehook = hook
+    try:
+        yield
+    finally:
+        sys.unraisablehook = old_hook
+    assert captured, "Expected an unraisable exception but none occurred"
 
 
 @pytest.fixture
@@ -78,7 +94,6 @@ def test_check_specialized_decoder_fallback(
         assert len(problems) == 0
 
 
-@suppress_unraisable_jbigdec_error_warning
 def test_jbig2_not_available(jbig2: Any, patch_jbig2dec: Callable[..., None]):
     xobj, _pdf = jbig2
     pim = PdfImage(xobj)
@@ -156,7 +171,6 @@ def test_jbig2_global_palette(first_image_in):
     assert im.getpixel((0, 0)) == 255  # Ensure loaded
 
 
-@suppress_unraisable_jbigdec_error_warning
 def test_jbig2_error(first_image_in, patch_jbig2dec: Callable[..., None]):
     xobj, _pdf = first_image_in('jbig2global.pdf')
     pim = PdfImage(xobj)
@@ -169,11 +183,11 @@ def test_jbig2_error(first_image_in, patch_jbig2dec: Callable[..., None]):
     patch_jbig2dec(run_claim_broken)
 
     pim = PdfImage(xobj)
-    with pytest.raises(PdfError, match="unfilterable stream"):
-        pim.as_pil_image()
+    with expect_unraisable_exception():
+        with pytest.raises(PdfError, match="unfilterable stream"):
+            pim.as_pil_image()
 
 
-@suppress_unraisable_jbigdec_error_warning
 def test_jbig2_too_old(first_image_in, patch_jbig2dec: Callable[..., None]):
     xobj, _pdf = first_image_in('jbig2global.pdf')
     pim = PdfImage(xobj)
@@ -188,7 +202,6 @@ def test_jbig2_too_old(first_image_in, patch_jbig2dec: Callable[..., None]):
         pim.as_pil_image()
 
 
-@suppress_unraisable_jbigdec_error_warning
 def test_jbig2_reports_no_version(first_image_in, patch_jbig2dec: Callable[..., None]):
     xobj, _pdf = first_image_in('jbig2global.pdf')
     pim = PdfImage(xobj)
@@ -206,5 +219,6 @@ def test_jbig2_reports_no_version(first_image_in, patch_jbig2dec: Callable[..., 
     # Our patch to jbig2dec only provides a blank version string, or returns an error.
     # So we expect a PdfError here (and not an InvalidVersion or DependencyError).
     pim = PdfImage(xobj)
-    with pytest.raises(PdfError, match='read_bytes called on unfilterable stream'):
-        pim.as_pil_image()
+    with expect_unraisable_exception():
+        with pytest.raises(PdfError, match='read_bytes called on unfilterable stream'):
+            pim.as_pil_image()
