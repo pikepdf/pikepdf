@@ -717,9 +717,18 @@ def test_object_not_iterable():
 
 
 @pytest.mark.parametrize(
-    'obj', [Array([1]), Dictionary({'/A': 'b'}), Operator('q'), String('s')]
+    'obj_factory',
+    [
+        # Construct lazily so that module collection does not create persistent
+        # pikepdf.Object instances (which nanobind reports as shutdown leaks).
+        lambda: Array([1]),
+        lambda: Dictionary({'/A': 'b'}),
+        lambda: Operator('q'),
+        lambda: String('s'),
+    ],
 )
-def test_object_isinstance(obj):
+def test_object_isinstance(obj_factory):
+    obj = obj_factory()
     assert isinstance(obj, Array | Dictionary | Operator | String | Stream)
     assert isinstance(obj, type(obj))
     assert isinstance(obj, Object)

@@ -47,8 +47,10 @@ class MatrixStack:
     --> The CTM is valid again when all invalid CTMs are popped off the stack
     """
 
-    def __init__(self, initial_matrix: Matrix = Matrix.identity()) -> None:
+    def __init__(self, initial_matrix: Matrix | None = None) -> None:
         """Initializing the stack with the initial matrix."""
+        if initial_matrix is None:
+            initial_matrix = Matrix.identity()
         self._initial_matrix = initial_matrix
         self._stack: list[Matrix | None] = [self._initial_matrix]
 
@@ -91,12 +93,14 @@ class MatrixStack:
 
 
 def get_objects_with_ctm(
-    page: Page, initial_matrix: Matrix = Matrix.identity()
+    page: Page, initial_matrix: Matrix | None = None
 ) -> list[tuple[str, Matrix]]:
     """Determines the current transformation matrix (CTM) for each drawn object.
 
     Filters objects with an invalid CTM.
     """
+    if initial_matrix is None:
+        initial_matrix = Matrix.identity()
     objects_with_ctm: list[
         tuple[str, Matrix]
     ] = []  # Stores the matrixes and the corresponding objects

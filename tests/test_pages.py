@@ -433,30 +433,39 @@ def test_page_index_foreign_page(fourpages, sandwich):
 
 
 @pytest.mark.parametrize(
-    'd, result, exc, excmsg',
+    'd_factory, result, exc, excmsg',
     [
-        (Dictionary(), '', None, None),
-        (Dictionary(St=1), '', None, None),
-        (Dictionary(S=Name.D, St=1), '1', None, None),
-        (Dictionary(P='foo'), 'foo', None, None),
-        (Dictionary(P='A', St=2), 'A', None, None),
-        (Dictionary(P='A-', S=Name.D, St=2), 'A-2', None, None),
-        (Dictionary(S=Name.R, St=42), 'XLII', None, None),
-        (Dictionary(S=Name.r, St=1729), 'mdccxxix', None, None),
-        (Dictionary(P="Appendix-", S=Name.a, St=261), 'Appendix-ja', None, None),
-        (42, '42', None, None),
-        (Dictionary(S=Name.R, St=-42), None, ValueError, "Can't represent"),
-        (Dictionary(S=Name.A, St=-42), None, ValueError, "Can't represent"),
+        # Use lambdas so pikepdf objects (Dictionary, Name) are constructed
+        # at test time, not at module collection time (avoids nanobind
+        # shutdown leak warnings).
+        (lambda: Dictionary(), '', None, None),
+        (lambda: Dictionary(St=1), '', None, None),
+        (lambda: Dictionary(S=Name.D, St=1), '1', None, None),
+        (lambda: Dictionary(P='foo'), 'foo', None, None),
+        (lambda: Dictionary(P='A', St=2), 'A', None, None),
+        (lambda: Dictionary(P='A-', S=Name.D, St=2), 'A-2', None, None),
+        (lambda: Dictionary(S=Name.R, St=42), 'XLII', None, None),
+        (lambda: Dictionary(S=Name.r, St=1729), 'mdccxxix', None, None),
+        (lambda: Dictionary(P="Appendix-", S=Name.a, St=261), 'Appendix-ja', None, None),
+        (lambda: 42, '42', None, None),
+        (lambda: Dictionary(S=Name.R, St=-42), None, ValueError, "Can't represent"),
+        (lambda: Dictionary(S=Name.A, St=-42), None, ValueError, "Can't represent"),
         (
-            Dictionary(S=Name.r, St=Name.Invalid),
+            lambda: Dictionary(S=Name.r, St=Name.Invalid),
             'i',
             UserWarning,
             'invalid non-integer start value',
         ),
-        (Dictionary(S="invalid", St=42), '', UserWarning, 'invalid page label style'),
+        (
+            lambda: Dictionary(S="invalid", St=42),
+            '',
+            UserWarning,
+            'invalid page label style',
+        ),
     ],
 )
-def test_page_label_dicts(d, result, exc, excmsg):
+def test_page_label_dicts(d_factory, result, exc, excmsg):
+    d = d_factory()
     if exc:
         if issubclass(exc, Warning):
             with pytest.warns(exc, match=excmsg):

@@ -302,12 +302,16 @@ def valid_random_image_spec(
     bpcs=st.sampled_from([1, 2, 4, 8, 16]),
     widths=st.integers(min_value=1, max_value=16),
     heights=st.integers(min_value=1, max_value=16),
-    colorspaces=st.sampled_from([Name.DeviceGray, Name.DeviceRGB, Name.DeviceCMYK]),
+    # Use strings for colorspace names and convert to Name inside the function
+    # to avoid creating persistent pikepdf.Object instances at module level
+    # (which nanobind reports as shutdown leaks).
+    colorspaces=st.sampled_from(['DeviceGray', 'DeviceRGB', 'DeviceCMYK']),
 ):
     bpc = draw(bpcs)
     width = draw(widths)
     height = draw(heights)
-    colorspace = draw(colorspaces)
+    colorspace_name = draw(colorspaces)
+    colorspace = Name(f'/{colorspace_name}')
 
     min_imbytes = width * height * (2 if bpc == 16 else 1)
     if colorspace == Name.DeviceRGB:
@@ -486,13 +490,13 @@ def valid_random_palette_image_spec(
     bpcs=st.sampled_from([1, 2, 4, 8]),
     widths=st.integers(min_value=1, max_value=16),
     heights=st.integers(min_value=1, max_value=16),
-    colorspaces=st.sampled_from([Name.DeviceGray, Name.DeviceRGB, Name.DeviceCMYK]),
+    colorspaces=st.sampled_from(['DeviceGray', 'DeviceRGB', 'DeviceCMYK']),
     palette=None,
 ):
     bpc = draw(bpcs)
     width = draw(widths)
     height = draw(heights)
-    colorspace = draw(colorspaces)
+    colorspace = Name(f'/{draw(colorspaces)}')
     hival = draw(st.integers(min_value=0, max_value=(2**bpc) - 1))
 
     imbytes = draw(imagelike_data(width, height, bpc, (0, hival)))
@@ -836,13 +840,17 @@ GRAY_RGB_PALETTE = b''.join(bytes([gray, gray, gray]) for gray in range(256))
 
 
 @pytest.mark.parametrize(
-    'base, hival, bits, palette, expect_type, expect_mode',
+    'base_factory, hival, bits, palette, expect_type, expect_mode',
     [
-        (Name.DeviceGray, 4, 8, b'\x00\x40\x80\xff', 'L', 'P'),
-        (Name.DeviceCMYK, 4, 8, CMYK_PALETTE, 'CMYK', 'P'),
-        (Name.DeviceGray, 4, 4, b'\x04\x08\x02\x0f', 'L', 'P'),
+        # Use lambdas so pikepdf objects are constructed at test time, not at
+        # module collection time (avoids nanobind shutdown leak warnings).
+        (lambda: Name.DeviceGray, 4, 8, b'\x00\x40\x80\xff', 'L', 'P'),
+        (lambda: Name.DeviceCMYK, 4, 8, CMYK_PALETTE, 'CMYK', 'P'),
+        (lambda: Name.DeviceGray, 4, 4, b'\x04\x08\x02\x0f', 'L', 'P'),
         (
-            Array([Name.CalRGB, Dictionary(WhitePoint=Array([1.0, 1.0, 1.0]))]),
+            lambda: Array(
+                [Name.CalRGB, Dictionary(WhitePoint=Array([1.0, 1.0, 1.0]))]
+            ),
             255,
             8,
             GRAY_RGB_PALETTE,
@@ -851,7 +859,8 @@ GRAY_RGB_PALETTE = b''.join(bytes([gray, gray, gray]) for gray in range(256))
         ),
     ],
 )
-def test_palette_nonrgb(base, hival, bits, palette, expect_type, expect_mode):
+def test_palette_nonrgb(base_factory, hival, bits, palette, expect_type, expect_mode):
+    base = base_factory()
     pdf = pikepdf.new()
     imobj = Stream(
         pdf,
@@ -1044,7 +1053,7 @@ def test_devicen():
 @given(
     spec=valid_random_image_spec(
         bpcs=st.sampled_from([2, 4]),
-        colorspaces=st.just(Name.DeviceGray),
+        colorspaces=st.just('DeviceGray'),
         widths=st.integers(1, 7),
         heights=st.integers(1, 7),
     )

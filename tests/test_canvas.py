@@ -47,9 +47,13 @@ FONTS = {
     # supported by our current limited implementation. All the Type1 fonts I see reference
     # built-in fonts with no widths, or have difference maps, and MacRoman doesn't seem to
     # really exist in the wild anymore as far as I can tell.
-    'arial-truetype-winansi': ('form_dd0293.pdf', 'form', Name('/ArialMT')),
-    'arialbold-truetype-winansi': ('form_dd0293.pdf', 'form', Name('/Arial-BoldMT')),
-    'times-truetype-winansi': ('form_dd0293.pdf', 'form', Name('/TimesNewRomanPSMT')),
+    #
+    # Use plain strings for font names instead of Name('/...') to avoid creating
+    # persistent pikepdf.Object instances at module import time (which nanobind
+    # reports as shutdown leaks).
+    'arial-truetype-winansi': ('form_dd0293.pdf', 'form', '/ArialMT'),
+    'arialbold-truetype-winansi': ('form_dd0293.pdf', 'form', '/Arial-BoldMT'),
+    'times-truetype-winansi': ('form_dd0293.pdf', 'form', '/TimesNewRomanPSMT'),
 }
 
 
@@ -171,64 +175,72 @@ class TestContentStreamBuilder:
         assert builder1.build() == b'q\n'
 
     @pytest.mark.parametrize(
-        'method,args,operator',
+        'method,args_factory,operator',
         [
-            (ContentStreamBuilder.push, (), 'q'),
-            (ContentStreamBuilder.pop, (), 'Q'),
-            (ContentStreamBuilder.cm, (Matrix(),), 'cm'),
+            # Use lambdas for args containing pikepdf objects (Matrix, Name)
+            # so they are constructed at test time, not at module collection
+            # time (which would create persistent instances that nanobind
+            # reports as shutdown leaks).
+            (ContentStreamBuilder.push, lambda: (), 'q'),
+            (ContentStreamBuilder.pop, lambda: (), 'Q'),
+            (ContentStreamBuilder.cm, lambda: (Matrix(),), 'cm'),
             (
                 ContentStreamBuilder.begin_marked_content_proplist,
-                (Name.Test, 42),
+                lambda: (Name.Test, 42),
                 'BDC',
             ),
-            (ContentStreamBuilder.end_marked_content, (), 'EMC'),
-            (ContentStreamBuilder.begin_marked_content, (Name.Foo,), 'BMC'),
-            (ContentStreamBuilder.begin_text, (), 'BT'),
-            (ContentStreamBuilder.end_text, (), 'ET'),
-            (ContentStreamBuilder.set_text_font, (Name.Test, 12), 'Tf'),
-            (ContentStreamBuilder.set_text_font, (Name.Test, 12.5), 'Tf'),
-            (ContentStreamBuilder.set_text_font, (Name.Test, Decimal('12.5')), 'Tf'),
-            (ContentStreamBuilder.set_text_char_spacing, (1,), 'Tc'),
-            (ContentStreamBuilder.set_text_char_spacing, (0.5,), 'Tc'),
-            (ContentStreamBuilder.set_text_char_spacing, (Decimal('1'),), 'Tc'),
-            (ContentStreamBuilder.set_text_word_spacing, (1,), 'Tw'),
-            (ContentStreamBuilder.set_text_word_spacing, (0.5,), 'Tw'),
-            (ContentStreamBuilder.set_text_word_spacing, (Decimal('1'),), 'Tw'),
-            (ContentStreamBuilder.set_text_leading, (13,), 'TL'),
-            (ContentStreamBuilder.set_text_leading, (13.5,), 'TL'),
-            (ContentStreamBuilder.set_text_leading, (Decimal('13.5'),), 'TL'),
-            (ContentStreamBuilder.set_text_matrix, (Matrix(),), "Tm"),
-            (ContentStreamBuilder.set_text_rendering, (3,), "Tr"),
-            (ContentStreamBuilder.set_text_horizontal_scaling, (100.0,), "Tz"),
+            (ContentStreamBuilder.end_marked_content, lambda: (), 'EMC'),
+            (ContentStreamBuilder.begin_marked_content, lambda: (Name.Foo,), 'BMC'),
+            (ContentStreamBuilder.begin_text, lambda: (), 'BT'),
+            (ContentStreamBuilder.end_text, lambda: (), 'ET'),
+            (ContentStreamBuilder.set_text_font, lambda: (Name.Test, 12), 'Tf'),
+            (ContentStreamBuilder.set_text_font, lambda: (Name.Test, 12.5), 'Tf'),
+            (
+                ContentStreamBuilder.set_text_font,
+                lambda: (Name.Test, Decimal('12.5')),
+                'Tf',
+            ),
+            (ContentStreamBuilder.set_text_char_spacing, lambda: (1,), 'Tc'),
+            (ContentStreamBuilder.set_text_char_spacing, lambda: (0.5,), 'Tc'),
+            (ContentStreamBuilder.set_text_char_spacing, lambda: (Decimal('1'),), 'Tc'),
+            (ContentStreamBuilder.set_text_word_spacing, lambda: (1,), 'Tw'),
+            (ContentStreamBuilder.set_text_word_spacing, lambda: (0.5,), 'Tw'),
+            (ContentStreamBuilder.set_text_word_spacing, lambda: (Decimal('1'),), 'Tw'),
+            (ContentStreamBuilder.set_text_leading, lambda: (13,), 'TL'),
+            (ContentStreamBuilder.set_text_leading, lambda: (13.5,), 'TL'),
+            (ContentStreamBuilder.set_text_leading, lambda: (Decimal('13.5'),), 'TL'),
+            (ContentStreamBuilder.set_text_matrix, lambda: (Matrix(),), "Tm"),
+            (ContentStreamBuilder.set_text_rendering, lambda: (3,), "Tr"),
+            (ContentStreamBuilder.set_text_horizontal_scaling, lambda: (100.0,), "Tz"),
             (
                 ContentStreamBuilder.show_text_with_kerning,
-                (b'A', 120, b'W', 120, b'A', 95, b'Y'),
+                lambda: (b'A', 120, b'W', 120, b'A', 95, b'Y'),
                 "TJ",
             ),
-            (ContentStreamBuilder.show_text_line, (b'hello world',), "'"),
+            (ContentStreamBuilder.show_text_line, lambda: (b'hello world',), "'"),
             (
                 ContentStreamBuilder.show_text_line_with_spacing,
-                (b'hello world', 0.25, 0.25),
+                lambda: (b'hello world', 0.25, 0.25),
                 '"',
             ),
-            (ContentStreamBuilder.move_cursor, (1, 2), "Td"),
-            (ContentStreamBuilder.move_cursor_new_line, (), "T*"),
-            (ContentStreamBuilder.stroke_and_close, (), "s"),
-            (ContentStreamBuilder.fill, (), "f"),
-            (ContentStreamBuilder.append_rectangle, (10, 10, 40, 40), "re"),
-            (ContentStreamBuilder.set_stroke_color, (1, 0, 1), "RG"),
-            (ContentStreamBuilder.set_fill_color, (0, 1, 0), "rg"),
-            (ContentStreamBuilder.set_line_width, (5,), "w"),
-            (ContentStreamBuilder.line, (1, 2, 3, 4), "l"),
-            (ContentStreamBuilder.set_dashes, (), "d"),
-            (ContentStreamBuilder.set_dashes, (1,), "d"),
-            (ContentStreamBuilder.set_dashes, ([1, 2], 1), "d"),
-            (ContentStreamBuilder.draw_xobject, (Name.X,), "Do"),
+            (ContentStreamBuilder.move_cursor, lambda: (1, 2), "Td"),
+            (ContentStreamBuilder.move_cursor_new_line, lambda: (), "T*"),
+            (ContentStreamBuilder.stroke_and_close, lambda: (), "s"),
+            (ContentStreamBuilder.fill, lambda: (), "f"),
+            (ContentStreamBuilder.append_rectangle, lambda: (10, 10, 40, 40), "re"),
+            (ContentStreamBuilder.set_stroke_color, lambda: (1, 0, 1), "RG"),
+            (ContentStreamBuilder.set_fill_color, lambda: (0, 1, 0), "rg"),
+            (ContentStreamBuilder.set_line_width, lambda: (5,), "w"),
+            (ContentStreamBuilder.line, lambda: (1, 2, 3, 4), "l"),
+            (ContentStreamBuilder.set_dashes, lambda: (), "d"),
+            (ContentStreamBuilder.set_dashes, lambda: (1,), "d"),
+            (ContentStreamBuilder.set_dashes, lambda: ([1, 2], 1), "d"),
+            (ContentStreamBuilder.draw_xobject, lambda: (Name.X,), "Do"),
         ],
     )
-    def test_operators(self, method, operator, args):
+    def test_operators(self, method, operator, args_factory):
         builder = ContentStreamBuilder()
-        method(builder, *args)
+        method(builder, *args_factory())
         assert builder.build().endswith(Operator(operator).unparse() + b'\n')
 
 
