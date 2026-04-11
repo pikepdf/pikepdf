@@ -123,9 +123,8 @@ jobs:
     env:
       CIBW_BUILD: "*-${{ matrix.platform }}"
       CIBW_ENVIRONMENT: >-
-        INCLUDE="$INCLUDE;d:\\qpdf\\include"
-        LIB="$LIB;d:\\qpdf\\lib"
-        LIBPATH="$LIBPATH;d:\\qpdf\\lib"
+        QPDF_SOURCE_TREE="d:\\qpdf"
+        QPDF_BUILD_LIBDIR="d:\\qpdf\\lib"
     strategy:
       matrix:
         os: [windows-2022]
@@ -207,22 +206,17 @@ jobs:
           python -m pytest -nauto
           deactivate
 
-      - name: Install local project as editable
+      - name: Install local project as editable with coverage
         run: |
-          # pip install with --coverage is broken so we have to do it this horrible hacky way
-          # https://github.com/pypa/setuptools/issues/3025
-          # Install it with pip, or else dependencies won't be resolved (*sigh*)
-          python -m pip install -e .[test]
-          # Nuke the C++ extension but leave the Python install intact
-          rm -rf build/ src/pikepdf/_core*.so
-          # Rebuild the extension inplace with coverage
-          env CFLAGS="--coverage" CXXFLAGS="--coverage" python setup.py build_ext --inplace
+          # Build C++ extension with coverage flags via scikit-build-core
+          CMAKE_ARGS="-DCMAKE_C_FLAGS=--coverage;-DCMAKE_CXX_FLAGS=--coverage" \
+            python -m pip install -e .[test]
           python -m pytest -nauto --cov-report xml --cov=src
 
       - name: Generate C++ coverage reports
         run: |
           lcov --no-external --capture --directory . --output-file cpp_coverage_all.info
-          lcov --remove cpp_coverage_all.info '*/pybind11/*' -o cpp_coverage.info
+          lcov --remove cpp_coverage_all.info '*/nanobind/*' -o cpp_coverage.info
           rm cpp_coverage_all.info
 
       - name: Upload coverage to Codecov
