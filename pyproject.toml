@@ -149,6 +149,7 @@ inherit.environment = "append"
 environment.MACOSX_DEPLOYMENT_TARGET = "14.0"
 
 [tool.cibuildwheel.windows]
+before-build = "pip install delvewheel"
 repair-wheel-command = "delvewheel repair --add-path d:\\qpdf\\bin -w {dest_dir} {wheel}"
 
 [tool.mypy]

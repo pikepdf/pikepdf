@@ -211,16 +211,16 @@ jobs:
           # Install build deps so we can use --no-build-isolation
           python -m pip install "scikit-build-core>=0.10" "nanobind>=2.0"
           # Build C++ extension with coverage flags via scikit-build-core.
-          # --no-build-isolation + SKBUILD_BUILD_DIR keep .gcno files in build/
-          # so lcov can find them after tests generate .gcda files.
-          SKBUILD_BUILD_DIR=build \
-            CMAKE_ARGS="-DCMAKE_C_FLAGS=--coverage;-DCMAKE_CXX_FLAGS=--coverage" \
+          # --no-build-isolation + SKBUILD_BUILD_DIR keep .gcno/.gcda files
+          # in a persistent directory so lcov can find them after tests run.
+          SKBUILD_BUILD_DIR=build/coverage \
+            CMAKE_ARGS="-DCMAKE_CXX_FLAGS=--coverage -DCMAKE_SHARED_LINKER_FLAGS=--coverage" \
             python -m pip install --no-build-isolation -e .[test]
           python -m pytest -nauto --cov-report xml --cov=src
 
       - name: Generate C++ coverage reports
         run: |
-          lcov --no-external --capture --directory . --output-file cpp_coverage_all.info
+          lcov --no-external --capture --directory build/coverage --output-file cpp_coverage_all.info
           lcov --remove cpp_coverage_all.info '*/nanobind/*' -o cpp_coverage.info
           rm cpp_coverage_all.info
 

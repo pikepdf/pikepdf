@@ -46,10 +46,12 @@ pycov: clean-coverage-pycov
 
 .PHONY: build-cppcov
 build-cppcov:
-	env CFLAGS="--coverage" pip install --no-build-isolation -e .
+	SKBUILD_BUILD_DIR=build/coverage \
+	  CMAKE_ARGS="-DCMAKE_CXX_FLAGS=--coverage -DCMAKE_SHARED_LINKER_FLAGS=--coverage" \
+	  pip install --no-build-isolation -e .
 
 coverage/cpp.info: clean-coverage-cppcov build-cppcov pycov
-	lcov --no-external --capture --directory . --output-file coverage/cppall.info
+	lcov --no-external --capture --directory build/coverage --output-file coverage/cppall.info
 	lcov --remove coverage/cppall.info '*/nanobind/*' -o coverage/cpp.info
 
 coverage/cppcov: coverage/cpp.info
