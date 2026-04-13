@@ -51,8 +51,8 @@ build-cppcov:
 	  pip install --no-build-isolation -e .
 
 coverage/cpp.info: clean-coverage-cppcov build-cppcov pycov
-	lcov --no-external --capture --directory build/coverage --output-file coverage/cppall.info
-	lcov --remove coverage/cppall.info '*/nanobind/*' -o coverage/cpp.info
+	lcov --capture --directory build/coverage --output-file coverage/cppall.info
+	lcov --extract coverage/cppall.info '*/src/core/*' -o coverage/cpp.info
 
 coverage/cppcov: coverage/cpp.info
 	-mkdir -p coverage/cppcov

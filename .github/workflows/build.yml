@@ -220,8 +220,8 @@ jobs:
 
       - name: Generate C++ coverage reports
         run: |
-          lcov --no-external --capture --directory build/coverage --output-file cpp_coverage_all.info
-          lcov --remove cpp_coverage_all.info '*/nanobind/*' -o cpp_coverage.info
+          lcov --capture --directory build/coverage --output-file cpp_coverage_all.info
+          lcov --extract cpp_coverage_all.info '*/src/core/*' -o cpp_coverage.info
           rm cpp_coverage_all.info
 
       - name: Upload coverage to Codecov
