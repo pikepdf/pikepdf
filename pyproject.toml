@@ -11,7 +11,7 @@ cmake.build-type = "Release"
 
 [project]
 name = "pikepdf"
-version = "10.5.1"
+version = "10.6.0rc1"
 description = "Read, write, repair, and transform PDFs in Python, powered by qpdf"
 readme = "README.md"
 requires-python = ">=3.10"
