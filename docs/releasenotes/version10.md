@@ -12,6 +12,11 @@ pikepdf now declares unstable "support" for freethreading, and does not publish
 freethreading wheels. All tests seem to pass, but that's because the existing
 tests don't try to create race conditions. Must be compiled manually.
 
+## v10.6.0rc1
+
+- Replaced pybind11 with nanobind and added full freethreading support. pikepdf
+  binary size is now both ~20% smaller and about 10% faster thanks to nanobind.
+
 ## v10.5.1
 
 - Updated lockfile to avoid a PyJWT CVE. We only depend use PyJWT via pygithub
