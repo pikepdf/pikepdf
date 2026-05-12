@@ -294,7 +294,7 @@ class TestNamePathEdgeCases:
         """
         pdf = pikepdf.new()
         # The metaclass doesn't make the class itself indexable as a path
-        # This should raise an error (pybind11 won't recognize the class)
+        # This should raise an error (nanobind won't recognize the class)
         with pytest.raises(TypeError):
             pdf.Root[NamePath]  # noqa: B018 (pointless expression)
 

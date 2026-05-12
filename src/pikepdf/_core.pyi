@@ -3,10 +3,10 @@
 
 from __future__ import annotations
 
-# pybind11 does not generate type annotations yet, and mypy doesn't understand
-# the way we're augmenting C++ classes with Python methods as in
-# pikepdf/_methods.py. Thus, we need to manually spell out the resulting types
-# after augmenting.
+# nanobind can emit stubs via nanobind.stubgen, but we don't run that as part of
+# our build, and mypy doesn't understand the way we're augmenting C++ classes
+# with Python methods as in pikepdf/_methods.py. Thus, we need to manually spell
+# out the resulting types after augmenting.
 import datetime
 from abc import abstractmethod
 from collections.abc import (

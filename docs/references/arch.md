@@ -1,8 +1,10 @@
 # Architecture
 
-pikepdf uses [pybind11](https://github.com/pybind/pybind11) to bind the
-C++ interface of QPDF. pybind11 was selected after evaluating Cython, CFFI and
-SWIG as possible binding solutions.
+pikepdf uses [nanobind](https://github.com/wjakob/nanobind) to bind the
+C++ interface of QPDF. Earlier versions used
+[pybind11](https://github.com/pybind/pybind11), which was selected after
+evaluating Cython, CFFI and SWIG; pikepdf migrated to nanobind in v10 for
+better performance and free-threaded Python support.
 
 In addition to bindings pikepdf includes support code written in a mix of C++
 and Python, mainly to present a clean Pythonic interface to C++ and implement

@@ -117,7 +117,7 @@ pkg install py311-pikepdf
 To attempt a manual install, try something like:
 
 ```bash
-pkg install python3 py311-lxml py311-pip py311-pybind11 qpdf
+pkg install python3 py311-lxml py311-pip py311-nanobind qpdf
 pip install --user pikepdf
 ```
 

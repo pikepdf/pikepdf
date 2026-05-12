@@ -78,18 +78,23 @@ def augments(cls_cpp: type[Tcpp]):
     elsewhere in the support class or in the target class.
 
     For data fields to work, the target class must be
-    tagged ``py::dynamic_attr`` in pybind11.
+    tagged ``nb::dynamic_attr`` in nanobind.
 
-    Strictly, the target class does not have to be C++ or derived from pybind11.
+    Strictly, the target class does not have to be C++ or derived from nanobind.
     This works on pure Python classes too.
 
     THIS DOES NOT work for class methods.
 
-    (Alternative ideas: https://github.com/pybind/pybind11/issues/1074)
+    (Alternative ideas, originally raised against pybind11:
+    https://github.com/pybind/pybind11/issues/1074)
     """
     OVERRIDE_WHITELIST = {'__eq__', '__hash__', '__repr__'}
     if platform.python_implementation() == 'PyPy':
-        # Either PyPy or pybind11's interface to PyPy automatically adds a __getattr__
+        # Historical note: with pybind11 + PyPy we observed that either PyPy or
+        # pybind11's PyPy interface automatically added a __getattr__, so we
+        # whitelisted it here. nanobind does not target PyPy, so this branch is
+        # currently dead code. If PyPy support is ever revived, review how the
+        # binding library interacts with PyPy before relying on this.
         OVERRIDE_WHITELIST |= {'__getattr__'}  # pragma: no cover
 
     def class_augment(cls: type[T], cls_cpp: type[Tcpp] = cls_cpp) -> type[T]:
@@ -109,16 +114,17 @@ def augments(cls_cpp: type[Tcpp]):
                 if getattr(getattr(cls, name), '_augment_if_no_cpp', False):
                     # If tagged as "augment if no C++", we only want the binding to be
                     # applied when the primary class does not provide a C++
-                    # implementation. Usually this would be a function that not is
-                    # provided by pybind11 in some template.
+                    # implementation. Usually this would be a function that is not
+                    # provided by nanobind in some template.
                     continue
 
                 # If the original C++ class and Python support class both define the
                 # same name, we generally have a conflict, because this is augmentation
                 # not inheritance. However, if the method provided by the support class
                 # is an abstract method, then we can consider the C++ version the
-                # implementation. Also, pybind11 provides defaults for __eq__,
-                # __hash__ and __repr__ that we often do want to override directly.
+                # implementation. Also, nanobind (like pybind11 before it) provides
+                # defaults for __eq__, __hash__ and __repr__ that we often do want to
+                # override directly.
 
                 raise RuntimeError(
                     f"C++ {cls_cpp} and Python {cls} both define the same "

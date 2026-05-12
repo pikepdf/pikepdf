@@ -210,6 +210,8 @@ void init_page(py::module_ &m)
                 return label_string_from_dict(label_dict);
             });
 
-    // Make Page unhashable (matches pybind11 behavior).
+    // Make Page unhashable. pybind11 made bound types unhashable by default; we
+    // explicitly clear __hash__ here to preserve that behavior under nanobind,
+    // which otherwise inherits Python's identity-based default hash.
     page_class.attr("__hash__") = py::none();
 }

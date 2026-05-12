@@ -75,7 +75,8 @@ def test_break_encode(s):
 
 # whitelist_categories ensures that the listed Unicode categories will be produced
 # whitelist_characters adds further characters (everything that is pdfdoc encodable)
-# We specifically add Cs, surrogates, which pybind11 needs extra help with.
+# We specifically add Cs, surrogates, which the C++ binding layer needs extra
+# help with (historically a pybind11 quirk; still exercised under nanobind).
 pdfdoc_text = text(
     alphabet=characters(
         whitelist_categories=('N', 'L', 'M', 'P', 'Cs'),
