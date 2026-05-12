@@ -94,6 +94,15 @@ def test_objgen(resources):
 
 
 class TestPasswords:
+    def test_password_error_is_not_pdf_error_subclass(self):
+        # ocrmypdf (and presumably others) order their handlers as
+        #     except PdfError: ...
+        #     except PasswordError: ...
+        # so PasswordError must NOT be a subclass of PdfError, matching
+        # the documented hierarchy in src/pikepdf/_core.pyi and the
+        # behavior of pikepdf <= 10.5 (pybind11).
+        assert not issubclass(PasswordError, PdfError)
+
     def test_open_pdf_wrong_password(self, resources):
         # The correct passwords are "owner" and "user"
         with pytest.raises(PasswordError):

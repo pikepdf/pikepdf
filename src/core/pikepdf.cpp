@@ -284,18 +284,19 @@ NB_MODULE(_core, m)
         m,
         "PdfError",
         PyErr_NewException("pikepdf._core.PdfError", PyExc_Exception, nullptr));
+    // PasswordError and DataDecodingError are siblings of PdfError (both
+    // direct subclasses of Exception), not subclasses of it. Reflect the
+    // documented hierarchy from src/pikepdf/_core.pyi and the pre-nanobind
+    // behavior; downstream code (e.g. ocrmypdf) relies on `except PdfError`
+    // not catching PasswordError.
     publish(exc_password,
         m,
         "PasswordError",
-        PyErr_NewException("pikepdf._core.PasswordError",
-            exc_main.load(std::memory_order_relaxed),
-            nullptr));
+        PyErr_NewException("pikepdf._core.PasswordError", nullptr, nullptr));
     publish(exc_datadecoding,
         m,
         "DataDecodingError",
-        PyErr_NewException("pikepdf._core.DataDecodingError",
-            exc_main.load(std::memory_order_relaxed),
-            nullptr));
+        PyErr_NewException("pikepdf._core.DataDecodingError", nullptr, nullptr));
     publish(exc_usage,
         m,
         "JobUsageError",
