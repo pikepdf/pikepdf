@@ -3,4 +3,4 @@
 
 from __future__ import annotations
 
-__version__ = "10.6.0rc1"
+__version__ = "10.6.0rc2"
