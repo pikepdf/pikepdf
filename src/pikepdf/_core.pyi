@@ -3371,6 +3371,28 @@ def set_decimal_precision(prec: int) -> int:
 def unparse(obj: Any) -> bytes: ...
 def utf8_to_pdf_doc(utf8: str, unknown: bytes) -> tuple[bool, bytes]: ...
 def _unparse_content_stream(contentstream: Iterable[Any]) -> bytes: ...
+def set_inspection_mode(mode: bool) -> None:
+    """Enable qpdf inspection mode.
+
+    This is a global, irreversible, process-wide setting. Once enabled, it
+    cannot be disabled. It must be set before opening any PDF files.
+
+    In inspection mode, automatic repairs are disabled and only basic
+    operations are supported. This is intended for manual investigation
+    and analysis of PDF files.
+
+    Raises:
+        RuntimeError: If inspection mode is already enabled and *mode* is False.
+
+    .. versionadded:: 10.6
+    """
+
+def get_inspection_mode() -> bool:
+    """Return True if qpdf inspection mode is enabled.
+
+    .. versionadded:: 10.6
+    """
+
 def set_flate_compression_level(
     level: Literal[-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
 ) -> int:

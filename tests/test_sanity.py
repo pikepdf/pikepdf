@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import ast
 import gc
+import sys
 from contextlib import suppress
 from pathlib import Path
 from shutil import copy
@@ -33,6 +34,47 @@ def test_minimum_qpdf_version():
         pyproject_toml = tomllib.load(f)
     toml_env = pyproject_toml['tool']['cibuildwheel']['environment']
     assert Version(_core.qpdf_version()) >= Version(toml_env['QPDF_MIN_VERSION'])
+
+
+def test_inspection_mode():
+    from pikepdf.settings import get_inspection_mode, set_inspection_mode
+    assert get_inspection_mode() is False
+    set_inspection_mode(False)
+    assert get_inspection_mode() is False
+
+
+def test_inspection_mode_enable():
+    import subprocess
+    import textwrap
+
+    # do not pollute main process with irreversible global flag
+    script = textwrap.dedent("""\
+        from pikepdf.settings import get_inspection_mode, set_inspection_mode
+        from sys import exit
+        if get_inspection_mode():
+            sys.exit(1)
+        set_inspection_mode(True)
+        if not get_inspection_mode():
+            sys.exit(1)
+        try:
+            set_inspection_mode(False)
+        except RuntimeError:
+            pass
+        else:
+            sys.exit(1)
+        if not get_inspection_mode():
+            sys.exit(1)
+        else:
+            print("ok")
+            sys.exit(0)
+    """)
+    result = subprocess.run(
+        [sys.executable, '-c', script],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip() == 'ok'
 
 
 def test_open_pdf(resources):

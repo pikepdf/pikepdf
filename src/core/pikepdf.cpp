@@ -19,6 +19,7 @@
 #include <qpdf/QPDFSystemError.hh>
 #include <qpdf/QPDFUsage.hh>
 #include <qpdf/QUtil.hh>
+#include <qpdf/global.hh>
 
 #include "namepath.h"
 #include "parsers.h"
@@ -256,7 +257,20 @@ NB_MODULE(_core, m)
                 throw py::value_error(
                     "Flate compression level must be between 0 and 9 (or -1)");
             })
-        .def("_unparse_content_stream", unparse_content_stream);
+        .def("_unparse_content_stream", unparse_content_stream)
+        .def(
+            "set_inspection_mode",
+            [](bool mode) {
+                if (!mode && qpdf::global::options::inspection_mode()) {
+                    throw std::runtime_error("inspection mode is enabled and cannot be disabled");
+                }
+                qpdf::global::options::inspection_mode(mode);
+            },
+            "Enable qpdf inspection mode (global, irreversible).")
+        .def(
+            "get_inspection_mode",
+            []() { return qpdf::global::options::inspection_mode(); },
+            "Return True if qpdf inspection mode is enabled.");
 
     // -- Exceptions --
     // Create exception types using the Python C API. We need multiple Python
