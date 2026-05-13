@@ -12,6 +12,10 @@ pikepdf now declares unstable "support" for freethreading, and does not publish
 freethreading wheels. All tests seem to pass, but that's because the existing
 tests don't try to create race conditions. Must be compiled manually.
 
+## v10.6.0
+
+- Released v10.6.0 with version bump only.
+
 ## v10.6.0rc2
 
 - Fixed a regression during nanobind migration (exception hierarchy
