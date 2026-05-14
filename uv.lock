@@ -1226,7 +1226,7 @@ wheels = [
 
 [[package]]
 name = "pikepdf"
-version = "10.6.0rc1"
+version = "10.6.0"
 source = { editable = "." }
 dependencies = [
     { name = "deprecated" },
