@@ -35,6 +35,18 @@ def test_minimum_qpdf_version():
     assert Version(_core.qpdf_version()) >= Version(toml_env['QPDF_MIN_VERSION'])
 
 
+def test_import_star():
+    # Every name advertised in __all__ must be an actual attribute, otherwise
+    # `from pikepdf import *` raises AttributeError. Regression test for #721.
+    missing = [name for name in pikepdf.__all__ if not hasattr(pikepdf, name)]
+    assert not missing, f"pikepdf.__all__ lists names not defined on the module: {missing}"
+
+    namespace: dict = {}
+    exec("from pikepdf import *", namespace)
+    for name in pikepdf.__all__:
+        assert name in namespace
+
+
 def test_open_pdf(resources):
     pdf = pikepdf.open(resources / 'graph.pdf')
     assert '1.3' <= pdf.pdf_version <= '1.7'

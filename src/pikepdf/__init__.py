@@ -47,6 +47,8 @@ from pikepdf._core import (
 )
 from pikepdf.exceptions import (
     DependencyError,
+    HifiPrintImageNotTranscodableError,
+    InvalidPdfImageError,
     OutlineStructureError,
     UnsupportedImageTypeError,
 )
@@ -90,6 +92,7 @@ from pikepdf.models.ctm import (
 from pikepdf import _cpphelpers, _methods, codec  # noqa: F401, F841
 from pikepdf import settings
 from pikepdf import exceptions
+from pikepdf import models
 
 __libqpdf_version__: str = _core.qpdf_version()
 
