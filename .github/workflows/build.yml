@@ -26,6 +26,9 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.3.1
 
+      - name: Audit abi3 wheels
+        run: pipx run abi3audit --strict --report wheelhouse/*.whl
+
       - name: Upload built wheels
         uses: actions/upload-artifact@v4
         with:
@@ -80,6 +83,9 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.3.1
 
+      - name: Audit abi3 wheels
+        run: pipx run abi3audit --strict --report wheelhouse/*.whl
+
       - name: Upload built wheels
         uses: actions/upload-artifact@v4
         with:
@@ -111,6 +117,9 @@ jobs:
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.3.1
+
+      - name: Audit abi3 wheels
+        run: pipx run abi3audit --strict --report wheelhouse/*.whl
 
       - uses: actions/upload-artifact@v4
         with:
@@ -154,6 +163,10 @@ jobs:
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.3.1
+
+      - name: Audit abi3 wheels
+        shell: bash
+        run: pipx run abi3audit --strict --report wheelhouse/*.whl
 
       - uses: actions/upload-artifact@v4
         with:

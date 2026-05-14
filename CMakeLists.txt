@@ -57,9 +57,17 @@ endif()
 # -- Build the extension module --
 # NB_DOMAIN scopes nanobind's leak warnings to pikepdf's own extension so they
 # don't commingle with any other nanobind modules loaded in the same interpreter.
+# STABLE_ABI is gated on SKBUILD_SABI_COMPONENT, which scikit-build-core sets
+# only when an abi3 build is actually possible (Python >= 3.12, not free-threaded).
+set(_pikepdf_nb_flags "")
+if(SKBUILD_SABI_COMPONENT)
+    list(APPEND _pikepdf_nb_flags STABLE_ABI)
+endif()
+
 nanobind_add_module(_core
     NB_DOMAIN pikepdf
     FREE_THREADED
+    ${_pikepdf_nb_flags}
     ${PIKEPDF_SOURCES}
 )
 
