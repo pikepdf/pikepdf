@@ -244,6 +244,7 @@ jobs:
         run: |
           python -m venv v
           source v/bin/activate
+          python -m pip install --upgrade pip  # need pip>=25.1 for PEP 735 --group
           SDIST=dist/*.tar.gz
           SDIST_EXPANDED=$(echo -n $SDIST)
           python -m pip install ${SDIST_EXPANDED} --group test
