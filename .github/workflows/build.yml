@@ -246,7 +246,7 @@ jobs:
           source v/bin/activate
           SDIST=dist/*.tar.gz
           SDIST_EXPANDED=$(echo -n $SDIST)
-          python -m pip install ${SDIST_EXPANDED}[test]  # yes this works
+          python -m pip install ${SDIST_EXPANDED} --group test
           python -m pytest -nauto
           deactivate
 
@@ -259,7 +259,7 @@ jobs:
           # in a persistent directory so lcov can find them after tests run.
           SKBUILD_BUILD_DIR=build/coverage \
             CMAKE_ARGS="-DCMAKE_CXX_FLAGS=--coverage -DCMAKE_SHARED_LINKER_FLAGS=--coverage" \
-            python -m pip install --no-build-isolation -e .[test]
+            python -m pip install --no-build-isolation -e . --group test
           python -m pytest -nauto --cov-report xml --cov=src
 
       - name: Generate C++ coverage reports

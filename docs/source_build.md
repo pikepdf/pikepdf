@@ -184,7 +184,8 @@ Documentation is generated using Sphinx and you are currently reading it. To
 regenerate it:
 
 ```bash
-pip install pikepdf[docs]
+pip install pikepdf
+pip install --group docs
 cd docs
 make html
 ```
