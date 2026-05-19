@@ -37,10 +37,6 @@ documentation = "https://pikepdf.readthedocs.io/"
 repository = "https://github.com/pikepdf/pikepdf"
 changelog = "https://pikepdf.readthedocs.io/en/latest/releasenotes/index.html"
 
-[tool.scikit-build.cmake.define]
-# Pass version info to CMake
-VERSION_INFO = "10.5.1"
-
 [tool.cibuildwheel]
 test-command = "pytest -nauto {project}/tests"
 test-groups = ["test"]

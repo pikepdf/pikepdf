@@ -357,20 +357,6 @@ NB_MODULE(_core, m)
         }
     });
 
-    // clang-format off
-#if defined(VERSION_INFO) && defined(_MSC_VER)
-#    define msvc_inner_stringify(s) #s
-#    define msvc_stringify(s) msvc_inner_stringify(s)
-    m.attr("__version__") = msvc_stringify(VERSION_INFO);
-#    undef msvc_stringify
-#    undef msvc_inner_stringify
-#elif defined(VERSION_INFO)
-    m.attr("__version__") = VERSION_INFO;
-#else
-    m.attr("__version__") = "dev";
-#endif
-    // clang-format on
-
 #ifdef Py_GIL_DISABLED
     m.attr("__threading__") = "freethreading";
     fprintf(stderr, "Warning: pikepdf freethreading support is unstable\n");
