@@ -12,6 +12,11 @@ pikepdf now declares unstable "support" for freethreading, and does not publish
 freethreading wheels. All tests seem to pass, but that's because the existing
 tests don't try to create race conditions. Must be compiled manually.
 
+## v10.7.0
+
+- Python 3.12+ are now built with abi3 (the Stable ABI). Earlier versions and
+  freethreading builds continue to be built against the specific Python versions.
+
 ## v10.6.0
 
 - Released v10.6.0 with version bump only.
