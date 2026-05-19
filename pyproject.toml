@@ -8,6 +8,7 @@ build-backend = "scikit_build_core.build"
 [tool.scikit-build]
 wheel.packages = ["src/pikepdf"]
 cmake.build-type = "Release"
+wheel.py-api = "cp312"
 
 [project]
 name = "pikepdf"
@@ -29,40 +30,12 @@ classifiers = [
   "Topic :: Software Development :: Libraries",
   "Programming Language :: Python :: Free Threading :: 1 - Unstable",
 ]
-dependencies = ["Pillow>=10.0.1", "Deprecated", "lxml>=4.8", "packaging"]
+dependencies = ["Pillow>=10.0.1", "lxml>=4.8", "packaging"]
 
 [project.urls]
 documentation = "https://pikepdf.readthedocs.io/"
 repository = "https://github.com/pikepdf/pikepdf"
 changelog = "https://pikepdf.readthedocs.io/en/latest/releasenotes/index.html"
-
-[project.optional-dependencies]
-dev = ["pre-commit", "cyclopts", "mypy", "pygithub"]
-docs = [
-  "myst-parser>=3.0.1",
-  "sphinx>=3",
-  "sphinx-autoapi",
-  "sphinx-design",
-  "sphinx-issues",
-  "sphinx-rtd-theme",
-  "tomli; python_version < '3.11'",
-]
-mypy = ["lxml-stubs", "types-Pillow", "types-requests", "types-setuptools"]
-test = [
-  "attrs>=20.2.0",
-  "coverage[toml]",
-  "hypothesis>=6.36",
-  "numpy>=1.21.0; platform_machine == 'x86_64' and platform_python_implementation == 'CPython'",
-  "psutil>=5.9; os_name != 'nt'",
-  "nanobind",
-  "pytest>=6.2.5",
-  "pytest-cov>=3.0.0",
-  "pytest-timeout>=2.1.0",
-  "pytest-xdist>=2.5.0",
-  "python-dateutil>=2.8.1",
-  "python-xmp-toolkit>=2.0.1,<2.1.0; os_name != 'nt' and platform_machine == 'x86_64'",
-  "tomli; python_version < '3.11'",
-]
 
 [tool.scikit-build.cmake.define]
 # Pass version info to CMake
@@ -70,7 +43,7 @@ VERSION_INFO = "10.5.1"
 
 [tool.cibuildwheel]
 test-command = "pytest -nauto {project}/tests"
-test-extras = "test"
+test-groups = ["test"]
 # Reminder:
 #   build.yml sets CIBW_BUILD to select what can be built
 #   this file sets skip to deselect what cannot be built
@@ -154,10 +127,6 @@ repair-wheel-command = "delvewheel repair --add-path d:\\qpdf\\bin -w {dest_dir}
 
 [tool.mypy]
 exclude = ["^_qpdf\\.py$"]
-
-[[tool.mypy.overrides]]
-module = ["deprecation"]
-ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -245,4 +214,38 @@ convention = "google"
 quote-style = "preserve"
 
 [dependency-groups]
-dev = ["ruff>=0.12.9", "setuptools>=80.9.0"]
+dev = [
+  "cyclopts",
+  "mypy",
+  "pre-commit",
+  "pygithub",
+  "ruff>=0.12.9",
+  "setuptools>=80.9.0",
+  {include-group = "mypy"},
+  {include-group = "test"},
+]
+docs = [
+  "myst-parser>=3.0.1",
+  "sphinx>=3",
+  "sphinx-autoapi",
+  "sphinx-design",
+  "sphinx-issues",
+  "sphinx-rtd-theme",
+  "tomli; python_version < '3.11'",
+]
+mypy = ["lxml-stubs", "types-Pillow", "types-requests", "types-setuptools"]
+test = [
+  "attrs>=20.2.0",
+  "coverage[toml]",
+  "hypothesis>=6.36",
+  "numpy>=1.21.0; platform_machine == 'x86_64' and platform_python_implementation == 'CPython'",
+  "psutil>=5.9; os_name != 'nt'",
+  "nanobind",
+  "pytest>=6.2.5",
+  "pytest-cov>=3.0.0",
+  "pytest-timeout>=2.1.0",
+  "pytest-xdist>=2.5.0",
+  "python-dateutil>=2.8.1",
+  "python-xmp-toolkit>=2.0.1,<2.1.0; os_name != 'nt' and platform_machine == 'x86_64'",
+  "tomli; python_version < '3.11'",
+]
