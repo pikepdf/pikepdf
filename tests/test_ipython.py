@@ -46,9 +46,9 @@ def test_draw_page(pal, monkeypatch):
     mimebundle = page0._repr_mimebundle_(
         include=['image/png'], exclude=['application/pdf']
     )
-    assert (
-        'image/png' not in mimebundle
-    ), "Generated image/png when mudraw() was rigged to fail"
+    assert 'image/png' not in mimebundle, (
+        "Generated image/png when mudraw() was rigged to fail"
+    )
 
     def mudraw_return_svg(buffer, fmt):
         return b'<svg xmlns="http://www.w3.org/2000/svg"></svg>'
@@ -57,12 +57,13 @@ def test_draw_page(pal, monkeypatch):
     mimebundle = page0._repr_mimebundle_(
         include=['image/svg+xml'], exclude=['application/pdf']
     )
-    assert (
-        'image/svg+xml' in mimebundle
-    ), "Did not generate image/svg+xml when mudraw() was rigged to succeed"
+    assert 'image/svg+xml' in mimebundle, (
+        "Did not generate image/svg+xml when mudraw() was rigged to succeed"
+    )
 
 
 def test_display_image(pal):
+    pytest.importorskip('PIL')
     im0 = pal.pages[0].Resources.XObject['/Im0']
     pim = pikepdf.PdfImage(im0)
     result = pim._repr_png_()

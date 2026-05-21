@@ -58,7 +58,10 @@ endif()
 # NB_DOMAIN scopes nanobind's leak warnings to pikepdf's own extension so they
 # don't commingle with any other nanobind modules loaded in the same interpreter.
 # STABLE_ABI is gated on SKBUILD_SABI_COMPONENT, which scikit-build-core sets
-# only when an abi3 build is actually possible (Python >= 3.12, not free-threaded).
+# only when an abi3 build is actually possible. The abi3 floor is configured
+# via wheel.py-api in pyproject.toml; we target cp314+ because nanobind's
+# stable-ABI metaclass setup violates Python's HAVE_VECTORCALL / tp_call
+# invariant on 3.12 and 3.13 (nanobind issue #1286).
 set(_pikepdf_nb_flags "")
 if(SKBUILD_SABI_COMPONENT)
     list(APPEND _pikepdf_nb_flags STABLE_ABI)

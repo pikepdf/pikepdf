@@ -8,7 +8,7 @@ build-backend = "scikit_build_core.build"
 [tool.scikit-build]
 wheel.packages = ["src/pikepdf"]
 cmake.build-type = "Release"
-wheel.py-api = "cp312"
+wheel.py-api = "cp314"
 
 [project]
 name = "pikepdf"

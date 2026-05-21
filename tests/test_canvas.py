@@ -6,7 +6,10 @@ from __future__ import annotations
 from decimal import Decimal
 
 import pytest
-from PIL import Image
+
+pytest.importorskip('PIL')
+
+from PIL import Image  # noqa: E402
 
 from pikepdf import Matrix, Pdf
 from pikepdf.canvas import (
