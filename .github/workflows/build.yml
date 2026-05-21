@@ -355,10 +355,20 @@ jobs:
         # the C extension surface without crossing into runtime code paths
         # that require those native packages (e.g. Pdf.save() pulls lxml
         # through the XMP updater).
+        #
+        # `-m abi3_smoke` filters which tests *run*, but pytest still has
+        # to *import* every test module during collection. `hypothesis` is
+        # pure-Python so we install it to unblock module imports. The three
+        # files that hard-import PIL or lxml at module level get --ignore'd
+        # since no amount of `-m` filtering can prevent their import.
         run: |
           set -euo pipefail
-          python3.14-dbg -m pip install pytest pytest-xdist pytest-timeout
-          python3.14-dbg -m pytest -nauto --timeout=300 -m abi3_smoke tests/
+          python3.14-dbg -m pip install pytest pytest-xdist pytest-timeout hypothesis
+          python3.14-dbg -m pytest -nauto --timeout=300 -m abi3_smoke \
+            --ignore=tests/test_canvas.py \
+            --ignore=tests/test_image_access.py \
+            --ignore=tests/test_metadata.py \
+            tests/
 
   stage_artifacts:
     name: Stage artifacts to draft release
