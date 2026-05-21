@@ -12,10 +12,21 @@ pikepdf now declares unstable "support" for freethreading, and does not publish
 freethreading wheels. All tests seem to pass, but that's because the existing
 tests don't try to create race conditions. Must be compiled manually.
 
+## v10.7.1
+
+- Fixed build to continue generating Python version specific wheels for
+  3.12 and 3.13 due to open issue in nanobind. Fixes :issue:`723`. Thanks
+  @mgorny for reporting.
+- Improved CI build to perform more detailed tests using python3-dbg (debug
+  build) which has more assertions and would have uncovered this issue.
+
 ## v10.7.0
 
+- Yanked release from PyPI due to segfaults on Python 3.12 and 3.13; fixed in
+  10.7.1.
 - Python 3.12+ are now built with abi3 (the Stable ABI). Earlier versions and
   freethreading builds continue to be built against the specific Python versions.
+- Remove manual hack to generate docs/requirements.txt for the readthedocs.org.
 
 ## v10.6.0
 
