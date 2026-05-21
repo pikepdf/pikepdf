@@ -10,18 +10,15 @@ from pathlib import Path
 from xml.etree import ElementTree as ET
 
 import pytest
+from conftest import skip_if_ci, skip_if_pypy
+from hypothesis import assume, example, given, settings
+from hypothesis import strategies as st
+from hypothesis.strategies import integers
+from lxml.etree import XMLSyntaxError
 
-pytest.importorskip('lxml')
-
-from conftest import skip_if_ci, skip_if_pypy  # noqa: E402
-from hypothesis import assume, example, given, settings  # noqa: E402
-from hypothesis import strategies as st  # noqa: E402
-from hypothesis.strategies import integers  # noqa: E402
-from lxml.etree import XMLSyntaxError  # noqa: E402
-
-import pikepdf  # noqa: E402
-from pikepdf import Dictionary, Name, PasswordError, Pdf, Stream  # noqa: E402
-from pikepdf.models.metadata import (  # noqa: E402
+import pikepdf
+from pikepdf import Dictionary, Name, PasswordError, Pdf, Stream
+from pikepdf.models.metadata import (
     XMP_NS_DC,
     XMP_NS_PDF,
     XMP_NS_XMP,
@@ -875,17 +872,17 @@ def test_undocumented_pdfx_identifier(trivial):
 def test_empty_list(graph, outpdf, assign, expect):
     with graph.open_metadata() as m:
         m['dc:creator'] = assign
-        assert m['dc:creator'] == expect, (
-            f"Before saving, expected {expect}, got {m['dc:creator']}"
-        )
+        assert (
+            m['dc:creator'] == expect
+        ), f"Before saving, expected {expect}, got {m['dc:creator']}"
 
     graph.save(outpdf)
 
     with pikepdf.open(outpdf) as pdf:
         with pdf.open_metadata() as m:
-            assert m['dc:creator'] == expect, (
-                f"After saving, expected {expect}, got {m['dc:creator']}"
-            )
+            assert (
+                m['dc:creator'] == expect
+            ), f"After saving, expected {expect}, got {m['dc:creator']}"
 
 
 def test_docinfo_wrong_type():
@@ -1147,26 +1144,16 @@ class TestXmpDocumentStandalone:
 
     def test_qname_conversion(self):
         """Test qualified name conversion."""
-        assert (
-            XmpDocument.qname('dc:title') == '{http://purl.org/dc/elements/1.1/}title'
-        )
-        assert (
-            XmpDocument.qname('pdf:Producer')
-            == '{http://ns.adobe.com/pdf/1.3/}Producer'
-        )
+        assert XmpDocument.qname('dc:title') == '{http://purl.org/dc/elements/1.1/}title'
+        assert XmpDocument.qname('pdf:Producer') == '{http://ns.adobe.com/pdf/1.3/}Producer'
         # Already qualified names pass through
         assert XmpDocument.qname('{http://example.com}foo') == '{http://example.com}foo'
 
     def test_prefix_from_uri(self):
         """Test URI to prefix conversion."""
         xmp = XmpDocument()
-        assert (
-            xmp.prefix_from_uri('{http://purl.org/dc/elements/1.1/}title') == 'dc:title'
-        )
-        assert (
-            xmp.prefix_from_uri('{http://ns.adobe.com/pdf/1.3/}Producer')
-            == 'pdf:Producer'
-        )
+        assert xmp.prefix_from_uri('{http://purl.org/dc/elements/1.1/}title') == 'dc:title'
+        assert xmp.prefix_from_uri('{http://ns.adobe.com/pdf/1.3/}Producer') == 'pdf:Producer'
 
     def test_register_namespace(self):
         """Test custom namespace registration."""

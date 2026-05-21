@@ -12,10 +12,8 @@ from typing import Any
 
 import pytest
 
-pytest.importorskip('PIL')  # tests call as_pil_image() throughout
-
-import pikepdf  # noqa: E402
-from pikepdf import (  # noqa: E402
+import pikepdf
+from pikepdf import (
     DependencyError,
     Name,
     Object,
@@ -23,7 +21,7 @@ from pikepdf import (  # noqa: E402
     PdfError,
     PdfImage,
 )
-from pikepdf.jbig2 import JBIG2Decoder  # noqa: E402
+from pikepdf.jbig2 import JBIG2Decoder
 
 
 @pytest.fixture

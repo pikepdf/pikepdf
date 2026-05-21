@@ -20,6 +20,7 @@ def allclose(m1, m2, abs_tol=1e-6):
 
 
 class TestMatrix:
+    @pytest.mark.abi3_smoke
     def test_default_is_identity(self):
         assert Matrix() == Matrix(1, 0, 0, 1, 0, 0) == Matrix.identity()
 
@@ -71,6 +72,7 @@ class TestMatrix:
         with pytest.raises(ValueError, match='must be numeric'):
             Matrix(c.as_list())
 
+    @pytest.mark.abi3_smoke
     def test_matmul(self):
         m = Matrix()
         scale = Matrix().scaled(3, 3)
@@ -79,6 +81,7 @@ class TestMatrix:
         assert allclose(scale @ translate @ m, Matrix(3, 0, 0, 3, 10, 10))
         assert allclose(m.scaled(3, 3).translated(10, 10), Matrix(3, 0, 0, 3, 30, 30))
 
+    @pytest.mark.abi3_smoke
     def test_inverse(self):
         m = Matrix().rotated(45)
         minv_m = m.inverse() @ m

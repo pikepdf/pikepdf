@@ -14,17 +14,15 @@ from pathlib import Path
 from subprocess import run
 from typing import NamedTuple
 
+import PIL
 import pytest
+from hypothesis import assume, given, note, settings
+from hypothesis import strategies as st
+from PIL import Image, ImageChops, ImageCms
+from PIL import features as PIL_features
 
-PIL = pytest.importorskip('PIL')
-
-from hypothesis import assume, given, note, settings  # noqa: E402
-from hypothesis import strategies as st  # noqa: E402
-from PIL import Image, ImageChops, ImageCms  # noqa: E402
-from PIL import features as PIL_features  # noqa: E402
-
-import pikepdf  # noqa: E402
-from pikepdf import (  # noqa: E402
+import pikepdf
+from pikepdf import (
     Array,
     Dictionary,
     Name,
@@ -37,11 +35,8 @@ from pikepdf import (  # noqa: E402
     StreamDecodeLevel,
     parse_content_stream,
 )
-from pikepdf.models._transcoding import (  # noqa: E402
-    _next_multiple,
-    unpack_subbyte_pixels,
-)
-from pikepdf.models.image import (  # noqa: E402
+from pikepdf.models._transcoding import _next_multiple, unpack_subbyte_pixels
+from pikepdf.models.image import (
     PdfJpxImage,
     UnsupportedImageTypeError,
 )
@@ -594,9 +589,9 @@ def test_image_palette2(spec, tmp_path_factory):
                 note("pdfimages bug - 1bit image stripped of palette")
                 return
 
-        assert not diff.getbbox(), (
-            f"{diff.getpixel((0, 0))}, {im1.getpixel((0, 0))}, {im2.getpixel((0, 0))}"
-        )
+        assert (
+            not diff.getbbox()
+        ), f"{diff.getpixel((0, 0))}, {im1.getpixel((0,0))}, {im2.getpixel((0,0))}"
 
 
 def test_bool_in_inline_image():
@@ -853,7 +848,9 @@ GRAY_RGB_PALETTE = b''.join(bytes([gray, gray, gray]) for gray in range(256))
         (lambda: Name.DeviceCMYK, 4, 8, CMYK_PALETTE, 'CMYK', 'P'),
         (lambda: Name.DeviceGray, 4, 4, b'\x04\x08\x02\x0f', 'L', 'P'),
         (
-            lambda: Array([Name.CalRGB, Dictionary(WhitePoint=Array([1.0, 1.0, 1.0]))]),
+            lambda: Array(
+                [Name.CalRGB, Dictionary(WhitePoint=Array([1.0, 1.0, 1.0]))]
+            ),
             255,
             8,
             GRAY_RGB_PALETTE,

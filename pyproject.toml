@@ -139,6 +139,9 @@ norecursedirs = [
 ]
 testpaths = ["tests"]
 addopts = "-n auto"
+markers = [
+  "abi3_smoke: a small subset of tests that exercise pikepdf's C extension surface without touching optional Pillow/lxml/numpy runtime paths. Selected with `-m abi3_smoke` for the abi3 debug-Python CI job (where building those native deps from sdist is impractical). Default pytest runs include these tests like any other.",
+]
 
 [tool.coverage.run]
 concurrency = ["multiprocessing"]

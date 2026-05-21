@@ -47,6 +47,7 @@ def test_get_equality_dict(congress):
     assert page.get('/NoSuchKey', 42) == 42
 
 
+@pytest.mark.abi3_smoke
 def test_dictionary_copy_semantics():
     """Ensure copy() creates a shallow copy, not a reference."""
     d1 = Dictionary({'/A': 1, '/B': 2})
@@ -67,6 +68,7 @@ def test_dictionary_copy_semantics():
     assert d2['/A'] == 1  # Should remain 1
 
 
+@pytest.mark.abi3_smoke
 def test_dictionary_update():
     """Ensure update() merges keys correctly."""
     d = Dictionary({'/A': 1, '/B': 2})

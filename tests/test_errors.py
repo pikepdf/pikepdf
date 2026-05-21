@@ -31,6 +31,7 @@ def test_foreign_linearization(vera):
         vera.check_linearization()
 
 
+@pytest.mark.abi3_smoke
 @pytest.mark.parametrize('msg, expected', [('QPDF', 'pikepdf.Pdf')])
 def test_translate_qpdf_logic_error(msg, expected):
     assert _core._translate_qpdf_logic_error(msg) == expected
@@ -45,6 +46,7 @@ def test_translate_qpdf_logic_error(msg, expected):
         ('/FlateDecode', b'\xba\xad', 'incorrect header check'),
     ],
 )
+@pytest.mark.abi3_smoke
 def test_data_decoding_errors(filter_: str, data: bytes, msg: str):
     p = Pdf.new()
     st = Stream(p, data, Filter=Name(filter_))
@@ -52,6 +54,7 @@ def test_data_decoding_errors(filter_: str, data: bytes, msg: str):
         st.read_bytes()
 
 
+@pytest.mark.abi3_smoke
 def test_system_error():
     with pytest.raises(FileNotFoundError):
         pikepdf._core._test.fopen_nonexistent_file()

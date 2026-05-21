@@ -289,8 +289,16 @@ jobs:
     # without tp_call, crashing at import on Py_DEBUG interpreters. Release
     # CPython compiles _PyObject_ASSERT to a no-op, so the cibuildwheel test
     # phase against stock Python could not catch this.
+    #
+    # Linux only. Windows debug Python cannot load abi3 wheels: python_d.exe
+    # links against python314_d.dll, but the abi3 _core.pyd forwards through
+    # python3.dll to the release python314.dll, producing an ABI mismatch
+    # that surfaces as "cannot import name '_core' from partially initialized
+    # module 'pikepdf' (most likely due to a circular import)". This is a
+    # Windows-only abi3+debug limitation, not a pikepdf bug; skip the
+    # platform here rather than try to work around it.
     name: test abi3 wheel on debug Python (${{ matrix.platform }})
-    needs: [wheels_linux, wheels_linux_arm, wheels_windows]
+    needs: [wheels_linux, wheels_linux_arm]
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -300,8 +308,6 @@ jobs:
             runner: ubuntu-24.04
           - platform: manylinux_aarch64
             runner: ubuntu-24.04-arm
-          - platform: win_amd64
-            runner: windows-2022
     steps:
       - uses: actions/checkout@v4
 
@@ -310,8 +316,7 @@ jobs:
           name: wheels-${{ matrix.platform }}
           path: wheelhouse
 
-      - name: Install debug Python 3.14 (Linux)
-        if: runner.os == 'Linux'
+      - name: Install debug Python 3.14
         run: |
           sudo add-apt-repository -y ppa:deadsnakes/ppa
           sudo apt-get update
@@ -319,24 +324,8 @@ jobs:
             python3.14-dbg \
             python3.14-venv \
             python3.14-dev
-          echo "PYTHON_DBG=python3.14-dbg" >> "$GITHUB_ENV"
-
-      - name: Install debug Python 3.14 (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          $ver = "3.14.0"
-          Invoke-WebRequest -Uri "https://www.python.org/ftp/python/$ver/python-$ver-amd64.exe" -OutFile py-installer.exe
-          Start-Process -FilePath .\py-installer.exe -ArgumentList "/quiet","Include_debug=1","Include_pip=1","Include_dev=1","InstallAllUsers=0" -Wait
-          $installDir = "$env:LOCALAPPDATA\Programs\Python\Python314"
-          if (-not (Test-Path "$installDir\python_d.exe")) {
-              throw "python_d.exe not found in $installDir after install"
-          }
-          "$installDir" | Out-File -Append -FilePath $env:GITHUB_PATH
-          "PYTHON_DBG=$installDir\python_d.exe" | Out-File -Append -FilePath $env:GITHUB_ENV
 
       - name: Locate abi3 wheel
-        shell: bash
         run: |
           set -euo pipefail
           shopt -s nullglob
@@ -351,29 +340,25 @@ jobs:
       - name: Smoke-import pikepdf with debug Python
         # The pikepdf package's top-level import is enough to fire the
         # nanobind metaclass assertion if it has regressed.
-        shell: bash
         run: |
           set -euo pipefail
-          "$PYTHON_DBG" -VV
-          "$PYTHON_DBG" -m pip install --upgrade pip
-          "$PYTHON_DBG" -m pip install --no-deps "$ABI3_WHEEL"
-          "$PYTHON_DBG" -c "import pikepdf._core; print('pikepdf._core import OK')"
-          "$PYTHON_DBG" -c "import pikepdf; print('pikepdf', pikepdf.__version__, 'import OK')"
+          python3.14-dbg -VV
+          python3.14-dbg -m pip install --upgrade pip
+          python3.14-dbg -m pip install --no-deps "$ABI3_WHEEL" packaging
+          python3.14-dbg -c "import pikepdf._core; print('pikepdf._core import OK')"
+          python3.14-dbg -c "import pikepdf; print('pikepdf', pikepdf.__version__, 'import OK')"
 
-      - name: Run test suite with debug Python
-        # Pillow/lxml/numpy don't publish cp314d-tagged wheels; building
-        # them from sdist against a debug interpreter is slow and fragile
-        # in CI. Install only pure-Python test deps; the test files that
-        # need Pillow/lxml/numpy gate themselves with pytest.importorskip
-        # and skip cleanly when those packages aren't installed.
-        shell: bash
+      - name: Run abi3 smoke test subset with debug Python
+        # Pillow/lxml/numpy don't publish cp314d-tagged wheels and building
+        # them from sdist is slow and fragile. Instead, select the tests
+        # marked @pytest.mark.abi3_smoke -- a curated subset that exercises
+        # the C extension surface without crossing into runtime code paths
+        # that require those native packages (e.g. Pdf.save() pulls lxml
+        # through the XMP updater).
         run: |
           set -euo pipefail
-          "$PYTHON_DBG" -m pip install --no-deps "$ABI3_WHEEL" packaging
-          "$PYTHON_DBG" -m pip install \
-            pytest pytest-xdist pytest-timeout \
-            hypothesis attrs python-dateutil
-          "$PYTHON_DBG" -m pytest -nauto --timeout=300 tests/
+          python3.14-dbg -m pip install pytest pytest-xdist pytest-timeout
+          python3.14-dbg -m pytest -nauto --timeout=300 -m abi3_smoke tests/
 
   stage_artifacts:
     name: Stage artifacts to draft release

@@ -42,6 +42,7 @@ def test_new(outdir):
     pdf.save(outdir / 'new-empty.pdf')
 
 
+@pytest.mark.abi3_smoke
 def test_non_filename():
     with pytest.raises(TypeError):
         Pdf.open(42.0)
@@ -58,6 +59,7 @@ def test_save_to_file_descriptor_fails(trivial):
         trivial.save(2)
 
 
+@pytest.mark.abi3_smoke
 def test_not_existing_file():
     with pytest.raises(FileNotFoundError):
         Pdf.open('does_not_exist.pdf')
@@ -83,6 +85,7 @@ class TestLinearization:
             pdf.check_linearization(sio)
 
 
+@pytest.mark.abi3_smoke
 def test_objgen(resources):
     with Pdf.open(resources / 'graph.pdf') as src:
         im0 = src.pages[0].Resources.XObject['/Im0']
@@ -94,6 +97,7 @@ def test_objgen(resources):
 
 
 class TestPasswords:
+    @pytest.mark.abi3_smoke
     def test_password_error_is_not_pdf_error_subclass(self):
         # ocrmypdf (and presumably others) order their handlers as
         #     except PdfError: ...
@@ -103,6 +107,7 @@ class TestPasswords:
         # behavior of pikepdf <= 10.5 (pybind11).
         assert not issubclass(PasswordError, PdfError)
 
+    @pytest.mark.abi3_smoke
     def test_open_pdf_wrong_password(self, resources):
         # The correct passwords are "owner" and "user"
         with pytest.raises(PasswordError):
@@ -116,6 +121,7 @@ class TestPasswords:
         with pytest.raises(PasswordError):
             Pdf.open(resources / 'graph-encrypted.pdf')
 
+    @pytest.mark.abi3_smoke
     def test_open_pdf_user_password(self, resources):
         with Pdf.open(resources / 'graph-encrypted.pdf', password='user'):
             pass
@@ -154,6 +160,7 @@ class TestPermissions:
 
 
 class TestStreams:
+    @pytest.mark.abi3_smoke
     def test_stream(self, resources):
         with (resources / 'pal-1bit-trivial.pdf').open('rb') as stream:
             with Pdf.open(stream) as pdf:

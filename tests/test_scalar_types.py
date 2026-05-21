@@ -88,6 +88,7 @@ class TestExplicitMode:
 class TestIntegerType:
     """Tests for the Integer type."""
 
+    @pytest.mark.abi3_smoke
     def test_isinstance_integer(self):
         with pikepdf.explicit_conversion():
             d = Dictionary(Count=42)
@@ -102,6 +103,7 @@ class TestIntegerType:
     #         d = Dictionary(Count=42)
     #         assert isinstance(d.Count, numbers.Integral)
 
+    @pytest.mark.abi3_smoke
     def test_int_conversion(self):
         with pikepdf.explicit_conversion():
             d = Dictionary(Count=42)

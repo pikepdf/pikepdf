@@ -42,10 +42,12 @@ from pikepdf.models import parse_content_stream
 encode = core._encode
 
 
+@pytest.mark.abi3_smoke
 def test_none():
     assert encode(None) is None
 
 
+@pytest.mark.abi3_smoke
 def test_booleans():
     assert encode(True) == True  # noqa: E712
     assert encode(False) == False  # noqa: E712
@@ -149,6 +151,7 @@ def test_stack_depth():
         sys.setrecursionlimit(rlimit)  # So other tests are not affected
 
 
+@pytest.mark.abi3_smoke
 def test_bytes():
     b = b'\x79\x78\x77\x76'
     qs = String(b)

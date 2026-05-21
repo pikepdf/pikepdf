@@ -11,6 +11,7 @@ import pikepdf
 from pikepdf import Array, Name, Rectangle
 
 
+@pytest.mark.abi3_smoke
 def test_rect_properties():
     r = Rectangle(1, 2, 101, 302)
     assert r.llx == 1.0
@@ -34,6 +35,7 @@ def test_rect_properties():
     assert hash(evaled_r) == hash(r)
 
 
+@pytest.mark.abi3_smoke
 def test_rect_creation():
     assert Rectangle(Array([1, 2, 3, 4])).width == 2
     assert Rectangle(1, 2, 3, 4).height == 2
@@ -53,6 +55,7 @@ def test_rect_from_invalid():
         Rectangle(Array(['one', 'two', 'three', 'four']))
 
 
+@pytest.mark.abi3_smoke
 def test_rectangle_operators():
     assert Rectangle(10, 20, 30, 40) <= Rectangle(10, 20, 30, 40)
     assert Rectangle(11, 20, 30, 40) <= Rectangle(10, 20, 30, 40)

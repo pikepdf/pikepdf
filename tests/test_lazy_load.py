@@ -2,6 +2,7 @@ import subprocess
 import sys
 import pytest
 
+@pytest.mark.abi3_smoke
 def test_pikepdf_import_does_not_eagerly_load_heavy_deps():
     """
     Guard against regressions that eagerly import lxml or Pillow at
