@@ -1359,7 +1359,8 @@ void init_object(py::module_ &m)
                 QpdfLockGuard lock(h.getOwningQPDF());
                 auto item = objecthandle_encode(pyitem);
                 return h.appendItem(item);
-            })
+            },
+            py::arg("pyitem").none())
         .def("extend",
             [](QPDFObjectHandle &h, py::iterable iter) {
                 QpdfLockGuard lock(h.getOwningQPDF());
