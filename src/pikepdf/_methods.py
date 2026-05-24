@@ -452,6 +452,11 @@ class Extend_Pdf:
         recompress_flate: bool = False,
         deterministic_id: bool = False,
     ) -> None:
+        if encryption is not None and not isinstance(encryption, (bool, Encryption, dict, tuple)):
+            raise TypeError(
+                f"encryption must be an Encryption, dict, bool, or None, "
+                f"not {type(encryption).__name__}"
+            )
         if not filename_or_stream and getattr(self, '_original_filename', None):
             filename_or_stream = self._original_filename
         if not filename_or_stream:
