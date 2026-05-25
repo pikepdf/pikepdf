@@ -226,8 +226,10 @@ class TestArray:
         assert a == pikepdf.Array([1, Name.Foo])
         a.append(4)
         assert a == pikepdf.Array([1, Name.Foo, 4])
+        a.append(None)
+        assert a == pikepdf.Array([1, Name.Foo, 4, None])
         a.extend([42, 666])
-        assert a == pikepdf.Array([1, Name.Foo, 4, 42, 666])
+        assert a == pikepdf.Array([1, Name.Foo, 4, None, 42, 666])
         with pytest.raises(
             ValueError, match='pikepdf.Object is not a Dictionary or Stream'
         ):

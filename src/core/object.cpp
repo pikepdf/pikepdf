@@ -1354,12 +1354,14 @@ void init_object(py::module_ &m)
             py::arg("key"),
             py::arg("value").none())
         .def("wrap_in_array", [](QPDFObjectHandle &h) { return h.wrapInArray(); })
-        .def("append",
+        .def(
+            "append",
             [](QPDFObjectHandle &h, py::object pyitem) {
                 QpdfLockGuard lock(h.getOwningQPDF());
                 auto item = objecthandle_encode(pyitem);
                 return h.appendItem(item);
-            })
+            },
+            py::arg("pyitem").none())
         .def("extend",
             [](QPDFObjectHandle &h, py::iterable iter) {
                 QpdfLockGuard lock(h.getOwningQPDF());
