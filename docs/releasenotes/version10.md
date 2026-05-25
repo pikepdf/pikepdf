@@ -18,6 +18,9 @@ tests don't try to create race conditions. Must be compiled manually.
   `bool`, or `None` (for example a `list` or `unittest.mock.MagicMock`) was passed
   to the `encryption` argument of `Pdf.save()`. A `TypeError` is now raised instead.
   Fixes :issue:`727`.
+- Fixed a possible segmentation fault in `Page.add_content_token_filter()` if the
+  user had previously assigned a non-list value to the private
+  `Pdf._token_filter_refs` attribute. The attribute is now reset before use.
 - Suppressed nanobind's `leaked instances/types/functions` report at
   interpreter shutdown. Module-scope Python state (e.g. `pytest.mark.parametrize`
   arguments) commonly holds pikepdf objects until the interpreter exits;

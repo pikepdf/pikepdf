@@ -101,6 +101,16 @@ def test_tokenfilter_is_abstract(pal):
         page.get_filtered_contents(TokenFilter())
 
 
+def test_add_content_token_filter_refs_clobbered(pal):
+    # Regression: if a user clobbers the private _token_filter_refs
+    # attribute (Pdf has dynamic_attr) with a non-list, add_content_token_filter
+    # used to reinterpret-cast it and segfault. It must recover gracefully.
+    pal._token_filter_refs = "not a list"
+    pal.pages[0].add_content_token_filter(FilterDrop())
+    assert isinstance(pal._token_filter_refs, list)
+    assert len(pal._token_filter_refs) == 1
+
+
 def test_issue160_tokenfilter_refcounting(resources, outpdf):
     # Ensure that add_content_token_filter properly "remembers" token filters
     # that are not needed until .save()
