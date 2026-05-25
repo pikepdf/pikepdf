@@ -7,6 +7,8 @@ import struct
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, NamedTuple
 
+from pikepdf._core import _unpack_subbyte_2bit, _unpack_subbyte_4bit
+
 if TYPE_CHECKING:
     from PIL import Image
 
@@ -52,7 +54,9 @@ def unpack_subbyte_pixels(
     buffer = bytearray(bits_per_byte * stride * height)
     max_read = len(buffer) // bits_per_byte
     if scale == 0:
-        scale = 255 / ((2**bits) - 1)
+        # 255 // (2**bits - 1) is exact for bits in {1, 2, 4, 8}:
+        # 2-bit -> 85, 4-bit -> 17, so a nibble * scale always fits in a byte.
+        scale = 255 // ((2**bits) - 1)
     if bits == 4:
         _4bit_inner_loop(packed[:max_read], buffer, scale)
     elif bits == 2:
@@ -84,28 +88,16 @@ def _2bit_inner_loop(in_: BytesLike, out: MutableBytesLike, scale: int) -> None:
     """Unpack 2-bit values to their 8-bit equivalents.
 
     Thus *out* must be 4x at long as *in*.
-
-    Images of this type are quite rare in practice, so we don't
-    optimize this loop.
     """
-    for n, val in enumerate(in_):
-        out[4 * n] = int((val >> 6) * scale)
-        out[4 * n + 1] = int(((val >> 4) & 0b11) * scale)
-        out[4 * n + 2] = int(((val >> 2) & 0b11) * scale)
-        out[4 * n + 3] = int((val & 0b11) * scale)
+    _unpack_subbyte_2bit(in_, out, scale)
 
 
 def _4bit_inner_loop(in_: BytesLike, out: MutableBytesLike, scale: int) -> None:
     """Unpack 4-bit values to their 8-bit equivalents.
 
     Thus *out* must be 2x at long as *in*.
-
-    Images of this type are quite rare in practice, so we don't
-    optimize this loop.
     """
-    for n, val in enumerate(in_):
-        out[2 * n] = int((val >> 4) * scale)
-        out[2 * n + 1] = int((val & 0b1111) * scale)
+    _unpack_subbyte_4bit(in_, out, scale)
 
 
 def image_from_byte_buffer(buffer: BytesLike, size: tuple[int, int], stride: int):

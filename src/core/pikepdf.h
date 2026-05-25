@@ -173,6 +173,8 @@ void init_parsers(py::module_ &m);
 void init_rectangle(py::module_ &m);
 // From tokenfilter.cpp
 void init_tokenfilter(py::module_ &m);
+// From transcoding.cpp
+void init_transcoding(py::module_ &m);
 
 // pikepdf.cpp
 uint get_decimal_precision();
