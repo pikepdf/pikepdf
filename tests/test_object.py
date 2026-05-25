@@ -812,6 +812,31 @@ class TestString:
         assert bool(String('abc')) is True
 
 
+def test_null_bool():
+    assert bool(pikepdf._core._Null()) is False
+
+
+def test_raw_stream_buffer_len():
+    with pikepdf.new() as pdf:
+        s = Stream(pdf, b'abc123xyz')
+        raw_buffer = s.get_raw_stream_buffer()
+        assert len(raw_buffer) == len(b'abc123xyz')
+
+
+def test_hash_indirect_object_raises():
+    pdf = Pdf.new()
+    indirect = pdf.make_indirect(Dictionary())
+    with pytest.raises(TypeError, match="Can't hash indirect"):
+        hash(indirect)
+
+
+def test_getattr_dunder_name_raises_attribute_error():
+    """__getattr__ converts ValueError from invalid /__name__ key into
+    AttributeError so hasattr/getattr work for Python introspection."""
+    d = Dictionary(A=1)
+    assert not hasattr(d, '__name__')
+
+
 def test_get_resource_names(sandwich):
     assert '/R12' in sandwich.pages[0].Resources._get_resource_names()
 

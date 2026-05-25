@@ -654,6 +654,48 @@ class TestNotImplementedFallback:
                 d.Value % Decimal('5')
 
 
+class TestArithmeticOnNonNumericWithUnsupportedOther:
+    """Non-numeric Object combined with non-int/non-float other (e.g. Decimal).
+
+    Exercises the type_error path in the py::object overloads of arithmetic
+    operators that fires when the Object itself is not numeric.
+    """
+
+    @pytest.mark.parametrize(
+        "op",
+        [
+            lambda a, b: a + b,
+            lambda a, b: a - b,
+            lambda a, b: a * b,
+            lambda a, b: a / b,
+            lambda a, b: a // b,
+            lambda a, b: a % b,
+        ],
+    )
+    def test_name_op_decimal_raises(self, op):
+        with pikepdf.explicit_conversion():
+            d = Dictionary(Name=Name.Foo)
+            with pytest.raises(TypeError, match="not numeric"):
+                op(d.Name, Decimal('5'))
+
+    @pytest.mark.parametrize(
+        "op",
+        [
+            lambda a, b: a + b,
+            lambda a, b: a - b,
+            lambda a, b: a * b,
+            lambda a, b: a / b,
+            lambda a, b: a // b,
+            lambda a, b: a % b,
+        ],
+    )
+    def test_decimal_op_name_raises(self, op):
+        with pikepdf.explicit_conversion():
+            d = Dictionary(Name=Name.Foo)
+            with pytest.raises(TypeError, match="not numeric"):
+                op(Decimal('5'), d.Name)
+
+
 class TestRealReverseArithmetic:
     """Tests for Real reverse arithmetic operations."""
 

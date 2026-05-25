@@ -268,6 +268,13 @@ def test_update_stream_error():
         d.update(s)
 
 
+def test_update_non_dict_object_error():
+    d = Dictionary()
+    arr = Array([1, 2, 3])
+    with pytest.raises(TypeError, match="must be a dictionary"):
+        d.update(arr)
+
+
 def test_setattr_none_raises_value_error():
     """Setting an attribute to None must raise ValueError, not TypeError.
 

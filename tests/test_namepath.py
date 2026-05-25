@@ -177,6 +177,48 @@ class TestNamePathSetItem:
         with pytest.raises(ValueError, match="Cannot assign to empty NamePath"):
             pdf.Root[NamePath()] = 42
 
+    def test_set_empty_path_error_object_value(self):
+        """Empty path with a pikepdf Object value (separate C++ overload)."""
+        pdf = pikepdf.new()
+        with pytest.raises(ValueError, match="Cannot assign to empty NamePath"):
+            pdf.Root[NamePath()] = String("x")
+
+    def test_set_int_index_non_array_pyvalue(self):
+        pdf = pikepdf.new()
+        pdf.Root.A = Dictionary()
+        with pytest.raises(TypeError, match="non-Array"):
+            pdf.Root[NamePath.A[0]] = 42
+
+    def test_set_int_index_non_array_object_value(self):
+        pdf = pikepdf.new()
+        pdf.Root.A = Dictionary()
+        with pytest.raises(TypeError, match="non-Array"):
+            pdf.Root[NamePath.A[0]] = String("x")
+
+    def test_set_int_index_out_of_range_pyvalue(self):
+        pdf = pikepdf.new()
+        pdf.Root.Items = Array([1, 2, 3])
+        with pytest.raises(IndexError, match="out of range"):
+            pdf.Root[NamePath.Items[10]] = 42
+
+    def test_set_int_index_out_of_range_object_value(self):
+        pdf = pikepdf.new()
+        pdf.Root.Items = Array([1, 2, 3])
+        with pytest.raises(IndexError, match="out of range"):
+            pdf.Root[NamePath.Items[10]] = String("x")
+
+    def test_set_int_index_negative_pyvalue(self):
+        pdf = pikepdf.new()
+        pdf.Root.Items = Array([1, 2, 3])
+        pdf.Root[NamePath.Items[-1]] = 99
+        assert int(pdf.Root.Items[2]) == 99
+
+    def test_set_int_index_negative_object_value(self):
+        pdf = pikepdf.new()
+        pdf.Root.Items = Array([1, 2, 3])
+        pdf.Root[NamePath.Items[-1]] = String("x")
+        assert str(pdf.Root.Items[2]) == "x"
+
 
 class TestNamePathGet:
     """Test Object.get() with NamePath and default values."""

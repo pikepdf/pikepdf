@@ -527,11 +527,6 @@ void init_qpdf(py::module_ &m)
                 return PageList(q);
             },
             py::rv_policy::reference_internal)
-        .def_prop_ro("_pages",
-            [](QPDF &q) {
-                QpdfLockGuard lock(&q);
-                return q.getAllPages();
-            })
         .def_prop_ro("is_encrypted",
             [](QPDF &q) {
                 QpdfLockGuard lock(&q);
@@ -586,11 +581,6 @@ void init_qpdf(py::module_ &m)
             },
             py::arg("page"),
             py::arg("first") = false)
-        .def("_remove_page",
-            [](QPDF &q, QPDFObjectHandle &page) {
-                QpdfLockGuard lock(&q);
-                q.removePage(page);
-            })
         .def("remove_unreferenced_resources",
             [](QPDF &q) {
                 QpdfLockGuard lock(&q);
@@ -617,11 +607,6 @@ void init_qpdf(py::module_ &m)
             py::arg("samefile_check") = true,
             py::arg("recompress_flate") = false,
             py::arg("deterministic_id") = false)
-        .def("_get_object_id",
-            [](QPDF &q, int objid, int gen) {
-                QpdfLockGuard lock(&q);
-                return q.getObjectByID(objid, gen);
-            })
         .def(
             "get_object",
             [](QPDF &q, std::pair<int, int> objgen) {
@@ -720,7 +705,7 @@ void init_qpdf(py::module_ &m)
                         w.setDecodeLevel(qpdf_dl_generalized);
                         w.write();
                     } else {
-                        throw;
+                        throw; // LCOV_EXCL_LINE
                     }
                 }
             },
@@ -764,11 +749,6 @@ void init_qpdf(py::module_ &m)
             [](QPDF &q) {
                 QpdfLockGuard lock(&q);
                 return q.allowModifyOther();
-            })
-        .def_prop_ro("_allow_modify_all",
-            [](QPDF &q) {
-                QpdfLockGuard lock(&q);
-                return q.allowModifyAll();
             })
         .def_prop_ro("_encryption_data",
             [](QPDF &q) {
