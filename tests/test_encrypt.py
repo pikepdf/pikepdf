@@ -64,6 +64,14 @@ def test_encrypt_invalid_level(trivial, outpdf, R):
         trivial.save(outpdf, encryption=dict(R=R, owner='foo', user='foo'))
 
 
+@pytest.mark.parametrize("encryption", [[], 42, 'foo', object(), b'bytes'])
+def test_encrypt_invalid_type(trivial, outpdf, encryption):
+    # Regression test for #727: passing a non-dict/non-Encryption object
+    # used to segfault instead of raising a clean exception.
+    with pytest.raises(TypeError):
+        trivial.save(outpdf, encryption=encryption)
+
+
 def test_encrypt_without_owner(trivial, outpdf):
     trivial.save(outpdf, encryption=dict(user='foo'))
 

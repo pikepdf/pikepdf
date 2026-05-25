@@ -191,8 +191,11 @@ void setup_encryption(QPDFWriter &w, py::object encryption_obj)
 
     if (py::isinstance<py::tuple>(encryption_obj)) {
         encryption = py::borrow<py::dict>(encryption_obj.attr("_asdict")());
-    } else {
+    } else if (py::isinstance<py::dict>(encryption_obj)) {
         encryption = py::borrow<py::dict>(encryption_obj);
+    } else {
+        throw py::type_error(
+            "encryption must be an Encryption object, dict, bool, or None");
     }
 
     if (encryption.contains("R")) {

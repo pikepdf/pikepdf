@@ -12,6 +12,13 @@ pikepdf now declares unstable "support" for freethreading, and does not publish
 freethreading wheels. All tests seem to pass, but that's because the existing
 tests don't try to create race conditions. Must be compiled manually.
 
+## v10.7.2
+
+- Fixed a segmentation fault when an object that is not an `Encryption`, `dict`,
+  `bool`, or `None` (for example a `list` or `unittest.mock.MagicMock`) was passed
+  to the `encryption` argument of `Pdf.save()`. A `TypeError` is now raised instead.
+  Fixes :issue:`727`.
+
 ## v10.7.1
 
 - Fixed build to continue generating Python version specific wheels for
