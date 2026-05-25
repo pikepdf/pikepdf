@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
+#include "pikepdf.h"
+#include "utils.h"
+
 #include <cstdio>
 #include <cstring>
 
@@ -11,9 +14,6 @@
 #include <qpdf/QPDFExc.hh>
 #include <qpdf/QUtil.hh>
 #include <qpdf/Types.h>
-
-#include "pikepdf.h"
-#include "utils.h"
 
 // GIL usage:
 // The GIL must be held while this class is constructed, by the constructor's caller,

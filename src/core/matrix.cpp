@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2023 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
+#include "pikepdf.h"
+
 #include <cmath>
 
 #include <qpdf/Constants.h>
@@ -8,8 +10,6 @@
 #include <qpdf/QPDFExc.hh>
 #include <qpdf/QPDFMatrix.hh>
 #include <qpdf/Types.h>
-
-#include "pikepdf.h"
 
 constexpr double pi = 3.14159265358979323846;
 

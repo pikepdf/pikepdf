@@ -1,15 +1,15 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
+#include "pikepdf.h"
+
+#include <nanobind/make_iterator.h>
+
 #include <qpdf/Constants.h>
 #include <qpdf/DLL.h>
 #include <qpdf/QPDFExc.hh>
 #include <qpdf/QPDFNameTreeObjectHelper.hh>
 #include <qpdf/Types.h>
-
-#include <nanobind/make_iterator.h>
-
-#include "pikepdf.h"
 
 using NameTree = QPDFNameTreeObjectHelper;
 

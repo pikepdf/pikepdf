@@ -11,6 +11,8 @@
  * objecthandle_repr_inner cannot cannot use references because it calls itself.
  */
 
+#include "pikepdf.h"
+
 #include <iomanip>
 #include <iostream>
 #include <locale>
@@ -25,8 +27,6 @@
 #include <qpdf/QPDFWriter.hh>
 #include <qpdf/QUtil.hh>
 #include <qpdf/Types.h>
-
-#include "pikepdf.h"
 
 std::string objecthandle_scalar_value(QPDFObjectHandle h)
 {

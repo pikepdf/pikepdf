@@ -1,11 +1,12 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
+#include "pikepdf.h"
+
 #include <iostream>
-#include <qpdf/QPDFJob.hh>
 #include <streambuf>
 
-#include "pikepdf.h"
+#include <qpdf/QPDFJob.hh>
 
 void set_job_defaults(QPDFJob &job)
 {

@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
+#include "parsers.h"
+#include "pikepdf.h"
+#include "qpdf_lock.h"
+
 #include <cctype>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-
-#include "parsers.h"
-#include "pikepdf.h"
-#include "qpdf_lock.h"
 
 #include <qpdf/Pipeline.hh>
 #include <qpdf/Pl_Buffer.hh>

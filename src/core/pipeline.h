@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "pikepdf.h"
+
 #include <cstdio>
 #include <cstring>
 
@@ -14,8 +16,6 @@
 #include <qpdf/QPDFExc.hh>
 #include <qpdf/QUtil.hh>
 #include <qpdf/Types.h>
-
-#include "pikepdf.h"
 
 class Pl_PythonOutput : public Pipeline {
 public:

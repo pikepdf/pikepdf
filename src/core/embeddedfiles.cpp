@@ -1,6 +1,10 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
+#include "pikepdf.h"
+#include "pipeline.h"
+#include "qpdf_lock.h"
+
 #include <qpdf/Constants.h>
 #include <qpdf/DLL.h>
 #include <qpdf/QPDFEFStreamObjectHelper.hh>
@@ -8,10 +12,6 @@
 #include <qpdf/QPDFExc.hh>
 #include <qpdf/QPDFFileSpecObjectHelper.hh>
 #include <qpdf/Types.h>
-
-#include "pikepdf.h"
-#include "pipeline.h"
-#include "qpdf_lock.h"
 
 QPDFFileSpecObjectHelper create_filespec(QPDF &q,
     py::bytes data,

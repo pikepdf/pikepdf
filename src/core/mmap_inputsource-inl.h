@@ -1,8 +1,12 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
+#include "pikepdf.h"
+#include "utils.h"
+
 #include <cstdio>
 #include <cstring>
+#include <signal.h>
 
 #include <qpdf/Buffer.hh>
 #include <qpdf/BufferInputSource.hh>
@@ -13,10 +17,6 @@
 #include <qpdf/QPDFExc.hh>
 #include <qpdf/QUtil.hh>
 #include <qpdf/Types.h>
-
-#include "pikepdf.h"
-#include "utils.h"
-#include <signal.h>
 
 // We could almost subclass BufferInputSource here, except that it expects Buffer
 // as an initialization parameter, we don't know what the buffer location is until

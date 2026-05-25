@@ -5,6 +5,8 @@
  * Convert Python types <-> QPDFObjectHandle types
  */
 
+#include "pikepdf.h"
+
 #include <cmath>
 #include <map>
 #include <vector>
@@ -17,8 +19,6 @@
 #include <qpdf/QPDFObjectHandle.hh>
 #include <qpdf/QPDFWriter.hh>
 #include <qpdf/Types.h>
-
-#include "pikepdf.h"
 
 std::map<std::string, QPDFObjectHandle> dict_builder(const py::dict dict)
 {

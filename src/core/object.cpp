@@ -1,6 +1,13 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
+#include "pikepdf.h"
+#include "qpdf_lock.h"
+#include "utils.h"
+
+#include "namepath.h"
+#include "parsers.h"
+
 #include <cctype>
 #include <cmath>
 #include <cstring>
@@ -16,13 +23,6 @@
 #include <qpdf/QPDFWriter.hh>
 #include <qpdf/QPDFXRefEntry.hh>
 #include <qpdf/Types.h>
-
-#include "pikepdf.h"
-#include "qpdf_lock.h"
-#include "utils.h"
-
-#include "namepath.h"
-#include "parsers.h"
 
 // Encodes Python key to bytes, handling surrogates for invalid UTF-8.
 std::string string_from_key(py::handle key)

@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2025 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
-#include "namepath.h"
-
 #include "pikepdf.h"
+
+#include "namepath.h"
 
 NamePath::NamePath(std::vector<PathComponent> components)
     : components_(std::move(components))

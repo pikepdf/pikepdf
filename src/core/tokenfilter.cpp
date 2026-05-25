@@ -1,14 +1,14 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
+#include "pikepdf.h"
+
+#include <nanobind/trampoline.h>
+
 #include <cctype>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-
-#include "pikepdf.h"
-
-#include <nanobind/trampoline.h>
 
 #include <qpdf/QPDFObjectHandle.hh>
 #include <qpdf/QPDFPageObjectHelper.hh>

@@ -1,11 +1,11 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
-#include <locale>
-#include <sstream>
-
 #include "parsers.h"
 #include "pikepdf.h"
+
+#include <locale>
+#include <sstream>
 
 void PyParserCallbacks::handleObject(QPDFObjectHandle obj, size_t offset, size_t length)
 {

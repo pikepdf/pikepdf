@@ -3,12 +3,15 @@
 
 #pragma once
 
+// nanobind/nanobind.h includes Python.h, which must be included before any
+// standard library headers. See note in pikepdf.h.
+#include <nanobind/nanobind.h>
+
 #include <atomic>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
 
-#include <nanobind/nanobind.h>
 #include <qpdf/QPDF.hh>
 
 namespace py = nanobind;

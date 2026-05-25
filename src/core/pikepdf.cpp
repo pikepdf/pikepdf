@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
+#include "pikepdf.h"
+
 #include <atomic>
 #include <cerrno>
 #include <cstdio>
@@ -11,8 +13,6 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
-
-#include "pikepdf.h"
 
 #include <qpdf/Pl_Flate.hh>
 #include <qpdf/QPDFExc.hh>

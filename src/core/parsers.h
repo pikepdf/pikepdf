@@ -3,11 +3,12 @@
 
 #pragma once
 
-#include <iostream>
-
 #include "pikepdf.h"
 
 #include <nanobind/trampoline.h>
+
+#include <iostream>
+
 #include <qpdf/QPDFTokenizer.hh>
 
 // Used to implement pikepdf.StreamParser, which can be subclassed to implement

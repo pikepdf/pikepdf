@@ -1,6 +1,10 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
+#include "pipeline.h"
+#include "pikepdf.h"
+#include "utils.h"
+
 #include <qpdf/Constants.h>
 #include <qpdf/DLL.h>
 #include <qpdf/Pipeline.hh>
@@ -8,10 +12,6 @@
 #include <qpdf/QPDFExc.hh>
 #include <qpdf/QUtil.hh>
 #include <qpdf/Types.h>
-
-#include "pikepdf.h"
-#include "pipeline.h"
-#include "utils.h"
 
 void Pl_PythonOutput::write(const unsigned char *buf, size_t len)
 {

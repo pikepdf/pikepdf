@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: 2025 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
+#include "pikepdf.h"
+
 #include <cstring>
 #include <string>
 
 #include <qpdf/QPDFObjectHandle.hh>
-
-#include "pikepdf.h"
 
 inline bool typecode_is_bool(qpdf_object_type_e typecode)
 {

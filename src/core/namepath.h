@@ -3,12 +3,12 @@
 
 #pragma once
 
+#include "pikepdf.h"
+
 #include <sstream>
 #include <string>
 #include <variant>
 #include <vector>
-
-#include "pikepdf.h"
 
 // Path component: either a Name (string) or array index (int)
 using PathComponent = std::variant<std::string, int>;

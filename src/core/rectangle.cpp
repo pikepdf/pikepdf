@@ -1,9 +1,9 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
-#include <qpdf/QPDFObjectHandle.hh>
-
 #include "pikepdf.h"
+
+#include <qpdf/QPDFObjectHandle.hh>
 
 void init_rectangle(py::module_ &m)
 {
