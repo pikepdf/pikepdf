@@ -266,3 +266,16 @@ def test_update_stream_error():
     s = Stream(p, b"")
     with pytest.raises(TypeError, match="stream_dict"):
         d.update(s)
+
+
+def test_setattr_none_raises_value_error():
+    """Setting an attribute to None must raise ValueError, not TypeError.
+
+    Regression: nanobind dropped implicit None coercion for py::object, so
+    d.Key = None failed with TypeError before object_set_key could surface
+    the documented 'use del to remove' guidance.
+    """
+    d = Dictionary({'/A': 1})
+    with pytest.raises(ValueError, match="may not be set to None"):
+        d.A = None
+    assert d['/A'] == 1

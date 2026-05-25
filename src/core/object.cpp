@@ -1134,7 +1134,8 @@ void init_object(py::module_ &m)
             &QPDFObjectHandle::getDict,
             &QPDFObjectHandle::replaceDict,
             py::rv_policy::reference_internal)
-        .def("__setattr__",
+        .def(
+            "__setattr__",
             [](QPDFObjectHandle &h, std::string const &name, py::object pyvalue) {
                 QpdfLockGuard lock(h.getOwningQPDF());
                 if (h.isDictionary() || (h.isStream() && name != "stream_dict")) {
@@ -1149,7 +1150,9 @@ void init_object(py::module_ &m)
                 py::object baseobj = py::module_::import_("builtins").attr("object");
                 baseobj.attr("__setattr__")(
                     py::cast(h), py::str(name.c_str()), pyvalue);
-            })
+            },
+            py::arg("name"),
+            py::arg("value").none())
         .def("__delattr__",
             [](QPDFObjectHandle &h, std::string const &name) {
                 QpdfLockGuard lock(h.getOwningQPDF());
