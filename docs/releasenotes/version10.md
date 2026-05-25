@@ -27,6 +27,18 @@ tests don't try to create race conditions. Must be compiled manually.
   nanobind reports these as leaks even though they are not bugs. Set the
   environment variable `PIKEPDF_NANOBIND_LEAK_WARNINGS=1` before importing
   pikepdf to re-enable the report for debugging. Fixes :issue:`728`.
+- Fixed `Array.append(None)` raising `TypeError` instead of inserting a PDF
+  null object. This was a nanobind migration regression vs. v10.5. Fixes
+  :issue:`725`.
+- Fixed `Dictionary.__setattr__(name, None)` (i.e. `d.Key = None`) raising
+  `TypeError` instead of the documented `ValueError` advising to use `del` to
+  remove the key. Same nanobind migration regression as `Array.append(None)`.
+- Fixed macro redefinition warnings on Fedora rawhide (Python 3.14 + glibc
+  2.42) by ensuring `Python.h` is included before any standard library headers
+  in all translation units. Fixes :issue:`724`.
+- Moved the 2-bit and 4-bit subbyte pixel unpack inner loops from Python into
+  C++, eliminating per-byte interpreter overhead when decoding low-bit-depth
+  images.
 
 ## v10.7.1
 
