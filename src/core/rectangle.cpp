@@ -83,6 +83,4 @@ void init_rectangle(py::module_ &m)
         .def_prop_ro("upper_right", [](Rect &r) { return Point(r.urx, r.ury); })
         .def_prop_ro("upper_left", [](Rect &r) { return Point(r.llx, r.ury); })
         .def("as_array", [](Rect &r) { return QPDFObjectHandle::newArray(r); });
-
-    py::implicitly_convertible<Rect, QPDFObjectHandle>();
 }

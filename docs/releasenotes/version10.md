@@ -18,6 +18,12 @@ tests don't try to create race conditions. Must be compiled manually.
   `bool`, or `None` (for example a `list` or `unittest.mock.MagicMock`) was passed
   to the `encryption` argument of `Pdf.save()`. A `TypeError` is now raised instead.
   Fixes :issue:`727`.
+- Suppressed nanobind's `leaked instances/types/functions` report at
+  interpreter shutdown. Module-scope Python state (e.g. `pytest.mark.parametrize`
+  arguments) commonly holds pikepdf objects until the interpreter exits;
+  nanobind reports these as leaks even though they are not bugs. Set the
+  environment variable `PIKEPDF_NANOBIND_LEAK_WARNINGS=1` before importing
+  pikepdf to re-enable the report for debugging. Fixes :issue:`728`.
 
 ## v10.7.1
 

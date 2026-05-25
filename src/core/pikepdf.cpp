@@ -4,6 +4,7 @@
 #include <atomic>
 #include <cerrno>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <regex>
 #include <sstream>
@@ -156,6 +157,19 @@ bool is_object_type_assertion_error(const std::runtime_error &e)
 
 NB_MODULE(_core, m)
 {
+    // Suppress nanobind's atexit leak report by default. At interpreter
+    // shutdown, objects retained by module-scope Python state (e.g.
+    // pytest.mark.parametrize arguments, lru_cache payloads, hypothesis
+    // strategies evaluated at collection time) are reported as "leaks"
+    // even though they are normal long-lived references. The noise
+    // confuses users without indicating a bug. Developers and CI can opt
+    // back in by setting PIKEPDF_NANOBIND_LEAK_WARNINGS=1 before import;
+    // tests/test_import_leaks.py relies on this.
+    if (const char *env = std::getenv("PIKEPDF_NANOBIND_LEAK_WARNINGS");
+        env == nullptr || env[0] == '\0' || env[0] == '0') {
+        py::set_leak_warnings(false);
+    }
+
     m.doc() = "pikepdf provides a Pythonic interface for qpdf";
     m.attr("__name__") = "pikepdf._core";
     m.def("qpdf_version", &QPDF::QPDFVersion, "Get libqpdf version");

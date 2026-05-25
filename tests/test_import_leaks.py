@@ -19,6 +19,7 @@ patterns like:
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 
@@ -28,13 +29,17 @@ def _run_and_capture(code: str) -> str:
 
     We always use a subprocess so that nanobind's shutdown leak reporter runs
     against a clean interpreter lifecycle (no pytest fixtures or plugin state
-    holding references into the module).
+    holding references into the module). The reporter is suppressed by
+    default in release builds, so we re-enable it via the documented opt-in
+    env var.
     """
+    env = {**os.environ, "PIKEPDF_NANOBIND_LEAK_WARNINGS": "1"}
     result = subprocess.run(
         [sys.executable, "-c", code],
         capture_output=True,
         text=True,
         check=True,
+        env=env,
     )
     return result.stderr
 
