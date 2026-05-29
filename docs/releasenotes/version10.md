@@ -12,6 +12,13 @@ pikepdf now declares unstable "support" for freethreading, and does not publish
 freethreading wheels. All tests seem to pass, but that's because the existing
 tests don't try to create race conditions. Must be compiled manually.
 
+## v10.7.3
+
+- Fixed an `AttributeError` when reading a document outline ("bookmarks") whose
+  items are missing the required `/Title` field. By default, `Pdf.open_outline()`
+  now quietly treats a missing `/Title` as an empty string; passing
+  `strict=True` raises `OutlineStructureError` instead. Fixes :issue:`730`.
+
 ## v10.7.2
 
 - Fixed a segmentation fault when an object that is not an `Encryption`, `dict`,

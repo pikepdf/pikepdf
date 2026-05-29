@@ -210,15 +210,27 @@ class OutlineItem:
         return f'<pikepdf.{self.__class__.__name__}: "{self.title}">'
 
     @classmethod
-    def from_dictionary_object(cls, obj: Dictionary):
+    def from_dictionary_object(cls, obj: Dictionary, *, strict: bool = False):
         """Create a ``OutlineItem`` from a ``Dictionary``.
 
         Does not process nested items.
 
         Arguments:
             obj: ``Dictionary`` object representing a single outline node.
+            strict: If ``True``, raise :class:`OutlineStructureError` on any
+                structural problem (such as a missing required ``/Title``).
+                If ``False`` (default), quietly correct such problems where the
+                repair is known; a missing ``/Title`` becomes an empty string.
         """
-        title = str(obj.Title)
+        try:
+            title = str(obj.Title)
+        except AttributeError as e:
+            # 12.3.3: /Title is required, but some real-world PDFs omit it.
+            if strict:
+                raise OutlineStructureError(
+                    "Outline node is missing required /Title"
+                ) from e
+            title = ""
         destination = obj.get(Name.Dest)
         if destination is not None and not isinstance(
             destination, Array | String | Name
@@ -276,11 +288,12 @@ class Outline:
     Arguments:
         pdf: PDF document object.
         max_depth: Maximum recursion depth to consider when reading the outline.
-        strict: If set to ``False`` (default) silently ignores structural errors.
-            Setting it to ``True`` raises a
-            :class:`pikepdf.OutlineStructureError`
-            if any object references re-occur while the outline is being read or
-            written.
+        strict: When ``False`` (default), pikepdf quietly corrects minor
+            structural problems in the outline where the correct repair is
+            known. For example, a missing required ``/Title`` is treated as an
+            empty string, and object references that re-occur while reading or
+            writing are recovered without raising. When ``True``, any such
+            structural problem raises a :class:`pikepdf.OutlineStructureError`.
 
     See Also:
         :meth:`pikepdf.Pdf.open_outline`
@@ -393,7 +406,7 @@ class Outline:
                 return
             visited_objs.add(objgen)
 
-            item = OutlineItem.from_dictionary_object(current_obj)
+            item = OutlineItem.from_dictionary_object(current_obj, strict=self._strict)
             first_child = current_obj.get(Name.First)
             if isinstance(first_child, Dictionary) and level < self._max_depth:
                 self._load_level_outline(

@@ -2333,16 +2333,15 @@ class Pdf:
                 considering the root level, ``1`` the first-level
                 sub-outline of each root element, and so on. Items beyond
                 this depth will be silently ignored. Default is ``15``.
-            strict: With the default behavior (set to ``False``),
-                structural errors (e.g. reference loops) in the PDF document
-                will only cancel processing further nodes on that particular
-                level, recovering the valid parts of the document outline
-                without raising an exception. When set to ``True``, any such
-                error will raise an ``OutlineStructureError``, leaving the
-                invalid parts in place.
-                Similarly, outline objects that have been accidentally
-                duplicated in the ``Outline`` container will be silently
-                fixed (i.e. reproduced as new objects) or raise an
+            strict: When ``False`` (the default), pikepdf quietly corrects
+                minor structural problems in the outline where the correct
+                repair is known, recovering the valid parts of the document
+                outline without raising an exception. For example, a missing
+                required ``/Title`` is treated as an empty string; a structural
+                error such as a reference loop cancels processing of further
+                nodes on that level; and outline objects that have been
+                accidentally duplicated are reproduced as new objects. When set
+                to ``True``, any such structural problem raises an
                 ``OutlineStructureError``.
         """
     def remove_unreferenced_resources(self) -> None:

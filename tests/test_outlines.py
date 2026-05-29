@@ -532,7 +532,9 @@ def test_outline_root_setter_valid_input(outlines_doc):
 def test_outline_root_setter_invalid_input_not_list(outlines_doc):
     """Test that root.setter raises ValueError if input is not a list."""
     with outlines_doc.open_outline() as outline:
-        with pytest.raises(ValueError, match="Root must be a list of OutlineItem objects."):
+        with pytest.raises(
+            ValueError, match="Root must be a list of OutlineItem objects."
+        ):
             outline.root = "Not a list"
 
 
@@ -540,5 +542,33 @@ def test_outline_root_setter_invalid_input_non_outlineitem(outlines_doc):
     """Test that root.setter raises ValueError if input list contains non-OutlineItem."""
     with outlines_doc.open_outline() as outline:
         invalid_root = ["Invalid", OutlineItem("Valid Section")]
-        with pytest.raises(ValueError, match="Each item in root must be an OutlineItem."):
+        with pytest.raises(
+            ValueError, match="Each item in root must be an OutlineItem."
+        ):
             outline.root = invalid_root
+
+
+@pytest.fixture
+def missing_title_doc():
+    # Spec-invalid: outline item lacks the required /Title field (issue #730)
+    pdf = Pdf.new()
+    pdf.add_blank_page()
+    item = pdf.make_indirect(Dictionary(Dest=[pdf.pages[0].obj, Name.Fit]))
+    pdf.Root.Outlines = pdf.make_indirect(
+        Dictionary(Type=Name.Outlines, First=item, Last=item, Count=1)
+    )
+    yield pdf
+
+
+def test_missing_title_nonstrict_recovers(missing_title_doc):
+    """A missing /Title is quietly corrected to an empty string by default."""
+    with missing_title_doc.open_outline() as outline:
+        assert len(outline.root) == 1
+        assert outline.root[0].title == ""
+
+
+def test_missing_title_strict_raises(missing_title_doc):
+    """A missing /Title raises OutlineStructureError in strict mode."""
+    with pytest.raises(OutlineStructureError, match="Title"):
+        with missing_title_doc.open_outline(strict=True) as outline:
+            _ = outline.root
