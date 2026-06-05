@@ -14,6 +14,13 @@ tests don't try to create race conditions. Must be compiled manually.
 
 ## v10.7.3
 
+- Fixed a segmentation fault when comparing two *direct* (non-indirect)
+  `Dictionary` or `Array` objects that form a cyclic reference graph, for example
+  `a['/Kids'] = [b]; b['/Kids'] = [a]; a == b`. The cycle detector previously keyed
+  its bookkeeping on `unparseBinary()`, which itself recurses through the whole
+  graph and overflowed the C stack for direct cyclic objects. Equality now detects
+  cycles by object identity instead, so such comparisons terminate. Fixes
+  :issue:`731`.
 - Fixed an `AttributeError` when reading a document outline ("bookmarks") whose
   items are missing the required `/Title` field. By default, `Pdf.open_outline()`
   now quietly treats a missing `/Title` as an empty string; passing
