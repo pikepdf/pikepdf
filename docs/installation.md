@@ -62,6 +62,12 @@ macOS 14 or newer is typically required for binary wheels. Older versions may
 work if compiled from source.
 
 Windows 7 or newer is required. Windows wheels include a recent copy of libqpdf.
+They require the [Microsoft Visual C++ Redistributable (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+to be installed, which provides the C++ runtime; most systems already have it.
+If `import pikepdf` fails with an error about `pikepdf._core` or a missing
+runtime, install the latest x64 Redistributable and confirm that the terminal's
+Python is the same interpreter pikepdf was installed into (`where python`,
+`py -0p`).
 
 Most Linux distributions support manylinux2014, with the notable except of
 [Alpine Linux], and older Linux distributions that do not have C++20-capable
