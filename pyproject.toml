@@ -119,6 +119,12 @@ environment.MACOSX_DEPLOYMENT_TARGET = "14.0"
 
 [tool.cibuildwheel.windows]
 before-build = "pip install delvewheel"
+# delvewheel discovers qpdf30.dll's runtime dependencies via --add-path and vendors
+# them into pikepdf.libs/ with name mangling. It excludes vcruntime140* by default
+# (CPython ships its own copy) and name-mangles msvcp140.dll so it cannot shadow or
+# collide with the system copy or another wheel's copy. This is what keeps the wheel
+# self-contained without bundling a conflicting un-mangled runtime in the package
+# directory, which previously caused issue #718. See win-download-qpdf.ps1.
 repair-wheel-command = "delvewheel repair --add-path d:\\qpdf\\bin -w {dest_dir} {wheel}"
 
 [tool.mypy]

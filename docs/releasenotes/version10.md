@@ -14,6 +14,23 @@ tests don't try to create race conditions. Must be compiled manually.
 
 ## v10.7.3
 
+- Fixed Windows wheels bundling a fixed-version, un-mangled copy of the Microsoft
+  Visual C++ runtime (`msvcp140*.dll`, `vcruntime140*.dll`, `concrt140.dll`)
+  inside the package directory. These were inadvertently copied from qpdf's
+  prebuilt release alongside `qpdf30.dll`. Shipping them caused a second,
+  conflicting copy of the C++ runtime to load in the same process, which could
+  corrupt CPython's per-thread state and produce a fatal `PyInterpreterState_Get
+  ... the GIL is released (the current Python thread state is NULL)` error or an
+  `ImportError` for `pikepdf._core`, typically only in some launch environments
+  (e.g. a terminal but not IDLE) or when another extension was imported first.
+  The Windows wheel now copies only qpdf's own DLLs; `delvewheel` vendors a
+  name-mangled copy of the C++ standard library runtime and uses CPython's own
+  `vcruntime140`, so the wheel remains self-contained without an un-mangled
+  runtime in the package directory that could collide with the system copy.
+  Fixes :issue:`718`.
+- Improved the error message raised when `pikepdf._core` fails to import: it now
+  reports the active interpreter, version, free-threading status, and (on Windows)
+  a hint about the Visual C++ Redistributable and interpreter mismatches.
 - Fixed a segmentation fault when comparing two *direct* (non-indirect)
   `Dictionary` or `Array` objects that form a cyclic reference graph, for example
   `a['/Kids'] = [b]; b['/Kids'] = [a]; a == b`. The cycle detector previously keyed

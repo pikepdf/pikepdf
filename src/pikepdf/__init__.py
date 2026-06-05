@@ -12,8 +12,32 @@ from pikepdf._version import __version__
 try:
     from pikepdf import _core
 except ImportError as _e:  # pragma: no cover
-    _msg = "pikepdf's extension library failed to import"
-    raise ImportError(_msg) from _e
+    import sys as _sys
+    import sysconfig as _sysconfig
+
+    _lines = [
+        "pikepdf's extension library (pikepdf._core) failed to import.",
+        f"  Python:     {_sys.version.splitlines()[0]}",
+        f"  Executable: {_sys.executable}",
+        f"  Platform:   {_sys.platform}",
+    ]
+    if _sysconfig.get_config_var("Py_GIL_DISABLED"):
+        _lines.append(
+            "  This is a free-threaded (GIL-disabled) interpreter; pikepdf does "
+            "not publish free-threaded wheels, so the extension must be compiled "
+            "from source for it."
+        )
+    if _sys.platform == "win32":
+        _lines.append(
+            "  On Windows this usually means the Microsoft Visual C++ "
+            "Redistributable (x64) is missing, or a different/incompatible "
+            "Python interpreter is on PATH than the one pikepdf was installed "
+            "into. Verify with `where python` and `py -0p` that the terminal "
+            "uses the same interpreter shown above, and install the latest "
+            "x64 VC++ Redistributable."
+        )
+    _lines.append(f"  Underlying error: {_e}")
+    raise ImportError("\n".join(_lines)) from _e
 
 from pikepdf._core import (
     AccessMode,
