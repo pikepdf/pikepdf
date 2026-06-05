@@ -117,21 +117,29 @@ Reproduces the CI build with the patched branch.
    python -m cibuildwheel --platform windows --output-dir wheelhouse
    ```
    (cibuildwheel runs delvewheel repair + the test suite automatically.)
-5. Inspect the produced wheel — it must contain `qpdf30.dll` but **none** of the
-   runtime DLLs:
+5. Inspect the produced wheel. The wheel is **self-contained**: delvewheel vendors
+   a **name-mangled** `msvcp140` (e.g. `msvcp140-<hash>.dll`) into `pikepdf.libs/`,
+   and `qpdf30.dll` is present. There must be **no un-mangled** `msvcp140.dll` /
+   `vcruntime140*.dll` / `concrt140.dll` (vcruntime140 comes from CPython, not the
+   wheel):
    ```
    python -c "import zipfile,glob; w=glob.glob('wheelhouse/*cp314*win_amd64.whl')[0]; print('\n'.join(n for n in zipfile.ZipFile(w).namelist() if n.lower().endswith('.dll')))"
    ```
-6. Install the fresh wheel into a clean venv (VC++ redist present) and validate
-   import + DLL provenance:
+   Expect `qpdf30.dll` plus a hash-mangled `msvcp140-*.dll` under `pikepdf.libs/`;
+   do **not** expect a plain `msvcp140.dll`, `vcruntime140*.dll`, or `concrt140.dll`.
+6. Install the fresh wheel into a clean venv and validate import + DLL provenance.
+   To prove the wheel is genuinely self-contained, this venv does **not** require
+   the VC++ redistributable for `msvcp140` (CPython still supplies `vcruntime140`):
    ```
    py -3.14 -m venv C:\t2 && C:\t2\Scripts\activate
    pip install psutil pypdf
    pip install --no-index --find-links wheelhouse pikepdf
    python -c "import pypdf; import pikepdf; print('OK', pikepdf.__version__, pikepdf.__libqpdf_version__)"
    ```
-   Then re-run Tier 1 step 3's snippet: `qpdf30.dll` should load from
-   `site-packages\pikepdf\`, and `msvcp140.dll` from `System32`.
+   Then re-run Tier 1 step 3's snippet: `qpdf30.dll` and the mangled `msvcp140-*.dll`
+   should both load from `site-packages\pikepdf` / `site-packages\pikepdf.libs`
+   (i.e. the vendored copies, **not** `site-packages\pikepdf\msvcp140.dll`), and
+   `vcruntime140.dll` from the CPython install (next to `python.exe`).
 
 ---
 
@@ -140,15 +148,19 @@ Reproduces the CI build with the patched branch.
 - [ ] Tier 1: broken wheel loads `msvcp140.dll` from `site-packages\pikepdf\`;
       deleting the bundled runtime makes it load from `System32` and import succeed.
 - [ ] Tier 2 step 3: `src\pikepdf` contains no `msvcp140*`/`vcruntime140*`/`concrt140*`.
-- [ ] Tier 2 step 5: built wheel contains `qpdf30.dll`, no runtime DLLs.
-- [ ] Tier 2 step 6: `import pypdf; import pikepdf` succeeds; runtime resolves from
-      `System32`; full cibuildwheel test suite passes.
+- [ ] Tier 2 step 5: built wheel contains `qpdf30.dll` and a **mangled**
+      `msvcp140-*.dll` in `pikepdf.libs/`, and **no** un-mangled `msvcp140.dll` /
+      `vcruntime140*` / `concrt140`.
+- [ ] Tier 2 step 6: `import pypdf; import pikepdf` succeeds in a venv **without**
+      the VC++ redistributable; `msvcp140` resolves from the vendored mangled copy
+      (not the package root); full cibuildwheel test suite passes.
 - [ ] (Optional but ideal) Reproduce the original fatal abort on the broken wheel
       from a plain terminal, and confirm the rebuilt wheel does not abort.
 
 ## Report back
 
 Paste: the loaded-DLL paths from Tier 1 (before/after) and Tier 2; the DLL list
-from the rebuilt wheel; and the cibuildwheel test summary. Flag anything where a
-runtime DLL still appears in `src\pikepdf` or in the wheel, or where qpdf ships an
-additional third-party DLL (e.g. jpeg/zlib) that the filter accidentally drops.
+from the rebuilt wheel; and the cibuildwheel test summary. Flag anything where an
+un-mangled runtime DLL appears in `src\pikepdf` or in the wheel root, where no
+mangled `msvcp140-*` is vendored, or where qpdf ships an additional third-party
+DLL (e.g. jpeg/zlib) that the filter accidentally drops.

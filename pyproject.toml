@@ -119,10 +119,13 @@ environment.MACOSX_DEPLOYMENT_TARGET = "14.0"
 
 [tool.cibuildwheel.windows]
 before-build = "pip install delvewheel"
-# --exclude guards against re-bundling the MSVC C++ runtime: it must be provided
-# by the system VC++ Redistributable, not shipped in the wheel, to avoid loading
-# two copies of the runtime in one process. See issue #718 and win-download-qpdf.ps1.
-repair-wheel-command = "delvewheel repair --add-path d:\\qpdf\\bin --exclude \"msvcp140.dll;msvcp140_1.dll;msvcp140_2.dll;msvcp140_atomic_wait.dll;msvcp140_codecvt_ids.dll;vcruntime140.dll;vcruntime140_1.dll;concrt140.dll\" -w {dest_dir} {wheel}"
+# delvewheel discovers qpdf30.dll's runtime dependencies via --add-path and vendors
+# them into pikepdf.libs/ with name mangling. It excludes vcruntime140* by default
+# (CPython ships its own copy) and name-mangles msvcp140.dll so it cannot shadow or
+# collide with the system copy or another wheel's copy. This is what keeps the wheel
+# self-contained without bundling a conflicting un-mangled runtime in the package
+# directory, which previously caused issue #718. See win-download-qpdf.ps1.
+repair-wheel-command = "delvewheel repair --add-path d:\\qpdf\\bin -w {dest_dir} {wheel}"
 
 [tool.mypy]
 exclude = ["^_qpdf\\.py$"]

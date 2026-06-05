@@ -21,12 +21,14 @@ Move-Item -Path $qpdfdir -Destination D:\qpdf
 # Copy only qpdf's own library (and any genuine third-party deps it ships),
 # but NOT the MSVC C++ runtime redistributable (msvcp140*, vcruntime140*,
 # concrt140*). qpdf's msvc64 release bundles those runtime DLLs alongside
-# qpdf30.dll; shipping them inside the package directory makes a fixed-version
-# copy of the runtime shadow/collide with the system runtime (and other wheels'
-# copies), which corrupts CPython's per-thread state ("the GIL is released /
-# thread state is NULL"). The runtime must come from the system VC++
-# Redistributable (which CPython and qpdf's msvc build already require), and
-# delvewheel vendors any non-system deps with name mangling. See issue #718.
+# qpdf30.dll; copying them un-mangled into the package directory makes a
+# fixed-version copy of the runtime shadow/collide with the system runtime
+# (and other wheels' copies), which corrupts CPython's per-thread state
+# ("the GIL is released / thread state is NULL"). delvewheel later discovers
+# qpdf30.dll's runtime dependency via --add-path and vendors a name-mangled
+# msvcp140 into pikepdf.libs/ (and uses CPython's own vcruntime140), so the
+# wheel stays self-contained without an un-mangled runtime in the package
+# directory. See issue #718.
 Get-ChildItem D:\qpdf\bin\*.dll |
     Where-Object { $_.Name -notmatch '^(msvcp140|vcruntime140|concrt140)' } |
     Copy-Item -Destination src\pikepdf
