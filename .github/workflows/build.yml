@@ -21,10 +21,10 @@ jobs:
       matrix:
         platform: [manylinux_x86_64, musllinux_x86_64]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.3.1
+        uses: pypa/cibuildwheel@v3.4.1
 
       - name: Audit abi3 wheels
         shell: bash
@@ -38,27 +38,11 @@ jobs:
           pipx run abi3audit --strict --report "${wheels[@]}"
 
       - name: Upload built wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-${{ matrix.platform }}
           path: ./wheelhouse/*.whl
           if-no-files-found: error
-
-  wheels_linux_prerelease_python:
-    name: test pre-release (${{ matrix.platform }})
-    runs-on: ubuntu-24.04
-    continue-on-error: true
-    env:
-      CIBW_BUILD: "cp315-${{ matrix.platform }}"
-      CIBW_ENABLE: "cpython-prerelease"
-    strategy:
-      matrix:
-        platform: [manylinux_x86_64]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build and test wheels (without upload)
-        uses: pypa/cibuildwheel@v3.3.1
 
   wheels_linux_freethreading:
     name: test freethreading (${{ matrix.platform }})
@@ -72,10 +56,10 @@ jobs:
       matrix:
         platform: [manylinux_x86_64]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Build and test wheels (without upload)
-        uses: pypa/cibuildwheel@v3.3.1
+        uses: pypa/cibuildwheel@v3.4.1
 
   wheels_linux_arm:
     name: ${{ matrix.platform }}
@@ -86,10 +70,10 @@ jobs:
       matrix:
         platform: [manylinux_aarch64, musllinux_aarch64]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.3.1
+        uses: pypa/cibuildwheel@v3.4.1
 
       - name: Audit abi3 wheels
         shell: bash
@@ -103,7 +87,7 @@ jobs:
           pipx run abi3audit --strict --report "${wheels[@]}"
 
       - name: Upload built wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-${{ matrix.platform }}
           path: ./wheelhouse/*.whl
@@ -125,14 +109,14 @@ jobs:
             os_arch: macos-arm64
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install UV for cibuildwheel
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.3.1
+        uses: pypa/cibuildwheel@v3.4.1
 
       - name: Audit abi3 wheels
         shell: bash
@@ -145,7 +129,7 @@ jobs:
           fi
           pipx run abi3audit --strict --report "${wheels[@]}"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: wheels-${{ matrix.os_arch }}
           path: ./wheelhouse/*.whl
@@ -164,7 +148,7 @@ jobs:
         platform: [win_amd64]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-python@v6
         name: Install Python
@@ -186,7 +170,7 @@ jobs:
           powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.3.1
+        uses: pypa/cibuildwheel@v3.4.1
 
       - name: Audit abi3 wheels
         shell: bash
@@ -199,7 +183,7 @@ jobs:
           fi
           pipx run abi3audit --strict --report "${wheels[@]}"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: wheels-${{ matrix.platform }}
           path: ./wheelhouse/*.whl
@@ -208,7 +192,7 @@ jobs:
     name: source distribution
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-python@v6
         name: Install Python
@@ -270,13 +254,13 @@ jobs:
           rm cpp_coverage_all.info
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v6
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           files: ./coverage.xml,./cpp_coverage.info
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: sdist
           path: dist/*.tar.gz
@@ -309,9 +293,9 @@ jobs:
           - platform: manylinux_aarch64
             runner: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: wheels-${{ matrix.platform }}
           path: wheelhouse
@@ -379,15 +363,15 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           pattern: wheels-*
           merge-multiple: true
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: sdist
           path: dist

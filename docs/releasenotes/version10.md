@@ -14,6 +14,11 @@ tests don't try to create race conditions. Must be compiled manually.
 
 ## v10.7.3
 
+- Upgraded to cibuildwheel 3.4.1 and refreshed pinned GitHub Actions
+  (`actions/checkout@v6`, `actions/upload-artifact@v7`,
+  `actions/download-artifact@v8`, `codecov/codecov-action@v6`). Dropped the
+  CPython 3.15 prerelease test job, since cibuildwheel has not yet shipped a
+  stable release with 3.15 support.
 - Fixed Windows wheels bundling a fixed-version, un-mangled copy of the Microsoft
   Visual C++ runtime (`msvcp140*.dll`, `vcruntime140*.dll`, `concrt140.dll`)
   inside the package directory. These were inadvertently copied from qpdf's
