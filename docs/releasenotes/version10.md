@@ -8,9 +8,23 @@
   them - macOS 15 Intel works fine.
 - Dropped deprecated method `Pdf.check()` (use `.check_pdf_syntax()`).
 
-pikepdf now declares unstable "support" for freethreading, and does not publish
-freethreading wheels. All tests seem to pass, but that's because the existing
-tests don't try to create race conditions. Must be compiled manually.
+pikepdf supports free-threaded (no-GIL) CPython. Starting with v10.8.0, pikepdf
+publishes free-threaded CPython 3.14 (`cp314t`) wheels to PyPI; before v10.8.0,
+free-threaded use required building from source. As always, coordinating
+concurrent modification of the same object across threads requires a lock -- see
+the architecture notes on thread safety.
+
+## v10.8.0
+
+- pikepdf now publishes free-threaded CPython 3.14 (`cp314t`) binary wheels to
+  PyPI for Linux (manylinux and musllinux, x86-64 and aarch64), macOS (x86-64
+  and Apple Silicon) and Windows (x86-64). Previously these wheels were not
+  published and free-threaded users had to build pikepdf from source.
+- Updated the PyPI "Free Threading" trove classifier from "1 - Unstable" to
+  "3 - Supported".
+- Some of pikepdf's dependencies (such as lxml and Pillow) publish their own
+  free-threaded wheels; on less common platforms or when older versions are
+  involved, free-threading might require source builds of those dependencies.
 
 ## v10.7.3
 

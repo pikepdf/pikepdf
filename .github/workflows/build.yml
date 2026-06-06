@@ -44,23 +44,6 @@ jobs:
           path: ./wheelhouse/*.whl
           if-no-files-found: error
 
-  wheels_linux_freethreading:
-    name: test freethreading (${{ matrix.platform }})
-    runs-on: ubuntu-24.04
-    continue-on-error: true
-    env:
-      CIBW_BUILD: "cp314t-${{ matrix.platform }}"
-      CIBW_SKIP: ""
-      CIBW_ENABLE: "cpython-freethreading"
-    strategy:
-      matrix:
-        platform: [manylinux_x86_64]
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Build and test wheels (without upload)
-        uses: pypa/cibuildwheel@v3.4.1
-
   wheels_linux_arm:
     name: ${{ matrix.platform }}
     runs-on: ubuntu-24.04-arm

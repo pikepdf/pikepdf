@@ -27,7 +27,7 @@ with pikepdf.Pdf.open('input.pdf') as pdf:
 pip install pikepdf
 ```
 
-Binary wheels are available for all common platforms -- Linux, macOS, and Windows on both x86-64 and ARM64/Apple Silicon. No compiler required.
+Binary wheels are available for all common platforms -- Linux, macOS, and Windows on both x86-64 and ARM64/Apple Silicon -- including free-threaded (no-GIL) CPython 3.14. No compiler required.
 
 For building from source, see [installation](https://pikepdf.readthedocs.io/en/latest/source_build.html). Commercial support is available.
 
@@ -158,7 +158,7 @@ Job({'inputFile': 'input.pdf', 'outputFile': 'output.pdf', 'linearize': ''}).run
 - **Content stream inspection** -- parse and manipulate page content at the operator level
 - **Object-level manipulation** -- work directly with PDF objects per the specification
 - **Jupyter integration** -- render PDF and page previews inline in notebooks
-- **Binary wheels everywhere** -- pre-built for Linux, macOS, Windows (x86-64 and ARM64)
+- **Binary wheels everywhere** -- pre-built for Linux, macOS, Windows (x86-64 and ARM64), including free-threaded CPython 3.14
 - **Liberal license** -- MPL-2.0, compatible with most open and closed source projects
 
 ## When to Use pikepdf

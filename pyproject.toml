@@ -28,7 +28,7 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Topic :: Multimedia :: Graphics",
   "Topic :: Software Development :: Libraries",
-  "Programming Language :: Python :: Free Threading :: 1 - Unstable",
+  "Programming Language :: Python :: Free Threading :: 3 - Supported",
 ]
 dependencies = ["Pillow>=10.0.1", "lxml>=4.8", "packaging"]
 
@@ -44,8 +44,8 @@ test-groups = ["test"]
 #   build.yml sets CIBW_BUILD to select what can be built
 #   this file sets skip to deselect what cannot be built
 skip = [
-  "*-win32",  # no 32-bit builds/not supported by Pillow anymore,
-  "cp3??t-*", # no freethreading builds
+  "*-win32",   # no 32-bit builds/not supported by Pillow anymore,
+  "cp313t-*",  # 3.13 free-threading is experimental upstream; publish only cp314t
 ]
 build-frontend = "build[uv]"
 

@@ -22,12 +22,16 @@ may be returned in some situations).
 
 ## Thread safety
 
-Because of the global interpreter lock (GIL), it is safe to read pikepdf
-objects across Python threads. Also because of the GIL, there may not be much
-performance gain from doing so.
+pikepdf supports free-threaded (no-GIL) CPython and publishes `cp314t` wheels.
 
-If one or more threads will be modifying pikepdf objects, you will have to
-coordinate read and write access with a {class}`threading.Lock`.
+On a GIL-enabled interpreter, it is safe to read pikepdf objects across Python
+threads, though the GIL means there may not be much performance gain from doing
+so. On a free-threaded interpreter there is no GIL serializing access, so even
+concurrent reads of an object that another thread may be modifying require
+synchronization.
+
+In either case, if one or more threads will be modifying pikepdf objects, you
+must coordinate read and write access with a {class}`threading.Lock`.
 
 It is not currently possible to pickle pikepdf objects or marshall them across
 process boundaries (as would be required to use pikepdf in
