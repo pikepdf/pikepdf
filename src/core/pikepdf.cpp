@@ -374,7 +374,6 @@ NB_MODULE(_core, m)
 
 #ifdef Py_GIL_DISABLED
     m.attr("__threading__") = "freethreading";
-    fprintf(stderr, "Warning: pikepdf freethreading support is unstable\n");
 #else
     m.attr("__threading__") = "gil";
 #endif
