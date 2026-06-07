@@ -20,6 +20,12 @@ pikepdf requires:
 - libqpdf {{ qpdf_min_version }} or higher from the
   [qpdf](https://qpdf.org) project.
 
+pikepdf uses [uv](https://docs.astral.sh/uv/) as its package manager. The
+commands below use `uv`; install it first if you haven't already. (Plain `pip`
+also works, but a recent version is required — see the note in
+[CONTRIBUTING.md](https://github.com/pikepdf/pikepdf/blob/main/CONTRIBUTING.md)
+about older pip silently reusing stale editable builds.)
+
 On Linux the library and headers for libqpdf must be installed because pikepdf
 compiles code against it and links to it.
 
@@ -46,8 +52,8 @@ To link to system libraries (the ones installed by your package manager, such
 
 - Clone the pikepdf repository
 - Install libjpeg, zlib and libqpdf on your platform, including headers
-- If desired, activate a virtual environment
-- Run `pip install .`
+- If desired, create and activate a virtual environment with `uv venv`
+- Run `uv pip install .`
 
 ## {fa}`linux` {fa}`apple` GCC or Clang and linking to user libraries
 
@@ -73,7 +79,7 @@ then you might do something like:
 
   > ```bash
   > env CXXFLAGS=-I/usr/local/include/libqpdf LDFLAGS=-L/usr/local/lib  \
-  >     pip install .
+  >     uv pip install .
   > ```
 
 ### {fa}`windows` On Windows (requires Visual Studio 2015)
@@ -87,7 +93,7 @@ documentation if you also need to build this DLL from source. Both should be
 built with the same compiler. You may not mix and match MinGW and Visual C++
 for example.
 
-Running a regular `pip install` command will detect the
+Running a regular `uv pip install` command will detect the
 version of the compiler used to build Python and attempt to build the
 extension with it. We must force the use of Visual Studio 2015.
 
@@ -107,7 +113,7 @@ extension with it. We must force the use of Visual Studio 2015.
   Runtime library) from the zip file above, and copy it to the `src/pikepdf`
   folder in the repository.
 
-- Run `pip install .` in the root directory of the repository.
+- Run `uv pip install .` in the root directory of the repository.
 
 :::{note}
 The user compiling `pikepdf` to must have registry editing rights on the
@@ -130,12 +136,12 @@ QPDF_BUILD_LIBDIR=$PWD/build/libqpdf
 
 # Create a fresh virtual environment
 cd $PIKEPDF_SOURCE_TREE
-python3 -m venv .venv
+uv venv
 source .venv/bin/activate
 
 # Build pikepdf from source
 env QPDF_SOURCE_TREE=$QPDF_SOURCE_TREE QPDF_BUILD_LIBDIR=$QPDF_BUILD_LIBDIR \
-    pip install -e .
+    uv pip install -e .
 ```
 
 Note that the Python wheels for pikepdf currently compile their own version of
@@ -166,16 +172,16 @@ cmake -S . -B build
 cmake --build build --config Release
 ```
 
-Switch to pikepdf source folder. Set up environment variables and get pip to build/install:
+Switch to pikepdf source folder. Set up environment variables and build/install:
 
 ```powershell
 cd $pikepdf
 $env:INCLUDE = "$qpdf\include"
 $env:LIB = "$qpdf\build\libqpdf\Release\"
 cp $LIB\libqpdfXX.dll src\pikepdf  # Help Python loader find libqpdf.dll
-python -m venv .venv
+uv venv
 .venv\scripts\activate
-pip install -e .
+uv pip install -e .
 ```
 
 ## Building the documentation
@@ -184,8 +190,8 @@ Documentation is generated using Sphinx and you are currently reading it. To
 regenerate it:
 
 ```bash
-pip install pikepdf
-pip install --group docs
+uv pip install -e .
+uv pip install --group docs
 cd docs
 make html
 ```
