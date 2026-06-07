@@ -25,6 +25,10 @@ the architecture notes on thread safety.
 - Some of pikepdf's dependencies (such as lxml and Pillow) publish their own
   free-threaded wheels; on less common platforms or when older versions are
   involved, free-threading might require source builds of those dependencies.
+- Reimplemented `Page`'s attribute, item and `get` accessors in C++ instead of
+  Python. These delegate to the underlying page dictionary and were previously
+  implemented as Python augmentations; moving them to C++ removes extra Python
+  call frames on these hot paths. Behavior is unchanged.
 
 ## v10.7.3
 
