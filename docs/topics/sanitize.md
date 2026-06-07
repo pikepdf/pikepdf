@@ -28,7 +28,9 @@ validation. Most PDF viewers other than Adobe Acrobat do not fully execute PDF
 JavaScript, and typically warn about or disable it.
 
 {func}`pikepdf.sanitize.remove_javascript` purges the document-level JavaScript
-name tree and every JavaScript action, including actions chained via `/Next`:
+name tree and every JavaScript action, wherever it is reachable — including from
+the document catalog, pages, annotations, form fields, and outline (bookmark)
+items, and including actions chained via `/Next`:
 
 ```{eval-rst}
 .. doctest::
@@ -62,13 +64,15 @@ geometry is unchanged):
 ## Removing external access
 
 A PDF can contain actions that reach out to the network or filesystem: URI links,
-`Launch` actions that start an external program, `GoToR` (remote go-to),
-`SubmitForm`, and `ImportData`. URI actions are usually benign hyperlinks, so
-this is a separate opt-in.
+`Launch` actions that start an external program, `GoToR` (remote go-to), `GoToE`
+(embedded go-to, which opens content in an embedded file), `SubmitForm`, and
+`ImportData`. URI actions are usually benign hyperlinks, so this is a separate
+opt-in.
 
-{func}`pikepdf.sanitize.remove_external_access` removes all of these actions.
-Link annotations are kept — so any visible underline or box is preserved — but
-their triggering action is removed, rendering them inert:
+{func}`pikepdf.sanitize.remove_external_access` removes all of these actions,
+wherever they are reachable (document, pages, annotations, form fields, and
+outline items). Link annotations are kept — so any visible underline or box is
+preserved — but their triggering action is removed, rendering them inert:
 
 ```{eval-rst}
 .. doctest::
@@ -109,6 +113,74 @@ become unreferenced and are dropped when you save:
 .. doctest::
 
     >>> pikepdf.sanitize.remove_search_index(pdf)
+```
+
+## Removing multimedia and rich-media content
+
+PDFs can embed sound, video, Flash, and 3D (U3D/PRC) content, played through
+`Screen`, `Movie`, `Sound`, `RichMedia`, and `3D` annotations and driven by
+`Rendition`, `Movie`, `Sound`, and `RichMediaExecute` actions. These handlers
+have historically been a source of parser vulnerabilities, and the underlying
+media can reference external URLs or files. `Sound` and `Movie` are deprecated
+in PDF 2.0.
+
+{func}`pikepdf.sanitize.remove_multimedia` neutralizes the multimedia actions,
+drops the document-level `/Renditions` name tree, and defangs media-bearing
+annotations by stripping their media references — the annotation rectangle is
+kept so page geometry is unchanged:
+
+```{eval-rst}
+.. doctest::
+
+    >>> pikepdf.sanitize.remove_multimedia(pdf)
+```
+
+## Removing Web Capture information
+
+When Adobe Acrobat captures content from the web, it records a `/SpiderInfo`
+dictionary in the catalog holding the source URLs and capture settings. This
+provenance is invisible in the rendered document but can leak where the content
+came from. {func}`pikepdf.sanitize.remove_web_capture` deletes it:
+
+```{eval-rst}
+.. doctest::
+
+    >>> pikepdf.sanitize.remove_web_capture(pdf)
+```
+
+## Removing private application data
+
+PDF processors can stash private, application-specific data in `/PieceInfo`
+page-piece dictionaries — for example, an editor's own editable representation of
+a page. Like thumbnails and search indexes, this data can fall out of sync with
+the visible document and leak content you intended to edit or redact. Removing it
+does not change how the document renders, but applications that wrote it lose
+their private editing state.
+
+{func}`pikepdf.sanitize.remove_private_app_data` removes every `/PieceInfo`
+dictionary, at both the document and page level. It is a broader version of
+`remove_search_index` (which removes only the catalog's `/SearchIndex` entry):
+
+```{eval-rst}
+.. doctest::
+
+    >>> pikepdf.sanitize.remove_private_app_data(pdf)
+```
+
+## Removing a PDF portfolio view
+
+A *PDF portfolio* (or package) is a document whose embedded files are presented
+through a navigator UI, configured by a `/Collection` dictionary in the catalog.
+{func}`pikepdf.sanitize.remove_collection` removes that dictionary, so the
+document is presented as an ordinary PDF showing its cover sheet. This does
+**not** remove the embedded files themselves — pair it with `remove_attachments`
+for that, and with `remove_javascript`, since a portfolio's navigator can be
+driven by JavaScript:
+
+```{eval-rst}
+.. doctest::
+
+    >>> pikepdf.sanitize.remove_collection(pdf)
 ```
 
 ## Chaining operations

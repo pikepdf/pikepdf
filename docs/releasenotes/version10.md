@@ -14,18 +14,21 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
-## v10.9.0
+## v10.8.0
 
 - Added a new {mod}`pikepdf.sanitize` module with curated, low-risk helpers for
   removing active or auxiliary content from untrusted PDFs: `remove_javascript`,
-  `remove_attachments`, `remove_external_access`, `remove_thumbnails`, and
-  `remove_search_index`, plus a {class}`pikepdf.sanitize.Sanitizer` builder for
-  chaining these operations. Also added a new {ref}`sanitize` topic discussing
-  PDF sanitization, threat models, and the limits of programmatic redaction.
-  Fixes {issue}`673`.
-
-## v10.8.0
-
+  `remove_attachments`, `remove_external_access`, `remove_thumbnails`,
+  `remove_search_index`, `remove_multimedia` (Rendition/Movie/Sound/RichMedia/3D
+  content), `remove_web_capture` (`/SpiderInfo`), `remove_private_app_data`
+  (page-piece dictionaries), and `remove_collection` (PDF portfolio view), plus a
+  {class}`pikepdf.sanitize.Sanitizer` builder for chaining these operations. The
+  action-based removals now also traverse the document outline (bookmarks) and
+  treat embedded go-to (`/GoToE`) as external access, and `remove_attachments`
+  now sweeps `/AF` associated-file references from every object (XObjects,
+  structure elements, DParts, etc.). Also added a new {ref}`sanitize` topic
+  discussing PDF sanitization, threat models, and the limits of programmatic
+  redaction. Fixes {issue}`673`.
 - pikepdf now publishes free-threaded CPython 3.14 (`cp314t`) binary wheels to
   PyPI for Linux (manylinux and musllinux, x86-64 and aarch64), macOS (x86-64
   and Apple Silicon) and Windows (x86-64). Previously these wheels were not

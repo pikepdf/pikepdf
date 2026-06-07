@@ -17,10 +17,14 @@ from pikepdf import (
 from pikepdf.sanitize import (
     Sanitizer,
     remove_attachments,
+    remove_collection,
     remove_external_access,
     remove_javascript,
+    remove_multimedia,
+    remove_private_app_data,
     remove_search_index,
     remove_thumbnails,
+    remove_web_capture,
 )
 
 
@@ -258,6 +262,20 @@ def test_cyclic_next_guard(pal):
     remove_external_access(pal)  # must terminate, not hang or overflow
 
 
+def test_removes_gotoe_embedded_action(pal):
+    annot = pal.make_indirect(
+        Dictionary(
+            Type=Name.Annot,
+            Subtype=Name.Link,
+            Rect=Array([0, 0, 10, 10]),
+            A=pal.make_indirect(Dictionary(S=Name.GoToE, F=String('embedded.pdf'))),
+        )
+    )
+    pal.pages[0].obj.Annots = Array([annot])
+    remove_external_access(pal)
+    assert Name.A not in annot
+
+
 def test_external_idempotent(pdf_with_external):
     remove_external_access(pdf_with_external)
     remove_external_access(pdf_with_external)
@@ -267,6 +285,75 @@ def test_external_idempotent(pdf_with_external):
 
 def test_external_noop_on_clean_pdf(pal):
     remove_external_access(pal)
+
+
+# --- outline (bookmark) actions ------------------------------------------
+
+
+def _outline_item(pdf, action, title='item'):
+    return pdf.make_indirect(Dictionary(Title=String(title), A=action))
+
+
+def _install_outline(pdf, *items):
+    outlines = pdf.make_indirect(
+        Dictionary(Type=Name.Outlines, First=items[0], Last=items[-1], Count=len(items))
+    )
+    for i, item in enumerate(items):
+        item.Parent = outlines
+        if i > 0:
+            item.Prev = items[i - 1]
+        if i < len(items) - 1:
+            item.Next = items[i + 1]
+    pdf.Root.Outlines = outlines
+    return outlines
+
+
+def test_removes_javascript_from_outline_item(pal):
+    item = _outline_item(pal, _js_action(pal))
+    _install_outline(pal, item)
+    remove_javascript(pal)
+    assert Name.A not in item
+
+
+def test_removes_external_access_from_outline_item(pal):
+    item = _outline_item(pal, Dictionary(S=Name.URI, URI=String('http://evil')))
+    _install_outline(pal, item)
+    remove_external_access(pal)
+    assert Name.A not in item
+
+
+def test_outline_traverses_siblings_and_children(pal):
+    sibling = _outline_item(pal, _js_action(pal), 'sibling')
+    child = _outline_item(pal, _js_action(pal), 'child')
+    first = _outline_item(pal, _js_action(pal), 'first')
+    _install_outline(pal, first, sibling)
+    # Give the first item a child.
+    first.First = child
+    first.Last = child
+    child.Parent = first
+    remove_javascript(pal)
+    assert Name.A not in first
+    assert Name.A not in sibling
+    assert Name.A not in child
+
+
+def test_outline_preserves_dest_only_item(pal):
+    item = pal.make_indirect(
+        Dictionary(Title=String('x'), Dest=Array([pal.pages[0].obj, Name.Fit]))
+    )
+    _install_outline(pal, item)
+    remove_javascript(pal)
+    assert Name.Dest in item
+
+
+def test_outline_cyclic_guard(pal):
+    a = _outline_item(pal, _js_action(pal), 'a')
+    b = _outline_item(pal, _js_action(pal), 'b')
+    _install_outline(pal, a, b)
+    b.Next = a  # cycle back
+    remove_javascript(pal)  # must terminate
+    assert Name.A not in a
+    assert Name.A not in b
 
 
 # --- remove_attachments --------------------------------------------------
@@ -291,6 +378,47 @@ def test_defangs_file_attachment_annot(pdf_with_attachments):
     annot = pdf_with_attachments.pages[0].obj.Annots[0]
     assert annot.Subtype == Name.FileAttachment  # annotation retained
     assert Name.FS not in annot
+
+
+def test_removes_af_from_xobject(pdf_with_attachments):
+    pdf = pdf_with_attachments
+    fs = pdf.pages[0].obj.AF[0]  # reuse the existing file spec
+    xobj = pdf.make_indirect(
+        Dictionary(Type=Name.XObject, Subtype=Name.Form, AF=Array([fs]))
+    )
+    pdf.pages[0].obj.Resources = Dictionary(XObject=Dictionary(Fm0=xobj))
+    remove_attachments(pdf)
+    assert Name.AF not in xobj
+
+
+def test_removes_af_from_structure_element(pdf_with_attachments):
+    pdf = pdf_with_attachments
+    fs = pdf.pages[0].obj.AF[0]
+    elem = pdf.make_indirect(Dictionary(Type=Name.StructElem, S=Name.P, AF=Array([fs])))
+    pdf.Root.StructTreeRoot = pdf.make_indirect(
+        Dictionary(Type=Name.StructTreeRoot, K=elem)
+    )
+    remove_attachments(pdf)
+    assert Name.AF not in elem
+
+
+def test_preserves_unrelated_af_key(pal):
+    # An /AF key whose value is not an embedded-file specification must be left
+    # alone: it is not an associated-files reference.
+    obj = pal.make_indirect(Dictionary(AF=String('innocent value')))
+    pal.Root.SomeKey = obj
+    remove_attachments(pal)
+    assert Name.AF in obj
+
+
+def test_preserves_external_associated_file_without_ef(pal):
+    # An associated file that references an external file (no embedded /EF
+    # payload) carries no embedded bytes, so it is preserved.
+    spec = pal.make_indirect(Dictionary(Type=Name.Filespec, F=String('external.txt')))
+    obj = pal.make_indirect(Dictionary(AF=Array([spec])))
+    pal.Root.SomeKey = obj
+    remove_attachments(pal)
+    assert Name.AF in obj
 
 
 def test_attachments_roundtrip(pdf_with_attachments, outpdf):
@@ -340,6 +468,172 @@ def test_thumbnails_idempotent_and_noop(pal):
     assert Name.Thumb not in pal.pages[0].obj
 
 
+# --- remove_multimedia ---------------------------------------------------
+
+
+@pytest.fixture
+def pdf_with_multimedia(pal):
+    """A PDF with multimedia annotations, a rendition action, and named
+    renditions."""
+    screen = pal.make_indirect(
+        Dictionary(
+            Type=Name.Annot,
+            Subtype=Name.Screen,
+            Rect=Array([0, 0, 10, 10]),
+            A=pal.make_indirect(Dictionary(S=Name.Rendition)),
+        )
+    )
+    movie = pal.make_indirect(
+        Dictionary(
+            Type=Name.Annot,
+            Subtype=Name.Movie,
+            Rect=Array([0, 0, 10, 10]),
+            Movie=Dictionary(F=String('movie.avi')),
+        )
+    )
+    sound = pal.make_indirect(
+        Dictionary(
+            Type=Name.Annot,
+            Subtype=Name.Sound,
+            Rect=Array([0, 0, 10, 10]),
+            Sound=pal.make_stream(b'sounddata'),
+        )
+    )
+    richmedia = pal.make_indirect(
+        Dictionary(
+            Type=Name.Annot,
+            Subtype=Name.RichMedia,
+            Rect=Array([0, 0, 10, 10]),
+            RichMediaContent=Dictionary(),
+            RichMediaSettings=Dictionary(),
+        )
+    )
+    three_d = pal.make_indirect(
+        Dictionary(Type=Name.Annot, Subtype=Name('/3D'), Rect=Array([0, 0, 10, 10]))
+    )
+    three_d[Name('/3DD')] = pal.make_stream(b'3ddata')
+    pal.pages[0].obj.Annots = Array([screen, movie, sound, richmedia, three_d])
+
+    nt = pikepdf.NameTree.new(pal)
+    nt['clip'] = pal.make_indirect(Dictionary(S=Name.Rendition))
+    pal.Root.Names = Dictionary(Renditions=nt.obj)
+    return pal
+
+
+def test_removes_rendition_action(pdf_with_multimedia):
+    remove_multimedia(pdf_with_multimedia)
+    screen = pdf_with_multimedia.pages[0].obj.Annots[0]
+    assert screen.Subtype == Name.Screen  # annotation retained
+    assert Name.A not in screen
+
+
+def test_defangs_movie_annotation(pdf_with_multimedia):
+    remove_multimedia(pdf_with_multimedia)
+    movie = pdf_with_multimedia.pages[0].obj.Annots[1]
+    assert movie.Subtype == Name.Movie
+    assert Name.Movie not in movie
+
+
+def test_defangs_sound_annotation(pdf_with_multimedia):
+    remove_multimedia(pdf_with_multimedia)
+    sound = pdf_with_multimedia.pages[0].obj.Annots[2]
+    assert sound.Subtype == Name.Sound
+    assert Name.Sound not in sound
+
+
+def test_defangs_richmedia_annotation(pdf_with_multimedia):
+    remove_multimedia(pdf_with_multimedia)
+    rm = pdf_with_multimedia.pages[0].obj.Annots[3]
+    assert rm.Subtype == Name.RichMedia
+    assert Name.RichMediaContent not in rm
+    assert Name.RichMediaSettings not in rm
+
+
+def test_defangs_3d_annotation(pdf_with_multimedia):
+    remove_multimedia(pdf_with_multimedia)
+    three_d = pdf_with_multimedia.pages[0].obj.Annots[4]
+    assert three_d.Subtype == Name('/3D')
+    assert Name('/3DD') not in three_d
+
+
+def test_removes_named_renditions(pdf_with_multimedia):
+    remove_multimedia(pdf_with_multimedia)
+    assert Name.Renditions not in pdf_with_multimedia.Root.get(Name.Names, Dictionary())
+
+
+def test_removes_richmediaexecute_action(pal):
+    annot = pal.make_indirect(
+        Dictionary(
+            Type=Name.Annot,
+            Subtype=Name.RichMedia,
+            Rect=Array([0, 0, 10, 10]),
+            A=pal.make_indirect(Dictionary(S=Name.RichMediaExecute)),
+        )
+    )
+    pal.pages[0].obj.Annots = Array([annot])
+    remove_multimedia(pal)
+    assert Name.A not in annot
+
+
+def test_multimedia_idempotent_and_noop(pal):
+    remove_multimedia(pal)  # clean PDF: must not raise
+    remove_multimedia(pal)
+
+
+# --- remove_web_capture --------------------------------------------------
+
+
+def test_removes_web_capture(pal):
+    pal.Root.SpiderInfo = Dictionary(V=String('1.0'))
+    remove_web_capture(pal)
+    assert Name.SpiderInfo not in pal.Root
+
+
+def test_web_capture_noop(pal):
+    remove_web_capture(pal)  # no SpiderInfo: must not raise
+    assert Name.SpiderInfo not in pal.Root
+
+
+# --- remove_private_app_data ---------------------------------------------
+
+
+def test_private_app_data_removes_catalog_pieceinfo(pal):
+    pal.Root.PieceInfo = Dictionary(SomeApp=Dictionary(Private=String('x')))
+    remove_private_app_data(pal)
+    assert Name.PieceInfo not in pal.Root
+
+
+def test_private_app_data_removes_page_pieceinfo(pal):
+    pal.pages[0].obj.PieceInfo = Dictionary(SomeApp=Dictionary(Private=String('x')))
+    remove_private_app_data(pal)
+    assert Name.PieceInfo not in pal.pages[0].obj
+
+
+def test_private_app_data_subsumes_search_index(pal):
+    pal.Root.PieceInfo = Dictionary(SearchIndex=Dictionary(ModID=String('abc')))
+    remove_private_app_data(pal)
+    assert Name.PieceInfo not in pal.Root
+
+
+def test_private_app_data_noop(pal):
+    remove_private_app_data(pal)  # no PieceInfo anywhere: must not raise
+    assert Name.PieceInfo not in pal.Root
+
+
+# --- remove_collection ---------------------------------------------------
+
+
+def test_removes_collection(pal):
+    pal.Root.Collection = Dictionary(View=Name.D)
+    remove_collection(pal)
+    assert Name.Collection not in pal.Root
+
+
+def test_collection_noop(pal):
+    remove_collection(pal)  # no Collection: must not raise
+    assert Name.Collection not in pal.Root
+
+
 # --- remove_search_index -------------------------------------------------
 
 
@@ -378,6 +672,33 @@ def test_sanitizer_chaining_returns_self():
     assert s.remove_attachments() is s
     assert s.remove_thumbnails() is s
     assert s.remove_search_index() is s
+    assert s.remove_multimedia() is s
+    assert s.remove_web_capture() is s
+    assert s.remove_private_app_data() is s
+    assert s.remove_collection() is s
+
+
+def test_sanitizer_applies_multimedia(pdf_with_multimedia):
+    Sanitizer().remove_multimedia().apply(pdf_with_multimedia)
+    movie = pdf_with_multimedia.pages[0].obj.Annots[1]
+    assert Name.Movie not in movie
+    assert Name.A not in pdf_with_multimedia.pages[0].obj.Annots[0]
+
+
+def test_sanitizer_applies_new_structural(pal):
+    pal.Root.SpiderInfo = Dictionary(V=String('1.0'))
+    pal.Root.PieceInfo = Dictionary(SomeApp=Dictionary())
+    pal.Root.Collection = Dictionary(View=Name.D)
+    (
+        Sanitizer()
+        .remove_web_capture()
+        .remove_private_app_data()
+        .remove_collection()
+        .apply(pal)
+    )
+    assert Name.SpiderInfo not in pal.Root
+    assert Name.PieceInfo not in pal.Root
+    assert Name.Collection not in pal.Root
 
 
 def test_sanitizer_apply_returns_pdf(pal):
@@ -484,6 +805,10 @@ def test_functions_return_none(pal):
     assert remove_external_access(pal) is None
     assert remove_thumbnails(pal) is None
     assert remove_search_index(pal) is None
+    assert remove_multimedia(pal) is None
+    assert remove_web_capture(pal) is None
+    assert remove_private_app_data(pal) is None
+    assert remove_collection(pal) is None
 
 
 def test_public_api_exports():
@@ -492,8 +817,12 @@ def test_public_api_exports():
     assert set(pikepdf.sanitize.__all__) == {
         'Sanitizer',
         'remove_attachments',
+        'remove_collection',
         'remove_external_access',
         'remove_javascript',
+        'remove_multimedia',
+        'remove_private_app_data',
         'remove_search_index',
         'remove_thumbnails',
+        'remove_web_capture',
     }

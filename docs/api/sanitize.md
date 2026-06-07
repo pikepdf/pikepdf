@@ -29,6 +29,22 @@ discussion of when to use them and the limits of programmatic sanitization.
 ```
 
 ```{eval-rst}
+.. autoapifunction:: pikepdf.sanitize.remove_multimedia
+```
+
+```{eval-rst}
+.. autoapifunction:: pikepdf.sanitize.remove_web_capture
+```
+
+```{eval-rst}
+.. autoapifunction:: pikepdf.sanitize.remove_private_app_data
+```
+
+```{eval-rst}
+.. autoapifunction:: pikepdf.sanitize.remove_collection
+```
+
+```{eval-rst}
 .. autoapiclass:: pikepdf.sanitize.Sanitizer
     :members:
 ```

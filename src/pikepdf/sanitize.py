@@ -6,9 +6,10 @@
 What is "safe" to remove from a PDF depends entirely on your use case and
 threat model. The functions in this module each perform one narrowly scoped,
 low-risk operation: they remove active or auxiliary content (scripts, embedded
-files, actions that reach the network or filesystem, thumbnails, search
-indexes) while leaving the standard page content, page geometry, and document
-metadata in place.
+files, actions that reach the network or filesystem, multimedia and rich-media
+content, thumbnails, search indexes, Web Capture information, private
+application data, and the portfolio view) while leaving the standard page
+content, page geometry, and document metadata in place.
 
 These operations are *not* guaranteed to leave a document's appearance
 unchanged. PDF JavaScript, for example, can alter how a document renders, so
@@ -36,17 +37,33 @@ if TYPE_CHECKING:
 __all__ = [
     'Sanitizer',
     'remove_attachments',
+    'remove_collection',
     'remove_external_access',
     'remove_javascript',
+    'remove_multimedia',
+    'remove_private_app_data',
     'remove_search_index',
     'remove_thumbnails',
+    'remove_web_capture',
 ]
 
 # Action subtypes (the value of an action dictionary's /S key).
 _JS_SUBTYPES = frozenset({Name.JavaScript})
 _EXTERNAL_SUBTYPES = frozenset(
-    {Name.URI, Name.Launch, Name.GoToR, Name.SubmitForm, Name.ImportData}
+    {Name.URI, Name.Launch, Name.GoToR, Name.GoToE, Name.SubmitForm, Name.ImportData}
 )
+_MULTIMEDIA_SUBTYPES = frozenset(
+    {Name.Rendition, Name.Movie, Name.Sound, Name.RichMediaExecute}
+)
+
+# Media-bearing annotation subtypes mapped to the entries that reference their
+# (possibly embedded or external) media, stripped when defanging.
+_MEDIA_ANNOT_KEYS: dict[Name, tuple[Name, ...]] = {
+    Name.Movie: (Name.Movie,),
+    Name.Sound: (Name.Sound,),
+    Name.RichMedia: (Name.RichMediaContent, Name.RichMediaSettings),
+    Name('/3D'): (Name('/3DD'),),
+}
 
 # Guard against pathological /Next chains built from inline (direct) action
 # dictionaries, which cannot be deduplicated by object id.
@@ -192,14 +209,40 @@ def _sanitize_actions(pdf: Pdf, targets: frozenset[Name]) -> None:
         for field in pdf.acroform.fields:
             _neutralize_additional_actions(field.obj, targets)
 
+    # Document outline (bookmarks): each item may carry an /A action.
+    _neutralize_outlines(root, targets)
+
+
+def _neutralize_outlines(root: Object, targets: frozenset[Name]) -> None:
+    """Neutralize targeted /A actions on every document outline item.
+
+    Walks the outline tree via /First and /Next, descending into /First for
+    children, with an objgen-based visited set to break cyclic or malformed
+    sibling/child links.
+    """
+    outlines = root.get(Name.Outlines)
+    if not isinstance(outlines, Dictionary):
+        return
+    visited: set[tuple[int, int]] = set()
+    stack = [outlines.get(Name.First)]
+    while stack:
+        item = stack.pop()
+        if not isinstance(item, (Dictionary, Stream)):
+            continue
+        if _cycle_hit(item, visited):
+            continue
+        _neutralize_slot(item, Name.A, targets, set())
+        stack.append(item.get(Name.Next))
+        stack.append(item.get(Name.First))
+
 
 def remove_javascript(pdf: Pdf) -> None:
     """Remove all JavaScript from a PDF, in place.
 
     Purges document-level named JavaScript (the ``/Root/Names/JavaScript``
     name tree) and every ``/JavaScript`` action reachable from document, page,
-    annotation, and form-field action slots, including actions chained via
-    ``/Next``.
+    annotation, form-field, and outline (bookmark) action slots, including
+    actions chained via ``/Next``.
 
     Page content, annotations (minus their scripts), form fields, and metadata
     are left in place. Note that PDF JavaScript can alter how a document
@@ -237,10 +280,13 @@ def remove_attachments(pdf: Pdf) -> None:
 
     Clears the ``/Root/Names/EmbeddedFiles`` name tree (the
     :attr:`pikepdf.Pdf.attachments` mapping) and removes ``/AF`` (associated
-    files) references at the catalog, page, and annotation level. FileAttachment
-    annotations are defanged by removing their embedded ``/FS`` file
-    specification; the annotation itself is retained so page geometry is
-    unchanged.
+    files) references from every object that carries one — the catalog, pages,
+    annotations, XObjects, structure elements, and so on (PDF 2.0 14.13). As a
+    precaution, an ``/AF`` reference is only removed if it points to an embedded
+    file specification (one with an ``/EF`` entry), so an unrelated key that
+    happens to be named ``/AF`` is left untouched. FileAttachment annotations
+    are defanged by removing their embedded ``/FS`` file specification; the
+    annotation itself is retained so page geometry is unchanged.
 
     Embedded files can be integral to a document, especially in digital-signing
     workflows, so remove them deliberately.
@@ -251,6 +297,19 @@ def remove_attachments(pdf: Pdf) -> None:
     Args:
         pdf: The PDF to modify in place.
     """
+    # /AF (associated files) references may be attached to the catalog, pages,
+    # annotations, graphics objects, structure elements, XObjects, or DParts
+    # (PDF 2.0 14.13). Sweep every object so none is missed. This runs before
+    # clearing attachments, while the file specifications still carry their /EF
+    # entries, so the embedded-payload guard below can see them. As a precaution
+    # against unrelated keys that happen to be named /AF, only references that
+    # actually point to an embedded file (an /EF entry) are removed.
+    for obj in pdf.objects:
+        if isinstance(obj, (Dictionary, Stream)) and _af_holds_embedded_file(
+            obj.get(Name.AF)
+        ):
+            del obj[Name.AF]
+
     pdf.attachments.clear()
 
     # Belt and suspenders: drop the name tree key itself, in case an
@@ -259,33 +318,40 @@ def remove_attachments(pdf: Pdf) -> None:
     if isinstance(names, Dictionary) and Name.EmbeddedFiles in names:
         del names[Name.EmbeddedFiles]
 
-    _remove_associated_files(pdf.Root)
+    # Defang FileAttachment annotations: drop their /FS file specification but
+    # keep the annotation so page geometry is unchanged.
     for page in pdf.pages:
-        pobj = page.obj
-        _remove_associated_files(pobj)
-        annots = pobj.get(Name.Annots)
+        annots = page.obj.get(Name.Annots)
         if isinstance(annots, Array):
             for annot in annots:
                 if not isinstance(annot, Dictionary):
                     continue
-                _remove_associated_files(annot)
                 if annot.get(Name.Subtype) == Name.FileAttachment and Name.FS in annot:
                     del annot[Name.FS]
 
 
-def _remove_associated_files(holder: Object) -> None:
-    """Remove an /AF (associated files) reference if present."""
-    if Name.AF in holder:
-        del holder[Name.AF]
+def _af_holds_embedded_file(af: Object | None) -> bool:
+    """Return True if an /AF value points to an embedded-file specification.
+
+    /AF normally holds an array of file specification dictionaries; an embedded
+    associated file carries the payload in an /EF entry. A direct (non-array)
+    file spec is tolerated for robustness. Returning False for anything else
+    avoids stripping unrelated keys that merely happen to be named /AF.
+    """
+    candidates = af if isinstance(af, Array) else [af]
+    return any(
+        isinstance(spec, (Dictionary, Stream)) and Name.EF in spec
+        for spec in candidates
+    )
 
 
 def remove_external_access(pdf: Pdf) -> None:
     """Neutralize actions that reach the network or filesystem, in place.
 
-    Removes ``/URI``, ``/Launch``, ``/GoToR`` (remote go-to), ``/SubmitForm``,
-    and ``/ImportData`` actions wherever they are reachable from document,
-    page, annotation, and form-field action slots, including actions chained
-    via ``/Next``.
+    Removes ``/URI``, ``/Launch``, ``/GoToR`` (remote go-to), ``/GoToE``
+    (embedded go-to), ``/SubmitForm``, and ``/ImportData`` actions wherever they
+    are reachable from document, page, annotation, form-field, and outline
+    (bookmark) action slots, including actions chained via ``/Next``.
 
     Link annotations are retained (so any visible underline or box is
     preserved) but their triggering action is removed, rendering them inert.
@@ -357,6 +423,132 @@ def remove_search_index(pdf: Pdf) -> None:
         del pdf.Root[Name.PieceInfo]
 
 
+def remove_multimedia(pdf: Pdf) -> None:
+    """Remove multimedia and rich-media content from a PDF, in place.
+
+    Neutralizes ``/Rendition``, ``/Movie``, ``/Sound``, and
+    ``/RichMediaExecute`` actions (wherever reachable from document, page,
+    annotation, outline, and form-field action slots, including ``/Next``
+    chains), drops the document-level ``/Root/Names/Renditions`` name tree, and
+    defangs media-bearing annotations by stripping their media references:
+
+    * ``Movie`` annotations lose their ``/Movie`` dictionary;
+    * ``Sound`` annotations lose their ``/Sound`` stream;
+    * ``RichMedia`` annotations lose ``/RichMediaContent`` and
+      ``/RichMediaSettings``;
+    * ``3D`` annotations lose their ``/3DD`` 3D-data reference.
+
+    ``Screen`` annotations are defanged by removing their ``/Rendition``
+    action via the action walk above. In every case the annotation itself is
+    retained so page geometry is unchanged.
+
+    Multimedia handlers (Flash, embedded video, U3D/PRC 3D) are historically a
+    source of parser vulnerabilities, and the underlying media can reference
+    external URLs or files. ``Sound`` and ``Movie`` are deprecated in PDF 2.0.
+
+    This operation is idempotent and safe to call on a PDF that contains no
+    multimedia content.
+
+    Args:
+        pdf: The PDF to modify in place.
+    """
+    _sanitize_actions(pdf, _MULTIMEDIA_SUBTYPES)
+    _remove_multimedia_structural(pdf)
+
+
+def _remove_multimedia_structural(pdf: Pdf) -> None:
+    """Drop the named-renditions tree and defang media-bearing annotations."""
+    names = pdf.Root.get(Name.Names)
+    if isinstance(names, Dictionary) and Name.Renditions in names:
+        del names[Name.Renditions]
+
+    for page in pdf.pages:
+        annots = page.obj.get(Name.Annots)
+        if not isinstance(annots, Array):
+            continue
+        for annot in annots:
+            if not isinstance(annot, Dictionary):
+                continue
+            subtype = annot.get(Name.Subtype)
+            keys = _MEDIA_ANNOT_KEYS.get(subtype) if isinstance(subtype, Name) else None
+            if keys is None:
+                continue
+            for key in keys:
+                if key in annot:
+                    del annot[key]
+
+
+def remove_web_capture(pdf: Pdf) -> None:
+    """Remove Web Capture (spider) information from a PDF, in place.
+
+    Deletes the catalog's ``/SpiderInfo`` dictionary, which Adobe Acrobat
+    records when content is captured from the web. It stores source URLs and
+    capture settings, so removing it drops potentially sensitive provenance
+    that is otherwise invisible in the document, and is ignored by viewers that
+    do not implement Web Capture.
+
+    This operation is idempotent and safe to call on a PDF that has no Web
+    Capture information.
+
+    Args:
+        pdf: The PDF to modify in place.
+    """
+    if Name.SpiderInfo in pdf.Root:
+        del pdf.Root[Name.SpiderInfo]
+
+
+def remove_private_app_data(pdf: Pdf) -> None:
+    """Remove private application data (page-piece dictionaries), in place.
+
+    Deletes every ``/PieceInfo`` page-piece dictionary, both at the document
+    catalog level and on every page. PDF processors use ``/PieceInfo`` to store
+    private, application-specific data (for example, an editor's own editable
+    representation of the page) that the PDF specification does not interpret.
+
+    Such data can fall out of sync with the visible document and leak content
+    you intended to edit or redact. Removing it does not change how the document
+    renders, but applications that wrote it lose their private editing state.
+
+    This is a broader operation than :func:`remove_search_index`, which removes
+    only the catalog's ``/PieceInfo/SearchIndex`` entry; this function removes
+    all page-piece data wherever it appears.
+
+    This operation is idempotent and safe to call on a PDF that has no
+    private application data.
+
+    Args:
+        pdf: The PDF to modify in place.
+    """
+    if Name.PieceInfo in pdf.Root:
+        del pdf.Root[Name.PieceInfo]
+    for page in pdf.pages:
+        if Name.PieceInfo in page.obj:
+            del page.obj[Name.PieceInfo]
+
+
+def remove_collection(pdf: Pdf) -> None:
+    """Remove the PDF portfolio (collection) presentation, in place.
+
+    Deletes the catalog's ``/Collection`` dictionary, which marks a document as
+    a *PDF portfolio* (also called a PDF package) and configures how its
+    embedded files are presented in a navigator UI. Removing it causes the
+    document to be presented as an ordinary PDF showing its cover sheet.
+
+    This does **not** remove the embedded files themselves; pair it with
+    :func:`remove_attachments` if you want the attachments gone as well. A
+    portfolio's navigator can also be driven by JavaScript, so consider
+    :func:`remove_javascript` too.
+
+    This operation is idempotent and safe to call on a PDF that is not a
+    portfolio.
+
+    Args:
+        pdf: The PDF to modify in place.
+    """
+    if Name.Collection in pdf.Root:
+        del pdf.Root[Name.Collection]
+
+
 class Sanitizer:
     """A fluent builder that accumulates sanitization operations.
 
@@ -422,6 +614,30 @@ class Sanitizer:
         See :func:`remove_search_index`.
         """
         self._structural.append(remove_search_index)
+        return self
+
+    def remove_multimedia(self) -> Sanitizer:
+        """Record removal of multimedia content. See :func:`remove_multimedia`."""
+        self._action_subtypes |= _MULTIMEDIA_SUBTYPES
+        self._structural.append(_remove_multimedia_structural)
+        return self
+
+    def remove_web_capture(self) -> Sanitizer:
+        """Record removal of Web Capture info. See :func:`remove_web_capture`."""
+        self._structural.append(remove_web_capture)
+        return self
+
+    def remove_private_app_data(self) -> Sanitizer:
+        """Record removal of private application data.
+
+        See :func:`remove_private_app_data`.
+        """
+        self._structural.append(remove_private_app_data)
+        return self
+
+    def remove_collection(self) -> Sanitizer:
+        """Record removal of the portfolio view. See :func:`remove_collection`."""
+        self._structural.append(remove_collection)
         return self
 
     def apply(self, pdf: Pdf) -> Pdf:
