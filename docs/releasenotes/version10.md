@@ -14,6 +14,16 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.9.0
+
+- Added a new {mod}`pikepdf.sanitize` module with curated, low-risk helpers for
+  removing active or auxiliary content from untrusted PDFs: `remove_javascript`,
+  `remove_attachments`, `remove_external_access`, `remove_thumbnails`, and
+  `remove_search_index`, plus a {class}`pikepdf.sanitize.Sanitizer` builder for
+  chaining these operations. Also added a new {ref}`sanitize` topic discussing
+  PDF sanitization, threat models, and the limits of programmatic redaction.
+  Fixes {issue}`673`.
+
 ## v10.8.0
 
 - pikepdf now publishes free-threaded CPython 3.14 (`cp314t`) binary wheels to
