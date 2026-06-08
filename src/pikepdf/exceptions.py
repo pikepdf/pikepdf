@@ -11,6 +11,7 @@ from pikepdf._core import (
     ForeignObjectError,
     PasswordError,
     PdfError,
+    ReferenceCycleError,
 )
 from pikepdf._exceptions import DependencyError
 from pikepdf.models._content_stream import PdfParsingError
@@ -34,5 +35,6 @@ __all__ = [
     'PasswordError',
     'PdfError',
     'PdfParsingError',
+    'ReferenceCycleError',
     'UnsupportedImageTypeError',
 ]

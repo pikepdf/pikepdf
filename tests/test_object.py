@@ -908,16 +908,23 @@ class TestCyclicEquality:
         a = pikepdf.Dictionary()
         b = pikepdf.Dictionary()
         a['/Kids'] = [b]
-        b['/Kids'] = [a]
+        try:
+            b['/Kids'] = [a]  # closes the cycle
+        except pikepdf.ReferenceCycleError:
+            return  # qpdf #1730/#1731: direct-object cycle creation is rejected
+        # Older qpdf: cycle constructed. a and b are mutually bisimilar, so
+        # cycle-safe equality treats them as equal; the essential requirement is
+        # that this returns a bool, not crash.
         assert a == a
-        # a and b are mutually bisimilar, so cycle-safe equality treats them as
-        # equal; the essential requirement is that this returns a bool, not crash.
         assert (a == b) is True
 
     def test_direct_self_cycle(self):
         # Issue #731: a direct dict that references itself through an array.
         a = pikepdf.Dictionary()
-        a['/Self'] = [a]
+        try:
+            a['/Self'] = [a]  # closes the cycle
+        except pikepdf.ReferenceCycleError:
+            return  # qpdf #1730/#1731: direct-object cycle creation is rejected
         assert a == a
 
     def test_direct_cycle_unequal(self):
@@ -938,9 +945,24 @@ class TestCyclicEquality:
         leaf_node = pikepdf.Dictionary()
         leaf_one = leaf(("foo", v(1)))
         leaf_node["/Kids"] = [root]
-        root["/Kids"] = [inner(inner(leaf_node, leaf_one))]
+        try:
+            root["/Kids"] = [inner(inner(leaf_node, leaf_one))]  # closes the cycle
+        except pikepdf.ReferenceCycleError:
+            return  # qpdf #1730/#1731: direct-object cycle creation is rejected
 
         assert (root["/Kids"][0] in [root]) is False
+
+    def test_reference_cycle_rejected(self):
+        # qpdf #1730/#1731: constructing a direct-object cycle raises
+        # ReferenceCycleError. Skips on older qpdf that permits the cycle.
+        a = pikepdf.Dictionary()
+        try:
+            a['/Self'] = a
+        except pikepdf.ReferenceCycleError as e:
+            assert 'make_indirect' in str(e)
+            assert isinstance(e, pikepdf.PdfError)  # subclass relationship
+        else:
+            pytest.skip("qpdf does not reject direct-object cycles")
 
 
 class TestKeyErrors:

@@ -16,6 +16,13 @@ the architecture notes on thread safety.
 
 ## v10.8.0
 
+- Added {class}`pikepdf.ReferenceCycleError` (a subclass of
+  {class}`pikepdf.PdfError`), raised when an operation would create a cycle of
+  direct (non-indirect) objects -- a direct object may not contain itself,
+  directly or indirectly. Use {meth}`pikepdf.Pdf.make_indirect` to create a
+  reference cycle instead. This requires a build of qpdf that prevents
+  direct-object cycle construction; on older qpdf the offending operation is
+  permitted as before.
 - Added a new {mod}`pikepdf.sanitize` module with curated, low-risk helpers for
   removing active or auxiliary content from untrusted PDFs: `remove_javascript`,
   `remove_attachments`, `remove_external_access`, `remove_thumbnails`,

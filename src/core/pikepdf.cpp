@@ -43,6 +43,7 @@ static constinit std::atomic<PyObject *> exc_datadecoding{nullptr};
 static constinit std::atomic<PyObject *> exc_usage{nullptr};
 static constinit std::atomic<PyObject *> exc_foreign{nullptr};
 static constinit std::atomic<PyObject *> exc_destroyedobject{nullptr};
+static constinit std::atomic<PyObject *> exc_referencecycle{nullptr};
 
 // Thread-local counter for explicit_conversion() context manager nesting.
 // When > 0, the current thread is inside one or more context managers and
@@ -151,6 +152,14 @@ bool is_object_type_assertion_error(const std::runtime_error &e)
     static const std::regex error_pattern(
         "operation for \\w+ attempted on object of type (?!destroyed)\\w+",
         std::regex_constants::icase);
+
+    return std::regex_search(e.what(), error_pattern);
+}
+
+bool is_reference_cycle_error(const std::logic_error &e)
+{
+    static const std::regex error_pattern(
+        "cycle of direct objects", std::regex_constants::icase);
 
     return std::regex_search(e.what(), error_pattern);
 }
@@ -302,6 +311,15 @@ NB_MODULE(_core, m)
         m,
         "PdfError",
         PyErr_NewException("pikepdf._core.PdfError", PyExc_Exception, nullptr));
+    // ReferenceCycleError is a subclass of PdfError, so existing
+    // `except PdfError` handlers keep catching it. Published after exc_main so
+    // PdfError exists to serve as the base class.
+    publish(exc_referencecycle,
+        m,
+        "ReferenceCycleError",
+        PyErr_NewException("pikepdf._core.ReferenceCycleError",
+            exc_main.load(std::memory_order_acquire),
+            nullptr));
     // PasswordError and DataDecodingError are siblings of PdfError (both
     // direct subclasses of Exception), not subclasses of it. Reflect the
     // documented hierarchy from src/pikepdf/_core.pyi and the pre-nanobind
@@ -352,15 +370,26 @@ NB_MODULE(_core, m)
         } catch (const QPDFUsage &e) {
             PyErr_SetString(exc_usage.load(std::memory_order_acquire), e.what());
         } catch (const std::logic_error &e) {
-            auto trans = translate_qpdf_logic_error(e);
-            if (trans.second == error_type_foreign)
+            if (is_reference_cycle_error(e)) {
+                // qpdf points at its C++ API (QPDF::makeIndirectObject); rewrite
+                // the guidance to the pikepdf equivalent so it's actionable from
+                // Python.
+                std::string msg = std::regex_replace(std::string(e.what()),
+                    std::regex("QPDF::makeIndirectObject"),
+                    "Pdf.make_indirect()");
                 PyErr_SetString(
-                    exc_foreign.load(std::memory_order_acquire), trans.first.c_str());
-            else if (trans.second == error_type_pdferror)
-                PyErr_SetString(
-                    exc_main.load(std::memory_order_acquire), trans.first.c_str());
-            else
-                std::rethrow_exception(p);
+                    exc_referencecycle.load(std::memory_order_acquire), msg.c_str());
+            } else {
+                auto trans = translate_qpdf_logic_error(e);
+                if (trans.second == error_type_foreign)
+                    PyErr_SetString(exc_foreign.load(std::memory_order_acquire),
+                        trans.first.c_str());
+                else if (trans.second == error_type_pdferror)
+                    PyErr_SetString(
+                        exc_main.load(std::memory_order_acquire), trans.first.c_str());
+                else
+                    std::rethrow_exception(p);
+            }
         } catch (const std::runtime_error &e) {
             if (is_data_decoding_error(e))
                 PyErr_SetString(

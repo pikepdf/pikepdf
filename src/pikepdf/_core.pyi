@@ -92,6 +92,16 @@ class PasswordError(Exception):
 class PdfError(Exception):
     """General pikepdf-specific exception."""
 
+class ReferenceCycleError(PdfError):
+    """When a direct (non-indirect) object would be made to contain itself.
+
+    A direct object may not contain itself, directly or indirectly. Make one of
+    the objects indirect with :meth:`Pdf.make_indirect` to create a reference
+    cycle.
+
+    .. versionadded:: 10.8
+    """
+
 class ForeignObjectError(Exception):
     """When a complex object is copied into a foreign PDF without proper methods.
 
