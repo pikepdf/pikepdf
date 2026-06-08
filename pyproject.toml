@@ -9,6 +9,11 @@ build-backend = "scikit_build_core.build"
 wheel.packages = ["src/pikepdf"]
 cmake.build-type = "Release"
 wheel.py-api = "cp314"
+# Pin ninja below 1.13: the 1.13.0 PyPI wheel (a jump from 2023's 1.11.1.1)
+# fails at runtime in the manylinux/musllinux build env with
+# "ninja: fatal: posix_spawn: No such file or directory", breaking the wheel
+# builds. 1.11.x is the last known-good release.
+ninja.version = ">=1.5,<1.13"
 
 [project]
 name = "pikepdf"
