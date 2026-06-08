@@ -12,7 +12,7 @@ wheel.py-api = "cp314"
 
 [project]
 name = "pikepdf"
-version = "10.7.3"
+version = "10.8.0"
 description = "Read, write, repair, and transform PDFs in Python, powered by qpdf"
 readme = "README.md"
 requires-python = ">=3.10"
