@@ -44,10 +44,19 @@ test-groups = ["test"]
 #   build.yml sets CIBW_BUILD to select what can be built
 #   this file sets skip to deselect what cannot be built
 skip = [
-  "*-win32",   # no 32-bit builds/not supported by Pillow anymore,
-  "cp313t-*",  # 3.13 free-threading is experimental upstream; publish only cp314t
+  "*-win32",   # no 32-bit builds/not supported by Pillow anymore
 ]
-build-frontend = "build[uv]"
+# We publish cp314t free-threaded wheels (built by default now that 3.14
+# free-threading is stable) but not cp313t: cp313t requires the
+# `cpython-freethreading` enable group, which we deliberately leave disabled,
+# so it is never built and needs no skip selector.
+# Use plain `build` (pip-backed isolation) rather than `build[uv]`: the uv
+# bundled into the manylinux/musllinux images has a regression where `uv pip
+# install` into build's isolated env fails with "Failed to inspect Python
+# interpreter from active virtual environment", deterministically breaking the
+# x86_64 wheel builds. The isolated build deps are tiny (nanobind +
+# scikit-build-core), so the speed cost is negligible.
+build-frontend = "build"
 
 [tool.cibuildwheel.environment]
 QPDF_MIN_VERSION = "12.2.0"
