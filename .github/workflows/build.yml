@@ -13,18 +13,33 @@ on:
 
 jobs:
   wheels_linux:
-    name: ${{ matrix.platform }}
+    name: ${{ matrix.id }}
     runs-on: ubuntu-24.04
     env:
-      CIBW_BUILD: "*-${{ matrix.platform }}"
+      CIBW_BUILD: "${{ matrix.build }}"
     strategy:
+      # One wheel target per worker. The x86_64 runners intermittently fail to
+      # spawn a subprocess during the *second* build in a sequence (cp311 after
+      # cp310), dying with "No such file or directory" at the compiler check.
+      # Building a single target per job makes every build the first in its job,
+      # which sidesteps the failure. fail-fast: false so one target's flake does
+      # not cancel the others. musllinux x86_64 has not shown the failure, so it
+      # stays a single (all-targets) job. aarch64 is built in wheels_linux_arm.
+      fail-fast: false
       matrix:
-        platform: [manylinux_x86_64, musllinux_x86_64]
+        include:
+          - { id: cp310-manylinux_x86_64, build: cp310-manylinux_x86_64 }
+          - { id: cp311-manylinux_x86_64, build: cp311-manylinux_x86_64 }
+          - { id: cp312-manylinux_x86_64, build: cp312-manylinux_x86_64 }
+          - { id: cp313-manylinux_x86_64, build: cp313-manylinux_x86_64 }
+          - { id: cp314-manylinux_x86_64, build: cp314-manylinux_x86_64 }
+          - { id: cp314t-manylinux_x86_64, build: cp314t-manylinux_x86_64 }
+          - { id: musllinux_x86_64, build: "*-musllinux_x86_64" }
     steps:
       - uses: actions/checkout@v6
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.4.1
+        uses: pypa/cibuildwheel@v4.0.0
 
       - name: Audit abi3 wheels
         shell: bash
@@ -40,7 +55,7 @@ jobs:
       - name: Upload built wheels
         uses: actions/upload-artifact@v7
         with:
-          name: wheels-${{ matrix.platform }}
+          name: wheels-${{ matrix.id }}
           path: ./wheelhouse/*.whl
           if-no-files-found: error
 
@@ -56,7 +71,7 @@ jobs:
       - uses: actions/checkout@v6
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.4.1
+        uses: pypa/cibuildwheel@v4.0.0
 
       - name: Audit abi3 wheels
         shell: bash
@@ -99,7 +114,7 @@ jobs:
           curl -LsSf https://astral.sh/uv/install.sh | sh
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.4.1
+        uses: pypa/cibuildwheel@v4.0.0
 
       - name: Audit abi3 wheels
         shell: bash
@@ -153,7 +168,7 @@ jobs:
           powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.4.1
+        uses: pypa/cibuildwheel@v4.0.0
 
       - name: Audit abi3 wheels
         shell: bash
@@ -280,8 +295,12 @@ jobs:
 
       - uses: actions/download-artifact@v8
         with:
-          name: wheels-${{ matrix.platform }}
+          # wheels_linux fans manylinux x86_64 out to one artifact per target,
+          # so match them all (incl. the cp314 abi3 wheel) by pattern. aarch64
+          # is still a single wheels-manylinux_aarch64 artifact, also matched.
+          pattern: wheels-*${{ matrix.platform }}
           path: wheelhouse
+          merge-multiple: true
 
       - name: Install debug Python 3.14
         run: |
