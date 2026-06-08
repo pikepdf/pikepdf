@@ -126,4 +126,105 @@ void init_namepath(py::module_ &m)
             }
             return p.append_name(name);
         });
+
+    // The metaclass is built via type(...) + py::is_method() dunders rather
+    // than PyType_FromSpec, for the reasons documented at the top of
+    // object_construct.cpp (TODO(py>=3.12): switch to PyType_FromMetaclass).
+
+    // Capture the registered _NamePath type so __call__ can delegate to its
+    // multi-arg __init__ (handles NamePath('/A', '/B'), NamePath(Name.A), ...).
+    py::object NamePathT = m.attr("_NamePath");
+
+    // ---- _NamePathMeta(type) ----
+    py::dict meta_ns;
+    // NamePath.Foo -> NamePath().append_name("Foo"); fallback-only __getattr__.
+    meta_ns["__getattr__"] = py::cpp_function(
+        [](py::handle cls, std::string attr) -> py::object {
+            if (!attr.empty() && attr[0] == '_')
+                throw py::attribute_error(attr.c_str());
+            return py::cast(NamePath().append_name(attr));
+        },
+        py::is_method(),
+        py::arg("attr"));
+    // NamePath['/A'] / NamePath[0] / NamePath[Name.A]
+    meta_ns["__getitem__"] = py::cpp_function(
+        [](py::handle cls, py::object item) -> py::object {
+            if (py::isinstance<py::str>(item))
+                return py::cast(NamePath().append_name(py::cast<std::string>(item)));
+            if (py::isinstance<py::int_>(item))
+                return py::cast(NamePath().append_index(py::cast<int>(item)));
+            if (py::isinstance<QPDFObjectHandle>(item)) {
+                auto &oh = py::cast<QPDFObjectHandle &>(item);
+                if (oh.isName())
+                    return py::cast(NamePath().append_name(oh.getName()));
+            }
+            throw py::type_error("NamePath key must be str, int, or Name");
+        },
+        py::is_method(),
+        py::arg("item"));
+    // NamePath() / NamePath('/A', '/B') -> _NamePath(*args)
+    meta_ns["__call__"] = py::cpp_function(
+        [NamePathT](py::handle cls, py::args args) -> py::object {
+            PyObject *r = PyObject_Call(NamePathT.ptr(), args.ptr(), nullptr);
+            if (r == nullptr)
+                throw py::python_error();
+            return py::steal(r);
+        },
+        py::is_method());
+
+    py::tuple meta_bases = py::make_tuple(py::handle((PyObject *)&PyType_Type));
+    py::object namepath_meta = py::steal(PyObject_CallFunction((PyObject *)&PyType_Type,
+        "sOO",
+        "_NamePathMeta",
+        meta_bases.ptr(),
+        meta_ns.ptr()));
+    if (!namepath_meta)
+        throw py::python_error();
+
+    // ---- NamePath facade (instance of _NamePathMeta) ----
+    py::dict ns;
+    ns["__module__"] = py::str("pikepdf._core");
+    ns["__qualname__"] = py::str("NamePath");
+    ns["__doc__"] = py::str(R"(Path for accessing nested Dictionary/Stream values.
+
+    NamePath provides ergonomic access to deeply nested PDF structures with a
+    single access operation and helpful error messages when keys are not found.
+
+    Usage examples::
+
+        # Shorthand syntax - most common
+        obj[NamePath.Resources.Font.F1]
+
+        # With array indices
+        obj[NamePath.Pages.Kids[0].MediaBox]
+
+        # Chained access - supports non Python-identifier names
+        NamePath['/A']('/B').C[0]  # equivalent to NamePath.A.B.C[0]
+
+        # Alternate syntax to support lists
+        obj[NamePath(Name.Resources, Name.Font)]
+
+        # Using string objects
+        obj[NamePath('/Resources', '/Weird-Name')]
+
+        # Empty path returns the object itself
+        obj[NamePath()]
+
+        # Setting nested values (all parents must exist)
+        obj[NamePath.Root.Info.Title] = pikepdf.String("Test")
+
+        # With default value
+        obj.get(NamePath.Root.Metadata, None)
+
+    When a key is not found, the KeyError message identifies the exact failure
+    point, e.g.: "Key /C not found; traversed NamePath.A.B"
+
+    .. versionadded:: 10.1
+    )");
+    py::tuple bases = py::make_tuple(py::handle((PyObject *)&PyBaseObject_Type));
+    py::object NamePathFacade = py::steal(PyObject_CallFunction(
+        namepath_meta.ptr(), "sOO", "NamePath", bases.ptr(), ns.ptr()));
+    if (!NamePathFacade)
+        throw py::python_error();
+    m.attr("NamePath") = NamePathFacade;
 }

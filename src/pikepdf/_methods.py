@@ -779,41 +779,6 @@ class Extend_Page:
     def contents_add(self, contents: Stream | bytes, *, prepend: bool = False):
         return self._contents_add(contents, prepend=prepend)
 
-    def __getattr__(self, name):
-        return getattr(self.obj, name)
-
-    @augment_override_cpp
-    def __setattr__(self, name, value):
-        if hasattr(self.__class__, name):
-            object.__setattr__(self, name, value)
-        else:
-            setattr(self.obj, name, value)
-
-    @augment_override_cpp
-    def __delattr__(self, name):
-        if hasattr(self.__class__, name):
-            object.__delattr__(self, name)
-        else:
-            delattr(self.obj, name)
-
-    def __getitem__(self, key):
-        return self.obj[key]
-
-    def __setitem__(self, key, value):
-        self.obj[key] = value
-
-    def __delitem__(self, key):
-        del self.obj[key]
-
-    def __contains__(self, key):
-        return key in self.obj
-
-    def get(self, key, default=None):
-        try:
-            return self[key]
-        except KeyError:
-            return default
-
     def emplace(self, other: Page, retain: Iterable[Name] | None = None):
         # Lazy default: keeping Name.Parent out of __defaults__ avoids a
         # persistent pikepdf.Object reference at module import time.

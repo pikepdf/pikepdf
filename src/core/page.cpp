@@ -189,6 +189,79 @@ void init_page(py::module_ &m)
                     poh.parseContents(&stream_parser);
                 },
                 py::arg("stream_parser"))
+            // The following accessors delegate to the underlying page dictionary
+            // (``self.obj``). They were previously implemented in Python via
+            // @augments; reimplementing them in C++ avoids the extra Python call
+            // frames on these hot paths.
+            .def("__getattr__",
+                [](QPDFPageObjectHelper &poh, py::str name) {
+                    return py::getattr(py::cast(poh.getObjectHandle()), name);
+                })
+            .def(
+                "__setattr__",
+                [](QPDFPageObjectHelper &poh, py::str name, py::object value) {
+                    // Names defined on the Page class itself (properties such as
+                    // mediabox, methods, etc.) are set on the instance so that
+                    // property setters fire; everything else maps to a dictionary
+                    // key on the underlying object.
+                    py::object self = py::cast(poh);
+                    if (py::hasattr(self.attr("__class__"), name)) {
+                        py::module_::import_("builtins")
+                            .attr("object")
+                            .attr("__setattr__")(self, name, value);
+                    } else {
+                        py::setattr(py::cast(poh.getObjectHandle()), name, value);
+                    }
+                },
+                py::arg("name"),
+                py::arg("value").none())
+            .def("__delattr__",
+                [](QPDFPageObjectHelper &poh, py::str name) {
+                    py::object self = py::cast(poh);
+                    if (py::hasattr(self.attr("__class__"), name)) {
+                        py::module_::import_("builtins")
+                            .attr("object")
+                            .attr("__delattr__")(self, name);
+                    } else {
+                        py::delattr(py::cast(poh.getObjectHandle()), name);
+                    }
+                })
+            .def("__getitem__",
+                [](QPDFPageObjectHelper &poh, py::handle key) -> py::object {
+                    return py::cast(poh.getObjectHandle())[key];
+                })
+            .def("__setitem__",
+                [](QPDFPageObjectHelper &poh, py::handle key, py::handle value) {
+                    py::cast(poh.getObjectHandle())[key] = value;
+                })
+            .def("__delitem__",
+                [](QPDFPageObjectHelper &poh, py::handle key) {
+                    py::del(py::cast(poh.getObjectHandle())[key]);
+                })
+            .def("__contains__",
+                [](QPDFPageObjectHelper &poh, py::handle key) {
+                    py::object obj = py::cast(poh.getObjectHandle());
+                    int rc = PySequence_Contains(obj.ptr(), key.ptr());
+                    if (rc < 0)
+                        throw py::python_error();
+                    return rc == 1;
+                })
+            .def(
+                "get",
+                [](QPDFPageObjectHelper &poh,
+                    py::handle key,
+                    py::object default_) -> py::object {
+                    py::object obj = py::cast(poh.getObjectHandle());
+                    try {
+                        return obj[key];
+                    } catch (py::python_error &e) {
+                        if (e.matches(PyExc_KeyError))
+                            return default_;
+                        throw; // LCOV_EXCL_LINE
+                    }
+                },
+                py::arg("key"),
+                py::arg("default") = py::none())
             .def_prop_ro("index",
                 [](QPDFPageObjectHelper &poh) {
                     QpdfLockGuard lock(poh.getObjectHandle().getOwningQPDF());

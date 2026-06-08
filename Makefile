@@ -9,13 +9,17 @@ all: build
 invalidate-cppcov:
 	find . -name "*.gcno" -delete
 
+# Use 'uv pip', not bare 'pip'. The venv ships an old pip (22.0.x) that does not
+# reliably recompile the scikit-build-core editable extension: repeated
+# `pip install -e .` reuses a stale build and silently drops C++ changes. uv
+# builds the editable wheel correctly every time.
 .PHONY: build
 build: invalidate-cppcov
-	pip install --no-build-isolation -e .
+	uv pip install --no-build-isolation -e .
 
 .PHONY: pip-install-e
 pip-install-e: invalidate-cppcov
-	python -m pip install -e .
+	uv pip install -e .
 
 .PHONY: clean-coverage-pycov
 clean-coverage-pycov:

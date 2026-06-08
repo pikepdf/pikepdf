@@ -39,7 +39,6 @@ if TYPE_CHECKING:
     from pikepdf.models.image import PdfInlineImage
     from pikepdf.models.metadata import PdfMetadata
     from pikepdf.models.outlines import Outline
-    from pikepdf.objects import Array, Dictionary, Name, Operator, Stream, String
 
 # This is the whole point of stub files, but apparently we have to do this...
 # pylint: disable=no-method-argument,unused-argument,no-self-use,too-many-public-methods
@@ -60,7 +59,7 @@ class Buffer:
     def __bytes__(self) -> bytes: ...
     def __len__(self) -> int: ...
 
-class _NamePath:
+class _NamePath(NamePath):
     """Path for accessing nested Dictionary/Stream values.
 
     This is the C++ backing class for pikepdf.NamePath.
@@ -709,6 +708,191 @@ class Object:
         """Access the dictionary key-values for a :class:`pikepdf.Stream`."""
     @stream_dict.setter
     def stream_dict(self, val: Dictionary) -> None: ...
+
+# The classes below are facade types for constructing and type-checking PDF
+# objects. At runtime they are implemented in C++ (pikepdf._core) and re-exported
+# by pikepdf.objects. They do not truly inherit from Object at runtime (a custom
+# metaclass overrides __instancecheck__), but for type-checking purposes they are
+# declared as Object subclasses so that the type checker knows about __getattr__,
+# __getitem__, __contains__, and the rest of the Object interface.
+
+class _ObjectMeta(type):
+    object_type: ObjectType
+
+class _NameObjectMeta(_ObjectMeta):
+    def __getattr__(cls, attr: str) -> Name: ...
+
+class Name(Object, metaclass=_NameObjectMeta):
+    """Construct a PDF Name object.
+
+    Names can be constructed with two notations:
+
+        1. ``Name.Resources``
+
+        2. ``Name('/Resources')``
+
+    The two are semantically equivalent. The former is preferred for names
+    that are normally expected to be in a PDF. The latter is preferred for
+    dynamic names and attributes.
+    """
+
+    object_type: ObjectType
+    def __new__(cls, name: str | Name) -> Name: ...
+    @classmethod
+    def random(cls, len_: int = 16, prefix: str = '') -> Name:
+        """Generate a cryptographically strong, random, valid PDF Name.
+
+        If you are inserting a new name into a PDF (for example,
+        name for a new image), you can use this function to generate a
+        cryptographically strong random name that is almost certainly already
+        not already in the PDF, and not colliding with other existing names.
+
+        This function uses Python's secrets.token_urlsafe, which returns a
+        URL-safe encoded random number of the desired length. An optional
+        *prefix* may be prepended. (The encoding is ultimately done with
+        :func:`base64.urlsafe_b64encode`.) Serendipitously, URL-safe is also
+        PDF-safe.
+
+        When the length parameter is 16 (16 random bytes or 128 bits), the result
+        is probably globally unique and can be treated as never colliding with
+        other names.
+
+        The length of the returned string may vary because it is encoded,
+        but will always have ``8 * len_`` random bits.
+
+        Args:
+            len_: The length of the random string.
+            prefix: A prefix to prepend to the random string.
+        """
+
+class Operator(Object):
+    """Construct an operator for use in a content stream.
+
+    An Operator is one of a limited set of commands that can appear in PDF content
+    streams (roughly the mini-language that draws objects, lines and text on a
+    virtual PDF canvas). The commands :func:`parse_content_stream` and
+    :func:`unparse_content_stream` create and expect Operators respectively, along
+    with their operands.
+
+    pikepdf uses the special Operator "INLINE IMAGE" to denote an inline image
+    in a content stream.
+    """
+
+    object_type: ObjectType
+    def __new__(cls, name: str) -> Operator: ...
+
+class String(Object):
+    """Construct a PDF String object."""
+
+    object_type: ObjectType
+    def __new__(cls, s: str | bytes) -> String: ...
+
+class Array(Object):
+    """Construct a PDF Array object."""
+
+    object_type: ObjectType
+    def __new__(cls, a: Iterable | Rectangle | Matrix | None = None) -> Array: ...
+
+class Dictionary(Object):
+    """Construct a PDF Dictionary object."""
+
+    object_type: ObjectType
+    def __new__(cls, d: Mapping | None = None, **kwargs: Any) -> Dictionary: ...
+
+class Stream(Object):
+    """Construct a PDF Stream object."""
+
+    object_type: ObjectType
+    def __new__(
+        cls, owner: Pdf, data: bytes | None = None, d: Any = None, **kwargs: Any
+    ) -> Stream: ...
+
+class Integer(Object):
+    """A PDF integer object.
+
+    In explicit conversion mode, PDF integers are returned as this type instead
+    of being automatically converted to Python ``int``.
+
+    Supports ``int()`` conversion, indexing operations (via ``__index__``),
+    and arithmetic operations. Arithmetic operations return native Python ``int``.
+
+    .. versionadded:: 10.1
+    """
+
+    object_type: ObjectType
+    def __new__(cls, val: int | Integer) -> Integer: ...
+
+class Boolean(Object):
+    """A PDF boolean object.
+
+    In explicit conversion mode, PDF booleans are returned as this type instead
+    of being automatically converted to Python ``bool``.
+
+    Supports ``bool()`` conversion via ``__bool__``.
+
+    .. versionadded:: 10.1
+    """
+
+    object_type: ObjectType
+    def __new__(cls, val: bool | Boolean) -> Boolean: ...
+
+class Real(Object):
+    """A PDF real (floating-point) object.
+
+    In explicit conversion mode, PDF reals are returned as this type instead
+    of being automatically converted to Python ``Decimal``.
+
+    Supports ``float()`` conversion. Use ``as_decimal()`` for lossless conversion.
+
+    .. versionadded:: 10.1
+    """
+
+    object_type: ObjectType
+    def __new__(cls, val: float | Decimal | Real, places: int = 6) -> Real: ...
+
+class _NamePathMeta(type):
+    def __getattr__(cls, name: str) -> _NamePath: ...
+    def __getitem__(cls, key: str | int | Name) -> _NamePath: ...
+
+class NamePath(metaclass=_NamePathMeta):
+    """Path for accessing nested Dictionary/Stream values.
+
+    NamePath provides ergonomic access to deeply nested PDF structures with a
+    single access operation and helpful error messages when keys are not found.
+
+    Usage examples::
+
+        # Shorthand syntax - most common
+        obj[NamePath.Resources.Font.F1]
+
+        # With array indices
+        obj[NamePath.Pages.Kids[0].MediaBox]
+
+        # Chained access - supports non Python-identifier names
+        NamePath['/A']['/B'].C[0]  # equivalent to NamePath.A.B.C[0]
+
+        # Alternate syntax to support lists
+        obj[NamePath(Name.Resources, Name.Font)]
+
+        # Using string objects
+        obj[NamePath('/Resources', '/Weird-Name')]
+
+        # Empty path returns the object itself
+        obj[NamePath()]
+
+        # Setting nested values (all parents must exist)
+        obj[NamePath.Root.Info.Title] = pikepdf.String("Test")
+
+        # With default value
+        obj.get(NamePath.Root.Metadata, None)
+
+    When a key is not found, the KeyError message identifies the exact failure
+    point, e.g.: "Key /C not found; traversed NamePath.A.B"
+
+    .. versionadded:: 10.1
+    """
+
+    def __new__(cls, *args: str | int | Name) -> _NamePath: ...
 
 class ObjectHelper:
     """Base class for wrapper/helper around an Object.
@@ -1448,6 +1632,7 @@ class Page:
     def __init__(self, arg0: Page, /) -> None: ...
     def __contains__(self, key: Any, /) -> bool: ...
     def __delattr__(self, name: Any, /) -> None: ...
+    def __delitem__(self, name: Any, /) -> None: ...
     def __eq__(self, other: Any, /) -> bool: ...
     def __getattr__(self, name: Any, /) -> Object: ...
     def __getitem__(self, name: Any, /) -> Object: ...

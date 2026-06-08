@@ -195,6 +195,9 @@ NB_MODULE(_core, m)
     init_tokenfilter(m);
     init_transcoding(m);
 
+    // Facade types capture Object/ObjectType/Matrix/Rectangle, so run last.
+    init_object_construct(m);
+
     auto m_test = m.def_submodule("_test", "pikepdf._core test functions");
     m_test
         .def(
