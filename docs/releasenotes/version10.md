@@ -29,6 +29,9 @@ the architecture notes on thread safety.
   Python. These delegate to the underlying page dictionary and were previously
   implemented as Python augmentations; moving them to C++ removes extra Python
   call frames on these hot paths. Behavior is unchanged.
+- Object construction (`Name`, `Array`, `Dictionary`, the `Name.Attr`
+  shorthand, the scalar types `Integer`/`Boolean`/`Real`, and `NamePath`)
+  is now implemented in C++ for improved performance. Behavior is unchanged.
 
 ## v10.7.3
 
