@@ -117,6 +117,7 @@ from pikepdf import _cpphelpers, _methods, codec  # noqa: F401, F841
 from pikepdf import settings
 from pikepdf import exceptions
 from pikepdf import models
+from pikepdf import sanitize
 
 __libqpdf_version__: str = _core.qpdf_version()
 
@@ -191,6 +192,7 @@ __all__ = [
     'Permissions',
     'Real',
     'Rectangle',
+    'sanitize',
     'set_object_conversion_mode',
     'settings',
     'Stream',

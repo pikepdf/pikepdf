@@ -148,6 +148,7 @@ topics/nametrees
 topics/attachments
 topics/pagelayout
 topics/security
+topics/sanitize
 ```
 
 ```{toctree}
@@ -157,6 +158,7 @@ topics/security
 
 api/main
 api/models
+api/sanitize
 api/canvas
 api/form
 api/filters
