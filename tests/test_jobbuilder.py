@@ -207,6 +207,152 @@ def test_set_unknown_key():
         JobBuilder().set(definitely_not_a_key=1)
 
 
+# -- Phase 2: shapes --------------------------------------------------------
+
+
+def test_optimize_images_shape():
+    spec = (
+        JobBuilder()
+        .optimize_images(
+            min_area=100,
+            min_width=10,
+            min_height=20,
+            keep_inline_images=True,
+            jpeg_quality=85,
+        )
+        .to_json()
+    )
+    assert spec == {
+        'optimizeImages': '',
+        'oiMinArea': '100',
+        'oiMinWidth': '10',
+        'oiMinHeight': '20',
+        'keepInlineImages': '',
+        'jpegQuality': '85',
+    }
+
+
+def test_optimize_images_default_shape():
+    assert JobBuilder().optimize_images().to_json() == {'optimizeImages': ''}
+
+
+def test_externalize_inline_images_shape():
+    spec = JobBuilder().externalize_inline_images(min_bytes=1024).to_json()
+    assert spec == {'externalizeInlineImages': '', 'iiMinBytes': '1024'}
+
+
+def test_flatten_annotations_shape():
+    assert JobBuilder().flatten_annotations().to_json() == {'flattenAnnotations': 'all'}
+    assert JobBuilder().flatten_annotations('print').to_json() == {
+        'flattenAnnotations': 'print'
+    }
+
+
+def test_transform_flags_shape():
+    spec = (
+        JobBuilder()
+        .flatten_rotation()
+        .generate_appearances()
+        .coalesce_contents()
+        .normalize_content()
+        .to_json()
+    )
+    assert spec == {
+        'flattenRotation': '',
+        'generateAppearances': '',
+        'coalesceContents': '',
+        'normalizeContent': '',
+    }
+
+
+def test_remove_flags_shape():
+    spec = (
+        JobBuilder()
+        .remove_metadata()
+        .remove_info()
+        .remove_acroform()
+        .remove_structure()
+        .remove_page_labels()
+        .to_json()
+    )
+    assert spec == {
+        'removeMetadata': '',
+        'removeInfo': '',
+        'removeAcroform': '',
+        'removeStructure': '',
+        'removePageLabels': '',
+    }
+
+
+def test_set_page_labels_shape():
+    spec = JobBuilder().set_page_labels(['1:r', '5:D/1']).to_json()
+    assert spec == {'setPageLabels': ['1:r', '5:D/1']}
+
+
+def test_version_shape():
+    spec = JobBuilder().min_version('1.5').force_version('1.7:8').to_json()
+    assert spec == {'minVersion': '1.5', 'forceVersion': '1.7:8'}
+
+
+def test_check_shape():
+    assert JobBuilder().check().to_json() == {'check': ''}
+    assert JobBuilder().check(linearization=True).to_json() == {
+        'check': '',
+        'checkLinearization': '',
+    }
+
+
+def test_reproducibility_shape():
+    spec = JobBuilder().deterministic_id().static_id().to_json()
+    assert spec == {'deterministicId': '', 'staticId': ''}
+
+
+# -- Phase 2: run -----------------------------------------------------------
+
+
+def test_run_flatten_annotations(resources, outpdf):
+    job = (
+        JobBuilder()
+        .input(resources / 'outlines.pdf')
+        .output(outpdf)
+        .flatten_annotations('all')
+        .generate_appearances()
+        .run()
+    )
+    assert job.exit_code == 0
+
+
+def test_run_force_version(resources, outpdf):
+    JobBuilder().input(resources / 'outlines.pdf').output(outpdf).force_version(
+        '1.5'
+    ).run()
+    with Pdf.open(outpdf) as pdf:
+        assert str(pdf.pdf_version) == '1.5'
+
+
+def test_run_remove_metadata(resources, outpdf):
+    job = (
+        JobBuilder()
+        .input(resources / 'outlines.pdf')
+        .output(outpdf)
+        .remove_metadata()
+        .remove_info()
+        .run()
+    )
+    assert job.exit_code == 0
+
+
+def test_run_set_page_labels(resources, outpdf):
+    job = (
+        JobBuilder()
+        .input(resources / 'outlines.pdf')
+        .output(outpdf)
+        .set_page_labels(['1:D'])
+        .run()
+    )
+    assert job.exit_code == 0
+
+
 # -- Equivalence: actually run qpdf -----------------------------------------
 
 

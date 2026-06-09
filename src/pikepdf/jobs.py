@@ -173,6 +173,7 @@ _BLOCK_KEYS = frozenset(
         'copyAttachmentsFrom',
         'removeAttachment',
         'rotate',
+        'setPageLabels',
         'global',
         'file',
         'range',
@@ -471,9 +472,168 @@ class JobBuilder:
             self._spec['streamData'] = stream_data
         return self
 
-    def optimize_images(self) -> JobBuilder:
-        """Recompress images using more efficient compression where possible."""
+    def optimize_images(
+        self,
+        *,
+        min_area: int | None = None,
+        min_width: int | None = None,
+        min_height: int | None = None,
+        keep_inline_images: bool = False,
+        jpeg_quality: int | None = None,
+    ) -> JobBuilder:
+        """Recompress images using more efficient compression where possible.
+
+        Args:
+            min_area: Skip images smaller than this many pixels in area.
+            min_width: Skip images narrower than this many pixels.
+            min_height: Skip images shorter than this many pixels.
+            keep_inline_images: Also consider inline images (excluded by default).
+            jpeg_quality: JPEG quality level to use when recompressing.
+        """
         self._spec['optimizeImages'] = _ENABLE
+        if min_area is not None:
+            self._spec['oiMinArea'] = str(min_area)
+        if min_width is not None:
+            self._spec['oiMinWidth'] = str(min_width)
+        if min_height is not None:
+            self._spec['oiMinHeight'] = str(min_height)
+        if keep_inline_images:
+            self._spec['keepInlineImages'] = _ENABLE
+        if jpeg_quality is not None:
+            self._spec['jpegQuality'] = str(jpeg_quality)
+        return self
+
+    def externalize_inline_images(self, *, min_bytes: int | None = None) -> JobBuilder:
+        """Convert inline images to regular (external) images.
+
+        Args:
+            min_bytes: Only externalize inline images at least this large.
+        """
+        self._spec['externalizeInlineImages'] = _ENABLE
+        if min_bytes is not None:
+            self._spec['iiMinBytes'] = str(min_bytes)
+        return self
+
+    # -- Page and content transforms ----------------------------------------
+
+    def flatten_annotations(
+        self, mode: Literal['all', 'print', 'screen'] = 'all'
+    ) -> JobBuilder:
+        """Push annotations into page content streams.
+
+        Args:
+            mode: Which annotations to flatten: ``'all'`` (default), ``'print'``
+                (only those marked for printing) or ``'screen'`` (exclude those
+                marked hidden on screen).
+        """
+        self._spec['flattenAnnotations'] = mode
+        return self
+
+    def flatten_rotation(self) -> JobBuilder:
+        """Bake each page's ``/Rotate`` value into its content stream."""
+        self._spec['flattenRotation'] = _ENABLE
+        return self
+
+    def generate_appearances(self) -> JobBuilder:
+        """Generate appearance streams for form fields that lack them."""
+        self._spec['generateAppearances'] = _ENABLE
+        return self
+
+    def coalesce_contents(self) -> JobBuilder:
+        """Combine a page's multiple content streams into one."""
+        self._spec['coalesceContents'] = _ENABLE
+        return self
+
+    def normalize_content(self) -> JobBuilder:
+        """Normalize newlines in content streams (for readability/inspection)."""
+        self._spec['normalizeContent'] = _ENABLE
+        return self
+
+    # -- Content removal ----------------------------------------------------
+
+    def remove_metadata(self) -> JobBuilder:
+        """Remove the document's XMP metadata stream."""
+        self._spec['removeMetadata'] = _ENABLE
+        return self
+
+    def remove_info(self) -> JobBuilder:
+        """Remove the document information dictionary."""
+        self._spec['removeInfo'] = _ENABLE
+        return self
+
+    def remove_acroform(self) -> JobBuilder:
+        """Remove the interactive form (AcroForm) dictionary."""
+        self._spec['removeAcroform'] = _ENABLE
+        return self
+
+    def remove_structure(self) -> JobBuilder:
+        """Remove the document's structure (tagging) tree."""
+        self._spec['removeStructure'] = _ENABLE
+        return self
+
+    def remove_page_labels(self) -> JobBuilder:
+        """Remove explicit page labels (page numbering)."""
+        self._spec['removePageLabels'] = _ENABLE
+        return self
+
+    # -- Page labels --------------------------------------------------------
+
+    def set_page_labels(self, labels: list[str]) -> JobBuilder:
+        """Set page labels (explicit page numbering) for the whole document.
+
+        Args:
+            labels: A list of qpdf label specs of the form
+                ``first-page:[type][/start[/prefix]]``, e.g. ``['1:r', '5:D/1']``
+                to number the first four pages with lower-case Roman numerals and
+                restart with Arabic numerals from page 5. The first spec must
+                start at page 1.
+        """
+        self._spec['setPageLabels'] = list(labels)
+        return self
+
+    # -- Versioning ---------------------------------------------------------
+
+    def min_version(self, version: str) -> JobBuilder:
+        """Set the minimum PDF version of the output.
+
+        Args:
+            version: A PDF version such as ``'1.7'``, optionally with an
+                extension level as ``'1.7:8'``.
+        """
+        self._spec['minVersion'] = version
+        return self
+
+    def force_version(self, version: str) -> JobBuilder:
+        """Force the output PDF version, even if features require a higher one.
+
+        Args:
+            version: A PDF version such as ``'1.7'``, optionally with an
+                extension level as ``'1.7:8'``.
+        """
+        self._spec['forceVersion'] = version
+        return self
+
+    # -- Reproducibility / inspection ---------------------------------------
+
+    def deterministic_id(self) -> JobBuilder:
+        """Generate the document ID deterministically from the output contents."""
+        self._spec['deterministicId'] = _ENABLE
+        return self
+
+    def static_id(self) -> JobBuilder:
+        """Use a fixed document ID (for testing; not for production output)."""
+        self._spec['staticId'] = _ENABLE
+        return self
+
+    def check(self, *, linearization: bool = False) -> JobBuilder:
+        """Check the PDF for problems, reporting via the job's output.
+
+        Args:
+            linearization: Also check the linearization (hint) tables.
+        """
+        self._spec['check'] = _ENABLE
+        if linearization:
+            self._spec['checkLinearization'] = _ENABLE
         return self
 
     # -- Attachments --------------------------------------------------------

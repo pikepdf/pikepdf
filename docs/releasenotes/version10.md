@@ -23,7 +23,16 @@ the architecture notes on thread safety.
   via the existing {class}`pikepdf.Job`, without hand-writing qpdf's camelCase
   job JSON. Encryption permissions are expressed with the familiar
   {class}`pikepdf.Permissions`/{class}`pikepdf.Encryption` models, and a
-  ``.set(**kwargs)`` escape hatch reaches any other job option.
+  ``.set(**kwargs)`` escape hatch reaches any other job option. Additional
+  methods cover image optimization (``optimize_images``,
+  ``externalize_inline_images``), page/content transforms
+  (``flatten_annotations``, ``flatten_rotation``, ``generate_appearances``,
+  ``coalesce_contents``, ``normalize_content``), content removal
+  (``remove_metadata``, ``remove_info``, ``remove_acroform``,
+  ``remove_structure``, ``remove_page_labels``), page labels
+  (``set_page_labels``), version control (``min_version``, ``force_version``),
+  and reproducible/inspection helpers (``deterministic_id``, ``static_id``,
+  ``check``).
 - Exposed several pieces of qpdf functionality that pikepdf had not previously
   bound:
   - Whole-document qpdf JSON: {meth}`pikepdf.Pdf.write_qpdf_json`,
