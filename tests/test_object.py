@@ -784,7 +784,7 @@ class TestOperator:
 
 
 def test_object_mapping(sandwich):
-    object_mapping = sandwich.pages[0].images
+    object_mapping = sandwich.pages[0].get_images(recursive=False)
     assert '42' not in object_mapping
     assert '/R12' in object_mapping
     assert '/R12' in object_mapping.keys()

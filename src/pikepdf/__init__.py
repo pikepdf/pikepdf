@@ -54,6 +54,7 @@ from pikepdf._core import (
     FormFieldFlag,
     Job,
     JobUsageError,
+    JSONStreamData,
     Matrix,
     NameTree,
     NumberTree,
@@ -69,6 +70,7 @@ from pikepdf._core import (
     Token,
     TokenFilter,
     TokenType,
+    XrefEntry,
 )
 from pikepdf.exceptions import (
     DependencyError,
@@ -167,6 +169,7 @@ __all__ = [
     'InvalidPdfImageError',
     'Job',
     'JobUsageError',
+    'JSONStreamData',
     'make_page_destination',
     'Matrix',
     'models',
@@ -205,4 +208,5 @@ __all__ = [
     'TokenType',
     'unparse_content_stream',
     'UnsupportedImageTypeError',
+    'XrefEntry',
 ]

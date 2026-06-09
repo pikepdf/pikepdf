@@ -376,6 +376,49 @@ class StreamDecodeLevel(Enum):
         compression will also be be decoded. At present, this includes
         the RunLengthDecode filter."""
 
+class JSONStreamData(Enum):
+    """How stream data is represented when writing a PDF as qpdf JSON.
+
+    Used by :meth:`pikepdf.Pdf.write_qpdf_json`.
+    """
+
+    none: ...
+    """Stream data is omitted from the JSON output."""
+    inline: ...
+    """Stream data is included inline in the JSON, base64-encoded."""
+    file: ...
+    """Stream data is written to external files. Each stream is written to a
+        file named ``{file_prefix}-{object_number}``, where ``file_prefix`` is
+        the argument given to :meth:`pikepdf.Pdf.write_qpdf_json`."""
+
+class XrefEntry:
+    """Represents one entry in a PDF's cross-reference (xref) table.
+
+    Returned by :meth:`pikepdf.Pdf.get_xref_table`. The meaning of the other
+    properties depends on :attr:`type`.
+    """
+
+    @property
+    def type(self) -> int:
+        """The entry type: 0 = free, 1 = uncompressed, 2 = compressed.
+
+        For type 1 (uncompressed), :attr:`offset` is meaningful. For type 2
+        (compressed, i.e. stored in an object stream), :attr:`obj_stream_number`
+        and :attr:`obj_stream_index` are meaningful.
+        """
+
+    @property
+    def offset(self) -> int | None:
+        """Byte offset of the object in the file, or None unless ``type == 1``."""
+
+    @property
+    def obj_stream_number(self) -> int | None:
+        """Object number of the containing object stream; None unless ``type == 2``."""
+
+    @property
+    def obj_stream_index(self) -> int | None:
+        """Index of the object within its object stream; None unless ``type == 2``."""
+
 class TokenType(Enum):
     """Type of a token that appeared in a PDF content stream.
 
@@ -1285,6 +1328,61 @@ class AcroForm:
 
         Returns a list of newly created fields.
         """
+    def validate(self, repair: bool = ...) -> None:
+        """Re-validate the AcroForm structure.
+
+        Useful if you have modified the structure of the AcroForm dictionary in
+        a way that would invalidate the internal cache.
+
+        Args:
+            repair: If True (default), the document will be repaired if possible
+                when validation encounters errors.
+
+        .. versionadded:: 10.9
+        """
+    def invalidate_cache(self) -> None:
+        """Mark the internal field/annotation/page cache invalid.
+
+        This class lazily caches the mapping among form fields, annotations, and
+        pages. If you modify pages' annotation dictionaries, the /AcroForm
+        dictionary, or form fields manually in a way that alters these
+        associations, call this to force the cache to be regenerated.
+
+        .. versionadded:: 10.9
+        """
+    def transform_annotations(
+        self,
+        old_annots: Object,
+        matrix: Matrix = ...,
+        from_qpdf: Pdf | None = ...,
+        from_acroform: AcroForm | None = ...,
+    ) -> tuple[list[Object], list[Object], list[tuple[int, int]]]:
+        """Transform a set of annotations by a matrix, copying form fields.
+
+        This is the low-level primitive underlying
+        :meth:`pikepdf.Page.copy_annotations`.
+        For each annotation in ``old_annots``, a new annotation is created with
+        the matrix applied to its rectangle. If an annotation is associated with
+        a form field, a new form field pointing at the new annotation is created.
+        The new annotations and fields are *not* added to any page or to the
+        document; the caller must do that.
+
+        Args:
+            old_annots: An array of annotations to transform. May belong to a
+                different ``Pdf``, in which case pass ``from_qpdf``.
+            matrix: The transformation matrix. Defaults to the identity matrix.
+            from_qpdf: The source ``Pdf`` if ``old_annots`` is foreign.
+            from_acroform: An optional source AcroForm, for efficiency when
+                copying many annotations from the same source document.
+
+        Returns:
+            A tuple ``(new_annots, new_fields, old_fields)`` where ``new_annots``
+            and ``new_fields`` are lists of newly created objects, and
+            ``old_fields`` is a list of ``(object_number, generation)`` for the
+            source fields that were transformed.
+
+        .. versionadded:: 10.9
+        """
 
 class Annotation:
     """A PDF annotation. Wrapper around a PDF dictionary.
@@ -1796,6 +1894,73 @@ class Page:
 
         .. versionadded:: 2.14
         """
+    def get_matrix_for_form_xobject_placement(
+        self,
+        fo: Object,
+        rect: Rectangle,
+        *,
+        invert_transformations: bool = ...,
+        allow_shrink: bool = ...,
+        allow_expand: bool = ...,
+    ) -> Matrix:
+        """Return the matrix that places a Form XObject within a rectangle.
+
+        This is the transformation matrix used by
+        :meth:`calc_form_xobject_placement`. The parameters have the same
+        meaning as for that method.
+
+        .. versionadded:: 10.9
+        """
+    def get_matrix_for_transformations(self, invert: bool = ...) -> Matrix:
+        """Return the matrix equivalent to this page's /Rotate and /UserUnit.
+
+        Args:
+            invert: If True, return the inverse matrix (suitable for placing
+                something else onto this page). If False (default), return the
+                matrix suitable for taking content from this page elsewhere.
+
+        .. versionadded:: 10.9
+        """
+    def flatten_rotation(self) -> None:
+        """Bake this page's /Rotate value into its content stream.
+
+        If a page is rotated using ``/Rotate`` in the page dictionary, instead
+        rotate the page by the same amount by altering the content stream and
+        removing the ``/Rotate`` key, adjusting the page bounding boxes so the
+        page has the same appearance. This can work around problems with PDF
+        applications that cannot properly handle rotated pages.
+
+        .. versionadded:: 10.9
+        """
+    def copy_annotations(self, from_page: Page, matrix: Matrix = ...) -> None:
+        """Copy annotations from another page onto this page.
+
+        The other page may belong to the same or a different
+        :class:`pikepdf.Pdf`. Each annotation's rectangle is transformed by the
+        given matrix. If an annotation is a form field widget, the form field is
+        copied into this document's AcroForm as well.
+
+        Args:
+            from_page: The page to copy annotations from.
+            matrix: A transformation matrix applied to each annotation's
+                rectangle. Defaults to the identity matrix.
+
+        .. versionadded:: 10.9
+        """
+    def get_images(self, recursive: bool = ...) -> _ObjectMapping:
+        """Return the images used by this page.
+
+        Args:
+            recursive: If True (the default), also report images nested inside
+                form XObjects referenced by this page, recursing to any depth.
+                This is usually what you want, since a page's visible content is
+                often drawn through one or more form XObjects. If two images in
+                different XObject scopes share a resource name, only one is
+                reported. If False, report only images referenced directly by
+                this page's resources.
+
+        .. versionadded:: 10.9
+        """
     def contents_add(self, contents: Stream | bytes, *, prepend: bool = ...) -> None:
         """Append or prepend to an existing page's content stream.
 
@@ -1920,10 +2085,16 @@ class Page:
         """
     @property
     def images(self) -> _ObjectMapping:
-        """Return all regular images associated with this page.
+        """Return images directly referenced by this page's resources.
 
-        This method does not search for Form XObjects that contain images,
-        and does not attempt to find inline images.
+        This property does not search Form XObjects that contain images, and
+        does not attempt to find inline images.
+
+        .. deprecated:: 10.9
+            Use :meth:`get_images` instead, which recurses into Form XObjects by
+            default. Because it is not visually obvious when a page's content is
+            wrapped in a Form XObject, this property often appears as if a page
+            "has no images" when it clearly does.
         """
     @property
     def artbox(self) -> Array:
@@ -2761,6 +2932,87 @@ class Pdf:
         the position of objects, and recalculates the xref table when a PDF is
         saved. One could use to locate objects within a PDF using a hex editor,
         assuming the PDF is well-formed.
+        """
+    def get_xref_table(self) -> dict[tuple[int, int], XrefEntry]:
+        """Return the Pdf's cross-reference (xref) table.
+
+        Returns a mapping from ``(object_number, generation)`` to an
+        :class:`pikepdf.XrefEntry` describing where that object is stored. Unlike
+        :meth:`show_xref_table`, which only prints the table, this returns it as
+        structured data suitable for forensic or investigatory purposes.
+
+        As with :meth:`show_xref_table`, pikepdf recalculates the xref table when
+        saving, so this reflects the table as read from the input file.
+
+        .. versionadded:: 10.9
+        """
+    def fix_dangling_references(self, force: bool = ...) -> None:
+        """Remove or repair references to objects that do not exist.
+
+        A dangling reference is an indirect reference to an object that is not
+        present in the file; per the PDF specification these resolve to null.
+        Calling this method replaces such references so that the document's
+        object structure is internally consistent.
+
+        Args:
+            force: Normally this is a no-op if qpdf believes the references are
+                already consistent. Pass True to force the check to run.
+
+        .. versionadded:: 10.9
+        """
+    def write_qpdf_json(
+        self,
+        filename_or_stream: Path | str | BinaryIO,
+        *,
+        decode_level: StreamDecodeLevel = ...,
+        json_stream_data: JSONStreamData = ...,
+        file_prefix: str = ...,
+    ) -> None:
+        """Write this PDF as qpdf JSON (the ``qpdf --json-output`` format, v2).
+
+        This is the whole-document JSON serialization, distinct from
+        :meth:`pikepdf.Object.to_json` which serializes a single object. The
+        output can be read back with :meth:`from_qpdf_json`.
+
+        Args:
+            filename_or_stream: A filename or writable binary stream.
+            decode_level: How much to decode (uncompress) stream data in the
+                JSON. Use :attr:`StreamDecodeLevel.none` to preserve stream data
+                exactly.
+            json_stream_data: How stream data is represented; see
+                :class:`pikepdf.JSONStreamData`.
+            file_prefix: Required when ``json_stream_data`` is
+                :attr:`JSONStreamData.file`; each stream is written to a file
+                named ``{file_prefix}-{object_number}``. If not given and a
+                filename was supplied, the filename is used as the prefix.
+
+        .. versionadded:: 10.9
+        """
+    @staticmethod
+    def from_qpdf_json(filename_or_stream: Path | str | BinaryIO) -> Pdf:
+        """Create a new Pdf from qpdf JSON, as written by :meth:`write_qpdf_json`.
+
+        The JSON must be a complete representation of a PDF (``qpdf
+        --json-output`` version 2 or higher). To merge JSON into an existing Pdf,
+        use :meth:`update_from_qpdf_json` instead.
+
+        Args:
+            filename_or_stream: A filename or readable binary stream containing
+                qpdf JSON.
+
+        .. versionadded:: 10.9
+        """
+    def update_from_qpdf_json(self, filename_or_stream: Path | str | BinaryIO) -> None:
+        """Update this Pdf from qpdf JSON, as written by :meth:`write_qpdf_json`.
+
+        Objects present in this Pdf but absent from the JSON are left unchanged.
+        See :meth:`from_qpdf_json` to create a new Pdf instead.
+
+        Args:
+            filename_or_stream: A filename or readable binary stream containing
+                qpdf JSON.
+
+        .. versionadded:: 10.9
         """
     @property
     def Root(self) -> Object: ...

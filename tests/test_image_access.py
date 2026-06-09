@@ -75,7 +75,7 @@ def first_image_in(resources, request):
     def opener(filename):
         nonlocal pdf
         pdf = Pdf.open(resources / filename)
-        pdfimagexobj = next(iter(pdf.pages[0].images.values()))
+        pdfimagexobj = next(iter(pdf.pages[0].get_images(recursive=False).values()))
         return pdfimagexobj, pdf
 
     def closer():
@@ -531,7 +531,7 @@ def valid_random_palette_image_spec(
 )
 def test_image_palette(resources, filename, bpc, rgb):
     pdf = Pdf.open(resources / filename)
-    pim = PdfImage(next(iter(pdf.pages[0].images.values())))
+    pim = PdfImage(next(iter(pdf.pages[0].get_images(recursive=False).values())))
 
     assert pim.palette[0] == 'RGB'
     assert pim.colorspace == '/DeviceRGB'

@@ -306,3 +306,81 @@ def test_block_make_indirect_page(graph: Pdf):
         graph.make_indirect(graph.pages[0])
 
     assert isinstance(graph.make_indirect(graph.pages[0].obj), Object)
+
+
+@pytest.fixture
+def formxobject_pdf(resources):
+    with Pdf.open(resources / 'formxobject.pdf') as pdf:
+        yield pdf
+
+
+def test_flatten_rotation(graph_page):
+    graph_page.rotate(90, relative=True)
+    assert graph_page.obj.get('/Rotate', 0) == 90
+    graph_page.flatten_rotation()
+    assert '/Rotate' not in graph_page.obj
+
+
+def test_get_matrix_for_transformations(graph_page):
+    m = graph_page.get_matrix_for_transformations()
+    assert isinstance(m, Matrix)
+    graph_page.rotate(90, relative=True)
+    rotated = graph_page.get_matrix_for_transformations()
+    assert rotated != m
+    # invert should differ from the non-inverted form for a rotated page
+    assert graph_page.get_matrix_for_transformations(invert=True) != rotated
+
+
+def test_get_matrix_for_form_xobject_placement(graph, graph_page):
+    fo = graph_page.as_form_xobject()
+    blank = graph.add_blank_page(page_size=(500, 500))
+    name = blank.add_resource(fo, Name.XObject)
+    m = blank.get_matrix_for_form_xobject_placement(fo, Rectangle(0, 0, 250, 250))
+    assert isinstance(m, Matrix)
+    # The companion content-generating method should also succeed
+    assert blank.calc_form_xobject_placement(
+        fo,
+        name,
+        Rectangle(0, 0, 250, 250),
+        invert_transformations=True,
+        allow_shrink=True,
+        allow_expand=False,
+    )
+
+
+def test_copy_annotations(resources):
+    with Pdf.open(resources / 'form.pdf') as src:
+        dst = Pdf.new()
+        dst.add_blank_page(page_size=(612, 792))
+        assert '/Annots' not in dst.pages[0].obj
+        dst.pages[0].copy_annotations(src.pages[0], Matrix())
+        assert '/Annots' in dst.pages[0].obj
+        assert len(dst.pages[0].obj.Annots) == len(src.pages[0].obj.Annots)
+
+
+def test_copy_annotations_default_matrix(resources):
+    with Pdf.open(resources / 'form.pdf') as src:
+        dst = Pdf.new()
+        dst.add_blank_page(page_size=(612, 792))
+        dst.pages[0].copy_annotations(src.pages[0])
+        assert '/Annots' in dst.pages[0].obj
+
+
+def test_get_images_recursive_finds_nested(formxobject_pdf):
+    page = formxobject_pdf.pages[0]
+    flat = page.get_images(recursive=False)
+    recursive = page.get_images()  # default recursive=True
+    # This file draws its image only through a nested form XObject
+    assert len(flat) == 0
+    assert len(recursive) >= 1
+
+
+def test_get_images_matches_legacy_when_flat(graph_page):
+    with pytest.warns(DeprecationWarning):
+        legacy = dict(graph_page.images)
+    assert dict(graph_page.get_images(recursive=False)) == legacy
+
+
+def test_images_property_deprecated(graph_page):
+    with pytest.warns(DeprecationWarning, match='get_images'):
+        graph_page.images

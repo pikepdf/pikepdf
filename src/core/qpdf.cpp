@@ -6,6 +6,7 @@
 
 #include <cerrno>
 #include <cstring>
+#include <set>
 #include <sstream>
 #include <type_traits>
 
@@ -128,6 +129,18 @@ std::shared_ptr<QPDF> open_pdf(py::object stream,
             "A password was provided, but no password was needed to open this PDF.");
     }
 
+    return q;
+}
+
+// Open a Pdf from an input source containing qpdf JSON (as written by write_qpdf_json
+// or `qpdf --json-output`). Mirrors open_pdf but for the JSON representation.
+std::shared_ptr<QPDF> open_pdf_json(py::object stream, std::string description)
+{
+    auto q = make_registered_qpdf();
+    qpdf_basic_settings(*q);
+    auto json_input =
+        std::make_shared<PythonStreamInputSource>(stream, description, false);
+    q->createFromJSON(std::shared_ptr<InputSource>(json_input));
     return q;
 }
 
@@ -455,6 +468,56 @@ void init_qpdf(py::module_ &m)
         .value("specialized", qpdf_stream_decode_level_e::qpdf_dl_specialized)
         .value("all", qpdf_stream_decode_level_e::qpdf_dl_all);
 
+    py::enum_<qpdf_json_stream_data_e>(m, "JSONStreamData")
+        .value("none", qpdf_json_stream_data_e::qpdf_sj_none)
+        .value("inline", qpdf_json_stream_data_e::qpdf_sj_inline)
+        .value("file", qpdf_json_stream_data_e::qpdf_sj_file);
+
+    py::class_<QPDFXRefEntry>(
+        m, "XrefEntry", "Represents one entry in a PDF cross-reference table.")
+        .def_prop_ro("type",
+            &QPDFXRefEntry::getType,
+            "0 = free, 1 = uncompressed (has offset), 2 = compressed (in an "
+            "object stream).")
+        .def_prop_ro(
+            "offset",
+            [](QPDFXRefEntry &e) -> py::object {
+                if (e.getType() != 1)
+                    return py::none();
+                return py::int_(e.getOffset());
+            },
+            "Byte offset of the object in the file; None unless type == 1.")
+        .def_prop_ro(
+            "obj_stream_number",
+            [](QPDFXRefEntry &e) -> py::object {
+                if (e.getType() != 2)
+                    return py::none();
+                return py::int_(e.getObjStreamNumber());
+            },
+            "Object number of the containing object stream; None unless type == 2.")
+        .def_prop_ro(
+            "obj_stream_index",
+            [](QPDFXRefEntry &e) -> py::object {
+                if (e.getType() != 2)
+                    return py::none();
+                return py::int_(e.getObjStreamIndex());
+            },
+            "Index within the containing object stream; None unless type == 2.")
+        .def("__repr__", [](QPDFXRefEntry &e) {
+            switch (e.getType()) {
+            case 1:
+                return std::string("<pikepdf.XrefEntry type=1 offset=") +
+                       std::to_string(e.getOffset()) + ">";
+            case 2:
+                return std::string("<pikepdf.XrefEntry type=2 obj_stream_number=") +
+                       std::to_string(e.getObjStreamNumber()) +
+                       " obj_stream_index=" + std::to_string(e.getObjStreamIndex()) +
+                       ">";
+            default:
+                return std::string("<pikepdf.XrefEntry type=0 (free)>");
+            }
+        });
+
     py::enum_<QPDF::encryption_method_e>(m, "EncryptionMethod")
         .value("none", QPDF::encryption_method_e::e_none)
         .value("unknown", QPDF::encryption_method_e::e_unknown)
@@ -573,6 +636,63 @@ void init_qpdf(py::module_ &m)
                 QpdfLockGuard lock(&q);
                 q.showXRefTable();
             })
+        .def("get_xref_table",
+            [](QPDF &q) {
+                QpdfLockGuard lock(&q);
+                std::map<std::pair<int, int>, QPDFXRefEntry> result;
+                for (auto const &item : q.getXRefTable()) {
+                    result[std::make_pair(item.first.getObj(), item.first.getGen())] =
+                        item.second;
+                }
+                return result;
+            })
+        .def(
+            "fix_dangling_references",
+            [](QPDF &q, bool force) {
+                QpdfLockGuard lock(&q);
+                q.fixDanglingReferences(force);
+            },
+            py::arg("force") = false)
+        .def(
+            "_write_qpdf_json",
+            [](QPDF &q,
+                py::object stream,
+                qpdf_stream_decode_level_e decode_level,
+                qpdf_json_stream_data_e json_stream_data,
+                std::string file_prefix,
+                int version) {
+                QpdfLockGuard lock(&q);
+                Pl_PythonOutput output("json output", stream);
+                std::set<std::string> wanted_objects;
+                q.writeJSON(version,
+                    &output,
+                    decode_level,
+                    json_stream_data,
+                    file_prefix,
+                    wanted_objects);
+                // writeJSON intentionally does not finish() the pipeline.
+                output.finish();
+            },
+            py::arg("stream"),
+            py::kw_only(),
+            py::arg("decode_level") = qpdf_stream_decode_level_e::qpdf_dl_generalized,
+            py::arg("json_stream_data") = qpdf_json_stream_data_e::qpdf_sj_inline,
+            py::arg("file_prefix") = "",
+            py::arg("version") = 2)
+        .def_static("_from_qpdf_json",
+            open_pdf_json,
+            py::arg("stream"),
+            py::arg("description") = "")
+        .def(
+            "_update_from_qpdf_json",
+            [](QPDF &q, py::object stream, std::string description) {
+                QpdfLockGuard lock(&q);
+                auto json_input = std::make_shared<PythonStreamInputSource>(
+                    stream, description, false);
+                q.updateFromJSON(std::shared_ptr<InputSource>(json_input));
+            },
+            py::arg("stream"),
+            py::arg("description") = "")
         .def(
             "_add_page",
             [](QPDF &q, QPDFObjectHandle &page, bool first = false) {

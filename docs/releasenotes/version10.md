@@ -14,6 +14,39 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.9.0
+
+- Exposed several pieces of qpdf functionality that pikepdf had not previously
+  bound:
+  - Whole-document qpdf JSON: {meth}`pikepdf.Pdf.write_qpdf_json`,
+    {meth}`pikepdf.Pdf.from_qpdf_json` and {meth}`pikepdf.Pdf.update_from_qpdf_json`
+    serialize and reconstruct an entire PDF as qpdf JSON (the
+    `qpdf --json-output`/`--json-input` format, version 2). This complements the
+    existing object-level {meth}`pikepdf.Object.to_json`. Added
+    {class}`pikepdf.JSONStreamData` to control how stream data is represented.
+  - {meth}`pikepdf.Pdf.get_xref_table` returns the cross-reference table as
+    structured data ({class}`pikepdf.XrefEntry`), complementing the print-only
+    {meth}`pikepdf.Pdf.show_xref_table`.
+  - {meth}`pikepdf.Pdf.fix_dangling_references` repairs references to objects
+    that are not present in the file.
+  - {meth}`pikepdf.Page.flatten_rotation` bakes a page's `/Rotate` value into its
+    content stream.
+  - {meth}`pikepdf.Page.copy_annotations` copies annotations (and associated form
+    fields) from another page, applying a transformation matrix.
+  - {meth}`pikepdf.Page.get_matrix_for_transformations` and
+    {meth}`pikepdf.Page.get_matrix_for_form_xobject_placement` expose qpdf's
+    page/form-XObject placement matrices.
+  - {meth}`pikepdf.AcroForm.validate`,
+    {meth}`pikepdf.AcroForm.invalidate_cache` and
+    {meth}`pikepdf.AcroForm.transform_annotations` for working with interactive
+    forms after manual structural edits.
+- Added {meth}`pikepdf.Page.get_images`, which by default recurses into nested
+  form XObjects to find images. The {attr}`pikepdf.Page.images` property is now
+  **deprecated**: it only reports images referenced directly by the page and
+  silently omits images drawn through form XObjects, which made it appear as if a
+  page "has no images" when it clearly did. Use ``get_images()`` instead, or
+  ``get_images(recursive=False)`` for the old behavior.
+
 ## v10.8.0
 
 - Added {class}`pikepdf.ReferenceCycleError` (a subclass of

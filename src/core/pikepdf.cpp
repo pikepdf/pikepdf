@@ -190,11 +190,15 @@ NB_MODULE(_core, m)
     init_object(m);
     init_job(m);
 
+    // Matrix is a value type used as a default argument by some support objects
+    // below (e.g. AcroForm.transform_annotations), so it must be registered
+    // before them.
+    init_matrix(m);
+
     // -- Support objects (alphabetize order) --
     init_acroform(m);
     init_annotation(m);
     init_embeddedfiles(m);
-    init_matrix(m);
     init_namepath(m);
     init_nametree(m);
     init_numbertree(m);

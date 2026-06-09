@@ -488,7 +488,7 @@ def test_externalize(resources):
 
         assert Name.XObject in page.obj.Resources, "image not created"
 
-        pdfimagexobj = next(iter(p.pages[0].images.values()))
+        pdfimagexobj = next(iter(p.pages[0].get_images(recursive=False).values()))
         assert pdfimagexobj.Subtype == Name.Image
 
         assert page.label == '1'
