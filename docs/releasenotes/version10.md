@@ -16,6 +16,14 @@ the architecture notes on thread safety.
 
 ## v10.9.0
 
+- Added {class}`pikepdf.JobBuilder`, a fluent, Pythonic builder for qpdf jobs.
+  It assembles a job specification with chained, snake_case methods (``input``,
+  ``output``, ``encrypt``, ``add_pages``, ``split_pages``, ``linearize``,
+  ``compress``, ``add_attachment``, ``add_overlay``, ``limits``, ...) and runs it
+  via the existing {class}`pikepdf.Job`, without hand-writing qpdf's camelCase
+  job JSON. Encryption permissions are expressed with the familiar
+  {class}`pikepdf.Permissions`/{class}`pikepdf.Encryption` models, and a
+  ``.set(**kwargs)`` escape hatch reaches any other job option.
 - Exposed several pieces of qpdf functionality that pikepdf had not previously
   bound:
   - Whole-document qpdf JSON: {meth}`pikepdf.Pdf.write_qpdf_json`,

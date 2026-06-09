@@ -110,6 +110,8 @@ from pikepdf.models.ctm import (
     get_objects_with_ctm,
 )
 
+from pikepdf.jobs import JobBuilder
+
 
 # Importing these will monkeypatch classes defined in C++ and register a new
 # pdfdoc codec
@@ -168,6 +170,7 @@ __all__ = [
     'Integer',
     'InvalidPdfImageError',
     'Job',
+    'JobBuilder',
     'JobUsageError',
     'JSONStreamData',
     'make_page_destination',
