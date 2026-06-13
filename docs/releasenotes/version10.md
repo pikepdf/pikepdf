@@ -63,6 +63,25 @@ the architecture notes on thread safety.
   silently omits images drawn through form XObjects, which made it appear as if a
   page "has no images" when it clearly did. Use ``get_images()`` instead, or
   ``get_images(recursive=False)`` for the old behavior.
+- Fixed image extraction ignoring the ``/Decode`` array, which caused colors to
+  be inverted (or otherwise mismapped) when a PDF specified a non-default
+  ``/Decode`` such as ``[1, 0]``. {meth}`pikepdf.PdfImage.as_pil_image` and
+  {meth}`pikepdf.PdfImage.extract_to` now apply ``/Decode`` as a linear
+  per-channel mapping for grayscale, RGB and CMYK raster images, matching how a
+  PDF viewer renders the image. Previously ``/Decode`` was honored only for
+  CCITTFax-encoded images. Thanks to Mark-Joy for the report. {issue}`650`
+
+  Both methods gained an ``apply_decode_array`` parameter (default ``True``).
+  Pass ``apply_decode_array=False`` to retrieve the raw stored sample values
+  with the least processing -- useful for forensic inspection of the underlying
+  image data.
+
+  Some image types are intentionally not affected: Indexed-colorspace images
+  (where ``/Decode`` remaps palette indices rather than colors -- a non-identity
+  ``/Decode`` there now emits a warning), and DCT (JPEG) / JPX (JPEG 2000)
+  images, whose codecs carry their own color semantics (such as the Adobe APP14
+  marker for inverted CMYK) that Pillow already honors; re-applying ``/Decode``
+  would double-invert them.
 
 ## v10.8.0
 

@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from decimal import Decimal
@@ -353,7 +354,7 @@ class PdfImageBase(ABC):
         return PaletteData(base, lookup)
 
     @abstractmethod
-    def as_pil_image(self) -> Image.Image:
+    def as_pil_image(self, apply_decode_array: bool = True) -> Image.Image:
         """Convert this PDF image to a Python PIL (Pillow) image."""
 
     def _repr_png_(self) -> bytes:
@@ -500,15 +501,22 @@ class PdfImage(PdfImageBase):
             obj_copy.DecodeParms = Array(self.decode_parms[:n])
             return obj_copy.read_bytes(StreamDecodeLevel.specialized), self.filters[n:]
 
-    def _extract_direct(self, *, stream: BinaryIO) -> str | None:
+    def _extract_direct(
+        self, *, stream: BinaryIO, apply_decode_array: bool = True
+    ) -> str | None:
         """Attempt to extract the image directly to a usable image file.
 
-        If there is no way to extract the image without decompressing or
-        transcoding then raise an exception. The type and format of image
-        generated will vary.
+        Returns the file extension and writes the file to *stream* if the image
+        can be produced without transcoding (honoring *apply_decode_array*),
+        otherwise returns None so the caller can transcode. CCITTFax can always
+        honor /Decode by setting the TIFF photometry tag; DCT/JPX cannot
+        represent a non-identity /Decode in a copied stream, so they decline
+        when one must be applied.
 
         Args:
             stream: Writable file stream to write data to, e.g. an open file
+            apply_decode_array: Whether the produced file should reflect the
+                image's /Decode array.
         """
 
         def normal_dct_rgb() -> bool:
@@ -543,12 +551,20 @@ class PdfImage(PdfImageBase):
                 icc = self._iccstream.read_bytes()
             else:
                 icc = None
-            stream.write(self._generate_ccitt_header(data, icc=icc))
+            stream.write(
+                self._generate_ccitt_header(
+                    data, icc=icc, apply_decode_array=apply_decode_array
+                )
+            )
             stream.write(data)
             return '.tif'
         if filters == ['/DCTDecode'] and (
             self.mode == 'L' or normal_dct_rgb() or normal_dct_cmyk()
         ):
+            # /Decode is intentionally not applied to JPEG: the codec carries its
+            # own color semantics (notably the Adobe APP14 marker for inverted
+            # CMYK), which Pillow already honors; re-applying /Decode would
+            # double-invert. See _apply_decode_array.
             stream.write(data)
             return '.jpg'
 
@@ -609,6 +625,80 @@ class PdfImage(PdfImageBase):
     def _extract_transcoded_mask(self) -> Image.Image:
         return self._extract_transcoded_1bit()
 
+    def _apply_decode_array(self, im: Image.Image) -> Image.Image:
+        """Apply the /Decode array to a decoded image, in pixel space.
+
+        The /Decode array linearly remaps each stored sample value to an output
+        color value (PDF 1.7 §8.9.5.2). The default array is the identity map
+        and a no-op. This operates in Pillow's 8-bit-per-band space via a
+        per-band lookup table, so it works uniformly whether the pixels came
+        from transcoding or from decoding a JPEG/JPX stream.
+
+        Indexed images are skipped: their /Decode array remaps palette
+        *indices*, not color values, which is a different operation that is not
+        supported here. A non-identity /Decode on an Indexed image emits a
+        warning rather than being silently misapplied.
+        """
+        from PIL import ImageChops
+
+        # Only images carrying an explicit /Decode need adjustment; without one
+        # the default (identity) map applies and the data is already correct.
+        raw_decode = self._metadata('Decode', _ensure_list, [])
+        if not raw_decode:
+            return im
+
+        # JPEG and JPEG 2000 carry their own color/inversion semantics (notably
+        # the Adobe APP14 marker for inverted CMYK), which Pillow already honors
+        # when decoding. Applying /Decode on top would double-apply it, so defer
+        # to the codec. Such images are extracted directly without transcoding.
+        if any(filt in ('/DCTDecode', '/JPXDecode') for filt in self.filters):
+            return im
+
+        if self.indexed:
+            maxval = float((1 << self.bits_per_component) - 1)
+            if tuple(float(v) for v in raw_decode) != (0.0, maxval):
+                warnings.warn(
+                    "/Decode array on an Indexed image is not applied: it remaps "
+                    "palette indices, which pikepdf does not support. The image "
+                    "is returned without applying /Decode.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+            return im
+
+        decode = self._decode_array
+        nbands = len(im.getbands())
+        if len(decode) != 2 * nbands:
+            # Length disagrees with the decoded image; refuse to guess.
+            return im
+
+        # Identity map: nothing to do.
+        if all(decode[2 * i : 2 * i + 2] == (0.0, 1.0) for i in range(nbands)):
+            return im
+
+        # Bilevel images can only represent two values, so the sole meaningful
+        # non-identity map is the reversal [1, 0]; handle it without leaving
+        # mode '1'. Any other map requires the 8-bit lookup-table path below.
+        if im.mode == '1' and decode == (1.0, 0.0):
+            out = ImageChops.invert(im)
+            out.info.update(im.info)
+            return out
+
+        if im.mode == '1':
+            im = im.convert('L')
+            nbands = 1
+
+        lut: list[int] = []
+        for i in range(nbands):
+            dmin, dmax = decode[2 * i], decode[2 * i + 1]
+            lut.extend(
+                round(min(1.0, max(0.0, dmin + (p / 255.0) * (dmax - dmin))) * 255)
+                for p in range(256)
+            )
+        out = im.point(lut)
+        out.info.update(im.info)
+        return out
+
     def _extract_transcoded(self) -> Image.Image:
         from PIL import Image
         if self.image_mask:
@@ -635,12 +725,16 @@ class PdfImage(PdfImageBase):
         else:
             raise UnsupportedImageTypeError(repr(self) + ", " + repr(self.obj))
 
+        # Note: /Decode is applied by as_pil_image (the pixel-space chokepoint),
+        # not here, so that it is applied exactly once across all code paths.
         if self.colorspace == '/ICCBased' and self.icc is not None:
             im.info['icc_profile'] = self.icc.tobytes()
 
         return im
 
-    def _extract_to_stream(self, *, stream: BinaryIO) -> str:
+    def _extract_to_stream(
+        self, *, stream: BinaryIO, apply_decode_array: bool = True
+    ) -> str:
         """Extract the image to a stream.
 
         If possible, the compressed data is extracted and inserted into
@@ -650,17 +744,21 @@ class PdfImage(PdfImageBase):
 
         Args:
             stream: Writable stream to write data to
+            apply_decode_array: Whether the extracted image should reflect the
+                image's /Decode array.
 
         Returns:
             The file format extension.
         """
-        direct_extraction = self._extract_direct(stream=stream)
+        direct_extraction = self._extract_direct(
+            stream=stream, apply_decode_array=apply_decode_array
+        )
         if direct_extraction:
             return direct_extraction
 
         im = None
         try:
-            im = self._extract_transcoded()
+            im = self.as_pil_image(apply_decode_array=apply_decode_array)
             if im.mode == 'CMYK':
                 im.save(stream, format='tiff', compression='tiff_adobe_deflate')
                 return '.tiff'
@@ -678,7 +776,11 @@ class PdfImage(PdfImageBase):
         raise UnsupportedImageTypeError(repr(self))
 
     def extract_to(
-        self, *, stream: BinaryIO | None = None, fileprefix: str = ''
+        self,
+        *,
+        stream: BinaryIO | None = None,
+        fileprefix: str = '',
+        apply_decode_array: bool = True,
     ) -> str:
         """Extract the image directly to a usable image file.
 
@@ -705,6 +807,13 @@ class PdfImage(PdfImageBase):
             stream: Writable stream to write data to.
             fileprefix (str or Path): The path to write the extracted image to,
                 without the file extension.
+            apply_decode_array: If True (default), the extracted image reflects
+                the image's /Decode array, matching how a PDF viewer renders it.
+                Note that for a JPEG/JPX image carrying a non-identity /Decode,
+                honoring it requires transcoding, so the result is a .png/.tiff
+                rather than the original .jpg/.jp2. Set to False to copy the
+                stored image data with the least processing (the raw, possibly
+                inverted, samples), e.g. for forensic use.
 
         Returns:
             If *fileprefix* was provided, then the fileprefix with the
@@ -714,10 +823,14 @@ class PdfImage(PdfImageBase):
         if bool(stream) == bool(fileprefix):
             raise ValueError("Cannot set both stream and fileprefix")
         if stream:
-            return self._extract_to_stream(stream=stream)
+            return self._extract_to_stream(
+                stream=stream, apply_decode_array=apply_decode_array
+            )
 
         bio = BytesIO()
-        extension = self._extract_to_stream(stream=bio)
+        extension = self._extract_to_stream(
+            stream=bio, apply_decode_array=apply_decode_array
+        )
         bio.seek(0)
         filepath = Path(str(Path(fileprefix)) + extension)
         with filepath.open('wb') as target:
@@ -736,26 +849,43 @@ class PdfImage(PdfImageBase):
         """Access this image with the buffer protocol."""
         return self.obj.get_stream_buffer(decode_level=decode_level)
 
-    def as_pil_image(self) -> Image.Image:
+    def as_pil_image(self, apply_decode_array: bool = True) -> Image.Image:
         """Extract the image as a Pillow Image, using decompression as necessary.
+
+        Args:
+            apply_decode_array: If True (default), the image's /Decode array is
+                applied so the result matches how a PDF viewer would render the
+                image. Set to False to obtain the raw sample values as stored,
+                e.g. for forensic inspection of the underlying image data.
 
         Caller must close the image.
         """
         from PIL import Image
 
+        # Always request a raw (un-decoded) direct extraction; /Decode is applied
+        # below in pixel space so that it is applied exactly once.
         bio = BytesIO()
-        direct_extraction = self._extract_direct(stream=bio)
+        direct_extraction = self._extract_direct(stream=bio, apply_decode_array=False)
         if direct_extraction:
             bio.seek(0)
-            return Image.open(bio)
+            im = Image.open(bio)
+        else:
+            im = self._extract_transcoded()
+            if not im:
+                raise UnsupportedImageTypeError(repr(self))
 
-        im = self._extract_transcoded()
-        if not im:
-            raise UnsupportedImageTypeError(repr(self))
+        if apply_decode_array:
+            im = self._apply_decode_array(im)
 
         return im
 
-    def _generate_ccitt_header(self, data: bytes, icc: bytes | None = None) -> bytes:
+    def _generate_ccitt_header(
+        self,
+        data: bytes,
+        icc: bytes | None = None,
+        *,
+        apply_decode_array: bool = True,
+    ) -> bytes:
         """Construct a CCITT G3 or G4 header from the PDF metadata."""
         # https://stackoverflow.com/questions/2641770/
         # https://www.itu.int/itudoc/itu-t/com16/tiff-fx/docs/tiff6.pdf
@@ -792,8 +922,10 @@ class PdfImage(PdfImageBase):
         # use 1 for black_is_zero (=> white is 1) MINISBLACK
         photometry = 1 if black_is_one else 0
 
-        # If Decode is [1, 0] then the photometry is inverted
-        if len(decode) == 2 and decode == (1.0, 0.0):
+        # If Decode is [1, 0] then the photometry is inverted. BlackIs1 is part
+        # of CCITT decoding itself and always honored; the /Decode remap is
+        # only baked in when the caller wants it applied.
+        if apply_decode_array and len(decode) == 2 and decode == (1.0, 0.0):
             photometry = 1 - photometry
 
         img_size = len(data)
@@ -837,7 +969,9 @@ class PdfJpxImage(PdfImage):
     def __init__(self, obj):
         """Initialize a JPEG 2000 image."""
         super().__init__(obj)
-        self._jpxpil = self.as_pil_image()
+        # Intrinsic decoded image for colorspace/equality introspection; the
+        # /Decode remap is a presentation concern and intentionally excluded.
+        self._jpxpil = self.as_pil_image(apply_decode_array=False)
 
     def __eq__(self, other):
         if not isinstance(other, PdfImageBase):
@@ -848,7 +982,11 @@ class PdfJpxImage(PdfImage):
             and self._jpxpil == other._jpxpil
         )
 
-    def _extract_direct(self, *, stream: BinaryIO) -> str | None:
+    def _extract_direct(
+        self, *, stream: BinaryIO, apply_decode_array: bool = True
+    ) -> str | None:
+        # apply_decode_array is accepted for signature compatibility; /Decode is
+        # deferred to the JPEG 2000 codec (see PdfImage._apply_decode_array).
         data, filters = self._remove_simple_filters()
         if filters != ['/JPXDecode']:
             return None
@@ -1039,18 +1177,28 @@ class PdfInlineImage(PdfImageBase):
         img._set_pdf_source(tmppdf)  # Hold tmppdf open while PdfImage exists
         return img
 
-    def as_pil_image(self) -> Image.Image:
+    def as_pil_image(self, apply_decode_array: bool = True) -> Image.Image:
         """Return inline image as a Pillow Image."""
-        return self._convert_to_pdfimage().as_pil_image()
+        return self._convert_to_pdfimage().as_pil_image(
+            apply_decode_array=apply_decode_array
+        )
 
-    def extract_to(self, *, stream: BinaryIO | None = None, fileprefix: str = ''):
+    def extract_to(
+        self,
+        *,
+        stream: BinaryIO | None = None,
+        fileprefix: str = '',
+        apply_decode_array: bool = True,
+    ):
         """Extract the inline image directly to a usable image file.
 
         See:
             :meth:`PdfImage.extract_to`
         """
         return self._convert_to_pdfimage().extract_to(
-            stream=stream, fileprefix=fileprefix
+            stream=stream,
+            fileprefix=fileprefix,
+            apply_decode_array=apply_decode_array,
         )
 
     def read_bytes(self):
