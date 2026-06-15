@@ -82,6 +82,17 @@ the architecture notes on thread safety.
   images, whose codecs carry their own color semantics (such as the Adobe APP14
   marker for inverted CMYK) that Pillow already honors; re-applying ``/Decode``
   would double-invert them.
+- Added {attr}`pikepdf.Page.rotation`, a property that reports a page's effective
+  clockwise rotation normalized to ``[0, 360)``. Unlike the raw ``page.Rotate``
+  attribute, it resolves a ``/Rotate`` value inherited from the page tree and
+  reports ``0`` when no rotation is set, instead of raising. Assigning to it sets
+  the absolute rotation. This addresses the long-standing confusion between the
+  ``page.Rotate`` attribute and the ``page.rotate()`` method (#467).
+- {meth}`pikepdf.Page.rotate` now defaults ``relative`` to ``False``, so
+  ``page.rotate(90)`` sets an absolute rotation. Passing ``relative`` as a
+  *positional* argument is deprecated and emits a ``DeprecationWarning``; pass it
+  as a keyword argument instead, e.g. ``page.rotate(90, relative=True)``.
+  Positional support will be removed in pikepdf 11.
 
 ## v10.8.0
 

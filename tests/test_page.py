@@ -6,6 +6,7 @@ from __future__ import annotations
 import copy
 
 import pytest
+from conftest import needs_libqpdf_v
 
 from pikepdf import (
     Array,
@@ -384,3 +385,69 @@ def test_get_images_matches_legacy_when_flat(graph_page):
 def test_images_property_deprecated(graph_page):
     with pytest.warns(DeprecationWarning, match='get_images'):
         graph_page.images
+
+
+class TestRotation:
+    def test_rotation_default_zero(self, graph_page):
+        assert graph_page.rotation == 0
+
+    def test_rotation_set_absolute(self, graph_page):
+        graph_page.rotation = 90
+        assert graph_page.rotation == 90
+        assert graph_page.obj.Rotate == 90
+
+    def test_rotation_normalizes_negative(self, graph_page):
+        graph_page.obj.Rotate = -90
+        assert graph_page.rotation == 270
+
+    def test_rotation_normalizes_over_360(self, graph_page):
+        graph_page.obj.Rotate = 450
+        assert graph_page.rotation == 90
+
+    def test_rotation_resolves_inherited_attribute(self, graph):
+        page = graph.pages[0]
+        if Name.Rotate in page.obj:
+            del page.obj.Rotate
+        # /Rotate is inheritable; set it on the page tree node, not the page
+        graph.Root.Pages.Rotate = 90
+        assert Name.Rotate not in graph.pages[0].obj
+        assert graph.pages[0].rotation == 90
+
+    def test_rotate_keyword_relative(self, graph_page):
+        graph_page.rotation = 90
+        graph_page.rotate(90, relative=True)
+        assert graph_page.rotation == 180
+
+    def test_rotate_default_is_absolute(self, graph_page):
+        graph_page.rotation = 90
+        graph_page.rotate(180)  # no relative -> set absolute rotation
+        assert graph_page.rotation == 180
+
+    def test_rotate_positional_relative_deprecated(self, graph_page):
+        with pytest.warns(DeprecationWarning, match='keyword'):
+            graph_page.rotate(90, True)
+        assert graph_page.rotation == 90
+
+    def test_rotate_keyword_emits_no_warning(self, graph_page, recwarn):
+        graph_page.rotate(90, relative=True)
+        assert not any(issubclass(w.category, DeprecationWarning) for w in recwarn)
+
+    @needs_libqpdf_v(
+        '12.4.0',
+        reason=(
+            'qpdf normalizes a negative /Rotate when baking it into a form '
+            'XObject /Matrix only after 12.4.0 (qpdf commit 67b042cd)'
+        ),
+    )
+    def test_negative_rotation_overlay_matches_positive(self, graph_page):
+        # Regression test for #717: a page rotated -90 must produce the same
+        # form XObject (and therefore the same add_overlay placement) as a page
+        # rotated 270, since they are the same rotation. On qpdf without the fix,
+        # -90 was not normalized to [0, 360) and produced an unrotated /Matrix.
+        graph_page.obj.Rotate = -90
+        matrix_neg = list(graph_page.as_form_xobject().Matrix)
+
+        graph_page.obj.Rotate = 270
+        matrix_pos = list(graph_page.as_form_xobject().Matrix)
+
+        assert matrix_neg == matrix_pos

@@ -750,6 +750,62 @@ class Extend_Page:
         self.obj['/TrimBox'] = value
 
     @property
+    def rotation(self) -> int:
+        """The page's clockwise rotation in degrees, normalized to ``[0, 360)``.
+
+        Unlike the raw ``page.Rotate`` attribute, this property reports the
+        *effective* rotation: it resolves a ``/Rotate`` value inherited from the
+        page tree and reports ``0`` when no rotation is set, instead of raising.
+        Assigning to this property sets the absolute rotation; to rotate
+        relative to the current value, use :meth:`rotate` with ``relative=True``.
+
+        .. versionadded:: 10.9
+        """
+        return self._get_rotation()
+
+    @rotation.setter
+    def rotation(self, angle: int) -> None:
+        self.rotate(angle, relative=False)
+
+    @augment_override_cpp
+    def rotate(self, angle: int, /, *args: bool, relative: bool = False) -> None:  # noqa: D417
+        """Rotate this page.
+
+        If ``relative`` is ``False`` (the default), set the page's rotation to
+        ``angle``. If ``relative`` is ``True``, add ``angle`` to the page's
+        current rotation. ``angle`` must be a multiple of ``90``; a positive
+        angle rotates the page clockwise.
+
+        Args:
+            angle: Rotation angle in degrees, a multiple of ``90``.
+            relative: If ``True``, add ``angle`` to the current rotation; if
+                ``False``, set the rotation to ``angle``.
+
+        .. deprecated:: 10.9
+            Passing ``relative`` as a positional argument is deprecated; pass it
+            as a keyword argument instead, e.g. ``page.rotate(90, relative=True)``.
+        """
+        # TODO(pikepdf 11): drop positional support for ``relative`` -- change
+        # the signature to ``def rotate(self, angle, *, relative=False)`` and
+        # remove the ``*args`` deprecation shim below.
+        if args:
+            if len(args) > 1:
+                raise TypeError(
+                    f"rotate() takes at most 2 positional arguments but "
+                    f"{1 + len(args)} were given"
+                )
+            warn(
+                "Passing 'relative' as a positional argument to Page.rotate() "
+                "is deprecated; pass it as a keyword argument instead, e.g. "
+                "page.rotate(90, relative=True). Positional support will be "
+                "removed in pikepdf 11.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            relative = args[0]
+        self._cpprotate(angle, bool(relative))
+
+    @property
     def images(self) -> _ObjectMapping:
         """Return images directly referenced by this page's resources.
 

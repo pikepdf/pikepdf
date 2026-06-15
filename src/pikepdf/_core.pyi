@@ -1750,6 +1750,7 @@ class Page:
     def _get_bleedbox(self, arg0: bool, arg1: bool) -> Object: ...
     def _get_cropbox(self, arg0: bool, arg1: bool) -> Object: ...
     def _get_mediabox(self, arg0: bool) -> Object: ...
+    def _get_rotation(self) -> int: ...
     def _get_trimbox(self, arg0: bool, arg1: bool) -> Object: ...
     def add_content_token_filter(self, tf: TokenFilter) -> None:
         """Attach a :class:`pikepdf.TokenFilter` to a page's content stream.
@@ -2069,10 +2070,10 @@ class Page:
         objects in files that use shared resource dictionaries across
         multiple pages.
         """
-    def rotate(self, angle: int, relative: bool) -> None:
+    def rotate(self, angle: int, *, relative: bool = False) -> None:
         """Rotate a page.
 
-        If ``relative`` is ``False``, set the rotation of the
+        If ``relative`` is ``False`` (the default), set the rotation of the
         page to angle. Otherwise, add angle to the rotation of the
         page. ``angle`` must be a multiple of ``90``. Adding ``90`` to
         the rotation rotates clockwise by ``90`` degrees.
@@ -2082,6 +2083,12 @@ class Page:
             relative: If ``True``, add ``angle`` to the current
                 rotation. If ``False``, set the rotation of the page
                 to ``angle``.
+
+        .. deprecated:: 10.9
+            Passing ``relative`` as a positional argument is deprecated; pass
+            it as a keyword argument instead, e.g.
+            ``page.rotate(90, relative=True)``. Positional support will be
+            removed in pikepdf 11.
         """
     @property
     def images(self) -> _ObjectMapping:
@@ -2146,6 +2153,20 @@ class Page:
     def mediabox(self, val: Array | Rectangle) -> None: ...
     @property
     def obj(self) -> Dictionary: ...
+    @property
+    def rotation(self) -> int:
+        """The page's clockwise rotation in degrees, normalized to ``[0, 360)``.
+
+        Unlike the raw ``page.Rotate`` attribute, this property reports the
+        *effective* rotation: it resolves a ``/Rotate`` value inherited from the
+        page tree and reports ``0`` when no rotation is set, instead of raising.
+        Assigning to this property sets the absolute rotation; to rotate
+        relative to the current value, use :meth:`rotate` with ``relative=True``.
+
+        .. versionadded:: 10.9
+        """
+    @rotation.setter
+    def rotation(self, angle: int) -> None: ...
     @property
     def trimbox(self) -> Array:
         """Return page's effective /TrimBox, in PDF units.

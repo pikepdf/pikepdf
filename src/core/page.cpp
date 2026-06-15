@@ -79,6 +79,18 @@ void init_page(py::module_ &m)
                 &QPDFPageObjectHelper::rotatePage,
                 py::arg("angle"),
                 py::arg("relative"))
+            .def("_get_rotation",
+                [](QPDFPageObjectHelper &poh) -> int {
+                    // Resolve the effective /Rotate, honoring inheritance from the
+                    // page tree, and normalize it to [0, 360).
+                    QPDFObjectHandle rotate_obj = poh.getAttribute("/Rotate", false);
+                    int rotate =
+                        rotate_obj.isInteger() ? rotate_obj.getIntValueAsInt() : 0;
+                    rotate %= 360;
+                    if (rotate < 0)
+                        rotate += 360;
+                    return rotate;
+                })
             .def("contents_coalesce",
                 &QPDFPageObjectHelper::coalesceContentStreams // LCOV_EXCL_LINE
                 )
