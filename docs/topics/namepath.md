@@ -236,6 +236,13 @@ For simple, shallow access where you know keys exist, standard attribute
 notation remains appropriate:
 
 ```python
->>> page.MediaBox  # Simple, known to exist
 >>> page.Type      # Standard attribute access
+>>> page.Contents  # Direct key on the page
 ```
+
+The inheritable page keys -- `/MediaBox`, `/CropBox`, `/Resources` and
+`/Rotate` -- are better read through the managed accessors
+({attr}`~pikepdf.Page.mediabox`, {attr}`~pikepdf.Page.cropbox`,
+{attr}`~pikepdf.Page.resources` and {attr}`~pikepdf.Page.rotation`), which
+resolve values inherited from the `/Pages` tree rather than returning only what
+is stored on the page. See {ref}`Working with pages <work_with_pages>`.
