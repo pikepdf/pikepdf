@@ -113,6 +113,22 @@ is simply absent. Accessing `page.obj.MediaBox` or `page.Rotate` directly return
 only what is stored on the page itself and raises `AttributeError` when the value
 is inherited rather than local.
 
+By default, {meth}`pikepdf.Pdf.open` flattens this inheritance for you. With
+`inherit_page_attributes=True` (the default), pikepdf pushes inherited attributes
+down onto every page at open time, so in the common case each page carries its
+own `/MediaBox`, `/Resources` and so on, and even raw access finds them. The
+managed accessors are still preferred, because they remain correct when you open
+with `inherit_page_attributes=False`, when you build or edit the page tree
+yourself, or when a page is later modified to rely on an inherited attribute.
+
+:::{note}
+Pass `inherit_page_attributes=False` to {meth}`pikepdf.Pdf.open` when you need to
+inspect or construct the page tree exactly as stored -- for example, when
+building a test fixture that exercises attribute inheritance. With the default,
+pikepdf would push inherited attributes down to the pages and obscure the page
+tree structure you are trying to work with.
+:::
+
 ## Page rotation
 
 A page's rotation is the `/Rotate` entry: the number of degrees, in multiples of

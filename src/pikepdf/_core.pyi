@@ -2622,8 +2622,20 @@ class Pdf:
                 warnings.
             attempt_recovery: If True (default), attempt to recover
                 from PDF parsing errors.
-            inherit_page_attributes: If True (default), push attributes
-                set on a group of pages to individual pages
+            inherit_page_attributes: If True (the default), push attributes
+                that are set on a group of pages in the ``/Pages`` tree
+                (``/MediaBox``, ``/CropBox``, ``/Resources`` and ``/Rotate``)
+                down onto each individual page, so that every page carries its
+                own copy. This simplifies most PDF work, since these attributes
+                can then be read directly from a page. If False, pikepdf leaves
+                the page tree as stored and does not push inherited attributes
+                down, so a page may lack these keys on its own dictionary; in
+                that case use the managed accessors
+                (:attr:`~pikepdf.Page.mediabox`, :attr:`~pikepdf.Page.rotation`,
+                etc.), which resolve inheritance, rather than raw access, which
+                may find the key absent. Disable this when you need to inspect or
+                construct the page tree exactly as stored -- for example, when
+                building a test fixture that exercises attribute inheritance.
             access_mode: If ``.default``, pikepdf will
                 decide how to access the file. Currently, it will always selected stream
                 access. To attempt memory mapping and fallback to stream if memory
