@@ -378,6 +378,23 @@ def test_recompress(resources, outdir):
         assert smaller.stat().st_size < bigger.stat().st_size
 
 
+def test_compress_streams_false_does_not_decompress(resources, outdir):
+    # Regression test for #676. pikepdf documents that compress_streams=False
+    # alone does not trigger decompression; decompression only happens when
+    # stream_decode_level is also requested. qpdf >= 11.10 changed its default
+    # decode level to 'generalized', which decompresses (without recompressing)
+    # streams when compress_streams=False, ballooning the output file.
+    with pikepdf.open(resources / 'graph.pdf') as pdf:
+        compressed = outdir / 'compressed.pdf'
+        no_compress = outdir / 'no_compress.pdf'
+        pdf.save(compressed, compress_streams=True)
+        pdf.save(no_compress, compress_streams=False)
+
+        # Streams must stay compressed, so the output must not balloon relative
+        # to the compressed save. graph.pdf decompresses ~42x under the bug.
+        assert no_compress.stat().st_size < 2 * compressed.stat().st_size
+
+
 def test_invalid_flate_compression_level():
     # We don't want to change the compression level because it's global state
     # and will change subsequent test results, so just ping it with an invalid

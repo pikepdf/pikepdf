@@ -377,6 +377,13 @@ void save_pdf(QPDF &q,
         // Unconditionally calling setDecodeLevel has side effects, disabling
         // preserve encryption in particular
         w.setDecodeLevel(py::cast<qpdf_stream_decode_level_e>(stream_decode_level));
+    } else if (!compress_streams) {
+        // qpdf >= 11.10 defaults its decode level to 'generalized', which
+        // decompresses (without recompressing) streams when compress_streams is
+        // off, ballooning the output. Pin it to 'none' so we honor our
+        // documented contract: compress_streams=False alone does not trigger
+        // decompression unless stream_decode_level is also requested (#676).
+        w.setDecodeLevel(qpdf_dl_none);
     }
     w.setObjectStreamMode(object_stream_mode);
     w.setRecompressFlate(recompress_flate);
