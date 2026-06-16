@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import os
 import tempfile
+import warnings
 from pathlib import Path
+
+import pytest
 
 import pikepdf
 from pikepdf import (
@@ -223,3 +226,28 @@ def test_add_pages_from_strip_preserves_non_widget_annotations():
     assert Name.Link in subtypes, 'Link annotation must be preserved'
     assert _count_widgets(dest) == 0, 'Widget annotations must be removed'
     assert len(annots) == 1, 'Exactly one annotation (Link) must remain'
+
+
+def test_extend_warns_cross_document_form_pages():
+    res = _resources()
+    dest = Pdf.new()
+    with Pdf.open(str(res / 'form.pdf')) as src:
+        with pytest.warns(FormCopyWarning):
+            dest.pages.extend(src.pages)
+
+
+def test_extend_no_warning_for_formless_pages():
+    src = Pdf.new()
+    src.add_blank_page(page_size=(200, 200))
+    dest = Pdf.new()
+    with warnings.catch_warnings():
+        warnings.simplefilter('error', FormCopyWarning)
+        dest.pages.extend(src.pages)  # must not raise
+
+
+def test_extend_no_warning_intra_document():
+    res = _resources()
+    with Pdf.open(str(res / 'form.pdf')) as pdf:
+        with warnings.catch_warnings():
+            warnings.simplefilter('error', FormCopyWarning)
+            pdf.pages.extend(pdf.pages)  # same document: no warning

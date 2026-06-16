@@ -9,6 +9,38 @@
 #include <qpdf/QPDFPageLabelDocumentHelper.hh>
 #include <qpdf/QPDFPageObjectHelper.hh>
 
+static bool page_has_widget(QPDFObjectHandle page)
+{
+    if (!page.isDictionary())
+        return false;
+    auto annots = page.getKey("/Annots");
+    if (!annots.isArray())
+        return false;
+    int n = annots.getArrayNItems();
+    for (int i = 0; i < n; ++i) {
+        auto a = annots.getArrayItem(i);
+        if (a.isDictionary()) {
+            auto st = a.getKey("/Subtype");
+            if (st.isName() && st.getName() == "/Widget")
+                return true;
+        }
+    }
+    return false;
+}
+
+static void warn_dropping_forms()
+{
+    auto category = py::module_::import_("pikepdf._exceptions").attr("FormCopyWarning");
+    py::module_::import_("warnings")
+        .attr("warn")(
+            py::str("Copying pages from another Pdf with pages.extend() does not "
+                    "preserve interactive form fields; they may not display in "
+                    "Adobe Acrobat. Use Pdf.add_pages_from(src, forms='preserve') "
+                    "to keep them."),
+            category,
+            py::int_(3));
+}
+
 static QPDFPageObjectHelper as_page_helper(py::handle obj)
 {
     try {
@@ -284,6 +316,14 @@ void init_pagelist(py::module_ &m)
             [](PageList &pl, PageList &other) {
                 DualQpdfLockGuard lock(pl.qpdf.get(), other.qpdf.get());
                 auto other_pages = other.doc.getAllPages();
+                if (other.qpdf.get() != pl.qpdf.get()) {
+                    for (auto &page : other_pages) {
+                        if (page_has_widget(page.getObjectHandle())) {
+                            warn_dropping_forms();
+                            break;
+                        }
+                    }
+                }
                 for (auto &page : other_pages) {
                     pl.append_page(page);
                 }
@@ -293,9 +333,19 @@ void init_pagelist(py::module_ &m)
             "extend",
             [](PageList &pl, py::iterable iterable) {
                 QpdfLockGuard lock(pl.qpdf.get());
+                bool warned = false;
                 py::iterator it = py::iter(iterable);
                 while (it != py::iterator::sentinel()) {
-                    pl.append_page(as_page_helper(*it));
+                    auto page = as_page_helper(*it);
+                    if (!warned) {
+                        auto owner = page.getObjectHandle().getOwningQPDF();
+                        if (owner != pl.qpdf.get() &&
+                            page_has_widget(page.getObjectHandle())) {
+                            warn_dropping_forms();
+                            warned = true;
+                        }
+                    }
+                    pl.append_page(page);
                     ++it;
                 }
             },
