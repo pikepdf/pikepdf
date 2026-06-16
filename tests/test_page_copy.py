@@ -251,3 +251,39 @@ def test_extend_no_warning_intra_document():
         with warnings.catch_warnings():
             warnings.simplefilter('error', FormCopyWarning)
             pdf.pages.extend(pdf.pages)  # same document: no warning
+
+
+import io
+
+
+def test_save_warns_on_orphaned_widgets():
+    # Naive extend produces orphaned widgets (no /AcroForm).
+    res = _resources()
+    dest = Pdf.new()
+    with Pdf.open(str(res / 'form.pdf')) as src:
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', FormCopyWarning)  # silence extend warning
+            dest.pages.extend(src.pages)
+    assert dest._count_orphaned_widgets() > 0
+    with pytest.warns(FormCopyWarning):
+        dest.save(io.BytesIO())
+
+
+def test_save_no_warning_for_clean_merge():
+    res = _resources()
+    dest = Pdf.new()
+    with Pdf.open(str(res / 'form.pdf')) as src:
+        dest.add_pages_from(src)  # preserves forms -> no orphans
+    assert dest._count_orphaned_widgets() == 0
+    with warnings.catch_warnings():
+        warnings.simplefilter('error', FormCopyWarning)
+        dest.save(io.BytesIO())
+
+
+def test_save_no_warning_for_formless_doc():
+    pdf = Pdf.new()
+    pdf.add_blank_page(page_size=(200, 200))
+    assert pdf._count_orphaned_widgets() == 0
+    with warnings.catch_warnings():
+        warnings.simplefilter('error', FormCopyWarning)
+        pdf.save(io.BytesIO())

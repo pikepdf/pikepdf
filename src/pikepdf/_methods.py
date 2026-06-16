@@ -54,6 +54,7 @@ from pikepdf._core import (
     Token,
     _ObjectMapping,
 )
+from pikepdf._exceptions import FormCopyWarning
 from pikepdf._io import atomic_overwrite, check_different_files, check_stream_is_usable
 from pikepdf.models import Encryption, EncryptionInfo, Outline, Permissions
 from pikepdf.models.metadata import PdfMetadata, decode_pdf_date, encode_pdf_date
@@ -496,6 +497,14 @@ class Extend_Pdf:
                 "with allow_overwriting_input=True. If this Pdf was created using "
                 "Pdf.new(), you must specify a destination object since there is "
                 "no original filename to save to."
+            )
+        orphans = self._count_orphaned_widgets()
+        if orphans:
+            warn(
+                f"This document has {orphans} form widget annotation(s) that are "
+                "not reachable from /AcroForm; they may not display in Adobe "
+                "Acrobat. Use Pdf.add_pages_from() to copy pages with forms.",
+                FormCopyWarning,
             )
         with ExitStack() as stack:
             if hasattr(filename_or_stream, 'seek'):

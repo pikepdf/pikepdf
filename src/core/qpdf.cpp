@@ -6,6 +6,7 @@
 
 #include <cerrno>
 #include <cstring>
+#include <set>
 #include <sstream>
 #include <type_traits>
 
@@ -661,6 +662,70 @@ void init_qpdf(py::module_ &m)
             [](QPDF &q, std::pair<int, int> objgen, QPDFObjectHandle &h) {
                 QpdfLockGuard lock(&q);
                 q.replaceObject(objgen.first, objgen.second, h);
+            })
+        .def("_count_orphaned_widgets",
+            [](QPDF &q) -> size_t {
+                std::set<QPDFObjGen> field_tree;
+                auto acro = q.getRoot().getKey("/AcroForm");
+                if (acro.isDictionary()) {
+                    auto fields = acro.getKey("/Fields");
+                    if (fields.isArray()) {
+                        std::vector<QPDFObjectHandle> stack;
+                        int n = fields.getArrayNItems();
+                        for (int i = 0; i < n; ++i)
+                            stack.push_back(fields.getArrayItem(i));
+                        while (!stack.empty()) {
+                            auto f = stack.back();
+                            stack.pop_back();
+                            if (!f.isDictionary())
+                                continue;
+                            if (f.isIndirect() &&
+                                !field_tree.insert(f.getObjGen()).second)
+                                continue;
+                            auto kids = f.getKey("/Kids");
+                            if (kids.isArray()) {
+                                int kn = kids.getArrayNItems();
+                                for (int i = 0; i < kn; ++i)
+                                    stack.push_back(kids.getArrayItem(i));
+                            }
+                        }
+                    }
+                }
+                size_t orphans = 0;
+                QPDFPageDocumentHelper dh(q);
+                for (auto &page : dh.getAllPages()) {
+                    auto annots = page.getObjectHandle().getKey("/Annots");
+                    if (!annots.isArray())
+                        continue;
+                    int n = annots.getArrayNItems();
+                    for (int i = 0; i < n; ++i) {
+                        auto a = annots.getArrayItem(i);
+                        if (!a.isDictionary())
+                            continue;
+                        auto st = a.getKey("/Subtype");
+                        if (!(st.isName() && st.getName() == "/Widget"))
+                            continue;
+                        bool found = false;
+                        auto cur = a;
+                        std::set<QPDFObjGen> visited;
+                        for (int depth = 0; depth < 100 && cur.isDictionary();
+                            ++depth) {
+                            if (cur.isIndirect()) {
+                                auto og = cur.getObjGen();
+                                if (field_tree.count(og)) {
+                                    found = true;
+                                    break;
+                                }
+                                if (!visited.insert(og).second)
+                                    break;
+                            }
+                            cur = cur.getKey("/Parent");
+                        }
+                        if (!found)
+                            ++orphans;
+                    }
+                }
+                return orphans;
             })
         .def("_swap_objects",
             [](QPDF &q, std::pair<int, int> objgen1, std::pair<int, int> objgen2) {
