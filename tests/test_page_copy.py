@@ -187,3 +187,39 @@ def test_add_pages_from_strip_removes_widgets():
     assert result.fields_added == 0
     assert _count_widgets(dest) == 0
     assert not dest.acroform.exists
+
+
+def test_add_pages_from_strip_preserves_non_widget_annotations():
+    src = Pdf.new()
+    src.add_blank_page(page_size=(300, 300))
+    page = src.pages[0]
+
+    widget = src.make_indirect(
+        Dictionary(
+            Type=Name.Annot,
+            Subtype=Name.Widget,
+            FT=Name.Tx,
+            T=String('w'),
+            Rect=Array([0, 0, 100, 20]),
+        )
+    )
+    link = src.make_indirect(
+        Dictionary(
+            Type=Name.Annot,
+            Subtype=Name.Link,
+            Rect=Array([0, 30, 100, 50]),
+        )
+    )
+    page.Annots = Array([widget, link])
+    src.Root.AcroForm = src.make_indirect(Dictionary(Fields=Array([widget])))
+
+    dest = Pdf.new()
+    dest.add_pages_from(src, forms='strip')
+
+    dest_page = dest.pages[0]
+    assert Name.Annots in dest_page.obj, 'Link annotation must survive strip'
+    annots = list(dest_page.obj.Annots)
+    subtypes = [a.get(Name.Subtype) for a in annots]
+    assert Name.Link in subtypes, 'Link annotation must be preserved'
+    assert _count_widgets(dest) == 0, 'Widget annotations must be removed'
+    assert len(annots) == 1, 'Exactly one annotation (Link) must remain'
