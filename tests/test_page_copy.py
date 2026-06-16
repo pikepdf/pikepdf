@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 from __future__ import annotations
 
+import io
 import os
 import tempfile
 import warnings
@@ -251,9 +252,6 @@ def test_extend_no_warning_intra_document():
         with warnings.catch_warnings():
             warnings.simplefilter('error', FormCopyWarning)
             pdf.pages.extend(pdf.pages)  # same document: no warning
-
-
-import io
 
 
 def test_save_warns_on_orphaned_widgets():

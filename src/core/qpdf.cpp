@@ -665,6 +665,11 @@ void init_qpdf(py::module_ &m)
             })
         .def("_count_orphaned_widgets",
             [](QPDF &q) -> size_t {
+                QpdfLockGuard lock(&q);
+                // Build the reachable field-tree set using indirect objgens.
+                // Per the PDF spec, form fields referenced from /AcroForm/Fields
+                // must be indirect objects; direct-object fields are out of scope
+                // for this best-effort orphan check.
                 std::set<QPDFObjGen> field_tree;
                 auto acro = q.getRoot().getKey("/AcroForm");
                 if (acro.isDictionary()) {
