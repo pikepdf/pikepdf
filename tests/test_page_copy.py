@@ -122,3 +122,47 @@ def test_add_pages_from_full_copy_has_no_partial_fields():
     dest = Pdf.new()
     result = dest.add_pages_from(src)  # all pages
     assert result.partial_fields == []
+
+
+def _three_level_shared_field_pdf():
+    """3-level hierarchy: Root -> Mid -> Leaf+widgets, one widget per page."""
+    pdf = Pdf.new()
+    pdf.add_blank_page(page_size=(300, 300))
+    pdf.add_blank_page(page_size=(300, 300))
+
+    root = pdf.make_indirect(Dictionary(FT=Name.Tx, T=String('Root'), Kids=Array([])))
+    intermediate = pdf.make_indirect(
+        Dictionary(T=String('Mid'), Parent=root, Kids=Array([]))
+    )
+    terminal = pdf.make_indirect(
+        Dictionary(T=String('Leaf'), Parent=intermediate, Kids=Array([]))
+    )
+    root.Kids = Array([intermediate])
+    intermediate.Kids = Array([terminal])
+
+    widgets = []
+    for p in pdf.pages:
+        w = pdf.make_indirect(
+            Dictionary(
+                Type=Name.Annot,
+                Subtype=Name.Widget,
+                Parent=terminal,
+                Rect=Array([0, 0, 100, 20]),
+            )
+        )
+        widgets.append(w)
+        p.Annots = Array([w])
+    terminal.Kids = Array(widgets)
+
+    pdf.Root.AcroForm = pdf.make_indirect(
+        Dictionary(Fields=Array([root]), NeedAppearances=True)
+    )
+    return pdf
+
+
+def test_add_pages_from_reports_partial_fields_three_level():
+    """3-level field hierarchy: partial detection must key on top-level FQN."""
+    src = _three_level_shared_field_pdf()
+    dest = Pdf.new()
+    result = dest.add_pages_from(src, pages=[0])  # copy only page 0
+    assert 'Root' in result.partial_fields

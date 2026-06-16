@@ -84,7 +84,7 @@ def copy_pages(
         fqn_pages: dict[str, set[int]] = {}
         for i, p in enumerate(src.pages):
             for annot in src_acro.get_widget_annotations_for_page(p):
-                fld = src_acro.get_field_for_annotation(annot)
+                fld = src_acro.get_field_for_annotation(annot).top_level_field
                 name = fld.fully_qualified_name
                 if name is not None:
                     fqn_pages.setdefault(name, set()).add(i)
@@ -95,13 +95,9 @@ def copy_pages(
             for fld in src_acro.get_form_fields_for_page(sp):
                 if fld.fully_qualified_name is not None:
                     selected_fqns.add(fld.fully_qualified_name)
-        seen: set[str] = set()
         for name in selected_fqns:
-            if name in seen:
-                continue
             if fqn_pages.get(name, set()) - selected:
                 partial.append(name)
-                seen.add(name)
 
     return PageCopyResult(
         pages_added=len(src_pages),
