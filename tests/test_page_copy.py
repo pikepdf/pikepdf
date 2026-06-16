@@ -51,3 +51,24 @@ def test_add_pages_from_matches_job_field_structure():
     assert len(pdf.acroform.fields) == job_terminal
     assert len(pdf.Root.AcroForm.Fields) == job_toplevel
     assert r1.fields_added == 5  # form.pdf has 5 terminal fields
+
+
+def test_add_pages_from_reports_renames_on_collision():
+    res = _resources()
+    f1 = str(res / 'form.pdf')
+
+    pdf = Pdf.new()
+    with Pdf.open(f1) as s1:
+        pdf.add_pages_from(s1)  # first copy: names land as-is
+    with Pdf.open(f1) as s2:
+        result = pdf.add_pages_from(s2)  # second copy: every name collides
+
+    # form.pdf's terminal field 'Text1' exists from the first copy, so the
+    # second copy must rename it to something else.
+    assert 'Text1' in result.renamed_fields
+    new_name = result.renamed_fields['Text1']
+    assert new_name != 'Text1'
+    # The renamed field is actually reachable under its new name.
+    assert pdf.acroform.get_fields_with_qualified_name(new_name)
+    # Original is still reachable too (the first copy's field).
+    assert pdf.acroform.get_fields_with_qualified_name('Text1')
