@@ -72,6 +72,7 @@ from pikepdf._core import (
 )
 from pikepdf.exceptions import (
     DependencyError,
+    FormCopyWarning,
     HifiPrintImageNotTranscodableError,
     InvalidPdfImageError,
     OutlineStructureError,
@@ -106,6 +107,10 @@ from pikepdf.models import (
 
 from pikepdf.models.ctm import (
     get_objects_with_ctm,
+)
+
+from pikepdf._page_copy import (
+    PageCopyResult,
 )
 
 
@@ -159,6 +164,7 @@ __all__ = [
     'exceptions',
     'explicit_conversion',
     'ForeignObjectError',
+    'FormCopyWarning',
     'FormFieldFlag',
     'get_object_conversion_mode',
     'get_objects_with_ctm',
@@ -183,6 +189,7 @@ __all__ = [
     'OutlineItem',
     'OutlineStructureError',
     'Page',
+    'PageCopyResult',
     'PageLocation',
     'parse_content_stream',
     'PasswordError',

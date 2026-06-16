@@ -13,7 +13,7 @@ from pikepdf._core import (
     PdfError,
     ReferenceCycleError,
 )
-from pikepdf._exceptions import DependencyError
+from pikepdf._exceptions import DependencyError, FormCopyWarning
 from pikepdf.models._content_stream import PdfParsingError
 from pikepdf.models.image import (
     HifiPrintImageNotTranscodableError,
@@ -28,6 +28,7 @@ __all__ = [
     'DeletedObjectError',
     'DependencyError',
     'ForeignObjectError',
+    'FormCopyWarning',
     'HifiPrintImageNotTranscodableError',
     'ImageDecompressionError',
     'InvalidPdfImageError',
