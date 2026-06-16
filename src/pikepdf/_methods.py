@@ -30,8 +30,11 @@ from io import BytesIO
 from pathlib import Path
 from subprocess import run
 from tempfile import TemporaryDirectory
-from typing import BinaryIO, Literal, TypeVar
+from typing import TYPE_CHECKING, BinaryIO, Literal, TypeVar
 from warnings import warn
+
+if TYPE_CHECKING:
+    from pikepdf._page_copy import PageCopyResult
 
 from pikepdf._augments import augment_override_cpp, augments
 from pikepdf._core import (
@@ -383,6 +386,37 @@ class Extend_Pdf:
             page_obj = self.make_indirect(page_dict)
             self._add_page(page_obj, first=False)
             return Page(page_obj)
+
+    def add_pages_from(
+        self,
+        src: Pdf,
+        pages: Iterable[int] | range | slice | None = None,
+        *,
+        forms: Literal['preserve', 'strip'] = 'preserve',
+    ) -> PageCopyResult:
+        """Append pages from another ``Pdf``, preserving interactive form fields.
+
+        Unlike ``pdf.pages.extend(src.pages)``, this carries the document's
+        AcroForm form fields so they remain functional in Adobe Acrobat. Fields
+        whose fully-qualified names collide with existing fields are
+        automatically renamed; see the returned :class:`pikepdf.PageCopyResult`.
+
+        Only fields whose widgets appear on copied pages are carried over, so a
+        page subset never imports another form's data.
+
+        Args:
+            src: Source ``Pdf`` to copy pages from.
+            pages: Zero-based indices (iterable, ``range`` or ``slice``) of
+                pages in ``src`` to copy. ``None`` copies all pages.
+            forms: ``'preserve'`` (default) carries form fields; ``'strip'``
+                removes widget annotations from the copied pages.
+
+        Returns:
+            A :class:`pikepdf.PageCopyResult` describing the operation.
+        """
+        from pikepdf._page_copy import copy_pages
+
+        return copy_pages(self, src, pages, forms=forms)
 
     def close(self) -> None:
         self._close()
