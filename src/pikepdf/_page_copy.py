@@ -75,9 +75,38 @@ def copy_pages(
     else:
         fields_added = 0
 
+    partial: list[str] = []
+    if forms == 'preserve' and src_acro.exists and len(indices) < len(src.pages):
+        selected = set(indices)
+        # Map FQN -> set of all page indices where that field has widget annotations.
+        # We use get_field_for_annotation so that multi-widget fields (parent+Kids)
+        # are correctly attributed to their logical FQN.
+        fqn_pages: dict[str, set[int]] = {}
+        for i, p in enumerate(src.pages):
+            for annot in src_acro.get_widget_annotations_for_page(p):
+                fld = src_acro.get_field_for_annotation(annot)
+                name = fld.fully_qualified_name
+                if name is not None:
+                    fqn_pages.setdefault(name, set()).add(i)
+        # Collect FQNs of fields on selected pages, then filter to those that also
+        # have widgets on non-selected pages.
+        selected_fqns: set[str] = set()
+        for sp in src_pages:
+            for fld in src_acro.get_form_fields_for_page(sp):
+                if fld.fully_qualified_name is not None:
+                    selected_fqns.add(fld.fully_qualified_name)
+        seen: set[str] = set()
+        for name in selected_fqns:
+            if name in seen:
+                continue
+            if fqn_pages.get(name, set()) - selected:
+                partial.append(name)
+                seen.add(name)
+
     return PageCopyResult(
         pages_added=len(src_pages),
         forms=forms,
         fields_added=fields_added,
         renamed_fields=renamed,
+        partial_fields=partial,
     )

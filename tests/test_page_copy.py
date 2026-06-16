@@ -7,7 +7,16 @@ import tempfile
 from pathlib import Path
 
 import pikepdf
-from pikepdf import FormCopyWarning, Job, PageCopyResult, Pdf
+from pikepdf import (
+    Array,
+    Dictionary,
+    FormCopyWarning,
+    Job,
+    Name,
+    PageCopyResult,
+    Pdf,
+    String,
+)
 
 
 def test_formcopywarning_is_userwarning():
@@ -72,3 +81,44 @@ def test_add_pages_from_reports_renames_on_collision():
     assert pdf.acroform.get_fields_with_qualified_name(new_name)
     # Original is still reachable too (the first copy's field).
     assert pdf.acroform.get_fields_with_qualified_name('Text1')
+
+
+def _two_page_shared_field_pdf():
+    pdf = Pdf.new()
+    pdf.add_blank_page(page_size=(300, 300))
+    pdf.add_blank_page(page_size=(300, 300))
+    # One field 'Shared' with two widget kids, one per page.
+    field = pdf.make_indirect(
+        Dictionary(FT=Name.Tx, T=String('Shared'), V=String('x'), Kids=Array([]))
+    )
+    kids = []
+    for p in pdf.pages:
+        w = pdf.make_indirect(
+            Dictionary(
+                Type=Name.Annot,
+                Subtype=Name.Widget,
+                Parent=field,
+                Rect=Array([0, 0, 100, 20]),
+            )
+        )
+        kids.append(w)
+        p.Annots = Array([w])
+    field.Kids = Array(kids)
+    pdf.Root.AcroForm = pdf.make_indirect(
+        Dictionary(Fields=Array([field]), NeedAppearances=True)
+    )
+    return pdf
+
+
+def test_add_pages_from_reports_partial_fields():
+    src = _two_page_shared_field_pdf()
+    dest = Pdf.new()
+    result = dest.add_pages_from(src, pages=[0])  # copy only page 0
+    assert 'Shared' in result.partial_fields
+
+
+def test_add_pages_from_full_copy_has_no_partial_fields():
+    src = _two_page_shared_field_pdf()
+    dest = Pdf.new()
+    result = dest.add_pages_from(src)  # all pages
+    assert result.partial_fields == []
