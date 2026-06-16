@@ -11,6 +11,8 @@ from typing import TYPE_CHECKING, Literal
 if TYPE_CHECKING:
     from pikepdf import Pdf
 
+from pikepdf.objects import Array, Name
+
 
 @dataclass
 class PageCopyResult:
@@ -54,6 +56,18 @@ def copy_pages(
     # Copy each page with append() (does NOT emit FormCopyWarning, unlike extend)
     for sp in src_pages:
         dest.pages.append(sp)
+
+    if forms == 'strip':
+        for offset in range(len(src_pages)):
+            page_obj = dest.pages[start + offset].obj
+            if Name.Annots in page_obj:
+                kept = Array(
+                    [a for a in page_obj.Annots if a.get(Name.Subtype) != Name.Widget]
+                )
+                if len(kept) == 0:
+                    del page_obj.Annots
+                else:
+                    page_obj.Annots = kept
 
     renamed: dict[str, str] = {}
     if forms == 'preserve' and src_acro.exists:

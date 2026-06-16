@@ -166,3 +166,24 @@ def test_add_pages_from_reports_partial_fields_three_level():
     dest = Pdf.new()
     result = dest.add_pages_from(src, pages=[0])  # copy only page 0
     assert 'Root' in result.partial_fields
+
+
+def _count_widgets(pdf):
+    total = 0
+    for p in pdf.pages:
+        if Name.Annots in p.obj:
+            total += sum(1 for a in p.obj.Annots if a.get(Name.Subtype) == Name.Widget)
+    return total
+
+
+def test_add_pages_from_strip_removes_widgets():
+    res = _resources()
+    f2 = str(res / 'form_dd0293.pdf')
+    dest = Pdf.new()
+    with Pdf.open(f2) as src:
+        assert _count_widgets(src) > 0
+        result = dest.add_pages_from(src, forms='strip')
+    assert result.forms == 'strip'
+    assert result.fields_added == 0
+    assert _count_widgets(dest) == 0
+    assert not dest.acroform.exists
