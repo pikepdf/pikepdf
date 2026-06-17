@@ -14,6 +14,16 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.9.0
+
+### New features
+
+- Added {meth}`pikepdf.Pdf.add_pages_from` to copy pages between documents while
+  preserving interactive AcroForm form fields, returning a
+  {class}`pikepdf.PageCopyResult`. Naive `pages.extend()` across documents and
+  `save()` of documents with orphaned form widgets now emit
+  {class}`pikepdf.FormCopyWarning`. (#670, #207)
+
 ## v10.8.0
 
 - Added {class}`pikepdf.ReferenceCycleError` (a subclass of

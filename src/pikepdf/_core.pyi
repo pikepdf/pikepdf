@@ -35,6 +35,7 @@ from typing import (
 if TYPE_CHECKING:
     import numpy as np
 
+    from pikepdf._page_copy import PageCopyResult
     from pikepdf.models.encryption import Encryption, EncryptionInfo, Permissions
     from pikepdf.models.image import PdfInlineImage
     from pikepdf.models.metadata import PdfMetadata
@@ -2749,6 +2750,36 @@ class Pdf:
             The modified time is always set to the time of saving. An unusual
             umask or other settings changes still cause a failure to restore
             permissions.
+        """
+    def add_pages_from(
+        self,
+        src: Pdf,
+        pages: Iterable[int] | range | slice | None = None,
+        *,
+        forms: Literal['preserve', 'strip'] = 'preserve',
+    ) -> PageCopyResult:
+        """Append pages from another ``Pdf``, preserving interactive form fields.
+
+        Unlike ``pdf.pages.extend(src.pages)``, this carries the document's
+        AcroForm form fields so they remain functional in Adobe Acrobat. Fields
+        whose fully-qualified names collide with existing fields are
+        automatically renamed; the mapping is available on the returned
+        :class:`pikepdf.PageCopyResult`.
+
+        Only fields whose widgets appear on the copied pages are imported, so
+        copying a page subset never pulls in another form's unrelated data.
+
+        Args:
+            src: Source ``Pdf`` to copy pages from.
+            pages: Zero-based indices (iterable, ``range``, or ``slice``) of
+                pages in ``src`` to copy. ``None`` copies all pages.
+            forms: ``'preserve'`` (default) carries AcroForm fields along with
+                the pages; ``'strip'`` removes widget annotations from the
+                copied pages so no form data is imported.
+
+        Returns:
+            A :class:`pikepdf.PageCopyResult` describing the operation,
+            including which fields were added and any automatic renames.
         """
     def show_xref_table(self) -> None:
         """Pretty-print the Pdf's xref (cross-reference table).
