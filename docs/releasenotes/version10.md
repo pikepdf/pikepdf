@@ -116,6 +116,10 @@ the architecture notes on thread safety.
   file. pikepdf now pins the decode level to `none` in this case, restoring the
   documented behavior that `compress_streams=False` alone does not trigger
   decompression. Fixes {issue}`676`.
+- The minimum required qpdf version is now 12.3.2. The new
+  {meth}`pikepdf.AcroForm.validate` binding calls qpdf's
+  `QPDFAcroFormDocumentHelper::validate`, which was added in qpdf 12.3.0, so
+  pikepdf no longer builds against older qpdf releases.
 
 ### Documentation
 - Documented a long-standing page-deletion pitfall: deleting a page unlinks it
