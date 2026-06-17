@@ -114,6 +114,10 @@ the architecture notes on thread safety.
   (bookmark), link annotation, or named destination remains in the saved file.
   The {ref}`Deleting pages <deleting_pages>` topic now explains the behavior and
   gives workarounds. Thanks to m-holger. Closes {issue}`196`.
+- Documented how to copy metadata between documents, in a new
+  {ref}`Copying metadata between documents <copymetadata>` topic, including why
+  blindly copying all fields (or the raw XMP stream) can import false conformance
+  claims and identifiers. Closes {issue}`188`.
 
 ## v10.8.0
 

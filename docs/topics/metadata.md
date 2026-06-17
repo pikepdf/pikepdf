@@ -69,6 +69,60 @@ occurs in the block, changes are discarded.
 
 The list of available metadata fields may be found in the [XMP Specification].
 
+(copymetadata)=
+
+## Copying metadata between documents
+
+When merging documents or rebuilding a PDF, you may want to carry some metadata
+from a source document into a new one. pikepdf intentionally does not provide an
+automatic "copy all metadata" operation, and you should not write one:
+**you are responsible for deciding which fields are meaningful in the new
+document.**
+
+Many XMP fields assert something about one *specific* document and become false
+or misleading when copied verbatim into a different one, for example:
+
+- Standards conformance claims such as PDF/A (`pdfaid:part`,
+  `pdfaid:conformance`), PDF/X, and PDF/UA. A merged or rebuilt document almost
+  certainly does not satisfy these claims unless it was independently produced
+  and verified to do so.
+- Unique identifiers such as `xmpMM:DocumentID` and `xmpMM:InstanceID`, which are
+  meant to identify a particular document or rendition.
+- Timestamps such as `xmp:CreateDate` and `xmp:ModifyDate`.
+- `pdf:Producer`, which pikepdf sets to itself on save.
+
+Copy only the descriptive fields you have determined are appropriate to carry
+over, such as title, author, description, and subject:
+
+```{eval-rst}
+.. doctest::
+
+  >>> source = pikepdf.open('../tests/resources/sandwich.pdf')
+
+  >>> target = pikepdf.new()
+
+  >>> safe_to_copy = ['dc:title', 'dc:creator', 'dc:description', 'dc:subject']
+
+  >>> with source.open_metadata() as src, target.open_metadata() as dst:
+  ...     for key in safe_to_copy:
+  ...         if key in src:
+  ...             dst[key] = src[key]
+  ...
+
+  >>> target.open_metadata()['dc:title']
+  'Untitled'
+```
+
+:::{warning}
+Do not blindly copy every field from one document to another, and do not copy
+the raw XMP stream wholesale (for example with `Pdf.copy_foreign`). Doing so can
+import conformance claims and identifiers that are not true of the merged or
+rebuilt document.
+:::
+
+To copy the older Document Info dictionary into XMP instead, see
+{meth}`~pikepdf.models.PdfMetadata.load_from_docinfo`.
+
 ## Removing metadata items
 
 After opening metadata, use `del meta['dc:title']` to delete a metadata entry.
