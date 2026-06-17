@@ -86,10 +86,18 @@ void init_acroform(py::module_ &m)
         .def_prop_ro("is_checkbox", &QPDFFormFieldObjectHelper::isCheckbox)
         .def_prop_ro("is_checked",
             [](QPDFFormFieldObjectHelper &field) {
-                // This is the same as the QPDF implementation, but re-implemented here
-                // for versions of QPDF that did not define this method.
-                return field.isCheckbox() && field.getValue().isName() &&
-                       (field.getValue().getName() != "/Off");
+                // Deliberately stricter than QPDFFormFieldObjectHelper::isChecked(),
+                // which is `isCheckbox() && V<Name>() != "/Off"` and therefore reports
+                // a checkbox with an absent or non-name /V as *checked* (an invalid
+                // Name compares unequal to "/Off"). Per ISO 32000 a checkbox's /V is
+                // optional and an absent value defaults to /Off, i.e. unchecked, which
+                // is what PDFBox, pdf.js and Acrobat do. Requiring /V to be a name
+                // other than /Off gives that behavior while still treating
+                // non-standard on-values (e.g. /1) as checked.
+                if (!field.isCheckbox())
+                    return false;
+                auto value = field.getValue();
+                return value.isName() && value.getName() != "/Off";
             })
         .def_prop_ro("is_radio_button", &QPDFFormFieldObjectHelper::isRadioButton)
         .def_prop_ro("is_pushbutton", &QPDFFormFieldObjectHelper::isPushbutton)

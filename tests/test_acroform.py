@@ -80,6 +80,39 @@ def test_checkbox(form):
     assert not field.is_choice
 
 
+def test_checkbox_is_checked_states(form):
+    """Pin is_checked semantics, which deliberately diverge from qpdf's
+    QPDFFormFieldObjectHelper::isChecked().
+
+    Per ISO 32000 a checkbox's /V is optional and an absent value defaults to
+    /Off (unchecked), matching PDFBox/pdf.js/Acrobat. qpdf's isChecked() instead
+    reports an absent or non-name /V as *checked* (any value != /Off). We require
+    /V to be a name other than /Off, so a name like /1 still reads as checked.
+    """
+    field = form.acroform.get_fields_with_qualified_name('Check Box3')[0]
+    assert field.is_checkbox
+
+    # Standard on-value -> checked
+    field.obj.V = Name.Yes
+    assert field.is_checked
+
+    # Explicit /Off -> unchecked
+    field.obj.V = Name.Off
+    assert not field.is_checked
+
+    # Non-standard on-value (any name other than /Off) -> checked
+    field.obj.V = Name('/1')
+    assert field.is_checked
+
+    # Absent /V -> unchecked (the key divergence; qpdf reports this as checked)
+    del field.obj.V
+    assert not field.is_checked
+
+    # Non-name /V (malformed) -> unchecked
+    field.obj.V = pikepdf.String('Yes')
+    assert not field.is_checked
+
+
 def test_radio_button(form):
     fields = form.acroform.get_fields_with_qualified_name('Group4')
     assert len(fields) == 1  # 1 group, but not the 2 individual radio buttons
