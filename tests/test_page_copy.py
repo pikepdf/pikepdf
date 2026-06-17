@@ -285,3 +285,12 @@ def test_save_no_warning_for_formless_doc():
     with warnings.catch_warnings():
         warnings.simplefilter('error', FormCopyWarning)
         pdf.save(io.BytesIO())
+
+
+def test_add_pages_from_preserve_emits_no_formcopywarning():
+    res = _resources()
+    dest = Pdf.new()
+    with Pdf.open(str(res / 'form.pdf')) as src:
+        with warnings.catch_warnings():
+            warnings.simplefilter('error', FormCopyWarning)
+            dest.add_pages_from(src)  # must not raise FormCopyWarning

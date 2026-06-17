@@ -283,9 +283,13 @@ dest.save('merged.pdf')
 ```
 
 Fields whose names collide are renamed automatically; the mapping is reported in
-the returned {class}`pikepdf.PageCopyResult`. Only fields whose widgets are on
-the copied pages are carried over, so copying a subset never imports another
-form's data. Pass `forms='strip'` to copy pages without any form data at all.
+the returned {class}`pikepdf.PageCopyResult`. Independent top-level fields are
+only carried over when a widget is on a copied page, so unrelated forms on
+separate pages are not imported. However, a field that shares a top-level
+ancestor with a copied field is carried as an entire subtree; such
+partially-represented fields are listed in
+{attr}`pikepdf.PageCopyResult.partial_fields`. For a hard guarantee of no form
+data at all, pass `forms='strip'`.
 
 For merging whole files from disk, {class}`pikepdf.Job` (the qpdf ``--pages``
 job) is also form-aware and may be more convenient; `add_pages_from` is for

@@ -401,14 +401,22 @@ class Extend_Pdf:
         AcroForm form fields so they remain functional in Adobe Acrobat. Fields
         whose fully-qualified names collide with existing fields are
         automatically renamed; see the returned :class:`pikepdf.PageCopyResult`.
+        The original→new name mapping in ``renamed_fields`` is best-effort
+        (it pairs source and destination page fields positionally).
 
-        Only fields whose widgets appear on copied pages are carried over, so a
-        page subset never imports another form's data.
+        Independent top-level fields are only carried over when a widget is on a
+        copied page, so unrelated forms on separate pages are not imported.
+        However, a field sharing a top-level ancestor with a copied field is
+        carried as an entire subtree; such partially-represented fields are
+        listed in the result's ``partial_fields``. Use ``forms='strip'`` for a
+        hard guarantee of no form data.
 
         Args:
             src: Source ``Pdf`` to copy pages from.
             pages: Zero-based indices (iterable, ``range`` or ``slice``) of
                 pages in ``src`` to copy. ``None`` copies all pages.
+                A ``slice`` is clamped to the document length; explicit indices
+                (including ``range``) must be valid or ``IndexError`` is raised.
             forms: ``'preserve'`` (default) carries form fields; ``'strip'``
                 removes widget annotations from the copied pages.
 

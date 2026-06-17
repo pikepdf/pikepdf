@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import pytest
 
+import pikepdf
 from pikepdf import Annotation, Name, Pdf
 
 
@@ -188,7 +189,8 @@ def test_get_field_for_annotation(form):
 
 def test_copy_form(form, dd0293):
     orig_count = len(dd0293.acroform.fields)
-    dd0293.pages.extend(form.pages)
+    with pytest.warns(pikepdf.FormCopyWarning):
+        dd0293.pages.extend(form.pages)
     copied_fields = dd0293.acroform.fix_copied_annotations(
         dd0293.pages[-1], form.pages[0], form.acroform
     )
@@ -199,8 +201,6 @@ def test_copy_form(form, dd0293):
 
 def test_field_value_property_setter(form):
     """Test AcroFormField.value property setter (lines 68-70 of acroform.cpp)."""
-    import pikepdf
-
     field = form.acroform.get_fields_with_qualified_name('Text1')[0]
     # Set value using QPDFObjectHandle via property setter
     field.value = pikepdf.String("Test Value")
