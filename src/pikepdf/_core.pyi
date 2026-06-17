@@ -35,6 +35,7 @@ from typing import (
 if TYPE_CHECKING:
     import numpy as np
 
+    from pikepdf._page_copy import PageCopyResult
     from pikepdf.models.encryption import Encryption, EncryptionInfo, Permissions
     from pikepdf.models.image import PdfInlineImage
     from pikepdf.models.metadata import PdfMetadata
@@ -2374,6 +2375,7 @@ class Pdf:
             first: If True, prepend this before the first page;
                 if False append after last page.
         """
+    def _count_orphaned_widgets(self) -> int: ...
     def _decode_all_streams_and_discard(self, progress) -> None: ...
     def _process(self, arg0: str, arg1: bytes) -> None: ...
     def _replace_object(self, arg0: tuple[int, int], arg1: Object) -> None: ...
@@ -2952,6 +2954,44 @@ class Pdf:
             The modified time is always set to the time of saving. An unusual
             umask or other settings changes still cause a failure to restore
             permissions.
+        """
+    def add_pages_from(
+        self,
+        src: Pdf,
+        pages: Iterable[int] | range | slice | None = None,
+        *,
+        forms: Literal['preserve', 'strip'] = 'preserve',
+    ) -> PageCopyResult:
+        """Append pages from another ``Pdf``, preserving interactive form fields.
+
+        Unlike ``pdf.pages.extend(src.pages)``, this carries the document's
+        AcroForm form fields so they remain functional in Adobe Acrobat. Fields
+        whose fully-qualified names collide with existing fields are
+        automatically renamed; the mapping is available on the returned
+        :class:`pikepdf.PageCopyResult`. The original→new name mapping in
+        ``renamed_fields`` is best-effort (it pairs source and destination
+        page fields positionally).
+
+        Independent top-level fields are only carried over when a widget is on a
+        copied page, so unrelated forms on separate pages are not imported.
+        However, a field sharing a top-level ancestor with a copied field is
+        carried as an entire subtree; such partially-represented fields are
+        listed in the result's ``partial_fields``. Use ``forms='strip'`` for a
+        hard guarantee of no form data.
+
+        Args:
+            src: Source ``Pdf`` to copy pages from.
+            pages: Zero-based indices (iterable, ``range``, or ``slice``) of
+                pages in ``src`` to copy. ``None`` copies all pages.
+                A ``slice`` is clamped to the document length; explicit indices
+                (including ``range``) must be valid or ``IndexError`` is raised.
+            forms: ``'preserve'`` (default) carries AcroForm fields along with
+                the pages; ``'strip'`` removes widget annotations from the
+                copied pages so no form data is imported.
+
+        Returns:
+            A :class:`pikepdf.PageCopyResult` describing the operation,
+            including which fields were added and any automatic renames.
         """
     def show_xref_table(self) -> None:
         """Pretty-print the Pdf's xref (cross-reference table).

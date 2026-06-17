@@ -16,6 +16,8 @@ the architecture notes on thread safety.
 
 ## v10.9.0
 
+### New features
+
 - Added {class}`pikepdf.JobBuilder`, a fluent, Pythonic builder for qpdf jobs.
   It assembles a job specification with chained, snake_case methods (``input``,
   ``output``, ``encrypt``, ``add_pages``, ``split_pages``, ``linearize``,
@@ -63,25 +65,6 @@ the architecture notes on thread safety.
   silently omits images drawn through form XObjects, which made it appear as if a
   page "has no images" when it clearly did. Use ``get_images()`` instead, or
   ``get_images(recursive=False)`` for the old behavior.
-- Fixed image extraction ignoring the ``/Decode`` array, which caused colors to
-  be inverted (or otherwise mismapped) when a PDF specified a non-default
-  ``/Decode`` such as ``[1, 0]``. {meth}`pikepdf.PdfImage.as_pil_image` and
-  {meth}`pikepdf.PdfImage.extract_to` now apply ``/Decode`` as a linear
-  per-channel mapping for grayscale, RGB and CMYK raster images, matching how a
-  PDF viewer renders the image. Previously ``/Decode`` was honored only for
-  CCITTFax-encoded images. Thanks to Mark-Joy for the report. {issue}`650`
-
-  Both methods gained an ``apply_decode_array`` parameter (default ``True``).
-  Pass ``apply_decode_array=False`` to retrieve the raw stored sample values
-  with the least processing -- useful for forensic inspection of the underlying
-  image data.
-
-  Some image types are intentionally not affected: Indexed-colorspace images
-  (where ``/Decode`` remaps palette indices rather than colors -- a non-identity
-  ``/Decode`` there now emits a warning), and DCT (JPEG) / JPX (JPEG 2000)
-  images, whose codecs carry their own color semantics (such as the Adobe APP14
-  marker for inverted CMYK) that Pillow already honors; re-applying ``/Decode``
-  would double-invert them.
 - Added {attr}`pikepdf.Page.rotation`, a property that reports a page's effective
   clockwise rotation normalized to ``[0, 360)``. Unlike the raw ``page.Rotate``
   attribute, it resolves a ``/Rotate`` value inherited from the page tree and
@@ -93,6 +76,30 @@ the architecture notes on thread safety.
   *positional* argument is deprecated and emits a ``DeprecationWarning``; pass it
   as a keyword argument instead, e.g. ``page.rotate(90, relative=True)``.
   Positional support will be removed in pikepdf 11.
+- Added {meth}`pikepdf.Pdf.add_pages_from` to copy pages between documents while
+  preserving interactive AcroForm form fields, returning a
+  {class}`pikepdf.PageCopyResult`. Naive `pages.extend()` across documents and
+  `save()` of documents with orphaned form widgets now emit
+  {class}`pikepdf.FormCopyWarning`. (#670, #207)
+
+### Fixes
+- Fixed image extraction ignoring the ``/Decode`` array, which caused colors to
+  be inverted (or otherwise mismapped) when a PDF specified a non-default
+  ``/Decode`` such as ``[1, 0]``. {meth}`pikepdf.PdfImage.as_pil_image` and
+  {meth}`pikepdf.PdfImage.extract_to` now apply ``/Decode`` as a linear
+  per-channel mapping for grayscale, RGB and CMYK raster images, matching how a
+  PDF viewer renders the image. Previously ``/Decode`` was honored only for
+  CCITTFax-encoded images. Thanks to Mark-Joy for the report. {issue}`650`
+  Both methods gained an ``apply_decode_array`` parameter (default ``True``).
+  Pass ``apply_decode_array=False`` to retrieve the raw stored sample values
+  with the least processing -- useful for forensic inspection of the underlying
+  image data.
+  Some image types are intentionally not affected: Indexed-colorspace images
+  (where ``/Decode`` remaps palette indices rather than colors -- a non-identity
+  ``/Decode`` there now emits a warning), and DCT (JPEG) / JPX (JPEG 2000)
+  images, whose codecs carry their own color semantics (such as the Adobe APP14
+  marker for inverted CMYK) that Pillow already honors; re-applying ``/Decode``
+  would double-invert them.
 - Fixed {meth}`pikepdf.Pdf.save` decompressing streams when called with
   `compress_streams=False` and no explicit `stream_decode_level`. qpdf 11.10
   changed its default stream decode level to `generalized`, which caused such

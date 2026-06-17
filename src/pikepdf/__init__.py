@@ -74,6 +74,7 @@ from pikepdf._core import (
 )
 from pikepdf.exceptions import (
     DependencyError,
+    FormCopyWarning,
     HifiPrintImageNotTranscodableError,
     InvalidPdfImageError,
     OutlineStructureError,
@@ -111,6 +112,9 @@ from pikepdf.models.ctm import (
 )
 
 from pikepdf.jobs import JobBuilder
+from pikepdf._page_copy import (
+    PageCopyResult,
+)
 
 
 # Importing these will monkeypatch classes defined in C++ and register a new
@@ -163,6 +167,7 @@ __all__ = [
     'exceptions',
     'explicit_conversion',
     'ForeignObjectError',
+    'FormCopyWarning',
     'FormFieldFlag',
     'get_object_conversion_mode',
     'get_objects_with_ctm',
@@ -189,6 +194,7 @@ __all__ = [
     'OutlineItem',
     'OutlineStructureError',
     'Page',
+    'PageCopyResult',
     'PageLocation',
     'parse_content_stream',
     'PasswordError',

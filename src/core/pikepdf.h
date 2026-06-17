@@ -184,9 +184,10 @@ uint get_decimal_precision();
 bool get_mmap_default();
 bool get_explicit_conversion_mode();
 
-inline void python_warning(const char *msg, PyObject *category = PyExc_UserWarning)
+inline void python_warning(
+    const char *msg, PyObject *category = PyExc_UserWarning, Py_ssize_t stacklevel = 1)
 {
-    PyErr_WarnEx(category, msg, /*stacklevel=*/1);
+    PyErr_WarnEx(category, msg, stacklevel);
 }
 
 inline void deprecation_warning(const char *msg)

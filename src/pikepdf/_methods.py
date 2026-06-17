@@ -30,8 +30,11 @@ from io import BytesIO
 from pathlib import Path
 from subprocess import run
 from tempfile import TemporaryDirectory
-from typing import BinaryIO, Literal, TypeVar
+from typing import TYPE_CHECKING, BinaryIO, Literal, TypeVar
 from warnings import warn
+
+if TYPE_CHECKING:
+    from pikepdf._page_copy import PageCopyResult
 
 from pikepdf._augments import augment_override_cpp, augments
 from pikepdf._core import (
@@ -52,6 +55,7 @@ from pikepdf._core import (
     Token,
     _ObjectMapping,
 )
+from pikepdf._exceptions import FormCopyWarning
 from pikepdf._io import atomic_overwrite, check_different_files, check_stream_is_usable
 from pikepdf.models import Encryption, EncryptionInfo, Outline, Permissions
 from pikepdf.models.metadata import PdfMetadata, decode_pdf_date, encode_pdf_date
@@ -385,6 +389,45 @@ class Extend_Pdf:
             self._add_page(page_obj, first=False)
             return Page(page_obj)
 
+    def add_pages_from(
+        self,
+        src: Pdf,
+        pages: Iterable[int] | range | slice | None = None,
+        *,
+        forms: Literal['preserve', 'strip'] = 'preserve',
+    ) -> PageCopyResult:
+        """Append pages from another ``Pdf``, preserving interactive form fields.
+
+        Unlike ``pdf.pages.extend(src.pages)``, this carries the document's
+        AcroForm form fields so they remain functional in Adobe Acrobat. Fields
+        whose fully-qualified names collide with existing fields are
+        automatically renamed; see the returned :class:`pikepdf.PageCopyResult`.
+        The original→new name mapping in ``renamed_fields`` is best-effort
+        (it pairs source and destination page fields positionally).
+
+        Independent top-level fields are only carried over when a widget is on a
+        copied page, so unrelated forms on separate pages are not imported.
+        However, a field sharing a top-level ancestor with a copied field is
+        carried as an entire subtree; such partially-represented fields are
+        listed in the result's ``partial_fields``. Use ``forms='strip'`` for a
+        hard guarantee of no form data.
+
+        Args:
+            src: Source ``Pdf`` to copy pages from.
+            pages: Zero-based indices (iterable, ``range`` or ``slice``) of
+                pages in ``src`` to copy. ``None`` copies all pages.
+                A ``slice`` is clamped to the document length; explicit indices
+                (including ``range``) must be valid or ``IndexError`` is raised.
+            forms: ``'preserve'`` (default) carries form fields; ``'strip'``
+                removes widget annotations from the copied pages.
+
+        Returns:
+            A :class:`pikepdf.PageCopyResult` describing the operation.
+        """
+        from pikepdf._page_copy import copy_pages
+
+        return copy_pages(self, src, pages, forms=forms)
+
     def close(self) -> None:
         self._close()
         if getattr(self, '_tmp_stream', None):
@@ -463,6 +506,14 @@ class Extend_Pdf:
                 "with allow_overwriting_input=True. If this Pdf was created using "
                 "Pdf.new(), you must specify a destination object since there is "
                 "no original filename to save to."
+            )
+        orphans = self._count_orphaned_widgets()
+        if orphans:
+            warn(
+                f"This document has {orphans} form widget annotation(s) that are "
+                "not reachable from /AcroForm; they may not display in Adobe "
+                "Acrobat. Use Pdf.add_pages_from() to copy pages with forms.",
+                FormCopyWarning,
             )
         with ExitStack() as stack:
             if hasattr(filename_or_stream, 'seek'):

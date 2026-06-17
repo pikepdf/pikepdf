@@ -260,3 +260,37 @@ library, such as [Pillow](https://pillow.readthedocs.io/en/stable/) to convert i
 
 >>> sig_pdf = Pdf.open(img_as_pdf)
 ```
+
+## Merging documents with forms
+
+Copying pages with `pdf.pages.extend(src.pages)` does **not** carry interactive
+form fields: the widget annotations land on the pages, but the document-level
+`/AcroForm` is not updated, so the fields show blank in Adobe Acrobat (they may
+still render in some viewers). pikepdf emits a {class}`pikepdf.FormCopyWarning`
+when this happens.
+
+Use {meth}`pikepdf.Pdf.add_pages_from` to copy pages **and** their form fields:
+
+```python
+from pikepdf import Pdf
+
+dest = Pdf.new()
+with Pdf.open('a.pdf') as a, Pdf.open('b.pdf') as b:
+    result = dest.add_pages_from(a)
+    result = dest.add_pages_from(b)
+    print(result.renamed_fields)  # fields auto-renamed to avoid collisions
+dest.save('merged.pdf')
+```
+
+Fields whose names collide are renamed automatically; the mapping is reported in
+the returned {class}`pikepdf.PageCopyResult`. Independent top-level fields are
+only carried over when a widget is on a copied page, so unrelated forms on
+separate pages are not imported. However, a field that shares a top-level
+ancestor with a copied field is carried as an entire subtree; such
+partially-represented fields are listed in
+{attr}`pikepdf.PageCopyResult.partial_fields`. For a hard guarantee of no form
+data at all, pass `forms='strip'`.
+
+For merging whole files from disk, {class}`pikepdf.Job` (the qpdf ``--pages``
+job) is also form-aware and may be more convenient; `add_pages_from` is for
+in-memory, page-level work on a `Pdf` you are actively editing.

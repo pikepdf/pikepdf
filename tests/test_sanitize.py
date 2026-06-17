@@ -176,6 +176,9 @@ def test_javascript_visible_content_intact(pdf_with_js):
     assert len(pdf_with_js.pages[0].obj.Annots) == 1
 
 
+# The pdf_with_js fixture injects a bare /Widget annotation with no /AcroForm,
+# so saving it legitimately raises FormCopyWarning about the orphaned widget.
+@pytest.mark.filterwarnings("ignore::pikepdf.FormCopyWarning")
 def test_javascript_roundtrip(pdf_with_js, outpdf):
     remove_javascript(pdf_with_js)
     pdf_with_js.save(outpdf)
