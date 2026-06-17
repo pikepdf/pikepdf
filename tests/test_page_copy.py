@@ -239,6 +239,13 @@ def test_extend_warns_cross_document_form_pages():
             dest.pages.extend(src.pages)
 
 
+def test_extend_warns_named_destination_pages():
+    dest = Pdf.new()
+    with _pdf_with_named_dest_links() as src:
+        with pytest.warns(PageCopyWarning, match="named destination"):
+            dest.pages.extend(src.pages)
+
+
 def test_extend_no_warning_for_formless_pages():
     src = Pdf.new()
     src.add_blank_page(page_size=(200, 200))
