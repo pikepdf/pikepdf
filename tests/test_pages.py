@@ -289,6 +289,31 @@ def test_emplace_foreign(fourpages, sandwich):
         fourpages.pages[0].emplace(sandwich.pages[0])
 
 
+def test_reorder_preserves_objgen_and_references(fourpages):
+    # Reordering pages by removing and reinserting must preserve each page's
+    # identity (objgen) so that internal references survive. See issue #192.
+    pdf = fourpages
+    before = [page.objgen for page in pdf.pages]
+
+    # A named destination pointing at the third page, by indirect reference.
+    target = pdf.pages[2].obj
+    pdf.Root.Names = Dictionary(
+        Dests=Dictionary(Names=Array(["pageC", Array([target, Name.Fit])]))
+    )
+
+    # Move page index 1 to index 2 by extract-then-reinsert.
+    moved = pdf.pages[1]
+    del pdf.pages[1]
+    pdf.pages.insert(2, moved)
+
+    after = [page.objgen for page in pdf.pages]
+    assert set(after) == set(before), "page identities changed (pages were copied)"
+    assert after == [before[0], before[2], before[1], before[3]]
+
+    # The named destination still resolves to the same physical page.
+    assert pdf.Root.Names.Dests.Names[1][0].objgen == target.objgen
+
+
 def test_duplicate_page(sandwich, outpdf):
     sandwich.pages.append(sandwich.pages[0])
     assert len(sandwich.pages) == 2

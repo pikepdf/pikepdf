@@ -207,6 +207,45 @@ of a house, but keeping it at the same address.)
     (5, 0)
 ```
 
+### Reordering pages without breaking links
+
+If a PDF has internal references to pages — table of contents entries,
+hyperlinks, or named destinations — you may want to reorder pages while keeping
+those references valid. Do this by **removing** a page from `pdf.pages` and
+reinserting it at its new position. Because the page is detached from the page
+tree before it is reinserted, its identity ({attr}`pikepdf.Object.objgen`) is
+preserved, so references continue to point to the same content.
+
+```{eval-rst}
+.. doctest::
+
+    >>> pdf = Pdf.open('../tests/resources/fourpages.pdf')
+
+    >>> [page.objgen for page in pdf.pages]
+    [(3, 0), (4, 0), (5, 0), (6, 0)]
+
+    >>> moved = pdf.pages[1]
+
+    >>> del pdf.pages[1]
+
+    >>> pdf.pages.insert(2, moved)
+
+    >>> [page.objgen for page in pdf.pages]
+    [(3, 0), (5, 0), (4, 0), (6, 0)]
+```
+
+The order changed but every page kept its original `objgen`, so any reference to
+one of these pages still resolves to the same page.
+
+:::{warning}
+Do **not** reorder pages with Python's tuple-swap idiom
+(`pdf.pages[1], pdf.pages[2] = pdf.pages[2], pdf.pages[1]`) or with slice
+assignment (`pdf.pages[1:3] = pdf.pages[2:0:-1]`). pikepdf cannot tell that
+these are intended as a reordering rather than a copy, so it duplicates the
+pages, assigns them new `objgen` values, and breaks any references to them.
+Always remove a page from `pdf.pages` before reinserting it elsewhere.
+:::
+
 ## Copying pages within a PDF
 
 As you may have guessed, we can assign pages to copy them within a `Pdf`:
