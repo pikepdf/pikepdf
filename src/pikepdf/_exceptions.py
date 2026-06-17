@@ -10,7 +10,7 @@ class DependencyError(Exception):
     """A third party dependency is needed to extract streams of this type."""
 
 
-class FormCopyWarning(UserWarning):
+class PageCopyWarning(UserWarning):
     """Interactive form fields or widgets may be lost or left non-functional.
 
     Emitted when copying pages between documents in a way that drops or orphans

@@ -80,7 +80,7 @@ the architecture notes on thread safety.
   preserving interactive AcroForm form fields, returning a
   {class}`pikepdf.PageCopyResult`. Naive `pages.extend()` across documents and
   `save()` of documents with orphaned form widgets now emit
-  {class}`pikepdf.FormCopyWarning`. (#670, #207)
+  {class}`pikepdf.PageCopyWarning`. (#670, #207)
 
 ### Fixes
 - Fixed image extraction ignoring the ``/Decode`` array, which caused colors to

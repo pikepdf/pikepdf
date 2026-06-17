@@ -55,7 +55,7 @@ from pikepdf._core import (
     Token,
     _ObjectMapping,
 )
-from pikepdf._exceptions import FormCopyWarning
+from pikepdf._exceptions import PageCopyWarning
 from pikepdf._io import atomic_overwrite, check_different_files, check_stream_is_usable
 from pikepdf.models import Encryption, EncryptionInfo, Outline, Permissions
 from pikepdf.models.metadata import PdfMetadata, decode_pdf_date, encode_pdf_date
@@ -513,7 +513,7 @@ class Extend_Pdf:
                 f"This document has {orphans} form widget annotation(s) that are "
                 "not reachable from /AcroForm; they may not display in Adobe "
                 "Acrobat. Use Pdf.add_pages_from() to copy pages with forms.",
-                FormCopyWarning,
+                PageCopyWarning,
             )
         with ExitStack() as stack:
             if hasattr(filename_or_stream, 'seek'):

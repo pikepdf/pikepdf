@@ -53,7 +53,7 @@ def copy_pages(
 
     start = len(dest.pages)
     src_pages = [src.pages[i] for i in indices]
-    # Copy each page with append() (does NOT emit FormCopyWarning, unlike extend)
+    # Copy each page with append() (does NOT emit PageCopyWarning, unlike extend)
     for sp in src_pages:
         dest.pages.append(sp)
 

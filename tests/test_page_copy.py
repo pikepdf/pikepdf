@@ -14,18 +14,18 @@ import pikepdf
 from pikepdf import (
     Array,
     Dictionary,
-    FormCopyWarning,
     Job,
     Name,
     PageCopyResult,
+    PageCopyWarning,
     Pdf,
     String,
 )
 
 
-def test_formcopywarning_is_userwarning():
-    assert issubclass(FormCopyWarning, UserWarning)
-    assert pikepdf.exceptions.FormCopyWarning is FormCopyWarning
+def test_pagecopywarning_is_userwarning():
+    assert issubclass(PageCopyWarning, UserWarning)
+    assert pikepdf.exceptions.PageCopyWarning is PageCopyWarning
 
 
 def test_pagecopyresult_defaults():
@@ -233,7 +233,7 @@ def test_extend_warns_cross_document_form_pages():
     res = _resources()
     dest = Pdf.new()
     with Pdf.open(str(res / 'form.pdf')) as src:
-        with pytest.warns(FormCopyWarning):
+        with pytest.warns(PageCopyWarning):
             dest.pages.extend(src.pages)
 
 
@@ -242,7 +242,7 @@ def test_extend_no_warning_for_formless_pages():
     src.add_blank_page(page_size=(200, 200))
     dest = Pdf.new()
     with warnings.catch_warnings():
-        warnings.simplefilter('error', FormCopyWarning)
+        warnings.simplefilter('error', PageCopyWarning)
         dest.pages.extend(src.pages)  # must not raise
 
 
@@ -250,7 +250,7 @@ def test_extend_no_warning_intra_document():
     res = _resources()
     with Pdf.open(str(res / 'form.pdf')) as pdf:
         with warnings.catch_warnings():
-            warnings.simplefilter('error', FormCopyWarning)
+            warnings.simplefilter('error', PageCopyWarning)
             pdf.pages.extend(pdf.pages)  # same document: no warning
 
 
@@ -260,10 +260,10 @@ def test_save_warns_on_orphaned_widgets():
     dest = Pdf.new()
     with Pdf.open(str(res / 'form.pdf')) as src:
         with warnings.catch_warnings():
-            warnings.simplefilter('ignore', FormCopyWarning)  # silence extend warning
+            warnings.simplefilter('ignore', PageCopyWarning)  # silence extend warning
             dest.pages.extend(src.pages)
     assert dest._count_orphaned_widgets() > 0
-    with pytest.warns(FormCopyWarning):
+    with pytest.warns(PageCopyWarning):
         dest.save(io.BytesIO())
 
 
@@ -274,7 +274,7 @@ def test_save_no_warning_for_clean_merge():
         dest.add_pages_from(src)  # preserves forms -> no orphans
     assert dest._count_orphaned_widgets() == 0
     with warnings.catch_warnings():
-        warnings.simplefilter('error', FormCopyWarning)
+        warnings.simplefilter('error', PageCopyWarning)
         dest.save(io.BytesIO())
 
 
@@ -283,7 +283,7 @@ def test_save_no_warning_for_formless_doc():
     pdf.add_blank_page(page_size=(200, 200))
     assert pdf._count_orphaned_widgets() == 0
     with warnings.catch_warnings():
-        warnings.simplefilter('error', FormCopyWarning)
+        warnings.simplefilter('error', PageCopyWarning)
         pdf.save(io.BytesIO())
 
 
@@ -292,5 +292,5 @@ def test_add_pages_from_preserve_emits_no_formcopywarning():
     dest = Pdf.new()
     with Pdf.open(str(res / 'form.pdf')) as src:
         with warnings.catch_warnings():
-            warnings.simplefilter('error', FormCopyWarning)
-            dest.add_pages_from(src)  # must not raise FormCopyWarning
+            warnings.simplefilter('error', PageCopyWarning)
+            dest.add_pages_from(src)  # must not raise PageCopyWarning

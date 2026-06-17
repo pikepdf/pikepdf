@@ -30,7 +30,7 @@ static bool page_has_widget(QPDFObjectHandle page)
 
 static void warn_dropping_forms()
 {
-    auto category = py::module_::import_("pikepdf._exceptions").attr("FormCopyWarning");
+    auto category = py::module_::import_("pikepdf._exceptions").attr("PageCopyWarning");
     python_warning(
         "Copying pages from another Pdf with pages.extend() does not preserve "
         "interactive form fields; they may not display in Adobe Acrobat. Use "
