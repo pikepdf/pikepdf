@@ -31,14 +31,12 @@ static bool page_has_widget(QPDFObjectHandle page)
 static void warn_dropping_forms()
 {
     auto category = py::module_::import_("pikepdf._exceptions").attr("FormCopyWarning");
-    py::module_::import_("warnings")
-        .attr("warn")(
-            py::str("Copying pages from another Pdf with pages.extend() does not "
-                    "preserve interactive form fields; they may not display in "
-                    "Adobe Acrobat. Use Pdf.add_pages_from(src, forms='preserve') "
-                    "to keep them."),
-            category,
-            py::int_(3));
+    python_warning(
+        "Copying pages from another Pdf with pages.extend() does not preserve "
+        "interactive form fields; they may not display in Adobe Acrobat. Use "
+        "Pdf.add_pages_from(src, forms='preserve') to keep them.",
+        category.ptr(),
+        /*stacklevel=*/1);
 }
 
 static QPDFPageObjectHelper as_page_helper(py::handle obj)
