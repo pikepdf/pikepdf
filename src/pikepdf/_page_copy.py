@@ -69,17 +69,146 @@ def _collect_named_dest_refs(page_obj: Dictionary) -> list[_DestRef]:
 
 @dataclass
 class PageCopyResult:
-    """Facts about a :meth:`pikepdf.Pdf.add_pages_from` operation.
-
-    This object is intentionally extensible: future complex-merge concerns
-    (outlines, structure tree, named destinations) will add fields here.
-    """
+    """Facts about a :meth:`pikepdf.Pdf.add_pages_from` operation."""
 
     pages_added: int
     forms: Literal['preserve', 'strip']
     fields_added: int = 0
     renamed_fields: dict[str, str] = field(default_factory=dict)
     partial_fields: list[str] = field(default_factory=list)
+    named_dests_added: int = 0
+    renamed_dests: dict[str, str] = field(default_factory=dict)
+    dropped_dests: list[str] = field(default_factory=list)
+
+
+def _lookup_source_entry(src: Pdf, ref: _DestRef) -> object | None:
+    from pikepdf import NameTree
+
+    if ref.kind == 'string':
+        names = src.Root.get(Name.Names)
+        if not isinstance(names, Dictionary):
+            return None
+        dests = names.get(Name.Dests)
+        if dests is None:
+            return None
+        nt = NameTree(dests)
+        return nt[ref.name] if ref.name in nt else None
+    dests = src.Root.get(Name.Dests)
+    if not isinstance(dests, Dictionary):
+        return None
+    return dests.get(Name(ref.name))
+
+
+def _resolve_source_dest(src: Pdf, ref: _DestRef):
+    """Return (page_ref, view_params) for a named dest, or None if unresolvable."""
+    entry = _lookup_source_entry(src, ref)
+    if entry is None:
+        return None
+    arr = entry.get(Name.D) if isinstance(entry, Dictionary) else entry
+    if not isinstance(arr, Array) or len(arr) == 0:
+        return None
+    page_ref = arr[0]
+    if not page_ref.is_indirect:
+        return None
+    params = [arr[i] for i in range(1, len(arr))]
+    return page_ref, params
+
+
+def _ensure_string_dests(dest: Pdf):
+    from pikepdf import NameTree
+
+    names = dest.Root.get(Name.Names)
+    if not isinstance(names, Dictionary):
+        names = dest.make_indirect(Dictionary())
+        dest.Root.Names = names
+    if Name.Dests not in names:
+        names.Dests = NameTree.new(dest).obj
+    return NameTree(names.Dests)
+
+
+def _ensure_name_dests(dest: Pdf) -> Dictionary:
+    dd = dest.Root.get(Name.Dests)
+    if not isinstance(dd, Dictionary):
+        dd = dest.make_indirect(Dictionary())
+        dest.Root.Dests = dd
+    return dd
+
+
+def _unique_string_name(nt, name: str) -> str:
+    if name not in nt:
+        return name
+    i = 1
+    while f'{name}.{i}' in nt:
+        i += 1
+    return f'{name}.{i}'
+
+
+def _unique_name_name(dd: Dictionary, name: str) -> str:
+    if Name(name) not in dd:
+        return name
+    i = 1
+    while Name(f'{name}.{i}') in dd:
+        i += 1
+    return f'{name}.{i}'
+
+
+def _insert_dest(dest: Pdf, kind: str, name: str, new_arr: Array) -> str:
+    entry = dest.make_indirect(Dictionary(D=new_arr))
+    if kind == 'string':
+        nt = _ensure_string_dests(dest)
+        final = _unique_string_name(nt, name)
+        nt[final] = entry
+        return final
+    dd = _ensure_name_dests(dest)
+    final = _unique_name_name(dd, name)
+    dd[Name(final)] = entry
+    return final
+
+
+def _rewrite_ref(ref: _DestRef, final: str) -> None:
+    ref.owner[ref.key] = String(final) if ref.kind == 'string' else Name(final)
+
+
+def _migrate_named_destinations(
+    dest: Pdf, src: Pdf, src_pages: list, start: int
+) -> tuple[int, dict[str, str], list[str]]:
+    page_map = {
+        src_pages[i].obj.objgen: dest.pages[start + i].obj
+        for i in range(len(src_pages))
+    }
+    refs: list[_DestRef] = []
+    for offset in range(len(src_pages)):
+        refs.extend(_collect_named_dest_refs(dest.pages[start + offset].obj))
+
+    added = 0
+    renamed: dict[str, str] = {}
+    dropped: list[str] = []
+    decided: dict[tuple[str, str], str | None] = {}
+
+    for ref in refs:
+        dkey = (ref.kind, ref.name)
+        if dkey in decided:
+            final = decided[dkey]
+            if final is not None and final != ref.name:
+                _rewrite_ref(ref, final)
+            continue
+        resolved = _resolve_source_dest(src, ref)
+        page_ref = resolved[0] if resolved else None
+        dest_page = page_map.get(page_ref.objgen) if page_ref is not None else None
+        if dest_page is None:
+            decided[dkey] = None
+            if ref.name not in dropped:
+                dropped.append(ref.name)
+            continue
+        new_arr = Array([dest_page, *resolved[1]])
+        final = _insert_dest(dest, ref.kind, ref.name, new_arr)
+        decided[dkey] = final
+        added += 1
+        if final != ref.name:
+            renamed[ref.name] = final
+            _rewrite_ref(ref, final)
+
+    return added, renamed, dropped
 
 
 def _resolve_indices(
@@ -166,10 +295,17 @@ def copy_pages(
             if fqn_pages.get(name, set()) - selected:
                 partial.append(name)
 
+    named_added, renamed_dests, dropped_dests = _migrate_named_destinations(
+        dest, src, src_pages, start
+    )
+
     return PageCopyResult(
         pages_added=len(src_pages),
         forms=forms,
         fields_added=fields_added,
         renamed_fields=renamed,
         partial_fields=partial,
+        named_dests_added=named_added,
+        renamed_dests=renamed_dests,
+        dropped_dests=dropped_dests,
     )
