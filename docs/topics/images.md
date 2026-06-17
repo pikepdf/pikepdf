@@ -30,6 +30,40 @@ PDF that indicates a particular sequence of operations produces an image,
 and that sequence is not necessarily all in the same place. To extract a
 vector image, use a PDF viewer/editor to crop to that image.
 
+## Finding the images on a page
+
+Use {meth}`pikepdf.Page.get_images` to enumerate the images a page draws. It
+returns a mapping of resource name to image object:
+
+```python
+>>> page = pdf.pages[0]
+
+>>> images = page.get_images()  # {'/Im0': <stream>, ...}
+```
+
+By default `get_images()` **recurses into form XObjects**. A form XObject is a
+reusable bundle of PDF drawing operations -- not to be confused with an
+interactive form -- and a page very commonly draws its entire visible content
+through one or more of them. An image nested two or three form XObjects deep is
+still, visually, an image on the page, so `get_images()` finds it. Pass
+`recursive=False` to report only images referenced directly by the page's own
+resources.
+
+:::{warning}
+The older {attr}`pikepdf.Page.images` property is **deprecated** as of pikepdf
+10.9. It reports only images referenced *directly* by the page and silently
+omits any image drawn through a form XObject. Because it is not visually obvious
+when a page's content is wrapped in a form XObject, `page.images` could make a
+page that clearly displays images appear to "have no images" at all. Use
+`page.get_images()` instead (or `page.get_images(recursive=False)` for the old,
+non-recursive behavior).
+:::
+
+If two images in different XObject scopes happen to share the same resource name
+(for example both are called `/Im0` in their own scope), only one of them appears
+in the merged mapping that `get_images()` returns. This is a consequence of
+returning a single name-keyed mapping; the underlying objects are still distinct.
+
 ## Playing with images
 
 pikepdf provides a helper class {class}`~pikepdf.PdfImage` for manipulating
@@ -114,17 +148,89 @@ mask, with transparency effects. pikepdf can only extract the images
 themselves, not rasterize them exactly as they would appear in a PDF viewer. In
 the vast majority of cases, however, the image can be extracted as it appears.
 
-:::{note}
-This simple example PDF displays a single full page image. Some PDF creators
-will paint a page using multiple images, and features such as layers,
-transparency and image masks. Accessing the first image on a page is like an
-HTML parser that scans for the first `<img src="">` tag it finds. A lot
-more could be happening. There can be multiple images drawn multiple times
-on a page, vector art, overdrawing, masking, and transparency. A set of
-resources can be grouped together in a "Form XObject" (not to be confused
-with a PDF Form), and drawn at all once. Images can be referenced by
-multiple pages.
-:::
+## Stored bytes are not the presentation image
+
+The raw bytes stored in an image stream are not, on their own, the picture a
+viewer displays. The stream dictionary carries extra parameters that tell a
+viewer how to *interpret* those bytes -- the color space, bit depth, and in
+particular the `/Decode` array. Two images with byte-for-byte identical sample
+data can present as entirely different pictures depending on these parameters.
+
+The `/Decode` array remaps each stored sample value to a value in the color
+space before rendering. The most familiar case is `[1, 0]` on a grayscale image,
+which inverts it: stored `0` presents as white and stored `255` as black. A
+viewer applies `/Decode`; so, by default, does pikepdf when you extract an image.
+{meth}`pikepdf.PdfImage.as_pil_image` and {meth}`pikepdf.PdfImage.extract_to`
+apply `/Decode` as a linear per-channel mapping for grayscale, RGB and CMYK
+raster images, so the extracted image matches what a viewer renders.
+
+If you instead want the **raw stored sample values** with the least processing --
+for forensic inspection of the underlying data, say -- pass
+`apply_decode_array=False`:
+
+```python
+>>> raw = pdfimage.as_pil_image(apply_decode_array=False)  # stored samples, /Decode ignored
+
+>>> shown = pdfimage.as_pil_image()  # default: matches a PDF viewer
+```
+
+A couple of image types are intentionally unaffected by this parameter, because
+applying `/Decode` ourselves would be wrong:
+
+- **Indexed (palette) color spaces**, where `/Decode` remaps *palette indices*
+  rather than colors. pikepdf does not reinterpret these and emits a warning if a
+  non-identity `/Decode` is present.
+- **DCT (JPEG) and JPX (JPEG 2000)** images, whose codecs carry their own color
+  semantics -- such as the Adobe `APP14` marker that signals inverted CMYK --
+  which Pillow already honors. Re-applying `/Decode` would double-invert them.
+
+The takeaway: an extracted image's bytes reflect a *choice* about how much
+interpretation to apply. The default reproduces the presentation; pass
+`apply_decode_array=False` only when you specifically want the stored data.
+
+## What looks like one image may be many
+
+It is tempting to assume that one thing you see on a page corresponds to one
+image object you can pull out and edit. PDF offers no such guarantee. Accessing
+"the image" on a page is like an HTML parser scanning for the first
+`<img src="">` tag it finds -- a lot more could be happening.
+
+A page that *looks* like it shows a single picture may in fact be composited
+from many pieces:
+
+- **Multiple image objects tiled or layered together** -- a scanner might split
+  one physical page into several stripes, or a designer might stack a photo, a
+  logo, and a background as separate images.
+- **Image masks, soft masks (`/SMask`), and transparency groups** that combine a
+  base image with one or more masks to produce the final appearance. The colors
+  you see are the *result* of compositing, not the contents of any single stream.
+- **Vector drawing** -- lines, fills, and shadings produced by content-stream
+  operators rather than stored as a raster image at all (see the note on vector
+  images above).
+- **Form XObjects** that group images and drawing operations into a reusable unit
+  drawn as a whole, possibly several times.
+
+So when you set out to "extract the image" from a page, be prepared to discover
+that the reality is more complex than a single JPEG. pikepdf can hand you the
+individual image streams; it does not rasterize or composite them into the single
+picture a viewer renders. For that you need a renderer such as those listed on
+the {doc}`home page </index>`.
+
+### One image, many appearances
+
+The reverse situation is just as common: a single image object can be **drawn
+multiple times** -- on the same page at different positions and scales, or across
+many pages of the document. Each *placement* is just a reference; the pixel data
+lives in one stream.
+
+This has a direct consequence for editing. Because the content stream controls
+where and at what size an image is drawn, replacing one image stream changes
+**every** place that stream is drawn. Conversely, if a document has several
+visually identical images that are actually separate objects (common when a file
+was assembled from multiple sources), editing one will not touch the others. If
+you need to change exactly one occurrence, you must first determine whether the
+occurrences share an object or not -- two placements of the same object cannot be
+edited independently without first duplicating the object.
 
 (replace-image)=
 

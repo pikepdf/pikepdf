@@ -149,6 +149,8 @@ topics/attachments
 topics/pagelayout
 topics/security
 topics/sanitize
+topics/jobs
+topics/qpdf_json
 ```
 
 ```{toctree}

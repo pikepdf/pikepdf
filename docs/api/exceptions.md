@@ -51,3 +51,7 @@
 ```{eval-rst}
 .. autoapiexception:: pikepdf.exceptions.ImageDecompressionError
 ```
+
+```{eval-rst}
+.. autoapiexception:: pikepdf.exceptions.FormCopyWarning
+```

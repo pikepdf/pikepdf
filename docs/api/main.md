@@ -130,3 +130,20 @@ but not intended to be created explicitly.
     :members:
     :special-members: __init__
 ```
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.JobBuilder
+    :members:
+```
+
+## qpdf JSON
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.JSONStreamData
+    :members:
+```
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.XrefEntry
+    :members:
+```

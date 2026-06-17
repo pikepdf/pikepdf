@@ -21,6 +21,11 @@ Version 3.x automatically applies support models to `/Page` objects.
 ```
 
 ```{eval-rst}
+.. autoapiclass:: pikepdf.PageCopyResult
+    :members:
+```
+
+```{eval-rst}
 .. autoapiclass:: pikepdf.PdfImage
     :inherited-members:
 ```

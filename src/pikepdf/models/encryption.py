@@ -5,10 +5,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple, cast
+from typing import Any, Literal, NamedTuple, cast
 
-if TYPE_CHECKING:
-    from pikepdf._core import EncryptionMethod
+from pikepdf._core import EncryptionMethod
 
 
 class Permissions(NamedTuple):

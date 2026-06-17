@@ -1,3 +1,5 @@
+(interactive_forms)=
+
 # Working with interactive forms
 
 pikepdf provides two interfaces for working with interactive forms. There is a low-level
@@ -5,6 +7,11 @@ interface, {class}`pikepdf.AcroForm`, which is exposed as the
 {attr}`pikepdf.Pdf.acroform` property. There is also a higher-level interface available
 in the {mod}`pikepdf.form` module, which provides several abstractions to make usage
 easier.
+
+The interactive forms discussed here are **AcroForm** forms -- the standard,
+widely-supported form technology defined by the PDF specification. PDF also
+defines a second, incompatible form technology called XFA; see {ref}`xfa-forms`
+below for why pikepdf (and open source PDF tooling generally) does not support it.
 
 ## Extracting Form Data
 
@@ -261,13 +268,20 @@ library, such as [Pillow](https://pillow.readthedocs.io/en/stable/) to convert i
 >>> sig_pdf = Pdf.open(img_as_pdf)
 ```
 
-## Merging documents with forms
+## Copying pages between documents (form-aware)
 
-Copying pages with `pdf.pages.extend(src.pages)` does **not** carry interactive
-form fields: the widget annotations land on the pages, but the document-level
-`/AcroForm` is not updated, so the fields show blank in Adobe Acrobat (they may
-still render in some viewers). pikepdf emits a {class}`pikepdf.FormCopyWarning`
-when this happens.
+A form field is more than the box you see on the page. The visible box is a
+*widget annotation* that lives on the page, but the field it belongs to is
+registered in the document-level `/AcroForm` dictionary and may participate in a
+tree of related fields. Copying the page alone leaves the field behind.
+
+Copying pages with `pdf.pages.extend(src.pages)` therefore does **not** carry
+interactive form fields: the widget annotations land on the pages, but the
+document-level `/AcroForm` is not updated, so the fields show blank in Adobe
+Acrobat (they may still render in some lenient viewers). To make this
+easy-to-miss data loss visible, pikepdf emits a {class}`pikepdf.FormCopyWarning`
+both when you `extend()` across documents with forms and when you `save()` a
+document that has orphaned form widgets.
 
 Use {meth}`pikepdf.Pdf.add_pages_from` to copy pages **and** their form fields:
 
@@ -282,15 +296,96 @@ with Pdf.open('a.pdf') as a, Pdf.open('b.pdf') as b:
 dest.save('merged.pdf')
 ```
 
-Fields whose names collide are renamed automatically; the mapping is reported in
-the returned {class}`pikepdf.PageCopyResult`. Independent top-level fields are
-only carried over when a widget is on a copied page, so unrelated forms on
-separate pages are not imported. However, a field that shares a top-level
-ancestor with a copied field is carried as an entire subtree; such
-partially-represented fields are listed in
-{attr}`pikepdf.PageCopyResult.partial_fields`. For a hard guarantee of no form
-data at all, pass `forms='strip'`.
+`add_pages_from` returns a {class}`pikepdf.PageCopyResult` describing what
+happened to the forms:
 
-For merging whole files from disk, {class}`pikepdf.Job` (the qpdf ``--pages``
-job) is also form-aware and may be more convenient; `add_pages_from` is for
-in-memory, page-level work on a `Pdf` you are actively editing.
+- Fields whose names collide with fields already in the destination are renamed
+  automatically (form field names must be unique within a document). The
+  original→new mapping is reported in
+  {attr}`~pikepdf.PageCopyResult.renamed_fields`.
+- Independent top-level fields are only carried over when one of their widgets is
+  on a copied page, so unrelated forms elsewhere in the source are not imported.
+- A field that shares a top-level ancestor with a copied field is carried as an
+  entire subtree, even if some of its widgets live on pages you did not copy.
+  Such partially-represented fields are listed in
+  {attr}`~pikepdf.PageCopyResult.partial_fields` so you can decide whether the
+  result is acceptable.
+
+### Stripping forms instead of copying them
+
+Sometimes you want the *pages* but explicitly **not** the form data -- for
+example when flattening a document into a static archive, or to avoid importing
+form structure you would otherwise have to reason about. Pass `forms='strip'`
+for a hard guarantee that no form fields are carried across:
+
+```python
+dest.add_pages_from(src, forms='strip')
+```
+
+With `forms='strip'`, widgets are removed from the copied pages and nothing is
+added to the destination `/AcroForm`, so no `FormCopyWarning` is emitted.
+
+### Whole-file merges
+
+For merging whole files from disk, {class}`pikepdf.Job` (the qpdf `--pages` job,
+see {ref}`jobs`) is also form-aware and may be more convenient. Reserve
+`add_pages_from` for in-memory, page-level work on a `Pdf` you are actively
+editing.
+
+## Repairing forms after manual edits
+
+If you build or restructure a form by hand -- adding, removing, or moving widget
+annotations and field dictionaries directly -- the {class}`pikepdf.AcroForm`
+object may hold a stale view of the form, and the document may end up internally
+inconsistent. A few low-level helpers on {class}`pikepdf.AcroForm` help recover:
+
+- {meth}`~pikepdf.AcroForm.invalidate_cache` discards qpdf's cached field/annotation
+  mapping, forcing it to be rebuilt from the current object graph after you have
+  edited it.
+- {meth}`~pikepdf.AcroForm.validate` checks the form for structural problems, and
+  can repair some of them.
+- {meth}`~pikepdf.AcroForm.transform_annotations` applies a transformation matrix
+  to a page's form annotations, which is needed when you reposition or rescale a
+  page that carries form fields.
+
+(xfa-forms)=
+
+## XFA forms
+
+Not every "form" in a PDF is an AcroForm. Adobe also defined **XFA** (XML Forms
+Architecture), a completely different, XML-based form technology that can be
+embedded in a PDF inside the `/AcroForm` dictionary's `/XFA` entry. pikepdf does
+**not** support XFA forms, and this is a deliberate, structural limitation rather
+than a missing feature.
+
+A few things distinguish XFA from the AcroForm forms described above:
+
+- **It is a separate, parallel representation.** XFA describes the form's fields,
+  layout, calculations and validation as an XML document that is largely
+  independent of the PDF page objects. So-called *dynamic* XFA forms can even
+  regenerate their pages at render time, meaning the PDF page content you see in
+  pikepdf may be little more than a placeholder. The PDF object model that
+  pikepdf exposes simply is not where an XFA form's logic lives.
+
+- **It is Adobe-proprietary.** XFA was developed by Adobe and was never part of
+  the core ISO PDF object model. Fully processing an XFA form requires Adobe's
+  proprietary XFA engine; there is no complete open specification that an open
+  source library could implement against.
+
+- **It is deprecated.** XFA was deprecated in PDF 2.0 (ISO 32000-2:2017) and
+  removed from the 2020 revision of that standard. New PDFs should not use it,
+  and tooling support for it is actively shrinking -- even Adobe's own viewers
+  have curtailed it.
+
+- **XFA documents often rely on Adobe-only cryptographic enablement.** Many XFA
+  forms are *Reader-enabled*: Adobe signs a usage-rights/Reader-Extensions block
+  with a private key so that Adobe Reader unlocks features (such as saving filled
+  data) that are otherwise disabled. Third-party software cannot reproduce or
+  honor those signatures, and any edit invalidates them. There is no lawful or
+  technical path for an open source tool to provide the full XFA experience.
+
+In practice, if you encounter an XFA form, your realistic options are to ignore
+the XFA layer and work only with whatever AcroForm fields coexist with it (many
+*static* XFA forms also carry a usable AcroForm representation), or to strip the
+`/XFA` entry to force viewers to fall back to the AcroForm fields. pikepdf treats
+the XFA data as an opaque blob; it does not parse, render, or fill it.

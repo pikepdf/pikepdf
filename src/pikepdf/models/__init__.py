@@ -12,7 +12,12 @@ from pikepdf.models._content_stream import (
     parse_content_stream,
     unparse_content_stream,
 )
-from pikepdf.models.encryption import Encryption, EncryptionInfo, Permissions
+from pikepdf.models.encryption import (
+    Encryption,
+    EncryptionInfo,
+    EncryptionMethod,
+    Permissions,
+)
 from pikepdf.models.image import (
     PdfImage,
     PdfInlineImage,
@@ -35,6 +40,7 @@ __all__ = [
     'unparse_content_stream',
     'Encryption',
     'EncryptionInfo',
+    'EncryptionMethod',
     'Permissions',
     'PdfImage',
     'PdfInlineImage',
