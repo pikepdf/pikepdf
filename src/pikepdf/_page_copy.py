@@ -85,6 +85,8 @@ def _lookup_source_entry(src: Pdf, ref: _DestRef) -> object | None:
     from pikepdf import NameTree
 
     if ref.kind == 'string':
+        # Limitation: ref.name is matched as a UTF-8 string; a destination whose
+        # PDF name is a non-UTF-8 byte string will not match and will be dropped.
         names = src.Root.get(Name.Names)
         if not isinstance(names, Dictionary):
             return None

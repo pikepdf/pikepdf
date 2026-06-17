@@ -81,13 +81,14 @@ the architecture notes on thread safety.
   {class}`pikepdf.PageCopyResult`. Naive `pages.extend()` across documents and
   `save()` of documents with orphaned form widgets now emit
   {class}`pikepdf.PageCopyWarning`. (#670, #207)
+
   When copying pages, named destinations referenced by the copied pages'
   annotations (e.g. table-of-contents links) are now carried into the
   destination document — both the PDF 1.2 ``Names.Dests`` name tree and the
   legacy PDF 1.1 ``Root.Dests`` dictionary — so internal links keep working
   regardless of merge order. Name collisions are renamed and reported via
   {class}`pikepdf.PageCopyResult` (``named_dests_added``, ``renamed_dests``,
-  ``dropped_dests``). Naive `pages.extend()` now also warns when copied pages
+  ``dropped_dests``). Naive ``pages.extend()`` now also warns when copied pages
   reference named destinations. (#148)
 
 ### Fixes

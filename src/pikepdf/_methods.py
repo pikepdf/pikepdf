@@ -418,7 +418,7 @@ class Extend_Pdf:
         A destination whose target page is not among the copied pages cannot be
         migrated and is reported in :attr:`pikepdf.PageCopyResult.dropped_dests`;
         names that collide with existing destinations are renamed and reported in
-        ``renamed_dests``.
+        :attr:`pikepdf.PageCopyResult.renamed_dests`.
 
         Args:
             src: Source ``Pdf`` to copy pages from.
