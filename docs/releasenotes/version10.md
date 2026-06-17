@@ -80,7 +80,16 @@ the architecture notes on thread safety.
   preserving interactive AcroForm form fields, returning a
   {class}`pikepdf.PageCopyResult`. Naive `pages.extend()` across documents and
   `save()` of documents with orphaned form widgets now emit
-  {class}`pikepdf.FormCopyWarning`. (#670, #207)
+  {class}`pikepdf.PageCopyWarning`. (#670, #207)
+
+  When copying pages, named destinations referenced by the copied pages'
+  annotations (e.g. table-of-contents links) are now carried into the
+  destination document — both the PDF 1.2 ``Names.Dests`` name tree and the
+  legacy PDF 1.1 ``Root.Dests`` dictionary — so internal links keep working
+  regardless of merge order. Name collisions are renamed and reported via
+  {class}`pikepdf.PageCopyResult` (``named_dests_added``, ``renamed_dests``,
+  ``dropped_dests``). Naive ``pages.extend()`` now also warns when copied pages
+  reference named destinations. (#148)
 
 ### Fixes
 - Fixed image extraction ignoring the ``/Decode`` array, which caused colors to
@@ -107,6 +116,10 @@ the architecture notes on thread safety.
   file. pikepdf now pins the decode level to `none` in this case, restoring the
   documented behavior that `compress_streams=False` alone does not trigger
   decompression. Fixes {issue}`676`.
+- The minimum required qpdf version is now 12.3.2. The new
+  {meth}`pikepdf.AcroForm.validate` binding calls qpdf's
+  `QPDFAcroFormDocumentHelper::validate`, which was added in qpdf 12.3.0, so
+  pikepdf no longer builds against older qpdf releases.
 
 ### Documentation
 - Documented a long-standing page-deletion pitfall: deleting a page unlinks it

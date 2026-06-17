@@ -10,9 +10,11 @@ class DependencyError(Exception):
     """A third party dependency is needed to extract streams of this type."""
 
 
-class FormCopyWarning(UserWarning):
-    """Interactive form fields or widgets may be lost or left non-functional.
+class PageCopyWarning(UserWarning):
+    """Form fields or named destinations may be lost when copying pages.
 
-    Emitted when copying pages between documents in a way that drops or orphans
-    AcroForm form fields. Use :meth:`pikepdf.Pdf.add_pages_from` to preserve them.
+    Emitted when copying pages between documents (e.g. ``pages.extend()``) in a
+    way that drops or orphans AcroForm form fields or fails to carry named
+    destinations referenced by the copied pages. Use
+    :meth:`pikepdf.Pdf.add_pages_from` to preserve them.
     """

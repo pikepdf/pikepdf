@@ -55,7 +55,7 @@ from pikepdf._core import (
     Token,
     _ObjectMapping,
 )
-from pikepdf._exceptions import FormCopyWarning
+from pikepdf._exceptions import PageCopyWarning
 from pikepdf._io import atomic_overwrite, check_different_files, check_stream_is_usable
 from pikepdf.models import Encryption, EncryptionInfo, Outline, Permissions
 from pikepdf.models.metadata import PdfMetadata, decode_pdf_date, encode_pdf_date
@@ -412,6 +412,14 @@ class Extend_Pdf:
         listed in the result's ``partial_fields``. Use ``forms='strip'`` for a
         hard guarantee of no form data.
 
+        Named destinations referenced by the copied pages' annotations (such as
+        table-of-contents links) are carried into this document, preserving both
+        the ``Names.Dests`` name tree and the legacy ``Root.Dests`` dictionary.
+        A destination whose target page is not among the copied pages cannot be
+        migrated and is reported in :attr:`pikepdf.PageCopyResult.dropped_dests`;
+        names that collide with existing destinations are renamed and reported in
+        :attr:`pikepdf.PageCopyResult.renamed_dests`.
+
         Args:
             src: Source ``Pdf`` to copy pages from.
             pages: Zero-based indices (iterable, ``range`` or ``slice``) of
@@ -513,7 +521,7 @@ class Extend_Pdf:
                 f"This document has {orphans} form widget annotation(s) that are "
                 "not reachable from /AcroForm; they may not display in Adobe "
                 "Acrobat. Use Pdf.add_pages_from() to copy pages with forms.",
-                FormCopyWarning,
+                PageCopyWarning,
             )
         with ExitStack() as stack:
             if hasattr(filename_or_stream, 'seek'):

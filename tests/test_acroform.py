@@ -189,7 +189,7 @@ def test_get_field_for_annotation(form):
 
 def test_copy_form(form, dd0293):
     orig_count = len(dd0293.acroform.fields)
-    with pytest.warns(pikepdf.FormCopyWarning):
+    with pytest.warns(pikepdf.PageCopyWarning):
         dd0293.pages.extend(form.pages)
     copied_fields = dd0293.acroform.fix_copied_annotations(
         dd0293.pages[-1], form.pages[0], form.acroform

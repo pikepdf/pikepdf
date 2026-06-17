@@ -14,18 +14,20 @@ import pikepdf
 from pikepdf import (
     Array,
     Dictionary,
-    FormCopyWarning,
     Job,
     Name,
+    NameTree,
     PageCopyResult,
+    PageCopyWarning,
     Pdf,
     String,
 )
+from pikepdf._page_copy import _collect_named_dest_refs
 
 
-def test_formcopywarning_is_userwarning():
-    assert issubclass(FormCopyWarning, UserWarning)
-    assert pikepdf.exceptions.FormCopyWarning is FormCopyWarning
+def test_pagecopywarning_is_userwarning():
+    assert issubclass(PageCopyWarning, UserWarning)
+    assert pikepdf.exceptions.PageCopyWarning is PageCopyWarning
 
 
 def test_pagecopyresult_defaults():
@@ -233,7 +235,14 @@ def test_extend_warns_cross_document_form_pages():
     res = _resources()
     dest = Pdf.new()
     with Pdf.open(str(res / 'form.pdf')) as src:
-        with pytest.warns(FormCopyWarning):
+        with pytest.warns(PageCopyWarning):
+            dest.pages.extend(src.pages)
+
+
+def test_extend_warns_named_destination_pages():
+    dest = Pdf.new()
+    with _pdf_with_named_dest_links() as src:
+        with pytest.warns(PageCopyWarning, match="named destination"):
             dest.pages.extend(src.pages)
 
 
@@ -242,7 +251,7 @@ def test_extend_no_warning_for_formless_pages():
     src.add_blank_page(page_size=(200, 200))
     dest = Pdf.new()
     with warnings.catch_warnings():
-        warnings.simplefilter('error', FormCopyWarning)
+        warnings.simplefilter('error', PageCopyWarning)
         dest.pages.extend(src.pages)  # must not raise
 
 
@@ -250,7 +259,7 @@ def test_extend_no_warning_intra_document():
     res = _resources()
     with Pdf.open(str(res / 'form.pdf')) as pdf:
         with warnings.catch_warnings():
-            warnings.simplefilter('error', FormCopyWarning)
+            warnings.simplefilter('error', PageCopyWarning)
             pdf.pages.extend(pdf.pages)  # same document: no warning
 
 
@@ -260,10 +269,10 @@ def test_save_warns_on_orphaned_widgets():
     dest = Pdf.new()
     with Pdf.open(str(res / 'form.pdf')) as src:
         with warnings.catch_warnings():
-            warnings.simplefilter('ignore', FormCopyWarning)  # silence extend warning
+            warnings.simplefilter('ignore', PageCopyWarning)  # silence extend warning
             dest.pages.extend(src.pages)
     assert dest._count_orphaned_widgets() > 0
-    with pytest.warns(FormCopyWarning):
+    with pytest.warns(PageCopyWarning):
         dest.save(io.BytesIO())
 
 
@@ -274,7 +283,7 @@ def test_save_no_warning_for_clean_merge():
         dest.add_pages_from(src)  # preserves forms -> no orphans
     assert dest._count_orphaned_widgets() == 0
     with warnings.catch_warnings():
-        warnings.simplefilter('error', FormCopyWarning)
+        warnings.simplefilter('error', PageCopyWarning)
         dest.save(io.BytesIO())
 
 
@@ -283,7 +292,7 @@ def test_save_no_warning_for_formless_doc():
     pdf.add_blank_page(page_size=(200, 200))
     assert pdf._count_orphaned_widgets() == 0
     with warnings.catch_warnings():
-        warnings.simplefilter('error', FormCopyWarning)
+        warnings.simplefilter('error', PageCopyWarning)
         pdf.save(io.BytesIO())
 
 
@@ -292,5 +301,191 @@ def test_add_pages_from_preserve_emits_no_formcopywarning():
     dest = Pdf.new()
     with Pdf.open(str(res / 'form.pdf')) as src:
         with warnings.catch_warnings():
-            warnings.simplefilter('error', FormCopyWarning)
-            dest.add_pages_from(src)  # must not raise FormCopyWarning
+            warnings.simplefilter('error', PageCopyWarning)
+            dest.add_pages_from(src)  # must not raise PageCopyWarning
+
+
+def test_collect_named_dest_refs_dest_and_action():
+    pdf = Pdf.new()
+    page = pdf.add_blank_page(page_size=(200, 200))
+    # /Dest string on a Link, /A GoTo /D name, an explicit (array) dest (ignored),
+    # a /Next chain, and an /AA sub-action.
+    link_dest = Dictionary(Type=Name.Annot, Subtype=Name.Link, Dest=String('alpha'))
+    next_action = Dictionary(S=Name.GoTo, D=String('beta'))
+    link_action = Dictionary(
+        Type=Name.Annot,
+        Subtype=Name.Link,
+        A=Dictionary(S=Name.GoTo, D=Name('/gamma'), Next=next_action),
+    )
+    explicit = Dictionary(
+        Type=Name.Annot, Subtype=Name.Link, Dest=Array([page.obj, Name.Fit])
+    )
+    aa_annot = Dictionary(
+        Type=Name.Annot,
+        Subtype=Name.Widget,
+        AA=Dictionary(U=Dictionary(S=Name.GoTo, D=String('delta'))),
+    )
+    page.obj.Annots = pdf.make_indirect(
+        Array([link_dest, link_action, explicit, aa_annot])
+    )
+
+    refs = _collect_named_dest_refs(page.obj)
+    found = {(r.kind, r.name) for r in refs}
+    assert found == {
+        ('string', 'alpha'),
+        ('name', '/gamma'),
+        ('string', 'beta'),
+        ('string', 'delta'),
+    }
+    # explicit (array) destination is not collected
+    assert ('string', 'page') not in found
+
+
+def _pdf_with_named_dest_links():
+    """2-page PDF with two named destinations and cross-links.
+
+    - ``sec.1`` (Names.Dests, string-keyed) targets page 0; page 1 has a
+      Link annotation that GoTo-navigates to it.
+    - ``sec.2`` (Names.Dests, string-keyed) targets page 1; page 0 has a
+      Link annotation that GoTo-navigates to it.
+    """
+    pdf = Pdf.new()
+    p0 = pdf.add_blank_page(page_size=(200, 200))
+    p1 = pdf.add_blank_page(page_size=(200, 200))
+    nt = NameTree.new(pdf)
+    pdf.Root.Names = pdf.make_indirect(Dictionary(Dests=nt.obj))
+    nt2 = NameTree(pdf.Root.Names.Dests)
+    nt2['sec.1'] = pdf.make_indirect(Dictionary(D=Array([p0.obj, Name.XYZ, 0, 200, 0])))
+    nt2['sec.2'] = pdf.make_indirect(Dictionary(D=Array([p1.obj, Name.XYZ, 0, 200, 0])))
+    p0.obj.Annots = pdf.make_indirect(
+        Array(
+            [
+                Dictionary(
+                    Type=Name.Annot,
+                    Subtype=Name.Link,
+                    Rect=Array([0, 0, 50, 50]),
+                    A=Dictionary(S=Name.GoTo, D=String('sec.2')),
+                )
+            ]
+        )
+    )
+    p1.obj.Annots = pdf.make_indirect(
+        Array(
+            [
+                Dictionary(
+                    Type=Name.Annot,
+                    Subtype=Name.Link,
+                    Rect=Array([0, 0, 50, 50]),
+                    A=Dictionary(S=Name.GoTo, D=String('sec.1')),
+                )
+            ]
+        )
+    )
+    return pdf
+
+
+def _resolves(pdf, name):
+    if Name.Names not in pdf.Root or Name.Dests not in pdf.Root.Names:
+        return False
+    return name in NameTree(pdf.Root.Names.Dests)
+
+
+def test_add_pages_from_migrates_named_destinations():
+    # Destination has its own (unrelated) pages; mirrors #148 'no_links first' order.
+    dest = Pdf.new()
+    dest.add_blank_page(page_size=(200, 200))
+    with _pdf_with_named_dest_links() as src:
+        result = dest.add_pages_from(src)
+    assert result.named_dests_added == 2
+    assert _resolves(dest, 'sec.1')
+    assert _resolves(dest, 'sec.2')
+    # the copied link still references the (now-present) named destination
+    copied_link = dest.pages[1].obj.Annots[0]
+    assert str(copied_link.A.D) == 'sec.2'
+
+
+def test_pagecopyresult_dest_defaults():
+    r = PageCopyResult(pages_added=1, forms='preserve')
+    assert r.named_dests_added == 0
+    assert r.renamed_dests == {}
+    assert r.dropped_dests == []
+
+
+def test_migrated_named_dest_survives_save():
+    dest = Pdf.new()
+    dest.add_blank_page(page_size=(200, 200))
+    with _pdf_with_named_dest_links() as src:
+        dest.add_pages_from(src)
+    buf = io.BytesIO()
+    dest.save(buf)
+    with Pdf.open(io.BytesIO(buf.getvalue())) as out:
+        assert _resolves(out, 'sec.2')
+        # no duplicate page was created (1 original + 2 copied)
+        assert len(out.pages) == 3
+
+
+def test_add_pages_from_drops_dest_to_noncopied_page():
+    # page 0's link targets 'sec.2' -> page 1; copy ONLY page 0.
+    dest = Pdf.new()
+    with _pdf_with_named_dest_links() as src:
+        result = dest.add_pages_from(src, [0])
+    assert result.dropped_dests == ['sec.2']
+    assert result.named_dests_added == 0
+    # only the one selected page was added; no orphan target page pulled in
+    assert len(dest.pages) == 1
+    # the reference is left intact (dangling), unchanged
+    assert str(dest.pages[0].obj.Annots[0].A.D) == 'sec.2'
+
+
+def test_add_pages_from_renames_colliding_named_dest():
+    dest = Pdf.new()
+    dp = dest.add_blank_page(page_size=(200, 200))
+    # destination already owns 'sec.2' pointing at its own page
+    dnt = NameTree.new(dest)
+    dest.Root.Names = dest.make_indirect(Dictionary(Dests=dnt.obj))
+    NameTree(dest.Root.Names.Dests)['sec.2'] = dest.make_indirect(
+        Dictionary(D=Array([dp.obj, Name.Fit]))
+    )
+
+    with _pdf_with_named_dest_links() as src:
+        result = dest.add_pages_from(src)
+
+    assert result.renamed_dests.get('sec.2') == 'sec.2.1'
+    nt = NameTree(dest.Root.Names.Dests)
+    assert 'sec.2' in nt and 'sec.2.1' in nt  # original preserved, migrated added
+    # copied link rewritten to the new name (p0 → dest.pages[1], the first copied page)
+    assert str(dest.pages[1].obj.Annots[0].A.D) == 'sec.2.1'
+
+
+def _pdf_with_legacy_dests():
+    pdf = Pdf.new()
+    p0 = pdf.add_blank_page(page_size=(200, 200))
+    p1 = pdf.add_blank_page(page_size=(200, 200))
+    pdf.Root.Dests = pdf.make_indirect(Dictionary())
+    pdf.Root.Dests[Name.Chap1] = pdf.make_indirect(
+        Dictionary(D=Array([p1.obj, Name.Fit]))
+    )
+    p0.obj.Annots = pdf.make_indirect(
+        Array(
+            [
+                Dictionary(
+                    Type=Name.Annot,
+                    Subtype=Name.Link,
+                    Rect=Array([0, 0, 50, 50]),
+                    Dest=Name.Chap1,
+                )
+            ]
+        )
+    )
+    return pdf
+
+
+def test_add_pages_from_migrates_legacy_name_dests():
+    dest = Pdf.new()
+    dest.add_blank_page(page_size=(200, 200))
+    with _pdf_with_legacy_dests() as src:
+        result = dest.add_pages_from(src)
+    assert result.named_dests_added == 1
+    assert Name.Chap1 in dest.Root.Dests
+    # name-keyed reference resolves into Root.Dests, NOT the Names tree
+    assert Name.Names not in dest.Root or Name.Dests not in dest.Root.get(Name.Names)
