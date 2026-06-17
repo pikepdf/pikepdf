@@ -11,7 +11,60 @@ from typing import TYPE_CHECKING, Literal
 if TYPE_CHECKING:
     from pikepdf import Pdf
 
-from pikepdf.objects import Array, Name
+from pikepdf.objects import Array, Dictionary, Name, String
+
+
+@dataclass
+class _DestRef:
+    """A named-destination reference found on a copied page.
+
+    ``owner[key]`` is the ``String``/``Name`` value to rewrite if the
+    destination is renamed during migration.
+    """
+
+    owner: Dictionary
+    key: Name
+    kind: str  # 'string' (Names.Dests name tree) or 'name' (Root.Dests dict)
+    name: str  # str(value): the string text, or a name like '/Chapter1'
+
+
+def _maybe_add_dest(owner: Dictionary, key: Name, refs: list[_DestRef]) -> None:
+    val = owner.get(key)
+    if isinstance(val, String):
+        refs.append(_DestRef(owner, key, 'string', str(val)))
+    elif isinstance(val, Name):
+        refs.append(_DestRef(owner, key, 'name', str(val)))
+    # Array values are explicit destinations and need no migration.
+
+
+def _collect_from_action(action: object, refs: list[_DestRef], depth: int = 0) -> None:
+    if depth > 50 or not isinstance(action, Dictionary):
+        return
+    if action.get(Name.S) == Name.GoTo:
+        _maybe_add_dest(action, Name.D, refs)
+    nxt = action.get(Name.Next)
+    if isinstance(nxt, Array):
+        for sub in nxt:
+            _collect_from_action(sub, refs, depth + 1)
+    elif isinstance(nxt, Dictionary):
+        _collect_from_action(nxt, refs, depth + 1)
+
+
+def _collect_named_dest_refs(page_obj: Dictionary) -> list[_DestRef]:
+    refs: list[_DestRef] = []
+    annots = page_obj.get(Name.Annots)
+    if not isinstance(annots, Array):
+        return refs
+    for annot in annots:
+        if not isinstance(annot, Dictionary):
+            continue
+        _maybe_add_dest(annot, Name.Dest, refs)
+        _collect_from_action(annot.get(Name.A), refs)
+        aa = annot.get(Name.AA)
+        if isinstance(aa, Dictionary):
+            for k in aa.keys():
+                _collect_from_action(aa[k], refs)
+    return refs
 
 
 @dataclass

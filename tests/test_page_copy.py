@@ -21,6 +21,7 @@ from pikepdf import (
     Pdf,
     String,
 )
+from pikepdf._page_copy import _collect_named_dest_refs
 
 
 def test_pagecopywarning_is_userwarning():
@@ -294,3 +295,39 @@ def test_add_pages_from_preserve_emits_no_formcopywarning():
         with warnings.catch_warnings():
             warnings.simplefilter('error', PageCopyWarning)
             dest.add_pages_from(src)  # must not raise PageCopyWarning
+
+
+def test_collect_named_dest_refs_dest_and_action():
+    pdf = Pdf.new()
+    page = pdf.add_blank_page(page_size=(200, 200))
+    # /Dest string on a Link, /A GoTo /D name, an explicit (array) dest (ignored),
+    # a /Next chain, and an /AA sub-action.
+    link_dest = Dictionary(Type=Name.Annot, Subtype=Name.Link, Dest=String('alpha'))
+    next_action = Dictionary(S=Name.GoTo, D=String('beta'))
+    link_action = Dictionary(
+        Type=Name.Annot,
+        Subtype=Name.Link,
+        A=Dictionary(S=Name.GoTo, D=Name('/gamma'), Next=next_action),
+    )
+    explicit = Dictionary(
+        Type=Name.Annot, Subtype=Name.Link, Dest=Array([page.obj, Name.Fit])
+    )
+    aa_annot = Dictionary(
+        Type=Name.Annot,
+        Subtype=Name.Widget,
+        AA=Dictionary(U=Dictionary(S=Name.GoTo, D=String('delta'))),
+    )
+    page.obj.Annots = pdf.make_indirect(
+        Array([link_dest, link_action, explicit, aa_annot])
+    )
+
+    refs = _collect_named_dest_refs(page.obj)
+    found = {(r.kind, r.name) for r in refs}
+    assert found == {
+        ('string', 'alpha'),
+        ('name', '/gamma'),
+        ('string', 'beta'),
+        ('string', 'delta'),
+    }
+    # explicit (array) destination is not collected
+    assert ('string', 'page') not in found
