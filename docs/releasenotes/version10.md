@@ -93,6 +93,13 @@ the architecture notes on thread safety.
   *positional* argument is deprecated and emits a ``DeprecationWarning``; pass it
   as a keyword argument instead, e.g. ``page.rotate(90, relative=True)``.
   Positional support will be removed in pikepdf 11.
+- Fixed {meth}`pikepdf.Pdf.save` decompressing streams when called with
+  `compress_streams=False` and no explicit `stream_decode_level`. qpdf 11.10
+  changed its default stream decode level to `generalized`, which caused such
+  saves to decompress (without recompressing) streams and balloon the output
+  file. pikepdf now pins the decode level to `none` in this case, restoring the
+  documented behavior that `compress_streams=False` alone does not trigger
+  decompression. Fixes {issue}`676`.
 
 ## v10.8.0
 
