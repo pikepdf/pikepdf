@@ -227,6 +227,18 @@ in this case). (Whenever expressed as strings, names begin with `/`.)
 Item notation here would be quite cumbersome:
 `['/Resources']['/XObject]['/Im0']` (not recommended).
 
+:::{note}
+A few page keys -- `/MediaBox`, `/CropBox`, `/Resources` and `/Rotate` -- may be
+*inherited* from the `/Pages` tree rather than stored on the page itself. Reading
+them with attribute or item notation (`page.MediaBox`, `page['/Rotate']`) returns
+only what is stored directly on the page and raises if the value is inherited.
+For these keys, prefer the managed accessors --
+{attr}`~pikepdf.Page.mediabox`, {attr}`~pikepdf.Page.cropbox`,
+{attr}`~pikepdf.Page.resources` and {attr}`~pikepdf.Page.rotation` -- which
+resolve inheritance and supply the specification's defaults. See
+{ref}`Working with pages <work_with_pages>`.
+:::
+
 Attribute notation is convenient, but not robust if elements are missing. For
 elements that are not always present, you can use `.get()`, which behaves like
 `dict.get()` in core Python. For deeply nested access, {class}`pikepdf.NamePath`

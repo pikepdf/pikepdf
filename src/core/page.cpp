@@ -12,6 +12,7 @@
 
 #include <qpdf/Pipeline.hh>
 #include <qpdf/Pl_Buffer.hh>
+#include <qpdf/QPDFMatrix.hh>
 #include <qpdf/QPDFPageLabelDocumentHelper.hh>
 #include <qpdf/QPDFPageObjectHelper.hh>
 
@@ -78,6 +79,18 @@ void init_page(py::module_ &m)
                 &QPDFPageObjectHelper::rotatePage,
                 py::arg("angle"),
                 py::arg("relative"))
+            .def("_get_rotation",
+                [](QPDFPageObjectHelper &poh) -> int {
+                    // Resolve the effective /Rotate, honoring inheritance from the
+                    // page tree, and normalize it to [0, 360).
+                    QPDFObjectHandle rotate_obj = poh.getAttribute("/Rotate", false);
+                    int rotate =
+                        rotate_obj.isInteger() ? rotate_obj.getIntValueAsInt() : 0;
+                    rotate %= 360;
+                    if (rotate < 0)
+                        rotate += 360;
+                    return rotate;
+                })
             .def("contents_coalesce",
                 &QPDFPageObjectHelper::coalesceContentStreams // LCOV_EXCL_LINE
                 )
@@ -136,6 +149,60 @@ void init_page(py::module_ &m)
                 py::arg("invert_transformations") = true,
                 py::arg("allow_shrink") = true,
                 py::arg("allow_expand") = false)
+            .def(
+                "get_matrix_for_form_xobject_placement",
+                [](QPDFPageObjectHelper &poh,
+                    QPDFObjectHandle fo,
+                    QPDFObjectHandle::Rectangle rect,
+                    bool invert_transformations,
+                    bool allow_shrink,
+                    bool allow_expand) {
+                    return poh.getMatrixForFormXObjectPlacement(
+                        fo, rect, invert_transformations, allow_shrink, allow_expand);
+                },
+                py::arg("fo"), // LCOV_EXCL_LINE
+                py::arg("rect"),
+                py::kw_only(),
+                py::arg("invert_transformations") = true,
+                py::arg("allow_shrink") = true,
+                py::arg("allow_expand") = false)
+            .def(
+                "get_matrix_for_transformations",
+                [](QPDFPageObjectHelper &poh, bool invert) {
+                    return QPDFMatrix(poh.getMatrixForTransformations(invert));
+                },
+                py::arg("invert") = false)
+            .def("flatten_rotation",
+                [](QPDFPageObjectHelper &poh) {
+                    QpdfLockGuard lock(poh.getObjectHandle().getOwningQPDF());
+                    poh.flattenRotation();
+                })
+            .def(
+                "copy_annotations",
+                [](QPDFPageObjectHelper &poh,
+                    QPDFPageObjectHelper &from_page,
+                    py::object matrix) {
+                    // Default the matrix to identity. We use a None default rather
+                    // than py::arg("matrix") = QPDFMatrix() because the latter would
+                    // hold a live pikepdf.Matrix in the binding's defaults, which
+                    // nanobind reports as a leak at interpreter shutdown.
+                    QPDFMatrix cm =
+                        matrix.is_none() ? QPDFMatrix() : py::cast<QPDFMatrix>(matrix);
+                    QpdfLockGuard lock(poh.getObjectHandle().getOwningQPDF());
+                    poh.copyAnnotations(from_page, cm);
+                },
+                py::arg("from_page"), // LCOV_EXCL_LINE
+                py::arg("matrix") = py::none())
+            .def_prop_ro("_images_recursive",
+                [](QPDFPageObjectHelper &poh) {
+                    QpdfLockGuard lock(poh.getObjectHandle().getOwningQPDF());
+                    std::map<std::string, QPDFObjectHandle> result;
+                    poh.forEachImage(true,
+                        [&result](QPDFObjectHandle &obj,
+                            QPDFObjectHandle &xobj_dict,
+                            std::string const &key) { result[key] = obj; });
+                    return result;
+                })
             .def(
                 "get_filtered_contents",
                 [](QPDFPageObjectHelper &poh,

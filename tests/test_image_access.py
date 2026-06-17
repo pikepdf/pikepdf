@@ -75,7 +75,7 @@ def first_image_in(resources, request):
     def opener(filename):
         nonlocal pdf
         pdf = Pdf.open(resources / filename)
-        pdfimagexobj = next(iter(pdf.pages[0].images.values()))
+        pdfimagexobj = next(iter(pdf.pages[0].get_images(recursive=False).values()))
         return pdfimagexobj, pdf
 
     def closer():
@@ -531,7 +531,7 @@ def valid_random_palette_image_spec(
 )
 def test_image_palette(resources, filename, bpc, rgb):
     pdf = Pdf.open(resources / filename)
-    pim = PdfImage(next(iter(pdf.pages[0].images.values())))
+    pim = PdfImage(next(iter(pdf.pages[0].get_images(recursive=False).values())))
 
     assert pim.palette[0] == 'RGB'
     assert pim.colorspace == '/DeviceRGB'
@@ -760,6 +760,259 @@ def test_imagemagick_uses_rle_compression(first_image_in):
     pim = PdfImage(xobj)
     im = pim.as_pil_image()
     assert im.getpixel((5, 5)) == (255, 128, 0)
+
+
+def _make_gray_xobject(pdf, *, width, height, bpc, data, decode=None):
+    """Build an uncompressed DeviceGray image XObject for Decode testing."""
+    obj = Stream(pdf, data)
+    obj.Type = Name.XObject
+    obj.Subtype = Name.Image
+    obj.Width = width
+    obj.Height = height
+    obj.BitsPerComponent = bpc
+    obj.ColorSpace = Name.DeviceGray
+    if decode is not None:
+        obj.Decode = Array(decode)
+    return obj
+
+
+def test_decode_array_inverts_1bit_gray():
+    # Issue #650: 1-bit DeviceGray FlateDecode image with /Decode = [1, 0]
+    # must be extracted inverted (sample 0 -> white, sample 1 -> black).
+    pdf = Pdf.new()
+    data = bytes([0b10101010])  # 8 pixels: 1,0,1,0,1,0,1,0
+    normal = PdfImage(_make_gray_xobject(pdf, width=8, height=1, bpc=1, data=data))
+    inverted = PdfImage(
+        _make_gray_xobject(pdf, width=8, height=1, bpc=1, data=data, decode=[1, 0])
+    )
+
+    normal_px = list(normal.as_pil_image().convert('L').tobytes())
+    inverted_px = list(inverted.as_pil_image().convert('L').tobytes())
+
+    assert normal_px == [255, 0, 255, 0, 255, 0, 255, 0]
+    assert inverted_px == [0, 255, 0, 255, 0, 255, 0, 255]
+
+
+def test_decode_array_lut_8bit_gray():
+    # 8-bit DeviceGray with /Decode = [1, 0] exercises the linear LUT path
+    # (output = 255 - input).
+    pdf = Pdf.new()
+    data = bytes([0, 64, 128, 255])
+    pim = PdfImage(
+        _make_gray_xobject(pdf, width=4, height=1, bpc=8, data=data, decode=[1, 0])
+    )
+    assert list(pim.as_pil_image().tobytes()) == [255, 191, 127, 0]
+
+
+def test_decode_array_lut_partial_range():
+    # A non-reversing /Decode maps samples into a sub-range of [0, 1]:
+    # output = round((dmin + (p/255)*(dmax-dmin)) * 255).
+    pdf = Pdf.new()
+    data = bytes([0, 255])
+    pim = PdfImage(
+        _make_gray_xobject(
+            pdf, width=2, height=1, bpc=8, data=data, decode=[0.25, 0.75]
+        )
+    )
+    # p=0 -> round(0.25*255)=64 ; p=255 -> round(0.75*255)=191
+    assert list(pim.as_pil_image().tobytes()) == [64, 191]
+
+
+def test_decode_array_rgb_invert():
+    # Per-band LUT on a 3-band image.
+    pdf = Pdf.new()
+    obj = Stream(pdf, bytes([10, 20, 30, 200, 100, 50]))  # two RGB pixels
+    obj.Type = Name.XObject
+    obj.Subtype = Name.Image
+    obj.Width = 2
+    obj.Height = 1
+    obj.BitsPerComponent = 8
+    obj.ColorSpace = Name.DeviceRGB
+    obj.Decode = Array([1, 0, 1, 0, 1, 0])
+    px = list(PdfImage(obj).as_pil_image().tobytes())
+    assert px == [245, 235, 225, 55, 155, 205]  # 255 - each component
+
+
+def test_decode_array_skipped_for_indexed(trivial):
+    # /Decode on an Indexed image remaps palette indices, not colors; the
+    # value-LUT path must leave such images untouched (no corruption/crash).
+    xobj, _pdf = trivial
+    baseline = list(PdfImage(xobj).as_pil_image().convert('RGB').tobytes())
+    xobj.Decode = Array([0, 1])  # identity for this 1-bit palette: no warning
+    after = list(PdfImage(xobj).as_pil_image().convert('RGB').tobytes())
+    assert after == baseline
+
+
+def test_decode_array_indexed_nonidentity_warns(trivial):
+    # A non-identity /Decode on an Indexed image cannot be honored (it remaps
+    # indices); warn rather than silently mislead.
+    xobj, _pdf = trivial
+    xobj.Decode = Array([1, 0])  # non-identity for a 1-bit palette ([0, 1])
+    with pytest.warns(UserWarning, match="Indexed"):
+        PdfImage(xobj).as_pil_image()
+
+
+def test_decode_array_not_applied_when_disabled():
+    # apply_decode_array=False returns the raw samples (forensic view), i.e. the
+    # /Decode = [1, 0] inversion is NOT applied.
+    pdf = Pdf.new()
+    data = bytes([0b10101010])
+    pim = PdfImage(
+        _make_gray_xobject(pdf, width=8, height=1, bpc=1, data=data, decode=[1, 0])
+    )
+    applied = list(pim.as_pil_image(apply_decode_array=True).convert('L').tobytes())
+    raw = list(pim.as_pil_image(apply_decode_array=False).convert('L').tobytes())
+    assert applied == [0, 255, 0, 255, 0, 255, 0, 255]
+    assert raw == [255, 0, 255, 0, 255, 0, 255, 0]
+
+
+def test_decode_array_extract_to_respects_flag():
+    pdf = Pdf.new()
+    data = bytes([0b10101010])
+    pim = PdfImage(
+        _make_gray_xobject(pdf, width=8, height=1, bpc=1, data=data, decode=[1, 0])
+    )
+    for flag, expected in [(True, [0, 255]), (False, [255, 0])]:
+        bio = BytesIO()
+        ext = pim.extract_to(stream=bio, apply_decode_array=flag)
+        assert ext == '.png'
+        bio.seek(0)
+        px = list(Image.open(bio).convert('L').tobytes())
+        assert px[:2] == expected
+
+
+def _make_dct_rgb_xobject(pdf, pil_img, decode=None):
+    bio = BytesIO()
+    pil_img.save(bio, format='JPEG', quality=95)
+    obj = Stream(pdf, bio.getvalue())
+    obj.Type = Name.XObject
+    obj.Subtype = Name.Image
+    obj.Width, obj.Height = pil_img.size
+    obj.BitsPerComponent = 8
+    obj.ColorSpace = Name.DeviceRGB
+    obj.Filter = Name.DCTDecode
+    if decode is not None:
+        obj.Decode = Array(decode)
+    return obj
+
+
+def _approx(actual, expected, tol=12):
+    return all(abs(a - e) <= tol for a, e in zip(actual, expected))
+
+
+def test_decode_array_not_applied_to_dct():
+    # /Decode is deferred to the JPEG codec (which carries its own color
+    # semantics, e.g. the Adobe APP14 inverted-CMYK marker). pikepdf must not
+    # re-apply it: extract_to stays a direct .jpg and the pixels are not
+    # double-inverted, regardless of the flag.
+    pdf = Pdf.new()
+    src = Image.new('RGB', (8, 8), (200, 50, 100))
+    pim = PdfImage(_make_dct_rgb_xobject(pdf, src, decode=[1, 0, 1, 0, 1, 0]))
+
+    assert _approx(pim.as_pil_image().getpixel((4, 4)), (200, 50, 100))
+
+    for flag in (True, False):
+        bio = BytesIO()
+        assert pim.extract_to(stream=bio, apply_decode_array=flag) == '.jpg'
+        bio.seek(0)
+        assert _approx(Image.open(bio).convert('RGB').getpixel((4, 4)), (200, 50, 100))
+
+
+def test_decode_array_ccitt_respects_flag(sandwich):
+    # CCITT honors /Decode via the TIFF photometry tag; disabling the flag must
+    # produce the raw (non-inverted) photometry.
+    xobj, _pdf = sandwich
+    xobj.Decode = Array([1, 0])
+    pim = PdfImage(xobj)
+    applied = pim.as_pil_image(apply_decode_array=True).convert('L').getpixel((0, 0))
+    raw = pim.as_pil_image(apply_decode_array=False).convert('L').getpixel((0, 0))
+    assert applied == 0
+    assert raw == 255
+
+
+def test_decode_array_ccitt_extract_to_bakes_decode(sandwich):
+    # extract_to keeps the efficient direct CCITT->TIFF path while honoring
+    # /Decode by baking it into the TIFF photometry tag. The flag controls
+    # whether that inversion is baked in.
+    xobj, _pdf = sandwich
+    xobj.Decode = Array([1, 0])
+    pim = PdfImage(xobj)
+
+    results = {}
+    for flag in (True, False):
+        bio = BytesIO()
+        assert pim.extract_to(stream=bio, apply_decode_array=flag) == '.tif'
+        bio.seek(0)
+        results[flag] = Image.open(bio).convert('L').getpixel((0, 0))
+    assert results[True] == 0  # /Decode [1, 0] inverts the background to black
+    assert results[False] == 255  # raw photometry leaves it white
+
+
+@pytest.mark.parametrize('bpc,decode', [(8, None), (8, [0, 1]), (1, [0, 1])])
+def test_decode_array_identity_no_inversion(bpc, decode):
+    # No /Decode and the identity /Decode must both be perfect no-ops: the
+    # extracted samples must equal the stored samples (guard against accidental
+    # inversion creeping into the default path).
+    pdf = Pdf.new()
+    if bpc == 8:
+        data = bytes([10, 200])
+        width = 2
+        expected = [10, 200]
+    else:
+        data = bytes([0b10000000])  # pixels: 1, 0
+        width = 2
+        expected = [255, 0]
+    pim = PdfImage(
+        _make_gray_xobject(pdf, width=width, height=1, bpc=bpc, data=data, decode=decode)
+    )
+    assert list(pim.as_pil_image().convert('L').tobytes())[:2] == expected
+
+
+def test_decode_array_1bit_nonreversal_lut():
+    # A 1-bit image with a non-reversal, non-identity /Decode cannot stay in
+    # mode '1'; it is promoted to 'L' and mapped through the linear LUT.
+    pdf = Pdf.new()
+    data = bytes([0b10000000])  # pixels: 1, 0
+    pim = PdfImage(
+        _make_gray_xobject(
+            pdf, width=2, height=1, bpc=1, data=data, decode=[0.25, 0.75]
+        )
+    )
+    im = pim.as_pil_image()
+    assert im.mode == 'L'
+    # sample 1 -> 0.75 -> 191 ; sample 0 -> 0.25 -> 64
+    assert list(im.tobytes()) == [191, 64]
+
+
+def test_decode_array_length_mismatch_ignored():
+    # A /Decode whose length disagrees with the number of bands is malformed;
+    # pikepdf refuses to guess and leaves the samples untouched (no inversion).
+    pdf = Pdf.new()
+    data = bytes([10, 200])
+    pim = PdfImage(
+        _make_gray_xobject(
+            pdf, width=2, height=1, bpc=8, data=data, decode=[1, 0, 1, 0, 1, 0]
+        )
+    )
+    assert list(pim.as_pil_image().convert('L').tobytes()) == [10, 200]
+
+
+@pytest.mark.skipif(
+    not PIL_features.check_codec('jpg_2000'), reason='no JPEG2000 codec'
+)
+def test_decode_array_not_applied_to_jpx(first_image_in):
+    # As with DCT, /Decode is deferred to the JPEG 2000 codec: adding a
+    # reversing /Decode must not change the decoded pixels, and extract_to keeps
+    # the direct .jp2 output for both flag values.
+    xobj, _pdf = first_image_in('pike-jp2.pdf')
+    baseline = PdfImage(xobj).as_pil_image().convert('RGB').getpixel((0, 0))
+
+    xobj.Decode = Array([1, 0, 1, 0, 1, 0])
+    pim = PdfImage(xobj)
+    assert pim.as_pil_image().convert('RGB').getpixel((0, 0)) == baseline
+    for flag in (True, False):
+        bio = BytesIO()
+        assert pim.extract_to(stream=bio, apply_decode_array=flag) == '.jp2'
 
 
 def test_ccitt_icc(first_image_in, resources):

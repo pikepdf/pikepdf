@@ -45,10 +45,10 @@ dictionaries.
 
     >>> page1 = example.pages[0]
 
-    >>> list(page1.images.keys())
+    >>> list(page1.get_images().keys())
     ['/Im0']
 
-    >>> rawimage = page1.images['/Im0']  # The raw object/dictionary
+    >>> rawimage = page1.get_images()['/Im0']  # The raw object/dictionary
 
     >>> pdfimage = PdfImage(rawimage)
 
@@ -180,7 +180,7 @@ not be included in the output file.
 
   >>> page = pdf.pages[0]
 
-  >>> image_name, image = next(iter(page.images.items()))
+  >>> image_name, image = next(iter(page.get_images().items()))
 
   >>> new_image = pdf.make_stream(b'\xff')
 

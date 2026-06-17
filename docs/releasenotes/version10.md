@@ -14,6 +14,86 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.9.0
+
+- Added {class}`pikepdf.JobBuilder`, a fluent, Pythonic builder for qpdf jobs.
+  It assembles a job specification with chained, snake_case methods (``input``,
+  ``output``, ``encrypt``, ``add_pages``, ``split_pages``, ``linearize``,
+  ``compress``, ``add_attachment``, ``add_overlay``, ``limits``, ...) and runs it
+  via the existing {class}`pikepdf.Job`, without hand-writing qpdf's camelCase
+  job JSON. Encryption permissions are expressed with the familiar
+  {class}`pikepdf.Permissions`/{class}`pikepdf.Encryption` models, and a
+  ``.set(**kwargs)`` escape hatch reaches any other job option. Additional
+  methods cover image optimization (``optimize_images``,
+  ``externalize_inline_images``), page/content transforms
+  (``flatten_annotations``, ``flatten_rotation``, ``generate_appearances``,
+  ``coalesce_contents``, ``normalize_content``), content removal
+  (``remove_metadata``, ``remove_info``, ``remove_acroform``,
+  ``remove_structure``, ``remove_page_labels``), page labels
+  (``set_page_labels``), version control (``min_version``, ``force_version``),
+  and reproducible/inspection helpers (``deterministic_id``, ``static_id``,
+  ``check``).
+- Exposed several pieces of qpdf functionality that pikepdf had not previously
+  bound:
+  - Whole-document qpdf JSON: {meth}`pikepdf.Pdf.write_qpdf_json`,
+    {meth}`pikepdf.Pdf.from_qpdf_json` and {meth}`pikepdf.Pdf.update_from_qpdf_json`
+    serialize and reconstruct an entire PDF as qpdf JSON (the
+    `qpdf --json-output`/`--json-input` format, version 2). This complements the
+    existing object-level {meth}`pikepdf.Object.to_json`. Added
+    {class}`pikepdf.JSONStreamData` to control how stream data is represented.
+  - {meth}`pikepdf.Pdf.get_xref_table` returns the cross-reference table as
+    structured data ({class}`pikepdf.XrefEntry`), complementing the print-only
+    {meth}`pikepdf.Pdf.show_xref_table`.
+  - {meth}`pikepdf.Pdf.fix_dangling_references` repairs references to objects
+    that are not present in the file.
+  - {meth}`pikepdf.Page.flatten_rotation` bakes a page's `/Rotate` value into its
+    content stream.
+  - {meth}`pikepdf.Page.copy_annotations` copies annotations (and associated form
+    fields) from another page, applying a transformation matrix.
+  - {meth}`pikepdf.Page.get_matrix_for_transformations` and
+    {meth}`pikepdf.Page.get_matrix_for_form_xobject_placement` expose qpdf's
+    page/form-XObject placement matrices.
+  - {meth}`pikepdf.AcroForm.validate`,
+    {meth}`pikepdf.AcroForm.invalidate_cache` and
+    {meth}`pikepdf.AcroForm.transform_annotations` for working with interactive
+    forms after manual structural edits.
+- Added {meth}`pikepdf.Page.get_images`, which by default recurses into nested
+  form XObjects to find images. The {attr}`pikepdf.Page.images` property is now
+  **deprecated**: it only reports images referenced directly by the page and
+  silently omits images drawn through form XObjects, which made it appear as if a
+  page "has no images" when it clearly did. Use ``get_images()`` instead, or
+  ``get_images(recursive=False)`` for the old behavior.
+- Fixed image extraction ignoring the ``/Decode`` array, which caused colors to
+  be inverted (or otherwise mismapped) when a PDF specified a non-default
+  ``/Decode`` such as ``[1, 0]``. {meth}`pikepdf.PdfImage.as_pil_image` and
+  {meth}`pikepdf.PdfImage.extract_to` now apply ``/Decode`` as a linear
+  per-channel mapping for grayscale, RGB and CMYK raster images, matching how a
+  PDF viewer renders the image. Previously ``/Decode`` was honored only for
+  CCITTFax-encoded images. Thanks to Mark-Joy for the report. {issue}`650`
+
+  Both methods gained an ``apply_decode_array`` parameter (default ``True``).
+  Pass ``apply_decode_array=False`` to retrieve the raw stored sample values
+  with the least processing -- useful for forensic inspection of the underlying
+  image data.
+
+  Some image types are intentionally not affected: Indexed-colorspace images
+  (where ``/Decode`` remaps palette indices rather than colors -- a non-identity
+  ``/Decode`` there now emits a warning), and DCT (JPEG) / JPX (JPEG 2000)
+  images, whose codecs carry their own color semantics (such as the Adobe APP14
+  marker for inverted CMYK) that Pillow already honors; re-applying ``/Decode``
+  would double-invert them.
+- Added {attr}`pikepdf.Page.rotation`, a property that reports a page's effective
+  clockwise rotation normalized to ``[0, 360)``. Unlike the raw ``page.Rotate``
+  attribute, it resolves a ``/Rotate`` value inherited from the page tree and
+  reports ``0`` when no rotation is set, instead of raising. Assigning to it sets
+  the absolute rotation. This addresses the long-standing confusion between the
+  ``page.Rotate`` attribute and the ``page.rotate()`` method (#467).
+- {meth}`pikepdf.Page.rotate` now defaults ``relative`` to ``False``, so
+  ``page.rotate(90)`` sets an absolute rotation. Passing ``relative`` as a
+  *positional* argument is deprecated and emits a ``DeprecationWarning``; pass it
+  as a keyword argument instead, e.g. ``page.rotate(90, relative=True)``.
+  Positional support will be removed in pikepdf 11.
+
 ## v10.8.0
 
 - Added {class}`pikepdf.ReferenceCycleError` (a subclass of

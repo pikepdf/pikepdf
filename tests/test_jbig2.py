@@ -31,7 +31,7 @@ def first_image_in(resources, request):
     def opener(filename):
         nonlocal pdf
         pdf = Pdf.open(resources / filename)
-        pdfimagexobj = next(iter(pdf.pages[0].images.values()))
+        pdfimagexobj = next(iter(pdf.pages[0].get_images(recursive=False).values()))
         return pdfimagexobj, pdf
 
     def closer():

@@ -54,6 +54,7 @@ from pikepdf._core import (
     FormFieldFlag,
     Job,
     JobUsageError,
+    JSONStreamData,
     Matrix,
     NameTree,
     NumberTree,
@@ -69,6 +70,7 @@ from pikepdf._core import (
     Token,
     TokenFilter,
     TokenType,
+    XrefEntry,
 )
 from pikepdf.exceptions import (
     DependencyError,
@@ -107,6 +109,8 @@ from pikepdf.models import (
 from pikepdf.models.ctm import (
     get_objects_with_ctm,
 )
+
+from pikepdf.jobs import JobBuilder
 
 
 # Importing these will monkeypatch classes defined in C++ and register a new
@@ -166,7 +170,9 @@ __all__ = [
     'Integer',
     'InvalidPdfImageError',
     'Job',
+    'JobBuilder',
     'JobUsageError',
+    'JSONStreamData',
     'make_page_destination',
     'Matrix',
     'models',
@@ -205,4 +211,5 @@ __all__ = [
     'TokenType',
     'unparse_content_stream',
     'UnsupportedImageTypeError',
+    'XrefEntry',
 ]

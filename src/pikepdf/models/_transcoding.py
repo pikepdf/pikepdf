@@ -128,7 +128,7 @@ def image_from_byte_buffer(buffer: BytesLike, size: tuple[int, int], stride: int
             raise ImageDecompressionError() from e
 
 
-def _make_rgb_palette(gray_palette: bytes) -> bytes:
+def _make_rgb_palette(gray_palette: BytesLike) -> bytes:
     palette = b''
     for entry in gray_palette:
         palette += bytes([entry]) * 3

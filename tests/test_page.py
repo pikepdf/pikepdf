@@ -6,6 +6,7 @@ from __future__ import annotations
 import copy
 
 import pytest
+from conftest import needs_libqpdf_v
 
 from pikepdf import (
     Array,
@@ -306,3 +307,147 @@ def test_block_make_indirect_page(graph: Pdf):
         graph.make_indirect(graph.pages[0])
 
     assert isinstance(graph.make_indirect(graph.pages[0].obj), Object)
+
+
+@pytest.fixture
+def formxobject_pdf(resources):
+    with Pdf.open(resources / 'formxobject.pdf') as pdf:
+        yield pdf
+
+
+def test_flatten_rotation(graph_page):
+    graph_page.rotate(90, relative=True)
+    assert graph_page.obj.get('/Rotate', 0) == 90
+    graph_page.flatten_rotation()
+    assert '/Rotate' not in graph_page.obj
+
+
+def test_get_matrix_for_transformations(graph_page):
+    m = graph_page.get_matrix_for_transformations()
+    assert isinstance(m, Matrix)
+    graph_page.rotate(90, relative=True)
+    rotated = graph_page.get_matrix_for_transformations()
+    assert rotated != m
+    # invert should differ from the non-inverted form for a rotated page
+    assert graph_page.get_matrix_for_transformations(invert=True) != rotated
+
+
+def test_get_matrix_for_form_xobject_placement(graph, graph_page):
+    fo = graph_page.as_form_xobject()
+    blank = graph.add_blank_page(page_size=(500, 500))
+    name = blank.add_resource(fo, Name.XObject)
+    m = blank.get_matrix_for_form_xobject_placement(fo, Rectangle(0, 0, 250, 250))
+    assert isinstance(m, Matrix)
+    # The companion content-generating method should also succeed
+    assert blank.calc_form_xobject_placement(
+        fo,
+        name,
+        Rectangle(0, 0, 250, 250),
+        invert_transformations=True,
+        allow_shrink=True,
+        allow_expand=False,
+    )
+
+
+def test_copy_annotations(resources):
+    with Pdf.open(resources / 'form.pdf') as src:
+        dst = Pdf.new()
+        dst.add_blank_page(page_size=(612, 792))
+        assert '/Annots' not in dst.pages[0].obj
+        dst.pages[0].copy_annotations(src.pages[0], Matrix())
+        assert '/Annots' in dst.pages[0].obj
+        assert len(dst.pages[0].obj.Annots) == len(src.pages[0].obj.Annots)
+
+
+def test_copy_annotations_default_matrix(resources):
+    with Pdf.open(resources / 'form.pdf') as src:
+        dst = Pdf.new()
+        dst.add_blank_page(page_size=(612, 792))
+        dst.pages[0].copy_annotations(src.pages[0])
+        assert '/Annots' in dst.pages[0].obj
+
+
+def test_get_images_recursive_finds_nested(formxobject_pdf):
+    page = formxobject_pdf.pages[0]
+    flat = page.get_images(recursive=False)
+    recursive = page.get_images()  # default recursive=True
+    # This file draws its image only through a nested form XObject
+    assert len(flat) == 0
+    assert len(recursive) >= 1
+
+
+def test_get_images_matches_legacy_when_flat(graph_page):
+    with pytest.warns(DeprecationWarning):
+        legacy = dict(graph_page.images)
+    assert dict(graph_page.get_images(recursive=False)) == legacy
+
+
+def test_images_property_deprecated(graph_page):
+    with pytest.warns(DeprecationWarning, match='get_images'):
+        graph_page.images
+
+
+class TestRotation:
+    def test_rotation_default_zero(self, graph_page):
+        assert graph_page.rotation == 0
+
+    def test_rotation_set_absolute(self, graph_page):
+        graph_page.rotation = 90
+        assert graph_page.rotation == 90
+        assert graph_page.obj.Rotate == 90
+
+    def test_rotation_normalizes_negative(self, graph_page):
+        graph_page.obj.Rotate = -90
+        assert graph_page.rotation == 270
+
+    def test_rotation_normalizes_over_360(self, graph_page):
+        graph_page.obj.Rotate = 450
+        assert graph_page.rotation == 90
+
+    def test_rotation_resolves_inherited_attribute(self, graph):
+        page = graph.pages[0]
+        if Name.Rotate in page.obj:
+            del page.obj.Rotate
+        # /Rotate is inheritable; set it on the page tree node, not the page
+        graph.Root.Pages.Rotate = 90
+        assert Name.Rotate not in graph.pages[0].obj
+        assert graph.pages[0].rotation == 90
+
+    def test_rotate_keyword_relative(self, graph_page):
+        graph_page.rotation = 90
+        graph_page.rotate(90, relative=True)
+        assert graph_page.rotation == 180
+
+    def test_rotate_default_is_absolute(self, graph_page):
+        graph_page.rotation = 90
+        graph_page.rotate(180)  # no relative -> set absolute rotation
+        assert graph_page.rotation == 180
+
+    def test_rotate_positional_relative_deprecated(self, graph_page):
+        with pytest.warns(DeprecationWarning, match='keyword'):
+            graph_page.rotate(90, True)
+        assert graph_page.rotation == 90
+
+    def test_rotate_keyword_emits_no_warning(self, graph_page, recwarn):
+        graph_page.rotate(90, relative=True)
+        assert not any(issubclass(w.category, DeprecationWarning) for w in recwarn)
+
+    @needs_libqpdf_v(
+        '12.4.0',
+        reason=(
+            'qpdf normalizes a negative /Rotate when baking it into a form '
+            'XObject /Matrix only after 12.4.0 (qpdf commit 67b042cd)'
+        ),
+    )
+    def test_negative_rotation_overlay_matches_positive(self, graph_page):
+        # Regression test for #717: a page rotated -90 must produce the same
+        # form XObject (and therefore the same add_overlay placement) as a page
+        # rotated 270, since they are the same rotation. On qpdf without the fix,
+        # -90 was not normalized to [0, 360) and produced an unrotated /Matrix.
+        graph_page.obj.Rotate = -90
+        matrix_neg = list(graph_page.as_form_xobject().Matrix)
+
+        graph_page.obj.Rotate = 270
+        matrix_pos = list(graph_page.as_form_xobject().Matrix)
+
+        assert matrix_neg == matrix_pos

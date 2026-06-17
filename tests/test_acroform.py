@@ -227,3 +227,32 @@ def test_remove_fields_objecthandle(form):
     form.acroform.remove_fields(objlist)
     fields = form.acroform.get_fields_with_qualified_name('Button2')
     assert len(fields) == 0
+
+
+def test_acroform_validate(form):
+    acro = form.acroform
+    acro.validate()
+    acro.validate(repair=True)
+    assert acro.exists
+
+
+def test_acroform_invalidate_cache(form):
+    acro = form.acroform
+    # Modify field structure then force cache regeneration
+    assert len(acro.fields) == 5
+    acro.invalidate_cache()
+    assert len(acro.fields) == 5
+
+
+def test_acroform_transform_annotations(form):
+    from pikepdf import Matrix
+
+    acro = form.acroform
+    old_annots = form.pages[0].obj.Annots
+    new_annots, new_fields, old_fields = acro.transform_annotations(
+        old_annots, Matrix()
+    )
+    assert len(new_annots) == len(old_annots)
+    # Each transformed widget annotation that had a field yields a new field
+    assert len(new_fields) == len(old_fields)
+    assert all(isinstance(og, tuple) and len(og) == 2 for og in old_fields)

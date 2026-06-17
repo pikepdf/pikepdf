@@ -14,17 +14,17 @@ repos:
       - id: name-tests-test
         args: ["--pytest-test-first"]
   - repo: https://github.com/pre-commit/mirrors-clang-format
-    rev: v21.1.5
+    rev: v22.1.5
     hooks:
       - id: clang-format
         files: "src/.*\\.(cpp|h|hpp)?$"
   - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: "v0.14.4"
+    rev: "v0.15.16"
     hooks:
       - id: ruff
         files: "src/.*\\.pyi?$"
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.18.2
+    rev: v2.1.0
     hooks:
       - id: mypy
         exclude: "tests/.*\\.py$|canvas\\.py$|form\\.py$"

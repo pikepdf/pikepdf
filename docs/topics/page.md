@@ -94,3 +94,79 @@ necessary to manually wrap it with the support model:
 will return an appropriate trim box for this page, which in this case is
 equal to the media box. This happens even if the page does not define
 a trim box.
+
+### Prefer the managed accessors over raw dictionary keys
+
+A page is described both by keys stored directly on its own dictionary and by
+keys it *inherits* from the `/Pages` tree above it. The PDF specification allows
+`/MediaBox`, `/CropBox`, `/Resources` and `/Rotate` to be set on an intermediate
+node in the page tree and shared by every page beneath it -- so a page may have a
+media box or a rotation even though its own dictionary contains no such key.
+
+For this reason, prefer the managed accessors -- {attr}`~pikepdf.Page.mediabox`,
+{attr}`~pikepdf.Page.cropbox`, {attr}`~pikepdf.Page.trimbox`,
+{attr}`~pikepdf.Page.artbox`, {attr}`~pikepdf.Page.bleedbox` and
+{attr}`~pikepdf.Page.rotation` -- over reaching into `page.obj` for the raw keys.
+The managed accessors resolve inheritance, supply the specification's default
+values, and normalize the result, so they are correct in cases where the raw key
+is simply absent. Accessing `page.obj.MediaBox` or `page.Rotate` directly returns
+only what is stored on the page itself and raises `AttributeError` when the value
+is inherited rather than local.
+
+By default, {meth}`pikepdf.Pdf.open` flattens this inheritance for you. With
+`inherit_page_attributes=True` (the default), pikepdf pushes inherited attributes
+down onto every page at open time, so in the common case each page carries its
+own `/MediaBox`, `/Resources` and so on, and even raw access finds them. The
+managed accessors are still preferred, because they remain correct when you open
+with `inherit_page_attributes=False`, when you build or edit the page tree
+yourself, or when a page is later modified to rely on an inherited attribute.
+
+:::{note}
+Pass `inherit_page_attributes=False` to {meth}`pikepdf.Pdf.open` when you need to
+inspect or construct the page tree exactly as stored -- for example, when
+building a test fixture that exercises attribute inheritance. With the default,
+pikepdf would push inherited attributes down to the pages and obscure the page
+tree structure you are trying to work with.
+:::
+
+## Page rotation
+
+A page's rotation is the `/Rotate` entry: the number of degrees, in multiples of
+90, by which the page is rotated clockwise when displayed or printed. Like the
+page boxes, `/Rotate` is inheritable, so reading `page.Rotate` directly is
+unreliable -- it returns only a rotation stored on the page itself.
+
+Use the {attr}`~pikepdf.Page.rotation` property instead. It reports the
+*effective* rotation, resolving an inherited `/Rotate` and normalizing the result
+to the range `[0, 360)`, and returns `0` when no rotation is set:
+
+```{eval-rst}
+.. doctest::
+
+    >>> page1.rotation
+    0
+```
+
+Assigning to {attr}`~pikepdf.Page.rotation` sets the absolute rotation. To rotate
+relative to the current value, use {meth}`~pikepdf.Page.rotate` with
+``relative=True``:
+
+```{eval-rst}
+.. doctest::
+
+    >>> page1.rotation = 90       # set absolute rotation
+    >>> page1.rotation
+    90
+    >>> page1.rotate(90, relative=True)   # add another 90 degrees, clockwise
+    >>> page1.rotation
+    180
+```
+
+:::{note}
+Avoid setting `page.Rotate` directly. A value such as ``page.Rotate = -90`` is
+accepted but is not normalized, and some older versions of qpdf mishandled
+non-normalized rotations when transforming pages (for example in
+{meth}`~pikepdf.Page.add_overlay`). Assigning through
+{attr}`~pikepdf.Page.rotation`, or rotating with {meth}`~pikepdf.Page.rotate`,
+keeps the stored value well-formed.
+:::
