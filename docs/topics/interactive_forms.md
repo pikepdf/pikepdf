@@ -287,6 +287,6 @@ the returned {class}`pikepdf.PageCopyResult`. Only fields whose widgets are on
 the copied pages are carried over, so copying a subset never imports another
 form's data. Pass `forms='strip'` to copy pages without any form data at all.
 
-For merging whole files from disk, {class}`pikepdf.Job` / `JobBuilder`
-(`--pages`) is also form-aware and may be more convenient; `add_pages_from` is
-for in-memory, page-level work on a `Pdf` you are actively editing.
+For merging whole files from disk, {class}`pikepdf.Job` (the qpdf ``--pages``
+job) is also form-aware and may be more convenient; `add_pages_from` is for
+in-memory, page-level work on a `Pdf` you are actively editing.
