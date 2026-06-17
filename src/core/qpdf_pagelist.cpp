@@ -16,14 +16,9 @@ static bool page_has_widget(QPDFObjectHandle page)
     auto annots = page.getKey("/Annots");
     if (!annots.isArray())
         return false;
-    int n = annots.getArrayNItems();
-    for (int i = 0; i < n; ++i) {
-        auto a = annots.getArrayItem(i);
-        if (a.isDictionary()) {
-            auto st = a.getKey("/Subtype");
-            if (st.isName() && st.getName() == "/Widget")
-                return true;
-        }
+    for (auto &a : annots.aitems()) {
+        if (a.isDictionaryOfType("", "/Widget"))
+            return true;
     }
     return false;
 }
@@ -32,8 +27,7 @@ static bool action_is_named_goto(QPDFObjectHandle a)
 {
     if (!a.isDictionary())
         return false;
-    auto s = a.getKey("/S");
-    if (!(s.isName() && s.getName() == "/GoTo"))
+    if (!a.getKey("/S").isNameAndEquals("/GoTo"))
         return false;
     auto d = a.getKey("/D");
     return d.isString() || d.isName();
@@ -46,9 +40,7 @@ static bool page_has_named_dest(QPDFObjectHandle page)
     auto annots = page.getKey("/Annots");
     if (!annots.isArray())
         return false;
-    int n = annots.getArrayNItems();
-    for (int i = 0; i < n; ++i) {
-        auto a = annots.getArrayItem(i);
+    for (auto &a : annots.aitems()) {
         if (!a.isDictionary())
             continue;
         auto dest = a.getKey("/Dest");

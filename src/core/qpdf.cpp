@@ -802,9 +802,8 @@ void init_qpdf(py::module_ &m)
                     auto fields = acro.getKey("/Fields");
                     if (fields.isArray()) {
                         std::vector<QPDFObjectHandle> stack;
-                        int n = fields.getArrayNItems();
-                        for (int i = 0; i < n; ++i)
-                            stack.push_back(fields.getArrayItem(i));
+                        for (auto &field : fields.aitems())
+                            stack.push_back(field);
                         while (!stack.empty()) {
                             auto f = stack.back();
                             stack.pop_back();
@@ -815,9 +814,8 @@ void init_qpdf(py::module_ &m)
                                 continue;
                             auto kids = f.getKey("/Kids");
                             if (kids.isArray()) {
-                                int kn = kids.getArrayNItems();
-                                for (int i = 0; i < kn; ++i)
-                                    stack.push_back(kids.getArrayItem(i));
+                                for (auto &kid : kids.aitems())
+                                    stack.push_back(kid);
                             }
                         }
                     }
@@ -828,13 +826,10 @@ void init_qpdf(py::module_ &m)
                     auto annots = page.getObjectHandle().getKey("/Annots");
                     if (!annots.isArray())
                         continue;
-                    int n = annots.getArrayNItems();
-                    for (int i = 0; i < n; ++i) {
-                        auto a = annots.getArrayItem(i);
+                    for (auto &a : annots.aitems()) {
                         if (!a.isDictionary())
                             continue;
-                        auto st = a.getKey("/Subtype");
-                        if (!(st.isName() && st.getName() == "/Widget"))
+                        if (!a.getKey("/Subtype").isNameAndEquals("/Widget"))
                             continue;
                         bool found = false;
                         auto cur = a;

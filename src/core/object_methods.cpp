@@ -124,10 +124,8 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
                     throw py::type_error("update() argument must be a dictionary");
                 }
                 // Efficient C++-to-C++ merge without Python overhead
-                for (auto const &key : other.getKeys()) {
-                    QPDFObjectHandle val = other.getKey(key);
+                for (auto &[key, val] : other.ditems())
                     object_set_key(h, key, val);
-                }
             },
             "Update the dictionary with key/value pairs from another pikepdf "
             "Dictionary.")
