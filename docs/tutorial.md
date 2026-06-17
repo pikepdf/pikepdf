@@ -276,6 +276,13 @@ Removing pages is easy too.
     2
 ```
 
+:::{note}
+Deleting a page unlinks it from the page tree, but a page that is still
+referenced by an outline (bookmark), link annotation, or named destination is
+retained when you save. See {ref}`Deleting pages <deleting_pages>` for the
+details and workarounds.
+:::
+
 ## Saving changes
 
 :::{figure} /images/save-pike.jpg

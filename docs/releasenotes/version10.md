@@ -108,6 +108,13 @@ the architecture notes on thread safety.
   documented behavior that `compress_streams=False` alone does not trigger
   decompression. Fixes {issue}`676`.
 
+### Documentation
+- Documented a long-standing page-deletion pitfall: deleting a page unlinks it
+  from the page tree, but a page that is still referenced by an outline
+  (bookmark), link annotation, or named destination remains in the saved file.
+  The {ref}`Deleting pages <deleting_pages>` topic now explains the behavior and
+  gives workarounds. Thanks to m-holger. Closes {issue}`196`.
+
 ## v10.8.0
 
 - Added {class}`pikepdf.ReferenceCycleError` (a subclass of

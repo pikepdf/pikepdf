@@ -170,3 +170,69 @@ non-normalized rotations when transforming pages (for example in
 {attr}`~pikepdf.Page.rotation`, or rotating with {meth}`~pikepdf.Page.rotate`,
 keeps the stored value well-formed.
 :::
+
+(deleting_pages)=
+
+## Deleting pages
+
+Remove pages through the {attr}`~pikepdf.Pdf.pages` list, using `del`,
+slicing, or the usual list operations:
+
+```{eval-rst}
+.. doctest::
+
+    >>> pdf = Pdf.open('../tests/resources/fourpages.pdf')
+
+    >>> del pdf.pages[1]        # delete the second page
+
+    >>> len(pdf.pages)
+    3
+```
+
+This removes the page from the page tree, so it no longer appears in the
+document.
+
+### Pages referenced elsewhere are not fully removed
+
+Deleting a page only unlinks it from the page tree. It does **not** remove
+other objects that *refer* to that page. If an outline (bookmark) entry, a
+link annotation, or a named destination points at the deleted page, that
+reference keeps the page object reachable, so qpdf retains the page -- and its
+content streams and resources -- when you save.
+
+The visible result is that the page no longer appears in the document, but the
+saved file does not shrink as much as expected, and the now-orphaned
+destination may behave like a broken link. This is correct PDF behaviour: an
+object that is still referenced is still part of the document. To remove the
+page completely you also have to remove whatever refers to it.
+
+There are two practical approaches.
+
+**Remove the referencing object as well.** This is the most correct fix,
+because it also eliminates the broken destination. For example, if a bookmark
+points at the page you are deleting, delete that bookmark too (see
+{doc}`outlines`).
+
+**Strip the page's content before deleting it.** If you cannot easily find
+every reference, clear the page's own dictionary first. The page object may
+still linger because something references it, but it will be empty, so its
+heavy content streams and resources are dropped and the file shrinks:
+
+```{eval-rst}
+.. doctest::
+
+    >>> page = pdf.pages[1]
+
+    >>> for key in list(page.keys()):
+    ...     del page[key]
+
+    >>> del pdf.pages[1]
+```
+
+:::{note}
+A plain `del pdf.pages[n]` *does* fully remove pages that nothing else refers
+to -- the common case. The caveat above applies only when another object holds
+a reference to the deleted page. (Earlier versions of pikepdf could leave even
+unreferenced deleted pages in the output because of a qpdf bug with object
+streams; that was fixed in qpdf 10.3.2.)
+:::
