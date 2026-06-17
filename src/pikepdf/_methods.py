@@ -412,6 +412,14 @@ class Extend_Pdf:
         listed in the result's ``partial_fields``. Use ``forms='strip'`` for a
         hard guarantee of no form data.
 
+        Named destinations referenced by the copied pages' annotations (such as
+        table-of-contents links) are carried into this document, preserving both
+        the ``Names.Dests`` name tree and the legacy ``Root.Dests`` dictionary.
+        A destination whose target page is not among the copied pages cannot be
+        migrated and is reported in :attr:`pikepdf.PageCopyResult.dropped_dests`;
+        names that collide with existing destinations are renamed and reported in
+        ``renamed_dests``.
+
         Args:
             src: Source ``Pdf`` to copy pages from.
             pages: Zero-based indices (iterable, ``range`` or ``slice``) of
