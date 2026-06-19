@@ -55,7 +55,21 @@ public:
         saved_precision = py::cast<uint>(decimal_context.attr("prec"));
         decimal_context.attr("prec") = calc_precision;
     }
-    ~DecimalPrecision() { decimal_context.attr("prec") = saved_precision; }
+    ~DecimalPrecision()
+    {
+        // Restoring the precision calls back into Python, which can throw. This
+        // guard is destroyed while unwinding from conversion errors (e.g. a
+        // Decimal NaN/Infinity), so a thrown exception must not escape the
+        // destructor and call std::terminate. error_scope preserves any in-flight
+        // Python error across the restore. (Same hazard as the input source
+        // destructors, issue #732.)
+        try {
+            py::error_scope save_in_flight_error;
+            decimal_context.attr("prec") = saved_precision;
+        } catch (...) {
+            // A destructor must never let an exception escape.
+        }
+    }
     DecimalPrecision(const DecimalPrecision &other) = delete;
     DecimalPrecision(DecimalPrecision &&other) = delete;
     DecimalPrecision &operator=(const DecimalPrecision &other) = delete;

@@ -25,7 +25,8 @@ the architecture notes on thread safety.
   from a filename closes the file in the input source destructor, which calls
   back into Python; with an exception already in flight that call raised an error
   that escaped the destructor. The in-flight exception is now preserved and
-  propagates normally. (#732)
+  propagates normally. (#732) Added a guard for a likely non-reproducible related
+  case with DecimalPrecision.
 
 ## v10.9.0
 
