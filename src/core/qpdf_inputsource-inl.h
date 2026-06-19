@@ -40,15 +40,29 @@ public:
     }
     virtual ~PythonStreamInputSource()
     {
+        if (!this->close)
+            return;
+        py::gil_scoped_acquire gil;
+        // A Pdf may be deallocated while a Python exception is still propagating,
+        // e.g. when it is dropped from a partially built list literal during
+        // unwind (issue #732). Save and clear that in-flight error before calling
+        // back into Python: otherwise close() observes it (CPython raises
+        // "returned a result with an exception set") and the resulting exception
+        // escaping this destructor calls std::terminate. error_scope is declared
+        // at function scope so it restores the original error *after* the handlers
+        // below run, letting it resume propagating normally.
+        py::error_scope save_in_flight_error;
         try {
-            if (this->close) {
-                py::gil_scoped_acquire gil;
-                if (py::hasattr(this->stream, "close"))
-                    this->stream.attr("close")();
-            }
+            if (py::hasattr(this->stream, "close"))
+                this->stream.attr("close")();
+        } catch (py::python_error &e) {
+            e.restore();
+            PyErr_WriteUnraisable(nullptr);
         } catch (const std::runtime_error &e) {
             if (!str_startswith(e.what(), "StopIteration"))
                 std::cerr << "Exception in " << __func__ << ": " << e.what();
+        } catch (...) {
+            // A destructor must never let an exception escape.
         }
     }
     PythonStreamInputSource(const PythonStreamInputSource &) = delete;

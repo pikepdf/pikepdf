@@ -14,6 +14,19 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.9.1
+
+### Fixed
+
+- Fixed a crash (`SIGABRT` via `std::terminate`) that could occur when a
+  file-backed {class}`pikepdf.Pdf` was deallocated while a Python exception was
+  already propagating -- for example when `pikepdf.open(filename)` appears as a
+  transient element of a list/tuple literal whose later element raises. Opening
+  from a filename closes the file in the input source destructor, which calls
+  back into Python; with an exception already in flight that call raised an error
+  that escaped the destructor. The in-flight exception is now preserved and
+  propagates normally. (#732)
+
 ## v10.9.0
 
 ### New features

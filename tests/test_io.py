@@ -7,6 +7,8 @@ import logging
 import os
 import os.path
 import pathlib
+import subprocess
+import sys
 from io import BytesIO, FileIO
 from shutil import copy
 
@@ -194,6 +196,49 @@ def test_read_after_close(resources):
     pdf.close()
     with pytest.raises(PdfError, match="closed input source"):
         contents.read_raw_bytes()
+
+
+# Regression for https://github.com/pikepdf/pikepdf/issues/732
+#
+# Opening a Pdf from a filename makes pikepdf open the file as a Python stream;
+# the input source's destructor then calls back into Python to close it. If the
+# Pdf is held only by a transient on the evaluation stack (the list literal
+# below) and a *later* element raises, the Pdf is deallocated while a Python
+# exception is still in flight. The destructor must neither let an exception
+# escape (which calls std::terminate -> SIGABRT) nor swallow the in-flight
+# exception.
+_UNWIND_REPRO = """
+import sys
+import pikepdf
+
+path = sys.argv[1]
+access_mode = getattr(pikepdf.AccessMode, sys.argv[2])
+
+def boom():
+    raise ValueError("oops")
+
+# The freshly-opened Pdf is a transient list element; boom() raises while the
+# Pdf is still only referenced by the half-built list, so it is freed mid-unwind
+# with the Python error indicator set.
+[pikepdf.open(path, access_mode=access_mode), boom()]
+"""
+
+
+@pytest.mark.parametrize("access_mode", ["stream", "mmap_only"])
+def test_close_during_exception_unwind(resources, access_mode):
+    result = subprocess.run(
+        [sys.executable, "-c", _UNWIND_REPRO, str(resources / 'pal.pdf'), access_mode],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    # Must not abort: SIGABRT shows up as a negative return code (e.g. -6).
+    assert result.returncode == 1, (
+        f"expected clean ValueError exit, got returncode={result.returncode}\n"
+        f"stderr:\n{result.stderr}"
+    )
+    # The in-flight exception must propagate normally, not be swallowed.
+    assert "ValueError: oops" in result.stderr
 
 
 def test_logging(caplog):

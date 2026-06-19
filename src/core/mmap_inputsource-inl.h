@@ -72,6 +72,13 @@ public:
     virtual ~MmapInputSource()
     {
         py::gil_scoped_acquire acquire;
+        // A Pdf may be deallocated while a Python exception is still propagating
+        // (issue #732). Save and clear that in-flight error before calling back
+        // into Python below: otherwise close() observes it (CPython raises
+        // "returned a result with an exception set"). error_scope is declared at
+        // function scope so it restores the original error *after* the handlers
+        // below run, letting it resume propagating normally.
+        py::error_scope save_in_flight_error;
         try {
             // Release the Py_buffer before we can close the memory mapping,
             // since we exported a pointer from it.
@@ -94,6 +101,8 @@ public:
         } catch (const std::runtime_error &e) {
             if (!str_startswith(e.what(), "StopIteration"))
                 std::cerr << "Exception in " << __func__ << ": " << e.what();
+        } catch (...) {
+            // A destructor must never let an exception escape.
         }
         // LCOV_EXCL_STOP
     }
