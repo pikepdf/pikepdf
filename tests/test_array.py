@@ -64,3 +64,5 @@ class TestArrayMethods:
             n.pop()
         with pytest.raises(TypeError, match="cannot insert object of type name"):
             n.insert(0, 1)
+        with pytest.raises(TypeError, match="cannot reverse object of type name"):
+            n.reverse()
