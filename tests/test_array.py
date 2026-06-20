@@ -92,3 +92,23 @@ class TestArrayMethods:
             a.remove(99)
         with pytest.raises(ValueError, match="item not in array"):
             a.index(99)
+
+    def test_getitem_robustness(self):
+        a = Array([10, 11, 12, 13, 14])
+        assert list(a[1:4]) == [11, 12, 13], "Basic slice read failed"
+        assert list(a[::2]) == [10, 12, 14], "Stride slice read failed"
+        assert list(a[::-1]) == [14, 13, 12, 11, 10], "Negative stride read failed"
+        d = Dictionary(Foo=a)
+        assert list(d.Foo[0:1]) == [10]
+        with pytest.raises(TypeError, match="not an Array: cannot slice"):
+            _ = d[1:4]
+
+    def test_broken_slice_index(self):
+        a = Array([1, 2, 3])
+
+        class BrokenIndex:
+            def __index__(self):
+                raise MemoryError("bad index")
+
+        with pytest.raises(MemoryError):
+            _ = a[BrokenIndex() :]

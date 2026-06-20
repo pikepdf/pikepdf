@@ -72,6 +72,21 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
                 return traverse_namepath(h, path);
             })
         .def("__getitem__",
+            [](QPDFObjectHandle &h, py::slice slice) {
+                QpdfLockGuard lock(h.getOwningQPDF());
+                ensure_array(h, "slice");
+                auto [start, stop, step, slicelength] =
+                    slice.compute(h.getArrayNItems());
+                std::vector<QPDFObjectHandle> items;
+                items.reserve(slicelength);
+                Py_ssize_t idx = start;
+                for (size_t i = 0; i < slicelength; ++i) {
+                    items.push_back(h.getArrayItem(static_cast<int>(idx)));
+                    idx += step;
+                }
+                return QPDFObjectHandle::newArray(items);
+            })
+        .def("__getitem__",
             [](QPDFObjectHandle &h, py::object key) -> QPDFObjectHandle {
                 QpdfLockGuard lock(h.getOwningQPDF());
                 std::string k = string_from_key(key);
