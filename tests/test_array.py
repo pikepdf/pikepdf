@@ -112,3 +112,41 @@ class TestArrayMethods:
 
         with pytest.raises(MemoryError):
             _ = a[BrokenIndex() :]
+
+    def test_slice_del_edge_cases(self):
+        a = Array(range(10))
+        del a[1:4]
+        assert list(a) == [0, 4, 5, 6, 7, 8, 9]
+
+        a = Array(range(10))
+        del a[::2]
+        assert list(a) == [1, 3, 5, 7, 9]
+
+        a = Array(range(10))
+        del a[::-2]
+        assert list(a) == [0, 2, 4, 6, 8]
+
+    def test_slice_deletion_robustness(self):
+        a = Array([0, 1, 2, 3, 4, 5, 6])
+        del a[1:6:2]
+        assert list(a) == [0, 2, 4, 6], "Positive stride deletion failed"
+
+        b = Array([0, 1, 2, 3, 4, 5, 6])
+        del b[5:0:-2]
+        assert list(b) == [0, 2, 4, 6], "Negative stride deletion failed"
+
+        c = Array([0, 1, 2, 3, 4, 5, 6])
+        del c[::-1]
+        assert len(c) == 0, "Full reverse deletion failed"
+
+        d = Array([0, 1, 2, 3])
+        del d[2:]
+        assert list(d) == [0, 1], "End-capped slice deletion failed"
+
+    def test_dictionary_del_still_works(self):
+        d = pikepdf.Dictionary(Foo=1, Bar=2)
+        del d.Foo
+        assert "/Foo" not in d
+        assert "/Bar" in d
+        del d["/Bar"]
+        assert len(d) == 0

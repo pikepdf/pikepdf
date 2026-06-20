@@ -12,9 +12,11 @@
 #include "namepath.h"
 #include "parsers.h"
 
+#include <algorithm>
 #include <cctype>
 #include <cmath>
 #include <cstring>
+#include <vector>
 
 #include "object.h"
 #include <qpdf/Buffer.hh>
@@ -214,6 +216,25 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
         .def("__delitem__",
             [](QPDFObjectHandle &h, QPDFObjectHandle &name) {
                 object_del_key(h, name.getName());
+            })
+        .def("__delitem__",
+            [](QPDFObjectHandle &h, py::slice slice) {
+                QpdfLockGuard lock(h.getOwningQPDF());
+                ensure_array(h, "delete slice");
+                auto [start, stop, step, slicelength] =
+                    slice.compute(h.getArrayNItems());
+                std::vector<int> indices;
+                indices.reserve(slicelength);
+                Py_ssize_t idx = start;
+                for (size_t i = 0; i < slicelength; ++i) {
+                    indices.push_back(static_cast<int>(idx));
+                    idx += step;
+                }
+                // Delete from highest index to lowest so earlier indices
+                // remain valid as items are erased.
+                std::sort(indices.begin(), indices.end(), std::greater<int>());
+                for (int i : indices)
+                    h.eraseItem(i);
             })
         .def("__delitem__",
             [](QPDFObjectHandle &h, py::object key) {
