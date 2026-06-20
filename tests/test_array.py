@@ -66,3 +66,29 @@ class TestArrayMethods:
             n.insert(0, 1)
         with pytest.raises(TypeError, match="cannot reverse object of type name"):
             n.reverse()
+
+    def test_count(self):
+        a = Array([1, 2, 2, 3, Name.Foo])
+        assert a.count(2) == 2
+        assert a.count(Name.Foo) == 1
+        assert a.count(42) == 0
+
+    def test_index(self):
+        a = Array([Name.A, Name.B, Name.C])
+        assert a.index(Name.B) == 1
+        with pytest.raises(ValueError, match="item not in array"):
+            a.index(Name.Z)
+
+    def test_remove(self):
+        a = Array([1, 2, 2, 3])
+        a.remove(2)
+        assert a == [1, 2, 3]
+        with pytest.raises(ValueError, match="item not in array"):
+            a.remove(42)
+
+    def test_search_failures(self):
+        a = Array([1, 2, 3])
+        with pytest.raises(ValueError, match="item not in array"):
+            a.remove(99)
+        with pytest.raises(ValueError, match="item not in array"):
+            a.index(99)

@@ -522,6 +522,53 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
             },
             py::arg("index") = -1,
             "Remove and return the item at *index* (default last).")
+        .def(
+            "remove",
+            [](QPDFObjectHandle &h, py::object value) {
+                QpdfLockGuard lock(h.getOwningQPDF());
+                ensure_array(h, "remove");
+                auto needle = objecthandle_encode(value);
+                int n = h.getArrayNItems();
+                for (int i = 0; i < n; ++i) {
+                    if (objecthandle_equal(h.getArrayItem(i), needle)) {
+                        h.eraseItem(i);
+                        return;
+                    }
+                }
+                throw py::value_error("item not in array");
+            },
+            py::arg("value"),
+            "Remove the first item equal to *value*.")
+        .def(
+            "index",
+            [](QPDFObjectHandle &h, py::object value) {
+                QpdfLockGuard lock(h.getOwningQPDF());
+                ensure_array(h, "index");
+                auto needle = objecthandle_encode(value);
+                int n = h.getArrayNItems();
+                for (int i = 0; i < n; ++i) {
+                    if (objecthandle_equal(h.getArrayItem(i), needle))
+                        return i;
+                }
+                throw py::value_error("item not in array");
+            },
+            py::arg("value"),
+            "Return the index of the first item equal to *value*.")
+        .def(
+            "count",
+            [](QPDFObjectHandle &h, py::object value) {
+                QpdfLockGuard lock(h.getOwningQPDF());
+                ensure_array(h, "count");
+                auto needle = objecthandle_encode(value);
+                int count = 0;
+                for (auto const &item : h.aitems()) {
+                    if (objecthandle_equal(item, needle))
+                        ++count;
+                }
+                return count;
+            },
+            py::arg("value"),
+            "Return the number of items equal to *value*.")
         .def_prop_ro("is_rectangle",
             &QPDFObjectHandle::isRectangle // LCOV_EXCL_LINE
             )
