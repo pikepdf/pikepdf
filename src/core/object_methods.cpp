@@ -470,6 +470,58 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
                     h.appendItem(objecthandle_encode(item));
                 }
             })
+        .def(
+            "clear",
+            [](QPDFObjectHandle &h) {
+                QpdfLockGuard lock(h.getOwningQPDF());
+                ensure_array(h, "clear");
+                for (int i = h.getArrayNItems() - 1; i >= 0; --i)
+                    h.eraseItem(i);
+            },
+            "Remove all items from the array.")
+        .def(
+            "reverse",
+            [](QPDFObjectHandle &h) {
+                QpdfLockGuard lock(h.getOwningQPDF());
+                ensure_array(h, "reverse");
+                int n = h.getArrayNItems();
+                for (int i = 0; i < n / 2; ++i) {
+                    auto left = h.getArrayItem(i);
+                    auto right = h.getArrayItem(n - 1 - i);
+                    h.setArrayItem(i, right);
+                    h.setArrayItem(n - 1 - i, left);
+                }
+            },
+            "Reverse the elements of the array in place.")
+        .def(
+            "insert",
+            [](QPDFObjectHandle &h, int index, py::object value) {
+                QpdfLockGuard lock(h.getOwningQPDF());
+                ensure_array(h, "insert");
+                int nitems = h.getArrayNItems();
+                if (index < 0)
+                    index += nitems;
+                if (index < 0)
+                    index = 0;
+                if (index > nitems)
+                    index = nitems;
+                h.insertItem(index, objecthandle_encode(value));
+            },
+            py::arg("index"),
+            py::arg("value").none(),
+            "Insert an object before the given index (Python list.insert semantics).")
+        .def(
+            "pop",
+            [](QPDFObjectHandle &h, int index) {
+                QpdfLockGuard lock(h.getOwningQPDF());
+                ensure_array(h, "pop");
+                auto u_index = list_range_check(h, index);
+                auto item = h.getArrayItem(static_cast<int>(u_index));
+                h.eraseItem(static_cast<int>(u_index));
+                return item;
+            },
+            py::arg("index") = -1,
+            "Remove and return the item at *index* (default last).")
         .def_prop_ro("is_rectangle",
             &QPDFObjectHandle::isRectangle // LCOV_EXCL_LINE
             )
