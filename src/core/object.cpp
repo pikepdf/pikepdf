@@ -84,15 +84,24 @@ needed.
 
 */
 
+void ensure_array(QPDFObjectHandle h, const char *action)
+{
+    if (!h.isArray()) {
+        std::string msg = std::string("pikepdf.Object is not an Array: cannot ") +
+                          action + " object of type " + h.getTypeName();
+        throw py::type_error(msg.c_str());
+    }
+}
+
 size_t list_range_check(QPDFObjectHandle h, int index)
 {
     QpdfLockGuard lock(h.getOwningQPDF());
-    if (!h.isArray())
-        throw py::type_error("object is not an array");
+    ensure_array(h, "index");
+    int n = h.getArrayNItems();
     if (index < 0)
-        index += h.getArrayNItems(); // Support negative indexing
-    if (!(0 <= index && index < h.getArrayNItems()))
-        throw py::index_error("index out of range");
+        index += n; // Support negative indexing
+    if (index < 0 || index >= n)
+        throw py::index_error("array index out of range");
     return static_cast<size_t>(index);
 }
 

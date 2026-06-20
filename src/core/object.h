@@ -22,6 +22,7 @@
 // Helpers defined in object.cpp and used by object_methods.cpp.
 std::string string_from_key(py::handle key);
 py::str safe_decode(std::string const &s);
+void ensure_array(QPDFObjectHandle h, const char *action);
 size_t list_range_check(QPDFObjectHandle h, int index);
 bool object_has_key(QPDFObjectHandle h, std::string const &key);
 bool array_has_item(QPDFObjectHandle haystack, QPDFObjectHandle needle);
