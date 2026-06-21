@@ -14,6 +14,15 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.9.2
+
+### New features
+
+-   {class}`pikepdf.Array` now implements the standard Python ``list`` interface:
+    slicing (including ``del`` on slices and slice assignment), and the
+    ``clear()``, ``count()``, ``index()``, ``insert()``, ``pop()``, ``remove()``,
+    and ``reverse()`` methods.
+
 ## v10.9.1
 
 ### Fixed

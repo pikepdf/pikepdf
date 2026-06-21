@@ -66,6 +66,12 @@ class TestArrayMethods:
             n.insert(0, 1)
         with pytest.raises(TypeError, match="cannot reverse object of type name"):
             n.reverse()
+        with pytest.raises(TypeError, match="cannot count object of type name"):
+            n.count(1)
+        with pytest.raises(TypeError, match="cannot index object of type name"):
+            n.index(1)
+        with pytest.raises(TypeError, match="cannot remove object of type name"):
+            n.remove(1)
 
     def test_count(self):
         a = Array([1, 2, 2, 3, Name.Foo])
@@ -206,10 +212,10 @@ class TestArrayMethods:
 
     def test_error_consistency(self):
         a = Array(range(5))
-        l = list(range(5))
+        lst = list(range(5))
         msg_list = msg_pike = ""
         try:
-            l[1:3] = 42
+            lst[1:3] = 42
         except TypeError as e_list:
             msg_list = str(e_list)
         try:
@@ -227,3 +233,37 @@ class TestArrayMethods:
 
         with pytest.raises(RuntimeError, match="Boom"):
             a[0:1] = exploding_generator()
+
+    def test_copy(self):
+        a = Array([1, 2])
+        b = a.copy()
+        assert a == b
+        assert a is not b
+
+    def test_array_copy(self):
+        inner = [1, 2]
+        a = Array([inner, 3])
+        b = a.copy()
+        assert a == b
+        a[0].append(3)
+        assert 3 not in b[0]
+
+    def test_dictionary_copy(self):
+        d = Dictionary(Foo=Array([1, 2]))
+        d2 = d.copy()
+        assert d == d2
+        d.Foo.append(3)
+        assert 3 not in d2.Foo
+
+    def test_slice_setitem_on_non_array(self):
+        d = Dictionary(Foo=1)
+        with pytest.raises(TypeError, match="not an Array: cannot set slice"):
+            d[0:1] = [1, 2]
+
+
+class TestArrayTypeErrors:
+    """Type error handling for Array operations."""
+
+    def test_string_containment_ambiguity(self):
+        with pytest.raises(TypeError, match="ambiguity"):
+            "a" in Array([String("a")])
