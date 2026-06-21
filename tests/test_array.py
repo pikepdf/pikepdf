@@ -150,3 +150,80 @@ class TestArrayMethods:
         assert "/Bar" in d
         del d["/Bar"]
         assert len(d) == 0
+
+    def test_slice_setitem(self):
+        a = Array([0, 1, 2, 3])
+        a[1:3] = [8, 9]
+        assert list(a) == [0, 8, 9, 3]
+
+        a[1:2] = [10, 11, 12]  # grow
+        assert list(a) == [0, 10, 11, 12, 9, 3]
+
+        a[1:4] = [99]  # shrink
+        assert list(a) == [0, 99, 9, 3]
+
+        b = Array([0, 1, 2, 3, 4])
+        b[::2] = [10, 20, 30]  # extended, one-to-one
+        assert list(b) == [10, 1, 20, 3, 30]
+
+        with pytest.raises(ValueError, match="attempt to assign sequence of size 2"):
+            b[::2] = [1, 2]
+
+        c = Array([1, 2, 3])
+        c[:] = Array([7, 8, 9])  # assign from another pikepdf.Array
+        assert list(c) == [7, 8, 9]
+
+    def test_array_setitem_positive(self):
+        arr = Array([10, 20, 30])
+        arr[1] = 40
+        assert arr[1] == 40
+
+    def test_array_setitem_negative(self):
+        arr = Array([10, 20, 30])
+        arr[-1] = 99
+        assert arr[2] == 99
+
+    def test_array_setitem_out_of_range(self):
+        arr = Array([1, 2])
+        with pytest.raises(IndexError, match="array index out of range"):
+            arr[5] = 10
+        with pytest.raises(IndexError, match="array index out of range"):
+            arr[-5] = 10
+
+    def test_setitem_on_non_array(self):
+        d = Dictionary(Foo=1)
+        with pytest.raises(TypeError, match="not an Array"):
+            d[0] = 2
+
+    def test_array_slice_errors(self):
+        arr = Array([1, 2, 3])
+        with pytest.raises(ValueError, match="slice step"):
+            _ = arr[::0]
+        with pytest.raises(ValueError, match="slice step"):
+            del arr[::0]
+        with pytest.raises(ValueError, match="slice step"):
+            arr[::0] = Array([1, 2])
+
+    def test_error_consistency(self):
+        a = Array(range(5))
+        l = list(range(5))
+        msg_list = msg_pike = ""
+        try:
+            l[1:3] = 42
+        except TypeError as e_list:
+            msg_list = str(e_list)
+        try:
+            a[1:3] = 42
+        except TypeError as e_pike:
+            msg_pike = str(e_pike)
+        assert "can only assign an iterable" in msg_pike or msg_list == msg_pike
+
+    def test_generator_error_propagates(self):
+        a = Array([1, 2, 3])
+
+        def exploding_generator():
+            yield 1
+            raise RuntimeError("Boom")
+
+        with pytest.raises(RuntimeError, match="Boom"):
+            a[0:1] = exploding_generator()

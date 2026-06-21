@@ -483,6 +483,56 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
             py::arg("value").none())
         .def(
             "__setitem__",
+            [](QPDFObjectHandle &h, py::slice slice, py::object val) {
+                QpdfLockGuard lock(h.getOwningQPDF());
+                ensure_array(h, "set slice");
+
+                // Validate iterability and obtain an iterator. Typing the
+                // value as py::object (not py::iterable) lets us emit the
+                // list-compatible message for non-iterables like int.
+                PyObject *iter_raw = PyObject_GetIter(val.ptr());
+                if (!iter_raw) {
+                    PyErr_Clear();
+                    throw py::type_error("can only assign an iterable");
+                }
+                py::object iterator = py::steal(iter_raw);
+
+                auto [start, stop, step, slicelength] =
+                    slice.compute(h.getArrayNItems());
+
+                std::vector<QPDFObjectHandle> new_vals;
+                PyObject *item;
+                while ((item = PyIter_Next(iterator.ptr())) != nullptr) {
+                    py::object o = py::steal(item);
+                    new_vals.push_back(objecthandle_encode(o));
+                }
+                if (PyErr_Occurred())
+                    throw py::python_error();
+
+                if (step != 1) {
+                    if (new_vals.size() != slicelength)
+                        throw py::value_error(("attempt to assign sequence of size " +
+                                               std::to_string(new_vals.size()) +
+                                               " to extended slice of size " +
+                                               std::to_string(slicelength))
+                                .c_str());
+                    Py_ssize_t idx = start;
+                    for (size_t i = 0; i < new_vals.size(); ++i) {
+                        h.setArrayItem(static_cast<int>(idx), new_vals[i]);
+                        idx += step;
+                    }
+                } else {
+                    for (size_t i = 0; i < slicelength; ++i)
+                        h.eraseItem(static_cast<int>(start));
+                    int insert_at = static_cast<int>(start);
+                    for (auto const &obj : new_vals)
+                        h.insertItem(insert_at++, obj);
+                }
+            },
+            py::arg("slice"),
+            py::arg("value"))
+        .def(
+            "__setitem__",
             [](QPDFObjectHandle &h, py::object key, py::object pyvalue) {
                 std::string k = string_from_key(key);
                 auto value = objecthandle_encode(pyvalue);
