@@ -35,7 +35,11 @@ from pikepdf import (
     StreamDecodeLevel,
     parse_content_stream,
 )
-from pikepdf.models._transcoding import _next_multiple, unpack_subbyte_pixels
+from pikepdf.models._transcoding import (
+    _next_multiple,
+    fix_1bit_palette_image,
+    unpack_subbyte_pixels,
+)
 from pikepdf.models.image import (
     PdfJpxImage,
     UnsupportedImageTypeError,
@@ -1340,6 +1344,63 @@ def test_palette_nonrgb(base_factory, hival, bits, palette, expect_type, expect_
     # To view images:
     # pim.extract_to(fileprefix=f'palette_nonrgb_{expect_type}_{bits}')
     assert pim.mode == expect_mode
+
+
+def test_palette_1bit_cmyk():
+    # A 1-bit /Indexed image over a /DeviceCMYK base must apply its palette.
+    # 8x1 pixels alternating index 0,1 packed MSB-first (0b01010101) into one
+    # byte, with a two-entry CMYK palette.
+    pdf = pikepdf.new()
+    palette = CMYK_RED + CMYK_GREEN
+    imobj = Stream(
+        pdf,
+        bytes([0b01010101]),
+        BitsPerComponent=1,
+        ColorSpace=Array([Name.Indexed, Name.DeviceCMYK, 1, palette]),
+        Width=8,
+        Height=1,
+        Type=Name.XObject,
+        Subtype=Name.Image,
+    )
+    pim = pikepdf.PdfImage(imobj)
+    assert pim.palette == ('CMYK', palette)
+    im = pim.as_pil_image()
+    assert im.mode == 'CMYK'
+    assert im.getpixel((0, 0)) == tuple(CMYK_RED)
+    assert im.getpixel((1, 0)) == tuple(CMYK_GREEN)
+
+
+def test_palette_1bit_rgb_single_color():
+    # A 1-bit /Indexed /DeviceRGB image with hival 0 has a single-entry (3-byte)
+    # palette; every pixel is index 0 and must render as that colour.
+    pdf = pikepdf.new()
+    palette = bytes([255, 128, 0])
+    imobj = Stream(
+        pdf,
+        bytes([0x00]),  # 8x1 pixels, all index 0
+        BitsPerComponent=1,
+        ColorSpace=Array([Name.Indexed, Name.DeviceRGB, 0, palette]),
+        Width=8,
+        Height=1,
+        Type=Name.XObject,
+        Subtype=Name.Image,
+    )
+    pim = pikepdf.PdfImage(imobj)
+    assert pim.palette == ('RGB', palette)
+    im = pim.as_pil_image().convert('RGB')
+    assert im.getpixel((0, 0)) == (255, 128, 0)
+    assert im.getpixel((7, 0)) == (255, 128, 0)
+
+
+def test_fix_1bit_palette_rejects_unsupported_base():
+    # An /Indexed base that is not RGB/L/CMYK (e.g. /DeviceN or /Separation)
+    # must fail loudly rather than silently return an unpalettized image, to
+    # match the 2/4/8-bit path (image_from_buffer_and_palette).
+    from PIL import Image
+
+    im = Image.frombytes('1', (8, 1), bytes([0b01010101]))
+    with pytest.raises(NotImplementedError, match='palette with DeviceN'):
+        fix_1bit_palette_image(im, 'DeviceN', b'\x00' * 8)
 
 
 def test_extract_to_mutex_params(sandwich):

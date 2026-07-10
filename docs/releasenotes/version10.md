@@ -14,6 +14,18 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.10.1
+
+- Fixed 1-bit `/Indexed` images losing their palette when extracted.
+  {meth}`pikepdf.PdfImage.as_pil_image` and {meth}`pikepdf.PdfImage.extract_to`
+  previously ignored the palette of a 1-bit indexed image over a `/DeviceCMYK`
+  base (returning a bilevel grayscale image) and of a single-colour palette
+  (``hival`` 0). Both now decode correctly, matching the existing behavior for
+  2/4/8-bit indexed images.
+- A 1-bit `/Indexed` image whose base colour space is unsupported (for example
+  `/DeviceN` or `/Separation`) now raises ``NotImplementedError`` instead of
+  silently returning an unpalettized image, matching the 2/4/8-bit path.
+
 ## v10.10.0
 
 ### Behavior change
