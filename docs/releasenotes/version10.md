@@ -16,6 +16,26 @@ the architecture notes on thread safety.
 
 ## v10.10.1
 
+- Extended PDF outline (bookmark) support to cover more of the spec:
+  - {class}`pikepdf.OutlineItem` now supports the outline item dictionary's
+    `/C` (color), `/F` (italic/bold flags via {class}`pikepdf.OutlineItemFlag`
+    and the `.italic`/`.bold` properties), and `/SE` (structure element
+    backlink) entries.
+  - Added {class}`pikepdf.Destination`, which parses an existing destination
+    array into named accessors (page, fit type, viewport parameters),
+    complementing the existing write-only {func}`pikepdf.make_page_destination`.
+    {meth}`pikepdf.OutlineItem.resolved_destination` resolves any form of an
+    item's destination -- explicit array, page number, or named destination
+    (via the document's name tree or legacy `/Dests` dictionary) -- to a
+    `Destination`.
+  - Added a typed action model ({class}`pikepdf.Action` and subclasses
+    `GoToAction`, `GoToRAction`, `GoToEAction`, `GoToDpAction`, `LaunchAction`,
+    `URIAction`, `NamedAction`, `SetOCGStateAction`, `JavaScriptAction`) for
+    reading and constructing `/A` action dictionaries.
+    {attr}`pikepdf.OutlineItem.parsed_action` gives a typed view of an item's
+    action.
+  - Fixed the outline dictionary's root `/Count` being written as `0` instead
+    of omitted when the outline has no entries at all, matching spec Table 150.
 - Fixed 1-bit `/Indexed` images losing their palette when extracted.
   {meth}`pikepdf.PdfImage.as_pil_image` and {meth}`pikepdf.PdfImage.extract_to`
   previously ignored the palette of a 1-bit indexed image over a `/DeviceCMYK`

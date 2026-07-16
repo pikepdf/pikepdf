@@ -55,6 +55,75 @@ Version 3.x automatically applies support models to `/Page` objects.
 ```
 
 ```{eval-rst}
+.. autoapiclass:: pikepdf.OutlineItemFlag
+    :members:
+```
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.PageLocation
+    :members:
+```
+
+```{eval-rst}
+.. autoapifunction:: pikepdf.make_page_destination
+```
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.Destination
+    :members:
+```
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.models.actions.Action
+    :members:
+```
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.models.actions.GoToAction
+    :members:
+```
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.models.actions.GoToRAction
+    :members:
+```
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.models.actions.GoToEAction
+    :members:
+```
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.models.actions.GoToDpAction
+    :members:
+```
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.models.actions.LaunchAction
+    :members:
+```
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.models.actions.URIAction
+    :members:
+```
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.models.actions.NamedAction
+    :members:
+```
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.models.actions.SetOCGStateAction
+    :members:
+```
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.models.actions.JavaScriptAction
+    :members:
+```
+
+```{eval-rst}
 .. autoapiclass:: pikepdf.Permissions
     :members:
 ```

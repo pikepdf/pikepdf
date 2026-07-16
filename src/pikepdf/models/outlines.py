@@ -7,12 +7,15 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from enum import Enum
+from enum import Enum, IntFlag
 from itertools import chain
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from pikepdf._core import Page, Pdf
 from pikepdf.objects import Array, Dictionary, Name, Object, String
+
+if TYPE_CHECKING:
+    from pikepdf.models.actions import Action
 
 
 class PageLocation(Enum):
@@ -39,6 +42,14 @@ PAGE_LOCATION_ARGS = {
 ALL_PAGE_LOCATION_KWARGS = set(chain.from_iterable(PAGE_LOCATION_ARGS.values()))
 
 
+class OutlineItemFlag(IntFlag):
+    """Style flags for an outline item's displayed text, from PDF spec 12.3.3."""
+
+    NONE = 0
+    Italic = 1
+    Bold = 2
+
+
 def make_page_destination(
     pdf: Pdf,
     page_num: int,
@@ -55,7 +66,7 @@ def make_page_destination(
     Arguments:
         pdf: PDF document object.
         page_num: Page number (zero-based).
-        page_location: Optional page location, as a string or :enum:`PageLocation`.
+        page_location: Optional page location, as a string or :class:`PageLocation`.
         left: Specify page viewport rectangle.
         top: Specify page viewport rectangle.
         right: Specify page viewport rectangle.
@@ -77,6 +88,38 @@ def make_page_destination(
     )
 
 
+def _resolve_page_location(
+    page_location: PageLocation | str,
+) -> tuple[PageLocation, str]:
+    """Resolve a :class:`PageLocation` or its name string to a canonical pair."""
+    if isinstance(page_location, PageLocation):
+        return page_location, page_location.name
+    loc_str = page_location
+    try:
+        loc_key = PageLocation[loc_str]
+    except KeyError:
+        raise ValueError(
+            f"Invalid or unsupported page location type {loc_str}"
+        ) from None
+    return loc_key, loc_str
+
+
+def _build_destination_array(
+    page: Object, loc_key: PageLocation, values: dict[str, float | None]
+) -> Array:
+    """Build a destination ``Array`` from a resolved page location and its args.
+
+    Unlike ``_make_page_destination``, a value of ``None`` in *values* is
+    written through as a PDF null (12.3.2.2: retains the viewer's current
+    value), not defaulted to ``0``.
+    """
+    res: list = [page, Name(f'/{loc_key.name}')]
+    dest_arg_names = PAGE_LOCATION_ARGS.get(loc_key)
+    if dest_arg_names:
+        res.extend(values.get(k) for k in dest_arg_names)
+    return Array(res)
+
+
 def _make_page_destination(
     pdf: Pdf,
     page_num: int,
@@ -84,27 +127,124 @@ def _make_page_destination(
     **kwargs,
 ) -> Array:
     kwargs = {k: v for k, v in kwargs.items() if v is not None}
-
-    res: list[Dictionary | Name] = [pdf.pages[page_num].obj]
+    page_obj = pdf.pages[page_num].obj
     if page_location:
-        if isinstance(page_location, PageLocation):
-            loc_key = page_location
-            loc_str = loc_key.name
+        loc_key, _ = _resolve_page_location(page_location)
+        dest_arg_names = PAGE_LOCATION_ARGS.get(loc_key, ())
+        values = {k: kwargs.get(k, 0) for k in dest_arg_names}
+        return _build_destination_array(page_obj, loc_key, values)
+    return _build_destination_array(page_obj, PageLocation.Fit, {})
+
+
+class Destination:
+    """Parse and build explicit destination arrays (PDF spec 12.3.2.2).
+
+    Unlike :func:`make_page_destination`, which only builds a destination
+    array from scratch, ``Destination`` can also parse an existing
+    destination array (e.g. from ``OutlineItem.destination``) into named
+    accessors for its page, fit type, and viewport parameters.
+
+    Arguments:
+        page: The page object (or page number, for remote/embedded
+            destinations where the spec uses an integer) this destination
+            refers to.
+        page_location: The fit type, e.g. :attr:`PageLocation.Fit`. Defaults
+            to :attr:`PageLocation.Fit` if not given.
+        left, top, right, bottom, zoom: Viewport parameters applicable to
+            *page_location*. An explicit ``None`` is written as a PDF null,
+            meaning "retain the viewer's current value" per 12.3.2.2.
+    """
+
+    def __init__(
+        self,
+        page: Object,
+        page_location: PageLocation | str | None = None,
+        *,
+        left: float | None = None,
+        top: float | None = None,
+        right: float | None = None,
+        bottom: float | None = None,
+        zoom: float | None = None,
+    ):
+        """Initialize Destination."""
+        self.page = page
+        if page_location is None:
+            self.page_location = PageLocation.Fit
         else:
-            loc_str = page_location
-            try:
-                loc_key = PageLocation[loc_str]
-            except KeyError:
-                raise ValueError(
-                    f"Invalid or unsupported page location type {loc_str}"
+            self.page_location, _ = _resolve_page_location(page_location)
+        self.left = left
+        self.top = top
+        self.right = right
+        self.bottom = bottom
+        self.zoom = zoom
+
+    @property
+    def fit_type(self) -> PageLocation:
+        """The destination's fit type. Alias for ``page_location``."""
+        return self.page_location
+
+    @classmethod
+    def from_array(cls, array: Array, *, strict: bool = False) -> Destination:
+        """Parse an existing destination ``Array`` into a ``Destination``.
+
+        Arguments:
+            array: The destination array, e.g. from ``OutlineItem.destination``.
+            strict: If ``True``, raise :class:`OutlineStructureError` on an
+                unrecognized fit type name. If ``False`` (default), default
+                to :attr:`PageLocation.Fit`.
+        """
+        if len(array) == 0:
+            raise OutlineStructureError("Destination array is empty")
+        page = array[0]
+        if len(array) < 2:
+            return cls(page)
+        loc_name = array[1]
+        loc_str = str(loc_name)[1:] if isinstance(loc_name, Name) else str(loc_name)
+        try:
+            page_location = PageLocation[loc_str]
+        except KeyError:
+            if strict:
+                raise OutlineStructureError(
+                    f"Unrecognized destination fit type: {loc_name!r}"
                 ) from None
-        res.append(Name(f'/{loc_str}'))
-        dest_arg_names = PAGE_LOCATION_ARGS.get(loc_key)
-        if dest_arg_names:
-            res.extend(kwargs.get(k, 0) for k in dest_arg_names)
-    else:
-        res.append(Name.Fit)
-    return Array(res)
+            page_location = PageLocation.Fit
+        arg_names = PAGE_LOCATION_ARGS.get(page_location, ())
+        arg_values = list(array[2:])
+        kwargs = {
+            name: (None if value is None else float(value))
+            for name, value in zip(arg_names, arg_values)
+        }
+        return cls(page, page_location, **kwargs)
+
+    def to_array(self) -> Array:
+        """Build the destination ``Array`` for this ``Destination``."""
+        values = {
+            'left': self.left,
+            'top': self.top,
+            'right': self.right,
+            'bottom': self.bottom,
+            'zoom': self.zoom,
+        }
+        return _build_destination_array(self.page, self.page_location, values)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Destination):
+            return NotImplemented
+        return (
+            self.page == other.page
+            and self.page_location == other.page_location
+            and self.left == other.left
+            and self.top == other.top
+            and self.right == other.right
+            and self.bottom == other.bottom
+            and self.zoom == other.zoom
+        )
+
+    def __repr__(self):
+        return (
+            f'<pikepdf.Destination: page={self.page!r} '
+            f'page_location={self.page_location!r}>'
+        )
 
 
 class OutlineStructureError(Exception):
@@ -134,6 +274,14 @@ class OutlineItem:
             are retained.
         left, top, bottom, right, zoom: Describes the viewport position associated
             with a destination.
+        color: The color, as an RGB tuple with each component in ``0.0`` to
+            ``1.0``, used to display the outline item's text. If ``None``
+            (default), no ``/C`` entry is written and viewers use black.
+        flags: Style flags (:class:`OutlineItemFlag`) for displaying the
+            outline item's text, e.g. italic or bold.
+        structure_element: The structure element (:attr:`Object`) that this
+            item refers to, for tagged PDF/accessibility purposes. Per PDF
+            spec, this is not intended for navigation.
 
     This object does not contain any information about higher-level or
     neighboring elements.
@@ -157,12 +305,22 @@ class OutlineItem:
         right: float | None = None,
         bottom: float | None = None,
         zoom: float | None = None,
+        color: tuple[float, float, float] | None = None,
+        flags: OutlineItemFlag = OutlineItemFlag.NONE,
+        structure_element: Object | None = None,
     ):
         """Initialize OutlineItem."""
         self.title = title
+        if isinstance(destination, Destination):
+            destination = destination.to_array()
         self.destination = destination
         self.page_location = page_location
         self.page_location_kwargs = {}
+        if action is not None and not isinstance(action, Dictionary):
+            from pikepdf.models.actions import Action as _Action
+
+            if isinstance(action, _Action):
+                action = action.obj
         self.action = action
         if self.destination is not None and self.action is not None:
             raise ValueError("Only one of destination and action may be set")
@@ -171,6 +329,33 @@ class OutlineItem:
         self.page_location_kwargs = {k: v for k, v in kwargs.items() if v is not None}
         self.is_closed = False
         self.children: list[OutlineItem] = []
+        self.color = color
+        self.flags = flags
+        self.structure_element = structure_element
+
+    @property
+    def italic(self) -> bool:
+        """Whether the outline item's text is displayed in italic."""
+        return bool(self.flags & OutlineItemFlag.Italic)
+
+    @italic.setter
+    def italic(self, value: bool) -> None:
+        if value:
+            self.flags |= OutlineItemFlag.Italic
+        else:
+            self.flags &= ~OutlineItemFlag.Italic
+
+    @property
+    def bold(self) -> bool:
+        """Whether the outline item's text is displayed in bold."""
+        return bool(self.flags & OutlineItemFlag.Bold)
+
+    @bold.setter
+    def bold(self, value: bool) -> None:
+        if value:
+            self.flags |= OutlineItemFlag.Bold
+        else:
+            self.flags &= ~OutlineItemFlag.Bold
 
     def __str__(self):
         if self.children:
@@ -244,7 +429,44 @@ class OutlineItem:
             raise OutlineStructureError(
                 f"Unexpected object type in Outline's /A: {action!r}"
             )
-        return cls(title, destination=destination, action=action, obj=obj)
+
+        color = None
+        c_val = obj.get(Name.C)
+        if c_val is not None:
+            if isinstance(c_val, Array) and len(c_val) == 3:
+                try:
+                    color = (float(c_val[0]), float(c_val[1]), float(c_val[2]))
+                except (TypeError, ValueError) as e:
+                    if strict:
+                        raise OutlineStructureError(
+                            f"Malformed values in Outline's /C: {c_val!r}"
+                        ) from e
+            elif strict:
+                raise OutlineStructureError(
+                    f"Unexpected object type in Outline's /C: {c_val!r}"
+                )
+
+        flags = OutlineItemFlag.NONE
+        f_val = obj.get(Name.F)
+        if f_val is not None:
+            if isinstance(f_val, int):
+                flags = OutlineItemFlag(f_val)
+            elif strict:
+                raise OutlineStructureError(
+                    f"Unexpected object type in Outline's /F: {f_val!r}"
+                )
+
+        structure_element = obj.get(Name.SE)
+
+        return cls(
+            title,
+            destination=destination,
+            action=action,
+            obj=obj,
+            color=color,
+            flags=flags,
+            structure_element=structure_element,
+        )
 
     def to_dictionary_object(self, pdf: Pdf, create_new: bool = False) -> Dictionary:
         """Create/update a ``Dictionary`` object from this outline node.
@@ -277,7 +499,78 @@ class OutlineItem:
             obj.A = self.action
             if Name.Dest in obj:
                 del obj.Dest
+
+        if self.color is not None:
+            obj.C = Array([float(c) for c in self.color])
+        elif Name.C in obj:
+            del obj.C
+
+        if self.flags:
+            obj.F = int(self.flags)
+        elif Name.F in obj:
+            del obj.F
+
+        if self.structure_element is not None:
+            obj.SE = self.structure_element
+        elif Name.SE in obj:
+            del obj.SE
+
         return obj
+
+    def resolved_destination(self, pdf: Pdf) -> Destination | None:
+        """Resolve this item's destination to a parsed :class:`Destination`.
+
+        Handles every form ``self.destination`` may take: an explicit
+        ``Array``, an ``int`` page number (resolved the same way a save
+        would resolve it), or a named destination (a ``String`` looked up
+        in the ``Root.Names.Dests`` name tree, or a ``Name`` looked up in
+        the legacy ``Root.Dests`` dictionary, per 12.3.2.4).
+
+        Arguments:
+            pdf: The PDF document ``self.destination`` refers to.
+
+        Returns:
+            The parsed destination, or ``None`` if there is no destination
+            set, or a named destination could not be resolved.
+        """
+        dest = self.destination
+        if dest is None:
+            return None
+        if isinstance(dest, int):
+            dest = make_page_destination(
+                pdf, dest, self.page_location, **self.page_location_kwargs
+            )
+        return _resolve_destination_value(pdf, dest)
+
+    @property
+    def parsed_action(self) -> Action | None:
+        """Lazily wrap ``self.action`` as a typed ``Action``, or ``None``.
+
+        See Also:
+            :class:`pikepdf.models.actions.Action`
+        """
+        if self.action is None:
+            return None
+        from pikepdf.models.actions import Action as _Action
+
+        return _Action.from_dictionary(self.action)
+
+
+def _resolve_destination_value(
+    pdf: Pdf, dest: Array | String | Name
+) -> Destination | None:
+    """Resolve a ``/Dest``-shaped value (explicit array or named destination)."""
+    from pikepdf._named_dests import resolve_named_destination
+
+    if isinstance(dest, Array):
+        return Destination.from_array(dest)
+    if isinstance(dest, String):
+        arr = resolve_named_destination(pdf, str(dest), 'string')
+    elif isinstance(dest, Name):
+        arr = resolve_named_destination(pdf, str(dest), 'name')
+    else:
+        return None
+    return Destination.from_array(arr) if arr is not None else None
 
 
 class Outline:
@@ -434,6 +727,8 @@ class Outline:
                 Dictionary(Type=Name.Outlines)
             )
         self._save_level_outline(outlines, self._root, 0, set())
+        if not self._root and Name.Count in outlines:
+            del outlines.Count
 
     def _load(self):
         self._root = root = []

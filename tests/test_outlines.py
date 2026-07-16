@@ -10,15 +10,21 @@ from hypothesis import example, given, settings
 from hypothesis import strategies as st
 
 from pikepdf import (
+    Array,
+    Destination,
     Dictionary,
     Name,
+    NameTree,
     OutlineItem,
+    OutlineItemFlag,
     OutlineStructureError,
     PageLocation,
     Pdf,
+    String,
     make_page_destination,
 )
-from pikepdf.models.outlines import ALL_PAGE_LOCATION_KWARGS
+from pikepdf.models.actions import GoToAction
+from pikepdf.models.outlines import ALL_PAGE_LOCATION_KWARGS, PAGE_LOCATION_ARGS
 
 # pylint: disable=redefined-outer-name
 
@@ -310,6 +316,21 @@ def test_noop(outlines_doc):
         OutlineItem('New')
 
 
+def test_empty_outline_omits_count_on_never_populated_pdf():
+    pdf = Pdf.new()
+    pdf.add_blank_page()
+    with pdf.open_outline() as outline:
+        # Force a load; never add anything.
+        list(outline.root)
+    assert Name.Count not in pdf.Root.Outlines
+
+
+def test_clearing_all_items_removes_count(outlines_doc):
+    with outlines_doc.open_outline() as outline:
+        outline.root.clear()
+    assert Name.Count not in outlines_doc.Root.Outlines
+
+
 def test_append_items(outlines_doc):
     # Simple check that we can write new objects
     # without failing the object duplicate checks
@@ -389,6 +410,297 @@ def test_dest_or_action(outlines_doc):
         first.destination = None
     assert first_obj.A.D == [first_page.obj, Name.Fit]
     assert '/Dest' not in first_obj
+
+
+def test_outline_item_parsed_action_wraps_raw_dictionary(outlines_doc):
+    with outlines_doc.open_outline() as outline:
+        first = outline.root[0]
+        first.action = Dictionary(
+            S=Name.GoTo, D=Array([outlines_doc.pages[0].obj, Name.Fit])
+        )
+    assert isinstance(first.action, Dictionary)
+    parsed = first.parsed_action
+    assert isinstance(parsed, GoToAction)
+    assert parsed.destination == [outlines_doc.pages[0].obj, Name.Fit]
+
+
+def test_outline_item_parsed_action_none_when_unset():
+    item = OutlineItem('Test')
+    assert item.parsed_action is None
+
+
+def test_outline_item_constructor_unwraps_action_instance(outlines_doc):
+    action_obj = Dictionary(S=Name.GoTo, D=Array([outlines_doc.pages[0].obj, Name.Fit]))
+    action = GoToAction(action_obj)
+    item = OutlineItem('Test', action=action)
+    assert item.action is action_obj
+    assert isinstance(item.action, Dictionary)
+
+
+def test_outline_item_constructor_unwraps_destination_instance(outlines_doc):
+    page_ref = outlines_doc.pages[0].obj
+    dest = Destination(page_ref, PageLocation.Fit)
+    item = OutlineItem('Test', destination=dest)
+    assert item.destination == [page_ref, Name.Fit]
+    assert isinstance(item.destination, Array)
+
+
+def test_outline_item_color_round_trip(outlines_doc):
+    with outlines_doc.open_outline() as outline:
+        first = outline.root[0]
+        first.color = (0.1, 0.2, 0.3)
+    first_obj = outlines_doc.Root.Outlines.First
+    assert [float(x) for x in first_obj.C] == [0.1, 0.2, 0.3]
+
+    with outlines_doc.open_outline() as outline:
+        assert outline.root[0].color == (0.1, 0.2, 0.3)
+
+
+def test_outline_item_color_default_omitted():
+    item = OutlineItem('Test')
+    assert item.color is None
+    pdf = Pdf.new()
+    pdf.add_blank_page()
+    obj = item.to_dictionary_object(pdf)
+    assert '/C' not in obj
+
+
+def test_outline_item_color_cleared_deletes_c(outlines_doc):
+    with outlines_doc.open_outline() as outline:
+        first = outline.root[0]
+        first.color = (0.1, 0.2, 0.3)
+    first_obj = outlines_doc.Root.Outlines.First
+    assert '/C' in first_obj
+
+    with outlines_doc.open_outline() as outline:
+        outline.root[0].color = None
+    assert '/C' not in first_obj
+
+
+def test_outline_item_flags_round_trip(outlines_doc):
+    with outlines_doc.open_outline() as outline:
+        first = outline.root[0]
+        first.flags = OutlineItemFlag.Italic | OutlineItemFlag.Bold
+    first_obj = outlines_doc.Root.Outlines.First
+    assert first_obj.F == 3
+
+    with outlines_doc.open_outline() as outline:
+        assert outline.root[0].flags == OutlineItemFlag.Italic | OutlineItemFlag.Bold
+
+
+def test_outline_item_flags_default_omitted():
+    item = OutlineItem('Test')
+    assert item.flags == OutlineItemFlag.NONE
+    pdf = Pdf.new()
+    pdf.add_blank_page()
+    obj = item.to_dictionary_object(pdf)
+    assert '/F' not in obj
+
+
+def test_outline_item_italic_bold_properties():
+    item = OutlineItem('Test')
+    assert item.italic is False
+    assert item.bold is False
+
+    item.italic = True
+    assert item.italic is True
+    assert item.flags == OutlineItemFlag.Italic
+
+    item.bold = True
+    assert item.bold is True
+    assert item.flags == OutlineItemFlag.Italic | OutlineItemFlag.Bold
+
+    item.italic = False
+    assert item.italic is False
+    assert item.flags == OutlineItemFlag.Bold
+
+    item.bold = False
+    assert item.flags == OutlineItemFlag.NONE
+
+
+def test_outline_item_structure_element_round_trip(outlines_doc):
+    struct_elem = outlines_doc.make_indirect(Dictionary(Type=Name.StructElem))
+    with outlines_doc.open_outline() as outline:
+        first = outline.root[0]
+        first.structure_element = struct_elem
+    first_obj = outlines_doc.Root.Outlines.First
+    assert first_obj.SE == struct_elem
+
+    with outlines_doc.open_outline() as outline:
+        assert outline.root[0].structure_element == struct_elem
+
+
+def test_outline_item_color_malformed_strict_raises():
+    obj = Dictionary(Title='foo', C=Name.NotAColor)
+    with pytest.raises(OutlineStructureError, match='/C'):
+        OutlineItem.from_dictionary_object(obj, strict=True)
+
+
+def test_outline_item_color_malformed_nonstrict_drops():
+    obj = Dictionary(Title='foo', C=Name.NotAColor)
+    item = OutlineItem.from_dictionary_object(obj)
+    assert item.color is None
+
+
+def test_outline_item_flags_malformed_strict_raises():
+    obj = Dictionary(Title='foo', F=Name.NotAFlag)
+    with pytest.raises(OutlineStructureError, match='/F'):
+        OutlineItem.from_dictionary_object(obj, strict=True)
+
+
+def test_outline_item_flags_malformed_nonstrict_drops():
+    obj = Dictionary(Title='foo', F=Name.NotAFlag)
+    item = OutlineItem.from_dictionary_object(obj)
+    assert item.flags == OutlineItemFlag.NONE
+
+
+def test_destination_from_array_xyz(resources):
+    with Pdf.open(resources / 'outlines.pdf') as doc:
+        page_ref = doc.pages[0].obj
+        arr = Array([page_ref, Name.XYZ, 10, 20, 1.5])
+        dest = Destination.from_array(arr)
+        assert dest.page == page_ref
+        assert dest.fit_type == PageLocation.XYZ
+        assert dest.left == 10
+        assert dest.top == 20
+        assert dest.zoom == 1.5
+        assert dest.right is None
+
+
+def test_destination_from_array_fit_no_args(resources):
+    with Pdf.open(resources / 'outlines.pdf') as doc:
+        page_ref = doc.pages[0].obj
+        arr = Array([page_ref, Name.Fit])
+        dest = Destination.from_array(arr)
+        assert dest.page == page_ref
+        assert dest.fit_type == PageLocation.Fit
+        assert dest.left is None
+
+
+def test_destination_to_array_matches_make_page_destination(resources):
+    with Pdf.open(resources / 'outlines.pdf') as doc:
+        page_ref = doc.pages[0].obj
+        dest = Destination(
+            page_ref, PageLocation.FitR, left=1, bottom=2, right=3, top=4
+        )
+        assert dest.to_array() == Array([page_ref, Name.FitR, 1, 2, 3, 4])
+
+
+def test_destination_none_viewport_arg_becomes_null(resources):
+    with Pdf.open(resources / 'outlines.pdf') as doc:
+        page_ref = doc.pages[0].obj
+        dest = Destination(page_ref, PageLocation.XYZ, left=None, top=5, zoom=None)
+        arr = dest.to_array()
+        assert list(arr) == [page_ref, Name.XYZ, None, 5, None]
+        parsed = Destination.from_array(arr)
+        assert parsed.left is None
+        assert parsed.top == 5
+        assert parsed.zoom is None
+
+
+def test_destination_malformed_empty_array_raises():
+    with pytest.raises(OutlineStructureError):
+        Destination.from_array(Array([]))
+    with pytest.raises(OutlineStructureError):
+        Destination.from_array(Array([]), strict=True)
+
+
+def test_destination_unrecognized_location_strict_raises(resources):
+    with Pdf.open(resources / 'outlines.pdf') as doc:
+        page_ref = doc.pages[0].obj
+        arr = Array([page_ref, Name.Bogus])
+        with pytest.raises(OutlineStructureError):
+            Destination.from_array(arr, strict=True)
+
+
+def test_destination_unrecognized_location_nonstrict_defaults_fit(resources):
+    with Pdf.open(resources / 'outlines.pdf') as doc:
+        page_ref = doc.pages[0].obj
+        arr = Array([page_ref, Name.Bogus])
+        dest = Destination.from_array(arr)
+        assert dest.fit_type == PageLocation.Fit
+
+
+@settings(deadline=60000)
+@given(
+    page_num=st.integers(0, 1),
+    loc=st.sampled_from(list(PageLocation)),
+    values=st.dictionaries(
+        st.sampled_from(sorted(ALL_PAGE_LOCATION_KWARGS)),
+        st.one_of(st.none(), st.integers(0, 10000)),
+    ),
+)
+def test_destination_round_trip_all_page_locations(resources, page_num, loc, values):
+    with Pdf.open(resources / 'outlines.pdf') as doc:
+        page_ref = doc.pages[page_num].obj
+        arg_names = PAGE_LOCATION_ARGS.get(loc, ())
+        kwargs = {k: values.get(k) for k in arg_names}
+        dest = Destination(page_ref, loc, **kwargs)
+        parsed = Destination.from_array(dest.to_array())
+        assert parsed == dest
+
+
+def test_outline_item_resolved_destination_explicit_array(outlines_doc):
+    with outlines_doc.open_outline() as outline:
+        first = outline.root[0]
+        first.destination = 0
+    with outlines_doc.open_outline() as outline:
+        dest = outline.root[0].resolved_destination(outlines_doc)
+        assert isinstance(dest, Destination)
+        assert dest.page == outlines_doc.pages[0].obj
+        assert dest.fit_type == PageLocation.Fit
+
+
+def test_outline_item_resolved_destination_int_page_number():
+    pdf = Pdf.new()
+    pdf.add_blank_page()
+    item = OutlineItem('Test', 0)
+    dest = item.resolved_destination(pdf)
+    assert dest.page == pdf.pages[0].obj
+    assert dest.fit_type == PageLocation.Fit
+
+
+def test_outline_item_resolved_destination_string_named_dest():
+    pdf = Pdf.new()
+    page = pdf.add_blank_page()
+    nt = NameTree.new(pdf)
+    pdf.Root.Names = pdf.make_indirect(Dictionary(Dests=nt.obj))
+    NameTree(pdf.Root.Names.Dests)['sec.1'] = pdf.make_indirect(
+        Dictionary(D=Array([page.obj, Name.Fit]))
+    )
+    item = OutlineItem.from_dictionary_object(
+        Dictionary(Title='Test', Dest=String('sec.1'))
+    )
+    dest = item.resolved_destination(pdf)
+    assert dest.page == page.obj
+
+
+def test_outline_item_resolved_destination_name_named_dest():
+    pdf = Pdf.new()
+    page = pdf.add_blank_page()
+    pdf.Root.Dests = pdf.make_indirect(Dictionary())
+    pdf.Root.Dests[Name.Chap1] = pdf.make_indirect(
+        Dictionary(D=Array([page.obj, Name.Fit]))
+    )
+    item = OutlineItem.from_dictionary_object(Dictionary(Title='Test', Dest=Name.Chap1))
+    dest = item.resolved_destination(pdf)
+    assert dest.page == page.obj
+
+
+def test_outline_item_resolved_destination_unresolvable_returns_none():
+    pdf = Pdf.new()
+    pdf.add_blank_page()
+    item = OutlineItem.from_dictionary_object(
+        Dictionary(Title='Test', Dest=String('nope'))
+    )
+    assert item.resolved_destination(pdf) is None
+
+
+def test_outline_item_resolved_destination_none_when_no_destination():
+    pdf = Pdf.new()
+    pdf.add_blank_page()
+    item = OutlineItem('Test')
+    assert item.resolved_destination(pdf) is None
 
 
 @settings(deadline=60000)

@@ -12,6 +12,18 @@ from pikepdf.models._content_stream import (
     parse_content_stream,
     unparse_content_stream,
 )
+from pikepdf.models.actions import (
+    Action,
+    GoToAction,
+    GoToDpAction,
+    GoToEAction,
+    GoToRAction,
+    JavaScriptAction,
+    LaunchAction,
+    NamedAction,
+    SetOCGStateAction,
+    URIAction,
+)
 from pikepdf.models.encryption import (
     Encryption,
     EncryptionInfo,
@@ -25,14 +37,27 @@ from pikepdf.models.image import (
 )
 from pikepdf.models.metadata import PdfMetadata, XmpDocument
 from pikepdf.models.outlines import (
+    Destination,
     Outline,
     OutlineItem,
+    OutlineItemFlag,
     OutlineStructureError,
     PageLocation,
     make_page_destination,
 )
 
 __all__ = [
+    'Action',
+    'GoToAction',
+    'GoToDpAction',
+    'GoToEAction',
+    'GoToRAction',
+    'JavaScriptAction',
+    'LaunchAction',
+    'NamedAction',
+    'SetOCGStateAction',
+    'URIAction',
+    'Destination',
     'ContentStreamInstructions',
     'PdfParsingError',  # legacy
     'UnparseableContentStreamInstructions',
@@ -49,6 +74,7 @@ __all__ = [
     'XmpDocument',
     'Outline',
     'OutlineItem',
+    'OutlineItemFlag',
     'OutlineStructureError',  # legacy
     'PageLocation',
     'make_page_destination',

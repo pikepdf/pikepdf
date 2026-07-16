@@ -341,6 +341,23 @@ def test_collect_named_dest_refs_dest_and_action():
     assert ('string', 'page') not in found
 
 
+def test_collect_named_dest_refs_ignores_gotor_action():
+    # A GoToR action's /D targets a page in another document, not this one's
+    # named-destination tree, and must not be collected for migration -- even
+    # though it also carries a /D like GoTo does.
+    pdf = Pdf.new()
+    page = pdf.add_blank_page(page_size=(200, 200))
+    link = Dictionary(
+        Type=Name.Annot,
+        Subtype=Name.Link,
+        A=Dictionary(S=Name.GoToR, F=String('other.pdf'), D=String('epsilon')),
+    )
+    page.obj.Annots = pdf.make_indirect(Array([link]))
+
+    refs = _collect_named_dest_refs(page.obj)
+    assert ('string', 'epsilon') not in {(r.kind, r.name) for r in refs}
+
+
 def _pdf_with_named_dest_links():
     """2-page PDF with two named destinations and cross-links.
 

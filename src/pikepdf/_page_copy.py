@@ -11,6 +11,12 @@ from typing import TYPE_CHECKING, Literal
 if TYPE_CHECKING:
     from pikepdf import Pdf
 
+from pikepdf._named_dests import (
+    DestKind,
+    lookup_named_destination_entry,
+    resolve_named_destination,
+)
+from pikepdf.models.actions import Action, GoToAction
 from pikepdf.objects import Array, Dictionary, Name, String
 
 
@@ -24,7 +30,7 @@ class _DestRef:
 
     owner: Dictionary
     key: Name
-    kind: str  # 'string' (Names.Dests name tree) or 'name' (Root.Dests dict)
+    kind: DestKind  # 'string' (Names.Dests name tree) or 'name' (Root.Dests dict)
     name: str  # str(value): the string text, or a name like '/Chapter1'
 
 
@@ -40,7 +46,7 @@ def _maybe_add_dest(owner: Dictionary, key: Name, refs: list[_DestRef]) -> None:
 def _collect_from_action(action: object, refs: list[_DestRef], depth: int = 0) -> None:
     if depth > 50 or not isinstance(action, Dictionary):
         return
-    if action.get(Name.S) == Name.GoTo:
+    if isinstance(Action.from_dictionary(action), GoToAction):
         _maybe_add_dest(action, Name.D, refs)
     nxt = action.get(Name.Next)
     if isinstance(nxt, Array):
@@ -82,38 +88,17 @@ class PageCopyResult:
 
 
 def _lookup_source_entry(src: Pdf, ref: _DestRef) -> object | None:
-    from pikepdf import NameTree
-
-    if ref.kind == 'string':
-        # Limitation: ref.name is matched as a UTF-8 string; a destination whose
-        # PDF name is a non-UTF-8 byte string will not match and will be dropped.
-        names = src.Root.get(Name.Names)
-        if not isinstance(names, Dictionary):
-            return None
-        dests = names.get(Name.Dests)
-        if dests is None:
-            return None
-        nt = NameTree(dests)
-        return nt[ref.name] if ref.name in nt else None
-    dests = src.Root.get(Name.Dests)
-    if not isinstance(dests, Dictionary):
-        return None
-    return dests.get(Name(ref.name))
+    # Limitation: ref.name is matched as a UTF-8 string; a destination whose
+    # PDF name is a non-UTF-8 byte string will not match and will be dropped.
+    return lookup_named_destination_entry(src, ref.name, ref.kind)
 
 
 def _resolve_source_dest(src: Pdf, ref: _DestRef):
     """Return (page_ref, view_params) for a named dest, or None if unresolvable."""
-    entry = _lookup_source_entry(src, ref)
-    if entry is None:
+    arr = resolve_named_destination(src, ref.name, ref.kind)
+    if arr is None:
         return None
-    arr = entry.get(Name.D) if isinstance(entry, Dictionary) else entry
-    if not isinstance(arr, Array) or len(arr) == 0:
-        return None
-    page_ref = arr[0]
-    if not page_ref.is_indirect:
-        return None
-    params = [arr[i] for i in range(1, len(arr))]
-    return page_ref, params
+    return arr[0], [arr[i] for i in range(1, len(arr))]
 
 
 def _ensure_string_dests(dest: Pdf):
