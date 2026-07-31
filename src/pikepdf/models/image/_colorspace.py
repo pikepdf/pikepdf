@@ -18,10 +18,10 @@ from io import BytesIO
 from typing import TYPE_CHECKING, cast
 
 from pikepdf.models import _cal_icc
+from pikepdf.models._image_exceptions import UnsupportedImageTypeError
 from pikepdf.models.image._shared import (
     DecodeArray,
     PaletteData,
-    UnsupportedImageTypeError,
     _ensure_list,
 )
 from pikepdf.objects import Dictionary

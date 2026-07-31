@@ -26,13 +26,15 @@ from pikepdf import jbig2
 from pikepdf._core import Pdf, PdfError, StreamDecodeLevel
 from pikepdf._exceptions import DependencyError
 from pikepdf.models import _transcoding
+from pikepdf.models._image_exceptions import (
+    HifiPrintImageNotTranscodableError,
+    InvalidPdfImageError,
+    UnsupportedImageTypeError,
+)
 from pikepdf.models.image._bomb import _pillow_pixel_limit
 from pikepdf.models.image._shared import (
     TERMINAL_FILTERS,
-    HifiPrintImageNotTranscodableError,
-    InvalidPdfImageError,
     RGBDecodeArray,
-    UnsupportedImageTypeError,
 )
 from pikepdf.objects import Array, Name
 

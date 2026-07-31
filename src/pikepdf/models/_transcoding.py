@@ -8,13 +8,10 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, NamedTuple
 
 from pikepdf._core import _unpack_subbyte_2bit, _unpack_subbyte_4bit
+from pikepdf.models._image_exceptions import ImageDecompressionError
 
 if TYPE_CHECKING:
     from PIL import Image
-
-
-class ImageDecompressionError(Exception):
-    """Image decompression error."""
 
 
 BytesLike = bytes | memoryview

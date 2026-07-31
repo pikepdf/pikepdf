@@ -24,6 +24,10 @@ from shutil import copyfileobj
 from typing import TYPE_CHECKING, Any, BinaryIO, cast
 
 from pikepdf._core import Buffer, Pdf, PdfError, StreamDecodeLevel
+from pikepdf.models._image_exceptions import (
+    InvalidPdfImageError,
+    UnsupportedImageTypeError,
+)
 
 # _PdfImageMeta is imported from the package __init__, which defines it (with the
 # bomb-limit globals the tests poke directly) before importing this module. This
@@ -37,10 +41,8 @@ from pikepdf.models.image import (
 from pikepdf.models.image._bomb import _pillow_pixel_limit, check_pixels
 from pikepdf.models.image._shared import (
     DecodeArray,
-    InvalidPdfImageError,
     PaletteData,
     T,
-    UnsupportedImageTypeError,
     _array_str,
     _ensure_list,
     _metadata_from_obj,
