@@ -14,7 +14,7 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
-## v10.10.1
+## v10.11.0
 
 - Extended PDF outline (bookmark) support to cover more of the spec:
   - {class}`pikepdf.OutlineItem` now supports the outline item dictionary's
