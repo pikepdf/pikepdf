@@ -28,6 +28,7 @@ from pikepdf._exceptions import DependencyError
 from pikepdf.models import _transcoding
 from pikepdf.models._image_exceptions import (
     HifiPrintImageNotTranscodableError,
+    ImageDecompressionError,
     InvalidPdfImageError,
     UnsupportedImageTypeError,
 )
@@ -269,6 +270,21 @@ def _transcoded_1bit(pim: PdfImage) -> Image.Image:
                 "(older than version 0.15)"
             ) from None
         raise
+
+    # Pillow's '1' mode stores a byte per pixel, and Image.frombytes allocates
+    # the whole image before it discovers the data is short -- so, as in
+    # unpack_subbyte_pixels, the declared /Width and /Height must be backed by
+    # real data first. A 1-bit row occupies ceil(width / 8) bytes (rows begin on
+    # a byte boundary, ISO 32000-2 §8.9.3).
+    width, height = pim.size
+    if width <= 0 or height <= 0:
+        raise InvalidPdfImageError(f"Image has invalid dimensions {width}x{height}")
+    expected = ((width + 7) // 8) * height
+    if len(data) < expected:
+        raise ImageDecompressionError(
+            f"Image data is {len(data)} bytes, but a {width}x{height} image "
+            f"at 1 bit per component requires {expected} bytes"
+        )
 
     im = Image.frombytes('1', pim.size, data)
 

@@ -186,13 +186,17 @@ Because pikepdf's exception types subclass Pillow's, code that already handles
 
 The pixel limit bounds how large an image pikepdf will decode, but it says
 nothing about whether the declared size is *consistent* with the stream. As a
-second line of defence, extraction of 2-bit and 4-bit images checks that the
-stream holds enough data for the declared `/Width` and `/Height` before it
-allocates, and raises
+second line of defence, extraction checks that the stream holds enough data for
+the declared `/Width` and `/Height` before it allocates, and raises
 {class}`~pikepdf.exceptions.ImageDecompressionError` when it does not. That
 check applies regardless of `MAX_IMAGE_PIXELS`, so an image that declares
 millions of pixels but stores a handful of bytes is rejected cheaply rather than
 extracted as a mostly-black picture.
+
+An image that is short of data is treated as corrupt rather than partially
+decoded. If you need to recover whatever pixels a damaged file does contain,
+read the stream yourself with {meth}`pikepdf.PdfImage.read_bytes` and assemble
+the image with Pillow directly.
 
 ## Stored bytes are not the presentation image
 

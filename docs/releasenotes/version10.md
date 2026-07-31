@@ -46,6 +46,37 @@ the architecture notes on thread safety.
   `/DeviceN` or `/Separation`) now raises ``NotImplementedError`` instead of
   silently returning an unpalettized image, matching the 2/4/8-bit path.
 
+### Security
+
+-   Image extraction now verifies that the image stream holds enough data for
+    the declared ``/Width`` and ``/Height`` before allocating, raising
+    {exc}`~pikepdf.exceptions.ImageDecompressionError` when it does not. This
+    closes the remaining decompression-bomb gaps left by the
+    {attr}`pikepdf.PdfImage.MAX_IMAGE_PIXELS` limit added in v10.10.0: that
+    limit bounds the declared size, but said nothing about whether the declared
+    size was consistent with the data present, so a 4-bit image declaring
+    12000x12000 -- well under the default 500M pixel budget -- still allocated
+    ~300 MB from a single byte of stream data, and setting the limit to ``None``
+    restored the unbounded case entirely. The 2-bit and 4-bit unpack path and
+    the 1-bit path (where Pillow allocates a byte per pixel before it notices
+    the data is short) are both covered; 8-bit and 16-bit images already
+    failed cleanly. The check applies regardless of ``MAX_IMAGE_PIXELS``.
+    (#733, #734)
+-   The 2-bit and 4-bit unpack buffer is no longer over-allocated by a factor of
+    the packing ratio, reducing peak memory for those images by 4x and 2x
+    respectively.
+
+### Behavior change
+
+-   Extracting a 1-, 2-, or 4-bit image whose stream is shorter than its
+    declared dimensions require now raises
+    {exc}`~pikepdf.exceptions.ImageDecompressionError` rather than returning a
+    partially decoded image with a black tail. This matches what 8-bit and
+    16-bit images have always done for the same defect.
+-   An image with a non-positive ``/Width`` or ``/Height`` raises
+    {exc}`~pikepdf.exceptions.InvalidPdfImageError` instead of failing further
+    down with an obscure error from Pillow.
+
 ## v10.10.0
 
 ### Behavior change
@@ -123,16 +154,6 @@ the architecture notes on thread safety.
     {exc}`pikepdf.DecompressionBombError` and borderline images emit
     {exc}`pikepdf.DecompressionBombWarning` (both subclass Pillow's equivalents).
     (#733)
--   Sub-byte (2-bit and 4-bit) image extraction now verifies that the image
-    stream holds enough data for the declared ``/Width`` and ``/Height`` before
-    allocating its unpack buffer, raising
-    {exc}`~pikepdf.exceptions.ImageDecompressionError` when it does not. This
-    bounds the allocation by the data actually present, so a large declared size
-    backed by a few stream bytes can no longer exhaust memory even below the
-    {attr}`pikepdf.PdfImage.MAX_IMAGE_PIXELS` budget or when that limit is
-    disabled. The unpack buffer is also no longer over-allocated by a factor of
-    the packing ratio, reducing peak memory for 2-bit and 4-bit images by 4x and
-    2x respectively.
 
 ### Fixed
 

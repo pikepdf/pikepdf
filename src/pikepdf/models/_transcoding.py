@@ -8,7 +8,10 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, NamedTuple
 
 from pikepdf._core import _unpack_subbyte_2bit, _unpack_subbyte_4bit
-from pikepdf.models._image_exceptions import ImageDecompressionError
+from pikepdf.models._image_exceptions import (
+    ImageDecompressionError,
+    InvalidPdfImageError,
+)
 
 if TYPE_CHECKING:
     from PIL import Image
@@ -47,12 +50,13 @@ def unpack_subbyte_pixels(
     the bytes are palette indexes.
 
     Raises:
-        ImageDecompressionError: if *size* is not positive, or *packed* is
-            shorter than a *size* image at *bits* per component requires.
+        InvalidPdfImageError: if *size* is not positive.
+        ImageDecompressionError: if *packed* is shorter than a *size* image at
+            *bits* per component requires.
     """
     width, height = size
     if width <= 0 or height <= 0:
-        raise ImageDecompressionError(f"Image has invalid dimensions {width}x{height}")
+        raise InvalidPdfImageError(f"Image has invalid dimensions {width}x{height}")
     bits_per_byte = 8 // bits
     stride = _next_multiple(width, bits_per_byte)
 
