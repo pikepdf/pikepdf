@@ -1,11 +1,14 @@
 # SPDX-FileCopyrightText: 2022 James R. Barlow
 # SPDX-License-Identifier: MPL-2.0
 
-"""Shared leaf symbols for the image package: exceptions, helpers, type aliases.
+"""Shared leaf symbols for the image package: helpers and type aliases.
 
 This module has no intra-package dependencies (it imports only stdlib and
 :mod:`pikepdf.objects`), so it can be imported by every other module in the
-``image`` package without risking an import cycle.
+``image`` package without risking an import cycle. The image exceptions live
+one level up, in :mod:`pikepdf.models._image_exceptions`, so that
+:mod:`pikepdf.models._transcoding` can raise them without importing this
+package.
 """
 
 from __future__ import annotations
@@ -36,22 +39,6 @@ DecodeArray = RGBDecodeArray | GrayDecodeArray | CMYKDecodeArray
 TERMINAL_FILTERS = frozenset(
     {'/DCTDecode', '/JPXDecode', '/JBIG2Decode', '/CCITTFaxDecode'}
 )
-
-
-class UnsupportedImageTypeError(Exception):
-    """This image is formatted in a way pikepdf does not supported."""
-
-
-class NotExtractableError(Exception):
-    """Indicates that an image cannot be directly extracted."""
-
-
-class HifiPrintImageNotTranscodableError(NotExtractableError):
-    """Image contains high fidelity printing information and cannot be extracted."""
-
-
-class InvalidPdfImageError(Exception):
-    """This image is not valid according to the PDF 1.7 specification."""
 
 
 def _array_str(value: Object | str | list):

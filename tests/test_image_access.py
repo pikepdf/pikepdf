@@ -41,6 +41,8 @@ from pikepdf.models._transcoding import (
     unpack_subbyte_pixels,
 )
 from pikepdf.models.image import (
+    ImageDecompressionError,
+    InvalidPdfImageError,
     PdfJpxImage,
     UnsupportedImageTypeError,
 )
@@ -1916,6 +1918,125 @@ def test_direct_path_honors_pikepdf_limit(congress, restore_pixel_limits):
     xobj, _ = congress
     with pytest.raises(pikepdf.DecompressionBombError):
         PdfImage(xobj).as_pil_image()
+
+
+# --- Sub-byte unpacking of truncated image data ---------------------------
+
+
+@pytest.mark.parametrize('bits', [2, 4])
+def test_unpack_subbyte_rejects_truncated_data(bits):
+    # The unpack buffer is sized from the declared /Width and /Height, so the
+    # declared size must be backed by enough data before anything is allocated.
+    with pytest.raises(ImageDecompressionError, match='requires'):
+        unpack_subbyte_pixels(b'\x00', (200000, 200000), bits)
+
+
+@pytest.mark.parametrize('bits', [2, 4])
+@pytest.mark.parametrize('width,height', [(1, 1), (5, 3), (16, 16)])
+def test_unpack_subbyte_accepts_exact_data(bits, width, height):
+    packed_row_bytes = ceil(width * bits / 8)
+    buffer, stride = unpack_subbyte_pixels(
+        b'\x00' * (packed_row_bytes * height), (width, height), bits
+    )
+    assert stride == _next_multiple(width, 8 // bits)
+    # One byte per pixel, each row padded out to stride.
+    assert len(buffer) == stride * height
+
+
+@pytest.mark.parametrize('size', [(0, 1), (1, 0), (-1, 1)])
+def test_unpack_subbyte_rejects_nonpositive_size(size):
+    with pytest.raises(InvalidPdfImageError, match='invalid dimensions'):
+        unpack_subbyte_pixels(b'\x00', size, 4)
+
+
+def test_truncated_4bit_image_raises_under_pixel_limit(restore_pixel_limits):
+    # 64x64 is only 4096 pixels, far below MAX_IMAGE_PIXELS, so the bomb check
+    # passes -- but one byte of data cannot fill it.
+    pdf = pikepdf.new()
+    img = PdfImage(
+        _image_stream(
+            pdf,
+            bpc=4,
+            colorspace=Name.DeviceGray,
+            width=64,
+            height=64,
+            imbytes=b'\x00',
+        )
+    )
+    with pytest.raises(ImageDecompressionError):
+        img.as_pil_image()
+
+
+def test_truncated_4bit_image_raises_with_pixel_limit_disabled(restore_pixel_limits):
+    # With the bomb guard disabled, the length check is the only thing standing
+    # between a 796-byte PDF and an 80 GB allocation.
+    PdfImage.MAX_IMAGE_PIXELS = None
+    pdf = pikepdf.new()
+    img = PdfImage(
+        _image_stream(
+            pdf,
+            bpc=4,
+            colorspace=Name.DeviceGray,
+            width=200000,
+            height=200000,
+            imbytes=b'\x00',
+        )
+    )
+    with pytest.raises(ImageDecompressionError):
+        img.as_pil_image()
+
+
+def test_truncated_1bit_image_raises_under_pixel_limit(restore_pixel_limits):
+    # Pillow's '1' mode is a byte per pixel and Image.frombytes allocates the
+    # image before noticing the data is short, so the 1-bit path needs the same
+    # length check as the sub-byte unpacker.
+    pdf = pikepdf.new()
+    img = PdfImage(
+        _image_stream(
+            pdf,
+            bpc=1,
+            colorspace=Name.DeviceGray,
+            width=64,
+            height=64,
+            imbytes=b'\x00',
+        )
+    )
+    with pytest.raises(ImageDecompressionError, match='requires'):
+        img.as_pil_image()
+
+
+def test_truncated_1bit_image_raises_with_pixel_limit_disabled(restore_pixel_limits):
+    PdfImage.MAX_IMAGE_PIXELS = None
+    pdf = pikepdf.new()
+    img = PdfImage(
+        _image_stream(
+            pdf,
+            bpc=1,
+            colorspace=Name.DeviceGray,
+            width=100000,
+            height=100000,
+            imbytes=b'\x00',
+        )
+    )
+    with pytest.raises(ImageDecompressionError, match='requires'):
+        img.as_pil_image()
+
+
+@pytest.mark.parametrize('width,height', [(1, 1), (5, 3), (16, 16)])
+def test_exact_length_1bit_image_extracts(width, height):
+    pdf = pikepdf.new()
+    img = PdfImage(
+        _image_stream(
+            pdf,
+            bpc=1,
+            colorspace=Name.DeviceGray,
+            width=width,
+            height=height,
+            imbytes=b'\xa5' * (ceil(width / 8) * height),
+        )
+    )
+    im = img.as_pil_image()
+    assert im.size == (width, height)
 
 
 # --- Gap A: CalRGB / CalGray / CalCMYK colour spaces -----------------------

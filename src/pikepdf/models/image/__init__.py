@@ -8,16 +8,18 @@ from __future__ import annotations
 from abc import ABCMeta
 from typing import TYPE_CHECKING, cast
 
-from pikepdf.models._transcoding import ImageDecompressionError
+from pikepdf.models._image_exceptions import (
+    HifiPrintImageNotTranscodableError,
+    ImageDecompressionError,
+    InvalidPdfImageError,
+    UnsupportedImageTypeError,
+)
 from pikepdf.models.image._bomb import _decompression_bomb_classes
 from pikepdf.models.image._shared import (
     CMYKDecodeArray,
     DecodeArray,
-    HifiPrintImageNotTranscodableError,
-    InvalidPdfImageError,
     PaletteData,
     RGBDecodeArray,
-    UnsupportedImageTypeError,
 )
 
 if TYPE_CHECKING:

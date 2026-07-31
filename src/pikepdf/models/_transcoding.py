@@ -8,13 +8,13 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, NamedTuple
 
 from pikepdf._core import _unpack_subbyte_2bit, _unpack_subbyte_4bit
+from pikepdf.models._image_exceptions import (
+    ImageDecompressionError,
+    InvalidPdfImageError,
+)
 
 if TYPE_CHECKING:
     from PIL import Image
-
-
-class ImageDecompressionError(Exception):
-    """Image decompression error."""
 
 
 BytesLike = bytes | memoryview
@@ -48,11 +48,37 @@ def unpack_subbyte_pixels(
         0b11 = 1.00 = 0xff
     When scale is 1, no scaling is applied, appropriate when
     the bytes are palette indexes.
+
+    Raises:
+        InvalidPdfImageError: if *size* is not positive.
+        ImageDecompressionError: if *packed* is shorter than a *size* image at
+            *bits* per component requires.
     """
     width, height = size
+    if width <= 0 or height <= 0:
+        raise InvalidPdfImageError(f"Image has invalid dimensions {width}x{height}")
     bits_per_byte = 8 // bits
     stride = _next_multiple(width, bits_per_byte)
-    buffer = bytearray(bits_per_byte * stride * height)
+
+    # Each row of image data begins on a byte boundary (ISO 32000-2 §8.9.3),
+    # so a row occupies ceil(width * bits / 8) packed bytes. Requiring that many
+    # bytes per row *before* allocating bounds the allocation by the data
+    # actually present: width and height are attacker-controlled /Width and
+    # /Height, and a crafted PDF can declare an enormous image backed by a
+    # handful of stream bytes, exhausting memory (a DoS). The pixel limit in
+    # PdfImage.MAX_IMAGE_PIXELS caps plausible images; this catches the
+    # implausible ones, and applies even when that limit is disabled.
+    packed_row_bytes = (width * bits + 7) // 8
+    expected = packed_row_bytes * height
+    if len(packed) < expected:
+        raise ImageDecompressionError(
+            f"Image data is {len(packed)} bytes, but a {width}x{height} image "
+            f"at {bits} bits per component requires {expected} bytes"
+        )
+
+    # Unpacking produces one byte per pixel, with each row padded out to
+    # *stride* bytes, so bits_per_byte * packed_row_bytes == stride.
+    buffer = bytearray(stride * height)
     max_read = len(buffer) // bits_per_byte
     if scale == 0:
         # 255 // (2**bits - 1) is exact for bits in {1, 2, 4, 8}:
