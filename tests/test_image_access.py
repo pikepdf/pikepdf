@@ -43,6 +43,7 @@ from pikepdf.models._transcoding import (
 from pikepdf.models.image import (
     ImageDecompressionError,
     InvalidPdfImageError,
+    PaletteData,
     PdfJpxImage,
     UnsupportedImageTypeError,
 )
@@ -680,6 +681,95 @@ def test_image_palette2(spec, tmp_path_factory):
 def test_bool_in_inline_image():
     piim = PdfInlineImage(image_data=b'', image_object=(Name.IM, True))
     assert piim.image_mask
+
+
+def _inline_image(dict_fragment: bytes, data: bytes = b'\x00' * 48):
+    """Build an inline image from raw content stream tokens and parse it back."""
+    pdf = Pdf.new()
+    pdf.add_blank_page(page_size=(72, 72))
+    pdf.pages[0].Contents = pdf.make_stream(
+        b'q\nBI ' + dict_fragment + b' ID\n' + data + b'\nEI\nQ\n'
+    )
+    return _first_inline_image(pdf), pdf
+
+
+@pytest.mark.parametrize(
+    'fragment, key, expected',
+    [
+        # Table 91 key abbreviations, including ones pikepdf did not know about
+        (b'/W 4 /H 4 /BPC 8 /CS /G /D [1 0]', '/Decode', Array([1, 0])),
+        (b'/W 4 /H 4 /BPC 8 /CS /G /L 48', '/Length', 48),
+        # /I as a *key* is /Interpolate, not the /Indexed colour space
+        (b'/W 4 /H 4 /BPC 8 /CS /G /I true', '/Interpolate', True),
+        # Table 92 value abbreviations
+        (b'/W 4 /H 4 /BPC 8 /CS /G /F /Fl', '/Filter', Name('/FlateDecode')),
+        (b'/W 4 /H 4 /BPC 8 /CS /RGB', '/ColorSpace', Name('/DeviceRGB')),
+    ],
+)
+def test_inline_image_abbreviation_expanded(fragment, key, expected):
+    iimage, pdf = _inline_image(fragment)
+    with pdf:
+        assert iimage.obj.get(key) == expected
+
+
+def test_inline_image_abbreviation_expanded_in_array():
+    """Abbreviations inside array values are expanded too (#206)."""
+    iimage, pdf = _inline_image(b'/W 4 /H 4 /BPC 8 /CS /G /F [/AHx /Fl]')
+    with pdf:
+        assert iimage.filters == ['/ASCIIHexDecode', '/FlateDecode']
+
+
+def test_inline_image_indexed_colorspace_array_expanded():
+    """/I inside a colour space array is /Indexed (#206)."""
+    iimage, pdf = _inline_image(
+        b'/W 4 /H 4 /BPC 8 /CS [/I /RGB 1 <FFFFFF000000>]', data=b'\x00' * 16
+    )
+    with pdf:
+        assert iimage.obj.ColorSpace[0] == Name.Indexed
+        assert iimage.colorspace == '/DeviceRGB'
+        assert iimage.indexed
+        assert iimage.palette == PaletteData('RGB', b'\xff\xff\xff\x00\x00\x00')
+        # The conversion to an image XObject must expand the abbreviations,
+        # because qpdf's externalization does not expand them inside arrays
+        im = iimage.as_pil_image()
+        assert im.mode == 'P' and im.size == (4, 4)
+
+
+def test_inline_image_unparse_abbreviates_arrays():
+    """unparse() abbreviates names inside arrays, not just at the top level (#206)."""
+    iimage, pdf = _inline_image(
+        b'/Width 4 /Height 4 /BitsPerComponent 8 /ColorSpace /DeviceGray '
+        b'/Filter [/ASCIIHexDecode /FlateDecode]'
+    )
+    with pdf:
+        unparsed = iimage.unparse()
+    assert b'/F [ /AHx /Fl ]' in unparsed
+    assert b'/ASCIIHexDecode' not in unparsed
+    assert b'/FlateDecode' not in unparsed
+
+
+def test_inline_image_unparse_roundtrip_with_array():
+    """An abbreviated array survives unparse() and reparse unchanged (#206)."""
+    iimage, pdf = _inline_image(b'/W 4 /H 4 /BPC 8 /CS /G /F [/AHx /Fl]')
+    with pdf:
+        reparsed, pdf2 = _inline_image(
+            iimage.unparse().removeprefix(b'BI ').split(b'\nID')[0]
+        )
+        with pdf2:
+            assert reparsed.filters == ['/ASCIIHexDecode', '/FlateDecode']
+
+
+def test_inline_image_unparse_does_not_abbreviate_decodeparms_keys():
+    """A /DecodeParms key that collides with a value abbreviation is left alone."""
+    iimage, pdf = _inline_image(
+        b'/W 4 /H 4 /BPC 8 /CS /G /F [/AHx /Fl] '
+        b'/DP [null <</Predictor 15 /BitsPerComponent 8 /Colors 1>>]'
+    )
+    with pdf:
+        unparsed = iimage.unparse()
+        assert iimage.obj.DecodeParms[1].BitsPerComponent == 8
+    assert b'/BitsPerComponent 8' in unparsed
+    assert b'/BPC 8 /Colors' not in unparsed
 
 
 @pytest.mark.skipif(

@@ -14,6 +14,32 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.12.0
+
+- Fixed inline image name abbreviation handling, which was incomplete in both
+  directions. {issue}`206`
+  - Abbreviations nested inside arrays are now expanded when an inline image is
+    parsed, so `/F [/AHx /Fl]` reports
+    `['/ASCIIHexDecode', '/FlateDecode']` from
+    {attr}`pikepdf.PdfInlineImage.filters`, and an `/Indexed` colour space
+    written as `/CS [/I /RGB 1 <...>]` is now recognized as indexed instead of
+    raising `NotImplementedError`. Correspondingly,
+    {meth}`pikepdf.PdfInlineImage.unparse` now abbreviates names inside arrays,
+    not only at the top level. Contents of `/DecodeParms` dictionaries are left
+    alone, since filter parameter names have no abbreviations.
+  - Abbreviations are now resolved by position, because the same abbreviation
+    can mean different things as a key and as a value: `/I` is `/Interpolate`
+    as a key but `/Indexed` as a value (ISO 32000-2 Tables 91 and 92).
+    Previously `/I` was always expanded to `/Indexed`, so `/I true` became
+    `/Indexed true`.
+  - Added the missing abbreviations `/Fl` (`/FlateDecode`), `/D` (`/Decode`)
+    and `/L` (`/Length`); none of the three were expanded before.
+- {attr}`pikepdf.PdfInlineImage.icc` now returns ``None`` instead of raising
+  {exc}`~pikepdf.exceptions.InvalidPdfImageError`. An inline image's colour
+  space cannot be `/ICCBased`, so "no ICC profile" is the correct answer rather
+  than an error -- and raising made {attr}`pikepdf.PdfImageBase.palette`
+  unusable on indexed inline images, which consults it.
+
 ## v10.11.0
 
 - Extended PDF outline (bookmark) support to cover more of the spec:

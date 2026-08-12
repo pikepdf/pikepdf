@@ -15,7 +15,7 @@ pipeline delegates to :mod:`pikepdf.models.image._extract` and
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Iterator, Sequence
 from decimal import Decimal
 from io import BytesIO
 from itertools import zip_longest
@@ -25,7 +25,6 @@ from typing import TYPE_CHECKING, Any, BinaryIO, cast
 
 from pikepdf._core import Buffer, Pdf, PdfError, StreamDecodeLevel
 from pikepdf.models._image_exceptions import (
-    InvalidPdfImageError,
     UnsupportedImageTypeError,
 )
 
@@ -48,10 +47,12 @@ from pikepdf.models.image._shared import (
     _metadata_from_obj,
 )
 from pikepdf.objects import (
+    Array,
     Dictionary,
     Name,
     Object,
     Stream,
+    String,
 )
 
 if TYPE_CHECKING:
@@ -672,15 +673,23 @@ class PdfJpxImage(PdfImage):
 class PdfInlineImage(PdfImageBase):
     """Support class for PDF inline images."""
 
-    # Inline images can contain abbreviations that we write automatically
-    ABBREVS = {
-        b'/W': b'/Width',
-        b'/H': b'/Height',
+    # Inline images can contain abbreviations that we write automatically.
+    # The abbreviations are position-dependent: /I abbreviates the key
+    # /Interpolate but the value /Indexed, so keys and values need separate
+    # tables. (ISO 32000-2 Tables 91 and 92.)
+    KEY_ABBREVS = {
         b'/BPC': b'/BitsPerComponent',
-        b'/IM': b'/ImageMask',
         b'/CS': b'/ColorSpace',
-        b'/F': b'/Filter',
+        b'/D': b'/Decode',
         b'/DP': b'/DecodeParms',
+        b'/F': b'/Filter',
+        b'/H': b'/Height',
+        b'/I': b'/Interpolate',
+        b'/IM': b'/ImageMask',
+        b'/L': b'/Length',
+        b'/W': b'/Width',
+    }
+    VALUE_ABBREVS = {
         b'/G': b'/DeviceGray',
         b'/RGB': b'/DeviceRGB',
         b'/CMYK': b'/DeviceCMYK',
@@ -688,10 +697,17 @@ class PdfInlineImage(PdfImageBase):
         b'/AHx': b'/ASCIIHexDecode',
         b'/A85': b'/ASCII85Decode',
         b'/LZW': b'/LZWDecode',
+        b'/Fl': b'/FlateDecode',
         b'/RL': b'/RunLengthDecode',
         b'/CCF': b'/CCITTFaxDecode',
         b'/DCT': b'/DCTDecode',
     }
+    REVERSE_KEY_ABBREVS = {v: k for k, v in KEY_ABBREVS.items()}
+    REVERSE_VALUE_ABBREVS = {v: k for k, v in VALUE_ABBREVS.items()}
+
+    # Combined tables, retained for backward compatibility. Prefer the
+    # position-specific tables above; /I is ambiguous when the two are merged.
+    ABBREVS = {**KEY_ABBREVS, **VALUE_ABBREVS}
     REVERSE_ABBREVS = {v: k for k, v in ABBREVS.items()}
 
     _data: Object
@@ -725,7 +741,10 @@ class PdfInlineImage(PdfImageBase):
         self._resources = resources
 
         reparse = b' '.join(
-            self._unparse_obj(obj, remap_names=self.ABBREVS) for obj in image_object
+            self._unparse_obj(obj, remap_names=table, value_names=self.VALUE_ABBREVS)
+            for obj, table in self._tokens_with_tables(
+                image_object, self.KEY_ABBREVS, self.VALUE_ABBREVS
+            )
         )
         try:
             reparsed_obj = Object.parse(b'<< ' + reparse + b' >>')
@@ -745,15 +764,57 @@ class PdfInlineImage(PdfImageBase):
             )
         )
 
+    @staticmethod
+    def _tokens_with_tables(
+        image_object: Sequence,
+        key_names: dict[bytes, bytes],
+        value_names: dict[bytes, bytes],
+    ) -> Iterator[tuple[Any, dict[bytes, bytes]]]:
+        """Pair each token of an inline image dictionary with its remap table.
+
+        The tokens alternate key, value, key, value..., and the abbreviations
+        differ between the two positions.
+        """
+        for n, obj in enumerate(image_object):
+            yield obj, (key_names if n % 2 == 0 else value_names)
+
     @classmethod
     def _unparse_obj(
-        cls, obj: Object | bool | int | Decimal | float, remap_names: dict[bytes, bytes]
+        cls,
+        obj: Object | bool | int | Decimal | float,
+        remap_names: dict[bytes, bytes],
+        *,
+        value_names: dict[bytes, bytes] | None = None,
     ) -> bytes:
+        """Unparse one inline image token, remapping names through *remap_names*.
+
+        Everything inside an array is a value, so array members are remapped
+        with *value_names* (defaulting to *remap_names*) however the array
+        itself was reached. Dictionaries are emitted verbatim: no abbreviation
+        applies to filter parameter names, and some of them (``/BitsPerComponent``
+        in a ``/DecodeParms`` dictionary) would otherwise be mistaken for
+        abbreviatable image dictionary values.
+        """
+        if value_names is None:
+            value_names = remap_names
+        if obj is None:
+            # pikepdf presents a PDF null inside an array as Python None; this
+            # occurs in a /DecodeParms array that has no parameters for some
+            # of the filters in the chain.
+            return b'null'
+        if isinstance(obj, bytes):
+            return String(obj).unparse()
         if isinstance(obj, Object):
             if isinstance(obj, Name):
                 name = obj.unparse(resolved=True)
                 assert isinstance(name, bytes)
                 return remap_names.get(name, name)
+            if isinstance(obj, Array):
+                items = b' '.join(
+                    cls._unparse_obj(item, value_names, value_names=value_names)
+                    for item in obj
+                )
+                return b'[ ' + items + b' ]' if items else b'[ ]'
             return obj.unparse(resolved=True)
         if isinstance(obj, bool):
             return b'true' if obj else b'false'  # Lower case for PDF spec
@@ -802,13 +863,15 @@ class PdfInlineImage(PdfImageBase):
                 return _array_str(resolved)
         return cs
 
-    def unparse(self) -> bytes:
-        """Create the content stream bytes that reproduce this inline image."""
-
+    def _unparse_with(
+        self, key_names: dict[bytes, bytes], value_names: dict[bytes, bytes]
+    ) -> bytes:
         def metadata_tokens():
-            for metadata_obj in self._image_object:
+            for metadata_obj, table in self._tokens_with_tables(
+                self._image_object, key_names, value_names
+            ):
                 unparsed = self._unparse_obj(
-                    metadata_obj, remap_names=self.REVERSE_ABBREVS
+                    metadata_obj, remap_names=table, value_names=value_names
                 )
                 assert isinstance(unparsed, bytes)
                 yield unparsed
@@ -822,12 +885,33 @@ class PdfInlineImage(PdfImageBase):
 
         return b''.join(inline_image_tokens())
 
+    def unparse(self) -> bytes:
+        """Create the content stream bytes that reproduce this inline image.
+
+        Names are written in their abbreviated form, since that is the
+        conventional representation for inline images.
+        """
+        return self._unparse_with(self.REVERSE_KEY_ABBREVS, self.REVERSE_VALUE_ABBREVS)
+
+    def _unparse_expanded(self) -> bytes:
+        """Unparse with all abbreviations expanded to their full names.
+
+        Used when converting to an image XObject: qpdf's inline image
+        externalization does not expand abbreviations nested inside arrays
+        (such as ``/CS [/I /RGB 1 <...>]``), so the converted XObject would
+        carry names no reader recognizes outside an inline image.
+        """
+        return self._unparse_with(self.KEY_ABBREVS, self.VALUE_ABBREVS)
+
     @property
-    def icc(self) -> ImageCmsProfile | None:  # pragma: no cover
-        """Raise an exception since ICC profiles are not supported on inline images."""
-        raise InvalidPdfImageError(
-            "Inline images with ICC profiles are not supported in the PDF specification"
-        )
+    def icc(self) -> ImageCmsProfile | None:
+        """Return None, since an inline image cannot carry an ICC profile.
+
+        ISO 32000-2 Table 92 restricts an inline image's colour space to the
+        device spaces, a limited /Indexed form, or a name defined in the
+        in-scope resources, so /ICCBased never applies.
+        """
+        return None
 
     def __repr__(self) -> str:
         try:
@@ -846,7 +930,7 @@ class PdfInlineImage(PdfImageBase):
         tmppdf.pages[0].contents_add(
             f'{self.width} 0 0 {self.height} 0 0 cm'.encode('ascii'), prepend=True
         )
-        tmppdf.pages[0].contents_add(self.unparse())
+        tmppdf.pages[0].contents_add(self._unparse_expanded())
 
         # If the inline image names a colour space defined in the in-scope
         # /Resources, copy that definition into the temporary page's resources so
