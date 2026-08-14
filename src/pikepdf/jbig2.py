@@ -18,6 +18,7 @@ from tempfile import TemporaryDirectory
 
 from packaging.version import InvalidVersion, Version
 
+from pikepdf._core import DataDecodingError
 from pikepdf._exceptions import DependencyError
 
 if sys.platform == 'win32':
@@ -91,9 +92,28 @@ class JBIG2Decoder(JBIG2DecoderInterface):
 
             args.append(os.fspath(image_path))
 
-            self._run(
-                args, stdout=DEVNULL, check=True, creationflags=self._creationflags
-            )
+            try:
+                self._run(
+                    args,
+                    stdout=DEVNULL,
+                    stderr=PIPE,
+                    check=True,
+                    creationflags=self._creationflags,
+                )
+            except FileNotFoundError as e:
+                raise DependencyError("jbig2dec - not installed or not found") from e
+            except CalledProcessError as e:
+                detail = e.stderr
+                if isinstance(detail, bytes):
+                    detail = detail.decode("utf-8", errors="replace")
+                detail = (detail or "").strip()
+                msg = (
+                    "jbig2dec failed to decode JBIG2 image data"
+                    f" (exit status {e.returncode})"
+                )
+                if detail:
+                    msg = f"{msg}: {detail}"
+                raise DataDecodingError(msg) from e
             from PIL import Image
 
             with Image.open(output_path) as im:

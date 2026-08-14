@@ -4,9 +4,7 @@
 from __future__ import annotations
 
 import subprocess
-import sys
 from collections.abc import Callable
-from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -14,11 +12,11 @@ import pytest
 
 import pikepdf
 from pikepdf import (
+    DataDecodingError,
     DependencyError,
     Name,
     Object,
     Pdf,
-    PdfError,
     PdfImage,
 )
 from pikepdf.jbig2 import JBIG2Decoder
@@ -46,27 +44,6 @@ def first_image_in(resources, request):
 @pytest.fixture
 def jbig2(first_image_in):
     return first_image_in('jbig2.pdf')
-
-
-@contextmanager
-def expect_unraisable_exception():
-    """Assert that an unraisable exception occurs, suppressing pytest's warning.
-
-    pytest defers PytestUnraisableExceptionWarning until after the test body,
-    so pytest.warns() cannot capture it. We intercept sys.unraisablehook directly.
-    """
-    captured = []
-    old_hook = sys.unraisablehook
-
-    def hook(unraisable):
-        captured.append(unraisable)
-
-    sys.unraisablehook = hook
-    try:
-        yield
-    finally:
-        sys.unraisablehook = old_hook
-    assert captured, "Expected an unraisable exception but none occurred"
 
 
 @pytest.fixture
@@ -183,9 +160,8 @@ def test_jbig2_error(first_image_in, patch_jbig2dec: Callable[..., None]):
     patch_jbig2dec(run_claim_broken)
 
     pim = PdfImage(xobj)
-    with expect_unraisable_exception():
-        with pytest.raises(PdfError, match="unfilterable stream"):
-            pim.as_pil_image()
+    with pytest.raises(DataDecodingError, match="jbig2dec failed to decode"):
+        pim.as_pil_image()
 
 
 def test_jbig2_too_old(first_image_in, patch_jbig2dec: Callable[..., None]):
@@ -216,9 +192,33 @@ def test_jbig2_reports_no_version(first_image_in, patch_jbig2dec: Callable[..., 
 
     patch_jbig2dec(run_claim_no_version)
 
-    # Our patch to jbig2dec only provides a blank version string, or returns an error.
-    # So we expect a PdfError here (and not an InvalidVersion or DependencyError).
+    # Blank version is treated as unknown-but-present; decode then fails.
     pim = PdfImage(xobj)
-    with expect_unraisable_exception():
-        with pytest.raises(PdfError, match='read_bytes called on unfilterable stream'):
-            pim.as_pil_image()
+    with pytest.raises(DataDecodingError, match="jbig2dec failed to decode"):
+        pim.as_pil_image()
+
+
+def test_decode_jbig2_wraps_called_process_error(patch_jbig2dec: Callable[..., None]):
+    def run_claim_broken(args, *pargs, **kwargs):
+        if args[1] == '--version':
+            return subprocess.CompletedProcess(args, 0, stdout='0.15', stderr='')
+        raise subprocess.CalledProcessError(1, 'jbig2dec', stderr=b'segment too short')
+
+    patch_jbig2dec(run_claim_broken)
+    decoder = pikepdf.jbig2.get_decoder()
+    with pytest.raises(DataDecodingError, match="segment too short") as excinfo:
+        decoder.decode_jbig2(b'\x00' * 20, b'')
+    assert isinstance(excinfo.value.__cause__, subprocess.CalledProcessError)
+
+
+@needs_jbig2dec
+def test_jbig2_invalid_payload_is_data_decoding_error():
+    """Owner repro from #735: invalid JBIG2 data must not leak RuntimeError."""
+    pdf = Pdf.new()
+    st = pdf.make_stream(b'\x00' * 50)
+    st.Type, st.Subtype = Name.XObject, Name.Image
+    st.Width, st.Height, st.BitsPerComponent = 20, 20, 1
+    st.ColorSpace = Name.DeviceGray
+    st.Filter = pikepdf.Array([Name.JBIG2Decode])
+    with pytest.raises(DataDecodingError):
+        PdfImage(st).as_pil_image()

@@ -48,15 +48,15 @@ public:
             extracted_obj = extract_jbig2(pydata,
                 py::bytes(this->jbig2globals.data(), this->jbig2globals.size()));
         } catch (py::python_error &e) {
-            // In qpdf over here...
-            // https://github.com/qpdf/qpdf/blob/dd3b2cedd3164692925df1ef7414eb452343372f/libqpdf/QPDF.cc#L2955-2984
-            // all exceptions that happen during Pipeline::finish() will be trapped
-            // and converted into a generic error about the object being not decodable.
-            // As a consequence we get a Python exception through C++, so we discard it
-            // as unraisable so that at least the user gets a chance to see it.
-            e.restore();
-            PyErr_WriteUnraisable(nullptr);
-            throw std::runtime_error("qpdf will consume this exception");
+            // qpdf may trap exceptions thrown during Pipeline::finish() and
+            // convert them to a generic "not decodable" error. A runtime_error
+            // whose message matches is_data_decoding_error() is translated to
+            // pikepdf.DataDecodingError. In practice this exception often
+            // escapes to the caller (#735) rather than being consumed; do not
+            // write the Python error as unraisable (that leaked a traceback
+            // and left a bare RuntimeError whose text was an implementation
+            // note).
+            throw std::runtime_error(std::string("Pl_JBIG2: ") + e.what());
         }
 
         return to_string(extracted_obj);

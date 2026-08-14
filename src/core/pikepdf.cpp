@@ -132,6 +132,7 @@ bool is_data_decoding_error(const std::runtime_error &e)
         "|Pl_LZWDecoder:"
         "|Pl_Flate:"
         "|Pl_DCT:"
+        "|Pl_JBIG2:"
         "|stream inflate:",
         std::regex_constants::icase);
 

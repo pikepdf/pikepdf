@@ -14,6 +14,13 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.11.1
+
+- A JBIG2 decode failure (jbig2dec present but the payload is invalid) now
+  raises {exc}`~pikepdf.exceptions.DataDecodingError` with the decoder error,
+  instead of a bare ``RuntimeError("qpdf will consume this exception")`` plus
+  an unraisable traceback on stderr. (#735)
+
 ## v10.11.0
 
 - Extended PDF outline (bookmark) support to cover more of the spec:

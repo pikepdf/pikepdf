@@ -23,7 +23,7 @@ from io import BytesIO
 from typing import TYPE_CHECKING, BinaryIO, cast
 
 from pikepdf import jbig2
-from pikepdf._core import Pdf, PdfError, StreamDecodeLevel
+from pikepdf._core import DataDecodingError, Pdf, PdfError, StreamDecodeLevel
 from pikepdf._exceptions import DependencyError
 from pikepdf.models import _transcoding
 from pikepdf.models._image_exceptions import (
@@ -260,15 +260,22 @@ def _transcoded_1bit(pim: PdfImage) -> Image.Image:
         raise UnsupportedImageTypeError("1-bit RGB and CMYK are not supported")
     try:
         data = pim.read_bytes()
+    except DataDecodingError:
+        raise
     except (RuntimeError, PdfError) as e:
-        if (
-            'read_bytes called on unfilterable stream' in str(e)
-            and not jbig2.get_decoder().available()
-        ):
-            raise DependencyError(
-                "jbig2dec - not installed or installed version is too old "
-                "(older than version 0.15)"
-            ) from None
+        msg = str(e)
+        if 'Pl_JBIG2:' in msg:
+            raise DataDecodingError(msg) from e
+        if 'read_bytes called on unfilterable stream' in msg:
+            if not jbig2.get_decoder().available():
+                raise DependencyError(
+                    "jbig2dec - not installed or installed version is too old "
+                    "(older than version 0.15)"
+                ) from None
+            # Decoder is present; qpdf swallowed the JBIG2 pipeline error.
+            raise DataDecodingError(
+                "jbig2dec failed to decode JBIG2 image data"
+            ) from e
         raise
 
     # Pillow's '1' mode stores a byte per pixel, and Image.frombytes allocates
