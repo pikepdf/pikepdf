@@ -1,0 +1,14 @@
+LicenseRef-license-text-verbatim
+
+This identifier marks files in `third-party-licenses/` that are verbatim copies
+of another project's license text or license notice, reproduced so that pikepdf
+binary wheels carry the attribution those licenses require.
+
+These files are reference documents. They are not part of pikepdf's covered
+software, they impose no terms on pikepdf, and pikepdf claims no copyright in
+them. Each remains the work of its respective author, is reproduced without
+modification, and may be copied and distributed verbatim under the terms the
+document itself states.
+
+`third-party-licenses/README.md` maps each vendored binary component in a
+pikepdf wheel to the license text that applies to it.

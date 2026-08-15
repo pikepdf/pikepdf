@@ -9,6 +9,12 @@ build-backend = "scikit_build_core.build"
 wheel.packages = ["src/pikepdf"]
 cmake.build-type = "Release"
 wheel.py-api = "cp314"
+# The wheel-building CI jobs download qpdf's source into ./qpdf to compile
+# libqpdf before building. Without this exclusion scikit-build-core sweeps that
+# entire tree (~2900 Apache-2.0 files) into the sdist, which bloats it and
+# misrepresents the sdist as containing third-party source. libqpdf is a build
+# prerequisite, not part of pikepdf's source.
+sdist.exclude = ["qpdf"]
 
 [project]
 name = "pikepdf"
@@ -19,6 +25,15 @@ requires-python = ">=3.10"
 keywords = ["PDF"]
 authors = [{ name = "James R. Barlow", email = "james@purplerock.ca" }]
 license = "MPL-2.0"
+# PEP 639. `license` above is pikepdf's own license and is what
+# License-Expression declares; these files are additionally shipped in
+# .dist-info/licenses/ and enumerated in License-File metadata. third-party-
+# licenses/ covers the compiled libraries that auditwheel/delocate/delvewheel
+# vendor into binary wheels -- see third-party-licenses/README.md for the
+# component-to-license mapping. Setting this explicitly also replaces
+# scikit-build-core's default license glob, which on case-insensitive Windows
+# filesystems matched files it should not have.
+license-files = ["LICENSE.txt", "third-party-licenses/*"]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Developers",

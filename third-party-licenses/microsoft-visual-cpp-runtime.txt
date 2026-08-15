@@ -1,0 +1,35 @@
+Microsoft Visual C++ Runtime Files
+==================================
+
+Applies to: Windows wheels only, for the file `pikepdf.libs/msvcp140-<hash>.dll`.
+
+The Microsoft Visual C++ Runtime Files are Distributable Code redistributed
+under section "4. Distributable Code" of the Microsoft Software License Terms
+for Microsoft Visual Studio:
+
+    https://visualstudio.microsoft.com/license-terms/mlt031619/
+
+Microsoft does not permit the full agreement to be redistributed verbatim, so
+the summary of distributor obligations reproduced below is provided instead.
+Refer to the URL above for the complete and authoritative terms.
+
+============================================
+Microsoft Distributable Code License Summary
+============================================
+
+Distributors and external end users MAY:
+
+* Copy and distribute the Distributable Code.
+
+Distributors and external end users MUST:
+
+* Agree to protect the Distributable Code at least as much as the Microsoft Software
+  License Terms agreement does.
+* Indemnify, defend, and hold harmless Microsoft from any claims, including
+  attorneys' fees, related to the distribution or use of your applications, except
+  to the extent that any claim is based solely on the Distributable Code.
+
+Distributors and external end users MUST NOT:
+
+* Use Microsoft's trademarks in your applications' names or in a way that
+  suggests your applications come from or are endorsed by Microsoft.
