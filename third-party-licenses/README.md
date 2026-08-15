@@ -56,29 +56,6 @@ is no separate `libcrypto` or `zlib` DLL in the wheel.
 | [zlib](https://zlib.net/) | 1.3.1 | **statically linked** into `qpdf30-<hash>.dll` | Zlib | [`zlib.txt`](zlib.txt) |
 | Microsoft Visual C++ Runtime | 14.x | separate DLL, `pikepdf.libs/msvcp140-<hash>.dll` | Microsoft Distributable Code terms | [`microsoft-visual-cpp-runtime.txt`](microsoft-visual-cpp-runtime.txt) |
 
-### macOS wheels only
-
-macOS builds configure qpdf with `REQUIRE_CRYPTO_GNUTLS`, so qpdf's crypto
-backend is GnuTLS (`QPDFCrypto_gnutls`). `delocate` vendors GnuTLS and its
-dependency chain into `pikepdf/.dylibs/`. Each is a separate, unmodified
-dynamic library, linked dynamically.
-
-| Component | Version | Library | License | Text |
-| --- | --- | --- | --- | --- |
-| [GnuTLS](https://www.gnutls.org/) | 3.8.13 | `libgnutls.30.dylib` | LGPL-2.1-or-later | [`LGPL-2.1.txt`](LGPL-2.1.txt) |
-| [Nettle](https://www.lysator.liu.se/~nisse/nettle/) | 3.10.x | `libnettle.9.0.dylib`, `libhogweed.7.0.dylib` | LGPL-3.0-or-later **or** GPL-2.0-or-later | [`LGPL-3.0.txt`](LGPL-3.0.txt), [`GPL-2.0.txt`](GPL-2.0.txt) |
-| [GMP](https://gmplib.org/) | 6.3.0 | `libgmp.10.dylib` | LGPL-3.0-or-later **or** GPL-2.0-or-later | [`LGPL-3.0.txt`](LGPL-3.0.txt), [`GPL-2.0.txt`](GPL-2.0.txt) |
-| [libidn2](https://www.gnu.org/software/libidn/) | 2.3.8 | `libidn2.0.dylib` | LGPL-3.0-or-later **or** GPL-2.0-or-later | [`LGPL-3.0.txt`](LGPL-3.0.txt), [`GPL-2.0.txt`](GPL-2.0.txt) |
-| [libunistring](https://www.gnu.org/software/libunistring/) | 1.x | `libunistring.5.dylib` | LGPL-3.0-or-later **or** GPL-2.0-or-later | [`LGPL-3.0.txt`](LGPL-3.0.txt), [`GPL-2.0.txt`](GPL-2.0.txt) |
-| [GNU Libtasn1](https://www.gnu.org/software/libtasn1/) | 4.21.0 | `libtasn1.6.dylib` | LGPL-2.1-or-later | [`LGPL-2.1.txt`](LGPL-2.1.txt) |
-| [p11-kit](https://p11-glue.github.io/p11-glue/p11-kit.html) | 0.25.x | `libp11-kit.0.dylib` | BSD-3-Clause | [`p11-kit.txt`](p11-kit.txt) |
-| GNU gettext runtime (libintl) | 0.2x | `libintl.8.dylib` | LGPL-2.1-or-later | [`LGPL-2.1.txt`](LGPL-2.1.txt) |
-
-The LGPL components above are dynamically linked as separate `.dylib` files
-inside the wheel and are not modified. A recipient who wishes to relink pikepdf
-against a different build of any of them can replace the corresponding file in
-`pikepdf/.dylibs/`, or build pikepdf from source against their own libraries.
-
 ### musllinux wheels only
 
 | Component | Version | Library | License | Text |
@@ -92,9 +69,11 @@ with independent works without imposing GPL terms on those works.
 
 For reference, these are *not* redistributed in pikepdf wheels:
 
-- **OpenSSL and GnuTLS on Linux.** manylinux and musllinux builds of qpdf use
-  qpdf's built-in `QPDFCrypto_native` backend. No TLS or crypto library is
-  linked or vendored.
+- **OpenSSL and GnuTLS on Linux and macOS.** These builds of qpdf select its
+  built-in `QPDFCrypto_native` backend explicitly
+  (`-DREQUIRE_CRYPTO_NATIVE=1 -DUSE_IMPLICIT_CRYPTO=OFF`). No TLS or crypto
+  library is linked or vendored. Only the Windows wheel contains OpenSSL, and
+  there it is statically linked inside qpdf's own DLL.
 - **zlib on Linux and macOS.** `libqpdf` links the platform's system zlib,
   which is not copied into the wheel.
 - **The Python interpreter's own runtime.** On Windows, `vcruntime140.dll` is

@@ -17,10 +17,7 @@ SPDX-License-Identifier = "MPL-2.0"
 [[annotations]]
 path = [
     "third-party-licenses/GCC-exception-3.1.txt",
-    "third-party-licenses/GPL-2.0.txt",
     "third-party-licenses/GPL-3.0.txt",
-    "third-party-licenses/LGPL-2.1.txt",
-    "third-party-licenses/LGPL-3.0.txt",
 ]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "Free Software Foundation, Inc."
@@ -51,12 +48,6 @@ path = [
 ]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "The libjpeg-turbo Project and Independent JPEG Group"
-SPDX-License-Identifier = "LicenseRef-license-text-verbatim"
-
-[[annotations]]
-path = "third-party-licenses/p11-kit.txt"
-precedence = "aggregate"
-SPDX-FileCopyrightText = "The p11-kit Authors"
 SPDX-License-Identifier = "LicenseRef-license-text-verbatim"
 
 [[annotations]]

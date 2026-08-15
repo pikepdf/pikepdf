@@ -5,24 +5,40 @@ build-deploy workflow.
 
 For general build instructions, see {ref}`source-build`.
 
-## macOS crypto provider
+## Crypto provider
 
-Users reported trouble with open legacy encrypted files on macOS
-specifically, e.g. <https://github.com/pikepdf/pikepdf/issues/520>
+We build libqpdf with `-DREQUIRE_CRYPTO_NATIVE=1 -DUSE_IMPLICIT_CRYPTO=OFF` on
+every POSIX platform, so qpdf uses its own MD5/RC4/SHA2/AES implementations and
+links no TLS library at all.
 
-It appears this is because we were using Homebrew's qpdf which is
-currently linked against Homebrew's openssl. The error came from
-qpdf specifically not finding openssl's legacy crypto provider. How
-exactly that comes about is unclear - it may be that delocate-wheel
-is inconsistent, it may be Homebrew has disabled the legacy
-provider, etc. Since we use gnutls for crypto and build libqpdf on
-the fly for Linux wheels, might as well do the same for macOS
-to address this.
+This traces back to <https://github.com/pikepdf/pikepdf/issues/520>, where
+legacy encrypted PDFs failed to open on macOS. The cause was Homebrew's openssl
+retiring its legacy provider, which qpdf needs for the RC4 and MD5 that older
+PDFs use. At the time we switched macOS to gnutls, believing that matched the
+Linux builds.
 
-So now we build and link against our own libqpdf, which in turn is
-linked against gnutls, which does not seem to have the same issues.
-All of our Linux and macOS builds are doing the same thing now,
-rather than being split on crypto provider.
+It did not. The manylinux and musllinux images ship neither gnutls-devel nor
+openssl-devel, so `USE_IMPLICIT_CRYPTO` had been quietly falling back to native
+on Linux all along -- the two platforms were never aligned, and Linux wheels
+have been opening legacy encrypted files on native crypto without complaint
+ever since.
+
+Native crypto is the better answer to #520 than either external provider: it
+implements the weak algorithms itself, so no upstream deprecation policy can
+take them away. It also removes nine vendored dylibs (gnutls, nettle, hogweed,
+gmp, idn2, unistring, tasn1, p11-kit, intl) and their LGPL obligations from
+macOS wheels.
+
+Selecting the provider explicitly rather than relying on the implicit fallback
+also keeps `third-party-licenses/` accurate: a build image that gained gnutls
+or openssl headers would otherwise add a bundled dependency that the license
+manifest does not describe.
+
+qpdf's manual notes that external crypto providers should be preferred "in
+nearly all cases" while calling native "fully supported". The preference is
+about hardware acceleration and independent vetting; pikepdf uses crypto only
+for PDF encryption, which is weak by specification, so the tradeoff favours
+having no external dependency.
 
 ## macOS generally
 

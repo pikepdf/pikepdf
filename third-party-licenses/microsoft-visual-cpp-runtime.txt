@@ -3,33 +3,32 @@ Microsoft Visual C++ Runtime Files
 
 Applies to: Windows wheels only, for the file `pikepdf.libs/msvcp140-<hash>.dll`.
 
-The Microsoft Visual C++ Runtime Files are Distributable Code redistributed
-under section "4. Distributable Code" of the Microsoft Software License Terms
-for Microsoft Visual Studio:
+`msvcp140.dll` is the Visual C++ 14.x standard C++ library runtime. It is
+Distributable Code under the Microsoft Software License Terms for Visual
+Studio. The applicable terms are published by Microsoft at:
 
-    https://visualstudio.microsoft.com/license-terms/mlt031619/
+  * Microsoft Visual C++ Runtime 2015-2022 Software
+    https://visualstudio.microsoft.com/license-terms/vs2022-cruntime/
 
-Microsoft does not permit the full agreement to be redistributed verbatim, so
-the summary of distributor obligations reproduced below is provided instead.
-Refer to the URL above for the complete and authoritative terms.
+  * License Directory (all current and historical Visual Studio terms)
+    https://visualstudio.microsoft.com/license-terms/
 
-============================================
-Microsoft Distributable Code License Summary
-============================================
+  * The "REDIST list" referenced by the Distributable Code section, which
+    enumerates the specific files that may be redistributed:
+    https://aka.ms/vs/17/redistribution
 
-Distributors and external end users MAY:
+Microsoft's guidance on redistributing these files is at
+https://learn.microsoft.com/en-us/cpp/windows/redistributing-visual-cpp-files
 
-* Copy and distribute the Distributable Code.
+The substantive conditions Microsoft places on redistribution are that
+distribution is limited to licensed Visual Studio users, that the files are
+listed on the REDIST list, and that they are distributed in unmodified form.
+The copy in a pikepdf wheel is bit-for-bit identical to the file produced by
+Microsoft; only the filename carries a content hash suffix, applied by
+`delvewheel` so that the wheel's copy cannot collide with the system copy or
+another wheel's copy in the same process.
 
-Distributors and external end users MUST:
-
-* Agree to protect the Distributable Code at least as much as the Microsoft Software
-  License Terms agreement does.
-* Indemnify, defend, and hold harmless Microsoft from any claims, including
-  attorneys' fees, related to the distribution or use of your applications, except
-  to the extent that any claim is based solely on the Distributable Code.
-
-Distributors and external end users MUST NOT:
-
-* Use Microsoft's trademarks in your applications' names or in a way that
-  suggests your applications come from or are endorsed by Microsoft.
+Unlike the open source licenses in this directory, these terms impose no
+attribution or notice obligation on downstream recipients, so no license text
+is reproduced here. Consult the URLs above for the complete and authoritative
+terms, which are the only binding statement of them.

@@ -41,6 +41,21 @@ the architecture notes on thread safety.
   into `./qpdf` to build libqpdf, and that build prerequisite was being swept
   into the sdist, adding roughly 2900 Apache-2.0 files to a distribution that
   declares itself MPL-2.0. sdists now contain only pikepdf's own code.
+- macOS wheels now use qpdf's native crypto provider instead of GnuTLS, and all
+  POSIX builds select it explicitly rather than relying on qpdf's implicit
+  fallback. macOS wheels lose nine bundled libraries as a result -- GnuTLS,
+  Nettle, Hogweed, GMP, libidn2, libunistring, Libtasn1, p11-kit and libintl --
+  along with roughly 10 MB and the LGPL obligations that came with them.
+
+  macOS moved to GnuTLS in v8.7.0 to fix legacy encrypted files failing to open
+  ({issue}`520`), because Homebrew's OpenSSL had retired the legacy provider
+  that supplies the RC4 and MD5 those files need. The Linux builds were assumed
+  to be doing the same thing, but were not: their images carry no GnuTLS or
+  OpenSSL headers, so they had silently been using native crypto all along, and
+  have been opening legacy encrypted files without trouble ever since. Native
+  crypto implements MD5, RC4, SHA2 and AES itself, so no upstream deprecation
+  policy can withdraw the weak algorithms older PDFs require. There is no
+  change to which files pikepdf can open.
 
 ### Behaviour change
 
