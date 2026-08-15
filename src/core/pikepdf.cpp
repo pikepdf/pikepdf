@@ -50,6 +50,11 @@ static constinit std::atomic<PyObject *> exc_referencecycle{nullptr};
 // explicit mode takes precedence over the global EXPLICIT_CONVERSION_MODE.
 static thread_local int thread_explicit_depth = 0;
 
+PyObject *get_data_decoding_error_type()
+{
+    return exc_datadecoding.load(std::memory_order_acquire);
+}
+
 uint get_decimal_precision()
 {
     return DECIMAL_PRECISION.load();
@@ -124,15 +129,19 @@ auto translate_qpdf_logic_error(const std::exception &e)
 
 bool is_data_decoding_error(const std::runtime_error &e)
 {
+    // JBIG2_DECODE_ERROR_PREFIX is pikepdf's own contribution to this list; see
+    // pikepdf.h for why Pl_JBIG2 tags its errors with it.
     static const std::regex decoding_error_pattern(
-        "character out of range"
-        "|broken end-of-data sequence in base 85 data"
-        "|unexpected z during base 85 decode"
-        "|TIFFPredictor created with"
-        "|Pl_LZWDecoder:"
-        "|Pl_Flate:"
-        "|Pl_DCT:"
-        "|stream inflate:",
+        std::string("character out of range"
+                    "|broken end-of-data sequence in base 85 data"
+                    "|unexpected z during base 85 decode"
+                    "|TIFFPredictor created with"
+                    "|Pl_LZWDecoder:"
+                    "|Pl_Flate:"
+                    "|Pl_DCT:"
+                    "|stream inflate:"
+                    "|") +
+            JBIG2_DECODE_ERROR_PREFIX,
         std::regex_constants::icase);
 
     return std::regex_search(e.what(), decoding_error_pattern);

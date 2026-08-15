@@ -18,6 +18,7 @@ from tempfile import TemporaryDirectory
 
 from packaging.version import InvalidVersion, Version
 
+from pikepdf._core import DataDecodingError
 from pikepdf._exceptions import DependencyError
 
 if sys.platform == 'win32':
@@ -37,7 +38,14 @@ class JBIG2DecoderInterface(ABC):
 
     @abstractmethod
     def decode_jbig2(self, jbig2: bytes, jbig2_globals: bytes) -> bytes:
-        """Decode JBIG2 from jbig2 and globals, returning decoded bytes."""
+        """Decode JBIG2 from jbig2 and globals, returning decoded bytes.
+
+        Raise :class:`pikepdf.DataDecodingError` if the data cannot be decoded.
+        That is the only exception pikepdf's C++ pipeline can carry across
+        libqpdf's frames with its type intact; any other exception is reported
+        as-is when possible, and otherwise reaches the caller as a generic qpdf
+        "unfilterable stream" error.
+        """
 
     def available(self) -> bool:
         """Return True if decoder is available."""
@@ -91,9 +99,28 @@ class JBIG2Decoder(JBIG2DecoderInterface):
 
             args.append(os.fspath(image_path))
 
-            self._run(
-                args, stdout=DEVNULL, check=True, creationflags=self._creationflags
-            )
+            try:
+                self._run(
+                    args,
+                    stdout=DEVNULL,
+                    stderr=PIPE,
+                    check=True,
+                    creationflags=self._creationflags,
+                )
+            except FileNotFoundError as e:
+                raise DependencyError("jbig2dec - not installed or not found") from e
+            except CalledProcessError as e:
+                detail = e.stderr
+                if isinstance(detail, bytes):
+                    detail = detail.decode("utf-8", errors="replace")
+                detail = (detail or "").strip()
+                msg = (
+                    "jbig2dec failed to decode JBIG2 image data"
+                    f" (exit status {e.returncode})"
+                )
+                if detail:
+                    msg = f"{msg}: {detail}"
+                raise DataDecodingError(msg) from e
             from PIL import Image
 
             with Image.open(output_path) as im:

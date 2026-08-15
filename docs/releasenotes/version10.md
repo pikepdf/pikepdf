@@ -16,6 +16,16 @@ the architecture notes on thread safety.
 
 ## v10.12.0
 
+### Behaviour change
+
+- {attr}`pikepdf.PdfInlineImage.icc` now returns ``None`` instead of raising
+  {exc}`~pikepdf.exceptions.InvalidPdfImageError`. An inline image's colour
+  space cannot be `/ICCBased`, so "no ICC profile" is the correct answer rather
+  than an error -- and raising made {attr}`pikepdf.PdfImageBase.palette`
+  unusable on indexed inline images, which consults it.
+
+### Fixes
+
 - Fixed inline image name abbreviation handling, which was incomplete in both
   directions. {issue}`206`
   - Abbreviations nested inside arrays are now expanded when an inline image is
@@ -34,11 +44,20 @@ the architecture notes on thread safety.
     `/Indexed true`.
   - Added the missing abbreviations `/Fl` (`/FlateDecode`), `/D` (`/Decode`)
     and `/L` (`/Length`); none of the three were expanded before.
-- {attr}`pikepdf.PdfInlineImage.icc` now returns ``None`` instead of raising
-  {exc}`~pikepdf.exceptions.InvalidPdfImageError`. An inline image's colour
-  space cannot be `/ICCBased`, so "no ICC profile" is the correct answer rather
-  than an error -- and raising made {attr}`pikepdf.PdfImageBase.palette`
-  unusable on indexed inline images, which consults it.
+- A JBIG2 decode failure (jbig2dec present but the payload is invalid) now
+  raises {exc}`~pikepdf.exceptions.DataDecodingError` with the decoder's error
+  message, instead of a bare `RuntimeError("qpdf will consume this exception")`
+  plus an unraisable traceback on stderr. (#735)
+- Exceptions other than {exc}`~pikepdf.exceptions.DataDecodingError` raised by
+  a JBIG2 decoder now keep their own type. Previously a failure unrelated to
+  the image data -- a {exc}`~pikepdf.exceptions.DependencyError` from a custom
+  decoder, or `KeyboardInterrupt` -- was reported as if the JBIG2 data were
+  corrupt. Implementations of
+  {class}`pikepdf.jbig2.JBIG2DecoderInterface.decode_jbig2` should raise
+  `DataDecodingError` to report undecodable data.
+- When the JBIG2 image comes from a file on disk, qpdf traps the decoder's
+  exception and records it as a warning, so the decoder's message is available
+  from {meth}`pikepdf.Pdf.get_warnings` rather than in the exception.
 
 ## v10.11.0
 
