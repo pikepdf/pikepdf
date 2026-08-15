@@ -48,15 +48,28 @@ public:
             extracted_obj = extract_jbig2(pydata,
                 py::bytes(this->jbig2globals.data(), this->jbig2globals.size()));
         } catch (py::python_error &e) {
-            // In qpdf over here...
-            // https://github.com/qpdf/qpdf/blob/dd3b2cedd3164692925df1ef7414eb452343372f/libqpdf/QPDF.cc#L2955-2984
-            // all exceptions that happen during Pipeline::finish() will be trapped
-            // and converted into a generic error about the object being not decodable.
-            // As a consequence we get a Python exception through C++, so we discard it
-            // as unraisable so that at least the user gets a chance to see it.
-            e.restore();
-            PyErr_WriteUnraisable(nullptr);
-            throw std::runtime_error("qpdf will consume this exception");
+            // We are called from Pipeline::finish(). If the stream data came
+            // from a file, qpdf traps everything thrown here, downgrades it to
+            // a warning and reports "unfilterable stream"; if the data was set
+            // from memory, whatever we throw reaches the caller. Either way a
+            // Python exception cannot cross qpdf's C++ frames intact, so a
+            // decode failure is re-thrown tagged with the sentinel prefix that
+            // is_data_decoding_error() recognizes, and the exception translator
+            // turns it back into pikepdf.DataDecodingError. See pikepdf.h.
+            //
+            // Only DataDecodingError is smuggled out this way. Anything else --
+            // DependencyError from a custom decoder, KeyboardInterrupt, a bug in
+            // the decoder -- keeps its own type and traceback, because relabeling
+            // it would blame corrupt JBIG2 data for an unrelated failure. Those
+            // exceptions propagate as py::python_error, which nanobind restores
+            // if qpdf does not trap it first.
+            if (!e.matches(py::handle(get_data_decoding_error_type())))
+                throw;
+            // Use str(exception), not e.what(): the latter is a formatted
+            // traceback, which would end up embedded in the message the user
+            // sees.
+            throw std::runtime_error(std::string(JBIG2_DECODE_ERROR_PREFIX) + " " +
+                                     py::str(e.value()).c_str());
         }
 
         return to_string(extracted_obj);

@@ -14,6 +14,23 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.11.1
+
+- A JBIG2 decode failure (jbig2dec present but the payload is invalid) now
+  raises {exc}`~pikepdf.exceptions.DataDecodingError` with the decoder's error
+  message, instead of a bare `RuntimeError("qpdf will consume this exception")`
+  plus an unraisable traceback on stderr. (#735)
+- Exceptions other than {exc}`~pikepdf.exceptions.DataDecodingError` raised by
+  a JBIG2 decoder now keep their own type. Previously a failure unrelated to
+  the image data -- a {exc}`~pikepdf.exceptions.DependencyError` from a custom
+  decoder, or `KeyboardInterrupt` -- was reported as if the JBIG2 data were
+  corrupt. Implementations of
+  {class}`pikepdf.jbig2.JBIG2DecoderInterface.decode_jbig2` should raise
+  `DataDecodingError` to report undecodable data.
+- When the JBIG2 image comes from a file on disk, qpdf traps the decoder's
+  exception and records it as a warning, so the decoder's message is available
+  from {meth}`pikepdf.Pdf.get_warnings` rather than in the exception.
+
 ## v10.11.0
 
 - Extended PDF outline (bookmark) support to cover more of the spec:
