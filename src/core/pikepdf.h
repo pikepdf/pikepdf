@@ -52,6 +52,23 @@ py::object decimal_from_pdfobject(QPDFObjectHandle h);
 // From pikepdf.cpp - forward declaration for type_caster
 bool get_explicit_conversion_mode();
 
+// Sentinel prefix that carries a JBIG2 decode failure across qpdf's C++ frames.
+//
+// A Python exception raised by the JBIG2 decoder cannot travel through libqpdf,
+// which only understands std::exception. Pl_JBIG2 (jbig2-inl.h) therefore
+// re-throws the failure as a std::runtime_error whose message begins with this
+// prefix, and is_data_decoding_error() (pikepdf.cpp) matches the prefix so the
+// exception translator turns it back into pikepdf.DataDecodingError. The same
+// convention is what libqpdf itself uses for "Pl_Flate:", "Pl_DCT:", etc., so
+// pikepdf's own pipeline reports errors the way qpdf's pipelines do.
+//
+// Both ends of this contract live in C++; nothing in the Python layer should
+// match on the prefix.
+inline constexpr const char *JBIG2_DECODE_ERROR_PREFIX = "Pl_JBIG2:";
+
+// From pikepdf.cpp - the pikepdf.DataDecodingError class object (borrowed).
+PyObject *get_data_decoding_error_type();
+
 namespace nanobind {
 namespace detail {
 template <>

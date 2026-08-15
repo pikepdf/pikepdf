@@ -211,14 +211,83 @@ def test_decode_jbig2_wraps_called_process_error(patch_jbig2dec: Callable[..., N
     assert isinstance(excinfo.value.__cause__, subprocess.CalledProcessError)
 
 
-@needs_jbig2dec
-def test_jbig2_invalid_payload_is_data_decoding_error():
-    """Owner repro from #735: invalid JBIG2 data must not leak RuntimeError."""
-    pdf = Pdf.new()
+def invalid_jbig2_image(pdf: Pdf) -> pikepdf.Stream:
+    """Build the in-memory JBIG2 image from the #735 report.
+
+    A stream whose data was set from memory (rather than read from a file) is
+    the case where qpdf does *not* trap what Pl_JBIG2 throws during
+    Pipeline::finish(), so whatever the decoder raised reaches the caller.
+    """
     st = pdf.make_stream(b'\x00' * 50)
     st.Type, st.Subtype = Name.XObject, Name.Image
     st.Width, st.Height, st.BitsPerComponent = 20, 20, 1
     st.ColorSpace = Name.DeviceGray
     st.Filter = pikepdf.Array([Name.JBIG2Decode])
-    with pytest.raises(DataDecodingError):
-        PdfImage(st).as_pil_image()
+    return st
+
+
+@needs_jbig2dec
+def test_jbig2_invalid_payload_is_data_decoding_error():
+    """Owner repro from #735: invalid JBIG2 data must not leak RuntimeError."""
+    pdf = Pdf.new()
+    with pytest.raises(DataDecodingError) as excinfo:
+        PdfImage(invalid_jbig2_image(pdf)).as_pil_image()
+
+    # The message must be jbig2dec's complaint, not a Python traceback smuggled
+    # through as text (which is what python_error::what() would have given us).
+    msg = str(excinfo.value)
+    assert 'jbig2dec' in msg
+    assert 'Traceback' not in msg
+
+
+class _RaisingDecoder(pikepdf.jbig2.JBIG2DecoderInterface):
+    """A decoder that is available but fails with a caller-chosen exception."""
+
+    def __init__(self, exc: BaseException):
+        self.exc = exc
+
+    def check_available(self) -> None:
+        return None
+
+    def decode_jbig2(self, jbig2: bytes, jbig2_globals: bytes) -> bytes:
+        raise self.exc
+
+
+@pytest.fixture
+def raising_decoder():
+    original = pikepdf.jbig2.get_decoder()
+
+    def _set(exc: BaseException):
+        pikepdf.jbig2.set_decoder(_RaisingDecoder(exc))
+
+    yield _set
+    pikepdf.jbig2.set_decoder(original)
+
+
+@pytest.mark.parametrize(
+    'exc',
+    [
+        DependencyError("my decoder went missing"),
+        KeyboardInterrupt(),
+        ValueError("decoder bug"),
+    ],
+    ids=['dependency', 'keyboard-interrupt', 'decoder-bug'],
+)
+def test_jbig2_non_decoding_errors_keep_their_type(raising_decoder, exc):
+    """Only DataDecodingError is relabeled on its way out of Pl_JBIG2.
+
+    Everything else keeps its own type, so an unrelated failure is not reported
+    as corrupt JBIG2 data. See JBIG2_DECODE_ERROR_PREFIX in src/core/pikepdf.h.
+    """
+    raising_decoder(exc)
+    pdf = Pdf.new()
+    with pytest.raises(type(exc)) as excinfo:
+        PdfImage(invalid_jbig2_image(pdf)).as_pil_image()
+    assert excinfo.value is exc
+
+
+def test_jbig2_decoding_error_is_relabeled(raising_decoder):
+    raising_decoder(DataDecodingError("decoder said no"))
+    pdf = Pdf.new()
+    with pytest.raises(DataDecodingError, match="decoder said no"):
+        PdfImage(invalid_jbig2_image(pdf)).as_pil_image()
