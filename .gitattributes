@@ -5,3 +5,11 @@
 *.png	binary
 *.jpg	binary
 .git_archival.txt   export-subst
+
+# License texts must reach wheels byte-for-byte identical to what upstream
+# publishes, so a compliance reviewer can hash them against the original.
+# Without -text, a Windows checkout rewrites them to CRLF and the copies in
+# Windows wheels stop matching every other platform's.
+LICENSE.txt              -text
+LICENSES/**              -text
+third-party-licenses/**  -text
