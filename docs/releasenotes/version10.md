@@ -56,6 +56,8 @@ the architecture notes on thread safety.
   crypto implements MD5, RC4, SHA2 and AES itself, so no upstream deprecation
   policy can withdraw the weak algorithms older PDFs require. There is no
   change to which files pikepdf can open.
+- Documentation updates with additional guidance about crypto provider selection
+  and the realities of PDF encryption security.
 
 ### Behaviour change
 
