@@ -47,7 +47,7 @@ the architecture notes on thread safety.
   Nettle, Hogweed, GMP, libidn2, libunistring, Libtasn1, p11-kit and libintl --
   along with roughly 10 MB and the LGPL obligations that came with them.
 
-  macOS moved to GnuTLS in v8.7.0 to fix legacy encrypted files failing to open
+  macOS moved to GnuTLS in v8.11.1 to fix legacy encrypted files failing to open
   ({issue}`520`), because Homebrew's OpenSSL had retired the legacy provider
   that supplies the RC4 and MD5 those files need. The Linux builds were assumed
   to be doing the same thing, but were not: their images carry no GnuTLS or
