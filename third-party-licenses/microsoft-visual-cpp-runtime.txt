@@ -1,0 +1,34 @@
+Microsoft Visual C++ Runtime Files
+==================================
+
+Applies to: Windows wheels only, for the file `pikepdf.libs/msvcp140-<hash>.dll`.
+
+`msvcp140.dll` is the Visual C++ 14.x standard C++ library runtime. It is
+Distributable Code under the Microsoft Software License Terms for Visual
+Studio. The applicable terms are published by Microsoft at:
+
+  * Microsoft Visual C++ Runtime 2015-2022 Software
+    https://visualstudio.microsoft.com/license-terms/vs2022-cruntime/
+
+  * License Directory (all current and historical Visual Studio terms)
+    https://visualstudio.microsoft.com/license-terms/
+
+  * The "REDIST list" referenced by the Distributable Code section, which
+    enumerates the specific files that may be redistributed:
+    https://aka.ms/vs/17/redistribution
+
+Microsoft's guidance on redistributing these files is at
+https://learn.microsoft.com/en-us/cpp/windows/redistributing-visual-cpp-files
+
+The substantive conditions Microsoft places on redistribution are that
+distribution is limited to licensed Visual Studio users, that the files are
+listed on the REDIST list, and that they are distributed in unmodified form.
+The copy in a pikepdf wheel is bit-for-bit identical to the file produced by
+Microsoft; only the filename carries a content hash suffix, applied by
+`delvewheel` so that the wheel's copy cannot collide with the system copy or
+another wheel's copy in the same process.
+
+Unlike the open source licenses in this directory, these terms impose no
+attribution or notice obligation on downstream recipients, so no license text
+is reproduced here. Consult the URLs above for the complete and authoritative
+terms, which are the only binding statement of them.

@@ -6,7 +6,13 @@
 - Other [Adobe extensions] to the PDF specification
 
 For information about copyrights and licenses, including those associated with the
-images in this documentation, see the source tree file `.reuse/dep5`.
+images in this documentation, see the source tree file `REUSE.toml`.
+
+pikepdf binary wheels also contain compiled third-party libraries (qpdf,
+libjpeg-turbo, and depending on the platform OpenSSL, zlib, or the GnuTLS
+stack). Their attribution and license mapping is in `third-party-licenses/` in
+the source tree, and is redistributed inside every wheel under
+`pikepdf-<version>.dist-info/licenses/`.
 
 [adobe extensions]: https://www.adobe.com/devnet/pdf/pdf_reference.html
 [adobe supplement to iso 32000 baseversion 1.7 extensionlevel 3]: https://www.adobe.com/content/dam/acom/en/devnet/pdf/adobe_supplement_iso32000.pdf

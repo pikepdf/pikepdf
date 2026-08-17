@@ -16,6 +16,47 @@ the architecture notes on thread safety.
 
 ## v10.12.0
 
+### Packaging and licensing
+
+- Binary wheels now redistribute the licenses of the compiled third-party
+  libraries they bundle, along with an attribution manifest mapping each
+  component to its license. {issue}`736`
+  - The new `third-party-licenses/` directory documents every vendored binary:
+    qpdf and libjpeg-turbo on all platforms; OpenSSL and zlib (both statically
+    linked into `qpdf30.dll`) plus the Microsoft Visual C++ runtime on Windows;
+    the GnuTLS/Nettle/GMP stack on macOS; and the GCC runtime libraries on
+    musllinux. It also records what is deliberately *not* bundled -- notably
+    that Linux wheels use qpdf's built-in crypto and link no TLS library at all.
+  - These files are declared via PEP 639 `project.license-files`, so they ship
+    in `pikepdf-<version>.dist-info/licenses/` and are enumerated in the wheel's
+    `License-File` metadata. `License-Expression` remains `MPL-2.0`: pikepdf's
+    own license is unchanged, and the bundled libraries are separate works
+    redistributed in unmodified binary form.
+  - This replaces `licenses-for-wheels.txt`, which has been removed. It had
+    grown stale -- it never mentioned OpenSSL, zlib, or the GnuTLS stack -- and
+    it was reaching only Windows wheels, because the build backend's default
+    license glob happened to match its name on case-insensitive filesystems and
+    nowhere else.
+- Source distributions no longer contain qpdf's source tree. CI unpacks qpdf
+  into `./qpdf` to build libqpdf, and that build prerequisite was being swept
+  into the sdist, adding roughly 2900 Apache-2.0 files to a distribution that
+  declares itself MPL-2.0. sdists now contain only pikepdf's own code.
+- macOS wheels now use qpdf's native crypto provider instead of GnuTLS, and all
+  POSIX builds select it explicitly rather than relying on qpdf's implicit
+  fallback. macOS wheels lose nine bundled libraries as a result -- GnuTLS,
+  Nettle, Hogweed, GMP, libidn2, libunistring, Libtasn1, p11-kit and libintl --
+  along with roughly 10 MB and the LGPL obligations that came with them.
+
+  macOS moved to GnuTLS in v8.11.1 to fix legacy encrypted files failing to open
+  ({issue}`520`), because Homebrew's OpenSSL had retired the legacy provider
+  that supplies the RC4 and MD5 those files need. The Linux builds were assumed
+  to be doing the same thing, but were not: their images carry no GnuTLS or
+  OpenSSL headers, so they had silently been using native crypto all along, and
+  have been opening legacy encrypted files without trouble ever since. Native
+  crypto implements MD5, RC4, SHA2 and AES itself, so no upstream deprecation
+  policy can withdraw the weak algorithms older PDFs require. There is no
+  change to which files pikepdf can open.
+
 ### Behaviour change
 
 - {attr}`pikepdf.PdfInlineImage.icc` now returns ``None`` instead of raising

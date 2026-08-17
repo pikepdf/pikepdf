@@ -4,10 +4,57 @@ SPDX-PackageSupplier = "James R. Barlow <james@purplerock.ca>"
 SPDX-PackageDownloadLocation = "https://github.com/pikepdf/pikepdf"
 
 [[annotations]]
-path = ["licenses-for-wheels.txt", "uv.lock"]
+path = ["uv.lock", "third-party-licenses/README.md"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2025 James R. Barlow"
 SPDX-License-Identifier = "MPL-2.0"
+
+# Verbatim license texts of the third-party libraries vendored into binary
+# wheels. These are reference documents, not covered software: each is
+# reproduced unmodified from its upstream project so that pikepdf wheels carry
+# the attribution their licenses require. third-party-licenses/README.md maps
+# each component to the text that applies to it.
+[[annotations]]
+path = [
+    "third-party-licenses/GCC-exception-3.1.txt",
+    "third-party-licenses/GPL-3.0.txt",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "Free Software Foundation, Inc."
+SPDX-License-Identifier = "LicenseRef-license-text-verbatim"
+
+[[annotations]]
+path = "third-party-licenses/qpdf.txt"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "Jay Berkenbilt"
+SPDX-License-Identifier = "LicenseRef-license-text-verbatim"
+
+[[annotations]]
+path = "third-party-licenses/openssl.txt"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "The OpenSSL Project Authors"
+SPDX-License-Identifier = "LicenseRef-license-text-verbatim"
+
+[[annotations]]
+path = "third-party-licenses/zlib.txt"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "Jean-loup Gailly and Mark Adler"
+SPDX-License-Identifier = "LicenseRef-license-text-verbatim"
+
+[[annotations]]
+path = [
+    "third-party-licenses/libjpeg-turbo-README.ijg.txt",
+    "third-party-licenses/libjpeg-turbo.txt",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "The libjpeg-turbo Project and Independent JPEG Group"
+SPDX-License-Identifier = "LicenseRef-license-text-verbatim"
+
+[[annotations]]
+path = "third-party-licenses/microsoft-visual-cpp-runtime.txt"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "Microsoft Corporation"
+SPDX-License-Identifier = "LicenseRef-license-text-verbatim"
 
 [[annotations]]
 path = [

@@ -212,3 +212,5 @@ Contributions are welcome! If you'd like to make a contribution, see the [Contri
 pikepdf is licensed under the [Mozilla Public License 2.0](https://www.mozilla.org/en-US/MPL/2.0/) license (MPL-2.0) that can be found in the LICENSE file. By using, distributing, or contributing to this project, you agree to the terms and conditions of this license. MPL 2.0 permits you to combine the software with other work, including commercial and closed source software, but asks you to publish source-level modifications you make to pikepdf itself.
 
 Some components of the project may be under other license agreements, as indicated in their SPDX license header or the [`REUSE.toml`](REUSE.toml) file.
+
+pikepdf source distributions contain only pikepdf's own MPL-2.0 code. Binary wheels additionally bundle compiled third-party libraries — qpdf and libjpeg-turbo everywhere, plus OpenSSL and zlib on Windows and the GnuTLS stack on macOS. [`third-party-licenses/`](third-party-licenses/README.md) maps each of those components to its license, and every wheel redistributes that mapping and the license texts under `pikepdf-<version>.dist-info/licenses/`.
