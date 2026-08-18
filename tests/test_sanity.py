@@ -49,6 +49,13 @@ def test_import_star():
         assert name in namespace
 
 
+def test_stream_parser_is_public():
+    # Page.parse_contents() requires a StreamParser, so the type must be
+    # importable from the top-level package. Regression test for #738.
+    assert pikepdf.StreamParser is pikepdf._core.StreamParser
+    assert 'StreamParser' in pikepdf.__all__
+
+
 def test_open_pdf(resources):
     pdf = pikepdf.open(resources / 'graph.pdf')
     assert '1.3' <= pdf.pdf_version <= '1.7'

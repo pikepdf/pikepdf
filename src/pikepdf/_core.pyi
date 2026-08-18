@@ -1728,6 +1728,12 @@ class TokenFilter(_QPDFTokenFilter):
 class StreamParser:
     """A simple content stream parser, which must be subclassed to be used.
 
+    Pass an instance of a subclass to :meth:`pikepdf.Page.parse_contents`,
+    which calls :meth:`handle_object` once per object parsed from the
+    content stream. Because objects are handled one at a time, the content
+    stream is never materialized as a list of instructions, so memory use
+    stays bounded regardless of stream length.
+
     In practice, the performance of this class may be quite poor on long
     content streams because it creates objects and involves multiple
     function calls for every object in a content stream, some of which

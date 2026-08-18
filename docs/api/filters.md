@@ -31,6 +31,11 @@ describes how it should transform the stream of tokens.
 ```
 
 ```{eval-rst}
+.. autoapiclass:: pikepdf.StreamParser
+    :members:
+```
+
+```{eval-rst}
 .. autoapiclass:: pikepdf.models.ctm.MatrixStack
 ```
 

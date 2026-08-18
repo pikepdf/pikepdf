@@ -14,6 +14,13 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.12.1
+
+- `pikepdf.StreamParser` is now exported from the top-level package and included
+  in `__all__`. It was always the required argument type of the public
+  `Page.parse_contents()`, but previously could only be imported from the
+  private `pikepdf._core` module. {issue}`738`
+
 ## v10.12.0
 
 ### Packaging and licensing
