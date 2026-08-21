@@ -7,6 +7,7 @@ import pytest
 from conftest import skip_if_pypy
 
 import pikepdf
+import pikepdf.exceptions
 from pikepdf import (
     DataDecodingError,
     DeletedObjectError,
@@ -88,3 +89,80 @@ def test_pdf_syntax_check_progress(resources):
         p.check_pdf_syntax(progress_fn)
 
     assert called, "progress function not called"
+
+
+class TestExceptionHierarchy:
+    """Lock down the exception hierarchy documented in docs/api/exceptions.md.
+
+    The shape here is API. It was flattened once by accident during the
+    nanobind migration (see 6ab7f528), so assert the whole tree rather than
+    the individual relationship that happened to break that time.
+
+    ``pikepdf.exceptions`` is the canonical surface for these names; not all of
+    them are re-exported from the top-level package.
+    """
+
+    def test_everything_derives_from_pikepdf_error(self):
+        for name in pikepdf.exceptions.__all__:
+            cls = getattr(pikepdf.exceptions, name)
+            base = (
+                pikepdf.PikepdfWarning
+                if issubclass(cls, Warning)
+                else pikepdf.PikepdfError
+            )
+            assert issubclass(cls, base), f"{name} does not derive from {base.__name__}"
+
+    def test_pikepdf_error_roots(self):
+        assert issubclass(pikepdf.PikepdfError, Exception)
+        assert not issubclass(pikepdf.PikepdfError, Warning)
+        assert issubclass(pikepdf.PikepdfWarning, UserWarning)
+
+    @pytest.mark.parametrize(
+        'name',
+        ['DataDecodingError', 'PdfParsingError', 'ReferenceCycleError'],
+    )
+    def test_document_defects_derive_from_pdf_error(self, name):
+        # A defective document is a PdfError, so `except PdfError` around
+        # parsing or stream decoding means what it appears to mean.
+        assert issubclass(getattr(pikepdf.exceptions, name), PdfError)
+
+    def test_password_error_is_not_a_pdf_error(self):
+        # A wrong password is not a document defect. ocrmypdf orders
+        #     except PdfError: ...
+        #     except PasswordError: ...
+        # and relies on the first handler not swallowing the second.
+        assert not issubclass(pikepdf.PasswordError, PdfError)
+        assert issubclass(pikepdf.PasswordError, pikepdf.PikepdfError)
+
+    @pytest.mark.parametrize(
+        'name',
+        ['ForeignObjectError', 'DeletedObjectError', 'JobUsageError'],
+    )
+    def test_api_misuse_errors_are_not_pdf_errors(self, name):
+        # These report a bug in the caller, not a problem with the document.
+        assert not issubclass(getattr(pikepdf.exceptions, name), PdfError)
+
+    def test_not_extractable_error_is_public(self):
+        # It is the base class of the exported HifiPrintImageNotTranscodableError,
+        # so it must be catchable by name.
+        assert issubclass(
+            pikepdf.HifiPrintImageNotTranscodableError, pikepdf.NotExtractableError
+        )
+
+    def test_decompression_bomb_keeps_pillow_bases(self):
+        pytest.importorskip('PIL')
+        from PIL import Image
+
+        assert issubclass(pikepdf.DecompressionBombError, Image.DecompressionBombError)
+        assert issubclass(pikepdf.DecompressionBombError, pikepdf.PikepdfError)
+        assert issubclass(
+            pikepdf.DecompressionBombWarning, Image.DecompressionBombWarning
+        )
+        assert issubclass(pikepdf.DecompressionBombWarning, pikepdf.PikepdfWarning)
+
+    def test_undecodable_stream_caught_by_pdf_error(self):
+        # The motivating case from #739.
+        p = Pdf.new()
+        st = Stream(p, b'\xba\xad', Filter=Name('/FlateDecode'))
+        with pytest.raises(PdfError):
+            st.read_bytes()

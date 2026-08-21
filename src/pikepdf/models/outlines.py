@@ -11,7 +11,7 @@ from enum import Enum, IntFlag
 from itertools import chain
 from typing import TYPE_CHECKING, cast
 
-from pikepdf._core import Page, Pdf
+from pikepdf._core import Page, Pdf, PikepdfError
 from pikepdf.objects import Array, Dictionary, Name, Object, String
 
 if TYPE_CHECKING:
@@ -247,7 +247,7 @@ class Destination:
         )
 
 
-class OutlineStructureError(Exception):
+class OutlineStructureError(PikepdfError):
     """Indicates an error in the outline data structure."""
 
 

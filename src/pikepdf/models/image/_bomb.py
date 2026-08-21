@@ -24,6 +24,9 @@ import warnings
 from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
+from pikepdf._core import PikepdfError
+from pikepdf._exceptions import PikepdfWarning
+
 if TYPE_CHECKING:
     from pikepdf.models.image._classes import PdfImageBase
 
@@ -47,9 +50,11 @@ def _decompression_bomb_classes() -> tuple[type, type]:
     if not _bomb_classes:
         from PIL import Image
 
+        # Mixing in the pikepdf roots keeps `except PikepdfError` complete
+        # without disturbing handlers written against Pillow's classes.
         _bomb_classes['error'] = type(
             'DecompressionBombError',
-            (Image.DecompressionBombError,),
+            (PikepdfError, Image.DecompressionBombError),
             {
                 '__module__': _PUBLIC_MODULE,
                 '__doc__': "Image has more pixels than "
@@ -58,7 +63,7 @@ def _decompression_bomb_classes() -> tuple[type, type]:
         )
         _bomb_classes['warning'] = type(
             'DecompressionBombWarning',
-            (Image.DecompressionBombWarning,),
+            (PikepdfWarning, Image.DecompressionBombWarning),
             {
                 '__module__': _PUBLIC_MODULE,
                 '__doc__': "Image has more pixels than "

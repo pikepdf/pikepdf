@@ -33,8 +33,13 @@ UnparseableContentStreamInstructions = (
 )
 
 
-class PdfParsingError(Exception):
-    """Error when parsing a PDF content stream."""
+class PdfParsingError(PdfError):
+    """Error when parsing a PDF content stream.
+
+    .. versionchanged:: 10.13
+        Now derives from :class:`pikepdf.PdfError`, since a content stream that
+        will not parse is a defect in the document.
+    """
 
     def __init__(self, message=None, line=None):
         if not message:

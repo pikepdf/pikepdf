@@ -14,6 +14,34 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.13.0
+
+### Exception hierarchy
+
+pikepdf's exceptions now form a documented hierarchy rooted at the new
+`pikepdf.PikepdfError`, with `pikepdf.PikepdfWarning` playing the same role for
+warnings. See {doc}`/api/exceptions` for the full tree. {issue}`739`
+
+- **Behavior change:** `pikepdf.DataDecodingError` now derives from
+  `pikepdf.PdfError`. A stream that will not decode is a defect in the document,
+  and the same call that raises it -- `Object.read_bytes()` -- already raised
+  `PdfError` for other kinds of damage, so `except PdfError` was a handler that
+  looked correct, passed on healthy files, and let a traceback escape on damaged
+  ones. Code catching `DataDecodingError` by name is unaffected. Code that
+  orders `except PdfError` *before* `except DataDecodingError` will now take the
+  first branch; if the distinction matters, reverse the order.
+- **Behavior change:** `pikepdf.PdfParsingError` now derives from
+  `pikepdf.PdfError`, for the same reason.
+- `pikepdf.PasswordError` remains a sibling of `PdfError`, not a subclass. A
+  wrong password does not mean the document is defective, and handlers that
+  report the two separately depend on `except PdfError` not catching it.
+- `pikepdf.NotExtractableError` is now exported. It was already the base class
+  of the exported `HifiPrintImageNotTranscodableError` but could not be caught
+  by name.
+- Fixed the exceptions documentation, which referenced a nonexistent
+  `FormCopyWarning` (the class is `PageCopyWarning`) and omitted
+  `ReferenceCycleError`, `PageCopyWarning` and `NotExtractableError`.
+
 ## v10.12.1
 
 - `pikepdf.StreamParser` is now exported from the top-level package and included

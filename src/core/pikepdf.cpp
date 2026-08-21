@@ -320,10 +320,20 @@ NB_MODULE(_core, m)
         m.attr(attr) = py::handle(cls);
     };
 
+    // PikepdfError is the root of the hierarchy: every pikepdf-specific
+    // exception derives from it, so `except PikepdfError` catches anything
+    // pikepdf raises on its own behalf. It gets no atomic slot because the
+    // translator never raises it directly - the module dict's strong
+    // reference is all it needs. Created first so it can serve as a base
+    // class for everything below.
+    PyObject *exc_root =
+        PyErr_NewException("pikepdf._core.PikepdfError", PyExc_Exception, nullptr);
+    m.attr("PikepdfError") = py::handle(exc_root);
+
     publish(exc_main,
         m,
         "PdfError",
-        PyErr_NewException("pikepdf._core.PdfError", PyExc_Exception, nullptr));
+        PyErr_NewException("pikepdf._core.PdfError", exc_root, nullptr));
     // ReferenceCycleError is a subclass of PdfError, so existing
     // `except PdfError` handlers keep catching it. Published after exc_main so
     // PdfError exists to serve as the base class.
@@ -333,33 +343,36 @@ NB_MODULE(_core, m)
         PyErr_NewException("pikepdf._core.ReferenceCycleError",
             exc_main.load(std::memory_order_acquire),
             nullptr));
-    // PasswordError and DataDecodingError are siblings of PdfError (both
-    // direct subclasses of Exception), not subclasses of it. Reflect the
-    // documented hierarchy from src/pikepdf/_core.pyi and the pre-nanobind
-    // behavior; downstream code (e.g. ocrmypdf) relies on `except PdfError`
-    // not catching PasswordError.
+    // PasswordError is a sibling of PdfError, not a subclass: a wrong password
+    // is not a defect in the document. Downstream code (e.g. ocrmypdf) orders
+    //     except PdfError: ...
+    //     except PasswordError: ...
+    // and relies on the first handler not swallowing the second.
     publish(exc_password,
         m,
         "PasswordError",
-        PyErr_NewException("pikepdf._core.PasswordError", nullptr, nullptr));
+        PyErr_NewException("pikepdf._core.PasswordError", exc_root, nullptr));
+    // A stream that will not decode is a defective document, so
+    // DataDecodingError is a PdfError - the same call that raises it raises
+    // PdfError for other kinds of damage.
     publish(exc_datadecoding,
         m,
         "DataDecodingError",
-        PyErr_NewException("pikepdf._core.DataDecodingError", nullptr, nullptr));
+        PyErr_NewException("pikepdf._core.DataDecodingError",
+            exc_main.load(std::memory_order_acquire),
+            nullptr));
     publish(exc_usage,
         m,
         "JobUsageError",
-        PyErr_NewException("pikepdf._core.JobUsageError", PyExc_Exception, nullptr));
+        PyErr_NewException("pikepdf._core.JobUsageError", exc_root, nullptr));
     publish(exc_foreign,
         m,
         "ForeignObjectError",
-        PyErr_NewException(
-            "pikepdf._core.ForeignObjectError", PyExc_Exception, nullptr));
+        PyErr_NewException("pikepdf._core.ForeignObjectError", exc_root, nullptr));
     publish(exc_destroyedobject,
         m,
         "DeletedObjectError",
-        PyErr_NewException(
-            "pikepdf._core.DeletedObjectError", PyExc_Exception, nullptr));
+        PyErr_NewException("pikepdf._core.DeletedObjectError", exc_root, nullptr));
 
     py::register_exception_translator([](const std::exception_ptr &p, void *payload) {
         (void)payload;

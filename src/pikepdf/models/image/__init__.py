@@ -12,6 +12,7 @@ from pikepdf.models._image_exceptions import (
     HifiPrintImageNotTranscodableError,
     ImageDecompressionError,
     InvalidPdfImageError,
+    NotExtractableError,
     UnsupportedImageTypeError,
 )
 from pikepdf.models.image._bomb import _decompression_bomb_classes
@@ -103,6 +104,7 @@ __all__ = [
     'HifiPrintImageNotTranscodableError',
     'ImageDecompressionError',
     'InvalidPdfImageError',
+    'NotExtractableError',
     'PaletteData',
     'PdfImage',
     'PdfImageBase',
