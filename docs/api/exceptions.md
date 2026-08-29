@@ -13,6 +13,7 @@ PikepdfError
 ├── PasswordError                         the document is fine; the password is not
 ├── DependencyError                       a third-party tool is missing
 ├── OutlineStructureError
+├── StructureTreeError                    the structure tree is malformed
 ├── ForeignObjectError                    ┐
 ├── DeletedObjectError                    ├ the caller misused the API
 ├── JobUsageError                         ┘
@@ -85,6 +86,10 @@ extraction may also raise exceptions from Pillow. `PikepdfError` means
 
 ```{eval-rst}
 .. autoapiexception:: pikepdf.exceptions.OutlineStructureError
+```
+
+```{eval-rst}
+.. autoapiexception:: pikepdf.exceptions.StructureTreeError
 ```
 
 ## Encryption
