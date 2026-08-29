@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Mapping
 from decimal import Decimal
 from typing import TYPE_CHECKING, Any, NamedTuple, cast
@@ -1902,6 +1903,56 @@ class _Validator:
             problems.append(f"{label} points to the wrong structure element")
 
 
+# One systemic defect -- every artifact stub in a file being unreachable, say --
+# otherwise emits one line per marked-content identifier, burying every other
+# problem in the report. Messages that differ only in the identifier are merged.
+_MCID_IN_PROBLEM = re.compile(r'\bMCID (\d+)\b')
+_MCIDS_LISTED = 5
+
+
+def _collapse_repeated_mcid_problems(problems: list[str]) -> list[str]:
+    """Merge problems that differ only in their marked-content identifier.
+
+    Grouping is per message and per container, because the container is part
+    of the message, so a defect on one page is never merged with the same
+    defect on another. A single occurrence is reported verbatim; several are
+    reported once with the first few identifiers listed and the rest counted.
+    """
+    order: list[str] = []
+    grouped: dict[str, list[int]] = {}
+    verbatim: dict[str, str] = {}
+    for index, problem in enumerate(problems):
+        match = _MCID_IN_PROBLEM.search(problem)
+        if match is None:
+            key = f'\0verbatim{index}'
+            order.append(key)
+            verbatim[key] = problem
+            continue
+        key = problem[: match.start(1)] + '\0' + problem[match.end(1) :]
+        if key not in grouped:
+            order.append(key)
+            grouped[key] = []
+        grouped[key].append(int(match.group(1)))
+
+    result: list[str] = []
+    for key in order:
+        if key in verbatim:
+            result.append(verbatim[key])
+            continue
+        mcids = grouped[key]
+        # Restore the single-occurrence wording, then name the rest after it,
+        # so the message stays grammatical and its usual text still matches.
+        message = key.replace('\0', str(mcids[0]))
+        if len(mcids) > 1:
+            rest = mcids[1:]
+            listed = ', '.join(str(mcid) for mcid in rest[:_MCIDS_LISTED])
+            if len(rest) > _MCIDS_LISTED:
+                listed += f' and {len(rest) - _MCIDS_LISTED} more'
+            message += f' (also MCID {listed})'
+        result.append(message)
+    return result
+
+
 def _element_claims_mcid(owner: Dictionary, mcid: int) -> bool:
     """Whether *owner* itself lists *mcid* in its ``/K``, reachable or not."""
     for item in _kid_items(owner.get(Name.K)):
@@ -1917,7 +1968,9 @@ def _element_claims_mcid(owner: Dictionary, mcid: int) -> bool:
 
 
 def _validate_tree(tree: StructTree, *, check_content: bool = True) -> list[str]:
-    return _Validator(tree).validate(check_content=check_content)
+    return _collapse_repeated_mcid_problems(
+        _Validator(tree).validate(check_content=check_content)
+    )
 
 
 def _validation_id_entries(
