@@ -14,10 +14,13 @@ from pikepdf import (
     Dictionary,
     Name,
     NameTree,
+    ObjectRef,
     Pdf,
     String,
     StructureTreeError,
+    find_font_usage,
     mark_text_runs,
+    parse_content_stream,
 )
 
 
@@ -2007,3 +2010,103 @@ class TestValidationHardening:
 
         assert any('/MCR with a direct /Pg' in problem for problem in problems)
         assert any('non-indirect /StmOwn' in problem for problem in problems)
+
+
+class TestRealWorldDocuments:
+    """Read and edit structure produced by other tools, not by pikepdf."""
+
+    def test_reads_an_acrobat_tagged_form(self, resources):
+        with Pdf.open(resources / 'form_dd0293.pdf') as pdf:
+            tree = pdf.open_structure_tree()
+            elements = list(tree.walk())
+            assert len(elements) > 400
+            assert tree.marked
+            # Real Acrobat output: nested Sect/Div/P, Form fields and OBJR links.
+            tags = {str(elem.obj.get(Name.S)) for elem in elements}
+            assert {'/Document', '/Sect', '/P', '/Form', '/Link'} <= tags
+            assert any(
+                isinstance(kid, ObjectRef) for elem in elements for kid in elem.kids
+            )
+            assert tree.validate() == []
+
+    def test_edits_an_acrobat_tagged_form(self, resources, outpdf):
+        with Pdf.open(resources / 'form_dd0293.pdf') as pdf:
+            tree = pdf.open_structure_tree()
+            document = tree.kids[0]
+            page = pdf.pages[0]
+
+            section = document.add_child(Name.Sect, page=page, title='Added')
+            for index in range(20):
+                section.add_child(Name.P, page=page, alt=f'para {index}')
+            section.remove()
+            section.alt = 'edited while detached'
+            document.attach_child(section)
+
+            victim = next(
+                elem
+                for elem in tree.walk()
+                if str(elem.obj.get(Name.S)) == '/Sect' and elem.children
+            )
+            victim.remove()
+            assert tree.validate() == []
+            pdf.save(outpdf)
+
+        with Pdf.open(outpdf) as reopened:
+            assert reopened.open_structure_tree().validate() == []
+
+    def test_diagnoses_unreachable_parent_tree_targets(self, resources):
+        """This file's artifact stubs have no /P, so nothing reaches them.
+
+        The reverse map points at real elements that do claim the identifier,
+        so the report must not say the claim is missing.
+        """
+        with Pdf.open(resources / 'form_210966.pdf') as pdf:
+            problems = pdf.open_structure_tree().validate()
+            assert problems
+            assert all('not reachable from /StructTreeRoot' in p for p in problems)
+
+    def test_tagging_a_real_document_preserves_its_text(self, resources, outpdf):
+        with Pdf.open(resources / 'outlines.pdf') as pdf:
+            tree = pdf.open_structure_tree()
+            document = tree.add(Name.Document, lang='en-US')
+            for page in pdf.pages:
+                usage = find_font_usage(page)
+                if not usage:
+                    continue
+                largest = max(u.size for u in usage)
+                mark_text_runs(
+                    page,
+                    lambda u, big=largest: Name.H1 if u.size == big else Name.P,
+                    parent=document,
+                )
+            assert tree.validate() == []
+            pdf.save(outpdf)
+
+        with Pdf.open(resources / 'outlines.pdf') as before, Pdf.open(outpdf) as after:
+            assert after.open_structure_tree().validate() == []
+            assert len(before.pages) == len(after.pages)
+            for original, tagged in zip(before.pages, after.pages):
+                # Tagging inserts BDC/EMC and nothing else; every drawing
+                # operator must survive the re-serialization unchanged.
+                was = [str(i.operator) for i in parse_content_stream(original)]
+                now = [
+                    str(i.operator)
+                    for i in parse_content_stream(tagged)
+                    if str(i.operator) not in ('BDC', 'EMC')
+                ]
+                assert was == now
+                assert 'BDC' in [str(i.operator) for i in parse_content_stream(tagged)]
+
+    def test_tagging_preserves_pdfa_conformance(self, resources, outpdf, verapdf):
+        """sandwich.pdf is PDF/A-1b; adding structure must not break that."""
+        source = resources / 'sandwich.pdf'
+        assert verapdf(source)
+        with Pdf.open(source) as pdf:
+            tree = pdf.open_structure_tree()
+            document = tree.add(Name.Document, lang='en-US')
+            for page in pdf.pages:
+                if find_font_usage(page):
+                    mark_text_runs(page, lambda _u: Name.P, parent=document)
+            assert tree.validate() == []
+            pdf.save(outpdf)
+        assert verapdf(outpdf)
