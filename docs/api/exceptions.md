@@ -17,6 +17,10 @@
 ```
 
 ```{eval-rst}
+.. autoapiexception:: pikepdf.exceptions.StructureTreeError
+```
+
+```{eval-rst}
 .. autoapiexception:: pikepdf.exceptions.UnsupportedImageTypeError
 ```
 

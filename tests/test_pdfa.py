@@ -3,58 +3,9 @@
 
 from __future__ import annotations
 
-import os
-import tempfile
-import xml.etree.ElementTree as ET
-from pathlib import Path
-from subprocess import PIPE, STDOUT, run
-
 import pytest
 
 from pikepdf import Pdf
-
-VERAPDF: list[str] = []
-try:
-    verapdf_path = Path(os.environ['HOME']) / 'verapdf' / 'verapdf'
-    if verapdf_path.is_file():
-        VERAPDF = [os.fspath(verapdf_path)]
-    else:
-        verapdf_flatpak = [
-            'flatpak',
-            'run',
-            '--filesystem=host:ro',
-            f'--filesystem={tempfile.gettempdir()}:ro',
-            '--command=verapdf',
-            'org.verapdf.veraPDF',
-        ]
-        run([*verapdf_flatpak, '--version'], check=True)
-        VERAPDF = verapdf_flatpak
-except Exception:  # pylint: disable=broad-except
-    pass
-
-
-def verapdf_validate(filename) -> bool:
-    assert VERAPDF
-    proc = run([*VERAPDF, os.fspath(filename)], stdout=PIPE, stderr=STDOUT, check=True)
-    result = proc.stdout.decode('utf-8')
-    xml_start = result.find('<?xml version')
-    xml = result[xml_start:]
-    root = ET.fromstring(xml)
-    node = root.find(".//validationReport")
-    if node is None:
-        raise NotImplementedError("Unexpected XML returned by verapdf")
-
-    compliant = node.attrib['isCompliant'] == 'true'
-    if not compliant:
-        print(result)
-    return compliant
-
-
-@pytest.fixture
-def verapdf():
-    if not VERAPDF:
-        pytest.skip("verapdf not available")
-    return verapdf_validate
 
 
 @pytest.mark.parametrize(

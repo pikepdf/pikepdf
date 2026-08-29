@@ -57,7 +57,13 @@ from pikepdf._core import (
 )
 from pikepdf._exceptions import PageCopyWarning
 from pikepdf._io import atomic_overwrite, check_different_files, check_stream_is_usable
-from pikepdf.models import Encryption, EncryptionInfo, Outline, Permissions
+from pikepdf.models import (
+    Encryption,
+    EncryptionInfo,
+    Outline,
+    Permissions,
+    StructTree,
+)
 from pikepdf.models.metadata import PdfMetadata, decode_pdf_date, encode_pdf_date
 from pikepdf.objects import Array, Dictionary, Name, Object, Stream
 
@@ -367,6 +373,9 @@ class Extend_Pdf:
 
     def open_outline(self, max_depth: int = 15, strict: bool = False) -> Outline:
         return Outline(self, max_depth=max_depth, strict=strict)
+
+    def open_structure_tree(self, max_depth: int = 100) -> StructTree:
+        return StructTree(self, max_depth=max_depth)
 
     def make_stream(self, data: bytes, d=None, **kwargs) -> Stream:
         return Stream(self, data, d, **kwargs)

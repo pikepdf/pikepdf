@@ -14,6 +14,23 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.13.0
+
+### New features
+
+- Added support for tagged PDF logical structure (ISO 32000 section 14.7),
+  which pikepdf previously exposed only as raw dictionaries. {issue}`461`
+  See {ref}`structure`.
+  - {meth}`pikepdf.Pdf.open_structure_tree` returns a {class}`pikepdf.StructTree`
+    of {class}`pikepdf.StructElem` nodes, with `walk()`, `add_child()` and
+    `remove()`.
+  - {class}`pikepdf.ContentMarker` inserts `BDC`/`EMC` marked-content sequences
+    and can attach them to an element.
+    {func}`pikepdf.find_font_usage` and {func}`pikepdf.mark_text_runs` tag text
+    from a caller-supplied font mapping.
+  - {meth}`pikepdf.StructTree.validate` checks the tree, parent tree and marked
+    content for structural consistency. It is not a PDF/UA conformance test.
+
 ## v10.12.1
 
 - `pikepdf.StreamParser` is now exported from the top-level package and included

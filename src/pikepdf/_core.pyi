@@ -40,6 +40,7 @@ if TYPE_CHECKING:
     from pikepdf.models.image import PdfInlineImage
     from pikepdf.models.metadata import PdfMetadata
     from pikepdf.models.outlines import Outline
+    from pikepdf.models.structure import StructTree
 
 # This is the whole point of stub files, but apparently we have to do this...
 # pylint: disable=no-method-argument,unused-argument,no-self-use,too-many-public-methods
@@ -2775,6 +2776,21 @@ class Pdf:
                 accidentally duplicated are reproduced as new objects. When set
                 to ``True``, any such structural problem raises an
                 ``OutlineStructureError``.
+        """
+    def open_structure_tree(self, max_depth: int = 100) -> StructTree:
+        """Open the PDF's logical structure (tagging) tree.
+
+        Nothing is written to the PDF unless the returned :class:`StructTree`
+        is asked to create or modify elements.
+
+        Example:
+            >>> pdf = pikepdf.new()
+            >>> tree = pdf.open_structure_tree()
+            >>> document = tree.add(pikepdf.Name.Document)
+
+        Args:
+            max_depth: Maximum recursion depth when walking the tree. Elements
+                nested more deeply than this are not visited.
         """
     def remove_unreferenced_resources(self) -> None:
         """Remove from /Resources any object not referenced in page's contents.
