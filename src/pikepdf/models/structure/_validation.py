@@ -1560,10 +1560,21 @@ class _Validator:
                         "a direct structure element"
                     )
                 elif mcid not in claims:
-                    problems.append(
-                        f"Parent tree entry for {label} MCID {mcid} has no "
-                        "matching structure element /K claim"
-                    )
+                    if _element_claims_mcid(owner, mcid):
+                        # The element does claim the identifier, but nothing
+                        # reaches it from /StructTreeRoot -- usually a missing
+                        # /P. Say that rather than "no claim", which sends the
+                        # reader looking in the wrong place.
+                        problems.append(
+                            f"Parent tree entry for {label} MCID {mcid} names a "
+                            "structure element that is not reachable from "
+                            "/StructTreeRoot"
+                        )
+                    else:
+                        problems.append(
+                            f"Parent tree entry for {label} MCID {mcid} has no "
+                            "matching structure element /K claim"
+                        )
 
         if not check_content:
             return
@@ -1889,6 +1900,20 @@ class _Validator:
             )
         elif not _same_object(entry, owner):
             problems.append(f"{label} points to the wrong structure element")
+
+
+def _element_claims_mcid(owner: Dictionary, mcid: int) -> bool:
+    """Whether *owner* itself lists *mcid* in its ``/K``, reachable or not."""
+    for item in _kid_items(owner.get(Name.K)):
+        if _as_int(item) == mcid:
+            return True
+        if (
+            isinstance(item, Dictionary)
+            and _is_name(item.get(Name.Type), Name.MCR)
+            and _as_int(item.get(Name.MCID)) == mcid
+        ):
+            return True
+    return False
 
 
 def _validate_tree(tree: StructTree, *, check_content: bool = True) -> list[str]:
