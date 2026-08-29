@@ -372,6 +372,13 @@ and marked content in Forms named by structure claims. It returns a list of
 problem descriptions, empty when everything it checks agrees. Passing
 `check_content=False` skips content-stream parsing, which is the expensive part.
 
+Problems that differ only in their marked-content identifier are reported once
+per container, with the remaining identifiers named after the message. One
+systemic defect -- a file whose artifact stubs are all unreachable, say -- reads
+as one line per page rather than dozens, so it cannot bury the rest of the
+report. Treat each entry as one defect rather than assuming one entry per
+identifier.
+
 Validation follows page `Do` execution paths that are visible in the document,
 so it can reject positively observed structural nesting and repeated execution
 of a Form that uses internal MCIDs. It does not assume that a stream is unused

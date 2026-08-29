@@ -2854,6 +2854,14 @@ class StructTree:
         Returns:
             A list of human-readable problem descriptions, empty when no
             supported inconsistency was found.
+
+            Problems that differ only in their marked-content identifier are
+            reported once per container rather than once per identifier, with
+            the remaining identifiers named after the message. A file whose
+            artifact stubs are all unreachable therefore yields one line per
+            page instead of one per mark, so a systemic defect does not bury
+            everything else. Callers should treat an entry as one defect and
+            not assume a one-to-one correspondence with identifiers.
         """
         from pikepdf.models.structure._validation import _validate_tree
 

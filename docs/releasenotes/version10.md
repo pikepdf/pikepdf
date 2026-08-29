@@ -46,6 +46,13 @@ the architecture notes on thread safety.
   - Structure edits hold the owning {meth}`pikepdf.Pdf.lock` for their
     duration, since they are multi-step read-modify-write sequences across
     `/K`, `/StructParents` and the parent tree.
+  - {meth}`pikepdf.StructTree.validate` reports problems that differ only in
+    their marked-content identifier once per container rather than once per
+    identifier, naming the remaining identifiers after the message. A real
+    Acrobat form whose artifact stubs are all unreachable went from 69 nearly
+    identical lines to two, one per page. A parent tree entry that names an
+    element nothing reaches from `/StructTreeRoot` now says so, instead of
+    reporting the element's `/K` claim as missing when it is present.
 
 ## v10.12.1
 

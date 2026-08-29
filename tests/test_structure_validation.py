@@ -2110,3 +2110,92 @@ class TestRealWorldDocuments:
             assert tree.validate() == []
             pdf.save(outpdf)
         assert verapdf(outpdf)
+
+
+class TestProblemReporting:
+    """One line per defect per container, not one per identifier."""
+
+    @staticmethod
+    def _unreachable_stubs(pdf, page, count):
+        """Reproduce the Acrobat idiom: parent tree targets with no /P."""
+        tree = pdf.open_structure_tree().create()
+        page.obj.StructParents = 0
+        entry = pdf.make_indirect(
+            Array(
+                [
+                    pdf.make_indirect(
+                        Dictionary(Type=Name.StructElem, S=Name.Artifact, K=mcid)
+                    )
+                    for mcid in range(count)
+                ]
+            )
+        )
+        tree.parent_tree[0] = entry
+        return tree
+
+    def test_repeats_collapse_into_one_line(self, blank):
+        tree = self._unreachable_stubs(blank, blank.pages[0], 40)
+        problems = [
+            p for p in tree.validate(check_content=False) if 'not reachable' in p
+        ]
+
+        assert len(problems) == 1
+        problem = problems[0]
+        # The single-occurrence wording is preserved as the prefix.
+        assert problem.startswith(
+            'Parent tree entry for Page 0 MCID 0 names a structure element '
+            'that is not reachable from /StructTreeRoot'
+        )
+        assert problem.endswith('(also MCID 1, 2, 3, 4, 5 and 34 more)')
+
+    def test_a_single_occurrence_is_reported_verbatim(self, blank):
+        tree = self._unreachable_stubs(blank, blank.pages[0], 1)
+        problems = [
+            p for p in tree.validate(check_content=False) if 'not reachable' in p
+        ]
+
+        assert problems == [
+            'Parent tree entry for Page 0 MCID 0 names a structure element '
+            'that is not reachable from /StructTreeRoot'
+        ]
+
+    def test_pages_are_reported_separately(self, blank):
+        second = blank.add_blank_page()
+        tree = self._unreachable_stubs(blank, blank.pages[0], 3)
+        second.obj.StructParents = 1
+        tree.parent_tree[1] = blank.make_indirect(
+            Array(
+                [
+                    blank.make_indirect(
+                        Dictionary(Type=Name.StructElem, S=Name.Artifact, K=mcid)
+                    )
+                    for mcid in range(3)
+                ]
+            )
+        )
+        problems = [
+            p for p in tree.validate(check_content=False) if 'not reachable' in p
+        ]
+
+        assert len(problems) == 2
+        assert sum('Page 0' in p for p in problems) == 1
+        assert sum('Page 1' in p for p in problems) == 1
+
+    def test_different_defects_are_not_merged(self, blank):
+        page = blank.pages[0]
+        tree = blank.open_structure_tree().create()
+        page.obj.StructParents = 0
+        tree.parent_tree[0] = blank.make_indirect(
+            Array(
+                [
+                    blank.make_indirect(
+                        Dictionary(Type=Name.StructElem, S=Name.Artifact, K=0)
+                    ),
+                    String('not a structure element'),
+                ]
+            )
+        )
+        problems = tree.validate(check_content=False)
+
+        assert any('not reachable' in p for p in problems)
+        assert any('is not a structure element' in p for p in problems)
