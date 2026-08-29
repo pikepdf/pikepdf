@@ -118,6 +118,15 @@ maps only when matching reachable claims already exist.
 only a reading convenience. Validation and cleanup always traverse the complete
 tree so a shallow public walk cannot hide or leave behind deeper references.
 
+Readers are lenient by default, as {meth}`pikepdf.Pdf.open_outline` is: a
+structure element damaged beyond what the accessor can express -- a `/P` that
+names nothing, an unusable `/Pg` -- reads as `None` rather than raising, so a
+malformed document can still be inspected and repaired. Open the tree with
+`strict=True` to have those defects raise {exc}`pikepdf.StructureTreeError`
+instead. Either way {meth}`pikepdf.StructTree.validate` reports them, and
+either way *writes* validate what they touch: leniency is a concession to
+reading damaged files, not a licence to write into them.
+
 ```{eval-rst}
 .. doctest::
 
@@ -145,6 +154,40 @@ Assigning a `str` or `bytes` value creates and maintains `/IDTree`, and
 are exposed as text. If decoding and re-encoding a PDF string would change its
 original bytes, `element_id` returns those bytes instead so a read/write
 round-trip remains lossless.
+
+## Detaching and re-attaching
+
+{meth}`pikepdf.StructElem.remove` detaches an element and its descendants and
+clears the parent tree entries they owned. A removed element keeps no `/P`, so
+it is *detached* rather than corrupt: it can still be edited, and
+{meth}`pikepdf.StructElem.attach_child` (or {meth}`pikepdf.StructTree.attach`
+for the top level) splices it back in, restoring the parent tree entries for
+everything in the subtree. The same pair lets a subtree be built off to one
+side and inserted once it is complete.
+
+Editing a detached element is allowed because it changes only that element.
+Operations that write into the parent tree -- {meth}`~pikepdf.StructElem.add_content`,
+{meth}`~pikepdf.StructElem.add_object` -- require an attached element, since the
+parent tree indexes the document as a whole and an entry pointing at an
+unreachable element is corruption.
+
+```{eval-rst}
+.. doctest::
+
+    >>> section = document.add_child(Name.Sect, page=page)
+
+    >>> section.remove()
+
+    >>> section.alt = 'edited while detached'
+
+    >>> _ = document.attach_child(section)
+
+    >>> [str(elem.tag) for elem in tree.walk()]
+    ['/Document', '/P', '/Sect']
+
+    >>> tree.validate()
+    []
+```
 
 ## Artifacts
 

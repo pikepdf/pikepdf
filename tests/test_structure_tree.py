@@ -343,7 +343,7 @@ class TestStructElem:
         [None, 42, Dictionary(), Dictionary(Type=Name.Page)],
     )
     def test_parent_rejects_malformed_values(self, blank, parent):
-        tree = blank.open_structure_tree()
+        tree = blank.open_structure_tree(strict=True)
         elem = tree.add(Name.P)
         if parent is None:
             del elem.obj[Name.P]
@@ -359,7 +359,7 @@ class TestStructElem:
         with Pdf.new() as first, Pdf.new() as second:
             first.add_blank_page()
             second.add_blank_page()
-            tree = first.open_structure_tree()
+            tree = first.open_structure_tree(strict=True)
             elem = tree.add(Name.P)
             foreign = second.open_structure_tree().add(Name.P)
             foreign_child = StructElem(
@@ -376,22 +376,54 @@ class TestStructElem:
             with pytest.raises(StructureTreeError, match='another structure tree'):
                 _ = elem.parent
 
+    def test_readers_are_lenient_by_default(self, blank):
+        """A damaged document is readable; strict=True opts into raising."""
+        tree = blank.open_structure_tree()
+        elem = tree.add(Name.P)
+        elem.obj.Pg = 42
+        elem.obj.P = 42
+
+        assert elem.page is None
+        assert elem.parent is None
+        assert [str(e.tag) for e in tree.walk()] == ['/P']
+        assert any('/P' in problem for problem in tree.validate())
+
+    def test_strict_readers_raise(self, blank):
+        tree = blank.open_structure_tree(strict=True)
+        elem = tree.add(Name.P)
+        elem.obj.P = 42
+
+        with pytest.raises(StructureTreeError):
+            _ = elem.parent
+
+    def test_strict_does_not_relax_writers(self, blank):
+        """Leniency is a reading concession; writes still validate."""
+        page = blank.pages[0]
+        tree = blank.open_structure_tree()
+        elem = tree.add(Name.P, page=page)
+        elem.obj.P = 42
+
+        with pytest.raises(StructureTreeError):
+            elem.alt = "x"
+        with pytest.raises(StructureTreeError):
+            elem.add_content(page, 0)
+
     def test_page_getter_rejects_an_invalid_effective_page(self, blank):
-        elem = blank.open_structure_tree().add(Name.P)
+        elem = blank.open_structure_tree(strict=True).add(Name.P)
         elem.obj.Pg = 42
 
         with pytest.raises(StructureTreeError, match='invalid effective /Pg'):
             _ = elem.page
 
     def test_page_getter_rejects_malformed_ancestry(self, blank):
-        elem = blank.open_structure_tree().add(Name.P)
+        elem = blank.open_structure_tree(strict=True).add(Name.P)
         elem.obj.P = 42
 
         with pytest.raises(StructureTreeError, match='missing or malformed /P'):
             _ = elem.page
 
     def test_page_getter_rejects_an_ancestry_cycle(self, blank):
-        tree = blank.open_structure_tree()
+        tree = blank.open_structure_tree(strict=True)
         parent = tree.add(Name.Sect)
         child = parent.add_child(Name.P)
         parent.obj.P = child.obj
@@ -2517,3 +2549,92 @@ class TestDepthLimit:
         assert tree.parent_tree.entry_for_page(page)[0] is not None
         root.remove()
         assert tree.parent_tree.entry_for_page(page)[0] is None
+
+
+class TestScaling:
+    """Guard against the whole-tree work that made edits quadratic.
+
+    Counts the number of ``/K`` scans rather than measuring elapsed time, so
+    the assertion is deterministic and unaffected by parallel test workers.
+    """
+
+    @staticmethod
+    def _scans(n, phase):
+        import pikepdf.models.structure._tree as tree_module
+
+        original = tree_module._kid_items
+        calls = 0
+
+        def counting(value):
+            nonlocal calls
+            calls += 1
+            return original(value)
+
+        with Pdf.new() as pdf:
+            pdf.add_blank_page()
+            page = pdf.pages[0]
+            tree = pdf.open_structure_tree()
+            doc = tree.add(Name.Document, page=page)
+            try:
+                if phase == 'build':
+                    tree_module._kid_items = counting
+                    for _ in range(n):
+                        doc.add_child(Name.P, page=page)
+                else:
+                    kids = [doc.add_child(Name.P, page=page) for _ in range(n)]
+                    kids[0].alt = "warm"
+                    tree_module._kid_items = counting
+                    for kid in kids[:50]:
+                        kid.alt = "x"
+            finally:
+                tree_module._kid_items = original
+        return calls
+
+    def test_appending_does_not_rescan_the_tree(self):
+        """Re-validating existing siblings on every append was quadratic."""
+        small = self._scans(100, 'build')
+        large = self._scans(800, 'build')
+        assert large <= small + 1, (
+            f"appending scanned /K {small} times for 100 children and "
+            f"{large} times for 800; the cost must not grow with tree size"
+        )
+
+    def test_attribute_writes_do_not_scan_the_tree(self):
+        """Setting an attribute must not walk the element's siblings."""
+        assert self._scans(100, 'write') == 0
+        assert self._scans(800, 'write') == 0
+
+
+class TestMemoizedValidationBoundary:
+    """Pin what the memoized sibling scan does and does not notice."""
+
+    def test_length_changing_raw_edit_retriggers_the_scan(self, blank):
+        page = blank.pages[0]
+        tree = blank.open_structure_tree()
+        doc = tree.add(Name.Document, page=page)
+        doc.add_child(Name.Sect, page=page)
+        doc.obj.K = Array([String("junk"), String("junk2")])
+
+        with pytest.raises(StructureTreeError):
+            doc.add_child(Name.P, page=page)
+
+    def test_same_length_substitution_is_left_to_validate(self, blank):
+        """A documented gap: the memo is keyed on the length of /K.
+
+        Replacing an entry in place without changing the length is not seen by
+        the append preflight. validate() still reports it, which is where
+        whole-tree invariants belong.
+        """
+        page = blank.pages[0]
+        tree = blank.open_structure_tree()
+        doc = tree.add(Name.Document, page=page)
+        first = doc.add_child(Name.Sect, page=page)
+        doc.add_child(Name.Sect, page=page)
+
+        doc.obj.K = Array([first.obj, String("junk")])
+
+        doc.add_child(Name.P, page=page)  # not detected here, by design
+        assert any(
+            'malformed /K' in problem or 'not a structure element' in problem
+            for problem in tree.validate(check_content=False)
+        )

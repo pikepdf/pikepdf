@@ -24,6 +24,7 @@ from pikepdf.models.structure._common import (
     _is_page_annotation,
     _is_struct_elem,
     _kid_items,
+    _locked,
     _object_identity,
     _ObjectIdentity,
     _page_has_annotation,
@@ -392,7 +393,83 @@ class StructElem:
         """The structure tree this element belongs to."""
         return self._tree
 
+    @property
+    def _lock_pdf(self) -> Pdf:
+        return self._tree.pdf
+
+    def _reader_problem(self, message: str) -> None:
+        """Report a defect found while reading.
+
+        Readers are lenient by default, matching :class:`pikepdf.Outline`:
+        a damaged document yields ``None`` rather than an exception, so a
+        malformed file can still be inspected and repaired. Constructing the
+        tree with ``strict=True`` turns these into
+        :exc:`pikepdf.StructureTreeError` instead.
+
+        Writers are unaffected: a mutation always validates what it touches,
+        because writing into a structure that is already inconsistent makes it
+        worse rather than better.
+        """
+        if self._tree._strict:
+            raise StructureTreeError(message)
+        return None
+
+    def _walk_ancestry(self) -> bool:
+        """Verify the ancestry chain and report whether it reaches the root.
+
+        Each hop must be claimed exactly once by the parent its ``/P`` names;
+        anything else is corruption and raises. An element with no ``/P`` is
+        detached -- free-floating, not yet attached or already removed -- and
+        is reported as such rather than rejected.
+
+        Claim lookups are memoized per parent, so this costs time proportional
+        to the element's depth rather than to the size of the tree.
+        """
+        root = self._tree.obj
+        current = self.obj
+        seen: set[_ObjectIdentity] = set()
+        while True:
+            identity = _object_identity(current)
+            if identity in seen:
+                raise StructureTreeError("Structure element ancestry contains a cycle")
+            seen.add(identity)
+            parent = current.get(Name.P)
+            if parent is None:
+                return False
+            if not isinstance(parent, Dictionary):
+                raise StructureTreeError("Structure element /P must be a dictionary")
+            claims = self._tree._claims_for(parent)
+            occurrences = claims.get(_object_identity(current), 0)
+            if occurrences == 0:
+                raise StructureTreeError(
+                    "Structure element is not attached uniquely to this structure "
+                    "tree: its /P is not the element whose /K contains it"
+                )
+            if occurrences > 1:
+                raise StructureTreeError(
+                    "Structure element is not attached uniquely to this structure "
+                    "tree: its parent claims it more than once"
+                )
+            if _same_object(parent, root):
+                return True
+            if not _is_struct_elem(parent):
+                return False
+            _require_owned_indirect(parent, self._tree.pdf, "Structure element parent")
+            current = parent
+
     def _require_owned(self) -> None:
+        """Require that this element may be edited in place.
+
+        Checks what a local write can break: the element is an indirect object
+        owned by this ``Pdf``, its tree exists, and its ancestry is consistent.
+        A detached element -- one with no ``/P``, such as a subtree being built
+        before it is attached, or an element that has been removed -- may still
+        be edited, so that it can be prepared or repaired and attached later.
+
+        Writes that touch the document-global parent tree require
+        :meth:`_require_attached` instead. Whole-tree properties are reported
+        by :meth:`StructTree.validate`, not re-proved on every write.
+        """
         if not self.obj.is_indirect:
             raise StructureTreeError(
                 "Direct structure elements are read-only; mutation requires "
@@ -403,56 +480,19 @@ class StructElem:
             raise StructureTreeError(
                 "Structure element is not attached to this structure tree"
             )
-        root = self._tree.obj
-        current = self.obj
-        seen: set[_ObjectIdentity] = set()
-        attached = False
-        while True:
-            identity = _object_identity(current)
-            if identity in seen:
-                raise StructureTreeError("Structure element ancestry contains a cycle")
-            seen.add(identity)
-            parent = current.get(Name.P)
-            if not isinstance(parent, Dictionary):
-                break
-            _require_owned_indirect(parent, self._tree.pdf, "Structure element parent")
-            occurrences = sum(
-                1
-                for item in _kid_items(parent.get(Name.K))
-                if isinstance(item, Dictionary) and _same_object(item, current)
-            )
-            if occurrences != 1:
-                break
-            if _same_object(parent, root):
-                attached = True
-                break
-            if not _is_struct_elem(parent):
-                break
-            current = parent
-        if not attached:
-            raise StructureTreeError(
-                "Structure element is not attached uniquely to this structure tree"
-            )
+        self._walk_ancestry()
 
-        reachable_occurrences = 0
-        pending = [root]
-        visited_parents: set[_ObjectIdentity] = set()
-        while pending:
-            parent = pending.pop()
-            parent_identity = _object_identity(parent)
-            if parent_identity in visited_parents:
-                continue
-            visited_parents.add(parent_identity)
-            for item in _kid_items(parent.get(Name.K)):
-                if not isinstance(item, Dictionary):
-                    continue
-                if _same_object(item, self.obj):
-                    reachable_occurrences += 1
-                if _is_struct_elem(item):
-                    pending.append(item)
-        if reachable_occurrences != 1:
+    def _require_attached(self) -> None:
+        """Require that this element is reachable from the structure tree root.
+
+        Used by operations that write into the parent tree, which indexes the
+        document as a whole: registering content against a detached element
+        would leave the parent tree pointing at something no reader can reach.
+        """
+        self._require_owned()
+        if not self._walk_ancestry():
             raise StructureTreeError(
-                "Structure element is not attached uniquely to this structure tree"
+                "Structure element is not attached to this structure tree"
             )
 
     @property
@@ -466,6 +506,7 @@ class StructElem:
         return tag
 
     @tag.setter
+    @_locked
     def tag(self, value: Name) -> None:
         if not isinstance(value, Name):
             raise TypeError("Structure type must be a pikepdf.Name")
@@ -476,48 +517,56 @@ class StructElem:
     def parent(self) -> StructElem | None:
         """The parent structure element (``/P``), or ``None`` at the top level."""
         if Name.P not in self.obj:
-            raise StructureTreeError("Structure element is missing required /P")
+            self._reader_problem("Structure element is missing required /P")
+            return None
         parent = self.obj.get(Name.P)
         if not isinstance(parent, Dictionary) or isinstance(parent, Stream):
-            raise StructureTreeError("Structure element /P must be a dictionary")
+            self._reader_problem("Structure element /P must be a dictionary")
+            return None
         if not parent.is_indirect:
-            raise StructureTreeError("Structure element /P must be an indirect object")
+            self._reader_problem("Structure element /P must be an indirect object")
+            return None
         if not parent.same_owner_as(self._tree.pdf.Root):
-            raise StructureTreeError("Structure element /P belongs to another PDF")
+            self._reader_problem("Structure element /P belongs to another PDF")
+            return None
         if _is_name(parent.get(Name.Type), Name.StructTreeRoot):
             if not _same_object(parent, self._tree.obj):
-                raise StructureTreeError(
+                self._reader_problem(
                     "Structure element /P belongs to another structure tree"
                 )
+                return None
             return None
         if not _is_struct_elem(parent):
-            raise StructureTreeError(
+            self._reader_problem(
                 "Structure element /P is not a structure element or tree root"
             )
+            return None
         result = StructElem(parent, self._tree)
         try:
             result._require_owned()
-        except StructureTreeError as error:
-            raise StructureTreeError(
+        except StructureTreeError:
+            self._reader_problem(
                 "Structure element /P belongs to another structure tree"
-            ) from error
+            )
+            return None
         return result
 
     @property
     def page(self) -> Page | None:
         """The effective page, inherited from an ancestor when necessary."""
-        pg = _strict_effective_page_obj(self.obj, self._tree)
-        if pg is None:
-            return None
         try:
-            page_obj = _require_page(pg, self._tree.pdf)
-            return Page(page_obj)
+            pg = _strict_effective_page_obj(self.obj, self._tree)
+            if pg is None:
+                return None
+            return Page(_require_page(pg, self._tree.pdf))
         except (TypeError, ValueError, StructureTreeError) as error:
-            raise StructureTreeError(
+            self._reader_problem(
                 f"Structure element has an invalid effective /Pg: {error}"
-            ) from error
+            )
+            return None
 
     @page.setter
+    @_locked
     def page(self, value: Page | Object | None) -> None:
         self._require_owned()
         page_obj = None if value is None else _require_page(value, self._tree.pdf)
@@ -562,6 +611,7 @@ class StructElem:
         return self._get_text(Name.Alt)
 
     @alt.setter
+    @_locked
     def alt(self, value: str | None) -> None:
         self._set_text(Name.Alt, value)
 
@@ -571,6 +621,7 @@ class StructElem:
         return self._get_text(Name.ActualText)
 
     @actual_text.setter
+    @_locked
     def actual_text(self, value: str | None) -> None:
         self._set_text(Name.ActualText, value)
 
@@ -580,6 +631,7 @@ class StructElem:
         return self._get_text(Name.E)
 
     @expansion.setter
+    @_locked
     def expansion(self, value: str | None) -> None:
         self._set_text(Name.E, value)
 
@@ -589,6 +641,7 @@ class StructElem:
         return self._get_text(Name.Lang)
 
     @lang.setter
+    @_locked
     def lang(self, value: str | None) -> None:
         self._set_text(Name.Lang, value)
 
@@ -598,6 +651,7 @@ class StructElem:
         return self._get_text(Name.T)
 
     @title.setter
+    @_locked
     def title(self, value: str | None) -> None:
         self._set_text(Name.T, value)
 
@@ -618,6 +672,7 @@ class StructElem:
         return text_value if bytes(String(text_value)) == raw_value else raw_value
 
     @element_id.setter
+    @_locked
     def element_id(self, value: str | bytes | None) -> None:
         if value is not None and not isinstance(value, str | bytes):
             raise TypeError("element_id must be a str, bytes, or None")
@@ -649,6 +704,7 @@ class StructElem:
         return self.obj.get(Name.A)
 
     @attributes.setter
+    @_locked
     def attributes(self, value: Object | None) -> None:
         self._require_owned()
         if value is None:
@@ -664,6 +720,7 @@ class StructElem:
         return self.obj.get(Name.NS)
 
     @namespace.setter
+    @_locked
     def namespace(self, value: Object | None) -> None:
         self._require_owned()
         if value is None:
@@ -786,15 +843,38 @@ class StructElem:
             if _is_struct_elem(item)
         ]
 
+    def _kid_count(self) -> int:
+        existing = self.obj.get(Name.K)
+        if existing is None:
+            return 0
+        return len(existing) if isinstance(existing, Array) else 1
+
     def _preflight_append_kid(self, *, _check_structure: bool = True) -> None:
+        """Validate this element's existing ``/K`` before appending to it.
+
+        The scan is proportional to the number of entries already present, so
+        it is memoized per element: appending many children validates the
+        existing entries once rather than on every append. Appends made
+        through this API record the entry they added, and any raw edit that
+        changes the length of ``/K`` re-triggers the scan.
+
+        The memo is keyed on that length, so replacing an entry in place
+        without changing it is not noticed here and the append is allowed.
+        That is a deliberate trade: re-deriving the whole invariant on every
+        write made bulk tagging quadratic, and
+        :meth:`StructTree.validate` reports the defect either way.
+        """
         if _check_structure:
-            elements = self._tree._preflight_structure_links()
-            if not self.obj.is_indirect or not any(
-                _same_object(self.obj, element) for element in elements
-            ):
-                raise StructureTreeError(
-                    "Structure element is not attached uniquely to this structure tree"
-                )
+            self._require_owned()
+        checked = self._tree._checked_kids
+        identity = _object_identity(self.obj)
+        count = self._kid_count()
+        if checked.get(identity) == count:
+            return
+        self._validate_existing_kids()
+        checked[identity] = count
+
+    def _validate_existing_kids(self) -> None:
         if Name.K not in self.obj:
             return
         existing = self.obj.get(Name.K)
@@ -971,6 +1051,7 @@ class StructElem:
         """The marked-content references owned directly by this element."""
         return [kid for kid in self.kids if isinstance(kid, MarkedContentRef)]
 
+    @_locked
     def add_child(
         self,
         tag: Name,
@@ -1025,6 +1106,7 @@ class StructElem:
         self._append_kid(elem.obj, prechecked=True)
         return elem
 
+    @_locked
     def add_content(
         self,
         page: Page | Object,
@@ -1055,7 +1137,7 @@ class StructElem:
             The newly created :class:`MarkedContentRef`.
         """
         mcid = _validate_mcid(mcid)
-        self._require_owned()
+        self._require_attached()
         page_obj = _require_page(page, self._tree.pdf)
         stream_obj = None if stream is None else _require_stream(stream, self._tree.pdf)
         if (
@@ -1153,6 +1235,7 @@ class StructElem:
         )
         return ref
 
+    @_locked
     def add_object(self, referent: Object, page: Page | Object) -> ObjectRef:
         """Attach a whole object, such as an annotation, to this element.
 
@@ -1166,7 +1249,7 @@ class StructElem:
         Returns:
             The newly created :class:`ObjectRef`.
         """
-        self._require_owned()
+        self._require_attached()
         page_obj = _require_page(page, self._tree.pdf)
         referent = _require_referent(referent, self._tree.pdf)
         self._preflight_append_kid()
@@ -1203,14 +1286,47 @@ class StructElem:
             existing.append(item)
         else:
             self.obj.K = Array([existing, item])
+        identity = _object_identity(self.obj)
+        if identity in self._tree._checked_kids:
+            self._tree._checked_kids[identity] = self._kid_count()
+        self._tree._record_claim(self.obj, item)
 
+    @_locked
+    def attach_child(self, elem: StructElem) -> StructElem:
+        """Attach a detached structure element as a child of this element.
+
+        The counterpart of :meth:`remove`: a subtree may be built or repaired
+        while detached and then spliced into the tree. Every marked-content
+        and object reference in the attached subtree is re-registered in the
+        parent tree, so the reverse mapping is restored along with the link.
+
+        Arguments:
+            elem: A detached element -- one with no ``/P``, either newly built
+                or previously removed -- belonging to this tree's ``Pdf``.
+
+        Returns:
+            *elem*, now attached.
+
+        Raises:
+            StructureTreeError: If *elem* is already attached, belongs to
+                another PDF, or attaching it would create a cycle.
+        """
+        self._require_attached()
+        self._tree._preflight_attach(elem, self.obj)
+        with self._tree.pdf.lock():
+            elem.obj.P = self.obj
+            self._append_kid(elem.obj)
+            self._tree._register_subtree(elem)
+        return elem
+
+    @_locked
     def remove(self) -> None:
         """Remove this element and its descendants from the structure tree.
 
         Detaches the element from its parent's ``/K`` and clears every parent
         tree entry that pointed at the element or any of its descendants.
         """
-        self._require_owned()
+        self._require_attached()
         removed = list(self._tree._walk_from(self, None))
         parent_tree = self._tree.parent_tree
         parent_plan = parent_tree._preflight_unregister_subtree(removed)
@@ -1226,6 +1342,13 @@ class StructElem:
                     parent.K = remaining
             elif self._is_self(kids):
                 del parent[Name.K]
+            self._tree._invalidate_claims(parent)
+        # A removed element keeps no parent link: a stale /P would name an
+        # element that no longer claims it, which is corruption rather than
+        # detachment. Clearing it leaves the subtree free-floating, so it can
+        # be edited and attached again.
+        if Name.P in self.obj:
+            del self.obj[Name.P]
         parent_tree._unregister_subtree(parent_plan)
         self._tree._remove_element_ids(id_plan)
 
@@ -1268,6 +1391,10 @@ class ParentTree:
     def __init__(self, tree: StructTree):
         """Initialize ParentTree."""
         self._tree = tree
+
+    @property
+    def _lock_pdf(self) -> Pdf:
+        return self._tree.pdf
 
     @property
     def obj(self) -> Dictionary:
@@ -1317,6 +1444,7 @@ class ParentTree:
         return value
 
     @next_key.setter
+    @_locked
     def next_key(self, value: int) -> None:
         value = _validate_integer(value, "Parent tree keys")
         used = self._number_tree_keys(self._existing_number_tree())
@@ -1327,6 +1455,7 @@ class ParentTree:
             )
         self._tree.obj.ParentTreeNextKey = value
 
+    @_locked
     def allocate_key(
         self,
         *,
@@ -1447,6 +1576,7 @@ class ParentTree:
         except (IndexError, KeyError) as exc:
             raise KeyError(key) from exc
 
+    @_locked
     def __setitem__(self, key: int, value: Object) -> None:
         """Set a raw parent-tree entry.
 
@@ -1658,6 +1788,7 @@ class ParentTree:
             f"Parent tree entry {key}[{mcid}] is not a structure element"
         )
 
+    @_locked
     def register_content(
         self, container: Page | Object, mcid: int, elem: StructElem
     ) -> None:
@@ -1831,6 +1962,7 @@ class ParentTree:
             f"({_safe_object_description(claimed)})"
         )
 
+    @_locked
     def register_object(self, referent: Object, elem: StructElem) -> int:
         """Repair the reverse map for existing ``/OBJR`` claims.
 
@@ -1966,10 +2098,14 @@ class StructTree:
         :meth:`pikepdf.Pdf.open_structure_tree`
     """
 
-    def __init__(self, pdf: Pdf, max_depth: int = 100):
+    def __init__(self, pdf: Pdf, max_depth: int = 100, strict: bool = False):
         """Initialize StructTree."""
         self.pdf = pdf
+        self._strict = bool(strict)
         self._max_depth = _validate_nonnegative_int(max_depth, "max_depth")
+        self._checked_kids: dict[_ObjectIdentity, int] = {}
+        self._lock_pdf = pdf
+        self._claims: dict[_ObjectIdentity, tuple[int, dict[_ObjectIdentity, int]]] = {}
 
     @property
     def exists(self) -> bool:
@@ -1988,6 +2124,7 @@ class StructTree:
             raise StructureTreeError("/StructTreeRoot must be a dictionary")
         return root
 
+    @_locked
     def create(self) -> StructTree:
         """Create the structure tree if the document does not have one.
 
@@ -2032,6 +2169,7 @@ class StructTree:
         return _as_bool(mark_info.get(Name.Marked)) is True
 
     @marked.setter
+    @_locked
     def marked(self, value: bool) -> None:
         if not isinstance(value, bool):
             raise TypeError("marked must be a bool")
@@ -2060,6 +2198,7 @@ class StructTree:
             raise StructureTreeError("/RoleMap belongs to another PDF")
         return role_map
 
+    @_locked
     def add_role(self, custom: Name, standard: Name) -> None:
         """Map a custom structure type to a standard one in ``/RoleMap``."""
         if not isinstance(custom, Name) or not isinstance(standard, Name):
@@ -2293,6 +2432,128 @@ class StructTree:
             result.append(StructElem(cast(Dictionary, item), self))
         return result
 
+    def _claims_for(self, parent: Dictionary) -> dict[_ObjectIdentity, int]:
+        """How many times *parent* claims each object in its ``/K``.
+
+        Memoized per parent and invalidated whenever the length of ``/K``
+        changes, so repeated ancestry checks against the same parent do not
+        rescan its children.
+        """
+        identity = _object_identity(parent)
+        existing = parent.get(Name.K)
+        if existing is None:
+            count = 0
+        else:
+            count = len(existing) if isinstance(existing, Array) else 1
+        cached = self._claims.get(identity)
+        if cached is not None and cached[0] == count:
+            return cached[1]
+        claims: dict[_ObjectIdentity, int] = {}
+        for item in _kid_items(existing):
+            if isinstance(item, Dictionary):
+                child = _object_identity(item)
+                claims[child] = claims.get(child, 0) + 1
+        self._claims[identity] = (count, claims)
+        return claims
+
+    def _record_claim(self, parent: Dictionary, item: Object | int) -> None:
+        """Keep the claim memo in step with an append made through this API."""
+        identity = _object_identity(parent)
+        cached = self._claims.get(identity)
+        if cached is None:
+            return
+        _count, claims = cached
+        existing = parent.get(Name.K)
+        new_count = (
+            0
+            if existing is None
+            else (len(existing) if isinstance(existing, Array) else 1)
+        )
+        if isinstance(item, Dictionary):
+            child = _object_identity(item)
+            claims[child] = claims.get(child, 0) + 1
+        self._claims[identity] = (new_count, claims)
+
+    def _invalidate_claims(self, parent: Dictionary) -> None:
+        self._claims.pop(_object_identity(parent), None)
+
+    def _preflight_attach(self, elem: StructElem, parent: Dictionary) -> None:
+        """Validate an attachment before anything is written."""
+        if not isinstance(elem, StructElem):
+            raise TypeError("attach_child requires a StructElem")
+        if elem.tree is not self and not _same_object(elem.tree.obj, self.obj):
+            raise StructureTreeError(
+                "Structure element belongs to another structure tree"
+            )
+        if not elem.obj.is_indirect:
+            raise StructureTreeError(
+                "Only an indirect structure element can be attached"
+            )
+        _require_owned_indirect(elem.obj, self.pdf, "Structure element")
+        if not _is_struct_elem(elem.obj):
+            raise StructureTreeError("Object to attach is not a structure element")
+        if Name.P in elem.obj:
+            raise StructureTreeError(
+                "Structure element is already attached; remove() it first"
+            )
+        if _same_object(elem.obj, parent):
+            raise StructureTreeError("A structure element cannot be its own parent")
+        for descendant in self._walk_from(elem, None):
+            if _same_object(descendant.obj, parent):
+                raise StructureTreeError("Attaching this element would create a cycle")
+
+    def _register_subtree(self, elem: StructElem) -> None:
+        """Restore parent tree entries for a subtree that has just been attached."""
+        parent_tree = self.parent_tree
+        state = parent_tree._content_check_state()
+        for descendant in self._walk_from(elem, None):
+            default_page = _effective_page_obj(descendant.obj)
+            for item in _kid_items(descendant.obj.get(Name.K)):
+                mcid = _as_int(item)
+                if mcid is not None:
+                    if default_page is not None:
+                        parent_tree._register_content(
+                            default_page, mcid, descendant, state
+                        )
+                    continue
+                if not isinstance(item, Dictionary):
+                    continue
+                item_type = item.get(Name.Type)
+                if _is_name(item_type, Name.MCR):
+                    ref = MarkedContentRef.from_object(item, default_page)
+                    container = ref.stream if ref.stream is not None else ref.page
+                    if container is not None:
+                        parent_tree._register_content(
+                            container, ref.mcid, descendant, state
+                        )
+                elif _is_name(item_type, Name.OBJR):
+                    referent = item.get(Name.Obj)
+                    if isinstance(referent, Dictionary | Stream):
+                        parent_tree._register_object(referent, descendant)
+
+    @_locked
+    def attach(self, elem: StructElem) -> StructElem:
+        """Attach a detached structure element at the top level of the tree.
+
+        See :meth:`StructElem.attach_child`, of which this is the root-level
+        equivalent.
+        """
+        self.create()
+        self._preflight_attach(elem, self.obj)
+        self._preflight_append_root()
+        with self.pdf.lock():
+            elem.obj.P = self.obj
+            kids = self.obj.get(Name.K)
+            if isinstance(kids, Array):
+                kids.append(elem.obj)
+            elif kids is None:
+                self.obj.K = Array([elem.obj])
+            else:
+                self.obj.K = Array([kids, elem.obj])
+            self._record_claim(self.obj, elem.obj)
+            self._register_subtree(elem)
+        return elem
+
     def _tolerant_root_children(self) -> Iterator[StructElem]:
         if not self.exists:
             return
@@ -2344,9 +2605,43 @@ class StructTree:
         return elements
 
     def _preflight_append_root(self) -> None:
-        for elem_obj in self._preflight_structure_links():
-            StructElem(elem_obj, self)._preflight_append_kid(_check_structure=False)
+        """Validate the root's own ``/K`` before appending to it.
 
+        Only the root's direct entries are inspected. Defects deeper in the
+        tree are reported by :meth:`validate`, which walks everything, rather
+        than re-walked on each append.
+        """
+        if not self.exists or Name.K not in self.obj:
+            return
+        raw_kids = self.obj.get(Name.K)
+        if raw_kids is None:
+            raise StructureTreeError("/StructTreeRoot /K is null")
+        seen: set[_ObjectIdentity] = set()
+        for item in _kid_items(raw_kids):
+            if not _is_struct_elem(item):
+                raise StructureTreeError(
+                    "/StructTreeRoot /K entry is not a structure element"
+                )
+            if not item.is_indirect:
+                if Name.K in item:
+                    raise StructureTreeError(
+                        "A direct structure element must be a terminal child"
+                    )
+                continue
+            _require_owned_indirect(item, self.pdf, "Existing structure element")
+            identity = _object_identity(item)
+            if identity in seen:
+                raise StructureTreeError(
+                    "/StructTreeRoot /K repeats a structure element"
+                )
+            seen.add(identity)
+            parent = item.get(Name.P)
+            if not isinstance(parent, Dictionary) or not _same_object(parent, self.obj):
+                raise StructureTreeError(
+                    "Existing structure element /P does not name its /K parent"
+                )
+
+    @_locked
     def add(
         self,
         tag: Name,
@@ -2500,6 +2795,7 @@ class StructTree:
             if _is_name(elem.obj.get(Name.S), tag):
                 yield elem
 
+    @_locked
     def remove(self) -> None:
         """Delete the structure tree and every reference to it.
 
