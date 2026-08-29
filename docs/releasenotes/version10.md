@@ -30,6 +30,22 @@ the architecture notes on thread safety.
     from a caller-supplied font mapping.
   - {meth}`pikepdf.StructTree.validate` checks the tree, parent tree and marked
     content for structural consistency. It is not a PDF/UA conformance test.
+  - Reading is lenient by default, matching {meth}`pikepdf.Pdf.open_outline`:
+    a structure element with an unusable `/P` or `/Pg` reads as ``None``
+    rather than raising, so a damaged document can still be inspected and
+    repaired. ``open_structure_tree(strict=True)`` turns those defects into
+    {exc}`pikepdf.StructureTreeError`. Writes validate what they touch in
+    either mode.
+  - {meth}`pikepdf.StructElem.remove` leaves the removed subtree detached
+    rather than holding a stale `/P`, so it can be edited and re-inserted.
+    {meth}`pikepdf.StructElem.attach_child` and
+    {meth}`pikepdf.StructTree.attach` splice a detached subtree back in and
+    restore the parent tree entries it owned, which also allows a subtree to
+    be built separately and attached when complete. Operations that write into
+    the parent tree still require an attached element.
+  - Structure edits hold the owning {meth}`pikepdf.Pdf.lock` for their
+    duration, since they are multi-step read-modify-write sequences across
+    `/K`, `/StructParents` and the parent tree.
 
 ## v10.12.1
 

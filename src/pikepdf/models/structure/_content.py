@@ -10,13 +10,14 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any, NamedTuple
 
-from pikepdf._core import ContentStreamInstruction, NumberTree, Page
+from pikepdf._core import ContentStreamInstruction, NumberTree, Page, Pdf
 from pikepdf.models._content_stream import parse_content_stream, unparse_content_stream
 from pikepdf.models.structure._common import (
     StructureTreeError,
     _as_decimal,
     _as_int,
     _inherited_page_attribute,
+    _locked,
     _object_identity,
     _ObjectIdentity,
     _property_list,
@@ -252,6 +253,14 @@ class ContentMarker:
         self._spans: list[_Span] = []
 
     @property
+    def _lock_pdf(self) -> Pdf | None:
+        """The owning ``Pdf``, once a bound element makes one reachable."""
+        for span in self._spans:
+            if span.element is not None:
+                return span.element.tree.pdf
+        return None
+
+    @property
     def instructions(self) -> tuple[Any, ...]:
         """The page's content stream instructions, as parsed."""
         return tuple(self._instructions)
@@ -288,7 +297,7 @@ class ContentMarker:
         if element is not None:
             if not isinstance(element, StructElem):
                 raise TypeError("element must be a StructElem or None")
-            element._require_owned()
+            element._require_attached()
             _require_page(self.page, element.tree.pdf)
         proplist = _property_list(properties)
         self._check_range(start, stop, structural=element is not None)
@@ -460,7 +469,7 @@ class ContentMarker:
                 continue
             if not isinstance(span.element, StructElem):
                 raise TypeError("element must be a StructElem or None")
-            span.element._require_owned()
+            span.element._require_attached()
             _require_page(self.page, span.element.tree.pdf)
             if target_tree is None:
                 target_tree = span.element.tree
@@ -639,6 +648,7 @@ class ContentMarker:
     def _copy_kid_value(value: Object | None) -> Object | None:
         return Array(value) if isinstance(value, Array) else value
 
+    @_locked
     def apply(self) -> list[MarkedContent]:
         """Write the marked content to the page and update the structure tree.
 
@@ -806,7 +816,7 @@ def mark_text_runs(
     if parent is not None:
         if not isinstance(parent, StructElem):
             raise TypeError("parent must be a StructElem or None")
-        parent._require_owned()
+        parent._require_attached()
         _require_page(page, parent.tree.pdf)
     if callable(tag_for_font):
         resolve = tag_for_font

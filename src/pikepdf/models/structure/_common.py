@@ -5,9 +5,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from decimal import Decimal
-from typing import Any, cast
+from functools import wraps
+from typing import Any, TypeVar, cast
 
 from pikepdf._core import Page, Pdf
 from pikepdf.objects import (
@@ -495,3 +496,29 @@ def _form_xobjects(resources: Object | None) -> Iterator[Stream]:
             seen.add(identity)
             yield xobject
             pending.append(xobject.get(Name.Resources))
+
+
+_F = TypeVar('_F', bound=Callable[..., Any])
+
+
+def _locked(method: _F) -> _F:
+    """Hold the owning ``Pdf``'s lock for the duration of a mutating method.
+
+    Structure edits are multi-step read-modify-write sequences across ``/K``,
+    ``/StructParents`` and the parent tree, which are not atomic on a
+    free-threaded interpreter. The lock is re-entrant and compiles to nothing
+    on GIL-enabled builds, so nesting these calls is free.
+    """
+
+    @wraps(method)
+    def wrapper(self, *args: Any, **kwargs: Any):
+        pdf = self._lock_pdf
+        if pdf is None:
+            # No owning Pdf is reachable (pikepdf exposes no owner accessor on
+            # Page). The remaining writes are single C++ calls, which are
+            # already serialized.
+            return method(self, *args, **kwargs)
+        with pdf.lock():
+            return method(self, *args, **kwargs)
+
+    return cast('_F', wrapper)

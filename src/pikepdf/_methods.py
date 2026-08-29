@@ -374,8 +374,10 @@ class Extend_Pdf:
     def open_outline(self, max_depth: int = 15, strict: bool = False) -> Outline:
         return Outline(self, max_depth=max_depth, strict=strict)
 
-    def open_structure_tree(self, max_depth: int = 100) -> StructTree:
-        return StructTree(self, max_depth=max_depth)
+    def open_structure_tree(
+        self, max_depth: int = 100, strict: bool = False
+    ) -> StructTree:
+        return StructTree(self, max_depth=max_depth, strict=strict)
 
     def make_stream(self, data: bytes, d=None, **kwargs) -> Stream:
         return Stream(self, data, d, **kwargs)
