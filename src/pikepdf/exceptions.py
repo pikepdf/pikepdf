@@ -23,6 +23,7 @@ from pikepdf.models.image import (
     UnsupportedImageTypeError,
 )
 from pikepdf.models.outlines import OutlineStructureError
+from pikepdf.models.structure import StructureTreeError
 
 __all__ = [
     'DataDecodingError',
@@ -39,5 +40,6 @@ __all__ = [
     'PdfError',
     'PdfParsingError',
     'ReferenceCycleError',
+    'StructureTreeError',
     'UnsupportedImageTypeError',
 ]

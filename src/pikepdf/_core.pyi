@@ -19,6 +19,7 @@ from collections.abc import (
     MutableMapping,
     Sequence,
 )
+from contextlib import AbstractContextManager
 from decimal import Decimal
 from enum import Enum, IntFlag
 from pathlib import Path
@@ -40,6 +41,7 @@ if TYPE_CHECKING:
     from pikepdf.models.image import PdfInlineImage
     from pikepdf.models.metadata import PdfMetadata
     from pikepdf.models.outlines import Outline
+    from pikepdf.models.structure import StructTree
 
 # This is the whole point of stub files, but apparently we have to do this...
 # pylint: disable=no-method-argument,unused-argument,no-self-use,too-many-public-methods
@@ -2775,6 +2777,41 @@ class Pdf:
                 accidentally duplicated are reproduced as new objects. When set
                 to ``True``, any such structural problem raises an
                 ``OutlineStructureError``.
+        """
+    def lock(self) -> AbstractContextManager[None]:
+        """Context manager to hold the per-Pdf lock for compound operations.
+
+        Under free-threaded Python, individual C++ method calls are
+        automatically serialized, but multi-step Python operations (e.g.
+        read-modify-write on the same dictionary) are not atomic. Wrap such
+        sequences in ``with pdf.lock():`` to prevent interleaving.
+
+        On GIL-enabled builds this is a no-op.
+        """
+    def open_structure_tree(
+        self, max_depth: int = 100, strict: bool = False
+    ) -> StructTree:
+        """Open the PDF's logical structure (tagging) tree.
+
+        Nothing is written to the PDF unless the returned :class:`StructTree`
+        is asked to create or modify elements.
+
+        Example:
+            >>> pdf = pikepdf.new()
+            >>> tree = pdf.open_structure_tree()
+            >>> document = tree.add(pikepdf.Name.Document)
+
+        Args:
+            max_depth: Maximum recursion depth for :meth:`StructTree.walk`.
+                Elements nested more deeply than this are not visited by the
+                public walk; validation and cleanup always traverse the whole
+                tree.
+            strict: When ``False`` (the default, matching
+                :meth:`pikepdf.Pdf.open_outline`), reading a damaged structure
+                element yields ``None`` rather than raising, so a malformed
+                document can still be inspected and repaired. When ``True``,
+                such defects raise :exc:`pikepdf.StructureTreeError`. Writes
+                validate what they touch in either mode.
         """
     def remove_unreferenced_resources(self) -> None:
         """Remove from /Resources any object not referenced in page's contents.

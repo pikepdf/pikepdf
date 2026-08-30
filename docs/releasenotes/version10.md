@@ -14,6 +14,46 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.13.0
+
+### New features
+
+- Added support for tagged PDF logical structure (ISO 32000 section 14.7),
+  which pikepdf previously exposed only as raw dictionaries. {issue}`461`
+  See {ref}`structure`.
+  - {meth}`pikepdf.Pdf.open_structure_tree` returns a {class}`pikepdf.StructTree`
+    of {class}`pikepdf.StructElem` nodes, with `walk()`, `add_child()` and
+    `remove()`.
+  - {class}`pikepdf.ContentMarker` inserts `BDC`/`EMC` marked-content sequences
+    and can attach them to an element.
+    {func}`pikepdf.find_font_usage` and {func}`pikepdf.mark_text_runs` tag text
+    from a caller-supplied font mapping.
+  - {meth}`pikepdf.StructTree.validate` checks the tree, parent tree and marked
+    content for structural consistency. It is not a PDF/UA conformance test.
+  - Reading is lenient by default, matching {meth}`pikepdf.Pdf.open_outline`:
+    a structure element with an unusable `/P` or `/Pg` reads as ``None``
+    rather than raising, so a damaged document can still be inspected and
+    repaired. ``open_structure_tree(strict=True)`` turns those defects into
+    {exc}`pikepdf.StructureTreeError`. Writes validate what they touch in
+    either mode.
+  - {meth}`pikepdf.StructElem.remove` leaves the removed subtree detached
+    rather than holding a stale `/P`, so it can be edited and re-inserted.
+    {meth}`pikepdf.StructElem.attach_child` and
+    {meth}`pikepdf.StructTree.attach` splice a detached subtree back in and
+    restore the parent tree entries it owned, which also allows a subtree to
+    be built separately and attached when complete. Operations that write into
+    the parent tree still require an attached element.
+  - Structure edits hold the owning {meth}`pikepdf.Pdf.lock` for their
+    duration, since they are multi-step read-modify-write sequences across
+    `/K`, `/StructParents` and the parent tree.
+  - {meth}`pikepdf.StructTree.validate` reports problems that differ only in
+    their marked-content identifier once per container rather than once per
+    identifier, naming the remaining identifiers after the message. A real
+    Acrobat form whose artifact stubs are all unreachable went from 69 nearly
+    identical lines to two, one per page. A parent tree entry that names an
+    element nothing reaches from `/StructTreeRoot` now says so, instead of
+    reporting the element's `/K` claim as missing when it is present.
+
 ## v10.12.1
 
 - `pikepdf.StreamParser` is now exported from the top-level package and included

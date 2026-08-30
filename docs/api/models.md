@@ -170,6 +170,67 @@ Version 3.x automatically applies support models to `/Page` objects.
     :members:
 ```
 
+## Tagged PDF structure
+
+See {ref}`structure` for the concepts, constraints and worked examples behind
+these APIs.
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.StructTree
+    :members:
+```
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.StructElem
+    :members:
+```
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.ParentTree
+    :members:
+```
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.MarkedContentRef
+    :members:
+```
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.ObjectRef
+    :members:
+```
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.MarkedContent
+    :members:
+```
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.ContentMarker
+    :members:
+```
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.FontUsage
+    :members:
+```
+
+```{eval-rst}
+.. autoapifunction:: pikepdf.find_marked_content
+```
+
+```{eval-rst}
+.. autoapifunction:: pikepdf.next_mcid
+```
+
+```{eval-rst}
+.. autoapifunction:: pikepdf.find_font_usage
+```
+
+```{eval-rst}
+.. autoapifunction:: pikepdf.mark_text_runs
+```
+
 ```{eval-rst}
 .. autoapiclass:: pikepdf.NameTree
     :members:
