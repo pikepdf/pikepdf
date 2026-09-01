@@ -55,6 +55,28 @@ def test_data_decoding_errors(filter_: str, data: bytes, msg: str):
 
 
 @pytest.mark.abi3_smoke
+def test_data_decoding_error_is_pdf_error_subclass():
+    # Regression test for #739: DataDecodingError must be a PdfError subclass,
+    # so `except PdfError` catches undecodable streams.
+    assert issubclass(DataDecodingError, PdfError)
+
+
+@pytest.mark.abi3_smoke
+def test_except_pdf_error_catches_data_decoding_error():
+    # The issue's exact scenario: a handler written as `except PdfError`
+    # must catch a DataDecodingError raised from read_bytes().
+    p = Pdf.new()
+    st = Stream(p, b'\xba\xad', Filter=Name('/FlateDecode'))
+    caught = None
+    try:
+        st.read_bytes()
+    except PdfError as e:
+        caught = e
+    assert caught is not None
+    assert isinstance(caught, DataDecodingError)
+
+
+@pytest.mark.abi3_smoke
 def test_system_error():
     with pytest.raises(FileNotFoundError):
         pikepdf._core._test.fopen_nonexistent_file()
