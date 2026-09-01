@@ -14,6 +14,12 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.12.2
+
+- `DataDecodingError` is now a subclass of `PdfError`, so `except PdfError`
+  also catches undecodable streams. Existing `except DataDecodingError`
+  handlers continue to work unchanged. {issue}`739`
+
 ## v10.12.1
 
 - `pikepdf.StreamParser` is now exported from the top-level package and included
