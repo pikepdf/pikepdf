@@ -85,9 +85,6 @@ class _NamePath(NamePath):
 
 # Exceptions
 
-class DataDecodingError(Exception):
-    """Exception thrown when a stream object in a PDF cannot be decoded."""
-
 class JobUsageError(Exception):
     """Exception thrown when the pikepdf.Job interface is used incorrectly."""
 
@@ -96,6 +93,9 @@ class PasswordError(Exception):
 
 class PdfError(Exception):
     """General pikepdf-specific exception."""
+
+class DataDecodingError(PdfError):
+    """Exception thrown when a stream object in a PDF cannot be decoded."""
 
 class ReferenceCycleError(PdfError):
     """When a direct (non-indirect) object would be made to contain itself.
