@@ -14,17 +14,10 @@ from typing import Any, Protocol, TypeVar
 class AugmentedCallable(Protocol):
     """Protocol for any method, with attached booleans."""
 
-    _augment_override_cpp: bool
     _augment_if_no_cpp: bool
 
     def __call__(self, *args, **kwargs) -> Any:
         """Any function."""  # pragma: no cover
-
-
-def augment_override_cpp(fn: AugmentedCallable) -> AugmentedCallable:
-    """Replace the C++ implementation, if there is one."""
-    fn._augment_override_cpp = True
-    return fn
 
 
 def augment_if_no_cpp(fn: AugmentedCallable) -> AugmentedCallable:
@@ -74,8 +67,10 @@ def augments(cls_cpp: type[Tcpp]):
     wrapper classes and subclasses can become problematic if the call stack
     crosses the C++/Python boundary multiple times.
 
-    Any existing methods may be used, regardless of whether they are defined
-    elsewhere in the support class or in the target class.
+    A support class may not redefine a method the C++ class already provides;
+    doing so raises RuntimeError. When a C++ implementation needs different
+    behavior, change it in C++ rather than wrapping it from Python, so that the
+    method has exactly one implementation.
 
     For data fields to work, the target class must be
     tagged ``nb::dynamic_attr`` in nanobind.
@@ -109,7 +104,6 @@ def augments(cls_cpp: type[Tcpp]):
                 and hasattr(cls, name)
                 and name not in getattr(cls, '__abstractmethods__', set())
                 and name not in OVERRIDE_WHITELIST
-                and not getattr(getattr(cls, name), '_augment_override_cpp', False)
             ):
                 if getattr(getattr(cls, name), '_augment_if_no_cpp', False):
                     # If tagged as "augment if no C++", we only want the binding to be
@@ -133,11 +127,6 @@ def augments(cls_cpp: type[Tcpp]):
                     f"{getattr(cls, name, '')!r}"
                 )
             if inspect.isfunction(member):
-                if hasattr(cls_cpp, name):
-                    # If overriding a C++ named method, make a copy of the original
-                    # method. This is so that the Python override can call the C++
-                    # implementation if it needs to.
-                    setattr(cls_cpp, f"_cpp{name}", getattr(cls_cpp, name))
                 setattr(cls_cpp, name, member)
                 installed_member = getattr(cls_cpp, name)
                 installed_member.__qualname__ = member.__qualname__.replace(

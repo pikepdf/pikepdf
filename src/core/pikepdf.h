@@ -204,12 +204,16 @@ bool get_explicit_conversion_mode();
 inline void python_warning(
     const char *msg, PyObject *category = PyExc_UserWarning, Py_ssize_t stacklevel = 1)
 {
-    PyErr_WarnEx(category, msg, stacklevel);
+    // A warning filter may turn this warning into an exception, in which case
+    // PyErr_WarnEx() returns -1 with the error indicator set. Ignoring that would
+    // let the caller continue running with an exception pending.
+    if (PyErr_WarnEx(category, msg, stacklevel) < 0)
+        throw py::python_error();
 }
 
 inline void deprecation_warning(const char *msg)
 {
-    python_warning(msg, PyExc_DeprecationWarning); // LCOV_EXCL_LINE
+    python_warning(msg, PyExc_DeprecationWarning);
 }
 
 // Helper: convert a py::bytes or py::str to std::string.

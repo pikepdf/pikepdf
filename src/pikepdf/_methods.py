@@ -30,13 +30,13 @@ from io import BytesIO
 from pathlib import Path
 from subprocess import run
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Any, BinaryIO, Literal, TypeVar
+from typing import TYPE_CHECKING, BinaryIO, Literal, TypeVar
 from warnings import warn
 
 if TYPE_CHECKING:
     from pikepdf._page_copy import PageCopyResult
 
-from pikepdf._augments import augment_override_cpp, augments
+from pikepdf._augments import augments
 from pikepdf._core import (
     AccessMode,
     AttachedFile,
@@ -727,155 +727,8 @@ class Extend_Pdf:
         return pdf
 
 
-@augments(_ObjectMapping)
-class Extend_ObjectMapping:
-    def get(self, key, default: T | None = None) -> Object | T | None:
-        try:
-            return self[key]
-        except KeyError:
-            return default
-
-    @augment_override_cpp
-    def __contains__(self, key: Name | str) -> bool:
-        if isinstance(key, Name):
-            key = str(key)
-        return _ObjectMapping._cpp__contains__(self, key)
-
-    @augment_override_cpp
-    def __getitem__(self, key: Name | str) -> Object:
-        if isinstance(key, Name):
-            key = str(key)
-        return _ObjectMapping._cpp__getitem__(self, key)
-
-    @augment_override_cpp
-    def __setitem__(self, key: Name | str, value: Any) -> None:
-        if isinstance(key, Name):
-            key = str(key)
-        return _ObjectMapping._cpp__setitem__(self, key, value)
-
-    @augment_override_cpp
-    def __delitem__(self, key: Name | str) -> None:
-        if isinstance(key, Name):
-            key = str(key)
-        return _ObjectMapping._cpp__delitem__(self, key)
-
-
-def check_is_box(obj) -> None:
-    with suppress(AttributeError):
-        if obj.is_rectangle:
-            return
-    try:
-        pdfobj = Array(obj)
-        if pdfobj.is_rectangle:
-            return
-    except Exception as e:
-        raise ValueError("object is not a rectangle") from e
-    raise ValueError("object is not a rectangle")
-
-
 @augments(Page)
 class Extend_Page:
-    @property
-    def mediabox(self):
-        return self._get_mediabox(True)
-
-    @mediabox.setter
-    def mediabox(self, value):
-        check_is_box(value)
-        self.obj['/MediaBox'] = value
-
-    @property
-    def artbox(self):
-        return self._get_artbox(True, False)
-
-    @artbox.setter
-    def artbox(self, value):
-        check_is_box(value)
-        self.obj['/ArtBox'] = value
-
-    @property
-    def bleedbox(self):
-        return self._get_bleedbox(True, False)
-
-    @bleedbox.setter
-    def bleedbox(self, value):
-        check_is_box(value)
-        self.obj['/BleedBox'] = value
-
-    @property
-    def cropbox(self):
-        return self._get_cropbox(True, False)
-
-    @cropbox.setter
-    def cropbox(self, value):
-        check_is_box(value)
-        self.obj['/CropBox'] = value
-
-    @property
-    def trimbox(self):
-        return self._get_trimbox(True, False)
-
-    @trimbox.setter
-    def trimbox(self, value):
-        check_is_box(value)
-        self.obj['/TrimBox'] = value
-
-    @property
-    def rotation(self) -> int:
-        """The page's clockwise rotation in degrees, normalized to ``[0, 360)``.
-
-        Unlike the raw ``page.Rotate`` attribute, this property reports the
-        *effective* rotation: it resolves a ``/Rotate`` value inherited from the
-        page tree and reports ``0`` when no rotation is set, instead of raising.
-        Assigning to this property sets the absolute rotation; to rotate
-        relative to the current value, use :meth:`rotate` with ``relative=True``.
-
-        .. versionadded:: 10.9
-        """
-        return self._get_rotation()
-
-    @rotation.setter
-    def rotation(self, angle: int) -> None:
-        self.rotate(angle, relative=False)
-
-    @augment_override_cpp
-    def rotate(self, angle: int, /, *args: bool, relative: bool = False) -> None:  # noqa: D417
-        """Rotate this page.
-
-        If ``relative`` is ``False`` (the default), set the page's rotation to
-        ``angle``. If ``relative`` is ``True``, add ``angle`` to the page's
-        current rotation. ``angle`` must be a multiple of ``90``; a positive
-        angle rotates the page clockwise.
-
-        Args:
-            angle: Rotation angle in degrees, a multiple of ``90``.
-            relative: If ``True``, add ``angle`` to the current rotation; if
-                ``False``, set the rotation to ``angle``.
-
-        .. deprecated:: 10.9
-            Passing ``relative`` as a positional argument is deprecated; pass it
-            as a keyword argument instead, e.g. ``page.rotate(90, relative=True)``.
-        """
-        # TODO(pikepdf 11): drop positional support for ``relative`` -- change
-        # the signature to ``def rotate(self, angle, *, relative=False)`` and
-        # remove the ``*args`` deprecation shim below.
-        if args:
-            if len(args) > 1:
-                raise TypeError(
-                    f"rotate() takes at most 2 positional arguments but "
-                    f"{1 + len(args)} were given"
-                )
-            warn(
-                "Passing 'relative' as a positional argument to Page.rotate() "
-                "is deprecated; pass it as a keyword argument instead, e.g. "
-                "page.rotate(90, relative=True). Positional support will be "
-                "removed in pikepdf 11.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            relative = args[0]
-        self._cpprotate(angle, bool(relative))
-
     @property
     def images(self) -> _ObjectMapping:
         """Return images directly referenced by this page's resources.

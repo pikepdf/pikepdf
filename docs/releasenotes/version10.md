@@ -137,6 +137,30 @@ converts values to it. See {ref}`metadatatypes`. {issue}`555`
 - Comparing an `_ObjectList` or `_ObjectMapping` to a list or dict no longer
   prints `nanobind: implicit conversion from type 'list' to type
   'pikepdf._core._ObjectList' failed!` to stderr.
+- A warning raised from pikepdf's C++ layer -- `PageCopyWarning`, the
+  `Page.rotate()` deprecation warning, and the several warnings issued while
+  opening and saving -- is now raised as an exception when a warning filter asks
+  for that, such as under `python -W error` or
+  `warnings.simplefilter('error')`. Previously the exception was created and
+  then discarded, and the call carried on as if the warning had been ignored.
+
+### Internals
+
+- Moved `Page`'s box properties (`mediabox`, `cropbox`, `artbox`, `bleedbox`,
+  `trimbox`), the `rotation` property and `rotate()`, and `_ObjectMapping`'s
+  key-based methods (`get`, `__getitem__`, `__setitem__`, `__delitem__`,
+  `__contains__`) from Python augmentations to C++. Each was a thin Python
+  wrapper around a private C++ binding, so its implementation was split across
+  two files for no benefit; they are now defined once, in C++, and the private
+  `Page._get_mediabox()`, `_get_artbox()`, `_get_bleedbox()`, `_get_cropbox()`,
+  `_get_trimbox()` and `_get_rotation()` bindings they delegated to are gone.
+  Behavior is unchanged.
+- Removed the `augment_override_cpp` decorator from `pikepdf._augments`. A
+  Python augmentation may no longer replace a method that C++ already defines;
+  where C++ behavior needs to change, change it in C++, so that each method has
+  exactly one implementation. With it goes the `_cpp<name>` copy the decorator
+  left behind on the augmented class, so private attributes such as
+  `Page._cpp__repr__` no longer exist.
 
 ## v10.12.1
 

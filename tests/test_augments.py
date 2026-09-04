@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import pytest
 
-from pikepdf._augments import augment_if_no_cpp, augment_override_cpp, augments
+from pikepdf._augments import augment_if_no_cpp, augments
 
 
 def test_no_duplicate_definition():
@@ -43,18 +43,3 @@ def test_if_no_cpp():
     assert p.fn1() == 'fn1 c++'
     assert p.fn2() == 'fn2 c++'
     assert p.fn3() == 'fn3 py'  # pylint: disable=no-member
-
-
-def test_override_cpp():
-    class PretendCpp:
-        def fn(self):
-            return 'fn c++'
-
-    @augments(PretendCpp)
-    class _Extend_PretendCpp:
-        @augment_override_cpp
-        def fn(self):
-            return 'fn py'
-
-    p = PretendCpp()
-    assert p.fn() == 'fn py'
