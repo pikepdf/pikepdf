@@ -5,8 +5,9 @@
 
 from __future__ import annotations
 
+import re
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, NamedTuple
 
 from pikepdf.models.metadata._constants import XMP_NS_DC, XMP_NS_PDF, XMP_NS_XMP
@@ -80,6 +81,76 @@ def decode_pdf_date(s: str) -> datetime:
     raise ValueError(f"Date string does not match any known format: {s} (read as {t})")
 
 
+# XMP Specification Part 1, 8.2.1.2: a subset of W3C Date and Time Formats.
+# The time zone designator is Z or +hh:mm or -hh:mm; the colon is also
+# accepted as absent, since that form is found in the wild. Fractions of a
+# second may have any number of digits.
+_re_xmp_date = re.compile(
+    r"""
+    (?P<year>\d{4})
+    (?:-(?P<month>\d{2})
+      (?:-(?P<day>\d{2})
+        (?:T(?P<hour>\d{2}):(?P<minute>\d{2})
+          (?::(?P<second>\d{2})(?:\.(?P<fraction>\d+))?)?
+          (?P<tz>Z|[+-]\d{2}:?\d{2})?
+        )?
+      )?
+    )?
+    $""",
+    re.VERBOSE,
+)
+
+
+def parse_xmp_date(s: str) -> datetime:
+    """Parse an XMP date, which is a subset of ISO 8601, to a datetime.
+
+    XMP allows any number of digits in the fraction of a second and, as
+    written in the wild, a time zone offset with or without a colon.
+    :meth:`datetime.fromisoformat` accepts neither on Python 3.10, so XMP
+    dates are parsed here. A missing time zone gives a naive datetime, since
+    XMP says the time zone is then unknown. A year or year-month alone is
+    not a datetime; callers handle those forms before calling this.
+    """
+    m = _re_xmp_date.match(s)
+    if m is None or m['day'] is None:
+        raise ValueError(f"Date string is not a valid XMP date: {s!r}")
+    fraction = m['fraction']
+    microsecond = int(fraction[:6].ljust(6, '0')) if fraction else 0
+    tzinfo = None
+    if m['tz'] == 'Z':
+        tzinfo = timezone.utc
+    elif m['tz']:
+        sign = -1 if m['tz'][0] == '-' else 1
+        digits = m['tz'][1:].replace(':', '')
+        offset = timedelta(hours=int(digits[:2]), minutes=int(digits[2:]))
+        tzinfo = timezone(sign * offset)
+    return datetime(
+        int(m['year']),
+        int(m['month']),
+        int(m['day']),
+        int(m['hour'] or 0),
+        int(m['minute'] or 0),
+        int(m['second'] or 0),
+        microsecond,
+        tzinfo=tzinfo,
+    )
+
+
+def encode_xmp_date(d: datetime | date) -> str:
+    """Encode a datetime or date as an XMP date string.
+
+    A time zone offset that is not a whole number of minutes is rounded to
+    the nearest minute, since XMP allows only ``+hh:mm`` and ``-hh:mm``.
+    """
+    if not isinstance(d, datetime):
+        return d.isoformat()
+    offset = d.utcoffset()
+    if offset is not None and offset.total_seconds() % 60:
+        minutes = round(offset.total_seconds() / 60)
+        d = d.replace(tzinfo=timezone(timedelta(minutes=minutes)))
+    return d.isoformat()
+
+
 class Converter(ABC):
     """XMP <-> DocumentInfo converter."""
 
@@ -127,18 +198,21 @@ class DateConverter(Converter):
         if docinfo_val == '':
             return ''
         val = docinfo_val[2:] if docinfo_val.startswith('D:') else docinfo_val
-        if len(val) in (4, 6) and val.isdigit():
-            return val if len(val) == 4 else f'{val[:4]}-{val[4:]}'
+        if len(val) in (4, 6, 8) and val.isdigit():
+            # Reduced precision: keep year, year-month, or date only as is
+            return '-'.join(filter(None, (val[:4], val[4:6], val[6:8])))
         return decode_pdf_date(docinfo_val).isoformat()
 
     @staticmethod
     def docinfo_from_xmp(xmp_val):
         """Derive DocumentInfo from XMP."""
         if len(xmp_val) in (4, 7) and 'T' not in xmp_val:
+            # Reduced precision: year or year-month only
             return f'D:{xmp_val.replace("-", "")}'
-        if xmp_val.endswith('Z'):
-            xmp_val = xmp_val[:-1] + '+00:00'
-        return encode_pdf_date(datetime.fromisoformat(xmp_val))
+        if len(xmp_val) == 10 and 'T' not in xmp_val:
+            d = parse_xmp_date(xmp_val)  # Validates the date
+            return f'D:{d.year:04d}{d.month:02d}{d.day:02d}'
+        return encode_pdf_date(parse_xmp_date(xmp_val))
 
 
 class DocinfoMapping(NamedTuple):

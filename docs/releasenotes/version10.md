@@ -66,8 +66,13 @@ converts values to it. See {ref}`metadatatypes`. {issue}`555`
   value now joins the values with `; ` (warning that it did so) instead of
   writing an array the specification does not allow there.
 - `datetime.datetime` and `datetime.date` may now be assigned to date valued
-  properties such as `xmp:CreateDate`, and are encoded as ISO 8601. `int` may be
-  assigned to `pdfaid:part` and `bool` to `xmpRights:Marked`.
+  properties such as `xmp:CreateDate`, and are encoded as ISO 8601. A time zone
+  offset that is not a whole number of minutes is rounded to the minute, since
+  XMP allows only `+hh:mm` and `-hh:mm`. `int` may be assigned to `pdfaid:part`
+  and `bool` to `xmpRights:Marked`.
+- Assigning a `set` to an ordered property such as `dc:creator` now sorts the
+  values, so the order written is the same on every run rather than whatever
+  order the set happened to iterate in.
 - `Pdf.open_metadata(strict=True)` now also raises `TypeError` for a value that
   does not match the type of the property, in addition to its existing effect of
   refusing to repair invalid XMP.
@@ -95,7 +100,17 @@ converts values to it. See {ref}`metadatatypes`. {issue}`555`
   prefixes that no strict parser would read. {issue}`634`
 - `key in metadata` now reports whether the key is present rather than whether
   its value is truthy, so a property with an empty value is no longer reported
-  as missing by `in` while `metadata[key]` returns its value.
+  as missing by `in` while `metadata[key]` returns its value. Iterating the
+  metadata likewise now includes a property with an empty value that is stored
+  as an attribute of `rdf:Description`.
+- XMP dates are now parsed according to the XMP specification when updating
+  DocumentInfo, rather than with `datetime.fromisoformat`. On Python 3.10 the
+  latter rejects a fraction of a second that is not exactly 3 or 6 digits and
+  a time zone offset without a colon, so a valid date such as
+  `2024-06-01T12:00:00.5Z` in XMP caused `/ModDate` to be dropped from
+  DocumentInfo with a warning. A date-only XMP value such as `2024-06-01` now
+  becomes `D:20240601` in DocumentInfo, and back, without a spurious midnight
+  time, matching the existing handling of year and year-month values.
 - Looking up a malformed key such as `'xmp:'` now raises `KeyError` (and
   `metadata.get()` returns the default) instead of `ValueError` from lxml.
 - `pikepdf._core._ObjectList`, the list of operands attached to a content stream

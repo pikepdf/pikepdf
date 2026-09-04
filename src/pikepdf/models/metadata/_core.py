@@ -286,9 +286,7 @@ class PdfMetadata(MutableMapping):
 
         qkey = self._qname(key)
         self._setitem_check_args(key, val, applying_mark, qkey)
-        self._xmp_doc.set_value(
-            key, val, strict=not self._overwrite_invalid_xml, _stacklevel=5
-        )
+        self._xmp_doc.set_value(key, val, _stacklevel=5)
 
     def _setitem_check_args(
         self, key: str | QName, val: Any, applying_mark: bool, qkey: str

@@ -37,6 +37,7 @@ from pikepdf.models.metadata._constants import (
     AltList,
     clean,
 )
+from pikepdf.models.metadata._converters import encode_xmp_date
 
 
 class XmpContainerType(Enum):
@@ -203,7 +204,7 @@ def _coerce_scalar(value_type: XmpValueType, val: Any) -> Any:
     if val is None or isinstance(val, str):
         return val
     if value_type == XmpValueType.DATE and isinstance(val, (datetime, date)):
-        return val.isoformat()
+        return encode_xmp_date(val)
     if value_type == XmpValueType.BOOLEAN and isinstance(val, bool):
         return 'True' if val else 'False'
     if (
@@ -272,4 +273,9 @@ def normalize_value(
             raise TypeError(msg)
         warn(XmpTypeWarning(msg), stacklevel=stacklevel)
         val = [val]
-    return [_coerce_scalar(prop.value, item) for item in val], rdf_type
+    items = [_coerce_scalar(prop.value, item) for item in val]
+    if isinstance(val, (set, frozenset)):
+        # A set has no order, so give it a reproducible one rather than
+        # whatever order iteration happened to produce in this process.
+        items.sort(key=str)
+    return items, rdf_type

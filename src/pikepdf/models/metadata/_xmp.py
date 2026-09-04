@@ -309,8 +309,9 @@ class XmpDocument:
                 yield (rdfdesc, qname, rdfdesc.get(qname), rdf)
             elif not qname:
                 for k, v in rdfdesc.items():
-                    if v:
-                        yield (rdfdesc, k, v, rdf)
+                    if str(k).startswith('{' + XMP_NS_RDF + '}'):
+                        continue  # rdf:about and other RDF syntax, not data
+                    yield (rdfdesc, k, v, rdf)
             xpath = qname if name else '*'
             for node in rdfdesc.findall(xpath, self.NS):
                 if node.text and node.text.strip():

@@ -277,12 +277,39 @@ def test_date_docinfo_from_xmp():
         assert DateConverter.docinfo_from_xmp(xmp_val) == docinfo_val
 
 
+def test_xmp_date_forms_docinfo_from_xmp():
+    """Every form in XMP Specification Part 1, 8.2.1.2, converts to DocumentInfo.
+
+    ``datetime.fromisoformat`` on Python 3.10 rejects fractions that are not
+    exactly 3 or 6 digits and offsets without a colon, so the converter must
+    not depend on it.
+    """
+    VALS = [
+        ('2018-12-04', "D:20181204"),
+        ('2018-12-04T03:02Z', "D:20181204030200+00'00"),
+        ('2018-12-04T03:02:01.5Z', "D:20181204030201+00'00"),
+        ('2018-12-04T03:02:01.12-06:00', "D:20181204030201-06'00"),
+        ('2018-12-04T03:02:01.1234567+05:30', "D:20181204030201+05'30"),
+        ('2018-12-04T03:02:01-0600', "D:20181204030201-06'00"),
+        ('2018-12-04T03:02:01.5', "D:20181204030201"),
+    ]
+    for xmp_val, docinfo_val in VALS:
+        assert DateConverter.docinfo_from_xmp(xmp_val) == docinfo_val
+
+
+def test_invalid_xmp_date_docinfo_from_xmp():
+    for bad in ['not a date', '2018-13-04', '2018-12-04T25:00:00', '2018-12-04T']:
+        with pytest.raises(ValueError):
+            DateConverter.docinfo_from_xmp(bad)
+
+
 def test_reduced_precision_date_docinfo_from_xmp():
     VALS = [
         ('2023', 'D:2023'),
         ('2023-11', 'D:202311'),
         ('1999', 'D:1999'),
         ('2000-01', 'D:200001'),
+        ('2000-01-31', 'D:20000131'),
     ]
     for xmp_val, docinfo_val in VALS:
         assert DateConverter.docinfo_from_xmp(xmp_val) == docinfo_val
@@ -294,13 +321,14 @@ def test_reduced_precision_date_xmp_from_docinfo():
         ('D:202311', '2023-11'),
         ('D:1999', '1999'),
         ('D:200001', '2000-01'),
+        ('D:20000131', '2000-01-31'),
     ]
     for docinfo_val, xmp_val in VALS:
         assert DateConverter.xmp_from_docinfo(docinfo_val) == xmp_val
 
 
 def test_reduced_precision_date_roundtrip():
-    VALS = ['2023', '2023-11', '1999', '2000-01']
+    VALS = ['2023', '2023-11', '1999', '2000-01', '2000-01-31']
     for xmp_date in VALS:
         pdf_date = DateConverter.docinfo_from_xmp(xmp_date)
         roundtrip = DateConverter.xmp_from_docinfo(pdf_date)
@@ -1325,6 +1353,22 @@ class TestUndeclaredNamespacePrefix:
         with pytest.raises(KeyError):
             xmp['xmp:']
 
+    def test_iteration_includes_empty_attribute_value(self):
+        """A key that tests as present must also be produced by iteration."""
+        xmp = XmpDocument(
+            b"""\
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about="" xmlns:pdf="http://ns.adobe.com/pdf/1.3/"
+      pdf:Keywords=""/>
+ </rdf:RDF>
+</x:xmpmeta>"""
+        )
+        assert 'pdf:Keywords' in xmp
+        assert xmp['pdf:Keywords'] == ''
+        assert list(xmp) == [XmpDocument.qname('pdf:Keywords')]
+        assert len(xmp) == 1
+
     def test_contains_empty_value(self):
         """A key that iterates and reads back must also test as present."""
         xmp = XmpDocument()
@@ -1354,6 +1398,25 @@ class TestXmpPropertyTypes:
         xmp['dc:creator'] = {'Only Author'}
         assert b'rdf:Seq' in xmp.to_bytes()
         assert xmp['dc:creator'] == ['Only Author']
+
+    def test_set_to_seq_property_is_sorted(self):
+        """A set has no order, so give it a reproducible one."""
+        xmp = XmpDocument()
+        xmp['dc:creator'] = {'Zed', 'Amy', 'Kim'}
+        assert xmp['dc:creator'] == ['Amy', 'Kim', 'Zed']
+
+    def test_set_to_bag_property_is_sorted_in_xml(self):
+        xmp = XmpDocument()
+        xmp['dc:subject'] = {'zebra', 'apple'}
+        out = xmp.to_bytes()
+        assert out.index(b'apple') < out.index(b'zebra')
+
+    def test_datetime_with_seconds_offset(self):
+        """XMP time zones are whole minutes; an offset with seconds is rounded."""
+        xmp = XmpDocument()
+        tz = timezone(timedelta(hours=5, minutes=30, seconds=15))
+        xmp['xmp:ModifyDate'] = datetime(2024, 6, 1, 12, 0, tzinfo=tz)
+        assert xmp['xmp:ModifyDate'] == '2024-06-01T12:00:00+05:30'
 
     def test_str_to_array_property_warns(self):
         xmp = XmpDocument()
