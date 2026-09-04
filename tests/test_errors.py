@@ -102,6 +102,7 @@ class TestExceptionHierarchy:
     them are re-exported from the top-level package.
     """
 
+    @pytest.mark.abi3_smoke
     def test_everything_derives_from_pikepdf_error(self):
         for name in pikepdf.exceptions.__all__:
             cls = getattr(pikepdf.exceptions, name)
@@ -112,11 +113,13 @@ class TestExceptionHierarchy:
             )
             assert issubclass(cls, base), f"{name} does not derive from {base.__name__}"
 
+    @pytest.mark.abi3_smoke
     def test_pikepdf_error_roots(self):
         assert issubclass(pikepdf.PikepdfError, Exception)
         assert not issubclass(pikepdf.PikepdfError, Warning)
         assert issubclass(pikepdf.PikepdfWarning, UserWarning)
 
+    @pytest.mark.abi3_smoke
     @pytest.mark.parametrize(
         'name',
         ['DataDecodingError', 'PdfParsingError', 'ReferenceCycleError'],
@@ -126,6 +129,7 @@ class TestExceptionHierarchy:
         # parsing or stream decoding means what it appears to mean.
         assert issubclass(getattr(pikepdf.exceptions, name), PdfError)
 
+    @pytest.mark.abi3_smoke
     def test_password_error_is_not_a_pdf_error(self):
         # A wrong password is not a document defect. ocrmypdf orders
         #     except PdfError: ...
@@ -134,6 +138,7 @@ class TestExceptionHierarchy:
         assert not issubclass(pikepdf.PasswordError, PdfError)
         assert issubclass(pikepdf.PasswordError, pikepdf.PikepdfError)
 
+    @pytest.mark.abi3_smoke
     @pytest.mark.parametrize(
         'name',
         ['ForeignObjectError', 'DeletedObjectError', 'JobUsageError'],
@@ -142,6 +147,7 @@ class TestExceptionHierarchy:
         # These report a bug in the caller, not a problem with the document.
         assert not issubclass(getattr(pikepdf.exceptions, name), PdfError)
 
+    @pytest.mark.abi3_smoke
     def test_not_extractable_error_is_public(self):
         # It is the base class of the exported HifiPrintImageNotTranscodableError,
         # so it must be catchable by name.
@@ -149,6 +155,8 @@ class TestExceptionHierarchy:
             pikepdf.HifiPrintImageNotTranscodableError, pikepdf.NotExtractableError
         )
 
+    # Not abi3_smoke: the rest of this class is pure C-extension surface, but
+    # this one needs Pillow.
     def test_decompression_bomb_keeps_pillow_bases(self):
         pytest.importorskip('PIL')
         from PIL import Image
@@ -160,6 +168,7 @@ class TestExceptionHierarchy:
         )
         assert issubclass(pikepdf.DecompressionBombWarning, pikepdf.PikepdfWarning)
 
+    @pytest.mark.abi3_smoke
     def test_undecodable_stream_caught_by_pdf_error(self):
         # The motivating case from #739.
         p = Pdf.new()
