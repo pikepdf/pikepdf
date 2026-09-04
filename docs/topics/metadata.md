@@ -69,6 +69,51 @@ occurs in the block, changes are discarded.
 
 The list of available metadata fields may be found in the [XMP Specification].
 
+(metadatatypes)=
+
+## Metadata value types
+
+The XMP specification assigns a type to each standard property, and software
+that reads XMP will discard a property whose type is wrong. pikepdf knows the
+type of the properties in the standard schemas (Dublin Core, XMP basic, PDF,
+PDF/A and PDF/UA identification, rights management, media management, and
+Photoshop) and converts values to it on assignment:
+
+- Properties that hold several values, such as `dc:creator` (an ordered
+  `rdf:Seq`) or `dc:subject` (an unordered `rdf:Bag`), are written in the
+  container the specification requires, whether you assign a `list` or a `set`.
+  Reading them back returns a `list` for an ordered property and a `set` for an
+  unordered one.
+- Assigning a plain string to one of those properties issues a
+  {class}`pikepdf.XmpTypeWarning` and stores a single element array, since a
+  bare string there is what other tools discard.
+- A {class}`datetime.datetime` or {class}`datetime.date` assigned to a date
+  property such as `xmp:ModifyDate` is encoded as ISO 8601, an `int` assigned to
+  `pdfaid:part` becomes its decimal form, and a `bool` assigned to
+  `xmpRights:Marked` becomes `True` or `False`.
+- Language alternatives such as `dc:title` accept a plain string, which becomes
+  the `x-default` alternative.
+
+```{eval-rst}
+.. doctest::
+
+  >>> from datetime import datetime, timezone
+
+  >>> with pdf.open_metadata(set_pikepdf_as_editor=False) as meta:
+  ...     meta['dc:creator'] = ['Anne Author', 'Cody Coauthor']
+  ...     meta['dc:subject'] = {'invoices', 'archive'}
+  ...     meta['xmp:ModifyDate'] = datetime(2024, 6, 1, tzinfo=timezone.utc)
+  ...
+
+  >>> meta['xmp:ModifyDate']
+  '2024-06-01T00:00:00+00:00'
+```
+
+Open metadata with `pdf.open_metadata(strict=True)` to raise `TypeError`
+instead of warning, and to reject XMP that cannot be parsed rather than
+repairing it. Properties pikepdf does not know about are written as given: a
+`list` becomes an `rdf:Seq` and a `set` becomes an `rdf:Bag`.
+
 (copymetadata)=
 
 ## Copying metadata between documents

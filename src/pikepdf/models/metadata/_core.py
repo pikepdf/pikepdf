@@ -278,7 +278,7 @@ class PdfMetadata(MutableMapping):
     def _setitem(
         self,
         key: str | QName,
-        val: set[str] | list[str] | str,
+        val: Any,
         applying_mark: bool = False,
     ) -> None:
         if not self._updating:
@@ -286,7 +286,9 @@ class PdfMetadata(MutableMapping):
 
         qkey = self._qname(key)
         self._setitem_check_args(key, val, applying_mark, qkey)
-        self._xmp_doc.set_value(key, val)
+        self._xmp_doc.set_value(
+            key, val, strict=not self._overwrite_invalid_xml, _stacklevel=5
+        )
 
     def _setitem_check_args(
         self, key: str | QName, val: Any, applying_mark: bool, qkey: str
@@ -307,11 +309,16 @@ class PdfMetadata(MutableMapping):
                 f"Update to {key} will be overwritten because metadata was opened "
                 "with set_pikepdf_as_editor=True"
             )
-        if isinstance(val, str) and qkey in (self._qname('dc:creator')):
-            log.error(f"{key} should be set to a list of strings")
 
-    def __setitem__(self, key: str | QName, val: set[str] | list[str] | str) -> None:
-        """Set XMP metadata key to value."""
+    def __setitem__(self, key: str | QName, val: Any) -> None:
+        """Set XMP metadata key to value.
+
+        Values are converted to the type the XMP specification defines for
+        the property. A :class:`datetime.datetime` assigned to a date valued
+        property such as ``xmp:ModifyDate`` is encoded as ISO 8601, and a
+        string assigned to an array valued property such as ``dc:creator``
+        is wrapped in the array the specification requires.
+        """
         return self._setitem(key, val, False)
 
     def __delitem__(self, key: str | QName) -> None:

@@ -44,6 +44,12 @@ from pikepdf.models.metadata._converters import (
     encode_pdf_date,
 )
 from pikepdf.models.metadata._core import PdfMetadata
+from pikepdf.models.metadata._schema import (
+    XMP_SCHEMA,
+    XmpContainerType,
+    XmpProperty,
+    XmpValueType,
+)
 from pikepdf.models.metadata._xmp import XmpDocument
 
 
@@ -61,6 +67,11 @@ __all__ = [
     # Main classes
     'PdfMetadata',
     'XmpDocument',
+    # XMP property types
+    'XMP_SCHEMA',
+    'XmpContainerType',
+    'XmpProperty',
+    'XmpValueType',
     # Converters
     'Converter',
     'AuthorConverter',

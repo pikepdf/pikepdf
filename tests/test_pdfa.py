@@ -11,7 +11,7 @@ from subprocess import PIPE, STDOUT, run
 
 import pytest
 
-from pikepdf import Pdf
+from pikepdf import Pdf, XmpTypeWarning
 
 VERAPDF: list[str] = []
 try:
@@ -120,18 +120,14 @@ def test_pdfa_modify(resources, outdir, verapdf):
     assert verapdf(outdir / '3.pdf')
 
 
-def test_pdfa_creator(resources, caplog):
+def test_pdfa_creator(resources):
     sandwich = resources / 'sandwich.pdf'
 
     with Pdf.open(sandwich) as pdf:
         with pdf.open_metadata(
             update_docinfo=False, set_pikepdf_as_editor=False
         ) as meta:
-            meta['dc:creator'] = 'The Creator'
-        messages = [
-            rec.message
-            for rec in caplog.records
-            if rec.message.startswith('dc:creator')
-        ]
-        if not messages:
-            pytest.fail("Failed to warn about setting dc:creator to a string")
+            with pytest.warns(XmpTypeWarning, match='dc:creator'):
+                meta['dc:creator'] = 'The Creator'
+            # The string is stored as the rdf:Seq that PDF/A requires
+            assert meta['dc:creator'] == ['The Creator']

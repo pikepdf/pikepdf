@@ -25,6 +25,7 @@ PikepdfError
 
 PikepdfWarning
 ├── PageCopyWarning
+├── XmpTypeWarning                        an XMP value has the wrong type
 └── DecompressionBombWarning              (also a PIL.Image.DecompressionBombWarning)
 ```
 
@@ -152,6 +153,10 @@ extraction may also raise exceptions from Pillow. `PikepdfError` means
 
 ```{eval-rst}
 .. autoapiexception:: pikepdf.exceptions.PageCopyWarning
+```
+
+```{eval-rst}
+.. autoapiexception:: pikepdf.exceptions.XmpTypeWarning
 ```
 
 ```{eval-rst}

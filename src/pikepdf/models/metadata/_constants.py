@@ -86,32 +86,34 @@ XMP_CONTAINERS = [
 ]
 
 
-_LANG_ALTS_LAZY = [
-    (XMP_NS_DC, 'title'),
-    (XMP_NS_DC, 'description'),
-    (XMP_NS_DC, 'rights'),
-    (XMP_NS_XMP_RIGHTS, 'UsageTerms'),
-]
-
 _LOADED_LXML_NAMESPACES = False
+
+
+def load_lxml_namespaces() -> None:
+    """Register all default namespaces with lxml, once.
+
+    lxml uses these to choose a prefix when it serializes an element whose
+    namespace was not declared in the source document. Importing lxml is
+    deferred until something actually needs it.
+    """
+    global _LOADED_LXML_NAMESPACES
+
+    if _LOADED_LXML_NAMESPACES:
+        return
+    from lxml import etree
+
+    for _uri, _prefix in DEFAULT_NAMESPACES:
+        etree.register_namespace(_prefix, _uri)
+    _LOADED_LXML_NAMESPACES = True
 
 
 # lxml lazy-loading
 def __getattr__(name: str) -> Any:
-    global _LOADED_LXML_NAMESPACES
-
     if name == 'LANG_ALTS':
-        from lxml.etree import QName
+        from pikepdf.models.metadata._schema import lang_alts
 
-        if not _LOADED_LXML_NAMESPACES:
-            from lxml import etree
-
-            # Register all namespaces with lxml
-            for _uri, _prefix in DEFAULT_NAMESPACES:
-                etree.register_namespace(_prefix, _uri)
-            _LOADED_LXML_NAMESPACES = True
-
-        val = frozenset([str(QName(x, y)) for x, y in _LANG_ALTS_LAZY])
+        load_lxml_namespaces()
+        val = lang_alts()
         globals()[name] = val
 
         return val

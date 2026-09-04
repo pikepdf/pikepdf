@@ -42,8 +42,62 @@ warnings. See {doc}`/api/exceptions` for the full tree. {issue}`739`
   `FormCopyWarning` (the class is `PageCopyWarning`) and omitted
   `ReferenceCycleError`, `PageCopyWarning` and `NotExtractableError`.
 
+### XMP metadata value types
+
+XMP assigns a type to every standard property, and software that reads XMP
+discards a property whose type is wrong -- Ghostscript strips these silently,
+and PDF/A validators reject them. pikepdf used to choose the RDF container from
+the Python type of the value it was handed, so `meta['dc:subject'] = ['a', 'b']`
+wrote an `rdf:Seq` where the specification requires an `rdf:Bag`, and
+`meta['dc:creator'] = 'Author'` wrote a bare string where an `rdf:Seq` belongs.
+pikepdf now knows the type of the properties in the standard schemas and
+converts values to it. See {ref}`metadatatypes`. {issue}`555`
+
+- **Behavior change:** a property that holds several values is now written in
+  the container the specification requires, regardless of whether a `list` or a
+  `set` was assigned. Reading such a property back returns a `list` for an
+  ordered property and a `set` for an unordered one, as before.
+- **Behavior change:** assigning a plain string to a property that holds several
+  values now issues the new `pikepdf.XmpTypeWarning` and stores a single element
+  array, rather than writing a bare string that other software discards. The
+  `log.error` message pikepdf previously produced for `dc:creator` alone is
+  replaced by this warning, which covers every such property.
+- **Behavior change:** assigning a `list` or `set` to a property that holds one
+  value now joins the values with `; ` (warning that it did so) instead of
+  writing an array the specification does not allow there.
+- `datetime.datetime` and `datetime.date` may now be assigned to date valued
+  properties such as `xmp:CreateDate`, and are encoded as ISO 8601. `int` may be
+  assigned to `pdfaid:part` and `bool` to `xmpRights:Marked`.
+- `Pdf.open_metadata(strict=True)` now also raises `TypeError` for a value that
+  does not match the type of the property, in addition to its existing effect of
+  refusing to repair invalid XMP.
+- Assigning to a property whose namespace prefix has not been registered now
+  raises `KeyError` naming
+  `pikepdf.models.metadata.XmpDocument.register_xml_namespace()`. Previously the
+  prefix was silently dropped and the property written into no namespace.
+- Properties pikepdf does not know about are unaffected: the container is still
+  inferred from the Python type of the value.
+- The new `pikepdf.models.metadata.XMP_SCHEMA` maps a property's qualified name
+  to its `XmpProperty` type, for callers that want to check types themselves.
+
 ### Fixes
 
+- Iterating XMP metadata no longer produces keys that cannot be looked up. When
+  XMP fails to parse and is recovered, an element whose namespace prefix was
+  never declared survives under its literal name -- `xmp:MetadataDate` rather
+  than `{http://ns.adobe.com/xap/1.0/}MetadataDate` -- so iteration yielded a
+  name that `__getitem__` resolved to a different one, and any code that walked
+  the metadata (such as `dict(meta.items())`) raised `KeyError` or, where the
+  name was truncated, `ValueError: Invalid tag name`. pikepdf now rebinds such
+  names to the namespace their prefix refers to when it parses XMP, and discards
+  the ones it cannot resolve. This also means the XMP pikepdf writes back for
+  these documents is well-formed XML; previously it contained undeclared
+  prefixes that no strict parser would read. {issue}`634`
+- `key in metadata` now reports whether the key is present rather than whether
+  its value is truthy, so a property with an empty value is no longer reported
+  as missing by `in` while `metadata[key]` returns its value.
+- Looking up a malformed key such as `'xmp:'` now raises `KeyError` (and
+  `metadata.get()` returns the default) instead of `ValueError` from lxml.
 - `pikepdf._core._ObjectList`, the list of operands attached to a content stream
   instruction, now behaves like a list of pikepdf objects. Previously its
   methods only accepted `pikepdf.Object`, but the elements of an operand list

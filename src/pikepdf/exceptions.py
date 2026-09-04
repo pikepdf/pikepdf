@@ -18,7 +18,12 @@ from pikepdf._core import (
     PikepdfError,
     ReferenceCycleError,
 )
-from pikepdf._exceptions import DependencyError, PageCopyWarning, PikepdfWarning
+from pikepdf._exceptions import (
+    DependencyError,
+    PageCopyWarning,
+    PikepdfWarning,
+    XmpTypeWarning,
+)
 from pikepdf.models._content_stream import PdfParsingError
 from pikepdf.models.image import (
     HifiPrintImageNotTranscodableError,
@@ -48,4 +53,5 @@ __all__ = [
     'PikepdfWarning',
     'ReferenceCycleError',
     'UnsupportedImageTypeError',
+    'XmpTypeWarning',
 ]

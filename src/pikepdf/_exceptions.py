@@ -29,3 +29,15 @@ class PageCopyWarning(PikepdfWarning):
     destinations referenced by the copied pages. Use
     :meth:`pikepdf.Pdf.add_pages_from` to preserve them.
     """
+
+
+class XmpTypeWarning(PikepdfWarning):
+    """A value assigned to an XMP property does not match the property's type.
+
+    The XMP specification defines the type of each standard property. A value
+    of the wrong type produces metadata that other software may silently
+    discard - for example a language alternative where an unordered list of
+    contributors is required. pikepdf converts the value to the type the
+    specification requires and warns; open metadata with
+    ``Pdf.open_metadata(strict=True)`` to raise :class:`TypeError` instead.
+    """

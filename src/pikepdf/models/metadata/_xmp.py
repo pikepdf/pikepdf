@@ -19,10 +19,11 @@ from pikepdf.models.metadata._constants import (
     XMP_NS_XML,
     XPACKET_BEGIN,
     XPACKET_END,
-    AltList,
     clean,
+    load_lxml_namespaces,
     re_xml_illegal_bytes,
 )
+from pikepdf.models.metadata._schema import normalize_value
 
 if TYPE_CHECKING:
     from lxml.etree import QName, _Element, _ElementTree
@@ -102,6 +103,7 @@ class XmpDocument:
                 else PARSERS_STANDARD
             )
 
+        self._strict = not overwrite_invalid_xml
         self._xmp: _ElementTree = self._parse(data, parsers, overwrite_invalid_xml)
 
     def _parse(
@@ -113,6 +115,8 @@ class XmpDocument:
         """Parse XMP data using fallback parsers."""
         from lxml import etree
         from lxml.etree import XMLSyntaxError
+
+        load_lxml_namespaces()
 
         if data.strip() == b'':
             data = XMP_EMPTY  # on some platforms lxml chokes on empty documents
@@ -137,6 +141,7 @@ class XmpDocument:
                 pis = xmp.xpath('/processing-instruction()')
                 for pi in pis:  # type: ignore[union-attr]
                     etree.strip_tags(xmp, pi.tag)  # type: ignore[union-attr]
+                self._repair_namespaces(xmp)
                 self._get_rdf_root_from(xmp)
             except (
                 Exception  # pylint: disable=broad-except
@@ -150,6 +155,64 @@ class XmpDocument:
             xmp = _parser_replace_with_empty_xmp()
 
         return xmp
+
+    @classmethod
+    def _repair_namespaces(cls, xmp: _ElementTree) -> None:
+        """Rebind names that were parsed without their namespace.
+
+        When XML is recovered after a parse error, lxml keeps an element or
+        attribute whose namespace prefix was never declared under its literal
+        name, colon and all - ``xmp:MetadataDate`` rather than
+        ``{http://ns.adobe.com/xap/1.0/}MetadataDate``. Such a name can be
+        iterated but never looked up, since lookups resolve the prefix to its
+        URI, and it cannot be serialized to well-formed XML either. Rebind
+        the names we recognize and discard the rest.
+        """
+        repaired = dropped = 0
+        for element in list(xmp.iter()):
+            tag = element.tag
+            if not isinstance(tag, str):
+                continue  # Comment or processing instruction
+            if not tag.startswith('{') and ':' in tag:
+                uri, local = cls._split_literal_name(tag)
+                if uri is None:
+                    parent = element.getparent()
+                    if parent is not None:
+                        parent.remove(element)
+                        dropped += 1
+                    continue
+                element.tag = f'{{{uri}}}{local}'
+                repaired += 1
+            for name in list(element.attrib):
+                if not isinstance(name, str):
+                    continue
+                if name.startswith('{') or ':' not in name:
+                    continue
+                uri, local = cls._split_literal_name(name)
+                value = element.attrib.pop(name)
+                if uri is None:
+                    dropped += 1
+                    continue
+                element.set(f'{{{uri}}}{local}', value)
+                repaired += 1
+
+        if repaired or dropped:
+            log.warning(
+                "XMP contained %d name(s) with an undeclared namespace prefix; "
+                "%d were recovered and %d discarded",
+                repaired + dropped,
+                repaired,
+                dropped,
+            )
+
+    @classmethod
+    def _split_literal_name(cls, name: str) -> tuple[str | None, str]:
+        """Split a ``prefix:local`` name, resolving the prefix if we know it."""
+        prefix, _, local = name.partition(':')
+        uri = cls.NS.get(prefix)
+        if not local or ':' in local:
+            return None, local  # Truncated or otherwise unusable
+        return uri, local
 
     @classmethod
     def register_xml_namespace(cls, uri: str, prefix: str) -> None:
@@ -187,7 +250,10 @@ class XmpDocument:
             # If missing the namespace, it belongs in the default namespace.
             prefix, tag = '', name
         uri = cls.NS.get(prefix, None)
-        return str(QName(uri, tag))
+        try:
+            return str(QName(uri, tag))
+        except ValueError as e:
+            raise ValueError(f"{name!r} is not a valid XMP property name") from e
 
     def prefix_from_uri(self, uriname: str) -> str:
         """Given a fully qualified XML name, find a prefix.
@@ -280,21 +346,32 @@ class XmpDocument:
     def _get_element_values(self, name: str | QName = '') -> Iterator[Any]:
         yield from (v[2] for v in self._get_elements(name))
 
+    def _lookup(self, key: str | QName) -> Iterator[Any]:
+        """Yield the values of a key, treating an unusable name as absent."""
+        try:
+            self.qname(key)
+        except ValueError:
+            return  # Not a name any element could have
+        yield from self._get_element_values(key)
+
     def __contains__(self, key: str | QName) -> bool:
-        """Test if XMP key exists."""
-        return any(self._get_element_values(key))
+        """Test if XMP key exists.
+
+        A key that exists but holds an empty value is still present.
+        """
+        return any(True for _ in self._lookup(key))
 
     def get(self, key: str | QName, default: Any = None) -> Any:
         """Get XMP value for key, or default if not found."""
         try:
-            return next(self._get_element_values(key))
+            return next(self._lookup(key))
         except StopIteration:
             return default
 
     def __getitem__(self, key: str | QName) -> Any:
         """Retrieve XMP metadata for key."""
         try:
-            return next(self._get_element_values(key))
+            return next(self._lookup(key))
         except StopIteration:
             raise KeyError(key) from None
 
@@ -313,26 +390,65 @@ class XmpDocument:
     def set_value(
         self,
         key: str | QName,
-        val: set[str] | list[str] | str,
+        val: Any,
+        *,
+        strict: bool | None = None,
+        _stacklevel: int = 4,
     ) -> None:
-        """Set XMP metadata key to value."""
-        qkey = self.qname(key)
+        """Set XMP metadata key to value.
 
+        The value is converted to the type the XMP specification defines for
+        the property, where pikepdf knows it. If the value cannot be converted
+        without changing its meaning, a :class:`pikepdf.XmpTypeWarning` is
+        issued, or :class:`TypeError` raised when ``strict``.
+        """
+        if strict is None:
+            strict = self._strict
+        qkey = self._writable_qname(key)
+        val, rdf_type = normalize_value(
+            self._display_name(key, qkey),
+            qkey,
+            val,
+            strict=strict,
+            stacklevel=_stacklevel,
+        )
+
+        if not self._setitem_update(key, val, qkey, rdf_type):
+            self._setitem_insert(key, val, rdf_type)
+
+    def _display_name(self, key: str | QName, qkey: str) -> str:
+        """Name a property the way a user would write it, for messages."""
         try:
-            # Update existing node
-            self._setitem_update(key, val, qkey)
-        except StopIteration:
-            # Insert a new node
-            self._setitem_insert(key, val)
+            return self.prefix_from_uri(qkey)
+        except (KeyError, ValueError):
+            return str(key)
 
-    def __setitem__(self, key: str | QName, val: set[str] | list[str] | str) -> None:
+    def _writable_qname(self, key: str | QName) -> str:
+        """Convert a name to be written, rejecting namespaces we don't know."""
+        qkey = self.qname(key)
+        if isinstance(key, str) and ':' in key and not key.startswith('{'):
+            prefix = key.split(':', maxsplit=1)[0]
+            if prefix not in self.NS:
+                raise KeyError(
+                    f"The namespace prefix of {key} is not registered. Call "
+                    "pikepdf.models.metadata.XmpDocument.register_xml_namespace() "
+                    "to register it before use."
+                )
+        return qkey
+
+    def __setitem__(self, key: str | QName, val: Any) -> None:
         """Set XMP metadata key to value."""
         self.set_value(key, val)
 
-    def _setitem_add_array(self, node: _Element, items: Iterable) -> None:
-        rdf_type = next(
-            c.rdf_type for c in XMP_CONTAINERS if isinstance(items, c.py_type)
-        )
+    def _setitem_add_array(
+        self, node: _Element, items: Iterable, rdf_type: str | None = None
+    ) -> None:
+        if rdf_type is None:
+            # Property is not one we know the type of, so infer the container
+            # from the Python type of the value.
+            rdf_type = next(
+                c.rdf_type for c in XMP_CONTAINERS if isinstance(items, c.py_type)
+            )
         from lxml import etree
         from lxml.etree import QName
 
@@ -348,45 +464,50 @@ class XmpDocument:
                     inner_text = None
                 el.text = inner_text
 
-    def _setitem_update(self, key: str | QName, val: Any, qkey: str) -> None:
-        from pikepdf.models.metadata._constants import LANG_ALTS
+    def _setitem_update(
+        self, key: str | QName, val: Any, qkey: str, rdf_type: str | None
+    ) -> bool:
+        """Replace the value of an existing property.
 
+        Returns:
+            True if an existing property was updated, False if the caller
+            should insert the property instead.
+        """
         # Locate existing node to replace
-        node, attrib, _oldval, _parent = next(self._get_elements(key))
+        try:
+            node, attrib, _oldval, _parent = next(self._get_elements(key))
+        except StopIteration:
+            return False
+
+        is_array = rdf_type is not None or isinstance(val, list | set)
         if attrib:
+            if is_array:
+                # The property was stored as an attribute of rdf:Description,
+                # which cannot hold an array. Discard it and insert an element.
+                del node.attrib[qkey]
+                return False
             if not isinstance(val, str):
-                if qkey == self.qname('dc:creator'):
-                    # dc:creator incorrectly created as an attribute - we're
-                    # replacing it anyway, so remove the old one
-                    del node.attrib[qkey]
-                    self._setitem_add_array(node, clean(val))
-                else:
-                    raise TypeError(f"Setting {key} to {val} with type {type(val)}")
-            else:
-                node.set(attrib, clean(val))
-        elif isinstance(val, list | set):
-            for child in node.findall('*'):
-                node.remove(child)
-            self._setitem_add_array(node, val)
+                raise TypeError(f"Setting {key} to {val} with type {type(val)}")
+            node.set(attrib, clean(val))
+            return True
+
+        for child in node.findall('*'):
+            node.remove(child)
+        if is_array:
+            self._setitem_add_array(node, val, rdf_type)
         elif isinstance(val, str):
-            for child in node.findall('*'):
-                node.remove(child)
-            if str(self.qname(key)) in LANG_ALTS:
-                self._setitem_add_array(node, AltList([clean(val)]))
-            else:
-                node.text = clean(val)
+            node.text = clean(val)
         else:
             raise TypeError(f"Setting {key} to {val} with type {type(val)}")
+        return True
 
-    def _setitem_insert(self, key: str | QName, val: Any) -> None:
+    def _setitem_insert(
+        self, key: str | QName, val: Any, rdf_type: str | None = None
+    ) -> None:
         from lxml import etree
         from lxml.etree import QName
 
-        from pikepdf.models.metadata._constants import LANG_ALTS
-
         rdf = self._get_rdf_root()
-        if str(self.qname(key)) in LANG_ALTS:
-            val = AltList([clean(val)])
         # Reuse existing rdf:Description element if available, to avoid
         # creating multiple Description elements with the same rdf:about=""
         rdfdesc = rdf.find('rdf:Description[@rdf:about=""]', self.NS)
@@ -396,9 +517,9 @@ class XmpDocument:
                 str(QName(XMP_NS_RDF, 'Description')),
                 attrib={str(QName(XMP_NS_RDF, 'about')): ''},
             )
-        if isinstance(val, list | set):
+        if rdf_type is not None or isinstance(val, list | set):
             node = etree.SubElement(rdfdesc, self.qname(key))
-            self._setitem_add_array(node, val)
+            self._setitem_add_array(node, val, rdf_type)
         elif isinstance(val, str):
             node = etree.SubElement(rdfdesc, self.qname(key))
             node.text = clean(val)
@@ -413,6 +534,10 @@ class XmpDocument:
         """
         from lxml.etree import QName
 
+        try:
+            self.qname(key)
+        except ValueError:
+            return False
         try:
             node, attrib, _oldval, parent = next(self._get_elements(key))
             if attrib:  # Inline

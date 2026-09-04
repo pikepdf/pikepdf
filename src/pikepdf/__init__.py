@@ -85,6 +85,7 @@ from pikepdf.exceptions import (
     OutlineStructureError,
     PikepdfWarning,
     UnsupportedImageTypeError,
+    XmpTypeWarning,
 )
 from pikepdf.objects import (
     Array,
@@ -235,6 +236,7 @@ __all__ = [
     'PdfError',
     'PikepdfError',
     'PikepdfWarning',
+    'XmpTypeWarning',
     'PdfImage',
     'PdfInlineImage',
     'Permissions',
