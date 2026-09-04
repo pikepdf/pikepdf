@@ -25,6 +25,136 @@
 #include <qpdf/QPDFXRefEntry.hh>
 #include <qpdf/Types.h>
 
+// nanobind's bind_vector and bind_map generate methods whose value parameters
+// are typed strictly on QPDFObjectHandle, and that compare values with
+// QPDFObjectHandle::operator==, which only reports whether two handles refer to
+// the same underlying object. Neither suits pikepdf: every other container here
+// accepts any Python value that objecthandle_encode() understands, and compares
+// objects by value with objecthandle_equal(). These helpers back the
+// replacement methods installed after bind_vector()/bind_map() in
+// init_object().
+
+// Encode a Python value to a PDF object, returning false if it has no PDF
+// representation. Used by the read-only operations (__eq__, __contains__,
+// count), which must report "not equal"/"not found" for a foreign value rather
+// than raise, the same way list.__contains__ does.
+static bool pdfobject_try_encode(py::handle value, QPDFObjectHandle &out)
+{
+    try {
+        out = objecthandle_encode(value);
+        return true;
+    } catch (const std::exception &) {
+        // objecthandle_encode() raises py::python_error for a failed Python
+        // call and std::runtime_error for a type it cannot represent; both
+        // derive from std::exception and neither leaves the Python error
+        // indicator set.
+        return false;
+    }
+}
+
+// Compare two objects by value. _ObjectList and _ObjectMapping have no owning
+// QPDF of their own, so unlike the pikepdf.Array methods -- which lock the
+// array's owner once -- each comparison locks whatever the two values happen to
+// belong to. These containers hold direct objects almost always, and the guard
+// is a no-op for those.
+static bool pdfobject_equal_locked(QPDFObjectHandle a, QPDFObjectHandle b)
+{
+    DualQpdfLockGuard lock(a.getOwningQPDF(), b.getOwningQPDF());
+    return objecthandle_equal(a, b);
+}
+
+// Interpret `other` as a list of PDF objects for element-wise comparison.
+// Returns false if it is not a list-like object, or if any element has no PDF
+// representation; the caller then reports NotImplemented or inequality.
+static bool objectlist_coerce(py::handle other, ObjectList &out)
+{
+    if (py::isinstance<ObjectList>(other)) {
+        out = py::cast<ObjectList>(other);
+        return true;
+    }
+    if (!py::isinstance<py::list>(other) && !py::isinstance<py::tuple>(other))
+        return false;
+    for (py::handle item : py::borrow<py::sequence>(other)) {
+        QPDFObjectHandle encoded;
+        if (!pdfobject_try_encode(item, encoded))
+            return false;
+        out.push_back(encoded);
+    }
+    return true;
+}
+
+static bool objectlist_equal(const ObjectList &self, const ObjectList &other)
+{
+    if (self.size() != other.size())
+        return false;
+    for (size_t i = 0; i < self.size(); ++i) {
+        if (!pdfobject_equal_locked(self.at(i), other.at(i)))
+            return false;
+    }
+    return true;
+}
+
+// Encode every element of a Python iterable, or raise.
+static ObjectList objectlist_encode_all(py::iterable values)
+{
+    ObjectList result;
+    for (py::handle item : values)
+        result.push_back(objecthandle_encode(item));
+    return result;
+}
+
+// Normalize an _ObjectMapping key. Accepts the same key types as
+// _ObjectMapping.__getitem__ (see Extend_ObjectMapping in _methods.py): a str,
+// or a pikepdf.Name spelled the way it appears as a key.
+static bool objectmap_key(py::handle key, std::string &out)
+{
+    if (py::isinstance<py::str>(key)) {
+        out = py::cast<std::string>(key);
+        return true;
+    }
+    if (py::isinstance<QPDFObjectHandle>(key)) {
+        auto handle = py::cast<QPDFObjectHandle>(key);
+        if (handle.isName()) {
+            out = handle.getName();
+            return true;
+        }
+    }
+    return false;
+}
+
+// Interpret `other` as a mapping of PDF objects, for comparison or update().
+// Returns false if it is not a mapping, or if any key or value has no PDF
+// representation; the caller then reports NotImplemented or inequality.
+static bool objectmap_coerce(py::handle other, ObjectMap &out)
+{
+    if (py::isinstance<ObjectMap>(other)) {
+        out = py::cast<ObjectMap>(other);
+        return true;
+    }
+    if (!py::isinstance<py::dict>(other))
+        return false;
+    for (auto [key, value] : py::borrow<py::dict>(other)) {
+        std::string name;
+        QPDFObjectHandle encoded;
+        if (!objectmap_key(key, name) || !pdfobject_try_encode(value, encoded))
+            return false;
+        out.emplace(name, encoded);
+    }
+    return true;
+}
+
+static bool objectmap_equal(const ObjectMap &self, const ObjectMap &other)
+{
+    if (self.size() != other.size())
+        return false;
+    for (const auto &[key, value] : self) {
+        auto it = other.find(key);
+        if (it == other.end() || !pdfobject_equal_locked(value, it->second))
+            return false;
+    }
+    return true;
+}
+
 // Encodes Python key to bytes, handling surrogates for invalid UTF-8.
 std::string string_from_key(py::handle key)
 {
@@ -329,26 +459,168 @@ void init_object(py::module_ &m)
 
     // LCOV_EXCL_START - gcov misattributes lines inside this lambda; covered by
     // tests/test_objectlist.py::test_objectlist_repr
-    py::bind_vector<ObjectList>(m, "_ObjectList", py::type_slots(pikepdf_gc_slots))
-        .def("__repr__", [](ObjectList &ol) {
-            std::ostringstream ss;
-            ss.imbue(std::locale::classic());
-            bool first = true;
-            ss << "pikepdf._core._ObjectList([";
-            for (auto &h : ol) {
-                if (first) {
-                    first = false;
-                } else {
-                    ss << ", ";
-                }
-                ss << objecthandle_repr(h);
+    auto objectlist =
+        py::bind_vector<ObjectList>(m, "_ObjectList", py::type_slots(pikepdf_gc_slots));
+    objectlist.def("__repr__", [](ObjectList &ol) {
+        std::ostringstream ss;
+        ss.imbue(std::locale::classic());
+        bool first = true;
+        ss << "pikepdf._core._ObjectList([";
+        for (auto &h : ol) {
+            if (first) {
+                first = false;
+            } else {
+                ss << ", ";
             }
-            ss << "])";
-            return ss.str();
-        });
+            ss << objecthandle_repr(h);
+        }
+        ss << "])";
+        return ss.str();
+    });
     // LCOV_EXCL_STOP
 
-    py::bind_map<ObjectMap>(m, "_ObjectMapping", py::type_slots(pikepdf_gc_slots));
+    // Discard the comparison methods bind_vector generated, so that the
+    // replacements below become the only overloads instead of being appended
+    // behind bind_vector's stricter and identity-based ones.
+    for (const char *method : {"__eq__", "__ne__", "__contains__", "count", "remove"})
+        py::delattr(objectlist, method);
+
+    objectlist
+        .def("__eq__",
+            [](const ObjectList &self, py::handle other) -> py::object {
+                ObjectList rhs;
+                if (!objectlist_coerce(other, rhs))
+                    return py::borrow<py::object>(py::handle(Py_NotImplemented));
+                return py::cast(objectlist_equal(self, rhs));
+            })
+        .def("__ne__",
+            [](const ObjectList &self, py::handle other) -> py::object {
+                ObjectList rhs;
+                if (!objectlist_coerce(other, rhs))
+                    return py::borrow<py::object>(py::handle(Py_NotImplemented));
+                return py::cast(!objectlist_equal(self, rhs));
+            })
+        .def("__contains__",
+            [](const ObjectList &self, py::handle value) {
+                QPDFObjectHandle needle;
+                if (!pdfobject_try_encode(value, needle))
+                    return false;
+                for (auto &item : self) {
+                    if (pdfobject_equal_locked(item, needle))
+                        return true;
+                }
+                return false;
+            })
+        .def(
+            "count",
+            [](const ObjectList &self, py::handle value) {
+                QPDFObjectHandle needle;
+                Py_ssize_t count = 0;
+                if (!pdfobject_try_encode(value, needle))
+                    return count;
+                for (auto &item : self) {
+                    if (pdfobject_equal_locked(item, needle))
+                        count++;
+                }
+                return count;
+            },
+            py::arg("value"),
+            "Return number of occurrences of `value`.")
+        .def(
+            "remove",
+            [](ObjectList &self, py::handle value) {
+                QPDFObjectHandle needle;
+                if (pdfobject_try_encode(value, needle)) {
+                    for (auto it = self.begin(); it != self.end(); ++it) {
+                        if (pdfobject_equal_locked(*it, needle)) {
+                            self.erase(it);
+                            return;
+                        }
+                    }
+                }
+                throw py::value_error("_ObjectList.remove(x): x not in list");
+            },
+            py::arg("value"),
+            "Remove first occurrence of `value`.");
+
+    // Overloads that accept any encodable Python value. bind_vector's
+    // QPDFObjectHandle-typed versions are registered first and still handle
+    // pikepdf.Object arguments; these pick up everything else, which also stops
+    // nanobind from falling back to converting the argument to an _ObjectList
+    // (a conversion that fails noisily on stderr). Fixes #742.
+    objectlist
+        .def("append",
+            [](ObjectList &self, py::handle value) {
+                self.push_back(objecthandle_encode(value));
+            })
+        .def("insert",
+            [](ObjectList &self, Py_ssize_t index, py::handle value) {
+                if (index < 0)
+                    index += (Py_ssize_t)self.size();
+                if (index < 0 || (size_t)index > self.size())
+                    throw py::index_error();
+                self.insert(self.begin() + index, objecthandle_encode(value));
+            })
+        .def("extend",
+            [](ObjectList &self, py::iterable values) {
+                ObjectList encoded = objectlist_encode_all(values);
+                self.insert(self.end(), encoded.begin(), encoded.end());
+            })
+        .def("__setitem__",
+            [](ObjectList &self, Py_ssize_t index, py::handle value) {
+                self.at(py::detail::wrap(index, self.size())) =
+                    objecthandle_encode(value);
+            })
+        .def("__setitem__",
+            [](ObjectList &self, const py::slice &slice, py::iterable values) {
+                ObjectList encoded = objectlist_encode_all(values);
+                auto [start, stop, step, length] = slice.compute(self.size());
+                if (length != encoded.size())
+                    throw py::index_error("The left and right hand side of the "
+                                          "slice assignment have mismatched sizes!");
+                for (size_t i = 0; i < length; ++i) {
+                    self.at((size_t)start) = encoded.at(i);
+                    start += step;
+                }
+            });
+
+    auto objectmapping =
+        py::bind_map<ObjectMap>(m, "_ObjectMapping", py::type_slots(pikepdf_gc_slots));
+
+    // Same treatment as _ObjectList above: bind_map's __eq__/__ne__ compare
+    // values with QPDFObjectHandle::operator== (identity), and its
+    // __setitem__/update() only accept pikepdf.Object values, which a caller
+    // cannot produce for the numbers that mappings routinely hold.
+    for (const char *method : {"__eq__", "__ne__"})
+        py::delattr(objectmapping, method);
+
+    objectmapping
+        .def("__eq__",
+            [](const ObjectMap &self, py::handle other) -> py::object {
+                ObjectMap rhs;
+                if (!objectmap_coerce(other, rhs))
+                    return py::borrow<py::object>(py::handle(Py_NotImplemented));
+                return py::cast(objectmap_equal(self, rhs));
+            })
+        .def("__ne__",
+            [](const ObjectMap &self, py::handle other) -> py::object {
+                ObjectMap rhs;
+                if (!objectmap_coerce(other, rhs))
+                    return py::borrow<py::object>(py::handle(Py_NotImplemented));
+                return py::cast(!objectmap_equal(self, rhs));
+            })
+        .def("__setitem__",
+            [](ObjectMap &self, std::string const &key, py::handle value) {
+                self[key] = objecthandle_encode(value);
+            })
+        .def("update", [](ObjectMap &self, py::handle other) {
+            ObjectMap parsed;
+            if (!objectmap_coerce(other, parsed))
+                throw py::type_error(
+                    "update() expects a mapping of str to pikepdf.Object");
+            for (const auto &[key, value] : parsed)
+                self[key] = value;
+        });
 
 // MSVC raises a false positive warning here
 #if _MSC_VER

@@ -30,7 +30,7 @@ from io import BytesIO
 from pathlib import Path
 from subprocess import run
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, BinaryIO, Literal, TypeVar
+from typing import TYPE_CHECKING, Any, BinaryIO, Literal, TypeVar
 from warnings import warn
 
 if TYPE_CHECKING:
@@ -746,6 +746,18 @@ class Extend_ObjectMapping:
         if isinstance(key, Name):
             key = str(key)
         return _ObjectMapping._cpp__getitem__(self, key)
+
+    @augment_override_cpp
+    def __setitem__(self, key: Name | str, value: Any) -> None:
+        if isinstance(key, Name):
+            key = str(key)
+        return _ObjectMapping._cpp__setitem__(self, key, value)
+
+    @augment_override_cpp
+    def __delitem__(self, key: Name | str) -> None:
+        if isinstance(key, Name):
+            key = str(key)
+        return _ObjectMapping._cpp__delitem__(self, key)
 
 
 def check_is_box(obj) -> None:

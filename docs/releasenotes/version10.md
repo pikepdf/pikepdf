@@ -42,6 +42,33 @@ warnings. See {doc}`/api/exceptions` for the full tree. {issue}`739`
   `FormCopyWarning` (the class is `PageCopyWarning`) and omitted
   `ReferenceCycleError`, `PageCopyWarning` and `NotExtractableError`.
 
+### Fixes
+
+- `pikepdf._core._ObjectList`, the list of operands attached to a content stream
+  instruction, now behaves like a list of pikepdf objects. Previously its
+  methods only accepted `pikepdf.Object`, but the elements of an operand list
+  are usually numbers, which pikepdf decodes to `int`/`bool`/`Decimal` on the
+  way out -- so there was no value a caller could pass back in. `==`, `!=`,
+  `in`, `count()`, `remove()`, `append()`, `insert()`, `extend()` and
+  `__setitem__` now encode their argument the same way `pikepdf.Array` does, so
+  `instruction.operands == [0]` is True and `0 in instruction.operands` works.
+  {issue}`742`
+- Comparisons on `_ObjectList` now compare objects by value, as the rest of
+  pikepdf does. They previously used qpdf's C++ `operator==`, which reports only
+  whether two handles refer to the same underlying object, so `==`, `in`,
+  `count()` and `remove()` gave wrong answers even for operand lists made
+  entirely of `pikepdf.Object`.
+- `pikepdf._core._ObjectMapping`, returned by `Object.as_dict()` and
+  `Page.get_images()`, had all of the same problems and received the same
+  treatment: `__setitem__` and `update()` now encode their value, `==` and `!=`
+  compare values rather than object identity, and comparing a mapping to a
+  `dict` works instead of printing a nanobind conversion warning.
+- `_ObjectMapping.__setitem__` and `__delitem__` now accept a `pikepdf.Name`
+  key, which `__getitem__` and `__contains__` already did.
+- Comparing an `_ObjectList` or `_ObjectMapping` to a list or dict no longer
+  prints `nanobind: implicit conversion from type 'list' to type
+  'pikepdf._core._ObjectList' failed!` to stderr.
+
 ## v10.12.1
 
 - `pikepdf.StreamParser` is now exported from the top-level package and included
