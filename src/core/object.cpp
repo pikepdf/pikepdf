@@ -471,20 +471,15 @@ void init_object(py::module_ &m)
     auto objectlist =
         py::bind_vector<ObjectList>(m, "_ObjectList", py::type_slots(pikepdf_gc_slots));
     objectlist.def("__repr__", [](ObjectList &ol) {
-        std::ostringstream ss;
-        ss.imbue(std::locale::classic());
-        bool first = true;
-        ss << "pikepdf._core._ObjectList([";
+        std::string s = "pikepdf._core._ObjectList([";
+        const char *sep = "";
         for (auto &h : ol) {
-            if (first) {
-                first = false;
-            } else {
-                ss << ", ";
-            }
-            ss << objecthandle_repr(h);
+            s += sep;
+            sep = ", ";
+            s += objecthandle_repr(h);
         }
-        ss << "])";
-        return ss.str();
+        s += "])";
+        return s;
     });
     // LCOV_EXCL_STOP
 

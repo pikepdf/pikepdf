@@ -143,6 +143,11 @@ converts values to it. See {ref}`metadatatypes`. {issue}`555`
   for that, such as under `python -W error` or
   `warnings.simplefilter('error')`. Previously the exception was created and
   then discarded, and the call carried on as if the warning had been ignored.
+- Decoding a JBIG2 image no longer holds a second copy of the compressed data
+  after the decoder has run, and no longer copies the whole image out of an
+  internal buffer to hand it to the decoder.
+- `repr()` of a deeply nested object and `unparse_content_stream()` no longer
+  copy their partial result repeatedly while building it. Output is unchanged.
 
 ### Internals
 

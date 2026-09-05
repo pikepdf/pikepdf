@@ -32,7 +32,7 @@ public:
 
     virtual void write(const unsigned char *data, size_t len) override
     {
-        this->ss.write(reinterpret_cast<const char *>(data), len);
+        this->buf.append(reinterpret_cast<const char *>(data), len);
     }
 
     std::string decode_jbig2(const std::string &data)
@@ -77,12 +77,18 @@ public:
 
     virtual void finish() override
     {
-        std::string data = this->ss.str();
-        if (data.empty()) {
+        if (this->buf.empty()) {
             if (this->getNext(true))
                 this->getNext()->finish();
             return;
         }
+
+        // Hand off the accumulated input and drop our copy of it. qpdf builds a
+        // fresh Pl_JBIG2 for every decode, so this is not needed for
+        // correctness today, but it keeps a large compressed image from being
+        // retained for as long as the owning stream filter lives.
+        std::string data = std::move(this->buf);
+        this->buf.clear();
 
         auto extracted = this->decode_jbig2(data);
 
@@ -91,13 +97,12 @@ public:
         if (this->getNext(true)) {
             this->getNext()->finish();
         }
-        this->ss.clear();
     }
 
 private:
     // Do not hold any Python objects in this class to avoid GIL issues.
     std::string jbig2globals;
-    std::stringstream ss;
+    std::string buf;
 };
 
 class JBIG2StreamFilter : public QPDFStreamFilter {

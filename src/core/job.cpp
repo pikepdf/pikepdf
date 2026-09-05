@@ -3,7 +3,6 @@
 
 #include "pikepdf.h"
 
-#include <iostream>
 #include <streambuf>
 
 #include <qpdf/QPDFJob.hh>

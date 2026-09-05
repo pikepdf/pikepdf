@@ -7,8 +7,6 @@
 
 #include <cctype>
 #include <iomanip>
-#include <iostream>
-#include <sstream>
 
 #include <qpdf/QPDFObjectHandle.hh>
 #include <qpdf/QPDFPageObjectHelper.hh>

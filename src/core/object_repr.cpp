@@ -13,10 +13,7 @@
 
 #include "pikepdf.h"
 
-#include <iomanip>
-#include <iostream>
-#include <locale>
-#include <sstream>
+#include <string>
 
 #include <qpdf/Constants.h>
 #include <qpdf/DLL.h>
@@ -28,97 +25,84 @@
 #include <qpdf/QUtil.hh>
 #include <qpdf/Types.h>
 
+// Append s to out the way `stream << std::quoted(s)` would: wrap it in double
+// quotes and backslash-escape any embedded quote or backslash. Like std::quoted,
+// this leaves all other bytes alone, including non-printable ones.
+static void append_quoted(std::string &out, std::string const &s)
+{
+    out += '"';
+    for (char c : s) {
+        if (c == '"' || c == '\\')
+            out += '\\';
+        out += c;
+    }
+    out += '"';
+}
+
 std::string objecthandle_scalar_value(QPDFObjectHandle h)
 {
-    std::ostringstream ss;
-    ss.imbue(std::locale::classic());
+    std::string out;
     switch (h.getTypeCode()) {
     case qpdf_object_type_e::ot_null:
-        ss << "None";
-        break;
+        return "None";
     case qpdf_object_type_e::ot_boolean:
-        ss << (h.getBoolValue() ? "True" : "False");
-        break;
+        return h.getBoolValue() ? "True" : "False";
     case qpdf_object_type_e::ot_integer:
-        ss << std::to_string(h.getIntValue());
-        break;
+        return std::to_string(h.getIntValue());
     case qpdf_object_type_e::ot_real:
         if (get_explicit_conversion_mode()) {
             // In explicit mode, show as quoted string since pikepdf.Real wraps it
-            ss << "'" << h.getRealValue() << "'";
-        } else {
-            // In implicit mode, show as Decimal for backward compatibility
-            ss << "Decimal('" + h.getRealValue() + "')";
+            return "'" + h.getRealValue() + "'";
         }
-        break;
+        // In implicit mode, show as Decimal for backward compatibility
+        return "Decimal('" + h.getRealValue() + "')";
     case qpdf_object_type_e::ot_name:
-        ss << std::quoted(h.getName());
-        break;
+        append_quoted(out, h.getName());
+        return out;
     case qpdf_object_type_e::ot_string:
-        ss << std::quoted(h.getUTF8Value());
-        break;
+        append_quoted(out, h.getUTF8Value());
+        return out;
     case qpdf_object_type_e::ot_operator:
-        ss << std::quoted(h.getOperatorValue());
-        break;
+        append_quoted(out, h.getOperatorValue());
+        return out;
     // LCOV_EXCL_START
     default:
         throw std::logic_error("object_handle_scalar value called for non-scalar");
         // LCOV_EXCL_STOP
     }
-    return ss.str();
 }
 
 std::string objecthandle_pythonic_typename(QPDFObjectHandle h)
 {
-    std::ostringstream ss;
-    ss.imbue(std::locale::classic());
-
     switch (h.getTypeCode()) {
     case qpdf_object_type_e::ot_name:
-        ss << "pikepdf.Name";
-        break;
+        return "pikepdf.Name";
     case qpdf_object_type_e::ot_string:
-        ss << "pikepdf.String";
-        break;
+        return "pikepdf.String";
     case qpdf_object_type_e::ot_operator:
-        ss << "pikepdf.Operator";
-        break;
+        return "pikepdf.Operator";
     // LCOV_EXCL_START
     case qpdf_object_type_e::ot_inlineimage:
         // Objects of this time are not directly returned.
-        ss << "pikepdf.InlineImage";
-        break;
+        return "pikepdf.InlineImage";
     // LCOV_EXCL_STOP
     case qpdf_object_type_e::ot_array:
-        ss << "pikepdf.Array";
-        break;
+        return "pikepdf.Array";
     case qpdf_object_type_e::ot_dictionary:
         if (h.hasKey("/Type")) {
-            ss << "pikepdf.Dictionary(Type=\"" << h.getKey("/Type").getName() << "\")";
-        } else {
-            ss << "pikepdf.Dictionary";
+            return "pikepdf.Dictionary(Type=\"" + h.getKey("/Type").getName() + "\")";
         }
-        break;
+        return "pikepdf.Dictionary";
     case qpdf_object_type_e::ot_stream:
-        ss << "pikepdf.Stream";
-        break;
+        return "pikepdf.Stream";
     case qpdf_object_type_e::ot_null:
-        break; // None is always represented as None
+        return ""; // None is always represented as None
     case qpdf_object_type_e::ot_boolean:
-        if (get_explicit_conversion_mode()) {
-            ss << "pikepdf.Boolean";
-        }
-        break;
+        return get_explicit_conversion_mode() ? "pikepdf.Boolean" : "";
     case qpdf_object_type_e::ot_integer:
-        if (get_explicit_conversion_mode()) {
-            ss << "pikepdf.Integer";
-        }
-        break;
+        return get_explicit_conversion_mode() ? "pikepdf.Integer" : "";
     case qpdf_object_type_e::ot_real:
-        if (get_explicit_conversion_mode()) {
-            ss << "pikepdf.Real";
-        }
-        break;
+        return get_explicit_conversion_mode() ? "pikepdf.Real" : "";
 
     // LCOV_EXCL_START
     default:
@@ -126,8 +110,6 @@ std::string objecthandle_pythonic_typename(QPDFObjectHandle h)
             std::string("Unexpected pikepdf object type name: ") + h.getTypeName());
         // LCOV_EXCL_STOP
     }
-
-    return ss.str();
 }
 
 std::string objecthandle_repr_typename_and_value(QPDFObjectHandle h)
@@ -136,7 +118,7 @@ std::string objecthandle_repr_typename_and_value(QPDFObjectHandle h)
     if (pythonic_typename.empty()) {
         return objecthandle_scalar_value(h);
     }
-    return objecthandle_pythonic_typename(h) + "(" + objecthandle_scalar_value(h) + ")";
+    return pythonic_typename + "(" + objecthandle_scalar_value(h) + ")";
 }
 
 std::string preview_stream_data(QPDFObjectHandle h, uint recursion_depth)
@@ -175,7 +157,8 @@ std::string preview_stream_data(QPDFObjectHandle h, uint recursion_depth)
     return s;
 }
 
-static std::string objecthandle_repr_inner(QPDFObjectHandle h,
+static void objecthandle_repr_inner(std::string &out, // accumulates the result
+    QPDFObjectHandle h,
     uint recursion_depth,
     uint indent_depth,
     uint &object_count,            // shared among recursive calls
@@ -185,30 +168,28 @@ static std::string objecthandle_repr_inner(QPDFObjectHandle h,
     const uint MAX_OBJECT_COUNT = 40;
 
     StackGuard sg(" objecthandle_repr_inner");
-    std::ostringstream ss;
-    ss.imbue(std::locale::classic());
 
     if (!h.isScalar()) {
         if (visited.count(h.getObjGen()) > 0) {
             pure_expr = false;
-            ss << "<.get_object(" << h.getObjGen() << ")>";
-            return ss.str();
+            out += "<.get_object(" + h.getObjGen().unparse() + ")>";
+            return;
         }
 
         if (!(h.getObjGen() == QPDFObjGen(0, 0)))
             visited.insert(h.getObjGen());
     }
     if (h.isPageObject() && recursion_depth >= 1 && h.isIndirect()) {
-        ss << "<Pdf.pages.from_objgen(" << h.getObjGen() << ")>";
-        return ss.str();
+        out += "<Pdf.pages.from_objgen(" + h.getObjGen().unparse() + ")>";
+        return;
     }
     object_count++;
     if (object_count > MAX_OBJECT_COUNT && recursion_depth > 1) {
         // If we've printed too many objects, start printing <...> instead
         // for objects that aren't the top level object.
         pure_expr = false;
-        ss << "<...>";
-        return ss.str();
+        out += "<...>";
+        return;
     }
 
     switch (h.getTypeCode()) {
@@ -218,93 +199,88 @@ static std::string objecthandle_repr_inner(QPDFObjectHandle h,
     case qpdf_object_type_e::ot_real:
     case qpdf_object_type_e::ot_name:
     case qpdf_object_type_e::ot_string:
-        ss << objecthandle_scalar_value(h);
+        out += objecthandle_scalar_value(h);
         break;
     case qpdf_object_type_e::ot_operator:
-        ss << objecthandle_repr_typename_and_value(h);
+        out += objecthandle_repr_typename_and_value(h);
         break;
     case qpdf_object_type_e::ot_inlineimage:
         // LCOV_EXCL_START
         // Inline image objects are automatically promoted to higher level objects
         // in parse_content_stream, so objects of this type should not be returned
         // directly.
-        ss << objecthandle_pythonic_typename(h) << "("
-           << "data=<...>"
-           << ")";
+        out += objecthandle_pythonic_typename(h) + "(data=<...>)";
         break;
     // LCOV_EXCL_STOP
-    case qpdf_object_type_e::ot_array:
-        ss << "[";
-        {
-            bool first_item = true;
-            ss << " ";
-            for (auto &item : h.aitems()) {
-                if (!first_item)
-                    ss << ", ";
-                first_item = false;
-                // We don't increase indent_depth when recursing into arrays,
-                // because it doesn't look right. Always increase recursion_depth.
-                ss << objecthandle_repr_inner(item,
+    case qpdf_object_type_e::ot_array: {
+        out += "[ ";
+        bool first_item = true;
+        for (auto &item : h.aitems()) {
+            if (!first_item)
+                out += ", ";
+            first_item = false;
+            // We don't increase indent_depth when recursing into arrays,
+            // because it doesn't look right. Always increase recursion_depth.
+            objecthandle_repr_inner(out,
+                item,
+                recursion_depth + 1,
+                indent_depth,
+                object_count,
+                visited,
+                pure_expr);
+        }
+        out += " ]";
+        break;
+    }
+    case qpdf_object_type_e::ot_dictionary: {
+        out += "{\n"; // This will end the line
+        bool first_item = true;
+        for (auto &[key, obj] : h.ditems()) {
+            if (!first_item)
+                out += ",\n";
+            first_item = false;
+            out.append((indent_depth + 1) * 2, ' '); // Indent each line
+            append_quoted(out, key);
+            if (key == "/Parent" && obj.isPagesObject()) {
+                // Don't visit /Parent keys since that just puts every page on the
+                // repr() of a single page
+                out += ": <reference to /Pages>";
+            } else {
+                out += ": ";
+                objecthandle_repr_inner(out,
+                    obj,
                     recursion_depth + 1,
-                    indent_depth,
+                    indent_depth + 1,
                     object_count,
                     visited,
                     pure_expr);
             }
-            ss << " ";
         }
-        ss << "]";
+        out += "\n";
+        out.append(indent_depth * 2, ' '); // Restore previous indent level
+        out += "}";
         break;
-    case qpdf_object_type_e::ot_dictionary:
-        ss << "{"; // This will end the line
-        {
-            bool first_item = true;
-            ss << "\n";
-            for (auto &[key, obj] : h.ditems()) {
-                if (!first_item)
-                    ss << ",\n";
-                first_item = false;
-                ss << std::string((indent_depth + 1) * 2, ' '); // Indent each line
-                if (key == "/Parent" && obj.isPagesObject()) {
-                    // Don't visit /Parent keys since that just puts every page on the
-                    // repr() of a single page
-                    ss << std::quoted(key) << ": <reference to /Pages>";
-                } else {
-                    ss << std::quoted(key) << ": "
-                       << objecthandle_repr_inner(obj,
-                              recursion_depth + 1,
-                              indent_depth + 1,
-                              object_count,
-                              visited,
-                              pure_expr);
-                }
-            }
-            ss << "\n";
-        }
-        ss << std::string(indent_depth * 2, ' ') // Restore previous indent level
-           << "}";
-        break;
+    }
     case qpdf_object_type_e::ot_stream:
         pure_expr = false;
-        ss << objecthandle_pythonic_typename(h) << "("
-           << "owner=<...>, "
-           << "data=" << preview_stream_data(h, recursion_depth) << ", "
-           << objecthandle_repr_inner(h.getDict(),
-                  recursion_depth + 1,
-                  indent_depth, // Don't indent here to align dict with stream
-                  object_count,
-                  visited,
-                  pure_expr)
-           << ")";
+        out += objecthandle_pythonic_typename(h) +
+               "(owner=<...>, data=" + preview_stream_data(h, recursion_depth) + ", ";
+        objecthandle_repr_inner(out,
+            h.getDict(),
+            recursion_depth + 1,
+            indent_depth, // Don't indent here to align dict with stream
+            object_count,
+            visited,
+            pure_expr);
+        out += ")";
         break;
     // LCOV_EXCL_START
     default:
-        ss << "Unexpected qpdf object type value: " << h.getTypeCode();
+        out += "Unexpected qpdf object type value: " +
+               std::to_string(static_cast<int>(h.getTypeCode()));
         break;
         // LCOV_EXCL_STOP
     }
-
-    return ss.str();
 }
 
 std::string objecthandle_repr(QPDFObjectHandle h)
@@ -325,8 +301,8 @@ std::string objecthandle_repr(QPDFObjectHandle h)
     std::set<QPDFObjGen> visited;
     bool pure_expr = true;
     uint object_count = 0;
-    std::string inner =
-        objecthandle_repr_inner(h, 0, 0, object_count, visited, pure_expr);
+    std::string inner;
+    objecthandle_repr_inner(inner, h, 0, 0, object_count, visited, pure_expr);
     std::string output;
 
     if (h.isScalar() || h.isDictionary() || h.isArray()) {
