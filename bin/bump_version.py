@@ -42,31 +42,65 @@ OFF = "\u001b[0m"
 REPO_NAME = "pikepdf/pikepdf"
 
 
-def validate_release_notes(new_version: str) -> bool:
+def normalize_version(entered_version: str) -> str:
+    """Parse a version the user typed and return its canonical PEP 440 spelling.
+
+    Accepts anything PEP 440 accepts, including suffixed releases such as
+    ``10.13.0.post1`` and ``10.14.0rc1``, and tidies up the spellings people
+    reach for -- ``v10.13.0``, ``10.13.0-1``, ``10.14.0.RC1`` -- into the form
+    that goes into the files, the commit and the tag.
+
+    Raises InvalidVersion if the version doesn't conform to PEP 440.
+    """
+    return str(Version(entered_version.strip()))
+
+
+def release_notes_candidates(new_version: str) -> list[str]:
+    """Return the version headings that would document this release.
+
+    A suffixed release -- a pre-release, post-release or dev release -- is
+    described by the release notes of the ``major.minor.micro`` release it
+    belongs to, so ``10.13.0.post1`` is happy with a ``## v10.13.0`` heading.
+    An exactly matching heading is still accepted and preferred, since some
+    release candidates do get notes of their own.
+    """
+    version_obj = Version(new_version)
+    candidates = [str(version_obj)]
+
+    release = list(version_obj.release[:3])
+    release += [0] * (3 - len(release))
+    base_version = ".".join(str(part) for part in release)
+    if base_version not in candidates:
+        candidates.append(base_version)
+
+    return candidates
+
+
+def validate_release_notes(new_version: str, root: Path | None = None) -> bool:
     """Check that the version appears in the release notes.
 
     Returns True if the version is found, False otherwise.
     """
     version_obj = Version(new_version)
     major = version_obj.major
-    release_notes_path = Path(f"docs/releasenotes/version{major:02d}.md")
+    release_notes_path = (root or Path()) / f"docs/releasenotes/version{major:02d}.md"
 
     if not release_notes_path.exists():
         print(f"{RED}error:{OFF} Release notes file not found: {release_notes_path}")
         return False
 
     content = release_notes_path.read_text(encoding="utf8")
-    version_header = f"## v{new_version}"
+    candidates = release_notes_candidates(new_version)
 
-    if version_header not in content:
-        print(
-            f"{RED}error:{OFF} Version v{new_version} not found in {release_notes_path}"
-        )
-        print(f"       Expected to find: {version_header}")
-        return False
+    for candidate in candidates:
+        if f"## v{candidate}" in content:
+            print(f"{GREEN}Found v{candidate} in {release_notes_path}{OFF}")
+            return True
 
-    print(f"{GREEN}Found v{new_version} in {release_notes_path}{OFF}")
-    return True
+    print(f"{RED}error:{OFF} Version v{new_version} not found in {release_notes_path}")
+    expected = " or ".join(f"## v{candidate}" for candidate in candidates)
+    print(f"       Expected to find: {expected}")
+    return False
 
 
 def get_github_client():
@@ -264,15 +298,18 @@ def bump_version() -> None:
 
     # fmt: off
     print(              'Current version:', current_version)
-    new_version = input('    New version: ').strip()
+    entered_version = input('    New version: ')
     # fmt: on
 
     try:
-        Version(new_version)
+        new_version = normalize_version(entered_version)
     except InvalidVersion:
         print("error: This version doesn't conform to PEP440")
         print("       https://www.python.org/dev/peps/pep-0440/")
         sys.exit(1)
+
+    if new_version != entered_version.strip():
+        print(f"Normalized to: {new_version}")
 
     # Validate release notes contain this version
     if not validate_release_notes(new_version):
