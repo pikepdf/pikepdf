@@ -137,6 +137,11 @@ converts values to it. See {ref}`metadatatypes`. {issue}`555`
 - Comparing an `_ObjectList` or `_ObjectMapping` to a list or dict no longer
   prints `nanobind: implicit conversion from type 'list' to type
   'pikepdf._core._ObjectList' failed!` to stderr.
+- Decoding a JBIG2 image no longer holds a second copy of the compressed data
+  after the decoder has run, and no longer copies the whole image out of an
+  internal buffer to hand it to the decoder.
+- `repr()` of a deeply nested object and `unparse_content_stream()` no longer
+  copy their partial result repeatedly while building it. Output is unchanged.
 
 ## v10.12.1
 
