@@ -7,8 +7,6 @@
 
 #include <cctype>
 #include <iomanip>
-#include <iostream>
-#include <sstream>
 
 #include <qpdf/Pipeline.hh>
 #include <qpdf/Pl_Buffer.hh>

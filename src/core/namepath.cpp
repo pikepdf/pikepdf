@@ -31,22 +31,24 @@ NamePath NamePath::append_index(int index) const
 
 std::string NamePath::format_path(size_t up_to) const
 {
-    std::ostringstream ss;
-    ss << "NamePath";
+    std::string s = "NamePath";
     for (size_t i = 0; i < up_to && i < components_.size(); ++i) {
         if (std::holds_alternative<std::string>(components_[i])) {
             auto const &name = std::get<std::string>(components_[i]);
+            s += '.';
             // Strip leading / for display
             if (!name.empty() && name[0] == '/') {
-                ss << "." << name.substr(1);
+                s.append(name, 1, std::string::npos);
             } else {
-                ss << "." << name;
+                s += name;
             }
         } else {
-            ss << "[" << std::get<int>(components_[i]) << "]";
+            s += '[';
+            s += std::to_string(std::get<int>(components_[i]));
+            s += ']';
         }
     }
-    return ss.str();
+    return s;
 }
 
 std::string NamePath::format_full() const

@@ -7,7 +7,6 @@
 #include <cerrno>
 #include <cstring>
 #include <set>
-#include <sstream>
 #include <type_traits>
 
 #include <qpdf/Buffer.hh>

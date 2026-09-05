@@ -185,9 +185,8 @@ std::string OperandGrouper::getWarning() const
 py::bytes unparse_content_stream(py::iterable contentstream)
 {
     uint n = 0;
-    std::ostringstream ss, errmsg;
+    std::ostringstream ss;
     ss.imbue(std::locale::classic());
-    errmsg.imbue(std::locale::classic());
     const char *delim = "";
 
     for (const auto &item : contentstream) {
@@ -219,9 +218,10 @@ py::bytes unparse_content_stream(py::iterable contentstream)
         }
 
         if ((size_t)op_size != 2) {
-            errmsg << "Wrong number of operands at content stream instruction " << n
-                   << "; expected 2";
-            throw py::value_error(errmsg.str().c_str());
+            throw py::value_error(
+                ("Wrong number of operands at content stream instruction " +
+                    std::to_string(n) + "; expected 2")
+                    .c_str());
         }
 
         auto operator_ = operands_op[1];
@@ -236,10 +236,11 @@ py::bytes unparse_content_stream(py::iterable contentstream)
         } else {
             op = py::cast<QPDFObjectHandle>(operator_);
             if (!op.isOperator()) {
-                errmsg << "At content stream instruction " << n
-                       << ", the operator is not of type pikepdf.Operator, bytes "
-                          "or str";
-                throw py::type_error(errmsg.str().c_str());
+                throw py::type_error(
+                    ("At content stream instruction " + std::to_string(n) +
+                        ", the operator is not of type pikepdf.Operator, bytes "
+                        "or str")
+                        .c_str());
             }
         }
 
@@ -250,8 +251,10 @@ py::bytes unparse_content_stream(py::iterable contentstream)
             py::handle PdfInlineImage =
                 py::module_::import_("pikepdf").attr("PdfInlineImage");
             if (!py::isinstance(iimage, PdfInlineImage)) {
-                errmsg << "Expected PdfInlineImage as operand for instruction " << n;
-                throw py::value_error(errmsg.str().c_str());
+                throw py::value_error(
+                    ("Expected PdfInlineImage as operand for instruction " +
+                        std::to_string(n))
+                        .c_str());
             }
             py::bytes iimage_unparsed_bytes =
                 py::borrow<py::bytes>(iimage.attr("unparse")());
@@ -307,12 +310,9 @@ void init_parsers(py::module_ &m)
             "``[0]`` returns the operands, and ``[1]`` returns the operator.")
         .def("__len__", [](ContentStreamInstruction &csi) { return 2; })
         .def("__repr__", [](ContentStreamInstruction &csi) {
-            std::ostringstream ss;
-            ss.imbue(std::locale::classic());
-            ss << "pikepdf.ContentStreamInstruction("
-               << py::cast<std::string>(py::repr(py::cast(csi.operands))) << ", "
-               << objecthandle_repr(csi.operator_) << ")";
-            return ss.str();
+            return "pikepdf.ContentStreamInstruction(" +
+                   py::cast<std::string>(py::repr(py::cast(csi.operands))) + ", " +
+                   objecthandle_repr(csi.operator_) + ")";
         });
 
     py::class_<ContentStreamInlineImage>(
@@ -351,13 +351,8 @@ void init_parsers(py::module_ &m)
             [](ContentStreamInlineImage &csii) { return csii.get_inline_image(); },
             "Returns the inline image itself.")
         .def("__repr__", [](ContentStreamInlineImage &csii) {
-            std::ostringstream ss;
-            ss.imbue(std::locale::classic());
-            ss << "<pikepdf.ContentStreamInlineImage("
-               << "[" << py::cast<std::string>(py::repr(csii.get_inline_image()))
-               << "], "
-               << "pikepdf.Operator('INLINE IMAGE')"
-               << ")>";
-            return ss.str();
+            return "<pikepdf.ContentStreamInlineImage([" +
+                   py::cast<std::string>(py::repr(csii.get_inline_image())) +
+                   "], pikepdf.Operator('INLINE IMAGE'))>";
         });
 }

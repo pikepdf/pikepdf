@@ -5,7 +5,6 @@
 
 #include "pikepdf.h"
 
-#include <sstream>
 #include <string>
 #include <variant>
 #include <vector>

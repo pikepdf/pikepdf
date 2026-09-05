@@ -14,7 +14,6 @@
 #include "pikepdf.h"
 
 #include <iomanip>
-#include <iostream>
 #include <locale>
 #include <sstream>
 
@@ -70,55 +69,35 @@ std::string objecthandle_scalar_value(QPDFObjectHandle h)
 
 std::string objecthandle_pythonic_typename(QPDFObjectHandle h)
 {
-    std::ostringstream ss;
-    ss.imbue(std::locale::classic());
-
     switch (h.getTypeCode()) {
     case qpdf_object_type_e::ot_name:
-        ss << "pikepdf.Name";
-        break;
+        return "pikepdf.Name";
     case qpdf_object_type_e::ot_string:
-        ss << "pikepdf.String";
-        break;
+        return "pikepdf.String";
     case qpdf_object_type_e::ot_operator:
-        ss << "pikepdf.Operator";
-        break;
+        return "pikepdf.Operator";
     // LCOV_EXCL_START
     case qpdf_object_type_e::ot_inlineimage:
         // Objects of this time are not directly returned.
-        ss << "pikepdf.InlineImage";
-        break;
+        return "pikepdf.InlineImage";
     // LCOV_EXCL_STOP
     case qpdf_object_type_e::ot_array:
-        ss << "pikepdf.Array";
-        break;
+        return "pikepdf.Array";
     case qpdf_object_type_e::ot_dictionary:
         if (h.hasKey("/Type")) {
-            ss << "pikepdf.Dictionary(Type=\"" << h.getKey("/Type").getName() << "\")";
-        } else {
-            ss << "pikepdf.Dictionary";
+            return "pikepdf.Dictionary(Type=\"" + h.getKey("/Type").getName() + "\")";
         }
-        break;
+        return "pikepdf.Dictionary";
     case qpdf_object_type_e::ot_stream:
-        ss << "pikepdf.Stream";
-        break;
+        return "pikepdf.Stream";
     case qpdf_object_type_e::ot_null:
-        break; // None is always represented as None
+        return ""; // None is always represented as None
     case qpdf_object_type_e::ot_boolean:
-        if (get_explicit_conversion_mode()) {
-            ss << "pikepdf.Boolean";
-        }
-        break;
+        return get_explicit_conversion_mode() ? "pikepdf.Boolean" : "";
     case qpdf_object_type_e::ot_integer:
-        if (get_explicit_conversion_mode()) {
-            ss << "pikepdf.Integer";
-        }
-        break;
+        return get_explicit_conversion_mode() ? "pikepdf.Integer" : "";
     case qpdf_object_type_e::ot_real:
-        if (get_explicit_conversion_mode()) {
-            ss << "pikepdf.Real";
-        }
-        break;
+        return get_explicit_conversion_mode() ? "pikepdf.Real" : "";
 
     // LCOV_EXCL_START
     default:
@@ -126,8 +105,6 @@ std::string objecthandle_pythonic_typename(QPDFObjectHandle h)
             std::string("Unexpected pikepdf object type name: ") + h.getTypeName());
         // LCOV_EXCL_STOP
     }
-
-    return ss.str();
 }
 
 std::string objecthandle_repr_typename_and_value(QPDFObjectHandle h)
@@ -136,7 +113,7 @@ std::string objecthandle_repr_typename_and_value(QPDFObjectHandle h)
     if (pythonic_typename.empty()) {
         return objecthandle_scalar_value(h);
     }
-    return objecthandle_pythonic_typename(h) + "(" + objecthandle_scalar_value(h) + ")";
+    return pythonic_typename + "(" + objecthandle_scalar_value(h) + ")";
 }
 
 std::string preview_stream_data(QPDFObjectHandle h, uint recursion_depth)

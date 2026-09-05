@@ -7,7 +7,7 @@
 
 #include <nanobind/trampoline.h>
 
-#include <iostream>
+#include <iosfwd>
 
 #include <qpdf/QPDFTokenizer.hh>
 
