@@ -84,7 +84,14 @@ void init_page(py::module_ &m)
             .def("__copy__",
                 [](QPDFPageObjectHelper &poh) { return poh.shallowCopyPage(); })
             .def_prop_ro("_images", &QPDFPageObjectHelper::getImages)
-            .def_prop_ro("_form_xobjects", &QPDFPageObjectHelper::getFormXObjects)
+            .def_prop_ro("form_xobjects",
+                &QPDFPageObjectHelper::getFormXObjects,
+                R"(Return all Form XObjects associated with this page.
+
+This method does not recurse into nested Form XObjects.
+
+.. versionadded:: 7.0.0
+)")
             .def_prop_rw(
                 "mediabox",
                 [](QPDFPageObjectHelper &poh) { return poh.getMediaBox(true); },

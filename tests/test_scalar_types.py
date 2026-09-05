@@ -348,6 +348,13 @@ class TestAsIntMethod:
             d = Dictionary(Name=Name.Foo)
             assert d.Name.as_int(default=0) == 0
             assert d.Name.as_int(default=None) is None
+            assert d.Name.as_int(0) == 0  # positionally too
+
+    def test_as_int_default_ignored_when_type_matches(self):
+        with pikepdf.explicit_conversion():
+            d = Dictionary(Count=42)
+            assert d.Count.as_int(0) == 42
+            assert d.Count.as_int(default=0) == 42
 
 
 class TestAsBoolMethod:
@@ -414,6 +421,17 @@ class TestAsDecimalMethod:
         with pikepdf.explicit_conversion():
             d = Dictionary(Value=5)
             assert d.Value.as_decimal(default=Decimal('0')) == Decimal('0')
+
+    def test_as_decimal_preserves_precision(self):
+        with pikepdf.explicit_conversion():
+            d = Dictionary(Value=Real('0.1234567890123456789'))
+            assert d.Value.as_decimal() == Decimal('0.1234567890123456789')
+
+    def test_as_decimal_default_is_returned_unconverted(self):
+        with pikepdf.explicit_conversion():
+            d = Dictionary(Value=5)
+            sentinel = object()
+            assert d.Value.as_decimal(sentinel) is sentinel
 
 
 class TestIntegerConstruction:

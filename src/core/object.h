@@ -19,7 +19,8 @@
 #include <qpdf/Constants.h>
 #include <qpdf/QPDFObjectHandle.hh>
 
-// Helpers defined in object.cpp and used by object_methods.cpp.
+// Helpers defined in object.cpp and used by object_methods.cpp, and by the other
+// binding translation units that need to read or write a PDF dictionary.
 std::string string_from_key(py::handle key);
 py::str safe_decode(std::string const &s);
 void ensure_array(QPDFObjectHandle h, const char *action);

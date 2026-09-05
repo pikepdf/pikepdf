@@ -99,33 +99,31 @@ def augments(cls_cpp: type[Tcpp]):
         for name, member in inspect.getmembers(cls, predicate=_is_augmentable):
             if name == '__weakref__':
                 continue
-            if (
-                hasattr(cls_cpp, name)
-                and hasattr(cls, name)
-                and name not in getattr(cls, '__abstractmethods__', set())
-                and name not in OVERRIDE_WHITELIST
-            ):
+            if hasattr(cls_cpp, name) and hasattr(cls, name):
+                if name in getattr(cls, '__abstractmethods__', set()):
+                    # The support class subclasses an ABC to pick up its mixin
+                    # methods and leaves this one abstract, because C++ provides
+                    # the implementation. Installing the abstract stub would
+                    # replace a working method with one that raises.
+                    continue
                 if getattr(getattr(cls, name), '_augment_if_no_cpp', False):
                     # If tagged as "augment if no C++", we only want the binding to be
                     # applied when the primary class does not provide a C++
                     # implementation. Usually this would be a function that is not
                     # provided by nanobind in some template.
                     continue
-
-                # If the original C++ class and Python support class both define the
-                # same name, we generally have a conflict, because this is augmentation
-                # not inheritance. However, if the method provided by the support class
-                # is an abstract method, then we can consider the C++ version the
-                # implementation. Also, nanobind (like pybind11 before it) provides
-                # defaults for __eq__, __hash__ and __repr__ that we often do want to
-                # override directly.
-
-                raise RuntimeError(
-                    f"C++ {cls_cpp} and Python {cls} both define the same "
-                    f"non-abstract method {name}: "
-                    f"{getattr(cls_cpp, name, '')!r}, "
-                    f"{getattr(cls, name, '')!r}"
-                )
+                if name not in OVERRIDE_WHITELIST:
+                    # If the original C++ class and Python support class both define
+                    # the same name, we have a conflict, because this is augmentation
+                    # not inheritance. The exception is that nanobind (like pybind11
+                    # before it) provides defaults for __eq__, __hash__ and __repr__
+                    # that we often do want to override directly.
+                    raise RuntimeError(
+                        f"C++ {cls_cpp} and Python {cls} both define the same "
+                        f"non-abstract method {name}: "
+                        f"{getattr(cls_cpp, name, '')!r}, "
+                        f"{getattr(cls, name, '')!r}"
+                    )
             if inspect.isfunction(member):
                 setattr(cls_cpp, name, member)
                 installed_member = getattr(cls_cpp, name)

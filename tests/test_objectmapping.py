@@ -80,6 +80,12 @@ def test_objectmapping_rejects_other_key_types(mapping):
     assert 42 not in mapping
 
 
+def test_objectmapping_get_accepts_none_default(mapping):
+    assert mapping.get('/Zed', None) is None
+    assert mapping.get('/Zed', default=None) is None
+    assert mapping.get(pikepdf.Name.A, None) == 1
+
+
 def test_objectmapping_missing_key_names_the_key(mapping):
     with pytest.raises(KeyError, match='/Zed'):
         mapping['/Zed']

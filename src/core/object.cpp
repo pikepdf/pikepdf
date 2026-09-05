@@ -668,7 +668,7 @@ void init_object(py::module_ &m)
                 return py::cast(it->second);
             },
             py::arg("key"),
-            py::arg("default") = py::none())
+            py::arg("default").none() = py::none())
         .def("update", [](ObjectMap &self, py::handle other) {
             ObjectMap parsed;
             if (!objectmap_coerce(other, parsed))

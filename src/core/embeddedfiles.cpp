@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
+#include "object.h"
 #include "pikepdf.h"
 #include "pipeline.h"
 #include "qpdf_lock.h"
@@ -39,6 +40,15 @@ QPDFFileSpecObjectHelper create_filespec(QPDF &q,
         filespec.getObjectHandle().replaceKey("/AFRelationship", relationship);
     }
     return filespec;
+}
+
+// The names under which files are embedded, in the map's sorted order.
+static py::list attachment_keys(QPDFEmbeddedFileDocumentHelper &efdh)
+{
+    py::list keys;
+    for (auto const &item : efdh.getEmbeddedFiles())
+        keys.append(py::str(item.first.c_str()));
+    return keys;
 }
 
 void init_embeddedfiles(py::module_ &m)
@@ -120,7 +130,42 @@ void init_embeddedfiles(py::module_ &m)
                 return QPDFEFStreamObjectHelper(
                     spec.getEmbeddedFileStream(name.getName()));
             },
-            py::rv_policy::reference_internal);
+            py::rv_policy::reference_internal)
+        .def_prop_rw(
+            "relationship",
+            [](QPDFFileSpecObjectHelper &spec) -> py::object {
+                try {
+                    return py::cast(
+                        object_get_key(spec.getObjectHandle(), "/AFRelationship"));
+                } catch (const py::builtin_exception &) {
+                    return py::none();
+                }
+            },
+            [](QPDFFileSpecObjectHelper &spec, py::handle value) {
+                auto oh = spec.getObjectHandle();
+                if (value.is_none()) {
+                    object_del_key(oh, "/AFRelationship");
+                } else {
+                    auto rel = objecthandle_encode(value);
+                    object_set_key(oh, "/AFRelationship", rel);
+                }
+            },
+            py::arg("value").none(),
+            R"(The file's relationship to the document, as a :class:`pikepdf.Name`.
+
+Returns ``None`` if the file specification has no ``/AFRelationship``.
+Assigning ``None`` removes it.
+)")
+        .def("__repr__", [](QPDFFileSpecObjectHelper &spec) {
+            auto filename = spec.getFilename();
+            if (!filename.empty()) {
+                return py::str("<pikepdf._core.AttachedFileSpec for {!r}, "
+                               "description {!r}>")
+                    .format(filename, spec.getDescription());
+            }
+            return py::str("<pikepdf._core.AttachedFileSpec description {!r}>")
+                .format(spec.getDescription());
+        });
 
     py::class_<QPDFEFStreamObjectHelper, QPDFObjectHelper>(
         m, "AttachedFile", py::type_slots(pikepdf_gc_slots)) // /Type /EmbeddedFile
@@ -141,32 +186,71 @@ void init_embeddedfiles(py::module_ &m)
             &QPDFEFStreamObjectHelper::setCreationDate)
         .def_prop_rw("_mod_date",
             &QPDFEFStreamObjectHelper::getModDate,
-            &QPDFEFStreamObjectHelper::setModDate);
+            &QPDFEFStreamObjectHelper::setModDate)
+        .def(
+            "read_bytes",
+            [](QPDFEFStreamObjectHelper &efstream) {
+                auto oh = efstream.getObjectHandle();
+                auto buf = get_stream_data(oh, qpdf_dl_generalized);
+                return py::bytes((const char *)buf->getBuffer(), buf->getSize());
+            },
+            "Read the attached file's decoded contents.");
 
     py::class_<QPDFEmbeddedFileDocumentHelper>(
         m, "Attachments", py::type_slots(pikepdf_gc_slots))
         .def_prop_ro(
             "_has_embedded_files", &QPDFEmbeddedFileDocumentHelper::hasEmbeddedFiles)
-        .def("_attach_data",
-            [](QPDFEmbeddedFileDocumentHelper &efdh, py::str key, py::bytes data) {
-                auto ef = create_filespec(efdh.getQPDF(),
-                    data,
-                    std::string(""),
-                    py::cast<std::string>(key),
-                    std::string(""),
-                    std::string(""),
-                    std::string(""),
-                    QPDFObjectHandle::newName("/Unspecified"));
-                efdh.replaceEmbeddedFile(py::cast<std::string>(key), ef);
+        .def(
+            "__getitem__",
+            [](QPDFEmbeddedFileDocumentHelper &efdh, std::string const &key) {
+                auto filespec = efdh.getEmbeddedFile(key);
+                if (!filespec)
+                    throw py::key_error(key.c_str());
+                return filespec;
+            },
+            py::rv_policy::reference_internal)
+        .def("__setitem__",
+            [](QPDFEmbeddedFileDocumentHelper &efdh,
+                std::string const &key,
+                py::bytes data) {
+                efdh.replaceEmbeddedFile(key,
+                    create_filespec(efdh.getQPDF(),
+                        data,
+                        std::string(""),
+                        key,
+                        std::string(""),
+                        std::string(""),
+                        std::string(""),
+                        QPDFObjectHandle::newName("/Unspecified")));
             })
-        .def("_get_all_filespecs",
-            &QPDFEmbeddedFileDocumentHelper::getEmbeddedFiles,
-            py::rv_policy::reference_internal)
-        .def("_get_filespec",
-            &QPDFEmbeddedFileDocumentHelper::getEmbeddedFile,
-            py::rv_policy::reference_internal)
-        .def("_add_replace_filespec",
-            &QPDFEmbeddedFileDocumentHelper::replaceEmbeddedFile,
-            py::keep_alive<0, 2>())
-        .def("_remove_filespec", &QPDFEmbeddedFileDocumentHelper::removeEmbeddedFile);
+        .def("__setitem__",
+            [](QPDFEmbeddedFileDocumentHelper &efdh,
+                std::string const &key,
+                QPDFFileSpecObjectHelper &filespec) {
+                // A file specification attached under a name it does not carry
+                // itself would have no filename to report, so adopt the key.
+                if (filespec.getFilename().empty())
+                    filespec.setFilename(key);
+                efdh.replaceEmbeddedFile(key, filespec);
+            })
+        .def("__delitem__",
+            [](QPDFEmbeddedFileDocumentHelper &efdh, std::string const &key) {
+                efdh.removeEmbeddedFile(key);
+            })
+        .def("__len__",
+            [](QPDFEmbeddedFileDocumentHelper &efdh) {
+                return efdh.getEmbeddedFiles().size();
+            })
+        .def("__iter__",
+            [](QPDFEmbeddedFileDocumentHelper &efdh) {
+                // getEmbeddedFiles() returns the map by value, so an iterator
+                // into it would dangle; collect the keys instead. This also
+                // avoids building a pikepdf.AttachedFileSpec for every entry
+                // just to iterate the names.
+                return py::iter(attachment_keys(efdh));
+            })
+        .def("__repr__", [](QPDFEmbeddedFileDocumentHelper &efdh) {
+            return py::str("<pikepdf._core.Attachments: {}>")
+                .format(attachment_keys(efdh));
+        });
 }

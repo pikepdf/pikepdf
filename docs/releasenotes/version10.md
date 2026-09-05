@@ -161,6 +161,21 @@ converts values to it. See {ref}`metadatatypes`. {issue}`555`
   exactly one implementation. With it goes the `_cpp<name>` copy the decorator
   left behind on the augmented class, so private attributes such as
   `Page._cpp__repr__` no longer exist.
+- Moved a second group of Python augmentations to C++ for the same reason: the
+  `Attachments` mapping methods, `AttachedFileSpec.relationship` and its
+  `__repr__`, `AttachedFile.read_bytes()`, `Page.form_xobjects`, `Rectangle`'s
+  `__repr__`, `__hash__` and `to_bbox()`, `Token.__repr__`, and `Object`'s
+  `as_int()`, `as_bool()`, `as_float()`, `as_decimal()` and
+  `_ipython_key_completions_()`. `len(pdf.attachments)` and iterating it no
+  longer build a `pikepdf.AttachedFileSpec` for every attached file merely to
+  count or name them. The private bindings these delegated to --
+  `Attachments._get_all_filespecs()`, `_get_filespec()`, `_attach_data()`,
+  `_add_replace_filespec()`, `_remove_filespec()`, `Page._form_xobjects` and
+  `Object._get_real_value()` -- are gone.
+- A support class passed to `augments` may now subclass an abstract base class
+  to pick up its mixin methods and leave the abstract methods to C++;
+  previously the abstract stubs were installed over the C++ implementations.
+  `pikepdf.Attachments` uses this to get the `MutableMapping` mixins.
 
 ## v10.12.1
 

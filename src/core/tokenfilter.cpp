@@ -84,6 +84,12 @@ void init_tokenfilter(py::module_ &m)
             })
         .def_prop_ro("type_", &QPDFTokenizer::Token::getType)
         .def_prop_ro("value", &QPDFTokenizer::Token::getValue)
+        .def("__repr__",
+            [](const QPDFTokenizer::Token &t) {
+                auto raw = t.getRawValue();
+                return py::str("pikepdf.Token({}, {})")
+                    .format(t.getType(), py::bytes(raw.data(), raw.size()));
+            })
         .def_prop_ro("raw_value",
             [](const QPDFTokenizer::Token &t) -> py::bytes {
                 auto v = t.getRawValue();
