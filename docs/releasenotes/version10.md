@@ -148,6 +148,10 @@ converts values to it. See {ref}`metadatatypes`. {issue}`555`
   internal buffer to hand it to the decoder.
 - `repr()` of a deeply nested object and `unparse_content_stream()` no longer
   copy their partial result repeatedly while building it. Output is unchanged.
+- `pikepdf.StreamParser` is now exported from the top-level package and included
+  in `__all__`. It was always the required argument type of the public
+  `Page.parse_contents()`, but previously could only be imported from the
+  private `pikepdf._core` module. {issue}`738`
 
 ### Internals
 
@@ -181,13 +185,6 @@ converts values to it. See {ref}`metadatatypes`. {issue}`555`
   to pick up its mixin methods and leave the abstract methods to C++;
   previously the abstract stubs were installed over the C++ implementations.
   `pikepdf.Attachments` uses this to get the `MutableMapping` mixins.
-
-## v10.12.1
-
-- `pikepdf.StreamParser` is now exported from the top-level package and included
-  in `__all__`. It was always the required argument type of the public
-  `Page.parse_contents()`, but previously could only be imported from the
-  private `pikepdf._core` module. {issue}`738`
 
 ## v10.12.0
 
