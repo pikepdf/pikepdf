@@ -137,6 +137,45 @@ converts values to it. See {ref}`metadatatypes`. {issue}`555`
 - Comparing an `_ObjectList` or `_ObjectMapping` to a list or dict no longer
   prints `nanobind: implicit conversion from type 'list' to type
   'pikepdf._core._ObjectList' failed!` to stderr.
+- A warning raised from pikepdf's C++ layer -- `PageCopyWarning`, the
+  `Page.rotate()` deprecation warning, and the several warnings issued while
+  opening and saving -- is now raised as an exception when a warning filter asks
+  for that, such as under `python -W error` or
+  `warnings.simplefilter('error')`. Previously the exception was created and
+  then discarded, and the call carried on as if the warning had been ignored.
+
+### Internals
+
+- Moved `Page`'s box properties (`mediabox`, `cropbox`, `artbox`, `bleedbox`,
+  `trimbox`), the `rotation` property and `rotate()`, and `_ObjectMapping`'s
+  key-based methods (`get`, `__getitem__`, `__setitem__`, `__delitem__`,
+  `__contains__`) from Python augmentations to C++. Each was a thin Python
+  wrapper around a private C++ binding, so its implementation was split across
+  two files for no benefit; they are now defined once, in C++, and the private
+  `Page._get_mediabox()`, `_get_artbox()`, `_get_bleedbox()`, `_get_cropbox()`,
+  `_get_trimbox()` and `_get_rotation()` bindings they delegated to are gone.
+  Behavior is unchanged.
+- Removed the `augment_override_cpp` decorator from `pikepdf._augments`. A
+  Python augmentation may no longer replace a method that C++ already defines;
+  where C++ behavior needs to change, change it in C++, so that each method has
+  exactly one implementation. With it goes the `_cpp<name>` copy the decorator
+  left behind on the augmented class, so private attributes such as
+  `Page._cpp__repr__` no longer exist.
+- Moved a second group of Python augmentations to C++ for the same reason: the
+  `Attachments` mapping methods, `AttachedFileSpec.relationship` and its
+  `__repr__`, `AttachedFile.read_bytes()`, `Page.form_xobjects`, `Rectangle`'s
+  `__repr__`, `__hash__` and `to_bbox()`, `Token.__repr__`, and `Object`'s
+  `as_int()`, `as_bool()`, `as_float()`, `as_decimal()` and
+  `_ipython_key_completions_()`. `len(pdf.attachments)` and iterating it no
+  longer build a `pikepdf.AttachedFileSpec` for every attached file merely to
+  count or name them. The private bindings these delegated to --
+  `Attachments._get_all_filespecs()`, `_get_filespec()`, `_attach_data()`,
+  `_add_replace_filespec()`, `_remove_filespec()`, `Page._form_xobjects` and
+  `Object._get_real_value()` -- are gone.
+- A support class passed to `augments` may now subclass an abstract base class
+  to pick up its mixin methods and leave the abstract methods to C++;
+  previously the abstract stubs were installed over the C++ implementations.
+  `pikepdf.Attachments` uses this to get the `MutableMapping` mixins.
 
 ## v10.12.1
 

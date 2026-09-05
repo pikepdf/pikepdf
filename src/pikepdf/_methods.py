@@ -19,7 +19,6 @@ from collections.abc import (
     Callable,
     ItemsView,
     Iterable,
-    Iterator,
     KeysView,
     MutableMapping,
     ValuesView,
@@ -30,13 +29,13 @@ from io import BytesIO
 from pathlib import Path
 from subprocess import run
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Any, BinaryIO, Literal, TypeVar
+from typing import TYPE_CHECKING, BinaryIO, Literal, TypeVar
 from warnings import warn
 
 if TYPE_CHECKING:
     from pikepdf._page_copy import PageCopyResult
 
-from pikepdf._augments import augment_override_cpp, augments
+from pikepdf._augments import augments
 from pikepdf._core import (
     AccessMode,
     AttachedFile,
@@ -46,13 +45,11 @@ from pikepdf._core import (
     NameTree,
     NumberTree,
     ObjectStreamMode,
-    ObjectType,
     Page,
     Pdf,
     Rectangle,
     StreamDecodeLevel,
     StreamParser,
-    Token,
     _ObjectMapping,
 )
 from pikepdf._exceptions import PageCopyWarning
@@ -68,9 +65,6 @@ __all__ = []
 
 Numeric = TypeVar('Numeric', int, float, Decimal)
 T = TypeVar('T')
-
-# Sentinel for distinguishing "no default provided" from "default=None"
-_MISSING = object()
 
 
 def _single_page_pdf(page: Page) -> bytes:
@@ -111,11 +105,6 @@ def _mudraw(buffer: bytes | memoryview, fmt: Literal["svg"]) -> bytes:
 
 @augments(Object)
 class Extend_Object:
-    def _ipython_key_completions_(self):
-        if isinstance(self, Dictionary | Stream):
-            return self.keys()
-        return None
-
     def emplace(self, other: Object, retain: Iterable[Name] | None = None):
         if not self.same_owner_as(other):
             raise TypeError("Objects must have the same owner for emplace()")
@@ -187,109 +176,6 @@ class Extend_Object:
             filter, decode_parms = self._type_check_write(filter, decode_parms)
 
         self._write(data, filter=filter, decode_parms=decode_parms)
-
-    def as_int(self, default: T = _MISSING) -> int | T:
-        """Convert to int, or return default if not an integer.
-
-        In explicit conversion mode, this provides a safe way to convert
-        pikepdf.Integer to Python int with proper type hints.
-
-        Args:
-            default: Value to return if this object is not an integer.
-                If not provided and the object is not an integer,
-                raises TypeError.
-
-        Returns:
-            The integer value, or the default if provided and object is
-            not an integer.
-
-        Raises:
-            TypeError: If object is not an integer and no default was provided.
-
-        .. versionadded:: 10.1
-        """
-        if self._type_code != ObjectType.integer:
-            if default is _MISSING:
-                raise TypeError(f"Expected integer, got {self._type_name}")
-            return default
-        return int(self)
-
-    def as_bool(self, default: T = _MISSING) -> bool | T:
-        """Convert to bool, or return default if not a boolean.
-
-        In explicit conversion mode, this provides a safe way to convert
-        pikepdf.Boolean to Python bool with proper type hints.
-
-        Args:
-            default: Value to return if this object is not a boolean.
-                If not provided and the object is not a boolean,
-                raises TypeError.
-
-        Returns:
-            The boolean value, or the default if provided and object is
-            not a boolean.
-
-        Raises:
-            TypeError: If object is not a boolean and no default was provided.
-
-        .. versionadded:: 10.1
-        """
-        if self._type_code != ObjectType.boolean:
-            if default is _MISSING:
-                raise TypeError(f"Expected boolean, got {self._type_name}")
-            return default
-        return bool(self)
-
-    def as_float(self, default: T = _MISSING) -> float | T:
-        """Convert to float, or return default if not numeric.
-
-        Works for both Integer and Real objects.
-
-        Args:
-            default: Value to return if this object is not numeric.
-                If not provided and the object is not numeric,
-                raises TypeError.
-
-        Returns:
-            The float value, or the default if provided and object is
-            not numeric.
-
-        Raises:
-            TypeError: If object is not numeric and no default was provided.
-
-        .. versionadded:: 10.1
-        """
-        if self._type_code not in (ObjectType.integer, ObjectType.real):
-            if default is _MISSING:
-                raise TypeError(f"Expected numeric, got {self._type_name}")
-            return default
-        return float(self)
-
-    def as_decimal(self, default: T = _MISSING) -> Decimal | T:
-        """Convert to Decimal, or return default if not a Real.
-
-        Preferred over as_float() for PDF reals to preserve precision.
-        Only works for Real objects, not Integer.
-
-        Args:
-            default: Value to return if this object is not a Real.
-                If not provided and the object is not a Real,
-                raises TypeError.
-
-        Returns:
-            The Decimal value, or the default if provided and object is
-            not a Real.
-
-        Raises:
-            TypeError: If object is not a Real and no default was provided.
-
-        .. versionadded:: 10.1
-        """
-        if self._type_code != ObjectType.real:
-            if default is _MISSING:
-                raise TypeError(f"Expected real, got {self._type_name}")
-            return default
-        return Decimal(self._get_real_value())
 
 
 @augments(Pdf)
@@ -727,155 +613,8 @@ class Extend_Pdf:
         return pdf
 
 
-@augments(_ObjectMapping)
-class Extend_ObjectMapping:
-    def get(self, key, default: T | None = None) -> Object | T | None:
-        try:
-            return self[key]
-        except KeyError:
-            return default
-
-    @augment_override_cpp
-    def __contains__(self, key: Name | str) -> bool:
-        if isinstance(key, Name):
-            key = str(key)
-        return _ObjectMapping._cpp__contains__(self, key)
-
-    @augment_override_cpp
-    def __getitem__(self, key: Name | str) -> Object:
-        if isinstance(key, Name):
-            key = str(key)
-        return _ObjectMapping._cpp__getitem__(self, key)
-
-    @augment_override_cpp
-    def __setitem__(self, key: Name | str, value: Any) -> None:
-        if isinstance(key, Name):
-            key = str(key)
-        return _ObjectMapping._cpp__setitem__(self, key, value)
-
-    @augment_override_cpp
-    def __delitem__(self, key: Name | str) -> None:
-        if isinstance(key, Name):
-            key = str(key)
-        return _ObjectMapping._cpp__delitem__(self, key)
-
-
-def check_is_box(obj) -> None:
-    with suppress(AttributeError):
-        if obj.is_rectangle:
-            return
-    try:
-        pdfobj = Array(obj)
-        if pdfobj.is_rectangle:
-            return
-    except Exception as e:
-        raise ValueError("object is not a rectangle") from e
-    raise ValueError("object is not a rectangle")
-
-
 @augments(Page)
 class Extend_Page:
-    @property
-    def mediabox(self):
-        return self._get_mediabox(True)
-
-    @mediabox.setter
-    def mediabox(self, value):
-        check_is_box(value)
-        self.obj['/MediaBox'] = value
-
-    @property
-    def artbox(self):
-        return self._get_artbox(True, False)
-
-    @artbox.setter
-    def artbox(self, value):
-        check_is_box(value)
-        self.obj['/ArtBox'] = value
-
-    @property
-    def bleedbox(self):
-        return self._get_bleedbox(True, False)
-
-    @bleedbox.setter
-    def bleedbox(self, value):
-        check_is_box(value)
-        self.obj['/BleedBox'] = value
-
-    @property
-    def cropbox(self):
-        return self._get_cropbox(True, False)
-
-    @cropbox.setter
-    def cropbox(self, value):
-        check_is_box(value)
-        self.obj['/CropBox'] = value
-
-    @property
-    def trimbox(self):
-        return self._get_trimbox(True, False)
-
-    @trimbox.setter
-    def trimbox(self, value):
-        check_is_box(value)
-        self.obj['/TrimBox'] = value
-
-    @property
-    def rotation(self) -> int:
-        """The page's clockwise rotation in degrees, normalized to ``[0, 360)``.
-
-        Unlike the raw ``page.Rotate`` attribute, this property reports the
-        *effective* rotation: it resolves a ``/Rotate`` value inherited from the
-        page tree and reports ``0`` when no rotation is set, instead of raising.
-        Assigning to this property sets the absolute rotation; to rotate
-        relative to the current value, use :meth:`rotate` with ``relative=True``.
-
-        .. versionadded:: 10.9
-        """
-        return self._get_rotation()
-
-    @rotation.setter
-    def rotation(self, angle: int) -> None:
-        self.rotate(angle, relative=False)
-
-    @augment_override_cpp
-    def rotate(self, angle: int, /, *args: bool, relative: bool = False) -> None:  # noqa: D417
-        """Rotate this page.
-
-        If ``relative`` is ``False`` (the default), set the page's rotation to
-        ``angle``. If ``relative`` is ``True``, add ``angle`` to the page's
-        current rotation. ``angle`` must be a multiple of ``90``; a positive
-        angle rotates the page clockwise.
-
-        Args:
-            angle: Rotation angle in degrees, a multiple of ``90``.
-            relative: If ``True``, add ``angle`` to the current rotation; if
-                ``False``, set the rotation to ``angle``.
-
-        .. deprecated:: 10.9
-            Passing ``relative`` as a positional argument is deprecated; pass it
-            as a keyword argument instead, e.g. ``page.rotate(90, relative=True)``.
-        """
-        # TODO(pikepdf 11): drop positional support for ``relative`` -- change
-        # the signature to ``def rotate(self, angle, *, relative=False)`` and
-        # remove the ``*args`` deprecation shim below.
-        if args:
-            if len(args) > 1:
-                raise TypeError(
-                    f"rotate() takes at most 2 positional arguments but "
-                    f"{1 + len(args)} were given"
-                )
-            warn(
-                "Passing 'relative' as a positional argument to Page.rotate() "
-                "is deprecated; pass it as a keyword argument instead, e.g. "
-                "page.rotate(90, relative=True). Positional support will be "
-                "removed in pikepdf 11.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
-            relative = args[0]
-        self._cpprotate(angle, bool(relative))
-
     @property
     def images(self) -> _ObjectMapping:
         """Return images directly referenced by this page's resources.
@@ -912,10 +651,6 @@ class Extend_Page:
         if recursive:
             return self._images_recursive
         return self._images
-
-    @property
-    def form_xobjects(self) -> _ObjectMapping:
-        return self._form_xobjects
 
     @property
     def resources(self) -> Dictionary:
@@ -1060,58 +795,14 @@ class Extend_Page:
         return data
 
 
-@augments(Token)
-class Extend_Token:
-    def __repr__(self):
-        return f'pikepdf.Token({self.type_}, {self.raw_value})'
-
-
-@augments(Rectangle)
-class Extend_Rectangle:
-    def __repr__(self):
-        return f'pikepdf.Rectangle({self.llx}, {self.lly}, {self.urx}, {self.ury})'
-
-    def __hash__(self):
-        return hash((self.llx, self.lly, self.urx, self.ury))
-
-    def to_bbox(self) -> Rectangle:
-        """Returns the origin-centred bounding box that encloses this rectangle.
-
-        Create a new rectangle with the same width and height as this one, but located
-        at the origin (0, 0).
-
-        Bounding boxes represent independent coordinate systems, such as for Form
-        XObjects.
-        """
-        return Rectangle(0, 0, self.width, self.height)
-
-
 @augments(Attachments)
 class Extend_Attachments(MutableMapping):
-    def __getitem__(self, k: str) -> AttachedFileSpec:
-        filespec = self._get_filespec(k)
-        if filespec is None:
-            raise KeyError(k)
-        return filespec
+    """Give Attachments the MutableMapping mixin methods.
 
-    def __setitem__(self, k: str, v: AttachedFileSpec | bytes) -> None:
-        if isinstance(v, bytes):
-            return self._attach_data(k, v)
-        if not v.filename:
-            v.filename = k
-        return self._add_replace_filespec(k, v)
-
-    def __delitem__(self, k: str) -> None:
-        return self._remove_filespec(k)
-
-    def __len__(self):
-        return len(self._get_all_filespecs())
-
-    def __iter__(self) -> Iterator[str]:
-        yield from self._get_all_filespecs()
-
-    def __repr__(self):
-        return f"<pikepdf._core.Attachments: {list(self)}>"
+    The abstract methods -- item access, iteration and length -- are implemented
+    in C++; this class exists only so that ``get``, ``keys``, ``values``,
+    ``items``, ``pop``, ``setdefault`` and friends come along with them.
+    """
 
 
 @augments(AttachedFileSpec)
@@ -1148,25 +839,6 @@ class Extend_AttachedFileSpec:
             relationship=relationship,
         )
 
-    @property
-    def relationship(self) -> Name | None:
-        return self.obj.get(Name.AFRelationship)
-
-    @relationship.setter
-    def relationship(self, value: Name | None):
-        if value is None:
-            del self.obj[Name.AFRelationship]
-        else:
-            self.obj[Name.AFRelationship] = value
-
-    def __repr__(self):
-        if self.filename:
-            return (
-                f"<pikepdf._core.AttachedFileSpec for {self.filename!r}, "
-                f"description {self.description!r}>"
-            )
-        return f"<pikepdf._core.AttachedFileSpec description {self.description!r}>"
-
 
 @augments(AttachedFile)
 class Extend_AttachedFile:
@@ -1189,9 +861,6 @@ class Extend_AttachedFile:
     @mod_date.setter
     def mod_date(self, value: datetime.datetime):
         self._mod_date = encode_pdf_date(value)
-
-    def read_bytes(self) -> bytes:
-        return self.obj.read_bytes()
 
     def __repr__(self):
         return (

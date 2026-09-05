@@ -81,3 +81,13 @@ def test_to_bbox():
     rect = Rectangle(50, 50, 100, 100)
     bbox = rect.to_bbox()
     assert bbox == Rectangle(0, 0, 50, 50)
+
+
+def test_repr():
+    assert repr(Rectangle(1, 2, 3.5, 4)) == 'pikepdf.Rectangle(1.0, 2.0, 3.5, 4.0)'
+
+
+def test_hash_matches_equality():
+    assert hash(Rectangle(1, 2, 3, 4)) == hash(Rectangle(1, 2, 3, 4))
+    assert len({Rectangle(1, 2, 3, 4), Rectangle(1, 2, 3, 4)}) == 1
+    assert {Rectangle(1, 2, 3, 4): 'a'}[Rectangle(1, 2, 3, 4)] == 'a'

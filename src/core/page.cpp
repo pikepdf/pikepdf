@@ -47,6 +47,30 @@ std::string label_string_from_dict(QPDFObjectHandle label_dict)
     return py::cast<std::string>(result);
 }
 
+// Store a page bounding box such as /MediaBox. Anything that encodes to a PDF
+// array of exactly four numbers is accepted, which covers pikepdf.Rectangle,
+// pikepdf.Array and a plain list of numbers. qpdf only discovers a malformed box
+// when it reads one back -- long after the assignment that caused it -- so
+// validate at assignment time instead.
+static void page_set_box(QPDFPageObjectHelper &poh, char const *key, py::handle value)
+{
+    QPDFObjectHandle box;
+    try {
+        box = objecthandle_encode(value);
+    } catch (const std::exception &) {
+        // objecthandle_encode() raises py::python_error for a failed Python call
+        // and std::runtime_error for a type it cannot represent; both derive from
+        // std::exception and neither leaves the Python error indicator set.
+        throw py::value_error("object is not a rectangle");
+    }
+    if (!box.isRectangle())
+        throw py::value_error("object is not a rectangle");
+
+    auto page = poh.getObjectHandle();
+    QpdfLockGuard lock(page.getOwningQPDF());
+    page.replaceKey(key, box);
+}
+
 void init_page(py::module_ &m)
 {
     auto page_class =
@@ -60,12 +84,87 @@ void init_page(py::module_ &m)
             .def("__copy__",
                 [](QPDFPageObjectHelper &poh) { return poh.shallowCopyPage(); })
             .def_prop_ro("_images", &QPDFPageObjectHelper::getImages)
-            .def_prop_ro("_form_xobjects", &QPDFPageObjectHelper::getFormXObjects)
-            .def("_get_mediabox", &QPDFPageObjectHelper::getMediaBox)
-            .def("_get_artbox", &QPDFPageObjectHelper::getArtBox)
-            .def("_get_bleedbox", &QPDFPageObjectHelper::getBleedBox)
-            .def("_get_cropbox", &QPDFPageObjectHelper::getCropBox)
-            .def("_get_trimbox", &QPDFPageObjectHelper::getTrimBox)
+            .def_prop_ro("form_xobjects",
+                &QPDFPageObjectHelper::getFormXObjects,
+                R"(Return all Form XObjects associated with this page.
+
+This method does not recurse into nested Form XObjects.
+
+.. versionadded:: 7.0.0
+)")
+            .def_prop_rw(
+                "mediabox",
+                [](QPDFPageObjectHelper &poh) { return poh.getMediaBox(true); },
+                [](QPDFPageObjectHelper &poh, py::handle value) {
+                    page_set_box(poh, "/MediaBox", value);
+                },
+                R"(Return page's /MediaBox, in PDF units.
+
+According to the PDF specification:
+"The media box defines the boundaries of the physical medium on which
+the page is to be printed."
+)")
+            .def_prop_rw(
+                "cropbox",
+                [](QPDFPageObjectHelper &poh) { return poh.getCropBox(true, false); },
+                [](QPDFPageObjectHelper &poh, py::handle value) {
+                    page_set_box(poh, "/CropBox", value);
+                },
+                R"(Return page's effective /CropBox, in PDF units.
+
+According to the PDF specification:
+"The crop box defines the region to which the contents of the page
+shall be clipped (cropped) when displayed or printed. It has no
+defined meaning in the context of the PDF imaging model; it merely
+imposes clipping on the page contents."
+
+If the /CropBox is not defined, the /MediaBox is returned.
+)")
+            .def_prop_rw(
+                "artbox",
+                [](QPDFPageObjectHelper &poh) { return poh.getArtBox(true, false); },
+                [](QPDFPageObjectHelper &poh, py::handle value) {
+                    page_set_box(poh, "/ArtBox", value);
+                },
+                R"(Return page's effective /ArtBox, in PDF units.
+
+According to the PDF specification:
+"The art box defines the page's meaningful content area, including
+white space."
+
+If the /ArtBox is not defined, the /CropBox is returned.
+)")
+            .def_prop_rw(
+                "bleedbox",
+                [](QPDFPageObjectHelper &poh) { return poh.getBleedBox(true, false); },
+                [](QPDFPageObjectHelper &poh, py::handle value) {
+                    page_set_box(poh, "/BleedBox", value);
+                },
+                R"(Return page's effective /BleedBox, in PDF units.
+
+According to the PDF specification:
+"The bleed box defines the region to which the contents of the page
+should be clipped when output in a print production environment."
+
+If the /BleedBox is not defined, the /CropBox is returned.
+)")
+            .def_prop_rw(
+                "trimbox",
+                [](QPDFPageObjectHelper &poh) { return poh.getTrimBox(true, false); },
+                [](QPDFPageObjectHelper &poh, py::handle value) {
+                    page_set_box(poh, "/TrimBox", value);
+                },
+                R"(Return page's effective /TrimBox, in PDF units.
+
+According to the PDF specification:
+"The trim box defines the intended dimensions of the finished page
+after trimming. It may be smaller than the media box to allow for
+production-related content, such as printing instructions, cut marks,
+or color bars."
+
+If the /TrimBox is not defined, the /CropBox is returned (and if
+/CropBox is not defined, /MediaBox is returned).
+)")
             .def(
                 "externalize_inline_images",
                 [](QPDFPageObjectHelper &poh,
@@ -75,11 +174,57 @@ void init_page(py::module_ &m)
                 },
                 py::arg("min_size") = 0,
                 py::arg("shallow") = false)
-            .def("rotate",
-                &QPDFPageObjectHelper::rotatePage,
+            .def(
+                "rotate",
+                [](QPDFPageObjectHelper &poh,
+                    int angle,
+                    py::args args,
+                    py::object relative) {
+                    // TODO(pikepdf 11): drop positional support for 'relative' --
+                    // remove the py::args parameter and this deprecation shim.
+                    if (args.size() > 0) {
+                        if (args.size() > 1)
+                            throw py::type_error(
+                                ("rotate() takes at most 2 positional arguments but " +
+                                    std::to_string(1 + args.size()) + " were given")
+                                    .c_str());
+                        deprecation_warning(
+                            "Passing 'relative' as a positional argument to "
+                            "Page.rotate() is deprecated; pass it as a keyword "
+                            "argument instead, e.g. page.rotate(90, relative=True). "
+                            "Positional support will be removed in pikepdf 11.");
+                        relative = args[0];
+                    }
+                    int truth = PyObject_IsTrue(relative.ptr());
+                    if (truth < 0)
+                        throw py::python_error();
+                    poh.rotatePage(angle, truth == 1);
+                },
                 py::arg("angle"),
-                py::arg("relative"))
-            .def("_get_rotation",
+                py::arg("args"),
+                py::kw_only(),
+                py::arg("relative") = false,
+                R"(Rotate a page.
+
+If ``relative`` is ``False`` (the default), set the rotation of the
+page to angle. Otherwise, add angle to the rotation of the
+page. ``angle`` must be a multiple of ``90``. Adding ``90`` to
+the rotation rotates clockwise by ``90`` degrees.
+
+Args:
+    angle: Rotation angle in degrees.
+    relative: If ``True``, add ``angle`` to the current
+        rotation. If ``False``, set the rotation of the page
+        to ``angle``.
+
+.. deprecated:: 10.9
+    Passing ``relative`` as a positional argument is deprecated; pass
+    it as a keyword argument instead, e.g.
+    ``page.rotate(90, relative=True)``. Positional support will be
+    removed in pikepdf 11.
+)")
+            .def_prop_rw(
+                "rotation",
                 [](QPDFPageObjectHelper &poh) -> int {
                     // Resolve the effective /Rotate, honoring inheritance from the
                     // page tree, and normalize it to [0, 360).
@@ -90,7 +235,20 @@ void init_page(py::module_ &m)
                     if (rotate < 0)
                         rotate += 360;
                     return rotate;
-                })
+                },
+                [](QPDFPageObjectHelper &poh, int angle) {
+                    poh.rotatePage(angle, false);
+                },
+                R"(The page's clockwise rotation in degrees, normalized to ``[0, 360)``.
+
+Unlike the raw ``page.Rotate`` attribute, this property reports the
+*effective* rotation: it resolves a ``/Rotate`` value inherited from the
+page tree and reports ``0`` when no rotation is set, instead of raising.
+Assigning to this property sets the absolute rotation; to rotate
+relative to the current value, use :meth:`rotate` with ``relative=True``.
+
+.. versionadded:: 10.9
+)")
             .def("contents_coalesce",
                 &QPDFPageObjectHelper::coalesceContentStreams // LCOV_EXCL_LINE
                 )

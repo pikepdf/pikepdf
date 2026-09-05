@@ -51,6 +51,22 @@ static py::dict pydict_from_object(QPDFObjectHandle h, const char *method_name)
     return pydict;
 }
 
+// as_int()/as_bool()/as_decimal() insist on an exact PDF type, so that a value
+// the caller believes is one type is never silently read as another.
+static void require_type(
+    QPDFObjectHandle &h, qpdf_object_type_e type, char const *expected)
+{
+    if (h.getTypeCode() != type)
+        throw py::type_error(
+            (std::string("Expected ") + expected + ", got " + h.getTypeName()).c_str());
+}
+
+static double numeric_as_double(QPDFObjectHandle &h)
+{
+    return h.isInteger() ? static_cast<double>(h.getIntValue())
+                         : std::stod(h.getRealValue());
+}
+
 void init_object_methods(py::class_<QPDFObjectHandle> &object)
 {
     object
@@ -396,6 +412,146 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
             py::arg("key").none())
         .def("as_list", &QPDFObjectHandle::getArrayAsVector)
         .def("as_dict", &QPDFObjectHandle::getDictAsMap)
+        .def(
+            "as_int",
+            [](QPDFObjectHandle &h) -> long long {
+                require_type(h, ot_integer, "integer");
+                return h.getIntValue();
+            },
+            R"(Convert to int, or return default if not an integer.
+
+In explicit conversion mode, this provides a safe way to convert
+pikepdf.Integer to Python int with proper type hints.
+
+Args:
+    default: Value to return if this object is not an integer.
+        If not provided and the object is not an integer,
+        raises TypeError.
+
+Returns:
+    The integer value, or the default if provided and object is
+    not an integer.
+
+Raises:
+    TypeError: If object is not an integer and no default was provided.
+
+.. versionadded:: 10.1
+)")
+        .def(
+            "as_int",
+            [](QPDFObjectHandle &h, py::handle default_) -> py::object {
+                if (!h.isInteger())
+                    return py::borrow<py::object>(default_);
+                return py::cast(h.getIntValue());
+            },
+            py::arg("default").none())
+        .def(
+            "as_bool",
+            [](QPDFObjectHandle &h) -> bool {
+                require_type(h, ot_boolean, "boolean");
+                return h.getBoolValue();
+            },
+            R"(Convert to bool, or return default if not a boolean.
+
+In explicit conversion mode, this provides a safe way to convert
+pikepdf.Boolean to Python bool with proper type hints.
+
+Args:
+    default: Value to return if this object is not a boolean.
+        If not provided and the object is not a boolean,
+        raises TypeError.
+
+Returns:
+    The boolean value, or the default if provided and object is
+    not a boolean.
+
+Raises:
+    TypeError: If object is not a boolean and no default was provided.
+
+.. versionadded:: 10.1
+)")
+        .def(
+            "as_bool",
+            [](QPDFObjectHandle &h, py::handle default_) -> py::object {
+                if (!h.isBool())
+                    return py::borrow<py::object>(default_);
+                return py::cast(h.getBoolValue());
+            },
+            py::arg("default").none())
+        .def(
+            "as_float",
+            [](QPDFObjectHandle &h) -> double {
+                if (!h.isInteger() && !h.isReal())
+                    throw py::type_error(
+                        (std::string("Expected numeric, got ") + h.getTypeName())
+                            .c_str());
+                return numeric_as_double(h);
+            },
+            R"(Convert to float, or return default if not numeric.
+
+Works for both Integer and Real objects.
+
+Args:
+    default: Value to return if this object is not numeric.
+        If not provided and the object is not numeric,
+        raises TypeError.
+
+Returns:
+    The float value, or the default if provided and object is
+    not numeric.
+
+Raises:
+    TypeError: If object is not numeric and no default was provided.
+
+.. versionadded:: 10.1
+)")
+        .def(
+            "as_float",
+            [](QPDFObjectHandle &h, py::handle default_) -> py::object {
+                if (!h.isInteger() && !h.isReal())
+                    return py::borrow<py::object>(default_);
+                return py::cast(numeric_as_double(h));
+            },
+            py::arg("default").none())
+        .def(
+            "as_decimal",
+            [](QPDFObjectHandle &h) {
+                require_type(h, ot_real, "real");
+                return decimal_from_pdfobject(h);
+            },
+            R"(Convert to Decimal, or return default if not a Real.
+
+Preferred over as_float() for PDF reals to preserve precision.
+Only works for Real objects, not Integer.
+
+Args:
+    default: Value to return if this object is not a Real.
+        If not provided and the object is not a Real,
+        raises TypeError.
+
+Returns:
+    The Decimal value, or the default if provided and object is
+    not a Real.
+
+Raises:
+    TypeError: If object is not a Real and no default was provided.
+
+.. versionadded:: 10.1
+)")
+        .def(
+            "as_decimal",
+            [](QPDFObjectHandle &h, py::handle default_) -> py::object {
+                if (!h.isReal())
+                    return py::borrow<py::object>(default_);
+                return decimal_from_pdfobject(h);
+            },
+            py::arg("default").none())
+        .def("_ipython_key_completions_",
+            [](QPDFObjectHandle &h) -> py::object {
+                if (!h.isDictionary() && !h.isStream())
+                    return py::none();
+                return py::cast(h).attr("keys")();
+            })
         .def(
             "__iter__",
             [](QPDFObjectHandle h) -> py::object {

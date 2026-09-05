@@ -255,6 +255,21 @@ def test_extend_no_warning_for_formless_pages():
         dest.pages.extend(src.pages)  # must not raise
 
 
+def test_extend_warning_can_be_promoted_to_error():
+    """A filter that turns PageCopyWarning into an error must raise it.
+
+    The warning is emitted from C++, where a swallowed error indicator would let
+    the copy proceed as if nothing had happened.
+    """
+    res = _resources()
+    dest = Pdf.new()
+    with Pdf.open(str(res / 'form.pdf')) as src:
+        with warnings.catch_warnings():
+            warnings.simplefilter('error', PageCopyWarning)
+            with pytest.raises(PageCopyWarning):
+                dest.pages.extend(src.pages)
+
+
 def test_extend_no_warning_intra_document():
     res = _resources()
     with Pdf.open(str(res / 'form.pdf')) as pdf:

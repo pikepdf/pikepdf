@@ -66,6 +66,33 @@ def test_objectmapping_name_keys(mapping):
     assert mapping == {'/B': pikepdf.Name.Foo}
 
 
+def test_objectmapping_rejects_other_key_types(mapping):
+    """Only str and Name can name an entry; anything else is a TypeError."""
+    for op in (
+        lambda: mapping[42],
+        lambda: mapping.__setitem__(42, 1),
+        lambda: mapping.__delitem__(42),
+        lambda: mapping.get(42),
+    ):
+        with pytest.raises(TypeError, match="str or pikepdf.Name"):
+            op()
+    # __contains__ answers rather than raising, the same way list's does
+    assert 42 not in mapping
+
+
+def test_objectmapping_get_accepts_none_default(mapping):
+    assert mapping.get('/Zed', None) is None
+    assert mapping.get('/Zed', default=None) is None
+    assert mapping.get(pikepdf.Name.A, None) == 1
+
+
+def test_objectmapping_missing_key_names_the_key(mapping):
+    with pytest.raises(KeyError, match='/Zed'):
+        mapping['/Zed']
+    with pytest.raises(KeyError, match='/Zed'):
+        del mapping[pikepdf.Name.Zed]
+
+
 def test_objectmapping_update(mapping):
     mapping.update({'/A': 2, '/C': 3})
     assert mapping == {'/A': 2, '/B': pikepdf.Name.Foo, '/C': 3}

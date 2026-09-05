@@ -74,5 +74,30 @@ void init_rectangle(py::module_ &m)
         .def_prop_ro("lower_right", [](Rect &r) { return Point(r.urx, r.lly); })
         .def_prop_ro("upper_right", [](Rect &r) { return Point(r.urx, r.ury); })
         .def_prop_ro("upper_left", [](Rect &r) { return Point(r.llx, r.ury); })
-        .def("as_array", [](Rect &r) { return QPDFObjectHandle::newArray(r); });
+        .def("as_array", [](Rect &r) { return QPDFObjectHandle::newArray(r); })
+        .def(
+            "to_bbox",
+            [](Rect &r) -> Rect { return {0.0, 0.0, r.urx - r.llx, r.ury - r.lly}; },
+            R"(Returns the origin-centred bounding box that encloses this rectangle.
+
+Create a new rectangle with the same width and height as this one, but located
+at the origin (0, 0).
+
+Bounding boxes represent independent coordinate systems, such as for Form
+XObjects.
+)")
+        .def("__repr__",
+            [](Rect &r) {
+                return py::str("pikepdf.Rectangle({}, {}, {}, {})")
+                    .format(r.llx, r.lly, r.urx, r.ury);
+            })
+        .def("__hash__", [](Rect &r) {
+            // Hash the same tuple __eq__ compares, so equal rectangles hash
+            // equally; nanobind's default is identity-based.
+            Py_hash_t hash =
+                PyObject_Hash(py::make_tuple(r.llx, r.lly, r.urx, r.ury).ptr());
+            if (hash == -1)
+                throw py::python_error(); // LCOV_EXCL_LINE
+            return hash;
+        });
 }

@@ -163,3 +163,44 @@ def test_attach_direct(pal):
     data = b'some data'
     pal.attachments['direct.txt'] = data
     assert pal.attachments['direct.txt'].get_file().read_bytes() == data
+
+
+def test_attach_filespec_without_filename_adopts_the_key(pal):
+    fs = AttachedFileSpec(pal, b'some data')
+    assert fs.filename == ''
+    pal.attachments['adopted.txt'] = fs
+    assert pal.attachments['adopted.txt'].filename == 'adopted.txt'
+
+
+def test_attach_filespec_keeps_its_own_filename(pal):
+    fs = AttachedFileSpec(pal, b'some data', filename='own.txt')
+    pal.attachments['key.txt'] = fs
+    assert pal.attachments['key.txt'].filename == 'own.txt'
+
+
+def test_attachments_mapping_protocol(pal):
+    pal.attachments['a.txt'] = b'a'
+    pal.attachments['b.txt'] = b'b'
+    assert len(pal.attachments) == 2
+    assert list(pal.attachments) == ['a.txt', 'b.txt']
+    assert sorted(pal.attachments.keys()) == ['a.txt', 'b.txt']
+    assert repr(pal.attachments) == "<pikepdf._core.Attachments: ['a.txt', 'b.txt']>"
+    assert pal.attachments.get('nope') is None
+    assert pal.attachments.get('nope', 42) == 42
+    with pytest.raises(KeyError, match='nope'):
+        pal.attachments['nope']
+
+
+def test_attached_file_read_bytes(pal):
+    pal.attachments['a.txt'] = b'contents'
+    assert pal.attachments['a.txt'].get_file().read_bytes() == b'contents'
+
+
+def test_relationship_none_removes_it(pal):
+    fs = AttachedFileSpec(pal, b'data', relationship=Name.Data)
+    assert fs.relationship == Name.Data
+    fs.relationship = None
+    assert fs.relationship is None
+    # /AFRelationship is gone, so removing it again has nothing to remove
+    with pytest.raises(KeyError, match='AFRelationship'):
+        fs.relationship = None

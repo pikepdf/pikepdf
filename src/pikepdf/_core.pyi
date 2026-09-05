@@ -527,22 +527,80 @@ class Object:
     def as_dict(self) -> _ObjectMapping: ...
     def as_list(self) -> _ObjectList: ...
     @overload
-    def as_int(self) -> int: ...
+    def as_int(self) -> int:
+        """Convert to int, or return default if not an integer.
+
+        In explicit conversion mode, this provides a safe way to convert
+        pikepdf.Integer to Python int with proper type hints.
+
+        Args:
+            default: Value to return if this object is not an integer.
+                If not provided and the object is not an integer,
+                raises TypeError.
+
+        Raises:
+            TypeError: If object is not an integer and no default was provided.
+
+        .. versionadded:: 10.1
+        """
     @overload
     def as_int(self, default: T) -> int | T: ...
     @overload
-    def as_bool(self) -> bool: ...
+    def as_bool(self) -> bool:
+        """Convert to bool, or return default if not a boolean.
+
+        In explicit conversion mode, this provides a safe way to convert
+        pikepdf.Boolean to Python bool with proper type hints.
+
+        Args:
+            default: Value to return if this object is not a boolean.
+                If not provided and the object is not a boolean,
+                raises TypeError.
+
+        Raises:
+            TypeError: If object is not a boolean and no default was provided.
+
+        .. versionadded:: 10.1
+        """
     @overload
     def as_bool(self, default: T) -> bool | T: ...
     @overload
-    def as_float(self) -> float: ...
+    def as_float(self) -> float:
+        """Convert to float, or return default if not numeric.
+
+        Works for both Integer and Real objects.
+
+        Args:
+            default: Value to return if this object is not numeric.
+                If not provided and the object is not numeric,
+                raises TypeError.
+
+        Raises:
+            TypeError: If object is not numeric and no default was provided.
+
+        .. versionadded:: 10.1
+        """
     @overload
     def as_float(self, default: T) -> float | T: ...
     @overload
-    def as_decimal(self) -> Decimal: ...
+    def as_decimal(self) -> Decimal:
+        """Convert to Decimal, or return default if not a Real.
+
+        Preferred over as_float() for PDF reals to preserve precision.
+        Only works for Real objects, not Integer.
+
+        Args:
+            default: Value to return if this object is not a Real.
+                If not provided and the object is not a Real,
+                raises TypeError.
+
+        Raises:
+            TypeError: If object is not a Real and no default was provided.
+
+        .. versionadded:: 10.1
+        """
     @overload
     def as_decimal(self, default: T) -> Decimal | T: ...
-    def _get_real_value(self) -> str: ...
     def copy(self) -> Object: ...
     def emplace(self, other: Object, retain: Iterable[Name] = ...) -> None:
         """Copy all items from other without making a new object.
@@ -1076,9 +1134,9 @@ class _ObjectMapping:
     """
 
     @overload
-    def get(self, key: Name | str, /) -> Object | None: ...
+    def get(self, key: Name | str) -> Object | None: ...
     @overload
-    def get(self, key: Name | str, default: T, /) -> Object | T: ...
+    def get(self, key: Name | str, default: T) -> Object | T: ...
     def keys(self) -> Iterator[Name]: ...
     def values(self) -> Iterator[Object]: ...
     def update(self, other: _ObjectMapping | dict[Name | str, Any], /) -> None: ...
@@ -1538,7 +1596,8 @@ class AttachedFile:
         """Get the MD5 checksum of attached file according to the PDF creator."""
     @property
     def obj(self) -> Object: ...
-    def read_bytes(self) -> bytes: ...
+    def read_bytes(self) -> bytes:
+        """Read the attached file's decoded contents."""
     @property
     def size(self) -> int:
         """Get length of the attached file in bytes according to the PDF creator."""
@@ -1717,10 +1776,6 @@ class Attachments(MutableMapping[str, AttachedFileSpec]):
     def __len__(self) -> int: ...
     def __setitem__(self, k: str, v: AttachedFileSpec | bytes, /) -> None: ...
     def __init__(self, *args, **kwargs) -> None: ...
-    def _add_replace_filespec(self, arg0: str, arg1: AttachedFileSpec) -> None: ...
-    def _get_all_filespecs(self) -> dict[str, AttachedFileSpec]: ...
-    def _get_filespec(self, arg0: str) -> AttachedFileSpec: ...
-    def _remove_filespec(self, arg0: str) -> bool: ...
     @property
     def _has_embedded_files(self) -> bool: ...
 
@@ -1818,12 +1873,6 @@ class Page:
     def __getitem__(self, name: Any, /) -> Object: ...
     def __setattr__(self, name: Any, value: Any, /) -> None: ...
     def __setitem__(self, name: Any, value: Any, /) -> None: ...
-    def _get_artbox(self, arg0: bool, arg1: bool) -> Object: ...
-    def _get_bleedbox(self, arg0: bool, arg1: bool) -> Object: ...
-    def _get_cropbox(self, arg0: bool, arg1: bool) -> Object: ...
-    def _get_mediabox(self, arg0: bool) -> Object: ...
-    def _get_rotation(self) -> int: ...
-    def _get_trimbox(self, arg0: bool, arg1: bool) -> Object: ...
     def add_content_token_filter(self, tf: TokenFilter) -> None:
         """Attach a :class:`pikepdf.TokenFilter` to a page's content stream.
 

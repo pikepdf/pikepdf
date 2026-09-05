@@ -430,6 +430,24 @@ class TestRotation:
         graph_page.rotate(90, relative=True)
         assert not any(issubclass(w.category, DeprecationWarning) for w in recwarn)
 
+    def test_rotate_rejects_extra_positional_args(self, graph_page):
+        with pytest.raises(TypeError, match='at most 2 positional arguments'):
+            graph_page.rotate(90, True, True)
+
+    def test_rotate_relative_is_truthiness(self, graph_page):
+        """``relative`` is evaluated for truth, not required to be a bool."""
+        graph_page.rotation = 90
+        graph_page.rotate(90, relative=1)
+        assert graph_page.rotation == 180
+
+    def test_rotate_propagates_failing_bool(self, graph_page):
+        class Unbooleanable:
+            def __bool__(self):
+                raise ValueError('nope')
+
+        with pytest.raises(ValueError, match='nope'):
+            graph_page.rotate(90, relative=Unbooleanable())
+
     @needs_libqpdf_v(
         '12.4.0',
         reason=(
