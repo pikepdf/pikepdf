@@ -71,13 +71,13 @@ ContentStreamInstruction::ContentStreamInstruction(
     check_objects_in_operands(this->operands);
 }
 
-std::ostream &operator<<(std::ostream &os, ContentStreamInstruction &csi)
+void append_unparsed(std::string &out, ContentStreamInstruction &csi)
 {
     for (QPDFObjectHandle &obj : csi.operands) {
-        os << obj.unparse() << " ";
+        out += obj.unparse();
+        out += ' ';
     }
-    os << csi.operator_.unparse();
-    return os;
+    out += csi.operator_.unparse();
 }
 
 py::object ContentStreamInlineImage::get_inline_image() const
@@ -104,13 +104,12 @@ QPDFObjectHandle ContentStreamInlineImage::get_operator() const
     return QPDFObjectHandle::newOperator("INLINE IMAGE");
 }
 
-std::ostream &operator<<(std::ostream &os, ContentStreamInlineImage &csii)
+void append_unparsed(std::string &out, ContentStreamInlineImage &csii)
 {
     py::bytes ii_bytes =
         py::borrow<py::bytes>(csii.get_inline_image().attr("unparse")());
 
-    os << to_string(ii_bytes);
-    return os;
+    out += to_string(ii_bytes);
 }
 
 OperandGrouper::OperandGrouper(const std::string &operators, QPDFObjectHandle resources)
@@ -185,26 +184,25 @@ std::string OperandGrouper::getWarning() const
 py::bytes unparse_content_stream(py::iterable contentstream)
 {
     uint n = 0;
-    std::ostringstream ss;
-    ss.imbue(std::locale::classic());
+    std::string out;
     const char *delim = "";
 
     for (const auto &item : contentstream) {
         // First iteration: print nothing
         // All others: print "\n" to delimit previous
         // Result is no leading or trailing delimiter
-        ss << delim;
+        out += delim;
         delim = "\n";
 
         if (py::isinstance<ContentStreamInstruction>(item)) {
             auto &csi = py::cast<ContentStreamInstruction &>(item);
-            ss << csi;
+            append_unparsed(out, csi);
             continue;
         }
 
         if (py::isinstance<ContentStreamInlineImage>(item)) {
             auto &csii = py::cast<ContentStreamInlineImage &>(item);
-            ss << csii;
+            append_unparsed(out, csii);
             continue;
         }
 
@@ -258,20 +256,20 @@ py::bytes unparse_content_stream(py::iterable contentstream)
             }
             py::bytes iimage_unparsed_bytes =
                 py::borrow<py::bytes>(iimage.attr("unparse")());
-            ss << to_string(iimage_unparsed_bytes);
+            out += to_string(iimage_unparsed_bytes);
         } else {
             py::object operands_obj = py::borrow<py::object>(operands_op[0]);
             for (auto operand : operands_obj) {
                 QPDFObjectHandle obj = objecthandle_encode(operand);
-                ss << obj.unparse() << " ";
+                out += obj.unparse();
+                out += ' ';
             }
-            ss << op.unparse();
+            out += op.unparse();
         }
 
         n++;
     }
-    auto result_str = ss.str();
-    return py::bytes(result_str.data(), result_str.size());
+    return py::bytes(out.data(), out.size());
 }
 
 void init_parsers(py::module_ &m)
