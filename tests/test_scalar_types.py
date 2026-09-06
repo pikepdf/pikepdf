@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import locale
 from decimal import Decimal
 
 import pytest
@@ -1434,3 +1435,47 @@ class TestAsDictAsList:
             i.as_list()
         with pytest.raises(TypeError, match='Expected dictionary, got integer'):
             i.as_dict()
+
+
+class TestLocaleIndependence:
+    """Number parsing must not depend on LC_NUMERIC."""
+
+    def test_parse_under_comma_decimal_locale(self):
+        candidates = ['de_DE.UTF-8', 'de_DE', 'fr_FR.UTF-8', 'fr_FR']
+        saved = locale.setlocale(locale.LC_NUMERIC)
+        for candidate in candidates:
+            try:
+                locale.setlocale(locale.LC_NUMERIC, candidate)
+                break
+            except locale.Error:
+                continue
+        else:
+            pytest.skip('no comma-decimal locale available')
+        try:
+            # Sanity check: this locale really does use ',' as separator.
+            assert locale.localeconv()['decimal_point'] == ','
+            with pikepdf.explicit_conversion():
+                assert pikepdf.String('3.5').as_float(coerce=True) == 3.5
+                assert pikepdf.String('3.5').as_decimal(coerce=True) == Decimal('3.5')
+                assert bool(Real('0.5')) is True
+                assert bool(Real('0.0')) is False
+        finally:
+            locale.setlocale(locale.LC_NUMERIC, saved)
+
+
+class TestRealValidation:
+    """Real objects holding non-numeric tokens are rejected consistently."""
+
+    def test_as_decimal_rejects_nan_token(self):
+        with pikepdf.explicit_conversion():
+            nan = Real('nan')
+            assert nan.as_decimal(default=None) is None
+            with pytest.raises(TypeError):
+                nan.as_decimal()
+            assert nan.as_float(default=None) is None
+
+    def test_as_decimal_rejects_inf_token(self):
+        with pikepdf.explicit_conversion():
+            inf = Real('inf')
+            assert inf.as_decimal(default=None) is None
+            assert inf.as_float(default=None) is None

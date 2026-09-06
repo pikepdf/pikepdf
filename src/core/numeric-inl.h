@@ -9,11 +9,19 @@
 // through parse_double().
 
 #include <cctype>
-#include <cerrno>
 #include <cmath>
-#include <cstdlib>
 #include <optional>
 #include <string>
+#include <version>
+
+#if defined(__cpp_lib_to_chars) && __cpp_lib_to_chars >= 201611L
+#    include <charconv>
+#    include <system_error>
+#else
+#    include <ios>
+#    include <locale>
+#    include <sstream>
+#endif
 
 #include <qpdf/QPDFObjectHandle.hh>
 
@@ -30,27 +38,48 @@ static inline std::string trimmed(std::string const &s)
 }
 
 // Parse the whole string as a double. Rejects empty input, trailing garbage,
-// out-of-range values (ERANGE) and non-finite results, so that "inf"/"nan"
-// text can never reach Python as a float or Decimal.
+// out-of-range values and non-finite results, so that "inf"/"nan" text can
+// never reach Python as a float or Decimal.
 static inline std::optional<double> parse_double(std::string const &s)
 {
     if (s.empty())
         return std::nullopt;
     // Restrict to decimal notation with optional sign and exponent, so that
-    // strtod's hex-float and infinity/nan spellings are never accepted.
+    // hex-float and infinity/nan spellings are never accepted.
     for (char c : s) {
         if (!(std::isdigit(static_cast<unsigned char>(c)) || c == '+' || c == '-' ||
                 c == '.' || c == 'e' || c == 'E'))
             return std::nullopt;
     }
-    char const *start = s.c_str();
-    char *end = nullptr;
-    errno = 0;
-    double value = std::strtod(start, &end);
-    if (end != start + s.size())
+    // Parse without consulting the C locale: strtod() and std::stod() follow
+    // LC_NUMERIC, so under a locale whose decimal separator is ',' they would
+    // stop at the '.' in "3.5" and report trailing garbage.
+    double value = 0.0;
+#if defined(__cpp_lib_to_chars) && __cpp_lib_to_chars >= 201611L
+    // std::from_chars does not accept a leading '+', but PDF and the previous
+    // strtod-based implementation do; skip it.
+    char const *start = s.data() + (s[0] == '+' ? 1 : 0);
+    char const *stop = s.data() + s.size();
+    if (start == stop)
         return std::nullopt;
-    if (errno == ERANGE)
+    auto result = std::from_chars(start, stop, value);
+    if (result.ec == std::errc::result_out_of_range)
         return std::nullopt;
+    if (result.ec != std::errc())
+        return std::nullopt;
+    if (result.ptr != stop)
+        return std::nullopt;
+#else
+    std::istringstream iss(s);
+    iss.imbue(std::locale::classic());
+    iss >> value;
+    if (iss.fail())
+        return std::nullopt;
+    // Reject trailing characters: the whole string must have been consumed.
+    iss.peek();
+    if (!iss.eof())
+        return std::nullopt;
+#endif
     if (!std::isfinite(value))
         return std::nullopt;
     return value;

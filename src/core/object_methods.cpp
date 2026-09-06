@@ -155,8 +155,13 @@ static std::optional<double> try_as_double(QPDFObjectHandle &h, bool coerce)
 
 static std::optional<py::object> try_as_decimal(QPDFObjectHandle &h, bool coerce)
 {
-    if (h.isReal())
+    if (h.isReal()) {
+        // Validate the token text the same way try_as_double() does, so that a
+        // Real holding "nan"/"inf" cannot become Decimal('NaN')/Decimal('Infinity').
+        if (!real_as_double(h))
+            return std::nullopt;
         return decimal_from_pdfobject(h);
+    }
     if (!coerce)
         return std::nullopt;
     if (h.isInteger())

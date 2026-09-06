@@ -370,18 +370,30 @@ static void adopt_children_impl(QPDF *owner, QPDFObjectHandle container, int dep
     if (depth > ADOPT_MAX_DEPTH)
         return;
     if (container.isDictionary()) {
-        for (auto &item : container.getDictAsMap()) {
-            auto adopted = adopt_into_impl(owner, item.second, depth + 1);
-            if (!adopted.isSameObjectAs(item.second))
-                container.replaceKey(item.first, adopted);
+        // ditems() iterates without copying the map. Only scalar children are
+        // replaced, and that cannot be done while iterating, so collect the
+        // replacements and apply them afterwards.
+        std::vector<std::pair<std::string, QPDFObjectHandle>> replacements;
+        for (auto const &[key, value] : container.ditems()) {
+            auto item = value;
+            auto adopted = adopt_into_impl(owner, item, depth + 1);
+            if (!adopted.isSameObjectAs(item))
+                replacements.emplace_back(key, adopted);
         }
+        for (auto const &[key, adopted] : replacements)
+            container.replaceKey(key, adopted);
     } else if (container.isArray()) {
-        auto items = container.getArrayAsVector();
-        for (size_t i = 0; i < items.size(); ++i) {
-            auto adopted = adopt_into_impl(owner, items[i], depth + 1);
-            if (!adopted.isSameObjectAs(items[i]))
-                container.setArrayItem(static_cast<int>(i), adopted);
+        std::vector<std::pair<int, QPDFObjectHandle>> replacements;
+        int index = 0;
+        for (auto const &value : container.aitems()) {
+            auto item = value;
+            auto adopted = adopt_into_impl(owner, item, depth + 1);
+            if (!adopted.isSameObjectAs(item))
+                replacements.emplace_back(index, adopted);
+            ++index;
         }
+        for (auto const &[i, adopted] : replacements)
+            container.setArrayItem(i, adopted);
     } else if (container.isStream()) {
         // A stream dictionary has no owner of its own; adopt it in place.
         adopt_into_impl(owner, container.getDict(), depth + 1);

@@ -172,9 +172,10 @@ void init_object_construct(py::module_ &m);
 bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other);
 
 // From object_repr.cpp
-std::string objecthandle_scalar_value(QPDFObjectHandle h);
-std::string objecthandle_pythonic_typename(QPDFObjectHandle h);
-std::string objecthandle_repr_typename_and_value(QPDFObjectHandle h);
+std::string objecthandle_scalar_value(QPDFObjectHandle h, bool explicit_mode);
+std::string objecthandle_pythonic_typename(QPDFObjectHandle h, bool explicit_mode);
+std::string objecthandle_repr_typename_and_value(
+    QPDFObjectHandle h, bool explicit_mode);
 std::string objecthandle_repr(QPDFObjectHandle h);
 
 // From object_convert.cpp

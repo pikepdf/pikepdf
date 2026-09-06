@@ -32,16 +32,28 @@
 
 enum access_mode_e { access_default, access_stream, access_mmap, access_mmap_only };
 
+QpdfEntry &registry_entry(QPDF &q)
+{
+    auto *entry = QpdfRegistry::instance().lookup_entry(&q);
+    if (!entry) {
+        // LCOV_EXCL_START
+        throw std::logic_error("Pdf is not present in the pikepdf QPDF registry");
+        // LCOV_EXCL_STOP
+    }
+    return *entry;
+}
+
 // Create a shared_ptr<QPDF> with a custom deleter that unregisters from the
 // per-QPDF mutex registry. This ensures cleanup even if the user never
 // explicitly calls close().
-std::shared_ptr<QPDF> make_registered_qpdf()
+std::shared_ptr<QPDF> make_registered_qpdf(ConversionMode mode = ConversionMode::unset)
 {
     auto q = std::shared_ptr<QPDF>(new QPDF(), [](QPDF *p) {
         QpdfRegistry::instance().unregister_qpdf(p);
         delete p;
     });
     QpdfRegistry::instance().register_qpdf(q.get());
+    registry_entry(*q).conversion_mode.store(mode, std::memory_order_relaxed);
     return q;
 }
 
@@ -72,17 +84,6 @@ py::object conversion_mode_to_py(ConversionMode mode)
     }
 }
 
-QpdfEntry &registry_entry(QPDF &q)
-{
-    auto *entry = QpdfRegistry::instance().lookup_entry(&q);
-    if (!entry) {
-        // LCOV_EXCL_START
-        throw std::logic_error("Pdf is not present in the pikepdf QPDF registry");
-        // LCOV_EXCL_STOP
-    }
-    return *entry;
-}
-
 void qpdf_basic_settings(QPDF &q) // LCOV_EXCL_LINE
 {
     q.setSuppressWarnings(true);
@@ -110,8 +111,7 @@ std::shared_ptr<QPDF> open_pdf(py::object stream,
     // Validate before any I/O so a bad argument fails fast.
     auto mode = parse_conversion_mode(conversion_mode);
     std::string password = to_string(password_arg);
-    auto q = make_registered_qpdf();
-    registry_entry(*q).conversion_mode.store(mode, std::memory_order_relaxed);
+    auto q = make_registered_qpdf(mode);
 
     qpdf_basic_settings(*q);
     q->setSuppressWarnings(suppress_warnings);
@@ -180,8 +180,7 @@ std::shared_ptr<QPDF> open_pdf_json(
     py::object stream, std::string description, py::object conversion_mode = py::none())
 {
     auto mode = parse_conversion_mode(conversion_mode);
-    auto q = make_registered_qpdf();
-    registry_entry(*q).conversion_mode.store(mode, std::memory_order_relaxed);
+    auto q = make_registered_qpdf(mode);
     qpdf_basic_settings(*q);
     auto json_input =
         std::make_shared<PythonStreamInputSource>(stream, description, false);
@@ -588,9 +587,7 @@ void init_qpdf(py::module_ &m)
             "new",
             [](py::object conversion_mode) {
                 auto mode = parse_conversion_mode(conversion_mode);
-                auto q = make_registered_qpdf();
-                registry_entry(*q).conversion_mode.store(
-                    mode, std::memory_order_relaxed);
+                auto q = make_registered_qpdf(mode);
                 q->emptyPDF();
                 qpdf_basic_settings(*q);
                 return q;

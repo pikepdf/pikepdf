@@ -37,7 +37,8 @@ QPDFFileSpecObjectHelper create_filespec(QPDF &q,
         efstream.setModDate(mod_date);
 
     if (relationship.isName()) {
-        filespec.getObjectHandle().replaceKey("/AFRelationship", relationship);
+        auto obj = filespec.getObjectHandle();
+        obj.replaceKey("/AFRelationship", adopt_into(live_owner(obj), relationship));
     }
     return filespec;
 }
