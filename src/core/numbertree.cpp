@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
+#include "object.h"
 #include "pikepdf.h"
 
 #include <nanobind/make_iterator.h>
@@ -22,10 +23,11 @@ void init_numbertree(py::module_ &m)
         .def(
             "__init__",
             [](NumberTree *self, QPDFObjectHandle &oh, bool auto_repair) {
-                if (!oh.getOwningQPDF())
+                QPDF *owner = live_owner(oh);
+                if (!owner)
                     throw py::value_error(
                         "NumberTree must wrap a Dictionary that is owned by a Pdf");
-                new (self) NumberTree(oh, *oh.getOwningQPDF(), auto_repair);
+                new (self) NumberTree(oh, *owner, auto_repair);
             },
             py::arg("oh"), // LCOV_EXCL_LINE
             py::kw_only(),

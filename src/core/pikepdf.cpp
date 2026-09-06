@@ -315,18 +315,6 @@ NB_MODULE(_core, m)
                 }
             },
             "Pop a thread-local conversion mode override (for context managers).")
-        .def(
-            "_enter_thread_explicit_mode",
-            []() { thread_mode_stack.push_back(ConversionMode::explicit_); },
-            "Enter thread-local explicit conversion mode (for context manager).")
-        .def(
-            "_exit_thread_explicit_mode",
-            []() {
-                if (!thread_mode_stack.empty()) {
-                    thread_mode_stack.pop_back();
-                }
-            },
-            "Exit thread-local explicit conversion mode (for context manager).")
         .def("set_flate_compression_level",
             [](int level) {
                 if (-1 <= level && level <= 9) {

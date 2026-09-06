@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MPL-2.0
 
 #include "object.h"
+#include "numeric-inl.h"
 #include "pikepdf.h"
 #include "qpdf_lock.h"
 #include "utils.h"
@@ -311,6 +312,56 @@ static bool is_scalar_object(QPDFObjectHandle const &h)
 
 static QPDFObjectHandle adopt_into_impl(QPDF *owner, QPDFObjectHandle value, int depth);
 
+// Clear a dead document's pointer from a direct object and every direct object
+// below it. Depth-limited for the same reason as adoption.
+static void disconnect_dead_owner_impl(QPDFObjectHandle h, QPDF *dead, int depth)
+{
+    if (depth > ADOPT_MAX_DEPTH || !h.isInitialized() || h.isIndirect())
+        return;
+    if (h.getOwningQPDF() != dead)
+        return;
+    // An empty description is what adopt_into() set; clearing the owner
+    // restores the object to the unowned state it had before insertion.
+    h.setObjectDescription(nullptr, "");
+    if (h.isDictionary()) {
+        for (auto &item : h.getDictAsMap())
+            disconnect_dead_owner_impl(item.second, dead, depth + 1);
+    } else if (h.isArray()) {
+        for (auto &item : h.getArrayAsVector())
+            disconnect_dead_owner_impl(item, dead, depth + 1);
+    } else if (h.isStream()) {
+        disconnect_dead_owner_impl(h.getDict(), dead, depth + 1);
+    }
+}
+
+// The document that owns this object, or nullptr if it has none -- including
+// the case where the document it used to belong to has been destroyed.
+//
+// qpdf records the owning QPDF as a raw pointer, and ~QPDF only disconnects
+// the objects still reachable from its object cache. A direct object that was
+// detached from the object graph before the document closed therefore keeps a
+// dangling pointer, and handing that pointer back to qpdf is a use-after-free.
+// Every QPDF pikepdf creates is in QpdfRegistry for the whole of its lifetime,
+// so a pointer that is not in the registry belongs to a document that is gone.
+//
+// Call this instead of QPDFObjectHandle::getOwningQPDF() anywhere the result is
+// passed to qpdf or used to answer an ownership question. (QpdfLockGuard is
+// already safe: its registry lookup returns nullptr for a dead pointer.)
+QPDF *live_owner(QPDFObjectHandle &h)
+{
+    QPDF *owner = h.getOwningQPDF();
+    if (!owner)
+        return nullptr;
+    if (QpdfRegistry::instance().lookup_entry(owner))
+        return owner;
+    // The owner is gone. An indirect object cannot reach here, since ~QPDF
+    // disconnects everything in its cache, so only a detached direct object
+    // needs its stale pointer cleared.
+    if (!h.isIndirect())
+        disconnect_dead_owner_impl(h, owner, 0);
+    return nullptr;
+}
+
 // Adopt the direct children of a container in place: a child that is a scalar
 // is replaced by an adopted copy of itself, and a child container is tagged
 // and recursed into.
@@ -344,7 +395,7 @@ static QPDFObjectHandle adopt_into_impl(QPDF *owner, QPDFObjectHandle value, int
     // An indirect object always belongs to a document already, and an object
     // that qpdf already associates with a document (this one or another) is
     // left alone: qpdf raises ForeignObjectError for objects from another Pdf.
-    if (value.isIndirect() || value.getOwningQPDF() != nullptr)
+    if (value.isIndirect() || live_owner(value) != nullptr)
         return value;
 
     // An empty description leaves qpdf's error messages exactly as they were
@@ -413,7 +464,7 @@ void object_set_key(QPDFObjectHandle h, std::string const &key, QPDFObjectHandle
 
     // A stream dictionary has no owner of its own, so take the owner from the
     // stream object.
-    dict.replaceKey(key, adopt_into(h.getOwningQPDF(), value));
+    dict.replaceKey(key, adopt_into(live_owner(h), value));
 }
 
 void object_del_key(QPDFObjectHandle h, std::string const &key)
@@ -795,17 +846,17 @@ void init_object(py::module_ &m)
         .def(
             "is_owned_by",
             [](QPDFObjectHandle &h, QPDF &possible_owner) {
-                return (h.getOwningQPDF() == &possible_owner);
+                return (live_owner(h) == &possible_owner);
             },
             py::arg("possible_owner"))
         .def("same_owner_as",
             [](QPDFObjectHandle &self, QPDFObjectHandle &other) {
-                return self.getOwningQPDF() == other.getOwningQPDF();
+                return live_owner(self) == live_owner(other);
             })
         .def("with_same_owner_as",
             [](QPDFObjectHandle &self, QPDFObjectHandle &other) {
-                QPDF *self_owner = self.getOwningQPDF();
-                QPDF *other_owner = other.getOwningQPDF();
+                QPDF *self_owner = live_owner(self);
+                QPDF *other_owner = live_owner(other);
                 DualQpdfLockGuard lock(self_owner, other_owner);
 
                 if (self_owner == other_owner)
@@ -965,10 +1016,10 @@ void init_object(py::module_ &m)
                 } else if (h.isInteger()) {
                     return h.getIntValue() != 0;
                 } else if (h.isReal()) {
-                    // qpdf accepts real tokens that std::stod rejects, so parse
-                    // with strtod and treat anything unparseable as zero.
-                    auto text = h.getRealValue();
-                    return std::strtod(text.c_str(), nullptr) != 0.0;
+                    // qpdf accepts real tokens that C++ number parsing rejects;
+                    // treat anything unparseable or non-finite as false.
+                    auto value = real_as_double(h);
+                    return value.has_value() && *value != 0.0;
                 } else if (h.isNull()) {
                     return false;
                 }

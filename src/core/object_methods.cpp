@@ -24,6 +24,7 @@
 #include <system_error>
 #include <vector>
 
+#include "numeric-inl.h"
 #include "object.h"
 #include <qpdf/Buffer.hh>
 #include <qpdf/Constants.h>
@@ -60,45 +61,6 @@ static py::dict pydict_from_object(QPDFObjectHandle h, const char *method_name)
 // as_int()/as_bool()/as_decimal() insist on an exact PDF type, so that a value
 // the caller believes is one type is never silently read as another, unless
 // the caller opts in with coerce=True.
-// Strip ASCII whitespace from both ends. PDF strings that hold numbers are
-// often padded by generators that treat them as fixed-width fields.
-static std::string trimmed(std::string const &s)
-{
-    char const *ws = " \t\n\r\f\v";
-    auto begin = s.find_first_not_of(ws);
-    if (begin == std::string::npos)
-        return std::string();
-    auto end = s.find_last_not_of(ws);
-    return s.substr(begin, end - begin + 1);
-}
-
-// Parse the whole string as a double. Rejects empty input, trailing garbage,
-// out-of-range values (ERANGE) and non-finite results, so that "inf"/"nan"
-// text can never reach Python as a float or Decimal.
-static std::optional<double> parse_double(std::string const &s)
-{
-    if (s.empty())
-        return std::nullopt;
-    // Restrict to decimal notation with optional sign and exponent, so that
-    // strtod's hex-float and infinity/nan spellings are never accepted.
-    for (char c : s) {
-        if (!(std::isdigit(static_cast<unsigned char>(c)) || c == '+' || c == '-' ||
-                c == '.' || c == 'e' || c == 'E'))
-            return std::nullopt;
-    }
-    char const *start = s.c_str();
-    char *end = nullptr;
-    errno = 0;
-    double value = std::strtod(start, &end);
-    if (end != start + s.size())
-        return std::nullopt;
-    if (errno == ERANGE)
-        return std::nullopt;
-    if (!std::isfinite(value))
-        return std::nullopt;
-    return value;
-}
-
 [[noreturn]] static void raise_overflow()
 {
     PyErr_SetString(
@@ -134,11 +96,6 @@ static long long double_to_ll_trunc(double value)
     if (!(t >= -9223372036854775808.0) || !(t < 9223372036854775808.0))
         raise_overflow();
     return static_cast<long long>(t);
-}
-
-static std::optional<double> real_as_double(QPDFObjectHandle &h)
-{
-    return parse_double(trimmed(h.getRealValue()));
 }
 
 static std::optional<long long> try_as_int(QPDFObjectHandle &h, bool coerce)
@@ -348,7 +305,7 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
                         throw py::index_error("Index out of range");
                     }
                     parent.setArrayItem(static_cast<size_t>(index),
-                        adopt_into(parent.getOwningQPDF(), value));
+                        adopt_into(live_owner(parent), value));
                 }
             })
         .def("__setitem__",
@@ -370,7 +327,7 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
                         throw py::index_error("Index out of range");
                     }
                     parent.setArrayItem(static_cast<size_t>(index),
-                        adopt_into(parent.getOwningQPDF(), value));
+                        adopt_into(live_owner(parent), value));
                 }
             })
         .def("__delitem__",
@@ -446,7 +403,7 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
             &QPDFObjectHandle::getDict,
             [](QPDFObjectHandle &h, QPDFObjectHandle &dict) {
                 QpdfLockGuard lock(h.getOwningQPDF());
-                h.replaceDict(adopt_into(h.getOwningQPDF(), dict));
+                h.replaceDict(adopt_into(live_owner(h), dict));
             },
             py::rv_policy::reference_internal)
         .def(
@@ -971,14 +928,14 @@ Raises:
         .def("__setitem__",
             [](QPDFObjectHandle &h, int index, QPDFObjectHandle &value) {
                 auto u_index = list_range_check(h, index);
-                h.setArrayItem(u_index, adopt_into(h.getOwningQPDF(), value));
+                h.setArrayItem(u_index, adopt_into(live_owner(h), value));
             })
         .def(
             "__setitem__",
             [](QPDFObjectHandle &h, int index, py::object pyvalue) {
                 auto u_index = list_range_check(h, index);
                 auto value = objecthandle_encode(pyvalue);
-                h.setArrayItem(u_index, adopt_into(h.getOwningQPDF(), value));
+                h.setArrayItem(u_index, adopt_into(live_owner(h), value));
             },
             py::arg("index"),
             py::arg("value").none())
@@ -1020,7 +977,7 @@ Raises:
                     Py_ssize_t idx = start;
                     for (size_t i = 0; i < new_vals.size(); ++i) {
                         h.setArrayItem(static_cast<int>(idx),
-                            adopt_into(h.getOwningQPDF(), new_vals[i]));
+                            adopt_into(live_owner(h), new_vals[i]));
                         idx += step;
                     }
                 } else {
@@ -1028,7 +985,7 @@ Raises:
                         h.eraseItem(static_cast<int>(start));
                     int insert_at = static_cast<int>(start);
                     for (auto const &obj : new_vals)
-                        h.insertItem(insert_at++, adopt_into(h.getOwningQPDF(), obj));
+                        h.insertItem(insert_at++, adopt_into(live_owner(h), obj));
                 }
             },
             py::arg("slice"),
@@ -1048,7 +1005,7 @@ Raises:
             [](QPDFObjectHandle &h, py::object pyitem) {
                 QpdfLockGuard lock(h.getOwningQPDF());
                 auto item = objecthandle_encode(pyitem);
-                return h.appendItem(adopt_into(h.getOwningQPDF(), item));
+                return h.appendItem(adopt_into(live_owner(h), item));
             },
             py::arg("pyitem").none())
         .def("extend",
@@ -1056,7 +1013,7 @@ Raises:
                 QpdfLockGuard lock(h.getOwningQPDF());
                 for (auto item : iter) {
                     auto value = objecthandle_encode(item);
-                    h.appendItem(adopt_into(h.getOwningQPDF(), value));
+                    h.appendItem(adopt_into(live_owner(h), value));
                 }
             })
         .def(
@@ -1095,7 +1052,7 @@ Raises:
                 if (index > nitems)
                     index = nitems;
                 auto item = objecthandle_encode(value);
-                h.insertItem(index, adopt_into(h.getOwningQPDF(), item));
+                h.insertItem(index, adopt_into(live_owner(h), item));
             },
             py::arg("index"),
             py::arg("value").none(),

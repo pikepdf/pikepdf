@@ -840,6 +840,9 @@ void init_qpdf(py::module_ &m)
             "make_indirect",
             [](QPDF &q, QPDFObjectHandle &h) {
                 QpdfLockGuard lock(&q);
+                // Clears a stale owner left behind by a closed document; qpdf
+                // would otherwise dereference it.
+                (void)live_owner(h);
                 auto indirect = q.makeIndirectObject(h);
                 adopt_children_into(&q, indirect);
                 return indirect;
@@ -849,7 +852,9 @@ void init_qpdf(py::module_ &m)
             "make_indirect",
             [](QPDF &q, py::object obj) -> QPDFObjectHandle {
                 QpdfLockGuard lock(&q);
-                auto indirect = q.makeIndirectObject(objecthandle_encode(obj));
+                auto encoded = objecthandle_encode(obj);
+                (void)live_owner(encoded);
+                auto indirect = q.makeIndirectObject(encoded);
                 adopt_children_into(&q, indirect);
                 return indirect;
             },
@@ -857,7 +862,7 @@ void init_qpdf(py::module_ &m)
         .def(
             "copy_foreign",
             [](QPDF &q, QPDFObjectHandle &h) -> QPDFObjectHandle {
-                DualQpdfLockGuard lock(&q, h.getOwningQPDF());
+                DualQpdfLockGuard lock(&q, live_owner(h));
                 return q.copyForeignObject(h);
             },
             py::arg("h"))

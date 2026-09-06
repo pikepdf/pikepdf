@@ -67,7 +67,7 @@ static void page_set_box(QPDFPageObjectHelper &poh, char const *key, py::handle 
 
     auto page = poh.getObjectHandle();
     QpdfLockGuard lock(page.getOwningQPDF());
-    page.replaceKey(key, adopt_into(page.getOwningQPDF(), box));
+    page.replaceKey(key, adopt_into(live_owner(page), box));
 }
 
 void init_page(py::module_ &m)

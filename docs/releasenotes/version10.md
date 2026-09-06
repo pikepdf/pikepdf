@@ -123,6 +123,10 @@ to that project for the report.
   `__getitem__` only accepts an `int`). The correct form, matching the
   compiled docstring and the {doc}`/topics/namepath` documentation, is
   `NamePath['/A']('/B').C[0]`.
+- A direct object that was removed from a document and outlived it no longer
+  keeps a dangling reference to the closed document; it can now be inserted
+  into another `Pdf`, where previously it raised `ForeignObjectError` or
+  crashed.
 
 ## v10.13.0
 

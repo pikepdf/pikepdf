@@ -28,6 +28,7 @@ size_t list_range_check(QPDFObjectHandle h, int index);
 bool object_has_key(QPDFObjectHandle h, std::string const &key);
 bool array_has_item(QPDFObjectHandle haystack, QPDFObjectHandle needle);
 QPDFObjectHandle object_get_key(QPDFObjectHandle h, std::string const &key);
+QPDF *live_owner(QPDFObjectHandle &h);
 QPDFObjectHandle adopt_into(QPDF *owner, QPDFObjectHandle value);
 void adopt_children_into(QPDF *owner, QPDFObjectHandle container);
 void object_set_key(
