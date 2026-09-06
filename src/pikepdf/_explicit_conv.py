@@ -14,6 +14,23 @@ if TYPE_CHECKING:
     from pikepdf import Pdf
 
 
+@contextmanager
+def _thread_conversion_mode(explicit: bool):
+    """Push a thread-local conversion mode override and undo it on exit.
+
+    The push returns a token identifying the depth of the override stack before
+    the push; the pop truncates the stack back to that depth. Truncating rather
+    than popping means that context managers exited out of order cannot corrupt
+    the stack -- exiting an outer one discards the inner ones with it, and the
+    inner one's own exit then does nothing.
+    """
+    token = _core._push_thread_conversion_mode(explicit)
+    try:
+        yield
+    finally:
+        _core._pop_thread_conversion_mode(token)
+
+
 def set_object_conversion_mode(mode: Literal['implicit', 'explicit']) -> None:
     """Set global object conversion mode.
 
@@ -104,11 +121,8 @@ def explicit_conversion():
     .. versionchanged:: 10.2
         Now thread-local and takes precedence over global setting.
     """
-    _core._push_thread_conversion_mode(True)
-    try:
+    with _thread_conversion_mode(True):
         yield
-    finally:
-        _core._pop_thread_conversion_mode()
 
 
 @contextmanager
@@ -133,8 +147,5 @@ def implicit_conversion():
 
     .. versionadded:: 10.14
     """
-    _core._push_thread_conversion_mode(False)
-    try:
+    with _thread_conversion_mode(False):
         yield
-    finally:
-        _core._pop_thread_conversion_mode()

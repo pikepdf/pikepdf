@@ -60,12 +60,14 @@ void init_nametree(py::module_ &m)
             })
         .def("__setitem__",
             [](NameTree &nt, std::string const &name, QPDFObjectHandle oh) {
-                nt.insert(name, oh);
+                auto tree = nt.getObjectHandle();
+                nt.insert(name, adopt_into(live_owner(tree), oh));
             })
         .def("__setitem__",
             [](NameTree &nt, std::string const &name, py::object obj) {
                 auto oh = objecthandle_encode(obj);
-                nt.insert(name, oh);
+                auto tree = nt.getObjectHandle();
+                nt.insert(name, adopt_into(live_owner(tree), oh));
             })
         .def("__delitem__",
             [](NameTree &nt, std::string const &name) {

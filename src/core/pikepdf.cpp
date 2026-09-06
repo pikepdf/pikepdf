@@ -138,6 +138,12 @@ auto translate_qpdf_logic_error(std::string msg)
     return std::pair<std::string, pikepdf_error_type>(msg, errtype);
 }
 
+[[noreturn]] void throw_foreign_object_error(std::string const &msg)
+{
+    PyErr_SetString(exc_foreign.load(std::memory_order_acquire), msg.c_str());
+    throw py::python_error();
+}
+
 auto translate_qpdf_logic_error(const std::exception &e)
 {
     return translate_qpdf_logic_error(std::string(e.what()));
@@ -302,19 +308,26 @@ NB_MODULE(_core, m)
         .def(
             "_push_thread_conversion_mode",
             [](bool explicit_) {
+                auto token = thread_mode_stack.size();
                 thread_mode_stack.push_back(
                     explicit_ ? ConversionMode::explicit_ : ConversionMode::implicit);
+                return token;
             },
             py::arg("explicit"),
-            "Push a thread-local conversion mode override (for context managers).")
+            "Push a thread-local conversion mode override (for context managers). "
+            "Returns a token to be passed to _pop_thread_conversion_mode().")
         .def(
             "_pop_thread_conversion_mode",
-            []() {
-                if (!thread_mode_stack.empty()) {
-                    thread_mode_stack.pop_back();
-                }
+            [](size_t token) {
+                // Truncate rather than pop, so that a context manager exited
+                // out of order (or twice) cannot corrupt the stack: everything
+                // pushed at or after this override is discarded, and popping
+                // an override that is already gone does nothing.
+                if (thread_mode_stack.size() > token)
+                    thread_mode_stack.resize(token);
             },
-            "Pop a thread-local conversion mode override (for context managers).")
+            py::arg("token"),
+            "Undo a thread-local conversion mode override (for context managers).")
         .def("set_flate_compression_level",
             [](int level) {
                 if (-1 <= level && level <= 9) {

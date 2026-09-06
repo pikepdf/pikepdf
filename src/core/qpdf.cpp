@@ -49,6 +49,11 @@ QpdfEntry &registry_entry(QPDF &q)
 std::shared_ptr<QPDF> make_registered_qpdf(ConversionMode mode = ConversionMode::unset)
 {
     auto q = std::shared_ptr<QPDF>(new QPDF(), [](QPDF *p) {
+        // Disconnect every direct object this document adopted before the QPDF
+        // is destroyed, so no Python-held object is left pointing at freed
+        // memory. Must happen while *p is still valid.
+        if (auto *entry = QpdfRegistry::instance().lookup_entry(p))
+            entry->disconnect_adopted(p);
         QpdfRegistry::instance().unregister_qpdf(p);
         delete p;
     });
@@ -836,23 +841,25 @@ void init_qpdf(py::module_ &m)
         .def(
             "make_indirect",
             [](QPDF &q, QPDFObjectHandle &h) {
-                QpdfLockGuard lock(&q);
-                // Clears a stale owner left behind by a closed document; qpdf
-                // would otherwise dereference it.
-                (void)live_owner(h);
+                DualQpdfLockGuard lock(&q, live_owner(h));
+                refuse_to_steal(h, &q);
+                bool was_direct = !h.isIndirect();
                 auto indirect = q.makeIndirectObject(h);
-                adopt_children_into(&q, indirect);
+                if (was_direct)
+                    adopt_made_indirect(&q, indirect);
                 return indirect;
             },
             py::arg("h"))
         .def(
             "make_indirect",
             [](QPDF &q, py::object obj) -> QPDFObjectHandle {
-                QpdfLockGuard lock(&q);
                 auto encoded = objecthandle_encode(obj);
-                (void)live_owner(encoded);
+                DualQpdfLockGuard lock(&q, live_owner(encoded));
+                refuse_to_steal(encoded, &q);
+                bool was_direct = !encoded.isIndirect();
                 auto indirect = q.makeIndirectObject(encoded);
-                adopt_children_into(&q, indirect);
+                if (was_direct)
+                    adopt_made_indirect(&q, indirect);
                 return indirect;
             },
             py::arg("obj"))
@@ -860,7 +867,12 @@ void init_qpdf(py::module_ &m)
             "copy_foreign",
             [](QPDF &q, QPDFObjectHandle &h) -> QPDFObjectHandle {
                 DualQpdfLockGuard lock(&q, live_owner(h));
-                return q.copyForeignObject(h);
+                auto copied = q.copyForeignObject(h);
+                // The copy's direct children are new objects in q, so give
+                // them q as their owner, exactly as if they had been parsed
+                // from q's own file.
+                adopt_children_into(&q, copied);
+                return copied;
             },
             py::arg("h"))
         .def("copy_foreign",

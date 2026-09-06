@@ -44,8 +44,10 @@ to that project for the report.
 - Added {meth}`pikepdf.Object.get_raw`, which behaves like
   {meth}`~pikepdf.Object.get` (key, `Name`, or `NamePath`, plus a `default`)
   but never unboxes the result: it always returns a `pikepdf.Object`
-  regardless of the current conversion mode, and a stored PDF null comes
-  back as a `Null`-typed object rather than `None`.
+  regardless of the current conversion mode. A null stored inside an *array*
+  comes back as a `Null`-typed object rather than `None`; in a *dictionary*,
+  qpdf treats a key whose value is null as absent, so `get_raw` returns the
+  default for it, exactly as `get` does.
 - Added container-level typed getters {meth}`~pikepdf.Object.get_int`,
   {meth}`~pikepdf.Object.get_bool`, {meth}`~pikepdf.Object.get_float`,
   {meth}`~pikepdf.Object.get_decimal`, {meth}`~pikepdf.Object.get_dict`, and
@@ -102,7 +104,30 @@ to that project for the report.
   A `Dictionary` or `Array` is adopted in place and keeps its aliasing with the
   document; inserting the same container into a second `Pdf` now raises
   `ForeignObjectError`, as it already did for containers parsed from a file.
-  Construct a new object, or use {meth}`pikepdf.Pdf.copy_foreign`.
+  Construct a new object, or use {meth}`pikepdf.Pdf.copy_foreign`. Adoption is
+  not permanent: removing the object from the document -- deleting or
+  replacing the dictionary key or array element that held it, or destroying
+  the document -- releases the claim, so the object can then be inserted into
+  another `Pdf`. If the same object was reachable under two keys, removing
+  either one releases it; its value is unaffected and still readable through
+  the remaining reference.
+- **Behavior change:** Objects copied into a document are adopted by it too.
+  The direct children of an object produced by
+  {meth}`pikepdf.Pdf.copy_foreign`, {meth}`pikepdf.Object.with_same_owner_as`,
+  {meth}`pikepdf.Pdf.make_indirect`, or by appending/inserting a page into
+  `Pdf.pages`, and values inserted through `NameTree`/`NumberTree`
+  `__setitem__`, now report the destination document as their owner and follow
+  its `conversion_mode`.
+- **Behavior change:** {meth}`pikepdf.Object.with_same_owner_as` and
+  {meth}`pikepdf.Pdf.make_indirect` now raise `ForeignObjectError` for a
+  direct object that already belongs to a different `Pdf`, instead of silently
+  retagging an object that the other document still references. Remove it from
+  that document first, or make it indirect there and use
+  {meth}`pikepdf.Pdf.copy_foreign`.
+- **Behavior change:** {meth}`~pikepdf.Object.as_int` with `coerce=True` now
+  returns a supplied *default* for a value that does not fit in a 64-bit PDF
+  integer, instead of raising `OverflowError`. Called without a default it
+  still raises `OverflowError`.
 - **Behavior change:** `repr()` of a `pikepdf.Object` now honors the
   effective conversion mode of the object being displayed (context manager,
   then its owning `Pdf`, then the global setting), rather than only the
@@ -123,10 +148,13 @@ to that project for the report.
   `__getitem__` only accepts an `int`). The correct form, matching the
   compiled docstring and the {doc}`/topics/namepath` documentation, is
   `NamePath['/A']('/B').C[0]`.
-- A direct object that was removed from a document and outlived it no longer
-  keeps a dangling reference to the closed document; it can now be inserted
-  into another `Pdf`, where previously it raised `ForeignObjectError` or
-  crashed.
+- A direct object parsed from a file, then removed from the document (for
+  example `box = page.obj.get_raw('/MediaBox')` followed by
+  `del page.obj['/MediaBox']`) and used after the document was closed, kept a
+  dangling reference to the freed document and could crash the interpreter on
+  `repr()` or when inserted elsewhere. Removing an object from a document now
+  releases its association with it, and a `Pdf` disconnects every object it
+  adopted as it is destroyed.
 
 ## v10.13.0
 

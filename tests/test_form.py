@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import pytest
 
-from pikepdf import Name, Pdf
+from pikepdf import Name, Pdf, String
 from pikepdf.form import (
     CheckboxField,
     ChoiceField,
@@ -195,6 +195,15 @@ def test_choice(dd0293):
         field.value = 'PVT/E-1'
     field.options[2].select()
     assert field.value == 'SPC2/E-2'
+
+
+def test_choice_malformed_opt(dd0293):
+    """A /Opt that is not an array must not raise; the field has no options."""
+    f = Form(dd0293)
+    field = f['form1[0].page1[0].#subform[2].DropDownList1[5]']
+    field._field.obj.Opt = String('not an array')
+    assert field.options == ()
+    assert field.selected is None or field.selected.export_value == field.value
 
 
 def test_signature_stamp(resources, dd0293):

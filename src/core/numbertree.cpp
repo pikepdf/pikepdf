@@ -55,11 +55,14 @@ void init_numbertree(py::module_ &m)
             })
         .def("__setitem__",
             [](NumberTree &nt, numtree_number key, QPDFObjectHandle oh) {
-                nt.insert(key, oh);
+                auto tree = nt.getObjectHandle();
+                nt.insert(key, adopt_into(live_owner(tree), oh));
             })
         .def("__setitem__",
             [](NumberTree &nt, numtree_number key, py::object obj) {
-                nt.insert(key, objecthandle_encode(obj));
+                auto oh = objecthandle_encode(obj);
+                auto tree = nt.getObjectHandle();
+                nt.insert(key, adopt_into(live_owner(tree), oh));
             })
         .def("__delitem__", [](NumberTree &nt, numtree_number key) { nt.remove(key); })
         .def(

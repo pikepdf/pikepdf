@@ -206,9 +206,9 @@ True
 `coerce=True` does not widen the *failure* mode: a value that is not
 convertible under any of these rules still returns the default (or raises
 `TypeError` with no default), it just widens which stored types are
-accepted. The one exception is `as_int(coerce=True)` on a value too large
-for a 64-bit integer, which raises `OverflowError` even when a default is
-given, because that is a range problem rather than a type mismatch.
+accepted. A value too large for a 64-bit integer is handled the same way:
+`as_int(coerce=True)` raises `OverflowError` when no default is given, and
+returns the supplied default when there is one.
 
 ### Arithmetic with scalar types
 

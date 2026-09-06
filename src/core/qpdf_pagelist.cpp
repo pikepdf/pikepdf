@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MPL-2.0
 
 #include "qpdf_pagelist.h"
+#include "object.h"
 #include "pikepdf.h"
 #include "qpdf_lock.h"
 
@@ -205,6 +206,15 @@ size_t PageList::count()
     return this->doc.getAllPages().size();
 }
 
+// A page inserted from another document is copied by qpdf, and a page built in
+// Python has direct children that belong to no document at all. Either way the
+// page now lives in this document, so give its direct children this document as
+// their owner, exactly as if the page had been parsed from this file.
+void PageList::adopt_page_at(size_t index)
+{
+    adopt_children_into(this->qpdf.get(), this->get_page(index).getObjectHandle());
+}
+
 void PageList::insert_page(size_t index, QPDFPageObjectHelper page)
 {
     if (index != this->count()) {
@@ -213,11 +223,13 @@ void PageList::insert_page(size_t index, QPDFPageObjectHelper page)
     } else {
         this->doc.addPage(page, false);
     }
+    this->adopt_page_at(index);
 }
 
 void PageList::append_page(QPDFPageObjectHelper page)
 {
     this->doc.addPage(page, false);
+    this->adopt_page_at(this->count() - 1);
 }
 
 QPDFPageObjectHelper from_objgen(QPDF &q, QPDFObjGen og)

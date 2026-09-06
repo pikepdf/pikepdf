@@ -539,22 +539,20 @@ class ChoiceField(_FieldWrapper):
         # The implementation in QPDF is not correct, as it only includes options which
         # are strings (see https://github.com/qpdf/qpdf/issues/1433). We opt for our own
         # implementation here.
-        if Name.Opt not in self._field.obj:
-            # It is perfectly valid for the choice field to have no options
-            return ()
+        # It is perfectly valid for the choice field to have no options, and a
+        # malformed /Opt that is not an array is treated the same way.
         return tuple(
             ChoiceFieldOption(self, cast('String | Array', opt), index)
-            for index, opt in enumerate(self._field.obj.Opt.as_list())
+            for index, opt in enumerate(self._field.obj.get_list('/Opt', []))
         )
 
     @property
     def selected(self) -> ChoiceFieldOption | None:
         """The currently selected option, or None if no option is selected."""
-        if Name.Opt in self._field.obj:
-            for index, opt in enumerate(self._field.obj.Opt.as_list()):
-                option = ChoiceFieldOption(self, cast('String | Array', opt), index)
-                if option.export_value == self.value:
-                    return option
+        for index, opt in enumerate(self._field.obj.get_list('/Opt', [])):
+            option = ChoiceFieldOption(self, cast('String | Array', opt), index)
+            if option.export_value == self.value:
+                return option
         if self.value is None:
             return None
         return ChoiceFieldOption(self, String(self.value), None)

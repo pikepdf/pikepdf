@@ -309,8 +309,11 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
                     if (index < 0 || index >= size) {
                         throw py::index_error("Index out of range");
                     }
-                    parent.setArrayItem(static_cast<size_t>(index),
-                        adopt_into(live_owner(parent), value));
+                    auto old_value = parent.getArrayItem(index);
+                    auto adopted = adopt_into(live_owner(parent), value);
+                    parent.setArrayItem(static_cast<size_t>(index), adopted);
+                    if (!old_value.isSameObjectAs(adopted))
+                        disconnect_detached(parent, old_value);
                 }
             })
         .def("__setitem__",
@@ -331,8 +334,11 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
                     if (index < 0 || index >= size) {
                         throw py::index_error("Index out of range");
                     }
-                    parent.setArrayItem(static_cast<size_t>(index),
-                        adopt_into(live_owner(parent), value));
+                    auto old_value = parent.getArrayItem(index);
+                    auto adopted = adopt_into(live_owner(parent), value);
+                    parent.setArrayItem(static_cast<size_t>(index), adopted);
+                    if (!old_value.isSameObjectAs(adopted))
+                        disconnect_detached(parent, old_value);
                 }
             })
         .def("__delitem__",
@@ -343,14 +349,18 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
                     object_del_key(parent, std::get<std::string>(last));
                 } else {
                     auto u_index = list_range_check(parent, std::get<int>(last));
+                    auto old_value = parent.getArrayItem(static_cast<int>(u_index));
                     parent.eraseItem(u_index);
+                    disconnect_detached(parent, old_value);
                 }
             })
         .def("__delitem__",
             [](QPDFObjectHandle &h, int index) {
                 QpdfLockGuard lock(h.getOwningQPDF());
                 auto u_index = list_range_check(h, index);
+                auto old_value = h.getArrayItem(static_cast<int>(u_index));
                 h.eraseItem(u_index);
+                disconnect_detached(h, old_value);
             })
         .def("__delitem__",
             [](QPDFObjectHandle &h, QPDFObjectHandle &name) {
@@ -372,8 +382,14 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
                 // Delete from highest index to lowest so earlier indices
                 // remain valid as items are erased.
                 std::sort(indices.begin(), indices.end(), std::greater<int>());
-                for (int i : indices)
+                std::vector<QPDFObjectHandle> removed;
+                removed.reserve(indices.size());
+                for (int i : indices) {
+                    removed.push_back(h.getArrayItem(i));
                     h.eraseItem(i);
+                }
+                for (auto &old_value : removed)
+                    disconnect_detached(h, old_value);
             })
         .def("__delitem__",
             [](QPDFObjectHandle &h, py::object key) {
@@ -408,7 +424,12 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
             &QPDFObjectHandle::getDict,
             [](QPDFObjectHandle &h, QPDFObjectHandle &dict) {
                 QpdfLockGuard lock(h.getOwningQPDF());
-                h.replaceDict(adopt_into(live_owner(h), dict));
+                // Adopt the dictionary's children but not the dictionary
+                // itself: qpdf labels a stream dictionary through
+                // QPDF_Stream::setDictDescription, which only acts on a
+                // dictionary that has no description of its own.
+                adopt_children_into(live_owner(h), dict);
+                h.replaceDict(dict);
             },
             py::rv_policy::reference_internal)
         .def(
@@ -511,9 +532,13 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
 
             Like :meth:`get`, except the result is always a
             :class:`pikepdf.Object`, regardless of the conversion mode in
-            effect. A stored PDF null is returned as an Object of type null,
-            not ``None``; ``None`` (or *default*) is returned only when the key
-            or path is absent.
+            effect.
+
+            A null stored inside an *array* comes back as a ``Null``-typed
+            Object rather than ``None``. In a *dictionary*, qpdf treats a key
+            whose value is null as absent, so ``get_raw`` returns the default
+            for it, exactly as :meth:`get` does; ``None`` (or *default*) is
+            likewise returned when the key or path does not exist at all.
 
             *key* may be a string, a :class:`pikepdf.Name`, or a
             :class:`pikepdf.NamePath`.
@@ -691,8 +716,7 @@ Args:
         If not provided and the object is not an integer,
         raises TypeError.
     coerce: If True, also accept a Real (truncated toward zero) and a
-        String whose text is a number. Values that do not fit in a
-        64-bit integer raise OverflowError.
+        String whose text is a number.
 
 Returns:
     The integer value, or the default if provided and object is
@@ -700,17 +724,36 @@ Returns:
 
 Raises:
     TypeError: If object is not an integer and no default was provided.
-    OverflowError: If the value is out of range for a 64-bit integer.
+    OverflowError: If the value is out of range for a 64-bit integer and
+        no default was provided. If a default was provided, it is
+        returned instead.
 
 .. versionadded:: 10.1
 
 .. versionchanged:: 10.14
     Added the keyword-only *coerce* argument.
+
+.. versionchanged:: 10.14
+    A value out of range for a 64-bit integer now returns *default*, if
+    one was given, instead of raising OverflowError.
 )")
         .def(
             "as_int",
             [](QPDFObjectHandle &h, py::handle default_, bool coerce) -> py::object {
-                auto value = try_as_int(h, coerce);
+                std::optional<long long> value;
+                try {
+                    value = try_as_int(h, coerce);
+                } catch (py::python_error &e) {
+                    // A value out of range for a 64-bit PDF integer is a value
+                    // the caller cannot use, so a supplied default answers the
+                    // question just as well as it does for a type mismatch.
+                    // The no-default overload still raises OverflowError.
+                    if (!e.matches(PyExc_OverflowError))
+                        throw;
+                    e.restore();
+                    PyErr_Clear();
+                    return py::borrow<py::object>(default_);
+                }
                 if (!value)
                     return py::borrow<py::object>(default_);
                 return py::cast(*value);
@@ -933,14 +976,22 @@ Raises:
         .def("__setitem__",
             [](QPDFObjectHandle &h, int index, QPDFObjectHandle &value) {
                 auto u_index = list_range_check(h, index);
-                h.setArrayItem(u_index, adopt_into(live_owner(h), value));
+                auto old_value = h.getArrayItem(static_cast<int>(u_index));
+                auto adopted = adopt_into(live_owner(h), value);
+                h.setArrayItem(u_index, adopted);
+                if (!old_value.isSameObjectAs(adopted))
+                    disconnect_detached(h, old_value);
             })
         .def(
             "__setitem__",
             [](QPDFObjectHandle &h, int index, py::object pyvalue) {
                 auto u_index = list_range_check(h, index);
                 auto value = objecthandle_encode(pyvalue);
-                h.setArrayItem(u_index, adopt_into(live_owner(h), value));
+                auto old_value = h.getArrayItem(static_cast<int>(u_index));
+                auto adopted = adopt_into(live_owner(h), value);
+                h.setArrayItem(u_index, adopted);
+                if (!old_value.isSameObjectAs(adopted))
+                    disconnect_detached(h, old_value);
             },
             py::arg("index"),
             py::arg("value").none())
@@ -972,6 +1023,7 @@ Raises:
                 if (PyErr_Occurred())
                     throw py::python_error();
 
+                std::vector<QPDFObjectHandle> replaced;
                 if (step != 1) {
                     if (new_vals.size() != slicelength)
                         throw py::value_error(("attempt to assign sequence of size " +
@@ -981,16 +1033,32 @@ Raises:
                                 .c_str());
                     Py_ssize_t idx = start;
                     for (size_t i = 0; i < new_vals.size(); ++i) {
+                        replaced.push_back(h.getArrayItem(static_cast<int>(idx)));
                         h.setArrayItem(static_cast<int>(idx),
                             adopt_into(live_owner(h), new_vals[i]));
                         idx += step;
                     }
                 } else {
-                    for (size_t i = 0; i < slicelength; ++i)
+                    for (size_t i = 0; i < slicelength; ++i) {
+                        replaced.push_back(h.getArrayItem(static_cast<int>(start)));
                         h.eraseItem(static_cast<int>(start));
+                    }
                     int insert_at = static_cast<int>(start);
                     for (auto const &obj : new_vals)
                         h.insertItem(insert_at++, adopt_into(live_owner(h), obj));
+                }
+                // Values pushed out of the array lose their claim on the
+                // document, unless the same object was assigned back in.
+                for (auto &old_value : replaced) {
+                    bool reinserted = false;
+                    for (auto const &obj : new_vals) {
+                        if (old_value.isSameObjectAs(obj)) {
+                            reinserted = true;
+                            break;
+                        }
+                    }
+                    if (!reinserted)
+                        disconnect_detached(h, old_value);
                 }
             },
             py::arg("slice"),
@@ -1026,8 +1094,13 @@ Raises:
             [](QPDFObjectHandle &h) {
                 QpdfLockGuard lock(h.getOwningQPDF());
                 ensure_array(h, "clear");
-                for (int i = h.getArrayNItems() - 1; i >= 0; --i)
+                std::vector<QPDFObjectHandle> removed;
+                for (int i = h.getArrayNItems() - 1; i >= 0; --i) {
+                    removed.push_back(h.getArrayItem(i));
                     h.eraseItem(i);
+                }
+                for (auto &old_value : removed)
+                    disconnect_detached(h, old_value);
             },
             "Remove all items from the array.")
         .def(
@@ -1070,6 +1143,7 @@ Raises:
                 auto u_index = list_range_check(h, index);
                 auto item = h.getArrayItem(static_cast<int>(u_index));
                 h.eraseItem(static_cast<int>(u_index));
+                disconnect_detached(h, item);
                 return item;
             },
             py::arg("index") = -1,
@@ -1083,7 +1157,9 @@ Raises:
                 int n = h.getArrayNItems();
                 for (int i = 0; i < n; ++i) {
                     if (objecthandle_equal(h.getArrayItem(i), needle)) {
+                        auto old_value = h.getArrayItem(i);
                         h.eraseItem(i);
+                        disconnect_detached(h, old_value);
                         return;
                     }
                 }

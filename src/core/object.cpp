@@ -310,39 +310,63 @@ static bool is_scalar_object(QPDFObjectHandle const &h)
     }
 }
 
-static QPDFObjectHandle adopt_into_impl(QPDF *owner, QPDFObjectHandle value, int depth);
+static QPDFObjectHandle adopt_into_impl(
+    QPDF *owner, QpdfEntry *entry, QPDFObjectHandle value, int depth);
 
-// Clear a dead document's pointer from a direct object and every direct object
-// below it. Depth-limited for the same reason as adoption.
-static void disconnect_dead_owner_impl(QPDFObjectHandle h, QPDF *dead, int depth)
+// Clear an owning document's pointer from a direct object and every direct
+// object below it. Depth-limited for the same reason as adoption.
+static void disconnect_owner_impl(QPDFObjectHandle h, QPDF *owner, int depth)
 {
     if (depth > ADOPT_MAX_DEPTH || !h.isInitialized() || h.isIndirect())
         return;
-    if (h.getOwningQPDF() != dead)
+    if (h.getOwningQPDF() != owner)
         return;
-    // An empty description is what adopt_into() set; clearing the owner
-    // restores the object to the unowned state it had before insertion.
+    // Clearing the owner restores the object to the unowned state it had
+    // before insertion. The object's value is untouched.
     h.setObjectDescription(nullptr, "");
     if (h.isDictionary()) {
-        for (auto &item : h.getDictAsMap())
-            disconnect_dead_owner_impl(item.second, dead, depth + 1);
+        for (auto const &item : h.ditems())
+            disconnect_owner_impl(item.second, owner, depth + 1);
     } else if (h.isArray()) {
-        for (auto &item : h.getArrayAsVector())
-            disconnect_dead_owner_impl(item, dead, depth + 1);
+        for (auto const &item : h.aitems())
+            disconnect_owner_impl(item, owner, depth + 1);
     } else if (h.isStream()) {
-        disconnect_dead_owner_impl(h.getDict(), dead, depth + 1);
+        disconnect_owner_impl(h.getDict(), owner, depth + 1); // LCOV_EXCL_LINE
     }
 }
 
-// The document that owns this object, or nullptr if it has none -- including
-// the case where the document it used to belong to has been destroyed.
+// Release a document's claim on an object that has just been removed from that
+// document's object graph, so the object can be inserted into another Pdf.
 //
-// qpdf records the owning QPDF as a raw pointer, and ~QPDF only disconnects
-// the objects still reachable from its object cache. A direct object that was
-// detached from the object graph before the document closed therefore keeps a
-// dangling pointer, and handing that pointer back to qpdf is a use-after-free.
-// Every QPDF pikepdf creates is in QpdfRegistry for the whole of its lifetime,
-// so a pointer that is not in the registry belongs to a document that is gone.
+// Only direct objects are affected: an indirect object belongs to its document
+// whether or not anything references it.
+//
+// Aliasing edge case: if the same direct object was reachable under two keys,
+// removing either one disconnects it, even though the other still refers to
+// it. The object's value is unchanged and still readable through the remaining
+// reference; only the owner association is lost. Detecting the alias would
+// require a full traversal of the document on every deletion.
+void disconnect_from_owner(QPDF *owner, QPDFObjectHandle old)
+{
+    if (!owner || !old.isInitialized() || old.isIndirect())
+        return;
+    disconnect_owner_impl(old, owner, 0);
+}
+
+// Same, for an object being removed from `container`.
+void disconnect_detached(QPDFObjectHandle &container, QPDFObjectHandle old)
+{
+    disconnect_from_owner(live_owner(container), old);
+}
+
+// The document that owns this object, or nullptr if it has none.
+//
+// qpdf records the owning QPDF as a raw pointer. Every QPDF pikepdf creates is
+// in QpdfRegistry for the whole of its lifetime, so a pointer that is not in
+// the registry belongs to a document that is gone. That should not happen --
+// the QPDF deleter disconnects every object pikepdf adopted before the QPDF is
+// destroyed -- but the registry check is cheap insurance against handing a
+// stale pointer back to qpdf.
 //
 // Call this instead of QPDFObjectHandle::getOwningQPDF() anywhere the result is
 // passed to qpdf or used to answer an ownership question. (QpdfLockGuard is
@@ -354,18 +378,14 @@ QPDF *live_owner(QPDFObjectHandle &h)
         return nullptr;
     if (QpdfRegistry::instance().lookup_entry(owner))
         return owner;
-    // The owner is gone. An indirect object cannot reach here, since ~QPDF
-    // disconnects everything in its cache, so only a detached direct object
-    // needs its stale pointer cleared.
-    if (!h.isIndirect())
-        disconnect_dead_owner_impl(h, owner, 0);
-    return nullptr;
+    return nullptr; // LCOV_EXCL_LINE
 }
 
 // Adopt the direct children of a container in place: a child that is a scalar
 // is replaced by an adopted copy of itself, and a child container is tagged
 // and recursed into.
-static void adopt_children_impl(QPDF *owner, QPDFObjectHandle container, int depth)
+static void adopt_children_impl(
+    QPDF *owner, QpdfEntry *entry, QPDFObjectHandle container, int depth)
 {
     if (depth > ADOPT_MAX_DEPTH)
         return;
@@ -376,7 +396,7 @@ static void adopt_children_impl(QPDF *owner, QPDFObjectHandle container, int dep
         std::vector<std::pair<std::string, QPDFObjectHandle>> replacements;
         for (auto const &[key, value] : container.ditems()) {
             auto item = value;
-            auto adopted = adopt_into_impl(owner, item, depth + 1);
+            auto adopted = adopt_into_impl(owner, entry, item, depth + 1);
             if (!adopted.isSameObjectAs(item))
                 replacements.emplace_back(key, adopted);
         }
@@ -387,7 +407,7 @@ static void adopt_children_impl(QPDF *owner, QPDFObjectHandle container, int dep
         int index = 0;
         for (auto const &value : container.aitems()) {
             auto item = value;
-            auto adopted = adopt_into_impl(owner, item, depth + 1);
+            auto adopted = adopt_into_impl(owner, entry, item, depth + 1);
             if (!adopted.isSameObjectAs(item))
                 replacements.emplace_back(index, adopted);
             ++index;
@@ -395,12 +415,16 @@ static void adopt_children_impl(QPDF *owner, QPDFObjectHandle container, int dep
         for (auto const &[i, adopted] : replacements)
             container.setArrayItem(i, adopted);
     } else if (container.isStream()) {
-        // A stream dictionary has no owner of its own; adopt it in place.
-        adopt_into_impl(owner, container.getDict(), depth + 1);
+        // Adopt the stream dictionary's children but leave the dictionary
+        // itself untagged: qpdf's QPDF_Stream::setDictDescription only labels
+        // a stream dictionary that has no description of its own, and a
+        // description is what setObjectDescription() installs.
+        adopt_children_impl(owner, entry, container.getDict(), depth + 1);
     }
 }
 
-static QPDFObjectHandle adopt_into_impl(QPDF *owner, QPDFObjectHandle value, int depth)
+static QPDFObjectHandle adopt_into_impl(
+    QPDF *owner, QpdfEntry *entry, QPDFObjectHandle value, int depth)
 {
     if (depth > ADOPT_MAX_DEPTH || !value.isInitialized())
         return value;
@@ -419,13 +443,17 @@ static QPDFObjectHandle adopt_into_impl(QPDF *owner, QPDFObjectHandle value, int
         // Adopt a copy so the caller's object stays unowned and reusable.
         auto copy = value.shallowCopy();
         copy.setObjectDescription(owner, "");
+        if (entry)
+            entry->record_adopted(copy.getObj());
         return copy;
     }
 
     // Containers are adopted in place: pikepdf callers expect a dictionary or
     // array they assigned into a Pdf to stay aliased with the document.
     value.setObjectDescription(owner, "");
-    adopt_children_impl(owner, value, depth);
+    if (entry)
+        entry->record_adopted(value.getObj());
+    adopt_children_impl(owner, entry, value, depth);
     return value;
 }
 
@@ -444,16 +472,51 @@ QPDFObjectHandle adopt_into(QPDF *owner, QPDFObjectHandle value)
 {
     if (!owner)
         return value;
-    return adopt_into_impl(owner, value, 0);
+    // One registry lookup for the whole subtree.
+    auto *entry = QpdfRegistry::instance().lookup_entry(owner);
+    return adopt_into_impl(owner, entry, value, 0);
 }
 
 // Adopt the direct children of a container that already has an owner, such as
-// an object that was just made indirect.
+// an object that was just made indirect or copied from another document.
 void adopt_children_into(QPDF *owner, QPDFObjectHandle container)
 {
     if (!owner)
         return;
-    adopt_children_impl(owner, container, 0);
+    auto *entry = QpdfRegistry::instance().lookup_entry(owner);
+    adopt_children_impl(owner, entry, container, 0);
+}
+
+// Finish promoting a direct object to an indirect object of `owner`.
+//
+// pikepdf tags an adopted direct object with an empty description, because a
+// direct object has no obj/gen to name it with. Once the object is indirect it
+// does have one, but qpdf only falls back to its "object N 0" label when the
+// object has no description at all, so the empty tag would silently suppress
+// the label in every warning about the object. Reinstating qpdf's own template
+// restores it. ($OG is expanded to the obj/gen by QPDFObject::getDescription.)
+void adopt_made_indirect(QPDF *owner, QPDFObjectHandle indirect)
+{
+    if (!owner)
+        return; // LCOV_EXCL_LINE
+    indirect.setObjectDescription(owner, "object $OG");
+    adopt_children_into(owner, indirect);
+}
+
+// Raise ForeignObjectError for a direct object that belongs to another Pdf.
+//
+// qpdf itself only guards indirect objects; a direct object carries its owner
+// in a description, and silently retagging it would detach it from the
+// document that still references it.
+void refuse_to_steal(QPDFObjectHandle &h, QPDF *target)
+{
+    if (h.isIndirect())
+        return;
+    QPDF *owner = live_owner(h);
+    if (owner && owner != target)
+        throw_foreign_object_error(
+            "This object belongs to another Pdf. Remove it from that document "
+            "first, or make it indirect there and use Pdf.copy_foreign().");
 }
 
 void object_set_key(QPDFObjectHandle h, std::string const &key, QPDFObjectHandle &value)
@@ -476,7 +539,15 @@ void object_set_key(QPDFObjectHandle h, std::string const &key, QPDFObjectHandle
 
     // A stream dictionary has no owner of its own, so take the owner from the
     // stream object.
-    dict.replaceKey(key, adopt_into(live_owner(h), value));
+    QPDF *owner = live_owner(h);
+    auto old_value = dict.hasKey(key) ? dict.getKey(key) : QPDFObjectHandle();
+    auto adopted = adopt_into(owner, value);
+    dict.replaceKey(key, adopted);
+    // Releasing the replaced value's owner lets it be inserted into another
+    // Pdf. Assigning a key to the value it already holds must not disconnect
+    // the value that is still there.
+    if (old_value.isInitialized() && !old_value.isSameObjectAs(adopted))
+        disconnect_from_owner(owner, old_value);
 }
 
 void object_del_key(QPDFObjectHandle h, std::string const &key)
@@ -493,7 +564,9 @@ void object_del_key(QPDFObjectHandle h, std::string const &key)
     if (!dict.hasKey(key))
         throw py::key_error(key.c_str());
 
+    auto old_value = dict.getKey(key);
     dict.removeKey(key);
+    disconnect_from_owner(live_owner(h), old_value);
 }
 
 // Traverse a NamePath, returning the final object or throwing with context
@@ -877,12 +950,14 @@ void init_object(py::module_ &m)
                     throw py::value_error(
                         "with_same_owner_as() called for object that has no owner");
                 if (!self.isIndirect()) {
+                    refuse_to_steal(self, other_owner);
                     auto indirect = other_owner->makeIndirectObject(self);
-                    adopt_children_into(other_owner, indirect);
+                    adopt_made_indirect(other_owner, indirect);
                     return indirect;
                 }
 
                 auto self_in_other = other_owner->copyForeignObject(self);
+                adopt_children_into(other_owner, self_in_other);
                 return self_in_other;
             })
         .def_prop_ro("is_indirect", &QPDFObjectHandle::isIndirect)

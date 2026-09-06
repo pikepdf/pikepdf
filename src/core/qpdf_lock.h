@@ -7,13 +7,16 @@
 // standard library headers. See note in pikepdf.h.
 #include <nanobind/nanobind.h>
 
+#include <algorithm>
 #include <atomic>
 #include <cstdint>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
+#include <vector>
 
 #include <qpdf/QPDF.hh>
+#include <qpdf/QPDFObjectHandle.hh>
 
 namespace py = nanobind;
 
@@ -66,10 +69,66 @@ private:
 enum class ConversionMode : int8_t { unset = 0, implicit = 1, explicit_ = 2 };
 
 // Per-QPDF registry entry: the re-entrant mutex that serializes access to the
-// QPDF, plus the document's conversion mode.
+// QPDF, the document's conversion mode, and the set of direct objects that
+// pikepdf tagged with this document as their owner.
+//
+// qpdf records an object's owning QPDF as a raw pointer, and ~QPDF only clears
+// that pointer on objects still reachable from its object cache. A direct
+// object that pikepdf adopted and that was later detached from the object
+// graph -- or that Python still holds a reference to -- would otherwise keep a
+// dangling pointer into freed memory, and qpdf dereferences the pointer
+// internally before pikepdf gets a chance to check it. So every adopted object
+// is remembered here as a weak_ptr (which does not keep it alive) and
+// disconnected just before the QPDF is deleted.
 struct QpdfEntry {
     ReentrantFtMutex mutex;
     std::atomic<ConversionMode> conversion_mode{ConversionMode::unset};
+
+    // Remember an object that was just tagged with this document as its owner.
+    void record_adopted(std::shared_ptr<QPDFObject> const &obj)
+    {
+        if (!obj)
+            return; // LCOV_EXCL_LINE
+        std::lock_guard<std::mutex> guard(adopted_mutex_);
+        adopted_.emplace_back(obj);
+        // Amortised pruning: the vector is compacted once it has grown to
+        // twice the number of live entries measured at the previous prune,
+        // so pruning costs O(1) per insertion on average.
+        size_t threshold = std::max<size_t>(64, live_at_last_prune_ * 2);
+        if (adopted_.size() > threshold) {
+            adopted_.erase(
+                std::remove_if(adopted_.begin(),
+                    adopted_.end(),
+                    [](std::weak_ptr<QPDFObject> const &w) { return w.expired(); }),
+                adopted_.end());
+            live_at_last_prune_ = adopted_.size();
+        }
+    }
+
+    // Clear this document from every object it adopted that is still alive
+    // and still owned by it. Called from the QPDF deleter while the QPDF is
+    // still valid. The object's value is left intact; only the owner
+    // association is removed. An object that was detached from this document
+    // and adopted by another remains on this list, so the owner check keeps
+    // the other document's ownership intact.
+    void disconnect_adopted(QPDF *self)
+    {
+        std::lock_guard<std::mutex> guard(adopted_mutex_);
+        for (auto &weak : adopted_) {
+            if (auto sp = weak.lock()) {
+                QPDFObjectHandle h(sp);
+                if (h.getOwningQPDF() == self)
+                    h.setObjectDescription(nullptr, "");
+            }
+        }
+        adopted_.clear();
+        live_at_last_prune_ = 0;
+    }
+
+private:
+    std::mutex adopted_mutex_;
+    std::vector<std::weak_ptr<QPDFObject>> adopted_;
+    size_t live_at_last_prune_ = 0;
 };
 
 // Global registry mapping QPDF* -> QpdfEntry*.

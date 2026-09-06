@@ -570,7 +570,9 @@ class Object:
 
         Raises:
             TypeError: If object is not an integer and no default was provided.
-            OverflowError: If the value is out of range for a 64-bit integer.
+            OverflowError: If the value is out of range for a 64-bit integer
+                and no default was provided. If a default was provided, it is
+                returned instead.
 
         .. versionadded:: 10.1
 
@@ -723,9 +725,13 @@ class Object:
         """Retrieve a value without implicit conversion of scalars.
 
         Like :meth:`get`, except the result is always a :class:`pikepdf.Object`,
-        regardless of the conversion mode in effect. A stored PDF null is
-        returned as an Object of type null, not ``None``; ``None`` (or
-        *default*) is returned only when the key or path is absent.
+        regardless of the conversion mode in effect.
+
+        A null stored inside an *array* comes back as a ``Null``-typed Object
+        rather than ``None``. In a *dictionary*, qpdf treats a key whose value
+        is null as absent, so ``get_raw`` returns the default for it, exactly
+        as :meth:`get` does; ``None`` (or *default*) is likewise returned when
+        the key or path does not exist at all.
 
         .. versionadded:: 10.14
         """
@@ -750,11 +756,8 @@ class Object:
             key: A string, :class:`pikepdf.Name` or :class:`pikepdf.NamePath`.
             default: Value to return if the key is absent or the wrong type.
             coerce: If True, also accept a Real (truncated toward zero) and a
-                String whose text is a number.
-
-        Raises:
-            OverflowError: If a coerced value is out of range for a 64-bit
-                integer.
+                String whose text is a number. A coerced value that is out of
+                range for a 64-bit integer yields *default*.
 
         .. versionadded:: 10.14
         """
@@ -4233,8 +4236,8 @@ def _set_explicit_conversion_mode(mode: bool) -> bool: ...
 def _get_explicit_conversion_mode() -> bool: ...
 def _get_effective_explicit_mode() -> bool: ...
 def _get_effective_explicit_mode_for(pdf: Pdf) -> bool: ...
-def _push_thread_conversion_mode(explicit: bool) -> None: ...
-def _pop_thread_conversion_mode() -> None: ...
+def _push_thread_conversion_mode(explicit: bool) -> int: ...
+def _pop_thread_conversion_mode(token: int, /) -> None: ...
 def set_decimal_precision(prec: int) -> int:
     """Get the number of decimal digits to use when converting floats."""
 

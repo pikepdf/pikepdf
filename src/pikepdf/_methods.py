@@ -200,11 +200,8 @@ class Extend_Object:
             key: A string, :class:`pikepdf.Name` or :class:`pikepdf.NamePath`.
             default: Value to return if the key is absent or the wrong type.
             coerce: If True, also accept a Real (truncated toward zero) and a
-                String whose text is a number.
-
-        Raises:
-            OverflowError: If a coerced value is out of range for a 64-bit
-                integer.
+                String whose text is a number. A coerced value that is out of
+                range for a 64-bit integer yields *default*.
 
         .. versionadded:: 10.14
         """

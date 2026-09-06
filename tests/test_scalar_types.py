@@ -977,6 +977,18 @@ class TestImplicitConversionContext:
                 assert pikepdf.get_object_conversion_mode() == 'implicit'
             assert pikepdf.get_object_conversion_mode() == 'explicit'
 
+    def test_out_of_order_exit_does_not_corrupt_stack(self):
+        # Exiting an outer context manager before an inner one must not leave
+        # the thread-local stack in a state that leaks into later code.
+        cm1 = pikepdf.explicit_conversion()
+        cm2 = pikepdf.implicit_conversion()
+        cm1.__enter__()
+        cm2.__enter__()
+        cm1.__exit__(None, None, None)
+        assert pikepdf.get_object_conversion_mode() == 'implicit'
+        cm2.__exit__(None, None, None)
+        assert pikepdf.get_object_conversion_mode() == 'implicit'
+
 
 class TestPerPdfConversionMode:
     """Tests for the per-Pdf conversion mode."""
@@ -1368,8 +1380,14 @@ class TestCoercionTruthTable:
         d = Dictionary(A=pikepdf.String('99999999999999999999'))
         with pytest.raises(OverflowError):
             d.get_raw('/A').as_int(coerce=True)
-        with pytest.raises(OverflowError):
-            d.get_raw('/A').as_int(None, coerce=True)
+        # With a default supplied, an out-of-range value is a value the caller
+        # cannot use, so the default is returned instead of raising.
+        assert d.get_raw('/A').as_int(None, coerce=True) is None
+        assert d.get_raw('/A').as_int(0, coerce=True) == 0
+
+    def test_overflow_with_default_from_get_int(self):
+        d = Dictionary(S=pikepdf.String('99999999999999999999'))
+        assert d.get_int('/S', 0, coerce=True) == 0
 
     def test_overflow_from_real(self):
         d = Dictionary(A=Real('1e30'))
