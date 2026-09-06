@@ -390,8 +390,20 @@ jobs:
         run: |
           TAG="v${{ steps.version.outputs.version }}"
 
-          # Delete existing draft release if it exists (ignore errors)
-          gh release delete "$TAG" --yes 2>/dev/null || true
+          # Never touch a release that has already been published. _version.py
+          # keeps the last released version until the next bump, so without this
+          # guard every post-release push to main would delete the published
+          # release (notes, signatures and all) and replace it with a draft.
+          IS_DRAFT=$(gh release view "$TAG" --json isDraft --jq .isDraft 2>/dev/null || echo absent)
+          if [ "$IS_DRAFT" = "false" ]; then
+            echo "Release $TAG is already published; skipping artifact staging."
+            exit 0
+          fi
+
+          # Replace the previous draft, if any
+          if [ "$IS_DRAFT" = "true" ]; then
+            gh release delete "$TAG" --yes
+          fi
 
           # Create new draft release with all artifacts
           gh release create "$TAG" \

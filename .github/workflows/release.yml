@@ -21,25 +21,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download artifacts from draft release
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          mkdir -p dist
-          gh release download "$GITHUB_REF_NAME" --dir dist --pattern '*.whl'
-          gh release download "$GITHUB_REF_NAME" --dir dist --pattern '*.tar.gz'
-
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-
-      # PyPI doesn't support sigstore publishing, so generate after publishing to PyPI
-      - name: Sign the dists with Sigstore
-        uses: sigstore/gh-action-sigstore-python@v3.0.0
-        with:
-          inputs: |
-            ./dist/*.tar.gz
-            ./dist/*.whl
-
       - name: Extract release notes
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
@@ -59,15 +40,45 @@ jobs:
 
               # Find the section for this version
               # Match from "## vX.Y.Z" until the next "## v" or end of file
-              pattern = rf"## v{re.escape(version)}\n(.*?)(?=\n## v|\Z)"
-              match = re.search(pattern, content, re.DOTALL)
-              notes = match.group(1).strip() if match else ""
+              def section(v):
+                  pattern = rf"## v{re.escape(v)}\n(.*?)(?=\n## v|\Z)"
+                  match = re.search(pattern, content, re.DOTALL)
+                  return match.group(1).strip() if match else ""
+
+              # A .postN release carries no notes of its own; it re-releases the
+              # base version, so fall back to that section.
+              notes = section(version) or section(re.sub(r"\.post\d+$", "", version))
           except FileNotFoundError:
               notes = ""
+
+          if not notes:
+              raise SystemExit(
+                  f"No release notes found for v{version} in {release_file}. "
+                  f"Add a '## v{version}' section before tagging."
+              )
 
           with open("release_notes.md", "w") as f:
               f.write(notes)
           EOF
+
+      - name: Download artifacts from draft release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p dist
+          gh release download "$GITHUB_REF_NAME" --dir dist --pattern '*.whl'
+          gh release download "$GITHUB_REF_NAME" --dir dist --pattern '*.tar.gz'
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+      # PyPI doesn't support sigstore publishing, so generate after publishing to PyPI
+      - name: Sign the dists with Sigstore
+        uses: sigstore/gh-action-sigstore-python@v3.0.0
+        with:
+          inputs: |
+            ./dist/*.tar.gz
+            ./dist/*.whl
 
       - name: Publish release (convert draft to published)
         env:
