@@ -44,10 +44,11 @@ static constinit std::atomic<PyObject *> exc_foreign{nullptr};
 static constinit std::atomic<PyObject *> exc_destroyedobject{nullptr};
 static constinit std::atomic<PyObject *> exc_referencecycle{nullptr};
 
-// Thread-local counter for explicit_conversion() context manager nesting.
-// When > 0, the current thread is inside one or more context managers and
-// explicit mode takes precedence over the global EXPLICIT_CONVERSION_MODE.
-static thread_local int thread_explicit_depth = 0;
+// Thread-local stack of conversion mode overrides, pushed by the
+// explicit_conversion() and implicit_conversion() context managers. The top of
+// the stack takes precedence over both the per-Pdf mode and the global
+// EXPLICIT_CONVERSION_MODE.
+static thread_local std::vector<ConversionMode> thread_mode_stack;
 
 PyObject *get_data_decoding_error_type()
 {
@@ -62,13 +63,24 @@ bool get_mmap_default()
 {
     return MMAP_DEFAULT.load();
 }
-bool get_explicit_conversion_mode()
+bool get_explicit_conversion_mode(QpdfEntry const *owner) noexcept
 {
-    // Thread-local context manager takes precedence over global setting
-    if (thread_explicit_depth > 0) {
-        return true;
+    // Resolution order: thread-local override > per-Pdf mode > global setting.
+    if (!thread_mode_stack.empty()) {
+        return thread_mode_stack.back() == ConversionMode::explicit_;
+    }
+    if (owner) {
+        auto mode = owner->conversion_mode.load(std::memory_order_relaxed);
+        if (mode != ConversionMode::unset) {
+            return mode == ConversionMode::explicit_;
+        }
     }
     return EXPLICIT_CONVERSION_MODE.load();
+}
+
+bool get_explicit_conversion_mode() noexcept
+{
+    return get_explicit_conversion_mode(nullptr);
 }
 
 class TemporaryErrnoChange {
@@ -95,6 +107,11 @@ auto rewrite_qpdf_logic_error_msg(std::string msg)
     using match_replace = std::pair<std::regex, std::string>;
 
     const static std::vector<match_replace> replacements = {
+        // qpdf's ownership check fires when an object that belongs to another
+        // Pdf is inserted. Point at both ways out: copy it, or build a new one.
+        match_replace{"Use QPDF::copyForeignObject to add objects from another file\\.",
+            "Use pikepdf.copy_foreign to add objects from another file, or "
+            "construct a new object."},
         match_replace{"QPDF::copyForeign(?:Object)?", "pikepdf.copy_foreign"},
         match_replace{"QPDFObjectHandle", "pikepdf.Object"},
         match_replace{"QPDFPageObjectHelper", "pikepdf.Page"},
@@ -271,18 +288,42 @@ NB_MODULE(_core, m)
             []() { return get_explicit_conversion_mode(); },
             "Return True if explicit mode is active (includes thread-local override).")
         .def(
+            "_get_effective_explicit_mode_for",
+            [](QPDF &q) {
+                return get_explicit_conversion_mode(
+                    QpdfRegistry::instance().lookup_entry(&q));
+            },
+            py::arg("pdf"),
+            "Return True if explicit mode is active for the given Pdf.")
+        .def(
             "_set_explicit_conversion_mode",
             [](bool mode) { return EXPLICIT_CONVERSION_MODE.exchange(mode); },
             "Set explicit conversion mode (global baseline). Returns previous value.")
         .def(
+            "_push_thread_conversion_mode",
+            [](bool explicit_) {
+                thread_mode_stack.push_back(
+                    explicit_ ? ConversionMode::explicit_ : ConversionMode::implicit);
+            },
+            py::arg("explicit"),
+            "Push a thread-local conversion mode override (for context managers).")
+        .def(
+            "_pop_thread_conversion_mode",
+            []() {
+                if (!thread_mode_stack.empty()) {
+                    thread_mode_stack.pop_back();
+                }
+            },
+            "Pop a thread-local conversion mode override (for context managers).")
+        .def(
             "_enter_thread_explicit_mode",
-            []() { ++thread_explicit_depth; },
+            []() { thread_mode_stack.push_back(ConversionMode::explicit_); },
             "Enter thread-local explicit conversion mode (for context manager).")
         .def(
             "_exit_thread_explicit_mode",
             []() {
-                if (thread_explicit_depth > 0) {
-                    --thread_explicit_depth;
+                if (!thread_mode_stack.empty()) {
+                    thread_mode_stack.pop_back();
                 }
             },
             "Exit thread-local explicit conversion mode (for context manager).")

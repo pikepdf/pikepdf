@@ -49,13 +49,15 @@ std::string objecthandle_scalar_value(QPDFObjectHandle h)
         return h.getBoolValue() ? "True" : "False";
     case qpdf_object_type_e::ot_integer:
         return std::to_string(h.getIntValue());
-    case qpdf_object_type_e::ot_real:
-        if (get_explicit_conversion_mode()) {
+    case qpdf_object_type_e::ot_real: {
+        QpdfLockGuard lock(h.getOwningQPDF());
+        if (get_explicit_conversion_mode(lock.entry())) {
             // In explicit mode, show as quoted string since pikepdf.Real wraps it
             return "'" + h.getRealValue() + "'";
         }
         // In implicit mode, show as Decimal for backward compatibility
         return "Decimal('" + h.getRealValue() + "')";
+    }
     case qpdf_object_type_e::ot_name:
         append_quoted(out, h.getName());
         return out;
@@ -98,11 +100,20 @@ std::string objecthandle_pythonic_typename(QPDFObjectHandle h)
     case qpdf_object_type_e::ot_null:
         return ""; // None is always represented as None
     case qpdf_object_type_e::ot_boolean:
-        return get_explicit_conversion_mode() ? "pikepdf.Boolean" : "";
     case qpdf_object_type_e::ot_integer:
-        return get_explicit_conversion_mode() ? "pikepdf.Integer" : "";
-    case qpdf_object_type_e::ot_real:
-        return get_explicit_conversion_mode() ? "pikepdf.Real" : "";
+    case qpdf_object_type_e::ot_real: {
+        QpdfLockGuard lock(h.getOwningQPDF());
+        if (!get_explicit_conversion_mode(lock.entry()))
+            return "";
+        switch (h.getTypeCode()) {
+        case qpdf_object_type_e::ot_boolean:
+            return "pikepdf.Boolean";
+        case qpdf_object_type_e::ot_integer:
+            return "pikepdf.Integer";
+        default:
+            return "pikepdf.Real";
+        }
+    }
 
     // LCOV_EXCL_START
     default:

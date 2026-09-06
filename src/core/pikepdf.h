@@ -49,8 +49,10 @@ inline PyType_Slot pikepdf_gc_slots[] = {
 // From object_convert.cpp
 py::object decimal_from_pdfobject(QPDFObjectHandle h);
 
-// From pikepdf.cpp - forward declaration for type_caster
-bool get_explicit_conversion_mode();
+// From pikepdf.cpp - forward declarations for type_caster.
+// Resolution order: thread-local override > per-Pdf mode > global setting.
+bool get_explicit_conversion_mode(QpdfEntry const *owner) noexcept;
+bool get_explicit_conversion_mode() noexcept;
 
 // Sentinel prefix that carries a JBIG2 decode failure across qpdf's C++ frames.
 //
@@ -106,7 +108,7 @@ struct type_caster<QPDFObjectHandle> : public type_caster_base<QPDFObjectHandle>
         // In explicit conversion mode, return scalars as pikepdf.Object
         // so that Integer/Boolean/Real types are preserved.
         // In implicit mode (default), auto-convert to native Python types.
-        if (!get_explicit_conversion_mode()) {
+        if (!get_explicit_conversion_mode(qpdf_lock.entry())) {
             switch (src->getTypeCode()) {
             case qpdf_object_type_e::ot_null:
                 return handle(Py_None).inc_ref();
@@ -135,6 +137,20 @@ struct type_caster<QPDFObjectHandle> : public type_caster_base<QPDFObjectHandle>
 
 } // namespace detail
 } // namespace nanobind
+
+// Convert a QPDFObjectHandle to a pikepdf.Object, bypassing the conversion
+// mode entirely: scalars are never converted to Python int/bool/Decimal, and
+// a Null comes back as a pikepdf.Object of type Null rather than None.
+inline py::object cast_raw(QPDFObjectHandle const &h)
+{
+    QPDFObjectHandle handle = h;
+    QpdfLockGuard qpdf_lock(handle.getOwningQPDF());
+    py::handle result = py::detail::type_caster_base<QPDFObjectHandle>::from_cpp(
+        handle, py::rv_policy::copy, nullptr);
+    if (!result.is_valid())
+        py::detail::raise_python_or_cast_error(); // LCOV_EXCL_LINE
+    return py::steal(result);
+}
 
 using ObjectList = std::vector<QPDFObjectHandle>;
 NB_MAKE_OPAQUE(ObjectList);
@@ -199,7 +215,6 @@ void init_transcoding(py::module_ &m);
 // pikepdf.cpp
 uint get_decimal_precision();
 bool get_mmap_default();
-bool get_explicit_conversion_mode();
 
 inline void python_warning(
     const char *msg, PyObject *category = PyExc_UserWarning, Py_ssize_t stacklevel = 1)

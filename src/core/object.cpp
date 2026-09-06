@@ -285,6 +285,113 @@ QPDFObjectHandle object_get_key(QPDFObjectHandle h, std::string const &key)
     return dict.getKey(key);
 }
 
+// Maximum recursion depth when adopting a tree of direct objects. Direct
+// objects form a tree, not a graph, when built through pikepdf, but a
+// pathological or hand-built structure should not be able to overflow the
+// stack.
+static constexpr int ADOPT_MAX_DEPTH = 1000;
+
+static bool is_scalar_object(QPDFObjectHandle const &h)
+{
+    switch (h.getTypeCode()) {
+    case qpdf_object_type_e::ot_null:
+    case qpdf_object_type_e::ot_boolean:
+    case qpdf_object_type_e::ot_integer:
+    case qpdf_object_type_e::ot_real:
+    case qpdf_object_type_e::ot_string:
+    case qpdf_object_type_e::ot_name:
+    case qpdf_object_type_e::ot_operator:
+    case qpdf_object_type_e::ot_inlineimage:
+        return true;
+    default:
+        return false;
+    }
+}
+
+static QPDFObjectHandle adopt_into_impl(QPDF *owner, QPDFObjectHandle value, int depth);
+
+// Adopt the direct children of a container in place: a child that is a scalar
+// is replaced by an adopted copy of itself, and a child container is tagged
+// and recursed into.
+static void adopt_children_impl(QPDF *owner, QPDFObjectHandle container, int depth)
+{
+    if (depth > ADOPT_MAX_DEPTH)
+        return;
+    if (container.isDictionary()) {
+        for (auto &item : container.getDictAsMap()) {
+            auto adopted = adopt_into_impl(owner, item.second, depth + 1);
+            if (!adopted.isSameObjectAs(item.second))
+                container.replaceKey(item.first, adopted);
+        }
+    } else if (container.isArray()) {
+        auto items = container.getArrayAsVector();
+        for (size_t i = 0; i < items.size(); ++i) {
+            auto adopted = adopt_into_impl(owner, items[i], depth + 1);
+            if (!adopted.isSameObjectAs(items[i]))
+                container.setArrayItem(static_cast<int>(i), adopted);
+        }
+    } else if (container.isStream()) {
+        // A stream dictionary has no owner of its own; adopt it in place.
+        adopt_into_impl(owner, container.getDict(), depth + 1);
+    }
+}
+
+static QPDFObjectHandle adopt_into_impl(QPDF *owner, QPDFObjectHandle value, int depth)
+{
+    if (depth > ADOPT_MAX_DEPTH || !value.isInitialized())
+        return value;
+    // An indirect object always belongs to a document already, and an object
+    // that qpdf already associates with a document (this one or another) is
+    // left alone: qpdf raises ForeignObjectError for objects from another Pdf.
+    if (value.isIndirect() || value.getOwningQPDF() != nullptr)
+        return value;
+
+    // An empty description leaves qpdf's error messages exactly as they were
+    // for an object with no description at all; the point of the call is the
+    // owning QPDF that it records.
+    if (is_scalar_object(value)) {
+        // Scalars are immutable in pikepdf, and a handle such as a Name held
+        // in a module-level constant is often inserted into several documents.
+        // Adopt a copy so the caller's object stays unowned and reusable.
+        auto copy = value.shallowCopy();
+        copy.setObjectDescription(owner, "");
+        return copy;
+    }
+
+    // Containers are adopted in place: pikepdf callers expect a dictionary or
+    // array they assigned into a Pdf to stay aliased with the document.
+    value.setObjectDescription(owner, "");
+    adopt_children_impl(owner, value, depth);
+    return value;
+}
+
+// Give a direct object, and every direct object below it, the same owning
+// document as the container it is about to be inserted into, and return the
+// handle that should actually be inserted.
+//
+// qpdf only associates a document with objects that it read from that
+// document, so an object built in Python (the 42 in ``pdf.Root.Count = 42``,
+// or a ``Dictionary(...)`` assigned into a Pdf) would otherwise belong to no
+// document at all. Adoption at insertion time is what lets per-document
+// settings, such as Pdf.conversion_mode, apply to objects created in the
+// current session, and it matches what qpdf does for objects parsed from a
+// file.
+QPDFObjectHandle adopt_into(QPDF *owner, QPDFObjectHandle value)
+{
+    if (!owner)
+        return value;
+    return adopt_into_impl(owner, value, 0);
+}
+
+// Adopt the direct children of a container that already has an owner, such as
+// an object that was just made indirect.
+void adopt_children_into(QPDF *owner, QPDFObjectHandle container)
+{
+    if (!owner)
+        return;
+    adopt_children_impl(owner, container, 0);
+}
+
 void object_set_key(QPDFObjectHandle h, std::string const &key, QPDFObjectHandle &value)
 {
     QpdfLockGuard lock(h.getOwningQPDF());
@@ -303,8 +410,9 @@ void object_set_key(QPDFObjectHandle h, std::string const &key, QPDFObjectHandle
     // For streams, the actual dictionary is attached to stream object
     QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
 
-    // A stream dictionary has no owner, so use the stream object in this comparison
-    dict.replaceKey(key, value);
+    // A stream dictionary has no owner of its own, so take the owner from the
+    // stream object.
+    dict.replaceKey(key, adopt_into(h.getOwningQPDF(), value));
 }
 
 void object_del_key(QPDFObjectHandle h, std::string const &key)
@@ -704,8 +812,11 @@ void init_object(py::module_ &m)
                 if (!other_owner)
                     throw py::value_error(
                         "with_same_owner_as() called for object that has no owner");
-                if (!self.isIndirect())
-                    return other_owner->makeIndirectObject(self);
+                if (!self.isIndirect()) {
+                    auto indirect = other_owner->makeIndirectObject(self);
+                    adopt_children_into(other_owner, indirect);
+                    return indirect;
+                }
 
                 auto self_in_other = other_owner->copyForeignObject(self);
                 return self_in_other;

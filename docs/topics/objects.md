@@ -35,24 +35,110 @@ pikepdf provides an **explicit conversion mode** that preserves PDF type
 information by returning {class}`pikepdf.Integer`, {class}`pikepdf.Boolean`,
 and {class}`pikepdf.Real` objects instead of native Python types.
 
+:::{versionadded} 10.14
+`implicit_conversion()`, the per-`Pdf` `conversion_mode`,
+{meth}`~pikepdf.Object.get_raw`, the `get_int`/`get_bool`/`get_float`/
+`get_decimal`/`get_dict`/`get_list` typed getters, and `coerce=` on the
+`as_*` accessors.
+:::
+
+### Three scopes, one precedence order
+
+The conversion mode can be set at three different scopes, resolved in this
+order (most specific wins):
+
+1. **Context manager** (thread-local) — {func}`pikepdf.explicit_conversion`
+   and {func}`pikepdf.implicit_conversion` push a mode for the current thread
+   only, for the duration of the `with` block. This is the same mechanism as
+   before, just now symmetric: you can force implicit mode from inside code
+   that runs under explicit mode, or vice versa.
+2. **Per-document** — {meth}`pikepdf.Pdf.open` and {meth}`pikepdf.Pdf.new`
+   accept a keyword-only `conversion_mode` argument (`'implicit'` or
+   `'explicit'`), and the mode can be read or changed later through the
+   {attr}`pikepdf.Pdf.conversion_mode` property. This mode travels with the
+   `Pdf` object itself: it is the same regardless of which thread touches the
+   document, which makes it the right scope for a library that opens PDFs on
+   behalf of a host application without wanting to change that application's
+   own behavior. Setting the property to `None` makes the document inherit
+   whatever mode applies globally (or from a context manager).
+3. **Global** — {func}`pikepdf.set_object_conversion_mode` sets a
+   process-wide default, read back with
+   {func}`pikepdf.get_object_conversion_mode`. This is visible from every
+   thread immediately, so it is a poor fit for code embedded inside another
+   application; prefer the per-document mode there.
+
 ```python
 >>> import pikepdf
->>> with pikepdf.explicit_conversion():
-...     pdf = pikepdf.open("example.pdf")
-...     count = pdf.Root.Pages.Count
-...     isinstance(count, pikepdf.Integer)  # True
-...     int(count)  # Convert to Python int
+>>> pdf = pikepdf.open("example.pdf", conversion_mode='explicit')
+>>> pdf.conversion_mode
+'explicit'
+>>> count = pdf.Root.Pages.Count
+>>> isinstance(count, pikepdf.Integer)
+True
+>>> int(count)
+5
+
+>>> with pikepdf.implicit_conversion():
+...     pdf.Root.Pages.Count  # context manager overrides the per-Pdf mode
 5
 ```
 
-You can enable explicit mode globally with
-{func}`pikepdf.set_object_conversion_mode`:
+An object with no owning `Pdf` — for example a bare
+`pikepdf.Dictionary(...)` you constructed yourself, before attaching it to a
+document — has no per-document mode to consult, so it always resolves through
+the context-manager/global scopes. Once such an object is attached to a `Pdf`
+(for example by assigning it into the document), it takes on that document's
+mode.
+
+You can also set explicit mode globally:
 
 ```python
 >>> pikepdf.set_object_conversion_mode('explicit')
 >>> pikepdf.get_object_conversion_mode()
 'explicit'
 ```
+
+`set_object_conversion_mode` raises `ValueError` for any value other than
+`'implicit'` or `'explicit'`.
+
+### Reading values without depending on the mode
+
+Because the conversion mode changes the *type* of value a caller receives,
+code that reads optional fields out of possibly-malformed PDFs has
+historically had to pick a mode first. Two APIs sidestep that:
+
+{meth}`~pikepdf.Object.get_raw` behaves like {meth}`~pikepdf.Object.get` (it
+accepts a key, a {class}`~pikepdf.Name`, or a {class}`~pikepdf.NamePath`, and
+a `default`), but it never unboxes: it always returns a `pikepdf.Object`
+(or the `default`), regardless of the current conversion mode. A stored PDF
+null comes back as a `Null`-typed `Object`, not `None`:
+
+```python
+>>> d = pikepdf.Dictionary(N=None, I=42)
+>>> d.get_raw('/I')          # Object, even in implicit mode
+pikepdf.Object(...)
+>>> d.get_raw('/N')          # Null object, not None
+>>> d.get_raw('/Missing', 'fallback')
+'fallback'
+```
+
+The typed getters — {meth}`~pikepdf.Object.get_int`,
+{meth}`~pikepdf.Object.get_bool`, {meth}`~pikepdf.Object.get_float`,
+{meth}`~pikepdf.Object.get_decimal`, {meth}`~pikepdf.Object.get_dict`, and
+{meth}`~pikepdf.Object.get_list` — combine `get_raw` with the matching `as_*`
+accessor, so reading an optional, possibly-wrong-typed value is a
+mode-independent one-liner:
+
+```python
+>>> width = d.get_int('/Width', 0)
+>>> flag = d.get_bool(NamePath.MarkInfo.Marked, False, coerce=True)
+```
+
+Each accepts `key_or_path` (a `str`, `Name`, or `NamePath`), a `default`
+(`None` if omitted), and, for the numeric and boolean getters, a
+`coerce=` keyword with the same meaning as on the corresponding `as_*`
+method below. These are the recommended way to read a value whose type
+you cannot guarantee, in *either* conversion mode.
 
 ### Safe accessor methods
 
@@ -72,7 +158,48 @@ Available methods:
 - {meth}`~pikepdf.Object.as_int` - convert to `int`, or return default
 - {meth}`~pikepdf.Object.as_bool` - convert to `bool`, or return default
 - {meth}`~pikepdf.Object.as_float` - convert to `float`, or return default
-- {meth}`~pikepdf.Object.as_decimal` - convert to `Decimal` (for Real only), or return default
+- {meth}`~pikepdf.Object.as_decimal` - convert to `Decimal`, or return default
+- {meth}`~pikepdf.Object.as_dict` - as a `Dictionary`/mapping, or return
+  default; raises `TypeError` (not `PdfError`) if the object is not a
+  dictionary or stream
+- {meth}`~pikepdf.Object.as_list` - as an `Array`/list, or return default;
+  raises `TypeError` if the object is not an array
+
+:::{versionchanged} 10.14
+`as_dict()` and `as_list()` now accept a `default` argument and raise
+`TypeError` on a type mismatch (previously `PdfError`, and no `default`
+parameter existed).
+:::
+
+#### Lenient coercion with `coerce=True`
+
+By default the `as_*` accessors are strict: they only succeed on the exact
+PDF type they name (plus a default). Real PDFs, especially malformed ones,
+often encode a value using a "nearby" type — a boolean written as the
+integer `0`/`1`, a number written as a string in exponential notation. Pass
+`coerce=True` to `as_int`, `as_bool`, `as_float`, or `as_decimal` to accept
+these:
+
+- `as_int(coerce=True)` — also accepts a `Real` (truncated toward zero, like
+  `int()`) and a numeric `String` (parsed as an integer if the text is
+  exactly integral, otherwise via a floating-point parse).
+- `as_bool(coerce=True)` — also accepts an `Integer` or `Real`, true iff
+  nonzero.
+- `as_float(coerce=True)` and `as_decimal(coerce=True)` — also accept an
+  `Integer` and a numeric `String`, including exponent notation such as
+  `"1e-5"`.
+
+```python
+>>> pikepdf.Dictionary(Marked=1).Marked.as_bool(coerce=True)  # accept 0/1
+True
+>>> pikepdf.String("1e-5").as_float(coerce=True)
+1e-05
+```
+
+`coerce=True` does not widen the *failure* mode: a value that is not
+convertible under any of these rules still returns the default (or raises
+`TypeError` with no default), it just widens which stored types are
+accepted.
 
 ### Arithmetic with scalar types
 
@@ -100,6 +227,58 @@ True
 >>> isinstance(catalog_name, pikepdf.Object)
 True
 ```
+
+`repr()` honors the effective conversion mode of the object being displayed
+(context manager, then the object's own `Pdf`, then the global setting), so a
+document opened with `conversion_mode='explicit'` shows `pikepdf.Integer(5)`
+rather than `5` even if the global mode is implicit.
+
+:::{versionchanged} 10.14
+`bool()` on a `pikepdf.Integer` or `pikepdf.Real` now returns the truth value
+of the number (`bool(pikepdf.Integer(0))` is `False`), rather than raising
+`NotImplementedError`.
+:::
+
+### Migrating to explicit mode
+
+Switching a codebase from implicit to explicit conversion (whether via the
+global setting, a per-document mode, or the context manager) is a **breaking
+change** for code that was written assuming native Python scalars, and some
+of the breakage is silent rather than an exception. Before flipping the
+default, check for:
+
+- **`isinstance(x, int | bool | Decimal)` silently becomes `False`.** This is
+  the most dangerous case: no exception is raised, so a guard clause written
+  this way (for example `if not isinstance(value, int): return None`) simply
+  takes the wrong branch on every explicit-mode value. Search for
+  `isinstance` checks against `int`, `bool`, or `Decimal` on anything that
+  might be a pikepdf object, and replace them with `as_int`/`as_bool`/
+  `as_decimal`/`get_int`/etc., or with `isinstance(x, pikepdf.Integer)` and
+  friends if you specifically need to detect the PDF type.
+- **Ordering comparisons** (`<`, `<=`, `>`, `>=`) between a `pikepdf.Real` and
+  a number raise `TypeError`.
+- **Arithmetic on `Real`** (e.g. `mediabox[2] - mediabox[0]`) raises
+  `TypeError` unless both operands are already pikepdf numeric objects
+  produced by arithmetic on them; mixing with a plain Python number is only
+  supported as shown above, and some combinations that worked implicitly will
+  need an explicit `float()`/`int()` conversion first.
+- **`hash()`** of a scalar raises `TypeError`, so an `Integer`/`Real`/
+  `Boolean` cannot be used as a dict key or put in a `set` without first
+  converting it.
+- **`json.dumps()`** of a scalar raises `TypeError`, since the standard
+  library does not know how to serialize a `pikepdf.Object`.
+
+Prefer the mode-independent `as_*` accessors and the `get_*`/`get_raw`
+container methods described above for any code that must work regardless of
+mode. When you do switch a mode, run your test suite once with
+`pikepdf.set_object_conversion_mode('explicit')` in effect (or wrap the
+relevant tests in {func}`pikepdf.explicit_conversion`) to catch call sites
+that assumed implicit conversion.
+
+pikepdf intends to make explicit conversion the default in a future major
+release. New code that reads values of uncertain type should prefer the
+mode-independent getters (`get_raw`, `get_int`, `get_bool`, `get_float`,
+`get_decimal`, `get_dict`, `get_list`) so it is unaffected by that change.
 
 ## Making PDF objects
 

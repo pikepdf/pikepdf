@@ -14,6 +14,106 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.14.0
+
+Several improvements to explicit conversion mode and `NamePath`, prompted by
+detailed feedback from the OCRmyPDF project's migration to these APIs
+(`pikepdf.explicit_conversion()`, the `as_*` safe accessors, and `NamePath`)
+in a production codebase that reads untrusted, often malformed, PDFs. Thanks
+to that project for the report.
+
+### Conversion mode
+
+- {meth}`pikepdf.Pdf.open` and {meth}`pikepdf.Pdf.new` now accept a
+  keyword-only `conversion_mode` argument (`'implicit'` or `'explicit'`), and
+  the mode can be read or changed afterward through the new
+  {attr}`pikepdf.Pdf.conversion_mode` property. A `Pdf`'s mode travels with
+  it across threads and does not affect any other document, which makes it
+  the right scope for a library embedded inside a host application. Setting
+  the property to `None` reverts to inheriting the context-manager/global
+  mode.
+- Added {func}`pikepdf.implicit_conversion`, a thread-local context manager
+  symmetric with {func}`pikepdf.explicit_conversion`, so implicit mode can be
+  forced from inside code that runs under explicit mode.
+- Precedence when several scopes are in play: context manager, then per-`Pdf`
+  mode, then the global default set by
+  {func}`pikepdf.set_object_conversion_mode`. An object with no owning `Pdf`
+  (e.g. a bare `pikepdf.Dictionary(...)`) always resolves through the
+  context-manager/global scopes.
+- Added {meth}`pikepdf.Object.get_raw`, which behaves like
+  {meth}`~pikepdf.Object.get` (key, `Name`, or `NamePath`, plus a `default`)
+  but never unboxes the result: it always returns a `pikepdf.Object`
+  regardless of the current conversion mode, and a stored PDF null comes
+  back as a `Null`-typed object rather than `None`.
+- Added container-level typed getters {meth}`~pikepdf.Object.get_int`,
+  {meth}`~pikepdf.Object.get_bool`, {meth}`~pikepdf.Object.get_float`,
+  {meth}`~pikepdf.Object.get_decimal`, {meth}`~pikepdf.Object.get_dict`, and
+  {meth}`~pikepdf.Object.get_list`, each `(key_or_path, default=None)`. These
+  compose `get_raw` with the matching `as_*` accessor, so reading an optional
+  value of uncertain type is a mode-independent one-liner instead of a
+  hand-written `with pikepdf.explicit_conversion(): ...` wrapper.
+- Added `coerce=True` to {meth}`~pikepdf.Object.as_int`,
+  {meth}`~pikepdf.Object.as_bool`, {meth}`~pikepdf.Object.as_float`, and
+  {meth}`~pikepdf.Object.as_decimal`, and to the corresponding `get_*`
+  getters, for reading values that real-world PDFs encode with a "nearby"
+  type: `as_int(coerce=True)` accepts a `Real` (truncated toward zero) and a
+  numeric `String`; `as_bool(coerce=True)` accepts a nonzero `Integer` or
+  `Real` (fixing the common `/Marked 1` case that previously required a
+  fallback to `as_int() != 0`); `as_float`/`as_decimal` with `coerce=True`
+  accept an `Integer` and a numeric `String`, including exponent notation
+  such as `"1e-5"`.
+- See {doc}`/topics/objects` for the full description of scopes and
+  precedence, plus a "Migrating to explicit mode" checklist. pikepdf intends
+  to make explicit conversion the default in a future major release; new
+  code that reads values of uncertain type should prefer the
+  mode-independent getters described above.
+
+### NamePath
+
+- `path in obj` now tests whether the path can be traversed to a value, and
+  `del obj[path]` deletes the final component after traversing to its
+  parent, both for name and array-index components.
+- `NamePath` is now iterable, yielding its individual components (`str` for
+  names, `int` for indices) in order, e.g. `list(NamePath.A.B[0])` gives
+  `['/A', '/B', 0]`.
+- `NamePath` instances now compare and hash by their component sequence, so
+  `NamePath.A.B == NamePath.A.B` is `True` and a `NamePath` can be used as a
+  dict key or stored in a `set`.
+- `isinstance(path, pikepdf.NamePath)` now works, and `pikepdf.NamePath` can
+  be used directly in type annotations (e.g.
+  `def f(key: pikepdf.Name | pikepdf.NamePath)`) without importing a private
+  name.
+
+### Behavior changes
+
+- **Behavior change:** `bool()` on a `pikepdf.Integer` or `pikepdf.Real` is
+  now by value (`bool(pikepdf.Integer(0))` is `False`), instead of raising
+  `NotImplementedError: code is unreachable`.
+- **Behavior change:** {meth}`~pikepdf.Object.as_dict` and
+  {meth}`~pikepdf.Object.as_list` now accept a `default` argument and raise
+  `TypeError` on a type mismatch, instead of raising `pikepdf.PdfError` with
+  no way to supply a default.
+- **Behavior change:** `repr()` of a `pikepdf.Object` now honors the
+  effective conversion mode of the object being displayed (context manager,
+  then its owning `Pdf`, then the global setting), rather than only the
+  global setting.
+- **Behavior change:** {func}`pikepdf.set_object_conversion_mode` now raises
+  `ValueError` for a value other than `'implicit'` or `'explicit'`, instead
+  of silently accepting it.
+
+### Fixes
+
+- Iterating a `NamePath` (e.g. `list(path)`) no longer falls back to the
+  legacy `__getitem__(0), (1), ...` protocol, which never raised
+  `IndexError` and so iterated forever, exhausting memory.
+- `NamePath in obj` no longer silently answers `False` for every path; see
+  above.
+- Fixed a stale `NamePath['/A']['/B'].C[0]` example in the type stub, which
+  did not type-check against the runtime behavior (an instance's
+  `__getitem__` only accepts an `int`). The correct form, matching the
+  compiled docstring and the {doc}`/topics/namepath` documentation, is
+  `NamePath['/A']('/B').C[0]`.
+
 ## v10.13.0
 
 ### Exception hierarchy

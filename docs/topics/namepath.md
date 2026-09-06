@@ -69,6 +69,13 @@ NamePath supports several construction styles:
     'NamePath.A.B.C[0]'
 ```
 
+Calling a `NamePath` instance appends another name component, which is the
+correct way to extend a canonical path built from non-identifier strings;
+subscripting an instance with a string, as in `NamePath['/A']['/B']`, is
+**not** valid (instance `__getitem__` only accepts an `int`, for array
+indices). The equivalent canonical spelling is
+`NamePath['/A']('/B').C[0]`, as shown above.
+
 ### Reading values
 
 Use NamePath with the subscript operator to read nested values:
@@ -195,6 +202,78 @@ NamePath can traverse through Stream objects, accessing their dictionary keys:
 
     >>> pdf.Root[NamePath.MyStream.Filter]
     pikepdf.Name("/FlateDecode")
+```
+
+## Membership, deletion, and iteration
+
+:::{versionadded} 10.14
+`in`, `del`, `__iter__`, `__eq__`/`__hash__`, and `isinstance` support for
+`NamePath`.
+:::
+
+`path in obj` tests whether the path can be traversed to a value, the same
+way `obj[path]` would succeed or raise:
+
+```{eval-rst}
+.. doctest::
+
+    >>> pdf = Pdf.new()
+    >>> pdf.Root.AcroForm = Dictionary(SigFlags=3)
+
+    >>> NamePath.AcroForm.SigFlags in pdf.Root
+    True
+    >>> NamePath.AcroForm.Missing in pdf.Root
+    False
+```
+
+An empty `NamePath` is always considered "in" any object, since it resolves
+to the object itself.
+
+`del obj[path]` deletes the final component of the path, once the parent
+has been traversed to, the same way `del obj['/Key']` deletes a single key:
+
+```{eval-rst}
+.. doctest::
+
+    >>> pdf.Root.AcroForm = Dictionary(SigFlags=3, Fields=Array())
+    >>> del pdf.Root[NamePath.AcroForm.SigFlags]
+    >>> NamePath.AcroForm.SigFlags in pdf.Root
+    False
+```
+
+This works for array elements too — `del obj[NamePath.Items[0]]` removes
+index 0 of the `Items` array, after traversing to `Items`.
+
+A `NamePath` is iterable, yielding its individual components (`str` for a
+name, `int` for an array index) in order:
+
+```{eval-rst}
+.. doctest::
+
+    >>> list(NamePath.A.B[0])
+    ['/A', '/B', 0]
+```
+
+Two `NamePath` instances compare equal, and hash equally, if they describe
+the same sequence of components, so a `NamePath` can be used as a dict key
+or stored in a `set`:
+
+```{eval-rst}
+.. doctest::
+
+    >>> NamePath.A.B == NamePath.A.B
+    True
+    >>> {NamePath.A.B, NamePath.A.B}
+    {NamePath.A.B}
+```
+
+`isinstance(path, pikepdf.NamePath)` now works for any `NamePath` instance,
+which means `pikepdf.NamePath` can be used directly in type annotations for
+a function that accepts either a `Name` or a path:
+
+```python
+def f(key: pikepdf.Name | pikepdf.NamePath):
+    return obj.get(key)
 ```
 
 ## Comparison with alternatives

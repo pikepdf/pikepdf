@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
+#include "object.h"
 #include "parsers.h"
 #include "pikepdf.h"
 #include "qpdf_lock.h"
@@ -66,7 +67,7 @@ static void page_set_box(QPDFPageObjectHelper &poh, char const *key, py::handle 
 
     auto page = poh.getObjectHandle();
     QpdfLockGuard lock(page.getOwningQPDF());
-    page.replaceKey(key, box);
+    page.replaceKey(key, adopt_into(page.getOwningQPDF(), box));
 }
 
 void init_page(py::module_ &m)

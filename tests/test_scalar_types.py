@@ -927,3 +927,274 @@ class TestRealTruedivWithInt:
             d = Dictionary(Value=Real(4.0))
             result = 10 / d.Value
             assert abs(result - 2.5) < 0.0001
+
+
+@pytest.fixture
+def restore_global_mode():
+    """Restore the global conversion mode after a test changes it."""
+    old = 'explicit' if pikepdf._core._get_explicit_conversion_mode() else 'implicit'
+    try:
+        yield
+    finally:
+        pikepdf.set_object_conversion_mode(old)
+
+
+class TestImplicitConversionContext:
+    """Tests for the implicit_conversion() context manager."""
+
+    def test_implicit_inside_explicit(self):
+        with pikepdf.explicit_conversion():
+            d = Dictionary(Value=42)
+            assert isinstance(d.Value, Integer)
+            with pikepdf.implicit_conversion():
+                assert isinstance(d.Value, int)
+                assert not isinstance(d.Value, Integer)
+            assert isinstance(d.Value, Integer)
+
+    def test_explicit_inside_implicit(self):
+        with pikepdf.implicit_conversion():
+            d = Dictionary(Value=42)
+            assert isinstance(d.Value, int)
+            with pikepdf.explicit_conversion():
+                assert isinstance(d.Value, Integer)
+            assert isinstance(d.Value, int)
+
+    def test_implicit_overrides_global(self, restore_global_mode):
+        pikepdf.set_object_conversion_mode('explicit')
+        d = Dictionary(Value=42)
+        assert isinstance(d.Value, Integer)
+        with pikepdf.implicit_conversion():
+            assert isinstance(d.Value, int)
+            assert pikepdf.get_object_conversion_mode() == 'implicit'
+        assert isinstance(d.Value, Integer)
+
+    def test_deeply_nested(self):
+        with pikepdf.explicit_conversion():
+            with pikepdf.implicit_conversion():
+                with pikepdf.explicit_conversion():
+                    assert pikepdf.get_object_conversion_mode() == 'explicit'
+                assert pikepdf.get_object_conversion_mode() == 'implicit'
+            assert pikepdf.get_object_conversion_mode() == 'explicit'
+
+
+class TestPerPdfConversionMode:
+    """Tests for the per-Pdf conversion mode."""
+
+    def test_new_default_is_none(self):
+        pdf = pikepdf.Pdf.new()
+        assert pdf.conversion_mode is None
+
+    def test_new_with_mode(self):
+        pdf = pikepdf.Pdf.new(conversion_mode='explicit')
+        assert pdf.conversion_mode == 'explicit'
+        pdf.Root.Test = 42
+        assert isinstance(pdf.Root.Test, Integer)
+
+    def test_open_with_mode(self, resources):
+        pdf = pikepdf.open(
+            resources / 'pal-1bit-trivial.pdf', conversion_mode='explicit'
+        )
+        assert pdf.conversion_mode == 'explicit'
+        assert isinstance(pdf.pages[0].obj.MediaBox[2], Integer | Real)
+
+    def test_open_default_is_none(self, resources):
+        pdf = pikepdf.open(resources / 'pal-1bit-trivial.pdf')
+        assert pdf.conversion_mode is None
+
+    def test_property_set_get(self):
+        pdf = pikepdf.Pdf.new()
+        pdf.Root.Test = 42
+        assert isinstance(pdf.Root.Test, int)
+        pdf.conversion_mode = 'explicit'
+        assert pdf.conversion_mode == 'explicit'
+        assert isinstance(pdf.Root.Test, Integer)
+        pdf.conversion_mode = 'implicit'
+        assert pdf.conversion_mode == 'implicit'
+        assert isinstance(pdf.Root.Test, int)
+        pdf.conversion_mode = None
+        assert pdf.conversion_mode is None
+
+    def test_property_invalid_value(self):
+        pdf = pikepdf.Pdf.new()
+        with pytest.raises(ValueError):
+            pdf.conversion_mode = 'sometimes'
+        with pytest.raises(ValueError):
+            pdf.conversion_mode = 42
+
+    def test_new_invalid_value(self):
+        with pytest.raises(ValueError):
+            pikepdf.Pdf.new(conversion_mode='sometimes')
+
+    def test_open_invalid_value(self, resources):
+        with pytest.raises(ValueError):
+            pikepdf.open(
+                resources / 'pal-1bit-trivial.pdf', conversion_mode='sometimes'
+            )
+
+    def test_set_object_conversion_mode_validates(self, restore_global_mode):
+        with pytest.raises(ValueError):
+            pikepdf.set_object_conversion_mode('sometimes')
+
+    def test_pdf_implicit_overrides_global_explicit(self, restore_global_mode):
+        pikepdf.set_object_conversion_mode('explicit')
+        pdf = pikepdf.Pdf.new(conversion_mode='implicit')
+        pdf.Root.Test = 42
+        assert isinstance(pdf.Root.Test, int)
+        assert pikepdf.get_object_conversion_mode(pdf) == 'implicit'
+        assert pikepdf.get_object_conversion_mode() == 'explicit'
+
+    def test_context_beats_pdf(self):
+        pdf = pikepdf.Pdf.new(conversion_mode='explicit')
+        pdf.Root.Test = 42
+        assert isinstance(pdf.Root.Test, Integer)
+        with pikepdf.implicit_conversion():
+            assert isinstance(pdf.Root.Test, int)
+            assert pikepdf.get_object_conversion_mode(pdf) == 'implicit'
+
+    def test_unowned_object_uses_global(self, restore_global_mode):
+        pdf = pikepdf.Pdf.new(conversion_mode='explicit')
+        assert pdf is not None
+        d = Dictionary(Value=42)  # unowned
+        assert isinstance(d.Value, int)
+        pikepdf.set_object_conversion_mode('explicit')
+        assert isinstance(d.Value, Integer)
+
+    def test_repr_honours_pdf_mode(self):
+        pdf = pikepdf.Pdf.new(conversion_mode='explicit')
+        pdf.Root.Test = 42
+        pdf.Root.Flag = True
+        assert 'pikepdf.Integer(42)' in repr(pdf.Root.Test)
+        assert 'pikepdf.Boolean(True)' in repr(pdf.Root.Flag)
+        pdf.conversion_mode = 'implicit'
+        assert repr(pdf.Root.Test) == '42'
+
+    def test_pdf_mode_visible_from_other_thread(self):
+        import threading
+
+        pdf = pikepdf.Pdf.new(conversion_mode='explicit')
+        pdf.Root.Test = 42
+        results = {}
+
+        def worker():
+            results['pdf_mode'] = isinstance(pdf.Root.Test, Integer)
+            results['unowned'] = isinstance(Dictionary(Value=1).Value, Integer)
+
+        with pikepdf.explicit_conversion():
+            t = threading.Thread(target=worker)
+            t.start()
+            t.join()
+
+        # per-Pdf explicit mode travels across threads
+        assert results['pdf_mode'] is True
+        # but the context manager in the main thread does not
+        assert results['unowned'] is False
+
+    def test_get_object_conversion_mode_with_pdf(self, restore_global_mode):
+        pdf = pikepdf.Pdf.new()
+        assert pikepdf.get_object_conversion_mode(pdf) == 'implicit'
+        pikepdf.set_object_conversion_mode('explicit')
+        assert pikepdf.get_object_conversion_mode(pdf) == 'explicit'
+        pdf.conversion_mode = 'implicit'
+        assert pikepdf.get_object_conversion_mode(pdf) == 'implicit'
+
+
+class TestOwnerAdoption:
+    """Direct objects inserted into a Pdf are adopted by that Pdf.
+
+    Adoption is what makes Pdf.conversion_mode apply to objects created in the
+    current session; qpdf only associates parsed objects with a document.
+    """
+
+    @pytest.fixture
+    def pdf(self):
+        return pikepdf.Pdf.new(conversion_mode='explicit')
+
+    def test_scalar_adopted(self, pdf):
+        pdf.Root.Test = 42
+        assert isinstance(pdf.Root.Test, Integer)
+        assert pdf.Root.get_raw('/Test').is_owned_by(pdf)
+
+    def test_nested_dictionary_adopted(self, pdf):
+        pdf.Root.D = Dictionary(A=1, L=[1, 2.5, True])
+        assert isinstance(pdf.Root.D.A, Integer)
+        assert isinstance(pdf.Root.D.L[1], Real)
+        assert isinstance(pdf.Root.D.L[2], Boolean)
+        assert pdf.Root.get_raw('/D').is_owned_by(pdf)
+        assert pdf.Root.D.get_raw('/A').is_owned_by(pdf)
+        assert pdf.Root.D.L.get_raw(pikepdf.NamePath()[1]).is_owned_by(pdf)
+
+    def test_array_append_adopted(self, pdf):
+        pdf.Root.Arr = pikepdf.Array([1])
+        pdf.Root.Arr.append(2)
+        assert isinstance(pdf.Root.Arr[0], Integer)
+        assert isinstance(pdf.Root.Arr[1], Integer)
+        assert pdf.Root.Arr.get_raw(pikepdf.NamePath()[1]).is_owned_by(pdf)
+
+    def test_make_indirect_adopts_children(self, pdf):
+        obj = pdf.make_indirect(Dictionary(A=1))
+        assert obj.is_owned_by(pdf)
+        assert obj.get_raw('/A').is_owned_by(pdf)
+        assert isinstance(obj.A, Integer)
+
+    def test_stream_dict_adopted(self, pdf):
+        stream = pikepdf.Stream(pdf, b'x', Width=3)
+        assert isinstance(stream.Width, Integer)
+        assert stream.stream_dict.get_raw('/Width').is_owned_by(pdf)
+
+    def test_unowned_objects_unaffected(self, pdf):
+        # Touching the explicit-mode Pdf must not leak its mode to objects
+        # that belong to no document.
+        pdf.Root.Test = 42
+        assert isinstance(pdf.Root.Test, Integer)
+        assert type(pikepdf.Integer(5)) is int  # noqa: E721
+        assert type(Dictionary(Q=7).Q) is int  # noqa: E721
+
+    def test_scalars_are_adopted_by_copy(self, pdf):
+        # A Name or String held in a module-level constant may be inserted into
+        # any number of documents: adoption copies scalars, so the caller's
+        # object stays unowned.
+        name = Name.Foo
+        string = pikepdf.String('x')
+        with pikepdf.explicit_conversion():
+            integer = Integer(5)
+
+        other = pikepdf.Pdf.new()
+        for doc in (pdf, other):
+            doc.Root.X = name
+            doc.Root.Y = string
+            doc.Root.Z = integer
+
+        assert not name.is_owned_by(pdf)
+        assert not name.is_owned_by(other)
+        assert not string.is_owned_by(pdf)
+        assert not integer.is_owned_by(pdf)
+        for doc in (pdf, other):
+            assert doc.Root.get_raw('/X').is_owned_by(doc)
+            assert doc.Root.get_raw('/Y').is_owned_by(doc)
+            assert doc.Root.get_raw('/Z').is_owned_by(doc)
+
+    def test_container_child_scalar_replaced_by_copy(self, pdf):
+        name = Name.Foo
+        d = Dictionary(N=name)
+        pdf.Root.D = d
+        # The child was replaced by an adopted copy...
+        assert d.get_raw('/N').is_owned_by(pdf)
+        assert not name.is_owned_by(pdf)
+        # ...but the container itself is still the caller's object.
+        assert pdf.Root.D.same_owner_as(d)
+        d.More = 7
+        assert isinstance(pdf.Root.D.More, Integer)
+        assert pdf.Root.D.More == 7
+
+    def test_adopted_object_is_foreign_elsewhere(self, pdf):
+        d = Dictionary(A=1)
+        pdf.Root.D = d
+        other = pikepdf.Pdf.new()
+        with pytest.raises(pikepdf.ForeignObjectError):
+            other.Root.D = d
+
+    def test_adoption_does_not_claim_foreign_objects(self, pdf, resources):
+        src = pikepdf.open(resources / 'pal-1bit-trivial.pdf')
+        with pytest.raises(pikepdf.ForeignObjectError):
+            pdf.Root.Page = src.Root.Pages
+        assert not src.Root.Pages.is_owned_by(pdf)

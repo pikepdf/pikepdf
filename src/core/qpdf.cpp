@@ -24,6 +24,7 @@
 
 #include "jbig2-inl.h"
 #include "mmap_inputsource-inl.h"
+#include "object.h"
 #include "pipeline.h"
 #include "qpdf_inputsource-inl.h"
 #include "qpdf_pagelist.h"
@@ -42,6 +43,44 @@ std::shared_ptr<QPDF> make_registered_qpdf()
     });
     QpdfRegistry::instance().register_qpdf(q.get());
     return q;
+}
+
+// Parse the conversion_mode= argument: None, 'implicit' or 'explicit'.
+ConversionMode parse_conversion_mode(py::handle mode)
+{
+    if (mode.is_none())
+        return ConversionMode::unset;
+    if (py::isinstance<py::str>(mode)) {
+        auto s = py::cast<std::string>(mode);
+        if (s == "implicit")
+            return ConversionMode::implicit;
+        if (s == "explicit")
+            return ConversionMode::explicit_;
+    }
+    throw py::value_error("conversion_mode must be 'implicit', 'explicit' or None");
+}
+
+py::object conversion_mode_to_py(ConversionMode mode)
+{
+    switch (mode) {
+    case ConversionMode::implicit:
+        return py::str("implicit");
+    case ConversionMode::explicit_:
+        return py::str("explicit");
+    default:
+        return py::none();
+    }
+}
+
+QpdfEntry &registry_entry(QPDF &q)
+{
+    auto *entry = QpdfRegistry::instance().lookup_entry(&q);
+    if (!entry) {
+        // LCOV_EXCL_START
+        throw std::logic_error("Pdf is not present in the pikepdf QPDF registry");
+        // LCOV_EXCL_STOP
+    }
+    return *entry;
 }
 
 void qpdf_basic_settings(QPDF &q) // LCOV_EXCL_LINE
@@ -65,10 +104,14 @@ std::shared_ptr<QPDF> open_pdf(py::object stream,
     bool inherit_page_attributes = true,
     access_mode_e access_mode = access_mode_e::access_default,
     std::string description = "",
-    bool closing_stream = false)
+    bool closing_stream = false,
+    py::object conversion_mode = py::none())
 {
+    // Validate before any I/O so a bad argument fails fast.
+    auto mode = parse_conversion_mode(conversion_mode);
     std::string password = to_string(password_arg);
     auto q = make_registered_qpdf();
+    registry_entry(*q).conversion_mode.store(mode, std::memory_order_relaxed);
 
     qpdf_basic_settings(*q);
     q->setSuppressWarnings(suppress_warnings);
@@ -133,9 +176,12 @@ std::shared_ptr<QPDF> open_pdf(py::object stream,
 
 // Open a Pdf from an input source containing qpdf JSON (as written by write_qpdf_json
 // or `qpdf --json-output`). Mirrors open_pdf but for the JSON representation.
-std::shared_ptr<QPDF> open_pdf_json(py::object stream, std::string description)
+std::shared_ptr<QPDF> open_pdf_json(
+    py::object stream, std::string description, py::object conversion_mode = py::none())
 {
+    auto mode = parse_conversion_mode(conversion_mode);
     auto q = make_registered_qpdf();
+    registry_entry(*q).conversion_mode.store(mode, std::memory_order_relaxed);
     qpdf_basic_settings(*q);
     auto json_input =
         std::make_shared<PythonStreamInputSource>(stream, description, false);
@@ -538,13 +584,19 @@ void init_qpdf(py::module_ &m)
         .value("mmap_only", access_mode_e::access_mmap_only);
 
     py::class_<QPDF>(m, "Pdf", "In-memory representation of a PDF", py::dynamic_attr())
-        .def_static("new",
-            []() {
+        .def_static(
+            "new",
+            [](py::object conversion_mode) {
+                auto mode = parse_conversion_mode(conversion_mode);
                 auto q = make_registered_qpdf();
+                registry_entry(*q).conversion_mode.store(
+                    mode, std::memory_order_relaxed);
                 q->emptyPDF();
                 qpdf_basic_settings(*q);
                 return q;
-            })
+            },
+            py::kw_only(),
+            py::arg("conversion_mode") = py::none())
         .def_static("_open",
             open_pdf,
             py::arg("stream"),
@@ -557,13 +609,41 @@ void init_qpdf(py::module_ &m)
             py::arg("inherit_page_attributes") = true,
             py::arg("access_mode") = access_mode_e::access_default,
             py::arg("description") = "",
-            py::arg("closing_stream") = false)
+            py::arg("closing_stream") = false,
+            py::arg("conversion_mode") = py::none())
         .def("__repr__",
             [](QPDF &q) {
                 QpdfLockGuard lock(&q);
                 return std::string("<pikepdf.Pdf description='") + q.getFilename() +
                        std::string("'>");
             })
+        .def_prop_rw(
+            "conversion_mode",
+            [](QPDF &q) {
+                return conversion_mode_to_py(
+                    registry_entry(q).conversion_mode.load(std::memory_order_relaxed));
+            },
+            [](QPDF &q, py::object mode) {
+                registry_entry(q).conversion_mode.store(
+                    parse_conversion_mode(mode), std::memory_order_relaxed);
+            },
+            py::for_setter(py::arg("value").none()),
+            R"~~~(Object conversion mode for this PDF: 'implicit', 'explicit' or None.
+
+            When set, this overrides the global mode set by
+            :func:`pikepdf.set_object_conversion_mode` for objects owned by this
+            ``Pdf``, in every thread. ``None`` (the default) means defer to the
+            global setting. The :func:`pikepdf.explicit_conversion` and
+            :func:`pikepdf.implicit_conversion` context managers take precedence
+            over this setting in the thread where they are active.
+
+            Objects copied into another ``Pdf`` take on that document's mode.
+            Unowned objects, such as a bare ``pikepdf.Dictionary(...)``, are not
+            attached to any document, so they follow the thread-local or global
+            setting instead.
+
+            .. versionadded:: 10.14
+            )~~~")
         .def_prop_ro("filename",
             [](QPDF &q) {
                 QpdfLockGuard lock(&q);
@@ -688,7 +768,8 @@ void init_qpdf(py::module_ &m)
         .def_static("_from_qpdf_json",
             open_pdf_json,
             py::arg("stream"),
-            py::arg("description") = "")
+            py::arg("description") = "",
+            py::arg("conversion_mode") = py::none())
         .def(
             "_update_from_qpdf_json",
             [](QPDF &q, py::object stream, std::string description) {
@@ -759,14 +840,18 @@ void init_qpdf(py::module_ &m)
             "make_indirect",
             [](QPDF &q, QPDFObjectHandle &h) {
                 QpdfLockGuard lock(&q);
-                return q.makeIndirectObject(h);
+                auto indirect = q.makeIndirectObject(h);
+                adopt_children_into(&q, indirect);
+                return indirect;
             },
             py::arg("h"))
         .def(
             "make_indirect",
             [](QPDF &q, py::object obj) -> QPDFObjectHandle {
                 QpdfLockGuard lock(&q);
-                return q.makeIndirectObject(objecthandle_encode(obj));
+                auto indirect = q.makeIndirectObject(objecthandle_encode(obj));
+                adopt_children_into(&q, indirect);
+                return indirect;
             },
             py::arg("obj"))
         .def(

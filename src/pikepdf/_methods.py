@@ -545,6 +545,7 @@ class Extend_Pdf:
         inherit_page_attributes: bool = True,
         access_mode: AccessMode = AccessMode.default,
         allow_overwriting_input: bool = False,
+        conversion_mode: Literal['implicit', 'explicit'] | None = None,
     ) -> Pdf:
         if isinstance(filename_or_stream, bytes) and filename_or_stream.startswith(
             b'%PDF-'
@@ -603,6 +604,7 @@ class Extend_Pdf:
                 access_mode=access_mode,
                 description=description,
                 closing_stream=closing_stream,
+                conversion_mode=conversion_mode,
             )
         except Exception:
             if stream is not None and closing_stream:

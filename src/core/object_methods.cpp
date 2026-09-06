@@ -189,7 +189,8 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
                     if (index < 0 || index >= size) {
                         throw py::index_error("Index out of range");
                     }
-                    parent.setArrayItem(static_cast<size_t>(index), value);
+                    parent.setArrayItem(static_cast<size_t>(index),
+                        adopt_into(parent.getOwningQPDF(), value));
                 }
             })
         .def("__setitem__",
@@ -220,7 +221,8 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
                     if (index < 0 || index >= size) {
                         throw py::index_error("Index out of range");
                     }
-                    parent.setArrayItem(static_cast<size_t>(index), value);
+                    parent.setArrayItem(static_cast<size_t>(index),
+                        adopt_into(parent.getOwningQPDF(), value));
                 }
             })
         .def("__delitem__",
@@ -280,9 +282,13 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
                 }
                 return value;
             })
-        .def_prop_rw("stream_dict",
+        .def_prop_rw(
+            "stream_dict",
             &QPDFObjectHandle::getDict,
-            &QPDFObjectHandle::replaceDict,
+            [](QPDFObjectHandle &h, QPDFObjectHandle &dict) {
+                QpdfLockGuard lock(h.getOwningQPDF());
+                h.replaceDict(adopt_into(h.getOwningQPDF(), dict));
+            },
             py::rv_policy::reference_internal)
         .def(
             "__setattr__",
@@ -361,6 +367,59 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
                 }
                 try {
                     return py::cast(traverse_namepath(h, path));
+                } catch (const py::builtin_exception &) {
+                    return default_;
+                }
+            },
+            py::arg("path"),
+            py::arg("default") = py::none())
+        .def(
+            "get_raw",
+            [](QPDFObjectHandle &h, std::string const &key, py::object default_) {
+                QPDFObjectHandle value;
+                try {
+                    value = object_get_key(h, key);
+                } catch (const py::builtin_exception &) {
+                    return default_;
+                }
+                return cast_raw(value);
+            },
+            py::arg("key"),
+            py::arg("default") = py::none(),
+            R"~~~(Retrieve a value without implicit conversion of scalars.
+
+            Like :meth:`get`, except the result is always a
+            :class:`pikepdf.Object`, regardless of the conversion mode in
+            effect. A stored PDF null is returned as an Object of type null,
+            not ``None``; ``None`` (or *default*) is returned only when the key
+            or path is absent.
+
+            *key* may be a string, a :class:`pikepdf.Name`, or a
+            :class:`pikepdf.NamePath`.
+
+            .. versionadded:: 10.14
+            )~~~")
+        .def(
+            "get_raw",
+            [](QPDFObjectHandle &h, QPDFObjectHandle &name, py::object default_) {
+                QPDFObjectHandle value;
+                try {
+                    value = object_get_key(h, name.getName());
+                } catch (const py::builtin_exception &) {
+                    return default_;
+                }
+                return cast_raw(value);
+            },
+            py::arg("key"),
+            py::arg("default") = py::none())
+        .def(
+            "get_raw",
+            [](QPDFObjectHandle &h, NamePath const &path, py::object default_) {
+                if (path.empty()) {
+                    return cast_raw(h);
+                }
+                try {
+                    return cast_raw(traverse_namepath(h, path));
                 } catch (const py::builtin_exception &) {
                     return default_;
                 }
@@ -626,14 +685,14 @@ Raises:
         .def("__setitem__",
             [](QPDFObjectHandle &h, int index, QPDFObjectHandle &value) {
                 auto u_index = list_range_check(h, index);
-                h.setArrayItem(u_index, value);
+                h.setArrayItem(u_index, adopt_into(h.getOwningQPDF(), value));
             })
         .def(
             "__setitem__",
             [](QPDFObjectHandle &h, int index, py::object pyvalue) {
                 auto u_index = list_range_check(h, index);
                 auto value = objecthandle_encode(pyvalue);
-                h.setArrayItem(u_index, value);
+                h.setArrayItem(u_index, adopt_into(h.getOwningQPDF(), value));
             },
             py::arg("index"),
             py::arg("value").none())
@@ -674,7 +733,8 @@ Raises:
                                 .c_str());
                     Py_ssize_t idx = start;
                     for (size_t i = 0; i < new_vals.size(); ++i) {
-                        h.setArrayItem(static_cast<int>(idx), new_vals[i]);
+                        h.setArrayItem(static_cast<int>(idx),
+                            adopt_into(h.getOwningQPDF(), new_vals[i]));
                         idx += step;
                     }
                 } else {
@@ -682,7 +742,7 @@ Raises:
                         h.eraseItem(static_cast<int>(start));
                     int insert_at = static_cast<int>(start);
                     for (auto const &obj : new_vals)
-                        h.insertItem(insert_at++, obj);
+                        h.insertItem(insert_at++, adopt_into(h.getOwningQPDF(), obj));
                 }
             },
             py::arg("slice"),
@@ -702,14 +762,15 @@ Raises:
             [](QPDFObjectHandle &h, py::object pyitem) {
                 QpdfLockGuard lock(h.getOwningQPDF());
                 auto item = objecthandle_encode(pyitem);
-                return h.appendItem(item);
+                return h.appendItem(adopt_into(h.getOwningQPDF(), item));
             },
             py::arg("pyitem").none())
         .def("extend",
             [](QPDFObjectHandle &h, py::iterable iter) {
                 QpdfLockGuard lock(h.getOwningQPDF());
                 for (auto item : iter) {
-                    h.appendItem(objecthandle_encode(item));
+                    auto value = objecthandle_encode(item);
+                    h.appendItem(adopt_into(h.getOwningQPDF(), value));
                 }
             })
         .def(
@@ -747,7 +808,8 @@ Raises:
                     index = 0;
                 if (index > nitems)
                     index = nitems;
-                h.insertItem(index, objecthandle_encode(value));
+                auto item = objecthandle_encode(value);
+                h.insertItem(index, adopt_into(h.getOwningQPDF(), item));
             },
             py::arg("index"),
             py::arg("value").none(),

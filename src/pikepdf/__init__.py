@@ -151,6 +151,7 @@ __libqpdf_version__: str = _core.qpdf_version()
 
 from pikepdf._explicit_conv import (
     explicit_conversion,
+    implicit_conversion,
     get_object_conversion_mode,
     set_object_conversion_mode,
 )
@@ -198,6 +199,7 @@ __all__ = [
     'Encryption',
     'exceptions',
     'explicit_conversion',
+    'implicit_conversion',
     'ForeignObjectError',
     'FormFieldFlag',
     'get_object_conversion_mode',

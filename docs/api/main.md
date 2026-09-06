@@ -34,6 +34,39 @@
     :members:
 ```
 
+## Explicit conversion mode
+
+```{eval-rst}
+.. autoapifunction:: pikepdf.explicit_conversion
+```
+
+```{eval-rst}
+.. autoapifunction:: pikepdf.implicit_conversion
+```
+
+```{eval-rst}
+.. autoapifunction:: pikepdf.set_object_conversion_mode
+```
+
+```{eval-rst}
+.. autoapifunction:: pikepdf.get_object_conversion_mode
+```
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.Integer
+    :members:
+```
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.Boolean
+    :members:
+```
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.Real
+    :members:
+```
+
 ## Object construction
 
 ```{eval-rst}

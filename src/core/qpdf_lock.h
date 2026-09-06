@@ -8,6 +8,7 @@
 #include <nanobind/nanobind.h>
 
 #include <atomic>
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
@@ -61,11 +62,21 @@ private:
     int depth_{0};
 };
 
-// Global registry mapping QPDF* -> ReentrantFtMutex*.
+// Per-Pdf object conversion mode. `unset` means "defer to the global setting".
+enum class ConversionMode : int8_t { unset = 0, implicit = 1, explicit_ = 2 };
+
+// Per-QPDF registry entry: the re-entrant mutex that serializes access to the
+// QPDF, plus the document's conversion mode.
+struct QpdfEntry {
+    ReentrantFtMutex mutex;
+    std::atomic<ConversionMode> conversion_mode{ConversionMode::unset};
+};
+
+// Global registry mapping QPDF* -> QpdfEntry*.
 //
 // Every QPDF instance created by pikepdf is registered here at construction
 // and unregistered at destruction. Object methods look up their owning QPDF's
-// mutex via this registry.
+// entry via this registry.
 //
 // The registry's own map_mutex_ is a real std::mutex (not ft_mutex) because
 // it protects the registry data structure itself, not a QPDF instance.
@@ -80,9 +91,9 @@ public:
 
     void register_qpdf(QPDF *q)
     {
-        auto m = std::make_unique<ReentrantFtMutex>();
+        auto entry = std::make_unique<QpdfEntry>();
         std::lock_guard<std::mutex> guard(map_mutex_);
-        map_[q] = std::move(m);
+        map_[q] = std::move(entry);
     }
 
     void unregister_qpdf(QPDF *q)
@@ -91,13 +102,19 @@ public:
         map_.erase(q);
     }
 
-    ReentrantFtMutex *lookup(QPDF *q)
+    QpdfEntry *lookup_entry(QPDF *q)
     {
         if (!q)
             return nullptr;
         std::lock_guard<std::mutex> guard(map_mutex_);
         auto it = map_.find(q);
         return (it != map_.end()) ? it->second.get() : nullptr;
+    }
+
+    ReentrantFtMutex *lookup(QPDF *q)
+    {
+        auto *entry = lookup_entry(q);
+        return entry ? &entry->mutex : nullptr;
     }
 
     QpdfRegistry(const QpdfRegistry &) = delete;
@@ -107,7 +124,7 @@ private:
     QpdfRegistry() = default;
 
     std::mutex map_mutex_;
-    std::unordered_map<QPDF *, std::unique_ptr<ReentrantFtMutex>> map_;
+    std::unordered_map<QPDF *, std::unique_ptr<QpdfEntry>> map_;
 };
 
 // RAII guard that locks a single QPDF's mutex via the registry.
@@ -115,23 +132,28 @@ private:
 class QpdfLockGuard {
 public:
     explicit QpdfLockGuard(QPDF *q)
-        : mutex_(q ? QpdfRegistry::instance().lookup(q) : nullptr)
+        : entry_(q ? QpdfRegistry::instance().lookup_entry(q) : nullptr)
     {
-        if (mutex_)
-            mutex_->lock();
+        if (entry_)
+            entry_->mutex.lock();
     }
 
     ~QpdfLockGuard()
     {
-        if (mutex_)
-            mutex_->unlock();
+        if (entry_)
+            entry_->mutex.unlock();
     }
+
+    // The registry entry of the locked QPDF, or nullptr for unowned objects.
+    // Lets callers read the document's conversion mode without a second
+    // registry lookup.
+    QpdfEntry *entry() const { return entry_; }
 
     QpdfLockGuard(const QpdfLockGuard &) = delete;
     QpdfLockGuard &operator=(const QpdfLockGuard &) = delete;
 
 private:
-    ReentrantFtMutex *mutex_;
+    QpdfEntry *entry_;
 };
 
 // RAII guard that locks two QPDF mutexes in consistent pointer order

@@ -668,6 +668,24 @@ class Object:
         """
     @overload
     def get(self, path: _NamePath, default: T, /) -> Object | T: ...
+    @overload
+    def get_raw(self, key: str | Name, /) -> Object | None:
+        """Retrieve a value without implicit conversion of scalars.
+
+        Like :meth:`get`, except the result is always a :class:`pikepdf.Object`,
+        regardless of the conversion mode in effect. A stored PDF null is
+        returned as an Object of type null, not ``None``; ``None`` (or
+        *default*) is returned only when the key or path is absent.
+
+        .. versionadded:: 10.14
+        """
+
+    @overload
+    def get_raw(self, key: str | Name, default: T, /) -> Object | T: ...
+    @overload
+    def get_raw(self, path: _NamePath, /) -> Object | None: ...
+    @overload
+    def get_raw(self, path: _NamePath, default: T, /) -> Object | T: ...
     def get_raw_stream_buffer(self) -> Buffer:
         """Return a buffer protocol buffer describing the raw, encoded stream."""
     def get_stream_buffer(self, decode_level: StreamDecodeLevel = ...) -> Buffer:
@@ -2670,7 +2688,9 @@ class Pdf:
             :meth:`pikepdf.Stream.__new__`
         """
     @classmethod
-    def new(cls) -> Pdf:
+    def new(
+        cls, *, conversion_mode: Literal['implicit', 'explicit'] | None = None
+    ) -> Pdf:
         """Create a new, empty PDF.
 
         This is best when you are constructing a PDF from scratch.
@@ -2694,6 +2714,7 @@ class Pdf:
         inherit_page_attributes: bool = True,
         access_mode: AccessMode = AccessMode.default,
         allow_overwriting_input: bool = False,
+        conversion_mode: Literal['implicit', 'explicit'] | None = None,
     ) -> Pdf:
         """Open an existing file at *filename_or_stream*.
 
@@ -2769,6 +2790,12 @@ class Pdf:
                 to overwrite the input file. This is performed by loading the entire
                 input file into memory at open time; this will use more memory and may
                 recent performance especially when the opened file will not be modified.
+            conversion_mode: If given, sets this document's object conversion
+                mode to ``'implicit'`` or ``'explicit'``, overriding the global
+                setting for objects owned by this ``Pdf``. See
+                :attr:`pikepdf.Pdf.conversion_mode`.
+
+                .. versionadded:: 10.14
 
         Raises:
             pikepdf.PasswordError: If the password failed to open the
@@ -3282,6 +3309,19 @@ class Pdf:
         the same base version value, they shall increase the extension level
         by 1. To be interpreted with :attr:`pdf_version`.
         """
+    conversion_mode: Literal['implicit', 'explicit'] | None
+    """Object conversion mode for this PDF: 'implicit', 'explicit' or None.
+
+    When set, this overrides the global mode set by
+    :func:`pikepdf.set_object_conversion_mode` for objects owned by this
+    ``Pdf``, in every thread. ``None`` (the default) means defer to the global
+    setting. The :func:`pikepdf.explicit_conversion` and
+    :func:`pikepdf.implicit_conversion` context managers take precedence over
+    this setting in the thread where they are active.
+
+    .. versionadded:: 10.14
+    """
+
     @property
     def filename(self) -> str:
         """The source filename of an existing PDF, when available.
@@ -3998,6 +4038,9 @@ def get_access_default_mmap() -> bool: ...
 def _set_explicit_conversion_mode(mode: bool) -> bool: ...
 def _get_explicit_conversion_mode() -> bool: ...
 def _get_effective_explicit_mode() -> bool: ...
+def _get_effective_explicit_mode_for(pdf: Pdf) -> bool: ...
+def _push_thread_conversion_mode(explicit: bool) -> None: ...
+def _pop_thread_conversion_mode() -> None: ...
 def _enter_thread_explicit_mode() -> None: ...
 def _exit_thread_explicit_mode() -> None: ...
 def set_decimal_precision(prec: int) -> int:

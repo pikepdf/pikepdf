@@ -33,9 +33,11 @@ def test_no_foreign_on_direct(vera):
 
 def test_must_use_copy_foreign(vera, outlines, outpdf):
     vera.Root.Names = Dictionary()
-    vera.Root.Names.Dests = outlines.Root.Names.Dests
+    # A direct object inserted into a Pdf is adopted by it, so inserting an
+    # object owned by another Pdf into it is refused at assignment time,
+    # rather than at save time as it was before pikepdf 10.14.
     with pytest.raises(ForeignObjectError, match="add objects from another file"):
-        vera.save(outpdf)
+        vera.Root.Names.Dests = outlines.Root.Names.Dests
 
 
 def test_self_copy_foreign(vera):
