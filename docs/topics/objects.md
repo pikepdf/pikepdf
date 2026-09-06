@@ -110,17 +110,23 @@ historically had to pick a mode first. Two APIs sidestep that:
 {meth}`~pikepdf.Object.get_raw` behaves like {meth}`~pikepdf.Object.get` (it
 accepts a key, a {class}`~pikepdf.Name`, or a {class}`~pikepdf.NamePath`, and
 a `default`), but it never unboxes: it always returns a `pikepdf.Object`
-(or the `default`), regardless of the current conversion mode. A stored PDF
-null comes back as a `Null`-typed `Object`, not `None`:
+(or the `default`), regardless of the current conversion mode:
 
 ```python
->>> d = pikepdf.Dictionary(N=None, I=42)
->>> d.get_raw('/I')          # Object, even in implicit mode
-pikepdf.Object(...)
->>> d.get_raw('/N')          # Null object, not None
+>>> d = pikepdf.Dictionary(I=42, S=pikepdf.String('x'))
+>>> type(d.get_raw('/I'))    # Object, even in implicit mode
+<class 'pikepdf.objects.Object'>
+>>> d.get_raw('/I').as_int()
+42
+>>> d.get_raw('/S').as_int(0)
+0
 >>> d.get_raw('/Missing', 'fallback')
 'fallback'
 ```
+
+A PDF null inside an array is returned as a `Null`-typed `Object` rather than
+`None`. A dictionary key whose value is null is treated by qpdf as absent, so
+`get_raw` returns the `default` for it, just as `get` does.
 
 The typed getters — {meth}`~pikepdf.Object.get_int`,
 {meth}`~pikepdf.Object.get_bool`, {meth}`~pikepdf.Object.get_float`,
@@ -161,7 +167,7 @@ Available methods:
 - {meth}`~pikepdf.Object.as_decimal` - convert to `Decimal`, or return default
 - {meth}`~pikepdf.Object.as_dict` - as a `Dictionary`/mapping, or return
   default; raises `TypeError` (not `PdfError`) if the object is not a
-  dictionary or stream
+  dictionary (for a stream, use `stream.stream_dict.as_dict()`)
 - {meth}`~pikepdf.Object.as_list` - as an `Array`/list, or return default;
   raises `TypeError` if the object is not an array
 
@@ -190,16 +196,19 @@ these:
   `"1e-5"`.
 
 ```python
->>> pikepdf.Dictionary(Marked=1).Marked.as_bool(coerce=True)  # accept 0/1
+>>> d = pikepdf.Dictionary(Marked=1, X=pikepdf.String("1e-5"))
+>>> d.get_raw('/Marked').as_bool(coerce=True)  # accept 0/1
 True
->>> pikepdf.String("1e-5").as_float(coerce=True)
+>>> d.get_float('/X', coerce=True)
 1e-05
 ```
 
 `coerce=True` does not widen the *failure* mode: a value that is not
 convertible under any of these rules still returns the default (or raises
 `TypeError` with no default), it just widens which stored types are
-accepted.
+accepted. The one exception is `as_int(coerce=True)` on a value too large
+for a 64-bit integer, which raises `OverflowError` even when a default is
+given, because that is a range problem rather than a type mismatch.
 
 ### Arithmetic with scalar types
 

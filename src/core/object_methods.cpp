@@ -222,6 +222,19 @@ static std::optional<py::object> try_as_decimal(QPDFObjectHandle &h, bool coerce
         (std::string("Expected ") + expected + ", got " + h.getTypeName()).c_str());
 }
 
+// Resolve a NamePath to the container that holds its last component, along
+// with that component. The caller decides what to do with the component
+// (set, delete, ...); *action* names the operation in the empty-path error.
+static std::pair<QPDFObjectHandle, PathComponent> namepath_parent_and_last(
+    QPDFObjectHandle &h, NamePath const &path, char const *action)
+{
+    if (path.empty()) {
+        throw py::value_error(
+            (std::string("Cannot ") + action + " empty NamePath").c_str());
+    }
+    return {traverse_namepath(h, path, true), path.components().back()};
+}
+
 void init_object_methods(py::class_<QPDFObjectHandle> &object)
 {
     object
@@ -319,17 +332,7 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
             "Dictionary.")
         .def("__setitem__",
             [](QPDFObjectHandle &h, NamePath const &path, QPDFObjectHandle &value) {
-                if (path.empty()) {
-                    throw py::value_error("Cannot assign to empty NamePath");
-                }
-                auto const &components = path.components();
-
-                // Traverse to parent
-                QPDFObjectHandle parent =
-                    path.size() == 1 ? h : traverse_namepath(h, path, true);
-
-                // Get final component
-                auto const &last = components.back();
+                auto [parent, last] = namepath_parent_and_last(h, path, "assign to");
                 if (std::holds_alternative<std::string>(last)) {
                     auto const &key = std::get<std::string>(last);
                     object_set_key(parent, key, value);
@@ -350,18 +353,8 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
             })
         .def("__setitem__",
             [](QPDFObjectHandle &h, NamePath const &path, py::object pyvalue) {
-                if (path.empty()) {
-                    throw py::value_error("Cannot assign to empty NamePath");
-                }
                 auto value = objecthandle_encode(pyvalue);
-                auto const &components = path.components();
-
-                // Traverse to parent
-                QPDFObjectHandle parent =
-                    path.size() == 1 ? h : traverse_namepath(h, path, true);
-
-                // Get final component
-                auto const &last = components.back();
+                auto [parent, last] = namepath_parent_and_last(h, path, "assign to");
                 if (std::holds_alternative<std::string>(last)) {
                     auto const &key = std::get<std::string>(last);
                     object_set_key(parent, key, value);
@@ -378,6 +371,17 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
                     }
                     parent.setArrayItem(static_cast<size_t>(index),
                         adopt_into(parent.getOwningQPDF(), value));
+                }
+            })
+        .def("__delitem__",
+            [](QPDFObjectHandle &h, NamePath const &path) {
+                QpdfLockGuard lock(h.getOwningQPDF());
+                auto [parent, last] = namepath_parent_and_last(h, path, "delete");
+                if (std::holds_alternative<std::string>(last)) {
+                    object_del_key(parent, std::get<std::string>(last));
+                } else {
+                    auto u_index = list_range_check(parent, std::get<int>(last));
+                    parent.eraseItem(u_index);
                 }
             })
         .def("__delitem__",
@@ -591,6 +595,23 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
                     result.add(safe_decode(k));
                 }
                 return result;
+            })
+        .def("__contains__",
+            [](QPDFObjectHandle &h, NamePath const &path) {
+                QpdfLockGuard lock(h.getOwningQPDF());
+                if (path.empty())
+                    return true; // The object always contains itself
+                try {
+                    traverse_namepath(h, path);
+                    return true;
+                } catch (py::builtin_exception &e) {
+                    auto type = e.type();
+                    if (type == py::exception_type::key_error ||
+                        type == py::exception_type::index_error ||
+                        type == py::exception_type::type_error)
+                        return false;
+                    throw; // LCOV_EXCL_LINE
+                }
             })
         .def("__contains__",
             [](QPDFObjectHandle &h, QPDFObjectHandle &key) {

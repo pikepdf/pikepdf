@@ -385,3 +385,201 @@ class TestNamePathEdgeCases:
         path = NamePath('/Resources', 0, Name.Font)
         assert repr(path) == "NamePath.Resources[0].Font"
         assert len(path) == 3
+
+
+class TestNamePathContains:
+    """Test `path in obj` membership testing."""
+
+    def test_contains_nested_key(self):
+        pdf = pikepdf.new()
+        pdf.Root.A = Dictionary(B=Dictionary(C=42))
+        assert NamePath.A.B.C in pdf.Root
+        assert NamePath.A.B in pdf.Root
+
+    def test_contains_missing_key(self):
+        pdf = pikepdf.new()
+        pdf.Root.A = Dictionary(B=Dictionary(C=42))
+        assert NamePath.A.B.D not in pdf.Root
+        assert NamePath.Nonexistent not in pdf.Root
+
+    def test_contains_wrong_intermediate_type(self):
+        pdf = pikepdf.new()
+        pdf.Root.A = Dictionary(B=42)
+        assert NamePath.A.B.C not in pdf.Root
+
+    def test_contains_index(self):
+        pdf = pikepdf.new()
+        pdf.Root.A = Array([1, 2, 3])
+        assert NamePath.A[0] in pdf.Root
+        assert NamePath.A[2] in pdf.Root
+        assert NamePath.A[-1] in pdf.Root
+        assert NamePath.A[3] not in pdf.Root
+
+    def test_contains_index_on_dict(self):
+        pdf = pikepdf.new()
+        pdf.Root.A = Dictionary(B=42)
+        assert NamePath.A[0] not in pdf.Root
+
+    def test_contains_empty_path(self):
+        pdf = pikepdf.new()
+        assert NamePath() in pdf.Root
+
+    def test_contains_on_array_root(self):
+        arr = Array([Dictionary(A=1)])
+        assert NamePath[0].A in arr
+        assert NamePath[0].B not in arr
+
+
+class TestNamePathDelete:
+    """Test `del obj[path]`."""
+
+    def test_del_nested_key(self):
+        pdf = pikepdf.new()
+        pdf.Root.A = Dictionary(B=Dictionary(C=42, D=43))
+        del pdf.Root[NamePath.A.B.C]
+        assert Name.C not in pdf.Root.A.B
+        assert Name.D in pdf.Root.A.B
+
+    def test_del_top_level_key(self):
+        pdf = pikepdf.new()
+        pdf.Root.A = Dictionary(B=1)
+        del pdf.Root[NamePath.A]
+        assert Name.A not in pdf.Root
+
+    def test_del_array_index(self):
+        pdf = pikepdf.new()
+        pdf.Root.A = Array([1, 2, 3])
+        del pdf.Root[NamePath.A[1]]
+        assert [int(x) for x in pdf.Root.A] == [1, 3]
+
+    def test_del_array_negative_index(self):
+        pdf = pikepdf.new()
+        pdf.Root.A = Array([1, 2, 3])
+        del pdf.Root[NamePath.A[-1]]
+        assert [int(x) for x in pdf.Root.A] == [1, 2]
+
+    def test_del_missing_key_raises_keyerror(self):
+        pdf = pikepdf.new()
+        pdf.Root.A = Dictionary(B=Dictionary(C=42))
+        with pytest.raises(KeyError):
+            del pdf.Root[NamePath.A.B.Missing]
+
+    def test_del_missing_intermediate_raises_keyerror(self):
+        pdf = pikepdf.new()
+        pdf.Root.A = Dictionary(B=Dictionary(C=42))
+        with pytest.raises(KeyError):
+            del pdf.Root[NamePath.A.Nope.C]
+
+    def test_del_index_out_of_range_raises_indexerror(self):
+        pdf = pikepdf.new()
+        pdf.Root.A = Array([1, 2, 3])
+        with pytest.raises(IndexError):
+            del pdf.Root[NamePath.A[10]]
+
+    def test_del_index_on_dict_raises_typeerror(self):
+        pdf = pikepdf.new()
+        pdf.Root.A = Dictionary(B=42)
+        with pytest.raises(TypeError):
+            del pdf.Root[NamePath.A[0]]
+
+    def test_del_key_on_array_raises(self):
+        pdf = pikepdf.new()
+        pdf.Root.A = Array([1, 2, 3])
+        with pytest.raises((TypeError, ValueError)):
+            del pdf.Root[NamePath.A.B]
+
+    def test_del_empty_path_raises_valueerror(self):
+        pdf = pikepdf.new()
+        with pytest.raises(ValueError, match="empty NamePath"):
+            del pdf.Root[NamePath()]
+
+
+class TestNamePathIteration:
+    """Test iteration over path components."""
+
+    def test_iter_components(self):
+        assert list(NamePath.A.B[0]) == ['/A', '/B', 0]
+
+    def test_iter_empty(self):
+        assert tuple(NamePath()) == ()
+
+    def test_iter_names_have_slash(self):
+        assert list(NamePath('/Weird-Name')) == ['/Weird-Name']
+
+    def test_unpack(self):
+        a, b = NamePath.A[3]
+        assert a == '/A'
+        assert b == 3
+
+    def test_in_list_of_paths(self):
+        p1 = NamePath.A.B
+        p2 = NamePath.C
+        assert NamePath.A.B in [p1, p2]
+        assert NamePath.D not in [p1, p2]
+
+
+class TestNamePathEquality:
+    """Test __eq__ and __hash__."""
+
+    def test_equal_paths(self):
+        assert NamePath.A.B == NamePath.A.B
+        assert NamePath('/A', '/B') == NamePath.A.B
+
+    def test_unequal_paths(self):
+        assert NamePath.A.B != NamePath.A.C
+        assert NamePath.A != NamePath.A.B
+        assert NamePath() != NamePath.A
+
+    def test_empty_equal(self):
+        assert NamePath() == NamePath()
+
+    def test_str_component_not_equal_int_component(self):
+        assert NamePath('/1') != NamePath[1]
+
+    def test_not_equal_other_type(self):
+        assert NamePath.A != '/A'
+        assert NamePath.A != 1
+        assert not (NamePath.A == '/A')
+
+    def test_hash_equal(self):
+        assert hash(NamePath.A.B) == hash(NamePath('/A', '/B'))
+        assert hash(NamePath()) == hash(NamePath())
+
+    def test_hash_distinguishes_str_and_int(self):
+        assert hash(NamePath('/1')) != hash(NamePath[1])
+
+    def test_set_membership(self):
+        s = {NamePath.A.B, NamePath.C}
+        assert NamePath.A.B in s
+        assert NamePath.D not in s
+        assert len({NamePath.A, NamePath.A}) == 1
+
+    def test_dict_key(self):
+        d = {NamePath.A.B: 'value'}
+        assert d[NamePath('/A', '/B')] == 'value'
+
+
+class TestNamePathIsinstance:
+    """Test isinstance/issubclass against the NamePath facade."""
+
+    def test_isinstance_constructed(self):
+        assert isinstance(NamePath('/A'), pikepdf.NamePath)
+
+    def test_isinstance_shorthand(self):
+        assert isinstance(NamePath.A.B, pikepdf.NamePath)
+
+    def test_isinstance_empty(self):
+        assert isinstance(NamePath(), pikepdf.NamePath)
+
+    def test_isinstance_other(self):
+        assert not isinstance('/A', pikepdf.NamePath)
+        assert not isinstance(Name.A, pikepdf.NamePath)
+        assert not isinstance(None, pikepdf.NamePath)
+
+    def test_issubclass(self):
+        assert issubclass(pikepdf._core._NamePath, pikepdf.NamePath)
+        assert issubclass(type(NamePath.A), pikepdf.NamePath)
+        assert issubclass(pikepdf.NamePath, pikepdf.NamePath)
+
+    def test_not_issubclass(self):
+        assert not issubclass(str, pikepdf.NamePath)
