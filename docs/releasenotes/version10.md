@@ -38,8 +38,9 @@ to that project for the report.
 - Precedence when several scopes are in play: context manager, then per-`Pdf`
   mode, then the global default set by
   {func}`pikepdf.set_object_conversion_mode`. An object with no owning `Pdf`
-  (e.g. a bare `pikepdf.Dictionary(...)`) always resolves through the
-  context-manager/global scopes.
+  (e.g. a bare `pikepdf.Dictionary(...)` you have not yet attached to a
+  document) resolves through the context-manager/global scopes; once it is
+  inserted into a `Pdf` it follows that document's mode.
 - Added {meth}`pikepdf.Object.get_raw`, which behaves like
   {meth}`~pikepdf.Object.get` (key, `Name`, or `NamePath`, plus a `default`)
   but never unboxes the result: it always returns a `pikepdf.Object`
@@ -93,6 +94,15 @@ to that project for the report.
   {meth}`~pikepdf.Object.as_list` now accept a `default` argument and raise
   `TypeError` on a type mismatch, instead of raising `pikepdf.PdfError` with
   no way to supply a default.
+- **Behavior change:** Objects created in Python are now adopted by the `Pdf`
+  they are inserted into, so `pdf.Root.X = 42` followed by
+  `pdf.Root.get_raw('/X').is_owned_by(pdf)` is `True`, matching objects parsed
+  from a file. Scalars (`Name`, `String`, `Integer`, ...) are adopted as a copy,
+  so a handle held in a constant can still be inserted into several documents.
+  A `Dictionary` or `Array` is adopted in place and keeps its aliasing with the
+  document; inserting the same container into a second `Pdf` now raises
+  `ForeignObjectError`, as it already did for containers parsed from a file.
+  Construct a new object, or use {meth}`pikepdf.Pdf.copy_foreign`.
 - **Behavior change:** `repr()` of a `pikepdf.Object` now honors the
   effective conversion mode of the object being displayed (context manager,
   then its owning `Pdf`, then the global setting), rather than only the

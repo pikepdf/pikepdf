@@ -14,8 +14,14 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cerrno>
+#include <charconv>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
+#include <optional>
+#include <string>
+#include <system_error>
 #include <vector>
 
 #include "object.h"
@@ -52,19 +58,168 @@ static py::dict pydict_from_object(QPDFObjectHandle h, const char *method_name)
 }
 
 // as_int()/as_bool()/as_decimal() insist on an exact PDF type, so that a value
-// the caller believes is one type is never silently read as another.
-static void require_type(
-    QPDFObjectHandle &h, qpdf_object_type_e type, char const *expected)
+// the caller believes is one type is never silently read as another, unless
+// the caller opts in with coerce=True.
+// Strip ASCII whitespace from both ends. PDF strings that hold numbers are
+// often padded by generators that treat them as fixed-width fields.
+static std::string trimmed(std::string const &s)
 {
-    if (h.getTypeCode() != type)
-        throw py::type_error(
-            (std::string("Expected ") + expected + ", got " + h.getTypeName()).c_str());
+    char const *ws = " \t\n\r\f\v";
+    auto begin = s.find_first_not_of(ws);
+    if (begin == std::string::npos)
+        return std::string();
+    auto end = s.find_last_not_of(ws);
+    return s.substr(begin, end - begin + 1);
 }
 
-static double numeric_as_double(QPDFObjectHandle &h)
+// Parse the whole string as a double. Rejects empty input, trailing garbage,
+// out-of-range values (ERANGE) and non-finite results, so that "inf"/"nan"
+// text can never reach Python as a float or Decimal.
+static std::optional<double> parse_double(std::string const &s)
 {
-    return h.isInteger() ? static_cast<double>(h.getIntValue())
-                         : std::stod(h.getRealValue());
+    if (s.empty())
+        return std::nullopt;
+    // Restrict to decimal notation with optional sign and exponent, so that
+    // strtod's hex-float and infinity/nan spellings are never accepted.
+    for (char c : s) {
+        if (!(std::isdigit(static_cast<unsigned char>(c)) || c == '+' || c == '-' ||
+                c == '.' || c == 'e' || c == 'E'))
+            return std::nullopt;
+    }
+    char const *start = s.c_str();
+    char *end = nullptr;
+    errno = 0;
+    double value = std::strtod(start, &end);
+    if (end != start + s.size())
+        return std::nullopt;
+    if (errno == ERANGE)
+        return std::nullopt;
+    if (!std::isfinite(value))
+        return std::nullopt;
+    return value;
+}
+
+[[noreturn]] static void raise_overflow()
+{
+    PyErr_SetString(
+        PyExc_OverflowError, "value is out of range for a 64-bit PDF integer");
+    throw py::python_error();
+}
+
+// Parse the whole string as an integer. Returns nullopt if the text is not an
+// integer at all; raises OverflowError if it is an integer that does not fit.
+static std::optional<long long> parse_ll(std::string const &s)
+{
+    char const *begin = s.data();
+    char const *end = s.data() + s.size();
+    if (begin != end && *begin == '+')
+        ++begin; // std::from_chars does not accept a leading '+'
+    if (begin == end)
+        return std::nullopt;
+    long long value = 0;
+    auto result = std::from_chars(begin, end, value);
+    if (result.ec == std::errc::result_out_of_range)
+        raise_overflow();
+    if (result.ec != std::errc() || result.ptr != end)
+        return std::nullopt;
+    return value;
+}
+
+// Truncate toward zero, raising OverflowError rather than invoking undefined
+// behaviour when the value does not fit in long long.
+static long long double_to_ll_trunc(double value)
+{
+    double t = std::trunc(value);
+    // -2^63 is exactly representable; 2^63 is the first double above the range.
+    if (!(t >= -9223372036854775808.0) || !(t < 9223372036854775808.0))
+        raise_overflow();
+    return static_cast<long long>(t);
+}
+
+static std::optional<double> real_as_double(QPDFObjectHandle &h)
+{
+    return parse_double(trimmed(h.getRealValue()));
+}
+
+static std::optional<long long> try_as_int(QPDFObjectHandle &h, bool coerce)
+{
+    if (h.isInteger())
+        return h.getIntValue();
+    if (!coerce)
+        return std::nullopt;
+    if (h.isReal()) {
+        auto value = real_as_double(h);
+        if (!value)
+            return std::nullopt;
+        return double_to_ll_trunc(*value);
+    }
+    if (h.isString()) {
+        auto text = trimmed(h.getUTF8Value());
+        // Integer text is converted exactly; anything else goes through double.
+        if (auto exact = parse_ll(text))
+            return *exact;
+        auto value = parse_double(text);
+        if (!value)
+            return std::nullopt;
+        return double_to_ll_trunc(*value);
+    }
+    return std::nullopt;
+}
+
+static std::optional<bool> try_as_bool(QPDFObjectHandle &h, bool coerce)
+{
+    if (h.isBool())
+        return h.getBoolValue();
+    if (!coerce)
+        return std::nullopt;
+    if (h.isInteger())
+        return h.getIntValue() != 0;
+    if (h.isReal()) {
+        auto value = real_as_double(h);
+        if (!value)
+            return std::nullopt;
+        return *value != 0.0;
+    }
+    return std::nullopt;
+}
+
+static std::optional<double> try_as_double(QPDFObjectHandle &h, bool coerce)
+{
+    if (h.isInteger())
+        return static_cast<double>(h.getIntValue());
+    if (h.isReal())
+        return real_as_double(h);
+    if (!coerce)
+        return std::nullopt;
+    if (h.isString())
+        return parse_double(trimmed(h.getUTF8Value()));
+    return std::nullopt;
+}
+
+static std::optional<py::object> try_as_decimal(QPDFObjectHandle &h, bool coerce)
+{
+    if (h.isReal())
+        return decimal_from_pdfobject(h);
+    if (!coerce)
+        return std::nullopt;
+    if (h.isInteger())
+        return decimal_from_pdfobject(h);
+    if (h.isString()) {
+        auto text = trimmed(h.getUTF8Value());
+        // Validate as a double so that Decimal('Infinity') and Decimal('NaN')
+        // cannot be constructed, but build from the text to keep every digit.
+        if (!parse_double(text))
+            return std::nullopt;
+        auto Decimal = py::module_::import_("decimal").attr("Decimal");
+        return py::object(Decimal(py::cast(text)));
+    }
+    return std::nullopt;
+}
+
+[[noreturn]] static void raise_expected(QPDFObjectHandle &h, char const *expected)
+{
+    throw py::type_error(
+        (std::string("Expected ") + expected + ", got " + h.getTypeName()).c_str());
 }
 
 void init_object_methods(py::class_<QPDFObjectHandle> &object)
@@ -469,14 +624,80 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
                 }
             },
             py::arg("key").none())
-        .def("as_list", &QPDFObjectHandle::getArrayAsVector)
-        .def("as_dict", &QPDFObjectHandle::getDictAsMap)
+        .def(
+            "as_list",
+            [](QPDFObjectHandle &h) {
+                QpdfLockGuard lock(h.getOwningQPDF());
+                if (!h.isArray())
+                    raise_expected(h, "array");
+                return py::cast(h.getArrayAsVector());
+            },
+            R"(Return the array's items, or return default if not an array.
+
+Args:
+    default: Value to return if this object is not an array. If not
+        provided and the object is not an array, raises TypeError.
+
+Raises:
+    TypeError: If object is not an array and no default was provided.
+
+.. versionchanged:: 10.14
+    Previously this raised an unhelpful error on non-arrays. It now raises
+    :exc:`TypeError`, and accepts a *default*.
+)")
+        .def(
+            "as_list",
+            [](QPDFObjectHandle &h, py::handle default_) -> py::object {
+                QpdfLockGuard lock(h.getOwningQPDF());
+                if (!h.isArray())
+                    return py::borrow<py::object>(default_);
+                return py::cast(h.getArrayAsVector());
+            },
+            py::arg("default").none())
+        .def(
+            "as_dict",
+            [](QPDFObjectHandle &h) {
+                QpdfLockGuard lock(h.getOwningQPDF());
+                if (!h.isDictionary())
+                    raise_expected(h, "dictionary");
+                return py::cast(h.getDictAsMap());
+            },
+            R"(Return the dictionary's items, or return default if not a dictionary.
+
+For a :class:`pikepdf.Stream`, use :attr:`pikepdf.Object.stream_dict` to
+obtain its dictionary; a Stream is not a dictionary here.
+
+Args:
+    default: Value to return if this object is not a dictionary. If not
+        provided and the object is not a dictionary, raises TypeError.
+
+Raises:
+    TypeError: If object is not a dictionary and no default was provided.
+
+.. versionchanged:: 10.14
+    Previously this raised an unhelpful error on non-dictionaries, and
+    accepted a Stream. It now raises :exc:`TypeError`, and accepts a
+    *default*.
+)")
+        .def(
+            "as_dict",
+            [](QPDFObjectHandle &h, py::handle default_) -> py::object {
+                QpdfLockGuard lock(h.getOwningQPDF());
+                if (!h.isDictionary())
+                    return py::borrow<py::object>(default_);
+                return py::cast(h.getDictAsMap());
+            },
+            py::arg("default").none())
         .def(
             "as_int",
-            [](QPDFObjectHandle &h) -> long long {
-                require_type(h, ot_integer, "integer");
-                return h.getIntValue();
+            [](QPDFObjectHandle &h, bool coerce) -> long long {
+                auto value = try_as_int(h, coerce);
+                if (!value)
+                    raise_expected(h, "integer");
+                return *value;
             },
+            py::kw_only(),
+            py::arg("coerce") = false,
             R"(Convert to int, or return default if not an integer.
 
 In explicit conversion mode, this provides a safe way to convert
@@ -486,6 +707,9 @@ Args:
     default: Value to return if this object is not an integer.
         If not provided and the object is not an integer,
         raises TypeError.
+    coerce: If True, also accept a Real (truncated toward zero) and a
+        String whose text is a number. Values that do not fit in a
+        64-bit integer raise OverflowError.
 
 Returns:
     The integer value, or the default if provided and object is
@@ -493,23 +717,34 @@ Returns:
 
 Raises:
     TypeError: If object is not an integer and no default was provided.
+    OverflowError: If the value is out of range for a 64-bit integer.
 
 .. versionadded:: 10.1
+
+.. versionchanged:: 10.14
+    Added the keyword-only *coerce* argument.
 )")
         .def(
             "as_int",
-            [](QPDFObjectHandle &h, py::handle default_) -> py::object {
-                if (!h.isInteger())
+            [](QPDFObjectHandle &h, py::handle default_, bool coerce) -> py::object {
+                auto value = try_as_int(h, coerce);
+                if (!value)
                     return py::borrow<py::object>(default_);
-                return py::cast(h.getIntValue());
+                return py::cast(*value);
             },
-            py::arg("default").none())
+            py::arg("default").none(),
+            py::kw_only(),
+            py::arg("coerce") = false)
         .def(
             "as_bool",
-            [](QPDFObjectHandle &h) -> bool {
-                require_type(h, ot_boolean, "boolean");
-                return h.getBoolValue();
+            [](QPDFObjectHandle &h, bool coerce) -> bool {
+                auto value = try_as_bool(h, coerce);
+                if (!value)
+                    raise_expected(h, "boolean");
+                return *value;
             },
+            py::kw_only(),
+            py::arg("coerce") = false,
             R"(Convert to bool, or return default if not a boolean.
 
 In explicit conversion mode, this provides a safe way to convert
@@ -519,6 +754,8 @@ Args:
     default: Value to return if this object is not a boolean.
         If not provided and the object is not a boolean,
         raises TypeError.
+    coerce: If True, also accept an Integer or Real, which are True when
+        nonzero.
 
 Returns:
     The boolean value, or the default if provided and object is
@@ -528,24 +765,31 @@ Raises:
     TypeError: If object is not a boolean and no default was provided.
 
 .. versionadded:: 10.1
+
+.. versionchanged:: 10.14
+    Added the keyword-only *coerce* argument.
 )")
         .def(
             "as_bool",
-            [](QPDFObjectHandle &h, py::handle default_) -> py::object {
-                if (!h.isBool())
+            [](QPDFObjectHandle &h, py::handle default_, bool coerce) -> py::object {
+                auto value = try_as_bool(h, coerce);
+                if (!value)
                     return py::borrow<py::object>(default_);
-                return py::cast(h.getBoolValue());
+                return py::cast(*value);
             },
-            py::arg("default").none())
+            py::arg("default").none(),
+            py::kw_only(),
+            py::arg("coerce") = false)
         .def(
             "as_float",
-            [](QPDFObjectHandle &h) -> double {
-                if (!h.isInteger() && !h.isReal())
-                    throw py::type_error(
-                        (std::string("Expected numeric, got ") + h.getTypeName())
-                            .c_str());
-                return numeric_as_double(h);
+            [](QPDFObjectHandle &h, bool coerce) -> double {
+                auto value = try_as_double(h, coerce);
+                if (!value)
+                    raise_expected(h, "numeric");
+                return *value;
             },
+            py::kw_only(),
+            py::arg("coerce") = false,
             R"(Convert to float, or return default if not numeric.
 
 Works for both Integer and Real objects.
@@ -554,6 +798,8 @@ Args:
     default: Value to return if this object is not numeric.
         If not provided and the object is not numeric,
         raises TypeError.
+    coerce: If True, also accept a String whose text is a number,
+        including exponential notation such as ``1e-5``.
 
 Returns:
     The float value, or the default if provided and object is
@@ -563,21 +809,31 @@ Raises:
     TypeError: If object is not numeric and no default was provided.
 
 .. versionadded:: 10.1
+
+.. versionchanged:: 10.14
+    Added the keyword-only *coerce* argument.
 )")
         .def(
             "as_float",
-            [](QPDFObjectHandle &h, py::handle default_) -> py::object {
-                if (!h.isInteger() && !h.isReal())
+            [](QPDFObjectHandle &h, py::handle default_, bool coerce) -> py::object {
+                auto value = try_as_double(h, coerce);
+                if (!value)
                     return py::borrow<py::object>(default_);
-                return py::cast(numeric_as_double(h));
+                return py::cast(*value);
             },
-            py::arg("default").none())
+            py::arg("default").none(),
+            py::kw_only(),
+            py::arg("coerce") = false)
         .def(
             "as_decimal",
-            [](QPDFObjectHandle &h) {
-                require_type(h, ot_real, "real");
-                return decimal_from_pdfobject(h);
+            [](QPDFObjectHandle &h, bool coerce) -> py::object {
+                auto value = try_as_decimal(h, coerce);
+                if (!value)
+                    raise_expected(h, "real");
+                return *value;
             },
+            py::kw_only(),
+            py::arg("coerce") = false,
             R"(Convert to Decimal, or return default if not a Real.
 
 Preferred over as_float() for PDF reals to preserve precision.
@@ -587,6 +843,9 @@ Args:
     default: Value to return if this object is not a Real.
         If not provided and the object is not a Real,
         raises TypeError.
+    coerce: If True, also accept an Integer and a String whose text is a
+        number. The Decimal is built from the string as written, so all
+        of its digits are preserved.
 
 Returns:
     The Decimal value, or the default if provided and object is
@@ -596,15 +855,21 @@ Raises:
     TypeError: If object is not a Real and no default was provided.
 
 .. versionadded:: 10.1
+
+.. versionchanged:: 10.14
+    Added the keyword-only *coerce* argument.
 )")
         .def(
             "as_decimal",
-            [](QPDFObjectHandle &h, py::handle default_) -> py::object {
-                if (!h.isReal())
+            [](QPDFObjectHandle &h, py::handle default_, bool coerce) -> py::object {
+                auto value = try_as_decimal(h, coerce);
+                if (!value)
                     return py::borrow<py::object>(default_);
-                return decimal_from_pdfobject(h);
+                return *value;
             },
-            py::arg("default").none())
+            py::arg("default").none(),
+            py::kw_only(),
+            py::arg("coerce") = false)
         .def("_ipython_key_completions_",
             [](QPDFObjectHandle &h) -> py::object {
                 if (!h.isDictionary() && !h.isStream())

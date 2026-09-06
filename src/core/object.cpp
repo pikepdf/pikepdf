@@ -11,6 +11,7 @@
 
 #include <cctype>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 
 #include <qpdf/Buffer.hh>
@@ -961,6 +962,13 @@ void init_object(py::module_ &m)
                     return h.getName().size() > 0;
                 } else if (h.isOperator()) {
                     return h.getOperatorValue().size() > 0;
+                } else if (h.isInteger()) {
+                    return h.getIntValue() != 0;
+                } else if (h.isReal()) {
+                    // qpdf accepts real tokens that std::stod rejects, so parse
+                    // with strtod and treat anything unparseable as zero.
+                    auto text = h.getRealValue();
+                    return std::strtod(text.c_str(), nullptr) != 0.0;
                 } else if (h.isNull()) {
                     return false;
                 }

@@ -1198,3 +1198,239 @@ class TestOwnerAdoption:
         with pytest.raises(pikepdf.ForeignObjectError):
             pdf.Root.Page = src.Root.Pages
         assert not src.Root.Pages.is_owned_by(pdf)
+
+
+class TestBoolOfScalars:
+    """bool() of a scalar Object reports its value, not an internal error."""
+
+    def test_bool_integer(self):
+        with pikepdf.explicit_conversion():
+            assert bool(Integer(0)) is False
+            assert bool(Integer(3)) is True
+            assert bool(Integer(-1)) is True
+
+    def test_bool_real(self):
+        with pikepdf.explicit_conversion():
+            assert bool(Real('0.0')) is False
+            assert bool(Real('0.5')) is True
+            assert bool(Real('-0.5')) is True
+
+    def test_bool_via_get_raw(self):
+        d = Dictionary(Zero=0, Three=3, RealZero=Real('0.000'))
+        assert bool(d.get_raw('/Zero')) is False
+        assert bool(d.get_raw('/Three')) is True
+        assert bool(d.get_raw('/RealZero')) is False
+
+    def test_bool_unchanged_for_other_types(self):
+        assert bool(Dictionary()) is False
+        assert bool(Dictionary(A=1)) is True
+        assert bool(pikepdf.Array()) is False
+        assert bool(pikepdf.String('')) is False
+        assert bool(pikepdf.String('x')) is True
+        assert bool(Name.Foo) is True
+
+
+@pytest.fixture
+def coercibles():
+    """A dictionary of the values in the coercion truth table."""
+    return Dictionary(
+        Int42=42,
+        Real39=Real('3.9'),
+        BoolTrue=True,
+        Int1=1,
+        Str7=pikepdf.String('7'),
+        StrExp=pikepdf.String('1e-5'),
+        StrAbc=pikepdf.String('abc'),
+        StrPadded=pikepdf.String('  12 '),
+        StrHex=pikepdf.String('0x10'),
+        StrInf=pikepdf.String('inf'),
+    )
+
+
+SENTINEL = object()
+
+# key -> (no coerce, coerce) expected results; SENTINEL means "default returned"
+AS_INT_TABLE = {
+    '/Int42': (42, 42),
+    '/Real39': (SENTINEL, 3),
+    '/BoolTrue': (SENTINEL, SENTINEL),
+    '/Int1': (1, 1),
+    '/Str7': (SENTINEL, 7),
+    '/StrExp': (SENTINEL, 0),
+    '/StrAbc': (SENTINEL, SENTINEL),
+    '/StrHex': (SENTINEL, SENTINEL),
+    '/StrInf': (SENTINEL, SENTINEL),
+    '/StrPadded': (SENTINEL, 12),
+}
+
+AS_BOOL_TABLE = {
+    '/Int42': (SENTINEL, True),
+    '/Real39': (SENTINEL, True),
+    '/BoolTrue': (True, True),
+    '/Int1': (SENTINEL, True),
+    '/Str7': (SENTINEL, SENTINEL),
+    '/StrExp': (SENTINEL, SENTINEL),
+    '/StrAbc': (SENTINEL, SENTINEL),
+    '/StrHex': (SENTINEL, SENTINEL),
+    '/StrInf': (SENTINEL, SENTINEL),
+    '/StrPadded': (SENTINEL, SENTINEL),
+}
+
+AS_FLOAT_TABLE = {
+    '/Int42': (42.0, 42.0),
+    '/Real39': (3.9, 3.9),
+    '/BoolTrue': (SENTINEL, SENTINEL),
+    '/Int1': (1.0, 1.0),
+    '/Str7': (SENTINEL, 7.0),
+    '/StrExp': (SENTINEL, 1e-5),
+    '/StrAbc': (SENTINEL, SENTINEL),
+    '/StrHex': (SENTINEL, SENTINEL),
+    '/StrInf': (SENTINEL, SENTINEL),
+    '/StrPadded': (SENTINEL, 12.0),
+}
+
+AS_DECIMAL_TABLE = {
+    '/Int42': (SENTINEL, Decimal(42)),
+    '/Real39': (Decimal('3.9'), Decimal('3.9')),
+    '/BoolTrue': (SENTINEL, SENTINEL),
+    '/Int1': (SENTINEL, Decimal(1)),
+    '/Str7': (SENTINEL, Decimal('7')),
+    '/StrExp': (SENTINEL, Decimal('1e-5')),
+    '/StrAbc': (SENTINEL, SENTINEL),
+    '/StrHex': (SENTINEL, SENTINEL),
+    '/StrInf': (SENTINEL, SENTINEL),
+    '/StrPadded': (SENTINEL, Decimal('12')),
+}
+
+
+class TestCoercionTruthTable:
+    """The coercion behaviour of as_int/as_bool/as_float/as_decimal."""
+
+    @staticmethod
+    def _check(coercibles, accessor, table):
+        marker = object()
+        for key, (plain, coerced) in table.items():
+            obj = coercibles.get_raw(key)
+            for coerce, expected in ((False, plain), (True, coerced)):
+                result = getattr(obj, accessor)(marker, coerce=coerce)
+                if expected is SENTINEL:
+                    assert result is marker, (accessor, key, coerce)
+                else:
+                    assert result == expected, (accessor, key, coerce)
+                    assert type(result) is type(expected), (accessor, key, coerce)
+                # The no-default overload raises instead of returning default
+                if expected is SENTINEL:
+                    with pytest.raises(TypeError):
+                        getattr(obj, accessor)(coerce=coerce)
+                else:
+                    assert getattr(obj, accessor)(coerce=coerce) == expected
+
+    def test_as_int(self, coercibles):
+        self._check(coercibles, 'as_int', AS_INT_TABLE)
+
+    def test_as_bool(self, coercibles):
+        self._check(coercibles, 'as_bool', AS_BOOL_TABLE)
+
+    def test_as_float(self, coercibles):
+        self._check(coercibles, 'as_float', AS_FLOAT_TABLE)
+
+    def test_as_decimal(self, coercibles):
+        self._check(coercibles, 'as_decimal', AS_DECIMAL_TABLE)
+
+    def test_coerce_is_keyword_only(self, coercibles):
+        obj = coercibles.get_raw('/Real39')
+        with pytest.raises(TypeError):
+            obj.as_int(None, True)  # type: ignore[call-arg]
+
+    def test_default_coerce_is_false(self, coercibles):
+        obj = coercibles.get_raw('/Real39')
+        assert obj.as_int(None) is None
+        with pytest.raises(TypeError):
+            obj.as_int()
+
+    def test_as_bool_zero_is_false(self):
+        d = Dictionary(Zero=0, RealZero=Real('0.0'), Neg=-3)
+        assert d.get_raw('/Zero').as_bool(coerce=True) is False
+        assert d.get_raw('/RealZero').as_bool(coerce=True) is False
+        assert d.get_raw('/Neg').as_bool(coerce=True) is True
+
+    def test_as_int_truncates_toward_zero(self):
+        d = Dictionary(A=Real('3.9'), B=Real('-3.9'))
+        assert d.get_raw('/A').as_int(coerce=True) == 3
+        assert d.get_raw('/B').as_int(coerce=True) == -3
+
+    def test_as_decimal_preserves_digits(self):
+        d = Dictionary(A=pikepdf.String('1.100'))
+        assert str(d.get_raw('/A').as_decimal(coerce=True)) == '1.100'
+
+    def test_overflow_from_string(self):
+        d = Dictionary(A=pikepdf.String('99999999999999999999'))
+        with pytest.raises(OverflowError):
+            d.get_raw('/A').as_int(coerce=True)
+        with pytest.raises(OverflowError):
+            d.get_raw('/A').as_int(None, coerce=True)
+
+    def test_overflow_from_real(self):
+        d = Dictionary(A=Real('1e30'))
+        with pytest.raises(OverflowError):
+            d.get_raw('/A').as_int(coerce=True)
+
+    def test_no_coercion_of_names_and_nulls(self):
+        # A null stored in a dictionary is indistinguishable from an absent
+        # key, so hold both values in an array.
+        d = pikepdf.Object.parse(b'<< /Arr [ /Foo null ] >>')
+        for index in (0, 1):
+            obj = d.get_raw(pikepdf.NamePath('/Arr')[index])
+            for accessor in ('as_int', 'as_bool', 'as_float', 'as_decimal'):
+                assert getattr(obj, accessor)(None, coerce=True) is None
+
+    def test_type_error_messages(self, coercibles):
+        with pytest.raises(TypeError, match='Expected integer, got string'):
+            coercibles.get_raw('/Str7').as_int()
+        with pytest.raises(TypeError, match='Expected boolean, got integer'):
+            coercibles.get_raw('/Int42').as_bool()
+        with pytest.raises(TypeError, match='Expected numeric, got string'):
+            coercibles.get_raw('/Str7').as_float()
+        with pytest.raises(TypeError, match='Expected real, got integer'):
+            coercibles.get_raw('/Int42').as_decimal()
+
+
+class TestAsDictAsList:
+    def test_as_dict_ok(self):
+        assert dict(Dictionary(A=1).as_dict()) == {'/A': 1}
+
+    def test_as_list_ok(self):
+        assert list(pikepdf.Array([1, 2]).as_list()) == [1, 2]
+
+    def test_as_dict_type_error(self):
+        with pytest.raises(TypeError, match='Expected dictionary, got array'):
+            pikepdf.Array([1]).as_dict()
+
+    def test_as_list_type_error(self):
+        with pytest.raises(TypeError, match='Expected array, got dictionary'):
+            Dictionary(A=1).as_list()
+
+    def test_as_dict_stream_type_error(self):
+        pdf = pikepdf.Pdf.new()
+        stream = pikepdf.Stream(pdf, b'abc')
+        with pytest.raises(TypeError, match='Expected dictionary, got stream'):
+            stream.as_dict()
+        assert stream.as_dict(None) is None
+
+    def test_as_dict_default(self):
+        marker = object()
+        assert pikepdf.Array([1]).as_dict(marker) is marker
+        assert dict(Dictionary(A=1).as_dict(marker)) == {'/A': 1}
+
+    def test_as_list_default(self):
+        marker = object()
+        assert Dictionary(A=1).as_list(marker) is marker
+        assert list(pikepdf.Array([1]).as_list(marker)) == [1]
+
+    def test_scalar_type_errors(self):
+        with pikepdf.explicit_conversion():
+            i = Integer(1)
+        with pytest.raises(TypeError, match='Expected array, got integer'):
+            i.as_list()
+        with pytest.raises(TypeError, match='Expected dictionary, got integer'):
+            i.as_dict()

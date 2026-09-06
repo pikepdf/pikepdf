@@ -524,10 +524,35 @@ class Object:
     ) -> None: ...
     def append(self, value: Any, /) -> None:
         """Append another object to an array; fails if the object is not an array."""
-    def as_dict(self) -> _ObjectMapping: ...
-    def as_list(self) -> _ObjectList: ...
     @overload
-    def as_int(self) -> int:
+    def as_dict(self) -> _ObjectMapping:
+        """Return the dictionary's items, or return default if not a dictionary.
+
+        For a :class:`pikepdf.Stream`, use :attr:`pikepdf.Object.stream_dict`;
+        a Stream is not a dictionary here.
+
+        Raises:
+            TypeError: If object is not a dictionary and no default was provided.
+
+        .. versionchanged:: 10.14
+            Raises :exc:`TypeError` on other types, and accepts a *default*.
+        """
+    @overload
+    def as_dict(self, default: T) -> _ObjectMapping | T: ...
+    @overload
+    def as_list(self) -> _ObjectList:
+        """Return the array's items, or return default if not an array.
+
+        Raises:
+            TypeError: If object is not an array and no default was provided.
+
+        .. versionchanged:: 10.14
+            Raises :exc:`TypeError` on other types, and accepts a *default*.
+        """
+    @overload
+    def as_list(self, default: T) -> _ObjectList | T: ...
+    @overload
+    def as_int(self, *, coerce: bool = False) -> int:
         """Convert to int, or return default if not an integer.
 
         In explicit conversion mode, this provides a safe way to convert
@@ -537,16 +562,22 @@ class Object:
             default: Value to return if this object is not an integer.
                 If not provided and the object is not an integer,
                 raises TypeError.
+            coerce: If True, also accept a Real (truncated toward zero) and a
+                String whose text is a number.
 
         Raises:
             TypeError: If object is not an integer and no default was provided.
+            OverflowError: If the value is out of range for a 64-bit integer.
 
         .. versionadded:: 10.1
+
+        .. versionchanged:: 10.14
+            Added the keyword-only *coerce* argument.
         """
     @overload
-    def as_int(self, default: T) -> int | T: ...
+    def as_int(self, default: T, *, coerce: bool = False) -> int | T: ...
     @overload
-    def as_bool(self) -> bool:
+    def as_bool(self, *, coerce: bool = False) -> bool:
         """Convert to bool, or return default if not a boolean.
 
         In explicit conversion mode, this provides a safe way to convert
@@ -556,16 +587,21 @@ class Object:
             default: Value to return if this object is not a boolean.
                 If not provided and the object is not a boolean,
                 raises TypeError.
+            coerce: If True, also accept an Integer or Real, which are True
+                when nonzero.
 
         Raises:
             TypeError: If object is not a boolean and no default was provided.
 
         .. versionadded:: 10.1
+
+        .. versionchanged:: 10.14
+            Added the keyword-only *coerce* argument.
         """
     @overload
-    def as_bool(self, default: T) -> bool | T: ...
+    def as_bool(self, default: T, *, coerce: bool = False) -> bool | T: ...
     @overload
-    def as_float(self) -> float:
+    def as_float(self, *, coerce: bool = False) -> float:
         """Convert to float, or return default if not numeric.
 
         Works for both Integer and Real objects.
@@ -574,16 +610,21 @@ class Object:
             default: Value to return if this object is not numeric.
                 If not provided and the object is not numeric,
                 raises TypeError.
+            coerce: If True, also accept a String whose text is a number,
+                including exponential notation such as ``1e-5``.
 
         Raises:
             TypeError: If object is not numeric and no default was provided.
 
         .. versionadded:: 10.1
+
+        .. versionchanged:: 10.14
+            Added the keyword-only *coerce* argument.
         """
     @overload
-    def as_float(self, default: T) -> float | T: ...
+    def as_float(self, default: T, *, coerce: bool = False) -> float | T: ...
     @overload
-    def as_decimal(self) -> Decimal:
+    def as_decimal(self, *, coerce: bool = False) -> Decimal:
         """Convert to Decimal, or return default if not a Real.
 
         Preferred over as_float() for PDF reals to preserve precision.
@@ -593,14 +634,20 @@ class Object:
             default: Value to return if this object is not a Real.
                 If not provided and the object is not a Real,
                 raises TypeError.
+            coerce: If True, also accept an Integer and a String whose text is
+                a number. The Decimal is built from the string as written, so
+                all of its digits are preserved.
 
         Raises:
             TypeError: If object is not a Real and no default was provided.
 
         .. versionadded:: 10.1
+
+        .. versionchanged:: 10.14
+            Added the keyword-only *coerce* argument.
         """
     @overload
-    def as_decimal(self, default: T) -> Decimal | T: ...
+    def as_decimal(self, default: T, *, coerce: bool = False) -> Decimal | T: ...
     def copy(self) -> Object: ...
     def emplace(self, other: Object, retain: Iterable[Name] = ...) -> None:
         """Copy all items from other without making a new object.
@@ -686,6 +733,136 @@ class Object:
     def get_raw(self, path: _NamePath, /) -> Object | None: ...
     @overload
     def get_raw(self, path: _NamePath, default: T, /) -> Object | T: ...
+    @overload
+    def get_int(
+        self, key: str | Name | NamePath, *, coerce: bool = False
+    ) -> int | None:
+        """Get the value of *key* as a Python int.
+
+        Returns the default if the key is absent or its value is not an
+        Integer. Unlike ``obj[key]``, the result is a Python int in both
+        implicit and explicit conversion mode.
+
+        Args:
+            key: A string, :class:`pikepdf.Name` or :class:`pikepdf.NamePath`.
+            default: Value to return if the key is absent or the wrong type.
+            coerce: If True, also accept a Real (truncated toward zero) and a
+                String whose text is a number.
+
+        Raises:
+            OverflowError: If a coerced value is out of range for a 64-bit
+                integer.
+
+        .. versionadded:: 10.14
+        """
+
+    @overload
+    def get_int(
+        self, key: str | Name | NamePath, default: T, *, coerce: bool = False
+    ) -> int | T: ...
+    @overload
+    def get_bool(
+        self, key: str | Name | NamePath, *, coerce: bool = False
+    ) -> bool | None:
+        """Get the value of *key* as a Python bool.
+
+        Returns the default if the key is absent or its value is not a
+        Boolean. Unlike ``obj[key]``, the result is a Python bool in both
+        implicit and explicit conversion mode.
+
+        Args:
+            key: A string, :class:`pikepdf.Name` or :class:`pikepdf.NamePath`.
+            default: Value to return if the key is absent or the wrong type.
+            coerce: If True, also accept an Integer or Real, which are True
+                when nonzero.
+
+        .. versionadded:: 10.14
+        """
+
+    @overload
+    def get_bool(
+        self, key: str | Name | NamePath, default: T, *, coerce: bool = False
+    ) -> bool | T: ...
+    @overload
+    def get_float(
+        self, key: str | Name | NamePath, *, coerce: bool = False
+    ) -> float | None:
+        """Get the value of *key* as a Python float.
+
+        Accepts both Integer and Real. Returns the default if the key is
+        absent or its value is not numeric. Unlike ``obj[key]``, the result is
+        a Python float in both implicit and explicit conversion mode.
+
+        Args:
+            key: A string, :class:`pikepdf.Name` or :class:`pikepdf.NamePath`.
+            default: Value to return if the key is absent or the wrong type.
+            coerce: If True, also accept a String whose text is a number.
+
+        .. versionadded:: 10.14
+        """
+
+    @overload
+    def get_float(
+        self, key: str | Name | NamePath, default: T, *, coerce: bool = False
+    ) -> float | T: ...
+    @overload
+    def get_decimal(
+        self, key: str | Name | NamePath, *, coerce: bool = False
+    ) -> Decimal | None:
+        """Get the value of *key* as a Python :class:`decimal.Decimal`.
+
+        Preferred over :meth:`get_float` for PDF reals, since it preserves the
+        digits as written. Returns the default if the key is absent or its
+        value is not a Real. Unlike ``obj[key]``, the result is a Decimal in
+        both implicit and explicit conversion mode.
+
+        Args:
+            key: A string, :class:`pikepdf.Name` or :class:`pikepdf.NamePath`.
+            default: Value to return if the key is absent or the wrong type.
+            coerce: If True, also accept an Integer and a String whose text is
+                a number.
+
+        .. versionadded:: 10.14
+        """
+
+    @overload
+    def get_decimal(
+        self, key: str | Name | NamePath, default: T, *, coerce: bool = False
+    ) -> Decimal | T: ...
+    @overload
+    def get_dict(self, key: str | Name | NamePath) -> _ObjectMapping | None:
+        """Get the value of *key* as a mapping of its dictionary entries.
+
+        Returns the default if the key is absent or its value is not a
+        Dictionary. A Stream is not a Dictionary here; use
+        :attr:`pikepdf.Object.stream_dict`.
+
+        Args:
+            key: A string, :class:`pikepdf.Name` or :class:`pikepdf.NamePath`.
+            default: Value to return if the key is absent or the wrong type.
+
+        .. versionadded:: 10.14
+        """
+
+    @overload
+    def get_dict(
+        self, key: str | Name | NamePath, default: T
+    ) -> _ObjectMapping | T: ...
+    @overload
+    def get_list(self, key: str | Name | NamePath) -> _ObjectList | None:
+        """Get the value of *key* as a sequence of its array items.
+
+        Returns the default if the key is absent or its value is not an Array.
+
+        Args:
+            key: A string, :class:`pikepdf.Name` or :class:`pikepdf.NamePath`.
+            default: Value to return if the key is absent or the wrong type.
+
+        .. versionadded:: 10.14
+        """
+
+    @overload
+    def get_list(self, key: str | Name | NamePath, default: T) -> _ObjectList | T: ...
     def get_raw_stream_buffer(self) -> Buffer:
         """Return a buffer protocol buffer describing the raw, encoded stream."""
     def get_stream_buffer(self, decode_level: StreamDecodeLevel = ...) -> Buffer:
