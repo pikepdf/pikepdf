@@ -178,9 +178,9 @@ class TestIntegerType:
     def test_division_by_zero(self):
         with pikepdf.explicit_conversion():
             d = Dictionary(Value=10)
-            with pytest.raises(ValueError, match="division by zero"):
+            with pytest.raises(ZeroDivisionError):
                 d.Value // 0
-            with pytest.raises(ValueError, match="modulo by zero"):
+            with pytest.raises(ZeroDivisionError):
                 d.Value % 0
 
     def test_float_arithmetic_add(self):
@@ -272,14 +272,15 @@ class TestRealArithmetic:
         with pikepdf.explicit_conversion():
             d = Dictionary(Value=Real(3.5))
             result = -d.Value
-            assert abs(result + 3.5) < 0.0001
-            assert type(result) is float
+            assert result == Decimal('-3.5')
+            assert type(result) is Decimal
 
     def test_real_abs(self):
         with pikepdf.explicit_conversion():
             d = Dictionary(Value=Real(-3.5))
             result = abs(d.Value)
-            assert abs(result - 3.5) < 0.0001
+            assert result == Decimal('3.5')
+            assert type(result) is Decimal
 
 
 class TestBooleanType:
@@ -494,9 +495,9 @@ class TestArithmeticErrorCases:
         """Test that arithmetic on non-numeric types raises TypeError."""
         with pikepdf.explicit_conversion():
             d = Dictionary(Name=Name.Foo)
-            with pytest.raises(TypeError, match="not an integer"):
+            with pytest.raises(TypeError, match="not numeric"):
                 d.Name + 1
-            with pytest.raises(TypeError, match="not an integer"):
+            with pytest.raises(TypeError, match="not numeric"):
                 1 + d.Name
             with pytest.raises(TypeError, match="not numeric"):
                 d.Name + 1.5
@@ -506,9 +507,9 @@ class TestArithmeticErrorCases:
     def test_sub_on_non_numeric_raises(self):
         with pikepdf.explicit_conversion():
             d = Dictionary(Name=Name.Foo)
-            with pytest.raises(TypeError, match="not an integer"):
+            with pytest.raises(TypeError, match="not numeric"):
                 d.Name - 1
-            with pytest.raises(TypeError, match="not an integer"):
+            with pytest.raises(TypeError, match="not numeric"):
                 1 - d.Name
             with pytest.raises(TypeError, match="not numeric"):
                 d.Name - 1.5
@@ -518,9 +519,9 @@ class TestArithmeticErrorCases:
     def test_mul_on_non_numeric_raises(self):
         with pikepdf.explicit_conversion():
             d = Dictionary(Name=Name.Foo)
-            with pytest.raises(TypeError, match="not an integer"):
+            with pytest.raises(TypeError, match="not numeric"):
                 d.Name * 2
-            with pytest.raises(TypeError, match="not an integer"):
+            with pytest.raises(TypeError, match="not numeric"):
                 2 * d.Name
             with pytest.raises(TypeError, match="not numeric"):
                 d.Name * 2.5
@@ -542,9 +543,9 @@ class TestArithmeticErrorCases:
     def test_floordiv_on_non_numeric_raises(self):
         with pikepdf.explicit_conversion():
             d = Dictionary(Name=Name.Foo)
-            with pytest.raises(TypeError, match="not an integer"):
+            with pytest.raises(TypeError, match="not numeric"):
                 d.Name // 2
-            with pytest.raises(TypeError, match="not an integer"):
+            with pytest.raises(TypeError, match="not numeric"):
                 2 // d.Name
             with pytest.raises(TypeError, match="not numeric"):
                 d.Name // 2.5
@@ -554,9 +555,9 @@ class TestArithmeticErrorCases:
     def test_mod_on_non_numeric_raises(self):
         with pikepdf.explicit_conversion():
             d = Dictionary(Name=Name.Foo)
-            with pytest.raises(TypeError, match="not an integer"):
+            with pytest.raises(TypeError, match="not numeric"):
                 d.Name % 2
-            with pytest.raises(TypeError, match="not an integer"):
+            with pytest.raises(TypeError, match="not numeric"):
                 2 % d.Name
             with pytest.raises(TypeError, match="not numeric"):
                 d.Name % 2.5
@@ -582,95 +583,46 @@ class TestArithmeticErrorCases:
                 abs(d.Name)
 
 
-class TestNotImplementedFallback:
-    """Tests for NotImplemented return with unsupported operand types.
+class TestDecimalOperands:
+    """Integer and Real combine with Decimal, giving a Decimal."""
 
-    When operations involve types that aren't int or float (like Decimal),
-    the C++ code returns NotImplemented to let Python try the other operand's
-    methods. These tests verify that code path is hit (even though the overall
-    operation may still fail if the other type can't handle it).
-    """
-
-    def test_integer_add_unsupported_type_raises(self):
-        """Integer + Decimal returns NotImplemented, leading to TypeError."""
+    @pytest.mark.parametrize(
+        "op, expected",
+        [
+            (lambda a, b: a + b, Decimal('15')),
+            (lambda a, b: a - b, Decimal('5')),
+            (lambda a, b: a * b, Decimal('50')),
+            (lambda a, b: a / b, Decimal('2')),
+            (lambda a, b: a // b, Decimal('2')),
+            (lambda a, b: a % b, Decimal('0')),
+            (lambda a, b: a**b, Decimal('100000')),
+        ],
+    )
+    def test_integer_op_decimal(self, op, expected):
         with pikepdf.explicit_conversion():
-            d = Dictionary(Value=10)
-            # NotImplemented is returned, but Decimal doesn't handle Object
-            with pytest.raises(TypeError):
-                d.Value + Decimal('5')
+            result = op(Integer(10), Decimal('5'))
+            assert result == expected
+            assert type(result) is Decimal
 
-    def test_integer_radd_unsupported_type_raises(self):
-        """Decimal + Integer triggers __radd__ returning NotImplemented."""
+    def test_decimal_op_integer(self):
         with pikepdf.explicit_conversion():
-            d = Dictionary(Value=10)
-            with pytest.raises(TypeError):
-                Decimal('5') + d.Value
+            assert Decimal('5') + Integer(10) == Decimal('15')
+            assert Decimal('5') - Integer(10) == Decimal('-5')
+            assert Decimal('20') / Integer(10) == Decimal('2')
+            assert type(Decimal('5') + Integer(10)) is Decimal
 
-    def test_integer_sub_unsupported_type_raises(self):
+    def test_real_op_decimal(self):
         with pikepdf.explicit_conversion():
-            d = Dictionary(Value=10)
-            with pytest.raises(TypeError):
-                d.Value - Decimal('5')
-
-    def test_integer_mul_unsupported_type_raises(self):
-        with pikepdf.explicit_conversion():
-            d = Dictionary(Value=10)
-            with pytest.raises(TypeError):
-                d.Value * Decimal('5')
-
-    def test_integer_truediv_unsupported_type_raises(self):
-        with pikepdf.explicit_conversion():
-            d = Dictionary(Value=10)
-            with pytest.raises(TypeError):
-                d.Value / Decimal('5')
-
-    def test_integer_floordiv_unsupported_type_raises(self):
-        with pikepdf.explicit_conversion():
-            d = Dictionary(Value=10)
-            with pytest.raises(TypeError):
-                d.Value // Decimal('5')
-
-    def test_integer_mod_unsupported_type_raises(self):
-        with pikepdf.explicit_conversion():
-            d = Dictionary(Value=10)
-            with pytest.raises(TypeError):
-                d.Value % Decimal('5')
-
-    def test_real_add_unsupported_type_raises(self):
-        with pikepdf.explicit_conversion():
-            d = Dictionary(Value=Real(2.5))
-            with pytest.raises(TypeError):
-                d.Value + Decimal('5')
-
-    def test_real_sub_unsupported_type_raises(self):
-        with pikepdf.explicit_conversion():
-            d = Dictionary(Value=Real(2.5))
-            with pytest.raises(TypeError):
-                d.Value - Decimal('5')
-
-    def test_real_mul_unsupported_type_raises(self):
-        with pikepdf.explicit_conversion():
-            d = Dictionary(Value=Real(2.5))
-            with pytest.raises(TypeError):
-                d.Value * Decimal('5')
-
-    def test_real_truediv_unsupported_type_raises(self):
-        with pikepdf.explicit_conversion():
-            d = Dictionary(Value=Real(2.5))
-            with pytest.raises(TypeError):
-                d.Value / Decimal('5')
-
-    def test_real_floordiv_unsupported_type_raises(self):
-        with pikepdf.explicit_conversion():
-            d = Dictionary(Value=Real(2.5))
-            with pytest.raises(TypeError):
-                d.Value // Decimal('5')
-
-    def test_real_mod_unsupported_type_raises(self):
-        with pikepdf.explicit_conversion():
-            d = Dictionary(Value=Real(2.5))
-            with pytest.raises(TypeError):
-                d.Value % Decimal('5')
+            r = Real('2.5')
+            assert r + Decimal('5') == Decimal('7.5')
+            assert r - Decimal('5') == Decimal('-2.5')
+            assert r * Decimal('2') == Decimal('5.0')
+            assert r / Decimal('2') == Decimal('1.25')
+            assert r // Decimal('2') == Decimal('1')
+            assert r % Decimal('2') == Decimal('0.5')
+            assert Decimal('5') + r == Decimal('7.5')
+            assert Decimal('5') - r == Decimal('2.5')
+            assert type(r + Decimal('5')) is Decimal
 
 
 class TestArithmeticOnNonNumericWithUnsupportedOther:
@@ -781,14 +733,14 @@ class TestUnaryOperators:
         with pikepdf.explicit_conversion():
             d = Dictionary(Value=Real(3.5))
             result = +d.Value
-            assert abs(result - 3.5) < 0.0001
-            assert type(result) is float
+            assert result == Decimal('3.5')
+            assert type(result) is Decimal
 
     def test_real_pos_negative(self):
         with pikepdf.explicit_conversion():
             d = Dictionary(Value=Real(-3.5))
             result = +d.Value
-            assert abs(result + 3.5) < 0.0001
+            assert result == Decimal('-3.5')
 
 
 class TestDivisionByZero:
@@ -797,97 +749,97 @@ class TestDivisionByZero:
     def test_truediv_by_zero_float(self):
         with pikepdf.explicit_conversion():
             d = Dictionary(Value=10)
-            with pytest.raises(ValueError, match="division by zero"):
+            with pytest.raises(ZeroDivisionError):
                 d.Value / 0.0
 
     def test_truediv_by_zero_int(self):
         with pikepdf.explicit_conversion():
             d = Dictionary(Value=10)
-            with pytest.raises(ValueError, match="division by zero"):
+            with pytest.raises(ZeroDivisionError):
                 d.Value / 0
 
     def test_rtruediv_by_zero_integer(self):
         with pikepdf.explicit_conversion():
             d = Dictionary(Value=0)
-            with pytest.raises(ValueError, match="division by zero"):
+            with pytest.raises(ZeroDivisionError):
                 10.0 / d.Value
 
     def test_rtruediv_by_zero_integer_int_operand(self):
         with pikepdf.explicit_conversion():
             d = Dictionary(Value=0)
-            with pytest.raises(ValueError, match="division by zero"):
+            with pytest.raises(ZeroDivisionError):
                 10 / d.Value
 
     def test_floordiv_by_zero_float(self):
         with pikepdf.explicit_conversion():
             d = Dictionary(Value=10)
-            with pytest.raises(ValueError, match="division by zero"):
+            with pytest.raises(ZeroDivisionError):
                 d.Value // 0.0
 
     def test_rfloordiv_by_zero_integer(self):
         with pikepdf.explicit_conversion():
             d = Dictionary(Value=0)
-            with pytest.raises(ValueError, match="division by zero"):
+            with pytest.raises(ZeroDivisionError):
                 10 // d.Value
 
     def test_rfloordiv_by_zero_float(self):
         with pikepdf.explicit_conversion():
             d = Dictionary(Value=0)
-            with pytest.raises(ValueError, match="division by zero"):
+            with pytest.raises(ZeroDivisionError):
                 10.0 // d.Value
 
     def test_mod_by_zero_float(self):
         with pikepdf.explicit_conversion():
             d = Dictionary(Value=10)
-            with pytest.raises(ValueError, match="modulo by zero"):
+            with pytest.raises(ZeroDivisionError):
                 d.Value % 0.0
 
     def test_rmod_by_zero_integer(self):
         with pikepdf.explicit_conversion():
             d = Dictionary(Value=0)
-            with pytest.raises(ValueError, match="modulo by zero"):
+            with pytest.raises(ZeroDivisionError):
                 10 % d.Value
 
     def test_rmod_by_zero_float(self):
         with pikepdf.explicit_conversion():
             d = Dictionary(Value=0)
-            with pytest.raises(ValueError, match="modulo by zero"):
+            with pytest.raises(ZeroDivisionError):
                 10.0 % d.Value
 
     def test_real_truediv_by_zero(self):
         with pikepdf.explicit_conversion():
             d = Dictionary(Value=Real(10.0))
-            with pytest.raises(ValueError, match="division by zero"):
+            with pytest.raises(ZeroDivisionError):
                 d.Value / 0.0
 
     def test_real_rtruediv_by_zero(self):
         with pikepdf.explicit_conversion():
             d = Dictionary(Value=Real(0.0))
-            with pytest.raises(ValueError, match="division by zero"):
+            with pytest.raises(ZeroDivisionError):
                 10.0 / d.Value
 
     def test_real_floordiv_by_zero(self):
         with pikepdf.explicit_conversion():
             d = Dictionary(Value=Real(10.0))
-            with pytest.raises(ValueError, match="division by zero"):
+            with pytest.raises(ZeroDivisionError):
                 d.Value // 0.0
 
     def test_real_rfloordiv_by_zero(self):
         with pikepdf.explicit_conversion():
             d = Dictionary(Value=Real(0.0))
-            with pytest.raises(ValueError, match="division by zero"):
+            with pytest.raises(ZeroDivisionError):
                 10.0 // d.Value
 
     def test_real_mod_by_zero(self):
         with pikepdf.explicit_conversion():
             d = Dictionary(Value=Real(10.0))
-            with pytest.raises(ValueError, match="modulo by zero"):
+            with pytest.raises(ZeroDivisionError):
                 d.Value % 0.0
 
     def test_real_rmod_by_zero(self):
         with pikepdf.explicit_conversion():
             d = Dictionary(Value=Real(0.0))
-            with pytest.raises(ValueError, match="modulo by zero"):
+            with pytest.raises(ZeroDivisionError):
                 10.0 % d.Value
 
 
@@ -921,13 +873,15 @@ class TestRealTruedivWithInt:
         with pikepdf.explicit_conversion():
             d = Dictionary(Value=Real(10.0))
             result = d.Value / 4
-            assert abs(result - 2.5) < 0.0001
+            assert result == Decimal('2.5')
+            assert type(result) is Decimal
 
     def test_real_rtruediv_int(self):
         with pikepdf.explicit_conversion():
             d = Dictionary(Value=Real(4.0))
             result = 10 / d.Value
-            assert abs(result - 2.5) < 0.0001
+            assert result == Decimal('2.5')
+            assert type(result) is Decimal
 
 
 @pytest.fixture
@@ -1616,3 +1570,129 @@ class TestOrderingComparisons:
             assert Integer(5) == 5
             assert Integer(5) != 6
             assert Real('1.5') == 1.5
+
+
+class TestArithmeticBetweenObjects:
+    """Integer and Real combine with each other and with int/bool/Decimal.
+
+    Results are the native Python type that implicit mode would have produced:
+    int for Integer with Integer/int, Decimal whenever a Real is involved,
+    except that a Real combined with a Python float gives a float.
+    """
+
+    def test_integer_integer(self):
+        with pikepdf.explicit_conversion():
+            a, b = Integer(7), Integer(2)
+            assert a + b == 9 and type(a + b) is int
+            assert a - b == 5
+            assert a * b == 14
+            assert a / b == 3.5 and type(a / b) is float
+            assert a // b == 3
+            assert a % b == 1
+            assert a**b == 49 and type(a**b) is int
+
+    def test_real_real(self):
+        with pikepdf.explicit_conversion():
+            a, b = Real('2.5'), Real('4.5')
+            assert a + b == Decimal('7.0')
+            assert type(a + b) is Decimal
+            assert a - b == Decimal('-2.0')
+            assert a * b == Decimal('11.25')
+            assert a / b == Decimal('2.5') / Decimal('4.5')
+            assert b // a == Decimal('1')
+            assert b % a == Decimal('2.0')
+            assert Real('2') ** Real('3') == Decimal('8')
+
+    def test_real_integer_mixed(self):
+        with pikepdf.explicit_conversion():
+            assert Real('2.5') + Integer(3) == Decimal('5.5')
+            assert Integer(3) + Real('2.5') == Decimal('5.5')
+            assert Integer(3) - Real('2.5') == Decimal('0.5')
+            assert Real('2.5') * Integer(2) == Decimal('5.0')
+            assert type(Integer(3) + Real('2.5')) is Decimal
+
+    def test_real_int_and_bool(self):
+        with pikepdf.explicit_conversion():
+            assert Real('2.5') + 1 == Decimal('3.5')
+            assert 1 + Real('2.5') == Decimal('3.5')
+            assert Real('2.5') - 1 == Decimal('1.5')
+            assert 4 - Real('2.5') == Decimal('1.5')
+            assert Real('2.5') * 2 == Decimal('5.0')
+            assert Real('7.5') // 2 == Decimal('3')
+            assert Real('7.5') % 2 == Decimal('1.5')
+            assert Real('2.5') + True == Decimal('3.5')
+            assert Integer(2) + True == 3
+            assert Integer(2) * False == 0
+
+    def test_real_float_stays_float(self):
+        with pikepdf.explicit_conversion():
+            result = Real('2.5') + 1.5
+            assert result == 4.0
+            assert type(result) is float
+            assert type(1.5 * Real('2.5')) is float
+            assert type(Real('2.5') ** 2.0) is float
+
+    def test_real_exact_decimal(self):
+        # 0.1 + 0.2 is exact in Decimal, unlike binary floats.
+        with pikepdf.explicit_conversion():
+            assert Real('0.1') + Real('0.2') == Decimal('0.3')
+
+    def test_pow(self):
+        with pikepdf.explicit_conversion():
+            assert Integer(2) ** 10 == 1024
+            assert 2 ** Integer(10) == 1024
+            assert Integer(2) ** -1 == 0.5
+            assert Real('1.5') ** 2 == Decimal('2.25')
+            assert pow(Integer(3), 4) == 81
+
+    def test_fraction_operand(self):
+        from fractions import Fraction
+
+        with pikepdf.explicit_conversion():
+            assert Integer(2) + Fraction(1, 2) == Fraction(5, 2)
+            assert Fraction(1, 2) * Integer(2) == 1
+
+    def test_mediabox_quick_script(self, resources):
+        with pikepdf.open(resources / 'graph.pdf', conversion_mode='explicit') as pdf:
+            box = pdf.pages[0].MediaBox
+            width = box[2] - box[0]
+            height = box[3] - box[1]
+            assert width > 100
+            assert height > 100
+            assert width * height > 0
+            assert isinstance(width, (int, Decimal))
+
+    def test_non_numeric_other_object(self):
+        with pikepdf.explicit_conversion():
+            with pytest.raises(TypeError, match="not numeric"):
+                Integer(1) + Name.Foo
+            with pytest.raises(TypeError, match="not numeric"):
+                Name.Foo + Integer(1)
+
+    @pytest.mark.parametrize('other', ['1', None, [1]])
+    def test_unsupported_other_type(self, other):
+        with pikepdf.explicit_conversion():
+            with pytest.raises(TypeError):
+                Integer(1) + other
+            with pytest.raises(TypeError):
+                other + Real('1.5')
+
+    def test_invalid_real_token(self):
+        with pikepdf.explicit_conversion():
+            with pytest.raises(TypeError, match='not a valid number'):
+                Real('nan') + 1
+            with pytest.raises(TypeError, match='not a valid number'):
+                -Real('inf')
+
+    def test_division_by_zero_between_objects(self):
+        with pikepdf.explicit_conversion():
+            with pytest.raises(ZeroDivisionError):
+                Integer(1) / Integer(0)
+            with pytest.raises(ZeroDivisionError):
+                Real('1.5') / Integer(0)
+            with pytest.raises(ArithmeticError):
+                Real('1.5') % Real('0')
+
+    def test_via_get_raw_in_implicit_mode(self):
+        d = Dictionary(A=1, B=Real('2.5'))
+        assert d.get_raw('/A') + d.get_raw('/B') == Decimal('3.5')

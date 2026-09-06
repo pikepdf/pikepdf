@@ -15,6 +15,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <optional>
+#include <utility>
 
 #include <qpdf/Buffer.hh>
 #include <qpdf/Constants.h>
@@ -36,6 +37,74 @@
 // objects by value with objecthandle_equal(). These helpers back the
 // replacement methods installed after bind_vector()/bind_map() in
 // init_object().
+
+// Python stand-in for a numeric Object in arithmetic: int for Integer and
+// Decimal for Real, the same types implicit mode would have produced, so the
+// result of an expression does not depend on the conversion mode. The one
+// exception is a Real combined with a Python float, where Decimal arithmetic
+// would refuse the float; the Real becomes a float instead.
+static py::object arithmetic_operand(QPDFObjectHandle &h, bool other_is_float)
+{
+    if (h.isInteger())
+        return py::cast(h.getIntValue());
+    if (h.isReal()) {
+        auto value = real_as_double(h);
+        if (!value)
+            throw py::type_error(
+                ("Real object '" + h.getRealValue() + "' is not a valid number")
+                    .c_str());
+        if (other_is_float)
+            return py::cast(*value);
+        return decimal_from_pdfobject(h);
+    }
+    throw py::type_error("Object is not numeric");
+}
+
+using binary_number_fn = PyObject *(*)(PyObject *, PyObject *);
+
+static PyObject *number_power(PyObject *a, PyObject *b)
+{
+    return PyNumber_Power(a, b, Py_None);
+}
+
+// Binary arithmetic delegated to Python's number protocol on the stand-ins,
+// so int/float/Decimal/Fraction semantics, result types and exceptions
+// (ZeroDivisionError, OverflowError) are exactly the standard library's.
+// A non-numeric Object raises TypeError; a non-numeric other operand returns
+// NotImplemented so Python names both types in its own TypeError.
+static py::object binary_arithmetic(
+    QPDFObjectHandle &self, py::handle other, binary_number_fn fn, bool reflected)
+{
+    py::object lhs, rhs;
+    if (py::isinstance<QPDFObjectHandle>(other)) {
+        auto &other_h = py::cast<QPDFObjectHandle &>(other);
+        DualQpdfLockGuard lock(self.getOwningQPDF(), other_h.getOwningQPDF());
+        lhs = arithmetic_operand(self, false);
+        rhs = arithmetic_operand(other_h, false);
+    } else {
+        QpdfLockGuard lock(self.getOwningQPDF());
+        lhs = arithmetic_operand(self, py::isinstance<py::float_>(other));
+        if (!PyNumber_Check(other.ptr()))
+            return py::borrow<py::object>(py::handle(Py_NotImplemented));
+        rhs = py::borrow(other);
+    }
+    if (reflected)
+        std::swap(lhs, rhs);
+    PyObject *result = fn(lhs.ptr(), rhs.ptr());
+    if (!result)
+        throw py::python_error();
+    return py::steal(result);
+}
+
+static py::object unary_arithmetic(QPDFObjectHandle &self, PyObject *(*fn)(PyObject *))
+{
+    QpdfLockGuard lock(self.getOwningQPDF());
+    py::object operand = arithmetic_operand(self, false);
+    PyObject *result = fn(operand.ptr());
+    if (!result)
+        throw py::python_error();
+    return py::steal(result);
+}
 
 // Python operand standing in for a numeric Object in an ordering comparison:
 // int for Integer, Decimal for Real (exact, like __eq__), nullopt for any
@@ -967,395 +1036,12 @@ void init_object(py::module_ &m)
                         "Object is not a real number");
                 return h.getRealValue();
             })
-        // Arithmetic operations for Integer objects (return native Python types)
-        // Integer + int -> int
-        .def(
-            "__add__",
-            [](QPDFObjectHandle &h, long long other) -> long long {
-                if (!h.isInteger())
-                    throw py::type_error("Object is not an integer");
-                return h.getIntValue() + other;
-            },
-            py::is_operator())
-        .def(
-            "__radd__",
-            [](QPDFObjectHandle &h, long long other) -> long long {
-                if (!h.isInteger())
-                    throw py::type_error("Object is not an integer");
-                return other + h.getIntValue();
-            },
-            py::is_operator())
-        // Numeric + float -> float (for Integer or Real)
-        .def(
-            "__add__",
-            [](QPDFObjectHandle &h, double other) -> py::object {
-                if (h.isInteger())
-                    return py::cast(static_cast<double>(h.getIntValue()) + other);
-                if (h.isReal())
-                    return py::cast(std::stod(h.getRealValue()) + other);
-                throw py::type_error("Object is not numeric");
-            },
-            py::is_operator())
-        .def(
-            "__radd__",
-            [](QPDFObjectHandle &h, double other) -> py::object {
-                if (h.isInteger())
-                    return py::cast(other + static_cast<double>(h.getIntValue()));
-                if (h.isReal())
-                    return py::cast(other + std::stod(h.getRealValue()));
-                throw py::type_error("Object is not numeric");
-            },
-            py::is_operator())
-        // Fallback for other types (e.g., Decimal) - return NotImplemented
-        .def(
-            "__add__",
-            [](QPDFObjectHandle &h, py::object other) -> py::object {
-                if (!h.isInteger() && !h.isReal())
-                    throw py::type_error("Object is not numeric");
-                return py::borrow<py::object>(py::handle(Py_NotImplemented));
-            },
-            py::is_operator())
-        .def(
-            "__radd__",
-            [](QPDFObjectHandle &h, py::object other) -> py::object {
-                if (!h.isInteger() && !h.isReal())
-                    throw py::type_error("Object is not numeric");
-                return py::borrow<py::object>(py::handle(Py_NotImplemented));
-            },
-            py::is_operator())
-        .def(
-            "__sub__",
-            [](QPDFObjectHandle &h, long long other) -> long long {
-                if (!h.isInteger())
-                    throw py::type_error("Object is not an integer");
-                return h.getIntValue() - other;
-            },
-            py::is_operator())
-        .def(
-            "__rsub__",
-            [](QPDFObjectHandle &h, long long other) -> long long {
-                if (!h.isInteger())
-                    throw py::type_error("Object is not an integer");
-                return other - h.getIntValue();
-            },
-            py::is_operator())
-        .def(
-            "__sub__",
-            [](QPDFObjectHandle &h, double other) -> py::object {
-                if (h.isInteger())
-                    return py::cast(static_cast<double>(h.getIntValue()) - other);
-                if (h.isReal())
-                    return py::cast(std::stod(h.getRealValue()) - other);
-                throw py::type_error("Object is not numeric");
-            },
-            py::is_operator())
-        .def(
-            "__rsub__",
-            [](QPDFObjectHandle &h, double other) -> py::object {
-                if (h.isInteger())
-                    return py::cast(other - static_cast<double>(h.getIntValue()));
-                if (h.isReal())
-                    return py::cast(other - std::stod(h.getRealValue()));
-                throw py::type_error("Object is not numeric");
-            },
-            py::is_operator())
-        .def(
-            "__sub__",
-            [](QPDFObjectHandle &h, py::object other) -> py::object {
-                if (!h.isInteger() && !h.isReal())
-                    throw py::type_error("Object is not numeric");
-                return py::borrow<py::object>(py::handle(Py_NotImplemented));
-            },
-            py::is_operator())
-        .def(
-            "__rsub__",
-            [](QPDFObjectHandle &h, py::object other) -> py::object {
-                if (!h.isInteger() && !h.isReal())
-                    throw py::type_error("Object is not numeric");
-                return py::borrow<py::object>(py::handle(Py_NotImplemented));
-            },
-            py::is_operator())
-        .def(
-            "__mul__",
-            [](QPDFObjectHandle &h, long long other) -> long long {
-                if (!h.isInteger())
-                    throw py::type_error("Object is not an integer");
-                return h.getIntValue() * other;
-            },
-            py::is_operator())
-        .def(
-            "__rmul__",
-            [](QPDFObjectHandle &h, long long other) -> long long {
-                if (!h.isInteger())
-                    throw py::type_error("Object is not an integer");
-                return other * h.getIntValue();
-            },
-            py::is_operator())
-        .def(
-            "__mul__",
-            [](QPDFObjectHandle &h, double other) -> py::object {
-                if (h.isInteger())
-                    return py::cast(static_cast<double>(h.getIntValue()) * other);
-                if (h.isReal())
-                    return py::cast(std::stod(h.getRealValue()) * other);
-                throw py::type_error("Object is not numeric");
-            },
-            py::is_operator())
-        .def(
-            "__rmul__",
-            [](QPDFObjectHandle &h, double other) -> py::object {
-                if (h.isInteger())
-                    return py::cast(other * static_cast<double>(h.getIntValue()));
-                if (h.isReal())
-                    return py::cast(other * std::stod(h.getRealValue()));
-                throw py::type_error("Object is not numeric");
-            },
-            py::is_operator())
-        .def(
-            "__mul__",
-            [](QPDFObjectHandle &h, py::object other) -> py::object {
-                if (!h.isInteger() && !h.isReal())
-                    throw py::type_error("Object is not numeric");
-                return py::borrow<py::object>(py::handle(Py_NotImplemented));
-            },
-            py::is_operator())
-        .def(
-            "__rmul__",
-            [](QPDFObjectHandle &h, py::object other) -> py::object {
-                if (!h.isInteger() && !h.isReal())
-                    throw py::type_error("Object is not numeric");
-                return py::borrow<py::object>(py::handle(Py_NotImplemented));
-            },
-            py::is_operator())
-        // True division: always returns float
-        .def(
-            "__truediv__",
-            [](QPDFObjectHandle &h, double other) -> py::object {
-                if (other == 0.0)
-                    throw py::value_error("division by zero");
-                if (h.isInteger())
-                    return py::cast(static_cast<double>(h.getIntValue()) / other);
-                if (h.isReal())
-                    return py::cast(std::stod(h.getRealValue()) / other);
-                throw py::type_error("Object is not numeric");
-            },
-            py::is_operator())
-        .def(
-            "__rtruediv__",
-            [](QPDFObjectHandle &h, double other) -> py::object {
-                double val;
-                if (h.isInteger())
-                    val = static_cast<double>(h.getIntValue());
-                else if (h.isReal())
-                    val = std::stod(h.getRealValue());
-                else
-                    throw py::type_error("Object is not numeric");
-                if (val == 0.0)
-                    throw py::value_error("division by zero");
-                return py::cast(other / val);
-            },
-            py::is_operator())
-        .def(
-            "__truediv__",
-            [](QPDFObjectHandle &h, long long other) -> py::object {
-                if (other == 0)
-                    throw py::value_error("division by zero");
-                if (h.isInteger())
-                    return py::cast(static_cast<double>(h.getIntValue()) /
-                                    static_cast<double>(other));
-                if (h.isReal())
-                    return py::cast(
-                        std::stod(h.getRealValue()) / static_cast<double>(other));
-                throw py::type_error("Object is not numeric");
-            },
-            py::is_operator())
-        .def(
-            "__rtruediv__",
-            [](QPDFObjectHandle &h, long long other) -> py::object {
-                double val;
-                if (h.isInteger())
-                    val = static_cast<double>(h.getIntValue());
-                else if (h.isReal())
-                    val = std::stod(h.getRealValue());
-                else
-                    throw py::type_error("Object is not numeric");
-                if (val == 0.0)
-                    throw py::value_error("division by zero");
-                return py::cast(static_cast<double>(other) / val);
-            },
-            py::is_operator())
-        .def(
-            "__truediv__",
-            [](QPDFObjectHandle &h, py::object other) -> py::object {
-                if (!h.isInteger() && !h.isReal())
-                    throw py::type_error("Object is not numeric");
-                return py::borrow<py::object>(py::handle(Py_NotImplemented));
-            },
-            py::is_operator())
-        .def(
-            "__rtruediv__",
-            [](QPDFObjectHandle &h, py::object other) -> py::object {
-                if (!h.isInteger() && !h.isReal())
-                    throw py::type_error("Object is not numeric");
-                return py::borrow<py::object>(py::handle(Py_NotImplemented));
-            },
-            py::is_operator())
-        // Floor division: Integer // int -> int
-        .def(
-            "__floordiv__",
-            [](QPDFObjectHandle &h, long long other) -> long long {
-                if (!h.isInteger())
-                    throw py::type_error("Object is not an integer");
-                if (other == 0)
-                    throw py::value_error("division by zero");
-                return h.getIntValue() / other;
-            },
-            py::is_operator())
-        .def(
-            "__rfloordiv__",
-            [](QPDFObjectHandle &h, long long other) -> long long {
-                if (!h.isInteger())
-                    throw py::type_error("Object is not an integer");
-                long long val = h.getIntValue();
-                if (val == 0)
-                    throw py::value_error("division by zero");
-                return other / val;
-            },
-            py::is_operator())
-        // Floor division with float -> float
-        .def(
-            "__floordiv__",
-            [](QPDFObjectHandle &h, double other) -> py::object {
-                if (other == 0.0)
-                    throw py::value_error("division by zero");
-                if (h.isInteger())
-                    return py::cast(
-                        std::floor(static_cast<double>(h.getIntValue()) / other));
-                if (h.isReal())
-                    return py::cast(std::floor(std::stod(h.getRealValue()) / other));
-                throw py::type_error("Object is not numeric");
-            },
-            py::is_operator())
-        .def(
-            "__rfloordiv__",
-            [](QPDFObjectHandle &h, double other) -> py::object {
-                double val;
-                if (h.isInteger())
-                    val = static_cast<double>(h.getIntValue());
-                else if (h.isReal())
-                    val = std::stod(h.getRealValue());
-                else
-                    throw py::type_error("Object is not numeric");
-                if (val == 0.0)
-                    throw py::value_error("division by zero");
-                return py::cast(std::floor(other / val));
-            },
-            py::is_operator())
-        .def(
-            "__floordiv__",
-            [](QPDFObjectHandle &h, py::object other) -> py::object {
-                if (!h.isInteger() && !h.isReal())
-                    throw py::type_error("Object is not numeric");
-                return py::borrow<py::object>(py::handle(Py_NotImplemented));
-            },
-            py::is_operator())
-        .def(
-            "__rfloordiv__",
-            [](QPDFObjectHandle &h, py::object other) -> py::object {
-                if (!h.isInteger() && !h.isReal())
-                    throw py::type_error("Object is not numeric");
-                return py::borrow<py::object>(py::handle(Py_NotImplemented));
-            },
-            py::is_operator())
-        .def(
-            "__mod__",
-            [](QPDFObjectHandle &h, long long other) -> long long {
-                if (!h.isInteger())
-                    throw py::type_error("Object is not an integer");
-                if (other == 0)
-                    throw py::value_error("modulo by zero");
-                return h.getIntValue() % other;
-            },
-            py::is_operator())
-        .def(
-            "__rmod__",
-            [](QPDFObjectHandle &h, long long other) -> long long {
-                if (!h.isInteger())
-                    throw py::type_error("Object is not an integer");
-                long long val = h.getIntValue();
-                if (val == 0)
-                    throw py::value_error("modulo by zero");
-                return other % val;
-            },
-            py::is_operator())
-        .def(
-            "__mod__",
-            [](QPDFObjectHandle &h, double other) -> py::object {
-                if (other == 0.0)
-                    throw py::value_error("modulo by zero");
-                if (h.isInteger())
-                    return py::cast(
-                        std::fmod(static_cast<double>(h.getIntValue()), other));
-                if (h.isReal())
-                    return py::cast(std::fmod(std::stod(h.getRealValue()), other));
-                throw py::type_error("Object is not numeric");
-            },
-            py::is_operator())
-        .def(
-            "__rmod__",
-            [](QPDFObjectHandle &h, double other) -> py::object {
-                double val;
-                if (h.isInteger())
-                    val = static_cast<double>(h.getIntValue());
-                else if (h.isReal())
-                    val = std::stod(h.getRealValue());
-                else
-                    throw py::type_error("Object is not numeric");
-                if (val == 0.0)
-                    throw py::value_error("modulo by zero");
-                return py::cast(std::fmod(other, val));
-            },
-            py::is_operator())
-        .def(
-            "__mod__",
-            [](QPDFObjectHandle &h, py::object other) -> py::object {
-                if (!h.isInteger() && !h.isReal())
-                    throw py::type_error("Object is not numeric");
-                return py::borrow<py::object>(py::handle(Py_NotImplemented));
-            },
-            py::is_operator())
-        .def(
-            "__rmod__",
-            [](QPDFObjectHandle &h, py::object other) -> py::object {
-                if (!h.isInteger() && !h.isReal())
-                    throw py::type_error("Object is not numeric");
-                return py::borrow<py::object>(py::handle(Py_NotImplemented));
-            },
-            py::is_operator())
         .def("__neg__",
-            [](QPDFObjectHandle &h) -> py::object {
-                if (h.isInteger())
-                    return py::cast(-h.getIntValue());
-                if (h.isReal())
-                    return py::cast(-std::stod(h.getRealValue()));
-                throw py::type_error("Object is not numeric");
-            })
+            [](QPDFObjectHandle &h) { return unary_arithmetic(h, PyNumber_Negative); })
         .def("__pos__",
-            [](QPDFObjectHandle &h) -> py::object {
-                if (h.isInteger())
-                    return py::cast(+h.getIntValue());
-                if (h.isReal())
-                    return py::cast(+std::stod(h.getRealValue()));
-                throw py::type_error("Object is not numeric");
-            })
+            [](QPDFObjectHandle &h) { return unary_arithmetic(h, PyNumber_Positive); })
         .def("__abs__",
-            [](QPDFObjectHandle &h) -> py::object {
-                if (h.isInteger())
-                    return py::cast(std::abs(h.getIntValue()));
-                if (h.isReal())
-                    return py::cast(std::abs(std::stod(h.getRealValue())));
-                throw py::type_error("Object is not numeric");
-            })
+            [](QPDFObjectHandle &h) { return unary_arithmetic(h, PyNumber_Absolute); })
         // Ordering comparisons for Integer and Real
         .def(
             "__lt__",
@@ -1381,6 +1067,37 @@ void init_object(py::module_ &m)
                 return compare_numeric(h, other, Py_GE);
             },
             py::is_operator());
+
+    // Binary arithmetic for Integer and Real. Each operator gets a forward
+    // and a reflected method that share one implementation.
+    struct ArithmeticOp {
+        char const *name;
+        char const *reflected_name;
+        binary_number_fn fn;
+    };
+    static constexpr ArithmeticOp arithmetic_ops[] = {
+        {"__add__", "__radd__", PyNumber_Add},
+        {"__sub__", "__rsub__", PyNumber_Subtract},
+        {"__mul__", "__rmul__", PyNumber_Multiply},
+        {"__truediv__", "__rtruediv__", PyNumber_TrueDivide},
+        {"__floordiv__", "__rfloordiv__", PyNumber_FloorDivide},
+        {"__mod__", "__rmod__", PyNumber_Remainder},
+        {"__pow__", "__rpow__", number_power},
+    };
+    for (auto const &op : arithmetic_ops) {
+        object.def(
+            op.name,
+            [fn = op.fn](QPDFObjectHandle &h, py::object other) {
+                return binary_arithmetic(h, other, fn, false);
+            },
+            py::is_operator());
+        object.def(
+            op.reflected_name,
+            [fn = op.fn](QPDFObjectHandle &h, py::object other) {
+                return binary_arithmetic(h, other, fn, true);
+            },
+            py::is_operator());
+    }
 
     init_object_methods(object);
 

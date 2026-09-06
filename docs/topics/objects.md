@@ -210,19 +210,39 @@ accepted. A value too large for a 64-bit integer is handled the same way:
 `as_int(coerce=True)` raises `OverflowError` when no default is given, and
 returns the supplied default when there is one.
 
-### Arithmetic with scalar types
+### Arithmetic and comparisons with scalar types
 
-{class}`pikepdf.Integer` and {class}`pikepdf.Real` support arithmetic
-operations with both `int` and `float` operands:
+{class}`pikepdf.Integer` and {class}`pikepdf.Real` support the arithmetic
+operators (`+`, `-`, `*`, `/`, `//`, `%`, `**`, unary `-`, `abs()`) and the
+ordering comparisons (`<`, `<=`, `>`, `>=`) with each other and with Python
+`int`, `float`, `bool` and `Decimal` operands. The result is always a native
+Python number, of the same type that implicit mode would have produced:
 
 ```python
 >>> with pikepdf.explicit_conversion():
-...     d = pikepdf.Dictionary(Value=10)
-...     d.Value + 5      # Returns 15 (int)
-...     d.Value + 2.5    # Returns 12.5 (float)
-...     d.Value / 4      # Returns 2.5 (float, true division)
-...     d.Value // 3     # Returns 3 (int, floor division)
+...     d = pikepdf.Dictionary(Value=10, Scale=pikepdf.Real('2.5'))
+...     d.Value + 5             # 15 (int)
+...     d.Value + 2.5           # 12.5 (float)
+...     d.Value / 4             # 2.5 (float, true division)
+...     d.Value // 3            # 3 (int, floor division)
+...     d.Scale * d.Value       # Decimal('25.0')
+...     d.Scale + 1             # Decimal('3.5')
+...     d.Scale + 1.5           # 4.0 (float)
+...     d.Scale > d.Value       # False
 ```
+
+An `Integer` behaves like an `int`. A `Real` behaves like the
+{class}`~decimal.Decimal` of its token text, exact and lossless, so
+`Real('0.1') + Real('0.2') == Decimal('0.3')`; the one exception is a `float`
+operand, which `Decimal` would refuse, so a `Real` combined with a `float`
+gives a `float`. Errors are Python's own: `ZeroDivisionError` for division by
+zero, and `TypeError` for a non-numeric object or operand.
+
+This means a quick script can compute `page.MediaBox[2] - page.MediaBox[0] > 100`
+under explicit mode without unboxing anything, and receives a `TypeError`
+rather than a silently wrong answer if the PDF stored something other than a
+number there. Careful code should still use the `as_*` accessors or the
+`get_*` getters to unbox, coerce, and handle a wrong type deliberately.
 
 For convenience, the `repr()` of a `pikepdf.Object` will display a
 Python expression that replicates the existing object (when possible), so it
@@ -264,11 +284,10 @@ default, check for:
   might be a pikepdf object, and replace them with `as_int`/`as_bool`/
   `as_decimal`/`get_int`/etc., or with `isinstance(x, pikepdf.Integer)` and
   friends if you specifically need to detect the PDF type.
-- **Arithmetic on `Real`** (e.g. `mediabox[2] - mediabox[0]`) raises
-  `TypeError` unless both operands are already pikepdf numeric objects
-  produced by arithmetic on them; mixing with a plain Python number is only
-  supported as shown above, and some combinations that worked implicitly will
-  need an explicit `float()`/`int()` conversion first.
+- **Arithmetic and comparisons keep working**, with the same result types as
+  implicit mode, so expressions such as `mediabox[2] - mediabox[0]` need no
+  change. Only `isinstance` checks, hashing and JSON serialization (below)
+  observe the difference.
 - **`hash()`** of a scalar raises `TypeError`, so an `Integer`/`Real`/
   `Boolean` cannot be used as a dict key or put in a `set` without first
   converting it.

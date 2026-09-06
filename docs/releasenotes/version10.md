@@ -69,6 +69,13 @@ to that project for the report.
   `<`, `<=`, `>` and `>=` against Python `int`, `float`, `bool`, `Decimal`,
   and each other, so `box[0] < box[2]`, `sorted()`, `min()` and `max()` work
   on explicit-mode values. `Real` compares by its exact decimal value.
+- Arithmetic on `pikepdf.Integer` and `pikepdf.Real` now works between two
+  objects (`Real('2.5') + Integer(3)`) and with `Decimal` and `bool`
+  operands, and `**` is supported. Results are the native Python type that
+  implicit mode would have produced: `int` for `Integer` with `int`/`Integer`,
+  `Decimal` whenever a `Real` or `Decimal` is involved, and `float` with a
+  `float` operand. In explicit mode, `box[2] - box[0] > 100` therefore works
+  without unboxing, while raising `TypeError` if the PDF stored a non-number.
 - See {doc}`/topics/objects` for the full description of scopes and
   precedence, plus a "Migrating to explicit mode" checklist. pikepdf intends
   to make explicit conversion the default in a future major release; new
@@ -93,6 +100,12 @@ to that project for the report.
 
 ### Behavior changes
 
+- **Behavior change:** A `pikepdf.Real` combined with an `int`, `Integer`, or
+  `Decimal`, or negated with unary `-`/`+`/`abs()`, now yields a `Decimal`
+  (previously a `float`, or `TypeError` for `int` operands other than `/`).
+  A `Real` with a `float` operand still yields a `float`. Division of an
+  `Integer` or `Real` by zero now raises `ZeroDivisionError`, as for Python
+  numbers, instead of `ValueError`.
 - **Behavior change:** `bool()` on a `pikepdf.Integer` or `pikepdf.Real` is
   now by value (`bool(pikepdf.Integer(0))` is `False`), instead of raising
   `NotImplementedError: code is unreachable`.
