@@ -423,6 +423,9 @@ converts values to it. See {ref}`metadatatypes`. {issue}`555`
   which previously produced a corrupt extraction.
 - Corrected the documentation of {class}`pikepdf.StreamDecodeLevel`: the
   `specialized` and `all` levels were each described with the other's behavior.
+
+## v10.9.1
+
 - Fixed a crash (`SIGABRT` via `std::terminate`) that could occur when a
   file-backed {class}`pikepdf.Pdf` was deallocated while a Python exception was
   already propagating -- for example when `pikepdf.open(filename)` appears as a
