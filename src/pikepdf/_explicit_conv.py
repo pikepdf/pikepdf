@@ -21,13 +21,11 @@ def set_object_conversion_mode(mode: Literal['implicit', 'explicit']) -> None:
     returned when accessing PDF objects.
 
     Args:
-        mode: Conversion mode.
-            - ``'implicit'`` (default): Automatically convert PDF integers to
-              Python ``int``, booleans to ``bool``, and reals to ``Decimal``.
-              This is the legacy behavior.
-            - ``'explicit'``: Return PDF scalars as ``pikepdf.Integer``,
-              ``pikepdf.Boolean``, and ``pikepdf.Real`` objects. This enables
-              better type safety and static type checking.
+        mode: ``'implicit'`` (the default) converts PDF integers to Python
+            ``int``, booleans to ``bool``, and reals to ``Decimal``; this is
+            the legacy behavior. ``'explicit'`` returns PDF scalars as
+            ``pikepdf.Integer``, ``pikepdf.Boolean``, and ``pikepdf.Real``
+            objects, which enables better type safety and static type checking.
 
     Example:
         >>> pikepdf.set_object_conversion_mode('explicit')
