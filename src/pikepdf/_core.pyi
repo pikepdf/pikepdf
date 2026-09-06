@@ -1034,6 +1034,10 @@ class Object:
     def __neg__(self) -> int: ...
     def __pos__(self) -> int: ...
     def __abs__(self) -> int: ...
+    def __lt__(self, other: int | float | Decimal | Object, /) -> bool: ...
+    def __le__(self, other: int | float | Decimal | Object, /) -> bool: ...
+    def __gt__(self, other: int | float | Decimal | Object, /) -> bool: ...
+    def __ge__(self, other: int | float | Decimal | Object, /) -> bool: ...
     def __iter__(self) -> Iterator[Object]: ...
     def __len__(self) -> int: ...
     def __setattr__(self, name: str, value: Any, /) -> None: ...
@@ -1185,9 +1189,13 @@ class Integer(Object):
     of being automatically converted to Python ``int``.
 
     Supports ``int()`` conversion, indexing operations (via ``__index__``),
-    and arithmetic operations. Arithmetic operations return native Python ``int``.
+    arithmetic operations, and ordering comparisons (``<``, ``<=``, ``>``,
+    ``>=``) against Python numbers, ``Integer`` and ``Real``. Arithmetic
+    operations return native Python ``int``.
 
     .. versionadded:: 10.1
+    .. versionchanged:: 10.14
+        Added ordering comparisons.
     """
 
     object_type: ObjectType
@@ -1213,9 +1221,15 @@ class Real(Object):
     In explicit conversion mode, PDF reals are returned as this type instead
     of being automatically converted to Python ``Decimal``.
 
-    Supports ``float()`` conversion. Use ``as_decimal()`` for lossless conversion.
+    Supports ``float()`` conversion, arithmetic, and ordering comparisons
+    (``<``, ``<=``, ``>``, ``>=``) against Python numbers, ``Integer`` and
+    ``Real``. Comparisons use the exact decimal value of the PDF token, as
+    ``as_decimal()`` would return it. Use ``as_decimal()`` for lossless
+    conversion.
 
     .. versionadded:: 10.1
+    .. versionchanged:: 10.14
+        Added ordering comparisons.
     """
 
     object_type: ObjectType

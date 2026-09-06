@@ -65,6 +65,10 @@ to that project for the report.
   fallback to `as_int() != 0`); `as_float`/`as_decimal` with `coerce=True`
   accept an `Integer` and a numeric `String`, including exponent notation
   such as `"1e-5"`.
+- `pikepdf.Integer` and `pikepdf.Real` now support the ordering comparisons
+  `<`, `<=`, `>` and `>=` against Python `int`, `float`, `bool`, `Decimal`,
+  and each other, so `box[0] < box[2]`, `sorted()`, `min()` and `max()` work
+  on explicit-mode values. `Real` compares by its exact decimal value.
 - See {doc}`/topics/objects` for the full description of scopes and
   precedence, plus a "Migrating to explicit mode" checklist. pikepdf intends
   to make explicit conversion the default in a future major release; new

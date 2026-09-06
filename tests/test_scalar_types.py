@@ -1497,3 +1497,122 @@ class TestRealValidation:
             inf = Real('inf')
             assert inf.as_decimal(default=None) is None
             assert inf.as_float(default=None) is None
+
+
+class TestOrderingComparisons:
+    """Integer and Real support <, <=, >, >= against numbers and each other."""
+
+    def test_integer_vs_int(self):
+        with pikepdf.explicit_conversion():
+            i = Integer(5)
+            assert i < 6
+            assert i <= 5
+            assert i > 4
+            assert i >= 5
+            assert not (i < 5)
+            assert not (i > 5)
+
+    def test_reflected_int_vs_integer(self):
+        with pikepdf.explicit_conversion():
+            i = Integer(5)
+            assert 4 < i
+            assert 5 <= i
+            assert 6 > i
+            assert 5 >= i
+
+    def test_integer_vs_float_and_decimal(self):
+        with pikepdf.explicit_conversion():
+            i = Integer(5)
+            assert i < 5.5
+            assert i > Decimal('4.5')
+            assert 5.5 > i
+            assert Decimal('4.5') < i
+
+    def test_real_vs_numbers(self):
+        with pikepdf.explicit_conversion():
+            r = Real('3.5')
+            assert r < 4
+            assert r > 3
+            assert r <= 3.5
+            assert r >= 3.5
+            assert r < Decimal('3.51')
+            assert r > Decimal('3.49')
+            assert 3 < r
+            assert 4.0 > r
+            assert Decimal('3.5') <= r
+
+    def test_real_is_compared_exactly(self):
+        # Decimal semantics: no binary float rounding of the token text.
+        with pikepdf.explicit_conversion():
+            r = Real('0.1')
+            assert r == Decimal('0.1')
+            assert not (r < Decimal('0.1'))
+            assert not (r > Decimal('0.1'))
+
+    def test_integer_vs_integer_and_real(self):
+        with pikepdf.explicit_conversion():
+            assert Integer(1) < Integer(2)
+            assert Integer(2) >= Integer(2)
+            assert Integer(3) < Real('3.5')
+            assert Real('3.5') > Integer(3)
+            assert Real('1.25') < Real('1.5')
+            assert Real('1.5') >= Real('1.5')
+
+    def test_bool_operand(self):
+        # bool is an int subclass in Python, so it compares as 0/1.
+        with pikepdf.explicit_conversion():
+            assert Integer(0) >= False
+            assert Integer(2) > True
+            assert Real('0.5') > False
+
+    def test_sorting_and_min_max(self):
+        with pikepdf.explicit_conversion():
+            values = [Integer(3), Real('1.5'), Integer(-1), Real('2.25')]
+            assert [float(v) for v in sorted(values)] == [-1.0, 1.5, 2.25, 3.0]
+            assert min(values) == -1
+            assert max(values) == 3
+
+    def test_via_get_raw_in_implicit_mode(self):
+        d = Dictionary(A=1, B=Real('2.5'))
+        assert d.get_raw('/A') < d.get_raw('/B')
+        assert d.get_raw('/B') > 2
+
+    def test_mediabox_style_use(self, resources):
+        with pikepdf.open(resources / 'graph.pdf', conversion_mode='explicit') as pdf:
+            box = pdf.pages[0].MediaBox
+            assert box[0] < box[2]
+            assert box[1] < box[3]
+            assert box[2] > 0
+
+    @pytest.mark.parametrize('op', ['<', '<=', '>', '>='])
+    def test_non_numeric_object_raises_typeerror(self, op):
+        with pikepdf.explicit_conversion():
+            for obj in (Name.Foo, pikepdf.String('x'), Dictionary(), Boolean(True)):
+                with pytest.raises(TypeError):
+                    eval(f'obj {op} 1', {'obj': obj})
+                with pytest.raises(TypeError):
+                    eval(f'1 {op} obj', {'obj': obj})
+
+    @pytest.mark.parametrize('op', ['<', '<=', '>', '>='])
+    def test_unsupported_other_operand_raises_typeerror(self, op):
+        with pikepdf.explicit_conversion():
+            for other in ('1', None, [1], Name.Foo):
+                with pytest.raises(TypeError):
+                    eval(f'obj {op} other', {'obj': Integer(1), 'other': other})
+                with pytest.raises(TypeError):
+                    eval(f'obj {op} other', {'obj': Real('1.5'), 'other': other})
+
+    def test_unparseable_real_raises_typeerror(self):
+        with pikepdf.explicit_conversion():
+            for r in (Real('nan'), Real('inf')):
+                assert isinstance(r, Real)
+                with pytest.raises(TypeError, match='not a valid number'):
+                    _ = r < 2
+                with pytest.raises(TypeError, match='not a valid number'):
+                    _ = 2 >= r
+
+    def test_equality_unchanged(self):
+        with pikepdf.explicit_conversion():
+            assert Integer(5) == 5
+            assert Integer(5) != 6
+            assert Real('1.5') == 1.5

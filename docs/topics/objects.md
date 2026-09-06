@@ -264,8 +264,6 @@ default, check for:
   might be a pikepdf object, and replace them with `as_int`/`as_bool`/
   `as_decimal`/`get_int`/etc., or with `isinstance(x, pikepdf.Integer)` and
   friends if you specifically need to detect the PDF type.
-- **Ordering comparisons** (`<`, `<=`, `>`, `>=`) between a `pikepdf.Real` and
-  a number raise `TypeError`.
 - **Arithmetic on `Real`** (e.g. `mediabox[2] - mediabox[0]`) raises
   `TypeError` unless both operands are already pikepdf numeric objects
   produced by arithmetic on them; mixing with a plain Python number is only

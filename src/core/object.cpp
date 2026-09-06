@@ -14,6 +14,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
+#include <optional>
 
 #include <qpdf/Buffer.hh>
 #include <qpdf/Constants.h>
@@ -35,6 +36,62 @@
 // objects by value with objecthandle_equal(). These helpers back the
 // replacement methods installed after bind_vector()/bind_map() in
 // init_object().
+
+// Python operand standing in for a numeric Object in an ordering comparison:
+// int for Integer, Decimal for Real (exact, like __eq__), nullopt for any
+// other type. A Real whose token text is not a valid number cannot be ordered.
+static std::optional<py::object> ordering_operand(QPDFObjectHandle &h)
+{
+    if (h.isInteger())
+        return py::cast(h.getIntValue());
+    if (h.isReal()) {
+        if (!real_as_double(h))
+            throw py::type_error(
+                ("Real object '" + h.getRealValue() + "' is not a valid number")
+                    .c_str());
+        return decimal_from_pdfobject(h);
+    }
+    return std::nullopt;
+}
+
+// Ordering comparison (<, <=, >, >=) for Integer and Real against Python
+// numbers and other numeric Objects, delegated to Python's own comparison so
+// int/float/Decimal/Fraction semantics are exactly the standard library's.
+// Returns NotImplemented for non-numeric operands so Python reports the
+// pikepdf type names in its TypeError. Reflected comparisons need no extra
+// methods: Python swaps operands and calls the mirrored operator on us.
+static py::object compare_numeric(QPDFObjectHandle &self, py::handle other, int op)
+{
+    auto not_implemented = [] {
+        return py::borrow<py::object>(py::handle(Py_NotImplemented));
+    };
+    py::object lhs, rhs;
+    if (py::isinstance<QPDFObjectHandle>(other)) {
+        auto &other_h = py::cast<QPDFObjectHandle &>(other);
+        DualQpdfLockGuard lock(self.getOwningQPDF(), other_h.getOwningQPDF());
+        auto l = ordering_operand(self);
+        if (!l)
+            return not_implemented();
+        auto r = ordering_operand(other_h);
+        if (!r)
+            return not_implemented();
+        lhs = *l;
+        rhs = *r;
+    } else {
+        QpdfLockGuard lock(self.getOwningQPDF());
+        auto l = ordering_operand(self);
+        if (!l)
+            return not_implemented();
+        if (!PyNumber_Check(other.ptr()))
+            return not_implemented();
+        lhs = *l;
+        rhs = py::borrow(other);
+    }
+    PyObject *result = PyObject_RichCompare(lhs.ptr(), rhs.ptr(), op);
+    if (!result)
+        throw py::python_error();
+    return py::steal(result);
+}
 
 // Encode a Python value to a PDF object, returning false if it has no PDF
 // representation. Used by the read-only operations (__eq__, __contains__,
@@ -1291,13 +1348,39 @@ void init_object(py::module_ &m)
                     return py::cast(+std::stod(h.getRealValue()));
                 throw py::type_error("Object is not numeric");
             })
-        .def("__abs__", [](QPDFObjectHandle &h) -> py::object {
-            if (h.isInteger())
-                return py::cast(std::abs(h.getIntValue()));
-            if (h.isReal())
-                return py::cast(std::abs(std::stod(h.getRealValue())));
-            throw py::type_error("Object is not numeric");
-        });
+        .def("__abs__",
+            [](QPDFObjectHandle &h) -> py::object {
+                if (h.isInteger())
+                    return py::cast(std::abs(h.getIntValue()));
+                if (h.isReal())
+                    return py::cast(std::abs(std::stod(h.getRealValue())));
+                throw py::type_error("Object is not numeric");
+            })
+        // Ordering comparisons for Integer and Real
+        .def(
+            "__lt__",
+            [](QPDFObjectHandle &h, py::object other) {
+                return compare_numeric(h, other, Py_LT);
+            },
+            py::is_operator())
+        .def(
+            "__le__",
+            [](QPDFObjectHandle &h, py::object other) {
+                return compare_numeric(h, other, Py_LE);
+            },
+            py::is_operator())
+        .def(
+            "__gt__",
+            [](QPDFObjectHandle &h, py::object other) {
+                return compare_numeric(h, other, Py_GT);
+            },
+            py::is_operator())
+        .def(
+            "__ge__",
+            [](QPDFObjectHandle &h, py::object other) {
+                return compare_numeric(h, other, Py_GE);
+            },
+            py::is_operator());
 
     init_object_methods(object);
 
