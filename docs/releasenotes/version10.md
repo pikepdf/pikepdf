@@ -155,6 +155,20 @@ to that project for the report.
 
 ### Fixes
 
+- `str()` of a `pikepdf.Integer`, `Boolean` or `Real` now gives the value --
+  `'42'`, `'True'`, `'1.50'` -- rather than the object's repr. In implicit
+  mode a scalar arrives as `int`/`bool`/`Decimal` and `str()` never reached
+  the object, so every f-string, log line and string concatenation in code
+  reading PDF values silently changed meaning under explicit mode.
+- `hash()` now works on `pikepdf.Integer`, `Boolean` and `Real` (and on a
+  null object), instead of raising `RuntimeError: don't know how to hash
+  this`. A scalar hashes like the Python value it compares equal to, so
+  `Real('1.0')`, `Decimal('1.0')` and `1` agree, and a scalar can be a dict
+  key or a set member as it could in implicit mode.
+- In explicit mode, `repr()` of an `Array`, `Dictionary` or `Stream` now
+  names the scalars nested inside it -- `pikepdf.Real('42.42')` rather than
+  `'42.42'`, which was indistinguishable from a PDF string and did not
+  survive `eval(repr(obj))`.
 - Iterating a `NamePath` (e.g. `list(path)`) no longer falls back to the
   legacy `__getitem__(0), (1), ...` protocol, which never raised
   `IndexError` and so iterated forever, exhausting memory.

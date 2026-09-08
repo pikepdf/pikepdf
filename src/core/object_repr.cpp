@@ -51,7 +51,8 @@ std::string objecthandle_scalar_value(QPDFObjectHandle h, bool explicit_mode)
         return std::to_string(h.getIntValue());
     case qpdf_object_type_e::ot_real:
         if (explicit_mode) {
-            // In explicit mode, show as quoted string since pikepdf.Real wraps it
+            // The caller wraps this in pikepdf.Real(...), which takes the
+            // decimal as a string so that trailing zeros survive
             return "'" + h.getRealValue() + "'";
         }
         // In implicit mode, show as Decimal for backward compatibility
@@ -203,14 +204,17 @@ static void objecthandle_repr_inner(std::string &out, // accumulates the result
 
     switch (h.getTypeCode()) {
     case qpdf_object_type_e::ot_null:
-    case qpdf_object_type_e::ot_boolean:
-    case qpdf_object_type_e::ot_integer:
-    case qpdf_object_type_e::ot_real:
     case qpdf_object_type_e::ot_name:
     case qpdf_object_type_e::ot_string:
         out += objecthandle_scalar_value(h, explicit_mode);
         break;
+    case qpdf_object_type_e::ot_boolean:
+    case qpdf_object_type_e::ot_integer:
+    case qpdf_object_type_e::ot_real:
     case qpdf_object_type_e::ot_operator:
+        // Named in explicit mode, bare in implicit mode, exactly as the same
+        // value reprs on its own. Without the name a nested real would print as
+        // '42.42', which reads as a PDF string.
         out += objecthandle_repr_typename_and_value(h, explicit_mode);
         break;
     case qpdf_object_type_e::ot_inlineimage:

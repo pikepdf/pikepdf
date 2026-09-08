@@ -1696,3 +1696,63 @@ class TestArithmeticBetweenObjects:
     def test_via_get_raw_in_implicit_mode(self):
         d = Dictionary(A=1, B=Real('2.5'))
         assert d.get_raw('/A') + d.get_raw('/B') == Decimal('3.5')
+
+
+class TestStrOfScalars:
+    """``str()`` of a scalar object must give its value, not its repr.
+
+    In implicit mode a PDF scalar arrives as ``int``/``bool``/``Decimal``, so
+    ``str()`` was never called on the object itself. In explicit mode it is,
+    and every f-string, log line and string concatenation in calling code
+    depends on it producing the value.
+    """
+
+    def test_integer(self):
+        with pikepdf.explicit_conversion():
+            assert str(Integer(42)) == '42'
+            assert f'{Integer(-7)}' == '-7'
+
+    def test_boolean(self):
+        with pikepdf.explicit_conversion():
+            assert str(Boolean(True)) == 'True'
+            assert str(Boolean(False)) == 'False'
+
+    def test_real(self):
+        with pikepdf.explicit_conversion():
+            assert str(Real('42.42')) == '42.42'
+            # Trailing zeros are significant to a PDF real, as to a Decimal.
+            assert str(Real('1.50')) == '1.50'
+
+    def test_matches_implicit_mode(self, resources):
+        """The same value must stringify the same way in either mode."""
+        with pikepdf.open(resources / 'graph.pdf') as pdf:
+            box = pdf.pages[0].obj.get_raw('/MediaBox')
+            with pikepdf.implicit_conversion():
+                implicit = [str(v) for v in box.as_list()]
+            with pikepdf.explicit_conversion():
+                explicit = [str(v) for v in box.as_list()]
+        assert implicit == explicit
+
+
+class TestHashOfScalars:
+    """A scalar object must hash like the Python value it compares equal to."""
+
+    def test_integer(self):
+        with pikepdf.explicit_conversion():
+            assert hash(Integer(42)) == hash(42)
+
+    def test_boolean(self):
+        with pikepdf.explicit_conversion():
+            assert hash(Boolean(True)) == hash(True)
+            assert hash(Boolean(False)) == hash(False)
+
+    def test_real(self):
+        with pikepdf.explicit_conversion():
+            assert hash(Real('1.0')) == hash(Decimal('1.0')) == hash(1)
+            assert hash(Real('42.42')) == hash(Decimal('42.42'))
+
+    def test_usable_as_dict_key(self):
+        with pikepdf.explicit_conversion():
+            d = {Integer(1): 'one', Real('2.0'): 'two'}
+            assert d[1] == 'one'
+            assert d[Decimal('2.0')] == 'two'

@@ -948,6 +948,15 @@ Raises:
                     s = h.getOperatorValue();
                 else if (h.isString())
                     s = h.getUTF8Value();
+                else if (h.isInteger())
+                    s = std::to_string(h.getIntValue());
+                else if (h.isBool())
+                    // Match str() of the Python bool this becomes in implicit mode
+                    s = h.getBoolValue() ? "True" : "False";
+                else if (h.isReal())
+                    // The stored decimal string, trailing zeros and all, which is
+                    // what str() of the equivalent Decimal produces
+                    s = h.getRealValue();
                 else
                     // Python's default __str__ calls __repr__
                     s = objecthandle_repr(h);

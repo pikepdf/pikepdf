@@ -48,6 +48,26 @@ def test_repr_dict():
     assert eval(repr(d)) == d
 
 
+def test_repr_dict_explicit_mode():
+    d = Dictionary(
+        {
+            '/Boolean': True,
+            '/Integer': 42,
+            '/Real': Decimal('42.42'),
+            '/String': String('hi'),
+            '/Array': Array([1, 2, 3.14]),
+        }
+    )
+    with pikepdf.explicit_conversion():
+        r = repr(d)
+        # A nested real must name its type. Bare, it would print as '3.14',
+        # which is how a PDF string prints, and would eval back as one.
+        assert "pikepdf.Real('42.42')" in r
+        assert 'pikepdf.Integer(42)' in r
+        assert 'pikepdf.Boolean(True)' in r
+        assert eval(r) == d
+
+
 def test_repr_scalar():
     scalars = [
         False,

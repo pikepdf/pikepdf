@@ -880,6 +880,17 @@ void init_object(py::module_ &m)
                     auto v = self.getOperatorValue();
                     return py::int_(py::hash(py::bytes(v.data(), v.size())));
                 }
+                case qpdf_object_type_e::ot_integer:
+                    return py::int_(py::hash(py::int_(self.getIntValue())));
+                case qpdf_object_type_e::ot_boolean:
+                    return py::int_(py::hash(py::bool_(self.getBoolValue())));
+                case qpdf_object_type_e::ot_real:
+                    // Hash the Decimal this becomes in implicit mode. Python
+                    // guarantees a Decimal and an equal int/float hash alike, so
+                    // Real('1.0') and 1 -- which compare equal -- agree here too.
+                    return py::int_(py::hash(decimal_from_pdfobject(self)));
+                case qpdf_object_type_e::ot_null:
+                    return py::int_(py::hash(py::none()));
                 case qpdf_object_type_e::ot_array:
                 case qpdf_object_type_e::ot_dictionary:
                 case qpdf_object_type_e::ot_stream:
