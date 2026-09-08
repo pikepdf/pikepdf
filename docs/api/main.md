@@ -45,6 +45,10 @@
 ```
 
 ```{eval-rst}
+.. autoapifunction:: pikepdf.unbox
+```
+
+```{eval-rst}
 .. autoapifunction:: pikepdf.set_object_conversion_mode
 ```
 

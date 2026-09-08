@@ -154,6 +154,7 @@ from pikepdf._explicit_conv import (
     implicit_conversion,
     get_object_conversion_mode,
     set_object_conversion_mode,
+    unbox,
 )
 
 # Provide pikepdf.{open, new} -> pikepdf.Pdf.{open, new}
@@ -200,6 +201,7 @@ __all__ = [
     'exceptions',
     'explicit_conversion',
     'implicit_conversion',
+    'unbox',
     'ForeignObjectError',
     'FormFieldFlag',
     'get_object_conversion_mode',

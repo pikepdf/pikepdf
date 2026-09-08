@@ -29,6 +29,7 @@ from pikepdf import (
     String,
     parse_content_stream,
 )
+from pikepdf._explicit_conv import unbox
 from pikepdf.canvas import ContentStreamBuilder, SimpleFont
 
 log = logging.getLogger(__name__)
@@ -284,7 +285,11 @@ class TextField(_FieldWrapper):
     @property
     def max_length(self) -> int | None:
         """The maximum length of the text in this field."""
-        return self._field.get_inheritable_field_value("/MaxLen")
+        max_len = self._field.get_inheritable_field_value("/MaxLen")
+        # Documented as int. In explicit conversion mode this arrives as a
+        # pikepdf.Integer, which will not serve as a slice bound or as a divisor
+        # in the comb layout arithmetic.
+        return None if max_len is None else int(max_len)
 
     @property
     def default_value(self) -> str:
@@ -901,7 +906,10 @@ def _text_appearance_combed(pdf: Pdf, form: AcroForm, field: AcroFormField):
                 field.value_as_string,
                 da_info,
                 bbox,
-                field.get_inheritable_field_value("/MaxLen"),
+                # Unbox: in explicit conversion mode /MaxLen is a
+                # pikepdf.Integer, and dividing a Decimal by one of those
+                # yields a pikepdf.Real rather than a Decimal.
+                int(field.get_inheritable_field_value("/MaxLen")),
             )
         _apply_appearance_stream(pdf, annot, cs, bbox, da_info)
 
@@ -975,8 +983,9 @@ class _DaInfo:
             da = da.replace(b'0 Tf', b'11 Tf')
             font_size = Decimal(11)
         else:
-            # At runtime, scalar Object values are auto-converted to Python int/Decimal
-            font_size = cast(Decimal, font_size_obj)
+            # In explicit conversion mode the operand is a pikepdf.Integer or Real,
+            # which Decimal() refuses, so unbox it to an int or Decimal first.
+            font_size = Decimal(unbox(font_size_obj))
         font_family = cast(Name, font_family_obj)
         font = SimpleFont.load(font_family, field.default_resources)
         matrix: Matrix | None = (

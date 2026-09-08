@@ -124,7 +124,10 @@ class GoToRAction(Action):
     @property
     def new_window(self) -> bool | None:
         """Whether to open the target document in a new window (``/NewWindow``)."""
-        return cast('bool | None', self.obj.get(Name.NewWindow))
+        # get_bool reads /NewWindow as a Python bool in either conversion mode;
+        # obj.get() would hand back a pikepdf.Boolean in explicit mode, and this
+        # property is documented as bool.
+        return self.obj.get_bool(Name.NewWindow, None)
 
     @new_window.setter
     def new_window(self, value: bool | None) -> None:
@@ -167,7 +170,10 @@ class GoToEAction(Action):
     @property
     def new_window(self) -> bool | None:
         """Whether to open the target document in a new window (``/NewWindow``)."""
-        return cast('bool | None', self.obj.get(Name.NewWindow))
+        # get_bool reads /NewWindow as a Python bool in either conversion mode;
+        # obj.get() would hand back a pikepdf.Boolean in explicit mode, and this
+        # property is documented as bool.
+        return self.obj.get_bool(Name.NewWindow, None)
 
     @new_window.setter
     def new_window(self, value: bool | None) -> None:
@@ -227,7 +233,10 @@ class LaunchAction(Action):
     @property
     def new_window(self) -> bool | None:
         """Whether to open the target document in a new window (``/NewWindow``)."""
-        return cast('bool | None', self.obj.get(Name.NewWindow))
+        # get_bool reads /NewWindow as a Python bool in either conversion mode;
+        # obj.get() would hand back a pikepdf.Boolean in explicit mode, and this
+        # property is documented as bool.
+        return self.obj.get_bool(Name.NewWindow, None)
 
     @new_window.setter
     def new_window(self, value: bool | None) -> None:

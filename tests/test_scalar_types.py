@@ -1756,3 +1756,41 @@ class TestHashOfScalars:
             d = {Integer(1): 'one', Real('2.0'): 'two'}
             assert d[1] == 'one'
             assert d[Decimal('2.0')] == 'two'
+
+
+class TestUnbox:
+    """``pikepdf.unbox`` gives the native value in either conversion mode."""
+
+    def test_scalars(self):
+        with pikepdf.explicit_conversion():
+            assert pikepdf.unbox(Integer(42)) == 42
+            assert type(pikepdf.unbox(Integer(42))) is int
+            assert pikepdf.unbox(Boolean(True)) is True
+            assert pikepdf.unbox(Real('1.50')) == Decimal('1.50')
+            assert type(pikepdf.unbox(Real('1.50'))) is Decimal
+
+    def test_native_values_pass_through(self):
+        # The migration idiom must accept what implicit mode already hands back.
+        assert pikepdf.unbox(42) == 42 and type(pikepdf.unbox(42)) is int
+        assert pikepdf.unbox(True) is True
+        assert pikepdf.unbox(Decimal('2.5')) == Decimal('2.5')
+        assert pikepdf.unbox(None) is None
+        assert pikepdf.unbox('text') == 'text'
+
+    def test_containers_and_names_pass_through(self):
+        with pikepdf.explicit_conversion():
+            d = Dictionary(A=[1, 2])
+            assert pikepdf.unbox(d) is d
+            assert pikepdf.unbox(d.A) == d.A
+            assert pikepdf.unbox(Name.Foo) == Name.Foo
+            assert pikepdf.unbox(pikepdf.String('s')) == pikepdf.String('s')
+
+    def test_same_value_in_either_mode(self, resources):
+        with pikepdf.open(resources / 'graph.pdf') as pdf:
+            box = pdf.pages[0].obj.get_raw('/MediaBox')
+            with pikepdf.implicit_conversion():
+                implicit = [pikepdf.unbox(v) for v in box.as_list()]
+            with pikepdf.explicit_conversion():
+                explicit = [pikepdf.unbox(v) for v in box.as_list()]
+        assert implicit == explicit
+        assert [type(v) for v in explicit] == [type(v) for v in implicit]

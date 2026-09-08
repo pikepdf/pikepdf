@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import pytest
 
+import pikepdf
 from pikepdf import Array, Dictionary, Name, Pdf, String
 from pikepdf.models.actions import (
     Action,
@@ -108,6 +109,9 @@ def test_gotor_action_fields():
     assert isinstance(action, GoToRAction)
     assert action.destination == [0, Name.Fit]
     assert action.new_window is True
+    with pikepdf.explicit_conversion():
+        # Documented as bool, so it must stay a bool in explicit mode
+        assert action.new_window is True
     action.new_window = False
     assert obj.NewWindow is False
     assert str(action.file_spec) == 'other.pdf'

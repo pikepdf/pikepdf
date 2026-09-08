@@ -449,8 +449,11 @@ class OutlineItem:
         flags = OutlineItemFlag.NONE
         f_val = obj.get(Name.F)
         if f_val is not None:
-            if isinstance(f_val, int):
-                flags = OutlineItemFlag(f_val)
+            # get_int reads /F as a Python int in either conversion mode, and
+            # answers None for a value that is not an integer.
+            f_int = obj.get_int(Name.F, None)
+            if f_int is not None:
+                flags = OutlineItemFlag(f_int)
             elif strict:
                 raise OutlineStructureError(
                     f"Unexpected object type in Outline's /F: {f_val!r}"
@@ -664,10 +667,13 @@ class Outline:
             else:
                 sub_items = ()
             self._save_level_outline(out_obj, sub_items, level + 1, visited_objs)
+            # _save_level_outline just wrote /Count; read it back as a Python
+            # int so that the arithmetic below is native in either mode.
+            out_count = out_obj.get_int(Name.Count, 0)
             if item.is_closed:
-                out_obj.Count = -cast(int, out_obj.Count)
+                out_obj.Count = -out_count
             else:
-                count += cast(int, out_obj.Count)
+                count += out_count
         if count:
             assert prev is not None and first is not None
             if Name.Next in prev:
@@ -705,8 +711,8 @@ class Outline:
                 self._load_level_outline(
                     first_child, item.children, level + 1, visited_objs
                 )
-                count = current_obj.get(Name.Count)
-                if isinstance(count, int) and count < 0:
+                count = current_obj.get_int(Name.Count, None)
+                if count is not None and count < 0:
                     item.is_closed = True
             outline_items.append(item)
             next_obj = current_obj.get(Name.Next)

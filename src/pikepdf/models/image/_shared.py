@@ -18,9 +18,12 @@ from typing import Any, NamedTuple, TypeVar
 
 from pikepdf.objects import (
     Array,
+    Boolean,
     Dictionary,
+    Integer,
     Name,
     Object,
+    Real,
     Stream,
     String,
 )
@@ -49,6 +52,16 @@ def _array_str(value: Object | str | list):
             return [_convert(subitem) for subitem in item]
         if isinstance(item, Stream | Dictionary | bytes | int):
             return item
+        # In explicit conversion mode a PDF number or boolean arrives as an
+        # object rather than the native value the caller of this module wants,
+        # so unbox it here. Real becomes float, matching the float() this
+        # module applies to a /Decode array either way.
+        if isinstance(item, Integer):
+            return item.as_int()
+        if isinstance(item, Boolean):
+            return item.as_bool()
+        if isinstance(item, Real):
+            return item.as_float()
         if isinstance(item, Name | str):
             return str(item)
         if isinstance(item, (String)):

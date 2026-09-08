@@ -244,6 +244,27 @@ rather than a silently wrong answer if the PDF stored something other than a
 number there. Careful code should still use the `as_*` accessors or the
 `get_*` getters to unbox, coerce, and handle a wrong type deliberately.
 
+### Unboxing a value of unknown numeric type
+
+The `as_*` accessors require knowing which PDF type a value has. Where a
+value may be any of `Integer`, `Boolean` or `Real`, and may already be a
+native value because the code also runs under implicit mode,
+{func}`pikepdf.unbox` returns the native Python value in either mode and
+passes anything else through unchanged:
+
+```python
+>>> with pikepdf.explicit_conversion():
+...     d = pikepdf.Dictionary(MaxLen=12, Marked=True, Scale=pikepdf.Real('2.5'))
+...     [pikepdf.unbox(v) for v in (d.MaxLen, d.Marked, d.Scale, d)]
+[12, True, Decimal('2.5'), pikepdf.Dictionary(...)]
+```
+
+Because arithmetic and comparisons already produce native results, `unbox`
+is only needed at the boundaries where Python offers no protocol for a
+foreign number: `isinstance` checks against `int`/`bool`/`Decimal`,
+identity checks such as `x is True`, `Decimal(x)`, `json.dumps`, and a
+function documented to return a native type.
+
 For convenience, the `repr()` of a `pikepdf.Object` will display a
 Python expression that replicates the existing object (when possible), so it
 will say:
@@ -284,19 +305,23 @@ default, check for:
   might be a pikepdf object, and replace them with `as_int`/`as_bool`/
   `as_decimal`/`get_int`/etc., or with `isinstance(x, pikepdf.Integer)` and
   friends if you specifically need to detect the PDF type.
-- **Arithmetic and comparisons keep working**, with the same result types as
-  implicit mode, so expressions such as `mediabox[2] - mediabox[0]` need no
-  change. Only `isinstance` checks, hashing and JSON serialization (below)
-  observe the difference.
-- **`hash()`** of a scalar raises `TypeError`, so an `Integer`/`Real`/
-  `Boolean` cannot be used as a dict key or put in a `set` without first
-  converting it.
+- **`x is True` / `x is False` silently becomes `False`.** A `Boolean` can
+  never be identical to a Python `bool`. Use `get_bool`/`as_bool`, or
+  compare with `==`.
+- **Arithmetic, comparisons, `str()`, `hash()`, `int()`, `float()` and
+  `bool()` keep working**, with the same results as implicit mode, so
+  expressions such as `mediabox[2] - mediabox[0]` need no change.
+- **`Decimal(x)`** of a `Real` raises `TypeError`, since `Decimal` accepts
+  only its own inputs. Use `as_decimal()` or {func}`pikepdf.unbox`.
 - **`json.dumps()`** of a scalar raises `TypeError`, since the standard
   library does not know how to serialize a `pikepdf.Object`.
+- **Functions documented to return `int`, `bool` or `Decimal`** now return an
+  object unless they unbox. A `cast(Decimal, obj)` that a type checker
+  accepted was hiding exactly this; replace it with `unbox` or a typed getter.
 
-Prefer the mode-independent `as_*` accessors and the `get_*`/`get_raw`
-container methods described above for any code that must work regardless of
-mode. When you do switch a mode, run your test suite once with
+Prefer the mode-independent `as_*` accessors, the `get_*`/`get_raw`
+container methods described above, and {func}`pikepdf.unbox` for any code
+that must work regardless of mode. When you do switch a mode, run your test suite once with
 `pikepdf.set_object_conversion_mode('explicit')` in effect (or wrap the
 relevant tests in {func}`pikepdf.explicit_conversion`) to catch call sites
 that assumed implicit conversion.

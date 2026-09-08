@@ -76,6 +76,12 @@ to that project for the report.
   `Decimal` whenever a `Real` or `Decimal` is involved, and `float` with a
   `float` operand. In explicit mode, `box[2] - box[0] > 100` therefore works
   without unboxing, while raising `TypeError` if the PDF stored a non-number.
+- Added {func}`pikepdf.unbox`, which returns the native Python value of an
+  `Integer`, `Boolean` or `Real` and passes any other value through
+  unchanged. Unlike the `as_*` accessors it does not require knowing which
+  numeric type a value has, and it accepts values read in either mode, so it
+  is the one-token migration for a read that feeds `isinstance`, `is True`,
+  `Decimal()`, `json.dumps` or a function documented to return a native type.
 - See {doc}`/topics/objects` for the full description of scopes and
   precedence, plus a "Migrating to explicit mode" checklist. pikepdf intends
   to make explicit conversion the default in a future major release; new
@@ -106,6 +112,12 @@ to that project for the report.
   A `Real` with a `float` operand still yields a `float`. Division of an
   `Integer` or `Real` by zero now raises `ZeroDivisionError`, as for Python
   numbers, instead of `ValueError`.
+- **Behavior change:** {class}`pikepdf.Matrix` now raises `TypeError`, not
+  `ValueError`, for a `pikepdf.Object` that is not a matrix or an
+  `ObjectList` with a non-numeric element, matching what a native argument of
+  the wrong type raises, so an `except TypeError` around `Matrix(*operands)`
+  behaves the same in either conversion mode. Size errors (`must have 6
+  elements`) remain `ValueError`.
 - **Behavior change:** `bool()` on a `pikepdf.Integer` or `pikepdf.Real` is
   now by value (`bool(pikepdf.Integer(0))` is `False`), instead of raising
   `NotImplementedError: code is unreachable`.
@@ -169,6 +181,19 @@ to that project for the report.
   names the scalars nested inside it -- `pikepdf.Real('42.42')` rather than
   `'42.42'`, which was indistinguishable from a PDF string and did not
   survive `eval(repr(obj))`.
+- pikepdf's own higher-level APIs now work under explicit conversion mode.
+  They read values out of PDF objects and compute with them, and every such
+  read assumed the implicit-mode native type. Fixed in image extraction
+  (`PdfImage` raised `NotImplementedError` for any indexed or /DeviceN
+  colorspace), page labels (`page.label` restarted numbering at 1 and warned
+  about a valid `/St`), outlines (a closed item read as open, `flags` came
+  back empty, and saving wrote the wrong `/Count`), form appearance
+  generation (`TypeError` laying out multiline and combed text fields),
+  `get_objects_with_ctm` (a malformed `cm` operator raised instead of being
+  skipped), `SimpleFont` metrics, and `Action.new_window`.
+- `SimpleFont.ascent`, `descent` and `unscaled_char_width()` now return a
+  `Decimal` as documented, in either conversion mode. Font metrics stored as
+  PDF integers were previously returned as `int`.
 - Iterating a `NamePath` (e.g. `list(path)`) no longer falls back to the
   legacy `__getitem__(0), (1), ...` protocol, which never raised
   `IndexError` and so iterated forever, exhausting memory.

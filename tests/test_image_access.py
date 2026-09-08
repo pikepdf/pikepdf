@@ -630,6 +630,23 @@ def test_image_palette(resources, filename, bpc, rgb):
     assert im.getpixel((1, 1)) == rgb
 
 
+def test_image_palette_explicit_mode(resources):
+    """PdfImage returns native Python types no matter the conversion mode.
+
+    Its metadata is read from PDF objects; in explicit mode those arrive as
+    pikepdf.Integer and friends, which the extraction code must accept.
+    """
+    with pikepdf.explicit_conversion():
+        pdf = Pdf.open(resources / 'pal.pdf')
+        pim = PdfImage(next(iter(pdf.pages[0].get_images(recursive=False).values())))
+
+        assert pim.palette[0] == 'RGB'
+        assert pim.colorspace == '/DeviceRGB'
+        assert pim.mode == 'P'
+        assert pim.bits_per_component == 8
+        assert pim.as_pil_image().convert('RGB').getpixel((1, 1)) == (0, 0, 255)
+
+
 @contextmanager
 def first_image_from_pdfimages(pdf, tmpdir):
     if not has_pdfimages():

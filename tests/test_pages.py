@@ -9,7 +9,8 @@ from shutil import copy
 
 import pytest
 
-from pikepdf import Array, Dictionary, Name, Page, Pdf, Stream
+import pikepdf
+from pikepdf import Array, Dictionary, Integer, Name, Page, Pdf, Stream
 from pikepdf._cpphelpers import label_from_label_dict
 
 # pylint: disable=redefined-outer-name,pointless-statement
@@ -505,6 +506,37 @@ def test_page_label_dicts(d_factory, result, exc, excmsg):
                 label_from_label_dict(d)
     else:
         assert label_from_label_dict(d) == result
+
+
+def test_page_label_dicts_explicit_mode():
+    """A page label reads the same in either conversion mode.
+
+    /St arrives as a pikepdf.Integer in explicit mode; read as anything but an
+    int the label silently restarts at 1.
+    """
+    with pikepdf.explicit_conversion():
+        assert label_from_label_dict(Dictionary(S=Name.D, P='A-', St=2)) == 'A-2'
+        assert label_from_label_dict(Dictionary(S=Name.R, St=42)) == 'XLII'
+        assert label_from_label_dict(Dictionary(P='Appendix-', S=Name.a, St=261)) == (
+            'Appendix-ja'
+        )
+        assert label_from_label_dict(Integer(42)) == '42'
+        with pytest.raises(ValueError, match="Can't represent"):
+            label_from_label_dict(Dictionary(S=Name.R, St=-42))
+        with pytest.warns(UserWarning, match='invalid non-integer start value'):
+            assert label_from_label_dict(Dictionary(S=Name.r, St=Name.Invalid)) == 'i'
+
+
+def test_page_labels_explicit_mode():
+    p = Pdf.new()
+    d = Dictionary(Type=Name.Page, MediaBox=[0, 0, 612, 792], Resources=Dictionary())
+    for _ in range(3):
+        p.pages.append(Page(d))
+    p.Root.PageLabels = p.make_indirect(
+        Dictionary(Nums=Array([0, Dictionary(S=Name.r), 1, Dictionary(S=Name.D, St=7)]))
+    )
+    with pikepdf.explicit_conversion():
+        assert [page.label for page in p.pages] == ['i', '7', '8']
 
 
 def test_externalize(resources):

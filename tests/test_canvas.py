@@ -8,6 +8,7 @@ from decimal import Decimal
 import pytest
 from PIL import Image
 
+import pikepdf
 from pikepdf import Matrix, Pdf
 from pikepdf.canvas import (
     BLACK,
@@ -155,6 +156,34 @@ class TestSimpleFont:
             width = font.text_width(' ', 12)
             assert width is not None
             assert isinstance(width, (int, Decimal))
+
+
+class TestFontMetricsConversionMode:
+    """Font metrics are numbers to compute with, in either conversion mode."""
+
+    def test_char_width_is_native(self, resources):
+        with Pdf.open(resources / 'form_dd0293.pdf') as pdf:
+            font = SimpleFont.load(Name('/ArialMT'), pdf.Root.AcroForm.DR)
+            with pikepdf.implicit_conversion():
+                implicit = font.unscaled_char_width('A')
+            with pikepdf.explicit_conversion():
+                explicit = font.unscaled_char_width('A')
+                assert isinstance(explicit, (int, Decimal))
+                # A Real would raise TypeError here rather than compute
+                assert explicit * 2 == implicit * 2
+            assert explicit == implicit
+
+    @pytest.mark.parametrize('mode', ['implicit', 'explicit'])
+    def test_metrics_are_decimal(self, resources, mode):
+        """ascent, descent and unscaled_char_width are documented as Decimal.
+
+        The PDF stores these as integers, which must not leak out as int.
+        """
+        with Pdf.open(resources / 'form_dd0293.pdf', conversion_mode=mode) as pdf:
+            font = SimpleFont.load(Name('/ArialMT'), pdf.Root.AcroForm.DR)
+            assert type(font.ascent) is Decimal
+            assert type(font.descent) is Decimal
+            assert type(font.unscaled_char_width('A')) is Decimal
 
 
 class TestContentStreamBuilder:

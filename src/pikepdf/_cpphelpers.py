@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 from warnings import warn
 
 from pikepdf.exceptions import PdfError
-from pikepdf.objects import Name
+from pikepdf.objects import Integer, Name
 
 if TYPE_CHECKING:
     from pikepdf._core import Pdf
@@ -84,10 +84,12 @@ LABEL_STYLE_MAP: dict[str, Callable[[int], str]] = {
 }
 
 
-def label_from_label_dict(label_dict: int | Dictionary) -> str:
+def label_from_label_dict(label_dict: int | Integer | Dictionary) -> str:
     """Convert a label dictionary returned by qpdf into a text string."""
     if isinstance(label_dict, int):
         return str(label_dict)
+    if isinstance(label_dict, Integer):
+        return str(label_dict.as_int())
 
     label = ''
     if Name.P in label_dict:
@@ -96,9 +98,12 @@ def label_from_label_dict(label_dict: int | Dictionary) -> str:
 
     # If there is no S, return only the P portion
     if Name.S in label_dict:
-        # St defaults to 1
-        numeric_value = label_dict[Name.St] if Name.St in label_dict else 1
-        if not isinstance(numeric_value, int):
+        # St defaults to 1. get_int reads it as a Python int in either
+        # conversion mode, and answers None for a value that is not an integer.
+        numeric_value = (
+            label_dict.get_int(Name.St, None) if Name.St in label_dict else 1
+        )
+        if numeric_value is None:
             warn(
                 "Page label dictionary has invalid non-integer start value", UserWarning
             )

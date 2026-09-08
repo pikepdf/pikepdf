@@ -9,6 +9,7 @@ import pytest
 from hypothesis import example, given, settings
 from hypothesis import strategies as st
 
+import pikepdf
 from pikepdf import (
     Array,
     Destination,
@@ -486,6 +487,37 @@ def test_outline_item_flags_round_trip(outlines_doc):
 
     with outlines_doc.open_outline() as outline:
         assert outline.root[0].flags == OutlineItemFlag.Italic | OutlineItemFlag.Bold
+
+
+def test_outlines_explicit_mode(outlines_doc):
+    """Outlines read /F and /Count as numbers in either conversion mode.
+
+    Read as anything but an int, a closed outline looks open and its flags
+    come back empty.
+    """
+    with pikepdf.explicit_conversion():
+        with outlines_doc.open_outline() as outline:
+            assert outline.root[0].is_closed is True
+            assert outline.root[1].is_closed is False
+            outline.root[0].flags = OutlineItemFlag.Italic | OutlineItemFlag.Bold
+        assert outlines_doc.Root.Outlines.First.F == 3
+        with outlines_doc.open_outline() as outline:
+            assert outline.root[0].flags == (
+                OutlineItemFlag.Italic | OutlineItemFlag.Bold
+            )
+            assert str(outline.root[0]).startswith('[+]')
+
+
+def test_outline_closed_count_explicit_mode(outlines_doc):
+    """A closed item contributes a negative /Count when the outline is saved."""
+    with pikepdf.implicit_conversion():
+        with outlines_doc.open_outline() as outline:
+            outline.root[0].is_closed = True
+        expected = int(outlines_doc.Root.Outlines.Count)
+    with pikepdf.explicit_conversion():
+        with outlines_doc.open_outline() as outline:
+            outline.root[0].is_closed = True
+        assert outlines_doc.Root.Outlines.Count == expected
 
 
 def test_outline_item_flags_default_omitted():

@@ -51,7 +51,10 @@ void init_matrix(py::module_ &m)
             "__init__",
             [](QPDFMatrix *self, QPDFObjectHandle &h) {
                 if (!h.isMatrix()) {
-                    throw py::value_error(
+                    // A TypeError, like a native value of the wrong type, so
+                    // a caller's exception handling does not depend on the
+                    // conversion mode.
+                    throw py::type_error(
                         "pikepdf.Object could not be converted to Matrix");
                 }
                 QPDFObjectHandle::Matrix ohmatrix = h.getArrayAsMatrix();
@@ -66,7 +69,7 @@ void init_matrix(py::module_ &m)
                 std::vector<double> converted(6);
                 for (int i = 0; i < 6; ++i) {
                     if (!ol.at(i).getValueAsNumber(converted.at(i))) {
-                        throw py::value_error("Values must be numeric");
+                        throw py::type_error("Values must be numeric");
                     }
                 }
                 new (self) QPDFMatrix(converted.at(0),

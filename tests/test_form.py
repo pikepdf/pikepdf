@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import pytest
 
+import pikepdf
 from pikepdf import Name, Pdf, String
 from pikepdf.form import (
     CheckboxField,
@@ -255,6 +256,21 @@ def test_extended_appearance_generator_multiline_text(dd0293):
     assert field._field.default_appearance in stream
     assert b"Manual" in stream
     assert b"nonsense" in stream
+
+
+def test_extended_appearance_generator_explicit_mode(va210966):
+    """Appearance generation lays out text with numbers, in either mode.
+
+    The /DA font size and the font's glyph widths are read from PDF objects;
+    in explicit conversion mode those must still be usable as numbers.
+    """
+    with pikepdf.explicit_conversion():
+        f = Form(va210966, ExtendedAppearanceStreamGenerator)
+        field = f['F[0].Page_1[0].Veterans_First_Name[0]']
+        field.value = 'Nemo'
+        assert field.value == 'Nemo'
+        stream = field._field.obj.AP.N.read_bytes()
+        assert b"(N)" in stream
 
 
 def test_extended_appearance_generator_combed_text(va210966):

@@ -8,6 +8,7 @@ from math import isclose
 
 import pytest
 
+import pikepdf
 from pikepdf import Array
 from pikepdf._core import Matrix, Rectangle
 from pikepdf.objects import Dictionary
@@ -34,10 +35,16 @@ class TestMatrix:
             Matrix((1, 2, 3, 4, 5))
 
     def test_failed_object_conversion(self):
-        with pytest.raises(ValueError):
+        # A pikepdf.Object that is not a matrix is the wrong kind of thing, so
+        # it is a TypeError, exactly as a native non-number is, and a caller's
+        # ``except TypeError`` behaves the same in either conversion mode.
+        with pytest.raises(TypeError):
             assert Matrix(Array([1, 2, 3]))
-        with pytest.raises(ValueError):
+        with pytest.raises(TypeError):
             assert Matrix(Dictionary(Foo=1))
+        with pikepdf.explicit_conversion():
+            with pytest.raises(TypeError):
+                assert Matrix(Dictionary(V=42).V)
 
     def test_accessors(self):
         m = Matrix(1, 2, 3, 4, 5, 6)
@@ -69,7 +76,7 @@ class TestMatrix:
         with pytest.raises(ValueError, match='must have 6 elements'):
             Matrix(b.as_list())
         c = Array([1, 2, b"foo", 4, 5, 6])
-        with pytest.raises(ValueError, match='must be numeric'):
+        with pytest.raises(TypeError, match='must be numeric'):
             Matrix(c.as_list())
 
     @pytest.mark.abi3_smoke

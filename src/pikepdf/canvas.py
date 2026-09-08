@@ -28,6 +28,7 @@ from typing import TYPE_CHECKING, cast
 
 from pikepdf._core import ContentStreamInstruction, Matrix, Pdf
 from pikepdf._data import CHARNAMES_TO_UNICODE
+from pikepdf._explicit_conv import unbox
 from pikepdf.models import unparse_content_stream
 from pikepdf.objects import Array, Dictionary, Name, Operator, String
 
@@ -204,22 +205,24 @@ class SimpleFont(DimensionedFont):
     def leading(self) -> int | Decimal:
         """Returns leading for a SimpleFont."""
         if Name.Leading in self.data.FontDescriptor:
-            # At runtime, scalar Object values are auto-converted to Python int/Decimal
-            return cast('int | Decimal', self.data.FontDescriptor.Leading)
+            # Font metrics are returned as native numbers. In explicit conversion
+            # mode the dictionary hands back a pikepdf.Integer or Real, so unbox
+            # it to the int or Decimal that implicit mode would have given.
+            return cast('int | Decimal', unbox(self.data.FontDescriptor.Leading))
         else:
             return 0
 
     @property
     def ascent(self) -> Decimal:
         """Returns ascent for a SimpleFont."""
-        # Required for all byt type 3 fonts, so should be present
-        return cast(Decimal, self.data.FontDescriptor.Ascent)
+        # Required for all but Type 3 fonts, so should be present
+        return Decimal(unbox(self.data.FontDescriptor.Ascent))
 
     @property
     def descent(self) -> Decimal:
         """Returns descent for a SimpleFont."""
-        # Required for all byt type 3 fonts, so should be present
-        return cast(Decimal, self.data.FontDescriptor.Descent)
+        # Required for all but Type 3 fonts, so should be present
+        return Decimal(unbox(self.data.FontDescriptor.Descent))
 
     def unscaled_char_width(self, char: int | bytes | str) -> Decimal:
         """Get the (unscaled) width of the character, in glyph-space units.
@@ -237,9 +240,9 @@ class SimpleFont(DimensionedFont):
         char_code: int = char - (int(first_char) if first_char is not None else 0)
         width: Decimal
         if Name.Widths in self.data and len(self.data.Widths) > char_code:
-            width = cast(Decimal, self.data.Widths[char_code])
+            width = Decimal(unbox(self.data.Widths[char_code]))
         elif Name.MissingWidth in self.data.FontDescriptor:
-            width = cast(Decimal, self.data.FontDescriptor.MissingWidth)
+            width = Decimal(unbox(self.data.FontDescriptor.MissingWidth))
         else:
             width = Decimal(0)
         return width

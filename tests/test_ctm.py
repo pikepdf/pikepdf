@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+import pikepdf
 from pikepdf import Matrix, Pdf, get_objects_with_ctm
 from pikepdf.models.ctm import MatrixStack
 
@@ -32,6 +33,20 @@ def test_get_matrices(ctm_cm):
     assert matrixes[0] == first
     assert matrixes[1] == second
     assert matrixes[2] == second @ fourth
+
+
+def test_get_matrices_explicit_mode(ctm_cm):
+    """Malformed `cm` operands are skipped in either conversion mode.
+
+    A one-operand `cm` reaches Matrix() as a scalar, which is a TypeError
+    whether it is a native number or a pikepdf.Object.
+    """
+    with pikepdf.implicit_conversion():
+        expected = [matrix for _, matrix in get_objects_with_ctm(ctm_cm.pages[0])]
+    with pikepdf.explicit_conversion():
+        assert [matrix for _, matrix in get_objects_with_ctm(ctm_cm.pages[0])] == (
+            expected
+        )
 
 
 def test_get_matrices_scaled(ctm_cm):
