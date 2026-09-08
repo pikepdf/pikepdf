@@ -34,6 +34,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
     "myst_parser",
+    'pikepdf_core_xref',
 ]
 myst_enable_extensions = [
     'attrs_block',
@@ -48,6 +49,15 @@ autodoc_typehints = 'description'
 
 autoapi_dirs = ['../src/pikepdf']
 autoapi_generate_api_docs = False
+
+# pikepdf._core's stubs are split into one submodule per C++ translation unit,
+# and those submodules necessarily refer to each other (Object's methods return
+# Name, Name subclasses Object, ...). autoapi warns once per cycle it walks --
+# two dozen unactionable messages that bury real warnings. It still documents
+# everything; what it cannot do is follow a base class across the cycle, so a
+# class documented with :inherited-members: needs those members spelled out in
+# its own stub (see AttachedFileSpec.obj).
+suppress_warnings = ['autoapi.python_import_resolution']
 
 doctest_global_setup = """
 import pikepdf

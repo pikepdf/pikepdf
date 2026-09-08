@@ -173,6 +173,19 @@ to that project for the report.
   releases its association with it, and a `Pdf` disconnects every object it
   adopted as it is destroyed.
 
+### Internals
+
+- The type stubs for the C++ extension module, until now a single 4,300-line
+  `src/pikepdf/_core.pyi`, are a stub-only package `src/pikepdf/_core/` split
+  into one stub per translation unit: `_core/_matrix.pyi` covers
+  `src/core/matrix.cpp`, `_core/_page.pyi` covers `src/core/page.cpp`, and so
+  on, with `_core/__init__.pyi` re-exporting the lot and documenting the
+  layout. Nothing changes at runtime or in the public API -- `pikepdf._core`
+  is still one extension module and `import pikepdf._core` still resolves to
+  it. Type checkers now name a type by its defining stub in messages
+  (`pikepdf._core._object.Object` rather than `pikepdf._core.Object`);
+  `pikepdf.Object` remains the name to write in annotations.
+
 ## v10.13.0
 
 ### Exception hierarchy

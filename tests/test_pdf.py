@@ -103,8 +103,8 @@ class TestPasswords:
         #     except PdfError: ...
         #     except PasswordError: ...
         # so PasswordError must NOT be a subclass of PdfError, matching
-        # the documented hierarchy in src/pikepdf/_core.pyi and the
-        # behavior of pikepdf <= 10.5 (pybind11).
+        # the documented hierarchy in src/pikepdf/_core/_exceptions.pyi and
+        # the behavior of pikepdf <= 10.5 (pybind11).
         assert not issubclass(PasswordError, PdfError)
 
     @pytest.mark.abi3_smoke

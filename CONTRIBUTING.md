@@ -98,9 +98,11 @@ pikepdf has two layers:
 Python methods are attached to the C++ binding classes via the `@augments`
 decorator in `src/pikepdf/_methods.py`. This lets a feature move between Python
 and C++ without changing the public API. Type stubs and docstrings for the
-C++ API live in `src/pikepdf/_core.pyi`; keep them in sync when you change the
-bindings. Prefer implementing features in Python unless qpdf provides them
-directly or performance requires C++.
+C++ API live in the stub package `src/pikepdf/_core/`, which is split into one
+stub per translation unit -- `_core/_matrix.pyi` covers `src/core/matrix.cpp`,
+and so on; keep them in sync when you change the bindings. Prefer implementing
+features in Python unless qpdf provides them directly or performance requires
+C++.
 
 ## Documentation
 
