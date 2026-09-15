@@ -2887,7 +2887,6 @@ class Pdf:
         self,
         filename_or_stream: Path | str | BinaryIO | None = None,
         *,
-        static_id: bool = False,
         preserve_pdfa: bool = True,
         min_version: str | tuple[str, int] = '',
         force_version: str | tuple[str, int] = '',
@@ -2902,6 +2901,7 @@ class Pdf:
         encryption: Encryption | bool | None = None,
         recompress_flate: bool = False,
         deterministic_id: bool = False,
+        static_id: bool = False,
     ) -> None:
         """Save all modifications to this :class:`pikepdf.Pdf`.
 
@@ -2915,12 +2915,6 @@ class Pdf:
                 input file, as overwriting the input file would corrupt data
                 since pikepdf using lazy loading.
 
-            static_id: Indicates that the ``/ID`` metadata, normally
-                calculated as a hash of certain PDF contents and metadata
-                including the current time, should instead be set to a static
-                value. Only use this for debugging and testing. Use
-                ``deterministic_id`` if you want to get the same ``/ID`` for
-                the same document contents.
             preserve_pdfa: Ensures that the file is generated in a
                 manner compliant with PDF/A and other stricter variants.
                 This should be True, the default, in most cases.
@@ -3013,13 +3007,40 @@ class Pdf:
                 Alternately, an ``Encryption`` object may be provided that
                 sets the parameters for new encryption.
 
-            deterministic_id: Indicates that the ``/ID`` metadata, normally
-                calculated as a hash of certain PDF contents and metadata
-                including the current time, should instead be computed using
-                only deterministic data like the file contents. At a small
-                runtime cost, this enables generation of the same ``/ID`` if
-                the same inputs are converted in the same way multiple times.
-                Does not work for encrypted files.
+            deterministic_id: Compute the document ``/ID`` from a digest of
+                the output file's contents and ``/Info`` strings, without the
+                current time. Saving the same document the same way produces
+                the same ``/ID`` (and, with the same qpdf version, the same
+                bytes), which is useful for reproducible builds and for caching
+                or deduplicating output without depending on the clock.
+                Documents with different content still receive different
+                ``/ID`` values, so this is safe for production use. At a small
+                runtime cost. Cannot be combined with encryption. Different
+                qpdf versions may produce slightly different output, and hence
+                different ``/ID`` values, for the same input.
+
+            static_id: Set the document ``/ID`` to a fixed dummy value that is
+                identical in every PDF that pikepdf writes.
+
+                .. warning::
+
+                    For testing and debugging only. **Never use in
+                    production.** The PDF specification expects ``/ID`` to
+                    identify a document uniquely; with ``static_id`` every
+                    document shares the same ``/ID``, which can confuse
+                    software that uses it to track, cache or match documents.
+                    For reproducible production output, use
+                    ``deterministic_id`` instead.
+
+                A typical use is a test suite that compares saved PDFs
+                byte-for-byte. Takes precedence over ``deterministic_id``.
+
+        When neither ``deterministic_id`` nor ``static_id`` is set, the
+        ``/ID`` is generated the conventional way described in the PDF
+        specification: a hash that incorporates the current time, so every
+        save produces a new value. In all three modes, if the document already
+        has an ``/ID``, its first element is preserved (as the specification
+        requires) and only the second element is replaced.
 
         Raises:
             PdfError

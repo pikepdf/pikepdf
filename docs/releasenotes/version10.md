@@ -14,6 +14,17 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.14.0
+
+### Documentation
+
+- Clarified guidance on `Pdf.save(..., deterministic_id=)` and `static_id=`, and
+  the matching `JobBuilder.deterministic_id()` and `JobBuilder.static_id()`.
+  `deterministic_id` gives reproducible, production-safe `/ID` values;
+  `static_id` sets the same dummy `/ID` in every file and is for testing only.
+  `static_id` now appears last in the `Pdf.save()` signature. All `save()`
+  options are keyword-only, so existing code is unaffected.
+
 ## v10.13.0
 
 ### Exception hierarchy
