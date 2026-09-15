@@ -26,4 +26,5 @@ Numeric = TypeVar('Numeric', int, float, Decimal)
 
 # Operand and result types of Integer/Real arithmetic and comparisons.
 _Number: TypeAlias = 'int | float | Decimal | Object'
+# Arithmetic always yields a native Python number, never a pikepdf object.
 _NumberResult: TypeAlias = 'int | float | Decimal'

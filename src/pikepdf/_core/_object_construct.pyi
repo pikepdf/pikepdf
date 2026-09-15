@@ -119,9 +119,12 @@ class Integer(Object):
     Supports ``int()`` conversion, indexing operations (via ``__index__``),
     arithmetic, and ordering comparisons (``<``, ``<=``, ``>``, ``>=``)
     against Python ``int``, ``float``, ``bool``, ``Decimal``, ``Integer`` and
-    ``Real``. Arithmetic returns a native Python number: ``int`` with an
-    ``int`` or ``Integer`` operand, ``float`` with a ``float``, and
-    ``Decimal`` with a ``Decimal`` or ``Real``.
+    ``Real``. Arithmetic returns a native Python number, never a pikepdf
+    object: ``int`` with an ``int``, ``bool`` or ``Integer`` operand,
+    ``float`` with a ``float``, and ``Decimal`` with a ``Decimal`` or
+    ``Real``. A number computed from a document is not itself in the
+    document, so there is nothing to box; assign the result to a dictionary
+    or array to store it.
 
     .. versionadded:: 10.1
     .. versionchanged:: 10.14
@@ -156,9 +159,10 @@ class Real(Object):
     (``<``, ``<=``, ``>``, ``>=``) against Python ``int``, ``float``,
     ``bool``, ``Decimal``, ``Integer`` and ``Real``. Arithmetic and
     comparisons use the exact decimal value of the PDF token, as
-    ``as_decimal()`` returns it, and arithmetic yields a ``Decimal``; the
-    exception is a ``float`` operand, which yields a ``float``. Use
-    ``as_decimal()`` for lossless conversion.
+    ``as_decimal()`` returns it, and arithmetic returns a native Python
+    number, never a pikepdf object: a ``Decimal``, except with a ``float``
+    operand, which ``Decimal`` would refuse, where the result is a ``float``.
+    Use ``as_decimal()`` for lossless conversion.
 
     .. versionadded:: 10.1
     .. versionchanged:: 10.14

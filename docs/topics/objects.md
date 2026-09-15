@@ -238,6 +238,13 @@ operand, which `Decimal` would refuse, so a `Real` combined with a `float`
 gives a `float`. Errors are Python's own: `ZeroDivisionError` for division by
 zero, and `TypeError` for a non-numeric object or operand.
 
+The result is never a pikepdf object, in either mode. An `Integer` or `Real`
+is a handle to a number stored in a document; a number computed from it is
+not in the document, so there is nothing to box. This keeps computed values
+from propagating as objects into code that expects native numbers, and
+assigning a result back into an `Array` or `Dictionary` boxes it again as
+usual.
+
 This means a quick script can compute `page.MediaBox[2] - page.MediaBox[0] > 100`
 under explicit mode without unboxing anything, and receives a `TypeError`
 rather than a silently wrong answer if the PDF stored something other than a

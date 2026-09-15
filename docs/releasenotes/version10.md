@@ -76,6 +76,9 @@ to that project for the report.
   `Decimal` whenever a `Real` or `Decimal` is involved, and `float` with a
   `float` operand. In explicit mode, `box[2] - box[0] > 100` therefore works
   without unboxing, while raising `TypeError` if the PDF stored a non-number.
+  The result is never a pikepdf object: a number computed from a document is
+  not in the document, and returning an object would let one unmigrated read
+  propagate into code far from the cause.
 - Added {func}`pikepdf.unbox`, which returns the native Python value of an
   `Integer`, `Boolean` or `Real` and passes any other value through
   unchanged. Unlike the `as_*` accessors it does not require knowing which

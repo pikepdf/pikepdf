@@ -1693,6 +1693,15 @@ class TestArithmeticBetweenObjects:
             with pytest.raises(ArithmeticError):
                 Real('1.5') % Real('0')
 
+    def test_unary(self):
+        with pikepdf.explicit_conversion():
+            assert -Integer(5) == -5 and type(-Integer(5)) is int
+            assert +Integer(5) == 5 and type(+Integer(5)) is int
+            assert abs(Integer(-5)) == 5 and type(abs(Integer(-5))) is int
+            assert -Real('1.5') == Decimal('-1.5')
+            assert type(-Real('1.5')) is Decimal
+            assert abs(Real('-1.5')) == Decimal('1.5')
+
     def test_via_get_raw_in_implicit_mode(self):
         d = Dictionary(A=1, B=Real('2.5'))
         assert d.get_raw('/A') + d.get_raw('/B') == Decimal('3.5')
@@ -1756,6 +1765,49 @@ class TestHashOfScalars:
             d = {Integer(1): 'one', Real('2.0'): 'two'}
             assert d[1] == 'one'
             assert d[Decimal('2.0')] == 'two'
+
+
+class TestArithmeticResultIsNative:
+    """Arithmetic on a PDF numeric yields a Python number, never an Object.
+
+    A number computed from a document is not itself in the document, so the
+    result is the native type implicit mode would have produced. This is what
+    keeps ``Decimal(width) / max_length`` a ``Decimal`` in explicit mode, so
+    an unmigrated read cannot propagate an Object into code far downstream.
+    """
+
+    def test_explicit_mode_results_are_native(self):
+        with pikepdf.explicit_conversion():
+            d = Dictionary(Value=10, Scale=Real('2.5'))
+            assert type(d.Value + 5) is int
+            assert type(d.Value + 2.5) is float
+            assert type(d.Value / 4) is float
+            assert type(d.Value // 3) is int
+            assert type(d.Scale * d.Value) is Decimal
+            assert type(d.Scale + 1) is Decimal
+            assert type(d.Scale + 1.5) is float
+            assert type(d.Value + d.Value) is int
+            assert type(Decimal('3.5') / d.Value) is Decimal
+
+    def test_result_does_not_depend_on_owner_mode(self, resources):
+        with pikepdf.open(resources / 'graph.pdf', conversion_mode='explicit') as pdf:
+            box = pdf.pages[0].MediaBox
+            assert isinstance(box[2], (Integer, Real))
+            width = box[2] - box[0]
+            assert type(width) in (int, Decimal)
+            assert Decimal(width) == box[2] - box[0]
+
+    def test_decimal_constructor_accepts_result(self):
+        with pikepdf.explicit_conversion():
+            d = Dictionary(W=Real('612.0'), N=12)
+            comb = d.W / d.N
+            assert Decimal(comb) == Decimal('51')
+
+    def test_result_can_be_stored(self):
+        with pikepdf.explicit_conversion():
+            d = Dictionary(Count=3)
+            d.Count = d.Count + 1
+            assert d.Count == 4 and isinstance(d.Count, Integer)
 
 
 class TestUnbox:
