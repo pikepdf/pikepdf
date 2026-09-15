@@ -305,7 +305,7 @@ class PdfImage(PdfImageBase):
         return cls(imstream)
 
     def _metadata(self, name: str, type_: Callable[[Any], T], default: Any) -> T:
-        return cast(T, _metadata_from_obj(self.obj, name, type_, default))
+        return _metadata_from_obj(self.obj, name, type_, default)
 
     @property
     def _iccstream(self) -> Object:
@@ -823,7 +823,7 @@ class PdfInlineImage(PdfImageBase):
         raise NotImplementedError(repr(obj))
 
     def _metadata(self, name: str, type_: Callable[[Any], T], default: Any) -> T:
-        return cast(T, _metadata_from_obj(self.obj, name, type_, default))
+        return _metadata_from_obj(self.obj, name, type_, default)
 
     def _resolve_named_colorspace(self, name: str) -> Object | None:
         """Resolve a named colour space against the in-scope /Resources.

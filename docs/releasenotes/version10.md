@@ -194,6 +194,10 @@ to that project for the report.
   generation (`TypeError` laying out multiline and combed text fields),
   `get_objects_with_ctm` (a malformed `cm` operator raised instead of being
   skipped), `SimpleFont` metrics, and `Action.new_window`.
+- `PdfImage` metadata now reads the same in either conversion mode. A real
+  `/Width` or `/Height` or a boolean `/BitsPerComponent` raised
+  `NotImplementedError` in explicit mode, and a real inside a `/ColorSpace`
+  array raised it in implicit mode.
 - `SimpleFont.ascent`, `descent` and `unscaled_char_width()` now return a
   `Decimal` as documented, in either conversion mode. Font metrics stored as
   PDF integers were previously returned as `int`.

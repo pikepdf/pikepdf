@@ -3,10 +3,11 @@
 
 """Shared leaf symbols for the image package: helpers and type aliases.
 
-This module has no intra-package dependencies (it imports only stdlib and
-:mod:`pikepdf.objects`), so it can be imported by every other module in the
-``image`` package without risking an import cycle. The image exceptions live
-one level up, in :mod:`pikepdf.models._image_exceptions`, so that
+This module has no intra-package dependencies (it imports only stdlib,
+:mod:`pikepdf.objects` and :func:`pikepdf.unbox`), so it can be imported by
+every other module in the ``image`` package without risking an import cycle.
+The image exceptions live one level up, in
+:mod:`pikepdf.models._image_exceptions`, so that
 :mod:`pikepdf.models._transcoding` can raise them without importing this
 package.
 """
@@ -14,16 +15,15 @@ package.
 from __future__ import annotations
 
 from collections.abc import Callable
+from decimal import Decimal
 from typing import Any, NamedTuple, TypeVar
 
+from pikepdf._explicit_conv import unbox
 from pikepdf.objects import (
     Array,
-    Boolean,
     Dictionary,
-    Integer,
     Name,
     Object,
-    Real,
     Stream,
     String,
 )
@@ -48,23 +48,16 @@ def _array_str(value: Object | str | list):
     """Simplify pikepdf objects to array of str. Keep streams, dictionaries intact."""
 
     def _convert(item):
+        # Unbox first, so a PDF number or boolean is the same native value
+        # whichever conversion mode delivered it.
+        item = unbox(item)
         if isinstance(item, list | Array):
             return [_convert(subitem) for subitem in item]
-        if isinstance(item, Stream | Dictionary | bytes | int):
+        if isinstance(item, Stream | Dictionary | bytes | int | Decimal):
             return item
-        # In explicit conversion mode a PDF number or boolean arrives as an
-        # object rather than the native value the caller of this module wants,
-        # so unbox it here. Real becomes float, matching the float() this
-        # module applies to a /Decode array either way.
-        if isinstance(item, Integer):
-            return item.as_int()
-        if isinstance(item, Boolean):
-            return item.as_bool()
-        if isinstance(item, Real):
-            return item.as_float()
         if isinstance(item, Name | str):
             return str(item)
-        if isinstance(item, (String)):
+        if isinstance(item, String):
             return bytes(item)
         raise NotImplementedError(value)
 
@@ -86,20 +79,22 @@ def _ensure_list(value: list[Object] | Dictionary | Array | Object) -> list[Obje
 
 
 def _metadata_from_obj(
-    obj: Object, name: str, type_: Callable[[Any], T], default: T
-) -> T | None:
+    obj: Object, name: str, type_: Callable[[Any], T], default: Any
+) -> T:
     """Retrieve metadata from a dictionary or stream and wrangle types.
 
     *obj* is the underlying image object: a Stream (image XObject), or a
     Dictionary (inline image). Any Object with attribute access works.
+
+    The value is unboxed before *type_* converts it, so the result does not
+    depend on the conversion mode. A missing or null entry gives *default*;
+    a value *type_* cannot convert raises NotImplementedError.
     """
-    val = getattr(obj, name, default)
+    val = unbox(getattr(obj, name, default))
     try:
         return type_(val)
-    except TypeError:
-        if val is None:
-            return None
-    raise NotImplementedError('Metadata access for ' + name)
+    except TypeError as e:
+        raise NotImplementedError('Metadata access for ' + name) from e
 
 
 class PaletteData(NamedTuple):

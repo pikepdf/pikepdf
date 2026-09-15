@@ -7,6 +7,7 @@ import sys
 import zlib
 from collections.abc import Sequence
 from contextlib import contextmanager, nullcontext
+from decimal import Decimal
 from io import BytesIO
 from math import ceil
 from os import fspath
@@ -645,6 +646,36 @@ def test_image_palette_explicit_mode(resources):
         assert pim.mode == 'P'
         assert pim.bits_per_component == 8
         assert pim.as_pil_image().convert('RGB').getpixel((1, 1)) == (0, 0, 255)
+
+
+@pytest.mark.parametrize('mode', ['implicit', 'explicit'])
+def test_image_metadata_independent_of_mode(mode):
+    """Image metadata reads the same whether values arrive native or boxed.
+
+    A number stored with a nearby type -- a real /Width, a boolean
+    /BitsPerComponent, a real inside the /ColorSpace array -- must convert the
+    same way in explicit mode as in implicit mode.
+    """
+    with pikepdf.new(conversion_mode=mode) as pdf:
+        obj = Stream(
+            pdf,
+            b'',
+            pikepdf.Object.parse(
+                b'<< /Type /XObject /Subtype /Image /Width 100.0 /Height 50 '
+                b'/BitsPerComponent true '
+                b'/ColorSpace [/Indexed /DeviceGray 1.0 <0000ff>] >>'
+            ),
+        )
+        pim = PdfImage(obj)
+        assert pim.size == (100, 50)
+        assert pim._bpc == 1
+        assert pim._colorspaces == [
+            '/Indexed',
+            '/DeviceGray',
+            Decimal('1.0'),
+            b'\0\0\xff',
+        ]
+        assert type(pim._colorspaces[2]) is Decimal
 
 
 @contextmanager
