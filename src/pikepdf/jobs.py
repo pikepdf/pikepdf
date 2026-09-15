@@ -616,12 +616,28 @@ class JobBuilder:
     # -- Reproducibility / inspection ---------------------------------------
 
     def deterministic_id(self) -> JobBuilder:
-        """Generate the document ID deterministically from the output contents."""
+        """Generate the document ``/ID`` from the output contents, not the clock.
+
+        Saving the same input the same way produces the same ``/ID``, which is
+        useful for reproducible builds and caching. Suitable for production.
+        Cannot be combined with encryption. Equivalent to
+        ``Pdf.save(..., deterministic_id=True)``.
+        """
         self._spec['deterministicId'] = _ENABLE
         return self
 
     def static_id(self) -> JobBuilder:
-        """Use a fixed document ID (for testing; not for production output)."""
+        """Use a fixed dummy document ``/ID``, identical in every output file.
+
+        .. warning::
+
+            For testing and debugging only. **Never use in production.** Every
+            file gets the same ``/ID``, defeating its purpose as a unique
+            document identifier. Use :meth:`deterministic_id` for reproducible
+            production output.
+
+        Equivalent to ``Pdf.save(..., static_id=True)``.
+        """
         self._spec['staticId'] = _ENABLE
         return self
 

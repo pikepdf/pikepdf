@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import inspect
 import locale
 import logging
 import os
@@ -450,3 +451,52 @@ def test_refcount_chaining(resources):
     # Ensure we can chain without crashing when Pdf is not properly opened or
     # assigned a name
     Pdf.open(resources / 'pal-1bit-trivial.pdf').pages[0]
+
+
+QPDF_STATIC_ID = bytes.fromhex('31415926535897932384626433832795')
+
+
+def _saved_id(pdf, **kwargs):
+    bio = BytesIO()
+    pdf.save(bio, **kwargs)
+    bio.seek(0)
+    with Pdf.open(bio) as saved:
+        return [bytes(part) for part in saved.trailer.ID]
+
+
+class TestDocumentId:
+    def test_static_id_is_fixed_dummy_value(self):
+        with Pdf.new() as a, Pdf.new() as b:
+            b.add_blank_page()
+            assert _saved_id(a, static_id=True) == [QPDF_STATIC_ID] * 2
+            assert _saved_id(b, static_id=True) == [QPDF_STATIC_ID] * 2
+
+    def test_static_id_takes_precedence(self):
+        with Pdf.new() as pdf:
+            ids = _saved_id(pdf, static_id=True, deterministic_id=True)
+            assert ids == [QPDF_STATIC_ID] * 2
+
+    def test_deterministic_id_depends_on_content(self):
+        with Pdf.new() as a, Pdf.new() as b:
+            b.add_blank_page()
+            id_a = _saved_id(a, deterministic_id=True)
+            assert id_a == _saved_id(a, deterministic_id=True)
+            assert id_a != _saved_id(b, deterministic_id=True)
+            assert QPDF_STATIC_ID not in id_a
+
+    def test_existing_first_id_element_preserved(self, trivial):
+        original = bytes(trivial.trailer.ID[0])
+        assert _saved_id(trivial, static_id=True)[0] == original
+        assert _saved_id(trivial, deterministic_id=True)[0] == original
+
+    def test_deterministic_id_rejects_encryption(self):
+        with Pdf.new() as pdf, pytest.raises(RuntimeError, match='deterministic'):
+            pdf.save(
+                BytesIO(),
+                deterministic_id=True,
+                encryption=pikepdf.Encryption(owner='o', user='u'),
+            )
+
+    def test_static_id_is_last_save_parameter(self):
+        params = list(inspect.signature(Pdf.save).parameters)
+        assert params[-1] == 'static_id'

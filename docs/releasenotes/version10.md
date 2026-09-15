@@ -232,6 +232,15 @@ to that project for the report.
   (`pikepdf._core._object.Object` rather than `pikepdf._core.Object`);
   `pikepdf.Object` remains the name to write in annotations.
 
+### Documentation
+
+- Clarified guidance on `Pdf.save(..., deterministic_id=)` and `static_id=`, and
+  the matching `JobBuilder.deterministic_id()` and `JobBuilder.static_id()`.
+  `deterministic_id` gives reproducible, production-safe `/ID` values;
+  `static_id` sets the same dummy `/ID` in every file and is for testing only.
+  `static_id` now appears last in the `Pdf.save()` signature. All `save()`
+  options are keyword-only, so existing code is unaffected.
+
 ## v10.13.0
 
 ### Exception hierarchy

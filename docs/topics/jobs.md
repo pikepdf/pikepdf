@@ -146,9 +146,17 @@ helpers ({meth}`~pikepdf.JobBuilder.remove_metadata`,
 {meth}`~pikepdf.JobBuilder.remove_page_labels`), page labels
 ({meth}`~pikepdf.JobBuilder.set_page_labels`), version pinning
 ({meth}`~pikepdf.JobBuilder.min_version`,
-{meth}`~pikepdf.JobBuilder.force_version`), and reproducibility helpers
+{meth}`~pikepdf.JobBuilder.force_version`), and document `/ID` control
 ({meth}`~pikepdf.JobBuilder.deterministic_id`,
 {meth}`~pikepdf.JobBuilder.static_id`).
+
+By default qpdf generates the `/ID` from a hash that includes the current time,
+so each run produces a different value. Use
+{meth}`~pikepdf.JobBuilder.deterministic_id` for reproducible builds or caching:
+the `/ID` is derived from the output contents instead. Use
+{meth}`~pikepdf.JobBuilder.static_id` only in test suites that need
+byte-identical output; it gives every file the same dummy `/ID` and must never
+be used in production.
 
 ## Attachments and overlays
 

@@ -527,7 +527,6 @@ class Extend_Pdf:
         self,
         filename_or_stream: Path | str | BinaryIO | None = None,
         *,
-        static_id: bool = False,
         preserve_pdfa: bool = True,
         min_version: str | tuple[str, int] = "",
         force_version: str | tuple[str, int] = "",
@@ -542,6 +541,7 @@ class Extend_Pdf:
         encryption: Encryption | bool | None = None,
         recompress_flate: bool = False,
         deterministic_id: bool = False,
+        static_id: bool = False,
     ) -> None:
         if not filename_or_stream and getattr(self, '_original_filename', None):
             filename_or_stream = self._original_filename
@@ -578,7 +578,6 @@ class Extend_Pdf:
                 stream = stack.enter_context(atomic_overwrite(filename))
             self._save(
                 stream,
-                static_id=static_id,
                 preserve_pdfa=preserve_pdfa,
                 min_version=min_version,
                 force_version=force_version,
@@ -594,6 +593,7 @@ class Extend_Pdf:
                 samefile_check=getattr(self, '_tmp_stream', None) is None,
                 recompress_flate=recompress_flate,
                 deterministic_id=deterministic_id,
+                static_id=static_id,
             )
 
     def write_qpdf_json(
