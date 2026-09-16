@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
+from contextlib import AbstractContextManager
 from enum import Enum
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, BinaryIO, Literal, overload
@@ -156,6 +157,8 @@ class XrefEntry:
         """Index of the object within its object stream; None unless ``type == 2``."""
 
 class Pdf:
+    """In-memory representation of a PDF."""
+
     def _repr_mimebundle_(self, include: Any = ..., exclude: Any = ...) -> Any:
         """Present options to IPython or Jupyter for rich display of this object.
 
@@ -248,6 +251,16 @@ class Pdf:
 
         Raises:
             RuntimeError: If the PDF in question is not linearized at all.
+        """
+    def lock(self) -> AbstractContextManager[None]:
+        """Context manager to hold the per-Pdf lock for compound operations.
+
+        Under free-threaded Python, individual C++ method calls are
+        automatically serialized, but multi-step Python operations (e.g.
+        read-modify-write on the same dictionary) are not atomic.  Wrap
+        such sequences in ``with pdf.lock():`` to prevent interleaving.
+
+        On GIL-enabled builds this is a no-op.
         """
     def close(self) -> None:
         """Close a ``Pdf`` object and release resources acquired by pikepdf.
@@ -1015,6 +1028,11 @@ class Pdf:
     setting. The :func:`pikepdf.explicit_conversion` and
     :func:`pikepdf.implicit_conversion` context managers take precedence over
     this setting in the thread where they are active.
+
+    Objects copied into another ``Pdf`` take on that document's mode.
+    Unowned objects, such as a bare ``pikepdf.Dictionary(...)``, are not
+    attached to any document, so they follow the thread-local or global
+    setting instead.
 
     .. versionadded:: 10.14
     """

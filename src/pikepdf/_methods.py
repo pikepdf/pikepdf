@@ -181,15 +181,6 @@ class Extend_Object:
 class Extend_Pdf:
     @contextmanager
     def lock(self):
-        """Context manager to hold the per-Pdf lock for compound operations.
-
-        Under free-threaded Python, individual C++ method calls are
-        automatically serialized, but multi-step Python operations (e.g.
-        read-modify-write on the same dictionary) are not atomic.  Wrap
-        such sequences in ``with pdf.lock():`` to prevent interleaving.
-
-        On GIL-enabled builds this is a no-op.
-        """
         self._acquire_lock()
         try:
             yield

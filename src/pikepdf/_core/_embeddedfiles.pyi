@@ -179,7 +179,11 @@ class AttachedFileSpec(ObjectHelper):
         """
     @property
     def relationship(self) -> Name | None:
-        """Describes the relationship of this attached file to the PDF."""
+        """The file's relationship to the document, as a :class:`pikepdf.Name`.
+
+        Returns ``None`` if the file specification has no ``/AFRelationship``.
+        Assigning ``None`` removes it.
+        """
     @relationship.setter
     def relationship(self, value: Name | None) -> None: ...
 

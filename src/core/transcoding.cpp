@@ -104,14 +104,10 @@ void init_transcoding(py::module_ &m)
         &unpack_2bit_inner,
         py::arg("in_").noconvert(),
         py::arg("out").noconvert(),
-        py::arg("scale"),
-        "Unpack 2-bit values into bytes scaled by 'scale' (0..85). "
-        "Output buffer must be at least 4x the input length.");
+        py::arg("scale"));
     m.def("_unpack_subbyte_4bit",
         &unpack_4bit_inner,
         py::arg("in_").noconvert(),
         py::arg("out").noconvert(),
-        py::arg("scale"),
-        "Unpack 4-bit values into bytes scaled by 'scale' (0..17). "
-        "Output buffer must be at least 2x the input length.");
+        py::arg("scale"));
 }

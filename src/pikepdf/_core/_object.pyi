@@ -97,7 +97,11 @@ class Object:
         self, whitelist: str
     ) -> list[tuple[Collection[Object | PdfInlineImage], Operator]]: ...
     @staticmethod
-    def _parse_stream(stream: Object, parser: StreamParser) -> list: ...
+    def _parse_stream(stream: Object, parser: StreamParser) -> list:
+        """Helper for parsing PDF content stream.
+
+        Use ``pikepdf.parse_content_stream`` instead.
+        """
     @staticmethod
     def _parse_stream_grouped(stream: Object, whitelist: str) -> list: ...
     def _repr_mimebundle_(self, include=None, exclude=None) -> dict | None: ...
@@ -116,6 +120,10 @@ class Object:
         For a :class:`pikepdf.Stream`, use :attr:`pikepdf.Object.stream_dict`;
         a Stream is not a dictionary here.
 
+        Args:
+            default: Value to return if this object is not a dictionary. If not
+                provided and the object is not a dictionary, raises TypeError.
+
         Raises:
             TypeError: If object is not a dictionary and no default was provided.
 
@@ -127,6 +135,10 @@ class Object:
     @overload
     def as_list(self) -> _ObjectList:
         """Return the array's items, or return default if not an array.
+
+        Args:
+            default: Value to return if this object is not an array. If not
+                provided and the object is not an array, raises TypeError.
 
         Raises:
             TypeError: If object is not an array and no default was provided.
@@ -150,6 +162,10 @@ class Object:
             coerce: If True, also accept a Real (truncated toward zero) and a
                 String whose text is a number.
 
+        Returns:
+            The integer value, or the default if provided and object is
+            not an integer.
+
         Raises:
             TypeError: If object is not an integer and no default was provided.
             OverflowError: If the value is out of range for a 64-bit integer
@@ -160,6 +176,10 @@ class Object:
 
         .. versionchanged:: 10.14
             Added the keyword-only *coerce* argument.
+
+        .. versionchanged:: 10.14
+            A value out of range for a 64-bit integer now returns *default*, if
+            one was given, instead of raising OverflowError.
         """
     @overload
     def as_int(self, default: T, *, coerce: bool = False) -> int | T: ...
@@ -176,6 +196,10 @@ class Object:
                 raises TypeError.
             coerce: If True, also accept an Integer or Real, which are True
                 when nonzero.
+
+        Returns:
+            The boolean value, or the default if provided and object is
+            not a boolean.
 
         Raises:
             TypeError: If object is not a boolean and no default was provided.
@@ -199,6 +223,10 @@ class Object:
                 raises TypeError.
             coerce: If True, also accept a String whose text is a number,
                 including exponential notation such as ``1e-5``.
+
+        Returns:
+            The float value, or the default if provided and object is
+            not numeric.
 
         Raises:
             TypeError: If object is not numeric and no default was provided.
@@ -225,6 +253,10 @@ class Object:
                 a number. The Decimal is built from the string as written, so
                 all of its digits are preserved.
 
+        Returns:
+            The Decimal value, or the default if provided and object is
+            not a Real.
+
         Raises:
             TypeError: If object is not a Real and no default was provided.
 
@@ -235,7 +267,8 @@ class Object:
         """
     @overload
     def as_decimal(self, default: T, *, coerce: bool = False) -> Decimal | T: ...
-    def copy(self) -> Object: ...
+    def copy(self) -> Object:
+        """Create a shallow copy of the object."""
     def emplace(self, other: Object, retain: Iterable[Name] = ...) -> None:
         """Copy all items from other without making a new object.
 
@@ -274,15 +307,15 @@ class Object:
     def clear(self) -> None:
         """Remove all items from the array."""
     def count(self, value: Any, /) -> int:
-        """Return the number of items in the array equal to value."""
+        """Return the number of items in the array equal to *value*."""
     def index(self, value: Any, /) -> int:
-        """Return the index of the first item equal to value."""
+        """Return the index of the first item equal to *value*."""
     def insert(self, index: int, value: Any, /) -> None:
-        """Insert an object before the given index."""
+        """Insert an object before the given index (Python list.insert semantics)."""
     def pop(self, index: int = -1, /) -> Object:
-        """Remove and return the item at index (default last)."""
+        """Remove and return the item at *index* (default last)."""
     def remove(self, value: Any, /) -> None:
-        """Remove the first item in the array equal to value."""
+        """Remove the first item in the array equal to *value*."""
     def reverse(self) -> None:
         """Reverse the elements of the array in place."""
     @overload
@@ -315,6 +348,9 @@ class Object:
         as :meth:`get` does; ``None`` (or *default*) is likewise returned when
         the key or path does not exist at all.
 
+        *key* may be a string, a :class:`pikepdf.Name`, or a
+        :class:`pikepdf.NamePath`.
+
         .. versionadded:: 10.14
         """
 
@@ -330,7 +366,7 @@ class Object:
     ) -> int | None:
         """Get the value of *key* as a Python int.
 
-        Returns the default if the key is absent or its value is not an
+        Returns *default* if the key is absent or its value is not an
         Integer. Unlike ``obj[key]``, the result is a Python int in both
         implicit and explicit conversion mode.
 
@@ -354,7 +390,7 @@ class Object:
     ) -> bool | None:
         """Get the value of *key* as a Python bool.
 
-        Returns the default if the key is absent or its value is not a
+        Returns *default* if the key is absent or its value is not a
         Boolean. Unlike ``obj[key]``, the result is a Python bool in both
         implicit and explicit conversion mode.
 
@@ -377,7 +413,7 @@ class Object:
     ) -> float | None:
         """Get the value of *key* as a Python float.
 
-        Accepts both Integer and Real. Returns the default if the key is
+        Accepts both Integer and Real. Returns *default* if the key is
         absent or its value is not numeric. Unlike ``obj[key]``, the result is
         a Python float in both implicit and explicit conversion mode.
 
@@ -400,7 +436,7 @@ class Object:
         """Get the value of *key* as a Python :class:`decimal.Decimal`.
 
         Preferred over :meth:`get_float` for PDF reals, since it preserves the
-        digits as written. Returns the default if the key is absent or its
+        digits as written. Returns *default* if the key is absent or its
         value is not a Real. Unlike ``obj[key]``, the result is a Decimal in
         both implicit and explicit conversion mode.
 
@@ -421,7 +457,7 @@ class Object:
     def get_dict(self, key: str | Name | NamePath) -> _ObjectMapping | None:
         """Get the value of *key* as a mapping of its dictionary entries.
 
-        Returns the default if the key is absent or its value is not a
+        Returns *default* if the key is absent or its value is not a
         Dictionary. A Stream is not a Dictionary here; use
         :attr:`pikepdf.Object.stream_dict`.
 
@@ -440,7 +476,7 @@ class Object:
     def get_list(self, key: str | Name | NamePath) -> _ObjectList | None:
         """Get the value of *key* as a sequence of its array items.
 
-        Returns the default if the key is absent or its value is not an Array.
+        Returns *default* if the key is absent or its value is not an Array.
 
         Args:
             key: A string, :class:`pikepdf.Name` or :class:`pikepdf.NamePath`.
@@ -458,6 +494,7 @@ class Object:
     def is_owned_by(self, possible_owner: Pdf) -> bool:
         """Test if this object is owned by the indicated *possible_owner*."""
     def items(self) -> Iterable[tuple[str, Object]]: ...
+    def values(self) -> Iterable[Object]: ...
     def keys(self) -> set[str]:
         """Get the keys of the object, if it is a Dictionary or Stream."""
     @staticmethod
@@ -518,7 +555,11 @@ class Object:
         Args:
             resolved: If True, deference indirect objects where possible.
         """
-    def update(self, other: Mapping[Any, Any] | Object) -> None: ...
+    def update(self, other: Mapping[Any, Any] | Object) -> None:
+        """Update the dictionary with key/value pairs from another dictionary.
+
+        *other* may be a Python mapping or another pikepdf Dictionary.
+        """
     def with_same_owner_as(self, arg0: Object) -> Object:
         """Returns an object that is owned by the same Pdf that owns *other* object.
 
@@ -757,6 +798,7 @@ class _ObjectMapping:
     def get(self, key: Name | str, default: T) -> Object | T: ...
     def keys(self) -> Iterator[Name]: ...
     def values(self) -> Iterator[Object]: ...
+    def clear(self) -> None: ...
     def update(self, other: _ObjectMapping | dict[Name | str, Any], /) -> None: ...
     def __contains__(self, key: Name | str, /) -> bool: ...
     def __init__(self) -> None: ...
@@ -787,7 +829,8 @@ class StreamParser:
     Consider instead using :func:`pikepdf.parse_content_stream`.
     """
 
-    def __init__(self) -> None: ...
+    def __init__(self) -> None:
+        """You must call ``super().__init__()`` in subclasses."""
     @abstractmethod
     def handle_eof(self) -> None:
         """An abstract method that may be overloaded in a subclass.
@@ -802,7 +845,9 @@ class StreamParser:
         parsed in the content stream.
         """
 
-def _Null() -> Any: ...
+def _Null() -> Any:
+    """Construct a PDF Null object."""
+
 def _encode(handle: Any) -> Object: ...
 def _new_array(arg0: Iterable) -> Array:
     """Low-level function to construct a PDF Array.
