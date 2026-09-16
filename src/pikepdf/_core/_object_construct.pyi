@@ -45,10 +45,10 @@ class Name(Object, metaclass=_NameObjectMeta):
     def random(cls, len_: int = 16, prefix: str = '') -> Name:
         """Generate a cryptographically strong, random, valid PDF Name.
 
-        If you are inserting a new name into a PDF (for example,
-        name for a new image), you can use this function to generate a
-        cryptographically strong random name that is almost certainly already
-        not already in the PDF, and not colliding with other existing names.
+        If you are inserting a new name into a PDF (for example, a name for a
+        new image), you can use this function to generate a cryptographically
+        strong random name that is almost certainly not already in the PDF, and
+        not colliding with other existing names.
 
         This function uses Python's secrets.token_urlsafe, which returns a
         URL-safe encoded random number of the desired length. An optional
@@ -97,13 +97,72 @@ class Array(Object):
     def __new__(cls, a: Iterable | Rectangle | Matrix | None = None) -> Array: ...
 
 class Dictionary(Object):
-    """Construct a PDF Dictionary object."""
+    """Construct a PDF Dictionary object.
+
+    Works from either a Python ``dict`` or keyword arguments.
+
+    These two examples are equivalent:
+
+    .. code-block:: python
+
+        pikepdf.Dictionary({'/NameOne': 1, '/NameTwo': 'Two'})
+
+        pikepdf.Dictionary(NameOne=1, NameTwo='Two')
+
+    In either case, the keys must be strings, and the strings
+    correspond to the desired Names in the PDF Dictionary. The values
+    must all be convertible to `pikepdf.Object`.
+    """
 
     object_type: ObjectType
     def __new__(cls, d: Mapping | None = None, **kwargs: Any) -> Dictionary: ...
 
 class Stream(Object):
-    """Construct a PDF Stream object."""
+    """Construct a PDF Stream object.
+
+    Streams stores arbitrary binary data and may or may not be compressed.
+    It also may or may not be a page or Form XObject's content stream.
+
+    A stream dictionary is like a pikepdf.Dictionary or Python dict, except
+    it has a binary payload of data attached. The dictionary describes
+    how the data is compressed or encoded.
+
+    The dictionary may be initialized just like pikepdf.Dictionary is initialized,
+    using a mapping object or keyword arguments.
+
+    Args:
+        owner: The Pdf to which this stream shall be attached.
+        data: The data bytes for the stream.
+        d: An optional mapping object that will be used to construct the stream's
+            dictionary.
+        kwargs: Keyword arguments that will define the stream dictionary. Do not set
+            /Length here as pikepdf will manage this value. Set /Filter
+            if the data is already encoded in some format.
+
+    Examples:
+        Using kwargs:
+            >>> pdf = pikepdf.Pdf.new()
+            >>> s1 = pikepdf.Stream(
+            ...     pdf,
+            ...     b"uncompressed image data",
+            ...     BitsPerComponent=8,
+            ...     ColorSpace=pikepdf.Name.DeviceRGB,
+            ... )
+        Using dict:
+            >>> pdf = pikepdf.Pdf.new()
+            >>> d = pikepdf.Dictionary(Key1=1, Key2=2)
+            >>> s2 = pikepdf.Stream(
+            ...     pdf,
+            ...     b"data",
+            ...     d
+            ... )
+
+    .. versionchanged:: 2.2
+        Support creation of ``pikepdf.Stream`` from existing dictionary.
+
+    .. versionchanged:: 3.0
+        ``obj`` argument was removed; use ``data``.
+    """
 
     object_type: ObjectType
     def __new__(

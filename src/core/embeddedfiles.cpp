@@ -151,12 +151,7 @@ void init_embeddedfiles(py::module_ &m)
                     object_set_key(oh, "/AFRelationship", rel);
                 }
             },
-            py::arg("value").none(),
-            R"(The file's relationship to the document, as a :class:`pikepdf.Name`.
-
-Returns ``None`` if the file specification has no ``/AFRelationship``.
-Assigning ``None`` removes it.
-)")
+            py::arg("value").none())
         .def("__repr__", [](QPDFFileSpecObjectHelper &spec) {
             auto filename = spec.getFilename();
             if (!filename.empty()) {
@@ -188,14 +183,11 @@ Assigning ``None`` removes it.
         .def_prop_rw("_mod_date",
             &QPDFEFStreamObjectHelper::getModDate,
             &QPDFEFStreamObjectHelper::setModDate)
-        .def(
-            "read_bytes",
-            [](QPDFEFStreamObjectHelper &efstream) {
-                auto oh = efstream.getObjectHandle();
-                auto buf = get_stream_data(oh, qpdf_dl_generalized);
-                return py::bytes((const char *)buf->getBuffer(), buf->getSize());
-            },
-            "Read the attached file's decoded contents.");
+        .def("read_bytes", [](QPDFEFStreamObjectHelper &efstream) {
+            auto oh = efstream.getObjectHandle();
+            auto buf = get_stream_data(oh, qpdf_dl_generalized);
+            return py::bytes((const char *)buf->getBuffer(), buf->getSize());
+        });
 
     py::class_<QPDFEmbeddedFileDocumentHelper>(
         m, "Attachments", py::type_slots(pikepdf_gc_slots))

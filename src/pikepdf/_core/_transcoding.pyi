@@ -12,7 +12,16 @@ from __future__ import annotations
 
 def _unpack_subbyte_2bit(
     in_: bytes | memoryview, out: bytearray | memoryview, scale: int
-) -> None: ...
+) -> None:
+    """Unpack 2-bit values into bytes scaled by 'scale' (0..85).
+
+    Output buffer must be at least 4x the input length.
+    """
+
 def _unpack_subbyte_4bit(
     in_: bytes | memoryview, out: bytearray | memoryview, scale: int
-) -> None: ...
+) -> None:
+    """Unpack 4-bit values into bytes scaled by 'scale' (0..17).
+
+    Output buffer must be at least 2x the input length.
+    """

@@ -529,36 +529,26 @@ void init_qpdf(py::module_ &m)
         .value("inline", qpdf_json_stream_data_e::qpdf_sj_inline)
         .value("file", qpdf_json_stream_data_e::qpdf_sj_file);
 
-    py::class_<QPDFXRefEntry>(
-        m, "XrefEntry", "Represents one entry in a PDF cross-reference table.")
-        .def_prop_ro("type",
-            &QPDFXRefEntry::getType,
-            "0 = free, 1 = uncompressed (has offset), 2 = compressed (in an "
-            "object stream).")
-        .def_prop_ro(
-            "offset",
+    py::class_<QPDFXRefEntry>(m, "XrefEntry")
+        .def_prop_ro("type", &QPDFXRefEntry::getType)
+        .def_prop_ro("offset",
             [](QPDFXRefEntry &e) -> py::object {
                 if (e.getType() != 1)
                     return py::none();
                 return py::int_(e.getOffset());
-            },
-            "Byte offset of the object in the file; None unless type == 1.")
-        .def_prop_ro(
-            "obj_stream_number",
+            })
+        .def_prop_ro("obj_stream_number",
             [](QPDFXRefEntry &e) -> py::object {
                 if (e.getType() != 2)
                     return py::none();
                 return py::int_(e.getObjStreamNumber());
-            },
-            "Object number of the containing object stream; None unless type == 2.")
-        .def_prop_ro(
-            "obj_stream_index",
+            })
+        .def_prop_ro("obj_stream_index",
             [](QPDFXRefEntry &e) -> py::object {
                 if (e.getType() != 2)
                     return py::none();
                 return py::int_(e.getObjStreamIndex());
-            },
-            "Index within the containing object stream; None unless type == 2.")
+            })
         .def("__repr__", [](QPDFXRefEntry &e) {
             switch (e.getType()) {
             case 1:
@@ -587,7 +577,7 @@ void init_qpdf(py::module_ &m)
         .value("mmap", access_mode_e::access_mmap)
         .value("mmap_only", access_mode_e::access_mmap_only);
 
-    py::class_<QPDF>(m, "Pdf", "In-memory representation of a PDF", py::dynamic_attr())
+    py::class_<QPDF>(m, "Pdf", py::dynamic_attr())
         .def_static(
             "new",
             [](py::object conversion_mode) {
@@ -629,23 +619,7 @@ void init_qpdf(py::module_ &m)
                 registry_entry(q).conversion_mode.store(
                     parse_conversion_mode(mode), std::memory_order_relaxed);
             },
-            py::for_setter(py::arg("value").none()),
-            R"~~~(Object conversion mode for this PDF: 'implicit', 'explicit' or None.
-
-            When set, this overrides the global mode set by
-            :func:`pikepdf.set_object_conversion_mode` for objects owned by this
-            ``Pdf``, in every thread. ``None`` (the default) means defer to the
-            global setting. The :func:`pikepdf.explicit_conversion` and
-            :func:`pikepdf.implicit_conversion` context managers take precedence
-            over this setting in the thread where they are active.
-
-            Objects copied into another ``Pdf`` take on that document's mode.
-            Unowned objects, such as a bare ``pikepdf.Dictionary(...)``, are not
-            attached to any document, so they follow the thread-local or global
-            setting instead.
-
-            .. versionadded:: 10.14
-            )~~~")
+            py::for_setter(py::arg("value").none()))
         .def_prop_ro("filename",
             [](QPDF &q) {
                 QpdfLockGuard lock(&q);
@@ -958,13 +932,11 @@ void init_qpdf(py::module_ &m)
                 QPDFObjGen o2(objgen2.first, objgen2.second);
                 q.swapObjects(o1, o2);
             })
-        .def(
-            "_close",
+        .def("_close",
             [](QPDF &q) {
                 QpdfLockGuard lock(&q);
                 q.closeInputSource();
-            },
-            "Used to implement Pdf.close().")
+            })
         .def(
             "_decode_all_streams_and_discard",
             [](QPDF &q, py::object progress) {

@@ -48,7 +48,8 @@ static py::object make_metaclass(const char *name, py::handle base, py::dict ns)
 }
 
 // meta(name, (object,), ns) -- create a facade type as an instance of `meta`.
-// ns must contain __new__ (already staticmethod-wrapped), object_type, __doc__.
+// ns must contain __new__ (already staticmethod-wrapped); object_type is added here.
+// Docstrings live in the src/pikepdf/_core stubs, not here.
 static py::object make_facade(
     py::handle meta, const char *name, py::object object_type, py::dict ns)
 {
@@ -189,48 +190,10 @@ void init_object_construct(py::module_ &m)
             },
             py::arg("cls"),
             py::arg("len_") = 16,
-            py::arg("prefix") = "",
-            "Generate a cryptographically strong, random, valid PDF Name.\n\n"
-            "If you are inserting a new name into a PDF (for example,\n"
-            "name for a new image), you can use this function to generate a\n"
-            "cryptographically strong random name that is almost certainly "
-            "already\n"
-            "not already in the PDF, and not colliding with other existing "
-            "names.\n\n"
-            "This function uses Python's secrets.token_urlsafe, which returns "
-            "a\n"
-            "URL-safe encoded random number of the desired length. An "
-            "optional\n"
-            "*prefix* may be prepended. (The encoding is ultimately done "
-            "with\n"
-            ":func:`base64.urlsafe_b64encode`.) Serendipitously, URL-safe is "
-            "also\n"
-            "PDF-safe.\n\n"
-            "When the length parameter is 16 (16 random bytes or 128 bits), "
-            "the result\n"
-            "is probably globally unique and can be treated as never "
-            "colliding with\n"
-            "other names.\n\n"
-            "The length of the returned string may vary because it is "
-            "encoded,\n"
-            "but will always have ``8 * len_`` random bits.\n\n"
-            "Args:\n"
-            "    len_: The length of the random string.\n"
-            "    prefix: A prefix to prepend to the random string.");
+            py::arg("prefix") = "");
         // classmethod() builtin (not PyClassMethod_New) for limited-API safety.
         ns["random"] =
             py::module_::import_("builtins").attr("classmethod")(name_random);
-
-        ns["__doc__"] =
-            py::str("Construct a PDF Name object.\n\n"
-                    "Names can be constructed with two notations:\n\n"
-                    "    1. ``Name.Resources``\n\n"
-                    "    2. ``Name('/Resources')``\n\n"
-                    "The two are semantically equivalent. The former is preferred for "
-                    "names\n"
-                    "that are normally expected to be in a PDF. The latter is "
-                    "preferred for\n"
-                    "dynamic names and attributes.");
 
         m.attr("Name") = make_facade(name_meta, "Name", ObjectType.attr("name_"), ns);
     }
@@ -245,19 +208,6 @@ void init_object_construct(py::module_ &m)
             py::arg("cls"),
             py::arg("name"));
         set_new(ns, fn);
-        ns["__doc__"] = py::str(
-            "Construct an operator for use in a content stream.\n\n"
-            "An Operator is one of a limited set of commands that can appear in "
-            "PDF content\n"
-            "streams (roughly the mini-language that draws objects, lines and "
-            "text on a\n"
-            "virtual PDF canvas). The commands :func:`parse_content_stream` and\n"
-            ":func:`unparse_content_stream` create and expect Operators "
-            "respectively, along\n"
-            "with their operands.\n\n"
-            "pikepdf uses the special Operator \"INLINE IMAGE\" to denote an "
-            "inline image\n"
-            "in a content stream.");
         m.attr("Operator") =
             make_facade(object_meta, "Operator", ObjectType.attr("operator"), ns);
     }
@@ -283,7 +233,6 @@ void init_object_construct(py::module_ &m)
             py::arg("cls"),
             py::arg("s"));
         set_new(ns, fn);
-        ns["__doc__"] = py::str("Construct a PDF String object.");
         m.attr("String") =
             make_facade(object_meta, "String", ObjectType.attr("string"), ns);
     }
@@ -316,7 +265,6 @@ void init_object_construct(py::module_ &m)
             py::arg("cls"),
             py::arg("a") = py::none());
         set_new(ns, fn);
-        ns["__doc__"] = py::str("Construct a PDF Array object.");
         m.attr("Array") =
             make_facade(object_meta, "Array", ObjectType.attr("array"), ns);
     }
@@ -374,16 +322,6 @@ void init_object_construct(py::module_ &m)
             py::arg("d") = py::none(),
             py::arg("kwargs"));
         set_new(ns, fn);
-        ns["__doc__"] = py::str(
-            "Construct a PDF Dictionary object.\n\n"
-            "Works from either a Python ``dict`` or keyword arguments.\n\n"
-            "These two examples are equivalent:\n\n"
-            ".. code-block:: python\n\n"
-            "    pikepdf.Dictionary({'/NameOne': 1, '/NameTwo': 'Two'})\n\n"
-            "    pikepdf.Dictionary(NameOne=1, NameTwo='Two')\n\n"
-            "In either case, the keys must be strings, and the strings\n"
-            "correspond to the desired Names in the PDF Dictionary. The values\n"
-            "must all be convertible to `pikepdf.Object`.");
         m.attr("Dictionary") =
             make_facade(object_meta, "Dictionary", ObjectType.attr("dictionary"), ns);
     }
@@ -422,51 +360,6 @@ void init_object_construct(py::module_ &m)
             py::arg("d") = py::none(),
             py::arg("kwargs"));
         set_new(ns, fn);
-        ns["__doc__"] = py::str(
-            R"(Construct a PDF Stream object.
-
-Streams stores arbitrary binary data and may or may not be compressed.
-It also may or may not be a page or Form XObject's content stream.
-
-A stream dictionary is like a pikepdf.Dictionary or Python dict, except
-it has a binary payload of data attached. The dictionary describes
-how the data is compressed or encoded.
-
-The dictionary may be initialized just like pikepdf.Dictionary is initialized,
-using a mapping object or keyword arguments.
-
-Args:
-    owner: The Pdf to which this stream shall be attached.
-    data: The data bytes for the stream.
-    d: An optional mapping object that will be used to construct the stream's
-        dictionary.
-    kwargs: Keyword arguments that will define the stream dictionary. Do not set
-        /Length here as pikepdf will manage this value. Set /Filter
-        if the data is already encoded in some format.
-
-Examples:
-    Using kwargs:
-        >>> pdf = pikepdf.Pdf.new()
-        >>> s1 = pikepdf.Stream(
-        ...     pdf,
-        ...     b"uncompressed image data",
-        ...     BitsPerComponent=8,
-        ...     ColorSpace=pikepdf.Name.DeviceRGB,
-        ... )
-    Using dict:
-        >>> pdf = pikepdf.Pdf.new()
-        >>> d = pikepdf.Dictionary(Key1=1, Key2=2)
-        >>> s2 = pikepdf.Stream(
-        ...     pdf,
-        ...     b"data",
-        ...     d
-        ... )
-
-.. versionchanged:: 2.2
-    Support creation of ``pikepdf.Stream`` from existing dictionary.
-
-.. versionchanged:: 3.0
-    ``obj`` argument was removed; use ``data``.)");
         m.attr("Stream") =
             make_facade(object_meta, "Stream", ObjectType.attr("stream"), ns);
     }
@@ -500,16 +393,6 @@ Examples:
             py::arg("cls"),
             py::arg("val"));
         set_new(ns, fn);
-        ns["__doc__"] = py::str(R"(A PDF integer object.
-
-    In explicit conversion mode, PDF integers are returned as this type instead
-    of being automatically converted to Python ``int``.
-
-    Supports ``int()`` conversion, indexing operations (via ``__index__``),
-    and arithmetic operations. Arithmetic operations return native Python ``int``.
-
-    .. versionadded:: 10.1
-    )");
         m.attr("Integer") =
             make_facade(object_meta, "Integer", ObjectType.attr("integer"), ns);
     }
@@ -533,15 +416,6 @@ Examples:
             py::arg("cls"),
             py::arg("val"));
         set_new(ns, fn);
-        ns["__doc__"] = py::str(R"(A PDF boolean object.
-
-    In explicit conversion mode, PDF booleans are returned as this type instead
-    of being automatically converted to Python ``bool``.
-
-    Supports ``bool()`` conversion via ``__bool__``.
-
-    .. versionadded:: 10.1
-    )");
         m.attr("Boolean") =
             make_facade(object_meta, "Boolean", ObjectType.attr("boolean"), ns);
     }
@@ -566,15 +440,6 @@ Examples:
             py::arg("val"),
             py::arg("places") = 6);
         set_new(ns, fn);
-        ns["__doc__"] = py::str(R"(A PDF real (floating-point) object.
-
-    In explicit conversion mode, PDF reals are returned as this type instead
-    of being automatically converted to Python ``Decimal``.
-
-    Supports ``float()`` conversion. Use ``as_decimal()`` for lossless conversion.
-
-    .. versionadded:: 10.1
-    )");
         m.attr("Real") = make_facade(object_meta, "Real", ObjectType.attr("real"), ns);
     }
 }

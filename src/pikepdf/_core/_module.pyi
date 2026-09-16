@@ -15,7 +15,9 @@ from typing import Any, Literal
 
 from pikepdf._core._qpdf import Pdf
 
-def _translate_qpdf_logic_error(arg0: str) -> str: ...
+def _translate_qpdf_logic_error(arg0: str) -> str:
+    """Used to test interpretation of qpdf errors."""
+
 def get_decimal_precision() -> int:
     """Set the number of decimal digits to use when converting floats."""
 
@@ -25,15 +27,36 @@ def pdf_doc_to_utf8(pdfdoc: bytes) -> str:
     Use the pdfdoc codec instead of using this directly.
     """
 
-def qpdf_version() -> str: ...
-def set_access_default_mmap(mmap: bool) -> bool: ...
-def get_access_default_mmap() -> bool: ...
-def _set_explicit_conversion_mode(mode: bool) -> bool: ...
-def _get_explicit_conversion_mode() -> bool: ...
-def _get_effective_explicit_mode() -> bool: ...
-def _get_effective_explicit_mode_for(pdf: Pdf) -> bool: ...
-def _push_thread_conversion_mode(explicit: bool) -> int: ...
-def _pop_thread_conversion_mode(token: int, /) -> None: ...
+def qpdf_version() -> str:
+    """Get libqpdf version."""
+
+def set_access_default_mmap(mmap: bool) -> bool:
+    """If True, ``pikepdf.open(...access_mode=access_default)`` will use mmap."""
+
+def get_access_default_mmap() -> bool:
+    """Return True if default access is to use mmap."""
+
+def _set_explicit_conversion_mode(mode: bool) -> bool:
+    """Set explicit conversion mode (global baseline). Returns previous value."""
+
+def _get_explicit_conversion_mode() -> bool:
+    """Return True if explicit conversion mode is enabled (global baseline)."""
+
+def _get_effective_explicit_mode() -> bool:
+    """Return True if explicit mode is active (includes thread-local override)."""
+
+def _get_effective_explicit_mode_for(pdf: Pdf) -> bool:
+    """Return True if explicit mode is active for the given Pdf."""
+
+def _push_thread_conversion_mode(explicit: bool) -> int:
+    """Push a thread-local conversion mode override (for context managers).
+
+    Returns a token to be passed to _pop_thread_conversion_mode().
+    """
+
+def _pop_thread_conversion_mode(token: int, /) -> None:
+    """Undo a thread-local conversion mode override (for context managers)."""
+
 def set_decimal_precision(prec: int) -> int:
     """Get the number of decimal digits to use when converting floats."""
 

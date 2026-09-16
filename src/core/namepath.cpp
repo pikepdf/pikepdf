@@ -253,42 +253,6 @@ void init_namepath(py::module_ &m)
     py::dict ns;
     ns["__module__"] = py::str("pikepdf._core");
     ns["__qualname__"] = py::str("NamePath");
-    ns["__doc__"] = py::str(R"(Path for accessing nested Dictionary/Stream values.
-
-    NamePath provides ergonomic access to deeply nested PDF structures with a
-    single access operation and helpful error messages when keys are not found.
-
-    Usage examples::
-
-        # Shorthand syntax - most common
-        obj[NamePath.Resources.Font.F1]
-
-        # With array indices
-        obj[NamePath.Pages.Kids[0].MediaBox]
-
-        # Chained access - supports non Python-identifier names
-        NamePath['/A']('/B').C[0]  # equivalent to NamePath.A.B.C[0]
-
-        # Alternate syntax to support lists
-        obj[NamePath(Name.Resources, Name.Font)]
-
-        # Using string objects
-        obj[NamePath('/Resources', '/Weird-Name')]
-
-        # Empty path returns the object itself
-        obj[NamePath()]
-
-        # Setting nested values (all parents must exist)
-        obj[NamePath.Root.Info.Title] = pikepdf.String("Test")
-
-        # With default value
-        obj.get(NamePath.Root.Metadata, None)
-
-    When a key is not found, the KeyError message identifies the exact failure
-    point, e.g.: "Key /C not found; traversed NamePath.A.B"
-
-    .. versionadded:: 10.1
-    )");
     py::tuple bases = py::make_tuple(py::handle((PyObject *)&PyBaseObject_Type));
     py::object NamePathFacade = py::steal(PyObject_CallFunction(
         namepath_meta.ptr(), "sOO", "NamePath", bases.ptr(), ns.ptr()));

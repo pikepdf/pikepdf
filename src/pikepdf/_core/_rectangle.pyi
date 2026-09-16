@@ -77,6 +77,13 @@ class Rectangle:
     def as_array(self) -> Array:
         """Returns this rectangle as a :class:`pikepdf.Array`."""
     def to_bbox(self) -> Rectangle:
-        """Returns the origin-centred bounding box that encloses this rectangle."""
+        """Returns the origin-centred bounding box that encloses this rectangle.
+
+        Create a new rectangle with the same width and height as this one, but
+        located at the origin (0, 0).
+
+        Bounding boxes represent independent coordinate systems, such as for
+        Form XObjects.
+        """
     def __eq__(self, other: Any, /) -> bool: ...
     def __repr__(self) -> str: ...

@@ -75,17 +75,8 @@ void init_rectangle(py::module_ &m)
         .def_prop_ro("upper_right", [](Rect &r) { return Point(r.urx, r.ury); })
         .def_prop_ro("upper_left", [](Rect &r) { return Point(r.llx, r.ury); })
         .def("as_array", [](Rect &r) { return QPDFObjectHandle::newArray(r); })
-        .def(
-            "to_bbox",
-            [](Rect &r) -> Rect { return {0.0, 0.0, r.urx - r.llx, r.ury - r.lly}; },
-            R"(Returns the origin-centred bounding box that encloses this rectangle.
-
-Create a new rectangle with the same width and height as this one, but located
-at the origin (0, 0).
-
-Bounding boxes represent independent coordinate systems, such as for Form
-XObjects.
-)")
+        .def("to_bbox",
+            [](Rect &r) -> Rect { return {0.0, 0.0, r.urx - r.llx, r.ury - r.lly}; })
         .def("__repr__",
             [](Rect &r) {
                 return py::str("pikepdf.Rectangle({}, {}, {}, {})")

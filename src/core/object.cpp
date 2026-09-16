@@ -1150,11 +1150,11 @@ void init_object(py::module_ &m)
         "_new_operator",
         [](py::handle op) { return QPDFObjectHandle::newOperator(to_string(op)); },
         py::arg("op"));
-    m.def("_Null", &QPDFObjectHandle::newNull, "Construct a PDF Null object");
+    m.def("_Null", &QPDFObjectHandle::newNull);
 
     py::class_<QPDFObjectHandle::ParserCallbacks, PyParserCallbacks>(
         m, "StreamParser", py::type_slots(pikepdf_gc_slots))
-        .def(py::init<>(), "You must call ``super.__init__()`` in subclasses.")
+        .def(py::init<>())
         // LCOV_EXCL_START
         // coverage misses the virtual function call ::handleObject here.
         .def("handle_object",

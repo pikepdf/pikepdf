@@ -231,8 +231,19 @@ to that project for the report.
   it. Type checkers now name a type by its defining stub in messages
   (`pikepdf._core._object.Object` rather than `pikepdf._core.Object`);
   `pikepdf.Object` remains the name to write in annotations.
+- API documentation for the C++ extension now lives only in the
+  `src/pikepdf/_core/` stubs, which are what Sphinx, type checkers and IDEs
+  read. Docstrings attached to the C++ bindings were never published and had
+  drifted from the stubs; they are merged into the stubs and removed from C++,
+  and a test now fails if a binding gains a docstring or a public C++ name is
+  missing from the stubs. `help()` on a C++ method now shows only its
+  signature, as it already did for most of them.
 
 ### Documentation
+
+- Restored the full {class}`pikepdf.Stream` and {class}`pikepdf.Dictionary`
+  documentation, including constructor arguments and examples, which had been
+  reduced to a single line when those classes moved to C++.
 
 - Clarified guidance on `Pdf.save(..., deterministic_id=)` and `static_id=`, and
   the matching `JobBuilder.deterministic_id()` and `JobBuilder.static_id()`.

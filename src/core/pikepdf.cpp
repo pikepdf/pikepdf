@@ -212,7 +212,7 @@ NB_MODULE(_core, m)
 
     m.doc() = "pikepdf provides a Pythonic interface for qpdf";
     m.attr("__name__") = "pikepdf._core";
-    m.def("qpdf_version", &QPDF::QPDFVersion, "Get libqpdf version");
+    m.def("qpdf_version", &QPDF::QPDFVersion);
 
     // -- Core objects --
     init_logger(m);
@@ -270,41 +270,27 @@ NB_MODULE(_core, m)
                 return py::steal<py::str>(
                     PyUnicode_FromStringAndSize(utf8.data(), utf8.size()));
             })
-        .def(
-            "_translate_qpdf_logic_error",
-            [](std::string s) { return translate_qpdf_logic_error(s).first; },
-            "Used to test interpretation of qpdf errors.")
+        .def("_translate_qpdf_logic_error",
+            [](std::string s) { return translate_qpdf_logic_error(s).first; })
         .def("set_decimal_precision",
             [](uint prec) { return DECIMAL_PRECISION.exchange(prec); })
         .def("get_decimal_precision", []() { return DECIMAL_PRECISION.load(); })
-        .def(
-            "get_access_default_mmap",
-            []() { return MMAP_DEFAULT.load(); },
-            "Return True if default access is to use mmap.")
-        .def(
-            "set_access_default_mmap",
-            [](bool mmap) { return MMAP_DEFAULT.exchange(mmap); },
-            "If True, ``pikepdf.open(...access_mode=access_default)`` will use mmap.")
-        .def(
-            "_get_explicit_conversion_mode",
-            []() { return EXPLICIT_CONVERSION_MODE.load(); },
-            "Return True if explicit conversion mode is enabled (global baseline).")
-        .def(
-            "_get_effective_explicit_mode",
-            []() { return get_explicit_conversion_mode(); },
-            "Return True if explicit mode is active (includes thread-local override).")
+        .def("get_access_default_mmap", []() { return MMAP_DEFAULT.load(); })
+        .def("set_access_default_mmap",
+            [](bool mmap) { return MMAP_DEFAULT.exchange(mmap); })
+        .def("_get_explicit_conversion_mode",
+            []() { return EXPLICIT_CONVERSION_MODE.load(); })
+        .def("_get_effective_explicit_mode",
+            []() { return get_explicit_conversion_mode(); })
         .def(
             "_get_effective_explicit_mode_for",
             [](QPDF &q) {
                 return get_explicit_conversion_mode(
                     QpdfRegistry::instance().lookup_entry(&q));
             },
-            py::arg("pdf"),
-            "Return True if explicit mode is active for the given Pdf.")
-        .def(
-            "_set_explicit_conversion_mode",
-            [](bool mode) { return EXPLICIT_CONVERSION_MODE.exchange(mode); },
-            "Set explicit conversion mode (global baseline). Returns previous value.")
+            py::arg("pdf"))
+        .def("_set_explicit_conversion_mode",
+            [](bool mode) { return EXPLICIT_CONVERSION_MODE.exchange(mode); })
         .def(
             "_push_thread_conversion_mode",
             [](bool explicit_) {
@@ -313,9 +299,7 @@ NB_MODULE(_core, m)
                     explicit_ ? ConversionMode::explicit_ : ConversionMode::implicit);
                 return token;
             },
-            py::arg("explicit"),
-            "Push a thread-local conversion mode override (for context managers). "
-            "Returns a token to be passed to _pop_thread_conversion_mode().")
+            py::arg("explicit"))
         .def(
             "_pop_thread_conversion_mode",
             [](size_t token) {
@@ -326,8 +310,7 @@ NB_MODULE(_core, m)
                 if (thread_mode_stack.size() > token)
                     thread_mode_stack.resize(token);
             },
-            py::arg("token"),
-            "Undo a thread-local conversion mode override (for context managers).")
+            py::arg("token"))
         .def("set_flate_compression_level",
             [](int level) {
                 if (-1 <= level && level <= 9) {
