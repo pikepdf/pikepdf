@@ -33,8 +33,6 @@ from typing import TYPE_CHECKING, BinaryIO, Literal, TypeVar
 from warnings import warn
 
 if TYPE_CHECKING:
-    from pikepdf import NamePath
-    from pikepdf._core import _ObjectList
     from pikepdf._page_copy import PageCopyResult
 
 from pikepdf._augments import augments
@@ -66,11 +64,6 @@ from pikepdf.objects import Array, Dictionary, Name, Object, Stream
 __all__ = []
 
 Numeric = TypeVar('Numeric', int, float, Decimal)
-T = TypeVar('T')
-
-# Distinguishes "key is absent" from "key is present and holds None", which
-# neither None nor any user-supplied default can do.
-_MISSING = object()
 
 
 def _single_page_pdf(page: Page) -> bytes:
@@ -182,153 +175,6 @@ class Extend_Object:
             filter, decode_parms = self._type_check_write(filter, decode_parms)
 
         self._write(data, filter=filter, decode_parms=decode_parms)
-
-    def get_int(
-        self,
-        key: str | Name | NamePath,
-        default: T = None,
-        *,
-        coerce: bool = False,
-    ) -> int | T:
-        """Get the value of *key* as a Python int.
-
-        Returns *default* if the key is absent or its value is not an
-        Integer. Unlike ``obj[key]``, the result is a Python int in both
-        implicit and explicit conversion mode.
-
-        Args:
-            key: A string, :class:`pikepdf.Name` or :class:`pikepdf.NamePath`.
-            default: Value to return if the key is absent or the wrong type.
-            coerce: If True, also accept a Real (truncated toward zero) and a
-                String whose text is a number. A coerced value that is out of
-                range for a 64-bit integer yields *default*.
-
-        .. versionadded:: 10.14
-        """
-        v = self.get_raw(key, _MISSING)
-        if v is _MISSING:
-            return default
-        return v.as_int(default, coerce=coerce)
-
-    def get_bool(
-        self,
-        key: str | Name | NamePath,
-        default: T = None,
-        *,
-        coerce: bool = False,
-    ) -> bool | T:
-        """Get the value of *key* as a Python bool.
-
-        Returns *default* if the key is absent or its value is not a
-        Boolean. Unlike ``obj[key]``, the result is a Python bool in both
-        implicit and explicit conversion mode.
-
-        Args:
-            key: A string, :class:`pikepdf.Name` or :class:`pikepdf.NamePath`.
-            default: Value to return if the key is absent or the wrong type.
-            coerce: If True, also accept an Integer or Real, which are True
-                when nonzero.
-
-        .. versionadded:: 10.14
-        """
-        v = self.get_raw(key, _MISSING)
-        if v is _MISSING:
-            return default
-        return v.as_bool(default, coerce=coerce)
-
-    def get_float(
-        self,
-        key: str | Name | NamePath,
-        default: T = None,
-        *,
-        coerce: bool = False,
-    ) -> float | T:
-        """Get the value of *key* as a Python float.
-
-        Accepts both Integer and Real. Returns *default* if the key is absent
-        or its value is not numeric. Unlike ``obj[key]``, the result is a
-        Python float in both implicit and explicit conversion mode.
-
-        Args:
-            key: A string, :class:`pikepdf.Name` or :class:`pikepdf.NamePath`.
-            default: Value to return if the key is absent or the wrong type.
-            coerce: If True, also accept a String whose text is a number.
-
-        .. versionadded:: 10.14
-        """
-        v = self.get_raw(key, _MISSING)
-        if v is _MISSING:
-            return default
-        return v.as_float(default, coerce=coerce)
-
-    def get_decimal(
-        self,
-        key: str | Name | NamePath,
-        default: T = None,
-        *,
-        coerce: bool = False,
-    ) -> Decimal | T:
-        """Get the value of *key* as a Python :class:`decimal.Decimal`.
-
-        Preferred over :meth:`get_float` for PDF reals, since it preserves the
-        digits as written. Returns *default* if the key is absent or its value
-        is not a Real. Unlike ``obj[key]``, the result is a Decimal in both
-        implicit and explicit conversion mode.
-
-        Args:
-            key: A string, :class:`pikepdf.Name` or :class:`pikepdf.NamePath`.
-            default: Value to return if the key is absent or the wrong type.
-            coerce: If True, also accept an Integer and a String whose text is
-                a number.
-
-        .. versionadded:: 10.14
-        """
-        v = self.get_raw(key, _MISSING)
-        if v is _MISSING:
-            return default
-        return v.as_decimal(default, coerce=coerce)
-
-    def get_dict(
-        self,
-        key: str | Name | NamePath,
-        default: T = None,
-    ) -> _ObjectMapping | T:
-        """Get the value of *key* as a mapping of its dictionary entries.
-
-        Returns *default* if the key is absent or its value is not a
-        Dictionary. A Stream is not a Dictionary here; use
-        :attr:`pikepdf.Object.stream_dict`.
-
-        Args:
-            key: A string, :class:`pikepdf.Name` or :class:`pikepdf.NamePath`.
-            default: Value to return if the key is absent or the wrong type.
-
-        .. versionadded:: 10.14
-        """
-        v = self.get_raw(key, _MISSING)
-        if v is _MISSING:
-            return default
-        return v.as_dict(default)
-
-    def get_list(
-        self,
-        key: str | Name | NamePath,
-        default: T = None,
-    ) -> _ObjectList | T:
-        """Get the value of *key* as a sequence of its array items.
-
-        Returns *default* if the key is absent or its value is not an Array.
-
-        Args:
-            key: A string, :class:`pikepdf.Name` or :class:`pikepdf.NamePath`.
-            default: Value to return if the key is absent or the wrong type.
-
-        .. versionadded:: 10.14
-        """
-        v = self.get_raw(key, _MISSING)
-        if v is _MISSING:
-            return default
-        return v.as_list(default)
 
 
 @augments(Pdf)

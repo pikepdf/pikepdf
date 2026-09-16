@@ -184,6 +184,211 @@ static std::optional<py::object> try_as_decimal(QPDFObjectHandle &h, bool coerce
         (std::string("Expected ") + expected + ", got " + h.getTypeName()).c_str());
 }
 
+// The as_*(default) conversions, shared with the get_*() typed getters.
+static py::object int_or_default(QPDFObjectHandle &h, py::handle default_, bool coerce)
+{
+    std::optional<long long> value;
+    try {
+        value = try_as_int(h, coerce);
+    } catch (py::python_error &e) {
+        // A value out of range for a 64-bit PDF integer is a value the caller
+        // cannot use, so a supplied default answers the question just as well
+        // as it does for a type mismatch. The no-default overload of as_int()
+        // still raises OverflowError.
+        if (!e.matches(PyExc_OverflowError))
+            throw;
+        e.restore();
+        PyErr_Clear();
+        return py::borrow<py::object>(default_);
+    }
+    if (!value)
+        return py::borrow<py::object>(default_);
+    return py::cast(*value);
+}
+
+static py::object bool_or_default(QPDFObjectHandle &h, py::handle default_, bool coerce)
+{
+    auto value = try_as_bool(h, coerce);
+    if (!value)
+        return py::borrow<py::object>(default_);
+    return py::cast(*value);
+}
+
+static py::object float_or_default(
+    QPDFObjectHandle &h, py::handle default_, bool coerce)
+{
+    auto value = try_as_double(h, coerce);
+    if (!value)
+        return py::borrow<py::object>(default_);
+    return py::cast(*value);
+}
+
+static py::object decimal_or_default(
+    QPDFObjectHandle &h, py::handle default_, bool coerce)
+{
+    auto value = try_as_decimal(h, coerce);
+    if (!value)
+        return py::borrow<py::object>(default_);
+    return *value;
+}
+
+static py::object dict_or_default(QPDFObjectHandle &h, py::handle default_)
+{
+    QpdfLockGuard lock(h.getOwningQPDF());
+    if (!h.isDictionary())
+        return py::borrow<py::object>(default_);
+    return py::cast(h.getDictAsMap());
+}
+
+static py::object list_or_default(QPDFObjectHandle &h, py::handle default_)
+{
+    QpdfLockGuard lock(h.getOwningQPDF());
+    if (!h.isArray())
+        return py::borrow<py::object>(default_);
+    return py::cast(h.getArrayAsVector());
+}
+
+// Convert a QPDFObjectHandle to a pikepdf.Object, bypassing the conversion
+// mode entirely: scalars are never converted to Python int/bool/Decimal, and
+// a Null comes back as a pikepdf.Object of type Null rather than None.
+static py::object cast_raw(QPDFObjectHandle const &h)
+{
+    QPDFObjectHandle handle = h;
+    QpdfLockGuard qpdf_lock(handle.getOwningQPDF());
+    py::handle result = py::detail::type_caster_base<QPDFObjectHandle>::from_cpp(
+        handle, py::rv_policy::copy, nullptr);
+    if (!result.is_valid())
+        py::detail::raise_python_or_cast_error(); // LCOV_EXCL_LINE
+    return py::steal(result);
+}
+
+// Look up a key or NamePath, returning nullopt wherever get_raw() returns its
+// default: the key or path is absent, or the receiver cannot be indexed that way.
+static std::optional<QPDFObjectHandle> lookup_key(
+    QPDFObjectHandle &h, std::string const &key)
+{
+    try {
+        return object_get_key(h, key);
+    } catch (const py::builtin_exception &) {
+        return std::nullopt;
+    }
+}
+
+static std::optional<QPDFObjectHandle> lookup_path(
+    QPDFObjectHandle &h, NamePath const &path)
+{
+    if (path.empty())
+        return h;
+    try {
+        return traverse_namepath(h, path);
+    } catch (const py::builtin_exception &) {
+        return std::nullopt;
+    }
+}
+
+using CoercingConversion = py::object (*)(QPDFObjectHandle &, py::handle, bool);
+using Conversion = py::object (*)(QPDFObjectHandle &, py::handle);
+
+// Register a get_int()-style typed getter: look up a str, Name or NamePath key
+// and convert the value, returning default if it is absent or the wrong type.
+template <CoercingConversion convert>
+static void def_typed_getter(
+    py::class_<QPDFObjectHandle> &object, char const *name, char const *doc)
+{
+    object
+        .def(
+            name,
+            [](QPDFObjectHandle &h,
+                std::string const &key,
+                py::handle default_,
+                bool coerce) -> py::object {
+                auto value = lookup_key(h, key);
+                if (!value)
+                    return py::borrow<py::object>(default_);
+                return convert(*value, default_, coerce);
+            },
+            py::arg("key"),
+            py::arg("default").none() = py::none(),
+            py::kw_only(),
+            py::arg("coerce") = false,
+            doc)
+        .def(
+            name,
+            [](QPDFObjectHandle &h,
+                QPDFObjectHandle &key,
+                py::handle default_,
+                bool coerce) -> py::object {
+                auto value = lookup_key(h, key.getName());
+                if (!value)
+                    return py::borrow<py::object>(default_);
+                return convert(*value, default_, coerce);
+            },
+            py::arg("key"),
+            py::arg("default").none() = py::none(),
+            py::kw_only(),
+            py::arg("coerce") = false)
+        .def(
+            name,
+            [](QPDFObjectHandle &h,
+                NamePath const &key,
+                py::handle default_,
+                bool coerce) -> py::object {
+                auto value = lookup_path(h, key);
+                if (!value)
+                    return py::borrow<py::object>(default_);
+                return convert(*value, default_, coerce);
+            },
+            py::arg("key"),
+            py::arg("default").none() = py::none(),
+            py::kw_only(),
+            py::arg("coerce") = false);
+}
+
+// As def_typed_getter(), for conversions that take no coerce argument.
+template <Conversion convert>
+static void def_typed_getter(
+    py::class_<QPDFObjectHandle> &object, char const *name, char const *doc)
+{
+    object
+        .def(
+            name,
+            [](QPDFObjectHandle &h,
+                std::string const &key,
+                py::handle default_) -> py::object {
+                auto value = lookup_key(h, key);
+                if (!value)
+                    return py::borrow<py::object>(default_);
+                return convert(*value, default_);
+            },
+            py::arg("key"),
+            py::arg("default").none() = py::none(),
+            doc)
+        .def(
+            name,
+            [](QPDFObjectHandle &h,
+                QPDFObjectHandle &key,
+                py::handle default_) -> py::object {
+                auto value = lookup_key(h, key.getName());
+                if (!value)
+                    return py::borrow<py::object>(default_);
+                return convert(*value, default_);
+            },
+            py::arg("key"),
+            py::arg("default").none() = py::none())
+        .def(
+            name,
+            [](QPDFObjectHandle &h,
+                NamePath const &key,
+                py::handle default_) -> py::object {
+                auto value = lookup_path(h, key);
+                if (!value)
+                    return py::borrow<py::object>(default_);
+                return convert(*value, default_);
+            },
+            py::arg("key"),
+            py::arg("default").none() = py::none());
+}
+
 // Resolve a NamePath to the container that holds its last component, along
 // with that component. The caller decides what to do with the component
 // (set, delete, ...); *action* names the operation in the empty-path error.
@@ -518,17 +723,12 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
         .def(
             "get_raw",
             [](QPDFObjectHandle &h, std::string const &key, py::object default_) {
-                QPDFObjectHandle value;
-                try {
-                    value = object_get_key(h, key);
-                } catch (const py::builtin_exception &) {
-                    return default_;
-                }
-                return cast_raw(value);
+                auto value = lookup_key(h, key);
+                return value ? cast_raw(*value) : default_;
             },
             py::arg("key"),
             py::arg("default") = py::none(),
-            R"~~~(Retrieve a value without implicit conversion of scalars.
+            R"(Retrieve a value without implicit conversion of scalars.
 
             Like :meth:`get`, except the result is always a
             :class:`pikepdf.Object`, regardless of the conversion mode in
@@ -544,31 +744,20 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
             :class:`pikepdf.NamePath`.
 
             .. versionadded:: 10.14
-            )~~~")
+            )")
         .def(
             "get_raw",
             [](QPDFObjectHandle &h, QPDFObjectHandle &name, py::object default_) {
-                QPDFObjectHandle value;
-                try {
-                    value = object_get_key(h, name.getName());
-                } catch (const py::builtin_exception &) {
-                    return default_;
-                }
-                return cast_raw(value);
+                auto value = lookup_key(h, name.getName());
+                return value ? cast_raw(*value) : default_;
             },
             py::arg("key"),
             py::arg("default") = py::none())
         .def(
             "get_raw",
             [](QPDFObjectHandle &h, NamePath const &path, py::object default_) {
-                if (path.empty()) {
-                    return cast_raw(h);
-                }
-                try {
-                    return cast_raw(traverse_namepath(h, path));
-                } catch (const py::builtin_exception &) {
-                    return default_;
-                }
+                auto value = lookup_path(h, path);
+                return value ? cast_raw(*value) : default_;
             },
             py::arg("path"),
             py::arg("default") = py::none())
@@ -655,11 +844,8 @@ Raises:
 )")
         .def(
             "as_list",
-            [](QPDFObjectHandle &h, py::handle default_) -> py::object {
-                QpdfLockGuard lock(h.getOwningQPDF());
-                if (!h.isArray())
-                    return py::borrow<py::object>(default_);
-                return py::cast(h.getArrayAsVector());
+            [](QPDFObjectHandle &h, py::handle default_) {
+                return list_or_default(h, default_);
             },
             py::arg("default").none())
         .def(
@@ -689,11 +875,8 @@ Raises:
 )")
         .def(
             "as_dict",
-            [](QPDFObjectHandle &h, py::handle default_) -> py::object {
-                QpdfLockGuard lock(h.getOwningQPDF());
-                if (!h.isDictionary())
-                    return py::borrow<py::object>(default_);
-                return py::cast(h.getDictAsMap());
+            [](QPDFObjectHandle &h, py::handle default_) {
+                return dict_or_default(h, default_);
             },
             py::arg("default").none())
         .def(
@@ -739,24 +922,8 @@ Raises:
 )")
         .def(
             "as_int",
-            [](QPDFObjectHandle &h, py::handle default_, bool coerce) -> py::object {
-                std::optional<long long> value;
-                try {
-                    value = try_as_int(h, coerce);
-                } catch (py::python_error &e) {
-                    // A value out of range for a 64-bit PDF integer is a value
-                    // the caller cannot use, so a supplied default answers the
-                    // question just as well as it does for a type mismatch.
-                    // The no-default overload still raises OverflowError.
-                    if (!e.matches(PyExc_OverflowError))
-                        throw;
-                    e.restore();
-                    PyErr_Clear();
-                    return py::borrow<py::object>(default_);
-                }
-                if (!value)
-                    return py::borrow<py::object>(default_);
-                return py::cast(*value);
+            [](QPDFObjectHandle &h, py::handle default_, bool coerce) {
+                return int_or_default(h, default_, coerce);
             },
             py::arg("default").none(),
             py::kw_only(),
@@ -797,11 +964,8 @@ Raises:
 )")
         .def(
             "as_bool",
-            [](QPDFObjectHandle &h, py::handle default_, bool coerce) -> py::object {
-                auto value = try_as_bool(h, coerce);
-                if (!value)
-                    return py::borrow<py::object>(default_);
-                return py::cast(*value);
+            [](QPDFObjectHandle &h, py::handle default_, bool coerce) {
+                return bool_or_default(h, default_, coerce);
             },
             py::arg("default").none(),
             py::kw_only(),
@@ -841,11 +1005,8 @@ Raises:
 )")
         .def(
             "as_float",
-            [](QPDFObjectHandle &h, py::handle default_, bool coerce) -> py::object {
-                auto value = try_as_double(h, coerce);
-                if (!value)
-                    return py::borrow<py::object>(default_);
-                return py::cast(*value);
+            [](QPDFObjectHandle &h, py::handle default_, bool coerce) {
+                return float_or_default(h, default_, coerce);
             },
             py::arg("default").none(),
             py::kw_only(),
@@ -887,11 +1048,8 @@ Raises:
 )")
         .def(
             "as_decimal",
-            [](QPDFObjectHandle &h, py::handle default_, bool coerce) -> py::object {
-                auto value = try_as_decimal(h, coerce);
-                if (!value)
-                    return py::borrow<py::object>(default_);
-                return *value;
+            [](QPDFObjectHandle &h, py::handle default_, bool coerce) {
+                return decimal_or_default(h, default_, coerce);
             },
             py::arg("default").none(),
             py::kw_only(),
@@ -1321,4 +1479,96 @@ Raises:
             },
             py::arg("dereference") = false,
             py::arg("schema_version") = 2); // end of QPDFObjectHandle bindings
+
+    def_typed_getter<int_or_default>(object,
+        "get_int",
+        R"(Get the value of *key* as a Python int.
+
+Returns *default* if the key is absent or its value is not an
+Integer. Unlike ``obj[key]``, the result is a Python int in both
+implicit and explicit conversion mode.
+
+Args:
+    key: A string, :class:`pikepdf.Name` or :class:`pikepdf.NamePath`.
+    default: Value to return if the key is absent or the wrong type.
+    coerce: If True, also accept a Real (truncated toward zero) and a
+        String whose text is a number. A coerced value that is out of
+        range for a 64-bit integer yields *default*.
+
+.. versionadded:: 10.14
+)");
+    def_typed_getter<bool_or_default>(object,
+        "get_bool",
+        R"(Get the value of *key* as a Python bool.
+
+Returns *default* if the key is absent or its value is not a
+Boolean. Unlike ``obj[key]``, the result is a Python bool in both
+implicit and explicit conversion mode.
+
+Args:
+    key: A string, :class:`pikepdf.Name` or :class:`pikepdf.NamePath`.
+    default: Value to return if the key is absent or the wrong type.
+    coerce: If True, also accept an Integer or Real, which are True
+        when nonzero.
+
+.. versionadded:: 10.14
+)");
+    def_typed_getter<float_or_default>(object,
+        "get_float",
+        R"(Get the value of *key* as a Python float.
+
+Accepts both Integer and Real. Returns *default* if the key is absent
+or its value is not numeric. Unlike ``obj[key]``, the result is a
+Python float in both implicit and explicit conversion mode.
+
+Args:
+    key: A string, :class:`pikepdf.Name` or :class:`pikepdf.NamePath`.
+    default: Value to return if the key is absent or the wrong type.
+    coerce: If True, also accept a String whose text is a number.
+
+.. versionadded:: 10.14
+)");
+    def_typed_getter<decimal_or_default>(object,
+        "get_decimal",
+        R"(Get the value of *key* as a Python :class:`decimal.Decimal`.
+
+Preferred over :meth:`get_float` for PDF reals, since it preserves the
+digits as written. Returns *default* if the key is absent or its value
+is not a Real. Unlike ``obj[key]``, the result is a Decimal in both
+implicit and explicit conversion mode.
+
+Args:
+    key: A string, :class:`pikepdf.Name` or :class:`pikepdf.NamePath`.
+    default: Value to return if the key is absent or the wrong type.
+    coerce: If True, also accept an Integer and a String whose text is
+        a number.
+
+.. versionadded:: 10.14
+)");
+    def_typed_getter<dict_or_default>(object,
+        "get_dict",
+        R"(Get the value of *key* as a mapping of its dictionary entries.
+
+Returns *default* if the key is absent or its value is not a
+Dictionary. A Stream is not a Dictionary here; use
+:attr:`pikepdf.Object.stream_dict`.
+
+Args:
+    key: A string, :class:`pikepdf.Name` or :class:`pikepdf.NamePath`.
+    default: Value to return if the key is absent or the wrong type.
+
+.. versionadded:: 10.14
+)");
+    def_typed_getter<list_or_default>(object,
+        "get_list",
+        R"(Get the value of *key* as a sequence of its array items.
+
+Returns *default* if the key is absent or its value is not an Array.
+
+Args:
+    key: A string, :class:`pikepdf.Name` or :class:`pikepdf.NamePath`.
+    default: Value to return if the key is absent or the wrong type.
+
+.. versionadded:: 10.14
+)");
 }

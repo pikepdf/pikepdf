@@ -136,3 +136,41 @@ class TestTypedGettersPerPdfMode:
         stream = pikepdf.Stream(pdf, b'abc', Width=100)
         assert stream.get_int('/Width') == 100
         assert type(stream.get_int('/Width')) is int
+
+
+class TestTypedGetterEdgeCases:
+    def test_keyword_arguments(self, d):
+        assert d.get_int(key='/Int', default=0) == 42
+        assert d.get_int('/Nope', default=0) == 0
+        assert d.get_list(key='/Nope', default=[]) == []
+
+    def test_default_returned_as_is(self, d):
+        sentinel = object()
+        for getter in ('get_int', 'get_bool', 'get_float', 'get_decimal'):
+            assert getattr(d, getter)('/Nope', sentinel) is sentinel
+            assert getattr(d, getter)('/Dict', sentinel, coerce=True) is sentinel
+        assert d.get_dict('/List', sentinel) is sentinel
+        assert d.get_list('/Dict', sentinel) is sentinel
+
+    def test_key_holding_null_is_absent(self, mode):
+        d = pikepdf.Object.parse(b'<< /N null >>')
+        assert d.get_int('/N', -1) == -1
+
+    def test_non_container_receiver_returns_default(self):
+        assert pikepdf.Array([1, 2]).get_int('/Int', -1) == -1
+        assert pikepdf.Array([1, 2]).get_int(Name.Int, -1) == -1
+        assert pikepdf.Array([1, 2]).get_int(NamePath('/Int'), -1) == -1
+
+    def test_empty_namepath_reads_self(self, d):
+        assert d.get_raw('/Int').get_int(NamePath()) == 42
+        assert dict(d.get_raw('/Dict').get_dict(NamePath())) == {'/A': 1}
+
+    def test_invalid_key_type(self, d):
+        with pytest.raises(TypeError):
+            d.get_int(42)  # type: ignore[arg-type]
+        with pytest.raises(TypeError):
+            d.get_list(None)  # type: ignore[arg-type]
+
+    def test_overflow_without_coerce_still_default(self):
+        d = Dictionary(S=pikepdf.String('99999999999999999999'))
+        assert d.get_int('/S', 0) == 0

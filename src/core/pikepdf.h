@@ -141,20 +141,6 @@ struct type_caster<QPDFObjectHandle> : public type_caster_base<QPDFObjectHandle>
 } // namespace detail
 } // namespace nanobind
 
-// Convert a QPDFObjectHandle to a pikepdf.Object, bypassing the conversion
-// mode entirely: scalars are never converted to Python int/bool/Decimal, and
-// a Null comes back as a pikepdf.Object of type Null rather than None.
-inline py::object cast_raw(QPDFObjectHandle const &h)
-{
-    QPDFObjectHandle handle = h;
-    QpdfLockGuard qpdf_lock(handle.getOwningQPDF());
-    py::handle result = py::detail::type_caster_base<QPDFObjectHandle>::from_cpp(
-        handle, py::rv_policy::copy, nullptr);
-    if (!result.is_valid())
-        py::detail::raise_python_or_cast_error(); // LCOV_EXCL_LINE
-    return py::steal(result);
-}
-
 using ObjectList = std::vector<QPDFObjectHandle>;
 NB_MAKE_OPAQUE(ObjectList);
 
