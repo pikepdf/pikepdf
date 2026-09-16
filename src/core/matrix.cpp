@@ -206,11 +206,13 @@ void init_matrix(py::module_ &m)
             })
         .def("_repr_latex_",
             [](QPDFMatrix &self) {
-                py::str s("$$\n\\begin{{bmatrix}}\n"
-                          "{:g} & {:g} & 0 \\\\\n"
-                          "{:g} & {:g} & 0 \\\\\n"
-                          "{:g} & {:g} & 1 \n"
-                          "\\end{{bmatrix}}\n$$");
+                py::str s(R"($$
+\begin{{bmatrix}}
+{:g} & {:g} & 0 \\
+{:g} & {:g} & 0 \\
+{:g} & {:g} & 1
+\end{{bmatrix}}
+$$)");
                 return s.attr("format")(self.a, self.b, self.c, self.d, self.e, self.f);
             })
         .def("__getstate__",
