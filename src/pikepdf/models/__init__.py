@@ -45,6 +45,21 @@ from pikepdf.models.outlines import (
     PageLocation,
     make_page_destination,
 )
+from pikepdf.models.structure import (
+    ContentMarker,
+    FontUsage,
+    MarkedContent,
+    MarkedContentRef,
+    ObjectRef,
+    ParentTree,
+    StructElem,
+    StructTree,
+    StructureTreeError,
+    find_font_usage,
+    find_marked_content,
+    mark_text_runs,
+    next_mcid,
+)
 
 __all__ = [
     'Action',
@@ -78,4 +93,17 @@ __all__ = [
     'OutlineStructureError',  # legacy
     'PageLocation',
     'make_page_destination',
+    'ContentMarker',
+    'FontUsage',
+    'MarkedContent',
+    'MarkedContentRef',
+    'ObjectRef',
+    'ParentTree',
+    'StructElem',
+    'StructTree',
+    'StructureTreeError',
+    'find_font_usage',
+    'find_marked_content',
+    'mark_text_runs',
+    'next_mcid',
 ]

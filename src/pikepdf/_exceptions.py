@@ -22,12 +22,13 @@ class DependencyError(PikepdfError):
 
 
 class PageCopyWarning(PikepdfWarning):
-    """Form fields or named destinations may be lost when copying pages.
+    """Document-level data may be lost when copying pages.
 
     Emitted when copying pages between documents (e.g. ``pages.extend()``) in a
     way that drops or orphans AcroForm form fields or fails to carry named
-    destinations referenced by the copied pages. Use
-    :meth:`pikepdf.Pdf.add_pages_from` to preserve them.
+    destinations referenced by the copied pages. Also emitted by
+    :meth:`pikepdf.Pdf.add_pages_from` when tagged PDF logical structure cannot
+    be preserved.
     """
 
 

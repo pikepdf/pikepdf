@@ -59,6 +59,7 @@ Pike fish are tough, hard-fighting, aggressive predators.
   scanned
 - Alter a PDF to meet a target specification such as PDF/A or PDF/X
 - Add or modify PDF {ref}`metadata <accessmetadata>`
+- Build, edit and validate {ref}`tagged PDF logical structure <structure>`
 - Add, remove, extract, and modify PDF {ref}`attachments <attachments>`
   (i.e. embedded files)
 - Create well-formed but invalid PDFs for testing purposes
@@ -144,6 +145,7 @@ topics/interactive_forms
 topics/encoding
 topics/metadata
 topics/outlines
+topics/structure
 topics/nametrees
 topics/attachments
 topics/pagelayout

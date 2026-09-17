@@ -57,7 +57,8 @@ def test_add_pages_from_matches_job_field_structure():
     pdf = Pdf.new()
     with Pdf.open(f1) as s1, Pdf.open(f2) as s2:
         r1 = pdf.add_pages_from(s1)
-        r2 = pdf.add_pages_from(s2)
+        with pytest.warns(PageCopyWarning, match="logical structure"):
+            r2 = pdf.add_pages_from(s2)
 
     assert r1.forms == 'preserve'
     assert r1.pages_added == 1
@@ -188,7 +189,8 @@ def test_add_pages_from_strip_removes_widgets():
     dest = Pdf.new()
     with Pdf.open(f2) as src:
         assert _count_widgets(src) > 0
-        result = dest.add_pages_from(src, forms='strip')
+        with pytest.warns(PageCopyWarning, match="logical structure"):
+            result = dest.add_pages_from(src, forms='strip')
     assert result.forms == 'strip'
     assert result.fields_added == 0
     assert _count_widgets(dest) == 0
@@ -318,6 +320,29 @@ def test_add_pages_from_preserve_emits_no_formcopywarning():
         with warnings.catch_warnings():
             warnings.simplefilter('error', PageCopyWarning)
             dest.add_pages_from(src)  # must not raise PageCopyWarning
+
+
+def test_add_pages_from_warns_when_tagged_structure_cannot_be_preserved():
+    with Pdf.new() as src, Pdf.new() as dest:
+        src.add_blank_page(page_size=(200, 200))
+        src.open_structure_tree().create()
+
+        with pytest.warns(PageCopyWarning, match="logical structure"):
+            result = dest.add_pages_from(src)
+
+        assert result.pages_added == 1
+
+
+def test_add_pages_from_empty_selection_does_not_warn_for_tagged_source():
+    with Pdf.new() as src, Pdf.new() as dest:
+        src.add_blank_page(page_size=(200, 200))
+        src.open_structure_tree().create()
+
+        with warnings.catch_warnings():
+            warnings.simplefilter('error', PageCopyWarning)
+            result = dest.add_pages_from(src, pages=[])
+
+        assert result.pages_added == 0
 
 
 def test_collect_named_dest_refs_dest_and_action():

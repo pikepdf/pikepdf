@@ -54,7 +54,13 @@ from pikepdf._core import (
 )
 from pikepdf._exceptions import PageCopyWarning
 from pikepdf._io import atomic_overwrite, check_different_files, check_stream_is_usable
-from pikepdf.models import Encryption, EncryptionInfo, Outline, Permissions
+from pikepdf.models import (
+    Encryption,
+    EncryptionInfo,
+    Outline,
+    Permissions,
+    StructTree,
+)
 from pikepdf.models.metadata import PdfMetadata, decode_pdf_date, encode_pdf_date
 from pikepdf.objects import Array, Dictionary, Name, Object, Stream
 
@@ -254,6 +260,11 @@ class Extend_Pdf:
     def open_outline(self, max_depth: int = 15, strict: bool = False) -> Outline:
         return Outline(self, max_depth=max_depth, strict=strict)
 
+    def open_structure_tree(
+        self, max_depth: int = 100, strict: bool = False
+    ) -> StructTree:
+        return StructTree(self, max_depth=max_depth, strict=strict)
+
     def make_stream(self, data: bytes, d=None, **kwargs) -> Stream:
         return Stream(self, data, d, **kwargs)
 
@@ -306,6 +317,11 @@ class Extend_Pdf:
         names that collide with existing destinations are renamed and reported in
         :attr:`pikepdf.PageCopyResult.renamed_dests`.
 
+        Tagged PDF logical structure is not currently migrated. If the source
+        document has a structure tree, this method emits
+        :class:`pikepdf.PageCopyWarning` rather than silently claiming to
+        preserve it.
+
         Args:
             src: Source ``Pdf`` to copy pages from.
             pages: Zero-based indices (iterable, ``range`` or ``slice``) of
@@ -317,6 +333,9 @@ class Extend_Pdf:
 
         Returns:
             A :class:`pikepdf.PageCopyResult` describing the operation.
+
+        Warns:
+            PageCopyWarning: If tagged PDF logical structure cannot be preserved.
         """
         from pikepdf._page_copy import copy_pages
 

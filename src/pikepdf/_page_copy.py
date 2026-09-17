@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import warnings
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal
@@ -11,6 +12,7 @@ from typing import TYPE_CHECKING, Literal
 if TYPE_CHECKING:
     from pikepdf import Pdf
 
+from pikepdf._exceptions import PageCopyWarning
 from pikepdf._named_dests import (
     DestKind,
     lookup_named_destination_entry,
@@ -217,6 +219,14 @@ def copy_pages(
     forms: Literal['preserve', 'strip'] = 'preserve',
 ) -> PageCopyResult:
     indices = _resolve_indices(src, pages)
+    if indices and Name.StructTreeRoot in src.Root:
+        warnings.warn(
+            "Tagged PDF logical structure is not preserved by "
+            "Pdf.add_pages_from(); copied pages may contain stale structure "
+            "references.",
+            PageCopyWarning,
+            stacklevel=3,
+        )
     src_acro = src.acroform
     dest_acro = dest.acroform
 
