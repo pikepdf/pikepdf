@@ -1224,7 +1224,7 @@ class _Validator:
         ] = {}
 
         def key_is_less(first: int | str | bytes, second: int | str | bytes) -> bool:
-            if isinstance(first, int) and isinstance(second, int):
+            if type(first) is int and type(second) is int:
                 return first < second
             if isinstance(first, str) and isinstance(second, str):
                 return first < second

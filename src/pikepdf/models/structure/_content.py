@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any, NamedTuple
@@ -79,29 +79,19 @@ class MarkedContent:
         )
 
 
-def find_marked_content(page: Page) -> list[MarkedContent]:
-    """Report the marked-content sequences in a page's content stream.
-
-    Sequences inside form XObjects drawn by the page are not included; those
-    have their own marked-content identifier space.
-
-    Arguments:
-        page: The page to scan.
-
-    Returns:
-        The sequences in the order they begin, including ``BMC`` sequences,
-        whose :attr:`MarkedContent.mcid` is ``None``.
-    """
-    if not isinstance(page, Page):
-        raise TypeError("page must be a pikepdf.Page")
+def _marked_content_from_instructions(
+    instructions: Iterable[Any], resources: Object | None
+) -> list[MarkedContent]:
+    """Collect marked-content sequences from already parsed instructions."""
+    properties = (
+        resources.get(Name.Properties) if isinstance(resources, Dictionary) else None
+    )
     result = []
-    resources = _inherited_page_attribute(page, Name.Resources)
-    properties = None
-    if isinstance(resources, Dictionary):
-        properties = resources.get(Name.Properties)
-    for instruction in parse_content_stream(page, 'BMC BDC'):
-        operands = list(instruction.operands)
+    for instruction in instructions:
         operator = str(instruction.operator)
+        if operator not in {'BMC', 'BDC'}:
+            continue
+        operands = list(instruction.operands)
         expected_arity = 1 if operator == 'BMC' else 2
         if len(operands) != expected_arity or not isinstance(operands[0], Name):
             continue
@@ -119,6 +109,26 @@ def find_marked_content(page: Page) -> list[MarkedContent]:
         )
         result.append(MarkedContent(tag, mcid, proplist))
     return result
+
+
+def find_marked_content(page: Page) -> list[MarkedContent]:
+    """Report the marked-content sequences in a page's content stream.
+
+    Sequences inside form XObjects drawn by the page are not included; those
+    have their own marked-content identifier space.
+
+    Arguments:
+        page: The page to scan.
+
+    Returns:
+        The sequences in the order they begin, including ``BMC`` sequences,
+        whose :attr:`MarkedContent.mcid` is ``None``.
+    """
+    if not isinstance(page, Page):
+        raise TypeError("page must be a pikepdf.Page")
+    resources = _inherited_page_attribute(page, Name.Resources)
+    instructions = parse_content_stream(page, 'BMC BDC')
+    return _marked_content_from_instructions(instructions, resources)
 
 
 def next_mcid(page: Page) -> int:
@@ -235,7 +245,11 @@ class ContentMarker:
         self._analysis = _analyze_marker_content(self._instructions, resources)
         self._xobject_cache: dict[_XObjectContextKey, frozenset[str]] = {}
         self._used_mcids = {
-            mc.mcid for mc in find_marked_content(page) if mc.mcid is not None
+            mc.mcid
+            for mc in _marked_content_from_instructions(
+                self._instructions, self._resources
+            )
+            if mc.mcid is not None
         }
         if (
             first_mcid is not None
@@ -253,7 +267,7 @@ class ContentMarker:
         self._spans: list[_Span] = []
 
     @property
-    def _lock_pdf(self) -> Pdf | None:
+    def _owning_pdf(self) -> Pdf | None:
         """The owning ``Pdf``, once a bound element makes one reachable."""
         for span in self._spans:
             if span.element is not None:
@@ -325,6 +339,14 @@ class ContentMarker:
         non-structural, such as decorative rules or background graphics. The
         caller is responsible for deciding which content should be treated as
         an artifact.
+
+        ``start`` and ``stop`` form a half-open range into
+        :attr:`instructions`; they are instruction indexes, not MCIDs.
+
+        Arguments:
+            start: Index of the first instruction to include.
+            stop: Index one past the last instruction to include.
+            properties: Optional entries for the artifact property list.
         """
         proplist = _property_list(properties) if properties is not None else None
         mcid = None
@@ -518,7 +540,9 @@ class ContentMarker:
         )
         current_xobject_cache: dict[_XObjectContextKey, frozenset[str]] = {}
         current_mcids = {
-            mc.mcid for mc in find_marked_content(self.page) if mc.mcid is not None
+            mc.mcid
+            for mc in _marked_content_from_instructions(current, current_resources)
+            if mc.mcid is not None
         }
         registrations: list[tuple[_Span, int]] = []
         result: list[MarkedContent] = []
@@ -771,7 +795,11 @@ class ContentMarker:
         self._analysis = _analyze_marker_content(self._instructions, self._resources)
         self._xobject_cache = {}
         self._used_mcids = {
-            mc.mcid for mc in find_marked_content(self.page) if mc.mcid is not None
+            mc.mcid
+            for mc in _marked_content_from_instructions(
+                self._instructions, self._resources
+            )
+            if mc.mcid is not None
         }
         self._next_mcid = (
             max((mcid for mcid in self._used_mcids if mcid >= 0), default=-1) + 1

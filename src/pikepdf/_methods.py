@@ -317,6 +317,11 @@ class Extend_Pdf:
         names that collide with existing destinations are renamed and reported in
         :attr:`pikepdf.PageCopyResult.renamed_dests`.
 
+        Tagged PDF logical structure is not currently migrated. If the source
+        document has a structure tree, this method emits
+        :class:`pikepdf.PageCopyWarning` rather than silently claiming to
+        preserve it.
+
         Args:
             src: Source ``Pdf`` to copy pages from.
             pages: Zero-based indices (iterable, ``range`` or ``slice``) of
@@ -328,6 +333,9 @@ class Extend_Pdf:
 
         Returns:
             A :class:`pikepdf.PageCopyResult` describing the operation.
+
+        Warns:
+            PageCopyWarning: If tagged PDF logical structure cannot be preserved.
         """
         from pikepdf._page_copy import copy_pages
 

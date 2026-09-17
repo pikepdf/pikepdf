@@ -393,7 +393,9 @@ use a dedicated validator such as veraPDF when PDF/UA conformance is required.
 - Page operations do not maintain the structure tree. Copying a page with
   {attr}`pikepdf.Pdf.pages` or deleting one leaves orphaned elements and stale
   parent tree entries behind; run {meth}`pikepdf.StructTree.validate`
-  afterwards.
+  afterwards. {meth}`pikepdf.Pdf.add_pages_from` also cannot migrate logical
+  structure yet and emits {exc}`pikepdf.PageCopyWarning` when the source is
+  tagged.
 - {meth}`pikepdf.StructElem.remove` detaches a subtree and clears the parent-tree
   mappings it owned. Object references whose scalar mapping is removed also
   lose `/StructParent`; a page or Form may retain its reusable `/StructParents`

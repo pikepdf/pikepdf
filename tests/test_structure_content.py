@@ -27,6 +27,7 @@ from pikepdf import (
     mark_text_runs,
     next_mcid,
 )
+from pikepdf.models.structure import _content as structure_content
 
 
 class TestContentReferences:
@@ -663,6 +664,23 @@ class TestMarkedContentDiscovery:
 
 
 class TestContentMarker:
+    def test_reuses_parsed_instructions(self, text_pdf, monkeypatch):
+        calls = 0
+        original_parse = structure_content.parse_content_stream
+
+        def counting_parse(*args, **kwargs):
+            nonlocal calls
+            calls += 1
+            return original_parse(*args, **kwargs)
+
+        monkeypatch.setattr(structure_content, 'parse_content_stream', counting_parse)
+        marker = ContentMarker(text_pdf.pages[0])
+        assert calls == 1
+
+        marker.mark(Name.H1, 0, 5)
+        marker.apply()
+        assert calls == 3
+
     def test_mark_and_apply(self, text_pdf):
         page = text_pdf.pages[0]
         marker = ContentMarker(page)

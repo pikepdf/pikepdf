@@ -10,7 +10,7 @@ from decimal import Decimal
 from functools import wraps
 from typing import Any, TypeVar, cast
 
-from pikepdf._core import Page, Pdf
+from pikepdf._core import Page, Pdf, PikepdfError
 from pikepdf.objects import (
     Array,
     Dictionary,
@@ -22,7 +22,7 @@ from pikepdf.objects import (
 )
 
 
-class StructureTreeError(Exception):
+class StructureTreeError(PikepdfError):
     """Indicates an error in the logical structure data structure."""
 
 
@@ -35,7 +35,9 @@ _WrapperIdentity = tuple[_ObjectIdentity, int]
 # tracking alone cannot bound these API-facing traversals.
 _MAX_OBJECT_GRAPH_CONTAINERS = 10_000
 _MAX_OBJECT_GRAPH_DEPTH = 100
-_MAX_STRUCTURE_TREE_ELEMENTS = 100_000
+# Keep a defensive bound for malformed graphs without rejecting realistic large
+# documents (for example, a long reference manual with many elements per page).
+_MAX_STRUCTURE_TREE_ELEMENTS = 1_000_000
 
 
 def _as_int(value: Any) -> int | None:
@@ -302,6 +304,9 @@ def _require_object_graph_owner(value: Object, pdf: Pdf, description: str) -> No
         if not isinstance(current, Object):
             continue
         if current.is_indirect:
+            # A direct container can legally hold an indirect object from another
+            # PDF until it is assigned into an owned object graph, so this check is
+            # reachable even when the outer container itself has no owner.
             if not current.same_owner_as(pdf.Root):
                 raise StructureTreeError(f"{description} belongs to a different PDF")
             identity: _ObjectIdentity = current.objgen
@@ -512,7 +517,7 @@ def _locked(method: _F) -> _F:
 
     @wraps(method)
     def wrapper(self, *args: Any, **kwargs: Any):
-        pdf = self._lock_pdf
+        pdf = self._owning_pdf
         if pdf is None:
             # No owning Pdf is reachable (pikepdf exposes no owner accessor on
             # Page). The remaining writes are single C++ calls, which are

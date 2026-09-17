@@ -394,7 +394,7 @@ class StructElem:
         return self._tree
 
     @property
-    def _lock_pdf(self) -> Pdf:
+    def _owning_pdf(self) -> Pdf:
         return self._tree.pdf
 
     def _reader_problem(self, message: str) -> None:
@@ -1393,7 +1393,7 @@ class ParentTree:
         self._tree = tree
 
     @property
-    def _lock_pdf(self) -> Pdf:
+    def _owning_pdf(self) -> Pdf:
         return self._tree.pdf
 
     @property
@@ -2104,7 +2104,7 @@ class StructTree:
         self._strict = bool(strict)
         self._max_depth = _validate_nonnegative_int(max_depth, "max_depth")
         self._checked_kids: dict[_ObjectIdentity, int] = {}
-        self._lock_pdf = pdf
+        self._owning_pdf = pdf
         self._claims: dict[_ObjectIdentity, tuple[int, dict[_ObjectIdentity, int]]] = {}
 
     @property
