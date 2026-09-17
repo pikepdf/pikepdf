@@ -96,6 +96,12 @@ from pikepdf.models.image._classes import (  # noqa: E402
     PdfJpxImage,
 )
 
+# Report the public module rather than the private one each class is defined in,
+# as the decompression bomb classes do, so reprs and docs show the import path.
+for _cls in (PdfImageBase, PdfImage, PdfJpxImage, PdfInlineImage, PaletteData):
+    _cls.__module__ = __name__
+del _cls
+
 __all__ = [
     'CMYKDecodeArray',
     'DecodeArray',

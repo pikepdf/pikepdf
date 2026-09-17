@@ -92,12 +92,12 @@ def set_object_conversion_mode(mode: Literal['implicit', 'explicit']) -> None:
 
     Example:
         >>> pikepdf.set_object_conversion_mode('explicit')
-        >>> pdf = pikepdf.open('test.pdf')
-        >>> count = pdf.Root.Count
+        >>> count = pikepdf.Dictionary(Count=5).Count
         >>> isinstance(count, pikepdf.Integer)  # True in explicit mode
         True
         >>> int(count)  # Convert to Python int
         5
+        >>> pikepdf.set_object_conversion_mode('implicit')  # Restore the default
 
     .. versionadded:: 10.1
 
@@ -157,8 +157,7 @@ def explicit_conversion():
 
     Example:
         >>> with pikepdf.explicit_conversion():
-        ...     pdf = pikepdf.open('test.pdf')
-        ...     count = pdf.Root.Count
+        ...     count = pikepdf.Dictionary(Count=5).Count
         ...     isinstance(count, pikepdf.Integer)
         True
 

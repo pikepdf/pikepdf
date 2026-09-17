@@ -170,6 +170,14 @@ to that project for the report.
 
 ### Fixes
 
+- `PdfImage`, `PdfImageBase`, `PdfJpxImage`, `PdfInlineImage` and
+  `PaletteData` once again report their module as `pikepdf.models.image`, the
+  path they are imported from, instead of the private
+  `pikepdf.models.image._classes` introduced when that module became a package
+  in v10.10.
+- The examples for {func}`pikepdf.set_object_conversion_mode` and
+  {func}`pikepdf.explicit_conversion` no longer open a nonexistent `test.pdf`,
+  and the global-mode example restores the default mode when it is done.
 - `str()` of a `pikepdf.Integer`, `Boolean` or `Real` now gives the value --
   `'42'`, `'True'`, `'1.50'` -- rather than the object's repr. In implicit
   mode a scalar arrives as `int`/`bool`/`Decimal` and `str()` never reached

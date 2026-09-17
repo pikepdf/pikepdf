@@ -59,9 +59,12 @@ autoapi_generate_api_docs = False
 # its own stub (see AttachedFileSpec.obj).
 suppress_warnings = ['autoapi.python_import_resolution']
 
+# Each document starts in the default conversion mode, so an example that
+# changes the global mode cannot leak into documents tested after it.
 doctest_global_setup = """
 import pikepdf
 Name = pikepdf.Name
+pikepdf.set_object_conversion_mode('implicit')
 """
 
 # If extensions (or modules to document with autodoc) are in another directory,

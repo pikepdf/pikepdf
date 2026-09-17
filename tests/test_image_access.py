@@ -2679,3 +2679,14 @@ def test_both_smask_and_mask_smask_wins():
     im = pim.as_pil_image()
     # SMask (alpha 0x80) takes precedence over the explicit Mask.
     assert im.getpixel((0, 0)) == (0, 0, 255, 0x80)
+
+
+@pytest.mark.parametrize(
+    'name', ['PdfImageBase', 'PdfImage', 'PdfJpxImage', 'PdfInlineImage', 'PaletteData']
+)
+def test_image_classes_report_public_module(name):
+    import pikepdf.models.image as image_module
+
+    cls = getattr(image_module, name)
+    assert cls.__module__ == 'pikepdf.models.image'
+    assert repr(cls) == f"<class 'pikepdf.models.image.{name}'>"
