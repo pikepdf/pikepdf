@@ -122,6 +122,13 @@ to that project for the report.
   `{pikepdf.String('héllo'): 1}['héllo']` raised `KeyError`. A `String` now
   hashes like its `str`. To compare the raw data, use `bytes(s) == b'...'` or
   {meth}`~pikepdf.Object.as_bytes`.
+- **Behavior change:** A `pikepdf.Name` no longer compares equal to `bytes`:
+  `pikepdf.Name('/Foo') == b'/Foo'` is now `False`. It still compares equal to
+  the `str` of its UTF-8 bytes, so `obj.Type == '/Page'` works as before, and
+  it now hashes like that `str`, so `{pikepdf.Name('/héllo'): 1}['/héllo']`
+  no longer raises `KeyError`. As PDF 2.0 (ISO 32000-2, 7.3.5) requires,
+  names are compared byte for byte, with no Unicode normalization. Use
+  `bytes(name) == b'...'` to compare the raw bytes.
 - **Behavior change:** A `pikepdf.Real` combined with an `int`, `Integer`, or
   `Decimal`, or negated with unary `-`/`+`/`abs()`, now yields a `Decimal`
   (previously a `float`, or `TypeError` for `int` operands other than `/`).

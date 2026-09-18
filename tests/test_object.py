@@ -162,7 +162,8 @@ def test_bytes():
     qs = String(s)
     assert str(qs) == s
 
-    assert Name('/xyz') == b'/xyz'
+    assert Name('/xyz') != b'/xyz'
+    assert bytes(Name('/xyz')) == b'/xyz'
     with pytest.raises(TypeError, match='should be str'):
         Name(b'/bytes')
 
@@ -276,12 +277,11 @@ def test_no_len():
 
 class TestName:
     def test_name_equality(self):
-        # Who needs transitivity? :P
-        # While this is less than ideal ('/Foo' != b'/Foo') it allows for slightly
-        # sloppy tests like if colorspace == '/Indexed' without requiring
-        # Name('/Indexed') everywhere
+        # A Name equals the str of its UTF-8 bytes, so that
+        # colorspace == '/Indexed' works without Name('/Indexed') everywhere.
+        # It does not also equal bytes, since '/Foo' != b'/Foo'.
         assert Name('/Foo') == '/Foo'
-        assert Name('/Foo') == b'/Foo'
+        assert Name('/Foo') != b'/Foo'
         assert Name.Foo == Name('/Foo')
 
     def test_unslashed_name(self):
@@ -372,6 +372,34 @@ class TestHashViolation:
 
     def test_name(self):
         self.check(Name.This, Name('/This'))
+
+    @pytest.mark.parametrize('text', ['/Foo', '/héllo', '/日本', '/Lime Green'])
+    def test_name_and_str(self, text):
+        self.check(Name(text), text)
+
+    def test_name_found_by_str_key(self):
+        assert {Name('/héllo'): 1}['/héllo'] == 1
+        assert {'/héllo': 1}[Name('/héllo')] == 1
+        assert len({Name('/日本'), '/日本'}) == 1
+
+    def test_parsed_escaped_name_and_str(self):
+        self.check(Object.parse(b'/Lime#20Green'), '/Lime Green')
+        self.check(Object.parse(b'/h#C3#A9llo'), '/héllo')
+
+    @pytest.mark.parametrize('raw', [b'/Foo', b'/h\xc3\xa9llo'])
+    def test_name_never_equals_bytes(self, raw):
+        n = Name(raw.decode('utf-8'))
+        assert bytes(n) == raw
+        assert not (n == raw)
+        assert n != raw
+        assert raw != n
+
+    def test_name_not_utf8(self):
+        n = Object.parse(b'/Bad#FF#FE')
+        assert bytes(n) == b'/Bad\xff\xfe'
+        self.check(n, Object.parse(b'/Bad#FF#FE'))
+        assert n != '/Bad\xff\xfe'
+        assert n != b'/Bad\xff\xfe'
 
     def test_operator(self):
         self.check(Operator('q'), Operator('q'))

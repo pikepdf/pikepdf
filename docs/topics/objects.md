@@ -354,7 +354,10 @@ You may construct a new object with one of the classes:
 
 - {class}`pikepdf.Array`
 - {class}`pikepdf.Dictionary`
-- {class}`pikepdf.Name` - the type used for keys in PDF Dictionary objects
+- {class}`pikepdf.Name` - the type used for keys in PDF Dictionary objects.
+  It compares equal to (and hashes like) the `str` of its UTF-8 bytes, so
+  `obj.Type == '/Page'` works, but never to `bytes`. Two names are equal only
+  if their bytes match exactly; there is no Unicode normalization.
 - {class}`pikepdf.String` - a text string; `str()` gives its text and
   `bytes()` its raw data. It compares equal to (and hashes like) the `str`
   it decodes to, but never to `bytes`: compare `bytes(s) == b'...'` for the

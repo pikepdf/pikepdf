@@ -875,8 +875,17 @@ void init_object(py::module_ &m)
                     return py::int_(py::hash(py::str(v.data(), v.size())));
                 }
                 case qpdf_object_type_e::ot_name: {
+                    // Hash the UTF-8 text as a str, since a Name equals that
+                    // str. A name that is not valid UTF-8 equals no str, so
+                    // its bytes will do.
                     auto v = self.getName();
-                    return py::int_(py::hash(py::bytes(v.data(), v.size())));
+                    auto text = py::steal<py::object>(PyUnicode_DecodeUTF8(
+                        v.data(), static_cast<Py_ssize_t>(v.size()), "strict"));
+                    if (!text.is_valid()) {
+                        PyErr_Clear();
+                        return py::int_(py::hash(py::bytes(v.data(), v.size())));
+                    }
+                    return py::int_(py::hash(text));
                 }
                 case qpdf_object_type_e::ot_operator: {
                     auto v = self.getOperatorValue();
@@ -927,18 +936,13 @@ void init_object(py::module_ &m)
             py::is_operator())
         .def(
             "__eq__",
-            [](QPDFObjectHandle &self, py::bytes other) {
-                QpdfLockGuard lock(self.getOwningQPDF());
-                std::string bytes_other = to_string(other);
-                switch (self.getTypeCode()) {
-                case qpdf_object_type_e::ot_name:
-                    return self.getName() == bytes_other;
-                default:
-                    // Including String: it equals the str it decodes to, and
-                    // must hash like it, so it cannot also equal bytes, which
-                    // never equal a str. Compare bytes(s) for the raw data.
-                    return false;
-                }
+            [](QPDFObjectHandle &, py::bytes) {
+                // A String or Name equals the str it decodes to, and must
+                // hash like it, so it cannot also equal bytes, which never
+                // equal a str. Compare bytes(obj) for the raw data. Without
+                // this overload, the one below would convert the bytes to a
+                // String and compare by content.
+                return false;
             },
             py::is_operator())
         .def(
