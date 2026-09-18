@@ -267,6 +267,49 @@ class Object:
         """
     @overload
     def as_decimal(self, default: T, *, coerce: bool = False) -> Decimal | T: ...
+    @overload
+    def as_str(self) -> str:
+        """Return a String's text, or return default if not a String.
+
+        The text is decoded as UTF-16 if the String begins with a UTF-16 byte
+        order mark, and as PDFDocEncoding otherwise, exactly as ``str()`` does.
+        Unlike ``str()``, which accepts any object, this raises for anything
+        that is not a String, so a value of unexpected type is never silently
+        rendered as text.
+
+        Every sequence of bytes decodes as PDFDocEncoding, so binary data
+        (such as a document ``/ID``) is also returned as a ``str``, without
+        error. Use :meth:`as_bytes` for data that is not text.
+
+        Args:
+            default: Value to return if this object is not a String. If not
+                provided and the object is not a String, raises TypeError.
+
+        Raises:
+            TypeError: If object is not a String and no default was provided.
+
+        .. versionadded:: 10.14
+        """
+    @overload
+    def as_str(self, default: T) -> str | T: ...
+    @overload
+    def as_bytes(self) -> bytes:
+        """Return a String's raw bytes, or return default if not a String.
+
+        The bytes are returned exactly as stored in the PDF, with no decoding:
+        a UTF-16 String includes its byte order mark.
+
+        Args:
+            default: Value to return if this object is not a String. If not
+                provided and the object is not a String, raises TypeError.
+
+        Raises:
+            TypeError: If object is not a String and no default was provided.
+
+        .. versionadded:: 10.14
+        """
+    @overload
+    def as_bytes(self, default: T) -> bytes | T: ...
     def copy(self) -> Object:
         """Create a shallow copy of the object."""
     def emplace(self, other: Object, retain: Iterable[Name] = ...) -> None:
@@ -487,6 +530,37 @@ class Object:
 
     @overload
     def get_list(self, key: str | Name | NamePath, default: T) -> _ObjectList | T: ...
+    @overload
+    def get_str(self, key: str | Name | NamePath) -> str | None:
+        """Get the value of *key* as the text of a String.
+
+        Returns *default* if the key is absent or its value is not a String.
+        See :meth:`as_str` for how the text is decoded.
+
+        Args:
+            key: A string, :class:`pikepdf.Name` or :class:`pikepdf.NamePath`.
+            default: Value to return if the key is absent or the wrong type.
+
+        .. versionadded:: 10.14
+        """
+
+    @overload
+    def get_str(self, key: str | Name | NamePath, default: T) -> str | T: ...
+    @overload
+    def get_bytes(self, key: str | Name | NamePath) -> bytes | None:
+        """Get the value of *key* as the raw bytes of a String.
+
+        Returns *default* if the key is absent or its value is not a String.
+
+        Args:
+            key: A string, :class:`pikepdf.Name` or :class:`pikepdf.NamePath`.
+            default: Value to return if the key is absent or the wrong type.
+
+        .. versionadded:: 10.14
+        """
+
+    @overload
+    def get_bytes(self, key: str | Name | NamePath, default: T) -> bytes | T: ...
     def get_raw_stream_buffer(self) -> Buffer:
         """Return a buffer protocol buffer describing the raw, encoded stream."""
     def get_stream_buffer(self, decode_level: StreamDecodeLevel = ...) -> Buffer:

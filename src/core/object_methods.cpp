@@ -248,6 +248,24 @@ static py::object list_or_default(QPDFObjectHandle &h, py::handle default_)
     return py::cast(h.getArrayAsVector());
 }
 
+static py::object str_or_default(QPDFObjectHandle &h, py::handle default_)
+{
+    QpdfLockGuard lock(h.getOwningQPDF());
+    if (!h.isString())
+        return py::borrow<py::object>(default_);
+    auto v = h.getUTF8Value();
+    return py::str(v.data(), v.size());
+}
+
+static py::object bytes_or_default(QPDFObjectHandle &h, py::handle default_)
+{
+    QpdfLockGuard lock(h.getOwningQPDF());
+    if (!h.isString())
+        return py::borrow<py::object>(default_);
+    auto v = h.getStringValue();
+    return py::bytes(v.data(), v.size());
+}
+
 // Convert a QPDFObjectHandle to a pikepdf.Object, bypassing the conversion
 // mode entirely: scalars are never converted to Python int/bool/Decimal, and
 // a Null comes back as a pikepdf.Object of type Null rather than None.
@@ -891,6 +909,32 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
             py::arg("default").none(),
             py::kw_only(),
             py::arg("coerce") = false)
+        .def("as_str",
+            [](QPDFObjectHandle &h) {
+                QpdfLockGuard lock(h.getOwningQPDF());
+                if (!h.isString())
+                    raise_expected(h, "string");
+                return str_or_default(h, py::none());
+            })
+        .def(
+            "as_str",
+            [](QPDFObjectHandle &h, py::handle default_) {
+                return str_or_default(h, default_);
+            },
+            py::arg("default").none())
+        .def("as_bytes",
+            [](QPDFObjectHandle &h) {
+                QpdfLockGuard lock(h.getOwningQPDF());
+                if (!h.isString())
+                    raise_expected(h, "string");
+                return bytes_or_default(h, py::none());
+            })
+        .def(
+            "as_bytes",
+            [](QPDFObjectHandle &h, py::handle default_) {
+                return bytes_or_default(h, default_);
+            },
+            py::arg("default").none())
         .def("_ipython_key_completions_",
             [](QPDFObjectHandle &h) -> py::object {
                 if (!h.isDictionary() && !h.isStream())
@@ -1312,4 +1356,6 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
     def_typed_getter<decimal_or_default>(object, "get_decimal");
     def_typed_getter<dict_or_default>(object, "get_dict");
     def_typed_getter<list_or_default>(object, "get_list");
+    def_typed_getter<str_or_default>(object, "get_str");
+    def_typed_getter<bytes_or_default>(object, "get_bytes");
 }

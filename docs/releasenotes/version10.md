@@ -85,6 +85,11 @@ to that project for the report.
   numeric type a value has, and it accepts values read in either mode, so it
   is the one-token migration for a read that feeds `isinstance`, `is True`,
   `Decimal()`, `json.dumps` or a function documented to return a native type.
+- Added {meth}`~pikepdf.Object.as_str` and {meth}`~pikepdf.Object.as_bytes`,
+  which return a `String`'s decoded text or raw bytes, and raise `TypeError`
+  (or return a supplied *default*) for any other type, unlike `str()` and
+  `bytes()`, which accept almost anything. Added the matching typed getters
+  {meth}`~pikepdf.Object.get_str` and {meth}`~pikepdf.Object.get_bytes`.
 - See {doc}`/topics/objects` for the full description of scopes and
   precedence, plus a "Migrating to explicit mode" checklist. pikepdf intends
   to make explicit conversion the default in a future major release; new
@@ -109,6 +114,14 @@ to that project for the report.
 
 ### Behavior changes
 
+- **Behavior change:** A `pikepdf.String` no longer compares equal to
+  `bytes`: `pikepdf.String('abc') == b'abc'` is now `False`. It still
+  compares equal to the `str` it decodes to. A `String` compared equal to
+  both a `str` and a `bytes` that are unequal to each other, and so could not
+  hash like both of them; for non-ASCII text it hashed like neither, so
+  `{pikepdf.String('héllo'): 1}['héllo']` raised `KeyError`. A `String` now
+  hashes like its `str`. To compare the raw data, use `bytes(s) == b'...'` or
+  {meth}`~pikepdf.Object.as_bytes`.
 - **Behavior change:** A `pikepdf.Real` combined with an `int`, `Integer`, or
   `Decimal`, or negated with unary `-`/`+`/`abs()`, now yields a `Decimal`
   (previously a `float`, or `TypeError` for `int` operands other than `/`).

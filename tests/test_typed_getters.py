@@ -20,6 +20,8 @@ def d():
         Real=Real('3.9'),
         Bool=True,
         Str=pikepdf.String('7'),
+        Text=pikepdf.String('héllo'),
+        Binary=pikepdf.String(b'\x80\x81\xff'),
         Dict=Dictionary(A=1),
         List=[1, 2, 3],
         Nested=Dictionary(Inner=Dictionary(Value=7)),
@@ -60,6 +62,15 @@ class TestTypedGetters:
     def test_get_list(self, d, mode):
         assert list(d.get_list('/List')) == [1, 2, 3]
 
+    def test_get_str(self, d, mode):
+        assert d.get_str('/Text') == 'héllo'
+        assert type(d.get_str('/Text')) is str
+
+    def test_get_bytes(self, d, mode):
+        assert d.get_bytes('/Binary') == b'\x80\x81\xff'
+        assert type(d.get_bytes('/Binary')) is bytes
+        assert d.get_bytes('/Text') == b'h\xe9llo'
+
     def test_missing_key_returns_default(self, d, mode):
         assert d.get_int('/Nope') is None
         assert d.get_bool('/Nope', False) is False
@@ -67,6 +78,8 @@ class TestTypedGetters:
         assert d.get_decimal('/Nope', Decimal(1)) == Decimal(1)
         assert d.get_dict('/Nope') is None
         assert d.get_list('/Nope', []) == []
+        assert d.get_str('/Nope') is None
+        assert d.get_bytes('/Nope', b'') == b''
 
     def test_type_mismatch_returns_default(self, d, mode):
         assert d.get_int('/Str') is None
@@ -76,6 +89,9 @@ class TestTypedGetters:
         assert d.get_decimal('/Int', None) is None
         assert d.get_dict('/List', {}) == {}
         assert d.get_list('/Dict', []) == []
+        assert d.get_str('/Int') is None
+        assert d.get_str('/Dict', '') == ''
+        assert d.get_bytes('/Int', b'') == b''
 
     def test_coerce(self, d, mode):
         assert d.get_int('/Real', coerce=True) == 3
@@ -95,6 +111,10 @@ class TestTypedGetters:
             d.get_dict('/List', coerce=True)  # type: ignore[call-arg]
         with pytest.raises(TypeError):
             d.get_list('/Dict', coerce=True)  # type: ignore[call-arg]
+        with pytest.raises(TypeError):
+            d.get_str('/Str', coerce=True)  # type: ignore[call-arg]
+        with pytest.raises(TypeError):
+            d.get_bytes('/Str', coerce=True)  # type: ignore[call-arg]
 
 
 class TestTypedGetterKeys:
@@ -103,6 +123,7 @@ class TestTypedGetterKeys:
 
     def test_name_key(self, d):
         assert d.get_int(Name.Int) == 42
+        assert d.get_str(Name.Text) == 'héllo'
         assert d.get_bool(Name.Bool) is True
         assert dict(d.get_dict(Name.Dict)) == {'/A': 1}
 
@@ -110,6 +131,7 @@ class TestTypedGetterKeys:
         assert d.get_int(NamePath('/Nested')('/Inner')('/Value')) == 7
         assert d.get_int(NamePath('/Nested')('/Inner')('/Nope'), -1) == -1
         assert dict(d.get_dict(NamePath('/Nested')('/Inner'))) == {'/Value': 7}
+        assert d.get_bytes(NamePath('/Binary')) == b'\x80\x81\xff'
 
     def test_namepath_index_key(self):
         d = Dictionary(Arr=[1, Real('2.5')])
@@ -151,6 +173,8 @@ class TestTypedGetterEdgeCases:
             assert getattr(d, getter)('/Dict', sentinel, coerce=True) is sentinel
         assert d.get_dict('/List', sentinel) is sentinel
         assert d.get_list('/Dict', sentinel) is sentinel
+        assert d.get_str('/Int', sentinel) is sentinel
+        assert d.get_bytes('/Nope', sentinel) is sentinel
 
     def test_key_holding_null_is_absent(self, mode):
         d = pikepdf.Object.parse(b'<< /N null >>')

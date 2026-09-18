@@ -58,7 +58,7 @@ def test_booleans():
 @example('')
 def test_ascii_involution(ascii_):
     b = ascii_.encode('ascii')
-    assert encode(b) == b
+    assert bytes(encode(b)) == b
 
 
 @given(
@@ -340,6 +340,35 @@ class TestHashViolation:
     def test_string(self):
         utf16 = b'\xfe\xff' + 'hello'.encode('utf-16be')
         self.check(String(utf16), String('hello'))
+
+    @pytest.mark.parametrize('text', ['hello', 'héllo', '日本', '•†ÿ'])
+    def test_string_and_str(self, text):
+        self.check(String(text), text)
+
+    def test_binary_string_and_its_text(self):
+        s = String(b'\x80\x81\xff')
+        self.check(s, str(s))
+
+    def test_string_found_by_str_key(self):
+        assert {String('héllo'): 1}['héllo'] == 1
+        assert {'héllo': 1}[String('héllo')] == 1
+        assert len({String('日本'), '日本'}) == 1
+
+    @pytest.mark.parametrize(
+        'raw', [b'hello', b'h\xe9llo', b'\x80\x81\xff', b'\xfe\xff\x00A', b'']
+    )
+    def test_string_never_equals_bytes(self, raw):
+        s = String(raw)
+        assert bytes(s) == raw
+        assert not (s == raw)
+        assert s != raw
+        assert not (raw == s)
+        assert raw != s
+
+    def test_string_equality_is_transitive(self):
+        s = String(b'\x80')
+        assert s == str(s)
+        assert s != b'\x80'
 
     def test_name(self):
         self.check(Name.This, Name('/This'))

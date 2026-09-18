@@ -869,8 +869,10 @@ void init_object(py::module_ &m)
                 // Objects which compare equal must have the same hash value
                 switch (self.getTypeCode()) {
                 case qpdf_object_type_e::ot_string: {
+                    // Hash the text as a str: a String equals the str it
+                    // decodes to, and any String with the same text.
                     auto v = self.getUTF8Value();
-                    return py::int_(py::hash(py::bytes(v.data(), v.size())));
+                    return py::int_(py::hash(py::str(v.data(), v.size())));
                 }
                 case qpdf_object_type_e::ot_name: {
                     auto v = self.getName();
@@ -929,11 +931,12 @@ void init_object(py::module_ &m)
                 QpdfLockGuard lock(self.getOwningQPDF());
                 std::string bytes_other = to_string(other);
                 switch (self.getTypeCode()) {
-                case qpdf_object_type_e::ot_string:
-                    return self.getStringValue() == bytes_other;
                 case qpdf_object_type_e::ot_name:
                     return self.getName() == bytes_other;
                 default:
+                    // Including String: it equals the str it decodes to, and
+                    // must hash like it, so it cannot also equal bytes, which
+                    // never equal a str. Compare bytes(s) for the raw data.
                     return false;
                 }
             },

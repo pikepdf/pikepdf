@@ -1368,6 +1368,54 @@ class TestCoercionTruthTable:
             coercibles.get_raw('/Int42').as_decimal()
 
 
+class TestAsStrAsBytes:
+    @pytest.mark.parametrize('text', ['hello', 'héllo', '日本', ''])
+    def test_as_str(self, text):
+        value = pikepdf.String(text).as_str()
+        assert value == text
+        assert type(value) is str
+
+    @pytest.mark.parametrize('raw', [b'hello', b'\x80\x81\xff', b'\xfe\xff\x00A', b''])
+    def test_as_bytes(self, raw):
+        value = pikepdf.String(raw).as_bytes()
+        assert value == raw
+        assert type(value) is bytes
+
+    def test_as_str_decodes_utf16(self):
+        assert pikepdf.String(b'\xfe\xff\x00A').as_str() == 'A'
+
+    @pytest.mark.parametrize(
+        'obj', [Name.Foo, pikepdf.Array([1]), Dictionary(A=1), pikepdf.Operator('q')]
+    )
+    def test_type_error(self, obj):
+        with pytest.raises(TypeError, match='Expected string, got'):
+            obj.as_str()
+        with pytest.raises(TypeError, match='Expected string, got'):
+            obj.as_bytes()
+
+    def test_scalar_type_error(self):
+        with pikepdf.explicit_conversion():
+            i = Integer(1)
+            with pytest.raises(TypeError, match='Expected string, got integer'):
+                i.as_str()
+            with pytest.raises(TypeError, match='Expected string, got integer'):
+                i.as_bytes()
+
+    def test_default(self):
+        marker = object()
+        assert Name.Foo.as_str(marker) is marker
+        assert Name.Foo.as_bytes(marker) is marker
+        assert pikepdf.String('x').as_str(marker) == 'x'
+        assert pikepdf.String('x').as_bytes(marker) == b'x'
+        assert pikepdf.String('x').as_str(default=None) == 'x'
+
+    def test_no_coerce(self):
+        with pytest.raises(TypeError):
+            pikepdf.String('x').as_str(coerce=True)  # type: ignore[call-arg]
+        with pytest.raises(TypeError):
+            pikepdf.String('x').as_bytes(coerce=True)  # type: ignore[call-arg]
+
+
 class TestAsDictAsList:
     def test_as_dict_ok(self):
         assert dict(Dictionary(A=1).as_dict()) == {'/A': 1}

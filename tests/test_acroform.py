@@ -47,7 +47,7 @@ def test_text(form):
     field = form.acroform.get_fields_with_qualified_name('Text1')[0]
     assert field.fully_qualified_name == 'Text1'
     assert field.default_appearance == b"/Helv 12 Tf 0 g"
-    assert field.get_inheritable_field_value('/DA') == b"/Helv 12 Tf 0 g"
+    assert bytes(field.get_inheritable_field_value('/DA')) == b"/Helv 12 Tf 0 g"
     assert field.get_inheritable_field_value_as_string('/DA') == "/Helv 12 Tf 0 g"
     assert Name.Font in field.default_resources
     assert field.top_level_field == field

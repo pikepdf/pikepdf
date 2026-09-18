@@ -38,8 +38,8 @@ and {class}`pikepdf.Real` objects instead of native Python types.
 :::{versionadded} 10.14
 `implicit_conversion()`, the per-`Pdf` `conversion_mode`,
 {meth}`~pikepdf.Object.get_raw`, the `get_int`/`get_bool`/`get_float`/
-`get_decimal`/`get_dict`/`get_list` typed getters, and `coerce=` on the
-`as_*` accessors.
+`get_decimal`/`get_dict`/`get_list`/`get_str`/`get_bytes` typed getters,
+the `as_str`/`as_bytes` accessors, and `coerce=` on the `as_*` accessors.
 :::
 
 ### Three scopes, one precedence order
@@ -130,8 +130,9 @@ A PDF null inside an array is returned as a `Null`-typed `Object` rather than
 
 The typed getters — {meth}`~pikepdf.Object.get_int`,
 {meth}`~pikepdf.Object.get_bool`, {meth}`~pikepdf.Object.get_float`,
-{meth}`~pikepdf.Object.get_decimal`, {meth}`~pikepdf.Object.get_dict`, and
-{meth}`~pikepdf.Object.get_list` — combine `get_raw` with the matching `as_*`
+{meth}`~pikepdf.Object.get_decimal`, {meth}`~pikepdf.Object.get_dict`,
+{meth}`~pikepdf.Object.get_list`, {meth}`~pikepdf.Object.get_str`, and
+{meth}`~pikepdf.Object.get_bytes` — combine `get_raw` with the matching `as_*`
 accessor, so reading an optional, possibly-wrong-typed value is a
 mode-independent one-liner:
 
@@ -170,6 +171,14 @@ Available methods:
   dictionary (for a stream, use `stream.stream_dict.as_dict()`)
 - {meth}`~pikepdf.Object.as_list` - as an `Array`/list, or return default;
   raises `TypeError` if the object is not an array
+- {meth}`~pikepdf.Object.as_str` - a `String`'s text as `str`, or return
+  default; raises `TypeError` for anything that is not a `String`
+- {meth}`~pikepdf.Object.as_bytes` - a `String`'s raw bytes as `bytes`, or
+  return default; raises `TypeError` for anything that is not a `String`
+
+`str()` and `bytes()` also work on a `String`, but they accept other objects
+too -- `str()` of a `Name` or an `Integer` succeeds -- so they cannot tell you
+that a value has the wrong type. `as_str()` and `as_bytes()` can.
 
 :::{versionchanged} 10.14
 `as_dict()` and `as_list()` now accept a `default` argument and raise
@@ -336,7 +345,8 @@ that assumed implicit conversion.
 pikepdf intends to make explicit conversion the default in a future major
 release. New code that reads values of uncertain type should prefer the
 mode-independent getters (`get_raw`, `get_int`, `get_bool`, `get_float`,
-`get_decimal`, `get_dict`, `get_list`) so it is unaffected by that change.
+`get_decimal`, `get_dict`, `get_list`, `get_str`, `get_bytes`) so it is
+unaffected by that change.
 
 ## Making PDF objects
 
@@ -345,8 +355,10 @@ You may construct a new object with one of the classes:
 - {class}`pikepdf.Array`
 - {class}`pikepdf.Dictionary`
 - {class}`pikepdf.Name` - the type used for keys in PDF Dictionary objects
-- {class}`pikepdf.String` - a text string
-  (treated as `bytes` and `str` depending on context)
+- {class}`pikepdf.String` - a text string; `str()` gives its text and
+  `bytes()` its raw data. It compares equal to (and hashes like) the `str`
+  it decodes to, but never to `bytes`: compare `bytes(s) == b'...'` for the
+  raw data.
 - {class}`pikepdf.Integer` - a PDF integer (explicit mode)
 - {class}`pikepdf.Boolean` - a PDF boolean (explicit mode)
 - {class}`pikepdf.Real` - a PDF real/floating-point number (explicit mode)

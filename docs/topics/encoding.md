@@ -22,6 +22,17 @@ is returned as a Python `str`, if the binary data will be interpreted as
 PDFDocEncoding and decoded to `str`. Again, in most cases this is correct
 behavior and will operate transparently.
 
+A `pikepdf.String` compares equal to the `str` it decodes to, and hashes
+like it, so a `String` can be looked up in a `dict` keyed by `str` and vice
+versa. It never compares equal to `bytes`, since a `str` and `bytes` are never
+equal to each other. To compare the raw data, use `bytes(s) == b'...'`.
+
+Every sequence of bytes can be decoded as PDFDocEncoding, so `str()` succeeds
+even on binary data such as a document `/ID`, returning text that is not
+meaningful. Use {meth}`pikepdf.Object.as_bytes` (or `bytes()`) for such
+values, and {meth}`pikepdf.Object.as_str` when you expect text and want a
+`TypeError` if the value is not a `String` at all.
+
 Some functions are available in circumstances where it is necessary to force
 a particular conversion.
 
