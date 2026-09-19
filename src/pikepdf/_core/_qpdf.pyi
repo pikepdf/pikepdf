@@ -367,6 +367,16 @@ class Pdf:
                 is owned by a different Pdf, an exception is raised; use
                 :meth:`pikepdf.Object.copy_foreign` instead.
 
+        Returns:
+            The indirect object. An array, dictionary or stream is made
+            indirect in place, so ``obj`` itself becomes that indirect object.
+            A scalar such as a :class:`pikepdf.Name` is copied first, so
+            ``obj`` stays direct and can still be hashed or reused in another
+            Pdf; use the return value.
+
+        .. versionchanged:: 10.14
+            Scalars are copied rather than made indirect in place.
+
         See Also:
             :meth:`pikepdf.Object.is_indirect`
         """

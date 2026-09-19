@@ -817,11 +817,9 @@ void init_qpdf(py::module_ &m)
             [](QPDF &q, QPDFObjectHandle &h) {
                 DualQpdfLockGuard lock(&q, live_owner(h));
                 refuse_to_steal(h, &q);
-                bool was_direct = !h.isIndirect();
-                auto indirect = q.makeIndirectObject(h);
-                if (was_direct)
-                    adopt_made_indirect(&q, indirect);
-                return indirect;
+                if (h.isIndirect())
+                    return q.makeIndirectObject(h);
+                return make_direct_indirect(&q, h);
             },
             py::arg("h"))
         .def(
@@ -830,11 +828,9 @@ void init_qpdf(py::module_ &m)
                 auto encoded = objecthandle_encode(obj);
                 DualQpdfLockGuard lock(&q, live_owner(encoded));
                 refuse_to_steal(encoded, &q);
-                bool was_direct = !encoded.isIndirect();
-                auto indirect = q.makeIndirectObject(encoded);
-                if (was_direct)
-                    adopt_made_indirect(&q, indirect);
-                return indirect;
+                if (encoded.isIndirect())
+                    return q.makeIndirectObject(encoded);
+                return make_direct_indirect(&q, encoded);
             },
             py::arg("obj"))
         .def(

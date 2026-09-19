@@ -642,11 +642,16 @@ class Object:
         that is owned by *other*'s owner. If this object is a direct object
         (no owner), then an indirect object is created that is owned by
         *other*. An exception is thrown if *other* is a direct object.
+        As with :meth:`pikepdf.Pdf.make_indirect`, a direct scalar is copied
+        before it is made indirect, so this object is left unchanged.
 
         This method may be convenient when a reference to the Pdf is not
         available.
 
         .. versionadded:: 2.14
+
+        .. versionchanged:: 10.14
+            Direct scalars are copied rather than made indirect in place.
         """
     def wrap_in_array(self) -> Array:
         """Return the object wrapped in an array if not already an array."""

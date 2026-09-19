@@ -320,3 +320,52 @@ def test_readopted_object_survives_first_owner_death():
     gc.collect()
     assert t.is_owned_by(b)
     assert isinstance(b.Root.T.K, pikepdf.Integer)
+
+
+SCALAR_FACTORIES = {
+    'Name': lambda: Name('/Foo'),
+    'String': lambda: pikepdf.String('text'),
+    'Operator': lambda: pikepdf.Operator('q'),
+    'Integer': lambda: pikepdf.Array([42])[0],
+    'Real': lambda: pikepdf.Array([1.5])[0],
+    'Boolean': lambda: pikepdf.Array([True])[0],
+}
+
+
+@pytest.mark.parametrize('how', ['make_indirect', 'with_same_owner_as'])
+@pytest.mark.parametrize('kind', SCALAR_FACTORIES)
+def test_making_scalar_indirect_leaves_caller_object_direct(how, kind):
+    """Making a scalar indirect must not change the caller's handle.
+
+    Scalars are hashable, so a handle turned indirect in place would stop
+    hashing and break any dict or set that already holds it.
+    """
+    pdf = pikepdf.new()
+    with pikepdf.explicit_conversion():
+        scalar = SCALAR_FACTORIES[kind]()
+        assert isinstance(scalar, pikepdf.Object)
+        lookup = {scalar: 'value'}
+        h = hash(scalar)
+        if how == 'make_indirect':
+            indirect = pdf.make_indirect(scalar)
+        else:
+            indirect = scalar.with_same_owner_as(pdf.Root)
+        assert indirect.is_indirect
+        assert indirect.is_owned_by(pdf)
+        assert indirect == scalar
+        assert not scalar.is_indirect
+        assert hash(scalar) == h
+        assert lookup[scalar] == 'value'
+
+        other = pikepdf.new()
+        other.Root.T = scalar
+        assert other.Root.T == scalar
+
+
+def test_making_container_indirect_keeps_alias():
+    pdf = pikepdf.new()
+    d = Dictionary(A=1)
+    indirect = pdf.make_indirect(d)
+    assert d.is_indirect
+    indirect.B = 2
+    assert d.B == 2

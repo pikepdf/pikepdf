@@ -228,12 +228,29 @@ void adopt_children_into(QPDF *owner, QPDFObjectHandle container)
 // object has no description at all, so the empty tag would silently suppress
 // the label in every warning about the object. Reinstating qpdf's own template
 // restores it. ($OG is expanded to the obj/gen by QPDFObject::getDescription.)
-void adopt_made_indirect(QPDF *owner, QPDFObjectHandle indirect)
+static void adopt_made_indirect(QPDF *owner, QPDFObjectHandle indirect)
 {
     if (!owner)
         return; // LCOV_EXCL_LINE
     indirect.setObjectDescription(owner, "object $OG");
     adopt_children_into(owner, indirect);
+}
+
+// Make a direct object indirect in owner, and adopt it.
+//
+// qpdf files the handle's shared object under a new object number, which
+// turns every handle sharing it indirect, including the caller's. For a
+// scalar that would break hashing, since only direct scalars are hashable,
+// and would tie a reusable constant such as a module-level Name to one
+// document. So, as with adoption, a scalar is made indirect from a copy.
+// Containers are made indirect in place, since callers expect the object they
+// passed to stay aliased with the document.
+QPDFObjectHandle make_direct_indirect(QPDF *owner, QPDFObjectHandle direct)
+{
+    auto target = is_scalar_object(direct) ? direct.shallowCopy() : direct;
+    auto indirect = owner->makeIndirectObject(target);
+    adopt_made_indirect(owner, indirect);
+    return indirect;
 }
 
 // Raise ForeignObjectError for a direct object that belongs to another Pdf.

@@ -208,6 +208,16 @@ to that project for the report.
   this`. A scalar hashes like the Python value it compares equal to, so
   `Real('1.0')`, `Decimal('1.0')` and `1` agree, and a scalar can be a dict
   key or a set member as it could in implicit mode.
+- {meth}`pikepdf.Pdf.make_indirect` and {meth}`pikepdf.Object.with_same_owner_as`
+  no longer turn a direct scalar (`Name`, `String`, `Integer`, `Real`,
+  `Boolean`, `Operator`) that you pass them into an indirect object in place.
+  They make a copy indirect and return it, leaving your object direct and
+  unowned. Previously the object you held silently became an indirect object
+  of that `Pdf`, after which `hash()` raised and any dict or set already
+  holding it broke; a module-level constant such as `FOO = Name.Foo` became
+  tied to one document. Arrays, dictionaries and streams are still made
+  indirect in place, so the object you passed stays aliased with the one in
+  the document.
 - In explicit mode, `repr()` of an `Array`, `Dictionary` or `Stream` now
   names the scalars nested inside it -- `pikepdf.Real('42.42')` rather than
   `'42.42'`, which was indistinguishable from a PDF string and did not

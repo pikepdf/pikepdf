@@ -845,9 +845,7 @@ void init_object(py::module_ &m)
                         "with_same_owner_as() called for object that has no owner");
                 if (!self.isIndirect()) {
                     refuse_to_steal(self, other_owner);
-                    auto indirect = other_owner->makeIndirectObject(self);
-                    adopt_made_indirect(other_owner, indirect);
-                    return indirect;
+                    return make_direct_indirect(other_owner, self);
                 }
 
                 auto self_in_other = other_owner->copyForeignObject(self);

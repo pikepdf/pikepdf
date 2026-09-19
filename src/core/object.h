@@ -31,7 +31,7 @@ QPDFObjectHandle object_get_key(QPDFObjectHandle h, std::string const &key);
 QPDF *live_owner(QPDFObjectHandle &h);
 QPDFObjectHandle adopt_into(QPDF *owner, QPDFObjectHandle value);
 void adopt_children_into(QPDF *owner, QPDFObjectHandle container);
-void adopt_made_indirect(QPDF *owner, QPDFObjectHandle indirect);
+QPDFObjectHandle make_direct_indirect(QPDF *owner, QPDFObjectHandle direct);
 void refuse_to_steal(QPDFObjectHandle &h, QPDF *target);
 void disconnect_from_owner(QPDF *owner, QPDFObjectHandle old);
 void disconnect_detached(QPDFObjectHandle &container, QPDFObjectHandle old);
