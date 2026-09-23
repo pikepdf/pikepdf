@@ -169,6 +169,8 @@ std::string objecthandle_repr(QPDFObjectHandle h);
 
 // From object_convert.cpp
 py::object decimal_from_pdfobject(QPDFObjectHandle h);
+// Raises OverflowError if the value does not fit in a PDF integer.
+long long pdf_integer_from_pylong(const py::handle handle);
 QPDFObjectHandle objecthandle_encode(const py::handle handle);
 std::vector<QPDFObjectHandle> array_builder(const py::iterable iter);
 std::map<std::string, QPDFObjectHandle> dict_builder(const py::dict dict);

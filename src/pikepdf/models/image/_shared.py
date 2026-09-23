@@ -78,6 +78,14 @@ def _ensure_list(value: list[Object] | Dictionary | Array | Object) -> list[Obje
     return list(value.wrap_in_array().as_list())
 
 
+class _MetadataTypeError(TypeError, NotImplementedError):
+    """An image metadata value has the wrong PDF type.
+
+    Also a NotImplementedError, which is what pikepdf raised for this before,
+    so that existing handlers keep catching it.
+    """
+
+
 def _metadata_from_obj(
     obj: Object, name: str, type_: Callable[[Any], T], default: Any
 ) -> T:
@@ -88,13 +96,15 @@ def _metadata_from_obj(
 
     The value is unboxed before *type_* converts it, so the result does not
     depend on the conversion mode. A missing or null entry gives *default*;
-    a value *type_* cannot convert raises NotImplementedError.
+    a value *type_* cannot convert raises TypeError.
     """
     val = unbox(getattr(obj, name, default))
     try:
         return type_(val)
     except TypeError as e:
-        raise NotImplementedError('Metadata access for ' + name) from e
+        raise _MetadataTypeError(
+            f'Image /{name} has a value of the wrong type: {val!r}'
+        ) from e
 
 
 class PaletteData(NamedTuple):

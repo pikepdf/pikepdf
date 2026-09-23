@@ -91,10 +91,12 @@ to that project for the report.
   `bytes()`, which accept almost anything. Added the matching typed getters
   {meth}`~pikepdf.Object.get_str` and {meth}`~pikepdf.Object.get_bytes`.
 - See {doc}`/topics/objects` for the full description of scopes and
-  precedence, plus a "Migrating to explicit mode" checklist. pikepdf intends
-  to make explicit conversion the default in a future major release; new
-  code that reads values of uncertain type should prefer the
-  mode-independent getters described above.
+  precedence, plus a "Migrating to explicit mode" checklist.
+- Added a new topic page, {doc}`/topics/type_safety`, explaining why
+  explicit mode exists and setting out the deprecation schedule: v11 warns
+  on implicit conversions, v12 makes explicit mode the default, and v13
+  removes implicit mode. New code that reads values of uncertain type should
+  prefer the mode-independent getters described above.
 
 ### NamePath
 
@@ -114,6 +116,12 @@ to that project for the report.
 
 ### Behavior changes
 
+- **Behavior change:** Reading `PdfImage` metadata such as `.width`,
+  `.height` or `.colorspace` whose value has the wrong PDF type (for example
+  a `/Width` written as a string or name) now raises `TypeError`, with a
+  message naming the key and the value found, instead of
+  `NotImplementedError: Metadata access for Width`. The exception is also a
+  `NotImplementedError`, so existing handlers keep working.
 - **Behavior change:** A `pikepdf.String` no longer compares equal to
   `bytes`: `pikepdf.String('abc') == b'abc'` is now `False`. It still
   compares equal to the `str` it decodes to. A `String` compared equal to
@@ -190,6 +198,10 @@ to that project for the report.
 
 ### Fixes
 
+- Storing a Python `int` outside the signed 64-bit range of a PDF integer, by
+  assignment or in `Array(...)`, `Dictionary(...)` or `Integer(...)`, now
+  raises `OverflowError` instead of `RuntimeError: std::bad_cast` (or a
+  misleading `TypeError`).
 - `PdfImage`, `PdfImageBase`, `PdfJpxImage`, `PdfInlineImage` and
   `PaletteData` once again report their module as `pikepdf.models.image`, the
   path they are imported from, instead of the private

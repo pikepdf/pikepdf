@@ -24,7 +24,15 @@ methods, some of which only if the underlying type is suitable. Use the
 fact that the PDF specification allows many data fields to be one of several
 types.
 
+(explicit-conversion)=
+
 ## Explicit conversion mode
+
+:::{seealso}
+{ref}`PDF type safety with explicit mode <type-safety>` explains why
+explicit mode exists, when to use it, and the schedule for making it the
+default.
+:::
 
 By default, pikepdf automatically converts PDF scalar types to Python native
 types (`int`, `bool`, `Decimal`). This is convenient but can make type checking
@@ -305,6 +313,8 @@ of the number (`bool(pikepdf.Integer(0))` is `False`), rather than raising
 `NotImplementedError`.
 :::
 
+(migrating-explicit)=
+
 ### Migrating to explicit mode
 
 Switching a codebase from implicit to explicit conversion (whether via the
@@ -342,8 +352,8 @@ that must work regardless of mode. When you do switch a mode, run your test suit
 relevant tests in {func}`pikepdf.explicit_conversion`) to catch call sites
 that assumed implicit conversion.
 
-pikepdf intends to make explicit conversion the default in a future major
-release. New code that reads values of uncertain type should prefer the
+pikepdf will make explicit conversion the default in a future major
+release; see the {ref}`deprecation schedule <type-safety-deprecation>`. New code that reads values of uncertain type should prefer the
 mode-independent getters (`get_raw`, `get_int`, `get_bool`, `get_float`,
 `get_decimal`, `get_dict`, `get_list`, `get_str`, `get_bytes`) so it is
 unaffected by that change.

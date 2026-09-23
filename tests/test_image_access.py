@@ -678,6 +678,31 @@ def test_image_metadata_independent_of_mode(mode):
         assert type(pim._colorspaces[2]) is Decimal
 
 
+@pytest.mark.parametrize('mode', ['implicit', 'explicit'])
+@pytest.mark.parametrize('width', [b'(1024)', b'/1024', b'[1024]'])
+def test_image_metadata_wrong_type_raises_type_error(mode, width):
+    """A metadata value of the wrong PDF type raises TypeError.
+
+    It also remains a NotImplementedError, which is what this raised
+    before, so existing handlers keep working.
+    """
+    with pikepdf.new(conversion_mode=mode) as pdf:
+        obj = Stream(
+            pdf,
+            b'',
+            pikepdf.Object.parse(
+                b'<< /Type /XObject /Subtype /Image /Width '
+                + width
+                + b' /Height 50 /BitsPerComponent 8 /ColorSpace /DeviceGray >>'
+            ),
+        )
+        pim = PdfImage(obj)
+        with pytest.raises(TypeError, match='/Width'):
+            pim.width  # noqa: B018
+        with pytest.raises(NotImplementedError):
+            pim.width  # noqa: B018
+
+
 @contextmanager
 def first_image_from_pdfimages(pdf, tmpdir):
     if not has_pdfimages():

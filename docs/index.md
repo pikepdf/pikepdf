@@ -135,6 +135,7 @@ releasenotes/index.rst
 topics/pages
 topics/page
 topics/objects
+topics/type_safety
 topics/namepath
 topics/streams
 topics/content_streams

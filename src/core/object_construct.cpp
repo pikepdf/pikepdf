@@ -383,6 +383,9 @@ void init_object_construct(py::module_ &m)
                 }
                 // Construction: route through the conversion-mode type_caster
                 // (py::cast) so implicit mode yields a native int.
+                if (PyLong_Check(val.ptr()))
+                    return py::cast(
+                        QPDFObjectHandle::newInteger(pdf_integer_from_pylong(val)));
                 try {
                     return py::cast(
                         QPDFObjectHandle::newInteger(py::cast<long long>(val)));

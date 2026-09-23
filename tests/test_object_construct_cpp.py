@@ -277,3 +277,31 @@ class TestCppNamePath:
 
     def test_chained_subscript_call_form(self):
         assert repr(_core.NamePath['/A']('/B').C[0]) == 'NamePath.A.B.C[0]'
+
+
+class TestIntegerRange:
+    """Python ints outside the signed 64-bit range of a PDF integer."""
+
+    @pytest.mark.parametrize('value', [2**63, -(2**63) - 1, 2**70])
+    def test_assign_out_of_range(self, value):
+        pdf = pikepdf.new()
+        with pytest.raises(OverflowError):
+            pdf.Root.Big = value
+
+    @pytest.mark.parametrize('value', [2**63, -(2**63) - 1])
+    def test_array_out_of_range(self, value):
+        with pytest.raises(OverflowError):
+            pikepdf.Array([value])
+
+    def test_dictionary_out_of_range(self):
+        with pytest.raises(OverflowError):
+            pikepdf.Dictionary(Big=2**63)
+
+    def test_integer_out_of_range(self):
+        with pytest.raises(OverflowError):
+            pikepdf.Integer(2**63)
+
+    @pytest.mark.parametrize('value', [2**63 - 1, -(2**63)])
+    def test_limits_accepted(self, value):
+        assert pikepdf.Array([value])[0] == value
+        assert pikepdf.Integer(value) == value
