@@ -198,6 +198,11 @@ to that project for the report.
 
 ### Fixes
 
+- {meth}`pikepdf.Matrix.inverse` now returns the correct translation for
+  matrices whose determinant is not 1. Previously the `e` and `f` terms were
+  not divided by the determinant, so the result was not a true inverse for
+  any matrix that both scaled and translated. Matrices built only from
+  rotations and translations were unaffected. (#743)
 - Storing a Python `int` outside the signed 64-bit range of a PDF integer, by
   assignment or in `Array(...)`, `Dictionary(...)` or `Integer(...)`, now
   raises `OverflowError` instead of `RuntimeError: std::bad_cast` (or a

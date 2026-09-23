@@ -94,6 +94,22 @@ class TestMatrix:
         minv_m = m.inverse() @ m
         assert allclose(minv_m, Matrix())
 
+    @pytest.mark.parametrize(
+        'm',
+        [
+            Matrix(40, 0, 0, 40, 10, 20),
+            Matrix(3, 1, -2, 4, 100, -50),
+            Matrix().translated(10, 20).rotated(30).scaled(2, -5),
+        ],
+    )
+    def test_inverse_with_translation(self, m):
+        assert allclose(m @ m.inverse(), Matrix())
+        assert allclose(m.inverse() @ m, Matrix())
+
+    def test_inverse_translation_value(self):
+        m = Matrix(40, 0, 0, 40, 10, 20)
+        assert allclose(m.inverse(), Matrix(0.025, 0, 0, 0.025, -0.25, -0.5))
+
     def test_non_invertible(self):
         m = Matrix(4, 4, 4, 4, 0, 0)
         with pytest.raises(ValueError, match='not invertible'):

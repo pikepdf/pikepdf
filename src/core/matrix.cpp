@@ -137,18 +137,19 @@ void init_matrix(py::module_ &m)
                 if (determinant == 0.0) {
                     throw std::domain_error("Matrix is not invertible");
                 }
-                auto adjugate = QPDFMatrix(
+                // Divide the adjugate by the determinant directly;
+                // QPDFMatrix::scale() is a concatenation that would leave the
+                // translation terms undivided.
+                return QPDFMatrix(
                     // clang-format off
-                    self.d,
-                    -self.b,
-                    -self.c,
-                    self.a,
-                    self.c * self.f - self.d * self.e,
-                    self.b * self.e - self.a * self.f
+                    self.d / determinant,
+                    -self.b / determinant,
+                    -self.c / determinant,
+                    self.a / determinant,
+                    (self.c * self.f - self.d * self.e) / determinant,
+                    (self.b * self.e - self.a * self.f) / determinant
                     // clang-format on
                 );
-                adjugate.scale(1.0 / determinant, 1.0 / determinant);
-                return adjugate;
             })
         .def(
             "__array__",
