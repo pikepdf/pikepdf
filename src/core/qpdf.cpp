@@ -400,6 +400,31 @@ pdf_version_extension get_version_extension(py::object ver_ext)
     return pdf_version_extension(version, extension);
 }
 
+// Set /Count of a /Pages node and its descendants to the number of pages
+// beneath each, and return the count. qpdf repairs a damaged page tree when it
+// loads it and keeps /Count right as pages are added or removed, but does not
+// correct a /Count that was already wrong, which leaves an invalid page tree.
+static long long fix_page_tree_counts(
+    QPDFObjectHandle node, QPDFObjGen::set &visited, int depth = 0)
+{
+    constexpr int max_depth = 100; // Same limit as qpdf's page tree traversal
+    if (depth > max_depth || !visited.add(node.getObjGen()))
+        return 0;
+    long long count = 0;
+    for (auto &kid : node.getKey("/Kids").aitems()) {
+        if (!kid.isDictionary())
+            continue;
+        if (kid.hasKey("/Kids"))
+            count += fix_page_tree_counts(kid, visited, depth + 1);
+        else
+            ++count;
+    }
+    auto old_count = node.getKey("/Count");
+    if (!old_count.isInteger() || old_count.getIntValue() != count)
+        node.replaceKey("/Count", QPDFObjectHandle::newInteger(count));
+    return count;
+}
+
 void save_pdf(QPDF &q,
     py::object stream,
     bool static_id = false,
@@ -420,6 +445,15 @@ void save_pdf(QPDF &q,
     bool deterministic_id = false)
 {
     QpdfLockGuard lock(&q);
+    // Only a page tree qpdf has loaded, and so repaired, is known to be sound
+    // enough to count.
+    if (q.everCalledGetAllPages()) {
+        auto pages = q.getRoot().getKey("/Pages");
+        if (pages.isDictionary()) {
+            QPDFObjGen::set visited;
+            fix_page_tree_counts(pages, visited);
+        }
+    }
     QPDFWriter w(q);
 
     if (static_id) {

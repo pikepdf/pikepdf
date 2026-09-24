@@ -619,3 +619,38 @@ def test_page_iteration(graph, fourpages):
     next(fourpages_iter)  # Discard
     graph.pages.extend(fourpages_iter)  # Append remaining two
     assert len(graph.pages) == 3
+
+
+def _roundtrip(pdf: Pdf) -> Pdf:
+    from io import BytesIO
+
+    buf = BytesIO()
+    pdf.save(buf)
+    buf.seek(0)
+    return Pdf.open(buf)
+
+
+def test_save_corrects_page_count():
+    pdf = pikepdf.new()
+    pdf.add_blank_page()
+    pdf.Root.Pages.Count = 2
+    assert _roundtrip(pdf).Root.Pages.Count == 1
+
+
+def test_save_corrects_nested_page_counts():
+    pdf = pikepdf.new()
+    for _ in range(3):
+        pdf.add_blank_page()
+    root = pdf.Root.Pages
+    p0, p1, p2 = root.Kids
+    mid = pdf.make_indirect(
+        Dictionary(Type=Name.Pages, Kids=Array([p0, p1]), Count=5, Parent=root)
+    )
+    p0.Parent = mid
+    p1.Parent = mid
+    root.Kids = Array([mid, p2])
+    root.Count = 7
+    out = _roundtrip(pdf)
+    assert out.Root.Pages.Count == 3
+    assert out.Root.Pages.Kids[0].Count == 2
+    assert len(out.pages) == 3
