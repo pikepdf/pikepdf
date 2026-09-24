@@ -26,8 +26,7 @@ from pdfa_samples import (
 
 import pikepdf
 from pikepdf import Dictionary, Name
-from pikepdf.pdfa import validate
-from pikepdf.pdfa._api import convert
+from pikepdf.pdfa import prepare, resolve_save_kwargs, validate
 from pikepdf.pdfa._declare import canonicalize_xmp
 from pikepdf.pdfa._xmp_rdf import read_packet
 
@@ -285,6 +284,14 @@ def make_input(body: str, info: dict[str, str] | None, part: str = '2') -> pikep
             Dictionary({k: pikepdf.String(v) for k, v in info.items()})
         )
     return pdf
+
+
+def convert(source: Path, out: Path, flavour: str) -> Path:
+    """Prepare and save a candidate, without refusing to write a failure."""
+    with pikepdf.open(source) as pdf:
+        prepare(pdf, flavour)
+        pdf.save(out, **resolve_save_kwargs(flavour))
+    return out
 
 
 def _params():

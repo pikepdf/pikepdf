@@ -18,8 +18,7 @@ from pdfa_samples import RESOURCES, make_image_only_pdf
 import pikepdf
 from pikepdf import Array, Dictionary, Name
 from pikepdf.models._cal_icc import build_calrgb_icc
-from pikepdf.pdfa import _engine, validate_written
-from pikepdf.pdfa._api import save_settings
+from pikepdf.pdfa import _engine, resolve_save_kwargs, validate_written
 from pikepdf.pdfa._output_intent import (
     OutputIntentSpec,
     load_srgb,
@@ -80,9 +79,7 @@ def make_dirty(flavour: str) -> pikepdf.Pdf:
 
 def save_bytes(pdf: pikepdf.Pdf, flavour: str) -> bytes:
     buffer = BytesIO()
-    pdf.save(
-        buffer, **save_settings(flavour), fix_metadata_version=False, static_id=True
-    )
+    pdf.save(buffer, **resolve_save_kwargs(flavour, static_id=True))
     return buffer.getvalue()
 
 

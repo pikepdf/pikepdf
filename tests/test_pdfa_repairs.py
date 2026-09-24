@@ -20,8 +20,7 @@ from pdfa_samples import NOTO_SANS, RESOURCES, assert_verapdf_agrees, replace_xm
 import pikepdf
 from pikepdf import Name
 from pikepdf.models.metadata import decode_pdf_date
-from pikepdf.pdfa import validate
-from pikepdf.pdfa._api import convert
+from pikepdf.pdfa import save, validate
 from pikepdf.pdfa._declare import (
     add_pdfa_metadata,
     assume_local_time_zone_for_dates,
@@ -51,6 +50,12 @@ def francais_ocr(request) -> Path:
     sandwich, --output-type pdf) and checked in.
     """
     return RESOURCES / f'francais_ocr_{request.param}.pdf'
+
+
+def _save_pdfa(source: Path, out: Path, flavour: str) -> Path:
+    with pikepdf.open(source) as pdf:
+        save(pdf, out, flavour)
+    return out
 
 
 def _xmp_keys(pdf: pikepdf.Pdf) -> set[str]:
@@ -157,7 +162,7 @@ def test_add_cidsets_identity_map():
 
 @pytest.mark.parametrize('flavour', ['1b', '2b'])
 def test_cidset_only_for_pdfa1(francais_ocr, tmp_path, flavour):
-    out = convert(francais_ocr, tmp_path / 'out.pdf', flavour)
+    out = _save_pdfa(francais_ocr, tmp_path / 'out.pdf', flavour)
     with pikepdf.open(out) as pdf:
         cidfont = _fpdf2_cidfont(pdf)
         assert ('/CIDSet' in cidfont.FontDescriptor) == (flavour == '1b')
@@ -240,7 +245,7 @@ def test_strip_xmp_nested_foreign_namespace_rebuilds_packet(francais_ocr, tmp_pa
 
 
 def test_pdfa1_candidate_has_no_xref_stream(francais_ocr, tmp_path):
-    out = convert(francais_ocr, tmp_path / 'out.pdf', '1b')
+    out = _save_pdfa(francais_ocr, tmp_path / 'out.pdf', '1b')
     assert b'/ObjStm' not in out.read_bytes()
     with pikepdf.open(out) as pdf:
         assert pdf.trailer.get('/Type') != Name.XRef
@@ -249,7 +254,7 @@ def test_pdfa1_candidate_has_no_xref_stream(francais_ocr, tmp_path):
 
 @pytest.mark.parametrize('flavour', ['1b', '2b', '3b'])
 def test_repaired_candidate_validates(francais_ocr, tmp_path, flavour):
-    out = convert(francais_ocr, tmp_path / 'out.pdf', flavour)
+    out = _save_pdfa(francais_ocr, tmp_path / 'out.pdf', flavour)
     report = validate(out, flavour)
     assert report.passed, report.summary()
     assert_verapdf_agrees(out, flavour)
@@ -380,7 +385,7 @@ def test_removed_annotations_candidate_validates(tmp_path, flavour, caplog):
         _add_text_with_popup(pdf, pdf.pages[1], flags=32)  # NoView
         pdf.save(modified)
     with caplog.at_level(logging.DEBUG, logger='pikepdf.pdfa'):
-        out = convert(modified, tmp_path / 'out.pdf', flavour)
+        out = _save_pdfa(modified, tmp_path / 'out.pdf', flavour)
     assert sum('Removed 3 annotations' in m for m in caplog.messages) == 1
     with pikepdf.open(out) as pdf:
         annots = _page_annots(pdf)
@@ -445,7 +450,7 @@ def test_assume_local_time_zone_for_dates_without_xmp(los_angeles_tz):
 
 @pytest.mark.parametrize('flavour', ['1b', '2b'])
 def test_unzoned_dates_candidate_validates(tmp_path, flavour):
-    out = convert(RESOURCES / 'jbig2.pdf', tmp_path / 'out.pdf', flavour)
+    out = _save_pdfa(RESOURCES / 'jbig2.pdf', tmp_path / 'out.pdf', flavour)
     with pikepdf.open(out) as pdf:
         info, xmp = _dates(pdf)
     created = decode_pdf_date(info['/CreationDate'])

@@ -6,9 +6,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Literal, NamedTuple
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple
 
 from pikepdf.pdfa._flavour import Flavour
+
+if TYPE_CHECKING:
+    from pikepdf.pdfa._prepare import PrepareResult
 
 FindingKind = Literal['violation', 'unsupported']
 
@@ -50,12 +53,16 @@ class Report:
             assumed, or that were used to write the file.
         output_intent: ICC colour space signature of the PDF/A OutputIntent
             profile (``'RGB'``, ``'CMYK'`` or ``'GRAY'``), or None if unknown.
+        prepared: What `prepare` changed before `save` wrote the file, or
+            None if the report did not come from `save` or nothing was
+            prepared.
     """
 
     flavour: Flavour
     findings: list[Finding] = field(default_factory=list)
     save_kwargs: dict[str, Any] = field(default_factory=dict)
     output_intent: str | None = None
+    prepared: PrepareResult | None = None
 
     @property
     def verdict(self) -> Verdict:

@@ -17,7 +17,12 @@ from pikepdf.pdfa import _deps
 
 _deps.require()
 
-from pikepdf.pdfa._api import check, validate, validate_written  # noqa: E402
+from pikepdf.pdfa._api import (  # noqa: E402
+    check,
+    save,
+    validate,
+    validate_written,
+)
 from pikepdf.pdfa._flavour import Flavour  # noqa: E402
 from pikepdf.pdfa._prepare import PrepareResult, prepare  # noqa: E402
 from pikepdf.pdfa._report import (  # noqa: E402
@@ -38,6 +43,7 @@ __all__ = [
     'check',
     'prepare',
     'resolve_save_kwargs',
+    'save',
     'validate',
     'validate_written',
 ]

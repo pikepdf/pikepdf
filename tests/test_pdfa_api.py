@@ -22,9 +22,9 @@ from pikepdf.pdfa import (
     Report,
     ValidationReport,
     _engine,
+    resolve_save_kwargs,
     validate_written,
 )
-from pikepdf.pdfa._api import save_settings
 from pikepdf.pdfa._writemodel import WriteModel
 
 
@@ -71,7 +71,7 @@ def sample(kind: str, part: str = '2') -> pikepdf.Pdf:
 
 
 def save_as_validated(pdf: pikepdf.Pdf, path, flavour: Flavour):
-    pdf.save(path, fix_metadata_version=False, **save_settings(flavour))
+    pdf.save(path, **resolve_save_kwargs(flavour))
     return path
 
 
