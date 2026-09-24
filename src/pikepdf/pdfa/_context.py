@@ -10,7 +10,8 @@ from typing import Any
 
 import pikepdf
 from pikepdf.pdfa._flavour import Flavour
-from pikepdf.pdfa._report import Finding, FindingKind, ValidationReport
+from pikepdf.pdfa._report import Finding, FindingKind, Report
+from pikepdf.pdfa._writemodel import WriteModel
 
 MAX_DEPTH = 64
 MAX_INSTRUCTIONS = 20_000_000
@@ -24,6 +25,7 @@ class ValidationContext:
         flavour: The PDF/A flavour being checked.
         pdf: The open candidate file.
         report: Findings are appended here.
+        model: What the document looks like once written.
         output_intent_cs: ICC colour space signature of the PDF/A OutputIntent
             profile (``'RGB '``, ``'CMYK'`` or ``'GRAY'``), once known.
         visited: objgen of every indirect object already checked.
@@ -40,7 +42,8 @@ class ValidationContext:
 
     flavour: Flavour
     pdf: pikepdf.Pdf
-    report: ValidationReport
+    report: Report
+    model: WriteModel = field(default_factory=WriteModel.identity)
     output_intent_cs: str | None = None
     visited: set[tuple[int, int]] = field(default_factory=set)
     max_depth: int = MAX_DEPTH

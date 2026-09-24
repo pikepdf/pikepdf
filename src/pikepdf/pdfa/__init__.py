@@ -19,11 +19,18 @@ _deps.require()
 
 from pikepdf.pdfa._api import validate, validate_written  # noqa: E402
 from pikepdf.pdfa._flavour import Flavour  # noqa: E402
-from pikepdf.pdfa._report import Finding, ValidationReport  # noqa: E402
+from pikepdf.pdfa._report import (  # noqa: E402
+    Finding,
+    PdfaError,
+    Report,
+    ValidationReport,
+)
 
 __all__ = [
     'Finding',
     'Flavour',
+    'PdfaError',
+    'Report',
     'ValidationReport',
     'validate',
     'validate_written',

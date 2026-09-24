@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Literal, NamedTuple
+from typing import Any, Literal, NamedTuple
 
 from pikepdf.pdfa._flavour import Flavour
 
@@ -36,27 +36,88 @@ class Finding(NamedTuple):
         return f"[{self.kind}] {self.rule} at {self.where}: {self.message}"
 
 
+Verdict = Literal['pass', 'fail', 'not_checked']
+
+
 @dataclass
-class ValidationReport:
-    """Result of validating one file against one PDF/A flavour."""
+class Report:
+    """Result of checking one document against one PDF/A flavour.
+
+    Attributes:
+        flavour: The PDF/A flavour checked.
+        findings: Every reason the document was not approved.
+        save_kwargs: The `pikepdf.Pdf.save` keyword arguments the check
+            assumed, or that were used to write the file.
+        output_intent: ICC colour space signature of the PDF/A OutputIntent
+            profile (``'RGB'``, ``'CMYK'`` or ``'GRAY'``), or None if unknown.
+    """
 
     flavour: Flavour
     findings: list[Finding] = field(default_factory=list)
+    save_kwargs: dict[str, Any] = field(default_factory=dict)
+    output_intent: str | None = None
+
+    @property
+    def verdict(self) -> Verdict:
+        """``'pass'``, ``'fail'`` or ``'not_checked'``.
+
+        ``'fail'`` if any finding is a violation; ``'not_checked'`` if there
+        are findings but all of them are constructs the validator does not
+        check; ``'pass'`` if there are no findings.
+        """
+        if any(f.kind == 'violation' for f in self.findings):
+            return 'fail'
+        if self.findings:
+            return 'not_checked'
+        return 'pass'
 
     @property
     def passed(self) -> bool:
         """True if nothing was found that prevents approval."""
-        return not self.findings
+        return self.verdict == 'pass'
+
+    @property
+    def violations(self) -> tuple[Finding, ...]:
+        """Findings of constructs that break PDF/A."""
+        return tuple(f for f in self.findings if f.kind == 'violation')
+
+    @property
+    def unsupported(self) -> tuple[Finding, ...]:
+        """Findings of constructs the validator does not check."""
+        return tuple(f for f in self.findings if f.kind == 'unsupported')
 
     def summary(self, limit: int = 20) -> str:
-        """Return a multi-line description of the result."""
-        if self.passed:
-            return f"PDF/A-{self.flavour.value}: passed"
-        lines = [f"PDF/A-{self.flavour.value}: {len(self.findings)} finding(s)"]
+        """Return a multi-line description of the result.
+
+        Args:
+            limit: Maximum number of findings to list.
+        """
+        header = f"PDF/A-{self.flavour.value}: {self.verdict}"
+        if not self.findings:
+            return header
+        lines = [
+            f"{header} ({len(self.violations)} violation(s), "
+            f"{len(self.unsupported)} unsupported)"
+        ]
         lines.extend(f"  {finding}" for finding in self.findings[:limit])
         if len(self.findings) > limit:
             lines.append(f"  ... and {len(self.findings) - limit} more")
         return '\n'.join(lines)
+
+
+ValidationReport = Report
+
+
+class PdfaError(Exception):
+    """A document did not pass PDF/A validation.
+
+    Attributes:
+        report: The `Report` that explains why.
+    """
+
+    def __init__(self, report: Report):
+        super().__init__(report.summary())
+        self.report = report
 
 
 class Deny(Exception):

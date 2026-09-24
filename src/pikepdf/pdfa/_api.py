@@ -6,14 +6,14 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
 import pikepdf
 from pikepdf import Pdf
-from pikepdf.pdfa._context import ValidationContext
+from pikepdf.pdfa import _engine
 from pikepdf.pdfa._declare import declare_pdfa_metadata
-from pikepdf.pdfa._engine import check_document
 from pikepdf.pdfa._flavour import Flavour
 from pikepdf.pdfa._output_intent import replace_output_intents
 from pikepdf.pdfa._repair import (
@@ -21,14 +21,16 @@ from pikepdf.pdfa._repair import (
     repair_annotation_flags,
     strip_image_interpolation,
 )
-from pikepdf.pdfa._report import Deny, Finding, ValidationReport
+from pikepdf.pdfa._report import Finding, Report
 
 log = logging.getLogger(__name__)
 
 
 def validate_written(
-    input_file: Path | str, flavour: Flavour | str
-) -> ValidationReport:
+    input_file: Path | str,
+    flavour: Flavour | str,
+    save_kwargs: Mapping[str, Any] | None = None,
+) -> Report:
     """Validate a saved PDF/A candidate file.
 
     Problems with the file never raise: unexpected errors become
@@ -37,6 +39,8 @@ def validate_written(
     Args:
         input_file: The saved candidate file.
         flavour: ``'1b'``, ``'2b'`` or ``'3b'``.
+        save_kwargs: The `pikepdf.Pdf.save` settings the file was written
+            with, recorded in ``report.save_kwargs``.
 
     Returns:
         The report; ``report.passed`` is True if the file is approved.
@@ -45,18 +49,13 @@ def validate_written(
         ValueError: If *flavour* is not a supported flavour.
     """
     flavour = Flavour(flavour)
-    report = ValidationReport(flavour)
     try:
         # Keep inherited page attributes where they are: pikepdf would
         # otherwise copy them into each page, hiding page-tree inheritance.
-        with (
-            pikepdf.open(input_file, inherit_page_attributes=False) as pdf,
-            pikepdf.implicit_conversion(),
-        ):
-            check_document(ValidationContext(flavour, pdf, report))
-    except Deny as e:
-        report.findings.append(e.finding)
+        with pikepdf.open(input_file, inherit_page_attributes=False) as pdf:
+            report = _engine.run(pdf, flavour, save_kwargs=save_kwargs)
     except Exception as e:  # pylint: disable=broad-except
+        report = Report(flavour, save_kwargs=dict(save_kwargs or {}))
         report.findings.append(
             Finding(
                 'pikepdf:internal',
