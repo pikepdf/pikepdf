@@ -1,25 +1,45 @@
 <!-- SPDX-FileCopyrightText: 2026 James R. Barlow -->
 <!-- SPDX-License-Identifier: MPL-2.0 -->
 
-# Third-party components in pikepdf binary wheels
+# Third-party components in pikepdf distributions
 
 pikepdf itself is licensed under the Mozilla Public License 2.0 (MPL-2.0); see
 `LICENSE.txt` in the distribution root. That is the license of *pikepdf's own
 source code*, and it is what the package's `License-Expression` metadata field
 declares.
 
-pikepdf **source distributions** (sdists) contain only pikepdf's own code and
-carry no third-party binaries.
+pikepdf **source distributions** (sdists) contain pikepdf's own code and the
+third-party data files listed under
+[Data files in all distributions](#data-files-in-all-distributions); they carry
+no third-party binaries.
 
 pikepdf **binary wheels** additionally contain compiled third-party libraries
 that the wheel-repair tools (`auditwheel` on Linux, `delocate` on macOS,
 `delvewheel` on Windows) vendored into the wheel so it is self-contained. This
-file is the attribution and license mapping for those components. The license
-texts referenced below are distributed alongside this file, and every file in
-this directory is listed in the wheel's `License-File` metadata.
+file is the attribution and license mapping for all of these components. The
+license texts referenced below are distributed alongside this file, and every
+file in this directory is listed in the wheel's `License-File` metadata.
 
 None of the components below change pikepdf's own license. They are separate
-works redistributed in unmodified binary form.
+works, redistributed in unmodified form except where noted.
+
+## Data files in all distributions
+
+The `pikepdf.pdfa` package ships these third-party files in every sdist and
+wheel. They are data or source, not compiled code, and are redistributed
+unmodified except as noted.
+
+| Component | File | License | Text |
+| --- | --- | --- | --- |
+| sRGB ICC profile from icc-profiles-free (Kai-Uwe Behrmann, Marti Maria, Photogamut, Graeme Gill, ColorSolutions) | `pikepdf/pdfa/data/sRGB.icc` | Zlib | [`sRGB-icc-profile.txt`](sRGB-icc-profile.txt) |
+| [veraPDF validation profiles](https://github.com/veraPDF/veraPDF-validation-profiles) rules, Copyright © veraPDF Consortium | `pikepdf/pdfa/data/verapdf_rules.json` | CC-BY-4.0 | [`CC-BY-4.0-veraPDF.txt`](CC-BY-4.0-veraPDF.txt) |
+| [pdfminer.six](https://github.com/pdfminer/pdfminer.six) Latin encoding table (Yusuke Shinyama) | `pikepdf/pdfa/_latin_enc.py` | MIT | [`pdfminer.six.txt`](pdfminer.six.txt) |
+
+`verapdf_rules.json` contains the rule identifiers, descriptions, test
+expressions and error messages of the veraPDF validation profiles. The content
+was converted from the profile XML to JSON and reorganized by rule id; the rule
+text is otherwise unchanged. The veraPDF Consortium does not endorse pikepdf or
+its PDF/A validator.
 
 ## Which components are in which wheel
 
@@ -82,6 +102,6 @@ For reference, these are *not* redistributed in pikepdf wheels:
 ## Reporting a problem with this file
 
 If you are performing a compliance review and find a component that is present
-in a wheel but missing here, or a mapping that looks wrong, please open an issue
+in a distribution but missing here, or a mapping that looks wrong, please open an issue
 at https://github.com/pikepdf/pikepdf/issues — that is a bug in this file and we
 want to fix it.

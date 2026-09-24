@@ -57,6 +57,30 @@ SPDX-FileCopyrightText = "Microsoft Corporation"
 SPDX-License-Identifier = "LicenseRef-license-text-verbatim"
 
 [[annotations]]
+path = "third-party-licenses/sRGB-icc-profile.txt"
+precedence = "aggregate"
+SPDX-FileCopyrightText = [
+    "Kai-Uwe Behrmann <www.behrmann.name>",
+    "Marti Maria <www.littlecms.com>",
+    "Photogamut <www.photogamut.org>",
+    "Graeme Gill <www.argyllcms.com>",
+    "ColorSolutions <www.basICColor.com>",
+]
+SPDX-License-Identifier = "LicenseRef-license-text-verbatim"
+
+[[annotations]]
+path = "third-party-licenses/CC-BY-4.0-veraPDF.txt"
+precedence = "aggregate"
+SPDX-FileCopyrightText = ["veraPDF Consortium", "Creative Commons Corporation"]
+SPDX-License-Identifier = "LicenseRef-license-text-verbatim"
+
+[[annotations]]
+path = "third-party-licenses/pdfminer.six.txt"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2004-2016 Yusuke Shinyama"
+SPDX-License-Identifier = "LicenseRef-license-text-verbatim"
+
+[[annotations]]
 path = [
     ".git_archival.txt",
     "REUSE.toml",
