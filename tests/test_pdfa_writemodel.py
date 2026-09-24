@@ -10,6 +10,7 @@ import pytest
 pytest.importorskip('jsonschema')
 
 import base64
+import json
 import zlib
 from io import BytesIO
 from typing import Any
@@ -21,7 +22,7 @@ from pikepdf import Array, Dictionary, Name
 from pikepdf.pdfa import _engine, validate_written
 from pikepdf.pdfa._api import check
 from pikepdf.pdfa._save_kwargs import resolve_save_kwargs
-from pikepdf.pdfa._shallow import shallow_json
+from pikepdf.pdfa._shallow import shallow_json, shallow_json_of
 from pikepdf.pdfa._writemodel import WriteModel
 
 PIL = pytest.importorskip('PIL.Image')
@@ -468,3 +469,41 @@ def test_check_agrees_with_written(kind, flavour, tmp_path):
     assert report.verdict == kind
     assert report.verdict == written.verdict
     assert {f.rule for f in report.findings} == {f.rule for f in written.findings}
+
+
+def test_null_resource_entry_matches_written(tmp_path):
+    """A null value in a resource map is absent once written, so check skips it.
+
+    qpdf drops dictionary keys whose value is null when it writes the file;
+    the in-memory walk must treat them the same way, or check() reports a
+    finding that validate_written() cannot reproduce.
+    """
+    pdf = make_image_only_pdf()
+    page = pdf.pages[0].obj
+    assert not page.Resources.is_indirect
+    # A reference to an object that does not exist resolves to null. The
+    # dictionary setter refuses None, so splice the reference in through
+    # qpdf JSON, which accepts unresolved references.
+    value = shallow_json_of(page)
+    value['/Resources']['/XObject']['/Missing'] = '9999 0 R'
+    num, gen = page.objgen
+    doc = {
+        'qpdf': [
+            {
+                'jsonversion': 2,
+                'pdfversion': pdf.pdf_version,
+                'maxobjectid': max(o.objgen[0] for o in pdf.objects),
+            },
+            {f'obj:{num} {gen} R': {'value': value}},
+        ]
+    }
+    pdf.update_from_qpdf_json(BytesIO(json.dumps(doc).encode()))
+    assert ('/Missing', None) in list(pdf.pages[0].Resources.XObject.items())
+    predicted = check(pdf, '2b')
+    out = tmp_path / 'null_resource.pdf'
+    pdf.save(out, **predicted.save_kwargs)
+    written = validate_written(out, '2b', save_kwargs=predicted.save_kwargs)
+    assert sorted(f.rule for f in predicted.findings) == sorted(
+        f.rule for f in written.findings
+    )
+    assert predicted.verdict == written.verdict == 'pass'

@@ -215,6 +215,10 @@ class DocumentWalker:
             and not isinstance(value, pikepdf.Stream)
         ):
             for key, element in value.items():
+                if element is None:
+                    # A null value is an absent entry, and qpdf drops the
+                    # key when it writes the file.
+                    continue
                 yield self._child(element, spec, depth, f'{where}{key}')
         else:
             yield self._child(value, spec, depth, where)
