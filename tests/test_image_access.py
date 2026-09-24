@@ -260,6 +260,25 @@ def test_inline_read(inline):
     assert iimage.read_bytes()[0:6] == b'\xff\xff\xff\x00\x00\x00'
 
 
+@pytest.mark.parametrize(
+    'content, raw',
+    [
+        (b'q BI /W 1 /H 1 /BPC 8 /CS /G ID \x00 EI Q', b'\x00 '),
+        (b'q BI /W 1 /H 1 /BPC 8 /CS /G ID\n\x00\nEI Q', b'\x00\n'),
+        (b'q BI /W 2 /H 1 /BPC 8 /CS /G /F /AHx ID 00ff> EI Q', b'00ff> '),
+    ],
+)
+def test_inline_read_raw_bytes(content, raw):
+    pdf = pikepdf.new()
+    instructions = pikepdf.parse_content_stream(pdf.make_stream(content))
+    iimage = next(
+        inst.iimage
+        for inst in instructions
+        if isinstance(inst, pikepdf.ContentStreamInlineImage)
+    )
+    assert iimage.read_raw_bytes() == raw
+
+
 def test_inline_to_pil(inline):
     iimage, _pdf = inline
     im = iimage.as_pil_image()

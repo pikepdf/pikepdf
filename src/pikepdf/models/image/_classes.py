@@ -758,10 +758,7 @@ class PdfInlineImage(PdfImageBase):
         return (
             self.obj == other.obj
             and isinstance(other, PdfInlineImage)
-            and (
-                self._data._inline_image_raw_bytes()
-                == other._data._inline_image_raw_bytes()
-            )
+            and (self.read_raw_bytes() == other.read_raw_bytes())
         )
 
     @staticmethod
@@ -880,7 +877,7 @@ class PdfInlineImage(PdfImageBase):
             yield b'BI\n'
             yield b' '.join(m for m in metadata_tokens())
             yield b'\nID\n'
-            yield self._data._inline_image_raw_bytes()
+            yield self.read_raw_bytes()
             yield b'EI'
 
         return b''.join(inline_image_tokens())
@@ -1000,6 +997,16 @@ class PdfInlineImage(PdfImageBase):
             apply_decode_array=apply_decode_array,
             apply_mask=apply_mask,
         )
+
+    def read_raw_bytes(self) -> bytes:
+        """Return the image data exactly as it appears in the content stream.
+
+        The data is still encoded with the image's filters, if any. It is the
+        span qpdf took from the content stream: it begins after the single
+        whitespace byte that follows ``ID`` and ends immediately before
+        ``EI``, so it includes any whitespace that precedes ``EI``.
+        """
+        return self._data._inline_image_raw_bytes()
 
     def read_bytes(self) -> bytes:
         """Return decompressed image bytes."""
