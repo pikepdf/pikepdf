@@ -326,6 +326,18 @@ class PdfMetadata(MutableMapping):
         del self._xmp_doc[key]
 
     @property
+    def recovered(self) -> bool:
+        """True if the XMP could not be read as it was.
+
+        The XMP was not well-formed or was not XMP, and was repaired, or
+        replaced with empty XMP, as it was read. What this object holds may
+        differ from the PDF's XMP, and it replaces the PDF's XMP when
+        metadata opened for editing is saved. Open metadata with
+        ``strict=True`` to raise an exception instead of repairing.
+        """
+        return self._xmp_doc.recovered
+
+    @property
     def pdfa_status(self) -> str:
         """Return the PDF/A conformance level claimed by this PDF, or False.
 

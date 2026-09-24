@@ -1797,3 +1797,47 @@ class TestAllDescriptions:
         )
         reread = XmpDocument(xmp.to_bytes())
         assert len(_descriptions(reread)) == 1
+
+
+class TestRecovered:
+    def test_clean(self):
+        assert XmpDocument(DISTILLER_PRODUCER).recovered is False
+        assert XmpDocument().recovered is False
+        assert XmpDocument(b'').recovered is False
+
+    def test_clean_strict(self):
+        xmp = XmpDocument(DISTILLER_PRODUCER, overwrite_invalid_xml=False)
+        assert xmp.recovered is False
+
+    def test_illegal_bytes(self):
+        xmp = XmpDocument(
+            _xmp_packet(
+                '<rdf:Description rdf:about="" '
+                'xmlns:pdf="http://ns.adobe.com/pdf/1.3/">'
+                '<pdf:Producer>a&#0;b</pdf:Producer></rdf:Description>'
+            )
+        )
+        assert xmp.recovered is True
+        assert xmp['pdf:Producer'] == 'ab'
+
+    def test_undeclared_prefix(self):
+        xmp = XmpDocument(
+            _xmp_packet(
+                '<rdf:Description rdf:about="">'
+                '<pdf:Producer>P</pdf:Producer></rdf:Description>'
+            )
+        )
+        assert xmp.recovered is True
+        assert xmp['pdf:Producer'] == 'P'
+
+    def test_garbage_replaced(self):
+        assert XmpDocument(b'not xml at all').recovered is True
+
+    def test_not_xmp_replaced(self):
+        assert XmpDocument(b'<root><child/></root>').recovered is True
+
+    def test_pdf_metadata(self):
+        pdf = _pdf_with_xmp(b'not xml at all')
+        assert pdf.open_metadata().recovered is True
+        pdf = _pdf_with_xmp(DISTILLER_PRODUCER)
+        assert pdf.open_metadata().recovered is False

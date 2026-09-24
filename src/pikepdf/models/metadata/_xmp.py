@@ -107,6 +107,10 @@ class XmpDocument:
             )
 
         self._strict = not overwrite_invalid_xml
+        #: True if the XMP could not be read as it was and had to be repaired
+        #: or replaced with empty XMP. The repaired XMP is what will be
+        #: written, so the original is not preserved.
+        self.recovered: bool = False
         self._xmp: _ElementTree = self._parse(data, parsers, overwrite_invalid_xml)
 
     def _parse(
@@ -125,7 +129,7 @@ class XmpDocument:
             data = XMP_EMPTY  # on some platforms lxml chokes on empty documents
 
         xmp: _ElementTree | None = None
-        for parser in parsers:
+        for index, parser in enumerate(parsers):
             try:
                 xmp = parser(data)
             except (
@@ -135,8 +139,11 @@ class XmpDocument:
                     e
                 ).startswith("Document is empty"):
                     xmp = _parser_replace_with_empty_xmp()
+                    self.recovered = True
                     break
             else:
+                # Any parser after the first one repairs or replaces the XMP
+                self.recovered = self.recovered or index > 0
                 break
 
         if xmp is not None:
@@ -144,7 +151,8 @@ class XmpDocument:
                 pis = xmp.xpath('/processing-instruction()')
                 for pi in pis:  # type: ignore[union-attr]
                     etree.strip_tags(xmp, pi.tag)  # type: ignore[union-attr]
-                self._repair_namespaces(xmp)
+                if self._repair_namespaces(xmp):
+                    self.recovered = True
                 self._get_rdf_root_from(xmp)
             except (
                 Exception  # pylint: disable=broad-except
@@ -153,14 +161,16 @@ class XmpDocument:
             ) as e:
                 log.warning("Error occurred parsing XMP", exc_info=e)
                 xmp = _parser_replace_with_empty_xmp()
+                self.recovered = True
         else:
             log.warning("Error occurred parsing XMP")
             xmp = _parser_replace_with_empty_xmp()
+            self.recovered = True
 
         return xmp
 
     @classmethod
-    def _repair_namespaces(cls, xmp: _ElementTree) -> None:
+    def _repair_namespaces(cls, xmp: _ElementTree) -> bool:
         """Rebind names that were parsed without their namespace.
 
         When XML is recovered after a parse error, lxml keeps an element or
@@ -170,6 +180,9 @@ class XmpDocument:
         iterated but never looked up, since lookups resolve the prefix to its
         URI, and it cannot be serialized to well-formed XML either. Rebind
         the names we recognize and discard the rest.
+
+        Returns:
+            True if any name was rebound or discarded.
         """
         repaired = dropped = 0
         for element in list(xmp.iter()):
@@ -207,6 +220,7 @@ class XmpDocument:
                 repaired,
                 dropped,
             )
+        return bool(repaired or dropped)
 
     @classmethod
     def _split_literal_name(cls, name: str) -> tuple[str | None, str]:
