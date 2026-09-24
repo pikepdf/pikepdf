@@ -3,12 +3,14 @@
 
 from __future__ import annotations
 
+import errno
 import logging
 import os
 import os.path
 import pathlib
 import subprocess
 import sys
+import tempfile
 from io import BytesIO, FileIO
 from shutil import copy
 
@@ -16,7 +18,7 @@ import pytest
 
 import pikepdf
 from pikepdf import Pdf, PdfError
-from pikepdf._io import atomic_overwrite
+from pikepdf._io import atomic_overwrite, atomic_write_verified
 
 # pylint: disable=redefined-outer-name
 
@@ -316,3 +318,200 @@ def test_newline_handling(resources):
 def test_save_to_dev_null():
     with Pdf.new() as pdf:
         pdf.save(os.devnull)
+
+
+def _pikepdf_temps(directory):
+    return list(pathlib.Path(directory).glob('.pikepdf.*'))
+
+
+def test_atomic_write_verified_new(tmp_path):
+    dest = tmp_path / 'new.pdf'
+    seen = {}
+
+    def verify(tmp):
+        seen['path'] = tmp
+        seen['exists'] = tmp.exists()
+        seen['content'] = tmp.read_bytes()
+        seen['dest_exists'] = dest.exists()
+
+    with atomic_write_verified(dest, verify) as f:
+        assert f.seekable()
+        f.write(b'hello')
+
+    assert dest.read_bytes() == b'hello'
+    assert seen['path'].parent == tmp_path
+    assert seen['path'].name.startswith('.pikepdf.new.pdf.')
+    assert seen['exists']
+    assert seen['content'] == b'hello'
+    assert not seen['dest_exists']
+    assert _pikepdf_temps(tmp_path) == []
+
+
+def test_atomic_write_verified_existing(tmp_path):
+    dest = tmp_path / 'existing.pdf'
+    dest.write_bytes(b'old')
+    if os.name != 'nt':
+        dest.chmod(0o640)
+    os.utime(dest, (1_000_000, 1_000_000))
+
+    with atomic_write_verified(dest, lambda tmp: None) as f:
+        f.write(b'new')
+
+    assert dest.read_bytes() == b'new'
+    st = dest.stat()
+    assert st.st_mtime > 1_000_000
+    if os.name != 'nt':
+        assert st.st_mode & 0o777 == 0o640
+    assert _pikepdf_temps(tmp_path) == []
+
+
+class VerifyRejected(Exception):
+    pass
+
+
+def _reject(tmp):
+    raise VerifyRejected('bad bytes')
+
+
+def test_atomic_write_verified_reject_new(tmp_path):
+    dest = tmp_path / 'new.pdf'
+    with pytest.raises(VerifyRejected), atomic_write_verified(dest, _reject) as f:
+        f.write(b'unverified')
+    assert not dest.exists()
+    assert _pikepdf_temps(tmp_path) == []
+
+
+def test_atomic_write_verified_reject_existing(tmp_path):
+    dest = tmp_path / 'existing.pdf'
+    dest.write_bytes(b'original')
+    os.utime(dest, (1_000_000, 1_000_000))
+    with pytest.raises(VerifyRejected), atomic_write_verified(dest, _reject) as f:
+        f.write(b'unverified')
+    assert dest.read_bytes() == b'original'
+    assert dest.stat().st_mtime == 1_000_000
+    assert _pikepdf_temps(tmp_path) == []
+
+
+@pytest.mark.parametrize('exists', [False, True])
+def test_atomic_write_verified_body_raises(tmp_path, exists):
+    dest = tmp_path / 'dest.pdf'
+    if exists:
+        dest.write_bytes(b'original')
+        os.utime(dest, (1_000_000, 1_000_000))
+    called = []
+    with (
+        pytest.raises(ValueError, match='oops'),
+        atomic_write_verified(dest, called.append) as f,
+    ):
+        f.write(b'partial')
+        raise ValueError('oops')
+    assert called == []
+    if exists:
+        assert dest.read_bytes() == b'original'
+        assert dest.stat().st_mtime == 1_000_000
+    else:
+        assert not dest.exists()
+    assert _pikepdf_temps(tmp_path) == []
+
+
+def test_atomic_write_verified_keyboard_interrupt(tmp_path):
+    dest = tmp_path / 'dest.pdf'
+    with pytest.raises(KeyboardInterrupt), atomic_write_verified(dest, _reject) as f:
+        f.write(b'partial')
+        raise KeyboardInterrupt
+    assert not dest.exists()
+    assert _pikepdf_temps(tmp_path) == []
+
+
+_UMASK_REPRO = """
+import os, sys
+from pathlib import Path
+from pikepdf._io import atomic_write_verified
+
+os.umask(0o027)
+dest = Path(sys.argv[1])
+with atomic_write_verified(dest, lambda tmp: None) as f:
+    f.write(b'x')
+print(oct(dest.stat().st_mode & 0o777))
+"""
+
+
+@pytest.mark.skipif(os.name == 'nt', reason="POSIX permissions")
+def test_atomic_write_verified_umask(tmp_path):
+    dest = tmp_path / 'umask.pdf'
+    result = subprocess.run(
+        [sys.executable, '-c', _UMASK_REPRO, str(dest)],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert result.stdout.strip() == '0o640'
+    assert dest.stat().st_mode & 0o777 == 0o640
+
+
+@pytest.mark.skipif(os.name == 'nt', reason="no /dev/null semantics on Windows")
+def test_atomic_write_verified_devnull():
+    verified = []
+    with atomic_write_verified(pathlib.Path(os.devnull), verified.append) as f:
+        f.write(b'discard me')
+    assert len(verified) == 1
+    assert pathlib.Path(os.devnull).exists()
+    assert not pathlib.Path(os.devnull).is_file()
+
+
+def test_atomic_write_verified_exdev(tmp_path, monkeypatch):
+    dest = tmp_path / 'dest.pdf'
+    dest.write_bytes(b'original')
+    real_replace = os.replace
+    calls = []
+
+    def fake_replace(src, dst, *args, **kwargs):
+        if not calls:
+            calls.append((src, dst))
+            raise OSError(errno.EXDEV, 'Invalid cross-device link')
+        return real_replace(src, dst, *args, **kwargs)
+
+    monkeypatch.setattr(os, 'replace', fake_replace)
+    with atomic_write_verified(dest, lambda tmp: None) as f:
+        f.write(b'verified bytes')
+    assert calls
+    assert dest.read_bytes() == b'verified bytes'
+    assert _pikepdf_temps(tmp_path) == []
+
+
+def test_atomic_write_verified_permission_fallback(tmp_path, monkeypatch):
+    dest = tmp_path / 'dest.pdf'
+    real_open = os.open
+    opened = []
+
+    def fake_open(path, flags, *args, **kwargs):
+        p = pathlib.Path(path)
+        if p.parent == tmp_path and p.name.startswith('.pikepdf.'):
+            raise PermissionError(errno.EACCES, 'denied', str(path))
+        opened.append(p)
+        return real_open(path, flags, *args, **kwargs)
+
+    monkeypatch.setattr(os, 'open', fake_open)
+    seen = []
+    with atomic_write_verified(dest, seen.append) as f:
+        f.write(b'via tempdir')
+    assert dest.read_bytes() == b'via tempdir'
+    assert seen[0].parent == pathlib.Path(tempfile.gettempdir())
+    assert seen[0].name.startswith('.pikepdf.dest.pdf.')
+    assert not seen[0].exists()
+    assert _pikepdf_temps(tmp_path) == []
+
+
+@pytest.mark.skipif(os.name == 'nt', reason="symlinks need privileges on Windows")
+def test_atomic_write_verified_symlink(tmp_path):
+    target = tmp_path / 'target.pdf'
+    target.write_bytes(b'target')
+    link = tmp_path / 'link.pdf'
+    link.symlink_to(target)
+    with atomic_write_verified(link, lambda tmp: None) as f:
+        f.write(b'new')
+    assert not link.is_symlink()
+    assert link.is_file()
+    assert link.read_bytes() == b'new'
+    assert target.read_bytes() == b'target'
+    assert _pikepdf_temps(tmp_path) == []
