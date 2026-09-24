@@ -114,6 +114,44 @@ to that project for the report.
   `def f(key: pikepdf.Name | pikepdf.NamePath)`) without importing a private
   name.
 
+### Metadata and PDF/A
+
+OCRmyPDF tested its PDF/A output against veraPDF, and found files that
+pikepdf's metadata handling made invalid. Thanks to that project for the
+report.
+
+- XMP language alternatives such as `dc:title` and `dc:description` are now
+  read from their `x-default` item, as the XMP specification defines, rather
+  than from the first item. Acrobat writes `x-default` last when a document
+  has several languages, so `/Title` and `/Subject` were synced from the wrong
+  language, and PDF/A-1 validators rejected the result.
+- **Behavior change:** Setting a language alternative now updates its
+  `x-default` item and keeps the other languages, instead of replacing all of
+  them with the new value. An item that held the same text as the old default
+  is updated too, as Adobe's XMP toolkit does. Assigning several values to a
+  language alternative that pikepdf does not know joins them into one
+  `x-default` item, instead of writing several `x-default` items.
+- XMP properties are now read from every top-level `rdf:Description`, not only
+  those with `rdf:about=""`. Properties in Descriptions with
+  `rdf:about="uuid:..."` (written by Distiller and older Acrobat) or with no
+  `rdf:about` could not be read or deleted, and setting one added a duplicate,
+  which made veraPDF reject the whole packet. Setting a property now removes
+  any other occurrences of it, and deleting it removes all of them.
+- **Behavior change:** When XMP is written, every top-level `rdf:Description`
+  gets the same `rdf:about` value, as the XMP specification requires, and
+  empty Descriptions are removed. The value is kept if the non-empty values
+  agree, and made empty if they conflict.
+- Added {attr}`pikepdf.models.PdfMetadata.recovered` and
+  `XmpDocument.recovered`, which are `True` if the XMP was not well-formed and
+  had to be repaired or replaced as it was read.
+- Added {meth}`pikepdf.PdfInlineImage.read_raw_bytes`, which returns the
+  still-encoded data of an inline image exactly as it appears in the content
+  stream.
+- {meth}`pikepdf.Pdf.save` now corrects `/Count` in each node of the page
+  tree to the number of pages beneath it. qpdf repairs a damaged page tree but
+  left `/Count` as it was, so a wrong `/Count` in the input was written
+  unchanged, and veraPDF could not validate the file at all.
+
 ### Behavior changes
 
 - **Behavior change:** Reading `PdfImage` metadata such as `.width`,

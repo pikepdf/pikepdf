@@ -92,7 +92,14 @@ Photoshop) and converts values to it on assignment:
   `pdfaid:part` becomes its decimal form, and a `bool` assigned to
   `xmpRights:Marked` becomes `True` or `False`.
 - Language alternatives such as `dc:title` accept a plain string, which becomes
-  the `x-default` alternative.
+  the `x-default` alternative. Reading one returns its `x-default` value, or
+  the first alternative if none is marked `x-default`. Assigning to one
+  replaces only the `x-default` value and keeps the other languages.
+
+XMP lets a document spread its properties over several `rdf:Description`
+elements. pikepdf reads and edits them all as one set of properties, whatever
+their `rdf:about` value, and when it writes the XMP, it gives them all the same
+`rdf:about`, as the specification requires.
 
 ```{eval-rst}
 .. doctest::
