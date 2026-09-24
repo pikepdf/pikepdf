@@ -1,0 +1,134 @@
+{
+  "$comment": "PDF/A-1b (ISO 19005-1, based on PDF 1.4) restrictions layered on common.json. Roles not listed here are used from common.json unchanged.",
+  "$defs": {
+    "Catalog": {
+      "allOf": [
+        {"$ref": "common.json#/$defs/Catalog"},
+        {
+          "properties": {
+            "/Version": {
+              "pattern": "^/1\\.[0-4]$",
+              "x-unsupported": true,
+              "x-message": "PDF/A-1 files are limited to PDF 1.4"
+            }
+          }
+        }
+      ]
+    },
+    "Page": {
+      "allOf": [
+        {"$ref": "common.json#/$defs/Page"},
+        {
+          "properties": {
+            "/Group": {
+              "$ref": "common.json#/$defs/forbidden",
+              "x-verapdf": ["ISO_19005_1:6.4-3"],
+              "x-message": "transparency groups are not permitted in PDF/A-1"
+            },
+            "/Tabs": {"$ref": "common.json#/$defs/unsupported", "x-message": "/Tabs is not part of PDF 1.4"},
+            "/UserUnit": {"$ref": "common.json#/$defs/unsupported", "x-message": "/UserUnit is not part of PDF 1.4"}
+          }
+        }
+      ]
+    },
+    "FormXObject": {
+      "allOf": [
+        {"$ref": "common.json#/$defs/FormXObject"},
+        {
+          "properties": {
+            "/Group": {
+              "$ref": "common.json#/$defs/forbidden",
+              "x-verapdf": ["ISO_19005_1:6.4-3"],
+              "x-message": "transparency groups are not permitted in PDF/A-1"
+            }
+          }
+        }
+      ]
+    },
+    "ImageXObject": {
+      "allOf": [
+        {"$ref": "common.json#/$defs/ImageXObject"},
+        {
+          "properties": {
+            "/BitsPerComponent": {"enum": [1, 2, 4, 8], "x-verapdf": ["ISO_19005_1:6.2.4-4"]},
+            "/SMask": {
+              "$ref": "common.json#/$defs/forbidden",
+              "x-verapdf": ["ISO_19005_1:6.4-2"],
+              "x-message": "soft masks are not permitted in PDF/A-1"
+            }
+          }
+        }
+      ]
+    },
+    "ExtGState": {
+      "allOf": [
+        {"$ref": "common.json#/$defs/ExtGState"},
+        {
+          "properties": {
+            "/SMask": {
+              "const": "/None",
+              "x-verapdf": ["ISO_19005_1:6.4-1"],
+              "x-message": "soft masks are not permitted in PDF/A-1"
+            },
+            "/BM": {
+              "enum": ["/Normal", "/Compatible"],
+              "x-verapdf": ["ISO_19005_1:6.4-4"],
+              "x-message": "blend modes other than Normal are not permitted in PDF/A-1"
+            },
+            "/CA": {"const": 1, "x-verapdf": ["ISO_19005_1:6.4-5"], "x-message": "/CA shall be 1.0 in PDF/A-1"},
+            "/ca": {"const": 1, "x-verapdf": ["ISO_19005_1:6.4-6"], "x-message": "/ca shall be 1.0 in PDF/A-1"}
+          }
+        }
+      ]
+    },
+    "Annot": {
+      "allOf": [
+        {"$ref": "common.json#/$defs/Annot"},
+        {
+          "properties": {
+            "/Subtype": {
+              "enum": [
+                "/Text", "/Link", "/FreeText", "/Line", "/Square", "/Circle", "/Highlight", "/Underline",
+                "/Squiggly", "/StrikeOut", "/Stamp", "/Ink", "/Popup", "/Widget", "/PrinterMark", "/TrapNet"
+              ],
+              "x-verapdf": ["ISO_19005_1:6.5.2-1"],
+              "x-message": "annotation type not permitted in PDF/A-1"
+            }
+          }
+        }
+      ]
+    },
+    "PopupAnnot": {
+      "allOf": [{"$ref": "common.json#/$defs/PopupAnnot"}, {"$ref": "common.json#/$defs/annotF"}]
+    },
+    "FontProgram": {
+      "allOf": [
+        {"$ref": "common.json#/$defs/FontProgram"},
+        {
+          "properties": {
+            "/Subtype": {
+              "enum": ["/Type1C", "/CIDFontType0C"],
+              "x-verapdf": ["ISO_19005_1:6.3.2-7"],
+              "x-message": "font file /Subtype shall be Type1C or CIDFontType0C in PDF/A-1"
+            }
+          }
+        }
+      ]
+    },
+    "MetadataStream": {
+      "allOf": [
+        {"$ref": "common.json#/$defs/MetadataStream"},
+        {
+          "properties": {
+            "/Filter": {
+              "$ref": "common.json#/$defs/forbidden",
+              "x-verapdf": ["ISO_19005_1:6.7.2-2"],
+              "x-message": "the catalog metadata stream shall not be filtered in PDF/A-1"
+            },
+            "/DecodeParms": {"$ref": "common.json#/$defs/forbidden", "x-verapdf": ["ISO_19005_1:6.7.2-2"]}
+          }
+        }
+      ]
+    }
+  }
+}

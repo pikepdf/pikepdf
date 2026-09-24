@@ -39,6 +39,7 @@ id = "debug-statements"
 [[repos.hooks]]
 id = "name-tests-test"
 args = ["--pytest-test-first"]
+exclude = "^tests/pdfa_samples\\.py$"
 
 [[repos]]
 repo = "local"

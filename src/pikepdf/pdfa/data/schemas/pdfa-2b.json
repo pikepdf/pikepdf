@@ -1,0 +1,8 @@
+{
+  "$comment": "PDF/A-2b (ISO 19005-2, based on PDF 1.7) additions to common.json. common.json already describes the most permissive (PDF/A-2 and -3) shapes, so roles not listed here are used unchanged.",
+  "$defs": {
+    "Catalog": {
+      "allOf": [{"$ref": "common.json#/$defs/Catalog"}]
+    }
+  }
+}

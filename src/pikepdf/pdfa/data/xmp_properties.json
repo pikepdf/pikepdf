@@ -1,0 +1,91 @@
+{
+  "$comment": "XMP properties accepted by the pikepdf PDF/A validator, by namespace URI and property name, with the value type each must have. 'xmp2004' applies to PDF/A-1 (XMP Specification January 2004), 'xmp2005' to PDF/A-2 and -3 (XMP Specification September 2005). The tables are deliberately narrower than the specifications and match what veraPDF accepts: properties added to XMP after 2005 (xmpMM:OriginalDocumentID, photoshop:DocumentAncestors, photoshop:ColorMode, photoshop:ICCProfile, photoshop:History, pdf:Trapped) and xmp:Advisory (an XPath bag veraPDF does not accept) are left out, and structured properties are listed but never approved, since their content is not inspected. Types and the RDF form their values must have: text, mimetype, date, integer and boolean are simple values (element text or an attribute of rdf:Description, not trimmed of whitespace); langalt is an rdf:Alt whose items all have xml:lang; bag is an rdf:Bag, seq an rdf:Seq and seq-date an rdf:Seq of dates, all of simple items; struct and seq-struct are denied as unsupported.",
+  "namespaces": {
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "x": "adobe:ns:meta/",
+    "dc": "http://purl.org/dc/elements/1.1/",
+    "xmp": "http://ns.adobe.com/xap/1.0/",
+    "xmpMM": "http://ns.adobe.com/xap/1.0/mm/",
+    "xmpRights": "http://ns.adobe.com/xap/1.0/rights/",
+    "pdf": "http://ns.adobe.com/pdf/1.3/",
+    "pdfaid": "http://www.aiim.org/pdfa/ns/id/",
+    "pdfuaid": "http://www.aiim.org/pdfua/ns/id/",
+    "stRef": "http://ns.adobe.com/xap/1.0/sType/ResourceRef#",
+    "stEvt": "http://ns.adobe.com/xap/1.0/sType/ResourceEvent#",
+    "photoshop": "http://ns.adobe.com/photoshop/1.0/"
+  },
+  "declaration_only": {
+    "$comment": "Namespaces that may be declared (Ghostscript declares iX) but whose prefix must not be used",
+    "iX": "http://ns.adobe.com/iX/1.0/"
+  },
+  "xmp2004": {
+    "http://purl.org/dc/elements/1.1/": {
+      "contributor": "bag", "coverage": "text", "creator": "seq", "date": "seq-date",
+      "description": "langalt", "format": "mimetype", "identifier": "text", "language": "bag",
+      "publisher": "bag", "relation": "bag", "rights": "langalt", "source": "text",
+      "subject": "bag", "title": "langalt", "type": "bag"
+    },
+    "http://ns.adobe.com/xap/1.0/": {
+      "BaseURL": "text", "CreateDate": "date", "CreatorTool": "text",
+      "Identifier": "bag", "MetadataDate": "date", "ModifyDate": "date", "Nickname": "text"
+    },
+    "http://ns.adobe.com/xap/1.0/mm/": {
+      "DocumentID": "text", "LastURL": "text", "Manager": "text", "ManageTo": "text",
+      "ManageUI": "text", "ManagerVariant": "text", "RenditionClass": "text",
+      "RenditionParams": "text", "SaveID": "integer", "VersionID": "text"
+    },
+    "http://ns.adobe.com/xap/1.0/rights/": {
+      "Certificate": "text", "Marked": "boolean", "Owner": "bag", "UsageTerms": "langalt",
+      "WebStatement": "text"
+    },
+    "http://ns.adobe.com/pdf/1.3/": {
+      "Keywords": "text", "PDFVersion": "text", "Producer": "text"
+    },
+    "http://www.aiim.org/pdfa/ns/id/": {
+      "part": "integer", "conformance": "text", "amd": "text"
+    }
+  },
+  "xmp2005": {
+    "http://purl.org/dc/elements/1.1/": {
+      "contributor": "bag", "coverage": "text", "creator": "seq", "date": "seq-date",
+      "description": "langalt", "format": "mimetype", "identifier": "text", "language": "bag",
+      "publisher": "bag", "relation": "bag", "rights": "langalt", "source": "text",
+      "subject": "bag", "title": "langalt", "type": "bag"
+    },
+    "http://ns.adobe.com/xap/1.0/": {
+      "BaseURL": "text", "CreateDate": "date", "CreatorTool": "text",
+      "Identifier": "bag", "Label": "text", "MetadataDate": "date", "ModifyDate": "date",
+      "Nickname": "text", "Rating": "integer"
+    },
+    "http://ns.adobe.com/xap/1.0/mm/": {
+      "DerivedFrom": "struct", "DocumentID": "text", "History": "seq-struct",
+      "InstanceID": "text", "LastURL": "text", "ManagedFrom": "struct", "Manager": "text",
+      "ManageTo": "text", "ManageUI": "text", "ManagerVariant": "text",
+      "RenditionClass": "text", "RenditionOf": "struct", "RenditionParams": "text",
+      "SaveID": "integer", "VersionID": "text", "Versions": "seq-struct"
+    },
+    "http://ns.adobe.com/xap/1.0/rights/": {
+      "Certificate": "text", "Marked": "boolean", "Owner": "bag", "UsageTerms": "langalt",
+      "WebStatement": "text"
+    },
+    "http://ns.adobe.com/pdf/1.3/": {
+      "Keywords": "text", "PDFVersion": "text", "Producer": "text"
+    },
+    "http://ns.adobe.com/photoshop/1.0/": {
+      "AuthorsPosition": "text", "CaptionWriter": "text", "Category": "text", "City": "text",
+      "Country": "text", "Credit": "text", "DateCreated": "date", "Headline": "text",
+      "Instructions": "text",
+      "Source": "text", "State": "text", "SupplementalCategories": "bag",
+      "TransmissionReference": "text", "Urgency": "integer"
+    },
+    "http://www.aiim.org/pdfa/ns/id/": {
+      "part": "integer", "conformance": "text", "amd": "text", "corr": "text"
+    }
+  },
+  "flavour_namespaces": {
+    "$comment": "Prefixes (from 'namespaces') that may be declared in each flavour",
+    "1b": ["rdf", "x", "dc", "xmp", "xmpMM", "xmpRights", "pdf", "pdfaid", "pdfuaid", "stRef", "stEvt"],
+    "2b": ["rdf", "x", "dc", "xmp", "xmpMM", "xmpRights", "pdf", "pdfaid", "pdfuaid", "stRef", "stEvt", "photoshop"],
+    "3b": ["rdf", "x", "dc", "xmp", "xmpMM", "xmpRights", "pdf", "pdfaid", "pdfuaid", "stRef", "stEvt", "photoshop"]
+  }
+}

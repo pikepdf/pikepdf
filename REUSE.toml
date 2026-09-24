@@ -236,3 +236,129 @@ path = "tests/resources/fuzz/*.pdf"
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2024 ennamarie19"
 SPDX-License-Identifier = "CC-BY-SA-4.0"
+
+[[annotations]]
+path = [
+    "src/pikepdf/pdfa/data/README.md",
+    "src/pikepdf/pdfa/data/dispositions.json",
+    "src/pikepdf/pdfa/data/xmp_properties.json",
+    "src/pikepdf/pdfa/data/schemas/*.json",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 James R. Barlow"
+SPDX-License-Identifier = "MPL-2.0"
+
+[[annotations]]
+path = "src/pikepdf/pdfa/data/verapdf_rules.json"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "veraPDF Consortium"
+SPDX-License-Identifier = "CC-BY-4.0"
+SPDX-FileComment = "Rules of the veraPDF validation profiles (https://github.com/veraPDF/veraPDF-validation-profiles), converted to JSON. The veraPDF Consortium does not endorse pikepdf."
+
+[[annotations]]
+path = "src/pikepdf/pdfa/data/sRGB.icc"
+precedence = "aggregate"
+SPDX-FileCopyrightText = [
+    "Kai-Uwe Behrmann <www.behrmann.name>",
+    "Marti Maria <www.littlecms.com>",
+    "Photogamut <www.photogamut.org>",
+    "Graeme Gill <www.argyllcms.com>",
+    "ColorSolutions <www.basICColor.com>",
+]
+SPDX-License-Identifier = "Zlib"
+
+[[annotations]]
+path = "tests/resources/pdfa/NotoSans-Regular.ttf"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2015-2021 Google LLC"
+SPDX-License-Identifier = "OFL-1.1"
+
+[[annotations]]
+path = [
+    "tests/resources/pdfa/acroform.pdf",
+    "tests/resources/pdfa/blank.pdf",
+    "tests/resources/pdfa/cmyk.pdf",
+    "tests/resources/pdfa/francais.pdf",
+    "tests/resources/pdfa/livecycle.pdf",
+    "tests/resources/pdfa/tagged.pdf",
+    "tests/resources/pdfa/toc.pdf",
+    "tests/resources/pdfa/truetype_font_nomapping.pdf",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2025 James R. Barlow"
+SPDX-License-Identifier = "CC-BY-SA-4.0"
+SPDX-FileComment = "Copied from OCRmyPDF's test resources."
+
+[[annotations]]
+path = "tests/resources/pdfa/francais_ocr_fpdf2.pdf"
+precedence = "aggregate"
+SPDX-FileCopyrightText = ["2026 James R. Barlow", "2015-2021 Google LLC"]
+SPDX-License-Identifier = "CC-BY-SA-4.0 AND OFL-1.1"
+SPDX-FileComment = "Output of OCRmyPDF (Tesseract, fpdf2 renderer) for francais.pdf; embeds a subset of Noto Sans (OFL-1.1)."
+
+[[annotations]]
+path = "tests/resources/pdfa/francais_ocr_sandwich.pdf"
+precedence = "aggregate"
+SPDX-FileCopyrightText = ["2026 James R. Barlow", "Google Inc."]
+SPDX-License-Identifier = "CC-BY-SA-4.0 AND Apache-2.0"
+SPDX-FileComment = "Output of OCRmyPDF (Tesseract, sandwich renderer) for francais.pdf; embeds Tesseract's GlyphLessFont (Apache-2.0)."
+
+[[annotations]]
+path = [
+    "tests/resources/pdfa/fpdf2_latin_tr0.pdf",
+    "tests/resources/pdfa/fpdf2_latin_tr3.pdf",
+    "tests/resources/pdfa/fpdf2_cjk.pdf",
+    "tests/resources/pdfa/fpdf2_cjk_short.pdf",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = [
+    "2026 James R. Barlow",
+    "2015-2021 Google LLC",
+    "2014-2021 Adobe (http://www.adobe.com/)",
+]
+SPDX-License-Identifier = "CC-BY-SA-4.0 AND OFL-1.1"
+SPDX-FileComment = "Rendered with OCRmyPDF's fpdf2 renderer; embeds subsets of Noto Sans or Noto Sans CJK (OFL-1.1)."
+
+[[annotations]]
+path = "tests/resources/pdfa/fpdf2_occulta.pdf"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 James R. Barlow"
+SPDX-License-Identifier = "CC-BY-SA-4.0 AND Apache-2.0"
+SPDX-FileComment = "Rendered with OCRmyPDF's fpdf2 renderer; embeds a subset of OCRmyPDF's Occulta font (Apache-2.0)."
+
+[[annotations]]
+path = "tests/resources/pdfa/graph_ocred.pdf"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "(C) 2012 SmokeyJoe"
+SPDX-License-Identifier = "GFDL-1.2-or-later or CC-BY-SA-3.0"
+
+[[annotations]]
+path = ["tests/resources/pdfa/c03-29.pdf", "tests/resources/pdfa/multipage.pdf"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "NONE"
+SPDX-License-Identifier = "CC-PDDC"
+SPDX-FileComment = "Public domain; copied from OCRmyPDF's test resources."
+
+[[annotations]]
+path = "tests/resources/pdfa/lichtenstein.pdf"
+precedence = "aggregate"
+SPDX-FileCopyrightText = ["(C) 2001 Andreas Tille", "(C) 2007 Alessio Damato"]
+SPDX-License-Identifier = "GFDL-1.2-or-later or CC-BY-SA-3.0"
+
+[[annotations]]
+path = "tests/resources/pdfa/overlay.pdf"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "(C) 2017 Max Anderson"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = ["tests/resources/pdfa/link.pdf", "tests/resources/pdfa/palette.pdf"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "(C) 2014 Euskaldunaa"
+SPDX-License-Identifier = "CC-BY-SA-4.0"
+
+[[annotations]]
+path = "tests/resources/pdfa/vector.pdf"
+precedence = "aggregate"
+SPDX-FileCopyrightText = "(C) 2018 Catscratch"
+SPDX-License-Identifier = "MIT"

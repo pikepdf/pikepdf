@@ -47,6 +47,9 @@ classifiers = [
 ]
 dependencies = ["Pillow>=10.0.1", "lxml>=4.8", "packaging"]
 
+[project.optional-dependencies]
+pdfa = ["jsonschema>=4.18", "referencing", "fonttools>=4.40"]
+
 [project.urls]
 documentation = "https://pikepdf.readthedocs.io/"
 repository = "https://github.com/pikepdf/pikepdf"
@@ -154,6 +157,10 @@ repair-wheel-command = "delvewheel repair --add-path d:\\qpdf\\bin -w {dest_dir}
 [tool.mypy]
 exclude = ["^_qpdf\\.py$"]
 
+[[tool.mypy.overrides]]
+module = ["fontTools", "fontTools.*", "jsonschema", "jsonschema.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 minversion = "6.0"
 norecursedirs = [
@@ -170,6 +177,7 @@ norecursedirs = [
 testpaths = ["tests"]
 addopts = "-n auto"
 markers = [
+  "slow: tests that take more than a few seconds; skip with `-m 'not slow'`.",
   "abi3_smoke: a small subset of tests that exercise pikepdf's C extension surface without touching optional Pillow/lxml/numpy runtime paths. Selected with `-m abi3_smoke` for the abi3 debug-Python CI job (where building those native deps from sdist is impractical). Default pytest runs include these tests like any other.",
 ]
 
@@ -238,6 +246,7 @@ convention = "google"
 "examples/*.py" = ["D103"]
 "fuzzing/*.py" = ["D", "E501"]
 "tests/*test*.py" = ["D", "E501"]
+"tests/test_pdfa_*.py" = ["D", "E402", "E501"]
 
 [tool.ruff.format]
 quote-style = "preserve"
@@ -267,6 +276,9 @@ mypy = ["lxml-stubs", "types-Pillow", "types-requests", "types-setuptools"]
 test = [
   "attrs>=20.2.0",
   "coverage[toml]",
+  "fonttools>=4.40",
+  "jsonschema>=4.18",
+  "referencing",
   "hypothesis>=6.36",
   "numpy>=1.21.0; platform_machine == 'x86_64' and platform_python_implementation == 'CPython'",
   "psutil>=5.9; os_name != 'nt'",
