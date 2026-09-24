@@ -5,12 +5,14 @@
 
 from __future__ import annotations
 
+import datetime as dt
 import logging
 from dataclasses import dataclass
 from typing import Any
 
 import pikepdf
 from pikepdf import Dictionary, Name, Object, Pdf, Stream
+from pikepdf._version import __version__ as pikepdf_version
 from pikepdf.models.metadata import DateConverter
 from pikepdf.pdfa._dates import assume_local_time_zone, assume_local_time_zone_iso
 from pikepdf.pdfa._flavour import Flavour
@@ -150,8 +152,14 @@ def canonicalize_xmp(pdf: Pdf, flavour: Flavour | str) -> list[str]:
     return list(_canonicalize_xmp(pdf, Flavour(flavour)).dropped)
 
 
-def _canonicalize_xmp(pdf: Pdf, pdfa_flavour: Flavour) -> XmpCanonicalization:
-    """Do the work of `canonicalize_xmp`, reporting what was found."""
+def _canonical_properties(
+    pdf: Pdf, pdfa_flavour: Flavour
+) -> tuple[dict[str, Value], XmpCanonicalization]:
+    """Return the properties of the canonical packet, and what was found.
+
+    The packet is read, the PDF/A identification is dropped, and missing
+    properties are filled from DocInfo. Nothing is written.
+    """
     metadata = pdf.Root.get(Name.Metadata)
     reading = Reading()
     if isinstance(metadata, Stream):
@@ -173,9 +181,6 @@ def _canonicalize_xmp(pdf: Pdf, pdfa_flavour: Flavour) -> XmpCanonicalization:
             if value is not None:
                 properties[xmp_key] = value
 
-    pdf.Root.Metadata = pdf.make_stream(
-        write_packet(properties), Type=Name.Metadata, Subtype=Name.XML
-    )
     dropped = [
         label for label in reading.dropped_labels() if not label.startswith('pdfaid:')
     ]
@@ -190,12 +195,25 @@ def _canonicalize_xmp(pdf: Pdf, pdfa_flavour: Flavour) -> XmpCanonicalization:
             pdfa_flavour.value,
             ', '.join(dropped),
         )
-    return XmpCanonicalization(
+    return properties, XmpCanonicalization(
         dropped=tuple(dropped),
         unreadable=unreadable,
         problem=problem,
         declared=_declares(reading, pdfa_flavour),
     )
+
+
+def _write_metadata(pdf: Pdf, properties: dict[str, Value]) -> None:
+    pdf.Root.Metadata = pdf.make_stream(
+        write_packet(properties), Type=Name.Metadata, Subtype=Name.XML
+    )
+
+
+def _canonicalize_xmp(pdf: Pdf, pdfa_flavour: Flavour) -> XmpCanonicalization:
+    """Do the work of `canonicalize_xmp`, reporting what was found."""
+    properties, canonical = _canonical_properties(pdf, pdfa_flavour)
+    _write_metadata(pdf, properties)
+    return canonical
 
 
 def add_pdfa_metadata(pdf: Pdf, part: str, conformance: str) -> None:
@@ -240,9 +258,16 @@ def sync_docinfo_from_xmp(pdf: Pdf, flavour: str) -> None:
     reading = read_packet(metadata.read_bytes(), pdfa_flavour)
     if not reading.parsed:
         return
+    _sync_docinfo(pdf, reading.properties, pdfa_flavour)
+
+
+def _sync_docinfo(
+    pdf: Pdf, properties: dict[str, Value], pdfa_flavour: Flavour
+) -> None:
+    """Set the DocInfo entries with XMP equivalents from *properties*."""
     info = pdf.docinfo
     for info_key, xmp_key, form in _DOCINFO_XMP:
-        value = reading.properties.get(xmp_key)
+        value = properties.get(xmp_key)
         text: str | None = None
         if value is None:
             pass
@@ -266,6 +291,41 @@ def sync_docinfo_from_xmp(pdf: Pdf, flavour: str) -> None:
 
 
 _XMP_DATES = ('xmp:CreateDate', 'xmp:ModifyDate', 'xmp:MetadataDate')
+_XMP_DATE_KEYS = (
+    f'{{{_XMP}}}CreateDate',
+    f'{{{_XMP}}}ModifyDate',
+    f'{{{_XMP}}}MetadataDate',
+)
+
+
+def _zone_docinfo_dates(pdf: Pdf) -> int:
+    """Attach the local time zone to DocInfo dates that have none."""
+    changed = 0
+    info = pdf.trailer.get(Name.Info)
+    if isinstance(info, Dictionary):
+        for key in (Name.CreationDate, Name.ModDate):
+            value = info.get(key)
+            if not isinstance(value, pikepdf.String):
+                continue
+            new_value, zone_assumed = assume_local_time_zone(str(value))
+            if zone_assumed:
+                info[key] = pikepdf.String(new_value)
+                changed += 1
+    return changed
+
+
+def _zone_xmp_dates(properties: dict[str, Value]) -> int:
+    """Attach the local time zone to XMP dates in *properties* that have none."""
+    changed = 0
+    for xmp_key in _XMP_DATE_KEYS:
+        value = properties.get(xmp_key)
+        if value is None or value.form != 'simple' or value.text is None:
+            continue
+        new_value, zone_assumed = assume_local_time_zone_iso(value.text)
+        if zone_assumed:
+            properties[xmp_key] = Value('simple', text=new_value)
+            changed += 1
+    return changed
 
 
 def assume_local_time_zone_for_dates(pdf: Pdf) -> int:
@@ -284,18 +344,7 @@ def assume_local_time_zone_for_dates(pdf: Pdf) -> int:
     Returns:
         The number of dates changed.
     """
-    changed = 0
-    info = pdf.trailer.get(Name.Info)
-    if isinstance(info, Dictionary):
-        for key in (Name.CreationDate, Name.ModDate):
-            value = info.get(key)
-            if not isinstance(value, pikepdf.String):
-                continue
-            new_value, zone_assumed = assume_local_time_zone(str(value))
-            if zone_assumed:
-                info[key] = pikepdf.String(new_value)
-                changed += 1
-
+    changed = _zone_docinfo_dates(pdf)
     if isinstance(pdf.Root.get(Name.Metadata), Stream):
         with pdf.open_metadata(
             set_pikepdf_as_editor=False, update_docinfo=False
@@ -317,11 +366,15 @@ def assume_local_time_zone_for_dates(pdf: Pdf) -> int:
 def declare_pdfa_metadata(pdf: Pdf, flavour: Flavour | str) -> MetadataDeclaration:
     """Write the canonical PDF/A metadata for a PDF/A flavour.
 
-    The XMP packet is rewritten with only what the PDF/A flavour permits
-    (`canonicalize_xmp`), the local time zone is attached to document dates
-    without one, PDF/A conformance is declared, and the DocInfo entries with
-    XMP equivalents are set from XMP (`add_pdfa_metadata`). The result is the
-    packet the validator expects. Conformance is always declared as level B.
+    In a single pass: the local time zone is attached to the DocInfo dates
+    without one; the XMP packet is read with the validator's strict reader,
+    keeping only what the PDF/A flavour permits, and missing properties are
+    filled from DocInfo (as `canonicalize_xmp` does); the local time zone is
+    attached to XMP dates without one; pikepdf is recorded as the producer
+    and the metadata date; PDF/A conformance is declared; and the packet is
+    written once, in the canonical form the validator expects. The DocInfo
+    entries with XMP equivalents are then set from it (as
+    `sync_docinfo_from_xmp` does). Conformance is always declared as level B.
 
     Args:
         pdf: An open pikepdf.Pdf object
@@ -331,10 +384,23 @@ def declare_pdfa_metadata(pdf: Pdf, flavour: Flavour | str) -> MetadataDeclarati
         What was changed.
     """
     pdfa_flavour = Flavour(flavour)
-    part = str(pdfa_flavour.part)
-    canonical = _canonicalize_xmp(pdf, pdfa_flavour)
-    dates_zoned = assume_local_time_zone_for_dates(pdf)
-    add_pdfa_metadata(pdf, part, 'B')
+    dates_zoned = _zone_docinfo_dates(pdf)
+    properties, canonical = _canonical_properties(pdf, pdfa_flavour)
+    dates_zoned += _zone_xmp_dates(properties)
+    if dates_zoned:
+        log.debug('Assumed the local time zone for %d date(s) without one', dates_zoned)
+    # The same marks pikepdf's metadata editor leaves, set before the PDF/A
+    # identification so that the property order is stable when repeated
+    properties[f'{{{_XMP}}}MetadataDate'] = Value(
+        'simple', text=dt.datetime.now(dt.timezone.utc).isoformat()
+    )
+    properties[f'{{{_PDF}}}Producer'] = Value(
+        'simple', text=f'pikepdf {pikepdf_version}'
+    )
+    properties[f'{{{_PDFAID}}}part'] = Value('simple', text=str(pdfa_flavour.part))
+    properties[f'{{{_PDFAID}}}conformance'] = Value('simple', text='B')
+    _write_metadata(pdf, properties)
+    _sync_docinfo(pdf, properties, pdfa_flavour)
     return MetadataDeclaration(
         xmp_dropped=canonical.dropped,
         xmp_unreadable=canonical.unreadable,

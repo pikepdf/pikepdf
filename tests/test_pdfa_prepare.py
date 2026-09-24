@@ -9,22 +9,30 @@ import pytest
 
 pytest.importorskip('jsonschema')
 
+import datetime as dt
 import re
 from collections import Counter
 from io import BytesIO
 
-from pdfa_samples import RESOURCES, make_image_only_pdf
+from pdfa_samples import RESOURCES, assert_verapdf_agrees, make_image_only_pdf
 
 import pikepdf
 from pikepdf import Array, Dictionary, Name
 from pikepdf.models._cal_icc import build_calrgb_icc
 from pikepdf.pdfa import _engine, resolve_save_kwargs, validate_written
+from pikepdf.pdfa._declare import (
+    MetadataDeclaration,
+    assume_local_time_zone_for_dates,
+    declare_pdfa_metadata,
+    sync_docinfo_from_xmp,
+)
 from pikepdf.pdfa._output_intent import (
     OutputIntentSpec,
     load_srgb,
     parse_output_intent,
 )
 from pikepdf.pdfa._prepare import PrepareResult, prepare
+from pikepdf.pdfa._xmp_rdf import read_packet, write_packet
 
 PHOTOSHOP = 'http://ns.adobe.com/photoshop/1.0/'
 FLAVOURS = ['1b', '2b', '3b']
@@ -327,3 +335,170 @@ def test_prepare_fixes_page_count(tmp_path):
 def test_prepare_bad_flavour():
     with make_image_only_pdf('2') as pdf, pytest.raises(ValueError):
         prepare(pdf, '4z')
+
+
+XMP_NS = 'http://ns.adobe.com/xap/1.0/'
+PDF_NS = 'http://ns.adobe.com/pdf/1.3/'
+PDFAID_NS = 'http://www.aiim.org/pdfa/ns/id/'
+DC_NS = 'http://purl.org/dc/elements/1.1/'
+
+DECLARABLE_PACKET = b"""<?xpacket begin="\xef\xbb\xbf" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+<rdf:Description rdf:about=""
+    xmlns:xmp="http://ns.adobe.com/xap/1.0/"
+    xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/"
+    xmlns:photoshop="http://ns.adobe.com/photoshop/1.0/"
+    pdfaid:part="3" pdfaid:conformance="A">
+<xmp:CreatorTool>Scanner</xmp:CreatorTool>
+<xmp:ModifyDate>2022-08-06T21:36:59</xmp:ModifyDate>
+<xmp:MetadataDate>2022-08-06T14:36:59.055384</xmp:MetadataDate>
+<photoshop:ColorMode>3</photoshop:ColorMode>
+</rdf:Description>
+</rdf:RDF>
+</x:xmpmeta>
+<?xpacket end="w"?>"""
+
+
+def make_declarable(flavour: str) -> pikepdf.Pdf:
+    """The image-only sample with unzoned dates and DocInfo to carry into XMP."""
+    pdf = make_image_only_pdf(_part(flavour))
+    pdf.Root.Metadata = pdf.make_stream(
+        DECLARABLE_PACKET, Type=Name.Metadata, Subtype=Name.XML
+    )
+    pdf.trailer.Info = pdf.make_indirect(
+        Dictionary(
+            Title=pikepdf.String('Quarterly report'),
+            Author=pikepdf.String('Ann Author'),
+            CreationDate=pikepdf.String('D:20160119123847'),
+            ModDate=pikepdf.String('D:20220806213659'),
+            Producer=pikepdf.String('Some producer'),
+        )
+    )
+    return pdf
+
+
+@pytest.mark.parametrize('flavour', FLAVOURS)
+def test_declare_writes_canonical_packet(flavour, los_angeles_tz):
+    """The declared packet is the strict writer's output: rewriting is a no-op."""
+    with make_declarable(flavour) as pdf:
+        declare_pdfa_metadata(pdf, flavour)
+        raw = pdf.Root.Metadata.read_bytes()
+        reading = read_packet(raw, flavour)
+        assert reading.parsed
+        assert reading.problems == []
+        assert write_packet(reading.properties) == raw
+
+
+@pytest.mark.parametrize('flavour', FLAVOURS)
+def test_declare_properties(flavour, los_angeles_tz):
+    with make_declarable(flavour) as pdf:
+        result = declare_pdfa_metadata(pdf, flavour)
+        assert result.pdfa_declared
+        assert result.xmp_dropped == ('photoshop:ColorMode',)
+        # DocInfo /CreationDate and /ModDate, xmp:ModifyDate and
+        # xmp:MetadataDate; xmp:CreateDate is filled from the zoned DocInfo
+        assert result.dates_zoned == 4
+        reading = read_packet(pdf.Root.Metadata.read_bytes(), flavour)
+        assert reading.text(f'{{{PDFAID_NS}}}part') == _part(flavour)
+        assert reading.text(f'{{{PDFAID_NS}}}conformance') == 'B'
+        assert reading.text(f'{{{PDF_NS}}}Producer') == (
+            f'pikepdf {pikepdf.__version__}'
+        )
+        assert reading.text(f'{{{XMP_NS}}}CreatorTool') == 'Scanner'
+        assert reading.text(f'{{{XMP_NS}}}CreateDate') == '2016-01-19T12:38:47-08:00'
+        assert reading.text(f'{{{XMP_NS}}}ModifyDate') == '2022-08-06T21:36:59-07:00'
+        metadata_date = reading.text(f'{{{XMP_NS}}}MetadataDate')
+        assert metadata_date is not None
+        assert not metadata_date.endswith('Z')
+        parsed = dt.datetime.fromisoformat(metadata_date)
+        assert parsed.tzinfo is not None
+        assert abs(dt.datetime.now(dt.timezone.utc) - parsed) < dt.timedelta(minutes=5)
+        assert reading.properties[f'{{{DC_NS}}}title'].x_default() == (
+            'Quarterly report'
+        )
+        assert reading.properties[f'{{{DC_NS}}}creator'].items == ('Ann Author',)
+
+
+@pytest.mark.parametrize('flavour', FLAVOURS)
+def test_declare_docinfo_agrees_and_validates(flavour, los_angeles_tz, tmp_path):
+    with make_declarable(flavour) as pdf:
+        prepare(pdf, flavour)
+        info = pdf.docinfo
+        assert str(info.Title) == 'Quarterly report'
+        assert str(info.Author) == 'Ann Author'
+        assert str(info.CreationDate) == "D:20160119123847-08'00"
+        assert str(info.ModDate) == "D:20220806213659-07'00"
+        assert str(info.Producer) == f'pikepdf {pikepdf.__version__}'
+        path = tmp_path / 'out.pdf'
+        path.write_bytes(save_bytes(pdf, flavour))
+    report = validate_written(path, flavour)
+    assert report.verdict == 'pass', report.summary()
+    assert_verapdf_agrees(path, flavour)
+
+
+def test_declare_is_idempotent(los_angeles_tz):
+    with make_declarable('2b') as pdf:
+        declare_pdfa_metadata(pdf, '2b')
+        first = pdf.Root.Metadata.read_bytes()
+        info = pdf.docinfo.unparse(resolved=True)
+        again = declare_pdfa_metadata(pdf, '2b')
+        assert again == MetadataDeclaration()
+        assert _without_metadata_date(
+            pdf.Root.Metadata.read_bytes()
+        ) == _without_metadata_date(first)
+        assert pdf.docinfo.unparse(resolved=True) == info
+
+
+@pytest.mark.parametrize('flavour', FLAVOURS)
+def test_prepare_does_not_open_metadata(flavour, monkeypatch):
+    def refuse(*args, **kwargs):
+        raise AssertionError("prepare must not use open_metadata")
+
+    with make_dirty(flavour) as pdf:
+        monkeypatch.setattr(pikepdf.Pdf, 'open_metadata', refuse)
+        result = prepare(pdf, flavour)
+        assert result.xmp_dropped == ('photoshop:ColorMode',)
+        reading = read_packet(pdf.Root.Metadata.read_bytes(), flavour)
+        assert reading.text(f'{{{PDFAID_NS}}}part') == _part(flavour)
+
+
+def _metadata_state(pdf: pikepdf.Pdf) -> tuple[bytes, bytes]:
+    metadata = pdf.Root.get(Name.Metadata)
+    raw = metadata.read_bytes() if metadata is not None else b''
+    # The samples record their own creation time too, in element or
+    # attribute form, with or without an inline namespace declaration
+    raw = re.sub(rb'(MetadataDate(?:="|[^>]*>))[^<"]*', rb'\1', raw)
+    return raw, pdf.docinfo.unparse(resolved=True)
+
+
+def _run_metadata_steps(open_sample, flavour: str) -> list[tuple[bytes, bytes]]:
+    states = []
+    with open_sample() as pdf:
+        declare_pdfa_metadata(pdf, flavour)
+        states.append(_metadata_state(pdf))
+    with open_sample() as pdf:
+        assert assume_local_time_zone_for_dates(pdf) >= 0
+        states.append(_metadata_state(pdf))
+    with open_sample() as pdf:
+        sync_docinfo_from_xmp(pdf, flavour)
+        states.append(_metadata_state(pdf))
+    return states
+
+
+@pytest.mark.parametrize(
+    'sample',
+    ['dirty', 'declarable', 'francais'],
+)
+@pytest.mark.parametrize('flavour', ['1b', '2b'])
+def test_metadata_steps_explicit_conversion(sample, flavour, los_angeles_tz):
+    samples = {
+        'dirty': lambda: make_dirty(flavour),
+        'declarable': lambda: make_declarable(flavour),
+        'francais': lambda: pikepdf.open(RESOURCES / 'francais.pdf'),
+    }
+    with pikepdf.implicit_conversion():
+        implicit = _run_metadata_steps(samples[sample], flavour)
+    with pikepdf.explicit_conversion():
+        explicit = _run_metadata_steps(samples[sample], flavour)
+    assert explicit == implicit
