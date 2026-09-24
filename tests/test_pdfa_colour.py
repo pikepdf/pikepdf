@@ -25,7 +25,7 @@ from pdfa_samples import (
 
 import pikepdf
 from pikepdf import Array, Dictionary, Name, String
-from pikepdf.pdfa import validate
+from pikepdf.pdfa import validate_written
 from pikepdf.pdfa._report import ValidationReport
 
 DRAW_IMAGE = b'q 612 0 0 792 0 0 cm /Im0 Do Q'
@@ -37,7 +37,7 @@ def rule_ids(report: ValidationReport) -> set[str]:
 
 def check(pdf: pikepdf.Pdf, path, part: str = '2') -> ValidationReport:
     save_candidate(pdf, path, part)
-    return validate(path, f'{part}b')
+    return validate_written(path, f'{part}b')
 
 
 def run(tmp_path, mutate, part: str = '2', content: bytes | None = None):
@@ -49,7 +49,7 @@ def run(tmp_path, mutate, part: str = '2', content: bytes | None = None):
         mutate(pdf)
 
     path = save_image_only_pdf(tmp_path / 'c.pdf', part, apply)
-    return validate(path, f'{part}b'), path
+    return validate_written(path, f'{part}b'), path
 
 
 def srgb_profile(pdf: pikepdf.Pdf) -> pikepdf.Stream:

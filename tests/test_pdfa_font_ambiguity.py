@@ -34,7 +34,7 @@ from pdfa_samples import (
 
 import pikepdf
 from pikepdf import Array, Dictionary, Name
-from pikepdf.pdfa import validate
+from pikepdf.pdfa import validate_written
 from pikepdf.pdfa._cmap import CMapError, parse_embedded_cmap
 from pikepdf.pdfa._fonts import parse_cid_widths
 from pikepdf.pdfa._report import ValidationReport
@@ -312,7 +312,7 @@ def type1c_pdf(data: bytes) -> pikepdf.Pdf:
 
 def check(pdf: pikepdf.Pdf, path: Path) -> ValidationReport:
     save_candidate(make_candidate(pdf, '2'), path, '2')
-    return validate(path, '2b')
+    return validate_written(path, '2b')
 
 
 def assert_ambiguous(

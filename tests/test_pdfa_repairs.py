@@ -20,7 +20,7 @@ from pdfa_samples import NOTO_SANS, RESOURCES, assert_verapdf_agrees, replace_xm
 import pikepdf
 from pikepdf import Name
 from pikepdf.models.metadata import decode_pdf_date
-from pikepdf.pdfa import save, validate
+from pikepdf.pdfa import save, validate_written
 from pikepdf.pdfa._declare import (
     add_pdfa_metadata,
     assume_local_time_zone_for_dates,
@@ -239,7 +239,7 @@ def test_strip_xmp_nested_foreign_namespace_rebuilds_packet(francais_ocr, tmp_pa
         add_pdfa_metadata(pdf, '2', 'B')
         replace_output_intents(pdf)
         pdf.save(tmp_path / 'out.pdf')
-    report = validate(tmp_path / 'out.pdf', '2b')
+    report = validate_written(tmp_path / 'out.pdf', '2b')
     assert report.passed, report.summary()
     assert_verapdf_agrees(tmp_path / 'out.pdf', '2b')
 
@@ -255,7 +255,7 @@ def test_pdfa1_candidate_has_no_xref_stream(francais_ocr, tmp_path):
 @pytest.mark.parametrize('flavour', ['1b', '2b', '3b'])
 def test_repaired_candidate_validates(francais_ocr, tmp_path, flavour):
     out = _save_pdfa(francais_ocr, tmp_path / 'out.pdf', flavour)
-    report = validate(out, flavour)
+    report = validate_written(out, flavour)
     assert report.passed, report.summary()
     assert_verapdf_agrees(out, flavour)
 
@@ -391,7 +391,7 @@ def test_removed_annotations_candidate_validates(tmp_path, flavour, caplog):
         annots = _page_annots(pdf)
         assert annots[0] == []
         assert [annot.F for annot in annots[1]] == [16 | 4]
-    report = validate(out, flavour)
+    report = validate_written(out, flavour)
     assert report.passed, report.summary()
     assert_verapdf_agrees(out, flavour)
 
@@ -456,6 +456,6 @@ def test_unzoned_dates_candidate_validates(tmp_path, flavour):
     created = decode_pdf_date(info['/CreationDate'])
     assert created.tzinfo is not None
     assert created == dt.datetime.fromisoformat(xmp['xmp:CreateDate'])
-    report = validate(out, flavour)
+    report = validate_written(out, flavour)
     assert report.passed, report.summary()
     assert_verapdf_agrees(out, flavour)

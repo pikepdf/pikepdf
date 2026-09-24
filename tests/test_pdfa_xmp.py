@@ -19,7 +19,7 @@ from pdfa_samples import (
 
 import pikepdf
 from pikepdf import Name, String
-from pikepdf.pdfa import Flavour, validate
+from pikepdf.pdfa import Flavour, validate_written
 from pikepdf.pdfa._context import ValidationContext
 from pikepdf.pdfa._report import ValidationReport
 from pikepdf.pdfa._schemas import SchemaSet
@@ -232,7 +232,7 @@ def test_every_simple_table_property_accepted(flavour, tmp_path):
                     if shape in _SAMPLE_VALUES:
                         meta[f'{{{uri}}}{name}'] = _SAMPLE_VALUES[shape]
         path = save_candidate(pdf, tmp_path / 'out.pdf', flavour[0])
-    report = validate(path, flavour)
+    report = validate_written(path, flavour)
     assert report.passed, report.summary()
     assert_verapdf_agrees(path, flavour)
 
@@ -254,7 +254,7 @@ def test_properties_verapdf_rejects_are_denied(key, value, tmp_path):
         with pdf.open_metadata(set_pikepdf_as_editor=False) as meta:
             meta[key] = value
         path = save_candidate(pdf, tmp_path / 'out.pdf', '2')
-    assert not validate(path, '2b').passed
+    assert not validate_written(path, '2b').passed
     assert_verapdf_fails(path, '2b', 'ISO_19005_2:6.6.2.3.1-2')
 
 
@@ -275,7 +275,7 @@ def test_structured_property_not_approved(tmp_path):
             b'</rdf:li></rdf:Seq></xmpMM:History>',
         )
         path = save_candidate(pdf, tmp_path / 'out.pdf', '2')
-    report = validate(path, '2b')
+    report = validate_written(path, '2b')
     assert not report.passed
     assert any('History' in f.message for f in report.findings), report.summary()
     assert_verapdf_fails(path, '2b', 'ISO_19005_2:6.6.2.3.1-2')

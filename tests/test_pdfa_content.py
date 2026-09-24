@@ -18,7 +18,7 @@ from pdfa_samples import (
 
 import pikepdf
 from pikepdf import Dictionary, Name
-from pikepdf.pdfa import Flavour, validate
+from pikepdf.pdfa import Flavour, validate_written
 from pikepdf.pdfa._content import (
     MAX_Q_DEPTH,
     OPERATORS,
@@ -45,7 +45,7 @@ def run(tmp_path, content: bytes, part: str = '2', mutate=None) -> ValidationRep
             mutate(pdf)
 
     path = save_image_only_pdf(tmp_path / 'c.pdf', part, set_content)
-    return validate(path, f'{part}b')
+    return validate_written(path, f'{part}b')
 
 
 def add_form(pdf: pikepdf.Pdf, content: bytes, **keys) -> pikepdf.Stream:
@@ -373,7 +373,7 @@ def _inherit_resources(pdf: pikepdf.Pdf) -> None:
 def test_page_tree_resources(tmp_path, part, passes):
     """Resources inherited from /Pages fail 6.2.2-2 in veraPDF (2b only)."""
     path = save_image_only_pdf(tmp_path / 'c.pdf', part, _inherit_resources)
-    report = validate(path, f'{part}b')
+    report = validate_written(path, f'{part}b')
     assert report.passed is passes, report.summary()
     if not passes:
         assert 'ISO_19005_2:6.2.2-2' in rule_ids(report)

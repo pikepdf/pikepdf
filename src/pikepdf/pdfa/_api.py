@@ -112,9 +112,6 @@ def validate_written(
     return report
 
 
-validate = validate_written
-
-
 _NO_ORIGINAL_FILENAME = (
     "Cannot save to original filename because the original file was "
     "not opening using Pdf.open(..., allow_overwriting_input=True). "

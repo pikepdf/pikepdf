@@ -29,7 +29,7 @@ from pdfa_samples import (
 
 import pikepdf
 from pikepdf import Array, Dictionary, Name
-from pikepdf.pdfa import Flavour, validate
+from pikepdf.pdfa import Flavour, validate_written
 from pikepdf.pdfa._cmap import CMapError, parse_embedded_cmap
 from pikepdf.pdfa._context import ValidationContext
 from pikepdf.pdfa._encodings import (
@@ -248,7 +248,7 @@ def rule_ids(report: ValidationReport) -> set[str]:
 
 def check(pdf: pikepdf.Pdf, path: Path, part: str = '2') -> ValidationReport:
     save_candidate(pdf, path, part)
-    return validate(path, f'{part}b')
+    return validate_written(path, f'{part}b')
 
 
 def assert_approved(pdf: pikepdf.Pdf, path: Path, part: str = '2') -> None:
@@ -624,7 +624,7 @@ def test_resource_fonts_pass_font_tier(tmp_path, name, fonts):
             if key in page.obj:
                 del page.obj[key]
     path = save_candidate(pdf, tmp_path / name, '2')
-    report = validate(path, '2b')
+    report = validate_written(path, '2b')
     assert font_findings(report) == [], report.summary()
     with pikepdf.open(path) as pdf:
         ctx = ValidationContext(Flavour('2b'), pdf, ValidationReport(Flavour('2b')))
@@ -1021,7 +1021,7 @@ def test_experiment_empty_glyph_is_present(renders, tmp_path):
     with pikepdf.open(path) as pdf:
         assert b'\x00 ' in pdf.pages[0].Contents.read_bytes()  # CID 32, space
     assert verapdf_failed_rules(path, '2b') == set()
-    assert validate(path, '2b').passed
+    assert validate_written(path, '2b').passed
 
 
 @pytest.mark.parametrize('mode, verapdf_fails', [(0, True), (3, False)])
@@ -1053,7 +1053,7 @@ def test_experiment_type3_widths(tmp_path, mode, verapdf_fails):
         path = save_candidate(pdf, tmp_path / 'c.pdf', '2')
     failed = verapdf_failed_rules(path, '2b')
     assert ('ISO_19005_2:6.2.11.5-1' in failed) is verapdf_fails, failed
-    assert 'pikepdf:font-type3' in rule_ids(validate(path, '2b'))
+    assert 'pikepdf:font-type3' in rule_ids(validate_written(path, '2b'))
 
 
 # --- OCRmyPDF pipeline output ---------------------------------------------------------

@@ -20,7 +20,7 @@ from pdfa_samples import (
 
 import pikepdf
 from pikepdf import Dictionary, Name, String
-from pikepdf.pdfa import Flavour, validate
+from pikepdf.pdfa import Flavour, validate_written
 from pikepdf.pdfa._context import ValidationContext
 from pikepdf.pdfa._cos import check_objects
 from pikepdf.pdfa._report import ValidationReport
@@ -35,7 +35,7 @@ def rule_ids(report: ValidationReport) -> set[str]:
 
 def check(pdf: pikepdf.Pdf, tmp_path, part: str = '2') -> ValidationReport:
     path = save_candidate(pdf, tmp_path / 'c.pdf', part)
-    return validate(path, f'{part}b')
+    return validate_written(path, f'{part}b')
 
 
 def _nested(inner: bytes, depth: int = DEPTH) -> bytes:

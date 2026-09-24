@@ -20,7 +20,7 @@ from pdfa_samples import make_image_only_pdf, save_image_only_pdf
 
 import pikepdf
 from pikepdf import Array, Dictionary, Name, String
-from pikepdf.pdfa import Flavour, validate
+from pikepdf.pdfa import Flavour, validate_written
 from pikepdf.pdfa._context import ValidationContext
 from pikepdf.pdfa._report import ValidationReport
 from pikepdf.pdfa._schemas import SchemaSet, unrecognized_keys
@@ -110,7 +110,7 @@ def test_page_procset_passes_on_file(tmp_path, part):
         pdf.pages[0].obj.ProcSet = Array([Name.PDF, Name.ImageC])
 
     path = save_image_only_pdf(tmp_path / 'c.pdf', part, add)
-    report = validate(path, f'{part}b')
+    report = validate_written(path, f'{part}b')
     assert report.passed, report.summary()
 
 

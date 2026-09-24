@@ -26,7 +26,7 @@ from pdfa_samples import (
 
 import pikepdf
 from pikepdf import Dictionary, Name
-from pikepdf.pdfa import prepare, resolve_save_kwargs, validate
+from pikepdf.pdfa import prepare, resolve_save_kwargs, validate_written
 from pikepdf.pdfa._declare import canonicalize_xmp
 from pikepdf.pdfa._xmp_rdf import read_packet
 
@@ -316,7 +316,7 @@ def test_strict_reader_denies(name, part, tmp_path):
         path = save_candidate(
             pdf, tmp_path / 'candidate.pdf', part, fix_metadata_version=False
         )
-    report = validate(path, f'{part}b')
+    report = validate_written(path, f'{part}b')
     assert not report.passed
     if name not in VERAPDF_ACCEPTS:
         assert_verapdf_rejects(path, f'{part}b')
@@ -332,7 +332,7 @@ def test_conversion_never_falsely_approved(name, part, tmp_path):
     with pikepdf.open(out) as pdf:
         reading = read_packet(pdf.Root.Metadata.read_bytes(), f'{part}b')
         assert reading.problems == []
-    report = validate(out, f'{part}b')
+    report = validate_written(out, f'{part}b')
     if report.passed:
         failed = verapdf_failed_rules(out, f'{part}b')
         assert not failed, f"veraPDF fails {sorted(failed or ())}"
@@ -354,7 +354,7 @@ def test_acrobat_uuid_description_replaced_from_docinfo(part, tmp_path):
         assert str(pdf.docinfo.Title) == 'T'
         assert str(pdf.docinfo.Creator) == 'Word'
         assert str(pdf.docinfo.Producer) == meta['pdf:Producer']
-    assert validate(out, f'{part}b').passed
+    assert validate_written(out, f'{part}b').passed
 
 
 def test_docinfo_follows_x_default(tmp_path):
@@ -367,7 +367,7 @@ def test_docinfo_follows_x_default(tmp_path):
         raw = pdf.Root.Metadata.read_bytes()
         # x-default comes first
         assert raw.index(b'x-default') < raw.index(b'xml:lang="en"')
-    assert validate(out, '1b').passed
+    assert validate_written(out, '1b').passed
 
 
 @pytest.mark.parametrize('part, author', [('1', None), ('2', 'A; B')])
@@ -382,7 +382,7 @@ def test_multiple_creators(part, author, tmp_path):
         assert pdf.open_metadata()['dc:creator'] == ['A', 'B']
         value = pdf.docinfo.get(Name.Author)
         assert (None if value is None else str(value)) == author
-    assert validate(out, f'{part}b').passed
+    assert validate_written(out, f'{part}b').passed
 
 
 def test_canonical_packet_keeps_permitted_forms():

@@ -21,7 +21,7 @@ from pdfa_samples import (
 
 import pikepdf
 from pikepdf import Array, Dictionary, Name, String
-from pikepdf.pdfa import Flavour, validate
+from pikepdf.pdfa import Flavour, validate_written
 from pikepdf.pdfa._context import ValidationContext
 from pikepdf.pdfa._icc import (
     IccHeader,
@@ -108,14 +108,14 @@ def test_shallow_indirect_and_nested():
 @pytest.mark.parametrize('flavour, part', [('2b', '2'), ('3b', '3'), ('1b', '1')])
 def test_image_only_pdf_validates(tmp_path, flavour, part):
     path = save_image_only_pdf(tmp_path / 'img.pdf', part)
-    report = validate(path, flavour)
+    report = validate_written(path, flavour)
     assert report.passed, report.summary()
     assert report.findings == []
 
 
 def test_image_only_pdf_1b_rejects_xref_stream(tmp_path):
     path = save_image_only_pdf(tmp_path / 'img.pdf', '1', object_streams=True)
-    report = validate(path, Flavour.PDFA_1B)
+    report = validate_written(path, Flavour.PDFA_1B)
     assert not report.passed
     assert 'ISO_19005_1:6.1.4-3' in rule_ids(report)
 
@@ -129,7 +129,9 @@ def test_image_only_pdf_rejects_javascript_names(tmp_path):
             JavaScript=Dictionary(Names=Array([String('a'), js]))
         )
 
-    report = validate(save_image_only_pdf(tmp_path / 'js.pdf', '2', add_js), '2b')
+    report = validate_written(
+        save_image_only_pdf(tmp_path / 'js.pdf', '2', add_js), '2b'
+    )
     assert not report.passed
     assert any('/Names' in f.where or '/Names' in f.message for f in report.findings)
 
@@ -141,16 +143,20 @@ def test_image_only_pdf_rejects_ocproperties(tmp_path):
             OCGs=Array([ocg]), D=Dictionary(Order=Array([ocg]))
         )
 
-    report = validate(save_image_only_pdf(tmp_path / 'oc.pdf', '2', add_oc), '2b')
+    report = validate_written(
+        save_image_only_pdf(tmp_path / 'oc.pdf', '2', add_oc), '2b'
+    )
     assert not report.passed
-    report1 = validate(save_image_only_pdf(tmp_path / 'oc1.pdf', '1', add_oc), '1b')
+    report1 = validate_written(
+        save_image_only_pdf(tmp_path / 'oc1.pdf', '1', add_oc), '1b'
+    )
     assert 'ISO_19005_1:6.1.13-1' in rule_ids(report1)
 
 
 def test_validate_never_raises(tmp_path):
     bad = tmp_path / 'bad.pdf'
     bad.write_bytes(b'not a pdf')
-    report = validate(bad, '2b')
+    report = validate_written(bad, '2b')
     assert not report.passed
     assert report.findings[0].rule == 'pikepdf:internal'
     assert report.findings[0].kind == 'unsupported'
@@ -160,7 +166,7 @@ def test_encrypted_is_denied(tmp_path):
     path = tmp_path / 'enc.pdf'
     with make_image_only_pdf() as pdf:
         pdf.save(path, encryption=pikepdf.Encryption(owner='a', user=''))
-    report = validate(path, '2b')
+    report = validate_written(path, '2b')
     assert 'ISO_19005_2:6.1.3-2' in rule_ids(report)
 
 
@@ -172,7 +178,7 @@ def test_pdf_version_too_new_for_1b(tmp_path):
             min_version='1.5',
             object_stream_mode=pikepdf.ObjectStreamMode.disable,
         )
-    report = validate(path, '1b')
+    report = validate_written(path, '1b')
     assert not report.passed
 
 
@@ -577,7 +583,7 @@ def test_font_file_subtype_denied(tmp_path, part, subtype, rule):
         font = pdf.pages[0].Resources.Font.F1
         font.FontDescriptor.FontFile2.Subtype = Name(subtype)
         path = save_candidate(pdf, tmp_path / 'c.pdf', part)
-    assert rule in rule_ids(validate(path, f'{part}b'))
+    assert rule in rule_ids(validate_written(path, f'{part}b'))
     assert_verapdf_fails(path, f'{part}b', rule)
 
 
@@ -615,5 +621,5 @@ def test_page_tree_count_denied(mutate):
 
 def test_two_level_page_tree_approved(tmp_path):
     path = save_image_only_pdf(tmp_path / 'c.pdf', '2', _two_level_page_tree)
-    report = validate(path, '2b')
+    report = validate_written(path, '2b')
     assert report.passed, report.summary()

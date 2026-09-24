@@ -21,7 +21,7 @@ from pdfa_samples import (
 
 import pikepdf
 from pikepdf import Array, Dictionary, Name, String
-from pikepdf.pdfa import validate
+from pikepdf.pdfa import validate_written
 from pikepdf.pdfa._report import ValidationReport
 
 PRINT = 4
@@ -34,7 +34,7 @@ def rule_ids(report: ValidationReport) -> set[str]:
 
 def check(pdf: pikepdf.Pdf, path, part: str = '2') -> ValidationReport:
     save_candidate(pdf, path, part)
-    return validate(path, f'{part}b')
+    return validate_written(path, f'{part}b')
 
 
 def appearance(pdf: pikepdf.Pdf, content: bytes = b'0 0 1 rg 0 0 100 50 re f'):
@@ -57,7 +57,7 @@ def annotate(tmp_path, make_annots, part: str = '2'):
         pdf.pages[0].obj.Annots = Array(annots)
 
     path = save_image_only_pdf(tmp_path / 'c.pdf', part, apply)
-    return validate(path, f'{part}b'), path
+    return validate_written(path, f'{part}b'), path
 
 
 def link(pdf, **keys) -> Dictionary:
