@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from typing import Any
 
 import pikepdf
@@ -63,6 +64,55 @@ def _xmp_value_from_docinfo(value: Object, form: str) -> Any:
     return Value('simple', text=text)
 
 
+@dataclass(frozen=True)
+class XmpCanonicalization:
+    """What `canonicalize_xmp` found in the XMP packet it replaced.
+
+    Attributes:
+        dropped: Labels (``prefix:name``) of the properties dropped, other
+            than the PDF/A identification.
+        unreadable: True if there was a packet that could not be read.
+        problem: Why the packet could not be read, if it could not.
+        declared: True if the packet already declared the PDF/A part of
+            the flavour, with conformance level B.
+    """
+
+    dropped: tuple[str, ...] = ()
+    unreadable: bool = False
+    problem: str = ''
+    declared: bool = False
+
+
+@dataclass(frozen=True)
+class MetadataDeclaration:
+    """What `declare_pdfa_metadata` changed.
+
+    Attributes:
+        xmp_dropped: Labels (``prefix:name``) of the XMP properties dropped.
+        xmp_unreadable: True if an XMP packet that could not be read was
+            replaced.
+        dates_zoned: The number of dates given the local time zone.
+        pdfa_declared: True if the metadata did not already declare the
+            flavour's PDF/A part with conformance level B.
+    """
+
+    xmp_dropped: tuple[str, ...] = ()
+    xmp_unreadable: bool = False
+    dates_zoned: int = 0
+    pdfa_declared: bool = False
+
+
+def _declares(reading: Reading, flavour: Flavour) -> bool:
+    part = reading.properties.get(f'{{{_PDFAID}}}part')
+    conformance = reading.properties.get(f'{{{_PDFAID}}}conformance')
+    return (
+        part is not None
+        and conformance is not None
+        and part.text == str(flavour.part)
+        and conformance.text == 'B'
+    )
+
+
 def canonicalize_xmp(pdf: Pdf, flavour: Flavour | str) -> list[str]:
     """Rewrite the XMP packet with only what the PDF/A flavour permits.
 
@@ -91,7 +141,11 @@ def canonicalize_xmp(pdf: Pdf, flavour: Flavour | str) -> list[str]:
         Labels (``prefix:name``) of the properties dropped, other than the
         PDF/A identification.
     """
-    pdfa_flavour = Flavour(flavour)
+    return list(_canonicalize_xmp(pdf, Flavour(flavour)).dropped)
+
+
+def _canonicalize_xmp(pdf: Pdf, pdfa_flavour: Flavour) -> XmpCanonicalization:
+    """Do the work of `canonicalize_xmp`, reporting what was found."""
     metadata = pdf.Root.get(Name.Metadata)
     reading = Reading()
     if isinstance(metadata, Stream):
@@ -119,18 +173,23 @@ def canonicalize_xmp(pdf: Pdf, flavour: Flavour | str) -> list[str]:
     dropped = [
         label for label in reading.dropped_labels() if not label.startswith('pdfaid:')
     ]
-    if not reading.parsed:
-        log.debug(
-            "Replacing XMP metadata that could not be read: %s",
-            reading.problems[0].message,
-        )
+    problem = ''
+    unreadable = isinstance(metadata, Stream) and not reading.parsed
+    if unreadable:
+        problem = reading.problems[0].message if reading.problems else ''
+        log.debug("Replacing XMP metadata that could not be read: %s", problem)
     if dropped:
         log.debug(
             "Removing XMP metadata that is not permitted in PDF/A-%s: %s",
             pdfa_flavour.value,
             ', '.join(dropped),
         )
-    return dropped
+    return XmpCanonicalization(
+        dropped=tuple(dropped),
+        unreadable=unreadable,
+        problem=problem,
+        declared=_declares(reading, pdfa_flavour),
+    )
 
 
 def add_pdfa_metadata(pdf: Pdf, part: str, conformance: str) -> None:
@@ -249,7 +308,7 @@ def assume_local_time_zone_for_dates(pdf: Pdf) -> int:
     return changed
 
 
-def declare_pdfa_metadata(pdf: Pdf, flavour: Flavour | str) -> None:
+def declare_pdfa_metadata(pdf: Pdf, flavour: Flavour | str) -> MetadataDeclaration:
     """Write the canonical PDF/A metadata for a PDF/A flavour.
 
     The XMP packet is rewritten with only what the PDF/A flavour permits
@@ -261,9 +320,18 @@ def declare_pdfa_metadata(pdf: Pdf, flavour: Flavour | str) -> None:
     Args:
         pdf: An open pikepdf.Pdf object
         flavour: PDF/A flavour, ``'1b'``, ``'2b'`` or ``'3b'``
+
+    Returns:
+        What was changed.
     """
     pdfa_flavour = Flavour(flavour)
     part = str(pdfa_flavour.part)
-    canonicalize_xmp(pdf, pdfa_flavour)
-    assume_local_time_zone_for_dates(pdf)
+    canonical = _canonicalize_xmp(pdf, pdfa_flavour)
+    dates_zoned = assume_local_time_zone_for_dates(pdf)
     add_pdfa_metadata(pdf, part, 'B')
+    return MetadataDeclaration(
+        xmp_dropped=canonical.dropped,
+        xmp_unreadable=canonical.unreadable,
+        dates_zoned=dates_zoned,
+        pdfa_declared=not canonical.declared,
+    )

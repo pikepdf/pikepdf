@@ -65,11 +65,15 @@ class _ObjectChecker:
     def check(self, obj: Any) -> None:
         where = self.ctx.describe(obj)
         if isinstance(obj, pikepdf.Stream):
-            self.stream(obj.stream_dict, where)
+            self.stream(obj, where)
         self.contents(obj, where, 0)
 
-    def stream(self, stream_dict: pikepdf.Dictionary, where: str) -> None:
-        """Deny external stream data and filters PDF/A does not permit."""
+    def stream(self, stream: pikepdf.Stream, where: str) -> None:
+        """Deny external stream data and filters PDF/A does not permit.
+
+        The filters checked are those the write model says will be written.
+        """
+        stream_dict = stream.stream_dict
         keys = set(stream_dict.keys())
         found = [key for key in EXTERNAL_STREAM_KEYS if key in keys]
         if found:
@@ -85,9 +89,10 @@ class _ObjectChecker:
                 "embedded files are not supported",
                 'unsupported',
             )
-        if '/Filter' not in keys:
+        filters, _decode_parms = self.ctx.model.stream_filters(stream)
+        if filters is None:
             return
-        for item in _filter_names(stream_dict.get('/Filter')):
+        for item in _filter_names(filters):
             if not isinstance(item, pikepdf.Name):
                 self.deny(
                     'pikepdf:filter',
@@ -169,5 +174,5 @@ def check_objects(ctx: ValidationContext) -> None:
     """
     checker = _ObjectChecker(ctx)
     checker.contents(ctx.pdf.trailer, 'trailer', 0)
-    for obj in ctx.pdf.objects:
+    for obj in ctx.model.objects(ctx.pdf):
         checker.check(obj)

@@ -267,7 +267,9 @@ class _Resolver:
         ctx = self.ctx
         where = f'{self.where} ICCBased {ctx.describe(stream)}'
         schemas = SchemaSet.for_flavour(ctx.flavour)
-        if not schemas.check('ICCBasedStream', shallow_json_of(stream), ctx, where):
+        if not schemas.check(
+            'ICCBasedStream', shallow_json_of(stream, ctx.model), ctx, where
+        ):
             return None
         n = int(stream.N)
         try:

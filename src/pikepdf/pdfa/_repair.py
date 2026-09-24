@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 from collections import Counter
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import cast
 
@@ -105,26 +106,32 @@ def _is_doomed(annot: Dictionary, doomed: set[tuple[int, int]]) -> bool:
     )
 
 
-def _log_removed_annotations(result: AnnotationRepairResult) -> None:
-    total = sum(result.removed.values())
+def describe_removed_annotations(
+    removed: Counter[str], removed_pages: Iterable[int]
+) -> str:
+    """Describe removed annotations in a sentence.
+
+    Args:
+        removed: The number of annotations removed, by subtype.
+        removed_pages: The page numbers (1-based) they were removed from;
+            listed only if there are few of them.
+    """
+    pages_set = set(removed_pages)
+    total = sum(removed.values())
     by_subtype = ', '.join(
         f'{count} {subtype}'
         for subtype, count in sorted(
-            result.removed.items(), key=lambda item: (-item[1], item[0])
+            removed.items(), key=lambda item: (-item[1], item[0])
         )
     )
     pages = ''
-    if len(result.removed_pages) <= _MAX_PAGES_LISTED:
-        numbers = ', '.join(str(n) for n in sorted(result.removed_pages))
-        pages = f" on page{'s' if len(result.removed_pages) > 1 else ''} {numbers}"
-    log.debug(
-        "Removed %d annotation%s (%s)%s that %s hidden or not viewable, "
-        "which PDF/A does not permit",
-        total,
-        's' if total > 1 else '',
-        by_subtype,
-        pages,
-        'are' if total > 1 else 'is',
+    if pages_set and len(pages_set) <= _MAX_PAGES_LISTED:
+        numbers = ', '.join(str(n) for n in sorted(pages_set))
+        pages = f" on page{'s' if len(pages_set) > 1 else ''} {numbers}"
+    return (
+        f"Removed {total} annotation{'s' if total > 1 else ''} ({by_subtype})"
+        f"{pages} that {'are' if total > 1 else 'is'} hidden or not viewable, "
+        "which PDF/A does not permit"
     )
 
 
@@ -190,7 +197,9 @@ def repair_annotation_flags(pdf: Pdf) -> AnnotationRepairResult:
             page.obj[Name.Annots] = Array(kept)
 
     if result.removed:
-        _log_removed_annotations(result)
+        log.debug(
+            "%s", describe_removed_annotations(result.removed, result.removed_pages)
+        )
     if result.print_flags_set:
         log.debug(
             "Setting the Print flag on %d annotation(s), as PDF/A requires",

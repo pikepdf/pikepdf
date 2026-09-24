@@ -143,7 +143,11 @@ class DocumentWalker:
 
         base_where = where
         where = f'{base_where} ({role})'
-        shallow = shallow_json_of(obj)
+        shallow: Any
+        if role == 'Trailer' and depth == 0:
+            shallow = ctx.model.trailer_json(obj)
+        else:
+            shallow = shallow_json_of(obj, ctx.model)
         while (dispatch := self.schemas.dispatch(role)) is not None:
             if not self._check(role, obj, shallow, where):
                 return

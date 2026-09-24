@@ -68,7 +68,7 @@ def check_document(ctx: ValidationContext) -> None:
                 'unsupported' if flavour.part == 1 else 'violation',
             )
         )
-    if len(pdf.objects) > MAX_INDIRECT_OBJECTS:
+    if len(model.objects(pdf)) > MAX_INDIRECT_OBJECTS:
         raise Deny(
             Finding(
                 ctx.rule('6.1.12-7', '6.1.13-7'),

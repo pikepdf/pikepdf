@@ -153,9 +153,11 @@ class LimitChecker:
 
 
 def check_document_limits(ctx: ValidationContext) -> None:
-    """Check every indirect object of the file and the trailer."""
+    """Check every indirect object written to the file and the trailer."""
     checker = LimitChecker(ctx.flavour)
-    objects: Iterable[Any] = itertools.chain([ctx.pdf.trailer], ctx.pdf.objects)
+    objects: Iterable[Any] = itertools.chain(
+        [ctx.pdf.trailer], ctx.model.objects(ctx.pdf)
+    )
     for obj in objects:
         reported: set[str] = set()
         for key, message in checker.problems(obj):

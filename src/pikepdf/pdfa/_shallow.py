@@ -11,9 +11,12 @@ object, while the walker decides which references to follow.
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pikepdf
+
+if TYPE_CHECKING:
+    from pikepdf.pdfa._writemodel import WriteModel
 
 _BOM_UTF16 = b'\xfe\xff'
 
@@ -111,19 +114,36 @@ def shallow_json(obj: Any) -> Any:
     return _scalar_value(obj)
 
 
-def shallow_json_of_stream_dict(stream: pikepdf.Stream) -> dict[str, Any]:
-    """Encode a stream's dictionary (not its data), shallowly."""
-    return _encode_dict_items(stream.stream_dict)
+def shallow_json_of_stream_dict(
+    stream: pikepdf.Stream, model: WriteModel | None = None
+) -> dict[str, Any]:
+    """Encode a stream's dictionary (not its data), shallowly.
+
+    If *model* predicts a written form, ``/Filter`` and ``/DecodeParms`` are
+    the ones the model says will be written.
+    """
+    encoded = _encode_dict_items(stream.stream_dict)
+    if model is None or model.is_identity:
+        return encoded
+    encoded.pop('/Filter', None)
+    encoded.pop('/DecodeParms', None)
+    filters, decode_parms = model.stream_filters(stream)
+    if not _is_null(filters):
+        encoded['/Filter'] = shallow_json(filters)
+    if not _is_null(decode_parms):
+        encoded['/DecodeParms'] = shallow_json(decode_parms)
+    return encoded
 
 
-def shallow_json_of(obj: Any) -> Any:
+def shallow_json_of(obj: Any, model: WriteModel | None = None) -> Any:
     """Encode an object expanding its own top level even if it is indirect.
 
     Streams are encoded as their stream dictionary, so a schema for a stream
-    role describes the dictionary directly.
+    role describes the dictionary directly; *model*, if given, supplies the
+    stream filters that will be written.
     """
     if isinstance(obj, pikepdf.Stream):
-        return shallow_json_of_stream_dict(obj)
+        return shallow_json_of_stream_dict(obj, model)
     if isinstance(obj, pikepdf.Dictionary):
         return _encode_dict_items(obj)
     if isinstance(obj, pikepdf.Array):

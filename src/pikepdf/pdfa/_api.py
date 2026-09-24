@@ -22,8 +22,47 @@ from pikepdf.pdfa._repair import (
     strip_image_interpolation,
 )
 from pikepdf.pdfa._report import Finding, Report
+from pikepdf.pdfa._save_kwargs import resolve_save_kwargs
+from pikepdf.pdfa._writemodel import WriteModel
 
 log = logging.getLogger(__name__)
+
+
+def check(pdf: Pdf, flavour: Flavour | str, **user_save_kwargs: Any) -> Report:
+    """Check an open document against a PDF/A flavour as it would be saved.
+
+    The check evaluates the file that ``pdf.save(path,
+    **report.save_kwargs)`` would write: the stream filters qpdf rewrites,
+    the trailer, the PDF version and the objects written (orphaned objects
+    are not written, so they are not checked). Nothing is written and the
+    document is not modified.
+
+    ``check`` is pure and cheap. It describes the document at the moment of
+    the call, so run it after the last metadata edit. It is advisory:
+    ``save`` is the only call that promises anything, because it validates
+    the bytes it writes.
+
+    Problems with the document never raise: unexpected errors become
+    ``unsupported`` findings with rule id ``pikepdf:internal``.
+
+    Args:
+        pdf: The document to check.
+        flavour: ``'1b'``, ``'2b'`` or ``'3b'``.
+        **user_save_kwargs: `pikepdf.Pdf.save` settings the caller intends
+            to use, as accepted by `resolve_save_kwargs`.
+
+    Returns:
+        The report; ``report.save_kwargs`` holds the complete settings the
+        verdict assumes.
+
+    Raises:
+        ValueError: If *flavour* is not a supported flavour, or a save
+            setting conflicts with the flavour.
+        TypeError: If a keyword is not a supported save setting.
+    """
+    flavour = Flavour(flavour)
+    kw = resolve_save_kwargs(flavour, **user_save_kwargs)
+    return _engine.run(pdf, flavour, WriteModel.predict(pdf, kw), save_kwargs=kw)
 
 
 def validate_written(
