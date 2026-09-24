@@ -57,6 +57,8 @@ class PrepareResult:
             because PDF/A does not permit them.
         xmp_unreadable: True if an XMP packet that could not be read was
             replaced.
+        xmp_problem: Why the XMP packet could not be read, if
+            *xmp_unreadable*; otherwise None.
         dates_zoned: The number of document dates given the local time zone.
         pdfa_declared: True if the metadata did not already declare the
             flavour's PDF/A conformance.
@@ -71,6 +73,7 @@ class PrepareResult:
     cidsets_added: int = 0
     xmp_dropped: tuple[str, ...] = ()
     xmp_unreadable: bool = False
+    xmp_problem: str | None = None
     dates_zoned: int = 0
     pdfa_declared: bool = False
 
@@ -93,51 +96,92 @@ class PrepareResult:
             or self.pdfa_declared
         )
 
-    def describe(self) -> list[str]:
-        """Return one sentence for each kind of change made."""
-        lines = []
+    def messages(self) -> list[tuple[str, str]]:
+        """Return a ``(level, sentence)`` pair for each kind of change made.
+
+        The level suggests how prominently to report the change:
+        ``'warning'`` for annotations removed, which discards content;
+        ``'info'`` for Print flags set, XMP properties removed and an
+        unreadable XMP packet replaced; ``'debug'`` for the rest. It is
+        one of the lowercase names of the `logging` levels, so
+        ``logging.getLevelName(level.upper())`` gives the level number.
+        """
+        messages: list[tuple[str, str]] = []
         if self.output_intent_replaced:
-            lines.append(
-                f"Replaced the output intents with a single {self.output_intent} "
-                "PDF/A output intent"
+            messages.append(
+                (
+                    'debug',
+                    f"Replaced the output intents with a single "
+                    f"{self.output_intent} PDF/A output intent",
+                )
             )
         if self.interpolation_removed:
-            lines.append(
-                "Removed interpolation from "
-                f"{_plural(self.interpolation_removed, 'image')}, "
-                "which PDF/A does not permit"
+            messages.append(
+                (
+                    'debug',
+                    "Removed interpolation from "
+                    f"{_plural(self.interpolation_removed, 'image')}, "
+                    "which PDF/A does not permit",
+                )
             )
         if self.annotations_removed:
-            lines.append(
-                describe_removed_annotations(
-                    self.annotations_removed, self.annotations_removed_pages
+            messages.append(
+                (
+                    'warning',
+                    describe_removed_annotations(
+                        self.annotations_removed, self.annotations_removed_pages
+                    ),
                 )
             )
         if self.print_flags_set:
-            lines.append(
-                "Set the Print flag on "
-                f"{_plural(self.print_flags_set, 'annotation')}, as PDF/A requires"
+            messages.append(
+                (
+                    'info',
+                    "Set the Print flag on "
+                    f"{_plural(self.print_flags_set, 'annotation')}, "
+                    "as PDF/A requires",
+                )
             )
         if self.cidsets_added:
-            lines.append(
-                f"Added a /CIDSet to {_plural(self.cidsets_added, 'subset CIDFont')},"
-                " as PDF/A-1 requires"
+            messages.append(
+                (
+                    'debug',
+                    "Added a /CIDSet to "
+                    f"{_plural(self.cidsets_added, 'subset CIDFont')}, "
+                    "as PDF/A-1 requires",
+                )
             )
         if self.xmp_unreadable:
-            lines.append("Replaced XMP metadata that could not be read")
+            sentence = "Replaced XMP metadata that could not be read"
+            if self.xmp_problem:
+                sentence += f": {self.xmp_problem}"
+            messages.append(('info', sentence))
         if self.xmp_dropped:
-            lines.append(
-                "Removed XMP metadata that is not permitted in PDF/A: "
-                + ', '.join(self.xmp_dropped)
+            messages.append(
+                (
+                    'info',
+                    "Removed XMP metadata that is not permitted in PDF/A: "
+                    + ', '.join(self.xmp_dropped),
+                )
             )
         if self.dates_zoned:
-            lines.append(
-                "Assumed the local time zone for "
-                f"{_plural(self.dates_zoned, 'date')} without one"
+            messages.append(
+                (
+                    'debug',
+                    "Assumed the local time zone for "
+                    f"{_plural(self.dates_zoned, 'date')} without one",
+                )
             )
         if self.pdfa_declared:
-            lines.append("Declared PDF/A conformance in the XMP metadata")
-        return lines
+            messages.append(('debug', "Declared PDF/A conformance in the XMP metadata"))
+        return messages
+
+    def describe(self) -> list[str]:
+        """Return one sentence for each kind of change made.
+
+        The sentences of `messages`, without their levels.
+        """
+        return [sentence for _, sentence in self.messages()]
 
 
 def prepare(
@@ -208,6 +252,7 @@ def prepare(
         cidsets_added=cidsets_added,
         xmp_dropped=declaration.xmp_dropped,
         xmp_unreadable=declaration.xmp_unreadable,
+        xmp_problem=declaration.xmp_problem,
         dates_zoned=declaration.dates_zoned,
         pdfa_declared=declaration.pdfa_declared,
     )

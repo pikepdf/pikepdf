@@ -19,6 +19,7 @@ from pikepdf import Array, Dictionary, Name
 from pikepdf.pdfa import (
     Flavour,
     PdfaError,
+    PrepareResult,
     Report,
     check,
     prepare,
@@ -169,6 +170,20 @@ def test_repair_false_clean(tmp_path):
         report = save(pdf, out, '2b', repair=False)
     assert report.passed
     assert report.prepared is None
+
+
+@pytest.mark.parametrize('to_stream', [False, True])
+def test_save_failure_report_has_prepared(to_stream, tmp_path):
+    destination = BytesIO() if to_stream else tmp_path / 'out.pdf'
+    with sample('fail') as pdf, pytest.raises(PdfaError) as excinfo:
+        save(pdf, destination, '2b')
+    assert isinstance(excinfo.value.report.prepared, PrepareResult)
+
+
+def test_save_failure_without_repair_has_no_prepared(tmp_path):
+    with sample('fail') as pdf, pytest.raises(PdfaError) as excinfo:
+        save(pdf, tmp_path / 'out.pdf', '2b', repair=False)
+    assert excinfo.value.report.prepared is None
 
 
 class TestStream:

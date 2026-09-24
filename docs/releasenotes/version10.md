@@ -160,7 +160,13 @@ report.
     PDF/A output intent (sRGB by default, or a supplied ICC profile), removes
     image interpolation and hidden annotations, adds `/CIDSet` for PDF/A-1,
     and rewrites the XMP metadata with a PDF/A declaration. It returns a
-    {class}`~pikepdf.pdfa.PrepareResult` describing what changed.
+    {class}`~pikepdf.pdfa.PrepareResult` describing what changed:
+    {meth}`~pikepdf.pdfa.PrepareResult.describe` gives a sentence per change,
+    {meth}`~pikepdf.pdfa.PrepareResult.messages` the same sentences with a
+    suggested log level, and `PrepareResult.xmp_problem` why an XMP packet
+    could not be read. XMP properties are kept from every `rdf:Description`
+    when all share one `rdf:about`, including the non-empty `uuid:...` value
+    that Acrobat and pikepdf's own metadata editor write.
   - {func}`pikepdf.pdfa.check` predicts the verdict for the file that would be
     written, without writing it, by modelling what qpdf's writer changes
     (stream filters, trailer, version, encryption and which objects are
@@ -168,8 +174,8 @@ report.
   - {func}`pikepdf.pdfa.save` prepares the document, writes it to a temporary
     file, reopens and validates the bytes written, and only then moves the file
     into place. If the written file does not pass, it raises
-    {class}`~pikepdf.pdfa.PdfaError` with the report, and the destination is
-    left untouched.
+    {class}`~pikepdf.pdfa.PdfaError` with the report (whose `prepared` records
+    the repairs made), and the destination is left untouched.
   - {func}`pikepdf.pdfa.resolve_save_kwargs` returns the complete
     {meth}`pikepdf.Pdf.save` settings for a flavour. Settings that PDF/A
     forbids or that would change the bytes after the check (such as

@@ -91,6 +91,7 @@ class MetadataDeclaration:
         xmp_dropped: Labels (``prefix:name``) of the XMP properties dropped.
         xmp_unreadable: True if an XMP packet that could not be read was
             replaced.
+        xmp_problem: Why the XMP packet could not be read, if it could not.
         dates_zoned: The number of dates given the local time zone.
         pdfa_declared: True if the metadata did not already declare the
             flavour's PDF/A part with conformance level B.
@@ -98,6 +99,7 @@ class MetadataDeclaration:
 
     xmp_dropped: tuple[str, ...] = ()
     xmp_unreadable: bool = False
+    xmp_problem: str | None = None
     dates_zoned: int = 0
     pdfa_declared: bool = False
 
@@ -125,9 +127,13 @@ def canonicalize_xmp(pdf: Pdf, flavour: Flavour | str) -> list[str]:
     input file, unless described by an extension schema, which pikepdf
     does not write), structured properties such as xmpMM:History, whose
     content the validator does not check, values of the wrong form or type,
-    and Descriptions of resources other than the document, such as those
-    Acrobat writes with ``rdf:about="uuid:..."``. The PDF/A identification is
-    dropped too, to be declared again with `add_pdfa_metadata`.
+    and Descriptions of resources other than the document. A Description
+    whose ``rdf:about`` is not empty, such as the ``uuid:...`` Acrobat
+    writes, describes the document if every Description has the same
+    ``rdf:about``; if their values differ, only those with an empty
+    ``rdf:about`` do. The new packet always has an empty ``rdf:about``. The
+    PDF/A identification is dropped too, to be declared again with
+    `add_pdfa_metadata`.
 
     DocInfo entries whose XMP equivalent is missing from the new packet are
     copied to it, so that the document's title and other information survive
@@ -332,6 +338,7 @@ def declare_pdfa_metadata(pdf: Pdf, flavour: Flavour | str) -> MetadataDeclarati
     return MetadataDeclaration(
         xmp_dropped=canonical.dropped,
         xmp_unreadable=canonical.unreadable,
+        xmp_problem=(canonical.problem or None) if canonical.unreadable else None,
         dates_zoned=dates_zoned,
         pdfa_declared=not canonical.declared,
     )

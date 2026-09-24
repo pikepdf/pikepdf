@@ -129,7 +129,9 @@ class Problem:
 
     Attributes:
         category: ``syntax`` for RDF that XMP does not permit, ``about`` for
-            a Description that does not describe the document, ``unknown``
+            a Description that does not describe the document (one with no
+            ``rdf:about``, or whose ``rdf:about`` is not empty and differs
+            from that of another Description), ``unknown``
             for a property not in the tables, ``type`` for a value of the
             wrong type, ``unsupported`` for content that is not checked.
         label: ``prefix:name`` of the property concerned, if any.
@@ -200,6 +202,7 @@ class _Reader:
         self.table = property_table(flavour)
         self.reading = Reading()
         self.seen: set[str] = set()
+        self.document_about = ''
 
     def problem(
         self,
@@ -235,6 +238,7 @@ class _Reader:
             self.problem('syntax', None, "rdf:RDF has attributes")
         if _has_stray_text(rdf) or _has_special_nodes(rdf):
             self.problem('syntax', None, "rdf:RDF contains text")
+        self.document_about = _document_about(rdf)
         for node in _elements(rdf):
             if node.tag != _DESCRIPTION:
                 self.problem(
@@ -273,7 +277,7 @@ class _Reader:
 
     def read_description(self, desc: etree._Element) -> None:
         about = desc.get(_ABOUT)
-        good_about = about == ''
+        good_about = about == self.document_about
         if not good_about:
             described = 'no rdf:about' if about is None else f'rdf:about={about!r}'
             self.problem('about', None, f"rdf:Description with {described}")
@@ -455,6 +459,25 @@ class _Reader:
                 dropped=False,
             )
         self.reading.properties[key] = value
+
+
+def _document_about(rdf: etree._Element) -> str:
+    """Return the ``rdf:about`` of the Descriptions that describe the document.
+
+    XMP requires every top-level Description to have the same ``rdf:about``,
+    normally empty. Some writers, including pikepdf's own metadata editor,
+    give them all a non-empty value such as ``uuid:...``; if every
+    Description with an ``rdf:about`` has the same value, they all describe
+    the document. If the values differ, only the empty one does.
+    """
+    abouts = {
+        node.get(_ABOUT)
+        for node in _elements(rdf)
+        if node.tag == _DESCRIPTION and node.get(_ABOUT) is not None
+    }
+    if len(abouts) == 1:
+        return cast(str, abouts.pop())
+    return ''
 
 
 def _prefix_of(node: etree._Element, key: str) -> str | None:

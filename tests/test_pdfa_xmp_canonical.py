@@ -20,6 +20,7 @@ from pathlib import Path
 
 from pdfa_samples import (
     _build_image_only_pdf,
+    assert_verapdf_agrees,
     save_candidate,
     verapdf_failed_rules,
 )
@@ -339,7 +340,11 @@ def test_conversion_never_falsely_approved(name, part, tmp_path):
 
 
 @pytest.mark.parametrize('part', ['1', '2'])
-def test_acrobat_uuid_description_replaced_from_docinfo(part, tmp_path):
+def test_acrobat_uuid_description_kept(part, tmp_path):
+    """A packet whose only Description is about a uuid describes the document.
+
+    Its properties are kept, and rewritten with an empty rdf:about.
+    """
     body, info, _parts = CASES['uuid_acrobat_like']
     with make_input(body, info) as pdf:
         pdf.save(tmp_path / 'in.pdf')
@@ -433,3 +438,118 @@ def test_canonicalize_unparseable_packet():
         assert reading.properties['{http://purl.org/dc/elements/1.1/}title'].items == (
             'Kept',
         )
+
+
+DC_NS = 'http://purl.org/dc/elements/1.1/'
+XMP_NS = 'http://ns.adobe.com/xap/1.0/'
+U2 = '<rdf:Description rdf:about="uuid:y">{}</rdf:Description>'
+KEPT_PROPERTIES = (
+    f'<dc:title>{ALT.format("Kept title")}</dc:title>'
+    '<dc:creator><rdf:Seq><rdf:li>Kept author</rdf:li></rdf:Seq></dc:creator>'
+    '<xmp:CreateDate>2020-01-01T10:00:00+01:00</xmp:CreateDate>'
+)
+
+
+def _assert_kept(pdf: pikepdf.Pdf, flavour: str) -> None:
+    reading = read_packet(pdf.Root.Metadata.read_bytes(), flavour)
+    assert reading.problems == []
+    assert reading.properties[f'{{{DC_NS}}}title'].items == ('Kept title',)
+    assert reading.properties[f'{{{DC_NS}}}creator'].items == ('Kept author',)
+    assert (
+        reading.properties[f'{{{XMP_NS}}}CreateDate'].text
+        == '2020-01-01T10:00:00+01:00'
+    )
+
+
+def test_reader_accepts_consistent_nonempty_about():
+    body = U.format(KEPT_PROPERTIES) + U.format(
+        '<xmp:CreatorTool>Word</xmp:CreatorTool>'
+    )
+    reading = read_packet(packet(body), '2b')
+    assert reading.problems == []
+    assert f'{{{DC_NS}}}title' in reading.properties
+    assert reading.text(f'{{{XMP_NS}}}CreatorTool') == 'Word'
+
+
+def test_reader_drops_conflicting_about():
+    body = (
+        D.format('<xmp:CreatorTool>Word</xmp:CreatorTool>')
+        + U.format(KEPT_PROPERTIES)
+        + U2.format('<xmp:Label>y</xmp:Label>')
+    )
+    reading = read_packet(packet(body), '2b')
+    assert reading.text(f'{{{XMP_NS}}}CreatorTool') == 'Word'
+    assert f'{{{DC_NS}}}title' not in reading.properties
+    assert f'{{{XMP_NS}}}Label' not in reading.properties
+    about = [p for p in reading.problems if p.category == 'about']
+    assert {p.label for p in about if p.label} == {
+        'dc:title',
+        'dc:creator',
+        'xmp:CreateDate',
+        'xmp:Label',
+    }
+
+
+def test_reader_missing_about_still_dropped():
+    body = U.format('') + (
+        '<rdf:Description><xmp:CreatorTool>Word</xmp:CreatorTool></rdf:Description>'
+    )
+    reading = read_packet(packet(body), '2b')
+    assert reading.text(f'{{{XMP_NS}}}CreatorTool') is None
+    assert any(
+        p.category == 'about' and 'no rdf:about' in p.message for p in reading.problems
+    )
+
+
+@pytest.mark.parametrize('part', ['1', '2'])
+def test_consistent_uuid_about_kept_through_prepare(part, tmp_path, verapdf):
+    body = U.format(KEPT_PROPERTIES)
+    with make_input(body, None) as pdf:
+        pdf.save(tmp_path / 'in.pdf')
+    out = convert(tmp_path / 'in.pdf', tmp_path / 'out.pdf', f'{part}b')
+    with pikepdf.open(out) as pdf:
+        raw = pdf.Root.Metadata.read_bytes()
+        assert b'uuid:' not in raw
+        _assert_kept(pdf, f'{part}b')
+        assert str(pdf.docinfo.Title) == 'Kept title'
+    report = validate_written(out, f'{part}b')
+    assert report.passed, report.summary()
+    assert_verapdf_agrees(out, f'{part}b')
+
+
+def test_mixed_about_after_plain_save_kept_through_prepare(tmp_path, verapdf):
+    """pikepdf's own save gives every Description the non-empty rdf:about."""
+    body = D.format(
+        '<xmp:CreateDate>2020-01-01T10:00:00+01:00</xmp:CreateDate>'
+    ) + U.format(
+        f'<dc:title>{ALT.format("Kept title")}</dc:title>'
+        '<dc:creator><rdf:Seq><rdf:li>Kept author</rdf:li></rdf:Seq></dc:creator>'
+    )
+    with make_input(body, None) as pdf:
+        pdf.save(tmp_path / 'in.pdf')
+    with pikepdf.open(tmp_path / 'in.pdf') as pdf:
+        raw = pdf.Root.Metadata.read_bytes()
+        assert b'rdf:about=""' not in raw
+        result = prepare(pdf, '2b')
+        assert result.xmp_dropped == ()
+        _assert_kept(pdf, '2b')
+        pdf.save(tmp_path / 'out.pdf', **resolve_save_kwargs('2b'))
+    report = validate_written(tmp_path / 'out.pdf', '2b')
+    assert report.passed, report.summary()
+    assert_verapdf_agrees(tmp_path / 'out.pdf', '2b')
+
+
+def test_conflicting_about_dropped_by_prepare():
+    body = U.format(KEPT_PROPERTIES) + U2.format(
+        '<xmp:CreatorTool>Word</xmp:CreatorTool>'
+    )
+    with make_input(body, None) as pdf:
+        result = prepare(pdf, '2b')
+        assert set(result.xmp_dropped) == {
+            'dc:title',
+            'dc:creator',
+            'xmp:CreateDate',
+            'xmp:CreatorTool',
+        }
+        reading = read_packet(pdf.Root.Metadata.read_bytes(), '2b')
+        assert f'{{{DC_NS}}}title' not in reading.properties

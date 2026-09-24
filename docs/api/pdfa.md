@@ -44,7 +44,7 @@ how to use it and what it does not cover.
 
 ```{eval-rst}
 .. autoapiclass:: pikepdf.pdfa.PrepareResult
-    :members: changed, describe
+    :members: changed, messages, describe
 ```
 
 ```{eval-rst}

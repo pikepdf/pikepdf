@@ -120,8 +120,13 @@ def resolve_save_kwargs(flavour: Flavour | str, **user: Any) -> dict[str, Any]:
     checked, or that PDF/A forbids, are pinned; passing a pinned key with its
     pinned value is allowed, any other value raises :class:`ValueError`. The
     remaining settings are the caller's choice, with defaults. The result
-    contains every key, so ``pdf.save(path, **resolve_save_kwargs('2b'))``
-    works directly. The destination is not included.
+    is the complete set of keyword arguments for :meth:`pikepdf.Pdf.save`,
+    including ``progress`` and ``linearize``, so
+    ``pdf.save(path, **resolve_save_kwargs('2b'))`` works directly. Pass
+    your own choices into ``resolve_save_kwargs`` (for example
+    ``resolve_save_kwargs('2b', linearize=True, progress=callback)``) rather
+    than merging them into the result afterwards, so that they are checked
+    against the flavour. The destination is not included.
 
     Raises:
         TypeError: A keyword is not an argument of :meth:`pikepdf.Pdf.save`.

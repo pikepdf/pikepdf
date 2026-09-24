@@ -66,8 +66,9 @@ for line in report.prepared.describe():
 
 `save` repairs what it can, writes the file, reads back what it wrote and
 validates it. It returns only if the written file passed. Otherwise it raises
-{class}`pikepdf.pdfa.PdfaError`, whose `report` explains why, and the
-destination is left untouched:
+{class}`pikepdf.pdfa.PdfaError`, whose `report` explains why (and, as on
+success, `report.prepared` records what was repaired), and the destination is
+left untouched:
 
 ```python
 try:
@@ -325,7 +326,11 @@ a verdict assumed:
   remain;
 - adds a `/CIDSet` to subset CIDFonts (PDF/A-1 only);
 - rewrites the XMP metadata to keep only the properties predefined for the
-  flavour, replacing a packet that cannot be read;
+  flavour, replacing a packet that cannot be read. The properties of every
+  `rdf:Description` are kept when all of them have the same `rdf:about`, even a
+  non-empty one such as `uuid:...` (pikepdf's own metadata editor writes one);
+  when their `rdf:about` values differ, only the Descriptions with an empty
+  `rdf:about` are kept. The rewritten packet has an empty `rdf:about`;
 - gives document dates that have no time zone the **local time zone** of the
   machine running pikepdf;
 - declares PDF/A conformance in the XMP metadata, and sets the DocInfo entries
@@ -334,8 +339,20 @@ a verdict assumed:
   `xmp:MetadataDate`.
 
 {meth}`pikepdf.pdfa.PrepareResult.describe` returns a sentence for each kind of
-change. `PrepareResult.changed` is false if nothing but the producer and
-metadata date was updated.
+change, and {meth}`pikepdf.pdfa.PrepareResult.messages` the same sentences
+paired with a suggested log level: `'warning'` for annotations removed,
+`'info'` for Print flags set, XMP properties removed and an unreadable XMP
+packet replaced (`PrepareResult.xmp_problem` says why it could not be read),
+and `'debug'` for the rest. `PrepareResult.changed` is false if nothing but the
+producer and metadata date was updated.
+
+```python
+import logging
+
+log = logging.getLogger(__name__)
+for level, sentence in report.prepared.messages():
+    log.log(logging.getLevelName(level.upper()), sentence)
+```
 
 Removing hidden annotations and pruning XMP properties discard information. If
 that matters, inspect the `PrepareResult` or call `check` first.

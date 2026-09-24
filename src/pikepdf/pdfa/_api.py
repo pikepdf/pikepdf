@@ -181,7 +181,8 @@ def save(
 
     Raises:
         PdfaError: If the written file did not pass; ``e.report`` explains
-            why. Nothing was written to the destination.
+            why, and ``e.report.prepared`` holds the `PrepareResult` as for
+            a successful save. Nothing was written to the destination.
         ValueError: If *flavour* is not a supported flavour, a save setting
             conflicts with the flavour, the output intent is invalid, or the
             destination is the input file and overwriting it was not allowed.
@@ -218,11 +219,15 @@ def save(
             output_condition_identifier=output_condition_identifier,
         )
 
-    if stream is not None:
-        report = _save_to_stream(pdf, stream, flavour, kw)
-    else:
-        assert path is not None
-        report = _save_to_path(pdf, path, flavour, kw)
+    try:
+        if stream is not None:
+            report = _save_to_stream(pdf, stream, flavour, kw)
+        else:
+            assert path is not None
+            report = _save_to_path(pdf, path, flavour, kw)
+    except PdfaError as e:
+        e.report.prepared = prepared
+        raise
     report.prepared = prepared
     return report
 

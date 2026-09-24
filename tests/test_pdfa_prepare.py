@@ -136,6 +136,62 @@ def test_prepare_is_idempotent(flavour):
 def test_describe_nothing_changed():
     assert PrepareResult().describe() == []
     assert not PrepareResult().changed
+    assert PrepareResult().messages() == []
+
+
+def test_messages_levels():
+    result = PrepareResult(
+        output_intent_replaced=True,
+        output_intent='RGB',
+        interpolation_removed=2,
+        annotations_removed=Counter({'Text': 1}),
+        annotations_removed_pages=frozenset({1}),
+        print_flags_set=3,
+        cidsets_added=1,
+        xmp_dropped=('photoshop:ColorMode',),
+        xmp_unreadable=True,
+        xmp_problem='XMP is not well-formed XML: oops',
+        dates_zoned=1,
+        pdfa_declared=True,
+    )
+    messages = result.messages()
+    levels = [level for level, _ in messages]
+    assert set(levels) <= {'warning', 'info', 'debug'}
+    by_topic = {
+        'output intent': 'debug',
+        'interpolation': 'debug',
+        'annotation (1 Text)': 'warning',
+        'Print flag': 'info',
+        'CIDSet': 'debug',
+        'could not be read': 'info',
+        'not permitted in PDF/A': 'info',
+        'time zone': 'debug',
+        'Declared PDF/A': 'debug',
+    }
+    assert len(messages) == len(by_topic)
+    for topic, level in by_topic.items():
+        matches = [lvl for lvl, sentence in messages if topic in sentence]
+        assert matches == [level], topic
+    assert result.describe() == [sentence for _, sentence in messages]
+
+
+def test_unreadable_xmp_problem():
+    with make_image_only_pdf('2') as pdf:
+        pdf.Root.Metadata.write(b'<x:xmpmeta><broken')
+        result = prepare(pdf, '2b')
+    assert result.xmp_unreadable
+    assert result.xmp_problem is not None
+    assert 'not well-formed' in result.xmp_problem
+    [(level, sentence)] = [m for m in result.messages() if 'could not be read' in m[1]]
+    assert level == 'info'
+    assert result.xmp_problem in sentence
+
+
+def test_readable_xmp_has_no_problem():
+    with make_image_only_pdf('2') as pdf:
+        result = prepare(pdf, '2b')
+    assert not result.xmp_unreadable
+    assert result.xmp_problem is None
 
 
 def test_prepare_cmyk_output_intent(cmyk_profile):
