@@ -7,11 +7,19 @@ Each PDF/A flavour has a schema file whose ``$defs`` override roles from
 ``common.json``. A role's schema checks the shallow JSON encoding of one
 object; annotations (``x-children``, ``x-kind``, ``x-dispatch``) tell the
 walker how to continue through the object graph, and ``x-verapdf``,
-``x-unsupported`` and ``x-message`` turn schema errors into findings.
+``x-unsupported``, ``x-closed`` and ``x-message`` turn schema errors into
+findings.
+
+A key that a role does not list is reported as unsupported, since PDF
+permits private and future keys and the validator cannot know what they
+mean. Only roles marked ``x-closed``, whose unlisted keys PDF/A itself
+forbids, report them as violations.
 """
 
 from __future__ import annotations
 
+import ast
+import re
 from functools import cache
 from typing import Any, NamedTuple
 
@@ -28,6 +36,32 @@ from pikepdf.pdfa._report import FindingKind
 BASE_URI = 'https://pikepdf.invalid/pdfa/'
 COMMON = 'common.json'
 MAX_MESSAGE = 300
+CLOSING_KEYWORDS = frozenset({'additionalProperties', 'unevaluatedProperties'})
+
+# jsonschema reports unexpected keys as the reprs of the key strings, e.g.
+# "Additional properties are not allowed ('/Foo', '/Bar' were unexpected)"
+_UNEXPECTED = re.compile(r"\((.*) (?:was|were) unexpected\)$", re.DOTALL)
+_STRING_LITERAL = re.compile(r"'(?:[^'\\]|\\.)*'" r'|"(?:[^"\\]|\\.)*"')
+
+
+def unrecognized_keys(error: ValidationError) -> list[str]:
+    """Return the unexpected keys named by an unexpected-properties error.
+
+    Parses jsonschema's message for ``additionalProperties: false`` or
+    ``unevaluatedProperties: false``. Returns an empty list if the message
+    is not in the expected format.
+    """
+    match = _UNEXPECTED.search(error.message)
+    if match is None:
+        return []
+    keys = []
+    for literal in _STRING_LITERAL.findall(match.group(1)):
+        try:
+            key = ast.literal_eval(literal)
+        except (ValueError, SyntaxError):
+            return []
+        keys.append(str(key))
+    return keys
 
 
 class ChildSpec(NamedTuple):
@@ -203,6 +237,12 @@ class SchemaSet:
         ``$ref`` (which jsonschema elides from the path), and uses the
         deepest ``x-verapdf`` id for this flavour, any ``x-unsupported`` on
         the way, and the deepest ``x-message``.
+
+        A key the schema does not list (``additionalProperties`` or
+        ``unevaluatedProperties`` is false) is unsupported, unless the schema
+        node holding that keyword is marked ``x-closed``. So is an error in
+        the value of an unlisted key checked by a non-false
+        ``additionalProperties`` schema.
         """
         prefix = self.flavour.spec + ':'
         rule_id: str | None = None
@@ -223,16 +263,38 @@ class SchemaSet:
 
         resolver: Any = self._registry.resolver()
         node: Any = {'$ref': self._role_uri(role)}
+        holder: Any = None
+        open_value = False
         for element in error.relative_schema_path:
             while isinstance(node, dict) and element not in node and '$ref' in node:
                 resolved = resolver.lookup(node['$ref'])
                 node, resolver = resolved.contents, resolved.resolver
                 note(node)
+            holder = node
             try:
                 node = node[element]
             except (KeyError, IndexError, TypeError):
+                holder = None
                 break
+            if element == 'additionalProperties' and node is not False:
+                open_value = True
             note(node)
+
+        if (
+            error.validator in CLOSING_KEYWORDS
+            and error.validator_value is False
+            and isinstance(holder, dict)
+            and not holder.get('x-closed', False)
+        ):
+            keys = unrecognized_keys(error)
+            names = ', '.join(keys) if keys else 'some keys'
+            return (
+                f'pikepdf:schema-{role}',
+                'unsupported',
+                _truncate(f"unrecognized key(s) {names} are not checked"),
+            )
+        if open_value:
+            return f'pikepdf:schema-{role}', 'unsupported', _truncate(error.message)
 
         if message is None:
             if error.validator == 'not' and error.validator_value == {}:
@@ -244,7 +306,11 @@ class SchemaSet:
                 )
             else:
                 message = error.message
-        if len(message) > MAX_MESSAGE:
-            message = message[: MAX_MESSAGE - 3] + '...'
         kind: FindingKind = 'unsupported' if unsupported else 'violation'
-        return rule_id or f'pikepdf:schema-{role}', kind, message
+        return rule_id or f'pikepdf:schema-{role}', kind, _truncate(message)
+
+
+def _truncate(message: str) -> str:
+    if len(message) > MAX_MESSAGE:
+        return message[: MAX_MESSAGE - 3] + '...'
+    return message

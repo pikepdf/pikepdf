@@ -207,13 +207,14 @@ def test_trailer_encrypt_key_denied():
         assert 'ISO_19005_2:6.1.3-2' in rule_ids(walk(pdf))
 
 
-def test_catalog_unknown_key_denied():
+def test_catalog_unknown_key_unsupported():
     with make_image_only_pdf() as pdf:
         pdf.Root.Foo = 1
         report = walk(pdf)
         assert not report.passed
         assert any('/Foo' in f.message for f in report.findings)
         assert all(f.rule == 'pikepdf:schema-Catalog' for f in report.findings)
+        assert {f.kind for f in report.findings} == {'unsupported'}
 
 
 def test_page_aa_and_unknown_key_denied():
@@ -222,7 +223,9 @@ def test_page_aa_and_unknown_key_denied():
         assert 'ISO_19005_2:6.5.2-2' in rule_ids(walk(pdf))
     with make_image_only_pdf() as pdf:
         pdf.pages[0].obj.Foo = 1
-        assert not walk(pdf).passed
+        report = walk(pdf)
+        assert not report.passed
+        assert {f.kind for f in report.findings} == {'unsupported'}
 
 
 def test_page_group_denied_in_1b():

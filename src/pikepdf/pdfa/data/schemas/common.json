@@ -1,5 +1,5 @@
 {
-  "$comment": "Per-role shallow schemas for the pikepdf PDF/A validator. Instances are qpdf-JSON-v2-style shallow encodings: names '/X', strings 'u:text' or 'b:hex', indirect references 'N G R'. Annotations: x-verapdf lists veraPDF rule ids (the one matching the flavour is reported); x-unsupported marks constructs the validator does not check (reported as unsupported, not as violations); x-message overrides the error text; x-kind is the pikepdf object kind the role expects (dict, stream, array, any; default dict); x-children maps keys to child roles ('*' = every element or value; {'role': R, 'each': true} = every element of an array value, or the value itself otherwise; 'values': true = with 'each', every value of a dictionary value (a map such as a resource category); 'sibling': true = does not count toward the depth limit); x-dispatch selects a more specific role by the value of a key.",
+  "$comment": "Per-role shallow schemas for the pikepdf PDF/A validator. Instances are qpdf-JSON-v2-style shallow encodings: names '/X', strings 'u:text' or 'b:hex', indirect references 'N G R'. Annotations: x-verapdf lists veraPDF rule ids (the one matching the flavour is reported); x-unsupported marks constructs the validator does not check (reported as unsupported, not as violations); x-message overrides the error text; x-kind is the pikepdf object kind the role expects (dict, stream, array, any; default dict); x-children maps keys to child roles ('*' = every element or value; {'role': R, 'each': true} = every element of an array value, or the value itself otherwise; 'values': true = with 'each', every value of a dictionary value (a map such as a resource category); 'sibling': true = does not count toward the depth limit); x-dispatch selects a more specific role by the value of a key; x-closed: true on a node with additionalProperties or unevaluatedProperties false marks a dictionary whose unlisted keys PDF/A itself forbids (reported as violations with the node's x-verapdf id). Without x-closed, an unlisted key is reported as unsupported, since PDF permits private and future keys and the validator cannot know what they mean.",
   "$defs": {
     "ref": {"type": "string", "pattern": "^[0-9]+ [0-9]+ R$"},
     "name": {"type": "string", "pattern": "^/"},
@@ -38,6 +38,16 @@
       "x-verapdf": ["ISO_19005_2:6.2.10-1", "ISO_19005_3:6.2.10-1"]
     },
     "unitInterval": {"type": "number", "minimum": 0, "maximum": 1},
+    "procSet": {
+      "anyOf": [
+        {"$ref": "#/$defs/ref"},
+        {"type": "array", "items": {"enum": ["/PDF", "/Text", "/ImageB", "/ImageC", "/ImageI"]}}
+      ]
+    },
+    "obsoleteProcSet": {
+      "$comment": "/ProcSet outside a resource dictionary is an obsolete PDF 1.x key that readers ignore; PDF/A does not restrict it",
+      "$ref": "#/$defs/procSet"
+    },
     "unsupported": {"not": {}, "x-unsupported": true},
     "filterName": {
       "enum": [
@@ -257,7 +267,8 @@
         "/Resources": {"$ref": "#/$defs/dictOrRef"},
         "/MediaBox": {"$ref": "#/$defs/rect"},
         "/CropBox": {"$ref": "#/$defs/rect"},
-        "/Rotate": {"type": "integer", "multipleOf": 90}
+        "/Rotate": {"type": "integer", "multipleOf": 90},
+        "/ProcSet": {"$ref": "#/$defs/obsoleteProcSet"}
       },
       "additionalProperties": false,
       "x-children": {
@@ -294,6 +305,7 @@
         "/StructParents": {"$ref": "#/$defs/integer"},
         "/Tabs": {"enum": ["/R", "/C", "/S"]},
         "/LastModified": {"$ref": "#/$defs/text"},
+        "/ProcSet": {"$ref": "#/$defs/obsoleteProcSet"},
         "/AA": {
           "$ref": "#/$defs/forbidden",
           "x-verapdf": ["ISO_19005_2:6.5.2-2", "ISO_19005_3:6.5.2-2"],
@@ -350,12 +362,7 @@
         "/ExtGState": {"$ref": "#/$defs/dictOrRef"},
         "/ColorSpace": {"$ref": "#/$defs/dictOrRef"},
         "/Properties": {"$ref": "#/$defs/dictOrRef"},
-        "/ProcSet": {
-          "anyOf": [
-            {"$ref": "#/$defs/ref"},
-            {"type": "array", "items": {"enum": ["/PDF", "/Text", "/ImageB", "/ImageC", "/ImageI"]}}
-          ]
-        },
+        "/ProcSet": {"$ref": "#/$defs/procSet"},
         "/Pattern": {"$ref": "#/$defs/unsupported", "x-message": "patterns are not supported"},
         "/Shading": {"$ref": "#/$defs/unsupported", "x-message": "shadings are not supported"}
       },
@@ -1150,6 +1157,7 @@
     },
 
     "AppearanceDict": {
+      "$comment": "ISO 19005-1 6.5.3 and ISO 19005-2/3 6.3.3: the appearance dictionary shall contain only /N",
       "type": "object",
       "required": ["/N"],
       "x-verapdf": ["ISO_19005_1:6.5.3-4", "ISO_19005_2:6.3.3-2", "ISO_19005_3:6.3.3-2"],
@@ -1162,6 +1170,7 @@
         }
       },
       "additionalProperties": false,
+      "x-closed": true,
       "x-children": {"/N": "FormXObject"}
     },
 

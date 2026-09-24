@@ -143,21 +143,22 @@ def test_needs_rendering_denied(tmp_path):
 
 
 def test_overlay_blocked_by_producer_keys(tmp_path):
-    """overlay.pdf passes veraPDF, but PDFpen's private keys are not allowed.
+    """overlay.pdf passes veraPDF, but PDFpen's private keys are not checked.
 
     An accepted coverage gap: unknown keys in form XObjects, content streams
-    and pages are denied because the validator cannot know what they mean.
+    and pages are denied as unsupported because the validator cannot know
+    what they mean.
     """
     pdf = make_clean_candidate(
         RESOURCES / 'overlay.pdf', strip_keys=('/PDFpenVersion', '/Thumb')
     )
     report = check(pdf, tmp_path / 'c.pdf')
     assert not report.passed
-    assert all(
-        'PDFpen' in f.message
-        for f in report.findings
-        if f.rule.startswith('pikepdf:schema-')
-    ), report.summary()
+    schema_findings = [
+        f for f in report.findings if f.rule.startswith('pikepdf:schema-')
+    ]
+    assert all('PDFpen' in f.message for f in schema_findings), report.summary()
+    assert {f.kind for f in schema_findings} == {'unsupported'}, report.summary()
     assert_verapdf_agrees(tmp_path / 'c.pdf', '2b')
 
 
