@@ -25,6 +25,7 @@ from pikepdf.pdfa._report import (  # noqa: E402
     Report,
     ValidationReport,
 )
+from pikepdf.pdfa._save_kwargs import resolve_save_kwargs  # noqa: E402
 
 __all__ = [
     'Finding',
@@ -32,6 +33,7 @@ __all__ = [
     'PdfaError',
     'Report',
     'ValidationReport',
+    'resolve_save_kwargs',
     'validate',
     'validate_written',
 ]
