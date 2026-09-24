@@ -185,3 +185,24 @@ def los_angeles_tz(monkeypatch):
     yield
     monkeypatch.undo()
     time.tzset()
+
+
+@pytest.fixture(autouse=True)
+def _pdfa_explicit_conversion(request):
+    """Run the PDF/A tests in explicit conversion mode if asked to.
+
+    With ``PIKEPDF_TEST_EXPLICIT=1`` in the environment, every test in a
+    ``test_pdfa*`` module runs inside `pikepdf.explicit_conversion`, which
+    affects only the thread running the test.
+    """
+    module = request.node.module
+    if os.environ.get('PIKEPDF_TEST_EXPLICIT') != '1' or module is None:
+        yield
+        return
+    if not module.__name__.rpartition('.')[2].startswith('test_pdfa'):
+        yield
+        return
+    import pikepdf
+
+    with pikepdf.explicit_conversion():
+        yield

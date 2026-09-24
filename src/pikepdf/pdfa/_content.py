@@ -35,6 +35,7 @@ from pikepdf.pdfa._context import ValidationContext
 from pikepdf.pdfa._fonts import FontInfo, load_font
 from pikepdf.pdfa._limits import LimitChecker
 from pikepdf.pdfa._report import FindingKind
+from pikepdf.pdfa._shallow import pdf_repr, pdf_str
 
 MAX_Q_DEPTH = 28
 MAX_FORM_DEPTH = 32
@@ -348,7 +349,7 @@ class _Resources:
             )
             return None
         table = self.category(category)
-        value = table.get(name) if table is not None else None
+        value = pikepdf.unbox(table.get(name)) if table is not None else None
         if value is None:
             if not self.explicit:
                 ctx.deny(
@@ -430,7 +431,7 @@ class _StreamWalk:
                 self.inline_image(instruction.iimage)
                 continue
             op = instruction.operator.unparse().decode('latin-1')
-            operands = list(instruction.operands)
+            operands = [pikepdf.unbox(operand) for operand in instruction.operands]
             for operand in operands:
                 self.check_limits(operand)
             signature = OPERATORS.get(op)
@@ -443,7 +444,7 @@ class _StreamWalk:
             if signature != '*' and not operands_match(signature, operands):
                 self.deny(
                     'pikepdf:content-operands',
-                    f"operator {op} has operands {operands!r}",
+                    f"operator {op} has operands {pdf_repr(operands)}",
                 )
                 continue
             handler = _HANDLERS.get(op)
@@ -516,7 +517,7 @@ class _StreamWalk:
         self.state = self.saved.pop()
 
     def op_d(self, op: str, operands: list[Any]) -> None:
-        if not all(_is_number(item) for item in operands[0]):
+        if not all(_is_number(pikepdf.unbox(item)) for item in operands[0]):
             self.deny('pikepdf:content-operands', "dash array item is not a number")
 
     def op_ri(self, op: str, operands: list[Any]) -> None:
@@ -541,13 +542,13 @@ class _StreamWalk:
         # the state that combines across dictionaries is tracked.
         stroke, fill, mode = self.state.overprint
         if '/OP' in params:
-            stroke = params.get('/OP') is True
+            stroke = pikepdf.unbox(params.get('/OP')) is True
             if '/op' not in params:
                 fill = stroke
         if '/op' in params:
-            fill = params.get('/op') is True
+            fill = pikepdf.unbox(params.get('/op')) is True
         if '/OPM' in params:
-            mode = 1 if params.get('/OPM') == 1 else 0
+            mode = 1 if pikepdf.unbox(params.get('/OPM')) == 1 else 0
         self.state = replace(self.state, overprint=(stroke, fill, mode))
         if mode == 1 and (stroke or fill):
             self.deny(
@@ -609,11 +610,13 @@ class _StreamWalk:
             return
         if op == 'TJ':
             strings = []
-            for item in operands[0]:
+            for item in map(pikepdf.unbox, operands[0]):
                 if isinstance(item, pikepdf.String):
                     strings.append(bytes(item))
                 elif not _is_number(item):
-                    self.deny('pikepdf:content-operands', f"TJ array item {item!r}")
+                    self.deny(
+                        'pikepdf:content-operands', f"TJ array item {pdf_repr(item)}"
+                    )
                     return
         else:
             strings = [bytes(operands[-1])]
@@ -662,7 +665,9 @@ class _StreamWalk:
             )
             return
         if not operands or not all(_is_number(o) for o in operands):
-            self.deny('pikepdf:content-operands', f"{op} has operands {operands!r}")
+            self.deny(
+                'pikepdf:content-operands', f"{op} has operands {pdf_repr(operands)}"
+            )
             return
         expected = self.state.fill if op.islower() else self.state.stroke
         if expected is not None and len(operands) != expected:
@@ -690,7 +695,7 @@ class _StreamWalk:
         if not isinstance(xobject, pikepdf.Stream):
             self.deny('pikepdf:schema-XObject', f"XObject {name} is not a stream")
             return
-        subtype = xobject.get('/Subtype')
+        subtype = pikepdf.unbox(xobject.get('/Subtype'))
         if subtype == pikepdf.Name.Image:
             # The image dictionary is checked by the ImageXObject role when
             # the document walker reaches the resource dictionary; its colour
@@ -710,7 +715,7 @@ class _StreamWalk:
             return
         self.deny(
             self.ctx.rule('6.2.7-1', '6.2.9-3'),
-            f"XObject {name} has /Subtype {subtype!r}",
+            f"XObject {name} has /Subtype {pdf_repr(subtype)}",
         )
 
     # --- marked content -----------------------------------------------------
@@ -768,11 +773,11 @@ class _StreamWalk:
                     f"inline image key {key} is not supported",
                     'unsupported',
                 )
-        filters = obj.get('/Filter')
+        filters = pikepdf.unbox(obj.get('/Filter'))
         if filters is not None:
             items = filters if isinstance(filters, pikepdf.Array) else [filters]
-            for item in items:
-                name = str(item) if isinstance(item, pikepdf.Name) else repr(item)
+            for item in map(pikepdf.unbox, items):
+                name = str(item) if isinstance(item, pikepdf.Name) else pdf_repr(item)
                 if name in FORBIDDEN_FILTERS:
                     self.deny(
                         ctx.rule('6.1.10-2', '6.1.10-1'),
@@ -784,28 +789,29 @@ class _StreamWalk:
                         f"inline image filter {name} is not supported",
                         'unsupported',
                     )
-        if obj.get('/Interpolate') is True:
+        if pikepdf.unbox(obj.get('/Interpolate')) is True:
             self.deny(
                 ctx.rule('6.2.4-3', '6.2.8-3'),
                 "inline image /Interpolate shall be false",
             )
-        intent = obj.get('/Intent')
+        intent = pikepdf.unbox(obj.get('/Intent'))
         if intent is not None and str(intent) not in RENDERING_INTENTS:
             self.deny(
                 ctx.rule('6.2.9-1', '6.2.6-1'),
-                f"inline image rendering intent {intent}",
+                f"inline image rendering intent {pdf_str(intent)}",
             )
-        bpc = obj.get('/BitsPerComponent')
+        bpc = pikepdf.unbox(obj.get('/BitsPerComponent'))
         allowed_bpc = {1, 2, 4, 8} if ctx.flavour.part == 1 else {1, 2, 4, 8, 16}
-        if obj.get('/ImageMask') is True:
+        if pikepdf.unbox(obj.get('/ImageMask')) is True:
             if bpc not in (None, 1):
-                self.deny('pikepdf:inline-image', f"image mask with BPC {bpc}")
+                self.deny('pikepdf:inline-image', f"image mask with BPC {pdf_str(bpc)}")
             return
         if bpc not in allowed_bpc:
             self.deny(
-                ctx.rule('6.2.4-4', '6.2.8-4'), f"inline image /BitsPerComponent {bpc}"
+                ctx.rule('6.2.4-4', '6.2.8-4'),
+                f"inline image /BitsPerComponent {pdf_str(bpc)}",
             )
-        colour_space = obj.get('/ColorSpace')
+        colour_space = pikepdf.unbox(obj.get('/ColorSpace'))
         if colour_space is None:
             self.deny('pikepdf:inline-image', "inline image has no colour space")
             return
@@ -877,7 +883,7 @@ class ContentWalker:
             # Parse the concatenation as one stream: pikepdf reports syntax
             # problems (such as a truncated token) only when parsing a stream.
             try:
-                data = b'\n'.join(part.read_bytes() for part in contents)
+                data = b'\n'.join(pikepdf.unbox(part).read_bytes() for part in contents)
             except (pikepdf.PdfError, AttributeError, TypeError) as e:
                 walk.deny('pikepdf:content-parse', f"cannot read page content: {e}")
                 return
@@ -971,6 +977,7 @@ def _defaults_key(colour_spaces: Any) -> tuple[bytes | None, ...]:
 
 
 def _unparse(value: Any) -> bytes:
+    value = pikepdf.unbox(value)
     if isinstance(value, pikepdf.Object):
         return value.unparse()
     return repr(value).encode()

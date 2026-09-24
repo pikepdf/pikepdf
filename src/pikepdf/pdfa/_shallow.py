@@ -44,6 +44,26 @@ def _encode_string(obj: pikepdf.Object) -> str:
         return 'b:' + raw.hex()
 
 
+def pdf_repr(value: Any) -> str:
+    """Return ``repr(value)`` as implicit conversion mode would give it.
+
+    The repr of an array, dictionary or stream shows the PDF integers, reals
+    and booleans it contains as ``pikepdf.Integer(1)`` and so on in explicit
+    mode, which would make finding messages depend on the conversion mode.
+    *value* may also be a list of PDF values.
+    """
+    with pikepdf.implicit_conversion():
+        return repr(pikepdf.unbox(value))
+
+
+def pdf_str(value: Any) -> str:
+    """Return ``str(value)`` as implicit conversion mode would give it."""
+    value = pikepdf.unbox(value)
+    if isinstance(value, pikepdf.Array | pikepdf.Dictionary):
+        return pdf_repr(value)
+    return str(value)
+
+
 def _ref(obj: pikepdf.Object) -> str:
     num, gen = obj.objgen
     return f'{num} {gen} R'
@@ -89,6 +109,9 @@ def shallow_json(obj: Any) -> Any:
     Args:
         obj: A pikepdf object, or a Python scalar as returned by pikepdf's
             implicit conversion of PDF integers, reals, booleans and null.
+            A PDF integer, real or boolean is encoded as its value in either
+            conversion mode, even if it is an indirect object, so the
+            encoding does not depend on the conversion mode.
 
     Returns:
         ``"/Name"`` for names; ``"u:text"`` for strings that decode as
@@ -97,6 +120,7 @@ def shallow_json(obj: Any) -> Any:
         lists and dicts for direct arrays and dictionaries; and
         ``{"stream": {"dict": {...}}}`` for a direct stream.
     """
+    obj = pikepdf.unbox(obj)
     if obj is None or isinstance(obj, bool | int):
         return obj
     if isinstance(obj, Decimal | float):

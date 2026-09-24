@@ -20,7 +20,7 @@ import pikepdf
 from pikepdf.pdfa._context import ValidationContext
 from pikepdf.pdfa._icc import IccHeader, check_input_profile
 from pikepdf.pdfa._schemas import SchemaSet
-from pikepdf.pdfa._shallow import shallow_json_of
+from pikepdf.pdfa._shallow import pdf_repr, shallow_json_of
 
 DEVICE_COMPONENTS = {'/DeviceGray': 1, '/DeviceRGB': 3, '/DeviceCMYK': 4}
 DEFAULT_SPACES = {
@@ -152,11 +152,12 @@ class _Resolver:
         if depth > MAX_NESTING:
             self.unsupported(f"colour spaces nested deeper than {MAX_NESTING}")
             return None
+        value = pikepdf.unbox(value)
         if isinstance(value, pikepdf.Name):
             return self.resolve_name(value, depth, allow_names)
         if isinstance(value, pikepdf.Array):
             return self.resolve_array(value, depth)
-        self.deny(f"colour space {value!r} is neither a name nor an array")
+        self.deny(f"colour space {pdf_repr(value)} is neither a name nor an array")
         return None
 
     def resolve_name(
@@ -271,7 +272,7 @@ class _Resolver:
             'ICCBasedStream', shallow_json_of(stream, ctx.model), ctx, where
         ):
             return None
-        n = int(stream.N)
+        n = int(pikepdf.unbox(stream.N))
         try:
             data = stream.read_bytes()
         except pikepdf.PdfError as e:
@@ -313,7 +314,7 @@ class _Resolver:
         if len(value) != 4:
             self.deny("Indexed colour space must be [/Indexed base hival lookup]")
             return None
-        _family, base, hival, lookup = list(value)
+        _family, base, hival, lookup = map(pikepdf.unbox, value)
         base_info = self.resolve(base, depth + 1, False)
         if base_info is None:
             return None
@@ -325,7 +326,9 @@ class _Resolver:
             or isinstance(hival, bool)
             or not 0 <= hival <= MAX_HIVAL
         ):
-            self.deny(f"Indexed hival {hival!r} is not an integer 0-{MAX_HIVAL}")
+            self.deny(
+                f"Indexed hival {pdf_repr(hival)} is not an integer 0-{MAX_HIVAL}"
+            )
             return None
         if isinstance(lookup, pikepdf.String):
             size = len(bytes(lookup))
@@ -364,18 +367,18 @@ class _Resolver:
             if (
                 not isinstance(item, pikepdf.Array)
                 or len(item) != length
-                or not all(_is_number(v) for v in item)
+                or not all(_is_number(pikepdf.unbox(v)) for v in item)
             ):
                 self.deny(f"{family} {key} is not an array of {length} numbers")
                 return None
         if '/Gamma' in params:
-            gamma = params.get('/Gamma')
+            gamma = pikepdf.unbox(params.get('/Gamma'))
             ok = (
                 _is_number(gamma)
                 if family == '/CalGray'
                 else isinstance(gamma, pikepdf.Array)
                 and len(gamma) == 3
-                and all(_is_number(v) for v in gamma)
+                and all(_is_number(pikepdf.unbox(v)) for v in gamma)
             )
             if not ok:
                 self.deny(f"{family} /Gamma is malformed")
@@ -431,7 +434,7 @@ def check_image_colour(
         ctx: Validation context.
         where: Location used in findings.
     """
-    if image.get('/ImageMask') is True:
+    if pikepdf.unbox(image.get('/ImageMask')) is True:
         return
     colour_space = image.get('/ColorSpace')
     if colour_space is None:
@@ -443,7 +446,10 @@ def check_image_colour(
     mask = image.get('/Mask')
     if isinstance(mask, pikepdf.Array) and (
         len(mask) != 2 * info.components
-        or not all(isinstance(v, int) and not isinstance(v, bool) for v in mask)
+        or not all(
+            isinstance(v, int) and not isinstance(v, bool)
+            for v in map(pikepdf.unbox, mask)
+        )
     ):
         ctx.deny(
             'pikepdf:schema-ImageXObject',

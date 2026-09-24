@@ -112,8 +112,7 @@ def run(
     report = Report(flavour, save_kwargs=dict(save_kwargs or {}))
     ctx = ValidationContext(flavour, pdf, report, model)
     try:
-        with pikepdf.implicit_conversion():
-            check_document(ctx)
+        check_document(ctx)
     except Deny as e:
         report.findings.append(e.finding)
     except Exception as e:  # pylint: disable=broad-except

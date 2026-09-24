@@ -96,7 +96,7 @@ def parse_differences(differences: Any) -> dict[int, str]:
         raise DifferencesError("/Differences is not an array")
     result: dict[int, str] = {}
     code: int | None = None
-    for item in differences:
+    for item in map(pikepdf.unbox, differences):
         if isinstance(item, int) and not isinstance(item, bool):
             code = int(item)
             continue

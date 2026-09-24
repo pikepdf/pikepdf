@@ -80,6 +80,7 @@ class LimitChecker:
 
     def scalar(self, value: Any) -> tuple[str, str] | None:
         """Check a scalar; return (rule key, message) if it breaks a limit."""
+        value = pikepdf.unbox(value)
         if isinstance(value, bool):
             return None
         if isinstance(value, int):
@@ -114,6 +115,7 @@ class LimitChecker:
     def _collect(
         self, value: Any, depth: int, found: list[tuple[str, str]], top: bool = False
     ) -> None:
+        value = pikepdf.unbox(value)
         if isinstance(value, pikepdf.Object) and value.is_indirect and not top:
             return  # checked as an object of its own
         if depth > MAX_NESTING:
@@ -159,6 +161,9 @@ def check_document_limits(ctx: ValidationContext) -> None:
         [ctx.pdf.trailer], ctx.model.objects(ctx.pdf)
     )
     for obj in objects:
+        if not isinstance(obj, pikepdf.Object):
+            # An indirect integer, real or boolean: checked where it is used
+            continue
         reported: set[str] = set()
         for key, message in checker.problems(obj):
             if key in reported:

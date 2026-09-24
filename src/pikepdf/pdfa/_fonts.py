@@ -58,6 +58,7 @@ from pikepdf.pdfa._fontprogram import (
     Type1Program,
 )
 from pikepdf.pdfa._report import FindingKind
+from pikepdf.pdfa._shallow import pdf_repr
 
 INVISIBLE = 3
 WIDTH_TOLERANCE = 1
@@ -238,6 +239,7 @@ def _name_text(obj: Any) -> str | None:
 
 
 def _number(obj: Any) -> float | None:
+    obj = pikepdf.unbox(obj)
     if isinstance(obj, bool):
         return None
     if isinstance(obj, int | Decimal):
@@ -246,6 +248,7 @@ def _number(obj: Any) -> float | None:
 
 
 def _integer(obj: Any) -> int | None:
+    obj = pikepdf.unbox(obj)
     if isinstance(obj, int) and not isinstance(obj, bool):
         return int(obj)
     return None
@@ -643,12 +646,15 @@ class _Loader:
 
     def common(self, font: pikepdf.Dictionary, what: str) -> str | None:
         """Check /Type, /Subtype and /BaseFont; return the subtype."""
-        if font.get('/Type') != pikepdf.Name.Font:
-            self.deny('type', f"{what} /Type is {font.get('/Type')!r}, not /Font")
-        subtype = font.get('/Subtype')
+        font_type = pikepdf.unbox(font.get('/Type'))
+        if font_type != pikepdf.Name.Font:
+            self.deny('type', f"{what} /Type is {pdf_repr(font_type)}, not /Font")
+        subtype = pikepdf.unbox(font.get('/Subtype'))
         subtype_text = str(subtype) if isinstance(subtype, pikepdf.Name) else None
         if subtype_text not in FONT_SUBTYPES:
-            self.deny('subtype', f"{what} /Subtype {subtype!r} is not a font type")
+            self.deny(
+                'subtype', f"{what} /Subtype {pdf_repr(subtype)} is not a font type"
+            )
             return None
         assert subtype_text is not None
         base_font = font.get('/BaseFont')
@@ -809,7 +815,7 @@ class _Loader:
             return
         info.symbolic = symbolic
         tables = program.cmap_tables()
-        encoding = font.get('/Encoding')
+        encoding = pikepdf.unbox(font.get('/Encoding'))
         if symbolic:
             if encoding is not None:
                 self.deny(
@@ -889,7 +895,7 @@ class _Loader:
         if base not in TRUETYPE_BASE_ENCODINGS:
             self.deny(
                 'tt-nonsymbolic-encoding',
-                f"non-symbolic TrueType font encoding is {base or encoding!r}, "
+                f"non-symbolic TrueType font encoding is {base or pdf_repr(encoding)}, "
                 "not MacRomanEncoding or WinAnsiEncoding",
             )
             return
@@ -946,10 +952,10 @@ class _Loader:
         base_table: Mapping[int, str] = (
             builtin if builtin is not None else encoding_table(STANDARD)
         )
-        encoding = font.get('/Encoding')
+        encoding = pikepdf.unbox(font.get('/Encoding'))
         differences: dict[int, str] = {}
         if isinstance(encoding, pikepdf.Dictionary):
-            base_obj = encoding.get('/BaseEncoding')
+            base_obj = pikepdf.unbox(encoding.get('/BaseEncoding'))
             encoding = base_obj
             try:
                 if '/Differences' in font.Encoding:
@@ -960,7 +966,9 @@ class _Loader:
         if encoding is not None:
             name = str(encoding) if isinstance(encoding, pikepdf.Name) else None
             if name not in SIMPLE_BASE_ENCODINGS:
-                self.unsupported('font-encoding', f"{what} encoding {encoding!r}")
+                self.unsupported(
+                    'font-encoding', f"{what} encoding {pdf_repr(encoding)}"
+                )
                 return
             base_table = encoding_table(SIMPLE_BASE_ENCODINGS[name])
         table = dict(base_table)
@@ -1013,7 +1021,7 @@ class _Loader:
             return
         info.cid_subtype = subtype
         system_info = self.cid_system_info(cidfont.get('/CIDSystemInfo'), "CIDFont")
-        self.encoding_cmap(font.get('/Encoding'), system_info)
+        self.encoding_cmap(pikepdf.unbox(font.get('/Encoding')), system_info)
         self.cid_widths(cidfont)
         if subtype == '/CIDFontType2':
             self.cid_to_gid_map(cidfont)
@@ -1092,7 +1100,7 @@ class _Loader:
             self.deny('cmap-embedded', f"CMap {name} is not embedded")
             return
         if not isinstance(encoding, pikepdf.Stream):
-            self.deny('cmap-embedded', f"Type 0 /Encoding {encoding!r}")
+            self.deny('cmap-embedded', f"Type 0 /Encoding {pdf_repr(encoding)}")
             return
         try:
             cmap = parse_embedded_cmap(encoding)
@@ -1102,13 +1110,13 @@ class _Loader:
             elif e.reason == 'ambiguous':
                 self.unsupported('font-cmap-ambiguous', f"embedded CMap: {e}")
             elif e.reason == 'usecmap':
-                use = encoding.get('/UseCMap')
+                use = pikepdf.unbox(encoding.get('/UseCMap'))
                 if isinstance(use, pikepdf.Name) and str(use) in PREDEFINED_CMAPS:
                     self.unsupported('font-cmap', f"{e}: {use}")
                 elif use is None or ctx.flavour.part == 1:
                     self.unsupported('cmap-usecmap', str(e))
                 else:
-                    self.deny('cmap-usecmap', f"{e}: {use!r}")
+                    self.deny('cmap-usecmap', f"{e}: {pdf_repr(use)}")
             else:
                 self.unsupported('font-cmap', f"embedded CMap: {e}")
             return
@@ -1279,6 +1287,7 @@ def load_font(font: Any, ctx: ValidationContext, where: str) -> FontInfo:
         ctx: Validation context; findings are added to its report.
         where: Location used in findings.
     """
+    font = pikepdf.unbox(font)
     if isinstance(font, pikepdf.Object) and font.is_indirect:
         key = font.objgen
         info = ctx.fonts.get(key)

@@ -23,7 +23,7 @@ from pikepdf.pdfa._fonts import finalize_fonts, load_font
 from pikepdf.pdfa._icc import COMPONENTS, IccHeader, check_output_profile
 from pikepdf.pdfa._limits import check_document_limits
 from pikepdf.pdfa._schemas import ChildSpec, SchemaSet
-from pikepdf.pdfa._shallow import shallow_json_of
+from pikepdf.pdfa._shallow import pdf_str, shallow_json_of
 
 MIN_BOX_SIZE = 3
 MAX_BOX_SIZE = 14400
@@ -189,7 +189,7 @@ class DocumentWalker:
                 continue
             if key not in obj:
                 continue
-            value = obj.get(key)
+            value = pikepdf.unbox(obj.get(key))
             if value is None:
                 continue
             child_where = f'{where} {key}'
@@ -208,7 +208,9 @@ class DocumentWalker:
         """
         if isinstance(value, pikepdf.Array):
             for index, element in enumerate(value):
-                yield self._child(element, spec, depth, f'{where}[{index}]')
+                yield self._child(
+                    pikepdf.unbox(element), spec, depth, f'{where}[{index}]'
+                )
         elif (
             spec.values
             and isinstance(value, pikepdf.Dictionary)
@@ -219,7 +221,7 @@ class DocumentWalker:
                     # A null value is an absent entry, and qpdf drops the
                     # key when it writes the file.
                     continue
-                yield self._child(element, spec, depth, f'{where}{key}')
+                yield self._child(pikepdf.unbox(element), spec, depth, f'{where}{key}')
         else:
             yield self._child(value, spec, depth, where)
 
@@ -246,7 +248,7 @@ class DocumentWalker:
             profile = intent.get('/DestOutputProfile')
             if profile is None:
                 continue
-            if not profile.is_indirect:
+            if not isinstance(profile, pikepdf.Object) or not profile.is_indirect:
                 self.ctx.deny(
                     'pikepdf:schema-OutputIntent',
                     where,
@@ -278,12 +280,13 @@ class DocumentWalker:
             return
         if not check_output_profile(header, ctx.flavour, ctx, where):
             return
-        n = obj.get('/N')
+        n = pikepdf.unbox(obj.get('/N'))
         if COMPONENTS.get(header.colour_space) != n:
             ctx.deny(
                 'pikepdf:icc-components',
                 where,
-                f"/N {n} does not match ICC colour space {header.colour_space!r}",
+                f"/N {pdf_str(n)} does not match ICC colour space "
+                f"{header.colour_space!r}",
                 'unsupported',
             )
             return
@@ -296,7 +299,7 @@ class DocumentWalker:
         seen: set[tuple[int, int]] = set()
         for _ in range(self.ctx.max_depth):
             if key in node:
-                return node.get(key)
+                return pikepdf.unbox(node.get(key))
             parent = node.get('/Parent')
             if not isinstance(parent, pikepdf.Dictionary) or parent.objgen in seen:
                 return None
@@ -309,7 +312,7 @@ class DocumentWalker:
         values: list[float] = []
         if isinstance(box, pikepdf.Array) and len(box) == 4:
             try:
-                values = [float(v) for v in box]
+                values = [float(pikepdf.unbox(v)) for v in box]
             except (TypeError, ValueError):
                 values = []
         if len(values) != 4:
@@ -375,7 +378,7 @@ class DocumentWalker:
                 if pages is None:
                     return None
                 total += pages
-            count = node.get('/Count')
+            count = pikepdf.unbox(node.get('/Count'))
             where = f'{ctx.describe(node)} (Pages)'
             if not isinstance(count, int) or isinstance(count, bool):
                 ctx.deny('pikepdf:page-tree', where, "/Count is not an integer")
@@ -440,8 +443,8 @@ class DocumentWalker:
     def _on_annot(self, obj: Any, where: str, depth: int) -> None:
         ctx = self.ctx
         part1 = ctx.flavour.part == 1
-        subtype = obj.get('/Subtype')
-        flags = obj.get('/F')
+        subtype = pikepdf.unbox(obj.get('/Subtype'))
+        flags = pikepdf.unbox(obj.get('/F'))
         if isinstance(flags, int) and not isinstance(flags, bool):
             forbidden = ANNOT_INVISIBLE | ANNOT_HIDDEN | ANNOT_NOVIEW
             if not part1:
@@ -473,12 +476,16 @@ class DocumentWalker:
             ctx.deny(
                 ctx.rule(None, '6.3.3-1'),
                 where,
-                f"{subtype} annotation has no appearance dictionary",
+                f"{pdf_str(subtype)} annotation has no appearance dictionary",
             )
         if part1:
-            opacity = obj.get('/CA')
+            opacity = pikepdf.unbox(obj.get('/CA'))
             if opacity is not None and opacity != 1:
-                ctx.deny(ctx.rule('6.5.3-1', None), where, f"/CA is {opacity}, not 1")
+                ctx.deny(
+                    ctx.rule('6.5.3-1', None),
+                    where,
+                    f"/CA is {pdf_str(opacity)}, not 1",
+                )
             if ('/C' in obj or '/IC' in obj) and ctx.output_intent_cs != 'RGB ':
                 ctx.deny(
                     ctx.rule('6.5.3-3', None),
@@ -563,7 +570,7 @@ def _rect_has_area(rect: Any) -> bool:
     if not isinstance(rect, pikepdf.Array) or len(rect) != 4:
         return True
     try:
-        x1, y1, x2, y2 = (float(v) for v in rect)
+        x1, y1, x2, y2 = (float(pikepdf.unbox(v)) for v in rect)
     except (TypeError, ValueError):
         return True
     return not (x1 == x2 and y1 == y2)

@@ -16,6 +16,7 @@ import pikepdf
 from pikepdf.pdfa._context import ValidationContext
 from pikepdf.pdfa._limits import MAX_NESTING
 from pikepdf.pdfa._report import FindingKind
+from pikepdf.pdfa._shallow import pdf_repr
 
 EXTERNAL_STREAM_KEYS = ('/F', '/FFilter', '/FDecodeParms')
 PERMITTED_FILTERS = frozenset(
@@ -42,8 +43,8 @@ def _reported(ctx: ValidationContext) -> set[tuple[str, str]]:
 
 def _filter_names(value: Any) -> list[Any]:
     if isinstance(value, pikepdf.Array):
-        return list(value)
-    return [value]
+        return [pikepdf.unbox(item) for item in value]
+    return [pikepdf.unbox(value)]
 
 
 class _ObjectChecker:
@@ -97,7 +98,7 @@ class _ObjectChecker:
                 self.deny(
                     'pikepdf:filter',
                     where,
-                    f"stream filter {item!r} is not a name",
+                    f"stream filter {pdf_repr(item)} is not a name",
                     'unsupported',
                 )
                 continue

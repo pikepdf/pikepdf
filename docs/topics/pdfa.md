@@ -372,8 +372,10 @@ that matters, inspect the `PrepareResult` or call `check` first.
 - **Write-time stream failures cannot be predicted.** If a stream's data cannot
   be decoded when qpdf writes it, `check` cannot know in advance. `save` catches
   this when it validates the written file.
-- **Conversion mode does not matter.** `check` gives the same verdict under
-  {func}`pikepdf.explicit_conversion` as in the default mode.
+- **Conversion mode does not matter.** The validator and `prepare` give the
+  same results whether the document is read in implicit or explicit conversion
+  mode, however that mode is chosen: {func}`pikepdf.explicit_conversion`, the
+  document's `conversion_mode`, or {func}`pikepdf.set_object_conversion_mode`.
 - **Files are replaced atomically where possible.** `save` writes a temporary
   file beside the destination and renames it into place. An existing file keeps
   its permissions; a new file gets the default permissions of your umask. A

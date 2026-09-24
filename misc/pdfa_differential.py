@@ -299,9 +299,14 @@ def prediction_mismatch(predicted: pdfa.Report, written: pdfa.Report) -> bool:
     return {f.rule for f in predicted.findings} != {f.rule for f in written.findings}
 
 
+_EXPLICIT_ENV = 'PIKEPDF_DIFFERENTIAL_EXPLICIT'
+
+
 def _quiet_worker() -> None:
     logging.disable(logging.CRITICAL)
     warnings.simplefilter('ignore')
+    if os.environ.get(_EXPLICIT_ENV) == '1':
+        pikepdf.set_object_conversion_mode('explicit')
 
 
 def _save_via_pdfa_save(
@@ -844,7 +849,8 @@ def _describe(value: Any) -> str:
 
 
 def _is_number(value: Any) -> bool:
-    # pikepdf returns PDF integers as int and PDF reals as Decimal
+    # A PDF integer is an int and a PDF real a Decimal, in either conversion mode
+    value = pikepdf.unbox(value)
     return isinstance(value, int | Decimal) and not isinstance(value, bool)
 
 
@@ -924,7 +930,7 @@ def mutate(pdf: pikepdf.Pdf, rng: random.Random) -> str | None:
         if not numeric:
             return None
         key = rng.choice(numeric)
-        old: Any = obj.get(key)
+        old: Any = pikepdf.unbox(obj.get(key))
         old_value = old if isinstance(old, int) else float(old)
         name, perturb = rng.choice(NUMBER_PERTURBATIONS)
         new = perturb(old_value)
@@ -1031,6 +1037,9 @@ def build_parser() -> argparse.ArgumentParser:
             help="output directory for results.json and kept candidates "
             "(default: a new temporary directory)",
         )
+        # Run with pikepdf.set_object_conversion_mode('explicit') in every
+        # process, to show the verdicts do not depend on the conversion mode
+        p.add_argument('--explicit', action='store_true', help=argparse.SUPPRESS)
 
     def via_save(p: argparse.ArgumentParser) -> None:
         p.add_argument(
@@ -1109,6 +1118,10 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the command line."""
     args = build_parser().parse_args(argv)
+    if args.explicit:
+        # Inherited by worker processes, which set the mode in _quiet_worker
+        os.environ[_EXPLICIT_ENV] = '1'
+        pikepdf.set_object_conversion_mode('explicit')
     return args.func(args)
 
 

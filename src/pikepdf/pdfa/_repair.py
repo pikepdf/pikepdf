@@ -84,7 +84,7 @@ class AnnotationRepairResult:
 
 
 def _annotation_flags(annot: Dictionary) -> int:
-    flags = annot.get(Name.F)
+    flags = pikepdf.unbox(annot.get(Name.F))
     if isinstance(flags, int) and not isinstance(flags, bool):
         return flags
     return 0

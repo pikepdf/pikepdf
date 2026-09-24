@@ -9,7 +9,6 @@ import logging
 from collections import Counter
 from dataclasses import dataclass, field
 
-import pikepdf
 from pikepdf import Pdf
 from pikepdf.pdfa._declare import declare_pdfa_metadata
 from pikepdf.pdfa._flavour import Flavour
@@ -229,19 +228,18 @@ def prepare(
     spec = parse_output_intent(
         output_intent, pdfa_flavour, identifier=output_condition_identifier
     )
-    with pikepdf.implicit_conversion():
-        # Reading the page count makes qpdf correct /Count when saving
-        len(pdf.pages)
-        replaced = False
-        if spec is not None and not has_output_intent(pdf, spec):
-            replace_output_intents(pdf, spec)
-            replaced = True
-        interpolation_removed = strip_image_interpolation(pdf)
-        annotations = repair_annotation_flags(pdf)
-        cidsets_added = 0
-        if pdfa_flavour.part == 1:
-            cidsets_added = add_cidsets_for_subset_cidfonts(pdf)
-        declaration = declare_pdfa_metadata(pdf, pdfa_flavour)
+    # Reading the page count makes qpdf correct /Count when saving
+    len(pdf.pages)
+    replaced = False
+    if spec is not None and not has_output_intent(pdf, spec):
+        replace_output_intents(pdf, spec)
+        replaced = True
+    interpolation_removed = strip_image_interpolation(pdf)
+    annotations = repair_annotation_flags(pdf)
+    cidsets_added = 0
+    if pdfa_flavour.part == 1:
+        cidsets_added = add_cidsets_for_subset_cidfonts(pdf)
+    declaration = declare_pdfa_metadata(pdf, pdfa_flavour)
     return PrepareResult(
         output_intent_replaced=replaced,
         output_intent=spec.colour_space if spec is not None else None,

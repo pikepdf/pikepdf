@@ -335,10 +335,16 @@ class WriteModel:
             return pdf.trailer.get('/Type') == pikepdf.Name.XRef
         return self._object_streams(pdf)
 
-    def objects(self, pdf: pikepdf.Pdf) -> list[pikepdf.Object]:
-        """Return the indirect objects written to the file."""
+    def objects(self, pdf: pikepdf.Pdf) -> list[Any]:
+        """Return the indirect objects written to the file.
+
+        An indirect integer, real or boolean is given as its Python value
+        (by the identity model) or left out (by a predicting model), in
+        either conversion mode, since the validator checks such a value
+        where it is used.
+        """
         if self._save_kwargs is None:
-            return list(pdf.objects)
+            return [pikepdf.unbox(obj) for obj in pdf.objects]
         if self._objects is None:
             self._objects = list(_reachable(pdf))
         return self._objects
@@ -356,8 +362,9 @@ def _reachable(pdf: pikepdf.Pdf) -> Iterator[pikepdf.Object]:
     ]
     stack.reverse()
     while stack:
-        value = stack.pop()
+        value = pikepdf.unbox(stack.pop())
         if not isinstance(value, pikepdf.Object):
+            # A PDF integer, real or boolean, in either conversion mode
             continue
         if value.is_indirect:
             key = value.objgen
