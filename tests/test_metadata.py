@@ -1515,3 +1515,142 @@ class TestXmpPropertyTypes:
             with pytest.warns(XmpTypeWarning, match='dc:creator'):
                 meta['dc:creator'] = 'A String'
             assert meta['dc:creator'] == ['A String']
+
+
+def _xmp_packet(body: str) -> bytes:
+    return (
+        '<x:xmpmeta xmlns:x="adobe:ns:meta/">'
+        '<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">'
+        f'{body}</rdf:RDF></x:xmpmeta>'
+    ).encode()
+
+
+def _pdf_with_xmp(xmp: bytes) -> Pdf:
+    pdf = pikepdf.new()
+    pdf.add_blank_page()
+    pdf.Root.Metadata = pdf.make_stream(xmp, Type=Name.Metadata, Subtype=Name.XML)
+    return pdf
+
+
+def _alt_items(xmp: XmpDocument, key: str) -> list[tuple[str | None, str | None]]:
+    """Return the (xml:lang, text) of each item of a language alternative."""
+    node = next(xmp._get_elements(key))[0]
+    alt = node.find('rdf:Alt', XmpDocument.NS)
+    lang = '{http://www.w3.org/XML/1998/namespace}lang'
+    return [(li.get(lang), li.text) for li in alt]
+
+
+MULTILINGUAL_TITLE = _xmp_packet(
+    '<rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/">'
+    '<dc:title><rdf:Alt>'
+    '<rdf:li xml:lang="en">English title</rdf:li>'
+    '<rdf:li xml:lang="fr">Titre</rdf:li>'
+    '<rdf:li xml:lang="x-default">Default title</rdf:li>'
+    '</rdf:Alt></dc:title>'
+    '<dc:description><rdf:Alt>'
+    '<rdf:li xml:lang="en">English subject</rdf:li>'
+    '<rdf:li xml:lang="x-default">Default subject</rdf:li>'
+    '</rdf:Alt></dc:description>'
+    '</rdf:Description>'
+)
+
+
+class TestLanguageAlternatives:
+    def test_read_x_default_not_first(self):
+        xmp = XmpDocument(MULTILINGUAL_TITLE)
+        assert xmp['dc:title'] == 'Default title'
+        assert xmp['dc:description'] == 'Default subject'
+
+    def test_read_falls_back_to_first_item(self):
+        xmp = XmpDocument(
+            _xmp_packet(
+                '<rdf:Description rdf:about="" '
+                'xmlns:dc="http://purl.org/dc/elements/1.1/">'
+                '<dc:title><rdf:Alt>'
+                '<rdf:li xml:lang="de">Deutsch</rdf:li>'
+                '<rdf:li xml:lang="en">English</rdf:li>'
+                '</rdf:Alt></dc:title></rdf:Description>'
+            )
+        )
+        assert xmp['dc:title'] == 'Deutsch'
+
+    def test_read_empty_alt(self):
+        xmp = XmpDocument(
+            _xmp_packet(
+                '<rdf:Description rdf:about="" '
+                'xmlns:dc="http://purl.org/dc/elements/1.1/">'
+                '<dc:title><rdf:Alt/></dc:title></rdf:Description>'
+            )
+        )
+        assert xmp['dc:title'] == ''
+
+    def test_docinfo_synced_from_x_default(self):
+        pdf = _pdf_with_xmp(MULTILINGUAL_TITLE)
+        with pdf.open_metadata() as m:
+            assert m['dc:title'] == 'Default title'
+        assert pdf.docinfo.Title == 'Default title'
+        assert pdf.docinfo.Subject == 'Default subject'
+
+    def test_write_keeps_other_languages(self):
+        xmp = XmpDocument(MULTILINGUAL_TITLE)
+        xmp['dc:title'] = 'New title'
+        assert xmp['dc:title'] == 'New title'
+        assert _alt_items(xmp, 'dc:title') == [
+            ('x-default', 'New title'),
+            ('en', 'English title'),
+            ('fr', 'Titre'),
+        ]
+
+    def test_write_updates_copy_of_default(self):
+        xmp = XmpDocument(
+            _xmp_packet(
+                '<rdf:Description rdf:about="" '
+                'xmlns:dc="http://purl.org/dc/elements/1.1/">'
+                '<dc:title><rdf:Alt>'
+                '<rdf:li xml:lang="x-default">Same</rdf:li>'
+                '<rdf:li xml:lang="en">Same</rdf:li>'
+                '<rdf:li xml:lang="fr">Autre</rdf:li>'
+                '</rdf:Alt></dc:title></rdf:Description>'
+            )
+        )
+        xmp['dc:title'] = 'Changed'
+        assert _alt_items(xmp, 'dc:title') == [
+            ('x-default', 'Changed'),
+            ('en', 'Changed'),
+            ('fr', 'Autre'),
+        ]
+
+    def test_write_adds_missing_x_default_first(self):
+        xmp = XmpDocument(
+            _xmp_packet(
+                '<rdf:Description rdf:about="" '
+                'xmlns:dc="http://purl.org/dc/elements/1.1/">'
+                '<dc:title><rdf:Alt>'
+                '<rdf:li xml:lang="en">English</rdf:li>'
+                '</rdf:Alt></dc:title></rdf:Description>'
+            )
+        )
+        xmp['dc:title'] = 'Default'
+        assert _alt_items(xmp, 'dc:title') == [
+            ('x-default', 'Default'),
+            ('en', 'English'),
+        ]
+
+    def test_write_subject_through_docinfo(self):
+        pdf = _pdf_with_xmp(MULTILINGUAL_TITLE)
+        with pdf.open_metadata() as m:
+            m['dc:description'] = 'New subject'
+        assert pdf.docinfo.Subject == 'New subject'
+        with pdf.open_metadata() as m:
+            assert _alt_items(m._xmp_doc, 'dc:description') == [
+                ('x-default', 'New subject'),
+                ('en', 'English subject'),
+            ]
+
+    def test_unknown_alt_gets_one_x_default(self):
+        from pikepdf.models.metadata._constants import AltList
+
+        xmp = XmpDocument()
+        with pytest.warns(UserWarning, match='Merging'):
+            xmp['pdf:Unknown'] = AltList(['a', 'b'])
+        assert _alt_items(xmp, 'pdf:Unknown') == [('x-default', 'a; b')]

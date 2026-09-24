@@ -19,6 +19,7 @@ from pikepdf.models.metadata._constants import (
     XMP_NS_XML,
     XPACKET_BEGIN,
     XPACKET_END,
+    AltList,
     clean,
     load_lxml_namespaces,
     re_xml_illegal_bytes,
@@ -324,15 +325,13 @@ class XmpDocument:
         """Gather the sub-elements attached to a node.
 
         Gather rdf:Bag and and rdf:Seq into set and list respectively. For
-        alternate languages values, take the first language only for
-        simplicity.
+        language alternatives, return the default value: the item whose
+        xml:lang is x-default, or the first item if none is.
         """
         items = node.find('rdf:Alt', self.NS)
         if items is not None:
-            try:
-                return items[0].text
-            except IndexError:
-                return ''
+            item = self._alt_default_item(items)
+            return item.text if item is not None else ''
 
         for xmlcontainer, container, insertfn in XMP_CONTAINERS:
             items = node.find(f'rdf:{xmlcontainer}', self.NS)
@@ -343,6 +342,19 @@ class XmpDocument:
                 insertfn(result, item.text)
             return result
         return ''
+
+    def _alt_default_item(self, alt: _Element) -> _Element | None:
+        """Return the item of a language alternative that holds its default.
+
+        XMP specifies the item with xml:lang="x-default" as the default,
+        wherever it appears. Fall back to the first item if there is none.
+        """
+        items = alt.findall('rdf:li', self.NS)
+        lang = f'{{{XMP_NS_XML}}}lang'
+        for item in items:
+            if item.get(lang) == 'x-default':
+                return item
+        return items[0] if items else None
 
     def _get_element_values(self, name: str | QName = '') -> Iterator[Any]:
         yield from (v[2] for v in self._get_elements(name))
@@ -413,6 +425,10 @@ class XmpDocument:
             strict=strict,
             stacklevel=_stacklevel,
         )
+        if isinstance(val, AltList) and len(val) > 1:
+            # A language alternative has one default value, so several values
+            # are joined rather than all being tagged x-default. clean() warns.
+            val = AltList([clean(val)])
 
         if not self._setitem_update(key, val, qkey, rdf_type):
             self._setitem_insert(key, val, rdf_type)
@@ -492,6 +508,11 @@ class XmpDocument:
             node.set(attrib, clean(val))
             return True
 
+        alt = node.find('rdf:Alt', self.NS)
+        if alt is not None and isinstance(val, AltList) and rdf_type in ('Alt', None):
+            self._setitem_update_alt(alt, val[0])
+            return True
+
         for child in node.findall('*'):
             node.remove(child)
         if is_array:
@@ -501,6 +522,36 @@ class XmpDocument:
         else:
             raise TypeError(f"Setting {key} to {val} with type {type(val)}")
         return True
+
+    def _setitem_update_alt(self, alt: _Element, value: str | None) -> None:
+        """Set the default value of a language alternative.
+
+        Other languages are kept. An item that held the same text as the old
+        default was a copy of it, so it is updated too, as Adobe's XMP
+        toolkit does. The default item is placed first.
+        """
+        from lxml import etree
+        from lxml.etree import QName
+
+        text = clean(value) if value is not None else None
+        if text == '':
+            text = None
+        lang = str(QName(XMP_NS_XML, 'lang'))
+        items = alt.findall('rdf:li', self.NS)
+        default = next((li for li in items if li.get(lang) == 'x-default'), None)
+        if default is None:
+            default = etree.Element(
+                str(QName(XMP_NS_RDF, 'li')), attrib={lang: 'x-default'}
+            )
+        else:
+            old = default.text
+            if old:
+                for item in items:
+                    if item is not default and item.text == old:
+                        item.text = text
+            alt.remove(default)
+        alt.insert(0, default)
+        default.text = text
 
     def _setitem_insert(
         self, key: str | QName, val: Any, rdf_type: str | None = None
