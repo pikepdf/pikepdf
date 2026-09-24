@@ -5,11 +5,24 @@
 
 from __future__ import annotations
 
+import logging
+from typing import Any
+
 import pikepdf
-from pikepdf import Name, Pdf, Stream
+from pikepdf import Dictionary, Name, Object, Pdf, Stream
 from pikepdf.models.metadata import DateConverter
+from pikepdf.pdfa._dates import assume_local_time_zone, assume_local_time_zone_iso
 from pikepdf.pdfa._flavour import Flavour
-from pikepdf.pdfa._xmp_rdf import read_packet
+from pikepdf.pdfa._xmp_rdf import (
+    Reading,
+    Value,
+    is_date,
+    read_packet,
+    write_packet,
+    xml_safe,
+)
+
+log = logging.getLogger(__name__)
 
 _DC = 'http://purl.org/dc/elements/1.1/'
 _XMP = 'http://ns.adobe.com/xap/1.0/'
@@ -27,6 +40,97 @@ _DOCINFO_XMP = (
     ('/CreationDate', f'{{{_XMP}}}CreateDate', 'date'),
     ('/ModDate', f'{{{_XMP}}}ModifyDate', 'date'),
 )
+
+
+def _xmp_value_from_docinfo(value: Object, form: str) -> Any:
+    """Return the XMP value equivalent to a DocInfo entry, or None."""
+    if not isinstance(value, pikepdf.String):
+        return None
+    text = xml_safe(str(value))
+    if not text:
+        return None
+    if form == 'langalt':
+        return Value('Alt', items=(text,), langs=('x-default',))
+    if form == 'creator':
+        return Value('Seq', items=(text,), langs=(None,))
+    if form == 'date':
+        try:
+            text = DateConverter.xmp_from_docinfo(text)
+        except (ValueError, IndexError, TypeError):
+            return None
+        if not is_date(text):
+            return None
+    return Value('simple', text=text)
+
+
+def canonicalize_xmp(pdf: Pdf, flavour: Flavour | str) -> list[str]:
+    """Rewrite the XMP packet with only what the PDF/A flavour permits.
+
+    The input packet is read with the validator's strict XMP reader. The
+    properties it accepts, which are the properties of the XMP
+    specification the PDF/A part is based on, with values of the right
+    type, are written to a new packet, in the canonical form that the
+    validator expects. Everything else is dropped: properties PDF/A does
+    not predefine (such as Photoshop or PDF/X properties inherited from the
+    input file, unless described by an extension schema, which pikepdf
+    does not write), structured properties such as xmpMM:History, whose
+    content the validator does not check, values of the wrong form or type,
+    and Descriptions of resources other than the document, such as those
+    Acrobat writes with ``rdf:about="uuid:..."``. The PDF/A identification is
+    dropped too, to be declared again with `add_pdfa_metadata`.
+
+    DocInfo entries whose XMP equivalent is missing from the new packet are
+    copied to it, so that the document's title and other information survive
+    even if the input packet could not be used.
+
+    Args:
+        pdf: An open pikepdf.Pdf object
+        flavour: PDF/A flavour, ``'1b'``, ``'2b'`` or ``'3b'``
+
+    Returns:
+        Labels (``prefix:name``) of the properties dropped, other than the
+        PDF/A identification.
+    """
+    pdfa_flavour = Flavour(flavour)
+    metadata = pdf.Root.get(Name.Metadata)
+    reading = Reading()
+    if isinstance(metadata, Stream):
+        try:
+            reading = read_packet(metadata.read_bytes(), pdfa_flavour)
+        except pikepdf.PdfError as e:
+            log.debug('Could not read the XMP metadata: %s', e)
+    properties = {
+        key: value
+        for key, value in reading.properties.items()
+        if not key.startswith(f'{{{_PDFAID}}}')
+    }
+    info = pdf.trailer.get(Name.Info)
+    if isinstance(info, Dictionary):
+        for info_key, xmp_key, form in _DOCINFO_XMP:
+            if xmp_key in properties or info_key not in info:
+                continue
+            value = _xmp_value_from_docinfo(info[info_key], form)
+            if value is not None:
+                properties[xmp_key] = value
+
+    pdf.Root.Metadata = pdf.make_stream(
+        write_packet(properties), Type=Name.Metadata, Subtype=Name.XML
+    )
+    dropped = [
+        label for label in reading.dropped_labels() if not label.startswith('pdfaid:')
+    ]
+    if not reading.parsed:
+        log.debug(
+            "Replacing XMP metadata that could not be read: %s",
+            reading.problems[0].message,
+        )
+    if dropped:
+        log.debug(
+            "Removing XMP metadata that is not permitted in PDF/A-%s: %s",
+            pdfa_flavour.value,
+            ', '.join(dropped),
+        )
+    return dropped
 
 
 def add_pdfa_metadata(pdf: Pdf, part: str, conformance: str) -> None:
@@ -94,3 +198,72 @@ def sync_docinfo_from_xmp(pdf: Pdf, flavour: str) -> None:
                 del info[info_key]
         else:
             info[info_key] = pikepdf.String(text)
+
+
+_XMP_DATES = ('xmp:CreateDate', 'xmp:ModifyDate', 'xmp:MetadataDate')
+
+
+def assume_local_time_zone_for_dates(pdf: Pdf) -> int:
+    """Attach the local time zone to document dates that have none.
+
+    PDF/A-1 requires the DocInfo dates to match their XMP equivalents, but
+    validators differ on how dates without a time zone compare: veraPDF reads
+    an XMP date without one in the local time zone of the machine it runs
+    on, and a PDF date without one as UTC. Attaching the local time zone to
+    DocInfo /CreationDate and /ModDate, and to xmp:CreateDate,
+    xmp:ModifyDate and xmp:MetadataDate, removes the ambiguity.
+
+    Args:
+        pdf: An open pikepdf.Pdf object
+
+    Returns:
+        The number of dates changed.
+    """
+    changed = 0
+    info = pdf.trailer.get(Name.Info)
+    if isinstance(info, Dictionary):
+        for key in (Name.CreationDate, Name.ModDate):
+            value = info.get(key)
+            if not isinstance(value, pikepdf.String):
+                continue
+            new_value, zone_assumed = assume_local_time_zone(str(value))
+            if zone_assumed:
+                info[key] = pikepdf.String(new_value)
+                changed += 1
+
+    if isinstance(pdf.Root.get(Name.Metadata), Stream):
+        with pdf.open_metadata(
+            set_pikepdf_as_editor=False, update_docinfo=False
+        ) as meta:
+            for xmp_key in _XMP_DATES:
+                xmp_value = meta.get(xmp_key)
+                if not isinstance(xmp_value, str):
+                    continue
+                new_value, zone_assumed = assume_local_time_zone_iso(xmp_value)
+                if zone_assumed:
+                    meta[xmp_key] = new_value
+                    changed += 1
+
+    if changed:
+        log.debug('Assumed the local time zone for %d date(s) without one', changed)
+    return changed
+
+
+def declare_pdfa_metadata(pdf: Pdf, flavour: Flavour | str) -> None:
+    """Write the canonical PDF/A metadata for a PDF/A flavour.
+
+    The XMP packet is rewritten with only what the PDF/A flavour permits
+    (`canonicalize_xmp`), the local time zone is attached to document dates
+    without one, PDF/A conformance is declared, and the DocInfo entries with
+    XMP equivalents are set from XMP (`add_pdfa_metadata`). The result is the
+    packet the validator expects. Conformance is always declared as level B.
+
+    Args:
+        pdf: An open pikepdf.Pdf object
+        flavour: PDF/A flavour, ``'1b'``, ``'2b'`` or ``'3b'``
+    """
+    pdfa_flavour = Flavour(flavour)
+    part = str(pdfa_flavour.part)
+    canonicalize_xmp(pdf, pdfa_flavour)
+    assume_local_time_zone_for_dates(pdf)
+    add_pdfa_metadata(pdf, part, 'B')

@@ -340,6 +340,12 @@ SPDX-License-Identifier = "CC-PDDC"
 SPDX-FileComment = "Public domain; copied from OCRmyPDF's test resources."
 
 [[annotations]]
+path = ["tests/resources/pdfa/ccitt.pdf", "tests/resources/pdfa/jbig2.pdf"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "(C) 1985 Forat Electronics"
+SPDX-License-Identifier = "GFDL-1.2-or-later or CC-BY-SA-3.0"
+
+[[annotations]]
 path = "tests/resources/pdfa/lichtenstein.pdf"
 precedence = "aggregate"
 SPDX-FileCopyrightText = ["(C) 2001 Andreas Tille", "(C) 2007 Alessio Damato"]

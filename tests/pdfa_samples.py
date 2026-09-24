@@ -98,12 +98,15 @@ def replace_xmp(pdf: pikepdf.Pdf, old: bytes, new: bytes) -> None:
     pdf.Root.Metadata.write(raw.replace(old, new, 1))
 
 
-def save_candidate(pdf: pikepdf.Pdf, path: Path, part: str) -> Path:
-    """Save a PDF/A candidate the way the pipeline does for *part*."""
+def save_candidate(pdf: pikepdf.Pdf, path: Path, part: str, **kwargs) -> Path:
+    """Save a PDF/A candidate the way the pipeline does for *part*.
+
+    Extra keyword arguments are passed to `pikepdf.Pdf.save`.
+    """
     if part == '1':
-        pdf.save(path, force_version='1.4', **_save_kwargs(False))
+        pdf.save(path, force_version='1.4', **_save_kwargs(False), **kwargs)
     else:
-        pdf.save(path, **_save_kwargs(True))
+        pdf.save(path, **_save_kwargs(True), **kwargs)
     return path
 
 
