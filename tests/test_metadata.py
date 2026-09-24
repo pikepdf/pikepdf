@@ -1654,3 +1654,146 @@ class TestLanguageAlternatives:
         with pytest.warns(UserWarning, match='Merging'):
             xmp['pdf:Unknown'] = AltList(['a', 'b'])
         assert _alt_items(xmp, 'pdf:Unknown') == [('x-default', 'a; b')]
+
+
+def _descriptions(xmp: XmpDocument) -> list:
+    return xmp._get_rdf_root().findall('rdf:Description', XmpDocument.NS)
+
+
+RDF_ABOUT = '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}about'
+
+DISTILLER_PRODUCER = _xmp_packet(
+    '<rdf:Description rdf:about="uuid:12345678-1234-1234-1234-123456789abc" '
+    'xmlns:pdf="http://ns.adobe.com/pdf/1.3/">'
+    '<pdf:Producer>Acrobat Distiller 9</pdf:Producer>'
+    '</rdf:Description>'
+)
+
+
+class TestAllDescriptions:
+    def test_read_non_empty_about(self):
+        pdf = _pdf_with_xmp(DISTILLER_PRODUCER)
+        with pdf.open_metadata() as m:
+            assert m['pdf:Producer'] == 'Acrobat Distiller 9'
+            assert 'pdf:Producer' in m
+            assert list(m.keys()) == ['{http://ns.adobe.com/pdf/1.3/}Producer']
+        assert pdf.Root.Metadata.read_bytes().count(b'<pdf:Producer') == 1
+
+    def test_read_missing_about(self):
+        xmp = XmpDocument(
+            _xmp_packet(
+                '<rdf:Description xmlns:pdf="http://ns.adobe.com/pdf/1.3/" '
+                'pdf:Keywords="k"><pdf:Producer>P</pdf:Producer></rdf:Description>'
+            )
+        )
+        assert xmp['pdf:Producer'] == 'P'
+        assert xmp['pdf:Keywords'] == 'k'
+
+    def test_delete_non_empty_about(self):
+        xmp = XmpDocument(DISTILLER_PRODUCER)
+        del xmp['pdf:Producer']
+        assert 'pdf:Producer' not in xmp
+        assert _descriptions(xmp) == []
+
+    def test_set_removes_duplicates(self):
+        xmp = XmpDocument(
+            _xmp_packet(
+                '<rdf:Description rdf:about="" '
+                'xmlns:pdf="http://ns.adobe.com/pdf/1.3/" pdf:Producer="A"/>'
+                '<rdf:Description rdf:about="" '
+                'xmlns:pdf="http://ns.adobe.com/pdf/1.3/">'
+                '<pdf:Producer>B</pdf:Producer><pdf:Keywords>k</pdf:Keywords>'
+                '</rdf:Description>'
+            )
+        )
+        xmp['pdf:Producer'] = 'C'
+        assert list(xmp._get_element_values('pdf:Producer')) == ['C']
+        assert xmp['pdf:Keywords'] == 'k'
+        assert xmp.to_bytes().count(b'Producer') == 1
+
+    def test_delete_removes_all_duplicates(self):
+        xmp = XmpDocument(
+            _xmp_packet(
+                '<rdf:Description rdf:about="" '
+                'xmlns:pdf="http://ns.adobe.com/pdf/1.3/" pdf:Producer="A"/>'
+                '<rdf:Description rdf:about="" '
+                'xmlns:pdf="http://ns.adobe.com/pdf/1.3/">'
+                '<pdf:Producer>B</pdf:Producer></rdf:Description>'
+            )
+        )
+        del xmp['pdf:Producer']
+        assert 'pdf:Producer' not in xmp
+        assert _descriptions(xmp) == []
+
+    def test_attribute_to_array_leaves_no_duplicate(self):
+        xmp = XmpDocument(
+            _xmp_packet(
+                '<rdf:Description rdf:about="" '
+                'xmlns:dc="http://purl.org/dc/elements/1.1/" dc:title="Old"/>'
+                '<rdf:Description rdf:about="" '
+                'xmlns:dc="http://purl.org/dc/elements/1.1/">'
+                '<dc:title><rdf:Alt><rdf:li xml:lang="x-default">Old2</rdf:li>'
+                '</rdf:Alt></dc:title></rdf:Description>'
+            )
+        )
+        xmp['dc:title'] = 'New'
+        assert list(xmp._get_element_values('dc:title')) == ['New']
+
+    def test_nested_description_is_not_top_level(self):
+        xmp = XmpDocument(
+            _xmp_packet(
+                '<rdf:Description rdf:about="" '
+                'xmlns:xmpMM="http://ns.adobe.com/xap/1.0/mm/" '
+                'xmlns:stEvt="http://ns.adobe.com/xap/1.0/sType/ResourceEvent#">'
+                '<xmpMM:History><rdf:Seq><rdf:li>'
+                '<rdf:Description stEvt:action="saved"/>'
+                '</rdf:li></rdf:Seq></xmpMM:History></rdf:Description>'
+            )
+        )
+        assert list(xmp) == ['{http://ns.adobe.com/xap/1.0/mm/}History']
+        out = xmp.to_bytes()
+        assert out.count(b'rdf:about') == 1
+
+    def test_insert_into_existing_description(self):
+        xmp = XmpDocument(DISTILLER_PRODUCER)
+        xmp['dc:title'] = 'Title'
+        descs = _descriptions(xmp)
+        assert len(descs) == 1
+        assert descs[0].get(RDF_ABOUT) == 'uuid:12345678-1234-1234-1234-123456789abc'
+
+    def test_normalize_about_mixed(self):
+        xmp = XmpDocument(
+            _xmp_packet(
+                '<rdf:Description rdf:about="uuid:X" '
+                'xmlns:pdf="http://ns.adobe.com/pdf/1.3/" pdf:Producer="P"/>'
+                '<rdf:Description xmlns:xmp="http://ns.adobe.com/xap/1.0/" '
+                'xmp:CreatorTool="T"/>'
+                '<rdf:Description rdf:about="" '
+                'xmlns:dc="http://purl.org/dc/elements/1.1/" dc:format="f"/>'
+            )
+        )
+        reread = XmpDocument(xmp.to_bytes())
+        assert [d.get(RDF_ABOUT) for d in _descriptions(reread)] == ['uuid:X'] * 3
+
+    def test_normalize_about_conflicting(self):
+        xmp = XmpDocument(
+            _xmp_packet(
+                '<rdf:Description rdf:about="uuid:X" '
+                'xmlns:pdf="http://ns.adobe.com/pdf/1.3/" pdf:Producer="P"/>'
+                '<rdf:Description rdf:about="uuid:Y" '
+                'xmlns:xmp="http://ns.adobe.com/xap/1.0/" xmp:CreatorTool="T"/>'
+            )
+        )
+        reread = XmpDocument(xmp.to_bytes())
+        assert [d.get(RDF_ABOUT) for d in _descriptions(reread)] == ['', '']
+
+    def test_normalize_drops_empty_descriptions(self):
+        xmp = XmpDocument(
+            _xmp_packet(
+                '<rdf:Description rdf:about=""/>'
+                '<rdf:Description rdf:about="" '
+                'xmlns:pdf="http://ns.adobe.com/pdf/1.3/" pdf:Producer="P"/>'
+            )
+        )
+        reread = XmpDocument(xmp.to_bytes())
+        assert len(_descriptions(reread)) == 1

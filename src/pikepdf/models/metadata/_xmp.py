@@ -32,6 +32,8 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
+_RDF_ABOUT = f'{{{XMP_NS_RDF}}}about'
+
 
 class NeverRaise(Exception):
     """An exception that is never raised."""
@@ -278,6 +280,71 @@ class XmpDocument:
         """Get the rdf:RDF root element."""
         return self._get_rdf_root_from(self._xmp)
 
+    def _descriptions(self) -> list[_Element]:
+        """Return the top-level rdf:Description elements.
+
+        XMP (ISO 16684-1, 7.4) lets properties be apportioned among any number
+        of top-level Descriptions, all of which describe the same resource.
+        They are all read, whatever their rdf:about value, including none:
+        Distiller writes rdf:about="uuid:...", and early XMP omitted it.
+        Descriptions nested inside a property are structures, not these.
+        """
+        return self._get_rdf_root().findall('rdf:Description', self.NS)
+
+    @staticmethod
+    def _is_empty_description(desc: _Element) -> bool:
+        """Test if a Description holds no properties, only RDF syntax."""
+        return len(desc) == 0 and all(
+            str(k).startswith('{' + XMP_NS_RDF + '}') for k in desc.keys()
+        )
+
+    def _about_uri(self) -> str:
+        """Return the rdf:about value that all top-level Descriptions share.
+
+        Readers are asked to tolerate a mix of missing, empty and non-empty
+        values as long as the non-empty ones agree, so return that value. If
+        they conflict, no single value is right, so use the empty one.
+        """
+        values = {d.get(_RDF_ABOUT) or '' for d in self._descriptions()} - {''}
+        return values.pop() if len(values) == 1 else ''
+
+    def _normalize_descriptions(self) -> None:
+        """Make the top-level Descriptions valid to write.
+
+        XMP requires every top-level Description to have an rdf:about, all
+        with the same value. Descriptions that hold no properties are removed.
+        """
+        rdf = self._get_rdf_root()
+        about = self._about_uri()
+        for desc in self._descriptions():
+            if self._is_empty_description(desc):
+                rdf.remove(desc)
+            else:
+                desc.set(_RDF_ABOUT, about)
+
+    def _remove_occurrence(
+        self,
+        node: _Element,
+        attrib: str | bytes | None,
+        parent: _Element,
+        *,
+        prune: bool,
+    ) -> None:
+        """Remove one occurrence of a property found by _get_elements.
+
+        If prune, also remove the Description that held it if it is now empty.
+        """
+        if attrib:
+            del node.attrib[attrib]
+            desc = node
+        else:
+            parent.remove(node)
+            desc = parent
+        if prune and self._is_empty_description(desc):
+            rdf = desc.getparent()
+            if rdf is not None:
+                rdf.remove(desc)
+
     def _get_elements(
         self, name: str | QName = ''
     ) -> Iterator[tuple[_Element, str | bytes | None, Any, _Element]]:
@@ -305,7 +372,7 @@ class XmpDocument:
         """
         qname = self.qname(name)
         rdf = self._get_rdf_root()
-        for rdfdesc in rdf.findall('rdf:Description[@rdf:about=""]', self.NS):
+        for rdfdesc in self._descriptions():
             if qname and qname in rdfdesc.keys():
                 yield (rdfdesc, qname, rdfdesc.get(qname), rdf)
             elif not qname:
@@ -490,11 +557,14 @@ class XmpDocument:
             True if an existing property was updated, False if the caller
             should insert the property instead.
         """
-        # Locate existing node to replace
-        try:
-            node, attrib, _oldval, _parent = next(self._get_elements(key))
-        except StopIteration:
+        # Locate existing node to replace. A property should occur once, so
+        # remove any other occurrences rather than leave a stale duplicate.
+        occurrences = list(self._get_elements(key))
+        if not occurrences:
             return False
+        node, attrib, _oldval, _parent = occurrences[0]
+        for dup_node, dup_attrib, _dup_val, dup_parent in occurrences[1:]:
+            self._remove_occurrence(dup_node, dup_attrib, dup_parent, prune=False)
 
         is_array = rdf_type is not None or isinstance(val, list | set)
         if attrib:
@@ -559,15 +629,16 @@ class XmpDocument:
         from lxml import etree
         from lxml.etree import QName
 
-        rdf = self._get_rdf_root()
-        # Reuse existing rdf:Description element if available, to avoid
-        # creating multiple Description elements with the same rdf:about=""
-        rdfdesc = rdf.find('rdf:Description[@rdf:about=""]', self.NS)
-        if rdfdesc is None:
+        # Reuse an existing Description, so that no Description is added with
+        # an rdf:about value different from the others
+        descriptions = self._descriptions()
+        if descriptions:
+            rdfdesc = descriptions[0]
+        else:
             rdfdesc = etree.SubElement(
-                rdf,
+                self._get_rdf_root(),
                 str(QName(XMP_NS_RDF, 'Description')),
-                attrib={str(QName(XMP_NS_RDF, 'about')): ''},
+                attrib={_RDF_ABOUT: ''},
             )
         if rdf_type is not None or isinstance(val, list | set):
             node = etree.SubElement(rdfdesc, self.qname(key))
@@ -584,28 +655,15 @@ class XmpDocument:
         Returns:
             True if item was found and deleted, False if not found.
         """
-        from lxml.etree import QName
-
         try:
             self.qname(key)
         except ValueError:
             return False
-        try:
-            node, attrib, _oldval, parent = next(self._get_elements(key))
-            if attrib:  # Inline
-                del node.attrib[attrib]
-                if (
-                    len(node.attrib) == 1
-                    and len(node) == 0
-                    and QName(XMP_NS_RDF, 'about') in node.attrib.keys()
-                ):
-                    # The only thing left on this node is rdf:about="", so remove it
-                    parent.remove(node)
-            else:
-                parent.remove(node)
-            return True
-        except StopIteration:
-            return False
+        # Remove every occurrence, in case the packet has duplicates
+        occurrences = list(self._get_elements(key))
+        for node, attrib, _oldval, parent in occurrences:
+            self._remove_occurrence(node, attrib, parent, prune=True)
+        return bool(occurrences)
 
     def __delitem__(self, key: str | QName) -> None:
         """Delete item from XMP metadata."""
@@ -621,6 +679,7 @@ class XmpDocument:
         Returns:
             XML bytes representation of the XMP.
         """
+        self._normalize_descriptions()
         data = BytesIO()
         if xpacket:
             data.write(XPACKET_BEGIN)
