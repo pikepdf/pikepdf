@@ -241,6 +241,17 @@ report.
 
 ### Behavior changes
 
+- The minimum required qpdf version is now 12.4.1, and wheels bundle qpdf
+  12.4.1. Changes inherited from qpdf 12.4:
+  - Content stream parsing ({func}`pikepdf.parse_content_stream`,
+    {meth}`pikepdf.Page.parse_contents`) now stops after 15 syntax errors,
+    issuing a warning. Instructions after that point are dropped, so parsing
+    and rewriting a badly damaged content stream can lose content.
+  - A page tree nested more than 100 levels deep now raises
+    {class}`pikepdf.PdfError` when the pages are accessed.
+  - `/Rotate` values outside `[0, 360)`, such as `-90`, are now normalized
+    when a page is converted to a form XObject, overlaid or rotation-flattened.
+  - JSON output of real numbers no longer includes leading zeroes.
 - **Behavior change:** Reading `PdfImage` metadata such as `.width`,
   `.height` or `.colorspace` whose value has the wrong PDF type (for example
   a `/Width` written as a string or name) now raises `TypeError`, with a
@@ -405,6 +416,8 @@ report.
 
 ### Internals
 
+- Fixed the Linux wheel build script's AlmaLinux detection, which was a
+  malformed shell test that always evaluated false.
 - The type stubs for the C++ extension module, until now a single 4,300-line
   `src/pikepdf/_core.pyi`, are a stub-only package `src/pikepdf/_core/` split
   into one stub per translation unit: `_core/_matrix.pyi` covers

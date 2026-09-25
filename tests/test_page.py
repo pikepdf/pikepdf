@@ -6,7 +6,6 @@ from __future__ import annotations
 import copy
 
 import pytest
-from conftest import needs_libqpdf_v
 
 from pikepdf import (
     Array,
@@ -448,13 +447,6 @@ class TestRotation:
         with pytest.raises(ValueError, match='nope'):
             graph_page.rotate(90, relative=Unbooleanable())
 
-    @needs_libqpdf_v(
-        '12.4.0',
-        reason=(
-            'qpdf normalizes a negative /Rotate when baking it into a form '
-            'XObject /Matrix only after 12.4.0 (qpdf commit 67b042cd)'
-        ),
-    )
     def test_negative_rotation_overlay_matches_positive(self, graph_page):
         # Regression test for #717: a page rotated -90 must produce the same
         # form XObject (and therefore the same add_overlay placement) as a page

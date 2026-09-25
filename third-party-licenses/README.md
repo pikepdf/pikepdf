@@ -56,7 +56,7 @@ example, not a guarantee. To determine the versions in a specific wheel:
 
 | Component | Version | How it is included | License | Text |
 | --- | --- | --- | --- | --- |
-| [qpdf](https://github.com/qpdf/qpdf) | 12.3.2 | separate shared library (`libqpdf`/`qpdf30.dll`) | Apache-2.0 | [`qpdf.txt`](qpdf.txt) |
+| [qpdf](https://github.com/qpdf/qpdf) | 12.4.1 | separate shared library (`libqpdf`/`qpdf30.dll`) | Apache-2.0 | [`qpdf.txt`](qpdf.txt) |
 | [libjpeg-turbo](https://libjpeg-turbo.org/) | varies, see below | separate shared library on Linux/macOS; statically linked into `qpdf30.dll` on Windows | IJG + BSD-3-Clause + Zlib | [`libjpeg-turbo.txt`](libjpeg-turbo.txt), [`libjpeg-turbo-README.ijg.txt`](libjpeg-turbo-README.ijg.txt) |
 
 libjpeg-turbo comes from the build platform, so its version differs per wheel:

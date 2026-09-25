@@ -22,7 +22,7 @@ maybe_sudo () {
 
 echo "Building dependencies for $os $arch MACOSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET:-}"
 
-if [ grep -q almalinux /etc/os-release ]; then
+if grep -qs almalinux /etc/os-release; then
     libdir=/usr/local/lib64
 else
     libdir=/usr/local/lib
