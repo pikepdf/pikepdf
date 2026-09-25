@@ -6,6 +6,8 @@
 - Dropped macOS 13 support, since it is end of life.
 - Dropped macOS 14 Intel wheels, because GitHub doesn't provide a way to build
   them - macOS 15 Intel works fine.
+- Dropped macOS Intel wheels and macOS 14 wheels in v10.14.0. Binary wheels now
+  require macOS 15 or newer on Apple silicon.
 - Dropped deprecated method `Pdf.check()` (use `.check_pdf_syntax()`).
 
 pikepdf supports free-threaded (no-GIL) CPython. Starting with v10.8.0, pikepdf
@@ -33,6 +35,14 @@ to that project for the report.
 - CI now tests against CPython 3.15 (release candidate). CPython 3.15 uses the
   existing `cp314-abi3` wheel; free-threaded CPython 3.15 gets its own
   `cp315t` wheel, since the stable ABI does not cover free-threaded builds.
+
+### Platform support
+
+- macOS wheels are now built on GitHub's macos-15 runner, since GitHub is
+  deprecating the macos-14 runner. Binary wheels now require macOS 15 or newer.
+- Dropped macOS Intel (x86_64) wheels. We no longer test macOS on Intel, since
+  the platform is end of life. Intel Mac users can build from source, or keep
+  using pikepdf 10.13.
 
 ### Conversion mode
 

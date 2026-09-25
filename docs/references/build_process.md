@@ -66,32 +66,24 @@ installs still run on a hit, since libqpdf links libjpeg and zlib at run time.
 Here are the current constraints for building on macOS:
 
 - General rule for macOS: build on the oldest available macOS runner,
-  and set `MACOSX_DEPLOYMENT_TARGET="that version.0"`, e.g. macos-14 and
-  `MACOSX_DEPLOYMENT_TARGET="14.0"`
+  and set `MACOSX_DEPLOYMENT_TARGET="that version.0"`, e.g. macos-15 and
+  `MACOSX_DEPLOYMENT_TARGET="15.0"`
 - QPDF needs at least `MACOSX_DEPLOYMENT_TARGET="11.0"` since it uses
   C++20.
-- Homebrew requires macOS 13+, and we depend on it so we can't support
-  older versions.
-- Homebrew creates binaries with MACOSX_DEPLOYMENT_TARGET="macos-x".
-  Therefore, we should build on the minimum runner. For x86_64 that is
-  macos-15-intel.
-- Setting `SYSTEM_VERSION_COMPAT=0` was necessary for pip to understand
-  `MACOSX_DEPLOYMENT_TARGET="13.0"` rather than macOS X 10.x syntax.
-  Should not be necessary from here on.
-- GitHub introduced macos-15-intel as a way of requested Intel runners.
-  There are no macos-14-intel images and it's unclear if macos-15 is
-  capable of supporting it. We try anyway, by setting
-  `MACOSX_DEPLOYMENT_TARGET = "14.0"`.
-- GitHub's macos-14 runner is the first to be Apple Silicon. Since we
-  use Homebrew, it can only build macos-14. We only support macos-14
-  for arm64. Cirrus CI did support earlier macos. We no longer use
-  Cirrus for Apple Silicon, just for Linux ARM64.
+- Homebrew creates binaries with MACOSX_DEPLOYMENT_TARGET="macos-x", and
+  delocate vendors Homebrew's libjpeg into the wheel. Therefore, we must
+  build on the minimum runner, or delocate rejects the wheel.
+- We build arm64 wheels only, on macos-15. GitHub is deprecating the
+  macos-14 runner, so macOS 15 is now the minimum for binary wheels.
+- We no longer build or test Intel (x86_64) wheels, since the platform is
+  end of life. We dropped the macos-15-intel runner. Intel Mac users can
+  build from source.
 
 Taking a quick peek at numpy, it may be easier to build universal2 wheels and use QEMU
 to confirm that they work. That would be another big build overhaul.
 
 Users who build from source have more options and can likely get
-functional builds on anything newer than macOS 14.
+functional builds on older macOS versions.
 
 ## Historical decisions
 

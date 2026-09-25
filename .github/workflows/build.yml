@@ -142,12 +142,10 @@ jobs:
       CIBW_BUILD: "*"
     strategy:
       matrix:
-        # macos-14 is Apple silicon and we configure it to build only arm64 wheels.
-        # See notes in build.rst.
+        # Apple silicon only; Intel macOS wheels are no longer built.
+        # See notes in build_process.md.
         include:
-          - os: macos-15-intel
-            os_arch: macos-x86_64
-          - os: macos-14
+          - os: macos-15
             os_arch: macos-arm64
 
     steps:

@@ -30,7 +30,7 @@ myst:
 
 {{ latest }}
 
-Most users on Linux, macOS or Windows with x64 systems should use `pip` to
+Most users on Linux, Windows or Apple silicon macOS should use `pip` to
 install pikepdf in their current Python environment (such as your project's
 virtual environment).
 
@@ -58,8 +58,8 @@ Binary wheels should work on most systems, **provided a recent version
 of pip is used to install them**. Old versions of pip, especially before 20.0,
 may fail to check appropriate versions.
 
-macOS 14 or newer is typically required for binary wheels. Older versions may
-work if compiled from source.
+macOS 15 or newer on Apple silicon is required for binary wheels. Intel Macs and
+older macOS versions may work if compiled from source.
 
 Windows 7 or newer is required. Windows wheels include a recent copy of libqpdf
 and are self-contained: they vendor the C++ runtime they need and use CPython's
