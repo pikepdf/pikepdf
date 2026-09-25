@@ -24,6 +24,14 @@ def test_job_from_argv(resources):
     assert not job.encryption_status["password_incorrect"]
 
 
+def test_job_progname_deprecated(resources):
+    args = ['pikepdf', '--check', str(resources / 'outlines.pdf')]
+    with pytest.deprecated_call(match='progname'):
+        job = Job(args, progname='pikepdf')
+    job.run()
+    assert job.exit_code == 0
+
+
 def test_job_from_json(resources, outpdf):
     job_json = {}
     job_json['inputFile'] = str(resources / 'outlines.pdf')

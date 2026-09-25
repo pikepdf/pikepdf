@@ -269,6 +269,11 @@ report.
   - `/Rotate` values outside `[0, 360)`, such as `-90`, are now normalized
     when a page is converted to a form XObject, overlaid or rotation-flattened.
   - JSON output of real numbers no longer includes leading zeroes.
+- The `progname` keyword argument of {class}`pikepdf.Job` is deprecated and
+  ignored, and passing it issues a `DeprecationWarning`. It was passed to
+  qpdf's `QPDFJob::initializeFromArgv` as the name of an environment variable,
+  not the program name, and qpdf 12.4 no longer uses it. The program name is
+  taken from the first item of `args`, as it always was.
 - **Behavior change:** Reading `PdfImage` metadata such as `.width`,
   `.height` or `.colorspace` whose value has the wrong PDF type (for example
   a `/Width` written as a string or name) now raises `TypeError`, with a

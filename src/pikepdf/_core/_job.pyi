@@ -49,13 +49,16 @@ class Job:
     def __init__(self, json_dict: Mapping) -> None: ...
     @overload
     def __init__(
-        self, args: Sequence[str | bytes], *, progname: str = 'pikepdf'
+        self, args: Sequence[str | bytes], *, progname: str | None = None
     ) -> None: ...
     def __init__(self, *args, **kwargs) -> None:
         """Create a Job from command line arguments to the qpdf program.
 
-        The first item in the ``args`` list should be equal to ``progname``,
-        whose default is ``"pikepdf"``.
+        The first item in the ``args`` list is the program name, as in
+        ``sys.argv``.
+
+        .. deprecated:: 10.14
+            The ``progname`` keyword argument is ignored and will be removed.
 
         Example:
             job = Job(['pikepdf', '--check', 'input.pdf'])

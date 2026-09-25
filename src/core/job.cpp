@@ -61,7 +61,16 @@ void init_job(py::module_ &m)
             "__init__",
             [](QPDFJob *self,
                 const std::vector<std::string> &args,
-                std::string const &progname) {
+                py::object progname) {
+                // qpdf 12.4 ignores initializeFromArgv's second argument, which
+                // named an environment variable rather than the program; the
+                // program name has always come from args[0].
+                if (!progname.is_none() &&
+                    PyErr_WarnEx(PyExc_DeprecationWarning,
+                        "Job(progname=...) is deprecated and ignored; the program "
+                        "name is taken from args[0]",
+                        1) < 0)
+                    throw py::python_error();
                 new (self) QPDFJob();
                 std::vector<const char *> cstrings;
                 cstrings.reserve(args.size() + 1);
@@ -71,12 +80,12 @@ void init_job(py::module_ &m)
                 }
                 cstrings.push_back(nullptr);
 
-                self->initializeFromArgv(cstrings.data(), progname.c_str());
+                self->initializeFromArgv(cstrings.data());
                 set_job_defaults(*self);
             },
             py::arg("args"),
             py::kw_only(),
-            py::arg("progname") = "pikepdf")
+            py::arg("progname") = py::none())
         .def("check_configuration", &QPDFJob::checkConfiguration)
         .def_prop_ro("creates_output",
             &QPDFJob::createsOutput // LCOV_EXCL_LINE
