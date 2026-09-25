@@ -364,6 +364,14 @@ report.
   `ValueError` for a value other than `'implicit'` or `'explicit'`, instead
   of silently accepting it.
 
+### Performance
+
+- {meth}`pikepdf.Pdf.save` writes directly to the file descriptor when saving
+  to a filename or to a plain binary file object from {func}`open`, instead of
+  calling the stream's `write()` method for every chunk of output. Saving a large document is about twice as fast. Other streams, such
+  as `BytesIO`, pipes and subclasses of the `io` classes, are written through
+  `write()` as before.
+
 ### Fixes
 
 - {meth}`pikepdf.Pdf.save` to an existing file that is not a regular file,

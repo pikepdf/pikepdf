@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import errno
+import io
 import logging
 import os
 import os.path
@@ -20,7 +21,7 @@ import pytest
 
 import pikepdf
 from pikepdf import Pdf, PdfError
-from pikepdf._io import atomic_overwrite, atomic_write_verified
+from pikepdf._io import atomic_overwrite, atomic_write_verified, output_fd
 
 # pylint: disable=redefined-outer-name
 
@@ -532,3 +533,122 @@ def test_atomic_write_verified_symlink(tmp_path):
     assert link.read_bytes() == b'new'
     assert target.read_bytes() == b'target'
     assert _pikepdf_temps(tmp_path) == []
+
+
+class _SubclassedWriter(io.BufferedWriter):
+    pass
+
+
+@pytest.mark.parametrize(
+    'opener',
+    [
+        lambda p: open(p, 'wb'),
+        lambda p: open(p, 'w+b'),
+        lambda p: open(p, 'ab'),
+        lambda p: open(p, 'wb', buffering=0),
+    ],
+    ids=['wb', 'w+b', 'ab', 'unbuffered'],
+)
+def test_output_fd_plain_files(tmp_path, opener):
+    with opener(tmp_path / 'out.pdf') as f:
+        assert output_fd(f) == f.fileno()
+
+
+def test_output_fd_rejects(tmp_path):
+    path = tmp_path / 'out.pdf'
+    path.write_bytes(b'')
+    assert output_fd(BytesIO()) is None
+    with open(path, 'w') as f:
+        assert output_fd(f) is None  # text stream
+    with open(path, 'rb') as f:
+        assert output_fd(f) is None  # BufferedReader
+    with FileIO(path, 'rb') as f:
+        assert output_fd(f) is None  # not writable
+    with _SubclassedWriter(FileIO(path, 'wb')) as f:
+        assert output_fd(f) is None  # write() may be overridden
+    closed = open(path, 'wb')
+    closed.close()
+    assert output_fd(closed) is None
+
+
+@pytest.mark.skipif(not hasattr(os, 'pipe'), reason="needs pipes")
+def test_output_fd_rejects_pipe():
+    r, w = os.pipe()
+    with open(r, 'rb'), open(w, 'wb') as writer:
+        assert output_fd(writer) is None
+
+
+def test_atomic_overwrite_existing_yields_plain_file(tmp_path):
+    existing = tmp_path / 'existing.pdf'
+    existing.write_bytes(b'existing')
+    with atomic_overwrite(existing) as f:
+        assert output_fd(f) is not None
+
+
+def _reference_bytes(pdf):
+    bio = BytesIO()
+    pdf.save(bio, static_id=True)
+    return bio.getvalue()
+
+
+@pytest.mark.parametrize('mode', ['wb', 'w+b', 'ab'])
+@pytest.mark.parametrize('buffering', [-1, 0])
+def test_save_to_file_object_uses_fd(sandwich, tmp_path, monkeypatch, mode, buffering):
+    import pikepdf._io
+
+    calls = []
+    real_output_fd = pikepdf._io.output_fd
+
+    def spy(stream):
+        fd = real_output_fd(stream)
+        calls.append(fd)
+        return fd
+
+    monkeypatch.setattr(pikepdf._io, 'output_fd', spy)
+    expected = _reference_bytes(sandwich)
+    path = tmp_path / 'out.pdf'
+    if mode == 'ab':
+        path.write_bytes(b'existing')
+    with open(path, mode, buffering=buffering) as f:
+        f.write(b'prefix')  # left in the Python buffer, unflushed
+        sandwich.save(f, static_id=True)
+        assert calls and calls[-1] == f.fileno()
+        start = len(b'existing') if mode == 'ab' else 0
+        assert f.tell() == start + len(b'prefix') + len(expected)
+        f.write(b'suffix')
+    head = b'existing' if mode == 'ab' else b''
+    assert path.read_bytes() == head + b'prefix' + expected + b'suffix'
+
+
+def test_save_to_file_object_mid_file(sandwich, tmp_path):
+    expected = _reference_bytes(sandwich)
+    path = tmp_path / 'out.pdf'
+    path.write_bytes(b'x' * 100)
+    with open(path, 'r+b') as f:
+        f.read(10)  # BufferedRandom has read ahead past the logical position
+        sandwich.save(f, static_id=True)
+        assert f.tell() == 10 + len(expected)
+    data = path.read_bytes()
+    assert data[:10] == b'x' * 10
+    assert data[10 : 10 + len(expected)] == expected
+
+
+@pytest.mark.skipif(sys.platform != 'linux', reason="needs RLIMIT_FSIZE semantics")
+def test_save_to_file_object_write_error(resources, tmp_path):
+    script = f"""
+import errno, resource, signal
+import pikepdf
+signal.signal(signal.SIGXFSZ, signal.SIG_IGN)
+resource.setrlimit(resource.RLIMIT_FSIZE, (1000, 1000))
+with pikepdf.open({str(resources / 'sandwich.pdf')!r}) as pdf:
+    with open({str(tmp_path / 'out.pdf')!r}, 'wb') as f:
+        try:
+            pdf.save(f)
+        except OSError as e:
+            assert e.errno == errno.EFBIG, e
+            print('OK')
+"""
+    result = subprocess.run(
+        [sys.executable, '-c', script], capture_output=True, text=True, check=False
+    )
+    assert result.stdout.strip() == 'OK', result.stderr

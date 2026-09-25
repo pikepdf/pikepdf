@@ -5,7 +5,9 @@
 #include "qpdf_lock.h"
 
 #include <cerrno>
+#include <cstdio>
 #include <cstring>
+#include <memory>
 #include <set>
 #include <type_traits>
 
@@ -486,9 +488,29 @@ void save_pdf(QPDF &q,
 
     std::string description = py::cast<std::string>(py::repr(stream));
 
-    // We must set up the output pipeline before we configure encryption
-    Pl_PythonOutput output_pipe(description.c_str(), stream);
-    w.setOutputPipeline(&output_pipe);
+    // We must set up the output pipeline before we configure encryption.
+    // For plain files, write to the file descriptor directly rather than
+    // calling back into Python for every chunk.
+    std::unique_ptr<Pipeline> output_pipe;
+    py::object os_module = py::module_::import_("os");
+    py::object fd = py::module_::import_("pikepdf._io").attr("output_fd")(stream);
+    if (!fd.is_none()) {
+        // Push out anything still buffered in the stream, and point the
+        // descriptor at the stream's logical position.
+        stream.attr("flush")();
+        os_module.attr("lseek")(fd, stream.attr("tell")(), SEEK_SET);
+        output_pipe =
+            std::make_unique<Pl_FdOutput>(description.c_str(), py::cast<int>(fd));
+    } else {
+        output_pipe = std::make_unique<Pl_PythonOutput>(description.c_str(), stream);
+    }
+    w.setOutputPipeline(output_pipe.get());
+    // Afterwards, move the stream to where the descriptor ended up, so the
+    // stream's own notion of its position is not stale.
+    auto resync_stream = [&]() {
+        if (!fd.is_none())
+            stream.attr("seek")(os_module.attr("lseek")(fd, 0, SEEK_CUR));
+    };
 
     // Possibilities:
     // encryption=True -> preserve existing
@@ -540,7 +562,17 @@ void save_pdf(QPDF &q,
         w.registerProgressReporter(reporter);
     }
 
-    w.write();
+    try {
+        w.write();
+    } catch (...) {
+        try {
+            resync_stream();
+        } catch (const py::python_error &) {
+            // Report the original error, not this one
+        }
+        throw;
+    }
+    resync_stream();
 }
 
 void init_qpdf(py::module_ &m)

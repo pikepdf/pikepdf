@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import errno
+import io
 import os
 import secrets
 import stat
@@ -22,6 +23,31 @@ def check_stream_is_usable(stream: IO) -> None:
     """Check that a stream is seekable and binary."""
     if isinstance(stream, TextIOBase):
         raise TypeError("stream must be binary (no transcoding) and seekable")
+
+
+_PLAIN_FILE_TYPES = (io.FileIO, io.BufferedWriter, io.BufferedRandom)
+
+
+def output_fd(stream: IO) -> int | None:
+    """Return the file descriptor of a stream that can be written to directly.
+
+    Saving writes straight to this descriptor instead of calling the stream's
+    ``write()``, which avoids a Python call for every chunk qpdf emits. Only
+    plain binary files from :func:`open` qualify: subclasses may override
+    ``write()``, and pipes and other special files have write semantics
+    (partial writes, non-blocking I/O) best left to Python.
+    """
+    if type(stream) not in _PLAIN_FILE_TYPES:
+        return None
+    try:
+        if not stream.writable():
+            return None
+        fd = stream.fileno()
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            return None
+    except (OSError, ValueError):
+        return None
+    return fd
 
 
 def check_different_files(file1: str | PathLike, file2: str | PathLike) -> None:
@@ -90,7 +116,9 @@ def atomic_overwrite(filename: Path) -> Generator[IO[bytes], None, None]:
             # If same directory fails, write to stand temporary folder (losing
             # atomicity, if different file systems)
             tf = NamedTemporaryFile(prefix=f".pikepdf.{filename.name}", delete=False)
-        yield tf
+        # Yield the underlying file object rather than the wrapper, so that
+        # saving can write to its file descriptor directly (see output_fd).
+        yield tf.file
         tf.flush()
         tf.close()
         with suppress(OSError):
