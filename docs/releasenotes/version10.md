@@ -30,6 +30,9 @@ to that project for the report.
 - Internal code now uses Python 3.11 features: `tomllib`, `enum.StrEnum`,
   `typing.Self`, `datetime.UTC` and the broader ISO 8601 support in
   `datetime.fromisoformat`. The compatibility shims for Python 3.10 are gone.
+- CI now tests against CPython 3.15 (release candidate). CPython 3.15 uses the
+  existing `cp314-abi3` wheel; free-threaded CPython 3.15 gets its own
+  `cp315t` wheel, since the stable ABI does not cover free-threaded builds.
 
 ### Conversion mode
 
@@ -320,6 +323,10 @@ report.
 
 ### Fixes
 
+- {meth}`pikepdf.Pdf.save` to an existing file that is not a regular file,
+  such as `/dev/null`, a FIFO or a character device, now writes into it
+  directly. Previously the temporary file was renamed over it, so when run
+  as root, saving to `/dev/null` replaced the device with a regular file.
 - {meth}`pikepdf.Matrix.inverse` now returns the correct translation for
   matrices whose determinant is not 1. Previously the `e` and `f` terms were
   not divided by the determinant, so the result was not a true inverse for

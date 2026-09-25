@@ -8,9 +8,11 @@ import logging
 import os
 import os.path
 import pathlib
+import stat
 import subprocess
 import sys
 import tempfile
+import threading
 from io import BytesIO, FileIO
 from shutil import copy
 
@@ -318,6 +320,21 @@ def test_newline_handling(resources):
 def test_save_to_dev_null():
     with Pdf.new() as pdf:
         pdf.save(os.devnull)
+    assert not pathlib.Path(os.devnull).is_file()
+
+
+@pytest.mark.skipif(not hasattr(os, 'mkfifo'), reason="needs FIFOs")
+def test_save_to_fifo_writes_into_it(tmp_path):
+    fifo = tmp_path / 'out.pdf'
+    os.mkfifo(fifo)
+    received = []
+    reader = threading.Thread(target=lambda: received.append(fifo.read_bytes()))
+    reader.start()
+    with Pdf.new() as pdf:
+        pdf.save(fifo)
+    reader.join(timeout=10)
+    assert stat.S_ISFIFO(fifo.stat().st_mode)
+    assert received and received[0].startswith(b'%PDF')
 
 
 def _pikepdf_temps(directory):

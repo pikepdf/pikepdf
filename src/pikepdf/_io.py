@@ -64,10 +64,17 @@ def atomic_overwrite(filename: Path) -> Generator[IO[bytes], None, None]:
             raise
         return
 
-    # If we get here, the file already exists. Use a temporary file, then rename
-    # it to the destination file if we succeed. Destination file is not touched
-    # if we fail.
+    # If we get here, the file already exists.
+    if not stat.S_ISREG(os.stat(filename).st_mode):
+        # /dev/null, a FIFO, a character device: renaming over it would replace
+        # the special file with a regular one (if we have permission to, as root
+        # does), so write into it directly.
+        with filename.open("wb") as stream:
+            yield stream
+        return
 
+    # Use a temporary file, then rename it to the destination file if we
+    # succeed. Destination file is not touched if we fail.
     with filename.open("ab") as stream:
         pass  # Confirm we will be able to write to the indicated destination
 
@@ -89,12 +96,7 @@ def atomic_overwrite(filename: Path) -> Generator[IO[bytes], None, None]:
         with suppress(OSError):
             # Copy permissions, create time, etc. from the original
             copystat(filename, Path(tf.name))
-        try:
-            Path(tf.name).replace(filename)
-        except OSError:
-            if not Path(filename).resolve().samefile(os.devnull):
-                # If user is writing to /dev/null, ignore permission errors
-                raise
+        Path(tf.name).replace(filename)
         with suppress(OSError):
             # Update modified time of the destination file
             filename.touch()

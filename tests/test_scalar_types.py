@@ -1466,14 +1466,15 @@ class TestLocaleIndependence:
         for candidate in candidates:
             try:
                 locale.setlocale(locale.LC_NUMERIC, candidate)
-                break
             except locale.Error:
                 continue
+            # musl accepts any locale name but always uses '.' as separator.
+            if locale.localeconv()['decimal_point'] == ',':
+                break
         else:
+            locale.setlocale(locale.LC_NUMERIC, saved)
             pytest.skip('no comma-decimal locale available')
         try:
-            # Sanity check: this locale really does use ',' as separator.
-            assert locale.localeconv()['decimal_point'] == ','
             with pikepdf.explicit_conversion():
                 assert pikepdf.String('3.5').as_float(coerce=True) == 3.5
                 assert pikepdf.String('3.5').as_decimal(coerce=True) == Decimal('3.5')
