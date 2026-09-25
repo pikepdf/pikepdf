@@ -59,9 +59,10 @@ def add_form(pdf: pikepdf.Pdf, content: bytes, **keys) -> pikepdf.Stream:
 def test_operator_table_is_table_a1():
     assert len(OPERATORS) == 73 - 3  # Table A.1 less BI, ID, EI (inline image)
     assert 'PS' not in OPERATORS
-    assert operands_match('nnnnnn', [1, 0, 0, 1, 0, 0])
-    assert not operands_match('nnnnnn', [1, 0])
-    assert not operands_match('n', [True])
+    one, zero = pikepdf.Integer(1), pikepdf.Integer(0)
+    assert operands_match('nnnnnn', [one, zero, zero, one, zero, pikepdf.Real('0.5')])
+    assert not operands_match('nnnnnn', [one, zero])
+    assert not operands_match('n', [pikepdf.Boolean(True)])
     assert not operands_match('N', [pikepdf.String('x')])
 
 

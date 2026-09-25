@@ -31,6 +31,7 @@ from pikepdf.pdfa._writemodel import WriteModel
 log = logging.getLogger(__name__)
 
 
+@pikepdf.explicit_conversion()
 def check(pdf: Pdf, flavour: Flavour | str, **user_save_kwargs: Any) -> Report:
     """Check an open document against a PDF/A flavour as it would be saved.
 
@@ -68,6 +69,7 @@ def check(pdf: Pdf, flavour: Flavour | str, **user_save_kwargs: Any) -> Report:
     return _engine.run(pdf, flavour, WriteModel.predict(pdf, kw), save_kwargs=kw)
 
 
+@pikepdf.explicit_conversion()
 def validate_written(
     input_file: Path | str | BinaryIO,
     flavour: Flavour | str,

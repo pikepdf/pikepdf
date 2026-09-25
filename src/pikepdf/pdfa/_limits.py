@@ -84,8 +84,8 @@ class LimitChecker:
 
     def scalar(self, value: Any) -> tuple[str, str] | None:
         """Check a scalar; return (rule key, message) if it breaks a limit."""
-        # One unbox and one type test per value, in either conversion mode:
-        # this runs for every content stream operand.
+        # One unbox and one type test per value: this runs for every content
+        # stream operand.
         value = pikepdf.unbox(value)
         kind = type(value)
         if kind is int:
@@ -145,7 +145,7 @@ class LimitChecker:
         top: bool = False,
     ) -> None:
         # An indirect integer, real or boolean is checked here, where it is
-        # used, in either conversion mode.
+        # used: unboxed, it is no longer an indirect object.
         value = pikepdf.unbox(value)
         kind = type(value)
         if kind is int or kind is Decimal or kind is bool:

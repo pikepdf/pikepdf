@@ -21,7 +21,6 @@ import re
 import warnings
 from collections.abc import Callable
 from dataclasses import dataclass, replace
-from decimal import Decimal
 from typing import Any
 
 import pikepdf
@@ -198,9 +197,6 @@ def _is_number(obj: Any) -> bool:
     A Real is a number even if its digits overflow a double; the limit checks
     report it as out of range.
     """
-    kind = type(obj)
-    if kind is int or kind is Decimal:
-        return True
     return isinstance(obj, pikepdf.Integer | pikepdf.Real)
 
 
@@ -501,8 +497,7 @@ class _StreamWalk:
 
     def check_limits(self, operand: Any) -> None:
         limits = self.walker.limits
-        kind = type(operand)
-        if kind is not int and isinstance(operand, pikepdf.Array | pikepdf.Dictionary):
+        if isinstance(operand, pikepdf.Array | pikepdf.Dictionary):
             problems = limits.problems(operand)
         else:
             problem = limits.scalar(operand)
@@ -998,10 +993,9 @@ def _defaults_key(colour_spaces: Any) -> tuple[bytes | None, ...]:
 
 
 def _unparse(value: Any) -> bytes:
-    value = pikepdf.unbox(value)
     if isinstance(value, pikepdf.Object):
         return value.unparse()
-    return repr(value).encode()
+    return b'null'
 
 
 def _page_resources(page: pikepdf.Dictionary, max_depth: int) -> tuple[Any, bool]:

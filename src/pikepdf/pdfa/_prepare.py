@@ -9,6 +9,7 @@ import logging
 from collections import Counter
 from dataclasses import dataclass, field
 
+import pikepdf
 from pikepdf import Pdf
 from pikepdf.pdfa._declare import declare_pdfa_metadata
 from pikepdf.pdfa._flavour import Flavour
@@ -183,6 +184,7 @@ class PrepareResult:
         return [sentence for _, sentence in self.messages()]
 
 
+@pikepdf.explicit_conversion()
 def prepare(
     pdf: Pdf,
     flavour: Flavour | str,

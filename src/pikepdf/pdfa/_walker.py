@@ -224,7 +224,7 @@ class DocumentWalker:
     @staticmethod
     def _child(value: Any, spec: ChildSpec, depth: int, where: str) -> _Item:
         # A child may be of any type. An indirect integer, real or boolean is
-        # a value here, not an object with a role, in either conversion mode.
+        # a value here, not an object with a role, so it is unboxed.
         return _Item(
             pikepdf.unbox(value), spec.role, depth if spec.sibling else depth + 1, where
         )

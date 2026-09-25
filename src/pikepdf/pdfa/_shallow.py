@@ -10,7 +10,6 @@ object, while the walker decides which references to follow.
 
 from __future__ import annotations
 
-from decimal import Decimal
 from typing import TYPE_CHECKING, Any
 
 import pikepdf
@@ -19,6 +18,10 @@ if TYPE_CHECKING:
     from pikepdf.pdfa._writemodel import WriteModel
 
 _BOM_UTF16 = b'\xfe\xff'
+# Encoded as their value even when indirect
+_VALUE_TYPES = frozenset(
+    {pikepdf.ObjectType.boolean, pikepdf.ObjectType.integer, pikepdf.ObjectType.real}
+)
 
 
 def _encode_name(obj: pikepdf.Object) -> str:
@@ -45,19 +48,19 @@ def _encode_string(obj: pikepdf.Object) -> str:
 
 
 def pdf_repr(value: Any) -> str:
-    """Return ``repr(value)`` as implicit conversion mode would give it.
+    """Return ``repr(value)`` for a finding message, with native numbers.
 
-    The repr of an array, dictionary or stream shows the PDF integers, reals
-    and booleans it contains as ``pikepdf.Integer(1)`` and so on in explicit
-    mode, which would make finding messages depend on the conversion mode.
-    *value* may also be a list of PDF values.
+    The validator works in explicit mode, where the repr of an array,
+    dictionary or stream shows the PDF integers, reals and booleans it
+    contains as ``pikepdf.Integer(1)`` and so on; messages show them as
+    ``1``, as implicit mode would. *value* may also be a list of PDF values.
     """
     with pikepdf.implicit_conversion():
         return repr(pikepdf.unbox(value))
 
 
 def pdf_str(value: Any) -> str:
-    """Return ``str(value)`` as implicit conversion mode would give it."""
+    """Return ``str(value)`` for a finding message, with native numbers."""
     value = pikepdf.unbox(value)
     if isinstance(value, pikepdf.Array | pikepdf.Dictionary):
         return pdf_repr(value)
@@ -107,11 +110,9 @@ def shallow_json(obj: Any) -> Any:
     """Encode a PDF object as JSON-compatible data without following references.
 
     Args:
-        obj: A pikepdf object, or a Python scalar as returned by pikepdf's
-            implicit conversion of PDF integers, reals, booleans and null.
-            A PDF integer, real or boolean is encoded as its value in either
-            conversion mode, even if it is an indirect object, so the
-            encoding does not depend on the conversion mode.
+        obj: A pikepdf object read in explicit conversion mode, or None for
+            null. A PDF integer, real or boolean is encoded as its value,
+            even if it is an indirect object.
 
     Returns:
         ``"/Name"`` for names; ``"u:text"`` for strings that decode as
@@ -120,13 +121,12 @@ def shallow_json(obj: Any) -> Any:
         lists and dicts for direct arrays and dictionaries; and
         ``{"stream": {"dict": {...}}}`` for a direct stream.
     """
-    obj = pikepdf.unbox(obj)
-    if obj is None or isinstance(obj, bool | int):
-        return obj
-    if isinstance(obj, Decimal | float):
-        return float(obj)
+    if obj is None:
+        return None
     if not isinstance(obj, pikepdf.Object):
         raise TypeError(f"cannot encode {type(obj).__name__}")
+    if obj._type_code in _VALUE_TYPES:
+        return _scalar_value(obj)
     if obj.is_indirect:
         return _ref(obj)
     if isinstance(obj, pikepdf.Stream):

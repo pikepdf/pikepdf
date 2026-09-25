@@ -80,6 +80,7 @@ def check_document(ctx: ValidationContext) -> None:
     check_metadata(ctx)
 
 
+@pikepdf.explicit_conversion()
 def run(
     pdf: pikepdf.Pdf,
     flavour: Flavour | str,

@@ -228,7 +228,8 @@ pikepdf's metadata handling made invalid.
   files (the validator is conservative by design). The prediction from `check`
   matched the validation of the written file in every case.
 - The validator and the repairs give the same results whether a document is
-  read in implicit or explicit conversion mode.
+  read in implicit or explicit conversion mode: they work in explicit mode
+  internally, whatever mode the caller uses.
 - {mod}`pikepdf.pdfa` needs jsonschema, referencing and fontTools, available as
   the optional extra `pip install 'pikepdf[pdfa]'`. `import pikepdf` does not
   import them; `import pikepdf.pdfa` raises `ImportError` naming the extra if
