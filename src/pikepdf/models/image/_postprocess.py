@@ -15,7 +15,7 @@ import warnings
 from typing import TYPE_CHECKING
 
 from pikepdf.models import _transcoding
-from pikepdf.models.image._shared import _ensure_list
+from pikepdf.models.image._shared import _array_list
 from pikepdf.objects import Array, Stream
 
 if TYPE_CHECKING:
@@ -42,7 +42,7 @@ def apply_decode_array(pim: PdfImage, im: Image.Image) -> Image.Image:
 
     # Only images carrying an explicit /Decode need adjustment; without one
     # the default (identity) map applies and the data is already correct.
-    raw_decode = pim._metadata('Decode', _ensure_list, [])
+    raw_decode = pim._metadata('Decode', _array_list, [])
     if not raw_decode:
         return im
 

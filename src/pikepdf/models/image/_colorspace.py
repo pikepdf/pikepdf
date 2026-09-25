@@ -22,7 +22,7 @@ from pikepdf.models._image_exceptions import UnsupportedImageTypeError
 from pikepdf.models.image._shared import (
     DecodeArray,
     PaletteData,
-    _ensure_list,
+    _array_list,
 )
 from pikepdf.objects import Dictionary
 
@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 
 def decode_array(pim: PdfImageBase) -> DecodeArray:
     """Extract the /Decode array."""
-    decode: list = pim._metadata('Decode', _ensure_list, [])
+    decode: list = pim._metadata('Decode', _array_list, [])
     if decode and len(decode) in (2, 6, 8):
         return cast(DecodeArray, tuple(float(value) for value in decode))
 

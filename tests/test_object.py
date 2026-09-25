@@ -734,6 +734,18 @@ class TestStreamReadWrite:
                 compress(b'foo'), filter=Name.FlateDecode, decode_parms=[42]
             )
 
+    @pytest.mark.parametrize('filter_', [42, '/FlateDecode', {'/K': 1}])
+    def test_invalid_filter_scalar(self, stream_object, filter_):
+        with pytest.raises(TypeError, match="filter must be"):
+            stream_object.write(b'foo', filter=filter_)
+
+    @pytest.mark.parametrize('decode_parms', [42, '/Foo', {'/K': 1}])
+    def test_invalid_decodeparms_scalar(self, stream_object, decode_parms):
+        with pytest.raises(TypeError, match="decode_parms must be"):
+            stream_object.write(
+                compress(b'foo'), filter=Name.FlateDecode, decode_parms=decode_parms
+            )
+
     def test_filter_decodeparms_mismatch(self, stream_object):
         with pytest.raises(ValueError, match=r"filter.*and decode_parms"):
             stream_object.write(

@@ -365,6 +365,17 @@ pikepdf's metadata handling made invalid.
 
 ### Fixes
 
+- {attr}`pikepdf.PdfImage.filter_decodeparms` and
+  {attr}`pikepdf.PdfImage.decode_parms` no longer raise `AttributeError` when
+  an image's `/DecodeParms` is a bare number or boolean, in either conversion
+  mode. A `/DecodeParms` that is neither a dictionary nor an array is now
+  ignored, as qpdf does, so each filter gets empty parameters.
+- An image `/Decode` that is not an array (a bare number, boolean, name or
+  dictionary) is now ignored in favour of the default decode array, instead of
+  raising `AttributeError` when the image is read or converted.
+- {meth}`pikepdf.Stream.write` now raises `TypeError` rather than
+  `AttributeError` when `filter` or `decode_parms` is a native Python value
+  such as an `int`, `str` or `dict`.
 - {meth}`pikepdf.Pdf.save` to an existing file that is not a regular file,
   such as `/dev/null`, a FIFO or a character device, now writes into it
   directly. Previously the temporary file was renamed over it, so when run

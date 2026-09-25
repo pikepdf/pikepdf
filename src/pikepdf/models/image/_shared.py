@@ -75,7 +75,37 @@ def _ensure_list(value: list[Object] | Dictionary | Array | Object) -> list[Obje
     """
     if isinstance(value, list):
         return value
+    if not isinstance(value, Object):
+        return [value]  # a native value, as implicit conversion mode gives
     return list(value.wrap_in_array().as_list())
+
+
+def _array_list(value: Any) -> list:
+    """Return the items of an array-valued entry such as /Decode.
+
+    Any value other than an array is malformed, so treat it as absent.
+    """
+    if isinstance(value, list):
+        return value
+    if isinstance(value, Array):
+        return list(value.as_list())
+    return []
+
+
+def _decodeparms_list(value: Any) -> list:
+    """Normalize /DecodeParms to a list with one entry per filter.
+
+    /DecodeParms may be a dictionary (for a single filter) or an array. Any
+    other value is malformed; qpdf reads it as a dictionary with no keys, so
+    treat it as absent and let every filter default to no parameters.
+    """
+    if isinstance(value, list):
+        return value
+    if isinstance(value, Array):
+        return list(value.as_list())
+    if isinstance(value, Dictionary | Stream):
+        return [value]
+    return []
 
 
 class _MetadataTypeError(TypeError, NotImplementedError):

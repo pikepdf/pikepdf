@@ -43,6 +43,7 @@ from pikepdf.models.image._shared import (
     PaletteData,
     T,
     _array_str,
+    _decodeparms_list,
     _ensure_list,
     _metadata_from_obj,
 )
@@ -122,7 +123,7 @@ class PdfImageBase(ABC, metaclass=_PdfImageMeta):
     @property
     def decode_parms(self) -> list:
         """List of the /DecodeParms, arguments to filters."""
-        return self._metadata('DecodeParms', _ensure_list, [])
+        return self._metadata('DecodeParms', _decodeparms_list, [])
 
     def _lab_range(self) -> tuple[float, float, float, float]:
         """Return the /Lab colour space's (amin, amax, bmin, bmax) Range.

@@ -722,6 +722,51 @@ def test_image_metadata_wrong_type_raises_type_error(mode, width):
             pim.width  # noqa: B018
 
 
+@pytest.mark.parametrize('mode', ['implicit', 'explicit'])
+@pytest.mark.parametrize(
+    'decode_parms', [b'5', b'1.5', b'true', b'null', b'/Foo', b'(bar)']
+)
+def test_image_scalar_decodeparms_ignored(mode, decode_parms):
+    """A /DecodeParms that is neither a dictionary nor an array is ignored.
+
+    qpdf reads such a value as a dictionary with no keys, so every filter
+    gets empty parameters rather than an exception.
+    """
+    with pikepdf.new(conversion_mode=mode) as pdf:
+        obj = Stream(
+            pdf,
+            b'',
+            pikepdf.Object.parse(
+                b'<< /Type /XObject /Subtype /Image /Width 1 /Height 1 '
+                b'/BitsPerComponent 8 /ColorSpace /DeviceGray '
+                b'/Filter /FlateDecode /DecodeParms ' + decode_parms + b' >>'
+            ),
+        )
+        pim = PdfImage(obj)
+        assert pim.decode_parms == []
+        assert pim.filter_decodeparms == [('/FlateDecode', {})]
+
+
+@pytest.mark.parametrize('mode', ['implicit', 'explicit'])
+@pytest.mark.parametrize('decode', [b'5', b'1.5', b'true', b'/Foo', b'<< /K 1 >>'])
+def test_image_non_array_decode_ignored(mode, decode):
+    """A /Decode that is not an array is ignored in favour of the default."""
+    with pikepdf.new(conversion_mode=mode) as pdf:
+        obj = Stream(
+            pdf,
+            b'\x80',
+            pikepdf.Object.parse(
+                b'<< /Type /XObject /Subtype /Image /Width 1 /Height 1 '
+                b'/BitsPerComponent 8 /ColorSpace /DeviceGray /Decode '
+                + decode
+                + b' >>'
+            ),
+        )
+        pim = PdfImage(obj)
+        assert pim._decode_array == (0.0, 1.0)
+        assert pim.as_pil_image().getpixel((0, 0)) == 0x80
+
+
 @contextmanager
 def first_image_from_pdfimages(pdf, tmpdir):
     if not has_pdfimages():

@@ -128,16 +128,23 @@ class Extend_Object:
             del self[k]  # pylint: disable=unsupported-delete-operation
 
     def _type_check_write(self, filter_, decode_parms):
+        # A native Python value (int, str, dict...) cannot be a filter or its
+        # parameters; wrap it in a plain list so the checks below reject it.
         if isinstance(filter_, list):
             filter_ = Array(filter_)
-        filter_ = filter_.wrap_in_array()
+        elif isinstance(filter_, Object):
+            filter_ = filter_.wrap_in_array()
+        else:
+            filter_ = [filter_]
 
         if isinstance(decode_parms, list):
             decode_parms = Array(decode_parms)
         elif decode_parms is None:
             decode_parms = Array([])
-        else:
+        elif isinstance(decode_parms, Object):
             decode_parms = decode_parms.wrap_in_array()
+        else:
+            decode_parms = [decode_parms]
 
         if not all(isinstance(item, Name) for item in filter_):
             raise TypeError(
