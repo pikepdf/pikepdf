@@ -232,7 +232,7 @@ def has_output_intent(pdf: Pdf, spec: OutputIntentSpec) -> bool:
         and str(info) == spec.info
         and isinstance(profile, Stream)
         and profile.is_indirect
-        and profile.get(Name.N) == spec.n
+        and profile.get_int(Name.N) == spec.n
         and profile.read_bytes() == spec.icc
     )
 

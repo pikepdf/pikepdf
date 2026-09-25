@@ -11,6 +11,7 @@ pytest.importorskip('jsonschema')
 
 import datetime as dt
 import logging
+from decimal import Decimal
 from io import BytesIO
 from pathlib import Path
 
@@ -26,7 +27,12 @@ from pikepdf.pdfa._declare import (
     assume_local_time_zone_for_dates,
     canonicalize_xmp,
 )
-from pikepdf.pdfa._output_intent import add_srgb_output_intent, replace_output_intents
+from pikepdf.pdfa._output_intent import (
+    add_srgb_output_intent,
+    has_output_intent,
+    parse_output_intent,
+    replace_output_intents,
+)
 from pikepdf.pdfa._repair import (
     add_cidsets_for_subset_cidfonts,
     repair_annotation_flags,
@@ -73,6 +79,16 @@ def test_replace_output_intents(francais_ocr):
         assert intents[0].S == Name.GTS_PDFA1
         assert str(intents[0].OutputConditionIdentifier) == 'sRGB'
         assert intents[0].DestOutputProfile.N == 3
+
+
+@pytest.mark.parametrize('n', [Decimal('3.0'), True])
+def test_has_output_intent_requires_integer_n(francais_ocr, n):
+    spec = parse_output_intent('sRGB', '2b')
+    with pikepdf.open(francais_ocr) as pdf:
+        replace_output_intents(pdf, spec)
+        assert has_output_intent(pdf, spec)
+        pdf.Root.OutputIntents[0].DestOutputProfile.N = n
+        assert not has_output_intent(pdf, spec)
 
 
 def test_add_srgb_output_intent_replaces_existing(francais_ocr):

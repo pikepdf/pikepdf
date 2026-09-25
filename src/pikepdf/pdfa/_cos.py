@@ -43,8 +43,8 @@ def _reported(ctx: ValidationContext) -> set[tuple[str, str]]:
 
 def _filter_names(value: Any) -> list[Any]:
     if isinstance(value, pikepdf.Array):
-        return [pikepdf.unbox(item) for item in value]
-    return [pikepdf.unbox(value)]
+        return list(value)
+    return [value]
 
 
 class _ObjectChecker:

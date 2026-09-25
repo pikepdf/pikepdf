@@ -31,7 +31,7 @@ from pikepdf.pdfa._icc import (
 from pikepdf.pdfa._report import Finding, ValidationReport
 from pikepdf.pdfa._schemas import SchemaSet
 from pikepdf.pdfa._shallow import shallow_json, shallow_json_of_stream_dict
-from pikepdf.pdfa._walker import DocumentWalker
+from pikepdf.pdfa._walker import DocumentWalker, _rect_has_area
 
 # The OCRmyPDF output fixture carries its input's PDF/X OutputIntent (which
 # the pipeline replaces), so structural tests skip it, and with it the
@@ -251,6 +251,37 @@ def test_page_box_size_denied(box):
     with make_image_only_pdf() as pdf:
         pdf.pages[0].obj.MediaBox = Array(box)
         assert 'ISO_19005_2:6.1.13-11' in rule_ids(walk(pdf))
+
+
+@pytest.mark.parametrize(
+    'box',
+    [
+        [0, 0, True, 792],
+        [False, 0, 612, 792],
+        [0, 0, 612],
+        [0, 0, 612, Name.Foo],
+    ],
+)
+def test_page_box_not_a_rectangle(box):
+    # A Boolean is not a number, although implicit conversion gives True == 1.
+    # The page schema rejects such a box first, so check the page hook directly.
+    with make_image_only_pdf() as pdf:
+        fl = Flavour('2b')
+        report = ValidationReport(fl)
+        walker = DocumentWalker(
+            ValidationContext(fl, pdf, report), SchemaSet.for_flavour(fl)
+        )
+        walker._check_box('/CropBox', Array(box), 'page')
+        assert [(f.rule, f.message) for f in report.findings] == [
+            ('pikepdf:schema-Page', '/CropBox is not a rectangle')
+        ]
+
+
+def test_rect_with_boolean_coordinates_is_not_zero_area():
+    # [true true true true] would be a zero-area rectangle if True counted as 1.
+    assert _rect_has_area(Array([True, True, True, True]))
+    assert not _rect_has_area(Array([1, 1, 1, 1]))
+    assert not _rect_has_area(Array([1, 1, Decimal('1.0'), 1]))
 
 
 def test_inherited_mediabox_accepted():

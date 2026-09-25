@@ -189,7 +189,7 @@ class DocumentWalker:
                 continue
             if key not in obj:
                 continue
-            value = pikepdf.unbox(obj.get(key))
+            value = obj.get(key)
             if value is None:
                 continue
             child_where = f'{where} {key}'
@@ -208,9 +208,7 @@ class DocumentWalker:
         """
         if isinstance(value, pikepdf.Array):
             for index, element in enumerate(value):
-                yield self._child(
-                    pikepdf.unbox(element), spec, depth, f'{where}[{index}]'
-                )
+                yield self._child(element, spec, depth, f'{where}[{index}]')
         elif (
             spec.values
             and isinstance(value, pikepdf.Dictionary)
@@ -221,13 +219,17 @@ class DocumentWalker:
                     # A null value is an absent entry, and qpdf drops the
                     # key when it writes the file.
                     continue
-                yield self._child(pikepdf.unbox(element), spec, depth, f'{where}{key}')
+                yield self._child(element, spec, depth, f'{where}{key}')
         else:
             yield self._child(value, spec, depth, where)
 
     @staticmethod
     def _child(value: Any, spec: ChildSpec, depth: int, where: str) -> _Item:
-        return _Item(value, spec.role, depth if spec.sibling else depth + 1, where)
+        # A child may be of any type. An indirect integer, real or boolean is
+        # a value here, not an object with a role, in either conversion mode.
+        return _Item(
+            pikepdf.unbox(value), spec.role, depth if spec.sibling else depth + 1, where
+        )
 
     # --- hooks -------------------------------------------------------------
 
@@ -311,10 +313,8 @@ class DocumentWalker:
         ctx = self.ctx
         values: list[float] = []
         if isinstance(box, pikepdf.Array) and len(box) == 4:
-            try:
-                values = [float(pikepdf.unbox(v)) for v in box]
-            except (TypeError, ValueError):
-                values = []
+            coords = [pikepdf.as_float(v) for v in box]
+            values = [v for v in coords if v is not None]
         if len(values) != 4:
             ctx.deny('pikepdf:schema-Page', where, f"{name} is not a rectangle")
             return
@@ -569,9 +569,8 @@ def _rect_has_area(rect: Any) -> bool:
     """False only for a rectangle of zero width and zero height."""
     if not isinstance(rect, pikepdf.Array) or len(rect) != 4:
         return True
-    try:
-        x1, y1, x2, y2 = (float(pikepdf.unbox(v)) for v in rect)
-    except (TypeError, ValueError):
+    x1, y1, x2, y2 = (pikepdf.as_float(v) for v in rect)
+    if x1 is None or y1 is None or x2 is None or y2 is None:
         return True
     return not (x1 == x2 and y1 == y2)
 

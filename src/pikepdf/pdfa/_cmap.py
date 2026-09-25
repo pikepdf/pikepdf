@@ -186,9 +186,9 @@ def _code(obj: Any) -> bytes:
 
 
 def _cid(obj: Any) -> int:
-    if not isinstance(obj, int) or isinstance(obj, bool):
+    cid = pikepdf.as_int(obj)
+    if cid is None:
         raise CMapError(f"expected a CID, not {pdf_repr(obj)}", 'syntax')
-    cid = int(obj)
     if cid < 0:
         raise CMapError(f"negative CID {cid}", 'syntax')
     if cid > MAX_CID:
@@ -213,14 +213,15 @@ def _range_pair(low: bytes, high: bytes, op: str) -> tuple[int, int]:
     return lo, hi
 
 
-def _pdf_value(obj: Any) -> Any:
-    """Convert a CIDSystemInfo value to Python."""
-    obj = pikepdf.unbox(obj)
+def _pdf_value(obj: Any) -> str | int | None:
+    """Convert a CIDSystemInfo value to Python.
+
+    Registry and Ordering are strings and Supplement is an integer; any other
+    value gives None, which no well-formed /CIDSystemInfo dictionary matches.
+    """
     if isinstance(obj, pikepdf.String):
         return bytes(obj).decode('latin-1')
-    if isinstance(obj, int):
-        return int(obj)
-    return obj
+    return pikepdf.as_int(obj)
 
 
 def _system_info(value: Any) -> dict[str, Any] | None:
@@ -260,7 +261,8 @@ class _Interpreter:
             handler(op)
         elif op in _SECTIONS:
             count = self.pop(op)
-            if not isinstance(count, int) or not 0 <= count <= 100:
+            size = pikepdf.as_int(count)
+            if size is None or not 0 <= size <= 100:
                 raise CMapError(f"{op}: bad count {pdf_repr(count)}", 'syntax')
             self.pending = op.removeprefix('begin')
         elif op in _PUSH_OPAQUE:
@@ -377,9 +379,10 @@ class _Interpreter:
         top = self.top
         wmode = top.get('WMode')
         if wmode is not None:
-            if not isinstance(wmode, int) or wmode not in (0, 1):
+            mode = pikepdf.as_int(wmode)
+            if mode not in (0, 1):
                 raise CMapError(f"bad /WMode {pdf_repr(wmode)}", 'syntax')
-            cmap.wmode = int(wmode)
+            cmap.wmode = mode
         cmap.cid_system_info = _system_info(top.get('CIDSystemInfo'))
         name = top.get('CMapName')
         if isinstance(name, pikepdf.Name):
@@ -489,8 +492,5 @@ def parse_embedded_cmap(stream: pikepdf.Stream) -> EmbeddedCMap:
     for instruction in instructions:
         if not isinstance(instruction, pikepdf.ContentStreamInstruction):
             raise CMapError("inline image in a CMap", 'syntax')
-        interpreter.run(
-            [pikepdf.unbox(operand) for operand in instruction.operands],
-            str(instruction.operator),
-        )
+        interpreter.run(list(instruction.operands), str(instruction.operator))
     return interpreter.finish()

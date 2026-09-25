@@ -229,6 +229,23 @@ def test_cmap_errors(pdf, body, reason):
     assert e.value.reason == reason
 
 
+@pytest.mark.parametrize(
+    'body, message',
+    [
+        (b'/WMode true def\n', 'bad /WMode'),
+        (b'/WMode 1.0 def\n', 'bad /WMode'),
+        (b'true begincidchar <0001> 1 endcidchar\n', 'bad count'),
+        (b'1 begincidchar <0001> true endcidchar\n', 'expected a CID'),
+        (b'1 begincidrange <0000> <00FF> 1.0 endcidrange\n', 'expected a CID'),
+    ],
+)
+def test_cmap_boolean_or_real_is_not_an_integer(pdf, body, message):
+    codespace = b'1 begincodespacerange <0000> <FFFF> endcodespacerange\n'
+    with pytest.raises(CMapError, match=message) as e:
+        parse_embedded_cmap(cmap_stream(pdf, codespace + body))
+    assert e.value.reason == 'syntax'
+
+
 def test_cmap_usecmap_in_dict_is_error(pdf):
     stream = cmap_stream(pdf, b'1 begincodespacerange <00> <FF> endcodespacerange\n')
     stream.UseCMap = Name('/Identity-H')

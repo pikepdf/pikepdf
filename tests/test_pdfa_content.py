@@ -133,6 +133,33 @@ def test_truncated_content_denied(tmp_path, content):
     assert 'pikepdf:content-parse' in rule_ids(run(tmp_path, content))
 
 
+@pytest.mark.parametrize(
+    'item, rule',
+    [
+        # An indirect scalar is encoded as its value, which the schema checks
+        (1, 'pikepdf:schema-Page'),
+        (True, 'pikepdf:schema-Page'),
+        # The schema sees other indirect elements only as references, so the
+        # content walk checks that each one is a stream
+        (Name.Foo, 'pikepdf:content-parse'),
+        (pikepdf.Array(), 'pikepdf:content-parse'),
+    ],
+)
+def test_contents_array_item_not_a_stream_denied(tmp_path, item, rule):
+    def mutate(pdf):
+        pdf.pages[0].Contents = pikepdf.Array(
+            [pdf.make_stream(b'q Q'), pdf.make_indirect(item)]
+        )
+
+    report = run(tmp_path, b'', mutate=mutate)
+    assert rule in rule_ids(report), report.summary()
+
+
+@pytest.mark.parametrize('content', [b'true Tr', b'[1 true] 0 d', b'true g'])
+def test_boolean_operand_is_not_a_number(tmp_path, content):
+    assert 'pikepdf:content-operands' in rule_ids(run(tmp_path, content))
+
+
 def test_text_without_font_denied(tmp_path):
     assert 'pikepdf:text-no-font' in rule_ids(run(tmp_path, b'BT (x) Tj ET'))
 
@@ -239,6 +266,13 @@ def test_inline_image_approved(tmp_path, part):
         ),
         (b'/W 1 /H 1 /CS [/I /CMYK 0 <00000000>] /BPC 8', '2', 'ISO_19005_2:6.2.4.3-3'),
         (b'/W 1 /H 1 /BPC 8', '2', 'pikepdf:inline-image'),
+        # /BitsPerComponent is an Integer: a Real or Boolean is not one, even
+        # if it compares equal to an allowed value
+        (b'/W 1 /H 1 /CS /G /BPC 8.0', '2', 'ISO_19005_2:6.2.8-4'),
+        (b'/W 1 /H 1 /CS /G /BPC 1.0', '1', 'ISO_19005_1:6.2.4-4'),
+        (b'/W 1 /H 1 /CS /G /BPC true', '2', 'ISO_19005_2:6.2.8-4'),
+        (b'/W 1 /H 1 /IM true /BPC 1.0', '2', 'pikepdf:inline-image'),
+        (b'/W 1 /H 1 /IM true /BPC true', '2', 'pikepdf:inline-image'),
     ],
 )
 def test_inline_image_denied(tmp_path, dictionary, part, rule):

@@ -28,7 +28,6 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from decimal import Decimal
 from typing import Any, NamedTuple
 
 from fontTools import agl
@@ -238,22 +237,6 @@ def _name_text(obj: Any) -> str | None:
         return None
 
 
-def _number(obj: Any) -> float | None:
-    obj = pikepdf.unbox(obj)
-    if isinstance(obj, bool):
-        return None
-    if isinstance(obj, int | Decimal):
-        return float(obj)
-    return None
-
-
-def _integer(obj: Any) -> int | None:
-    obj = pikepdf.unbox(obj)
-    if isinstance(obj, int) and not isinstance(obj, bool):
-        return int(obj)
-    return None
-
-
 def _is_standard_14(font: pikepdf.Dictionary) -> bool:
     """True for a simple font naming a standard 14 font and not embedded."""
     base_font = font.get('/BaseFont')
@@ -292,23 +275,23 @@ def parse_cid_widths(w: Any) -> tuple[dict[int, float], set[int]]:
     i = 0
     total = 0
     while i < len(items):
-        first = _integer(items[i])
+        first = pikepdf.as_int(items[i])
         if first is None or first < 0 or i + 1 >= len(items):
             raise ValueError(f"/W entry {i} is not a CID")
         second = items[i + 1]
         if isinstance(second, pikepdf.Array):
             for offset, value in enumerate(second):
-                width = _number(value)
+                width = pikepdf.as_float(value)
                 if width is None:
                     raise ValueError(f"/W entry {i + 1} has a non-numeric width")
                 set_width(first + offset, width)
             total += len(second)
             i += 2
             continue
-        last = _integer(second)
+        last = pikepdf.as_int(second)
         if last is None or last < first or i + 2 >= len(items):
             raise ValueError(f"/W entry {i + 1} is not a CID range")
-        width = _number(items[i + 2])
+        width = pikepdf.as_float(items[i + 2])
         if width is None:
             raise ValueError(f"/W entry {i + 2} is not a width")
         total += last - first + 1
@@ -689,7 +672,7 @@ class _Loader:
                 self.unsupported('font-name', f"{what} /FontName is not valid UTF-8")
             else:
                 self.deny('name-utf8', f"{what} /FontName is not valid UTF-8")
-        flags = _integer(descriptor.get('/Flags'))
+        flags = descriptor.get_int('/Flags')
         if flags is None:
             self.unsupported('font-flags', f"{what} font descriptor has no /Flags")
             return None
@@ -752,8 +735,8 @@ class _Loader:
             # veraPDF exempts the standard 14 fonts from /FirstChar, /LastChar
             # and /Widths; they are denied as not embedded instead.
             return
-        first = _integer(font.get('/FirstChar'))
-        last = _integer(font.get('/LastChar'))
+        first = font.get_int('/FirstChar')
+        last = font.get_int('/LastChar')
         if first is None:
             self.deny('firstchar', "simple font has no integer /FirstChar")
         if last is None:
@@ -771,7 +754,7 @@ class _Loader:
                 f"/LastChar {last} require {last - first + 1}",
             )
             return
-        values = [_number(w) for w in widths]
+        values = [pikepdf.as_float(w) for w in widths]
         if any(v is None for v in values):
             self.deny('font-widths', "/Widths contains a non-numeric entry")
             return
@@ -1071,7 +1054,7 @@ class _Loader:
             return None
         registry = value.get('/Registry')
         ordering = value.get('/Ordering')
-        supplement = _integer(value.get('/Supplement'))
+        supplement = value.get_int('/Supplement')
         if (
             not isinstance(registry, pikepdf.String)
             or not isinstance(ordering, pikepdf.String)
@@ -1120,7 +1103,7 @@ class _Loader:
             else:
                 self.unsupported('font-cmap', f"embedded CMap: {e}")
             return
-        dict_wmode = _integer(encoding.get('/WMode', 0))
+        dict_wmode = pikepdf.as_int(encoding.get('/WMode', 0))
         stream_wmode = cmap.wmode if cmap.wmode is not None else 0
         if dict_wmode != stream_wmode:
             self.deny(
@@ -1165,7 +1148,7 @@ class _Loader:
     def cid_widths(self, cidfont: pikepdf.Dictionary) -> None:
         dw = cidfont.get('/DW')
         if dw is not None:
-            value = _number(dw)
+            value = pikepdf.as_float(dw)
             if value is None:
                 self.deny('font-widths', "/DW is not a number")
                 return
@@ -1287,8 +1270,7 @@ def load_font(font: Any, ctx: ValidationContext, where: str) -> FontInfo:
         ctx: Validation context; findings are added to its report.
         where: Location used in findings.
     """
-    font = pikepdf.unbox(font)
-    if isinstance(font, pikepdf.Object) and font.is_indirect:
+    if isinstance(font, pikepdf.Dictionary) and font.is_indirect:
         key = font.objgen
         info = ctx.fonts.get(key)
         if info is None:

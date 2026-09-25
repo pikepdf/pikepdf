@@ -21,7 +21,6 @@ import re
 import warnings
 from collections.abc import Callable
 from dataclasses import dataclass, replace
-from decimal import Decimal
 from typing import Any
 
 import pikepdf
@@ -193,12 +192,13 @@ TEXT_SHOWING = frozenset({'Tj', 'TJ', "'", '"'})
 
 
 def _is_number(obj: Any) -> bool:
-    return isinstance(obj, int | Decimal | float) and not isinstance(obj, bool)
+    """True for an Integer or Real; a Boolean is not a number."""
+    return pikepdf.as_float(obj) is not None
 
 
 _CHECKS: dict[str, Callable[[Any], bool]] = {
     'n': _is_number,
-    'i': lambda o: isinstance(o, int) and not isinstance(o, bool),
+    'i': lambda o: pikepdf.as_int(o) is not None,
     'N': lambda o: isinstance(o, pikepdf.Name),
     's': lambda o: isinstance(o, pikepdf.String),
     'a': lambda o: isinstance(o, pikepdf.Array),
@@ -349,7 +349,7 @@ class _Resources:
             )
             return None
         table = self.category(category)
-        value = pikepdf.unbox(table.get(name)) if table is not None else None
+        value = table.get(name) if table is not None else None
         if value is None:
             if not self.explicit:
                 ctx.deny(
@@ -431,7 +431,7 @@ class _StreamWalk:
                 self.inline_image(instruction.iimage)
                 continue
             op = instruction.operator.unparse().decode('latin-1')
-            operands = [pikepdf.unbox(operand) for operand in instruction.operands]
+            operands = list(instruction.operands)
             for operand in operands:
                 self.check_limits(operand)
             signature = OPERATORS.get(op)
@@ -517,7 +517,7 @@ class _StreamWalk:
         self.state = self.saved.pop()
 
     def op_d(self, op: str, operands: list[Any]) -> None:
-        if not all(_is_number(pikepdf.unbox(item)) for item in operands[0]):
+        if not all(_is_number(item) for item in operands[0]):
             self.deny('pikepdf:content-operands', "dash array item is not a number")
 
     def op_ri(self, op: str, operands: list[Any]) -> None:
@@ -548,7 +548,8 @@ class _StreamWalk:
         if '/op' in params:
             fill = params.get_bool('/op') is True
         if '/OPM' in params:
-            mode = 1 if params.get('/OPM') == 1 else 0
+            # Only the Integer 0 selects mode 0; any other value may be 1.
+            mode = 0 if params.get_int('/OPM') == 0 else 1
         self.state = replace(self.state, overprint=(stroke, fill, mode))
         if mode == 1 and (stroke or fill):
             self.deny(
@@ -610,7 +611,7 @@ class _StreamWalk:
             return
         if op == 'TJ':
             strings = []
-            for item in map(pikepdf.unbox, operands[0]):
+            for item in operands[0]:
                 if isinstance(item, pikepdf.String):
                     strings.append(bytes(item))
                 elif not _is_number(item):
@@ -801,12 +802,13 @@ class _StreamWalk:
                 f"inline image rendering intent {pdf_str(intent)}",
             )
         bpc = obj.get('/BitsPerComponent')
+        bits = obj.get_int('/BitsPerComponent')
         allowed_bpc = {1, 2, 4, 8} if ctx.flavour.part == 1 else {1, 2, 4, 8, 16}
         if obj.get_bool('/ImageMask') is True:
-            if bpc not in (None, 1):
+            if bpc is not None and bits != 1:
                 self.deny('pikepdf:inline-image', f"image mask with BPC {pdf_str(bpc)}")
             return
-        if bpc not in allowed_bpc:
+        if bits not in allowed_bpc:
             self.deny(
                 ctx.rule('6.2.4-4', '6.2.8-4'),
                 f"inline image /BitsPerComponent {pdf_str(bpc)}",
@@ -880,11 +882,16 @@ class ContentWalker:
         )
         contents = obj.get('/Contents')
         if isinstance(contents, pikepdf.Array):
+            if not all(isinstance(part, pikepdf.Stream) for part in contents):
+                walk.deny(
+                    'pikepdf:content-parse', "page /Contents has an item not a stream"
+                )
+                return
             # Parse the concatenation as one stream: pikepdf reports syntax
             # problems (such as a truncated token) only when parsing a stream.
             try:
-                data = b'\n'.join(pikepdf.unbox(part).read_bytes() for part in contents)
-            except (pikepdf.PdfError, AttributeError, TypeError) as e:
+                data = b'\n'.join(part.read_bytes() for part in contents)
+            except pikepdf.PdfError as e:
                 walk.deny('pikepdf:content-parse', f"cannot read page content: {e}")
                 return
             contents = self._scratch.make_stream(data)

@@ -17,6 +17,7 @@ from typing import Any
 
 import pikepdf
 from pikepdf.pdfa._latin_enc import ENCODING
+from pikepdf.pdfa._shallow import pdf_repr
 
 STANDARD = 'StandardEncoding'
 MAC_ROMAN = 'MacRomanEncoding'
@@ -96,9 +97,10 @@ def parse_differences(differences: Any) -> dict[int, str]:
         raise DifferencesError("/Differences is not an array")
     result: dict[int, str] = {}
     code: int | None = None
-    for item in map(pikepdf.unbox, differences):
-        if isinstance(item, int) and not isinstance(item, bool):
-            code = int(item)
+    for item in differences:
+        number = pikepdf.as_int(item)
+        if number is not None:
+            code = number
             continue
         if isinstance(item, pikepdf.Name):
             if code is None:
@@ -113,7 +115,7 @@ def parse_differences(differences: Any) -> dict[int, str]:
             code += 1
             continue
         raise DifferencesError(
-            f"/Differences contains {type(item).__name__}, not an integer or name"
+            f"/Differences contains {pdf_repr(item)}, not an integer or name"
         )
     return result
 

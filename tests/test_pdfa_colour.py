@@ -192,6 +192,12 @@ def test_icc_based_image_mutation_approved(tmp_path):
     [
         (lambda s: s.__setitem__('/N', 1), 'pikepdf:icc-components'),
         (lambda s: s.__setitem__('/N', 2), 'pikepdf:schema-ICCBasedStream'),
+        # /N is an Integer; the schema's enum alone admits a Real 3.0
+        (
+            lambda s: s.__setitem__('/N', Decimal('3.0')),
+            'pikepdf:schema-ICCBasedStream',
+        ),
+        (lambda s: s.__setitem__('/N', True), 'pikepdf:schema-ICCBasedStream'),
         (
             lambda s: s.__setitem__('/Alternate', Name.DeviceGray),
             'pikepdf:schema-ICCBasedStream',
@@ -270,6 +276,25 @@ def test_calgray_image_approved(tmp_path):
     [
         (
             Array([Name.CalRGB, Dictionary(Gamma=[1, 1, 1])]),
+            'pikepdf:schema-ColorSpace',
+        ),
+        (
+            Array(
+                [Name.CalGray, Dictionary(WhitePoint=[0.9505, 1, 1.089], Gamma=True)]
+            ),
+            'pikepdf:schema-ColorSpace',
+        ),
+        (
+            Array(
+                [
+                    Name.CalRGB,
+                    Dictionary(WhitePoint=[0.9505, 1, 1.089], Gamma=[1, True, 1]),
+                ]
+            ),
+            'pikepdf:schema-ColorSpace',
+        ),
+        (
+            Array([Name.Indexed, Name.DeviceGray, True, String(b'\0' * 2)]),
             'pikepdf:schema-ColorSpace',
         ),
         (
@@ -568,6 +593,10 @@ def test_extgstate_apple_antialias_key_approved(tmp_path):
         (dict(Foo=1), '2', 'pikepdf:schema-ExtGState'),
         (dict(OP=True, OPM=1), '2', 'ISO_19005_2:6.2.4.2-2'),
         (dict(op=True, OPM=1), '2', 'ISO_19005_2:6.2.4.2-2'),
+        # Only the Integer 0 selects overprint mode 0
+        (dict(OP=True, OPM=Decimal('0.0')), '2', 'ISO_19005_2:6.2.4.2-2'),
+        (dict(OP=True, OPM=Decimal('1.0')), '2', 'ISO_19005_2:6.2.4.2-2'),
+        (dict(OPM=True), '2', 'pikepdf:schema-ExtGState'),
     ],
 )
 def test_extgstate_denied(tmp_path, params, part, rule):

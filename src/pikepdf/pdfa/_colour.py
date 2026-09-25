@@ -13,7 +13,6 @@ replaces the device colour space (as veraPDF does).
 
 from __future__ import annotations
 
-from decimal import Decimal
 from typing import Any, NamedTuple
 
 import pikepdf
@@ -116,10 +115,6 @@ def _name(obj: Any) -> str | None:
         return None
 
 
-def _is_number(obj: Any) -> bool:
-    return isinstance(obj, int | Decimal | float) and not isinstance(obj, bool)
-
-
 class _Resolver:
     """Resolve one colour space, reporting problems to the context."""
 
@@ -152,7 +147,6 @@ class _Resolver:
         if depth > MAX_NESTING:
             self.unsupported(f"colour spaces nested deeper than {MAX_NESTING}")
             return None
-        value = pikepdf.unbox(value)
         if isinstance(value, pikepdf.Name):
             return self.resolve_name(value, depth, allow_names)
         if isinstance(value, pikepdf.Array):
@@ -272,7 +266,12 @@ class _Resolver:
             'ICCBasedStream', shallow_json_of(stream, ctx.model), ctx, where
         ):
             return None
-        n = int(pikepdf.unbox(stream.N))
+        n = stream.get_int('/N')
+        if n is None:
+            # The schema's enum admits a Real such as 3.0, which is not an
+            # Integer.
+            ctx.deny('pikepdf:schema-ICCBasedStream', where, "/N is not an integer")
+            return None
         try:
             data = stream.read_bytes()
         except pikepdf.PdfError as e:
@@ -314,20 +313,17 @@ class _Resolver:
         if len(value) != 4:
             self.deny("Indexed colour space must be [/Indexed base hival lookup]")
             return None
-        _family, base, hival, lookup = map(pikepdf.unbox, value)
+        _family, base, hival_value, lookup = value
+        hival = pikepdf.as_int(hival_value)
         base_info = self.resolve(base, depth + 1, False)
         if base_info is None:
             return None
         if base_info.family in ('/Indexed', '/Pattern'):
             self.deny(f"the base of an Indexed colour space is {base_info.family}")
             return None
-        if (
-            not isinstance(hival, int)
-            or isinstance(hival, bool)
-            or not 0 <= hival <= MAX_HIVAL
-        ):
+        if hival is None or not 0 <= hival <= MAX_HIVAL:
             self.deny(
-                f"Indexed hival {pdf_repr(hival)} is not an integer 0-{MAX_HIVAL}"
+                f"Indexed hival {pdf_repr(hival_value)} is not an integer 0-{MAX_HIVAL}"
             )
             return None
         if isinstance(lookup, pikepdf.String):
@@ -367,19 +363,20 @@ class _Resolver:
             if (
                 not isinstance(item, pikepdf.Array)
                 or len(item) != length
-                or not all(_is_number(pikepdf.unbox(v)) for v in item)
+                or not all(pikepdf.as_float(v) is not None for v in item)
             ):
                 self.deny(f"{family} {key} is not an array of {length} numbers")
                 return None
         if '/Gamma' in params:
-            gamma = pikepdf.unbox(params.get('/Gamma'))
-            ok = (
-                _is_number(gamma)
-                if family == '/CalGray'
-                else isinstance(gamma, pikepdf.Array)
-                and len(gamma) == 3
-                and all(_is_number(pikepdf.unbox(v)) for v in gamma)
-            )
+            gamma = params.get('/Gamma')
+            if family == '/CalGray':
+                ok = pikepdf.as_float(gamma) is not None
+            else:
+                ok = (
+                    isinstance(gamma, pikepdf.Array)
+                    and len(gamma) == 3
+                    and all(pikepdf.as_float(v) is not None for v in gamma)
+                )
             if not ok:
                 self.deny(f"{family} /Gamma is malformed")
                 return None
@@ -446,10 +443,7 @@ def check_image_colour(
     mask = image.get('/Mask')
     if isinstance(mask, pikepdf.Array) and (
         len(mask) != 2 * info.components
-        or not all(
-            isinstance(v, int) and not isinstance(v, bool)
-            for v in map(pikepdf.unbox, mask)
-        )
+        or not all(pikepdf.as_int(v) is not None for v in mask)
     ):
         ctx.deny(
             'pikepdf:schema-ImageXObject',

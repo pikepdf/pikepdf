@@ -80,19 +80,18 @@ class LimitChecker:
 
     def scalar(self, value: Any) -> tuple[str, str] | None:
         """Check a scalar; return (rule key, message) if it breaks a limit."""
-        value = pikepdf.unbox(value)
-        if isinstance(value, bool):
+        integer = pikepdf.as_int(value)
+        if integer is not None:
+            if not MIN_INTEGER <= integer <= MAX_INTEGER:
+                return 'integer', f"integer {integer} is out of range"
             return None
-        if isinstance(value, int):
-            if not MIN_INTEGER <= value <= MAX_INTEGER:
-                return 'integer', f"integer {value} is out of range"
-            return None
-        if isinstance(value, Decimal | float):
-            magnitude = abs(Decimal(value) if isinstance(value, float) else value)
+        real = pikepdf.as_decimal(value)
+        if real is not None:
+            magnitude = abs(real)
             if magnitude > self.max_real:
-                return 'real', f"real {value} exceeds {self.max_real}"
+                return 'real', f"real {real} exceeds {self.max_real}"
             if self.min_real is not None and 0 < magnitude < self.min_real:
-                return 'small-real', f"real {value} is closer to zero than 1.175e-38"
+                return 'small-real', f"real {real} is closer to zero than 1.175e-38"
             return None
         if isinstance(value, pikepdf.String):
             size = len(bytes(value))
@@ -115,6 +114,8 @@ class LimitChecker:
     def _collect(
         self, value: Any, depth: int, found: list[tuple[str, str]], top: bool = False
     ) -> None:
+        # An indirect integer, real or boolean is checked here, where it is
+        # used, in either conversion mode.
         value = pikepdf.unbox(value)
         if isinstance(value, pikepdf.Object) and value.is_indirect and not top:
             return  # checked as an object of its own
