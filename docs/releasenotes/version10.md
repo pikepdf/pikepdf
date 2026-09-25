@@ -19,10 +19,9 @@ the architecture notes on thread safety.
 ## v10.14.0
 
 Several improvements to explicit conversion mode and `NamePath`, prompted by
-detailed feedback from the OCRmyPDF project's migration to these APIs
+the OCRmyPDF project's migration to these APIs
 (`pikepdf.explicit_conversion()`, the `as_*` safe accessors, and `NamePath`)
-in a production codebase that reads untrusted, often malformed, PDFs. Thanks
-to that project for the report.
+in a production codebase that reads untrusted, often malformed, PDFs.
 
 ### Python support
 
@@ -151,8 +150,7 @@ to that project for the report.
 ### Metadata and PDF/A
 
 OCRmyPDF tested its PDF/A output against veraPDF, and found files that
-pikepdf's metadata handling made invalid. Thanks to that project for the
-report.
+pikepdf's metadata handling made invalid.
 
 - XMP language alternatives such as `dc:title` and `dc:description` are now
   read from their `x-default` item, as the XMP specification defines, rather
@@ -235,15 +233,8 @@ report.
   the optional extra `pip install 'pikepdf[pdfa]'`. `import pikepdf` does not
   import them; `import pikepdf.pdfa` raises `ImportError` naming the extra if
   they are missing.
-- For users of OCRmyPDF's validator: `ValidationReport` is now
-  {class}`~pikepdf.pdfa.Report`, `Finding.rule_id` is now `Finding.rule`, and
-  local rule ids changed from `ocrmypdf:<name>` and `schema:<role>` to
-  `pikepdf:<name>` and `pikepdf:schema-<Role>`. `ValidationReport` remains as
-  an alias of `Report`.
-- The validator and repairs were developed in OCRmyPDF and moved to pikepdf so
-  that the validator can see the bytes pikepdf's writer produces. Thanks to
-  that project. The rule catalogue is derived from the veraPDF validation
-  profiles (CC BY 4.0, veraPDF Consortium, which does not endorse pikepdf); see
+- The PDF/A rule catalogue is derived from the veraPDF validation
+  profiles (CC BY 4.0, veraPDF Consortium); see
   `third-party-licenses/README.md`.
 - Added the internal helper `pikepdf._io.atomic_write_verified`, which writes a
   file to a temporary location, calls a verification function on it, and moves
