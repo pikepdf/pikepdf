@@ -3,7 +3,11 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 
 pytest.importorskip('jsonschema')
 
@@ -23,10 +27,11 @@ from pikepdf.pdfa._content import (
     MAX_Q_DEPTH,
     OPERATORS,
     ContentWalker,
-    operands_match,
+    content_checker,
     scan_raw_content,
 )
 from pikepdf.pdfa._context import ValidationContext
+from pikepdf.pdfa._limits import LimitChecker
 from pikepdf.pdfa._report import ValidationReport
 
 DRAW_IMAGE = b'q 612 0 0 792 0 0 cm /Im0 Do Q'
@@ -59,11 +64,16 @@ def add_form(pdf: pikepdf.Pdf, content: bytes, **keys) -> pikepdf.Stream:
 def test_operator_table_is_table_a1():
     assert len(OPERATORS) == 73 - 3  # Table A.1 less BI, ID, EI (inline image)
     assert 'PS' not in OPERATORS
-    one, zero = pikepdf.Integer(1), pikepdf.Integer(0)
-    assert operands_match('nnnnnn', [one, zero, zero, one, zero, pikepdf.Real('0.5')])
-    assert not operands_match('nnnnnn', [one, zero])
-    assert not operands_match('n', [pikepdf.Boolean(True)])
-    assert not operands_match('N', [pikepdf.String('x')])
+    assert check_stream(b'1 0 0 1 0 0.5 cm')[0] == []
+    assert check_stream(b'1 0 cm')[0][0][:3] == ('operands', 0, 'cm')
+    assert check_stream(b'true w')[0][0][:3] == ('operands', 0, 'w')
+    assert check_stream(b'(x) sh')[0][0][:3] == ('operands', 0, 'sh')
+    assert check_stream(b'1 J 1.5 J')[0][0][:3] == ('operands', 1, 'J')
+    assert check_stream(b'/P /Q BDC EMC /P <<>> BDC EMC /P [] BDC')[0][-1][:3] == (
+        'operands',
+        4,
+        'BDC',
+    )
 
 
 @pytest.mark.parametrize('part', ['1', '2'])
@@ -450,6 +460,52 @@ def test_malformed_hex_string_denied(tmp_path, content, part, rule):
         assert_verapdf_fails(tmp_path / 'c.pdf', f'{part}b', rule)
 
 
+def _walk_with_budget(content: bytes, budget: int, mutate=None):
+    """Walk page content with an instruction budget; return (rules, count)."""
+    with make_image_only_pdf() as pdf:
+        pdf.pages[0].Contents = pdf.make_stream(content)
+        if mutate is not None:
+            mutate(pdf)
+        report = ValidationReport(Flavour('2b'))
+        ctx = ValidationContext(Flavour('2b'), pdf, report)
+        ctx.output_intent_cs = 'RGB '
+        ctx.max_instructions = budget
+        ContentWalker(ctx).walk_page(pdf.pages[0], 'page')
+    return rule_ids(report), ctx.instructions
+
+
+def test_instruction_count():
+    rules, count = _walk_with_budget(b'0 0 m 1 1 l S', 100)
+    assert count == 3
+    assert 'pikepdf:content-budget' not in rules
+
+
+def test_instruction_budget_stops_before_later_instructions():
+    rules, _ = _walk_with_budget(b'q Q q Q 1 2 xx', 4)
+    assert 'pikepdf:content-budget' in rules
+    assert 'ISO_19005_2:6.2.2-1' not in rules
+    rules, _ = _walk_with_budget(b'q Q q Q 1 2 xx', 5)
+    assert 'pikepdf:content-budget' not in rules
+    assert 'ISO_19005_2:6.2.2-1' in rules
+
+
+def test_instruction_budget_exceeded_by_trailing_instructions():
+    rules, _ = _walk_with_budget(b'BT ' + b'0 0 Td ' * 10, 5)
+    assert 'pikepdf:content-budget' in rules
+    assert 'pikepdf:content-syntax' not in rules  # BT without ET is not reached
+    rules, _ = _walk_with_budget(b'BT ' + b'0 0 Td ' * 10, 50)
+    assert 'pikepdf:content-syntax' in rules
+
+
+def test_instruction_budget_counts_form_instructions():
+    def mutate(pdf):
+        add_form(pdf, b'0 0 m ' * 10, Resources=Dictionary())
+
+    rules, _ = _walk_with_budget(b'/Fm0 Do 1 2 xx', 8, mutate)
+    assert 'pikepdf:content-budget' in rules
+    assert 'ISO_19005_2:6.2.2-1' not in rules
+
+
 @pytest.mark.parametrize(
     'data, images, clauses',
     [
@@ -462,6 +518,17 @@ def test_malformed_hex_string_denied(tmp_path, content, part, rule):
         (b'BI /W 1 ID <0> EI', [], ['inline-image']),
         (b'<00>', [b'x'], ['inline-image']),
         (b'/ID <0> 1 IDx <00>', [], ['6.1.6-1']),
+        (b'<0', [], ['6.1.6-1']),
+        (b'(unterminated <0>', [], []),
+        (b'(a\\', [], []),
+        (b'% comment <0>', [], []),
+        (b'<<<0>>>', [], ['6.1.6-1']),
+        (b']ID <0>', [b'<0>'], []),
+        (b'xID <0>', [], ['6.1.6-1']),
+        (b'ID', [b''], []),
+        (b'ID', [b'x'], ['inline-image']),
+        (b'ID ', [b''], []),
+        (b'<\x00 0 0\r>', [], []),
     ],
 )
 def test_scan_raw_content(data, images, clauses):
@@ -517,3 +584,162 @@ def test_inline_image_with_ei_in_data_denied(tmp_path, data):
     failed = verapdf_failed_rules(tmp_path / 'c.pdf', '2b')
     if failed is not None:
         assert failed
+
+
+# --- the content stream checker in C++ ------------------------------------------
+
+
+# Owns the streams checked below, so the objects in their events stay valid
+_SCRATCH = pikepdf.new()
+
+
+def check_stream(content: bytes, part: str = '2'):
+    """Return (events, instruction count) of the C++ checker for *content*."""
+    checker = content_checker(LimitChecker(Flavour(f'{part}b')))
+    return checker.check(_SCRATCH.make_stream(content))
+
+
+def test_checker_passes_over_path_operators():
+    assert check_stream(b'1 0 0 1 0 0 cm 0 0 m 10 10.5 l S') == ([], 4)
+
+
+def test_checker_reports_handled_operators():
+    events, count = check_stream(b'q BT /F1 12 Tf (x) Tj 1 2 Td ET Q')
+    assert count == 7
+    assert [event[:3] for event in events] == [
+        ('op', 0, 'q'),
+        ('op', 1, 'BT'),
+        ('op', 2, 'Tf'),
+        ('op', 3, 'Tj'),
+        ('op', 4, 'Td'),
+        ('op', 5, 'ET'),
+        ('op', 6, 'Q'),
+    ]
+    operands = {event[2]: event[3] for event in events}
+    assert operands['Tf'] == [Name.F1, 12]
+    assert isinstance(operands['Tf'][1], pikepdf.Integer)
+    assert operands['Tj'] == [pikepdf.String('x')]
+    assert operands['Td'] == []  # its handler does not use them
+    assert operands['q'] == []
+
+
+def test_checker_reports_undefined_operator_and_wrong_operands():
+    events, count = check_stream(b'q 1 2 xx (a) 1 m 1 Tr (b) Tr')
+    assert count == 5
+    assert events[1] == ('undefined', 1, 'xx')
+    assert events[2] == ('operands', 2, 'm', [pikepdf.String('a'), 1])
+    assert events[3][:3] == ('op', 3, 'Tr')
+    assert events[4] == ('operands', 4, 'Tr', [pikepdf.String('b')])
+
+
+def test_checker_defers_operands_beyond_limits():
+    events, _ = check_stream(b'2147483648 0 m 1 0 l')
+    assert events == [('limits', 0, 2147483648)]
+    assert check_stream(b'40000.5 0 m', part='1')[0][0][:2] == ('limits', 0)
+    assert check_stream(b'40000.5 0 m', part='2')[0] == []
+
+
+def test_checker_reports_inline_images():
+    events, count = check_stream(b'q BI /W 1 /H 1 /CS /G /BPC 8 ID \x00 EI Q')
+    assert count == 3
+    assert events[1][:2] == ('inline', 1)
+    assert isinstance(events[1][2], pikepdf.ContentStreamInlineImage)
+    assert events[1][2].iimage.read_raw_bytes() == b'\x00 '
+
+
+def test_checker_parse_problems():
+    with pytest.raises(TypeError, match='Only scalar types'):
+        check_stream(b'[<zz> 1] TJ')
+    with pytest.warns(UserWarning, match='Unexpected end of stream'):
+        check_stream(b'1 2')
+
+
+_DEEP = 65
+
+
+@pytest.mark.parametrize('part', ['1', '2'])
+@pytest.mark.parametrize(
+    'operand',
+    [
+        b'2147483647',
+        b'2147483648',
+        b'-2147483648',
+        b'-2147483649',
+        b'32767',
+        b'32767.0',
+        b'32767.00001',
+        b'-32767.5',
+        b'340300000000000000000000000000000000000.0',
+        b'340300000000000000000000000000000000000.1',
+        b'0.00000000000000000000000000000000000001175',
+        b'0.000000000000000000000000000000000000011749',
+        b'-0.000',
+        b'0.' + b'0' * 400 + b'1',
+        b'1' + b'0' * 400 + b'.5',
+        b'(' + b'x' * 32767 + b')',
+        b'(' + b'x' * 32768 + b')',
+        b'(' + b'x' * 65536 + b')',
+        b'/' + b'N' * 127,
+        b'/' + b'N' * 128,
+        b'/' + b'#41' * 128,
+        b'[' * (_DEEP - 1) + b']' * (_DEEP - 1),
+        b'[' * (_DEEP + 1) + b']' * (_DEEP + 1),
+        b'[' + b'0 ' * 8191 + b']',
+        b'[' + b'0 ' * 8192 + b']',
+        b'<<' + b''.join(b'/K%d 0 ' % n for n in range(4095)) + b'>>',
+        b'<<' + b''.join(b'/K%d 0 ' % n for n in range(4096)) + b'>>',
+        b'<< /' + b'K' * 128 + b' 0 >>',
+        b'<< /A [2147483648] >>',
+        b'<< /A null /B 1 >>',
+    ],
+    ids=lambda value: value[:20].decode('latin-1'),
+)
+def test_checker_defers_every_limit_problem(operand, part):
+    _assert_conservative(operand, part)
+
+
+def _assert_conservative(operand: bytes, part: str) -> None:
+    events, _ = check_stream(operand + b' xx', part)
+    deferred = [event[2] for event in events if event[0] == 'limits']
+    parsed = pikepdf.parse_content_stream(_SCRATCH.make_stream(operand + b' xx'))
+    value = parsed[0].operands[0]
+    limits = LimitChecker(Flavour(f'{part}b'))
+    if isinstance(value, pikepdf.Array | pikepdf.Dictionary):
+        problems = limits.problems(value)
+    else:
+        problems = [p for p in [limits.scalar(value)] if p is not None]
+    if problems:
+        assert deferred, problems
+
+
+@pytest.mark.parametrize('part', ['1', '2'])
+def test_checker_does_not_defer_ordinary_operands(part):
+    content = b'12 -0.5 3.25 0 (abc) <4142> /Name [1 2 (x)] << /A 1 /B [0.5] >> xx'
+    events, _ = check_stream(content, part)
+    assert [event[0] for event in events] == ['undefined']
+
+
+_FINITE = {'allow_nan': False, 'allow_infinity': False}
+_REAL_LIMITS = [Decimal(32767), Decimal('3.403e38'), Decimal('1.175e-38')]
+_REALS = st.one_of(
+    st.decimals(**_FINITE),
+    st.integers(0, 45).flatmap(lambda places: st.decimals(**_FINITE, places=places)),
+    # Just either side of a limit
+    st.builds(
+        lambda limit, steps, exponent, negative: (
+            (limit + steps * Decimal(10) ** exponent) * (-1 if negative else 1)
+        ),
+        st.sampled_from(_REAL_LIMITS),
+        st.integers(-3, 3),
+        st.integers(-80, 0),
+        st.booleans(),
+    ),
+)
+
+
+@given(_REALS, st.sampled_from(['1', '2']))
+def test_checker_defers_every_real_limit_problem(value, part):
+    text = f'{value:f}'.encode()
+    if b'.' not in text:
+        text += b'.0'
+    _assert_conservative(text, part)

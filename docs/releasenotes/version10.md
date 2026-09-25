@@ -371,10 +371,6 @@ pikepdf's metadata handling made invalid.
   {func}`pikepdf.as_decimal` answer for a native `int` or `Decimal` without
   constructing a PDF object, and converting a Real to a `Decimal` no longer
   imports the `decimal` module each time.
-- PDF/A validation is two to three times faster on large documents. The
-  implementation limit checks and the embedded file checks share one walk
-  over every object of the file, and content stream operands are classified
-  with a single type test.
 
 ### Fixes
 
