@@ -9,9 +9,13 @@
 #include <cstdlib>
 #include <cstring>
 #include <regex>
+#include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 #include <vector>
+
+#include <nanobind/stl/string_view.h>
 
 #include <qpdf/Pl_Flate.hh>
 #include <qpdf/QPDFExc.hh>
@@ -19,6 +23,7 @@
 #include <qpdf/QPDFSystemError.hh>
 #include <qpdf/QPDFUsage.hh>
 #include <qpdf/QUtil.hh>
+#include <qpdf/qpdf-c.h>
 
 #include "namepath.h"
 #include "parsers.h"
@@ -63,6 +68,45 @@ bool get_mmap_default()
 {
     return MMAP_DEFAULT.load();
 }
+
+// qpdf's global options and limits that pikepdf.settings exposes by name.
+// inspection_mode and fuzz_mode are deliberately absent: neither can be turned
+// off once enabled, and both change qpdf behavior in ways unsuited to a library.
+static constexpr std::pair<std::string_view, qpdf_param_e> QPDF_GLOBAL_PARAMS[] = {
+    {"limit_errors", qpdf_p_limit_errors},
+    {"default_limits", qpdf_p_default_limits},
+    {"dct_throw_on_corrupt_data", qpdf_p_dct_throw_on_corrupt_data},
+    {"doc_max_warnings", qpdf_p_doc_max_warnings},
+    {"parser_max_nesting", qpdf_p_parser_max_nesting},
+    {"parser_max_errors", qpdf_p_parser_max_errors},
+    {"parser_max_container_size", qpdf_p_parser_max_container_size},
+    {"parser_max_container_size_damaged", qpdf_p_parser_max_container_size_damaged},
+    {"max_stream_filters", qpdf_p_max_stream_filters},
+    {"dct_max_memory", qpdf_p_dct_max_memory},
+    {"dct_max_progressive_scans", qpdf_p_dct_max_progressive_scans},
+    {"flate_max_memory", qpdf_p_flate_max_memory},
+    {"png_max_memory", qpdf_p_png_max_memory},
+    {"run_length_max_memory", qpdf_p_run_length_max_memory},
+    {"tiff_max_memory", qpdf_p_tiff_max_memory},
+};
+
+static qpdf_param_e qpdf_global_param(std::string_view name)
+{
+    for (auto const &[param_name, param] : QPDF_GLOBAL_PARAMS) {
+        if (param_name == name)
+            return param;
+    }
+    throw py::value_error(
+        ("unknown qpdf global parameter: " + std::string(name)).c_str());
+}
+
+static void check_qpdf_global_result(qpdf_result_e result, std::string_view name)
+{
+    if (result != qpdf_r_ok)
+        throw py::value_error(
+            ("qpdf rejected global parameter: " + std::string(name)).c_str());
+}
+
 bool get_explicit_conversion_mode(QpdfEntry const *owner) noexcept
 {
     // Resolution order: thread-local override > per-Pdf mode > global setting.
@@ -320,6 +364,25 @@ NB_MODULE(_core, m)
                 throw py::value_error(
                     "Flate compression level must be between 0 and 9 (or -1)");
             })
+        .def(
+            "_get_qpdf_global",
+            [](std::string_view name) {
+                uint32_t value = 0;
+                check_qpdf_global_result(
+                    qpdf_global_get_uint32(qpdf_global_param(name), &value), name);
+                return value;
+            },
+            py::arg("name"))
+        .def(
+            "_set_qpdf_global",
+            [](std::string_view name, uint32_t value) {
+                auto param = qpdf_global_param(name);
+                if (param == qpdf_p_limit_errors)
+                    throw py::value_error("limit_errors is read-only");
+                check_qpdf_global_result(qpdf_global_set_uint32(param, value), name);
+            },
+            py::arg("name"),
+            py::arg("value"))
         .def("_unparse_content_stream", unparse_content_stream);
 
     // -- Exceptions --

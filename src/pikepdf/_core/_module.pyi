@@ -42,6 +42,12 @@ def _set_explicit_conversion_mode(mode: bool) -> bool:
 def _get_explicit_conversion_mode() -> bool:
     """Return True if explicit conversion mode is enabled (global baseline)."""
 
+def _get_qpdf_global(name: str) -> int:
+    """Return a qpdf global option or limit by name. See pikepdf.settings."""
+
+def _set_qpdf_global(name: str, value: int) -> None:
+    """Set a qpdf global option or limit by name. See pikepdf.settings."""
+
 def _get_effective_explicit_mode() -> bool:
     """Return True if explicit mode is active (includes thread-local override)."""
 

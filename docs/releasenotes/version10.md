@@ -239,6 +239,21 @@ report.
   file to a temporary location, calls a verification function on it, and moves
   it into place only if verification succeeds. `pikepdf.pdfa.save` uses it.
 
+### qpdf limits
+
+- Added {func}`pikepdf.settings.get_qpdf_limits` and
+  {func}`pikepdf.settings.set_qpdf_limits`, which read and change qpdf's
+  process-wide limits for hardening against malicious or damaged PDFs: parser
+  nesting depth, error count and container size, the number of stream filters,
+  memory for decoding Flate, DCT, PNG, TIFF and RunLength data, and whether
+  corrupt JPEG data is an error. Previously only some of these limits were
+  reachable, through {meth}`pikepdf.JobBuilder.limits`. `set_qpdf_limits`
+  returns the previous values so they can be restored.
+- Added {func}`pikepdf.settings.disable_qpdf_default_limits`, which lifts
+  qpdf's optional default limits for the rest of the process, and
+  {func}`pikepdf.settings.qpdf_limit_errors`, which counts how many times any
+  limit has been exceeded.
+
 ### Behavior changes
 
 - The minimum required qpdf version is now 12.4.1, and wheels bundle qpdf
@@ -246,7 +261,9 @@ report.
   - Content stream parsing ({func}`pikepdf.parse_content_stream`,
     {meth}`pikepdf.Page.parse_contents`) now stops after 15 syntax errors,
     issuing a warning. Instructions after that point are dropped, so parsing
-    and rewriting a badly damaged content stream can lose content.
+    and rewriting a badly damaged content stream can lose content. Use
+    `pikepdf.settings.set_qpdf_limits(parser_max_errors=0)` to parse as much
+    as possible.
   - A page tree nested more than 100 levels deep now raises
     {class}`pikepdf.PdfError` when the pages are accessed.
   - `/Rotate` values outside `[0, 360)`, such as `-90`, are now normalized
