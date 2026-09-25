@@ -184,13 +184,19 @@ def test_update_docinfo(vera):
 @pytest.mark.parametrize(
     'filename', list((Path(__file__).parent / 'resources').glob('*.pdf'))
 )
+@pytest.mark.filterwarnings('error::pikepdf.XmpTypeWarning')
 def test_roundtrip(filename):
     try:
         with Pdf.open(filename) as pdf:
             with pdf.open_metadata() as xmp:
                 for k in xmp.keys():
                     if 'Date' not in k:
-                        xmp[k] = 'A'
+                        # Keep the property's container type: a list for
+                        # rdf:Seq, a set for rdf:Bag, a str otherwise.
+                        old = xmp[k]
+                        xmp[k] = (
+                            type(old)(['A']) if isinstance(old, (list, set)) else 'A'
+                        )
             assert '<?xpacket' not in str(xmp)
     except PasswordError:
         return
