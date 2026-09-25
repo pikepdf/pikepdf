@@ -41,6 +41,26 @@ The user-facing consequences of this choice — what native crypto costs in
 assurance, and how to get a different provider — are documented in
 {ref}`security`. Keep the two in sync when changing the build.
 
+## Linux qpdf build cache
+
+On Linux, cibuildwheel's `before-all` step compiles libqpdf inside each
+manylinux or musllinux container. The manylinux x86_64 wheels are split into
+one job per target (see the comment in `build.yml`), so without a cache several
+jobs would compile the same qpdf for the same image.
+
+Instead, `build.yml` restores a per-image archive of the installed qpdf with
+`actions/cache` before running cibuildwheel. `QPDF_CACHE_DIR` tells
+`posix-build-wheel-deps.bash` where to find it inside the container, through
+cibuildwheel's `/host` mount of the runner's filesystem. On a hit the script
+extracts the archive into `/usr/local` and skips the download and compile. On
+a miss it downloads and compiles qpdf as usual, then archives what
+`cmake --install` installed, and the job saves that to the cache.
+
+The cache key hashes `pyproject.toml` (the qpdf version and image choice),
+`build.yml` (the cibuildwheel version, which pins the image tag) and the POSIX
+build scripts, so any change to them rebuilds qpdf once. The yum/apk package
+installs still run on a hit, since libqpdf links libjpeg and zlib at run time.
+
 ## macOS generally
 
 Here are the current constraints for building on macOS:

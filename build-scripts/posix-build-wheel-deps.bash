@@ -28,7 +28,23 @@ else
     libdir=/usr/local/lib
 fi
 
+# On Linux CI, QPDF_CACHE_DIR points at a directory on the host (through
+# cibuildwheel's /host mount) that actions/cache restores and saves. A cached
+# build is an archive of exactly what `cmake --install` put in place, so
+# extracting it is equivalent to building qpdf here.
+cache_tgz=
+if [ -n "${QPDF_CACHE_DIR:-}" ]; then
+    cache_tgz="$QPDF_CACHE_DIR/qpdf-${QPDF_VERSION}-${arch}.tar.gz"
+    if [ -f "$cache_tgz" ] && [ ! -f $libdir/libqpdf.so ]; then
+        echo "Using cached qpdf build $cache_tgz"
+        tar -xzf "$cache_tgz" -C /
+    fi
+fi
+
 if [ ! -f $libdir/libqpdf.so -a ! -f $libdir/libqpdf.dylib ]; then
+    if [ ! -d qpdf ]; then
+        bash build-scripts/posix-download-qpdf.bash "$QPDF_VERSION"
+    fi
     pushd qpdf
     # Select qpdf's native crypto provider explicitly on every platform.
     #
@@ -59,6 +75,21 @@ if [ ! -f $libdir/libqpdf.so -a ! -f $libdir/libqpdf.dylib ]; then
     cmake --build build --parallel $max_jobs --target libqpdf
     maybe_sudo cmake --install build --component lib
     maybe_sudo cmake --install build --component dev
+    if [ -n "$cache_tgz" ]; then
+        # The wheel build must not depend on the cache, so failing to write
+        # it is only a warning.
+        stage=$(mktemp -d)
+        DESTDIR="$stage" cmake --install build --component lib
+        DESTDIR="$stage" cmake --install build --component dev
+        if mkdir -p "$QPDF_CACHE_DIR" \
+            && tar -czf "$cache_tgz.tmp" -C "$stage" . \
+            && mv "$cache_tgz.tmp" "$cache_tgz"; then
+            echo "Wrote qpdf cache $cache_tgz"
+        else
+            echo "warning: could not write qpdf cache $cache_tgz" >&2
+        fi
+        rm -rf "$stage"
+    fi
     popd
 fi
 

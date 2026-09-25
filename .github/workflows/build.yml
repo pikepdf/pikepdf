@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       CIBW_BUILD: "${{ matrix.build }}"
+      QPDF_CACHE_DIR: /host${{ github.workspace }}/.qpdf-cache
     strategy:
       # One wheel target per worker. The x86_64 runners intermittently fail to
       # spawn a subprocess during the *second* build in a sequence (cp312 after
@@ -34,18 +35,39 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { id: cp311-manylinux_x86_64, build: cp311-manylinux_x86_64 }
-          - { id: cp312-manylinux_x86_64, build: cp312-manylinux_x86_64 }
-          - { id: cp313-manylinux_x86_64, build: cp313-manylinux_x86_64 }
-          - { id: cp314-manylinux_x86_64, build: "cp314-manylinux_x86_64 cp315-manylinux_x86_64" }
-          - { id: cp314t-manylinux_x86_64, build: cp314t-manylinux_x86_64 }
-          - { id: cp315t-manylinux_x86_64, build: cp315t-manylinux_x86_64 }
-          - { id: musllinux_x86_64, build: "*-musllinux_x86_64" }
+          - { id: cp311-manylinux_x86_64, build: cp311-manylinux_x86_64, image: manylinux_x86_64 }
+          - { id: cp312-manylinux_x86_64, build: cp312-manylinux_x86_64, image: manylinux_x86_64 }
+          - { id: cp313-manylinux_x86_64, build: cp313-manylinux_x86_64, image: manylinux_x86_64 }
+          - { id: cp314-manylinux_x86_64, build: "cp314-manylinux_x86_64 cp315-manylinux_x86_64", image: manylinux_x86_64 }
+          - { id: cp314t-manylinux_x86_64, build: cp314t-manylinux_x86_64, image: manylinux_x86_64 }
+          - { id: cp315t-manylinux_x86_64, build: cp315t-manylinux_x86_64, image: manylinux_x86_64 }
+          - { id: musllinux_x86_64, build: "*-musllinux_x86_64", image: musllinux_x86_64 }
     steps:
       - uses: actions/checkout@v6
 
+      # qpdf is compiled inside the cibuildwheel container by
+      # posix-build-wheel-deps.bash. Cache the result per image, so that once
+      # the cache is populated no job compiles qpdf; on a miss every job
+      # compiles it as before and one of them saves it. The container reaches
+      # .qpdf-cache through cibuildwheel's /host mount. The key covers
+      # QPDF_VERSION and the image choice (pyproject.toml), the cibuildwheel pin
+      # that selects the image tag (build.yml), and the build scripts.
+      - name: Restore cached qpdf build
+        id: qpdf-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: .qpdf-cache
+          key: qpdf-${{ matrix.image }}-${{ hashFiles('pyproject.toml', '.github/workflows/build.yml', 'build-scripts/posix-*.bash') }}
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v4.2.1
+
+      - name: Save qpdf build to cache
+        if: ${{ !cancelled() && steps.qpdf-cache.outputs.cache-hit != 'true' && hashFiles('.qpdf-cache/*.tar.gz') != '' }}
+        uses: actions/cache/save@v6
+        with:
+          path: .qpdf-cache
+          key: ${{ steps.qpdf-cache.outputs.cache-primary-key }}
 
       - name: Audit abi3 wheels
         shell: bash
@@ -70,14 +92,30 @@ jobs:
     runs-on: ubuntu-24.04-arm
     env:
       CIBW_BUILD: "*-${{ matrix.platform }}"
+      QPDF_CACHE_DIR: /host${{ github.workspace }}/.qpdf-cache
     strategy:
       matrix:
         platform: [manylinux_aarch64, musllinux_aarch64]
     steps:
       - uses: actions/checkout@v6
 
+      # See the qpdf cache notes in wheels_linux.
+      - name: Restore cached qpdf build
+        id: qpdf-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: .qpdf-cache
+          key: qpdf-${{ matrix.platform }}-${{ hashFiles('pyproject.toml', '.github/workflows/build.yml', 'build-scripts/posix-*.bash') }}
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v4.2.1
+
+      - name: Save qpdf build to cache
+        if: ${{ !cancelled() && steps.qpdf-cache.outputs.cache-hit != 'true' && hashFiles('.qpdf-cache/*.tar.gz') != '' }}
+        uses: actions/cache/save@v6
+        with:
+          path: .qpdf-cache
+          key: ${{ steps.qpdf-cache.outputs.cache-primary-key }}
 
       - name: Audit abi3 wheels
         shell: bash

@@ -91,10 +91,11 @@ before-all = [
     zlib-devel \
   """,
   "sh -c 'yum install -y libxmp || true'",
-  "bash build-scripts/posix-download-qpdf.bash $QPDF_VERSION",
   "bash build-scripts/posix-build-wheel-deps.bash",
 ]
-environment-pass = ["CI"]
+# QPDF_CACHE_DIR lets before-all reuse a qpdf build cached by build.yml; the
+# build script downloads and compiles qpdf itself on a cache miss.
+environment-pass = ["CI", "QPDF_CACHE_DIR"]
 # For manylinux_2_28 we need this shim for auditwheel
 # https://github.com/pypa/auditwheel/pull/597
 repair-wheel-command = "LD_LIBRARY_PATH=\"/usr/local/lib:/usr/local/lib64\" auditwheel repair -w {dest_dir} {wheel}"
@@ -120,7 +121,6 @@ before-all = [
     wget \
     zlib-dev \
   """,
-  "bash build-scripts/posix-download-qpdf.bash $QPDF_VERSION",
   "bash build-scripts/posix-build-wheel-deps.bash",
 ]
 

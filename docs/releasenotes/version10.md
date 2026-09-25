@@ -438,6 +438,9 @@ report.
 
 ### Internals
 
+- Linux wheel jobs now cache the compiled qpdf per build image with
+  `actions/cache`, so jobs that share an image no longer each download and
+  compile the same qpdf. See the build process notes.
 - Fixed the Linux wheel build script's AlmaLinux detection, which was a
   malformed shell test that always evaluated false.
 - The type stubs for the C++ extension module, until now a single 4,300-line
