@@ -70,6 +70,8 @@ inline constexpr const char *JBIG2_DECODE_ERROR_PREFIX = "Pl_JBIG2:";
 
 // From pikepdf.cpp - the pikepdf.DataDecodingError class object (borrowed).
 PyObject *get_data_decoding_error_type();
+// decimal.Decimal, cached at module initialization.
+py::handle get_decimal_type();
 
 // Raise pikepdf.ForeignObjectError with the given message.
 [[noreturn]] void throw_foreign_object_error(std::string const &msg);

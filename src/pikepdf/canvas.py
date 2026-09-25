@@ -26,9 +26,8 @@ from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
-from pikepdf._core import ContentStreamInstruction, Matrix, Pdf
+from pikepdf._core import ContentStreamInstruction, Matrix, Pdf, unbox
 from pikepdf._data import CHARNAMES_TO_UNICODE
-from pikepdf._explicit_conv import unbox
 from pikepdf.models import unparse_content_stream
 from pikepdf.objects import Array, Dictionary, Name, Operator, String
 

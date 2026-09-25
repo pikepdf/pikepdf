@@ -29,7 +29,7 @@ from pikepdf import (
     String,
     parse_content_stream,
 )
-from pikepdf._explicit_conv import unbox
+from pikepdf._core import unbox
 from pikepdf.canvas import ContentStreamBuilder, SimpleFont
 
 log = logging.getLogger(__name__)

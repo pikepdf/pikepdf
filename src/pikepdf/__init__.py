@@ -154,7 +154,6 @@ from pikepdf._explicit_conv import (
     implicit_conversion,
     get_object_conversion_mode,
     set_object_conversion_mode,
-    unbox,
 )
 from pikepdf._core import (
     as_bool,
@@ -165,6 +164,7 @@ from pikepdf._core import (
     as_int,
     as_list,
     as_str,
+    unbox,
 )
 
 # Provide pikepdf.{open, new} -> pikepdf.Pdf.{open, new}

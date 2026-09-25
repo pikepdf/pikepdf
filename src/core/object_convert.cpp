@@ -143,7 +143,7 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle)
             py::cast<QPDFObjectHandle::Rectangle>(handle));
     }
 
-    auto Decimal = py::module_::import_("decimal").attr("Decimal");
+    auto Decimal = get_decimal_type();
     if (py::isinstance(handle, Decimal)) {
         DecimalPrecision dp(get_decimal_precision());
         auto rounded = py::steal<py::object>(PyNumber_Positive(handle.ptr()));
@@ -176,7 +176,7 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle)
 
 py::object decimal_from_pdfobject(QPDFObjectHandle h)
 {
-    auto Decimal = py::module_::import_("decimal").attr("Decimal");
+    auto Decimal = get_decimal_type();
 
     if (h.getTypeCode() == qpdf_object_type_e::ot_integer) {
         auto value = h.getIntValue();

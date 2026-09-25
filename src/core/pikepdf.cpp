@@ -49,6 +49,12 @@ static constinit std::atomic<PyObject *> exc_foreign{nullptr};
 static constinit std::atomic<PyObject *> exc_destroyedobject{nullptr};
 static constinit std::atomic<PyObject *> exc_referencecycle{nullptr};
 
+// decimal.Decimal, looked up once in NB_MODULE instead of importing the decimal
+// module on every conversion of a Real. The reference is deliberately never
+// released: the decimal module keeps the type alive anyway, and releasing it
+// during interpreter shutdown would race module teardown.
+static constinit std::atomic<PyObject *> decimal_type{nullptr};
+
 // Thread-local stack of conversion mode overrides, pushed by the
 // explicit_conversion() and implicit_conversion() context managers. The top of
 // the stack takes precedence over both the per-Pdf mode and the global
@@ -58,6 +64,11 @@ static thread_local std::vector<ConversionMode> thread_mode_stack;
 PyObject *get_data_decoding_error_type()
 {
     return exc_datadecoding.load(std::memory_order_acquire);
+}
+
+py::handle get_decimal_type()
+{
+    return decimal_type.load(std::memory_order_acquire);
 }
 
 uint get_decimal_precision()
@@ -253,6 +264,10 @@ NB_MODULE(_core, m)
         env == nullptr || env[0] == '\0' || env[0] == '0') {
         py::set_leak_warnings(false);
     }
+
+    decimal_type.store(
+        py::object(py::module_::import_("decimal").attr("Decimal")).release().ptr(),
+        std::memory_order_release);
 
     m.doc() = "pikepdf provides a Pythonic interface for qpdf";
     m.attr("__name__") = "pikepdf._core";

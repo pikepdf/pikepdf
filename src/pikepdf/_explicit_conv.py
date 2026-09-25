@@ -6,62 +6,12 @@ from __future__ import annotations
 
 # Conversion mode API
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Literal
 
 from pikepdf import _core
 
 if TYPE_CHECKING:
     from pikepdf import Pdf
-
-
-def unbox(value: Any) -> Any:
-    """Return a PDF scalar as the native Python value implicit mode would give.
-
-    Implicit conversion mode already hands back ``int``, ``bool`` or
-    ``Decimal`` for a PDF number; explicit mode hands back a
-    :class:`pikepdf.Integer`, :class:`pikepdf.Boolean` or :class:`pikepdf.Real`.
-    Code that computes with a value rather than storing it needs the native form
-    in both modes, and unlike :meth:`~pikepdf.Object.as_int` and friends this
-    does not require knowing which of the three it is.
-
-    ``Integer`` becomes ``int``, ``Boolean`` becomes ``bool`` and ``Real``
-    becomes :class:`decimal.Decimal`. Anything else -- a native Python value,
-    ``None``, a :class:`~pikepdf.Name`, :class:`~pikepdf.String`,
-    :class:`~pikepdf.Array`, :class:`~pikepdf.Dictionary` or
-    :class:`~pikepdf.Stream` -- is returned unchanged, so ``unbox`` can be
-    applied to a value read in either mode.
-
-    Arithmetic and comparisons on ``Integer`` and ``Real`` already produce
-    native results, so ``unbox`` is needed only where Python offers no
-    protocol for a foreign number: ``isinstance`` checks, ``is True``,
-    :class:`decimal.Decimal` construction, JSON serialization, and returning
-    a value from a function documented to give a native type.
-
-    When the expected type is known, prefer :func:`pikepdf.as_int` and
-    friends, which also accept a value read in either mode but return
-    *default* for a value of the wrong type instead of passing it through.
-
-    Example:
-        >>> with pikepdf.explicit_conversion():
-        ...     d = pikepdf.Dictionary(MaxLen=12, Marked=True)
-        ...     pikepdf.unbox(d.MaxLen)
-        12
-        >>> pikepdf.unbox(d.Marked) is True
-        True
-
-    .. versionadded:: 10.14
-    """
-    if not isinstance(value, _core.Object):
-        return value
-    from pikepdf.objects import Boolean, Integer, Real
-
-    if isinstance(value, Integer):
-        return value.as_int()
-    if isinstance(value, Boolean):
-        return value.as_bool()
-    if isinstance(value, Real):
-        return value.as_decimal()
-    return value
 
 
 @contextmanager

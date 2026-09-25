@@ -1886,6 +1886,32 @@ class TestUnbox:
             assert pikepdf.unbox(Name.Foo) == Name.Foo
             assert pikepdf.unbox(pikepdf.String('s')) == pikepdf.String('s')
 
+    def test_implemented_in_core(self):
+        assert pikepdf.unbox is pikepdf._core.unbox
+
+    def test_other_objects_pass_through_by_identity(self):
+        with pikepdf.explicit_conversion():
+            arr = pikepdf.Array([1])
+            name = Name.Foo
+            assert pikepdf.unbox(arr) is arr
+            assert pikepdf.unbox(name) is name
+        marker = object()
+        assert pikepdf.unbox(marker) is marker
+
+    def test_requires_one_argument(self):
+        with pytest.raises(TypeError):
+            pikepdf.unbox()  # type: ignore[call-arg]
+
+    def test_real_beyond_double_matches_implicit_mode(self):
+        text = '1' + '0' * 400 + '.5'
+        holder = pikepdf.Object.parse(f'[{text}]'.encode())
+        with pikepdf.implicit_conversion():
+            implicit = holder[0]
+        with pikepdf.explicit_conversion():
+            explicit = pikepdf.unbox(holder[0])
+        assert type(explicit) is Decimal
+        assert explicit == implicit == Decimal(text)
+
     def test_same_value_in_either_mode(self, resources):
         with pikepdf.open(resources / 'graph.pdf') as pdf:
             box = pdf.pages[0].obj.get_raw('/MediaBox')

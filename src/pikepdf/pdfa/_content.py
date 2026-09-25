@@ -21,6 +21,7 @@ import re
 import warnings
 from collections.abc import Callable
 from dataclasses import dataclass, replace
+from decimal import Decimal
 from typing import Any
 
 import pikepdf
@@ -192,8 +193,15 @@ TEXT_SHOWING = frozenset({'Tj', 'TJ', "'", '"'})
 
 
 def _is_number(obj: Any) -> bool:
-    """True for an Integer or Real; a Boolean is not a number."""
-    return pikepdf.as_float(obj) is not None
+    """True for an Integer or Real; a Boolean is not a number.
+
+    A Real is a number even if its digits overflow a double; the limit checks
+    report it as out of range.
+    """
+    kind = type(obj)
+    if kind is int or kind is Decimal:
+        return True
+    return isinstance(obj, pikepdf.Integer | pikepdf.Real)
 
 
 _CHECKS: dict[str, Callable[[Any], bool]] = {
@@ -210,7 +218,10 @@ def operands_match(signature: str, operands: list[Any]) -> bool:
     """True if *operands* have the count and types of *signature*."""
     if len(operands) != len(signature):
         return False
-    return all(_CHECKS[kind](op) for kind, op in zip(signature, operands, strict=True))
+    for kind, op in zip(signature, operands, strict=True):
+        if not _CHECKS[kind](op):
+            return False
+    return True
 
 
 @dataclass(frozen=True)
@@ -490,11 +501,14 @@ class _StreamWalk:
 
     def check_limits(self, operand: Any) -> None:
         limits = self.walker.limits
-        if isinstance(operand, pikepdf.Array | pikepdf.Dictionary):
+        kind = type(operand)
+        if kind is not int and isinstance(operand, pikepdf.Array | pikepdf.Dictionary):
             problems = limits.problems(operand)
         else:
             problem = limits.scalar(operand)
-            problems = [problem] if problem is not None else []
+            if problem is None:
+                return
+            problems = [problem]
         for key, message in problems:
             self.deny(limits.rule(key), message, limits.kind(key))
 

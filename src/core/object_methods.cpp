@@ -172,7 +172,7 @@ static std::optional<py::object> try_as_decimal(QPDFObjectHandle &h, bool coerce
         // cannot be constructed, but build from the text to keep every digit.
         if (!parse_double(text))
             return std::nullopt;
-        auto Decimal = py::module_::import_("decimal").attr("Decimal");
+        auto Decimal = get_decimal_type();
         return py::object(Decimal(py::cast(text)));
     }
     return std::nullopt;
@@ -438,7 +438,7 @@ static std::optional<QPDFObjectHandle> scalar_from_native(py::handle value)
     }
     if (PyBytes_Check(p))
         return QPDFObjectHandle::newString(to_string(value));
-    auto Decimal = py::module_::import_("decimal").attr("Decimal");
+    auto Decimal = get_decimal_type();
     if (py::isinstance(value, Decimal)) {
         // str() of a Decimal is exact, so as_decimal() gets back an equal
         // Decimal with every digit; "NaN" and "Infinity" are rejected later.
@@ -447,11 +447,56 @@ static std::optional<QPDFObjectHandle> scalar_from_native(py::handle value)
     return std::nullopt;
 }
 
+// The answer for a native int or Decimal, without building the PDF scalar it
+// stands for. These are what implicit mode gives for PDF numbers, so they are
+// the common case. Exactly the result scalar_from_native() and *convert* would
+// give: an int is returned as is when it fits a PDF Integer, and a Decimal is
+// validated from its str() just as a Real holding that text would be, which
+// str() reproduces digit for digit. nullopt defers to the general path, which
+// also handles subclasses.
+enum class NumberKind { integer, boolean, real_float, real_decimal };
+
+template <NumberKind kind>
+static std::optional<py::object> convert_native_number(
+    py::handle value, py::handle default_, bool coerce)
+{
+    PyObject *p = value.ptr();
+    if (PyLong_CheckExact(p)) {
+        if constexpr (kind != NumberKind::integer) {
+            return std::nullopt;
+        } else {
+            int overflow = 0;
+            long long v = PyLong_AsLongLongAndOverflow(p, &overflow);
+            if (v == -1 && PyErr_Occurred())
+                throw py::python_error(); // LCOV_EXCL_LINE
+            if (overflow)
+                return py::borrow<py::object>(default_);
+            return py::borrow<py::object>(value);
+        }
+    }
+    if (Py_TYPE(p) != reinterpret_cast<PyTypeObject *>(get_decimal_type().ptr()))
+        return std::nullopt;
+    if constexpr (kind == NumberKind::integer || kind == NumberKind::boolean) {
+        if (coerce)
+            return std::nullopt;
+        return py::borrow<py::object>(default_);
+    } else {
+        auto value_as_double =
+            parse_double(trimmed(py::cast<std::string>(py::str(value))));
+        if (!value_as_double)
+            return py::borrow<py::object>(default_);
+        if constexpr (kind == NumberKind::real_float)
+            return py::cast(*value_as_double);
+        else
+            return py::borrow<py::object>(value);
+    }
+}
+
 // Register pikepdf.as_int()-style module functions: the conversions of the
 // Object.as_int(default) methods, applied to any Python value, so that a value
 // read in implicit mode (a native int, bool or Decimal) and the same value
 // read in explicit mode (an Object) give the same answer.
-template <CoercingConversion convert>
+template <CoercingConversion convert, NumberKind kind>
 static void def_typed_conversion(py::module_ &m, char const *name)
 {
     m.def(
@@ -459,6 +504,8 @@ static void def_typed_conversion(py::module_ &m, char const *name)
         [](py::handle value, py::handle default_, bool coerce) -> py::object {
             if (py::isinstance<QPDFObjectHandle>(value))
                 return convert(py::cast<QPDFObjectHandle &>(value), default_, coerce);
+            if (auto result = convert_native_number<kind>(value, default_, coerce))
+                return *result;
             auto h = scalar_from_native(value);
             if (!h)
                 return py::borrow<py::object>(default_);
@@ -506,10 +553,30 @@ static void def_typed_conversion(py::module_ &m, char const *name)
 
 void init_typed_conversions(py::module_ &m)
 {
-    def_typed_conversion<int_or_default>(m, "as_int");
-    def_typed_conversion<bool_or_default>(m, "as_bool");
-    def_typed_conversion<float_or_default>(m, "as_float");
-    def_typed_conversion<decimal_or_default>(m, "as_decimal");
+    m.def(
+        "unbox",
+        [](py::handle value) -> py::object {
+            if (!py::isinstance<QPDFObjectHandle>(value))
+                return py::borrow<py::object>(value);
+            auto &h = py::cast<QPDFObjectHandle &>(value);
+            switch (h.getTypeCode()) {
+            case qpdf_object_type_e::ot_integer:
+                return py::cast(h.getIntValue());
+            case qpdf_object_type_e::ot_boolean:
+                return py::cast(h.getBoolValue());
+            case qpdf_object_type_e::ot_real:
+                // As implicit mode converts it, even when its digits overflow
+                // a double, which as_decimal() would refuse.
+                return decimal_from_pdfobject(h);
+            default:
+                return py::borrow<py::object>(value);
+            }
+        },
+        py::arg("value").none());
+    def_typed_conversion<int_or_default, NumberKind::integer>(m, "as_int");
+    def_typed_conversion<bool_or_default, NumberKind::boolean>(m, "as_bool");
+    def_typed_conversion<float_or_default, NumberKind::real_float>(m, "as_float");
+    def_typed_conversion<decimal_or_default, NumberKind::real_decimal>(m, "as_decimal");
     def_typed_conversion<dict_or_default, is_nothing>(m, "as_dict");
     def_typed_conversion<list_or_default, is_nothing>(m, "as_list");
     def_typed_conversion<str_or_default, is_native_str>(m, "as_str");

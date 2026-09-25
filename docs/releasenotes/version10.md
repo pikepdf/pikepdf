@@ -362,6 +362,18 @@ pikepdf's metadata handling made invalid.
   calling the stream's `write()` method for every chunk of output. Saving a large document is about twice as fast. Other streams, such
   as `BytesIO`, pipes and subclasses of the `io` classes, are written through
   `write()` as before.
+- `isinstance()` checks against {class}`pikepdf.Dictionary`,
+  {class}`pikepdf.Stream`, {class}`pikepdf.Integer` and the other object
+  classes are about five times faster.
+- {func}`pikepdf.unbox` is now implemented in C++ and is about 40 times
+  faster. {func}`pikepdf.as_int`, {func}`pikepdf.as_float` and
+  {func}`pikepdf.as_decimal` answer for a native `int` or `Decimal` without
+  constructing a PDF object, and converting a Real to a `Decimal` no longer
+  imports the `decimal` module each time.
+- PDF/A validation is two to three times faster on large documents. The
+  implementation limit checks and the embedded file checks share one walk
+  over every object of the file, and content stream operands are classified
+  with a single type test.
 
 ### Fixes
 

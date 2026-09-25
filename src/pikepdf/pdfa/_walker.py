@@ -21,7 +21,6 @@ from pikepdf.pdfa._context import ValidationContext
 from pikepdf.pdfa._cos import check_objects
 from pikepdf.pdfa._fonts import finalize_fonts, load_font
 from pikepdf.pdfa._icc import COMPONENTS, IccHeader, check_output_profile
-from pikepdf.pdfa._limits import check_document_limits
 from pikepdf.pdfa._schemas import ChildSpec, SchemaSet
 from pikepdf.pdfa._shallow import pdf_str, shallow_json_of
 
@@ -106,7 +105,6 @@ class DocumentWalker:
         self._check_unpainted_images()
         if 'Pages' not in self.skip_roles:
             self._check_page_tree()
-        check_document_limits(self.ctx)
         check_objects(self.ctx)
         finalize_fonts(self.ctx)
 

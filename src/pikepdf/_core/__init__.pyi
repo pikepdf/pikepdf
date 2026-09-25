@@ -129,6 +129,7 @@ from pikepdf._core._object import (
     as_int,
     as_list,
     as_str,
+    unbox,
     unparse,
 )
 from pikepdf._core._object_construct import (
@@ -234,6 +235,7 @@ __all__ = [
     'as_int',
     'as_list',
     'as_str',
+    'unbox',
     'AttachedFile',
     'AttachedFileSpec',
     'Attachments',

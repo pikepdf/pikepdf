@@ -267,3 +267,45 @@ def test_containers():
 def test_exported():
     for fn in ALL:
         assert fn in pikepdf.__all__
+
+
+class _IntSubclass(int):
+    pass
+
+
+class _DecimalSubclass(Decimal):
+    pass
+
+
+def test_native_subclasses_give_base_types():
+    assert type(pikepdf.as_int(_IntSubclass(5))) is int
+    assert pikepdf.as_int(_IntSubclass(5)) == 5
+    assert type(pikepdf.as_decimal(_DecimalSubclass('2.5'))) is Decimal
+    assert pikepdf.as_decimal(_DecimalSubclass('2.5')) == Decimal('2.5')
+
+
+def test_int64_boundaries():
+    assert pikepdf.as_int(2**63 - 1) == 2**63 - 1
+    assert pikepdf.as_int(-(2**63)) == -(2**63)
+    assert pikepdf.as_int(2**63) is None
+    assert pikepdf.as_float(2**63) is None
+
+
+@pytest.mark.parametrize(
+    'text', ['1E+2', '-0', '0.000001', '1.50', '-12.3450'], ids=str
+)
+def test_native_decimal_keeps_every_digit(text):
+    value = Decimal(text)
+    result = pikepdf.as_decimal(value)
+    assert type(result) is Decimal
+    assert str(result) == text
+    assert pikepdf.as_float(value) == float(value)
+    assert pikepdf.as_int(value) is None
+    assert pikepdf.as_bool(value) is None
+
+
+def test_native_decimal_beyond_double_range_gives_default():
+    for text in ('1E+400', '-1E+400'):
+        assert pikepdf.as_decimal(Decimal(text)) is None
+        assert pikepdf.as_float(Decimal(text)) is None
+        assert pikepdf.as_int(Decimal(text), coerce=True) is None
