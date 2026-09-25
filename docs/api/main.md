@@ -49,6 +49,38 @@
 ```
 
 ```{eval-rst}
+.. autoapifunction:: pikepdf.as_int
+```
+
+```{eval-rst}
+.. autoapifunction:: pikepdf.as_bool
+```
+
+```{eval-rst}
+.. autoapifunction:: pikepdf.as_float
+```
+
+```{eval-rst}
+.. autoapifunction:: pikepdf.as_decimal
+```
+
+```{eval-rst}
+.. autoapifunction:: pikepdf.as_dict
+```
+
+```{eval-rst}
+.. autoapifunction:: pikepdf.as_list
+```
+
+```{eval-rst}
+.. autoapifunction:: pikepdf.as_str
+```
+
+```{eval-rst}
+.. autoapifunction:: pikepdf.as_bytes
+```
+
+```{eval-rst}
 .. autoapifunction:: pikepdf.set_object_conversion_mode
 ```
 

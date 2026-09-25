@@ -1116,6 +1116,7 @@ void init_object(py::module_ &m)
     }
 
     init_object_methods(object);
+    init_typed_conversions(m);
 
     m.def("_new_boolean", &QPDFObjectHandle::newBool);
     m.def("_new_integer", &QPDFObjectHandle::newInteger);

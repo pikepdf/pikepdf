@@ -156,6 +156,16 @@ from pikepdf._explicit_conv import (
     set_object_conversion_mode,
     unbox,
 )
+from pikepdf._core import (
+    as_bool,
+    as_bytes,
+    as_decimal,
+    as_dict,
+    as_float,
+    as_int,
+    as_list,
+    as_str,
+)
 
 # Provide pikepdf.{open, new} -> pikepdf.Pdf.{open, new}
 open = Pdf.open  # pylint: disable=redefined-builtin
@@ -202,6 +212,14 @@ __all__ = [
     'explicit_conversion',
     'implicit_conversion',
     'unbox',
+    'as_bool',
+    'as_bytes',
+    'as_decimal',
+    'as_dict',
+    'as_float',
+    'as_int',
+    'as_list',
+    'as_str',
     'ForeignObjectError',
     'FormFieldFlag',
     'get_object_conversion_mode',

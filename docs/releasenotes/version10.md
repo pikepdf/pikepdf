@@ -85,6 +85,18 @@ to that project for the report.
   numeric type a value has, and it accepts values read in either mode, so it
   is the one-token migration for a read that feeds `isinstance`, `is True`,
   `Decimal()`, `json.dumps` or a function documented to return a native type.
+- Added module-level typed conversions {func}`pikepdf.as_int`,
+  {func}`~pikepdf.as_bool`, {func}`~pikepdf.as_float`,
+  {func}`~pikepdf.as_decimal`, {func}`~pikepdf.as_dict`,
+  {func}`~pikepdf.as_list`, {func}`~pikepdf.as_str` and
+  {func}`~pikepdf.as_bytes`, each `(value, default=None)`, with keyword-only
+  `coerce` for the numeric and boolean ones. They are the value-side twins of
+  the `get_*` typed getters, for an array element, content stream operand or
+  other value already in hand: a pikepdf object converts exactly as its
+  `as_*` method does, and a native value is accepted only if it is the type
+  implicit mode would have produced for that PDF type, so the result is the
+  same in either conversion mode. `pikepdf.as_int(True)` gives the default,
+  because a Boolean is not an Integer.
 - Added {meth}`~pikepdf.Object.as_str` and {meth}`~pikepdf.Object.as_bytes`,
   which return a `String`'s decoded text or raw bytes, and raise `TypeError`
   (or return a supplied *default*) for any other type, unlike `str()` and
