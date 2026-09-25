@@ -156,6 +156,16 @@ from pikepdf._explicit_conv import (
     set_object_conversion_mode,
     unbox,
 )
+from pikepdf._core import (
+    as_bool,
+    as_bytes,
+    as_decimal,
+    as_dict,
+    as_float,
+    as_int,
+    as_list,
+    as_str,
+)
 
 # Provide pikepdf.{open, new} -> pikepdf.Pdf.{open, new}
 open = Pdf.open  # pylint: disable=redefined-builtin
@@ -202,6 +212,14 @@ __all__ = [
     'explicit_conversion',
     'implicit_conversion',
     'unbox',
+    'as_bool',
+    'as_bytes',
+    'as_decimal',
+    'as_dict',
+    'as_float',
+    'as_int',
+    'as_list',
+    'as_str',
     'ForeignObjectError',
     'FormFieldFlag',
     'get_object_conversion_mode',
@@ -270,13 +288,19 @@ if TYPE_CHECKING:
 
 
 def __getattr__(name: str):
-    """Lazily expose Pillow-derived exceptions without importing Pillow eagerly.
+    """Lazily expose Pillow-derived exceptions and optional submodules.
 
     Keeps ``import pikepdf`` free of Pillow (see tests/test_lazy_load.py) while
     still allowing ``pikepdf.DecompressionBombError`` to be referenced.
+    ``pikepdf.pdfa`` needs optional dependencies, so it is only imported when
+    first accessed.
     """
     if name in ('DecompressionBombError', 'DecompressionBombWarning'):
         from pikepdf.models import image
 
         return getattr(image, name)
+    if name == 'pdfa':
+        import importlib
+
+        return importlib.import_module('pikepdf.pdfa')
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -37,6 +37,10 @@ def unbox(value: Any) -> Any:
     :class:`decimal.Decimal` construction, JSON serialization, and returning
     a value from a function documented to give a native type.
 
+    When the expected type is known, prefer :func:`pikepdf.as_int` and
+    friends, which also accept a value read in either mode but return
+    *default* for a value of the wrong type instead of passing it through.
+
     Example:
         >>> with pikepdf.explicit_conversion():
         ...     d = pikepdf.Dictionary(MaxLen=12, Marked=True)

@@ -403,6 +403,119 @@ static void def_typed_getter(py::class_<QPDFObjectHandle> &object, char const *n
             py::arg("default").none() = py::none());
 }
 
+// The PDF scalar a native Python value stands for, so that the module-level
+// as_int() and friends apply exactly the rules of the Object methods to it:
+// bool is a Boolean, int an Integer, float and Decimal a Real, str and bytes a
+// String. nullopt for anything else, and for an int out of range for a PDF
+// Integer or a str that cannot be encoded as UTF-8.
+static std::optional<QPDFObjectHandle> scalar_from_native(py::handle value)
+{
+    PyObject *p = value.ptr();
+    if (PyBool_Check(p))
+        return QPDFObjectHandle::newBool(p == Py_True);
+    if (PyLong_Check(p)) {
+        int overflow = 0;
+        long long v = PyLong_AsLongLongAndOverflow(p, &overflow);
+        if (overflow)
+            return std::nullopt;
+        if (v == -1 && PyErr_Occurred())
+            throw py::python_error(); // LCOV_EXCL_LINE
+        return QPDFObjectHandle::newInteger(v);
+    }
+    if (PyFloat_Check(p)) {
+        // repr() is the shortest text that round-trips; "nan" and "inf" are
+        // rejected later, exactly as for a Real holding that text.
+        return QPDFObjectHandle::newReal(py::cast<std::string>(py::repr(value)));
+    }
+    if (PyUnicode_Check(p)) {
+        Py_ssize_t size = 0;
+        const char *utf8 = PyUnicode_AsUTF8AndSize(p, &size);
+        if (!utf8) {
+            PyErr_Clear();
+            return std::nullopt;
+        }
+        return QPDFObjectHandle::newUnicodeString(std::string(utf8, size));
+    }
+    if (PyBytes_Check(p))
+        return QPDFObjectHandle::newString(to_string(value));
+    auto Decimal = py::module_::import_("decimal").attr("Decimal");
+    if (py::isinstance(value, Decimal)) {
+        // str() of a Decimal is exact, so as_decimal() gets back an equal
+        // Decimal with every digit; "NaN" and "Infinity" are rejected later.
+        return QPDFObjectHandle::newReal(py::cast<std::string>(py::str(value)));
+    }
+    return std::nullopt;
+}
+
+// Register pikepdf.as_int()-style module functions: the conversions of the
+// Object.as_int(default) methods, applied to any Python value, so that a value
+// read in implicit mode (a native int, bool or Decimal) and the same value
+// read in explicit mode (an Object) give the same answer.
+template <CoercingConversion convert>
+static void def_typed_conversion(py::module_ &m, char const *name)
+{
+    m.def(
+        name,
+        [](py::handle value, py::handle default_, bool coerce) -> py::object {
+            if (py::isinstance<QPDFObjectHandle>(value))
+                return convert(py::cast<QPDFObjectHandle &>(value), default_, coerce);
+            auto h = scalar_from_native(value);
+            if (!h)
+                return py::borrow<py::object>(default_);
+            return convert(*h, default_, coerce);
+        },
+        py::arg("value").none(),
+        py::arg("default").none() = py::none(),
+        py::kw_only(),
+        py::arg("coerce") = false);
+}
+
+using NativeCheck = bool (*)(py::handle);
+
+static bool is_native_str(py::handle value)
+{
+    return PyUnicode_Check(value.ptr());
+}
+static bool is_native_bytes(py::handle value)
+{
+    return PyBytes_Check(value.ptr());
+}
+static bool is_nothing(py::handle)
+{
+    return false;
+}
+
+// As def_typed_conversion(), for conversions that take no coerce argument. A
+// native value that passes *native* is already the result and is returned as
+// is; any other native value gives default.
+template <Conversion convert, NativeCheck native>
+static void def_typed_conversion(py::module_ &m, char const *name)
+{
+    m.def(
+        name,
+        [](py::handle value, py::handle default_) -> py::object {
+            if (py::isinstance<QPDFObjectHandle>(value))
+                return convert(py::cast<QPDFObjectHandle &>(value), default_);
+            if (native(value))
+                return py::borrow<py::object>(value);
+            return py::borrow<py::object>(default_);
+        },
+        py::arg("value").none(),
+        py::arg("default").none() = py::none());
+}
+
+void init_typed_conversions(py::module_ &m)
+{
+    def_typed_conversion<int_or_default>(m, "as_int");
+    def_typed_conversion<bool_or_default>(m, "as_bool");
+    def_typed_conversion<float_or_default>(m, "as_float");
+    def_typed_conversion<decimal_or_default>(m, "as_decimal");
+    def_typed_conversion<dict_or_default, is_nothing>(m, "as_dict");
+    def_typed_conversion<list_or_default, is_nothing>(m, "as_list");
+    def_typed_conversion<str_or_default, is_native_str>(m, "as_str");
+    def_typed_conversion<bytes_or_default, is_native_bytes>(m, "as_bytes");
+}
+
 // Resolve a NamePath to the container that holds its last component, along
 // with that component. The caller decides what to do with the component
 // (set, delete, ...); *action* names the operation in the empty-path error.

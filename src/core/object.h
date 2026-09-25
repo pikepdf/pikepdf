@@ -47,3 +47,5 @@ std::shared_ptr<Buffer> get_stream_data(
 
 // Second half of the Object binding, defined in object_methods.cpp.
 void init_object_methods(py::class_<QPDFObjectHandle> &object);
+// Module-level pikepdf.as_int() and friends, defined in object_methods.cpp.
+void init_typed_conversions(py::module_ &m);

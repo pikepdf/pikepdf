@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2022 James R. Barlow
 # SPDX-License-Identifier: MPL-2.0
 
-# Type stubs for the bindings in src/core/object.cpp.
+# Type stubs for the bindings in src/core/object.cpp and object_methods.cpp.
 # See pikepdf/_core/__init__.pyi for how this stub package is laid out.
 
 # pylint: disable=no-method-argument,unused-argument,no-self-use,too-many-public-methods
@@ -999,3 +999,207 @@ def _new_string_utf8(s: str) -> String:
     """Low-level function to construct a PDF String object from UTF-8 bytes."""
 
 def unparse(obj: Any) -> bytes: ...
+
+# Module-level typed conversions, defined in object_methods.cpp. Each is the
+# value-side twin of an Object.as_*(default) method and Object.get_*() getter:
+# it takes any Python value, so a value read in implicit mode (a native int,
+# bool or Decimal) and the same value read in explicit mode (an Object) give
+# the same answer.
+
+@overload
+def as_int(value: Any, default: None = None, *, coerce: bool = False) -> int | None:
+    """Return *value* as a Python int, or *default* if it is not an integer.
+
+    The value-side twin of :meth:`Object.get_int`, for a value already in
+    hand -- an array element, a content stream operand, a value from
+    ``.items()``, or a parameter of unknown provenance -- that may have been
+    read in either conversion mode.
+
+    A :class:`pikepdf.Object` is converted exactly as
+    ``value.as_int(default, coerce=coerce)`` would. A native Python value is
+    accepted if it is the type implicit conversion would have produced for a
+    PDF Integer, that is an ``int``. ``bool`` is *not* accepted, although it
+    is a subclass of ``int``, because implicit mode produces ``bool`` for a
+    PDF Boolean, and a Boolean is not an Integer. ``None`` and any other value
+    give *default*.
+
+    Args:
+        value: Any Python value.
+        default: Returned, by identity, when *value* is not an integer.
+        coerce: If True, apply the same coercions as
+            :meth:`Object.as_int`, treating a native ``float`` or
+            :class:`decimal.Decimal` as a Real (truncated toward zero) and a
+            native ``str`` or ``bytes`` as a String whose text may be a number.
+            ``bool`` is still not accepted.
+
+    An ``int`` or coerced value out of range for a 64-bit PDF integer gives
+    *default*.
+
+    Example:
+        >>> [pikepdf.as_int(v, 0) for v in pikepdf.Array([1, True, 2.5])]
+        [1, 0, 0]
+
+    .. versionadded:: 10.14
+    """
+
+@overload
+def as_int(value: Any, default: T, *, coerce: bool = False) -> int | T: ...
+@overload
+def as_bool(value: Any, default: None = None, *, coerce: bool = False) -> bool | None:
+    """Return *value* as a Python bool, or *default* if it is not a boolean.
+
+    The value-side twin of :meth:`Object.get_bool`. A
+    :class:`pikepdf.Object` is converted exactly as
+    ``value.as_bool(default, coerce=coerce)`` would. A native Python value is
+    accepted if it is the type implicit conversion would have produced for a
+    PDF Boolean, that is a ``bool``. ``None`` and any other value give
+    *default*.
+
+    Args:
+        value: Any Python value.
+        default: Returned, by identity, when *value* is not a boolean.
+        coerce: If True, also accept a number -- an Integer or Real, or a
+            native ``int``, ``float`` or :class:`decimal.Decimal` -- which is
+            True when nonzero, as :meth:`Object.as_bool` does.
+
+    .. versionadded:: 10.14
+    """
+
+@overload
+def as_bool(value: Any, default: T, *, coerce: bool = False) -> bool | T: ...
+@overload
+def as_float(value: Any, default: None = None, *, coerce: bool = False) -> float | None:
+    """Return *value* as a Python float, or *default* if it is not numeric.
+
+    The value-side twin of :meth:`Object.get_float`. A
+    :class:`pikepdf.Object` is converted exactly as
+    ``value.as_float(default, coerce=coerce)`` would, accepting Integer and
+    Real. A native Python value is accepted if it is a type implicit
+    conversion would have produced for a PDF number -- ``int`` for an Integer,
+    :class:`decimal.Decimal` for a Real -- or a ``float``, which pikepdf
+    writes as a Real. ``bool`` is not accepted, because implicit mode
+    produces it for a PDF Boolean. A non-finite ``float`` or ``Decimal`` gives
+    *default*, as does ``None`` and any other value.
+
+    Args:
+        value: Any Python value.
+        default: Returned, by identity, when *value* is not numeric.
+        coerce: If True, also accept a String, or a native ``str`` or
+            ``bytes``, whose text is a number, as :meth:`Object.as_float`
+            does.
+
+    .. versionadded:: 10.14
+    """
+
+@overload
+def as_float(value: Any, default: T, *, coerce: bool = False) -> float | T: ...
+@overload
+def as_decimal(
+    value: Any, default: None = None, *, coerce: bool = False
+) -> Decimal | None:
+    """Return *value* as a :class:`decimal.Decimal`, or *default* if not a Real.
+
+    The value-side twin of :meth:`Object.get_decimal`. A
+    :class:`pikepdf.Object` is converted exactly as
+    ``value.as_decimal(default, coerce=coerce)`` would, which accepts only a
+    Real unless *coerce* is given. A native Python value is accepted if it is
+    the type implicit conversion would have produced for a PDF Real, that is a
+    ``Decimal`` (returned with every digit), or a ``float``, which pikepdf
+    writes as a Real and which is converted by its shortest ``repr``. An
+    ``int`` gives *default*, as an Integer does, because implicit mode
+    produces ``int`` for a PDF Integer. A non-finite ``float`` or ``Decimal``
+    gives *default*, as does ``bool``, ``None`` and any other value.
+
+    Args:
+        value: Any Python value.
+        default: Returned, by identity, when *value* is not a Real.
+        coerce: If True, also accept an Integer or native ``int``, and a
+            String, or a native ``str`` or ``bytes``, whose text is a number,
+            as :meth:`Object.as_decimal` does.
+
+    .. versionadded:: 10.14
+    """
+
+@overload
+def as_decimal(value: Any, default: T, *, coerce: bool = False) -> Decimal | T: ...
+@overload
+def as_dict(value: Any, default: None = None) -> _ObjectMapping | None:
+    """Return a Dictionary's contents as a mapping, or *default*.
+
+    The value-side twin of :meth:`Object.get_dict`. A
+    :class:`pikepdf.Dictionary` is converted exactly as
+    ``value.as_dict(default)`` would. Implicit conversion never produces a
+    native ``dict`` for a PDF object, so a native ``dict`` gives *default*,
+    as does a Stream (use ``stream.stream_dict``), ``None`` and any other
+    value.
+
+    Args:
+        value: Any Python value.
+        default: Returned, by identity, when *value* is not a Dictionary.
+
+    .. versionadded:: 10.14
+    """
+
+@overload
+def as_dict(value: Any, default: T) -> _ObjectMapping | T: ...
+@overload
+def as_list(value: Any, default: None = None) -> _ObjectList | None:
+    """Return an Array's items as a list, or *default*.
+
+    The value-side twin of :meth:`Object.get_list`. A
+    :class:`pikepdf.Array` is converted exactly as ``value.as_list(default)``
+    would. Implicit conversion never produces a native ``list`` for a PDF
+    object, so a native ``list`` gives *default*, as does ``None`` and any
+    other value.
+
+    Args:
+        value: Any Python value.
+        default: Returned, by identity, when *value* is not an Array.
+
+    .. versionadded:: 10.14
+    """
+
+@overload
+def as_list(value: Any, default: T) -> _ObjectList | T: ...
+@overload
+def as_str(value: Any, default: None = None) -> str | None:
+    """Return a String's text, or *default* if *value* is not a String.
+
+    The value-side twin of :meth:`Object.get_str`. A
+    :class:`pikepdf.String` is decoded exactly as ``value.as_str(default)``
+    would. Implicit conversion returns a String as a :class:`pikepdf.String`
+    in both modes, so the only native value accepted is a ``str``, which is
+    already the text and is returned as is. A native ``bytes`` gives
+    *default*: which encoding it holds is unknown. So do a
+    :class:`pikepdf.Name`, ``None`` and any other value.
+
+    Args:
+        value: Any Python value.
+        default: Returned, by identity, when *value* is not a String.
+
+    .. versionadded:: 10.14
+    """
+
+@overload
+def as_str(value: Any, default: T) -> str | T: ...
+@overload
+def as_bytes(value: Any, default: None = None) -> bytes | None:
+    """Return a String's raw bytes, or *default* if *value* is not a String.
+
+    The value-side twin of :meth:`Object.get_bytes`. A
+    :class:`pikepdf.String` is converted exactly as
+    ``value.as_bytes(default)`` would. Implicit conversion returns a String as
+    a :class:`pikepdf.String` in both modes, so the only native value accepted
+    is a ``bytes``, which is already the data and is returned as is. A native
+    ``str`` gives *default*: which encoding to apply is unknown. So do
+    ``None`` and any other value.
+
+    Args:
+        value: Any Python value.
+        default: Returned, by identity, when *value* is not a String.
+
+    .. versionadded:: 10.14
+    """
+
+@overload
+def as_bytes(value: Any, default: T) -> bytes | T: ...

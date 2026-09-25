@@ -144,6 +144,7 @@ topics/overlays
 topics/interactive_forms
 topics/encoding
 topics/metadata
+topics/pdfa
 topics/outlines
 topics/nametrees
 topics/attachments
@@ -162,6 +163,7 @@ topics/qpdf_json
 api/main
 api/models
 api/sanitize
+api/pdfa
 api/canvas
 api/form
 api/filters

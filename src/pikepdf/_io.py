@@ -3,13 +3,17 @@
 
 from __future__ import annotations
 
+import errno
 import os
-from collections.abc import Generator
+import secrets
+import stat
+import tempfile
+from collections.abc import Callable, Generator, Iterator
 from contextlib import contextmanager, suppress
 from io import TextIOBase
 from os import PathLike
 from pathlib import Path
-from shutil import copystat
+from shutil import copyfileobj, copystat
 from tempfile import NamedTemporaryFile
 from typing import IO
 
@@ -100,3 +104,116 @@ def atomic_overwrite(filename: Path) -> Generator[IO[bytes], None, None]:
                 tf.close()
             with suppress(OSError):
                 Path(tf.name).unlink()
+
+
+_TEMP_CREATE_ATTEMPTS = 100
+
+
+def _create_temp_in(directory: Path, name: str) -> tuple[int, Path]:
+    """Exclusively create ``.pikepdf.{name}.{token}`` in *directory*.
+
+    The file is created with mode 0o666 so the process umask decides the final
+    permissions, as for any newly created file.
+    """
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, 'O_BINARY', 0)
+    for _ in range(_TEMP_CREATE_ATTEMPTS):
+        path = directory / f".pikepdf.{name}.{secrets.token_hex(6)}"
+        try:
+            return os.open(path, flags, 0o666), path
+        except FileExistsError:
+            continue
+    raise FileExistsError(
+        errno.EEXIST, "No usable temporary file name", str(directory / name)
+    )
+
+
+def _create_temp_for(filename: Path) -> tuple[int, Path]:
+    try:
+        return _create_temp_in(filename.parent, filename.name)
+    except PermissionError:
+        return _create_temp_in(Path(tempfile.gettempdir()), filename.name)
+
+
+def _copy_bytes_into(src: Path, dest: Path) -> None:
+    with src.open('rb') as fsrc, dest.open('wb') as fdest:
+        copyfileobj(fsrc, fdest)
+
+
+def _install_verified(tmp: Path, filename: Path) -> None:
+    try:
+        dest_mode: int | None = os.stat(filename).st_mode
+    except FileNotFoundError:
+        dest_mode = None
+
+    if dest_mode is not None and not stat.S_ISREG(dest_mode):
+        # /dev/null, a FIFO, a character device: it cannot be replaced by a
+        # rename, so write the verified bytes into it.
+        _copy_bytes_into(tmp, filename)
+        return
+
+    if dest_mode is not None:
+        with suppress(OSError):
+            copystat(filename, tmp)
+    try:
+        os.replace(tmp, filename)
+    except OSError as e:
+        if e.errno != errno.EXDEV:
+            raise
+        # The temporary file fell back to a directory on another filesystem.
+        _copy_bytes_into(tmp, filename)
+        return
+    with suppress(OSError):
+        filename.touch()
+
+
+@contextmanager
+def atomic_write_verified(
+    filename: Path, verify: Callable[[Path], None]
+) -> Iterator[IO[bytes]]:
+    """Write a file, verify it on disk, and only then put it in place.
+
+    Yields a seekable binary stream backed by a new temporary file named
+    ``.pikepdf.{name}.{token}`` in the destination's directory (or in the
+    system temporary directory, if the destination's directory is not
+    writable). When the ``with`` block exits normally, the stream is closed and
+    ``verify`` is called with the temporary file's path; it should raise to
+    reject the file. If it returns, the temporary file replaces *filename*.
+
+    Guarantees:
+
+    - If the ``with`` block or ``verify`` raises (including
+      ``KeyboardInterrupt``), the temporary file is removed, the exception
+      propagates, and *filename* is left untouched if it existed, or absent if
+      it did not.
+    - Only bytes that ``verify`` accepted are ever written to *filename*.
+    - An existing regular destination keeps its permission bits and other
+      metadata (via :func:`shutil.copystat`); its modification time is then
+      updated. A new destination gets permissions from the process umask.
+
+    Non-guarantees:
+
+    - A symlink at *filename* is replaced by a regular file; the symlink's
+      target is not modified.
+    - If the destination is not a regular file (e.g. ``/dev/null`` or a FIFO),
+      the verified bytes are copied into it instead of renaming over it.
+    - If the temporary file had to be created on a different filesystem, the
+      verified bytes are copied into *filename*, which is not atomic: a crash
+      during that copy can leave a partial file.
+    - Durability across power loss is not guaranteed (no ``fsync``).
+    """
+    filename = Path(filename)
+    fd, tmp = _create_temp_for(filename)
+    try:
+        try:
+            stream = os.fdopen(fd, 'wb')
+        except BaseException:
+            os.close(fd)
+            raise
+        with stream:
+            yield stream
+        verify(tmp)
+        _install_verified(tmp, filename)
+    finally:
+        # After a successful rename the temporary file no longer exists.
+        with suppress(OSError):
+            tmp.unlink()

@@ -203,6 +203,8 @@ to the PDF/A specification.
 Note that this property merely *tests* if the file claims to be conformant to
 the PDF/A standard. Use a tool such as [veraPDF] (official tool), or third party
 web services such as [PDFEN] or 3-HEIGHTS™ PDF [VALIDATOR] to verify conformance.
+pikepdf's own validator, described in {ref}`pdfa`, checks PDF/A-1b, 2b and 3b
+conservatively.
 :::
 
 ## Notice for application developers

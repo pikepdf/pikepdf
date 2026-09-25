@@ -85,6 +85,18 @@ to that project for the report.
   numeric type a value has, and it accepts values read in either mode, so it
   is the one-token migration for a read that feeds `isinstance`, `is True`,
   `Decimal()`, `json.dumps` or a function documented to return a native type.
+- Added module-level typed conversions {func}`pikepdf.as_int`,
+  {func}`~pikepdf.as_bool`, {func}`~pikepdf.as_float`,
+  {func}`~pikepdf.as_decimal`, {func}`~pikepdf.as_dict`,
+  {func}`~pikepdf.as_list`, {func}`~pikepdf.as_str` and
+  {func}`~pikepdf.as_bytes`, each `(value, default=None)`, with keyword-only
+  `coerce` for the numeric and boolean ones. They are the value-side twins of
+  the `get_*` typed getters, for an array element, content stream operand or
+  other value already in hand: a pikepdf object converts exactly as its
+  `as_*` method does, and a native value is accepted only if it is the type
+  implicit mode would have produced for that PDF type, so the result is the
+  same in either conversion mode. `pikepdf.as_int(True)` gives the default,
+  because a Boolean is not an Integer.
 - Added {meth}`~pikepdf.Object.as_str` and {meth}`~pikepdf.Object.as_bytes`,
   which return a `String`'s decoded text or raw bytes, and raise `TypeError`
   (or return a supplied *default*) for any other type, unlike `str()` and
@@ -151,6 +163,69 @@ report.
   tree to the number of pages beneath it. qpdf repairs a damaged page tree but
   left `/Count` as it was, so a wrong `/Count` in the input was written
   unchanged, and veraPDF could not validate the file at all.
+
+### PDF/A validation and repair
+
+- Added the {mod}`pikepdf.pdfa` module, which prepares, checks and saves
+  PDF/A-1b, PDF/A-2b and PDF/A-3b documents. See {ref}`pdfa`.
+  - {func}`pikepdf.pdfa.prepare` repairs a document in memory: it installs a
+    PDF/A output intent (sRGB by default, or a supplied ICC profile), removes
+    image interpolation and hidden annotations, adds `/CIDSet` for PDF/A-1,
+    and rewrites the XMP metadata with a PDF/A declaration. It returns a
+    {class}`~pikepdf.pdfa.PrepareResult` describing what changed:
+    {meth}`~pikepdf.pdfa.PrepareResult.describe` gives a sentence per change,
+    {meth}`~pikepdf.pdfa.PrepareResult.messages` the same sentences with a
+    suggested log level, and `PrepareResult.xmp_problem` why an XMP packet
+    could not be read. XMP properties are kept from every `rdf:Description`
+    when all share one `rdf:about`, including the non-empty `uuid:...` value
+    that Acrobat and pikepdf's own metadata editor write.
+  - {func}`pikepdf.pdfa.check` predicts the verdict for the file that would be
+    written, without writing it, by modelling what qpdf's writer changes
+    (stream filters, trailer, version, encryption and which objects are
+    written).
+  - {func}`pikepdf.pdfa.save` prepares the document, writes it to a temporary
+    file, reopens and validates the bytes written, and only then moves the file
+    into place. If the written file does not pass, it raises
+    {class}`~pikepdf.pdfa.PdfaError` with the report (whose `prepared` records
+    the repairs made), and the destination is left untouched.
+  - {func}`pikepdf.pdfa.resolve_save_kwargs` returns the complete
+    {meth}`pikepdf.Pdf.save` settings for a flavour. Settings that PDF/A
+    forbids or that would change the bytes after the check (such as
+    `encryption`, `normalize_content` and `fix_metadata_version`) are pinned,
+    and a conflicting value raises `ValueError`.
+- The validator is an allowlist: it approves only constructs it recognizes and
+  knows to conform. A {class}`~pikepdf.pdfa.Report` has a verdict of `'pass'`,
+  `'fail'` (at least one violation) or `'not_checked'` (only constructs the
+  validator does not check, which may be valid PDF/A). `save` accepts only
+  `'pass'`. Each {class}`~pikepdf.pdfa.Finding` names a rule: a veraPDF rule id
+  such as `ISO_19005_2:6.2.8-3`, or a `pikepdf:` id for local policies and
+  unsupported constructs. The validator is not a certification; veraPDF
+  remains the reference.
+- On the 2,906 files of the veraPDF test corpus, converted with `prepare` and
+  checked against veraPDF 1.30 for each of PDF/A-1b, 2b and 3b, the validator
+  approved no file that veraPDF rejects. For PDF/A-2b it approved 1,363 files,
+  rejected 887 and left 656 not checked; veraPDF accepted 28 of the rejected
+  files (the validator is conservative by design). The prediction from `check`
+  matched the validation of the written file in every case.
+- The validator and the repairs give the same results whether a document is
+  read in implicit or explicit conversion mode.
+- {mod}`pikepdf.pdfa` needs jsonschema, referencing and fontTools, available as
+  the optional extra `pip install 'pikepdf[pdfa]'`. `import pikepdf` does not
+  import them; `import pikepdf.pdfa` raises `ImportError` naming the extra if
+  they are missing.
+- For users of OCRmyPDF's validator: `ValidationReport` is now
+  {class}`~pikepdf.pdfa.Report`, `Finding.rule_id` is now `Finding.rule`, and
+  local rule ids changed from `ocrmypdf:<name>` and `schema:<role>` to
+  `pikepdf:<name>` and `pikepdf:schema-<Role>`. `ValidationReport` remains as
+  an alias of `Report`.
+- The validator and repairs were developed in OCRmyPDF and moved to pikepdf so
+  that the validator can see the bytes pikepdf's writer produces. Thanks to
+  that project. The rule catalogue is derived from the veraPDF validation
+  profiles (CC BY 4.0, veraPDF Consortium, which does not endorse pikepdf); see
+  `third-party-licenses/README.md`.
+- Added the internal helper `pikepdf._io.atomic_write_verified`, which writes a
+  file to a temporary location, calls a verification function on it, and moves
+  it into place only if verification succeeds. `pikepdf.pdfa.save` uses it.
 
 ### Behavior changes
 

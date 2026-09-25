@@ -242,6 +242,35 @@ not a dictionary at all makes `page.resources` raise `TypeError`. And the
 line does not check the image's `/Subtype`; add a check of
 `NamePath.XObject.Im0.Subtype` if that matters to you.
 
+### Converting a value already in hand
+
+The typed getters look a value up by key. For a value you already hold -- an
+array element, a content stream operand, a value from `.items()`, or a
+parameter of a function that may be called from either kind of code -- the
+module-level functions {func}`pikepdf.as_int`, {func}`pikepdf.as_bool`,
+{func}`pikepdf.as_float`, {func}`pikepdf.as_decimal`, {func}`pikepdf.as_dict`,
+{func}`pikepdf.as_list`, {func}`pikepdf.as_str` and {func}`pikepdf.as_bytes`
+apply the same rules. They accept the pikepdf object explicit mode gives you
+and the native value implicit mode would have given you instead, so the answer
+does not depend on the mode:
+
+```{eval-rst}
+.. doctest::
+
+    >>> box = pikepdf.Array([0, 0, pikepdf.Real('612.5'), True])
+    >>> [pikepdf.as_float(v) for v in box]
+    [0.0, 0.0, 612.5, None]
+    >>> with pikepdf.explicit_conversion():
+    ...     [pikepdf.as_float(v) for v in box]
+    [0.0, 0.0, 612.5, None]
+```
+
+A native value counts only if it is the type implicit mode would have produced
+for the PDF type asked for, so `pikepdf.as_int(True)` gives the default: a
+Boolean is not an Integer, even though Python's `bool` is a subclass of `int`.
+Unlike {func}`pikepdf.unbox`, which passes a value of an unexpected type
+through, these return the default for it.
+
 ### Retrieving or failing
 
 When a malformed file should be an error, explicit mode and the `as_*`

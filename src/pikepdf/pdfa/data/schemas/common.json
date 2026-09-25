@@ -1,0 +1,1179 @@
+{
+  "$comment": "Per-role shallow schemas for the pikepdf PDF/A validator. Instances are qpdf-JSON-v2-style shallow encodings: names '/X', strings 'u:text' or 'b:hex', indirect references 'N G R'. Annotations: x-verapdf lists veraPDF rule ids (the one matching the flavour is reported); x-unsupported marks constructs the validator does not check (reported as unsupported, not as violations); x-message overrides the error text; x-kind is the pikepdf object kind the role expects (dict, stream, array, any; default dict); x-children maps keys to child roles ('*' = every element or value; {'role': R, 'each': true} = every element of an array value, or the value itself otherwise; 'values': true = with 'each', every value of a dictionary value (a map such as a resource category); 'sibling': true = does not count toward the depth limit); x-dispatch selects a more specific role by the value of a key; x-closed: true on a node with additionalProperties or unevaluatedProperties false marks a dictionary whose unlisted keys PDF/A itself forbids (reported as violations with the node's x-verapdf id). Without x-closed, an unlisted key is reported as unsupported, since PDF permits private and future keys and the validator cannot know what they mean.",
+  "$defs": {
+    "ref": {"type": "string", "pattern": "^[0-9]+ [0-9]+ R$"},
+    "name": {"type": "string", "pattern": "^/"},
+    "text": {"type": "string", "pattern": "^[ub]:"},
+    "number": {"type": "number"},
+    "integer": {"type": "integer"},
+    "boolean": {"type": "boolean"},
+    "dictOrRef": {"anyOf": [{"$ref": "#/$defs/ref"}, {"type": "object"}]},
+    "arrayOrRef": {"anyOf": [{"$ref": "#/$defs/ref"}, {"type": "array"}]},
+    "refArray": {"type": "array", "items": {"$ref": "#/$defs/ref"}},
+    "rect": {
+      "anyOf": [
+        {"$ref": "#/$defs/ref"},
+        {"type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4}
+      ]
+    },
+    "destination": {
+      "$comment": "Explicit destination array, or a named destination",
+      "anyOf": [{"type": "array"}, {"$ref": "#/$defs/name"}, {"$ref": "#/$defs/text"}]
+    },
+    "forbidden": {"not": {}},
+    "colourSpace": {
+      "$comment": "A colour space family name or array; _colour.resolve_colourspace checks it",
+      "anyOf": [{"$ref": "#/$defs/name"}, {"type": "array"}, {"$ref": "#/$defs/ref"}]
+    },
+    "renderingIntent": {
+      "enum": ["/RelativeColorimetric", "/AbsoluteColorimetric", "/Perceptual", "/Saturation"],
+      "x-verapdf": ["ISO_19005_1:6.2.9-1", "ISO_19005_2:6.2.6-1", "ISO_19005_3:6.2.6-1"]
+    },
+    "blendModeName": {
+      "enum": [
+        "/Normal", "/Compatible", "/Multiply", "/Screen", "/Overlay", "/Darken", "/Lighten",
+        "/ColorDodge", "/ColorBurn", "/HardLight", "/SoftLight", "/Difference", "/Exclusion",
+        "/Hue", "/Saturation", "/Color", "/Luminosity"
+      ],
+      "x-verapdf": ["ISO_19005_2:6.2.10-1", "ISO_19005_3:6.2.10-1"]
+    },
+    "unitInterval": {"type": "number", "minimum": 0, "maximum": 1},
+    "procSet": {
+      "anyOf": [
+        {"$ref": "#/$defs/ref"},
+        {"type": "array", "items": {"enum": ["/PDF", "/Text", "/ImageB", "/ImageC", "/ImageI"]}}
+      ]
+    },
+    "obsoleteProcSet": {
+      "$comment": "/ProcSet outside a resource dictionary is an obsolete PDF 1.x key that readers ignore; PDF/A does not restrict it",
+      "$ref": "#/$defs/procSet"
+    },
+    "unsupported": {"not": {}, "x-unsupported": true},
+    "filterName": {
+      "enum": [
+        "/ASCIIHexDecode", "/ASCII85Decode", "/FlateDecode", "/RunLengthDecode",
+        "/CCITTFaxDecode", "/JBIG2Decode", "/DCTDecode", "/JPXDecode"
+      ]
+    },
+    "filter": {
+      "$comment": "LZWDecode and Crypt are not permitted; anything else unknown is denied too",
+      "x-verapdf": ["ISO_19005_1:6.1.10-1", "ISO_19005_2:6.1.7.2-1", "ISO_19005_3:6.1.7.2-1"],
+      "anyOf": [
+        {"$ref": "#/$defs/filterName"},
+        {"type": "array", "items": {"$ref": "#/$defs/filterName"}}
+      ]
+    },
+    "externalStreamKey": {
+      "$comment": "/F, /FFilter and /FDecodeParms (external stream data) are not permitted",
+      "$ref": "#/$defs/forbidden",
+      "x-verapdf": ["ISO_19005_1:6.1.7-3", "ISO_19005_2:6.1.7.1-3", "ISO_19005_3:6.1.7.1-3"]
+    },
+
+    "Trailer": {
+      "type": "object",
+      "allOf": [
+        {"required": ["/ID"], "x-verapdf": ["ISO_19005_1:6.1.3-1", "ISO_19005_2:6.1.3-1", "ISO_19005_3:6.1.3-1"]},
+        {"required": ["/Root"]}
+      ],
+      "properties": {
+        "/Root": {"$ref": "#/$defs/ref"},
+        "/Info": {"$ref": "#/$defs/ref"},
+        "/ID": {
+          "type": "array", "minItems": 2, "maxItems": 2, "items": {"$ref": "#/$defs/text"},
+          "x-verapdf": ["ISO_19005_1:6.1.3-1", "ISO_19005_2:6.1.3-1", "ISO_19005_3:6.1.3-1"]
+        },
+        "/Size": {"$ref": "#/$defs/integer"},
+        "/Prev": {"$ref": "#/$defs/integer"},
+        "/Encrypt": {"$ref": "#/$defs/forbidden", "x-verapdf": ["ISO_19005_1:6.1.3-2", "ISO_19005_2:6.1.3-2", "ISO_19005_3:6.1.3-2"]},
+        "/Type": {"const": "/XRef"},
+        "/W": {"type": "array"},
+        "/Index": {"type": "array"},
+        "/Filter": {"$ref": "#/$defs/filter"},
+        "/DecodeParms": {"anyOf": [{"type": "object"}, {"type": "array"}]},
+        "/Length": {"$ref": "#/$defs/integer"}
+      },
+      "additionalProperties": false,
+      "x-children": {"/Root": "Catalog", "/Info": "Info"}
+    },
+
+    "Info": {
+      "type": "object",
+      "properties": {
+        "/Title": {"$ref": "#/$defs/text"},
+        "/Author": {"$ref": "#/$defs/text"},
+        "/Subject": {"$ref": "#/$defs/text"},
+        "/Keywords": {"$ref": "#/$defs/text"},
+        "/Creator": {"$ref": "#/$defs/text"},
+        "/Producer": {"$ref": "#/$defs/text"},
+        "/CreationDate": {"$ref": "#/$defs/text"},
+        "/ModDate": {"$ref": "#/$defs/text"},
+        "/Trapped": {"enum": ["/True", "/False", "/Unknown"]}
+      },
+      "additionalProperties": {
+        "$comment": "Custom document information entries (e.g. Apple's /AAPL:Keywords array) do not affect rendering",
+        "anyOf": [
+          {"$ref": "#/$defs/text"},
+          {"$ref": "#/$defs/name"},
+          {"$ref": "#/$defs/ref"},
+          {"type": "array", "items": {"anyOf": [{"$ref": "#/$defs/text"}, {"$ref": "#/$defs/ref"}]}}
+        ]
+      }
+    },
+
+    "Catalog": {
+      "type": "object",
+      "required": ["/Type", "/Pages"],
+      "properties": {
+        "/Type": {"const": "/Catalog"},
+        "/Pages": {"$ref": "#/$defs/ref"},
+        "/Metadata": {"$ref": "#/$defs/ref"},
+        "/OutputIntents": {"$ref": "#/$defs/arrayOrRef"},
+        "/Version": {
+          "type": "string", "pattern": "^/1\\.[0-7]$",
+          "x-verapdf": ["ISO_19005_2:6.1.2-1", "ISO_19005_3:6.1.2-1"]
+        },
+        "/Lang": {"$ref": "#/$defs/text"},
+        "/MarkInfo": {"$ref": "#/$defs/dictOrRef"},
+        "/StructTreeRoot": {"$ref": "#/$defs/dictOrRef"},
+        "/PageMode": {"enum": ["/UseNone", "/UseOutlines", "/UseThumbs", "/FullScreen"]},
+        "/PageLayout": {
+          "enum": ["/SinglePage", "/OneColumn", "/TwoColumnLeft", "/TwoColumnRight", "/TwoPageLeft", "/TwoPageRight"]
+        },
+        "/ViewerPreferences": {"$ref": "#/$defs/dictOrRef"},
+        "/Outlines": {"$ref": "#/$defs/dictOrRef"},
+        "/PageLabels": {"$ref": "#/$defs/dictOrRef"},
+        "/AA": {
+          "$ref": "#/$defs/forbidden",
+          "x-verapdf": ["ISO_19005_1:6.6.2-3", "ISO_19005_2:6.5.2-1", "ISO_19005_3:6.5.2-1"],
+          "x-message": "the catalog shall not contain additional actions (/AA)"
+        },
+        "/OCProperties": {
+          "$ref": "#/$defs/unsupported",
+          "x-verapdf": ["ISO_19005_1:6.1.13-1"],
+          "x-message": "optional content (/OCProperties) is not supported"
+        },
+        "/Requirements": {
+          "$ref": "#/$defs/forbidden",
+          "x-verapdf": ["ISO_19005_2:6.11-1", "ISO_19005_3:6.11-1"]
+        },
+        "/NeedsRendering": {
+          "$ref": "#/$defs/forbidden",
+          "x-verapdf": ["ISO_19005_2:6.4.2-2", "ISO_19005_3:6.4.2-2"]
+        },
+        "/AcroForm": {"$ref": "#/$defs/unsupported", "x-message": "interactive forms (/AcroForm) are not supported"},
+        "/Names": {"$ref": "#/$defs/unsupported", "x-message": "the name dictionary (/Names) is not supported"},
+        "/Dests": {"$ref": "#/$defs/unsupported", "x-message": "named destinations (/Dests) are not supported"},
+        "/Perms": {"$ref": "#/$defs/unsupported", "x-message": "permissions (/Perms) are not supported"},
+        "/Collection": {"$ref": "#/$defs/unsupported", "x-message": "portable collections are not supported"},
+        "/OpenAction": {"$ref": "#/$defs/unsupported", "x-message": "/OpenAction is not supported"},
+        "/AF": {"$ref": "#/$defs/unsupported", "x-message": "associated files (/AF) are not supported"},
+        "/Extensions": {"$ref": "#/$defs/unsupported", "x-message": "developer extensions are not supported"}
+      },
+      "additionalProperties": false,
+      "x-children": {
+        "/OutputIntents": "OutputIntents",
+        "/Metadata": "MetadataStream",
+        "/Pages": "Pages",
+        "/MarkInfo": "MarkInfo",
+        "/ViewerPreferences": "ViewerPreferences",
+        "/Outlines": "Outlines",
+        "/PageLabels": "PageLabelsNode",
+        "/StructTreeRoot": "StructTreeRoot"
+      }
+    },
+
+    "OutputIntents": {
+      "x-kind": "array",
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/dictOrRef"},
+      "x-children": {"*": "OutputIntent"}
+    },
+
+    "OutputIntent": {
+      "type": "object",
+      "required": ["/S", "/DestOutputProfile"],
+      "properties": {
+        "/Type": {"const": "/OutputIntent"},
+        "/S": {
+          "const": "/GTS_PDFA1",
+          "x-unsupported": true,
+          "x-message": "only GTS_PDFA1 output intents are supported"
+        },
+        "/OutputCondition": {"$ref": "#/$defs/text"},
+        "/OutputConditionIdentifier": {"$ref": "#/$defs/text"},
+        "/RegistryName": {"$ref": "#/$defs/text"},
+        "/Info": {"$ref": "#/$defs/text"},
+        "/DestOutputProfile": {"$ref": "#/$defs/ref"},
+        "/DestOutputProfileRef": {
+          "$ref": "#/$defs/forbidden",
+          "x-verapdf": ["ISO_19005_2:6.2.3-3", "ISO_19005_3:6.2.3-3"]
+        }
+      },
+      "additionalProperties": false,
+      "x-children": {"/DestOutputProfile": "ICCOutputProfile"}
+    },
+
+    "ICCOutputProfile": {
+      "x-kind": "stream",
+      "type": "object",
+      "required": ["/N"],
+      "properties": {
+        "/F": {"$ref": "#/$defs/externalStreamKey"},
+        "/FFilter": {"$ref": "#/$defs/externalStreamKey"},
+        "/FDecodeParms": {"$ref": "#/$defs/externalStreamKey"},
+        "/N": {"enum": [1, 3, 4]},
+        "/Alternate": {"enum": ["/DeviceGray", "/DeviceRGB", "/DeviceCMYK"]},
+        "/Range": {"type": "array", "items": {"type": "number"}},
+        "/Length": {"$ref": "#/$defs/integer"},
+        "/Filter": {"$ref": "#/$defs/filter"},
+        "/DecodeParms": {"anyOf": [{"type": "object"}, {"type": "array"}]},
+        "/Metadata": {"$ref": "#/$defs/unsupported"}
+      },
+      "additionalProperties": false
+    },
+
+    "MetadataStream": {
+      "x-kind": "stream",
+      "type": "object",
+      "allOf": [
+        {
+          "required": ["/Type", "/Subtype"],
+          "properties": {"/Type": {"const": "/Metadata"}, "/Subtype": {"const": "/XML"}},
+          "x-verapdf": ["ISO_19005_1:6.7.2-1", "ISO_19005_2:6.6.2.1-1", "ISO_19005_3:6.6.2.1-1"]
+        }
+      ],
+      "properties": {
+        "/F": {"$ref": "#/$defs/externalStreamKey"},
+        "/FFilter": {"$ref": "#/$defs/externalStreamKey"},
+        "/FDecodeParms": {"$ref": "#/$defs/externalStreamKey"},
+        "/Type": true,
+        "/Subtype": true,
+        "/Length": {"$ref": "#/$defs/integer"},
+        "/Filter": {"$ref": "#/$defs/filter"},
+        "/DecodeParms": {"anyOf": [{"type": "object"}, {"type": "array"}]}
+      },
+      "additionalProperties": false
+    },
+
+    "Pages": {
+      "type": "object",
+      "required": ["/Type", "/Kids"],
+      "properties": {
+        "/Type": {"const": "/Pages"},
+        "/Kids": {"$ref": "#/$defs/refArray"},
+        "/Count": {"$ref": "#/$defs/integer"},
+        "/Parent": {"$ref": "#/$defs/ref"},
+        "/Resources": {"$ref": "#/$defs/dictOrRef"},
+        "/MediaBox": {"$ref": "#/$defs/rect"},
+        "/CropBox": {"$ref": "#/$defs/rect"},
+        "/Rotate": {"type": "integer", "multipleOf": 90},
+        "/ProcSet": {"$ref": "#/$defs/obsoleteProcSet"}
+      },
+      "additionalProperties": false,
+      "x-children": {
+        "/Resources": "Resources",
+        "/Kids": {"role": "PageTreeNode", "each": true}
+      }
+    },
+
+    "PageTreeNode": {
+      "type": "object",
+      "required": ["/Type"],
+      "properties": {"/Type": {"enum": ["/Pages", "/Page"]}},
+      "x-dispatch": {"key": "/Type", "roles": {"/Pages": "Pages", "/Page": "Page"}}
+    },
+
+    "Page": {
+      "type": "object",
+      "required": ["/Type", "/Parent"],
+      "properties": {
+        "/Type": {"const": "/Page"},
+        "/Parent": {"$ref": "#/$defs/ref"},
+        "/Contents": {"anyOf": [{"$ref": "#/$defs/ref"}, {"$ref": "#/$defs/refArray"}]},
+        "/Resources": {"$ref": "#/$defs/dictOrRef"},
+        "/MediaBox": {"$ref": "#/$defs/rect"},
+        "/CropBox": {"$ref": "#/$defs/rect"},
+        "/BleedBox": {"$ref": "#/$defs/rect"},
+        "/TrimBox": {"$ref": "#/$defs/rect"},
+        "/ArtBox": {"$ref": "#/$defs/rect"},
+        "/Rotate": {"type": "integer", "multipleOf": 90},
+        "/Annots": {"$ref": "#/$defs/arrayOrRef"},
+        "/Group": {"$ref": "#/$defs/dictOrRef"},
+        "/Metadata": {"$ref": "#/$defs/ref"},
+        "/UserUnit": {"$ref": "#/$defs/number"},
+        "/StructParents": {"$ref": "#/$defs/integer"},
+        "/Tabs": {"enum": ["/R", "/C", "/S"]},
+        "/LastModified": {"$ref": "#/$defs/text"},
+        "/ProcSet": {"$ref": "#/$defs/obsoleteProcSet"},
+        "/AA": {
+          "$ref": "#/$defs/forbidden",
+          "x-verapdf": ["ISO_19005_2:6.5.2-2", "ISO_19005_3:6.5.2-2"],
+          "x-message": "a page shall not contain additional actions (/AA)"
+        },
+        "/PresSteps": {
+          "$ref": "#/$defs/forbidden",
+          "x-verapdf": ["ISO_19005_2:6.10-2", "ISO_19005_3:6.10-2"]
+        },
+        "/PieceInfo": {"$ref": "#/$defs/unsupported"}
+      },
+      "additionalProperties": false,
+      "x-children": {
+        "/Resources": "Resources",
+        "/Group": "TransparencyGroup",
+        "/Contents": {"role": "ContentStream", "each": true},
+        "/Annots": {"role": "Annot", "each": true},
+        "/Metadata": "ObjectMetadata"
+      }
+    },
+
+    "TransparencyGroup": {
+      "type": "object",
+      "required": ["/S"],
+      "properties": {
+        "/Type": {"const": "/Group"},
+        "/S": {"const": "/Transparency"},
+        "/CS": {"$ref": "#/$defs/colourSpace"},
+        "/I": {"$ref": "#/$defs/boolean"},
+        "/K": {"$ref": "#/$defs/boolean"}
+      },
+      "additionalProperties": false
+    },
+
+    "ContentStream": {
+      "x-kind": "stream",
+      "type": "object",
+      "properties": {
+        "/F": {"$ref": "#/$defs/externalStreamKey"},
+        "/FFilter": {"$ref": "#/$defs/externalStreamKey"},
+        "/FDecodeParms": {"$ref": "#/$defs/externalStreamKey"},
+        "/Length": {"$ref": "#/$defs/integer"},
+        "/Filter": {"$ref": "#/$defs/filter"},
+        "/DecodeParms": {"anyOf": [{"type": "object"}, {"type": "array"}]}
+      },
+      "additionalProperties": false
+    },
+
+    "Resources": {
+      "type": "object",
+      "properties": {
+        "/Font": {"$ref": "#/$defs/dictOrRef"},
+        "/XObject": {"$ref": "#/$defs/dictOrRef"},
+        "/ExtGState": {"$ref": "#/$defs/dictOrRef"},
+        "/ColorSpace": {"$ref": "#/$defs/dictOrRef"},
+        "/Properties": {"$ref": "#/$defs/dictOrRef"},
+        "/ProcSet": {"$ref": "#/$defs/procSet"},
+        "/Pattern": {"$ref": "#/$defs/unsupported", "x-message": "patterns are not supported"},
+        "/Shading": {"$ref": "#/$defs/unsupported", "x-message": "shadings are not supported"}
+      },
+      "additionalProperties": false,
+      "x-children": {
+        "/Font": {"role": "Font", "each": true, "values": true},
+        "/XObject": {"role": "XObject", "each": true, "values": true},
+        "/ExtGState": {"role": "ExtGState", "each": true, "values": true},
+        "/ColorSpace": {"role": "ColorSpace", "each": true, "values": true},
+        "/Properties": {"role": "Properties", "each": true, "values": true}
+      }
+    },
+
+    "XObject": {
+      "x-kind": "stream",
+      "type": "object",
+      "required": ["/Subtype"],
+      "properties": {
+        "/Subtype": {
+          "enum": ["/Image", "/Form"],
+          "x-verapdf": ["ISO_19005_1:6.2.7-1", "ISO_19005_2:6.2.9-3", "ISO_19005_3:6.2.9-3"],
+          "x-message": "only Image and Form XObjects are permitted"
+        }
+      },
+      "x-dispatch": {"key": "/Subtype", "roles": {"/Image": "ImageXObject", "/Form": "FormXObject"}}
+    },
+
+    "ImageXObject": {
+      "x-kind": "stream",
+      "type": "object",
+      "required": ["/Subtype", "/Width", "/Height"],
+      "allOf": [
+        {
+          "if": {"required": ["/ImageMask"], "properties": {"/ImageMask": {"const": true}}},
+          "then": {
+            "properties": {"/BitsPerComponent": {"const": 1}},
+            "x-verapdf": ["ISO_19005_1:6.2.4-5", "ISO_19005_2:6.2.8-5", "ISO_19005_3:6.2.8-5"]
+          }
+        }
+      ],
+      "properties": {
+        "/F": {"$ref": "#/$defs/externalStreamKey"},
+        "/FFilter": {"$ref": "#/$defs/externalStreamKey"},
+        "/FDecodeParms": {"$ref": "#/$defs/externalStreamKey"},
+        "/Type": {"const": "/XObject"},
+        "/Subtype": {"const": "/Image"},
+        "/Width": {"type": "integer", "minimum": 1},
+        "/Height": {"type": "integer", "minimum": 1},
+        "/ColorSpace": {"$ref": "#/$defs/colourSpace"},
+        "/BitsPerComponent": {
+          "enum": [1, 2, 4, 8, 16],
+          "x-verapdf": ["ISO_19005_2:6.2.8-4", "ISO_19005_3:6.2.8-4"]
+        },
+        "/ImageMask": {"$ref": "#/$defs/boolean"},
+        "/Mask": {
+          "anyOf": [{"$ref": "#/$defs/ref"}, {"type": "array", "items": {"$ref": "#/$defs/integer"}}],
+          "x-message": "/Mask shall be a stencil mask image or a colour key array"
+        },
+        "/Decode": {"type": "array", "items": {"type": "number"}},
+        "/Matte": {"type": "array", "items": {"type": "number"}},
+        "/Interpolate": {
+          "const": false,
+          "x-verapdf": ["ISO_19005_1:6.2.4-3", "ISO_19005_2:6.2.8-3", "ISO_19005_3:6.2.8-3"],
+          "x-message": "/Interpolate shall be false"
+        },
+        "/SMask": {"$ref": "#/$defs/ref"},
+        "/Intent": {
+          "enum": ["/RelativeColorimetric", "/AbsoluteColorimetric", "/Perceptual", "/Saturation"],
+          "x-verapdf": ["ISO_19005_1:6.2.9-1", "ISO_19005_2:6.2.6-1", "ISO_19005_3:6.2.6-1"]
+        },
+        "/Name": {"$ref": "#/$defs/name"},
+        "/StructParent": {"$ref": "#/$defs/integer"},
+        "/ID": {"$ref": "#/$defs/text"},
+        "/Length": {"$ref": "#/$defs/integer"},
+        "/Filter": {
+          "allOf": [
+            {"$ref": "#/$defs/filter"},
+            {
+              "not": {"anyOf": [{"const": "/JPXDecode"}, {"type": "array", "contains": {"const": "/JPXDecode"}}]},
+              "x-unsupported": true,
+              "x-message": "JPEG 2000 images are not supported"
+            }
+          ]
+        },
+        "/DecodeParms": {"anyOf": [{"type": "object"}, {"type": "array"}]},
+        "/Alternates": {
+          "$ref": "#/$defs/forbidden",
+          "x-verapdf": ["ISO_19005_1:6.2.4-1", "ISO_19005_2:6.2.8-1", "ISO_19005_3:6.2.8-1"]
+        },
+        "/OPI": {
+          "$ref": "#/$defs/forbidden",
+          "x-verapdf": ["ISO_19005_1:6.2.4-2", "ISO_19005_2:6.2.8-2", "ISO_19005_3:6.2.8-2"]
+        },
+        "/OC": {"$ref": "#/$defs/unsupported", "x-message": "optional content is not supported"},
+        "/Metadata": {"$ref": "#/$defs/unsupported", "x-message": "image metadata streams are not supported"},
+        "/SMaskInData": {"$ref": "#/$defs/unsupported"}
+      },
+      "additionalProperties": false,
+      "x-children": {"/SMask": "SMaskImage"}
+    },
+
+    "MaskImage": {
+      "x-kind": "stream",
+      "allOf": [
+        {"$ref": "#/$defs/ImageXObject"},
+        {
+          "required": ["/ImageMask"],
+          "properties": {"/ImageMask": {"const": true}, "/ColorSpace": false, "/Mask": false, "/SMask": false}
+        }
+      ]
+    },
+
+    "SMaskImage": {
+      "x-kind": "stream",
+      "allOf": [
+        {"$ref": "#/$defs/ImageXObject"},
+        {
+          "required": ["/ColorSpace"],
+          "properties": {"/ColorSpace": {"const": "/DeviceGray"}, "/Mask": false, "/SMask": false, "/ImageMask": false}
+        }
+      ]
+    },
+
+    "Outlines": {
+      "type": "object",
+      "properties": {
+        "/Type": {"const": "/Outlines"},
+        "/First": {"$ref": "#/$defs/ref"},
+        "/Last": {"$ref": "#/$defs/ref"},
+        "/Count": {"$ref": "#/$defs/integer"}
+      },
+      "additionalProperties": false,
+      "x-children": {"/First": "OutlineItem"}
+    },
+
+    "OutlineItem": {
+      "type": "object",
+      "required": ["/Title"],
+      "properties": {
+        "/Title": {"$ref": "#/$defs/text"},
+        "/Parent": {"$ref": "#/$defs/ref"},
+        "/Prev": {"$ref": "#/$defs/ref"},
+        "/Next": {"$ref": "#/$defs/ref"},
+        "/First": {"$ref": "#/$defs/ref"},
+        "/Last": {"$ref": "#/$defs/ref"},
+        "/Count": {"$ref": "#/$defs/integer"},
+        "/Dest": {"$ref": "#/$defs/destination"},
+        "/A": {"$ref": "#/$defs/dictOrRef"},
+        "/C": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+        "/F": {"$ref": "#/$defs/integer"},
+        "/SE": {"$ref": "#/$defs/unsupported"}
+      },
+      "additionalProperties": false,
+      "x-children": {
+        "/First": "OutlineItem",
+        "/Next": {"role": "OutlineItem", "sibling": true},
+        "/A": "Action"
+      }
+    },
+
+    "Action": {
+      "type": "object",
+      "required": ["/S"],
+      "allOf": [
+        {
+          "if": {"required": ["/S"], "properties": {"/S": {"const": "/Named"}}},
+          "then": {
+            "required": ["/N"],
+            "x-verapdf": ["ISO_19005_1:6.6.1-2", "ISO_19005_2:6.5.1-2", "ISO_19005_3:6.5.1-2"],
+            "x-message": "a named action shall have /N"
+          }
+        }
+      ],
+      "properties": {
+        "/Type": {"const": "/Action"},
+        "/S": {
+          "enum": ["/GoTo", "/GoToR", "/URI", "/Named"],
+          "x-verapdf": ["ISO_19005_1:6.6.1-1", "ISO_19005_2:6.5.1-1", "ISO_19005_3:6.5.1-1"],
+          "x-message": "action type not permitted or not supported"
+        },
+        "/D": {"$ref": "#/$defs/destination"},
+        "/URI": {"$ref": "#/$defs/text"},
+        "/IsMap": {"$ref": "#/$defs/boolean"},
+        "/N": {
+          "enum": ["/NextPage", "/PrevPage", "/FirstPage", "/LastPage"],
+          "x-verapdf": ["ISO_19005_1:6.6.1-2", "ISO_19005_2:6.5.1-2", "ISO_19005_3:6.5.1-2"]
+        },
+        "/F": {
+          "$ref": "#/$defs/text",
+          "x-unsupported": true,
+          "x-message": "file specification dictionaries are not supported"
+        },
+        "/NewWindow": {"$ref": "#/$defs/boolean"},
+        "/Next": {"anyOf": [{"$ref": "#/$defs/dictOrRef"}, {"type": "array"}]}
+      },
+      "additionalProperties": false,
+      "x-children": {"/Next": {"role": "Action", "each": true}}
+    },
+
+    "PageLabelsNode": {
+      "type": "object",
+      "properties": {
+        "/Nums": {
+          "type": "array",
+          "items": {"anyOf": [{"$ref": "#/$defs/integer"}, {"$ref": "#/$defs/PageLabel"}]}
+        },
+        "/Kids": {"$ref": "#/$defs/refArray"},
+        "/Limits": {"type": "array", "items": {"$ref": "#/$defs/integer"}, "minItems": 2, "maxItems": 2}
+      },
+      "additionalProperties": false,
+      "x-children": {"/Kids": {"role": "PageLabelsNode", "each": true}}
+    },
+
+    "PageLabel": {
+      "type": "object",
+      "properties": {
+        "/Type": {"const": "/PageLabel"},
+        "/S": {"enum": ["/D", "/R", "/r", "/A", "/a"]},
+        "/P": {"$ref": "#/$defs/text"},
+        "/St": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false
+    },
+
+    "StructTreeRoot": {
+      "$comment": "Checked shallowly: structure elements are not descended into",
+      "type": "object",
+      "properties": {
+        "/Type": {"const": "/StructTreeRoot"},
+        "/K": true,
+        "/ParentTree": {"$ref": "#/$defs/dictOrRef"},
+        "/ParentTreeNextKey": {"$ref": "#/$defs/integer"},
+        "/RoleMap": {"$ref": "#/$defs/dictOrRef"},
+        "/ClassMap": {"$ref": "#/$defs/dictOrRef"},
+        "/IDTree": {"$ref": "#/$defs/dictOrRef"}
+      },
+      "additionalProperties": false
+    },
+
+    "MarkInfo": {
+      "type": "object",
+      "properties": {
+        "/Marked": {"$ref": "#/$defs/boolean"},
+        "/UserProperties": {"$ref": "#/$defs/boolean"},
+        "/Suspects": {"$ref": "#/$defs/boolean"}
+      },
+      "additionalProperties": false
+    },
+
+    "ViewerPreferences": {
+      "$comment": "ISO 32000-1:2008 Table 150",
+      "type": "object",
+      "properties": {
+        "/HideToolbar": {"$ref": "#/$defs/boolean"},
+        "/HideMenubar": {"$ref": "#/$defs/boolean"},
+        "/HideWindowUI": {"$ref": "#/$defs/boolean"},
+        "/FitWindow": {"$ref": "#/$defs/boolean"},
+        "/CenterWindow": {"$ref": "#/$defs/boolean"},
+        "/DisplayDocTitle": {"$ref": "#/$defs/boolean"},
+        "/NonFullScreenPageMode": {"enum": ["/UseNone", "/UseOutlines", "/UseThumbs"]},
+        "/Direction": {"enum": ["/L2R", "/R2L"]},
+        "/ViewArea": {"enum": ["/MediaBox", "/CropBox", "/BleedBox", "/TrimBox", "/ArtBox"]},
+        "/ViewClip": {"enum": ["/MediaBox", "/CropBox", "/BleedBox", "/TrimBox", "/ArtBox"]},
+        "/PrintArea": {"enum": ["/MediaBox", "/CropBox", "/BleedBox", "/TrimBox", "/ArtBox"]},
+        "/PrintClip": {"enum": ["/MediaBox", "/CropBox", "/BleedBox", "/TrimBox", "/ArtBox"]},
+        "/PrintScaling": {"enum": ["/None", "/AppDefault"]},
+        "/Duplex": {"enum": ["/Simplex", "/DuplexFlipShortEdge", "/DuplexFlipLongEdge"]},
+        "/PickTrayByPDFSize": {"$ref": "#/$defs/boolean"},
+        "/PrintPageRange": {"type": "array", "items": {"$ref": "#/$defs/integer"}},
+        "/NumCopies": {"$ref": "#/$defs/integer"}
+      },
+      "additionalProperties": false
+    },
+
+    "streamKeys": {
+      "$comment": "Keys every stream dictionary may have",
+      "properties": {
+        "/F": {"$ref": "#/$defs/externalStreamKey"},
+        "/FFilter": {"$ref": "#/$defs/externalStreamKey"},
+        "/FDecodeParms": {"$ref": "#/$defs/externalStreamKey"},
+        "/Length": {"$ref": "#/$defs/integer"},
+        "/Filter": {"$ref": "#/$defs/filter"},
+        "/DecodeParms": {"anyOf": [{"type": "object"}, {"type": "array"}]},
+        "/DL": {"$ref": "#/$defs/integer"}
+      }
+    },
+    "cidSystemInfo": {
+      "anyOf": [
+        {"$ref": "#/$defs/ref"},
+        {
+          "type": "object",
+          "properties": {
+            "/Registry": {"$ref": "#/$defs/text"},
+            "/Ordering": {"$ref": "#/$defs/text"},
+            "/Supplement": {"$ref": "#/$defs/integer"}
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+
+    "Font": {
+      "$comment": "Every kind of font dictionary; _fonts.load_font checks the entries each kind requires",
+      "type": "object",
+      "properties": {
+        "/Type": true,
+        "/Subtype": true,
+        "/BaseFont": true,
+        "/Name": {"$ref": "#/$defs/name"},
+        "/FirstChar": true,
+        "/LastChar": true,
+        "/Widths": {"$ref": "#/$defs/arrayOrRef"},
+        "/FontDescriptor": {"$ref": "#/$defs/dictOrRef"},
+        "/Encoding": true,
+        "/ToUnicode": {"$ref": "#/$defs/ref"},
+        "/DescendantFonts": {"$ref": "#/$defs/arrayOrRef"},
+        "/FontBBox": true,
+        "/FontMatrix": true,
+        "/CharProcs": true,
+        "/Resources": true
+      },
+      "additionalProperties": false,
+      "x-children": {
+        "/DescendantFonts": {"role": "CIDFont", "each": true},
+        "/FontDescriptor": "FontDescriptor",
+        "/Encoding": "FontEncoding",
+        "/ToUnicode": "ToUnicodeCMap"
+      }
+    },
+
+    "CIDFont": {
+      "type": "object",
+      "properties": {
+        "/Type": true,
+        "/Subtype": true,
+        "/BaseFont": true,
+        "/CIDSystemInfo": {"$ref": "#/$defs/cidSystemInfo"},
+        "/FontDescriptor": {"$ref": "#/$defs/dictOrRef"},
+        "/DW": {"$ref": "#/$defs/number"},
+        "/W": {"$ref": "#/$defs/arrayOrRef"},
+        "/DW2": true,
+        "/W2": true,
+        "/CIDToGIDMap": {"anyOf": [{"$ref": "#/$defs/ref"}, {"$ref": "#/$defs/name"}]}
+      },
+      "additionalProperties": false,
+      "x-children": {
+        "/FontDescriptor": "FontDescriptor",
+        "/CIDToGIDMap": "CIDToGIDMap"
+      }
+    },
+
+    "FontDescriptor": {
+      "type": "object",
+      "properties": {
+        "/Type": {"const": "/FontDescriptor"},
+        "/FontName": {"$ref": "#/$defs/name"},
+        "/FontFamily": {"$ref": "#/$defs/text"},
+        "/FontStretch": {"$ref": "#/$defs/name"},
+        "/FontWeight": {"$ref": "#/$defs/number"},
+        "/Flags": {"$ref": "#/$defs/integer"},
+        "/FontBBox": {"$ref": "#/$defs/rect"},
+        "/ItalicAngle": {"$ref": "#/$defs/number"},
+        "/Ascent": {"$ref": "#/$defs/number"},
+        "/Descent": {"$ref": "#/$defs/number"},
+        "/Leading": {"$ref": "#/$defs/number"},
+        "/CapHeight": {"$ref": "#/$defs/number"},
+        "/XHeight": {"$ref": "#/$defs/number"},
+        "/StemV": {"$ref": "#/$defs/number"},
+        "/StemH": {"$ref": "#/$defs/number"},
+        "/AvgWidth": {"$ref": "#/$defs/number"},
+        "/MaxWidth": {"$ref": "#/$defs/number"},
+        "/MissingWidth": {"$ref": "#/$defs/number"},
+        "/FontFile": {"$ref": "#/$defs/ref"},
+        "/FontFile2": {"$ref": "#/$defs/ref"},
+        "/FontFile3": {"$ref": "#/$defs/ref"},
+        "/CharSet": {"$ref": "#/$defs/text"},
+        "/Style": {"type": "object"},
+        "/Lang": {"$ref": "#/$defs/name"},
+        "/CIDSet": {"$ref": "#/$defs/ref"},
+        "/FD": {"$ref": "#/$defs/unsupported", "x-message": "/FD in a CIDFont descriptor is not supported"}
+      },
+      "additionalProperties": false,
+      "x-children": {
+        "/FontFile": "FontProgram",
+        "/FontFile2": "FontProgram",
+        "/FontFile3": "FontProgram",
+        "/CIDSet": "FontDataStream"
+      }
+    },
+
+    "FontProgram": {
+      "x-kind": "stream",
+      "type": "object",
+      "allOf": [{"$ref": "#/$defs/streamKeys"}],
+      "properties": {
+        "/F": true, "/FFilter": true, "/FDecodeParms": true, "/Length": true,
+        "/Filter": true, "/DecodeParms": true, "/DL": true,
+        "/Length1": {"$ref": "#/$defs/integer"},
+        "/Length2": {"$ref": "#/$defs/integer"},
+        "/Length3": {"$ref": "#/$defs/integer"},
+        "/Subtype": {
+          "enum": ["/Type1C", "/CIDFontType0C", "/OpenType"],
+          "x-verapdf": ["ISO_19005_1:6.3.2-7", "ISO_19005_2:6.2.11.2-7", "ISO_19005_3:6.2.11.2-7"],
+          "x-message": "font file /Subtype shall be Type1C, CIDFontType0C or OpenType"
+        },
+        "/Metadata": {"$ref": "#/$defs/unsupported", "x-message": "font program metadata streams are not supported"}
+      },
+      "additionalProperties": false
+    },
+
+    "FontDataStream": {
+      "$comment": "CIDSet and CIDToGIDMap streams",
+      "x-kind": "stream",
+      "type": "object",
+      "allOf": [{"$ref": "#/$defs/streamKeys"}],
+      "properties": {
+        "/F": true, "/FFilter": true, "/FDecodeParms": true, "/Length": true,
+        "/Filter": true, "/DecodeParms": true, "/DL": true
+      },
+      "additionalProperties": false
+    },
+
+    "CIDToGIDMap": {
+      "x-kind": "any",
+      "anyOf": [
+        {"const": "/Identity"},
+        {"$ref": "#/$defs/FontDataStream"}
+      ]
+    },
+
+    "cmapStreamDict": {
+      "type": "object",
+      "allOf": [{"$ref": "#/$defs/streamKeys"}],
+      "properties": {
+        "/F": true, "/FFilter": true, "/FDecodeParms": true, "/Length": true,
+        "/Filter": true, "/DecodeParms": true, "/DL": true,
+        "/Type": {"const": "/CMap"},
+        "/CMapName": {"$ref": "#/$defs/name"},
+        "/CIDSystemInfo": {"$ref": "#/$defs/cidSystemInfo"},
+        "/WMode": {"$ref": "#/$defs/integer"},
+        "/UseCMap": {"anyOf": [{"$ref": "#/$defs/name"}, {"$ref": "#/$defs/ref"}]}
+      },
+      "additionalProperties": false
+    },
+
+    "ToUnicodeCMap": {"x-kind": "stream", "$ref": "#/$defs/cmapStreamDict"},
+
+    "FontEncoding": {
+      "$comment": "A simple font's encoding name or dictionary, or a Type 0 font's CMap name or stream",
+      "x-kind": "any",
+      "anyOf": [
+        {"$ref": "#/$defs/name"},
+        {
+          "type": "object",
+          "properties": {
+            "/Type": {"const": "/Encoding"},
+            "/BaseEncoding": {"$ref": "#/$defs/name"},
+            "/Differences": {"type": "array"}
+          },
+          "additionalProperties": false
+        },
+        {"$ref": "#/$defs/cmapStreamDict"}
+      ]
+    },
+
+    "FormXObject": {
+      "x-kind": "stream",
+      "type": "object",
+      "required": ["/Subtype", "/BBox"],
+      "allOf": [{"$ref": "#/$defs/streamKeys"}],
+      "properties": {
+        "/F": true, "/FFilter": true, "/FDecodeParms": true, "/Length": true,
+        "/Filter": true, "/DecodeParms": true, "/DL": true,
+        "/Type": {"const": "/XObject"},
+        "/Subtype": {"const": "/Form"},
+        "/FormType": {"const": 1},
+        "/BBox": {"$ref": "#/$defs/rect"},
+        "/Matrix": {"type": "array", "items": {"type": "number"}, "minItems": 6, "maxItems": 6},
+        "/Resources": {"$ref": "#/$defs/dictOrRef"},
+        "/Group": {"$ref": "#/$defs/dictOrRef"},
+        "/Metadata": {"$ref": "#/$defs/ref"},
+        "/StructParent": {"$ref": "#/$defs/integer"},
+        "/StructParents": {"$ref": "#/$defs/integer"},
+        "/Name": {"$ref": "#/$defs/name"},
+        "/Ref": {
+          "$ref": "#/$defs/forbidden",
+          "x-verapdf": ["ISO_19005_1:6.2.6-1", "ISO_19005_2:6.2.9-2", "ISO_19005_3:6.2.9-2"],
+          "x-message": "reference XObjects (/Ref) are not permitted"
+        },
+        "/PS": {
+          "$ref": "#/$defs/forbidden",
+          "x-verapdf": ["ISO_19005_1:6.2.5-1", "ISO_19005_2:6.2.9-1", "ISO_19005_3:6.2.9-1"],
+          "x-message": "PostScript fragments (/PS) are not permitted"
+        },
+        "/Subtype2": {
+          "$ref": "#/$defs/forbidden",
+          "x-verapdf": ["ISO_19005_1:6.2.5-1", "ISO_19005_2:6.2.9-1", "ISO_19005_3:6.2.9-1"],
+          "x-message": "/Subtype2 (PostScript form XObjects) is not permitted"
+        },
+        "/OPI": {
+          "$ref": "#/$defs/forbidden",
+          "x-verapdf": ["ISO_19005_2:6.2.9-1", "ISO_19005_3:6.2.9-1"],
+          "x-message": "/OPI is not permitted"
+        },
+        "/OC": {"$ref": "#/$defs/unsupported", "x-message": "optional content is not supported"},
+        "/PieceInfo": {"$ref": "#/$defs/unsupported"},
+        "/LastModified": {"$ref": "#/$defs/text"},
+        "/AF": {"$ref": "#/$defs/unsupported", "x-message": "associated files (/AF) are not supported"},
+        "/Measure": {"$ref": "#/$defs/unsupported"},
+        "/PtData": {"$ref": "#/$defs/unsupported"}
+      },
+      "additionalProperties": false,
+      "x-children": {
+        "/Resources": "Resources",
+        "/Group": "TransparencyGroup",
+        "/Metadata": "ObjectMetadata"
+      }
+    },
+    "ExtGState": {
+      "$comment": "ISO 32000-1 Table 58, less the device-dependent entries PDF/A forbids or this validator does not support",
+      "type": "object",
+      "properties": {
+        "/Type": {"const": "/ExtGState"},
+        "/LW": {"$ref": "#/$defs/number"},
+        "/LC": {"enum": [0, 1, 2]},
+        "/LJ": {"enum": [0, 1, 2]},
+        "/ML": {"$ref": "#/$defs/number"},
+        "/D": {
+          "type": "array", "minItems": 2, "maxItems": 2,
+          "prefixItems": [{"type": "array", "items": {"type": "number"}}, {"type": "number"}]
+        },
+        "/RI": {"$ref": "#/$defs/renderingIntent"},
+        "/BM": {
+          "anyOf": [
+            {"$ref": "#/$defs/blendModeName"},
+            {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/blendModeName"}}
+          ],
+          "x-verapdf": ["ISO_19005_2:6.2.10-1", "ISO_19005_3:6.2.10-1"]
+        },
+        "/SMask": {"anyOf": [{"const": "/None"}, {"$ref": "#/$defs/dictOrRef"}]},
+        "/CA": {"$ref": "#/$defs/unitInterval"},
+        "/ca": {"$ref": "#/$defs/unitInterval"},
+        "/AIS": {"$ref": "#/$defs/boolean"},
+        "/TK": {"$ref": "#/$defs/boolean"},
+        "/OP": {"$ref": "#/$defs/boolean"},
+        "/op": {"$ref": "#/$defs/boolean"},
+        "/OPM": {"enum": [0, 1]},
+        "/SA": {"$ref": "#/$defs/boolean"},
+        "/FL": {"$ref": "#/$defs/number"},
+        "/SM": {"$ref": "#/$defs/number"},
+        "/AAPL:AA": {"$comment": "Apple Quartz antialiasing hint (second-class name)", "$ref": "#/$defs/boolean"},
+        "/Font": {"$ref": "#/$defs/unsupported", "x-message": "fonts set by graphics state parameter dictionaries are not supported"},
+        "/TR": {
+          "$ref": "#/$defs/forbidden",
+          "x-verapdf": ["ISO_19005_1:6.2.8-1", "ISO_19005_2:6.2.5-1", "ISO_19005_3:6.2.5-1"],
+          "x-message": "transfer functions (/TR) are not permitted"
+        },
+        "/TR2": {
+          "const": "/Default",
+          "x-verapdf": ["ISO_19005_1:6.2.8-2", "ISO_19005_2:6.2.5-2", "ISO_19005_3:6.2.5-2"],
+          "x-message": "/TR2 shall be /Default"
+        },
+        "/HTP": {
+          "$ref": "#/$defs/forbidden",
+          "x-verapdf": ["ISO_19005_2:6.2.5-3", "ISO_19005_3:6.2.5-3"],
+          "x-message": "/HTP is not permitted"
+        },
+        "/HT": {"$ref": "#/$defs/unsupported", "x-message": "halftones (/HT) are not supported"}
+      },
+      "additionalProperties": false
+    },
+
+    "SoftMaskDict": {
+      "$comment": "ISO 32000-1 Table 144; the walker requires /G to be a transparency group form",
+      "type": "object",
+      "required": ["/S", "/G"],
+      "properties": {
+        "/Type": {"const": "/Mask"},
+        "/S": {"enum": ["/Alpha", "/Luminosity"]},
+        "/G": {"$ref": "#/$defs/ref"},
+        "/BC": {"type": "array", "items": {"type": "number"}},
+        "/TR": {
+          "const": "/Identity",
+          "x-unsupported": true,
+          "x-message": "soft mask transfer functions are not supported"
+        }
+      },
+      "additionalProperties": false,
+      "x-children": {"/G": "FormXObject"}
+    },
+
+    "ColorSpace": {
+      "$comment": "A colour space resource; _colour.resolve_colourspace checks it",
+      "x-kind": "any",
+      "$ref": "#/$defs/colourSpace"
+    },
+
+    "ICCBasedStream": {
+      "x-kind": "stream",
+      "type": "object",
+      "required": ["/N"],
+      "allOf": [{"$ref": "#/$defs/streamKeys"}],
+      "properties": {
+        "/F": true, "/FFilter": true, "/FDecodeParms": true, "/Length": true,
+        "/Filter": true, "/DecodeParms": true, "/DL": true,
+        "/N": {"enum": [1, 3, 4]},
+        "/Alternate": {"$ref": "#/$defs/colourSpace"},
+        "/Range": {"type": "array", "items": {"type": "number"}},
+        "/Metadata": {"$ref": "#/$defs/unsupported", "x-message": "ICC profile metadata streams are not supported"}
+      },
+      "additionalProperties": false
+    },
+
+    "Properties": {"x-kind": "any", "$ref": "#/$defs/unsupported", "x-message": "marked-content property lists are not checked yet"},
+
+    "Annot": {
+      "$comment": "Annotation types are checked here, then each supported type has its own role; _walker.DocumentWalker._on_annot checks flags, appearances and colours",
+      "type": "object",
+      "required": ["/Subtype"],
+      "properties": {
+        "/Subtype": {
+          "allOf": [
+            {
+              "enum": [
+                "/Text", "/Link", "/FreeText", "/Line", "/Square", "/Circle", "/Polygon", "/PolyLine",
+                "/Highlight", "/Underline", "/Squiggly", "/StrikeOut", "/Stamp", "/Caret", "/Ink",
+                "/Popup", "/FileAttachment", "/Widget", "/PrinterMark", "/TrapNet", "/Watermark", "/Redact"
+              ],
+              "x-verapdf": ["ISO_19005_1:6.5.2-1", "ISO_19005_2:6.3.1-1", "ISO_19005_3:6.3.1-1"],
+              "x-message": "annotation type not permitted"
+            },
+            {
+              "not": {
+                "enum": ["/FreeText", "/FileAttachment", "/Widget", "/PrinterMark", "/TrapNet", "/Watermark", "/Redact"]
+              },
+              "x-unsupported": true,
+              "x-message": "annotation type not supported"
+            }
+          ]
+        }
+      },
+      "x-dispatch": {
+        "key": "/Subtype",
+        "roles": {
+          "/Link": "LinkAnnot",
+          "/Text": "TextAnnot",
+          "/Popup": "PopupAnnot",
+          "/Line": "MarkupAnnot",
+          "/Square": "MarkupAnnot",
+          "/Circle": "MarkupAnnot",
+          "/Polygon": "MarkupAnnot",
+          "/PolyLine": "MarkupAnnot",
+          "/Highlight": "MarkupAnnot",
+          "/Underline": "MarkupAnnot",
+          "/Squiggly": "MarkupAnnot",
+          "/StrikeOut": "MarkupAnnot",
+          "/Stamp": "MarkupAnnot",
+          "/Caret": "MarkupAnnot",
+          "/Ink": "MarkupAnnot"
+        }
+      }
+    },
+
+    "annotCommon": {
+      "$comment": "ISO 32000-1 Table 164",
+      "required": ["/Rect"],
+      "properties": {
+        "/Type": {"const": "/Annot"},
+        "/Subtype": {"$ref": "#/$defs/name"},
+        "/Rect": {"$ref": "#/$defs/rect"},
+        "/Contents": {"$ref": "#/$defs/text"},
+        "/P": {"$ref": "#/$defs/ref"},
+        "/NM": {"$ref": "#/$defs/text"},
+        "/M": {"$ref": "#/$defs/text"},
+        "/F": {"$ref": "#/$defs/integer"},
+        "/AP": {"$ref": "#/$defs/dictOrRef"},
+        "/AS": {"$ref": "#/$defs/name"},
+        "/Border": {"type": "array", "minItems": 3, "maxItems": 4},
+        "/C": {"type": "array", "items": {"type": "number"}, "maxItems": 4},
+        "/StructParent": {"$ref": "#/$defs/integer"},
+        "/AA": {"$ref": "#/$defs/forbidden", "x-message": "annotations shall not contain additional actions (/AA)"},
+        "/OC": {"$ref": "#/$defs/unsupported", "x-message": "optional content is not supported"},
+        "/AF": {"$ref": "#/$defs/unsupported", "x-message": "associated files (/AF) are not supported"}
+      }
+    },
+
+    "annotF": {
+      "required": ["/F"],
+      "x-verapdf": ["ISO_19005_1:6.5.3-2", "ISO_19005_2:6.3.2-1", "ISO_19005_3:6.3.2-1"],
+      "x-message": "annotation dictionaries shall contain /F"
+    },
+
+    "annotMarkup": {
+      "$comment": "ISO 32000-1 Table 170",
+      "properties": {
+        "/T": {"$ref": "#/$defs/text"},
+        "/Popup": {"$ref": "#/$defs/ref"},
+        "/CA": {"$ref": "#/$defs/unitInterval"},
+        "/RC": {"$ref": "#/$defs/text"},
+        "/CreationDate": {"$ref": "#/$defs/text"},
+        "/IRT": {"$ref": "#/$defs/ref"},
+        "/Subj": {"$ref": "#/$defs/text"},
+        "/RT": {"enum": ["/R", "/Group"]},
+        "/IT": {"$ref": "#/$defs/name"},
+        "/ExData": {"$ref": "#/$defs/unsupported", "x-message": "external data (/ExData) is not supported"}
+      }
+    },
+
+    "borderStyle": {
+      "type": "object",
+      "properties": {
+        "/Type": {"const": "/Border"},
+        "/W": {"$ref": "#/$defs/number"},
+        "/S": {"enum": ["/S", "/D", "/B", "/I", "/U"]},
+        "/D": {"type": "array", "items": {"type": "number"}}
+      },
+      "additionalProperties": false
+    },
+
+    "LinkAnnot": {
+      "$comment": "ISO 32000-1 Table 173",
+      "type": "object",
+      "allOf": [{"$ref": "#/$defs/annotCommon"}, {"$ref": "#/$defs/annotF"}],
+      "properties": {
+        "/A": {"$ref": "#/$defs/dictOrRef"},
+        "/Dest": {"$ref": "#/$defs/destination"},
+        "/H": {"enum": ["/N", "/I", "/O", "/P"]},
+        "/PA": {"$ref": "#/$defs/dictOrRef"},
+        "/QuadPoints": {"type": "array", "items": {"type": "number"}},
+        "/BS": {"$ref": "#/$defs/borderStyle"}
+      },
+      "unevaluatedProperties": false,
+      "x-children": {"/A": "Action", "/PA": "Action", "/AP": "AppearanceDict"}
+    },
+
+    "TextAnnot": {
+      "$comment": "ISO 32000-1 Table 172",
+      "type": "object",
+      "allOf": [{"$ref": "#/$defs/annotCommon"}, {"$ref": "#/$defs/annotF"}, {"$ref": "#/$defs/annotMarkup"}],
+      "properties": {
+        "/Open": {"$ref": "#/$defs/boolean"},
+        "/Name": {"$ref": "#/$defs/name"},
+        "/State": {"$ref": "#/$defs/text"},
+        "/StateModel": {"$ref": "#/$defs/text"}
+      },
+      "unevaluatedProperties": false,
+      "x-children": {"/AP": "AppearanceDict", "/Popup": "Annot"}
+    },
+
+    "PopupAnnot": {
+      "$comment": "ISO 32000-1 Table 183; /Parent is not followed, its annotation is on the page",
+      "type": "object",
+      "allOf": [{"$ref": "#/$defs/annotCommon"}],
+      "properties": {
+        "/Parent": {"$ref": "#/$defs/ref"},
+        "/Open": {"$ref": "#/$defs/boolean"}
+      },
+      "unevaluatedProperties": false,
+      "x-children": {"/AP": "AppearanceDict"}
+    },
+
+    "MarkupAnnot": {
+      "$comment": "Line, Square, Circle, Polygon, PolyLine, text markup, Stamp, Caret and Ink annotations (ISO 32000-1 Tables 175-182)",
+      "type": "object",
+      "allOf": [{"$ref": "#/$defs/annotCommon"}, {"$ref": "#/$defs/annotF"}, {"$ref": "#/$defs/annotMarkup"}],
+      "properties": {
+        "/QuadPoints": {"type": "array", "items": {"type": "number"}},
+        "/BS": {"$ref": "#/$defs/borderStyle"},
+        "/IC": {"type": "array", "items": {"type": "number"}, "maxItems": 4},
+        "/BE": {
+          "type": "object",
+          "properties": {"/S": {"enum": ["/S", "/C"]}, "/I": {"$ref": "#/$defs/number"}},
+          "additionalProperties": false
+        },
+        "/RD": {"type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4},
+        "/L": {"type": "array", "items": {"type": "number"}, "minItems": 4, "maxItems": 4},
+        "/LE": {"anyOf": [{"$ref": "#/$defs/name"}, {"type": "array", "items": {"$ref": "#/$defs/name"}}]},
+        "/LL": {"$ref": "#/$defs/number"},
+        "/LLE": {"$ref": "#/$defs/number"},
+        "/LLO": {"$ref": "#/$defs/number"},
+        "/Cap": {"$ref": "#/$defs/boolean"},
+        "/CP": {"$ref": "#/$defs/name"},
+        "/CO": {"type": "array", "items": {"type": "number"}},
+        "/Vertices": {"type": "array", "items": {"type": "number"}},
+        "/InkList": {"type": "array", "items": {"type": "array", "items": {"type": "number"}}},
+        "/Name": {"$ref": "#/$defs/name"},
+        "/Sy": {"$ref": "#/$defs/name"},
+        "/Measure": {"$ref": "#/$defs/unsupported", "x-message": "measure dictionaries are not supported"}
+      },
+      "unevaluatedProperties": false,
+      "x-children": {"/AP": "AppearanceDict", "/Popup": "Annot"}
+    },
+
+    "AppearanceDict": {
+      "$comment": "ISO 19005-1 6.5.3 and ISO 19005-2/3 6.3.3: the appearance dictionary shall contain only /N",
+      "type": "object",
+      "required": ["/N"],
+      "x-verapdf": ["ISO_19005_1:6.5.3-4", "ISO_19005_2:6.3.3-2", "ISO_19005_3:6.3.3-2"],
+      "x-message": "the appearance dictionary shall contain only /N",
+      "properties": {
+        "/N": {
+          "$ref": "#/$defs/ref",
+          "x-verapdf": ["ISO_19005_1:6.5.3-6", "ISO_19005_2:6.3.3-4", "ISO_19005_3:6.3.3-4"],
+          "x-message": "the normal appearance (/N) shall be a stream"
+        }
+      },
+      "additionalProperties": false,
+      "x-closed": true,
+      "x-children": {"/N": "FormXObject"}
+    },
+
+    "ObjectMetadata": {"x-kind": "any", "$ref": "#/$defs/unsupported", "x-message": "metadata streams on objects other than the catalog are not checked yet"}
+  }
+}
