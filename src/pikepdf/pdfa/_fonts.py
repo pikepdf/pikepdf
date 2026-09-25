@@ -646,10 +646,10 @@ class _Loader:
 
     def common(self, font: pikepdf.Dictionary, what: str) -> str | None:
         """Check /Type, /Subtype and /BaseFont; return the subtype."""
-        font_type = pikepdf.unbox(font.get('/Type'))
+        font_type = font.get('/Type')
         if font_type != pikepdf.Name.Font:
             self.deny('type', f"{what} /Type is {pdf_repr(font_type)}, not /Font")
-        subtype = pikepdf.unbox(font.get('/Subtype'))
+        subtype = font.get('/Subtype')
         subtype_text = str(subtype) if isinstance(subtype, pikepdf.Name) else None
         if subtype_text not in FONT_SUBTYPES:
             self.deny(
@@ -815,7 +815,7 @@ class _Loader:
             return
         info.symbolic = symbolic
         tables = program.cmap_tables()
-        encoding = pikepdf.unbox(font.get('/Encoding'))
+        encoding = font.get('/Encoding')
         if symbolic:
             if encoding is not None:
                 self.deny(
@@ -952,10 +952,10 @@ class _Loader:
         base_table: Mapping[int, str] = (
             builtin if builtin is not None else encoding_table(STANDARD)
         )
-        encoding = pikepdf.unbox(font.get('/Encoding'))
+        encoding = font.get('/Encoding')
         differences: dict[int, str] = {}
         if isinstance(encoding, pikepdf.Dictionary):
-            base_obj = pikepdf.unbox(encoding.get('/BaseEncoding'))
+            base_obj = encoding.get('/BaseEncoding')
             encoding = base_obj
             try:
                 if '/Differences' in font.Encoding:
@@ -1021,7 +1021,7 @@ class _Loader:
             return
         info.cid_subtype = subtype
         system_info = self.cid_system_info(cidfont.get('/CIDSystemInfo'), "CIDFont")
-        self.encoding_cmap(pikepdf.unbox(font.get('/Encoding')), system_info)
+        self.encoding_cmap(font.get('/Encoding'), system_info)
         self.cid_widths(cidfont)
         if subtype == '/CIDFontType2':
             self.cid_to_gid_map(cidfont)
@@ -1110,7 +1110,7 @@ class _Loader:
             elif e.reason == 'ambiguous':
                 self.unsupported('font-cmap-ambiguous', f"embedded CMap: {e}")
             elif e.reason == 'usecmap':
-                use = pikepdf.unbox(encoding.get('/UseCMap'))
+                use = encoding.get('/UseCMap')
                 if isinstance(use, pikepdf.Name) and str(use) in PREDEFINED_CMAPS:
                     self.unsupported('font-cmap', f"{e}: {use}")
                 elif use is None or ctx.flavour.part == 1:

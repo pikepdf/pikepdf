@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from pikepdf import Array, Dictionary, Name, Pdf, Stream, String, unbox
+from pikepdf import Array, Dictionary, Name, Pdf, Stream, String
 from pikepdf.pdfa._catalogue import data_file
 from pikepdf.pdfa._flavour import Flavour
 from pikepdf.pdfa._icc import (
@@ -232,7 +232,7 @@ def has_output_intent(pdf: Pdf, spec: OutputIntentSpec) -> bool:
         and str(info) == spec.info
         and isinstance(profile, Stream)
         and profile.is_indirect
-        and unbox(profile.get(Name.N)) == spec.n
+        and profile.get(Name.N) == spec.n
         and profile.read_bytes() == spec.icc
     )
 

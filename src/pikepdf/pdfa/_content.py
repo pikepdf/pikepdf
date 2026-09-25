@@ -542,13 +542,13 @@ class _StreamWalk:
         # the state that combines across dictionaries is tracked.
         stroke, fill, mode = self.state.overprint
         if '/OP' in params:
-            stroke = pikepdf.unbox(params.get('/OP')) is True
+            stroke = params.get_bool('/OP') is True
             if '/op' not in params:
                 fill = stroke
         if '/op' in params:
-            fill = pikepdf.unbox(params.get('/op')) is True
+            fill = params.get_bool('/op') is True
         if '/OPM' in params:
-            mode = 1 if pikepdf.unbox(params.get('/OPM')) == 1 else 0
+            mode = 1 if params.get('/OPM') == 1 else 0
         self.state = replace(self.state, overprint=(stroke, fill, mode))
         if mode == 1 and (stroke or fill):
             self.deny(
@@ -695,7 +695,7 @@ class _StreamWalk:
         if not isinstance(xobject, pikepdf.Stream):
             self.deny('pikepdf:schema-XObject', f"XObject {name} is not a stream")
             return
-        subtype = pikepdf.unbox(xobject.get('/Subtype'))
+        subtype = xobject.get('/Subtype')
         if subtype == pikepdf.Name.Image:
             # The image dictionary is checked by the ImageXObject role when
             # the document walker reaches the resource dictionary; its colour
@@ -773,10 +773,10 @@ class _StreamWalk:
                     f"inline image key {key} is not supported",
                     'unsupported',
                 )
-        filters = pikepdf.unbox(obj.get('/Filter'))
+        filters = obj.get('/Filter')
         if filters is not None:
             items = filters if isinstance(filters, pikepdf.Array) else [filters]
-            for item in map(pikepdf.unbox, items):
+            for item in items:
                 name = str(item) if isinstance(item, pikepdf.Name) else pdf_repr(item)
                 if name in FORBIDDEN_FILTERS:
                     self.deny(
@@ -789,20 +789,20 @@ class _StreamWalk:
                         f"inline image filter {name} is not supported",
                         'unsupported',
                     )
-        if pikepdf.unbox(obj.get('/Interpolate')) is True:
+        if obj.get_bool('/Interpolate') is True:
             self.deny(
                 ctx.rule('6.2.4-3', '6.2.8-3'),
                 "inline image /Interpolate shall be false",
             )
-        intent = pikepdf.unbox(obj.get('/Intent'))
+        intent = obj.get('/Intent')
         if intent is not None and str(intent) not in RENDERING_INTENTS:
             self.deny(
                 ctx.rule('6.2.9-1', '6.2.6-1'),
                 f"inline image rendering intent {pdf_str(intent)}",
             )
-        bpc = pikepdf.unbox(obj.get('/BitsPerComponent'))
+        bpc = obj.get('/BitsPerComponent')
         allowed_bpc = {1, 2, 4, 8} if ctx.flavour.part == 1 else {1, 2, 4, 8, 16}
-        if pikepdf.unbox(obj.get('/ImageMask')) is True:
+        if obj.get_bool('/ImageMask') is True:
             if bpc not in (None, 1):
                 self.deny('pikepdf:inline-image', f"image mask with BPC {pdf_str(bpc)}")
             return
@@ -811,7 +811,7 @@ class _StreamWalk:
                 ctx.rule('6.2.4-4', '6.2.8-4'),
                 f"inline image /BitsPerComponent {pdf_str(bpc)}",
             )
-        colour_space = pikepdf.unbox(obj.get('/ColorSpace'))
+        colour_space = obj.get('/ColorSpace')
         if colour_space is None:
             self.deny('pikepdf:inline-image', "inline image has no colour space")
             return

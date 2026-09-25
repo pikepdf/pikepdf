@@ -434,7 +434,7 @@ def check_image_colour(
         ctx: Validation context.
         where: Location used in findings.
     """
-    if pikepdf.unbox(image.get('/ImageMask')) is True:
+    if image.get_bool('/ImageMask') is True:
         return
     colour_space = image.get('/ColorSpace')
     if colour_space is None:

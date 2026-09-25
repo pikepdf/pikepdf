@@ -280,7 +280,7 @@ class DocumentWalker:
             return
         if not check_output_profile(header, ctx.flavour, ctx, where):
             return
-        n = pikepdf.unbox(obj.get('/N'))
+        n = obj.get('/N')
         if COMPONENTS.get(header.colour_space) != n:
             ctx.deny(
                 'pikepdf:icc-components',
@@ -378,9 +378,9 @@ class DocumentWalker:
                 if pages is None:
                     return None
                 total += pages
-            count = pikepdf.unbox(node.get('/Count'))
+            count = node.get_int('/Count')
             where = f'{ctx.describe(node)} (Pages)'
-            if not isinstance(count, int) or isinstance(count, bool):
+            if count is None:
                 ctx.deny('pikepdf:page-tree', where, "/Count is not an integer")
             elif count != total:
                 ctx.deny(
@@ -443,9 +443,9 @@ class DocumentWalker:
     def _on_annot(self, obj: Any, where: str, depth: int) -> None:
         ctx = self.ctx
         part1 = ctx.flavour.part == 1
-        subtype = pikepdf.unbox(obj.get('/Subtype'))
-        flags = pikepdf.unbox(obj.get('/F'))
-        if isinstance(flags, int) and not isinstance(flags, bool):
+        subtype = obj.get('/Subtype')
+        flags = obj.get_int('/F')
+        if flags is not None:
             forbidden = ANNOT_INVISIBLE | ANNOT_HIDDEN | ANNOT_NOVIEW
             if not part1:
                 forbidden |= ANNOT_TOGGLE_NOVIEW
@@ -479,7 +479,7 @@ class DocumentWalker:
                 f"{pdf_str(subtype)} annotation has no appearance dictionary",
             )
         if part1:
-            opacity = pikepdf.unbox(obj.get('/CA'))
+            opacity = obj.get('/CA')
             if opacity is not None and opacity != 1:
                 ctx.deny(
                     ctx.rule('6.5.3-1', None),
