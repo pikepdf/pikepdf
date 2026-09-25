@@ -106,34 +106,17 @@ def parse_xmp_date(s: str) -> datetime:
 
     XMP allows any number of digits in the fraction of a second and, as
     written in the wild, a time zone offset with or without a colon.
-    :meth:`datetime.fromisoformat` accepts neither on Python 3.10, so XMP
-    dates are parsed here. A missing time zone gives a naive datetime, since
-    XMP says the time zone is then unknown. A year or year-month alone is
-    not a datetime; callers handle those forms before calling this.
+    :meth:`datetime.fromisoformat` accepts both, but also accepts ISO 8601
+    forms that XMP does not, such as week dates, so the string is checked
+    against the XMP grammar first. A missing time zone gives a naive
+    datetime, since XMP says the time zone is then unknown. A year or
+    year-month alone is not a datetime; callers handle those forms before
+    calling this.
     """
     m = _re_xmp_date.match(s)
     if m is None or m['day'] is None:
         raise ValueError(f"Date string is not a valid XMP date: {s!r}")
-    fraction = m['fraction']
-    microsecond = int(fraction[:6].ljust(6, '0')) if fraction else 0
-    tzinfo = None
-    if m['tz'] == 'Z':
-        tzinfo = timezone.utc
-    elif m['tz']:
-        sign = -1 if m['tz'][0] == '-' else 1
-        digits = m['tz'][1:].replace(':', '')
-        offset = timedelta(hours=int(digits[:2]), minutes=int(digits[2:]))
-        tzinfo = timezone(sign * offset)
-    return datetime(
-        int(m['year']),
-        int(m['month']),
-        int(m['day']),
-        int(m['hour'] or 0),
-        int(m['minute'] or 0),
-        int(m['second'] or 0),
-        microsecond,
-        tzinfo=tzinfo,
-    )
+    return datetime.fromisoformat(s)
 
 
 def encode_xmp_date(d: datetime | date) -> str:

@@ -7,8 +7,8 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterator, MutableMapping
-from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Any
+from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Any, Self
 from warnings import warn
 
 from pikepdf._version import __version__ as pikepdf_version
@@ -152,7 +152,7 @@ class PdfMetadata(MutableMapping):
                 "has no XMP equivalent, so it was discarded",
             )
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         """Open metadata for editing."""
         self._updating = True
         return self
@@ -215,7 +215,7 @@ class PdfMetadata(MutableMapping):
             # We were asked to mark the file as being edited by pikepdf
             self._setitem(
                 QName(XMP_NS_XMP, 'MetadataDate'),
-                datetime.now(timezone.utc).isoformat(),
+                datetime.now(UTC).isoformat(),
                 applying_mark=True,
             )
             self._setitem(

@@ -5,10 +5,7 @@
 
 from __future__ import annotations
 
-try:
-    import tomllib
-except ModuleNotFoundError:
-    import tomli as tomllib  # type: ignore
+import tomllib
 
 with open('pyproject.toml', 'rb') as f:
     t = tomllib.load(f)

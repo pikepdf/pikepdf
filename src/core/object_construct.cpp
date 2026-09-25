@@ -26,7 +26,7 @@
 //   version-dependent and can silently mis-size instances rather than fail
 //   cleanly. Calling type(...) goes through type_new -- the exact path the
 //   interpreter uses for `class M(type): ...` -- so it is correct on every
-//   supported version (our floor is requires-python >= 3.10).
+//   supported version (our floor is requires-python >= 3.11).
 //
 //   TODO(py>=3.12): once the minimum supported Python is 3.12, replace the
 //   make_metaclass() / type(...) dance with PyType_FromMetaclass(), which was

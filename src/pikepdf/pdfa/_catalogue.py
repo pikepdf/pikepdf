@@ -11,28 +11,17 @@ the veraPDF validation profiles (CC BY 4.0, veraPDF Consortium).
 from __future__ import annotations
 
 import json
-import sys
 from functools import cache
 from importlib.resources import files
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    if sys.version_info >= (3, 11):
-        from importlib.resources.abc import Traversable
-    else:
-        from importlib.abc import Traversable
+    from importlib.resources.abc import Traversable
 
 
 def data_file(*parts: str) -> Traversable:
-    """Return a file in the package ``data`` directory.
-
-    Joins one path segment at a time, which Python 3.10's resource readers
-    require.
-    """
-    resource = files('pikepdf.pdfa').joinpath('data')
-    for part in parts:
-        resource = resource.joinpath(part)
-    return resource
+    """Return a file in the package ``data`` directory."""
+    return files('pikepdf.pdfa').joinpath('data', *parts)
 
 
 def load_json(*parts: str) -> Any:

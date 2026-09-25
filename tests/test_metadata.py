@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import os
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
@@ -254,10 +254,10 @@ def test_python_xmp_validate_change(sandwich, libxmp_meta):
 def test_decode_pdf_date():
     VALS = [
         ('20160220040559', datetime(2016, 2, 20, 4, 5, 59)),
-        ("20180101010101Z00'00'", datetime(2018, 1, 1, 1, 1, 1, tzinfo=timezone.utc)),
-        ("20180101010101Z00'00", datetime(2018, 1, 1, 1, 1, 1, tzinfo=timezone.utc)),
-        ("20180101010101Z", datetime(2018, 1, 1, 1, 1, 1, tzinfo=timezone.utc)),
-        ("20180101010101+0000", datetime(2018, 1, 1, 1, 1, 1, tzinfo=timezone.utc)),
+        ("20180101010101Z00'00'", datetime(2018, 1, 1, 1, 1, 1, tzinfo=UTC)),
+        ("20180101010101Z00'00", datetime(2018, 1, 1, 1, 1, 1, tzinfo=UTC)),
+        ("20180101010101Z", datetime(2018, 1, 1, 1, 1, 1, tzinfo=UTC)),
+        ("20180101010101+0000", datetime(2018, 1, 1, 1, 1, 1, tzinfo=UTC)),
         (
             "20180101010101+0100",
             datetime(2018, 1, 1, 1, 1, 1, tzinfo=timezone(timedelta(hours=1))),
@@ -278,12 +278,7 @@ def test_date_docinfo_from_xmp():
 
 
 def test_xmp_date_forms_docinfo_from_xmp():
-    """Every form in XMP Specification Part 1, 8.2.1.2, converts to DocumentInfo.
-
-    ``datetime.fromisoformat`` on Python 3.10 rejects fractions that are not
-    exactly 3 or 6 digits and offsets without a colon, so the converter must
-    not depend on it.
-    """
+    """Every form in XMP Specification Part 1, 8.2.1.2, converts to DocumentInfo."""
     VALS = [
         ('2018-12-04', "D:20181204"),
         ('2018-12-04T03:02Z', "D:20181204030200+00'00"),
@@ -777,7 +772,7 @@ def test_xmp_metadatadate_timezone(sandwich, outpdf):
         with pdf.open_metadata() as m:
             dt = datetime.fromisoformat(m['xmp:MetadataDate'])
             assert dt.tzinfo is not None
-            assert dt.tzinfo == timezone.utc
+            assert dt.tzinfo == UTC
 
 
 def test_modify_not_opened(graph):
@@ -1443,7 +1438,7 @@ class TestXmpPropertyTypes:
 
     def test_datetime_to_date_property(self):
         xmp = XmpDocument()
-        when = datetime(2024, 6, 1, 12, 30, tzinfo=timezone.utc)
+        when = datetime(2024, 6, 1, 12, 30, tzinfo=UTC)
         xmp['xmp:ModifyDate'] = when
         assert xmp['xmp:ModifyDate'] == when.isoformat()
         assert datetime.fromisoformat(xmp['xmp:ModifyDate']) == when
@@ -1457,7 +1452,7 @@ class TestXmpPropertyTypes:
 
     def test_datetime_in_array_property(self):
         xmp = XmpDocument()
-        xmp['dc:date'] = [datetime(2024, 6, 1, tzinfo=timezone.utc)]
+        xmp['dc:date'] = [datetime(2024, 6, 1, tzinfo=UTC)]
         assert xmp['dc:date'] == ['2024-06-01T00:00:00+00:00']
 
     def test_int_to_integer_property(self):

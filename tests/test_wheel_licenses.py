@@ -17,14 +17,10 @@ distribution, so they hold in an editable dev install where no wheel exists.
 from __future__ import annotations
 
 import re
+import tomllib
 from pathlib import Path
 
 import pytest
-
-try:
-    import tomllib
-except ModuleNotFoundError:
-    import tomli as tomllib  # type: ignore
 
 REPO_ROOT = Path(__file__).parent.parent
 THIRD_PARTY = REPO_ROOT / 'third-party-licenses'

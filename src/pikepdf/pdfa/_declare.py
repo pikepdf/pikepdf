@@ -392,7 +392,7 @@ def declare_pdfa_metadata(pdf: Pdf, flavour: Flavour | str) -> MetadataDeclarati
     # The same marks pikepdf's metadata editor leaves, set before the PDF/A
     # identification so that the property order is stable when repeated
     properties[f'{{{_XMP}}}MetadataDate'] = Value(
-        'simple', text=dt.datetime.now(dt.timezone.utc).isoformat()
+        'simple', text=dt.datetime.now(dt.UTC).isoformat()
     )
     properties[f'{{{_PDF}}}Producer'] = Value(
         'simple', text=f'pikepdf {pikepdf_version}'

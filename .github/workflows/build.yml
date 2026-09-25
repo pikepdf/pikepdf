@@ -19,8 +19,8 @@ jobs:
       CIBW_BUILD: "${{ matrix.build }}"
     strategy:
       # One wheel target per worker. The x86_64 runners intermittently fail to
-      # spawn a subprocess during the *second* build in a sequence (cp311 after
-      # cp310), dying with "No such file or directory" at the compiler check.
+      # spawn a subprocess during the *second* build in a sequence (cp312 after
+      # cp311), dying with "No such file or directory" at the compiler check.
       # Building a single target per job makes every build the first in its job,
       # which sidesteps the failure. fail-fast: false so one target's flake does
       # not cancel the others. musllinux x86_64 has not shown the failure, so it
@@ -28,7 +28,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { id: cp310-manylinux_x86_64, build: cp310-manylinux_x86_64 }
           - { id: cp311-manylinux_x86_64, build: cp311-manylinux_x86_64 }
           - { id: cp312-manylinux_x86_64, build: cp312-manylinux_x86_64 }
           - { id: cp313-manylinux_x86_64, build: cp313-manylinux_x86_64 }
@@ -151,11 +150,10 @@ jobs:
       - uses: actions/setup-python@v6
         name: Install Python
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
-      - name: Install tomli and read environment from pyproject.toml
+      - name: Read environment from pyproject.toml
         run: |
-          python -m pip install tomli
           python build-scripts/environ-from-pyproject.py >> $env:GITHUB_ENV
           dir env:
 
@@ -195,16 +193,15 @@ jobs:
       - uses: actions/setup-python@v6
         name: Install Python
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
       - name: Install apt packages
         run: |
           sudo apt-get update
           sudo apt-get install -y cmake jbig2dec lcov libexempi8 poppler-utils
 
-      - name: Install tomli and read environment from pyproject.toml
+      - name: Read environment from pyproject.toml
         run: |
-          python -m pip install tomli
           python build-scripts/environ-from-pyproject.py >> $GITHUB_ENV
 
       - name: Download QPDF

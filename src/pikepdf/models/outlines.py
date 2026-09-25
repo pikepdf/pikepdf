@@ -9,7 +9,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from enum import Enum, IntFlag
 from itertools import chain
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Self, cast
 
 from pikepdf._core import Page, Pdf, PikepdfError
 from pikepdf.objects import Array, Dictionary, Name, Object, String
@@ -618,7 +618,7 @@ class Outline:
                     p.breakable()
                     p.pretty(str(item))
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         self._updating = True
         return self
 

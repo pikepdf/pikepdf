@@ -9,17 +9,12 @@ from __future__ import annotations
 
 import ast
 import gc
+import tomllib
 from contextlib import suppress
 from pathlib import Path
 from shutil import copy
 
 import pytest
-
-try:
-    import tomllib
-except ModuleNotFoundError:
-    import tomli as tomllib  # type: ignore
-
 from packaging.version import Version
 
 import pikepdf

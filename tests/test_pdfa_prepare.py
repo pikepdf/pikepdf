@@ -413,7 +413,7 @@ def test_declare_properties(flavour, los_angeles_tz):
         assert not metadata_date.endswith('Z')
         parsed = dt.datetime.fromisoformat(metadata_date)
         assert parsed.tzinfo is not None
-        assert abs(dt.datetime.now(dt.timezone.utc) - parsed) < dt.timedelta(minutes=5)
+        assert abs(dt.datetime.now(dt.UTC) - parsed) < dt.timedelta(minutes=5)
         assert reading.properties[f'{{{DC_NS}}}title'].x_default() == (
             'Quarterly report'
         )

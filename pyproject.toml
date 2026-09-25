@@ -21,7 +21,7 @@ name = "pikepdf"
 version = "10.13.0.post1"
 description = "Read, write, repair, and transform PDFs in Python, powered by qpdf"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 keywords = ["PDF"]
 authors = [{ name = "James R. Barlow", email = "james@purplerock.ca" }]
 license = "MPL-2.0"
@@ -204,7 +204,7 @@ directory = "coverage/pycov"
 
 [tool.ruff]
 src = ["src/pikepdf"]
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = [
@@ -270,7 +270,6 @@ docs = [
   "sphinx-design",
   "sphinx-issues",
   "sphinx-rtd-theme",
-  "tomli; python_version < '3.11'",
 ]
 mypy = ["lxml-stubs", "types-Pillow", "types-requests", "types-setuptools"]
 test = [
@@ -289,5 +288,4 @@ test = [
   "pytest-xdist>=2.5.0",
   "python-dateutil>=2.8.1",
   "python-xmp-toolkit>=2.0.1,<2.1.0; os_name != 'nt' and platform_machine == 'x86_64'",
-  "tomli; python_version < '3.11'",
 ]

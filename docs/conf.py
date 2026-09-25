@@ -16,12 +16,7 @@ from __future__ import annotations
 import datetime
 import os
 import sys
-
-try:
-    import tomllib
-except ModuleNotFoundError:
-    import tomli as tomllib  # type: ignore
-
+import tomllib
 
 extensions = [
     'autoapi.extension',

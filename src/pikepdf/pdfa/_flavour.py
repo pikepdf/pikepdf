@@ -5,21 +5,15 @@
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 
-class Flavour(str, Enum):
+class Flavour(StrEnum):
     """A PDF/A part and conformance level that the validator can check."""
 
     PDFA_1B = '1b'
     PDFA_2B = '2b'
     PDFA_3B = '3b'
-
-    def __str__(self) -> str:
-        return self.value
-
-    def __format__(self, format_spec: str) -> str:
-        return format(self.value, format_spec)
 
     @property
     def part(self) -> int:

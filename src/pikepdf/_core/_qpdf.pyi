@@ -14,7 +14,7 @@ from collections.abc import Callable, Iterable
 from contextlib import AbstractContextManager
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, BinaryIO, Literal, overload
+from typing import TYPE_CHECKING, Any, BinaryIO, Literal, Self, overload
 
 from pikepdf._core._acroform import AcroForm
 from pikepdf._core._embeddedfiles import Attachments
@@ -178,7 +178,7 @@ class Pdf:
             page_size (tuple): The size of the page in PDF units (1/72 inch or 0.35mm).
                 Default size is set to a US Letter 8.5" x 11" page.
         """
-    def __enter__(self) -> Pdf: ...
+    def __enter__(self) -> Self: ...
     def __exit__(self, exc_type, exc_value, traceback) -> None: ...
     def __init__(self, *args, **kwargs) -> None: ...
     def _add_page(self, page: Object, first: bool = ...) -> None:

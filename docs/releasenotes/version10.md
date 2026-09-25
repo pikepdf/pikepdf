@@ -2,7 +2,7 @@
 
 ## Breaking changes for v10.x
 - Dropped Python 3.9 compatibility, since it is end of life. Python 3.10 through
-  3.14 are supported.
+  3.14 are supported. (Python 3.10 was later dropped in v10.14.0.)
 - Dropped macOS 13 support, since it is end of life.
 - Dropped macOS 14 Intel wheels, because GitHub doesn't provide a way to build
   them - macOS 15 Intel works fine.
@@ -21,6 +21,15 @@ detailed feedback from the OCRmyPDF project's migration to these APIs
 (`pikepdf.explicit_conversion()`, the `as_*` safe accessors, and `NamePath`)
 in a production codebase that reads untrusted, often malformed, PDFs. Thanks
 to that project for the report.
+
+### Python support
+
+- Dropped support for Python 3.10, which reaches end of life on October 31,
+  2026. Python 3.11 through 3.14 are supported, and wheels are no longer built
+  for CPython 3.10. pip will keep installing pikepdf 10.13 on Python 3.10.
+- Internal code now uses Python 3.11 features: `tomllib`, `enum.StrEnum`,
+  `typing.Self`, `datetime.UTC` and the broader ISO 8601 support in
+  `datetime.fromisoformat`. The compatibility shims for Python 3.10 are gone.
 
 ### Conversion mode
 
