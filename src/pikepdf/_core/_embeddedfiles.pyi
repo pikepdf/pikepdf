@@ -214,12 +214,20 @@ class Attachments(MutableMapping[str, AttachedFileSpec]):
 
     Use this interface through :attr:`pikepdf.Pdf.attachments`.
 
+    Attaching a file also lists its file specification in the document
+    catalog's ``/AF`` (associated files) array, as PDF/A-3 requires, and
+    removing or replacing an attachment removes its entry. Other entries in
+    ``/AF`` are left alone.
+
     .. versionadded:: 3.0
 
     .. versionchanged:: 8.10.1
         Added convenience interface for directly loading attached files, e.g.
         ``pdf.attachments['/test.pdf'] = b'binary data'``. Prior to this release,
         there was no way to attach data in memory as a file.
+
+    .. versionchanged:: 10.15.0
+        Attached files are listed in the catalog's ``/AF`` array.
     """
 
     def __contains__(self, k: object, /) -> bool: ...

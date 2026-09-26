@@ -16,7 +16,28 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
-## v10.14.0
+## v10.15.0
+
+### PDF/A-3 attachments
+
+- Attaching a file through `Pdf.attachments` now lists its file specification
+  in the document catalog's `/AF` (associated files) array, and deleting or
+  replacing an attachment removes its entry. Together with the
+  `/AFRelationship` pikepdf already writes, a file attached to a PDF/A-3
+  document now keeps it conformant. qpdf maintains only the `/EmbeddedFiles`
+  name tree, so this was previously left to the user. {issue}`463`
+- The PDF/A validator now approves embedded files in PDF/A-3b documents: the
+  `/EmbeddedFiles` name tree and the catalog's `/AF` array are checked against
+  clause 6.8 of ISO 19005-3 (MIME type, `/F` and `/UF`, `/AFRelationship`,
+  and that every embedded file is an associated file). Embedded files anywhere
+  else, such as in file attachment annotations, are still reported as
+  unsupported; they remain violations in PDF/A-1b and unsupported in PDF/A-2b.
+  {func}`pikepdf.pdfa.prepare` gives PDF/A-3 embedded files a missing MIME type
+  (`application/octet-stream`) and `/AFRelationship` (`/Unspecified`), and
+  lists unassociated ones in the catalog's `/AF` array; new
+  {class}`pikepdf.pdfa.PrepareResult` fields count these repairs. See
+  {ref}`pdfa-attachments`.
+
 
 Several improvements to explicit conversion mode and `NamePath`, prompted by
 the OCRmyPDF project's migration to these APIs

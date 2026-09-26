@@ -85,12 +85,11 @@
  "ISO_19005_1:6.1.11-1": {
   "status": "implemented",
   "by": "role:Catalog, role:Action, python:_cos.check_objects",
-  "note": "File specifications with /EF anywhere in the file are violations; /Names is unsupported"
+  "note": "File specifications with /EF anywhere in the file are violations"
  },
  "ISO_19005_1:6.1.11-2": {
-  "status": "denied_on_presence",
-  "by": "role:Catalog",
-  "note": "/Names is unsupported"
+  "status": "implemented",
+  "by": "role:EmbeddedFiles"
  },
  "ISO_19005_1:6.1.12-1": {
   "status": "implemented",
@@ -1206,13 +1205,13 @@
  },
  "ISO_19005_2:6.8-2": {
   "status": "denied_on_presence",
-  "by": "role:Catalog, role:Action, python:_cos.check_objects",
-  "note": "Embedded files: /Names, /AF and file specification dictionaries are unsupported"
+  "by": "role:EmbeddedFiles, role:AssociatedFiles, role:Action, python:_cos.check_objects",
+  "note": "Embedded files: /EmbeddedFiles, /AF and file specification dictionaries are unsupported"
  },
  "ISO_19005_2:6.8-5": {
   "status": "denied_on_presence",
-  "by": "role:Catalog, role:Action, python:_cos.check_objects",
-  "note": "Embedded files: /Names, /AF and file specification dictionaries are unsupported"
+  "by": "role:EmbeddedFiles, role:AssociatedFiles, role:Action, python:_cos.check_objects",
+  "note": "Embedded files: /EmbeddedFiles, /AF and file specification dictionaries are unsupported; the embedded files themselves are not validated"
  },
  "ISO_19005_2:6.9-1": {
   "status": "denied_on_presence",
@@ -1236,8 +1235,8 @@
  },
  "ISO_19005_2:6.10-1": {
   "status": "denied_on_presence",
-  "by": "role:Catalog",
-  "note": "/Names is unsupported"
+  "by": "role:NameDictionary",
+  "note": "/AlternatePresentations is unsupported"
  },
  "ISO_19005_2:6.10-2": {
   "status": "implemented",
@@ -1869,24 +1868,24 @@
   "by": "python:_xmp._check_namespaces"
  },
  "ISO_19005_3:6.8-1": {
-  "status": "denied_on_presence",
-  "by": "role:Catalog, role:Action, python:_cos.check_objects",
-  "note": "Embedded files: /Names, /AF and file specification dictionaries are unsupported"
+  "status": "implemented",
+  "by": "role:EmbeddedFile, python:_cos.check_objects",
+  "note": "Embedded files of the /EmbeddedFiles name tree and the catalog /AF array; file specifications and embedded files anywhere else are unsupported"
  },
  "ISO_19005_3:6.8-2": {
-  "status": "denied_on_presence",
-  "by": "role:Catalog, role:Action, python:_cos.check_objects",
-  "note": "Embedded files: /Names, /AF and file specification dictionaries are unsupported"
+  "status": "implemented",
+  "by": "role:FileSpec, python:_cos.check_objects",
+  "note": "Embedded files of the /EmbeddedFiles name tree and the catalog /AF array; file specifications and embedded files anywhere else are unsupported"
  },
  "ISO_19005_3:6.8-3": {
-  "status": "denied_on_presence",
-  "by": "role:Catalog, role:Action, python:_cos.check_objects",
-  "note": "Embedded files: /Names, /AF and file specification dictionaries are unsupported"
+  "status": "implemented",
+  "by": "role:FileSpec, python:_cos.check_objects",
+  "note": "File specifications of the /EmbeddedFiles name tree and the catalog /AF array; those without /EF, and file specifications anywhere else, are unsupported"
  },
  "ISO_19005_3:6.8-4": {
-  "status": "denied_on_presence",
-  "by": "role:Catalog, role:Action, python:_cos.check_objects",
-  "note": "Embedded files: /Names, /AF and file specification dictionaries are unsupported"
+  "status": "implemented",
+  "by": "role:FileSpec, python:_embedded.check_associated_files",
+  "note": "Every file specification with /EF the walker reaches must be listed in some /AF array; /AF arrays other than the catalog one are unsupported"
  },
  "ISO_19005_3:6.9-1": {
   "status": "denied_on_presence",
@@ -1910,8 +1909,8 @@
  },
  "ISO_19005_3:6.10-1": {
   "status": "denied_on_presence",
-  "by": "role:Catalog",
-  "note": "/Names is unsupported"
+  "by": "role:NameDictionary",
+  "note": "/AlternatePresentations is unsupported"
  },
  "ISO_19005_3:6.10-2": {
   "status": "implemented",

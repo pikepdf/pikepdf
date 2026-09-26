@@ -204,3 +204,71 @@ def test_relationship_none_removes_it(pal):
     # /AFRelationship is gone, so removing it again has nothing to remove
     with pytest.raises(KeyError, match='AFRelationship'):
         fs.relationship = None
+
+
+def _catalog_af(pdf):
+    return [fs.objgen for fs in pdf.Root.get(Name.AF, pikepdf.Array())]
+
+
+def test_attach_adds_filespec_to_catalog_af(pal):
+    fs = AttachedFileSpec(pal, b'data', filename='a.txt')
+    pal.attachments['a.txt'] = fs
+    assert _catalog_af(pal) == [fs.obj.objgen]
+    assert pal.Root.AF[0].AFRelationship == Name.Unspecified
+
+
+def test_attach_bytes_adds_filespec_to_catalog_af(pal):
+    pal.attachments['a.txt'] = b'data'
+    assert _catalog_af(pal) == [pal.attachments['a.txt'].obj.objgen]
+
+
+def test_reattach_does_not_duplicate_af_entry(pal):
+    fs = AttachedFileSpec(pal, b'data', filename='a.txt')
+    pal.attachments['a.txt'] = fs
+    pal.attachments['a.txt'] = fs
+    assert _catalog_af(pal) == [fs.obj.objgen]
+
+
+def test_replace_attachment_replaces_af_entry(pal):
+    old = AttachedFileSpec(pal, b'old', filename='a.txt')
+    new = AttachedFileSpec(pal, b'new', filename='a.txt')
+    pal.attachments['a.txt'] = old
+    pal.attachments['a.txt'] = new
+    assert _catalog_af(pal) == [new.obj.objgen]
+
+
+def test_delete_attachment_removes_af_entry(pal):
+    pal.attachments['a.txt'] = b'a'
+    pal.attachments['b.txt'] = b'b'
+    b_objgen = pal.attachments['b.txt'].obj.objgen
+    del pal.attachments['a.txt']
+    assert _catalog_af(pal) == [b_objgen]
+    del pal.attachments['b.txt']
+    assert Name.AF not in pal.Root
+
+
+def test_attach_keeps_existing_af_entries(pal):
+    other = pal.make_indirect(pikepdf.Dictionary(Type=Name.Filespec, F='x'))
+    af = pal.make_indirect(pikepdf.Array([other]))
+    pal.Root.AF = af
+    pal.attachments['a.txt'] = b'a'
+    del pal.attachments['a.txt']
+    # The indirect array was edited in place, and entries not added for
+    # attachments survive
+    assert pal.Root.AF.objgen == af.objgen
+    assert _catalog_af(pal) == [other.objgen]
+
+
+def test_attach_leaves_malformed_af_alone(pal):
+    pal.Root.AF = Name.Bogus
+    pal.attachments['a.txt'] = b'a'
+    assert pal.Root.AF == Name.Bogus
+    del pal.attachments['a.txt']
+    assert pal.Root.AF == Name.Bogus
+
+
+def test_catalog_af_survives_save(pal, outpdf):
+    pal.attachments['a.txt'] = b'a'
+    pal.save(outpdf)
+    with Pdf.open(outpdf) as pdf:
+        assert _catalog_af(pdf) == [pdf.attachments['a.txt'].obj.objgen]
