@@ -369,3 +369,31 @@ def test_making_container_indirect_keeps_alias():
     assert d.is_indirect
     indirect.B = 2
     assert d.B == 2
+
+
+@pytest.mark.parametrize('kind', SCALAR_FACTORIES)
+def test_scalar_read_from_one_pdf_assignable_to_another(kind):
+    """A scalar owned by one Pdf is copied, not refused, when put in another."""
+    a, b = pikepdf.new(), pikepdf.new()
+    with pikepdf.explicit_conversion():
+        a.Root.T = SCALAR_FACTORIES[kind]()
+        value = a.Root.get_raw('/T')
+        assert value.is_owned_by(a)
+        b.Root.T = value
+        b.Root.A = Array([value])
+        assert b.Root.get_raw('/T').is_owned_by(b)
+        assert b.Root.A[0].is_owned_by(b)
+        assert value.is_owned_by(a)
+        indirect = b.make_indirect(value)
+        assert indirect.is_owned_by(b)
+        assert indirect == value
+        assert value.is_owned_by(a)
+        assert not value.is_indirect
+
+
+def test_parsed_scalar_assignable_to_another_pdf(resources):
+    with pikepdf.open(resources / 'graph.pdf') as a:
+        b = pikepdf.new()
+        b.Root.T = a.Root.Type
+        assert b.Root.T == Name.Catalog
+        assert b.make_indirect(a.Root.Type) == Name.Catalog

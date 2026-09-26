@@ -161,25 +161,34 @@ static QPDFObjectHandle adopt_into_impl(
 {
     if (depth > ADOPT_MAX_DEPTH || !value.isInitialized())
         return value;
-    // An indirect object always belongs to a document already, and an object
-    // that qpdf already associates with a document (this one or another) is
-    // left alone: qpdf raises ForeignObjectError for objects from another Pdf.
-    if (value.isIndirect() || live_owner(value) != nullptr)
+    // An indirect object always belongs to a document already.
+    if (value.isIndirect())
         return value;
+    QPDF *current = live_owner(value);
 
     // An empty description leaves qpdf's error messages exactly as they were
     // for an object with no description at all; the point of the call is the
     // owning QPDF that it records.
     if (is_scalar_object(value)) {
+        if (current == owner)
+            return value;
         // Scalars are immutable in pikepdf, and a handle such as a Name held
         // in a module-level constant is often inserted into several documents.
-        // Adopt a copy so the caller's object stays unowned and reusable.
+        // Adopt a copy so the caller's object stays unowned and reusable. A
+        // scalar read from another document is copied the same way: there is
+        // nothing to steal, since the other document keeps its own.
         auto copy = value.shallowCopy();
         copy.setObjectDescription(owner, "");
         if (entry)
             entry->record_adopted(copy.getObj());
         return copy;
     }
+
+    // A container that qpdf already associates with a document (this one or
+    // another) is left alone: qpdf raises ForeignObjectError for a container
+    // from another Pdf.
+    if (current != nullptr)
+        return value;
 
     // Containers are adopted in place: pikepdf callers expect a dictionary or
     // array they assigned into a Pdf to stay aliased with the document.
@@ -247,7 +256,12 @@ static void adopt_made_indirect(QPDF *owner, QPDFObjectHandle indirect)
 // passed to stay aliased with the document.
 QPDFObjectHandle make_direct_indirect(QPDF *owner, QPDFObjectHandle direct)
 {
-    auto target = is_scalar_object(direct) ? direct.shallowCopy() : direct;
+    auto target = direct;
+    if (is_scalar_object(direct)) {
+        target = direct.shallowCopy();
+        // The copy may carry another document's owner.
+        target.setObjectDescription(nullptr, "");
+    }
     auto indirect = owner->makeIndirectObject(target);
     adopt_made_indirect(owner, indirect);
     return indirect;
@@ -260,7 +274,8 @@ QPDFObjectHandle make_direct_indirect(QPDF *owner, QPDFObjectHandle direct)
 // document that still references it.
 void refuse_to_steal(QPDFObjectHandle &h, QPDF *target)
 {
-    if (h.isIndirect())
+    // A scalar is copied, so the other document keeps its own.
+    if (h.isIndirect() || is_scalar_object(h))
         return;
     QPDF *owner = live_owner(h);
     if (owner && owner != target)
