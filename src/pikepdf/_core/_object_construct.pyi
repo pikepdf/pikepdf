@@ -178,8 +178,10 @@ class Integer(Object):
     Supports ``int()`` conversion, indexing operations (via ``__index__``),
     arithmetic, and ordering comparisons (``<``, ``<=``, ``>``, ``>=``)
     against Python ``int``, ``float``, ``bool``, ``Decimal``, ``Integer`` and
-    ``Real``. Arithmetic returns a native Python number, never a pikepdf
-    object: ``int`` with an ``int``, ``bool`` or ``Integer`` operand,
+    ``Real``, as well as ``round()``, ``divmod()``, ``math.floor()`` and the
+    like, and format specs such as ``f'{x:d}'``. Arithmetic returns a native
+    Python number, never a pikepdf object: ``int`` with an ``int``, ``bool``
+    or ``Integer`` operand,
     ``float`` with a ``float``, and ``Decimal`` with a ``Decimal`` or
     ``Real``. A number computed from a document is not itself in the
     document, so there is nothing to box; assign the result to a dictionary
@@ -189,6 +191,9 @@ class Integer(Object):
     .. versionchanged:: 10.14
         Added ordering comparisons, and arithmetic with ``Integer``, ``Real``,
         ``Decimal`` and ``bool`` operands.
+    .. versionchanged:: 10.14.1
+        Added ``round()``, ``divmod()``, ``math.trunc()``, ``math.floor()``,
+        ``math.ceil()`` and format specs.
     """
 
     object_type: ObjectType
@@ -214,9 +219,12 @@ class Real(Object):
     In explicit conversion mode, PDF reals are returned as this type instead
     of being automatically converted to Python ``Decimal``.
 
-    Supports ``float()`` conversion, arithmetic, and ordering comparisons
-    (``<``, ``<=``, ``>``, ``>=``) against Python ``int``, ``float``,
-    ``bool``, ``Decimal``, ``Integer`` and ``Real``. Arithmetic and
+    Supports ``float()`` and ``int()`` conversion, arithmetic, and ordering
+    comparisons (``<``, ``<=``, ``>``, ``>=``) against Python ``int``,
+    ``float``, ``bool``, ``Decimal``, ``Integer`` and ``Real``, as well as
+    ``round()``, ``divmod()``, ``math.floor()`` and the like, and format specs
+    such as ``f'{x:.2f}'``. ``int()`` truncates, as it does for a ``Decimal``.
+    Arithmetic and
     comparisons use the exact decimal value of the PDF token, as
     ``as_decimal()`` returns it, and arithmetic returns a native Python
     number, never a pikepdf object: a ``Decimal``, except with a ``float``
@@ -227,6 +235,10 @@ class Real(Object):
     .. versionchanged:: 10.14
         Added ordering comparisons, and arithmetic with ``Integer``, ``Real``,
         ``Decimal``, ``int`` and ``bool`` operands.
+    .. versionchanged:: 10.14.1
+        ``int()`` truncates instead of raising ``TypeError``. Added
+        ``round()``, ``divmod()``, ``math.trunc()``, ``math.floor()``,
+        ``math.ceil()`` and format specs.
     """
 
     object_type: ObjectType

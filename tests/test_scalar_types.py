@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import locale
+import math
 from decimal import Decimal
 
 import pytest
@@ -846,10 +847,17 @@ class TestDivisionByZero:
 class TestIntIntConversions:
     """Tests for __int__ and __index__ methods."""
 
-    def test_int_on_non_integer_raises(self):
+    def test_int_on_real_truncates(self):
         with pikepdf.explicit_conversion():
-            d = Dictionary(Value=Real(3.14))
-            with pytest.raises(TypeError, match="not an integer"):
+            d = Dictionary(A=Real('90.0'), B=Real('-3.99'), C=Real('1e20'))
+            assert int(d.A) == 90 and type(int(d.A)) is int
+            assert int(d.B) == -3
+            assert int(d.C) == 10**20
+
+    def test_int_on_non_numeric_raises(self):
+        with pikepdf.explicit_conversion():
+            d = Dictionary(Value=Name.Foo)
+            with pytest.raises(TypeError, match="not numeric"):
                 int(d.Value)
 
     def test_index_on_non_integer_raises(self):
@@ -1937,3 +1945,97 @@ class TestUnbox:
                 explicit = [pikepdf.unbox(v) for v in box.as_list()]
         assert implicit == explicit
         assert [type(v) for v in explicit] == [type(v) for v in implicit]
+
+
+class TestNumberProtocolMatchesImplicit:
+    """Number protocol methods give the same result in either mode.
+
+    Implicit mode yields ``int`` and ``Decimal``, so each expression is
+    evaluated on the unboxed value and on the explicit-mode object.
+    """
+
+    EXPRESSIONS = {
+        'int': int,
+        'float': float,
+        'round': round,
+        'round0': lambda x: round(x, 0),
+        'round2': lambda x: round(x, 2),
+        'round-1': lambda x: round(x, -1),
+        'trunc': math.trunc,
+        'floor': math.floor,
+        'ceil': math.ceil,
+        'format': lambda x: format(x),
+        'format_f': lambda x: f'{x:.2f}',
+        'format_e': lambda x: f'{x:e}',
+        'format_width': lambda x: f'{x:>12}',
+        'format_comma': lambda x: f'{x:,}',
+        'divmod': lambda x: divmod(x, 7),
+        'rdivmod': lambda x: divmod(100, x),
+        'divmod_float': lambda x: divmod(x, 2.5),
+        'divmod_decimal': lambda x: divmod(x, Decimal('2.5')),
+    }
+
+    @pytest.mark.parametrize('token', ['90', '-17', '0', '90.0', '-3.75', '612.5'])
+    @pytest.mark.parametrize('name', list(EXPRESSIONS))
+    def test_matches_implicit(self, token, name):
+        expr = self.EXPRESSIONS[name]
+        with pikepdf.implicit_conversion():
+            native = pikepdf.Object.parse(f'[{token}]'.encode())[0]
+        assert type(native) in (int, Decimal)
+        if name == 'divmod_float' and type(native) is Decimal:
+            # Decimal refuses a float operand; a Real becomes a float instead,
+            # as in all arithmetic.
+            native = float(native)
+        try:
+            expected = expr(native)
+        except Exception as e:  # noqa: BLE001
+            with pikepdf.explicit_conversion():
+                obj = pikepdf.Object.parse(f'[{token}]'.encode())[0]
+                with pytest.raises(type(e)):
+                    expr(obj)
+            return
+        with pikepdf.explicit_conversion():
+            obj = pikepdf.Object.parse(f'[{token}]'.encode())[0]
+            assert isinstance(obj, (Integer, Real))
+            result = expr(obj)
+        assert result == expected
+        assert type(result) is type(expected)
+
+    def test_format_integer_d(self):
+        with pikepdf.explicit_conversion():
+            d = Dictionary(Value=42)
+            assert f'{d.Value:d}' == '42'
+            assert f'{d.Value:04x}' == '002a'
+
+    def test_divmod_between_objects(self):
+        with pikepdf.explicit_conversion():
+            d = Dictionary(A=17, B=5, R=Real('7.5'))
+            assert divmod(d.A, d.B) == (3, 2)
+            assert divmod(d.R, d.B) == (Decimal(1), Decimal('2.5'))
+
+    def test_format_non_numeric(self):
+        with pikepdf.explicit_conversion():
+            d = Dictionary(N=Name.Foo, B=Boolean(True))
+            assert f'{d.N}' == str(d.N)
+            assert f'{d.B}' == str(d.B)
+            with pytest.raises(TypeError):
+                f'{d.N:>10}'
+
+    def test_round_non_numeric_raises(self):
+        with pikepdf.explicit_conversion():
+            d = Dictionary(N=Name.Foo)
+            with pytest.raises(TypeError, match="not numeric"):
+                round(d.N)
+            with pytest.raises(TypeError):
+                divmod(d.N, 3)
+            with pytest.raises(TypeError):
+                math.trunc(d.N)
+
+    def test_invalid_real_token_raises(self):
+        with pikepdf.explicit_conversion():
+            obj = Real('nan')
+            assert isinstance(obj, Real)
+            with pytest.raises(TypeError, match="not a valid number"):
+                int(obj)
+            with pytest.raises(TypeError, match="not a valid number"):
+                round(obj)

@@ -334,9 +334,11 @@ default, check for:
 - **`x is True` / `x is False` silently becomes `False`.** A `Boolean` can
   never be identical to a Python `bool`. Use `get_bool`/`as_bool`, or
   compare with `==`.
-- **Arithmetic, comparisons, `str()`, `hash()`, `int()`, `float()` and
-  `bool()` keep working**, with the same results as implicit mode, so
-  expressions such as `mediabox[2] - mediabox[0]` need no change.
+- **Arithmetic, comparisons, `str()`, `hash()`, `int()`, `float()`,
+  `bool()`, `round()`, `divmod()`, `math.floor()`/`ceil()`/`trunc()` and
+  format specs such as `f'{x:.2f}'` keep working**, with the same results as
+  implicit mode, so expressions such as `mediabox[2] - mediabox[0]` need no
+  change.
 - **`Decimal(x)`** of a `Real` raises `TypeError`, since `Decimal` accepts
   only its own inputs. Use `as_decimal()` or {func}`pikepdf.unbox`.
 - **`json.dumps()`** of a scalar raises `TypeError`, since the standard

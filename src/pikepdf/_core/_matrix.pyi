@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, overload
 
+from pikepdf._core._object import Object, _ObjectList
 from pikepdf._core._object_construct import Array
 from pikepdf._core._rectangle import Rectangle
 
@@ -25,7 +26,8 @@ class Matrix:
     coordinates.
 
     PDF matrices are encoded as :class:`pikepdf.Array` with exactly
-    six numeric elements, ordered as ``a b c d e f``.
+    six numeric elements, ordered as ``a b c d e f``. Such an array, for
+    example a form XObject's ``/Matrix``, can be passed to the constructor.
 
     .. math::
 
@@ -97,6 +99,10 @@ class Matrix:
     def __init__(self, other: Matrix): ...
     @overload
     def __init__(self, values: tuple[float, float, float, float, float, float], /): ...
+    @overload
+    def __init__(self, h: Object, /): ...
+    @overload
+    def __init__(self, values: _ObjectList, /): ...
     @classmethod
     def identity(cls) -> Matrix:
         """Construct an identity matrix.

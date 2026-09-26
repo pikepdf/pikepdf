@@ -16,6 +16,18 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.14.1
+
+- In explicit conversion mode, `Integer` and `Real` now support the rest of
+  the Python number protocol, with the same results as the `int` or `Decimal`
+  that implicit mode produces: `round()`, `math.trunc()`, `math.floor()`,
+  `math.ceil()`, `divmod()`, and format specs such as `f'{x:.2f}'`.
+  `int()` of a `Real` now truncates, as `int()` of a `Decimal` does, instead
+  of raising `TypeError`; for example `int(page.Rotate)` now works on a
+  `/Rotate 90.0`.
+- The type stubs for `Matrix` now accept a `pikepdf.Object`, such as a
+  `/Matrix` array, and a list of objects, as the runtime always has.
+
 ## v10.14.0
 
 Several improvements to explicit conversion mode and `NamePath`, prompted by
