@@ -17,12 +17,12 @@ settings from `resolve_save_kwargs`.
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Mapping
-from typing import Any
+from collections.abc import Iterator, Mapping, Sequence
+from decimal import Decimal
 
 import pikepdf
 from pikepdf._core import ObjectStreamMode
-from pikepdf.pdfa._shallow import shallow_json_of
+from pikepdf.pdfa._shallow import JsonValue, shallow_json_of
 
 # Filters qpdf decodes at stream_decode_level=generalized, by the names qpdf
 # accepts for them. Flate and LZW take predictor parameters; the others
@@ -53,6 +53,9 @@ _TRIMMED_TRAILER_KEYS = frozenset(
 )
 _PLACEHOLDER_ID = ['b:' + '00' * 16, 'b:' + '00' * 16]
 
+# (/Filter, /DecodeParms) of a stream; None if absent
+_Filters = tuple[pikepdf.Object | None, pikepdf.Object | None]
+
 
 def _version_tuple(version: str) -> tuple[int, int]:
     major, _, minor = version.partition('.')
@@ -62,21 +65,21 @@ def _version_tuple(version: str) -> tuple[int, int]:
         return (0, 0)
 
 
-def _version_arg(value: Any) -> str:
+def _version_arg(value: object) -> str:
     """The version string of a min_version/force_version argument."""
     if isinstance(value, tuple):
         return str(value[0])
     return str(value or '')
 
 
-def _is_null(value: Any) -> bool:
+def _is_null(value: object) -> bool:
     return value is None or (
         isinstance(value, pikepdf.Object)
         and value._type_code == pikepdf.ObjectType.null
     )
 
 
-def _flate_lzw_parms_ok(parms: Any, lzw: bool) -> bool:
+def _flate_lzw_parms_ok(parms: pikepdf.Object | None, lzw: bool) -> bool:
     """Whether qpdf's SF_FlateLzwDecode accepts these /DecodeParms."""
     if not isinstance(parms, pikepdf.Dictionary):
         return True  # qpdf treats a non-dictionary as having no keys
@@ -100,7 +103,7 @@ def _flate_lzw_parms_ok(parms: Any, lzw: bool) -> bool:
     return not (predictor > 1 and columns == 0)
 
 
-def _crypt_parms_ok(parms: Any) -> bool:
+def _crypt_parms_ok(parms: pikepdf.Object | None) -> bool:
     if isinstance(parms, pikepdf.Dictionary):
         for key, value in parms.items():
             if key == '/Name':
@@ -115,7 +118,7 @@ def _crypt_parms_ok(parms: Any) -> bool:
     return _is_null(parms)
 
 
-def _filter_ok(name: str, parms: Any, level_all: bool) -> bool:
+def _filter_ok(name: str, parms: pikepdf.Object | None, level_all: bool) -> bool:
     if name in _FLATE_LZW:
         return _flate_lzw_parms_ok(parms, name in _LZW)
     if name == '/Crypt':
@@ -131,7 +134,7 @@ def _decodable(stream_dict: pikepdf.Dictionary, level_all: bool) -> bool:
     filter_obj = stream_dict.get('/Filter')
     if _is_null(filter_obj):
         return True
-    names: list[Any]
+    names: list[pikepdf.Object]
     if isinstance(filter_obj, pikepdf.Name):
         names = [filter_obj]
     elif isinstance(filter_obj, pikepdf.Array):
@@ -140,8 +143,8 @@ def _decodable(stream_dict: pikepdf.Dictionary, level_all: bool) -> bool:
             return False
     else:
         return False
-    parms_obj: Any = stream_dict.get('/DecodeParms')
-    parms: list[Any]
+    parms_obj = stream_dict.get('/DecodeParms')
+    parms: list[pikepdf.Object | None]
     if isinstance(parms_obj, pikepdf.Array) and len(parms_obj) > 0:
         if names and len(parms_obj) != len(names):
             return False
@@ -156,7 +159,7 @@ def _decodable(stream_dict: pikepdf.Dictionary, level_all: bool) -> bool:
     )
 
 
-def _unchanged_filters(stream_dict: pikepdf.Dictionary) -> tuple[Any, Any]:
+def _unchanged_filters(stream_dict: pikepdf.Dictionary) -> _Filters:
     """The filters qpdf writes for a stream it copies without decoding."""
     filter_obj = stream_dict.get('/Filter')
     parms = stream_dict.get('/DecodeParms')
@@ -183,7 +186,7 @@ class WriteModel:
 
     __slots__ = ('_objects', '_root_metadata', '_save_kwargs')
 
-    def __init__(self, save_kwargs: Mapping[str, Any] | None = None) -> None:
+    def __init__(self, save_kwargs: Mapping[str, object] | None = None) -> None:
         # None means identity: the written form is the in-memory form.
         self._save_kwargs = None if save_kwargs is None else dict(save_kwargs)
         self._root_metadata: tuple[int, int] | None = None
@@ -195,7 +198,7 @@ class WriteModel:
         return cls()
 
     @classmethod
-    def predict(cls, pdf: pikepdf.Pdf, save_kwargs: Mapping[str, Any]) -> WriteModel:
+    def predict(cls, pdf: pikepdf.Pdf, save_kwargs: Mapping[str, object]) -> WriteModel:
         """Return a model of what ``pdf.save(..., **save_kwargs)`` writes.
 
         *save_kwargs* must come from `resolve_save_kwargs`: the model relies
@@ -227,11 +230,11 @@ class WriteModel:
             return 'WriteModel.identity()'
         return f'WriteModel({self._save_kwargs!r})'
 
-    def _setting(self, key: str, default: Any = None) -> Any:
+    def _setting(self, key: str, default: object = None) -> object:
         assert self._save_kwargs is not None
         return self._save_kwargs.get(key, default)
 
-    def stream_filters(self, stream: pikepdf.Stream) -> tuple[Any, Any]:
+    def stream_filters(self, stream: pikepdf.Stream) -> _Filters:
         """Return the stream's ``(/Filter, /DecodeParms)`` once written.
 
         Each is the value of the stream dictionary entry, or None if absent.
@@ -240,7 +243,7 @@ class WriteModel:
             return stream.get('/Filter'), stream.get('/DecodeParms')
         return self._predict_filters(stream)
 
-    def _predict_filters(self, stream: pikepdf.Stream) -> tuple[Any, Any]:
+    def _predict_filters(self, stream: pikepdf.Stream) -> _Filters:
         # Mirrors QPDFWriter::will_filter_stream and QPDF_Stream's
         # pipeStreamData at stream_decode_level=generalized.
         stream_dict = stream.stream_dict
@@ -280,7 +283,7 @@ class WriteModel:
             return None, None
         return _unchanged_filters(stream_dict)
 
-    def trailer_json(self, trailer: pikepdf.Dictionary) -> dict[str, Any]:
+    def trailer_json(self, trailer: pikepdf.Dictionary) -> dict[str, JsonValue]:
         """Return the shallow JSON encoding of the trailer once written."""
         shallow = shallow_json_of(trailer)
         if self._save_kwargs is None:
@@ -324,7 +327,9 @@ class WriteModel:
             return pdf.trailer.get('/Type') == pikepdf.Name.XRef
         return self._object_streams(pdf)
 
-    def objects(self, pdf: pikepdf.Pdf) -> list[Any]:
+    def objects(
+        self, pdf: pikepdf.Pdf
+    ) -> Sequence[pikepdf.Object | int | bool | Decimal]:
         """Return the indirect objects written to the file.
 
         An indirect integer, real or boolean is given as its Python value
@@ -345,7 +350,7 @@ def _reachable(pdf: pikepdf.Pdf) -> Iterator[pikepdf.Object]:
     orphaned object). Iterative, so deep graphs do not exhaust the stack.
     """
     seen: set[tuple[int, int]] = set()
-    stack: list[Any] = [
+    stack: list[pikepdf.Object] = [
         value for key, value in pdf.trailer.items() if key not in _TRIMMED_TRAILER_KEYS
     ]
     stack.reverse()

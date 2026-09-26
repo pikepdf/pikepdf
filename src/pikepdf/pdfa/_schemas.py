@@ -20,8 +20,9 @@ from __future__ import annotations
 
 import ast
 import re
+from collections.abc import Iterable
 from functools import cache
-from typing import Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
@@ -32,6 +33,11 @@ from pikepdf.pdfa._catalogue import load_json
 from pikepdf.pdfa._context import ValidationContext
 from pikepdf.pdfa._flavour import Flavour
 from pikepdf.pdfa._report import FindingKind
+
+if TYPE_CHECKING:
+    from referencing._core import Resolver
+
+    from pikepdf.pdfa._shallow import JsonValue
 
 BASE_URI = 'https://pikepdf.invalid/pdfa/'
 COMMON = 'common.json'
@@ -84,7 +90,7 @@ def _load_schema(name: str) -> Any:
     return load_json('schemas', name)
 
 
-def _format_path(path: Any) -> str:
+def _format_path(path: Iterable[str | int]) -> str:
     parts = []
     for element in path:
         parts.append(f'[{element}]' if isinstance(element, int) else str(element))
@@ -161,7 +167,7 @@ class SchemaSet:
         nodes: list[dict[str, Any]] = []
         resolved = self._registry.resolver().lookup(self._role_uri(role))
 
-        def gather(node: Any, resolver: Any, depth: int) -> None:
+        def gather(node: object, resolver: Resolver[Any], depth: int) -> None:
             if not isinstance(node, dict) or depth > 16:
                 return
             if '$ref' in node:
@@ -210,7 +216,7 @@ class SchemaSet:
     # --- checking ----------------------------------------------------------
 
     def check(
-        self, role: str, shallow: Any, ctx: ValidationContext, where: str
+        self, role: str, shallow: JsonValue, ctx: ValidationContext, where: str
     ) -> bool:
         """Validate the shallow encoding of an object against a role.
 
@@ -249,7 +255,7 @@ class SchemaSet:
         unsupported = False
         message: str | None = None
 
-        def note(node: Any) -> None:
+        def note(node: object) -> None:
             nonlocal rule_id, unsupported, message
             if not isinstance(node, dict):
                 return
@@ -261,9 +267,9 @@ class SchemaSet:
             if 'x-message' in node:
                 message = node['x-message']
 
-        resolver: Any = self._registry.resolver()
+        resolver: Resolver[Any] = self._registry.resolver()
         node: Any = {'$ref': self._role_uri(role)}
-        holder: Any = None
+        holder: object = None
         open_value = False
         for element in error.relative_schema_path:
             while isinstance(node, dict) and element not in node and '$ref' in node:

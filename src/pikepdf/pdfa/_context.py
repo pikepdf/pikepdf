@@ -6,15 +6,22 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING
 
 import pikepdf
 from pikepdf.pdfa._flavour import Flavour
 from pikepdf.pdfa._report import Finding, FindingKind, Report
 from pikepdf.pdfa._writemodel import WriteModel
 
+if TYPE_CHECKING:
+    from pikepdf.pdfa._fonts import FontInfo
+
 MAX_DEPTH = 64
 MAX_INSTRUCTIONS = 20_000_000
+
+# Form XObject objgen, text rendering mode, id() of the current FontInfo and
+# overprint state
+FormKey = tuple[tuple[int, int], int, int | None, tuple[bool, bool, int]]
 
 
 @dataclass
@@ -47,15 +54,15 @@ class ValidationContext:
     output_intent_cs: str | None = None
     visited: set[tuple[int, int]] = field(default_factory=set)
     max_depth: int = MAX_DEPTH
-    fonts: dict[tuple[int, int], Any] = field(default_factory=dict)
-    direct_fonts: list[Any] = field(default_factory=list)
-    forms: dict[tuple[Any, ...], int] = field(default_factory=dict)
+    fonts: dict[tuple[int, int], FontInfo] = field(default_factory=dict)
+    direct_fonts: list[FontInfo] = field(default_factory=list)
+    forms: dict[FormKey, int] = field(default_factory=dict)
     icc_profiles: dict[tuple[int, int], int | None] = field(default_factory=dict)
     instructions: int = 0
     max_instructions: int = MAX_INSTRUCTIONS
 
     @staticmethod
-    def describe(obj: Any) -> str:
+    def describe(obj: object) -> str:
         """Describe where an object lives: ``obj 12 0`` or ``direct``."""
         if isinstance(obj, pikepdf.Object) and obj.is_indirect:
             num, gen = obj.objgen
@@ -69,7 +76,7 @@ class ValidationContext:
     def deny(
         self,
         rule_id: str,
-        obj: Any,
+        obj: str | pikepdf.Object,
         message: str,
         kind: FindingKind = 'violation',
     ) -> None:

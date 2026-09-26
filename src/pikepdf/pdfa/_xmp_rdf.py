@@ -19,7 +19,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from functools import cache
-from typing import Any, Literal, cast
+from typing import Literal, TypedDict, cast
 
 from lxml import etree
 
@@ -69,8 +69,18 @@ _TYPE_FORMS: dict[str, Form] = {
 }
 
 
+class XmpTables(TypedDict):
+    """The contents of ``data/xmp_properties.json``."""
+
+    namespaces: dict[str, str]
+    declaration_only: dict[str, str]
+    xmp2004: dict[str, dict[str, str]]
+    xmp2005: dict[str, dict[str, str]]
+    flavour_namespaces: dict[str, list[str] | str]
+
+
 @cache
-def tables() -> dict[str, Any]:
+def tables() -> XmpTables:
     """Return the XMP property tables in ``data/xmp_properties.json``."""
     return load_json('xmp_properties.json')
 

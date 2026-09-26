@@ -17,7 +17,13 @@ from functools import cached_property, partial
 from io import BytesIO
 from typing import Any, Protocol, TypeVar
 
-from fontTools.cffLib import CFFFontSet, parseCharset, parseCharset0, readCard8
+from fontTools.cffLib import (
+    CFFFontSet,
+    TopDict,
+    parseCharset,
+    parseCharset0,
+    readCard8,
+)
 from fontTools.encodings.StandardEncoding import StandardEncoding
 from fontTools.misc import eexec, psLib
 from fontTools.misc.psCharStrings import T1CharString
@@ -137,7 +143,7 @@ class TrueTypeProgram:
 
     def __init__(self, data: bytes):
         """Parse the tables the checks need; raise FontProgramError if any fail."""
-        self._font: Any = _guard(
+        self._font: TTFont = _guard(
             "cannot read TrueType font", lambda: TTFont(BytesIO(data), lazy=True)
         )
         font = self._font
@@ -269,7 +275,7 @@ class CFFProgram:
     def __init__(self, data: bytes):
         """Parse a bare CFF font set containing exactly one font."""
 
-        def decompile() -> Any:
+        def decompile() -> CFFFontSet:
             font_set = CFFFontSet()
             font_set.decompile(BytesIO(data), otFont=None)
             return font_set
@@ -277,13 +283,13 @@ class CFFProgram:
         self._init(_guard("cannot read CFF font", decompile))
 
     @classmethod
-    def from_font_set(cls, font_set: Any) -> CFFProgram:
+    def from_font_set(cls, font_set: CFFFontSet) -> CFFProgram:
         """Wrap an already parsed fontTools CFFFontSet (e.g. from an OTF)."""
         program = cls.__new__(cls)
         program._init(font_set)
         return program
 
-    def _init(self, font_set: Any) -> None:
+    def _init(self, font_set: CFFFontSet) -> None:
         names = _guard("cannot read CFF font names", lambda: list(font_set.fontNames))
         if len(names) != 1:
             raise FontProgramError(f"CFF font set has {len(names)} fonts")
@@ -414,7 +420,7 @@ class CFFProgram:
         }
 
 
-def _duplicate_charset_names(top: Any) -> list[str]:
+def _duplicate_charset_names(top: TopDict) -> list[str]:
     """Names (or CIDs) that a CFF charset gives to more than one glyph.
 
     fontTools makes duplicate names unique by appending ``.1`` and so on,
@@ -622,7 +628,7 @@ class Type1Program:
         matrix = font.get('FontMatrix')
         if not isinstance(matrix, list) or tuple(matrix) != DEFAULT_FONT_MATRIX:
             raise FontProgramError(f"Type 1 FontMatrix {matrix!r} is not supported")
-        self._charstrings: dict[str, Any] = _guard(
+        self._charstrings: dict[str, T1CharString] = _guard(
             "cannot read Type 1 CharStrings", lambda: self._decrypt_charstrings(font)
         )
         if '.notdef' not in self._charstrings:
@@ -633,17 +639,17 @@ class Type1Program:
         self._widths: dict[int, float] = {}
 
     @staticmethod
-    def _decrypt_charstrings(font: dict[str, Any]) -> dict[str, Any]:
+    def _decrypt_charstrings(font: dict[str, Any]) -> dict[str, T1CharString]:
         private = font['Private']
         len_iv = private.get('lenIV', 4)
         if not isinstance(len_iv, int) or len_iv < 0:
             raise FontProgramError(f"Type 1 lenIV {len_iv!r}")
         raw_subrs = private.get('Subrs', [])
-        subrs: list[Any] = []
+        subrs: list[T1CharString] = []
         for subr in raw_subrs:
             code, _ = eexec.decrypt(subr, CHARSTRING_KEY)
             subrs.append(T1CharString(code[len_iv:], subrs=subrs))
-        charstrings: dict[str, Any] = {}
+        charstrings: dict[str, T1CharString] = {}
         for name, charstring in font['CharStrings'].items():
             if not isinstance(name, str) or not isinstance(charstring, bytes):
                 raise FontProgramError("malformed Type 1 CharStrings entry")

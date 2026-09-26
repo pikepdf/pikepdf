@@ -13,7 +13,7 @@ replaces the device colour space (as veraPDF does).
 
 from __future__ import annotations
 
-from typing import Any, NamedTuple
+from typing import NamedTuple
 
 import pikepdf
 from pikepdf.pdfa._context import ValidationContext
@@ -106,7 +106,7 @@ def check_device_use(ctx: ValidationContext, name: str, where: str) -> bool:
     return True
 
 
-def _name(obj: Any) -> str | None:
+def _name(obj: object) -> str | None:
     if not isinstance(obj, pikepdf.Name):
         return None
     try:
@@ -121,7 +121,7 @@ class _Resolver:
     def __init__(
         self,
         ctx: ValidationContext,
-        colour_spaces: Any,
+        colour_spaces: pikepdf.Dictionary | None,
         where: str,
         *,
         check_device: bool,
@@ -142,7 +142,7 @@ class _Resolver:
         self.ctx.deny('pikepdf:colour-space', self.where, message, 'unsupported')
 
     def resolve(
-        self, value: Any, depth: int, allow_names: bool
+        self, value: object, depth: int, allow_names: bool
     ) -> ColourSpaceInfo | None:
         if depth > MAX_NESTING:
             self.unsupported(f"colour spaces nested deeper than {MAX_NESTING}")
@@ -384,8 +384,8 @@ class _Resolver:
 
 
 def resolve_colourspace(
-    value: Any,
-    resources: Any,
+    value: object,
+    resources: pikepdf.Dictionary | None,
     ctx: ValidationContext,
     where: str,
     *,
@@ -419,7 +419,10 @@ def resolve_colourspace(
 
 
 def check_image_colour(
-    image: pikepdf.Stream, resources: Any, ctx: ValidationContext, where: str
+    image: pikepdf.Stream,
+    resources: pikepdf.Dictionary | None,
+    ctx: ValidationContext,
+    where: str,
 ) -> None:
     """Check the colour space and colour-key mask of an image XObject.
 

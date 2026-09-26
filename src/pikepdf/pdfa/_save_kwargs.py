@@ -12,7 +12,7 @@ from pikepdf._core import ObjectStreamMode, StreamDecodeLevel
 from pikepdf.pdfa._flavour import Flavour
 
 # Pinned for every flavour: key -> (value, reason).
-_COMMON_PINS: Mapping[str, tuple[Any, str]] = {
+_COMMON_PINS: Mapping[str, tuple[object, str]] = {
     'preserve_pdfa': (True, 'the PDF/A version constraints must be kept'),
     'encryption': (None, 'PDF/A forbids encryption'),
     'qdf': (False, 'QDF mode writes uncompressed, annotated output'),
@@ -31,7 +31,7 @@ _COMMON_PINS: Mapping[str, tuple[Any, str]] = {
 }
 
 # Additionally pinned for PDF/A-1 (ISO 19005-1 is based on PDF 1.4).
-_PART1_PINS: Mapping[str, tuple[Any, str]] = {
+_PART1_PINS: Mapping[str, tuple[object, str]] = {
     'object_stream_mode': (
         ObjectStreamMode.disable,
         'PDF/A-1 is based on PDF 1.4, which has no object streams',
@@ -40,7 +40,7 @@ _PART1_PINS: Mapping[str, tuple[Any, str]] = {
 }
 
 # User choices and their defaults.
-_USER_DEFAULTS: Mapping[str, Any] = {
+_USER_DEFAULTS: Mapping[str, object] = {
     'compress_streams': True,
     'recompress_flate': False,
     'linearize': False,
@@ -64,7 +64,7 @@ USER_KEYS: frozenset[str] = frozenset(_USER_DEFAULTS)
 _MAX_VERSION = {1: (1, 4), 2: (1, 7), 3: (1, 7)}
 
 
-def _pins(flavour: Flavour) -> dict[str, tuple[Any, str]]:
+def _pins(flavour: Flavour) -> dict[str, tuple[object, str]]:
     pins = dict(_COMMON_PINS)
     if flavour.part == 1:
         pins.update(_PART1_PINS)
@@ -76,7 +76,7 @@ def describe_pins(flavour: Flavour | str) -> dict[str, str]:
     return {k: reason for k, (_v, reason) in _pins(Flavour(flavour)).items()}
 
 
-def _parse_version(key: str, value: Any) -> tuple[int, int] | None:
+def _parse_version(key: str, value: object) -> tuple[int, int] | None:
     """Return ``(major, minor)`` for a version argument, or None if empty."""
     if isinstance(value, tuple):
         if (
@@ -103,7 +103,7 @@ def _parse_version(key: str, value: Any) -> tuple[int, int] | None:
     return int(parts[0]), int(parts[1])
 
 
-def _is_pinned_value(key: str, pinned: Any, value: Any) -> bool:
+def _is_pinned_value(key: str, pinned: object, value: object) -> bool:
     if key == 'encryption':
         return value is None or value is False
     if key == 'force_version':

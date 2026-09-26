@@ -13,7 +13,6 @@ from __future__ import annotations
 from collections.abc import Mapping
 from functools import cache
 from types import MappingProxyType
-from typing import Any
 
 import pikepdf
 from pikepdf.pdfa._latin_enc import ENCODING
@@ -51,7 +50,7 @@ def encoding_table(name: str) -> Mapping[int, str]:
     column = _COLUMNS[name]
     table: dict[int, str] = {}
     for row in ENCODING:
-        code: Any = row[column]
+        code = row[column]
         if code is None:
             continue
         table.setdefault(int(code), str(row[0]))
@@ -68,7 +67,7 @@ def mac_roman_codes() -> Mapping[str, int]:
     for code, glyph in sorted(encoding_table(MAC_ROMAN).items()):
         inverse.setdefault(glyph, code)
     for row in ENCODING:
-        mac_code: Any = row[_COLUMNS[MAC_ROMAN]]
+        mac_code = row[_COLUMNS[MAC_ROMAN]]
         if mac_code is not None:
             inverse.setdefault(str(row[0]), int(mac_code))
     return MappingProxyType(inverse)
@@ -78,7 +77,7 @@ class DifferencesError(ValueError):
     """A /Differences array is malformed."""
 
 
-def parse_differences(differences: Any) -> dict[int, str]:
+def parse_differences(differences: pikepdf.Object | None) -> dict[int, str]:
     """Parse a /Differences array into a code to glyph name mapping.
 
     Args:
@@ -120,7 +119,9 @@ def parse_differences(differences: Any) -> dict[int, str]:
     return result
 
 
-def apply_differences(base: Mapping[int, str], differences: Any) -> dict[int, str]:
+def apply_differences(
+    base: Mapping[int, str], differences: pikepdf.Object | None
+) -> dict[int, str]:
     """Return *base* overlaid with the assignments of a /Differences array.
 
     Raises:

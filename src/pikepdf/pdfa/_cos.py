@@ -11,8 +11,6 @@ other object escapes the same rules.
 
 from __future__ import annotations
 
-from typing import Any
-
 import pikepdf
 from pikepdf.pdfa._context import ValidationContext
 from pikepdf.pdfa._limits import LimitChecker
@@ -43,7 +41,7 @@ def _reported(ctx: ValidationContext) -> set[tuple[str, str]]:
     }
 
 
-def _filter_names(value: Any) -> list[Any]:
+def _filter_names(value: pikepdf.Object) -> list[pikepdf.Object]:
     if isinstance(value, pikepdf.Array):
         return list(value)
     return [value]

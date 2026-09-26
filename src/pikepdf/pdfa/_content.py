@@ -194,7 +194,7 @@ TEXT_POSITIONING = frozenset({'Td', 'TD', 'Tm', 'T*'})
 TEXT_SHOWING = frozenset({'Tj', 'TJ', "'", '"'})
 
 
-def _is_number(obj: Any) -> bool:
+def _is_number(obj: object) -> bool:
     """True for an Integer or Real; a Boolean is not a number.
 
     A Real is a number even if its digits overflow a double; the limit checks
@@ -233,7 +233,7 @@ class _Resources:
         why: Explanation used when a lookup fails because of *explicit*.
     """
 
-    def __init__(self, resources: Any, explicit: bool, why: str = ''):
+    def __init__(self, resources: pikepdf.Object | None, explicit: bool, why: str = ''):
         self.dict = resources if isinstance(resources, pikepdf.Dictionary) else None
         self.explicit = explicit
         self.why = why
@@ -241,15 +241,15 @@ class _Resources:
         # (and a missing one reported) once per content stream
         self.fonts: dict[str, FontInfo | None] = {}
 
-    def category(self, category: str) -> Any:
+    def category(self, category: str) -> pikepdf.Dictionary | None:
         if self.dict is None:
             return None
         value = self.dict.get(category)
         return value if isinstance(value, pikepdf.Dictionary) else None
 
     def lookup(
-        self, ctx: ValidationContext, category: str, name: Any, where: str
-    ) -> Any:
+        self, ctx: ValidationContext, category: str, name: pikepdf.Name, where: str
+    ) -> pikepdf.Object | None:
         """Return the named resource, or None after reporting why not."""
         if not self.explicit and ctx.flavour.part != 1:
             ctx.deny(
@@ -315,7 +315,7 @@ class _StreamWalk:
     def syntax(self, message: str) -> None:
         self.deny('pikepdf:content-syntax', message)
 
-    def run(self, stream: Any) -> int:
+    def run(self, stream: pikepdf.Stream) -> int:
         """Check a stream (or page); return the deepest relative q nesting."""
         ctx = self.ctx
         try:
@@ -375,7 +375,11 @@ class _StreamWalk:
         )
         return True
 
-    def check_raw(self, stream: Any, inline_images: list[Any]) -> None:
+    def check_raw(
+        self,
+        stream: pikepdf.Stream,
+        inline_images: list[pikepdf.ContentStreamInlineImage],
+    ) -> None:
         """Check what the content parser does not report.
 
         That is hex string syntax, and inline image data that another parser
@@ -407,7 +411,7 @@ class _StreamWalk:
             else:
                 self.deny(ctx.rule(clause, clause), message)
 
-    def check_limits(self, operand: Any) -> None:
+    def check_limits(self, operand: pikepdf.Object) -> None:
         limits = self.walker.limits
         if isinstance(operand, pikepdf.Array | pikepdf.Dictionary):
             problems = limits.problems(operand)
@@ -675,7 +679,7 @@ class _StreamWalk:
 
     # --- inline images ------------------------------------------------------
 
-    def inline_image(self, image: Any) -> None:
+    def inline_image(self, image: pikepdf.PdfInlineImage) -> None:
         ctx = self.ctx
         try:
             obj = image.obj
@@ -747,6 +751,9 @@ class _StreamWalk:
         )
 
 
+# Operands are Any: the C++ checker has matched them to the operator's
+# signature in OPERATORS, so each handler knows their types (a Name for gs,
+# Tf, Do, cs...) without narrowing them again.
 _HANDLERS: dict[str, Callable[[_StreamWalk, str, list[Any]], None]] = {}
 for _op in OPERATORS:
     _method = getattr(_StreamWalk, 'op_' + _op, None)
@@ -792,7 +799,7 @@ class ContentWalker:
         self.ctx = ctx
         self.walked_forms: set[tuple[int, int]] = set()
         self.painted_images: set[tuple[int, int]] = set()
-        self._painted: set[tuple[Any, ...]] = set()
+        self._painted: set[tuple[tuple[int, int], tuple[bytes | None, ...]]] = set()
         self._in_progress: set[tuple[int, int]] = set()
         self._scratch = pikepdf.new()
         self.limits = LimitChecker(ctx.flavour)
@@ -801,7 +808,10 @@ class ContentWalker:
         self.check_images = True
 
     def paint_image(
-        self, image: pikepdf.Stream, colour_spaces: Any, where: str
+        self,
+        image: pikepdf.Stream,
+        colour_spaces: pikepdf.Dictionary | None,
+        where: str,
     ) -> None:
         """Check the colour of an image painted with the given resources."""
         key = (image.objgen, _defaults_key(colour_spaces))
@@ -918,7 +928,7 @@ class ContentWalker:
         )
 
 
-def _defaults_key(colour_spaces: Any) -> tuple[bytes | None, ...]:
+def _defaults_key(colour_spaces: pikepdf.Dictionary | None) -> tuple[bytes | None, ...]:
     """Identify the /Default* colour spaces of a /ColorSpace resource dict."""
     if not isinstance(colour_spaces, pikepdf.Dictionary):
         return ()
@@ -928,13 +938,15 @@ def _defaults_key(colour_spaces: Any) -> tuple[bytes | None, ...]:
     )
 
 
-def _unparse(value: Any) -> bytes:
+def _unparse(value: pikepdf.Object | None) -> bytes:
     if isinstance(value, pikepdf.Object):
         return value.unparse()
     return b'null'
 
 
-def _page_resources(page: pikepdf.Dictionary, max_depth: int) -> tuple[Any, bool]:
+def _page_resources(
+    page: pikepdf.Dictionary, max_depth: int
+) -> tuple[pikepdf.Object | None, bool]:
     """Return (resources, explicit) of a page.
 
     Resources inherited from the page tree are not "explicitly associated"

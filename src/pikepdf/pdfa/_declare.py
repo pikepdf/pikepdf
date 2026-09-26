@@ -8,7 +8,6 @@ from __future__ import annotations
 import datetime as dt
 import logging
 from dataclasses import dataclass
-from typing import Any
 
 import pikepdf
 from pikepdf import Dictionary, Name, Object, Pdf, Stream
@@ -45,7 +44,7 @@ _DOCINFO_XMP = (
 )
 
 
-def _xmp_value_from_docinfo(value: Object, form: str) -> Any:
+def _xmp_value_from_docinfo(value: Object, form: str) -> Value | None:
     """Return the XMP value equivalent to a DocInfo entry, or None."""
     if not isinstance(value, pikepdf.String):
         return None

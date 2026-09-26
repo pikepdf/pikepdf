@@ -28,7 +28,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from typing import Any, NamedTuple
+from typing import NamedTuple, TypedDict, TypeVar
 
 from fontTools import agl
 
@@ -78,6 +78,18 @@ FONT_SUBTYPES = frozenset(
     }
 )
 IDENTITY_CMAPS = frozenset({'/Identity-H', '/Identity-V'})
+
+_Program = TypeVar('_Program')
+
+
+class CIDSystemInfo(TypedDict):
+    """A /CIDSystemInfo dictionary, converted to Python."""
+
+    Registry: str
+    Ordering: str
+    Supplement: int
+
+
 # ISO 32000-1:2008 Table 118, the predefined CMaps a PDF/A-2 file may use
 # without embedding them.
 PREDEFINED_CMAPS = frozenset(
@@ -229,7 +241,7 @@ class _Resolved(NamedTuple):
     ambiguous: bool = False  # True: readers may select different glyphs
 
 
-def _name_text(obj: Any) -> str | None:
+def _name_text(obj: pikepdf.Name) -> str | None:
     """Return a name's text without the slash, or None if not UTF-8."""
     try:
         return str(obj)[1:]
@@ -250,7 +262,7 @@ def _is_standard_14(font: pikepdf.Dictionary) -> bool:
     )
 
 
-def parse_cid_widths(w: Any) -> tuple[dict[int, float], set[int]]:
+def parse_cid_widths(w: pikepdf.Object | None) -> tuple[dict[int, float], set[int]]:
     """Parse a CIDFont /W array.
 
     Both forms are accepted: ``c [w1 w2 ...]`` and ``cfirst clast w``.
@@ -718,7 +730,9 @@ class _Loader:
             return None
         return key, subtype, data
 
-    def program(self, factory: Callable[[bytes], Any], data: bytes, what: str) -> Any:
+    def program(
+        self, factory: Callable[[bytes], _Program], data: bytes, what: str
+    ) -> _Program | None:
         try:
             return factory(data)
         except FontProgramAmbiguity as e:
@@ -837,7 +851,7 @@ class _Loader:
         info.program = program
 
     def nonsymbolic_encoding(
-        self, encoding: Any, tables: list[tuple[int, int]]
+        self, encoding: pikepdf.Object | None, tables: list[tuple[int, int]]
     ) -> None:
         info = self.info
         base: str | None = None
@@ -1016,7 +1030,7 @@ class _Loader:
         if file is None:
             return
         key, file_subtype, data = file
-        program: Any = None
+        program: TrueTypeProgram | CFFProgram | None = None
         if subtype == '/CIDFontType2':
             if key == '/FontFile2' or file_subtype == '/OpenType':
                 program = self.program(TrueTypeProgram, data, "CIDFontType2")
@@ -1042,13 +1056,19 @@ class _Loader:
                     'font-file', f"{subtype} with a {key} {file_subtype or ''} program"
                 )
             return
-        if subtype == '/CIDFontType0' and not program.is_cid_keyed:
+        if (
+            subtype == '/CIDFontType0'
+            and isinstance(program, CFFProgram)
+            and not program.is_cid_keyed
+        ):
             self.unsupported('font-file', "CIDFontType0 with a non-CID-keyed CFF")
             return
         self.cidset(descriptor, subtype, program)
         info.program = program
 
-    def cid_system_info(self, value: Any, what: str) -> dict[str, Any] | None:
+    def cid_system_info(
+        self, value: pikepdf.Object | None, what: str
+    ) -> CIDSystemInfo | None:
         if not isinstance(value, pikepdf.Dictionary):
             self.deny('cidsysteminfo', f"{what} has no /CIDSystemInfo dictionary")
             return None
@@ -1068,7 +1088,9 @@ class _Loader:
             'Supplement': supplement,
         }
 
-    def encoding_cmap(self, encoding: Any, system_info: dict[str, Any] | None) -> None:
+    def encoding_cmap(
+        self, encoding: pikepdf.Object | None, system_info: CIDSystemInfo | None
+    ) -> None:
         ctx = self.ctx
         if isinstance(encoding, pikepdf.Name):
             name = str(encoding)
@@ -1187,7 +1209,10 @@ class _Loader:
         self.info.cid_to_gid = data
 
     def cidset(
-        self, descriptor: pikepdf.Dictionary, subtype: str, program: Any
+        self,
+        descriptor: pikepdf.Dictionary,
+        subtype: str,
+        program: TrueTypeProgram | CFFProgram,
     ) -> None:
         info = self.info
         value = descriptor.get('/CIDSet')
@@ -1214,6 +1239,7 @@ class _Loader:
                 'cidset', "/CIDSet on a CIDFontType2 subset is not checked"
             )
             return
+        assert isinstance(program, CFFProgram)
         try:
             program_cids = program.cids()
         except FontProgramError as e:
@@ -1231,7 +1257,7 @@ class _Loader:
             )
 
 
-def _load(font: Any, ctx: ValidationContext, where: str) -> FontInfo:
+def _load(font: pikepdf.Object, ctx: ValidationContext, where: str) -> FontInfo:
     info = FontInfo(where=where)
     loader = _Loader(ctx, info)
     if not isinstance(font, pikepdf.Dictionary):
@@ -1259,7 +1285,7 @@ def _load(font: Any, ctx: ValidationContext, where: str) -> FontInfo:
     return info
 
 
-def load_font(font: Any, ctx: ValidationContext, where: str) -> FontInfo:
+def load_font(font: pikepdf.Object, ctx: ValidationContext, where: str) -> FontInfo:
     """Check a font dictionary and return what is needed to check its use.
 
     Indirect fonts are checked once and cached in ``ctx.fonts``; direct

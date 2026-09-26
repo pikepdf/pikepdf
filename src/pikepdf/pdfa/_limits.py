@@ -12,7 +12,6 @@ deeper than `MAX_NESTING` are not checked, so such nesting is denied.
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import Any
 
 import pikepdf
 from pikepdf.pdfa._flavour import Flavour
@@ -40,7 +39,7 @@ RULES = {
 }
 
 
-def _name_length(name: Any) -> int:
+def _name_length(name: pikepdf.Name) -> int:
     """Length in bytes of a name without its slash, after #xx expansion."""
     try:
         return len(str(name).encode('utf-8')) - 1
@@ -82,27 +81,27 @@ class LimitChecker:
         """Return the kind of finding for a problem key."""
         return 'unsupported' if key == 'depth' else 'violation'
 
-    def scalar(self, value: Any) -> tuple[str, str] | None:
+    def scalar(self, value: object) -> tuple[str, str] | None:
         """Check a scalar; return (rule key, message) if it breaks a limit."""
         # One unbox and one type test per value: this runs for every content
         # stream operand.
-        value = pikepdf.unbox(value)
-        kind = type(value)
+        native = pikepdf.unbox(value)
+        kind = type(native)
         if kind is int:
-            if not MIN_INTEGER <= value <= MAX_INTEGER:
-                return 'integer', f"integer {value} is out of range"
+            if not MIN_INTEGER <= native <= MAX_INTEGER:
+                return 'integer', f"integer {native} is out of range"
             return None
         if kind is Decimal:
-            return self._real(value)
+            return self._real(native)
         if kind is bool:
             return None
-        if isinstance(value, pikepdf.String):
-            size = len(bytes(value))
+        if isinstance(native, pikepdf.String):
+            size = len(bytes(native))
             if size > self.max_string:
                 return 'string', f"string of {size} bytes exceeds {self.max_string}"
             return None
-        if isinstance(value, pikepdf.Name):
-            size = _name_length(value)
+        if isinstance(native, pikepdf.Name):
+            size = _name_length(native)
             if size > MAX_NAME:
                 return 'name', f"name of {size} bytes exceeds {MAX_NAME}"
             return None
@@ -121,7 +120,7 @@ class LimitChecker:
         return None
 
     def problems(
-        self, value: Any, depth: int = 0, keys: set[str] | None = None
+        self, value: pikepdf.Object, depth: int = 0, keys: set[str] | None = None
     ) -> list[tuple[str, str]]:
         """Return every limit a value breaks, looking into direct containers.
 
@@ -138,7 +137,7 @@ class LimitChecker:
 
     def _collect(
         self,
-        value: Any,
+        value: pikepdf.Object,
         depth: int,
         found: list[tuple[str, str]],
         keys: set[str] | None,

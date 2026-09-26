@@ -10,12 +10,16 @@ object, while the walker decides which references to follow.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, TypeAlias, overload
 
 import pikepdf
 
 if TYPE_CHECKING:
     from pikepdf.pdfa._writemodel import WriteModel
+
+JsonScalar: TypeAlias = str | int | float | bool | None
+JsonValue: TypeAlias = JsonScalar | list['JsonValue'] | dict[str, 'JsonValue']
+"""The shallow JSON encoding of a PDF object."""
 
 _BOM_UTF16 = b'\xfe\xff'
 # Encoded as their value even when indirect
@@ -47,7 +51,7 @@ def _encode_string(obj: pikepdf.Object) -> str:
         return 'b:' + raw.hex()
 
 
-def pdf_repr(value: Any) -> str:
+def pdf_repr(value: object) -> str:
     """Return ``repr(value)`` for a finding message, with native numbers.
 
     The validator works in explicit mode, where the repr of an array,
@@ -59,7 +63,7 @@ def pdf_repr(value: Any) -> str:
         return repr(pikepdf.unbox(value))
 
 
-def pdf_str(value: Any) -> str:
+def pdf_str(value: object) -> str:
     """Return ``str(value)`` for a finding message, with native numbers."""
     value = pikepdf.unbox(value)
     if isinstance(value, pikepdf.Array | pikepdf.Dictionary):
@@ -72,7 +76,7 @@ def _ref(obj: pikepdf.Object) -> str:
     return f'{num} {gen} R'
 
 
-def _encode_dict_items(obj: pikepdf.Object) -> dict[str, Any]:
+def _encode_dict_items(obj: pikepdf.Object) -> dict[str, JsonValue]:
     # A dictionary entry whose value is null is equivalent to an absent entry.
     return {
         str(key): shallow_json(value)
@@ -81,7 +85,7 @@ def _encode_dict_items(obj: pikepdf.Object) -> dict[str, Any]:
     }
 
 
-def _is_null(value: Any) -> bool:
+def _is_null(value: object) -> bool:
     if value is None:
         return True
     return (
@@ -90,7 +94,7 @@ def _is_null(value: Any) -> bool:
     )
 
 
-def _scalar_value(obj: pikepdf.Object) -> Any:
+def _scalar_value(obj: pikepdf.Object) -> JsonScalar:
     if isinstance(obj, pikepdf.Name):
         return _encode_name(obj)
     if isinstance(obj, pikepdf.String):
@@ -106,7 +110,7 @@ def _scalar_value(obj: pikepdf.Object) -> Any:
     raise TypeError(f"cannot encode PDF object of type {obj._type_name}")
 
 
-def shallow_json(obj: Any) -> Any:
+def shallow_json(obj: object) -> JsonValue:
     """Encode a PDF object as JSON-compatible data without following references.
 
     Args:
@@ -140,7 +144,7 @@ def shallow_json(obj: Any) -> Any:
 
 def shallow_json_of_stream_dict(
     stream: pikepdf.Stream, model: WriteModel | None = None
-) -> dict[str, Any]:
+) -> dict[str, JsonValue]:
     """Encode a stream's dictionary (not its data), shallowly.
 
     If *model* predicts a written form, ``/Filter`` and ``/DecodeParms`` are
@@ -159,7 +163,13 @@ def shallow_json_of_stream_dict(
     return encoded
 
 
-def shallow_json_of(obj: Any, model: WriteModel | None = None) -> Any:
+@overload
+def shallow_json_of(
+    obj: pikepdf.Dictionary | pikepdf.Stream, model: WriteModel | None = None
+) -> dict[str, JsonValue]: ...
+@overload
+def shallow_json_of(obj: object, model: WriteModel | None = None) -> JsonValue: ...
+def shallow_json_of(obj: object, model: WriteModel | None = None) -> JsonValue:
     """Encode an object expanding its own top level even if it is indirect.
 
     Streams are encoded as their stream dictionary, so a schema for a stream

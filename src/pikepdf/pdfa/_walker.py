@@ -40,13 +40,13 @@ ANNOT_TOGGLE_NOVIEW = 256
 
 
 class _Item(NamedTuple):
-    obj: Any
+    obj: object
     role: str
     depth: int
     where: str
 
 
-def _kind_of(obj: Any) -> str:
+def _kind_of(obj: object) -> str:
     if isinstance(obj, pikepdf.Stream):
         return 'stream'
     if isinstance(obj, pikepdf.Dictionary):
@@ -77,6 +77,8 @@ class DocumentWalker:
         self.skip_roles = skip_roles
         self._roles_seen: dict[tuple[int, int], str] = {}
         self._stack: list[_Item] = []
+        # Each hook takes the object kind its role's schema requires; _visit
+        # checks the kind before calling it, which the type checker cannot see.
         self._hooks: dict[str, Callable[[Any, str, int], None]] = {
             'Catalog': self._on_catalog,
             'OutputIntents': self._on_output_intents,
@@ -95,7 +97,7 @@ class DocumentWalker:
             self._hooks[role] = self._on_annot
         self.content = ContentWalker(ctx)
         self.content.check_images = 'ImageXObject' not in skip_roles
-        self._images: list[tuple[Any, str]] = []
+        self._images: list[tuple[pikepdf.Stream, str]] = []
 
     def walk(self) -> None:
         """Check every object reachable from the trailer, then the glyphs used."""
@@ -142,7 +144,7 @@ class DocumentWalker:
         base_where = where
         where = f'{base_where} ({role})'
         shallow: Any
-        if role == 'Trailer' and depth == 0:
+        if role == 'Trailer' and depth == 0 and isinstance(obj, pikepdf.Dictionary):
             shallow = ctx.model.trailer_json(obj)
         else:
             shallow = shallow_json_of(obj, ctx.model)
@@ -165,10 +167,12 @@ class DocumentWalker:
         hook = self._hooks.get(role)
         if hook is not None:
             hook(obj, where, depth)
-        children = list(self._children(obj, role, depth, where))
-        self._stack.extend(reversed(children))
+        if isinstance(obj, pikepdf.Object):
+            # Only dictionaries, streams and arrays have roles with children
+            children = list(self._children(obj, role, depth, where))
+            self._stack.extend(reversed(children))
 
-    def _check(self, role: str, obj: Any, shallow: Any, where: str) -> bool:
+    def _check(self, role: str, obj: object, shallow: Any, where: str) -> bool:
         expected = self.schemas.kind(role)
         actual = _kind_of(obj)
         if expected != 'any' and expected != actual:
@@ -180,7 +184,9 @@ class DocumentWalker:
             return False
         return self.schemas.check(role, shallow, self.ctx, where)
 
-    def _children(self, obj: Any, role: str, depth: int, where: str) -> Iterable[_Item]:
+    def _children(
+        self, obj: pikepdf.Object, role: str, depth: int, where: str
+    ) -> Iterable[_Item]:
         for key, spec in self.schemas.children(role).items():
             if key == '*':
                 yield from self._each(obj, spec._replace(values=True), depth, where)
@@ -197,7 +203,7 @@ class DocumentWalker:
                 yield self._child(value, spec, depth, child_where)
 
     def _each(
-        self, value: Any, spec: ChildSpec, depth: int, where: str
+        self, value: object, spec: ChildSpec, depth: int, where: str
     ) -> Iterable[_Item]:
         """Yield each element of an array, or the value itself.
 
@@ -222,7 +228,7 @@ class DocumentWalker:
             yield self._child(value, spec, depth, where)
 
     @staticmethod
-    def _child(value: Any, spec: ChildSpec, depth: int, where: str) -> _Item:
+    def _child(value: object, spec: ChildSpec, depth: int, where: str) -> _Item:
         # A child may be of any type. An indirect integer, real or boolean is
         # a value here, not an object with a role, so it is unboxed.
         return _Item(
@@ -231,7 +237,7 @@ class DocumentWalker:
 
     # --- hooks -------------------------------------------------------------
 
-    def _on_catalog(self, obj: Any, where: str, depth: int) -> None:
+    def _on_catalog(self, obj: pikepdf.Dictionary, where: str, depth: int) -> None:
         if '/OutputIntents' not in obj and 'OutputIntents' not in self.skip_roles:
             self.ctx.deny(
                 'pikepdf:output-intent',
@@ -240,7 +246,7 @@ class DocumentWalker:
                 'unsupported',
             )
 
-    def _on_output_intents(self, obj: Any, where: str, depth: int) -> None:
+    def _on_output_intents(self, obj: pikepdf.Array, where: str, depth: int) -> None:
         profiles: set[tuple[int, int]] = set()
         for intent in obj:
             if not isinstance(intent, pikepdf.Dictionary):
@@ -264,7 +270,7 @@ class DocumentWalker:
                 f"{sorted(profiles)}",
             )
 
-    def _on_output_profile(self, obj: Any, where: str, depth: int) -> None:
+    def _on_output_profile(self, obj: pikepdf.Stream, where: str, depth: int) -> None:
         ctx = self.ctx
         try:
             data = obj.read_bytes()
@@ -293,7 +299,7 @@ class DocumentWalker:
         if ctx.output_intent_cs is None:
             ctx.output_intent_cs = header.colour_space
 
-    def _inherited(self, obj: Any, key: str) -> Any:
+    def _inherited(self, obj: pikepdf.Dictionary, key: str) -> object:
         """Look up an inheritable page attribute through /Parent links."""
         node = obj
         seen: set[tuple[int, int]] = set()
@@ -307,7 +313,7 @@ class DocumentWalker:
             node = parent
         return None
 
-    def _check_box(self, name: str, box: Any, where: str) -> None:
+    def _check_box(self, name: str, box: object, where: str) -> None:
         ctx = self.ctx
         values: list[float] = []
         if isinstance(box, pikepdf.Array) and len(box) == 4:
@@ -328,7 +334,7 @@ class DocumentWalker:
                 )
                 return
 
-    def _on_page(self, obj: Any, where: str, depth: int) -> None:
+    def _on_page(self, obj: pikepdf.Dictionary, where: str, depth: int) -> None:
         ctx = self.ctx
         if self._inherited(obj, '/MediaBox') is None:
             ctx.deny('pikepdf:schema-Page', where, "page has no /MediaBox")
@@ -391,7 +397,7 @@ class DocumentWalker:
         if leaves(root, 0) == 0:
             ctx.deny('pikepdf:page-tree', 'document', "the document has no pages")
 
-    def _on_image(self, obj: Any, where: str, depth: int) -> None:
+    def _on_image(self, obj: pikepdf.Stream, where: str, depth: int) -> None:
         mask = obj.get('/Mask')
         if isinstance(mask, pikepdf.Stream):
             self._stack.append(_Item(mask, 'MaskImage', depth + 1, f'{where} /Mask'))
@@ -404,28 +410,28 @@ class DocumentWalker:
             if image.objgen not in self.content.painted_images:
                 check_image_colour(image, None, self.ctx, where)
 
-    def _on_group(self, obj: Any, where: str, depth: int) -> None:
+    def _on_group(self, obj: pikepdf.Dictionary, where: str, depth: int) -> None:
         colour_space = obj.get('/CS')
         if colour_space is not None:
             resolve_colourspace(
                 colour_space, None, self.ctx, f'{where} /CS', allow_names=False
             )
 
-    def _on_colour_space(self, obj: Any, where: str, depth: int) -> None:
+    def _on_colour_space(self, obj: object, where: str, depth: int) -> None:
         # Resources only declare colour spaces: their use is checked by the
         # content streams, so device colour spaces are accepted here.
         resolve_colourspace(
             obj, None, self.ctx, where, allow_names=False, check_device=False
         )
 
-    def _on_extgstate(self, obj: Any, where: str, depth: int) -> None:
+    def _on_extgstate(self, obj: pikepdf.Dictionary, where: str, depth: int) -> None:
         soft_mask = obj.get('/SMask')
         if self.ctx.flavour.part != 1 and isinstance(soft_mask, pikepdf.Dictionary):
             self._stack.append(
                 _Item(soft_mask, 'SoftMaskDict', depth + 1, f'{where} /SMask')
             )
 
-    def _on_soft_mask(self, obj: Any, where: str, depth: int) -> None:
+    def _on_soft_mask(self, obj: pikepdf.Dictionary, where: str, depth: int) -> None:
         group = obj.get('/G')
         attrs = group.get('/Group') if isinstance(group, pikepdf.Stream) else None
         if (
@@ -438,7 +444,7 @@ class DocumentWalker:
                 "soft mask /G shall be a transparency group Form XObject",
             )
 
-    def _on_annot(self, obj: Any, where: str, depth: int) -> None:
+    def _on_annot(self, obj: pikepdf.Dictionary, where: str, depth: int) -> None:
         ctx = self.ctx
         part1 = ctx.flavour.part == 1
         subtype = obj.get('/Subtype')
@@ -491,7 +497,9 @@ class DocumentWalker:
                     "/C and /IC require an RGB PDF/A OutputIntent",
                 )
 
-    def _on_struct_tree_root(self, obj: Any, where: str, depth: int) -> None:
+    def _on_struct_tree_root(
+        self, obj: pikepdf.Dictionary, where: str, depth: int
+    ) -> None:
         """Check that structure type names are valid UTF-8.
 
         Only the /S names of the structure elements and the /RoleMap are
@@ -513,7 +521,7 @@ class DocumentWalker:
                         "structure type name is not valid UTF-8",
                     )
                     break
-        pending: list[Any] = [obj.get('/K')]
+        pending: list[pikepdf.Object | None] = [obj.get('/K')]
         seen: set[tuple[int, int]] = set()
         count = 0
         while pending:
@@ -546,10 +554,10 @@ class DocumentWalker:
             if '/K' in node:
                 pending.append(node.get('/K'))
 
-    def _on_font_role(self, obj: Any, where: str, depth: int) -> None:
+    def _on_font_role(self, obj: pikepdf.Dictionary, where: str, depth: int) -> None:
         self.on_font(obj, where)
 
-    def _on_form(self, obj: Any, where: str, depth: int) -> None:
+    def _on_form(self, obj: pikepdf.Stream, where: str, depth: int) -> None:
         self.content.walk_unreached_form(obj)
 
     # --- the content and font tiers ------------------------------------------
@@ -563,7 +571,7 @@ class DocumentWalker:
         load_font(obj, self.ctx, where)
 
 
-def _rect_has_area(rect: Any) -> bool:
+def _rect_has_area(rect: object) -> bool:
     """False only for a rectangle of zero width and zero height."""
     if not isinstance(rect, pikepdf.Array) or len(rect) != 4:
         return True

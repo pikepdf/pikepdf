@@ -15,7 +15,7 @@ from __future__ import annotations
 import warnings
 from bisect import bisect_right
 from dataclasses import dataclass, field
-from typing import Any, Literal, NamedTuple
+from typing import Literal, NamedTuple, TypeAlias
 
 import pikepdf
 from pikepdf.pdfa._shallow import pdf_repr
@@ -46,7 +46,7 @@ class CMapError(ValueError):
         self.reason: CMapErrorReason = reason
 
 
-class _Dict(dict):
+class _Dict(dict[str, '_Value']):
     """A dictionary created by the PostScript ``dict`` operator."""
 
 
@@ -55,6 +55,9 @@ class _Opaque:
 
 
 _OPAQUE = _Opaque()
+
+# A value on the operand or dictionary stack
+_Value: TypeAlias = pikepdf.Object | _Dict | _Opaque
 
 # Executable names that only push a value or are no-ops in CMap files.
 _PUSH_OPAQUE = frozenset({'CMapName', 'CIDSystemInfo', 'userdict', 'systemdict'})
@@ -83,7 +86,7 @@ class EmbeddedCMap:
 
     name: str | None = None
     wmode: int | None = None
-    cid_system_info: dict[str, Any] | None = None
+    cid_system_info: dict[str, str | int | None] | None = None
     codespace: list[tuple[bytes, bytes]] = field(default_factory=list)
     max_cid: int = 0
     _chars: dict[tuple[int, int], int] = field(default_factory=dict)
@@ -176,7 +179,7 @@ class EmbeddedCMap:
         table.setdefault(length, []).append(r)
 
 
-def _code(obj: Any) -> bytes:
+def _code(obj: pikepdf.Object) -> bytes:
     if not isinstance(obj, pikepdf.String):
         raise CMapError(f"expected a code string, not {pdf_repr(obj)}", 'syntax')
     raw = bytes(obj)
@@ -185,7 +188,7 @@ def _code(obj: Any) -> bytes:
     return raw
 
 
-def _cid(obj: Any) -> int:
+def _cid(obj: pikepdf.Object) -> int:
     cid = pikepdf.as_int(obj)
     if cid is None:
         raise CMapError(f"expected a CID, not {pdf_repr(obj)}", 'syntax')
@@ -196,7 +199,9 @@ def _cid(obj: Any) -> int:
     return cid
 
 
-def _groups(operands: list[Any], size: int, op: str) -> list[list[Any]]:
+def _groups(
+    operands: list[pikepdf.Object], size: int, op: str
+) -> list[list[pikepdf.Object]]:
     if len(operands) % size:
         raise CMapError(f"{op} has {len(operands)} operands", 'syntax')
     return [operands[i : i + size] for i in range(0, len(operands), size)]
@@ -213,7 +218,7 @@ def _range_pair(low: bytes, high: bytes, op: str) -> tuple[int, int]:
     return lo, hi
 
 
-def _pdf_value(obj: Any) -> str | int | None:
+def _pdf_value(obj: _Value) -> str | int | None:
     """Convert a CIDSystemInfo value to Python.
 
     Registry and Ordering are strings and Supplement is an integer; any other
@@ -224,9 +229,9 @@ def _pdf_value(obj: Any) -> str | int | None:
     return pikepdf.as_int(obj)
 
 
-def _system_info(value: Any) -> dict[str, Any] | None:
+def _system_info(value: _Value | None) -> dict[str, str | int | None] | None:
     if isinstance(value, pikepdf.Dictionary):
-        items = {str(k)[1:]: v for k, v in value.items()}
+        items: dict[str, _Value] = {str(k)[1:]: v for k, v in value.items()}
     elif isinstance(value, _Dict):
         items = dict(value)
     else:
@@ -237,18 +242,18 @@ def _system_info(value: Any) -> dict[str, Any] | None:
 class _Interpreter:
     def __init__(self) -> None:
         self.cmap = EmbeddedCMap()
-        self.stack: list[Any] = []
-        self.dicts: list[Any] = [_Dict()]
+        self.stack: list[_Value] = []
+        self.dicts: list[_Value] = [_Dict()]
         # The CMap entries this module reads, wherever they were defined
         self.top = _Dict()
         self.pending: str | None = None  # the open begin... section
 
-    def pop(self, op: str) -> Any:
+    def pop(self, op: str) -> _Value:
         if not self.stack:
             raise CMapError(f"{op}: operand stack underflow", 'syntax')
         return self.stack.pop()
 
-    def run(self, operands: list[Any], op: str) -> None:
+    def run(self, operands: list[pikepdf.Object], op: str) -> None:
         if self.pending is not None:
             if op != 'end' + self.pending:
                 raise CMapError(f"{op} inside begin{self.pending}", 'syntax')
@@ -329,7 +334,7 @@ class _Interpreter:
 
     # --- CMap sections ------------------------------------------------------
 
-    def section(self, name: str, operands: list[Any]) -> None:
+    def section(self, name: str, operands: list[pikepdf.Object]) -> None:
         cmap = self.cmap
         op = 'end' + name
         if name == 'codespacerange':
