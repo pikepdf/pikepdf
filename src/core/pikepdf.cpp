@@ -3,8 +3,10 @@
 
 #include "pikepdf.h"
 
+#include <algorithm>
 #include <atomic>
 #include <cerrno>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -58,8 +60,14 @@ static constinit std::atomic<PyObject *> decimal_type{nullptr};
 // Thread-local stack of conversion mode overrides, pushed by the
 // explicit_conversion() and implicit_conversion() context managers. The top of
 // the stack takes precedence over both the per-Pdf mode and the global
-// EXPLICIT_CONVERSION_MODE.
-static thread_local std::vector<ConversionMode> thread_mode_stack;
+// EXPLICIT_CONVERSION_MODE. Each override is tagged with a token unique to
+// this thread, so that exiting it removes that override and no other.
+struct ThreadModeOverride {
+    uint64_t token;
+    ConversionMode mode;
+};
+static thread_local std::vector<ThreadModeOverride> thread_mode_stack;
+static thread_local uint64_t thread_mode_next_token = 0;
 
 PyObject *get_data_decoding_error_type()
 {
@@ -122,7 +130,7 @@ bool get_explicit_conversion_mode(QpdfEntry const *owner) noexcept
 {
     // Resolution order: thread-local override > per-Pdf mode > global setting.
     if (!thread_mode_stack.empty()) {
-        return thread_mode_stack.back() == ConversionMode::explicit_;
+        return thread_mode_stack.back().mode == ConversionMode::explicit_;
     }
     if (owner) {
         auto mode = owner->conversion_mode.load(std::memory_order_relaxed);
@@ -353,21 +361,25 @@ NB_MODULE(_core, m)
         .def(
             "_push_thread_conversion_mode",
             [](bool explicit_) {
-                auto token = thread_mode_stack.size();
-                thread_mode_stack.push_back(
-                    explicit_ ? ConversionMode::explicit_ : ConversionMode::implicit);
+                auto token = thread_mode_next_token++;
+                thread_mode_stack.push_back({token,
+                    explicit_ ? ConversionMode::explicit_ : ConversionMode::implicit});
                 return token;
             },
             py::arg("explicit"))
         .def(
             "_pop_thread_conversion_mode",
-            [](size_t token) {
-                // Truncate rather than pop, so that a context manager exited
-                // out of order (or twice) cannot corrupt the stack: everything
-                // pushed at or after this override is discarded, and popping
-                // an override that is already gone does nothing.
-                if (thread_mode_stack.size() > token)
-                    thread_mode_stack.resize(token);
+            [](uint64_t token) {
+                // Remove this override only. A context manager can be exited
+                // out of order, e.g. by a generator suspended inside one that
+                // is closed inside another, and that must not discard
+                // overrides that are still active. Popping an override that is
+                // already gone does nothing.
+                auto it = std::find_if(thread_mode_stack.rbegin(),
+                    thread_mode_stack.rend(),
+                    [token](auto const &o) { return o.token == token; });
+                if (it != thread_mode_stack.rend())
+                    thread_mode_stack.erase(std::next(it).base());
             },
             py::arg("token"))
         .def("set_flate_compression_level",
