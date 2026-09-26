@@ -151,6 +151,39 @@ def test_save_replaces_existing_destination(tmp_path):
     assert validate_written(out, '2b').passed
 
 
+@pytest.mark.skipif(
+    hasattr(os, 'geteuid') and os.geteuid() == 0, reason="root can override permissions"
+)
+def test_save_refuses_read_only_destination(tmp_path):
+    """As for Pdf.save, a destination that cannot be written is not replaced."""
+    out = tmp_path / 'out.pdf'
+    out.write_bytes(b'original contents')
+    out.chmod(0o444)
+    if os.access(out, os.W_OK):
+        pytest.skip("Couldn't create a read-only file")
+    with sample('pass') as pdf, pytest.raises(PermissionError):
+        save(pdf, out, '2b')
+    assert out.read_bytes() == b'original contents'
+    assert temp_leftovers(tmp_path) == []
+
+
+def test_save_to_stream_replaces_contents():
+    """A stream holds exactly the validated bytes, even if it was longer."""
+    bio = BytesIO(b'x' * 1_000_000)
+    with sample('pass') as pdf:
+        save(pdf, bio, '2b')
+    assert validate_written(BytesIO(bio.getvalue()), '2b').passed
+    assert not bio.getvalue().endswith(b'x')
+
+
+def test_save_to_stream_not_at_start():
+    bio = BytesIO(b'prefix')
+    bio.seek(0, os.SEEK_END)
+    with sample('pass') as pdf, pytest.raises(ValueError, match='start'):
+        save(pdf, bio, '2b')
+    assert bio.getvalue() == b'prefix'
+
+
 def test_repair_false(tmp_path):
     out = tmp_path / 'out.pdf'
     with sample('dirty') as pdf:

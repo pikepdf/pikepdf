@@ -220,6 +220,9 @@ def atomic_write_verified(
       metadata (via :func:`shutil.copystat`); its modification time is then
       updated. A new destination gets permissions from the process umask.
 
+    - A regular destination that cannot be opened for writing raises
+      :class:`PermissionError` before anything is written.
+
     Non-guarantees:
 
     - A symlink at *filename* is replaced by a regular file; the symlink's
@@ -232,6 +235,12 @@ def atomic_write_verified(
     - Durability across power loss is not guaranteed (no ``fsync``).
     """
     filename = Path(filename)
+    with suppress(FileNotFoundError):
+        if stat.S_ISREG(os.stat(filename).st_mode):
+            # Replacing the file needs only permission on its directory; as
+            # for atomic_overwrite, also require that the file be writable.
+            with filename.open('ab'):
+                pass
     fd, tmp = _create_temp_for(filename)
     try:
         try:
