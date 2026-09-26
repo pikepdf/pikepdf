@@ -53,29 +53,58 @@ public:
     py::object get_inline_image() const;
 };
 
-// Used for parse_content_stream. Handles each object by grouping into operands
-// and operators. The whole parse stream can be retrieved at once.
-class OperandGrouper : public QPDFObjectHandle::ParserCallbacks {
+// Groups the objects of a content stream into instructions: operands followed
+// by their operator, or an inline image (BI ... ID data EI). Subclasses decide
+// what to do with each complete instruction.
+class InstructionGrouper : public QPDFObjectHandle::ParserCallbacks {
 public:
-    OperandGrouper(
-        const std::string &operators, QPDFObjectHandle resources = QPDFObjectHandle());
+    explicit InstructionGrouper(QPDFObjectHandle resources = QPDFObjectHandle())
+        : resources(resources)
+    {
+    }
     void handleObject(QPDFObjectHandle obj) override;
     void handleEOF() override;
 
-    py::list getInstructions() const;
-    std::string getWarning() const;
+    std::string getWarning() const { return this->warning; }
+
+protected:
+    // Whether to keep instructions with this operator; the operands of a
+    // rejected operator are discarded along with it
+    virtual bool accepts(std::string const &op) const { return true; }
+    virtual void handle_instruction(ObjectList &operands,
+        QPDFObjectHandle const &operator_,
+        std::string const &op) = 0;
+    virtual void handle_inline_image(ContentStreamInlineImage csii) = 0;
 
 private:
-    std::set<std::string> whitelist;
-    std::vector<QPDFObjectHandle> tokens;
-    bool parsing_inline_image;
-    std::vector<QPDFObjectHandle> inline_metadata;
-    py::list instructions;
-    uint count;
+    ObjectList tokens;
+    bool parsing_inline_image = false;
+    ObjectList inline_metadata;
     std::string warning;
     // The /Resources in scope for this content stream, forwarded to inline
     // images so they can resolve named colour spaces. Null when unavailable.
     QPDFObjectHandle resources;
+};
+
+// Used for parse_content_stream. Collects every instruction, optionally only
+// those whose operators are in a whitelist.
+class OperandGrouper : public InstructionGrouper {
+public:
+    OperandGrouper(
+        const std::string &operators, QPDFObjectHandle resources = QPDFObjectHandle());
+
+    py::list getInstructions() const;
+
+protected:
+    bool accepts(std::string const &op) const override;
+    void handle_instruction(ObjectList &operands,
+        QPDFObjectHandle const &operator_,
+        std::string const &op) override;
+    void handle_inline_image(ContentStreamInlineImage csii) override;
+
+private:
+    std::set<std::string> whitelist;
+    py::list instructions;
 };
 
 // Append the PDF serialization of one instruction to out

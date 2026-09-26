@@ -120,8 +120,42 @@ void append_unparsed(std::string &out, ContentStreamInlineImage &csii)
     out += to_string(ii_bytes);
 }
 
+void InstructionGrouper::handleObject(QPDFObjectHandle obj)
+{
+    if (obj.getTypeCode() != qpdf_object_type_e::ot_operator) {
+        this->tokens.push_back(obj);
+        return;
+    }
+    std::string op = obj.getOperatorValue();
+    if (!this->accepts(op)) {
+        this->tokens.clear();
+        return;
+    }
+    if (op == "BI") {
+        this->parsing_inline_image = true;
+    } else if (this->parsing_inline_image) {
+        if (op == "ID") {
+            this->inline_metadata = this->tokens;
+        } else if (op == "EI") {
+            this->handle_inline_image(ContentStreamInlineImage(
+                this->inline_metadata, this->tokens.at(0), this->resources));
+            this->inline_metadata = ObjectList();
+            this->parsing_inline_image = false;
+        }
+    } else {
+        this->handle_instruction(this->tokens, obj, op);
+    }
+    this->tokens.clear();
+}
+
+void InstructionGrouper::handleEOF()
+{
+    if (!this->tokens.empty())
+        this->warning = "Unexpected end of stream";
+}
+
 OperandGrouper::OperandGrouper(const std::string &operators, QPDFObjectHandle resources)
-    : parsing_inline_image(false), count(0), resources(resources)
+    : InstructionGrouper(resources)
 {
     std::istringstream f(operators);
     f.imbue(std::locale::classic());
@@ -131,62 +165,30 @@ OperandGrouper::OperandGrouper(const std::string &operators, QPDFObjectHandle re
     }
 }
 
-void OperandGrouper::handleObject(QPDFObjectHandle obj)
+bool OperandGrouper::accepts(std::string const &op) const
 {
-    this->count++;
-    if (obj.getTypeCode() == qpdf_object_type_e::ot_operator) {
-        std::string op = obj.getOperatorValue();
-
-        // If we have a whitelist and this operator is not on the whitelist,
-        // discard it and all the tokens we collected
-        if (!this->whitelist.empty()) {
-            if (op[0] == 'q' || op[0] == 'Q') {
-                // We have token with multiple stack push/pops
-                if (this->whitelist.count("q") == 0 &&
-                    this->whitelist.count("Q") == 0) {
-                    this->tokens.clear();
-                    return;
-                }
-            } else if (this->whitelist.count(op) == 0) {
-                this->tokens.clear();
-                return;
-            }
-        }
-        if (op == "BI") {
-            this->parsing_inline_image = true;
-        } else if (this->parsing_inline_image) {
-            if (op == "ID") {
-                this->inline_metadata = this->tokens;
-            } else if (op == "EI") {
-                ContentStreamInlineImage csii(
-                    this->inline_metadata, this->tokens[0], this->resources);
-                this->instructions.append(csii);
-                this->inline_metadata = ObjectList();
-                this->parsing_inline_image = false;
-            }
-        } else {
-            ContentStreamInstruction csi(this->tokens, obj);
-            this->instructions.append(csi);
-        }
-        this->tokens.clear();
-    } else {
-        this->tokens.push_back(obj);
-    }
+    if (this->whitelist.empty())
+        return true;
+    // We have token with multiple stack push/pops
+    if (op[0] == 'q' || op[0] == 'Q')
+        return this->whitelist.count("q") != 0 || this->whitelist.count("Q") != 0;
+    return this->whitelist.count(op) != 0;
 }
 
-void OperandGrouper::handleEOF()
+void OperandGrouper::handle_instruction(
+    ObjectList &operands, QPDFObjectHandle const &operator_, std::string const &op)
 {
-    if (!this->tokens.empty())
-        this->warning = "Unexpected end of stream";
+    this->instructions.append(ContentStreamInstruction(operands, operator_));
+}
+
+void OperandGrouper::handle_inline_image(ContentStreamInlineImage csii)
+{
+    this->instructions.append(std::move(csii));
 }
 
 py::list OperandGrouper::getInstructions() const
 {
     return this->instructions;
-}
-std::string OperandGrouper::getWarning() const
-{
-    return this->warning;
 }
 
 py::bytes unparse_content_stream(py::iterable contentstream)
@@ -447,64 +449,45 @@ public:
 // Groups a content stream into instructions exactly as OperandGrouper does
 // (so parse errors and warnings are the same as parse_content_stream's), and
 // checks each instruction as it is completed.
-class ContentCheckCallbacks : public QPDFObjectHandle::ParserCallbacks {
+class ContentCheckCallbacks : public InstructionGrouper {
 public:
     ContentCheckCallbacks(ContentChecker const &checker, QPDFObjectHandle resources)
-        : checker(checker), resources(resources)
+        : InstructionGrouper(resources), checker(checker)
     {
-    }
-
-    void handleObject(QPDFObjectHandle obj) override
-    {
-        if (obj.getTypeCode() != qpdf_object_type_e::ot_operator) {
-            this->tokens.push_back(obj);
-            return;
-        }
-        std::string op = obj.getOperatorValue();
-        if (op == "BI") {
-            this->parsing_inline_image = true;
-        } else if (this->parsing_inline_image) {
-            if (op == "ID") {
-                this->inline_metadata = this->tokens;
-            } else if (op == "EI") {
-                ContentStreamInlineImage csii(
-                    this->inline_metadata, this->tokens.at(0), this->resources);
-                this->events.append(
-                    py::make_tuple("inline", this->count, py::cast(std::move(csii))));
-                this->count++;
-                this->inline_metadata = ObjectList();
-                this->parsing_inline_image = false;
-            }
-        } else {
-            check_objects_in_operands(this->tokens);
-            this->check_instruction(op);
-            this->count++;
-        }
-        this->tokens.clear();
-    }
-
-    void handleEOF() override
-    {
-        if (!this->tokens.empty())
-            this->warning = "Unexpected end of stream";
     }
 
     py::list events;
     size_t count = 0;
-    std::string warning;
 
-private:
-    py::list operand_list() const
+protected:
+    void handle_instruction(ObjectList &operands,
+        QPDFObjectHandle const &operator_,
+        std::string const &op) override
     {
-        py::list operands;
-        for (auto const &operand : this->tokens)
-            operands.append(py::cast(operand));
-        return operands;
+        check_objects_in_operands(operands);
+        this->check_instruction(operands, op);
+        this->count++;
     }
 
-    void check_instruction(std::string const &op)
+    void handle_inline_image(ContentStreamInlineImage csii) override
     {
-        for (auto &operand : this->tokens) {
+        this->events.append(
+            py::make_tuple("inline", this->count, py::cast(std::move(csii))));
+        this->count++;
+    }
+
+private:
+    static py::list operand_list(ObjectList const &operands)
+    {
+        py::list result;
+        for (auto const &operand : operands)
+            result.append(py::cast(operand));
+        return result;
+    }
+
+    void check_instruction(ObjectList &operands, std::string const &op)
+    {
+        for (auto &operand : operands) {
             if (!this->checker.limits.within(operand, 0))
                 this->events.append(
                     py::make_tuple("limits", this->count, py::cast(operand)));
@@ -516,24 +499,20 @@ private:
             return;
         }
         auto const &entry = it->second;
-        if (entry.signature != "*" && !operands_match(entry.signature, this->tokens)) {
+        if (entry.signature != "*" && !operands_match(entry.signature, operands)) {
             this->events.append(py::make_tuple(
-                "operands", this->count, entry.name, this->operand_list()));
+                "operands", this->count, entry.name, operand_list(operands)));
             return;
         }
         if (entry.handled) {
             this->events.append(py::make_tuple("op",
                 this->count,
                 entry.name,
-                entry.handler_reads_operands ? this->operand_list() : py::list()));
+                entry.handler_reads_operands ? operand_list(operands) : py::list()));
         }
     }
 
     ContentChecker const &checker;
-    QPDFObjectHandle resources;
-    ObjectList tokens;
-    bool parsing_inline_image = false;
-    ObjectList inline_metadata;
 };
 
 std::pair<py::list, size_t> ContentChecker::check(QPDFObjectHandle &stream) const
@@ -543,8 +522,9 @@ std::pair<py::list, size_t> ContentChecker::check(QPDFObjectHandle &stream) cons
         resources = stream.getDict().getKey("/Resources");
     ContentCheckCallbacks callbacks(*this, resources);
     QPDFObjectHandle::parseContentStream(stream, &callbacks);
-    if (!callbacks.warning.empty())
-        python_warning(callbacks.warning.c_str());
+    auto warning = callbacks.getWarning();
+    if (!warning.empty())
+        python_warning(warning.c_str());
     return {callbacks.events, callbacks.count};
 }
 
@@ -552,6 +532,25 @@ std::pair<py::list, size_t> ContentChecker::check(QPDFObjectHandle &stream) cons
 // stub. Tokenizes just enough to find hex strings, skipping literal strings,
 // comments and inline image data.
 static constexpr std::string_view RAW_WHITESPACE{"\0\t\n\x0c\r ", 6};
+
+// A problem the raw scan reports: the PDF/A clause, or "inline-image" for
+// inline image data it cannot delimit, and a description.
+struct RawContentProblem {
+    char const *clause;
+    char const *message;
+};
+
+static constexpr RawContentProblem HEX_ODD_DIGITS{
+    "6.1.6-1", "hex string has an odd number of digits"};
+static constexpr RawContentProblem HEX_NOT_HEX{
+    "6.1.6-2", "hex string contains non-hex characters"};
+static constexpr RawContentProblem INLINE_IMAGE_UNDELIMITED{
+    "inline-image", "inline image data cannot be delimited"};
+
+static void append_problem(py::list &problems, RawContentProblem const &problem)
+{
+    problems.append(py::make_tuple(problem.clause, problem.message));
+}
 
 static bool is_raw_whitespace(char c)
 {
@@ -575,17 +574,17 @@ static size_t skip_literal_string(std::string_view data, size_t pos)
     return data.size();
 }
 
-static char const *hex_string_problem(std::string_view body)
+static RawContentProblem const *hex_string_problem(std::string_view body)
 {
     size_t digits = 0;
     for (char c : body) {
         if (is_raw_whitespace(c))
             continue;
         if (!std::isxdigit(static_cast<unsigned char>(c)))
-            return "6.1.6-2";
+            return &HEX_NOT_HEX;
         digits++;
     }
-    return digits % 2 ? "6.1.6-1" : nullptr;
+    return digits % 2 ? &HEX_ODD_DIGITS : nullptr;
 }
 
 static bool starts_inline_image_data(std::string_view data, size_t pos)
@@ -620,19 +619,15 @@ static py::list scan_raw_content(py::bytes data_bytes, std::vector<py::bytes> im
             auto end = data.find('>', pos + 1);
             if (end == std::string_view::npos)
                 end = data.size();
-            auto clause = hex_string_problem(data.substr(pos + 1, end - pos - 1));
-            if (clause != nullptr) {
-                problems.append(py::make_tuple(clause,
-                    clause[6] == '1' ? "hex string has an odd number of digits"
-                                     : "hex string contains non-hex characters"));
-            }
+            auto problem = hex_string_problem(data.substr(pos + 1, end - pos - 1));
+            if (problem != nullptr)
+                append_problem(problems, *problem);
             pos = end + 1;
         } else if (c == 'I' && starts_inline_image_data(data, pos)) {
             // The data begins after the whitespace byte that follows ID
             size_t start = pos + 3;
             if (image == images.size()) {
-                problems.append(py::make_tuple(
-                    "inline-image", "inline image data cannot be delimited"));
+                append_problem(problems, INLINE_IMAGE_UNDELIMITED);
                 return problems;
             }
             std::string_view expected(images[image].c_str(), images[image].size());
@@ -641,8 +636,7 @@ static py::list scan_raw_content(py::bytes data_bytes, std::vector<py::bytes> im
                                ? data.substr(start, expected.size()) == expected
                                : expected.empty();
             if (!matches) {
-                problems.append(py::make_tuple(
-                    "inline-image", "inline image data cannot be delimited"));
+                append_problem(problems, INLINE_IMAGE_UNDELIMITED);
                 return problems;
             }
             pos = start + expected.size();
@@ -651,8 +645,7 @@ static py::list scan_raw_content(py::bytes data_bytes, std::vector<py::bytes> im
         }
     }
     if (image < images.size())
-        problems.append(
-            py::make_tuple("inline-image", "inline image data cannot be delimited"));
+        append_problem(problems, INLINE_IMAGE_UNDELIMITED);
     return problems;
 }
 
