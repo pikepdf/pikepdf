@@ -21,7 +21,7 @@ from pdfa_samples import NOTO_SANS, RESOURCES, assert_verapdf_agrees, replace_xm
 import pikepdf
 from pikepdf import Name
 from pikepdf.models.metadata import decode_pdf_date
-from pikepdf.pdfa import save, validate_written
+from pikepdf.pdfa import prepare, save, validate_written
 from pikepdf.pdfa._declare import (
     add_pdfa_metadata,
     assume_local_time_zone_for_dates,
@@ -475,3 +475,21 @@ def test_unzoned_dates_candidate_validates(tmp_path, flavour):
     report = validate_written(out, flavour)
     assert report.passed, report.summary()
     assert_verapdf_agrees(out, flavour)
+
+
+@pytest.mark.parametrize(
+    ('docinfo_date', 'expected'),
+    [
+        ('D:202001011230', "D:20200101123000-08'00"),
+        ('D:2020010112', "D:20200101120000-08'00"),
+        ("D:20200101120000-05'", "D:20200101120000-05'00"),
+    ],
+)
+def test_prepare_keeps_partial_docinfo_dates(los_angeles_tz, docinfo_date, expected):
+    """Legal PDF dates with omitted fields are kept, not misread or deleted."""
+    with pikepdf.open(RESOURCES / 'ccitt.pdf') as pdf:
+        pdf.docinfo.CreationDate = docinfo_date
+        prepare(pdf, '2b')
+        info, xmp = _dates(pdf)
+    assert info['/CreationDate'] == expected
+    assert decode_pdf_date(expected) == dt.datetime.fromisoformat(xmp['xmp:CreateDate'])

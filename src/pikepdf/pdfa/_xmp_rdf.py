@@ -24,6 +24,7 @@ from typing import Literal, TypedDict, cast
 from lxml import etree
 
 from pikepdf.models.metadata import XPACKET_BEGIN, XPACKET_END
+from pikepdf.models.metadata._converters import parse_xmp_date
 from pikepdf.pdfa._catalogue import load_json
 from pikepdf.pdfa._flavour import Flavour
 
@@ -41,8 +42,9 @@ _ARRAYS = {f'{{{RDF}}}{kind}': kind for kind in ('Bag', 'Seq', 'Alt')}
 
 _CLARK = re.compile(r'^\{([^}]*)\}(.+)$')
 _XMP_DATE = re.compile(
-    r'^\d{4}(-\d{2}(-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?'
-    r'(Z|[+-]\d{2}:\d{2})?)?)?)?$'
+    r'^\d{4}(-(?P<month>\d{2})(?P<day>-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d+)?)?'
+    r'(Z|[+-]\d{2}:\d{2})?)?)?)?$',
+    re.ASCII,
 )
 _INTEGER = re.compile(r'^[+-]?\d+$')
 _MIME_TYPE = re.compile(
@@ -511,7 +513,7 @@ def _type_problem(value_type: str, value: Value) -> str | None:
     if not value.simple_items:
         return "has an item that is not simple text"
     text = value.text or ''
-    if value_type == 'date' and not _XMP_DATE.match(text):
+    if value_type == 'date' and not is_date(text):
         return invalid
     if value_type == 'integer' and not _INTEGER.match(text):
         return invalid
@@ -519,7 +521,7 @@ def _type_problem(value_type: str, value: Value) -> str | None:
         return invalid
     if value_type == 'mimetype' and not _MIME_TYPE.match(text):
         return invalid
-    if value_type == 'seq-date' and not all(_XMP_DATE.match(i) for i in value.items):
+    if value_type == 'seq-date' and not all(is_date(i) for i in value.items):
         return invalid
     if value_type == 'langalt':
         if not all(value.langs):
@@ -540,8 +542,17 @@ def read_packet(data: bytes, flavour: Flavour | str) -> Reading:
 
 
 def is_date(text: str) -> bool:
-    """Return True if *text* is an XMP date."""
-    return bool(_XMP_DATE.match(text))
+    """Return True if *text* is an XMP date that names a real point in time."""
+    m = _XMP_DATE.match(text)
+    if m is None:
+        return False
+    if m['day'] is not None:
+        try:
+            parse_xmp_date(text)
+        except ValueError:
+            return False
+        return True
+    return m['month'] is None or 1 <= int(m['month']) <= 12
 
 
 def xml_safe(text: str) -> str:

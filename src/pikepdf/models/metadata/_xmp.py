@@ -599,6 +599,7 @@ class XmpDocument:
 
         for child in node.findall('*'):
             node.remove(child)
+        node.text = None
         if is_array:
             self._setitem_add_array(node, val, rdf_type)
         elif isinstance(val, str):
