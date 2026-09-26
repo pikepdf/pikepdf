@@ -43,6 +43,53 @@ QPDFFileSpecObjectHelper create_filespec(QPDF &q,
     return filespec;
 }
 
+// PDF/A-3 (and PDF 2.0, 14.13) expects each embedded file to be an associated
+// file, listed in the catalog's /AF array. qpdf maintains only the
+// /EmbeddedFiles name tree, so we keep /AF in step with it. A malformed /AF
+// that is not an array is left alone.
+static void catalog_af_add(QPDF &q, QPDFObjectHandle filespec)
+{
+    auto root = q.getRoot();
+    auto af = root.getKey("/AF");
+    if (af.isNull()) {
+        root.replaceKey("/AF", QPDFObjectHandle::newArray({filespec}));
+        return;
+    }
+    if (!af.isArray())
+        return;
+    for (auto const &item : af.aitems())
+        if (item.isSameObjectAs(filespec))
+            return;
+    af.appendItem(filespec);
+}
+
+static void catalog_af_remove(QPDF &q, QPDFObjectHandle filespec)
+{
+    auto root = q.getRoot();
+    auto af = root.getKey("/AF");
+    if (!af.isArray())
+        return;
+    for (int i = af.getArrayNItems() - 1; i >= 0; --i)
+        if (af.getArrayItem(i).isSameObjectAs(filespec))
+            af.eraseItem(i);
+    if (af.getArrayNItems() == 0)
+        root.removeKey("/AF");
+}
+
+static void attach(QPDFEmbeddedFileDocumentHelper &efdh,
+    std::string const &key,
+    QPDFFileSpecObjectHelper const &filespec)
+{
+    auto &q = efdh.getQPDF();
+    QpdfLockGuard lock(&q);
+    auto previous = efdh.getEmbeddedFile(key);
+    if (previous &&
+        !previous->getObjectHandle().isSameObjectAs(filespec.getObjectHandle()))
+        catalog_af_remove(q, previous->getObjectHandle());
+    efdh.replaceEmbeddedFile(key, filespec);
+    catalog_af_add(q, filespec.getObjectHandle());
+}
+
 // The names under which files are embedded, in the map's sorted order.
 static py::list attachment_keys(QPDFEmbeddedFileDocumentHelper &efdh)
 {
@@ -206,7 +253,8 @@ void init_embeddedfiles(py::module_ &m)
             [](QPDFEmbeddedFileDocumentHelper &efdh,
                 std::string const &key,
                 py::bytes data) {
-                efdh.replaceEmbeddedFile(key,
+                attach(efdh,
+                    key,
                     create_filespec(efdh.getQPDF(),
                         data,
                         std::string(""),
@@ -224,10 +272,16 @@ void init_embeddedfiles(py::module_ &m)
                 // itself would have no filename to report, so adopt the key.
                 if (filespec.getFilename().empty())
                     filespec.setFilename(key);
-                efdh.replaceEmbeddedFile(key, filespec);
+                attach(efdh, key, filespec);
             })
         .def("__delitem__",
             [](QPDFEmbeddedFileDocumentHelper &efdh, std::string const &key) {
+                auto &q = efdh.getQPDF();
+                QpdfLockGuard lock(&q);
+                // Remove the /AF entry first: qpdf replaces the file
+                // specification with null, which would leave a null in /AF.
+                if (auto filespec = efdh.getEmbeddedFile(key))
+                    catalog_af_remove(q, filespec->getObjectHandle());
                 efdh.removeEmbeddedFile(key);
             })
         .def("__len__",

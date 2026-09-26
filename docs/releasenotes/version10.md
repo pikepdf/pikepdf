@@ -16,7 +16,17 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
-## v10.14.0
+## v10.15.0
+
+### PDF/A-3 attachments
+
+- Attaching a file through `Pdf.attachments` now lists its file specification
+  in the document catalog's `/AF` (associated files) array, and deleting or
+  replacing an attachment removes its entry. Together with the
+  `/AFRelationship` pikepdf already writes, a file attached to a PDF/A-3
+  document now keeps it conformant. qpdf maintains only the `/EmbeddedFiles`
+  name tree, so this was previously left to the user. {issue}`463`
+
 
 Several improvements to explicit conversion mode and `NamePath`, prompted by
 the OCRmyPDF project's migration to these APIs
