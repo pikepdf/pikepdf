@@ -380,6 +380,12 @@ pikepdf's metadata handling made invalid.
   `D:2020010112` (no minutes) and offsets in hours only, such as `-08'`,
   raised `ValueError`, so {attr}`pikepdf.Pdf.docinfo` dates in these forms
   were not synchronized to XMP.
+- {meth}`pikepdf.Pdf.save` now raises `ValueError` when the destination is
+  the stream the `Pdf` was opened from, or another stream on the same file,
+  as it already did for the input file's path. Previously the new file was
+  written into the input at the stream's current position, which produced a
+  corrupt file and could corrupt the open `Pdf`, since qpdf reads its input
+  lazily. Open with `allow_overwriting_input=True` to save over the input.
 - Setting an XMP property that a file stored as plain text, such as
   `<dc:title>Old</dc:title>`, now replaces the text. Previously the new value
   was added alongside the old text, which was still returned when the

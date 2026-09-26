@@ -19,6 +19,7 @@ from pikepdf import Pdf
 from pikepdf._io import (
     atomic_write_verified,
     check_different_files,
+    check_stream_is_not_input,
     check_stream_is_usable,
 )
 from pikepdf.pdfa import _engine
@@ -212,6 +213,10 @@ def save(
     if hasattr(destination, 'seek'):
         stream = cast(BinaryIO, destination)
         check_stream_is_usable(stream)
+        if not getattr(pdf, '_tmp_stream', None):
+            check_stream_is_not_input(
+                stream, getattr(pdf, '_input_stream', None), original
+            )
         if stream.tell() != 0:
             raise ValueError(_STREAM_NOT_AT_START)
     elif isinstance(destination, str | bytes | PathLike):

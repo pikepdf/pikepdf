@@ -176,6 +176,18 @@ def test_save_to_stream_replaces_contents():
     assert not bio.getvalue().endswith(b'x')
 
 
+def test_save_to_input_stream_refused():
+    with sample('pass') as src:
+        bio = BytesIO()
+        src.save(bio)
+    original = bio.getvalue()
+    bio.seek(0)
+    with pikepdf.open(bio) as pdf:
+        with pytest.raises(ValueError, match='overwrite input'):
+            save(pdf, bio, '2b')
+    assert bio.getvalue() == original
+
+
 def test_save_to_stream_not_at_start():
     bio = BytesIO(b'prefix')
     bio.seek(0, os.SEEK_END)
