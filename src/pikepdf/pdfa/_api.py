@@ -19,6 +19,7 @@ from pikepdf import Pdf
 from pikepdf._io import (
     atomic_write_verified,
     check_different_files,
+    check_stream_is_not_input,
     check_stream_is_usable,
 )
 from pikepdf.pdfa import _engine
@@ -114,6 +115,10 @@ def validate_written(
     return report
 
 
+_STREAM_NOT_AT_START = (
+    "A PDF/A file must start at the beginning of the stream; seek the "
+    "stream to 0 before saving."
+)
 _NO_ORIGINAL_FILENAME = (
     "Cannot save to original filename because the original file was "
     "not opening using Pdf.open(..., allow_overwriting_input=True). "
@@ -158,14 +163,15 @@ def save(
        ``'pass'`` verdict is accepted; ``'fail'`` and ``'not_checked'`` both
        raise `PdfaError`.
     4. Move the verified file into place (for a path), or copy its bytes into
-       the stream.
+       the stream, replacing its previous contents.
 
     A failed save leaves an existing destination file untouched, and does not
     create a new one. A stream destination is written only on success.
 
     Args:
         pdf: The document to save.
-        filename_or_stream: A path or a seekable, writable binary stream. If
+        filename_or_stream: A path or a seekable, writable binary stream,
+            positioned at its start. If
             None, the document is saved over the file it was opened from,
             which requires ``pikepdf.open(..., allow_overwriting_input=True)``,
             as for `pikepdf.Pdf.save`.
@@ -187,7 +193,9 @@ def save(
             a successful save. Nothing was written to the destination.
         ValueError: If *flavour* is not a supported flavour, a save setting
             conflicts with the flavour, the output intent is invalid, or the
-            destination is the input file and overwriting it was not allowed.
+            destination is the input file and overwriting it was not allowed,
+            or a stream destination is not at its start.
+        PermissionError: If the destination file is not writable.
         TypeError: If a keyword is not a supported save setting, or the
             destination is not a path or binary stream.
     """
@@ -205,6 +213,12 @@ def save(
     if hasattr(destination, 'seek'):
         stream = cast(BinaryIO, destination)
         check_stream_is_usable(stream)
+        if not getattr(pdf, '_tmp_stream', None):
+            check_stream_is_not_input(
+                stream, getattr(pdf, '_input_stream', None), original
+            )
+        if stream.tell() != 0:
+            raise ValueError(_STREAM_NOT_AT_START)
     elif isinstance(destination, str | bytes | PathLike):
         path = Path(os.fsdecode(destination))
         if not getattr(pdf, '_tmp_stream', None) and original is not None:
@@ -259,4 +273,6 @@ def _save_to_stream(
         _require_pass(report)
         tf.seek(0)
         shutil.copyfileobj(tf, stream)
+        # Drop anything left over from the stream's previous contents.
+        stream.truncate()
     return report

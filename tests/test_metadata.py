@@ -273,6 +273,56 @@ def test_decode_pdf_date():
         assert decode_pdf_date(s) == d
 
 
+def test_decode_pdf_date_optional_fields():
+    """Every field after the year of a PDF date is optional."""
+    minus8 = timezone(timedelta(hours=-8))
+    VALS = [
+        ('D:2020', datetime(2020, 1, 1)),
+        ('D:202003', datetime(2020, 3, 1)),
+        ('D:2020010112', datetime(2020, 1, 1, 12)),
+        ('D:202001011230', datetime(2020, 1, 1, 12, 30)),
+        ('D:202001011230Z', datetime(2020, 1, 1, 12, 30, tzinfo=UTC)),
+        ("D:20200101120000-08'", datetime(2020, 1, 1, 12, tzinfo=minus8)),
+        ('D:20200101120000-08', datetime(2020, 1, 1, 12, tzinfo=minus8)),
+        ("D:20200101120000-08'00'", datetime(2020, 1, 1, 12, tzinfo=minus8)),
+    ]
+    for s, d in VALS:
+        assert decode_pdf_date(s) == d
+
+
+def test_decode_pdf_date_invalid():
+    for bad in ['D:20201301', 'D:20200132', 'D:2020010125', 'D:20', 'garbage']:
+        with pytest.raises(ValueError):
+            decode_pdf_date(bad)
+
+
+def test_xmp_date_trailing_whitespace_docinfo_from_xmp():
+    assert (
+        DateConverter.docinfo_from_xmp('2020-01-02T03:04:05Z\n')
+        == "D:20200102030405+00'00"
+    )
+
+
+def test_set_property_stored_as_simple_text():
+    """Setting a property that was stored as plain text must replace the text."""
+    xmp = b"""<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+<rdf:Description rdf:about="uuid:1" xmlns:dc="http://purl.org/dc/elements/1.1/">
+<dc:title>Old</dc:title><dc:creator>Bob</dc:creator>
+</rdf:Description></rdf:RDF></x:xmpmeta><?xpacket end="w"?>"""
+    pdf = pikepdf.new()
+    pdf.Root.Metadata = pdf.make_stream(xmp)
+    with pdf.open_metadata(set_pikepdf_as_editor=False) as meta:
+        meta['dc:title'] = 'New'
+        meta['dc:creator'] = ['Alice']
+    meta = pdf.open_metadata()
+    assert meta['dc:title'] == 'New'
+    assert meta['dc:creator'] == ['Alice']
+    assert b'Old' not in pdf.Root.Metadata.read_bytes()
+    assert str(pdf.docinfo.Title) == 'New'
+
+
 def test_date_docinfo_from_xmp():
     VALS = [
         ('2018-12-04T03:02:01', "D:20181204030201"),

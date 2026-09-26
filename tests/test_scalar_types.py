@@ -943,6 +943,22 @@ class TestImplicitConversionContext:
         cm2.__exit__(None, None, None)
         assert pikepdf.get_object_conversion_mode() == 'implicit'
 
+    def test_suspended_generator_closed_inside_another_scope(self):
+        # A generator suspended inside a scope, and closed inside a scope
+        # entered later, must not cancel that later scope.
+        def gen():
+            with pikepdf.implicit_conversion():
+                yield
+
+        g = gen()
+        next(g)
+        with pikepdf.explicit_conversion():
+            g.close()
+            assert pikepdf.get_object_conversion_mode() == 'explicit'
+            d = Dictionary(Value=42)
+            assert isinstance(d.Value, Integer)
+        assert pikepdf.get_object_conversion_mode() == 'implicit'
+
 
 class TestPerPdfConversionMode:
     """Tests for the per-Pdf conversion mode."""

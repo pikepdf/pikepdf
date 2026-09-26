@@ -104,6 +104,18 @@ def test_wrong_value_type_denied():
         assert 'ISO_19005_2:6.6.2.3.1-2' in rule_ids(check(pdf, '2b'))
 
 
+@pytest.mark.parametrize(
+    'date', ['2020-13-45T99:99:99Z', '2020-02-30', '2020-13', '2020-01-01T25:00Z']
+)
+def test_out_of_range_date_denied(date):
+    with make_image_only_pdf() as pdf:
+        with pdf.open_metadata(
+            set_pikepdf_as_editor=False, update_docinfo=False
+        ) as meta:
+            meta['xmp:CreateDate'] = date
+        assert 'ISO_19005_2:6.6.2.3.1-2' in rule_ids(check(pdf, '2b'))
+
+
 def test_wrong_pdfaid_part():
     with make_image_only_pdf('3') as pdf:
         assert 'ISO_19005_2:6.6.4-2' in rule_ids(check(pdf, '2b'))

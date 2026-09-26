@@ -53,7 +53,12 @@ from pikepdf._core import (
     _ObjectMapping,
 )
 from pikepdf._exceptions import PageCopyWarning
-from pikepdf._io import atomic_overwrite, check_different_files, check_stream_is_usable
+from pikepdf._io import (
+    atomic_overwrite,
+    check_different_files,
+    check_stream_is_not_input,
+    check_stream_is_usable,
+)
 from pikepdf.models import Encryption, EncryptionInfo, Outline, Permissions
 from pikepdf.models.metadata import PdfMetadata, decode_pdf_date, encode_pdf_date
 from pikepdf.objects import Array, Dictionary, Name, Object, Stream
@@ -410,6 +415,12 @@ class Extend_Pdf:
             if hasattr(filename_or_stream, 'seek'):
                 stream = filename_or_stream
                 check_stream_is_usable(filename_or_stream)
+                if not getattr(self, '_tmp_stream', None):
+                    check_stream_is_not_input(
+                        stream,
+                        getattr(self, '_input_stream', None),
+                        getattr(self, '_original_filename', None),
+                    )
             else:
                 if not isinstance(filename_or_stream, str | bytes | Path):
                     raise TypeError("expected str, bytes or os.PathLike object")
@@ -434,7 +445,6 @@ class Extend_Pdf:
                 qdf=qdf,
                 progress=progress,
                 encryption=encryption,
-                samefile_check=getattr(self, '_tmp_stream', None) is None,
                 recompress_flate=recompress_flate,
                 deterministic_id=deterministic_id,
                 static_id=static_id,
@@ -479,6 +489,12 @@ class Extend_Pdf:
             if hasattr(filename_or_stream, 'seek'):
                 stream = filename_or_stream
                 check_stream_is_usable(filename_or_stream)
+                if not getattr(self, '_tmp_stream', None):
+                    check_stream_is_not_input(
+                        stream,
+                        getattr(self, '_input_stream', None),
+                        getattr(self, '_original_filename', None),
+                    )
             else:
                 if not isinstance(filename_or_stream, str | bytes | Path):
                     raise TypeError("expected str, bytes or os.PathLike object")
@@ -608,6 +624,8 @@ class Extend_Pdf:
                 stream.close()
             raise
         pdf._tmp_stream = stream if allow_overwriting_input else None
+        # With allow_overwriting_input, the input is a private in-memory copy
+        pdf._input_stream = None if allow_overwriting_input else stream
         pdf._original_filename = original_filename
         return pdf
 

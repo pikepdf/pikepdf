@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 from typing import Any, NamedTuple
 
 from pikepdf.models.metadata._constants import XMP_NS_DC, XMP_NS_PDF, XMP_NS_XMP
@@ -46,39 +46,58 @@ def encode_pdf_date(d: datetime) -> str:
     return s
 
 
+# PDF 2.0, 7.9.4: every field after the year is optional. The Z00'00' forms
+# and an offset without apostrophes are not in the spec but are found in the
+# wild.
+_re_pdf_date = re.compile(
+    r"""
+    (?:D:)?
+    (?P<year>\d{4})
+    (?:(?P<month>\d{2})
+      (?:(?P<day>\d{2})
+        (?:(?P<hour>\d{2})
+          (?:(?P<minute>\d{2})
+            (?:(?P<second>\d{2}))?
+          )?
+        )?
+      )?
+    )?
+    (?:
+      (?P<utc>Z(?:00'?(?:00'?)?)?)
+      | (?P<sign>[+-])(?P<tzh>\d{2})'?(?:(?P<tzm>\d{2})'?)?
+    )?
+    """,
+    re.VERBOSE | re.ASCII,
+)
+
+
 def decode_pdf_date(s: str) -> datetime:
     """Decode a pdfmark date to a Python datetime object.
 
     A pdfmark date is a string in a particular format, as described in
-    :func:`encode_pdf_date`.
+    :func:`encode_pdf_date`. Omitted fields take their lowest value, so
+    ``D:2020`` is the start of 2020.
     """
     if isinstance(s, String):
         s = str(s)
-    t = s
-    if t.startswith('D:'):
-        t = t[2:]
-    utcs = [
-        "Z00'00'",  # Literal Z00'00', is incorrect but found in the wild
-        "Z00'00",  # Correctly formatted UTC
-        "Z",  # Alternate UTC
-    ]
-    for utc in utcs:
-        if t.endswith(utc):
-            t = t.replace(utc, "+0000")
-            break
-    t = t.replace("'", "")  # Remove apos from PDF time strings
-
-    date_formats = [
-        r"%Y%m%d%H%M%S%z",  # Format with timezone
-        r"%Y%m%d%H%M%S",  # Format without timezone
-        r"%Y%m%d",  # Date only format
-    ]
-    for date_format in date_formats:
-        try:
-            return datetime.strptime(t, date_format)
-        except ValueError:
-            continue
-    raise ValueError(f"Date string does not match any known format: {s} (read as {t})")
+    m = _re_pdf_date.fullmatch(s)
+    if m is None:
+        raise ValueError(f"Date string does not match any known format: {s}")
+    tz: timezone | None = None
+    if m['utc'] is not None:
+        tz = UTC
+    elif m['sign'] is not None:
+        offset = timedelta(hours=int(m['tzh']), minutes=int(m['tzm'] or 0))
+        tz = timezone(-offset if m['sign'] == '-' else offset)
+    return datetime(
+        int(m['year']),
+        int(m['month'] or 1),
+        int(m['day'] or 1),
+        int(m['hour'] or 0),
+        int(m['minute'] or 0),
+        int(m['second'] or 0),
+        tzinfo=tz,
+    )
 
 
 # XMP Specification Part 1, 8.2.1.2: a subset of W3C Date and Time Formats.
@@ -97,7 +116,7 @@ _re_xmp_date = re.compile(
       )?
     )?
     $""",
-    re.VERBOSE,
+    re.VERBOSE | re.ASCII,
 )
 
 
@@ -113,6 +132,7 @@ def parse_xmp_date(s: str) -> datetime:
     year-month alone is not a datetime; callers handle those forms before
     calling this.
     """
+    s = s.strip()
     m = _re_xmp_date.match(s)
     if m is None or m['day'] is None:
         raise ValueError(f"Date string is not a valid XMP date: {s!r}")

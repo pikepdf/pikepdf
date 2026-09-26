@@ -374,6 +374,22 @@ pikepdf's metadata handling made invalid.
 
 ### Fixes
 
+- {func}`pikepdf.models.metadata.decode_pdf_date` now accepts every PDF date
+  form the specification allows, in which all fields after the year are
+  optional. `D:202001011230` (no seconds) was misread as 12:03, and
+  `D:2020010112` (no minutes) and offsets in hours only, such as `-08'`,
+  raised `ValueError`, so {attr}`pikepdf.Pdf.docinfo` dates in these forms
+  were not synchronized to XMP.
+- {meth}`pikepdf.Pdf.save` now raises `ValueError` when the destination is
+  the stream the `Pdf` was opened from, or another stream on the same file,
+  as it already did for the input file's path. Previously the new file was
+  written into the input at the stream's current position, which produced a
+  corrupt file and could corrupt the open `Pdf`, since qpdf reads its input
+  lazily. Open with `allow_overwriting_input=True` to save over the input.
+- Setting an XMP property that a file stored as plain text, such as
+  `<dc:title>Old</dc:title>`, now replaces the text. Previously the new value
+  was added alongside the old text, which was still returned when the
+  property was read back.
 - {attr}`pikepdf.PdfImage.filter_decodeparms` and
   {attr}`pikepdf.PdfImage.decode_parms` no longer raise `AttributeError` when
   an image's `/DecodeParms` is a bare number or boolean, in either conversion

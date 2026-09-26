@@ -50,15 +50,50 @@ def output_fd(stream: IO) -> int | None:
     return fd
 
 
+_OVERWRITE_INPUT = (
+    "Cannot overwrite input file. Open the file with "
+    "pikepdf.open(..., allow_overwriting_input=True) to "
+    "allow overwriting the input file."
+)
+
+
 def check_different_files(file1: str | PathLike, file2: str | PathLike) -> None:
     """Check that two files are different."""
     with suppress(FileNotFoundError):
         if Path(file1) == Path(file2) or Path(file1).samefile(Path(file2)):
-            raise ValueError(
-                "Cannot overwrite input file. Open the file with "
-                "pikepdf.open(..., allow_overwriting_input=True) to "
-                "allow overwriting the input file."
-            )
+            raise ValueError(_OVERWRITE_INPUT)
+
+
+def _fstat(stream: IO) -> os.stat_result | None:
+    try:
+        return os.fstat(stream.fileno())
+    except (AttributeError, OSError, ValueError):
+        # No file descriptor (BytesIO), or the stream is closed
+        return None
+
+
+def check_stream_is_not_input(
+    stream: IO, input_stream: IO | None, original_filename: Path | None
+) -> None:
+    """Check that a destination stream does not write over a Pdf's input.
+
+    qpdf reads the input lazily, including while saving, so writing over it
+    would corrupt both the output and the open Pdf. A stream is the input if
+    it is the stream the Pdf was opened from, or a stream on the same file.
+    """
+    if input_stream is not None and stream is input_stream:
+        raise ValueError(_OVERWRITE_INPUT)
+    out_stat = _fstat(stream)
+    if out_stat is None:
+        return
+    if input_stream is not None:
+        in_stat = _fstat(input_stream)
+        if in_stat is not None and os.path.samestat(out_stat, in_stat):
+            raise ValueError(_OVERWRITE_INPUT)
+    if original_filename is not None:
+        with suppress(OSError):
+            if os.path.samestat(out_stat, os.stat(original_filename)):
+                raise ValueError(_OVERWRITE_INPUT)
 
 
 @contextmanager
@@ -220,6 +255,9 @@ def atomic_write_verified(
       metadata (via :func:`shutil.copystat`); its modification time is then
       updated. A new destination gets permissions from the process umask.
 
+    - A regular destination that cannot be opened for writing raises
+      :class:`PermissionError` before anything is written.
+
     Non-guarantees:
 
     - A symlink at *filename* is replaced by a regular file; the symlink's
@@ -232,6 +270,12 @@ def atomic_write_verified(
     - Durability across power loss is not guaranteed (no ``fsync``).
     """
     filename = Path(filename)
+    with suppress(FileNotFoundError):
+        if stat.S_ISREG(os.stat(filename).st_mode):
+            # Replacing the file needs only permission on its directory; as
+            # for atomic_overwrite, also require that the file be writable.
+            with filename.open('ab'):
+                pass
     fd, tmp = _create_temp_for(filename)
     try:
         try:

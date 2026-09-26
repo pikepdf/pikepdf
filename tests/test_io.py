@@ -62,6 +62,61 @@ def test_overwrite_input(resources, outdir):
             p.save(outdir / 'sandwich.pdf')
 
 
+def test_overwrite_input_stream_bytesio(resources):
+    bio = BytesIO((resources / 'sandwich.pdf').read_bytes())
+    original = bio.getvalue()
+    with Pdf.open(bio) as p:
+        with pytest.raises(ValueError, match=r'overwrite input file'):
+            p.save(bio)
+        assert bio.getvalue() == original
+        # The Pdf is still readable from its input
+        assert len(p.pages[0].Contents.read_bytes()) > 0
+
+
+def test_overwrite_input_stream_file(resources, tmp_path):
+    copy(resources / 'sandwich.pdf', tmp_path / 'sandwich.pdf')
+    original = (tmp_path / 'sandwich.pdf').read_bytes()
+    with open(tmp_path / 'sandwich.pdf', 'r+b') as f, Pdf.open(f) as p:
+        with pytest.raises(ValueError, match=r'overwrite input file'):
+            p.save(f)
+    assert (tmp_path / 'sandwich.pdf').read_bytes() == original
+
+
+@pytest.mark.parametrize('open_by', ['path', 'stream'])
+def test_overwrite_input_via_other_stream(resources, tmp_path, open_by):
+    """A different stream on the input file is refused too."""
+    path = tmp_path / 'sandwich.pdf'
+    copy(resources / 'sandwich.pdf', path)
+    original = path.read_bytes()
+    with open(path, 'rb') as fin:
+        with Pdf.open(path if open_by == 'path' else fin) as p:
+            with open(path, 'r+b') as fout:
+                with pytest.raises(ValueError, match=r'overwrite input file'):
+                    p.save(fout)
+    assert path.read_bytes() == original
+
+
+def test_overwrite_input_stream_allowed_with_allow_overwriting_input(
+    resources, tmp_path
+):
+    path = tmp_path / 'sandwich.pdf'
+    copy(resources / 'sandwich.pdf', path)
+    with Pdf.open(path, allow_overwriting_input=True) as p:
+        with open(path, 'r+b') as fout:
+            p.save(fout)
+            fout.truncate()
+    with Pdf.open(path) as p:
+        assert len(p.pages) == 1
+
+
+def test_save_to_unrelated_stream_after_opening_stream(resources):
+    bio = BytesIO((resources / 'sandwich.pdf').read_bytes())
+    with Pdf.open(bio) as p:
+        out = BytesIO()
+        p.save(out)
+        assert out.getvalue().startswith(b'%PDF-')
+
+
 def test_fail_only_overwrite_input_check(monkeypatch, resources, outdir):
     copy(resources / 'sandwich.pdf', outdir / 'sandwich.pdf')
     with Pdf.open(outdir / 'sandwich.pdf') as p:
