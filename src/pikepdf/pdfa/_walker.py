@@ -19,6 +19,7 @@ from pikepdf.pdfa._colour import check_image_colour, resolve_colourspace
 from pikepdf.pdfa._content import ContentWalker
 from pikepdf.pdfa._context import ValidationContext
 from pikepdf.pdfa._cos import check_objects
+from pikepdf.pdfa._embedded import check_associated_files
 from pikepdf.pdfa._fonts import finalize_fonts, load_font
 from pikepdf.pdfa._icc import COMPONENTS, IccHeader, check_output_profile
 from pikepdf.pdfa._schemas import ChildSpec, SchemaSet
@@ -75,7 +76,6 @@ class DocumentWalker:
         self.ctx = ctx
         self.schemas = schemas
         self.skip_roles = skip_roles
-        self._roles_seen: dict[tuple[int, int], str] = {}
         self._stack: list[_Item] = []
         # Each hook takes the object kind its role's schema requires; _visit
         # checks the kind before calling it, which the type checker cannot see.
@@ -92,6 +92,7 @@ class DocumentWalker:
             'Font': self._on_font_role,
             'FormXObject': self._on_form,
             'StructTreeRoot': self._on_struct_tree_root,
+            'EmbeddedFiles': self._on_embedded_files,
         }
         for role in ANNOTATION_ROLES:
             self._hooks[role] = self._on_annot
@@ -107,6 +108,8 @@ class DocumentWalker:
         self._check_unpainted_images()
         if 'Pages' not in self.skip_roles:
             self._check_page_tree()
+        if self.ctx.flavour.part == 3:
+            check_associated_files(self.ctx)
         check_objects(self.ctx)
         finalize_fonts(self.ctx)
 
@@ -127,7 +130,7 @@ class DocumentWalker:
             return
         if isinstance(obj, pikepdf.Object) and obj.is_indirect:
             key = obj.objgen
-            seen_as = self._roles_seen.get(key)
+            seen_as = ctx.roles.get(key)
             if seen_as is not None:
                 if seen_as != role:
                     ctx.deny(
@@ -137,8 +140,7 @@ class DocumentWalker:
                         'unsupported',
                     )
                 return
-            self._roles_seen[key] = role
-            ctx.visited.add(key)
+            ctx.roles[key] = role
             where = ctx.describe(obj)
 
         base_where = where
@@ -553,6 +555,56 @@ class DocumentWalker:
                 )
             if '/K' in node:
                 pending.append(node.get('/K'))
+
+    def _on_embedded_files(
+        self, obj: pikepdf.Dictionary, where: str, depth: int
+    ) -> None:
+        """Follow the values of a node of the embedded files name tree.
+
+        /Names alternates keys (strings) and values, so the schema cannot
+        give the values a role. An embedded file's specification must be an
+        indirect object (ISO 32000-1 Table 44), which also lets the object
+        checks of _cos know that the walker checked it.
+        """
+        ctx = self.ctx
+        names = obj.get('/Names')
+        if names is None:
+            return
+        if not isinstance(names, pikepdf.Array) or len(names) % 2:
+            ctx.deny(
+                'pikepdf:schema-EmbeddedFiles',
+                where,
+                "/Names shall be an array of key and value pairs",
+            )
+            return
+        for index in range(0, len(names), 2):
+            key, value = names[index], names[index + 1]
+            if not isinstance(key, pikepdf.String):
+                ctx.deny(
+                    'pikepdf:schema-EmbeddedFiles',
+                    f'{where} /Names[{index}]',
+                    "name tree keys shall be strings",
+                )
+            value_where = f'{where} /Names[{index + 1}]'
+            if not isinstance(value, pikepdf.Dictionary) or (
+                not value.is_indirect and '/EF' not in value
+            ):
+                ctx.deny(
+                    'pikepdf:schema-EmbeddedFiles',
+                    value_where,
+                    "file specifications of external files are not supported",
+                    'unsupported',
+                )
+                continue
+            if not value.is_indirect:
+                ctx.deny(
+                    'pikepdf:schema-EmbeddedFiles',
+                    value_where,
+                    "the file specification of an embedded file shall be an "
+                    "indirect object",
+                )
+                continue
+            self._stack.append(_Item(value, 'FileSpec', depth + 1, value_where))
 
     def _on_font_role(self, obj: pikepdf.Dictionary, where: str, depth: int) -> None:
         self.on_font(obj, where)

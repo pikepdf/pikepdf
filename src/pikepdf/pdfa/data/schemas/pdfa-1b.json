@@ -15,6 +15,12 @@
         }
       ]
     },
+    "EmbeddedFiles": {
+      "x-kind": "any",
+      "$ref": "common.json#/$defs/forbidden",
+      "x-verapdf": ["ISO_19005_1:6.1.11-2"],
+      "x-message": "embedded files are not permitted in PDF/A-1"
+    },
     "Page": {
       "allOf": [
         {"$ref": "common.json#/$defs/Page"},

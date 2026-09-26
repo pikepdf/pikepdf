@@ -7,6 +7,11 @@ veraPDF applies its stream and file specification rules, and the
 implementation limits, to every object in the file. The role schemas check the
 objects the walker reaches, with better locations; this pass makes sure that no
 other object escapes the same rules.
+
+Embedded and associated files are denied wherever they appear, except in
+PDF/A-3 where the walker checked them: file specifications and embedded file
+streams it reached as ``FileSpec`` and ``EmbeddedFile``, and the catalog's own
+/AF array.
 """
 
 from __future__ import annotations
@@ -19,6 +24,8 @@ from pikepdf.pdfa._shallow import pdf_repr
 
 EXTERNAL_STREAM_KEYS = ('/F', '/FFilter', '/FDecodeParms')
 FILE_KEYS = frozenset({'/EF', '/AF'})
+# The role whose objects may hold each file key at their top level, in PDF/A-3
+FILE_KEY_ROLES = {'/EF': 'FileSpec', '/AF': 'Catalog'}
 PERMITTED_FILTERS = frozenset(
     {
         '/ASCIIHexDecode',
@@ -54,6 +61,7 @@ class _ObjectChecker:
         self.ctx = ctx
         self.reported = _reported(ctx)
         self.part1 = ctx.flavour.part == 1
+        self.part3 = ctx.flavour.part == 3
         self.limits = LimitChecker(ctx.flavour)
 
     def deny(
@@ -77,6 +85,8 @@ class _ObjectChecker:
         self.limit_problems(problems, where)
         if stream is not None:
             self.stream(stream, where)
+        if self.part3 and not keys.isdisjoint(FILE_KEYS):
+            keys = self.unchecked_file_keys(obj, keys)
         self.file_keys(keys, where)
 
     def limit_problems(self, problems: list[tuple[str, str]], where: str) -> None:
@@ -103,7 +113,9 @@ class _ObjectChecker:
                 where,
                 f"stream dictionary contains {', '.join(found)}",
             )
-        if stream_dict.get('/Type') == pikepdf.Name.EmbeddedFile:
+        if stream_dict.get('/Type') == pikepdf.Name.EmbeddedFile and not (
+            self.part3 and self.ctx.roles.get(stream.objgen) == 'EmbeddedFile'
+        ):
             self.deny(
                 'pikepdf:embedded-file',
                 where,
@@ -139,6 +151,24 @@ class _ObjectChecker:
                     'unsupported',
                 )
 
+    def unchecked_file_keys(self, obj: pikepdf.Object, keys: set[str]) -> set[str]:
+        """Remove the file keys the walker checked from an object's keys.
+
+        A key is checked if it is in the top level of an object the walker
+        reached with the role that permits it, and not also in one of the
+        object's direct parts, which no role permits it in.
+        """
+        role = self.ctx.roles.get(obj.objgen) if obj.is_indirect else None
+        exempt = {key for key, owner in FILE_KEY_ROLES.items() if owner == role}
+        if not exempt & keys:
+            return keys
+        top = obj.stream_dict if isinstance(obj, pikepdf.Stream) else obj
+        nested: set[str] = set()
+        for _key, value in top.items():
+            if isinstance(value, pikepdf.Object) and not value.is_indirect:
+                self.limits.problems(value, keys=nested)
+        return keys - (exempt - nested)
+
     def file_keys(self, keys: set[str], where: str) -> None:
         """Deny embedded and associated files, given the keys of an object."""
         if '/EF' in keys:
@@ -170,7 +200,8 @@ def check_objects(ctx: ValidationContext) -> None:
     Denies values beyond the implementation limits, external stream data
     (/F, /FFilter, /FDecodeParms), filters other than the standard ones
     PDF/A permits, and embedded and associated files (file specifications
-    with /EF, embedded file streams, /AF).
+    with /EF, embedded file streams, /AF) other than those the walker
+    checked in PDF/A-3.
     """
     checker = _ObjectChecker(ctx)
     checker.check(ctx.pdf.trailer)

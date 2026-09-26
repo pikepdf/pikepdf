@@ -13,6 +13,7 @@ from typing import cast
 
 import pikepdf
 from pikepdf import Array, Dictionary, Name, Object, Pdf, Stream
+from pikepdf.pdfa._embedded import associated_file_objgens
 
 log = logging.getLogger(__name__)
 
@@ -298,3 +299,122 @@ def add_cidsets_for_subset_cidfonts(pdf: Pdf) -> int:
         descriptor[Name.CIDSet] = pdf.make_stream(_cidset_bytes(cids))
         count += 1
     return count
+
+
+_OCTET_STREAM = Name('/application/octet-stream')
+
+
+@dataclass
+class EmbeddedFileRepairResult:
+    """What :func:`repair_embedded_files` changed.
+
+    Attributes:
+        subtypes_set: The number of embedded file streams given the MIME
+            type application/octet-stream.
+        relationships_set: The number of file specifications given
+            /AFRelationship /Unspecified.
+        associated_added: The number of file specifications added to the
+            catalog's /AF array.
+    """
+
+    subtypes_set: int = 0
+    relationships_set: int = 0
+    associated_added: int = 0
+
+
+def _embedded_file_specs(pdf: Pdf) -> list[Dictionary]:
+    """Return the file specifications of the embedded files name tree.
+
+    Only indirect dictionaries with /EF are returned, each once, in tree
+    order. A malformed tree is read as far as it can be.
+    """
+    names = _get_dict(pdf.Root, Name.Names)
+    root = names.get(Name.EmbeddedFiles)
+    found: list[Dictionary] = []
+    seen: set[tuple[int, int]] = set()
+    pending: list[Object] = [root] if isinstance(root, Dictionary) else []
+    while pending:
+        node = pending.pop()
+        if not isinstance(node, Dictionary):
+            continue
+        if node.is_indirect:
+            if node.objgen in seen:
+                continue
+            seen.add(node.objgen)
+        kids = node.get(Name.Kids)
+        if isinstance(kids, Array):
+            pending.extend(reversed(list(kids)))
+        items = node.get(Name.Names)
+        if not isinstance(items, Array):
+            continue
+        for value in list(items)[1::2]:
+            if (
+                isinstance(value, Dictionary)
+                and value.is_indirect
+                and value.objgen not in seen
+                and Name.EF in value
+            ):
+                seen.add(value.objgen)
+                found.append(value)
+    return found
+
+
+def repair_embedded_files(pdf: Pdf) -> EmbeddedFileRepairResult:
+    """Supply what PDF/A-3 requires of embedded files, where it is missing.
+
+    PDF/A-3 requires each embedded file stream to state its MIME type, each
+    file specification to state its relationship to the document, and each
+    embedded file to be an associated file. For the embedded files of the
+    name tree and of the catalog's /AF array, an embedded file stream
+    without /Subtype is given application/octet-stream, which ISO 19005-3
+    prescribes when the type is not known; a file specification without
+    /AFRelationship is given /Unspecified; and a file specification of the
+    name tree that no /AF array lists is appended to the catalog's /AF
+    array. A catalog /AF that is not an array is left alone. Values that are
+    present but wrong are not changed.
+
+    Args:
+        pdf: An open pikepdf.Pdf object
+
+    Returns:
+        What was changed.
+    """
+    result = EmbeddedFileRepairResult()
+    in_tree = _embedded_file_specs(pdf)
+    af = pdf.Root.get(Name.AF)
+    filespecs = list(in_tree)
+    if isinstance(af, Array):
+        filespecs += [
+            item
+            for item in af
+            if isinstance(item, Dictionary) and item.is_indirect and Name.EF in item
+        ]
+
+    done: set[tuple[int, int]] = set()
+    streams_done: set[tuple[int, int]] = set()
+    for filespec in filespecs:
+        if filespec.objgen in done:
+            continue
+        done.add(filespec.objgen)
+        if Name.AFRelationship not in filespec:
+            filespec[Name.AFRelationship] = Name.Unspecified
+            result.relationships_set += 1
+        for _key, stream in _get_dict(filespec, Name.EF).items():
+            if not isinstance(stream, Stream) or stream.objgen in streams_done:
+                continue
+            streams_done.add(stream.objgen)
+            if Name.Subtype not in stream:
+                stream[Name.Subtype] = _OCTET_STREAM
+                result.subtypes_set += 1
+
+    associated = associated_file_objgens(pdf.objects)
+    missing = [fs for fs in in_tree if fs.objgen not in associated]
+    if missing:
+        if af is None:
+            pdf.Root[Name.AF] = Array(missing)
+            result.associated_added = len(missing)
+        elif isinstance(af, Array):
+            for filespec in missing:
+                af.append(filespec)
+            result.associated_added = len(missing)
+    return result

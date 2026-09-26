@@ -161,16 +161,18 @@
           "x-verapdf": ["ISO_19005_2:6.4.2-2", "ISO_19005_3:6.4.2-2"]
         },
         "/AcroForm": {"$ref": "#/$defs/unsupported", "x-message": "interactive forms (/AcroForm) are not supported"},
-        "/Names": {"$ref": "#/$defs/unsupported", "x-message": "the name dictionary (/Names) is not supported"},
+        "/Names": {"$ref": "#/$defs/dictOrRef"},
         "/Dests": {"$ref": "#/$defs/unsupported", "x-message": "named destinations (/Dests) are not supported"},
         "/Perms": {"$ref": "#/$defs/unsupported", "x-message": "permissions (/Perms) are not supported"},
         "/Collection": {"$ref": "#/$defs/unsupported", "x-message": "portable collections are not supported"},
         "/OpenAction": {"$ref": "#/$defs/unsupported", "x-message": "/OpenAction is not supported"},
-        "/AF": {"$ref": "#/$defs/unsupported", "x-message": "associated files (/AF) are not supported"},
+        "/AF": {"$ref": "#/$defs/arrayOrRef"},
         "/Extensions": {"$ref": "#/$defs/unsupported", "x-message": "developer extensions are not supported"}
       },
       "additionalProperties": false,
       "x-children": {
+        "/Names": "NameDictionary",
+        "/AF": "AssociatedFiles",
         "/OutputIntents": "OutputIntents",
         "/Metadata": "MetadataStream",
         "/Pages": "Pages",
@@ -180,6 +182,39 @@
         "/PageLabels": "PageLabelsNode",
         "/StructTreeRoot": "StructTreeRoot"
       }
+    },
+
+    "NameDictionary": {
+      "$comment": "ISO 32000-1 Table 31",
+      "type": "object",
+      "properties": {
+        "/Dests": {"$ref": "#/$defs/unsupported", "x-message": "named destinations are not supported"},
+        "/AP": {"$ref": "#/$defs/unsupported", "x-message": "named appearance streams are not supported"},
+        "/JavaScript": {"$ref": "#/$defs/unsupported", "x-message": "document-level JavaScript is not supported"},
+        "/Pages": {"$ref": "#/$defs/unsupported", "x-message": "named pages are not supported"},
+        "/Templates": {"$ref": "#/$defs/unsupported", "x-message": "named templates are not supported"},
+        "/IDS": {"$ref": "#/$defs/unsupported", "x-message": "Web Capture content identifiers are not supported"},
+        "/URLS": {"$ref": "#/$defs/unsupported", "x-message": "Web Capture URLs are not supported"},
+        "/EmbeddedFiles": {"$ref": "#/$defs/dictOrRef"},
+        "/AlternatePresentations": {"$ref": "#/$defs/unsupported", "x-message": "alternate presentations are not supported"},
+        "/Renditions": {"$ref": "#/$defs/unsupported", "x-message": "named renditions are not supported"}
+      },
+      "additionalProperties": false,
+      "x-children": {"/EmbeddedFiles": "EmbeddedFiles"}
+    },
+
+    "EmbeddedFiles": {
+      "$comment": "The embedded files name tree; pdfa-3b.json defines what PDF/A-3 permits",
+      "x-kind": "any",
+      "$ref": "#/$defs/unsupported",
+      "x-message": "embedded files are not supported"
+    },
+
+    "AssociatedFiles": {
+      "$comment": "The catalog /AF array; pdfa-3b.json defines what PDF/A-3 permits",
+      "x-kind": "any",
+      "$ref": "#/$defs/unsupported",
+      "x-message": "associated files (/AF) are not supported"
     },
 
     "OutputIntents": {

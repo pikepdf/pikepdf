@@ -19,9 +19,11 @@ from pikepdf.pdfa._output_intent import (
     replace_output_intents,
 )
 from pikepdf.pdfa._repair import (
+    EmbeddedFileRepairResult,
     add_cidsets_for_subset_cidfonts,
     describe_removed_annotations,
     repair_annotation_flags,
+    repair_embedded_files,
     strip_image_interpolation,
 )
 
@@ -53,6 +55,14 @@ class PrepareResult:
         print_flags_set: The number of annotations given the Print flag.
         cidsets_added: The number of /CIDSet streams added to subset
             CIDFonts (PDF/A-1 only).
+        embedded_file_subtypes_set: The number of embedded file streams
+            without a MIME type given ``/application/octet-stream``
+            (PDF/A-3 only).
+        af_relationships_set: The number of file specifications of embedded
+            files given ``/AFRelationship /Unspecified`` (PDF/A-3 only).
+        associated_files_added: The number of embedded files added to the
+            catalog's /AF array, making them associated files (PDF/A-3
+            only).
         xmp_dropped: Labels (``prefix:name``) of the XMP properties removed
             because PDF/A does not permit them.
         xmp_unreadable: True if an XMP packet that could not be read was
@@ -71,6 +81,9 @@ class PrepareResult:
     annotations_removed_pages: frozenset[int] = frozenset()
     print_flags_set: int = 0
     cidsets_added: int = 0
+    embedded_file_subtypes_set: int = 0
+    af_relationships_set: int = 0
+    associated_files_added: int = 0
     xmp_dropped: tuple[str, ...] = ()
     xmp_unreadable: bool = False
     xmp_problem: str | None = None
@@ -90,6 +103,9 @@ class PrepareResult:
             or self.annotations_removed
             or self.print_flags_set
             or self.cidsets_added
+            or self.embedded_file_subtypes_set
+            or self.af_relationships_set
+            or self.associated_files_added
             or self.xmp_dropped
             or self.xmp_unreadable
             or self.dates_zoned
@@ -151,6 +167,33 @@ class PrepareResult:
                     "as PDF/A-1 requires",
                 )
             )
+        if self.embedded_file_subtypes_set:
+            messages.append(
+                (
+                    'debug',
+                    "Gave the MIME type application/octet-stream to "
+                    f"{_plural(self.embedded_file_subtypes_set, 'embedded file')} "
+                    "without one, as PDF/A-3 requires",
+                )
+            )
+        if self.af_relationships_set:
+            messages.append(
+                (
+                    'debug',
+                    "Set /AFRelationship /Unspecified on "
+                    f"{_plural(self.af_relationships_set, 'embedded file')} "
+                    "without one, as PDF/A-3 requires",
+                )
+            )
+        if self.associated_files_added:
+            messages.append(
+                (
+                    'debug',
+                    "Listed "
+                    f"{_plural(self.associated_files_added, 'embedded file')} "
+                    "in the catalog /AF array, as PDF/A-3 requires",
+                )
+            )
         if self.xmp_unreadable:
             sentence = "Replaced XMP metadata that could not be read"
             if self.xmp_problem:
@@ -198,9 +241,10 @@ def prepare(
     output intents are replaced with a single PDF/A output intent, image
     interpolation is removed, hidden or non-viewable annotations are removed
     and the Print flag is set on the others, PDF/A-1 subset CIDFonts are
-    given a /CIDSet, and the XMP metadata is rewritten with only what the
-    flavour permits and a declaration of PDF/A conformance (level B), with
-    the DocInfo entries set to agree with it.
+    given a /CIDSet, PDF/A-3 embedded files are given the MIME type,
+    /AFRelationship and /AF entry they lack, and the XMP metadata is
+    rewritten with only what the flavour permits and a declaration of PDF/A
+    conformance (level B), with the DocInfo entries set to agree with it.
 
     Calling `prepare` again on the same document makes no further changes
     (except the time recorded in xmp:MetadataDate). The document must still
@@ -241,6 +285,9 @@ def prepare(
     cidsets_added = 0
     if pdfa_flavour.part == 1:
         cidsets_added = add_cidsets_for_subset_cidfonts(pdf)
+    embedded = EmbeddedFileRepairResult()
+    if pdfa_flavour.part == 3:
+        embedded = repair_embedded_files(pdf)
     declaration = declare_pdfa_metadata(pdf, pdfa_flavour)
     return PrepareResult(
         output_intent_replaced=replaced,
@@ -250,6 +297,9 @@ def prepare(
         annotations_removed_pages=frozenset(annotations.removed_pages),
         print_flags_set=annotations.print_flags_set,
         cidsets_added=cidsets_added,
+        embedded_file_subtypes_set=embedded.subtypes_set,
+        af_relationships_set=embedded.relationships_set,
+        associated_files_added=embedded.associated_added,
         xmp_dropped=declaration.xmp_dropped,
         xmp_unreadable=declaration.xmp_unreadable,
         xmp_problem=declaration.xmp_problem,

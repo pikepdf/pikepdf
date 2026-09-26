@@ -311,6 +311,37 @@ a verdict assumed:
 
 `pdf.save(path, **kwargs)` works directly with the result.
 
+(pdfa-attachments)=
+
+## Attachments in PDF/A-3
+
+PDF/A-3 permits files of any kind to be embedded, provided each is an
+*associated file*: its file specification states its MIME type and its
+relationship to the document (`/AFRelationship`), and is listed in an `/AF`
+array. {attr}`pikepdf.Pdf.attachments` writes all of these, so a file attached
+through it can be saved as PDF/A-3b:
+
+```python
+import pikepdf
+from pikepdf import AttachedFileSpec, Name, pdfa
+
+with pikepdf.open('in.pdf') as pdf:
+    pdf.attachments['invoice.xml'] = AttachedFileSpec.from_filepath(
+        pdf, 'invoice.xml', relationship=Name.Data
+    )
+    pdfa.save(pdf, 'out.pdf', '3b')
+```
+
+`prepare` (and so `save`) supplies what an attachment made some other way
+lacks, as described in {ref}`pdfa-prepare`. The validator checks the file
+specifications of the `/EmbeddedFiles` name tree and of the catalog's `/AF`
+array, and their embedded file streams. It does not look inside the embedded
+files, which PDF/A-3 does not require to be PDF/A.
+
+PDF/A-1 forbids embedded files. PDF/A-2 permits them only if they are
+themselves PDF/A-1 or PDF/A-2 files, which the validator does not check, so an
+attachment makes a PDF/A-2 document `'not_checked'`.
+
 (pdfa-prepare)=
 
 ## What prepare changes
@@ -325,6 +356,10 @@ a verdict assumed:
   with their popup annotations, and sets the Print flag on the annotations that
   remain;
 - adds a `/CIDSet` to subset CIDFonts (PDF/A-1 only);
+- for embedded files (PDF/A-3 only), gives an embedded file without a MIME type
+  the MIME type `application/octet-stream`, gives a file specification without
+  `/AFRelationship` the value `/Unspecified`, and lists an embedded file that no
+  `/AF` array lists in the catalog's `/AF` array;
 - rewrites the XMP metadata to keep only the properties predefined for the
   flavour, replacing a packet that cannot be read. The properties of every
   `rdf:Description` are kept when all of them have the same `rdf:about`, even a
@@ -400,7 +435,8 @@ in PDF/A under conditions the validator does not yet verify.
 
 - `/OpenAction` in the document catalog
 - interactive forms (`/AcroForm`) and widget annotations
-- the `/Names` dictionary, including named destinations
+- the `/Names` dictionary, including named destinations, except for embedded
+  files in PDF/A-3 (see {ref}`pdfa-attachments`)
 - Type 3 fonts
 - optional content (`/OCProperties`) and marked-content properties
 - patterns and shadings
@@ -409,7 +445,11 @@ in PDF/A under conditions the validator does not yet verify.
 - halftones
 - `/Font` in graphics state parameter dictionaries (ExtGState)
 - `/CIDSet` in TrueType-based CIDFont subsets
-- embedded files and associated files (PDF/A-3 allows them)
+- embedded files and associated files, other than PDF/A-3 embedded files
+  listed in the `/EmbeddedFiles` name tree or the catalog's `/AF` array; in
+  particular file attachment annotations, and `/AF` arrays of pages,
+  annotations, XObjects and structure elements
+- references to external files
 - annotation types other than Text, Link, Popup and the markup annotations
 - `/Metadata` streams attached to objects other than the catalog
 - XMP extension schemas and `xmpMM` structures

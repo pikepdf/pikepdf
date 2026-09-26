@@ -35,7 +35,8 @@ class ValidationContext:
         model: What the document looks like once written.
         output_intent_cs: ICC colour space signature of the PDF/A OutputIntent
             profile (``'RGB '``, ``'CMYK'`` or ``'GRAY'``), once known.
-        visited: objgen of every indirect object already checked.
+        roles: The role each indirect object reached was checked as, by
+            objgen.
         max_depth: Deepest nesting of the object graph the walker follows.
         fonts: `FontInfo` of every indirect font reached, by objgen.
         direct_fonts: `FontInfo` of direct font dictionaries reached.
@@ -52,7 +53,7 @@ class ValidationContext:
     report: Report
     model: WriteModel = field(default_factory=WriteModel.identity)
     output_intent_cs: str | None = None
-    visited: set[tuple[int, int]] = field(default_factory=set)
+    roles: dict[tuple[int, int], str] = field(default_factory=dict)
     max_depth: int = MAX_DEPTH
     fonts: dict[tuple[int, int], FontInfo] = field(default_factory=dict)
     direct_fonts: list[FontInfo] = field(default_factory=list)
