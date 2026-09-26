@@ -67,7 +67,7 @@ def test_shallow_scalars():
     d = pikepdf.Object.parse(b'<< /I 42 /R 1.5 /B true /N null /Nm /Foo >>')
     assert shallow_json(d) == {'/I': 42, '/R': 1.5, '/B': True, '/Nm': '/Foo'}
     assert shallow_json(Name.Foo) == '/Foo'
-    assert shallow_json(Decimal('2.25')) == 2.25
+    assert shallow_json(pikepdf.Real('2.25')) == 2.25
     assert shallow_json(None) is None
 
 
@@ -82,10 +82,10 @@ def test_shallow_strings():
     assert shallow_json(String(b'\x00\x9f\xff')) == 'b:009fff'
 
 
-def test_shallow_explicit_conversion():
-    with pikepdf.explicit_conversion():
-        d = pikepdf.Object.parse(b'<< /I 42 /R 1.5 /B false >>')
-        assert shallow_json(d) == {'/I': 42, '/R': 1.5, '/B': False}
+def test_shallow_indirect_scalars_are_values():
+    pdf = pikepdf.new()
+    d = pikepdf.Dictionary(I=pdf.make_indirect(pikepdf.Integer(7)))
+    assert shallow_json(d) == {'/I': 7}
 
 
 def test_shallow_indirect_and_nested():

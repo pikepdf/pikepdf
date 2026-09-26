@@ -3,9 +3,10 @@
 
 """Checks on every object of the file, whether or not the walker reached it.
 
-veraPDF applies its stream and file specification rules to every object in
-the file. The role schemas check the objects the walker reaches, with better
-locations; this pass makes sure that no other object escapes the same rules.
+veraPDF applies its stream and file specification rules, and the
+implementation limits, to every object in the file. The role schemas check the
+objects the walker reaches, with better locations; this pass makes sure that no
+other object escapes the same rules.
 """
 
 from __future__ import annotations
@@ -14,11 +15,12 @@ from typing import Any
 
 import pikepdf
 from pikepdf.pdfa._context import ValidationContext
-from pikepdf.pdfa._limits import MAX_NESTING
+from pikepdf.pdfa._limits import LimitChecker
 from pikepdf.pdfa._report import FindingKind
 from pikepdf.pdfa._shallow import pdf_repr
 
 EXTERNAL_STREAM_KEYS = ('/F', '/FFilter', '/FDecodeParms')
+FILE_KEYS = frozenset({'/EF', '/AF'})
 PERMITTED_FILTERS = frozenset(
     {
         '/ASCIIHexDecode',
@@ -54,6 +56,7 @@ class _ObjectChecker:
         self.ctx = ctx
         self.reported = _reported(ctx)
         self.part1 = ctx.flavour.part == 1
+        self.limits = LimitChecker(ctx.flavour)
 
     def deny(
         self, rule: str, where: str, message: str, kind: FindingKind = 'violation'
@@ -63,11 +66,30 @@ class _ObjectChecker:
         self.reported.add((rule, where))
         self.ctx.deny(rule, where, message, kind)
 
-    def check(self, obj: Any) -> None:
-        where = self.ctx.describe(obj)
-        if isinstance(obj, pikepdf.Stream):
-            self.stream(obj, where)
-        self.contents(obj, where, 0)
+    def check(self, obj: pikepdf.Object) -> None:
+        """Check an indirect object, or the trailer, and its direct parts."""
+        # One walk of the object serves the limit checks and finds the keys of
+        # its dictionaries, which is all the file specification checks need.
+        keys: set[str] = set()
+        problems = self.limits.problems(obj, keys=keys)
+        stream = obj if isinstance(obj, pikepdf.Stream) else None
+        if not problems and stream is None and keys.isdisjoint(FILE_KEYS):
+            return
+        where = self.ctx.describe(obj) if obj.is_indirect else 'trailer'
+        self.limit_problems(problems, where)
+        if stream is not None:
+            self.stream(stream, where)
+        self.file_keys(keys, where)
+
+    def limit_problems(self, problems: list[tuple[str, str]], where: str) -> None:
+        """Deny each limit an object breaks, once per kind of limit."""
+        limits = self.limits
+        reported: set[str] = set()
+        for key, message in problems:
+            if key in reported:
+                continue
+            reported.add(key)
+            self.ctx.deny(limits.rule(key), where, message, limits.kind(key))
 
     def stream(self, stream: pikepdf.Stream, where: str) -> None:
         """Deny external stream data and filters PDF/A does not permit.
@@ -119,28 +141,8 @@ class _ObjectChecker:
                     'unsupported',
                 )
 
-    def contents(self, value: Any, where: str, depth: int) -> None:
-        """Deny embedded and associated files in an object and its direct parts."""
-        if depth > MAX_NESTING:
-            return  # reported by the limit checks
-        if isinstance(value, pikepdf.Stream):
-            if depth > 0:
-                return  # an indirect object of its own
-            items = list(value.stream_dict.items())
-            keys = {key for key, _ in items}
-        elif isinstance(value, pikepdf.Dictionary):
-            if depth > 0 and value.is_indirect:
-                return
-            items = list(value.items())
-            keys = {key for key, _ in items}
-        elif isinstance(value, pikepdf.Array):
-            if depth > 0 and value.is_indirect:
-                return
-            for item in value:
-                self.contents(item, where, depth + 1)
-            return
-        else:
-            return
+    def file_keys(self, keys: set[str], where: str) -> None:
+        """Deny embedded and associated files, given the keys of an object."""
         if '/EF' in keys:
             if self.part1:
                 self.deny(
@@ -162,18 +164,19 @@ class _ObjectChecker:
                 "associated files (/AF) are not supported",
                 'unsupported',
             )
-        for _, item in items:
-            self.contents(item, where, depth + 1)
 
 
 def check_objects(ctx: ValidationContext) -> None:
-    """Check every object in the file.
+    """Check every object written to the file, and the trailer.
 
-    Denies external stream data (/F, /FFilter, /FDecodeParms), filters
-    other than the standard ones PDF/A permits, and embedded and associated
-    files (file specifications with /EF, embedded file streams, /AF).
+    Denies values beyond the implementation limits, external stream data
+    (/F, /FFilter, /FDecodeParms), filters other than the standard ones
+    PDF/A permits, and embedded and associated files (file specifications
+    with /EF, embedded file streams, /AF).
     """
     checker = _ObjectChecker(ctx)
-    checker.contents(ctx.pdf.trailer, 'trailer', 0)
+    checker.check(ctx.pdf.trailer)
     for obj in ctx.model.objects(ctx.pdf):
-        checker.check(obj)
+        if isinstance(obj, pikepdf.Object):
+            checker.check(obj)
+        # else an indirect integer, real or boolean: checked where it is used

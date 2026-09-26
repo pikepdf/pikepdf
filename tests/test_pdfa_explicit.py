@@ -3,15 +3,13 @@
 
 """The PDF/A validator and repairs give the same results in both conversion modes.
 
-Each document is checked once in implicit and once in explicit conversion
-mode, and the findings must be identical, as must the effect of every repair.
+pikepdf.pdfa switches to explicit conversion mode at its entry points, so its
+results must not depend on the caller's mode. Each document is checked once
+from implicit and once from explicit conversion mode, and the findings must be
+identical, as must the effect of every repair.
 
-The whole PDF/A suite can also be run in explicit mode: with
-``PIKEPDF_TEST_EXPLICIT=1`` in the environment, the autouse fixture in
-``conftest.py`` wraps every test in a ``test_pdfa*`` module in
-`pikepdf.explicit_conversion`::
-
-    PIKEPDF_TEST_EXPLICIT=1 uv run pytest tests/test_pdfa*.py -n auto
+The other PDF/A tests run in explicit mode (see the autouse fixture in
+``conftest.py``), since they call the validator's internals directly.
 """
 
 from __future__ import annotations
@@ -338,3 +336,45 @@ def test_scalar_output_profile_is_denied(written):
     rules = _rules(_sample_bytes('scalar-output-profile', '2'), '2b', written=written)
     assert 'pikepdf:internal' not in rules
     assert 'pikepdf:schema-OutputIntent' in rules
+
+
+def _mode_seen_by(monkeypatch, module, name) -> list[str]:
+    """Record the conversion mode in effect whenever module.name is called."""
+    seen: list[str] = []
+    original = getattr(module, name)
+
+    def spy(*args, **kwargs):
+        seen.append(pikepdf.get_object_conversion_mode())
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(module, name, spy)
+    return seen
+
+
+@pytest.mark.parametrize('entry', ['run', 'check', 'validate_written', 'save'])
+def test_validator_works_in_explicit_mode(entry, monkeypatch, tmp_path):
+    data = _sample_bytes('annots', '2')
+    seen = _mode_seen_by(monkeypatch, _engine, 'check_document')
+    with implicit_conversion():
+        with pikepdf.open(BytesIO(data), conversion_mode='implicit') as pdf:
+            if entry == 'run':
+                _engine.run(pdf, '2b')
+            elif entry == 'check':
+                check(pdf, '2b')
+            elif entry == 'validate_written':
+                pikepdf.pdfa.validate_written(BytesIO(data), '2b')
+            else:
+                pikepdf.pdfa.save(pdf, tmp_path / 'out.pdf', '2b')
+    assert seen and set(seen) == {'explicit'}
+
+
+def test_prepare_works_in_explicit_mode(monkeypatch):
+    from pikepdf.pdfa import _prepare
+
+    seen = _mode_seen_by(monkeypatch, _prepare, 'strip_image_interpolation')
+    with implicit_conversion():
+        with pikepdf.open(
+            BytesIO(_sample_bytes('annots', '2')), conversion_mode='implicit'
+        ) as pdf:
+            pikepdf.pdfa.prepare(pdf, '2b')
+    assert seen == ['explicit']

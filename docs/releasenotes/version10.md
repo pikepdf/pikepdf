@@ -228,7 +228,8 @@ pikepdf's metadata handling made invalid.
   files (the validator is conservative by design). The prediction from `check`
   matched the validation of the written file in every case.
 - The validator and the repairs give the same results whether a document is
-  read in implicit or explicit conversion mode.
+  read in implicit or explicit conversion mode: they work in explicit mode
+  internally, whatever mode the caller uses.
 - {mod}`pikepdf.pdfa` needs jsonschema, referencing and fontTools, available as
   the optional extra `pip install 'pikepdf[pdfa]'`. `import pikepdf` does not
   import them; `import pikepdf.pdfa` raises `ImportError` naming the extra if
@@ -362,6 +363,14 @@ pikepdf's metadata handling made invalid.
   calling the stream's `write()` method for every chunk of output. Saving a large document is about twice as fast. Other streams, such
   as `BytesIO`, pipes and subclasses of the `io` classes, are written through
   `write()` as before.
+- `isinstance()` checks against {class}`pikepdf.Dictionary`,
+  {class}`pikepdf.Stream`, {class}`pikepdf.Integer` and the other object
+  classes are about five times faster.
+- {func}`pikepdf.unbox` is now implemented in C++ and is about 40 times
+  faster. {func}`pikepdf.as_int`, {func}`pikepdf.as_float` and
+  {func}`pikepdf.as_decimal` answer for a native `int` or `Decimal` without
+  constructing a PDF object, and converting a Real to a `Decimal` no longer
+  imports the `decimal` module each time.
 
 ### Fixes
 

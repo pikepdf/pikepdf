@@ -18,7 +18,7 @@ from collections.abc import Callable
 from decimal import Decimal
 from typing import Any, NamedTuple, TypeVar
 
-from pikepdf._explicit_conv import unbox
+from pikepdf._core import unbox
 from pikepdf.objects import (
     Array,
     Dictionary,

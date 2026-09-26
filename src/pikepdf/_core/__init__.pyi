@@ -129,6 +129,7 @@ from pikepdf._core._object import (
     as_int,
     as_list,
     as_str,
+    unbox,
     unparse,
 )
 from pikepdf._core._object_construct import (
@@ -150,6 +151,8 @@ from pikepdf._core._page import (
 from pikepdf._core._parsers import (
     ContentStreamInlineImage,
     ContentStreamInstruction,
+    _ContentChecker,
+    _scan_raw_content,
 )
 from pikepdf._core._qpdf import (
     AccessMode,
@@ -186,6 +189,7 @@ from pikepdf._core._typing import (
 )
 
 __all__ = [
+    '_ContentChecker',
     '_encode',
     '_get_effective_explicit_mode',
     '_get_effective_explicit_mode_for',
@@ -210,6 +214,7 @@ __all__ = [
     '_ObjectList',
     '_ObjectMapping',
     '_ObjectMeta',
+    '_scan_raw_content',
     '_PageListIterator',
     '_pop_thread_conversion_mode',
     '_push_thread_conversion_mode',
@@ -234,6 +239,7 @@ __all__ = [
     'as_int',
     'as_list',
     'as_str',
+    'unbox',
     'AttachedFile',
     'AttachedFileSpec',
     'Attachments',

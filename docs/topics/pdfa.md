@@ -376,6 +376,8 @@ that matters, inspect the `PrepareResult` or call `check` first.
   same results whether the document is read in implicit or explicit conversion
   mode, however that mode is chosen: {func}`pikepdf.explicit_conversion`, the
   document's `conversion_mode`, or {func}`pikepdf.set_object_conversion_mode`.
+  They work in explicit mode internally, switching to it for the calling
+  thread only while they run.
 - **Files are replaced atomically where possible.** `save` writes a temporary
   file beside the destination and renames it into place. An existing file keeps
   its permissions; a new file gets the default permissions of your umask. A

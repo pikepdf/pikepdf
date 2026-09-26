@@ -94,32 +94,32 @@
  },
  "ISO_19005_1:6.1.12-1": {
   "status": "implemented",
-  "by": "python:_limits.check_document_limits, python:_content._StreamWalk.check_limits",
+  "by": "python:_cos.check_objects, python:_content._StreamWalk.check_limits",
   "note": "Every indirect object (with its direct arrays and dictionaries) and every content stream operand"
  },
  "ISO_19005_1:6.1.12-2": {
   "status": "implemented",
-  "by": "python:_limits.check_document_limits, python:_content._StreamWalk.check_limits",
+  "by": "python:_cos.check_objects, python:_content._StreamWalk.check_limits",
   "note": "Every indirect object (with its direct arrays and dictionaries) and every content stream operand"
  },
  "ISO_19005_1:6.1.12-3": {
   "status": "implemented",
-  "by": "python:_limits.check_document_limits, python:_content._StreamWalk.check_limits",
+  "by": "python:_cos.check_objects, python:_content._StreamWalk.check_limits",
   "note": "Every indirect object (with its direct arrays and dictionaries) and every content stream operand"
  },
  "ISO_19005_1:6.1.12-4": {
   "status": "implemented",
-  "by": "python:_limits.check_document_limits, python:_content._StreamWalk.check_limits",
+  "by": "python:_cos.check_objects, python:_content._StreamWalk.check_limits",
   "note": "Every indirect object (with its direct arrays and dictionaries) and every content stream operand"
  },
  "ISO_19005_1:6.1.12-5": {
   "status": "implemented",
-  "by": "python:_limits.check_document_limits, python:_content._StreamWalk.check_limits",
+  "by": "python:_cos.check_objects, python:_content._StreamWalk.check_limits",
   "note": "Every indirect object (with its direct arrays and dictionaries) and every content stream operand"
  },
  "ISO_19005_1:6.1.12-6": {
   "status": "implemented",
-  "by": "python:_limits.check_document_limits, python:_content._StreamWalk.check_limits",
+  "by": "python:_cos.check_objects, python:_content._StreamWalk.check_limits",
   "note": "Every indirect object (with its direct arrays and dictionaries) and every content stream operand"
  },
  "ISO_19005_1:6.1.12-7": {
@@ -667,27 +667,27 @@
  },
  "ISO_19005_2:6.1.13-1": {
   "status": "implemented",
-  "by": "python:_limits.check_document_limits, python:_content._StreamWalk.check_limits",
+  "by": "python:_cos.check_objects, python:_content._StreamWalk.check_limits",
   "note": "Every indirect object (with its direct arrays and dictionaries) and every content stream operand"
  },
  "ISO_19005_2:6.1.13-2": {
   "status": "implemented",
-  "by": "python:_limits.check_document_limits, python:_content._StreamWalk.check_limits",
+  "by": "python:_cos.check_objects, python:_content._StreamWalk.check_limits",
   "note": "Every indirect object (with its direct arrays and dictionaries) and every content stream operand"
  },
  "ISO_19005_2:6.1.13-3": {
   "status": "implemented",
-  "by": "python:_limits.check_document_limits, python:_content._StreamWalk.check_limits",
+  "by": "python:_cos.check_objects, python:_content._StreamWalk.check_limits",
   "note": "Every indirect object (with its direct arrays and dictionaries) and every content stream operand"
  },
  "ISO_19005_2:6.1.13-4": {
   "status": "implemented",
-  "by": "python:_limits.check_document_limits, python:_content._StreamWalk.check_limits",
+  "by": "python:_cos.check_objects, python:_content._StreamWalk.check_limits",
   "note": "Every indirect object (with its direct arrays and dictionaries) and every content stream operand"
  },
  "ISO_19005_2:6.1.13-5": {
   "status": "implemented",
-  "by": "python:_limits.check_document_limits, python:_content._StreamWalk.check_limits",
+  "by": "python:_cos.check_objects, python:_content._StreamWalk.check_limits",
   "note": "Every indirect object (with its direct arrays and dictionaries) and every content stream operand"
  },
  "ISO_19005_2:6.1.13-7": {
@@ -1331,27 +1331,27 @@
  },
  "ISO_19005_3:6.1.13-1": {
   "status": "implemented",
-  "by": "python:_limits.check_document_limits, python:_content._StreamWalk.check_limits",
+  "by": "python:_cos.check_objects, python:_content._StreamWalk.check_limits",
   "note": "Every indirect object (with its direct arrays and dictionaries) and every content stream operand"
  },
  "ISO_19005_3:6.1.13-2": {
   "status": "implemented",
-  "by": "python:_limits.check_document_limits, python:_content._StreamWalk.check_limits",
+  "by": "python:_cos.check_objects, python:_content._StreamWalk.check_limits",
   "note": "Every indirect object (with its direct arrays and dictionaries) and every content stream operand"
  },
  "ISO_19005_3:6.1.13-3": {
   "status": "implemented",
-  "by": "python:_limits.check_document_limits, python:_content._StreamWalk.check_limits",
+  "by": "python:_cos.check_objects, python:_content._StreamWalk.check_limits",
   "note": "Every indirect object (with its direct arrays and dictionaries) and every content stream operand"
  },
  "ISO_19005_3:6.1.13-4": {
   "status": "implemented",
-  "by": "python:_limits.check_document_limits, python:_content._StreamWalk.check_limits",
+  "by": "python:_cos.check_objects, python:_content._StreamWalk.check_limits",
   "note": "Every indirect object (with its direct arrays and dictionaries) and every content stream operand"
  },
  "ISO_19005_3:6.1.13-5": {
   "status": "implemented",
-  "by": "python:_limits.check_document_limits, python:_content._StreamWalk.check_limits",
+  "by": "python:_cos.check_objects, python:_content._StreamWalk.check_limits",
   "note": "Every indirect object (with its direct arrays and dictionaries) and every content stream operand"
  },
  "ISO_19005_3:6.1.13-7": {

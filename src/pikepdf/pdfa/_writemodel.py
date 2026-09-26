@@ -76,17 +76,6 @@ def _is_null(value: Any) -> bool:
     )
 
 
-def _as_int(value: Any) -> int | None:
-    """The value of a PDF integer in either conversion mode, else None."""
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, int):
-        return value
-    if isinstance(value, pikepdf.Integer):
-        return int(value)
-    return None
-
-
 def _flate_lzw_parms_ok(parms: Any, lzw: bool) -> bool:
     """Whether qpdf's SF_FlateLzwDecode accepts these /DecodeParms."""
     if not isinstance(parms, pikepdf.Dictionary):
@@ -97,7 +86,7 @@ def _flate_lzw_parms_ok(parms: Any, lzw: bool) -> bool:
         if key in ('/Predictor', '/Columns', '/Colors', '/BitsPerComponent') or (
             lzw and key == '/EarlyChange'
         ):
-            number = _as_int(value)
+            number = pikepdf.as_int(value)
             if number is None:
                 return False
             if key == '/Predictor':
@@ -257,7 +246,7 @@ class WriteModel:
         stream_dict = stream.stream_dict
         compress = bool(self._setting('compress_streams', True))
         recompress = bool(self._setting('recompress_flate', False))
-        length = _as_int(stream_dict.get('/Length'))
+        length = pikepdf.as_int(stream_dict.get('/Length'))
         if length is not None:
             empty = length == 0
         else:
@@ -339,9 +328,8 @@ class WriteModel:
         """Return the indirect objects written to the file.
 
         An indirect integer, real or boolean is given as its Python value
-        (by the identity model) or left out (by a predicting model), in
-        either conversion mode, since the validator checks such a value
-        where it is used.
+        (by the identity model) or left out (by a predicting model), since
+        the validator checks such a value where it is used.
         """
         if self._save_kwargs is None:
             return [pikepdf.unbox(obj) for obj in pdf.objects]
@@ -364,7 +352,7 @@ def _reachable(pdf: pikepdf.Pdf) -> Iterator[pikepdf.Object]:
     while stack:
         value = pikepdf.unbox(stack.pop())
         if not isinstance(value, pikepdf.Object):
-            # A PDF integer, real or boolean, in either conversion mode
+            # A PDF integer, real or boolean, unboxed
             continue
         if value.is_indirect:
             key = value.objgen

@@ -10,6 +10,11 @@ current font and text rendering mode, the colour spaces in use) and
 recording every character code shown so the font checks can verify the
 glyphs at the end of the document.
 
+The parsing and the per-instruction checks that need no state (operand
+types, the operator allowlist, implementation limits) run in C++, in
+`pikepdf._core._ContentChecker`, which hands back only the instructions that
+need attention here, so most operands never become Python objects.
+
 qpdf rewrites the objects of the file but copies content stream bytes
 unchanged, and its content parser forgives some syntax that veraPDF does
 not, so `scan_raw_content` checks the raw bytes too.
@@ -24,6 +29,8 @@ from dataclasses import dataclass, replace
 from typing import Any
 
 import pikepdf
+from pikepdf._core import _ContentChecker
+from pikepdf._core import _scan_raw_content as scan_raw_content
 from pikepdf.pdfa._colour import (
     DEFAULT_SPACES,
     ColourSpaceInfo,
@@ -32,7 +39,15 @@ from pikepdf.pdfa._colour import (
 )
 from pikepdf.pdfa._context import ValidationContext
 from pikepdf.pdfa._fonts import FontInfo, load_font
-from pikepdf.pdfa._limits import LimitChecker
+from pikepdf.pdfa._limits import (
+    MAX_ARRAY_1B,
+    MAX_DICT_1B,
+    MAX_INTEGER,
+    MAX_NAME,
+    MAX_NESTING,
+    MIN_INTEGER,
+    LimitChecker,
+)
 from pikepdf.pdfa._report import FindingKind
 from pikepdf.pdfa._shallow import pdf_repr, pdf_str
 
@@ -68,18 +83,6 @@ INLINE_IMAGE_FILTERS = frozenset(
 FORBIDDEN_FILTERS = frozenset({'/LZWDecode', '/Crypt'})
 
 _WHITESPACE = b'\x00\t\n\x0c\r '
-# The start of a literal string, comment, dictionary or hex string, or an
-# ID operator (the start of inline image data)
-_RAW_TOKEN = re.compile(
-    rb'\(|%|<<|<|(?<![^'
-    + re.escape(_WHITESPACE + b')]>}')
-    + rb'])ID(?=['
-    + re.escape(_WHITESPACE)
-    + rb']|\Z)'
-)
-_LITERAL_STRING = re.compile(rb'[()\\]')
-_END_OF_LINE = re.compile(rb'[\r\n]')
-_HEX_DIGITS = re.compile(rb'[0-9A-Fa-f]*')
 # An EI operator inside inline image data
 _EMBEDDED_EI = re.compile(
     rb'['
@@ -192,25 +195,12 @@ TEXT_SHOWING = frozenset({'Tj', 'TJ', "'", '"'})
 
 
 def _is_number(obj: Any) -> bool:
-    """True for an Integer or Real; a Boolean is not a number."""
-    return pikepdf.as_float(obj) is not None
+    """True for an Integer or Real; a Boolean is not a number.
 
-
-_CHECKS: dict[str, Callable[[Any], bool]] = {
-    'n': _is_number,
-    'i': lambda o: pikepdf.as_int(o) is not None,
-    'N': lambda o: isinstance(o, pikepdf.Name),
-    's': lambda o: isinstance(o, pikepdf.String),
-    'a': lambda o: isinstance(o, pikepdf.Array),
-    'D': lambda o: isinstance(o, pikepdf.Name | pikepdf.Dictionary),
-}
-
-
-def operands_match(signature: str, operands: list[Any]) -> bool:
-    """True if *operands* have the count and types of *signature*."""
-    if len(operands) != len(signature):
-        return False
-    return all(_CHECKS[kind](op) for kind, op in zip(signature, operands, strict=True))
+    A Real is a number even if its digits overflow a double; the limit checks
+    report it as out of range.
+    """
+    return isinstance(obj, pikepdf.Integer | pikepdf.Real)
 
 
 @dataclass(frozen=True)
@@ -231,85 +221,6 @@ class GraphicsState:
     fill: int | None = 1
     stroke: int | None = 1
     overprint: tuple[bool, bool, int] = (False, False, 0)
-
-
-def _skip_literal_string(data: bytes, pos: int) -> int:
-    """Return the position after the literal string whose '(' is at *pos*."""
-    depth = 0
-    while (match := _LITERAL_STRING.search(data, pos)) is not None:
-        char = match.group()
-        pos = match.end()
-        if char == b'\\':
-            pos += 1
-        elif char == b'(':
-            depth += 1
-        else:
-            depth -= 1
-            if depth == 0:
-                return pos
-    return len(data)
-
-
-def _hex_string_problem(body: bytes) -> str | None:
-    """Return the rule clause a hex string body breaks, if any."""
-    digits = body.translate(None, _WHITESPACE)
-    if _HEX_DIGITS.fullmatch(digits) is None:
-        return '6.1.6-2'
-    if len(digits) % 2:
-        return '6.1.6-1'
-    return None
-
-
-def scan_raw_content(data: bytes, inline_images: list[bytes]) -> list[tuple[str, str]]:
-    """Check hex strings in raw content stream bytes.
-
-    Tokenizes just enough to find hex strings: literal strings, comments
-    and inline image data are skipped.
-
-    Args:
-        data: The raw (decoded) content stream.
-        inline_images: The raw data of each inline image, in order, as the
-            content parser found it.
-
-    Returns:
-        (clause, message) for each problem: ``6.1.6-1`` for a hex string with
-        an odd number of digits, ``6.1.6-2`` for one with characters that are
-        not hex digits, and ``inline-image`` if the inline images cannot be
-        matched with those the parser found.
-    """
-    problems: list[tuple[str, str]] = []
-    images = iter(inline_images)
-    pos = 0
-    while (match := _RAW_TOKEN.search(data, pos)) is not None:
-        token = match.group()
-        pos = match.end()
-        if token == b'(':
-            pos = _skip_literal_string(data, match.start())
-        elif token == b'%':
-            eol = _END_OF_LINE.search(data, pos)
-            pos = eol.end() if eol is not None else len(data)
-        elif token == b'<':
-            end = data.find(b'>', pos)
-            if end < 0:
-                end = len(data)
-            clause = _hex_string_problem(data[pos:end])
-            if clause == '6.1.6-1':
-                problems.append((clause, "hex string has an odd number of digits"))
-            elif clause == '6.1.6-2':
-                problems.append((clause, "hex string contains non-hex characters"))
-            pos = end + 1
-        elif token == b'ID':
-            image = next(images, None)
-            start = pos + 1
-            if image is None or data[start : start + len(image)] != image:
-                problems.append(
-                    ('inline-image', "inline image data cannot be delimited")
-                )
-                return problems
-            pos = start + len(image)
-    if next(images, None) is not None:
-        problems.append(('inline-image', "inline image data cannot be delimited"))
-    return problems
 
 
 class _Resources:
@@ -410,51 +321,61 @@ class _StreamWalk:
         try:
             with warnings.catch_warnings(record=True) as caught:
                 warnings.simplefilter('always')
-                instructions = pikepdf.parse_content_stream(stream, '')
+                events, count = self.walker.checker.check(stream)
         except (pikepdf.PdfError, ValueError, TypeError) as e:
             self.deny('pikepdf:content-parse', f"cannot parse content: {e}")
             return self.max_depth
         if caught:
             self.deny('pikepdf:content-parse', f"content stream: {caught[0].message}")
             return self.max_depth
-        self.check_raw(stream, instructions)
-        for instruction in instructions:
-            ctx.instructions += 1
-            if ctx.instructions > ctx.max_instructions:
-                self.deny(
-                    'pikepdf:content-budget',
-                    f"more than {ctx.max_instructions} content instructions",
-                    'unsupported',
-                )
-                return self.max_depth
-            if isinstance(instruction, pikepdf.ContentStreamInlineImage):
-                self.inline_image(instruction.iimage)
-                continue
-            op = instruction.operator.unparse().decode('latin-1')
-            operands = list(instruction.operands)
-            for operand in operands:
-                self.check_limits(operand)
-            signature = OPERATORS.get(op)
-            if signature is None:
+        self.check_raw(stream, [event[2] for event in events if event[0] == 'inline'])
+        # Each event names the instruction it is about. Instructions between
+        # events count towards the budget too, and a Form XObject drawn by
+        # an earlier instruction may have used some of it.
+        counted = 0
+        for event in events:
+            kind, index = event[0], event[1]
+            if index >= counted:
+                ctx.instructions += index + 1 - counted
+                counted = index + 1
+                if self.over_budget():
+                    return self.max_depth
+            if kind == 'op':
+                _HANDLERS[event[2]](self, event[2], event[3])
+            elif kind == 'limits':
+                self.check_limits(event[2])
+            elif kind == 'undefined':
                 self.deny(
                     ctx.rule('6.2.10-1', '6.2.2-1'),
-                    f"operator {op!r} is not defined in ISO 32000-1",
+                    f"operator {event[2]!r} is not defined in ISO 32000-1",
                 )
-                continue
-            if signature != '*' and not operands_match(signature, operands):
+            elif kind == 'operands':
                 self.deny(
                     'pikepdf:content-operands',
-                    f"operator {op} has operands {pdf_repr(operands)}",
+                    f"operator {event[2]} has operands {pdf_repr(event[3])}",
                 )
-                continue
-            handler = _HANDLERS.get(op)
-            if handler is not None:
-                handler(self, op, operands)
+            else:
+                self.inline_image(event[2].iimage)
+        ctx.instructions += count - counted
+        if self.over_budget():
+            return self.max_depth
         if self.in_text:
             self.syntax("BT without ET")
         return self.max_depth
 
-    def check_raw(self, stream: Any, instructions: list[Any]) -> None:
+    def over_budget(self) -> bool:
+        """Deny the content if it has used up the instruction budget."""
+        ctx = self.ctx
+        if ctx.instructions <= ctx.max_instructions:
+            return False
+        self.deny(
+            'pikepdf:content-budget',
+            f"more than {ctx.max_instructions} content instructions",
+            'unsupported',
+        )
+        return True
+
+    def check_raw(self, stream: Any, inline_images: list[Any]) -> None:
         """Check what the content parser does not report.
 
         That is hex string syntax, and inline image data that another parser
@@ -462,9 +383,7 @@ class _StreamWalk:
         """
         ctx = self.ctx
         images: list[bytes] = []
-        for instruction in instructions:
-            if not isinstance(instruction, pikepdf.ContentStreamInlineImage):
-                continue
+        for instruction in inline_images:
             try:
                 raw = instruction.iimage.read_raw_bytes()
             except (pikepdf.PdfError, AttributeError) as e:
@@ -494,7 +413,9 @@ class _StreamWalk:
             problems = limits.problems(operand)
         else:
             problem = limits.scalar(operand)
-            problems = [problem] if problem is not None else []
+            if problem is None:
+                return
+            problems = [problem]
         for key, message in problems:
             self.deny(limits.rule(key), message, limits.kind(key))
 
@@ -835,6 +756,29 @@ for _op in TEXT_POSITIONING:
     _HANDLERS[_op] = _StreamWalk.text_positioning
 for _op in TEXT_SHOWING:
     _HANDLERS[_op] = _StreamWalk.text_showing
+# Handlers that do not look at their operands, so they are not converted
+_OPERANDS_UNUSED = frozenset(
+    {'q', 'Q', 'BT', 'ET', 'd0', 'd1', 'sh', 'BX', 'EX'}
+    | TEXT_POSITIONING
+    | DEVICE_OPERATORS.keys()
+)
+
+
+def content_checker(limits: LimitChecker) -> _ContentChecker:
+    """Return the C++ checker for content streams, with these limits."""
+    return _ContentChecker(
+        OPERATORS,
+        {op: op not in _OPERANDS_UNUSED for op in _HANDLERS},
+        min_integer=MIN_INTEGER,
+        max_integer=MAX_INTEGER,
+        max_real=float(limits.max_real),
+        min_real=float(limits.min_real or 0),
+        max_string=limits.max_string,
+        max_name=MAX_NAME,
+        max_array=MAX_ARRAY_1B if limits.containers else None,
+        max_dict=MAX_DICT_1B if limits.containers else None,
+        max_nesting=MAX_NESTING,
+    )
 
 
 class ContentWalker:
@@ -852,6 +796,7 @@ class ContentWalker:
         self._in_progress: set[tuple[int, int]] = set()
         self._scratch = pikepdf.new()
         self.limits = LimitChecker(ctx.flavour)
+        self.checker = content_checker(self.limits)
         # Tests that skip the ImageXObject role also skip image colour
         self.check_images = True
 
@@ -984,10 +929,9 @@ def _defaults_key(colour_spaces: Any) -> tuple[bytes | None, ...]:
 
 
 def _unparse(value: Any) -> bytes:
-    value = pikepdf.unbox(value)
     if isinstance(value, pikepdf.Object):
         return value.unparse()
-    return repr(value).encode()
+    return b'null'
 
 
 def _page_resources(page: pikepdf.Dictionary, max_depth: int) -> tuple[Any, bool]:

@@ -796,6 +796,33 @@ def test_limits_in_content(tmp_path, content, part, rule):
     assert_verapdf_fails(path, f'{part}b', rule)
 
 
+# A real whose digits overflow a double is still a real, and out of range
+BEYOND_DOUBLE = b'1' + b'0' * 400 + b'.5'
+
+
+@pytest.mark.parametrize('mode', ['implicit', 'explicit'])
+def test_limits_real_beyond_double(tmp_path, mode):
+    def apply(pdf):
+        holder = pikepdf.Object.parse(b'<< /Value ' + BEYOND_DOUBLE + b' >>')
+        pdf.Root.Foo = pdf.make_indirect(holder)
+
+    conversion = getattr(pikepdf, f'{mode}_conversion')
+    with conversion():
+        report, _ = run(tmp_path, apply, '2')
+    assert 'ISO_19005_2:6.1.13-2' in rule_ids(report), report.summary()
+
+
+@pytest.mark.parametrize('mode', ['implicit', 'explicit'])
+def test_limits_real_beyond_double_in_content(tmp_path, mode):
+    conversion = getattr(pikepdf, f'{mode}_conversion')
+    with conversion():
+        report, path = run(
+            tmp_path, lambda pdf: None, '2', BEYOND_DOUBLE + b' 0 m ' + DRAW_IMAGE
+        )
+    assert 'ISO_19005_2:6.1.13-2' in rule_ids(report), report.summary()
+    assert_verapdf_fails(path, '2b', 'ISO_19005_2:6.1.13-2')
+
+
 def test_limit_reports_are_verified_by_verapdf(tmp_path):
     def apply(pdf):
         pdf.pages[0].obj.Rotate = 0

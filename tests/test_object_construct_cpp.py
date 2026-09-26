@@ -305,3 +305,59 @@ class TestIntegerRange:
     def test_limits_accepted(self, value):
         assert pikepdf.Array([value])[0] == value
         assert pikepdf.Integer(value) == value
+
+
+class TestFacadeInstanceCheck:
+    """isinstance() against each facade matches exactly one kind of object."""
+
+    FACADES = [
+        'Name',
+        'Operator',
+        'String',
+        'Array',
+        'Dictionary',
+        'Stream',
+        'Integer',
+        'Boolean',
+        'Real',
+    ]
+
+    @pytest.fixture
+    def samples(self):
+        pdf = pikepdf.Pdf.new()
+        with pikepdf.explicit_conversion():
+            yield {
+                'Name': _core.Name.Foo,
+                'Operator': _core.Operator('q'),
+                'String': _core.String('s'),
+                'Array': _core.Array([1]),
+                'Dictionary': _core.Dictionary(A=1),
+                'Stream': _core.Stream(pdf, b'x'),
+                'Integer': _core.Integer(1),
+                'Boolean': _core.Boolean(True),
+                'Real': _core.Real('1.5'),
+            }
+
+    def test_each_facade_matches_its_own_kind(self, samples):
+        for kind, obj in samples.items():
+            for facade in self.FACADES:
+                assert isinstance(obj, getattr(_core, facade)) == (kind == facade), (
+                    kind,
+                    facade,
+                )
+
+    def test_indirect_objects(self):
+        pdf = pikepdf.Pdf.new()
+        d = pdf.make_indirect(_core.Dictionary(A=1))
+        assert isinstance(d, _core.Dictionary)
+        assert not isinstance(d, _core.Stream)
+
+    def test_non_objects(self):
+        for value in (None, 1, 'x', b'x', object(), pikepdf.Rectangle(0, 0, 1, 1)):
+            for facade in self.FACADES:
+                assert not isinstance(value, getattr(_core, facade))
+
+    def test_union_and_tuple(self):
+        assert isinstance(_core.Name.Foo, _core.Name | _core.Dictionary)
+        assert isinstance(_core.Dictionary(), (_core.Array, _core.Dictionary))
+        assert not isinstance(_core.Name.Foo, (_core.Array, _core.Dictionary))

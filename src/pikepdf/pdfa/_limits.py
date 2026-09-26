@@ -4,19 +4,17 @@
 """Implementation limits on PDF objects (ISO 19005-1 6.1.12, ISO 19005-2 6.1.13).
 
 Every indirect object of the file is checked, with the direct arrays and
-dictionaries it contains, and so are content stream operands. Values nested
+dictionaries it contains (by `pikepdf.pdfa._cos.check_objects`), and so are
+content stream operands. Values nested
 deeper than `MAX_NESTING` are not checked, so such nesting is denied.
 """
 
 from __future__ import annotations
 
-import itertools
-from collections.abc import Iterable
 from decimal import Decimal
 from typing import Any
 
 import pikepdf
-from pikepdf.pdfa._context import ValidationContext
 from pikepdf.pdfa._flavour import Flavour
 from pikepdf.pdfa._report import FindingKind
 
@@ -51,6 +49,12 @@ def _name_length(name: Any) -> int:
         return len(raw) - 1 - 2 * raw.count(b'#')
 
 
+def _short(real: Decimal) -> str:
+    """A real for a message, in scientific notation if it has many digits."""
+    text = str(real)
+    return text if len(text) <= 24 else f'{real:.6E}'
+
+
 def _key_length(key: str) -> int:
     return len(key.encode('utf-8', 'surrogateescape')) - 1
 
@@ -80,18 +84,17 @@ class LimitChecker:
 
     def scalar(self, value: Any) -> tuple[str, str] | None:
         """Check a scalar; return (rule key, message) if it breaks a limit."""
-        integer = pikepdf.as_int(value)
-        if integer is not None:
-            if not MIN_INTEGER <= integer <= MAX_INTEGER:
-                return 'integer', f"integer {integer} is out of range"
+        # One unbox and one type test per value: this runs for every content
+        # stream operand.
+        value = pikepdf.unbox(value)
+        kind = type(value)
+        if kind is int:
+            if not MIN_INTEGER <= value <= MAX_INTEGER:
+                return 'integer', f"integer {value} is out of range"
             return None
-        real = pikepdf.as_decimal(value)
-        if real is not None:
-            magnitude = abs(real)
-            if magnitude > self.max_real:
-                return 'real', f"real {real} exceeds {self.max_real}"
-            if self.min_real is not None and 0 < magnitude < self.min_real:
-                return 'small-real', f"real {real} is closer to zero than 1.175e-38"
+        if kind is Decimal:
+            return self._real(value)
+        if kind is bool:
             return None
         if isinstance(value, pikepdf.String):
             size = len(bytes(value))
@@ -105,18 +108,51 @@ class LimitChecker:
             return None
         return None
 
-    def problems(self, value: Any, depth: int = 0) -> list[tuple[str, str]]:
-        """Return every limit a value breaks, looking into direct containers."""
+    def _real(self, real: Decimal) -> tuple[str, str] | None:
+        # Compared as a Decimal, so a real whose digits overflow a double is
+        # still found out of range.
+        if not real.is_finite():
+            return None
+        magnitude = abs(real)
+        if magnitude > self.max_real:
+            return 'real', f"real {_short(real)} exceeds {self.max_real}"
+        if self.min_real is not None and 0 < magnitude < self.min_real:
+            return 'small-real', f"real {_short(real)} is closer to zero than 1.175e-38"
+        return None
+
+    def problems(
+        self, value: Any, depth: int = 0, keys: set[str] | None = None
+    ) -> list[tuple[str, str]]:
+        """Return every limit a value breaks, looking into direct containers.
+
+        Args:
+            value: The value to check.
+            depth: How deeply *value* is already nested.
+            keys: If given, every dictionary key in *value* and its direct
+                containers is added to it, so a caller can look for keys
+                without walking the value again.
+        """
         found: list[tuple[str, str]] = []
-        self._collect(value, depth, found, top=True)
+        self._collect(value, depth, found, keys, top=True)
         return found
 
     def _collect(
-        self, value: Any, depth: int, found: list[tuple[str, str]], top: bool = False
+        self,
+        value: Any,
+        depth: int,
+        found: list[tuple[str, str]],
+        keys: set[str] | None,
+        top: bool = False,
     ) -> None:
         # An indirect integer, real or boolean is checked here, where it is
-        # used, in either conversion mode.
+        # used: unboxed, it is no longer an indirect object.
         value = pikepdf.unbox(value)
+        kind = type(value)
+        if kind is int or kind is Decimal or kind is bool:
+            problem = self.scalar(value)
+            if problem is not None:
+                found.append(problem)
+            return
         if isinstance(value, pikepdf.Object) and value.is_indirect and not top:
             return  # checked as an object of its own
         if depth > MAX_NESTING:
@@ -125,23 +161,27 @@ class LimitChecker:
             )
             return
         if isinstance(value, pikepdf.Stream):
-            self._collect_dict(value.stream_dict, depth, found)
+            self._collect_dict(value.stream_dict, depth, found, keys)
         elif isinstance(value, pikepdf.Dictionary):
-            self._collect_dict(value, depth, found)
+            self._collect_dict(value, depth, found, keys)
         elif isinstance(value, pikepdf.Array):
             if self.containers and len(value) > MAX_ARRAY_1B:
                 found.append(
                     ('array', f"array of {len(value)} elements exceeds {MAX_ARRAY_1B}")
                 )
             for item in value:
-                self._collect(item, depth + 1, found)
+                self._collect(item, depth + 1, found, keys)
         else:
             problem = self.scalar(value)
             if problem is not None:
                 found.append(problem)
 
     def _collect_dict(
-        self, value: pikepdf.Dictionary, depth: int, found: list[tuple[str, str]]
+        self,
+        value: pikepdf.Dictionary,
+        depth: int,
+        found: list[tuple[str, str]],
+        keys: set[str] | None,
     ) -> None:
         # items(), not get(): keys that are not UTF-8 cannot be looked up
         items = list(value.items())
@@ -150,25 +190,8 @@ class LimitChecker:
                 ('dict', f"dictionary of {len(items)} entries exceeds {MAX_DICT_1B}")
             )
         for key, item in items:
+            if keys is not None:
+                keys.add(key)
             if _key_length(key) > MAX_NAME:
                 found.append(('name', f"name {key[:32]!r}... exceeds {MAX_NAME} bytes"))
-            self._collect(item, depth + 1, found)
-
-
-def check_document_limits(ctx: ValidationContext) -> None:
-    """Check every indirect object written to the file and the trailer."""
-    checker = LimitChecker(ctx.flavour)
-    objects: Iterable[Any] = itertools.chain(
-        [ctx.pdf.trailer], ctx.model.objects(ctx.pdf)
-    )
-    for obj in objects:
-        if not isinstance(obj, pikepdf.Object):
-            # An indirect integer, real or boolean: checked where it is used
-            continue
-        reported: set[str] = set()
-        for key, message in checker.problems(obj):
-            if key in reported:
-                continue
-            reported.add(key)
-            where = ctx.describe(obj) if obj.is_indirect else 'trailer'
-            ctx.deny(checker.rule(key), where, message, checker.kind(key))
+            self._collect(item, depth + 1, found, keys)

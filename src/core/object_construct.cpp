@@ -3,6 +3,8 @@
 
 #include "pikepdf.h"
 
+#include <array>
+#include <atomic>
 #include <string>
 
 #include <qpdf/QPDFObjectHandle.hh>
@@ -47,6 +49,24 @@ static py::object make_metaclass(const char *name, py::handle base, py::dict ns)
     return py::steal(t);
 }
 
+// The facade type for each QPDF type code, so that isinstance() is a pointer
+// comparison rather than a lookup of cls.object_type.value, which goes through
+// the enum descriptor and dominated the cost of every isinstance() check.
+// Borrowed references, published once while NB_MODULE runs: the module dict
+// holds the owning references, as for the exception types in pikepdf.cpp.
+static constinit std::array<std::atomic<PyObject *>,
+    qpdf_object_type_e::ot_reference + 1>
+    facade_by_code{};
+
+static bool is_facade(PyObject *cls)
+{
+    for (auto const &slot : facade_by_code) {
+        if (slot.load(std::memory_order_acquire) == cls)
+            return true;
+    }
+    return false;
+}
+
 // meta(name, (object,), ns) -- create a facade type as an instance of `meta`.
 // ns must contain __new__ (already staticmethod-wrapped); object_type is added here.
 // Docstrings live in the src/pikepdf/_core stubs, not here.
@@ -60,6 +80,8 @@ static py::object make_facade(
     PyObject *t = PyObject_CallFunction(meta.ptr(), "sOO", name, bases.ptr(), ns.ptr());
     if (t == nullptr)
         throw py::python_error();
+    facade_by_code.at(py::cast<size_t>(object_type.attr("value")))
+        .store(t, std::memory_order_release);
     return py::steal(t);
 }
 
@@ -91,6 +113,9 @@ void init_object_construct(py::module_ &m)
                     return false;
                 auto &oh = py::cast<QPDFObjectHandle &>(instance);
                 int inst_code = static_cast<int>(oh.getTypeCode());
+                if (is_facade(cls.ptr()))
+                    return facade_by_code.at(inst_code).load(
+                               std::memory_order_acquire) == cls.ptr();
                 int cls_code = py::cast<int>(cls.attr("object_type").attr("value"));
                 return inst_code == cls_code;
             } catch (py::python_error &e) {

@@ -189,14 +189,16 @@ def los_angeles_tz(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def _pdfa_explicit_conversion(request):
-    """Run the PDF/A tests in explicit conversion mode if asked to.
+    """Run the PDF/A tests in explicit conversion mode.
 
-    With ``PIKEPDF_TEST_EXPLICIT=1`` in the environment, every test in a
-    ``test_pdfa*`` module runs inside `pikepdf.explicit_conversion`, which
-    affects only the thread running the test.
+    pikepdf.pdfa works in explicit mode: its entry points switch to it, and
+    its internals, which many tests call directly, expect it. Every test in
+    a ``test_pdfa*`` module runs inside `pikepdf.explicit_conversion`, which
+    affects only the thread running the test; test_pdfa_explicit.py checks
+    the entry points from implicit mode.
     """
     module = request.node.module
-    if os.environ.get('PIKEPDF_TEST_EXPLICIT') != '1' or module is None:
+    if module is None:
         yield
         return
     if not module.__name__.rpartition('.')[2].startswith('test_pdfa'):

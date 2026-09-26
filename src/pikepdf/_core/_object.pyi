@@ -999,6 +999,43 @@ def _new_string_utf8(s: str) -> String:
     """Low-level function to construct a PDF String object from UTF-8 bytes."""
 
 def unparse(obj: Any) -> bytes: ...
+def unbox(value: Any) -> Any:
+    """Return a PDF scalar as the native Python value implicit mode would give.
+
+    Implicit conversion mode already hands back ``int``, ``bool`` or
+    ``Decimal`` for a PDF number; explicit mode hands back a
+    :class:`pikepdf.Integer`, :class:`pikepdf.Boolean` or :class:`pikepdf.Real`.
+    Code that computes with a value rather than storing it needs the native form
+    in both modes, and unlike :meth:`~pikepdf.Object.as_int` and friends this
+    does not require knowing which of the three it is.
+
+    ``Integer`` becomes ``int``, ``Boolean`` becomes ``bool`` and ``Real``
+    becomes :class:`decimal.Decimal`. Anything else -- a native Python value,
+    ``None``, a :class:`~pikepdf.Name`, :class:`~pikepdf.String`,
+    :class:`~pikepdf.Array`, :class:`~pikepdf.Dictionary` or
+    :class:`~pikepdf.Stream` -- is returned unchanged, so ``unbox`` can be
+    applied to a value read in either mode.
+
+    Arithmetic and comparisons on ``Integer`` and ``Real`` already produce
+    native results, so ``unbox`` is needed only where Python offers no
+    protocol for a foreign number: ``isinstance`` checks, ``is True``,
+    :class:`decimal.Decimal` construction, JSON serialization, and returning
+    a value from a function documented to give a native type.
+
+    When the expected type is known, prefer :func:`pikepdf.as_int` and
+    friends, which also accept a value read in either mode but return
+    *default* for a value of the wrong type instead of passing it through.
+
+    Example:
+        >>> with pikepdf.explicit_conversion():
+        ...     d = pikepdf.Dictionary(MaxLen=12, Marked=True)
+        ...     pikepdf.unbox(d.MaxLen)
+        12
+        >>> pikepdf.unbox(d.Marked) is True
+        True
+
+    .. versionadded:: 10.14
+    """
 
 # Module-level typed conversions, defined in object_methods.cpp. Each is the
 # value-side twin of an Object.as_*(default) method and Object.get_*() getter:
