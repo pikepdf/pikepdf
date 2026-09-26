@@ -442,7 +442,6 @@ void save_pdf(QPDF &q,
     bool qdf = false,
     py::object progress = py::none(),
     py::object encryption = py::none(),
-    bool samefile_check = true,
     bool recompress_flate = false,
     bool deterministic_id = false)
 {
@@ -853,7 +852,6 @@ void init_qpdf(py::module_ &m)
             py::arg("qdf") = false,
             py::arg("progress").none() = py::none(),
             py::arg("encryption").none() = py::none(),
-            py::arg("samefile_check") = true,
             py::arg("recompress_flate") = false,
             py::arg("deterministic_id") = false)
         .def(

@@ -445,7 +445,6 @@ class Extend_Pdf:
                 qdf=qdf,
                 progress=progress,
                 encryption=encryption,
-                samefile_check=getattr(self, '_tmp_stream', None) is None,
                 recompress_flate=recompress_flate,
                 deterministic_id=deterministic_id,
                 static_id=static_id,
