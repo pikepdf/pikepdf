@@ -56,8 +56,43 @@ the architecture notes on thread safety.
   encodings. New {class}`pikepdf.pdfa.PrepareResult` fields report these
   repairs.
 
+### PDF/A developer extensions
+
+- The PDF/A validator now checks the Adobe developer extensions dictionary
+  (`/Extensions << /ADBE ... >>`) that Acrobat writes in the document catalog,
+  instead of reporting every such file as unsupported. qpdf rewrites this
+  entry to match the written version and extension level, and removes it for
+  PDF/A-1, and the validator checks the entry as it will be written. Other
+  developer extensions remain unsupported.
+- {func}`pikepdf.pdfa.resolve_save_kwargs` accepts an extension level in
+  `min_version` or `force_version` for PDF/A-2 and PDF/A-3, such as
+  `('1.7', 8)`.
+
+### Metadata
+
+- New {meth}`pikepdf.models.PdfMetadata.copy_properties` copies named XMP
+  properties from other metadata with their whole value: every language of a
+  language alternative, array order, structures and qualifiers, which
+  assigning a value read from the source would lose. Properties are read from
+  every `rdf:Description` whatever its `rdf:about`, and the structure of known
+  properties is checked as for assignment. This is useful to restore metadata
+  another tool dropped while rewriting a document.
+
+### PDF/A annotations
+
+- {func}`pikepdf.pdfa.repair_annotation_flags`, the step of
+  {func}`pikepdf.pdfa.prepare` that removes hidden annotations and sets the
+  Print flag on the rest, is now public, with its result
+  {class}`pikepdf.pdfa.AnnotationRepairResult`. Running it before handing a file
+  to another PDF/A converter such as Ghostscript keeps hyperlinks that producers
+  wrote without the Print flag, which Ghostscript's PDF/A mode deletes.
+
 ### Fixes
 
+- The PDF/A validator reported the standard stream key `/DL` (decoded length)
+  as unsupported on content streams, images, metadata streams and output
+  intent profiles, so a file whose producer writes it could not be converted.
+  It is now accepted on every stream.
 - The PDF/A validator accepted glyph names in a non-symbolic TrueType font's
   `/Differences` only from the Adobe Glyph List for New Fonts, so it rejected
   valid PDF/A-2 and PDF/A-3 files that used other names from the full Adobe
