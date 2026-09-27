@@ -15,7 +15,7 @@ import zlib
 from io import BytesIO
 from typing import Any
 
-from pdfa_samples import make_image_only_pdf
+from pdfa_samples import assert_verapdf_agrees, make_image_only_pdf
 
 import pikepdf
 from pikepdf import Array, Dictionary, Name
@@ -241,6 +241,96 @@ class TestStreamFilters:
             assert model.stream_filters(stream) == (Name.LZWDecode, None)
 
 
+def _adbe(base: str = '/1.7', level: object = 8) -> Dictionary:
+    return Dictionary(BaseVersion=Name(base), ExtensionLevel=level)
+
+
+def _set_extensions(**prefixes):
+    def mutate(pdf):
+        pdf.Root.Extensions = Dictionary(**prefixes)
+
+    return mutate
+
+
+def _set_indirect_extensions(pdf):
+    pdf.Root.Extensions = pdf.make_indirect(
+        Dictionary(ADBE=pdf.make_indirect(_adbe('/' + pdf.pdf_version, 8)))
+    )
+
+
+def _no_change(pdf):
+    pass
+
+
+# tag: (flavour, save kwargs, mutation)
+EXTENSION_CASES = {
+    'acrobat-2b': ('2b', {}, _set_extensions(ADBE=_adbe())),
+    'acrobat-3b': ('3b', {}, _set_extensions(ADBE=_adbe())),
+    'acrobat-1b': ('1b', {}, _set_extensions(ADBE=_adbe())),
+    'adbe-and-other-1b': (
+        '1b',
+        {},
+        _set_extensions(ADBE=_adbe(), GLGR=_adbe('/1.7', 1002)),
+    ),
+    'other-only': ('2b', {}, _set_extensions(GLGR=_adbe('/1.7', 1002))),
+    'empty': ('2b', {}, _set_extensions()),
+    'missing-level': (
+        '2b',
+        {},
+        _set_extensions(ADBE=Dictionary(BaseVersion=Name('/1.7'))),
+    ),
+    'bad-level': ('2b', {}, _set_extensions(ADBE=_adbe('/1.7', Name('/8')))),
+    'base-2.0': ('2b', {}, _set_extensions(ADBE=_adbe('/2.0', 8))),
+    'lower-min-level': (
+        '2b',
+        {'min_version': ('1.7', 3)},
+        _set_extensions(ADBE=_adbe()),
+    ),
+    'create': ('2b', {'min_version': ('1.7', 3)}, _no_change),
+    'force': ('2b', {'force_version': ('1.6', 2)}, _set_extensions(ADBE=_adbe())),
+    'force-no-level': ('2b', {'force_version': '1.7'}, _set_extensions(ADBE=_adbe())),
+    'indirect': ('2b', {}, _set_indirect_extensions),
+}
+
+
+class TestExtensions:
+    @pytest.mark.parametrize('tag', list(EXTENSION_CASES))
+    def test_model_matches_reality(self, tag):
+        flavour, user, mutate = EXTENSION_CASES[tag]
+        kw = resolve_save_kwargs(flavour, **user)
+        buffer = BytesIO()
+        with make_image_only_pdf(flavour[0]) as pdf:
+            mutate(pdf)
+            model = WriteModel.predict(pdf, kw)
+            predicted = model.catalog_json(pdf).get('/Extensions')
+            version = model.version(pdf)
+            level = model.extension_level(pdf)
+            pdf.save(buffer, **kw)
+        with pikepdf.open(buffer) as written:
+            assert predicted == shallow_json_of(written.Root).get('/Extensions')
+            assert (version, level) == (written.pdf_version, written.extension_level)
+
+    def test_expected_rewrites(self):
+        with make_image_only_pdf('1') as pdf:
+            _set_extensions(ADBE=_adbe())(pdf)
+            model = WriteModel.predict(pdf, resolve_save_kwargs('1b'))
+            assert '/Extensions' not in model.catalog_json(pdf)
+        with make_image_only_pdf('2') as pdf:
+            _set_extensions(ADBE=_adbe('/2.0', 8))(pdf)
+            model = WriteModel.predict(pdf, resolve_save_kwargs('2b'))
+            base = '/' + model.version(pdf)
+            assert model.catalog_json(pdf)['/Extensions'] == {
+                '/ADBE': {'/BaseVersion': base, '/ExtensionLevel': 8}
+            }
+
+    def test_identity_is_in_memory(self):
+        with make_image_only_pdf('1') as pdf:
+            _set_extensions(ADBE=_adbe())(pdf)
+            model = WriteModel.identity()
+            assert model.catalog_json(pdf) == shallow_json_of(pdf.Root)
+            assert model.extension_level(pdf) == 8
+
+
 class TestObjects:
     def test_unreachable_objects_are_not_written(self):
         with make_image_only_pdf('2') as pdf:
@@ -371,23 +461,70 @@ class TestCheck:
             pdf.save(out, **report.save_kwargs)
         assert validate_written(out, '2b').verdict == 'pass'
 
-    def test_aes256_input_keeps_extension_level(self, tmp_path):
+    def test_aes256_input_extension_level_passes(self, tmp_path):
         # qpdf carries the input's Adobe extension level (8 for AES-256)
         # into the written /Extensions unless a version is forced, and the
-        # validator does not check developer extensions.
+        # validator checks the Adobe developer extensions dictionary.
         source = tmp_path / 'enc.pdf'
         with make_image_only_pdf('2') as pdf:
             pdf.save(source, encryption=pikepdf.Encryption(owner='o', user='u'))
         out = tmp_path / 'out.pdf'
         with pikepdf.open(source, password='u') as pdf:
+            assert pdf.extension_level == 8
             report = check(pdf, '2b')
             pdf.save(out, **report.save_kwargs)
         written = validate_written(out, '2b')
-        assert report.verdict == written.verdict == 'not_checked'
+        assert report.verdict == written.verdict == 'pass', report.summary()
         # qpdf renumbers objects when writing, so compare without locations
         assert [(f.rule, f.message) for f in report.findings] == [
             (f.rule, f.message) for f in written.findings
         ]
+        with pikepdf.open(out) as pdf:
+            assert pdf.extension_level == 8
+        assert_verapdf_agrees(out, '2b')
+
+    @pytest.mark.parametrize('flavour', ['2b', '3b'])
+    def test_acrobat_extensions_pass(self, flavour, tmp_path):
+        source = tmp_path / 'acrobat.pdf'
+        with make_image_only_pdf(flavour[0]) as pdf:
+            pdf.save(source, force_version=('1.7', 8))
+        out = tmp_path / 'out.pdf'
+        with pikepdf.open(source) as pdf:
+            assert shallow_json(pdf.Root.Extensions) == {
+                '/ADBE': {'/BaseVersion': '/1.7', '/ExtensionLevel': 8}
+            }
+            report = check(pdf, flavour)
+            assert report.verdict == 'pass', report.summary()
+            pdf.save(out, **report.save_kwargs)
+        assert validate_written(out, flavour).verdict == 'pass'
+        with pikepdf.open(out) as pdf:
+            assert (pdf.pdf_version, pdf.extension_level) == ('1.7', 8)
+        assert_verapdf_agrees(out, flavour)
+
+    def test_acrobat_extensions_removed_for_1b(self, tmp_path):
+        out = tmp_path / 'out.pdf'
+        with make_image_only_pdf('1') as pdf:
+            pdf.Root.Extensions = Dictionary(
+                ADBE=Dictionary(BaseVersion=Name('/1.7'), ExtensionLevel=8)
+            )
+            report = check(pdf, '1b')
+            assert report.verdict == 'pass', report.summary()
+            pdf.save(out, **report.save_kwargs)
+        with pikepdf.open(out) as pdf:
+            assert '/Extensions' not in pdf.Root
+            assert pdf.pdf_version == '1.4'
+        assert validate_written(out, '1b').verdict == 'pass'
+        assert_verapdf_agrees(out, '1b')
+
+    def test_min_version_extension_level_2b(self, tmp_path):
+        out = tmp_path / 'out.pdf'
+        with make_image_only_pdf('2') as pdf:
+            report = check(pdf, '2b', min_version=('1.7', 3))
+            assert report.verdict == 'pass', report.summary()
+            pdf.save(out, **report.save_kwargs)
+        with pikepdf.open(out) as pdf:
+            assert (pdf.pdf_version, pdf.extension_level) == ('1.7', 3)
+        assert validate_written(out, '2b').verdict == 'pass'
 
     def test_version_2_0(self):
         buffer = BytesIO()

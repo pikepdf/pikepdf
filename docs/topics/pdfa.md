@@ -288,8 +288,16 @@ The remaining settings are yours to choose: `compress_streams`,
 `recompress_flate`, `linearize`, `progress`, `deterministic_id`, `static_id`,
 `min_version`, and for PDF/A-2 and PDF/A-3 `object_stream_mode` and
 `force_version`. Versions may not exceed 1.4 for PDF/A-1 or 1.7 for PDF/A-2
-and PDF/A-3, and extension levels are refused. An unknown keyword raises
-{class}`TypeError`.
+and PDF/A-3. An Adobe extension level, such as `min_version=('1.7', 8)`, is
+accepted for PDF/A-2 and PDF/A-3 and refused for PDF/A-1, since PDF 1.4 has
+none. An unknown keyword raises {class}`TypeError`.
+
+qpdf rewrites the catalog's Adobe developer extensions (`/Extensions /ADBE`)
+whenever it saves, to match the version and extension level it writes: the
+entry is kept or updated when the extension level is nonzero, and removed when
+it is zero, which it always is for PDF/A-1. The check predicts this, so a file
+saved by Acrobat with `/ADBE` extension level 8 passes, and its PDF/A-1
+output carries no `/ADBE` entry.
 
 {func}`pikepdf.pdfa.resolve_save_kwargs` returns the complete settings for a
 flavour, with your choices applied, and `report.save_kwargs` holds the settings
@@ -352,9 +360,9 @@ attachment makes a PDF/A-2 document `'not_checked'`.
   requested intent is already the only one, or `output_intent=None`;
 - removes `/Interpolate` from images;
 - removes annotations that are hidden, invisible or not viewable (the Hidden,
-  Invisible and NoView flags, and ToggleNoView for PDF/A-2 and PDF/A-3), along
-  with their popup annotations, and sets the Print flag on the annotations that
-  remain;
+  Invisible, NoView and ToggleNoView flags), along with their popup
+  annotations, and sets the Print flag on the annotations that remain (see
+  below to run this step on its own);
 - removes `/AlternatePresentations` (slideshows) and `/JavaScript`
   (document-level JavaScript) from the `/Names` dictionary;
 - adds a `/CIDSet` to subset CIDFonts (PDF/A-1 only);
@@ -400,6 +408,21 @@ for level, sentence in report.prepared.messages():
 
 Removing hidden annotations and pruning XMP properties discard information. If
 that matters, inspect the `PrepareResult` or call `check` first.
+
+The annotation step is also available on its own as
+{func}`pikepdf.pdfa.repair_annotation_flags`. This is useful before handing a
+file to another PDF/A converter such as Ghostscript, whose PDF/A mode silently
+deletes every annotation that lacks the Print flag, including `/Link`
+annotations that producers often write without any flags:
+
+```python
+import pikepdf
+from pikepdf import pdfa
+
+with pikepdf.open('in.pdf') as pdf:
+    result = pdfa.repair_annotation_flags(pdf)
+    pdf.save('for-ghostscript.pdf')
+```
 
 ## Guarantees and limits
 
@@ -464,6 +487,9 @@ in PDF/A under conditions the validator does not yet verify.
 - annotation types other than Text, Link, Popup and the markup annotations
 - `/Metadata` streams attached to objects other than the catalog
 - XMP extension schemas and `xmpMM` structures
+- developer extensions other than Adobe's (`/ADBE`) in the catalog's
+  `/Extensions`, and Adobe extensions to PDF versions after 1.7 (after 1.4 for
+  PDF/A-1)
 - output intents other than sRGB are accepted, but less exercised than sRGB
 
 ## Threads

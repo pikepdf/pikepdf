@@ -22,7 +22,7 @@ from decimal import Decimal
 
 import pikepdf
 from pikepdf._core import ObjectStreamMode
-from pikepdf.pdfa._shallow import JsonValue, shallow_json_of
+from pikepdf.pdfa._shallow import JsonValue, shallow_json, shallow_json_of
 
 # Filters qpdf decodes at stream_decode_level=generalized, by the names qpdf
 # accepts for them. Flate and LZW take predictor parameters; the others
@@ -70,6 +70,35 @@ def _version_arg(value: object) -> str:
     if isinstance(value, tuple):
         return str(value[0])
     return str(value or '')
+
+
+def _level_arg(value: object) -> int:
+    """The extension level of a min_version/force_version argument."""
+    if isinstance(value, tuple):
+        return int(value[1])
+    return 0
+
+
+def _direct_copy(obj: pikepdf.Object) -> pikepdf.Object:
+    """Return a direct copy of an object and its descendants.
+
+    Mirrors QPDFObjectHandle::makeDirect, which qpdf applies to an indirect
+    Adobe developer extensions dictionary before writing it.
+    """
+    obj = pikepdf.unbox(obj)
+    if not isinstance(obj, pikepdf.Object):
+        return obj
+    if isinstance(obj, pikepdf.Dictionary) and not isinstance(obj, pikepdf.Stream):
+        return pikepdf.Dictionary(
+            {key: _direct_copy(value) for key, value in obj.items()}
+        )
+    if isinstance(obj, pikepdf.Array):
+        return pikepdf.Array([_direct_copy(item) for item in obj])
+    if obj.is_indirect and isinstance(obj, pikepdf.Name):
+        return pikepdf.Name(str(obj))
+    if obj.is_indirect and isinstance(obj, pikepdf.String):
+        return pikepdf.String(bytes(obj))
+    return obj
 
 
 def _is_null(value: object) -> bool:
@@ -294,15 +323,91 @@ class WriteModel:
 
     def version(self, pdf: pikepdf.Pdf) -> str:
         """Return the PDF version in the header once written, e.g. ``'1.7'``."""
+        return self._final_version(pdf)[0]
+
+    def extension_level(self, pdf: pikepdf.Pdf) -> int:
+        """Return the Adobe extension level of the written file (0 if none)."""
+        return self._final_version(pdf)[1]
+
+    def _final_version(self, pdf: pikepdf.Pdf) -> tuple[str, int]:
+        # Mirrors QPDFWriter's final_pdf_version and final_extension_level:
+        # a forced version wins; otherwise setMinimumPDFVersion keeps the
+        # greatest (version, extension level) of the input, min_version and
+        # the 1.5 that object streams need. Encryption, which also raises
+        # the minimum, is pinned off.
         if self._save_kwargs is None:
-            return pdf.pdf_version
-        forced = _version_arg(self._setting('force_version'))
-        if forced:
-            return forced
-        candidates = [pdf.pdf_version, _version_arg(self._setting('min_version'))]
+            return pdf.pdf_version, pdf.extension_level
+        force = self._setting('force_version')
+        if _version_arg(force):
+            return _version_arg(force), _level_arg(force)
+        minimum = self._setting('min_version')
+        candidates = [
+            (pdf.pdf_version, pdf.extension_level),
+            (_version_arg(minimum), _level_arg(minimum)),
+        ]
         if self._object_streams(pdf):
-            candidates.append('1.5')
-        return max((v for v in candidates if v), key=_version_tuple)
+            candidates.append(('1.5', 0))
+        return max(
+            (c for c in candidates if c[0]),
+            key=lambda c: (_version_tuple(c[0]), c[1]),
+        )
+
+    def extensions(self, pdf: pikepdf.Pdf) -> pikepdf.Object | None:
+        """Return the catalog's /Extensions once written, or None if absent.
+
+        A predicting model returns a direct dictionary: qpdf makes /Extensions
+        and its /ADBE entry direct, sets /ADBE to the written version and
+        extension level, or removes /ADBE when the level is 0 and
+        /Extensions too if nothing else is left in it.
+        """
+        extensions = pdf.Root.get('/Extensions')
+        if self._save_kwargs is None:
+            return extensions
+        # Mirrors QPDFWriter::prepareFileForWrite and the catalog case of
+        # QPDFWriter::unparseObject.
+        version, level = self._final_version(pdf)
+        need_adbe = level > 0
+        entries: dict[str, pikepdf.Object] = {}
+        has_extensions = isinstance(extensions, pikepdf.Dictionary) and not (
+            isinstance(extensions, pikepdf.Stream)
+        )
+        if has_extensions:
+            assert isinstance(extensions, pikepdf.Dictionary)
+            entries = {k: v for k, v in extensions.items() if not _is_null(v)}
+        elif not need_adbe:
+            return extensions
+        have_adbe = '/ADBE' in entries
+        have_other = len(entries) > (1 if have_adbe else 0)
+        if not need_adbe and have_adbe and not have_other:
+            return None
+        adbe = entries.get('/ADBE')
+        if (
+            isinstance(adbe, pikepdf.Dictionary)
+            and not isinstance(adbe, pikepdf.Stream)
+            and adbe.get('/BaseVersion') == pikepdf.Name('/' + version)
+            and pikepdf.as_int(adbe.get('/ExtensionLevel')) == level
+        ):
+            if adbe.is_indirect:
+                entries['/ADBE'] = _direct_copy(adbe)
+        elif need_adbe:
+            entries['/ADBE'] = pikepdf.Dictionary(
+                BaseVersion=pikepdf.Name('/' + version), ExtensionLevel=level
+            )
+        else:
+            entries.pop('/ADBE', None)
+        return pikepdf.Dictionary(entries)
+
+    def catalog_json(self, pdf: pikepdf.Pdf) -> JsonValue:
+        """Return the shallow JSON encoding of the catalog once written."""
+        shallow = shallow_json_of(pdf.Root)
+        if self._save_kwargs is None or not isinstance(shallow, dict):
+            return shallow
+        extensions = self.extensions(pdf)
+        if _is_null(extensions):
+            shallow.pop('/Extensions', None)
+        else:
+            shallow['/Extensions'] = shallow_json(extensions)
+        return shallow
 
     def _object_streams(self, pdf: pikepdf.Pdf) -> bool:
         forced = _version_arg(self._setting('force_version'))

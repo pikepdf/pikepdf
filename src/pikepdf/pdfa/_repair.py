@@ -80,18 +80,23 @@ _MAX_PAGES_LISTED = 5
 
 @dataclass
 class AnnotationRepairResult:
-    """What :func:`repair_annotation_flags` changed.
+    """What :func:`pikepdf.pdfa.repair_annotation_flags` changed.
 
-    Attributes:
-        removed: The number of annotations removed, by subtype (without the
-            leading slash).
-        removed_pages: The page numbers (1-based) annotations were removed from.
-        print_flags_set: The number of annotations given the Print flag.
+    An empty result (no removals and no Print flags set) means the annotation
+    flags of every page were already acceptable to PDF/A.
     """
 
     removed: Counter[str] = field(default_factory=Counter)
+    """The number of annotations removed, keyed by subtype without the leading
+    slash (for example ``'Link'`` or ``'Popup'``); ``'unknown'`` counts
+    annotations that have no valid ``/Subtype``."""
+
     removed_pages: set[int] = field(default_factory=set)
+    """The page numbers (1-based) from which annotations were removed."""
+
     print_flags_set: int = 0
+    """The number of annotations that were kept and given the Print flag,
+    because they had no ``/F`` entry or had one without the Print bit."""
 
 
 def _annotation_flags(annot: Dictionary) -> int:
@@ -147,17 +152,32 @@ def repair_annotation_flags(pdf: Pdf) -> AnnotationRepairResult:
     """Make the annotation flags of every page acceptable to PDF/A.
 
     PDF/A requires every annotation to set the Print flag and to clear the
-    Hidden, Invisible and NoView flags (and ToggleNoView, for PDF/A-2 and
-    later). An annotation with any of those flags set is not shown to the
-    reader, so it is removed, as Ghostscript does, rather than made visible:
-    along with it goes its /Popup annotation, and a /Popup entry that
-    refers to a removed annotation is deleted. The remaining annotations are
-    given the Print flag if they lack it, leaving their other flags alone.
+    Hidden, Invisible and NoView flags; PDF/A-2 and PDF/A-3 also require
+    ToggleNoView to be clear. An annotation with any of those four flags set
+    is removed, as Ghostscript does, rather than made visible. This function
+    does not take a PDF/A part, so it removes annotations with ToggleNoView
+    for every part, including PDF/A-1, whose rule predates that flag and does
+    not mention it; the flags that remain are acceptable to every part.
+    Along with a removed annotation goes its ``/Popup`` annotation, and a
+    ``/Popup`` entry that refers to a removed annotation is deleted. The
+    remaining annotations are given the Print flag if they lack it, leaving
+    their other flags alone. Only annotations listed in a page's ``/Annots``
+    are considered. The repair is idempotent.
 
-    Logs one debug message if any annotation was removed.
+    :func:`pikepdf.pdfa.prepare` calls this function, but it may also be used
+    on its own, for example to preserve hyperlinks before handing a file to
+    another PDF/A converter: Ghostscript's PDF/A mode silently deletes any
+    annotation without the Print flag, which includes a ``/Link`` annotation
+    written with no ``/F`` entry. It needs nothing beyond importing
+    :mod:`pikepdf.pdfa`, and it neither validates the document nor changes
+    anything other than page annotations.
+
+    Logs up to two debug messages to a ``pikepdf.pdfa`` logger: one if any
+    annotation was removed, and one if any annotation was given the Print
+    flag.
 
     Args:
-        pdf: An open pikepdf.Pdf object
+        pdf: An open pikepdf.Pdf object, modified in place.
 
     Returns:
         What was changed.

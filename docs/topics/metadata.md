@@ -172,6 +172,38 @@ import conformance claims and identifiers that are not true of the merged or
 rebuilt document.
 :::
 
+Assigning values read from another document, as above, keeps only what
+pikepdf's reading of them returns: the `x-default` value of a language
+alternative, and a `set` for an unordered array. To copy properties with their
+whole value, including every language, array order, structures and
+qualifiers, use {meth}`~pikepdf.models.PdfMetadata.copy_properties`. It reads
+every `rdf:Description` of the source, whatever its `rdf:about`, and copies a
+property whose namespace pikepdf has not registered along with its namespace
+declaration. By default it copies only properties the target lacks; pass
+`overwrite=True` to replace them.
+
+This is useful when another tool has rewritten a document and dropped some of
+its metadata, as some PDF/A converters do. The source then describes the same
+document, so you might copy back everything except the properties that the
+conversion changed:
+
+```python
+regenerated = {'pdf:Producer', 'xmp:MetadataDate', 'xmpMM:DocumentID',
+               'xmpMM:InstanceID', 'pdfaid:part', 'pdfaid:conformance'}
+with (
+    original.open_metadata(set_pikepdf_as_editor=False) as src,
+    converted.open_metadata() as meta,
+):
+    meta.copy_properties(src, list(src), exclude=regenerated)
+```
+
+Where pikepdf knows the type the XMP specification gives a property, the
+structure of the copied value is checked against it, as for assigned values:
+a mismatch issues a {class}`pikepdf.XmpTypeWarning`, or raises
+{class}`TypeError` if the metadata was opened with `strict=True`, in which case
+nothing is copied. {func}`pikepdf.pdfa.prepare` later removes properties that
+the PDF/A part does not permit.
+
 To copy the older Document Info dictionary into XMP instead, see
 {meth}`~pikepdf.models.PdfMetadata.load_from_docinfo`.
 

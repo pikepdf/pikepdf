@@ -76,31 +76,34 @@ def describe_pins(flavour: Flavour | str) -> dict[str, str]:
     return {k: reason for k, (_v, reason) in _pins(Flavour(flavour)).items()}
 
 
-def _parse_version(key: str, value: object) -> tuple[int, int] | None:
-    """Return ``(major, minor)`` for a version argument, or None if empty."""
+def _parse_version(key: str, value: object) -> tuple[int, int, int] | None:
+    """Return ``(major, minor, extension level)`` for a version argument.
+
+    Returns None if the version is empty.
+    """
+    level = 0
     if isinstance(value, tuple):
         if (
             len(value) != 2
             or not isinstance(value[0], str)
             or not isinstance(value[1], int)
+            or isinstance(value[1], bool)
+            or value[1] < 0
         ):
             raise ValueError(f"{key}={value!r} is not a valid PDF version")
-        if value[1] != 0:
-            raise ValueError(
-                f"{key}={value!r}: extension levels are not supported, because "
-                "they add /Extensions, which the PDF/A validator does not cover"
-            )
-        text = value[0]
+        text, level = value
     elif isinstance(value, str):
         text = value
     else:
         raise ValueError(f"{key}={value!r} is not a valid PDF version")
     if text == '':
+        if level != 0:
+            raise ValueError(f"{key}={value!r}: an extension level needs a version")
         return None
     parts = text.split('.')
     if len(parts) != 2 or not all(p.isdigit() for p in parts):
         raise ValueError(f"{key}={value!r} is not a valid PDF version")
-    return int(parts[0]), int(parts[1])
+    return int(parts[0]), int(parts[1]), level
 
 
 def _is_pinned_value(key: str, pinned: object, value: object) -> bool:
@@ -152,10 +155,20 @@ def resolve_save_kwargs(flavour: Flavour | str, **user: Any) -> dict[str, Any]:
     for key in ('min_version', 'force_version'):
         if key in user and key not in pins:
             parsed = _parse_version(key, user[key])
-            if parsed is not None and parsed > limit:
+            if parsed is None:
+                continue
+            if parsed[:2] > limit:
                 raise ValueError(
                     f"{key}={user[key]!r} is not allowed for PDF/A-{flavour}: "
                     f"the version must not exceed {limit[0]}.{limit[1]}"
+                )
+            if parsed[2] != 0 and flavour.part == 1:
+                # qpdf records an extension level as an Adobe developer
+                # extensions dictionary, which PDF 1.4 does not define; the
+                # pinned force_version would discard it anyway.
+                raise ValueError(
+                    f"{key}={user[key]!r} is not allowed for PDF/A-{flavour}: "
+                    "PDF/A-1 is based on PDF 1.4, which has no extension levels"
                 )
 
     result: dict[str, Any] = dict(_USER_DEFAULTS)

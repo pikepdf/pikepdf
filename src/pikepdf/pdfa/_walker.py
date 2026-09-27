@@ -158,6 +158,8 @@ class DocumentWalker:
         shallow: Any
         if role == 'Trailer' and depth == 0 and isinstance(obj, pikepdf.Dictionary):
             shallow = ctx.model.trailer_json(obj)
+        elif role == 'Catalog' and self._is_root(obj):
+            shallow = ctx.model.catalog_json(ctx.pdf)
         else:
             shallow = shallow_json_of(obj, ctx.model)
         while (dispatch := self.schemas.dispatch(role)) is not None:
@@ -249,7 +251,23 @@ class DocumentWalker:
 
     # --- hooks -------------------------------------------------------------
 
+    def _is_root(self, obj: object) -> bool:
+        root = self.ctx.pdf.Root
+        return (
+            isinstance(obj, pikepdf.Dictionary)
+            and obj.is_indirect
+            and obj.objgen == root.objgen
+        )
+
     def _on_catalog(self, obj: pikepdf.Dictionary, where: str, depth: int) -> None:
+        if self._is_root(obj):
+            # qpdf rewrites /Extensions when it writes the catalog, so check
+            # the form the model predicts rather than the one in memory.
+            extensions = pikepdf.unbox(self.ctx.model.extensions(self.ctx.pdf))
+            if extensions is not None:
+                self._stack.append(
+                    _Item(extensions, 'Extensions', depth + 1, f'{where} /Extensions')
+                )
         if '/OutputIntents' not in obj and 'OutputIntents' not in self.skip_roles:
             self.ctx.deny(
                 'pikepdf:output-intent',

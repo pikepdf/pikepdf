@@ -553,3 +553,70 @@ def test_conflicting_about_dropped_by_prepare():
         }
         reading = read_packet(pdf.Root.Metadata.read_bytes(), '2b')
         assert f'{{{DC_NS}}}title' not in reading.properties
+
+
+PHOTOSHOP_NS = 'http://ns.adobe.com/photoshop/1.0/'
+# lxml invents the ns0 prefix when a property of an undeclared namespace is
+# added by its qualified name, as a raw copy between packets can do
+CREDIT_NS0 = f'<ns0:Credit xmlns:ns0="{PHOTOSHOP_NS}">Agency</ns0:Credit>'
+
+
+@pytest.mark.parametrize('part', ['1', '2'])
+def test_raw_copied_properties_normalized_by_prepare(part):
+    body = U.format(KEPT_PROPERTIES) + U.format(
+        CREDIT_NS0
+        + '<dc:contributor><rdf:Bag><rdf:li>C</rdf:li></rdf:Bag></dc:contributor>'
+    )
+    with make_input(body, None, part) as pdf:
+        result = prepare(pdf, f'{part}b')
+        raw = pdf.Root.Metadata.read_bytes()
+        assert b'ns0:' not in raw
+        assert raw.count(b'<rdf:Description') == 1
+        _assert_kept(pdf, f'{part}b')
+        reading = read_packet(raw, f'{part}b')
+        assert f'{{{DC_NS}}}contributor' in reading.properties
+        if part == '1':
+            # photoshop is not a predefined schema of PDF/A-1
+            assert 'photoshop:Credit' in result.xmp_dropped
+            assert f'{{{PHOTOSHOP_NS}}}Credit' not in reading.properties
+            assert b'Credit' not in raw
+        else:
+            assert result.xmp_dropped == ()
+            assert reading.properties[f'{{{PHOTOSHOP_NS}}}Credit'].text == 'Agency'
+            assert b'<photoshop:Credit>Agency</photoshop:Credit>' in raw
+
+
+@pytest.mark.parametrize('part', ['1', '2'])
+def test_copy_properties_then_prepare(part, tmp_path):
+    """Properties another converter dropped are copied back, then declared."""
+    original = make_input(
+        U.format(KEPT_PROPERTIES)
+        + U.format(
+            f'<photoshop:Credit xmlns:photoshop="{PHOTOSHOP_NS}">Agency'
+            '</photoshop:Credit>'
+            '<dc:contributor><rdf:Bag><rdf:li>C</rdf:li></rdf:Bag></dc:contributor>'
+        ),
+        None,
+        part,
+    )
+    converted = make_input(
+        U2.format(f'<dc:title>{ALT.format("Kept title")}</dc:title>'), None, part
+    )
+    with original, converted:
+        with (
+            original.open_metadata(
+                set_pikepdf_as_editor=False, update_docinfo=False
+            ) as meta_original,
+            converted.open_metadata(set_pikepdf_as_editor=False) as meta,
+        ):
+            copied = meta.copy_properties(meta_original, list(meta_original))
+        assert f'{{{DC_NS}}}title' not in copied
+        result = prepare(converted, f'{part}b')
+        assert set(result.xmp_dropped) == (
+            {'photoshop:Credit'} if part == '1' else set()
+        )
+        _assert_kept(converted, f'{part}b')
+        converted.save(tmp_path / 'out.pdf', **resolve_save_kwargs(f'{part}b'))
+    report = validate_written(tmp_path / 'out.pdf', f'{part}b')
+    assert report.passed, report.summary()
+    assert_verapdf_agrees(tmp_path / 'out.pdf', f'{part}b')

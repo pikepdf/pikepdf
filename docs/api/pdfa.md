@@ -24,6 +24,10 @@ how to use it and what it does not cover.
 ```
 
 ```{eval-rst}
+.. autoapifunction:: pikepdf.pdfa.repair_annotation_flags
+```
+
+```{eval-rst}
 .. autoapifunction:: pikepdf.pdfa.resolve_save_kwargs
 ```
 
@@ -45,6 +49,11 @@ how to use it and what it does not cover.
 ```{eval-rst}
 .. autoapiclass:: pikepdf.pdfa.PrepareResult
     :members: changed, messages, describe
+```
+
+```{eval-rst}
+.. autoapiclass:: pikepdf.pdfa.AnnotationRepairResult
+    :members: removed, removed_pages, print_flags_set
 ```
 
 ```{eval-rst}

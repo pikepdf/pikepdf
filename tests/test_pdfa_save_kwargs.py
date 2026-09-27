@@ -149,10 +149,27 @@ def test_versions_1b():
         resolve_save_kwargs('1b', min_version='1.5')
 
 
+@pytest.mark.parametrize('flavour', ['2b', '3b'])
 @pytest.mark.parametrize('key', ['min_version', 'force_version'])
-def test_extension_level_rejected(key):
-    with pytest.raises(ValueError, match='extension'):
-        resolve_save_kwargs('2b', **{key: ('1.7', 8)})
+def test_extension_level_accepted_part23(flavour, key):
+    assert resolve_save_kwargs(flavour, **{key: ('1.7', 8)})[key] == ('1.7', 8)
+
+
+def test_extension_level_rejected_1b():
+    with pytest.raises(ValueError, match='PDF/A-1.*extension'):
+        resolve_save_kwargs('1b', min_version=('1.4', 1))
+    with pytest.raises(ValueError, match='force_version'):
+        resolve_save_kwargs('1b', force_version=('1.4', 1))
+    assert resolve_save_kwargs('1b', min_version=('1.4', 0))['min_version'] == (
+        '1.4',
+        0,
+    )
+
+
+@pytest.mark.parametrize('bad', [('1.7', -1), ('', 3), ('2.0', 1)])
+def test_bad_extension_level_rejected(bad):
+    with pytest.raises(ValueError, match='min_version'):
+        resolve_save_kwargs('2b', min_version=bad)
 
 
 @pytest.mark.parametrize('bad', ['x.y', '1', '1.7.2', ('x', 0), 17])
