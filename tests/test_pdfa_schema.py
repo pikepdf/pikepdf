@@ -132,8 +132,7 @@ def test_image_only_pdf_rejects_javascript_names(tmp_path):
     report = validate_written(
         save_image_only_pdf(tmp_path / 'js.pdf', '2', add_js), '2b'
     )
-    assert not report.passed
-    assert any('/Names' in f.where or '/Names' in f.message for f in report.findings)
+    assert 'ISO_19005_2:6.5.1-1' in rule_ids(report), report.summary()
 
 
 def test_image_only_pdf_rejects_ocproperties(tmp_path):

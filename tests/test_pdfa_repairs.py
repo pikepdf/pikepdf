@@ -15,8 +15,16 @@ from decimal import Decimal
 from io import BytesIO
 from pathlib import Path
 
+from conftest import verapdf_failed_rules
 from fontTools.ttLib import TTFont
-from pdfa_samples import NOTO_SANS, RESOURCES, assert_verapdf_agrees, replace_xmp
+from pdfa_samples import (
+    NOTO_SANS,
+    RESOURCES,
+    assert_verapdf_agrees,
+    make_simple_truetype_pdf,
+    replace_xmp,
+    save_candidate,
+)
 
 import pikepdf
 from pikepdf import Name
@@ -35,6 +43,7 @@ from pikepdf.pdfa._output_intent import (
 )
 from pikepdf.pdfa._repair import (
     add_cidsets_for_subset_cidfonts,
+    add_truetype_base_encodings,
     repair_annotation_flags,
     strip_image_interpolation,
 )
@@ -493,3 +502,205 @@ def test_prepare_keeps_partial_docinfo_dates(los_angeles_tz, docinfo_date, expec
         info, xmp = _dates(pdf)
     assert info['/CreationDate'] == expected
     assert decode_pdf_date(expected) == dt.datetime.fromisoformat(xmp['xmp:CreateDate'])
+
+
+# --- /BaseEncoding of non-symbolic TrueType fonts ----------------------------------
+
+HELLO_DIFFERENCES = [72, Name.H, 101, Name.e, 108, Name.l, 111, Name.o]
+
+
+def _without_base_encoding(
+    differences: list, text: bytes = b'Hello', part: str = '2'
+) -> pikepdf.Pdf:
+    pdf = make_simple_truetype_pdf(part, text, subset_text="Helo'")
+    pdf.pages[0].Resources.Font.F1.Encoding = pikepdf.Dictionary(
+        Type=Name.Encoding, Differences=differences
+    )
+    return pdf
+
+
+def _validate(pdf: pikepdf.Pdf, path: Path, part: str = '2'):
+    save_candidate(pdf, path, part)
+    return validate_written(path, f'{part}b')
+
+
+def _font_form(pdf: pikepdf.Pdf, content: bytes) -> pikepdf.Stream:
+    font = pdf.pages[0].Resources.Font.F1
+    return pdf.make_stream(
+        content,
+        Type=Name.XObject,
+        Subtype=Name.Form,
+        BBox=[0, 0, 100, 100],
+        Resources=pikepdf.Dictionary(Font=pikepdf.Dictionary(F1=font)),
+    )
+
+
+@pytest.mark.parametrize(
+    'differences',
+    [HELLO_DIFFERENCES, [72, Name.H]],
+    ids=['every-code-in-differences', 'other-codes-same-in-both'],
+)
+def test_base_encoding_added(tmp_path, differences):
+    pdf = _without_base_encoding(differences)
+    before = _validate(pdf, tmp_path / 'before.pdf')
+    assert 'ISO_19005_2:6.2.11.6-2' in {f.rule for f in before.findings}
+    failed = verapdf_failed_rules(tmp_path / 'before.pdf', '2b')
+    assert failed is None or 'ISO_19005_2:6.2.11.6-2' in failed
+
+    result = prepare(pdf, '2b')
+    assert result.base_encodings_added == 1
+    assert (
+        'debug',
+        'Based the encoding of 1 TrueType font on WinAnsiEncoding, as PDF/A requires',
+    ) in result.messages()
+    encoding = pdf.pages[0].Resources.Font.F1.Encoding
+    assert encoding.BaseEncoding == Name.WinAnsiEncoding
+    assert list(encoding.Differences) == differences
+    after = _validate(pdf, tmp_path / 'after.pdf')
+    assert after.passed, after.summary()
+    assert_verapdf_agrees(tmp_path / 'after.pdf', '2b')
+    assert prepare(pdf, '2b').base_encodings_added == 0
+
+
+def test_base_encoding_declined_for_changed_glyph():
+    # 0x27 is quoteright in StandardEncoding but quotesingle in WinAnsiEncoding
+    pdf = _without_base_encoding([72, Name.H], text=b"Hel'lo")
+    assert add_truetype_base_encodings(pdf) == 0
+    assert '/BaseEncoding' not in pdf.pages[0].Resources.Font.F1.Encoding
+
+
+def test_base_encoding_quote_in_differences():
+    pdf = _without_base_encoding([39, Name.quoteright], text=b"Hel'lo")
+    assert add_truetype_base_encodings(pdf) == 1
+
+
+@pytest.mark.parametrize(
+    'where', ['form', 'annotation', 'nested-form', 'pattern', 'type3']
+)
+def test_base_encoding_counts_codes_outside_page_content(where):
+    pdf = _without_base_encoding([72, Name.H])
+    page = pdf.pages[0]
+    form = _font_form(pdf, b"BT /F1 12 Tf (') Tj ET")
+    if where == 'form':
+        # Scanned although the page does not draw it
+        page.Resources.XObject = pikepdf.Dictionary(Fm0=form)
+    elif where == 'nested-form':
+        outer = pdf.make_stream(
+            b'/Fm1 Do',
+            Type=Name.XObject,
+            Subtype=Name.Form,
+            BBox=[0, 0, 100, 100],
+            Resources=pikepdf.Dictionary(XObject=pikepdf.Dictionary(Fm1=form)),
+        )
+        page.Resources.XObject = pikepdf.Dictionary(Fm0=outer)
+    elif where == 'pattern':
+        form.PatternType = 1
+        form.PaintType = 1
+        form.TilingType = 1
+        form.XStep = form.YStep = 100
+        page.Resources.Pattern = pikepdf.Dictionary(P0=form)
+    elif where == 'type3':
+        page.Resources.Font.T3 = pdf.make_indirect(
+            pikepdf.Dictionary(
+                Type=Name.Font,
+                Subtype=Name.Type3,
+                FontBBox=[0, 0, 100, 100],
+                FontMatrix=[0.001, 0, 0, 0.001, 0, 0],
+                CharProcs=pikepdf.Dictionary(a=form),
+                Encoding=pikepdf.Dictionary(Differences=[97, Name.a]),
+                FirstChar=97,
+                LastChar=97,
+                Widths=[100],
+                Resources=form.Resources,
+            )
+        )
+    else:
+        page.Annots = pdf.make_indirect(
+            [
+                pikepdf.Dictionary(
+                    Type=Name.Annot,
+                    Subtype=Name.Square,
+                    Rect=[0, 0, 100, 100],
+                    F=4,
+                    AP=pikepdf.Dictionary(N=form),
+                )
+            ]
+        )
+    assert add_truetype_base_encodings(pdf) == 0
+
+
+@pytest.mark.parametrize(
+    'content',
+    [
+        pytest.param(b'BT /F9 12 Tf (H) Tj ET ', id='unknown-font'),
+        pytest.param(b'BT (H) Tj ET ', id='no-font'),
+        pytest.param(b'/GS9 gs ', id='unknown-extgstate'),
+    ],
+)
+def test_base_encoding_declined_for_incomplete_scan(content):
+    pdf = _without_base_encoding(HELLO_DIFFERENCES)
+    contents = pdf.pages[0].Contents
+    contents.write(content + contents.read_bytes())
+    assert add_truetype_base_encodings(pdf) == 0
+
+
+def test_base_encoding_font_set_by_extgstate():
+    pdf = _without_base_encoding([72, Name.H])
+    page = pdf.pages[0]
+    page.Resources.ExtGState = pikepdf.Dictionary(
+        GS0=pikepdf.Dictionary(Font=[page.Resources.Font.F1, 12])
+    )
+    contents = page.Contents
+    contents.write(contents.read_bytes() + b" BT /GS0 gs (') Tj ET")
+    assert add_truetype_base_encodings(pdf) == 0
+
+
+def test_base_encoding_follows_q_and_Q():
+    pdf = _without_base_encoding([72, Name.H])
+    page = pdf.pages[0]
+    other = pdf.make_indirect(pikepdf.Dictionary(dict(page.Resources.Font.F1.items())))
+    other.Encoding = pikepdf.Dictionary(BaseEncoding=Name.WinAnsiEncoding)
+    page.Resources.Font.F2 = other
+    contents = page.Contents
+    # After Q the font is F1 again, so the quote is shown in F1
+    contents.write(
+        contents.read_bytes() + b" BT /F1 12 Tf q /F2 12 Tf (x) Tj Q (') Tj ET"
+    )
+    assert add_truetype_base_encodings(pdf) == 0
+
+
+def test_base_encoding_shared_encoding_dictionary():
+    pdf = _without_base_encoding([72, Name.H])
+    page = pdf.pages[0]
+    f1 = page.Resources.Font.F1
+    shared = pdf.make_indirect(f1.Encoding)
+    f1.Encoding = shared
+    f2 = pdf.make_indirect(pikepdf.Dictionary(dict(f1.items())))
+    page.Resources.Font.F2 = f2
+    contents = page.Contents
+    contents.write(contents.read_bytes() + b" BT /F2 12 Tf (') Tj ET")
+    assert add_truetype_base_encodings(pdf) == 1
+    assert f1.Encoding.BaseEncoding == Name.WinAnsiEncoding
+    assert f2.Encoding.objgen == shared.objgen
+    assert '/BaseEncoding' not in shared
+
+
+def test_base_encoding_not_added_for_pdfa1():
+    pdf = _without_base_encoding(HELLO_DIFFERENCES, part='1')
+    assert prepare(pdf, '1b').base_encodings_added == 0
+    assert '/BaseEncoding' not in pdf.pages[0].Resources.Font.F1.Encoding
+
+
+@pytest.mark.parametrize('own_resources', [False, True])
+def test_base_encoding_scan_terminates_on_form_cycles(own_resources):
+    pdf = _without_base_encoding(HELLO_DIFFERENCES)
+    page = pdf.pages[0]
+    form = pdf.make_stream(
+        b'/Fm0 Do', Type=Name.XObject, Subtype=Name.Form, BBox=[0, 0, 1, 1]
+    )
+    if own_resources:
+        form.Resources = pikepdf.Dictionary(
+            XObject=pikepdf.Dictionary(Fm0=form), Font=page.Resources.Font
+        )
+    page.Resources.XObject = pikepdf.Dictionary(Fm0=form)
+    assert add_truetype_base_encodings(pdf) == 1

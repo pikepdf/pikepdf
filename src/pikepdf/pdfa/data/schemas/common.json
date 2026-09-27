@@ -20,6 +20,26 @@
       "$comment": "Explicit destination array, or a named destination",
       "anyOf": [{"type": "array"}, {"$ref": "#/$defs/name"}, {"$ref": "#/$defs/text"}]
     },
+    "explicitDestination": {
+      "$comment": "ISO 32000-1 Table 151: a page (reference, or page number for remote destinations; null is accepted, as veraPDF does), a fit type and its coordinates",
+      "type": "array",
+      "minItems": 2,
+      "prefixItems": [
+        {"anyOf": [{"$ref": "#/$defs/ref"}, {"$ref": "#/$defs/integer"}, {"type": "null"}]},
+        {"enum": ["/XYZ", "/Fit", "/FitH", "/FitV", "/FitR", "/FitB", "/FitBH", "/FitBV"]}
+      ],
+      "items": {"anyOf": [{"$ref": "#/$defs/number"}, {"type": "null"}]}
+    },
+    "nameTreeNode": {
+      "$comment": "A name tree node (ISO 32000-1 7.9.6). /Names alternates keys and values, so _walker.DocumentWalker._name_tree_values checks the pairs and gives each value its role",
+      "type": "object",
+      "properties": {
+        "/Names": {"anyOf": [{"$ref": "#/$defs/ref"}, {"type": "array"}]},
+        "/Kids": {"$ref": "#/$defs/refArray"},
+        "/Limits": {"type": "array", "items": {"$ref": "#/$defs/text"}, "minItems": 2, "maxItems": 2}
+      },
+      "additionalProperties": false
+    },
     "forbidden": {"not": {}},
     "colourSpace": {
       "$comment": "A colour space family name or array; _colour.resolve_colourspace checks it",
@@ -162,7 +182,7 @@
         },
         "/AcroForm": {"$ref": "#/$defs/unsupported", "x-message": "interactive forms (/AcroForm) are not supported"},
         "/Names": {"$ref": "#/$defs/dictOrRef"},
-        "/Dests": {"$ref": "#/$defs/unsupported", "x-message": "named destinations (/Dests) are not supported"},
+        "/Dests": {"$ref": "#/$defs/dictOrRef"},
         "/Perms": {"$ref": "#/$defs/unsupported", "x-message": "permissions (/Perms) are not supported"},
         "/Collection": {"$ref": "#/$defs/unsupported", "x-message": "portable collections are not supported"},
         "/OpenAction": {"$ref": "#/$defs/unsupported", "x-message": "/OpenAction is not supported"},
@@ -172,6 +192,7 @@
       "additionalProperties": false,
       "x-children": {
         "/Names": "NameDictionary",
+        "/Dests": "CatalogDests",
         "/AF": "AssociatedFiles",
         "/OutputIntents": "OutputIntents",
         "/Metadata": "MetadataStream",
@@ -188,19 +209,67 @@
       "$comment": "ISO 32000-1 Table 31",
       "type": "object",
       "properties": {
-        "/Dests": {"$ref": "#/$defs/unsupported", "x-message": "named destinations are not supported"},
-        "/AP": {"$ref": "#/$defs/unsupported", "x-message": "named appearance streams are not supported"},
-        "/JavaScript": {"$ref": "#/$defs/unsupported", "x-message": "document-level JavaScript is not supported"},
+        "/Dests": {"$ref": "#/$defs/dictOrRef"},
+        "/AP": {"$ref": "#/$defs/dictOrRef"},
+        "/JavaScript": {"$ref": "#/$defs/dictOrRef"},
         "/Pages": {"$ref": "#/$defs/unsupported", "x-message": "named pages are not supported"},
         "/Templates": {"$ref": "#/$defs/unsupported", "x-message": "named templates are not supported"},
         "/IDS": {"$ref": "#/$defs/unsupported", "x-message": "Web Capture content identifiers are not supported"},
         "/URLS": {"$ref": "#/$defs/unsupported", "x-message": "Web Capture URLs are not supported"},
         "/EmbeddedFiles": {"$ref": "#/$defs/dictOrRef"},
-        "/AlternatePresentations": {"$ref": "#/$defs/unsupported", "x-message": "alternate presentations are not supported"},
+        "/AlternatePresentations": {
+          "$ref": "#/$defs/forbidden",
+          "x-verapdf": ["ISO_19005_2:6.10-1", "ISO_19005_3:6.10-1"],
+          "x-message": "alternate presentations (/AlternatePresentations) are not permitted"
+        },
         "/Renditions": {"$ref": "#/$defs/unsupported", "x-message": "named renditions are not supported"}
       },
       "additionalProperties": false,
-      "x-children": {"/EmbeddedFiles": "EmbeddedFiles"}
+      "x-children": {
+        "/Dests": "DestsNameTree",
+        "/AP": "AppearanceNameTree",
+        "/JavaScript": "JavaScriptNameTree",
+        "/EmbeddedFiles": "EmbeddedFiles"
+      }
+    },
+
+    "DestsNameTree": {
+      "$comment": "Named destinations (ISO 32000-1 12.3.2.3); each value is a Destination or DestinationDict",
+      "$ref": "#/$defs/nameTreeNode",
+      "x-children": {"/Kids": {"role": "DestsNameTree", "each": true}}
+    },
+
+    "AppearanceNameTree": {
+      "$comment": "Named appearance streams; each value is a FormXObject",
+      "$ref": "#/$defs/nameTreeNode",
+      "x-children": {"/Kids": {"role": "AppearanceNameTree", "each": true}}
+    },
+
+    "JavaScriptNameTree": {
+      "$comment": "Document-level JavaScript; each value is an Action, and the Action role forbids JavaScript actions",
+      "$ref": "#/$defs/nameTreeNode",
+      "x-children": {"/Kids": {"role": "JavaScriptNameTree", "each": true}}
+    },
+
+    "CatalogDests": {
+      "$comment": "The PDF 1.1 catalog /Dests dictionary (ISO 32000-1 12.3.2.3), mapping names to destinations; _walker.DocumentWalker._on_catalog_dests gives each value its role",
+      "type": "object",
+      "additionalProperties": {"anyOf": [{"$ref": "#/$defs/ref"}, {"type": "array"}, {"type": "object"}]}
+    },
+
+    "DestinationDict": {
+      "$comment": "A named destination given as a dictionary whose /D is the destination (ISO 32000-1 12.3.2.3)",
+      "type": "object",
+      "required": ["/D"],
+      "properties": {"/D": {"$ref": "#/$defs/arrayOrRef"}},
+      "additionalProperties": false,
+      "x-children": {"/D": "Destination"}
+    },
+
+    "Destination": {
+      "$comment": "An explicit destination: the value of a named destination, or the /D of a DestinationDict",
+      "x-kind": "array",
+      "$ref": "#/$defs/explicitDestination"
     },
 
     "EmbeddedFiles": {
