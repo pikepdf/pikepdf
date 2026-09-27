@@ -21,7 +21,9 @@ from pikepdf.pdfa._output_intent import (
 from pikepdf.pdfa._repair import (
     EmbeddedFileRepairResult,
     add_cidsets_for_subset_cidfonts,
+    add_truetype_base_encodings,
     describe_removed_annotations,
+    remove_name_tree,
     repair_annotation_flags,
     repair_embedded_files,
     strip_image_interpolation,
@@ -55,6 +57,14 @@ class PrepareResult:
         print_flags_set: The number of annotations given the Print flag.
         cidsets_added: The number of /CIDSet streams added to subset
             CIDFonts (PDF/A-1 only).
+        base_encodings_added: The number of non-symbolic TrueType fonts
+            whose encoding, with /Differences but no /BaseEncoding, was
+            given ``/BaseEncoding /WinAnsiEncoding`` (PDF/A-2 and PDF/A-3
+            only).
+        alternate_presentations_removed: True if the name dictionary's
+            /AlternatePresentations (slideshows) was removed.
+        document_javascript_removed: True if the name dictionary's
+            /JavaScript (document-level JavaScript) was removed.
         embedded_file_subtypes_set: The number of embedded file streams
             without a MIME type given ``/application/octet-stream``
             (PDF/A-3 only).
@@ -81,6 +91,9 @@ class PrepareResult:
     annotations_removed_pages: frozenset[int] = frozenset()
     print_flags_set: int = 0
     cidsets_added: int = 0
+    base_encodings_added: int = 0
+    alternate_presentations_removed: bool = False
+    document_javascript_removed: bool = False
     embedded_file_subtypes_set: int = 0
     af_relationships_set: int = 0
     associated_files_added: int = 0
@@ -103,6 +116,9 @@ class PrepareResult:
             or self.annotations_removed
             or self.print_flags_set
             or self.cidsets_added
+            or self.base_encodings_added
+            or self.alternate_presentations_removed
+            or self.document_javascript_removed
             or self.embedded_file_subtypes_set
             or self.af_relationships_set
             or self.associated_files_added
@@ -117,7 +133,8 @@ class PrepareResult:
 
         The level suggests how prominently to report the change:
         ``'warning'`` for annotations removed, which discards content;
-        ``'info'`` for Print flags set, XMP properties removed and an
+        ``'info'`` for Print flags set, alternate presentations and
+        document-level JavaScript removed, XMP properties removed and an
         unreadable XMP packet replaced; ``'debug'`` for the rest. It is
         one of the lowercase names of the `logging` levels, so
         ``logging.getLevelName(level.upper())`` gives the level number.
@@ -165,6 +182,30 @@ class PrepareResult:
                     "Added a /CIDSet to "
                     f"{_plural(self.cidsets_added, 'subset CIDFont')}, "
                     "as PDF/A-1 requires",
+                )
+            )
+        if self.base_encodings_added:
+            messages.append(
+                (
+                    'debug',
+                    "Based the encoding of "
+                    f"{_plural(self.base_encodings_added, 'TrueType font')} "
+                    "on WinAnsiEncoding, as PDF/A requires",
+                )
+            )
+        if self.alternate_presentations_removed:
+            messages.append(
+                (
+                    'info',
+                    "Removed alternate presentations (slideshows), which PDF/A "
+                    "does not permit",
+                )
+            )
+        if self.document_javascript_removed:
+            messages.append(
+                (
+                    'info',
+                    "Removed document-level JavaScript, which PDF/A does not permit",
                 )
             )
         if self.embedded_file_subtypes_set:
@@ -240,8 +281,11 @@ def prepare(
     The repairs change structure and metadata, never page content: the
     output intents are replaced with a single PDF/A output intent, image
     interpolation is removed, hidden or non-viewable annotations are removed
-    and the Print flag is set on the others, PDF/A-1 subset CIDFonts are
-    given a /CIDSet, PDF/A-3 embedded files are given the MIME type,
+    and the Print flag is set on the others, alternate presentations and
+    document-level JavaScript are removed, PDF/A-1 subset CIDFonts are
+    given a /CIDSet, PDF/A-2 and PDF/A-3 non-symbolic TrueType fonts are
+    given the /BaseEncoding their encoding lacks where that changes no glyph
+    drawn, PDF/A-3 embedded files are given the MIME type,
     /AFRelationship and /AF entry they lack, and the XMP metadata is
     rewritten with only what the flavour permits and a declaration of PDF/A
     conformance (level B), with the DocInfo entries set to agree with it.
@@ -282,9 +326,16 @@ def prepare(
         replaced = True
     interpolation_removed = strip_image_interpolation(pdf)
     annotations = repair_annotation_flags(pdf)
+    alternate_presentations_removed = remove_name_tree(
+        pdf, pikepdf.Name.AlternatePresentations
+    )
+    document_javascript_removed = remove_name_tree(pdf, pikepdf.Name.JavaScript)
     cidsets_added = 0
+    base_encodings_added = 0
     if pdfa_flavour.part == 1:
         cidsets_added = add_cidsets_for_subset_cidfonts(pdf)
+    else:
+        base_encodings_added = add_truetype_base_encodings(pdf)
     embedded = EmbeddedFileRepairResult()
     if pdfa_flavour.part == 3:
         embedded = repair_embedded_files(pdf)
@@ -297,6 +348,9 @@ def prepare(
         annotations_removed_pages=frozenset(annotations.removed_pages),
         print_flags_set=annotations.print_flags_set,
         cidsets_added=cidsets_added,
+        base_encodings_added=base_encodings_added,
+        alternate_presentations_removed=alternate_presentations_removed,
+        document_javascript_removed=document_javascript_removed,
         embedded_file_subtypes_set=embedded.subtypes_set,
         af_relationships_set=embedded.relationships_set,
         associated_files_added=embedded.associated_added,

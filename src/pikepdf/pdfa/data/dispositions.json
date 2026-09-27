@@ -366,7 +366,7 @@
  "ISO_19005_1:6.6.1-1": {
   "status": "implemented",
   "by": "role:Action",
-  "note": "Actions of outline items and Link annotations"
+  "note": "Actions of outline items and Link annotations, and document-level JavaScript (the /JavaScript name tree), which veraPDF does not check; prepare removes the latter"
  },
  "ISO_19005_1:6.6.1-2": {
   "status": "implemented",
@@ -1036,7 +1036,7 @@
  "ISO_19005_2:6.5.1-1": {
   "status": "implemented",
   "by": "role:Action",
-  "note": "Actions of outline items and Link annotations"
+  "note": "Actions of outline items and Link annotations, and document-level JavaScript (the /JavaScript name tree), which veraPDF does not check; prepare removes the latter"
  },
  "ISO_19005_2:6.5.1-2": {
   "status": "implemented",
@@ -1234,9 +1234,9 @@
   "note": "/OCProperties is unsupported"
  },
  "ISO_19005_2:6.10-1": {
-  "status": "denied_on_presence",
+  "status": "implemented",
   "by": "role:NameDictionary",
-  "note": "/AlternatePresentations is unsupported"
+  "note": "prepare removes /AlternatePresentations"
  },
  "ISO_19005_2:6.10-2": {
   "status": "implemented",
@@ -1700,7 +1700,7 @@
  "ISO_19005_3:6.5.1-1": {
   "status": "implemented",
   "by": "role:Action",
-  "note": "Actions of outline items and Link annotations"
+  "note": "Actions of outline items and Link annotations, and document-level JavaScript (the /JavaScript name tree), which veraPDF does not check; prepare removes the latter"
  },
  "ISO_19005_3:6.5.1-2": {
   "status": "implemented",
@@ -1908,9 +1908,9 @@
   "note": "/OCProperties is unsupported"
  },
  "ISO_19005_3:6.10-1": {
-  "status": "denied_on_presence",
+  "status": "implemented",
   "by": "role:NameDictionary",
-  "note": "/AlternatePresentations is unsupported"
+  "note": "prepare removes /AlternatePresentations"
  },
  "ISO_19005_3:6.10-2": {
   "status": "implemented",

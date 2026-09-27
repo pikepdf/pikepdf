@@ -38,6 +38,24 @@ the architecture notes on thread safety.
   {class}`pikepdf.pdfa.PrepareResult` fields count these repairs. See
   {ref}`pdfa-attachments`.
 
+### PDF/A named destinations
+
+- The PDF/A validator now checks named destinations, in the `/Dests` name tree
+  and in the catalog's `/Dests` dictionary, instead of reporting them as
+  unsupported. Named destinations are common: pdfTeX (hyperref), Acrobat
+  Distiller and JasperReports write them. It also checks named appearance
+  streams (`/Names /AP`) as Form XObjects.
+- `/AlternatePresentations` is now reported as a violation of PDF/A-2 and
+  PDF/A-3 (clause 6.10), and document-level JavaScript (`/Names /JavaScript`)
+  as a violation of the rule forbidding JavaScript actions; both were
+  reported as unsupported. {func}`pikepdf.pdfa.prepare` removes them.
+- {func}`pikepdf.pdfa.prepare` gives the encoding of a non-symbolic TrueType
+  font that has `/Differences` but no `/BaseEncoding` the base encoding
+  `/WinAnsiEncoding`, as PDF/A-2 and PDF/A-3 require, when no glyph the
+  document draws would change. Older producers such as OpenPDF write such
+  encodings. New {class}`pikepdf.pdfa.PrepareResult` fields report these
+  repairs.
+
 ### Fixes
 
 - The PDF/A validator accepted glyph names in a non-symbolic TrueType font's

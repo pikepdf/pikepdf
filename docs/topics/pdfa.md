@@ -355,7 +355,16 @@ attachment makes a PDF/A-2 document `'not_checked'`.
   Invisible and NoView flags, and ToggleNoView for PDF/A-2 and PDF/A-3), along
   with their popup annotations, and sets the Print flag on the annotations that
   remain;
+- removes `/AlternatePresentations` (slideshows) and `/JavaScript`
+  (document-level JavaScript) from the `/Names` dictionary;
 - adds a `/CIDSet` to subset CIDFonts (PDF/A-1 only);
+- gives the encoding of a non-symbolic TrueType font that has `/Differences`
+  but no `/BaseEncoding` the base encoding `/WinAnsiEncoding` (PDF/A-2 and
+  PDF/A-3 only). Without one, the encoding is based on StandardEncoding, which
+  PDF/A does not permit. The font is changed only if every character code shown
+  in it is either assigned by `/Differences` or has the same glyph name in
+  both encodings, so no glyph drawn changes; if the content streams cannot be
+  read completely, no font is changed;
 - for embedded files (PDF/A-3 only), gives an embedded file without a MIME type
   the MIME type `application/octet-stream`, gives a file specification without
   `/AFRelationship` the value `/Unspecified`, and lists an embedded file that no
@@ -435,8 +444,10 @@ in PDF/A under conditions the validator does not yet verify.
 
 - `/OpenAction` in the document catalog
 - interactive forms (`/AcroForm`) and widget annotations
-- the `/Names` dictionary, including named destinations, except for embedded
-  files in PDF/A-3 (see {ref}`pdfa-attachments`)
+- the `/Names` dictionary entries other than named destinations (`/Dests`),
+  named appearance streams (`/AP`), document-level JavaScript (`/JavaScript`,
+  a violation), `/AlternatePresentations` (a violation in PDF/A-2 and PDF/A-3),
+  and embedded files in PDF/A-3 (see {ref}`pdfa-attachments`)
 - Type 3 fonts
 - optional content (`/OCProperties`) and marked-content properties
 - patterns and shadings

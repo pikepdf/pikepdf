@@ -344,7 +344,7 @@ def test_unknown_ef_key_unsupported(tmp_path):
     assert report.verdict == 'not_checked', report.summary()
 
 
-@pytest.mark.parametrize('key', ['/Dests', '/JavaScript', '/AP', '/Foo'])
+@pytest.mark.parametrize('key', ['/Pages', '/Foo'])
 def test_other_name_dictionary_keys_unsupported(tmp_path, key):
     with make_image_only_pdf('3') as pdf:
         attach(pdf)

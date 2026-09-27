@@ -9,11 +9,21 @@ import logging
 from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass, field
+from functools import cache
 from typing import cast
 
 import pikepdf
 from pikepdf import Array, Dictionary, Name, Object, Pdf, Stream
 from pikepdf.pdfa._embedded import associated_file_objgens
+from pikepdf.pdfa._encodings import (
+    MAX_CODE,
+    STANDARD,
+    WIN_ANSI,
+    DifferencesError,
+    encoding_table,
+    parse_differences,
+)
+from pikepdf.pdfa._fontuse import font_codes
 
 log = logging.getLogger(__name__)
 
@@ -299,6 +309,107 @@ def add_cidsets_for_subset_cidfonts(pdf: Pdf) -> int:
         descriptor[Name.CIDSet] = pdf.make_stream(_cidset_bytes(cids))
         count += 1
     return count
+
+
+# Font descriptor flags (ISO 32000-1 Table 123)
+_FONT_SYMBOLIC = 4
+_FONT_NONSYMBOLIC = 32
+
+
+def _needs_base_encoding(obj: Object) -> bool:
+    """True for a non-symbolic TrueType font with /Differences but no base."""
+    if not isinstance(obj, Dictionary) or obj.get(Name.Subtype) != Name.TrueType:
+        return False
+    descriptor = obj.get(Name.FontDescriptor)
+    if not isinstance(descriptor, Dictionary):
+        return False
+    flags = descriptor.get_int(Name.Flags, 0)
+    if not flags & _FONT_NONSYMBOLIC or flags & _FONT_SYMBOLIC:
+        return False
+    encoding = obj.get(Name.Encoding)
+    return (
+        isinstance(encoding, Dictionary)
+        and not isinstance(encoding, Stream)
+        and Name.Differences in encoding
+        and Name.BaseEncoding not in encoding
+    )
+
+
+@cache
+def _standard_codes_kept_by_win_ansi() -> frozenset[int]:
+    """Codes with the same glyph name in StandardEncoding and WinAnsiEncoding.
+
+    Codes that neither encoding defines are included: they select .notdef
+    either way.
+    """
+    standard = encoding_table(STANDARD)
+    win_ansi = encoding_table(WIN_ANSI)
+    return frozenset(
+        code for code in range(MAX_CODE + 1) if standard.get(code) == win_ansi.get(code)
+    )
+
+
+def add_truetype_base_encodings(pdf: Pdf) -> int:
+    """Give /BaseEncoding /WinAnsiEncoding to TrueType encodings that lack one.
+
+    PDF/A-2 and PDF/A-3 require the encoding of a non-symbolic TrueType font
+    to be based on WinAnsiEncoding or MacRomanEncoding. An encoding
+    dictionary with /Differences and no /BaseEncoding is based on
+    StandardEncoding. A font is changed only if every code shown in it, in
+    the content the document can draw, is either assigned by /Differences or
+    has the same glyph name in both encodings, so no glyph drawn changes. If
+    the content cannot be scanned completely, no font is changed.
+
+    The font's encoding dictionary is replaced, not modified, since other
+    fonts may share it.
+
+    Args:
+        pdf: An open pikepdf.Pdf object
+
+    Returns:
+        The number of fonts changed.
+    """
+    candidates = [obj for obj in pdf.objects if _needs_base_encoding(obj)]
+    if not candidates:
+        return 0
+    used = font_codes(pdf)
+    if used is None:
+        log.debug("Content could not be scanned; TrueType encodings left alone")
+        return 0
+    kept = _standard_codes_kept_by_win_ansi()
+    count = 0
+    for font in candidates:
+        encoding = font.get(Name.Encoding)
+        assert isinstance(encoding, Dictionary)
+        try:
+            differences = parse_differences(encoding.get(Name.Differences))
+        except DifferencesError:
+            continue
+        codes = used.get(font.objgen, set())
+        if not all(code in differences or code in kept for code in codes):
+            continue
+        replacement = Dictionary({str(key): value for key, value in encoding.items()})
+        replacement[Name.BaseEncoding] = Name.WinAnsiEncoding
+        font[Name.Encoding] = replacement
+        count += 1
+    return count
+
+
+def remove_name_tree(pdf: Pdf, key: Name) -> bool:
+    """Remove an entry of the document's name dictionary.
+
+    Args:
+        pdf: An open pikepdf.Pdf object
+        key: The entry, such as ``Name.JavaScript``.
+
+    Returns:
+        True if the entry was present and removed.
+    """
+    names = pdf.Root.get(Name.Names)
+    if not isinstance(names, Dictionary) or key not in names:
+        return False
+    del names[key]
+    return True
 
 
 _OCTET_STREAM = Name('/application/octet-stream')
