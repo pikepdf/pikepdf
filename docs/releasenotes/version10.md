@@ -38,6 +38,15 @@ the architecture notes on thread safety.
   {class}`pikepdf.pdfa.PrepareResult` fields count these repairs. See
   {ref}`pdfa-attachments`.
 
+### Fixes
+
+- The PDF/A validator accepted glyph names in a non-symbolic TrueType font's
+  `/Differences` only from the Adobe Glyph List for New Fonts, so it rejected
+  valid PDF/A-2 and PDF/A-3 files that used other names from the full Adobe
+  Glyph List, such as `afii10017` for Cyrillic text. It now accepts every name
+  in the full list, as ISO 19005 requires and veraPDF checks. Names outside the
+  list, such as `uni0410` or `A.sc`, are still rejected.
+
 
 Several improvements to explicit conversion mode and `NamePath`, prompted by
 the OCRmyPDF project's migration to these APIs

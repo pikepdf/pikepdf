@@ -949,7 +949,7 @@
  "ISO_19005_2:6.2.11.6-2": {
   "status": "implemented",
   "by": "python:_fonts._Loader.nonsymbolic_encoding",
-  "note": "Differences names must be in the Adobe Glyph List for New Fonts (fontTools.agl.AGL2UV), a subset of what veraPDF accepts"
+  "note": "Differences names must be listed in the Adobe Glyph List (fontTools.agl.LEGACY_AGL2UV), as veraPDF checks; AGL naming conventions such as uniXXXX are not accepted"
  },
  "ISO_19005_2:6.2.11.6-3": {
   "status": "implemented",
@@ -1613,7 +1613,7 @@
  "ISO_19005_3:6.2.11.6-2": {
   "status": "implemented",
   "by": "python:_fonts._Loader.nonsymbolic_encoding",
-  "note": "Differences names must be in the Adobe Glyph List for New Fonts (fontTools.agl.AGL2UV), a subset of what veraPDF accepts"
+  "note": "Differences names must be listed in the Adobe Glyph List (fontTools.agl.LEGACY_AGL2UV), as veraPDF checks; AGL naming conventions such as uniXXXX are not accepted"
  },
  "ISO_19005_3:6.2.11.6-3": {
   "status": "implemented",

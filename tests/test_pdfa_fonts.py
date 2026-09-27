@@ -14,6 +14,7 @@ from io import BytesIO
 from pathlib import Path
 
 from conftest import verapdf_command
+from fontTools import agl
 from fontTools.ttLib import TTFont
 from pdfa_samples import (
     add_cidsets,
@@ -967,22 +968,48 @@ def test_simple_truetype_missing_encoding(tmp_path):
     assert_denied(pdf, tmp_path / 'c.pdf', 'ISO_19005_2:6.2.11.6-2', verapdf_fails=True)
 
 
-def test_simple_truetype_agl_differences(tmp_path):
-    def with_differences(part: str, name: str) -> pikepdf.Pdf:
-        pdf = make_simple_truetype_pdf(part)
-        pdf.pages[0].Resources.Font.F1.Encoding = Dictionary(
-            Type=Name.Encoding,
-            BaseEncoding=Name.WinAnsiEncoding,
-            Differences=[ord('H'), Name('/' + name)],
-        )
-        return pdf
-
-    assert_approved(with_differences('2', 'H'), tmp_path / 'agl2.pdf')
-    assert_denied(
-        with_differences('1', 'H'), tmp_path / 'agl1.pdf', 'ISO_19005_1:6.3.7-1', '1'
+def _truetype_with_differences(part: str, name: str) -> pikepdf.Pdf:
+    """Map code 'H' to *name*, with the width of the glyph it resolves to."""
+    pdf = make_simple_truetype_pdf(part, subset_text='HeloА')
+    font = pdf.pages[0].Resources.Font.F1
+    font.Encoding = Dictionary(
+        Type=Name.Encoding,
+        BaseEncoding=Name.WinAnsiEncoding,
+        Differences=[ord('H'), Name('/' + name)],
     )
+    program = TTFont(BytesIO(font.FontDescriptor.FontFile2.read_bytes()))
+    text = agl.toUnicode(name)
+    glyph = program.getBestCmap().get(ord(text)) if len(text) == 1 else None
+    if glyph is not None:
+        units = program['head'].unitsPerEm
+        font.Widths[ord('H') - 32] = round(program['hmtx'][glyph][0] * 1000 / units)
+    return pdf
+
+
+def test_simple_truetype_agl_differences_part1(tmp_path):
     assert_denied(
-        with_differences('2', 'Hfoo'), tmp_path / 'foo.pdf', 'ISO_19005_2:6.2.11.6-2'
+        _truetype_with_differences('1', 'H'),
+        tmp_path / 'c.pdf',
+        'ISO_19005_1:6.3.7-1',
+        '1',
+    )
+
+
+# ISO 19005-2 requires names from the Adobe Glyph List, which veraPDF reads as
+# the literal entries of glyphlist.txt: the legacy AGL names are accepted, but
+# names that only the AGL naming conventions would map are not.
+@pytest.mark.parametrize('name', ['H', 'afii10017', 'Acyrillic'])
+def test_simple_truetype_agl_differences_accepted(tmp_path, name):
+    assert_approved(_truetype_with_differences('2', name), tmp_path / 'c.pdf')
+
+
+@pytest.mark.parametrize('name', ['Hfoo', 'g123', 'uni0410', 'u0410', 'H.sc', 'f_i'])
+def test_simple_truetype_agl_differences_denied(tmp_path, name):
+    assert_denied(
+        _truetype_with_differences('2', name),
+        tmp_path / 'c.pdf',
+        'ISO_19005_2:6.2.11.6-2',
+        verapdf_fails=True,
     )
 
 

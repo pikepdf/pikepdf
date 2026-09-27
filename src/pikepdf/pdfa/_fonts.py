@@ -874,7 +874,9 @@ class _Loader:
                     self.deny('font-encoding', str(e))
                     return
                 bad = sorted(
-                    name for name in differences.values() if name not in agl.AGL2UV
+                    name
+                    for name in differences.values()
+                    if name not in agl.LEGACY_AGL2UV
                 )
                 if bad:
                     self.deny(
