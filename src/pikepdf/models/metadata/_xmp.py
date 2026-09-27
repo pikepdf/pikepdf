@@ -9,7 +9,9 @@ import logging
 from collections.abc import Callable, Iterable, Iterator
 from io import BytesIO
 from typing import TYPE_CHECKING, Any
+from warnings import warn
 
+from pikepdf._exceptions import XmpTypeWarning
 from pikepdf._xml import parse_xml
 from pikepdf.models.metadata._constants import (
     DEFAULT_NAMESPACES,
@@ -24,15 +26,64 @@ from pikepdf.models.metadata._constants import (
     load_lxml_namespaces,
     re_xml_illegal_bytes,
 )
-from pikepdf.models.metadata._schema import normalize_value
+from pikepdf.models.metadata._schema import (
+    XmpContainerType,
+    lookup,
+    normalize_value,
+)
 
 if TYPE_CHECKING:
     from lxml.etree import QName, _Element, _ElementTree
+
+    from pikepdf.models.metadata._core import PdfMetadata
 
 
 log = logging.getLogger(__name__)
 
 _RDF_ABOUT = f'{{{XMP_NS_RDF}}}about'
+
+# How the structure of a property value is described in messages, keyed by
+# the RDF container that holds it, or 'simple' and 'struct'
+_FORM_DESCRIPTIONS = {
+    'simple': 'a simple value',
+    'Alt': 'a language alternative (rdf:Alt)',
+    'Bag': 'an unordered array (rdf:Bag)',
+    'Seq': 'an ordered array (rdf:Seq)',
+    'struct': 'a structure',
+}
+
+_CONTAINER_FORMS = {
+    XmpContainerType.SIMPLE: 'simple',
+    XmpContainerType.ALT: 'Alt',
+    XmpContainerType.BAG: 'Bag',
+    XmpContainerType.SEQ: 'Seq',
+}
+
+
+def _is_property_name(name: str) -> bool:
+    """Test if an element or attribute name is an XMP property.
+
+    Names in the RDF and XML namespaces are syntax, not properties, and a
+    name without a namespace cannot be a property either.
+    """
+    if not name.startswith('{'):
+        return False
+    return name[1:].partition('}')[0] not in (XMP_NS_RDF, XMP_NS_XML)
+
+
+def _value_form(node: _Element) -> str:
+    """Classify the structure of the value of a property element."""
+    rdf = f'{{{XMP_NS_RDF}}}'
+    for container in ('Alt', 'Bag', 'Seq'):
+        if node.find(f'{rdf}{container}') is not None:
+            return container
+    if (
+        node.get(f'{rdf}parseType') == 'Resource'
+        or node.get(f'{rdf}resource') is not None
+        or len(node)
+    ):
+        return 'struct'
+    return 'simple'
 
 
 class NeverRaise(Exception):
@@ -638,23 +689,30 @@ class XmpDocument:
         alt.insert(0, default)
         default.text = text
 
+    def _insertion_description(self) -> _Element:
+        """Return the Description that new properties are added to.
+
+        An existing Description is reused, so that no Description is added
+        with an rdf:about value different from the others.
+        """
+        from lxml import etree
+        from lxml.etree import QName
+
+        descriptions = self._descriptions()
+        if descriptions:
+            return descriptions[0]
+        return etree.SubElement(
+            self._get_rdf_root(),
+            str(QName(XMP_NS_RDF, 'Description')),
+            attrib={_RDF_ABOUT: ''},
+        )
+
     def _setitem_insert(
         self, key: str | QName, val: Any, rdf_type: str | None = None
     ) -> None:
         from lxml import etree
-        from lxml.etree import QName
 
-        # Reuse an existing Description, so that no Description is added with
-        # an rdf:about value different from the others
-        descriptions = self._descriptions()
-        if descriptions:
-            rdfdesc = descriptions[0]
-        else:
-            rdfdesc = etree.SubElement(
-                self._get_rdf_root(),
-                str(QName(XMP_NS_RDF, 'Description')),
-                attrib={_RDF_ABOUT: ''},
-            )
+        rdfdesc = self._insertion_description()
         if rdf_type is not None or isinstance(val, list | set):
             node = etree.SubElement(rdfdesc, self.qname(key))
             self._setitem_add_array(node, val, rdf_type)
@@ -684,6 +742,97 @@ class XmpDocument:
         """Delete item from XMP metadata."""
         if not self.delete(key):
             raise KeyError(key)
+
+    def _property_elements(self) -> Iterator[tuple[str, _Element]]:
+        """Yield the qualified name and element of each top-level property.
+
+        Every top-level Description is read, whatever its rdf:about. A simple
+        property written as an attribute of its Description is yielded as a
+        new element, the equivalent form that can be moved elsewhere.
+        """
+        from lxml import etree
+
+        for desc in self._descriptions():
+            for name, value in desc.items():
+                name = str(name)
+                if not _is_property_name(name):
+                    continue
+                uri = name[1:].partition('}')[0]
+                prefix = next(
+                    (p for p, u in desc.nsmap.items() if p and u == uri), None
+                )
+                node = etree.Element(name, nsmap={prefix: uri} if prefix else None)
+                node.text = str(value) or None
+                yield name, node
+            for node in desc:
+                if isinstance(node.tag, str) and _is_property_name(node.tag):
+                    yield node.tag, node
+
+    def copy_properties(
+        self,
+        source: XmpDocument | PdfMetadata | bytes,
+        keys: Iterable[str | QName],
+        *,
+        exclude: Iterable[str | QName] = (),
+        overwrite: bool = False,
+        strict: bool | None = None,
+        _stacklevel: int = 2,
+    ) -> list[str]:
+        """Copy top-level properties from another XMP packet, verbatim.
+
+        See :meth:`pikepdf.models.PdfMetadata.copy_properties`, which this
+        implements; here no ``with`` block is needed.
+        """
+        from copy import deepcopy
+
+        if strict is None:
+            strict = self._strict
+        if isinstance(source, bytes | bytearray):
+            source = XmpDocument(bytes(source))
+        elif not isinstance(source, XmpDocument):
+            source = source._xmp_doc
+        wanted = {self.qname(k) for k in keys}
+        excluded = {self.qname(k) for k in exclude}
+
+        # Choose and check everything before changing anything, so that an
+        # error leaves this document as it was, and so that copying from
+        # this document itself is safe
+        copies: dict[str, _Element] = {}
+        problems: list[str] = []
+        seen: set[str] = set()
+        for qkey, node in source._property_elements():
+            if qkey in seen:
+                continue  # A duplicate; the first occurrence is the one copied
+            seen.add(qkey)
+            if qkey not in wanted or qkey in excluded:
+                continue
+            if not overwrite and qkey in self:
+                continue
+            prop = lookup(qkey)
+            if prop is not None:
+                expected, actual = _CONTAINER_FORMS[prop.container], _value_form(node)
+                if expected != actual:
+                    problems.append(
+                        f"{self._display_name(qkey, qkey)} is "
+                        f"{_FORM_DESCRIPTIONS[expected]} in XMP, but the source "
+                        f"holds {_FORM_DESCRIPTIONS[actual]}"
+                    )
+            copies[qkey] = deepcopy(node)
+
+        if problems:
+            if strict:
+                raise TypeError('; '.join(problems))
+            for problem in problems:
+                warn(XmpTypeWarning(problem), stacklevel=_stacklevel)
+
+        for qkey in copies:
+            for node, attrib, _val, parent in list(self._get_elements(qkey)):
+                self._remove_occurrence(node, attrib, parent, prune=False)
+        if copies:
+            desc = self._insertion_description()
+            for node in copies.values():
+                desc.append(node)
+        return list(copies)
 
     def to_bytes(self, xpacket: bool = True) -> bytes:
         """Serialize XMP to XML bytes.

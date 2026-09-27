@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterator, MutableMapping
+from collections.abc import Iterable, Iterator, MutableMapping
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Self
 from warnings import warn
@@ -324,6 +324,82 @@ class PdfMetadata(MutableMapping):
         if not self._updating:
             raise RuntimeError("Metadata not opened for editing, use with block")
         del self._xmp_doc[key]
+
+    def copy_properties(
+        self,
+        source: PdfMetadata | XmpDocument | bytes,
+        keys: Iterable[str | QName],
+        *,
+        exclude: Iterable[str | QName] = (),
+        overwrite: bool = False,
+        strict: bool | None = None,
+    ) -> list[str]:
+        """Copy top-level properties from other XMP metadata, verbatim.
+
+        Each property is copied with its whole value: every item of a
+        language alternative, array order, structures, qualifiers and the
+        namespace declarations they need. Properties are read from every
+        top-level ``rdf:Description`` of the source, whatever its
+        ``rdf:about``. Assigning a value read from the source would lose
+        much of this, since reading returns only the default language of a
+        language alternative, a :class:`set` for an ``rdf:Bag``, and nothing
+        for a structure.
+
+        A property's namespace need not be registered: the copy declares it,
+        and it can be read by its qualified name, e.g.
+        ``'{http://example.com/ns/}Name'``.
+
+        The structure of each property pikepdf knows the type of is checked
+        against it. A property that differs, such as a ``dc:creator`` that is
+        not an ``rdf:Seq``, is still copied, with an
+        :class:`pikepdf.XmpTypeWarning`; if ``strict``, :class:`TypeError`
+        is raised instead, before anything is copied.
+
+        DocumentInfo is updated from the copied properties when the ``with``
+        block ends, as it is for assigned ones. If this metadata was opened
+        with ``set_pikepdf_as_editor=True``, ``pdf:Producer`` and
+        ``xmp:MetadataDate`` are then set by pikepdf, whatever was copied.
+
+        Args:
+            source: The metadata to copy from: another
+                :class:`PdfMetadata`, which need not be opened for editing, an
+                ``XmpDocument``, or XMP bytes.
+            keys: Names of the properties to copy, as prefixed names such as
+                ``'dc:creator'`` or qualified names. There is deliberately no
+                default of copying everything: many properties, such as
+                conformance claims and document identifiers, are true only of
+                the document they came from. Use ``list(source)`` to copy
+                every property when the source describes the same document,
+                such as the input of a conversion.
+            exclude: Names of properties not to copy.
+            overwrite: If True, a property this document already has is
+                replaced. If False, it is kept and the source's value is not
+                copied.
+            strict: Raise instead of warning when the structure of a
+                property is not the one XMP defines. Defaults to the
+                strictness this document was opened with.
+
+        Example:
+            >>> src = original.open_metadata()
+            >>> with pdf.open_metadata() as meta:
+            ...     meta.copy_properties(src, ['dc:contributor', 'dc:rights'])
+
+        Returns:
+            The qualified names of the properties copied, such as
+            ``'{http://purl.org/dc/elements/1.1/}creator'``.
+        """
+        if not self._updating:
+            raise RuntimeError("Metadata not opened for editing, use with block")
+        if isinstance(source, PdfMetadata):
+            source = source._xmp_doc
+        return self._xmp_doc.copy_properties(
+            source,
+            keys,
+            exclude=exclude,
+            overwrite=overwrite,
+            strict=strict,
+            _stacklevel=3,
+        )
 
     @property
     def recovered(self) -> bool:

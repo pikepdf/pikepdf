@@ -1892,3 +1892,216 @@ class TestRecovered:
         assert pdf.open_metadata().recovered is True
         pdf = _pdf_with_xmp(DISTILLER_PRODUCER)
         assert pdf.open_metadata().recovered is False
+
+
+ACROBAT_SOURCE = _xmp_packet(
+    '<rdf:Description rdf:about="uuid:0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0" '
+    'xmlns:dc="http://purl.org/dc/elements/1.1/" '
+    'xmlns:pdf="http://ns.adobe.com/pdf/1.3/" pdf:Keywords="k1, k2">'
+    '<dc:title><rdf:Alt>'
+    '<rdf:li xml:lang="en">English title</rdf:li>'
+    '<rdf:li xml:lang="x-default">Default title</rdf:li>'
+    '</rdf:Alt></dc:title>'
+    '<dc:creator><rdf:Seq><rdf:li>Zed</rdf:li><rdf:li>Amy</rdf:li></rdf:Seq>'
+    '</dc:creator>'
+    '<dc:contributor><rdf:Bag><rdf:li>Bob</rdf:li><rdf:li>Al</rdf:li></rdf:Bag>'
+    '</dc:contributor>'
+    '</rdf:Description>'
+    '<rdf:Description rdf:about="uuid:0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0" '
+    'xmlns:xmpMM="http://ns.adobe.com/xap/1.0/mm/" '
+    'xmlns:stRef="http://ns.adobe.com/xap/1.0/sType/ResourceRef#" '
+    'xmlns:acme="http://example.com/acme/1.0/">'
+    '<xmpMM:DerivedFrom rdf:parseType="Resource">'
+    '<stRef:documentID>uuid:parent</stRef:documentID>'
+    '</xmpMM:DerivedFrom>'
+    '<acme:Widget>gizmo</acme:Widget>'
+    '</rdf:Description>'
+)
+
+DC = '{http://purl.org/dc/elements/1.1/}'
+ACME_WIDGET = '{http://example.com/acme/1.0/}Widget'
+XMPMM_DERIVED_FROM = '{http://ns.adobe.com/xap/1.0/mm/}DerivedFrom'
+ACROBAT_KEYS = list(XmpDocument(ACROBAT_SOURCE))
+
+
+class TestCopyProperties:
+    def test_copies_everything_verbatim(self):
+        target = XmpDocument()
+        copied = target.copy_properties(XmpDocument(ACROBAT_SOURCE), ACROBAT_KEYS)
+        assert set(copied) == {
+            f'{DC}title',
+            f'{DC}creator',
+            f'{DC}contributor',
+            '{http://ns.adobe.com/pdf/1.3/}Keywords',
+            XMPMM_DERIVED_FROM,
+            ACME_WIDGET,
+        }
+        # Every language kept, in the source's order
+        assert _alt_items(target, 'dc:title') == [
+            ('en', 'English title'),
+            ('x-default', 'Default title'),
+        ]
+        assert target['dc:title'] == 'Default title'
+        assert target['dc:creator'] == ['Zed', 'Amy']
+        assert target['dc:contributor'] == {'Bob', 'Al'}
+        assert target['pdf:Keywords'] == 'k1, k2'
+
+    def test_struct_and_unregistered_namespace(self):
+        target = XmpDocument()
+        target.copy_properties(ACROBAT_SOURCE, ACROBAT_KEYS)
+        # An unregistered namespace is readable by its Clark name
+        assert target[ACME_WIDGET] == 'gizmo'
+        xml = target.to_bytes()
+        assert b'xmlns:acme="http://example.com/acme/1.0/"' in xml
+        assert b'<stRef:documentID>uuid:parent</stRef:documentID>' in xml
+        reread = XmpDocument(xml)
+        assert ACME_WIDGET in reread
+        assert XMPMM_DERIVED_FROM in reread
+
+    def test_single_consistent_description(self):
+        target = XmpDocument(
+            _xmp_packet(
+                '<rdf:Description rdf:about="" '
+                'xmlns:xmp="http://ns.adobe.com/xap/1.0/">'
+                '<xmp:CreatorTool>Tool</xmp:CreatorTool></rdf:Description>'
+            )
+        )
+        target.copy_properties(ACROBAT_SOURCE, ACROBAT_KEYS)
+        reread = XmpDocument(target.to_bytes())
+        descriptions = _descriptions(reread)
+        assert len(descriptions) == 1
+        assert descriptions[0].get(RDF_ABOUT) == ''
+        assert reread['xmp:CreatorTool'] == 'Tool'
+
+    def test_missing_only_by_default(self):
+        target = XmpDocument()
+        target['dc:title'] = 'Mine'
+        copied = target.copy_properties(ACROBAT_SOURCE, ACROBAT_KEYS)
+        assert f'{DC}title' not in copied
+        assert _alt_items(target, 'dc:title') == [('x-default', 'Mine')]
+
+    def test_overwrite_replaces_all_occurrences(self):
+        target = XmpDocument(
+            _xmp_packet(
+                '<rdf:Description rdf:about="" '
+                'xmlns:pdf="http://ns.adobe.com/pdf/1.3/" pdf:Keywords="A"/>'
+                '<rdf:Description rdf:about="" '
+                'xmlns:pdf="http://ns.adobe.com/pdf/1.3/">'
+                '<pdf:Keywords>B</pdf:Keywords></rdf:Description>'
+            )
+        )
+        copied = target.copy_properties(
+            ACROBAT_SOURCE, ['pdf:Keywords'], overwrite=True
+        )
+        assert copied == ['{http://ns.adobe.com/pdf/1.3/}Keywords']
+        assert list(target._get_element_values('pdf:Keywords')) == ['k1, k2']
+        assert target.to_bytes().count(b'Keywords') == 2  # open and close tag
+
+    def test_keys_and_exclude(self):
+        target = XmpDocument()
+        copied = target.copy_properties(
+            ACROBAT_SOURCE,
+            ['dc:title', f'{DC}creator', 'dc:contributor'],
+            exclude={'dc:contributor'},
+        )
+        assert sorted(copied) == [f'{DC}creator', f'{DC}title']
+        assert 'dc:contributor' not in target
+
+    def test_copy_from_self(self):
+        xmp = XmpDocument(ACROBAT_SOURCE)
+        before = {key: xmp[key] for key in xmp}
+        assert xmp.copy_properties(xmp, list(xmp)) == []
+        assert len(xmp.copy_properties(xmp, list(xmp), overwrite=True)) == 6
+        assert {key: xmp[key] for key in xmp} == before
+        assert _alt_items(xmp, 'dc:title') == [
+            ('en', 'English title'),
+            ('x-default', 'Default title'),
+        ]
+
+    def test_mismatched_form_warns_and_copies(self):
+        source = _xmp_packet(
+            '<rdf:Description rdf:about="" '
+            'xmlns:dc="http://purl.org/dc/elements/1.1/">'
+            '<dc:subject><rdf:Seq><rdf:li>b</rdf:li><rdf:li>a</rdf:li></rdf:Seq>'
+            '</dc:subject><dc:creator>Solo</dc:creator></rdf:Description>'
+        )
+        target = XmpDocument()
+        with pytest.warns(XmpTypeWarning) as record:
+            copied = target.copy_properties(source, list(XmpDocument(source)))
+        messages = sorted(str(w.message) for w in record)
+        assert len(messages) == 2
+        assert 'dc:creator' in messages[0]
+        assert 'dc:subject' in messages[1]
+        assert sorted(copied) == [f'{DC}creator', f'{DC}subject']
+        assert target['dc:subject'] == ['b', 'a']  # copied verbatim, as a Seq
+
+    def test_mismatched_form_strict_raises_and_changes_nothing(self):
+        source = _xmp_packet(
+            '<rdf:Description rdf:about="" '
+            'xmlns:dc="http://purl.org/dc/elements/1.1/">'
+            '<dc:title>Plain title</dc:title>'
+            '<dc:creator><rdf:Seq><rdf:li>A</rdf:li></rdf:Seq></dc:creator>'
+            '</rdf:Description>'
+        )
+        target = XmpDocument(overwrite_invalid_xml=False)
+        before = target.to_bytes()
+        with pytest.raises(TypeError, match='dc:title'):
+            target.copy_properties(source, list(XmpDocument(source)))
+        assert target.to_bytes() == before
+        # Lax on request, although the document is strict
+        with pytest.warns(XmpTypeWarning, match='dc:title'):
+            target.copy_properties(source, list(XmpDocument(source)), strict=False)
+        assert target['dc:creator'] == ['A']
+
+    def test_struct_for_known_simple_property_mismatches(self):
+        source = _xmp_packet(
+            '<rdf:Description rdf:about="" '
+            'xmlns:xmp="http://ns.adobe.com/xap/1.0/">'
+            '<xmp:CreatorTool rdf:parseType="Resource"><rdf:value>T</rdf:value>'
+            '</xmp:CreatorTool></rdf:Description>'
+        )
+        with pytest.raises(TypeError, match='xmp:CreatorTool'):
+            XmpDocument().copy_properties(source, ['xmp:CreatorTool'], strict=True)
+
+    def test_unknown_property_not_checked(self, recwarn):
+        XmpDocument().copy_properties(ACROBAT_SOURCE, [ACME_WIDGET], strict=True)
+        assert not [w for w in recwarn if issubclass(w.category, XmpTypeWarning)]
+
+    def test_pdf_metadata(self):
+        original = _pdf_with_xmp(ACROBAT_SOURCE)
+        pdf = _pdf_with_xmp(
+            _xmp_packet(
+                '<rdf:Description rdf:about="" '
+                'xmlns:pdf="http://ns.adobe.com/pdf/1.3/">'
+                '<pdf:Producer>GPL Ghostscript</pdf:Producer></rdf:Description>'
+            )
+        )
+        with (
+            original.open_metadata(
+                set_pikepdf_as_editor=False, update_docinfo=False
+            ) as meta_original,
+            pdf.open_metadata(set_pikepdf_as_editor=False) as meta,
+        ):
+            copied = meta.copy_properties(
+                meta_original, list(meta_original), exclude={'pdf:Keywords'}
+            )
+        assert '{http://ns.adobe.com/pdf/1.3/}Keywords' not in copied
+        assert pdf.docinfo.Title == 'Default title'
+        assert pdf.docinfo.Author == 'Zed; Amy'
+        assert pdf.docinfo.Producer == 'GPL Ghostscript'
+        with pdf.open_metadata() as meta:
+            assert _alt_items(meta._xmp_doc, 'dc:title')[0] == (
+                'en',
+                'English title',
+            )
+
+    def test_pdf_metadata_requires_with_block(self):
+        pdf = _pdf_with_xmp(DISTILLER_PRODUCER)
+        with pytest.raises(RuntimeError, match='with block'):
+            pdf.open_metadata().copy_properties(ACROBAT_SOURCE, ['dc:title'])
+
+    def test_pdf_metadata_as_source_of_xmp_document(self):
+        original = _pdf_with_xmp(ACROBAT_SOURCE)
+        target = XmpDocument()
+        target.copy_properties(original.open_metadata(), ['dc:title'])
+        assert target['dc:title'] == 'Default title'
