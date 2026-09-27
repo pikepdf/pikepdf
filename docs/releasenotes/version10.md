@@ -65,6 +65,7 @@ the architecture notes on thread safety.
   in the full list, as ISO 19005 requires and veraPDF checks. Names outside the
   list, such as `uni0410` or `A.sc`, are still rejected.
 
+## v10.14.0
 
 Several improvements to explicit conversion mode and `NamePath`, prompted by
 the OCRmyPDF project's migration to these APIs
