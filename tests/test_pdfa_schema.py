@@ -12,6 +12,7 @@ from decimal import Decimal
 
 from pdfa_samples import (
     RESOURCES,
+    assert_verapdf_agrees,
     assert_verapdf_fails,
     make_image_only_pdf,
     make_simple_truetype_pdf,
@@ -653,3 +654,118 @@ def test_two_level_page_tree_approved(tmp_path):
     path = save_image_only_pdf(tmp_path / 'c.pdf', '2', _two_level_page_tree)
     report = validate_written(path, '2b')
     assert report.passed, report.summary()
+
+
+# --- the decoded length key /DL on every stream ------------------------------
+
+
+def _content_stream(pdf):
+    return pdf.pages[0].obj.Contents
+
+
+def _image_stream(pdf):
+    return pdf.pages[0].obj.Resources.XObject.Im0
+
+
+def _metadata_stream(pdf):
+    return pdf.Root.Metadata
+
+
+def _icc_stream(pdf):
+    return pdf.Root.OutputIntents[0].DestOutputProfile
+
+
+DL_STREAMS = {
+    'content': _content_stream,
+    'image': _image_stream,
+    'metadata': _metadata_stream,
+    'icc': _icc_stream,
+}
+
+
+@pytest.mark.parametrize('stream', DL_STREAMS)
+@pytest.mark.parametrize('flavour, part', [('1b', '1'), ('2b', '2'), ('3b', '3')])
+def test_decoded_length_accepted(stream, flavour, part):
+    with make_image_only_pdf(part) as pdf:
+        baseline = walk(pdf, flavour)
+        target = DL_STREAMS[stream](pdf)
+        target.DL = len(target.read_bytes())
+        report = walk(pdf, flavour)
+    assert not [f for f in report.findings if '/DL' in f.message], report.summary()
+    assert report.findings == baseline.findings, report.summary()
+
+
+def test_decoded_length_verapdf_agrees(tmp_path):
+    def add_dl(pdf):
+        for get in DL_STREAMS.values():
+            target = get(pdf)
+            target.DL = len(target.read_bytes())
+
+    path = save_image_only_pdf(tmp_path / 'dl.pdf', '2', add_dl)
+    with pikepdf.open(path) as pdf:
+        assert '/DL' in _content_stream(pdf)
+        assert '/DL' in _image_stream(pdf)
+    report = validate_written(path, '2b')
+    assert report.passed, report.summary()
+    assert_verapdf_agrees(path, '2b')
+
+
+def _schema_files() -> dict[str, dict]:
+    from pikepdf.pdfa._schemas import _load_schema
+
+    names = ['common.json', 'pdfa-1b.json', 'pdfa-2b.json', 'pdfa-3b.json']
+    return {name: _load_schema(name) for name in names}
+
+
+def _closed_nodes(files, file, node, depth=0):
+    """Yield (file, node) for every closed node a schema node composes."""
+    if not isinstance(node, dict) or depth > 16:
+        return
+    if '$ref' in node:
+        target, _, pointer = node['$ref'].partition('#')
+        target = target or file
+        sub = files[target]
+        for part in pointer.strip('/').split('/'):
+            sub = sub[part]
+        yield from _closed_nodes(files, target, sub, depth + 1)
+    for item in node.get('allOf', []):
+        yield from _closed_nodes(files, file, item, depth + 1)
+    if node.get('additionalProperties') is False:
+        yield file, node
+
+
+def _composes_stream_keys(file, node) -> bool:
+    for item in node.get('allOf', []):
+        ref = item.get('$ref', '') if isinstance(item, dict) else ''
+        target, _, pointer = ref.partition('#')
+        if (target or file) == 'common.json' and pointer == '/$defs/streamKeys':
+            return True
+    return False
+
+
+def test_closed_stream_roles_compose_stream_keys():
+    files = _schema_files()
+    stream_keys = set(files['common.json']['$defs']['streamKeys']['properties'])
+    assert '/DL' in stream_keys
+    checked = set()
+    for file, schema in files.items():
+        for role, node in schema['$defs'].items():
+            if not isinstance(node, dict) or node.get('x-kind') != 'stream':
+                continue
+            for closed_file, closed in _closed_nodes(files, file, node):
+                where = f'{file} {role}'
+                assert _composes_stream_keys(closed_file, closed), where
+                missing = stream_keys - set(closed.get('properties', {}))
+                assert not missing, f'{where} does not list {sorted(missing)}'
+                checked.add(role)
+    # Make sure the walk reached roles that inherit their closed schema
+    assert {
+        'ContentStream',
+        'ImageXObject',
+        'MaskImage',
+        'SMaskImage',
+        'MetadataStream',
+        'ICCOutputProfile',
+        'ToUnicodeCMap',
+        'EmbeddedFile',
+    } <= checked
