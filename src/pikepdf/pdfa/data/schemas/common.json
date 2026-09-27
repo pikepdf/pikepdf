@@ -187,7 +187,7 @@
         "/Collection": {"$ref": "#/$defs/unsupported", "x-message": "portable collections are not supported"},
         "/OpenAction": {"$ref": "#/$defs/unsupported", "x-message": "/OpenAction is not supported"},
         "/AF": {"$ref": "#/$defs/arrayOrRef"},
-        "/Extensions": {"$ref": "#/$defs/unsupported", "x-message": "developer extensions are not supported"}
+        "/Extensions": {"$ref": "#/$defs/dictOrRef"}
       },
       "additionalProperties": false,
       "x-children": {
@@ -203,6 +203,46 @@
         "/PageLabels": "PageLabelsNode",
         "/StructTreeRoot": "StructTreeRoot"
       }
+    },
+
+    "Extensions": {
+      "$comment": "ISO 32000-1 7.12.1: maps registered developer prefixes to developer extensions dictionaries. _walker.DocumentWalker._on_catalog visits it as the write model predicts it, since qpdf rewrites /ADBE to the written version and extension level. PDF/A places no requirement on it; other developers' extensions have meanings this validator cannot know",
+      "type": "object",
+      "properties": {
+        "/Type": {"const": "/Extensions"},
+        "/ADBE": {"$ref": "#/$defs/dictOrRef"}
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/unsupported",
+        "x-message": "developer extensions other than Adobe's are not supported"
+      },
+      "x-children": {"/ADBE": "DeveloperExtensions"}
+    },
+
+    "DeveloperExtensions": {
+      "$comment": "ISO 32000-1 Table 50; /URL and /ExtensionRevision are from ISO 32000-2 Table 49. BaseVersion names the PDF version extended, which for PDF/A-2 and -3 (based on PDF 1.7) is at most 1.7",
+      "type": "object",
+      "properties": {
+        "/Type": {"const": "/DeveloperExtensions"},
+        "/BaseVersion": {
+          "allOf": [
+            {"$ref": "#/$defs/name"},
+            {
+              "if": {"$ref": "#/$defs/name"},
+              "then": {
+                "pattern": "^/1\\.[0-7]$",
+                "x-unsupported": true,
+                "x-message": "developer extensions to PDF versions after 1.7 are not supported"
+              }
+            }
+          ]
+        },
+        "/ExtensionLevel": {"$ref": "#/$defs/integer"},
+        "/URL": {"$ref": "#/$defs/text"},
+        "/ExtensionRevision": {"$ref": "#/$defs/text"}
+      },
+      "required": ["/BaseVersion", "/ExtensionLevel"],
+      "additionalProperties": false
     },
 
     "NameDictionary": {

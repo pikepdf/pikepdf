@@ -15,6 +15,23 @@
         }
       ]
     },
+    "DeveloperExtensions": {
+      "allOf": [
+        {"$ref": "common.json#/$defs/DeveloperExtensions"},
+        {
+          "properties": {
+            "/BaseVersion": {
+              "if": {"$ref": "common.json#/$defs/name"},
+              "then": {
+                "pattern": "^/1\\.[0-4]$",
+                "x-unsupported": true,
+                "x-message": "PDF/A-1 files are limited to PDF 1.4"
+              }
+            }
+          }
+        }
+      ]
+    },
     "EmbeddedFiles": {
       "x-kind": "any",
       "$ref": "common.json#/$defs/forbidden",

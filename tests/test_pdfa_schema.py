@@ -223,6 +223,91 @@ def test_catalog_unknown_key_unsupported():
         assert {f.kind for f in report.findings} == {'unsupported'}
 
 
+def adbe(**entries) -> Dictionary:
+    return Dictionary(ADBE=Dictionary(**entries))
+
+
+@pytest.mark.parametrize('flavour', ['2b', '3b'])
+def test_catalog_adobe_extensions_accepted(flavour):
+    with make_image_only_pdf(flavour[0]) as pdf:
+        pdf.Root.Extensions = adbe(BaseVersion=Name('/1.7'), ExtensionLevel=8)
+        report = walk(pdf, flavour)
+        assert report.findings == [], report.summary()
+
+
+def test_catalog_adobe_extensions_full_entries_accepted():
+    with make_image_only_pdf() as pdf:
+        ext = adbe(
+            Type=Name.DeveloperExtensions,
+            BaseVersion=Name('/1.7'),
+            ExtensionLevel=3,
+            URL=String('https://www.adobe.com'),
+        )
+        ext.Type = Name.Extensions
+        pdf.Root.Extensions = pdf.make_indirect(ext)
+        report = walk(pdf)
+        assert report.findings == [], report.summary()
+
+
+def test_catalog_other_developer_extensions_unsupported():
+    with make_image_only_pdf() as pdf:
+        pdf.Root.Extensions = Dictionary(
+            ADBE=Dictionary(BaseVersion=Name('/1.7'), ExtensionLevel=8),
+            GLGR=Dictionary(BaseVersion=Name('/1.7'), ExtensionLevel=1002),
+        )
+        report = walk(pdf)
+        assert {f.kind for f in report.findings} == {'unsupported'}
+        assert [f.rule for f in report.findings] == ['pikepdf:schema-Extensions']
+        assert "other than Adobe's" in report.findings[0].message
+
+
+def test_adobe_extensions_missing_level_denied():
+    with make_image_only_pdf() as pdf:
+        pdf.Root.Extensions = adbe(BaseVersion=Name('/1.7'))
+        report = walk(pdf)
+        assert [(f.rule, f.kind) for f in report.findings] == [
+            ('pikepdf:schema-DeveloperExtensions', 'violation')
+        ]
+
+
+@pytest.mark.parametrize(
+    'entries',
+    [
+        dict(BaseVersion=Name('/1.7'), ExtensionLevel=Name('/8')),
+        dict(BaseVersion=String('1.7'), ExtensionLevel=8),
+        dict(Type=Name.Extensions, BaseVersion=Name('/1.7'), ExtensionLevel=8),
+    ],
+)
+def test_adobe_extensions_malformed_denied(entries):
+    with make_image_only_pdf() as pdf:
+        pdf.Root.Extensions = adbe(**entries)
+        report = walk(pdf)
+        assert [(f.rule, f.kind) for f in report.findings] == [
+            ('pikepdf:schema-DeveloperExtensions', 'violation')
+        ]
+
+
+def test_adobe_extensions_to_pdf_2_unsupported():
+    with make_image_only_pdf() as pdf:
+        pdf.Root.Extensions = adbe(BaseVersion=Name('/2.0'), ExtensionLevel=1)
+        report = walk(pdf)
+        assert [(f.rule, f.kind) for f in report.findings] == [
+            ('pikepdf:schema-DeveloperExtensions', 'unsupported')
+        ]
+
+
+def test_adobe_extensions_beyond_1_4_unsupported_in_1b():
+    with make_image_only_pdf('1') as pdf:
+        pdf.Root.Extensions = adbe(BaseVersion=Name('/1.4'), ExtensionLevel=1)
+        assert walk(pdf, '1b').findings == []
+        pdf.Root.Extensions = adbe(BaseVersion=Name('/1.7'), ExtensionLevel=8)
+        report = walk(pdf, '1b')
+        assert [(f.rule, f.kind) for f in report.findings] == [
+            ('pikepdf:schema-DeveloperExtensions', 'unsupported')
+        ]
+        assert 'PDF 1.4' in report.findings[0].message
+
+
 def test_page_aa_and_unknown_key_denied():
     with make_image_only_pdf() as pdf:
         pdf.pages[0].obj.AA = Dictionary()

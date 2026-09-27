@@ -248,7 +248,8 @@ class SchemaSet:
         ``unevaluatedProperties`` is false) is unsupported, unless the schema
         node holding that keyword is marked ``x-closed``. So is an error in
         the value of an unlisted key checked by a non-false
-        ``additionalProperties`` schema.
+        ``additionalProperties`` schema, reported with that schema's
+        ``x-message`` if it has one.
         """
         prefix = self.flavour.spec + ':'
         rule_id: str | None = None
@@ -283,7 +284,9 @@ class SchemaSet:
                 holder = None
                 break
             if element == 'additionalProperties' and node is not False:
+                # Only an x-message on the value schema describes the value
                 open_value = True
+                message = None
             note(node)
 
         if (
@@ -300,7 +303,11 @@ class SchemaSet:
                 _truncate(f"unrecognized key(s) {names} are not checked"),
             )
         if open_value:
-            return f'pikepdf:schema-{role}', 'unsupported', _truncate(error.message)
+            return (
+                f'pikepdf:schema-{role}',
+                'unsupported',
+                _truncate(message or error.message),
+            )
 
         if message is None:
             if error.validator == 'not' and error.validator_value == {}:
