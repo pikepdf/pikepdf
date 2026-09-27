@@ -373,6 +373,54 @@ def test_repair_annotation_flags_clears_popup_of_kept_parent():
         assert subtypes == [Name.Link, Name.Text]
 
 
+def test_repair_annotation_flags_public_standalone(tmp_path):
+    """The repair is public API and works on its own, without prepare()."""
+    import pikepdf.pdfa
+
+    assert 'repair_annotation_flags' in pikepdf.pdfa.__all__
+    assert 'AnnotationRepairResult' in pikepdf.pdfa.__all__
+    from pikepdf.pdfa import AnnotationRepairResult
+    from pikepdf.pdfa import repair_annotation_flags as public_repair
+
+    with pikepdf.new() as pdf:
+        page = pdf.add_blank_page()
+        uri = pikepdf.Dictionary(S=Name.URI, URI=pikepdf.String('https://a.b/'))
+        page.Annots = pdf.make_indirect(
+            pikepdf.Array(
+                [
+                    pdf.make_indirect(
+                        pikepdf.Dictionary(
+                            Type=Name.Annot,
+                            Subtype=Name.Link,
+                            Rect=[0, 0, 10, 10],
+                            A=uri,
+                        )
+                    ),
+                    pdf.make_indirect(
+                        pikepdf.Dictionary(
+                            Type=Name.Annot,
+                            Subtype=Name.Link,
+                            Rect=[20, 20, 30, 30],
+                            A=uri,
+                            F=32,  # NoView
+                        )
+                    ),
+                ]
+            )
+        )
+        pdf.save(tmp_path / 'plain.pdf')
+
+    with pikepdf.open(tmp_path / 'plain.pdf') as pdf:
+        result = public_repair(pdf)
+        assert isinstance(result, AnnotationRepairResult)
+        assert result.print_flags_set == 1
+        assert dict(result.removed) == {'Link': 1}
+        assert result.removed_pages == {1}
+        (annot,) = pdf.pages[0].Annots
+        assert annot.F == 4
+        assert annot.Rect == [0, 0, 10, 10]
+
+
 def test_repair_annotation_flags_warns_once(caplog):
     with pikepdf.open(RESOURCES / 'link.pdf') as pdf:
         pdf.pages[0].Annots[0].F = 2

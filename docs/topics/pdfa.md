@@ -352,9 +352,9 @@ attachment makes a PDF/A-2 document `'not_checked'`.
   requested intent is already the only one, or `output_intent=None`;
 - removes `/Interpolate` from images;
 - removes annotations that are hidden, invisible or not viewable (the Hidden,
-  Invisible and NoView flags, and ToggleNoView for PDF/A-2 and PDF/A-3), along
-  with their popup annotations, and sets the Print flag on the annotations that
-  remain;
+  Invisible, NoView and ToggleNoView flags), along with their popup
+  annotations, and sets the Print flag on the annotations that remain (see
+  below to run this step on its own);
 - removes `/AlternatePresentations` (slideshows) and `/JavaScript`
   (document-level JavaScript) from the `/Names` dictionary;
 - adds a `/CIDSet` to subset CIDFonts (PDF/A-1 only);
@@ -400,6 +400,21 @@ for level, sentence in report.prepared.messages():
 
 Removing hidden annotations and pruning XMP properties discard information. If
 that matters, inspect the `PrepareResult` or call `check` first.
+
+The annotation step is also available on its own as
+{func}`pikepdf.pdfa.repair_annotation_flags`. This is useful before handing a
+file to another PDF/A converter such as Ghostscript, whose PDF/A mode silently
+deletes every annotation that lacks the Print flag, including `/Link`
+annotations that producers often write without any flags:
+
+```python
+import pikepdf
+from pikepdf import pdfa
+
+with pikepdf.open('in.pdf') as pdf:
+    result = pdfa.repair_annotation_flags(pdf)
+    pdf.save('for-ghostscript.pdf')
+```
 
 ## Guarantees and limits
 

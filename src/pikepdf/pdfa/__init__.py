@@ -24,6 +24,10 @@ from pikepdf.pdfa._api import (  # noqa: E402
 )
 from pikepdf.pdfa._flavour import Flavour  # noqa: E402
 from pikepdf.pdfa._prepare import PrepareResult, prepare  # noqa: E402
+from pikepdf.pdfa._repair import (  # noqa: E402
+    AnnotationRepairResult,
+    repair_annotation_flags,
+)
 from pikepdf.pdfa._report import (  # noqa: E402
     Finding,
     PdfaError,
@@ -33,6 +37,7 @@ from pikepdf.pdfa._report import (  # noqa: E402
 from pikepdf.pdfa._save_kwargs import resolve_save_kwargs  # noqa: E402
 
 __all__ = [
+    'AnnotationRepairResult',
     'Finding',
     'Flavour',
     'PdfaError',
@@ -41,6 +46,7 @@ __all__ = [
     'ValidationReport',
     'check',
     'prepare',
+    'repair_annotation_flags',
     'resolve_save_kwargs',
     'save',
     'validate_written',
