@@ -179,9 +179,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       CIBW_BUILD: "*-${{ matrix.platform }}"
-      CIBW_ENVIRONMENT: >-
-        QPDF_SOURCE_TREE="d:\\qpdf"
-        QPDF_BUILD_LIBDIR="d:\\qpdf\\lib"
     strategy:
       matrix:
         include:
