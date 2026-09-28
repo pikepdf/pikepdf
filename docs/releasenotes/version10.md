@@ -16,6 +16,12 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.16.0
+
+- Added binary wheels for Windows on ARM64. Thanks to @ndabas. {issue}`744`
+- Binary wheels now bundle qpdf 12.4.2, which is also the new minimum version
+  of qpdf, since it is the first release with Windows ARM64 binaries.
+
 ## v10.15.0
 
 ### PDF/A-3 attachments
