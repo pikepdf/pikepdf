@@ -397,3 +397,85 @@ def test_parsed_scalar_assignable_to_another_pdf(resources):
         b.Root.T = a.Root.Type
         assert b.Root.T == Name.Catalog
         assert b.make_indirect(a.Root.Type) == Name.Catalog
+
+
+class TestQpdfCreatedValuesAreAdoptedOnRead:
+    """qpdf builds some values itself, which belong to no document until read.
+
+    Reading one out of a container that belongs to a document must apply that
+    document's settings, such as its conversion mode.
+    """
+
+    @pytest.fixture
+    def pdf(self):
+        pdf = Pdf.new(conversion_mode='explicit')
+        pdf.add_blank_page()
+        return pdf
+
+    def test_count_after_add_page(self, pdf):
+        assert isinstance(pdf.Root.Pages.Count, pikepdf.Integer)
+
+    def test_count_after_remove_page(self, resources):
+        with Pdf.open(resources / 'fourpages.pdf', conversion_mode='explicit') as pdf:
+            del pdf.pages[0]
+            assert isinstance(pdf.Root.Pages.Count, pikepdf.Integer)
+
+    def test_rotate(self, pdf):
+        pdf.pages[0].rotate(90, relative=False)
+        assert isinstance(pdf.pages[0].Rotate, pikepdf.Integer)
+
+    @pytest.mark.parametrize(
+        'read',
+        [
+            lambda pages: pages['/Count'],
+            lambda pages: pages[Name.Count],
+            lambda pages: pages.get('/Count'),
+            lambda pages: pages.get(Name.Count),
+            lambda pages: dict(pages.items())['/Count'],
+            lambda pages: [v for v in pages.values() if not isinstance(v, Array)][0],
+            lambda pages: pages.as_dict()['/Count'],
+            lambda pages: pages.as_dict(default=None)['/Count'],
+        ],
+        ids=[
+            'getitem',
+            'getitem_name',
+            'get',
+            'get_name',
+            'items',
+            'values',
+            'as_dict',
+            'as_dict_default',
+        ],
+    )
+    def test_dictionary_read_paths(self, pdf, read):
+        assert isinstance(read(pdf.Root.Pages), pikepdf.Integer)
+
+    def test_namepath(self, pdf):
+        assert isinstance(pdf.Root[pikepdf.NamePath.Pages.Count], pikepdf.Integer)
+
+    def test_value_is_owned_after_read(self, pdf):
+        pdf.Root.Pages.Count  # noqa: B018
+        assert pdf.Root.Pages.get_raw('/Count').is_owned_by(pdf)
+
+    @pytest.fixture
+    def bbox_parent(self, pdf):
+        # qpdf builds the form XObject's /BBox array and its numbers itself
+        return pdf.pages[0].as_form_xobject()
+
+    @pytest.mark.parametrize(
+        'read',
+        [
+            lambda bbox: bbox[0],
+            lambda bbox: bbox[0:1][0],
+            lambda bbox: list(bbox)[0],
+            lambda bbox: bbox.as_list()[0],
+            lambda bbox: bbox.as_list(default=None)[0],
+        ],
+        ids=['getitem', 'slice', 'iter', 'as_list', 'as_list_default'],
+    )
+    def test_array_read_paths(self, bbox_parent, read):
+        assert isinstance(read(bbox_parent.BBox), pikepdf.Integer)
+
+    def test_qpdf_created_container_is_owned_after_read(self, pdf, bbox_parent):
+        bbox_parent.BBox  # noqa: B018
+        assert bbox_parent.get_raw('/BBox').is_owned_by(pdf)

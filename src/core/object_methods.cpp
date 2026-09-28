@@ -42,6 +42,7 @@
 static py::dict pydict_from_object(QPDFObjectHandle h, const char *method_name)
 {
     QpdfLockGuard lock(h.getOwningQPDF());
+    auto holder = h;
     if (h.isStream())
         h = h.getDict();
 
@@ -50,6 +51,7 @@ static py::dict pydict_from_object(QPDFObjectHandle h, const char *method_name)
         throw py::type_error(msg.c_str());
     }
 
+    adopt_children_on_read(holder, h);
     auto dict_map = h.getDictAsMap();
     py::dict pydict;
     for (auto const &item : dict_map) {
@@ -237,6 +239,7 @@ static py::object dict_or_default(QPDFObjectHandle &h, py::handle default_)
     QpdfLockGuard lock(h.getOwningQPDF());
     if (!h.isDictionary())
         return py::borrow<py::object>(default_);
+    adopt_children_on_read(h, h);
     return py::cast(h.getDictAsMap());
 }
 
@@ -245,6 +248,7 @@ static py::object list_or_default(QPDFObjectHandle &h, py::handle default_)
     QpdfLockGuard lock(h.getOwningQPDF());
     if (!h.isArray())
         return py::borrow<py::object>(default_);
+    adopt_children_on_read(h, h);
     return py::cast(h.getArrayAsVector());
 }
 
@@ -603,7 +607,8 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
             [](QPDFObjectHandle &h, int index) {
                 QpdfLockGuard lock(h.getOwningQPDF());
                 auto u_index = list_range_check(h, index);
-                return h.getArrayItem(u_index);
+                return adopt_item_on_read(
+                    h, static_cast<int>(u_index), h.getArrayItem(u_index));
             })
         .def("__getitem__",
             [](QPDFObjectHandle &h, QPDFObjectHandle &name) {
@@ -628,7 +633,9 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
                 items.reserve(slicelength);
                 Py_ssize_t idx = start;
                 for (size_t i = 0; i < slicelength; ++i) {
-                    items.push_back(h.getArrayItem(static_cast<int>(idx)));
+                    items.push_back(adopt_item_on_read(h,
+                        static_cast<int>(idx),
+                        h.getArrayItem(static_cast<int>(idx))));
                     idx += step;
                 }
                 return QPDFObjectHandle::newArray(items);
@@ -996,6 +1003,7 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
                 QpdfLockGuard lock(h.getOwningQPDF());
                 if (!h.isArray())
                     raise_expected(h, "array");
+                adopt_children_on_read(h, h);
                 return py::cast(h.getArrayAsVector());
             })
         .def(
@@ -1009,6 +1017,7 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
                 QpdfLockGuard lock(h.getOwningQPDF());
                 if (!h.isDictionary())
                     raise_expected(h, "dictionary");
+                adopt_children_on_read(h, h);
                 return py::cast(h.getDictAsMap());
             })
         .def(
@@ -1126,6 +1135,7 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
             [](QPDFObjectHandle h) -> py::object {
                 QpdfLockGuard lock(h.getOwningQPDF());
                 if (h.isArray()) {
+                    adopt_children_on_read(h, h);
                     auto vec = h.getArrayAsVector();
                     auto pyvec = py::cast(vec);
                     return pyvec.attr("__iter__")();

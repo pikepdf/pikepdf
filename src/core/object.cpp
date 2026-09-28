@@ -410,7 +410,7 @@ QPDFObjectHandle object_get_key(QPDFObjectHandle h, std::string const &key)
     QPDFObjectHandle dict = h.isStream() ? h.getDict() : h;
     if (!dict.hasKey(key))
         throw py::key_error(key.c_str());
-    return dict.getKey(key);
+    return adopt_key_on_read(h, dict, key, dict.getKey(key));
 }
 
 void object_set_key(QPDFObjectHandle h, std::string const &key, QPDFObjectHandle &value)
@@ -487,7 +487,7 @@ QPDFObjectHandle traverse_namepath(
                     ("Key " + key + " not found; traversed " + path.format_path(i))
                         .c_str());
             }
-            current = dict.getKey(key);
+            current = adopt_key_on_read(current, dict, key, dict.getKey(key));
         } else {
             int index = std::get<int>(components[i]);
             if (!current.isArray()) {
@@ -503,7 +503,7 @@ QPDFObjectHandle traverse_namepath(
                                        " out of range at " + path.format_path(i))
                         .c_str());
             }
-            current = current.getArrayItem(static_cast<size_t>(index));
+            current = adopt_item_on_read(current, index, current.getArrayItem(index));
         }
     }
     return current;

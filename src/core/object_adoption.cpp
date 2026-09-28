@@ -229,6 +229,71 @@ void adopt_children_into(QPDF *owner, QPDFObjectHandle container)
     adopt_children_impl(owner, entry, container, 0);
 }
 
+// qpdf builds some values itself and stores them in a document without an
+// owner, such as the /Pages /Count it rewrites whenever the page tree changes,
+// or the /BBox of a form XObject made from a page. Such values are adopted
+// when they are read out of a container that does belong to a document, so
+// that per-document settings apply to them. The container's slot is updated
+// with the adopted value, so each value is adopted at most once.
+//
+// Null is skipped: it always converts to None, and qpdf treats storing a null
+// in a dictionary as deleting the key.
+static bool needs_adoption_on_read(QPDFObjectHandle const &value)
+{
+    return value.isInitialized() && !value.isIndirect() && !value.isNull() &&
+           value.getOwningQPDF() == nullptr;
+}
+
+// `holder` supplies the owner; it is the dictionary itself, or the stream
+// whose dictionary is `dict`.
+QPDFObjectHandle adopt_key_on_read(QPDFObjectHandle holder,
+    QPDFObjectHandle dict,
+    std::string const &key,
+    QPDFObjectHandle value)
+{
+    if (!needs_adoption_on_read(value))
+        return value;
+    auto adopted = adopt_into(live_owner(holder), value);
+    if (!adopted.isSameObjectAs(value))
+        dict.replaceKey(key, adopted);
+    return adopted;
+}
+
+QPDFObjectHandle adopt_item_on_read(
+    QPDFObjectHandle array, int index, QPDFObjectHandle value)
+{
+    if (!needs_adoption_on_read(value))
+        return value;
+    auto adopted = adopt_into(live_owner(array), value);
+    if (!adopted.isSameObjectAs(value))
+        array.setArrayItem(index, adopted);
+    return adopted;
+}
+
+// Adopt every child of `container` before its contents are handed out in bulk.
+// Most containers have nothing to adopt, so check that cheaply first.
+void adopt_children_on_read(QPDFObjectHandle holder, QPDFObjectHandle container)
+{
+    bool needed = false;
+    if (container.isDictionary()) {
+        for (auto const &[key, value] : container.ditems()) {
+            if (needs_adoption_on_read(value)) {
+                needed = true;
+                break;
+            }
+        }
+    } else if (container.isArray()) {
+        for (auto const &value : container.aitems()) {
+            if (needs_adoption_on_read(value)) {
+                needed = true;
+                break;
+            }
+        }
+    }
+    if (needed)
+        adopt_children_into(live_owner(holder), container);
+}
+
 // Finish promoting a direct object to an indirect object of `owner`.
 //
 // pikepdf tags an adopted direct object with an empty description, because a

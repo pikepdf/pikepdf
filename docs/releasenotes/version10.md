@@ -99,6 +99,11 @@ the architecture notes on thread safety.
   Glyph List, such as `afii10017` for Cyrillic text. It now accepts every name
   in the full list, as ISO 19005 requires and veraPDF checks. Names outside the
   list, such as `uni0410` or `A.sc`, are still rejected.
+- A `Pdf` opened or created with `conversion_mode='explicit'` returned plain
+  `int` for some numbers that qpdf writes itself, such as `/Pages /Count`
+  after adding or removing a page, `/Rotate` after {meth}`pikepdf.Page.rotate`,
+  or the `/BBox` of {meth}`pikepdf.Page.as_form_xobject`. These values now
+  follow the document's conversion mode like any other.
 
 ## v10.14.0
 
