@@ -22,11 +22,11 @@ See `build-scripts/posix-build-wheel-deps.bash`. This is the only provider
 compiled in, so those wheels link no TLS library at all.
 
 On Windows we do not build qpdf. `build-scripts/win-download-qpdf.ps1` downloads
-qpdf's official `msvc64` release, which statically links OpenSSL into
-`qpdf30.dll`. Both `openssl` and `native` are compiled into that binary and
-OpenSSL is the default, per qpdf's `gnutls > openssl > native` precedence. We
-have no build-time control over this short of compiling qpdf from source on
-Windows.
+qpdf's official `msvc64` (x64) or `msvc-arm64` (ARM64) release, which statically
+links OpenSSL into `qpdf30.dll`. Both `openssl` and `native` are compiled into
+that binary and OpenSSL is the default, per qpdf's
+`gnutls > openssl > native` precedence. We have no build-time control over this
+short of compiling qpdf from source on Windows.
 
 Two reasons to keep the POSIX selection explicit rather than letting
 `USE_IMPLICIT_CRYPTO` choose:

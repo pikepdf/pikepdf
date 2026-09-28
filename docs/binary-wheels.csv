@@ -1,6 +1,7 @@
 ,3.11,3.12,3.13,3.14
 :fa:`apple` macOS 15.0+ Apple Silicon,✅,✅,✅,✅
 :fa:`windows` Windows x64,✅,✅,✅,✅
+:fa:`windows` Windows ARM64,✅,✅,✅,✅
 :fa:`linux` manylinux2014 x64,✅,✅,✅,✅
 :fa:`linux` manylinux2014 aarch64 (ARM64),✅,✅,✅,✅
 :fa:`linux` musllinux x64,✅,✅,✅,✅
