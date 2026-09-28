@@ -1,11 +1,15 @@
 # SPDX-FileCopyrightText: 2022 James R. Barlow
 # SPDX-License-Identifier: MPL-2.0
 
+$ErrorActionPreference = "Stop"
+
 $version = $args[0]
 $platform = $args[1]
 
 if ($platform -eq "win_amd64") {
     $msvc = "msvc64"
+} elseif ($platform -eq "win_arm64") {
+    $msvc = "msvc-arm64"
 } else {
     throw "I don't recognize platform=$platform"
 }
