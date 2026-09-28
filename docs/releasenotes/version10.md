@@ -27,6 +27,14 @@ the architecture notes on thread safety.
   a chain of inline action dictionaries survived {func}`pikepdf.sanitize.remove_javascript`
   and the other action removals, and the graft that preserves benign downstream
   actions could even promote it to a shallower position.
+- {func}`pikepdf.sanitize.remove_javascript`,
+  {func}`pikepdf.sanitize.remove_external_access`,
+  {func}`pikepdf.sanitize.remove_multimedia` and the matching
+  {class}`pikepdf.sanitize.Sanitizer` steps missed actions attached to form
+  field dictionaries. Actions survived on a field stored separately from its
+  widget annotation, on a hidden field with no widget (such as a calculation
+  helper), on nested fields under `/Kids`, and on widgets that appear on no
+  page. The sanitizer now walks the whole `/AcroForm` field tree.
 
 ## v10.15.0
 

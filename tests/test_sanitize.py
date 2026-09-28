@@ -385,6 +385,98 @@ def test_outline_cyclic_guard(pal):
     assert Name.A not in b
 
 
+# --- form field actions --------------------------------------------------
+
+
+def _field(pdf, name, action, **kwargs):
+    return pdf.make_indirect(
+        Dictionary(FT=Name.Tx, T=String(name), AA=Dictionary(K=action), **kwargs)
+    )
+
+
+def _widget(pdf, parent, **kwargs):
+    return pdf.make_indirect(
+        Dictionary(
+            Type=Name.Annot,
+            Subtype=Name.Widget,
+            Parent=parent,
+            Rect=Array([0, 0, 100, 20]),
+            **kwargs,
+        )
+    )
+
+
+def test_removes_js_from_field_split_from_widget(pal):
+    field = _field(pal, 'f', _js_action(pal))
+    widget = _widget(pal, field)
+    field.Kids = Array([widget])
+    pal.Root.AcroForm = Dictionary(Fields=Array([field]))
+    pal.pages[0].obj.Annots = Array([widget])
+    remove_javascript(pal)
+    assert Name.AA not in field
+
+
+def test_removes_js_from_hidden_field(pal):
+    hidden = _field(pal, 'h', _js_action(pal))
+    pal.Root.AcroForm = Dictionary(Fields=Array([hidden]), CO=Array([hidden]))
+    remove_javascript(pal)
+    assert Name.AA not in hidden
+
+
+def test_removes_js_from_nested_field_tree(pal):
+    grandchild = _field(pal, 'gc', _js_action(pal))
+    child = _field(pal, 'c', _js_action(pal), Kids=Array([grandchild]))
+    parent = _field(pal, 'p', _js_action(pal), Kids=Array([child]))
+    pal.Root.AcroForm = Dictionary(Fields=Array([parent]))
+    remove_javascript(pal)
+    for node in (parent, child, grandchild):
+        assert Name.AA not in node
+
+
+def test_removes_external_access_from_hidden_field(pal):
+    submit = Dictionary(S=Name.SubmitForm, F=String('https://evil.example/'))
+    kid = _field(pal, 'kid', submit)
+    parent = pal.make_indirect(Dictionary(T=String('p'), Kids=Array([kid])))
+    pal.Root.AcroForm = Dictionary(Fields=Array([parent]))
+    remove_external_access(pal)
+    assert Name.AA not in kid
+
+
+def test_removes_action_from_widget_not_on_any_page(pal):
+    field = _field(pal, 'f', _js_action(pal))
+    widget = _widget(pal, field, A=_js_action(pal), AA=Dictionary(E=_js_action(pal)))
+    field.Kids = Array([widget])
+    pal.Root.AcroForm = Dictionary(Fields=Array([field]))
+    remove_javascript(pal)
+    assert Name.A not in widget
+    assert Name.AA not in widget
+
+
+def test_field_tree_cyclic_guard(pal):
+    child = _field(pal, 'c', _js_action(pal))
+    parent = _field(pal, 'p', _js_action(pal), Kids=Array([child]))
+    child.Kids = Array([parent])  # cycle
+    pal.Root.AcroForm = Dictionary(Fields=Array([parent, parent]))
+    remove_javascript(pal)  # must terminate
+    assert Name.AA not in parent
+    assert Name.AA not in child
+
+
+def test_field_preserves_non_targeted_action(pal):
+    reset = Dictionary(S=Name.ResetForm)
+    field = _field(pal, 'f', reset)
+    pal.Root.AcroForm = Dictionary(Fields=Array([field]))
+    remove_javascript(pal)
+    assert field.AA.K.S == Name.ResetForm
+
+
+def test_malformed_acroform_fields_tolerated(pal):
+    pal.Root.AcroForm = Dictionary(Fields=Array([Name.Bogus, 42]))
+    remove_javascript(pal)
+    pal.Root.AcroForm = Dictionary(Fields=Name.Bogus)
+    remove_javascript(pal)
+
+
 # --- remove_attachments --------------------------------------------------
 
 

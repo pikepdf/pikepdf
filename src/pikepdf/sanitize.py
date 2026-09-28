@@ -212,12 +212,41 @@ def _sanitize_actions(pdf: Pdf, targets: frozenset[Name]) -> None:
                 _neutralize_additional_actions(annot, targets)
 
     # Interactive form fields.
-    if pdf.acroform.exists:
-        for field in pdf.acroform.fields:
-            _neutralize_additional_actions(field.obj, targets)
+    _neutralize_field_tree(root, targets)
 
     # Document outline (bookmarks): each item may carry an /A action.
     _neutralize_outlines(root, targets)
+
+
+def _neutralize_field_tree(root: Object, targets: frozenset[Name]) -> None:
+    """Neutralize targeted actions on every node of the AcroForm field tree.
+
+    Walks /AcroForm/Fields and every /Kids array directly, rather than
+    relying on qpdf's form helper, which only reports terminal fields that
+    have a widget annotation on a page. This reaches field dictionaries that
+    are split from their widgets, hidden fields with no widget at all (e.g.
+    calculation helpers), and widgets that appear on no page. Widget /A is
+    neutralized too; the page walk covers only widgets that appear on a page.
+    """
+    acroform = root.get(Name.AcroForm)
+    if not isinstance(acroform, Dictionary):
+        return
+    fields = acroform.get(Name.Fields)
+    if not isinstance(fields, Array):
+        return
+    visited: set[tuple[int, int]] = set()
+    stack = list(fields)
+    while stack:
+        node = stack.pop()
+        if not isinstance(node, Dictionary):
+            continue
+        if _cycle_hit(node, visited):
+            continue
+        _neutralize_slot(node, Name.A, targets, set())
+        _neutralize_additional_actions(node, targets)
+        kids = node.get(Name.Kids)
+        if isinstance(kids, Array):
+            stack.extend(kids)
 
 
 def _neutralize_outlines(root: Object, targets: frozenset[Name]) -> None:
