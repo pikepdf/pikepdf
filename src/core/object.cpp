@@ -96,10 +96,18 @@ static py::object binary_arithmetic(
     return py::steal(result);
 }
 
-static py::object unary_arithmetic(QPDFObjectHandle &self, PyObject *(*fn)(PyObject *))
+// Python stand-in for a numeric Object in a one-operand number protocol
+// method, so round(), int(), format() and so on give the result they would
+// give on the value implicit mode produces.
+static py::object number_operand(QPDFObjectHandle &self)
 {
     QpdfLockGuard lock(self.getOwningQPDF());
-    py::object operand = arithmetic_operand(self, false);
+    return arithmetic_operand(self, false);
+}
+
+static py::object unary_arithmetic(QPDFObjectHandle &self, PyObject *(*fn)(PyObject *))
+{
+    py::object operand = number_operand(self);
     PyObject *result = fn(operand.ptr());
     if (!result)
         throw py::python_error();
@@ -1026,10 +1034,13 @@ void init_object(py::module_ &m)
                 // LCOV_EXCL_STOP
             })
         .def("__int__",
-            [](QPDFObjectHandle &h) -> long long {
-                if (!h.isInteger())
-                    throw py::type_error("Object is not an integer");
-                return h.getIntValue();
+            [](QPDFObjectHandle &h) -> py::object {
+                // Truncates a Real, as int() of a Decimal does.
+                py::object operand = number_operand(h);
+                PyObject *result = PyNumber_Long(operand.ptr());
+                if (!result)
+                    throw py::python_error();
+                return py::steal(result);
             })
         .def("__index__",
             [](QPDFObjectHandle &h) -> long long {
@@ -1044,6 +1055,45 @@ void init_object(py::module_ &m)
                 if (h.isReal())
                     return std::stod(h.getRealValue());
                 throw py::type_error("Object is not numeric");
+            })
+        .def(
+            "__round__",
+            [](QPDFObjectHandle &h, py::object ndigits) {
+                py::object operand = number_operand(h);
+                if (ndigits.is_none())
+                    return operand.attr("__round__")();
+                return operand.attr("__round__")(ndigits);
+            },
+            py::arg("ndigits") = py::none())
+        .def("__trunc__",
+            [](QPDFObjectHandle &h) { return number_operand(h).attr("__trunc__")(); })
+        .def("__floor__",
+            [](QPDFObjectHandle &h) { return number_operand(h).attr("__floor__")(); })
+        .def("__ceil__",
+            [](QPDFObjectHandle &h) { return number_operand(h).attr("__ceil__")(); })
+        .def("__format__",
+            [](py::handle self, py::str format_spec) -> py::object {
+                auto &h = py::cast<QPDFObjectHandle &>(self);
+                py::object value;
+                {
+                    QpdfLockGuard lock(h.getOwningQPDF());
+                    if (h.isBool())
+                        value = py::bool_(h.getBoolValue());
+                    else if (h.isInteger() || h.isReal())
+                        value = arithmetic_operand(h, false);
+                }
+                if (!value.is_valid()) {
+                    // Any other object formats as object.__format__ would:
+                    // str() for an empty spec, and TypeError otherwise.
+                    if (PyUnicode_GetLength(format_spec.ptr()) != 0)
+                        throw py::type_error("unsupported format string passed to "
+                                             "pikepdf.Object.__format__");
+                    return py::str(self);
+                }
+                PyObject *result = PyObject_Format(value.ptr(), format_spec.ptr());
+                if (!result)
+                    throw py::python_error();
+                return py::steal(result);
             })
         .def("_get_real_value",
             [](QPDFObjectHandle &h) -> std::string {
@@ -1099,6 +1149,7 @@ void init_object(py::module_ &m)
         {"__floordiv__", "__rfloordiv__", PyNumber_FloorDivide},
         {"__mod__", "__rmod__", PyNumber_Remainder},
         {"__pow__", "__rpow__", number_power},
+        {"__divmod__", "__rdivmod__", PyNumber_Divmod},
     };
     for (auto const &op : arithmetic_ops) {
         object.def(
