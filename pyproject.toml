@@ -77,8 +77,8 @@ skip = [
 build-frontend = "build"
 
 [tool.cibuildwheel.environment]
-QPDF_MIN_VERSION = "12.4.1"
-QPDF_VERSION = "12.4.1"
+QPDF_MIN_VERSION = "12.4.2"
+QPDF_VERSION = "12.4.2"
 QPDF_PATTERN = "https://github.com/qpdf/qpdf/releases/download/vVERSION/qpdf-VERSION.tar.gz"
 
 [tool.cibuildwheel.linux]
@@ -146,8 +146,17 @@ before-build = "pip install delvewheel"
 # (CPython ships its own copy) and name-mangles msvcp140.dll so it cannot shadow or
 # collide with the system copy or another wheel's copy. This is what keeps the wheel
 # self-contained without bundling a conflicting un-mangled runtime in the package
-# directory, which previously caused issue #718. See win-download-qpdf.ps1.
-repair-wheel-command = "delvewheel repair --add-path d:\\qpdf\\bin -w {dest_dir} {wheel}"
+# directory, which previously caused issue #718. See win-download-qpdf.ps1, which
+# publishes QPDF_DIR.
+repair-wheel-command = "delvewheel repair --add-path %QPDF_DIR%/bin -w {dest_dir} {wheel}"
+
+[[tool.cibuildwheel.overrides]]
+# Windows does not build qpdf; win-download-qpdf.ps1 unpacks a prebuilt release
+# to a runner-dependent location and exports QPDF_DIR.
+select = "*-win*"
+inherit.environment = "append"
+environment.QPDF_SOURCE_TREE = "$QPDF_DIR"
+environment.QPDF_BUILD_LIBDIR = "$QPDF_DIR/lib"
 
 [tool.mypy]
 exclude = ["^_qpdf\\.py$"]

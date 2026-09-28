@@ -179,13 +179,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       CIBW_BUILD: "*-${{ matrix.platform }}"
-      CIBW_ENVIRONMENT: >-
-        QPDF_SOURCE_TREE="d:\\qpdf"
-        QPDF_BUILD_LIBDIR="d:\\qpdf\\lib"
     strategy:
       matrix:
-        os: [windows-2022]
-        platform: [win_amd64]
+        include:
+          - os: windows-2022
+            platform: win_amd64
+          - os: windows-11-arm
+            platform: win_arm64
 
     steps:
       - uses: actions/checkout@v6
