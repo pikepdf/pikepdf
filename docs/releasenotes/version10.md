@@ -21,12 +21,6 @@ the architecture notes on thread safety.
 - Added binary wheels for Windows on ARM64. Thanks to @ndabas. {issue}`744`
 - Binary wheels now bundle qpdf 12.4.2, which is also the new minimum version
   of qpdf, since it is the first release with Windows ARM64 binaries.
-- {mod}`pikepdf.sanitize` now severs an action `/Next` chain once it grows past
-  the recursion cap instead of leaving the tail untouched. Previously a targeted
-  action (for example a `/JavaScript` action) buried more than 50 links deep in
-  a chain of inline action dictionaries survived {func}`pikepdf.sanitize.remove_javascript`
-  and the other action removals, and the graft that preserves benign downstream
-  actions could even promote it to a shallower position.
 - {func}`pikepdf.sanitize.remove_javascript`,
   {func}`pikepdf.sanitize.remove_external_access`,
   {func}`pikepdf.sanitize.remove_multimedia` and the matching
@@ -34,7 +28,20 @@ the architecture notes on thread safety.
   field dictionaries. Actions survived on a field stored separately from its
   widget annotation, on a hidden field with no widget (such as a calculation
   helper), on nested fields under `/Kids`, and on widgets that appear on no
-  page. The sanitizer now walks the whole `/AcroForm` field tree.
+  page. The sanitizer now walks the whole `/AcroForm` field tree. Thanks to
+  Stjorn for the report.
+- The same sanitizer steps left an action `/Next` chain untouched past its
+  depth limit of 50, so a targeted action (for example a `/JavaScript` action)
+  buried deeper survived, and the step that preserves benign downstream actions
+  could promote it to a shallower position. The chain is now severed at the
+  limit, which also drops any benign actions past it. Thanks to @Nayana-Naik73.
+  {issue}`746`
+- The sanitizer now also drops anything in a `/Next` chain that is not an
+  action dictionary, such as a nested array, instead of passing it through
+  unexamined. It raised `AttributeError` or `ValueError` on some such values
+  (for example `/Next [42]`), and now runs in explicit conversion mode
+  regardless of the caller's settings, so malformed values of the wrong type
+  are skipped rather than crashing it.
 
 ## v10.15.0
 

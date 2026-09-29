@@ -25,8 +25,10 @@ sanitization can accomplish.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import functools
+from typing import TYPE_CHECKING, ParamSpec, TypeVar
 
+from pikepdf._explicit_conv import explicit_conversion
 from pikepdf.objects import Array, Dictionary, Name, Stream
 
 if TYPE_CHECKING:
@@ -65,8 +67,30 @@ _MEDIA_ANNOT_KEYS: dict[Name, tuple[Name, ...]] = {
     Name('/3D'): (Name('/3DD'),),
 }
 
-# Guard against pathological /Next chains built from inline (direct) action
-# dictionaries, which cannot be deduplicated by object id.
+_P = ParamSpec('_P')
+_R = TypeVar('_R')
+
+
+def _explicit(func: Callable[_P, _R]) -> Callable[_P, _R]:
+    """Run *func* in explicit conversion mode.
+
+    The sanitizer reads untrusted documents, where any value may have the wrong
+    type. In explicit mode every value read is a :class:`pikepdf.Object`, so a
+    scalar where a dictionary belongs fails an ``isinstance`` check instead of
+    arriving as a Python ``int`` or ``bool`` that lacks the object interface.
+    """
+
+    @functools.wraps(func)
+    def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+        with explicit_conversion():
+            return func(*args, **kwargs)
+
+    return wrapper
+
+
+# Guard against pathological /Next chains, such as those built from inline
+# (direct) action dictionaries, which cannot be deduplicated by object id. A
+# chain is severed at this depth, so anything deeper does not survive.
 _MAX_CHAIN_DEPTH = 50
 
 
@@ -126,7 +150,7 @@ def _neutralize_next_chain(
     if next_obj is None:
         return
     if depth >= _MAX_CHAIN_DEPTH:
-        # Too deep to examine safely (a pathological inline /Next chain). Fail
+        # Too deep to examine safely (a pathological /Next chain). Fail
         # closed by severing the unexamined tail: leaving it in place lets a
         # targeted action buried past the cap survive the sanitizer, and the
         # graft below could even promote it to a shallower position.
@@ -135,6 +159,10 @@ def _neutralize_next_chain(
 
     survivors: list[Object] = []
     for child in _as_actions(next_obj):
+        # Fail closed: /Next may hold only action dictionaries. Anything else,
+        # such as a nested array, cannot be examined, so it is dropped.
+        if not _is_action_dict(child):
+            continue
         if _cycle_hit(child, seen):
             continue
         # Clean the child's own chain first, so grafted survivors are clean.
@@ -272,6 +300,7 @@ def _neutralize_outlines(root: Object, targets: frozenset[Name]) -> None:
         stack.append(item.get(Name.First))
 
 
+@_explicit
 def remove_javascript(pdf: Pdf) -> None:
     """Remove all JavaScript from a PDF, in place.
 
@@ -311,6 +340,7 @@ def _drop_named_javascript(pdf: Pdf) -> None:
         del names[Name.JavaScript]
 
 
+@_explicit
 def remove_attachments(pdf: Pdf) -> None:
     """Remove all embedded files (attachments) from a PDF, in place.
 
@@ -381,6 +411,7 @@ def _af_holds_embedded_file(af: Object | None) -> bool:
     )
 
 
+@_explicit
 def remove_external_access(pdf: Pdf) -> None:
     """Neutralize actions that reach the network or filesystem, in place.
 
@@ -410,6 +441,7 @@ def remove_external_access(pdf: Pdf) -> None:
     _sanitize_actions(pdf, _EXTERNAL_SUBTYPES)
 
 
+@_explicit
 def remove_thumbnails(pdf: Pdf) -> None:
     """Remove embedded page thumbnails from a PDF, in place.
 
@@ -431,6 +463,7 @@ def remove_thumbnails(pdf: Pdf) -> None:
             del page.obj[Name.Thumb]
 
 
+@_explicit
 def remove_search_index(pdf: Pdf) -> None:
     """Remove an embedded full-text search index from a PDF, in place.
 
@@ -459,6 +492,7 @@ def remove_search_index(pdf: Pdf) -> None:
         del pdf.Root[Name.PieceInfo]
 
 
+@_explicit
 def remove_multimedia(pdf: Pdf) -> None:
     """Remove multimedia and rich-media content from a PDF, in place.
 
@@ -514,6 +548,7 @@ def _remove_multimedia_structural(pdf: Pdf) -> None:
                     del annot[key]
 
 
+@_explicit
 def remove_web_capture(pdf: Pdf) -> None:
     """Remove Web Capture (spider) information from a PDF, in place.
 
@@ -533,6 +568,7 @@ def remove_web_capture(pdf: Pdf) -> None:
         del pdf.Root[Name.SpiderInfo]
 
 
+@_explicit
 def remove_private_app_data(pdf: Pdf) -> None:
     """Remove private application data (page-piece dictionaries), in place.
 
@@ -562,6 +598,7 @@ def remove_private_app_data(pdf: Pdf) -> None:
             del page.obj[Name.PieceInfo]
 
 
+@_explicit
 def remove_collection(pdf: Pdf) -> None:
     """Remove the PDF portfolio (collection) presentation, in place.
 
@@ -676,6 +713,7 @@ class Sanitizer:
         self._structural.append(remove_collection)
         return self
 
+    @_explicit
     def apply(self, pdf: Pdf) -> Pdf:
         """Apply the recorded operations to *pdf*, in place.
 
