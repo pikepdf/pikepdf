@@ -123,7 +123,14 @@ def _neutralize_next_chain(
     that legitimate downstream actions are preserved.
     """
     next_obj = action.get(Name.Next)
-    if depth >= _MAX_CHAIN_DEPTH or next_obj is None:
+    if next_obj is None:
+        return
+    if depth >= _MAX_CHAIN_DEPTH:
+        # Too deep to examine safely (a pathological inline /Next chain). Fail
+        # closed by severing the unexamined tail: leaving it in place lets a
+        # targeted action buried past the cap survive the sanitizer, and the
+        # graft below could even promote it to a shallower position.
+        del action[Name.Next]
         return
 
     survivors: list[Object] = []
