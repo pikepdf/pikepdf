@@ -265,6 +265,32 @@ def test_cyclic_next_guard(pal):
     remove_external_access(pal)  # must terminate, not hang or overflow
 
 
+def test_deep_next_chain_fails_closed(pal):
+    # A JavaScript action buried past the /Next recursion cap must not survive:
+    # a pathological inline chain that is too deep to examine is severed, not
+    # left in place (and not grafted upward).
+    node = Dictionary(S=Name.JavaScript, JS=String("app.alert('pwn')"))
+    for _ in range(80):
+        node = Dictionary(S=Name.GoTo, Next=node)
+    top = Dictionary(S=Name.Named, N=Name.NextPage, Next=node)
+    annot = pal.make_indirect(Dictionary(Type=Name.Annot, Subtype=Name.Link, A=top))
+    pal.pages[0].obj.Annots = Array([annot])
+
+    remove_javascript(pal)
+
+    def has_js(action):
+        while isinstance(action, Dictionary):
+            if action.get(Name.S) == Name.JavaScript:
+                return True
+            nxt = action.get(Name.Next)
+            if isinstance(nxt, Array):
+                return any(has_js(child) for child in nxt)
+            action = nxt
+        return False
+
+    assert not has_js(annot.A)
+
+
 def test_removes_gotoe_embedded_action(pal):
     annot = pal.make_indirect(
         Dictionary(

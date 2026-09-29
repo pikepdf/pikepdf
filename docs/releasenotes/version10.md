@@ -21,6 +21,12 @@ the architecture notes on thread safety.
 - Added binary wheels for Windows on ARM64. Thanks to @ndabas. {issue}`744`
 - Binary wheels now bundle qpdf 12.4.2, which is also the new minimum version
   of qpdf, since it is the first release with Windows ARM64 binaries.
+- {mod}`pikepdf.sanitize` now severs an action `/Next` chain once it grows past
+  the recursion cap instead of leaving the tail untouched. Previously a targeted
+  action (for example a `/JavaScript` action) buried more than 50 links deep in
+  a chain of inline action dictionaries survived {func}`pikepdf.sanitize.remove_javascript`
+  and the other action removals, and the graft that preserves benign downstream
+  actions could even promote it to a shallower position.
 
 ## v10.15.0
 
