@@ -28,6 +28,10 @@ the architecture notes on thread safety.
   `Name('')`, which lacks the leading slash, is still rejected. PDF/A does not
   forbid empty names, and the PDF/A validator accepts them. Thanks to
   @sjudd for the report and @DSeaStar for the analysis. {issue}`745`
+- `AcroFormField.get_inheritable_field_value_as_name()` now returns a
+  {class}`pikepdf.Name`, as documented, instead of a `str`. When the value is
+  missing or not a name, it returns the empty name `Name('/')`, which is falsy,
+  instead of `''`. Comparisons such as `== '/Tx'` are unaffected. {issue}`748`
 
 ## v10.16.0
 

@@ -289,3 +289,23 @@ def test_acroform_transform_annotations(form):
     # Each transformed widget annotation that had a field yields a new field
     assert len(new_fields) == len(old_fields)
     assert all(isinstance(og, tuple) and len(og) == 2 for og in old_fields)
+
+
+def test_inheritable_field_value_as_name():
+    pdf = Pdf.new()
+    parent = pdf.make_indirect(
+        pikepdf.Dictionary(FT=Name.Tx, DA=pikepdf.String('/Helv 12 Tf 0 g'))
+    )
+    kid = pdf.make_indirect(pikepdf.Dictionary(Parent=parent))
+    parent.Kids = [kid]
+    field = pikepdf.AcroFormField(kid)
+
+    ft = field.get_inheritable_field_value_as_name('/FT')
+    assert isinstance(ft, Name)
+    assert ft == Name.Tx
+    # A missing or non-name value gives the empty name, which is falsy.
+    for key in ('/Missing', '/DA'):
+        value = field.get_inheritable_field_value_as_name(key)
+        assert isinstance(value, Name)
+        assert value == Name('/')
+        assert not value

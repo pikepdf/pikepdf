@@ -51,8 +51,13 @@ void init_acroform(py::module_ &m)
         .def("get_inheritable_field_value_as_string",
             &QPDFFormFieldObjectHelper::getInheritableFieldValueAsString,
             py::arg("name"))
-        .def("get_inheritable_field_value_as_name",
-            &QPDFFormFieldObjectHelper::getInheritableFieldValueAsName,
+        .def(
+            "get_inheritable_field_value_as_name",
+            [](QPDFFormFieldObjectHelper &field, std::string const &name) {
+                // qpdf returns "" for a missing or non-name value
+                auto value = field.getInheritableFieldValueAsName(name);
+                return QPDFObjectHandle::newName(value.empty() ? "/" : value);
+            },
             py::arg("name"))
         .def_prop_ro("field_type", &QPDFFormFieldObjectHelper::getFieldType)
         .def_prop_ro(

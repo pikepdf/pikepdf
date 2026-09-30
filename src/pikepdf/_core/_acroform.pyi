@@ -122,7 +122,8 @@ class AcroFormField(ObjectHelper):
     def get_inheritable_field_value_as_name(self, name: str) -> Name:
         """Get an inherited field value as a Name object.
 
-        If the value is not a name, this property will hold an empty name.
+        If the value is missing or not a name, returns the empty name
+        ``Name('/')``, which is falsy.
         """
     @property
     def field_type(self) -> str:
