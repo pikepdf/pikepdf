@@ -96,6 +96,12 @@ public:
     {
         py::gil_scoped_acquire gil;
 
+        // Both branches below check the reported count against the buffer length.
+        // The memoryview and bytes buffers physically bound the write, but qpdf
+        // treats exactly bytes_read bytes of buffer as valid, so a readinto()/read()
+        // that over-reports would send it past the end. Reject that the same way
+        // the output path rejects an over-reporting write() (Pl_PythonOutput::write).
+
 #if defined(PYPY_VERSION)
         // PyPy does not permit readinto(memoryview), so read to a buffer and
         // memcpy that buffer. Error message is:
@@ -104,8 +110,10 @@ public:
         py::bytes result = this->stream.attr("read")(length);
         const char *data = PyBytes_AsString(result.ptr());
         Py_ssize_t bytes_read = PyBytes_Size(result.ptr());
+        if (static_cast<size_t>(bytes_read) > length)
+            throw py::value_error("Read more bytes than requested");
 
-        memcpy(buffer, data, std::min(length, static_cast<size_t>(bytes_read)));
+        memcpy(buffer, data, static_cast<size_t>(bytes_read));
 #else
         auto view_buffer_info = py::steal<py::object>(
             py::handle(PyMemoryView_FromMemory(buffer, length, PyBUF_WRITE)));
@@ -114,6 +122,8 @@ public:
         if (result.is_none())
             return 0;
         size_t bytes_read = py::cast<size_t>(result);
+        if (bytes_read > length)
+            throw py::value_error("Read more bytes than requested");
 #endif
         if (bytes_read == 0) {
             if (length > 0) {

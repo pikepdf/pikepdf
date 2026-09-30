@@ -32,6 +32,11 @@ the architecture notes on thread safety.
   {class}`pikepdf.Name`, as documented, instead of a `str`. When the value is
   missing or not a name, it returns the empty name `Name('/')`, which is falsy,
   instead of `''`. Comparisons such as `== '/Tx'` are unaffected. {issue}`748`
+- Fixed an out-of-bounds read when opening a PDF from a Python file object
+  whose `readinto()` (or `read()` on PyPy) reports more bytes than the buffer
+  can hold. Such a stream now raises `ValueError`, matching how the output path
+  already rejects a `write()` that claims to have consumed more than it was
+  given.
 
 ## v10.16.0
 

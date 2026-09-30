@@ -209,6 +209,43 @@ def test_mmap_only_file(resources):
         Pdf.open(f, access_mode=pikepdf._core.AccessMode.stream)
 
 
+def test_stream_read_overreport(resources):
+    # A file object whose readinto()/read() claims to have delivered more bytes
+    # than the buffer holds must be rejected, not trusted: qpdf would otherwise
+    # read past the end of the buffer. Regression for an out-of-bounds read on
+    # the Python stream input source.
+    data = (resources / 'pal-1bit-trivial.pdf').read_bytes()
+
+    class OverReportingStream(io.RawIOBase):
+        def __init__(self, data):
+            self._bio = BytesIO(data)
+
+        def readable(self):
+            return True
+
+        def seekable(self):
+            return True
+
+        def seek(self, offset, whence=io.SEEK_SET):
+            return self._bio.seek(offset, whence)
+
+        def tell(self):
+            return self._bio.tell()
+
+        def readinto(self, b):
+            n = self._bio.readinto(b)
+            # Claim far more than the buffer holds (CPython path).
+            return n + 1_000_000 if n else n
+
+        def read(self, size=-1):
+            chunk = self._bio.read(size)
+            # Return more bytes than were requested (PyPy path).
+            return chunk + b'\x00' * 1_000_000 if chunk else chunk
+
+    with pytest.raises(ValueError, match='more bytes than requested'):
+        Pdf.open(OverReportingStream(data), access_mode=pikepdf._core.AccessMode.stream)
+
+
 def test_save_bytesio(resources, outpdf):
     with Pdf.open(resources / 'fourpages.pdf') as input_:
         pdf = Pdf.new()
