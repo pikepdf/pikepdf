@@ -115,6 +115,15 @@ public:
             return 0;
         size_t bytes_read = py::cast<size_t>(result);
 #endif
+        // A conforming stream never reports more bytes than the buffer holds,
+        // but readinto()/read() on a caller-supplied file object might: the
+        // memoryview and bytes buffers physically bound the write, yet a wrong
+        // return value would still be trusted. qpdf reads exactly bytes_read
+        // bytes of buffer as valid, so an over-reported count walks past its
+        // end. Clamp it, mirroring the guard the output path already applies to
+        // an over-reporting write() (see Pl_PythonOutput::write).
+        if (static_cast<size_t>(bytes_read) > length)
+            bytes_read = static_cast<decltype(bytes_read)>(length);
         if (bytes_read == 0) {
             if (length > 0) {
                 // EOF
