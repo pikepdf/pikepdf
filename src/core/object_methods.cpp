@@ -869,7 +869,8 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
                 if (h.isDictionary() || h.isStream()) {
                     for (auto key_attr : h.getKeys()) {
                         std::string s = key_attr.substr(1);
-                        result.append(py::str(s.c_str()));
+                        if (!s.empty())
+                            result.append(py::str(s.c_str()));
                     }
                 }
                 return result;

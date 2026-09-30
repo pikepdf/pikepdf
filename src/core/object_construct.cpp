@@ -195,9 +195,8 @@ void init_object_construct(py::module_ &m)
                 } catch (const py::cast_error &) {
                     throw py::type_error("Name should be str");
                 }
-                if (s.size() < 2)
-                    throw py::value_error("Name must be at least one character long");
-                if (s[0] != '/')
+                // A lone '/' is the empty name, which ISO 32000 permits.
+                if (s.empty() || s[0] != '/')
                     throw py::value_error("Name objects must begin with '/'");
                 return py::cast(QPDFObjectHandle::newName(s));
             },
@@ -336,7 +335,7 @@ void init_object_construct(py::module_ &m)
                 }
                 for (auto item : dd) {
                     std::string key = py::cast<std::string>(item.first);
-                    if (key.empty() || key[0] != '/' || key == "/")
+                    if (key.empty() || key[0] != '/')
                         throw py::key_error(
                             "Dictionary created from strings must begin "
                             "with '/'");

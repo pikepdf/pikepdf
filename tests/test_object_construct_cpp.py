@@ -32,9 +32,15 @@ class TestCppName:
         with pytest.raises(ValueError):
             _core.Name('Resources')
 
-    def test_single_slash_rejected(self):
+    def test_single_slash_is_empty_name(self):
+        assert _core.Name('/') == _core._new_name('/')
+        assert bytes(_core.Name('/')) == b'/'
+
+    def test_empty_string_rejected(self):
         with pytest.raises(ValueError):
-            _core.Name('/')
+            _core.Name('')
+        with pytest.raises(ValueError):
+            _core._new_name('')
 
     def test_name_identity(self):
         n = _core.Name('/X')

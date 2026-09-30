@@ -16,6 +16,19 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.16.1
+
+- The empty name `/` is now supported. The PDF 1.7 and 2.0 specifications
+  define a lone slash as a valid name made of zero characters, but
+  `pikepdf.Name('/')` raised `ValueError`, and dictionaries refused `/` as a
+  key. This broke {meth}`pikepdf.Pdf.add_pages_from` on files
+  with an empty-named destination such as `/Dests << / 3 0 R >>`. Such names
+  can now be created, used as dictionary keys, and migrated during page
+  copying. `bool(Name('/'))` is `False`, like an empty {class}`pikepdf.String`.
+  `Name('')`, which lacks the leading slash, is still rejected. PDF/A does not
+  forbid empty names, and the PDF/A validator accepts them. Thanks to
+  @sjudd for the report and @DSeaStar for the analysis. {issue}`745`
+
 ## v10.16.0
 
 - Added binary wheels for Windows on ARM64. Thanks to @ndabas. {issue}`744`

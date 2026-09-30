@@ -428,8 +428,6 @@ void object_set_key(QPDFObjectHandle h, std::string const &key, QPDFObjectHandle
     if (value.isNull())
         throw py::value_error(
             "PDF Dictionary keys may not be set to None - use 'del' to remove");
-    if (key == "/")
-        throw py::key_error("PDF Dictionary keys may not be '/'");
     if (!str_startswith(key, "/"))
         throw py::key_error("PDF Dictionary keys must begin with '/'");
     if (h.isStream() && key == "/Length") {
@@ -1015,7 +1013,8 @@ void init_object(py::module_ &m)
                 } else if (h.isString()) {
                     return h.getStringValue().size() > 0;
                 } else if (h.isName()) {
-                    return h.getName().size() > 0;
+                    // getName() includes the leading '/'
+                    return h.getName().size() > 1;
                 } else if (h.isOperator()) {
                     return h.getOperatorValue().size() > 0;
                 } else if (h.isInteger()) {
@@ -1181,9 +1180,7 @@ void init_object(py::module_ &m)
         py::arg("value"),
         py::arg("places") = 0);
     m.def("_new_name", [](const std::string &s) {
-        if (s.length() < 2)
-            throw py::value_error("Name must be at least one character long");
-        if (s.at(0) != '/')
+        if (s.empty() || s[0] != '/')
             throw py::value_error("Name objects must begin with '/'");
         return QPDFObjectHandle::newName(s);
     });

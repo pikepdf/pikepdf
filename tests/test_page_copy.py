@@ -521,3 +521,34 @@ def test_add_pages_from_migrates_legacy_name_dests():
     assert Name.Chap1 in dest.Root.Dests
     # name-keyed reference resolves into Root.Dests, NOT the Names tree
     assert Name.Names not in dest.Root or Name.Dests not in dest.Root.get(Name.Names)
+
+
+_EMPTY_NAME_LINK_PDF = b"""%PDF-1.7
+1 0 obj << /Type /Catalog /Pages 2 0 R /Dests << / 3 0 R >> >> endobj
+2 0 obj << /Type /Pages /Kids [4 0 R 5 0 R] /Count 2 >> endobj
+3 0 obj [ 5 0 R /Fit ] endobj
+4 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200]
+  /Annots [ << /Type /Annot /Subtype /Link /Rect [0 0 50 50]
+              /A << /S /GoTo /D / >> >> ] >> endobj
+5 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] >> endobj
+trailer << /Root 1 0 R /Size 6 >>"""
+
+
+def test_add_pages_from_migrates_empty_name_dest():
+    dest = Pdf.new()
+    with Pdf.open(io.BytesIO(_EMPTY_NAME_LINK_PDF)) as src:
+        result = dest.add_pages_from(src)
+    assert result.named_dests_added == 1
+    assert dest.Root.Dests[Name('/')].D[0] == dest.pages[1].obj
+    assert dest.pages[0].obj.Annots[0].A.D == Name('/')
+
+
+def test_add_pages_from_renames_colliding_empty_name_dest():
+    dest = Pdf.new()
+    with Pdf.open(io.BytesIO(_EMPTY_NAME_LINK_PDF)) as src:
+        dest.add_pages_from(src)
+        result = dest.add_pages_from(src)
+    assert result.renamed_dests == {'/': '/.1'}
+    assert Name('/') in dest.Root.Dests and Name('/.1') in dest.Root.Dests
+    assert dest.pages[2].obj.Annots[0].A.D == Name('/.1')
+    assert dest.Root.Dests[Name('/.1')].D[0] == dest.pages[3].obj

@@ -293,3 +293,24 @@ def test_named_appearance_stream_checked(tmp_path):
     # /PS is forbidden whatever its value
     pdf = _with_named_appearance('2', PS=Name.Whatever)
     assert_denied(pdf, tmp_path / 'c.pdf', 'ISO_19005_2:6.2.9-1')
+
+
+# --- the empty name ------------------------------------------------------------
+
+
+@pytest.mark.parametrize('part', PARTS)
+def test_empty_name_approved(tmp_path, part):
+    # ISO 32000 permits the empty name '/', and no part of ISO 19005 forbids it.
+    pdf = make_simple_truetype_pdf(part)
+    pdf.Root.Dests = Dictionary({'/': Array([_page(pdf), Name.Fit])})
+    page = pdf.pages[0]
+    page.Resources.ExtGState = Dictionary({'/': Dictionary(Type=Name.ExtGState)})
+    page.contents_add(pdf.make_stream(b'/ gs'), prepend=True)
+    assert_approved(pdf, tmp_path / 'c.pdf', part)
+
+
+def test_empty_name_missing_resource_denied(tmp_path):
+    # An empty resource name is looked up like any other.
+    pdf = make_simple_truetype_pdf()
+    pdf.pages[0].contents_add(pdf.make_stream(b'/ gs'), prepend=True)
+    assert_denied(pdf, tmp_path / 'c.pdf', 'ISO_19005_2:6.2.2-2')

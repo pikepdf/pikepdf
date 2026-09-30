@@ -289,10 +289,28 @@ class TestName:
             assert Name('Monty') not in []  # pylint: disable=expression-not-assigned
 
     def test_empty_name(self):
-        with pytest.raises(ValueError):
+        # ISO 32000-2 7.3.5: a lone SOLIDUS is the valid name defined by the
+        # empty sequence of characters.
+        empty = Name('/')
+        assert isinstance(empty, Name)
+        assert str(empty) == '/'
+        assert bytes(empty) == b'/'
+        assert empty.unparse() == b'/'
+        assert repr(empty) == 'pikepdf.Name("/")'
+        assert empty == Name('/') == '/'
+        assert hash(empty) == hash(Name('/'))
+        assert empty != Name('/A')
+        assert getattr(Name, '') == empty
+
+    def test_name_without_slash_rejected(self):
+        with pytest.raises(ValueError, match='must begin with'):
             Name('')
-        with pytest.raises(ValueError):
-            Name('/')
+
+    def test_empty_name_round_trip(self):
+        arr = Array([Name('/'), Name('/'), Name('/A'), Name('/')])
+        assert Object.parse(arr.unparse()) == arr
+        d = Dictionary({'/': Name('/'), '/A': 1})
+        assert Object.parse(d.unparse()) == d
 
     def test_forbidden_name_usage(self):
         with pytest.raises(AttributeError, match="may not be set on pikepdf.Name"):
@@ -314,11 +332,8 @@ class TestName:
 
     def test_name_bool(self):
         assert bool(Name('/Foo')) is True
-        # Currently we forbid the empty name. All creatable names are true.
-        with pytest.raises(ValueError):
-            bool(Name('/'))
-        with pytest.raises(ValueError):
-            bool(Name(''))
+        # Like an empty String, the empty name is false.
+        assert bool(Name('/')) is False
 
 
 class TestHashViolation:
@@ -478,15 +493,29 @@ class TestDictionary:
         with pytest.raises(KeyError, match=r"must begin with '/'"):
             pikepdf.Dictionary({'/Slash': 'dot', 'unslash': 'error'})
         with pytest.raises(KeyError, match=r"must begin with '/'"):
-            pikepdf.Dictionary({'/': 'slash'})
+            pikepdf.Dictionary({'': 'empty'})
 
     def test_bad_name_set(self):
         d = pikepdf.Dictionary()
         d['/Slash'] = 'dot'
         with pytest.raises(KeyError, match=r"must begin with '/'"):
             d['unslash'] = 'error'
-        with pytest.raises(KeyError, match=r"may not be '/'"):
-            d['/'] = 'error'
+        with pytest.raises(KeyError, match=r"must begin with '/'"):
+            d[''] = 'error'
+
+    def test_empty_name_key(self):
+        d = pikepdf.Dictionary({'/': 'slash'})
+        assert d['/'] == 'slash'
+        assert d[Name('/')] == 'slash'
+        assert Name('/') in d
+        assert list(d.keys()) == ['/']
+        d[Name('/')] = 'set'
+        d['/A'] = 1
+        assert d.get('/') == 'set'
+        # The empty key has no attribute spelling, so dir() does not offer one.
+        assert '' not in dir(d)
+        del d['/']
+        assert '/' not in d
 
     def test_del_missing_key(self):
         d = pikepdf.Dictionary(A='a')

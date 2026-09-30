@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import io
+
 from pikepdf import Array, Dictionary, Name, NameTree, Pdf
 from pikepdf._named_dests import (
     lookup_named_destination_entry,
@@ -92,3 +94,26 @@ def test_resolve_missing_returns_none():
     pdf = Pdf.new()
     pdf.add_blank_page()
     assert resolve_named_destination(pdf, 'nope', 'string') is None
+
+
+_EMPTY_NAME_DEST_PDF = b"""%PDF-1.7
+1 0 obj << /Type /Catalog /Pages 2 0 R /Dests << / 3 0 R >> >> endobj
+2 0 obj << /Type /Pages /Kids [4 0 R] /Count 1 >> endobj
+3 0 obj [ 4 0 R /Fit ] endobj
+4 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >> endobj
+trailer << /Root 1 0 R /Size 5 >>"""
+
+
+def test_lookup_empty_name_kind_hit():
+    # The empty name '/' is a valid PDF name and a valid /Dests key.
+    pdf = Pdf.open(io.BytesIO(_EMPTY_NAME_DEST_PDF))
+    entry = lookup_named_destination_entry(pdf, '/', 'name')
+    assert entry == [pdf.pages[0].obj, Name.Fit]
+    assert resolve_named_destination(pdf, '/', 'name') == entry
+
+
+def test_lookup_empty_name_kind_miss():
+    pdf = Pdf.new()
+    pdf.add_blank_page()
+    pdf.Root.Dests = pdf.make_indirect(Dictionary())
+    assert lookup_named_destination_entry(pdf, '/', 'name') is None

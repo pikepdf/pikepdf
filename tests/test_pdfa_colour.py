@@ -759,6 +759,8 @@ def test_limits_denied(tmp_path, value, part, rule):
         (String(b'x' * 32767), '2'),
         (String(b'x' * 40000), '1'),
         (Name('/' + 'N' * 127), '2'),
+        (Name('/'), '1'),
+        (Name('/'), '2'),
         (Array([0] * 8192), '2'),
     ],
 )
