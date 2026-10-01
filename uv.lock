@@ -1424,6 +1424,10 @@ pdfa = [
 ]
 
 [package.dev-dependencies]
+build = [
+    { name = "nanobind" },
+    { name = "scikit-build-core" },
+]
 dev = [
     { name = "attrs" },
     { name = "clang-format" },
@@ -1448,6 +1452,7 @@ dev = [
     { name = "python-xmp-toolkit", marker = "os_name != 'nt' and platform_machine == 'x86_64'" },
     { name = "referencing" },
     { name = "ruff" },
+    { name = "scikit-build-core" },
     { name = "setuptools" },
     { name = "types-pillow" },
     { name = "types-requests" },
@@ -1499,6 +1504,10 @@ requires-dist = [
 provides-extras = ["pdfa"]
 
 [package.metadata.requires-dev]
+build = [
+    { name = "nanobind", specifier = ">=2.0" },
+    { name = "scikit-build-core", specifier = ">=0.10" },
+]
 dev = [
     { name = "attrs", specifier = ">=20.2.0" },
     { name = "clang-format", specifier = "==22.1.5" },
@@ -1510,6 +1519,7 @@ dev = [
     { name = "lxml-stubs" },
     { name = "mypy" },
     { name = "nanobind" },
+    { name = "nanobind", specifier = ">=2.0" },
     { name = "numpy", marker = "platform_machine == 'x86_64' and platform_python_implementation == 'CPython'", specifier = ">=1.21.0" },
     { name = "prek" },
     { name = "psutil", marker = "os_name != 'nt'", specifier = ">=5.9" },
@@ -1522,6 +1532,7 @@ dev = [
     { name = "python-xmp-toolkit", marker = "os_name != 'nt' and platform_machine == 'x86_64'", specifier = ">=2.0.1,<2.1.0" },
     { name = "referencing" },
     { name = "ruff", specifier = ">=0.12.9" },
+    { name = "scikit-build-core", specifier = ">=0.10" },
     { name = "setuptools", specifier = ">=80.9.0" },
     { name = "types-pillow" },
     { name = "types-requests" },
@@ -2127,6 +2138,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/ac/fe/734ec7527029ac757ecf821f143c9f3fcf69149c21f53a044a899b430f5a/ruff-0.16.9-py3-none-win32.whl", hash = "sha256:0e1dbc2073624dee6618d41d0098690a7244654af746704b64759e12b6b6b385", size = 10152355, upload-time = "2026-09-24T20:37:43.025Z" },
     { url = "https://files.pythonhosted.org/packages/14/21/26e4643629b3ebb44f0a06f9c9a53058d63d989415f63a9a3c28e2ee7f22/ruff-0.16.9-py3-none-win_amd64.whl", hash = "sha256:6bd40fec8cd4c8a3d4dd589bd8ad4e6320c13c29234159bfd959a40d529d597b", size = 10592965, upload-time = "2026-09-24T20:37:44.944Z" },
     { url = "https://files.pythonhosted.org/packages/51/60/5fb1a39dbb5ae314d5f59bc7348a63c1d5c20f3cd83914c4b5cb0be31d2d/ruff-0.16.9-py3-none-win_arm64.whl", hash = "sha256:ed1a252039200f57a59eebc063b54beabea67bfbaaca0eeaa7f54b5fbcda2284", size = 10458649, upload-time = "2026-09-24T20:37:46.882Z" },
+]
+
+[[package]]
+name = "scikit-build-core"
+version = "1.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "packaging" },
+    { name = "pathspec" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e8/d7/fdd4c33b3cc9ab91feda3b3c526a2df64e296b26e2edb1cdba24525a2697/scikit_build_core-1.1.0.tar.gz", hash = "sha256:d421f837a0f645e51b99fc0d8b00c976917845d954d609ce6b06b11b2c94621b", size = 513774, upload-time = "2026-09-25T20:48:37.623Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/66/bc/e68458dbbe42123bb3b2d35c1412613367e0826fbe0327e109c114a556ff/scikit_build_core-1.1.0-py3-none-any.whl", hash = "sha256:ef439fc8b352913ef6e76257e3115a7910c9f294a2cf27781b6f571cf6cd0033", size = 292901, upload-time = "2026-09-25T20:48:35.965Z" },
 ]
 
 [[package]]

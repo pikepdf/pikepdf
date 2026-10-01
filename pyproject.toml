@@ -264,9 +264,13 @@ dev = [
   "pygithub",
   "ruff>=0.12.9",
   "setuptools>=80.9.0",
+  { include-group = "build" },
   { include-group = "mypy" },
   { include-group = "test" },
 ]
+# Mirrors [build-system].requires, so that `uv run` keeps these installed for
+# `make build`, which builds without isolation.
+build = ["nanobind>=2.0", "scikit-build-core>=0.10"]
 docs = [
   "myst-parser>=3.0.1",
   "sphinx>=3",
