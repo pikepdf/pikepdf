@@ -33,9 +33,13 @@ the architecture notes on thread safety.
   missing or not a name, it returns the empty name `Name('/')`, which is falsy,
   instead of `''`. Comparisons such as `== '/Tx'` are unaffected. {issue}`748`
 - Fixed an out-of-bounds read when opening a PDF from a Python file object
-  whose `readinto()` (or `read()` on PyPy) reports more bytes than the buffer
-  can hold. The reported count is now clamped to the buffer length before qpdf
-  consumes it.
+  whose `readinto()` reports more bytes than were requested. This now raises
+  `ValueError`, as writing to such a stream already did. Non-blocking streams,
+  whose `readinto()` returns `None`, now raise `ValueError` instead of hanging.
+  Thanks to @Nayana-Naik73. {issue}`747`
+- Fixed building from source on PyPy, which failed to compile since v10.0.
+  PyPy now reads Python file objects through `readinto()`, like CPython,
+  instead of copying the result of `read()`.
 
 ## v10.16.0
 

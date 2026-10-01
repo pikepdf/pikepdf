@@ -96,34 +96,20 @@ public:
     {
         py::gil_scoped_acquire gil;
 
-#if defined(PYPY_VERSION)
-        // PyPy does not permit readinto(memoryview), so read to a buffer and
-        // memcpy that buffer. Error message is:
-        // "TypeError: a read-write bytes-like object is required, not memoryview"
-        this->last_offset = this->tell();
-        py::bytes result = this->stream.attr("read")(length);
-        const char *data = PyBytes_AsString(result.ptr());
-        Py_ssize_t bytes_read = PyBytes_Size(result.ptr());
-
-        memcpy(buffer, data, std::min(length, static_cast<size_t>(bytes_read)));
-#else
-        auto view_buffer_info = py::steal<py::object>(
+        auto view = py::steal<py::object>(
             py::handle(PyMemoryView_FromMemory(buffer, length, PyBUF_WRITE)));
         this->last_offset = this->tell();
-        py::object result = this->stream.attr("readinto")(view_buffer_info);
+        py::object result = this->stream.attr("readinto")(view);
         if (result.is_none())
-            return 0;
+            throw py::value_error(
+                "Stream readinto() returned None; non-blocking streams are not "
+                "supported");
         size_t bytes_read = py::cast<size_t>(result);
-#endif
-        // A conforming stream never reports more bytes than the buffer holds,
-        // but readinto()/read() on a caller-supplied file object might: the
-        // memoryview and bytes buffers physically bound the write, yet a wrong
-        // return value would still be trusted. qpdf reads exactly bytes_read
-        // bytes of buffer as valid, so an over-reported count walks past its
-        // end. Clamp it, mirroring the guard the output path already applies to
-        // an over-reporting write() (see Pl_PythonOutput::write).
-        if (static_cast<size_t>(bytes_read) > length)
-            bytes_read = static_cast<decltype(bytes_read)>(length);
+        // qpdf trusts bytes_read bytes of buffer as valid, and the stream has
+        // likely consumed whatever it reported, so an over-report is an error
+        // rather than something to clamp (see also Pl_PythonOutput::write).
+        if (bytes_read > length)
+            throw py::value_error("Read more bytes than requested");
         if (bytes_read == 0) {
             if (length > 0) {
                 // EOF

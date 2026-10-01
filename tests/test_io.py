@@ -209,42 +209,52 @@ def test_mmap_only_file(resources):
         Pdf.open(f, access_mode=pikepdf._core.AccessMode.stream)
 
 
+class _MisbehavingStream(io.RawIOBase):
+    def __init__(self, data):
+        self._bio = BytesIO(data)
+
+    def readable(self):
+        return True
+
+    def seekable(self):
+        return True
+
+    def seek(self, offset, whence=io.SEEK_SET):
+        return self._bio.seek(offset, whence)
+
+    def tell(self):
+        return self._bio.tell()
+
+
+class _OverReportingStream(_MisbehavingStream):
+    # Consumes more of the underlying data than was requested and says so,
+    # as a broken wrapper that reads to the end of its own chunk might.
+    def readinto(self, b):
+        n = self._bio.readinto(b)
+        self._bio.seek(100, io.SEEK_CUR)
+        return n + 100 if n else n
+
+
+class _NonBlockingStream(_MisbehavingStream):
+    # A non-blocking stream signals "no data available right now" with None.
+    def readinto(self, b):
+        return None
+
+
 def test_stream_read_overreport(resources):
-    # A file object whose readinto()/read() claims to have delivered more bytes
-    # than the buffer holds must not make qpdf read past the end of the buffer.
-    # Regression for an out-of-bounds read on the Python stream input source.
+    # A file object that reports more bytes than were requested must raise,
+    # not make qpdf read past its buffer or silently skip consumed bytes.
     data = (resources / 'pal-1bit-trivial.pdf').read_bytes()
+    with pytest.raises(ValueError, match='more bytes than requested'):
+        Pdf.open(
+            _OverReportingStream(data), access_mode=pikepdf._core.AccessMode.stream
+        )
 
-    class OverReportingStream(io.RawIOBase):
-        def __init__(self, data):
-            self._bio = BytesIO(data)
 
-        def readable(self):
-            return True
-
-        def seekable(self):
-            return True
-
-        def seek(self, offset, whence=io.SEEK_SET):
-            return self._bio.seek(offset, whence)
-
-        def tell(self):
-            return self._bio.tell()
-
-        def readinto(self, b):
-            n = self._bio.readinto(b)
-            # Claim far more than the buffer holds (CPython path).
-            return n + 1_000_000 if n else n
-
-        def read(self, size=-1):
-            chunk = self._bio.read(size)
-            # Return more bytes than were requested (PyPy path).
-            return chunk + b'\x00' * 1_000_000 if chunk else chunk
-
-    with Pdf.open(
-        OverReportingStream(data), access_mode=pikepdf._core.AccessMode.stream
-    ) as pdf:
-        assert len(pdf.pages) == 1
+def test_stream_read_nonblocking(resources):
+    data = (resources / 'pal-1bit-trivial.pdf').read_bytes()
+    with pytest.raises(ValueError, match='non-blocking'):
+        Pdf.open(_NonBlockingStream(data), access_mode=pikepdf._core.AccessMode.stream)
 
 
 def test_save_bytesio(resources, outpdf):
