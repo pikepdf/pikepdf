@@ -129,3 +129,19 @@ version) when you complete a feature or fix, following the existing structure.
 
 By contributing you agree that your contributions are licensed under the
 project's MPL-2.0 license.
+
+## AI-assisted contributions 🤖
+
+AI-assisted contributions are permitted. Proactive disclosure of AI use
+is recommended but not required; it's usually not hard to tell.
+
+When reporting issues with AI assistance, we encourage you to
+*stick to the facts* from a *user perspective*. Use the issue template,
+and provide a reproducer.
+
+AI speculation about how to solve an issue is unhelpful. Leave it out
+of your issue report. If you contribute a full PR, you're
+likely to get a solution that gets the details right. Summarize and avoid verbosity. Don't explain what the code does, explain why.
+
+We will dismiss "vibe coded" PRs that don't appear to understand the
+project.
