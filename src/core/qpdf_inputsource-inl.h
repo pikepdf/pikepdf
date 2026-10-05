@@ -321,14 +321,16 @@ private:
     {
         size_t so_far = 0;
         while (so_far < length) {
+            // qpdf reads a whole stream in one call, so length can exceed what
+            // a single read accepts: Windows takes an int, and macOS fails with
+            // EINVAL rather than reading short when asked for more than INT_MAX.
+            auto chunk = std::min<size_t>(length - so_far, INT_MAX);
 #ifdef _WIN32
-            auto chunk =
-                static_cast<unsigned int>(std::min<size_t>(length - so_far, INT_MAX));
             if (::_lseeki64(this->fd, offset, SEEK_SET) < 0)
                 QUtil::throw_system_error(this->name);
-            auto count = ::_read(this->fd, out + so_far, chunk);
+            auto count =
+                ::_read(this->fd, out + so_far, static_cast<unsigned int>(chunk));
 #else
-            auto chunk = std::min<size_t>(length - so_far, SSIZE_MAX);
             auto count = ::pread(this->fd, out + so_far, chunk, offset);
 #endif
             if (count < 0) {
