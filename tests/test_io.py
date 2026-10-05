@@ -21,7 +21,7 @@ import pytest
 
 import pikepdf
 from pikepdf import Pdf, PdfError
-from pikepdf._io import atomic_overwrite, atomic_write_verified, output_fd
+from pikepdf._io import atomic_overwrite, atomic_write_verified, input_fd, output_fd
 
 # pylint: disable=redefined-outer-name
 
@@ -207,6 +207,165 @@ def test_mmap_only_file(resources):
     f = UnreadableFile(resources / 'pal.pdf', 'rb')
     with pytest.raises(ExpectedError):
         Pdf.open(f, access_mode=pikepdf._core.AccessMode.stream)
+
+
+def _everything(pdf):
+    """Read every object and stream, so that the whole input is consumed."""
+    out = []
+    for obj in pdf.objects:
+        out.append(repr(obj))
+        if isinstance(obj, pikepdf.Stream):
+            out.append(obj.read_raw_bytes())
+    return out
+
+
+def test_input_fd(resources, tmp_path):
+    with open(resources / 'pal.pdf', 'rb') as f:
+        assert input_fd(f) == f.fileno()
+    assert input_fd(f) is None  # closed
+    with open(resources / 'pal.pdf', 'rb', buffering=0) as f:
+        assert input_fd(f) == f.fileno()
+    with open(tmp_path / 'rw.pdf', 'w+b') as f:
+        assert input_fd(f) == f.fileno()
+    with open(tmp_path / 'w.pdf', 'wb') as f:
+        assert input_fd(f) is None  # not readable
+    assert input_fd(BytesIO()) is None
+
+    class Subclass(FileIO):
+        pass
+
+    with Subclass(resources / 'pal.pdf', 'rb') as f:
+        assert input_fd(f) is None  # may override read methods
+
+
+@pytest.mark.skipif(not hasattr(os, 'mkfifo'), reason="needs FIFOs")
+def test_input_fd_rejects_non_regular_file(tmp_path):
+    fifo = tmp_path / 'fifo'
+    os.mkfifo(fifo)
+    fd = os.open(fifo, os.O_RDWR)  # read-write, so opening does not block
+    with open(fd, 'rb') as f:
+        assert input_fd(f) is None
+
+
+@pytest.mark.parametrize('access_mode', ['default', 'stream'])
+def test_open_filename_reads_descriptor_directly(resources, access_mode):
+    # When pikepdf opens the file itself, it reads through the descriptor,
+    # which leaves the position of the Python stream it created untouched.
+    with Pdf.open(
+        resources / 'pal.pdf', access_mode=getattr(pikepdf.AccessMode, access_mode)
+    ) as pdf:
+        _everything(pdf)
+        assert pdf._input_stream.tell() == 0
+
+
+def test_open_stream_is_read_through_python(resources):
+    # A stream the caller passed in is only ever used through its methods,
+    # even if it is a plain file that would otherwise qualify.
+    with open(resources / 'pal.pdf', 'rb') as f:
+        with Pdf.open(f) as pdf:
+            _everything(pdf)
+            assert f.tell() != 0
+
+
+def test_open_filename_falls_back_from_mmap_to_descriptor(resources, monkeypatch):
+    import mmap
+
+    def raises_oserror(*args, **kwargs):
+        raise OSError("This file is temporarily not mmap-able")
+
+    monkeypatch.setattr(mmap, 'mmap', raises_oserror)
+    with Pdf.open(resources / 'pal.pdf', access_mode=pikepdf.AccessMode.mmap) as pdf:
+        _everything(pdf)
+        assert pdf._input_stream.tell() == 0
+
+
+def test_open_filename_prefers_mmap(resources):
+    with Pdf.open(resources / 'pal.pdf', access_mode=pikepdf.AccessMode.mmap) as pdf:
+        assert len(pdf.pages) == 1
+    # Still works when the stream we opened does not qualify for direct reads
+    with Pdf.open(
+        resources / 'pal.pdf', access_mode=pikepdf.AccessMode.mmap_only
+    ) as pdf:
+        assert len(pdf.pages) == 1
+
+
+def test_open_filename_unqualified_stream_uses_python(resources, monkeypatch):
+    # If the stream we opened is not a plain file, fall back to its methods.
+    monkeypatch.setattr(
+        pikepdf._methods, 'open', lambda f, mode: FileIOSubclass(f, mode), raising=False
+    )
+    with Pdf.open(resources / 'pal.pdf') as pdf:
+        _everything(pdf)
+        assert pdf._input_stream.tell() != 0
+
+
+class FileIOSubclass(FileIO):
+    pass
+
+
+@pytest.mark.parametrize(
+    'name',
+    [
+        'pal.pdf',
+        'newline-buffer-test.pdf',
+        'fourpages.pdf',
+        'outlines.pdf',
+        'sandwich.pdf',
+        'content-stream-errors.pdf',
+    ],
+)
+def test_descriptor_reads_match_stream_reads(resources, name):
+    with open(resources / name, 'rb') as f:
+        with Pdf.open(resources / name) as by_fd, Pdf.open(f) as by_stream:
+            assert _everything(by_fd) == _everything(by_stream)
+            assert by_fd.get_warnings() == by_stream.get_warnings()
+
+
+def _outcome(filename_or_stream, description):
+    try:
+        with Pdf.open(filename_or_stream) as pdf:
+            return (
+                _everything(pdf),
+                [w.replace(description, 'INPUT') for w in pdf.get_warnings()],
+            )
+    except PdfError as e:
+        return str(e).replace(description, 'INPUT')
+
+
+@pytest.mark.parametrize('padding', [0, 1, 4000, 16300, 16384, 16390, 70000])
+@pytest.mark.parametrize('truncate', [None, 0, 1, 9, -40])
+def test_descriptor_reads_match_stream_reads_damaged(tmp_path, padding, truncate):
+    # There is no xref table, so qpdf scans the whole file line by line to
+    # recover objects, exercising end of file and line ending handling with
+    # line endings of all kinds falling on and around buffer boundaries.
+    path = tmp_path / 'damaged.pdf'
+    data = (
+        b'%PDF-1.4\r\n'
+        + b'%' * padding
+        + b'\r\n\r1 0 obj\r<< /Type /Catalog /Pages 2 0 R >>\n\nendobj\n\r'
+        + b'2 0 obj\r\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\rendobj\r\r\n\n'
+        + b'3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 9 9] >> endobj\n'
+        + b'%\n' * 5000
+        + b'trailer << /Root 1 0 R >>\r\n'
+    )
+    path.write_bytes(data[:truncate])
+
+    with open(path, 'rb') as f:
+        by_stream = _outcome(f, f'stream {f}')
+    assert _outcome(path, str(path)) == by_stream
+
+
+def test_descriptor_reads_from_threads(resources):
+    # Reads release the GIL and do not share a file position
+    def work():
+        with Pdf.open(resources / 'fourpages.pdf') as pdf:
+            _everything(pdf)
+
+    threads = [threading.Thread(target=work) for _ in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
 
 
 class _MisbehavingStream(io.RawIOBase):

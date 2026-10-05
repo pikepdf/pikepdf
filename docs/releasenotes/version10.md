@@ -16,7 +16,7 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
-## v10.16.1
+## v10.17.0
 
 - The empty name `/` is now supported. The PDF 1.7 and 2.0 specifications
   define a lone slash as a valid name made of zero characters, but
@@ -40,6 +40,13 @@ the architecture notes on thread safety.
 - Fixed building from source on PyPy, which failed to compile since v10.0.
   PyPy now reads Python file objects through `readinto()`, like CPython,
   instead of copying the result of `read()`.
+- {func}`pikepdf.open` reads directly from the file descriptor when given a
+  filename, instead of calling the `seek()` and `readinto()` methods of a
+  Python file object for every read. Opening and reading a large file with
+  many objects is about four to five times faster, matching the speed of
+  memory mapping (`access_mode=AccessMode.mmap`). Streams passed to
+  {func}`pikepdf.open`, including plain file objects, are read through their
+  methods as before.
 
 ## v10.16.0
 

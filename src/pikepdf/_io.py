@@ -50,6 +50,34 @@ def output_fd(stream: IO) -> int | None:
     return fd
 
 
+_PLAIN_INPUT_FILE_TYPES = (io.FileIO, io.BufferedReader, io.BufferedRandom)
+
+
+def input_fd(stream: IO) -> int | None:
+    """Return the file descriptor of a stream that can be read from directly.
+
+    Opening reads straight from this descriptor instead of calling the stream's
+    ``seek()`` and ``readinto()``, which avoids several Python calls for every
+    read qpdf makes. Only plain binary files from :func:`open` qualify:
+    subclasses may override the read methods, and pipes and other special files
+    cannot be read at arbitrary offsets.
+
+    This is only used for streams that pikepdf opened itself. Direct reads do
+    not move the stream's position, and bypass anything it has buffered.
+    """
+    if type(stream) not in _PLAIN_INPUT_FILE_TYPES:
+        return None
+    try:
+        if not stream.readable():
+            return None
+        fd = stream.fileno()
+        if not stat.S_ISREG(os.fstat(fd).st_mode):
+            return None
+    except (OSError, ValueError):
+        return None
+    return fd
+
+
 _OVERWRITE_INPUT = (
     "Cannot overwrite input file. Open the file with "
     "pikepdf.open(..., allow_overwriting_input=True) to "

@@ -151,9 +151,19 @@ std::shared_ptr<QPDF> open_pdf(py::object stream,
     }
 
     if (!success && access_mode == access_stream) {
-        auto stream_input_source = std::make_unique<PythonStreamInputSource>(
-            stream, description, closing_stream);
-        auto input_source = std::shared_ptr<InputSource>(stream_input_source.release());
+        // If we opened the file ourselves, read from its file descriptor
+        // directly rather than calling back into Python for every read. A
+        // stream that was passed to us is only ever used through its methods.
+        py::object fd = py::none();
+        if (closing_stream)
+            fd = py::module_::import_("pikepdf._io").attr("input_fd")(stream);
+        std::shared_ptr<InputSource> input_source;
+        if (!fd.is_none())
+            input_source =
+                std::make_shared<FdInputSource>(stream, py::cast<int>(fd), description);
+        else
+            input_source = std::make_shared<PythonStreamInputSource>(
+                stream, description, closing_stream);
         py::gil_scoped_release release;
         q->processInputSource(input_source, password.c_str());
         success = true;
