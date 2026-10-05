@@ -62,8 +62,8 @@ def input_fd(stream: IO) -> int | None:
     subclasses may override the read methods, and pipes and other special files
     cannot be read at arbitrary offsets.
 
-    This is only used for streams that pikepdf opened itself. Direct reads do
-    not move the stream's position, and bypass anything it has buffered.
+    This is only used for streams that pikepdf opened itself. Direct reads
+    bypass anything the stream has buffered and leave its position unreliable.
     """
     if type(stream) not in _PLAIN_INPUT_FILE_TYPES:
         return None

@@ -247,27 +247,52 @@ def test_input_fd_rejects_non_regular_file(tmp_path):
         assert input_fd(f) is None
 
 
+@pytest.fixture
+def input_fd_results(monkeypatch):
+    """Record what input_fd() returned each time opening a Pdf consulted it."""
+    results = []
+
+    def spy(stream):
+        results.append(input_fd(stream))
+        return results[-1]
+
+    monkeypatch.setattr(pikepdf._io, 'input_fd', spy)
+    return results
+
+
+def _assert_stream_unmoved(stream):
+    # POSIX reads are positioned, so they leave the Python stream we created
+    # where it was. Windows has to seek the descriptor to read from it.
+    if os.name != 'nt':
+        assert stream.tell() == 0
+
+
 @pytest.mark.parametrize('access_mode', ['default', 'stream'])
-def test_open_filename_reads_descriptor_directly(resources, access_mode):
-    # When pikepdf opens the file itself, it reads through the descriptor,
-    # which leaves the position of the Python stream it created untouched.
+def test_open_filename_reads_descriptor_directly(
+    resources, access_mode, input_fd_results
+):
+    # When pikepdf opens the file itself, it reads through the descriptor
     with Pdf.open(
         resources / 'pal.pdf', access_mode=getattr(pikepdf.AccessMode, access_mode)
     ) as pdf:
         _everything(pdf)
-        assert pdf._input_stream.tell() == 0
+        assert input_fd_results == [pdf._input_stream.fileno()]
+        _assert_stream_unmoved(pdf._input_stream)
 
 
-def test_open_stream_is_read_through_python(resources):
+def test_open_stream_is_read_through_python(resources, input_fd_results):
     # A stream the caller passed in is only ever used through its methods,
     # even if it is a plain file that would otherwise qualify.
     with open(resources / 'pal.pdf', 'rb') as f:
         with Pdf.open(f) as pdf:
             _everything(pdf)
+            assert input_fd_results == []
             assert f.tell() != 0
 
 
-def test_open_filename_falls_back_from_mmap_to_descriptor(resources, monkeypatch):
+def test_open_filename_falls_back_from_mmap_to_descriptor(
+    resources, monkeypatch, input_fd_results
+):
     import mmap
 
     def raises_oserror(*args, **kwargs):
@@ -276,26 +301,29 @@ def test_open_filename_falls_back_from_mmap_to_descriptor(resources, monkeypatch
     monkeypatch.setattr(mmap, 'mmap', raises_oserror)
     with Pdf.open(resources / 'pal.pdf', access_mode=pikepdf.AccessMode.mmap) as pdf:
         _everything(pdf)
-        assert pdf._input_stream.tell() == 0
+        assert input_fd_results == [pdf._input_stream.fileno()]
+        _assert_stream_unmoved(pdf._input_stream)
 
 
-def test_open_filename_prefers_mmap(resources):
-    with Pdf.open(resources / 'pal.pdf', access_mode=pikepdf.AccessMode.mmap) as pdf:
-        assert len(pdf.pages) == 1
-    # Still works when the stream we opened does not qualify for direct reads
+@pytest.mark.parametrize('access_mode', ['mmap', 'mmap_only'])
+def test_open_filename_prefers_mmap(resources, access_mode, input_fd_results):
     with Pdf.open(
-        resources / 'pal.pdf', access_mode=pikepdf.AccessMode.mmap_only
+        resources / 'pal.pdf', access_mode=getattr(pikepdf.AccessMode, access_mode)
     ) as pdf:
-        assert len(pdf.pages) == 1
+        _everything(pdf)
+        assert input_fd_results == []
 
 
-def test_open_filename_unqualified_stream_uses_python(resources, monkeypatch):
+def test_open_filename_unqualified_stream_uses_python(
+    resources, monkeypatch, input_fd_results
+):
     # If the stream we opened is not a plain file, fall back to its methods.
     monkeypatch.setattr(
         pikepdf._methods, 'open', lambda f, mode: FileIOSubclass(f, mode), raising=False
     )
     with Pdf.open(resources / 'pal.pdf') as pdf:
         _everything(pdf)
+        assert input_fd_results == [None]
         assert pdf._input_stream.tell() != 0
 
 
