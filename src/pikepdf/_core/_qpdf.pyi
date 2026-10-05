@@ -483,11 +483,11 @@ class Pdf:
                 access. To attempt memory mapping and fallback to stream if memory
                 mapping failed, use ``.mmap``.  Use ``.mmap_only`` to require memory
                 mapping or fail (this is expected to only be useful for testing).
+                Applications should be prepared to handle the SIGBUS signal on POSIX in
+                the event that the file is successfully mapped but later goes away.
                 With stream access, a file that pikepdf opened itself from a
                 filename is read directly through its file descriptor, while a
                 stream object you supply is only ever read by calling its methods.
-                Applications should be prepared to handle the SIGBUS signal on POSIX in
-                the event that the file is successfully mapped but later goes away.
             allow_overwriting_input: If True, allows calling ``.save()``
                 to overwrite the input file. This is performed by loading the entire
                 input file into memory at open time; this will use more memory and may
