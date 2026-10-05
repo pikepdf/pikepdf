@@ -82,11 +82,13 @@ void Pl_FdOutput::flush_buffer()
 void Pl_FdOutput::write_fully(const unsigned char *buf, size_t len)
 {
     while (len > 0) {
+        // A single write accepts a limited length: Windows takes an int, and
+        // macOS fails with EINVAL rather than writing short when given more
+        // than INT_MAX.
+        auto chunk = std::min<size_t>(len, INT_MAX);
 #ifdef _WIN32
-        auto chunk = static_cast<unsigned int>(std::min<size_t>(len, INT_MAX));
-        auto written = ::_write(this->fd, buf, chunk);
+        auto written = ::_write(this->fd, buf, static_cast<unsigned int>(chunk));
 #else
-        auto chunk = std::min<size_t>(len, SSIZE_MAX);
         auto written = ::write(this->fd, buf, chunk);
 #endif
         if (written < 0) {
