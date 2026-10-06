@@ -9,16 +9,24 @@ vector drawing).
 :::
 
 pikepdf (and libqpdf) provide two tools for interpreting content streams:
-a parser and filter. The parser returns higher level information, conveniently
-grouping all commands with their operands. The parser is useful when one wants
-to retrieve information from a content stream, such as determine the position
-of an element. The parser should not be used to edit or reconstruct the content
-stream because some subtleties are lost in parsing.
+a parser and a token filter. The parser returns higher level information,
+conveniently grouping each operator with its operands. Use it when you need to
+know what an instruction means, whether to retrieve information, such as the
+position of an element, or to remove, insert and change instructions. A content
+stream that is parsed and then unparsed draws the same thing, but its
+whitespace is normalized and its comments are lost.
 
 The token filter works at a lower level, considering each token including
-comments, and distinguishing different types of spaces. This allows modifying
-content streams. A TokenFilter must be subclassed; the specialized version
-describes how it should transform the stream of tokens.
+comments, and distinguishing different types of spaces. It passes through
+everything it does not change exactly as written, so it suits changes to how a
+content stream is spelled, such as rounding numbers. A TokenFilter must be
+subclassed; the specialized version describes how it should transform the
+stream of tokens.
+
+:::{seealso}
+[Choosing between the parser and a token filter](#parser-or-token-filter),
+which is followed by worked examples of token filters.
+:::
 
 ## Content stream parsers
 

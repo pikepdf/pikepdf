@@ -102,8 +102,11 @@ class TokenFilter(_QPDFTokenFilter):
         The final token will always be a token of type ``TokenType.eof``,
         (unless an exception is raised).
 
-        If this method raises an exception, the exception will be
-        caught by C++, consumed, and replaced with a less informative
-        exception. Use :meth:`pikepdf.Pdf.get_warnings` to view the
-        original.
+        If this method raises an exception, filtering stops and the
+        exception propagates to the caller that triggered it. For a filter
+        attached with :meth:`pikepdf.Page.add_content_token_filter`, that
+        is whatever next reads the content stream, usually
+        :meth:`pikepdf.Pdf.save`.
+
+        See :ref:`parser-or-token-filter` for worked examples.
         """

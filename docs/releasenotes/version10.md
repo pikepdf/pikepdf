@@ -47,6 +47,12 @@ the architecture notes on thread safety.
   memory mapping (`access_mode=AccessMode.mmap`). Streams passed to
   {func}`pikepdf.open`, including plain file objects, are read through their
   methods as before.
+- Documented {class}`pikepdf.TokenFilter` with worked examples that shorten
+  numbers and convert RGB colors to grayscale, and explained when to use a
+  token filter instead of {func}`pikepdf.parse_content_stream`. The API
+  reference no longer says that the parser should not be used to edit content
+  streams. The `TokenFilter.handle_token` documentation now says correctly that
+  exceptions it raises propagate to the caller. {issue}`62`
 
 ## v10.16.0
 
