@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import subprocess
 from collections.abc import Callable
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 
@@ -291,3 +292,67 @@ def test_jbig2_decoding_error_is_relabeled(raising_decoder):
     pdf = Pdf.new()
     with pytest.raises(DataDecodingError, match="decoder said no"):
         PdfImage(invalid_jbig2_image(pdf)).as_pil_image()
+
+
+def file_backed_jbig2_image(resources) -> tuple[Pdf, pikepdf.Stream]:
+    """A JBIG2 image whose data is read from a file.
+
+    This is the case where qpdf *does* trap what Pl_JBIG2 throws, turning it
+    into a warning and an "unfilterable stream" error. Compare
+    invalid_jbig2_image().
+    """
+    pdf = Pdf.open(resources / 'jbig2.pdf')
+    return pdf, next(iter(pdf.pages[0].get_images(recursive=False).values()))
+
+
+@pytest.mark.parametrize(
+    'exc',
+    [
+        DependencyError("my decoder went missing"),
+        ValueError("decoder bug"),
+        DataDecodingError("decoder said no"),
+    ],
+    ids=['dependency', 'decoder-bug', 'decoding'],
+)
+@pytest.mark.parametrize('method', ['as_pil_image', 'read_bytes', 'extract_to'])
+def test_jbig2_file_backed_errors_keep_their_identity(
+    resources, raising_decoder, exc, method
+):
+    """The decoder's own exception reaches the caller, whatever qpdf did. #182."""
+    raising_decoder(exc)
+    pdf, xobj = file_backed_jbig2_image(resources)
+    with pdf:
+        pim = PdfImage(xobj)
+        call = {
+            'as_pil_image': pim.as_pil_image,
+            'read_bytes': pim.read_bytes,
+            'extract_to': lambda: pim.extract_to(stream=BytesIO()),
+        }[method]
+        with pytest.raises(type(exc)) as excinfo:
+            call()
+        assert excinfo.value is exc
+
+
+def test_jbig2_file_backed_keyboard_interrupt_is_not_swallowed(
+    resources, raising_decoder
+):
+    exc = KeyboardInterrupt()
+    raising_decoder(exc)
+    pdf, xobj = file_backed_jbig2_image(resources)
+    with pdf:
+        with pytest.raises(KeyboardInterrupt) as excinfo:
+            PdfImage(xobj).read_bytes()
+        assert excinfo.value is exc
+
+
+def test_jbig2_stale_decoder_error_is_not_reported_later(resources, raising_decoder):
+    # A failure recorded during one read must not resurface from a later,
+    # unrelated one.
+    raising_decoder(ValueError("decoder bug"))
+    pdf, xobj = file_backed_jbig2_image(resources)
+    with pdf:
+        with pytest.raises(ValueError, match="decoder bug"):
+            PdfImage(xobj).read_bytes()
+        other = pdf.make_stream(b'not flate data at all', Filter=Name.FlateDecode)
+        with pytest.raises(DataDecodingError, match="incorrect header check"):
+            other.read_bytes()

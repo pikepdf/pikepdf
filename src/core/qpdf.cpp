@@ -122,6 +122,8 @@ std::shared_ptr<QPDF> open_pdf(py::object stream,
 
     qpdf_basic_settings(*q);
     q->setSuppressWarnings(suppress_warnings);
+    if (auto entry = QpdfRegistry::instance().lookup_entry(q.get()))
+        entry->warnings_suppressed.store(suppress_warnings, std::memory_order_relaxed);
     q->setPasswordIsHexKey(hex_password);
     q->setIgnoreXRefStreams(ignore_xref_streams);
     q->setAttemptRecovery(attempt_recovery);

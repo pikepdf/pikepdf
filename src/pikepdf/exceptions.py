@@ -16,6 +16,7 @@ from pikepdf._core import (
     PasswordError,
     PdfError,
     PikepdfError,
+    QpdfRuntimeError,
     ReferenceCycleError,
 )
 from pikepdf._exceptions import (
@@ -51,6 +52,7 @@ __all__ = [
     'PdfParsingError',
     'PikepdfError',
     'PikepdfWarning',
+    'QpdfRuntimeError',
     'ReferenceCycleError',
     'UnsupportedImageTypeError',
     'XmpTypeWarning',

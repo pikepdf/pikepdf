@@ -529,22 +529,74 @@ QPDFObjectHandle copy_object(QPDFObjectHandle &h)
     return h.shallowCopy();
 }
 
+// Find out why decoding a stream failed, from the warnings qpdf issued.
+//
+// For a stream whose data is read from a file, qpdf traps the exception a
+// decode pipeline throws and records it as a warning; the caller is told only
+// that the stream is unfilterable. This recovers the pipeline's message from
+// the warnings issued since there were `warnings_before` of them.
+//
+// qpdf exposes its warnings only by handing the whole list over, so they are
+// taken and then given back in the same order.
+std::optional<std::string> decode_failure_cause(
+    QPDF &q, QpdfEntry *entry, QPDFObjGen og, size_t warnings_before)
+{
+    if (q.numWarnings() <= warnings_before)
+        return std::nullopt;
+
+    const std::string prefix =
+        "error decoding stream data for object " + og.unparse(' ') + ": ";
+    std::optional<std::string> cause;
+    auto warnings = q.getWarnings();
+    for (size_t i = warnings_before; i < warnings.size() && !cause; ++i) {
+        auto const &detail = warnings[i].getMessageDetail();
+        if (detail.starts_with(prefix))
+            cause = detail.substr(prefix.size());
+    }
+
+    // Giving a warning back would log it a second time if qpdf is logging
+    // warnings as they are issued.
+    bool logging = entry && !entry->warnings_suppressed.load(std::memory_order_relaxed);
+    if (logging)
+        q.setSuppressWarnings(true);
+    for (auto const &w : warnings)
+        q.warn(w);
+    if (logging)
+        q.setSuppressWarnings(false);
+    return cause;
+}
+
 std::shared_ptr<Buffer> get_stream_data(
     QPDFObjectHandle &h, qpdf_stream_decode_level_e decode_level)
 {
-    QpdfLockGuard lock(h.getOwningQPDF());
+    QPDF *owner = h.getOwningQPDF();
+    QpdfLockGuard lock(owner);
+    PipelineErrorCapture capture;
+    size_t warnings_before = owner ? owner->numWarnings() : 0;
     try {
         return h.getStreamData(decode_level);
     } catch (const QPDFExc &e) {
+        capture.rethrow_if_captured();
+
         // Make a new exception that has the objgen info, since qpdf's
         // will not
-        std::string msg = e.getMessageDetail();
+        std::optional<std::string> cause;
+        if (owner)
+            cause = decode_failure_cause(
+                *owner, lock.entry(), h.getObjGen(), warnings_before);
+        std::string msg = cause ? *cause : e.getMessageDetail();
         str_replace(msg, "getStreamData", "read_bytes");
-        throw QPDFExc(e.getErrorCode(),
+        QPDFExc located(e.getErrorCode(),
             e.getFilename(),
             std::string("object ") + h.getObjGen().unparse(),
             e.getFilePosition(),
             msg);
+        if (cause)
+            throw_data_decoding_error(located.what());
+        throw located;
+    } catch (...) {
+        capture.rethrow_if_captured();
+        throw;
     }
 }
 

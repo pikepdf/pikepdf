@@ -41,10 +41,11 @@ class JBIG2DecoderInterface(ABC):
         """Decode JBIG2 from jbig2 and globals, returning decoded bytes.
 
         Raise :class:`pikepdf.DataDecodingError` if the data cannot be decoded.
-        That is the only exception pikepdf's C++ pipeline can carry across
-        libqpdf's frames with its type intact; any other exception is reported
-        as-is when possible, and otherwise reaches the caller as a generic qpdf
-        "unfilterable stream" error.
+        An exception raised here reaches the caller of
+        :meth:`pikepdf.Object.read_bytes`, :meth:`pikepdf.PdfImage.as_pil_image`
+        and similar methods unchanged. Where the stream is decoded as a side
+        effect of something else, such as saving, only ``DataDecodingError``
+        is reported as a decoding problem.
         """
 
     def available(self) -> bool:

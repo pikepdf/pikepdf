@@ -19,6 +19,8 @@
 
 #include <exception>
 #include <map>
+#include <optional>
+#include <string>
 #include <vector>
 
 #include <qpdf/Constants.h>
@@ -75,6 +77,52 @@ py::handle get_decimal_type();
 
 // Raise pikepdf.ForeignObjectError with the given message.
 [[noreturn]] void throw_foreign_object_error(std::string const &msg);
+// Raise pikepdf.DataDecodingError with the given message.
+[[noreturn]] void throw_data_decoding_error(std::string const &msg);
+
+// Carries a Python exception raised inside a qpdf pipeline back to the caller.
+//
+// When a stream's data is read from a file, libqpdf traps whatever a decode
+// pipeline throws, records a warning and reports only that the stream is
+// unfilterable. A Python exception raised by a pipeline pikepdf supplies (the
+// JBIG2 decoder) would lose its type, message and traceback that way. Code
+// that calls into libqpdf to decode a stream declares one of these on the
+// stack; the pipeline hands its exception to record(), and once libqpdf has
+// returned or thrown, the caller uses rethrow_if_captured() to raise the
+// original.
+//
+// The exception is owned by the scope object, not by thread-local storage, so
+// no Python reference outlives the call that produced it.
+class PipelineErrorCapture {
+public:
+    PipelineErrorCapture() : previous_(active_) { active_ = this; }
+    ~PipelineErrorCapture() { active_ = previous_; }
+
+    PipelineErrorCapture(const PipelineErrorCapture &) = delete;
+    PipelineErrorCapture &operator=(const PipelineErrorCapture &) = delete;
+
+    // Keep a copy of e for the innermost active scope on this thread. Does
+    // nothing if there is none. Must be called with the GIL held.
+    static void record(const py::python_error &e)
+    {
+        if (active_ && !active_->error_)
+            active_->error_.emplace(e);
+    }
+
+    void rethrow_if_captured()
+    {
+        if (!error_)
+            return;
+        py::python_error e(std::move(*error_));
+        error_.reset();
+        throw e;
+    }
+
+private:
+    static inline thread_local PipelineErrorCapture *active_ = nullptr;
+    PipelineErrorCapture *previous_;
+    std::optional<py::python_error> error_;
+};
 
 namespace nanobind {
 namespace detail {

@@ -22,9 +22,7 @@ import warnings
 from io import BytesIO
 from typing import TYPE_CHECKING, BinaryIO, cast
 
-from pikepdf import jbig2
-from pikepdf._core import DataDecodingError, Pdf, PdfError, StreamDecodeLevel
-from pikepdf._exceptions import DependencyError
+from pikepdf._core import Pdf, StreamDecodeLevel
 from pikepdf.models import _transcoding
 from pikepdf.models._image_exceptions import (
     HifiPrintImageNotTranscodableError,
@@ -258,31 +256,7 @@ def _transcoded_1bit(pim: PdfImage) -> Image.Image:
 
     if not pim.image_mask and pim.mode in ('RGB', 'CMYK'):
         raise UnsupportedImageTypeError("1-bit RGB and CMYK are not supported")
-    try:
-        data = pim.read_bytes()
-    except (RuntimeError, PdfError) as e:
-        # qpdf says "unfilterable stream" for any filter it could not apply, so
-        # only blame JBIG2 when JBIG2Decode is actually one of them. Today the
-        # other terminal codecs are handled by extract_direct before they reach
-        # here, but the guard keeps a future one from being reported as a
-        # jbig2dec failure.
-        if (
-            'read_bytes called on unfilterable stream' not in str(e)
-            or '/JBIG2Decode' not in pim.filters
-        ):
-            raise
-        if not jbig2.get_decoder().available():
-            raise DependencyError(
-                "jbig2dec - not installed or installed version is too old "
-                "(older than version 0.15)"
-            ) from None
-        # The decoder is present and failed. qpdf trapped the decoder's
-        # exception inside Pipeline::finish() and downgraded it to a warning on
-        # the owning Pdf, so the decoder's own message is not available here.
-        raise DataDecodingError(
-            "jbig2dec failed to decode JBIG2 image data; the decoder's message "
-            "is reported as a warning on the Pdf (see Pdf.get_warnings())"
-        ) from e
+    data = pim.read_bytes()
 
     # Pillow's '1' mode stores a byte per pixel, and Image.frombytes allocates
     # the whole image before it discovers the data is short -- so, as in

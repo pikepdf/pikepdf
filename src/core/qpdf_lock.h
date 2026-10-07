@@ -83,6 +83,9 @@ enum class ConversionMode : int8_t { unset = 0, implicit = 1, explicit_ = 2 };
 struct QpdfEntry {
     ReentrantFtMutex mutex;
     std::atomic<ConversionMode> conversion_mode{ConversionMode::unset};
+    // Mirrors QPDF::setSuppressWarnings(), which qpdf offers no way to read
+    // back. False means qpdf logs each warning as it is issued.
+    std::atomic<bool> warnings_suppressed{true};
 
     // Remember an object that was just tagged with this document as its owner.
     void record_adopted(std::shared_ptr<QPDFObject> const &obj)

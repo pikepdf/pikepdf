@@ -62,6 +62,7 @@ from pikepdf._core._exceptions import (
     PasswordError,
     PdfError,
     PikepdfError,
+    QpdfRuntimeError,
     ReferenceCycleError,
 )
 from pikepdf._core._job import (
@@ -277,6 +278,7 @@ __all__ = [
     'pdf_doc_to_utf8',
     'PdfError',
     'PikepdfError',
+    'QpdfRuntimeError',
     'qpdf_version',
     'Real',
     'Rectangle',

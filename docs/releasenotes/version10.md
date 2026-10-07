@@ -18,6 +18,24 @@ the architecture notes on thread safety.
 
 ## v10.17.0
 
+- Reading a stream that will not decode now raises
+  {exc}`~pikepdf.exceptions.DataDecodingError` with the reason, whether the
+  stream's data was read from a file or set from memory. Previously a stream
+  read from a file raised a {exc}`~pikepdf.exceptions.PdfError` that said only
+  "read_bytes called on unfilterable stream", and the reason was available
+  only from {meth}`pikepdf.Pdf.get_warnings`. `DataDecodingError` is a
+  `PdfError`, so existing handlers are unaffected. {issue}`182`
+- An exception raised by a JBIG2 decoder now reaches the caller of
+  {meth}`pikepdf.PdfImage.as_pil_image`, {meth}`pikepdf.PdfImage.extract_to`
+  and {meth}`pikepdf.PdfImage.read_bytes` unchanged, with its own type,
+  message and traceback. Previously, for an image read from a file, it was
+  replaced by a generic `DataDecodingError` or `PdfError`. {issue}`182`
+- Added {exc}`~pikepdf.exceptions.QpdfRuntimeError`, raised for errors from
+  qpdf that pikepdf has no more specific exception for. These were previously
+  raised as a bare `RuntimeError`, which `except pikepdf.PikepdfError` did not
+  catch. The new exception derives from both
+  {exc}`~pikepdf.exceptions.PikepdfError` and `RuntimeError`, so handlers
+  written for `RuntimeError` still work. {issue}`240`
 - The empty name `/` is now supported. The PDF 1.7 and 2.0 specifications
   define a lone slash as a valid name made of zero characters, but
   `pikepdf.Name('/')` raised `ValueError`, and dictionaries refused `/` as a

@@ -14,6 +14,7 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <typeinfo>
 #include <utility>
 #include <vector>
 
@@ -50,6 +51,7 @@ static constinit std::atomic<PyObject *> exc_usage{nullptr};
 static constinit std::atomic<PyObject *> exc_foreign{nullptr};
 static constinit std::atomic<PyObject *> exc_destroyedobject{nullptr};
 static constinit std::atomic<PyObject *> exc_referencecycle{nullptr};
+static constinit std::atomic<PyObject *> exc_qpdfruntime{nullptr};
 
 // decimal.Decimal, looked up once in NB_MODULE instead of importing the decimal
 // module on every conversion of a Real. The reference is deliberately never
@@ -204,6 +206,12 @@ auto translate_qpdf_logic_error(std::string msg)
 [[noreturn]] void throw_foreign_object_error(std::string const &msg)
 {
     PyErr_SetString(exc_foreign.load(std::memory_order_acquire), msg.c_str());
+    throw py::python_error();
+}
+
+[[noreturn]] void throw_data_decoding_error(std::string const &msg)
+{
+    PyErr_SetString(exc_datadecoding.load(std::memory_order_acquire), msg.c_str());
     throw py::python_error();
 }
 
@@ -487,6 +495,17 @@ NB_MODULE(_core, m)
         m,
         "DeletedObjectError",
         PyErr_NewException("pikepdf._core.DeletedObjectError", exc_root, nullptr));
+    // QpdfRuntimeError is what a std::runtime_error or std::logic_error becomes
+    // when nothing more specific applies. It also derives from RuntimeError, which is
+    // what these errors were before the class existed, so `except RuntimeError`
+    // handlers keep catching them.
+    {
+        py::object bases = py::steal(PyTuple_Pack(2, exc_root, PyExc_RuntimeError));
+        publish(exc_qpdfruntime,
+            m,
+            "QpdfRuntimeError",
+            PyErr_NewException("pikepdf._core.QpdfRuntimeError", bases.ptr(), nullptr));
+    }
 
     py::register_exception_translator([](const std::exception_ptr &p, void *payload) {
         (void)payload;
@@ -527,7 +546,13 @@ NB_MODULE(_core, m)
                 else if (trans.second == error_type_pdferror)
                     PyErr_SetString(
                         exc_main.load(std::memory_order_acquire), trans.first.c_str());
+                else if (typeid(e) == typeid(std::logic_error))
+                    PyErr_SetString(
+                        exc_qpdfruntime.load(std::memory_order_acquire), e.what());
                 else
+                    // A subclass such as std::out_of_range or
+                    // std::invalid_argument: nanobind maps those to the
+                    // matching Python built-in.
                     std::rethrow_exception(p);
             }
         } catch (const std::runtime_error &e) {
@@ -539,7 +564,13 @@ NB_MODULE(_core, m)
                     exc_destroyedobject.load(std::memory_order_acquire), e.what());
             else if (is_object_type_assertion_error(e))
                 PyErr_SetString(exc_main.load(std::memory_order_acquire), e.what());
+            else if (typeid(e) == typeid(std::runtime_error))
+                PyErr_SetString(
+                    exc_qpdfruntime.load(std::memory_order_acquire), e.what());
             else
+                // A subclass such as std::overflow_error or std::range_error,
+                // or one of nanobind's own exceptions: nanobind maps those to
+                // the matching Python built-in.
                 std::rethrow_exception(p);
         }
     });

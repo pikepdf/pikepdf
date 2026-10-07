@@ -63,6 +63,11 @@ public:
             // it would blame corrupt JBIG2 data for an unrelated failure. Those
             // exceptions propagate as py::python_error, which nanobind restores
             // if qpdf does not trap it first.
+            //
+            // A caller that is prepared to re-raise the original exception
+            // once qpdf has returned takes a copy first; see
+            // PipelineErrorCapture in pikepdf.h.
+            PipelineErrorCapture::record(e);
             if (!e.matches(py::handle(get_data_decoding_error_type())))
                 throw;
             // Use str(exception), not e.what(): the latter is a formatted

@@ -76,3 +76,18 @@ class DeletedObjectError(PikepdfError):
 
     .. versionadded:: 7.0
     """
+
+class QpdfRuntimeError(PikepdfError, RuntimeError):
+    """An error from qpdf that pikepdf has no more specific exception for.
+
+    qpdf, and pikepdf's own C++ layer, report some conditions with a
+    general-purpose C++ exception, whether the cause is the document, the
+    arguments or the environment. pikepdf maps the ones it recognizes to more
+    specific exceptions, such as :class:`DataDecodingError`; the rest are
+    raised as this.
+
+    Also derives from :class:`RuntimeError`, which is what these errors were
+    raised as before this class existed.
+
+    .. versionadded:: 10.17
+    """

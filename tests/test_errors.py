@@ -3,6 +3,9 @@
 
 from __future__ import annotations
 
+import logging
+from io import BytesIO
+
 import pytest
 from conftest import skip_if_pypy
 
@@ -30,6 +33,114 @@ def test_foreign_linearization(vera):
     assert not vera.is_linearized
     with pytest.raises(RuntimeError, match="not linearized"):
         vera.check_linearization()
+
+
+def test_unclassified_qpdf_error_is_a_pikepdf_error(vera):
+    # qpdf reports this with a bare std::runtime_error. It must be catchable as
+    # a pikepdf error without ceasing to be a RuntimeError. See #240.
+    with pytest.raises(pikepdf.QpdfRuntimeError, match="not linearized") as excinfo:
+        vera.check_linearization()
+    assert isinstance(excinfo.value, pikepdf.PikepdfError)
+    assert isinstance(excinfo.value, RuntimeError)
+    assert not isinstance(excinfo.value, PdfError)
+
+
+def test_malformed_job_json_is_a_pikepdf_error():
+    with pytest.raises(pikepdf.QpdfRuntimeError) as excinfo:
+        pikepdf.Job('{')
+    assert isinstance(excinfo.value, RuntimeError)
+
+
+def corrupt_flate_stream(pdf: Pdf) -> Stream:
+    return pdf.make_stream(b'not flate data at all', Filter=Name.FlateDecode)
+
+
+def reopened(pdf: Pdf, **kwargs) -> Pdf:
+    """Round-trip through a file so stream data is read from an input source.
+
+    qpdf treats a decode failure differently depending on where the stream's
+    data lives: for data read from a file it traps the failure and records a
+    warning, where for data set from memory the failure reaches the caller.
+    """
+    bio = BytesIO()
+    pdf.save(
+        bio,
+        compress_streams=False,
+        stream_decode_level=pikepdf.StreamDecodeLevel.none,
+    )
+    bio.seek(0)
+    return Pdf.open(bio, **kwargs)
+
+
+def test_corrupt_stream_in_memory_is_data_decoding_error():
+    with Pdf.new() as pdf:
+        stream = corrupt_flate_stream(pdf)
+        with pytest.raises(DataDecodingError, match="incorrect header check"):
+            stream.read_bytes()
+
+
+@pytest.mark.parametrize('method', ['read_bytes', 'get_stream_buffer'])
+def test_corrupt_stream_from_file_is_data_decoding_error(method):
+    with Pdf.new() as pdf:
+        pdf.Root.Corrupt = corrupt_flate_stream(pdf)
+        with reopened(pdf) as pdf2:
+            stream = pdf2.Root.Corrupt
+            with pytest.raises(DataDecodingError) as excinfo:
+                getattr(stream, method)()
+            msg = str(excinfo.value)
+            # The reason qpdf gave, not just "unfilterable stream"...
+            assert 'incorrect header check' in msg
+            assert 'unfilterable' not in msg
+            # ...and which object it was.
+            objgen = stream.objgen
+            assert f'object {objgen[0]},{objgen[1]}' in msg
+            # qpdf's warnings are still there for callers that read them.
+            assert any('incorrect header check' in w for w in pdf2.get_warnings())
+
+
+def test_earlier_warnings_survive_a_decode_failure():
+    # Recovering the cause means reading qpdf's warning list, which qpdf can
+    # only hand over destructively. Nothing may be lost or reordered.
+    with Pdf.new() as pdf:
+        pdf.Root.Corrupt = corrupt_flate_stream(pdf)
+        with reopened(pdf) as pdf2:
+            stream = pdf2.Root.Corrupt
+            with pytest.raises(DataDecodingError):
+                stream.read_bytes()
+            first = pdf2.get_warnings()
+            assert first
+            with pytest.raises(DataDecodingError):
+                stream.read_bytes()
+            with pytest.raises(DataDecodingError):
+                stream.read_bytes()
+            again = pdf2.get_warnings()
+            assert again == first * 2
+            assert pdf2.get_warnings() == []
+
+
+def test_decode_failure_does_not_log_warnings_twice(caplog):
+    # With suppress_warnings=False qpdf logs each warning as it is issued.
+    # Recovering the cause must not issue them again.
+    caplog.set_level(logging.WARNING, logger='pikepdf._core')
+    with Pdf.new() as pdf:
+        pdf.Root.Corrupt = corrupt_flate_stream(pdf)
+        with reopened(pdf, suppress_warnings=False) as pdf2:
+            caplog.clear()
+            with pytest.raises(DataDecodingError):
+                pdf2.Root.Corrupt.read_bytes()
+            logged = [r for r in caplog.records if 'header check' in r.getMessage()]
+            assert len(logged) == 1
+            assert len(pdf2.get_warnings()) == 1
+
+
+def test_genuinely_unfilterable_stream_is_still_a_plain_pdf_error():
+    # No decode was attempted, so there is no cause to recover: qpdf has no
+    # filter for this at the default decode level.
+    with Pdf.new() as pdf:
+        stream = pdf.make_stream(b'\xff\xd8 not really a jpeg', Filter=Name.DCTDecode)
+        with pytest.raises(PdfError, match="unfilterable") as excinfo:
+            stream.read_bytes()
+        assert not isinstance(excinfo.value, DataDecodingError)
 
 
 @pytest.mark.abi3_smoke
@@ -146,6 +257,15 @@ class TestExceptionHierarchy:
     def test_api_misuse_errors_are_not_pdf_errors(self, name):
         # These report a bug in the caller, not a problem with the document.
         assert not issubclass(getattr(pikepdf.exceptions, name), PdfError)
+
+    @pytest.mark.abi3_smoke
+    def test_qpdf_runtime_error_is_also_a_runtime_error(self):
+        # Errors that used to surface as a bare RuntimeError must still be
+        # caught by handlers written for RuntimeError.
+        assert issubclass(pikepdf.QpdfRuntimeError, RuntimeError)
+        assert issubclass(pikepdf.QpdfRuntimeError, pikepdf.PikepdfError)
+        assert not issubclass(pikepdf.QpdfRuntimeError, PdfError)
+        assert pikepdf.exceptions.QpdfRuntimeError is pikepdf.QpdfRuntimeError
 
     @pytest.mark.abi3_smoke
     def test_not_extractable_error_is_public(self):

@@ -21,7 +21,8 @@ PikepdfError
 ├── ImageDecompressionError
 ├── NotExtractableError
 │   └── HifiPrintImageNotTranscodableError
-└── DecompressionBombError                (also a PIL.Image.DecompressionBombError)
+├── DecompressionBombError                (also a PIL.Image.DecompressionBombError)
+└── QpdfRuntimeError                      (also a RuntimeError)
 
 PikepdfWarning
 ├── PageCopyWarning
@@ -105,6 +106,12 @@ extraction may also raise exceptions from Pillow. `PikepdfError` means
 
 ```{eval-rst}
 .. autoapiexception:: pikepdf.exceptions.JobUsageError
+```
+
+## Other errors from qpdf
+
+```{eval-rst}
+.. autoapiexception:: pikepdf.exceptions.QpdfRuntimeError
 ```
 
 ## Environment
