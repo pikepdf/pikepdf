@@ -826,7 +826,7 @@ class ContentWalker:
         obj = page.obj
         if '/Contents' not in obj:
             return
-        resources, explicit = _page_resources(obj, self.ctx.max_depth)
+        resources, explicit = _page_resources(obj)
         walk = _StreamWalk(
             self,
             _Resources(resources, explicit, "inherited from the page tree"),
@@ -944,9 +944,7 @@ def _unparse(value: pikepdf.Object | None) -> bytes:
     return b'null'
 
 
-def _page_resources(
-    page: pikepdf.Dictionary, max_depth: int
-) -> tuple[pikepdf.Object | None, bool]:
+def _page_resources(page: pikepdf.Dictionary) -> tuple[pikepdf.Object | None, bool]:
     """Return (resources, explicit) of a page.
 
     Resources inherited from the page tree are not "explicitly associated"
@@ -955,14 +953,4 @@ def _page_resources(
     """
     if '/Resources' in page:
         return page.get('/Resources'), True
-    node = page
-    seen: set[tuple[int, int]] = set()
-    for _ in range(max_depth):
-        parent = node.get('/Parent')
-        if not isinstance(parent, pikepdf.Dictionary) or parent.objgen in seen:
-            break
-        seen.add(parent.objgen)
-        if '/Resources' in parent:
-            return parent.get('/Resources'), False
-        node = parent
-    return None, False
+    return pikepdf.Page(page)._get_inherited('/Resources'), False

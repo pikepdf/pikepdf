@@ -11,7 +11,7 @@ from enum import Enum, IntFlag
 from itertools import chain
 from typing import TYPE_CHECKING, Self, cast
 
-from pikepdf._core import Page, Pdf, PikepdfError
+from pikepdf._core import ObjectSet, Page, Pdf, PikepdfError
 from pikepdf.objects import Array, Dictionary, Name, Object, String
 
 if TYPE_CHECKING:
@@ -486,6 +486,11 @@ class OutlineItem:
             self.obj = obj = pdf.make_indirect(Dictionary())
         else:
             obj = self.obj
+            if not obj.is_indirect:
+                # Outline items refer to their siblings and parent, and those
+                # refer back, so an item read from a file that stored it as a
+                # direct object must be made indirect before it is linked.
+                self.obj = obj = pdf.make_indirect(obj)
         obj.Title = self.title
         if self.destination is not None:
             if isinstance(self.destination, int):
@@ -635,22 +640,19 @@ class Outline:
         parent: Dictionary,
         outline_items: Iterable[OutlineItem],
         level: int,
-        visited_objs: set[tuple[int, int]],
+        visited_objs: ObjectSet,
     ):
         count = 0
         prev: Dictionary | None = None
         first: Dictionary | None = None
         for item in outline_items:
             out_obj = item.to_dictionary_object(self._pdf)
-            objgen = out_obj.objgen
-            if objgen in visited_objs:
+            if not visited_objs.add(out_obj):
                 if self._strict:
                     raise OutlineStructureError(
-                        f"Outline object {objgen} reoccurred in structure"
+                        f"Outline object {out_obj.objgen} reoccurred in structure"
                     )
                 out_obj = item.to_dictionary_object(self._pdf, create_new=True)
-            else:
-                visited_objs.add(objgen)
 
             out_obj.Parent = parent
             count += 1
@@ -692,18 +694,16 @@ class Outline:
         first_obj: Dictionary,
         outline_items: list[Object],
         level: int,
-        visited_objs: set[tuple[int, int]],
+        visited_objs: ObjectSet,
     ):
         current_obj: Dictionary | None = first_obj
         while current_obj:
-            objgen = current_obj.objgen
-            if objgen in visited_objs:
+            if not visited_objs.add(current_obj):
                 if self._strict:
                     raise OutlineStructureError(
-                        f"Outline object {objgen} reoccurred in structure"
+                        f"Outline object {current_obj.objgen} reoccurred in structure"
                     )
                 return
-            visited_objs.add(objgen)
 
             item = OutlineItem.from_dictionary_object(current_obj, strict=self._strict)
             first_child = current_obj.get(Name.First)
@@ -720,7 +720,7 @@ class Outline:
                 current_obj = next_obj
             else:
                 raise OutlineStructureError(
-                    f"Outline object {objgen} points to non-dictionary"
+                    f"Outline object {current_obj.objgen} points to non-dictionary"
                 )
 
     def _save(self):
@@ -732,7 +732,7 @@ class Outline:
             self._pdf.Root.Outlines = outlines = self._pdf.make_indirect(
                 Dictionary(Type=Name.Outlines)
             )
-        self._save_level_outline(outlines, self._root, 0, set())
+        self._save_level_outline(outlines, self._root, 0, ObjectSet())
         if not self._root and Name.Count in outlines:
             del outlines.Count
 
@@ -743,7 +743,7 @@ class Outline:
         outlines = self._pdf.Root.Outlines or {}
         first_obj = outlines.get(Name.First)
         if first_obj:
-            self._load_level_outline(first_obj, root, 0, set())
+            self._load_level_outline(first_obj, root, 0, ObjectSet())
 
     def add(self, title: str, destination: Array | int | None) -> OutlineItem:
         """Add an item to the outline.

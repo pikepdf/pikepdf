@@ -164,16 +164,9 @@ class _Scan:
 
 
 def _page_resources(page: Dictionary) -> Dictionary:
-    node: object = page
-    seen: set[tuple[int, int]] = set()
-    while isinstance(node, Dictionary):
-        resources = node.get('/Resources')
-        if isinstance(resources, Dictionary) and not isinstance(resources, Stream):
-            return resources
-        if node.objgen in seen:
-            break
-        seen.add(node.objgen)
-        node = node.get('/Parent')
+    resources = pikepdf.Page(page)._get_inherited('/Resources')
+    if isinstance(resources, Dictionary) and not isinstance(resources, Stream):
+        return resources
     return Dictionary()
 
 

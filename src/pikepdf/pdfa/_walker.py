@@ -329,19 +329,10 @@ class DocumentWalker:
         if ctx.output_intent_cs is None:
             ctx.output_intent_cs = header.colour_space
 
-    def _inherited(self, obj: pikepdf.Dictionary, key: str) -> object:
+    @staticmethod
+    def _inherited(obj: pikepdf.Dictionary, key: str) -> object:
         """Look up an inheritable page attribute through /Parent links."""
-        node = obj
-        seen: set[tuple[int, int]] = set()
-        for _ in range(self.ctx.max_depth):
-            if key in node:
-                return pikepdf.unbox(node.get(key))
-            parent = node.get('/Parent')
-            if not isinstance(parent, pikepdf.Dictionary) or parent.objgen in seen:
-                return None
-            seen.add(parent.objgen)
-            node = parent
-        return None
+        return pikepdf.unbox(pikepdf.Page(obj)._get_inherited(key))
 
     def _check_box(self, name: str, box: object, where: str) -> None:
         ctx = self.ctx

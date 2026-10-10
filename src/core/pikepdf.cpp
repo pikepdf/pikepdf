@@ -31,6 +31,7 @@
 #include "namepath.h"
 #include "parsers.h"
 #include "qpdf_pagelist.h"
+#include "traversal.h"
 #include "utils.h"
 
 static constinit std::atomic<uint> DECIMAL_PRECISION = 15;
@@ -312,6 +313,7 @@ NB_MODULE(_core, m)
     init_parsers(m);
     init_rectangle(m);
     init_tokenfilter(m);
+    init_traversal(m);
     init_transcoding(m);
 
     // Facade types capture Object/ObjectType/Matrix/Rectangle, so run last.

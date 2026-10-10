@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Literal
 if TYPE_CHECKING:
     from pikepdf import Pdf
 
+from pikepdf._core import _action_chain
 from pikepdf._named_dests import (
     DestKind,
     lookup_named_destination_entry,
@@ -43,17 +44,12 @@ def _maybe_add_dest(owner: Dictionary, key: Name, refs: list[_DestRef]) -> None:
     # Array values are explicit destinations and need no migration.
 
 
-def _collect_from_action(action: object, refs: list[_DestRef], depth: int = 0) -> None:
-    if depth > 50 or not isinstance(action, Dictionary):
+def _collect_from_action(action: object, refs: list[_DestRef]) -> None:
+    if not isinstance(action, Dictionary):
         return
-    if isinstance(Action.from_dictionary(action), GoToAction):
-        _maybe_add_dest(action, Name.D, refs)
-    nxt = action.get(Name.Next)
-    if isinstance(nxt, Array):
-        for sub in nxt:
-            _collect_from_action(sub, refs, depth + 1)
-    elif isinstance(nxt, Dictionary):
-        _collect_from_action(nxt, refs, depth + 1)
+    for node in _action_chain(action):
+        if isinstance(Action.from_dictionary(node), GoToAction):
+            _maybe_add_dest(node, Name.D, refs)
 
 
 def _collect_named_dest_refs(page_obj: Dictionary) -> list[_DestRef]:

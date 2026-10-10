@@ -18,6 +18,25 @@ the architecture notes on thread safety.
 
 ## v10.17.0
 
+- Added {class}`pikepdf.ObjectSet`, which records the objects that a walk of
+  a PDF's object graph has already visited. Objects in a PDF are shared and
+  may refer back to their ancestors, so a search that only limits its depth
+  can take exponential time on quite ordinary files. `ObjectSet.add()` reports
+  whether an object is new, and tells apart direct objects and objects of
+  different `Pdf`, which a `set` of `objgen` cannot. See
+  {ref}`walking-object-graphs`.
+- Added {meth}`pikepdf.Page.get_form_xobjects`, which returns each form XObject
+  that a page or another form XObject uses, once, however the forms are nested
+  or shared. With `seen=`, forms shared between pages are visited once for the
+  whole document.
+- Fixed comparing two objects with `==` taking exponential time when the
+  objects being compared share children, such as the same file opened twice.
+  Each pair of objects is now compared once.
+- Fixed {meth}`pikepdf.Pdf.add_pages_from` hanging on a page with an action
+  whose `/Next` actions are shared or form a loop.
+- Fixed {meth}`pikepdf.Pdf.open_outline` reading only the first item at each
+  level of an outline whose items are direct objects. Such items are now made
+  indirect when the outline is saved, as the PDF specification requires.
 - Reading a stream that will not decode now raises
   {exc}`~pikepdf.exceptions.DataDecodingError` with the reason, whether the
   stream's data was read from a file or set from memory. Previously a stream

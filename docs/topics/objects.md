@@ -472,6 +472,81 @@ must be attached.
 Stream objects are always indirect objects, and must always be attached to a
 PDF.
 
+(walking-object-graphs)=
+
+## Following references safely
+
+The objects in a PDF form a graph, not a tree. An object can be referenced
+from many places, and it can refer back to an object that leads to it. Some of
+this is by design: every page refers to its `/Parent`, and outline items refer
+to their siblings in both directions. Some is the choice of whatever wrote the
+file: a common layout gives every form XObject on a page the same `/Resources`
+dictionary, which lists all of those form XObjects, so each form appears to
+contain all of the others and itself. And some files are simply malformed or
+hostile.
+
+Code that follows references from one object to the next must therefore expect
+to arrive at an object it has already visited. Two defences are commonly
+written by hand, and both fail:
+
+- **Limiting the depth** stops an endless loop, but an object is still visited
+  once for every path that leads to it. With twelve forms that list each
+  other, a search limited to ten levels makes more than 10{sup}`10` visits for
+  each page.
+- **Remembering each object's {attr}`~pikepdf.Object.objgen`** in a `set` does
+  not work for direct objects, which all report `(0, 0)`, and confuses objects
+  from different {class}`pikepdf.Pdf` that happen to have the same number.
+
+Prefer a method that does the walk for you. These visit each object once and
+do their work without creating a Python object for everything they pass
+through:
+
+- {meth}`pikepdf.Page.get_form_xobjects` returns the form XObjects that a page
+  or another form XObject uses, however they are nested or shared.
+- {meth}`pikepdf.Page.get_images` returns the images that a page uses,
+  including those inside form XObjects.
+- {attr}`pikepdf.Pdf.objects` lists every indirect object in the file, which is
+  the simplest way to find all objects of some kind when it does not matter
+  what refers to them.
+- {class}`pikepdf.NameTree`, {class}`pikepdf.NumberTree`,
+  {meth}`pikepdf.Pdf.open_outline` and {attr}`pikepdf.Pdf.pages` read their
+  respective structures, and tolerate loops in them.
+
+For example, to find every font that the pages of a document can use:
+
+```python
+seen = pikepdf.ObjectSet()
+fonts = []
+for page in pdf.pages:
+    for scope in [page.obj, *page.get_form_xobjects(seen=seen)]:
+        found = scope.get_dict(pikepdf.NamePath.Resources.Font) or {}
+        fonts.extend(found.values())
+```
+
+Passing the same {class}`pikepdf.ObjectSet` for every page means a form shared
+by many pages is examined once.
+
+When you do need to write a walk of your own, use {class}`pikepdf.ObjectSet`
+to record what has been visited. Its {meth}`~pikepdf.ObjectSet.add` method
+returns `False` for an object it has seen before, whether the object is direct
+or indirect:
+
+```python
+seen = pikepdf.ObjectSet()
+pending = [pdf.Root.AcroForm.Fields]
+while pending:
+    node = pending.pop()
+    if isinstance(node, pikepdf.Array):
+        pending.extend(node)
+    elif isinstance(node, pikepdf.Dictionary) and seen.add(node):
+        ...  # examine this field
+        pending.append(node.get(pikepdf.Name.Kids))
+```
+
+Note also that this loop keeps its own list of what is left to visit rather
+than calling itself, so a long chain of objects cannot exhaust the Python
+stack.
+
 ## Object helpers
 
 pikepdf also provides {class}`pikepdf.ObjectHelper` and various subclasses of

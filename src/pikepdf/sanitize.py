@@ -28,6 +28,7 @@ from __future__ import annotations
 import functools
 from typing import TYPE_CHECKING, ParamSpec, TypeVar
 
+from pikepdf._core import ObjectSet
 from pikepdf._explicit_conv import explicit_conversion
 from pikepdf.objects import Array, Dictionary, Name, Stream
 
@@ -114,20 +115,6 @@ def _is_targeted_action(obj: Object, targets: frozenset[Name]) -> bool:
     return isinstance(subtype, Name) and subtype in targets
 
 
-def _cycle_hit(obj: Object, seen: set[tuple[int, int]]) -> bool:
-    """Track visited indirect objects to break cyclic /Next chains.
-
-    Direct (inline) objects all report objgen ``(0, 0)`` and cannot be
-    deduplicated this way; the recursion depth cap handles those.
-    """
-    if obj.is_indirect:
-        objgen = obj.objgen
-        if objgen in seen:
-            return True
-        seen.add(objgen)
-    return False
-
-
 def _as_actions(next_obj: Object) -> list[Object]:
     """Normalize a /Next value (single action dict or Array) to a list."""
     if isinstance(next_obj, Array):
@@ -138,7 +125,7 @@ def _as_actions(next_obj: Object) -> list[Object]:
 def _neutralize_next_chain(
     action: Object,
     targets: frozenset[Name],
-    seen: set[tuple[int, int]],
+    seen: ObjectSet,
     depth: int = 0,
 ) -> None:
     """Prune targeted actions from *action*'s /Next chain, in place.
@@ -163,7 +150,7 @@ def _neutralize_next_chain(
         # such as a nested array, cannot be examined, so it is dropped.
         if not _is_action_dict(child):
             continue
-        if _cycle_hit(child, seen):
+        if not seen.add(child):
             continue
         # Clean the child's own chain first, so grafted survivors are clean.
         _neutralize_next_chain(child, targets, seen, depth + 1)
@@ -187,7 +174,7 @@ def _neutralize_slot(
     holder: Object,
     key: Name,
     targets: frozenset[Name],
-    seen: set[tuple[int, int]],
+    seen: ObjectSet,
 ) -> None:
     """Neutralize a single-action slot, e.g. an annotation's /A.
 
@@ -197,7 +184,7 @@ def _neutralize_slot(
     action = holder.get(key)
     if action is None or not _is_action_dict(action):
         return  # e.g. /OpenAction holding a destination array
-    if _cycle_hit(action, seen):
+    if not seen.add(action):
         return
     if _is_targeted_action(action, targets):
         del holder[key]
@@ -214,7 +201,7 @@ def _neutralize_additional_actions(holder: Object, targets: frozenset[Name]) -> 
     if not isinstance(aa, Dictionary):
         return
     for event_key in list(aa.keys()):
-        _neutralize_slot(aa, Name(event_key), targets, set())
+        _neutralize_slot(aa, Name(event_key), targets, ObjectSet())
     if len(aa.keys()) == 0:
         del holder[Name.AA]
 
@@ -224,7 +211,7 @@ def _sanitize_actions(pdf: Pdf, targets: frozenset[Name]) -> None:
     root = pdf.Root
 
     # Document catalog.
-    _neutralize_slot(root, Name.OpenAction, targets, set())
+    _neutralize_slot(root, Name.OpenAction, targets, ObjectSet())
     _neutralize_additional_actions(root, targets)
 
     # Pages and their annotations.
@@ -236,7 +223,7 @@ def _sanitize_actions(pdf: Pdf, targets: frozenset[Name]) -> None:
             for annot in annots:
                 if not isinstance(annot, Dictionary):
                     continue
-                _neutralize_slot(annot, Name.A, targets, set())
+                _neutralize_slot(annot, Name.A, targets, ObjectSet())
                 _neutralize_additional_actions(annot, targets)
 
     # Interactive form fields.
@@ -262,15 +249,15 @@ def _neutralize_field_tree(root: Object, targets: frozenset[Name]) -> None:
     fields = acroform.get(Name.Fields)
     if not isinstance(fields, Array):
         return
-    visited: set[tuple[int, int]] = set()
+    visited = ObjectSet()
     stack = list(fields)
     while stack:
         node = stack.pop()
         if not isinstance(node, Dictionary):
             continue
-        if _cycle_hit(node, visited):
+        if not visited.add(node):
             continue
-        _neutralize_slot(node, Name.A, targets, set())
+        _neutralize_slot(node, Name.A, targets, ObjectSet())
         _neutralize_additional_actions(node, targets)
         kids = node.get(Name.Kids)
         if isinstance(kids, Array):
@@ -287,15 +274,15 @@ def _neutralize_outlines(root: Object, targets: frozenset[Name]) -> None:
     outlines = root.get(Name.Outlines)
     if not isinstance(outlines, Dictionary):
         return
-    visited: set[tuple[int, int]] = set()
+    visited = ObjectSet()
     stack = [outlines.get(Name.First)]
     while stack:
         item = stack.pop()
         if not isinstance(item, (Dictionary, Stream)):
             continue
-        if _cycle_hit(item, visited):
+        if not visited.add(item):
             continue
-        _neutralize_slot(item, Name.A, targets, set())
+        _neutralize_slot(item, Name.A, targets, ObjectSet())
         stack.append(item.get(Name.Next))
         stack.append(item.get(Name.First))
 

@@ -181,6 +181,11 @@ from pikepdf._core._transcoding import (
     _unpack_subbyte_2bit,
     _unpack_subbyte_4bit,
 )
+from pikepdf._core._traversal import (
+    ObjectSet,
+    _action_chain,
+    _reachable_objects,
+)
 from pikepdf._core._typing import (
     Numeric,
     T,
@@ -197,6 +202,8 @@ __all__ = [
     '_get_explicit_conversion_mode',
     '_get_qpdf_global',
     '_NameObjectMeta',
+    '_action_chain',
+    '_reachable_objects',
     '_NamePath',
     '_NamePathMeta',
     '_new_array',
@@ -268,6 +275,7 @@ __all__ = [
     'Numeric',
     'Object',
     'ObjectHelper',
+    'ObjectSet',
     'ObjectStreamMode',
     'ObjectType',
     'Operator',

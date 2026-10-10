@@ -13,7 +13,7 @@ from functools import cache
 from typing import cast
 
 import pikepdf
-from pikepdf import Array, Dictionary, Name, Object, Pdf, Stream
+from pikepdf import Array, Dictionary, Name, Object, ObjectSet, Pdf, Stream
 from pikepdf.pdfa._embedded import associated_file_objgens
 from pikepdf.pdfa._encodings import (
     MAX_CODE,
@@ -462,16 +462,12 @@ def _embedded_file_specs(pdf: Pdf) -> list[Dictionary]:
     names = _get_dict(pdf.Root, Name.Names)
     root = names.get(Name.EmbeddedFiles)
     found: list[Dictionary] = []
-    seen: set[tuple[int, int]] = set()
+    seen = ObjectSet()
     pending: list[Object] = [root] if isinstance(root, Dictionary) else []
     while pending:
         node = pending.pop()
-        if not isinstance(node, Dictionary):
+        if not isinstance(node, Dictionary) or not seen.add(node):
             continue
-        if node.is_indirect:
-            if node.objgen in seen:
-                continue
-            seen.add(node.objgen)
         kids = node.get(Name.Kids)
         if isinstance(kids, Array):
             pending.extend(reversed(list(kids)))
@@ -482,10 +478,9 @@ def _embedded_file_specs(pdf: Pdf) -> list[Dictionary]:
             if (
                 isinstance(value, Dictionary)
                 and value.is_indirect
-                and value.objgen not in seen
                 and Name.EF in value
+                and seen.add(value)
             ):
-                seen.add(value.objgen)
                 found.append(value)
     return found
 

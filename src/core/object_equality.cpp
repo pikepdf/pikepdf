@@ -4,9 +4,9 @@
 #include "pikepdf.h"
 
 #include <cstring>
+#include <set>
 #include <string>
 #include <utility>
-#include <vector>
 
 #include <qpdf/QPDFObjectHandle.hh>
 
@@ -27,48 +27,35 @@ inline bool typecode_is_numeric(qpdf_object_type_e typecode)
            typecode == qpdf_object_type_e::ot_boolean;
 }
 
-// The recursion path: the pairs of container objects we are currently in the
-// middle of comparing. We identify objects by their underlying identity
-// (isSameObjectAs) rather than by serializing them, because serializing a
-// cyclic *direct* object recurses forever and overflows the stack (issue #731).
-// Indirect objects could be identified cheaply by their object/generation
-// number, but direct objects all share generation (0, 0), so identity is the
-// only thing that works for both.
-using ComparisonPath = std::vector<std::pair<QPDFObjectHandle, QPDFObjectHandle>>;
+// The pairs of containers whose comparison has already been started.
+//
+// PDF objects form a graph, so the same pair of containers can be reached
+// along many paths, and along a path that leads back to itself. A pair is
+// compared the first time it is reached and assumed equal after that. The
+// assumption is safe because the first difference found anywhere ends the
+// whole comparison with "not equal": if the answer is "equal", every pair
+// that was started was also finished without finding a difference.
+//
+// Remembering only the pairs on the current recursion path would be enough to
+// stop at a cycle, but would compare a shared object once for each path to it,
+// which is exponential in the depth of the graph.
+//
+// Objects are identified by the identity of the underlying QPDFObject, the
+// test isSameObjectAs() makes, rather than by serializing them or by object
+// and generation number: serializing a cyclic direct object overflows the
+// stack (issue #731), and direct objects all report 0 0. The containers being
+// compared keep every object alive for the duration, so addresses are stable.
+using VisitedPairs = std::set<std::pair<const void *, const void *>>;
 
-// Return true if we are already comparing this exact pair of objects further up
-// the recursion stack, i.e. we have followed a cycle back to where we started.
-static bool pair_on_path(
-    ComparisonPath &path, QPDFObjectHandle &self, QPDFObjectHandle &other)
+// Return true the first time this pair of objects is seen.
+static bool first_visit(
+    VisitedPairs &visited, QPDFObjectHandle &self, QPDFObjectHandle &other)
 {
-    for (auto &entry : path) {
-        if (entry.first.isSameObjectAs(self) && entry.second.isSameObjectAs(other))
-            return true;
-    }
-    return false;
+    return visited.emplace(self.getObj().get(), other.getObj().get()).second;
 }
 
-// RAII helper to push a pair onto the comparison path for the duration of a
-// recursive container comparison and pop it again on the way out.
-class PathGuard {
-public:
-    PathGuard(ComparisonPath &path, QPDFObjectHandle self, QPDFObjectHandle other)
-        : path(path)
-    {
-        path.emplace_back(std::move(self), std::move(other));
-    }
-    ~PathGuard() { path.pop_back(); }
-    PathGuard(const PathGuard &) = delete;
-    PathGuard &operator=(const PathGuard &) = delete;
-    PathGuard(PathGuard &&) = delete;
-    PathGuard &operator=(PathGuard &&) = delete;
-
-private:
-    ComparisonPath &path;
-};
-
 static bool objecthandle_equal_inner(
-    QPDFObjectHandle self, QPDFObjectHandle other, ComparisonPath &path)
+    QPDFObjectHandle self, QPDFObjectHandle other, VisitedPairs &visited)
 {
     StackGuard sg(" objecthandle_equal");
 
@@ -123,17 +110,14 @@ static bool objecthandle_equal_inner(
     case qpdf_object_type_e::ot_array: {
         if (self.getArrayNItems() != other.getArrayNItems())
             return false;
-        // If we are already comparing this pair higher up the stack, we have
-        // followed a cycle; treat it as equal so the recursion terminates.
-        if (pair_on_path(path, self, other))
+        if (!first_visit(visited, self, other))
             return true;
-        PathGuard guard(path, self, other);
         auto self_aitems = self.aitems();
         auto other_aitems = other.aitems();
         auto iter_self = self_aitems.begin();
         auto iter_other = other_aitems.begin();
         for (; iter_self != self_aitems.end(); ++iter_self, ++iter_other) {
-            if (!objecthandle_equal_inner(*iter_self, *iter_other, path)) {
+            if (!objecthandle_equal_inner(*iter_self, *iter_other, visited)) {
                 return false;
             }
         }
@@ -142,22 +126,21 @@ static bool objecthandle_equal_inner(
     case qpdf_object_type_e::ot_dictionary: {
         if (self.getKeys() != other.getKeys())
             return false;
-        if (pair_on_path(path, self, other))
+        if (!first_visit(visited, self, other))
             return true;
-        PathGuard guard(path, self, other);
         for (auto &key : self.getKeys()) {
             auto value = self.getKey(key);
             auto other_value = other.getKey(key);
             if (other_value.isNull())
                 return false;
-            if (!objecthandle_equal_inner(value, other_value, path))
+            if (!objecthandle_equal_inner(value, other_value, visited))
                 return false;
         }
         return true;
     }
     case qpdf_object_type_e::ot_stream: {
         // Recurse into this function to check if our dictionaries are equal
-        if (!objecthandle_equal_inner(self.getDict(), other.getDict(), path))
+        if (!objecthandle_equal_inner(self.getDict(), other.getDict(), visited))
             return false;
 
         // If dictionaries are equal, check our stream
@@ -191,6 +174,6 @@ static bool objecthandle_equal_inner(
 
 bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
 {
-    ComparisonPath path;
-    return objecthandle_equal_inner(self, other, path);
+    VisitedPairs visited;
+    return objecthandle_equal_inner(self, other, visited);
 }

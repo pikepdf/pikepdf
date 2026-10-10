@@ -146,6 +146,11 @@
     :members: __new__
 ```
 
+```{eval-rst}
+.. autoapiclass:: pikepdf.ObjectSet
+    :members:
+```
+
 ## Common PDF data structures
 
 ```{eval-rst}

@@ -17,11 +17,11 @@ settings from `resolve_save_kwargs`.
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from decimal import Decimal
 
 import pikepdf
-from pikepdf._core import ObjectStreamMode
+from pikepdf._core import ObjectStreamMode, _reachable_objects
 from pikepdf.pdfa._shallow import JsonValue, shallow_json, shallow_json_of
 
 # Filters qpdf decodes at stream_decode_level=generalized, by the names qpdf
@@ -444,39 +444,19 @@ class WriteModel:
         if self._save_kwargs is None:
             return [pikepdf.unbox(obj) for obj in pdf.objects]
         if self._objects is None:
-            self._objects = list(_reachable(pdf))
+            self._objects = _reachable(pdf)
         return self._objects
 
 
-def _reachable(pdf: pikepdf.Pdf) -> Iterator[pikepdf.Object]:
-    """Yield each indirect object reachable from the written trailer, once.
+def _reachable(pdf: pikepdf.Pdf) -> list[pikepdf.Object]:
+    """Return each indirect object reachable from the written trailer, once.
 
     qpdf writes only these (it drops the old /Encrypt dictionary and any
-    orphaned object). Iterative, so deep graphs do not exhaust the stack.
+    orphaned object).
     """
-    seen: set[tuple[int, int]] = set()
-    stack: list[pikepdf.Object] = [
-        value for key, value in pdf.trailer.items() if key not in _TRIMMED_TRAILER_KEYS
+    roots = [
+        value
+        for key, value in pdf.trailer.items()
+        if key not in _TRIMMED_TRAILER_KEYS and isinstance(value, pikepdf.Object)
     ]
-    stack.reverse()
-    while stack:
-        value = pikepdf.unbox(stack.pop())
-        if not isinstance(value, pikepdf.Object):
-            # A PDF integer, real or boolean, unboxed
-            continue
-        if value.is_indirect:
-            key = value.objgen
-            if key in seen:
-                continue
-            seen.add(key)
-            yield value
-        if isinstance(value, pikepdf.Stream):
-            children = [v for _k, v in value.stream_dict.items()]
-        elif isinstance(value, pikepdf.Dictionary):
-            children = [v for _k, v in value.items()]
-        elif isinstance(value, pikepdf.Array):
-            children = list(value)
-        else:
-            continue
-        children.reverse()
-        stack.extend(children)
+    return _reachable_objects(pdf, roots)

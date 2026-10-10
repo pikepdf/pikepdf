@@ -5,6 +5,7 @@
 #include "parsers.h"
 #include "pikepdf.h"
 #include "qpdf_lock.h"
+#include "traversal.h"
 
 #include <cctype>
 #include <iomanip>
@@ -271,6 +272,28 @@ void init_page(py::module_ &m)
                 },
                 py::arg("from_page"), // LCOV_EXCL_LINE
                 py::arg("matrix") = py::none())
+            .def(
+                "get_form_xobjects",
+                [](QPDFPageObjectHelper &poh, bool recursive, ObjectSet *seen) {
+                    auto root = poh.getObjectHandle();
+                    QpdfLockGuard lock(root.getOwningQPDF());
+                    ObjectSet local;
+                    py::list result;
+                    for (auto const &form :
+                        collect_form_xobjects(root, recursive, seen ? *seen : local))
+                        result.append(py::cast(form));
+                    return result;
+                },
+                py::arg("recursive") = true,
+                py::kw_only(),
+                py::arg("seen").none() = py::none())
+            .def(
+                "_get_inherited",
+                [](QPDFPageObjectHelper &poh, std::string const &key) {
+                    QpdfLockGuard lock(poh.getObjectHandle().getOwningQPDF());
+                    return poh.getAttribute(key, false);
+                },
+                py::arg("key"))
             .def_prop_ro("_images_recursive",
                 [](QPDFPageObjectHelper &poh) {
                     QpdfLockGuard lock(poh.getObjectHandle().getOwningQPDF());

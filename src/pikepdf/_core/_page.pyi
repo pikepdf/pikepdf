@@ -18,6 +18,7 @@ from pikepdf._core._object import Object, StreamParser, _ObjectMapping
 from pikepdf._core._object_construct import Array, Dictionary, Name, Stream
 from pikepdf._core._rectangle import Rectangle
 from pikepdf._core._tokenfilter import TokenFilter
+from pikepdf._core._traversal import ObjectSet
 from pikepdf._core._typing import T
 
 class Page:
@@ -251,6 +252,57 @@ class Page:
 
         .. versionadded:: 10.9
         """
+    def get_form_xobjects(
+        self, recursive: bool = ..., *, seen: ObjectSet | None = ...
+    ) -> list[Stream]:
+        """Return the form XObjects used by this page, each once.
+
+        A page's visible content is often drawn through form XObjects, which
+        have resources of their own and may draw further form XObjects. To
+        examine everything a page can draw -- its fonts, images, colour spaces
+        and so on -- look at the resources of the page and of each form this
+        method returns.
+
+        Form XObjects commonly share resources, and a form's resources may
+        list the form itself or one of the forms that contain it. Each form is
+        returned once however many ways there are to reach it, so this method
+        is safe where a hand-written recursive search is not: see
+        :class:`pikepdf.ObjectSet`.
+
+        Forms are found through ``/Resources``, including resources the page
+        inherits from the page tree, in breadth-first order. A form is
+        reported if a resource dictionary lists it, whether or not a content
+        stream draws it. Forms used only by annotation appearance streams,
+        patterns or Type 3 fonts are not found from the page; wrap such a
+        stream in :class:`pikepdf.Page` to search it.
+
+        Unlike :attr:`form_xobjects`, the result is a list rather than a
+        mapping by name, because forms in different resource dictionaries may
+        have the same name.
+
+        This method can be used on a form XObject as well as on a page:
+        ``Page(form).get_form_xobjects()`` returns the forms nested in *form*.
+
+        Args:
+            recursive: If True (the default), also return the forms nested
+                inside each form, to any depth. If False, return only forms
+                listed directly in this page's resources.
+            seen: Objects already visited. Forms in this set are neither
+                returned nor searched, and this page and each form returned
+                are added to it. Pass the same set for every page to visit
+                each form once in the whole document; forms are often shared
+                between pages.
+
+        .. code-block:: python
+
+            seen = pikepdf.ObjectSet()
+            for page in pdf.pages:
+                for scope in [page.obj, *page.get_form_xobjects(seen=seen)]:
+                    ...  # each page and each form, once
+
+        .. versionadded:: 10.17
+        """
+    def _get_inherited(self, key: str) -> Object | None: ...
     def contents_add(self, contents: Stream | bytes, *, prepend: bool = ...) -> None:
         """Append or prepend to an existing page's content stream.
 
