@@ -429,6 +429,15 @@ void init_traversal(py::module_ &m)
         });
     m.attr("ObjectSet").attr("__hash__") = py::none();
 
+    py::enum_<content_scope_kind>(
+        m, "_ContentScopeKind", py::is_flag(), py::is_arithmetic())
+        .value("page", scope_page)
+        .value("form", scope_form)
+        .value("appearance", scope_appearance)
+        .value("pattern", scope_pattern)
+        .value("glyph", scope_glyph)
+        .value("softmask", scope_softmask);
+
     py::class_<ContentScopeWalk>(
         m, "_ContentScopeWalk", py::type_slots(pikepdf_gc_slots))
         .def(py::init<>())
@@ -439,7 +448,7 @@ void init_traversal(py::module_ &m)
                 QpdfLockGuard lock(root.getOwningQPDF());
                 py::list result;
                 for (auto const &scope : self.walk(root, kinds)) {
-                    result.append(py::make_tuple(static_cast<unsigned>(scope.kind),
+                    result.append(py::make_tuple(scope.kind,
                         scope.content,
                         scope.resources.isInitialized() ? py::cast(scope.resources)
                                                         : py::none()));

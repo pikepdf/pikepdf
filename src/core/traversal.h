@@ -48,8 +48,9 @@ private:
         pairs_;
 };
 
-// The kinds of content stream that ContentScopeWalk reports, as bits
-// of a mask. pikepdf/_content_scopes.py holds the same values.
+// The kinds of content stream that ContentScopeWalk reports, as bits of a
+// mask. Bound as pikepdf._core._ContentScopeKind, whose member names are the
+// names that Python callers use for the kinds.
 enum content_scope_kind : unsigned {
     scope_page = 1,
     scope_form = 2,

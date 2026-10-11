@@ -11,31 +11,18 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, cast
 
-from pikepdf._core import Page, _ContentScopeWalk
+from pikepdf._core import Page, _ContentScopeKind, _ContentScopeWalk
 from pikepdf.objects import Dictionary, Object, Stream
 
+# For type checkers. The kinds themselves are defined once, in C++, as
+# _ContentScopeKind; tests/test_content_scopes.py checks that this agrees.
 ContentScopeKind = Literal['page', 'form', 'appearance', 'pattern', 'glyph', 'softmask']
 
-# The bit that content_scope_kind in src/core/traversal.h gives each kind
-_KIND_BITS: dict[str, int] = {
-    'page': 1,
-    'form': 2,
-    'appearance': 4,
-    'pattern': 8,
-    'glyph': 16,
-    'softmask': 32,
+_KINDS: dict[str, _ContentScopeKind] = {
+    str(kind.name): kind for kind in _ContentScopeKind
 }
-_KIND_NAMES: dict[int, ContentScopeKind] = {
-    1: 'page',
-    2: 'form',
-    4: 'appearance',
-    8: 'pattern',
-    16: 'glyph',
-    32: 'softmask',
-}
-_ALL_KINDS = sum(_KIND_BITS.values())
 
 
 @dataclass(frozen=True, slots=True, eq=False)
@@ -107,19 +94,19 @@ class ContentScope:
 def kinds_mask(kinds: Iterable[str] | str | None) -> int:
     """Check a ``kinds`` argument and convert it to the form C++ takes."""
     if kinds is None:
-        return _ALL_KINDS
-    if isinstance(kinds, str):
+        kinds = _KINDS
+    elif isinstance(kinds, str):
         kinds = (kinds,)
     mask = 0
     for kind in kinds:
         if not isinstance(kind, str):
             raise TypeError(f"content scope kinds are strings, not {kind!r}")
-        if kind not in _KIND_BITS:
+        if kind not in _KINDS:
             raise ValueError(
                 f"unknown content scope kind {kind!r}; "
-                f"the kinds are {', '.join(_KIND_BITS)}"
+                f"the kinds are {', '.join(_KINDS)}"
             )
-        mask |= _KIND_BITS[kind]
+        mask |= int(_KINDS[kind])
     return mask
 
 
@@ -127,8 +114,8 @@ def page_scopes(page: Page, mask: int, walk: _ContentScopeWalk) -> list[ContentS
     """Find the content scopes of one page that *walk* has not yet reported."""
     owner = None if isinstance(page.obj, Stream) else page
     return [
-        ContentScope(_KIND_NAMES[bit], content, resources, owner)
-        for bit, content, resources in walk.walk(page, mask)
+        ContentScope(cast(ContentScopeKind, kind.name), content, resources, owner)
+        for kind, content, resources in walk.walk(page, mask)
     ]
 
 

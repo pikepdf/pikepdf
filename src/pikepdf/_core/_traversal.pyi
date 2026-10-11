@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from enum import IntFlag
 
 from pikepdf._core._object import Object, ObjectHelper
 from pikepdf._core._object_construct import Dictionary
@@ -92,6 +93,16 @@ class ObjectSet:
     def __len__(self) -> int: ...
     def __repr__(self) -> str: ...
 
+class _ContentScopeKind(IntFlag):
+    """The kinds of content scope, named as :attr:`pikepdf.ContentScope.kind`."""
+
+    page: ...
+    form: ...
+    appearance: ...
+    pattern: ...
+    glyph: ...
+    softmask: ...
+
 class _ContentScopeWalk:
     """Finds the content scopes of pages, reporting each once.
 
@@ -102,7 +113,7 @@ class _ContentScopeWalk:
     def __init__(self) -> None: ...
     def walk(
         self, page: Page, kinds: int
-    ) -> list[tuple[int, Object, Dictionary | None]]:
+    ) -> list[tuple[_ContentScopeKind, Object, Dictionary | None]]:
         """Return (kind, content, resources) for each new scope of *page*.
 
         *kinds* is a mask of the kinds to return; everything is searched.

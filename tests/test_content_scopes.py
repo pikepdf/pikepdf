@@ -624,3 +624,13 @@ class TestFontCodes:
             shared.XObject[f'/Fm{i}'] = _form(pdf, shared, b'BT /F0 9 Tf (x) Tj ET')
         page.obj.Resources = shared
         assert self._codes(pdf) == {font.objgen: {ord('x')}}
+
+
+def test_kind_names_for_type_checkers_match_the_kinds():
+    from typing import get_args
+
+    from pikepdf._core import _ContentScopeKind
+
+    assert list(get_args(pikepdf.ContentScopeKind)) == [
+        kind.name for kind in _ContentScopeKind
+    ]
