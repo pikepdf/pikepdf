@@ -25,8 +25,7 @@ sanitization can accomplish.
 
 from __future__ import annotations
 
-import functools
-from typing import TYPE_CHECKING, ParamSpec, TypeVar
+from typing import TYPE_CHECKING
 
 from pikepdf._core import ObjectSet
 from pikepdf._explicit_conv import explicit_conversion
@@ -68,25 +67,11 @@ _MEDIA_ANNOT_KEYS: dict[Name, tuple[Name, ...]] = {
     Name('/3D'): (Name('/3DD'),),
 }
 
-_P = ParamSpec('_P')
-_R = TypeVar('_R')
-
-
-def _explicit(func: Callable[_P, _R]) -> Callable[_P, _R]:
-    """Run *func* in explicit conversion mode.
-
-    The sanitizer reads untrusted documents, where any value may have the wrong
-    type. In explicit mode every value read is a :class:`pikepdf.Object`, so a
-    scalar where a dictionary belongs fails an ``isinstance`` check instead of
-    arriving as a Python ``int`` or ``bool`` that lacks the object interface.
-    """
-
-    @functools.wraps(func)
-    def wrapper(*args: _P.args, **kwargs: _P.kwargs) -> _R:
-        with explicit_conversion():
-            return func(*args, **kwargs)
-
-    return wrapper
+# Every entry point below runs under @explicit_conversion(). The sanitizer
+# reads untrusted documents, where any value may have the wrong type. In
+# explicit mode every value read is a pikepdf.Object, so a scalar where a
+# dictionary belongs fails an isinstance check instead of arriving as a Python
+# int or bool that lacks the object interface.
 
 
 # Guard against pathological /Next chains, such as those built from inline
@@ -287,7 +272,7 @@ def _neutralize_outlines(root: Object, targets: frozenset[Name]) -> None:
         stack.append(item.get(Name.First))
 
 
-@_explicit
+@explicit_conversion()
 def remove_javascript(pdf: Pdf) -> None:
     """Remove all JavaScript from a PDF, in place.
 
@@ -327,7 +312,7 @@ def _drop_named_javascript(pdf: Pdf) -> None:
         del names[Name.JavaScript]
 
 
-@_explicit
+@explicit_conversion()
 def remove_attachments(pdf: Pdf) -> None:
     """Remove all embedded files (attachments) from a PDF, in place.
 
@@ -398,7 +383,7 @@ def _af_holds_embedded_file(af: Object | None) -> bool:
     )
 
 
-@_explicit
+@explicit_conversion()
 def remove_external_access(pdf: Pdf) -> None:
     """Neutralize actions that reach the network or filesystem, in place.
 
@@ -428,7 +413,7 @@ def remove_external_access(pdf: Pdf) -> None:
     _sanitize_actions(pdf, _EXTERNAL_SUBTYPES)
 
 
-@_explicit
+@explicit_conversion()
 def remove_thumbnails(pdf: Pdf) -> None:
     """Remove embedded page thumbnails from a PDF, in place.
 
@@ -450,7 +435,7 @@ def remove_thumbnails(pdf: Pdf) -> None:
             del page.obj[Name.Thumb]
 
 
-@_explicit
+@explicit_conversion()
 def remove_search_index(pdf: Pdf) -> None:
     """Remove an embedded full-text search index from a PDF, in place.
 
@@ -479,7 +464,7 @@ def remove_search_index(pdf: Pdf) -> None:
         del pdf.Root[Name.PieceInfo]
 
 
-@_explicit
+@explicit_conversion()
 def remove_multimedia(pdf: Pdf) -> None:
     """Remove multimedia and rich-media content from a PDF, in place.
 
@@ -535,7 +520,7 @@ def _remove_multimedia_structural(pdf: Pdf) -> None:
                     del annot[key]
 
 
-@_explicit
+@explicit_conversion()
 def remove_web_capture(pdf: Pdf) -> None:
     """Remove Web Capture (spider) information from a PDF, in place.
 
@@ -555,7 +540,7 @@ def remove_web_capture(pdf: Pdf) -> None:
         del pdf.Root[Name.SpiderInfo]
 
 
-@_explicit
+@explicit_conversion()
 def remove_private_app_data(pdf: Pdf) -> None:
     """Remove private application data (page-piece dictionaries), in place.
 
@@ -585,7 +570,7 @@ def remove_private_app_data(pdf: Pdf) -> None:
             del page.obj[Name.PieceInfo]
 
 
-@_explicit
+@explicit_conversion()
 def remove_collection(pdf: Pdf) -> None:
     """Remove the PDF portfolio (collection) presentation, in place.
 
@@ -700,7 +685,7 @@ class Sanitizer:
         self._structural.append(remove_collection)
         return self
 
-    @_explicit
+    @explicit_conversion()
     def apply(self, pdf: Pdf) -> Pdf:
         """Apply the recorded operations to *pdf*, in place.
 
