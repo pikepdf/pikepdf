@@ -3,10 +3,11 @@
 
 #pragma once
 
-// Declarations shared between object.cpp and object_methods.cpp, which together
-// bind the QPDFObjectHandle ("Object") class. The binding is split across two
-// translation units so each one's nanobind template instantiation uses less
-// peak compiler memory.
+// Declarations shared between object.cpp, object_arithmetic.cpp and
+// object_methods.cpp, which together bind the QPDFObjectHandle ("Object")
+// class, and object_list.cpp and object_map.cpp, which bind its containers.
+// The binding is split across translation units so each one's nanobind
+// template instantiation uses less peak compiler memory.
 
 #include "namepath.h"
 #include "pikepdf.h"
@@ -52,6 +53,16 @@ QPDFObjectHandle copy_object(QPDFObjectHandle &h);
 std::shared_ptr<Buffer> get_stream_data(
     QPDFObjectHandle &h, qpdf_stream_decode_level_e decode_level);
 
+// Python stand-in for a numeric Object, defined in object_arithmetic.cpp. The
+// caller holds the lock on the object's owner.
+py::object arithmetic_operand(QPDFObjectHandle &h, bool other_is_float);
+
+// Number protocol of the Object binding, defined in object_arithmetic.cpp.
+void init_object_arithmetic(py::class_<QPDFObjectHandle> &object);
+// _ObjectList and _ObjectMapping, defined in object_list.cpp and
+// object_map.cpp.
+void init_object_list(py::module_ &m);
+void init_object_map(py::module_ &m);
 // Second half of the Object binding, defined in object_methods.cpp.
 void init_object_methods(py::class_<QPDFObjectHandle> &object);
 // Module-level pikepdf.as_int() and friends, defined in object_methods.cpp.

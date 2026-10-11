@@ -209,6 +209,7 @@ void init_object_construct(py::module_ &m);
 
 // From object_equality.cpp
 bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other);
+bool pdfobject_equal_locked(QPDFObjectHandle a, QPDFObjectHandle b);
 
 // From object_repr.cpp
 std::string objecthandle_scalar_value(QPDFObjectHandle h, bool explicit_mode);
@@ -222,6 +223,7 @@ py::object decimal_from_pdfobject(QPDFObjectHandle h);
 // Raises OverflowError if the value does not fit in a PDF integer.
 long long pdf_integer_from_pylong(const py::handle handle);
 QPDFObjectHandle objecthandle_encode(const py::handle handle);
+bool pdfobject_try_encode(py::handle value, QPDFObjectHandle &out);
 std::vector<QPDFObjectHandle> array_builder(const py::iterable iter);
 std::map<std::string, QPDFObjectHandle> dict_builder(const py::dict dict);
 

@@ -190,3 +190,21 @@ py::object decimal_from_pdfobject(QPDFObjectHandle h)
     }
     throw py::type_error("object has no Decimal() representation");
 }
+
+// Encode a Python value to a PDF object, returning false if it has no PDF
+// representation. Used by the read-only operations (__eq__, __contains__,
+// count), which must report "not equal"/"not found" for a foreign value rather
+// than raise, the same way list.__contains__ does.
+bool pdfobject_try_encode(py::handle value, QPDFObjectHandle &out)
+{
+    try {
+        out = objecthandle_encode(value);
+        return true;
+    } catch (const std::exception &) {
+        // objecthandle_encode() raises py::python_error for a failed Python
+        // call and std::runtime_error for a type it cannot represent; both
+        // derive from std::exception and neither leaves the Python error
+        // indicator set.
+        return false;
+    }
+}

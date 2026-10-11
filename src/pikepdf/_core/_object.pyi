@@ -1,7 +1,8 @@
 # SPDX-FileCopyrightText: 2022 James R. Barlow
 # SPDX-License-Identifier: MPL-2.0
 
-# Type stubs for the bindings in src/core/object.cpp and object_methods.cpp.
+# Type stubs for the bindings in src/core/object.cpp, object_arithmetic.cpp,
+# object_list.cpp, object_map.cpp and object_methods.cpp.
 # See pikepdf/_core/__init__.pyi for how this stub package is laid out.
 
 # pylint: disable=no-method-argument,unused-argument,no-self-use,too-many-public-methods

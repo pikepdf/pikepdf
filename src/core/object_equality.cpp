@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MPL-2.0
 
 #include "pikepdf.h"
+#include "qpdf_lock.h"
 
 #include <cstring>
 #include <set>
@@ -176,4 +177,15 @@ bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
 {
     VisitedPairs visited;
     return objecthandle_equal_inner(self, other, visited);
+}
+
+// Compare two objects by value. _ObjectList and _ObjectMapping have no owning
+// QPDF of their own, so unlike the pikepdf.Array methods -- which lock the
+// array's owner once -- each comparison locks whatever the two values happen to
+// belong to. These containers hold direct objects almost always, and the guard
+// is a no-op for those.
+bool pdfobject_equal_locked(QPDFObjectHandle a, QPDFObjectHandle b)
+{
+    DualQpdfLockGuard lock(a.getOwningQPDF(), b.getOwningQPDF());
+    return objecthandle_equal(a, b);
 }
