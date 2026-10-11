@@ -1441,6 +1441,26 @@ def test_iccbased_cmyk_explicit_decode_array():
     assert pim._decode_array == (1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0)
 
 
+def test_iccbased_profile_without_n(resources):
+    # /N is required on an ICC profile stream, but some files omit it: the
+    # profile itself says it is gray, so the image still decodes as 'L'.
+    pdf = Pdf.new()
+    icc_stream = pdf.make_stream((resources / 'Gray.icc').read_bytes())
+    imobj = Stream(
+        pdf,
+        bytes(range(4)),
+        BitsPerComponent=8,
+        ColorSpace=Array([Name.ICCBased, icc_stream]),
+        Width=2,
+        Height=2,
+        Type=Name.XObject,
+        Subtype=Name.Image,
+    )
+    pim = PdfImage(imobj)
+    assert pim.mode == 'L'
+    assert pim.as_pil_image().mode == 'L'
+
+
 @pytest.mark.skipif(
     not PIL_features.check_codec('jpg_2000'), reason='no JPEG2000 codec'
 )
