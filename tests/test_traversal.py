@@ -17,7 +17,7 @@ from io import BytesIO
 import pytest
 
 import pikepdf
-from pikepdf import Array, Dictionary, Name, ObjectSet, Page, Pdf, Stream, String
+from pikepdf import Array, Dictionary, Name, ObjectSet, Pdf, String
 
 # A walk that enumerates paths does not finish, so fail instead of hanging.
 # The thread method is needed to interrupt a loop in C++.
@@ -40,30 +40,6 @@ def _diamonds(pdf: Pdf, levels: int = 60) -> Dictionary:
     for _ in range(levels):
         node = pdf.make_indirect(Dictionary(L=node, R=node))
     return node
-
-
-def _form(pdf: Pdf, resources: Dictionary | None = None) -> Stream:
-    form = Stream(pdf, b'0 0 10 10 re f')
-    form.Type = Name.XObject
-    form.Subtype = Name.Form
-    form.BBox = Array([0, 0, 10, 10])
-    if resources is not None:
-        form.Resources = resources
-    return form
-
-
-def _shared_forms(n: int = 12) -> Pdf:
-    """Return a one-page PDF whose n forms share one /Resources listing them all.
-
-    This is the layout that LibreOffice produces for some presentations.
-    """
-    pdf = pikepdf.new()
-    pdf.add_blank_page(page_size=(200, 200))
-    shared = pdf.make_indirect(Dictionary(XObject=Dictionary()))
-    for i in range(n):
-        shared.XObject[f'/Fm{i}'] = _form(pdf, shared)
-    pdf.pages[0].obj.Resources = shared
-    return pdf
 
 
 class TestEquality:
@@ -191,6 +167,11 @@ class TestObjectSet:
         assert len(seen) == 0
         assert not seen
 
+    def test_rejects_other_types_among_initial_objects(self):
+        pdf = pikepdf.new()
+        with pytest.raises(TypeError):
+            ObjectSet([pdf.Root, 42])
+
     def test_rejects_other_types(self):
         seen = ObjectSet()
         with pytest.raises(TypeError):
@@ -223,123 +204,6 @@ class TestObjectSet:
                 continue
             pending.extend(node.values())
         assert len(seen) == 41
-
-
-class TestFormXObjects:
-    def test_shared_resources(self):
-        pdf = _shared_forms(12)
-        forms = pdf.pages[0].get_form_xobjects()
-        assert len(forms) == 12
-        assert {form.objgen for form in forms} == {
-            form.objgen for form in pdf.pages[0].form_xobjects.values()
-        }
-        assert all(isinstance(form, Stream) for form in forms)
-
-    def test_not_recursive(self):
-        pdf = pikepdf.new()
-        pdf.add_blank_page()
-        inner = _form(pdf)
-        outer = _form(pdf, Dictionary(XObject=Dictionary(Inner=inner)))
-        pdf.pages[0].obj.Resources = Dictionary(XObject=Dictionary(Outer=outer))
-        page = pdf.pages[0]
-        assert [f.objgen for f in page.get_form_xobjects(recursive=False)] == [
-            outer.objgen
-        ]
-        assert [f.objgen for f in page.get_form_xobjects()] == [
-            outer.objgen,
-            inner.objgen,
-        ]
-
-    def test_same_name_in_different_scopes(self):
-        pdf = pikepdf.new()
-        pdf.add_blank_page()
-        inner = _form(pdf)
-        outer = _form(pdf, Dictionary(XObject=Dictionary(Fm0=inner)))
-        pdf.pages[0].obj.Resources = Dictionary(XObject=Dictionary(Fm0=outer))
-        assert len(pdf.pages[0].get_form_xobjects()) == 2
-
-    def test_images_are_not_forms(self):
-        pdf = pikepdf.new()
-        pdf.add_blank_page()
-        image = Stream(pdf, b'\xff')
-        image.Type = Name.XObject
-        image.Subtype = Name.Image
-        pdf.pages[0].obj.Resources = Dictionary(XObject=Dictionary(Im0=image))
-        assert pdf.pages[0].get_form_xobjects() == []
-
-    def test_no_resources(self):
-        pdf = pikepdf.new()
-        pdf.add_blank_page()
-        assert pdf.pages[0].get_form_xobjects() == []
-
-    @pytest.mark.parametrize(
-        'resources',
-        [
-            Array([1, 2]),
-            Name.Bogus,
-            Dictionary(XObject=Array([1])),
-            Dictionary(XObject=Name.Bogus),
-            Dictionary(XObject=Dictionary(A=1, B=Name.Bogus, C=Dictionary())),
-        ],
-    )
-    def test_malformed_resources(self, resources):
-        pdf = pikepdf.new()
-        pdf.add_blank_page()
-        pdf.pages[0].obj.Resources = resources
-        assert pdf.pages[0].get_form_xobjects() == []
-
-    def test_inherited_resources(self):
-        pdf = pikepdf.new()
-        pdf.add_blank_page()
-        form = _form(pdf)
-        pdf.Root.Pages.Resources = Dictionary(XObject=Dictionary(Fm0=form))
-        del pdf.pages[0].obj.Resources
-        assert [f.objgen for f in pdf.pages[0].get_form_xobjects()] == [form.objgen]
-
-    def test_starting_from_a_form(self):
-        pdf = pikepdf.new()
-        inner = _form(pdf)
-        outer = _form(pdf, Dictionary(XObject=Dictionary(Inner=inner)))
-        assert [f.objgen for f in Page(outer).get_form_xobjects()] == [inner.objgen]
-
-    def test_form_that_contains_itself(self):
-        pdf = pikepdf.new()
-        form = _form(pdf)
-        form.Resources = Dictionary(XObject=Dictionary(Me=form))
-        assert Page(form).get_form_xobjects() == []
-
-    def test_seen_shared_between_pages(self):
-        pdf = _shared_forms(5)
-        pdf.add_blank_page()
-        extra = _form(pdf)
-        pdf.pages[1].obj.Resources = Dictionary(
-            XObject=Dictionary(Extra=extra, Again=pdf.pages[0].form_xobjects['/Fm0'])
-        )
-        seen = ObjectSet()
-        first = pdf.pages[0].get_form_xobjects(seen=seen)
-        second = pdf.pages[1].get_form_xobjects(seen=seen)
-        assert len(first) == 5
-        assert [f.objgen for f in second] == [extra.objgen]
-        assert len(seen) == 8  # six forms and two pages
-
-    def test_seen_form_is_not_entered(self):
-        pdf = pikepdf.new()
-        pdf.add_blank_page()
-        inner = _form(pdf)
-        outer = _form(pdf, Dictionary(XObject=Dictionary(Inner=inner)))
-        pdf.pages[0].obj.Resources = Dictionary(XObject=Dictionary(Outer=outer))
-        seen = ObjectSet([outer])
-        assert pdf.pages[0].get_form_xobjects(seen=seen) == []
-        assert inner not in seen
-
-    def test_deeply_nested(self):
-        pdf = pikepdf.new()
-        pdf.add_blank_page()
-        form = _form(pdf)
-        for _ in range(3000):
-            form = _form(pdf, Dictionary(XObject=Dictionary(Fm=form)))
-        pdf.pages[0].obj.Resources = Dictionary(XObject=Dictionary(Fm=form))
-        assert len(pdf.pages[0].get_form_xobjects()) == 3001
 
 
 def _action(pdf: Pdf, **kwargs) -> Dictionary:
@@ -552,6 +416,27 @@ class TestSameObject:
         assert not pdf.Root.is_same_object_as(42)
         assert not pdf.Root.is_same_object_as(None)
         assert not pdf.Root.is_same_object_as({'/Type': Name.Catalog})
+
+    def test_object_passed_to_replace_object(self):
+        pdf = pikepdf.new()
+        old = pdf.make_indirect(Dictionary(A=1))
+        pdf.Root.Thing = old
+        new = Dictionary(B=2)
+        pdf._replace_object(old.objgen, new)
+        assert pdf.Root.Thing.B == 2
+        assert old.is_same_object_as(pdf.Root.Thing)
+        assert new.is_same_object_as(pdf.Root.Thing)
+        assert new in ObjectSet([pdf.Root.Thing])
+
+    def test_swapped_objects_keep_their_numbers(self):
+        pdf = pikepdf.new()
+        a = pdf.make_indirect(Dictionary(Is=Name.A))
+        b = pdf.make_indirect(Dictionary(Is=Name.B))
+        pdf.Root.A = a
+        pdf._swap_objects(a.objgen, b.objgen)
+        assert a.Is == Name.B
+        assert a.is_same_object_as(pdf.Root.A)
+        assert not a.is_same_object_as(b)
 
     def test_shallow_copy_is_a_different_object(self):
         import copy

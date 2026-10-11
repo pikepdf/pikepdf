@@ -51,13 +51,13 @@ from pikepdf._core import (
     JSONStreamData,
     NameTree,
     NumberTree,
-    ObjectSet,
     ObjectStreamMode,
     Page,
     Pdf,
     Rectangle,
     StreamDecodeLevel,
     StreamParser,
+    _ContentScopeWalk,
     _ObjectMapping,
 )
 from pikepdf._exceptions import PageCopyWarning
@@ -200,9 +200,12 @@ class Extend_Object:
 @augments(Pdf)
 class Extend_Pdf:
     def content_scopes(
-        self, *, kinds: Iterable[str] | str | None = None
+        self,
+        *,
+        pages: Iterable[Page] | None = None,
+        kinds: Iterable[str] | str | None = None,
     ) -> Iterator[ContentScope]:
-        return pdf_scopes(self.pages, kinds_mask(kinds))
+        return pdf_scopes(self.pages if pages is None else pages, kinds_mask(kinds))
 
     @contextmanager
     def lock(self):
@@ -667,12 +670,9 @@ class Extend_Page:
         return self._images
 
     def content_scopes(
-        self,
-        *,
-        kinds: Iterable[str] | str | None = None,
-        seen: ObjectSet | None = None,
+        self, *, kinds: Iterable[str] | str | None = None
     ) -> Iterator[ContentScope]:
-        return page_scopes(self, kinds_mask(kinds), seen)
+        return iter(page_scopes(self, kinds_mask(kinds), _ContentScopeWalk()))
 
     def get_images(self, recursive: bool = True) -> _ObjectMapping:
         """Return the images used by this page.

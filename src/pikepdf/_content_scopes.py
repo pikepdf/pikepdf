@@ -11,19 +11,29 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
-from typing import Literal, get_args
+from typing import Literal
 
-from pikepdf._core import ObjectSet, Page
-from pikepdf.objects import Dictionary, Stream
+from pikepdf._core import Page, _ContentScopeWalk
+from pikepdf.objects import Dictionary, Object, Stream
 
 ContentScopeKind = Literal['page', 'form', 'appearance', 'pattern', 'glyph', 'softmask']
 
-# The bit that src/core/traversal.h assigns to each kind
+# The bit that content_scope_kind in src/core/traversal.h gives each kind
 _KIND_BITS: dict[str, int] = {
-    kind: 1 << bit for bit, kind in enumerate(get_args(ContentScopeKind))
+    'page': 1,
+    'form': 2,
+    'appearance': 4,
+    'pattern': 8,
+    'glyph': 16,
+    'softmask': 32,
 }
 _KIND_NAMES: dict[int, ContentScopeKind] = {
-    bit: kind for kind, bit in zip(get_args(ContentScopeKind), _KIND_BITS.values())
+    1: 'page',
+    2: 'form',
+    4: 'appearance',
+    8: 'pattern',
+    16: 'glyph',
+    32: 'softmask',
 }
 _ALL_KINDS = sum(_KIND_BITS.values())
 
@@ -38,6 +48,9 @@ class ContentScope:
 
     Returned by :meth:`pikepdf.Pdf.content_scopes` and
     :meth:`pikepdf.Page.content_scopes`.
+
+    The same stream may appear in more than one scope, with different
+    resources, when what it means depends on where it is used.
 
     Two ``ContentScope`` are equal only if they are the same Python object.
     Use :meth:`pikepdf.Object.is_same_object_as` to compare what they hold.
@@ -64,8 +77,8 @@ class ContentScope:
         dictionary.
     """
 
-    content: Page | Stream
-    """The content stream: the page for ``'page'``, otherwise a stream.
+    content: Object
+    """The content stream: the page's dictionary for ``'page'``, else a stream.
 
     Either can be given to :func:`pikepdf.parse_content_stream`.
     """
@@ -74,19 +87,20 @@ class ContentScope:
     """The resource dictionary that names in the content stream refer to.
 
     This is the stream's own ``/Resources`` if it has one. A page may inherit
-    its resources from the page tree; the glyph procedures of a Type 3 font
-    use the font's resources; and a stream with no resources of its own uses
-    those of the scope it was found in. ``None`` if there are none or they
-    are not a dictionary.
+    its resources from the page tree, and the glyph procedures of a Type 3
+    font use the font's resources. A form XObject or Type 3 font with no
+    resources of its own, as early versions of PDF allowed, uses those of the
+    page it is used on. ``None`` if there are none or they are not a
+    dictionary.
 
     The dictionary is the one in the file and is often shared between scopes.
     """
 
-    page: Page
-    """The page that the search started from.
+    page: Page | None
+    """The page that this scope was found on.
 
-    When scopes are shared between pages, this is the first page from which
-    the scope was reached.
+    When pages share a scope, this is the first of them. ``None`` if the
+    search started from a form XObject rather than a page.
     """
 
 
@@ -109,24 +123,17 @@ def kinds_mask(kinds: Iterable[str] | str | None) -> int:
     return mask
 
 
-def page_scopes(
-    page: Page, mask: int, seen: ObjectSet | None
-) -> Iterator[ContentScope]:
-    """Report the content scopes of one page, which are found immediately."""
-    found = page._content_scopes(mask, seen)
-    return (
-        ContentScope(
-            _KIND_NAMES[bit],
-            page if bit == _KIND_BITS['page'] else content,
-            resources,
-            page,
-        )
-        for bit, content, resources in found
-    )
+def page_scopes(page: Page, mask: int, walk: _ContentScopeWalk) -> list[ContentScope]:
+    """Find the content scopes of one page that *walk* has not yet reported."""
+    owner = None if isinstance(page.obj, Stream) else page
+    return [
+        ContentScope(_KIND_NAMES[bit], content, resources, owner)
+        for bit, content, resources in walk.walk(page, mask)
+    ]
 
 
 def pdf_scopes(pages: Iterable[Page], mask: int) -> Iterator[ContentScope]:
     """Report the content scopes of each page, one page at a time."""
-    seen = ObjectSet()
+    walk = _ContentScopeWalk()
     for page in pages:
-        yield from page_scopes(page, mask, seen)
+        yield from page_scopes(page, mask, walk)

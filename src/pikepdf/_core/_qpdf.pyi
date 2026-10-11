@@ -284,7 +284,10 @@ class Pdf:
             empty PDF. Code that relied on this quirk may not function correctly.
         """
     def content_scopes(
-        self, *, kinds: Iterable[ContentScopeKind] | ContentScopeKind | None = ...
+        self,
+        *,
+        pages: Iterable[Page] | None = ...,
+        kinds: Iterable[ContentScopeKind] | ContentScopeKind | None = ...,
     ) -> Iterator[ContentScope]:
         """Iterate over every content stream the pages of this PDF can draw.
 
@@ -309,11 +312,11 @@ class Pdf:
                     if isinstance(font, pikepdf.Dictionary) and seen_fonts.add(font):
                         fonts.append(font)
 
-        Each scope is reported once for the whole document, with
-        :attr:`~pikepdf.ContentScope.page` set to the first page that uses it.
-        Scopes are often shared: a logo drawn on every page is one form
-        XObject. Resource dictionaries are shared too, so the same font may
-        still be found in more than one scope, as the example allows for.
+        Each scope is reported once, with :attr:`~pikepdf.ContentScope.page`
+        set to the first page that uses it. Scopes are often shared: a logo
+        drawn on every page is one form XObject. Resource dictionaries are
+        shared too, so the same font may still be found in more than one
+        scope, as the example allows for.
 
         Pages are searched one at a time as the iterator advances, so a large
         document is not searched all at once, and a change made to a page
@@ -323,15 +326,13 @@ class Pdf:
         resources of an interactive form, ``/AcroForm /DR``.
 
         Args:
-            kinds: The kinds of scope to look for, as one or more of
-                ``'page'``, ``'form'``, ``'appearance'``, ``'pattern'``,
-                ``'glyph'`` and ``'softmask'``; see
-                :attr:`pikepdf.ContentScope.kind`. The default is all of them.
-                A kind that is left out is neither reported nor searched:
-                with ``kinds={'page', 'form'}``, a form XObject used only by
-                an annotation's appearance stream is not reported, because
-                appearance streams are not looked into. Each page is
-                always searched, even when ``'page'`` is left out.
+            pages: The pages to examine, in the order given. The default is
+                every page of the document.
+            kinds: The kinds of scope to report, as one or more of ``'page'``,
+                ``'form'``, ``'appearance'``, ``'pattern'``, ``'glyph'`` and
+                ``'softmask'``; see :attr:`pikepdf.ContentScope.kind`. The
+                default is all of them. Everything is searched whichever kinds
+                are reported.
 
         Raises:
             ValueError: If *kinds* contains anything else.

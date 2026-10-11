@@ -18,7 +18,6 @@ from pikepdf._core._object import Object, StreamParser, _ObjectMapping
 from pikepdf._core._object_construct import Array, Dictionary, Name, Stream
 from pikepdf._core._rectangle import Rectangle
 from pikepdf._core._tokenfilter import TokenFilter
-from pikepdf._core._traversal import ObjectSet
 from pikepdf._core._typing import T
 
 if TYPE_CHECKING:
@@ -255,63 +254,8 @@ class Page:
 
         .. versionadded:: 10.9
         """
-    def get_form_xobjects(
-        self, recursive: bool = ..., *, seen: ObjectSet | None = ...
-    ) -> list[Stream]:
-        """Return the form XObjects used by this page, each once.
-
-        A page's visible content is often drawn through form XObjects, which
-        have resources of their own and may draw further form XObjects. To
-        examine everything a page can draw -- its fonts, images, colour spaces
-        and so on -- look at the resources of the page and of each form this
-        method returns, with :meth:`get_resources`.
-
-        Form XObjects commonly share resources, and a form's resources may
-        list the form itself or one of the forms that contain it. Each form is
-        returned once however many ways there are to reach it, so this method
-        is safe where a hand-written recursive search is not: see
-        :class:`pikepdf.ObjectSet`.
-
-        Forms are found through ``/Resources``, including resources the page
-        inherits from the page tree, in breadth-first order. A form is
-        reported if a resource dictionary lists it, whether or not a content
-        stream draws it. Forms used only by annotation appearance streams,
-        patterns or Type 3 fonts are not found from the page; wrap such a
-        stream in :class:`pikepdf.Page` to search it.
-
-        Unlike :attr:`form_xobjects`, the result is a list rather than a
-        mapping by name, because forms in different resource dictionaries may
-        have the same name.
-
-        This method can be used on a form XObject as well as on a page:
-        ``Page(form).get_form_xobjects()`` returns the forms nested in *form*.
-
-        Args:
-            recursive: If True (the default), also return the forms nested
-                inside each form, to any depth. If False, return only forms
-                listed directly in this page's resources.
-            seen: Objects already visited. Forms in this set are neither
-                returned nor searched, and this page and each form returned
-                are added to it. Pass the same set for every page to visit
-                each form once in the whole document; forms are often shared
-                between pages.
-
-        .. code-block:: python
-
-            seen = pikepdf.ObjectSet()
-            for page in pdf.pages:
-                forms = page.get_form_xobjects(seen=seen)
-                for scope in [page, *map(pikepdf.Page, forms)]:
-                    resources = scope.get_resources()
-                    ...  # each page and each form, once
-
-        .. versionadded:: 10.17
-        """
     def content_scopes(
-        self,
-        *,
-        kinds: Iterable[ContentScopeKind] | ContentScopeKind | None = ...,
-        seen: ObjectSet | None = ...,
+        self, *, kinds: Iterable[ContentScopeKind] | ContentScopeKind | None = ...
     ) -> Iterator[ContentScope]:
         """Iterate over every content stream this page can draw.
 
@@ -333,8 +277,8 @@ class Page:
                 for font in (scope.resources.get_dict(Name.Font) or {}).values():
                     ...
 
-        To examine a whole document, use :meth:`pikepdf.Pdf.content_scopes`,
-        which visits what pages share only once.
+        To examine more than one page, use :meth:`pikepdf.Pdf.content_scopes`,
+        which reports what pages share only once.
 
         Scopes are found through resource dictionaries and annotations, not by
         reading content streams, so a scope is reported if it could be drawn,
@@ -344,40 +288,28 @@ class Page:
         Each scope is reported once however many ways there are to reach it,
         including when resources are shared or refer back to a stream that
         uses them, so this method is safe where a hand-written recursive
-        search is not: see :class:`pikepdf.ObjectSet`. A stream that has no
-        resources of its own takes its meaning from the scope it is found in,
-        so it is reported once for each resource dictionary it is found in.
+        search is not: see :class:`pikepdf.ObjectSet`.
 
         All of this page's scopes are found when the method is called, and
-        nothing on the page is modified.
+        nothing is modified.
 
         This method can also be used on a form XObject:
         ``Page(form).content_scopes()`` reports the form and what it uses.
 
         Args:
-            kinds: The kinds of scope to look for, as one or more of
-                ``'page'``, ``'form'``, ``'appearance'``, ``'pattern'``,
-                ``'glyph'`` and ``'softmask'``; see
-                :attr:`pikepdf.ContentScope.kind`. The default is all of them.
-                A kind that is left out is neither reported nor searched:
-                with ``kinds={'page', 'form'}``, a form XObject used only by
-                an annotation's appearance stream is not reported, because
-                appearance streams are not looked into. The page itself is
-                always searched, even when ``'page'`` is left out.
-            seen: Scopes already reported. A scope recorded in this set is
-                neither reported nor searched, and each scope reported is
-                recorded in it. Use this to examine some of the pages of a
-                document while visiting what they share once. A set should be
-                used with the same *kinds* throughout.
+            kinds: The kinds of scope to report, as one or more of ``'page'``,
+                ``'form'``, ``'appearance'``, ``'pattern'``, ``'glyph'`` and
+                ``'softmask'``; see :attr:`pikepdf.ContentScope.kind`. The
+                default is all of them. Everything is searched whichever kinds
+                are reported, so ``kinds='form'`` gives every form XObject
+                this page can draw, including those used only by an
+                annotation's appearance stream or a pattern.
 
         Raises:
             ValueError: If *kinds* contains anything else.
 
         .. versionadded:: 10.17
         """
-    def _content_scopes(
-        self, kinds: int, seen: ObjectSet | None = ...
-    ) -> list[tuple[int, Any, Dictionary | None]]: ...
     def get_resources(self) -> Dictionary | None:
         """Return the resources this page uses, without changing the page.
 
@@ -401,18 +333,8 @@ class Page:
         ``Page(form).get_resources()`` returns the form's own resources. Form
         XObjects do not inherit resources.
 
-        To examine everything a page can draw, combine this with
-        :meth:`get_form_xobjects`:
-
-        .. code-block:: python
-
-            seen = pikepdf.ObjectSet()
-            for page in pdf.pages:
-                forms = page.get_form_xobjects(seen=seen)
-                for scope in [page, *map(pikepdf.Page, forms)]:
-                    resources = scope.get_resources()
-                    if resources is not None:
-                        ...  # each page and each form, once
+        To examine everything a page can draw, including what its form
+        XObjects and annotations use, see :meth:`content_scopes`.
 
         .. versionadded:: 10.17
         """

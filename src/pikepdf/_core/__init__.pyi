@@ -184,6 +184,7 @@ from pikepdf._core._transcoding import (
 from pikepdf._core._traversal import (
     ObjectSet,
     _action_chain,
+    _ContentScopeWalk,
     _reachable_objects,
 )
 from pikepdf._core._typing import (
@@ -203,6 +204,7 @@ __all__ = [
     '_get_qpdf_global',
     '_NameObjectMeta',
     '_action_chain',
+    '_ContentScopeWalk',
     '_reachable_objects',
     '_NamePath',
     '_NamePathMeta',

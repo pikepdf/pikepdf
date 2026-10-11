@@ -14,6 +14,7 @@ from collections.abc import Iterable
 
 from pikepdf._core._object import Object, ObjectHelper
 from pikepdf._core._object_construct import Dictionary
+from pikepdf._core._page import Page
 from pikepdf._core._qpdf import Pdf
 
 class ObjectSet:
@@ -46,7 +47,8 @@ class ObjectSet:
 
     Objects are told apart by identity, not by value: two dictionaries with
     the same contents are different objects, while every reference to one
-    indirect object is the same object. This is more reliable than a
+    indirect object is the same object, as
+    :meth:`pikepdf.Object.is_same_object_as` tests. This is more reliable than a
     :class:`set` of :attr:`pikepdf.Object.objgen`, which cannot tell direct
     objects apart, since they all report ``(0, 0)``, and confuses objects that
     have the same number in different :class:`pikepdf.Pdf`.
@@ -60,8 +62,9 @@ class ObjectSet:
     :class:`pikepdf.Pdf` open. It cannot be iterated; it answers only whether
     an object has been seen.
 
-    Where pikepdf provides a walk, prefer it to writing one: see
-    :meth:`pikepdf.Page.get_form_xobjects` and :meth:`pikepdf.Page.get_images`.
+    Where pikepdf provides a walk, prefer it to writing one. In particular,
+    :meth:`pikepdf.Pdf.content_scopes` finds everything that pages draw and
+    the resources they use, and needs no ``ObjectSet``.
 
     Args:
         objects: Objects to add to the new set.
@@ -88,6 +91,22 @@ class ObjectSet:
     def __contains__(self, obj: object) -> bool: ...
     def __len__(self) -> int: ...
     def __repr__(self) -> str: ...
+
+class _ContentScopeWalk:
+    """Finds the content scopes of pages, reporting each once.
+
+    The implementation of :meth:`pikepdf.Pdf.content_scopes`. One instance
+    remembers what it has reported across calls to :meth:`walk`.
+    """
+
+    def __init__(self) -> None: ...
+    def walk(
+        self, page: Page, kinds: int
+    ) -> list[tuple[int, Object, Dictionary | None]]:
+        """Return (kind, content, resources) for each new scope of *page*.
+
+        *kinds* is a mask of the kinds to return; everything is searched.
+        """
 
 def _action_chain(action: Object) -> list[Dictionary]:
     """Return an action and each action reachable through /Next, each once.

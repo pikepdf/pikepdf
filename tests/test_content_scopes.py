@@ -71,12 +71,12 @@ class TestPageScope:
         assert _kinds(scopes) == ['page']
         scope = scopes[0]
         assert isinstance(scope, ContentScope)
-        assert isinstance(scope.content, Page)
-        assert scope.content.obj.is_same_object_as(page)
+        assert isinstance(scope.content, Dictionary)
+        assert scope.content.is_same_object_as(page)
         assert scope.page.obj.is_same_object_as(page)
         assert scope.resources.is_same_object_as(page.get_resources())
 
-    def test_is_lazy(self):
+    def test_returns_an_iterator(self):
         _pdf, page = _blank()
         scopes = page.content_scopes()
         assert iter(scopes) is scopes
@@ -126,9 +126,10 @@ class TestPageScope:
         ],
     )
     def test_malformed_resources(self, resources):
-        _pdf, page = _blank()
+        pdf, page = _blank()
         page.obj.Resources = resources
         assert _kinds(page.content_scopes()) == ['page']
+        assert pdf.get_warnings() == []
 
     @pytest.mark.parametrize(
         'annots',
@@ -137,12 +138,14 @@ class TestPageScope:
             Array([1, Name.No]),
             Array([Dictionary(AP=3)]),
             Array([Dictionary(AP=Dictionary(N=4, D=Dictionary(On=5)))]),
+            Array([Dictionary(MK=6), Dictionary(MK=Dictionary(I=7))]),
         ],
     )
     def test_malformed_annotations(self, annots):
-        _pdf, page = _blank()
+        pdf, page = _blank()
         page.obj.Annots = annots
         assert _kinds(page.content_scopes()) == ['page']
+        assert pdf.get_warnings() == []
 
     def test_scope_is_frozen_and_compares_by_identity(self):
         _pdf, page = _blank()
@@ -168,13 +171,16 @@ class TestKindsOfScope:
         assert scopes[2].resources.Marker == Name.Inner
         assert all(scope.page.obj.is_same_object_as(page) for scope in scopes)
 
-    def test_form_without_resources_uses_those_of_its_context(self):
+    def test_form_without_resources_uses_those_of_the_page(self):
+        # ISO 32000-2 8.10.2: not those of the form that draws it
         pdf, page = _blank()
-        form = _form(pdf)
-        page.obj.Resources = Dictionary(XObject=Dictionary(Fm0=form))
+        bare = _form(pdf)
+        outer = _form(pdf, Dictionary(Marker=Name.Outer, XObject=Dictionary(B=bare)))
+        page.obj.Resources = Dictionary(Marker=Name.Page, XObject=Dictionary(O=outer))
         scopes = list(page.content_scopes())
-        assert _kinds(scopes) == ['page', 'form']
-        assert scopes[1].resources.is_same_object_as(page.obj.Resources)
+        assert _kinds(scopes) == ['page', 'form', 'form']
+        assert scopes[2].content.is_same_object_as(bare)
+        assert scopes[2].resources.Marker == Name.Page
 
     def test_appearance_streams(self):
         pdf, page = _blank()
@@ -230,13 +236,59 @@ class TestKindsOfScope:
         assert all(s.resources.Marker == Name.FontOwn for s in scopes[1:])
         assert all(isinstance(s.content, Stream) for s in scopes[1:])
 
-    def test_type3_glyphs_without_font_resources_use_the_context(self):
+    def test_type3_glyphs_without_font_resources_use_those_of_the_page(self):
+        # ISO 32000-2 9.6.4
         pdf, page = _blank()
         font = _type3(pdf, 1)
-        page.obj.Resources = Dictionary(Font=Dictionary(F0=font))
+        form = _form(pdf, Dictionary(Font=Dictionary(F0=font)))
+        page.obj.Resources = Dictionary(XObject=Dictionary(Fm=form))
         scopes = list(page.content_scopes())
-        assert _kinds(scopes) == ['page', 'glyph']
-        assert scopes[1].resources.is_same_object_as(page.obj.Resources)
+        assert _kinds(scopes) == ['page', 'form', 'glyph']
+        assert scopes[2].resources.is_same_object_as(page.obj.Resources)
+
+    def test_glyphs_shared_by_fonts_with_different_resources(self):
+        pdf, page = _blank()
+        hidden = _form(pdf, Dictionary())
+        first = _type3(pdf, 1, Dictionary(Marker=Name.First))
+        second = pdf.make_indirect(
+            Dictionary(
+                Type=Name.Font,
+                Subtype=Name.Type3,
+                CharProcs=first.CharProcs,
+                Resources=Dictionary(
+                    Marker=Name.Second, XObject=Dictionary(Hidden=hidden)
+                ),
+            )
+        )
+        page.obj.Resources = Dictionary(Font=Dictionary(F1=first, F2=second))
+        scopes = list(page.content_scopes())
+        assert _kinds(scopes) == ['page', 'glyph', 'glyph', 'form']
+        assert scopes[1].content.is_same_object_as(scopes[2].content)
+        assert {s.resources.Marker for s in scopes[1:3]} == {Name.First, Name.Second}
+        assert scopes[3].content.is_same_object_as(hidden)
+
+    def test_tiling_pattern_type_written_as_a_real(self):
+        pdf, page = _blank()
+        tiling = _pattern(pdf, Dictionary())
+        tiling.PatternType = pikepdf.Real('1.0')
+        page.obj.Resources = Dictionary(Pattern=Dictionary(P0=tiling))
+        assert _kinds(page.content_scopes()) == ['page', 'pattern']
+
+    def test_button_icons(self):
+        pdf, page = _blank()
+        normal = _form(pdf, Dictionary())
+        rollover = _form(pdf, Dictionary())
+        page.obj.Annots = Array(
+            [
+                pdf.make_indirect(
+                    Dictionary(
+                        Subtype=Name.Widget,
+                        MK=Dictionary(I=normal, RI=rollover, IX=Name.Bogus),
+                    )
+                )
+            ]
+        )
+        assert _kinds(page.content_scopes()) == ['page', 'appearance', 'appearance']
 
     def test_type3_font_selected_by_graphics_state(self):
         pdf, page = _blank()
@@ -274,13 +326,15 @@ class TestKindsOfScope:
 
     def test_starting_from_a_form(self):
         pdf = pikepdf.new()
-        inner = _form(pdf, Dictionary())
+        bare = _form(pdf)
+        inner = _form(pdf, Dictionary(XObject=Dictionary(Bare=bare)))
         outer = _form(pdf, Dictionary(XObject=Dictionary(Inner=inner)))
         scopes = list(Page(outer).content_scopes())
-        assert _kinds(scopes) == ['form', 'form']
-        assert isinstance(scopes[0].content, Stream)
+        assert _kinds(scopes) == ['form', 'form', 'form']
         assert scopes[0].content.is_same_object_as(outer)
-        assert scopes[0].page.obj.is_same_object_as(outer)
+        assert all(scope.page is None for scope in scopes)
+        # There is no page to lend its resources
+        assert scopes[2].resources is None
 
 
 class TestEachScopeOnce:
@@ -310,16 +364,40 @@ class TestEachScopeOnce:
             + ['appearance']
         )
 
-    def test_stream_without_resources_once_per_context(self):
-        pdf, page = _blank()
-        bare = _form(pdf)  # uses the resources of whatever draws it
-        first = _form(pdf, Dictionary(XObject=Dictionary(Bare=bare)))
-        second = _form(pdf, Dictionary(XObject=Dictionary(Bare=bare)))
-        third = _form(pdf, first.Resources)
-        page.obj.Resources = Dictionary(XObject=Dictionary(A=first, B=second, C=third))
-        scopes = [s for s in page.content_scopes() if s.content.objgen == bare.objgen]
-        assert len(scopes) == 2
-        assert not scopes[0].resources.is_same_object_as(scopes[1].resources)
+    def test_stream_without_resources_once_per_page_resources(self):
+        pdf, first = _blank()
+        for _ in range(2):
+            pdf.add_blank_page()
+        second, third = pdf.pages[1], pdf.pages[2]
+        bare = _form(pdf)
+        holder = _form(pdf, Dictionary(XObject=Dictionary(Bare=bare)))
+        first.obj.Resources = Dictionary(XObject=Dictionary(Holder=holder))
+        second.obj.Resources = Dictionary(XObject=Dictionary(Holder=holder))
+        third.obj.Resources = first.obj.Resources
+        scopes = list(pdf.content_scopes())
+        assert _kinds(scopes) == ['page', 'form', 'form', 'page', 'form', 'page']
+        uses = [s for s in scopes if s.content.is_same_object_as(bare)]
+        assert [s.page.index for s in uses] == [0, 1]
+        assert uses[0].resources.is_same_object_as(first.obj.Resources)
+        assert uses[1].resources.is_same_object_as(second.obj.Resources)
+
+    def test_page_resources_reach_a_stream_nested_under_shared_forms(self):
+        # Both pages reach the same chain of forms, which have resources of
+        # their own, and at the end of it a form that has none.
+        pdf, first = _blank()
+        pdf.add_blank_page()
+        second = pdf.pages[1]
+        bare = _form(pdf)
+        inner = _form(pdf, Dictionary(XObject=Dictionary(Bare=bare)))
+        middle = _form(pdf, Dictionary(XObject=Dictionary(Inner=inner)))
+        outer = _form(pdf, Dictionary(XObject=Dictionary(Middle=middle)))
+        first.obj.Resources = Dictionary(XObject=Dictionary(Outer=outer))
+        second.obj.Resources = Dictionary(XObject=Dictionary(Outer=outer))
+        scopes = list(pdf.content_scopes())
+        assert _kinds(scopes) == ['page'] + ['form'] * 4 + ['page', 'form']
+        assert scopes[4].resources.is_same_object_as(first.obj.Resources)
+        assert scopes[6].content.is_same_object_as(bare)
+        assert scopes[6].resources.is_same_object_as(second.obj.Resources)
 
     def test_deeply_nested(self):
         pdf, page = _blank()
@@ -328,33 +406,6 @@ class TestEachScopeOnce:
             form = _form(pdf, Dictionary(XObject=Dictionary(Fm=form)))
         page.obj.Resources = Dictionary(XObject=Dictionary(Fm=form))
         assert len(list(page.content_scopes())) == 3002
-
-    def test_seen_shared_between_pages(self):
-        pdf, first = _blank()
-        pdf.add_blank_page()
-        second = pdf.pages[1]
-        shared = _form(pdf, Dictionary())
-        own = _form(pdf, Dictionary())
-        first.obj.Resources = Dictionary(XObject=Dictionary(Shared=shared))
-        second.obj.Resources = Dictionary(XObject=Dictionary(Shared=shared, Own=own))
-        seen = ObjectSet()
-        assert _kinds(first.content_scopes(seen=seen)) == ['page', 'form']
-        scopes = list(second.content_scopes(seen=seen))
-        assert _kinds(scopes) == ['page', 'form']
-        assert scopes[1].content.is_same_object_as(own)
-        # A page already reported is searched again but not reported again
-        assert _kinds(second.content_scopes(seen=seen)) == []
-
-    def test_context_dependent_scope_remembered_across_pages(self):
-        pdf, first = _blank()
-        pdf.add_blank_page()
-        second = pdf.pages[1]
-        shared = pdf.make_indirect(Dictionary(XObject=Dictionary(Bare=_form(pdf))))
-        first.obj.Resources = shared
-        second.obj.Resources = shared
-        seen = ObjectSet()
-        assert _kinds(first.content_scopes(seen=seen)) == ['page', 'form']
-        assert _kinds(second.content_scopes(seen=seen)) == ['page']
 
 
 class TestKindsFilter:
@@ -392,16 +443,17 @@ class TestKindsFilter:
             _kinds(page.content_scopes())
         )
 
-    def test_unlisted_kinds_are_not_entered(self, page):
-        # The forms inside the appearance stream and the pattern are not found
-        assert _kinds(page.content_scopes(kinds={'page', 'form'})) == ['page', 'form']
+    def test_everything_is_searched_whatever_is_reported(self, page):
+        # including the forms inside the appearance stream and the pattern
+        assert _kinds(page.content_scopes(kinds={'page', 'form'})) == [
+            'page',
+            'form',
+            'form',
+            'form',
+        ]
 
-    def test_entering_more_kinds_finds_more_forms(self, page):
-        kinds = _kinds(page.content_scopes(kinds=['page', 'form', 'appearance']))
-        assert sorted(kinds) == ['appearance', 'form', 'form', 'page']
-
-    def test_page_is_searched_even_when_not_reported(self, page):
-        assert _kinds(page.content_scopes(kinds={'form'})) == ['form']
+    def test_one_kind(self, page):
+        assert _kinds(page.content_scopes(kinds={'form'})) == ['form'] * 3
         assert _kinds(page.content_scopes(kinds={'glyph'})) == ['glyph']
 
     def test_single_kind_as_string(self, page):
@@ -432,6 +484,50 @@ class TestPdfScopes:
         assert _kinds(scopes) == ['page', 'form', 'page', 'page']
         assert scopes[1].page.obj.is_same_object_as(pdf.pages[0])
         assert [s.page.index for s in scopes] == [0, 0, 1, 2]
+
+    def test_some_pages(self):
+        pdf = pikepdf.new()
+        shared = _form(pdf, Dictionary())
+        for _ in range(4):
+            pdf.add_blank_page()
+        for page in pdf.pages:
+            page.obj.Resources = Dictionary(XObject=Dictionary(Shared=shared))
+        scopes = list(pdf.content_scopes(pages=[pdf.pages[3], pdf.pages[1]]))
+        assert _kinds(scopes) == ['page', 'form', 'page']
+        assert [s.page.index for s in scopes] == [3, 3, 1]
+        assert list(pdf.content_scopes(pages=[])) == []
+
+    def test_is_lazy_across_pages(self):
+        pdf = pikepdf.new()
+        for _ in range(2):
+            pdf.add_blank_page()
+        scopes = pdf.content_scopes()
+        assert next(scopes).page.index == 0
+        # A change to a page not yet reached is seen
+        pdf.pages[1].obj.Resources = Dictionary(
+            XObject=Dictionary(Late=_form(pdf, Dictionary()))
+        )
+        assert _kinds(scopes) == ['page', 'form']
+
+    def test_resources_shared_by_every_page_are_searched_once(self):
+        # Every page uses one resource dictionary that lists every form. The
+        # search must not list that dictionary again for each page.
+        import time
+
+        pdf = pikepdf.new()
+        shared = pdf.make_indirect(Dictionary(XObject=Dictionary()))
+        for i in range(20000):
+            shared.XObject[f'/Fm{i}'] = _form(pdf, shared)
+        for _ in range(2000):
+            pdf.add_blank_page()
+        for page in pdf.pages:
+            page.obj.Resources = shared
+        start = time.monotonic()
+        count = sum(1 for _ in pdf.content_scopes())
+        elapsed = time.monotonic() - start
+        assert count == 22000
+        # Listing 20000 forms for each of 2000 pages takes far longer
+        assert elapsed < 10
 
     def test_kinds(self):
         pdf = pikepdf.new()

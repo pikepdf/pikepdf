@@ -38,9 +38,7 @@ class _Scan:
     def __init__(self) -> None:
         self.codes: defaultdict[tuple[int, int], set[int]] = defaultdict(set)
 
-    def instructions(
-        self, content: pikepdf.Page | Stream, resources: Dictionary
-    ) -> None:
+    def instructions(self, content: pikepdf.Object, resources: Dictionary) -> None:
         try:
             instructions = pikepdf.parse_content_stream(content)
         except (pikepdf.PdfError, TypeError, ValueError) as e:

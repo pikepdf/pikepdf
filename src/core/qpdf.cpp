@@ -932,6 +932,12 @@ void init_qpdf(py::module_ &m)
             [](QPDF &q, std::pair<int, int> objgen, QPDFObjectHandle &h) {
                 QpdfLockGuard lock(&q);
                 q.replaceObject(objgen.first, objgen.second, h);
+                // qpdf moves the value into the object already filed under
+                // that number, so that existing references see it, and leaves
+                // the handle passed in as a separate object that forwards to
+                // it. Point the caller's handle at the real one, so that it
+                // is the same object as every other reference.
+                h = q.getObject(objgen.first, objgen.second);
             })
         .def("_count_orphaned_widgets",
             [](QPDF &q) -> size_t {

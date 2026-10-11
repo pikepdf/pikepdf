@@ -5,9 +5,11 @@
 
 #include "pikepdf.h"
 
+#include <deque>
 #include <memory>
 #include <mutex>
 #include <set>
+#include <unordered_map>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -37,13 +39,6 @@ public:
     void clear();
     size_t size() const;
 
-    // Remember that `content` was interpreted with `resources`, for a content
-    // stream that has no resources of its own and so means something different
-    // in each context that uses it. Either handle may be uninitialized.
-    // Returns true the first time the combination is seen. These combinations
-    // are not members of the set: they do not count towards size().
-    bool add_pair(QPDFObjectHandle content, QPDFObjectHandle resources);
-
 private:
     // A real mutex, not the per-QPDF lock: a set may hold objects of several
     // documents, or of none.
@@ -53,12 +48,7 @@ private:
         pairs_;
 };
 
-// The form XObjects in the /Resources of a page or form XObject, each once.
-// Forms already in `seen` are neither returned nor entered.
-std::vector<QPDFObjectHandle> collect_form_xobjects(
-    QPDFObjectHandle root, bool recursive, ObjectSet &seen);
-
-// The kinds of content stream that collect_content_scopes() reports, as bits
+// The kinds of content stream that ContentScopeWalk reports, as bits
 // of a mask. pikepdf/_content_scopes.py holds the same values.
 enum content_scope_kind : unsigned {
     scope_page = 1,
@@ -76,10 +66,62 @@ struct ContentScope {
     QPDFObjectHandle resources; // uninitialized if there are none
 };
 
-// The content streams of a page or form XObject and everything they can draw,
-// each once for each resource dictionary it is interpreted with. A kind that
-// is not in `kinds` is neither reported nor searched.
-std::vector<ContentScope> collect_content_scopes(
-    QPDFObjectHandle root, unsigned kinds, ObjectSet &seen);
+// Finds the content streams a page can draw: the page itself, and the form
+// XObjects, annotation appearance streams, tiling patterns, Type 3 glyph
+// procedures and soft mask groups it uses, however they are nested.
+//
+// One walk may be given many pages. It remembers what it has reported and
+// which resource dictionaries it has searched, so that what the pages share
+// is reported and searched once, and the work is proportional to the size of
+// what is reachable rather than to the number of pages times that size.
+//
+// The walk keeps a reference to everything it has seen, since Python may
+// change the document between one page and the next.
+class ContentScopeWalk {
+public:
+    ContentScopeWalk() = default;
+    ContentScopeWalk(const ContentScopeWalk &) = delete;
+    ContentScopeWalk &operator=(const ContentScopeWalk &) = delete;
+
+    // The scopes of `root`, a page or form XObject, that have not been
+    // reported before. Everything is searched whatever `kinds` is; only the
+    // kinds in the mask are returned.
+    std::vector<ContentScope> walk(QPDFObjectHandle root, unsigned kinds);
+
+private:
+    using ObjectPtr = std::shared_ptr<QPDFObject>;
+
+    void report(
+        content_scope_kind kind, QPDFObjectHandle content, QPDFObjectHandle resources);
+    void mark_page_dependent(ObjectPtr resources);
+    void enter(content_scope_kind kind,
+        QPDFObjectHandle content,
+        QPDFObjectHandle own,
+        bool may_use_page_resources);
+    void enter_form(content_scope_kind kind, QPDFObjectHandle form);
+    void enter_type3_font(QPDFObjectHandle font);
+    void enter_appearance(QPDFObjectHandle stream);
+    void enter_annotations(QPDFObjectHandle page);
+    void list_resources(QPDFObjectHandle resources);
+
+    std::mutex mutex_;
+    // (content, resources) of each scope reported
+    std::set<std::pair<ObjectPtr, ObjectPtr>> reported_;
+    // Resource dictionaries searched, and (dictionary, page resources) for
+    // each search
+    std::unordered_set<ObjectPtr> listed_;
+    std::set<std::pair<ObjectPtr, ObjectPtr>> listed_for_;
+    // Resource dictionaries that lead to a stream which uses the page's
+    // resources, and for each dictionary, the dictionaries that lead to it
+    std::unordered_set<ObjectPtr> page_dependent_;
+    std::unordered_map<ObjectPtr, std::unordered_set<ObjectPtr>> parents_;
+
+    // State of the walk in progress
+    unsigned kinds_{0};
+    QPDFObjectHandle page_resources_;
+    ObjectPtr listing_;
+    std::deque<QPDFObjectHandle> pending_;
+    std::vector<ContentScope> found_;
+};
 
 void init_traversal(py::module_ &m);

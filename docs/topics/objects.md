@@ -508,8 +508,6 @@ through:
   it uses: the pages themselves, form XObjects, annotation appearance
   streams, tiling patterns, Type 3 glyphs and soft masks, however they are
   nested or shared.
-- {meth}`pikepdf.Page.get_form_xobjects` returns the form XObjects that a page
-  or another form XObject uses.
 - {meth}`pikepdf.Page.get_resources` returns the resources that a page or form
   XObject uses, including those a page inherits from the page tree.
 - {meth}`pikepdf.Page.get_images` returns the images that a page uses,
