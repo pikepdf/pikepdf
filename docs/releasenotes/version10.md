@@ -16,6 +16,11 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.18.0
+
+- An ICCBased image whose profile stream omits the required `/N` now takes
+  its mode from the profile instead of raising `KeyError`.
+
 ## v10.17.0
 
 - Added {class}`pikepdf.ObjectSet`, which records the objects that a walk of
