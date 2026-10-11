@@ -281,5 +281,5 @@ def synthesize_cal_icc(pim: PdfImage) -> bytes | None:
         gamma_rgb = tuple(float(v) for v in cal.get('/Gamma', [1.0, 1.0, 1.0]))
         matrix = [float(v) for v in cal.get('/Matrix', [1, 0, 0, 0, 1, 0, 0, 0, 1])]
         return _cal_icc.build_calrgb_icc(white_point, gamma_rgb, matrix)
-    except (AttributeError, KeyError, TypeError, ValueError):
+    except (AttributeError, IndexError, KeyError, TypeError, ValueError):
         return None

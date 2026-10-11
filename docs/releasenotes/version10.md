@@ -16,6 +16,12 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.18.0
+
+- A `/CalRGB` or `/CalGray` image whose colour space array has no parameter
+  dictionary is now decoded as `/DeviceRGB` or `/DeviceGray` without a profile,
+  like one without a `/WhitePoint`. Previously it raised `IndexError`.
+
 ## v10.17.0
 
 - Added {class}`pikepdf.ObjectSet`, which records the objects that a walk of
