@@ -496,6 +496,8 @@ written by hand, and both fail:
 - **Remembering each object's {attr}`~pikepdf.Object.objgen`** in a `set` does
   not work for direct objects, which all report `(0, 0)`, and confuses objects
   from different {class}`pikepdf.Pdf` that happen to have the same number.
+  ({meth}`pikepdf.Object.is_same_object_as` is the reliable test of whether
+  two references lead to one object.)
 
 Prefer a method that does the walk for you. These visit each object once and
 do their work without creating a Python object for everything they pass

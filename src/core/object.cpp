@@ -890,6 +890,17 @@ void init_object(py::module_ &m)
             [](QPDFObjectHandle &self, QPDFObjectHandle &other) {
                 return live_owner(self) == live_owner(other);
             })
+        .def(
+            "is_same_object_as",
+            [](QPDFObjectHandle &self, py::handle other) {
+                if (py::isinstance<QPDFObjectHandle>(other))
+                    return self.isSameObjectAs(py::cast<QPDFObjectHandle>(other));
+                if (py::isinstance<QPDFObjectHelper>(other))
+                    return self.isSameObjectAs(
+                        py::cast<QPDFObjectHelper &>(other).getObjectHandle());
+                return false;
+            },
+            py::arg("other").none())
         .def("with_same_owner_as",
             [](QPDFObjectHandle &self, QPDFObjectHandle &other) {
                 QPDF *self_owner = live_owner(self);

@@ -506,3 +506,56 @@ class TestInternalWalks:
         # A page tree whose root is its own parent
         pdf.Root.Pages.Parent = pdf.Root.Pages
         assert page._get_inherited('/Rotate') is None
+
+
+class TestSameObject:
+    def test_references_to_one_indirect_object(self):
+        pdf = pikepdf.new()
+        obj = pdf.make_indirect(Dictionary(A=1))
+        pdf.Root.One = obj
+        pdf.Root.Two = obj
+        assert pdf.Root.One.is_same_object_as(pdf.Root.Two)
+        assert pdf.Root.One.is_same_object_as(pdf.get_object(obj.objgen))
+
+    def test_equal_objects_are_not_the_same(self):
+        pdf = pikepdf.new()
+        a = pdf.make_indirect(Dictionary(A=1))
+        b = pdf.make_indirect(Dictionary(A=1))
+        assert a == b
+        assert not a.is_same_object_as(b)
+
+    def test_direct_objects(self):
+        pdf = pikepdf.new()
+        pdf.Root.One = Dictionary(A=1)
+        pdf.Root.Two = Dictionary(A=1)
+        assert pdf.Root.One.objgen == pdf.Root.Two.objgen == (0, 0)
+        assert pdf.Root.One.is_same_object_as(pdf.Root.One)
+        assert not pdf.Root.One.is_same_object_as(pdf.Root.Two)
+
+    def test_same_objgen_in_different_documents(self):
+        pdf = pikepdf.new()
+        pdf.Root.Thing = pdf.make_indirect(Dictionary(A=1))
+        a = _reopen(pdf)
+        b = _reopen(pdf)
+        assert a.Root.Thing.objgen == b.Root.Thing.objgen
+        assert not a.Root.Thing.is_same_object_as(b.Root.Thing)
+
+    def test_helpers(self):
+        pdf = pikepdf.new()
+        pdf.add_blank_page()
+        page = pdf.pages[0]
+        assert page.obj.is_same_object_as(page)
+        assert page.obj.is_same_object_as(pdf.pages[0])
+
+    def test_other_types_are_never_the_same(self):
+        pdf = pikepdf.new()
+        assert not pdf.Root.is_same_object_as(42)
+        assert not pdf.Root.is_same_object_as(None)
+        assert not pdf.Root.is_same_object_as({'/Type': Name.Catalog})
+
+    def test_shallow_copy_is_a_different_object(self):
+        import copy
+
+        pdf = pikepdf.new()
+        original = pdf.make_indirect(Dictionary(A=1))
+        assert not original.is_same_object_as(copy.copy(original))

@@ -25,6 +25,9 @@ the architecture notes on thread safety.
   whether an object is new, and tells apart direct objects and objects of
   different `Pdf`, which a `set` of `objgen` cannot. See
   {ref}`walking-object-graphs`.
+- Added {meth}`pikepdf.Object.is_same_object_as`, which tests whether two
+  references lead to the same object. Neither `is`, `==` nor comparing
+  `objgen` answers this reliably.
 - Added {meth}`pikepdf.Page.get_form_xobjects`, which returns each form XObject
   that a page or another form XObject uses, once, however the forms are nested
   or shared. With `seen=`, forms shared between pages are visited once for the
