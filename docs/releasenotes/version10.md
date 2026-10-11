@@ -32,6 +32,14 @@ the architecture notes on thread safety.
   that a page or another form XObject uses, once, however the forms are nested
   or shared. With `seen=`, forms shared between pages are visited once for the
   whole document.
+- Added {meth}`pikepdf.Pdf.content_scopes` and
+  {meth}`pikepdf.Page.content_scopes`, which iterate over every content stream
+  that pages can draw, each with the resource dictionary it uses: the page
+  itself, form XObjects, annotation appearance streams, tiling patterns,
+  Type 3 glyph procedures and soft masks, however they are nested or shared.
+  This is the way to find every font, image or colour space a document uses.
+  Each {class}`pikepdf.ContentScope` is reported once, and `kinds=` limits
+  the search.
 - Added {meth}`pikepdf.Page.get_resources`, which returns the resources of a
   page or form XObject for reading. Unlike {attr}`pikepdf.Page.resources`, it
   finds resources inherited from the page tree, does not create an empty

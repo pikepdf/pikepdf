@@ -10,8 +10,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
-from typing import Any, overload
+from collections.abc import Iterable, Iterator
+from typing import TYPE_CHECKING, Any, overload
 
 from pikepdf._core._matrix import Matrix
 from pikepdf._core._object import Object, StreamParser, _ObjectMapping
@@ -20,6 +20,9 @@ from pikepdf._core._rectangle import Rectangle
 from pikepdf._core._tokenfilter import TokenFilter
 from pikepdf._core._traversal import ObjectSet
 from pikepdf._core._typing import T
+
+if TYPE_CHECKING:
+    from pikepdf._content_scopes import ContentScope, ContentScopeKind
 
 class Page:
     """Support model wrapper around a page dictionary object."""
@@ -304,6 +307,77 @@ class Page:
 
         .. versionadded:: 10.17
         """
+    def content_scopes(
+        self,
+        *,
+        kinds: Iterable[ContentScopeKind] | ContentScopeKind | None = ...,
+        seen: ObjectSet | None = ...,
+    ) -> Iterator[ContentScope]:
+        """Iterate over every content stream this page can draw.
+
+        A page draws more than its own content stream. That stream may draw
+        form XObjects, paint with tiling patterns, show text in Type 3 fonts
+        whose glyphs are themselves content streams, and apply soft masks; the
+        page's annotations have appearance streams; and each of those may use
+        any of the others in turn. Each is a *content scope*: a content stream
+        together with the resource dictionary that the names in it refer to.
+
+        To find everything a page uses -- every font, every image, every
+        colour space -- look at the resources of each scope:
+
+        .. code-block:: python
+
+            for scope in page.content_scopes():
+                if scope.resources is None:
+                    continue
+                for font in (scope.resources.get_dict(Name.Font) or {}).values():
+                    ...
+
+        To examine a whole document, use :meth:`pikepdf.Pdf.content_scopes`,
+        which visits what pages share only once.
+
+        Scopes are found through resource dictionaries and annotations, not by
+        reading content streams, so a scope is reported if it could be drawn,
+        whether or not anything draws it. The page comes first, and each scope
+        comes before the scopes found in its resources.
+
+        Each scope is reported once however many ways there are to reach it,
+        including when resources are shared or refer back to a stream that
+        uses them, so this method is safe where a hand-written recursive
+        search is not: see :class:`pikepdf.ObjectSet`. A stream that has no
+        resources of its own takes its meaning from the scope it is found in,
+        so it is reported once for each resource dictionary it is found in.
+
+        All of this page's scopes are found when the method is called, and
+        nothing on the page is modified.
+
+        This method can also be used on a form XObject:
+        ``Page(form).content_scopes()`` reports the form and what it uses.
+
+        Args:
+            kinds: The kinds of scope to look for, as one or more of
+                ``'page'``, ``'form'``, ``'appearance'``, ``'pattern'``,
+                ``'glyph'`` and ``'softmask'``; see
+                :attr:`pikepdf.ContentScope.kind`. The default is all of them.
+                A kind that is left out is neither reported nor searched:
+                with ``kinds={'page', 'form'}``, a form XObject used only by
+                an annotation's appearance stream is not reported, because
+                appearance streams are not looked into. The page itself is
+                always searched, even when ``'page'`` is left out.
+            seen: Scopes already reported. A scope recorded in this set is
+                neither reported nor searched, and each scope reported is
+                recorded in it. Use this to examine some of the pages of a
+                document while visiting what they share once. A set should be
+                used with the same *kinds* throughout.
+
+        Raises:
+            ValueError: If *kinds* contains anything else.
+
+        .. versionadded:: 10.17
+        """
+    def _content_scopes(
+        self, kinds: int, seen: ObjectSet | None = ...
+    ) -> list[tuple[int, Any, Dictionary | None]]: ...
     def get_resources(self) -> Dictionary | None:
         """Return the resources this page uses, without changing the page.
 

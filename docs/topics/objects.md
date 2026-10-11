@@ -503,8 +503,13 @@ Prefer a method that does the walk for you. These visit each object once and
 do their work without creating a Python object for everything they pass
 through:
 
+- {meth}`pikepdf.Pdf.content_scopes` and {meth}`pikepdf.Page.content_scopes`
+  report every content stream that pages can draw, each with the resources
+  it uses: the pages themselves, form XObjects, annotation appearance
+  streams, tiling patterns, Type 3 glyphs and soft masks, however they are
+  nested or shared.
 - {meth}`pikepdf.Page.get_form_xobjects` returns the form XObjects that a page
-  or another form XObject uses, however they are nested or shared.
+  or another form XObject uses.
 - {meth}`pikepdf.Page.get_resources` returns the resources that a page or form
   XObject uses, including those a page inherits from the page tree.
 - {meth}`pikepdf.Page.get_images` returns the images that a page uses,
@@ -519,18 +524,14 @@ through:
 For example, to find every font that the pages of a document can use:
 
 ```python
-seen = pikepdf.ObjectSet()
 fonts = []
-for page in pdf.pages:
-    forms = page.get_form_xobjects(seen=seen)
-    for scope in [page, *map(pikepdf.Page, forms)]:
-        resources = scope.get_resources()
-        if resources is not None:
-            fonts.extend((resources.get_dict(pikepdf.Name.Font) or {}).values())
+for scope in pdf.content_scopes():
+    if scope.resources is not None:
+        fonts.extend((scope.resources.get_dict(pikepdf.Name.Font) or {}).values())
 ```
 
-Passing the same {class}`pikepdf.ObjectSet` for every page means a form shared
-by many pages is examined once.
+A form XObject shared by many pages is examined once, with no bookkeeping on
+your part.
 
 When you do need to write a walk of your own, use {class}`pikepdf.ObjectSet`
 to record what has been visited. Its {meth}`~pikepdf.ObjectSet.add` method

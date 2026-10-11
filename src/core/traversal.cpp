@@ -45,6 +45,13 @@ void ObjectSet::clear()
 {
     std::lock_guard<std::mutex> guard(mutex_);
     objects_.clear();
+    pairs_.clear();
+}
+
+bool ObjectSet::add_pair(QPDFObjectHandle content, QPDFObjectHandle resources)
+{
+    std::lock_guard<std::mutex> guard(mutex_);
+    return pairs_.emplace(content.getObj(), resources.getObj()).second;
 }
 
 size_t ObjectSet::size() const
@@ -105,6 +112,199 @@ std::vector<QPDFObjectHandle> collect_form_xobjects(
         }
     }
     return found;
+}
+
+namespace {
+
+// Walks the content streams reachable from a page. See the description of
+// pikepdf.Page.content_scopes for what is found and how it is identified.
+class ContentScopeWalk {
+public:
+    ContentScopeWalk(unsigned kinds, ObjectSet &seen) : kinds_(kinds), seen_(seen) {}
+
+    std::vector<ContentScope> run(QPDFObjectHandle root)
+    {
+        bool is_form = root.isFormXObject();
+        auto resources =
+            as_dictionary(QPDFPageObjectHelper(root).getAttribute("/Resources", false));
+        // The starting point is always searched, so that a caller can ask for
+        // the forms of a page without asking for the page. It is reported at
+        // most once for a given set of visited objects.
+        bool first_visit = seen_.add(root);
+        if (first_visit && (kinds_ & (is_form ? scope_form : scope_page)))
+            found_.push_back({is_form ? scope_form : scope_page, root, resources});
+        pending_.push_back(resources);
+        if (!is_form)
+            enter_annotations(root);
+
+        while (!pending_.empty()) {
+            auto next = pending_.front();
+            pending_.pop_front();
+            list_resources(next);
+        }
+        return std::move(found_);
+    }
+
+private:
+    // A dictionary that is not a stream, or an uninitialized handle.
+    static QPDFObjectHandle as_dictionary(QPDFObjectHandle h)
+    {
+        return h.isDictionary() ? h : QPDFObjectHandle();
+    }
+
+    static QPDFObjectHandle key_as_dictionary(
+        QPDFObjectHandle dict, std::string const &key)
+    {
+        return as_dictionary(dict.getKeyIfDict(key));
+    }
+
+    // Report a content stream found in `context`, and queue the resources it
+    // uses to be searched. `own` is the resource dictionary that belongs to
+    // the stream, if it has one.
+    //
+    // A stream with resources of its own means the same thing wherever it is
+    // used, so it is reported once. A stream without them is interpreted with
+    // the resources of whatever uses it, so it is reported once for each.
+    void enter(content_scope_kind kind,
+        QPDFObjectHandle content,
+        QPDFObjectHandle own,
+        QPDFObjectHandle context)
+    {
+        if (!(kinds_ & kind))
+            return;
+        bool has_own = own.isInitialized();
+        auto resources = has_own ? own : context;
+        bool first_visit =
+            has_own ? seen_.add(content) : seen_.add_pair(content, resources);
+        if (!first_visit)
+            return;
+        found_.push_back({kind, content, resources});
+        pending_.push_back(resources);
+    }
+
+    void enter_form(
+        content_scope_kind kind, QPDFObjectHandle form, QPDFObjectHandle context)
+    {
+        if (form.isFormXObject())
+            enter(kind, form, key_as_dictionary(form.getDict(), "/Resources"), context);
+    }
+
+    // The glyph procedures of a Type 3 font use the font's resources if it
+    // has them, and otherwise those of the content that selects the font.
+    void enter_type3_font(QPDFObjectHandle font, QPDFObjectHandle context)
+    {
+        if (!font.isDictionary() || !font.getKey("/Subtype").isNameAndEquals("/Type3"))
+            return;
+        auto procs = key_as_dictionary(font, "/CharProcs");
+        if (!procs.isInitialized())
+            return;
+        auto own = key_as_dictionary(font, "/Resources");
+        for (auto const &[name, proc] : procs.ditems()) {
+            if (proc.isStream())
+                enter(scope_glyph, proc, own, context);
+        }
+    }
+
+    // An appearance stream does not use the page's resources. It is taken to
+    // be a form XObject whatever its /Subtype says, since nothing else can
+    // be there and files that omit the entry are displayed all the same.
+    void enter_appearance(QPDFObjectHandle stream)
+    {
+        if (stream.isStream())
+            enter(scope_appearance,
+                stream,
+                key_as_dictionary(stream.getDict(), "/Resources"),
+                QPDFObjectHandle());
+    }
+
+    void enter_annotations(QPDFObjectHandle page)
+    {
+        auto annots = page.getKeyIfDict("/Annots");
+        if (!(kinds_ & scope_appearance) || !annots.isArray())
+            return;
+        for (auto const &annot : annots.aitems()) {
+            auto appearances = key_as_dictionary(annot, "/AP");
+            if (!appearances.isInitialized())
+                continue;
+            // Each of /N, /R and /D is a stream, or a dictionary of streams
+            // named for the states of the annotation.
+            for (auto const &[key, appearance] : appearances.ditems()) {
+                if (appearance.isStream()) {
+                    enter_appearance(appearance);
+                } else if (appearance.isDictionary()) {
+                    auto states = appearance; // ditems() is not const
+                    for (auto const &[state, stream] : states.ditems())
+                        enter_appearance(stream);
+                }
+            }
+        }
+    }
+
+    // Find the content streams that a resource dictionary holds.
+    void list_resources(QPDFObjectHandle resources)
+    {
+        // Many streams may share one resource dictionary; search it once.
+        // This is not recorded in seen_, which remembers what was reported.
+        if (!resources.isInitialized() || !listed_.add(resources))
+            return;
+
+        auto xobjects = key_as_dictionary(resources, "/XObject");
+        if (xobjects.isInitialized()) {
+            for (auto const &[name, xobject] : xobjects.ditems())
+                enter_form(scope_form, xobject, resources);
+        }
+
+        auto patterns = key_as_dictionary(resources, "/Pattern");
+        if (patterns.isInitialized()) {
+            for (auto const &[name, pattern] : patterns.ditems()) {
+                // Only tiling patterns have content; shadings are type 2
+                if (!pattern.isStream())
+                    continue;
+                auto dict = pattern.getDict();
+                auto type = dict.getKey("/PatternType");
+                if (type.isInteger() && type.getIntValue() == 1)
+                    enter(scope_pattern,
+                        pattern,
+                        key_as_dictionary(dict, "/Resources"),
+                        resources);
+            }
+        }
+
+        auto fonts = key_as_dictionary(resources, "/Font");
+        if (fonts.isInitialized()) {
+            for (auto const &[name, font] : fonts.ditems())
+                enter_type3_font(font, resources);
+        }
+
+        auto states = key_as_dictionary(resources, "/ExtGState");
+        if (states.isInitialized()) {
+            for (auto const &[name, state] : states.ditems()) {
+                // A soft mask is drawn by a transparency group, which is a
+                // form XObject that no /XObject dictionary need list.
+                auto mask = key_as_dictionary(state, "/SMask");
+                if (mask.isInitialized())
+                    enter_form(scope_softmask, mask.getKey("/G"), resources);
+                // A graphics state may select a font: [font size]
+                auto font = state.getKeyIfDict("/Font");
+                if (font.isArray() && font.getArrayNItems() >= 1)
+                    enter_type3_font(font.getArrayItem(0), resources);
+            }
+        }
+    }
+
+    unsigned kinds_;
+    ObjectSet &seen_;
+    ObjectSet listed_;
+    std::deque<QPDFObjectHandle> pending_;
+    std::vector<ContentScope> found_;
+};
+
+} // namespace
+
+std::vector<ContentScope> collect_content_scopes(
+    QPDFObjectHandle root, unsigned kinds, ObjectSet &seen)
+{
+    return ContentScopeWalk(kinds, seen).run(root);
 }
 
 // The actions that an action runs: itself, then each action reachable through

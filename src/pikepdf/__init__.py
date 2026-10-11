@@ -133,6 +133,7 @@ from pikepdf.models.ctm import (
 )
 
 from pikepdf.jobs import JobBuilder
+from pikepdf._content_scopes import ContentScope, ContentScopeKind
 from pikepdf._page_copy import (
     PageCopyResult,
 )
@@ -191,6 +192,8 @@ __all__ = [
     'Array',
     'AttachedFileSpec',
     'Boolean',
+    'ContentScope',
+    'ContentScopeKind',
     'ContentStreamInlineImage',
     'ContentStreamInstruction',
     'DataDecodingError',
