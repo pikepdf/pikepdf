@@ -788,6 +788,11 @@ class Object:
         and can be looked up using this in the cross-reference (xref) table.
         Direct objects cannot necessarily be looked up.
 
+        Do not use this value to decide whether two objects are the same
+        object. All direct objects report ``(0, 0)``, and objects in different
+        :class:`pikepdf.Pdf` often have the same numbers. To keep track of
+        objects you have already seen, use :class:`pikepdf.ObjectSet`.
+
         The generation number is usually 0, except for PDFs that have been
         incrementally updated. Incrementally updated PDFs are now uncommon,
         since it does not take too long for modern CPUs to reconstruct an

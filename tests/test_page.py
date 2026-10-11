@@ -7,6 +7,7 @@ import copy
 
 import pytest
 
+import pikepdf
 from pikepdf import (
     Array,
     ContentStreamInlineImage,
@@ -459,3 +460,57 @@ class TestRotation:
         matrix_pos = list(graph_page.as_form_xobject().Matrix)
 
         assert matrix_neg == matrix_pos
+
+
+class TestGetResources:
+    def test_own_resources(self):
+        pdf = pikepdf.new()
+        pdf.add_blank_page()
+        page = pdf.pages[0]
+        page.obj.Resources = pikepdf.Dictionary(Marker=Name.Own)
+        assert page.get_resources().Marker == Name.Own
+
+    def test_inherited_resources(self):
+        pdf = pikepdf.new()
+        pdf.add_blank_page()
+        page = pdf.pages[0]
+        pdf.Root.Pages.Resources = pikepdf.Dictionary(Marker=Name.Inherited)
+        del page.obj.Resources
+        assert page.get_resources().Marker == Name.Inherited
+        # Looking does not copy the inherited dictionary onto the page
+        assert Name.Resources not in page.obj
+
+    def test_missing_resources_are_not_created(self):
+        pdf = pikepdf.new()
+        pdf.add_blank_page()
+        page = pdf.pages[0]
+        del page.obj.Resources
+        assert page.get_resources() is None
+        assert Name.Resources not in page.obj
+
+    @pytest.mark.parametrize(
+        'value', [pikepdf.Array([1]), Name.Bogus, pikepdf.String('x'), 42]
+    )
+    def test_malformed_resources(self, value):
+        pdf = pikepdf.new()
+        pdf.add_blank_page()
+        page = pdf.pages[0]
+        page.obj.Resources = value
+        assert page.get_resources() is None
+
+    def test_form_xobject(self):
+        pdf = pikepdf.new()
+        form = pikepdf.Stream(pdf, b'')
+        form.Type = Name.XObject
+        form.Subtype = Name.Form
+        assert pikepdf.Page(form).get_resources() is None
+        form.Resources = pikepdf.Dictionary(Marker=Name.Form)
+        assert pikepdf.Page(form).get_resources().Marker == Name.Form
+
+    def test_page_tree_that_is_its_own_parent(self):
+        pdf = pikepdf.new()
+        pdf.add_blank_page()
+        page = pdf.pages[0]
+        del page.obj.Resources
+        pdf.Root.Pages.Parent = pdf.Root.Pages
+        assert page.get_resources() is None

@@ -164,10 +164,8 @@ class _Scan:
 
 
 def _page_resources(page: Dictionary) -> Dictionary:
-    resources = pikepdf.Page(page)._get_inherited('/Resources')
-    if isinstance(resources, Dictionary) and not isinstance(resources, Stream):
-        return resources
-    return Dictionary()
+    resources = pikepdf.Page(page).get_resources()
+    return resources if resources is not None else Dictionary()
 
 
 def _appearance_streams(annot: Dictionary) -> list[Stream]:

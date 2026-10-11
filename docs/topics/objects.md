@@ -503,6 +503,8 @@ through:
 
 - {meth}`pikepdf.Page.get_form_xobjects` returns the form XObjects that a page
   or another form XObject uses, however they are nested or shared.
+- {meth}`pikepdf.Page.get_resources` returns the resources that a page or form
+  XObject uses, including those a page inherits from the page tree.
 - {meth}`pikepdf.Page.get_images` returns the images that a page uses,
   including those inside form XObjects.
 - {attr}`pikepdf.Pdf.objects` lists every indirect object in the file, which is
@@ -518,9 +520,11 @@ For example, to find every font that the pages of a document can use:
 seen = pikepdf.ObjectSet()
 fonts = []
 for page in pdf.pages:
-    for scope in [page.obj, *page.get_form_xobjects(seen=seen)]:
-        found = scope.get_dict(pikepdf.NamePath.Resources.Font) or {}
-        fonts.extend(found.values())
+    forms = page.get_form_xobjects(seen=seen)
+    for scope in [page, *map(pikepdf.Page, forms)]:
+        resources = scope.get_resources()
+        if resources is not None:
+            fonts.extend((resources.get_dict(pikepdf.Name.Font) or {}).values())
 ```
 
 Passing the same {class}`pikepdf.ObjectSet` for every page means a form shared

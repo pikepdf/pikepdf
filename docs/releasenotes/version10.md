@@ -29,6 +29,11 @@ the architecture notes on thread safety.
   that a page or another form XObject uses, once, however the forms are nested
   or shared. With `seen=`, forms shared between pages are visited once for the
   whole document.
+- Added {meth}`pikepdf.Page.get_resources`, which returns the resources of a
+  page or form XObject for reading. Unlike {attr}`pikepdf.Page.resources`, it
+  finds resources inherited from the page tree, does not create an empty
+  dictionary when there are none, and returns `None` instead of raising when
+  `/Resources` is malformed.
 - Fixed comparing two objects with `==` taking exponential time when the
   objects being compared share children, such as the same file opened twice.
   Each pair of objects is now compared once.

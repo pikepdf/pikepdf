@@ -261,7 +261,7 @@ class Page:
         have resources of their own and may draw further form XObjects. To
         examine everything a page can draw -- its fonts, images, colour spaces
         and so on -- look at the resources of the page and of each form this
-        method returns.
+        method returns, with :meth:`get_resources`.
 
         Form XObjects commonly share resources, and a form's resources may
         list the form itself or one of the forms that contain it. Each form is
@@ -297,8 +297,48 @@ class Page:
 
             seen = pikepdf.ObjectSet()
             for page in pdf.pages:
-                for scope in [page.obj, *page.get_form_xobjects(seen=seen)]:
+                forms = page.get_form_xobjects(seen=seen)
+                for scope in [page, *map(pikepdf.Page, forms)]:
+                    resources = scope.get_resources()
                     ...  # each page and each form, once
+
+        .. versionadded:: 10.17
+        """
+    def get_resources(self) -> Dictionary | None:
+        """Return the resources this page uses, without changing the page.
+
+        A page's ``/Resources`` dictionary names the fonts, images, form
+        XObjects and other objects that its content stream refers to. A page
+        with no ``/Resources`` of its own uses those of the nearest ancestor in
+        the page tree that has one. This method returns whichever dictionary
+        applies, or ``None`` if there is none or the value is not a dictionary.
+        (By default :meth:`pikepdf.Pdf.open` copies inherited attributes onto
+        each page, but pages added or edited afterwards may still inherit.)
+
+        Use this method to examine a page. It differs from :attr:`resources`,
+        which is meant for editing: that property does not look at the page
+        tree, creates an empty dictionary on the page if it has none, and
+        raises :exc:`TypeError` if ``/Resources`` is not a dictionary.
+
+        The dictionary returned is the one in the file, and it may be shared
+        with other pages and form XObjects, so changing it may change them too.
+
+        This method can be used on a form XObject as well as on a page:
+        ``Page(form).get_resources()`` returns the form's own resources. Form
+        XObjects do not inherit resources.
+
+        To examine everything a page can draw, combine this with
+        :meth:`get_form_xobjects`:
+
+        .. code-block:: python
+
+            seen = pikepdf.ObjectSet()
+            for page in pdf.pages:
+                forms = page.get_form_xobjects(seen=seen)
+                for scope in [page, *map(pikepdf.Page, forms)]:
+                    resources = scope.get_resources()
+                    if resources is not None:
+                        ...  # each page and each form, once
 
         .. versionadded:: 10.17
         """
@@ -525,7 +565,10 @@ class Page:
     def trimbox(self, val: Array | Rectangle) -> None: ...
     @property
     def resources(self) -> Dictionary:
-        """Return this page's resources dictionary.
+        """Return this page's resources dictionary, for editing.
+
+        To read the resources a page uses, including those it inherits from
+        the page tree, use :meth:`get_resources`, which changes nothing.
 
         .. versionchanged:: 7.0.0
             If the resources dictionary does not exist, an empty one will be created.

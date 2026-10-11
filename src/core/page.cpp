@@ -287,6 +287,14 @@ void init_page(py::module_ &m)
                 py::arg("recursive") = true,
                 py::kw_only(),
                 py::arg("seen").none() = py::none())
+            .def("get_resources",
+                [](QPDFPageObjectHelper &poh) -> py::object {
+                    QpdfLockGuard lock(poh.getObjectHandle().getOwningQPDF());
+                    auto resources = poh.getAttribute("/Resources", false);
+                    if (!resources.isDictionary())
+                        return py::none();
+                    return py::cast(resources);
+                })
             .def(
                 "_get_inherited",
                 [](QPDFPageObjectHelper &poh, std::string const &key) {
