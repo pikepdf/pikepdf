@@ -77,3 +77,13 @@ name = "clang-format (check)"
 language = "system"
 entry = "uv run clang-format --dry-run --Werror"
 files = "^src/.*\\.(cpp|h|hpp)$"
+
+# Private data members are named with a trailing underscore, which makes
+# this-> unnecessary. This catches the this-> half of that convention; nothing
+# here checks the names themselves.
+[[repos.hooks]]
+id = "cpp-no-this-arrow"
+name = "C++: member_ rather than this->member"
+language = "pygrep"
+entry = "this->"
+files = "^src/.*\\.(cpp|h|hpp)$"

@@ -30,14 +30,14 @@ void Pl_PythonOutput::write(const unsigned char *buf, size_t len)
     while (len > 0) {
         auto view_buffer = py::steal<py::object>(py::handle(PyMemoryView_FromMemory(
             const_cast<char *>(reinterpret_cast<const char *>(buf)), len, PyBUF_READ)));
-        py::object result = this->stream.attr("write")(view_buffer);
+        py::object result = stream_.attr("write")(view_buffer);
         try {
             so_far = py::cast<py::ssize_t>(result);
         } catch (const py::cast_error &) {
             throw py::type_error("Unexpected return type of write()");
         }
         if (so_far <= 0) {
-            QUtil::throw_system_error(this->identifier);
+            QUtil::throw_system_error(identifier);
         } else {
             auto diff = len - so_far;
             if (diff > len)
@@ -51,7 +51,7 @@ void Pl_PythonOutput::write(const unsigned char *buf, size_t len)
 void Pl_PythonOutput::finish()
 {
     py::gil_scoped_acquire gil;
-    this->stream.attr("flush")();
+    stream_.attr("flush")();
 }
 
 void Pl_FdOutput::write(const unsigned char *buf, size_t len)
@@ -87,18 +87,18 @@ void Pl_FdOutput::write_fully(const unsigned char *buf, size_t len)
         // than INT_MAX.
         auto chunk = std::min<size_t>(len, INT_MAX);
 #ifdef _WIN32
-        auto written = ::_write(this->fd, buf, static_cast<unsigned int>(chunk));
+        auto written = ::_write(fd_, buf, static_cast<unsigned int>(chunk));
 #else
-        auto written = ::write(this->fd, buf, chunk);
+        auto written = ::write(fd_, buf, chunk);
 #endif
         if (written < 0) {
             if (errno == EINTR)
                 continue;
-            QUtil::throw_system_error(this->identifier);
+            QUtil::throw_system_error(identifier);
         }
         if (written == 0) {
             errno = EIO;
-            QUtil::throw_system_error(this->identifier);
+            QUtil::throw_system_error(identifier);
         }
         buf += written;
         len -= static_cast<size_t>(written);

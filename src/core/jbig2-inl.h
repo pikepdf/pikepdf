@@ -25,14 +25,14 @@ class Pl_JBIG2 : public Pipeline {
 public:
     Pl_JBIG2(
         const char *identifier, Pipeline *next, const std::string &jbig2globals = "")
-        : Pipeline(identifier, next), jbig2globals(jbig2globals)
+        : Pipeline(identifier, next), jbig2globals_(jbig2globals)
     {
     }
     virtual ~Pl_JBIG2() = default;
 
     virtual void write(const unsigned char *data, size_t len) override
     {
-        this->buf.append(reinterpret_cast<const char *>(data), len);
+        buf_.append(reinterpret_cast<const char *>(data), len);
     }
 
     std::string decode_jbig2(const std::string &data)
@@ -45,8 +45,8 @@ public:
 
         py::object extracted_obj;
         try {
-            extracted_obj = extract_jbig2(pydata,
-                py::bytes(this->jbig2globals.data(), this->jbig2globals.size()));
+            extracted_obj = extract_jbig2(
+                pydata, py::bytes(jbig2globals_.data(), jbig2globals_.size()));
         } catch (py::python_error &e) {
             // We are called from Pipeline::finish(). If the stream data came
             // from a file, qpdf traps everything thrown here, downgrades it to
@@ -82,9 +82,9 @@ public:
 
     virtual void finish() override
     {
-        if (this->buf.empty()) {
-            if (this->getNext(true))
-                this->getNext()->finish();
+        if (buf_.empty()) {
+            if (getNext(true))
+                getNext()->finish();
             return;
         }
 
@@ -92,22 +92,22 @@ public:
         // fresh Pl_JBIG2 for every decode, so this is not needed for
         // correctness today, but it keeps a large compressed image from being
         // retained for as long as the owning stream filter lives.
-        std::string data = std::move(this->buf);
-        this->buf.clear();
+        std::string data = std::move(buf_);
+        buf_.clear();
 
-        auto extracted = this->decode_jbig2(data);
+        auto extracted = decode_jbig2(data);
 
-        this->getNext()->write(extracted.data(), extracted.length());
+        getNext()->write(extracted.data(), extracted.length());
 
-        if (this->getNext(true)) {
-            this->getNext()->finish();
+        if (getNext(true)) {
+            getNext()->finish();
         }
     }
 
 private:
     // Do not hold any Python objects in this class to avoid GIL issues.
-    std::string jbig2globals;
-    std::string buf;
+    std::string jbig2globals_;
+    std::string buf_;
 };
 
 class JBIG2StreamFilter : public QPDFStreamFilter {
@@ -122,7 +122,7 @@ public:
             return true;
 
         auto buf = jbig2globals_obj.getStreamData();
-        this->jbig2globals =
+        jbig2globals_ =
             std::string(reinterpret_cast<char *>(buf->getBuffer()), buf->getSize());
         return true;
     }
@@ -136,10 +136,9 @@ public:
 
     virtual Pipeline *getDecodePipeline(Pipeline *next) override
     {
-        this->assertDecoderAvailable();
-        this->pipeline =
-            std::make_shared<Pl_JBIG2>("JBIG2 decode", next, this->jbig2globals);
-        return this->pipeline.get();
+        assertDecoderAvailable();
+        pipeline_ = std::make_shared<Pl_JBIG2>("JBIG2 decode", next, jbig2globals_);
+        return pipeline_.get();
     }
 
     static std::shared_ptr<JBIG2StreamFilter> factory()
@@ -152,6 +151,6 @@ public:
 
 private:
     // Do not hold any Python objects in this class to avoid GIL issues.
-    std::string jbig2globals;
-    std::shared_ptr<Pipeline> pipeline;
+    std::string jbig2globals_;
+    std::shared_ptr<Pipeline> pipeline_;
 };

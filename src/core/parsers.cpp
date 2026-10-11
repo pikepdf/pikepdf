@@ -74,9 +74,9 @@ ContentStreamInstruction::ContentStreamInstruction(
     ObjectList operands, QPDFObjectHandle operator_)
     : operands(operands), operator_(operator_)
 {
-    if (!this->operator_.isOperator())
+    if (!operator_.isOperator())
         throw py::type_error("operator parameter must be a pikepdf.Operator");
-    check_objects_in_operands(this->operands);
+    check_objects_in_operands(operands);
 }
 
 void append_unparsed(std::string &out, ContentStreamInstruction &csi)
@@ -92,10 +92,10 @@ py::object ContentStreamInlineImage::get_inline_image() const
 {
     auto PdfInlineImage = py::module_::import_("pikepdf").attr("PdfInlineImage");
     auto kwargs = py::dict();
-    kwargs["image_data"] = this->image_data;
-    kwargs["image_object"] = this->image_metadata;
-    if (this->resources.isInitialized() && !this->resources.isNull())
-        kwargs["resources"] = this->resources;
+    kwargs["image_data"] = image_data;
+    kwargs["image_object"] = image_metadata;
+    if (resources.isInitialized() && !resources.isNull())
+        kwargs["resources"] = resources;
     auto iimage = PdfInlineImage(**kwargs);
     return iimage;
 }
@@ -103,7 +103,7 @@ py::object ContentStreamInlineImage::get_inline_image() const
 py::list ContentStreamInlineImage::get_operands() const
 {
     auto list = py::list();
-    list.append(this->get_inline_image());
+    list.append(get_inline_image());
     return list;
 }
 
@@ -123,35 +123,35 @@ void append_unparsed(std::string &out, ContentStreamInlineImage &csii)
 void InstructionGrouper::handleObject(QPDFObjectHandle obj)
 {
     if (obj.getTypeCode() != qpdf_object_type_e::ot_operator) {
-        this->tokens.push_back(obj);
+        tokens_.push_back(obj);
         return;
     }
     std::string op = obj.getOperatorValue();
-    if (!this->accepts(op)) {
-        this->tokens.clear();
+    if (!accepts(op)) {
+        tokens_.clear();
         return;
     }
     if (op == "BI") {
-        this->parsing_inline_image = true;
-    } else if (this->parsing_inline_image) {
+        parsing_inline_image_ = true;
+    } else if (parsing_inline_image_) {
         if (op == "ID") {
-            this->inline_metadata = this->tokens;
+            inline_metadata_ = tokens_;
         } else if (op == "EI") {
-            this->handle_inline_image(ContentStreamInlineImage(
-                this->inline_metadata, this->tokens.at(0), this->resources));
-            this->inline_metadata = ObjectList();
-            this->parsing_inline_image = false;
+            handle_inline_image(
+                ContentStreamInlineImage(inline_metadata_, tokens_.at(0), resources_));
+            inline_metadata_ = ObjectList();
+            parsing_inline_image_ = false;
         }
     } else {
-        this->handle_instruction(this->tokens, obj, op);
+        handle_instruction(tokens_, obj, op);
     }
-    this->tokens.clear();
+    tokens_.clear();
 }
 
 void InstructionGrouper::handleEOF()
 {
-    if (!this->tokens.empty())
-        this->warning = "Unexpected end of stream";
+    if (!tokens_.empty())
+        warning_ = "Unexpected end of stream";
 }
 
 OperandGrouper::OperandGrouper(const std::string &operators, QPDFObjectHandle resources)
@@ -161,34 +161,34 @@ OperandGrouper::OperandGrouper(const std::string &operators, QPDFObjectHandle re
     f.imbue(std::locale::classic());
     std::string s;
     while (std::getline(f, s, ' ')) {
-        this->whitelist.insert(s);
+        whitelist_.insert(s);
     }
 }
 
 bool OperandGrouper::accepts(std::string const &op) const
 {
-    if (this->whitelist.empty())
+    if (whitelist_.empty())
         return true;
     // We have token with multiple stack push/pops
     if (op[0] == 'q' || op[0] == 'Q')
-        return this->whitelist.count("q") != 0 || this->whitelist.count("Q") != 0;
-    return this->whitelist.count(op) != 0;
+        return whitelist_.count("q") != 0 || whitelist_.count("Q") != 0;
+    return whitelist_.count(op) != 0;
 }
 
 void OperandGrouper::handle_instruction(
     ObjectList &operands, QPDFObjectHandle const &operator_, std::string const &op)
 {
-    this->instructions.append(ContentStreamInstruction(operands, operator_));
+    instructions_.append(ContentStreamInstruction(operands, operator_));
 }
 
 void OperandGrouper::handle_inline_image(ContentStreamInlineImage csii)
 {
-    this->instructions.append(std::move(csii));
+    instructions_.append(std::move(csii));
 }
 
 py::list OperandGrouper::getInstructions() const
 {
-    return this->instructions;
+    return instructions_;
 }
 
 py::bytes unparse_content_stream(py::iterable contentstream)
@@ -309,12 +309,12 @@ struct OperandLimits {
         if (!value)
             return false; // not a finite double: let Python compare it exactly
         double magnitude = std::fabs(*value);
-        if (magnitude >= this->max_real * (1.0 - 1e-9))
+        if (magnitude >= max_real * (1.0 - 1e-9))
             return false;
-        if (this->min_real > 0.0) {
+        if (min_real > 0.0) {
             if (magnitude == 0.0)
                 return text.find_first_of("123456789") == std::string::npos;
-            if (magnitude <= this->min_real * (1.0 + 1e-9))
+            if (magnitude <= min_real * (1.0 + 1e-9))
                 return false;
         }
         return true;
@@ -322,7 +322,7 @@ struct OperandLimits {
 
     bool within(QPDFObjectHandle &obj, int depth) const
     {
-        if (depth > this->max_nesting)
+        if (depth > max_nesting)
             return false;
         switch (obj.getTypeCode()) {
         case qpdf_object_type_e::ot_null:
@@ -330,21 +330,21 @@ struct OperandLimits {
             return true;
         case qpdf_object_type_e::ot_integer: {
             auto value = obj.getIntValue();
-            return this->min_integer <= value && value <= this->max_integer;
+            return min_integer <= value && value <= max_integer;
         }
         case qpdf_object_type_e::ot_real:
-            return this->real_within(obj.getRealValue());
+            return real_within(obj.getRealValue());
         case qpdf_object_type_e::ot_string:
-            return obj.getStringValue().size() <= this->max_string;
+            return obj.getStringValue().size() <= max_string;
         case qpdf_object_type_e::ot_name:
-            return obj.getName().size() - 1 <= this->max_name;
+            return obj.getName().size() - 1 <= max_name;
         case qpdf_object_type_e::ot_array: {
             if (obj.isIndirect())
                 return false;
-            if (this->max_array && obj.getArrayNItems() > (int)*this->max_array)
+            if (max_array && obj.getArrayNItems() > (int)*max_array)
                 return false;
             for (auto &item : obj.aitems()) {
-                if (!this->within(item, depth + 1))
+                if (!within(item, depth + 1))
                     return false;
             }
             return true;
@@ -354,12 +354,12 @@ struct OperandLimits {
                 return false;
             // The entries Python's items() gives, including null values
             auto entries = obj.getDictAsMap();
-            if (this->max_dict && entries.size() > *this->max_dict)
+            if (max_dict && entries.size() > *max_dict)
                 return false;
             for (auto &[key, value] : entries) {
-                if (key.size() - 1 > this->max_name)
+                if (key.size() - 1 > max_name)
                     return false;
-                if (!this->within(value, depth + 1))
+                if (!within(value, depth + 1))
                     return false;
             }
             return true;
@@ -423,17 +423,17 @@ public:
         bool handler_reads_operands = false;
     };
 
-    ContentChecker(py::dict operators, py::dict handlers, OperandLimits limits)
+    ContentChecker(py::dict signatures, py::dict handlers, OperandLimits limits)
         : limits(limits)
     {
-        for (auto [key, value] : operators) {
+        for (auto [key, value] : signatures) {
             auto name = py::borrow<py::str>(key);
-            this->operators[py::cast<std::string>(name)] =
+            operators[py::cast<std::string>(name)] =
                 Operator{py::cast<std::string>(value), name};
         }
         for (auto [key, value] : handlers) {
-            auto it = this->operators.find(py::cast<std::string>(key));
-            if (it == this->operators.end())
+            auto it = operators.find(py::cast<std::string>(key));
+            if (it == operators.end())
                 throw py::value_error("handler for an operator not in the table");
             it->second.handled = true;
             it->second.handler_reads_operands = py::cast<bool>(value);
@@ -452,7 +452,7 @@ public:
 class ContentCheckCallbacks : public InstructionGrouper {
 public:
     ContentCheckCallbacks(ContentChecker const &checker, QPDFObjectHandle resources)
-        : InstructionGrouper(resources), checker(checker)
+        : InstructionGrouper(resources), checker_(checker)
     {
     }
 
@@ -465,15 +465,14 @@ protected:
         std::string const &op) override
     {
         check_objects_in_operands(operands);
-        this->check_instruction(operands, op);
-        this->count++;
+        check_instruction(operands, op);
+        count++;
     }
 
     void handle_inline_image(ContentStreamInlineImage csii) override
     {
-        this->events.append(
-            py::make_tuple("inline", this->count, py::cast(std::move(csii))));
-        this->count++;
+        events.append(py::make_tuple("inline", count, py::cast(std::move(csii))));
+        count++;
     }
 
 private:
@@ -488,31 +487,29 @@ private:
     void check_instruction(ObjectList &operands, std::string const &op)
     {
         for (auto &operand : operands) {
-            if (!this->checker.limits.within(operand, 0))
-                this->events.append(
-                    py::make_tuple("limits", this->count, py::cast(operand)));
+            if (!checker_.limits.within(operand, 0))
+                events.append(py::make_tuple("limits", count, py::cast(operand)));
         }
-        auto it = this->checker.operators.find(op);
-        if (it == this->checker.operators.end()) {
-            this->events.append(
-                py::make_tuple("undefined", this->count, latin1_str(op)));
+        auto it = checker_.operators.find(op);
+        if (it == checker_.operators.end()) {
+            events.append(py::make_tuple("undefined", count, latin1_str(op)));
             return;
         }
         auto const &entry = it->second;
         if (entry.signature != "*" && !operands_match(entry.signature, operands)) {
-            this->events.append(py::make_tuple(
-                "operands", this->count, entry.name, operand_list(operands)));
+            events.append(
+                py::make_tuple("operands", count, entry.name, operand_list(operands)));
             return;
         }
         if (entry.handled) {
-            this->events.append(py::make_tuple("op",
-                this->count,
+            events.append(py::make_tuple("op",
+                count,
                 entry.name,
                 entry.handler_reads_operands ? operand_list(operands) : py::list()));
         }
     }
 
-    ContentChecker const &checker;
+    ContentChecker const &checker_;
 };
 
 std::pair<py::list, size_t> ContentChecker::check(QPDFObjectHandle &stream) const

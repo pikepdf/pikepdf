@@ -19,18 +19,18 @@ public:
 
     void handleToken(Token const &token) override
     {
-        py::object result = this->handle_token(token);
+        py::object result = handle_token(token);
         if (result.is_none())
             return;
         try {
             if (py::hasattr(result, "__iter__")) {
                 for (auto item : result) {
                     const auto returned_token = py::cast<Token>(item);
-                    this->writeToken(returned_token);
+                    writeToken(returned_token);
                 }
             } else {
                 const auto returned_token = py::cast<Token>(result);
-                this->writeToken(returned_token);
+                writeToken(returned_token);
             }
         } catch (const py::cast_error &) {
             throw py::type_error("returned object that is not a token");

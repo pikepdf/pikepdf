@@ -209,18 +209,18 @@ std::shared_ptr<QPDF> open_pdf_json(
 
 class PikeProgressReporter : public QPDFWriter::ProgressReporter {
 public:
-    PikeProgressReporter(py::object callback) { this->callback = callback; }
+    PikeProgressReporter(py::object callback) { callback_ = callback; }
 
     virtual ~PikeProgressReporter() = default;
 
     virtual void reportProgress(int percent) override
     {
         py::gil_scoped_acquire acquire;
-        this->callback(percent);
+        callback_(percent);
     }
 
 private:
-    py::object callback;
+    py::object callback_;
 };
 
 void update_xmp_pdfversion(QPDF &q, std::string version)

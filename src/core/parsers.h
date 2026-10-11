@@ -59,13 +59,13 @@ public:
 class InstructionGrouper : public QPDFObjectHandle::ParserCallbacks {
 public:
     explicit InstructionGrouper(QPDFObjectHandle resources = QPDFObjectHandle())
-        : resources(resources)
+        : resources_(resources)
     {
     }
     void handleObject(QPDFObjectHandle obj) override;
     void handleEOF() override;
 
-    std::string getWarning() const { return this->warning; }
+    std::string getWarning() const { return warning_; }
 
 protected:
     // Whether to keep instructions with this operator; the operands of a
@@ -77,13 +77,13 @@ protected:
     virtual void handle_inline_image(ContentStreamInlineImage csii) = 0;
 
 private:
-    ObjectList tokens;
-    bool parsing_inline_image = false;
-    ObjectList inline_metadata;
-    std::string warning;
+    ObjectList tokens_;
+    bool parsing_inline_image_ = false;
+    ObjectList inline_metadata_;
+    std::string warning_;
     // The /Resources in scope for this content stream, forwarded to inline
     // images so they can resolve named colour spaces. Null when unavailable.
-    QPDFObjectHandle resources;
+    QPDFObjectHandle resources_;
 };
 
 // Used for parse_content_stream. Collects every instruction, optionally only
@@ -103,8 +103,8 @@ protected:
     void handle_inline_image(ContentStreamInlineImage csii) override;
 
 private:
-    std::set<std::string> whitelist;
-    py::list instructions;
+    std::set<std::string> whitelist_;
+    py::list instructions_;
 };
 
 // Append the PDF serialization of one instruction to out

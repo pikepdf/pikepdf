@@ -66,45 +66,45 @@ inline void close_owned_stream(py::object &stream)
 class PythonStreamInputSource : public InputSource {
 public:
     PythonStreamInputSource(const py::object &stream, std::string name, bool close)
-        : name(name), close(close)
+        : name_(name), close_(close)
     {
         py::gil_scoped_acquire gil; // GIL must be held anyway, issue #295
-        this->stream = stream;
-        if (!py::cast<bool>(this->stream.attr("readable")()))
+        stream_ = stream;
+        if (!py::cast<bool>(stream_.attr("readable")()))
             throw py::value_error("not readable");
-        if (!py::cast<bool>(this->stream.attr("seekable")()))
+        if (!py::cast<bool>(stream_.attr("seekable")()))
             throw py::value_error("not seekable");
     }
     virtual ~PythonStreamInputSource()
     {
-        if (!this->close)
+        if (!close_)
             return;
-        close_owned_stream(this->stream);
+        close_owned_stream(stream_);
     }
     PythonStreamInputSource(const PythonStreamInputSource &) = delete;
     PythonStreamInputSource &operator=(const PythonStreamInputSource &) = delete;
     PythonStreamInputSource(PythonStreamInputSource &&) = default;
     PythonStreamInputSource &operator=(PythonStreamInputSource &&) = delete;
 
-    std::string const &getName() const override { return this->name; }
+    std::string const &getName() const override { return name_; }
 
     qpdf_offset_t tell() override
     {
         py::gil_scoped_acquire gil;
-        return py::cast<qpdf_offset_t>(this->stream.attr("tell")());
+        return py::cast<qpdf_offset_t>(stream_.attr("tell")());
     }
 
     void seek(qpdf_offset_t offset, int whence) override
     {
         py::gil_scoped_acquire gil;
-        this->stream.attr("seek")(offset, whence);
+        stream_.attr("seek")(offset, whence);
     }
 
     // LCOV_EXCL_START
     void rewind() override
     {
         // qpdf never seems to use this but still requires
-        this->seek(0, SEEK_SET);
+        seek(0, SEEK_SET);
     }
     // LCOV_EXCL_STOP
 
@@ -114,8 +114,8 @@ public:
 
         auto view = py::steal<py::object>(
             py::handle(PyMemoryView_FromMemory(buffer, length, PyBUF_WRITE)));
-        this->last_offset = this->tell();
-        py::object result = this->stream.attr("readinto")(view);
+        last_offset = tell();
+        py::object result = stream_.attr("readinto")(view);
         if (result.is_none())
             throw py::value_error(
                 "Stream readinto() returned None; non-blocking streams are not "
@@ -129,14 +129,14 @@ public:
         if (bytes_read == 0) {
             if (length > 0) {
                 // EOF
-                this->seek(0, SEEK_END);
-                this->last_offset = this->tell();
+                seek(0, SEEK_END);
+                last_offset = tell();
             }
         }
         return bytes_read;
     }
 
-    void unreadCh(char ch) override { this->seek(-1, SEEK_CUR); }
+    void unreadCh(char ch) override { seek(-1, SEEK_CUR); }
 
     qpdf_offset_t findAndSkipNextEOL() override
     {
@@ -148,10 +148,10 @@ public:
         std::string line_endings = "\r\n";
 
         while (true) {
-            qpdf_offset_t cur_offset = this->tell();
-            size_t len = this->read(rawbuf, sizeof(rawbuf));
+            qpdf_offset_t cur_offset = tell();
+            size_t len = read(rawbuf, sizeof(rawbuf));
             if (len == 0) {
-                result = this->tell();
+                result = tell();
                 break;
             }
             std::string_view buf(rawbuf, len);
@@ -170,16 +170,16 @@ public:
                 continue;
             }
             result = cur_offset + found_end;
-            this->seek(result, SEEK_SET);
+            seek(result, SEEK_SET);
             break;
         }
         return result;
     }
 
 private:
-    py::object stream;
-    std::string name;
-    bool close;
+    py::object stream_;
+    std::string name_;
+    bool close_;
 };
 
 // Reads a file descriptor without calling into Python, so it neither needs nor
@@ -194,18 +194,18 @@ private:
 class FdInputSource : public InputSource {
 public:
     FdInputSource(const py::object &stream, int fd, std::string name)
-        : stream(stream), fd(fd), name(name), buffer(new char[buffer_size])
+        : stream_(stream), fd_(fd), name_(name), buffer_(new char[buffer_size])
     {
     }
-    virtual ~FdInputSource() { close_owned_stream(this->stream); }
+    virtual ~FdInputSource() { close_owned_stream(stream_); }
     FdInputSource(const FdInputSource &) = delete;
     FdInputSource &operator=(const FdInputSource &) = delete;
     FdInputSource(FdInputSource &&) = delete;
     FdInputSource &operator=(FdInputSource &&) = delete;
 
-    std::string const &getName() const override { return this->name; }
+    std::string const &getName() const override { return name_; }
 
-    qpdf_offset_t tell() override { return this->pos; }
+    qpdf_offset_t tell() override { return pos_; }
 
     void seek(qpdf_offset_t offset, int whence) override
     {
@@ -214,10 +214,10 @@ public:
         case SEEK_SET:
             break;
         case SEEK_CUR:
-            base = this->pos;
+            base = pos_;
             break;
         case SEEK_END:
-            base = this->file_size();
+            base = file_size();
             break;
         default:
             // LCOV_EXCL_START
@@ -226,58 +226,57 @@ public:
         }
         if (base + offset < 0) {
             errno = EINVAL;
-            QUtil::throw_system_error(this->name);
+            QUtil::throw_system_error(name_);
         }
-        this->pos = base + offset;
+        pos_ = base + offset;
     }
 
     // LCOV_EXCL_START
     void rewind() override
     {
         // qpdf never seems to use this but still requires
-        this->seek(0, SEEK_SET);
+        seek(0, SEEK_SET);
     }
     // LCOV_EXCL_STOP
 
     size_t read(char *out, size_t length) override
     {
-        this->last_offset = this->pos;
-        size_t so_far = this->copy_from_buffer(out, length);
+        last_offset = pos_;
+        size_t so_far = copy_from_buffer(out, length);
         if (so_far < length) {
             auto remaining = length - so_far;
             if (remaining >= buffer_size) {
-                so_far += this->read_at(out + so_far, remaining, this->pos);
-                this->pos = this->last_offset + static_cast<qpdf_offset_t>(so_far);
+                so_far += read_at(out + so_far, remaining, pos_);
+                pos_ = last_offset + static_cast<qpdf_offset_t>(so_far);
             } else {
-                this->buf_start = this->pos;
-                this->buf_len = 0; // In case the read throws
-                this->buf_len =
-                    this->read_at(this->buffer.get(), buffer_size, this->pos);
-                so_far += this->copy_from_buffer(out + so_far, remaining);
+                buf_start_ = pos_;
+                buf_len_ = 0; // In case the read throws
+                buf_len_ = read_at(buffer_.get(), buffer_size, pos_);
+                so_far += copy_from_buffer(out + so_far, remaining);
             }
         }
         if (so_far == 0 && length > 0) {
             // EOF
-            this->pos = this->file_size();
-            this->last_offset = this->pos;
+            pos_ = file_size();
+            last_offset = pos_;
         }
         return so_far;
     }
 
-    void unreadCh(char ch) override { this->seek(-1, SEEK_CUR); }
+    void unreadCh(char ch) override { seek(-1, SEEK_CUR); }
 
     qpdf_offset_t findAndSkipNextEOL() override
     {
         bool in_eol = false;
         while (true) {
-            if (!this->buffered(this->pos)) {
+            if (!buffered(pos_)) {
                 char ch;
-                if (this->read(&ch, 1) == 0)
-                    return this->pos;
-                this->pos--;
+                if (read(&ch, 1) == 0)
+                    return pos_;
+                pos_--;
             }
-            const char *start = this->buffer.get() + (this->pos - this->buf_start);
-            const char *end = this->buffer.get() + this->buf_len;
+            const char *start = buffer_.get() + (pos_ - buf_start_);
+            const char *end = buffer_.get() + buf_len_;
             auto is_eol = [](char ch) { return ch == '\r' || ch == '\n'; };
             const char *p = start;
             if (!in_eol) {
@@ -287,11 +286,11 @@ public:
             if (in_eol) {
                 p = std::find_if_not(p, end, is_eol);
                 if (p != end) {
-                    this->pos += p - start;
-                    return this->pos;
+                    pos_ += p - start;
+                    return pos_;
                 }
             }
-            this->pos += end - start;
+            pos_ += end - start;
         }
     }
 
@@ -300,19 +299,19 @@ private:
 
     bool buffered(qpdf_offset_t offset) const
     {
-        return offset >= this->buf_start &&
-               offset < this->buf_start + static_cast<qpdf_offset_t>(this->buf_len);
+        return offset >= buf_start_ &&
+               offset < buf_start_ + static_cast<qpdf_offset_t>(buf_len_);
     }
 
     // Copy what the buffer holds at the current position, and advance past it.
     size_t copy_from_buffer(char *out, size_t length)
     {
-        if (!this->buffered(this->pos))
+        if (!buffered(pos_))
             return 0;
-        auto buf_offset = static_cast<size_t>(this->pos - this->buf_start);
-        auto n = std::min(length, this->buf_len - buf_offset);
-        std::memcpy(out, this->buffer.get() + buf_offset, n);
-        this->pos += static_cast<qpdf_offset_t>(n);
+        auto buf_offset = static_cast<size_t>(pos_ - buf_start_);
+        auto n = std::min(length, buf_len_ - buf_offset);
+        std::memcpy(out, buffer_.get() + buf_offset, n);
+        pos_ += static_cast<qpdf_offset_t>(n);
         return n;
     }
 
@@ -326,17 +325,16 @@ private:
             // EINVAL rather than reading short when asked for more than INT_MAX.
             auto chunk = std::min<size_t>(length - so_far, INT_MAX);
 #ifdef _WIN32
-            if (::_lseeki64(this->fd, offset, SEEK_SET) < 0)
-                QUtil::throw_system_error(this->name);
-            auto count =
-                ::_read(this->fd, out + so_far, static_cast<unsigned int>(chunk));
+            if (::_lseeki64(fd_, offset, SEEK_SET) < 0)
+                QUtil::throw_system_error(name_);
+            auto count = ::_read(fd_, out + so_far, static_cast<unsigned int>(chunk));
 #else
-            auto count = ::pread(this->fd, out + so_far, chunk, offset);
+            auto count = ::pread(fd_, out + so_far, chunk, offset);
 #endif
             if (count < 0) {
                 if (errno == EINTR)
                     continue;
-                QUtil::throw_system_error(this->name);
+                QUtil::throw_system_error(name_);
             }
             if (count == 0)
                 break;
@@ -349,23 +347,23 @@ private:
     qpdf_offset_t file_size()
     {
 #ifdef _WIN32
-        auto size = ::_filelengthi64(this->fd);
+        auto size = ::_filelengthi64(fd_);
         if (size < 0)
-            QUtil::throw_system_error(this->name);
+            QUtil::throw_system_error(name_);
         return size;
 #else
         struct stat st;
-        if (::fstat(this->fd, &st) != 0)
-            QUtil::throw_system_error(this->name);
+        if (::fstat(fd_, &st) != 0)
+            QUtil::throw_system_error(name_);
         return st.st_size;
 #endif
     }
 
-    py::object stream;
-    int fd;
-    std::string name;
-    std::unique_ptr<char[]> buffer;
-    qpdf_offset_t buf_start = 0;
-    size_t buf_len = 0;
-    qpdf_offset_t pos = 0;
+    py::object stream_;
+    int fd_;
+    std::string name_;
+    std::unique_ptr<char[]> buffer_;
+    qpdf_offset_t buf_start_ = 0;
+    size_t buf_len_ = 0;
+    qpdf_offset_t pos_ = 0;
 };

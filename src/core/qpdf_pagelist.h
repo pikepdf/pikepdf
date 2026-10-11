@@ -37,11 +37,11 @@ private:
 class PageListIterator { // LCOV_EXCL_LINE
 public:
     PageListIterator(PageList &pl, size_t index)
-        : pl(pl), index(index), pages(pl.doc.getAllPages()) {};
+        : pl_(pl), index_(index), pages_(pl.doc.getAllPages()) {};
     QPDFPageObjectHelper next();
 
 private:
-    PageList &pl;
-    size_t index;
-    std::vector<QPDFPageObjectHelper> pages;
+    PageList &pl_;
+    size_t index_;
+    std::vector<QPDFPageObjectHelper> pages_;
 };

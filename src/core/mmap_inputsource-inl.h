@@ -44,27 +44,27 @@ class MmapInputSource : public InputSource {
 public:
     MmapInputSource(
         const py::object &stream, const std::string &description, bool close_stream)
-        : InputSource(), close_stream(close_stream)
+        : InputSource(), close_stream_(close_stream)
     {
         py::gil_scoped_acquire acquire; // GIL must be held anyway, issue #295
-        this->stream = stream;
+        stream_ = stream;
 
-        py::object fileno = this->stream.attr("fileno")();
+        py::object fileno = stream_.attr("fileno")();
         int fd = py::cast<int>(fileno);
         auto mmap_module = py::module_::import_("mmap");
         auto mmap_fn = mmap_module.attr("mmap");
 
         // Use Python's mmap API since it is more portable than platform versions.
         auto access_read = mmap_module.attr("ACCESS_READ");
-        this->mmap = mmap_fn(fd, 0, py::arg("access") = access_read);
-        if (PyObject_GetBuffer(this->mmap.ptr(), &this->pybuf, PyBUF_SIMPLE) != 0) {
+        mmap_ = mmap_fn(fd, 0, py::arg("access") = access_read);
+        if (PyObject_GetBuffer(mmap_.ptr(), &pybuf_, PyBUF_SIMPLE) != 0) {
             throw py::python_error();
         }
-        this->pybuf_valid = true;
+        pybuf_valid_ = true;
 
         auto qpdf_buffer = std::make_unique<Buffer>(
-            static_cast<unsigned char *>(this->pybuf.buf), this->pybuf.len);
-        this->bis = std::make_unique<BufferInputSource>(description,
+            static_cast<unsigned char *>(pybuf_.buf), pybuf_.len);
+        bis_ = std::make_unique<BufferInputSource>(description,
             qpdf_buffer.release(),
             false // own_memory=false
         );
@@ -82,17 +82,17 @@ public:
         try {
             // Release the Py_buffer before we can close the memory mapping,
             // since we exported a pointer from it.
-            this->bis.reset();
-            if (this->pybuf_valid) {
-                PyBuffer_Release(&this->pybuf);
-                this->pybuf_valid = false;
+            bis_.reset();
+            if (pybuf_valid_) {
+                PyBuffer_Release(&pybuf_);
+                pybuf_valid_ = false;
             }
-            if (!this->mmap.is_none()) {
-                this->mmap.attr("close")();
+            if (!mmap_.is_none()) {
+                mmap_.attr("close")();
             }
 
-            if (this->close_stream && py::hasattr(this->stream, "close")) {
-                this->stream.attr("close")();
+            if (close_stream_ && py::hasattr(stream_, "close")) {
+                stream_.attr("close")();
             }
             // LCOV_EXCL_START
         } catch (py::python_error &e) {
@@ -113,55 +113,55 @@ public:
     MmapInputSource &operator=(MmapInputSource &&) = delete;
     // LCOV_EXCL_STOP
 
-    std::string const &getName() const override { return this->bis->getName(); }
+    std::string const &getName() const override { return bis_->getName(); }
 
     qpdf_offset_t tell() override
     {
-        auto result = this->bis->tell();
-        this->last_offset = this->bis->getLastOffset();
+        auto result = bis_->tell();
+        last_offset = bis_->getLastOffset();
         return result;
     }
 
     void seek(qpdf_offset_t offset, int whence) override
     {
-        this->bis->seek(offset, whence);
-        this->last_offset = this->bis->getLastOffset();
+        bis_->seek(offset, whence);
+        last_offset = bis_->getLastOffset();
     }
 
     // LCOV_EXCL_START
     void rewind() override
     {
         // qpdf never seems to use this but still requires
-        this->bis->rewind();
-        this->last_offset = this->bis->getLastOffset();
+        bis_->rewind();
+        last_offset = bis_->getLastOffset();
     }
     // LCOV_EXCL_STOP
 
     size_t read(char *buffer, size_t length) override
     {
-        auto result = this->bis->read(buffer, length);
-        this->last_offset = this->bis->getLastOffset();
+        auto result = bis_->read(buffer, length);
+        last_offset = bis_->getLastOffset();
         return result;
     }
 
     void unreadCh(char ch) override
     {
-        this->bis->unreadCh(ch);
-        this->last_offset = this->bis->getLastOffset();
+        bis_->unreadCh(ch);
+        last_offset = bis_->getLastOffset();
     }
 
     qpdf_offset_t findAndSkipNextEOL() override
     {
-        auto result = this->bis->findAndSkipNextEOL();
-        this->last_offset = this->bis->getLastOffset();
+        auto result = bis_->findAndSkipNextEOL();
+        last_offset = bis_->getLastOffset();
         return result;
     }
 
 private:
-    py::object stream;
-    bool close_stream;
-    py::object mmap;
-    Py_buffer pybuf;
-    bool pybuf_valid = false;
-    std::unique_ptr<BufferInputSource> bis;
+    py::object stream_;
+    bool close_stream_;
+    py::object mmap_;
+    Py_buffer pybuf_;
+    bool pybuf_valid_ = false;
+    std::unique_ptr<BufferInputSource> bis_;
 };

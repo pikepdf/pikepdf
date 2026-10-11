@@ -10,10 +10,10 @@
 class Pl_PythonLogger : public Pipeline {
 public:
     Pl_PythonLogger(const char *identifier, py::object logger, const char *level)
-        : Pipeline(identifier, nullptr), level(level)
+        : Pipeline(identifier, nullptr), level_(level)
     {
         py::gil_scoped_acquire gil;
-        this->logger = logger;
+        logger_ = logger;
     }
 
     virtual ~Pl_PythonLogger() = default;
@@ -28,22 +28,22 @@ public:
     // LCOV_EXCL_STOP
 
 private:
-    py::object logger;
-    const char *level;
+    py::object logger_;
+    const char *level_;
 };
 
 void Pl_PythonLogger::write(const unsigned char *buf, size_t len)
 {
     py::gil_scoped_acquire gil;
     auto msg = py::str(reinterpret_cast<const char *>(buf), len);
-    this->logger.attr(this->level)(msg);
+    logger_.attr(level_)(msg);
 }
 
 // LCOV_EXCL_START - qpdf logger doesn't call finish() on pipelines
 void Pl_PythonLogger::finish()
 {
     py::gil_scoped_acquire gil;
-    this->logger.attr("flush")();
+    logger_.attr("flush")();
 }
 // LCOV_EXCL_STOP
 

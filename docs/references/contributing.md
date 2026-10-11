@@ -35,6 +35,16 @@ combined the C++ interface and implementation in a single .cpp or `-inl.h` file.
 For classes that actually provide an interface used by multiple translation units,
 a full header is necessary.
 
+Private and protected data members are named with a trailing underscore, as in
+`count_`. This tells a member from a local variable or a parameter at a glance,
+lets a constructor parameter have the natural name (`: count_(count)`), and makes
+`this->` unnecessary, so we don't write `this->`, whether for data members or for
+calls to member functions. Public data members of a struct-like class, which
+other code reads as `obj.field`, have no underscore. A commit hook rejects
+`this->`; when removing one, check that no parameter or local variable has the
+same name as the member, since the code would still compile and would quietly
+use the wrong one.
+
 Use RAII. Avoid naked pointers. Use the STL, use `std::string` instead of `char *`.
 Use `#pragma once` as a header guard rather than silly `#ifdef`; they have
 been around for 25 years.

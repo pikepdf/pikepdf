@@ -99,7 +99,7 @@ size_t uindex_from_index(PageList &pl, py::ssize_t index)
 
 QPDFPageObjectHelper PageList::get_page(size_t index)
 {
-    auto pages = this->doc.getAllPages();
+    auto pages = doc.getAllPages();
     if (index < pages.size())
         return pages.at(index);
     throw py::index_error("Accessing nonexistent PDF page number");
@@ -107,11 +107,11 @@ QPDFPageObjectHelper PageList::get_page(size_t index)
 
 std::vector<QPDFPageObjectHelper> PageList::get_page_objs_impl(py::slice slice)
 {
-    auto [start, stop, step, slicelength] = slice.compute(this->count());
+    auto [start, stop, step, slicelength] = slice.compute(count());
     std::vector<QPDFPageObjectHelper> result;
     result.reserve(slicelength);
     for (size_t i = 0; i < slicelength; ++i) {
-        auto oh = this->get_page(start);
+        auto oh = get_page(start);
         result.push_back(oh);
         start += step;
     }
@@ -120,7 +120,7 @@ std::vector<QPDFPageObjectHelper> PageList::get_page_objs_impl(py::slice slice)
 
 py::list PageList::get_pages(py::slice slice)
 {
-    auto page_objs = this->get_page_objs_impl(slice);
+    auto page_objs = get_page_objs_impl(slice);
     py::list result;
     for (auto &page_obj : page_objs) {
         result.append(py::cast(page_obj));
@@ -135,15 +135,15 @@ void PageList::set_page(size_t index, py::object obj)
 
 void PageList::set_page(size_t index, QPDFPageObjectHelper page)
 {
-    this->insert_page(index, page);
-    if (index != this->count()) {
-        this->delete_page(index + 1);
+    insert_page(index, page);
+    if (index != count()) {
+        delete_page(index + 1);
     }
 }
 
 void PageList::set_pages_from_iterable(py::slice slice, py::iterable other)
 {
-    auto [start, stop, step, slicelength] = slice.compute(this->count());
+    auto [start, stop, step, slicelength] = slice.compute(count());
     std::vector<QPDFPageObjectHelper> results;
     py::iterator it = py::iter(other);
 
@@ -164,7 +164,7 @@ void PageList::set_pages_from_iterable(py::slice slice, py::iterable other)
                     .c_str());
         }
         for (size_t i = 0; i < slicelength; ++i) {
-            this->set_page(start + (i * step), results.at(i));
+            set_page(start + (i * step), results.at(i));
         }
     } else {
         // For simple slices, we can replace differing sizes
@@ -174,20 +174,20 @@ void PageList::set_pages_from_iterable(py::slice slice, py::iterable other)
 
         // Insert first to ensure we don't delete any pages we will need
         for (size_t i = 0; i < results.size(); ++i) {
-            this->insert_page(start + i, results.at(i));
+            insert_page(start + i, results.at(i));
         }
 
         size_t del_start = start + results.size();
         for (size_t i = 0; i < slicelength; ++i) {
-            this->delete_page(del_start);
+            delete_page(del_start);
         }
     }
 }
 
 void PageList::delete_page(size_t index)
 {
-    auto page = this->get_page(index);
-    this->doc.removePage(page);
+    auto page = get_page(index);
+    doc.removePage(page);
 }
 
 void PageList::delete_pages_from_iterable(py::slice slice)
@@ -195,15 +195,15 @@ void PageList::delete_pages_from_iterable(py::slice slice)
     // See above: need a way to dec_ref pages with another owner
     // Get handles for all pages, then remove them, since page numbers shift
     // after delete
-    auto kill_list = this->get_page_objs_impl(slice);
+    auto kill_list = get_page_objs_impl(slice);
     for (auto page : kill_list) {
-        this->doc.removePage(page);
+        doc.removePage(page);
     }
 }
 
 size_t PageList::count()
 {
-    return this->doc.getAllPages().size();
+    return doc.getAllPages().size();
 }
 
 // A page inserted from another document is copied by qpdf, and a page built in
@@ -212,24 +212,24 @@ size_t PageList::count()
 // their owner, exactly as if the page had been parsed from this file.
 void PageList::adopt_page_at(size_t index)
 {
-    adopt_children_into(this->qpdf.get(), this->get_page(index).getObjectHandle());
+    adopt_children_into(qpdf.get(), get_page(index).getObjectHandle());
 }
 
 void PageList::insert_page(size_t index, QPDFPageObjectHelper page)
 {
-    if (index != this->count()) {
-        auto refpage = this->get_page(index);
-        this->doc.addPageAt(page, true, refpage);
+    if (index != count()) {
+        auto refpage = get_page(index);
+        doc.addPageAt(page, true, refpage);
     } else {
-        this->doc.addPage(page, false);
+        doc.addPage(page, false);
     }
-    this->adopt_page_at(index);
+    adopt_page_at(index);
 }
 
 void PageList::append_page(QPDFPageObjectHelper page)
 {
-    this->doc.addPage(page, false);
-    this->adopt_page_at(this->count() - 1);
+    doc.addPage(page, false);
+    adopt_page_at(count() - 1);
 }
 
 QPDFPageObjectHelper from_objgen(QPDF &q, QPDFObjGen og)
@@ -242,11 +242,11 @@ QPDFPageObjectHelper from_objgen(QPDF &q, QPDFObjGen og)
 
 QPDFPageObjectHelper PageListIterator::next()
 {
-    if (this->index >= this->pages.size()) {
+    if (index_ >= pages_.size()) {
         throw py::stop_iteration();
     }
-    auto page = this->pages.at(this->index);
-    this->index++;
+    auto page = pages_.at(index_);
+    index_++;
     return page;
 }
 

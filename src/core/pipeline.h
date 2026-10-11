@@ -21,7 +21,7 @@
 class Pl_PythonOutput : public Pipeline {
 public:
     Pl_PythonOutput(const char *identifier, py::object stream)
-        : Pipeline(identifier, nullptr), stream(stream)
+        : Pipeline(identifier, nullptr), stream_(stream)
     {
     }
 
@@ -35,7 +35,7 @@ public:
     void finish() override;
 
 private:
-    py::object stream;
+    py::object stream_;
 };
 
 // Writes to a file descriptor without calling into Python, so it neither needs
@@ -43,7 +43,7 @@ private:
 // the way a Python BufferedWriter would have buffered it.
 class Pl_FdOutput : public Pipeline {
 public:
-    Pl_FdOutput(const char *identifier, int fd) : Pipeline(identifier, nullptr), fd(fd)
+    Pl_FdOutput(const char *identifier, int fd) : Pipeline(identifier, nullptr), fd_(fd)
     {
         buffer.reserve(buffer_size);
     }
@@ -63,6 +63,6 @@ private:
     void write_fully(const unsigned char *buf, size_t len);
     void flush_buffer();
 
-    int fd;
+    int fd_;
     std::vector<unsigned char> buffer;
 };
