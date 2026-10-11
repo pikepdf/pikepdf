@@ -18,6 +18,9 @@ the architecture notes on thread safety.
 
 ## v10.17.0
 
+- Reading the label of a page whose page label style is an unknown name, such
+  as `/S /Z`, now warns and keeps the label prefix, as an invalid non-name
+  style already did. Previously it raised `KeyError`.
 - Reading a stream that will not decode now raises
   {exc}`~pikepdf.exceptions.DataDecodingError` with the reason, whether the
   stream's data was read from a file or set from memory. Previously a stream
