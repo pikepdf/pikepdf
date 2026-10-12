@@ -213,7 +213,7 @@ class Destination:
         arg_values = list(array[2:])
         kwargs = {
             name: (None if value is None else float(value))
-            for name, value in zip(arg_names, arg_values)
+            for name, value in zip(arg_names, arg_values, strict=False)
         }
         return cls(page, page_location, **kwargs)
 

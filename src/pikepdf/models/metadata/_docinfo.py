@@ -55,7 +55,7 @@ class DocinfoStore:
             value: The string value to set.
         """
         # Ensure docinfo exists
-        self._pdf.docinfo  # pylint: disable=pointless-statement
+        self._pdf.docinfo  # noqa: B018  # pylint: disable=pointless-statement
         value = clean(value)
         try:
             # Try to save pure ASCII

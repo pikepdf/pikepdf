@@ -204,7 +204,8 @@ class TestMemory:
     def test_memory(self, resources):
         data = (resources / 'pal-1bit-trivial.pdf').read_bytes()
         with pytest.warns(UserWarning, match="bytes-like object containing a PDF"):
-            with pytest.raises(Exception):
+            # Which exception depends on how the platform takes bytes as a path
+            with pytest.raises(Exception):  # noqa: B017
                 Pdf.open(data)
 
 

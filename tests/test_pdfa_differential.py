@@ -15,18 +15,18 @@ import pytest
 
 pytest.importorskip('jsonschema')
 
-import importlib  # noqa: E402
-import json  # noqa: E402
-import os  # noqa: E402
-import re  # noqa: E402
-import sys  # noqa: E402
-import warnings  # noqa: E402
-from pathlib import Path  # noqa: E402
+import importlib
+import json
+import os
+import re
+import sys
+import warnings
+from pathlib import Path
 
-from conftest import verapdf_command  # noqa: E402
+from conftest import verapdf_command
 
-import pikepdf  # noqa: E402
-from pikepdf import pdfa  # noqa: E402
+import pikepdf
+from pikepdf import pdfa
 
 SCRIPT = Path(__file__).parent.parent / 'misc' / 'pdfa_differential.py'
 RESOURCES = Path(__file__).parent / 'resources'

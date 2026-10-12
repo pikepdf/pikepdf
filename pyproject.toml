@@ -213,16 +213,27 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = [
+  "B",    # flake8-bugbear
   "D",    # pydocstyle
   "E",    # pycodestyle
   "W",    # pycodestyle
   "F",    # pyflakes
   "I001", # isort
+  "RUF",  # ruff-specific rules
   "TID",  # flake8-tidy-imports
   "UP",   # pyupgrade
   "YTT",  # flake8-2020
 ]
-ignore = ["D105", "B028"]
+ignore = [
+  "D105",
+  # Glyph tables, mathematical notation and non-Latin test strings are
+  # deliberate in a PDF library, not typos for ASCII look-alikes
+  "RUF001",
+  "RUF002",
+  "RUF003",
+  # __all__ lists are grouped by topic rather than sorted
+  "RUF022",
+]
 
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"
@@ -250,7 +261,22 @@ convention = "google"
 "docs/*.py" = ["D", "E501", "E402", "F401"]
 "examples/*.py" = ["D103"]
 "fuzzing/*.py" = ["D", "E501"]
-"tests/*test*.py" = ["D", "E501"]
+"tests/*test*.py" = [
+  "D",
+  "E501",
+  # hypothesis strategies are immutable and conventionally used as defaults
+  "B008",
+  # Bare comparisons and expressions are evaluated to provoke an exception or
+  # warning, usually inside pytest.raises
+  "B015",
+  "B018",
+  # Class-level lists and dicts in test classes are constant tables
+  "RUF012",
+  # Decimal is constructed from float on purpose, to test inexact values
+  "RUF032",
+  # match= patterns are plain message text; an unescaped "." is harmless
+  "RUF043",
+]
 "tests/test_pdfa_*.py" = ["D", "E402", "E501"]
 
 [tool.ruff.format]

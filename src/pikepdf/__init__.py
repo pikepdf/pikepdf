@@ -144,7 +144,7 @@ from pikepdf._page_copy import (
 # While _cpphelpers is intended to be called from our C++ code only, explicitly
 # importing helps introspection tools like PyInstaller figure out that the module
 # is necessary.
-from pikepdf import _cpphelpers, _methods, codec  # noqa: F401, F841
+from pikepdf import _cpphelpers, _methods, codec  # noqa: F401
 from pikepdf import settings
 from pikepdf import exceptions
 from pikepdf import models

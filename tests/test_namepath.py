@@ -338,7 +338,7 @@ class TestNamePathEdgeCases:
         # The metaclass doesn't make the class itself indexable as a path
         # This should raise an error (nanobind won't recognize the class)
         with pytest.raises(TypeError):
-            pdf.Root[NamePath]  # noqa: B018 (pointless expression)
+            pdf.Root[NamePath]
 
     def test_deeply_nested(self):
         """Test very deep nesting works correctly."""

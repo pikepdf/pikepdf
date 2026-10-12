@@ -353,7 +353,7 @@ def test_inline_unknown_named_colorspace_errors():
     iimage = _first_inline_image(pdf)
     assert iimage is not None
     with pytest.raises(NotImplementedError):
-        iimage.colorspace  # noqa: B018
+        iimage.colorspace
 
 
 def test_bits_per_component_missing(congress):
@@ -505,14 +505,14 @@ def pack_2bit_row(row: Sequence[int]) -> bytes:
     im54 = [s << 4 for s in row[1::4]]
     im32 = [s << 2 for s in row[2::4]]
     im10 = [s << 0 for s in row[3::4]]
-    return bytes(sum(s) for s in zip(im76, im54, im32, im10))
+    return bytes(sum(s) for s in zip(im76, im54, im32, im10, strict=True))
 
 
 def pack_4bit_row(row: Sequence[int]) -> bytes:
     assert len(row) % 2 == 0
     upper = [s << 4 for s in row[0::2]]
     lower = row[1::2]
-    return bytes(sum(s) for s in zip(upper, lower))
+    return bytes(sum(s) for s in zip(upper, lower, strict=True))
 
 
 @st.composite
@@ -717,9 +717,9 @@ def test_image_metadata_wrong_type_raises_type_error(mode, width):
         )
         pim = PdfImage(obj)
         with pytest.raises(TypeError, match='/Width'):
-            pim.width  # noqa: B018
+            pim.width
         with pytest.raises(NotImplementedError):
-            pim.width  # noqa: B018
+            pim.width
 
 
 @pytest.mark.parametrize('mode', ['implicit', 'explicit'])
@@ -1286,7 +1286,7 @@ def _make_dct_rgb_xobject(pdf, pil_img, decode=None):
 
 
 def _approx(actual, expected, tol=12):
-    return all(abs(a - e) <= tol for a, e in zip(actual, expected))
+    return all(abs(a - e) <= tol for a, e in zip(actual, expected, strict=True))
 
 
 def test_decode_array_not_applied_to_dct():

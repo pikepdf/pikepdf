@@ -5,7 +5,6 @@
 # See pikepdf/_core/__init__.pyi for how this stub package is laid out.
 
 # pylint: disable=no-method-argument,unused-argument,no-self-use,too-many-public-methods
-# ruff: noqa: D418
 # mypy: disable-error-code="misc"
 
 from __future__ import annotations

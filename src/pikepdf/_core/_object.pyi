@@ -6,7 +6,6 @@
 # See pikepdf/_core/__init__.pyi for how this stub package is laid out.
 
 # pylint: disable=no-method-argument,unused-argument,no-self-use,too-many-public-methods
-# ruff: noqa: D418
 # mypy: disable-error-code="misc"
 
 from __future__ import annotations
@@ -1018,7 +1017,7 @@ def _new_operator(op: str) -> Operator:
     """Low-level function to construct a PDF Operator."""
 
 @overload
-def _new_real(s: str, /) -> Decimal:  # noqa: D418
+def _new_real(s: str, /) -> Decimal:
     """Low-level function to construct a PDF Real.
 
     pikepdf automatically PDF real numbers to Python Decimals.
@@ -1027,7 +1026,7 @@ def _new_real(s: str, /) -> Decimal:  # noqa: D418
     """
 
 @overload
-def _new_real(value: float, places: int = ...) -> Decimal:  # noqa: D418
+def _new_real(value: float, places: int = ...) -> Decimal:
     """Low-level function to construct a PDF Real.
 
     pikepdf automatically PDF real numbers to Python Decimals.

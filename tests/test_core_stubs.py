@@ -297,7 +297,12 @@ def _runtime_signatures(func) -> list[_Signature]:
         source = re.sub(r'\\(\d+)', r'_default_\1', source)
         node = ast.parse(source + ': ...').body[0]
         assert isinstance(node, ast.FunctionDef)
-        shown = re.sub(r'\\(\d+)', lambda m: repr(defaults[int(m[1])]), text)
+        # The lambda is called by re.sub, before the loop moves on
+        shown = re.sub(
+            r'\\(\d+)',
+            lambda m: repr(defaults[int(m[1])]),  # noqa: B023
+            text,
+        )
         result.append(_signature_from_def(node, shown, defaults=defaults))
     return result
 
@@ -465,7 +470,7 @@ def _union_members(annotation: ast.expr) -> list[ast.expr]:
         if head in ('ClassVar', 'Final'):
             return _union_members(inner)
         if head == 'Optional':
-            return _union_members(inner) + [ast.Constant(None)]
+            return [*_union_members(inner), ast.Constant(None)]
         if head == 'Union':
             elts = inner.elts if isinstance(inner, ast.Tuple) else [inner]
             return [m for elt in elts for m in _union_members(elt)]

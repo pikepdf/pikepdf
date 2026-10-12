@@ -235,7 +235,7 @@ def _transcoded_lab(pim: PdfImage) -> Image.Image:
         for s in range(256):
             phys = dmin + (s / 255.0) * (dmax - dmin)
             val = phys / 100.0 * 255.0 if lightness else phys + 128.0
-            out.append(int(round(min(255.0, max(0.0, val)))))
+            out.append(round(min(255.0, max(0.0, val))))
         return out
 
     # Interpret the interleaved L,a,b bytes as a 3-band image and split.

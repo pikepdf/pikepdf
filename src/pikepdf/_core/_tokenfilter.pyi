@@ -5,7 +5,6 @@
 # See pikepdf/_core/__init__.pyi for how this stub package is laid out.
 
 # pylint: disable=no-method-argument,unused-argument,no-self-use,too-many-public-methods
-# ruff: noqa: D418
 # mypy: disable-error-code="misc"
 
 from __future__ import annotations
@@ -87,7 +86,7 @@ class _QPDFTokenFilter: ...
 
 class TokenFilter(_QPDFTokenFilter):
     def __init__(self) -> None: ...
-    def handle_token(self, token: Token) -> None | Token | Iterable[Token]:
+    def handle_token(self, token: Token) -> Token | Iterable[Token] | None:
         """Handle a :class:`pikepdf.Token`.
 
         This is an abstract method that must be defined in a subclass

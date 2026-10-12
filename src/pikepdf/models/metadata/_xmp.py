@@ -8,7 +8,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Iterable, Iterator
 from io import BytesIO
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 from warnings import warn
 
 from pikepdf._exceptions import XmpTypeWarning
@@ -132,8 +132,8 @@ class XmpDocument:
     """
 
     # Namespace mappings
-    NS: dict[str, str] = {prefix: uri for uri, prefix in DEFAULT_NAMESPACES}
-    REVERSE_NS: dict[str, str] = dict(DEFAULT_NAMESPACES)
+    NS: ClassVar[dict[str, str]] = {prefix: uri for uri, prefix in DEFAULT_NAMESPACES}
+    REVERSE_NS: ClassVar[dict[str, str]] = dict(DEFAULT_NAMESPACES)
 
     def __init__(
         self,

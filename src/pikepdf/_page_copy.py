@@ -261,7 +261,7 @@ def copy_pages(
                 f.fully_qualified_name
                 for f in dest_acro.get_form_fields_for_page(new_page)
             ]
-            for old, new in zip(src_names, dest_names):
+            for old, new in zip(src_names, dest_names, strict=False):
                 if old is not None and new is not None and old != new:
                     renamed[old] = new
         fields_added = len(dest_acro.fields) - before

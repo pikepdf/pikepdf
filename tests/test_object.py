@@ -286,7 +286,7 @@ class TestName:
 
     def test_unslashed_name(self):
         with pytest.raises(ValueError, match='must begin with'):
-            assert Name('Monty') not in []  # pylint: disable=expression-not-assigned
+            assert Name('Monty') not in []  # noqa: RUF060  # pylint: disable=expression-not-assigned
 
     def test_empty_name(self):
         # ISO 32000-2 7.3.5: a lone SOLIDUS is the valid name defined by the

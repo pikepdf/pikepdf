@@ -432,7 +432,7 @@ class TestQpdfCreatedValuesAreAdoptedOnRead:
             lambda pages: pages.get('/Count'),
             lambda pages: pages.get(Name.Count),
             lambda pages: dict(pages.items())['/Count'],
-            lambda pages: [v for v in pages.values() if not isinstance(v, Array)][0],
+            lambda pages: [v for v in pages.values() if not isinstance(v, Array)][0],  # noqa: RUF015
             lambda pages: pages.as_dict()['/Count'],
             lambda pages: pages.as_dict(default=None)['/Count'],
         ],
@@ -454,7 +454,7 @@ class TestQpdfCreatedValuesAreAdoptedOnRead:
         assert isinstance(pdf.Root[pikepdf.NamePath.Pages.Count], pikepdf.Integer)
 
     def test_value_is_owned_after_read(self, pdf):
-        pdf.Root.Pages.Count  # noqa: B018
+        pdf.Root.Pages.Count
         assert pdf.Root.Pages.get_raw('/Count').is_owned_by(pdf)
 
     @pytest.fixture
@@ -467,7 +467,7 @@ class TestQpdfCreatedValuesAreAdoptedOnRead:
         [
             lambda bbox: bbox[0],
             lambda bbox: bbox[0:1][0],
-            lambda bbox: list(bbox)[0],
+            lambda bbox: list(bbox)[0],  # noqa: RUF015
             lambda bbox: bbox.as_list()[0],
             lambda bbox: bbox.as_list(default=None)[0],
         ],
@@ -477,5 +477,5 @@ class TestQpdfCreatedValuesAreAdoptedOnRead:
         assert isinstance(read(bbox_parent.BBox), pikepdf.Integer)
 
     def test_qpdf_created_container_is_owned_after_read(self, pdf, bbox_parent):
-        bbox_parent.BBox  # noqa: B018
+        bbox_parent.BBox
         assert bbox_parent.get_raw('/BBox').is_owned_by(pdf)

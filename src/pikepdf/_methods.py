@@ -173,8 +173,8 @@ class Extend_Object:
             )
         if len(decode_parms) != 0 and len(filter_) != len(decode_parms):
             raise ValueError(
-                f"filter ({repr(filter_)}) and decode_parms "
-                f"({repr(decode_parms)}) must be arrays of same length"
+                f"filter ({filter_!r}) and decode_parms "
+                f"({decode_parms!r}) must be arrays of same length"
             )
         if len(filter_) == 1:
             filter_ = filter_[0]
@@ -484,6 +484,7 @@ class Extend_Pdf:
                 "not reachable from /AcroForm; they may not display in Adobe "
                 "Acrobat. Use Pdf.add_pages_from() to copy pages with forms.",
                 PageCopyWarning,
+                stacklevel=2,
             )
         with ExitStack() as stack:
             if hasattr(filename_or_stream, 'seek'):
@@ -641,7 +642,8 @@ class Extend_Pdf:
                 "It looks like you called with Pdf.open(data) with a bytes-like object "
                 "containing a PDF. This will probably fail because this function "
                 "expects a filename or opened file-like object. Instead, please use "
-                "Pdf.open(BytesIO(data))."
+                "Pdf.open(BytesIO(data)).",
+                stacklevel=2,
             )
         if isinstance(filename_or_stream, int | float):
             # Attempted to open with integer file descriptor?

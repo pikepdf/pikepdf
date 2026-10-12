@@ -172,7 +172,7 @@ class Form:
                 yield name, self._wrap(field, name)
 
     def __iter__(self) -> Iterator[_FieldWrapper | MultipleFieldProxy]:
-        for name, item in self.items():
+        for _name, item in self.items():
             yield item
 
     def _wrap(self, field: AcroFormField, name: str) -> _FieldWrapper:

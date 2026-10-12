@@ -21,7 +21,7 @@ from io import BytesIO
 from itertools import zip_longest
 from pathlib import Path
 from shutil import copyfileobj
-from typing import TYPE_CHECKING, Any, BinaryIO, cast
+from typing import TYPE_CHECKING, Any, BinaryIO, ClassVar, cast
 
 from pikepdf._core import Buffer, Pdf, PdfError, StreamDecodeLevel
 from pikepdf.models._image_exceptions import (
@@ -64,14 +64,19 @@ if TYPE_CHECKING:
 class PdfImageBase(ABC, metaclass=_PdfImageMeta):
     """Abstract base class for images."""
 
-    SIMPLE_COLORSPACES = {'/DeviceRGB', '/DeviceGray', '/CalRGB', '/CalGray'}
-    MAIN_COLORSPACES = SIMPLE_COLORSPACES | {
+    SIMPLE_COLORSPACES: ClassVar[set[str]] = {
+        '/DeviceRGB',
+        '/DeviceGray',
+        '/CalRGB',
+        '/CalGray',
+    }
+    MAIN_COLORSPACES: ClassVar[set[str]] = SIMPLE_COLORSPACES | {
         '/DeviceCMYK',
         '/CalCMYK',
         '/ICCBased',
         '/Lab',
     }
-    PRINT_COLORSPACES = {'/Separation', '/DeviceN'}
+    PRINT_COLORSPACES: ClassVar[set[str]] = {'/Separation', '/DeviceN'}
 
     #: The underlying PDF object: a Stream (image XObject) or a Dictionary
     #: (inline image). Set by each concrete subclass.
@@ -682,7 +687,7 @@ class PdfInlineImage(PdfImageBase):
     # The abbreviations are position-dependent: /I abbreviates the key
     # /Interpolate but the value /Indexed, so keys and values need separate
     # tables. (ISO 32000-2 Tables 91 and 92.)
-    KEY_ABBREVS = {
+    KEY_ABBREVS: ClassVar[dict[bytes, bytes]] = {
         b'/BPC': b'/BitsPerComponent',
         b'/CS': b'/ColorSpace',
         b'/D': b'/Decode',
@@ -694,7 +699,7 @@ class PdfInlineImage(PdfImageBase):
         b'/L': b'/Length',
         b'/W': b'/Width',
     }
-    VALUE_ABBREVS = {
+    VALUE_ABBREVS: ClassVar[dict[bytes, bytes]] = {
         b'/G': b'/DeviceGray',
         b'/RGB': b'/DeviceRGB',
         b'/CMYK': b'/DeviceCMYK',
@@ -707,13 +712,17 @@ class PdfInlineImage(PdfImageBase):
         b'/CCF': b'/CCITTFaxDecode',
         b'/DCT': b'/DCTDecode',
     }
-    REVERSE_KEY_ABBREVS = {v: k for k, v in KEY_ABBREVS.items()}
-    REVERSE_VALUE_ABBREVS = {v: k for k, v in VALUE_ABBREVS.items()}
+    REVERSE_KEY_ABBREVS: ClassVar[dict[bytes, bytes]] = {
+        v: k for k, v in KEY_ABBREVS.items()
+    }
+    REVERSE_VALUE_ABBREVS: ClassVar[dict[bytes, bytes]] = {
+        v: k for k, v in VALUE_ABBREVS.items()
+    }
 
     # Combined tables, retained for backward compatibility. Prefer the
     # position-specific tables above; /I is ambiguous when the two are merged.
-    ABBREVS = {**KEY_ABBREVS, **VALUE_ABBREVS}
-    REVERSE_ABBREVS = {v: k for k, v in ABBREVS.items()}
+    ABBREVS: ClassVar[dict[bytes, bytes]] = {**KEY_ABBREVS, **VALUE_ABBREVS}
+    REVERSE_ABBREVS: ClassVar[dict[bytes, bytes]] = {v: k for k, v in ABBREVS.items()}
 
     _data: Object
     _image_object: tuple[Object, ...]

@@ -140,7 +140,8 @@ def clean(s: str | Iterable[str], joiner: str = '; ') -> str:
 
     if not isinstance(s, str):
         if isinstance(s, Iterable):
-            warn(f"Merging elements of {s}")
+            # Reached at varying depths, so no caller's frame is the right one
+            warn(f"Merging elements of {s}", stacklevel=1)
             if isinstance(s, set):
                 s = joiner.join(sorted(s))
             else:

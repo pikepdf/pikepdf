@@ -147,7 +147,9 @@ def test_recursion_depth_one(outlines_doc):
     # Only keeps first level from root
     with outlines_doc.open_outline(max_depth=1) as outline:
         # Only children of first level should be present
-        for root_element, first_level_count in zip(outline.root, (2, 0, 2)):
+        for root_element, first_level_count in zip(
+            outline.root, (2, 0, 2), strict=True
+        ):
             assert len(root_element.children) == first_level_count
             for sub_element in root_element.children:
                 assert len(sub_element.children) == 0
@@ -738,7 +740,7 @@ def test_outline_item_resolved_destination_none_when_no_destination():
 @settings(deadline=60000)
 @given(
     page_num=st.integers(0, 1),
-    page_loc=st.sampled_from(list(PageLocation) + ['invalid']),  # type: ignore
+    page_loc=st.sampled_from([*list(PageLocation), 'invalid']),  # type: ignore
     kwargs=st.dictionaries(
         st.sampled_from(list(sorted(ALL_PAGE_LOCATION_KWARGS))), st.integers(0, 10000)
     ),

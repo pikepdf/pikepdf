@@ -125,7 +125,7 @@ class PdfMetadata(MutableMapping[str, Any]):
         def warn_or_raise(msg: str, e: Exception | None = None) -> None:
             if raise_failure:
                 raise ValueError(msg) from e
-            warn(msg)
+            warn(msg, stacklevel=3)
 
         for uri, shortkey, docinfo_name, converter in self.DOCINFO_MAPPING:
             qname = QName(uri, shortkey)
@@ -154,7 +154,7 @@ class PdfMetadata(MutableMapping[str, Any]):
         extra_docinfo_names = {str(k) for k in docinfo.keys()} - valid_docinfo_names
         for extra in extra_docinfo_names:
             warn_or_raise(
-                f"The metadata field {extra} with value '{repr(docinfo.get(extra))}' "
+                f"The metadata field {extra} with value '{docinfo.get(extra)!r}' "
                 "has no XMP equivalent, so it was discarded",
             )
 
@@ -186,7 +186,7 @@ class PdfMetadata(MutableMapping[str, Any]):
         from lxml.etree import QName
 
         # Touch object to ensure it exists
-        self._pdf.docinfo  # pylint: disable=pointless-statement
+        self._pdf.docinfo  # noqa: B018  # pylint: disable=pointless-statement
         for uri, element, docinfo_name, converter in self.DOCINFO_MAPPING:
             qname = QName(uri, element)
             try:
@@ -201,7 +201,8 @@ class PdfMetadata(MutableMapping[str, Any]):
                 except ValueError:
                     warn(
                         f"The DocumentInfo field {docinfo_name} could not be "
-                        "updated from XMP"
+                        "updated from XMP",
+                        stacklevel=4,
                     )
                     value = None
                 except Exception as e:

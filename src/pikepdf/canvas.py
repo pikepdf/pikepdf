@@ -343,7 +343,7 @@ class SimpleFont(DimensionedFont):
                 result.append(ord(char))
             else:
                 # Can't map character
-                log.warning(f"No mapping for {repr(char)} in current encoding; skipped")
+                log.warning(f"No mapping for {char!r} in current encoding; skipped")
         return result
 
     def text_width(
@@ -428,7 +428,7 @@ def _differences_map_lookup(diffmap: Array) -> dict[str, int]:
         try:
             diff[CHARNAMES_TO_UNICODE[str(name)]] = index
         except KeyError:
-            log.warning(f"Unknown character name in difference map: {str(name)}")
+            log.warning(f"Unknown character name in difference map: {name!s}")
     return diff
 
 
