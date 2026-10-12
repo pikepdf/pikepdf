@@ -193,6 +193,7 @@ class Pdf:
             first: If True, prepend this before the first page;
                 if False append after last page.
         """
+    def _check_document_structures(self) -> None: ...
     def _count_orphaned_widgets(self) -> int: ...
     def _decode_all_streams_and_discard(self, progress) -> None: ...
     def _process(self, arg0: str, arg1: bytes) -> None: ...
@@ -203,16 +204,38 @@ class Pdf:
     ) -> list[str]:
         """Check if PDF is syntactically well-formed.
 
-        Similar to ``qpdf --check``, checks for syntax
+        Performs the checks that ``qpdf --check`` does, looking for syntax
         or structural problems in the PDF. This is mainly useful to PDF
         developers and may not be informative to the average user. PDFs with
         these problems still render correctly, if PDF viewers are capable of
         working around the issues they contain. In many cases, pikepdf can
         also fix the problems.
 
-        Unlike ``qpdf --check``, this function does not check for linearization
-        issues (see ``check_linearization()``) and some other issues. To
-        replicate the exact behavior of qpdf's check in pikepdf, use
+        The checks are, in order:
+
+        * if the file is linearized, that its linearization data and hint
+          tables are consistent with the file (as
+          :meth:`check_linearization` does);
+        * that the interactive form, embedded files, page labels and
+          outlines are well formed;
+        * that the document has at least one page;
+        * that every stream in the file can be decoded;
+        * that the content stream of every page can be parsed.
+
+        Each problem is reported as a string that begins with ``WARNING:``
+        if qpdf can work around it, or ``ERROR:`` if it cannot. Two kinds of
+        error are reported this way: a document with no pages, and a page
+        whose content stream cannot be read at all (``ERROR: page 3: ...``).
+        Where ``qpdf --check`` fails after printing these, this function
+        returns them along with everything else it found. Other errors that
+        prevent the check from completing, such as a damaged page tree,
+        raise :class:`pikepdf.PdfError`.
+
+        The warnings reported are those the ``Pdf`` has accumulated, so they
+        include warnings from earlier operations that :meth:`get_warnings`
+        has not yet collected, and calling this function collects them.
+        Warnings issued while the file was being opened are not included. To
+        see exactly what ``qpdf --check`` prints for a file, use
         ``pikepdf.Job(['pikepdf', '--check', 'input.pdf']).run()``.
 
         An example problem found by this function is a xref table that is
@@ -236,14 +259,24 @@ class Pdf:
         Returns:
             Empty list if no issues were found. List of issues as text strings
             if issues were found.
+
+        .. versionchanged:: 10.18.0
+            Linearization, the interactive form, embedded files, page labels
+            and outlines are now checked, a document with no pages is
+            reported, and a page whose content stream cannot be read is
+            reported instead of raising an exception.
         """
     def check_linearization(self, stream: object = ...) -> bool:
-        """Reports information on the PDF's linearization.
+        """Checks the PDF's linearization data.
+
+        The problems found are added to the PDF's warnings, which
+        :meth:`get_warnings` and :meth:`check_pdf_syntax` return.
 
         Args:
             stream: A stream to write this information too; must
                 implement ``.write()`` and ``.flush()`` method. Defaults to
-                :data:`sys.stderr`.
+                :data:`sys.stderr`. Current versions of qpdf report problems
+                as warnings and write nothing to it.
 
         Returns:
             ``True`` if the file is correctly linearized, and ``False`` if

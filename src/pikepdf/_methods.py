@@ -26,7 +26,7 @@ from collections.abc import (
 )
 from contextlib import ExitStack, contextmanager, suppress
 from decimal import Decimal
-from io import BytesIO
+from io import BytesIO, StringIO
 from pathlib import Path
 from subprocess import run
 from tempfile import TemporaryDirectory
@@ -54,6 +54,7 @@ from pikepdf._core import (
     ObjectStreamMode,
     Page,
     Pdf,
+    PdfError,
     Rectangle,
     StreamDecodeLevel,
     StreamParser,
@@ -408,17 +409,41 @@ class Extend_Pdf:
             def handle_eof(self):
                 pass
 
+        # This follows QPDFJob::doCheck, which implements qpdf --check, step by
+        # step. qpdf prints warnings and errors as they arise, so the warnings
+        # are collected before each error to keep the two in that order.
         problems: list[str] = []
+
+        def collect_warnings():
+            problems.extend("WARNING: " + warning for warning in self.get_warnings())
+
+        if self.is_linearized:
+            # Everything this finds is added to the warnings. If the caller has
+            # already checked linearization, the same warnings are pending, and
+            # are not reported a second time.
+            pending = self.get_warnings()
+            self.check_linearization(StringIO())
+            found = self.get_warnings()
+            repeated = set(found)
+            for warning in [w for w in pending if w not in repeated] + found:
+                problems.append("WARNING: " + warning)
+
+        self._check_document_structures()
+        if len(self.pages) == 0:
+            collect_warnings()
+            problems.append("ERROR: file does not contain any pages")
 
         self._decode_all_streams_and_discard(progress)
 
         discarding_parser = DiscardingParser()
-        for page in self.pages:
-            page.parse_contents(discarding_parser)
+        for pageno, page in enumerate(self.pages, start=1):
+            try:
+                page.parse_contents(discarding_parser)
+            except PdfError as e:
+                collect_warnings()
+                problems.append(f"ERROR: page {pageno}: {e}")
 
-        for warning in self.get_warnings():
-            problems.append("WARNING: " + warning)
-
+        collect_warnings()
         return problems
 
     def save(

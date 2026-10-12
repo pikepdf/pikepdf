@@ -358,6 +358,137 @@ def test_check(resources):
         assert 'parse error while reading' in problems[0]
 
 
+def _qpdf_check(path: Path) -> tuple[list[str], bool]:
+    """Run ``qpdf --check`` on a file through the Job interface.
+
+    Returns the warnings and errors it reported, and whether it succeeded.
+    """
+
+    class Collector(logging.Handler):
+        def __init__(self):
+            super().__init__()
+            self.parts: list[str] = []
+
+        def emit(self, record):
+            self.parts.append(record.getMessage())
+
+    # qpdf writes each message to its logger in fragments, so the records have
+    # to be joined before they can be split into lines.
+    collector = Collector()
+    log = logging.getLogger('pikepdf._core')
+    old_level = log.level
+    log.addHandler(collector)
+    log.setLevel(logging.DEBUG)
+    try:
+        pikepdf.Job(['pikepdf', '--check', str(path)]).run()
+        succeeded = True
+    except RuntimeError:
+        succeeded = False
+    finally:
+        log.removeHandler(collector)
+        log.setLevel(old_level)
+    lines = ''.join(collector.parts).splitlines()
+    return [ln for ln in lines if ln.startswith(('WARNING: ', 'ERROR: '))], succeeded
+
+
+class TestCheckPdfSyntaxMatchesQpdfCheck:
+    """Pdf.check_pdf_syntax() reports what ``qpdf --check`` reports. See #515."""
+
+    def test_linearization(self, resources):
+        path = resources / 'badlin1.pdf'
+        expected, succeeded = _qpdf_check(path)
+        assert succeeded
+        assert any('hint table' in line for line in expected)
+
+        with Pdf.open(path) as pdf:
+            assert pdf.is_linearized
+            assert pdf.check_pdf_syntax() == expected
+            # The check consumes the warnings it reports.
+            assert pdf.get_warnings() == []
+
+    def test_linearization_reported_once(self, resources):
+        with Pdf.open(resources / 'badlin1.pdf') as pdf:
+            assert not pdf.check_linearization(StringIO())
+            problems = pdf.check_pdf_syntax()
+        assert len(problems) == len(set(problems))
+
+    def test_valid_linearization(self, resources, outdir):
+        with Pdf.open(resources / 'graph.pdf') as graph:
+            graph.save(outdir / 'lin.pdf', linearize=True)
+        with Pdf.open(outdir / 'lin.pdf') as pdf:
+            assert pdf.is_linearized
+            assert pdf.check_pdf_syntax() == []
+        assert _qpdf_check(outdir / 'lin.pdf') == ([], True)
+
+    def test_not_linearized(self, resources):
+        with Pdf.open(resources / 'graph.pdf') as pdf:
+            assert not pdf.is_linearized
+            assert pdf.check_pdf_syntax() == []
+
+    @pytest.mark.parametrize(
+        'damage, expected_text',
+        [
+            (
+                lambda pdf: setattr(pdf.Root.AcroForm, 'Fields', Name.Bad),
+                '/Fields key of /AcroForm dictionary is not an array',
+            ),
+            (
+                lambda pdf: setattr(
+                    pdf.Root,
+                    'PageLabels',
+                    pdf.make_indirect(
+                        pikepdf.Dictionary(
+                            Nums=[3, pikepdf.Dictionary(), 0, pikepdf.Dictionary()]
+                        )
+                    ),
+                ),
+                'keys are not sorted',
+            ),
+            (
+                lambda pdf: setattr(
+                    pdf.Root.Outlines.First, 'Next', pdf.Root.Outlines.First
+                ),
+                '/Outlines tree',
+            ),
+        ],
+        ids=['acroform', 'page_labels', 'outlines'],
+    )
+    @pytest.mark.filterwarnings('ignore::pikepdf.PageCopyWarning')
+    def test_document_structures(self, resources, outdir, damage, expected_text):
+        source = 'form.pdf' if 'AcroForm' in expected_text else 'outlines.pdf'
+        with Pdf.open(resources / source) as pdf:
+            damage(pdf)
+            pdf.save(outdir / 'damaged.pdf', static_id=True)
+
+        expected, succeeded = _qpdf_check(outdir / 'damaged.pdf')
+        assert succeeded
+        assert any(expected_text in line for line in expected)
+        with Pdf.open(outdir / 'damaged.pdf') as pdf:
+            assert pdf.check_pdf_syntax() == expected
+
+    def test_no_pages(self, outdir):
+        Pdf.new().save(outdir / 'empty.pdf')
+        expected, succeeded = _qpdf_check(outdir / 'empty.pdf')
+        assert not succeeded
+        assert expected == ['ERROR: file does not contain any pages']
+        with Pdf.open(outdir / 'empty.pdf') as pdf:
+            assert pdf.check_pdf_syntax() == expected
+
+    def test_undecodable_page_contents(self, resources, outdir):
+        with Pdf.open(resources / 'fourpages.pdf') as pdf:
+            for page in (pdf.pages[1], pdf.pages[3]):
+                page.Contents = Stream(pdf, b'not flate')
+                page.Contents.Filter = Name.FlateDecode
+            pdf.save(outdir / 'damaged.pdf', static_id=True)
+
+        expected, succeeded = _qpdf_check(outdir / 'damaged.pdf')
+        assert not succeeded
+        errors = [line for line in expected if line.startswith('ERROR: ')]
+        assert [line.split(':')[1].strip() for line in errors] == ['page 2', 'page 4']
+        with Pdf.open(outdir / 'damaged.pdf') as pdf:
+            assert pdf.check_pdf_syntax() == expected
+
+
 def test_repr(trivial):
     assert repr(trivial).startswith('<')
 

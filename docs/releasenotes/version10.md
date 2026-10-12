@@ -42,6 +42,15 @@ the architecture notes on thread safety.
   its parameter dictionary now decodes it as the corresponding device space,
   without an ICC profile, as a missing `/WhitePoint` already did. Previously
   it raised `IndexError`.
+- {meth}`pikepdf.Pdf.check_pdf_syntax` now performs the same checks as
+  `qpdf --check` and reports the same problems. It checks the linearization
+  data and hint tables of linearized files, which previously required a
+  separate call to {meth}`pikepdf.Pdf.check_linearization`, and checks the
+  interactive form, embedded files, page labels and outlines. A document with
+  no pages is reported as `ERROR: file does not contain any pages`, and a page
+  whose content stream cannot be read is reported as `ERROR: page N: ...`
+  along with the other problems found, where it previously raised
+  {class}`pikepdf.PdfError`. {issue}`515`
 
 ## v10.17.0
 

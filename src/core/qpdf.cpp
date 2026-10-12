@@ -19,7 +19,9 @@
 #include <qpdf/QPDFExc.hh>
 #include <qpdf/QPDFLogger.hh>
 #include <qpdf/QPDFObjGen.hh>
+#include <qpdf/QPDFOutlineDocumentHelper.hh>
 #include <qpdf/QPDFPageDocumentHelper.hh>
+#include <qpdf/QPDFPageLabelDocumentHelper.hh>
 #include <qpdf/QPDFSystemError.hh>
 #include <qpdf/QPDFWriter.hh>
 #include <qpdf/QPDFXRefEntry.hh>
@@ -1014,6 +1016,25 @@ void init_qpdf(py::module_ &m)
             [](QPDF &q) {
                 QpdfLockGuard lock(&q);
                 q.closeInputSource();
+            })
+        .def("_check_document_structures",
+            [](QPDF &q) {
+                // Load the document-level structures that qpdf --check loads, so
+                // that whatever validation they do is recorded as warnings.
+                QpdfLockGuard lock(&q);
+                QPDFAcroFormDocumentHelper acroform(q);
+                (void)acroform.getFormFields();
+                QPDFEmbeddedFileDocumentHelper embedded_files(q);
+                (void)embedded_files.hasEmbeddedFiles();
+                QPDFPageLabelDocumentHelper page_labels(q);
+                (void)page_labels.hasPageLabels();
+                QPDFOutlineDocumentHelper outlines(q);
+                (void)outlines.resolveNamedDest(QPDFObjectHandle::newString("dummy"));
+                auto pages = QPDFPageDocumentHelper(q).getAllPages();
+                if (!pages.empty()) {
+                    (void)outlines.getOutlinesForPage(
+                        pages.at(0).getObjectHandle().getObjGen());
+                }
             })
         .def(
             "_decode_all_streams_and_discard",
