@@ -274,17 +274,20 @@ private:
 // OpaqueObject says that it does not need to. If the body does turn the
 // object into a qpdf object of some Pdf, that Pdf is not locked: use
 // EncodedObject or the object's own type instead.
+//
+// It borrows the argument, which the caller keeps alive for the call, so it
+// costs nothing to pass and must not be kept after the binding returns.
 class OpaqueObject {
 public:
     OpaqueObject() = default;
-    explicit OpaqueObject(py::object object) : object_(std::move(object)) {}
+    explicit OpaqueObject(py::handle handle) : handle_(handle) {}
 
-    py::object const &object() const { return object_; }
-    py::handle handle() const { return object_; }
-    bool is_none() const { return object_.is_none(); }
+    py::object object() const { return py::borrow<py::object>(handle_); }
+    py::handle handle() const { return handle_; }
+    bool is_none() const { return handle_.is_none(); }
 
 private:
-    py::object object_;
+    py::handle handle_;
 };
 
 namespace nanobind {
@@ -295,7 +298,7 @@ struct type_caster<OpaqueObject> {
 
     bool from_python(handle src, uint8_t, cleanup_list *) noexcept
     {
-        value = OpaqueObject(borrow<object>(src));
+        value = OpaqueObject(src);
         return true;
     }
 };
