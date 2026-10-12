@@ -30,7 +30,7 @@ system version:
 ```bash
 env QPDF_SOURCE_TREE=<location of qpdf> \
   QPDF_BUILD_LIBDIR=<directory containing libqpdf.so> \
-  python setup.py build_ext --inplace
+  uv pip install --no-build-isolation -e .
 ```
 
 The libqpdf.so file should be located in the `libqpdf` subdirectory of your cmake
