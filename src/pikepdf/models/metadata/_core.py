@@ -380,9 +380,10 @@ class PdfMetadata(MutableMapping):
                 strictness this document was opened with.
 
         Example:
+            >>> original = pikepdf.new()
             >>> src = original.open_metadata()
             >>> with pdf.open_metadata() as meta:
-            ...     meta.copy_properties(src, ['dc:contributor', 'dc:rights'])
+            ...     copied = meta.copy_properties(src, ['dc:contributor', 'dc:rights'])
 
         Returns:
             The qualified names of the properties copied, such as
