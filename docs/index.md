@@ -18,7 +18,7 @@ is no fun to type. But say "pyqpdf" out loud, and it sounds like "pikepdf".
 ## At a glance
 
 pikepdf is a library intended for developers who want to create, manipulate, parse,
-repair, and abuse the PDF format. It supports reading and write PDFs, including
+repair, and abuse the PDF format. It supports reading and writing PDFs, including
 creating from scratch. Thanks to qpdf, it supports linearizing PDFs and access
 to encrypted PDFs.
 
@@ -70,7 +70,7 @@ What it cannot do:
 :alt: A square of pikemen, carrying pikes
 :figwidth: 30%
 
-Pikemen bracing for a calvary charge, carrying pikes.
+Pikemen bracing for a cavalry charge, carrying pikes.
 :::
 
 - Rasterize PDF pages for display (that is, produce an image that shows what
@@ -92,13 +92,13 @@ support Python 3.10.
 
 ### Similar libraries
 
-Unlike similar Python libraries such as pypdf, pikepdf is not pure
-Python. These libraries were designed prior to Python wheels which has made Python
-extension libraries much easier to work with. By leveraging the existing mature
-code base of qpdf, despite being new, pikepdf is already more capable than both
-in many respects – for example, it can read compress object streams, repair
-damaged PDFs in many cases, and linearize PDFs. Unlike those libraries, it's not
-pure Python: it is impure and proud of it.
+pikepdf is not pure Python, unlike libraries such as pypdf. It leans on the
+mature, widely used C++ code base of qpdf, and ships as binary wheels so that
+installing it is as easy as installing a pure Python package. The qpdf engine is
+what lets pikepdf read compressed object streams, repair many kinds of damaged
+PDFs, and linearize its output. The trade-off is a compiled extension and a
+lower-level API that follows the structure of the PDF file itself. pikepdf is
+impure and proud of it.
 
 PyMuPDF is a PDF library with impressive capabilities. However, its AGPL license
 is much more restrictive than pikepdf, and its dependency on static libraries
@@ -108,7 +108,7 @@ makes it difficult to include in open source Linux or BSD distributions.
 
 pikepdf is used by the same author's [OCRmyPDF](https://github.com/jbarlow83/OCRmyPDF) to inspect input PDFs, graft the
 generated OCR layers on to page content, and output PDFs. Its code contains several
-practical examples, particular in `pdfinfo.py`, `graft.py`, and
+practical examples, particularly in `pdfinfo.py`, `graft.py`, and
 `optimize.py`. pikepdf is also used in its test suite.
 
 ```{toctree}
