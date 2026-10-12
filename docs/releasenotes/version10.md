@@ -67,9 +67,18 @@ the architecture notes on thread safety.
 - Free-threaded Python: fixed a data race on the source `Pdf` when a page was
   appended, inserted or assigned into the page list of another `Pdf`. Both
   documents are now locked, as `pages.extend()` already did.
-- Free-threaded Python: fixed crashes when threads used the same
-  {class}`pikepdf.NameTree` or {class}`pikepdf.NumberTree` at once. None of
-  their methods held the lock of the `Pdf`.
+- Free-threaded Python: fixed crashes and data races when threads used the
+  name trees, number trees, attachments, annotations or interactive form of
+  the same `Pdf` at once. Almost none of the methods of
+  {class}`pikepdf.NameTree`, {class}`pikepdf.NumberTree`,
+  {class}`pikepdf.Attachments`, {class}`pikepdf.AttachedFileSpec`,
+  {class}`pikepdf.AttachedFile`, {class}`pikepdf.Annotation`,
+  {class}`pikepdf.AcroForm` and {class}`pikepdf.AcroFormField` held the lock
+  of the `Pdf`. The bindings of these classes are now generated in a way that
+  will not compile unless every one of them takes that lock.
+- Fixed a small memory leak each time
+  {meth}`pikepdf.AcroForm.get_fields_with_qualified_name` or
+  {meth}`pikepdf.AcroForm.fix_copied_annotations` returned a field.
 - Iterating over a {class}`pikepdf.NameTree` or {class}`pikepdf.NumberTree`
   now iterates over the keys it had when the iteration began. Previously the
   tree was read as the iteration went on, so changing it meanwhile gave

@@ -1,8 +1,11 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
+#include "locked_bindings.h"
 #include "pikepdf.h"
 #include "qpdf_lock.h"
+
+#include <nanobind/stl/optional.h>
 
 #include <qpdf/Constants.h>
 #include <qpdf/DLL.h>
@@ -38,9 +41,9 @@ void init_acroform(py::module_ &m)
         .value("ch_commit_on_sel_change",
             pdf_form_field_flag_e::ff_ch_commit_on_sel_change);
 
-    py::class_<QPDFFormFieldObjectHelper, QPDFObjectHelper>(
+    locked_class_<QPDFFormFieldObjectHelper, QPDFObjectHelper>(
         m, "AcroFormField", py::type_slots(pikepdf_gc_slots))
-        .def(py::init<QPDFObjectHandle &>(), py::keep_alive<0, 1>())
+        .def_constructor<QPDFObjectHandle &>(py::keep_alive<0, 1>())
         .def_prop_ro("is_null", &QPDFFormFieldObjectHelper::isNull)
         .def_prop_ro("parent", &QPDFFormFieldObjectHelper::getParent)
         .def_prop_ro("top_level_field",
@@ -132,14 +135,13 @@ void init_acroform(py::module_ &m)
             &QPDFFormFieldObjectHelper::generateAppearance,
             py::arg("annot"));
 
-    py::class_<QPDFAcroFormDocumentHelper>(
+    locked_class_<QPDFAcroFormDocumentHelper>(
         m, "AcroForm", py::type_slots(pikepdf_gc_slots))
-        .def(py::init<QPDF &>(), py::keep_alive<0, 1>())
+        .def_constructor<QPDF &>(py::keep_alive<0, 1>())
         .def_prop_ro("exists", &QPDFAcroFormDocumentHelper::hasAcroForm)
         .def(
             "validate",
             [](QPDFAcroFormDocumentHelper &acroform, bool repair) {
-                QpdfLockGuard lock(&acroform.getQPDF());
                 acroform.validate(repair);
             },
             py::arg("repair") = true)
@@ -184,11 +186,8 @@ void init_acroform(py::module_ &m)
                 // Convert obj/gen refs to field object helpers
                 std::vector<QPDFFormFieldObjectHelper> fields;
                 QPDF &qpdf = acroform.getQPDF();
-                for (auto ref : refs) {
-                    auto object = qpdf.getObjectByObjGen(ref);
-                    auto field = new QPDFFormFieldObjectHelper(object);
-                    fields.push_back(*field);
-                }
+                for (auto ref : refs)
+                    fields.emplace_back(qpdf.getObjectByObjGen(ref));
                 return fields;
             },
             py::arg("name"))
@@ -217,7 +216,6 @@ void init_acroform(py::module_ &m)
                 QPDFPageObjectHelper to_page,
                 QPDFPageObjectHelper from_page,
                 QPDFAcroFormDocumentHelper &from_afdh) {
-                DualQpdfLockGuard lock(&acroform.getQPDF(), &from_afdh.getQPDF());
                 std::set<QPDFObjGen> refs;
                 acroform.fixCopiedAnnotations(to_page.getObjectHandle(),
                     from_page.getObjectHandle(),
@@ -225,11 +223,8 @@ void init_acroform(py::module_ &m)
                     &refs);
                 std::vector<QPDFFormFieldObjectHelper> fields;
                 QPDF &qpdf = acroform.getQPDF();
-                for (auto ref : refs) {
-                    auto object = qpdf.getObjectByObjGen(ref);
-                    auto field = new QPDFFormFieldObjectHelper(object);
-                    fields.push_back(*field);
-                }
+                for (auto ref : refs)
+                    fields.emplace_back(qpdf.getObjectByObjGen(ref));
                 return fields;
             },
             py::arg("to_page"),
@@ -239,15 +234,13 @@ void init_acroform(py::module_ &m)
             "transform_annotations",
             [](QPDFAcroFormDocumentHelper &acroform,
                 QPDFObjectHandle old_annots,
-                py::object matrix,
+                std::optional<QPDFMatrix> matrix,
                 QPDF *from_qpdf,
                 QPDFAcroFormDocumentHelper *from_afdh) {
                 // Default the matrix to identity. A None default avoids holding a
                 // live pikepdf.Matrix in the binding's defaults, which nanobind
                 // reports as a leak at interpreter shutdown.
-                QPDFMatrix cm =
-                    matrix.is_none() ? QPDFMatrix() : py::cast<QPDFMatrix>(matrix);
-                QpdfLockGuard lock(&acroform.getQPDF());
+                QPDFMatrix cm = matrix ? *matrix : QPDFMatrix();
                 std::vector<QPDFObjectHandle> new_annots;
                 std::vector<QPDFObjectHandle> new_fields;
                 std::set<QPDFObjGen> old_fields;
@@ -264,7 +257,7 @@ void init_acroform(py::module_ &m)
                 return py::make_tuple(new_annots, new_fields, old_fields_objgens);
             },
             py::arg("old_annots"),
-            py::arg("matrix") = py::none(),
+            py::arg("matrix").none() = py::none(),
             py::arg("from_qpdf").none() = py::none(),
             py::arg("from_acroform").none() = py::none());
 }

@@ -17,14 +17,13 @@ void init_nametree(py::module_ &m)
 {
     locked_class_<NameTree, QPDFObjectHelper>(
         m, "NameTree", py::type_slots(pikepdf_gc_slots))
-        .def(
-            "__init__",
-            [](NameTree *self, QPDFObjectHandle &oh, bool auto_repair) {
+        .def_init(
+            [](QPDFObjectHandle &oh, bool auto_repair) {
                 QPDF *owner = live_owner(oh);
                 if (!owner)
                     throw py::value_error(
                         "NameTree must wrap a Dictionary that is owned by a Pdf");
-                new (self) NameTree(oh, *owner, auto_repair);
+                return NameTree(oh, *owner, auto_repair);
             },
             py::arg("oh"), // LCOV_EXCL_LINE
             py::kw_only(), // LCOV_EXCL_LINE

@@ -1,10 +1,13 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
+#include "locked_bindings.h"
 #include "object.h"
 #include "pikepdf.h"
 #include "pipeline.h"
 #include "qpdf_lock.h"
+
+#include <nanobind/stl/optional.h>
 
 #include <qpdf/Constants.h>
 #include <qpdf/DLL.h>
@@ -101,35 +104,30 @@ static py::list attachment_keys(QPDFEmbeddedFileDocumentHelper &efdh)
 
 void init_embeddedfiles(py::module_ &m)
 {
-    py::class_<QPDFFileSpecObjectHelper, QPDFObjectHelper>(
+    locked_class_<QPDFFileSpecObjectHelper, QPDFObjectHelper>(
         m, "AttachedFileSpec", py::type_slots(pikepdf_gc_slots)) // /Type /Filespec
-        .def(
-            "__init__",
-            [](QPDFFileSpecObjectHelper *self,
-                QPDF &q,
+        .def_init(
+            [](QPDF &q,
                 py::bytes data,
                 std::string description,
                 std::string filename,
                 std::string mime_type,
                 std::string creation_date,
                 std::string mod_date,
-                py::object relationship) {
+                std::optional<QPDFObjectHandle> relationship) {
                 // Resolve the default lazily: None -> /Unspecified. Keeping the
                 // default out of py::arg() prevents nanobind from materializing
                 // a persistent pikepdf.Object instance at module-init time
                 // (which would appear in the shutdown leak report).
-                QPDFObjectHandle rel = relationship.is_none()
-                                           ? QPDFObjectHandle::newName("/Unspecified")
-                                           : py::cast<QPDFObjectHandle>(relationship);
-                auto fs = create_filespec(q,
+                return create_filespec(q,
                     data,
                     description,
                     filename,
                     mime_type,
                     creation_date,
                     mod_date,
-                    rel);
-                new (self) QPDFFileSpecObjectHelper(fs);
+                    relationship ? *relationship
+                                 : QPDFObjectHandle::newName("/Unspecified"));
             },
             py::keep_alive<0, 1>(), // LCOV_EXCL_LINE
             py::arg("q"),
@@ -140,7 +138,7 @@ void init_embeddedfiles(py::module_ &m)
             py::arg("mime_type") = std::string(""),
             py::arg("creation_date") = std::string(""),
             py::arg("mod_date") = std::string(""),
-            py::arg("relationship") = py::none())
+            py::arg("relationship").none() = py::none())
         .def_prop_rw("description",
             &QPDFFileSpecObjectHelper::getDescription,
             &QPDFFileSpecObjectHelper::setDescription // LCOV_EXCL_LINE
@@ -189,12 +187,13 @@ void init_embeddedfiles(py::module_ &m)
                     return py::none();
                 }
             },
-            [](QPDFFileSpecObjectHelper &spec, py::handle value) {
+            [](QPDFFileSpecObjectHelper &spec,
+                std::optional<EncodedObject> const &value) {
                 auto oh = spec.getObjectHandle();
-                if (value.is_none()) {
+                if (!value) {
                     object_del_key(oh, "/AFRelationship");
                 } else {
-                    auto rel = objecthandle_encode(value);
+                    auto rel = value->get();
                     object_set_key(oh, "/AFRelationship", rel);
                 }
             },
@@ -210,15 +209,15 @@ void init_embeddedfiles(py::module_ &m)
                 .format(spec.getDescription());
         });
 
-    py::class_<QPDFEFStreamObjectHelper, QPDFObjectHelper>(
+    locked_class_<QPDFEFStreamObjectHelper, QPDFObjectHelper>(
         m, "AttachedFile", py::type_slots(pikepdf_gc_slots)) // /Type /EmbeddedFile
         .def_prop_ro("size",
             &QPDFEFStreamObjectHelper::getSize // LCOV_EXCL_LINE
             )
         .def_prop_rw("mime_type",
             &QPDFEFStreamObjectHelper::getSubtype,
-            &QPDFEFStreamObjectHelper::setSubtype, // LCOV_EXCL_LINE
-            "")
+            &QPDFEFStreamObjectHelper::setSubtype // LCOV_EXCL_LINE
+            )
         .def_prop_ro("md5",
             [](QPDFEFStreamObjectHelper &efstream) {
                 auto checksum = efstream.getChecksum();
@@ -236,7 +235,7 @@ void init_embeddedfiles(py::module_ &m)
             return py::bytes((const char *)buf->getBuffer(), buf->getSize());
         });
 
-    py::class_<QPDFEmbeddedFileDocumentHelper>(
+    locked_class_<QPDFEmbeddedFileDocumentHelper>(
         m, "Attachments", py::type_slots(pikepdf_gc_slots))
         .def_prop_ro(
             "_has_embedded_files", &QPDFEmbeddedFileDocumentHelper::hasEmbeddedFiles)
@@ -277,7 +276,6 @@ void init_embeddedfiles(py::module_ &m)
         .def("__delitem__",
             [](QPDFEmbeddedFileDocumentHelper &efdh, std::string const &key) {
                 auto &q = efdh.getQPDF();
-                QpdfLockGuard lock(&q);
                 // Remove the /AF entry first: qpdf replaces the file
                 // specification with null, which would leave a null in /AF.
                 if (auto filespec = efdh.getEmbeddedFile(key))

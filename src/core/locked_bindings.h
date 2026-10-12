@@ -17,8 +17,9 @@
 //  - Every argument of a type that declares an owner has its Pdf locked for
 //    the whole call. Calls that involve several Pdfs lock them all, in the
 //    registry's consistent order, so two such calls cannot deadlock.
-//  - Pointer arguments are not examined. The only ones in use are the
-//    uninitialized `self` of an __init__ implemented with placement new.
+//  - A pointer or std::optional argument is locked when it holds a value.
+//  - A constructor is registered with def_init or def_constructor, which keep
+//    the uninitialized `self` away from the code that looks for owners.
 //  - A parameter may not be a bare py::object or py::handle, since nothing
 //    is known about what it refers to until the body has run. Declare what
 //    the binding accepts instead: an EncodedObject for any value that
@@ -38,6 +39,10 @@
 #include <array>
 #include <cstddef>
 #include <functional>
+#include <new>
+#include <optional>
+#include <stdexcept>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 
@@ -92,7 +97,7 @@ template <typename T>
 struct LockOwner<T, std::enable_if_t<std::is_base_of_v<QPDFDocumentHelper, T>>> {
     static constexpr bool declared = true;
     static constexpr bool locks = true;
-    static QPDF *of(T const &helper) { return &helper.getQPDF(); }
+    static QPDF *of(T const &helper) { return const_cast<QPDF *>(&helper.getQPDF()); }
 };
 
 template <>
@@ -100,6 +105,27 @@ struct LockOwner<EncodedObject> {
     static constexpr bool declared = true;
     static constexpr bool locks = true;
     static QPDF *of(EncodedObject const &value) { return value.owner(); }
+};
+
+// A pointer that may be null, and an optional that may be empty
+template <typename T>
+struct LockOwner<T *, std::enable_if_t<LockOwner<std::remove_cv_t<T>>::locks>> {
+    static constexpr bool declared = true;
+    static constexpr bool locks = true;
+    static QPDF *of(T *p)
+    {
+        return p ? LockOwner<std::remove_cv_t<T>>::of(*p) : nullptr;
+    }
+};
+
+template <typename T>
+struct LockOwner<std::optional<T>, std::enable_if_t<LockOwner<T>::locks>> {
+    static constexpr bool declared = true;
+    static constexpr bool locks = true;
+    static QPDF *of(std::optional<T> const &value)
+    {
+        return value ? LockOwner<T>::of(*value) : nullptr;
+    }
 };
 
 namespace locked_detail {
@@ -110,8 +136,7 @@ inline constexpr bool arg_untyped =
     std::is_same_v<std::remove_cvref_t<Arg>, py::handle>;
 
 template <typename Arg>
-inline constexpr bool arg_locks = !std::is_pointer_v<std::remove_reference_t<Arg>> &&
-                                  LockOwner<std::remove_cvref_t<Arg>>::locks;
+inline constexpr bool arg_locks = LockOwner<std::remove_cvref_t<Arg>>::locks;
 
 template <typename... Args>
 inline constexpr std::size_t n_locking = (std::size_t{0} + ... + arg_locks<Args>);
@@ -258,8 +283,32 @@ public:
     template <typename F, typename... Extra>
     locked_class_ &def(const char *name, F &&f, const Extra &...extra)
     {
+        if (std::string_view(name) == "__init__")
+            throw std::logic_error(
+                "register a constructor with def_init or def_constructor");
         cls_.def(name, wrap(std::forward<F>(f)), extra...);
         return *this;
+    }
+
+    // Register __init__ from a factory: a callable that takes the arguments
+    // of the constructor and returns the new T. The Pdfs of its arguments are
+    // locked while it runs and while its result is moved into place.
+    template <typename F, typename... Extra>
+    locked_class_ &def_init(F &&factory, const Extra &...extra)
+    {
+        using Lambda = std::remove_cvref_t<F>;
+        cls_.def("__init__",
+            init_from(std::forward<F>(factory), &Lambda::operator()),
+            extra...);
+        return *this;
+    }
+
+    // Register __init__ as the constructor T(Args...).
+    template <typename... Args, typename... Extra>
+    locked_class_ &def_constructor(const Extra &...extra)
+    {
+        return def_init(
+            [](Args... args) { return T(std::forward<Args>(args)...); }, extra...);
     }
 
     template <typename F, typename... Extra>
@@ -294,6 +343,33 @@ private:
         return locked(std::forward<F>(f));
     }
 
+    // A member function, which may belong to a base class of T, is bound as
+    // a method of T.
+    template <typename R, typename C, typename... Args>
+    static auto wrap(R (C::*f)(Args...))
+    {
+        return locked_detail::LockedFunction<R (C::*)(Args...), R, T &, Args...>{f};
+    }
+
+    template <typename R, typename C, typename... Args>
+    static auto wrap(R (C::*f)(Args...) const)
+    {
+        return locked_detail::LockedFunction<R (C::*)(Args...) const, R, T &, Args...>{
+            f};
+    }
+
+    template <typename F, typename R, typename... Args>
+    static auto init_from(F factory, R (F::*)(Args...) const)
+    {
+        static_assert(!(locked_detail::arg_untyped<Args> || ...),
+            "A constructor may not take py::object or py::handle.");
+        return [factory = std::move(factory)](T *self, Args... args) {
+            locked_detail::OwnersGuard<locked_detail::n_locking<Args...>> guard(
+                locked_detail::owners_of<Args...>(args...));
+            new (self) T(factory(std::forward<Args>(args)...));
+        };
+    }
+
     template <typename F>
     static F wrap(Unlocked<F> f)
     {
@@ -309,7 +385,9 @@ struct Undeclared {};
 static_assert(!LockOwner<Undeclared>::declared);
 static_assert(arg_locks<QPDF &> && arg_locks<QPDFObjectHandle const &>);
 static_assert(arg_locks<QPDFObjectHandle>);
-static_assert(!arg_locks<QPDFObjectHandle *>);
+static_assert(arg_locks<QPDFObjectHandle *> && arg_locks<QPDF const *>);
+static_assert(arg_locks<std::optional<QPDFObjectHandle>>);
+static_assert(!arg_locks<int *> && !arg_locks<std::optional<int>>);
 static_assert(!arg_locks<bool> && arg_locks<EncodedObject const &>);
 static_assert(arg_untyped<py::object> && arg_untyped<py::handle const &>);
 static_assert(!arg_untyped<py::callable> && !arg_untyped<QPDFObjectHandle>);

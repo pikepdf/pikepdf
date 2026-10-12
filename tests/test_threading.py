@@ -28,7 +28,9 @@ import pytest
 
 import pikepdf
 from pikepdf import (
+    Annotation,
     Array,
+    AttachedFileSpec,
     Dictionary,
     Name,
     NameTree,
@@ -1407,3 +1409,178 @@ def test_stress_number_tree_insert_while_reading(number_tree_pdf_bytes):
             for n in range(per_thread):
                 item = tree[1000 * i + n]
                 assert (item.T, item.N) == (i, n)
+
+
+def describe_form(pdf, acroform=None):
+    """Read an interactive form through the AcroForm helper classes."""
+    if acroform is None:
+        acroform = pdf.acroform
+    result = [acroform.exists, acroform.needs_appearances]
+    for field in acroform.fields:
+        result.append(
+            (
+                field.fully_qualified_name,
+                field.partial_name,
+                field.alternate_name,
+                field.field_type,
+                field.flags,
+                field.is_text,
+                field.is_checkbox,
+                field.is_radio_button,
+                field.value_as_string,
+                field.default_appearance,
+                str(field.get_inheritable_field_value_as_name('/FT')),
+                field.top_level_field.fully_qualified_name,
+                len(acroform.get_annotations_for_field(field)),
+            )
+        )
+    for page in pdf.pages:
+        result.append(len(acroform.get_widget_annotations_for_page(page)))
+        result.append(
+            [f.fully_qualified_name for f in acroform.get_form_fields_for_page(page)]
+        )
+    return result
+
+
+def test_stress_acroform_cold_reads():
+    """Threads reading the form of a cold file all see the same form."""
+    with Pdf.open(RESOURCES / 'form.pdf') as reference:
+        expected = describe_form(reference)
+    assert len(expected) > 4
+    for _ in range(5):
+        with Pdf.open(RESOURCES / 'form.pdf') as pdf:
+            # One helper for all the threads: it builds its index of the
+            # form's fields the first time it is asked for them.
+            acroform = pdf.acroform
+
+            def read(i, pdf=pdf, acroform=acroform):
+                assert describe_form(pdf, acroform) == expected
+                assert describe_form(pdf) == expected
+
+            run_n(read)
+
+
+def test_stress_acroform_shared_helper_set_values():
+    """Threads setting different fields through one AcroForm lose no update."""
+    with Pdf.open(RESOURCES / 'form.pdf') as pdf:
+        acroform = pdf.acroform
+        text_fields = [f for f in acroform.fields if f.is_text]
+        assert text_fields
+        field = text_fields[0]
+
+        def work(i):
+            for n in range(50):
+                if i == 0:
+                    field.value_as_string = f'value {n}'
+                else:
+                    assert field.value_as_string.startswith(('value ', ''))
+                    assert field.fully_qualified_name == 'Text1'
+                    assert len(acroform.fields) == 5
+
+        run_n(work)
+        assert field.value_as_string == 'value 49'
+
+
+def describe_annotation(obj):
+    annot = Annotation(obj)
+    stream = annot.get_appearance_stream(Name.N)
+    return (
+        str(annot.subtype),
+        [float(v) for v in annot.rect.as_array()],
+        annot.flags,
+        repr(annot.appearance_state),
+        repr(annot.appearance_dict),
+        stream.read_bytes() if isinstance(stream, Stream) else None,
+        annot.get_page_content_for_appearance(Name.XYZ, 0),
+    )
+
+
+def test_stress_annotations_cold_reads():
+    """Threads reading the annotations of a cold file all see the same ones."""
+    with Pdf.open(RESOURCES / 'form.pdf') as reference:
+        expected = [describe_annotation(a) for a in reference.pages[0].Annots]
+    assert len(expected) == 5
+    for _ in range(5):
+        with Pdf.open(RESOURCES / 'form.pdf') as pdf:
+            annots = list(pdf.pages[0].Annots)
+
+            def read(i, annots=annots):
+                for _ in range(5):
+                    for annot, want in zip(annots, expected, strict=True):
+                        assert describe_annotation(annot) == want
+
+            run_n(read)
+
+
+N_ATTACHMENTS = 12
+
+
+@pytest.fixture(scope='module')
+def attachments_pdf_bytes():
+    pdf = Pdf.new()
+    pdf.add_blank_page()
+    for n in range(N_ATTACHMENTS):
+        pdf.attachments[f'file{n:02d}.txt'] = AttachedFileSpec(
+            pdf,
+            f'contents of file {n}'.encode() * 50,
+            description=f'description {n}',
+            mime_type='text/plain',
+        )
+    out = BytesIO()
+    pdf.save(out)
+    return out.getvalue()
+
+
+def test_stress_attachments_cold_reads(attachments_pdf_bytes):
+    """Threads reading the attachments of a cold file all read the same files."""
+    names = [f'file{n:02d}.txt' for n in range(N_ATTACHMENTS)]
+    for _ in range(5):
+        with Pdf.open(BytesIO(attachments_pdf_bytes)) as pdf:
+            attachments = pdf.attachments
+
+            def read(i, attachments=attachments):
+                assert len(attachments) == N_ATTACHMENTS
+                assert list(attachments) == names
+                for n in range(i % 3, N_ATTACHMENTS, 3):
+                    spec = attachments[names[n]]
+                    assert spec.description == f'description {n}'
+                    assert spec.filename == names[n]
+                    assert Name.F in spec.get_all_filenames()
+                    file = spec.get_file()
+                    data = f'contents of file {n}'.encode() * 50
+                    assert file.read_bytes() == data
+                    assert file.size == len(data)
+                    assert file.mime_type == 'text/plain'
+                    assert len(file.md5) == 16
+
+            run_n(read)
+
+
+def test_stress_attachments_added_from_many_threads(attachments_pdf_bytes):
+    """Attachments added to one Pdf by several threads are all kept."""
+    per_thread = 10
+    with Pdf.open(BytesIO(attachments_pdf_bytes)) as pdf:
+        attachments = pdf.attachments
+
+        def work(i):
+            for n in range(per_thread):
+                name = f'new{i}_{n:02d}.bin'
+                if n % 2:
+                    attachments[name] = f'{i}/{n}'.encode()
+                else:
+                    attachments[name] = AttachedFileSpec(
+                        pdf, f'{i}/{n}'.encode(), description=name
+                    )
+                assert attachments[name].get_file().read_bytes() == f'{i}/{n}'.encode()
+                assert len(attachments) > N_ATTACHMENTS
+
+        run_n(work)
+        assert len(attachments) == N_ATTACHMENTS + per_thread * N_THREADS
+        assert len(pdf.Root.AF) == len(attachments)
+        out = BytesIO()
+        pdf.save(out)
+    with Pdf.open(out) as check:
+        for i in range(N_THREADS):
+            for n in range(per_thread):
+                file = check.attachments[f'new{i}_{n:02d}.bin'].get_file()
+                assert file.read_bytes() == f'{i}/{n}'.encode()

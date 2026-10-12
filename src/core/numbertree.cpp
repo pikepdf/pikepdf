@@ -19,14 +19,13 @@ void init_numbertree(py::module_ &m)
 {
     locked_class_<NumberTree, QPDFObjectHelper>(
         m, "NumberTree", py::type_slots(pikepdf_gc_slots))
-        .def(
-            "__init__",
-            [](NumberTree *self, QPDFObjectHandle &oh, bool auto_repair) {
+        .def_init(
+            [](QPDFObjectHandle &oh, bool auto_repair) {
                 QPDF *owner = live_owner(oh);
                 if (!owner)
                     throw py::value_error(
                         "NumberTree must wrap a Dictionary that is owned by a Pdf");
-                new (self) NumberTree(oh, *owner, auto_repair);
+                return NumberTree(oh, *owner, auto_repair);
             },
             py::arg("oh"), // LCOV_EXCL_LINE
             py::kw_only(),
