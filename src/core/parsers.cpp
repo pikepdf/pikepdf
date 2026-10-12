@@ -217,13 +217,63 @@ py::list OperandGrouper::getInstructions() const
     return instructions_;
 }
 
+// Holds the lock of one Pdf at a time, for a loop over objects that nearly
+// always belong to the same Pdf: asking for the Pdf already held costs a
+// comparison. Asking for another releases the first, so two are never held
+// and no order between them arises.
+class OwnerLock {
+public:
+    void hold(QPDF *owner)
+    {
+        if (!owner) {
+            // As QpdfLockGuard does for an object that has no owner
+            QpdfRegistry::instance().wait_for_teardown();
+            return;
+        }
+        if (owner == held_)
+            return;
+        release();
+        guard_.emplace(owner);
+        held_ = owner;
+    }
+
+    void release()
+    {
+        guard_.reset();
+        held_ = nullptr;
+    }
+
+private:
+    std::optional<QpdfLockGuard> guard_;
+    QPDF *held_ = nullptr;
+};
+
+// The instructions are only known as the iterable yields them, so a binding
+// cannot lock their Pdfs in advance, and this function locks for itself.
 py::bytes unparse_content_stream(py::iterable contentstream)
 {
     uint n = 0;
     std::string out;
     const char *delim = "";
+    OwnerLock lock;
+    // Stepping through a list or tuple runs no Python code, so the lock can
+    // stay held from one instruction to the next. Any other iterable is
+    // stepped with no lock held.
+    const bool keep_lock =
+        PyList_Check(contentstream.ptr()) || PyTuple_Check(contentstream.ptr());
+    struct ReleaseAtEnd {
+        OwnerLock &lock;
+        bool keep;
+        ~ReleaseAtEnd()
+        {
+            if (!keep)
+                lock.release();
+        }
+    };
 
     for (const auto &item : contentstream) {
+        ReleaseAtEnd release_at_end{lock, keep_lock};
+
         // First iteration: print nothing
         // All others: print "\n" to delimit previous
         // Result is no leading or trailing delimiter
@@ -232,12 +282,14 @@ py::bytes unparse_content_stream(py::iterable contentstream)
 
         if (py::isinstance<ContentStreamInstruction>(item)) {
             auto &csi = py::cast<ContentStreamInstruction &>(item);
+            lock.hold(csi.owner());
             append_unparsed(out, csi);
             continue;
         }
 
         if (py::isinstance<ContentStreamInlineImage>(item)) {
             auto &csii = py::cast<ContentStreamInlineImage &>(item);
+            lock.hold(csii.owner());
             append_unparsed(out, csii);
             continue;
         }
@@ -269,6 +321,7 @@ py::bytes unparse_content_stream(py::iterable contentstream)
             op = QPDFObjectHandle::newOperator(s.c_str());
         } else {
             op = py::cast<QPDFObjectHandle>(operator_);
+            lock.hold(op.getOwningQPDF());
             if (!op.isOperator()) {
                 throw py::type_error(
                     ("At content stream instruction " + std::to_string(n) +
@@ -297,6 +350,7 @@ py::bytes unparse_content_stream(py::iterable contentstream)
             py::object operands_obj = py::borrow<py::object>(operands_op[0]);
             for (auto operand : operands_obj) {
                 QPDFObjectHandle obj = objecthandle_encode(operand);
+                lock.hold(obj.getOwningQPDF());
                 out += obj.unparse();
                 out += ' ';
             }
