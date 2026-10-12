@@ -68,11 +68,22 @@ the architecture notes on thread safety.
   appended, inserted or assigned into the page list of another `Pdf`. Both
   documents are now locked, as `pages.extend()` already did.
 - Free-threaded Python: fixed crashes when threads used the same
-  {class}`pikepdf.NameTree` at once. None of its methods held the lock of the
-  `Pdf`.
-- Iterating over a {class}`pikepdf.NameTree` now iterates over the names it
-  had when the iteration began. Previously the tree was read as the iteration
-  went on, so changing it meanwhile gave undefined results.
+  {class}`pikepdf.NameTree` or {class}`pikepdf.NumberTree` at once. None of
+  their methods held the lock of the `Pdf`.
+- Iterating over a {class}`pikepdf.NameTree` or {class}`pikepdf.NumberTree`
+  now iterates over the keys it had when the iteration began. Previously the
+  tree was read as the iteration went on, so changing it meanwhile gave
+  undefined results.
+- Putting an object that belongs to another `Pdf` in a
+  {class}`pikepdf.NameTree` or {class}`pikepdf.NumberTree` now raises
+  {class}`pikepdf.ForeignObjectError` at once, as it does for a dictionary or
+  an array. Previously the error was not raised until the `Pdf` was saved.
+- `x in tree` is now `False` for an `x` that cannot be a key of a
+  {class}`pikepdf.NameTree`, such as an `int`, and for `None` in a
+  {class}`pikepdf.NumberTree`. Previously these raised `TypeError`.
+- Corrected the documentation and type hints of {class}`pikepdf.NameTree`,
+  which said that names are `bytes`. Names are, and have always been, `str`:
+  qpdf reads each name as a PDF text string and compares names by that text.
 - The test suite now runs under ThreadSanitizer on free-threaded Python in
   continuous integration, which is how the fixes above were found.
 

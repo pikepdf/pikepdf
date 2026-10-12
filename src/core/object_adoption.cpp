@@ -348,3 +348,20 @@ void refuse_to_steal(QPDFObjectHandle &h, QPDF *target)
             "This object belongs to another Pdf. Remove it from that document "
             "first, or make it indirect there and use Pdf.copy_foreign().");
 }
+
+// Raise ForeignObjectError for an indirect object that belongs to another Pdf.
+//
+// qpdf makes this check itself when an object is put in a dictionary or an
+// array, but not when it is put in a name tree or number tree, where the
+// mistake would otherwise go unreported until the Pdf is saved.
+void refuse_foreign_indirect(QPDFObjectHandle const &h, QPDF *target)
+{
+    if (!h.isIndirect())
+        return;
+    QPDF *owner = h.getOwningQPDF();
+    if (owner && owner != target)
+        throw_foreign_object_error(
+            "Attempting to add an object from a different pikepdf.Pdf. Use "
+            "pikepdf.copy_foreign to add objects from another file, or construct "
+            "a new object.");
+}

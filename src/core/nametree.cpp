@@ -49,6 +49,10 @@ void init_nametree(py::module_ &m)
             py::is_operator())
         .def("__contains__",
             [](NameTree &nt, std::string const &name) { return nt.hasName(name); })
+        .def("__contains__",
+            // Only a str can be a name
+            unlocked([](NameTree &, py::object) { return false; }),
+            py::arg("name").none())
         .def("__getitem__",
             [](NameTree &nt, std::string const &name) {
                 QPDFObjectHandle oh;
@@ -58,15 +62,11 @@ void init_nametree(py::module_ &m)
                     throw py::key_error(name.c_str());
             })
         .def("__setitem__",
-            [](NameTree &nt, std::string const &name, QPDFObjectHandle oh) {
+            [](NameTree &nt, std::string const &name, EncodedObject const &value) {
                 auto tree = nt.getObjectHandle();
-                nt.insert(name, adopt_into(live_owner(tree), oh));
-            })
-        .def("__setitem__",
-            [](NameTree &nt, std::string const &name, py::object obj) {
-                auto oh = objecthandle_encode(obj);
-                auto tree = nt.getObjectHandle();
-                nt.insert(name, adopt_into(live_owner(tree), oh));
+                auto *owner = live_owner(tree);
+                refuse_foreign_indirect(value.get(), owner);
+                nt.insert(name, adopt_into(owner, value.get()));
             })
         .def("__delitem__",
             [](NameTree &nt, std::string const &name) {

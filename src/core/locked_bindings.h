@@ -19,9 +19,12 @@
 //    registry's consistent order, so two such calls cannot deadlock.
 //  - Pointer arguments are not examined. The only ones in use are the
 //    uninitialized `self` of an __init__ implemented with placement new.
-//  - py::object and py::handle arguments are not examined, since their type
-//    is not known until the body runs. A body that converts one to a qpdf
-//    object owned by another Pdf must lock that Pdf itself.
+//  - A parameter may not be a bare py::object or py::handle, since nothing
+//    is known about what it refers to until the body has run. Declare what
+//    the binding accepts instead: an EncodedObject for any value that
+//    converts to a PDF object, or a specific type such as py::callable.
+//    An EncodedObject built from a Python container can still hold objects
+//    of another Pdf below its top level; that Pdf is not locked.
 //  - The lock is released when the body returns. A return value that keeps
 //    reading the Pdf afterwards, such as a lazy iterator over a qpdf
 //    container, is not protected: return a snapshot instead.
@@ -29,6 +32,7 @@
 // A binding that must not be wrapped is registered as unlocked(f), which
 // states the exception where a reader will see it.
 
+#include "pikepdf.h"
 #include "qpdf_lock.h"
 
 #include <array>
@@ -91,7 +95,19 @@ struct LockOwner<T, std::enable_if_t<std::is_base_of_v<QPDFDocumentHelper, T>>> 
     static QPDF *of(T const &helper) { return &helper.getQPDF(); }
 };
 
+template <>
+struct LockOwner<EncodedObject> {
+    static constexpr bool declared = true;
+    static constexpr bool locks = true;
+    static QPDF *of(EncodedObject const &value) { return value.owner(); }
+};
+
 namespace locked_detail {
+
+template <typename Arg>
+inline constexpr bool arg_untyped =
+    std::is_same_v<std::remove_cvref_t<Arg>, py::object> ||
+    std::is_same_v<std::remove_cvref_t<Arg>, py::handle>;
 
 template <typename Arg>
 inline constexpr bool arg_locks = !std::is_pointer_v<std::remove_reference_t<Arg>> &&
@@ -157,6 +173,11 @@ private:
 // A callable with the signature R(Args...) that nanobind sees in place of f.
 template <typename F, typename R, typename... Args>
 struct LockedFunction {
+    static_assert(!(arg_untyped<Args> || ...),
+        "A locked binding may not take py::object or py::handle. Take an "
+        "EncodedObject or a specific type, or register it with unlocked() "
+        "if it does not use a Pdf.");
+
     F f;
 
     R operator()(Args... args) const
@@ -289,6 +310,8 @@ static_assert(!LockOwner<Undeclared>::declared);
 static_assert(arg_locks<QPDF &> && arg_locks<QPDFObjectHandle const &>);
 static_assert(arg_locks<QPDFObjectHandle>);
 static_assert(!arg_locks<QPDFObjectHandle *>);
-static_assert(!arg_locks<py::object> && !arg_locks<bool>);
+static_assert(!arg_locks<bool> && arg_locks<EncodedObject const &>);
+static_assert(arg_untyped<py::object> && arg_untyped<py::handle const &>);
+static_assert(!arg_untyped<py::callable> && !arg_untyped<QPDFObjectHandle>);
 static_assert(n_locking<QPDF &, bool, QPDFObjectHandle> == 2);
 } // namespace locked_detail

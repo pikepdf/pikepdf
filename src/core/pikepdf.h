@@ -227,6 +227,58 @@ bool pdfobject_try_encode(py::handle value, QPDFObjectHandle &out);
 std::vector<QPDFObjectHandle> array_builder(const py::iterable iter);
 std::map<std::string, QPDFObjectHandle> dict_builder(const py::dict dict);
 
+// A binding parameter that accepts a pikepdf Object or any Python value that
+// objecthandle_encode() can turn into one, and arrives already converted.
+//
+// Declaring a parameter as EncodedObject, where it used to be py::object and
+// was converted inside the binding, moves the conversion into the argument's
+// type caster. That matters for locking: the conversion may run arbitrary
+// Python code, and now does so before the binding takes any lock; and the
+// result is a qpdf object whose owner is known when the locks are taken.
+//
+// A value that cannot be converted is not a failed overload match: get()
+// raises the error that the conversion raised, so the caller sees the same
+// exception as before.
+class EncodedObject {
+public:
+    EncodedObject() = default;
+    explicit EncodedObject(QPDFObjectHandle h) : h_(std::move(h)) {}
+    explicit EncodedObject(std::exception_ptr error) : error_(std::move(error)) {}
+
+    QPDFObjectHandle const &get() const
+    {
+        if (error_)
+            std::rethrow_exception(error_);
+        return h_;
+    }
+
+    // The Pdf to lock, or nullptr for an unowned or unconvertible value
+    QPDF *owner() const { return error_ ? nullptr : h_.getOwningQPDF(); }
+
+private:
+    QPDFObjectHandle h_;
+    std::exception_ptr error_;
+};
+
+namespace nanobind {
+namespace detail {
+template <>
+struct type_caster<EncodedObject> {
+    NB_TYPE_CASTER(EncodedObject, const_name("object"))
+
+    bool from_python(handle src, uint8_t, cleanup_list *) noexcept
+    {
+        try {
+            value = EncodedObject(objecthandle_encode(src));
+        } catch (...) {
+            value = EncodedObject(std::current_exception());
+        }
+        return true;
+    }
+};
+} // namespace detail
+} // namespace nanobind
+
 // From acroform.cpp
 void init_acroform(py::module_ &m);
 // From annotation.cpp

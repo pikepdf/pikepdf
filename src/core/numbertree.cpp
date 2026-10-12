@@ -1,10 +1,9 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
+#include "locked_bindings.h"
 #include "object.h"
 #include "pikepdf.h"
-
-#include <nanobind/make_iterator.h>
 
 #include <qpdf/Constants.h>
 #include <qpdf/DLL.h>
@@ -18,7 +17,7 @@ using NumberTree = QPDFNumberTreeObjectHelper;
 
 void init_numbertree(py::module_ &m)
 {
-    py::class_<NumberTree, QPDFObjectHelper>(
+    locked_class_<NumberTree, QPDFObjectHelper>(
         m, "NumberTree", py::type_slots(pikepdf_gc_slots))
         .def(
             "__init__",
@@ -44,7 +43,10 @@ void init_numbertree(py::module_ &m)
             py::keep_alive<0, 1>())
         .def("__contains__",
             [](NumberTree &nt, numtree_number idx) { return nt.hasIndex(idx); })
-        .def("__contains__", [](NumberTree &nt, py::object idx) { return false; })
+        .def("__contains__",
+            // Only an int can be a key
+            unlocked([](NumberTree &, py::object) { return false; }),
+            py::arg("key").none())
         .def("__getitem__",
             [](NumberTree &nt, numtree_number key) {
                 QPDFObjectHandle oh;
@@ -54,25 +56,21 @@ void init_numbertree(py::module_ &m)
                     throw py::index_error(std::to_string(key).c_str());
             })
         .def("__setitem__",
-            [](NumberTree &nt, numtree_number key, QPDFObjectHandle oh) {
+            [](NumberTree &nt, numtree_number key, EncodedObject const &value) {
                 auto tree = nt.getObjectHandle();
-                nt.insert(key, adopt_into(live_owner(tree), oh));
-            })
-        .def("__setitem__",
-            [](NumberTree &nt, numtree_number key, py::object obj) {
-                auto oh = objecthandle_encode(obj);
-                auto tree = nt.getObjectHandle();
-                nt.insert(key, adopt_into(live_owner(tree), oh));
+                auto *owner = live_owner(tree);
+                refuse_foreign_indirect(value.get(), owner);
+                nt.insert(key, adopt_into(owner, value.get()));
             })
         .def("__delitem__", [](NumberTree &nt, numtree_number key) { nt.remove(key); })
-        .def(
-            "__iter__",
-            [](py::handle self) {
-                auto &nt = py::cast<NumberTree &>(self);
-                return py::make_key_iterator(
-                    py::type<NumberTree>(), "key_iterator", nt.begin(), nt.end());
-            },
-            py::keep_alive<0, 1>())
+        .def("__iter__",
+            [](NumberTree &nt) {
+                // The keys as they are now: see NameTree.__iter__
+                py::list keys;
+                for (auto it = nt.begin(); it != nt.end(); ++it)
+                    keys.append(py::cast((*it).first));
+                return py::iter(keys);
+            })
         .def("_as_map", [](NumberTree &nt) { return nt.getAsMap(); })
         .def("__len__", [](NumberTree &nt) { return nt.getAsMap().size(); });
 }

@@ -32,6 +32,7 @@ from pikepdf import (
     Dictionary,
     Name,
     NameTree,
+    NumberTree,
     Object,
     Pdf,
     Stream,
@@ -1346,4 +1347,63 @@ def test_stress_name_tree_insert_while_reading(name_tree_pdf_bytes):
         for i in writers:
             for n in range(per_thread):
                 item = tree[f'new{i}_{n:03d}']
+                assert (item.T, item.N) == (i, n)
+
+
+@pytest.fixture(scope='module')
+def number_tree_pdf_bytes():
+    """A saved Pdf with a number tree of N_TREE_KEYS entries at /Root/Numbers."""
+    pdf = Pdf.new()
+    pdf.add_blank_page()
+    tree = NumberTree.new(pdf)
+    for n in range(N_TREE_KEYS):
+        tree[n] = pdf.make_indirect(Dictionary(N=n))
+    pdf.Root.Numbers = tree.obj
+    out = BytesIO()
+    pdf.save(out)
+    return out.getvalue()
+
+
+def test_stress_number_tree_cold_reads(number_tree_pdf_bytes):
+    """Threads sharing one NumberTree of a cold file all read the same tree."""
+    expected = list(range(N_TREE_KEYS))
+    for _ in range(5):
+        with Pdf.open(BytesIO(number_tree_pdf_bytes)) as pdf:
+            tree = NumberTree(pdf.Root.Numbers)
+
+            def read(i, tree=tree):
+                for n in range(i, N_TREE_KEYS, 7):
+                    assert n in tree
+                    assert tree[n].N == n
+                assert -1 not in tree
+                assert len(tree) == N_TREE_KEYS
+                assert list(tree) == expected
+                assert list(tree.keys()) == expected
+
+            run_n(read)
+
+
+def test_stress_number_tree_insert_while_reading(number_tree_pdf_bytes):
+    """Inserting into a NumberTree while other threads read it loses nothing."""
+    per_thread = 40
+    with Pdf.open(BytesIO(number_tree_pdf_bytes)) as pdf:
+        tree = NumberTree(pdf.Root.Numbers)
+
+        def work(i):
+            if i % 2:
+                for n in range(per_thread):
+                    tree[1000 * i + n] = Dictionary(T=i, N=n)
+            else:
+                for _ in range(per_thread):
+                    for key in tree:
+                        assert isinstance(key, int)
+                    assert len(tree) >= N_TREE_KEYS
+                    assert tree[i].N == i
+
+        run_n(work)
+        writers = [i for i in range(N_THREADS) if i % 2]
+        assert len(tree) == N_TREE_KEYS + per_thread * len(writers)
+        for i in writers:
+            for n in range(per_thread):
+                item = tree[1000 * i + n]
                 assert (item.T, item.N) == (i, n)

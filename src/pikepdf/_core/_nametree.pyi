@@ -15,16 +15,26 @@ from typing import Any
 from pikepdf._core._object import Object, _ObjectMapping
 from pikepdf._core._qpdf import Pdf
 
-class NameTree(MutableMapping[str | bytes, Object]):
+class NameTree(MutableMapping[str, Object]):
     """An object for managing *name tree* data structures in PDFs.
 
-    A name tree is a key-value data structure. The keys are any binary strings
-    (that is, Python ``bytes``). If ``str`` selected is provided as a key,
-    the UTF-8 encoding of that string is tested. Name trees are (confusingly)
-    not indexed by ``pikepdf.Name`` objects. They behave like
-    ``DictMapping[bytes, pikepdf.Object]``.
+    A name tree is a key-value data structure whose keys, called names, are
+    PDF strings. Name trees are (confusingly) not indexed by ``pikepdf.Name``
+    objects. They behave like ``MutableMapping[str, pikepdf.Object]``.
 
-    The keys are sorted; pikepdf will ensure that the order is preserved.
+    Names are ``str``. libqpdf reads each name as a PDF text string, decoding
+    PDFDocEncoding or UTF-16 as the string indicates, and it orders, looks up
+    and writes names by that text. Iterating gives the decoded text, and a name
+    you add is written as PDFDocEncoding if it can be, and as UTF-16 otherwise.
+
+    The PDF specification defines the names as byte strings in any encoding,
+    compared byte by byte, so this is narrower than the specification. A name
+    tree whose names are not text, or that is ordered by the bytes of names
+    whose text sorts differently, cannot be read reliably through this class.
+    The undecoded strings can be read from the tree's nodes, starting at
+    :attr:`obj`.
+
+    The names are sorted; pikepdf will ensure that the order is preserved.
 
     The value may be any PDF object. Typically it will be a dictionary or array.
 
@@ -61,12 +71,12 @@ class NameTree(MutableMapping[str | bytes, Object]):
             pdf.Root.Names.Dests = nt.obj
         """
     def __contains__(self, name: object, /) -> bool: ...
-    def __delitem__(self, name: str | bytes, /) -> None: ...
+    def __delitem__(self, name: str, /) -> None: ...
     def __eq__(self, other: Any, /) -> bool: ...
-    def __getitem__(self, name: str | bytes, /) -> Object: ...
-    def __iter__(self) -> Iterator[bytes]: ...
+    def __getitem__(self, name: str, /) -> Object: ...
+    def __iter__(self) -> Iterator[str]: ...
     def __len__(self) -> int: ...
-    def __setitem__(self, name: str | bytes, o: Object, /) -> None: ...
+    def __setitem__(self, name: str, o: Object, /) -> None: ...
     def __init__(self, obj: Object, /, *, auto_repair: bool = ...) -> None: ...
     def _as_map(self) -> _ObjectMapping: ...
     @property
