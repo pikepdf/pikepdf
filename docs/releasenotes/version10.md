@@ -16,6 +16,12 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.17.1
+
+- Reading the label of a page whose page label style is an unknown name, such
+  as `/S /Z`, now warns and keeps the label prefix, as an invalid non-name
+  style already did. Previously it raised `KeyError`.
+
 ## v10.17.0
 
 - Added {class}`pikepdf.ObjectSet`, which records the objects that a walk of
