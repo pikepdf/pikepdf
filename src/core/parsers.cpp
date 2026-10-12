@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MPL-2.0
 
 #include "parsers.h"
+#include "locked_bindings.h"
 #include "pikepdf.h"
 
 #include <cmath>
@@ -79,6 +80,22 @@ ContentStreamInstruction::ContentStreamInstruction(
     check_objects_in_operands(operands);
 }
 
+static QPDF *first_owner(ObjectList const &objects)
+{
+    for (auto const &object : objects) {
+        if (auto *owner = object.getOwningQPDF())
+            return owner;
+    }
+    return nullptr;
+}
+
+QPDF *ContentStreamInstruction::owner() const
+{
+    if (auto *owner = operator_.getOwningQPDF())
+        return owner;
+    return first_owner(operands);
+}
+
 void append_unparsed(std::string &out, ContentStreamInstruction &csi)
 {
     for (QPDFObjectHandle &obj : csi.operands) {
@@ -86,6 +103,15 @@ void append_unparsed(std::string &out, ContentStreamInstruction &csi)
         out += ' ';
     }
     out += csi.operator_.unparse();
+}
+
+QPDF *ContentStreamInlineImage::owner() const
+{
+    if (auto *owner = resources.getOwningQPDF())
+        return owner;
+    if (auto *owner = image_data.getOwningQPDF())
+        return owner;
+    return first_owner(image_metadata);
 }
 
 py::object ContentStreamInlineImage::get_inline_image() const
@@ -512,9 +538,14 @@ private:
     ContentChecker const &checker_;
 };
 
+// The operator table and the limits are copied in when a checker is made, so
+// it holds nothing of any Pdf.
+template <>
+struct LockOwner<ContentChecker> : NoLock {};
+
+// Bound directly, as a locked binding: the Pdf of the stream is held.
 std::pair<py::list, size_t> ContentChecker::check(QPDFObjectHandle &stream) const
 {
-    QpdfLockGuard lock(stream.getOwningQPDF());
     QPDFObjectHandle resources;
     if (stream.isStream())
         resources = stream.getDict().getKey("/Resources");
@@ -647,13 +678,70 @@ static py::list scan_raw_content(py::bytes data_bytes, std::vector<py::bytes> im
     return problems;
 }
 
+// The operands given to the constructor of ContentStreamInstruction: any
+// iterable of values that encode to PDF objects.
+//
+// As with EncodedObject, the type caster does the conversion. Python code that
+// the iterable runs is then not run under a lock, and the Pdf that the
+// operands belong to is known by the time the locks are taken, so that the
+// constructor examines them with that Pdf held.
+class EncodedOperands {
+public:
+    EncodedOperands() = default;
+    explicit EncodedOperands(py::iterable const &operands)
+    {
+        try {
+            for (const auto &item : operands)
+                items_.emplace_back(objecthandle_encode(item));
+        } catch (...) {
+            error_ = std::current_exception();
+        }
+    }
+
+    // Raises whatever iterating or encoding raised
+    ObjectList const &get() const
+    {
+        if (error_)
+            std::rethrow_exception(error_);
+        return items_;
+    }
+
+    QPDF *owner() const { return error_ ? nullptr : first_owner(items_); }
+
+private:
+    ObjectList items_;
+    std::exception_ptr error_;
+};
+
+template <>
+struct LockOwner<EncodedOperands> {
+    static constexpr bool declared = true;
+    static constexpr bool locks = true;
+    static QPDF *of(EncodedOperands const &operands) { return operands.owner(); }
+};
+
+namespace nanobind {
+namespace detail {
+template <>
+struct type_caster<EncodedOperands> {
+    NB_TYPE_CASTER(EncodedOperands, const_name("collections.abc.Iterable"))
+
+    bool from_python(handle src, uint8_t, cleanup_list *) noexcept
+    {
+        if (!isinstance<iterable>(src))
+            return false;
+        value = EncodedOperands(borrow<iterable>(src));
+        return true;
+    }
+};
+} // namespace detail
+} // namespace nanobind
+
 void init_parsers(py::module_ &m)
 {
-    py::class_<ContentChecker>(m, "_ContentChecker")
-        .def(
-            "__init__",
-            [](ContentChecker *self,
-                py::dict operators,
+    locked_class_<ContentChecker>(m, "_ContentChecker")
+        .def_init(
+            [](py::dict operators,
                 py::dict handlers,
                 long long min_integer,
                 long long max_integer,
@@ -664,7 +752,7 @@ void init_parsers(py::module_ &m)
                 std::optional<size_t> max_array,
                 std::optional<size_t> max_dict,
                 int max_nesting) {
-                new (self) ContentChecker(operators,
+                return ContentChecker(operators,
                     handlers,
                     OperandLimits{min_integer,
                         max_integer,
@@ -689,55 +777,55 @@ void init_parsers(py::module_ &m)
             py::arg("max_dict").none(),
             py::arg("max_nesting"))
         .def("check", &ContentChecker::check, py::arg("stream"));
-    m.def("_scan_raw_content",
+    // Scans bytes; no Pdf is involved, so nothing is locked.
+    locked_module_(m).def("_scan_raw_content",
         &scan_raw_content,
         py::arg("data"),
         py::arg("inline_images"));
 
-    py::class_<ContentStreamInstruction>(
+    locked_class_<ContentStreamInstruction>(
         m, "ContentStreamInstruction", py::type_slots(pikepdf_gc_slots))
-        .def(py::init<const ContentStreamInstruction &>())
-        .def("__init__",
-            [](ContentStreamInstruction *self,
-                py::iterable operands,
-                QPDFObjectHandle operator_) {
-                ObjectList newlist;
-                for (const auto &item : operands) {
-                    newlist.emplace_back(objecthandle_encode(item));
-                }
-                new (self) ContentStreamInstruction(newlist, operator_);
-            })
-        .def_prop_ro(
-            "operator", [](ContentStreamInstruction &csi) { return csi.operator_; })
-        .def_prop_ro(
-            "operands", [](ContentStreamInstruction &csi) { return csi.operands; })
-        .def("__getitem__",
-            [](ContentStreamInstruction &csi, int index) {
-                if (index == 0 || index == -2)
-                    return py::cast(csi.operands);
-                else if (index == 1 || index == -1)
-                    return py::cast(csi.operator_);
-                throw py::index_error(
-                    (std::string("Invalid index ") + std::to_string(index)).c_str());
-            })
-        .def("__len__", [](ContentStreamInstruction &csi) { return 2; })
+        .def_constructor<const ContentStreamInstruction &>()
+        .def_init([](EncodedOperands const &operands, QPDFObjectHandle operator_) {
+            return ContentStreamInstruction(operands.get(), operator_);
+        })
+        // The four accessors that follow hand out the handles an instruction
+        // holds, without reading the objects, so they touch no Pdf and are
+        // registered unlocked: a loop over parsed instructions calls them for
+        // every one. The Pdf is locked where a handle is converted to Python,
+        // by the type caster.
+        .def_prop_ro("operator",
+            unlocked([](ContentStreamInstruction &csi) { return csi.operator_; }))
+        .def_prop_ro("operands",
+            unlocked([](ContentStreamInstruction &csi) { return csi.operands; }))
+        .def("__getitem__", unlocked([](ContentStreamInstruction &csi, int index) {
+            if (index == 0 || index == -2)
+                return py::cast(csi.operands);
+            else if (index == 1 || index == -1)
+                return py::cast(csi.operator_);
+            throw py::index_error(
+                (std::string("Invalid index ") + std::to_string(index)).c_str());
+        }))
+        .def("__len__", unlocked([](ContentStreamInstruction &csi) { return 2; }))
         .def("__repr__", [](ContentStreamInstruction &csi) {
             return "pikepdf.ContentStreamInstruction(" +
                    py::cast<std::string>(py::repr(py::cast(csi.operands))) + ", " +
                    objecthandle_repr(csi.operator_) + ")";
         });
 
-    py::class_<ContentStreamInlineImage>(
+    locked_class_<ContentStreamInlineImage>(
         m, "ContentStreamInlineImage", py::type_slots(pikepdf_gc_slots))
-        .def(py::init<const ContentStreamInlineImage &>())
-        .def("__init__",
-            [](ContentStreamInlineImage *self, py::object iimage) {
-                auto data = iimage.attr("_data");
-                auto image_object = iimage.attr("_image_object");
+        .def_constructor<const ContentStreamInlineImage &>()
+        .def_init([](OpaqueObject iimage) {
+            // A pikepdf.PdfInlineImage, which is a Python class, known here
+            // by the two attributes read from it. What they hold are direct
+            // objects taken from a content stream.
+            auto image_object =
+                py::cast<ObjectList>(iimage.object().attr("_image_object"));
+            auto data = py::cast<QPDFObjectHandle>(iimage.object().attr("_data"));
 
-                new (self) ContentStreamInlineImage(py::cast<ObjectList>(image_object),
-                    py::cast<QPDFObjectHandle>(data));
-            })
+            return ContentStreamInlineImage(image_object, data);
+        })
         .def_prop_ro("operator",
             [](ContentStreamInlineImage &csii) {
                 return QPDFObjectHandle::newOperator("INLINE IMAGE");

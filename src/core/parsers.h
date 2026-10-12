@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "locked_bindings.h"
 #include "pikepdf.h"
 
 #include <nanobind/trampoline.h>
@@ -29,6 +30,19 @@ public:
 
     ObjectList operands;
     QPDFObjectHandle operator_;
+
+    // The Pdf whose lock guards the operands and the operator, or nullptr.
+    // The objects of a parsed instruction are direct objects that qpdf
+    // associates with the Pdf of the content stream. One built in Python may
+    // hold objects of any Pdf, or of several; the first found is reported.
+    QPDF *owner() const;
+};
+
+template <>
+struct LockOwner<ContentStreamInstruction> {
+    static constexpr bool declared = true;
+    static constexpr bool locks = true;
+    static QPDF *of(ContentStreamInstruction const &csi) { return csi.owner(); }
 };
 
 class ContentStreamInlineImage {
@@ -51,7 +65,25 @@ public:
     QPDFObjectHandle get_operator() const;
 
     py::object get_inline_image() const;
+
+    // The Pdf whose lock guards the image and its resources, or nullptr.
+    // The resources are an object of the Pdf itself, and may be indirect.
+    QPDF *owner() const;
 };
+
+template <>
+struct LockOwner<ContentStreamInlineImage> {
+    static constexpr bool declared = true;
+    static constexpr bool locks = true;
+    static QPDF *of(ContentStreamInlineImage const &csii) { return csii.owner(); }
+};
+
+// A token filter holds no Pdf state: qpdf calls it with the tokens of
+// whichever stream is being filtered. This covers the base class that qpdf
+// defines and the classes derived from it in tokenfilter.cpp.
+template <typename T>
+struct LockOwner<T,
+    std::enable_if_t<std::is_base_of_v<QPDFObjectHandle::TokenFilter, T>>> : NoLock {};
 
 // Groups the objects of a content stream into instructions: operands followed
 // by their operator, or an inline image (BI ... ID data EI). Subclasses decide
