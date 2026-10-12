@@ -252,6 +252,11 @@ public:
         return h_;
     }
 
+    // False if the value has no PDF representation. For a comparison or a
+    // membership test, which answer "no" for such a value where get() would
+    // raise.
+    bool ok() const { return !error_; }
+
     // The Pdf to lock, or nullptr for an unowned or unconvertible value
     QPDF *owner() const { return error_ ? nullptr : h_.getOwningQPDF(); }
 
@@ -260,8 +265,41 @@ private:
     std::exception_ptr error_;
 };
 
+// A binding parameter for a Python object that the binding does not treat as
+// something a Pdf owns: a value handed back unchanged, such as the default of
+// a get(), a Python file object, or a key that the body tells apart by type.
+//
+// A locked binding cannot declare py::object or py::handle, because the code
+// that takes the locks could not tell what such a parameter refers to. Using
+// OpaqueObject says that it does not need to. If the body does turn the
+// object into a qpdf object of some Pdf, that Pdf is not locked: use
+// EncodedObject or the object's own type instead.
+class OpaqueObject {
+public:
+    OpaqueObject() = default;
+    explicit OpaqueObject(py::object object) : object_(std::move(object)) {}
+
+    py::object const &object() const { return object_; }
+    py::handle handle() const { return object_; }
+    bool is_none() const { return object_.is_none(); }
+
+private:
+    py::object object_;
+};
+
 namespace nanobind {
 namespace detail {
+template <>
+struct type_caster<OpaqueObject> {
+    NB_TYPE_CASTER(OpaqueObject, const_name("object"))
+
+    bool from_python(handle src, uint8_t, cleanup_list *) noexcept
+    {
+        value = OpaqueObject(borrow<object>(src));
+        return true;
+    }
+};
+
 template <>
 struct type_caster<EncodedObject> {
     NB_TYPE_CASTER(EncodedObject, const_name("object"))

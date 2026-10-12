@@ -23,7 +23,8 @@
 //  - A parameter may not be a bare py::object or py::handle, since nothing
 //    is known about what it refers to until the body has run. Declare what
 //    the binding accepts instead: an EncodedObject for any value that
-//    converts to a PDF object, or a specific type such as py::callable.
+//    converts to a PDF object, an OpaqueObject for one the binding does
+//    not treat as belonging to a Pdf, or a specific type such as py::callable.
 //    An EncodedObject built from a Python container can still hold objects
 //    of another Pdf below its top level; that Pdf is not locked.
 //  - The lock is released when the body returns. A return value that keeps
@@ -379,6 +380,35 @@ private:
     py::class_<T, Bases...> cls_;
 };
 
+// A module whose functions go through locked(), as locked_class_ does for the
+// methods of a class.
+class locked_module_ {
+public:
+    explicit locked_module_(py::module_ &m) : m_(m) {}
+
+    template <typename F, typename... Extra>
+    locked_module_ &def(const char *name, F &&f, const Extra &...extra)
+    {
+        m_.def(name, wrap(std::forward<F>(f)), extra...);
+        return *this;
+    }
+
+private:
+    template <typename F>
+    static auto wrap(F &&f)
+    {
+        return locked(std::forward<F>(f));
+    }
+
+    template <typename F>
+    static F wrap(Unlocked<F> f)
+    {
+        return std::move(f.f);
+    }
+
+    py::module_ &m_;
+};
+
 // The rules above, checked where they are stated.
 namespace locked_detail {
 struct Undeclared {};
@@ -390,6 +420,7 @@ static_assert(arg_locks<std::optional<QPDFObjectHandle>>);
 static_assert(!arg_locks<int *> && !arg_locks<std::optional<int>>);
 static_assert(!arg_locks<bool> && arg_locks<EncodedObject const &>);
 static_assert(arg_untyped<py::object> && arg_untyped<py::handle const &>);
+static_assert(!arg_untyped<OpaqueObject> && !arg_locks<OpaqueObject const &>);
 static_assert(!arg_untyped<py::callable> && !arg_untyped<QPDFObjectHandle>);
 static_assert(n_locking<QPDF &, bool, QPDFObjectHandle> == 2);
 } // namespace locked_detail
