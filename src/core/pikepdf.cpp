@@ -174,25 +174,34 @@ enum pikepdf_error_type {
     error_type_cpp,
 };
 
+static void replace_all(std::string &text, std::string_view from, std::string_view to)
+{
+    for (auto pos = text.find(from); pos != std::string::npos;
+        pos = text.find(from, pos + to.size()))
+        text.replace(pos, from.size(), to);
+}
+
+// Plain string replacement, not std::regex: constructing or using a regex
+// from several threads at once races on the locale's character cache.
 auto rewrite_qpdf_logic_error_msg(std::string msg)
 {
-    using match_replace = std::pair<std::regex, std::string>;
+    using match_replace = std::pair<std::string_view, std::string_view>;
 
-    const static std::vector<match_replace> replacements = {
+    static constexpr match_replace replacements[] = {
         // qpdf's ownership check fires when an object that belongs to another
         // Pdf is inserted. Point at both ways out: copy it, or build a new one.
-        match_replace{"Use QPDF::copyForeignObject to add objects from another file\\.",
+        {"Use QPDF::copyForeignObject to add objects from another file.",
             "Use pikepdf.copy_foreign to add objects from another file, or "
             "construct a new object."},
-        match_replace{"QPDF::copyForeign(?:Object)?", "pikepdf.copy_foreign"},
-        match_replace{"QPDFObjectHandle", "pikepdf.Object"},
-        match_replace{"QPDFPageObjectHelper", "pikepdf.Page"},
-        match_replace{"QPDF", "pikepdf.Pdf"},
+        {"QPDF::copyForeignObject", "pikepdf.copy_foreign"},
+        {"QPDF::copyForeign", "pikepdf.copy_foreign"},
+        {"QPDFObjectHandle", "pikepdf.Object"},
+        {"QPDFPageObjectHelper", "pikepdf.Page"},
+        {"QPDF", "pikepdf.Pdf"},
     };
 
-    for (auto [regex, replacement] : replacements) {
-        msg = std::regex_replace(msg, regex, replacement);
-    }
+    for (auto const &[from, to] : replacements)
+        replace_all(msg, from, to);
     return msg;
 }
 
@@ -201,9 +210,9 @@ auto translate_qpdf_logic_error(std::string msg)
     pikepdf_error_type errtype;
     msg = rewrite_qpdf_logic_error_msg(msg);
 
-    if (std::regex_search(msg, std::regex("pikepdf.copy_foreign")))
+    if (msg.find("pikepdf.copy_foreign") != std::string::npos)
         errtype = error_type_foreign;
-    else if (std::regex_search(msg, std::regex("pikepdf.")))
+    else if (msg.find("pikepdf.") != std::string::npos)
         errtype = error_type_pdferror;
     else
         errtype = error_type_cpp;
