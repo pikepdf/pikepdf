@@ -1,10 +1,9 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
+#include "locked_bindings.h"
 #include "object.h"
 #include "pikepdf.h"
-
-#include <nanobind/make_iterator.h>
 
 #include <qpdf/Constants.h>
 #include <qpdf/DLL.h>
@@ -16,7 +15,7 @@ using NameTree = QPDFNameTreeObjectHelper;
 
 void init_nametree(py::module_ &m)
 {
-    py::class_<NameTree, QPDFObjectHelper>(
+    locked_class_<NameTree, QPDFObjectHelper>(
         m, "NameTree", py::type_slots(pikepdf_gc_slots))
         .def(
             "__init__",
@@ -75,14 +74,16 @@ void init_nametree(py::module_ &m)
                 if (!result)
                     throw py::key_error(name.c_str());
             })
-        .def(
-            "__iter__",
-            [](py::handle self) {
-                auto &nt = py::cast<NameTree &>(self);
-                return py::make_key_iterator(
-                    py::type<NameTree>(), "key_iterator", nt.begin(), nt.end());
-            },
-            py::keep_alive<0, 1>())
+        .def("__iter__",
+            [](NameTree &nt) {
+                // The names as they are now. An iterator over the tree itself
+                // would go on reading the Pdf after this returns, without the
+                // lock, and would be invalidated by a change to the tree.
+                py::list names;
+                for (auto it = nt.begin(); it != nt.end(); ++it)
+                    names.append(py::cast((*it).first));
+                return py::iter(names);
+            })
         .def(
             "_as_map",
             [](NameTree &nt) { return nt.getAsMap(); },

@@ -67,6 +67,12 @@ the architecture notes on thread safety.
 - Free-threaded Python: fixed a data race on the source `Pdf` when a page was
   appended, inserted or assigned into the page list of another `Pdf`. Both
   documents are now locked, as `pages.extend()` already did.
+- Free-threaded Python: fixed crashes when threads used the same
+  {class}`pikepdf.NameTree` at once. None of its methods held the lock of the
+  `Pdf`.
+- Iterating over a {class}`pikepdf.NameTree` now iterates over the names it
+  had when the iteration began. Previously the tree was read as the iteration
+  went on, so changing it meanwhile gave undefined results.
 - The test suite now runs under ThreadSanitizer on free-threaded Python in
   continuous integration, which is how the fixes above were found.
 

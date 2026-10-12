@@ -31,6 +31,7 @@ from pikepdf import (
     Array,
     Dictionary,
     Name,
+    NameTree,
     Object,
     Pdf,
     Stream,
@@ -1276,3 +1277,73 @@ def test_stress_open_save_close_many_pdfs(tmp_path):
                 assert str(check.docinfo['/Title']) == f'thread {i} round {n}'
 
     run_n(work)
+
+
+N_TREE_KEYS = 200
+
+
+def name_tree_key(n):
+    return f'key{n:04d}'
+
+
+@pytest.fixture(scope='module')
+def name_tree_pdf_bytes():
+    """A saved Pdf with a name tree of N_TREE_KEYS entries at /Root/Names/Dests."""
+    pdf = Pdf.new()
+    pdf.add_blank_page()
+    tree = NameTree.new(pdf)
+    for n in range(N_TREE_KEYS):
+        tree[name_tree_key(n)] = pdf.make_indirect(Dictionary(N=n))
+    pdf.Root.Names = pdf.make_indirect(Dictionary(Dests=tree.obj))
+    out = BytesIO()
+    pdf.save(out)
+    return out.getvalue()
+
+
+def test_stress_name_tree_cold_reads(name_tree_pdf_bytes):
+    """Threads sharing one NameTree of a cold file all read the same tree.
+
+    Nothing has been resolved when the threads start, so every lookup makes
+    qpdf read the file and fill the tree's cache.
+    """
+    expected = [name_tree_key(n) for n in range(N_TREE_KEYS)]
+    for _ in range(5):
+        with Pdf.open(BytesIO(name_tree_pdf_bytes)) as pdf:
+            tree = NameTree(pdf.Root.Names.Dests)
+
+            def read(i, tree=tree):
+                for n in range(i, N_TREE_KEYS, 7):
+                    assert name_tree_key(n) in tree
+                    assert tree[name_tree_key(n)].N == n
+                assert 'absent' not in tree
+                assert len(tree) == N_TREE_KEYS
+                assert list(tree) == expected
+                assert list(tree.keys()) == expected
+
+            run_n(read)
+
+
+def test_stress_name_tree_insert_while_reading(name_tree_pdf_bytes):
+    """Inserting into a NameTree while other threads read it loses nothing."""
+    per_thread = 40
+    with Pdf.open(BytesIO(name_tree_pdf_bytes)) as pdf:
+        tree = NameTree(pdf.Root.Names.Dests)
+
+        def work(i):
+            if i % 2:
+                for n in range(per_thread):
+                    tree[f'new{i}_{n:03d}'] = Dictionary(T=i, N=n)
+            else:
+                for _ in range(per_thread):
+                    for key in tree:
+                        assert key.startswith(('key', 'new'))
+                    assert len(tree) >= N_TREE_KEYS
+                    assert tree[name_tree_key(i)].N == i
+
+        run_n(work)
+        writers = [i for i in range(N_THREADS) if i % 2]
+        assert len(tree) == N_TREE_KEYS + per_thread * len(writers)
+        for i in writers:
+            for n in range(per_thread):
+                item = tree[f'new{i}_{n:03d}']
+                assert (item.T, item.N) == (i, n)
