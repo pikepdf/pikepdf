@@ -67,15 +67,27 @@ the architecture notes on thread safety.
 - Free-threaded Python: fixed a data race on the source `Pdf` when a page was
   appended, inserted or assigned into the page list of another `Pdf`. Both
   documents are now locked, as `pages.extend()` already did.
-- Free-threaded Python: fixed crashes and data races when threads used the
-  name trees, number trees, attachments, annotations or interactive form of
-  the same `Pdf` at once. Almost none of the methods of
+- Free-threaded Python: every binding of a class that reads or changes a `Pdf`
+  now takes that `Pdf`'s lock, and the lock of every other `Pdf` among its
+  arguments, in an order that cannot deadlock. The bindings are generated in a
+  way that will not compile otherwise. Previously each binding took the lock
+  by hand, and many did not: almost none of the methods of
   {class}`pikepdf.NameTree`, {class}`pikepdf.NumberTree`,
   {class}`pikepdf.Attachments`, {class}`pikepdf.AttachedFileSpec`,
   {class}`pikepdf.AttachedFile`, {class}`pikepdf.Annotation`,
-  {class}`pikepdf.AcroForm` and {class}`pikepdf.AcroFormField` held the lock
-  of the `Pdf`. The bindings of these classes are now generated in a way that
-  will not compile unless every one of them takes that lock.
+  {class}`pikepdf.AcroForm` and {class}`pikepdf.AcroFormField`, and a number
+  of those of {class}`pikepdf.Object`, {class}`pikepdf.Pdf`, the page list,
+  content stream instructions and token filters. This fixes crashes and data
+  races when threads use the same `Pdf`, including a crash when a page of one
+  `Pdf` was added to another while a thread used the first, pages skipped or
+  repeated when threads shared one iterator over `Pdf.pages`, and a crash on
+  looking up a key in a dictionary that belongs to no `Pdf` but holds an
+  object of one.
+- Free-threaded Python: fixed a data race when two threads raised
+  {class}`pikepdf.ForeignObjectError` at once.
+- A `progress` argument to {meth}`pikepdf.Pdf.save` that is not callable is
+  now rejected with `TypeError` before anything is written. Previously the
+  error was raised part of the way through writing the file.
 - Fixed a small memory leak each time
   {meth}`pikepdf.AcroForm.get_fields_with_qualified_name` or
   {meth}`pikepdf.AcroForm.fix_copied_annotations` returned a field.

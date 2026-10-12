@@ -90,10 +90,11 @@ files = "^src/.*\\.(cpp|h|hpp)$"
 
 # Bindings registered through locked_class_ hold the lock of every Pdf they
 # touch (see src/core/locked_bindings.h). Files that have been converted are
-# listed here so that a plain py::class_ cannot come back into them.
+# listed here so that a plain py::class_ cannot come back into them. The files
+# not listed bind classes that hold no Pdf state.
 [[repos.hooks]]
 id = "cpp-locked-class"
 name = "C++: locked_class_ rather than py::class_"
 language = "pygrep"
 entry = "py::class_<"
-files = "^src/core/(acroform|annotation|embeddedfiles|nametree|numbertree)\\.cpp$"
+files = "^src/core/(acroform|annotation|embeddedfiles|nametree|numbertree|object|object_arithmetic|object_methods|page|parsers|qpdf|qpdf_pagelist|tokenfilter|traversal)\\.cpp$"

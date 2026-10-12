@@ -128,7 +128,7 @@ jobs:
       # one process so that nothing but pikepdf's own threads is competing.
       - name: Run threading stress tests
         run: |
-          python -m pytest -n0 -v --timeout=600 tests/test_threading.py
+          python -m pytest -n0 -v --timeout=600 tests/test_threading*.py
 
       # The rest of the suite is single-threaded for the most part, but it
       # covers far more of the extension, and TSan also catches misuse such as
@@ -136,7 +136,7 @@ jobs:
       # times slower than usual.
       - name: Run the rest of the test suite
         run: |
-          python -m pytest -n auto --timeout=600 --ignore=tests/test_threading.py tests
+          python -m pytest -n auto --timeout=600 --ignore-glob='tests/test_threading*.py' tests
 
       - name: Fail if TSan reported anything
         if: ${{ !cancelled() }}
