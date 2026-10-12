@@ -67,7 +67,7 @@ class Page:
         rect: Rectangle | None,
         *,
         push_stack: bool | None = ...,
-    ):
+    ) -> Name:
         """Overlay another object on this page.
 
         Overlays will be drawn after all previous content, potentially drawing on top
@@ -108,7 +108,7 @@ class Page:
             Returns the name of the overlay in the resources dictionary instead
             of returning None.
         """
-    def add_underlay(self, other: Object | Page, rect: Rectangle | None):
+    def add_underlay(self, other: Object | Page, rect: Rectangle | None) -> Name:
         """Underlay another object beneath this page.
 
         Underlays will be drawn before all other content, so they may be overdrawn

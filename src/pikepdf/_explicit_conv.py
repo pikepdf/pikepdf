@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 # Conversion mode API
+from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Literal
 
@@ -15,7 +16,7 @@ if TYPE_CHECKING:
 
 
 @contextmanager
-def _thread_conversion_mode(explicit: bool):
+def _thread_conversion_mode(explicit: bool) -> Iterator[None]:
     """Push a thread-local conversion mode override and undo it on exit.
 
     The push returns a token identifying the depth of the override stack before
@@ -98,7 +99,7 @@ def get_object_conversion_mode(
 
 
 @contextmanager
-def explicit_conversion():
+def explicit_conversion() -> Iterator[None]:
     """Context manager for explicit conversion mode.
 
     Within this context, PDF scalar values will be returned as
@@ -125,7 +126,7 @@ def explicit_conversion():
 
 
 @contextmanager
-def implicit_conversion():
+def implicit_conversion() -> Iterator[None]:
     """Context manager for implicit conversion mode.
 
     Within this context, PDF scalar values are automatically converted to

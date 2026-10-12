@@ -7,15 +7,16 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Generator, Sequence
+from collections.abc import Generator, Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import cast
+from typing import Any, cast
 
 from pikepdf import (
     AcroForm,
     AcroFormField,
+    Annotation,
     Array,
     Dictionary,
     FormFieldFlag,
@@ -26,6 +27,7 @@ from pikepdf import (
     Page,
     Pdf,
     Rectangle,
+    Stream,
     String,
     parse_content_stream,
 )
@@ -35,7 +37,7 @@ from pikepdf.canvas import ContentStreamBuilder, SimpleFont
 log = logging.getLogger(__name__)
 
 
-class MultipleFieldProxy(list):
+class MultipleFieldProxy(list['_FieldWrapper']):
     """A list of fields that share the same name.
 
     Behaves like a list, allowing access to all duplicate fields.
@@ -43,10 +45,10 @@ class MultipleFieldProxy(list):
     to maintain backward compatibility with code expecting a single field.
     """
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         return getattr(self[0], name)
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: object) -> None:
         # If the attribute exists on the first field, proxy the write to it
         if len(self) > 0 and hasattr(self[0], name):
             setattr(self[0], name, value)
@@ -54,7 +56,7 @@ class MultipleFieldProxy(list):
             # Otherwise set it on the list object (e.g. internal python stuff)
             super().__setattr__(name, value)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<MultipleFieldProxy: {super().__repr__()}>"
 
 
@@ -95,8 +97,8 @@ class Form:
         pdf: Pdf,
         generate_appearances: type[AppearanceStreamGenerator] | None = None,
         *,
-        ignore_max_length=False,
-    ):
+        ignore_max_length: bool = False,
+    ) -> None:
         """Initialize the form."""
         self._pdf = pdf
         self._acroform = pdf.acroform
@@ -105,10 +107,10 @@ class Form:
             self.generate_appearances = generate_appearances(self._pdf, self._acroform)
         self.ignore_max_length = ignore_max_length
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         return getattr(self._acroform, name)
 
-    def __getitem__(self, name: str):
+    def __getitem__(self, name: str) -> _FieldWrapper | MultipleFieldProxy:
         if name in self._cache:
             return self._cache[name]
         fields = self._acroform.get_fields_with_qualified_name(name)
@@ -123,7 +125,7 @@ class Form:
 
         return self._wrap(fields[0], name)
 
-    def __contains__(self, name: str):
+    def __contains__(self, name: str) -> bool:
         try:
             self.__getitem__(name)
             return True
@@ -169,7 +171,7 @@ class Form:
                 seen.add(name)
                 yield name, self._wrap(field, name)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[_FieldWrapper | MultipleFieldProxy]:
         for name, item in self.items():
             yield item
 
@@ -201,11 +203,11 @@ class _FieldWrapper:
     to the underlying field object.
     """
 
-    def __init__(self, form: Form, field: AcroFormField):
+    def __init__(self, form: Form, field: AcroFormField) -> None:
         self._form = form
         self._field = field
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         return getattr(self._field, name)
 
     @property
@@ -302,7 +304,7 @@ class TextField(_FieldWrapper):
         return self._field.value_as_string
 
     @value.setter
-    def value(self, value: str):
+    def value(self, value: str) -> None:
         # Coerce the value into something acceptable if it isn't
         if not self.is_multiline:
             value = value.replace('\n', '')
@@ -344,7 +346,7 @@ class CheckboxField(_FieldWrapper):
     @property
     def value(self) -> Name | None:
         """The actual current stored value of this checkbox."""
-        return self._field.value
+        return cast('Name | None', self._field.value)
 
     @property
     def checked(self) -> bool:
@@ -352,7 +354,7 @@ class CheckboxField(_FieldWrapper):
         return self._field.is_checked
 
     @checked.setter
-    def checked(self, checked: bool):
+    def checked(self, checked: bool) -> None:
         if checked:
             states = set(self._field.obj.AP.N.keys())
             states.discard(str(Name.Off))
@@ -367,7 +369,7 @@ class RadioButtonGroup(_FieldWrapper):
     """Represents a radio button group."""
 
     @property
-    def can_toggle_off(self):
+    def can_toggle_off(self) -> bool:
         """If radio buttons in this group are allowed to be togged off."""
         return not self._field.flags & FormFieldFlag.btn_no_toggle_off
 
@@ -395,10 +397,10 @@ class RadioButtonGroup(_FieldWrapper):
     @property
     def value(self) -> Name | None:
         """The value of the currently selected option."""
-        return self._field.value
+        return cast('Name | None', self._field.value)
 
     @value.setter
-    def value(self, value: Name):
+    def value(self, value: Name) -> None:
         if value == Name.Off and not self.can_toggle_off:
             raise ValueError('To uncheck a radio button, check another.')
         if self._field.parent is None:
@@ -424,7 +426,7 @@ class RadioButtonGroup(_FieldWrapper):
     @property
     def selected(self) -> RadioButtonOption | None:
         """The currently selected option."""
-        value = self._field.value
+        value = cast('Name | None', self._field.value)
         if value is None or value == Name.Off:
             return None
         if Name.Kids not in self._field.obj:
@@ -436,7 +438,7 @@ class RadioButtonGroup(_FieldWrapper):
         return None
 
     @selected.setter
-    def selected(self, option: RadioButtonOption):
+    def selected(self, option: RadioButtonOption) -> None:
         if option._group is not self:
             raise ValueError('Option does not belong to this group')
         self.value = option.on_value
@@ -448,7 +450,9 @@ class RadioButtonOption:
     _group: RadioButtonGroup
     _annot_dict: Dictionary
 
-    def __init__(self, group: RadioButtonGroup, annot_dict: Dictionary, index: int):
+    def __init__(
+        self, group: RadioButtonGroup, annot_dict: Dictionary, index: int
+    ) -> None:
         """Create a new option for a radio button group."""
         self._group = group
         self._annot_dict = annot_dict
@@ -471,7 +475,7 @@ class RadioButtonOption:
                 return Name(name)
         raise RuntimeError("Radio button has no on state")
 
-    def select(self):
+    def select(self) -> None:
         """Mark this as the selected option."""
         self._group.value = self.on_value
 
@@ -481,7 +485,7 @@ class RadioButtonOption:
         return self.on_value == self._group.value
 
     @checked.setter
-    def checked(self, value: bool):
+    def checked(self, value: bool) -> None:
         if value:
             self._group.value = self.on_value
         else:
@@ -563,7 +567,7 @@ class ChoiceField(_FieldWrapper):
         return ChoiceFieldOption(self, String(self.value), None)
 
     @selected.setter
-    def selected(self, option: ChoiceFieldOption):
+    def selected(self, option: ChoiceFieldOption) -> None:
         if option._field is not self:
             raise ValueError('Option does not belong to this field')
         # The PDF spec uses some language which makes me believe that it may still be
@@ -587,7 +591,7 @@ class ChoiceField(_FieldWrapper):
         return None
 
     @value.setter
-    def value(self, value: str | None):
+    def value(self, value: str | None) -> None:
         if not self.allow_edit:
             # Prevent setting a value not in the option list, unless the field is
             # editable
@@ -599,7 +603,8 @@ class ChoiceField(_FieldWrapper):
                     break
             if not okay:
                 raise ValueError("Not a valid option for this choice field:", value)
-        self._field.set_value(value, self._form.generate_appearances is None)
+        # None is not accepted by set_value and raises TypeError
+        self._field.set_value(value, self._form.generate_appearances is None)  # type: ignore[arg-type]
         # Generate appearance streams if requested.
         if self._form.generate_appearances is not None:
             self._form.generate_appearances.generate_choice(self._field)
@@ -608,14 +613,16 @@ class ChoiceField(_FieldWrapper):
 class ChoiceFieldOption:
     """Represents a single option for a choice field."""
 
-    def __init__(self, field: ChoiceField, opt: String | Array, index: int | None):
+    def __init__(
+        self, field: ChoiceField, opt: String | Array, index: int | None
+    ) -> None:
         """Create a new option for a choice field."""
         self._field = field
         self._opt = opt
         self._index = index
 
     @property
-    def display_value(self):
+    def display_value(self) -> Object:
         """The value that will be displayed on-screen to the user in a PDF reader."""
         if isinstance(self._opt, Array):
             return self._opt[1]
@@ -623,7 +630,7 @@ class ChoiceFieldOption:
             return self._opt
 
     @property
-    def export_value(self):
+    def export_value(self) -> Object:
         """The value that will be used when exporting data from this form."""
         if isinstance(self._opt, Array):
             return self._opt[0]
@@ -650,7 +657,7 @@ class ChoiceFieldOption:
         """
         return self._index is not None
 
-    def select(self):
+    def select(self) -> None:
         """Set this option as the selected option."""
         self._field.selected = self
 
@@ -718,7 +725,7 @@ class SignatureField(_FieldWrapper):
         self,
         rect: Rectangle,
         expand_by: int | float | Decimal | Sequence[int | float | Decimal] | None,
-    ):
+    ) -> Rectangle:
         if expand_by is None:
             return rect
         expand: tuple[
@@ -751,17 +758,17 @@ class AppearanceStreamGenerator(ABC):
     pdf: Pdf
     form: AcroForm
 
-    def __init__(self, pdf: Pdf, form: AcroForm):
+    def __init__(self, pdf: Pdf, form: AcroForm) -> None:
         """Initialize the appearance stream generator."""
         self.pdf = pdf
         self.form = form
 
     @abstractmethod
-    def generate_text(self, field: AcroFormField):
+    def generate_text(self, field: AcroFormField) -> None:
         """Generate the appearance stream for a text field."""
 
     @abstractmethod
-    def generate_choice(self, field: AcroFormField):
+    def generate_choice(self, field: AcroFormField) -> None:
         """Generate the appearance stream for a choice field."""
 
 
@@ -794,12 +801,12 @@ class DefaultAppearanceStreamGenerator(AppearanceStreamGenerator):
     features you need.
     """
 
-    def generate_text(self, field: AcroFormField):
+    def generate_text(self, field: AcroFormField) -> None:
         """Generate the appearance stream for a text field."""
         for annot in self.form.get_annotations_for_field(field):
             field.generate_appearance(annot)
 
-    def generate_choice(self, field: AcroFormField):
+    def generate_choice(self, field: AcroFormField) -> None:
         """Generate the appearance stream for a choice field."""
         for annot in self.form.get_annotations_for_field(field):
             field.generate_appearance(annot)
@@ -828,7 +835,7 @@ class ExtendedAppearanceStreamGenerator(DefaultAppearanceStreamGenerator):
     rather than C++, so will also be less performant.
     """
 
-    def generate_text(self, field: AcroFormField):
+    def generate_text(self, field: AcroFormField) -> None:
         """Generate the appearance stream for a text field."""
         if field.flags & FormFieldFlag.tx_multiline:
             _text_appearance_multiline(self.pdf, self.form, field)
@@ -855,7 +862,7 @@ class ExtendedAppearanceStreamGenerator(DefaultAppearanceStreamGenerator):
 # * https://github.com/qpdf/qpdf/blob/81823f4032caefd1050bccb207d315839c1c48db/libqpdf/QPDFFormFieldObjectHelper.cc#L746
 
 
-def _text_appearance_multiline(pdf: Pdf, form: AcroForm, field: AcroFormField):
+def _text_appearance_multiline(pdf: Pdf, form: AcroForm, field: AcroFormField) -> None:
     da_info = _DaInfo.decode_for_field(field)
     for annot in form.get_annotations_for_field(field):
         # There is likely only one annot, but we have to allow for multiple
@@ -881,7 +888,7 @@ def _text_appearance_multiline(pdf: Pdf, form: AcroForm, field: AcroFormField):
         _apply_appearance_stream(pdf, annot, cs, bbox, da_info)
 
 
-def _text_appearance_combed(pdf: Pdf, form: AcroForm, field: AcroFormField):
+def _text_appearance_combed(pdf: Pdf, form: AcroForm, field: AcroFormField) -> None:
     da_info = _DaInfo.decode_for_field(field)
     for annot in form.get_annotations_for_field(field):
         # There is likely only one annot, but we have to allow for multiple
@@ -909,12 +916,19 @@ def _text_appearance_combed(pdf: Pdf, form: AcroForm, field: AcroFormField):
                 # Unbox: in explicit conversion mode /MaxLen is a
                 # pikepdf.Integer, and dividing a Decimal by one of those
                 # yields a pikepdf.Real rather than a Decimal.
-                int(field.get_inheritable_field_value("/MaxLen")),
+                # A comb field without /MaxLen raises TypeError here
+                int(field.get_inheritable_field_value("/MaxLen")),  # type: ignore[arg-type]
             )
         _apply_appearance_stream(pdf, annot, cs, bbox, da_info)
 
 
-def _apply_appearance_stream(pdf, annot, cs, bbox, da_info):
+def _apply_appearance_stream(
+    pdf: Pdf,
+    annot: Annotation,
+    cs: ContentStreamBuilder,
+    bbox: Rectangle,
+    da_info: _DaInfo,
+) -> None:
     """Convert content stream to a Form XObject and save in annotation.
 
     The appearance stream is saved in the annotation dictionary (AP) under the normal
@@ -1007,7 +1021,7 @@ class _DaInfo:
 
 
 @contextmanager
-def _text_stream_builder(da: bytes):
+def _text_stream_builder(da: bytes) -> Generator[ContentStreamBuilder]:
     """Utility to build text content streams for variable text fields.
 
     Example:
@@ -1039,7 +1053,7 @@ def _text_stream_builder(da: bytes):
 
 def _layout_multiline_text(
     content: ContentStreamBuilder, text: str, da_info: _DaInfo, bbox: Rectangle
-):
+) -> None:
     r"""Lay out the given text, wrapping at the edges of the bounding box.
 
     This layout algorithm is incomplete and somewhat rudimentary, but should produce
@@ -1101,7 +1115,7 @@ def _layout_combed_text(
     da_info: _DaInfo,
     bbox: Rectangle,
     max_length: int | Decimal,
-):
+) -> None:
     """Lay out text, spacing characters evenly according to comb size.
 
     This layout algorithm is incomplete and somewhat rudimentary, but should produce
@@ -1135,7 +1149,7 @@ def _layout_combed_text(
 
 def _create_form_xobject(
     pdf: Pdf, bbox: Rectangle, content: ContentStreamBuilder, resources: Dictionary
-):
+) -> Stream:
     """Convert a content stream into a Form XObject."""
     return pdf.make_stream(
         content.build(),

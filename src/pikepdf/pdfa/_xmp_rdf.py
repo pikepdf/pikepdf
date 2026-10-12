@@ -84,7 +84,8 @@ class XmpTables(TypedDict):
 @cache
 def tables() -> XmpTables:
     """Return the XMP property tables in ``data/xmp_properties.json``."""
-    return load_json('xmp_properties.json')
+    data: XmpTables = load_json('xmp_properties.json')
+    return data
 
 
 def property_table(flavour: Flavour) -> dict[str, dict[str, str]]:
@@ -421,7 +422,7 @@ class _Reader:
                     qualified = True
             if _elements(li) or _has_special_nodes(li):
                 simple = False
-            items.append(cast(str, li.text or ''))
+            items.append(li.text or '')
             langs.append(cast("str | None", lang))
         return Value(
             kind,  # type: ignore[arg-type]

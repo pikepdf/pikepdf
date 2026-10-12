@@ -34,7 +34,7 @@ def parse_xml(source: AnyStr | IO[Any], recover: bool = False) -> _ElementTree:
     return _parse(source, parser=parser)
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     if name in {'_Element', '_ElementTree'}:
         from lxml import etree
 

@@ -44,10 +44,14 @@ TERMINAL_FILTERS = frozenset(
 )
 
 
-def _array_str(value: Object | str | list):
-    """Simplify pikepdf objects to array of str. Keep streams, dictionaries intact."""
+def _array_str(value: Object | str | list[Any]) -> list[Any]:
+    """Simplify pikepdf objects to array of str. Keep streams, dictionaries intact.
 
-    def _convert(item):
+    The result is heterogeneous: names become str, strings become bytes,
+    arrays become nested lists, and numbers, streams and dictionaries are kept.
+    """
+
+    def _convert(item: Any) -> Any:
         # Unbox first, so a PDF number or boolean is the same native value
         # whichever conversion mode delivered it.
         item = unbox(item)
@@ -80,7 +84,7 @@ def _ensure_list(value: list[Object] | Dictionary | Array | Object) -> list[Obje
     return list(value.wrap_in_array().as_list())
 
 
-def _array_list(value: Any) -> list:
+def _array_list(value: Any) -> list[Any]:
     """Return the items of an array-valued entry such as /Decode.
 
     Any value other than an array is malformed, so treat it as absent.
@@ -92,7 +96,7 @@ def _array_list(value: Any) -> list:
     return []
 
 
-def _decodeparms_list(value: Any) -> list:
+def _decodeparms_list(value: Any) -> list[Any]:
     """Normalize /DecodeParms to a list with one entry per filter.
 
     /DecodeParms may be a dictionary (for a single filter) or an array. Any

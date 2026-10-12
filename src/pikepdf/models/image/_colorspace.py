@@ -15,7 +15,7 @@ unchanged: the property the function reads is the overridden one.
 from __future__ import annotations
 
 from io import BytesIO
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from pikepdf.models import _cal_icc
 from pikepdf.models._image_exceptions import UnsupportedImageTypeError
@@ -24,7 +24,7 @@ from pikepdf.models.image._shared import (
     PaletteData,
     _array_list,
 )
-from pikepdf.objects import Dictionary
+from pikepdf.objects import Dictionary, Object
 
 if TYPE_CHECKING:
     from PIL.ImageCms import ImageCmsProfile
@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 
 def decode_array(pim: PdfImageBase) -> DecodeArray:
     """Extract the /Decode array."""
-    decode: list = pim._metadata('Decode', _array_list, [])
+    decode: list[Any] = pim._metadata('Decode', _array_list, [])
     if decode and len(decode) in (2, 6, 8):
         return cast(DecodeArray, tuple(float(value) for value in decode))
 
@@ -97,7 +97,8 @@ def colorspace(pim: PdfImageBase) -> str | None:
         return None  # Undefined for image masks
     if pim._colorspaces:
         if pim._colorspaces[0] in pim.MAIN_COLORSPACES:
-            return pim._colorspaces[0]
+            main: str = pim._colorspaces[0]
+            return main
         if pim._colorspaces[0] == '/Indexed':
             subspace = pim._colorspaces[1]
             if isinstance(subspace, str) and subspace in pim.MAIN_COLORSPACES:
@@ -109,7 +110,8 @@ def colorspace(pim: PdfImageBase) -> str | None:
                 '/CalRGB',
                 '/Lab',
             ):
-                return subspace[0]
+                base: str = subspace[0]
+                return base
         if pim._colorspaces[0] == '/DeviceN':
             return '/DeviceN'
 
@@ -118,7 +120,7 @@ def colorspace(pim: PdfImageBase) -> str | None:
     )
 
 
-def colorspace_has_name(pim: PdfImageBase, name) -> bool:
+def colorspace_has_name(pim: PdfImageBase, name: str) -> bool:
     """Return True if the (base) colorspace references *name*."""
     try:
         cs = pim._colorspaces
@@ -221,13 +223,16 @@ def palette(pim: PdfImageBase) -> PaletteData | None:
     return PaletteData(base, lookup)
 
 
-def iccstream(pim: PdfImage):
+def iccstream(pim: PdfImage) -> Object:
     """Locate the ICC profile stream within an ICCBased colorspace."""
+    stream: Object
     if pim.colorspace == '/ICCBased':
         if not pim.indexed:
-            return pim._colorspaces[1]
+            stream = pim._colorspaces[1]
+            return stream
         assert isinstance(pim._colorspaces[1], list)
-        return pim._colorspaces[1][1]
+        stream = pim._colorspaces[1][1]
+        return stream
     raise NotImplementedError("Don't know how to find ICC stream for image")
 
 

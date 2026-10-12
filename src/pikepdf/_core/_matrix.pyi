@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
 from typing import TYPE_CHECKING, Any, overload
 
 from pikepdf._core._object import Object, _ObjectList
@@ -89,7 +90,7 @@ class Matrix:
     """
 
     @overload
-    def __init__(self):
+    def __init__(self) -> None:
         """Construct an identity matrix."""
     @overload
     def __init__(
@@ -134,7 +135,7 @@ class Matrix:
         """Return the 6-tuple (a,b,c,d,e,f) that describes this matrix."""
     def encode(self) -> bytes:
         """Encode matrix to bytes suitable for including in a PDF content stream."""
-    def translated(self, tx, ty, /) -> Matrix:
+    def translated(self, tx: float | Decimal, ty: float | Decimal, /) -> Matrix:
         """Return a translated copy of this matrix.
 
         Calculates ``Matrix(1, 0, 0, 1, tx, ty) @ self``.
@@ -143,7 +144,7 @@ class Matrix:
             tx: horizontal translation
             ty: vertical translation
         """
-    def scaled(self, sx, sy, /) -> Matrix:
+    def scaled(self, sx: float | Decimal, sy: float | Decimal, /) -> Matrix:
         """Return a scaled copy of this matrix.
 
         Calculates ``Matrix(sx, 0, 0, sy, 0, 0) @ self``.
@@ -152,7 +153,7 @@ class Matrix:
             sx: horizontal scaling
             sy: vertical scaling
         """
-    def rotated(self, angle_degrees_ccw) -> Matrix:
+    def rotated(self, angle_degrees_ccw: float | Decimal) -> Matrix:
         """Return a rotated copy of this matrix.
 
         Calculates

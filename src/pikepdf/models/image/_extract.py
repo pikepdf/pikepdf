@@ -43,7 +43,7 @@ if TYPE_CHECKING:
     from pikepdf.models.image._classes import PdfImage
 
 
-def remove_simple_filters(pim: PdfImage):
+def remove_simple_filters(pim: PdfImage) -> tuple[bytes, list[str]]:
     """Strip generalized/specialized filters, leaving the terminal codec.
 
     Returns ``(data, remaining_filters)``. Any number of simple
@@ -350,7 +350,8 @@ def extract_transcoded(pim: PdfImage) -> Image.Image:
     # Note: /Decode is applied by as_pil_image (the pixel-space chokepoint),
     # not here, so that it is applied exactly once across all code paths.
     if pim.colorspace == '/ICCBased' and pim.icc is not None:
-        im.info['icc_profile'] = pim.icc.tobytes()
+        # types-Pillow leaves ImageCmsProfile.tobytes unannotated
+        im.info['icc_profile'] = pim.icc.tobytes()  # type: ignore[no-untyped-call]
     else:
         cal_icc = pim._synthesize_cal_icc()
         if cal_icc is not None:

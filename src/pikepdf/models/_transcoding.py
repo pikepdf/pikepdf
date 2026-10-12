@@ -116,7 +116,9 @@ def _4bit_inner_loop(in_: BytesLike, out: MutableBytesLike, scale: int) -> None:
     _unpack_subbyte_4bit(in_, out, scale)
 
 
-def image_from_byte_buffer(buffer: BytesLike, size: tuple[int, int], stride: int):
+def image_from_byte_buffer(
+    buffer: BytesLike, size: tuple[int, int], stride: int
+) -> Image.Image:
     """Use Pillow to create one-component image from a byte buffer.
 
     *stride* is the number of bytes per row, and is essential for packed bits
@@ -144,7 +146,7 @@ def image_from_byte_buffer(buffer: BytesLike, size: tuple[int, int], stride: int
             raise ImageDecompressionError() from e
 
 
-def image_from_int16_buffer(buffer: BytesLike, size: tuple[int, int]):
+def image_from_int16_buffer(buffer: BytesLike, size: tuple[int, int]) -> Image.Image:
     """Create a 16-bit grayscale image from a buffer of big-endian samples.
 
     PDF stores 16-bit samples most-significant-byte first (ISO 32000-2 §8.9.3).
@@ -205,7 +207,7 @@ def _make_rgb_palette(gray_palette: BytesLike) -> bytes:
     return palette
 
 
-def _depalettize_cmyk(buffer: BytesLike, palette: BytesLike):
+def _depalettize_cmyk(buffer: BytesLike, palette: BytesLike) -> bytearray:
     with memoryview(buffer) as mv:
         output = bytearray(4 * len(mv))
         for n, pal_idx in enumerate(mv):
@@ -298,7 +300,7 @@ def generate_ccitt_header(
     tiff_header_struct = '<' + '2s' + 'H' + 'L' + 'H'
     from PIL.TiffTags import TAGS_V2 as TIFF_TAGS
 
-    tag_keys = {tag.name: key for key, tag in TIFF_TAGS.items()}  # type: ignore
+    tag_keys = {tag.name: key for key, tag in TIFF_TAGS.items()}  # type: ignore[union-attr]  # types-Pillow: TagInfo typed as tuple
     ifd_struct = '<HHLL'
 
     class IFD(NamedTuple):
@@ -309,17 +311,19 @@ def generate_ccitt_header(
 
     ifds: list[IFD] = []
 
-    def header_length(ifd_count) -> int:
+    def header_length(ifd_count: int) -> int:
         return (
             struct.calcsize(tiff_header_struct)
             + struct.calcsize(ifd_struct) * ifd_count
             + 4
         )
 
-    def add_ifd(tag_name: str, data: int | Callable[[], int | None], count: int = 1):
+    def add_ifd(
+        tag_name: str, data: int | Callable[[], int | None], count: int = 1
+    ) -> None:
 
         key = tag_keys[tag_name]
-        typecode = TIFF_TAGS[key].type  # type: ignore
+        typecode = TIFF_TAGS[key].type  # type: ignore[union-attr]  # types-Pillow: TagInfo typed as tuple
         ifds.append(IFD(key, typecode, count, data))
 
     image_offset = None

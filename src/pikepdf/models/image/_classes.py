@@ -106,12 +106,12 @@ class PdfImageBase(ABC, metaclass=_PdfImageMeta):
         return self._metadata('BitsPerComponent', int, 0)
 
     @property
-    def _colorspaces(self) -> list:
+    def _colorspaces(self) -> list[Any]:
         """Colorspace (low-level)."""
         return self._metadata('ColorSpace', _array_str, [])
 
     @property
-    def filters(self) -> list:
+    def filters(self) -> list[str]:
         """List of names of the filters that we applied to encode this image."""
         return self._metadata('Filter', _array_str, [])
 
@@ -121,7 +121,7 @@ class PdfImageBase(ABC, metaclass=_PdfImageMeta):
         return _colorspace.decode_array(self)
 
     @property
-    def decode_parms(self) -> list:
+    def decode_parms(self) -> list[Any]:
         """List of the /DecodeParms, arguments to filters."""
         return self._metadata('DecodeParms', _decodeparms_list, [])
 
@@ -186,7 +186,7 @@ class PdfImageBase(ABC, metaclass=_PdfImageMeta):
         return _colorspace.mode(self)
 
     @property
-    def filter_decodeparms(self) -> list:
+    def filter_decodeparms(self) -> list[tuple[str, Any]]:
         """Return normalized the Filter and DecodeParms data.
 
         PDF has a lot of possible data structures concerning /Filter and
@@ -199,7 +199,11 @@ class PdfImageBase(ABC, metaclass=_PdfImageMeta):
 
         The order of /Filter matters as indicates the encoding/decoding sequence.
         """
-        return list(zip_longest(self.filters, self.decode_parms, fillvalue={}))
+        # If /DecodeParms is longer than /Filter, {} also fills in for the
+        # missing filter names
+        return list(
+            zip_longest(self.filters, self.decode_parms, fillvalue={})  # type: ignore[arg-type]
+        )
 
     @property
     def palette(self) -> PaletteData | None:
@@ -331,7 +335,7 @@ class PdfImage(PdfImageBase):
         """
         return _colorspace.synthesize_cal_icc(self)
 
-    def _remove_simple_filters(self) -> tuple[bytes, list]:
+    def _remove_simple_filters(self) -> tuple[bytes, list[str]]:
         """Strip generalized/specialized filters, leaving the terminal codec.
 
         See :func:`pikepdf.models.image._extract.remove_simple_filters`.
@@ -630,7 +634,7 @@ class PdfJpxImage(PdfImage):
         return super()._extract_transcoded()
 
     @property
-    def _colorspaces(self) -> list:
+    def _colorspaces(self) -> list[Any]:
         """Return the effective colorspace of a JPEG 2000 image.
 
         If the ColorSpace dictionary is present, the colorspace embedded in the
@@ -719,7 +723,7 @@ class PdfInlineImage(PdfImageBase):
         self,
         *,
         image_data: Object,
-        image_object: tuple,
+        image_object: tuple[Object, ...],
         resources: Object | None = None,
     ):
         """Construct wrapper for inline image.
@@ -764,7 +768,7 @@ class PdfInlineImage(PdfImageBase):
 
     @staticmethod
     def _tokens_with_tables(
-        image_object: Sequence,
+        image_object: Sequence[Object],
         key_names: dict[bytes, bytes],
         value_names: dict[bytes, bytes],
     ) -> Iterator[tuple[Any, dict[bytes, bytes]]]:
@@ -842,7 +846,7 @@ class PdfInlineImage(PdfImageBase):
             return None
 
     @property
-    def _colorspaces(self) -> list:
+    def _colorspaces(self) -> list[Any]:
         """Colorspace, resolving a named colour space from /Resources if needed.
 
         Device-space abbreviations (/G, /RGB, /CMYK) and /I are already expanded
@@ -864,7 +868,7 @@ class PdfInlineImage(PdfImageBase):
     def _unparse_with(
         self, key_names: dict[bytes, bytes], value_names: dict[bytes, bytes]
     ) -> bytes:
-        def metadata_tokens():
+        def metadata_tokens() -> Iterator[bytes]:
             for metadata_obj, table in self._tokens_with_tables(
                 self._image_object, key_names, value_names
             ):
@@ -874,7 +878,7 @@ class PdfInlineImage(PdfImageBase):
                 assert isinstance(unparsed, bytes)
                 yield unparsed
 
-        def inline_image_tokens():
+        def inline_image_tokens() -> Iterator[bytes]:
             yield b'BI\n'
             yield b' '.join(m for m in metadata_tokens())
             yield b'\nID\n'

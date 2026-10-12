@@ -147,7 +147,8 @@ class LimitChecker:
         # used: unboxed, it is no longer an indirect object.
         value = pikepdf.unbox(value)
         kind = type(value)
-        if kind is int or kind is Decimal or kind is bool:
+        # unbox() hands back a native scalar where value was a PDF number
+        if kind is int or kind is Decimal or kind is bool:  # type: ignore[comparison-overlap]
             problem = self.scalar(value)
             if problem is not None:
                 found.append(problem)

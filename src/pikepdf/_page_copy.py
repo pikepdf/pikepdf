@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
-    from pikepdf import Pdf
+    from pikepdf import NameTree, Page, Pdf
 
 from pikepdf._core import _action_chain
 from pikepdf._layer_copy import migrate_layers
@@ -96,7 +96,7 @@ def _lookup_source_entry(src: Pdf, ref: _DestRef) -> object | None:
     return lookup_named_destination_entry(src, ref.name, ref.kind)
 
 
-def _resolve_source_dest(src: Pdf, ref: _DestRef):
+def _resolve_source_dest(src: Pdf, ref: _DestRef) -> tuple[Object, list[Object]] | None:
     """Return (page_ref, view_params) for a named dest, or None if unresolvable."""
     arr = resolve_named_destination(src, ref.name, ref.kind)
     if arr is None:
@@ -104,7 +104,7 @@ def _resolve_source_dest(src: Pdf, ref: _DestRef):
     return arr[0], [arr[i] for i in range(1, len(arr))]
 
 
-def _ensure_string_dests(dest: Pdf):
+def _ensure_string_dests(dest: Pdf) -> NameTree:
     from pikepdf import NameTree
 
     names = dest.Root.get(Name.Names)
@@ -124,7 +124,7 @@ def _ensure_name_dests(dest: Pdf) -> Dictionary:
     return dd
 
 
-def _unique_string_name(nt, name: str) -> str:
+def _unique_string_name(nt: NameTree, name: str) -> str:
     if name not in nt:
         return name
     i = 1
@@ -160,7 +160,7 @@ def _rewrite_ref(ref: _DestRef, final: str) -> None:
 
 
 def _migrate_named_destinations(
-    dest: Pdf, src: Pdf, src_pages: list, start: int
+    dest: Pdf, src: Pdf, src_pages: list[Page], start: int
 ) -> tuple[int, dict[str, str], list[str]]:
     page_map = {
         src_pages[i].obj.objgen: dest.pages[start + i].obj
@@ -190,7 +190,8 @@ def _migrate_named_destinations(
             if ref.name not in dropped:
                 dropped.append(ref.name)
             continue
-        new_arr = Array([dest_page, *resolved[1]])
+        # resolved is not None here, or dest_page would be None
+        new_arr = Array([dest_page, *resolved[1]])  # type: ignore[index]
         final = _insert_dest(dest, ref.kind, ref.name, new_arr)
         decided[dkey] = final
         added += 1

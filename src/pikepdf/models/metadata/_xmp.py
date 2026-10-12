@@ -179,13 +179,15 @@ class XmpDocument:
         if data.strip() == b'':
             data = XMP_EMPTY  # on some platforms lxml chokes on empty documents
 
+        syntax_error: type[Exception] = (
+            XMLSyntaxError if overwrite_invalid_xml else NeverRaise
+        )
+        any_error: type[Exception] = Exception if overwrite_invalid_xml else NeverRaise
         xmp: _ElementTree | None = None
         for index, parser in enumerate(parsers):
             try:
                 xmp = parser(data)
-            except (
-                XMLSyntaxError if overwrite_invalid_xml else NeverRaise  # type: ignore
-            ) as e:
+            except syntax_error as e:
                 if str(e).startswith("Start tag expected, '<' not found") or str(
                     e
                 ).startswith("Document is empty"):
@@ -205,11 +207,7 @@ class XmpDocument:
                 if self._repair_namespaces(xmp):
                     self.recovered = True
                 self._get_rdf_root_from(xmp)
-            except (
-                Exception  # pylint: disable=broad-except
-                if overwrite_invalid_xml
-                else NeverRaise
-            ) as e:
+            except any_error as e:
                 log.warning("Error occurred parsing XMP", exc_info=e)
                 xmp = _parser_replace_with_empty_xmp()
                 self.recovered = True
@@ -590,7 +588,7 @@ class XmpDocument:
         self.set_value(key, val)
 
     def _setitem_add_array(
-        self, node: _Element, items: Iterable, rdf_type: str | None = None
+        self, node: _Element, items: Iterable[str | None], rdf_type: str | None = None
     ) -> None:
         if rdf_type is None:
             # Property is not one we know the type of, so infer the container

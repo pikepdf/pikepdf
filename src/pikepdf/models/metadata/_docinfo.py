@@ -44,14 +44,14 @@ class DocinfoStore:
         val = self._pdf.docinfo[name]
         return str(val) if val is not None else None
 
-    def set(self, name: Name, value: str) -> None:
+    def set(self, name: Name | str, value: str) -> None:
         """Set DocumentInfo value with proper encoding.
 
         Values that can be encoded as ASCII are stored as ASCII,
         otherwise stored as UTF-16 with BOM.
 
         Args:
-            name: The DocumentInfo key (e.g., Name.Title).
+            name: The DocumentInfo key (e.g., Name.Title or ``'/Title'``).
             value: The string value to set.
         """
         # Ensure docinfo exists

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 from datetime import UTC, date, datetime, timedelta, timezone
 from typing import Any, NamedTuple
 
@@ -159,7 +160,7 @@ class Converter(ABC):
 
     @staticmethod
     @abstractmethod
-    def xmp_from_docinfo(docinfo_val: str | None) -> Any:  # type: ignore
+    def xmp_from_docinfo(docinfo_val: str | None) -> Any:
         """Derive XMP metadata from a DocumentInfo string."""
 
     @staticmethod
@@ -172,12 +173,12 @@ class AuthorConverter(Converter):
     """Convert XMP document authors to DocumentInfo."""
 
     @staticmethod
-    def xmp_from_docinfo(docinfo_val: str | None) -> Any:  # type: ignore
+    def xmp_from_docinfo(docinfo_val: str | None) -> Any:
         """Derive XMP authors info from DocumentInfo."""
         return [docinfo_val]
 
     @staticmethod
-    def docinfo_from_xmp(xmp_val):
+    def docinfo_from_xmp(xmp_val: str | Iterable[str | None] | None) -> str | None:
         """Derive DocumentInfo authors from XMP.
 
         XMP supports multiple author values, while DocumentInfo has a string,
@@ -194,7 +195,7 @@ class DateConverter(Converter):
     """Convert XMP dates to DocumentInfo."""
 
     @staticmethod
-    def xmp_from_docinfo(docinfo_val):
+    def xmp_from_docinfo(docinfo_val: str | String) -> str:  # type: ignore[override]  # a date cannot be derived from None
         """Derive XMP date from DocumentInfo."""
         if isinstance(docinfo_val, String):
             docinfo_val = str(docinfo_val)
@@ -207,7 +208,7 @@ class DateConverter(Converter):
         return decode_pdf_date(docinfo_val).isoformat()
 
     @staticmethod
-    def docinfo_from_xmp(xmp_val):
+    def docinfo_from_xmp(xmp_val: str) -> str:
         """Derive DocumentInfo from XMP."""
         if len(xmp_val) in (4, 7) and 'T' not in xmp_val:
             # Reduced precision: year or year-month only

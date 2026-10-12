@@ -75,7 +75,7 @@ class XmpContainer(NamedTuple):
     insert_fn: Callable[..., None]
 
 
-class AltList(list):
+class AltList(list[str]):
     """XMP AltList container for language alternatives."""
 
 

@@ -136,7 +136,7 @@ class EncryptionInfo:
         """
         return len(self._encdict['encryption_key']) * 8
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f'<{self.__class__.__name__}: {self.R=}, {self.V=}, {self.P=} '
             f'{self.stream_method=}, {self.string_method=}, '

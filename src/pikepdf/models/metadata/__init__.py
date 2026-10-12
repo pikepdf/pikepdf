@@ -8,6 +8,8 @@ This module provides XMP and DocumentInfo metadata access for PDF files.
 
 from __future__ import annotations
 
+from typing import Any
+
 from pikepdf.models.metadata._constants import (
     DEFAULT_NAMESPACES,
     XMP_CONTAINERS,
@@ -53,7 +55,7 @@ from pikepdf.models.metadata._schema import (
 from pikepdf.models.metadata._xmp import XmpDocument
 
 
-def __getattr__(name):
+def __getattr__(name: str) -> Any:
     if name == 'LANG_ALTS':
         from pikepdf.models.metadata import _constants
 

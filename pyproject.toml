@@ -160,6 +160,7 @@ environment.QPDF_BUILD_LIBDIR = "$QPDF_DIR/lib"
 
 [tool.mypy]
 exclude = ["^_qpdf\\.py$"]
+strict = true
 
 [[tool.mypy.overrides]]
 module = ["fontTools", "fontTools.*", "jsonschema", "jsonschema.*"]

@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import ClassVar, overload
+from typing import Any, ClassVar, overload
 
 from pikepdf._core._qpdf import Pdf
 
@@ -46,7 +46,7 @@ class Job:
     @overload
     def __init__(self, json: str) -> None: ...
     @overload
-    def __init__(self, json_dict: Mapping) -> None: ...
+    def __init__(self, json_dict: Mapping[str, Any]) -> None: ...
     @overload
     def __init__(
         self, args: Sequence[str | bytes], *, progname: str | None = None
@@ -76,9 +76,9 @@ class Job:
     def message_prefix(self, value: str) -> None: ...
     def run(self) -> None:
         """Executes the job."""
-    def create_pdf(self):
+    def create_pdf(self) -> Pdf:
         """Executes the first stage of the job."""
-    def write_pdf(self, pdf: Pdf):
+    def write_pdf(self, pdf: Pdf) -> None:
         """Executes the second stage of the job."""
     @property
     def has_warnings(self) -> bool:

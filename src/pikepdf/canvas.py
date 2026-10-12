@@ -18,18 +18,19 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from collections import namedtuple
+from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
 from io import BytesIO
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, Self, cast
 
 from pikepdf._core import ContentStreamInstruction, Matrix, Pdf, unbox
 from pikepdf._data import CHARNAMES_TO_UNICODE
 from pikepdf.models import unparse_content_stream
-from pikepdf.objects import Array, Dictionary, Name, Operator, String
+from pikepdf.objects import Array, Dictionary, Name, Operator, Stream, String
 
 if TYPE_CHECKING:
     from PIL import Image
@@ -166,7 +167,7 @@ class SimpleFont(DimensionedFont):
 
     data: Dictionary
 
-    _diffmap_cache = None
+    _diffmap_cache: dict[str, int] | None = None
 
     def __init__(self, data: Dictionary):
         """Create a SimpleFont instance from a font resource dictionary."""
@@ -290,12 +291,13 @@ class SimpleFont(DimensionedFont):
                 'Cannot encode without explicitly defined encoding'
             )
         if isinstance(self.data.Encoding, Name):
-            return self._encode_named(text, cast(Name, self.data.Encoding))
+            return self._encode_named(text, self.data.Encoding)
         if isinstance(self.data.Encoding, Dictionary):
-            encoding_dict = cast(Dictionary, self.data.Encoding)
+            encoding_dict = self.data.Encoding
             if Name.Differences in encoding_dict:
                 base_encoding = encoding_dict.get(Name.BaseEncoding)
-                return self._encode_diffmap(
+                # Returns a bytearray, although this method declares bytes
+                return self._encode_diffmap(  # type: ignore[return-value]
                     text,
                     cast(Array, encoding_dict.Differences),
                     cast('Name | None', base_encoding),
@@ -307,7 +309,7 @@ class SimpleFont(DimensionedFont):
             return self._encode_named(text, cast(Name, encoding_dict.BaseEncoding))
         raise TypeError(f'Unsupported encoding type: {type(self.data.Encoding)}')
 
-    def _encode_named(self, text: str, encoding: Name):
+    def _encode_named(self, text: str, encoding: Name) -> bytes:
         if encoding == Name.StandardEncoding:
             # Standard encoding is defined as "whatever the underlying font uses by
             # default", but we have no good way to detect that.
@@ -328,7 +330,7 @@ class SimpleFont(DimensionedFont):
 
     def _encode_diffmap(
         self, text: str, diffmap: Array, base_encoding: Name | None = None
-    ):
+    ) -> bytearray:
         if self._diffmap_cache is None:
             self._diffmap_cache = _differences_map_lookup(diffmap)
         result = bytearray()
@@ -383,7 +385,7 @@ class SimpleFont(DimensionedFont):
         return self.convert_width(width, fontsize)
 
 
-def _parse_differences_map(diffmap: Array):
+def _parse_differences_map(diffmap: Array) -> Iterator[tuple[int, Name]]:
     """Parses a Differences map to ``(char_code, char_name)`` pairs.
 
     This procedure is as described in 9.6.5.1.
@@ -411,7 +413,7 @@ def _parse_differences_map(diffmap: Array):
 # https://github.com/pdfminer/pdfminer.six/blob/master/pdfminer/encodingdb.py
 # It works exactly opposite of what we would need here, but still could be interesting
 # to adapt.
-def _differences_map_lookup(diffmap: Array) -> dict:
+def _differences_map_lookup(diffmap: Array) -> dict[str, int]:
     """Convert a Differences map (See 9.6.5.1) to a Python dict.
 
     The Python dict maps unicode characters to the character index value.
@@ -433,39 +435,39 @@ def _differences_map_lookup(diffmap: Array) -> dict:
 class ContentStreamBuilder:
     """Content stream builder."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize."""
         self._stream = bytearray()
 
-    def _append(self, inst: ContentStreamInstruction):
+    def _append(self, inst: ContentStreamInstruction) -> None:
         self._stream += unparse_content_stream([inst]) + b"\n"
 
-    def extend(self, other: ContentStreamBuilder | bytes):
+    def extend(self, other: ContentStreamBuilder | bytes) -> None:
         """Append another content stream."""
         if isinstance(other, ContentStreamBuilder):
             self._stream += other._stream
         else:
             self._stream += other + b"\n"
 
-    def push(self):
+    def push(self) -> Self:
         """Save the graphics state."""
         inst = ContentStreamInstruction([], Operator("q"))
         self._append(inst)
         return self
 
-    def pop(self):
+    def pop(self) -> Self:
         """Restore the graphics state."""
         inst = ContentStreamInstruction([], Operator("Q"))
         self._append(inst)
         return self
 
-    def cm(self, matrix: Matrix):
+    def cm(self, matrix: Matrix) -> Self:
         """Concatenate matrix."""
         inst = ContentStreamInstruction(matrix.shorthand, Operator("cm"))
         self._append(inst)
         return self
 
-    def begin_text(self):
+    def begin_text(self) -> Self:
         """Begin text object.
 
         All text operations must be contained within a text object, and are invalid
@@ -476,13 +478,13 @@ class ContentStreamBuilder:
         self._append(inst)
         return self
 
-    def end_text(self):
+    def end_text(self) -> Self:
         """End text object."""
         inst = ContentStreamInstruction([], Operator("ET"))
         self._append(inst)
         return self
 
-    def begin_marked_content_proplist(self, mctype: Name, mcid: int):
+    def begin_marked_content_proplist(self, mctype: Name, mcid: int) -> Self:
         """Begin marked content sequence."""
         inst = ContentStreamInstruction(
             [mctype, Dictionary(MCID=mcid)], Operator("BDC")
@@ -490,19 +492,19 @@ class ContentStreamBuilder:
         self._append(inst)
         return self
 
-    def begin_marked_content(self, mctype: Name):
+    def begin_marked_content(self, mctype: Name) -> Self:
         """Begin marked content sequence."""
         inst = ContentStreamInstruction([mctype], Operator("BMC"))
         self._append(inst)
         return self
 
-    def end_marked_content(self):
+    def end_marked_content(self) -> Self:
         """End marked content sequence."""
         inst = ContentStreamInstruction([], Operator("EMC"))
         self._append(inst)
         return self
 
-    def set_text_font(self, font: Name, size: int | float | Decimal):
+    def set_text_font(self, font: Name, size: int | float | Decimal) -> Self:
         """Set text font and size.
 
         This operator is mandatory in order to show text. Any text object which attempts
@@ -517,7 +519,7 @@ class ContentStreamBuilder:
         self._append(inst)
         return self
 
-    def set_text_char_spacing(self, size: int | float | Decimal):
+    def set_text_char_spacing(self, size: int | float | Decimal) -> Self:
         """Set the character spacing (Tc) for future text operations.
 
         This is a value, measured in unscaled text-space units, which will be used to
@@ -533,7 +535,7 @@ class ContentStreamBuilder:
         self._append(inst)
         return self
 
-    def set_text_word_spacing(self, size: int | float | Decimal):
+    def set_text_word_spacing(self, size: int | float | Decimal) -> Self:
         """Set the word spacing (Tw) for future text operations.
 
         This is a value, measured in unscaled text-space units, which will be added to
@@ -546,7 +548,7 @@ class ContentStreamBuilder:
         self._append(inst)
         return self
 
-    def set_text_leading(self, size: int | float | Decimal):
+    def set_text_leading(self, size: int | float | Decimal) -> Self:
         """Set the leading value (TL) for future text operations.
 
         This is the vertical spacing between lines. Specifically, it is defined as the
@@ -557,7 +559,7 @@ class ContentStreamBuilder:
         self._append(inst)
         return self
 
-    def set_text_matrix(self, matrix: Matrix):
+    def set_text_matrix(self, matrix: Matrix) -> Self:
         """Set text matrix.
 
         The text matrix defines the conversion between text-space and page-space, in
@@ -568,19 +570,19 @@ class ContentStreamBuilder:
         self._append(inst)
         return self
 
-    def set_text_rendering(self, mode: int):
+    def set_text_rendering(self, mode: int) -> Self:
         """Set text rendering mode."""
         inst = ContentStreamInstruction([mode], Operator("Tr"))
         self._append(inst)
         return self
 
-    def set_text_horizontal_scaling(self, scale: float):
+    def set_text_horizontal_scaling(self, scale: float) -> Self:
         """Set text horizontal scaling."""
         inst = ContentStreamInstruction([scale], Operator("Tz"))
         self._append(inst)
         return self
 
-    def show_text(self, encoded: bytes):
+    def show_text(self, encoded: bytes) -> Self:
         """Show text.
 
         The text must be encoded in character codes expected by the font.
@@ -595,7 +597,7 @@ class ContentStreamBuilder:
         self._append(inst)
         return self
 
-    def show_text_with_kerning(self, *parts: bytes | int | float | Decimal):
+    def show_text_with_kerning(self, *parts: bytes | int | float | Decimal) -> Self:
         """Show text, with manual spacing (kerning) options.
 
         Arguments are either bytes, which represent the actual text to show, or numbers,
@@ -618,7 +620,7 @@ class ContentStreamBuilder:
         self._append(inst)
         return self
 
-    def show_text_line(self, encoded: bytes):
+    def show_text_line(self, encoded: bytes) -> Self:
         """Advance to the next line and show text.
 
         The text must be encoded in character codes expected by the font.
@@ -632,7 +634,7 @@ class ContentStreamBuilder:
 
     def show_text_line_with_spacing(
         self, encoded: bytes, word_spacing: int, char_spacing: int
-    ):
+    ) -> Self:
         """Advance to the next line and show text.
 
         The text must be encoded in character codes expected by the font.
@@ -647,7 +649,7 @@ class ContentStreamBuilder:
         self._append(inst)
         return self
 
-    def move_cursor(self, dx, dy):
+    def move_cursor(self, dx: int | float | Decimal, dy: int | float | Decimal) -> Self:
         """Move cursor by the given offset, relative to the start of the current line.
 
         This operator modifies the both current text matrix and the text line matrix.
@@ -664,7 +666,7 @@ class ContentStreamBuilder:
         self._append(inst)
         return self
 
-    def move_cursor_new_line(self):
+    def move_cursor_new_line(self) -> Self:
         """Move cursor to the start of the next line.
 
         This moves down by the current leading value, and resets the x position back to
@@ -680,43 +682,43 @@ class ContentStreamBuilder:
         self._append(inst)
         return self
 
-    def stroke_and_close(self):
+    def stroke_and_close(self) -> Self:
         """Stroke and close path."""
         inst = ContentStreamInstruction([], Operator("s"))
         self._append(inst)
         return self
 
-    def fill(self):
+    def fill(self) -> Self:
         """Stroke and close path."""
         inst = ContentStreamInstruction([], Operator("f"))
         self._append(inst)
         return self
 
-    def append_rectangle(self, x: float, y: float, w: float, h: float):
+    def append_rectangle(self, x: float, y: float, w: float, h: float) -> Self:
         """Append rectangle to path."""
         inst = ContentStreamInstruction([x, y, w, h], Operator("re"))
         self._append(inst)
         return self
 
-    def set_stroke_color(self, r: float, g: float, b: float):
+    def set_stroke_color(self, r: float, g: float, b: float) -> Self:
         """Set RGB stroke color."""
         inst = ContentStreamInstruction([r, g, b], Operator("RG"))
         self._append(inst)
         return self
 
-    def set_fill_color(self, r: float, g: float, b: float):
+    def set_fill_color(self, r: float, g: float, b: float) -> Self:
         """Set RGB fill color."""
         inst = ContentStreamInstruction([r, g, b], Operator("rg"))
         self._append(inst)
         return self
 
-    def set_line_width(self, width):
+    def set_line_width(self, width: int | float | Decimal) -> Self:
         """Set line width."""
         inst = ContentStreamInstruction([width], Operator("w"))
         self._append(inst)
         return self
 
-    def line(self, x1: float, y1: float, x2: float, y2: float):
+    def line(self, x1: float, y1: float, x2: float, y2: float) -> Self:
         """Draw line."""
         insts = [
             ContentStreamInstruction([x1, y1], Operator("m")),
@@ -726,18 +728,26 @@ class ContentStreamBuilder:
         self._append(insts[1])
         return self
 
-    def set_dashes(self, array=None, phase=0):
+    def set_dashes(
+        self,
+        array: Sequence[int | float | Decimal] | int | float | None = None,
+        phase: int | float | Decimal = 0,
+    ) -> Self:
         """Set dashes."""
         if array is None:
             array = []
         if isinstance(array, int | float):
             array = (array, phase)
             phase = 0
-        inst = ContentStreamInstruction([array, phase], Operator("d"))
+        # The sequence is converted to a pikepdf.Array
+        inst = ContentStreamInstruction(
+            [array, phase],  # type: ignore[list-item]
+            Operator("d"),
+        )
         self._append(inst)
         return self
 
-    def draw_xobject(self, name: Name):
+    def draw_xobject(self, name: Name) -> Self:
         """Draw XObject.
 
         Add instructions to render an XObject. The XObject must be
@@ -770,35 +780,37 @@ class LoadedImage:
 class _CanvasAccessor:
     """Contains all drawing methods class for drawing on a Canvas."""
 
-    def __init__(self, cs: ContentStreamBuilder, images=None):
+    def __init__(
+        self, cs: ContentStreamBuilder, images: list[LoadedImage] | None = None
+    ) -> None:
         self._cs = cs
         self._images = images if images is not None else []
         self._stack_depth = 0
 
-    def stroke_color(self, color: Color):
+    def stroke_color(self, color: Color) -> Self:
         """Set stroke color."""
         r, g, b = color.red, color.green, color.blue
         self._cs.set_stroke_color(r, g, b)
         return self
 
-    def fill_color(self, color: Color):
+    def fill_color(self, color: Color) -> Self:
         """Set fill color."""
         r, g, b = color.red, color.green, color.blue
         self._cs.set_fill_color(r, g, b)
         return self
 
-    def line_width(self, width):
+    def line_width(self, width: int | float | Decimal) -> Self:
         """Set line width."""
         self._cs.set_line_width(width)
         return self
 
-    def line(self, x1, y1, x2, y2):
+    def line(self, x1: float, y1: float, x2: float, y2: float) -> Self:
         """Draw line from (x1,y1) to (x2,y2)."""
         self._cs.line(x1, y1, x2, y2)
         self._cs.stroke_and_close()
         return self
 
-    def rect(self, x, y, w, h, fill: bool):
+    def rect(self, x: float, y: float, w: float, h: float, fill: bool) -> Self:
         """Draw optionally filled rectangle at (x,y) with width w and height h."""
         self._cs.append_rectangle(x, y, w, h)
         if fill:
@@ -807,7 +819,14 @@ class _CanvasAccessor:
             self._cs.stroke_and_close()
         return self
 
-    def draw_image(self, image: Path | str | Image.Image, x, y, width, height):
+    def draw_image(
+        self,
+        image: Path | str | Image.Image,
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+    ) -> Self:
         """Draw image at (x,y) with width w and height h."""
         with self.save_state(cm=Matrix(width, 0, 0, height, x, y)):
             if isinstance(image, Path | str):
@@ -825,31 +844,34 @@ class _CanvasAccessor:
             self._cs.draw_xobject(name)
         return self
 
-    def draw_text(self, text: Text):
+    def draw_text(self, text: Text) -> Self:
         """Draw text object."""
         self._cs.extend(text._cs)
         self._cs.end_text()
         return self
 
-    def dashes(self, *args):
+    def dashes(
+        self, *args: Sequence[int | float | Decimal] | int | float | Decimal | None
+    ) -> Self:
         """Set dashes."""
-        self._cs.set_dashes(*args)
+        # Forwards (array, phase) positionally
+        self._cs.set_dashes(*args)  # type: ignore[arg-type]
         return self
 
-    def push(self):
+    def push(self) -> Self:
         """Save the graphics state."""
         self._cs.push()
         self._stack_depth += 1
         return self
 
-    def pop(self):
+    def pop(self) -> Self:
         """Restore the previous graphics state."""
         self._cs.pop()
         self._stack_depth -= 1
         return self
 
     @contextmanager
-    def save_state(self, *, cm: Matrix | None = None):
+    def save_state(self, *, cm: Matrix | None = None) -> Iterator[Self]:
         """Save the graphics state and restore it on exit.
 
         Optionally, concatenate a transformation matrix. Implements
@@ -863,7 +885,7 @@ class _CanvasAccessor:
         yield self
         self.pop()
 
-    def cm(self, matrix: Matrix):
+    def cm(self, matrix: Matrix) -> Self:
         """Concatenate a new transformation matrix to the current matrix."""
         self._cs.cm(matrix)
         return self
@@ -879,7 +901,7 @@ class Canvas:
     then be merged into other PDFs or written to a file.
     """
 
-    def __init__(self, *, page_size: tuple[int | float, int | float]):
+    def __init__(self, *, page_size: tuple[int | float, int | float]) -> None:
         """Initialize a canvas."""
         self.page_size = page_size
         self._pdf = Pdf.new()
@@ -890,7 +912,7 @@ class Canvas:
         self._accessor = _CanvasAccessor(self._cs, self._images)
         self.do.push()
 
-    def add_font(self, resource_name: Name, font: Font):
+    def add_font(self, resource_name: Name, font: Font) -> None:
         """Add a font to the page."""
         self._page.Resources.Font[resource_name] = font.register(self._pdf)
 
@@ -899,7 +921,7 @@ class Canvas:
         """Do operations on the current graphics state."""
         return self._accessor
 
-    def _save_image(self, li: LoadedImage):
+    def _save_image(self, li: LoadedImage) -> Stream:
         return self._pdf.make_stream(
             li.image.tobytes(),
             Width=li.image.width,
@@ -932,35 +954,35 @@ class Canvas:
         self.do.push()
         return result
 
-    def _repr_mimebundle_(self, include=None, exclude=None):
+    def _repr_mimebundle_(self, include: Any = None, exclude: Any = None) -> Any:
         return self.to_pdf()._repr_mimebundle_(include, exclude)
 
 
 class Text:
     """Text object for rendering text on a pikepdf canvas."""
 
-    def __init__(self, direction=TextDirection.LTR):
+    def __init__(self, direction: TextDirection = TextDirection.LTR) -> None:
         """Initialize."""
         self._cs = ContentStreamBuilder()
         self._cs.begin_text()
         self._direction = direction
 
-    def font(self, font: Name, size: float):
+    def font(self, font: Name, size: float) -> Self:
         """Set font and size."""
         self._cs.set_text_font(font, size)
         return self
 
-    def render_mode(self, mode):
+    def render_mode(self, mode: int) -> Self:
         """Set text rendering mode."""
         self._cs.set_text_rendering(mode)
         return self
 
-    def text_transform(self, matrix: Matrix):
+    def text_transform(self, matrix: Matrix) -> Self:
         """Set text matrix."""
         self._cs.set_text_matrix(matrix)
         return self
 
-    def show(self, text: str | bytes):
+    def show(self, text: str | bytes) -> Self:
         """Show text.
 
         The text must be encoded in character codes expected by the font.
@@ -981,12 +1003,12 @@ class Text:
             self._cs.end_marked_content()
         return self
 
-    def horiz_scale(self, scale):
+    def horiz_scale(self, scale: float) -> Self:
         """Set text horizontal scaling."""
         self._cs.set_text_horizontal_scaling(scale)
         return self
 
-    def move_cursor(self, x, y):
+    def move_cursor(self, x: int | float | Decimal, y: int | float | Decimal) -> Self:
         """Move cursor."""
         self._cs.move_cursor(x, y)
         return self

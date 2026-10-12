@@ -175,7 +175,9 @@ class EmbeddedCMap:
             pos += length
         return result
 
-    def _add_range(self, table: dict[int, list[_Range]], length: int, r: _Range):
+    def _add_range(
+        self, table: dict[int, list[_Range]], length: int, r: _Range
+    ) -> None:
         table.setdefault(length, []).append(r)
 
 

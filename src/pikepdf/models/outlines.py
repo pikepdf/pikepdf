@@ -9,7 +9,8 @@ from __future__ import annotations
 from collections.abc import Iterable
 from enum import Enum, IntFlag
 from itertools import chain
-from typing import TYPE_CHECKING, Self, cast
+from types import TracebackType
+from typing import TYPE_CHECKING, Any, Self, cast
 
 from pikepdf._core import ObjectSet, Page, Pdf, PikepdfError
 from pikepdf.objects import Array, Dictionary, Name, Object, String
@@ -113,7 +114,7 @@ def _build_destination_array(
     written through as a PDF null (12.3.2.2: retains the viewer's current
     value), not defaulted to ``0``.
     """
-    res: list = [page, Name(f'/{loc_key.name}')]
+    res: list[Object | float | None] = [page, Name(f'/{loc_key.name}')]
     dest_arg_names = PAGE_LOCATION_ARGS.get(loc_key)
     if dest_arg_names:
         res.extend(values.get(k) for k in dest_arg_names)
@@ -124,7 +125,7 @@ def _make_page_destination(
     pdf: Pdf,
     page_num: int,
     page_location: PageLocation | str | None = None,
-    **kwargs,
+    **kwargs: float | None,
 ) -> Array:
     kwargs = {k: v for k, v in kwargs.items() if v is not None}
     page_obj = pdf.pages[page_num].obj
@@ -240,7 +241,7 @@ class Destination:
             and self.zoom == other.zoom
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f'<pikepdf.Destination: page={self.page!r} '
             f'page_location={self.page_location!r}>'
@@ -357,7 +358,7 @@ class OutlineItem:
         else:
             self.flags &= ~OutlineItemFlag.Bold
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.children:
             if self.is_closed:
                 oc_indicator = '[+]'
@@ -391,11 +392,11 @@ class OutlineItem:
             dest = '<Action>'
         return f'{oc_indicator} {self.title} -> {dest}'
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<pikepdf.{self.__class__.__name__}: "{self.title}">'
 
     @classmethod
-    def from_dictionary_object(cls, obj: Dictionary, *, strict: bool = False):
+    def from_dictionary_object(cls, obj: Dictionary, *, strict: bool = False) -> Self:
         """Create a ``OutlineItem`` from a ``Dictionary``.
 
         Does not process nested items.
@@ -608,13 +609,13 @@ class Outline:
         self._strict = strict
         self._updating = False
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.root)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<pikepdf.{self.__class__.__name__}: {len(self.root)} items>'
 
-    def _repr_pretty_(self, p, cycle):
+    def _repr_pretty_(self, p: Any, cycle: bool) -> None:
         if cycle:
             p.text("...")
         else:
@@ -627,7 +628,12 @@ class Outline:
         self._updating = True
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         try:
             if exc_type is not None:
                 return
@@ -641,7 +647,7 @@ class Outline:
         outline_items: Iterable[OutlineItem],
         level: int,
         visited_objs: ObjectSet,
-    ):
+    ) -> None:
         count = 0
         prev: Dictionary | None = None
         first: Dictionary | None = None
@@ -692,10 +698,10 @@ class Outline:
     def _load_level_outline(
         self,
         first_obj: Dictionary,
-        outline_items: list[Object],
+        outline_items: list[OutlineItem],
         level: int,
         visited_objs: ObjectSet,
-    ):
+    ) -> None:
         current_obj: Dictionary | None = first_obj
         while current_obj:
             if not visited_objs.add(current_obj):
@@ -723,7 +729,7 @@ class Outline:
                     f"Outline object {current_obj.objgen} points to non-dictionary"
                 )
 
-    def _save(self):
+    def _save(self) -> None:
         if self._root is None:
             return
         if Name.Outlines in self._pdf.Root:
@@ -732,18 +738,21 @@ class Outline:
             self._pdf.Root.Outlines = outlines = self._pdf.make_indirect(
                 Dictionary(Type=Name.Outlines)
             )
-        self._save_level_outline(outlines, self._root, 0, ObjectSet())
+        # /Outlines is not checked to be a dictionary
+        self._save_level_outline(outlines, self._root, 0, ObjectSet())  # type: ignore[arg-type]
         if not self._root and Name.Count in outlines:
             del outlines.Count
 
-    def _load(self):
+    def _load(self) -> None:
+        root: list[OutlineItem]
         self._root = root = []
         if Name.Outlines not in self._pdf.Root:
             return
-        outlines = self._pdf.Root.Outlines or {}
+        outlines: Object | dict[Name, Object] = self._pdf.Root.Outlines or {}
         first_obj = outlines.get(Name.First)
         if first_obj:
-            self._load_level_outline(first_obj, root, 0, ObjectSet())
+            # /First is not checked to be a dictionary
+            self._load_level_outline(first_obj, root, 0, ObjectSet())  # type: ignore[arg-type]
 
     def add(self, title: str, destination: Array | int | None) -> OutlineItem:
         """Add an item to the outline.
@@ -774,7 +783,7 @@ class Outline:
         return cast(list[OutlineItem], self._root)
 
     @root.setter
-    def root(self, new_root: list[OutlineItem]):
+    def root(self, new_root: list[OutlineItem]) -> None:
         """Set the root node of the outline."""
         if not isinstance(new_root, list):
             raise ValueError("Root must be a list of OutlineItem objects.")

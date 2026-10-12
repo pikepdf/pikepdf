@@ -11,7 +11,7 @@ that the source's default configuration gave them.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from typing import TYPE_CHECKING, TypeGuard
 
 if TYPE_CHECKING:
@@ -27,7 +27,7 @@ _MAX_ORDER_DEPTH = 32
 _ObjGen = tuple[int, int]
 
 
-def _items(value: object) -> Iterable:
+def _items(value: object) -> Iterable[Object]:
     """Return the items of an array, or nothing if *value* is not an array."""
     return value if isinstance(value, Array) else ()
 
@@ -100,7 +100,7 @@ def _find_groups(src: Pdf, src_pages: list[Page]) -> list[Object]:
     return finder.groups
 
 
-def _extend(config: Dictionary, key: Name, new_items: list) -> None:
+def _extend(config: Dictionary, key: Name, new_items: Sequence[Object]) -> None:
     if not new_items:
         return
     existing = config.get(key)
@@ -137,12 +137,12 @@ class _Copied:
 
 def _filter_order(
     order: Array, copied: _Copied, seen: ObjectSet, depth: int = 0
-) -> tuple[list, int]:
+) -> tuple[list[Object], int]:
     """Reduce an ``/Order`` array to the groups that were copied.
 
     Returns the new items and the number of groups among them and below them.
     """
-    kept: list = []
+    kept: list[Object] = []
     n_groups = 0
     after_group = False  # whether a nested array would attach to a kept group
     for index, item in enumerate(order):

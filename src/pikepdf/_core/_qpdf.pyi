@@ -14,6 +14,7 @@ from collections.abc import Callable, Iterable, Iterator
 from contextlib import AbstractContextManager
 from enum import Enum
 from pathlib import Path
+from types import TracebackType
 from typing import TYPE_CHECKING, Any, BinaryIO, Literal, Self, overload
 
 from pikepdf._core._acroform import AcroForm
@@ -180,8 +181,13 @@ class Pdf:
                 Default size is set to a US Letter 8.5" x 11" page.
         """
     def __enter__(self) -> Self: ...
-    def __exit__(self, exc_type, exc_value, traceback) -> None: ...
-    def __init__(self, *args, **kwargs) -> None: ...
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None: ...
+    def __init__(self, *args: object, **kwargs: object) -> None: ...
     def _add_page(self, page: Object, first: bool = ...) -> None:
         """Low-level private method to attach a page to this PDF.
 
@@ -195,7 +201,9 @@ class Pdf:
         """
     def _check_document_structures(self) -> None: ...
     def _count_orphaned_widgets(self) -> int: ...
-    def _decode_all_streams_and_discard(self, progress=...) -> None: ...
+    def _decode_all_streams_and_discard(
+        self, progress: Callable[[int], None] | None = ...
+    ) -> None: ...
     def _process(self, arg0: str, arg1: bytes) -> None: ...
     def _replace_object(self, arg0: tuple[int, int], arg1: Object, /) -> None: ...
     def _swap_objects(
@@ -432,7 +440,7 @@ class Pdf:
         Can be called with either a 2-tuple of (objid, gen) or
         two integers objid and gen.
         """
-    def get_warnings(self) -> list: ...
+    def get_warnings(self) -> list[str]: ...
     @overload
     def make_indirect(self, obj: TObj) -> TObj: ...
     def make_indirect(self, obj: Any) -> Object:
@@ -472,7 +480,7 @@ class Pdf:
         See Also:
             :meth:`pikepdf.Object.is_indirect`
         """
-    def make_stream(self, data: bytes, d=None, **kwargs) -> Stream:
+    def make_stream(self, data: bytes, d: Any = None, **kwargs: Any) -> Stream:
         """Create a new pikepdf.Stream object that is attached to this PDF.
 
         See:
@@ -1107,7 +1115,7 @@ class Pdf:
     @property
     def _allow_print_lowres(self) -> bool: ...
     @property
-    def _encryption_data(self) -> dict: ...
+    def _encryption_data(self) -> dict[str, int | EncryptionMethod | bytes]: ...
     @property
     def allow(self) -> Permissions:
         """Report permissions associated with this PDF.

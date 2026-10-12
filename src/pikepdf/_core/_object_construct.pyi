@@ -94,7 +94,7 @@ class Array(Object):
     """Construct a PDF Array object."""
 
     object_type: ObjectType
-    def __new__(cls, a: Iterable | Rectangle | Matrix | None = None) -> Array: ...
+    def __new__(cls, a: Iterable[Any] | Rectangle | Matrix | None = None) -> Array: ...
 
 class Dictionary(Object):
     """Construct a PDF Dictionary object.
@@ -115,7 +115,9 @@ class Dictionary(Object):
     """
 
     object_type: ObjectType
-    def __new__(cls, d: Mapping | None = None, **kwargs: Any) -> Dictionary: ...
+    def __new__(
+        cls, d: Mapping[str, Any] | None = None, **kwargs: Any
+    ) -> Dictionary: ...
 
 class Stream(Object):
     """Construct a PDF Stream object.

@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+from pikepdf._core import EncryptionMethod
 from pikepdf.models._content_stream import (
     ContentStreamInstructions,
     PdfParsingError,  # legacy
@@ -27,7 +28,6 @@ from pikepdf.models.actions import (
 from pikepdf.models.encryption import (
     Encryption,
     EncryptionInfo,
-    EncryptionMethod,
     Permissions,
 )
 from pikepdf.models.image import (

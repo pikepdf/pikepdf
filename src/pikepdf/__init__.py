@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pikepdf._version import __version__
 
@@ -294,7 +294,7 @@ if TYPE_CHECKING:
     )
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     """Lazily expose Pillow-derived exceptions and optional submodules.
 
     Keeps ``import pikepdf`` free of Pillow (see tests/test_lazy_load.py) while
