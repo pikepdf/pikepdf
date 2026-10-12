@@ -102,6 +102,9 @@ the architecture notes on thread safety.
   reference no longer says that the parser should not be used to edit content
   streams. The `TokenFilter.handle_token` documentation now says correctly that
   exceptions it raises propagate to the caller. {issue}`62`
+- A `/CalRGB` or `/CalGray` image whose colour space array has no parameter
+  dictionary is now decoded as `/DeviceRGB` or `/DeviceGray` without a profile,
+  like one without a `/WhitePoint`. Previously it raised `IndexError`.
 
 ## v10.16.0
 
