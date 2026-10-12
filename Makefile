@@ -42,17 +42,17 @@ clean: clean-coverage
 
 .PHONY: test
 test: build
-	pytest -n auto
+	uv run pytest -n auto
 
 .PHONY: pycov
 pycov: clean-coverage-pycov
-	pytest --cov-report html --cov=src -n auto
+	uv run pytest --cov-report html --cov=src -n auto
 
 .PHONY: build-cppcov
 build-cppcov:
 	SKBUILD_BUILD_DIR=build/coverage \
 	  CMAKE_ARGS="-DCMAKE_CXX_FLAGS=--coverage -DCMAKE_SHARED_LINKER_FLAGS=--coverage" \
-	  pip install --no-build-isolation -e .
+	  uv pip install --no-build-isolation -e .
 
 coverage/cpp.info: clean-coverage-cppcov build-cppcov pycov
 	lcov --capture --directory build/coverage --output-file coverage/cppall.info
@@ -70,10 +70,10 @@ coverage: cppcov pycov
 
 .PHONY: docs
 docs: build
-	$(MAKE) -C docs clean
-	$(MAKE) -C docs html doctest
+	uv run $(MAKE) -C docs clean
+	uv run $(MAKE) -C docs html doctest
 	rm -f docs/doc.log.txt
 
 cibuildwheel-test: clean-coverage
 	rm -rf build/bdist.* build/lib.* build/temp.*
-	pipx run cibuildwheel --platform linux
+	uvx cibuildwheel --platform linux
