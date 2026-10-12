@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "locked_bindings.h"
 #include "pikepdf.h"
 
 #include <deque>
@@ -26,16 +27,27 @@
 //
 // The set holds a reference to each object so that an address is never reused
 // for a different object while the set is alive.
+//
+// An identity is the shared pointer that every handle to the object holds.
+// The set compares and hashes these pointers and never looks at what they
+// point to, so it reads nothing of any Pdf and takes no Pdf's lock.
 class ObjectSet {
 public:
+    using Identity = std::shared_ptr<QPDFObject>;
+
     ObjectSet() = default;
+    explicit ObjectSet(std::vector<Identity> const &identities)
+        : objects_(identities.begin(), identities.end())
+    {
+    }
     ObjectSet(const ObjectSet &) = delete;
     ObjectSet &operator=(const ObjectSet &) = delete;
 
     // Returns true if the object was not in the set before this call.
-    bool add(QPDFObjectHandle h);
-    bool contains(QPDFObjectHandle h) const;
-    void discard(QPDFObjectHandle h);
+    bool add(Identity const &identity);
+    bool add(QPDFObjectHandle h) { return add(h.getObj()); }
+    bool contains(Identity const &identity) const;
+    void discard(Identity const &identity);
     void clear();
     size_t size() const;
 
@@ -43,10 +55,13 @@ private:
     // A real mutex, not the per-QPDF lock: a set may hold objects of several
     // documents, or of none.
     mutable std::mutex mutex_;
-    std::unordered_set<std::shared_ptr<QPDFObject>> objects_;
+    std::unordered_set<Identity> objects_;
     std::set<std::pair<std::shared_ptr<QPDFObject>, std::shared_ptr<QPDFObject>>>
         pairs_;
 };
+
+template <>
+struct LockOwner<ObjectSet> : NoLock {};
 
 // The kinds of content stream that ContentScopeWalk reports, as bits of a
 // mask. Bound as pikepdf._core._ContentScopeKind, whose member names are the
@@ -78,6 +93,10 @@ struct ContentScope {
 //
 // The walk keeps a reference to everything it has seen, since Python may
 // change the document between one page and the next.
+//
+// Between calls a walk holds only identities, as ObjectSet does. It reads a
+// Pdf only during walk(), starting from the page it is given, and the caller
+// must hold the lock of that page's Pdf.
 class ContentScopeWalk {
 public:
     ContentScopeWalk() = default;
@@ -124,5 +143,8 @@ private:
     std::deque<QPDFObjectHandle> pending_;
     std::vector<ContentScope> found_;
 };
+
+template <>
+struct LockOwner<ContentScopeWalk> : NoLock {};
 
 void init_traversal(py::module_ &m);
