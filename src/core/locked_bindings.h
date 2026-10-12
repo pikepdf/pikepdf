@@ -312,6 +312,30 @@ public:
             [](Args... args) { return T(std::forward<Args>(args)...); }, extra...);
     }
 
+    // Register __init__ as the constructor Alias(Args...), for a class that
+    // Python can subclass through a trampoline: the Alias of py::class_, named
+    // among Bases. A trampoline is built in place, because nanobind finds the
+    // Python object it belongs to from its address, so it cannot be returned
+    // by a factory as def_init requires. T may then be abstract.
+    template <typename... Args, typename... Extra>
+    locked_class_ &def_trampoline_constructor(const Extra &...extra)
+    {
+        using Alias = typename py::class_<T, Bases...>::Alias;
+        static_assert(!std::is_same_v<T, Alias>,
+            "This class has no trampoline: use def_constructor.");
+        static_assert(!(locked_detail::arg_untyped<Args> || ...),
+            "A constructor may not take py::object or py::handle.");
+        cls_.def(
+            "__init__",
+            [](T *self, Args... args) {
+                locked_detail::OwnersGuard<locked_detail::n_locking<Args...>> guard(
+                    locked_detail::owners_of<Args...>(args...));
+                new (static_cast<void *>(self)) Alias(std::forward<Args>(args)...);
+            },
+            extra...);
+        return *this;
+    }
+
     template <typename F, typename... Extra>
     locked_class_ &def_static(const char *name, F &&f, const Extra &...extra)
     {
