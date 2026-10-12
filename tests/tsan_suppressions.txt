@@ -1,0 +1,38 @@
+# SPDX-FileCopyrightText: 2026 James R. Barlow
+# SPDX-License-Identifier: MPL-2.0
+
+# ThreadSanitizer suppressions for running pikepdf's tests on a free-threaded,
+# TSan-instrumented CPython. See docs/references/debugging.md and
+# .github/workflows/tsan.yml.
+#
+# Use this together with CPython's own list, Tools/tsan/suppressions_free_threading.txt.
+# Keep every entry as narrow as it can be and say why it is here. A report in
+# pikepdf's own code should be fixed, not suppressed.
+
+# The unlocked read of an object's owning QPDF.
+#
+# qpdf stores an object's owner as a plain pointer, and pikepdf must read it
+# (QPDFObjectHandle::getOwningQPDF) to find out which per-Pdf lock to take, so
+# that one read can never itself be made under the lock. The writers are:
+#  - QPDF::getAllObjects (Pdf.objects), which rewrites every object's owner
+#    with the value it already has;
+#  - ~QPDF, which clears it. The reader then either finds the Pdf's lock and
+#    waits for the teardown, or finds no owner and waits in
+#    QpdfRegistry::wait_for_teardown();
+#  - pikepdf's adoption of direct objects into a Pdf, and their release when
+#    they are replaced or deleted, both done under that Pdf's lock.
+# race_top matches only the innermost frame, so a race on anything other than
+# the owner pointer itself is still reported.
+race_top:QPDFObject::getQPDF
+
+# qpdf keeps its global options and limits (pikepdf.settings.set_qpdf_limits)
+# in plain variables that its parser reads without synchronization. pikepdf
+# serializes its own reads and writes of them, but cannot do so for qpdf's.
+race:qpdf::global::Limits
+
+# CPython's _decimal: the status flags of a decimal context inherited by
+# several threads are updated without synchronization, when a Decimal is
+# constructed and when one is compared with a float. pikepdf reaches the first
+# by converting a PDF real to decimal.Decimal; the tests do the second.
+race_top:dec_addstatus
+race_top:convert_op_cmp

@@ -1,0 +1,154 @@
+# SPDX-FileCopyrightText: 2026 James R. Barlow
+# SPDX-License-Identifier: MPL-2.0
+
+name: ThreadSanitizer
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request: {}
+
+# pikepdf publishes free-threaded wheels, and on a free-threaded interpreter a
+# data race in the C++ extension is a crash waiting to happen rather than
+# something the GIL hides. This workflow runs the test suite under
+# ThreadSanitizer (TSan), which reports such races as they occur, including
+# ones that did not happen to corrupt anything this time.
+#
+# TSan only sees code compiled with -fsanitize=thread, so all three layers are
+# instrumented: CPython (from the container image), libqpdf and pikepdf._core
+# (both built here). See "ThreadSanitizer" in docs/references/debugging.md for
+# how to run the same thing locally.
+
+jobs:
+  tsan:
+    name: free-threaded CPython 3.14 with TSan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    container:
+      # A free-threaded CPython built with --with-thread-sanitizer, and the
+      # clang that built it (CC and CXX are set in the image). Maintained at
+      # https://github.com/nascheme/cpython_sanity and used the same way by
+      # NumPy and SciPy. Building such an interpreter here would take longer
+      # than everything else in this job put together.
+      image: ghcr.io/nascheme/cpython-tsan:3.14t
+      # TSan needs a particular address space layout. When the kernel's ASLR
+      # entropy is too high for it, TSan re-executes the process with ASLR
+      # turned off, which Docker's default seccomp profile forbids; the
+      # interpreter then fails to start at all.
+      options: --security-opt seccomp=unconfined
+    env:
+      # Instrument everything compiled in this job, both libqpdf (CMake reads
+      # these on its first configure) and pikepdf._core (through
+      # scikit-build-core). -g gives TSan file and line numbers to report.
+      CFLAGS: -fsanitize=thread -g
+      CXXFLAGS: -fsanitize=thread -g
+      LDFLAGS: -fsanitize=thread
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install build dependencies
+        run: |
+          apt-get update
+          apt-get install -y cmake libjpeg-dev wget
+
+      # The image manages its interpreter with pyenv, and pyenv honors the
+      # .python-version file in this repository, which names a version the
+      # image does not have. Select the image's interpreter explicitly.
+      - name: Select the TSan interpreter
+        run: |
+          echo "PYENV_VERSION=$(cd / && pyenv global)" >> "$GITHUB_ENV"
+
+      - name: Read environment from pyproject.toml
+        run: |
+          python -VV
+          python build-scripts/environ-from-pyproject.py >> "$GITHUB_ENV"
+
+      # The image tag is a moving one. An instrumented libqpdf is tied to the
+      # compiler that built it, so make the compiler part of the cache key.
+      - name: Identify the compiler
+        id: compiler
+        run: |
+          $CC --version
+          echo "id=$($CC --version | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+
+      # Compiling libqpdf with TSan takes several minutes, so cache it, in the
+      # same way build.yml does for the wheel builds:
+      # posix-build-wheel-deps.bash unpacks the archive in QPDF_CACHE_DIR if
+      # there is one, and otherwise downloads and compiles qpdf and writes the
+      # archive. The key is separate from build.yml's because this build is
+      # instrumented, and covers QPDF_VERSION (pyproject.toml), the flags (this
+      # file), the build scripts and the compiler.
+      - name: Restore cached TSan build of qpdf
+        id: qpdf-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: .qpdf-cache
+          key: qpdf-tsan-${{ steps.compiler.outputs.id }}-${{ hashFiles('pyproject.toml', '.github/workflows/tsan.yml', 'build-scripts/posix-*.bash') }}
+
+      - name: Build qpdf with TSan
+        run: |
+          QPDF_CACHE_DIR="$GITHUB_WORKSPACE/.qpdf-cache" \
+            bash build-scripts/posix-build-wheel-deps.bash
+
+      - name: Save TSan build of qpdf to cache
+        if: ${{ !cancelled() && steps.qpdf-cache.outputs.cache-hit != 'true' && hashFiles('.qpdf-cache/*.tar.gz') != '' }}
+        uses: actions/cache/save@v6
+        with:
+          path: .qpdf-cache
+          key: ${{ steps.qpdf-cache.outputs.cache-primary-key }}
+
+      # RelWithDebInfo, because nanobind strips the extension in a Release
+      # build, and scikit-build-core strips on install unless told not to;
+      # either would leave TSan reporting bare addresses for pikepdf's frames.
+      # A regular (non-editable) install is used, so the tests import the
+      # installed package rather than the source tree.
+      - name: Build and install pikepdf with TSan
+        run: |
+          python -m pip install --upgrade pip  # need pip>=25.1 for PEP 735 --group
+          SKBUILD_CMAKE_BUILD_TYPE=RelWithDebInfo SKBUILD_INSTALL_STRIP=false \
+            python -m pip install --group test .
+          cd / && python -c "import pikepdf, sys; print(pikepdf.__version__, pikepdf.__libqpdf_version__, 'GIL enabled:', sys._is_gil_enabled())"
+
+      # Reports go to files, one per process, because pytest-xdist does not
+      # show its workers' stderr; the last step fails the job if there are
+      # any. halt_on_error=0 lets a run collect every report instead of
+      # stopping at the first. Suppressions are CPython's own list, shipped in
+      # the image, followed by pikepdf's short one.
+      - name: Configure TSan
+        run: |
+          mkdir -p "$RUNNER_TEMP/tsan"
+          cat /work/tsan_suppressions/cpython.txt tests/tsan_suppressions.txt \
+            > "$RUNNER_TEMP/tsan/suppressions.txt"
+          echo "TSAN_OPTIONS=halt_on_error=0:exitcode=0:log_path=$RUNNER_TEMP/tsan/report:suppressions=$RUNNER_TEMP/tsan/suppressions.txt" >> "$GITHUB_ENV"
+          # Keep the GIL off even if an extension module asks for it.
+          echo "PYTHON_GIL=0" >> "$GITHUB_ENV"
+
+      # The threading stress tests are the ones designed to race. They run in
+      # one process so that nothing but pikepdf's own threads is competing.
+      - name: Run threading stress tests
+        run: |
+          python -m pytest -n0 -v --timeout=600 tests/test_threading.py
+
+      # The rest of the suite is single-threaded for the most part, but it
+      # covers far more of the extension, and TSan also catches misuse such as
+      # unlocking a mutex that another thread holds. TSan makes it roughly ten
+      # times slower than usual.
+      - name: Run the rest of the test suite
+        run: |
+          python -m pytest -n auto --timeout=600 --ignore=tests/test_threading.py tests
+
+      - name: Fail if TSan reported anything
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          shopt -s nullglob
+          reports=("$RUNNER_TEMP"/tsan/report.*)
+          if [ ${#reports[@]} -eq 0 ]; then
+            echo "No ThreadSanitizer reports."
+            exit 0
+          fi
+          echo "::error::ThreadSanitizer produced reports in ${#reports[@]} process(es)"
+          cat "${reports[@]}" | grep -h "^SUMMARY: ThreadSanitizer" | sort | uniq -c | sort -rn
+          cat "${reports[@]}"
+          exit 1
