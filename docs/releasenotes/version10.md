@@ -21,6 +21,10 @@ the architecture notes on thread safety.
 - Reading the label of a page whose page label style is an unknown name, such
   as `/S /Z`, now warns and keeps the label prefix, as an invalid non-name
   style already did. Previously it raised `KeyError`.
+- Extracting an image whose `/CalGray` or `/CalRGB` colour space array lacks
+  its parameter dictionary now decodes it as the corresponding device space,
+  without an ICC profile, as a missing `/WhitePoint` already did. Previously
+  it raised `IndexError`.
 
 ## v10.17.0
 

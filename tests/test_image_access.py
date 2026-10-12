@@ -2398,6 +2398,20 @@ def test_cal_missing_whitepoint_falls_back():
     assert 'icc_profile' not in im.info
 
 
+@pytest.mark.parametrize(
+    'name, mode, nbytes', [('/CalGray', 'L', 4), ('/CalRGB', 'RGB', 12)]
+)
+def test_cal_missing_dictionary_falls_back(name, mode, nbytes):
+    # Malformed Cal* array without its parameter dictionary: like a missing
+    # WhitePoint, extract as a plain device space without an ICC profile.
+    pim = _cal_image(
+        Array([Name(name)]), bpc=8, width=2, height=2, imbytes=bytes(nbytes)
+    )
+    im = pim.as_pil_image()
+    assert im.mode == mode
+    assert 'icc_profile' not in im.info
+
+
 # --- Gap B: 16-bit BitsPerComponent ----------------------------------------
 
 
