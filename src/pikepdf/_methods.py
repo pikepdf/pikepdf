@@ -299,8 +299,10 @@ class Extend_Pdf:
         pages: Iterable[int] | range | slice | None = None,
         *,
         forms: Literal['preserve', 'strip'] = 'preserve',
+        layers: Literal['preserve', 'ignore'] = 'preserve',
+        outlines: Literal['preserve', 'ignore'] = 'preserve',
     ) -> PageCopyResult:
-        """Append pages from another ``Pdf``, preserving interactive form fields.
+        """Append pages from another ``Pdf``, with what the document holds for them.
 
         Unlike ``pdf.pages.extend(src.pages)``, this carries the document's
         AcroForm form fields so they remain functional in Adobe Acrobat. Fields
@@ -324,6 +326,24 @@ class Extend_Pdf:
         names that collide with existing destinations are renamed and reported in
         :attr:`pikepdf.PageCopyResult.renamed_dests`.
 
+        Optional content groups (layers) that the copied pages depend on are
+        listed in this document's ``/OCProperties``, without which viewers
+        ignore them and show content that the source hid. Each group keeps
+        the default state it had in the source, and its place in the layer
+        list, lock, radio button groups and automatic states, as given by the
+        source's default configuration. Layers already in this document are
+        unaffected. Only the default configuration is carried, not alternate
+        ones in ``/Configs``.
+
+        Outline items (bookmarks) of the source that lead to a copied page are
+        appended to this document's outline, leading to the copy. An item that
+        leads elsewhere is kept, without a destination, only if an item below
+        it is kept, so the hierarchy survives. Titles, colour, bold and italic
+        and whether an item is open are preserved. Items that lead to pages
+        that were not copied, or that run an action other than going to a
+        page, are left behind and counted in
+        :attr:`pikepdf.PageCopyResult.outline_items_dropped`.
+
         Args:
             src: Source ``Pdf`` to copy pages from.
             pages: Zero-based indices (iterable, ``range`` or ``slice``) of
@@ -332,13 +352,26 @@ class Extend_Pdf:
                 (including ``range``) must be valid or ``IndexError`` is raised.
             forms: ``'preserve'`` (default) carries form fields; ``'strip'``
                 removes widget annotations from the copied pages.
+            layers: ``'preserve'`` (default) lists the optional content groups
+                used by the copied pages in this document; ``'ignore'`` copies
+                the pages only, as before pikepdf 10.18, which leaves their
+                optional content always visible unless this document
+                already lists the groups.
+            outlines: ``'preserve'`` (default) carries the outline items that
+                lead to the copied pages; ``'ignore'`` carries none.
 
         Returns:
             A :class:`pikepdf.PageCopyResult` describing the operation.
+
+        .. versionchanged:: 10.18
+            Added *layers* and *outlines*. Layers and outline items are now
+            carried by default.
         """
         from pikepdf._page_copy import copy_pages
 
-        return copy_pages(self, src, pages, forms=forms)
+        return copy_pages(
+            self, src, pages, forms=forms, layers=layers, outlines=outlines
+        )
 
     def close(self) -> None:
         self._close()
