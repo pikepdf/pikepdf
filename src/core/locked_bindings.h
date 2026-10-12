@@ -312,6 +312,17 @@ public:
             [](Args... args) { return T(std::forward<Args>(args)...); }, extra...);
     }
 
+    // Register __init__ as the default constructor of a class that Python
+    // subclasses through a trampoline, the last of Bases. T may be abstract,
+    // so its constructor cannot go through def_init, which returns a T by
+    // value. A constructor without arguments has no Pdf to lock.
+    template <typename... Extra>
+    locked_class_ &def_default_init(const Extra &...extra)
+    {
+        cls_.def(py::init<>(), extra...);
+        return *this;
+    }
+
     template <typename F, typename... Extra>
     locked_class_ &def_static(const char *name, F &&f, const Extra &...extra)
     {

@@ -4,6 +4,7 @@
 // Number protocol for the QPDFObjectHandle ("Object") binding: conversion to
 // Python numbers, rounding, ordering and arithmetic for Integer and Real.
 
+#include "locked_bindings.h"
 #include "numeric-inl.h"
 #include "object.h"
 #include "pikepdf.h"
@@ -49,6 +50,10 @@ static PyObject *number_power(PyObject *a, PyObject *b)
 // (ZeroDivisionError, OverflowError) are exactly the standard library's.
 // A non-numeric Object raises TypeError; a non-numeric other operand returns
 // NotImplemented so Python names both types in its own TypeError.
+//
+// Locks the operands itself, for as long as it takes to read them. The
+// operation runs after the locks are released, since the other operand is the
+// caller's and can be an object whose methods run code of their own.
 static py::object binary_arithmetic(
     QPDFObjectHandle &self, py::handle other, binary_number_fn fn, bool reflected)
 {
@@ -75,10 +80,10 @@ static py::object binary_arithmetic(
 
 // Python stand-in for a numeric Object in a one-operand number protocol
 // method, so round(), int(), format() and so on give the result they would
-// give on the value implicit mode produces.
+// give on the value implicit mode produces. The caller holds the lock on the
+// object's owner.
 static py::object number_operand(QPDFObjectHandle &self)
 {
-    QpdfLockGuard lock(self.getOwningQPDF());
     return arithmetic_operand(self, false);
 }
 
@@ -114,6 +119,9 @@ static std::optional<py::object> ordering_operand(QPDFObjectHandle &h)
 // Returns NotImplemented for non-numeric operands so Python reports the
 // pikepdf type names in its TypeError. Reflected comparisons need no extra
 // methods: Python swaps operands and calls the mirrored operator on us.
+//
+// Locks the operands itself and compares after the locks are released, as
+// binary_arithmetic() does.
 static py::object compare_numeric(QPDFObjectHandle &self, py::handle other, int op)
 {
     auto not_implemented = [] {
@@ -147,7 +155,7 @@ static py::object compare_numeric(QPDFObjectHandle &self, py::handle other, int 
     return py::steal(result);
 }
 
-void init_object_arithmetic(py::class_<QPDFObjectHandle> &object)
+void init_object_arithmetic(locked_class_<QPDFObjectHandle> &object)
 {
     object
         .def("__int__",
@@ -173,14 +181,20 @@ void init_object_arithmetic(py::class_<QPDFObjectHandle> &object)
                     return std::stod(h.getRealValue());
                 throw py::type_error("Object is not numeric");
             })
-        .def(
-            "__round__",
-            [](QPDFObjectHandle &h, py::object ndigits) {
-                py::object operand = number_operand(h);
+        .def("__round__",
+            // Locks the owner itself while it reads the number, and rounds
+            // after releasing it: ndigits is the caller's, and can be an
+            // object whose __index__ runs code of its own.
+            unlocked([](QPDFObjectHandle &h, py::object ndigits) {
+                py::object operand;
+                {
+                    QpdfLockGuard lock(h.getOwningQPDF());
+                    operand = number_operand(h);
+                }
                 if (ndigits.is_none())
                     return operand.attr("__round__")();
                 return operand.attr("__round__")(ndigits);
-            },
+            }),
             py::arg("ndigits") = py::none())
         .def("__trunc__",
             [](QPDFObjectHandle &h) { return number_operand(h).attr("__trunc__")(); })
@@ -194,30 +208,29 @@ void init_object_arithmetic(py::class_<QPDFObjectHandle> &object)
             [](QPDFObjectHandle &h) { return unary_arithmetic(h, PyNumber_Positive); })
         .def("__abs__",
             [](QPDFObjectHandle &h) { return unary_arithmetic(h, PyNumber_Absolute); })
-        // Ordering comparisons for Integer and Real
-        .def(
-            "__lt__",
-            [](QPDFObjectHandle &h, py::object other) {
+        // Ordering comparisons for Integer and Real. Like the arithmetic
+        // below, these are registered unlocked because compare_numeric() and
+        // binary_arithmetic() lock the operands themselves, and must not
+        // hold a lock while Python code of the other operand runs.
+        .def("__lt__",
+            unlocked([](QPDFObjectHandle &h, py::object other) {
                 return compare_numeric(h, other, Py_LT);
-            },
+            }),
             py::is_operator())
-        .def(
-            "__le__",
-            [](QPDFObjectHandle &h, py::object other) {
+        .def("__le__",
+            unlocked([](QPDFObjectHandle &h, py::object other) {
                 return compare_numeric(h, other, Py_LE);
-            },
+            }),
             py::is_operator())
-        .def(
-            "__gt__",
-            [](QPDFObjectHandle &h, py::object other) {
+        .def("__gt__",
+            unlocked([](QPDFObjectHandle &h, py::object other) {
                 return compare_numeric(h, other, Py_GT);
-            },
+            }),
             py::is_operator())
-        .def(
-            "__ge__",
-            [](QPDFObjectHandle &h, py::object other) {
+        .def("__ge__",
+            unlocked([](QPDFObjectHandle &h, py::object other) {
                 return compare_numeric(h, other, Py_GE);
-            },
+            }),
             py::is_operator());
 
     // Binary arithmetic for Integer and Real. Each operator gets a forward
@@ -238,17 +251,15 @@ void init_object_arithmetic(py::class_<QPDFObjectHandle> &object)
         {"__divmod__", "__rdivmod__", PyNumber_Divmod},
     };
     for (auto const &op : arithmetic_ops) {
-        object.def(
-            op.name,
-            [fn = op.fn](QPDFObjectHandle &h, py::object other) {
+        object.def(op.name,
+            unlocked([fn = op.fn](QPDFObjectHandle &h, py::object other) {
                 return binary_arithmetic(h, other, fn, false);
-            },
+            }),
             py::is_operator());
-        object.def(
-            op.reflected_name,
-            [fn = op.fn](QPDFObjectHandle &h, py::object other) {
+        object.def(op.reflected_name,
+            unlocked([fn = op.fn](QPDFObjectHandle &h, py::object other) {
                 return binary_arithmetic(h, other, fn, true);
-            },
+            }),
             py::is_operator());
     }
 }
