@@ -409,6 +409,25 @@ private:
     py::module_ &m_;
 };
 
+// A shared_ptr argument, which may be null, is locked as what it points to.
+// Pdf.pages takes its Pdf this way, since the PageList it returns shares
+// ownership of the QPDF.
+template <typename T>
+struct LockOwner<std::shared_ptr<T>, std::enable_if_t<LockOwner<T>::locks>> {
+    static constexpr bool declared = true;
+    static constexpr bool locks = true;
+    static QPDF *of(std::shared_ptr<T> const &p)
+    {
+        return p ? LockOwner<T>::of(*p) : nullptr;
+    }
+};
+
+namespace locked_detail {
+static_assert(arg_locks<std::shared_ptr<QPDF>>);
+static_assert(arg_locks<std::shared_ptr<QPDF> const &>);
+static_assert(!arg_locks<std::shared_ptr<int>>);
+} // namespace locked_detail
+
 // The rules above, checked where they are stated.
 namespace locked_detail {
 struct Undeclared {};
