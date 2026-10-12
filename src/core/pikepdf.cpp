@@ -10,6 +10,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <mutex>
 #include <regex>
 #include <string>
 #include <string_view>
@@ -37,6 +38,11 @@
 static constinit std::atomic<uint> DECIMAL_PRECISION = 15;
 static constinit std::atomic<bool> MMAP_DEFAULT = false;
 static constinit std::atomic<bool> EXPLICIT_CONVERSION_MODE = false;
+
+// qpdf keeps its global options and limits in plain variables. This serializes
+// the reads and writes that pikepdf.settings makes. It cannot cover qpdf's own
+// reads while it parses, so limits should be set before threads are started.
+static constinit std::mutex qpdf_global_mutex;
 
 // Exception class pointers, populated once in NB_MODULE and then read-only.
 // Borrowed references - the owning strong reference lives in the module dict
@@ -405,6 +411,7 @@ NB_MODULE(_core, m)
             "_get_qpdf_global",
             [](std::string_view name) {
                 uint32_t value = 0;
+                std::lock_guard<std::mutex> guard(qpdf_global_mutex);
                 check_qpdf_global_result(
                     qpdf_global_get_uint32(qpdf_global_param(name), &value), name);
                 return value;
@@ -416,6 +423,7 @@ NB_MODULE(_core, m)
                 auto param = qpdf_global_param(name);
                 if (param == qpdf_p_limit_errors)
                     throw py::value_error("limit_errors is read-only");
+                std::lock_guard<std::mutex> guard(qpdf_global_mutex);
                 check_qpdf_global_result(qpdf_global_set_uint32(param, value), name);
             },
             py::arg("name"),

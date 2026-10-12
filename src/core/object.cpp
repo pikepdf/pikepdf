@@ -246,6 +246,7 @@ QPDFObjectHandle traverse_namepath(
 
 std::pair<int, int> object_get_objgen(QPDFObjectHandle h)
 {
+    QpdfLockGuard lock(h.getOwningQPDF());
     auto objgen = h.getObjGen();
     return std::pair<int, int>(objgen.getObj(), objgen.getGen());
 }

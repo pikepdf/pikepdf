@@ -19,6 +19,7 @@ public:
     void set_page(size_t index, QPDFPageObjectHelper page);
     void set_page(size_t index, py::object obj);
     void set_pages_from_iterable(py::slice slice, py::iterable other);
+    void set_pages(py::slice slice, std::vector<QPDFPageObjectHelper> const &pages);
     void delete_page(size_t index);
     void delete_pages_from_iterable(py::slice slice);
     size_t count();

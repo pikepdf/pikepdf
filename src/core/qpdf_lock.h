@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <unordered_map>
@@ -140,6 +141,10 @@ private:
 // and unregistered at destruction. Object methods look up their owning QPDF's
 // entry via this registry.
 //
+// Entries are shared: a thread that is locking a QPDF, or waiting for its
+// lock, holds a reference to the entry, so the mutex outlives the QPDF if
+// another thread destroys the document in the meantime.
+//
 // The registry's own map_mutex_ is a real std::mutex (not ft_mutex) because
 // it protects the registry data structure itself, not a QPDF instance.
 // It is held only briefly during register/unregister/lookup.
@@ -153,30 +158,72 @@ public:
 
     void register_qpdf(QPDF *q)
     {
-        auto entry = std::make_unique<QpdfEntry>();
+        auto entry = std::make_shared<QpdfEntry>();
         std::lock_guard<std::mutex> guard(map_mutex_);
         map_[q] = std::move(entry);
     }
 
-    void unregister_qpdf(QPDF *q)
+    // Remove q's entry. *entry* is the entry the caller locked: once q has
+    // been deleted, its address may already have been reused by a new QPDF
+    // with an entry of its own, which must be left alone.
+    void unregister_qpdf(QPDF *q, QpdfEntry const *entry)
     {
         std::lock_guard<std::mutex> guard(map_mutex_);
-        map_.erase(q);
+        auto it = map_.find(q);
+        if (it != map_.end() && it->second.get() == entry)
+            map_.erase(it);
     }
 
-    QpdfEntry *lookup_entry(QPDF *q)
+    // The entry for q, kept alive for as long as the caller holds the result.
+    // Use this to lock a QPDF that another thread might be destroying.
+    std::shared_ptr<QpdfEntry> lookup_shared(QPDF *q)
     {
         if (!q)
             return nullptr;
         std::lock_guard<std::mutex> guard(map_mutex_);
         auto it = map_.find(q);
-        return (it != map_.end()) ? it->second.get() : nullptr;
+        return (it != map_.end()) ? it->second : nullptr;
     }
+
+    // The entry for q as a borrowed pointer, valid only while q is known to
+    // be alive: the caller holds q's lock, or a reference to the Pdf.
+    QpdfEntry *lookup_entry(QPDF *q) { return lookup_shared(q).get(); }
 
     ReentrantFtMutex *lookup(QPDF *q)
     {
         auto *entry = lookup_entry(q);
         return entry ? &entry->mutex : nullptr;
+    }
+
+    // ~QPDF clears the owner of each of its objects and then destroys the
+    // object's value. A thread that reads the cleared owner in between finds
+    // no lock to take, and would go on to read a value that is being
+    // destroyed. So destruction of a QPDF is bracketed by begin_teardown() and
+    // end_teardown(), and a thread about to use an object that has no owner
+    // calls wait_for_teardown() first. Teardowns are serialized by a
+    // re-entrant mutex, so that code run by the destroying thread itself --
+    // including the teardown of another QPDF -- passes straight through.
+    //
+    // begin_teardown() must be called with the QPDF's own lock held, before
+    // any owner is cleared.
+    void begin_teardown()
+    {
+        teardown_mutex_.lock();
+        teardowns_.fetch_add(1);
+    }
+
+    void end_teardown()
+    {
+        teardowns_.fetch_sub(1);
+        teardown_mutex_.unlock();
+    }
+
+    void wait_for_teardown()
+    {
+        if (teardowns_.load() != 0) {
+            teardown_mutex_.lock();
+            teardown_mutex_.unlock();
+        }
     }
 
     QpdfRegistry(const QpdfRegistry &) = delete;
@@ -186,18 +233,28 @@ private:
     QpdfRegistry() = default;
 
     std::mutex map_mutex_;
-    std::unordered_map<QPDF *, std::unique_ptr<QpdfEntry>> map_;
+    std::unordered_map<QPDF *, std::shared_ptr<QpdfEntry>> map_;
+    ReentrantFtMutex teardown_mutex_;
+    std::atomic<int> teardowns_{0};
 };
 
 // RAII guard that locks a single QPDF's mutex via the registry.
-// No-op if q is null or not registered (direct/unowned objects).
+// Takes no lock if q is null or not registered (direct/unowned objects), but
+// does wait for any QPDF that is being destroyed: see wait_for_teardown().
+//
+// The guard shares ownership of the registry entry. If another thread destroys
+// the QPDF while this one waits for the lock, the wait ends once the QPDF is
+// gone and the guard then holds the mutex of a dead entry, which is harmless:
+// by then qpdf has disconnected the document's objects, and they are safe to
+// use without a lock.
 class QpdfLockGuard {
 public:
-    explicit QpdfLockGuard(QPDF *q)
-        : entry_(q ? QpdfRegistry::instance().lookup_entry(q) : nullptr)
+    explicit QpdfLockGuard(QPDF *q) : entry_(QpdfRegistry::instance().lookup_shared(q))
     {
         if (entry_)
             entry_->mutex.lock();
+        else
+            QpdfRegistry::instance().wait_for_teardown();
     }
 
     ~QpdfLockGuard()
@@ -209,13 +266,13 @@ public:
     // The registry entry of the locked QPDF, or nullptr for unowned objects.
     // Lets callers read the document's conversion mode without a second
     // registry lookup.
-    QpdfEntry *entry() const { return entry_; }
+    QpdfEntry *entry() const { return entry_.get(); }
 
     QpdfLockGuard(const QpdfLockGuard &) = delete;
     QpdfLockGuard &operator=(const QpdfLockGuard &) = delete;
 
 private:
-    QpdfEntry *entry_;
+    std::shared_ptr<QpdfEntry> entry_;
 };
 
 // RAII guard that locks two QPDF mutexes in consistent pointer order
@@ -225,39 +282,79 @@ public:
     DualQpdfLockGuard(QPDF *a, QPDF *b)
     {
         auto &reg = QpdfRegistry::instance();
-        auto *ma = a ? reg.lookup(a) : nullptr;
-        auto *mb = b ? reg.lookup(b) : nullptr;
+        auto ea = reg.lookup_shared(a);
+        auto eb = reg.lookup_shared(b);
 
-        if (ma == mb) {
+        if (ea == eb) {
             // Same QPDF or both null -- single lock at most
-            first_ = ma;
-            second_ = nullptr;
-        } else if (!mb || (ma && ma < mb)) {
-            first_ = ma;
-            second_ = mb;
+            first_ = std::move(ea);
+        } else if (!eb || (ea && std::less<QpdfEntry *>()(ea.get(), eb.get()))) {
+            first_ = std::move(ea);
+            second_ = std::move(eb);
         } else {
-            first_ = mb;
-            second_ = ma;
+            first_ = std::move(eb);
+            second_ = std::move(ea);
         }
 
         if (first_)
-            first_->lock();
+            first_->mutex.lock();
         if (second_)
-            second_->lock();
+            second_->mutex.lock();
+        if (!first_ || (!second_ && a != b))
+            reg.wait_for_teardown(); // At least one object has no owner
     }
 
     ~DualQpdfLockGuard()
     {
         if (second_)
-            second_->unlock();
+            second_->mutex.unlock();
         if (first_)
-            first_->unlock();
+            first_->mutex.unlock();
     }
 
     DualQpdfLockGuard(const DualQpdfLockGuard &) = delete;
     DualQpdfLockGuard &operator=(const DualQpdfLockGuard &) = delete;
 
 private:
-    ReentrantFtMutex *first_ = nullptr;
-    ReentrantFtMutex *second_ = nullptr;
+    // Shared for the same reason as QpdfLockGuard::entry_.
+    std::shared_ptr<QpdfEntry> first_;
+    std::shared_ptr<QpdfEntry> second_;
+};
+
+// RAII guard that locks any number of QPDFs, in the same consistent order as
+// DualQpdfLockGuard. Null and unregistered pointers are skipped, and the same
+// QPDF may be listed more than once.
+class MultiQpdfLockGuard {
+public:
+    explicit MultiQpdfLockGuard(std::vector<QPDF *> const &qpdfs)
+    {
+        auto &reg = QpdfRegistry::instance();
+        bool unowned = false;
+        for (auto *q : qpdfs) {
+            if (auto entry = reg.lookup_shared(q))
+                entries_.push_back(std::move(entry));
+            else
+                unowned = true;
+        }
+        std::sort(entries_.begin(), entries_.end(), [](auto const &a, auto const &b) {
+            return std::less<QpdfEntry *>()(a.get(), b.get());
+        });
+        entries_.erase(std::unique(entries_.begin(), entries_.end()), entries_.end());
+        for (auto &entry : entries_)
+            entry->mutex.lock();
+        if (unowned)
+            reg.wait_for_teardown();
+    }
+
+    ~MultiQpdfLockGuard()
+    {
+        for (auto it = entries_.rbegin(); it != entries_.rend(); ++it)
+            (*it)->mutex.unlock();
+    }
+
+    MultiQpdfLockGuard(const MultiQpdfLockGuard &) = delete;
+    MultiQpdfLockGuard &operator=(const MultiQpdfLockGuard &) = delete;
+
+private:
+    std::vector<std::shared_ptr<QpdfEntry>> entries_;
 };

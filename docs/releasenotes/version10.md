@@ -51,6 +51,24 @@ the architecture notes on thread safety.
   whose content stream cannot be read is reported as `ERROR: page N: ...`
   along with the other problems found, where it previously raised
   {class}`pikepdf.PdfError`. {issue}`515`
+- Free-threaded Python: fixed crashes when threads used pages of the same
+  `Pdf` at once. The page boxes ({attr}`pikepdf.Page.mediabox` and the
+  others),
+  {attr}`pikepdf.Page.rotation`, {meth}`pikepdf.Page.rotate`,
+  {meth}`pikepdf.Page.as_form_xobject`, {meth}`pikepdf.Page.contents_coalesce`
+  and several other {class}`pikepdf.Page` methods read or changed the `Pdf`
+  without holding its lock.
+- Free-threaded Python: fixed a crash when the last reference to a `Pdf` was
+  dropped while another thread was using one of its objects.
+- Free-threaded Python: fixed a data race when a content stream was parsed,
+  with {func}`pikepdf.parse_content_stream` or
+  {meth}`pikepdf.Page.parse_contents`, while another thread used the same
+  `Pdf`.
+- Free-threaded Python: fixed a data race on the source `Pdf` when a page was
+  appended, inserted or assigned into the page list of another `Pdf`. Both
+  documents are now locked, as `pages.extend()` already did.
+- The test suite now runs under ThreadSanitizer on free-threaded Python in
+  continuous integration, which is how the fixes above were found.
 
 ## v10.17.0
 

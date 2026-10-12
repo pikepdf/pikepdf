@@ -141,17 +141,39 @@ void PageList::set_page(size_t index, QPDFPageObjectHelper page)
     }
 }
 
-void PageList::set_pages_from_iterable(py::slice slice, py::iterable other)
+// Unpack an iterable into pages, checking that each item is a page. This runs
+// arbitrary Python code, so it is done before any lock is taken.
+static std::vector<QPDFPageObjectHelper> page_helpers_from_iterable(py::iterable other)
 {
-    auto [start, stop, step, slicelength] = slice.compute(count());
     std::vector<QPDFPageObjectHelper> results;
     py::iterator it = py::iter(other);
-
-    // Unpack list into iterable, check that each object is a page but
-    // don't save the handles yet
     for (; it != py::iterator::sentinel(); ++it) {
         results.push_back(as_page_helper(*it));
     }
+    return results;
+}
+
+// The documents that must be locked to insert *pages* into *pl*: the
+// destination, and every document a page is copied from. qpdf reads the
+// source document while it copies a foreign page.
+static std::vector<QPDF *> page_owners(
+    PageList &pl, std::vector<QPDFPageObjectHelper> const &pages)
+{
+    std::vector<QPDF *> owners{pl.qpdf.get()};
+    for (auto const &page : pages)
+        owners.push_back(page.getObjectHandle().getOwningQPDF());
+    return owners;
+}
+
+void PageList::set_pages_from_iterable(py::slice slice, py::iterable other)
+{
+    set_pages(slice, page_helpers_from_iterable(other));
+}
+
+void PageList::set_pages(
+    py::slice slice, std::vector<QPDFPageObjectHelper> const &results)
+{
+    auto [start, stop, step, slicelength] = slice.compute(count());
 
     if (step != 1) {
         // For an extended slice we must be replace an equal number of pages
@@ -272,15 +294,18 @@ void init_pagelist(py::module_ &m)
                 return pl.get_pages(slice);
             })
         .def("__setitem__",
-            [](PageList &pl, py::ssize_t index, py::object page) {
-                QpdfLockGuard lock(pl.qpdf.get());
+            [](PageList &pl, py::ssize_t index, py::object obj) {
+                auto page = as_page_helper(obj);
+                DualQpdfLockGuard lock(
+                    pl.qpdf.get(), page.getObjectHandle().getOwningQPDF());
                 auto uindex = uindex_from_index(pl, index);
                 pl.set_page(uindex, page);
             })
         .def("__setitem__",
             [](PageList &pl, py::slice slice, py::iterable other) {
-                QpdfLockGuard lock(pl.qpdf.get());
-                pl.set_pages_from_iterable(slice, other);
+                auto pages = page_helpers_from_iterable(other);
+                MultiQpdfLockGuard lock(page_owners(pl, pages));
+                pl.set_pages(slice, pages);
             })
         .def("__delitem__",
             [](PageList &pl, py::ssize_t index) {
@@ -318,7 +343,8 @@ void init_pagelist(py::module_ &m)
         .def(
             "insert",
             [](PageList &pl, py::ssize_t index, QPDFPageObjectHelper &page) {
-                QpdfLockGuard lock(pl.qpdf.get());
+                DualQpdfLockGuard lock(
+                    pl.qpdf.get(), page.getObjectHandle().getOwningQPDF());
                 auto uindex = uindex_from_index(pl, index);
                 pl.insert_page(uindex, page);
             },
@@ -345,7 +371,8 @@ void init_pagelist(py::module_ &m)
         .def(
             "append",
             [](PageList &pl, QPDFPageObjectHelper &page) {
-                QpdfLockGuard lock(pl.qpdf.get());
+                DualQpdfLockGuard lock(
+                    pl.qpdf.get(), page.getObjectHandle().getOwningQPDF());
                 pl.append_page(page);
             },
             py::arg("page"))
@@ -379,18 +406,16 @@ void init_pagelist(py::module_ &m)
         .def(
             "extend",
             [](PageList &pl, py::iterable iterable) {
-                QpdfLockGuard lock(pl.qpdf.get());
+                auto pages = page_helpers_from_iterable(iterable);
+                MultiQpdfLockGuard lock(page_owners(pl, pages));
                 bool forms = false, dests = false;
-                py::iterator it = py::iter(iterable);
-                while (it != py::iterator::sentinel()) {
-                    auto page = as_page_helper(*it);
+                for (auto &page : pages) {
                     auto h = page.getObjectHandle();
                     if (h.getOwningQPDF() != pl.qpdf.get()) {
                         forms = forms || page_has_widget(h);
                         dests = dests || page_has_named_dest(h);
                     }
                     pl.append_page(page);
-                    ++it;
                 }
                 warn_page_copy(forms, dests);
             },

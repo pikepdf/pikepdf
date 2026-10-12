@@ -53,13 +53,25 @@ QpdfEntry &registry_entry(QPDF &q)
 std::shared_ptr<QPDF> make_registered_qpdf(ConversionMode mode = ConversionMode::unset)
 {
     auto q = std::shared_ptr<QPDF>(new QPDF(), [](QPDF *p) {
+        // Objects do not keep their Pdf alive, so another thread may be using
+        // one of this document's objects right now. Take the document's lock
+        // for the whole teardown: that waits for any such operation to finish,
+        // and makes one that starts meanwhile wait until ~QPDF has disconnected
+        // the objects. The document stays registered until it has been
+        // deleted, so that a thread which read the owner of an object just
+        // before ~QPDF cleared it still finds this lock to wait on. The guard
+        // keeps the registry entry, and so the mutex, alive to the end.
+        QpdfLockGuard lock(p);
+        auto &registry = QpdfRegistry::instance();
+        registry.begin_teardown();
         // Disconnect every direct object this document adopted before the QPDF
         // is destroyed, so no Python-held object is left pointing at freed
         // memory. Must happen while *p is still valid.
-        if (auto *entry = QpdfRegistry::instance().lookup_entry(p))
+        if (auto *entry = lock.entry())
             entry->disconnect_adopted(p);
-        QpdfRegistry::instance().unregister_qpdf(p);
         delete p;
+        registry.unregister_qpdf(p, lock.entry());
+        registry.end_teardown();
     });
     QpdfRegistry::instance().register_qpdf(q.get());
     registry_entry(*q).conversion_mode.store(mode, std::memory_order_relaxed);
