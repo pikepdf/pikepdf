@@ -137,7 +137,12 @@ def approx_mode_from_icc(pim: PdfImageBase) -> str:
         icc_profile = pim._colorspaces[1][1]
     else:
         icc_profile = pim._colorspaces[1]
-    icc_profile_nchannels = int(icc_profile['/N'])
+    try:
+        icc_profile_nchannels = int(icc_profile['/N'])
+    except (KeyError, TypeError, ValueError):
+        # /N is required, but some files omit it; the profile still says how
+        # many channels there are, so look there instead.
+        icc_profile_nchannels = None
 
     if icc_profile_nchannels == 1:
         return 'L'
@@ -146,6 +151,8 @@ def approx_mode_from_icc(pim: PdfImageBase) -> str:
     # ImageCmsProfile.profile and do not narrow the Optional; both exist/hold at
     # runtime in this ICCBased, multi-channel context.)
     mode_from_xcolor_space = {'RGB ': 'RGB', 'CMYK': 'CMYK'}
+    if icc_profile_nchannels is None:
+        mode_from_xcolor_space['GRAY'] = 'L'
     xcolor_space = pim.icc.profile.xcolor_space  # type: ignore[union-attr]
     return mode_from_xcolor_space.get(xcolor_space, '')
 

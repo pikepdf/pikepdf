@@ -56,6 +56,8 @@ the architecture notes on thread safety.
   "read_bytes called on unfilterable stream", and the reason was available
   only from {meth}`pikepdf.Pdf.get_warnings`. `DataDecodingError` is a
   `PdfError`, so existing handlers are unaffected. {issue}`182`
+- An ICCBased image whose profile stream omits the required `/N` now takes
+  its mode from the profile instead of raising `KeyError`.
 - An exception raised by a JBIG2 decoder now reaches the caller of
   {meth}`pikepdf.PdfImage.as_pil_image`, {meth}`pikepdf.PdfImage.extract_to`
   and {meth}`pikepdf.PdfImage.read_bytes` unchanged, with its own type,
