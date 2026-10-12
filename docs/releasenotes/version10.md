@@ -16,8 +16,25 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
-## v10.17.1
+## v10.18.0
 
+- {meth}`pikepdf.Pdf.add_pages_from` now carries layers (optional content) with
+  the pages it copies. The optional content groups that the copied pages
+  depend on are listed in the destination's `/OCProperties`, with the default
+  visibility, place in the layer list, lock, radio button groups and automatic
+  states that the source's default configuration gave them. Previously the
+  groups were copied but not listed, so viewers ignored them: the layer list
+  was empty and content hidden in the source was shown. {issue}`118`
+- {meth}`pikepdf.Pdf.add_pages_from` now carries bookmarks. Outline items of
+  the source that lead to a copied page are appended to the destination's
+  outline, keeping their hierarchy, titles and style; items that lead to pages
+  that were not copied are dropped. {issue}`281`
+- Both are on by default, which changes what existing callers of
+  `add_pages_from` get: the destination may gain an `/OCProperties` and
+  outline items it did not gain before. Pass `layers='ignore'` or
+  `outlines='ignore'` for the previous behaviour, for example if you build
+  the merged outline yourself. {class}`pikepdf.PageCopyResult` reports
+  `layers_added`, `outline_items_added` and `outline_items_dropped`.
 - Reading the label of a page whose page label style is an unknown name, such
   as `/S /Z`, now warns and keeps the label prefix, as an invalid non-name
   style already did. Previously it raised `KeyError`.

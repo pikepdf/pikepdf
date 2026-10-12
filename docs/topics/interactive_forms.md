@@ -311,6 +311,9 @@ happened to the forms:
   {attr}`~pikepdf.PageCopyResult.partial_fields` so you can decide whether the
   result is acceptable.
 
+`add_pages_from` also carries the named destinations, layers and bookmarks
+that belong to the copied pages; see {ref}`merge-document-structures`.
+
 ### Stripping forms instead of copying them
 
 Sometimes you want the *pages* but explicitly **not** the form data -- for

@@ -91,6 +91,66 @@ most recent version of all source PDFs. Here is a more sophisticated example:
 This improved example would still leave metadata blank. It's up to you
 to decide how to combine metadata from multiple PDFs.
 
+(merge-document-structures)=
+
+### Keeping forms, links, layers and bookmarks
+
+A page is not all that a reader sees of it. Interactive form fields, the
+targets of internal links, layers and bookmarks are recorded for the document
+as a whole, in its catalog, and `pages.extend()` copies only pages. Use
+{meth}`pikepdf.Pdf.add_pages_from` to bring these along:
+
+```python
+>>> pdf = Pdf.new()
+
+>>> for file in glob('*.pdf'):
+...     with Pdf.open(file) as src:
+...         result = pdf.add_pages_from(src)
+
+>>> pdf.save('merged.pdf')
+```
+
+`add_pages_from` appends all pages of the source, or those selected by
+`pages=`, and then carries over what the document holds for them:
+
+- **Form fields** are registered in the destination's `/AcroForm`; see
+  {ref}`interactive_forms`.
+- **Named destinations** that links on the copied pages go to are added to the
+  destination.
+- **Layers** (optional content groups) that the copied pages depend on are
+  listed in the destination's `/OCProperties`. Without this a viewer ignores
+  them, so that content the source hid is shown and the layer list is empty.
+  Each layer keeps the default visibility it had in the source, its place and
+  nesting in the layer list, and its lock, radio button groups and automatic
+  states for viewing, printing and exporting. Layers that only other pages
+  of the source use are not carried, and layers already in the destination
+  behave as before. Only the source's default configuration is consulted;
+  alternate configurations in `/Configs` are not carried.
+- **Bookmarks** (outline items) that lead to a copied page are appended to the
+  destination's outline and lead to the copy. An item that leads to a page
+  that was not copied is dropped, unless an item nested in it is kept, in
+  which case it remains as a heading with no destination. Titles, colour,
+  bold and italic, and whether an item is open are preserved. Items that run
+  an action other than going to a page, such as opening a web link, are
+  dropped.
+
+The returned {class}`pikepdf.PageCopyResult` reports what was done, for
+example {attr}`~pikepdf.PageCopyResult.layers_added` and
+{attr}`~pikepdf.PageCopyResult.outline_items_added`. To copy pages without
+their layers or bookmarks, pass `layers='ignore'` or `outlines='ignore'`:
+
+```python
+>>> pdf.add_pages_from(src, outlines='ignore')  # we will write our own outline
+```
+
+Do not call `add_pages_from` inside a `with pdf.open_outline():` block for the
+same `Pdf`, unless you pass `outlines='ignore'`. Leaving the block writes the
+outline as it was when the block was entered.
+
+Optional content requires PDF 1.5. If the destination was created by
+`Pdf.new()`, save with `min_version` at least that of the sources, as in the
+example above.
+
 ## Reversing the order of pages
 
 Suppose the file was scanned backwards. We can easily reverse it in

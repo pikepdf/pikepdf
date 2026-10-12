@@ -12,13 +12,15 @@ if TYPE_CHECKING:
     from pikepdf import Pdf
 
 from pikepdf._core import _action_chain
+from pikepdf._layer_copy import migrate_layers
 from pikepdf._named_dests import (
     DestKind,
     lookup_named_destination_entry,
     resolve_named_destination,
 )
+from pikepdf._outline_copy import migrate_outlines
 from pikepdf.models.actions import Action, GoToAction
-from pikepdf.objects import Array, Dictionary, Name, String
+from pikepdf.objects import Array, Dictionary, Name, Object, String
 
 
 @dataclass
@@ -81,6 +83,11 @@ class PageCopyResult:
     named_dests_added: int = 0
     renamed_dests: dict[str, str] = field(default_factory=dict)
     dropped_dests: list[str] = field(default_factory=list)
+    layers: Literal['preserve', 'ignore'] = 'preserve'
+    layers_added: int = 0
+    outlines: Literal['preserve', 'ignore'] = 'preserve'
+    outline_items_added: int = 0
+    outline_items_dropped: int = 0
 
 
 def _lookup_source_entry(src: Pdf, ref: _DestRef) -> object | None:
@@ -211,7 +218,13 @@ def copy_pages(
     pages: Iterable[int] | range | slice | None = None,
     *,
     forms: Literal['preserve', 'strip'] = 'preserve',
+    layers: Literal['preserve', 'ignore'] = 'preserve',
+    outlines: Literal['preserve', 'ignore'] = 'preserve',
 ) -> PageCopyResult:
+    if layers not in ('preserve', 'ignore'):
+        raise ValueError(f"layers must be 'preserve' or 'ignore', not {layers!r}")
+    if outlines not in ('preserve', 'ignore'):
+        raise ValueError(f"outlines must be 'preserve' or 'ignore', not {outlines!r}")
     indices = _resolve_indices(src, pages)
     src_acro = src.acroform
     dest_acro = dest.acroform
@@ -282,6 +295,18 @@ def copy_pages(
         dest, src, src_pages, start
     )
 
+    layers_added = migrate_layers(dest, src, src_pages) if layers == 'preserve' else 0
+
+    outline_items_added = outline_items_dropped = 0
+    if outlines == 'preserve':
+        # A page copied more than once is reached at its first copy
+        page_map: dict[tuple[int, int], Object] = {}
+        for offset, sp in enumerate(src_pages):
+            page_map.setdefault(sp.obj.objgen, dest.pages[start + offset].obj)
+        outline_items_added, outline_items_dropped = migrate_outlines(
+            dest, src, page_map
+        )
+
     return PageCopyResult(
         pages_added=len(src_pages),
         forms=forms,
@@ -291,4 +316,9 @@ def copy_pages(
         named_dests_added=named_added,
         renamed_dests=renamed_dests,
         dropped_dests=dropped_dests,
+        layers=layers,
+        layers_added=layers_added,
+        outlines=outlines,
+        outline_items_added=outline_items_added,
+        outline_items_dropped=outline_items_dropped,
     )
