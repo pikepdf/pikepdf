@@ -86,9 +86,7 @@ class Annotation:
     """
 
     def __init__(self, obj: Object) -> None: ...
-    def get_appearance_stream(
-        self, which: Object, state: Object | None = ...
-    ) -> Object:
+    def get_appearance_stream(self, which: Object, state: Object = ...) -> Object:
         """Returns one of the appearance streams associated with an annotation.
 
         Args:
@@ -137,5 +135,5 @@ class Annotation:
     @property
     def obj(self) -> Object: ...
     @property
-    def subtype(self) -> str:
+    def subtype(self) -> Name:
         """Returns the subtype of this annotation."""

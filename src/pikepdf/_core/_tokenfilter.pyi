@@ -87,7 +87,7 @@ class _QPDFTokenFilter: ...
 
 class TokenFilter(_QPDFTokenFilter):
     def __init__(self) -> None: ...
-    def handle_token(self, token: Token = ...) -> None | Token | Iterable[Token]:
+    def handle_token(self, token: Token) -> None | Token | Iterable[Token]:
         """Handle a :class:`pikepdf.Token`.
 
         This is an abstract method that must be defined in a subclass

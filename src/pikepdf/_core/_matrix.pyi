@@ -134,7 +134,7 @@ class Matrix:
         """Return the 6-tuple (a,b,c,d,e,f) that describes this matrix."""
     def encode(self) -> bytes:
         """Encode matrix to bytes suitable for including in a PDF content stream."""
-    def translated(self, tx, ty) -> Matrix:
+    def translated(self, tx, ty, /) -> Matrix:
         """Return a translated copy of this matrix.
 
         Calculates ``Matrix(1, 0, 0, 1, tx, ty) @ self``.
@@ -143,7 +143,7 @@ class Matrix:
             tx: horizontal translation
             ty: vertical translation
         """
-    def scaled(self, sx, sy) -> Matrix:
+    def scaled(self, sx, sy, /) -> Matrix:
         """Return a scaled copy of this matrix.
 
         Calculates ``Matrix(sx, 0, 0, sy, 0, 0) @ self``.
@@ -179,7 +179,7 @@ class Matrix:
         In rare situations, the inverse may not exist. In that case, an
         exception is thrown. The PDF will likely have rendering problems.
         """
-    def __array__(self, dtype: Any = None, copy: bool | None = True) -> np.ndarray:
+    def __array__(self, dtype: Any = None, copy: bool | None = None) -> np.ndarray:
         """Convert this matrix to a NumPy array of type dtype.
 
         If copy is True, a copy is made. If copy is False, an exception is raised.

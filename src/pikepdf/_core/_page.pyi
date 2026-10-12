@@ -162,9 +162,9 @@ class Page:
         name: Name,
         rect: Rectangle,
         *,
-        invert_transformations: bool,
-        allow_shrink: bool,
-        allow_expand: bool,
+        invert_transformations: bool = True,
+        allow_shrink: bool = True,
+        allow_expand: bool = False,
     ) -> bytes:
         """Generate content stream segment to place a Form XObject on this page.
 
@@ -369,6 +369,7 @@ class Page:
             shallow: If False, recurse into nested Form XObjects.
                 If True, do not recurse.
         """
+    @property
     def form_xobjects(self) -> _ObjectMapping:
         """Return all Form XObjects associated with this page.
 
@@ -397,6 +398,7 @@ class Page:
             The result of modifying the content stream with ``tf``.
             The existing content stream is not modified.
         """
+    @property
     def index(self) -> int:
         """Returns the zero-based index of this page in the pages list.
 
@@ -406,6 +408,7 @@ class Page:
 
         .. versionadded:: 2.2
         """
+    @property
     def label(self) -> str:
         """Returns the page label for this page, accounting for section numbers.
 

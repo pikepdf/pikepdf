@@ -88,13 +88,15 @@ class AttachedFileSpec(ObjectHelper):
     def __init__(
         self,
         pdf: Pdf,
+        /,
         data: bytes,
         *,
-        description: str,
-        filename: str,
-        mime_type: str,
-        creation_date: str,
-        mod_date: str,
+        description: str = ...,
+        filename: str = ...,
+        mime_type: str = ...,
+        creation_date: str = ...,
+        mod_date: str = ...,
+        relationship: Name | None = ...,
     ) -> None:
         """Construct a attached file spec from data in memory.
 
@@ -132,7 +134,7 @@ class AttachedFileSpec(ObjectHelper):
         Modern PDFs can generally set UTF-8 filenames and avoid using
         punctuation or other marks that are forbidden in filenames.
         """
-    def get_file(self, name: Name = ...) -> AttachedFile:
+    def get_file(self, name: Name = ..., /) -> AttachedFile:
         """Return an attached file.
 
         Typically, only one file is attached to an attached file spec.
@@ -169,6 +171,8 @@ class AttachedFileSpec(ObjectHelper):
     @property
     def description(self) -> str:
         """Description text associated with the embedded file."""
+    @description.setter
+    def description(self, value: str) -> None: ...
     @property
     def filename(self) -> str:
         """The main filename for this file spec.
@@ -177,6 +181,8 @@ class AttachedFileSpec(ObjectHelper):
         /DOS, /Mac if multiple filenames are set. Setting this will set a UTF-8
         encoded Unicode filename and write it to /UF.
         """
+    @filename.setter
+    def filename(self, value: str) -> None: ...
     @property
     def relationship(self) -> Name | None:
         """The file's relationship to the document, as a :class:`pikepdf.Name`.

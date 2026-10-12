@@ -155,12 +155,16 @@ class AcroFormField(ObjectHelper):
     @property
     def value(self):
         """The current value of the form field."""
+    @value.setter
+    def value(self, value: Object) -> None: ...
     @property
     def value_as_string(self) -> str:
         """The field's value as a string.
 
         If the value is not a string, this property will hold an empty string.
         """
+    @value_as_string.setter
+    def value_as_string(self, value: str) -> None: ...
     @property
     def default_value(self):
         """The default value of the form field."""
@@ -343,6 +347,8 @@ class AcroForm:
         interactive form, unless you also generate the appearance streams for
         the modified fields.
         """
+    @needs_appearances.setter
+    def needs_appearances(self, value: bool) -> None: ...
     def generate_appearances_if_needed(self) -> None:
         """Generate appearance streams for all form fields that need them.
 

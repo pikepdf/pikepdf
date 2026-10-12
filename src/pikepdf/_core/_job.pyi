@@ -38,10 +38,10 @@ class Job:
     """Version number of the most recent qpdf-JSON schema."""
 
     @staticmethod
-    def json_out_schema(*, schema: int) -> str:
+    def json_out_schema(*, schema: int = ...) -> str:
         """For reference, the qpdf JSON output schema is built-in."""
     @staticmethod
-    def job_json_schema(*, schema: int) -> str:
+    def job_json_schema(*, schema: int = ...) -> str:
         """For reference, the qpdf job command line schema is built-in."""
     @overload
     def __init__(self, json: str) -> None: ...
@@ -72,6 +72,8 @@ class Job:
     @property
     def message_prefix(self) -> str:
         """Allows manipulation of the prefix in front of all output messages."""
+    @message_prefix.setter
+    def message_prefix(self, value: str) -> None: ...
     def run(self) -> None:
         """Executes the job."""
     def create_pdf(self):

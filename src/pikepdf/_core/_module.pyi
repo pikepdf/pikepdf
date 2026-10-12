@@ -15,13 +15,13 @@ from typing import Any, Literal
 
 from pikepdf._core._qpdf import Pdf
 
-def _translate_qpdf_logic_error(arg0: str) -> str:
+def _translate_qpdf_logic_error(arg0: str, /) -> str:
     """Used to test interpretation of qpdf errors."""
 
 def get_decimal_precision() -> int:
     """Set the number of decimal digits to use when converting floats."""
 
-def pdf_doc_to_utf8(pdfdoc: bytes) -> str:
+def pdf_doc_to_utf8(pdfdoc: bytes, /) -> str:
     """Low-level function to convert PDFDocEncoding to UTF-8.
 
     Use the pdfdoc codec instead of using this directly.
@@ -30,13 +30,13 @@ def pdf_doc_to_utf8(pdfdoc: bytes) -> str:
 def qpdf_version() -> str:
     """Get libqpdf version."""
 
-def set_access_default_mmap(mmap: bool) -> bool:
+def set_access_default_mmap(mmap: bool, /) -> bool:
     """If True, ``pikepdf.open(...access_mode=access_default)`` will use mmap."""
 
 def get_access_default_mmap() -> bool:
     """Return True if default access is to use mmap."""
 
-def _set_explicit_conversion_mode(mode: bool) -> bool:
+def _set_explicit_conversion_mode(mode: bool, /) -> bool:
     """Set explicit conversion mode (global baseline). Returns previous value."""
 
 def _get_explicit_conversion_mode() -> bool:
@@ -63,13 +63,14 @@ def _push_thread_conversion_mode(explicit: bool) -> int:
 def _pop_thread_conversion_mode(token: int, /) -> None:
     """Undo a thread-local conversion mode override (for context managers)."""
 
-def set_decimal_precision(prec: int) -> int:
+def set_decimal_precision(prec: int, /) -> int:
     """Get the number of decimal digits to use when converting floats."""
 
-def utf8_to_pdf_doc(utf8: str, unknown: bytes) -> tuple[bool, bytes]: ...
-def _unparse_content_stream(contentstream: Iterable[Any]) -> bytes: ...
+def utf8_to_pdf_doc(utf8: str, unknown: bytes, /) -> tuple[bool, bytes]: ...
+def _unparse_content_stream(contentstream: Iterable[Any], /) -> bytes: ...
 def set_flate_compression_level(
     level: Literal[-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+    /,
 ) -> int:
     """Set compression level whenever Flate compression is used.
 
