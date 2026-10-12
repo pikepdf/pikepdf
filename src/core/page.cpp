@@ -16,9 +16,10 @@
 #include <qpdf/QPDFPageLabelDocumentHelper.hh>
 #include <qpdf/QPDFPageObjectHelper.hh>
 
+// Both callers, Page.index and PageList.index, are locked bindings that hold
+// the lock of owner.
 size_t page_index(QPDF &owner, QPDFObjectHandle page)
 {
-    QpdfLockGuard lock(&owner);
     if (&owner != page.getOwningQPDF())
         throw py::value_error("Page is not in this Pdf");
 
