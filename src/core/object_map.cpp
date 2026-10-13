@@ -74,6 +74,9 @@ static bool objectmap_equal(const ObjectMap &self, const ObjectMap &other)
 
 void init_object_map(py::module_ &m)
 {
+    // The methods defined here lock the mapping itself, as bind_map's own do,
+    // and for the same reasons as _ObjectList in object_list.cpp they convert
+    // and compare objects before, or on a copy of, the mapping.
     auto objectmapping =
         py::bind_map<ObjectMap>(m, "_ObjectMapping", py::type_slots(pikepdf_gc_slots));
 
@@ -92,21 +95,30 @@ void init_object_map(py::module_ &m)
         py::delattr(objectmapping, method);
 
     objectmapping
-        .def("__eq__",
+        .def(
+            "__eq__",
             [](const ObjectMap &self, py::handle other) -> py::object {
                 ObjectMap rhs;
                 if (!objectmap_coerce(other, rhs))
                     return py::borrow<py::object>(py::handle(Py_NotImplemented));
-                return py::cast(objectmap_equal(self, rhs));
-            })
-        .def("__ne__",
+                ObjectMap lhs = self;
+                return py::cast(objectmap_equal(lhs, rhs));
+            },
+            py::lock_self(),
+            py::arg().lock())
+        .def(
+            "__ne__",
             [](const ObjectMap &self, py::handle other) -> py::object {
                 ObjectMap rhs;
                 if (!objectmap_coerce(other, rhs))
                     return py::borrow<py::object>(py::handle(Py_NotImplemented));
-                return py::cast(!objectmap_equal(self, rhs));
-            })
-        .def("__contains__",
+                ObjectMap lhs = self;
+                return py::cast(!objectmap_equal(lhs, rhs));
+            },
+            py::lock_self(),
+            py::arg().lock())
+        .def(
+            "__contains__",
             [](const ObjectMap &self, py::handle key) {
                 std::string name;
                 // A key that cannot name an entry simply is not in the mapping,
@@ -114,8 +126,10 @@ void init_object_map(py::module_ &m)
                 if (!objectmap_key(key, name))
                     return false;
                 return self.find(name) != self.end();
-            })
-        .def("__getitem__",
+            },
+            py::lock_self())
+        .def(
+            "__getitem__",
             [](ObjectMap &self, py::handle key) {
                 auto name = objectmap_key_or_raise(key);
                 auto it = self.find(name);
@@ -127,35 +141,48 @@ void init_object_map(py::module_ &m)
                 // once the mapping -- often a temporary, as in
                 // page.get_images()['/Im0'] -- goes away.
                 return it->second;
-            })
-        .def("__setitem__",
+            },
+            py::lock_self())
+        .def(
+            "__setitem__",
             [](ObjectMap &self, py::handle key, py::handle value) {
-                self[objectmap_key_or_raise(key)] = objecthandle_encode(value);
-            })
-        .def("__delitem__",
+                auto name = objectmap_key_or_raise(key);
+                auto encoded = objecthandle_encode(value);
+                self[name] = encoded;
+            },
+            py::lock_self())
+        .def(
+            "__delitem__",
             [](ObjectMap &self, py::handle key) {
                 auto name = objectmap_key_or_raise(key);
                 auto it = self.find(name);
                 if (it == self.end())
                     throw py::key_error(name.c_str());
                 self.erase(it);
-            })
+            },
+            py::lock_self())
         .def(
             "get",
             [](ObjectMap &self, py::handle key, py::handle default_) -> py::object {
-                auto it = self.find(objectmap_key_or_raise(key));
+                auto name = objectmap_key_or_raise(key);
+                auto it = self.find(name);
                 if (it == self.end())
                     return py::borrow<py::object>(default_);
-                return py::cast(it->second);
+                auto found = it->second;
+                return py::cast(found);
             },
+            py::lock_self(),
             py::arg("key"),
             py::arg("default").none() = py::none())
-        .def("update", [](ObjectMap &self, py::handle other) {
-            ObjectMap parsed;
-            if (!objectmap_coerce(other, parsed))
-                throw py::type_error(
-                    "update() expects a mapping of str to pikepdf.Object");
-            for (const auto &[key, value] : parsed)
-                self[key] = value;
-        });
+        .def(
+            "update",
+            [](ObjectMap &self, py::handle other) {
+                ObjectMap parsed;
+                if (!objectmap_coerce(other, parsed))
+                    throw py::type_error(
+                        "update() expects a mapping of str to pikepdf.Object");
+                for (const auto &[key, value] : parsed)
+                    self[key] = value;
+            },
+            py::lock_self());
 }

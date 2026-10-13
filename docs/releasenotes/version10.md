@@ -83,6 +83,21 @@ the architecture notes on thread safety.
   repeated when threads shared one iterator over `Pdf.pages`, and a crash on
   looking up a key in a dictionary that belongs to no `Pdf` but holds an
   object of one.
+- Fixed a `Pdf` returned by {meth}`pikepdf.Job.create_pdf` not being set up
+  like other `Pdf` objects: setting its `conversion_mode` raised
+  {class}`pikepdf.PdfError`, and on free-threaded Python none of its methods
+  were protected by a lock.
+- Free-threaded Python: {meth}`pikepdf.Job.write_pdf`, and constructing a
+  {class}`pikepdf.Rectangle`, {class}`pikepdf.Matrix` or
+  {class}`pikepdf.NamePath` from an object of a `Pdf`, now take the lock of
+  that `Pdf`.
+- Free-threaded Python: the lists and mappings of objects that some methods
+  return, such as the operands of a content stream instruction, can now be
+  changed and read by several threads at once. The methods that pikepdf adds
+  to them did not take the lock that their other methods take.
+- `Matrix.__array__(copy=False)` now raises `ValueError`, as numpy expects of
+  an object that cannot share its memory. The check for this was written in a
+  way that never fired.
 - Free-threaded Python: fixed a data race when two threads raised
   {class}`pikepdf.ForeignObjectError` at once.
 - A `progress` argument to {meth}`pikepdf.Pdf.save` that is not callable is

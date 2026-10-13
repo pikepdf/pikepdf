@@ -358,3 +358,8 @@ public:
 private:
     std::vector<std::shared_ptr<QpdfEntry>> entries_;
 };
+
+// From qpdf.cpp. Turn a QPDF into one that a pikepdf.Pdf can hold: registered
+// for locking, and unregistered again when the last reference to it is dropped.
+std::shared_ptr<QPDF> register_qpdf(
+    std::unique_ptr<QPDF> owned, ConversionMode mode = ConversionMode::unset);

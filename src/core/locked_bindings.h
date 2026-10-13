@@ -343,6 +343,22 @@ public:
         return *this;
     }
 
+    // Data members are read in place; a class with data members that are
+    // bound this way holds plain values.
+    template <typename D, typename... Extra>
+    locked_class_ &def_ro(const char *name, D member, const Extra &...extra)
+    {
+        cls_.def_ro(name, member, extra...);
+        return *this;
+    }
+
+    template <typename D, typename... Extra>
+    locked_class_ &def_ro_static(const char *name, D *value, const Extra &...extra)
+    {
+        cls_.def_ro_static(name, value, extra...);
+        return *this;
+    }
+
     template <typename Getter, typename... Extra>
     locked_class_ &def_prop_ro(const char *name, Getter &&getter, const Extra &...extra)
     {

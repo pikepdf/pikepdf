@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2023 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
+#include "locked_bindings.h"
 #include "pikepdf.h"
 
 #include <cmath>
@@ -31,25 +32,27 @@ py::tuple tuple_from_matrix(const QPDFMatrix &m)
     return py::make_tuple(m.a, m.b, m.c, m.d, m.e, m.f);
 }
 
+// A matrix is six numbers. Only building one from an array reads a Pdf.
+template <>
+struct LockOwner<QPDFMatrix> : NoLock {};
+
 void init_matrix(py::module_ &m)
 {
     using Point = std::pair<double, double>;
     using Rect = QPDFObjectHandle::Rectangle;
 
-    py::class_<QPDFMatrix>(m, "Matrix", py::type_slots(pikepdf_gc_slots))
-        .def(py::init<>())
+    locked_class_<QPDFMatrix>(m, "Matrix", py::type_slots(pikepdf_gc_slots))
+        .def_constructor<>()
         .def_static("identity", []() { return QPDFMatrix(); })
-        .def(py::init<double, double, double, double, double, double>(),
-            py::arg("a"),
+        .def_constructor<double, double, double, double, double, double>(py::arg("a"),
             py::arg("b"),
             py::arg("c"),
             py::arg("d"),
             py::arg("e"),
             py::arg("f"))
-        .def(py::init<QPDFMatrix const &>(), py::arg("other"))
-        .def(
-            "__init__",
-            [](QPDFMatrix *self, QPDFObjectHandle &h) {
+        .def_constructor<QPDFMatrix const &>(py::arg("other"))
+        .def_init(
+            [](QPDFObjectHandle &h) {
                 if (!h.isMatrix()) {
                     // A TypeError, like a native value of the wrong type, so
                     // a caller's exception handling does not depend on the
@@ -57,33 +60,33 @@ void init_matrix(py::module_ &m)
                     throw py::type_error(
                         "pikepdf.Object could not be converted to Matrix");
                 }
-                QPDFObjectHandle::Matrix ohmatrix = h.getArrayAsMatrix();
-                new (self) QPDFMatrix(ohmatrix);
+                return QPDFMatrix(h.getArrayAsMatrix());
             },
             py::arg("h")) // LCOV_EXCL_LINE
-        .def("__init__",
-            [](QPDFMatrix *self, ObjectList &ol) {
+        .def_init(
+            [](ObjectList &ol) {
                 if (ol.size() != 6) {
                     throw py::value_error("ObjectList must have 6 elements");
                 }
                 std::vector<double> converted(6);
                 for (int i = 0; i < 6; ++i) {
-                    if (!ol.at(i).getValueAsNumber(converted.at(i))) {
+                    // Each number may be an object of a different Pdf
+                    auto item = ol.at(i);
+                    QpdfLockGuard lock(item.getOwningQPDF());
+                    if (!item.getValueAsNumber(converted.at(i))) {
                         throw py::type_error("Values must be numeric");
                     }
                 }
-                new (self) QPDFMatrix(converted.at(0),
+                return QPDFMatrix(converted.at(0),
                     converted.at(1),
                     converted.at(2),
                     converted.at(3),
                     converted.at(4),
                     converted.at(5));
-            })
-        .def(
-            "__init__",
-            [](QPDFMatrix *self, const py::tuple &t) {
-                new (self) QPDFMatrix(matrix_from_tuple(t));
             },
+            // The list is locked while it is read, as its own methods do
+            py::arg().lock())
+        .def_init([](const py::tuple &t) { return matrix_from_tuple(t); },
             py::arg("t")) // LCOV_EXCL_LINE
         .def_ro("a", &QPDFMatrix::a)
         .def_ro("b", &QPDFMatrix::b)
@@ -153,9 +156,11 @@ void init_matrix(py::module_ &m)
             })
         .def(
             "__array__",
-            [](QPDFMatrix const &self, py::object dtype, py::object copy) {
+            [](QPDFMatrix const &self,
+                OpaqueObject const &dtype,
+                OpaqueObject const &copy) {
                 // Use numpy via Python to avoid a runtime dependency on numpy.
-                if (!copy.is_none() && !copy) {
+                if (!copy.is_none() && !py::cast<bool>(copy.handle())) {
                     throw py::value_error("copy=False is not supported");
                 }
                 auto np = py::module_::import_("numpy");
@@ -167,7 +172,7 @@ void init_matrix(py::module_ &m)
                         py::make_tuple(self.e, self.f, 1)
                     ),
                     // clang-format on
-                    dtype);
+                    dtype.handle());
                 return arr;
             },
             py::arg("dtype") = py::none(),

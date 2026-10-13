@@ -1,39 +1,40 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
+#include "locked_bindings.h"
 #include "pikepdf.h"
 
 #include <qpdf/QPDFObjectHandle.hh>
+
+// A rectangle is four numbers. Only building one from an array reads a Pdf.
+template <>
+struct LockOwner<QPDFObjectHandle::Rectangle> : NoLock {};
 
 void init_rectangle(py::module_ &m)
 {
     using Point = std::pair<double, double>;
     using Rect = QPDFObjectHandle::Rectangle;
 
-    py::class_<Rect>(m, "Rectangle", py::type_slots(pikepdf_gc_slots))
-        .def(py::init<double, double, double, double>())
-        .def("__init__",
-            [](Rect *self, QPDFObjectHandle &h) {
-                if (!h.isArray()) {
-                    throw py::type_error(
-                        "Object is not an array; cannot convert to Rectangle");
-                }
-                // isRectangle() is true iff h is an array of exactly four numeric
-                // values, which is precisely when getArrayAsRectangle() succeeds.
-                // Guarding with it removes the ambiguity that getArrayAsRectangle()
-                // returns (0,0,0,0) both on error and for a genuine zero rectangle.
-                // The helper performs the same min/max normalization done by hand.
-                if (!h.isRectangle()) {
-                    throw py::type_error(
-                        "Array is not a valid Rectangle; need exactly 4 numeric "
-                        "elements");
-                }
-                new (self) Rect(h.getArrayAsRectangle());
-            })
-        .def("__init__",
-            [](Rect *self, const Rect &r) {
-                new (self) Rect(r.llx, r.lly, r.urx, r.ury);
-            })
+    locked_class_<Rect>(m, "Rectangle", py::type_slots(pikepdf_gc_slots))
+        .def_constructor<double, double, double, double>()
+        .def_init([](QPDFObjectHandle &h) {
+            if (!h.isArray()) {
+                throw py::type_error(
+                    "Object is not an array; cannot convert to Rectangle");
+            }
+            // isRectangle() is true iff h is an array of exactly four numeric
+            // values, which is precisely when getArrayAsRectangle() succeeds.
+            // Guarding with it removes the ambiguity that getArrayAsRectangle()
+            // returns (0,0,0,0) both on error and for a genuine zero rectangle.
+            // The helper performs the same min/max normalization done by hand.
+            if (!h.isRectangle()) {
+                throw py::type_error(
+                    "Array is not a valid Rectangle; need exactly 4 numeric "
+                    "elements");
+            }
+            return h.getArrayAsRectangle();
+        })
+        .def_init([](const Rect &r) { return Rect(r.llx, r.lly, r.urx, r.ury); })
         .def(
             "__eq__",
             [](Rect &self, Rect &other) {

@@ -3,6 +3,7 @@
 
 #include "pikepdf.h"
 
+#include "locked_bindings.h"
 #include "namepath.h"
 
 #include <functional>
@@ -58,41 +59,53 @@ std::string NamePath::format_full() const
     return format_path(components_.size());
 }
 
+// A path is a list of names and indexes of its own. A component may be given
+// as a Name object, which is read under the lock of its Pdf by
+// name_from_object(), since the arguments are not typed.
+template <>
+struct LockOwner<NamePath> : NoLock {};
+
+// If arg is a Name object, store its value in name and return true.
+static bool name_from_object(py::handle arg, std::string &name)
+{
+    if (!py::isinstance<QPDFObjectHandle>(arg))
+        return false;
+    auto h = py::cast<QPDFObjectHandle>(arg);
+    // The Name may be an indirect object that has not been read yet
+    QpdfLockGuard lock(h.getOwningQPDF());
+    if (!h.isName())
+        return false;
+    name = h.getName();
+    return true;
+}
+
 void init_namepath(py::module_ &m)
 {
-    py::class_<NamePath>(m, "_NamePath", py::type_slots(pikepdf_gc_slots))
-        .def(py::init<>())
-        .def("__init__",
-            [](NamePath *self, py::args args) {
-                std::vector<PathComponent> components;
-                for (auto const &arg : args) {
-                    if (py::isinstance<py::str>(arg)) {
-                        auto s = py::cast<std::string>(arg);
-                        // Ensure name starts with /
-                        if (!s.empty() && s[0] != '/') {
-                            components.push_back("/" + s);
-                        } else {
-                            components.push_back(s);
-                        }
-                    } else if (py::isinstance<py::int_>(arg)) {
-                        components.push_back(py::cast<int>(arg));
+    locked_class_<NamePath>(m, "_NamePath", py::type_slots(pikepdf_gc_slots))
+        .def_constructor<>()
+        .def_init([](py::args args) {
+            std::vector<PathComponent> components;
+            for (auto const &arg : args) {
+                if (py::isinstance<py::str>(arg)) {
+                    auto s = py::cast<std::string>(arg);
+                    // Ensure name starts with /
+                    if (!s.empty() && s[0] != '/') {
+                        components.push_back("/" + s);
                     } else {
-                        // Try to cast to QPDFObjectHandle (Name object)
-                        try {
-                            auto h = py::cast<QPDFObjectHandle>(arg);
-                            if (h.isName()) {
-                                components.push_back(h.getName());
-                                continue;
-                            }
-                        } catch (const py::cast_error &) { // LCOV_EXCL_LINE
-                            // Not a QPDFObjectHandle
-                        }
+                        components.push_back(s);
+                    }
+                } else if (py::isinstance<py::int_>(arg)) {
+                    components.push_back(py::cast<int>(arg));
+                } else {
+                    std::string name;
+                    if (!name_from_object(arg, name))
                         throw py::type_error(
                             "NamePath components must be str, int, or Name");
-                    }
+                    components.push_back(name);
                 }
-                new (self) NamePath(std::move(components));
-            })
+            }
+            return NamePath(std::move(components));
+        })
         .def("_append_name", &NamePath::append_name)
         .def("_append_index", &NamePath::append_index)
         .def("_format_path", &NamePath::format_path)
@@ -102,22 +115,15 @@ void init_namepath(py::module_ &m)
         .def("_is_empty", &NamePath::empty)
         // __call__ for chaining: path('/A') returns new path with /A appended
         .def("__call__",
-            [](NamePath const &p, py::object arg) {
-                if (py::isinstance<py::str>(arg)) {
+            [](NamePath const &p, OpaqueObject const &component) {
+                auto arg = component.handle();
+                std::string name;
+                if (py::isinstance<py::str>(arg))
                     return p.append_name(py::cast<std::string>(arg));
-                } else if (py::isinstance<py::int_>(arg)) {
+                if (py::isinstance<py::int_>(arg))
                     return p.append_index(py::cast<int>(arg));
-                } else {
-                    // Try to cast to QPDFObjectHandle (Name object)
-                    try {
-                        auto h = py::cast<QPDFObjectHandle>(arg);
-                        if (h.isName()) {
-                            return p.append_name(h.getName());
-                        }
-                    } catch (const py::cast_error &) { // LCOV_EXCL_LINE
-                        // Not a QPDFObjectHandle
-                    }
-                }
+                if (name_from_object(arg, name))
+                    return p.append_name(name);
                 throw py::type_error("NamePath argument must be str, int, or Name");
             })
         // __getitem__ for array index syntax: path[0]
@@ -127,7 +133,8 @@ void init_namepath(py::module_ &m)
         // used as dictionary keys. A name component never equals an index
         // component: NamePath('/1') != NamePath[1].
         .def("__eq__",
-            [](NamePath const &p, py::handle other) -> py::object {
+            [](NamePath const &p, OpaqueObject const &rhs) -> py::object {
+                auto other = rhs.handle();
                 if (!py::isinstance<NamePath>(other))
                     return py::borrow<py::object>(py::handle(Py_NotImplemented));
                 auto const &q = py::cast<NamePath const &>(other);
@@ -202,11 +209,9 @@ void init_namepath(py::module_ &m)
                 return py::cast(NamePath().append_name(py::cast<std::string>(item)));
             if (py::isinstance<py::int_>(item))
                 return py::cast(NamePath().append_index(py::cast<int>(item)));
-            if (py::isinstance<QPDFObjectHandle>(item)) {
-                auto &oh = py::cast<QPDFObjectHandle &>(item);
-                if (oh.isName())
-                    return py::cast(NamePath().append_name(oh.getName()));
-            }
+            std::string name;
+            if (name_from_object(item, name))
+                return py::cast(NamePath().append_name(name));
             throw py::type_error("NamePath key must be str, int, or Name");
         },
         py::is_method(),

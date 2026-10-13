@@ -57,9 +57,13 @@ QpdfEntry &registry_entry(QPDF &q)
 // Create a shared_ptr<QPDF> with a custom deleter that unregisters from the
 // per-QPDF mutex registry. This ensures cleanup even if the user never
 // explicitly calls close().
-std::shared_ptr<QPDF> make_registered_qpdf(ConversionMode mode = ConversionMode::unset)
+//
+// Every QPDF that becomes a pikepdf.Pdf must pass through here, however it was
+// created: a QPDF that is not registered has no lock, and every guard taken
+// on it or on its objects silently does nothing.
+std::shared_ptr<QPDF> register_qpdf(std::unique_ptr<QPDF> owned, ConversionMode mode)
 {
-    auto q = std::shared_ptr<QPDF>(new QPDF(), [](QPDF *p) {
+    auto q = std::shared_ptr<QPDF>(owned.release(), [](QPDF *p) {
         // Objects do not keep their Pdf alive, so another thread may be using
         // one of this document's objects right now. Take the document's lock
         // for the whole teardown: that waits for any such operation to finish,
@@ -83,6 +87,11 @@ std::shared_ptr<QPDF> make_registered_qpdf(ConversionMode mode = ConversionMode:
     QpdfRegistry::instance().register_qpdf(q.get());
     registry_entry(*q).conversion_mode.store(mode, std::memory_order_relaxed);
     return q;
+}
+
+std::shared_ptr<QPDF> make_registered_qpdf(ConversionMode mode = ConversionMode::unset)
+{
+    return register_qpdf(std::make_unique<QPDF>(), mode);
 }
 
 // Parse the conversion_mode= argument: None, 'implicit' or 'explicit'.
