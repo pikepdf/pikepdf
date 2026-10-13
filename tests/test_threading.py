@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import queue
 import sys
+import sysconfig
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -54,7 +55,10 @@ pytestmark = pytest.mark.timeout(120, method='thread')
 
 N_THREADS = 8
 JOIN_TIMEOUT = 60
-GIL_ENABLED = getattr(sys, '_is_gil_enabled', lambda: True)()
+# Whether the per-Pdf locks do anything. They are compiled in on a free-threaded
+# build, and stay in force there even if an extension module that does not
+# support free threading has switched the GIL back on at import.
+LOCKS_ENABLED = bool(sysconfig.get_config_var('Py_GIL_DISABLED'))
 
 
 @pytest.fixture
@@ -561,7 +565,7 @@ def test_stress_lock_makes_compound_operation_atomic():
     run_n(work)
     total = int(pdf.Root.Counter)
     assert 0 < total <= N_THREADS * per_thread
-    if not GIL_ENABLED:
+    if LOCKS_ENABLED:
         assert total == N_THREADS * per_thread
 
     # The lock was fully released: another thread can take it.
@@ -1160,7 +1164,7 @@ class CrossPdfFilter(TokenFilter):
 
 
 @pytest.mark.xfail(
-    not GIL_ENABLED,
+    LOCKS_ENABLED,
     strict=True,
     reason="Known limitation: a callback that holds one Pdf's lock and touches "
     "another Pdf can deadlock against a thread doing the opposite",

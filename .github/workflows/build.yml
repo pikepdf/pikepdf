@@ -340,7 +340,7 @@ jobs:
       - name: Install pikepdf and documentation dependencies
         run: |
           python -m pip install --upgrade pip  # need pip>=25.1 for PEP 735 --group
-          python -m pip install . --group docs
+          python -m pip install '.[pdfa]' --group docs
 
       # -W turns warnings into errors, --keep-going reports all of them
       # rather than stopping at the first.
