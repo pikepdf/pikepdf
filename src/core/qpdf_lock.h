@@ -13,6 +13,8 @@
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <new>
+#include <stdexcept>
 #include <unordered_map>
 #include <vector>
 
@@ -20,6 +22,21 @@
 #include <qpdf/QPDFObjectHandle.hh>
 
 namespace py = nanobind;
+
+// Raised in a thread that would otherwise wait for ever: see
+// ReentrantFtMutex::lock(). Reaches Python as a RuntimeError.
+class DeadlockError : public std::runtime_error {
+public:
+    DeadlockError()
+        : std::runtime_error(
+              "Deadlock avoided: this thread holds the lock of one Pdf and needs "
+              "the lock of another, which is held by a thread that is waiting "
+              "for the first. Code that runs while a Pdf is locked, such as a "
+              "callback or the body of a `with pdf.lock()` block, may only use "
+              "that Pdf.")
+    {
+    }
+};
 
 // Re-entrant mutex wrapping nanobind's ft_mutex.
 //
@@ -33,19 +50,22 @@ namespace py = nanobind;
 //
 // On GIL-enabled builds, ft_mutex is a no-op, so this entire mechanism
 // compiles to near-zero cost.
+//
+// A single call that needs several Pdfs locks them in a fixed order, but a
+// thread can also come to hold one lock and then ask for another: from a
+// callback that pikepdf runs while a Pdf is locked, or from nested
+// `with pdf.lock()` blocks. Two threads doing so in opposite orders would wait
+// for each other for ever. lock() notices this and throws DeadlockError in the
+// thread that would have completed the cycle; as that thread unwinds it gives
+// up the lock it holds, and the other thread carries on.
 class ReentrantFtMutex {
 public:
-    void lock()
-    {
-        auto tid = current_thread_id();
-        if (owner_.load(std::memory_order_relaxed) == tid) {
-            ++depth_;
-            return;
-        }
-        mutex_.lock();
-        owner_.store(tid, std::memory_order_relaxed);
-        depth_ = 1;
-    }
+    // Take the lock, or throw DeadlockError if waiting for it could never end.
+    void lock() { lock_impl(true); }
+
+    // Take the lock, waiting for as long as it takes. For code that cannot
+    // throw, such as destructors and noexcept type casters.
+    void lock_unchecked() { lock_impl(false); }
 
     void unlock()
     {
@@ -56,6 +76,95 @@ public:
     }
 
 private:
+    void lock_impl([[maybe_unused]] bool check)
+    {
+        auto tid = current_thread_id();
+        auto owner = owner_.load(std::memory_order_relaxed);
+        if (owner == tid) {
+            ++depth_;
+            return;
+        }
+#if defined(NB_FREE_THREADED)
+        if (owner != 0) {
+            // Another thread holds the lock, so this one is about to wait.
+            // An uncontended lock never reaches this, and pays nothing for it.
+            Waiting waiting(tid, this, check);
+            mutex_.lock();
+        } else {
+            mutex_.lock();
+        }
+#else
+        mutex_.lock();
+#endif
+        owner_.store(tid, std::memory_order_relaxed);
+        depth_ = 1;
+    }
+
+#if defined(NB_FREE_THREADED)
+    // Records, for as long as it exists, that a thread is waiting for a mutex.
+    //
+    // Every waiting thread is recorded in one table, under one mutex. A thread
+    // about to wait follows the chain from the mutex it wants to the thread
+    // that holds it, to the mutex that thread is waiting for, and so on. If
+    // the chain comes back to the thread itself, none of the threads on it
+    // could ever move. Each of them recorded itself before it began to wait,
+    // so the last to arrive finds the whole cycle.
+    //
+    // A thread's entry outlives its wait by a moment, since it is removed
+    // after the mutex has been acquired. Such an entry cannot produce a false
+    // report: the mutex it names is by then owned by that same thread or by
+    // nobody, never by the thread doing the check.
+    class Waiting {
+    public:
+        Waiting(unsigned long tid, ReentrantFtMutex *wanted, bool check) : tid_(tid)
+        {
+            std::lock_guard<std::mutex> guard(table_mutex());
+            if (check) {
+                auto &waiting = table();
+                ReentrantFtMutex *m = wanted;
+                // The bound only guards against following stale entries
+                // round a loop that does not include this thread.
+                for (int steps = 0; steps < 64; ++steps) {
+                    auto holder = m->owner_.load(std::memory_order_relaxed);
+                    if (holder == 0)
+                        break;
+                    if (holder == tid)
+                        throw DeadlockError();
+                    auto it = waiting.find(holder);
+                    if (it == waiting.end())
+                        break;
+                    m = it->second;
+                }
+            }
+            table()[tid] = wanted;
+        }
+
+        ~Waiting()
+        {
+            std::lock_guard<std::mutex> guard(table_mutex());
+            table().erase(tid_);
+        }
+
+        Waiting(const Waiting &) = delete;
+        Waiting &operator=(const Waiting &) = delete;
+
+    private:
+        static std::mutex &table_mutex()
+        {
+            static std::mutex m;
+            return m;
+        }
+
+        static std::unordered_map<unsigned long, ReentrantFtMutex *> &table()
+        {
+            static std::unordered_map<unsigned long, ReentrantFtMutex *> t;
+            return t;
+        }
+
+        unsigned long tid_;
+    };
+#endif
+
     static unsigned long current_thread_id()
     {
         return static_cast<unsigned long>(PyThread_get_thread_ident());
@@ -208,7 +317,7 @@ public:
     // any owner is cleared.
     void begin_teardown()
     {
-        teardown_mutex_.lock();
+        teardown_mutex_.lock_unchecked();
         teardowns_.fetch_add(1);
     }
 
@@ -221,7 +330,7 @@ public:
     void wait_for_teardown()
     {
         if (teardowns_.load() != 0) {
-            teardown_mutex_.lock();
+            teardown_mutex_.lock_unchecked();
             teardown_mutex_.unlock();
         }
     }
@@ -253,6 +362,16 @@ public:
     {
         if (entry_)
             entry_->mutex.lock();
+        else
+            QpdfRegistry::instance().wait_for_teardown();
+    }
+
+    // For code that cannot throw: waits without checking for a deadlock.
+    QpdfLockGuard(QPDF *q, std::nothrow_t) noexcept
+        : entry_(QpdfRegistry::instance().lookup_shared(q))
+    {
+        if (entry_)
+            entry_->mutex.lock_unchecked();
         else
             QpdfRegistry::instance().wait_for_teardown();
     }
@@ -298,8 +417,16 @@ public:
 
         if (first_)
             first_->mutex.lock();
-        if (second_)
-            second_->mutex.lock();
+        if (second_) {
+            try {
+                second_->mutex.lock();
+            } catch (...) {
+                // The destructor does not run for a constructor that throws
+                if (first_)
+                    first_->mutex.unlock();
+                throw;
+            }
+        }
         if (!first_ || (!second_ && a != b))
             reg.wait_for_teardown(); // At least one object has no owner
     }
@@ -340,8 +467,16 @@ public:
             return std::less<QpdfEntry *>()(a.get(), b.get());
         });
         entries_.erase(std::unique(entries_.begin(), entries_.end()), entries_.end());
-        for (auto &entry : entries_)
-            entry->mutex.lock();
+        size_t locked = 0;
+        try {
+            for (; locked < entries_.size(); ++locked)
+                entries_[locked]->mutex.lock();
+        } catch (...) {
+            // The destructor does not run for a constructor that throws
+            while (locked > 0)
+                entries_[--locked]->mutex.unlock();
+            throw;
+        }
         if (unowned)
             reg.wait_for_teardown();
     }

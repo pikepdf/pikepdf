@@ -72,7 +72,7 @@ std::shared_ptr<QPDF> register_qpdf(std::unique_ptr<QPDF> owned, ConversionMode 
         // deleted, so that a thread which read the owner of an object just
         // before ~QPDF cleared it still finds this lock to wait on. The guard
         // keeps the registry entry, and so the mutex, alive to the end.
-        QpdfLockGuard lock(p);
+        QpdfLockGuard lock(p, std::nothrow);
         auto &registry = QpdfRegistry::instance();
         registry.begin_teardown();
         // Disconnect every direct object this document adopted before the QPDF

@@ -954,6 +954,10 @@ class StreamParser:
     may be only a single byte long.
 
     Consider instead using :func:`pikepdf.parse_content_stream`.
+
+    The handler methods are called while the ``Pdf`` being parsed is locked.
+    They may read that ``Pdf`` but must not use any other: see
+    :ref:`callback-restrictions`.
     """
 
     def __init__(self) -> None:

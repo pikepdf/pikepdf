@@ -304,6 +304,11 @@ class Pdf:
         such sequences in ``with pdf.lock():`` to prevent interleaving.
 
         On GIL-enabled builds this is a no-op.
+
+        While holding the lock, use only this ``Pdf``. If two threads each
+        hold the lock of one ``Pdf`` and then need the other's, pikepdf raises
+        :exc:`RuntimeError` in one of them rather than letting both wait for
+        ever. See :ref:`callback-restrictions`.
         """
     def close(self) -> None:
         """Close a ``Pdf`` object and release resources acquired by pikepdf.
@@ -827,7 +832,8 @@ class Pdf:
                 integer between 0-100 as the sole parameter, the progress
                 percentage. This function may not access or modify the PDF
                 while it is being written, or data corruption will almost
-                certainly occur.
+                certainly occur. The same goes for the ``write`` method of
+                a stream being saved to. See :ref:`callback-restrictions`.
 
             encryption: If ``False``
                 or omitted, existing encryption will be removed. If ``True``

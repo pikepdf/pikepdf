@@ -133,8 +133,10 @@ getter needs the lock, because reading an object can make qpdf load it from the
 file, which changes state that the whole `Pdf` shares.
 
 TSan finds races, not deadlocks, in pikepdf's locks: they are built on
-CPython's `PyMutex`, which TSan does not model. Tests that might deadlock rely
-on pytest-timeout instead.
+CPython's `PyMutex`, which TSan does not model. pikepdf's locks report a
+deadlock between two `Pdf` objects themselves, as a {exc}`RuntimeError` (see
+{ref}`callback-restrictions`); the threading tests also give up on any thread
+that has not finished within a time limit.
 
 ## Profiling pikepdf
 

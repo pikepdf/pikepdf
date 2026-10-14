@@ -107,5 +107,9 @@ class TokenFilter(_QPDFTokenFilter):
         is whatever next reads the content stream, usually
         :meth:`pikepdf.Pdf.save`.
 
+        This method is called while the ``Pdf`` being filtered is locked.
+        It may read that ``Pdf`` but must not use any other: see
+        :ref:`callback-restrictions`.
+
         See :ref:`parser-or-token-filter` for worked examples.
         """

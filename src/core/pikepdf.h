@@ -155,8 +155,10 @@ struct type_caster<QPDFObjectHandle> : public type_caster_base<QPDFObjectHandle>
 
         // Lock the owning QPDF while resolving indirect objects during
         // type conversion. The lock is re-entrant so this is safe even
-        // when the caller already holds the lock.
-        QpdfLockGuard qpdf_lock(src->getOwningQPDF());
+        // when the caller already holds the lock. This function cannot
+        // throw, so it waits without the check for a deadlock; the binding
+        // whose result this is has just held the same lock, with the check.
+        QpdfLockGuard qpdf_lock(src->getOwningQPDF(), std::nothrow);
 
         // In explicit conversion mode, return scalars as pikepdf.Object
         // so that Integer/Boolean/Real types are preserved.

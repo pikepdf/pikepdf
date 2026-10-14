@@ -33,6 +33,37 @@ synchronization.
 In either case, if one or more threads will be modifying pikepdf objects, you
 must coordinate read and write access with a {class}`threading.Lock`.
 
+(callback-restrictions)=
+
+### Callbacks
+
+pikepdf calls your code while it is in the middle of working on a `Pdf`: a
+{class}`pikepdf.TokenFilter` or {class}`pikepdf.StreamParser`, a `progress`
+function, and the methods of a Python stream that a `Pdf` is being read from
+or written to. On a free-threaded build the `Pdf` is locked for the duration.
+
+**A callback may only use the `Pdf` it was called for.** If a callback uses
+another `Pdf` while a second thread, working on that one, uses the first, each
+thread holds the lock the other needs. pikepdf detects this and raises
+{exc}`RuntimeError` in one of the two threads, which lets the other continue.
+The same applies to nested `with pdf.lock():` blocks that two threads enter in
+opposite orders. Treat the error as a bug in the calling code rather than
+something to catch and retry: collect what the callback needs from other
+documents before starting, or apply what it found afterwards.
+
+Some callbacks are more restricted still, whether or not threads are involved:
+
+- A `progress` function passed to {meth}`pikepdf.Pdf.save` or
+  {meth}`pikepdf.Pdf.check_pdf_syntax`, and the `write` method of a stream
+  being saved to, must not use the `Pdf` at all. It is part way through
+  being written; reading it can disturb the writer and modifying it will
+  almost certainly corrupt the output.
+- The `read` and `seek` methods of a stream that a `Pdf` was opened from are
+  called whenever pikepdf loads more of the file, which can be during almost
+  any operation. They must not use that `Pdf`.
+- A token filter or stream parser may read the `Pdf` it is filtering, but
+  should not modify the content stream it is being fed.
+
 It is not currently possible to pickle pikepdf objects or marshall them across
 process boundaries (as would be required to use pikepdf in
 {mod}`multiprocessing`). If this were implemented, it would not be much more

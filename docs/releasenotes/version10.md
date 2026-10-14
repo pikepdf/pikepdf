@@ -67,6 +67,12 @@ the architecture notes on thread safety.
 - Free-threaded Python: fixed a data race on the source `Pdf` when a page was
   appended, inserted or assigned into the page list of another `Pdf`. Both
   documents are now locked, as `pages.extend()` already did.
+- Free-threaded Python: two threads that each hold the lock of one `Pdf` and
+  then need the other's no longer wait for each other for ever. One of them
+  now gets a {exc}`RuntimeError`. This arises when a callback, such as a
+  {class}`pikepdf.TokenFilter`, uses a `Pdf` other than the one it was called
+  for, or when `with pdf.lock():` blocks are nested in opposite orders. What
+  a callback may do is now documented: see {ref}`callback-restrictions`.
 - Free-threaded Python: every binding of a class that reads or changes a `Pdf`
   now takes that `Pdf`'s lock, and the lock of every other `Pdf` among its
   arguments, in an order that cannot deadlock. The bindings are generated in a

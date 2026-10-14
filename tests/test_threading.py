@@ -17,7 +17,6 @@ short: TSan slows the interpreter by roughly an order of magnitude.
 from __future__ import annotations
 
 import queue
-import sys
 import sysconfig
 import threading
 import time
@@ -1163,37 +1162,84 @@ class CrossPdfFilter(TokenFilter):
         return token
 
 
-@pytest.mark.xfail(
-    LOCKS_ENABLED,
-    strict=True,
-    reason="Known limitation: a callback that holds one Pdf's lock and touches "
-    "another Pdf can deadlock against a thread doing the opposite",
-)
-def test_stress_token_filters_cross_two_pdfs(monkeypatch):
+def run_collecting_deadlocks(*targets):
+    """Run the targets in threads; return the deadlock errors they raised."""
+    deadlocks = []
+
+    def collecting(target):
+        def run():
+            try:
+                target()
+            except RuntimeError as e:
+                if 'deadlock' not in str(e).lower():
+                    raise
+                deadlocks.append(e)
+
+        return run
+
+    run_threads(*[collecting(target) for target in targets])
+    return deadlocks
+
+
+def test_stress_token_filters_cross_two_pdfs():
     """Filters on two Pdfs, each reading the other Pdf from its callback.
 
     Thread 1 holds a's lock and wants b's; thread 2 holds b's and wants a's.
-    The per-Pdf locks are only ever taken in a consistent order when a single
-    call needs both, so this deadlocks on a free-threaded build.
+    A callback is documented as free to use only the Pdf it was called for, so
+    this is a caller error. Where the locks are in force it is reported to one
+    of the two threads as a RuntimeError, which lets the other finish, rather
+    than leaving both waiting for ever.
     """
-    # When this deadlocks the Pdfs stay locked by the stuck daemon threads, so
-    # they are deliberately not closed, and the wait is kept short.
-    monkeypatch.setattr(sys.modules[__name__], 'JOIN_TIMEOUT', 5)
-    a = Pdf.open(RESOURCES / 'fourpages.pdf')
-    b = Pdf.open(RESOURCES / 'fourpages.pdf')
-    rendezvous = threading.Barrier(2)
-    results = {}
+    with (
+        Pdf.open(RESOURCES / 'fourpages.pdf') as a,
+        Pdf.open(RESOURCES / 'fourpages.pdf') as b,
+    ):
+        alone = CrossPdfFilter(b, threading.Barrier(1))
+        expected = a.pages[0].get_filtered_contents(alone)
+        rendezvous = threading.Barrier(2)
+        results = {}
 
-    def filter_a_reading_b():
-        tf = CrossPdfFilter(b, rendezvous)
-        results['a'] = a.pages[0].get_filtered_contents(tf)
+        def filter_a_reading_b():
+            tf = CrossPdfFilter(b, rendezvous)
+            results['a'] = a.pages[0].get_filtered_contents(tf)
 
-    def filter_b_reading_a():
-        tf = CrossPdfFilter(a, rendezvous)
-        results['b'] = b.pages[0].get_filtered_contents(tf)
+        def filter_b_reading_a():
+            tf = CrossPdfFilter(a, rendezvous)
+            results['b'] = b.pages[0].get_filtered_contents(tf)
 
-    run_threads(filter_a_reading_b, filter_b_reading_a)
-    assert results['a'] == results['b'] != b''
+        deadlocks = run_collecting_deadlocks(filter_a_reading_b, filter_b_reading_a)
+        if LOCKS_ENABLED:
+            assert len(deadlocks) == 1
+            assert list(results.values()) == [expected]
+        else:
+            assert not deadlocks
+            assert results == {'a': expected, 'b': expected}
+
+        # Both locks were given up: each Pdf is usable from a third thread
+        run_threads(lambda: len(a.pages), lambda: len(b.pages))
+
+
+def test_stress_pdf_locks_taken_in_opposite_orders():
+    """Two threads nesting Pdf.lock() in opposite orders do not hang."""
+    with Pdf.new() as a, Pdf.new() as b:
+        rendezvous = threading.Barrier(2)
+        done = []
+
+        def nest(first, second):
+            with first.lock():
+                rendezvous.wait(JOIN_TIMEOUT)
+                with second.lock():
+                    done.append(second)
+
+        deadlocks = run_collecting_deadlocks(lambda: nest(a, b), lambda: nest(b, a))
+        if LOCKS_ENABLED:
+            assert len(deadlocks) == 1
+            assert len(done) == 1
+        else:
+            assert not deadlocks
+            assert len(done) == 2
+
+        run_threads(lambda: len(a.pages), lambda: len(b.pages))
 
 
 def test_stress_conversion_mode_is_per_thread():
