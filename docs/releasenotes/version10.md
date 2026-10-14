@@ -69,6 +69,11 @@ the architecture notes on thread safety.
   documents are now locked, as `pages.extend()` already did.
 - The test suite now runs under ThreadSanitizer on free-threaded Python in
   continuous integration, which is how the fixes above were found.
+- Fixed building from source on Android (Termux), where importing pikepdf
+  failed with `cannot locate symbol "_Py_TrueStruct"` since v10.6.0. The
+  extension module is now linked against libpython when the build interpreter
+  is an Android Python, as that platform requires. Android is not a tested
+  platform. {issue}`752`
 
 ## v10.17.0
 

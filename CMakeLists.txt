@@ -86,6 +86,45 @@ target_link_directories(_core PRIVATE
 
 target_link_libraries(_core PRIVATE qpdf)
 
+# -- Android: link libpython explicitly --
+# Android's loader resolves an extension module's symbols only against the
+# libraries the module itself depends on, never against the libpython already
+# loaded into the process (PEP 738). nanobind links libpython only on Windows,
+# so do it here. We ask the interpreter rather than CMake which platform this
+# is: it is the interpreter's loader that matters, and a CMake running on the
+# device (Termux) may describe the system as Linux. sys.getandroidapilevel
+# covers Python older than 3.13, where sys.platform is still "linux".
+execute_process(
+    COMMAND "${Python_EXECUTABLE}" -c
+        "import sys; print(int(sys.platform == 'android' or hasattr(sys, 'getandroidapilevel')))"
+    OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE _pikepdf_python_is_android)
+if(_pikepdf_python_is_android STREQUAL "1")
+    set(_pikepdf_link_libpython_default ON)
+else()
+    set(_pikepdf_link_libpython_default OFF)
+endif()
+option(PIKEPDF_LINK_LIBPYTHON
+    "Link the extension module against libpython (required on Android)"
+    ${_pikepdf_link_libpython_default})
+
+if(PIKEPDF_LINK_LIBPYTHON)
+    execute_process(
+        COMMAND "${Python_EXECUTABLE}" -c
+            "import sysconfig; print(sysconfig.get_config_var('LIBDIR') or '', sysconfig.get_config_var('LDLIBRARY') or '', sep=';')"
+        OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE _pikepdf_libpython)
+    list(GET _pikepdf_libpython 0 _pikepdf_libpython_dir)
+    list(GET _pikepdf_libpython 1 _pikepdf_libpython_name)
+    set(_pikepdf_libpython_path "${_pikepdf_libpython_dir}/${_pikepdf_libpython_name}")
+    if(NOT _pikepdf_libpython_name MATCHES "\\.so$"
+            OR NOT EXISTS "${_pikepdf_libpython_path}")
+        message(FATAL_ERROR
+            "PIKEPDF_LINK_LIBPYTHON is set, but ${Python_EXECUTABLE} does not "
+            "report a shared libpython (found '${_pikepdf_libpython_path}').")
+    endif()
+    message(STATUS "Linking pikepdf._core against ${_pikepdf_libpython_path}")
+    target_link_libraries(_core PRIVATE "${_pikepdf_libpython_path}")
+endif()
+
 # -- RPATH for local qpdf builds --
 if(EXTRA_LIBDIRS AND NOT WIN32)
     set_target_properties(_core PROPERTIES
