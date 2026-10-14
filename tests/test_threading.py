@@ -51,8 +51,12 @@ RESOURCES = Path(__file__).parent / "resources"
 
 # A deadlock must fail the test rather than hang the run. method='thread' is
 # used because a deadlocked thread never returns to the interpreter to service
-# a signal.
-pytestmark = pytest.mark.timeout(120, method='thread')
+# a signal. The limit is generous: run_threads() reports a deadlock sooner,
+# and on a free-threaded build on a machine whose CPUs are all busy, each
+# handover between threads can take a tenth of a second, so a test that runs
+# many batches of threads can take minutes.
+TIMEOUT = pytest.mark.timeout(600, method='thread')
+pytestmark = TIMEOUT
 
 N_THREADS = 8
 JOIN_TIMEOUT = 60

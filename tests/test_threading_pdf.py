@@ -16,11 +16,12 @@ import threading
 from io import BytesIO
 
 import pytest
-from test_threading import RESOURCES, run_n, run_threads
+from test_threading import RESOURCES, TIMEOUT, run_n, run_threads
 
 from pikepdf import Dictionary, Name, Pdf
 
-pytestmark = pytest.mark.timeout(120, method='thread')
+# A deadlock must fail the test rather than hang the run. See test_threading.py
+pytestmark = TIMEOUT
 
 N_THREADS = 8
 

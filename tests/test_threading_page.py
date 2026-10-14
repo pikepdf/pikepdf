@@ -15,7 +15,7 @@ from __future__ import annotations
 from io import BytesIO
 
 import pytest
-from test_threading import RESOURCES, run_n, run_threads
+from test_threading import RESOURCES, TIMEOUT, run_n, run_threads
 
 import pikepdf
 from pikepdf import (
@@ -34,7 +34,8 @@ from pikepdf import (
     _core,
 )
 
-pytestmark = pytest.mark.timeout(120, method='thread')
+# A deadlock must fail the test rather than hang the run. See test_threading.py
+pytestmark = TIMEOUT
 
 N_PAGES = 8
 

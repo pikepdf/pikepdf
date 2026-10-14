@@ -18,8 +18,7 @@ import operator
 from decimal import Decimal
 from io import BytesIO
 
-import pytest
-from test_threading import N_THREADS, run_n, run_threads
+from test_threading import N_THREADS, TIMEOUT, run_n, run_threads
 
 import pikepdf
 from pikepdf import (
@@ -37,7 +36,7 @@ from pikepdf import (
 from pikepdf._core import unparse
 
 # A deadlock must fail the test rather than hang the run. See test_threading.py
-pytestmark = pytest.mark.timeout(120, method='thread')
+pytestmark = TIMEOUT
 
 
 def pdf_with_indirect_scalars(n_objects=24):
