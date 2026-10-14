@@ -225,7 +225,10 @@ runs.
 operations from several threads. The `frequent_thread_switches` fixture
 lowers the switch interval so that a GIL-enabled interpreter changes threads
 as often as it can, which makes interleavings in the middle of a qpdf
-operation likely.
+operation likely. `run_threads` reuses its threads from one call to the
+next: on a free-threaded build, starting a thread can take a tenth of a
+second when every CPU is busy, as it is on a CI runner shared by several
+test workers.
 
 The ThreadSanitizer job (`.github/workflows/tsan.yml`, and
 {doc}`debugging`) runs these tests on a free-threaded build with the GIL

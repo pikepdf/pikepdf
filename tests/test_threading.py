@@ -17,6 +17,7 @@ short: TSan slows the interpreter by roughly an order of magnitude.
 
 from __future__ import annotations
 
+import functools
 import queue
 import sys
 import threading
@@ -288,6 +289,27 @@ def test_concurrent_save(tmp_path):
 # ---------------------------------------------------------------------------
 
 
+class _Worker:
+    """A daemon thread that runs the functions it is given, one at a time.
+
+    run_threads() keeps its workers for reuse: starting a thread on a
+    free-threaded build can take a tenth of a second when every CPU is busy.
+    Daemon threads, so that a deadlocked worker cannot also hang interpreter
+    shutdown after the test has been reported as failed.
+    """
+
+    def __init__(self):
+        self.tasks = queue.SimpleQueue()
+        threading.Thread(target=self._run, daemon=True).start()
+
+    def _run(self):
+        while True:
+            self.tasks.get()()
+
+
+_idle_workers: list[_Worker] = []
+
+
 def run_threads(*targets):
     """Run each target in its own thread, released together from a barrier.
 
@@ -297,25 +319,29 @@ def run_threads(*targets):
     barrier = threading.Barrier(len(targets))
     errors = []
 
-    def runner(target):
+    def runner(target, finished):
         try:
             barrier.wait(JOIN_TIMEOUT)
             target()
         except BaseException as e:  # pylint: disable=broad-exception-caught
             errors.append(e)
+        finally:
+            finished.set()
 
-    # Daemon threads, so that a deadlocked thread cannot also hang interpreter
-    # shutdown after the test has been reported as failed.
-    threads = [
-        threading.Thread(target=runner, args=(target,), daemon=True)
-        for target in targets
-    ]
-    for t in threads:
-        t.start()
+    workers = [_idle_workers.pop() if _idle_workers else _Worker() for _ in targets]
+    finished = [threading.Event() for _ in targets]
+    for worker, target, event in zip(workers, targets, finished, strict=True):
+        worker.tasks.put(functools.partial(runner, target, event))
     deadline = time.monotonic() + JOIN_TIMEOUT
-    for t in threads:
-        t.join(max(0.0, deadline - time.monotonic()))
-    stuck = sum(t.is_alive() for t in threads)
+    for event in finished:
+        event.wait(max(0.0, deadline - time.monotonic()))
+    # A worker that is still running stays out of the pool
+    _idle_workers.extend(
+        worker
+        for worker, event in zip(workers, finished, strict=True)
+        if event.is_set()
+    )
+    stuck = sum(not event.is_set() for event in finished)
     assert not stuck, f"{stuck} thread(s) still running after {JOIN_TIMEOUT}s"
     if errors:
         raise errors[0]
@@ -324,6 +350,22 @@ def run_threads(*targets):
 def run_n(target, n=N_THREADS):
     """Run target(thread_index) in n threads."""
     run_threads(*[lambda i=i: target(i) for i in range(n)])
+
+
+def test_run_threads_reuses_its_threads():
+    """Repeated calls run on the same threads, rather than starting new ones.
+
+    Starting a thread on a free-threaded build can take a tenth of a second
+    when every CPU is busy, as on a CI runner shared with other test workers,
+    and the stress tests call run_threads many times.
+    """
+    seen = []
+    for _ in range(3):
+        threads = set()
+        run_n(lambda _i, threads=threads: threads.add(threading.current_thread()))
+        seen.append(threads)
+    assert len(seen[0]) == N_THREADS
+    assert seen[0] == seen[1] == seen[2]
 
 
 def describe(pdf):
