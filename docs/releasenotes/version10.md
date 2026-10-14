@@ -16,6 +16,14 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.18.0
+
+- Fixed building from source on Android (Termux), where importing pikepdf
+  failed with `cannot locate symbol "_Py_TrueStruct"` since v10.6.0. The
+  extension module is now linked against libpython when the build interpreter
+  is an Android Python, as that platform requires. Android is not a tested
+  platform. {issue}`752`
+
 ## v10.17.0
 
 - Added {class}`pikepdf.ObjectSet`, which records the objects that a walk of
