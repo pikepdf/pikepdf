@@ -37,6 +37,8 @@ thread. If more than one thread modifies the same `Pdf`, wrap each such
 sequence in `with pdf.lock():`, or coordinate the threads with your own
 {class}`threading.Lock`.
 
+How these locks work inside pikepdf is described in {doc}`locking`.
+
 (callback-restrictions)=
 
 ### Callbacks

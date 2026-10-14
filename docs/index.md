@@ -178,6 +178,7 @@ api/settings
 :name: reference_toc
 
 references/arch
+references/locking
 references/build_process
 references/contributing
 references/debugging
