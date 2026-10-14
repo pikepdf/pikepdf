@@ -54,11 +54,21 @@ public:
 // the middle of qpdf operations -- callbacks, the methods of a Python stream,
 // logging, and finalizers run by a garbage collection -- and releases it
 // outright while it writes a file. Another thread could then enter the same
-// QPDF part way through. On a free-threaded build the lock is nanobind's
-// ft_mutex (a PyMutex). On a GIL build it is the owner and depth below, which
-// only the thread holding the GIL reads or writes, so taking a free lock is a
-// few plain loads and stores; a thread that finds it held gives up the GIL and
+// QPDF part way through.
+//
+// The lock is owner_, the identifier of the thread that holds it, and depth_.
+// On a GIL build only the thread holding the GIL reads or writes owner_, so
+// taking a free lock is a few plain loads and stores; on a free-threaded
+// build it is taken with a compare-and-swap. A thread that finds it held
+// detaches from the interpreter (giving up the GIL, if there is one) and
 // sleeps until it is released.
+//
+// A released lock goes to whichever thread asks for it next, which is
+// usually the thread that just released it, still running. A fair lock that
+// hands itself to the longest waiter, as PyMutex does once a waiter has
+// waited for a millisecond, forms a convoy when threads take the lock often:
+// every handover waits for a sleeping thread to be scheduled, which on a busy
+// machine can take far longer than the work done under the lock.
 //
 // Every lock() and unlock() must be made by a thread that holds the GIL (or,
 // on a free-threaded build, is attached to the interpreter).
@@ -82,11 +92,12 @@ public:
     void unlock()
     {
         if (--depth_ == 0) {
-            owner_.store(0, std::memory_order_relaxed);
-#if defined(NB_FREE_THREADED)
-            mutex_.unlock();
-#else
-            if (waiters_ > 0) {
+            owner_.store(0, sync_order);
+            // On a free-threaded build, the store above and this load pair
+            // with the waiter's increment of waiters_ and its attempt to take
+            // the lock: either the waiter sees the lock free, or this sees
+            // the waiter.
+            if (waiters_.load(sync_order) > 0) {
                 // Taking sleep_mutex_ orders this release after a waiter's
                 // check of owner_, so the waiter cannot miss the notification.
                 {
@@ -94,7 +105,6 @@ public:
                 }
                 released_.notify_all();
             }
-#endif
         }
     }
 
@@ -102,39 +112,45 @@ private:
     void lock_impl(bool check)
     {
         auto tid = current_thread_id();
-        auto owner = owner_.load(std::memory_order_relaxed);
-        if (owner == tid) {
+        if (owner_.load(std::memory_order_relaxed) == tid) {
             ++depth_;
             return;
         }
-#if defined(NB_FREE_THREADED)
-        if (owner != 0) {
+        if (!try_take(tid)) {
             // Another thread holds the lock, so this one is about to wait.
             // An uncontended lock never reaches this, and pays nothing for it.
             Waiting waiting(tid, this, check);
-            mutex_.lock();
-        } else {
-            mutex_.lock();
-        }
-#else
-        if (owner != 0) {
-            Waiting waiting(tid, this, check);
-            ++waiters_;
+            waiters_.fetch_add(1, sync_order);
             // Another thread may take the lock between this one waking and
-            // getting the GIL back, so check again each time.
-            while (owner_.load(std::memory_order_relaxed) != 0) {
+            // trying to take it, so try again each time.
+            while (!try_take(tid)) {
                 py::gil_scoped_release release;
                 std::unique_lock<std::mutex> sleep(sleep_mutex_);
-                released_.wait(sleep,
-                    [this] { return owner_.load(std::memory_order_relaxed) == 0; });
-                // sleep_mutex_ is given up before the GIL is taken back, so a
-                // thread holding the GIL never waits for sleep_mutex_'s holder.
+                released_.wait(sleep, [this] { return owner_.load(sync_order) == 0; });
+                // sleep_mutex_ is given up before this thread attaches to the
+                // interpreter again, so an attached thread -- one holding the
+                // GIL, or one a garbage collection is waiting for -- never
+                // waits for sleep_mutex_'s holder.
             }
-            --waiters_;
+            waiters_.fetch_sub(1, std::memory_order_relaxed);
         }
-#endif
-        owner_.store(tid, std::memory_order_relaxed);
         depth_ = 1;
+    }
+
+    // Take the lock if it is free.
+    bool try_take(unsigned long tid)
+    {
+#if defined(NB_FREE_THREADED)
+        unsigned long expected = 0;
+        return owner_.compare_exchange_strong(
+            expected, tid, sync_order, std::memory_order_relaxed);
+#else
+        // The GIL makes the check and the store one step.
+        if (owner_.load(std::memory_order_relaxed) != 0)
+            return false;
+        owner_.store(tid, std::memory_order_relaxed);
+        return true;
+#endif
     }
 
     // Records, for as long as it exists, that a thread is waiting for a mutex.
@@ -206,18 +222,25 @@ private:
     }
 
 #if defined(NB_FREE_THREADED)
-    py::ft_mutex mutex_;
+    static constexpr auto sync_order = std::memory_order_seq_cst;
 #else
+    // The GIL orders everything but a sleeping thread's check of owner_, and
+    // sleep_mutex_ orders that.
+    static constexpr auto sync_order = std::memory_order_relaxed;
+#endif
+
     // Used only to sleep while another thread holds the lock: the lock itself
-    // is owner_, which is protected by the GIL.
+    // is owner_.
     std::mutex sleep_mutex_;
     std::condition_variable released_;
-    int waiters_{0};
-#endif
-    // Atomic only because a sleeping thread, which does not hold the GIL,
-    // reads it in released_'s predicate, and a free-threaded build reads it
-    // without the mutex in lock_impl().
+    // The number of threads waiting for the lock, so that unlock() notifies
+    // only when there is someone to wake.
+    std::atomic<int> waiters_{0};
+    // The thread holding the lock, or 0. Read and written only with the GIL
+    // held on a GIL build, but atomic because a sleeping thread reads it in
+    // released_'s predicate.
     std::atomic<unsigned long> owner_{0};
+    // Written only by the thread holding the lock.
     int depth_{0};
 };
 
@@ -300,7 +323,7 @@ private:
 // lock, holds a reference to the entry, so the mutex outlives the QPDF if
 // another thread destroys the document in the meantime.
 //
-// The registry's own map_mutex_ is a real std::mutex (not ft_mutex) because
+// The registry's own map_mutex_ is a real std::mutex (not a ReentrantFtMutex) because
 // it protects the registry data structure itself, not a QPDF instance.
 // It is held only briefly during register/unregister/lookup.
 class QpdfRegistry {

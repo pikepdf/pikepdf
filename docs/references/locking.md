@@ -55,7 +55,7 @@ locks. Per-thread state, such as the stack of conversion mode overrides, is
 
 | Lock | GIL-enabled build | Free-threaded build |
 |---|---|---|
-| Per-`Pdf` lock | Real. An uncontended lock is a few plain loads and stores, which the GIL makes safe. A thread that finds it held releases the GIL and sleeps on a condition variable. | Real. nanobind's `ft_mutex` (a `PyMutex`), plus an owner and depth for re-entrancy. A waiting thread detaches from the interpreter while it waits. |
+| Per-`Pdf` lock | Real. An uncontended lock is a few plain loads and stores, which the GIL makes safe. A thread that finds it held releases the GIL and sleeps on a condition variable. | Real. An uncontended lock is a compare-and-swap. A thread that finds it held detaches from the interpreter and sleeps on a condition variable. |
 | Teardown lock | As the per-`Pdf` lock | As the per-`Pdf` lock |
 | Deadlock check | Runs only when a lock is contended | Runs only when a lock is contended |
 | Registry, wait table, adopted objects, qpdf globals, traversal | `std::mutex`. Needed, because a thread can be inside qpdf with the GIL released. Each is held only briefly and never while calling Python. | `std::mutex`, held only briefly and never while calling Python |
@@ -108,39 +108,56 @@ already taken.
 `Pdf.lock()` is the same lock, exposed to Python through `_acquire_lock` and
 `_release_lock`, so that users can make a sequence of calls atomic.
 
-### GIL-enabled builds
+### How it works
 
-The lock is `owner_` (a thread identifier) and `depth_`. Only a thread that
-holds the GIL reads or writes them, so taking a free lock or re-entering a
-held one needs no atomic read-modify-write and no system call.
+The lock is `owner_` (the identifier of the thread holding it, or 0) and
+`depth_`. The same algorithm is used on both kinds of build; only the way a
+free lock is taken differs:
+
+- On a GIL-enabled build, only a thread that holds the GIL reads or writes
+  `owner_`, so taking a free lock or re-entering a held one is a few plain
+  loads and stores, with no atomic read-modify-write and no system call.
+- On a free-threaded build, a free lock is taken with a compare-and-swap of
+  `owner_` from 0 to the thread's identifier.
 
 A thread that finds the lock held by another:
 
 1. increments `waiters_`;
-2. releases the GIL;
+2. detaches from the interpreter, which releases the GIL if there is one;
 3. waits on the condition variable `released_` under `sleep_mutex_`;
-4. releases `sleep_mutex_` before taking the GIL back, so a thread holding
-   the GIL never waits for `sleep_mutex_`;
-5. checks `owner_` again, since another thread may have taken the lock in
-   between, and goes back to step 2 if so.
+4. releases `sleep_mutex_` before attaching again, so a thread that is
+   attached (holding the GIL, or holding up a stop-the-world garbage
+   collection) never waits for `sleep_mutex_`;
+5. tries to take the lock again, since another thread may have taken it in
+   between, and goes back to step 2 if that fails.
 
 `unlock()` notifies the condition variable only when `waiters_` is non-zero,
 so an uncontended unlock costs nothing extra. It briefly takes
 `sleep_mutex_` before notifying, which orders the release after a waiter's
-check of `owner_` and prevents a lost wake-up.
-
-### Free-threaded builds
-
-The lock is nanobind's `ft_mutex`, a `PyMutex`, with the same `owner_` and
-`depth_` on top for re-entrancy. `PyMutex` detaches the thread from the
-interpreter while it waits, so a waiting thread does not block a
-stop-the-world garbage collection.
+check of `owner_` and prevents a lost wake-up. On a free-threaded build,
+`unlock()` stores 0 to `owner_` and then reads `waiters_`, while a waiter
+increments `waiters_` and then tries to take the lock, all sequentially
+consistent: either the waiter finds the lock free or `unlock()` finds the
+waiter.
 
 A free-threaded interpreter often runs with the GIL enabled, because
 importing a module that does not declare free-threading support (lxml, for
-example) turns it back on. The free-threaded implementation is used either way:
-which one is compiled depends on the build, not on whether the GIL happens
-to be enabled.
+example) turns it back on. The free-threaded implementation is used either
+way: which one is compiled depends on the build, not on whether the GIL
+happens to be enabled.
+
+### Why not `PyMutex`
+
+The lock is deliberately not fair. A released lock goes to whichever thread
+asks for it next, usually the thread that has just released it and is still
+running. Earlier versions used nanobind's `ft_mutex`, a `PyMutex`, on
+free-threaded builds. Once a waiter has waited for a millisecond, `PyMutex`
+hands the lock directly to it on release, and the lock then stays held until
+that thread is scheduled. When several threads take the same lock often,
+each handover waits for a sleeping thread, and on a machine whose CPUs are
+all busy that wait can be far longer than the work done under the lock.
+Threads reading one `Pdf` through a Python stream ran 4 to 50 times slower
+than with the current lock when the CPUs were oversubscribed.
 
 ### Deadlock detection
 

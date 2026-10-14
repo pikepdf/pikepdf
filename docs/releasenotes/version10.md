@@ -114,6 +114,10 @@ the architecture notes on thread safety.
   return, such as the operands of a content stream instruction, can now be
   changed and read by several threads at once. The methods that pikepdf adds
   to them did not take the lock that their other methods take.
+- Free-threaded Python: threads that take turns using the same `Pdf` are no
+  longer slowed to a crawl when every CPU is busy. The lock handed itself to
+  a waiting thread, and stayed held until the operating system got round to
+  running that thread. It now goes to whichever thread asks for it next.
 - `Matrix.__array__(copy=False)` now raises `ValueError`, as numpy expects of
   an object that cannot share its memory. The check for this was written in a
   way that never fired.
