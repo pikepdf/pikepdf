@@ -165,6 +165,25 @@ void init_page(py::module_ &m)
                 return rotate;
             },
             [](QPDFPageObjectHelper &poh, int angle) { poh.rotatePage(angle, false); })
+        .def_prop_ro("resources",
+            [](QPDFPageObjectHelper &poh) {
+                // Checked and created under the Pdf's lock, so that threads
+                // which only ask for the dictionary cannot each create one and
+                // lose what the others put in theirs.
+                auto page = poh.getObjectHandle();
+                // The new dictionary is adopted by the page's Pdf, as one
+                // assigned from Python would be, so that changes to it take
+                // that Pdf's lock.
+                if (!page.hasKey("/Resources"))
+                    page.replaceKey("/Resources",
+                        adopt_into(
+                            page.getOwningQPDF(), QPDFObjectHandle::newDictionary()));
+                auto resources = page.getKey("/Resources");
+                if (!resources.isDictionary())
+                    throw py::type_error(
+                        "Page /Resources exists but is not a dictionary");
+                return resources;
+            })
         .def("contents_coalesce",
             [](QPDFPageObjectHelper &poh) { poh.coalesceContentStreams(); })
         .def(

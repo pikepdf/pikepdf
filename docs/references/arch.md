@@ -24,14 +24,18 @@ may be returned in some situations).
 
 pikepdf supports free-threaded (no-GIL) CPython and publishes `cp314t` wheels.
 
-On a GIL-enabled interpreter, it is safe to read pikepdf objects across Python
-threads, though the GIL means there may not be much performance gain from doing
-so. On a free-threaded interpreter there is no GIL serializing access, so even
-concurrent reads of an object that another thread may be modifying require
-synchronization.
+Each `Pdf` has a lock, and every pikepdf method takes the lock of each `Pdf`
+it reads or changes, so one call never sees another call on the same `Pdf`
+half done. This holds on GIL-enabled interpreters too. The GIL by itself
+does not provide it: pikepdf runs Python code in the middle of many
+operations (when reading from a Python stream, for example) and the GIL can
+pass to another thread whenever that happens.
 
-In either case, if one or more threads will be modifying pikepdf objects, you
-must coordinate read and write access with a {class}`threading.Lock`.
+Only single calls are protected. A sequence of calls, such as reading a value
+and writing back a new one, can still be interleaved with calls from another
+thread. If more than one thread modifies the same `Pdf`, wrap each such
+sequence in `with pdf.lock():`, or coordinate the threads with your own
+{class}`threading.Lock`.
 
 (callback-restrictions)=
 
@@ -40,7 +44,7 @@ must coordinate read and write access with a {class}`threading.Lock`.
 pikepdf calls your code while it is in the middle of working on a `Pdf`: a
 {class}`pikepdf.TokenFilter` or {class}`pikepdf.StreamParser`, a `progress`
 function, and the methods of a Python stream that a `Pdf` is being read from
-or written to. On a free-threaded build the `Pdf` is locked for the duration.
+or written to. The `Pdf` is locked for the duration.
 
 **A callback may only use the `Pdf` it was called for.** If a callback uses
 another `Pdf` while a second thread, working on that one, uses the first, each

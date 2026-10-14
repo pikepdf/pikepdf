@@ -298,12 +298,14 @@ class Pdf:
     def lock(self) -> AbstractContextManager[None]:
         """Context manager to hold the per-Pdf lock for compound operations.
 
-        Under free-threaded Python, individual C++ method calls are
-        automatically serialized, but multi-step Python operations (e.g.
-        read-modify-write on the same dictionary) are not atomic.  Wrap
-        such sequences in ``with pdf.lock():`` to prevent interleaving.
+        Individual method calls are serialized automatically, but
+        multi-step operations (e.g. read-modify-write on the same dictionary)
+        are not atomic. Wrap such sequences in ``with pdf.lock():`` to
+        prevent interleaving. The lock is re-entrant.
 
-        On GIL-enabled builds this is a no-op.
+        .. versionchanged:: 10.18
+            The lock is now in force on GIL-enabled builds too. It was
+            previously a no-op there.
 
         While holding the lock, use only this ``Pdf``. If two threads each
         hold the lock of one ``Pdf`` and then need the other's, pikepdf raises

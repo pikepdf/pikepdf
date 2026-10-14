@@ -8,8 +8,7 @@ The tests here are aimed at the Object methods and module-level functions that
 used to take no lock of their own, and at calls that involve the objects of two
 Pdfs, where each Pdf is locked for the whole call.
 
-On a GIL-enabled build the per-Pdf locks are no-ops, and these tests only
-exercise the code paths. Keep each one short: they also run under
+Keep each one short: they also run under
 ThreadSanitizer, which slows the interpreter by roughly an order of magnitude.
 """
 

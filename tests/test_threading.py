@@ -4,8 +4,9 @@
 """Thread safety tests for pikepdf under free-threaded Python.
 
 These tests verify that concurrent operations on pikepdf objects do not
-crash or corrupt state. On GIL-enabled builds, the per-QPDF locks are
-no-ops, so these tests exercise the code paths without contention.
+crash or corrupt state. The per-Pdf locks are in force on GIL-enabled builds
+too: the GIL changes hands whenever Python code runs, which pikepdf does in
+the middle of many operations, so it does not serialize them by itself.
 
 The stress tests in the second half of this file start their threads from a
 common barrier so that the operations overlap, and assert on invariants that
@@ -17,7 +18,7 @@ short: TSan slows the interpreter by roughly an order of magnitude.
 from __future__ import annotations
 
 import queue
-import sysconfig
+import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -54,10 +55,6 @@ pytestmark = pytest.mark.timeout(120, method='thread')
 
 N_THREADS = 8
 JOIN_TIMEOUT = 60
-# Whether the per-Pdf locks do anything. They are compiled in on a free-threaded
-# build, and stay in force there even if an extension module that does not
-# support free threading has switched the GIL back on at import.
-LOCKS_ENABLED = bool(sysconfig.get_config_var('Py_GIL_DISABLED'))
 
 
 @pytest.fixture
@@ -541,12 +538,7 @@ def test_stress_different_objects_same_pdf():
 
 
 def test_stress_lock_makes_compound_operation_atomic():
-    """Pdf.lock() serializes a read-modify-write, and is re-entrant.
-
-    On a GIL-enabled build Pdf.lock() is documented to be a no-op and the
-    interpreter may switch threads between the read and the write, so the exact
-    total is only guaranteed on a free-threaded build.
-    """
+    """Pdf.lock() serializes a read-modify-write, and is re-entrant."""
     pdf = Pdf.new()
     pdf.Root.Counter = 0
     per_thread = 200
@@ -563,9 +555,7 @@ def test_stress_lock_makes_compound_operation_atomic():
 
     run_n(work)
     total = int(pdf.Root.Counter)
-    assert 0 < total <= N_THREADS * per_thread
-    if LOCKS_ENABLED:
-        assert total == N_THREADS * per_thread
+    assert total == N_THREADS * per_thread
 
     # The lock was fully released: another thread can take it.
     acquired = []
@@ -1186,8 +1176,8 @@ def test_stress_token_filters_cross_two_pdfs():
 
     Thread 1 holds a's lock and wants b's; thread 2 holds b's and wants a's.
     A callback is documented as free to use only the Pdf it was called for, so
-    this is a caller error. Where the locks are in force it is reported to one
-    of the two threads as a RuntimeError, which lets the other finish, rather
+    this is a caller error. It is reported to one of the two threads as a
+    RuntimeError, which lets the other finish, rather
     than leaving both waiting for ever.
     """
     with (
@@ -1208,12 +1198,8 @@ def test_stress_token_filters_cross_two_pdfs():
             results['b'] = b.pages[0].get_filtered_contents(tf)
 
         deadlocks = run_collecting_deadlocks(filter_a_reading_b, filter_b_reading_a)
-        if LOCKS_ENABLED:
-            assert len(deadlocks) == 1
-            assert list(results.values()) == [expected]
-        else:
-            assert not deadlocks
-            assert results == {'a': expected, 'b': expected}
+        assert len(deadlocks) == 1
+        assert list(results.values()) == [expected]
 
         # Both locks were given up: each Pdf is usable from a third thread
         run_threads(lambda: len(a.pages), lambda: len(b.pages))
@@ -1232,12 +1218,8 @@ def test_stress_pdf_locks_taken_in_opposite_orders():
                     done.append(second)
 
         deadlocks = run_collecting_deadlocks(lambda: nest(a, b), lambda: nest(b, a))
-        if LOCKS_ENABLED:
-            assert len(deadlocks) == 1
-            assert len(done) == 1
-        else:
-            assert not deadlocks
-            assert len(done) == 2
+        assert len(deadlocks) == 1
+        assert len(done) == 1
 
         run_threads(lambda: len(a.pages), lambda: len(b.pages))
 
@@ -1433,6 +1415,56 @@ def test_stress_number_tree_cold_reads(number_tree_pdf_bytes):
                 assert list(tree.keys()) == expected
 
             run_n(read)
+
+
+@pytest.fixture
+def frequent_thread_switches():
+    """Have a GIL-enabled interpreter switch threads as often as it can."""
+    before = sys.getswitchinterval()
+    sys.setswitchinterval(1e-6)
+    yield
+    sys.setswitchinterval(before)
+
+
+class PythonLevelStream(BytesIO):
+    """A stream whose reads run Python code, as a user's file object might."""
+
+    def readinto(self, buffer):
+        return super().readinto(buffer)
+
+
+@pytest.mark.usefixtures('frequent_thread_switches')
+def test_stress_cold_reads_through_a_python_stream(number_tree_pdf_bytes):
+    """Threads reading a Pdf whose stream runs Python code on every read.
+
+    Each read hands the GIL to another thread, part way through qpdf loading
+    an object. Without the Pdf's lock that thread could move the shared
+    stream position, and the first would parse garbage.
+    """
+    for _ in range(10):
+        with Pdf.open(PythonLevelStream(number_tree_pdf_bytes)) as pdf:
+            tree = NumberTree(pdf.Root.Numbers)
+
+            def read(i, tree=tree):
+                for n in range(i, N_TREE_KEYS, 7):
+                    assert tree[n].N == n
+
+            run_n(read)
+
+
+@pytest.mark.usefixtures('frequent_thread_switches')
+def test_stress_page_resources_created_once():
+    """Threads asking for the resources of a page that has none share one."""
+    for _ in range(100):
+        with Pdf.new() as pdf:
+            page = pdf.add_blank_page()
+            del page.obj.Resources
+
+            def add(i, page=page):
+                page.resources[Name(f'/K{i}')] = Dictionary()
+
+            run_n(add)
+            assert len(page.obj.Resources.keys()) == N_THREADS
 
 
 def test_stress_number_tree_insert_while_reading(number_tree_pdf_bytes):

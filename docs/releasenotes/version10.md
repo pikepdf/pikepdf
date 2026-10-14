@@ -67,7 +67,20 @@ the architecture notes on thread safety.
 - Free-threaded Python: fixed a data race on the source `Pdf` when a page was
   appended, inserted or assigned into the page list of another `Pdf`. Both
   documents are now locked, as `pages.extend()` already did.
-- Free-threaded Python: two threads that each hold the lock of one `Pdf` and
+- Fixed threads interfering with each other inside one `Pdf` on GIL-enabled
+  builds. The per-`Pdf` lock was compiled out there, on the assumption that
+  the GIL serializes each call, but the GIL changes hands whenever Python code
+  runs, and pikepdf runs Python part way through many operations: reading
+  from a stream implemented in Python, token filters and other callbacks,
+  logging, and (on Python 3.11) a garbage collection that runs a finalizer.
+  Another thread could then use the same `Pdf`, typically moving the shared
+  stream position so that an object was read as `None`. The lock is now in
+  force on every build, and {meth}`pikepdf.Pdf.lock` works on GIL-enabled
+  builds too.
+- {attr}`pikepdf.Page.resources` now checks for and creates the page's
+  resources dictionary under the `Pdf`'s lock, so threads that ask for it at
+  the same time share one dictionary instead of each creating their own.
+- Two threads that each hold the lock of one `Pdf` and
   then need the other's no longer wait for each other for ever. One of them
   now gets a {exc}`RuntimeError`. This arises when a callback, such as a
   {class}`pikepdf.TokenFilter`, uses a `Pdf` other than the one it was called

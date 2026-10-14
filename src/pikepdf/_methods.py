@@ -750,14 +750,6 @@ class Extend_Page:
             return self._images_recursive
         return self._images
 
-    @property
-    def resources(self) -> Dictionary:
-        if Name.Resources not in self.obj:
-            self.obj.Resources = Dictionary()
-        elif not isinstance(self.obj.Resources, Dictionary):
-            raise TypeError("Page /Resources exists but is not a dictionary")
-        return self.obj.Resources
-
     def add_resource(
         self,
         res: Object,
