@@ -110,6 +110,20 @@ private:
     std::string buf_;
 };
 
+// Whether a stream's /Filter, a name or an array of names, includes
+// /JBIG2Decode.
+bool is_jbig2_encoded(QPDFObjectHandle stream)
+{
+    auto filter = stream.getDict().getKey("/Filter");
+    if (filter.isArray()) {
+        for (auto const &item : filter.aitems())
+            if (item.isNameAndEquals("/JBIG2Decode"))
+                return true;
+        return false;
+    }
+    return filter.isNameAndEquals("/JBIG2Decode");
+}
+
 class JBIG2StreamFilter : public QPDFStreamFilter {
 public:
     virtual bool setDecodeParms(QPDFObjectHandle decode_parms) override
@@ -120,6 +134,22 @@ public:
         auto jbig2globals_obj = decode_parms.getKey("/JBIG2Globals");
         if (jbig2globals_obj.isNull())
             return true;
+
+        // Reading JBIG2-encoded globals brings qpdf back here for their own
+        // /JBIG2Globals before it checks the decode level, so globals that
+        // refer to themselves, directly or through other streams, would recurse
+        // until the native stack overflowed. They could never be read anyway:
+        // getStreamData() below asks for the generalized decode level, which
+        // excludes JBIG2.
+        if (jbig2globals_obj.isStream() && is_jbig2_encoded(jbig2globals_obj)) {
+            auto *owner = jbig2globals_obj.getOwningQPDF();
+            throw QPDFExc(qpdf_e_damaged_pdf,
+                owner ? owner->getFilename() : "",
+                "",
+                0,
+                "/JBIG2Globals " + jbig2globals_obj.unparse() +
+                    " is itself JBIG2-encoded");
+        }
 
         auto buf = jbig2globals_obj.getStreamData();
         jbig2globals_ =
