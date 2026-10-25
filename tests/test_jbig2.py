@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import subprocess
+import zlib
 from collections.abc import Callable
 from io import BytesIO
 from pathlib import Path
@@ -15,12 +16,14 @@ import pikepdf
 from pikepdf import (
     DataDecodingError,
     DependencyError,
+    Dictionary,
     Name,
     Object,
     Pdf,
+    PdfError,
     PdfImage,
 )
-from pikepdf.jbig2 import JBIG2Decoder
+from pikepdf.jbig2 import JBIG2Decoder, JBIG2DecoderInterface
 
 
 @pytest.fixture
@@ -356,3 +359,85 @@ def test_jbig2_stale_decoder_error_is_not_reported_later(resources, raising_deco
         other = pdf.make_stream(b'not flate data at all', Filter=Name.FlateDecode)
         with pytest.raises(DataDecodingError, match="incorrect header check"):
             other.read_bytes()
+
+
+def jbig2_globals_cycle(pdf: Pdf, length: int) -> list[pikepdf.Stream]:
+    """JBIG2 streams that each name the next as /JBIG2Globals, the last the first."""
+    streams = [
+        pdf.make_stream(b'\x00' * 10, Filter=Name.JBIG2Decode) for _ in range(length)
+    ]
+    for st, globals_ in zip(streams, streams[1:] + streams[:1], strict=True):
+        st.DecodeParms = Dictionary(JBIG2Globals=globals_)
+    return streams
+
+
+@pytest.mark.parametrize('length', [1, 2], ids=['self', 'pair'])
+def test_jbig2_globals_cycle_is_an_error(length):
+    # This used to overflow the native stack, killing the interpreter, before
+    # the JBIG2 decoder was even consulted.
+    pdf = Pdf.new()
+    image = jbig2_globals_cycle(pdf, length)[0]
+    with pytest.raises(PdfError, match="is itself JBIG2-encoded"):
+        image.read_bytes()
+
+
+def test_jbig2_globals_cycle_save_and_reopen():
+    pdf = Pdf.new()
+    pdf.Root.Image = jbig2_globals_cycle(pdf, 1)[0]
+    bio = BytesIO()
+    pdf.save(bio)  # qpdf writes the stream unchanged, with a warning
+    with Pdf.open(bio) as reopened:
+        with pytest.raises(PdfError, match="is itself JBIG2-encoded"):
+            reopened.Root.Image.read_bytes()
+
+
+def test_jbig2_globals_cycle_array_filter():
+    # The same self-cycle, but the /Filter of the globals is an array that
+    # names /JBIG2Decode among other filters, not a bare /JBIG2Decode name.
+    pdf = Pdf.new()
+    image = pdf.make_stream(b'\x00' * 10)
+    image.Filter = pikepdf.Array([Name.FlateDecode, Name.JBIG2Decode])
+    image.DecodeParms = Dictionary(JBIG2Globals=image)
+    with pytest.raises(PdfError, match="is itself JBIG2-encoded"):
+        image.read_bytes()
+
+
+class _RecordingDecoder(JBIG2DecoderInterface):
+    """A decoder that records what it was given and returns fixed bytes."""
+
+    def __init__(self):
+        self.seen: list[tuple[bytes, bytes]] = []
+
+    def check_available(self) -> None:
+        return None
+
+    def decode_jbig2(self, jbig2: bytes, jbig2_globals: bytes) -> bytes:
+        self.seen.append((jbig2, jbig2_globals))
+        return b'\x42' * 10
+
+
+@pytest.fixture
+def recording_decoder():
+    original = pikepdf.jbig2.get_decoder()
+    decoder = _RecordingDecoder()
+    pikepdf.jbig2.set_decoder(decoder)
+
+    yield decoder
+    pikepdf.jbig2.set_decoder(original)
+
+
+@pytest.mark.parametrize(
+    'globals_filter',
+    [Name.FlateDecode, pikepdf.Array([Name.FlateDecode])],
+    ids=['name', 'array'],
+)
+def test_jbig2_globals_compressed_reach_decoder(recording_decoder, globals_filter):
+    # Globals compressed by a /Filter array that does not name /JBIG2Decode
+    # are as legitimate as a bare /FlateDecode name: either way they must be
+    # read and reach the decoder.
+    pdf = Pdf.new()
+    globals_ = pdf.make_stream(zlib.compress(b'globals'), Filter=globals_filter)
+    image = pdf.make_stream(b'\x00' * 10, Filter=Name.JBIG2Decode)
+    image.DecodeParms = Dictionary(JBIG2Globals=globals_)
+    assert image.read_bytes(pikepdf.StreamDecodeLevel.specialized) == b'\x42' * 10
+    assert recording_decoder.seen == [(b'\x00' * 10, b'globals')]

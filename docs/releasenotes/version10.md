@@ -74,6 +74,11 @@ the architecture notes on thread safety.
   extension module is now linked against libpython when the build interpreter
   is an Android Python, as that platform requires. Android is not a tested
   platform. {issue}`752`
+- Fixed a crash, a native stack overflow that no Python `except` can catch,
+  when reading, saving or checking a PDF in which a JBIG2 image's
+  `/JBIG2Globals` stream is itself JBIG2-encoded and leads back to the image,
+  directly or through other streams. Reading such an image now raises
+  {exc}`~pikepdf.exceptions.PdfError`.
 
 ## v10.17.0
 
