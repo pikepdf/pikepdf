@@ -77,8 +77,14 @@ the architecture notes on thread safety.
 - Fixed a crash, a native stack overflow that no Python `except` can catch,
   when reading, saving or checking a PDF in which a JBIG2 image's
   `/JBIG2Globals` stream is itself JBIG2-encoded and leads back to the image,
-  directly or through other streams. Reading such an image now raises
-  {exc}`~pikepdf.exceptions.PdfError`.
+  directly or through other streams. Such an image is now reported as
+  unfilterable, as JBIG2-encoded globals without a cycle already were:
+  reading it raises {exc}`~pikepdf.exceptions.PdfError`, extracting it raises
+  {exc}`~pikepdf.exceptions.UnsupportedImageTypeError`, and saving writes it
+  unchanged with a warning. {issue}`753`
+- A JBIG2 image's `/JBIG2Globals` are now read only when the image is being
+  JBIG2-decoded, rather than every time qpdf checks whether the image can be
+  decoded, which included every save.
 
 ## v10.17.0
 

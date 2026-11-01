@@ -22,6 +22,7 @@ from pikepdf import (
     Pdf,
     PdfError,
     PdfImage,
+    UnsupportedImageTypeError,
 )
 from pikepdf.jbig2 import JBIG2Decoder, JBIG2DecoderInterface
 
@@ -362,9 +363,19 @@ def test_jbig2_stale_decoder_error_is_not_reported_later(resources, raising_deco
 
 
 def jbig2_globals_cycle(pdf: Pdf, length: int) -> list[pikepdf.Stream]:
-    """JBIG2 streams that each name the next as /JBIG2Globals, the last the first."""
+    """JBIG2 images that each name the next as /JBIG2Globals, the last the first."""
     streams = [
-        pdf.make_stream(b'\x00' * 10, Filter=Name.JBIG2Decode) for _ in range(length)
+        pdf.make_stream(
+            b'\x00' * 10,
+            Filter=Name.JBIG2Decode,
+            Type=Name.XObject,
+            Subtype=Name.Image,
+            Width=8,
+            Height=10,
+            BitsPerComponent=1,
+            ColorSpace=Name.DeviceGray,
+        )
+        for _ in range(length)
     ]
     for st, globals_ in zip(streams, streams[1:] + streams[:1], strict=True):
         st.DecodeParms = Dictionary(JBIG2Globals=globals_)
@@ -377,18 +388,48 @@ def test_jbig2_globals_cycle_is_an_error(length):
     # the JBIG2 decoder was even consulted.
     pdf = Pdf.new()
     image = jbig2_globals_cycle(pdf, length)[0]
-    with pytest.raises(PdfError, match="is itself JBIG2-encoded"):
+    with pytest.raises(PdfError, match="unfilterable"):
         image.read_bytes()
+
+
+@pytest.mark.parametrize('length', [1, 2], ids=['self', 'pair'])
+def test_jbig2_globals_cycle_specialized(recording_decoder, length):
+    # Asking for JBIG2 decoding reads the globals, which cannot themselves be
+    # JBIG2-decoded, so the cycle ends there without reaching the decoder.
+    pdf = Pdf.new()
+    image = jbig2_globals_cycle(pdf, length)[0]
+    with pytest.raises(PdfError):
+        image.read_bytes(pikepdf.StreamDecodeLevel.specialized)
+    assert recording_decoder.seen == []
+
+
+@pytest.mark.parametrize('length', [0, 1, 2], ids=['acyclic', 'self', 'pair'])
+def test_jbig2_encoded_globals_extract_is_unsupported(recording_decoder, length):
+    # Globals that are themselves JBIG2-encoded cannot be read, with or
+    # without a cycle; extraction reports the image as unsupported.
+    pdf = Pdf.new()
+    if length == 0:
+        globals_, image = jbig2_globals_cycle(pdf, 2)
+        del globals_.DecodeParms
+    else:
+        image = jbig2_globals_cycle(pdf, length)[0]
+    with pytest.raises(UnsupportedImageTypeError):
+        PdfImage(image).extract_to(stream=BytesIO())
 
 
 def test_jbig2_globals_cycle_save_and_reopen():
     pdf = Pdf.new()
-    pdf.Root.Image = jbig2_globals_cycle(pdf, 1)[0]
+    image = jbig2_globals_cycle(pdf, 1)[0]
+    pdf.Root.Image = image
+    raw = image.read_raw_bytes()
     bio = BytesIO()
-    pdf.save(bio)  # qpdf writes the stream unchanged, with a warning
+    pdf.save(bio)  # qpdf writes the stream unchanged
     with Pdf.open(bio) as reopened:
-        with pytest.raises(PdfError, match="is itself JBIG2-encoded"):
-            reopened.Root.Image.read_bytes()
+        reimage = reopened.Root.Image
+        assert reimage.Filter == Name.JBIG2Decode
+        assert reimage.read_raw_bytes() == raw
+        with pytest.raises(PdfError, match="unfilterable"):
+            reimage.read_bytes()
 
 
 def test_jbig2_globals_cycle_array_filter():
@@ -398,8 +439,8 @@ def test_jbig2_globals_cycle_array_filter():
     image = pdf.make_stream(b'\x00' * 10)
     image.Filter = pikepdf.Array([Name.FlateDecode, Name.JBIG2Decode])
     image.DecodeParms = Dictionary(JBIG2Globals=image)
-    with pytest.raises(PdfError, match="is itself JBIG2-encoded"):
-        image.read_bytes()
+    with pytest.raises(PdfError):
+        image.read_bytes(pikepdf.StreamDecodeLevel.specialized)
 
 
 class _RecordingDecoder(JBIG2DecoderInterface):
