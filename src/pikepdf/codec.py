@@ -293,7 +293,7 @@ class PdfDocCodec(codecs.Codec):
 
     def decode(self, input: Any, errors: str = 'strict') -> tuple[str, int]:
         """Decode PdfDocEncoding bytes to string."""
-        return codecs.charmap_decode(input, errors, decoding_table)  # type: ignore[arg-type]
+        return codecs.charmap_decode(input, errors, decoding_table)  # type: ignore[arg-type, unused-ignore]
 
 
 class PdfDocIncrementalEncoder(codecs.IncrementalEncoder):
@@ -309,7 +309,7 @@ class PdfDocIncrementalDecoder(codecs.IncrementalDecoder):
 
     def decode(self, input: Any, final: bool = False) -> str:
         """Decode bytes incrementally."""
-        return codecs.charmap_decode(input, self.errors, decoding_table)[0]  # type: ignore[arg-type]
+        return codecs.charmap_decode(input, self.errors, decoding_table)[0]  # type: ignore[arg-type, unused-ignore]
 
 
 class PdfDocStreamWriter(PdfDocCodec, codecs.StreamWriter):
