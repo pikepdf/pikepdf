@@ -116,7 +116,18 @@ def label_from_label_dict(label_dict: int | Integer | Dictionary) -> str:
             LABEL_STYLE_MAP.get(str(style)[1:]) if isinstance(style, Name) else None
         )
         if style_fn is not None:
-            label += style_fn(numeric_value)
+            try:
+                label += style_fn(numeric_value)
+            except ValueError:
+                # Letters start at 1 and Roman numerals run from 1 to 5000;
+                # outside that, keep the number in decimal digits.
+                warn(
+                    f"Page label number {numeric_value} cannot be represented "
+                    f"in page label style {style}",
+                    UserWarning,
+                    stacklevel=2,
+                )
+                label += str(numeric_value)
         else:
             warn(
                 "Page label dictionary has invalid page label style",

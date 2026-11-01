@@ -479,8 +479,30 @@ def test_page_index_foreign_page(fourpages, sandwich):
             None,
         ),
         (lambda: 42, '42', None, None),
-        (lambda: Dictionary(S=Name.R, St=-42), None, ValueError, "Can't represent"),
-        (lambda: Dictionary(S=Name.A, St=-42), None, ValueError, "Can't represent"),
+        (
+            lambda: Dictionary(S=Name.R, St=-42),
+            '-42',
+            UserWarning,
+            'cannot be represented',
+        ),
+        (
+            lambda: Dictionary(S=Name.A, St=-42),
+            '-42',
+            UserWarning,
+            'cannot be represented',
+        ),
+        (
+            lambda: Dictionary(P='p', S=Name.r, St=0),
+            'p0',
+            UserWarning,
+            'cannot be represented',
+        ),
+        (
+            lambda: Dictionary(S=Name.R, St=6000),
+            '6000',
+            UserWarning,
+            'cannot be represented',
+        ),
         (
             lambda: Dictionary(S=Name.r, St=Name.Invalid),
             'i',
@@ -527,8 +549,8 @@ def test_page_label_dicts_explicit_mode():
             'Appendix-ja'
         )
         assert label_from_label_dict(Integer(42)) == '42'
-        with pytest.raises(ValueError, match="Can't represent"):
-            label_from_label_dict(Dictionary(S=Name.R, St=-42))
+        with pytest.warns(UserWarning, match='cannot be represented'):
+            assert label_from_label_dict(Dictionary(S=Name.R, St=-42)) == '-42'
         with pytest.warns(UserWarning, match='invalid non-integer start value'):
             assert label_from_label_dict(Dictionary(S=Name.r, St=Name.Invalid)) == 'i'
 
@@ -543,6 +565,20 @@ def test_page_labels_explicit_mode():
     )
     with pikepdf.explicit_conversion():
         assert [page.label for page in p.pages] == ['i', '7', '8']
+
+
+def test_page_labels_unrepresentable_start():
+    # A Roman numeral style starting at 0 cannot label the first page; it is
+    # labelled in decimal digits and the pages after it are unaffected.
+    p = Pdf.new()
+    d = Dictionary(Type=Name.Page, MediaBox=[0, 0, 612, 792], Resources=Dictionary())
+    for _ in range(3):
+        p.pages.append(Page(d))
+    p.Root.PageLabels = p.make_indirect(
+        Dictionary(Nums=Array([0, Dictionary(S=Name.R, St=0)]))
+    )
+    with pytest.warns(UserWarning, match='cannot be represented'):
+        assert [page.label for page in p.pages] == ['0', 'I', 'II']
 
 
 def test_externalize(resources):

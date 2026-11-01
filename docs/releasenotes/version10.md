@@ -38,6 +38,9 @@ the architecture notes on thread safety.
 - Reading the label of a page whose page label style is an unknown name, such
   as `/S /Z`, now warns and keeps the label prefix, as an invalid non-name
   style already did. Previously it raised `KeyError`.
+- Reading the label of a page whose number cannot be written in its page
+  label style, such as `/S /R /St 0` or a Roman numeral above 5000, now warns
+  and writes the number in decimal digits. Previously it raised `ValueError`.
 - Extracting an image whose `/CalGray` or `/CalRGB` colour space array lacks
   its parameter dictionary now decodes it as the corresponding device space,
   without an ICC profile, as a missing `/WhitePoint` already did. Previously
