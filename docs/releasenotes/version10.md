@@ -42,8 +42,9 @@ the architecture notes on thread safety.
   its parameter dictionary now decodes it as the corresponding device space,
   without an ICC profile, as a missing `/WhitePoint` already did. Previously
   it raised `IndexError`.
-- An ICCBased image whose profile stream omits the required `/N` now takes
-  its mode from the profile instead of raising `KeyError`.
+- An ICCBased image whose profile stream omits the required `/N`, or gives
+  one that is not an integer, now takes its mode and default `/Decode` from
+  the profile's colour space. Previously its mode raised `KeyError`.
 - {meth}`pikepdf.Pdf.check_pdf_syntax` now performs the same checks as
   `qpdf --check` and reports the same problems. It checks the linearization
   data and hint tables of linearized files, which previously required a

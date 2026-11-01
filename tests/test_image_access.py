@@ -1441,14 +1441,12 @@ def test_iccbased_cmyk_explicit_decode_array():
     assert pim._decode_array == (1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0)
 
 
-def test_iccbased_profile_without_n(resources):
-    # /N is required on an ICC profile stream, but some files omit it: the
-    # profile itself says it is gray, so the image still decodes as 'L'.
+def _image_with_icc_profile_without_n(icc_bytes, components):
     pdf = Pdf.new()
-    icc_stream = pdf.make_stream((resources / 'Gray.icc').read_bytes())
-    imobj = Stream(
+    icc_stream = pdf.make_stream(icc_bytes)
+    return pdf, Stream(
         pdf,
-        bytes(range(4)),
+        bytes(range(4 * components)),
         BitsPerComponent=8,
         ColorSpace=Array([Name.ICCBased, icc_stream]),
         Width=2,
@@ -1456,9 +1454,40 @@ def test_iccbased_profile_without_n(resources):
         Type=Name.XObject,
         Subtype=Name.Image,
     )
+
+
+def _srgb_profile_bytes():
+    return ImageCms.ImageCmsProfile(ImageCms.createProfile('sRGB')).tobytes()
+
+
+@pytest.mark.parametrize(
+    'kind, components, expected_mode',
+    [('gray', 1, 'L'), ('rgb', 3, 'RGB')],
+)
+def test_iccbased_profile_without_n(resources, kind, components, expected_mode):
+    # /N is required on an ICC profile stream, but some files omit it: the
+    # profile itself records its colour space, so the image still decodes.
+    if kind == 'gray':
+        icc_bytes = (resources / 'Gray.icc').read_bytes()
+    else:
+        icc_bytes = _srgb_profile_bytes()
+    _pdf, imobj = _image_with_icc_profile_without_n(icc_bytes, components)
     pim = PdfImage(imobj)
-    assert pim.mode == 'L'
-    assert pim.as_pil_image().mode == 'L'
+    assert pim.mode == expected_mode
+    assert pim._decode_array == (0.0, 1.0) * components
+    assert pim.as_pil_image().mode == expected_mode
+
+
+def test_iccbased_profile_without_n_unreadable():
+    # Without /N and without a readable profile, the mode is unknown; that is
+    # reported the same way as any other unsupported image.
+    _pdf, imobj = _image_with_icc_profile_without_n(b'not a profile', 3)
+    pim = PdfImage(imobj)
+    with pytest.raises(NotImplementedError):
+        pim.mode
+    with pytest.raises(NotImplementedError):
+        pim._decode_array
+    repr(pim)
 
 
 @pytest.mark.skipif(

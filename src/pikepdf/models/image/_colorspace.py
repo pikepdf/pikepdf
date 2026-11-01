@@ -57,13 +57,8 @@ def decode_array(pim: PdfImageBase) -> DecodeArray:
     if pim.colorspace == '/ICCBased':
         # The default /Decode is the identity for every channel, so its
         # length is the only thing that matters: it equals the profile's
-        # component count /N (1=gray, 3=RGB/Lab, 4=CMYK). Read /N directly
-        # rather than opening the profile.
-        try:
-            iccstream = cast(Dictionary, pim._colorspaces[1])
-            n = int(iccstream['/N'])
-        except (TypeError, KeyError, ValueError, IndexError):
-            n = 0
+        # component count (1=gray, 3=RGB/Lab, 4=CMYK).
+        n = icc_ncomponents(pim)
         if n in (1, 3, 4):
             return cast(DecodeArray, (0.0, 1.0) * n)
     if pim.image_mask:
@@ -133,19 +128,43 @@ def colorspace_has_name(pim: PdfImageBase, name: str) -> bool:
     return False
 
 
+_NCOMPONENTS_FROM_XCOLOR_SPACE = {'GRAY': 1, 'RGB ': 3, 'Lab ': 3, 'CMYK': 4}
+
+
+def icc_ncomponents(pim: PdfImageBase) -> int | None:
+    """Return the number of colour components of an ICCBased colorspace.
+
+    This is the profile stream's /N. /N is required, but some files omit it or
+    give a value that is not an integer; the profile itself records its colour
+    space, so fall back to that. Returns None if neither says.
+    """
+    try:
+        if pim.indexed:
+            icc_profile = pim._colorspaces[1][1]
+        else:
+            icc_profile = pim._colorspaces[1]
+    except (IndexError, TypeError):
+        return None
+    try:
+        return int(icc_profile['/N'])
+    except (KeyError, TypeError, ValueError):
+        pass
+    try:
+        profile = pim.icc
+    except UnsupportedImageTypeError:
+        return None
+    if profile is None:
+        return None
+    # Pillow's stubs omit ImageCmsProfile.profile.
+    xcolor_space = profile.profile.xcolor_space  # type: ignore[attr-defined]
+    return _NCOMPONENTS_FROM_XCOLOR_SPACE.get(xcolor_space)
+
+
 def approx_mode_from_icc(pim: PdfImageBase) -> str:
     """Infer the Pillow mode from an ICCBased colorspace's profile."""
-    if pim.indexed:
-        icc_profile = pim._colorspaces[1][1]
-    else:
-        icc_profile = pim._colorspaces[1]
-    try:
-        icc_profile_nchannels = int(icc_profile['/N'])
-    except (KeyError, TypeError, ValueError):
-        # /N is required, but some files omit it; the profile still says how
-        # many channels there are, so look there instead.
-        icc_profile_nchannels = None
-
+    icc_profile_nchannels = icc_ncomponents(pim)
+    if icc_profile_nchannels is None:
+        return ''
     if icc_profile_nchannels == 1:
         return 'L'
 
@@ -153,8 +172,6 @@ def approx_mode_from_icc(pim: PdfImageBase) -> str:
     # ImageCmsProfile.profile and do not narrow the Optional; both exist/hold at
     # runtime in this ICCBased, multi-channel context.)
     mode_from_xcolor_space = {'RGB ': 'RGB', 'CMYK': 'CMYK'}
-    if icc_profile_nchannels is None:
-        mode_from_xcolor_space['GRAY'] = 'L'
     xcolor_space = pim.icc.profile.xcolor_space  # type: ignore[union-attr]
     return mode_from_xcolor_space.get(xcolor_space, '')
 
