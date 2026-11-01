@@ -12,9 +12,11 @@ from __future__ import annotations
 import os
 import sys
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from pathlib import Path
-from subprocess import DEVNULL, PIPE, CalledProcessError, run
+from subprocess import DEVNULL, PIPE, CalledProcessError, CompletedProcess, run
 from tempfile import TemporaryDirectory
+from typing import Any
 
 from packaging.version import InvalidVersion, Version
 
@@ -61,7 +63,12 @@ class JBIG2DecoderInterface(ABC):
 class JBIG2Decoder(JBIG2DecoderInterface):
     """JBIG2 decoder implementation."""
 
-    def __init__(self, *, subprocess_run=run, creationflags=CREATION_FLAGS):
+    def __init__(
+        self,
+        *,
+        subprocess_run: Callable[..., CompletedProcess[Any]] = run,
+        creationflags: int = CREATION_FLAGS,
+    ) -> None:
         """Initialize the decoder."""
         self._run = subprocess_run
         self._creationflags = creationflags

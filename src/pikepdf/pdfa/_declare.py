@@ -277,7 +277,8 @@ def _sync_docinfo(
                 text = '; '.join(value.items)
         elif form == 'date':
             try:
-                text = DateConverter.docinfo_from_xmp(value.text)
+                # A value without text raises TypeError, handled below
+                text = DateConverter.docinfo_from_xmp(value.text)  # type: ignore[arg-type]
             except (ValueError, TypeError):
                 text = None
         else:

@@ -6,8 +6,9 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable, Iterator, MutableMapping
+from collections.abc import Iterable, Iterator, Mapping, MutableMapping
 from datetime import UTC, datetime
+from types import TracebackType
 from typing import TYPE_CHECKING, Any, Self
 from warnings import warn
 
@@ -25,15 +26,16 @@ from pikepdf.models.metadata._xmp import XmpDocument
 from pikepdf.objects import Name, Stream
 
 if TYPE_CHECKING:  # pragma: no cover
-    from lxml.etree import QName
+    from lxml.etree import QName, _Element
 
     from pikepdf import Pdf
+    from pikepdf._core import Object
 
 
 log = logging.getLogger(__name__)
 
 
-class PdfMetadata(MutableMapping):
+class PdfMetadata(MutableMapping[str, Any]):
     """Read and edit the metadata associated with a PDF.
 
     The PDF specification contain two types of metadata, the newer XMP
@@ -100,7 +102,10 @@ class PdfMetadata(MutableMapping):
         return XmpDocument(data, overwrite_invalid_xml=self._overwrite_invalid_xml)
 
     def load_from_docinfo(
-        self, docinfo, delete_missing: bool = False, raise_failure: bool = False
+        self,
+        docinfo: Object | Mapping[str, object],
+        delete_missing: bool = False,
+        raise_failure: bool = False,
     ) -> None:
         """Populate the XMP metadata object with DocumentInfo.
 
@@ -117,10 +122,10 @@ class PdfMetadata(MutableMapping):
         """
         from lxml.etree import QName
 
-        def warn_or_raise(msg, e=None):
+        def warn_or_raise(msg: str, e: Exception | None = None) -> None:
             if raise_failure:
                 raise ValueError(msg) from e
-            warn(msg)
+            warn(msg, stacklevel=3)
 
         for uri, shortkey, docinfo_name, converter in self.DOCINFO_MAPPING:
             qname = QName(uri, shortkey)
@@ -128,7 +133,8 @@ class PdfMetadata(MutableMapping):
             # by str(Name)
             val = docinfo.get(str(docinfo_name))
             if val is None:
-                if delete_missing and qname in self:
+                # Keys may be QName as well as the str that Mapping declares
+                if delete_missing and qname in self:  # type: ignore[comparison-overlap]
                     del self[qname]
                 continue
             try:
@@ -148,7 +154,7 @@ class PdfMetadata(MutableMapping):
         extra_docinfo_names = {str(k) for k in docinfo.keys()} - valid_docinfo_names
         for extra in extra_docinfo_names:
             warn_or_raise(
-                f"The metadata field {extra} with value '{repr(docinfo.get(extra))}' "
+                f"The metadata field {extra} with value '{docinfo.get(extra)!r}' "
                 "has no XMP equivalent, so it was discarded",
             )
 
@@ -157,7 +163,12 @@ class PdfMetadata(MutableMapping):
         self._updating = True
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         """Close metadata and apply changes."""
         try:
             if exc_type is not None:
@@ -166,7 +177,7 @@ class PdfMetadata(MutableMapping):
         finally:
             self._updating = False
 
-    def _update_docinfo(self):
+    def _update_docinfo(self) -> None:
         """Update the PDF's DocumentInfo dictionary to match XMP metadata.
 
         The standard mapping is described here:
@@ -175,7 +186,7 @@ class PdfMetadata(MutableMapping):
         from lxml.etree import QName
 
         # Touch object to ensure it exists
-        self._pdf.docinfo  # pylint: disable=pointless-statement
+        self._pdf.docinfo  # noqa: B018  # pylint: disable=pointless-statement
         for uri, element, docinfo_name, converter in self.DOCINFO_MAPPING:
             qname = QName(uri, element)
             try:
@@ -190,7 +201,8 @@ class PdfMetadata(MutableMapping):
                 except ValueError:
                     warn(
                         f"The DocumentInfo field {docinfo_name} could not be "
-                        "updated from XMP"
+                        "updated from XMP",
+                        stacklevel=4,
                     )
                     value = None
                 except Exception as e:
@@ -204,7 +216,7 @@ class PdfMetadata(MutableMapping):
                 continue
             self._docinfo.set(docinfo_name, clean(value))
 
-    def _apply_changes(self):
+    def _apply_changes(self) -> None:
         """Serialize our changes back to the PDF in memory.
 
         Depending how we are initialized, leave our metadata mark and producer.
@@ -255,7 +267,7 @@ class PdfMetadata(MutableMapping):
         """
         return self._xmp_doc.prefix_from_uri(uriname)
 
-    def __contains__(self, key: object) -> bool:  # type: ignore[override]
+    def __contains__(self, key: object) -> bool:
         """Test if XMP key is in metadata."""
         from lxml.etree import QName
 
@@ -380,9 +392,10 @@ class PdfMetadata(MutableMapping):
                 strictness this document was opened with.
 
         Example:
+            >>> original = pikepdf.new()
             >>> src = original.open_metadata()
             >>> with pdf.open_metadata() as meta:
-            ...     meta.copy_properties(src, ['dc:contributor', 'dc:rights'])
+            ...     copied = meta.copy_properties(src, ['dc:contributor', 'dc:rights'])
 
         Returns:
             The qualified names of the properties copied, such as
@@ -434,7 +447,8 @@ class PdfMetadata(MutableMapping):
         key_part = QName(XMP_NS_PDFA_ID, 'part')
         key_conformance = QName(XMP_NS_PDFA_ID, 'conformance')
         try:
-            return self[key_part] + self[key_conformance]
+            status: str = self[key_part] + self[key_conformance]
+            return status
         except KeyError:
             return ''
 
@@ -454,7 +468,8 @@ class PdfMetadata(MutableMapping):
 
         pdfx_version = QName(XMP_NS_PDFX_ID, 'GTS_PDFXVersion')
         try:
-            return self[pdfx_version]
+            version: str = self[pdfx_version]
+            return version
         except KeyError:
             return ''
 
@@ -471,7 +486,7 @@ class PdfMetadata(MutableMapping):
         """
         pass
 
-    def _get_rdf_root(self):
+    def _get_rdf_root(self) -> _Element:
         """Get the rdf:RDF root element.
 
         Provided for backward compatibility with code that accesses

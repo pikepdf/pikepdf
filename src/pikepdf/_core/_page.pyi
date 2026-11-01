@@ -5,7 +5,6 @@
 # See pikepdf/_core/__init__.pyi for how this stub package is laid out.
 
 # pylint: disable=no-method-argument,unused-argument,no-self-use,too-many-public-methods
-# ruff: noqa: D418
 # mypy: disable-error-code="misc"
 
 from __future__ import annotations
@@ -67,7 +66,7 @@ class Page:
         rect: Rectangle | None,
         *,
         push_stack: bool | None = ...,
-    ):
+    ) -> Name:
         """Overlay another object on this page.
 
         Overlays will be drawn after all previous content, potentially drawing on top
@@ -108,7 +107,7 @@ class Page:
             Returns the name of the overlay in the resources dictionary instead
             of returning None.
         """
-    def add_underlay(self, other: Object | Page, rect: Rectangle | None):
+    def add_underlay(self, other: Object | Page, rect: Rectangle | None) -> Name:
         """Underlay another object beneath this page.
 
         Underlays will be drawn before all other content, so they may be overdrawn
@@ -162,9 +161,9 @@ class Page:
         name: Name,
         rect: Rectangle,
         *,
-        invert_transformations: bool,
-        allow_shrink: bool,
-        allow_expand: bool,
+        invert_transformations: bool = True,
+        allow_shrink: bool = True,
+        allow_expand: bool = False,
     ) -> bytes:
         """Generate content stream segment to place a Form XObject on this page.
 
@@ -369,6 +368,7 @@ class Page:
             shallow: If False, recurse into nested Form XObjects.
                 If True, do not recurse.
         """
+    @property
     def form_xobjects(self) -> _ObjectMapping:
         """Return all Form XObjects associated with this page.
 
@@ -397,6 +397,7 @@ class Page:
             The result of modifying the content stream with ``tf``.
             The existing content stream is not modified.
         """
+    @property
     def index(self) -> int:
         """Returns the zero-based index of this page in the pages list.
 
@@ -406,6 +407,7 @@ class Page:
 
         .. versionadded:: 2.2
         """
+    @property
     def label(self) -> str:
         """Returns the page label for this page, accounting for section numbers.
 

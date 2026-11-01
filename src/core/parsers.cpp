@@ -514,6 +514,7 @@ private:
 
 std::pair<py::list, size_t> ContentChecker::check(QPDFObjectHandle &stream) const
 {
+    QpdfLockGuard lock(stream.getOwningQPDF());
     QPDFObjectHandle resources;
     if (stream.isStream())
         resources = stream.getDict().getKey("/Resources");

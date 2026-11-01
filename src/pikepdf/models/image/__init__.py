@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 from abc import ABCMeta
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from pikepdf.models._image_exceptions import (
     HifiPrintImageNotTranscodableError,
@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     DecompressionBombWarning = Image.DecompressionBombWarning
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     """Lazily expose the Pillow-derived exception classes as module attributes.
 
     This must live on the package ``__init__`` because ``pikepdf/__init__.py``

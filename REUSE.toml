@@ -203,10 +203,14 @@ SPDX-License-Identifier = "CC-PDDC"
 SPDX-FileComment = "From US Congressional Records. Converted from JPEG to PDF."
 
 [[annotations]]
-path = "tests/resources/content-stream-errors.pdf"
+path = [
+    "tests/resources/badlin1.pdf",
+    "tests/resources/content-stream-errors.pdf",
+]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2019 Jay Berkenbilt"
 SPDX-License-Identifier = "Apache-2.0"
+SPDX-FileComment = "From the qpdf test suite (qpdf/qtest/qpdf)."
 
 [[annotations]]
 path = "tests/resources/graph**.pdf"

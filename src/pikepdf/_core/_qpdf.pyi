@@ -5,7 +5,6 @@
 # See pikepdf/_core/__init__.pyi for how this stub package is laid out.
 
 # pylint: disable=no-method-argument,unused-argument,no-self-use,too-many-public-methods
-# ruff: noqa: D418
 # mypy: disable-error-code="misc"
 
 from __future__ import annotations
@@ -14,6 +13,7 @@ from collections.abc import Callable, Iterable, Iterator
 from contextlib import AbstractContextManager
 from enum import Enum
 from pathlib import Path
+from types import TracebackType
 from typing import TYPE_CHECKING, Any, BinaryIO, Literal, Self, overload
 
 from pikepdf._core._acroform import AcroForm
@@ -180,8 +180,13 @@ class Pdf:
                 Default size is set to a US Letter 8.5" x 11" page.
         """
     def __enter__(self) -> Self: ...
-    def __exit__(self, exc_type, exc_value, traceback) -> None: ...
-    def __init__(self, *args, **kwargs) -> None: ...
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None: ...
+    def __init__(self, *args: object, **kwargs: object) -> None: ...
     def _add_page(self, page: Object, first: bool = ...) -> None:
         """Low-level private method to attach a page to this PDF.
 
@@ -193,26 +198,53 @@ class Pdf:
             first: If True, prepend this before the first page;
                 if False append after last page.
         """
+    def _check_document_structures(self) -> None: ...
     def _count_orphaned_widgets(self) -> int: ...
-    def _decode_all_streams_and_discard(self, progress) -> None: ...
+    def _decode_all_streams_and_discard(
+        self, progress: Callable[[int], None] | None = ...
+    ) -> None: ...
     def _process(self, arg0: str, arg1: bytes) -> None: ...
-    def _replace_object(self, arg0: tuple[int, int], arg1: Object) -> None: ...
-    def _swap_objects(self, arg0: tuple[int, int], arg1: tuple[int, int]) -> None: ...
+    def _replace_object(self, arg0: tuple[int, int], arg1: Object, /) -> None: ...
+    def _swap_objects(
+        self, arg0: tuple[int, int], arg1: tuple[int, int], /
+    ) -> None: ...
     def check_pdf_syntax(
         self, progress: Callable[[int], None] | None = ...
     ) -> list[str]:
         """Check if PDF is syntactically well-formed.
 
-        Similar to ``qpdf --check``, checks for syntax
+        Performs the checks that ``qpdf --check`` does, looking for syntax
         or structural problems in the PDF. This is mainly useful to PDF
         developers and may not be informative to the average user. PDFs with
         these problems still render correctly, if PDF viewers are capable of
         working around the issues they contain. In many cases, pikepdf can
         also fix the problems.
 
-        Unlike ``qpdf --check``, this function does not check for linearization
-        issues (see ``check_linearization()``) and some other issues. To
-        replicate the exact behavior of qpdf's check in pikepdf, use
+        The checks are, in order:
+
+        * if the file is linearized, that its linearization data and hint
+          tables are consistent with the file (as
+          :meth:`check_linearization` does);
+        * that the interactive form, embedded files, page labels and
+          outlines are well formed;
+        * that the document has at least one page;
+        * that every stream in the file can be decoded;
+        * that the content stream of every page can be parsed.
+
+        Each problem is reported as a string that begins with ``WARNING:``
+        if qpdf can work around it, or ``ERROR:`` if it cannot. Two kinds of
+        error are reported this way: a document with no pages, and a page
+        whose content stream cannot be read at all (``ERROR: page 3: ...``).
+        Where ``qpdf --check`` fails after printing these, this function
+        returns them along with everything else it found. Other errors that
+        prevent the check from completing, such as a damaged page tree,
+        raise :class:`pikepdf.PdfError`.
+
+        The warnings reported are those the ``Pdf`` has accumulated, so they
+        include warnings from earlier operations that :meth:`get_warnings`
+        has not yet collected, and calling this function collects them.
+        Warnings issued while the file was being opened are not included. To
+        see exactly what ``qpdf --check`` prints for a file, use
         ``pikepdf.Job(['pikepdf', '--check', 'input.pdf']).run()``.
 
         An example problem found by this function is a xref table that is
@@ -236,14 +268,24 @@ class Pdf:
         Returns:
             Empty list if no issues were found. List of issues as text strings
             if issues were found.
+
+        .. versionchanged:: 10.18.0
+            Linearization, the interactive form, embedded files, page labels
+            and outlines are now checked, a document with no pages is
+            reported, and a page whose content stream cannot be read is
+            reported instead of raising an exception.
         """
     def check_linearization(self, stream: object = ...) -> bool:
-        """Reports information on the PDF's linearization.
+        """Checks the PDF's linearization data.
+
+        The problems found are added to the PDF's warnings, which
+        :meth:`get_warnings` and :meth:`check_pdf_syntax` return.
 
         Args:
             stream: A stream to write this information too; must
                 implement ``.write()`` and ``.flush()`` method. Defaults to
-                :data:`sys.stderr`.
+                :data:`sys.stderr`. Current versions of qpdf report problems
+                as warnings and write nothing to it.
 
         Returns:
             ``True`` if the file is correctly linearized, and ``False`` if
@@ -388,7 +430,7 @@ class Pdf:
     @overload
     def get_object(self, objgen: tuple[int, int]) -> Object: ...
     @overload
-    def get_object(self, objgen: int, gen: int) -> Object: ...
+    def get_object(self, objid: int, gen: int) -> Object: ...
     def get_object(
         self, objgen: tuple[int, int] | int, gen: int | None = None
     ) -> Object:
@@ -397,7 +439,7 @@ class Pdf:
         Can be called with either a 2-tuple of (objid, gen) or
         two integers objid and gen.
         """
-    def get_warnings(self) -> list: ...
+    def get_warnings(self) -> list[str]: ...
     @overload
     def make_indirect(self, obj: TObj) -> TObj: ...
     def make_indirect(self, obj: Any) -> Object:
@@ -437,7 +479,7 @@ class Pdf:
         See Also:
             :meth:`pikepdf.Object.is_indirect`
         """
-    def make_stream(self, data: bytes, d=None, **kwargs) -> Stream:
+    def make_stream(self, data: bytes, d: Any = None, **kwargs: Any) -> Stream:
         """Create a new pikepdf.Stream object that is attached to this PDF.
 
         See:
@@ -888,8 +930,10 @@ class Pdf:
         pages: Iterable[int] | range | slice | None = None,
         *,
         forms: Literal['preserve', 'strip'] = 'preserve',
+        layers: Literal['preserve', 'ignore'] = 'preserve',
+        outlines: Literal['preserve', 'ignore'] = 'preserve',
     ) -> PageCopyResult:
-        """Append pages from another ``Pdf``, preserving interactive form fields.
+        """Append pages from another ``Pdf``, with what the document holds for them.
 
         Unlike ``pdf.pages.extend(src.pages)``, this carries the document's
         AcroForm form fields so they remain functional in Adobe Acrobat. Fields
@@ -906,6 +950,32 @@ class Pdf:
         listed in the result's ``partial_fields``. Use ``forms='strip'`` for a
         hard guarantee of no form data.
 
+        Named destinations referenced by the copied pages' annotations (such as
+        table-of-contents links) are carried into this document, preserving both
+        the ``Names.Dests`` name tree and the legacy ``Root.Dests`` dictionary.
+        A destination whose target page is not among the copied pages cannot be
+        migrated and is reported in :attr:`pikepdf.PageCopyResult.dropped_dests`;
+        names that collide with existing destinations are renamed and reported in
+        :attr:`pikepdf.PageCopyResult.renamed_dests`.
+
+        Optional content groups (layers) that the copied pages depend on are
+        listed in this document's ``/OCProperties``, without which viewers
+        ignore them and show content that the source hid. Each group keeps
+        the default state it had in the source, and its place in the layer
+        list, lock, radio button groups and automatic states, as given by the
+        source's default configuration. Layers already in this document are
+        unaffected. Only the default configuration is carried, not alternate
+        ones in ``/Configs``.
+
+        Outline items (bookmarks) of the source that lead to a copied page are
+        appended to this document's outline, leading to the copy. An item that
+        leads elsewhere is kept, without a destination, only if an item below
+        it is kept, so the hierarchy survives. Titles, colour, bold and italic
+        and whether an item is open are preserved. Items that lead to pages
+        that were not copied, or that run an action other than going to a
+        page, are left behind and counted in
+        :attr:`pikepdf.PageCopyResult.outline_items_dropped`.
+
         Args:
             src: Source ``Pdf`` to copy pages from.
             pages: Zero-based indices (iterable, ``range``, or ``slice``) of
@@ -915,10 +985,21 @@ class Pdf:
             forms: ``'preserve'`` (default) carries AcroForm fields along with
                 the pages; ``'strip'`` removes widget annotations from the
                 copied pages so no form data is imported.
+            layers: ``'preserve'`` (default) lists the optional content groups
+                used by the copied pages in this document; ``'ignore'`` copies
+                the pages only, as before pikepdf 10.18, which leaves their
+                optional content always visible unless this document
+                already lists the groups.
+            outlines: ``'preserve'`` (default) carries the outline items that
+                lead to the copied pages; ``'ignore'`` carries none.
 
         Returns:
             A :class:`pikepdf.PageCopyResult` describing the operation,
             including which fields were added and any automatic renames.
+
+        .. versionchanged:: 10.18
+            Added *layers* and *outlines*. Layers and outline items are now
+            carried by default.
         """
     def show_xref_table(self) -> None:
         """Pretty-print the Pdf's xref (cross-reference table).
@@ -1033,7 +1114,7 @@ class Pdf:
     @property
     def _allow_print_lowres(self) -> bool: ...
     @property
-    def _encryption_data(self) -> dict: ...
+    def _encryption_data(self) -> dict[str, int | EncryptionMethod | bytes]: ...
     @property
     def allow(self) -> Permissions:
         """Report permissions associated with this PDF.
@@ -1203,7 +1284,7 @@ class Pdf:
 
         .. versionadded:: 2.11
         """
-    def flatten_annotations(self, mode: str) -> None:
+    def flatten_annotations(self, mode: str = 'all') -> None:
         """Flattens all PDF annotations into regular PDF content.
 
         Annotations are markup such as review comments, highlights, proofreading

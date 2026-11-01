@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import threading
 import warnings
+from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
@@ -74,7 +75,7 @@ def _decompression_bomb_classes() -> tuple[type, type]:
 
 
 @contextmanager
-def _pillow_pixel_limit(limit: int | None):
+def _pillow_pixel_limit(limit: int | None) -> Iterator[None]:
     """Temporarily set Pillow's global ``MAX_IMAGE_PIXELS`` for a decode.
 
     Used to make pikepdf's limit (not Pillow's default) govern the

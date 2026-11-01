@@ -16,7 +16,7 @@ class AugmentedCallable(Protocol):
 
     _augment_if_no_cpp: bool
 
-    def __call__(self, *args, **kwargs) -> Any:
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
         """Any function."""  # pragma: no cover
 
 
@@ -26,7 +26,7 @@ def augment_if_no_cpp(fn: AugmentedCallable) -> AugmentedCallable:
     return fn
 
 
-def _is_inherited_method(meth: Callable) -> bool:
+def _is_inherited_method(meth: Callable[..., object]) -> bool:
     # Augmenting a C++ with a method that cls inherits from the Python
     # object is never what we want.
     return meth.__qualname__.startswith('object.')
@@ -42,7 +42,7 @@ Tcpp = TypeVar('Tcpp')
 T = TypeVar('T')
 
 
-def augments(cls_cpp: type[Tcpp]):
+def augments(cls_cpp: type[Tcpp]) -> Callable[[type[T]], type[T]]:
     """Attach methods of a Python support class to an existing class.
 
     This monkeypatches all methods defined in the support class onto an
@@ -133,11 +133,11 @@ def augments(cls_cpp: type[Tcpp]):
             elif inspect.isdatadescriptor(member):
                 setattr(cls_cpp, name, member)
 
-        def disable_init(self):
+        def disable_init(self: object) -> None:
             # Prevent initialization of the support class
             raise NotImplementedError(self.__class__.__name__ + '.__init__')
 
-        cls.__init__ = disable_init  # type: ignore
+        cls.__init__ = disable_init  # type: ignore[method-assign]
         return cls
 
     return class_augment

@@ -54,11 +54,11 @@ class MatrixStack:
         self._initial_matrix = initial_matrix
         self._stack: list[Matrix | None] = [self._initial_matrix]
 
-    def stack(self):
+    def stack(self) -> None:
         """Copying the current CTM onto the stack."""
         self._stack.append(self._stack[-1])
 
-    def pop(self):
+    def pop(self) -> None:
         """Removing the current CTM from the stack.
 
         The stack is not permitted to underflow. If popped too many times, the CTM
@@ -72,14 +72,14 @@ class MatrixStack:
         else:
             self._stack.pop()
 
-    def multiply(self, matrix: Matrix):
+    def multiply(self, matrix: Matrix) -> None:
         """Multiplies the CTM with `matrix`. The result is not returned."""
         if self._stack[-1] is None:
             return
         else:
             self._stack[-1] = self._stack[-1] @ matrix
 
-    def invalidate_current_transformation_matrix(self):
+    def invalidate_current_transformation_matrix(self) -> None:
         """Registers the occurence of an invalid CM.
 
         See `# Error handling` for further informations.

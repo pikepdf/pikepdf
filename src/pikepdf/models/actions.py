@@ -47,7 +47,7 @@ class Action:
             return Action(obj)
         return _ACTION_CLASSES.get(subtype, Action)(obj)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<pikepdf.{self.__class__.__name__}: {self.subtype}>'
 
 

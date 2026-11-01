@@ -136,7 +136,13 @@ def _require_pass(report: Report) -> None:
 
 def save(
     pdf: Pdf,
-    filename_or_stream: Path | str | bytes | PathLike | BinaryIO | None,
+    filename_or_stream: Path
+    | str
+    | bytes
+    | PathLike[str]
+    | PathLike[bytes]
+    | BinaryIO
+    | None,
     flavour: Flavour | str,
     *,
     output_intent: str | bytes | None = 'sRGB',

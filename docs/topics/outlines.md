@@ -49,6 +49,11 @@ Another example, for automatically adding an entry for each file in a merged doc
 >>> pdf.save('merged.pdf')
 ```
 
+To keep the outlines that the merged files already have, copy their pages with
+{meth}`pikepdf.Pdf.add_pages_from` instead of `pages.extend()`. It appends the
+outline items that lead to the copied pages to the outline of the destination;
+see {ref}`merge-document-structures`.
+
 ## Editing outlines
 
 Existing outlines can be edited. Entries can be moved and renamed without affecting

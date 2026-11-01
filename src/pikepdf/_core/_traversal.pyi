@@ -5,7 +5,6 @@
 # See pikepdf/_core/__init__.pyi for how this stub package is laid out.
 
 # pylint: disable=no-method-argument,unused-argument,no-self-use,too-many-public-methods
-# ruff: noqa: D418
 # mypy: disable-error-code="misc"
 
 from __future__ import annotations
@@ -119,7 +118,7 @@ class _ContentScopeWalk:
         *kinds* is a mask of the kinds to return; everything is searched.
         """
 
-def _action_chain(action: Object) -> list[Dictionary]:
+def _action_chain(action: Object, /) -> list[Dictionary]:
     """Return an action and each action reachable through /Next, each once.
 
     /Next holds one action or an array of them. Actions are returned in the
@@ -127,7 +126,7 @@ def _action_chain(action: Object) -> list[Dictionary]:
     is skipped.
     """
 
-def _reachable_objects(pdf: Pdf, roots: Iterable[Object]) -> list[Object]:
+def _reachable_objects(pdf: Pdf, roots: Iterable[Object], /) -> list[Object]:
     """Return the indirect objects reachable from *roots*, each once.
 
     Objects are in the order a depth-first walk first meets them. An indirect

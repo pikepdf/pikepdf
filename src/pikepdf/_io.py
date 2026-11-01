@@ -19,7 +19,7 @@ from tempfile import NamedTemporaryFile
 from typing import IO
 
 
-def check_stream_is_usable(stream: IO) -> None:
+def check_stream_is_usable(stream: IO[bytes] | IO[str]) -> None:
     """Check that a stream is seekable and binary."""
     if isinstance(stream, TextIOBase):
         raise TypeError("stream must be binary (no transcoding) and seekable")
@@ -28,7 +28,7 @@ def check_stream_is_usable(stream: IO) -> None:
 _PLAIN_FILE_TYPES = (io.FileIO, io.BufferedWriter, io.BufferedRandom)
 
 
-def output_fd(stream: IO) -> int | None:
+def output_fd(stream: IO[bytes]) -> int | None:
     """Return the file descriptor of a stream that can be written to directly.
 
     Saving writes straight to this descriptor instead of calling the stream's
@@ -53,7 +53,7 @@ def output_fd(stream: IO) -> int | None:
 _PLAIN_INPUT_FILE_TYPES = (io.FileIO, io.BufferedReader, io.BufferedRandom)
 
 
-def input_fd(stream: IO) -> int | None:
+def input_fd(stream: IO[bytes]) -> int | None:
     """Return the file descriptor of a stream that can be read from directly.
 
     Opening reads straight from this descriptor instead of calling the stream's
@@ -85,14 +85,16 @@ _OVERWRITE_INPUT = (
 )
 
 
-def check_different_files(file1: str | PathLike, file2: str | PathLike) -> None:
+def check_different_files(
+    file1: str | PathLike[str], file2: str | PathLike[str]
+) -> None:
     """Check that two files are different."""
     with suppress(FileNotFoundError):
         if Path(file1) == Path(file2) or Path(file1).samefile(Path(file2)):
             raise ValueError(_OVERWRITE_INPUT)
 
 
-def _fstat(stream: IO) -> os.stat_result | None:
+def _fstat(stream: IO[bytes]) -> os.stat_result | None:
     try:
         return os.fstat(stream.fileno())
     except (AttributeError, OSError, ValueError):
@@ -101,7 +103,7 @@ def _fstat(stream: IO) -> os.stat_result | None:
 
 
 def check_stream_is_not_input(
-    stream: IO, input_stream: IO | None, original_filename: Path | None
+    stream: IO[bytes], input_stream: IO[bytes] | None, original_filename: Path | None
 ) -> None:
     """Check that a destination stream does not write over a Pdf's input.
 

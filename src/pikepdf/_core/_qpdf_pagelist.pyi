@@ -5,7 +5,6 @@
 # See pikepdf/_core/__init__.pyi for how this stub package is laid out.
 
 # pylint: disable=no-method-argument,unused-argument,no-self-use,too-many-public-methods
-# ruff: noqa: D418
 # mypy: disable-error-code="misc"
 
 from __future__ import annotations
@@ -13,6 +12,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import overload
 
+from pikepdf._core._object import Object
 from pikepdf._core._page import Page
 
 class PageList:
@@ -41,9 +41,9 @@ class PageList:
         specific operation.
         """
     @overload
-    def from_objgen(self, objgen: tuple[int, int]) -> Page: ...
+    def from_objgen(self, objgen: tuple[int, int], /) -> Page: ...
     @overload
-    def from_objgen(self, objgen: int, gen: int) -> Page: ...
+    def from_objgen(self, objgen: int, gen: int, /) -> Page: ...
     def from_objgen(
         self, objgen: tuple[int, int] | int, gen: int | None = None
     ) -> Page:
@@ -51,7 +51,7 @@ class PageList:
 
         Raises an exception if no page matches.
         """
-    def index(self, page: Page, /) -> int:
+    def index(self, page: Page | Object, /) -> int:
         """Given a page, find the index.
 
         That is, returns ``n`` such that ``pdf.pages[n] == this_page``.
@@ -77,7 +77,11 @@ class PageList:
         function does not account for that. Use :attr:`pikepdf.Page.label`
         to get the page label for a page.
         """
-    def remove(self, page: Page | None = None, *, p: int) -> None:
+    @overload
+    def remove(self, page: Page, /) -> None: ...
+    @overload
+    def remove(self, *, p: int) -> None: ...
+    def remove(self, page: Page | None = None, *, p: int | None = None) -> None:
         """Remove a page.
 
         Args:

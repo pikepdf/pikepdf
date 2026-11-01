@@ -9,21 +9,21 @@ import pytest
 
 pytest.importorskip('jsonschema')
 
-from collections.abc import Callable  # noqa: E402
-from pathlib import Path  # noqa: E402
+from collections.abc import Callable
+from pathlib import Path
 
-from conftest import verapdf_failed_rules  # noqa: E402
-from pdfa_samples import (  # noqa: E402
+from conftest import verapdf_failed_rules
+from pdfa_samples import (
     assert_verapdf_agrees,
     make_simple_truetype_pdf,
     save_candidate,
 )
 
-import pikepdf  # noqa: E402
-from pikepdf import Array, Dictionary, Name, String  # noqa: E402
-from pikepdf.pdfa import prepare, validate_written  # noqa: E402
-from pikepdf.pdfa._context import MAX_DEPTH  # noqa: E402
-from pikepdf.pdfa._report import ValidationReport  # noqa: E402
+import pikepdf
+from pikepdf import Array, Dictionary, Name, String
+from pikepdf.pdfa import prepare, validate_written
+from pikepdf.pdfa._context import MAX_DEPTH
+from pikepdf.pdfa._report import ValidationReport
 
 PARTS = ['1', '2', '3']
 

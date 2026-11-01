@@ -9,16 +9,18 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
-    from pikepdf import Pdf
+    from pikepdf import NameTree, Page, Pdf
 
 from pikepdf._core import _action_chain
+from pikepdf._layer_copy import migrate_layers
 from pikepdf._named_dests import (
     DestKind,
     lookup_named_destination_entry,
     resolve_named_destination,
 )
+from pikepdf._outline_copy import migrate_outlines
 from pikepdf.models.actions import Action, GoToAction
-from pikepdf.objects import Array, Dictionary, Name, String
+from pikepdf.objects import Array, Dictionary, Name, Object, String
 
 
 @dataclass
@@ -81,6 +83,11 @@ class PageCopyResult:
     named_dests_added: int = 0
     renamed_dests: dict[str, str] = field(default_factory=dict)
     dropped_dests: list[str] = field(default_factory=list)
+    layers: Literal['preserve', 'ignore'] = 'preserve'
+    layers_added: int = 0
+    outlines: Literal['preserve', 'ignore'] = 'preserve'
+    outline_items_added: int = 0
+    outline_items_dropped: int = 0
 
 
 def _lookup_source_entry(src: Pdf, ref: _DestRef) -> object | None:
@@ -89,7 +96,7 @@ def _lookup_source_entry(src: Pdf, ref: _DestRef) -> object | None:
     return lookup_named_destination_entry(src, ref.name, ref.kind)
 
 
-def _resolve_source_dest(src: Pdf, ref: _DestRef):
+def _resolve_source_dest(src: Pdf, ref: _DestRef) -> tuple[Object, list[Object]] | None:
     """Return (page_ref, view_params) for a named dest, or None if unresolvable."""
     arr = resolve_named_destination(src, ref.name, ref.kind)
     if arr is None:
@@ -97,7 +104,7 @@ def _resolve_source_dest(src: Pdf, ref: _DestRef):
     return arr[0], [arr[i] for i in range(1, len(arr))]
 
 
-def _ensure_string_dests(dest: Pdf):
+def _ensure_string_dests(dest: Pdf) -> NameTree:
     from pikepdf import NameTree
 
     names = dest.Root.get(Name.Names)
@@ -117,7 +124,7 @@ def _ensure_name_dests(dest: Pdf) -> Dictionary:
     return dd
 
 
-def _unique_string_name(nt, name: str) -> str:
+def _unique_string_name(nt: NameTree, name: str) -> str:
     if name not in nt:
         return name
     i = 1
@@ -153,7 +160,7 @@ def _rewrite_ref(ref: _DestRef, final: str) -> None:
 
 
 def _migrate_named_destinations(
-    dest: Pdf, src: Pdf, src_pages: list, start: int
+    dest: Pdf, src: Pdf, src_pages: list[Page], start: int
 ) -> tuple[int, dict[str, str], list[str]]:
     page_map = {
         src_pages[i].obj.objgen: dest.pages[start + i].obj
@@ -183,7 +190,8 @@ def _migrate_named_destinations(
             if ref.name not in dropped:
                 dropped.append(ref.name)
             continue
-        new_arr = Array([dest_page, *resolved[1]])
+        # resolved is not None here, or dest_page would be None
+        new_arr = Array([dest_page, *resolved[1]])  # type: ignore[index]
         final = _insert_dest(dest, ref.kind, ref.name, new_arr)
         decided[dkey] = final
         added += 1
@@ -211,7 +219,13 @@ def copy_pages(
     pages: Iterable[int] | range | slice | None = None,
     *,
     forms: Literal['preserve', 'strip'] = 'preserve',
+    layers: Literal['preserve', 'ignore'] = 'preserve',
+    outlines: Literal['preserve', 'ignore'] = 'preserve',
 ) -> PageCopyResult:
+    if layers not in ('preserve', 'ignore'):
+        raise ValueError(f"layers must be 'preserve' or 'ignore', not {layers!r}")
+    if outlines not in ('preserve', 'ignore'):
+        raise ValueError(f"outlines must be 'preserve' or 'ignore', not {outlines!r}")
     indices = _resolve_indices(src, pages)
     src_acro = src.acroform
     dest_acro = dest.acroform
@@ -247,7 +261,7 @@ def copy_pages(
                 f.fully_qualified_name
                 for f in dest_acro.get_form_fields_for_page(new_page)
             ]
-            for old, new in zip(src_names, dest_names):
+            for old, new in zip(src_names, dest_names, strict=False):
                 if old is not None and new is not None and old != new:
                     renamed[old] = new
         fields_added = len(dest_acro.fields) - before
@@ -282,6 +296,18 @@ def copy_pages(
         dest, src, src_pages, start
     )
 
+    layers_added = migrate_layers(dest, src, src_pages) if layers == 'preserve' else 0
+
+    outline_items_added = outline_items_dropped = 0
+    if outlines == 'preserve':
+        # A page copied more than once is reached at its first copy
+        page_map: dict[tuple[int, int], Object] = {}
+        for offset, sp in enumerate(src_pages):
+            page_map.setdefault(sp.obj.objgen, dest.pages[start + offset].obj)
+        outline_items_added, outline_items_dropped = migrate_outlines(
+            dest, src, page_map
+        )
+
     return PageCopyResult(
         pages_added=len(src_pages),
         forms=forms,
@@ -291,4 +317,9 @@ def copy_pages(
         named_dests_added=named_added,
         renamed_dests=renamed_dests,
         dropped_dests=dropped_dests,
+        layers=layers,
+        layers_added=layers_added,
+        outlines=outlines,
+        outline_items_added=outline_items_added,
+        outline_items_dropped=outline_items_dropped,
     )

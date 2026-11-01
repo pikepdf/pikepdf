@@ -38,7 +38,7 @@ libqpdf.)
 
 :::{note}
 pikepdf should be built with the same compiler and linker as libqpdf; to be
-precise both **must** use the same C++ ABI. On some platforms, setup.py may
+precise both **must** use the same C++ ABI. On some platforms, the build may
 not pick the correct compiler so one may need to set environment variables
 `CC` and `CXX` to redirect it. If the wrong compiler is selected,
 `import pikepdf._core` will throw an `ImportError` about a missing
@@ -57,7 +57,7 @@ To link to system libraries (the ones installed by your package manager, such
 
 ## {fa}`linux` {fa}`apple` GCC or Clang and linking to user libraries
 
-pikepdf's setup.py will check the following locations, in the order given here, for
+pikepdf's build will check the following locations, in the order given here, for
 qpdf's headers and libraries (both of which are required for a build):
 1. the paths specified by environment variables `QPDF_SOURCE_TREE` and
    `QPDF_BUILD_LIBDIR`

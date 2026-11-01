@@ -16,7 +16,8 @@ from pikepdf.objects import Dictionary
 
 def allclose(m1, m2, abs_tol=1e-6):
     return all(
-        isclose(x, y, abs_tol=abs_tol) for x, y in zip(m1.shorthand, m2.shorthand)
+        isclose(x, y, abs_tol=abs_tol)
+        for x, y in zip(m1.shorthand, m2.shorthand, strict=True)
     )
 
 

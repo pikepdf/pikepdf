@@ -596,16 +596,18 @@ def test_memory_to_path(resources, tmp_path):
 
 
 def test_newline_handling(resources):
+    # The file has no pages, which is the only problem it should have.
+    no_pages = ['ERROR: file does not contain any pages']
     with Pdf.open(
         resources / 'newline-buffer-test.pdf',
         access_mode=pikepdf._core.AccessMode.mmap_only,
     ) as pdf:
-        assert pdf.check_pdf_syntax() == []
+        assert pdf.check_pdf_syntax() == no_pages
     with Pdf.open(
         resources / 'newline-buffer-test.pdf',
         access_mode=pikepdf._core.AccessMode.stream,
     ) as pdf:
-        assert pdf.check_pdf_syntax() == []
+        assert pdf.check_pdf_syntax() == no_pages
 
 
 def test_save_to_dev_null():

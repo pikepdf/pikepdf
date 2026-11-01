@@ -26,7 +26,7 @@ from collections.abc import (
 )
 from contextlib import ExitStack, contextmanager, suppress
 from decimal import Decimal
-from io import BytesIO
+from io import BytesIO, StringIO
 from pathlib import Path
 from subprocess import run
 from tempfile import TemporaryDirectory
@@ -54,6 +54,7 @@ from pikepdf._core import (
     ObjectStreamMode,
     Page,
     Pdf,
+    PdfError,
     Rectangle,
     StreamDecodeLevel,
     StreamParser,
@@ -172,8 +173,8 @@ class Extend_Object:
             )
         if len(decode_parms) != 0 and len(filter_) != len(decode_parms):
             raise ValueError(
-                f"filter ({repr(filter_)}) and decode_parms "
-                f"({repr(decode_parms)}) must be arrays of same length"
+                f"filter ({filter_!r}) and decode_parms "
+                f"({decode_parms!r}) must be arrays of same length"
             )
         if len(filter_) == 1:
             filter_ = filter_[0]
@@ -299,8 +300,10 @@ class Extend_Pdf:
         pages: Iterable[int] | range | slice | None = None,
         *,
         forms: Literal['preserve', 'strip'] = 'preserve',
+        layers: Literal['preserve', 'ignore'] = 'preserve',
+        outlines: Literal['preserve', 'ignore'] = 'preserve',
     ) -> PageCopyResult:
-        """Append pages from another ``Pdf``, preserving interactive form fields.
+        """Append pages from another ``Pdf``, with what the document holds for them.
 
         Unlike ``pdf.pages.extend(src.pages)``, this carries the document's
         AcroForm form fields so they remain functional in Adobe Acrobat. Fields
@@ -324,6 +327,24 @@ class Extend_Pdf:
         names that collide with existing destinations are renamed and reported in
         :attr:`pikepdf.PageCopyResult.renamed_dests`.
 
+        Optional content groups (layers) that the copied pages depend on are
+        listed in this document's ``/OCProperties``, without which viewers
+        ignore them and show content that the source hid. Each group keeps
+        the default state it had in the source, and its place in the layer
+        list, lock, radio button groups and automatic states, as given by the
+        source's default configuration. Layers already in this document are
+        unaffected. Only the default configuration is carried, not alternate
+        ones in ``/Configs``.
+
+        Outline items (bookmarks) of the source that lead to a copied page are
+        appended to this document's outline, leading to the copy. An item that
+        leads elsewhere is kept, without a destination, only if an item below
+        it is kept, so the hierarchy survives. Titles, colour, bold and italic
+        and whether an item is open are preserved. Items that lead to pages
+        that were not copied, or that run an action other than going to a
+        page, are left behind and counted in
+        :attr:`pikepdf.PageCopyResult.outline_items_dropped`.
+
         Args:
             src: Source ``Pdf`` to copy pages from.
             pages: Zero-based indices (iterable, ``range`` or ``slice``) of
@@ -332,13 +353,26 @@ class Extend_Pdf:
                 (including ``range``) must be valid or ``IndexError`` is raised.
             forms: ``'preserve'`` (default) carries form fields; ``'strip'``
                 removes widget annotations from the copied pages.
+            layers: ``'preserve'`` (default) lists the optional content groups
+                used by the copied pages in this document; ``'ignore'`` copies
+                the pages only, as before pikepdf 10.18, which leaves their
+                optional content always visible unless this document
+                already lists the groups.
+            outlines: ``'preserve'`` (default) carries the outline items that
+                lead to the copied pages; ``'ignore'`` carries none.
 
         Returns:
             A :class:`pikepdf.PageCopyResult` describing the operation.
+
+        .. versionchanged:: 10.18
+            Added *layers* and *outlines*. Layers and outline items are now
+            carried by default.
         """
         from pikepdf._page_copy import copy_pages
 
-        return copy_pages(self, src, pages, forms=forms)
+        return copy_pages(
+            self, src, pages, forms=forms, layers=layers, outlines=outlines
+        )
 
     def close(self) -> None:
         self._close()
@@ -375,17 +409,41 @@ class Extend_Pdf:
             def handle_eof(self):
                 pass
 
+        # This follows QPDFJob::doCheck, which implements qpdf --check, step by
+        # step. qpdf prints warnings and errors as they arise, so the warnings
+        # are collected before each error to keep the two in that order.
         problems: list[str] = []
+
+        def collect_warnings():
+            problems.extend("WARNING: " + warning for warning in self.get_warnings())
+
+        if self.is_linearized:
+            # Everything this finds is added to the warnings. If the caller has
+            # already checked linearization, the same warnings are pending, and
+            # are not reported a second time.
+            pending = self.get_warnings()
+            self.check_linearization(StringIO())
+            found = self.get_warnings()
+            repeated = set(found)
+            for warning in [w for w in pending if w not in repeated] + found:
+                problems.append("WARNING: " + warning)
+
+        self._check_document_structures()
+        if len(self.pages) == 0:
+            collect_warnings()
+            problems.append("ERROR: file does not contain any pages")
 
         self._decode_all_streams_and_discard(progress)
 
         discarding_parser = DiscardingParser()
-        for page in self.pages:
-            page.parse_contents(discarding_parser)
+        for pageno, page in enumerate(self.pages, start=1):
+            try:
+                page.parse_contents(discarding_parser)
+            except PdfError as e:
+                collect_warnings()
+                problems.append(f"ERROR: page {pageno}: {e}")
 
-        for warning in self.get_warnings():
-            problems.append("WARNING: " + warning)
-
+        collect_warnings()
         return problems
 
     def save(
@@ -426,6 +484,7 @@ class Extend_Pdf:
                 "not reachable from /AcroForm; they may not display in Adobe "
                 "Acrobat. Use Pdf.add_pages_from() to copy pages with forms.",
                 PageCopyWarning,
+                stacklevel=2,
             )
         with ExitStack() as stack:
             if hasattr(filename_or_stream, 'seek'):
@@ -583,7 +642,8 @@ class Extend_Pdf:
                 "It looks like you called with Pdf.open(data) with a bytes-like object "
                 "containing a PDF. This will probably fail because this function "
                 "expects a filename or opened file-like object. Instead, please use "
-                "Pdf.open(BytesIO(data))."
+                "Pdf.open(BytesIO(data)).",
+                stacklevel=2,
             )
         if isinstance(filename_or_stream, int | float):
             # Attempted to open with integer file descriptor?

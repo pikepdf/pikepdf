@@ -5,7 +5,6 @@
 # See pikepdf/_core/__init__.pyi for how this stub package is laid out.
 
 # pylint: disable=no-method-argument,unused-argument,no-self-use,too-many-public-methods
-# ruff: noqa: D418
 # mypy: disable-error-code="misc"
 
 from __future__ import annotations
@@ -94,7 +93,7 @@ class Array(Object):
     """Construct a PDF Array object."""
 
     object_type: ObjectType
-    def __new__(cls, a: Iterable | Rectangle | Matrix | None = None) -> Array: ...
+    def __new__(cls, a: Iterable[Any] | Rectangle | Matrix | None = None) -> Array: ...
 
 class Dictionary(Object):
     """Construct a PDF Dictionary object.
@@ -115,7 +114,9 @@ class Dictionary(Object):
     """
 
     object_type: ObjectType
-    def __new__(cls, d: Mapping | None = None, **kwargs: Any) -> Dictionary: ...
+    def __new__(
+        cls, d: Mapping[str, Any] | None = None, **kwargs: Any
+    ) -> Dictionary: ...
 
 class Stream(Object):
     """Construct a PDF Stream object.

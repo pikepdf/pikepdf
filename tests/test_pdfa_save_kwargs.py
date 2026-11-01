@@ -7,10 +7,10 @@ import pytest
 
 pytest.importorskip('jsonschema')
 
-import pikepdf  # noqa: E402
-from pikepdf import ObjectStreamMode, StreamDecodeLevel  # noqa: E402
-from pikepdf.pdfa._flavour import Flavour  # noqa: E402
-from pikepdf.pdfa._save_kwargs import (  # noqa: E402
+import pikepdf
+from pikepdf import ObjectStreamMode, StreamDecodeLevel
+from pikepdf.pdfa._flavour import Flavour
+from pikepdf.pdfa._save_kwargs import (
     PART1_PINNED_KEYS,
     PINNED_KEYS,
     USER_KEYS,

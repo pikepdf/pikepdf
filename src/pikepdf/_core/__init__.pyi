@@ -35,7 +35,6 @@
 #     subclass Object at runtime, among other necessary fictions
 
 # pylint: disable=no-method-argument,unused-argument,no-self-use,too-many-public-methods
-# ruff: noqa: D418
 # mypy: disable-error-code="misc"
 
 from __future__ import annotations

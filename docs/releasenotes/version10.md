@@ -18,8 +18,64 @@ the architecture notes on thread safety.
 
 ## v10.18.0
 
+- {meth}`pikepdf.Pdf.add_pages_from` now carries layers (optional content) with
+  the pages it copies. The optional content groups that the copied pages
+  depend on are listed in the destination's `/OCProperties`, with the default
+  visibility, place in the layer list, lock, radio button groups and automatic
+  states that the source's default configuration gave them. Previously the
+  groups were copied but not listed, so viewers ignored them: the layer list
+  was empty and content hidden in the source was shown. {issue}`118`
+- {meth}`pikepdf.Pdf.add_pages_from` now carries bookmarks. Outline items of
+  the source that lead to a copied page are appended to the destination's
+  outline, keeping their hierarchy, titles and style; items that lead to pages
+  that were not copied are dropped. {issue}`281`
+- Both are on by default, which changes what existing callers of
+  `add_pages_from` get: the destination may gain an `/OCProperties` and
+  outline items it did not gain before. Pass `layers='ignore'` or
+  `outlines='ignore'` for the previous behaviour, for example if you build
+  the merged outline yourself. {class}`pikepdf.PageCopyResult` reports
+  `layers_added`, `outline_items_added` and `outline_items_dropped`.
+- Reading the label of a page whose page label style is an unknown name, such
+  as `/S /Z`, now warns and keeps the label prefix, as an invalid non-name
+  style already did. Previously it raised `KeyError`.
+- Extracting an image whose `/CalGray` or `/CalRGB` colour space array lacks
+  its parameter dictionary now decodes it as the corresponding device space,
+  without an ICC profile, as a missing `/WhitePoint` already did. Previously
+  it raised `IndexError`.
 - An ICCBased image whose profile stream omits the required `/N` now takes
   its mode from the profile instead of raising `KeyError`.
+- {meth}`pikepdf.Pdf.check_pdf_syntax` now performs the same checks as
+  `qpdf --check` and reports the same problems. It checks the linearization
+  data and hint tables of linearized files, which previously required a
+  separate call to {meth}`pikepdf.Pdf.check_linearization`, and checks the
+  interactive form, embedded files, page labels and outlines. A document with
+  no pages is reported as `ERROR: file does not contain any pages`, and a page
+  whose content stream cannot be read is reported as `ERROR: page N: ...`
+  along with the other problems found, where it previously raised
+  {class}`pikepdf.PdfError`. {issue}`515`
+- Free-threaded Python: fixed crashes when threads used pages of the same
+  `Pdf` at once. The page boxes ({attr}`pikepdf.Page.mediabox` and the
+  others),
+  {attr}`pikepdf.Page.rotation`, {meth}`pikepdf.Page.rotate`,
+  {meth}`pikepdf.Page.as_form_xobject`, {meth}`pikepdf.Page.contents_coalesce`
+  and several other {class}`pikepdf.Page` methods read or changed the `Pdf`
+  without holding its lock.
+- Free-threaded Python: fixed a crash when the last reference to a `Pdf` was
+  dropped while another thread was using one of its objects.
+- Free-threaded Python: fixed a data race when a content stream was parsed,
+  with {func}`pikepdf.parse_content_stream` or
+  {meth}`pikepdf.Page.parse_contents`, while another thread used the same
+  `Pdf`.
+- Free-threaded Python: fixed a data race on the source `Pdf` when a page was
+  appended, inserted or assigned into the page list of another `Pdf`. Both
+  documents are now locked, as `pages.extend()` already did.
+- The test suite now runs under ThreadSanitizer on free-threaded Python in
+  continuous integration, which is how the fixes above were found.
+- Fixed building from source on Android (Termux), where importing pikepdf
+  failed with `cannot locate symbol "_Py_TrueStruct"` since v10.6.0. The
+  extension module is now linked against libpython when the build interpreter
+  is an Android Python, as that platform requires. Android is not a tested
+  platform. {issue}`752`
 
 ## v10.17.0
 

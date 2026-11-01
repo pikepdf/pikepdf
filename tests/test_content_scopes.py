@@ -66,7 +66,7 @@ def _kinds(scopes) -> list[str]:
 
 class TestPageScope:
     def test_blank_page(self):
-        pdf, page = _blank()
+        _pdf, page = _blank()
         scopes = list(page.content_scopes())
         assert _kinds(scopes) == ['page']
         scope = scopes[0]
@@ -360,8 +360,16 @@ class TestEachScopeOnce:
             [pdf.make_indirect(Dictionary(AP=Dictionary(N=_form(pdf, shared))))]
         )
         assert sorted(_kinds(page.content_scopes())) == sorted(
-            ['page', 'form', 'form', 'pattern', 'glyph', 'glyph', 'softmask']
-            + ['appearance']
+            [
+                'page',
+                'form',
+                'form',
+                'pattern',
+                'glyph',
+                'glyph',
+                'softmask',
+                'appearance',
+            ]
         )
 
     def test_stream_without_resources_once_per_page_resources(self):
@@ -436,8 +444,16 @@ class TestKindsFilter:
 
     def test_default_is_everything(self, page):
         assert sorted(_kinds(page.content_scopes())) == sorted(
-            ['page', 'form', 'form', 'form', 'pattern', 'glyph', 'softmask']
-            + ['appearance']
+            [
+                'page',
+                'form',
+                'form',
+                'form',
+                'pattern',
+                'glyph',
+                'softmask',
+                'appearance',
+            ]
         )
         assert sorted(_kinds(page.content_scopes(kinds=None))) == sorted(
             _kinds(page.content_scopes())

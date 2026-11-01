@@ -5,13 +5,12 @@
 # See pikepdf/_core/__init__.pyi for how this stub package is laid out.
 
 # pylint: disable=no-method-argument,unused-argument,no-self-use,too-many-public-methods
-# ruff: noqa: D418
 # mypy: disable-error-code="misc"
 
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import ClassVar, overload
+from typing import Any, ClassVar, overload
 
 from pikepdf._core._qpdf import Pdf
 
@@ -38,15 +37,15 @@ class Job:
     """Version number of the most recent qpdf-JSON schema."""
 
     @staticmethod
-    def json_out_schema(*, schema: int) -> str:
+    def json_out_schema(*, schema: int = ...) -> str:
         """For reference, the qpdf JSON output schema is built-in."""
     @staticmethod
-    def job_json_schema(*, schema: int) -> str:
+    def job_json_schema(*, schema: int = ...) -> str:
         """For reference, the qpdf job command line schema is built-in."""
     @overload
     def __init__(self, json: str) -> None: ...
     @overload
-    def __init__(self, json_dict: Mapping) -> None: ...
+    def __init__(self, json_dict: Mapping[str, Any]) -> None: ...
     @overload
     def __init__(
         self, args: Sequence[str | bytes], *, progname: str | None = None
@@ -72,11 +71,13 @@ class Job:
     @property
     def message_prefix(self) -> str:
         """Allows manipulation of the prefix in front of all output messages."""
+    @message_prefix.setter
+    def message_prefix(self, value: str) -> None: ...
     def run(self) -> None:
         """Executes the job."""
-    def create_pdf(self):
+    def create_pdf(self) -> Pdf:
         """Executes the first stage of the job."""
-    def write_pdf(self, pdf: Pdf):
+    def write_pdf(self, pdf: Pdf) -> None:
         """Executes the second stage of the job."""
     @property
     def has_warnings(self) -> bool:

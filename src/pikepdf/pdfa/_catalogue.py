@@ -36,7 +36,8 @@ def _load(name: str) -> Any:
 
 def load_rules() -> dict[str, dict[str, str]]:
     """Return the veraPDF rules keyed by rule id (``ISO_19005_2:6.2.8-3``)."""
-    return _load('verapdf_rules.json')['rules']
+    rules: dict[str, dict[str, str]] = _load('verapdf_rules.json')['rules']
+    return rules
 
 
 def load_dispositions() -> dict[str, dict[str, str]]:

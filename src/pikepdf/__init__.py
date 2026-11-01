@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pikepdf._version import __version__
 
@@ -144,7 +144,7 @@ from pikepdf._page_copy import (
 # While _cpphelpers is intended to be called from our C++ code only, explicitly
 # importing helps introspection tools like PyInstaller figure out that the module
 # is necessary.
-from pikepdf import _cpphelpers, _methods, codec  # noqa: F401, F841
+from pikepdf import _cpphelpers, _methods, codec  # noqa: F401
 from pikepdf import settings
 from pikepdf import exceptions
 from pikepdf import models
@@ -294,7 +294,7 @@ if TYPE_CHECKING:
     )
 
 
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     """Lazily expose Pillow-derived exceptions and optional submodules.
 
     Keeps ``import pikepdf`` free of Pillow (see tests/test_lazy_load.py) while

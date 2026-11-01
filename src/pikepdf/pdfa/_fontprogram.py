@@ -450,7 +450,7 @@ HEX_DIGITS = frozenset(b'0123456789abcdefABCDEF')
 MAX_PS_LOOP = 4096
 
 
-class _BoundedPSInterpreter(psLib.PSInterpreter):
+class _BoundedPSInterpreter(psLib.PSInterpreter):  # type: ignore[misc]  # fontTools is untyped
     """fontTools' PostScript interpreter with bounded ``for`` loops.
 
     Type 1 fonts use ``for`` to fill the Encoding array (256 iterations);
@@ -464,7 +464,7 @@ class _BoundedPSInterpreter(psLib.PSInterpreter):
     def __init__(self, encoding: str = 'ascii') -> None:
         """Create an interpreter; see `psLib.PSInterpreter`."""
         # id of each dictionary created by ``dict``: (the dictionary, its size)
-        self.dict_sizes: dict[int, tuple[dict, int]] = {}
+        self.dict_sizes: dict[int, tuple[dict[str, Any], int]] = {}
         # (id of the dictionary, key, value) of each ``def`` and ``put``
         self.assignments: list[tuple[int, Any, Any]] = []
         super().__init__(encoding=encoding)
@@ -536,6 +536,7 @@ def _decrypt_eexec(data: bytes) -> bytes:
         # PostScript accepts this, but veraPDF reports such a font as not
         # embedded.
         raise FontProgramError("Type 1 eexec section is hexadecimal, not binary")
+    plain: bytes
     plain, _ = eexec.decrypt(cipher, EEXEC_KEY)
     end = plain.find(EEXEC_END, 4)
     if end < 0:

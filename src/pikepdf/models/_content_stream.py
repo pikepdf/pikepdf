@@ -41,7 +41,7 @@ class PdfParsingError(PdfError):
         will not parse is a defect in the document.
     """
 
-    def __init__(self, message=None, line=None):
+    def __init__(self, message: str | None = None, line: int | None = None) -> None:
         if not message:
             message = f"Error encoding content stream at line {line}"
         super().__init__(message)

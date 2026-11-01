@@ -5,12 +5,12 @@
 # See pikepdf/_core/__init__.pyi for how this stub package is laid out.
 
 # pylint: disable=no-method-argument,unused-argument,no-self-use,too-many-public-methods
-# ruff: noqa: D418
 # mypy: disable-error-code="misc"
 
 from __future__ import annotations
 
 from collections.abc import Sequence
+from decimal import Decimal
 from enum import IntFlag
 
 from pikepdf._core._annotation import Annotation
@@ -112,7 +112,9 @@ class AcroFormField(ObjectHelper):
         outer fields forming groups or sets of fields. This property references
         the highest field in this field's hierarchy.
         """
-    def get_inheritable_field_value(self, name: str):
+    def get_inheritable_field_value(
+        self, name: str
+    ) -> Object | int | bool | Decimal | None:
         """Get field value, possibly inheriting the value from ancestor node."""
     def get_inheritable_field_value_as_string(self, name: str) -> str:
         """Get an inherited field value as a string.
@@ -153,16 +155,20 @@ class AcroFormField(ObjectHelper):
         back to the fully qualified name.
         """
     @property
-    def value(self):
+    def value(self) -> Object | int | bool | Decimal | None:
         """The current value of the form field."""
+    @value.setter
+    def value(self, value: Object) -> None: ...
     @property
     def value_as_string(self) -> str:
         """The field's value as a string.
 
         If the value is not a string, this property will hold an empty string.
         """
+    @value_as_string.setter
+    def value_as_string(self, value: str) -> None: ...
     @property
-    def default_value(self):
+    def default_value(self) -> Object | int | bool | Decimal | None:
         """The default value of the form field."""
     @property
     def default_value_as_string(self) -> str:
@@ -232,13 +238,13 @@ class AcroFormField(ObjectHelper):
         See `QPDF Issue 1433 <https://github.com/qpdf/qpdf/issues/1433>`_.
         To get options for such fields, use `field.obj.Opt` instead.
         """
-    def set_value(self, value, need_appearance: bool = True):
+    def set_value(self, value: Object | str, need_appearance: bool = True) -> None:
         """Set the ``value`` property.
 
         If ``need_appearance`` is true, and this is a text or choice field, the
         ``pikepdf.AcroForm.needs_appearances`` will also be set.
         """
-    def generate_appearance(self, annot: Annotation):
+    def generate_appearance(self, annot: Annotation) -> None:
         """Generate an appearance stream for this field."""
 
 class AcroForm:
@@ -246,7 +252,7 @@ class AcroForm:
     @property
     def exists(self) -> bool:
         """True if the current document has an interactive form."""
-    def add_field(self, field: AcroFormField):
+    def add_field(self, field: AcroFormField) -> None:
         """Add a form field.
 
         Initializes the document's AcroForm dictionary if needed, and
@@ -257,7 +263,7 @@ class AcroForm:
         name, which can have unexpected side effects. In that case, you should
         use ``add_and_rename_fields()`` instead.
         """
-    def add_and_rename_fields(self, fields: Sequence[AcroFormField]):
+    def add_and_rename_fields(self, fields: Sequence[AcroFormField]) -> None:
         """Add a collection of form fields.
 
         Ensures that their fully qualified names don't conflict with
@@ -266,9 +272,9 @@ class AcroForm:
         Fields within the collection of new fields that have the same name as
         each other will continue to do so.
         """
-    def remove_fields(self, fields: Sequence[AcroFormField]):
+    def remove_fields(self, fields: Sequence[AcroFormField]) -> None:
         """Remove fields from the ``fields`` list."""
-    def set_field_name(self, field: AcroFormField, name: str):
+    def set_field_name(self, field: AcroFormField, name: str) -> None:
         """Set partial name of a field, updating internal records of field names."""
     @property
     def fields(self) -> Sequence[AcroFormField]:
@@ -343,6 +349,8 @@ class AcroForm:
         interactive form, unless you also generate the appearance streams for
         the modified fields.
         """
+    @needs_appearances.setter
+    def needs_appearances(self, value: bool) -> None: ...
     def generate_appearances_if_needed(self) -> None:
         """Generate appearance streams for all form fields that need them.
 

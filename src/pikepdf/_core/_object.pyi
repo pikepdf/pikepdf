@@ -6,13 +6,12 @@
 # See pikepdf/_core/__init__.pyi for how this stub package is laid out.
 
 # pylint: disable=no-method-argument,unused-argument,no-self-use,too-many-public-methods
-# ruff: noqa: D418
 # mypy: disable-error-code="misc"
 
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Collection, Iterable, Iterator, KeysView, Mapping
+from collections.abc import Collection, Iterable, Iterator, Mapping
 from decimal import Decimal
 from enum import Enum
 from typing import TYPE_CHECKING, Any, overload
@@ -92,20 +91,23 @@ class ObjectType(Enum):
     """An uninitialized object. If this appears, it is probably a bug."""
 
 class Object:
-    def _ipython_key_completions_(self) -> KeysView | None: ...
+    def _ipython_key_completions_(self) -> set[str] | None: ...
     def _inline_image_raw_bytes(self) -> bytes: ...
     def _parse_page_contents_grouped(
-        self, whitelist: str
+        self, whitelist: str, /
     ) -> list[tuple[Collection[Object | PdfInlineImage], Operator]]: ...
     @staticmethod
-    def _parse_stream(stream: Object, parser: StreamParser) -> list:
+    def _parse_stream(stream: Object, parser: StreamParser, /) -> None:
         """Helper for parsing PDF content stream.
 
         Use ``pikepdf.parse_content_stream`` instead.
         """
     @staticmethod
-    def _parse_stream_grouped(stream: Object, whitelist: str) -> list: ...
-    def _repr_mimebundle_(self, include=None, exclude=None) -> dict | None: ...
+    def _parse_stream_grouped(
+        stream: Object, whitelist: str, /
+    ) -> list[tuple[Collection[Object | PdfInlineImage], Operator]]: ...
+    # No such method exists at runtime
+    def _repr_mimebundle_(self, include=None, exclude=None) -> dict | None: ...  # type: ignore[no-untyped-def,type-arg]
     def _write(
         self,
         data: bytes,
@@ -579,7 +581,7 @@ class Object:
         """Decode and read the content stream associated with this object."""
     def read_raw_bytes(self) -> bytes:
         """Read the content stream associated with a Stream, without decoding."""
-    def same_owner_as(self, other: Object) -> bool:
+    def same_owner_as(self, other: Object, /) -> bool:
         """Test if two objects are owned by the same :class:`pikepdf.Pdf`."""
     def is_same_object_as(self, other: object) -> bool:
         """Test if this is the same object as *other*, not merely an equal one.
@@ -656,12 +658,12 @@ class Object:
         Args:
             resolved: If True, deference indirect objects where possible.
         """
-    def update(self, other: Mapping[Any, Any] | Object) -> None:
+    def update(self, other: Mapping[Any, Any] | Object, /) -> None:
         """Update the dictionary with key/value pairs from another dictionary.
 
         *other* may be a Python mapping or another pikepdf Dictionary.
         """
-    def with_same_owner_as(self, arg0: Object) -> Object:
+    def with_same_owner_as(self, other: Object, /) -> Object:
         """Returns an object that is owned by the same Pdf that owns *other* object.
 
         If the objects already have the same owner, this object is returned.
@@ -737,7 +739,7 @@ class Object:
     def __delitem__(self, path: NamePath, /) -> None: ...
     @overload
     def __delitem__(self, index: slice, /) -> None: ...
-    def __dir__(self) -> list: ...
+    def __dir__(self) -> list[str]: ...
     def __eq__(self, other: Any, /) -> bool: ...
     def __float__(self) -> float: ...
     def __index__(self) -> int: ...
@@ -869,9 +871,7 @@ class _ObjectList:
     @overload
     def __init__(self, arg0: _ObjectList, /) -> None: ...
     @overload
-    def __init__(self, arg0: Iterable, /) -> None: ...
-    @overload
-    def __init__(*args, **kwargs) -> None: ...
+    def __init__(self, arg0: Iterable[Object], /) -> None: ...
     def append(self, value: Any, /) -> None: ...
     def clear(self) -> None: ...
     def count(self, value: Any, /) -> int: ...
@@ -918,18 +918,23 @@ class _ObjectMapping:
     def get(self, key: Name | str) -> Object | None: ...
     @overload
     def get(self, key: Name | str, default: T) -> Object | T: ...
-    def keys(self) -> Iterator[Name]: ...
-    def values(self) -> Iterator[Object]: ...
+    def keys(self) -> Iterable[str]: ...
+    def values(self) -> Iterable[Object]: ...
     def clear(self) -> None: ...
     def update(self, other: _ObjectMapping | dict[Name | str, Any], /) -> None: ...
     def __contains__(self, key: Name | str, /) -> bool: ...
+    @overload
     def __init__(self) -> None: ...
-    def items(self) -> Iterator: ...
+    @overload
+    def __init__(self, arg0: _ObjectMapping, /) -> None: ...
+    @overload
+    def __init__(self, arg0: dict[str, Object], /) -> None: ...
+    def items(self) -> Iterable[tuple[str, Object]]: ...
     def __bool__(self) -> bool: ...
     def __delitem__(self, key: Name | str, /) -> None: ...
     def __eq__(self, other: Any, /) -> bool: ...
     def __getitem__(self, key: Name | str, /) -> Object: ...
-    def __iter__(self) -> Iterator: ...
+    def __iter__(self) -> Iterator[str]: ...
     def __len__(self) -> int: ...
     def __ne__(self, other: Any, /) -> bool: ...
     def __setitem__(self, key: Name | str, value: Any, /) -> None: ...
@@ -960,7 +965,7 @@ class StreamParser:
         Called at the end of a content stream.
         """
     @abstractmethod
-    def handle_object(self, obj: Object, offset: int, length: int) -> None:
+    def handle_object(self, obj: Object, offset: int, length: int, /) -> None:
         """An abstract method that must be overloaded in a subclass.
 
         This function will be called back once for each object that is
@@ -971,14 +976,14 @@ def _Null() -> Any:
     """Construct a PDF Null object."""
 
 def _encode(handle: Any) -> Object: ...
-def _new_array(arg0: Iterable) -> Array:
+def _new_array(arg0: Iterable[Any], /) -> Array:
     """Low-level function to construct a PDF Array.
 
     Construct a PDF Array object from an iterable of PDF objects or types
     that can be coerced to PDF objects.
     """
 
-def _new_boolean(arg0: bool) -> Object:
+def _new_boolean(arg0: bool, /) -> Object:
     """Low-level function to construct a PDF Boolean.
 
     pikepdf automatically converts PDF booleans to Python booleans and
@@ -986,14 +991,14 @@ def _new_boolean(arg0: bool) -> Object:
     that functionality.
     """
 
-def _new_dictionary(arg0: Mapping[Any, Any]) -> Dictionary:
+def _new_dictionary(arg0: Mapping[Any, Any], /) -> Dictionary:
     """Low-level function to construct a PDF Dictionary.
 
     Construct a PDF Dictionary from a mapping of PDF objects or Python types
     that can be coerced to PDF objects."
     """
 
-def _new_integer(arg0: int) -> int:
+def _new_integer(arg0: int, /) -> int:
     """Low-level function to construct a PDF Integer.
 
     pikepdf automatically converts PDF integers to Python integers and
@@ -1001,7 +1006,7 @@ def _new_integer(arg0: int) -> int:
     that functionality.
     """
 
-def _new_name(s: str | bytes) -> Name:
+def _new_name(s: str | bytes, /) -> Name:
     """Low-level function to construct a PDF Name.
 
     Must begin with '/'. Certain characters are escaped according to
@@ -1012,7 +1017,7 @@ def _new_operator(op: str) -> Operator:
     """Low-level function to construct a PDF Operator."""
 
 @overload
-def _new_real(s: str) -> Decimal:  # noqa: D418
+def _new_real(s: str, /) -> Decimal:
     """Low-level function to construct a PDF Real.
 
     pikepdf automatically PDF real numbers to Python Decimals.
@@ -1021,7 +1026,7 @@ def _new_real(s: str) -> Decimal:  # noqa: D418
     """
 
 @overload
-def _new_real(value: float, places: int = ...) -> Decimal:  # noqa: D418
+def _new_real(value: float, places: int = ...) -> Decimal:
     """Low-level function to construct a PDF Real.
 
     pikepdf automatically PDF real numbers to Python Decimals.
@@ -1029,19 +1034,19 @@ def _new_real(value: float, places: int = ...) -> Decimal:  # noqa: D418
     functionality.
     """
 
-def _new_stream(owner: Pdf, data: bytes) -> Stream:
+def _new_stream(owner: Pdf, data: bytes, /) -> Stream:
     """Low-level function to construct a PDF Stream.
 
     Construct a PDF Stream object from binary data.
     """
 
-def _new_string(s: str | bytes) -> String:
+def _new_string(s: str | bytes, /) -> String:
     """Low-level function to construct a PDF String object."""
 
-def _new_string_utf8(s: str) -> String:
+def _new_string_utf8(s: str, /) -> String:
     """Low-level function to construct a PDF String object from UTF-8 bytes."""
 
-def unparse(obj: Any) -> bytes: ...
+def unparse(obj: Any, /) -> bytes: ...
 def unbox(value: Any) -> Any:
     """Return a PDF scalar as the native Python value implicit mode would give.
 

@@ -1487,14 +1487,20 @@ void init_object_methods(py::class_<QPDFObjectHandle> &object)
             py::arg("description") = "")
         .def("_parse_page_contents_grouped",
             [](QPDFObjectHandle &h, std::string const &whitelist) {
+                QpdfLockGuard lock(h.getOwningQPDF());
                 OperandGrouper og(whitelist, h.getKey("/Resources"));
                 h.parsePageContents(&og);
                 return og.getInstructions();
             })
         .def_static("_parse_stream",
-            &QPDFObjectHandle::parseContentStream) // LCOV_EXCL_LINE
+            [](QPDFObjectHandle &h, QPDFObjectHandle::ParserCallbacks *callbacks) {
+                // Parsing reads the stream's data from the Pdf's input source.
+                QpdfLockGuard lock(h.getOwningQPDF());
+                QPDFObjectHandle::parseContentStream(h, callbacks);
+            })
         .def_static("_parse_stream_grouped",
             [](QPDFObjectHandle &h, std::string const &whitelist) {
+                QpdfLockGuard lock(h.getOwningQPDF());
                 // A content stream (e.g. a Form XObject) may carry its own
                 // /Resources, used to resolve inline images' named colour spaces.
                 QPDFObjectHandle resources;

@@ -303,6 +303,53 @@ jobs:
           name: sdist
           path: dist/*.tar.gz
 
+  docs:
+    # Build the documentation and run its doctests, which exercise the recipes
+    # in docs/ against the real library. Independent of the wheel jobs: it builds
+    # pikepdf from source against a qpdf built here, like the sdist job. Not a
+    # prerequisite of stage_artifacts, so a docs failure does not block staging
+    # a release draft; it still fails the check on the commit or PR.
+    name: documentation
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        name: Install Python
+        with:
+          python-version: "3.11" # Same as .readthedocs.yaml
+
+      - name: Install apt packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake jbig2dec libexempi8 poppler-utils
+
+      - name: Read environment from pyproject.toml
+        run: |
+          python build-scripts/environ-from-pyproject.py >> $GITHUB_ENV
+
+      - name: Download QPDF
+        run: build-scripts/posix-download-qpdf.bash $QPDF_MIN_VERSION
+
+      - name: Add /usr/local/lib to dynamic linker path
+        run: echo "/usr/local/lib" | sudo tee /etc/ld.so.conf.d/local-lib.conf
+
+      - name: Build QPDF
+        run: build-scripts/posix-build-sdist-deps.bash
+
+      - name: Install pikepdf and documentation dependencies
+        run: |
+          python -m pip install --upgrade pip  # need pip>=25.1 for PEP 735 --group
+          python -m pip install . --group docs
+
+      # -W turns warnings into errors, --keep-going reports all of them
+      # rather than stopping at the first.
+      - name: Build documentation
+        run: make -C docs html SPHINXOPTS="-W --keep-going"
+
+      - name: Run documentation doctests
+        run: make -C docs doctest
+
   test_abi3_debug_python:
     # Catch regressions of the class where the abi3 wheel violates a CPython
     # invariant that is enforced only by debug builds (assertion-enabled

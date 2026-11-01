@@ -493,6 +493,12 @@ def test_page_index_foreign_page(fourpages, sandwich):
             UserWarning,
             'invalid page label style',
         ),
+        (
+            lambda: Dictionary(P='A-', S=Name.Z, St=3),
+            'A-',
+            UserWarning,
+            'invalid page label style',
+        ),
     ],
 )
 def test_page_label_dicts(d_factory, result, exc, excmsg):

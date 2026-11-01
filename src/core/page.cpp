@@ -46,6 +46,15 @@ std::string label_string_from_dict(QPDFObjectHandle label_dict)
     return py::cast<std::string>(result);
 }
 
+// The document whose lock serializes access to a page. Every binding that
+// reads or writes through a page takes it: even a getter can make qpdf resolve
+// an indirect object, which updates the document's object cache and moves its
+// input source.
+static QPDF *page_owner(QPDFPageObjectHelper &poh)
+{
+    return poh.getObjectHandle().getOwningQPDF();
+}
+
 // Store a page bounding box such as /MediaBox. Anything that encodes to a PDF
 // array of exactly four numbers is accepted, which covers pikepdf.Rectangle,
 // pikepdf.Array and a plain list of numbers. qpdf only discovers a malformed box
@@ -81,36 +90,62 @@ void init_page(py::module_ &m)
                     new (self) QPDFPageObjectHelper(poh.getObjectHandle());
                 })
             .def("__copy__",
-                [](QPDFPageObjectHelper &poh) { return poh.shallowCopyPage(); })
-            .def_prop_ro("_images", &QPDFPageObjectHelper::getImages)
-            .def_prop_ro("form_xobjects", &QPDFPageObjectHelper::getFormXObjects)
+                [](QPDFPageObjectHelper &poh) {
+                    QpdfLockGuard lock(page_owner(poh));
+                    return poh.shallowCopyPage();
+                })
+            .def_prop_ro("_images",
+                [](QPDFPageObjectHelper &poh) {
+                    QpdfLockGuard lock(page_owner(poh));
+                    return poh.getImages();
+                })
+            .def_prop_ro("form_xobjects",
+                [](QPDFPageObjectHelper &poh) {
+                    QpdfLockGuard lock(page_owner(poh));
+                    return poh.getFormXObjects();
+                })
             .def_prop_rw(
                 "mediabox",
-                [](QPDFPageObjectHelper &poh) { return poh.getMediaBox(true); },
+                [](QPDFPageObjectHelper &poh) {
+                    QpdfLockGuard lock(page_owner(poh));
+                    return poh.getMediaBox(true);
+                },
                 [](QPDFPageObjectHelper &poh, py::handle value) {
                     page_set_box(poh, "/MediaBox", value);
                 })
             .def_prop_rw(
                 "cropbox",
-                [](QPDFPageObjectHelper &poh) { return poh.getCropBox(true, false); },
+                [](QPDFPageObjectHelper &poh) {
+                    QpdfLockGuard lock(page_owner(poh));
+                    return poh.getCropBox(true, false);
+                },
                 [](QPDFPageObjectHelper &poh, py::handle value) {
                     page_set_box(poh, "/CropBox", value);
                 })
             .def_prop_rw(
                 "artbox",
-                [](QPDFPageObjectHelper &poh) { return poh.getArtBox(true, false); },
+                [](QPDFPageObjectHelper &poh) {
+                    QpdfLockGuard lock(page_owner(poh));
+                    return poh.getArtBox(true, false);
+                },
                 [](QPDFPageObjectHelper &poh, py::handle value) {
                     page_set_box(poh, "/ArtBox", value);
                 })
             .def_prop_rw(
                 "bleedbox",
-                [](QPDFPageObjectHelper &poh) { return poh.getBleedBox(true, false); },
+                [](QPDFPageObjectHelper &poh) {
+                    QpdfLockGuard lock(page_owner(poh));
+                    return poh.getBleedBox(true, false);
+                },
                 [](QPDFPageObjectHelper &poh, py::handle value) {
                     page_set_box(poh, "/BleedBox", value);
                 })
             .def_prop_rw(
                 "trimbox",
-                [](QPDFPageObjectHelper &poh) { return poh.getTrimBox(true, false); },
+                [](QPDFPageObjectHelper &poh) {
+                    QpdfLockGuard lock(page_owner(poh));
+                    return poh.getTrimBox(true, false);
+                },
                 [](QPDFPageObjectHelper &poh, py::handle value) {
                     page_set_box(poh, "/TrimBox", value);
                 })
@@ -119,6 +154,7 @@ void init_page(py::module_ &m)
                 [](QPDFPageObjectHelper &poh,
                     size_t min_size = 0,
                     bool shallow = false) {
+                    QpdfLockGuard lock(page_owner(poh));
                     return poh.externalizeInlineImages(min_size, shallow);
                 },
                 py::arg("min_size") = 0,
@@ -147,6 +183,7 @@ void init_page(py::module_ &m)
                     int truth = PyObject_IsTrue(relative.ptr());
                     if (truth < 0)
                         throw py::python_error();
+                    QpdfLockGuard lock(page_owner(poh));
                     poh.rotatePage(angle, truth == 1);
                 },
                 py::arg("angle"),
@@ -158,6 +195,7 @@ void init_page(py::module_ &m)
                 [](QPDFPageObjectHelper &poh) -> int {
                     // Resolve the effective /Rotate, honoring inheritance from the
                     // page tree, and normalize it to [0, 360).
+                    QpdfLockGuard lock(page_owner(poh));
                     QPDFObjectHandle rotate_obj = poh.getAttribute("/Rotate", false);
                     int rotate =
                         rotate_obj.isInteger() ? rotate_obj.getIntValueAsInt() : 0;
@@ -167,16 +205,22 @@ void init_page(py::module_ &m)
                     return rotate;
                 },
                 [](QPDFPageObjectHelper &poh, int angle) {
+                    QpdfLockGuard lock(page_owner(poh));
                     poh.rotatePage(angle, false);
                 })
             .def("contents_coalesce",
-                &QPDFPageObjectHelper::coalesceContentStreams // LCOV_EXCL_LINE
-                )
+                [](QPDFPageObjectHelper &poh) {
+                    QpdfLockGuard lock(page_owner(poh));
+                    poh.coalesceContentStreams();
+                })
             .def(
                 "_contents_add",
                 [](QPDFPageObjectHelper &poh,
                     QPDFObjectHandle &contents,
-                    bool prepend) { return poh.addPageContents(contents, prepend); },
+                    bool prepend) {
+                    QpdfLockGuard lock(page_owner(poh));
+                    return poh.addPageContents(contents, prepend);
+                },
                 py::arg("contents"), // LCOV_EXCL_LINE
                 py::kw_only(),
                 py::arg("prepend") = false)
@@ -198,10 +242,16 @@ void init_page(py::module_ &m)
                 py::kw_only(),
                 py::arg("prepend") = false)
             .def("remove_unreferenced_resources",
-                &QPDFPageObjectHelper::removeUnreferencedResources // LCOV_EXCL_LINE
-                )
-            .def("as_form_xobject",
-                &QPDFPageObjectHelper::getFormXObjectForPage, // LCOV_EXCL_LINE
+                [](QPDFPageObjectHelper &poh) {
+                    QpdfLockGuard lock(page_owner(poh));
+                    poh.removeUnreferencedResources();
+                })
+            .def(
+                "as_form_xobject",
+                [](QPDFPageObjectHelper &poh, bool handle_transformations) {
+                    QpdfLockGuard lock(page_owner(poh));
+                    return poh.getFormXObjectForPage(handle_transformations);
+                },
                 py::arg("handle_transformations") = true)
             .def(
                 "calc_form_xobject_placement",
@@ -212,6 +262,7 @@ void init_page(py::module_ &m)
                     bool invert_transformations,
                     bool allow_shrink,
                     bool allow_expand) -> py::bytes {
+                    QpdfLockGuard lock(page_owner(poh));
                     auto content = poh.placeFormXObject(formx,
                         name.getName(),
                         rect,
@@ -235,6 +286,7 @@ void init_page(py::module_ &m)
                     bool invert_transformations,
                     bool allow_shrink,
                     bool allow_expand) {
+                    QpdfLockGuard lock(page_owner(poh));
                     return poh.getMatrixForFormXObjectPlacement(
                         fo, rect, invert_transformations, allow_shrink, allow_expand);
                 },
@@ -247,6 +299,7 @@ void init_page(py::module_ &m)
             .def(
                 "get_matrix_for_transformations",
                 [](QPDFPageObjectHelper &poh, bool invert) {
+                    QpdfLockGuard lock(page_owner(poh));
                     return QPDFMatrix(poh.getMatrixForTransformations(invert));
                 },
                 py::arg("invert") = false)
@@ -346,6 +399,7 @@ void init_page(py::module_ &m)
                 "parse_contents",
                 [](QPDFPageObjectHelper &poh,
                     QPDFObjectHandle::ParserCallbacks &stream_parser) {
+                    QpdfLockGuard lock(poh.getObjectHandle().getOwningQPDF());
                     poh.parseContents(&stream_parser);
                 },
                 py::arg("stream_parser"))

@@ -745,7 +745,7 @@ def test_limits_denied(tmp_path, value, part, rule):
             holder = Dictionary(Value=value)
         pdf.Root.Foo = pdf.make_indirect(holder)
 
-    report, path = run(tmp_path, apply, part)
+    report, _path = run(tmp_path, apply, part)
     assert rule in rule_ids(report), report.summary()
 
 

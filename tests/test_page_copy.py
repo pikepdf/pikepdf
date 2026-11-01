@@ -552,3 +552,740 @@ def test_add_pages_from_renames_colliding_empty_name_dest():
     assert Name('/') in dest.Root.Dests and Name('/.1') in dest.Root.Dests
     assert dest.pages[2].obj.Annots[0].A.D == Name('/.1')
     assert dest.Root.Dests[Name('/.1')].D[0] == dest.pages[3].obj
+
+
+# --- Optional content (layers) ---
+
+
+def _ocg(pdf, name):
+    return pdf.make_indirect(Dictionary(Type=Name.OCG, Name=String(name)))
+
+
+def _layer_page(pdf, **groups):
+    """Add a page whose /Properties name the given optional content."""
+    page = pdf.add_blank_page(page_size=(200, 200))
+    page.obj.Resources = Dictionary(Properties=Dictionary(**groups))
+    page.obj.Contents = pdf.make_stream(
+        b''.join(b'/OC /%s BDC 0 0 10 10 re f EMC\n' % k.encode() for k in groups)
+    )
+    return page
+
+
+def _set_ocproperties(pdf, groups, **config):
+    pdf.Root.OCProperties = pdf.make_indirect(
+        Dictionary(OCGs=Array(groups), D=Dictionary(**config))
+    )
+
+
+def _names(array):
+    return [str(g.Name) for g in array]
+
+
+def test_pagecopyresult_layer_and_outline_defaults():
+    r = PageCopyResult(pages_added=1, forms='preserve')
+    assert r.layers == 'preserve'
+    assert r.layers_added == 0
+    assert r.outlines == 'preserve'
+    assert r.outline_items_added == 0
+    assert r.outline_items_dropped == 0
+
+
+def test_layers_registered_in_destination_without_ocproperties():
+    src = Pdf.new()
+    a = _ocg(src, 'A')
+    _layer_page(src, L0=a)
+    _set_ocproperties(src, [a], Order=Array([a]))
+
+    dest = Pdf.new()
+    result = dest.add_pages_from(src)
+
+    assert result.layers == 'preserve'
+    assert result.layers_added == 1
+    props = dest.Root.OCProperties
+    assert _names(props.OCGs) == ['A']
+    # The registered group is the very object the copied page refers to
+    assert props.OCGs[0].is_same_object_as(dest.pages[0].obj.Resources.Properties.L0)
+    assert props.OCGs[0].is_owned_by(dest)
+    assert _names(props.D.Order) == ['A']
+    assert Name.OFF not in props.D
+
+
+def test_layers_survive_save():
+    src = Pdf.new()
+    a, b = _ocg(src, 'A'), _ocg(src, 'B')
+    _layer_page(src, L0=a, L1=b)
+    _set_ocproperties(src, [a, b], Order=Array([a, b]), OFF=Array([b]))
+    dest = Pdf.new()
+    dest.add_pages_from(src)
+    src.close()
+    buf = io.BytesIO()
+    dest.save(buf)
+    with Pdf.open(io.BytesIO(buf.getvalue())) as out:
+        props = out.Root.OCProperties
+        assert _names(props.OCGs) == ['A', 'B']
+        assert _names(props.D.OFF) == ['B']
+        assert props.D.OFF[0].is_same_object_as(
+            out.pages[0].obj.Resources.Properties.L1
+        )
+
+
+def test_layers_source_without_ocproperties_is_noop():
+    src = Pdf.new()
+    _layer_page(src, L0=_ocg(src, 'A'))  # unregistered: viewers ignore it
+    dest = Pdf.new()
+    result = dest.add_pages_from(src)
+    assert result.layers_added == 0
+    assert Name.OCProperties not in dest.Root
+
+
+def test_layers_ignore():
+    src = Pdf.new()
+    a = _ocg(src, 'A')
+    _layer_page(src, L0=a)
+    _set_ocproperties(src, [a])
+    dest = Pdf.new()
+    result = dest.add_pages_from(src, layers='ignore')
+    assert result.layers == 'ignore'
+    assert result.layers_added == 0
+    assert Name.OCProperties not in dest.Root
+
+
+def test_layers_invalid_mode():
+    with pytest.raises(ValueError, match='layers'):
+        Pdf.new().add_pages_from(Pdf.new(), layers='strip')
+
+
+def test_layers_only_those_on_copied_pages():
+    src = Pdf.new()
+    a, b, unused = _ocg(src, 'A'), _ocg(src, 'B'), _ocg(src, 'Unused')
+    _layer_page(src, L0=a)
+    _layer_page(src, L0=b)
+    _set_ocproperties(
+        src, [a, b, unused], Order=Array([a, b, unused]), OFF=Array([a, b, unused])
+    )
+    dest = Pdf.new()
+    result = dest.add_pages_from(src, [1])
+    assert result.layers_added == 1
+    props = dest.Root.OCProperties
+    assert _names(props.OCGs) == ['B']
+    assert _names(props.D.Order) == ['B']
+    assert _names(props.D.OFF) == ['B']
+
+
+def test_layers_not_listed_by_source_are_not_registered():
+    src = Pdf.new()
+    a, stray = _ocg(src, 'A'), _ocg(src, 'Stray')
+    _layer_page(src, L0=a, L1=stray)
+    _set_ocproperties(src, [a])
+    dest = Pdf.new()
+    dest.add_pages_from(src)
+    assert _names(dest.Root.OCProperties.OCGs) == ['A']
+
+
+def test_layers_found_wherever_optional_content_is_referenced():
+    src = Pdf.new()
+    names = ['Image', 'Annot', 'Form', 'Nested', 'M1', 'M2', 'V1', 'V2', 'Ap']
+    g = {n: _ocg(src, n) for n in names}
+    hidden = _ocg(src, 'OtherPage')
+    page = src.add_blank_page(page_size=(200, 200))
+
+    image = src.make_stream(
+        b'\x00',
+        Type=Name.XObject,
+        Subtype=Name.Image,
+        Width=1,
+        Height=1,
+        ColorSpace=Name.DeviceGray,
+        BitsPerComponent=8,
+        OC=g['Image'],
+    )
+    inner = src.make_stream(
+        b'/OC /P BDC EMC',
+        Type=Name.XObject,
+        Subtype=Name.Form,
+        BBox=Array([0, 0, 1, 1]),
+        Resources=Dictionary(Properties=Dictionary(P=g['Nested'])),
+    )
+    form = src.make_stream(
+        b'/Inner Do',
+        Type=Name.XObject,
+        Subtype=Name.Form,
+        BBox=Array([0, 0, 1, 1]),
+        OC=g['Form'],
+        Resources=Dictionary(XObject=Dictionary(Inner=inner)),
+    )
+    membership = src.make_indirect(
+        Dictionary(
+            Type=Name.OCMD,
+            OCGs=Array([g['M1'], g['M2']]),
+            VE=Array([Name.And, g['V1'], Array([Name.Not, g['V2']])]),
+        )
+    )
+    appearance = src.make_stream(
+        b'',
+        Type=Name.XObject,
+        Subtype=Name.Form,
+        BBox=Array([0, 0, 1, 1]),
+        OC=g['Ap'],
+    )
+    page.obj.Resources = Dictionary(
+        XObject=Dictionary(Im=image, Fm=form),
+        Properties=Dictionary(MC=membership),
+    )
+    page.obj.Contents = src.make_stream(b'/Im Do /Fm Do /OC /MC BDC EMC')
+    page.obj.Annots = Array(
+        [
+            src.make_indirect(
+                Dictionary(
+                    Type=Name.Annot,
+                    Subtype=Name.Square,
+                    Rect=Array([0, 0, 5, 5]),
+                    OC=g['Annot'],
+                    AP=Dictionary(N=appearance),
+                )
+            )
+        ]
+    )
+    _layer_page(src, L0=hidden)
+    _set_ocproperties(src, [*g.values(), hidden])
+
+    dest = Pdf.new()
+    result = dest.add_pages_from(src, [0])
+    assert sorted(_names(dest.Root.OCProperties.OCGs)) == sorted(names)
+    assert result.layers_added == len(names)
+
+
+def test_layers_single_group_membership_dictionary():
+    src = Pdf.new()
+    a = _ocg(src, 'A')
+    _layer_page(src, L0=Dictionary(Type=Name.OCMD, OCGs=a))
+    _set_ocproperties(src, [a])
+    dest = Pdf.new()
+    dest.add_pages_from(src)
+    assert _names(dest.Root.OCProperties.OCGs) == ['A']
+
+
+def test_layers_default_visibility_with_source_basestate_off():
+    src = Pdf.new()
+    shown, hidden, both = _ocg(src, 'Shown'), _ocg(src, 'Hidden'), _ocg(src, 'Both')
+    _layer_page(src, L0=shown, L1=hidden, L2=both)
+    _set_ocproperties(
+        src,
+        [shown, hidden, both],
+        BaseState=Name.OFF,
+        ON=Array([shown, both]),
+        OFF=Array([both]),  # OFF is applied after ON
+    )
+    dest = Pdf.new()
+    dest.add_pages_from(src)
+    config = dest.Root.OCProperties.D
+    # The new default configuration has the default /BaseState, ON
+    assert Name.BaseState not in config
+    assert Name.ON not in config
+    assert sorted(_names(config.OFF)) == ['Both', 'Hidden']
+
+
+def test_layers_merge_into_destination_with_layers():
+    dest = Pdf.new()
+    x, y = _ocg(dest, 'X'), _ocg(dest, 'Y')
+    _layer_page(dest, L0=x, L1=y)
+    _set_ocproperties(
+        dest, [x, y], Order=Array([x, y]), OFF=Array([y]), Locked=Array([x])
+    )
+
+    src = Pdf.new()
+    a, b = _ocg(src, 'A'), _ocg(src, 'B')
+    _layer_page(src, L0=a, L1=b)
+    _set_ocproperties(
+        src, [a, b], Order=Array([b, a]), OFF=Array([a]), Locked=Array([b])
+    )
+
+    result = dest.add_pages_from(src)
+    assert result.layers_added == 2
+    props = dest.Root.OCProperties
+    assert _names(props.OCGs) == ['X', 'Y', 'A', 'B']
+    assert _names(props.D.Order) == ['X', 'Y', 'B', 'A']
+    assert _names(props.D.OFF) == ['Y', 'A']
+    assert _names(props.D.Locked) == ['X', 'B']
+    assert Name.ON not in props.D
+
+
+def test_layers_merge_into_destination_with_basestate_off():
+    dest = Pdf.new()
+    x, y = _ocg(dest, 'X'), _ocg(dest, 'Y')
+    _layer_page(dest, L0=x, L1=y)
+    _set_ocproperties(dest, [x, y], BaseState=Name.OFF, ON=Array([x]))
+
+    src = Pdf.new()
+    a, b = _ocg(src, 'A'), _ocg(src, 'B')
+    _layer_page(src, L0=a, L1=b)
+    _set_ocproperties(src, [a, b], OFF=Array([b]))
+
+    dest.add_pages_from(src)
+    config = dest.Root.OCProperties.D
+    assert config.BaseState == Name.OFF
+    assert _names(config.ON) == ['X', 'A']  # A stays visible
+    assert Name.OFF not in config  # B is off through /BaseState
+
+
+def test_layers_order_keeps_labels_and_nesting():
+    src = Pdf.new()
+    a, a1, a2, b, c, gone, gone1 = (
+        _ocg(src, n) for n in ['A', 'A1', 'A2', 'B', 'C', 'Gone', 'Gone1']
+    )
+    orphan = _ocg(src, 'Orphan')
+    _layer_page(src, L0=a, L1=a1, L2=b, L3=c, L4=orphan)
+    _layer_page(src, L0=a2, L1=gone, L2=gone1)
+    _set_ocproperties(
+        src,
+        [a, a1, a2, b, c, gone, gone1, orphan],
+        Order=Array(
+            [
+                a,
+                Array([a1, a2]),  # sublayers of A
+                Array([String('Group'), b, gone]),  # labelled collection
+                Array([String('Empty'), gone1]),  # nothing survives
+                gone,
+                Array([orphan]),  # sublayer whose parent is not copied
+                c,
+            ]
+        ),
+    )
+    dest = Pdf.new()
+    dest.add_pages_from(src, [0])
+    order = dest.Root.OCProperties.D.Order
+    assert len(order) == 5
+    assert str(order[0].Name) == 'A'
+    assert _names(order[1]) == ['A1']
+    assert str(order[2][0]) == 'Group' and str(order[2][1].Name) == 'B'
+    assert len(order[2]) == 2
+    # Not nested under the unrelated group that now precedes it
+    assert str(order[3].Name) == 'Orphan'
+    assert str(order[4].Name) == 'C'
+
+
+def test_layers_source_without_order_adds_none():
+    dest = Pdf.new()
+    x = _ocg(dest, 'X')
+    _layer_page(dest, L0=x)
+    _set_ocproperties(dest, [x], Order=Array([x]))
+    src = Pdf.new()
+    a = _ocg(src, 'A')
+    _layer_page(src, L0=a)
+    _set_ocproperties(src, [a])
+    dest.add_pages_from(src)
+    assert _names(dest.Root.OCProperties.D.Order) == ['X']
+
+
+def test_layers_radio_groups_and_auto_state():
+    src = Pdf.new()
+    a, b, c = _ocg(src, 'A'), _ocg(src, 'B'), _ocg(src, 'C')
+    _layer_page(src, L0=a, L1=b)
+    _layer_page(src, L0=c)
+    _set_ocproperties(
+        src,
+        [a, b, c],
+        RBGroups=Array([Array([a, b, c]), Array([a, c])]),
+        AS=Array(
+            [
+                Dictionary(
+                    Event=Name.Print, Category=Array([Name.Print]), OCGs=Array([a, c])
+                ),
+                Dictionary(
+                    Event=Name.View, Category=Array([Name.Zoom]), OCGs=Array([c])
+                ),
+            ]
+        ),
+    )
+    dest = Pdf.new()
+    x = _ocg(dest, 'X')
+    _layer_page(dest, L0=x)
+    _set_ocproperties(
+        dest,
+        [x],
+        AS=Array(
+            [
+                Dictionary(
+                    Event=Name.Export, Category=Array([Name.Export]), OCGs=Array([x])
+                )
+            ]
+        ),
+    )
+    dest.add_pages_from(src, [0])
+    config = dest.Root.OCProperties.D
+    # A group of one is no constraint, so only the first radio group survives
+    assert [_names(group) for group in config.RBGroups] == [['A', 'B']]
+    assert len(config.AS) == 2
+    assert _names(config.AS[0].OCGs) == ['X']
+    assert config.AS[1].Event == Name.Print
+    assert list(config.AS[1].Category) == [Name.Print]
+    assert _names(config.AS[1].OCGs) == ['A']
+
+
+def test_layers_not_duplicated_by_second_copy():
+    src = Pdf.new()
+    a = _ocg(src, 'A')
+    _layer_page(src, L0=a)
+    _layer_page(src, L0=a)
+    _set_ocproperties(src, [a], Order=Array([a]), OFF=Array([a]))
+    dest = Pdf.new()
+    first = dest.add_pages_from(src, [0])
+    second = dest.add_pages_from(src, [1])
+    assert (first.layers_added, second.layers_added) == (1, 0)
+    props = dest.Root.OCProperties
+    assert len(props.OCGs) == len(props.D.Order) == len(props.D.OFF) == 1
+
+
+def test_layers_destination_ocproperties_incomplete():
+    dest = Pdf.new()
+    dest.Root.OCProperties = Dictionary()  # required /OCGs and /D are missing
+    src = Pdf.new()
+    a = _ocg(src, 'A')
+    _layer_page(src, L0=a)
+    _set_ocproperties(src, [a], OFF=Array([a]))
+    dest.add_pages_from(src)
+    props = dest.Root.OCProperties
+    assert _names(props.OCGs) == ['A']
+    assert _names(props.D.OFF) == ['A']
+
+
+def test_layers_malformed_source_fails_closed():
+    src = Pdf.new()
+    a, b = _ocg(src, 'A'), _ocg(src, 'B')
+    loop = src.make_indirect(Array([Name.And, a]))
+    loop.append(loop)
+    membership = src.make_indirect(Dictionary(Type=Name.OCMD, VE=loop, OCGs=42))
+    membership.Self = membership
+    page = _layer_page(src, L0=membership, L1=b, L2=Name.Bogus, L3=Dictionary())
+    page.obj.Annots = Array([42, Dictionary(OC=Array([a]))])
+    order = src.make_indirect(Array([a, 42, Name.Bogus]))
+    order.append(order)
+    _set_ocproperties(
+        src,
+        [a, b, 42],
+        Order=order,
+        ON=Name.Bogus,
+        OFF=Array([b, 42, Array([a])]),
+        Locked=Dictionary(),
+        RBGroups=Array([a, Array([a, b, 42, a])]),
+        AS=Array([42, Dictionary(OCGs=Array([a])), Dictionary(Event=Name.View)]),
+    )
+    dest = Pdf.new()
+    result = dest.add_pages_from(src)
+    assert result.layers_added == 2
+    config = dest.Root.OCProperties.D
+    assert _names(config.Order) == ['A']
+    assert _names(config.OFF) == ['B']
+    assert Name.Locked not in config
+    assert [_names(group) for group in config.RBGroups] == [['A', 'B']]
+    assert Name.AS not in config
+
+
+@pytest.mark.parametrize('ocproperties', [42, Name.Bogus, Array([])])
+def test_layers_source_ocproperties_not_a_dictionary(ocproperties):
+    src = Pdf.new()
+    _layer_page(src, L0=_ocg(src, 'A'))
+    src.Root.OCProperties = ocproperties
+    dest = Pdf.new()
+    assert dest.add_pages_from(src).layers_added == 0
+    assert Name.OCProperties not in dest.Root
+
+
+def test_layers_deeply_nested_order_does_not_crash():
+    src = Pdf.new()
+    a = _ocg(src, 'A')
+    _layer_page(src, L0=a)
+    order = Array([a])
+    for _ in range(5000):
+        order = Array([order])
+    _set_ocproperties(src, [a], Order=order)
+    dest = Pdf.new()
+    assert dest.add_pages_from(src).layers_added == 1
+    assert _names(dest.Root.OCProperties.OCGs) == ['A']
+
+
+# --- Outlines (bookmarks) ---
+
+
+def _pdf_with_outline(n_pages=4):
+    """Build a PDF with an outline.
+
+    Part I -> page 0 (closed, bold, red)
+        Chapter 1 -> page 1 /XYZ
+        Chapter 2 -> page 2
+    Part II (no destination)
+        Chapter 3 -> page 3
+    Website -> URI action
+    """
+    pdf = Pdf.new()
+    for _ in range(n_pages):
+        pdf.add_blank_page(page_size=(200, 200))
+    with pdf.open_outline() as outline:
+        part1 = pikepdf.OutlineItem('Part I', 0)
+        part1.is_closed = True
+        part1.bold = True
+        part1.color = (1.0, 0.0, 0.0)
+        part1.children.append(
+            pikepdf.OutlineItem('Chapter 1', 1, 'XYZ', left=10, top=150, zoom=2)
+        )
+        part1.children.append(pikepdf.OutlineItem('Chapter 2', 2))
+        part2 = pikepdf.OutlineItem('Part II')
+        part2.children.append(pikepdf.OutlineItem('Chapter 3', 3))
+        web = pikepdf.OutlineItem(
+            'Website', action=Dictionary(S=Name.URI, URI=String('https://example.com'))
+        )
+        outline.root.extend([part1, part2, web])
+    return pdf
+
+
+def _outline_tree(pdf):
+    def walk(items):
+        return [(item.title, walk(item.children)) for item in items]
+
+    with pdf.open_outline() as outline:
+        return walk(outline.root)
+
+
+def _page_index(item):
+    return pikepdf.Page(item.destination[0]).index
+
+
+def test_outlines_copied_and_retargeted():
+    dest = Pdf.new()
+    dest.add_blank_page(page_size=(200, 200))
+    with _pdf_with_outline() as src:
+        result = dest.add_pages_from(src)
+    assert result.outlines == 'preserve'
+    assert result.outline_items_added == 5
+    assert result.outline_items_dropped == 1  # the URI item
+    assert _outline_tree(dest) == [
+        ('Part I', [('Chapter 1', []), ('Chapter 2', [])]),
+        ('Part II', [('Chapter 3', [])]),
+    ]
+    with dest.open_outline() as outline:
+        part1, part2 = outline.root
+        assert part1.destination[0].is_owned_by(dest)
+        assert _page_index(part1) == 1
+        ch1, ch2 = part1.children
+        assert _page_index(ch1) == 2
+        assert list(ch1.destination)[1:] == [Name.XYZ, 10, 150, 2]
+        assert _page_index(ch2) == 3
+        assert part2.destination is None and part2.action is None
+        assert _page_index(part2.children[0]) == 4
+        # style
+        assert part1.is_closed and part1.bold and not part1.italic
+        assert part1.color == (1.0, 0.0, 0.0)
+        assert not part2.is_closed and part2.color is None
+    assert len(dest.pages) == 5
+
+
+def test_outlines_survive_save():
+    dest = Pdf.new()
+    with _pdf_with_outline() as src:
+        dest.add_pages_from(src)
+    buf = io.BytesIO()
+    dest.save(buf)
+    with Pdf.open(io.BytesIO(buf.getvalue())) as out:
+        assert len(out.pages) == 4
+        # Part I is closed and hides its chapters; Part II shows Chapter 3
+        assert out.Root.Outlines.Count == 3
+        assert out.Root.Outlines.First.Count == -2
+        with out.open_outline() as outline:
+            assert _page_index(outline.root[1].children[0]) == 3
+
+
+def test_outlines_subset_drops_items_and_keeps_ancestors():
+    dest = Pdf.new()
+    with _pdf_with_outline() as src:
+        result = dest.add_pages_from(src, [2, 3])
+    assert _outline_tree(dest) == [
+        ('Part I', [('Chapter 2', [])]),
+        ('Part II', [('Chapter 3', [])]),
+    ]
+    assert result.outline_items_added == 4
+    assert result.outline_items_dropped == 2
+    with dest.open_outline() as outline:
+        part1 = outline.root[0]
+        # Part I pointed at a page that was not copied; it survives as a heading
+        assert part1.destination is None and part1.action is None
+        assert part1.bold
+        assert _page_index(part1.children[0]) == 0
+    assert len(dest.pages) == 2
+
+
+def test_outlines_nothing_lands_on_copied_pages():
+    src = _pdf_with_outline(n_pages=5)
+    dest = Pdf.new()
+    result = dest.add_pages_from(src, [4])
+    assert result.outline_items_added == 0
+    assert result.outline_items_dropped == 6
+    assert Name.Outlines not in dest.Root
+
+
+def test_outlines_ignore():
+    dest = Pdf.new()
+    with _pdf_with_outline() as src:
+        result = dest.add_pages_from(src, outlines='ignore')
+    assert result.outlines == 'ignore'
+    assert result.outline_items_added == 0
+    assert Name.Outlines not in dest.Root
+
+
+def test_outlines_invalid_mode():
+    with pytest.raises(ValueError, match='outlines'):
+        Pdf.new().add_pages_from(Pdf.new(), outlines='strip')
+
+
+def test_outlines_source_without_outline():
+    src = Pdf.new()
+    src.add_blank_page()
+    dest = Pdf.new()
+    result = dest.add_pages_from(src)
+    assert result.outline_items_added == 0
+    assert Name.Outlines not in dest.Root
+
+
+def test_outlines_appended_after_existing_items():
+    dest = Pdf.new()
+    dest.add_blank_page(page_size=(200, 200))
+    with dest.open_outline() as outline:
+        intro = pikepdf.OutlineItem('Intro', 0)
+        intro.children.append(pikepdf.OutlineItem('Preface', 0))
+        outline.root.append(intro)
+    existing = dest.Root.Outlines.First
+    with _pdf_with_outline() as src:
+        dest.add_pages_from(src, [0, 1])
+        dest.add_pages_from(src, [3])
+    assert _outline_tree(dest) == [
+        ('Intro', [('Preface', [])]),
+        ('Part I', [('Chapter 1', [])]),
+        ('Part II', [('Chapter 3', [])]),
+    ]
+    root = dest.Root.Outlines
+    assert root.First.is_same_object_as(existing)
+    assert str(root.Last.Title) == 'Part II'
+    assert root.Last.Parent.is_same_object_as(root)
+    assert str(root.Last.Prev.Title) == 'Part I'
+    assert Name.Next not in root.Last
+    # Intro, Preface, Part I (closed, hiding Chapter 1), Part II, Chapter 3
+    assert root.Count == 5
+    with dest.open_outline() as outline:
+        assert _page_index(outline.root[1]) == 1
+        assert _page_index(outline.root[2].children[0]) == 3
+
+
+def test_outlines_named_and_action_destinations():
+    src = Pdf.new()
+    pages = [src.add_blank_page(page_size=(200, 200)) for _ in range(3)]
+    src.Root.Names = src.make_indirect(Dictionary(Dests=NameTree.new(src).obj))
+    names = NameTree(src.Root.Names.Dests)
+    names['one'] = src.make_indirect(Dictionary(D=Array([pages[1].obj, Name.Fit])))
+    names['absent'] = src.make_indirect(Dictionary(D=Array([pages[2].obj, Name.Fit])))
+    src.Root.Dests = src.make_indirect(
+        Dictionary(Legacy=Array([pages[0].obj, Name.FitH, 99]))
+    )
+    with src.open_outline() as outline:
+        outline.root.extend(
+            [
+                pikepdf.OutlineItem('Named', String('one')),
+                pikepdf.OutlineItem('Legacy', Name.Legacy),
+                pikepdf.OutlineItem('Not copied', String('absent')),
+                pikepdf.OutlineItem('Unknown', String('nonesuch')),
+                pikepdf.OutlineItem(
+                    'Action',
+                    action=Dictionary(
+                        S=Name.GoTo, D=Array([pages[1].obj, Name.XYZ, None, 5, None])
+                    ),
+                ),
+                pikepdf.OutlineItem(
+                    'Named action', action=Dictionary(S=Name.GoTo, D=String('one'))
+                ),
+                pikepdf.OutlineItem(
+                    'Remote',
+                    action=Dictionary(S=Name.GoToR, F=String('x.pdf'), D=Array([0])),
+                ),
+            ]
+        )
+    dest = Pdf.new()
+    dest.add_blank_page(page_size=(200, 200))
+    result = dest.add_pages_from(src, [0, 1])
+    assert result.outline_items_dropped == 3
+    with dest.open_outline() as outline:
+        assert [i.title for i in outline.root] == [
+            'Named',
+            'Legacy',
+            'Action',
+            'Named action',
+        ]
+        named, legacy, action, named_action = outline.root
+        assert _page_index(named) == 2
+        assert list(named.destination)[1:] == [Name.Fit]
+        assert _page_index(legacy) == 1
+        assert list(legacy.destination)[1:] == [Name.FitH, 99]
+        assert _page_index(action) == 2
+        assert list(action.destination)[1:] == [Name.XYZ, None, 5, None]
+        assert _page_index(named_action) == 2
+
+
+def test_outlines_cyclic_source_does_not_hang():
+    src = _pdf_with_outline()
+    first = src.Root.Outlines.First
+    last = src.Root.Outlines.Last
+    last.Next = first  # siblings loop
+    first.First.First = first  # a child that is its own ancestor
+    dest = Pdf.new()
+    result = dest.add_pages_from(src)
+    assert result.outline_items_added >= 4
+    assert len(dest.pages) == 4
+
+
+@pytest.mark.parametrize(
+    'key, value',
+    [
+        ('Root.Outlines', 42),
+        ('First', 42),
+        ('First.Next', 42),
+        ('First.Dest', 42),
+        ('First.Dest', Array([])),
+        ('First.Dest', Array([0, Name.Fit])),
+        ('First.A', 42),
+    ],
+)
+def test_outlines_malformed_source_fails_closed(key, value):
+    src = _pdf_with_outline()
+    if key == 'Root.Outlines':
+        src.Root.Outlines = value
+    elif key == 'First':
+        src.Root.Outlines.First = value
+    else:
+        src.Root.Outlines.First[Name('/' + key.split('.')[1])] = value
+    dest = Pdf.new()
+    result = dest.add_pages_from(src)
+    assert result.pages_added == 4
+    assert len(dest.pages) == 4
+
+
+def test_outlines_destination_outline_malformed():
+    dest = Pdf.new()
+    dest.add_blank_page(page_size=(200, 200))
+    with dest.open_outline() as outline:
+        outline.root.append(pikepdf.OutlineItem('One', 0))
+        outline.root.append(pikepdf.OutlineItem('Two', 0))
+    del dest.Root.Outlines.Last
+    del dest.Root.Outlines.Count
+    with _pdf_with_outline() as src:
+        dest.add_pages_from(src, [3])
+    assert _outline_tree(dest) == [
+        ('One', []),
+        ('Two', []),
+        ('Part II', [('Chapter 3', [])]),
+    ]
+
+
+def test_outlines_same_page_copied_twice():
+    dest = Pdf.new()
+    with _pdf_with_outline() as src:
+        result = dest.add_pages_from(src, [3, 3])
+    assert result.outline_items_added == 2
+    with dest.open_outline() as outline:
+        assert _page_index(outline.root[0].children[0]) == 0

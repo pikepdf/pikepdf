@@ -5,7 +5,6 @@
 # See pikepdf/_core/__init__.pyi for how this stub package is laid out.
 
 # pylint: disable=no-method-argument,unused-argument,no-self-use,too-many-public-methods
-# ruff: noqa: D418
 # mypy: disable-error-code="misc"
 
 from __future__ import annotations
@@ -86,9 +85,7 @@ class Annotation:
     """
 
     def __init__(self, obj: Object) -> None: ...
-    def get_appearance_stream(
-        self, which: Object, state: Object | None = ...
-    ) -> Object:
+    def get_appearance_stream(self, which: Object, state: Object = ...) -> Object:
         """Returns one of the appearance streams associated with an annotation.
 
         Args:
@@ -137,5 +134,5 @@ class Annotation:
     @property
     def obj(self) -> Object: ...
     @property
-    def subtype(self) -> str:
+    def subtype(self) -> Name:
         """Returns the subtype of this annotation."""

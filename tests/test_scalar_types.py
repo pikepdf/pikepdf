@@ -1137,8 +1137,8 @@ class TestOwnerAdoption:
         # that belong to no document.
         pdf.Root.Test = 42
         assert isinstance(pdf.Root.Test, Integer)
-        assert type(pikepdf.Integer(5)) is int  # noqa: E721
-        assert type(Dictionary(Q=7).Q) is int  # noqa: E721
+        assert type(pikepdf.Integer(5)) is int
+        assert type(Dictionary(Q=7).Q) is int
 
     def test_scalars_are_adopted_by_copy(self, pdf):
         # A Name or String held in a module-level constant may be inserted into
@@ -1988,7 +1988,7 @@ class TestNumberProtocolMatchesImplicit:
             native = float(native)
         try:
             expected = expr(native)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             with pikepdf.explicit_conversion():
                 obj = pikepdf.Object.parse(f'[{token}]'.encode())[0]
                 with pytest.raises(type(e)):
