@@ -197,3 +197,16 @@ def test_stress_object_mapping_shared():
     for i in range(N_THREADS):
         assert shared[f'/K{i}_1'].T == i
         assert f'/K{i}_0' not in shared
+
+
+def test_load_lxml_namespaces_in_threads(monkeypatch):
+    """Threads that open metadata for the first time at once do not collide.
+
+    lxml's namespace registry is not safe to change from several threads at
+    once, which happened when each of them registered pikepdf's namespaces.
+    """
+    from pikepdf.models.metadata import _constants
+
+    for _ in range(20):
+        monkeypatch.setattr(_constants, '_LOADED_LXML_NAMESPACES', False)
+        run_n(lambda _i: _constants.load_lxml_namespaces())
