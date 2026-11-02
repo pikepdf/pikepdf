@@ -94,6 +94,8 @@ the architecture notes on thread safety.
 - Free-threaded Python: fixed an error, "dictionary changed size during
   iteration", when several threads opened a `Pdf`'s metadata for the first
   time at once.
+- Fixed {meth}`pikepdf.form.SignatureField.stamp_overlay` stamping the
+  overlay twice when the signature widget names its page with `/P`.
 - Two threads that each hold the lock of one `Pdf` and
   then need the other's no longer wait for each other for ever. One of them
   now gets a {exc}`RuntimeError`. This arises when a callback, such as a
