@@ -80,6 +80,20 @@ the architecture notes on thread safety.
 - {attr}`pikepdf.Page.resources` now checks for and creates the page's
   resources dictionary under the `Pdf`'s lock, so threads that ask for it at
   the same time share one dictionary instead of each creating their own.
+- Methods implemented in Python that change a `Pdf` in several steps now hold
+  its lock until they finish, so another thread can no longer see or change
+  the document part way through. These are {meth}`pikepdf.Object.emplace`,
+  {meth}`pikepdf.Page.add_resource`, {meth}`pikepdf.Page.add_overlay`,
+  {meth}`pikepdf.Page.add_underlay`, {meth}`pikepdf.Pdf.add_pages_from`,
+  setting the value of a {class}`pikepdf.form.Form` field,
+  {meth}`pikepdf.form.SignatureField.stamp_overlay`, the functions of
+  {mod}`pikepdf.sanitize`, and the reading and writing of outlines and
+  metadata. Those that involve two `Pdf`s lock both in an order that cannot
+  deadlock. The thread safety section of the architecture notes now says
+  which calls are atomic and what is not protected.
+- Free-threaded Python: fixed an error, "dictionary changed size during
+  iteration", when several threads opened a `Pdf`'s metadata for the first
+  time at once.
 - Two threads that each hold the lock of one `Pdf` and
   then need the other's no longer wait for each other for ever. One of them
   now gets a {exc}`RuntimeError`. This arises when a callback, such as a

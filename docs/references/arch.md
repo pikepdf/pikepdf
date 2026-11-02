@@ -24,18 +24,54 @@ may be returned in some situations).
 
 pikepdf supports free-threaded (no-GIL) CPython and publishes `cp314t` wheels.
 
-Each `Pdf` has a lock, and every pikepdf method takes the lock of each `Pdf`
-it reads or changes, so one call never sees another call on the same `Pdf`
-half done. This holds on GIL-enabled interpreters too. The GIL by itself
-does not provide it: pikepdf runs Python code in the middle of many
-operations (when reading from a Python stream, for example) and the GIL can
-pass to another thread whenever that happens.
+Threads may share a `Pdf`. The guarantee is like the one free-threaded Python
+gives for a {class}`list` or {class}`dict`: concurrent calls do not crash or
+corrupt the document, but a sequence of calls is not atomic, so the data can
+end up inconsistent unless you coordinate the threads.
 
-Only single calls are protected. A sequence of calls, such as reading a value
-and writing back a new one, can still be interleaved with calls from another
-thread. If more than one thread modifies the same `Pdf`, wrap each such
-sequence in `with pdf.lock():`, or coordinate the threads with your own
-{class}`threading.Lock`.
+Each `Pdf` has a lock. Every method and property of a pikepdf class that
+reads or changes a `Pdf`, or any of its objects, holds the lock of that `Pdf`
+while it runs. A call that involves several `Pdf`s, such as copying a page
+from one to another, holds all of their locks. This holds on GIL-enabled
+interpreters too. The GIL by itself does not provide it: pikepdf runs Python
+code in the middle of many operations (when reading from a Python stream, for
+example), and the GIL can pass to another thread whenever that happens.
+
+Some methods are implemented in Python and change a `Pdf` in several steps.
+Those that do hold the lock across all of the steps, so another thread sees
+the change made in full or not at all:
+
+- {meth}`pikepdf.Object.emplace`, {meth}`pikepdf.Page.add_resource`,
+  {meth}`pikepdf.Page.add_overlay` and {meth}`pikepdf.Page.add_underlay`
+- {meth}`pikepdf.Pdf.add_pages_from` and {meth}`pikepdf.Pdf.add_blank_page`
+- {attr}`pikepdf.Pdf.docinfo`
+- setting the value of a field of a {class}`pikepdf.form.Form`, and
+  {meth}`pikepdf.form.SignatureField.stamp_overlay`
+- the functions of {mod}`pikepdf.sanitize`, and
+  {meth}`pikepdf.sanitize.Sanitizer.apply`
+- reading the outline when {meth}`pikepdf.Pdf.open_outline` is called, and
+  writing it back when its `with` block ends; likewise writing the metadata
+  back when the `with` block of {meth}`pikepdf.Pdf.open_metadata` ends
+
+What is not protected:
+
+- **A sequence of calls.** Reading a value and writing back a new one can be
+  interleaved with calls from another thread. Wrap each such sequence in
+  `with pdf.lock():`, which is re-entrant, or coordinate the threads with your
+  own {class}`threading.Lock`. To make a sequence that involves several
+  `Pdf`s atomic, use your own lock rather than nesting `pdf.lock()` blocks;
+  see {ref}`callback-restrictions`.
+- **Edits made through `open_metadata()` and `open_outline()`.** These read
+  the document when they are opened and write the whole of it back when the
+  `with` block ends. A change another thread made in between is overwritten.
+- **Reads that take several steps.** A helper that reads a `Pdf` in several
+  calls, such as the properties of {class}`pikepdf.PdfImage`, can see some
+  values from before another thread's change and some from after.
+- **Objects that belong to no `Pdf`.** A {class}`pikepdf.Dictionary` or
+  {class}`pikepdf.Array` that you have created and not yet added to a `Pdf`
+  has no `Pdf` lock to take. Do not change one from one thread while another
+  thread uses it. Once it is added to a `Pdf` it belongs to that `Pdf`, and
+  from then on it is protected by that `Pdf`'s lock.
 
 How these locks work inside pikepdf is described in {doc}`locking`.
 

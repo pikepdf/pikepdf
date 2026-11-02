@@ -162,6 +162,7 @@ from pikepdf._core._qpdf import (
     Pdf,
     StreamDecodeLevel,
     XrefEntry,
+    _OwnerLock,
 )
 from pikepdf._core._qpdf_pagelist import (
     PageList,
@@ -225,6 +226,7 @@ __all__ = [
     '_ObjectList',
     '_ObjectMapping',
     '_ObjectMeta',
+    '_OwnerLock',
     '_scan_raw_content',
     '_PageListIterator',
     '_pop_thread_conversion_mode',

@@ -108,6 +108,28 @@ already taken.
 `Pdf.lock()` is the same lock, exposed to Python through `_acquire_lock` and
 `_release_lock`, so that users can make a sequence of calls atomic.
 
+### Python code in pikepdf
+
+A method implemented in Python is a sequence of binding calls, each of which
+holds the lock only while it runs. A method that changes a `Pdf` in several
+dependent steps holds the lock across them: `with pdf.lock():`, or a
+decorator that does the same, as in `sanitize.py` and `form.py`. One that
+involves more than one `Pdf`, such as `Pdf.add_pages_from` or
+`Page.add_overlay`, uses `with _OwnerLock((a, b)):` instead. `_OwnerLock`
+(`src/core/qpdf.cpp`) locks the owner of each item it is given (a `Pdf`, an
+object, or an object helper such as a `Page`) through `MultiQpdfLockGuard`,
+so the locks are taken in the same order as the bindings take them. Nested
+`pdf.lock()` blocks would take them in the order the code names them, and two
+threads copying between the same pair of `Pdf`s in opposite directions would
+then deadlock; pikepdf would detect that and raise in one of them.
+
+Methods that only read do not need this, and neither do the `with` blocks of
+`Pdf.open_metadata()` and `Pdf.open_outline()`: they hold the lock while they
+read the document and while they write it back, but not in between, since
+the block runs user code. `tests/test_threading_python_layer.py` checks each
+method that holds the lock, by interrupting it part way through and probing
+the lock from another thread.
+
 ### How it works
 
 The lock is `owner_` (the identifier of the thread holding it, or 0) and
@@ -193,6 +215,17 @@ the return value type caster use these.
 - A lazy iterator over a qpdf container, returned from a binding, keeps
   reading the `Pdf` after the binding has released the lock. Return a
   snapshot instead.
+
+### Objects that belong to no `Pdf`
+
+A direct `Dictionary` or `Array` that has not been added to a `Pdf` has no
+owner, so no lock is taken for it. Two threads that change the same such
+object at once race inside qpdf, and on a free-threaded build with the GIL
+disabled this crashes. The user documentation tells users not to share one
+between threads. Once the object is added to a `Pdf` it is adopted in place
+(`src/core/object_adoption.cpp`), and from then on it is protected by that
+`Pdf`'s lock. `_ObjectList` and `_ObjectMapping` also belong to no `Pdf`,
+but each locks itself (see `src/core/object_list.cpp`).
 
 ## The teardown lock
 

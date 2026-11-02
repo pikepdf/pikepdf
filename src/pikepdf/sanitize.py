@@ -25,7 +25,8 @@ sanitization can accomplish.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import functools
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from pikepdf._core import ObjectSet
 from pikepdf._explicit_conv import explicit_conversion
@@ -35,6 +36,27 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from pikepdf import Object, Pdf
+
+
+_F = TypeVar('_F', bound='Callable[..., Any]')
+
+
+def _holding_pdf_lock(fn: _F) -> _F:
+    """Hold the lock of fn's ``pdf`` argument while fn runs.
+
+    Each removal reads the document and then changes it in many steps, which
+    another thread must not see half done. ``pdf`` is the last argument of
+    each function this decorates.
+    """
+
+    @functools.wraps(fn)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        pdf = kwargs['pdf'] if 'pdf' in kwargs else args[-1]
+        with pdf.lock():
+            return fn(*args, **kwargs)
+
+    return wrapper  # type: ignore[return-value]
+
 
 __all__ = [
     'Sanitizer',
@@ -273,6 +295,7 @@ def _neutralize_outlines(root: Object, targets: frozenset[Name]) -> None:
 
 
 @explicit_conversion()
+@_holding_pdf_lock
 def remove_javascript(pdf: Pdf) -> None:
     """Remove all JavaScript from a PDF, in place.
 
@@ -313,6 +336,7 @@ def _drop_named_javascript(pdf: Pdf) -> None:
 
 
 @explicit_conversion()
+@_holding_pdf_lock
 def remove_attachments(pdf: Pdf) -> None:
     """Remove all embedded files (attachments) from a PDF, in place.
 
@@ -384,6 +408,7 @@ def _af_holds_embedded_file(af: Object | None) -> bool:
 
 
 @explicit_conversion()
+@_holding_pdf_lock
 def remove_external_access(pdf: Pdf) -> None:
     """Neutralize actions that reach the network or filesystem, in place.
 
@@ -414,6 +439,7 @@ def remove_external_access(pdf: Pdf) -> None:
 
 
 @explicit_conversion()
+@_holding_pdf_lock
 def remove_thumbnails(pdf: Pdf) -> None:
     """Remove embedded page thumbnails from a PDF, in place.
 
@@ -436,6 +462,7 @@ def remove_thumbnails(pdf: Pdf) -> None:
 
 
 @explicit_conversion()
+@_holding_pdf_lock
 def remove_search_index(pdf: Pdf) -> None:
     """Remove an embedded full-text search index from a PDF, in place.
 
@@ -465,6 +492,7 @@ def remove_search_index(pdf: Pdf) -> None:
 
 
 @explicit_conversion()
+@_holding_pdf_lock
 def remove_multimedia(pdf: Pdf) -> None:
     """Remove multimedia and rich-media content from a PDF, in place.
 
@@ -521,6 +549,7 @@ def _remove_multimedia_structural(pdf: Pdf) -> None:
 
 
 @explicit_conversion()
+@_holding_pdf_lock
 def remove_web_capture(pdf: Pdf) -> None:
     """Remove Web Capture (spider) information from a PDF, in place.
 
@@ -541,6 +570,7 @@ def remove_web_capture(pdf: Pdf) -> None:
 
 
 @explicit_conversion()
+@_holding_pdf_lock
 def remove_private_app_data(pdf: Pdf) -> None:
     """Remove private application data (page-piece dictionaries), in place.
 
@@ -571,6 +601,7 @@ def remove_private_app_data(pdf: Pdf) -> None:
 
 
 @explicit_conversion()
+@_holding_pdf_lock
 def remove_collection(pdf: Pdf) -> None:
     """Remove the PDF portfolio (collection) presentation, in place.
 
@@ -686,6 +717,7 @@ class Sanitizer:
         return self
 
     @explicit_conversion()
+    @_holding_pdf_lock
     def apply(self, pdf: Pdf) -> Pdf:
         """Apply the recorded operations to *pdf*, in place.
 

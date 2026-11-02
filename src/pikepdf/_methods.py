@@ -60,6 +60,7 @@ from pikepdf._core import (
     StreamParser,
     _ContentScopeWalk,
     _ObjectMapping,
+    _OwnerLock,
 )
 from pikepdf._exceptions import PageCopyWarning
 from pikepdf._io import (
@@ -130,16 +131,19 @@ class Extend_Object:
 
         # .keys() returns strings, so make all strings
         retain_set: set[str] = {str(k) for k in retain}
-        self_keys = set(self.keys())
-        other_keys = set(other.keys())
+        with _OwnerLock((self,)):
+            self_keys = set(self.keys())
+            other_keys = set(other.keys())
 
-        assert all(isinstance(k, str) for k in (retain_set | self_keys | other_keys))
+            assert all(
+                isinstance(k, str) for k in (retain_set | self_keys | other_keys)
+            )
 
-        del_keys = self_keys - other_keys - retain_set
-        for k in (k for k in other_keys if k not in retain_set):
-            self[k] = other[k]  # pylint: disable=unsupported-assignment-operation
-        for k in del_keys:
-            del self[k]  # pylint: disable=unsupported-delete-operation
+            del_keys = self_keys - other_keys - retain_set
+            for k in (k for k in other_keys if k not in retain_set):
+                self[k] = other[k]  # pylint: disable=unsupported-assignment-operation
+            for k in del_keys:
+                del self[k]  # pylint: disable=unsupported-delete-operation
 
     def _type_check_write(self, filter_, decode_parms):
         # A native Python value (int, str, dict...) cannot be a filter or its
@@ -370,9 +374,10 @@ class Extend_Pdf:
         """
         from pikepdf._page_copy import copy_pages
 
-        return copy_pages(
-            self, src, pages, forms=forms, layers=layers, outlines=outlines
-        )
+        with _OwnerLock((self, src)):
+            return copy_pages(
+                self, src, pages, forms=forms, layers=layers, outlines=outlines
+            )
 
     def close(self) -> None:
         self._close()
@@ -759,25 +764,28 @@ class Extend_Page:
         prefix: str = '',
         replace_existing: bool = True,
     ) -> Name:
-        resources = self.resources
-        if res_type not in resources:
-            resources[res_type] = Dictionary()
-
         if name is not None and prefix:
             raise ValueError("Must specify one of name= or prefix=")
         if name is None:
             name = Name.random(prefix=prefix)
 
-        for res_dict in resources.as_dict().values():
-            if not isinstance(res_dict, Dictionary):
-                continue
-            if name in res_dict:
-                if replace_existing:
-                    del res_dict[name]
-                else:
-                    raise ValueError(f"Name {name} already exists in page /Resources")
+        with _OwnerLock((self, res)):
+            resources = self.resources
+            if res_type not in resources:
+                resources[res_type] = Dictionary()
 
-        resources[res_type][name] = res.with_same_owner_as(self.obj)
+            for res_dict in resources.as_dict().values():
+                if not isinstance(res_dict, Dictionary):
+                    continue
+                if name in res_dict:
+                    if replace_existing:
+                        del res_dict[name]
+                    else:
+                        raise ValueError(
+                            f"Name {name} already exists in page /Resources"
+                        )
+
+            resources[res_type][name] = res.with_same_owner_as(self.obj)
         return name
 
     def _over_underlay(
@@ -789,38 +797,39 @@ class Extend_Page:
         shrink: bool,
         expand: bool,
     ) -> Name:
-        formx = None
-        if isinstance(other, Page):
-            formx = other.as_form_xobject()
-        elif isinstance(other, Dictionary) and other.get(Name.Type) == Name.Page:
-            formx = Page(other).as_form_xobject()
-        elif (
-            isinstance(other, Stream)
-            and other.get(Name.Type) == Name.XObject
-            and other.get(Name.Subtype) == Name.Form
-        ):
-            formx = other
+        with _OwnerLock((self, other)):
+            formx = None
+            if isinstance(other, Page):
+                formx = other.as_form_xobject()
+            elif isinstance(other, Dictionary) and other.get(Name.Type) == Name.Page:
+                formx = Page(other).as_form_xobject()
+            elif (
+                isinstance(other, Stream)
+                and other.get(Name.Type) == Name.XObject
+                and other.get(Name.Subtype) == Name.Form
+            ):
+                formx = other
 
-        if formx is None:
-            raise TypeError(
-                "other object is not something we can convert to Form XObject"
+            if formx is None:
+                raise TypeError(
+                    "other object is not something we can convert to Form XObject"
+                )
+
+            if rect is None:
+                rect = Rectangle(self.trimbox)
+
+            formx_placed_name = self.add_resource(formx, Name.XObject)
+            cs = self.calc_form_xobject_placement(
+                formx, formx_placed_name, rect, allow_shrink=shrink, allow_expand=expand
             )
 
-        if rect is None:
-            rect = Rectangle(self.trimbox)
+            if push_stack:
+                self.contents_add(b'q\n', prepend=True)  # prepend q
+                self.contents_add(b'Q\n', prepend=False)  # i.e. append Q
 
-        formx_placed_name = self.add_resource(formx, Name.XObject)
-        cs = self.calc_form_xobject_placement(
-            formx, formx_placed_name, rect, allow_shrink=shrink, allow_expand=expand
-        )
-
-        if push_stack:
-            self.contents_add(b'q\n', prepend=True)  # prepend q
-            self.contents_add(b'Q\n', prepend=False)  # i.e. append Q
-
-        self.contents_add(cs, prepend=under)
-        self.contents_coalesce()
-        return formx_placed_name
+            self.contents_add(cs, prepend=under)
+            self.contents_coalesce()
+            return formx_placed_name
 
     def add_overlay(
         self,

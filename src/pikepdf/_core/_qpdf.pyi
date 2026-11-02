@@ -157,6 +157,30 @@ class XrefEntry:
     def obj_stream_index(self) -> int | None:
         """Index of the object within its object stream; None unless ``type == 2``."""
 
+class _OwnerLock:
+    """Holds the locks of the Pdfs that own some values, for a ``with`` block.
+
+    For pikepdf's own Python code that changes more than one ``Pdf`` in
+    several steps. The locks are taken in the same order as the bindings take
+    them, which nesting :meth:`Pdf.lock` would not do, so two threads that
+    name the same Pdfs in different orders cannot deadlock.
+
+    Each item may be a :class:`Pdf`, an :class:`Object` or an object helper
+    such as a :class:`Page`; anything else, and an object that belongs to no
+    ``Pdf``, is ignored. The owners are looked up when the block is entered.
+    One instance must not be entered by two threads at once.
+    """
+
+    def __init__(self, items: Iterable[object], /) -> None: ...
+    def __enter__(self) -> None: ...
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+        /,
+    ) -> None: ...
+
 class Pdf:
     """In-memory representation of a PDF."""
 

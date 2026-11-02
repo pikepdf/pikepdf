@@ -43,6 +43,57 @@ enum access_mode_e { access_default, access_stream, access_mmap, access_mmap_onl
 template <>
 struct LockOwner<QPDFXRefEntry> : NoLock {};
 
+// Holds the locks of the Pdfs that own some values, for the length of a with
+// block. Python code that changes more than one Pdf in several steps uses this
+// rather than nesting Pdf.lock(), which takes the locks in whatever order the
+// code names them. A binding it calls meanwhile takes them in the registry's
+// order, and two threads that take the same pair in different orders deadlock.
+// MultiQpdfLockGuard always uses the registry's order.
+//
+// The owners are looked up when the block is entered. Values that are not a
+// Pdf, an object or an object helper, and objects that belong to no Pdf, are
+// ignored. One instance must not be entered by two threads at once.
+class OwnerLock {
+public:
+    explicit OwnerLock(py::iterable items)
+    {
+        for (auto item : items)
+            items_.append(item);
+    }
+
+    void enter()
+    {
+        if (guard_)
+            throw py::value_error("_OwnerLock is already held");
+        std::vector<QPDF *> owners;
+        for (auto item : items_) {
+            if (auto *q = owner_of(item))
+                owners.push_back(q);
+        }
+        guard_ = std::make_unique<MultiQpdfLockGuard>(owners);
+    }
+
+    void exit() { guard_.reset(); }
+
+private:
+    static QPDF *owner_of(py::handle item)
+    {
+        if (py::isinstance<QPDF>(item))
+            return &py::cast<QPDF &>(item);
+        if (py::isinstance<QPDFObjectHandle>(item))
+            return py::cast<QPDFObjectHandle &>(item).getOwningQPDF();
+        if (py::isinstance<QPDFObjectHelper>(item))
+            return py::cast<QPDFObjectHelper &>(item).getObjectHandle().getOwningQPDF();
+        return nullptr;
+    }
+
+    py::list items_;
+    std::unique_ptr<MultiQpdfLockGuard> guard_;
+};
+
+template <>
+struct LockOwner<OwnerLock> : NoLock {};
+
 QpdfEntry &registry_entry(QPDF &q)
 {
     auto *entry = QpdfRegistry::instance().lookup_entry(&q);
@@ -682,6 +733,18 @@ void init_qpdf(py::module_ &m)
                 return std::string("<pikepdf.XrefEntry type=0 (free)>");
             }
         });
+
+    locked_class_<OwnerLock>(m, "_OwnerLock")
+        .def_init([](py::iterable items) { return OwnerLock(items); })
+        .def("__enter__", &OwnerLock::enter)
+        .def(
+            "__exit__",
+            [](OwnerLock &self, OpaqueObject, OpaqueObject, OpaqueObject) {
+                self.exit();
+            },
+            py::arg().none(),
+            py::arg().none(),
+            py::arg().none());
 
     py::enum_<QPDF::encryption_method_e>(m, "EncryptionMethod")
         .value("none", QPDF::encryption_method_e::e_none)
