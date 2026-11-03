@@ -117,13 +117,14 @@ public:
         if (decode_parms.isNull())
             return true;
 
-        auto jbig2globals_obj = decode_parms.getKey("/JBIG2Globals");
-        if (jbig2globals_obj.isNull())
-            return true;
-
-        auto buf = jbig2globals_obj.getStreamData();
-        jbig2globals_ =
-            std::string(reinterpret_cast<char *>(buf->getBuffer()), buf->getSize());
+        // Keep the globals and read them only in getDecodePipeline(). qpdf
+        // calls this method whenever it checks whether a stream can be
+        // decoded, at any decode level, so reading the globals here would
+        // decompress them for streams that are not being JBIG2-decoded. It
+        // would also recurse without end when the globals are JBIG2-encoded
+        // and lead back to this stream: reading them would check them, which
+        // would read their globals, and so on.
+        jbig2globals_obj_ = decode_parms.getKey("/JBIG2Globals");
         return true;
     }
 
@@ -137,7 +138,16 @@ public:
     virtual Pipeline *getDecodePipeline(Pipeline *next) override
     {
         assertDecoderAvailable();
-        pipeline_ = std::make_shared<Pl_JBIG2>("JBIG2 decode", next, jbig2globals_);
+        // getStreamData() decodes at the generalized level, which excludes
+        // JBIG2, so globals that are themselves JBIG2-encoded are reported as
+        // unfilterable here rather than decoded, which also ends any cycle.
+        std::string jbig2globals;
+        if (jbig2globals_obj_.isInitialized() && !jbig2globals_obj_.isNull()) {
+            auto buf = jbig2globals_obj_.getStreamData();
+            jbig2globals =
+                std::string(reinterpret_cast<char *>(buf->getBuffer()), buf->getSize());
+        }
+        pipeline_ = std::make_shared<Pl_JBIG2>("JBIG2 decode", next, jbig2globals);
         return pipeline_.get();
     }
 
@@ -151,6 +161,6 @@ public:
 
 private:
     // Do not hold any Python objects in this class to avoid GIL issues.
-    std::string jbig2globals_;
+    QPDFObjectHandle jbig2globals_obj_;
     std::shared_ptr<Pipeline> pipeline_;
 };
