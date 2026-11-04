@@ -771,21 +771,23 @@ class Extend_Page:
 
         with _OwnerLock((self, res)):
             resources = self.resources
+            holders = [
+                res_dict
+                for res_dict in resources.as_dict().values()
+                if isinstance(res_dict, Dictionary) and name in res_dict
+            ]
+            if holders and not replace_existing:
+                raise ValueError(f"Name {name} already exists in page /Resources")
+
+            # Converted before the page is changed, so that a resource that
+            # cannot be added, such as one that refers to another Pdf, leaves
+            # the page as it was.
+            value = res.with_same_owner_as(self.obj)
+            for res_dict in holders:
+                del res_dict[name]
             if res_type not in resources:
                 resources[res_type] = Dictionary()
-
-            for res_dict in resources.as_dict().values():
-                if not isinstance(res_dict, Dictionary):
-                    continue
-                if name in res_dict:
-                    if replace_existing:
-                        del res_dict[name]
-                    else:
-                        raise ValueError(
-                            f"Name {name} already exists in page /Resources"
-                        )
-
-            resources[res_type][name] = res.with_same_owner_as(self.obj)
+            resources[res_type][name] = value
         return name
 
     def _over_underlay(

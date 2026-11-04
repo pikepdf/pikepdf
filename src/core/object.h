@@ -129,6 +129,7 @@ QPDFObjectHandle adopt_key_on_read(QPDFObjectHandle holder,
 QPDFObjectHandle adopt_item_on_read(
     QPDFObjectHandle array, int index, QPDFObjectHandle value);
 void adopt_children_on_read(QPDFObjectHandle holder, QPDFObjectHandle container);
+void refuse_mixed_owners(QPDF *target, QPDFObjectHandle value);
 QPDFObjectHandle make_direct_indirect(QPDF *owner, QPDFObjectHandle direct);
 void refuse_to_steal(QPDFObjectHandle &h, QPDF *target);
 void refuse_foreign_indirect(QPDFObjectHandle const &h, QPDF *target);

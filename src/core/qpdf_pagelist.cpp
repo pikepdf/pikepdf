@@ -296,8 +296,19 @@ void PageList::adopt_page_at(size_t index)
     adopt_children_into(qpdf.get(), get_page(index).getObjectHandle());
 }
 
+// A page from another document is copied by qpdf, along with everything it
+// refers to. A page built in Python is inserted as it is, so it must not refer
+// to another document.
+void PageList::refuse_foreign_children(QPDFPageObjectHelper &page)
+{
+    auto h = page.getObjectHandle();
+    if (!h.isIndirect())
+        refuse_mixed_owners(qpdf.get(), h);
+}
+
 void PageList::insert_page(size_t index, QPDFPageObjectHelper page)
 {
+    refuse_foreign_children(page);
     if (index != count()) {
         auto refpage = get_page(index);
         doc.addPageAt(page, true, refpage);
@@ -309,6 +320,7 @@ void PageList::insert_page(size_t index, QPDFPageObjectHelper page)
 
 void PageList::append_page(QPDFPageObjectHelper page)
 {
+    refuse_foreign_children(page);
     doc.addPage(page, false);
     adopt_page_at(count() - 1);
 }

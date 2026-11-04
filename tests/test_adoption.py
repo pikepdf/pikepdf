@@ -236,6 +236,198 @@ class TestRefusesToSteal:
         assert i.is_owned_by(a)
 
 
+def _source_pdf(tag):
+    pdf = pikepdf.new()
+    pdf.Root.Ind = pdf.make_indirect(Dictionary(Tag=pikepdf.String(tag)))
+    pdf.Root.Dir = Dictionary(Tag=pikepdf.String(tag))
+    pdf.add_blank_page()
+    return pdf
+
+
+def _insert_dict(dst, value):
+    dst.Root.Target = value
+
+
+def _insert_dict_setitem(dst, value):
+    dst.Root['/Target'] = value
+
+
+def _insert_update(dst, value):
+    dst.Root.update({'/Target': value})
+
+
+def _insert_namepath(dst, value):
+    dst.Root[pikepdf.NamePath.Target] = value
+
+
+def _insert_array_append(dst, value):
+    dst.Root.Arr.append(value)
+
+
+def _insert_array_insert(dst, value):
+    dst.Root.Arr.insert(0, value)
+
+
+def _insert_array_extend(dst, value):
+    dst.Root.Arr.extend([1, value])
+
+
+def _insert_array_setitem(dst, value):
+    dst.Root.Arr[0] = value
+
+
+def _insert_array_slice(dst, value):
+    dst.Root.Arr[0:1] = [1, value]
+
+
+def _insert_make_indirect(dst, value):
+    dst.make_indirect(value)
+
+
+def _insert_with_same_owner_as(dst, value):
+    value.with_same_owner_as(dst.Root)
+
+
+def _insert_stream_key(dst, value):
+    dst.Root.Strm.stream_dict.Target = value
+
+
+def _insert_stream_ctor(dst, value):
+    pikepdf.Stream(dst, b'x', Target=value)
+
+
+def _insert_add_resource(dst, value):
+    dst.pages[0].add_resource(value, Name.XObject)
+
+
+def _insert_nametree(dst, value):
+    NameTree(dst.Root.NT)['k'] = value
+
+
+def _insert_numbertree(dst, value):
+    pikepdf.NumberTree(dst.Root.NumT)[1] = value
+
+
+_INSERTERS = [
+    _insert_dict,
+    _insert_dict_setitem,
+    _insert_update,
+    _insert_namepath,
+    _insert_array_append,
+    _insert_array_insert,
+    _insert_array_extend,
+    _insert_array_setitem,
+    _insert_array_slice,
+    _insert_make_indirect,
+    _insert_with_same_owner_as,
+    _insert_stream_key,
+    _insert_stream_ctor,
+    _insert_add_resource,
+    _insert_nametree,
+    _insert_numbertree,
+]
+
+
+def _foreign_indirect(src):
+    return Dictionary(P=src.Root.Ind)
+
+
+def _foreign_indirect_nested(src):
+    return Array([Dictionary(Inner=Array([src.Root.Ind]))])
+
+
+def _foreign_direct_nested(src):
+    return Dictionary(Inner=src.Root.Dir)
+
+
+class TestRefusesMixedOwners:
+    """A value that refers to another Pdf is refused when it is inserted.
+
+    A Dictionary or Array that belongs to no Pdf may hold anything. Inserting
+    it adopts it and its direct children, so that is where an object from
+    another Pdf is found and refused, before the target is changed at all.
+    """
+
+    @pytest.fixture
+    def dst(self):
+        pdf = _source_pdf('dst')
+        pdf.Root.Arr = Array([0])
+        pdf.Root.Strm = pikepdf.Stream(pdf, b'x')
+        pdf.Root.NT = NameTree.new(pdf).obj
+        pdf.Root.NumT = pikepdf.NumberTree.new(pdf).obj
+        return pdf
+
+    @staticmethod
+    def _snapshot(pdf):
+        return (
+            repr(pdf.Root),
+            len(pdf.objects),
+            repr(pdf.pages[0].obj),
+        )
+
+    @pytest.mark.parametrize('insert', _INSERTERS, ids=lambda f: f.__name__[8:])
+    @pytest.mark.parametrize(
+        'make',
+        [_foreign_indirect, _foreign_indirect_nested, _foreign_direct_nested],
+        ids=lambda f: f.__name__[1:],
+    )
+    def test_refused_and_target_unchanged(self, dst, insert, make):
+        src = _source_pdf('src')
+        value = make(src)
+        before = self._snapshot(dst)
+        with pytest.raises(ForeignObjectError):
+            insert(dst, value)
+        assert self._snapshot(dst) == before
+        assert not value.is_owned_by(dst)
+
+    def test_page_with_foreign_child_refused(self, dst):
+        src = _source_pdf('src')
+        page = pikepdf.Page(
+            Dictionary(Type=Name.Page, MediaBox=[0, 0, 1, 1], X=src.Root.Ind)
+        )
+        with pytest.raises(ForeignObjectError):
+            dst.pages.append(page)
+        with pytest.raises(ForeignObjectError):
+            dst.pages.insert(0, page)
+        assert len(dst.pages) == 1
+
+    def test_error_names_the_path(self, dst):
+        src = _source_pdf('src')
+        with pytest.raises(ForeignObjectError, match=r'\[0\]/Inner\[0\]'):
+            dst.Root.Target = _foreign_indirect_nested(src)
+
+    def test_users_example(self):
+        pdf1, pdf2, pdf3 = _source_pdf('1'), _source_pdf('2'), _source_pdf('3')
+        d = Dictionary()
+        d.P1 = pdf1.Root.Ind
+        d.P2 = pdf2.Root.Ind
+        with pytest.raises(ForeignObjectError, match='copy_foreign'):
+            pdf3.Root.Obj3 = d
+        assert '/Obj3' not in pdf3.Root
+
+    def test_unowned_container_may_mix(self):
+        pdf1, pdf2 = _source_pdf('1'), _source_pdf('2')
+        d = Dictionary(P1=pdf1.Root.Ind, P2=pdf2.Root.Ind)
+        assert str(d.P1.Tag) == '1'
+        assert str(d.P2.Tag) == '2'
+
+    def test_own_objects_accepted(self, dst):
+        dst.Root.Target = Array([Dictionary(P=dst.Root.Ind, D=dst.Root.Dir)])
+        assert str(dst.Root.Target[0].P.Tag) == 'dst'
+
+    def test_copy_foreign_then_insert(self, dst):
+        src = _source_pdf('src')
+        dst.Root.Target = Dictionary(P=dst.copy_foreign(src.Root.Ind))
+        assert dst.Root.Target.P.is_owned_by(dst)
+
+    def test_reading_mixed_state_does_not_raise(self, dst):
+        # The page from another Pdf is copied, which is allowed; reads of an
+        # existing document must never trip the insertion check.
+        src = _source_pdf('src')
+        dst.pages.append(src.pages[0])
+        assert repr(dst.pages[-1].obj)
+
+
 class TestDescriptions:
     def test_make_indirect_object_is_owned(self):
         pdf = pikepdf.new()

@@ -823,6 +823,7 @@ void init_object_methods(locked_class_<QPDFObjectHandle> &object)
                 // itself: qpdf labels a stream dictionary through
                 // QPDF_Stream::setDictDescription, which only acts on a
                 // dictionary that has no description of its own.
+                refuse_mixed_owners(live_owner(h), dict);
                 adopt_children_into(live_owner(h), dict);
                 h.replaceDict(dict);
             },
@@ -1268,6 +1269,8 @@ void init_object_methods(locked_class_<QPDFObjectHandle> &object)
                 }
                 if (PyErr_Occurred())
                     throw py::python_error();
+                for (auto const &value : new_vals)
+                    refuse_mixed_owners(live_owner(h), value);
 
                 std::vector<QPDFObjectHandle> replaced;
                 if (step != 1) {
@@ -1330,10 +1333,15 @@ void init_object_methods(locked_class_<QPDFObjectHandle> &object)
             py::arg("pyitem").none())
         .def("extend",
             [](QPDFObjectHandle &h, py::iterable iter) {
-                for (auto item : iter) {
-                    auto value = objecthandle_encode(item);
+                // Every item is checked before any is appended, so a value
+                // from another Pdf leaves the array as it was.
+                std::vector<QPDFObjectHandle> values;
+                for (auto item : iter)
+                    values.push_back(objecthandle_encode(item));
+                for (auto const &value : values)
+                    refuse_mixed_owners(live_owner(h), value);
+                for (auto const &value : values)
                     h.appendItem(adopt_into(live_owner(h), value));
-                }
             })
         .def("clear",
             [](QPDFObjectHandle &h) {

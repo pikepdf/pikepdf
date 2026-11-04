@@ -14,6 +14,7 @@
 #include "pikepdf.h"
 #include "qpdf_lock.h"
 
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -199,9 +200,85 @@ static QPDFObjectHandle adopt_into_impl(
     return value;
 }
 
+// Find an object that belongs to a document other than `target` in `value`, or
+// in a direct object below it. On success, `path` is where it was found,
+// relative to `value`, and `indirect` says what kind of object it is.
+//
+// Only the direct objects are walked, the same ones adoption visits: the walk
+// stops at an indirect object, and at a container `target` already owns, whose
+// children were checked when it was inserted.
+static bool find_foreign_impl(
+    QPDF *target, QPDFObjectHandle value, std::string &path, bool &indirect, int depth)
+{
+    if (depth > ADOPT_MAX_DEPTH || !value.isInitialized())
+        return false;
+    if (value.isIndirect()) {
+        QPDF *owner = live_owner(value);
+        indirect = true;
+        return owner && owner != target;
+    }
+    // A scalar from another document is copied when it is adopted.
+    if (is_scalar_object(value))
+        return false;
+    QPDF *owner = live_owner(value);
+    if (owner == target)
+        return false;
+    if (owner) {
+        indirect = false;
+        return true;
+    }
+    if (value.isDictionary()) {
+        for (auto const &[key, item] : value.ditems()) {
+            if (find_foreign_impl(target, item, path, indirect, depth + 1)) {
+                path.insert(0, key);
+                return true;
+            }
+        }
+    } else if (value.isArray()) {
+        int index = 0;
+        for (auto const &item : value.aitems()) {
+            if (find_foreign_impl(target, item, path, indirect, depth + 1)) {
+                path.insert(0, "[" + std::to_string(index) + "]");
+                return true;
+            }
+            ++index;
+        }
+    }
+    return false;
+}
+
+// Raise ForeignObjectError if `value` refers to a document other than `target`,
+// the one it is about to be inserted into.
+//
+// A Dictionary or Array that belongs to no document may hold objects from any
+// number of them. Such a value cannot be inserted into a document as it is: the
+// objects from elsewhere would make it impossible to save, and would let
+// operations on this document reach into another without its lock. qpdf only
+// checks the object being inserted, not what it contains, so check before any
+// part of the value is adopted or the target changed.
+void refuse_mixed_owners(QPDF *target, QPDFObjectHandle value)
+{
+    if (!target)
+        return;
+    std::string path;
+    bool indirect = false;
+    if (!find_foreign_impl(target, value, path, indirect, 0))
+        return;
+    auto where = path.empty() ? std::string() : " (found at " + path + ")";
+    if (indirect)
+        throw_foreign_object_error(
+            "Attempting to add an object from a different pikepdf.Pdf" + where +
+            ". Use pikepdf.copy_foreign to add objects from another file, or "
+            "construct a new object.");
+    throw_foreign_object_error("This object belongs to another Pdf" + where +
+                               ". Remove it from that document first, or make it "
+                               "indirect there and use Pdf.copy_foreign().");
+}
+
 // Give a direct object, and every direct object below it, the same owning
 // document as the container it is about to be inserted into, and return the
-// handle that should actually be inserted.
+// handle that should actually be inserted. Raises ForeignObjectError, before
+// changing anything, if the object refers to another document.
 //
 // qpdf only associates a document with objects that it read from that
 // document, so an object built in Python (the 42 in ``pdf.Root.Count = 42``,
@@ -210,13 +287,19 @@ static QPDFObjectHandle adopt_into_impl(
 // settings, such as Pdf.conversion_mode, apply to objects created in the
 // current session, and it matches what qpdf does for objects parsed from a
 // file.
-QPDFObjectHandle adopt_into(QPDF *owner, QPDFObjectHandle value)
+static QPDFObjectHandle adopt_into_unchecked(QPDF *owner, QPDFObjectHandle value)
 {
     if (!owner)
         return value;
     // One registry lookup for the whole subtree.
     auto *entry = QpdfRegistry::instance().lookup_entry(owner);
     return adopt_into_impl(owner, entry, value, 0);
+}
+
+QPDFObjectHandle adopt_into(QPDF *owner, QPDFObjectHandle value)
+{
+    refuse_mixed_owners(owner, value);
+    return adopt_into_unchecked(owner, value);
 }
 
 // Adopt the direct children of a container that already has an owner, such as
@@ -253,7 +336,7 @@ QPDFObjectHandle adopt_key_on_read(QPDFObjectHandle holder,
 {
     if (!needs_adoption_on_read(value))
         return value;
-    auto adopted = adopt_into(live_owner(holder), value);
+    auto adopted = adopt_into_unchecked(live_owner(holder), value);
     if (!adopted.isSameObjectAs(value))
         dict.replaceKey(key, adopted);
     return adopted;
@@ -264,7 +347,7 @@ QPDFObjectHandle adopt_item_on_read(
 {
     if (!needs_adoption_on_read(value))
         return value;
-    auto adopted = adopt_into(live_owner(array), value);
+    auto adopted = adopt_into_unchecked(live_owner(array), value);
     if (!adopted.isSameObjectAs(value))
         array.setArrayItem(index, adopted);
     return adopted;
@@ -321,6 +404,7 @@ static void adopt_made_indirect(QPDF *owner, QPDFObjectHandle indirect)
 // passed to stay aliased with the document.
 QPDFObjectHandle make_direct_indirect(QPDF *owner, QPDFObjectHandle direct)
 {
+    refuse_mixed_owners(owner, direct);
     auto target = direct;
     if (is_scalar_object(direct)) {
         target = direct.shallowCopy();

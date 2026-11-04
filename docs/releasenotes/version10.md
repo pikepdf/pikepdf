@@ -96,6 +96,19 @@ the architecture notes on thread safety.
   time at once.
 - Fixed {meth}`pikepdf.form.SignatureField.stamp_overlay` stamping the
   overlay twice when the signature widget names its page with `/P`.
+- Inserting a {class}`pikepdf.Dictionary` or {class}`pikepdf.Array` that
+  refers to another `Pdf` into a `Pdf` now raises
+  {exc}`pikepdf.ForeignObjectError`, naming the key or index where the
+  foreign object was found, and leaves the target unchanged. This covers an
+  indirect object of another `Pdf` held anywhere in the value, such as
+  `pdf3.Root.X = Dictionary(P=pdf1.Root.Y)`, and a direct dictionary or array
+  that another `Pdf` already contains. Previously the value was accepted:
+  the first kind made the `Pdf` impossible to save, failing part way through
+  writing, and the second left two documents sharing one object. It applies
+  to every way of inserting a value, including {meth}`pikepdf.Pdf.make_indirect`,
+  {meth}`pikepdf.Page.add_resource`, adding a page built from a dictionary,
+  name and number trees, and stream dictionaries. Use
+  {meth}`pikepdf.Pdf.copy_foreign` to bring the foreign object over first.
 - Two threads that each hold the lock of one `Pdf` and
   then need the other's no longer wait for each other for ever. One of them
   now gets a {exc}`RuntimeError`. This arises when a callback, such as a

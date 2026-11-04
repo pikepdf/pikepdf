@@ -71,7 +71,11 @@ What is not protected:
   {class}`pikepdf.Array` that you have created and not yet added to a `Pdf`
   has no `Pdf` lock to take. Do not change one from one thread while another
   thread uses it. Once it is added to a `Pdf` it belongs to that `Pdf`, and
-  from then on it is protected by that `Pdf`'s lock.
+  from then on it is protected by that `Pdf`'s lock. Such an object may hold
+  indirect objects of other `Pdf`s; operations that read the whole object,
+  such as `repr()` or comparison, read those without their `Pdf`'s lock.
+  Adding it to a `Pdf` raises {exc}`pikepdf.ForeignObjectError` if anything
+  in it belongs to another `Pdf`.
 
 How these locks work inside pikepdf is described in {doc}`locking`.
 

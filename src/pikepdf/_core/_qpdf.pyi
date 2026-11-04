@@ -446,7 +446,12 @@ class Pdf:
         (``/Outlines`` dictionary), you may have to update references to pages.
 
         Direct objects, including dictionaries, do not need ``copy_foreign()``.
-        pikepdf will automatically convert and construct them.
+        pikepdf will automatically convert and construct them. A direct object
+        must not refer to another ``Pdf``, though: a :class:`pikepdf.Dictionary`
+        or :class:`pikepdf.Array` that holds an indirect object of another
+        ``Pdf`` can be built, but inserting it into this one raises
+        :exc:`pikepdf.ForeignObjectError`, naming where the foreign object was
+        found. Copy the indirect object with ``copy_foreign()`` first.
 
         Note:
             pikepdf automatically treats incoming pages from a foreign PDF as

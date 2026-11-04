@@ -227,6 +227,19 @@ between threads. Once the object is added to a `Pdf` it is adopted in place
 `Pdf`'s lock. `_ObjectList` and `_ObjectMapping` also belong to no `Pdf`,
 but each locks itself (see `src/core/object_list.cpp`).
 
+Adoption keeps every object in a `Pdf`'s graph owned by that `Pdf`, which is
+what lets one lock cover them. Before adopting, `refuse_mixed_owners` walks
+the direct objects of the value being inserted, the same ones adoption
+visits, and raises `ForeignObjectError` if it finds an indirect object or a
+direct container that belongs to another `Pdf`. It runs before anything is
+changed, so a refused insertion leaves the target as it was. Every insertion
+path goes through `adopt_into` or `make_direct_indirect`; the few that adopt
+after qpdf has inserted the value (page insertion, the `stream_dict` setter,
+the `Stream` constructor) and those that insert several values (`extend`,
+slice assignment) call `refuse_mixed_owners` themselves first. Adoption on
+read does not check, so that a document already in a bad state can still be
+read.
+
 ## The teardown lock
 
 `~QPDF` clears the owner of each of its objects and then destroys their

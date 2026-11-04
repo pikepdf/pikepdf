@@ -29,6 +29,7 @@ public:
     void delete_pages_from_iterable(py::slice slice);
     size_t count();
     void adopt_page_at(size_t index);
+    void refuse_foreign_children(QPDFPageObjectHelper &page);
     void insert_page(size_t index, QPDFPageObjectHelper page);
     void append_page(QPDFPageObjectHelper page);
 
