@@ -20,7 +20,10 @@
 #    waits for the teardown, or finds no owner and waits in
 #    QpdfRegistry::wait_for_teardown();
 #  - pikepdf's adoption of direct objects into a Pdf, and their release when
-#    they are replaced or deleted, both done under that Pdf's lock.
+#    they are replaced or deleted, both done under that Pdf's lock and the
+#    lock shared by objects with no owner. A reader that raced either one
+#    reads the owner again once it holds the lock it chose, and starts over
+#    if it changed.
 # race_top matches only the innermost frame, so a race on anything other than
 # the owner pointer itself is still reported.
 race_top:QPDFObject::getQPDF

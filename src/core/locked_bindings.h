@@ -37,6 +37,7 @@
 #include "pikepdf.h"
 #include "qpdf_lock.h"
 
+#include <algorithm>
 #include <array>
 #include <cstddef>
 #include <functional>
@@ -79,7 +80,7 @@ template <>
 struct LockOwner<QPDFObjectHandle> {
     static constexpr bool declared = true;
     static constexpr bool locks = true;
-    static QPDF *of(QPDFObjectHandle const &h) { return h.getOwningQPDF(); }
+    static QPDF *of(QPDFObjectHandle const &h) { return lock_target(h); }
 };
 
 // Page, annotation, name tree, number tree, file spec and form field helpers
@@ -87,10 +88,7 @@ template <typename T>
 struct LockOwner<T, std::enable_if_t<std::is_base_of_v<QPDFObjectHelper, T>>> {
     static constexpr bool declared = true;
     static constexpr bool locks = true;
-    static QPDF *of(T const &helper)
-    {
-        return helper.getObjectHandle().getOwningQPDF();
-    }
+    static QPDF *of(T const &helper) { return lock_target(helper.getObjectHandle()); }
 };
 
 // Interactive form, embedded file, outline and page label document helpers
@@ -196,6 +194,36 @@ private:
     DualQpdfLockGuard guard_;
 };
 
+// Holds the locks that args need for as long as it lives.
+//
+// An argument's owner can change while this thread waits for its lock, when
+// another thread adds the object to a Pdf or takes it out of one. So once the
+// locks are held the owners are read again, and if any changed the locks are
+// released and taken afresh. See unowned_mutex().
+template <typename... Args>
+class ArgsGuard {
+public:
+    explicit ArgsGuard(std::remove_reference_t<Args> &...args)
+    {
+        auto owners = owners_of<Args...>(args...);
+        for (;;) {
+            guard_.emplace(owners);
+            // A scalar that belongs to no Pdf never comes to belong to one:
+            // adoption copies it. So there is nothing to read again.
+            if (std::all_of(owners.begin(), owners.end(), [](QPDF *q) { return !q; }))
+                return;
+            auto now = owners_of<Args...>(args...);
+            if (now == owners)
+                return;
+            guard_.reset();
+            owners = now;
+        }
+    }
+
+private:
+    std::optional<OwnersGuard<n_locking<Args...>>> guard_;
+};
+
 // A callable with the signature R(Args...) that nanobind sees in place of f.
 template <typename F, typename R, typename... Args>
 struct LockedFunction {
@@ -208,7 +236,7 @@ struct LockedFunction {
 
     R operator()(Args... args) const
     {
-        OwnersGuard<n_locking<Args...>> guard(owners_of<Args...>(args...));
+        ArgsGuard<Args...> guard(args...);
         return std::invoke(f, std::forward<Args>(args)...);
     }
 };
@@ -328,8 +356,7 @@ public:
         cls_.def(
             "__init__",
             [](T *self, Args... args) {
-                locked_detail::OwnersGuard<locked_detail::n_locking<Args...>> guard(
-                    locked_detail::owners_of<Args...>(args...));
+                locked_detail::ArgsGuard<Args...> guard(args...);
                 new (static_cast<void *>(self)) Alias(std::forward<Args>(args)...);
             },
             extra...);
@@ -405,8 +432,7 @@ private:
         static_assert(!(locked_detail::arg_untyped<Args> || ...),
             "A constructor may not take py::object or py::handle.");
         return [factory = std::move(factory)](T *self, Args... args) {
-            locked_detail::OwnersGuard<locked_detail::n_locking<Args...>> guard(
-                locked_detail::owners_of<Args...>(args...));
+            locked_detail::ArgsGuard<Args...> guard(args...);
             new (self) T(factory(std::forward<Args>(args)...));
         };
     }

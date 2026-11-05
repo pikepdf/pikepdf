@@ -310,7 +310,7 @@ std::string objecthandle_repr(QPDFObjectHandle h)
     }
     // Resolve the conversion mode once for the whole repr, instead of looking
     // up the registry entry for every scalar element of a container.
-    QpdfLockGuard lock(h.getOwningQPDF());
+    QpdfLockGuard lock(h);
     bool explicit_mode = get_explicit_conversion_mode(lock.entry());
 
     if (h.isScalar() || h.isOperator()) {

@@ -76,6 +76,9 @@ public:
     void exit() { guard_.reset(); }
 
 private:
+    // The Pdf of each item, but never unowned_mutex() for an item that belongs
+    // to no Pdf: this lock is held while Python code runs, which may go on to
+    // take a Pdf lock, and unowned_mutex() must not be held while doing so.
     static QPDF *owner_of(py::handle item)
     {
         if (py::isinstance<QPDF>(item))

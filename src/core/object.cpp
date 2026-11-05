@@ -168,7 +168,7 @@ QPDFObjectHandle object_get_key_locked(QPDFObjectHandle &h, std::string const &k
 
 QPDFObjectHandle object_get_key(QPDFObjectHandle h, std::string const &key)
 {
-    QpdfLockGuard lock(h.getOwningQPDF());
+    QpdfLockGuard lock(h);
     return object_get_key_locked(h, key);
 }
 
@@ -203,7 +203,7 @@ void object_set_key_locked(
 
 void object_set_key(QPDFObjectHandle h, std::string const &key, QPDFObjectHandle &value)
 {
-    QpdfLockGuard lock(h.getOwningQPDF());
+    QpdfLockGuard lock(h);
     object_set_key_locked(h, key, value);
 }
 
@@ -227,7 +227,7 @@ void object_del_key_locked(QPDFObjectHandle &h, std::string const &key)
 
 void object_del_key(QPDFObjectHandle h, std::string const &key)
 {
-    QpdfLockGuard lock(h.getOwningQPDF());
+    QpdfLockGuard lock(h);
     object_del_key_locked(h, key);
 }
 
@@ -636,7 +636,7 @@ void init_object(py::module_ &m)
                 auto &h = py::cast<QPDFObjectHandle &>(self);
                 py::object value;
                 {
-                    QpdfLockGuard lock(h.getOwningQPDF());
+                    QpdfLockGuard lock(h);
                     if (h.isBool())
                         value = py::bool_(h.getBoolValue());
                     else if (h.isInteger() || h.isReal())

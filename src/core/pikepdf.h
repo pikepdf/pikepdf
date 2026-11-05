@@ -158,7 +158,12 @@ struct type_caster<QPDFObjectHandle> : public type_caster_base<QPDFObjectHandle>
         // when the caller already holds the lock. This function cannot
         // throw, so it waits without the check for a deadlock; the binding
         // whose result this is has just held the same lock, with the check.
-        QpdfLockGuard qpdf_lock(src->getOwningQPDF(), std::nothrow);
+        // A binding that converts the children of a container that belongs
+        // to no Pdf holds unowned_mutex() here, so the lock is taken as
+        // AfterUnowned. Such bindings convert a copy of the children, never
+        // while iterating the container itself.
+        QpdfLockGuard qpdf_lock(
+            src->getOwningQPDF(), QpdfLockGuard::AfterUnowned{}, std::nothrow);
 
         // In explicit conversion mode, return scalars as pikepdf.Object
         // so that Integer/Boolean/Real types are preserved.
@@ -259,8 +264,9 @@ public:
     // raise.
     bool ok() const { return !error_; }
 
-    // The Pdf to lock, or nullptr for an unowned or unconvertible value
-    QPDF *owner() const { return error_ ? nullptr : h_.getOwningQPDF(); }
+    // The Pdf to lock (see lock_target()), or nullptr for an unconvertible
+    // value
+    QPDF *owner() const { return error_ ? nullptr : lock_target(h_); }
 
 private:
     QPDFObjectHandle h_;

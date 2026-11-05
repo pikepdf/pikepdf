@@ -60,11 +60,11 @@ static py::object binary_arithmetic(
     py::object lhs, rhs;
     if (py::isinstance<QPDFObjectHandle>(other)) {
         auto &other_h = py::cast<QPDFObjectHandle &>(other);
-        DualQpdfLockGuard lock(self.getOwningQPDF(), other_h.getOwningQPDF());
+        DualQpdfLockGuard lock(self, other_h);
         lhs = arithmetic_operand(self, false);
         rhs = arithmetic_operand(other_h, false);
     } else {
-        QpdfLockGuard lock(self.getOwningQPDF());
+        QpdfLockGuard lock(self);
         lhs = arithmetic_operand(self, py::isinstance<py::float_>(other));
         if (!PyNumber_Check(other.ptr()))
             return py::borrow<py::object>(py::handle(Py_NotImplemented));
@@ -130,7 +130,7 @@ static py::object compare_numeric(QPDFObjectHandle &self, py::handle other, int 
     py::object lhs, rhs;
     if (py::isinstance<QPDFObjectHandle>(other)) {
         auto &other_h = py::cast<QPDFObjectHandle &>(other);
-        DualQpdfLockGuard lock(self.getOwningQPDF(), other_h.getOwningQPDF());
+        DualQpdfLockGuard lock(self, other_h);
         auto l = ordering_operand(self);
         if (!l)
             return not_implemented();
@@ -140,7 +140,7 @@ static py::object compare_numeric(QPDFObjectHandle &self, py::handle other, int 
         lhs = *l;
         rhs = *r;
     } else {
-        QpdfLockGuard lock(self.getOwningQPDF());
+        QpdfLockGuard lock(self);
         auto l = ordering_operand(self);
         if (!l)
             return not_implemented();
@@ -188,7 +188,7 @@ void init_object_arithmetic(locked_class_<QPDFObjectHandle> &object)
             unlocked([](QPDFObjectHandle &h, py::object ndigits) {
                 py::object operand;
                 {
-                    QpdfLockGuard lock(h.getOwningQPDF());
+                    QpdfLockGuard lock(h);
                     operand = number_operand(h);
                 }
                 if (ndigits.is_none())

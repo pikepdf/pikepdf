@@ -108,6 +108,43 @@ public:
         }
     }
 
+    // Take the lock if that needs no wait, and say whether it was taken.
+    bool try_lock()
+    {
+        auto tid = current_thread_id();
+        if (owner_.load(std::memory_order_relaxed) == tid) {
+            ++depth_;
+            return true;
+        }
+        if (!try_take(tid))
+            return false;
+        depth_ = 1;
+        return true;
+    }
+
+    // Give up the lock entirely, however many times this thread has taken it,
+    // and return that number for resume(). Returns 0 if this thread does not
+    // hold the lock.
+    int suspend()
+    {
+        if (owner_.load(std::memory_order_relaxed) != current_thread_id())
+            return 0;
+        int depth = depth_;
+        depth_ = 1;
+        unlock();
+        return depth;
+    }
+
+    // Take the lock back after suspend(). Waits without the check for a
+    // deadlock, since the caller's own guards expect to find the lock held.
+    void resume(int depth)
+    {
+        if (depth == 0)
+            return;
+        lock_unchecked();
+        depth_ = depth;
+    }
+
 private:
     void lock_impl(bool check)
     {
@@ -416,9 +453,92 @@ private:
     std::atomic<int> teardowns_{0};
 };
 
+// Objects that belong to no Pdf.
+//
+// A Dictionary or Array built in Python belongs to no Pdf until it is added to
+// one, so there is no Pdf lock to protect it. All such containers share one
+// lock instead, unowned_mutex(). Scalars need no lock, since they cannot be
+// changed. Threads that each build containers of their own contend for this
+// lock, which is one reason to add a container to its Pdf straight away.
+//
+// The guards below take it when they are given unowned_owner(), a stand-in
+// owner that lock_target() returns for such a container. It is always taken
+// after any Pdf lock, never before: code that holds it does not go on to take
+// a Pdf lock. Pdf locks are taken in the registry's order, so this rule makes
+// the order of every lock fixed.
+//
+// An object's owner changes when it is added to a Pdf or taken out of one, and
+// pikepdf holds both the Pdf's lock and this one when it does so. A thread that
+// has locked an object's owner and finds the owner unchanged therefore knows
+// that it cannot change until the lock is released. The guards that take an
+// object, rather than a QPDF, read its owner again once they hold the lock and
+// start over if it changed.
+
+inline ReentrantFtMutex &unowned_mutex()
+{
+    static ReentrantFtMutex mutex;
+    return mutex;
+}
+
+// Never dereferenced: only compared.
+inline QPDF *unowned_owner()
+{
+    static char tag;
+    return reinterpret_cast<QPDF *>(&tag);
+}
+
+// What to lock to use h: its Pdf, unowned_owner() for a container that belongs
+// to no Pdf, or nullptr for a scalar that belongs to no Pdf.
+inline QPDF *lock_target(QPDFObjectHandle const &h)
+{
+    if (QPDF *owner = h.getOwningQPDF())
+        return owner;
+    if (h.isDictionary() || h.isArray())
+        return unowned_owner();
+    return nullptr;
+}
+
+// Holds unowned_mutex() for a guard, which declares it after its Pdf entries,
+// so that it is released first.
+class UnownedLockHold {
+public:
+    UnownedLockHold() = default;
+    ~UnownedLockHold() { release(); }
+
+    void lock(bool check)
+    {
+        if (check)
+            unowned_mutex().lock();
+        else
+            unowned_mutex().lock_unchecked();
+        held_ = true;
+    }
+
+    // Take the lock unless this already holds it.
+    void ensure()
+    {
+        if (!held_)
+            lock(true);
+    }
+
+    void release()
+    {
+        if (held_)
+            unowned_mutex().unlock();
+        held_ = false;
+    }
+
+    UnownedLockHold(const UnownedLockHold &) = delete;
+    UnownedLockHold &operator=(const UnownedLockHold &) = delete;
+
+private:
+    bool held_ = false;
+};
+
 // RAII guard that locks a single QPDF's mutex via the registry.
-// Takes no lock if q is null or not registered (direct/unowned objects), but
-// does wait for any QPDF that is being destroyed: see wait_for_teardown().
+// For unowned_owner() it takes unowned_mutex(). For null or an unregistered
+// QPDF it takes no lock. Either way, an object with no owner waits for any
+// QPDF that is being destroyed: see wait_for_teardown().
 //
 // The guard shares ownership of the registry entry. If another thread destroys
 // the QPDF while this one waits for the lock, the wait ends once the QPDF is
@@ -427,29 +547,35 @@ private:
 // use without a lock.
 class QpdfLockGuard {
 public:
-    explicit QpdfLockGuard(QPDF *q) : entry_(QpdfRegistry::instance().lookup_shared(q))
-    {
-        if (entry_)
-            entry_->mutex.lock();
-        else
-            QpdfRegistry::instance().wait_for_teardown();
-    }
+    explicit QpdfLockGuard(QPDF *q) { acquire(q, true); }
 
     // For code that cannot throw: waits without checking for a deadlock.
-    QpdfLockGuard(QPDF *q, std::nothrow_t) noexcept
-        : entry_(QpdfRegistry::instance().lookup_shared(q))
+    QpdfLockGuard(QPDF *q, std::nothrow_t) noexcept { acquire(q, false); }
+
+    // Lock what h needs, checking afterwards that h's owner did not change
+    // while this thread waited.
+    explicit QpdfLockGuard(QPDFObjectHandle const &h) { acquire_for(h, true); }
+
+    QpdfLockGuard(QPDFObjectHandle const &h, std::nothrow_t) noexcept
     {
-        if (entry_)
-            entry_->mutex.lock_unchecked();
-        else
-            QpdfRegistry::instance().wait_for_teardown();
+        acquire_for(h, false);
     }
 
-    ~QpdfLockGuard()
+    // Lock q from code that may hold unowned_mutex(), which must not be held
+    // while waiting for a Pdf lock. If q's lock is not free at once,
+    // unowned_mutex() is set aside while this thread waits for it, then taken
+    // back, so the locks end up taken in the usual order. Only for a caller
+    // that has finished with the objects unowned_mutex() protects, since
+    // another thread may change them in the meantime.
+    struct AfterUnowned {};
+    QpdfLockGuard(QPDF *q, AfterUnowned) { acquire_after_unowned(q, true); }
+
+    QpdfLockGuard(QPDF *q, AfterUnowned, std::nothrow_t) noexcept
     {
-        if (entry_)
-            entry_->mutex.unlock();
+        acquire_after_unowned(q, false);
     }
+
+    ~QpdfLockGuard() { release(); }
 
     // The registry entry of the locked QPDF, or nullptr for unowned objects.
     // Lets callers read the document's conversion mode without a second
@@ -460,77 +586,183 @@ public:
     QpdfLockGuard &operator=(const QpdfLockGuard &) = delete;
 
 private:
+    void acquire(QPDF *q, bool check)
+    {
+        auto &reg = QpdfRegistry::instance();
+        if (q != unowned_owner())
+            entry_ = reg.lookup_shared(q);
+        if (entry_) {
+            if (check)
+                entry_->mutex.lock();
+            else
+                entry_->mutex.lock_unchecked();
+            return;
+        }
+        reg.wait_for_teardown();
+        if (q == unowned_owner())
+            unowned_.lock(check);
+    }
+
+    void acquire_after_unowned(QPDF *q, bool check)
+    {
+        auto &reg = QpdfRegistry::instance();
+        entry_ = reg.lookup_shared(q);
+        if (!entry_) {
+            reg.wait_for_teardown();
+            return;
+        }
+        if (entry_->mutex.try_lock())
+            return;
+        auto &unowned = unowned_mutex();
+        int depth = unowned.suspend();
+        try {
+            if (check)
+                entry_->mutex.lock();
+            else
+                entry_->mutex.lock_unchecked();
+        } catch (...) {
+            entry_.reset();
+            unowned.resume(depth);
+            throw;
+        }
+        unowned.resume(depth);
+    }
+
+    void acquire_for(QPDFObjectHandle const &h, bool check)
+    {
+        QPDF *q = lock_target(h);
+        for (;;) {
+            acquire(q, check);
+            // See ArgsGuard in locked_bindings.h
+            if (!q)
+                return;
+            QPDF *now = lock_target(h);
+            if (now == q)
+                return;
+            release();
+            q = now;
+        }
+    }
+
+    void release()
+    {
+        unowned_.release();
+        if (entry_)
+            entry_->mutex.unlock();
+        entry_.reset();
+    }
+
     std::shared_ptr<QpdfEntry> entry_;
+    UnownedLockHold unowned_;
 };
 
 // RAII guard that locks two QPDF mutexes in consistent pointer order
 // to prevent deadlocks. Used by copy_foreign(), with_same_owner_as(), etc.
 class DualQpdfLockGuard {
 public:
-    DualQpdfLockGuard(QPDF *a, QPDF *b)
+    DualQpdfLockGuard(QPDF *a, QPDF *b) { acquire(a, b); }
+
+    // Lock what a and b need, checking afterwards that neither owner changed
+    // while this thread waited.
+    DualQpdfLockGuard(QPDFObjectHandle const &a, QPDFObjectHandle const &b)
     {
-        auto &reg = QpdfRegistry::instance();
-        auto ea = reg.lookup_shared(a);
-        auto eb = reg.lookup_shared(b);
-
-        if (ea == eb) {
-            // Same QPDF or both null -- single lock at most
-            first_ = std::move(ea);
-        } else if (!eb || (ea && std::less<QpdfEntry *>()(ea.get(), eb.get()))) {
-            first_ = std::move(ea);
-            second_ = std::move(eb);
-        } else {
-            first_ = std::move(eb);
-            second_ = std::move(ea);
+        QPDF *qa = lock_target(a);
+        QPDF *qb = lock_target(b);
+        for (;;) {
+            acquire(qa, qb);
+            QPDF *now_a = lock_target(a);
+            QPDF *now_b = lock_target(b);
+            if (now_a == qa && now_b == qb)
+                return;
+            release();
+            qa = now_a;
+            qb = now_b;
         }
-
-        if (first_)
-            first_->mutex.lock();
-        if (second_) {
-            try {
-                second_->mutex.lock();
-            } catch (...) {
-                // The destructor does not run for a constructor that throws
-                if (first_)
-                    first_->mutex.unlock();
-                throw;
-            }
-        }
-        if (!first_ || (!second_ && a != b))
-            reg.wait_for_teardown(); // At least one object has no owner
     }
 
-    ~DualQpdfLockGuard()
-    {
-        if (second_)
-            second_->mutex.unlock();
-        if (first_)
-            first_->mutex.unlock();
-    }
+    ~DualQpdfLockGuard() { release(); }
 
     DualQpdfLockGuard(const DualQpdfLockGuard &) = delete;
     DualQpdfLockGuard &operator=(const DualQpdfLockGuard &) = delete;
 
 private:
+    void acquire(QPDF *a, QPDF *b)
+    {
+        auto &reg = QpdfRegistry::instance();
+        bool unowned = a == unowned_owner() || b == unowned_owner();
+        auto ea = a == unowned_owner() ? nullptr : reg.lookup_shared(a);
+        auto eb = b == unowned_owner() ? nullptr : reg.lookup_shared(b);
+
+        std::shared_ptr<QpdfEntry> first, second;
+        if (ea == eb) {
+            // Same QPDF or both null -- single lock at most
+            first = std::move(ea);
+        } else if (!eb || (ea && std::less<QpdfEntry *>()(ea.get(), eb.get()))) {
+            first = std::move(ea);
+            second = std::move(eb);
+        } else {
+            first = std::move(eb);
+            second = std::move(ea);
+        }
+
+        // Each entry is kept only once its mutex is held, so that release()
+        // undoes exactly what was done if a later lock throws.
+        try {
+            if (first) {
+                first->mutex.lock();
+                first_ = std::move(first);
+            }
+            if (second) {
+                second->mutex.lock();
+                second_ = std::move(second);
+            }
+            if (!first_ || (!second_ && a != b))
+                reg.wait_for_teardown(); // At least one object has no owner
+            if (unowned)
+                unowned_.lock(true);
+        } catch (...) {
+            // The destructor does not run for a constructor that throws
+            release();
+            throw;
+        }
+    }
+
+    void release()
+    {
+        unowned_.release();
+        if (second_)
+            second_->mutex.unlock();
+        if (first_)
+            first_->mutex.unlock();
+        first_.reset();
+        second_.reset();
+    }
+
     // Shared for the same reason as QpdfLockGuard::entry_.
     std::shared_ptr<QpdfEntry> first_;
     std::shared_ptr<QpdfEntry> second_;
+    UnownedLockHold unowned_;
 };
 
 // RAII guard that locks any number of QPDFs, in the same consistent order as
 // DualQpdfLockGuard. Null and unregistered pointers are skipped, and the same
-// QPDF may be listed more than once.
+// QPDF may be listed more than once. unowned_owner() takes unowned_mutex(),
+// after every Pdf lock.
 class MultiQpdfLockGuard {
 public:
     explicit MultiQpdfLockGuard(std::vector<QPDF *> const &qpdfs)
     {
         auto &reg = QpdfRegistry::instance();
+        bool no_owner = false;
         bool unowned = false;
         for (auto *q : qpdfs) {
-            if (auto entry = reg.lookup_shared(q))
+            if (q == unowned_owner()) {
+                no_owner = unowned = true;
+            } else if (auto entry = reg.lookup_shared(q)) {
                 entries_.push_back(std::move(entry));
-            else
-                unowned = true;
+            } else {
+                no_owner = true;
+            }
         }
         std::sort(entries_.begin(), entries_.end(), [](auto const &a, auto const &b) {
             return std::less<QpdfEntry *>()(a.get(), b.get());
@@ -540,18 +772,21 @@ public:
         try {
             for (; locked < entries_.size(); ++locked)
                 entries_[locked]->mutex.lock();
+            if (no_owner)
+                reg.wait_for_teardown();
+            if (unowned)
+                unowned_.lock(true);
         } catch (...) {
             // The destructor does not run for a constructor that throws
             while (locked > 0)
                 entries_[--locked]->mutex.unlock();
             throw;
         }
-        if (unowned)
-            reg.wait_for_teardown();
     }
 
     ~MultiQpdfLockGuard()
     {
+        unowned_.release();
         for (auto it = entries_.rbegin(); it != entries_.rend(); ++it)
             (*it)->mutex.unlock();
     }
@@ -561,6 +796,7 @@ public:
 
 private:
     std::vector<std::shared_ptr<QpdfEntry>> entries_;
+    UnownedLockHold unowned_;
 };
 
 // From qpdf.cpp. Turn a QPDF into one that a pikepdf.Pdf can hold: registered

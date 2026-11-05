@@ -67,15 +67,44 @@ What is not protected:
 - **Reads that take several steps.** A helper that reads a `Pdf` in several
   calls, such as the properties of {class}`pikepdf.PdfImage`, can see some
   values from before another thread's change and some from after.
-- **Objects that belong to no `Pdf`.** A {class}`pikepdf.Dictionary` or
-  {class}`pikepdf.Array` that you have created and not yet added to a `Pdf`
-  has no `Pdf` lock to take. Do not change one from one thread while another
-  thread uses it. Once it is added to a `Pdf` it belongs to that `Pdf`, and
-  from then on it is protected by that `Pdf`'s lock. Such an object may hold
-  indirect objects of other `Pdf`s; operations that read the whole object,
-  such as `repr()` or comparison, read those without their `Pdf`'s lock.
-  Adding it to a `Pdf` raises {exc}`pikepdf.ForeignObjectError` if anything
-  in it belongs to another `Pdf`.
+- **Objects of other `Pdf`s inside an object that belongs to none.** A
+  {class}`pikepdf.Dictionary` or {class}`pikepdf.Array` that belongs to no
+  `Pdf` may hold indirect objects of several. Operations that read the whole
+  object, such as `repr()` or comparison, read those without their `Pdf`'s
+  lock. Adding it to a `Pdf` raises {exc}`pikepdf.ForeignObjectError` if
+  anything in it belongs to another `Pdf`.
+
+### Objects that belong to no `Pdf`
+
+A {class}`pikepdf.Dictionary` or {class}`pikepdf.Array` that you have created
+and not yet added to a `Pdf` has no `Pdf` lock to take. Every such object is
+protected by one lock that they all share, so sharing one between threads is
+as safe as sharing an object of a `Pdf`. Once the object is added to a `Pdf`
+it belongs to that `Pdf`, and from then on it is protected by that `Pdf`'s
+lock instead. Scalars such as {class}`pikepdf.Name` cannot be changed, and take
+no lock.
+
+Because the lock is shared, threads that each build objects of their own wait
+for one another, even though the objects are unrelated. Add a `Dictionary` or
+`Array` to the `Pdf` it is meant for as soon as you create it, and fill it in
+there, rather than building a large structure before adding it:
+
+```python
+# Each change takes only pdf's lock
+pdf.Root.Extra = pikepdf.Dictionary()
+extra = pdf.Root.Extra
+for key, value in items:
+    extra[key] = value
+
+# Each change takes the lock that every unattached object shares
+extra = pikepdf.Dictionary()
+for key, value in items:
+    extra[key] = value
+pdf.Root.Extra = extra
+```
+
+Such objects are rarely useful on their own, so in practice they are usually
+attached soon after they are created, and the shared lock is rarely contended.
 
 How these locks work inside pikepdf is described in {doc}`locking`.
 

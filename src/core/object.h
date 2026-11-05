@@ -59,7 +59,7 @@ public:
     py::handle handle() const { return value_; }
 
     // The Pdf to lock, or nullptr for an unowned Object or any other value
-    QPDF *owner() const { return pdf_object_ ? pdf_object_->getOwningQPDF() : nullptr; }
+    QPDF *owner() const { return pdf_object_ ? lock_target(*pdf_object_) : nullptr; }
 
 private:
     py::handle value_;
@@ -90,14 +90,16 @@ struct type_caster<ObjectOrValue> {
 
 // Locks the Pdf of a value that was read out of a container, when that is not
 // the container's own Pdf, which the binding already holds. A Dictionary or
-// Array that has no owner can hold an object that belongs to a Pdf.
+// Array that has no owner can hold an object that belongs to a Pdf. The
+// binding then holds unowned_mutex(), and must have finished with the
+// container: see QpdfLockGuard::AfterUnowned.
 class ChildLockGuard {
 public:
     ChildLockGuard(QPDFObjectHandle const &container, QPDFObjectHandle const &child)
     {
         QPDF *owner = child.getOwningQPDF();
         if (owner && owner != container.getOwningQPDF())
-            guard_.emplace(owner);
+            guard_.emplace(owner, QpdfLockGuard::AfterUnowned{});
     }
 
 private:

@@ -72,7 +72,7 @@ static bool name_from_object(py::handle arg, std::string &name)
         return false;
     auto h = py::cast<QPDFObjectHandle>(arg);
     // The Name may be an indirect object that has not been read yet
-    QpdfLockGuard lock(h.getOwningQPDF());
+    QpdfLockGuard lock(h);
     if (!h.isName())
         return false;
     name = h.getName();

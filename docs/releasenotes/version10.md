@@ -96,6 +96,13 @@ the architecture notes on thread safety.
   time at once.
 - Fixed {meth}`pikepdf.form.SignatureField.stamp_overlay` stamping the
   overlay twice when the signature widget names its page with `/P`.
+- Free-threaded Python: fixed crashes when threads shared a
+  {class}`pikepdf.Dictionary` or {class}`pikepdf.Array` that belongs to no
+  `Pdf`, or changed one while another thread added it to a `Pdf` or removed
+  it. Such objects had no lock; they now share one. Threads that each build
+  objects of their own contend for it, so add a `Dictionary` or `Array` to its
+  `Pdf` as soon as it is created rather than building large structures before
+  adding them. See the thread safety section of the architecture notes.
 - Inserting a {class}`pikepdf.Dictionary` or {class}`pikepdf.Array` that
   refers to another `Pdf` into a `Pdf` now raises
   {exc}`pikepdf.ForeignObjectError`, naming the key or index where the

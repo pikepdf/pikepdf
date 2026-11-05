@@ -72,7 +72,7 @@ void init_matrix(py::module_ &m)
                 for (int i = 0; i < 6; ++i) {
                     // Each number may be an object of a different Pdf
                     auto item = ol.at(i);
-                    QpdfLockGuard lock(item.getOwningQPDF());
+                    QpdfLockGuard lock(item);
                     if (!item.getValueAsNumber(converted.at(i))) {
                         throw py::type_error("Values must be numeric");
                     }

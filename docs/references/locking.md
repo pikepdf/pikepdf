@@ -38,6 +38,7 @@ the first is still in the middle of an operation.
 | Lock | Protects | Kind |
 |---|---|---|
 | Per-`Pdf` lock (`QpdfEntry::mutex`) | one `QPDF` and all of its objects | `ReentrantFtMutex` |
+| Unowned lock (`unowned_mutex()`) | every `Dictionary` and `Array` that belongs to no `Pdf` | `ReentrantFtMutex`, global |
 | Teardown lock (`QpdfRegistry::teardown_mutex_`) | objects of a `QPDF` that is being destroyed | `ReentrantFtMutex`, global |
 | Registry lock (`QpdfRegistry::map_mutex_`) | the map from `QPDF *` to its entry | `std::mutex`, global |
 | Wait table lock (`ReentrantFtMutex::Waiting`) | the table used to detect deadlocks | `std::mutex`, global |
@@ -56,6 +57,7 @@ locks. Per-thread state, such as the stack of conversion mode overrides, is
 | Lock | GIL-enabled build | Free-threaded build |
 |---|---|---|
 | Per-`Pdf` lock | Real. An uncontended lock is a few plain loads and stores, which the GIL makes safe. A thread that finds it held releases the GIL and sleeps on a condition variable. | Real. An uncontended lock is a compare-and-swap. A thread that finds it held detaches from the interpreter and sleeps on a condition variable. |
+| Unowned lock | As the per-`Pdf` lock | As the per-`Pdf` lock |
 | Teardown lock | As the per-`Pdf` lock | As the per-`Pdf` lock |
 | Deadlock check | Runs only when a lock is contended | Runs only when a lock is contended |
 | Registry, wait table, adopted objects, qpdf globals, traversal | `std::mutex`. Needed, because a thread can be inside qpdf with the GIL released. Each is held only briefly and never while calling Python. | `std::mutex`, held only briefly and never while calling Python |
@@ -219,13 +221,40 @@ the return value type caster use these.
 ### Objects that belong to no `Pdf`
 
 A direct `Dictionary` or `Array` that has not been added to a `Pdf` has no
-owner, so no lock is taken for it. Two threads that change the same such
-object at once race inside qpdf, and on a free-threaded build with the GIL
-disabled this crashes. The user documentation tells users not to share one
-between threads. Once the object is added to a `Pdf` it is adopted in place
-(`src/core/object_adoption.cpp`), and from then on it is protected by that
-`Pdf`'s lock. `_ObjectList` and `_ObjectMapping` also belong to no `Pdf`,
+owner. All such containers share one lock, `unowned_mutex()` in
+`src/core/qpdf_lock.h`. `lock_target(h)` says what to lock for an object: its
+`Pdf`, the stand-in `unowned_owner()` for a container that belongs to no
+`Pdf`, or nothing for a scalar that belongs to no `Pdf`, since scalars cannot
+be changed. `LockOwner<QPDFObjectHandle>` and the object helpers answer with
+`lock_target()`, and the guards take `unowned_mutex()` when given
+`unowned_owner()`. `_ObjectList` and `_ObjectMapping` also belong to no `Pdf`,
 but each locks itself (see `src/core/object_list.cpp`).
+
+`unowned_mutex()` is always taken after any `Pdf` lock, never before, so
+that the order of every lock is fixed. Code that holds it must not wait for a
+`Pdf` lock. Two places need a `Pdf` lock while holding it: reading a value out
+of an unowned container that belongs to a `Pdf` (`ChildLockGuard`), and
+converting such a value to Python. Both lock as `QpdfLockGuard::AfterUnowned`:
+if the `Pdf` lock is not free at once, `unowned_mutex()` is set aside while
+the thread waits for it and taken back afterwards. That is only safe because
+the binding has finished with the container by then. `_OwnerLock` never takes
+`unowned_mutex()`, because it holds its locks while Python code runs.
+
+An object's owner changes when it is adopted into a `Pdf`, made indirect, or
+detached. Each of these holds both the `Pdf`'s lock and `unowned_mutex()`
+while the owner changes (`object_adoption.cpp`), so a thread that holds the
+lock of an object's owner knows the owner cannot change until it lets go.
+A thread can still read an object's owner, then wait for that lock while the
+owner changes. So the bindings (`ArgsGuard` in `locked_bindings.h`) and the
+guards that take an object read the owner again once they hold the lock, and
+start over if it changed. There is nothing to re-read when no lock was taken:
+a scalar that belongs to no `Pdf` never comes to belong to one, because
+adoption copies it.
+
+The exception is the teardown of a `QPDF`, which clears the owner of each
+object it adopted without taking `unowned_mutex()`. A thread that finds an
+object with no owner waits for any teardown in progress before it uses it:
+see the teardown lock below.
 
 Adoption keeps every object in a `Pdf`'s graph owned by that `Pdf`, which is
 what lets one lock cover them. Before adopting, `refuse_mixed_owners` walks
@@ -285,7 +314,10 @@ runs.
 ## Testing
 
 `tests/test_threading.py` and `tests/test_threading_object.py` run the same
-operations from several threads. The `frequent_thread_switches` fixture
+operations from several threads. `tests/test_threading_unowned.py` covers
+objects that belong to no `Pdf`: it probes the shared lock from another
+thread, and changes such objects while threads add them to a `Pdf` and take
+them out again. The `frequent_thread_switches` fixture
 lowers the switch interval so that a GIL-enabled interpreter changes threads
 as often as it can, which makes interleavings in the middle of a qpdf
 operation likely. `run_threads` reuses its threads from one call to the

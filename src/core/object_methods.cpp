@@ -276,7 +276,8 @@ static py::object bytes_or_default(QPDFObjectHandle &h, py::handle default_)
 static py::object cast_raw(QPDFObjectHandle const &h)
 {
     QPDFObjectHandle handle = h;
-    QpdfLockGuard qpdf_lock(handle.getOwningQPDF());
+    QpdfLockGuard qpdf_lock(
+        handle.getOwningQPDF(), QpdfLockGuard::AfterUnowned{}, std::nothrow);
     py::handle result = py::detail::type_caster_base<QPDFObjectHandle>::from_cpp(
         handle, py::rv_policy::copy, nullptr);
     if (!result.is_valid())
