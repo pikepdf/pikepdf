@@ -182,6 +182,19 @@ void qpdf_basic_settings(QPDF &q) // LCOV_EXCL_LINE
     q.setLogger(get_pikepdf_logger());
 }
 
+// qpdf takes passwords as C strings, so an embedded NUL would silently truncate
+// the password. PDF 2.0 does not permit NUL in a password anyway: revision 6
+// passwords pass through SASLprep, which prohibits ASCII control characters, and
+// 0x00 is not defined in the PDFDocEncoding used by earlier revisions.
+static std::string password_string(py::handle src, const char *what)
+{
+    std::string password = to_string(src);
+    if (password.find('\0') != std::string::npos)
+        throw py::value_error(
+            (std::string(what) + " may not contain a NUL character").c_str());
+    return password;
+}
+
 // The holder for QPDF should still be shared_ptr because the Python Pdf.pages accessor
 // needs to keep a reference to the QPDF, since users can do things like:
 //  accessor = pdf.pages
@@ -206,7 +219,7 @@ std::shared_ptr<QPDF> open_pdf(OpaqueObject stream_arg,
     py::object stream = stream_arg.object();
     // Validate before any I/O so a bad argument fails fast.
     auto mode = parse_conversion_mode(conversion_mode.handle());
-    std::string password = to_string(password_arg.handle());
+    std::string password = password_string(password_arg.handle(), "Password");
     auto q = make_registered_qpdf(mode);
 
     qpdf_basic_settings(*q);
@@ -329,14 +342,15 @@ std::string encryption_password(
             throw py::value_error((std::string("Encryption ") + keyname +
                                    " may not be None; use empty string?")
                     .c_str());
+        auto password = password_string(
+            encryption[keyname], (std::string("Encryption ") + keyname).c_str());
         if (encryption_level <= 4) {
-            auto success =
-                QUtil::utf8_to_pdf_doc(to_string(encryption[keyname]), result);
+            auto success = QUtil::utf8_to_pdf_doc(password, result);
             if (!success)
                 throw py::value_error("Encryption level is R3/R4 and password is not "
                                       "encodable as PDFDocEncoding");
         } else {
-            result = to_string(encryption[keyname]);
+            result = password;
         }
     }
     return result;

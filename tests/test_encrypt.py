@@ -171,3 +171,28 @@ def test_preserve_encryption_not_encrypted(trivial, outpdf):
 
 def test_access_encryption_not_encrypted(trivial):
     assert not trivial._encryption_data
+
+
+# qpdf takes passwords as C strings, so an embedded NUL would silently truncate the
+# password. PDF 2.0 forbids NUL in passwords anyway: SASLprep (RFC 4013) prohibits
+# ASCII control characters for R6, and 0x00 is undefined in PDFDocEncoding for R2-4.
+@pytest.mark.parametrize(
+    'password', ['owner\x00anything', b'owner\x00anything', '\x00owner']
+)
+def test_open_password_with_nul(resources, password):
+    with pytest.raises(ValueError, match=r'NUL'):
+        pikepdf.open(resources / 'graph-encrypted.pdf', password=password)
+
+
+@pytest.mark.parametrize('R', [2, 3, 4, 6])
+@pytest.mark.parametrize('field', ['owner', 'user'])
+def test_encrypt_password_with_nul(trivial, outpdf, R, field):
+    passwords = dict(owner='owner', user='user')
+    passwords[field] = 'pass\x00word'
+    with pytest.raises(ValueError, match=r'NUL'):
+        trivial.save(
+            outpdf,
+            encryption=pikepdf.Encryption(
+                R=R, **passwords, aes=R >= 4, metadata=R >= 4
+            ),
+        )

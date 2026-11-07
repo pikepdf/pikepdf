@@ -208,6 +208,11 @@ the architecture notes on thread safety.
 - A JBIG2 image's `/JBIG2Globals` are now read only when the image is being
   JBIG2-decoded, rather than every time qpdf checks whether the image can be
   decoded, which included every save.
+- A password containing a NUL character now raises {exc}`ValueError`, both
+  when opening a PDF and when encrypting one. Previously the password was
+  silently cut short at the NUL, so a wrong password could open a file, and an
+  encrypted file could be written with a shorter password than requested.
+  PDF passwords may not contain NUL. {issue}`756`
 
 ## v10.17.0
 
