@@ -35,19 +35,6 @@ the architecture notes on thread safety.
   `outlines='ignore'` for the previous behaviour, for example if you build
   the merged outline yourself. {class}`pikepdf.PageCopyResult` reports
   `layers_added`, `outline_items_added` and `outline_items_dropped`.
-- Reading the label of a page whose page label style is an unknown name, such
-  as `/S /Z`, now warns and keeps the label prefix, as an invalid non-name
-  style already did. Previously it raised `KeyError`.
-- Reading the label of a page whose number cannot be written in its page
-  label style, such as `/S /R /St 0` or a Roman numeral above 5000, now warns
-  and writes the number in decimal digits. Previously it raised `ValueError`.
-- Extracting an image whose `/CalGray` or `/CalRGB` colour space array lacks
-  its parameter dictionary now decodes it as the corresponding device space,
-  without an ICC profile, as a missing `/WhitePoint` already did. Previously
-  it raised `IndexError`.
-- An ICCBased image whose profile stream omits the required `/N`, or gives
-  one that is not an integer, now takes its mode and default `/Decode` from
-  the profile's colour space. Previously its mode raised `KeyError`.
 - {meth}`pikepdf.Pdf.check_pdf_syntax` now performs the same checks as
   `qpdf --check` and reports the same problems. It checks the linearization
   data and hint tables of linearized files, which previously required a
@@ -57,63 +44,6 @@ the architecture notes on thread safety.
   whose content stream cannot be read is reported as `ERROR: page N: ...`
   along with the other problems found, where it previously raised
   {class}`pikepdf.PdfError`. {issue}`515`
-- Free-threaded Python: fixed crashes when threads used pages of the same
-  `Pdf` at once. The page boxes ({attr}`pikepdf.Page.mediabox` and the
-  others),
-  {attr}`pikepdf.Page.rotation`, {meth}`pikepdf.Page.rotate`,
-  {meth}`pikepdf.Page.as_form_xobject`, {meth}`pikepdf.Page.contents_coalesce`
-  and several other {class}`pikepdf.Page` methods read or changed the `Pdf`
-  without holding its lock.
-- Free-threaded Python: fixed a crash when the last reference to a `Pdf` was
-  dropped while another thread was using one of its objects.
-- Free-threaded Python: fixed a data race when a content stream was parsed,
-  with {func}`pikepdf.parse_content_stream` or
-  {meth}`pikepdf.Page.parse_contents`, while another thread used the same
-  `Pdf`.
-- Free-threaded Python: fixed a data race on the source `Pdf` when a page was
-  appended, inserted or assigned into the page list of another `Pdf`. Both
-  documents are now locked, as `pages.extend()` already did.
-- Fixed threads interfering with each other inside one `Pdf` on GIL-enabled
-  builds. The per-`Pdf` lock was compiled out there, on the assumption that
-  the GIL serializes each call, but the GIL changes hands whenever Python code
-  runs, and pikepdf runs Python part way through many operations: reading
-  from a stream implemented in Python, token filters and other callbacks,
-  logging, and (on Python 3.11) a garbage collection that runs a finalizer.
-  Another thread could then use the same `Pdf`, typically moving the shared
-  stream position so that an object was read as `None`. The lock is now in
-  force on every build, and {meth}`pikepdf.Pdf.lock` works on GIL-enabled
-  builds too.
-- {attr}`pikepdf.Page.resources` now checks for and creates the page's
-  resources dictionary under the `Pdf`'s lock, so threads that ask for it at
-  the same time share one dictionary instead of each creating their own.
-- Methods implemented in Python that change a `Pdf` in several steps now hold
-  its lock until they finish, so another thread can no longer see or change
-  the document part way through. These are {meth}`pikepdf.Page.add_resource`,
-  {meth}`pikepdf.Page.add_overlay`,
-  {meth}`pikepdf.Page.add_underlay`, {meth}`pikepdf.Pdf.add_pages_from`,
-  setting the value of a {class}`pikepdf.form.Form` field,
-  {meth}`pikepdf.form.SignatureField.stamp_overlay`, the functions of
-  {mod}`pikepdf.sanitize`, and the reading and writing of outlines and
-  metadata. Those that involve two `Pdf`s lock both in an order that cannot
-  deadlock. {meth}`pikepdf.Object.emplace` now makes all of its changes in
-  one step, even to an object that belongs to no `Pdf`. The thread safety
-  section of the architecture notes now says which calls are atomic and what
-  is not protected.
-- Free-threaded Python: fixed an error, "dictionary changed size during
-  iteration", when several threads opened a `Pdf`'s metadata for the first
-  time at once.
-- Fixed {meth}`pikepdf.form.SignatureField.stamp_overlay` stamping the
-  overlay twice when the signature widget names its page with `/P`.
-- Free-threaded Python: fixed crashes when threads shared a
-  {class}`pikepdf.Dictionary` or {class}`pikepdf.Array` that belongs to no
-  `Pdf`, or changed one while another thread added it to a `Pdf` or removed
-  it. Such objects had no lock; they now share one. Operations that read
-  through such an object to objects of a `Pdf` it holds, such as `repr()`,
-  `==` or the methods of a {class}`pikepdf.Page` that has not been added to a
-  `Pdf`, now hold that `Pdf`'s lock as well. Threads that each build
-  objects of their own contend for it, so add a `Dictionary` or `Array` to its
-  `Pdf` as soon as it is created rather than building large structures before
-  adding them. See the thread safety section of the architecture notes.
 - Inserting a {class}`pikepdf.Dictionary` or {class}`pikepdf.Array` that
   refers to another `Pdf` into a `Pdf` now raises
   {exc}`pikepdf.ForeignObjectError`, naming the key or index where the
@@ -127,49 +57,57 @@ the architecture notes on thread safety.
   {meth}`pikepdf.Page.add_resource`, adding a page built from a dictionary,
   name and number trees, and stream dictionaries. Use
   {meth}`pikepdf.Pdf.copy_foreign` to bring the foreign object over first.
-- Two threads that each hold the lock of one `Pdf` and
-  then need the other's no longer wait for each other for ever. One of them
-  now gets a {exc}`RuntimeError`. This arises when a callback, such as a
-  {class}`pikepdf.TokenFilter`, uses a `Pdf` other than the one it was called
-  for, or when `with pdf.lock():` blocks are nested in opposite orders. What
-  a callback may do is now documented: see {ref}`callback-restrictions`.
-- Free-threaded Python: every binding of a class that reads or changes a `Pdf`
-  now takes that `Pdf`'s lock, and the lock of every other `Pdf` among its
-  arguments, in an order that cannot deadlock. The bindings are generated in a
-  way that will not compile otherwise. Previously each binding took the lock
-  by hand, and many did not: almost none of the methods of
-  {class}`pikepdf.NameTree`, {class}`pikepdf.NumberTree`,
-  {class}`pikepdf.Attachments`, {class}`pikepdf.AttachedFileSpec`,
-  {class}`pikepdf.AttachedFile`, {class}`pikepdf.Annotation`,
-  {class}`pikepdf.AcroForm` and {class}`pikepdf.AcroFormField`, and a number
-  of those of {class}`pikepdf.Object`, {class}`pikepdf.Pdf`, the page list,
-  content stream instructions and token filters. This fixes crashes and data
-  races when threads use the same `Pdf`, including a crash when a page of one
-  `Pdf` was added to another while a thread used the first, pages skipped or
-  repeated when threads shared one iterator over `Pdf.pages`, and a crash on
-  looking up a key in a dictionary that belongs to no `Pdf` but holds an
-  object of one.
+- A password containing a NUL character now raises {exc}`ValueError`, both
+  when opening a PDF and when encrypting one. Previously the password was
+  silently cut short at the NUL, so a wrong password could open a file, and an
+  encrypted file could be written with a shorter password than requested.
+  PDF passwords may not contain NUL. {issue}`756`
+- Fixed threads interfering with each other inside one `Pdf` on GIL-enabled
+  builds, which could cause an object to be read as `None`. The per-`Pdf` lock
+  is now in force on every build, and {meth}`pikepdf.Pdf.lock` works on
+  GIL-enabled builds too. {commit}`7c761d23`
+- Methods implemented in Python that change a `Pdf` in several steps, such as
+  {meth}`pikepdf.Page.add_overlay`, {meth}`pikepdf.Pdf.add_pages_from` and
+  the {mod}`pikepdf.sanitize` functions, now hold its lock until they finish.
+  The thread safety section of the architecture notes now says which calls are
+  atomic. {commit}`0872a6e8`, {commit}`b10671c3`
+- Two threads that each hold the lock of one `Pdf` and then need the other's
+  no longer deadlock; one of them gets a {exc}`RuntimeError` instead. What a
+  callback such as a {class}`pikepdf.TokenFilter` may do is now documented:
+  see {ref}`callback-restrictions`. {commit}`11ef776b`
+- Fixed a crash, a native stack overflow that no Python `except` can catch,
+  when reading, saving or checking a PDF in which a JBIG2 image's
+  `/JBIG2Globals` stream is itself JBIG2-encoded and leads back to the image,
+  directly or through other streams. Such an image is now reported as
+  unfilterable, as JBIG2-encoded globals without a cycle already were:
+  reading it raises {exc}`~pikepdf.exceptions.PdfError`, extracting it raises
+  {exc}`~pikepdf.exceptions.UnsupportedImageTypeError`, and saving writes it
+  unchanged with a warning. {issue}`753`
+- A JBIG2 image's `/JBIG2Globals` are now read only when the image is being
+  JBIG2-decoded, rather than every time qpdf checks whether the image can be
+  decoded, which included every save.
+- Reading the label of a page whose page label style is an unknown name, such
+  as `/S /Z`, now warns and keeps the label prefix, as an invalid non-name
+  style already did. Previously it raised `KeyError`.
+- Reading the label of a page whose number cannot be written in its page
+  label style, such as `/S /R /St 0` or a Roman numeral above 5000, now warns
+  and writes the number in decimal digits. Previously it raised `ValueError`.
+- Extracting an image whose `/CalGray` or `/CalRGB` colour space array lacks
+  its parameter dictionary now decodes it as the corresponding device space,
+  without an ICC profile, as a missing `/WhitePoint` already did. Previously
+  it raised `IndexError`.
+- An ICCBased image whose profile stream omits the required `/N`, or gives
+  one that is not an integer, now takes its mode and default `/Decode` from
+  the profile's colour space. Previously its mode raised `KeyError`.
+- Fixed {meth}`pikepdf.form.SignatureField.stamp_overlay` stamping the
+  overlay twice when the signature widget names its page with `/P`.
 - Fixed a `Pdf` returned by {meth}`pikepdf.Job.create_pdf` not being set up
   like other `Pdf` objects: setting its `conversion_mode` raised
   {class}`pikepdf.PdfError`, and on free-threaded Python none of its methods
   were protected by a lock.
-- Free-threaded Python: {meth}`pikepdf.Job.write_pdf`, and constructing a
-  {class}`pikepdf.Rectangle`, {class}`pikepdf.Matrix` or
-  {class}`pikepdf.NamePath` from an object of a `Pdf`, now take the lock of
-  that `Pdf`.
-- Free-threaded Python: the lists and mappings of objects that some methods
-  return, such as the operands of a content stream instruction, can now be
-  changed and read by several threads at once. The methods that pikepdf adds
-  to them did not take the lock that their other methods take.
-- Free-threaded Python: threads that take turns using the same `Pdf` are no
-  longer slowed to a crawl when every CPU is busy. The lock handed itself to
-  a waiting thread, and stayed held until the operating system got round to
-  running that thread. It now goes to whichever thread asks for it next.
 - `Matrix.__array__(copy=False)` now raises `ValueError`, as numpy expects of
   an object that cannot share its memory. The check for this was written in a
   way that never fired.
-- Free-threaded Python: fixed a data race when two threads raised
-  {class}`pikepdf.ForeignObjectError` at once.
 - A `progress` argument to {meth}`pikepdf.Pdf.save` that is not callable is
   now rejected with `TypeError` before anything is written. Previously the
   error was raised part of the way through writing the file.
@@ -190,29 +128,37 @@ the architecture notes on thread safety.
 - Corrected the documentation and type hints of {class}`pikepdf.NameTree`,
   which said that names are `bytes`. Names are, and have always been, `str`:
   qpdf reads each name as a PDF text string and compares names by that text.
-- The test suite now runs under ThreadSanitizer on free-threaded Python in
-  continuous integration, which is how the fixes above were found.
 - Fixed building from source on Android (Termux), where importing pikepdf
   failed with `cannot locate symbol "_Py_TrueStruct"` since v10.6.0. The
   extension module is now linked against libpython when the build interpreter
   is an Android Python, as that platform requires. Android is not a tested
   platform. {issue}`752`
-- Fixed a crash, a native stack overflow that no Python `except` can catch,
-  when reading, saving or checking a PDF in which a JBIG2 image's
-  `/JBIG2Globals` stream is itself JBIG2-encoded and leads back to the image,
-  directly or through other streams. Such an image is now reported as
-  unfilterable, as JBIG2-encoded globals without a cycle already were:
-  reading it raises {exc}`~pikepdf.exceptions.PdfError`, extracting it raises
-  {exc}`~pikepdf.exceptions.UnsupportedImageTypeError`, and saving writes it
-  unchanged with a warning. {issue}`753`
-- A JBIG2 image's `/JBIG2Globals` are now read only when the image is being
-  JBIG2-decoded, rather than every time qpdf checks whether the image can be
-  decoded, which included every save.
-- A password containing a NUL character now raises {exc}`ValueError`, both
-  when opening a PDF and when encrypting one. Previously the password was
-  silently cut short at the NUL, so a wrong password could open a file, and an
-  encrypted file could be written with a shorter password than requested.
-  PDF passwords may not contain NUL. {issue}`756`
+
+### Free-threaded Python fixes
+
+Many crashes and data races that occurred when several threads used the same
+`Pdf` at once have been fixed. The test suite now runs under ThreadSanitizer
+in continuous integration, which is how most of them were found
+({commit}`4831f6fc`).
+
+- Every binding that reads or changes a `Pdf` now takes that `Pdf`'s lock,
+  and the lock of any other `Pdf` among its arguments, enforced at compile
+  time. Many bindings previously did not, notably most methods of
+  {class}`pikepdf.NameTree`, {class}`pikepdf.NumberTree`, attachments,
+  annotations and {class}`pikepdf.AcroForm`. {commit}`3c5b2bc4`
+- Fixed crashes and data races in {class}`pikepdf.Page` methods, content
+  stream parsing, adding pages from one `Pdf` to another, and dropping the
+  last reference to a `Pdf` while another thread used one of its objects.
+  {commit}`04999faf`
+- A {class}`pikepdf.Dictionary` or {class}`pikepdf.Array` that belongs to no
+  `Pdf` is now protected by a lock shared by all such objects. Threads that
+  each build objects of their own contend for it, so add a `Dictionary` or
+  `Array` to its `Pdf` as soon as it is created rather than building large
+  structures before adding them. {commit}`5e11a240`, {commit}`b10671c3`
+- Fixed "dictionary changed size during iteration" when several threads
+  opened a `Pdf`'s metadata for the first time at once. {commit}`d52a9a11`
+- Threads that take turns using the same `Pdf` are no longer slowed to a
+  crawl when every CPU is busy. {commit}`a3e2b882`
 
 ## v10.17.0
 
