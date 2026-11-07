@@ -12,11 +12,14 @@
 #include <condition_variable>
 #include <cstdint>
 #include <functional>
+#include <initializer_list>
 #include <memory>
 #include <mutex>
 #include <new>
+#include <optional>
 #include <stdexcept>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include <qpdf/QPDF.hh>
@@ -797,6 +800,134 @@ public:
 private:
     std::vector<std::shared_ptr<QpdfEntry>> entries_;
     UnownedLockHold unowned_;
+};
+
+// Objects of a Pdf held by an object that belongs to no Pdf.
+//
+// A Dictionary or Array that belongs to no Pdf can hold objects that belong to
+// one: indirect objects, and containers adopted by a Pdf. An operation that
+// reads through it to those objects, such as repr(), == or a Page helper, needs
+// their Pdfs' locks as well as unowned_mutex(). It may resolve an indirect
+// object, which makes qpdf parse it from the file.
+//
+// The Pdfs it can reach are found by walking the direct objects that belong to
+// no Pdf, which unowned_mutex() protects, and stopping at anything that belongs
+// to a Pdf: everything below that belongs to the same Pdf, since adoption
+// refuses objects that refer to another. The walk visits only the objects built
+// in Python, which is one reason to keep such a container small and to add it
+// to its Pdf soon.
+//
+// The guards that use this take every lock at once, in the usual order, then
+// walk again and start over if what they found changed.
+
+inline constexpr int REACH_MAX_DEPTH = 1000;
+
+// Add the Pdfs that own objects reachable from h's children through objects
+// that belong to no Pdf. h belongs to no Pdf, and the caller holds
+// unowned_mutex(). A container built in Python can contain itself, so each
+// one is visited once.
+inline void add_reachable_owners(QPDFObjectHandle h,
+    std::vector<QPDF *> &owners,
+    std::unordered_set<QPDFObject const *> &visited,
+    int depth = 0)
+{
+    if (depth > REACH_MAX_DEPTH || !visited.insert(h.getObj().get()).second)
+        return;
+    auto add_child = [&](QPDFObjectHandle child) {
+        if (!child.isInitialized())
+            return;
+        if (child.isIndirect()) {
+            if (QPDF *owner = child.getOwningQPDF())
+                owners.push_back(owner);
+            return;
+        }
+        // A scalar cannot change, so it needs no lock whatever owns it
+        if (!child.isDictionary() && !child.isArray())
+            return;
+        if (QPDF *owner = child.getOwningQPDF()) {
+            owners.push_back(owner);
+            return;
+        }
+        add_reachable_owners(child, owners, visited, depth + 1);
+    };
+    // Not ditems(), which leaves out null values and so resolves every
+    // indirect object in the dictionary to find out which are null. Those
+    // belong to Pdfs whose locks this walk is looking for.
+    if (h.isDictionary()) {
+        for (auto const &item : h.getDictAsMap())
+            add_child(item.second);
+    } else if (h.isArray()) {
+        for (auto const &item : h.aitems())
+            add_child(item);
+    }
+}
+
+inline void add_reachable_owners(QPDFObjectHandle h, std::vector<QPDF *> &owners)
+{
+    std::unordered_set<QPDFObject const *> visited;
+    add_reachable_owners(h, owners, visited);
+}
+
+// Sort and remove duplicates, so that two sets of owners compare equal.
+inline void normalize_owners(std::vector<QPDF *> &owners)
+{
+    std::sort(owners.begin(), owners.end(), std::less<QPDF *>());
+    owners.erase(std::unique(owners.begin(), owners.end()), owners.end());
+}
+
+// RAII guard that locks what each of a list of objects needs, and for an
+// object that belongs to no Pdf, the Pdfs of the objects reachable from it.
+// For code outside the locked bindings, which do the same for their arguments.
+class ReachGuard {
+public:
+    explicit ReachGuard(std::initializer_list<QPDFObjectHandle> objects)
+        : objects_(objects)
+    {
+        auto owners = targets();
+        std::vector<QPDF *> reached;
+        for (;;) {
+            std::vector<QPDF *> all(owners);
+            all.insert(all.end(), reached.begin(), reached.end());
+            guard_.emplace(all);
+            auto now = targets();
+            if (now != owners) {
+                guard_.reset();
+                owners = std::move(now);
+                reached.clear();
+                continue;
+            }
+            auto now_reached = reachable();
+            if (now_reached == reached)
+                return;
+            guard_.reset();
+            reached = std::move(now_reached);
+        }
+    }
+
+    ReachGuard(const ReachGuard &) = delete;
+    ReachGuard &operator=(const ReachGuard &) = delete;
+
+private:
+    std::vector<QPDF *> targets() const
+    {
+        std::vector<QPDF *> owners;
+        for (auto const &h : objects_)
+            owners.push_back(lock_target(h));
+        return owners;
+    }
+
+    std::vector<QPDF *> reachable() const
+    {
+        std::vector<QPDF *> owners;
+        for (auto const &h : objects_)
+            if (lock_target(h) == unowned_owner())
+                add_reachable_owners(h, owners);
+        normalize_owners(owners);
+        return owners;
+    }
+
+    std::vector<QPDFObjectHandle> objects_;
+    std::optional<MultiQpdfLockGuard> guard_;
 };
 
 // From qpdf.cpp. Turn a QPDF into one that a pikepdf.Pdf can hold: registered

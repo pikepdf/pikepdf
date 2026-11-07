@@ -184,9 +184,9 @@ bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
 // array's owner once -- each comparison locks whatever the two values happen to
 // belong to. These containers hold direct objects almost always: the guard
 // takes no lock for a scalar, and unowned_mutex() for a container that belongs
-// to no Pdf.
+// to no Pdf, with the locks of any Pdfs whose objects it holds.
 bool pdfobject_equal_locked(QPDFObjectHandle a, QPDFObjectHandle b)
 {
-    DualQpdfLockGuard lock(a, b);
+    ReachGuard lock({a, b});
     return objecthandle_equal(a, b);
 }

@@ -82,15 +82,17 @@ the architecture notes on thread safety.
   the same time share one dictionary instead of each creating their own.
 - Methods implemented in Python that change a `Pdf` in several steps now hold
   its lock until they finish, so another thread can no longer see or change
-  the document part way through. These are {meth}`pikepdf.Object.emplace`,
-  {meth}`pikepdf.Page.add_resource`, {meth}`pikepdf.Page.add_overlay`,
+  the document part way through. These are {meth}`pikepdf.Page.add_resource`,
+  {meth}`pikepdf.Page.add_overlay`,
   {meth}`pikepdf.Page.add_underlay`, {meth}`pikepdf.Pdf.add_pages_from`,
   setting the value of a {class}`pikepdf.form.Form` field,
   {meth}`pikepdf.form.SignatureField.stamp_overlay`, the functions of
   {mod}`pikepdf.sanitize`, and the reading and writing of outlines and
   metadata. Those that involve two `Pdf`s lock both in an order that cannot
-  deadlock. The thread safety section of the architecture notes now says
-  which calls are atomic and what is not protected.
+  deadlock. {meth}`pikepdf.Object.emplace` now makes all of its changes in
+  one step, even to an object that belongs to no `Pdf`. The thread safety
+  section of the architecture notes now says which calls are atomic and what
+  is not protected.
 - Free-threaded Python: fixed an error, "dictionary changed size during
   iteration", when several threads opened a `Pdf`'s metadata for the first
   time at once.
@@ -99,7 +101,10 @@ the architecture notes on thread safety.
 - Free-threaded Python: fixed crashes when threads shared a
   {class}`pikepdf.Dictionary` or {class}`pikepdf.Array` that belongs to no
   `Pdf`, or changed one while another thread added it to a `Pdf` or removed
-  it. Such objects had no lock; they now share one. Threads that each build
+  it. Such objects had no lock; they now share one. Operations that read
+  through such an object to objects of a `Pdf` it holds, such as `repr()`,
+  `==` or the methods of a {class}`pikepdf.Page` that has not been added to a
+  `Pdf`, now hold that `Pdf`'s lock as well. Threads that each build
   objects of their own contend for it, so add a `Dictionary` or `Array` to its
   `Pdf` as soon as it is created rather than building large structures before
   adding them. See the thread safety section of the architecture notes.

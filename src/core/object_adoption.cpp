@@ -15,6 +15,7 @@
 #include "qpdf_lock.h"
 
 #include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -227,13 +228,15 @@ static QPDFObjectHandle adopt_into_impl(QPDF *owner,
 //
 // Only the direct objects are walked, the same ones adoption visits: the walk
 // stops at an indirect object, and at a container `target` already owns, whose
-// children were checked when it was inserted.
+// children were checked when it was inserted. A container built in Python can
+// contain itself, so each one is visited once.
 static bool find_foreign_impl(QPDF *target,
     QPDFObjectHandle value,
     std::string &path,
     bool &indirect,
     int depth,
-    UnownedLockHold &unowned)
+    UnownedLockHold &unowned,
+    std::unordered_set<QPDFObject const *> &visited)
 {
     if (depth > ADOPT_MAX_DEPTH || !value.isInitialized())
         return false;
@@ -252,11 +255,16 @@ static bool find_foreign_impl(QPDF *target,
         indirect = false;
         return true;
     }
+    if (!visited.insert(value.getObj().get()).second)
+        return false;
     // A container that belongs to no Pdf is read under unowned_mutex()
     unowned.ensure();
+    // Not ditems(), which resolves every indirect value to leave out those
+    // that are null: one from another Pdf would be read without its lock.
     if (value.isDictionary()) {
-        for (auto const &[key, item] : value.ditems()) {
-            if (find_foreign_impl(target, item, path, indirect, depth + 1, unowned)) {
+        for (auto const &[key, item] : value.getDictAsMap()) {
+            if (find_foreign_impl(
+                    target, item, path, indirect, depth + 1, unowned, visited)) {
                 path.insert(0, key);
                 return true;
             }
@@ -264,7 +272,8 @@ static bool find_foreign_impl(QPDF *target,
     } else if (value.isArray()) {
         int index = 0;
         for (auto const &item : value.aitems()) {
-            if (find_foreign_impl(target, item, path, indirect, depth + 1, unowned)) {
+            if (find_foreign_impl(
+                    target, item, path, indirect, depth + 1, unowned, visited)) {
                 path.insert(0, "[" + std::to_string(index) + "]");
                 return true;
             }
@@ -290,7 +299,8 @@ static void refuse_mixed_owners_impl(
         return;
     std::string path;
     bool indirect = false;
-    if (!find_foreign_impl(target, value, path, indirect, 0, unowned))
+    std::unordered_set<QPDFObject const *> visited;
+    if (!find_foreign_impl(target, value, path, indirect, 0, unowned, visited))
         return;
     auto where = path.empty() ? std::string() : " (found at " + path + ")";
     if (indirect)

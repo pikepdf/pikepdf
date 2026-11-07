@@ -93,14 +93,18 @@ locks the `Pdf` that owns each of its arguments before the body runs. Which
 `locked_class_`, so a forgotten lock is a compile error. A prek hook
 (`cpp-locked-class` in `prek.toml`) rejects plain `py::class_` in the files
 that have been converted. A binding that must not be wrapped is registered
-as `unlocked(f)`, so the exception is visible where it is made.
+as `unlocked(f)`, so the exception is visible where it is made. A binding
+registered as `shallow(f)` is locked, but does not walk an argument that
+belongs to no `Pdf`; see below.
 
 Code that locks by hand uses one of three RAII guards:
 
 - `QpdfLockGuard` locks one `QPDF`;
 - `DualQpdfLockGuard` locks two, for example when copying objects between
   documents;
-- `MultiQpdfLockGuard` locks any number.
+- `MultiQpdfLockGuard` locks any number;
+- `ReachGuard` locks what a list of objects needs, including the `Pdf`s
+  reachable from those that belong to no `Pdf`, as the bindings do.
 
 The guards that take several locks always take them in the same order (by
 the address of the registry entry), so two calls that each lock the same
@@ -256,6 +260,29 @@ object it adopted without taking `unowned_mutex()`. A thread that finds an
 object with no owner waits for any teardown in progress before it uses it:
 see the teardown lock below.
 
+An unowned container may hold objects of `Pdf`s: indirect objects, and
+containers adopted by a `Pdf`. A binding that reads through it to them, such
+as `repr()`, `==`, `index()`, a name path lookup, `is_rectangle` or any `Page`
+method on an unowned page, needs their locks too, since reading an indirect
+object can make qpdf parse it from the file. So by default, when an argument
+of a locked binding is an unowned container, `ArgsGuard` walks its direct
+objects (`add_reachable_owners()` in `qpdf_lock.h`), stopping at anything
+that belongs to a `Pdf`, and collects those `Pdf`s. It walks with
+`unowned_mutex()` held, then releases everything and takes all the locks again
+through one `MultiQpdfLockGuard`, in the usual order, and walks again to check
+that nothing changed. The walk follows only what was built in Python, never a
+`Pdf`'s object graph, and an argument that belongs to a `Pdf` costs nothing
+extra. `ReachGuard` does the same for code outside the bindings: `repr()`
+itself, and the comparisons of `_ObjectList`.
+
+A binding that only ever reads at most one child, under a `ChildLockGuard`,
+is registered as `shallow(f)` so that it skips the walk: indexing, item and
+attribute assignment and deletion, `get()`, `keys()`, `len()`, `append()`,
+the typed getters, and properties such as `is_indirect`. Without that,
+building a large unowned array with `append()` would take quadratic time. A
+binding that is not marked is safe, at worst slow on a large unowned
+container, so mark one only when it reads no more than one child.
+
 Adoption keeps every object in a `Pdf`'s graph owned by that `Pdf`, which is
 what lets one lock cover them. Before adopting, `refuse_mixed_owners` walks
 the direct objects of the value being inserted, the same ones adoption
@@ -316,8 +343,9 @@ runs.
 `tests/test_threading.py` and `tests/test_threading_object.py` run the same
 operations from several threads. `tests/test_threading_unowned.py` covers
 objects that belong to no `Pdf`: it probes the shared lock from another
-thread, and changes such objects while threads add them to a `Pdf` and take
-them out again. The `frequent_thread_switches` fixture
+thread, checks that operations which read through such an object take the
+locks of the `Pdf`s it holds and that the `shallow` ones do not, and changes
+such objects while threads add them to a `Pdf` and take them out again. The `frequent_thread_switches` fixture
 lowers the switch interval so that a GIL-enabled interpreter changes threads
 as often as it can, which makes interleavings in the middle of a qpdf
 operation likely. `run_threads` reuses its threads from one call to the

@@ -41,8 +41,8 @@ Some methods are implemented in Python and change a `Pdf` in several steps.
 Those that do hold the lock across all of the steps, so another thread sees
 the change made in full or not at all:
 
-- {meth}`pikepdf.Object.emplace`, {meth}`pikepdf.Page.add_resource`,
-  {meth}`pikepdf.Page.add_overlay` and {meth}`pikepdf.Page.add_underlay`
+- {meth}`pikepdf.Page.add_resource`, {meth}`pikepdf.Page.add_overlay` and
+  {meth}`pikepdf.Page.add_underlay`
 - {meth}`pikepdf.Pdf.add_pages_from` and {meth}`pikepdf.Pdf.add_blank_page`
 - {attr}`pikepdf.Pdf.docinfo`
 - setting the value of a field of a {class}`pikepdf.form.Form`, and
@@ -67,12 +67,10 @@ What is not protected:
 - **Reads that take several steps.** A helper that reads a `Pdf` in several
   calls, such as the properties of {class}`pikepdf.PdfImage`, can see some
   values from before another thread's change and some from after.
-- **Objects of other `Pdf`s inside an object that belongs to none.** A
-  {class}`pikepdf.Dictionary` or {class}`pikepdf.Array` that belongs to no
-  `Pdf` may hold indirect objects of several. Operations that read the whole
-  object, such as `repr()` or comparison, read those without their `Pdf`'s
-  lock. Adding it to a `Pdf` raises {exc}`pikepdf.ForeignObjectError` if
-  anything in it belongs to another `Pdf`.
+- **The methods above, used on a page or object that belongs to no `Pdf`.**
+  They hold the lock of the `Pdf` the page belongs to, so on a page that has
+  not been added to one, each step is protected but the method as a whole is
+  not. Add the page to its `Pdf` before calling them.
 
 ### Objects that belong to no `Pdf`
 
@@ -106,6 +104,19 @@ pdf.Root.Extra = extra
 Such objects are rarely useful on their own, so in practice they are usually
 attached soon after they are created, and the shared lock is rarely contended.
 
+An unattached object may hold objects of a `Pdf`, such as
+`pikepdf.Dictionary(P=pdf.pages[0].obj)`. An operation that reads through it
+to them, such as `repr()`, `==` or a {class}`pikepdf.Page` method, takes that
+`Pdf`'s lock as well. To find which `Pdf`s it needs, it looks at everything in
+the object that was created in Python, which is one more reason to keep such
+objects small. Simple operations such as indexing, assignment, `len()` and
+`append()` do not do this, so building a large object stays fast, but every
+operation still has to wait for the shared lock.
+
+An object that holds objects of more than one `Pdf` can be created and read,
+but it cannot be added to any `Pdf`: {exc}`pikepdf.ForeignObjectError` is
+raised.
+
 How these locks work inside pikepdf is described in {doc}`locking`.
 
 (callback-restrictions)=
@@ -125,6 +136,14 @@ The same applies to nested `with pdf.lock():` blocks that two threads enter in
 opposite orders. Treat the error as a bug in the calling code rather than
 something to catch and retry: collect what the callback needs from other
 documents before starting, or apply what it found afterwards.
+
+The same applies to Python code that pikepdf runs while it works on an object
+that belongs to no `Pdf`, which holds the lock that all such objects share. An
+example is the iterable passed to {meth}`pikepdf.Array.extend`: if it is a
+generator that reads a `Pdf`, it takes that `Pdf`'s lock while holding the
+shared one, and a thread doing the reverse, such as adding an unattached object
+to that `Pdf`, can make one of the two raise {exc}`RuntimeError`. Pass a list
+rather than a generator that uses a `Pdf`.
 
 Some callbacks are more restricted still, whether or not threads are involved:
 

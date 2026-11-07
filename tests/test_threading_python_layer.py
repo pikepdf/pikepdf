@@ -123,17 +123,6 @@ def test_owner_lock_takes_locks_in_a_consistent_order():
     run_threads(a_then_b, b_then_a)
 
 
-def test_object_emplace_holds_lock(monkeypatch):
-    pdf = Pdf.new()
-    target = pdf.make_indirect(Dictionary(A=1, B=2))
-    source = pdf.make_indirect(Dictionary(B=3, C=4))
-    probe = LockProbe(pdf)
-    monkeypatch.setattr(Object, 'keys', probe.wrap(Object.keys))
-    target.emplace(source)
-    probe.assert_held()
-    assert set(target.keys()) == {'/B', '/C'}
-
-
 def test_page_add_resource_holds_lock(monkeypatch):
     pdf = Pdf.new()
     pdf.add_blank_page()

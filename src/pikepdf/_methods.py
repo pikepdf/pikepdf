@@ -120,30 +120,15 @@ def _mudraw(buffer: bytes | memoryview, fmt: Literal["svg"]) -> bytes:
 @augments(Object)
 class Extend_Object:
     def emplace(self, other: Object, retain: Iterable[Name] | None = None):
-        if not self.same_owner_as(other):
-            raise TypeError("Objects must have the same owner for emplace()")
-
         # Default to (Name.Parent,) lazily so that importing this module does
         # not allocate a persistent pikepdf.Object instance in the function's
         # __defaults__ tuple (which nanobind reports as a shutdown leak).
         if retain is None:
             retain = (Name.Parent,)
 
-        # .keys() returns strings, so make all strings
-        retain_set: set[str] = {str(k) for k in retain}
-        with _OwnerLock((self,)):
-            self_keys = set(self.keys())
-            other_keys = set(other.keys())
-
-            assert all(
-                isinstance(k, str) for k in (retain_set | self_keys | other_keys)
-            )
-
-            del_keys = self_keys - other_keys - retain_set
-            for k in (k for k in other_keys if k not in retain_set):
-                self[k] = other[k]  # pylint: disable=unsupported-assignment-operation
-            for k in del_keys:
-                del self[k]  # pylint: disable=unsupported-delete-operation
+        # Converted here, before _emplace takes any lock, since iterating
+        # retain may run arbitrary Python code.
+        self._emplace(other, [str(k) for k in retain])
 
     def _type_check_write(self, filter_, decode_parms):
         # A native Python value (int, str, dict...) cannot be a filter or its

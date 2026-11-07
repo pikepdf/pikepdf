@@ -308,10 +308,13 @@ std::string objecthandle_repr(QPDFObjectHandle h)
     if (h.isDestroyed()) {
         return std::string("<Object was inside a closed or deleted pikepdf.Pdf>");
     }
+    // A container that belongs to no Pdf may hold objects of Pdfs, which the
+    // repr reads.
+    ReachGuard lock({h});
     // Resolve the conversion mode once for the whole repr, instead of looking
     // up the registry entry for every scalar element of a container.
-    QpdfLockGuard lock(h);
-    bool explicit_mode = get_explicit_conversion_mode(lock.entry());
+    bool explicit_mode = get_explicit_conversion_mode(
+        QpdfRegistry::instance().lookup_entry(h.getOwningQPDF()));
 
     if (h.isScalar() || h.isOperator()) {
         // qpdf does not consider Operator a scalar but it is as far we

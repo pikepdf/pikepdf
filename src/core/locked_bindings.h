@@ -25,8 +25,10 @@
 //    the binding accepts instead: an EncodedObject for any value that
 //    converts to a PDF object, an OpaqueObject for one the binding does
 //    not treat as belonging to a Pdf, or a specific type such as py::callable.
-//    An EncodedObject built from a Python container can still hold objects
-//    of another Pdf below its top level; that Pdf is not locked.
+//  - An argument that belongs to no Pdf, such as a Dictionary built in Python
+//    or an EncodedObject made from a list, may hold objects of Pdfs below its
+//    top level. Their Pdfs are locked too, unless the binding is registered
+//    as shallow(f). See add_reachable_owners().
 //  - The lock is released when the body returns. A return value that keeps
 //    reading the Pdf afterwards, such as a lazy iterator over a qpdf
 //    container, is not protected: return a snapshot instead.
@@ -39,6 +41,7 @@
 
 #include <algorithm>
 #include <array>
+#include <concepts>
 #include <cstddef>
 #include <functional>
 #include <new>
@@ -47,6 +50,7 @@
 #include <string_view>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include <qpdf/QPDF.hh>
 #include <qpdf/QPDFDocumentHelper.hh>
@@ -81,6 +85,7 @@ struct LockOwner<QPDFObjectHandle> {
     static constexpr bool declared = true;
     static constexpr bool locks = true;
     static QPDF *of(QPDFObjectHandle const &h) { return lock_target(h); }
+    static QPDFObjectHandle root(QPDFObjectHandle const &h) { return h; }
 };
 
 // Page, annotation, name tree, number tree, file spec and form field helpers
@@ -89,6 +94,7 @@ struct LockOwner<T, std::enable_if_t<std::is_base_of_v<QPDFObjectHelper, T>>> {
     static constexpr bool declared = true;
     static constexpr bool locks = true;
     static QPDF *of(T const &helper) { return lock_target(helper.getObjectHandle()); }
+    static QPDFObjectHandle root(T const &helper) { return helper.getObjectHandle(); }
 };
 
 // Interactive form, embedded file, outline and page label document helpers
@@ -104,6 +110,10 @@ struct LockOwner<EncodedObject> {
     static constexpr bool declared = true;
     static constexpr bool locks = true;
     static QPDF *of(EncodedObject const &value) { return value.owner(); }
+    static QPDFObjectHandle root(EncodedObject const &value)
+    {
+        return value.ok() ? value.get() : QPDFObjectHandle();
+    }
 };
 
 // A pointer that may be null, and an optional that may be empty
@@ -194,39 +204,93 @@ private:
     DualQpdfLockGuard guard_;
 };
 
+// An argument whose objects a binding may read through: one whose LockOwner
+// says which object it is. See add_reachable_owners().
+template <typename Arg>
+concept has_reach_root = requires(Arg const &arg) {
+    {
+        LockOwner<std::remove_cvref_t<Arg>>::root(arg)
+    } -> std::same_as<QPDFObjectHandle>;
+};
+
+// The Pdfs reachable from the arguments that belong to no Pdf, sorted.
+template <typename... Args>
+std::vector<QPDF *> reachable_from(std::remove_reference_t<Args> &...args)
+{
+    std::vector<QPDF *> owners;
+    auto add = [&]<typename Arg>(auto &arg) {
+        if constexpr (has_reach_root<Arg>) {
+            auto h = LockOwner<std::remove_cvref_t<Arg>>::root(arg);
+            if (h.isInitialized() && lock_target(h) == unowned_owner())
+                add_reachable_owners(h, owners);
+        }
+    };
+    (add.template operator()<Args>(args), ...);
+    normalize_owners(owners);
+    return owners;
+}
+
 // Holds the locks that args need for as long as it lives.
 //
 // An argument's owner can change while this thread waits for its lock, when
 // another thread adds the object to a Pdf or takes it out of one. So once the
 // locks are held the owners are read again, and if any changed the locks are
 // released and taken afresh. See unowned_mutex().
-template <typename... Args>
+//
+// If Reach, an argument that belongs to no Pdf also needs the locks of the
+// Pdfs whose objects it holds, since the binding may read them: see
+// add_reachable_owners(). They are found with unowned_mutex() held, then
+// taken with the others, all in the usual order.
+template <bool Reach, typename... Args>
 class ArgsGuard {
 public:
     explicit ArgsGuard(std::remove_reference_t<Args> &...args)
     {
         auto owners = owners_of<Args...>(args...);
+        std::vector<QPDF *> reached;
         for (;;) {
-            guard_.emplace(owners);
+            lock(owners, reached);
             // A scalar that belongs to no Pdf never comes to belong to one:
             // adoption copies it. So there is nothing to read again.
             if (std::all_of(owners.begin(), owners.end(), [](QPDF *q) { return !q; }))
                 return;
             auto now = owners_of<Args...>(args...);
-            if (now == owners)
+            std::vector<QPDF *> now_reached;
+            if constexpr (Reach) {
+                if (now == owners &&
+                    std::find(owners.begin(), owners.end(), unowned_owner()) !=
+                        owners.end())
+                    now_reached = reachable_from<Args...>(args...);
+            }
+            if (now == owners && now_reached == reached)
                 return;
             guard_.reset();
+            wide_.reset();
             owners = now;
+            reached = std::move(now_reached);
         }
     }
 
 private:
+    void lock(std::array<QPDF *, n_locking<Args...>> const &owners,
+        std::vector<QPDF *> const &reached)
+    {
+        if (reached.empty()) {
+            guard_.emplace(owners);
+            return;
+        }
+        std::vector<QPDF *> all(owners.begin(), owners.end());
+        all.insert(all.end(), reached.begin(), reached.end());
+        wide_.emplace(all);
+    }
+
     std::optional<OwnersGuard<n_locking<Args...>>> guard_;
+    std::optional<MultiQpdfLockGuard> wide_;
 };
 
 // A callable with the signature R(Args...) that nanobind sees in place of f.
-template <typename F, typename R, typename... Args>
-struct LockedFunction {
+template <bool Reach, typename F, typename R, typename... Args>
+struct LockedFunctionT {
     static_assert(!(arg_untyped<Args> || ...),
         "A locked binding may not take py::object or py::handle. Take an "
         "EncodedObject or a specific type, or register it with unlocked() "
@@ -236,19 +300,22 @@ struct LockedFunction {
 
     R operator()(Args... args) const
     {
-        ArgsGuard<Args...> guard(args...);
+        ArgsGuard<Reach, Args...> guard(args...);
         return std::invoke(f, std::forward<Args>(args)...);
     }
 };
 
 template <typename F, typename R, typename... Args>
-LockedFunction<F, R, Args...> lock_lambda(F f, R (F::*)(Args...) const)
+using LockedFunction = LockedFunctionT<true, F, R, Args...>;
+
+template <bool Reach, typename F, typename R, typename... Args>
+LockedFunctionT<Reach, F, R, Args...> lock_lambda(F f, R (F::*)(Args...) const)
 {
     return {std::move(f)};
 }
 
-template <typename F, typename R, typename... Args>
-LockedFunction<F, R, Args...> lock_lambda(F f, R (F::*)(Args...))
+template <bool Reach, typename F, typename R, typename... Args>
+LockedFunctionT<Reach, F, R, Args...> lock_lambda(F f, R (F::*)(Args...))
 {
     return {std::move(f)};
 }
@@ -257,30 +324,35 @@ LockedFunction<F, R, Args...> lock_lambda(F f, R (F::*)(Args...))
 
 // Wrap a callable so that it locks the Pdf of each of its arguments.
 
-template <typename R, typename... Args>
+//
+// Reach says whether an argument that belongs to no Pdf also has the Pdfs of
+// the objects it holds locked; see ArgsGuard. shallow() turns it off.
+template <bool Reach = true, typename R, typename... Args>
 auto locked(R (*f)(Args...))
 {
-    return locked_detail::LockedFunction<R (*)(Args...), R, Args...>{f};
+    return locked_detail::LockedFunctionT<Reach, R (*)(Args...), R, Args...>{f};
 }
 
-template <typename R, typename C, typename... Args>
+template <bool Reach = true, typename R, typename C, typename... Args>
 auto locked(R (C::*f)(Args...))
 {
-    return locked_detail::LockedFunction<R (C::*)(Args...), R, C &, Args...>{f};
+    return locked_detail::LockedFunctionT<Reach, R (C::*)(Args...), R, C &, Args...>{f};
 }
 
-template <typename R, typename C, typename... Args>
+template <bool Reach = true, typename R, typename C, typename... Args>
 auto locked(R (C::*f)(Args...) const)
 {
-    return locked_detail::LockedFunction<R (C::*)(Args...) const, R, C &, Args...>{f};
+    return locked_detail::
+        LockedFunctionT<Reach, R (C::*)(Args...) const, R, C &, Args...>{f};
 }
 
-template <typename F>
+template <bool Reach = true, typename F>
     requires requires { &std::remove_cvref_t<F>::operator(); }
 auto locked(F &&f)
 {
     using Lambda = std::remove_cvref_t<F>;
-    return locked_detail::lock_lambda<Lambda>(std::forward<F>(f), &Lambda::operator());
+    return locked_detail::lock_lambda<Reach, Lambda>(
+        std::forward<F>(f), &Lambda::operator());
 }
 
 // Marks a callable that locked_class_ registers as it is, without locking.
@@ -291,6 +363,22 @@ struct Unlocked {
 
 template <typename F>
 Unlocked<std::remove_cvref_t<F>> unlocked(F &&f)
+{
+    return {std::forward<F>(f)};
+}
+
+// Marks a callable that locked_class_ registers locked, but without the locks
+// of the Pdfs whose objects an argument that belongs to no Pdf holds. For a
+// binding that reads at most one of those objects, under a ChildLockGuard, and
+// would otherwise walk the whole container on every call: len(), indexing and
+// the like. Building a large container in a loop then stays linear.
+template <typename F>
+struct Shallow {
+    F f;
+};
+
+template <typename F>
+Shallow<std::remove_cvref_t<F>> shallow(F &&f)
 {
     return {std::forward<F>(f)};
 }
@@ -356,7 +444,7 @@ public:
         cls_.def(
             "__init__",
             [](T *self, Args... args) {
-                locked_detail::ArgsGuard<Args...> guard(args...);
+                locked_detail::ArgsGuard<true, Args...> guard(args...);
                 new (static_cast<void *>(self)) Alias(std::forward<Args>(args)...);
             },
             extra...);
@@ -408,22 +496,35 @@ private:
     template <typename F>
     static auto wrap(F &&f)
     {
-        return locked(std::forward<F>(f));
+        return wrap_as<true>(std::forward<F>(f));
+    }
+
+    template <typename F>
+    static auto wrap(Shallow<F> f)
+    {
+        return wrap_as<false>(std::move(f.f));
+    }
+
+    template <bool Reach, typename F>
+    static auto wrap_as(F &&f)
+    {
+        return locked<Reach>(std::forward<F>(f));
     }
 
     // A member function, which may belong to a base class of T, is bound as
     // a method of T.
-    template <typename R, typename C, typename... Args>
-    static auto wrap(R (C::*f)(Args...))
+    template <bool Reach, typename R, typename C, typename... Args>
+    static auto wrap_as(R (C::*f)(Args...))
     {
-        return locked_detail::LockedFunction<R (C::*)(Args...), R, T &, Args...>{f};
+        return locked_detail::
+            LockedFunctionT<Reach, R (C::*)(Args...), R, T &, Args...>{f};
     }
 
-    template <typename R, typename C, typename... Args>
-    static auto wrap(R (C::*f)(Args...) const)
+    template <bool Reach, typename R, typename C, typename... Args>
+    static auto wrap_as(R (C::*f)(Args...) const)
     {
-        return locked_detail::LockedFunction<R (C::*)(Args...) const, R, T &, Args...>{
-            f};
+        return locked_detail::
+            LockedFunctionT<Reach, R (C::*)(Args...) const, R, T &, Args...>{f};
     }
 
     template <typename F, typename R, typename... Args>
@@ -432,7 +533,7 @@ private:
         static_assert(!(locked_detail::arg_untyped<Args> || ...),
             "A constructor may not take py::object or py::handle.");
         return [factory = std::move(factory)](T *self, Args... args) {
-            locked_detail::ArgsGuard<Args...> guard(args...);
+            locked_detail::ArgsGuard<true, Args...> guard(args...);
             new (self) T(factory(std::forward<Args>(args)...));
         };
     }

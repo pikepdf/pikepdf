@@ -426,20 +426,20 @@ void init_object(py::module_ &m)
 #endif
     auto object =
         locked_class_<QPDFObjectHandle>(m, "Object", py::type_slots(pikepdf_gc_slots));
-    object.def_prop_ro("_type_code", &QPDFObjectHandle::getTypeCode)
-        .def_prop_ro("_type_code_int",
-            [](QPDFObjectHandle &self) { return static_cast<int>(self.getTypeCode()); })
-        .def_prop_ro("_type_name", &QPDFObjectHandle::getTypeName)
-        .def(
-            "is_owned_by",
-            [](QPDFObjectHandle &h, QPDF &possible_owner) {
+    object.def_prop_ro("_type_code", shallow(&QPDFObjectHandle::getTypeCode))
+        .def_prop_ro("_type_code_int", shallow([](QPDFObjectHandle &self) {
+            return static_cast<int>(self.getTypeCode());
+        }))
+        .def_prop_ro("_type_name", shallow(&QPDFObjectHandle::getTypeName))
+        .def("is_owned_by",
+            shallow([](QPDFObjectHandle &h, QPDF &possible_owner) {
                 return (live_owner(h) == &possible_owner);
-            },
+            }),
             py::arg("possible_owner"))
         .def("same_owner_as",
-            [](QPDFObjectHandle &self, QPDFObjectHandle &other) {
+            shallow([](QPDFObjectHandle &self, QPDFObjectHandle &other) {
                 return live_owner(self) == live_owner(other);
-            })
+            }))
         .def("is_same_object_as",
             // A test of identity, which reads neither object, so it takes no
             // lock.
@@ -471,7 +471,7 @@ void init_object(py::module_ &m)
                 adopt_children_into(other_owner, self_in_other);
                 return self_in_other;
             })
-        .def_prop_ro("is_indirect", &QPDFObjectHandle::isIndirect)
+        .def_prop_ro("is_indirect", shallow(&QPDFObjectHandle::isIndirect))
         .def("__repr__", [](QPDFObjectHandle &self) { return objecthandle_repr(self); })
         .def("__hash__",
             [](QPDFObjectHandle &self) -> py::int_ {
@@ -562,72 +562,70 @@ void init_object(py::module_ &m)
             },
             py::is_operator())
         .def("__copy__", &copy_object)
-        .def("__len__",
-            [](QPDFObjectHandle &h) -> size_t {
-                if (h.isDictionary()) {
-                    // getKeys constructs a new object, so this is better
-                    return static_cast<size_t>(h.getDictAsMap().size());
-                } else if (h.isArray()) {
-                    int nitems = h.getArrayNItems();
-                    // LCOV_EXCL_START
-                    if (nitems < 0) {
-                        throw std::logic_error("Array items < 0");
-                    }
-                    // LCOV_EXCL_STOP
-                    return static_cast<size_t>(nitems);
+        .def("__len__", shallow([](QPDFObjectHandle &h) -> size_t {
+            if (h.isDictionary()) {
+                // getKeys constructs a new object, so this is better
+                return static_cast<size_t>(h.getDictAsMap().size());
+            } else if (h.isArray()) {
+                int nitems = h.getArrayNItems();
+                // LCOV_EXCL_START
+                if (nitems < 0) {
+                    throw std::logic_error("Array items < 0");
                 }
-                if (h.isStream())
-                    throw py::type_error(
-                        "length not defined for object - "
-                        "use len(obj.keys()) for number of dictionary keys, "
-                        "or len(bytes(obj)) for length of stream data");
-                throw py::type_error("length not defined for object");
-            })
-        .def("__bool__",
-            [](QPDFObjectHandle &h) -> bool {
-                // Handle boolean objects (in explicit conversion mode)
-                if (h.isBool()) {
-                    return h.getBoolValue();
+                // LCOV_EXCL_STOP
+                return static_cast<size_t>(nitems);
+            }
+            if (h.isStream())
+                throw py::type_error(
+                    "length not defined for object - "
+                    "use len(obj.keys()) for number of dictionary keys, "
+                    "or len(bytes(obj)) for length of stream data");
+            throw py::type_error("length not defined for object");
+        }))
+        .def("__bool__", shallow([](QPDFObjectHandle &h) -> bool {
+            // Handle boolean objects (in explicit conversion mode)
+            if (h.isBool()) {
+                return h.getBoolValue();
+            }
+            if (h.isDictionary()) {
+                return h.getDictAsMap().size() > 0;
+            } else if (h.isArray()) {
+                int nitems = h.getArrayNItems();
+                // LCOV_EXCL_START
+                if (nitems < 0) {
+                    throw std::logic_error("Array items < 0");
                 }
-                if (h.isDictionary()) {
-                    return h.getDictAsMap().size() > 0;
-                } else if (h.isArray()) {
-                    int nitems = h.getArrayNItems();
-                    // LCOV_EXCL_START
-                    if (nitems < 0) {
-                        throw std::logic_error("Array items < 0");
-                    }
-                    // LCOV_EXCL_STOP
-                    return nitems > 0;
-                } else if (h.isStream()) {
-                    auto stream_dict = h.getDict();
-                    auto len = stream_dict.getKey("/Length");
-                    if (len.isNull() || !len.isInteger() || len.getIntValue() <= 0) {
-                        return false;
-                    }
-                    return true;
-                } else if (h.isString()) {
-                    return h.getStringValue().size() > 0;
-                } else if (h.isName()) {
-                    // getName() includes the leading '/'
-                    return h.getName().size() > 1;
-                } else if (h.isOperator()) {
-                    return h.getOperatorValue().size() > 0;
-                } else if (h.isInteger()) {
-                    return h.getIntValue() != 0;
-                } else if (h.isReal()) {
-                    // qpdf accepts real tokens that C++ number parsing rejects;
-                    // treat anything unparseable or non-finite as false.
-                    auto value = real_as_double(h);
-                    return value.has_value() && *value != 0.0;
-                } else if (h.isNull()) {
+                // LCOV_EXCL_STOP
+                return nitems > 0;
+            } else if (h.isStream()) {
+                auto stream_dict = h.getDict();
+                auto len = stream_dict.getKey("/Length");
+                if (len.isNull() || !len.isInteger() || len.getIntValue() <= 0) {
                     return false;
                 }
-                // LCOV_EXCL_START
-                PyErr_SetString(PyExc_NotImplementedError, "code is unreachable");
-                throw py::python_error();
-                // LCOV_EXCL_STOP
-            })
+                return true;
+            } else if (h.isString()) {
+                return h.getStringValue().size() > 0;
+            } else if (h.isName()) {
+                // getName() includes the leading '/'
+                return h.getName().size() > 1;
+            } else if (h.isOperator()) {
+                return h.getOperatorValue().size() > 0;
+            } else if (h.isInteger()) {
+                return h.getIntValue() != 0;
+            } else if (h.isReal()) {
+                // qpdf accepts real tokens that C++ number parsing rejects;
+                // treat anything unparseable or non-finite as false.
+                auto value = real_as_double(h);
+                return value.has_value() && *value != 0.0;
+            } else if (h.isNull()) {
+                return false;
+            }
+            // LCOV_EXCL_START
+            PyErr_SetString(PyExc_NotImplementedError, "code is unreachable");
+            throw py::python_error();
+            // LCOV_EXCL_STOP
+        }))
         .def("__format__",
             // Needs the Python object itself, to format a non-numeric Object
             // as str() does, so it has no argument whose Pdf the wrapper

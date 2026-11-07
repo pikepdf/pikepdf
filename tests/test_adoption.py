@@ -671,3 +671,25 @@ class TestQpdfCreatedValuesAreAdoptedOnRead:
     def test_qpdf_created_container_is_owned_after_read(self, pdf, bbox_parent):
         bbox_parent.BBox
         assert bbox_parent.get_raw('/BBox').is_owned_by(pdf)
+
+
+def _self_referencing_dictionary():
+    # Contains itself twice, so a walk that does not remember what it has
+    # visited takes time exponential in its depth limit.
+    d = Dictionary()
+    d.A = d
+    d.B = d
+    return d
+
+
+@pytest.mark.timeout(30, method='thread')
+def test_insert_self_referencing_dictionary():
+    pdf = Pdf.new()
+    pdf.Root.X = _self_referencing_dictionary()
+    assert pdf.Root.X.A.is_owned_by(pdf)
+    del pdf.Root.X
+
+
+@pytest.mark.timeout(30, method='thread')
+def test_repr_of_self_referencing_dictionary():
+    assert '<...>' in repr(_self_referencing_dictionary())
