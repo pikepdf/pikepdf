@@ -160,6 +160,11 @@ in continuous integration, which is how most of them were found
 - Threads that take turns using the same `Pdf` are no longer slowed to a
   crawl when every CPU is busy. {commit}`a3e2b882`
 
+Free-threaded wheels are not provided for Windows in this release. They crash
+in the test suite, for reasons that have not yet been found, so free-threaded
+Python on Windows is not supported for now. Linux and macOS free-threaded
+wheels are provided as before. {issue}`757`
+
 ## v10.17.0
 
 - Added {class}`pikepdf.ObjectSet`, which records the objects that a walk of
