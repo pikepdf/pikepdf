@@ -496,6 +496,9 @@ inline QPDF *lock_target(QPDFObjectHandle const &h)
 {
     if (QPDF *owner = h.getOwningQPDF())
         return owner;
+    // The owner may have just been cleared by ~QPDF, which then destroys the
+    // value whose type is read next.
+    QpdfRegistry::instance().wait_for_teardown();
     if (h.isDictionary() || h.isArray())
         return unowned_owner();
     return nullptr;
