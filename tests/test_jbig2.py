@@ -432,7 +432,7 @@ def test_jbig2_globals_cycle_save_and_reopen():
             reimage.read_bytes()
 
 
-def test_jbig2_globals_cycle_array_filter():
+def test_jbig2_globals_cycle_array_filter(recording_decoder):
     # The same self-cycle, but the /Filter of the globals is an array that
     # names /JBIG2Decode among other filters, not a bare /JBIG2Decode name.
     pdf = Pdf.new()
@@ -441,6 +441,7 @@ def test_jbig2_globals_cycle_array_filter():
     image.DecodeParms = Dictionary(JBIG2Globals=image)
     with pytest.raises(PdfError):
         image.read_bytes(pikepdf.StreamDecodeLevel.specialized)
+    assert recording_decoder.seen == []
 
 
 class _RecordingDecoder(JBIG2DecoderInterface):
