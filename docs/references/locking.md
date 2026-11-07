@@ -1,0 +1,359 @@
+# Locks
+
+This page is for people working on pikepdf itself. It describes the locks
+inside pikepdf, what each one protects, and how they behave on GIL-enabled
+and free-threaded Python. For what users of pikepdf need to know, see
+{ref}`callback-restrictions` and the thread safety section of
+{doc}`arch`.
+
+## Why pikepdf needs its own locks
+
+qpdf is not thread-safe. A `QPDF` object, and every object handle that
+belongs to it, may only be used by one thread at a time. Even reading is
+unsafe, because qpdf loads objects from the file lazily: the first read of an
+indirect object moves the file position, parses, and fills the object cache.
+
+On a free-threaded build nothing stops two threads from calling into the
+same `QPDF` at once, so a lock is obviously needed. On a GIL-enabled build
+it is needed too, which is less obvious. The GIL serializes Python
+bytecode, not qpdf operations, and it changes hands part way through many of
+them:
+
+- when qpdf reads from a Python stream (`readinto`, `seek` and `tell` run
+  Python code);
+- when it writes to a Python stream, or calls a `progress` function;
+- when it runs a {class}`pikepdf.TokenFilter` or {class}`pikepdf.StreamParser`
+  callback;
+- when it logs a warning through the `logging` module;
+- when an allocation triggers a garbage collection, which can run any
+  finalizer, including the one that destroys another `Pdf`;
+- when pikepdf releases the GIL outright, as it does while it opens a file
+  and while it writes one.
+
+Each of these gives another thread a chance to enter the same `QPDF` while
+the first is still in the middle of an operation.
+
+## Overview
+
+| Lock | Protects | Kind |
+|---|---|---|
+| Per-`Pdf` lock (`QpdfEntry::mutex`) | one `QPDF` and all of its objects | `ReentrantFtMutex` |
+| Unowned lock (`unowned_mutex()`) | every `Dictionary` and `Array` that belongs to no `Pdf` | `ReentrantFtMutex`, global |
+| Teardown lock (`QpdfRegistry::teardown_mutex_`) | objects of a `QPDF` that is being destroyed | `ReentrantFtMutex`, global |
+| Registry lock (`QpdfRegistry::map_mutex_`) | the map from `QPDF *` to its entry | `std::mutex`, global |
+| Wait table lock (`ReentrantFtMutex::Waiting`) | the table used to detect deadlocks | `std::mutex`, global |
+| Adopted objects lock (`QpdfEntry::adopted_mutex_`) | the list of direct objects a `Pdf` has adopted | `std::mutex`, per `Pdf` |
+| qpdf globals lock (`qpdf_global_mutex`) | qpdf's global limits, through `pikepdf.settings` | `std::mutex`, global |
+| Traversal locks (`ObjectSet`, `ContentScopes`) | the state of one graph traversal | `std::mutex`, per object |
+| Pillow limit lock (`_pil_limit_lock`) | `PIL.Image.MAX_IMAGE_PIXELS` while pikepdf changes it | {class}`threading.Lock` |
+
+Module-level settings that are a single value, such as the decimal precision
+and the default conversion mode, are `constinit std::atomic` variables, not
+locks. Per-thread state, such as the stack of conversion mode overrides, is
+`thread_local`.
+
+### On GIL-enabled and free-threaded Python
+
+| Lock | GIL-enabled build | Free-threaded build |
+|---|---|---|
+| Per-`Pdf` lock | Real. An uncontended lock is a few plain loads and stores, which the GIL makes safe. A thread that finds it held releases the GIL and sleeps on a condition variable. | Real. An uncontended lock is a compare-and-swap. A thread that finds it held detaches from the interpreter and sleeps on a condition variable. |
+| Unowned lock | As the per-`Pdf` lock | As the per-`Pdf` lock |
+| Teardown lock | As the per-`Pdf` lock | As the per-`Pdf` lock |
+| Deadlock check | Runs only when a lock is contended | Runs only when a lock is contended |
+| Registry, wait table, adopted objects, qpdf globals, traversal | `std::mutex`. Needed, because a thread can be inside qpdf with the GIL released. Each is held only briefly and never while calling Python. | `std::mutex`, held only briefly and never while calling Python |
+| `constinit std::atomic` settings | Atomic, though the GIL alone would suffice | Atomic; required |
+| Pillow limit lock | {class}`threading.Lock` | {class}`threading.Lock` |
+
+None of these locks compiles to nothing on a GIL-enabled build. Earlier
+versions of pikepdf relied on the GIL and made the per-`Pdf` lock a no-op
+there, which was wrong for the reasons listed above.
+
+## The per-`Pdf` lock
+
+Every `QPDF` that pikepdf creates is registered in `QpdfRegistry`
+(`src/core/qpdf_lock.h`), which maps the `QPDF *` to a `QpdfEntry`. The entry
+holds the lock, the document's conversion mode, and the list of adopted
+objects. Entries are reference counted: a thread that is locking a `QPDF`,
+or waiting to, holds a reference to the entry, so the lock outlives the
+`QPDF` if another thread destroys the document meanwhile.
+
+The lock is re-entrant. One call often locks the same `Pdf` more than once:
+the binding locks it, then the type caster for the return value locks it
+again to resolve indirect objects; a Python method in `_methods.py` calls
+several bindings in turn; a callback calls back into pikepdf on the same
+`Pdf`.
+
+### How bindings take it
+
+Bindings do not usually lock anything themselves. A class bound with
+`locked_class_` (`src/core/locked_bindings.h`) wraps each method so that it
+locks the `Pdf` that owns each of its arguments before the body runs. Which
+`Pdf` owns a value of a given C++ type is declared once, by specializing
+`LockOwner`; a class whose type has no such declaration cannot be bound with
+`locked_class_`, so a forgotten lock is a compile error. A prek hook
+(`cpp-locked-class` in `prek.toml`) rejects plain `py::class_` in the files
+that have been converted. A binding that must not be wrapped is registered
+as `unlocked(f)`, so the exception is visible where it is made. A binding
+registered as `shallow(f)` is locked, but does not walk an argument that
+belongs to no `Pdf`; see below.
+
+Code that locks by hand uses one of three RAII guards:
+
+- `QpdfLockGuard` locks one `QPDF`;
+- `DualQpdfLockGuard` locks two, for example when copying objects between
+  documents;
+- `MultiQpdfLockGuard` locks any number;
+- `ReachGuard` locks what a list of objects needs, including the `Pdf`s
+  reachable from those that belong to no `Pdf`, as the bindings do.
+
+The guards that take several locks always take them in the same order (by
+the address of the registry entry), so two calls that each lock the same
+pair of `Pdf`s cannot deadlock. If a later lock throws, they release the ones
+already taken.
+
+`Pdf.lock()` is the same lock, exposed to Python through `_acquire_lock` and
+`_release_lock`, so that users can make a sequence of calls atomic.
+
+### Python code in pikepdf
+
+A method implemented in Python is a sequence of binding calls, each of which
+holds the lock only while it runs. A method that changes a `Pdf` in several
+dependent steps holds the lock across them: `with pdf.lock():`, or a
+decorator that does the same, as in `sanitize.py` and `form.py`. One that
+involves more than one `Pdf`, such as `Pdf.add_pages_from` or
+`Page.add_overlay`, uses `with _OwnerLock((a, b)):` instead. `_OwnerLock`
+(`src/core/qpdf.cpp`) locks the owner of each item it is given (a `Pdf`, an
+object, or an object helper such as a `Page`) through `MultiQpdfLockGuard`,
+so the locks are taken in the same order as the bindings take them. Nested
+`pdf.lock()` blocks would take them in the order the code names them, and two
+threads copying between the same pair of `Pdf`s in opposite directions would
+then deadlock; pikepdf would detect that and raise in one of them.
+
+Methods that only read do not need this, and neither do the `with` blocks of
+`Pdf.open_metadata()` and `Pdf.open_outline()`: they hold the lock while they
+read the document and while they write it back, but not in between, since
+the block runs user code. `tests/test_threading_python_layer.py` checks each
+method that holds the lock, by interrupting it part way through and probing
+the lock from another thread.
+
+### How it works
+
+The lock is `owner_` (the identifier of the thread holding it, or 0) and
+`depth_`. The same algorithm is used on both kinds of build; only the way a
+free lock is taken differs:
+
+- On a GIL-enabled build, only a thread that holds the GIL reads or writes
+  `owner_`, so taking a free lock or re-entering a held one is a few plain
+  loads and stores, with no atomic read-modify-write and no system call.
+- On a free-threaded build, a free lock is taken with a compare-and-swap of
+  `owner_` from 0 to the thread's identifier.
+
+A thread that finds the lock held by another:
+
+1. increments `waiters_`;
+2. detaches from the interpreter, which releases the GIL if there is one;
+3. waits on the condition variable `released_` under `sleep_mutex_`;
+4. releases `sleep_mutex_` before attaching again, so a thread that is
+   attached (holding the GIL, or holding up a stop-the-world garbage
+   collection) never waits for `sleep_mutex_`;
+5. tries to take the lock again, since another thread may have taken it in
+   between, and goes back to step 2 if that fails.
+
+`unlock()` notifies the condition variable only when `waiters_` is non-zero,
+so an uncontended unlock costs nothing extra. It briefly takes
+`sleep_mutex_` before notifying, which orders the release after a waiter's
+check of `owner_` and prevents a lost wake-up. On a free-threaded build,
+`unlock()` stores 0 to `owner_` and then reads `waiters_`, while a waiter
+increments `waiters_` and then tries to take the lock, all sequentially
+consistent: either the waiter finds the lock free or `unlock()` finds the
+waiter.
+
+A free-threaded interpreter often runs with the GIL enabled, because
+importing a module that does not declare free-threading support (lxml, for
+example) turns it back on. The free-threaded implementation is used either
+way: which one is compiled depends on the build, not on whether the GIL
+happens to be enabled.
+
+### Why not `PyMutex`
+
+The lock is deliberately not fair. A released lock goes to whichever thread
+asks for it next, usually the thread that has just released it and is still
+running. Earlier versions used nanobind's `ft_mutex`, a `PyMutex`, on
+free-threaded builds. Once a waiter has waited for a millisecond, `PyMutex`
+hands the lock directly to it on release, and the lock then stays held until
+that thread is scheduled. When several threads take the same lock often,
+each handover waits for a sleeping thread, and on a machine whose CPUs are
+all busy that wait can be far longer than the work done under the lock.
+Threads reading one `Pdf` through a Python stream ran 4 to 50 times slower
+than with the current lock when the CPUs were oversubscribed.
+
+### Deadlock detection
+
+A thread can hold one `Pdf`'s lock and then ask for another's: from a
+callback that runs while a `Pdf` is locked, or from nested `with pdf.lock()`
+blocks. Two threads doing that in opposite orders would wait for each other
+for ever.
+
+`ReentrantFtMutex::Waiting` keeps a global table of which thread is waiting
+for which lock, under its own `std::mutex`. A thread about to wait follows
+the chain from the lock it wants to that lock's holder, to the lock that
+holder is waiting for, and so on. If the chain comes back to the thread
+itself, it throws `DeadlockError`, which reaches Python as {exc}`RuntimeError`.
+Unwinding releases the locks the thread holds, and the other threads in the
+cycle carry on. Only contended locks pay for this check.
+
+Code that cannot throw waits without the check: `lock_unchecked()`, and
+`QpdfLockGuard(q, std::nothrow)`. The `QPDF` deleter, the teardown lock and
+the return value type caster use these.
+
+### Rules
+
+- Every `lock()` must be made while holding the GIL, or while attached to
+  the interpreter on a free-threaded build. Nothing checks this.
+- `unlock()` must be called by the thread that called `lock()`. The owner is
+  a thread identifier, so a lock that is not released before its thread
+  exits stays held, and a later thread that is given the same identifier
+  would be let in as if it were the owner.
+- Never call Python code while holding one of the `std::mutex` locks listed
+  above. Python code can release the GIL, run a garbage collection or wait
+  for a per-`Pdf` lock, any of which can deadlock against a thread that
+  needs the `std::mutex`.
+- A lazy iterator over a qpdf container, returned from a binding, keeps
+  reading the `Pdf` after the binding has released the lock. Return a
+  snapshot instead.
+
+### Objects that belong to no `Pdf`
+
+A direct `Dictionary` or `Array` that has not been added to a `Pdf` has no
+owner. All such containers share one lock, `unowned_mutex()` in
+`src/core/qpdf_lock.h`. `lock_target(h)` says what to lock for an object: its
+`Pdf`, the stand-in `unowned_owner()` for a container that belongs to no
+`Pdf`, or nothing for a scalar that belongs to no `Pdf`, since scalars cannot
+be changed. `LockOwner<QPDFObjectHandle>` and the object helpers answer with
+`lock_target()`, and the guards take `unowned_mutex()` when given
+`unowned_owner()`. `_ObjectList` and `_ObjectMapping` also belong to no `Pdf`,
+but each locks itself (see `src/core/object_list.cpp`).
+
+`unowned_mutex()` is always taken after any `Pdf` lock, never before, so
+that the order of every lock is fixed. Code that holds it must not wait for a
+`Pdf` lock. Two places need a `Pdf` lock while holding it: reading a value out
+of an unowned container that belongs to a `Pdf` (`ChildLockGuard`), and
+converting such a value to Python. Both lock as `QpdfLockGuard::AfterUnowned`:
+if the `Pdf` lock is not free at once, `unowned_mutex()` is set aside while
+the thread waits for it and taken back afterwards. That is only safe because
+the binding has finished with the container by then. `_OwnerLock` never takes
+`unowned_mutex()`, because it holds its locks while Python code runs.
+
+An object's owner changes when it is adopted into a `Pdf`, made indirect, or
+detached. Each of these holds both the `Pdf`'s lock and `unowned_mutex()`
+while the owner changes (`object_adoption.cpp`), so a thread that holds the
+lock of an object's owner knows the owner cannot change until it lets go.
+A thread can still read an object's owner, then wait for that lock while the
+owner changes. So the bindings (`ArgsGuard` in `locked_bindings.h`) and the
+guards that take an object read the owner again once they hold the lock, and
+start over if it changed. There is nothing to re-read when no lock was taken:
+a scalar that belongs to no `Pdf` never comes to belong to one, because
+adoption copies it.
+
+The exception is the teardown of a `QPDF`, which clears the owner of each
+object it adopted without taking `unowned_mutex()`. A thread that finds an
+object with no owner waits for any teardown in progress before it uses it:
+see the teardown lock below.
+
+An unowned container may hold objects of `Pdf`s: indirect objects, and
+containers adopted by a `Pdf`. A binding that reads through it to them, such
+as `repr()`, `==`, `index()`, a name path lookup, `is_rectangle` or any `Page`
+method on an unowned page, needs their locks too, since reading an indirect
+object can make qpdf parse it from the file. So by default, when an argument
+of a locked binding is an unowned container, `ArgsGuard` walks its direct
+objects (`add_reachable_owners()` in `qpdf_lock.h`), stopping at anything
+that belongs to a `Pdf`, and collects those `Pdf`s. It walks with
+`unowned_mutex()` held, then releases everything and takes all the locks again
+through one `MultiQpdfLockGuard`, in the usual order, and walks again to check
+that nothing changed. The walk follows only what was built in Python, never a
+`Pdf`'s object graph, and an argument that belongs to a `Pdf` costs nothing
+extra. `ReachGuard` does the same for code outside the bindings: `repr()`
+itself, and the comparisons of `_ObjectList`.
+
+A binding that only ever reads at most one child, under a `ChildLockGuard`,
+is registered as `shallow(f)` so that it skips the walk: indexing, item and
+attribute assignment and deletion, `get()`, `keys()`, `len()`, `append()`,
+the typed getters, and properties such as `is_indirect`. Without that,
+building a large unowned array with `append()` would take quadratic time. A
+binding that is not marked is safe, at worst slow on a large unowned
+container, so mark one only when it reads no more than one child.
+
+Adoption keeps every object in a `Pdf`'s graph owned by that `Pdf`, which is
+what lets one lock cover them. Before adopting, `refuse_mixed_owners` walks
+the direct objects of the value being inserted, the same ones adoption
+visits, and raises `ForeignObjectError` if it finds an indirect object or a
+direct container that belongs to another `Pdf`. It runs before anything is
+changed, so a refused insertion leaves the target as it was. Every insertion
+path goes through `adopt_into` or `make_direct_indirect`; the few that adopt
+after qpdf has inserted the value (page insertion, the `stream_dict` setter,
+the `Stream` constructor) and those that insert several values (`extend`,
+slice assignment) call `refuse_mixed_owners` themselves first. Adoption on
+read does not check, so that a document already in a bad state can still be
+read.
+
+## The teardown lock
+
+`~QPDF` clears the owner of each of its objects and then destroys their
+values. A thread that read one of those objects in between would find no
+owner, take no lock, and read a value that is being destroyed.
+
+So the `QPDF` deleter (`register_qpdf` in `src/core/qpdf.cpp`) takes the
+document's own lock, then calls `QpdfRegistry::begin_teardown()`, which
+takes the global teardown lock and increments a counter. It disconnects the
+adopted objects, deletes the `QPDF`, unregisters it, and calls
+`end_teardown()`. A thread about to use an object with no owner calls
+`wait_for_teardown()`, which does nothing unless the counter is non-zero, and
+otherwise takes and releases the teardown lock.
+
+The teardown lock is re-entrant, so code run by the destroying thread
+itself, including the destruction of a second `Pdf`, passes straight
+through.
+
+## The `std::mutex` locks
+
+These protect small data structures and are never held while Python code
+runs.
+
+- **Registry lock.** Held while a `QPDF` is registered, unregistered or
+  looked up. Lookups return a `shared_ptr` to the entry, so the caller can
+  release the registry lock before taking the per-`Pdf` lock.
+- **Wait table lock.** Held while a thread records that it is about to wait
+  for a per-`Pdf` lock, checks for a cycle, and removes its record.
+- **Adopted objects lock.** qpdf records an object's owner as a raw pointer,
+  and `~QPDF` only clears that pointer on objects still in its cache. A direct
+  object that pikepdf adopted and that was later detached would be left with
+  a dangling pointer. Each `QpdfEntry` keeps weak references to the objects
+  it adopted, and the deleter disconnects those still alive. This lock
+  protects that list.
+- **qpdf globals lock.** qpdf keeps its global limits in plain variables.
+  This serializes the reads and writes made through `pikepdf.settings`. It
+  cannot cover qpdf's own reads while it parses, so limits should be set
+  before threads are started.
+- **Traversal locks.** An `ObjectSet` or `ContentScopes`
+  (`src/core/traversal.h`) can hold objects of several documents, or of
+  none, so it cannot use a per-`Pdf` lock. Each has a mutex of its own.
+
+## Testing
+
+`tests/test_threading.py` and `tests/test_threading_object.py` run the same
+operations from several threads. `tests/test_threading_unowned.py` covers
+objects that belong to no `Pdf`: it probes the shared lock from another
+thread, checks that operations which read through such an object take the
+locks of the `Pdf`s it holds and that the `shallow` ones do not, and changes
+such objects while threads add them to a `Pdf` and take them out again. The `frequent_thread_switches` fixture
+lowers the switch interval so that a GIL-enabled interpreter changes threads
+as often as it can, which makes interleavings in the middle of a qpdf
+operation likely. `run_threads` reuses its threads from one call to the
+next: on a free-threaded build, starting a thread can take a tenth of a
+second when every CPU is busy, as it is on a CI runner shared by several
+test workers.
+
+The ThreadSanitizer job (`.github/workflows/tsan.yml`, and
+{doc}`debugging`) runs these tests on a free-threaded build with the GIL
+disabled. Free-threaded wheel jobs mostly run with the GIL enabled, because
+lxml turns it back on; set `PYTHON_GIL=0` to keep it off.

@@ -4,8 +4,9 @@
 """Thread safety tests for pikepdf under free-threaded Python.
 
 These tests verify that concurrent operations on pikepdf objects do not
-crash or corrupt state. On GIL-enabled builds, the per-QPDF locks are
-no-ops, so these tests exercise the code paths without contention.
+crash or corrupt state. The per-Pdf locks are in force on GIL-enabled builds
+too: the GIL changes hands whenever Python code runs, which pikepdf does in
+the middle of many operations, so it does not serialize them by itself.
 
 The stress tests in the second half of this file start their threads from a
 common barrier so that the operations overlap, and assert on invariants that
@@ -16,6 +17,7 @@ short: TSan slows the interpreter by roughly an order of magnitude.
 
 from __future__ import annotations
 
+import functools
 import queue
 import sys
 import threading
@@ -28,9 +30,13 @@ import pytest
 
 import pikepdf
 from pikepdf import (
+    Annotation,
     Array,
+    AttachedFileSpec,
     Dictionary,
     Name,
+    NameTree,
+    NumberTree,
     Object,
     Pdf,
     Stream,
@@ -45,12 +51,15 @@ RESOURCES = Path(__file__).parent / "resources"
 
 # A deadlock must fail the test rather than hang the run. method='thread' is
 # used because a deadlocked thread never returns to the interpreter to service
-# a signal.
-pytestmark = pytest.mark.timeout(120, method='thread')
+# a signal. The limit is generous: run_threads() reports a deadlock sooner,
+# and on a free-threaded build on a machine whose CPUs are all busy, each
+# handover between threads can take a tenth of a second, so a test that runs
+# many batches of threads can take minutes.
+TIMEOUT = pytest.mark.timeout(600, method='thread')
+pytestmark = TIMEOUT
 
 N_THREADS = 8
 JOIN_TIMEOUT = 60
-GIL_ENABLED = getattr(sys, '_is_gil_enabled', lambda: True)()
 
 
 @pytest.fixture
@@ -284,6 +293,27 @@ def test_concurrent_save(tmp_path):
 # ---------------------------------------------------------------------------
 
 
+class _Worker:
+    """A daemon thread that runs the functions it is given, one at a time.
+
+    run_threads() keeps its workers for reuse: starting a thread on a
+    free-threaded build can take a tenth of a second when every CPU is busy.
+    Daemon threads, so that a deadlocked worker cannot also hang interpreter
+    shutdown after the test has been reported as failed.
+    """
+
+    def __init__(self):
+        self.tasks = queue.SimpleQueue()
+        threading.Thread(target=self._run, daemon=True).start()
+
+    def _run(self):
+        while True:
+            self.tasks.get()()
+
+
+_idle_workers: list[_Worker] = []
+
+
 def run_threads(*targets):
     """Run each target in its own thread, released together from a barrier.
 
@@ -293,25 +323,29 @@ def run_threads(*targets):
     barrier = threading.Barrier(len(targets))
     errors = []
 
-    def runner(target):
+    def runner(target, finished):
         try:
             barrier.wait(JOIN_TIMEOUT)
             target()
         except BaseException as e:  # pylint: disable=broad-exception-caught
             errors.append(e)
+        finally:
+            finished.set()
 
-    # Daemon threads, so that a deadlocked thread cannot also hang interpreter
-    # shutdown after the test has been reported as failed.
-    threads = [
-        threading.Thread(target=runner, args=(target,), daemon=True)
-        for target in targets
-    ]
-    for t in threads:
-        t.start()
+    workers = [_idle_workers.pop() if _idle_workers else _Worker() for _ in targets]
+    finished = [threading.Event() for _ in targets]
+    for worker, target, event in zip(workers, targets, finished, strict=True):
+        worker.tasks.put(functools.partial(runner, target, event))
     deadline = time.monotonic() + JOIN_TIMEOUT
-    for t in threads:
-        t.join(max(0.0, deadline - time.monotonic()))
-    stuck = sum(t.is_alive() for t in threads)
+    for event in finished:
+        event.wait(max(0.0, deadline - time.monotonic()))
+    # A worker that is still running stays out of the pool
+    _idle_workers.extend(
+        worker
+        for worker, event in zip(workers, finished, strict=True)
+        if event.is_set()
+    )
+    stuck = sum(not event.is_set() for event in finished)
     assert not stuck, f"{stuck} thread(s) still running after {JOIN_TIMEOUT}s"
     if errors:
         raise errors[0]
@@ -320,6 +354,22 @@ def run_threads(*targets):
 def run_n(target, n=N_THREADS):
     """Run target(thread_index) in n threads."""
     run_threads(*[lambda i=i: target(i) for i in range(n)])
+
+
+def test_run_threads_reuses_its_threads():
+    """Repeated calls run on the same threads, rather than starting new ones.
+
+    Starting a thread on a free-threaded build can take a tenth of a second
+    when every CPU is busy, as on a CI runner shared with other test workers,
+    and the stress tests call run_threads many times.
+    """
+    seen = []
+    for _ in range(3):
+        threads = set()
+        run_n(lambda _i, threads=threads: threads.add(threading.current_thread()))
+        seen.append(threads)
+    assert len(seen[0]) == N_THREADS
+    assert seen[0] == seen[1] == seen[2]
 
 
 def describe(pdf):
@@ -534,12 +584,7 @@ def test_stress_different_objects_same_pdf():
 
 
 def test_stress_lock_makes_compound_operation_atomic():
-    """Pdf.lock() serializes a read-modify-write, and is re-entrant.
-
-    On a GIL-enabled build Pdf.lock() is documented to be a no-op and the
-    interpreter may switch threads between the read and the write, so the exact
-    total is only guaranteed on a free-threaded build.
-    """
+    """Pdf.lock() serializes a read-modify-write, and is re-entrant."""
     pdf = Pdf.new()
     pdf.Root.Counter = 0
     per_thread = 200
@@ -556,9 +601,7 @@ def test_stress_lock_makes_compound_operation_atomic():
 
     run_n(work)
     total = int(pdf.Root.Counter)
-    assert 0 < total <= N_THREADS * per_thread
-    if not GIL_ENABLED:
-        assert total == N_THREADS * per_thread
+    assert total == N_THREADS * per_thread
 
     # The lock was fully released: another thread can take it.
     acquired = []
@@ -1155,37 +1198,76 @@ class CrossPdfFilter(TokenFilter):
         return token
 
 
-@pytest.mark.xfail(
-    not GIL_ENABLED,
-    strict=True,
-    reason="Known limitation: a callback that holds one Pdf's lock and touches "
-    "another Pdf can deadlock against a thread doing the opposite",
-)
-def test_stress_token_filters_cross_two_pdfs(monkeypatch):
+def run_collecting_deadlocks(*targets):
+    """Run the targets in threads; return the deadlock errors they raised."""
+    deadlocks = []
+
+    def collecting(target):
+        def run():
+            try:
+                target()
+            except RuntimeError as e:
+                if 'deadlock' not in str(e).lower():
+                    raise
+                deadlocks.append(e)
+
+        return run
+
+    run_threads(*[collecting(target) for target in targets])
+    return deadlocks
+
+
+def test_stress_token_filters_cross_two_pdfs():
     """Filters on two Pdfs, each reading the other Pdf from its callback.
 
     Thread 1 holds a's lock and wants b's; thread 2 holds b's and wants a's.
-    The per-Pdf locks are only ever taken in a consistent order when a single
-    call needs both, so this deadlocks on a free-threaded build.
+    A callback is documented as free to use only the Pdf it was called for, so
+    this is a caller error. It is reported to one of the two threads as a
+    RuntimeError, which lets the other finish, rather
+    than leaving both waiting for ever.
     """
-    # When this deadlocks the Pdfs stay locked by the stuck daemon threads, so
-    # they are deliberately not closed, and the wait is kept short.
-    monkeypatch.setattr(sys.modules[__name__], 'JOIN_TIMEOUT', 5)
-    a = Pdf.open(RESOURCES / 'fourpages.pdf')
-    b = Pdf.open(RESOURCES / 'fourpages.pdf')
-    rendezvous = threading.Barrier(2)
-    results = {}
+    with (
+        Pdf.open(RESOURCES / 'fourpages.pdf') as a,
+        Pdf.open(RESOURCES / 'fourpages.pdf') as b,
+    ):
+        alone = CrossPdfFilter(b, threading.Barrier(1))
+        expected = a.pages[0].get_filtered_contents(alone)
+        rendezvous = threading.Barrier(2)
+        results = {}
 
-    def filter_a_reading_b():
-        tf = CrossPdfFilter(b, rendezvous)
-        results['a'] = a.pages[0].get_filtered_contents(tf)
+        def filter_a_reading_b():
+            tf = CrossPdfFilter(b, rendezvous)
+            results['a'] = a.pages[0].get_filtered_contents(tf)
 
-    def filter_b_reading_a():
-        tf = CrossPdfFilter(a, rendezvous)
-        results['b'] = b.pages[0].get_filtered_contents(tf)
+        def filter_b_reading_a():
+            tf = CrossPdfFilter(a, rendezvous)
+            results['b'] = b.pages[0].get_filtered_contents(tf)
 
-    run_threads(filter_a_reading_b, filter_b_reading_a)
-    assert results['a'] == results['b'] != b''
+        deadlocks = run_collecting_deadlocks(filter_a_reading_b, filter_b_reading_a)
+        assert len(deadlocks) == 1
+        assert list(results.values()) == [expected]
+
+        # Both locks were given up: each Pdf is usable from a third thread
+        run_threads(lambda: len(a.pages), lambda: len(b.pages))
+
+
+def test_stress_pdf_locks_taken_in_opposite_orders():
+    """Two threads nesting Pdf.lock() in opposite orders do not hang."""
+    with Pdf.new() as a, Pdf.new() as b:
+        rendezvous = threading.Barrier(2)
+        done = []
+
+        def nest(first, second):
+            with first.lock():
+                rendezvous.wait(JOIN_TIMEOUT)
+                with second.lock():
+                    done.append(second)
+
+        deadlocks = run_collecting_deadlocks(lambda: nest(a, b), lambda: nest(b, a))
+        assert len(deadlocks) == 1
+        assert len(done) == 1
+
+        run_threads(lambda: len(a.pages), lambda: len(b.pages))
 
 
 def test_stress_conversion_mode_is_per_thread():
@@ -1276,3 +1358,357 @@ def test_stress_open_save_close_many_pdfs(tmp_path):
                 assert str(check.docinfo['/Title']) == f'thread {i} round {n}'
 
     run_n(work)
+
+
+N_TREE_KEYS = 200
+
+
+def name_tree_key(n):
+    return f'key{n:04d}'
+
+
+@pytest.fixture(scope='module')
+def name_tree_pdf_bytes():
+    """A saved Pdf with a name tree of N_TREE_KEYS entries at /Root/Names/Dests."""
+    pdf = Pdf.new()
+    pdf.add_blank_page()
+    tree = NameTree.new(pdf)
+    for n in range(N_TREE_KEYS):
+        tree[name_tree_key(n)] = pdf.make_indirect(Dictionary(N=n))
+    pdf.Root.Names = pdf.make_indirect(Dictionary(Dests=tree.obj))
+    out = BytesIO()
+    pdf.save(out)
+    return out.getvalue()
+
+
+def test_stress_name_tree_cold_reads(name_tree_pdf_bytes):
+    """Threads sharing one NameTree of a cold file all read the same tree.
+
+    Nothing has been resolved when the threads start, so every lookup makes
+    qpdf read the file and fill the tree's cache.
+    """
+    expected = [name_tree_key(n) for n in range(N_TREE_KEYS)]
+    for _ in range(5):
+        with Pdf.open(BytesIO(name_tree_pdf_bytes)) as pdf:
+            tree = NameTree(pdf.Root.Names.Dests)
+
+            def read(i, tree=tree):
+                for n in range(i, N_TREE_KEYS, 7):
+                    assert name_tree_key(n) in tree
+                    assert tree[name_tree_key(n)].N == n
+                assert 'absent' not in tree
+                assert len(tree) == N_TREE_KEYS
+                assert list(tree) == expected
+                assert list(tree.keys()) == expected
+
+            run_n(read)
+
+
+def test_stress_name_tree_insert_while_reading(name_tree_pdf_bytes):
+    """Inserting into a NameTree while other threads read it loses nothing."""
+    per_thread = 40
+    with Pdf.open(BytesIO(name_tree_pdf_bytes)) as pdf:
+        tree = NameTree(pdf.Root.Names.Dests)
+
+        def work(i):
+            if i % 2:
+                for n in range(per_thread):
+                    tree[f'new{i}_{n:03d}'] = Dictionary(T=i, N=n)
+            else:
+                for _ in range(per_thread):
+                    for key in tree:
+                        assert key.startswith(('key', 'new'))
+                    assert len(tree) >= N_TREE_KEYS
+                    assert tree[name_tree_key(i)].N == i
+
+        run_n(work)
+        writers = [i for i in range(N_THREADS) if i % 2]
+        assert len(tree) == N_TREE_KEYS + per_thread * len(writers)
+        for i in writers:
+            for n in range(per_thread):
+                item = tree[f'new{i}_{n:03d}']
+                assert (item.T, item.N) == (i, n)
+
+
+@pytest.fixture(scope='module')
+def number_tree_pdf_bytes():
+    """A saved Pdf with a number tree of N_TREE_KEYS entries at /Root/Numbers."""
+    pdf = Pdf.new()
+    pdf.add_blank_page()
+    tree = NumberTree.new(pdf)
+    for n in range(N_TREE_KEYS):
+        tree[n] = pdf.make_indirect(Dictionary(N=n))
+    pdf.Root.Numbers = tree.obj
+    out = BytesIO()
+    pdf.save(out)
+    return out.getvalue()
+
+
+def test_stress_number_tree_cold_reads(number_tree_pdf_bytes):
+    """Threads sharing one NumberTree of a cold file all read the same tree."""
+    expected = list(range(N_TREE_KEYS))
+    for _ in range(5):
+        with Pdf.open(BytesIO(number_tree_pdf_bytes)) as pdf:
+            tree = NumberTree(pdf.Root.Numbers)
+
+            def read(i, tree=tree):
+                for n in range(i, N_TREE_KEYS, 7):
+                    assert n in tree
+                    assert tree[n].N == n
+                assert -1 not in tree
+                assert len(tree) == N_TREE_KEYS
+                assert list(tree) == expected
+                assert list(tree.keys()) == expected
+
+            run_n(read)
+
+
+@pytest.fixture
+def frequent_thread_switches():
+    """Have a GIL-enabled interpreter switch threads as often as it can."""
+    before = sys.getswitchinterval()
+    sys.setswitchinterval(1e-6)
+    yield
+    sys.setswitchinterval(before)
+
+
+class PythonLevelStream(BytesIO):
+    """A stream whose reads run Python code, as a user's file object might."""
+
+    def readinto(self, buffer):
+        return super().readinto(buffer)
+
+
+@pytest.mark.usefixtures('frequent_thread_switches')
+def test_stress_cold_reads_through_a_python_stream(number_tree_pdf_bytes):
+    """Threads reading a Pdf whose stream runs Python code on every read.
+
+    Each read hands the GIL to another thread, part way through qpdf loading
+    an object. Without the Pdf's lock that thread could move the shared
+    stream position, and the first would parse garbage.
+    """
+    for _ in range(10):
+        with Pdf.open(PythonLevelStream(number_tree_pdf_bytes)) as pdf:
+            tree = NumberTree(pdf.Root.Numbers)
+
+            def read(i, tree=tree):
+                for n in range(i, N_TREE_KEYS, 7):
+                    assert tree[n].N == n
+
+            run_n(read)
+
+
+@pytest.mark.usefixtures('frequent_thread_switches')
+def test_stress_page_resources_created_once():
+    """Threads asking for the resources of a page that has none share one."""
+    for _ in range(100):
+        with Pdf.new() as pdf:
+            page = pdf.add_blank_page()
+            del page.obj.Resources
+
+            def add(i, page=page):
+                page.resources[Name(f'/K{i}')] = Dictionary()
+
+            run_n(add)
+            assert len(page.obj.Resources.keys()) == N_THREADS
+
+
+def test_stress_number_tree_insert_while_reading(number_tree_pdf_bytes):
+    """Inserting into a NumberTree while other threads read it loses nothing."""
+    per_thread = 40
+    with Pdf.open(BytesIO(number_tree_pdf_bytes)) as pdf:
+        tree = NumberTree(pdf.Root.Numbers)
+
+        def work(i):
+            if i % 2:
+                for n in range(per_thread):
+                    tree[1000 * i + n] = Dictionary(T=i, N=n)
+            else:
+                for _ in range(per_thread):
+                    for key in tree:
+                        assert isinstance(key, int)
+                    assert len(tree) >= N_TREE_KEYS
+                    assert tree[i].N == i
+
+        run_n(work)
+        writers = [i for i in range(N_THREADS) if i % 2]
+        assert len(tree) == N_TREE_KEYS + per_thread * len(writers)
+        for i in writers:
+            for n in range(per_thread):
+                item = tree[1000 * i + n]
+                assert (item.T, item.N) == (i, n)
+
+
+def describe_form(pdf, acroform=None):
+    """Read an interactive form through the AcroForm helper classes."""
+    if acroform is None:
+        acroform = pdf.acroform
+    result = [acroform.exists, acroform.needs_appearances]
+    for field in acroform.fields:
+        result.append(
+            (
+                field.fully_qualified_name,
+                field.partial_name,
+                field.alternate_name,
+                field.field_type,
+                field.flags,
+                field.is_text,
+                field.is_checkbox,
+                field.is_radio_button,
+                field.value_as_string,
+                field.default_appearance,
+                str(field.get_inheritable_field_value_as_name('/FT')),
+                field.top_level_field.fully_qualified_name,
+                len(acroform.get_annotations_for_field(field)),
+            )
+        )
+    for page in pdf.pages:
+        result.append(len(acroform.get_widget_annotations_for_page(page)))
+        result.append(
+            [f.fully_qualified_name for f in acroform.get_form_fields_for_page(page)]
+        )
+    return result
+
+
+def test_stress_acroform_cold_reads():
+    """Threads reading the form of a cold file all see the same form."""
+    with Pdf.open(RESOURCES / 'form.pdf') as reference:
+        expected = describe_form(reference)
+    assert len(expected) > 4
+    for _ in range(5):
+        with Pdf.open(RESOURCES / 'form.pdf') as pdf:
+            # One helper for all the threads: it builds its index of the
+            # form's fields the first time it is asked for them.
+            acroform = pdf.acroform
+
+            def read(i, pdf=pdf, acroform=acroform):
+                assert describe_form(pdf, acroform) == expected
+                assert describe_form(pdf) == expected
+
+            run_n(read)
+
+
+def test_stress_acroform_shared_helper_set_values():
+    """Threads setting different fields through one AcroForm lose no update."""
+    with Pdf.open(RESOURCES / 'form.pdf') as pdf:
+        acroform = pdf.acroform
+        text_fields = [f for f in acroform.fields if f.is_text]
+        assert text_fields
+        field = text_fields[0]
+
+        def work(i):
+            for n in range(50):
+                if i == 0:
+                    field.value_as_string = f'value {n}'
+                else:
+                    assert field.value_as_string.startswith(('value ', ''))
+                    assert field.fully_qualified_name == 'Text1'
+                    assert len(acroform.fields) == 5
+
+        run_n(work)
+        assert field.value_as_string == 'value 49'
+
+
+def describe_annotation(obj):
+    annot = Annotation(obj)
+    stream = annot.get_appearance_stream(Name.N)
+    return (
+        str(annot.subtype),
+        [float(v) for v in annot.rect.as_array()],
+        annot.flags,
+        repr(annot.appearance_state),
+        repr(annot.appearance_dict),
+        stream.read_bytes() if isinstance(stream, Stream) else None,
+        annot.get_page_content_for_appearance(Name.XYZ, 0),
+    )
+
+
+def test_stress_annotations_cold_reads():
+    """Threads reading the annotations of a cold file all see the same ones."""
+    with Pdf.open(RESOURCES / 'form.pdf') as reference:
+        expected = [describe_annotation(a) for a in reference.pages[0].Annots]
+    assert len(expected) == 5
+    for _ in range(5):
+        with Pdf.open(RESOURCES / 'form.pdf') as pdf:
+            annots = list(pdf.pages[0].Annots)
+
+            def read(i, annots=annots):
+                for _ in range(5):
+                    for annot, want in zip(annots, expected, strict=True):
+                        assert describe_annotation(annot) == want
+
+            run_n(read)
+
+
+N_ATTACHMENTS = 12
+
+
+@pytest.fixture(scope='module')
+def attachments_pdf_bytes():
+    pdf = Pdf.new()
+    pdf.add_blank_page()
+    for n in range(N_ATTACHMENTS):
+        pdf.attachments[f'file{n:02d}.txt'] = AttachedFileSpec(
+            pdf,
+            f'contents of file {n}'.encode() * 50,
+            description=f'description {n}',
+            mime_type='text/plain',
+        )
+    out = BytesIO()
+    pdf.save(out)
+    return out.getvalue()
+
+
+def test_stress_attachments_cold_reads(attachments_pdf_bytes):
+    """Threads reading the attachments of a cold file all read the same files."""
+    names = [f'file{n:02d}.txt' for n in range(N_ATTACHMENTS)]
+    for _ in range(5):
+        with Pdf.open(BytesIO(attachments_pdf_bytes)) as pdf:
+            attachments = pdf.attachments
+
+            def read(i, attachments=attachments):
+                assert len(attachments) == N_ATTACHMENTS
+                assert list(attachments) == names
+                for n in range(i % 3, N_ATTACHMENTS, 3):
+                    spec = attachments[names[n]]
+                    assert spec.description == f'description {n}'
+                    assert spec.filename == names[n]
+                    assert Name.F in spec.get_all_filenames()
+                    file = spec.get_file()
+                    data = f'contents of file {n}'.encode() * 50
+                    assert file.read_bytes() == data
+                    assert file.size == len(data)
+                    assert file.mime_type == 'text/plain'
+                    assert len(file.md5) == 16
+
+            run_n(read)
+
+
+def test_stress_attachments_added_from_many_threads(attachments_pdf_bytes):
+    """Attachments added to one Pdf by several threads are all kept."""
+    per_thread = 10
+    with Pdf.open(BytesIO(attachments_pdf_bytes)) as pdf:
+        attachments = pdf.attachments
+
+        def work(i):
+            for n in range(per_thread):
+                name = f'new{i}_{n:02d}.bin'
+                if n % 2:
+                    attachments[name] = f'{i}/{n}'.encode()
+                else:
+                    attachments[name] = AttachedFileSpec(
+                        pdf, f'{i}/{n}'.encode(), description=name
+                    )
+                assert attachments[name].get_file().read_bytes() == f'{i}/{n}'.encode()
+                assert len(attachments) > N_ATTACHMENTS
+
+        run_n(work)
+        assert len(attachments) == N_ATTACHMENTS + per_thread * N_THREADS
+        assert len(pdf.Root.AF) == len(attachments)
+        out = BytesIO()
+        pdf.save(out)
+    with Pdf.open(out) as check:
+        for i in range(N_THREADS):
+            for n in range(per_thread):
+                file = check.attachments[f'new{i}_{n:02d}.bin'].get_file()
+                assert file.read_bytes() == f'{i}/{n}'.encode()

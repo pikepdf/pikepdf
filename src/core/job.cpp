@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2022 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
+#include "locked_bindings.h"
 #include "pikepdf.h"
 
 #include <streambuf>
@@ -21,9 +22,14 @@ QPDFJob job_from_json_str(const std::string &json)
     return job;
 }
 
+// A job holds its own configuration. It reads a Pdf only when it is handed
+// one to write, and that Pdf is then an argument, which is locked.
+template <>
+struct LockOwner<QPDFJob> : NoLock {};
+
 void init_job(py::module_ &m)
 {
-    py::class_<QPDFJob>(m, "Job", py::type_slots(pikepdf_gc_slots))
+    locked_class_<QPDFJob>(m, "Job", py::type_slots(pikepdf_gc_slots))
         .def_static(
             "json_out_schema",
             [](int schema = JSON::LATEST) { return QPDFJob::json_out_schema(schema); },
@@ -42,26 +48,18 @@ void init_job(py::module_ &m)
         .def_ro_static("EXIT_CORRECT_PASSWORD", &QPDFJob::EXIT_CORRECT_PASSWORD)
         .def_ro_static("LATEST_JOB_JSON", &QPDFJob::LATEST_JOB_JSON)
         .def_ro_static("LATEST_JSON", &JSON::LATEST)
-        .def(
-            "__init__",
-            [](QPDFJob *self, const std::string &json) {
-                new (self) QPDFJob(job_from_json_str(json));
-            },
+        .def_init([](const std::string &json) { return job_from_json_str(json); },
             py::arg("json") // LCOV_EXCL_LINE
             )
-        .def(
-            "__init__",
-            [](QPDFJob *self, py::dict &json_dict) {
+        .def_init(
+            [](py::dict &json_dict) {
                 auto json_dumps = py::module_::import_("json").attr("dumps");
                 py::str json_str = py::borrow<py::str>(json_dumps(json_dict));
-                new (self) QPDFJob(job_from_json_str(py::cast<std::string>(json_str)));
+                return job_from_json_str(py::cast<std::string>(json_str));
             },
             py::arg("json_dict"))
-        .def(
-            "__init__",
-            [](QPDFJob *self,
-                const std::vector<std::string> &args,
-                py::object progname) {
+        .def_init(
+            [](const std::vector<std::string> &args, OpaqueObject const &progname) {
                 // qpdf 12.4 ignores initializeFromArgv's second argument, which
                 // named an environment variable rather than the program; the
                 // program name has always come from args[0].
@@ -71,7 +69,7 @@ void init_job(py::module_ &m)
                         "name is taken from args[0]",
                         1) < 0)
                     throw py::python_error();
-                new (self) QPDFJob();
+                QPDFJob job;
                 std::vector<const char *> cstrings;
                 cstrings.reserve(args.size() + 1);
 
@@ -80,8 +78,9 @@ void init_job(py::module_ &m)
                 }
                 cstrings.push_back(nullptr);
 
-                self->initializeFromArgv(cstrings.data());
-                set_job_defaults(*self);
+                job.initializeFromArgv(cstrings.data());
+                set_job_defaults(job);
+                return job;
             },
             py::arg("args"),
             py::kw_only(),
@@ -93,8 +92,7 @@ void init_job(py::module_ &m)
         .def_prop_rw(
             "message_prefix", &QPDFJob::getMessagePrefix, &QPDFJob::setMessagePrefix)
         .def("run", &QPDFJob::run)
-        .def("create_pdf",
-            [](QPDFJob &job) { return std::shared_ptr<QPDF>(job.createQPDF()); })
+        .def("create_pdf", [](QPDFJob &job) { return register_qpdf(job.createQPDF()); })
         .def("write_pdf", &QPDFJob::writeQPDF, py::arg("pdf"))
         .def_prop_ro("has_warnings", &QPDFJob::hasWarnings)
         .def_prop_ro("exit_code", &QPDFJob::getExitCode)

@@ -732,27 +732,29 @@ class Outline:
     def _save(self) -> None:
         if self._root is None:
             return
-        if Name.Outlines in self._pdf.Root:
-            outlines = self._pdf.Root.Outlines
-        else:
-            self._pdf.Root.Outlines = outlines = self._pdf.make_indirect(
-                Dictionary(Type=Name.Outlines)
-            )
-        # /Outlines is not checked to be a dictionary
-        self._save_level_outline(outlines, self._root, 0, ObjectSet())  # type: ignore[arg-type]
-        if not self._root and Name.Count in outlines:
-            del outlines.Count
+        with self._pdf.lock():
+            if Name.Outlines in self._pdf.Root:
+                outlines = self._pdf.Root.Outlines
+            else:
+                self._pdf.Root.Outlines = outlines = self._pdf.make_indirect(
+                    Dictionary(Type=Name.Outlines)
+                )
+            # /Outlines is not checked to be a dictionary
+            self._save_level_outline(outlines, self._root, 0, ObjectSet())  # type: ignore[arg-type]
+            if not self._root and Name.Count in outlines:
+                del outlines.Count
 
     def _load(self) -> None:
         root: list[OutlineItem]
         self._root = root = []
-        if Name.Outlines not in self._pdf.Root:
-            return
-        outlines: Object | dict[Name, Object] = self._pdf.Root.Outlines or {}
-        first_obj = outlines.get(Name.First)
-        if first_obj:
-            # /First is not checked to be a dictionary
-            self._load_level_outline(first_obj, root, 0, ObjectSet())  # type: ignore[arg-type]
+        with self._pdf.lock():
+            if Name.Outlines not in self._pdf.Root:
+                return
+            outlines: Object | dict[Name, Object] = self._pdf.Root.Outlines or {}
+            first_obj = outlines.get(Name.First)
+            if first_obj:
+                # /First is not checked to be a dictionary
+                self._load_level_outline(first_obj, root, 0, ObjectSet())  # type: ignore[arg-type]
 
     def add(self, title: str, destination: Array | int | None) -> OutlineItem:
         """Add an item to the outline.

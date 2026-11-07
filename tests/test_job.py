@@ -82,3 +82,14 @@ def test_schemas():
 
     assert isinstance(Job.LATEST_JOB_JSON, int)
     assert isinstance(Job.job_json_schema(), str)
+
+
+def test_created_pdf_is_a_full_pdf(resources, outpdf):
+    # A Pdf that a Job creates is registered like any other, so it has a lock
+    # and per-document settings.
+    job = Job(['pikepdf', str(resources / 'fourpages.pdf'), str(outpdf)])
+    pdf = job.create_pdf()
+    pdf.conversion_mode = 'explicit'
+    assert pdf.conversion_mode == 'explicit'
+    with pdf.lock():
+        assert len(pdf.pages) == 4

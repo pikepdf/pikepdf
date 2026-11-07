@@ -23,22 +23,22 @@
 #include <qpdf/QPDFObjectHelper.hh>
 #include <qpdf/QPDFPageObjectHelper.hh>
 
-bool ObjectSet::add(QPDFObjectHandle h)
+bool ObjectSet::add(Identity const &identity)
 {
     std::lock_guard<std::mutex> guard(mutex_);
-    return objects_.insert(h.getObj()).second;
+    return objects_.insert(identity).second;
 }
 
-bool ObjectSet::contains(QPDFObjectHandle h) const
+bool ObjectSet::contains(Identity const &identity) const
 {
     std::lock_guard<std::mutex> guard(mutex_);
-    return objects_.count(h.getObj()) > 0;
+    return objects_.count(identity) > 0;
 }
 
-void ObjectSet::discard(QPDFObjectHandle h)
+void ObjectSet::discard(Identity const &identity)
 {
     std::lock_guard<std::mutex> guard(mutex_);
-    objects_.erase(h.getObj());
+    objects_.erase(identity);
 }
 
 void ObjectSet::clear()
@@ -53,28 +53,68 @@ size_t ObjectSet::size() const
     return objects_.size();
 }
 
-// The pikepdf.Object behind a Python argument, which may be an Object or a
-// helper such as a Page. Returns false for anything else.
-static bool object_from_python(py::handle value, QPDFObjectHandle &out)
+// The identity of the pikepdf.Object behind a Python value, which may be an
+// Object or a helper such as a Page. Null for anything else.
+//
+// Copying the pointer out of a handle does not resolve the object or read its
+// value, so this needs no lock.
+static ObjectSet::Identity identity_from_python(py::handle value)
 {
-    if (py::isinstance<QPDFObjectHandle>(value)) {
-        out = py::cast<QPDFObjectHandle>(value);
-    } else if (py::isinstance<QPDFObjectHelper>(value)) {
-        out = py::cast<QPDFObjectHelper &>(value).getObjectHandle();
-    } else {
-        return false;
-    }
-    return out.isInitialized();
+    if (py::isinstance<QPDFObjectHandle>(value))
+        return py::cast<QPDFObjectHandle>(value).getObj();
+    if (py::isinstance<QPDFObjectHelper>(value))
+        return py::cast<QPDFObjectHelper &>(value).getObjectHandle().getObj();
+    return nullptr;
 }
 
-static QPDFObjectHandle require_object(py::handle value)
-{
-    QPDFObjectHandle h;
-    if (!object_from_python(value, h))
-        throw py::type_error("ObjectSet holds pikepdf.Object, or helpers such as "
-                             "pikepdf.Page; other values have no identity to track");
-    return h;
-}
+// A binding parameter that stands for a pikepdf object but carries only its
+// identity. A binding that takes one cannot read the object, which is why the
+// parameter locks no Pdf: there is nothing of the Pdf for it to race on.
+class ObjectIdentity {
+public:
+    ObjectIdentity() = default;
+    explicit ObjectIdentity(ObjectSet::Identity identity)
+        : identity_(std::move(identity))
+    {
+    }
+
+    // False if the argument was not a pikepdf object
+    bool ok() const { return identity_ != nullptr; }
+
+    ObjectSet::Identity const &get() const
+    {
+        if (!identity_)
+            throw py::type_error(
+                "ObjectSet holds pikepdf.Object, or helpers such as "
+                "pikepdf.Page; other values have no identity to track");
+        return identity_;
+    }
+
+private:
+    ObjectSet::Identity identity_;
+};
+
+template <>
+struct LockOwner<ObjectIdentity> : NoLock {};
+
+namespace nanobind {
+namespace detail {
+template <>
+struct type_caster<ObjectIdentity> {
+    NB_TYPE_CASTER(ObjectIdentity, const_name("object"))
+
+    bool from_python(handle src, uint8_t, cleanup_list *) noexcept
+    {
+        try {
+            value = ObjectIdentity(identity_from_python(src));
+        } catch (...) {
+            return false; // LCOV_EXCL_LINE
+        }
+        return true;
+    }
+};
+} // namespace detail
+} // namespace nanobind
 
 // A dictionary that is not a stream, or an uninitialized handle. Checking the
 // type first keeps qpdf from warning about a malformed file, which a search
@@ -389,37 +429,35 @@ static py::list as_python_list(std::vector<QPDFObjectHandle> const &objects)
 
 void init_traversal(py::module_ &m)
 {
-    py::class_<ObjectSet>(m, "ObjectSet", py::type_slots(pikepdf_gc_slots))
-        .def(
-            "__init__",
-            [](ObjectSet *self, py::object objects) {
-                // Check every item before constructing: nanobind does not
-                // destroy an object whose __init__ raised.
-                std::vector<QPDFObjectHandle> handles;
+    locked_class_<ObjectSet>(m, "ObjectSet", py::type_slots(pikepdf_gc_slots))
+        .def_init(
+            [](OpaqueObject objects) {
+                // None, or an iterable whose items are told apart as they
+                // arrive. Check every item before constructing: nanobind does
+                // not destroy an object whose __init__ raised.
+                std::vector<ObjectSet::Identity> identities;
                 if (!objects.is_none()) {
-                    for (auto const &item : py::cast<py::iterable>(objects))
-                        handles.push_back(require_object(item));
+                    for (auto const &item : py::cast<py::iterable>(objects.object()))
+                        identities.push_back(
+                            ObjectIdentity(identity_from_python(item)).get());
                 }
-                new (self) ObjectSet();
-                for (auto const &h : handles)
-                    self->add(h);
+                return ObjectSet(identities);
             },
             py::arg("objects") = py::none())
         .def(
             "add",
-            [](ObjectSet &self, py::handle obj) {
-                return self.add(require_object(obj));
+            [](ObjectSet &self, ObjectIdentity const &obj) {
+                return self.add(obj.get());
             },
             py::arg("obj"))
         .def(
             "discard",
-            [](ObjectSet &self, py::handle obj) { self.discard(require_object(obj)); },
+            [](ObjectSet &self, ObjectIdentity const &obj) { self.discard(obj.get()); },
             py::arg("obj"))
         .def("clear", &ObjectSet::clear)
         .def("__contains__",
-            [](ObjectSet &self, py::handle obj) {
-                QPDFObjectHandle h;
-                return object_from_python(obj, h) && self.contains(h);
+            [](ObjectSet &self, ObjectIdentity const &obj) {
+                return obj.ok() && self.contains(obj.get());
             })
         .def("__len__", &ObjectSet::size)
         .def("__repr__", [](ObjectSet &self) {
@@ -438,14 +476,15 @@ void init_traversal(py::module_ &m)
         .value("glyph", scope_glyph)
         .value("softmask", scope_softmask);
 
-    py::class_<ContentScopeWalk>(
+    locked_class_<ContentScopeWalk>(
         m, "_ContentScopeWalk", py::type_slots(pikepdf_gc_slots))
-        .def(py::init<>())
+        .def_constructor<>()
         .def(
             "walk",
             [](ContentScopeWalk &self, QPDFPageObjectHelper &page, unsigned kinds) {
+                // The result is complete when this returns: nothing is left
+                // to be read from the Pdf later, without the lock.
                 auto root = page.getObjectHandle();
-                QpdfLockGuard lock(root.getOwningQPDF());
                 py::list result;
                 for (auto const &scope : self.walk(root, kinds)) {
                     result.append(py::make_tuple(scope.kind,
@@ -458,15 +497,16 @@ void init_traversal(py::module_ &m)
             py::arg("page"),
             py::arg("kinds"));
 
-    m.def("_action_chain", [](QPDFObjectHandle action) {
-        QpdfLockGuard lock(action.getOwningQPDF());
-        return as_python_list(collect_action_chain(action));
-    });
-    m.def("_reachable_objects", [](QPDF &q, py::iterable roots) {
-        std::vector<QPDFObjectHandle> handles;
-        for (auto const &root : roots)
-            handles.push_back(py::cast<QPDFObjectHandle>(root));
-        QpdfLockGuard lock(&q);
-        return as_python_list(collect_reachable(handles));
-    });
+    locked_module_(m)
+        .def("_action_chain",
+            [](QPDFObjectHandle action) {
+                return as_python_list(collect_action_chain(action));
+            })
+        .def("_reachable_objects", [](QPDF &q, py::iterable roots) {
+            // The roots are objects of q, which is the Pdf that is locked
+            std::vector<QPDFObjectHandle> handles;
+            for (auto const &root : roots)
+                handles.push_back(py::cast<QPDFObjectHandle>(root));
+            return as_python_list(collect_reachable(handles));
+        });
 }

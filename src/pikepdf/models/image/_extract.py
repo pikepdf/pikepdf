@@ -34,6 +34,8 @@ from pikepdf.models.image._bomb import _pillow_pixel_limit
 from pikepdf.models.image._shared import (
     TERMINAL_FILTERS,
     RGBDecodeArray,
+    _decodeparms_list,
+    _metadata_from_obj,
 )
 from pikepdf.objects import Array, Name
 
@@ -74,7 +76,9 @@ def remove_simple_filters(pim: PdfImage) -> tuple[bytes, list[str]]:
     with Pdf.new() as tmp_pdf:
         obj_copy = tmp_pdf.copy_foreign(pim.obj)
         obj_copy.Filter = Array([Name(str(filt)) for filt in pim.filters[:n]])
-        obj_copy.DecodeParms = Array(pim.decode_parms[:n])
+        # Take the parameters from the copy: those of pim belong to pim's Pdf.
+        parms = _metadata_from_obj(obj_copy, 'DecodeParms', _decodeparms_list, [])
+        obj_copy.DecodeParms = Array(parms[:n])
         return obj_copy.read_bytes(StreamDecodeLevel.specialized), pim.filters[n:]
 
 

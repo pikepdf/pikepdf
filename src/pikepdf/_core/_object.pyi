@@ -93,6 +93,7 @@ class ObjectType(Enum):
 class Object:
     def _ipython_key_completions_(self) -> set[str] | None: ...
     def _inline_image_raw_bytes(self) -> bytes: ...
+    def _emplace(self, other: Object, retain: list[str]) -> None: ...
     def _parse_page_contents_grouped(
         self, whitelist: str, /
     ) -> list[tuple[Collection[Object | PdfInlineImage], Operator]]: ...
@@ -954,6 +955,10 @@ class StreamParser:
     may be only a single byte long.
 
     Consider instead using :func:`pikepdf.parse_content_stream`.
+
+    The handler methods are called while the ``Pdf`` being parsed is locked.
+    They may read that ``Pdf`` but must not use any other: see
+    :ref:`callback-restrictions`.
     """
 
     def __init__(self) -> None:

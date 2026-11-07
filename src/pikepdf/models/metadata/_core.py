@@ -223,24 +223,25 @@ class PdfMetadata(MutableMapping[str, Any]):
         """
         from lxml.etree import QName
 
-        if self.mark:
-            # We were asked to mark the file as being edited by pikepdf
-            self._setitem(
-                QName(XMP_NS_XMP, 'MetadataDate'),
-                datetime.now(UTC).isoformat(),
-                applying_mark=True,
-            )
-            self._setitem(
-                QName(XMP_NS_PDF, 'Producer'),
-                'pikepdf ' + pikepdf_version,
-                applying_mark=True,
-            )
-        xml = self._xmp_doc.to_bytes()
-        self._pdf.Root.Metadata = Stream(self._pdf, xml)
-        self._pdf.Root.Metadata[Name.Type] = Name.Metadata
-        self._pdf.Root.Metadata[Name.Subtype] = Name.XML
-        if self.sync_docinfo:
-            self._update_docinfo()
+        with self._pdf.lock():
+            if self.mark:
+                # We were asked to mark the file as being edited by pikepdf
+                self._setitem(
+                    QName(XMP_NS_XMP, 'MetadataDate'),
+                    datetime.now(UTC).isoformat(),
+                    applying_mark=True,
+                )
+                self._setitem(
+                    QName(XMP_NS_PDF, 'Producer'),
+                    'pikepdf ' + pikepdf_version,
+                    applying_mark=True,
+                )
+            xml = self._xmp_doc.to_bytes()
+            self._pdf.Root.Metadata = Stream(self._pdf, xml)
+            self._pdf.Root.Metadata[Name.Type] = Name.Metadata
+            self._pdf.Root.Metadata[Name.Subtype] = Name.XML
+            if self.sync_docinfo:
+                self._update_docinfo()
 
     @classmethod
     def _qname(cls, name: QName | str) -> str:

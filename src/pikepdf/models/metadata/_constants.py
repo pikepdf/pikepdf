@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import re
+import threading
 from collections.abc import Callable, Iterable
 from typing import Any, NamedTuple
 
@@ -87,6 +88,8 @@ XMP_CONTAINERS = [
 
 
 _LOADED_LXML_NAMESPACES = False
+# lxml's namespace registry is not safe to change from several threads at once
+_LXML_NAMESPACES_LOCK = threading.Lock()
 
 
 def load_lxml_namespaces() -> None:
@@ -100,11 +103,14 @@ def load_lxml_namespaces() -> None:
 
     if _LOADED_LXML_NAMESPACES:
         return
-    from lxml import etree
+    with _LXML_NAMESPACES_LOCK:
+        if _LOADED_LXML_NAMESPACES:
+            return
+        from lxml import etree
 
-    for _uri, _prefix in DEFAULT_NAMESPACES:
-        etree.register_namespace(_prefix, _uri)
-    _LOADED_LXML_NAMESPACES = True
+        for _uri, _prefix in DEFAULT_NAMESPACES:
+            etree.register_namespace(_prefix, _uri)
+        _LOADED_LXML_NAMESPACES = True
 
 
 # lxml lazy-loading

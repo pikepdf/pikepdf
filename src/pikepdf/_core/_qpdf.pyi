@@ -157,6 +157,30 @@ class XrefEntry:
     def obj_stream_index(self) -> int | None:
         """Index of the object within its object stream; None unless ``type == 2``."""
 
+class _OwnerLock:
+    """Holds the locks of the Pdfs that own some values, for a ``with`` block.
+
+    For pikepdf's own Python code that changes more than one ``Pdf`` in
+    several steps. The locks are taken in the same order as the bindings take
+    them, which nesting :meth:`Pdf.lock` would not do, so two threads that
+    name the same Pdfs in different orders cannot deadlock.
+
+    Each item may be a :class:`Pdf`, an :class:`Object` or an object helper
+    such as a :class:`Page`; anything else, and an object that belongs to no
+    ``Pdf``, is ignored. The owners are looked up when the block is entered.
+    One instance must not be entered by two threads at once.
+    """
+
+    def __init__(self, items: Iterable[object], /) -> None: ...
+    def __enter__(self) -> None: ...
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+        /,
+    ) -> None: ...
+
 class Pdf:
     """In-memory representation of a PDF."""
 
@@ -298,12 +322,19 @@ class Pdf:
     def lock(self) -> AbstractContextManager[None]:
         """Context manager to hold the per-Pdf lock for compound operations.
 
-        Under free-threaded Python, individual C++ method calls are
-        automatically serialized, but multi-step Python operations (e.g.
-        read-modify-write on the same dictionary) are not atomic.  Wrap
-        such sequences in ``with pdf.lock():`` to prevent interleaving.
+        Individual method calls are serialized automatically, but
+        multi-step operations (e.g. read-modify-write on the same dictionary)
+        are not atomic. Wrap such sequences in ``with pdf.lock():`` to
+        prevent interleaving. The lock is re-entrant.
 
-        On GIL-enabled builds this is a no-op.
+        .. versionchanged:: 10.18
+            The lock is now in force on GIL-enabled builds too. It was
+            previously a no-op there.
+
+        While holding the lock, use only this ``Pdf``. If two threads each
+        hold the lock of one ``Pdf`` and then need the other's, pikepdf raises
+        :exc:`RuntimeError` in one of them rather than letting both wait for
+        ever. See :ref:`callback-restrictions`.
         """
     def close(self) -> None:
         """Close a ``Pdf`` object and release resources acquired by pikepdf.
@@ -415,7 +446,12 @@ class Pdf:
         (``/Outlines`` dictionary), you may have to update references to pages.
 
         Direct objects, including dictionaries, do not need ``copy_foreign()``.
-        pikepdf will automatically convert and construct them.
+        pikepdf will automatically convert and construct them. A direct object
+        must not refer to another ``Pdf``, though: a :class:`pikepdf.Dictionary`
+        or :class:`pikepdf.Array` that holds an indirect object of another
+        ``Pdf`` can be built, but inserting it into this one raises
+        :exc:`pikepdf.ForeignObjectError`, naming where the foreign object was
+        found. Copy the indirect object with ``copy_foreign()`` first.
 
         Note:
             pikepdf automatically treats incoming pages from a foreign PDF as
@@ -827,7 +863,8 @@ class Pdf:
                 integer between 0-100 as the sole parameter, the progress
                 percentage. This function may not access or modify the PDF
                 while it is being written, or data corruption will almost
-                certainly occur.
+                certainly occur. The same goes for the ``write`` method of
+                a stream being saved to. See :ref:`callback-restrictions`.
 
             encryption: If ``False``
                 or omitted, existing encryption will be removed. If ``True``

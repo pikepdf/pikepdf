@@ -182,10 +182,11 @@ bool objecthandle_equal(QPDFObjectHandle self, QPDFObjectHandle other)
 // Compare two objects by value. _ObjectList and _ObjectMapping have no owning
 // QPDF of their own, so unlike the pikepdf.Array methods -- which lock the
 // array's owner once -- each comparison locks whatever the two values happen to
-// belong to. These containers hold direct objects almost always, and the guard
-// is a no-op for those.
+// belong to. These containers hold direct objects almost always: the guard
+// takes no lock for a scalar, and unowned_mutex() for a container that belongs
+// to no Pdf, with the locks of any Pdfs whose objects it holds.
 bool pdfobject_equal_locked(QPDFObjectHandle a, QPDFObjectHandle b)
 {
-    DualQpdfLockGuard lock(a.getOwningQPDF(), b.getOwningQPDF());
+    ReachGuard lock({a, b});
     return objecthandle_equal(a, b);
 }

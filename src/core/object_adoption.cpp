@@ -14,6 +14,8 @@
 #include "pikepdf.h"
 #include "qpdf_lock.h"
 
+#include <string>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -43,28 +45,39 @@ static bool is_scalar_object(QPDFObjectHandle const &h)
     }
 }
 
-static QPDFObjectHandle adopt_into_impl(
-    QPDF *owner, QpdfEntry *entry, QPDFObjectHandle value, int depth);
+static QPDFObjectHandle adopt_into_impl(QPDF *owner,
+    QpdfEntry *entry,
+    QPDFObjectHandle value,
+    int depth,
+    UnownedLockHold &unowned);
 
 // Clear an owning document's pointer from a direct object and every direct
 // object below it. Depth-limited for the same reason as adoption.
-static void disconnect_owner_impl(QPDFObjectHandle h, QPDF *owner, int depth)
+//
+// The caller holds the owner's lock. Once a container's owner is cleared it is
+// protected by unowned_mutex() instead, so that is taken first: a thread that
+// sees the container unowned must not use it while this one is still working
+// on it.
+static void disconnect_owner_impl(
+    QPDFObjectHandle h, QPDF *owner, int depth, UnownedLockHold &unowned)
 {
     if (depth > ADOPT_MAX_DEPTH || !h.isInitialized() || h.isIndirect())
         return;
     if (h.getOwningQPDF() != owner)
         return;
+    if (!is_scalar_object(h))
+        unowned.ensure();
     // Clearing the owner restores the object to the unowned state it had
     // before insertion. The object's value is untouched.
     h.setObjectDescription(nullptr, "");
     if (h.isDictionary()) {
         for (auto const &item : h.ditems())
-            disconnect_owner_impl(item.second, owner, depth + 1);
+            disconnect_owner_impl(item.second, owner, depth + 1, unowned);
     } else if (h.isArray()) {
         for (auto const &item : h.aitems())
-            disconnect_owner_impl(item, owner, depth + 1);
+            disconnect_owner_impl(item, owner, depth + 1, unowned);
     } else if (h.isStream()) {
-        disconnect_owner_impl(h.getDict(), owner, depth + 1); // LCOV_EXCL_LINE
+        disconnect_owner_impl(h.getDict(), owner, depth + 1, unowned); // LCOV_EXCL_LINE
     }
 }
 
@@ -83,7 +96,8 @@ void disconnect_from_owner(QPDF *owner, QPDFObjectHandle old)
 {
     if (!owner || !old.isInitialized() || old.isIndirect())
         return;
-    disconnect_owner_impl(old, owner, 0);
+    UnownedLockHold unowned;
+    disconnect_owner_impl(old, owner, 0, unowned);
 }
 
 // Same, for an object being removed from `container`.
@@ -117,8 +131,11 @@ QPDF *live_owner(QPDFObjectHandle &h)
 // Adopt the direct children of a container in place: a child that is a scalar
 // is replaced by an adopted copy of itself, and a child container is tagged
 // and recursed into.
-static void adopt_children_impl(
-    QPDF *owner, QpdfEntry *entry, QPDFObjectHandle container, int depth)
+static void adopt_children_impl(QPDF *owner,
+    QpdfEntry *entry,
+    QPDFObjectHandle container,
+    int depth,
+    UnownedLockHold &unowned)
 {
     if (depth > ADOPT_MAX_DEPTH)
         return;
@@ -129,7 +146,7 @@ static void adopt_children_impl(
         std::vector<std::pair<std::string, QPDFObjectHandle>> replacements;
         for (auto const &[key, value] : container.ditems()) {
             auto item = value;
-            auto adopted = adopt_into_impl(owner, entry, item, depth + 1);
+            auto adopted = adopt_into_impl(owner, entry, item, depth + 1, unowned);
             if (!adopted.isSameObjectAs(item))
                 replacements.emplace_back(key, adopted);
         }
@@ -140,7 +157,7 @@ static void adopt_children_impl(
         int index = 0;
         for (auto const &value : container.aitems()) {
             auto item = value;
-            auto adopted = adopt_into_impl(owner, entry, item, depth + 1);
+            auto adopted = adopt_into_impl(owner, entry, item, depth + 1, unowned);
             if (!adopted.isSameObjectAs(item))
                 replacements.emplace_back(index, adopted);
             ++index;
@@ -152,12 +169,15 @@ static void adopt_children_impl(
         // itself untagged: qpdf's QPDF_Stream::setDictDescription only labels
         // a stream dictionary that has no description of its own, and a
         // description is what setObjectDescription() installs.
-        adopt_children_impl(owner, entry, container.getDict(), depth + 1);
+        adopt_children_impl(owner, entry, container.getDict(), depth + 1, unowned);
     }
 }
 
-static QPDFObjectHandle adopt_into_impl(
-    QPDF *owner, QpdfEntry *entry, QPDFObjectHandle value, int depth)
+static QPDFObjectHandle adopt_into_impl(QPDF *owner,
+    QpdfEntry *entry,
+    QPDFObjectHandle value,
+    int depth,
+    UnownedLockHold &unowned)
 {
     if (depth > ADOPT_MAX_DEPTH || !value.isInitialized())
         return value;
@@ -191,17 +211,118 @@ static QPDFObjectHandle adopt_into_impl(
         return value;
 
     // Containers are adopted in place: pikepdf callers expect a dictionary or
-    // array they assigned into a Pdf to stay aliased with the document.
+    // array they assigned into a Pdf to stay aliased with the document. Until
+    // now the container was protected by unowned_mutex(), so hold that while
+    // its owner changes; the caller holds the new owner's lock.
+    unowned.ensure();
     value.setObjectDescription(owner, "");
     if (entry)
         entry->record_adopted(value.getObj());
-    adopt_children_impl(owner, entry, value, depth);
+    adopt_children_impl(owner, entry, value, depth, unowned);
     return value;
+}
+
+// Find an object that belongs to a document other than `target` in `value`, or
+// in a direct object below it. On success, `path` is where it was found,
+// relative to `value`, and `indirect` says what kind of object it is.
+//
+// Only the direct objects are walked, the same ones adoption visits: the walk
+// stops at an indirect object, and at a container `target` already owns, whose
+// children were checked when it was inserted. A container built in Python can
+// contain itself, so each one is visited once.
+static bool find_foreign_impl(QPDF *target,
+    QPDFObjectHandle value,
+    std::string &path,
+    bool &indirect,
+    int depth,
+    UnownedLockHold &unowned,
+    std::unordered_set<QPDFObject const *> &visited)
+{
+    if (depth > ADOPT_MAX_DEPTH || !value.isInitialized())
+        return false;
+    if (value.isIndirect()) {
+        QPDF *owner = live_owner(value);
+        indirect = true;
+        return owner && owner != target;
+    }
+    // A scalar from another document is copied when it is adopted.
+    if (is_scalar_object(value))
+        return false;
+    QPDF *owner = live_owner(value);
+    if (owner == target)
+        return false;
+    if (owner) {
+        indirect = false;
+        return true;
+    }
+    if (!visited.insert(value.getObj().get()).second)
+        return false;
+    // A container that belongs to no Pdf is read under unowned_mutex()
+    unowned.ensure();
+    // Not ditems(), which resolves every indirect value to leave out those
+    // that are null: one from another Pdf would be read without its lock.
+    if (value.isDictionary()) {
+        for (auto const &[key, item] : value.getDictAsMap()) {
+            if (find_foreign_impl(
+                    target, item, path, indirect, depth + 1, unowned, visited)) {
+                path.insert(0, key);
+                return true;
+            }
+        }
+    } else if (value.isArray()) {
+        int index = 0;
+        for (auto const &item : value.aitems()) {
+            if (find_foreign_impl(
+                    target, item, path, indirect, depth + 1, unowned, visited)) {
+                path.insert(0, "[" + std::to_string(index) + "]");
+                return true;
+            }
+            ++index;
+        }
+    }
+    return false;
+}
+
+// Raise ForeignObjectError if `value` refers to a document other than `target`,
+// the one it is about to be inserted into.
+//
+// A Dictionary or Array that belongs to no document may hold objects from any
+// number of them. Such a value cannot be inserted into a document as it is: the
+// objects from elsewhere would make it impossible to save, and would let
+// operations on this document reach into another without its lock. qpdf only
+// checks the object being inserted, not what it contains, so check before any
+// part of the value is adopted or the target changed.
+static void refuse_mixed_owners_impl(
+    QPDF *target, QPDFObjectHandle value, UnownedLockHold &unowned)
+{
+    if (!target)
+        return;
+    std::string path;
+    bool indirect = false;
+    std::unordered_set<QPDFObject const *> visited;
+    if (!find_foreign_impl(target, value, path, indirect, 0, unowned, visited))
+        return;
+    auto where = path.empty() ? std::string() : " (found at " + path + ")";
+    if (indirect)
+        throw_foreign_object_error(
+            "Attempting to add an object from a different pikepdf.Pdf" + where +
+            ". Use pikepdf.copy_foreign to add objects from another file, or "
+            "construct a new object.");
+    throw_foreign_object_error("This object belongs to another Pdf" + where +
+                               ". Remove it from that document first, or make it "
+                               "indirect there and use Pdf.copy_foreign().");
+}
+
+void refuse_mixed_owners(QPDF *target, QPDFObjectHandle value)
+{
+    UnownedLockHold unowned;
+    refuse_mixed_owners_impl(target, value, unowned);
 }
 
 // Give a direct object, and every direct object below it, the same owning
 // document as the container it is about to be inserted into, and return the
-// handle that should actually be inserted.
+// handle that should actually be inserted. Raises ForeignObjectError, before
+// changing anything, if the object refers to another document.
 //
 // qpdf only associates a document with objects that it read from that
 // document, so an object built in Python (the 42 in ``pdf.Root.Count = 42``,
@@ -210,13 +331,23 @@ static QPDFObjectHandle adopt_into_impl(
 // settings, such as Pdf.conversion_mode, apply to objects created in the
 // current session, and it matches what qpdf does for objects parsed from a
 // file.
-QPDFObjectHandle adopt_into(QPDF *owner, QPDFObjectHandle value)
+static QPDFObjectHandle adopt_into_unchecked(
+    QPDF *owner, QPDFObjectHandle value, UnownedLockHold &unowned)
 {
     if (!owner)
         return value;
     // One registry lookup for the whole subtree.
     auto *entry = QpdfRegistry::instance().lookup_entry(owner);
-    return adopt_into_impl(owner, entry, value, 0);
+    return adopt_into_impl(owner, entry, value, 0, unowned);
+}
+
+// The check and the adoption share one hold of unowned_mutex(), so that no
+// other thread changes the value in between.
+QPDFObjectHandle adopt_into(QPDF *owner, QPDFObjectHandle value)
+{
+    UnownedLockHold unowned;
+    refuse_mixed_owners_impl(owner, value, unowned);
+    return adopt_into_unchecked(owner, value, unowned);
 }
 
 // Adopt the direct children of a container that already has an owner, such as
@@ -226,7 +357,8 @@ void adopt_children_into(QPDF *owner, QPDFObjectHandle container)
     if (!owner)
         return;
     auto *entry = QpdfRegistry::instance().lookup_entry(owner);
-    adopt_children_impl(owner, entry, container, 0);
+    UnownedLockHold unowned;
+    adopt_children_impl(owner, entry, container, 0, unowned);
 }
 
 // qpdf builds some values itself and stores them in a document without an
@@ -253,7 +385,8 @@ QPDFObjectHandle adopt_key_on_read(QPDFObjectHandle holder,
 {
     if (!needs_adoption_on_read(value))
         return value;
-    auto adopted = adopt_into(live_owner(holder), value);
+    UnownedLockHold unowned;
+    auto adopted = adopt_into_unchecked(live_owner(holder), value, unowned);
     if (!adopted.isSameObjectAs(value))
         dict.replaceKey(key, adopted);
     return adopted;
@@ -264,7 +397,8 @@ QPDFObjectHandle adopt_item_on_read(
 {
     if (!needs_adoption_on_read(value))
         return value;
-    auto adopted = adopt_into(live_owner(array), value);
+    UnownedLockHold unowned;
+    auto adopted = adopt_into_unchecked(live_owner(array), value, unowned);
     if (!adopted.isSameObjectAs(value))
         array.setArrayItem(index, adopted);
     return adopted;
@@ -302,12 +436,14 @@ void adopt_children_on_read(QPDFObjectHandle holder, QPDFObjectHandle container)
 // object has no description at all, so the empty tag would silently suppress
 // the label in every warning about the object. Reinstating qpdf's own template
 // restores it. ($OG is expanded to the obj/gen by QPDFObject::getDescription.)
-static void adopt_made_indirect(QPDF *owner, QPDFObjectHandle indirect)
+static void adopt_made_indirect(
+    QPDF *owner, QPDFObjectHandle indirect, UnownedLockHold &unowned)
 {
     if (!owner)
         return; // LCOV_EXCL_LINE
     indirect.setObjectDescription(owner, "object $OG");
-    adopt_children_into(owner, indirect);
+    auto *entry = QpdfRegistry::instance().lookup_entry(owner);
+    adopt_children_impl(owner, entry, indirect, 0, unowned);
 }
 
 // Make a direct object indirect in owner, and adopt it.
@@ -321,14 +457,19 @@ static void adopt_made_indirect(QPDF *owner, QPDFObjectHandle indirect)
 // passed to stay aliased with the document.
 QPDFObjectHandle make_direct_indirect(QPDF *owner, QPDFObjectHandle direct)
 {
+    UnownedLockHold unowned;
+    refuse_mixed_owners_impl(owner, direct, unowned);
     auto target = direct;
     if (is_scalar_object(direct)) {
         target = direct.shallowCopy();
         // The copy may carry another document's owner.
         target.setObjectDescription(nullptr, "");
+    } else if (!live_owner(direct)) {
+        // The container itself becomes an object of owner
+        unowned.ensure();
     }
     auto indirect = owner->makeIndirectObject(target);
-    adopt_made_indirect(owner, indirect);
+    adopt_made_indirect(owner, indirect, unowned);
     return indirect;
 }
 
@@ -347,4 +488,21 @@ void refuse_to_steal(QPDFObjectHandle &h, QPDF *target)
         throw_foreign_object_error(
             "This object belongs to another Pdf. Remove it from that document "
             "first, or make it indirect there and use Pdf.copy_foreign().");
+}
+
+// Raise ForeignObjectError for an indirect object that belongs to another Pdf.
+//
+// qpdf makes this check itself when an object is put in a dictionary or an
+// array, but not when it is put in a name tree or number tree, where the
+// mistake would otherwise go unreported until the Pdf is saved.
+void refuse_foreign_indirect(QPDFObjectHandle const &h, QPDF *target)
+{
+    if (!h.isIndirect())
+        return;
+    QPDF *owner = h.getOwningQPDF();
+    if (owner && owner != target)
+        throw_foreign_object_error(
+            "Attempting to add an object from a different pikepdf.Pdf. Use "
+            "pikepdf.copy_foreign to add objects from another file, or construct "
+            "a new object.");
 }

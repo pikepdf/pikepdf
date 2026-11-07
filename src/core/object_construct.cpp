@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: 2026 James R. Barlow
 // SPDX-License-Identifier: MPL-2.0
 
+#include "object.h"
 #include "pikepdf.h"
 
 #include <array>
@@ -371,6 +372,11 @@ void init_object_construct(py::module_ &m)
                 QPDFObjectHandle s;
                 {
                     QpdfLockGuard lock(&q);
+                    // Refuse a dictionary that refers to another Pdf before
+                    // the stream exists, so that no orphan is left behind.
+                    if (!stream_dict.is_none())
+                        refuse_mixed_owners(
+                            &q, py::cast<QPDFObjectHandle>(stream_dict));
                     s = QPDFObjectHandle::newStream(&q, to_string(data));
                 }
                 py::object pys = py::cast(s);

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import pytest
 
+import pikepdf
 from pikepdf import Array, Dictionary, Name, NumberTree, Pdf
 
 # pylint: disable=redefined-outer-name
@@ -88,3 +89,48 @@ def test_numbertree_relabeling(pagelabels_pdf):
     assert pdf.pages[1].label == 'ii'
     nt[0] = Dictionary(S=Name.R)
     assert pdf.pages[1].label == 'II'
+
+
+def test_numbertree_contains_other_types(pagelabels_pdf):
+    nt = NumberTree(pagelabels_pdf.Root.PageLabels)
+    assert 0 in nt
+    assert 'a' not in nt
+    assert None not in nt
+    assert 0.5 not in nt
+
+
+def test_numbertree_iteration_is_a_snapshot(pagelabels_pdf):
+    nt = NumberTree.new(pagelabels_pdf)
+    for key in range(3):
+        nt[key] = Dictionary()
+    seen = []
+    for key in nt:
+        seen.append(key)
+        nt[key + 10] = Dictionary()
+    assert seen == [0, 1, 2]
+    assert len(nt) == 6
+
+
+def test_numbertree_set_python_values(pagelabels_pdf):
+    nt = NumberTree.new(pagelabels_pdf)
+    nt[2] = [1, 'two', Name.Three]
+    nt[3] = {'/A': 1}
+    assert nt[2] == Array([1, 'two', Name.Three])
+    assert nt[3].A == 1
+    with pytest.raises(ValueError, match='NaN'):
+        nt[4] = float('nan')
+    with pytest.raises(RuntimeError, match="don't know how to encode"):
+        nt[5] = object()
+    assert 4 not in nt
+    assert 5 not in nt
+
+
+def test_numbertree_refuses_object_of_another_pdf(pagelabels_pdf):
+    other = Pdf.new()
+    foreign = other.make_indirect(Dictionary(A=1))
+    nt = NumberTree.new(pagelabels_pdf)
+    with pytest.raises(pikepdf.ForeignObjectError):
+        nt[7] = foreign
+    assert 7 not in nt
+    nt[8] = pagelabels_pdf.copy_foreign(foreign)
+    assert nt[8].A == 1

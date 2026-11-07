@@ -227,6 +227,22 @@ def test_signature_stamp_expand(resources, va210966):
     assert bytes(xobj_name) + b' Do' in stream
 
 
+def test_signature_stamp_once_when_annot_names_page(resources, dd0293):
+    """A widget whose /P names its page is stamped once, not twice."""
+    f = Form(dd0293)
+    field = f['form1[0].page2[0].SignatureField1[0]']
+    annot = f._acroform.get_annotations_for_field(field._field)[0]
+    annot.obj.P = dd0293.pages[1].obj
+    xobjects = dd0293.pages[1].Resources.get(Name.XObject)
+    xobjects_before = set(xobjects.keys()) if xobjects is not None else set()
+    with Pdf.open(resources / 'pike-jp2.pdf') as sig_pdf:
+        xobj_name = field.stamp_overlay(sig_pdf.pages[0])
+    added = set(dd0293.pages[1].Resources.XObject.keys()) - xobjects_before
+    assert added == {str(xobj_name)}
+    stream = dd0293.pages[1].Contents.read_bytes()
+    assert stream.count(bytes(xobj_name) + b' Do') == 1
+
+
 def test_default_appearance_generator_text(form):
     f = Form(form, DefaultAppearanceStreamGenerator)
     field = f['Text1']

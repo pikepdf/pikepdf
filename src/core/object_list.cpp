@@ -63,19 +63,31 @@ void init_object_list(py::module_ &m)
 {
     // LCOV_EXCL_START - gcov misattributes lines inside this lambda; covered by
     // tests/test_objectlist.py::test_objectlist_repr
+    //
+    // A list belongs to no Pdf, so on a free-threaded build it is protected
+    // as bind_vector protects the methods it generates: each method locks the
+    // list itself, with py::lock_self(). That lock is a critical section,
+    // which is given up whenever the thread blocks or runs Python code, as it
+    // may while it compares or converts an object. So the methods below do
+    // that work on a copy of the list, or before they touch it, and never
+    // hold an iterator into the list across it.
     auto objectlist =
         py::bind_vector<ObjectList>(m, "_ObjectList", py::type_slots(pikepdf_gc_slots));
-    objectlist.def("__repr__", [](ObjectList &ol) {
-        std::string s = "pikepdf._core._ObjectList([";
-        const char *sep = "";
-        for (auto &h : ol) {
-            s += sep;
-            sep = ", ";
-            s += objecthandle_repr(h);
-        }
-        s += "])";
-        return s;
-    });
+    objectlist.def(
+        "__repr__",
+        [](ObjectList &ol) {
+            ObjectList items = ol;
+            std::string s = "pikepdf._core._ObjectList([";
+            const char *sep = "";
+            for (auto &h : items) {
+                s += sep;
+                sep = ", ";
+                s += objecthandle_repr(h);
+            }
+            s += "])";
+            return s;
+        },
+        py::lock_self());
     // LCOV_EXCL_STOP
 
     // Discard the comparison methods bind_vector generated, so that the
@@ -85,31 +97,42 @@ void init_object_list(py::module_ &m)
         py::delattr(objectlist, method);
 
     objectlist
-        .def("__eq__",
+        .def(
+            "__eq__",
             [](const ObjectList &self, py::handle other) -> py::object {
                 ObjectList rhs;
                 if (!objectlist_coerce(other, rhs))
                     return py::borrow<py::object>(py::handle(Py_NotImplemented));
-                return py::cast(objectlist_equal(self, rhs));
-            })
-        .def("__ne__",
+                ObjectList lhs = self;
+                return py::cast(objectlist_equal(lhs, rhs));
+            },
+            py::lock_self(),
+            py::arg().lock())
+        .def(
+            "__ne__",
             [](const ObjectList &self, py::handle other) -> py::object {
                 ObjectList rhs;
                 if (!objectlist_coerce(other, rhs))
                     return py::borrow<py::object>(py::handle(Py_NotImplemented));
-                return py::cast(!objectlist_equal(self, rhs));
-            })
-        .def("__contains__",
+                ObjectList lhs = self;
+                return py::cast(!objectlist_equal(lhs, rhs));
+            },
+            py::lock_self(),
+            py::arg().lock())
+        .def(
+            "__contains__",
             [](const ObjectList &self, py::handle value) {
                 QPDFObjectHandle needle;
                 if (!pdfobject_try_encode(value, needle))
                     return false;
-                for (auto &item : self) {
+                ObjectList items = self;
+                for (auto &item : items) {
                     if (pdfobject_equal_locked(item, needle))
                         return true;
                 }
                 return false;
-            })
+            },
+            py::lock_self())
         .def(
             "count",
             [](const ObjectList &self, py::handle value) {
@@ -117,12 +140,14 @@ void init_object_list(py::module_ &m)
                 Py_ssize_t count = 0;
                 if (!pdfobject_try_encode(value, needle))
                     return count;
-                for (auto &item : self) {
+                ObjectList items = self;
+                for (auto &item : items) {
                     if (pdfobject_equal_locked(item, needle))
                         count++;
                 }
                 return count;
             },
+            py::lock_self(),
             py::arg("value"),
             "Return number of occurrences of `value`.")
         .def(
@@ -130,15 +155,23 @@ void init_object_list(py::module_ &m)
             [](ObjectList &self, py::handle value) {
                 QPDFObjectHandle needle;
                 if (pdfobject_try_encode(value, needle)) {
-                    for (auto it = self.begin(); it != self.end(); ++it) {
-                        if (pdfobject_equal_locked(*it, needle)) {
-                            self.erase(it);
-                            return;
+                    ObjectList items = self;
+                    for (auto &item : items) {
+                        if (!pdfobject_equal_locked(item, needle))
+                            continue;
+                        // The list may have changed during the comparison,
+                        // so find the item that matched again, by identity.
+                        for (auto it = self.begin(); it != self.end(); ++it) {
+                            if (it->isSameObjectAs(item)) {
+                                self.erase(it);
+                                return;
+                            }
                         }
                     }
                 }
                 throw py::value_error("_ObjectList.remove(x): x not in list");
             },
+            py::lock_self(),
             py::arg("value"),
             "Remove first occurrence of `value`.");
 
@@ -148,29 +181,40 @@ void init_object_list(py::module_ &m)
     // nanobind from falling back to converting the argument to an _ObjectList
     // (a conversion that fails noisily on stderr). Fixes #742.
     objectlist
-        .def("append",
+        .def(
+            "append",
             [](ObjectList &self, py::handle value) {
-                self.push_back(objecthandle_encode(value));
-            })
-        .def("insert",
+                auto encoded = objecthandle_encode(value);
+                self.push_back(encoded);
+            },
+            py::lock_self())
+        .def(
+            "insert",
             [](ObjectList &self, Py_ssize_t index, py::handle value) {
+                auto encoded = objecthandle_encode(value);
                 if (index < 0)
                     index += (Py_ssize_t)self.size();
                 if (index < 0 || (size_t)index > self.size())
                     throw py::index_error();
-                self.insert(self.begin() + index, objecthandle_encode(value));
-            })
-        .def("extend",
+                self.insert(self.begin() + index, encoded);
+            },
+            py::lock_self())
+        .def(
+            "extend",
             [](ObjectList &self, py::iterable values) {
                 ObjectList encoded = objectlist_encode_all(values);
                 self.insert(self.end(), encoded.begin(), encoded.end());
-            })
-        .def("__setitem__",
+            },
+            py::lock_self())
+        .def(
+            "__setitem__",
             [](ObjectList &self, Py_ssize_t index, py::handle value) {
-                self.at(py::detail::wrap(index, self.size())) =
-                    objecthandle_encode(value);
-            })
-        .def("__setitem__",
+                auto encoded = objecthandle_encode(value);
+                self.at(py::detail::wrap(index, self.size())) = encoded;
+            },
+            py::lock_self())
+        .def(
+            "__setitem__",
             [](ObjectList &self, const py::slice &slice, py::iterable values) {
                 ObjectList encoded = objectlist_encode_all(values);
                 auto [start, stop, step, length] = slice.compute(self.size());
@@ -181,5 +225,6 @@ void init_object_list(py::module_ &m)
                     self.at((size_t)start) = encoded.at(i);
                     start += step;
                 }
-            });
+            },
+            py::lock_self());
 }

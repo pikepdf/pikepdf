@@ -155,8 +155,15 @@ struct type_caster<QPDFObjectHandle> : public type_caster_base<QPDFObjectHandle>
 
         // Lock the owning QPDF while resolving indirect objects during
         // type conversion. The lock is re-entrant so this is safe even
-        // when the caller already holds the lock.
-        QpdfLockGuard qpdf_lock(src->getOwningQPDF());
+        // when the caller already holds the lock. This function cannot
+        // throw, so it waits without the check for a deadlock; the binding
+        // whose result this is has just held the same lock, with the check.
+        // A binding that converts the children of a container that belongs
+        // to no Pdf holds unowned_mutex() here, so the lock is taken as
+        // AfterUnowned. Such bindings convert a copy of the children, never
+        // while iterating the container itself.
+        QpdfLockGuard qpdf_lock(
+            src->getOwningQPDF(), QpdfLockGuard::AfterUnowned{}, std::nothrow);
 
         // In explicit conversion mode, return scalars as pikepdf.Object
         // so that Integer/Boolean/Real types are preserved.
@@ -226,6 +233,100 @@ QPDFObjectHandle objecthandle_encode(const py::handle handle);
 bool pdfobject_try_encode(py::handle value, QPDFObjectHandle &out);
 std::vector<QPDFObjectHandle> array_builder(const py::iterable iter);
 std::map<std::string, QPDFObjectHandle> dict_builder(const py::dict dict);
+
+// A binding parameter that accepts a pikepdf Object or any Python value that
+// objecthandle_encode() can turn into one, and arrives already converted.
+//
+// Declaring a parameter as EncodedObject, where it used to be py::object and
+// was converted inside the binding, moves the conversion into the argument's
+// type caster. That matters for locking: the conversion may run arbitrary
+// Python code, and now does so before the binding takes any lock; and the
+// result is a qpdf object whose owner is known when the locks are taken.
+//
+// A value that cannot be converted is not a failed overload match: get()
+// raises the error that the conversion raised, so the caller sees the same
+// exception as before.
+class EncodedObject {
+public:
+    EncodedObject() = default;
+    explicit EncodedObject(QPDFObjectHandle h) : h_(std::move(h)) {}
+    explicit EncodedObject(std::exception_ptr error) : error_(std::move(error)) {}
+
+    QPDFObjectHandle const &get() const
+    {
+        if (error_)
+            std::rethrow_exception(error_);
+        return h_;
+    }
+
+    // False if the value has no PDF representation. For a comparison or a
+    // membership test, which answer "no" for such a value where get() would
+    // raise.
+    bool ok() const { return !error_; }
+
+    // The Pdf to lock (see lock_target()), or nullptr for an unconvertible
+    // value
+    QPDF *owner() const { return error_ ? nullptr : lock_target(h_); }
+
+private:
+    QPDFObjectHandle h_;
+    std::exception_ptr error_;
+};
+
+// A binding parameter for a Python object that the binding does not treat as
+// something a Pdf owns: a value handed back unchanged, such as the default of
+// a get(), a Python file object, or a key that the body tells apart by type.
+//
+// A locked binding cannot declare py::object or py::handle, because the code
+// that takes the locks could not tell what such a parameter refers to. Using
+// OpaqueObject says that it does not need to. If the body does turn the
+// object into a qpdf object of some Pdf, that Pdf is not locked: use
+// EncodedObject or the object's own type instead.
+//
+// It borrows the argument, which the caller keeps alive for the call, so it
+// costs nothing to pass and must not be kept after the binding returns.
+class OpaqueObject {
+public:
+    OpaqueObject() = default;
+    explicit OpaqueObject(py::handle handle) : handle_(handle) {}
+
+    py::object object() const { return py::borrow<py::object>(handle_); }
+    py::handle handle() const { return handle_; }
+    bool is_none() const { return handle_.is_none(); }
+
+private:
+    py::handle handle_;
+};
+
+namespace nanobind {
+namespace detail {
+template <>
+struct type_caster<OpaqueObject> {
+    NB_TYPE_CASTER(OpaqueObject, const_name("object"))
+
+    bool from_python(handle src, uint8_t, cleanup_list *) noexcept
+    {
+        value = OpaqueObject(src);
+        return true;
+    }
+};
+
+template <>
+struct type_caster<EncodedObject> {
+    NB_TYPE_CASTER(EncodedObject, const_name("object"))
+
+    bool from_python(handle src, uint8_t, cleanup_list *) noexcept
+    {
+        try {
+            value = EncodedObject(objecthandle_encode(src));
+        } catch (...) {
+            value = EncodedObject(std::current_exception());
+        }
+        return true;
+    }
+};
+} // namespace detail
+} // namespace nanobind
 
 // From acroform.cpp
 void init_acroform(py::module_ &m);

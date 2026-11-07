@@ -5,13 +5,14 @@
 
 from __future__ import annotations
 
+import functools
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Generator, Iterator, Sequence
+from collections.abc import Callable, Generator, Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from decimal import Decimal
-from typing import Any, cast
+from typing import Any, TypeVar, cast
 
 from pikepdf import (
     AcroForm,
@@ -31,7 +32,7 @@ from pikepdf import (
     String,
     parse_content_stream,
 )
-from pikepdf._core import unbox
+from pikepdf._core import _OwnerLock, unbox
 from pikepdf.canvas import ContentStreamBuilder, SimpleFont
 
 log = logging.getLogger(__name__)
@@ -195,6 +196,24 @@ class Form:
         return wrapped
 
 
+_F = TypeVar('_F', bound=Callable[..., Any])
+
+
+def _holding_form_lock(fn: _F) -> _F:
+    """Hold the lock of the field's Pdf while fn, a method of a field, runs.
+
+    Setting a value reads the field, sets it, and may then write appearance
+    streams; another thread must not see that half done.
+    """
+
+    @functools.wraps(fn)
+    def wrapper(self: _FieldWrapper, *args: Any, **kwargs: Any) -> Any:
+        with self._form._pdf.lock():
+            return fn(self, *args, **kwargs)
+
+    return wrapper  # type: ignore[return-value]
+
+
 class _FieldWrapper:
     """Base class for other field types.
 
@@ -304,6 +323,7 @@ class TextField(_FieldWrapper):
         return self._field.value_as_string
 
     @value.setter
+    @_holding_form_lock
     def value(self, value: str) -> None:
         # Coerce the value into something acceptable if it isn't
         if not self.is_multiline:
@@ -354,6 +374,7 @@ class CheckboxField(_FieldWrapper):
         return self._field.is_checked
 
     @checked.setter
+    @_holding_form_lock
     def checked(self, checked: bool) -> None:
         if checked:
             states = set(self._field.obj.AP.N.keys())
@@ -400,6 +421,7 @@ class RadioButtonGroup(_FieldWrapper):
         return cast('Name | None', self._field.value)
 
     @value.setter
+    @_holding_form_lock
     def value(self, value: Name) -> None:
         if value == Name.Off and not self.can_toggle_off:
             raise ValueError('To uncheck a radio button, check another.')
@@ -567,6 +589,7 @@ class ChoiceField(_FieldWrapper):
         return ChoiceFieldOption(self, String(self.value), None)
 
     @selected.setter
+    @_holding_form_lock
     def selected(self, option: ChoiceFieldOption) -> None:
         if option._field is not self:
             raise ValueError('Option does not belong to this field')
@@ -591,6 +614,7 @@ class ChoiceField(_FieldWrapper):
         return None
 
     @value.setter
+    @_holding_form_lock
     def value(self, value: str | None) -> None:
         if not self.allow_edit:
             # Prevent setting a value not in the option list, unless the field is
@@ -705,20 +729,21 @@ class SignatureField(_FieldWrapper):
         Positive numbers will increase the size of the box, and negative numbers will
         decease it.
         """
-        # There is allowed to be only one annot per sig field, see 12.7.5.5
-        field_annot = self._form._acroform.get_annotations_for_field(self._field)[0]
-        if Name.P in field_annot.obj:
-            # The annot keeps a reference to the page (not always the case)
-            Page(field_annot.obj.P).add_overlay(
-                overlay, self._expand_rect(field_annot.rect, expand_rect)
-            )
-        for page in self._form._pdf.pages:
-            # Fall back to looping through all possible pages.
-            for annot in self._form._acroform.get_widget_annotations_for_page(page):
-                if annot == field_annot:
-                    return page.add_overlay(
-                        overlay, self._expand_rect(annot.rect, expand_rect)
-                    )
+        with _OwnerLock((self._form._pdf, overlay)):
+            # There is allowed to be only one annot per sig field, see 12.7.5.5
+            field_annot = self._form._acroform.get_annotations_for_field(self._field)[0]
+            if Name.P in field_annot.obj:
+                # The annot keeps a reference to the page (not always the case)
+                return Page(field_annot.obj.P).add_overlay(
+                    overlay, self._expand_rect(field_annot.rect, expand_rect)
+                )
+            for page in self._form._pdf.pages:
+                # Fall back to looping through all possible pages.
+                for annot in self._form._acroform.get_widget_annotations_for_page(page):
+                    if annot == field_annot:
+                        return page.add_overlay(
+                            overlay, self._expand_rect(annot.rect, expand_rect)
+                        )
         raise ValueError("Could not find annotation for signature field")
 
     def _expand_rect(
