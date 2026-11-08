@@ -1736,6 +1736,7 @@ def test_separation():
     def check_pim(imobj, idx):
         pim = pikepdf.PdfImage(imobj)
         assert pim.mode == 'Separation'
+        assert pim.colorspace == '/Separation'
         assert pim.is_separation
         assert not pim.is_device_n
         assert pim.indexed == idx

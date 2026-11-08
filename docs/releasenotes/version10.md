@@ -16,6 +16,14 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.18.1
+
+- {attr}`pikepdf.PdfImage.colorspace` now returns `/Separation` for an image
+  in a `/Separation` colour space, or an `/Indexed` one based on it, as it
+  returns `/DeviceN` for `/DeviceN`. Previously it raised
+  `NotImplementedError`, although {attr}`pikepdf.PdfImage.mode` was already
+  `'Separation'`.
+
 ## v10.18.0
 
 - {meth}`pikepdf.Pdf.add_pages_from` now carries layers (optional content) with
