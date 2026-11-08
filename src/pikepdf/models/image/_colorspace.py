@@ -101,14 +101,16 @@ def colorspace(pim: PdfImageBase) -> str | None:
             if isinstance(subspace, list) and subspace[0] in (
                 '/ICCBased',
                 '/DeviceN',
+                '/Separation',
                 '/CalGray',
                 '/CalRGB',
                 '/Lab',
             ):
                 base: str = subspace[0]
                 return base
-        if pim._colorspaces[0] == '/DeviceN':
-            return '/DeviceN'
+        if pim._colorspaces[0] in ('/DeviceN', '/Separation'):
+            cs: str = pim._colorspaces[0]
+            return cs
 
     raise NotImplementedError(
         "not sure how to get colorspace: " + repr(pim._colorspaces)
