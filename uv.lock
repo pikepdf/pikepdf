@@ -1575,7 +1575,7 @@ provides-extras = ["pdfa"]
 
 [package.metadata.requires-dev]
 build = [
-    { name = "nanobind", specifier = ">=2.0" },
+    { name = "nanobind", specifier = ">=2.5.0" },
     { name = "scikit-build-core", specifier = ">=0.10" },
 ]
 dev = [
@@ -1589,7 +1589,7 @@ dev = [
     { name = "lxml-stubs" },
     { name = "mypy" },
     { name = "nanobind" },
-    { name = "nanobind", specifier = ">=2.0" },
+    { name = "nanobind", specifier = ">=2.5.0" },
     { name = "numpy", marker = "platform_machine == 'x86_64' and platform_python_implementation == 'CPython'", specifier = ">=1.21.0" },
     { name = "prek" },
     { name = "psutil", marker = "os_name != 'nt'", specifier = ">=5.9" },

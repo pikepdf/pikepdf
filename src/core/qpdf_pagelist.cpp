@@ -80,14 +80,22 @@ static void warn_page_copy(bool forms, bool dests)
 
 static QPDFPageObjectHelper as_page_helper(py::handle obj)
 {
-    try {
-        return py::cast<QPDFPageObjectHelper>(obj);
-    } catch (const py::cast_error &) {
-        throw py::type_error((
+    auto not_a_page = [&] {
+        return py::type_error((
             std::string(
                 "only pikepdf pages can be assigned to a page list; tried to assign ") +
             py::cast<std::string>(py::str(py::inst_name(obj))))
                 .c_str());
+    };
+    // nanobind before 2.13 casts None to a null pointer and then throws
+    // next_overload rather than cast_error, which makes the dispatcher retry
+    // the binding with a partly consumed iterable
+    if (obj.is_none())
+        throw not_a_page();
+    try {
+        return py::cast<QPDFPageObjectHelper>(obj);
+    } catch (const py::cast_error &) {
+        throw not_a_page();
     }
 }
 
@@ -362,12 +370,17 @@ void init_pagelist(py::module_ &m)
             py::rv_policy::reference_internal)
         .def("__getitem__",
             [](PageList &pl, py::slice slice) { return pl.get_pages(slice); })
-        .def("__setitem__",
+        .def(
+            "__setitem__",
             [](PageList &pl, py::ssize_t index, PageArgument const &obj) {
                 auto page = obj.get();
                 auto uindex = uindex_from_index(pl, index);
                 pl.set_page(uindex, page);
-            })
+            },
+            // Accept None, so that it gets our TypeError rather than an
+            // overload resolution failure
+            py::arg(),
+            py::arg().none())
         .def("__setitem__",
             // Which Pdfs the pages come from is not known until the iterable
             // has been unpacked. That runs arbitrary Python code, so it is

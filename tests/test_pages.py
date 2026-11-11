@@ -163,6 +163,19 @@ def test_extend_with_nonpage(sandwich):
         pdf.pages.extend([42])
 
 
+@pytest.mark.parametrize('make_iterable', [list, iter])
+def test_assign_none_to_pages(fourpages, make_iterable):
+    pdf = fourpages
+    page = pdf.pages[0]
+    with pytest.raises(TypeError, match="only pikepdf pages"):
+        pdf.pages.extend(make_iterable([page, None]))
+    with pytest.raises(TypeError, match="only pikepdf pages"):
+        pdf.pages[0:0] = make_iterable([page, None])
+    with pytest.raises(TypeError, match="only pikepdf pages"):
+        pdf.pages[0] = None
+    assert len(pdf.pages) == 4
+
+
 def test_slice_unequal_replacement(fourpages, sandwich, outdir):
     pdf = fourpages
     pdf2 = sandwich

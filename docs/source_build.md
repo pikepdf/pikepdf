@@ -15,8 +15,8 @@ If you are a developer and you want to build from source, follow these steps.
 pikepdf requires:
 
 - a C++20 compliant compiler
-- [nanobind](https://github.com/wjakob/nanobind) (fetched automatically by the
-  build system)
+- [nanobind](https://github.com/wjakob/nanobind) 2.5.0 or higher (fetched
+  automatically by the build system)
 - libqpdf {{ qpdf_min_version }} or higher from the
   [qpdf](https://qpdf.org) project.
 
