@@ -16,6 +16,17 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.18.1
+
+- Assigning `None` into a page list, with `pdf.pages.extend()`, slice
+  assignment or `pdf.pages[i] = None`, now raises the usual "only pikepdf
+  pages" `TypeError`. When pikepdf was built with nanobind older than 2.13, as
+  some Linux distributions do, an iterator containing `None` could instead be
+  silently discarded without inserting any pages, or a misleading "incompatible
+  function arguments" error was raised. {pr}`759`
+- pikepdf now requires nanobind 2.5.0 or newer to build, and is tested against
+  it.
+
 ## v10.18.0
 
 - {meth}`pikepdf.Pdf.add_pages_from` now carries layers (optional content) with

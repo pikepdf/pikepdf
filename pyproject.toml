@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 [build-system]
-requires = ["scikit-build-core>=0.10", "nanobind>=2.0"]
+requires = ["scikit-build-core>=0.10", "nanobind>=2.5.0"]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
@@ -298,7 +298,7 @@ dev = [
 ]
 # Mirrors [build-system].requires, so that `uv run` keeps these installed for
 # `make build`, which builds without isolation.
-build = ["nanobind>=2.0", "scikit-build-core>=0.10"]
+build = ["nanobind>=2.5.0", "scikit-build-core>=0.10"]
 docs = [
   "myst-parser>=3.0.1",
   "sphinx>=3",

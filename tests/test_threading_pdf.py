@@ -204,7 +204,7 @@ def test_stress_extend_from_iterables_spanning_pdfs():
             with pytest.raises(TypeError, match='only pikepdf pages'):
                 dst.pages.extend(itertools.chain(pages_of_sources(i), [42]))
             with pytest.raises(TypeError, match='only pikepdf pages'):
-                dst.pages[0:0] = itertools.chain(pages_of_sources(i), [42])
+                dst.pages[0:0] = itertools.chain(pages_of_sources(i), [None])
 
     def other_direction(k):
         # Each source also takes pages from the destination, so that the
