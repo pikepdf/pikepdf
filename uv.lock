@@ -1477,7 +1477,7 @@ wheels = [
 
 [[package]]
 name = "pikepdf"
-version = "10.18.0"
+version = "10.18.1"
 source = { editable = "." }
 dependencies = [
     { name = "lxml" },
