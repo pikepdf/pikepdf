@@ -211,7 +211,8 @@ def test_build_metadata(trivial, graph, outdir):
         assert pdf.Root.Metadata.Type == Name.Metadata
         assert pdf.Root.Metadata.Subtype == Name.XML
         with pdf.open_metadata(set_pikepdf_as_editor=False) as xmp:
-            assert 'pdf:Producer' not in xmp
+            # trivial has no XMP, so its own DocumentInfo is kept
+            assert xmp['pdf:Producer'] == 'img2pdf 0.2.4'
             xmp_date = xmp['xmp:CreateDate']
             docinfo_date = decode_pdf_date(trivial.docinfo[Name.CreationDate])
             assert xmp_date == docinfo_date.isoformat()
@@ -524,6 +525,77 @@ def test_docinfo_delete_missing(sandwich):
         m.load_from_docinfo(d, delete_missing=True)
         assert m['xmp:CreatorTool'] == 'test creator'
         assert 'xmp:CreateDate' not in m
+
+
+@pytest.fixture
+def docinfo_only():
+    pdf = pikepdf.new()
+    pdf.docinfo = pdf.make_indirect(
+        Dictionary(
+            Title="Old title",
+            Creator="Chromium",
+            Producer="Skia/PDF",
+            CreationDate="D:20260101120000Z",
+            ModDate="D:20260102120000Z",
+        )
+    )
+    assert Name.Metadata not in pdf.Root
+    return pdf
+
+
+def test_edit_without_xmp_keeps_docinfo(docinfo_only):
+    with docinfo_only.open_metadata() as meta:
+        meta['dc:title'] = 'New title'
+
+    docinfo = docinfo_only.docinfo
+    assert str(docinfo.Title) == 'New title'
+    assert str(docinfo.Creator) == 'Chromium'
+    assert str(docinfo.CreationDate).startswith('D:20260101120000')
+    assert str(docinfo.ModDate).startswith('D:20260102120000')
+    assert docinfo_only.open_metadata()['xmp:CreatorTool'] == 'Chromium'
+
+
+def test_empty_edit_without_xmp_keeps_docinfo(docinfo_only):
+    with docinfo_only.open_metadata(set_pikepdf_as_editor=False):
+        pass
+
+    assert {str(k) for k in docinfo_only.docinfo.keys()} == {
+        '/Title',
+        '/Creator',
+        '/Producer',
+        '/CreationDate',
+        '/ModDate',
+    }
+
+
+def test_delete_without_xmp_removes_docinfo(docinfo_only):
+    with docinfo_only.open_metadata() as meta:
+        del meta['xmp:CreatorTool']
+
+    assert Name.Creator not in docinfo_only.docinfo
+    assert str(docinfo_only.docinfo.Title) == 'Old title'
+
+
+def test_edit_without_xmp_keeps_unconvertible_docinfo(docinfo_only):
+    docinfo_only.docinfo.CreationDate = 'not a date'
+
+    with pytest.warns(UserWarning, match='could not be copied'):
+        with docinfo_only.open_metadata() as meta:
+            meta['dc:title'] = 'New title'
+
+    assert str(docinfo_only.docinfo.CreationDate) == 'not a date'
+
+
+def test_read_without_xmp_does_not_load_docinfo(docinfo_only):
+    assert 'dc:title' not in docinfo_only.open_metadata()
+
+
+def test_edit_without_xmp_no_sync(docinfo_only):
+    with docinfo_only.open_metadata(update_docinfo=False) as meta:
+        meta['dc:title'] = 'New title'
+
+    assert 'xmp:CreatorTool' not in docinfo_only.open_metadata()
+    assert str(docinfo_only.docinfo.Title) == 'Old title'
 
 
 def test_present_bug_empty_tags(trivial):

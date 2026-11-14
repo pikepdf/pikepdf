@@ -24,6 +24,11 @@ the architecture notes on thread safety.
   linker then gave both classes the destructor of one of them. Free-threaded
   (`cp314t`) Windows wheels, which were left out of v10.18.0 because of these
   crashes, are provided again. {issue}`757`
+- Editing metadata with {meth}`pikepdf.Pdf.open_metadata` on a PDF that has a
+  Document Info dictionary but no XMP metadata no longer deletes the Document
+  Info entries that were not edited, such as `/Creator` and `/CreationDate`.
+  XMP is now filled from Document Info when the `with` block is entered.
+  {issue}`760`
 
 ## v10.18.1
 
