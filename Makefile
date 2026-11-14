@@ -17,6 +17,15 @@ invalidate-cppcov:
 build: invalidate-cppcov
 	uv pip install --no-build-isolation -e .
 
+# Build a throwaway wheel with GCC link-time optimization, which fails on a
+# one-definition rule violation (see PIKEPDF_ODR_CHECK in CMakeLists.txt).
+# Leaves the editable install alone.
+.PHONY: odr-check
+odr-check:
+	uv build --wheel --no-build-isolation \
+	  -C cmake.define.PIKEPDF_ODR_CHECK=ON -C build-dir=build/odr-check \
+	  -o build/odr-check/dist
+
 .PHONY: pip-install-e
 pip-install-e: invalidate-cppcov
 	uv pip install -e .

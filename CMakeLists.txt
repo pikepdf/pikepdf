@@ -76,6 +76,25 @@ nanobind_add_module(_core
 
 target_compile_features(_core PRIVATE cxx_std_20)
 
+# Two classes or functions with external linkage and the same name, defined
+# differently in two source files, break the one-definition rule: the linker
+# keeps one copy of their inline members and every file uses it. Whether that
+# crashes depends on what the compiler inlined, so it can pass every test on
+# one platform and crash on another. GCC's link-time optimizer sees every
+# definition at once and reports such a clash, which nothing else does. CI
+# builds with this on; it needs GCC.
+option(PIKEPDF_ODR_CHECK
+    "Fail the build on a one-definition rule violation (GCC link-time optimization)"
+    OFF)
+if(PIKEPDF_ODR_CHECK)
+    if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        message(FATAL_ERROR "PIKEPDF_ODR_CHECK requires GCC")
+    endif()
+    target_compile_options(_core PRIVATE -flto=auto)
+    target_link_options(_core PRIVATE
+        -flto=auto -Werror=odr -Werror=lto-type-mismatch)
+endif()
+
 target_include_directories(_core PRIVATE
     ${EXTRA_INCLUDES}
 )
