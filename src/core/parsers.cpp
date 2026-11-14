@@ -223,12 +223,6 @@ namespace {
 // always belong to the same Pdf: asking for the Pdf already held costs a
 // comparison. Asking for another releases the first, so two are never held
 // and no order between them arises.
-//
-// Internal linkage, and a name of its own: this class was once called
-// OwnerLock, like an unrelated class in qpdf.cpp. Two classes with external
-// linkage and the same name break the one-definition rule: the linker keeps
-// one copy of each implicitly inline member, such as the destructor, and both
-// classes use it. The MSVC builds kept the wrong one and crashed (issue #757).
 class InstructionOwnerLock {
 public:
     void hold(QPDF *owner)
