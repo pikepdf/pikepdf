@@ -217,11 +217,13 @@ py::list OperandGrouper::getInstructions() const
     return instructions_;
 }
 
+namespace {
+
 // Holds the lock of one Pdf at a time, for a loop over objects that nearly
 // always belong to the same Pdf: asking for the Pdf already held costs a
 // comparison. Asking for another releases the first, so two are never held
 // and no order between them arises.
-class OwnerLock {
+class InstructionOwnerLock {
 public:
     void hold(QPDF *owner)
     {
@@ -248,6 +250,8 @@ private:
     QPDF *held_ = nullptr;
 };
 
+} // namespace
+
 // The instructions are only known as the iterable yields them, so a binding
 // cannot lock their Pdfs in advance, and this function locks for itself.
 py::bytes unparse_content_stream(py::iterable contentstream)
@@ -255,14 +259,14 @@ py::bytes unparse_content_stream(py::iterable contentstream)
     uint n = 0;
     std::string out;
     const char *delim = "";
-    OwnerLock lock;
+    InstructionOwnerLock lock;
     // Stepping through a list or tuple runs no Python code, so the lock can
     // stay held from one instruction to the next. Any other iterable is
     // stepped with no lock held.
     const bool keep_lock =
         PyList_Check(contentstream.ptr()) || PyTuple_Check(contentstream.ptr());
     struct ReleaseAtEnd {
-        OwnerLock &lock;
+        InstructionOwnerLock &lock;
         bool keep;
         ~ReleaseAtEnd()
         {

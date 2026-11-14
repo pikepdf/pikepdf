@@ -16,6 +16,15 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.18.2
+
+- Fixed crashes on Windows in code that locks more than one `Pdf` at once,
+  such as `Pdf.add_pages_from()` and signature stamping. Two unrelated internal
+  C++ classes had the same name, which broke the one-definition rule. The MSVC
+  linker then gave both classes the destructor of one of them. Free-threaded
+  (`cp314t`) Windows wheels, which were left out of v10.18.0 because of these
+  crashes, are provided again. {issue}`757`
+
 ## v10.18.1
 
 - Assigning `None` into a page list, with `pdf.pages.extend()`, slice
