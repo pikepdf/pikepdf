@@ -24,6 +24,9 @@ the architecture notes on thread safety.
   linker then gave both classes the destructor of one of them. Free-threaded
   (`cp314t`) Windows wheels, which were left out of v10.18.0 because of these
   crashes, are provided again. {issue}`757`
+- The extension module is now built with link-time optimization, which makes
+  it about 14% smaller. Source builds use it where the toolchain supports it.
+  To build without it, pass `-C cmake.define.PIKEPDF_LTO=OFF`.
 - Editing metadata with {meth}`pikepdf.Pdf.open_metadata` on a PDF that has a
   Document Info dictionary but no XMP metadata no longer deletes the Document
   Info entries that were not edited, such as `/Creator` and `/CreationDate`.
