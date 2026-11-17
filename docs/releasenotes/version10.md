@@ -27,6 +27,11 @@ the architecture notes on thread safety.
 - The extension module is now built with link-time optimization, which makes
   it about 14% smaller. Source builds use it where the toolchain supports it.
   To build without it, pass `-C cmake.define.PIKEPDF_LTO=OFF`.
+- Editing metadata with {meth}`pikepdf.Pdf.open_metadata` on a PDF that has a
+  Document Info dictionary but no XMP metadata no longer deletes the Document
+  Info entries that were not edited, such as `/Creator` and `/CreationDate`.
+  XMP is now filled from Document Info when the `with` block is entered.
+  {issue}`760`
 
 ## v10.18.1
 
