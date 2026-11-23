@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 [build-system]
-requires = ["scikit-build-core>=0.10", "nanobind>=2.0"]
+requires = ["scikit-build-core>=0.10", "nanobind>=2.5.0"]
 build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
@@ -18,7 +18,7 @@ sdist.exclude = ["qpdf"]
 
 [project]
 name = "pikepdf"
-version = "10.18.0"
+version = "10.18.2"
 description = "Read, write, repair, and transform PDFs in Python, powered by qpdf"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -63,10 +63,9 @@ test-groups = ["test"]
 #   this file sets skip to deselect what cannot be built
 skip = [
   "*-win32", # no 32-bit builds/not supported by Pillow anymore
-  "cp3*t-win*", # free-threaded Windows wheels crash in tests: issue #757
 ]
 # We publish cp314t free-threaded wheels (built by default now that 3.14
-# free-threading is stable), except on Windows for now, but not cp313t: cp313t
+# free-threading is stable), but not cp313t: cp313t
 # requires the `cpython-freethreading` enable group, which we deliberately
 # leave disabled, so it is never built and needs no skip selector.
 # Use plain `build` (pip-backed isolation) rather than `build[uv]`: the uv
@@ -298,7 +297,7 @@ dev = [
 ]
 # Mirrors [build-system].requires, so that `uv run` keeps these installed for
 # `make build`, which builds without isolation.
-build = ["nanobind>=2.0", "scikit-build-core>=0.10"]
+build = ["nanobind>=2.5.0", "scikit-build-core>=0.10"]
 docs = [
   "myst-parser>=3.0.1",
   "sphinx>=3",

@@ -16,13 +16,28 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.18.2
+
+- Fixed crashes on Windows in code that locks more than one `Pdf` at once,
+  such as `Pdf.add_pages_from()` and signature stamping. Two unrelated internal
+  C++ classes had the same name, which broke the one-definition rule. The MSVC
+  linker then gave both classes the destructor of one of them. Free-threaded
+  (`cp314t`) Windows wheels, which were left out of v10.18.0 because of these
+  crashes, are provided again. {issue}`757`
+- The extension module is now built with link-time optimization, which makes
+  it about 14% smaller. Source builds use it where the toolchain supports it.
+  To build without it, pass `-C cmake.define.PIKEPDF_LTO=OFF`.
+
 ## v10.18.1
 
-- {attr}`pikepdf.PdfImage.colorspace` now returns `/Separation` for an image
-  in a `/Separation` colour space, or an `/Indexed` one based on it, as it
-  returns `/DeviceN` for `/DeviceN`. Previously it raised
-  `NotImplementedError`, although {attr}`pikepdf.PdfImage.mode` was already
-  `'Separation'`.
+- Assigning `None` into a page list, with `pdf.pages.extend()`, slice
+  assignment or `pdf.pages[i] = None`, now raises the usual "only pikepdf
+  pages" `TypeError`. When pikepdf was built with nanobind older than 2.13, as
+  some Linux distributions do, an iterator containing `None` could instead be
+  silently discarded without inserting any pages, or a misleading "incompatible
+  function arguments" error was raised. {pr}`759`
+- pikepdf now requires nanobind 2.5.0 or newer to build, and is tested against
+  it.
 
 ## v10.18.0
 

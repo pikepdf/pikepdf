@@ -17,6 +17,15 @@ invalidate-cppcov:
 build: invalidate-cppcov
 	uv pip install --no-build-isolation -e .
 
+# Build a throwaway wheel that fails on a one-definition rule violation. Needs
+# GCC (see PIKEPDF_ODR_CHECK in CMakeLists.txt). Leaves the editable install
+# alone.
+.PHONY: odr-check
+odr-check:
+	uv build --wheel --no-build-isolation \
+	  -C cmake.define.PIKEPDF_ODR_CHECK=ON -C build-dir=build/odr-check \
+	  -o build/odr-check/dist
+
 .PHONY: pip-install-e
 pip-install-e: invalidate-cppcov
 	uv pip install -e .
@@ -51,7 +60,7 @@ pycov: clean-coverage-pycov
 .PHONY: build-cppcov
 build-cppcov:
 	SKBUILD_BUILD_DIR=build/coverage \
-	  CMAKE_ARGS="-DCMAKE_CXX_FLAGS=--coverage -DCMAKE_SHARED_LINKER_FLAGS=--coverage" \
+	  CMAKE_ARGS="-DPIKEPDF_LTO=OFF -DCMAKE_CXX_FLAGS=--coverage -DCMAKE_SHARED_LINKER_FLAGS=--coverage" \
 	  uv pip install --no-build-isolation -e .
 
 coverage/cpp.info: clean-coverage-cppcov build-cppcov pycov

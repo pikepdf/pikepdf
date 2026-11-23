@@ -43,6 +43,8 @@ enum access_mode_e { access_default, access_stream, access_mmap, access_mmap_onl
 template <>
 struct LockOwner<QPDFXRefEntry> : NoLock {};
 
+namespace {
+
 // Holds the locks of the Pdfs that own some values, for the length of a with
 // block. Python code that changes more than one Pdf in several steps uses this
 // rather than nesting Pdf.lock(), which takes the locks in whatever order the
@@ -93,6 +95,8 @@ private:
     py::list items_;
     std::unique_ptr<MultiQpdfLockGuard> guard_;
 };
+
+} // namespace
 
 template <>
 struct LockOwner<OwnerLock> : NoLock {};

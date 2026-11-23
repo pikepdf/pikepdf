@@ -281,8 +281,11 @@ static py::object cast_raw(QPDFObjectHandle const &h)
         handle.getOwningQPDF(), QpdfLockGuard::AfterUnowned{}, std::nothrow);
     py::handle result = py::detail::type_caster_base<QPDFObjectHandle>::from_cpp(
         handle, py::rv_policy::copy, nullptr);
-    if (!result.is_valid())
-        py::detail::raise_python_or_cast_error(); // LCOV_EXCL_LINE
+    if (!result.is_valid()) {
+        if (PyErr_Occurred())         // LCOV_EXCL_LINE
+            throw py::python_error(); // LCOV_EXCL_LINE
+        throw py::cast_error();       // LCOV_EXCL_LINE
+    }
     return py::steal(result);
 }
 
