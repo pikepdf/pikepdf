@@ -16,6 +16,13 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## Unreleased
+
+- Text fields validate `/MaxLen` as a nonnegative PDF integer and inherit past
+  null entries. Filling a combed field or generating its extended appearance
+  requires an effective `/MaxLen`. The extended generator renders zero-length
+  combs without text. {issue}`748`
+
 ## v10.18.2
 
 - Fixed crashes on Windows in code that locks more than one `Pdf` at once,
