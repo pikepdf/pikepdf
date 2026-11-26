@@ -24,12 +24,14 @@ from pikepdf import (
     Matrix,
     Name,
     Object,
+    ObjectSet,
     Operator,
     Page,
     Pdf,
     Rectangle,
     Stream,
     String,
+    as_int,
     parse_content_stream,
 )
 from pikepdf._core import _OwnerLock, unbox
@@ -245,6 +247,33 @@ class _FieldWrapper:
         return not self._field.flags & FormFieldFlag.no_export
 
 
+def _text_max_length(field: AcroFormField) -> int | None:
+    # A null dictionary entry is absent (ISO 32000, 7.3.7). The qpdf
+    # inherited-field accessor can stop at a literal null instead.
+    obj: Object | None = field.obj
+    seen = ObjectSet()
+    while isinstance(obj, Dictionary) and seen.add(obj):
+        value = obj.get_raw(Name.MaxLen)
+        if value is not None:
+            break
+        obj = obj.get_raw(Name.Parent)
+    else:
+        return None
+
+    max_length = as_int(value)
+    if max_length is None:
+        raise TypeError("/MaxLen must be an integer")
+    if max_length < 0:
+        raise ValueError("/MaxLen must be nonnegative")
+    return max_length
+
+
+def _require_comb_max_length(max_length: int | None) -> int:
+    if max_length is None:
+        raise ValueError("Combed text fields require /MaxLen")
+    return max_length
+
+
 class TextField(_FieldWrapper):
     """Represents an editable text field."""
 
@@ -305,12 +334,8 @@ class TextField(_FieldWrapper):
 
     @property
     def max_length(self) -> int | None:
-        """The maximum length of the text in this field."""
-        max_len = self._field.get_inheritable_field_value("/MaxLen")
-        # Documented as int. In explicit conversion mode this arrives as a
-        # pikepdf.Integer, which will not serve as a slice bound or as a divisor
-        # in the comb layout arithmetic.
-        return None if max_len is None else int(max_len)
+        """The maximum text length, or None if no limit is specified."""
+        return _text_max_length(self._field)
 
     @property
     def default_value(self) -> str:
@@ -329,6 +354,8 @@ class TextField(_FieldWrapper):
         if not self.is_multiline:
             value = value.replace('\n', '')
         max_length = self.max_length
+        if self.is_combed:
+            max_length = _require_comb_max_length(max_length)
         if (
             not self._form.ignore_max_length
             and max_length is not None
@@ -914,6 +941,7 @@ def _text_appearance_multiline(pdf: Pdf, form: AcroForm, field: AcroFormField) -
 
 
 def _text_appearance_combed(pdf: Pdf, form: AcroForm, field: AcroFormField) -> None:
+    max_length = _require_comb_max_length(_text_max_length(field))
     da_info = _DaInfo.decode_for_field(field)
     for annot in form.get_annotations_for_field(field):
         # There is likely only one annot, but we have to allow for multiple
@@ -933,17 +961,7 @@ def _text_appearance_combed(pdf: Pdf, form: AcroForm, field: AcroFormField) -> N
                         bbox.llx, Decimal(bbox.lly) - bottom_offset
                     )
                 )
-            _layout_combed_text(
-                cs,
-                field.value_as_string,
-                da_info,
-                bbox,
-                # Unbox: in explicit conversion mode /MaxLen is a
-                # pikepdf.Integer, and dividing a Decimal by one of those
-                # yields a pikepdf.Real rather than a Decimal.
-                # A comb field without /MaxLen raises TypeError here
-                int(field.get_inheritable_field_value("/MaxLen")),  # type: ignore[arg-type]
-            )
+            _layout_combed_text(cs, field.value_as_string, da_info, bbox, max_length)
         _apply_appearance_stream(pdf, annot, cs, bbox, da_info)
 
 
@@ -1151,6 +1169,9 @@ def _layout_combed_text(
     * Does not respect field-defined alignment (quadding).
     * Only ASCII, WinAnsi, and MacRoman encodings are supported.
     """
+    if max_length == 0:
+        # A zero-length field has no cells in which to draw text.
+        return
     font = da_info.font
     font_size = da_info.font_size
     width = bbox.width
