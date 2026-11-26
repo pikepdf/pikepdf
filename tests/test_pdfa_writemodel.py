@@ -19,7 +19,7 @@ from pdfa_samples import assert_verapdf_agrees, make_image_only_pdf
 
 import pikepdf
 from pikepdf import Array, Dictionary, Name
-from pikepdf.pdfa import _engine, validate_written
+from pikepdf.pdfa import _engine, _writemodel, validate_written
 from pikepdf.pdfa._api import check
 from pikepdf.pdfa._save_kwargs import resolve_save_kwargs
 from pikepdf.pdfa._shallow import shallow_json, shallow_json_of
@@ -233,6 +233,22 @@ class TestStreamFilters:
         assert predicted['lzw-dct'] == (['/LZWDecode', '/DCTDecode'], None)
         assert predicted['runlength'] == ('/RunLengthDecode', None)
         assert predicted['root-metadata'] == (None, None)
+
+    @pytest.mark.parametrize(
+        ('qpdf_version', 'expected'),
+        [
+            # qpdf 12.4.2 recompresses Flate streams whose /Filter is a
+            # one-element array; later versions copy them like a name.
+            ('12.4.2', ('/FlateDecode', None)),
+            ('12.4.3', (['/FlateDecode'], None)),
+        ],
+    )
+    def test_flate_array_by_qpdf_version(self, monkeypatch, qpdf_version, expected):
+        monkeypatch.setattr(_writemodel, '__libqpdf_version__', qpdf_version)
+        kw = resolve_save_kwargs('2b')
+        with _build('memory') as pdf:
+            predicted = _predicted(pdf, kw)
+        assert predicted['flate-array'] == expected
 
     def test_identity_is_in_memory(self):
         with _build('memory') as pdf:

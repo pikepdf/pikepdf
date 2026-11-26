@@ -20,7 +20,10 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from decimal import Decimal
 
+from packaging.version import Version
+
 import pikepdf
+from pikepdf import __libqpdf_version__
 from pikepdf._core import ObjectStreamMode, _reachable_objects
 from pikepdf.pdfa._shallow import JsonValue, shallow_json, shallow_json_of
 
@@ -188,6 +191,23 @@ def _decodable(stream_dict: pikepdf.Dictionary, level_all: bool) -> bool:
     )
 
 
+def _sole_filter(filter_obj: pikepdf.Object | None) -> pikepdf.Object | None:
+    """The filter qpdf checks to decide whether to keep Flate data as is.
+
+    qpdf 12.4.2 considers only a name; later versions also take the element
+    of a one-element array.
+    """
+    if isinstance(filter_obj, pikepdf.Name):
+        return filter_obj
+    if (
+        isinstance(filter_obj, pikepdf.Array)
+        and len(filter_obj) == 1
+        and Version(__libqpdf_version__) > Version('12.4.2')
+    ):
+        return filter_obj[0]
+    return None
+
+
 def _unchanged_filters(stream_dict: pikepdf.Dictionary) -> _Filters:
     """The filters qpdf writes for a stream it copies without decoding."""
     filter_obj = stream_dict.get('/Filter')
@@ -292,8 +312,8 @@ class WriteModel:
         if (
             compress
             and not recompress
-            and isinstance(filter_obj, pikepdf.Name)
-            and filter_obj in (pikepdf.Name.FlateDecode, pikepdf.Name('/Fl'))
+            and _sole_filter(filter_obj)
+            in (pikepdf.Name.FlateDecode, pikepdf.Name('/Fl'))
         ):
             filter_ = False
         if stream.is_indirect and stream.objgen == self._root_metadata:

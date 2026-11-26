@@ -23,6 +23,14 @@ the architecture notes on thread safety.
   requires an effective `/MaxLen`. The extended generator renders zero-length
   combs without text. {issue}`748`
 
+## v10.18.3
+
+- {func}`pikepdf.pdfa.check` now predicts the right stream filters with
+  qpdf versions newer than 12.4.2. Those versions keep the compressed data of a
+  stream whose `/Filter` is the one-element array `[/FlateDecode]` instead of
+  recompressing it. qpdf 12.4.2 recompressed such streams, which removed any
+  predictor and could make scanned images larger. {issue}`qpdf/qpdf#1785`
+
 ## v10.18.2
 
 - Fixed crashes on Windows in code that locks more than one `Pdf` at once,
