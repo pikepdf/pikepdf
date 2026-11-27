@@ -16,6 +16,17 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.18.4
+
+- {attr}`pikepdf.PdfImage.colorspace` now returns `/Separation` for an image
+  in a `/Separation` colour space, or an `/Indexed` one based on it, as it
+  returns `/DeviceN` for `/DeviceN`. Previously it raised
+  `NotImplementedError`, although {attr}`pikepdf.PdfImage.mode` was already
+  `'Separation'`.
+- Images in `/Separation` and `/DeviceN` colour spaces now get the default
+  `/Decode` arrays given by ISO 32000-2 Table 88 instead of raising
+  `NotImplementedError`.
+
 ## v10.18.3
 
 - {func}`pikepdf.pdfa.check` now predicts the right stream filters with

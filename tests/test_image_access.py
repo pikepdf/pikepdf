@@ -1241,6 +1241,40 @@ def test_decode_array_indexed_nonidentity_warns(trivial):
         PdfImage(xobj).as_pil_image()
 
 
+@pytest.mark.parametrize(
+    'family, colourants, expected',
+    [
+        ('/Separation', None, (0.0, 1.0)),
+        ('/DeviceN', ['/Black'], (0.0, 1.0)),
+        ('/DeviceN', ['/Cyan', '/Spot', '/Black'], (0.0, 1.0) * 3),
+    ],
+)
+def test_decode_array_default_separation_devicen(family, colourants, expected):
+    # ISO 32000-2 Table 88: Separation defaults to [0 1]; DeviceN to one
+    # [0 1] pair per colourant.
+    pdf = Pdf.new()
+    tint = Stream(pdf, b'{pop 0 0 0 1}', FunctionType=4, Domain=[0, 1] * 3)
+    name = Name.Spot if colourants is None else Array([Name(c) for c in colourants])
+    ncomp = 1 if colourants is None else len(colourants)
+    xobj = Stream(
+        pdf,
+        bytes(16 * ncomp),
+        BitsPerComponent=8,
+        ColorSpace=Array([Name(family), name, Name.DeviceCMYK, tint]),
+        Width=4,
+        Height=4,
+        Type=Name.XObject,
+        Subtype=Name.Image,
+    )
+    assert PdfImage(xobj)._decode_array == expected
+
+
+def test_is_separation_docstring():
+    doc = PdfImage.is_separation.__doc__
+    assert '/Separation' in doc
+    assert '/DeviceN' not in doc
+
+
 def test_decode_array_not_applied_when_disabled():
     # apply_decode_array=False returns the raw samples (forensic view), i.e. the
     # /Decode = [1, 0] inversion is NOT applied.
