@@ -61,6 +61,16 @@ def decode_array(pim: PdfImageBase) -> DecodeArray:
         n = icc_ncomponents(pim)
         if n in (1, 3, 4):
             return cast(DecodeArray, (0.0, 1.0) * n)
+    if pim.colorspace == '/Separation':
+        return (0.0, 1.0)
+    if pim.colorspace == '/DeviceN':
+        # One [0 1] pair per colourant name (ISO 32000-2 Table 88).
+        try:
+            n = len(pim._colorspaces[1])
+        except (IndexError, TypeError):
+            n = 0
+        if n > 0:
+            return cast(DecodeArray, (0.0, 1.0) * n)
     if pim.image_mask:
         return (0.0, 1.0)  # Default for image masks; per RM 8.9.6.2
 
@@ -101,14 +111,16 @@ def colorspace(pim: PdfImageBase) -> str | None:
             if isinstance(subspace, list) and subspace[0] in (
                 '/ICCBased',
                 '/DeviceN',
+                '/Separation',
                 '/CalGray',
                 '/CalRGB',
                 '/Lab',
             ):
                 base: str = subspace[0]
                 return base
-        if pim._colorspaces[0] == '/DeviceN':
-            return '/DeviceN'
+        if pim._colorspaces[0] in ('/DeviceN', '/Separation'):
+            cs: str = pim._colorspaces[0]
+            return cs
 
     raise NotImplementedError(
         "not sure how to get colorspace: " + repr(pim._colorspaces)

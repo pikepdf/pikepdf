@@ -170,7 +170,7 @@ class PdfImageBase(ABC, metaclass=_PdfImageMeta):
 
     @property
     def is_separation(self) -> bool:
-        """Check if image has a /DeviceN (complex printing) colorspace."""
+        """Check if image has a /Separation (spot colour) colorspace."""
         return self._colorspace_has_name('/Separation')
 
     @property
