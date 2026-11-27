@@ -16,6 +16,14 @@ free-threaded use required building from source. As always, coordinating
 concurrent modification of the same object across threads requires a lock -- see
 the architecture notes on thread safety.
 
+## v10.18.3
+
+- {func}`pikepdf.pdfa.check` now predicts the right stream filters with
+  qpdf versions newer than 12.4.2. Those versions keep the compressed data of a
+  stream whose `/Filter` is the one-element array `[/FlateDecode]` instead of
+  recompressing it. qpdf 12.4.2 recompressed such streams, which removed any
+  predictor and could make scanned images larger. {issue}`qpdf/qpdf#1785`
+
 ## v10.18.2
 
 - Fixed crashes on Windows in code that locks more than one `Pdf` at once,
