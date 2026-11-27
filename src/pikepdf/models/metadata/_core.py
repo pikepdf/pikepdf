@@ -6,7 +6,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable, Iterator, Mapping, MutableMapping
+from collections.abc import Callable, Iterable, Iterator, Mapping, MutableMapping
 from datetime import UTC, datetime
 from types import TracebackType
 from typing import TYPE_CHECKING, Any, Self
@@ -87,7 +87,11 @@ class PdfMetadata(MutableMapping[str, Any]):
         self._overwrite_invalid_xml = overwrite_invalid_xml
 
         # Initialize XmpDocument with PDF's XMP data
+        self._had_xmp = Name.Metadata in pdf.Root
         self._xmp_doc = self._load_xmp()
+        # DocumentInfo entries that could not be copied into XMP when it was seeded
+        # from DocumentInfo, so _update_docinfo must not delete them.
+        self._uncopied_docinfo: set[str] = set()
 
         # Initialize DocinfoStore
         self._docinfo = DocinfoStore(pdf)
@@ -120,13 +124,42 @@ class PdfMetadata(MutableMapping[str, Any]):
         approximately equivalent to certain XMP records. This method copies
         those entries into the XMP metadata.
         """
-        from lxml.etree import QName
 
-        def warn_or_raise(msg: str, e: Exception | None = None) -> None:
+        def warn_or_raise(
+            msg: str, e: Exception | None = None, stacklevel: int = 3
+        ) -> None:
             if raise_failure:
                 raise ValueError(msg) from e
-            warn(msg, stacklevel=3)
+            warn(msg, stacklevel=stacklevel)
 
+        self._copy_docinfo(
+            docinfo,
+            delete_missing,
+            lambda msg, e: warn_or_raise(msg, e, stacklevel=5),
+        )
+        valid_docinfo_names = {
+            str(docinfo_name) for _, _, docinfo_name, _ in self.DOCINFO_MAPPING
+        }
+        extra_docinfo_names = {str(k) for k in docinfo.keys()} - valid_docinfo_names
+        for extra in extra_docinfo_names:
+            warn_or_raise(
+                f"The metadata field {extra} with value '{docinfo.get(extra)!r}' "
+                "has no XMP equivalent, so it was discarded",
+            )
+
+    def _copy_docinfo(
+        self,
+        docinfo: Object | Mapping[str, object],
+        delete_missing: bool,
+        on_failure: Callable[[str, Exception], None],
+    ) -> set[str]:
+        """Copy the DocumentInfo entries that have an XMP equivalent into XMP.
+
+        Returns the names of the entries that could not be converted.
+        """
+        from lxml.etree import QName
+
+        failed = set()
         for uri, shortkey, docinfo_name, converter in self.DOCINFO_MAPPING:
             qname = QName(uri, shortkey)
             # docinfo might be a dict or pikepdf.Dictionary, so lookup keys
@@ -145,22 +178,23 @@ class PdfMetadata(MutableMapping[str, Any]):
                     continue
                 self._setitem(qname, val, True)
             except (ValueError, AttributeError, NotImplementedError) as e:
-                warn_or_raise(
+                failed.add(str(docinfo_name))
+                on_failure(
                     f"The metadata field {docinfo_name} could not be copied to XMP", e
                 )
-        valid_docinfo_names = {
-            str(docinfo_name) for _, _, docinfo_name, _ in self.DOCINFO_MAPPING
-        }
-        extra_docinfo_names = {str(k) for k in docinfo.keys()} - valid_docinfo_names
-        for extra in extra_docinfo_names:
-            warn_or_raise(
-                f"The metadata field {extra} with value '{docinfo.get(extra)!r}' "
-                "has no XMP equivalent, so it was discarded",
-            )
+        return failed
 
     def __enter__(self) -> Self:
         """Open metadata for editing."""
         self._updating = True
+        if self.sync_docinfo and not self._had_xmp and Name.Info in self._pdf.trailer:
+            # Without XMP, DocumentInfo is the only metadata the PDF has. Start from
+            # it, or leaving the block would delete the entries that were not edited.
+            self._uncopied_docinfo = self._copy_docinfo(
+                self._pdf.docinfo,
+                delete_missing=False,
+                on_failure=lambda msg, e: warn(msg, stacklevel=5),
+            )
         return self
 
     def __exit__(
@@ -192,7 +226,10 @@ class PdfMetadata(MutableMapping[str, Any]):
             try:
                 value = self[qname]
             except KeyError:
-                if docinfo_name in self._pdf.docinfo:
+                if (
+                    docinfo_name in self._pdf.docinfo
+                    and str(docinfo_name) not in self._uncopied_docinfo
+                ):
                     del self._pdf.docinfo[docinfo_name]
                 continue
             if converter:
